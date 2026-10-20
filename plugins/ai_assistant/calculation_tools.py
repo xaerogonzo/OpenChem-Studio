@@ -1,4 +1,4 @@
-"""The five tools that let the assistant read and run the application's calculators.
+"""The eight tools that let the assistant read and run the application's calculators, read the user's own scores, and PROPOSE a score for the user to approve.
 
 Each takes the turn's `ToolBridge` as its first argument, unlike the two older tools in `tools.py`, which
 take only what the model sent. The descriptions below are the model's whole understanding of what each
@@ -96,6 +96,67 @@ READ_RESULTS = ToolDefinition(
     },
 )
 
+READ_SCORES = ToolDefinition(
+    name="read_scores",
+    description=(
+        "Read the user-defined SCORES of this project for the molecule the user had selected when they sent their message: formulas a person wrote over numbers this application "
+        "computes, such as a weighted sum of desirabilities. A score is not stored with the results, so read_results never shows one. Each score has its label (always ending "
+        "'(user-defined, unvalidated)'), its formula, its declared units, every input with the state it was read in, and a value only when every input could be read from the "
+        "molecule's CURRENT results. A score with outcome 'refused' has no value: say which input could not be read and why, and never state a value or treat it as zero. A score with outcome 'computed_with_defaults' used a default its definition declares for an input nobody calculated: name those inputs (defaults_used) and never present the number as the result of calculating them. A score "
+        "is not a prediction and nothing has validated it, so never present one as an experimental or predicted property. Omit `scores` to read every score, or name some by id "
+        "or label; a name that matches nothing is returned under 'not_found'. You cannot create, change or delete a score; you may suggest formula text for the person to enter "
+        "in Tools > Derived Scores. A score whose input has not been calculated gets its value when the calculator has run (run_calculator)."
+    ),
+    input_schema={
+        "type": "object",
+        "properties": {
+            "scores": {"type": "array", "items": {"type": "string"}, "description": "Score ids (such as user.polar_window) or labels to read; omit for every score."},
+        },
+    },
+)
+
+LIST_SCORE_OUTPUTS = ToolDefinition(
+    name="list_score_outputs",
+    description=(
+        "List the outputs a score's formula may read: each with its output_id, what it measures, the unit to write for it and its endpoint. Use it before propose_score, and never invent an "
+        "output id. Read-only; it does not read the user's molecule. Two outputs with the same endpoint cannot be in one score."
+    ),
+    input_schema={"type": "object", "properties": {}},
+)
+
+PROPOSE_SCORE = ToolDefinition(
+    name="propose_score",
+    description=(
+        "Propose a user-defined SCORE for the user to approve: a formula over numbers this application computes, such as a weighted blend of desirabilities. You CANNOT save it. It is checked by "
+        "the rules a score the user typed meets, and if it passes, a card with the formula, its inputs and the value it gives for the selected molecule appears for the user to Approve or "
+        "Cancel; nothing is saved unless they approve, and you are told what they decided with their next message. Never say it is saved or that you created it. "
+        "Inputs are outputs from list_score_outputs, each given a lowercase name. The formula uses numbers, those names, constant names, + - * / and ^ with a whole-number exponent, "
+        "parentheses, and abs, min, max, clamp, ramp, sqrt, ln, log10, exp, and nothing else (no comparisons, no conditionals). ramp(x, bad, good) is 0 at bad, 1 at good and linear between. "
+        "Units are checked and never converted: add only like units, and result_unit must equal the unit the formula works out to ('1' for a plain number). A bare number takes the unit of "
+        "what it is added to or compared with; a named constant carries its own unit. The label may not be close to a name the application gives, so do not call a score 'CNS MPO' or 'QED'. "
+        "It is shown as '<label> (user-defined, unvalidated)': an unvalidated formula, never a prediction, so offer weights and thresholds as a starting point the user can change, and say "
+        "where each came from. A refused request says which field and why: fix it and try again. At most 5 proposals wait at once."
+    ),
+    input_schema={
+        "type": "object",
+        "properties": {
+            "label": {"type": "string", "description": "What the score is called, at most 80 characters."},
+            "formula": {"type": "string", "description": "The formula, at most 500 characters."},
+            "result_unit": {"type": "string", "description": "The unit the formula works out to; '1' for a plain number."},
+            "inputs": {
+                "type": "array", "items": {"type": "object"},
+                "description": "Each {\"name\": \"psa\", \"output\": \"descriptor:tpsa\"}: the name the formula uses and an output_id from list_score_outputs.",
+            },
+            "constants": {
+                "type": "array", "items": {"type": "object"},
+                "description": "Optional. Each {\"name\": \"hi\", \"value\": 140, \"unit\": \"Å^2\"}: a named number with a unit.",
+            },
+            "note": {"type": "string", "description": "Optional. Why these weights and thresholds, at most 500 characters."},
+        },
+        "required": ["label", "formula", "result_unit", "inputs"],
+    },
+)
+
 RUN_CALCULATOR = ToolDefinition(
     name="run_calculator",
     description=(
@@ -123,7 +184,7 @@ RUN_CALCULATOR = ToolDefinition(
 )
 
 #: The definitions offered to a provider when a molecule is selected and the calculators are reachable.
-CALCULATION_TOOLS: list[ToolDefinition] = [FIND_CALCULATORS, LIST_GOALS, DESCRIBE_CALCULATOR, READ_RESULTS, RUN_CALCULATOR]
+CALCULATION_TOOLS: list[ToolDefinition] = [FIND_CALCULATORS, LIST_GOALS, DESCRIBE_CALCULATOR, READ_RESULTS, READ_SCORES, LIST_SCORE_OUTPUTS, PROPOSE_SCORE, RUN_CALCULATOR]
 
 
 def _find(bridge: ToolBridge, query: str = "", limit: int = 10) -> str:
@@ -142,6 +203,18 @@ def _read(bridge: ToolBridge, calculators: list[str] | None = None, include_not_
     return bridge.read_results(calculators, include_not_current)
 
 
+def _scores(bridge: ToolBridge, scores: list[str] | None = None) -> str:
+    return bridge.read_scores(scores)
+
+
+def _score_outputs(bridge: ToolBridge) -> str:
+    return bridge.list_score_outputs()
+
+
+def _propose(bridge: ToolBridge, **request: Any) -> str:
+    return bridge.propose_score(request)
+
+
 def _run(bridge: ToolBridge, calculator_id: str, parameters: dict[str, Any] | None = None) -> str:
     return bridge.run_calculator(calculator_id, parameters)
 
@@ -152,5 +225,8 @@ CALCULATION_HANDLERS: dict[str, Callable[..., str]] = {
     "list_goals": _goals,
     "describe_calculator": _describe,
     "read_results": _read,
+    "read_scores": _scores,
+    "list_score_outputs": _score_outputs,
+    "propose_score": _propose,
     "run_calculator": _run,
 }

@@ -1,0 +1,45 @@
+[
+  {"do": "smiles", "smiles": "CCO", "name": "Ethanol", "after_ms": 3000},
+  {"do": "select", "molecule": -1, "after_ms": 3000},
+  {"do": "view_3d", "after_ms": 2000},
+  {"do": "qc_setup", "method": "HF STO-3G"},
+
+  {"do": "conformers", "count": 3, "optimize_lowest": true,
+   "expect_offer": {"available": true, "text_contains": ["Runs with the Quantum Chemistry panel's settings: HF STO-3G"]},
+   "after_ms": 20000},
+  {"do": "expect_conformers", "min": 2},
+  {"do": "qc_wait", "timeout_ms": 600000},
+  {"do": "conformer_report", "tag": "lowest-optimized-in-its-slot",
+   "expect": {"conformers": 2, "orca_conformers": 1, "origin_slot": 1, "canonical_method": "orca_opt",
+              "canonical_mapped": true, "viewer_index": 0, "viewer_on_canonical": true,
+              "viewer_label_contains": "Conformer 1/2 - ORCA optimized (HF STO-3G)",
+              "badge_contains": "ORCA-optimized geometry (HF STO-3G)", "explorer_contains": "[ORCA-optimized]",
+              "methods": ["orca_opt", "rdkit+MMFF94/UFF"]}},
+  {"do": "shot", "path": "benchmarks/visual/artifacts/orca_lowest_at_generation.png", "after_ms": 1500},
+
+  {"do": "menu", "text": "Undo", "prefix": true, "after_ms": 3000},
+  {"do": "conformer_report", "tag": "undo-puts-the-force-field-one-back",
+   "expect": {"conformers": 2, "orca_conformers": 0, "badge_empty": true,
+              "methods": ["rdkit+MMFF94/UFF", "rdkit+MMFF94/UFF"]}},
+  {"do": "menu", "text": "Redo", "prefix": true, "after_ms": 3000},
+  {"do": "conformer_report", "tag": "redo",
+   "expect": {"orca_conformers": 1, "methods": ["orca_opt", "rdkit+MMFF94/UFF"]}},
+
+  {"do": "conformers", "count": 3, "optimize_lowest": false,
+   "expect_offer": {"available": true}, "after_ms": 20000},
+  {"do": "expect_conformers", "min": 3},
+  {"do": "qc_wait", "timeout_ms": 600000},
+  {"do": "conformer_report", "tag": "unticked-generates-only-and-keeps-the-orca-one",
+   "expect": {"conformers": 3, "orca_conformers": 1,
+              "methods": ["rdkit+MMFF94/UFF", "rdkit+MMFF94/UFF", "orca_opt"]}},
+
+  {"do": "conformers", "count": 3, "optimize_lowest": true, "after_ms": 20000},
+  {"do": "expect_conformers", "min": 3},
+  {"do": "qc_wait", "timeout_ms": 600000},
+  {"do": "conformer_report", "tag": "the-kept-orca-geometry-is-not-the-candidate",
+   "expect": {"conformers": 3, "orca_conformers": 2, "canonical_method": "orca_opt",
+              "methods": ["orca_opt", "rdkit+MMFF94/UFF", "orca_opt"]}},
+
+  {"do": "expect_clean"},
+  {"do": "quit"}
+]

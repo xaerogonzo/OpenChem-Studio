@@ -125,12 +125,17 @@ class StereoAnalysis:
         except Exception:  # pragma: no cover — defensive only
             logger.debug("rdCIPLabeler.AssignCIPLabels unavailable; using legacy CIP codes")
 
+        self._label_azolide_on_neutral_view()
+
         centers: list[StereoCenter] = []
 
         centers.extend(self._detect_tetrahedral())
         centers.extend(self._detect_double_bond())
 
         return tuple(centers)
+
+    def _label_azolide_on_neutral_view(self) -> None:
+        label_azolide_on_neutral_view(self._mol)  # type: ignore[arg-type]
 
     # ------------------------------------------------------------------
     # Tetrahedral detection
@@ -286,3 +291,35 @@ class StereoAnalysis:
 
     def __len__(self) -> int:
         return len(self._stereocenters)
+
+
+def label_azolide_on_neutral_view(mol) -> None:
+    """Give the CIP codes of a molecule with an aromatic `[n-]` the codes of its neutral `[nH]` view, in place (naming round 60).
+
+    RDKit's labeller reads the deprotonated ring nitrogen with different duplicate atoms than the neutral azole, so a spiro centre beside a pyrazolide was `S` where the neutral
+    compound is `R`, and OPSIN (which the names are checked against) agrees with the neutral view: `(4S)-...pyrazole-2-id` read back as the other enantiomer. The charge
+    does not change the arrangement in space, only RDKit's reading of the ring."""
+    from rdkit import Chem
+
+    sites = [a.GetIdx() for a in mol.GetAtoms() if a.GetAtomicNum() == 7 and a.GetFormalCharge() == -1 and a.GetIsAromatic()]
+    if not sites:
+        return
+    work = Chem.Mol(mol)
+    for i in sites:
+        atom = work.GetAtomWithIdx(i)
+        atom.SetFormalCharge(0)
+        atom.SetNumExplicitHs(1)
+        atom.SetNoImplicit(True)
+    try:
+        Chem.SanitizeMol(work)
+        Chem.AssignStereochemistry(work, cleanIt=True, force=True)  # type: ignore[attr-defined]
+        from rdkit.Chem import rdCIPLabeler  # type: ignore[attr-defined]
+        rdCIPLabeler.AssignCIPLabels(work)
+    except Exception:  # noqa: BLE001 - keep the ion's own codes
+        return
+    for atom in work.GetAtoms():
+        if atom.HasProp("_CIPCode"):
+            mol.GetAtomWithIdx(atom.GetIdx()).SetProp("_CIPCode", atom.GetProp("_CIPCode"))
+    for bond in work.GetBonds():
+        if bond.HasProp("_CIPCode"):
+            mol.GetBondWithIdx(bond.GetIdx()).SetProp("_CIPCode", bond.GetProp("_CIPCode"))

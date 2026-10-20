@@ -8,7 +8,7 @@
 application will read it, the unit it works out to and the value, or the reason it was refused, and exits 0 when everything asked
 for was accepted and 1 when anything was refused.
 
-It exists so a formula can be tried without a project, and it is what reaches `domain/score_formula.py` until the application does.
+It exists so a formula can be tried without a project or an application window.
 """
 
 from __future__ import annotations
@@ -17,6 +17,7 @@ import argparse
 import sys
 from collections.abc import Sequence
 
+from openchem.domain.score_constants import Constant, check_constants, constant_values
 from openchem.domain.score_formula import FormulaError, Refusal, check_definition, evaluate, render
 from openchem.domain.score_units import Unit, UnitError, parse_unit
 
@@ -37,17 +38,25 @@ def main(argv: Sequence[str] | None = None) -> int:
     parser.add_argument("--input", action="append", default=[], metavar="NAME=UNIT")
     parser.add_argument("--result", required=True, metavar="UNIT")
     parser.add_argument("--value", action="append", default=[], metavar="NAME=NUMBER")
+    parser.add_argument("--constant", action="append", default=[], metavar="NAME=NUMBER,UNIT")
     args = parser.parse_args(argv)
 
     try:
         units: dict[str, Unit] = {name: parse_unit(unit) for name, unit in _pairs(args.input, "--input")}
         result = parse_unit(args.result)
         values = {name: float(number) for name, number in _pairs(args.value, "--value")}
+        constants = []
+        for name, rest in _pairs(args.constant, "--constant"):
+            number, comma, unit = rest.partition(",")
+            if not comma:
+                raise ValueError(f"--constant {name}={rest!r} should be NAME=NUMBER,UNIT")
+            constants.append(Constant(name, float(number), unit))
     except (ValueError, UnitError) as exc:
         print(f"refused: {exc}")
         return 1
 
     try:
+        units.update(check_constants(constants, list(units)))
         formula = check_definition(args.formula, units, result)
     except FormulaError as exc:
         where = f" (at character {exc.position})" if exc.position is not None else ""
@@ -59,7 +68,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         print("definition accepted; give --value NAME=NUMBER to evaluate it")
         return 0
     try:
-        print(f"value:   {evaluate(formula, values)!r} {result}")
+        print(f"value:   {evaluate(formula, {**values, **constant_values(constants)})!r} {result}")
     except Refusal as exc:
         print(f"refused: {exc}")
         return 1

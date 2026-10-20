@@ -148,6 +148,9 @@ SUFFIX_VARIANT_TABLE: dict[tuple[str, OutputForm], str] = {
     ("carbothioic O-acid", OutputForm.STANDALONE):  "carbothioic O-acid",
     ("carbothioic O-acid", OutputForm.ACID_STEM):   "carbothioate",
     ("carbothioic O-acid", OutputForm.ANION):       "carbothioate",
+    ("carboselenoic O-acid", OutputForm.STANDALONE):  "carboselenoic O-acid",
+    ("carboselenoic O-acid", OutputForm.ACID_STEM):   "carboselenoate",
+    ("carboselenoic O-acid", OutputForm.ANION):       "carboselenoate",
     ("carbothioic S-acid", OutputForm.STANDALONE):  "carbothioic S-acid",
     ("carbothioic S-acid", OutputForm.ACID_STEM):   "carbothioate",
     ("carbothioic S-acid", OutputForm.ANION):       "carbothioate",
@@ -756,6 +759,9 @@ def merge_identical_prefixes(
         # 'diazane' of hydrazine, and OPSIN does not parse it, so a doubly protonated amino acid was unverifiable. 'bis(azaniumyl)'
         # says what it is. The book prints no multiplied 'azaniumyl', so the form is derived from the rule above, not quoted.
         if not compound and count > 1 and name.startswith("aza"):
+            compound = True
+        # And a multiplied protonated carbonyl: OPSIN cannot read `3,4-dioxidaniumylidene`, it reads `3,4-bis(oxidaniumylidene)` (naming round 62).
+        if not compound and count > 1 and name in ("oxidaniumylidene", "sulfaniumylidene"):
             compound = True
         sort_name = derive_sort_name(name)
 
@@ -2011,6 +2017,10 @@ def _assemble_polyester(tree: FunctionalClassTree) -> str:
         )
         if actual_pairs != default_pairs:
             cite_locants = True
+        # Two alkyls that differ only by a descriptor the alphanumerical order ignores (`ethyl` and `(2-2H)ethyl`) sort as a TIE, so the unlocanted order is the order they were
+        # written in and says nothing about the positions: `(2-2H)ethyl ethyl 2-chlorobutanedioate` was read as the deuterium on C1 (naming round 69, D-320).
+        if len({derive_sort_name(n) for n in distinct_names}) < len(distinct_names):
+            cite_locants = True
     elif len(distinct_names) > 1 and not (all_have_locants and have_ranks):
         # Different alkyls but we could not recover locants/ranks: be safe and
         # do not emit an ambiguous unlocanted mixed-ester name.  Citing the raw
@@ -2096,6 +2106,18 @@ def _assemble_polyol_ester(tree: FunctionalClassTree) -> str:
     return f"{organyl} {multiplied}"
 
 
+def _enclosed_after_bridge_locant(alkyl: str) -> str:
+    """The organyl of an `S-` / `O-` ester, in marks when OPSIN cannot tell where its locants begin (naming round 75).
+
+    `S-2-methylcyclohexyl ethanethioate` reads, `S-3,5-dimethylcyclohexyl ethanethioate` and `S-(isoquinolin-1-yl)(phenyl)methyl ...` do not: a locant LIST
+    right after the italic locant, or two enclosed prefixes side by side, ends the word early. `S-(3,5-dimethylcyclohexyl) ethanethioate` reads.
+    """
+    if re.match(r"\d+,\d", alkyl) or re.search(r"[)\]}][(\[{]", alkyl):
+        open_b, close_b = _choose_brackets(alkyl)
+        return f"{open_b}{alkyl}{close_b}"
+    return alkyl
+
+
 def _assemble_fc(tree: FunctionalClassTree) -> str:
     """Assemble functional class names."""
     if tree.subtype == "polyol_ester":
@@ -2136,11 +2158,11 @@ def _assemble_fc(tree: FunctionalClassTree) -> str:
             # The "S-" locant prefix on the alkyl disambiguates the acid-stem
             # from its thionoester counterpart (for thioate) and signals that
             # the chalcogen link is through sulfur.
-            return f"S-{filled['alcohol']} {filled['acid']}"
+            return f"S-{_enclosed_after_bridge_locant(filled['alcohol'])} {filled['acid']}"
 
         case "thionoester":
             # P-65.6.3: R-C(=S)-O-R' -> "O-R' R-thioate"
-            return f"O-{filled['alcohol']} {filled['acid']}"
+            return f"O-{_enclosed_after_bridge_locant(filled['alcohol'])} {filled['acid']}"
 
         case "carbamate":
             # "butyl N-phenylcarbamate" / "ethyl carbamate" (no N-sub)
@@ -2181,9 +2203,9 @@ def _assemble_fc(tree: FunctionalClassTree) -> str:
                 bridge_locant = "S"
                 stem = "carbamodithioate"
             if n_prefix:
-                return f"{bridge_locant}-{alcohol_name} {n_prefix}{stem}"
+                return f"{bridge_locant}-{_enclosed_after_bridge_locant(alcohol_name)} {n_prefix}{stem}"
             else:
-                return f"{bridge_locant}-{alcohol_name} {stem}"
+                return f"{bridge_locant}-{_enclosed_after_bridge_locant(alcohol_name)} {stem}"
 
         case "anhydride":
             adj1, _ = _acid_to_adjective(filled["acid1"])
@@ -2620,7 +2642,7 @@ def _apply_retained_acyl_pin(result: str, tree: SubstitutiveTree) -> str:
 
 
 #: A parent stem that starts with its hydro prefixes: `3,4-dihydroquinolin`, `1,2,3,4-tetrahydronaphthalen`, `octahydro-4H-indol`, `2,3-dihydro-1H-indol`.
-_HYDRO_PREFIXED_STEM = re.compile(r"^((?:[0-9A-Za-z,]+-)?(?:(?:di|tri|tetra|penta|hexa|hepta|octa|nona|deca)a?)?(?:de)?hydro)(.+)$")
+_HYDRO_PREFIXED_STEM = re.compile(r"^((?:[0-9A-Za-z,]+-)?(?:(?:undeca|dodeca|trideca|tetradeca|pentadeca|hexadeca|heptadeca|octadeca|nonadeca|icosa|di|tri|tetra|penta|hexa|hepta|octa|nona|deca)a?)?(?:de)?hydro)(.+)$")   # up to icosahydro (naming round 69: a steroid is hexadecahydro)
 
 
 def _assemble_substitutive(tree: SubstitutiveTree) -> str:
@@ -3149,6 +3171,14 @@ def _assemble_substitutive(tree: SubstitutiveTree) -> str:
         #     (P-65.1): "oxosulfanylmethyl" is misread by OPSIN as O=S-CH2-
         #     (a phantom chain), so the =X prefix must be bracketed to give
         #     "(oxo)sulfanylmethyl" / "oxo(sulfanyl)methyl".
+        # An O- or S-PROTONATED carbonyl on a one-carbon parent is bracketed like `oxo`, in ANY output form (naming round 62: `(2-azanidylphenyl)oxidaniumylidenemethanamine`, which OPSIN misreads).
+        if (tree.named_parent.candidate.type == "chain" and tree.named_parent.candidate.length == 1 and len(merged) >= 2):
+            import dataclasses as _dc_pz
+
+            merged = [
+                _dc_pz.replace(mp, needs_brackets=True) if (mp.name in ("oxidaniumylidene", "sulfaniumylidene") and mp.multiplier is None) else mp
+                for mp in merged
+            ]
         if (tree.output_form == OutputForm.SUBSTITUENT
                 and tree.named_parent.candidate.type == "chain"
                 and tree.named_parent.candidate.length == 1
@@ -3454,7 +3484,8 @@ def _assemble_substitutive(tree: SubstitutiveTree) -> str:
             import dataclasses as _dc_iso
             from openchem.vendor.iupac_namer.isotope import render_isotope_labels as _render_iso_suffix
             _suffix_label = _render_iso_suffix(tuple(_dc_iso.replace(lbl, locant=None) if lbl.locant is not None and lbl.locant.is_numeric else lbl for lbl in _suffix_iso))
-            _located = re.match(r"^(-[0-9A-Za-z,']+-)(.+)$", rendered_suf)
+            # (the locant may carry its added hydrogen, `-1(2H)-one`: `pyrrolo[1,2-c]pyrimidin-1(2H)-(18O)one`, which OPSIN reads where the front-of-name `(1-18O)` it does not)
+            _located = re.match(r"^(-[0-9A-Za-z,']+(?:\([0-9A-Za-z,']+\))?-)(.+)$", rendered_suf)
             _anchors = {str(lbl.locant) for lbl in _suffix_iso if lbl.locant is not None and lbl.locant.is_numeric}
             if not _anchors and len(tree.suffix_groups) == 1 and tree.suffix_groups[0].locants:      # an alkoxy oxygen's label carries the element, not the anchor
                 _anchors = {str(tree.suffix_groups[0].locants[0])}
@@ -3463,6 +3494,12 @@ def _assemble_substitutive(tree: SubstitutiveTree) -> str:
                 _suffix_iso = ()
             # `ethanamide`, `benzoic acid`, `methanal` are rewritten to their retained names (acetamide, ...) after assembly; a label spliced into the suffix
             # would stop that rewrite, and `(18O)acetamide` (a retained name that numbers nothing) is what OPSIN reads, so those keep the bare front label.
+            elif (tree.named_parent.name == "benzene" and not rendered_suf.startswith("-") and len(tree.suffix_groups) == 1
+                  and any(lbl.element == "C" and lbl.locant is None for lbl in _suffix_iso)):
+                # The CARBON of benzene's carbon-supplying suffix (naming round 69): `(13C)benzamide` names seven carbons (OPSIN: "Position of isotope is ambiguous"), so the
+                # label goes into the systematic suffix, `benzene-1-(13C)carboxamide`, which the retained rewrite then leaves alone.
+                rendered_suf = "-1-" + _suffix_label + rendered_suf
+                _suffix_iso = ()
             elif tree.named_parent.name not in ("benzene", "ethane", "methane") and len(_anchors) == 1 and not rendered_suf.startswith("-"):
                 rendered_suf = f"-{next(iter(_anchors))}-" + _suffix_label + rendered_suf
                 _suffix_iso = ()
@@ -3473,6 +3510,7 @@ def _assemble_substitutive(tree: SubstitutiveTree) -> str:
         retained_sub = _RETAINED_RING_SUBSTITUENT.get(tree.named_parent.name)
         if (retained_sub is not None
                 and fv.is_monovalent
+                and tuple(fv.bond_orders) == (1,)       # `phenyl` is joined by a SINGLE bond; a ring joined by a double bond is a quinoid one, not a phenyl (naming round 73)
                 and not tree.suffix_groups
                 and not tree.unsaturation):
             # Replace entire stem with the retained substituent form
@@ -3496,13 +3534,26 @@ def _assemble_substitutive(tree: SubstitutiveTree) -> str:
                 ) or ""
                 # Singular -ium: "i" is a vowel -> drop terminal 'e' on stem.
                 # Multiplied -diium/-triium: leading consonant -> keep 'e'.
-                if not rc_mult:
-                    if parts[stem_idx].endswith("e"):
-                        parts[stem_idx] = parts[stem_idx][:-1]
+                # A curated ring whose NAME carries its ketone (`...pyrimidin-4-on`) takes the `ium` BEFORE that suffix, as in the standalone form (`...pyrimidin-1-ium-4-one`):
+                # `...-4-on-1-ium-2-yl` is unreadable (naming round 55).
+                _ketone_stem = re.search(r"-\d+(?:,\d+)*(?:\(\d+H\))?-(?:di|tri|tetra)?on$", parts[stem_idx]) if not rc_mult else None
+                if _ketone_stem is not None:
+                    parts[stem_idx] = parts[stem_idx][: _ketone_stem.start()] + f"-{rc_locant_str}-ium" + parts[stem_idx][_ketone_stem.start():]
                 else:
-                    if not parts[stem_idx].endswith("e"):
-                        parts[stem_idx] += "e"
-                parts.append(f"-{rc_locant_str}-{rc_mult}ium")
+                    if not rc_mult:
+                        if parts[stem_idx].endswith("e"):
+                            parts[stem_idx] = parts[stem_idx][:-1]
+                    else:
+                        if not parts[stem_idx].endswith("e"):
+                            parts[stem_idx] += "e"
+                    parts.append(f"-{rc_locant_str}-{rc_mult}ium")
+            # A ring `[n-]` in SUBSTITUENT form takes the same infix, `-N-id-` (naming round 59): `[2-(1H-pyrazol-1-id-5-yl)ethyl]dimethylazanium`, which OPSIN reads. It used to be
+            # dropped, so the group was written as the NEUTRAL azole beside the cation and the charge guard refused the ion. One anion only: a multiplied `-diid-` is not measured.
+            if tree.ring_anion_locants and len(tree.ring_anion_locants) == 1:
+                ra_loc = tree.ring_anion_locants[0]
+                if parts[stem_idx].endswith("e"):
+                    parts[stem_idx] = parts[stem_idx][:-1]
+                parts.append(f"-{ra_loc}-id")
             # P-31.1.2.1: when the parent's unsaturation is baked into the
             # stem (e.g. monocyclic ring "cyclohex-1-en"), tree.unsaturation
             # is empty but the substituent is still unsaturated.  Detect a
@@ -3598,7 +3649,15 @@ def _assemble_substitutive(tree: SubstitutiveTree) -> str:
             # must be elided (P-16.3.3); for "-diium"/"-triium"
             # (consonant-leading multiplier) the 'e' is kept.
             suf_idx = len(parts) - 1
-            if not rc_mult:
+            # A curated ring whose NAME carries its ketone (`...pyrimidin-4-on`) cannot also carry a suffix: the cation suffix (`-2-aminium`) outranks the ketone, which becomes the
+            # prefix `oxo` (`7-methyl-4-oxo-4H-pyrido[1,2-a]pyrimidin-1-ium-2-aminium`, which OPSIN reads; `...-4-on-1-ium-2-aminium` it cannot; naming round 56).
+            _suffix_ketone = re.search(r"-(\d+)-on$", parts[stem_idx]) if not rc_mult else None
+            if _suffix_ketone is not None:
+                parts[stem_idx] = parts[stem_idx][: _suffix_ketone.start()]
+                parts.insert(stem_idx, f"{_suffix_ketone.group(1)}-oxo-")
+                stem_idx += 1
+                suf_idx += 1
+            elif not rc_mult:
                 if parts[stem_idx].endswith("e"):
                     parts[stem_idx] = parts[stem_idx][:-1]
             else:
@@ -3671,6 +3730,15 @@ def _assemble_substitutive(tree: SubstitutiveTree) -> str:
         ra_mult = get_multiplier(ra_count, complex=False) if ra_count > 1 else ""
         ra_mult = ra_mult or ""
         ra_suffix = f"-{ra_locant_str}-{ra_mult}ide"
+        if tree.suffix_groups and not ra_mult and not tree.unsaturation and len(parts) > stem_idx + 1:
+            # The ring anion goes BEFORE a suffix as the infix `-N-id-` (naming round 59): `1H-indol-1-id-5-ol`, `1H-imidazol-1-id-5-carboxamide` are read by OPSIN, and the
+            # trailing `1H-indol-5-ol-1-ide` / `...carboxamid-1-ide` are not (the ion was named and could not be read back).
+            if parts[stem_idx].endswith("e"):
+                parts[stem_idx] = parts[stem_idx][:-1]
+            elif parts[-1] == "e":
+                parts.pop()
+            parts.insert(len(parts) - 1, f"-{ra_locant_str}-id")
+            ra_suffix = ""
         if ra_mult and not tree.suffix_groups and not tree.unsaturation:
             if not (parts[stem_idx].endswith("e")
                     or (len(parts) > stem_idx + 1 and parts[-1] == "e")):
@@ -3680,7 +3748,8 @@ def _assemble_substitutive(tree: SubstitutiveTree) -> str:
                 parts.pop()
             elif parts[stem_idx].endswith("e"):
                 parts[stem_idx] = parts[stem_idx][:-1]
-        parts.append(ra_suffix)
+        if ra_suffix:
+            parts.append(ra_suffix)
 
     # P-82.2.1's exception, resolved now that the following part exists: a
     # hyphen goes in only when what follows the nuclide parentheses starts

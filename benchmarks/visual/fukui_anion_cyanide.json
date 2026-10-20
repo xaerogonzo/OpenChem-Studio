@@ -1,0 +1,31 @@
+[
+  {"do": "smiles", "smiles": "[C-]#N", "name": "Cyanide", "after_ms": 2500},
+  {"do": "select", "molecule": -1, "after_ms": 2500},
+  {"do": "conformers", "count": 3, "after_ms": 15000},
+  {"do": "qc_run", "calc_type": "Geometry Optimization", "method": "B3LYP 6-31G**", "after_ms": 1000},
+  {"do": "qc_wait", "timeout_ms": 900000},
+  {"do": "conformer_report", "tag": "optimized-geometry-is-the-canonical-one",
+   "expect": {"canonical_method": "orca_opt", "canonical_mapped": true}},
+
+  {"do": "qc_run", "calc_type": "Fukui functions (Hirshfeld)", "method": "B3LYP 6-31G**", "after_ms": 1000},
+  {"do": "qc_wait", "timeout_ms": 900000},
+  {"do": "qc_panel_report", "tag": "cyanide-has-all-four-from-its-dianion",
+   "expect": {
+     "calc_type": "Fukui functions (Hirshfeld)",
+     "run_calc_type": "fukui", "run_status": "completed", "per_atom_outputs": 4,
+     "results_contains": [
+       "Fukui functions (Hirshfeld, vertical) for 2 atoms:",
+       "Largest f+ (attack by a nucleophile): C (atom 1)",
+       "The dianion is",
+       "ABOVE the anion",
+       "Not validated: this calculation failed its second preregistered check"
+     ],
+     "results_excludes": ["f+, f0 and the dual descriptor were not computed", "state has more than one SCF solution"]}},
+
+  {"do": "select_atom", "atom": 0},
+  {"do": "inspector_report", "tag": "carbon", "expect_per_atom": {"contains": "orca.fukui_plus", "state": "fresh"}},
+  {"do": "select_atom", "atom": 1},
+  {"do": "inspector_report", "tag": "nitrogen", "expect_per_atom": {"contains": "orca.fukui_plus", "state": "fresh"}},
+  {"do": "expect_clean"},
+  {"do": "quit"}
+]

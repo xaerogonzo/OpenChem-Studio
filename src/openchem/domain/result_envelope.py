@@ -29,6 +29,10 @@ fails if a numeric value has no unit statement or the header is incomplete.
 sample of at most `Caps.atoms`, and the minimum, maximum and mean over ALL of them, with `truncated`
 stating how many were left out. Identity, units and caveats are never the thing dropped to make room.
 
+**A USER-DEFINED SCORE IS ANSWERED THE SAME WAY, THOUGH IT IS NOT A STORED RESULT** (`scores_view_envelope`, behind `read_scores`): a header that is always present (its label with the
+suffix `(user-defined, unvalidated)`, its formula, its declared unit, the definition's digest, every input with the state it was read in) and a `data` block only for a score that has a
+number. It says it is a formula a person wrote and is not a prediction; owner and note, which are a person's free text, are never sent.
+
 **A KIND WITH NO SAFE SERIALISER IS `unsupported`, NOT FORCED THROUGH A GENERIC DICT.** Its header still
 says what it is and where it came from; its numbers are not offered. Eight kinds are stored today and all
 eight are handled; the fallback is for the ninth nobody has taught this yet.
@@ -39,6 +43,7 @@ Pure: no Qt, no RDKit.
 from __future__ import annotations
 
 import math
+from collections.abc import Sequence
 from dataclasses import dataclass
 from typing import Any
 
@@ -56,6 +61,13 @@ from openchem.domain.descriptor import DescriptorValue
 from openchem.domain.refusal_kinds import REFUSAL_KEY, missing_inputs_of, refusal_kind_of_result
 from openchem.domain.report import Fact, ReportResult, StructureReport
 from openchem.domain.run_lifecycle import RunOutcome
+from openchem.domain.score_answer import DEFAULTED as SCORE_DEFAULTED
+from openchem.domain.score_answer import LIMITATION as SCORE_LIMITATION
+from openchem.domain.score_definition import VALIDATION as SCORE_VALIDATION
+from openchem.domain.score_outputs import ENDPOINTS, READ_FROM, ApprovedOutput, output_title
+from openchem.domain.score_proposal import ASSISTANT_OWNER, ProposalRefusal, Registered
+from openchem.domain.score_reading import ScoresView
+from openchem.domain.score_value import InputEvidence, InputState, ScoreStatus, ScoreValue
 from openchem.domain.scientific_result import (
     AlertResult,
     PerAtomDataset,
@@ -167,6 +179,12 @@ def _provenance_parameters(result: object) -> dict[str, Any]:
 #: not halved with the caps; this only stops a pathological record (a project saved by something else)
 #: from flooding a reply. A real calculator has a handful.
 MAX_SETTINGS = 32
+
+#: Longest a caveat a PRODUCER recorded in its provenance is sent whole. It is not halved with the caps: what a number
+#: is not, or that its method did not pass its own check, is part of what it MEANS, and the Fukui caveat is five sentences
+#: (1320 characters measured with every warning on) whose last, the standing of the calculation, was cut away by the 400 a
+#: header caveat gets. Producers write fixed sentences, so this only stops a runaway string from a project saved by something else.
+RECORDED_CAVEAT_LIMIT = 2000
 
 
 def _setting_value(value: Any, caps: Caps, nested: bool = False) -> Any:
@@ -397,6 +415,13 @@ def _caveats(result: object, entry: ResultEntry, caps: Caps) -> list[str]:
         caveats.append(entry.note)
     for attribute in ("assumptions", "limitations"):
         caveats.extend(_t(item, caps.text) for item in (getattr(result, attribute, ()) or ()))
+    # A caveat a PRODUCER recorded in its provenance (`caveat`): the Koopmans hardness that inverts ammonia and
+    # phosphine, a Fukui f+ taken on an unbound anion. It travels with the number in the Atom Inspector, and was
+    # not sent to a model at all, because a descriptor and a per-atom dataset have no `assumptions` field to
+    # carry it. It is not a setting (`_settings_of` leaves it out on purpose), so it belongs here.
+    recorded = _provenance_parameters(result).get("caveat")
+    if isinstance(recorded, str) and recorded.strip():
+        caveats.append(_t(recorded, max(caps.text, RECORDED_CAVEAT_LIMIT)))
     return caveats
 
 
@@ -471,6 +496,167 @@ def results_view_envelope(view: ResultsView, caps: Caps = FULL) -> dict[str, Any
             "Do not state a value that is not in a result here."
         ),
     }
+
+
+#: Said with every score, because it is what a model reporting one most needs to be told.
+SCORE_NOT_A_PREDICTION = (
+    "A score is a formula a person wrote over numbers this application computes. It is not a prediction of anything and nothing has validated it: report it with its label and unit, "
+    "and never as an experimental or predicted property."
+)
+
+#: What a model is told about reading and changing scores, sent with every read.
+SCORES_NOTE = (
+    "Each score is worked out from this molecule's CURRENT results as of this turn, so its value is current or it has none. An input is read from the drawing, except the geometry outputs "
+    "(the shape descriptors, eight of Geometry Analysis's sizes, HOMA's two extremes, the dipole's magnitude and five surface numbers; their input has `calculation_input` set to `geometry`; every other input has none), which are read from the conformer every calculation uses and named in the input's `conformer`: "
+    "a score over one has no value for a molecule with no conformer, or one measured on an earlier conformer than the one used now, and you must say so rather than substitute another. "
+    "An input in the state `not_applicable` is a geometry output the application declines to read for this molecule (it is several fragments, such as a salt, whose 3D shape is not a property of the compound, "
+    "or Geometry Analysis measured another geometry than the conformer or scaled its radii, or, for the highest and lowest HOMA of any ring, the conformer was not one ORCA optimised, or the dipole was not Gasteiger's or is of a charged species, "
+    "or an accessible area was made with another probe than 1.4 Å or on the major microspecies): its `note` says which, and you must pass that on and never suggest a number for it. "
+    "The two HOMA outputs read bond lengths, so they are read only from a conformer a quantum calculation optimised, and the input's `conformer` then names its level of theory; a force-field conformer's bond lengths are the force field's own. "
+    "The dipole is read only as the magnitude from Gasteiger charges of a species with no net charge (the three charge models differ by a factor of up to five on one molecule, and a charged species has no dipole of its own), "
+    "and the accessible areas only at the 1.4 Å probe on the structure as it is; a dipole is of one conformer, and a flexible molecule's differs between its conformers. "
+    "A score whose outcome is 'refused' has no value: say which input could not be read and why, and never state a value or treat it as zero. A unit of 1 means a plain number. "
+    "A score whose outcome is 'computed_with_defaults' used a default its definition declares for an input nobody calculated (`defaults_used`): say so, name those inputs, "
+    "and never present the number as the result of calculating them. "
+    "You cannot create, change or delete a score; you may suggest formula text for the person to enter in Tools > Derived Scores."
+)
+
+
+def _input_envelope(item: InputEvidence, caps: Caps) -> dict[str, Any]:
+    data: dict[str, Any] = {"name": item.name, "reads": output_title(item.output_id) or item.output_id, "output_id": item.output_id, "state": item.state.value}
+    if item.state in (InputState.READ, InputState.DEFAULT):
+        data["value"] = _n(item.value)
+        data["units"] = item.carried_as
+    if item.state is InputState.READ and item.calculation_input != READ_FROM:
+        # Said only for an input that is NOT the drawing's: the absence of the key is the drawing, which is what nearly every output is.
+        data["calculation_input"] = item.calculation_input
+        if item.geometry:
+            data["conformer"] = _t(item.geometry, 120)
+    if item.state is not InputState.READ:
+        data["note"] = _t(item.note, caps.text)
+    return data
+
+
+def score_envelope_of(value: ScoreValue, caps: Caps = FULL) -> dict[str, Any]:
+    """One score as the model is told it: the header always, the number only when there is one."""
+    definition = value.definition
+    computed = value.status is ScoreStatus.VALUE
+    defaulted = [item.name for item in value.defaulted]
+    outcome = ("computed_with_defaults" if defaulted else "computed") if computed else "refused"
+    data: dict[str, Any] = {
+        "score_id": definition.score_id,
+        "name": definition.display_label,
+        "kind": "user_defined_score",
+        "validation": SCORE_VALIDATION,
+        "freshness": "current",
+        "freshness_note": "worked out from the molecule's current results as of this turn; a score is never stored",
+        "outcome": outcome,
+        "formula": _t(value.formula or definition.formula, caps.text),
+        "declared_units": definition.result_unit,
+        "definition": definition.digest,
+        "inputs": [_input_envelope(item, caps) for item in value.inputs[: caps.items]],
+        "constants": [{"name": c.name, "value": _n(c.value), "units": c.unit} for c in definition.constants[: caps.items]],
+        "caveats": [SCORE_LIMITATION, SCORE_NOT_A_PREDICTION],
+    }
+    if definition.defaults:
+        data["declared_defaults"] = [{"input": name, "value": _n(number)} for name, number in definition.defaults[: caps.items]]
+    if computed:
+        data["data"] = {"value": _n(value.value), "units": definition.result_unit}
+        if defaulted:
+            data["defaults_used"] = defaulted
+            data["caveats"] = [*data["caveats"], SCORE_DEFAULTED.format(names=", ".join(defaulted))]
+    else:
+        data["refusal"] = {
+            "reason": _t(value.reason, caps.text * 2),
+            "inputs_not_read": [i.name for i in value.inputs if i.state not in (InputState.READ, InputState.DEFAULT)],
+        }
+        if value.defaulted:
+            data["refusal"]["inputs_defaulted"] = [i.name for i in value.defaulted]
+    return data
+
+
+def scores_view_envelope(view: ScoresView, caps: Caps = FULL) -> dict[str, Any]:
+    """A `ScoresView` as the dict `read_scores` returns."""
+    shown = view.values[: caps.items]
+    return {
+        "envelope_version": MODEL_ENVELOPE_VERSION,
+        "molecule_uuid": view.molecule_uuid,
+        "scores": [score_envelope_of(value, caps) for value in shown],
+        "not_found": list(view.not_found),
+        "defined_in_this_project": view.defined,
+        "left_out_for_length": view.truncated + (len(view.values) - len(shown)),
+        "note": SCORES_NOTE,
+    }
+
+
+#: What a model is told with the list of outputs a score may read.
+SCORE_OUTPUTS_NOTE = (
+    "Name an output in propose_score by its output_id. `unit` is how to write that output's unit for a constant or the result_unit (for example 'Å^2'); `1` is a plain number. "
+    "Two outputs with the same endpoint estimate one quantity and cannot be in one score. Units are never converted: a formula that adds two different units is refused, and a bare number "
+    "in a formula takes the unit of what it is added to or compared with. An output whose `input` is `geometry` is measured on a conformer: it has no value for a molecule that has none, or whose structure is several fragments (a salt)."
+)
+
+#: What a model is told when a proposal is waiting, which is what it most needs to say correctly to the person.
+SCORE_PROPOSAL_NOTE = (
+    "A card showing this score is on the user's screen. NOTHING IS SAVED until they press Approve, and you cannot approve it: say that it is waiting for them, never that it is saved or "
+    "that you created it. Do not propose it again; you will be told what they decided with their next message. If it is approved the owner is recorded as the AI assistant."
+)
+
+
+#: How many outputs `list_score_outputs` lists at full size, scaled with the caps like every other list. Its own limit and not `Caps.items` (40, for facts and structures): the approved table passed 40 outputs
+#: and the 41st, the last by id, fell off the model's list with only `left_out_for_length` to say so. A row is about 215 bytes, and with the ten shape outputs (2026-10-17) the table passed what `REPLY_BUDGET` (12000) holds, so the stepped caps
+#: began dropping the last rows. `list_score_outputs` therefore has a budget of its own (`plugins/ai_assistant/bridge.SCORE_OUTPUTS_BUDGET`); `tests/test_ai_assistant_score_proposals.py` turns red before it is crossed. With Geometry Analysis's
+#: eight sizes (59 outputs, rows of about 350 bytes for the long ids) the list took 14,249 of 16,000, so the budget is 20,000.
+SCORE_OUTPUT_ROWS = 120
+
+
+def score_outputs_envelope(entries: Sequence[ApprovedOutput], caps: Caps = FULL) -> dict[str, Any]:
+    """The outputs a score may read (`entries`, from the plugin handle), as `list_score_outputs` returns them."""
+    shown = entries[: max(1, SCORE_OUTPUT_ROWS * caps.items // FULL.items)]
+    return {
+        "envelope_version": MODEL_ENVELOPE_VERSION,
+        "outputs": [
+            {
+                "output_id": entry.output_id, "reads": output_title(entry.output_id) or entry.output_id, "unit": entry.unit,
+                "endpoint": entry.endpoint, "measures": ENDPOINTS.get(entry.endpoint, ""),
+                # Only a geometry row says its input: a row with none is the drawing's, and 41 rows saying so would cost a fifth of a reply that has a budget.
+                **({} if entry.input == READ_FROM else {"input": entry.input}),
+            }
+            for entry in shown
+        ],
+        "left_out_for_length": len(entries) - len(shown),
+        "note": SCORE_OUTPUTS_NOTE,
+    }
+
+
+def score_proposal_envelope(registered: Registered, caps: Caps = FULL) -> dict[str, Any]:
+    """A proposal that is waiting for a person, as the model is told: what it would be and give, and that nothing is saved."""
+    proposal = registered.proposal
+    score = score_envelope_of(proposal.preview, caps)
+    score.pop("score_id", None)  # the draft's id is not the id it will have, and a model must not refer to it
+    return {
+        "ok": True,
+        "state": "awaiting_approval",
+        "proposal_id": proposal.proposal_id,
+        "already_waiting": registered.already_waiting,
+        "molecule_uuid": proposal.molecule_uuid,
+        "score": score,
+        "owner_if_approved": ASSISTANT_OWNER,
+        "message": SCORE_PROPOSAL_NOTE,
+    }
+
+
+def score_refusal_envelope(refusal: ProposalRefusal, caps: Caps = FULL) -> dict[str, Any]:
+    """A request that was not made a proposal, said in the request's own terms so the model can fix it. Nothing is on the user's screen."""
+    data: dict[str, Any] = {"ok": False, "problem": refusal.problem.value, "message": _t(refusal.message, caps.text * 2), "nothing_saved": True}
+    if refusal.where:
+        data["where"] = refusal.where
+    if refusal.rule:
+        data["rule"] = refusal.rule
+    if refusal.position is not None:
+        data["position_in_formula"] = refusal.position
+    data["next"] = "nothing is on the user's screen; correct the request and call propose_score again, or tell the user what cannot be done"
+    return data
 
 
 def outcome_envelope(outcome: RunOutcome, caps: Caps = FULL) -> dict[str, Any]:

@@ -1,0 +1,49 @@
+[
+  {"do": "smiles", "smiles": "CC(=O)Oc1ccccc1C(=O)O", "name": "Aspirin", "after_ms": 1000},
+  {"do": "smiles", "smiles": "CCO", "name": "Ethanol", "after_ms": 1000},
+  {"do": "smiles", "smiles": "Cn1cnc2c1c(=O)n(C)c(=O)n2C", "name": "Caffeine", "after_ms": 1000},
+  {"do": "select", "molecule": 0, "after_ms": 3000},
+
+  {"do": "score_define", "label": "Polar window", "formula": "ramp(psa, 140, 60)", "inputs": [["psa", "descriptor:tpsa"]], "result_unit": "1",
+   "tag": "a-score-on-the-polar-surface-area", "expect": {"made": true}},
+  {"do": "score_define", "label": "Lipophilic window", "formula": "ramp(logp, 0, 2)", "inputs": [["logp", "descriptor:mol_logp"]], "result_unit": "1",
+   "tag": "a-score-on-logp", "expect": {"made": true}},
+
+  {"do": "project_run", "calculators": ["elemental_analysis"], "scope": "all", "descriptors": true, "descriptor_ids": ["tpsa", "mol_logp"], "after_ms": 9000},
+  {"do": "expect_project_table", "rows": 4, "showing": true, "tag": "the-run-made-the-two-score-columns-with-the-numbers-the-formulas-give",
+   "columns_contain": ["Polar window (user-defined, unvalidated)", "Lipophilic window (user-defined, unvalidated)"],
+   "cells": {"Aspirin": {"Polar window": 0.955, "Lipophilic window": 0.655}, "Ethanol": {"Polar window": 1.0, "Lipophilic window": 0.0},
+             "Caffeine": {"Polar window": 0.977, "Lipophilic window": 0.0}}},
+  {"do": "table_scores", "tag": "what-a-person-sees-and-the-real-csv-button-writes", "export_csv": "artifacts/visual/score_table.csv",
+   "expect": {"columns": ["Polar window (user-defined, unvalidated)", "Lipophilic window (user-defined, unvalidated)"], "note": "",
+              "grid": {"Aspirin": {"Polar window": "0.955", "Lipophilic window": "0.6551"}, "Ethanol": {"Polar window": "1", "Lipophilic window": "0"}},
+              "tooltips": {"Aspirin": {"Polar window": ["Inputs: psa = 63.6", "validation = user_defined_unvalidated", "user / derived_score:1"]}},
+              "column_tooltips": {"Polar window": ["Source: score / user.polar_window", "Formula: ramp(psa, 140, 60)", "Reads: psa = tpsa", "Nothing has checked it against measurements"]},
+              "csv_header_contains": ["Polar window (user-defined, unvalidated)", "Lipophilic window (user-defined, unvalidated)"],
+              "csv_cells": {"Aspirin": {"Polar window": 0.955, "Lipophilic window": 0.655}, "Caffeine": {"Polar window": 0.977}}}},
+  {"do": "shot", "path": "artifacts/visual/score_table_columns.png", "widget": "project_table", "after_ms": 500},
+
+  {"do": "score_define", "label": "Dissolution proxy", "formula": "sol", "result_unit": "mol/L",
+   "inputs": [["sol", "calculator:solubility:Predicted intrinsic solubility (mol/L)"]], "tag": "a-score-on-something-the-run-did-not-compute",
+   "after_ms": 800, "expect": {"made": true}},
+  {"do": "table_scores", "tag": "a-score-whose-input-was-not-run-has-no-column-and-the-table-says-which",
+   "expect": {"columns": ["Polar window (user-defined, unvalidated)", "Lipophilic window (user-defined, unvalidated)"],
+              "note": "Scores not shown, because this run did not compute what they read: Dissolution proxy (user-defined, unvalidated) reads Predicted intrinsic solubility (mol/L)."}},
+  {"do": "shot", "path": "artifacts/visual/score_table_note.png", "widget": "project_table", "after_ms": 500},
+
+  {"do": "score_dialog", "choose": "Polar window", "fill": {"formula": "ramp(psa, 100, 60)"}, "press": "save", "tag": "edit-a-score-in-its-window", "after_ms": 1200,
+   "expect": {"ok": true, "dirty": false}},
+  {"do": "expect_project_table", "tag": "the-edit-reached-the-table-without-another-run",
+   "cells": {"Aspirin": {"Polar window": 0.91}, "Ethanol": {"Polar window": 1.0}, "Caffeine": {"Polar window": 0.9545}}},
+  {"do": "table_scores", "tag": "the-grid-shows-the-new-numbers",
+   "expect": {"grid": {"Aspirin": {"Polar window": "0.91"}}}},
+
+  {"do": "score_dialog", "choose": "Lipophilic window", "press": "delete", "confirm": "yes", "tag": "remove-a-score", "after_ms": 1200,
+   "expect": {"stored": 2}},
+  {"do": "table_scores", "tag": "the-removed-score-is-no-longer-a-column",
+   "expect": {"columns": ["Polar window (user-defined, unvalidated)"]}},
+  {"do": "shot", "path": "artifacts/visual/score_table_after.png", "widget": "project_table", "after_ms": 500},
+
+  {"do": "expect_clean"},
+  {"do": "quit"}
+]

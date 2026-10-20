@@ -79,9 +79,11 @@ def test_a_carboxylate_beside_a_neutral_acid_is_cited_once_as_carboxylato():
         assert "methoxy" not in expected, expected
 
 
-def test_a_carboxylate_beside_two_neutral_acids_is_still_refused_not_named_wrongly():
-    with pytest.raises(ValueError):
-        name_smiles("NC(=[NH2+])C(C(=O)O)(C(=O)O)C(=O)[O-]")  # round 49 names the quaternary carbon with two acids; three acids is still refused
+def test_a_carboxylate_beside_two_neutral_acids_is_named_since_round_54():
+    """Round 54 masks EVERY neutral acid as its methyl ester, so a carboxylate beside two of them is named (it was refused until then)."""
+    name = name_smiles("NC(=[NH2+])C(C(=O)O)(C(=O)O)C(=O)[O-]")
+    assert name == "2-carboxylato-3-hydroxy-2-carboxy-3-oxopropanamidinium"
+    assert name.count("carboxylato") == 1
 
 
 @needs_opsin

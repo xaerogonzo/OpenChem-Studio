@@ -1,0 +1,187 @@
+{
+ "outcome": "PARTIAL",
+ "reasons": [
+  "C3 pyrazole: expected gap to the lowest sigma state in (1.55, 1.55) +/- 0.25 eV; found 1.157 eV"
+ ],
+ "arms": {
+  "kind": true,
+  "distance": false
+ },
+ "rows": [
+  {
+   "species": "pyrimidine",
+   "claim": "C5",
+   "expected": "the application's lowest state within 0.01 eV of the exhaustive search's",
+   "found": "0.001 eV above",
+   "holds": true
+  },
+  {
+   "species": "pyrimidine",
+   "claim": "C1",
+   "expected": "lowest state is a sigma hole",
+   "found": "a sigma hole (-0.000 out of plane)",
+   "holds": true
+  },
+  {
+   "species": "pyrimidine",
+   "claim": "C2",
+   "expected": "second state is a pi hole",
+   "found": "a pi hole (1.000 out of plane, 0.909 eV)",
+   "holds": true
+  },
+  {
+   "species": "pyrimidine",
+   "claim": "C3",
+   "expected": "gap to the lowest pi state in (0.48, 0.8) +/- 0.25 eV",
+   "found": "0.909 eV",
+   "holds": true
+  },
+  {
+   "species": "pyrazine",
+   "claim": "C5",
+   "expected": "the application's lowest state within 0.01 eV of the exhaustive search's",
+   "found": "0.000 eV above",
+   "holds": true
+  },
+  {
+   "species": "pyrazine",
+   "claim": "C1",
+   "expected": "lowest state is a sigma hole",
+   "found": "a sigma hole (0.000 out of plane)",
+   "holds": true
+  },
+  {
+   "species": "pyrazine",
+   "claim": "C2",
+   "expected": "second state is a pi hole",
+   "found": "a pi hole (1.000 out of plane, 0.683 eV)",
+   "holds": true
+  },
+  {
+   "species": "pyrazine",
+   "claim": "C3",
+   "expected": "gap to the lowest pi state in (0.55, 0.8) +/- 0.25 eV",
+   "found": "0.683 eV",
+   "holds": true
+  },
+  {
+   "species": "pyridazine",
+   "claim": "C5",
+   "expected": "the application's lowest state within 0.01 eV of the exhaustive search's",
+   "found": "0.004 eV above",
+   "holds": true
+  },
+  {
+   "species": "pyridazine",
+   "claim": "C1",
+   "expected": "lowest state is a sigma hole",
+   "found": "a sigma hole (-0.000 out of plane)",
+   "holds": true
+  },
+  {
+   "species": "pyridazine",
+   "claim": "C2",
+   "expected": "second state is a pi hole",
+   "found": "a pi hole (1.000 out of plane, 1.564 eV)",
+   "holds": true
+  },
+  {
+   "species": "pyridazine",
+   "claim": "C3",
+   "expected": "gap to the lowest pi state in (1.3, 1.52) +/- 0.25 eV",
+   "found": "1.564 eV",
+   "holds": true
+  },
+  {
+   "species": "imidazole",
+   "claim": "C5",
+   "expected": "the application's lowest state within 0.01 eV of the exhaustive search's",
+   "found": "0.000 eV above",
+   "holds": true
+  },
+  {
+   "species": "imidazole",
+   "claim": "C1",
+   "expected": "lowest state is a pi hole",
+   "found": "a pi hole (1.000 out of plane)",
+   "holds": true
+  },
+  {
+   "species": "imidazole",
+   "claim": "C3",
+   "expected": "gap to the lowest sigma state in (1.23, 1.67) +/- 0.25 eV",
+   "found": "1.174 eV",
+   "holds": true
+  },
+  {
+   "species": "pyrazole",
+   "claim": "C5",
+   "expected": "the application's lowest state within 0.01 eV of the exhaustive search's",
+   "found": "0.000 eV above",
+   "holds": true
+  },
+  {
+   "species": "pyrazole",
+   "claim": "C1",
+   "expected": "lowest state is a pi hole",
+   "found": "a pi hole (1.000 out of plane)",
+   "holds": true
+  },
+  {
+   "species": "pyrazole",
+   "claim": "C3",
+   "expected": "gap to the lowest sigma state in (1.55, 1.55) +/- 0.25 eV",
+   "found": "1.157 eV",
+   "holds": false
+  },
+  {
+   "species": "oxazole",
+   "claim": "C5",
+   "expected": "the application's lowest state within 0.01 eV of the exhaustive search's",
+   "found": "0.001 eV above",
+   "holds": true
+  },
+  {
+   "species": "oxazole",
+   "claim": "C1",
+   "expected": "lowest state is a pi hole",
+   "found": "a pi hole (1.000 out of plane)",
+   "holds": true
+  },
+  {
+   "species": "oxazole",
+   "claim": "C3",
+   "expected": "gap to the lowest sigma state in (1.36, 1.36) +/- 0.25 eV",
+   "found": "1.252 eV",
+   "holds": true
+  },
+  {
+   "species": "selenophene",
+   "claim": "C5",
+   "expected": "the application's lowest state within 0.01 eV of the exhaustive search's",
+   "found": "0.000 eV above",
+   "holds": true
+  },
+  {
+   "species": "selenophene",
+   "claim": "S1",
+   "expected": "the two lowest states are pi holes, one a2 (heteroatom spin <= 0.10) and one b1 (>= 0.20)",
+   "found": "pi/pi, heteroatom spin -0.079 (a2) and 0.682 (b1)",
+   "holds": true
+  },
+  {
+   "species": "selenophene",
+   "claim": "S2",
+   "expected": "gap between the two in (0.0, 0.1) +/- 0.25 eV",
+   "found": "0.182 eV",
+   "holds": true
+  },
+  {
+   "species": "selenophene",
+   "claim": "S3",
+   "expected": "the application's own run says another state (or other states) of the cation lie close",
+   "found": "that sentence",
+   "holds": true
+  }
+ ]
+}

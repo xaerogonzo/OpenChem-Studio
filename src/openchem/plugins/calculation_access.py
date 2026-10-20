@@ -11,6 +11,9 @@ object, which a plugin's PANEL is given and its TOOLS are not. That a model cann
 request is therefore a fact about which object a tool is handed, not a check somebody must remember
 to write.
 
+**A MODEL CAN PROPOSE A SCORE AND CANNOT SAVE ONE** (slice 4d): `propose_score` checks a request against the rules a typed definition meets and leaves a proposal for a person; it stores
+nothing. Approving it is `PluginCalculationApprovals.approve_score`, the same split as a run's.
+
 **A CONTEXT BUILT WITHOUT A HOST IS NOT AN ERROR.** A headless run or a test has none, and every call
 then answers with a typed `UNAVAILABLE` rather than raising -- the same behaviour a plugin gets for
 any capability the host did not provide. See `docs/AI_CALCULATION_BRIDGE.md` for the contract and the
@@ -24,6 +27,9 @@ from typing import Any, Protocol
 
 from openchem.domain.calculation_bridge import CalculatorCard, GoalCard, Problem, ProblemCode
 from openchem.domain.run_lifecycle import Preparation, PrepareResult, RunOutcome, RunState
+from openchem.domain.score_outputs import APPROVED, ApprovedOutput
+from openchem.domain.score_proposal import ProposalOutcome, ProposalProblem, ProposalRefusal, ProposalState, Registered, ScoreProposal
+from openchem.domain.score_reading import ScoresView, read_scores
 from openchem.domain.turn_snapshot import DEFAULT_READ_LIMIT, ResultsView, TurnContext, read_results
 
 
@@ -41,6 +47,8 @@ class CalculationHost(Protocol):
     def prepare(self, turn: TurnContext, calculator_id: str, parameters: dict[str, Any] | None = None) -> PrepareResult: ...
 
     def run(self, turn: TurnContext, run_id: str, *, timeout: float | None = None) -> RunOutcome: ...
+
+    def propose_score(self, turn: TurnContext, request: Any) -> Registered | ProposalRefusal: ...
 
 
 _UNAVAILABLE = "the application did not provide calculator access to this plugin (a headless run or a test)"
@@ -87,6 +95,22 @@ class PluginCalculations:
         """What was stored when `turn` began, never what is stored now. Needs no host."""
         return read_results(turn, calculator_ids, include_not_current=include_not_current, limit=limit)
 
+    def read_scores(self, turn: TurnContext, names: list[str] | None = None) -> ScoresView:
+        """The user-defined scores of the turn's molecule, worked out from what was stored and defined when `turn` began. Needs no host, and can only READ: there is no
+        call here that makes, changes or removes a score."""
+        return read_scores(turn, names)
+
+    def list_score_outputs(self) -> tuple[ApprovedOutput, ...]:
+        """The outputs a score's formula may read: ids, units and what each is. Fixed knowledge, so it needs no host."""
+        return APPROVED
+
+    def propose_score(self, turn: TurnContext, request: Any) -> Registered | ProposalRefusal:
+        """Check a request for a score against every rule a typed definition meets and leave it for a person to approve. **Stores nothing**, and is the only score call here that can
+        lead to a score existing at all: the saving is `PluginCalculationApprovals.approve_score`. Any thread."""
+        if self._host is None:
+            return ProposalRefusal(ProposalProblem.NO_PROJECT, _UNAVAILABLE)
+        return self._host.propose_score(turn, request)
+
     def prepare(self, turn: TurnContext, calculator_id: str, parameters: dict[str, Any] | None = None) -> PrepareResult:
         """Validate a request and decide who may start it. Starts nothing. Any thread."""
         if self._host is None:
@@ -106,6 +130,9 @@ class ApprovalHost(Protocol):
     #: A Qt signal carrying a `RunOutcome` whenever a run reaches a final state.
     finished: Any
 
+    #: A Qt signal carrying a `ProposalOutcome` whenever a proposed score is decided.
+    score_finished: Any
+
     def pending(self) -> tuple[Preparation, ...]: ...
 
     def approve(self, run_id: str) -> RunState | None: ...
@@ -115,6 +142,16 @@ class ApprovalHost(Protocol):
     def state_of(self, run_id: str) -> RunState | None: ...
 
     def outcome_of(self, run_id: str) -> RunOutcome | None: ...
+
+    def pending_scores(self) -> tuple[ScoreProposal, ...]: ...
+
+    def approve_score(self, proposal_id: str) -> ProposalOutcome | None: ...
+
+    def cancel_score(self, proposal_id: str) -> bool: ...
+
+    def score_state_of(self, proposal_id: str) -> ProposalState | None: ...
+
+    def score_outcome_of(self, proposal_id: str) -> ProposalOutcome | None: ...
 
 
 class PluginCalculationApprovals:
@@ -150,6 +187,31 @@ class PluginCalculationApprovals:
 
     def outcome_of(self, run_id: str) -> RunOutcome | None:
         return self._host.outcome_of(run_id) if self._host is not None else None
+
+    def pending_scores(self) -> tuple[ScoreProposal, ...]:
+        """Scores the assistant proposed that wait for a person, oldest first."""
+        return self._host.pending_scores() if self._host is not None else ()
+
+    def approve_score(self, proposal_id: str) -> ProposalOutcome | None:
+        """Make the score a person approved, if the project is still the one it was proposed in and the rules still accept it. The ONLY way a proposal becomes a score."""
+        return self._host.approve_score(proposal_id) if self._host is not None else None
+
+    def cancel_score(self, proposal_id: str) -> bool:
+        """Drop a proposed score. Nothing is saved."""
+        return self._host.cancel_score(proposal_id) if self._host is not None else False
+
+    def score_state_of(self, proposal_id: str) -> ProposalState | None:
+        return self._host.score_state_of(proposal_id) if self._host is not None else None
+
+    def score_outcome_of(self, proposal_id: str) -> ProposalOutcome | None:
+        return self._host.score_outcome_of(proposal_id) if self._host is not None else None
+
+    def on_score_finished(self, callback: Callable[[ProposalOutcome], None]) -> None:
+        """Call `callback(outcome)` on the GUI thread whenever a proposed score is decided. Undone when the plugin unloads, like `on_finished`."""
+        if self._host is None:
+            return
+        self._host.score_finished.connect(callback)
+        self._rollbacks.append(lambda: _disconnect(self._host.score_finished, callback))
 
     def on_finished(self, callback: Callable[[RunOutcome], None]) -> None:
         """Call `callback(outcome)` on the GUI thread whenever a run reaches a final state.

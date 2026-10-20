@@ -9,7 +9,9 @@ was selected by then. So `begin_turn` (on the GUI thread, at Send) captures a `T
 read only that, and the model is never given a way to name another molecule.
 
 Results are frozen dataclasses, so holding references to the stored ones IS a value snapshot; no
-copy is needed (`domain/scientific_result.py`).
+copy is needed (`domain/scientific_result.py`). **The project's user-defined score definitions are
+frozen with them** (`TurnContext.scores`, also frozen dataclasses): a score is read against the turn's
+results (`domain/score_reading.py`), so a formula edited while the reply streams must not change it.
 
 **FRESHNESS AND OUTCOME ARE TWO AXES, AND THE DESIGN RECORD'S "FIVE STATES" ARE THEIR PRODUCT.**
 A stored result is `CURRENT`, `HISTORICAL` or `UNVERIFIABLE` according to its input fingerprint, and
@@ -38,6 +40,7 @@ from types import MappingProxyType
 
 from openchem.domain import result_status as rs
 from openchem.domain.result_store import StoredResult
+from openchem.domain.score_definition import ScoreDefinition
 
 
 class Freshness(str, Enum):
@@ -144,6 +147,8 @@ class TurnContext:
     #: The molecule's CURRENT fingerprint for each calculation input at the moment of capture.
     fingerprints: Mapping[str, str]
     entries: tuple[ResultEntry, ...] = ()
+    #: The project's score definitions as they were when the turn began, in the order they were made.
+    scores: tuple[ScoreDefinition, ...] = ()
 
     def entries_for(self, key: str) -> tuple[ResultEntry, ...]:
         """Records made by calculator `key`, or carrying result id `key` (the always-on set)."""
@@ -162,6 +167,7 @@ def build_turn_context(
     fingerprints: Mapping[str, str],
     records: Iterable[StoredResult],
     fresh: Iterable[StoredResult],
+    scores: Iterable[ScoreDefinition] = (),
 ) -> TurnContext:
     frozen = dict(fingerprints)
     return TurnContext(
@@ -175,6 +181,7 @@ def build_turn_context(
         conformer_count=conformer_count,
         fingerprints=MappingProxyType(frozen),
         entries=classify_results(records, fresh, frozen),
+        scores=tuple(scores),
     )
 
 

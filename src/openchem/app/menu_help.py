@@ -585,6 +585,17 @@ MENU_HELP: dict[str, HelpTooltip] = {
         tier=1, help_id="tools.goal_wizard", topic=_M,
         help_anchor="properties",
     ),
+    "orca_optimize": HelpTooltip(
+        text=(
+            "Sets up an ORCA geometry optimization of a conformer and opens the Quantum Chemistry panel. It starts "
+            "nothing: check the method and basis there, then press Run.\n\n"
+            "The conformer is the one the viewer is showing, or the one every calculation uses when it is showing "
+            "another molecule. When the job finishes, the optimized geometry replaces that conformer in its slot and "
+            "the viewer shows it. The viewer's \"ORCA optimize\" button is the same door."
+        ),
+        tier=1, help_id="tools.orca_optimize", topic=_M,
+        help_anchor="quantum-chemistry",
+    ),
     "lewis_pairing": HelpTooltip(
         text=(
             "Opens the Lewis acid-base pairing: pick two molecules in the project and see how well matched they are, "
@@ -596,6 +607,15 @@ MENU_HELP: dict[str, HelpTooltip] = {
         ),
         tier=1, help_id="tools.lewis_pairing", topic=_M,
         help_anchor="lewis-pairing",
+    ),
+    "derived_scores": HelpTooltip(
+        text=(
+            "Opens the scores of this project: formulas you write over numbers the application already computes, such as a weighted sum of desirabilities.\n\n"
+            "A score is always shown as \"<name> (user-defined, unvalidated)\", is read from the molecule's current results, starts no calculation and is not a "
+            "prediction. The formula is checked as you type: its units, its names, and that two estimates of one quantity are never combined."
+        ),
+        tier=1, help_id="tools.derived_scores", topic=_M,
+        help_anchor="derived-scores",
     ),
     "virtual_screening": HelpTooltip(
         text=(

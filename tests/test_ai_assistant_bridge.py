@@ -111,8 +111,8 @@ def test_a_bridge_with_no_host_or_no_molecule_says_unavailable_and_never_raises(
     bridge = _bridge()
     assert bridge.available is False
     for text in (
-        bridge.find_calculators("x"), bridge.list_goals(), bridge.describe_calculator("x"), bridge.read_results(),
-        bridge.run_calculator("x"),
+        bridge.find_calculators("x"), bridge.list_goals(), bridge.describe_calculator("x"), bridge.read_results(), bridge.read_scores(),
+        bridge.propose_score({"label": "x"}), bridge.run_calculator("x"),
     ):
         data = json.loads(text)
         assert data["ok"] is False and data["problem"] == "unavailable"
@@ -121,11 +121,11 @@ def test_a_bridge_with_no_host_or_no_molecule_says_unavailable_and_never_raises(
 def test_the_bridge_a_tool_receives_has_no_way_to_approve_or_cancel():
     surface = {name for name in dir(ToolBridge) if not name.startswith("_")}
     assert surface == {
-        "available", "turn", "find_calculators", "list_goals", "describe_calculator", "read_results", "run_calculator",
+        "available", "turn", "find_calculators", "list_goals", "describe_calculator", "read_results", "read_scores", "list_score_outputs", "propose_score", "run_calculator",
     }
     for name in ("approve", "cancel", "pending", "on_finished", "calculation_approvals"):
         assert not hasattr(_bridge(), name)
-    assert "approve" not in " ".join(CALCULATION_HANDLERS) and len(CALCULATION_TOOLS) == len(CALCULATION_HANDLERS) == 5
+    assert "approve" not in " ".join(CALCULATION_HANDLERS) and len(CALCULATION_TOOLS) == len(CALCULATION_HANDLERS) == 8
 
 
 def test_the_tool_descriptions_tell_the_model_what_it_must_not_do():
@@ -564,6 +564,9 @@ def test_the_panel_says_where_calculator_results_go_for_each_provider(rig):
     assert "localhost:11434" in notes["ollama"] and "leave this machine" not in notes["ollama"]
     assert "cannot use this application's tools" in notes["claude_cli"]
     assert all(notes.values())
+    for provider_id in ("anthropic", "openai", "ollama"):
+        assert "names and formulas of your scores" in notes[provider_id], provider_id
+    assert "nor read your scores" in notes["claude_cli"]
 
 
 def test_a_panel_with_no_host_still_works_and_offers_no_calculator_tools(qapp, tmp_path):

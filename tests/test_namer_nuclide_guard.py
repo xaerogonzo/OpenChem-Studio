@@ -47,6 +47,7 @@ NAMED = [
     ("...with a prefix on the parent", "[18O]=C(C)c1ccc(Cl)cc1", "1-(4-chlorophenyl)ethan-1-(18O)one"),
     ("...with a parent label as well", "[18O]=C([13CH3])c1ccccc1", "1-phenyl(2-13C)ethan-1-(18O)one"),
     ("a parent starting with a locant keeps its hyphen after the bracket", "Clc1ccc2[15nH]ccc2c1", "5-chloro(1-15N)-1H-indole"),
+    ("D-322: an oxygen of a nitro group: the two are one position (resonance), so one bracket says it", "[18O]=[N+]([O-])c1ccccc1", "(18O)nitrobenzene"),
     ("D-195: a hypervalent centre with no hydrogen and only single bonds", "CP(C)(C)(C)C", "pentamethyl-lambda5-phosphane"),
     ("...the book's own example, p. 770", "COP(OC)(OC)(OC)OC", "pentamethoxy-lambda5-phosphane"),
     ("...arsenic", "C[As](C)(C)(C)C", "pentamethyl-lambda5-arsane"),
@@ -65,7 +66,6 @@ UNCHANGED = [
 # Refused by the guard: no verified name keeps every label, so the engine raises and the application withholds a name that would be the unlabelled compound's.
 REFUSED = [
     ("two deuteriums on an aromatic amine: the retained name has one N and the hydrogens cannot be placed", "[2H]N([2H])c1ccccc1"),
-    ("an isotopic oxygen of a nitro group", "[18O-][N+](=O)c1ccccc1"),
     ("two atoms of one element in the retained group (both nitrogens)", "[15NH2]c1ccc([15NH2])cc1"),
     ("a bare (13C) would not say which of benzonitrile's seven carbons (OPSIN: position ambiguous)", "N#[13C]c1ccccc1"),
     ("an ether oxygen that is one of two oxygens of the prefix", "COc1ccc([18O]CC(=O)O)cc1"),

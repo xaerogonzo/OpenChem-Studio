@@ -19,6 +19,7 @@ ADOPT (a fill) or a one-molecule detail run that must not replace it.
 from __future__ import annotations
 
 import logging
+from collections.abc import Callable, Sequence
 from pathlib import Path
 
 from PySide6.QtCore import Qt, Signal
@@ -41,10 +42,14 @@ from PySide6.QtWidgets import (
 
 from openchem.domain.batch import (
     SOURCE_DESCRIPTOR,
+    SOURCE_SCORE,
     BatchResultStore,
     BatchTable,
 )
 from openchem.domain.common import CacheState
+from openchem.domain.score_definition import ScoreDefinition
+from openchem.domain.score_table import CATEGORY as SCORE_CATEGORY
+from openchem.domain.score_table import table_with_scores
 from openchem.services.batch_service import BatchProgress
 from openchem.services.calculator_registry import CalculatorRegistry
 from openchem.services.table_export_service import TableExportService
@@ -209,8 +214,14 @@ class ProjectTableView(QWidget):
         on_analyse=None,
         on_screen=None,
         show_cancel: bool = False,
+        score_definitions: Callable[[], Sequence[ScoreDefinition]] | None = None,
     ) -> None:
         super().__init__(parent)
+        #: The project's score definitions, asked for each time the table is built so a score defined, edited or removed is in the next one. None: no scores here.
+        self._score_definitions = score_definitions
+        #: The table exactly as the run made it. `self._table` is this with the score columns added (`domain/score_table.py`), so the run's own table is never
+        #: written into and a changed definition can rebuild the columns without a second run.
+        self._raw_table: BatchTable | None = None
         #: Whether this view draws its own Cancel. The Batch panel has one among its
         #: run controls, so it does not; the Results page has no other.
         self._show_cancel = show_cancel
@@ -247,6 +258,11 @@ class ProjectTableView(QWidget):
         self._status = QLabel("")
         self._status.setWordWrap(True)
         layout.addWidget(self._status)
+        #: Which scores have no column because the run did not compute what they read. Hidden when there are none.
+        self._score_note = QLabel("")
+        self._score_note.setWordWrap(True)
+        self._score_note.setVisible(False)
+        layout.addWidget(self._score_note)
 
         self._results = QTableWidget(self)
         self._results.setSortingEnabled(True)
@@ -311,8 +327,8 @@ class ProjectTableView(QWidget):
             self._progress.setValue(event.completed)
         self._status.setText(event.error or event.message)
         if event.table is not None and adopt:
-            self._table = event.table
-            self._render_table(event.table)
+            self._raw_table = event.table
+            self._adopt_table()
         if event.store is not None:
             self._merge_store(event.store)
         has_results = bool(self._table and self._table.row_uuids and self._table.columns)
@@ -328,6 +344,21 @@ class ProjectTableView(QWidget):
 
     def set_status(self, text: str) -> None:
         self._status.setText(text)
+
+    def refresh_scores(self) -> None:
+        """Build the score columns again from the definitions as they are now: a score was defined, edited or removed. The run is not repeated."""
+        if self._raw_table is not None:
+            self._adopt_table()
+
+    def _adopt_table(self) -> None:
+        """The run's table with the project's scores added, drawn and remembered as THE table (what the exports, the analytics and the drive read)."""
+        definitions = tuple(self._score_definitions()) if self._score_definitions is not None else ()
+        scored = table_with_scores(self._raw_table, definitions)
+        self._table = scored.table
+        note = scored.note()
+        self._score_note.setText(note)
+        self._score_note.setVisible(bool(note))
+        self._render_table(self._table)
 
     def table(self) -> BatchTable | None:
         return self._table
@@ -427,6 +458,8 @@ class ProjectTableView(QWidget):
         """
         if column.source == SOURCE_DESCRIPTOR:
             return _title(self._descriptor_categories().get(column.source_id, "other"))
+        if column.source == SOURCE_SCORE:
+            return SCORE_CATEGORY
         definition = self._registry.get(column.source_id)
         return _title(definition.category if definition is not None else "other")
 
@@ -617,6 +650,8 @@ def _cell_tooltip(column, cell) -> str:
             )
     if cell.value is not None:
         lines.append(f"Value: {cell.value!r}")
+    if cell.detail:
+        lines.append(cell.detail)
     return "\n".join(lines)
 
 
@@ -624,6 +659,8 @@ def _column_tooltip(column) -> str:
     lines = [column.header, f"Source: {column.source} / {column.source_id}"]
     if column.prediction_basis:
         lines.append(f"Basis: {column.prediction_basis.replace('_', ' ')}")
+    if column.note:
+        lines.append(column.note)
     if not column.numeric:
         lines.append("Text column — not offered to the analytics.")
     return "\n".join(lines)

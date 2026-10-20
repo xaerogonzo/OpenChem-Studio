@@ -1,0 +1,69 @@
+{
+ "scratch": "C:\\Users\\pmpd\\AppData\\Local\\Temp\\cation_states_skrm0a6j",
+ "rows": [
+  {
+   "species": "benzaldehyde",
+   "cores": 8,
+   "jobs_with_energy": 3,
+   "tables": 3,
+   "converged": true,
+   "n_energy": -345.359880999782,
+   "n_minus_1_energy": -345.02037225766,
+   "above_probe_lowest_ev": 0.145,
+   "max_distance_to_published": 0.0011,
+   "by_label": {
+    "ortho": 0.0449,
+    "meta": 0.0453,
+    "para": 0.0731
+   }
+  },
+  {
+   "species": "benzaldehyde",
+   "cores": 4,
+   "jobs_with_energy": 3,
+   "tables": 3,
+   "converged": true,
+   "n_energy": -345.359880999782,
+   "n_minus_1_energy": -345.02037225766,
+   "above_probe_lowest_ev": 0.145,
+   "max_distance_to_published": 0.0011,
+   "by_label": {
+    "ortho": 0.0449,
+    "meta": 0.0453,
+    "para": 0.0731
+   }
+  },
+  {
+   "species": "benzaldehyde",
+   "cores": 2,
+   "jobs_with_energy": 3,
+   "tables": 3,
+   "converged": true,
+   "n_energy": -345.359880999781,
+   "n_minus_1_energy": -345.020372257659,
+   "above_probe_lowest_ev": 0.145,
+   "max_distance_to_published": 0.0011,
+   "by_label": {
+    "ortho": 0.0449,
+    "meta": 0.0453,
+    "para": 0.0731
+   }
+  },
+  {
+   "species": "benzaldehyde",
+   "cores": 1,
+   "jobs_with_energy": 3,
+   "tables": 3,
+   "converged": true,
+   "n_energy": -345.359880999781,
+   "n_minus_1_energy": -345.02037225766,
+   "above_probe_lowest_ev": 0.145,
+   "max_distance_to_published": 0.0011,
+   "by_label": {
+    "ortho": 0.0449,
+    "meta": 0.0453,
+    "para": 0.0731
+   }
+  }
+ ]
+}

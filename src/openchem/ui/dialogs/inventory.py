@@ -132,6 +132,19 @@ def iter_dialog_fixtures() -> Iterator[DialogFixture]:
             keep=lambda run: False,
         ))
 
+    def derived_scores(_context: DialogContext):
+        from openchem.domain.score_editor import ConstantRow, Draft, InputRow
+        from openchem.ui.dialogs.score_dialog import ScoreDialog, ScoreHost
+
+        # Needs nothing: a host with no project is a valid state (the window says so), so it lands in the bare-context half and the help-contract
+        # guard covers every control. One row of each kind is added, because the rows are controls too and a dialog opened with none would hide them.
+        dialog = ScoreDialog(ScoreHost(
+            has_project=lambda: True, scores=lambda: [], kept=lambda: [], reserved_names=lambda: [], molecule=lambda: None,
+            preview=lambda definition, uuid: None, create=lambda **fields: None, update=lambda score_id, **fields: None, remove=lambda score_id: False,
+        ))
+        dialog.set_draft(Draft(inputs=(InputRow("psa", "descriptor:tpsa"),), constants=(ConstantRow("hi", "140", "\u00c5^2"),)))
+        return dialog
+
     def particle(_context: DialogContext):
         from openchem.ui.dialogs.particle_dialog import ParticleDialog
 
@@ -408,6 +421,7 @@ def iter_dialog_fixtures() -> Iterator[DialogFixture]:
     yield DialogFixture("VirtualScreeningDialog", virtual_screening, needs="a project")
     yield DialogFixture("GoalWizardDialog", goal_wizard, needs="the service container")
     yield DialogFixture("LewisPairingDialog", lewis_pairing, needs="the service container")
+    yield DialogFixture("ScoreDialog", derived_scores)
     yield DialogFixture("ConformerDetailsDialog", conformer_details, needs="a conformer")
     yield DialogFixture(
         "StructureContentsDialog", structure_contents, needs="a parsed structure summary"

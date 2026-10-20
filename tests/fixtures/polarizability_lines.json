@@ -1,0 +1,3931 @@
+{
+ "water | default": {
+  "state": "completed",
+  "error": null,
+  "summary": null,
+  "inapplicable": false,
+  "method": "jensen",
+  "lines": [
+   "Molecular polarizability: 1.54 A^3",
+   "Additive atomic scheme (Jensen et al. 2002). Aromatics and halogenated compounds are accurate to about 1%; saturated hydrocarbons come out roughly 11% high, because an atom-additive scheme has no hybridization dependence."
+  ],
+  "facts": [
+   [
+    "electronic",
+    "Molecular polarizability",
+    "1.54",
+    "A^3",
+    "Polarizability",
+    "heuristic"
+   ],
+   [
+    "electronic",
+    "Polarizability",
+    "Additive atomic scheme (Jensen et al. 2002). Aromatics and halogenated compounds are accurate to about 1%; saturated hydrocarbons come out roughly 11% high, because an atom-additive scheme has no hybridization dependence.",
+    "",
+    "Polarizability",
+    "heuristic"
+   ]
+  ],
+  "cells": [
+   [
+    "calculator:polarizability:Molecular polarizability",
+    "A^3",
+    "1.54"
+   ],
+   [
+    "calculator:polarizability:Polarizability",
+    "",
+    "Additive atomic scheme (Jensen et al. 2002). Aromatics and halogenated compounds are accurate to about 1%; saturated hydrocarbons come out roughly 11% high, because an atom-additive scheme has no hybridization dependence."
+   ]
+  ]
+ },
+ "methane | default": {
+  "state": "completed",
+  "error": null,
+  "summary": null,
+  "inapplicable": false,
+  "method": "jensen",
+  "lines": [
+   "Molecular polarizability: 2.88 A^3",
+   "Additive atomic scheme (Jensen et al. 2002). Aromatics and halogenated compounds are accurate to about 1%; saturated hydrocarbons come out roughly 11% high, because an atom-additive scheme has no hybridization dependence."
+  ],
+  "facts": [
+   [
+    "electronic",
+    "Molecular polarizability",
+    "2.88",
+    "A^3",
+    "Polarizability",
+    "heuristic"
+   ],
+   [
+    "electronic",
+    "Polarizability",
+    "Additive atomic scheme (Jensen et al. 2002). Aromatics and halogenated compounds are accurate to about 1%; saturated hydrocarbons come out roughly 11% high, because an atom-additive scheme has no hybridization dependence.",
+    "",
+    "Polarizability",
+    "heuristic"
+   ]
+  ],
+  "cells": [
+   [
+    "calculator:polarizability:Molecular polarizability",
+    "A^3",
+    "2.88"
+   ],
+   [
+    "calculator:polarizability:Polarizability",
+    "",
+    "Additive atomic scheme (Jensen et al. 2002). Aromatics and halogenated compounds are accurate to about 1%; saturated hydrocarbons come out roughly 11% high, because an atom-additive scheme has no hybridization dependence."
+   ]
+  ]
+ },
+ "ethanol | default": {
+  "state": "completed",
+  "error": null,
+  "summary": null,
+  "inapplicable": false,
+  "method": "jensen",
+  "lines": [
+   "Molecular polarizability: 5.75 A^3",
+   "Additive atomic scheme (Jensen et al. 2002). Aromatics and halogenated compounds are accurate to about 1%; saturated hydrocarbons come out roughly 11% high, because an atom-additive scheme has no hybridization dependence."
+  ],
+  "facts": [
+   [
+    "electronic",
+    "Molecular polarizability",
+    "5.75",
+    "A^3",
+    "Polarizability",
+    "heuristic"
+   ],
+   [
+    "electronic",
+    "Polarizability",
+    "Additive atomic scheme (Jensen et al. 2002). Aromatics and halogenated compounds are accurate to about 1%; saturated hydrocarbons come out roughly 11% high, because an atom-additive scheme has no hybridization dependence.",
+    "",
+    "Polarizability",
+    "heuristic"
+   ]
+  ],
+  "cells": [
+   [
+    "calculator:polarizability:Molecular polarizability",
+    "A^3",
+    "5.75"
+   ],
+   [
+    "calculator:polarizability:Polarizability",
+    "",
+    "Additive atomic scheme (Jensen et al. 2002). Aromatics and halogenated compounds are accurate to about 1%; saturated hydrocarbons come out roughly 11% high, because an atom-additive scheme has no hybridization dependence."
+   ]
+  ]
+ },
+ "benzene | default": {
+  "state": "completed",
+  "error": null,
+  "summary": null,
+  "inapplicable": false,
+  "method": "jensen",
+  "lines": [
+   "Molecular polarizability: 10.29 A^3",
+   "Additive atomic scheme (Jensen et al. 2002). Aromatics and halogenated compounds are accurate to about 1%; saturated hydrocarbons come out roughly 11% high, because an atom-additive scheme has no hybridization dependence."
+  ],
+  "facts": [
+   [
+    "electronic",
+    "Molecular polarizability",
+    "10.29",
+    "A^3",
+    "Polarizability",
+    "heuristic"
+   ],
+   [
+    "electronic",
+    "Polarizability",
+    "Additive atomic scheme (Jensen et al. 2002). Aromatics and halogenated compounds are accurate to about 1%; saturated hydrocarbons come out roughly 11% high, because an atom-additive scheme has no hybridization dependence.",
+    "",
+    "Polarizability",
+    "heuristic"
+   ]
+  ],
+  "cells": [
+   [
+    "calculator:polarizability:Molecular polarizability",
+    "A^3",
+    "10.29"
+   ],
+   [
+    "calculator:polarizability:Polarizability",
+    "",
+    "Additive atomic scheme (Jensen et al. 2002). Aromatics and halogenated compounds are accurate to about 1%; saturated hydrocarbons come out roughly 11% high, because an atom-additive scheme has no hybridization dependence."
+   ]
+  ]
+ },
+ "aspirin | default": {
+  "state": "completed",
+  "error": null,
+  "summary": null,
+  "inapplicable": false,
+  "method": "jensen",
+  "lines": [
+   "Molecular polarizability: 18.11 A^3",
+   "Additive atomic scheme (Jensen et al. 2002). Aromatics and halogenated compounds are accurate to about 1%; saturated hydrocarbons come out roughly 11% high, because an atom-additive scheme has no hybridization dependence."
+  ],
+  "facts": [
+   [
+    "electronic",
+    "Molecular polarizability",
+    "18.11",
+    "A^3",
+    "Polarizability",
+    "heuristic"
+   ],
+   [
+    "electronic",
+    "Polarizability",
+    "Additive atomic scheme (Jensen et al. 2002). Aromatics and halogenated compounds are accurate to about 1%; saturated hydrocarbons come out roughly 11% high, because an atom-additive scheme has no hybridization dependence.",
+    "",
+    "Polarizability",
+    "heuristic"
+   ]
+  ],
+  "cells": [
+   [
+    "calculator:polarizability:Molecular polarizability",
+    "A^3",
+    "18.11"
+   ],
+   [
+    "calculator:polarizability:Polarizability",
+    "",
+    "Additive atomic scheme (Jensen et al. 2002). Aromatics and halogenated compounds are accurate to about 1%; saturated hydrocarbons come out roughly 11% high, because an atom-additive scheme has no hybridization dependence."
+   ]
+  ]
+ },
+ "caffeine | default": {
+  "state": "completed",
+  "error": null,
+  "summary": null,
+  "inapplicable": false,
+  "method": "jensen",
+  "lines": [
+   "Molecular polarizability: 19.93 A^3",
+   "Additive atomic scheme (Jensen et al. 2002). Aromatics and halogenated compounds are accurate to about 1%; saturated hydrocarbons come out roughly 11% high, because an atom-additive scheme has no hybridization dependence."
+  ],
+  "facts": [
+   [
+    "electronic",
+    "Molecular polarizability",
+    "19.93",
+    "A^3",
+    "Polarizability",
+    "heuristic"
+   ],
+   [
+    "electronic",
+    "Polarizability",
+    "Additive atomic scheme (Jensen et al. 2002). Aromatics and halogenated compounds are accurate to about 1%; saturated hydrocarbons come out roughly 11% high, because an atom-additive scheme has no hybridization dependence.",
+    "",
+    "Polarizability",
+    "heuristic"
+   ]
+  ],
+  "cells": [
+   [
+    "calculator:polarizability:Molecular polarizability",
+    "A^3",
+    "19.93"
+   ],
+   [
+    "calculator:polarizability:Polarizability",
+    "",
+    "Additive atomic scheme (Jensen et al. 2002). Aromatics and halogenated compounds are accurate to about 1%; saturated hydrocarbons come out roughly 11% high, because an atom-additive scheme has no hybridization dependence."
+   ]
+  ]
+ },
+ "carbon tetrachloride | default": {
+  "state": "completed",
+  "error": null,
+  "summary": null,
+  "inapplicable": false,
+  "method": "jensen",
+  "lines": [
+   "Molecular polarizability: 10.37 A^3",
+   "Additive atomic scheme (Jensen et al. 2002). Aromatics and halogenated compounds are accurate to about 1%; saturated hydrocarbons come out roughly 11% high, because an atom-additive scheme has no hybridization dependence."
+  ],
+  "facts": [
+   [
+    "electronic",
+    "Molecular polarizability",
+    "10.37",
+    "A^3",
+    "Polarizability",
+    "heuristic"
+   ],
+   [
+    "electronic",
+    "Polarizability",
+    "Additive atomic scheme (Jensen et al. 2002). Aromatics and halogenated compounds are accurate to about 1%; saturated hydrocarbons come out roughly 11% high, because an atom-additive scheme has no hybridization dependence.",
+    "",
+    "Polarizability",
+    "heuristic"
+   ]
+  ],
+  "cells": [
+   [
+    "calculator:polarizability:Molecular polarizability",
+    "A^3",
+    "10.37"
+   ],
+   [
+    "calculator:polarizability:Polarizability",
+    "",
+    "Additive atomic scheme (Jensen et al. 2002). Aromatics and halogenated compounds are accurate to about 1%; saturated hydrocarbons come out roughly 11% high, because an atom-additive scheme has no hybridization dependence."
+   ]
+  ]
+ },
+ "carbon tetrabromide | default": {
+  "state": "completed",
+  "error": null,
+  "summary": null,
+  "inapplicable": false,
+  "method": "jensen",
+  "lines": [
+   "Molecular polarizability: 14.60 A^3",
+   "Additive atomic scheme (Jensen et al. 2002). Aromatics and halogenated compounds are accurate to about 1%; saturated hydrocarbons come out roughly 11% high, because an atom-additive scheme has no hybridization dependence."
+  ],
+  "facts": [
+   [
+    "electronic",
+    "Molecular polarizability",
+    "14.60",
+    "A^3",
+    "Polarizability",
+    "heuristic"
+   ],
+   [
+    "electronic",
+    "Polarizability",
+    "Additive atomic scheme (Jensen et al. 2002). Aromatics and halogenated compounds are accurate to about 1%; saturated hydrocarbons come out roughly 11% high, because an atom-additive scheme has no hybridization dependence.",
+    "",
+    "Polarizability",
+    "heuristic"
+   ]
+  ],
+  "cells": [
+   [
+    "calculator:polarizability:Molecular polarizability",
+    "A^3",
+    "14.60"
+   ],
+   [
+    "calculator:polarizability:Polarizability",
+    "",
+    "Additive atomic scheme (Jensen et al. 2002). Aromatics and halogenated compounds are accurate to about 1%; saturated hydrocarbons come out roughly 11% high, because an atom-additive scheme has no hybridization dependence."
+   ]
+  ]
+ },
+ "acetic acid | default": {
+  "state": "completed",
+  "error": null,
+  "summary": null,
+  "inapplicable": false,
+  "method": "jensen",
+  "lines": [
+   "Molecular polarizability: 5.74 A^3",
+   "Additive atomic scheme (Jensen et al. 2002). Aromatics and halogenated compounds are accurate to about 1%; saturated hydrocarbons come out roughly 11% high, because an atom-additive scheme has no hybridization dependence."
+  ],
+  "facts": [
+   [
+    "electronic",
+    "Molecular polarizability",
+    "5.74",
+    "A^3",
+    "Polarizability",
+    "heuristic"
+   ],
+   [
+    "electronic",
+    "Polarizability",
+    "Additive atomic scheme (Jensen et al. 2002). Aromatics and halogenated compounds are accurate to about 1%; saturated hydrocarbons come out roughly 11% high, because an atom-additive scheme has no hybridization dependence.",
+    "",
+    "Polarizability",
+    "heuristic"
+   ]
+  ],
+  "cells": [
+   [
+    "calculator:polarizability:Molecular polarizability",
+    "A^3",
+    "5.74"
+   ],
+   [
+    "calculator:polarizability:Polarizability",
+    "",
+    "Additive atomic scheme (Jensen et al. 2002). Aromatics and halogenated compounds are accurate to about 1%; saturated hydrocarbons come out roughly 11% high, because an atom-additive scheme has no hybridization dependence."
+   ]
+  ]
+ },
+ "glycine | default": {
+  "state": "completed",
+  "error": null,
+  "summary": null,
+  "inapplicable": false,
+  "method": "jensen",
+  "lines": [
+   "Molecular polarizability: 7.10 A^3",
+   "Additive atomic scheme (Jensen et al. 2002). Aromatics and halogenated compounds are accurate to about 1%; saturated hydrocarbons come out roughly 11% high, because an atom-additive scheme has no hybridization dependence."
+  ],
+  "facts": [
+   [
+    "electronic",
+    "Molecular polarizability",
+    "7.10",
+    "A^3",
+    "Polarizability",
+    "heuristic"
+   ],
+   [
+    "electronic",
+    "Polarizability",
+    "Additive atomic scheme (Jensen et al. 2002). Aromatics and halogenated compounds are accurate to about 1%; saturated hydrocarbons come out roughly 11% high, because an atom-additive scheme has no hybridization dependence.",
+    "",
+    "Polarizability",
+    "heuristic"
+   ]
+  ],
+  "cells": [
+   [
+    "calculator:polarizability:Molecular polarizability",
+    "A^3",
+    "7.10"
+   ],
+   [
+    "calculator:polarizability:Polarizability",
+    "",
+    "Additive atomic scheme (Jensen et al. 2002). Aromatics and halogenated compounds are accurate to about 1%; saturated hydrocarbons come out roughly 11% high, because an atom-additive scheme has no hybridization dependence."
+   ]
+  ]
+ },
+ "ammonium chloride | default": {
+  "refused": "MULTICOMPONENT_UNSUPPORTED"
+ },
+ "tetramethylsilane | default": {
+  "state": "completed",
+  "error": null,
+  "summary": null,
+  "inapplicable": false,
+  "method": "jensen",
+  "lines": [
+   "Molecular polarizability: 13.93 A^3",
+   "Additive atomic scheme (Jensen et al. 2002). Aromatics and halogenated compounds are accurate to about 1%; saturated hydrocarbons come out roughly 11% high, because an atom-additive scheme has no hybridization dependence."
+  ],
+  "facts": [
+   [
+    "electronic",
+    "Molecular polarizability",
+    "13.93",
+    "A^3",
+    "Polarizability",
+    "heuristic"
+   ],
+   [
+    "electronic",
+    "Polarizability",
+    "Additive atomic scheme (Jensen et al. 2002). Aromatics and halogenated compounds are accurate to about 1%; saturated hydrocarbons come out roughly 11% high, because an atom-additive scheme has no hybridization dependence.",
+    "",
+    "Polarizability",
+    "heuristic"
+   ]
+  ],
+  "cells": [
+   [
+    "calculator:polarizability:Molecular polarizability",
+    "A^3",
+    "13.93"
+   ],
+   [
+    "calculator:polarizability:Polarizability",
+    "",
+    "Additive atomic scheme (Jensen et al. 2002). Aromatics and halogenated compounds are accurate to about 1%; saturated hydrocarbons come out roughly 11% high, because an atom-additive scheme has no hybridization dependence."
+   ]
+  ]
+ },
+ "copper(II) | default": {
+  "state": "failed",
+  "error": "No Jensen polarizability parameter for: Cu. The table covers H, C, N, O, S, F, Cl, Br, I, P, Si, B, Se.",
+  "summary": "Element outside Jensen's set",
+  "inapplicable": true,
+  "method": "jensen",
+  "lines": [],
+  "facts": [],
+  "cells": [
+   [
+    "calculator:polarizability",
+    "",
+    ""
+   ]
+  ]
+ },
+ "water | jensen": {
+  "state": "completed",
+  "error": null,
+  "summary": null,
+  "inapplicable": false,
+  "method": "jensen",
+  "lines": [
+   "Molecular polarizability: 1.54 A^3",
+   "Additive atomic scheme (Jensen et al. 2002). Aromatics and halogenated compounds are accurate to about 1%; saturated hydrocarbons come out roughly 11% high, because an atom-additive scheme has no hybridization dependence."
+  ],
+  "facts": [
+   [
+    "electronic",
+    "Molecular polarizability",
+    "1.54",
+    "A^3",
+    "Polarizability",
+    "heuristic"
+   ],
+   [
+    "electronic",
+    "Polarizability",
+    "Additive atomic scheme (Jensen et al. 2002). Aromatics and halogenated compounds are accurate to about 1%; saturated hydrocarbons come out roughly 11% high, because an atom-additive scheme has no hybridization dependence.",
+    "",
+    "Polarizability",
+    "heuristic"
+   ]
+  ],
+  "cells": [
+   [
+    "calculator:polarizability:Molecular polarizability",
+    "A^3",
+    "1.54"
+   ],
+   [
+    "calculator:polarizability:Polarizability",
+    "",
+    "Additive atomic scheme (Jensen et al. 2002). Aromatics and halogenated compounds are accurate to about 1%; saturated hydrocarbons come out roughly 11% high, because an atom-additive scheme has no hybridization dependence."
+   ]
+  ]
+ },
+ "methane | jensen": {
+  "state": "completed",
+  "error": null,
+  "summary": null,
+  "inapplicable": false,
+  "method": "jensen",
+  "lines": [
+   "Molecular polarizability: 2.88 A^3",
+   "Additive atomic scheme (Jensen et al. 2002). Aromatics and halogenated compounds are accurate to about 1%; saturated hydrocarbons come out roughly 11% high, because an atom-additive scheme has no hybridization dependence."
+  ],
+  "facts": [
+   [
+    "electronic",
+    "Molecular polarizability",
+    "2.88",
+    "A^3",
+    "Polarizability",
+    "heuristic"
+   ],
+   [
+    "electronic",
+    "Polarizability",
+    "Additive atomic scheme (Jensen et al. 2002). Aromatics and halogenated compounds are accurate to about 1%; saturated hydrocarbons come out roughly 11% high, because an atom-additive scheme has no hybridization dependence.",
+    "",
+    "Polarizability",
+    "heuristic"
+   ]
+  ],
+  "cells": [
+   [
+    "calculator:polarizability:Molecular polarizability",
+    "A^3",
+    "2.88"
+   ],
+   [
+    "calculator:polarizability:Polarizability",
+    "",
+    "Additive atomic scheme (Jensen et al. 2002). Aromatics and halogenated compounds are accurate to about 1%; saturated hydrocarbons come out roughly 11% high, because an atom-additive scheme has no hybridization dependence."
+   ]
+  ]
+ },
+ "ethanol | jensen": {
+  "state": "completed",
+  "error": null,
+  "summary": null,
+  "inapplicable": false,
+  "method": "jensen",
+  "lines": [
+   "Molecular polarizability: 5.75 A^3",
+   "Additive atomic scheme (Jensen et al. 2002). Aromatics and halogenated compounds are accurate to about 1%; saturated hydrocarbons come out roughly 11% high, because an atom-additive scheme has no hybridization dependence."
+  ],
+  "facts": [
+   [
+    "electronic",
+    "Molecular polarizability",
+    "5.75",
+    "A^3",
+    "Polarizability",
+    "heuristic"
+   ],
+   [
+    "electronic",
+    "Polarizability",
+    "Additive atomic scheme (Jensen et al. 2002). Aromatics and halogenated compounds are accurate to about 1%; saturated hydrocarbons come out roughly 11% high, because an atom-additive scheme has no hybridization dependence.",
+    "",
+    "Polarizability",
+    "heuristic"
+   ]
+  ],
+  "cells": [
+   [
+    "calculator:polarizability:Molecular polarizability",
+    "A^3",
+    "5.75"
+   ],
+   [
+    "calculator:polarizability:Polarizability",
+    "",
+    "Additive atomic scheme (Jensen et al. 2002). Aromatics and halogenated compounds are accurate to about 1%; saturated hydrocarbons come out roughly 11% high, because an atom-additive scheme has no hybridization dependence."
+   ]
+  ]
+ },
+ "benzene | jensen": {
+  "state": "completed",
+  "error": null,
+  "summary": null,
+  "inapplicable": false,
+  "method": "jensen",
+  "lines": [
+   "Molecular polarizability: 10.29 A^3",
+   "Additive atomic scheme (Jensen et al. 2002). Aromatics and halogenated compounds are accurate to about 1%; saturated hydrocarbons come out roughly 11% high, because an atom-additive scheme has no hybridization dependence."
+  ],
+  "facts": [
+   [
+    "electronic",
+    "Molecular polarizability",
+    "10.29",
+    "A^3",
+    "Polarizability",
+    "heuristic"
+   ],
+   [
+    "electronic",
+    "Polarizability",
+    "Additive atomic scheme (Jensen et al. 2002). Aromatics and halogenated compounds are accurate to about 1%; saturated hydrocarbons come out roughly 11% high, because an atom-additive scheme has no hybridization dependence.",
+    "",
+    "Polarizability",
+    "heuristic"
+   ]
+  ],
+  "cells": [
+   [
+    "calculator:polarizability:Molecular polarizability",
+    "A^3",
+    "10.29"
+   ],
+   [
+    "calculator:polarizability:Polarizability",
+    "",
+    "Additive atomic scheme (Jensen et al. 2002). Aromatics and halogenated compounds are accurate to about 1%; saturated hydrocarbons come out roughly 11% high, because an atom-additive scheme has no hybridization dependence."
+   ]
+  ]
+ },
+ "aspirin | jensen": {
+  "state": "completed",
+  "error": null,
+  "summary": null,
+  "inapplicable": false,
+  "method": "jensen",
+  "lines": [
+   "Molecular polarizability: 18.11 A^3",
+   "Additive atomic scheme (Jensen et al. 2002). Aromatics and halogenated compounds are accurate to about 1%; saturated hydrocarbons come out roughly 11% high, because an atom-additive scheme has no hybridization dependence."
+  ],
+  "facts": [
+   [
+    "electronic",
+    "Molecular polarizability",
+    "18.11",
+    "A^3",
+    "Polarizability",
+    "heuristic"
+   ],
+   [
+    "electronic",
+    "Polarizability",
+    "Additive atomic scheme (Jensen et al. 2002). Aromatics and halogenated compounds are accurate to about 1%; saturated hydrocarbons come out roughly 11% high, because an atom-additive scheme has no hybridization dependence.",
+    "",
+    "Polarizability",
+    "heuristic"
+   ]
+  ],
+  "cells": [
+   [
+    "calculator:polarizability:Molecular polarizability",
+    "A^3",
+    "18.11"
+   ],
+   [
+    "calculator:polarizability:Polarizability",
+    "",
+    "Additive atomic scheme (Jensen et al. 2002). Aromatics and halogenated compounds are accurate to about 1%; saturated hydrocarbons come out roughly 11% high, because an atom-additive scheme has no hybridization dependence."
+   ]
+  ]
+ },
+ "caffeine | jensen": {
+  "state": "completed",
+  "error": null,
+  "summary": null,
+  "inapplicable": false,
+  "method": "jensen",
+  "lines": [
+   "Molecular polarizability: 19.93 A^3",
+   "Additive atomic scheme (Jensen et al. 2002). Aromatics and halogenated compounds are accurate to about 1%; saturated hydrocarbons come out roughly 11% high, because an atom-additive scheme has no hybridization dependence."
+  ],
+  "facts": [
+   [
+    "electronic",
+    "Molecular polarizability",
+    "19.93",
+    "A^3",
+    "Polarizability",
+    "heuristic"
+   ],
+   [
+    "electronic",
+    "Polarizability",
+    "Additive atomic scheme (Jensen et al. 2002). Aromatics and halogenated compounds are accurate to about 1%; saturated hydrocarbons come out roughly 11% high, because an atom-additive scheme has no hybridization dependence.",
+    "",
+    "Polarizability",
+    "heuristic"
+   ]
+  ],
+  "cells": [
+   [
+    "calculator:polarizability:Molecular polarizability",
+    "A^3",
+    "19.93"
+   ],
+   [
+    "calculator:polarizability:Polarizability",
+    "",
+    "Additive atomic scheme (Jensen et al. 2002). Aromatics and halogenated compounds are accurate to about 1%; saturated hydrocarbons come out roughly 11% high, because an atom-additive scheme has no hybridization dependence."
+   ]
+  ]
+ },
+ "carbon tetrachloride | jensen": {
+  "state": "completed",
+  "error": null,
+  "summary": null,
+  "inapplicable": false,
+  "method": "jensen",
+  "lines": [
+   "Molecular polarizability: 10.37 A^3",
+   "Additive atomic scheme (Jensen et al. 2002). Aromatics and halogenated compounds are accurate to about 1%; saturated hydrocarbons come out roughly 11% high, because an atom-additive scheme has no hybridization dependence."
+  ],
+  "facts": [
+   [
+    "electronic",
+    "Molecular polarizability",
+    "10.37",
+    "A^3",
+    "Polarizability",
+    "heuristic"
+   ],
+   [
+    "electronic",
+    "Polarizability",
+    "Additive atomic scheme (Jensen et al. 2002). Aromatics and halogenated compounds are accurate to about 1%; saturated hydrocarbons come out roughly 11% high, because an atom-additive scheme has no hybridization dependence.",
+    "",
+    "Polarizability",
+    "heuristic"
+   ]
+  ],
+  "cells": [
+   [
+    "calculator:polarizability:Molecular polarizability",
+    "A^3",
+    "10.37"
+   ],
+   [
+    "calculator:polarizability:Polarizability",
+    "",
+    "Additive atomic scheme (Jensen et al. 2002). Aromatics and halogenated compounds are accurate to about 1%; saturated hydrocarbons come out roughly 11% high, because an atom-additive scheme has no hybridization dependence."
+   ]
+  ]
+ },
+ "carbon tetrabromide | jensen": {
+  "state": "completed",
+  "error": null,
+  "summary": null,
+  "inapplicable": false,
+  "method": "jensen",
+  "lines": [
+   "Molecular polarizability: 14.60 A^3",
+   "Additive atomic scheme (Jensen et al. 2002). Aromatics and halogenated compounds are accurate to about 1%; saturated hydrocarbons come out roughly 11% high, because an atom-additive scheme has no hybridization dependence."
+  ],
+  "facts": [
+   [
+    "electronic",
+    "Molecular polarizability",
+    "14.60",
+    "A^3",
+    "Polarizability",
+    "heuristic"
+   ],
+   [
+    "electronic",
+    "Polarizability",
+    "Additive atomic scheme (Jensen et al. 2002). Aromatics and halogenated compounds are accurate to about 1%; saturated hydrocarbons come out roughly 11% high, because an atom-additive scheme has no hybridization dependence.",
+    "",
+    "Polarizability",
+    "heuristic"
+   ]
+  ],
+  "cells": [
+   [
+    "calculator:polarizability:Molecular polarizability",
+    "A^3",
+    "14.60"
+   ],
+   [
+    "calculator:polarizability:Polarizability",
+    "",
+    "Additive atomic scheme (Jensen et al. 2002). Aromatics and halogenated compounds are accurate to about 1%; saturated hydrocarbons come out roughly 11% high, because an atom-additive scheme has no hybridization dependence."
+   ]
+  ]
+ },
+ "acetic acid | jensen": {
+  "state": "completed",
+  "error": null,
+  "summary": null,
+  "inapplicable": false,
+  "method": "jensen",
+  "lines": [
+   "Molecular polarizability: 5.74 A^3",
+   "Additive atomic scheme (Jensen et al. 2002). Aromatics and halogenated compounds are accurate to about 1%; saturated hydrocarbons come out roughly 11% high, because an atom-additive scheme has no hybridization dependence."
+  ],
+  "facts": [
+   [
+    "electronic",
+    "Molecular polarizability",
+    "5.74",
+    "A^3",
+    "Polarizability",
+    "heuristic"
+   ],
+   [
+    "electronic",
+    "Polarizability",
+    "Additive atomic scheme (Jensen et al. 2002). Aromatics and halogenated compounds are accurate to about 1%; saturated hydrocarbons come out roughly 11% high, because an atom-additive scheme has no hybridization dependence.",
+    "",
+    "Polarizability",
+    "heuristic"
+   ]
+  ],
+  "cells": [
+   [
+    "calculator:polarizability:Molecular polarizability",
+    "A^3",
+    "5.74"
+   ],
+   [
+    "calculator:polarizability:Polarizability",
+    "",
+    "Additive atomic scheme (Jensen et al. 2002). Aromatics and halogenated compounds are accurate to about 1%; saturated hydrocarbons come out roughly 11% high, because an atom-additive scheme has no hybridization dependence."
+   ]
+  ]
+ },
+ "glycine | jensen": {
+  "state": "completed",
+  "error": null,
+  "summary": null,
+  "inapplicable": false,
+  "method": "jensen",
+  "lines": [
+   "Molecular polarizability: 7.10 A^3",
+   "Additive atomic scheme (Jensen et al. 2002). Aromatics and halogenated compounds are accurate to about 1%; saturated hydrocarbons come out roughly 11% high, because an atom-additive scheme has no hybridization dependence."
+  ],
+  "facts": [
+   [
+    "electronic",
+    "Molecular polarizability",
+    "7.10",
+    "A^3",
+    "Polarizability",
+    "heuristic"
+   ],
+   [
+    "electronic",
+    "Polarizability",
+    "Additive atomic scheme (Jensen et al. 2002). Aromatics and halogenated compounds are accurate to about 1%; saturated hydrocarbons come out roughly 11% high, because an atom-additive scheme has no hybridization dependence.",
+    "",
+    "Polarizability",
+    "heuristic"
+   ]
+  ],
+  "cells": [
+   [
+    "calculator:polarizability:Molecular polarizability",
+    "A^3",
+    "7.10"
+   ],
+   [
+    "calculator:polarizability:Polarizability",
+    "",
+    "Additive atomic scheme (Jensen et al. 2002). Aromatics and halogenated compounds are accurate to about 1%; saturated hydrocarbons come out roughly 11% high, because an atom-additive scheme has no hybridization dependence."
+   ]
+  ]
+ },
+ "ammonium chloride | jensen": {
+  "refused": "MULTICOMPONENT_UNSUPPORTED"
+ },
+ "tetramethylsilane | jensen": {
+  "state": "completed",
+  "error": null,
+  "summary": null,
+  "inapplicable": false,
+  "method": "jensen",
+  "lines": [
+   "Molecular polarizability: 13.93 A^3",
+   "Additive atomic scheme (Jensen et al. 2002). Aromatics and halogenated compounds are accurate to about 1%; saturated hydrocarbons come out roughly 11% high, because an atom-additive scheme has no hybridization dependence."
+  ],
+  "facts": [
+   [
+    "electronic",
+    "Molecular polarizability",
+    "13.93",
+    "A^3",
+    "Polarizability",
+    "heuristic"
+   ],
+   [
+    "electronic",
+    "Polarizability",
+    "Additive atomic scheme (Jensen et al. 2002). Aromatics and halogenated compounds are accurate to about 1%; saturated hydrocarbons come out roughly 11% high, because an atom-additive scheme has no hybridization dependence.",
+    "",
+    "Polarizability",
+    "heuristic"
+   ]
+  ],
+  "cells": [
+   [
+    "calculator:polarizability:Molecular polarizability",
+    "A^3",
+    "13.93"
+   ],
+   [
+    "calculator:polarizability:Polarizability",
+    "",
+    "Additive atomic scheme (Jensen et al. 2002). Aromatics and halogenated compounds are accurate to about 1%; saturated hydrocarbons come out roughly 11% high, because an atom-additive scheme has no hybridization dependence."
+   ]
+  ]
+ },
+ "copper(II) | jensen": {
+  "state": "failed",
+  "error": "No Jensen polarizability parameter for: Cu. The table covers H, C, N, O, S, F, Cl, Br, I, P, Si, B, Se.",
+  "summary": "Element outside Jensen's set",
+  "inapplicable": true,
+  "method": "jensen",
+  "lines": [],
+  "facts": [],
+  "cells": [
+   [
+    "calculator:polarizability",
+    "",
+    ""
+   ]
+  ]
+ },
+ "water | miller ahc": {
+  "state": "completed",
+  "error": null,
+  "summary": null,
+  "inapplicable": false,
+  "method": "miller_ahc",
+  "lines": [
+   "Molecular polarizability: 1.41 A^3",
+   "Hybrid assignment: H x2, OTE x1",
+   "Miller's ahc method: alpha = (4/N)(sum of tau_A)^2 over N total electrons (Miller & Savchik 1979; parameters from Miller 1990, Table I). Measured here at +0.6% on benzene and +0.2% on CCl4 -- the two molecules an earlier reconstruction missed by +27% and -50%. It is an empirical scheme fitted to about 240 molecules and reports an isotropic average, not a tensor."
+  ],
+  "facts": [
+   [
+    "electronic",
+    "Molecular polarizability",
+    "1.41",
+    "A^3",
+    "Polarizability",
+    "heuristic"
+   ],
+   [
+    "electronic",
+    "Polarizability",
+    "Hybrid assignment: H x2, OTE x1",
+    "",
+    "Polarizability",
+    "heuristic"
+   ],
+   [
+    "electronic",
+    "Polarizability",
+    "Miller's ahc method: alpha = (4/N)(sum of tau_A)^2 over N total electrons (Miller & Savchik 1979; parameters from Miller 1990, Table I). Measured here at +0.6% on benzene and +0.2% on CCl4 -- the two molecules an earlier reconstruction missed by +27% and -50%. It is an empirical scheme fitted to about 240 molecules and reports an isotropic average, not a tensor.",
+    "",
+    "Polarizability",
+    "heuristic"
+   ]
+  ],
+  "cells": [
+   [
+    "calculator:polarizability:Molecular polarizability",
+    "A^3",
+    "1.41"
+   ],
+   [
+    "calculator:polarizability:Polarizability",
+    "",
+    "Hybrid assignment: H x2, OTE x1"
+   ],
+   [
+    "calculator:polarizability:Polarizability",
+    "",
+    "Miller's ahc method: alpha = (4/N)(sum of tau_A)^2 over N total electrons (Miller & Savchik 1979; parameters from Miller 1990, Table I). Measured here at +0.6% on benzene and +0.2% on CCl4 -- the two molecules an earlier reconstruction missed by +27% and -50%. It is an empirical scheme fitted to about 240 molecules and reports an isotropic average, not a tensor."
+   ]
+  ]
+ },
+ "methane | miller ahc": {
+  "state": "completed",
+  "error": null,
+  "summary": null,
+  "inapplicable": false,
+  "method": "miller_ahc",
+  "lines": [
+   "Molecular polarizability: 2.59 A^3",
+   "Hybrid assignment: CTE x1, H x4",
+   "Miller's ahc method: alpha = (4/N)(sum of tau_A)^2 over N total electrons (Miller & Savchik 1979; parameters from Miller 1990, Table I). Measured here at +0.6% on benzene and +0.2% on CCl4 -- the two molecules an earlier reconstruction missed by +27% and -50%. It is an empirical scheme fitted to about 240 molecules and reports an isotropic average, not a tensor."
+  ],
+  "facts": [
+   [
+    "electronic",
+    "Molecular polarizability",
+    "2.59",
+    "A^3",
+    "Polarizability",
+    "heuristic"
+   ],
+   [
+    "electronic",
+    "Polarizability",
+    "Hybrid assignment: CTE x1, H x4",
+    "",
+    "Polarizability",
+    "heuristic"
+   ],
+   [
+    "electronic",
+    "Polarizability",
+    "Miller's ahc method: alpha = (4/N)(sum of tau_A)^2 over N total electrons (Miller & Savchik 1979; parameters from Miller 1990, Table I). Measured here at +0.6% on benzene and +0.2% on CCl4 -- the two molecules an earlier reconstruction missed by +27% and -50%. It is an empirical scheme fitted to about 240 molecules and reports an isotropic average, not a tensor.",
+    "",
+    "Polarizability",
+    "heuristic"
+   ]
+  ],
+  "cells": [
+   [
+    "calculator:polarizability:Molecular polarizability",
+    "A^3",
+    "2.59"
+   ],
+   [
+    "calculator:polarizability:Polarizability",
+    "",
+    "Hybrid assignment: CTE x1, H x4"
+   ],
+   [
+    "calculator:polarizability:Polarizability",
+    "",
+    "Miller's ahc method: alpha = (4/N)(sum of tau_A)^2 over N total electrons (Miller & Savchik 1979; parameters from Miller 1990, Table I). Measured here at +0.6% on benzene and +0.2% on CCl4 -- the two molecules an earlier reconstruction missed by +27% and -50%. It is an empirical scheme fitted to about 240 molecules and reports an isotropic average, not a tensor."
+   ]
+  ]
+ },
+ "ethanol | miller ahc": {
+  "state": "completed",
+  "error": null,
+  "summary": null,
+  "inapplicable": false,
+  "method": "miller_ahc",
+  "lines": [
+   "Molecular polarizability: 5.02 A^3",
+   "Hybrid assignment: CTE x2, H x6, OTE x1",
+   "Miller's ahc method: alpha = (4/N)(sum of tau_A)^2 over N total electrons (Miller & Savchik 1979; parameters from Miller 1990, Table I). Measured here at +0.6% on benzene and +0.2% on CCl4 -- the two molecules an earlier reconstruction missed by +27% and -50%. It is an empirical scheme fitted to about 240 molecules and reports an isotropic average, not a tensor."
+  ],
+  "facts": [
+   [
+    "electronic",
+    "Molecular polarizability",
+    "5.02",
+    "A^3",
+    "Polarizability",
+    "heuristic"
+   ],
+   [
+    "electronic",
+    "Polarizability",
+    "Hybrid assignment: CTE x2, H x6, OTE x1",
+    "",
+    "Polarizability",
+    "heuristic"
+   ],
+   [
+    "electronic",
+    "Polarizability",
+    "Miller's ahc method: alpha = (4/N)(sum of tau_A)^2 over N total electrons (Miller & Savchik 1979; parameters from Miller 1990, Table I). Measured here at +0.6% on benzene and +0.2% on CCl4 -- the two molecules an earlier reconstruction missed by +27% and -50%. It is an empirical scheme fitted to about 240 molecules and reports an isotropic average, not a tensor.",
+    "",
+    "Polarizability",
+    "heuristic"
+   ]
+  ],
+  "cells": [
+   [
+    "calculator:polarizability:Molecular polarizability",
+    "A^3",
+    "5.02"
+   ],
+   [
+    "calculator:polarizability:Polarizability",
+    "",
+    "Hybrid assignment: CTE x2, H x6, OTE x1"
+   ],
+   [
+    "calculator:polarizability:Polarizability",
+    "",
+    "Miller's ahc method: alpha = (4/N)(sum of tau_A)^2 over N total electrons (Miller & Savchik 1979; parameters from Miller 1990, Table I). Measured here at +0.6% on benzene and +0.2% on CCl4 -- the two molecules an earlier reconstruction missed by +27% and -50%. It is an empirical scheme fitted to about 240 molecules and reports an isotropic average, not a tensor."
+   ]
+  ]
+ },
+ "benzene | miller ahc": {
+  "state": "completed",
+  "error": null,
+  "summary": null,
+  "inapplicable": false,
+  "method": "miller_ahc",
+  "lines": [
+   "Molecular polarizability: 10.45 A^3",
+   "Hybrid assignment: CTR x6, H x6",
+   "Miller's ahc method: alpha = (4/N)(sum of tau_A)^2 over N total electrons (Miller & Savchik 1979; parameters from Miller 1990, Table I). Measured here at +0.6% on benzene and +0.2% on CCl4 -- the two molecules an earlier reconstruction missed by +27% and -50%. It is an empirical scheme fitted to about 240 molecules and reports an isotropic average, not a tensor."
+  ],
+  "facts": [
+   [
+    "electronic",
+    "Molecular polarizability",
+    "10.45",
+    "A^3",
+    "Polarizability",
+    "heuristic"
+   ],
+   [
+    "electronic",
+    "Polarizability",
+    "Hybrid assignment: CTR x6, H x6",
+    "",
+    "Polarizability",
+    "heuristic"
+   ],
+   [
+    "electronic",
+    "Polarizability",
+    "Miller's ahc method: alpha = (4/N)(sum of tau_A)^2 over N total electrons (Miller & Savchik 1979; parameters from Miller 1990, Table I). Measured here at +0.6% on benzene and +0.2% on CCl4 -- the two molecules an earlier reconstruction missed by +27% and -50%. It is an empirical scheme fitted to about 240 molecules and reports an isotropic average, not a tensor.",
+    "",
+    "Polarizability",
+    "heuristic"
+   ]
+  ],
+  "cells": [
+   [
+    "calculator:polarizability:Molecular polarizability",
+    "A^3",
+    "10.45"
+   ],
+   [
+    "calculator:polarizability:Polarizability",
+    "",
+    "Hybrid assignment: CTR x6, H x6"
+   ],
+   [
+    "calculator:polarizability:Polarizability",
+    "",
+    "Miller's ahc method: alpha = (4/N)(sum of tau_A)^2 over N total electrons (Miller & Savchik 1979; parameters from Miller 1990, Table I). Measured here at +0.6% on benzene and +0.2% on CCl4 -- the two molecules an earlier reconstruction missed by +27% and -50%. It is an empirical scheme fitted to about 240 molecules and reports an isotropic average, not a tensor."
+   ]
+  ]
+ },
+ "aspirin | miller ahc": {
+  "state": "completed",
+  "error": null,
+  "summary": null,
+  "inapplicable": false,
+  "method": "miller_ahc",
+  "lines": [
+   "Molecular polarizability: 18.20 A^3",
+   "Hybrid assignment: CBR x3, CTE x1, CTR x5, H x8, OPI2 x2, OTR4 x2",
+   "Miller's ahc method: alpha = (4/N)(sum of tau_A)^2 over N total electrons (Miller & Savchik 1979; parameters from Miller 1990, Table I). Measured here at +0.6% on benzene and +0.2% on CCl4 -- the two molecules an earlier reconstruction missed by +27% and -50%. It is an empirical scheme fitted to about 240 molecules and reports an isotropic average, not a tensor."
+  ],
+  "facts": [
+   [
+    "electronic",
+    "Molecular polarizability",
+    "18.20",
+    "A^3",
+    "Polarizability",
+    "heuristic"
+   ],
+   [
+    "electronic",
+    "Polarizability",
+    "Hybrid assignment: CBR x3, CTE x1, CTR x5, H x8, OPI2 x2, OTR4 x2",
+    "",
+    "Polarizability",
+    "heuristic"
+   ],
+   [
+    "electronic",
+    "Polarizability",
+    "Miller's ahc method: alpha = (4/N)(sum of tau_A)^2 over N total electrons (Miller & Savchik 1979; parameters from Miller 1990, Table I). Measured here at +0.6% on benzene and +0.2% on CCl4 -- the two molecules an earlier reconstruction missed by +27% and -50%. It is an empirical scheme fitted to about 240 molecules and reports an isotropic average, not a tensor.",
+    "",
+    "Polarizability",
+    "heuristic"
+   ]
+  ],
+  "cells": [
+   [
+    "calculator:polarizability:Molecular polarizability",
+    "A^3",
+    "18.20"
+   ],
+   [
+    "calculator:polarizability:Polarizability",
+    "",
+    "Hybrid assignment: CBR x3, CTE x1, CTR x5, H x8, OPI2 x2, OTR4 x2"
+   ],
+   [
+    "calculator:polarizability:Polarizability",
+    "",
+    "Miller's ahc method: alpha = (4/N)(sum of tau_A)^2 over N total electrons (Miller & Savchik 1979; parameters from Miller 1990, Table I). Measured here at +0.6% on benzene and +0.2% on CCl4 -- the two molecules an earlier reconstruction missed by +27% and -50%. It is an empirical scheme fitted to about 240 molecules and reports an isotropic average, not a tensor."
+   ]
+  ]
+ },
+ "caffeine | miller ahc": {
+  "state": "completed",
+  "error": null,
+  "summary": null,
+  "inapplicable": false,
+  "method": "miller_ahc",
+  "lines": [
+   "Molecular polarizability: 20.08 A^3",
+   "Hybrid assignment: CBR x4, CTE x3, CTR x1, H x10, NPI2 x3, NTR2 x1, OTR4 x2",
+   "Miller's ahc method: alpha = (4/N)(sum of tau_A)^2 over N total electrons (Miller & Savchik 1979; parameters from Miller 1990, Table I). Measured here at +0.6% on benzene and +0.2% on CCl4 -- the two molecules an earlier reconstruction missed by +27% and -50%. It is an empirical scheme fitted to about 240 molecules and reports an isotropic average, not a tensor."
+  ],
+  "facts": [
+   [
+    "electronic",
+    "Molecular polarizability",
+    "20.08",
+    "A^3",
+    "Polarizability",
+    "heuristic"
+   ],
+   [
+    "electronic",
+    "Polarizability",
+    "Hybrid assignment: CBR x4, CTE x3, CTR x1, H x10, NPI2 x3, NTR2 x1, OTR4 x2",
+    "",
+    "Polarizability",
+    "heuristic"
+   ],
+   [
+    "electronic",
+    "Polarizability",
+    "Miller's ahc method: alpha = (4/N)(sum of tau_A)^2 over N total electrons (Miller & Savchik 1979; parameters from Miller 1990, Table I). Measured here at +0.6% on benzene and +0.2% on CCl4 -- the two molecules an earlier reconstruction missed by +27% and -50%. It is an empirical scheme fitted to about 240 molecules and reports an isotropic average, not a tensor.",
+    "",
+    "Polarizability",
+    "heuristic"
+   ]
+  ],
+  "cells": [
+   [
+    "calculator:polarizability:Molecular polarizability",
+    "A^3",
+    "20.08"
+   ],
+   [
+    "calculator:polarizability:Polarizability",
+    "",
+    "Hybrid assignment: CBR x4, CTE x3, CTR x1, H x10, NPI2 x3, NTR2 x1, OTR4 x2"
+   ],
+   [
+    "calculator:polarizability:Polarizability",
+    "",
+    "Miller's ahc method: alpha = (4/N)(sum of tau_A)^2 over N total electrons (Miller & Savchik 1979; parameters from Miller 1990, Table I). Measured here at +0.6% on benzene and +0.2% on CCl4 -- the two molecules an earlier reconstruction missed by +27% and -50%. It is an empirical scheme fitted to about 240 molecules and reports an isotropic average, not a tensor."
+   ]
+  ]
+ },
+ "carbon tetrachloride | miller ahc": {
+  "state": "completed",
+  "error": null,
+  "summary": null,
+  "inapplicable": false,
+  "method": "miller_ahc",
+  "lines": [
+   "Molecular polarizability: 10.53 A^3",
+   "Hybrid assignment: CTE x1, Cl x4",
+   "Miller's ahc method: alpha = (4/N)(sum of tau_A)^2 over N total electrons (Miller & Savchik 1979; parameters from Miller 1990, Table I). Measured here at +0.6% on benzene and +0.2% on CCl4 -- the two molecules an earlier reconstruction missed by +27% and -50%. It is an empirical scheme fitted to about 240 molecules and reports an isotropic average, not a tensor."
+  ],
+  "facts": [
+   [
+    "electronic",
+    "Molecular polarizability",
+    "10.53",
+    "A^3",
+    "Polarizability",
+    "heuristic"
+   ],
+   [
+    "electronic",
+    "Polarizability",
+    "Hybrid assignment: CTE x1, Cl x4",
+    "",
+    "Polarizability",
+    "heuristic"
+   ],
+   [
+    "electronic",
+    "Polarizability",
+    "Miller's ahc method: alpha = (4/N)(sum of tau_A)^2 over N total electrons (Miller & Savchik 1979; parameters from Miller 1990, Table I). Measured here at +0.6% on benzene and +0.2% on CCl4 -- the two molecules an earlier reconstruction missed by +27% and -50%. It is an empirical scheme fitted to about 240 molecules and reports an isotropic average, not a tensor.",
+    "",
+    "Polarizability",
+    "heuristic"
+   ]
+  ],
+  "cells": [
+   [
+    "calculator:polarizability:Molecular polarizability",
+    "A^3",
+    "10.53"
+   ],
+   [
+    "calculator:polarizability:Polarizability",
+    "",
+    "Hybrid assignment: CTE x1, Cl x4"
+   ],
+   [
+    "calculator:polarizability:Polarizability",
+    "",
+    "Miller's ahc method: alpha = (4/N)(sum of tau_A)^2 over N total electrons (Miller & Savchik 1979; parameters from Miller 1990, Table I). Measured here at +0.6% on benzene and +0.2% on CCl4 -- the two molecules an earlier reconstruction missed by +27% and -50%. It is an empirical scheme fitted to about 240 molecules and reports an isotropic average, not a tensor."
+   ]
+  ]
+ },
+ "carbon tetrabromide | miller ahc": {
+  "state": "completed",
+  "error": null,
+  "summary": null,
+  "inapplicable": false,
+  "method": "miller_ahc",
+  "lines": [
+   "Molecular polarizability: 15.20 A^3",
+   "Hybrid assignment: Br x4, CTE x1",
+   "Miller's ahc method: alpha = (4/N)(sum of tau_A)^2 over N total electrons (Miller & Savchik 1979; parameters from Miller 1990, Table I). Measured here at +0.6% on benzene and +0.2% on CCl4 -- the two molecules an earlier reconstruction missed by +27% and -50%. It is an empirical scheme fitted to about 240 molecules and reports an isotropic average, not a tensor."
+  ],
+  "facts": [
+   [
+    "electronic",
+    "Molecular polarizability",
+    "15.20",
+    "A^3",
+    "Polarizability",
+    "heuristic"
+   ],
+   [
+    "electronic",
+    "Polarizability",
+    "Hybrid assignment: Br x4, CTE x1",
+    "",
+    "Polarizability",
+    "heuristic"
+   ],
+   [
+    "electronic",
+    "Polarizability",
+    "Miller's ahc method: alpha = (4/N)(sum of tau_A)^2 over N total electrons (Miller & Savchik 1979; parameters from Miller 1990, Table I). Measured here at +0.6% on benzene and +0.2% on CCl4 -- the two molecules an earlier reconstruction missed by +27% and -50%. It is an empirical scheme fitted to about 240 molecules and reports an isotropic average, not a tensor.",
+    "",
+    "Polarizability",
+    "heuristic"
+   ]
+  ],
+  "cells": [
+   [
+    "calculator:polarizability:Molecular polarizability",
+    "A^3",
+    "15.20"
+   ],
+   [
+    "calculator:polarizability:Polarizability",
+    "",
+    "Hybrid assignment: Br x4, CTE x1"
+   ],
+   [
+    "calculator:polarizability:Polarizability",
+    "",
+    "Miller's ahc method: alpha = (4/N)(sum of tau_A)^2 over N total electrons (Miller & Savchik 1979; parameters from Miller 1990, Table I). Measured here at +0.6% on benzene and +0.2% on CCl4 -- the two molecules an earlier reconstruction missed by +27% and -50%. It is an empirical scheme fitted to about 240 molecules and reports an isotropic average, not a tensor."
+   ]
+  ]
+ },
+ "acetic acid | miller ahc": {
+  "state": "completed",
+  "error": null,
+  "summary": null,
+  "inapplicable": false,
+  "method": "miller_ahc",
+  "lines": [
+   "Molecular polarizability: 4.93 A^3",
+   "Hybrid assignment: CTE x1, CTR x1, H x4, OPI2 x1, OTR4 x1",
+   "Miller's ahc method: alpha = (4/N)(sum of tau_A)^2 over N total electrons (Miller & Savchik 1979; parameters from Miller 1990, Table I). Measured here at +0.6% on benzene and +0.2% on CCl4 -- the two molecules an earlier reconstruction missed by +27% and -50%. It is an empirical scheme fitted to about 240 molecules and reports an isotropic average, not a tensor."
+  ],
+  "facts": [
+   [
+    "electronic",
+    "Molecular polarizability",
+    "4.93",
+    "A^3",
+    "Polarizability",
+    "heuristic"
+   ],
+   [
+    "electronic",
+    "Polarizability",
+    "Hybrid assignment: CTE x1, CTR x1, H x4, OPI2 x1, OTR4 x1",
+    "",
+    "Polarizability",
+    "heuristic"
+   ],
+   [
+    "electronic",
+    "Polarizability",
+    "Miller's ahc method: alpha = (4/N)(sum of tau_A)^2 over N total electrons (Miller & Savchik 1979; parameters from Miller 1990, Table I). Measured here at +0.6% on benzene and +0.2% on CCl4 -- the two molecules an earlier reconstruction missed by +27% and -50%. It is an empirical scheme fitted to about 240 molecules and reports an isotropic average, not a tensor.",
+    "",
+    "Polarizability",
+    "heuristic"
+   ]
+  ],
+  "cells": [
+   [
+    "calculator:polarizability:Molecular polarizability",
+    "A^3",
+    "4.93"
+   ],
+   [
+    "calculator:polarizability:Polarizability",
+    "",
+    "Hybrid assignment: CTE x1, CTR x1, H x4, OPI2 x1, OTR4 x1"
+   ],
+   [
+    "calculator:polarizability:Polarizability",
+    "",
+    "Miller's ahc method: alpha = (4/N)(sum of tau_A)^2 over N total electrons (Miller & Savchik 1979; parameters from Miller 1990, Table I). Measured here at +0.6% on benzene and +0.2% on CCl4 -- the two molecules an earlier reconstruction missed by +27% and -50%. It is an empirical scheme fitted to about 240 molecules and reports an isotropic average, not a tensor."
+   ]
+  ]
+ },
+ "glycine | miller ahc": {
+  "state": "completed",
+  "error": null,
+  "summary": null,
+  "inapplicable": false,
+  "method": "miller_ahc",
+  "lines": [
+   "Molecular polarizability: 6.34 A^3",
+   "Hybrid assignment: CTE x1, CTR x1, H x5, NTE x1, OPI2 x1, OTR4 x1",
+   "Miller's ahc method: alpha = (4/N)(sum of tau_A)^2 over N total electrons (Miller & Savchik 1979; parameters from Miller 1990, Table I). Measured here at +0.6% on benzene and +0.2% on CCl4 -- the two molecules an earlier reconstruction missed by +27% and -50%. It is an empirical scheme fitted to about 240 molecules and reports an isotropic average, not a tensor."
+  ],
+  "facts": [
+   [
+    "electronic",
+    "Molecular polarizability",
+    "6.34",
+    "A^3",
+    "Polarizability",
+    "heuristic"
+   ],
+   [
+    "electronic",
+    "Polarizability",
+    "Hybrid assignment: CTE x1, CTR x1, H x5, NTE x1, OPI2 x1, OTR4 x1",
+    "",
+    "Polarizability",
+    "heuristic"
+   ],
+   [
+    "electronic",
+    "Polarizability",
+    "Miller's ahc method: alpha = (4/N)(sum of tau_A)^2 over N total electrons (Miller & Savchik 1979; parameters from Miller 1990, Table I). Measured here at +0.6% on benzene and +0.2% on CCl4 -- the two molecules an earlier reconstruction missed by +27% and -50%. It is an empirical scheme fitted to about 240 molecules and reports an isotropic average, not a tensor.",
+    "",
+    "Polarizability",
+    "heuristic"
+   ]
+  ],
+  "cells": [
+   [
+    "calculator:polarizability:Molecular polarizability",
+    "A^3",
+    "6.34"
+   ],
+   [
+    "calculator:polarizability:Polarizability",
+    "",
+    "Hybrid assignment: CTE x1, CTR x1, H x5, NTE x1, OPI2 x1, OTR4 x1"
+   ],
+   [
+    "calculator:polarizability:Polarizability",
+    "",
+    "Miller's ahc method: alpha = (4/N)(sum of tau_A)^2 over N total electrons (Miller & Savchik 1979; parameters from Miller 1990, Table I). Measured here at +0.6% on benzene and +0.2% on CCl4 -- the two molecules an earlier reconstruction missed by +27% and -50%. It is an empirical scheme fitted to about 240 molecules and reports an isotropic average, not a tensor."
+   ]
+  ]
+ },
+ "ammonium chloride | miller ahc": {
+  "refused": "MULTICOMPONENT_UNSUPPORTED"
+ },
+ "tetramethylsilane | miller ahc": {
+  "state": "failed",
+  "error": "Miller's Table I has no parameter: atomic number 14 has no row in Miller's Table I",
+  "summary": null,
+  "inapplicable": false,
+  "method": "miller_ahc",
+  "lines": [],
+  "facts": [],
+  "cells": [
+   [
+    "calculator:polarizability",
+    "",
+    ""
+   ]
+  ]
+ },
+ "copper(II) | miller ahc": {
+  "state": "failed",
+  "error": "Miller's Table I has no parameter: atomic number 29 has no row in Miller's Table I",
+  "summary": null,
+  "inapplicable": false,
+  "method": "miller_ahc",
+  "lines": [],
+  "facts": [],
+  "cells": [
+   [
+    "calculator:polarizability",
+    "",
+    ""
+   ]
+  ]
+ },
+ "water | miller ahp": {
+  "state": "completed",
+  "error": null,
+  "summary": null,
+  "inapplicable": false,
+  "method": "miller_ahp",
+  "lines": [
+   "Molecular polarizability: 1.41 A^3",
+   "Hybrid assignment: H x2, OTE x1",
+   "Miller's ahp method: alpha = sum of alpha_A, plain additivity (Miller 1990, Table I). Squaring a sum is what makes ahc not a group-additivity scheme, so the two columns are not interchangeable and this one is the additive answer. Empirical, fitted to about 240 molecules, and isotropic."
+  ],
+  "facts": [
+   [
+    "electronic",
+    "Molecular polarizability",
+    "1.41",
+    "A^3",
+    "Polarizability",
+    "heuristic"
+   ],
+   [
+    "electronic",
+    "Polarizability",
+    "Hybrid assignment: H x2, OTE x1",
+    "",
+    "Polarizability",
+    "heuristic"
+   ],
+   [
+    "electronic",
+    "Polarizability",
+    "Miller's ahp method: alpha = sum of alpha_A, plain additivity (Miller 1990, Table I). Squaring a sum is what makes ahc not a group-additivity scheme, so the two columns are not interchangeable and this one is the additive answer. Empirical, fitted to about 240 molecules, and isotropic.",
+    "",
+    "Polarizability",
+    "heuristic"
+   ]
+  ],
+  "cells": [
+   [
+    "calculator:polarizability:Molecular polarizability",
+    "A^3",
+    "1.41"
+   ],
+   [
+    "calculator:polarizability:Polarizability",
+    "",
+    "Hybrid assignment: H x2, OTE x1"
+   ],
+   [
+    "calculator:polarizability:Polarizability",
+    "",
+    "Miller's ahp method: alpha = sum of alpha_A, plain additivity (Miller 1990, Table I). Squaring a sum is what makes ahc not a group-additivity scheme, so the two columns are not interchangeable and this one is the additive answer. Empirical, fitted to about 240 molecules, and isotropic."
+   ]
+  ]
+ },
+ "methane | miller ahp": {
+  "state": "completed",
+  "error": null,
+  "summary": null,
+  "inapplicable": false,
+  "method": "miller_ahp",
+  "lines": [
+   "Molecular polarizability: 2.61 A^3",
+   "Hybrid assignment: CTE x1, H x4",
+   "Miller's ahp method: alpha = sum of alpha_A, plain additivity (Miller 1990, Table I). Squaring a sum is what makes ahc not a group-additivity scheme, so the two columns are not interchangeable and this one is the additive answer. Empirical, fitted to about 240 molecules, and isotropic."
+  ],
+  "facts": [
+   [
+    "electronic",
+    "Molecular polarizability",
+    "2.61",
+    "A^3",
+    "Polarizability",
+    "heuristic"
+   ],
+   [
+    "electronic",
+    "Polarizability",
+    "Hybrid assignment: CTE x1, H x4",
+    "",
+    "Polarizability",
+    "heuristic"
+   ],
+   [
+    "electronic",
+    "Polarizability",
+    "Miller's ahp method: alpha = sum of alpha_A, plain additivity (Miller 1990, Table I). Squaring a sum is what makes ahc not a group-additivity scheme, so the two columns are not interchangeable and this one is the additive answer. Empirical, fitted to about 240 molecules, and isotropic.",
+    "",
+    "Polarizability",
+    "heuristic"
+   ]
+  ],
+  "cells": [
+   [
+    "calculator:polarizability:Molecular polarizability",
+    "A^3",
+    "2.61"
+   ],
+   [
+    "calculator:polarizability:Polarizability",
+    "",
+    "Hybrid assignment: CTE x1, H x4"
+   ],
+   [
+    "calculator:polarizability:Polarizability",
+    "",
+    "Miller's ahp method: alpha = sum of alpha_A, plain additivity (Miller 1990, Table I). Squaring a sum is what makes ahc not a group-additivity scheme, so the two columns are not interchangeable and this one is the additive answer. Empirical, fitted to about 240 molecules, and isotropic."
+   ]
+  ]
+ },
+ "ethanol | miller ahp": {
+  "state": "completed",
+  "error": null,
+  "summary": null,
+  "inapplicable": false,
+  "method": "miller_ahp",
+  "lines": [
+   "Molecular polarizability: 5.08 A^3",
+   "Hybrid assignment: CTE x2, H x6, OTE x1",
+   "Miller's ahp method: alpha = sum of alpha_A, plain additivity (Miller 1990, Table I). Squaring a sum is what makes ahc not a group-additivity scheme, so the two columns are not interchangeable and this one is the additive answer. Empirical, fitted to about 240 molecules, and isotropic."
+  ],
+  "facts": [
+   [
+    "electronic",
+    "Molecular polarizability",
+    "5.08",
+    "A^3",
+    "Polarizability",
+    "heuristic"
+   ],
+   [
+    "electronic",
+    "Polarizability",
+    "Hybrid assignment: CTE x2, H x6, OTE x1",
+    "",
+    "Polarizability",
+    "heuristic"
+   ],
+   [
+    "electronic",
+    "Polarizability",
+    "Miller's ahp method: alpha = sum of alpha_A, plain additivity (Miller 1990, Table I). Squaring a sum is what makes ahc not a group-additivity scheme, so the two columns are not interchangeable and this one is the additive answer. Empirical, fitted to about 240 molecules, and isotropic.",
+    "",
+    "Polarizability",
+    "heuristic"
+   ]
+  ],
+  "cells": [
+   [
+    "calculator:polarizability:Molecular polarizability",
+    "A^3",
+    "5.08"
+   ],
+   [
+    "calculator:polarizability:Polarizability",
+    "",
+    "Hybrid assignment: CTE x2, H x6, OTE x1"
+   ],
+   [
+    "calculator:polarizability:Polarizability",
+    "",
+    "Miller's ahp method: alpha = sum of alpha_A, plain additivity (Miller 1990, Table I). Squaring a sum is what makes ahc not a group-additivity scheme, so the two columns are not interchangeable and this one is the additive answer. Empirical, fitted to about 240 molecules, and isotropic."
+   ]
+  ]
+ },
+ "benzene | miller ahp": {
+  "state": "completed",
+  "error": null,
+  "summary": null,
+  "inapplicable": false,
+  "method": "miller_ahp",
+  "lines": [
+   "Molecular polarizability: 10.43 A^3",
+   "Hybrid assignment: CTR x6, H x6",
+   "Miller's ahp method: alpha = sum of alpha_A, plain additivity (Miller 1990, Table I). Squaring a sum is what makes ahc not a group-additivity scheme, so the two columns are not interchangeable and this one is the additive answer. Empirical, fitted to about 240 molecules, and isotropic."
+  ],
+  "facts": [
+   [
+    "electronic",
+    "Molecular polarizability",
+    "10.43",
+    "A^3",
+    "Polarizability",
+    "heuristic"
+   ],
+   [
+    "electronic",
+    "Polarizability",
+    "Hybrid assignment: CTR x6, H x6",
+    "",
+    "Polarizability",
+    "heuristic"
+   ],
+   [
+    "electronic",
+    "Polarizability",
+    "Miller's ahp method: alpha = sum of alpha_A, plain additivity (Miller 1990, Table I). Squaring a sum is what makes ahc not a group-additivity scheme, so the two columns are not interchangeable and this one is the additive answer. Empirical, fitted to about 240 molecules, and isotropic.",
+    "",
+    "Polarizability",
+    "heuristic"
+   ]
+  ],
+  "cells": [
+   [
+    "calculator:polarizability:Molecular polarizability",
+    "A^3",
+    "10.43"
+   ],
+   [
+    "calculator:polarizability:Polarizability",
+    "",
+    "Hybrid assignment: CTR x6, H x6"
+   ],
+   [
+    "calculator:polarizability:Polarizability",
+    "",
+    "Miller's ahp method: alpha = sum of alpha_A, plain additivity (Miller 1990, Table I). Squaring a sum is what makes ahc not a group-additivity scheme, so the two columns are not interchangeable and this one is the additive answer. Empirical, fitted to about 240 molecules, and isotropic."
+   ]
+  ]
+ },
+ "aspirin | miller ahp": {
+  "state": "completed",
+  "error": null,
+  "summary": null,
+  "inapplicable": false,
+  "method": "miller_ahp",
+  "lines": [
+   "Molecular polarizability: 18.29 A^3",
+   "Hybrid assignment: CBR x3, CTE x1, CTR x5, H x8, OPI2 x2, OTR4 x2",
+   "Miller's ahp method: alpha = sum of alpha_A, plain additivity (Miller 1990, Table I). Squaring a sum is what makes ahc not a group-additivity scheme, so the two columns are not interchangeable and this one is the additive answer. Empirical, fitted to about 240 molecules, and isotropic."
+  ],
+  "facts": [
+   [
+    "electronic",
+    "Molecular polarizability",
+    "18.29",
+    "A^3",
+    "Polarizability",
+    "heuristic"
+   ],
+   [
+    "electronic",
+    "Polarizability",
+    "Hybrid assignment: CBR x3, CTE x1, CTR x5, H x8, OPI2 x2, OTR4 x2",
+    "",
+    "Polarizability",
+    "heuristic"
+   ],
+   [
+    "electronic",
+    "Polarizability",
+    "Miller's ahp method: alpha = sum of alpha_A, plain additivity (Miller 1990, Table I). Squaring a sum is what makes ahc not a group-additivity scheme, so the two columns are not interchangeable and this one is the additive answer. Empirical, fitted to about 240 molecules, and isotropic.",
+    "",
+    "Polarizability",
+    "heuristic"
+   ]
+  ],
+  "cells": [
+   [
+    "calculator:polarizability:Molecular polarizability",
+    "A^3",
+    "18.29"
+   ],
+   [
+    "calculator:polarizability:Polarizability",
+    "",
+    "Hybrid assignment: CBR x3, CTE x1, CTR x5, H x8, OPI2 x2, OTR4 x2"
+   ],
+   [
+    "calculator:polarizability:Polarizability",
+    "",
+    "Miller's ahp method: alpha = sum of alpha_A, plain additivity (Miller 1990, Table I). Squaring a sum is what makes ahc not a group-additivity scheme, so the two columns are not interchangeable and this one is the additive answer. Empirical, fitted to about 240 molecules, and isotropic."
+   ]
+  ]
+ },
+ "caffeine | miller ahp": {
+  "state": "completed",
+  "error": null,
+  "summary": null,
+  "inapplicable": false,
+  "method": "miller_ahp",
+  "lines": [
+   "Molecular polarizability: 21.43 A^3",
+   "Hybrid assignment: CBR x4, CTE x3, CTR x1, H x10, NPI2 x3, NTR2 x1, OTR4 x2",
+   "Miller's ahp method: alpha = sum of alpha_A, plain additivity (Miller 1990, Table I). Squaring a sum is what makes ahc not a group-additivity scheme, so the two columns are not interchangeable and this one is the additive answer. Empirical, fitted to about 240 molecules, and isotropic."
+  ],
+  "facts": [
+   [
+    "electronic",
+    "Molecular polarizability",
+    "21.43",
+    "A^3",
+    "Polarizability",
+    "heuristic"
+   ],
+   [
+    "electronic",
+    "Polarizability",
+    "Hybrid assignment: CBR x4, CTE x3, CTR x1, H x10, NPI2 x3, NTR2 x1, OTR4 x2",
+    "",
+    "Polarizability",
+    "heuristic"
+   ],
+   [
+    "electronic",
+    "Polarizability",
+    "Miller's ahp method: alpha = sum of alpha_A, plain additivity (Miller 1990, Table I). Squaring a sum is what makes ahc not a group-additivity scheme, so the two columns are not interchangeable and this one is the additive answer. Empirical, fitted to about 240 molecules, and isotropic.",
+    "",
+    "Polarizability",
+    "heuristic"
+   ]
+  ],
+  "cells": [
+   [
+    "calculator:polarizability:Molecular polarizability",
+    "A^3",
+    "21.43"
+   ],
+   [
+    "calculator:polarizability:Polarizability",
+    "",
+    "Hybrid assignment: CBR x4, CTE x3, CTR x1, H x10, NPI2 x3, NTR2 x1, OTR4 x2"
+   ],
+   [
+    "calculator:polarizability:Polarizability",
+    "",
+    "Miller's ahp method: alpha = sum of alpha_A, plain additivity (Miller 1990, Table I). Squaring a sum is what makes ahc not a group-additivity scheme, so the two columns are not interchangeable and this one is the additive answer. Empirical, fitted to about 240 molecules, and isotropic."
+   ]
+  ]
+ },
+ "carbon tetrachloride | miller ahp": {
+  "state": "completed",
+  "error": null,
+  "summary": null,
+  "inapplicable": false,
+  "method": "miller_ahp",
+  "lines": [
+   "Molecular polarizability: 10.32 A^3",
+   "Hybrid assignment: CTE x1, Cl x4",
+   "Miller's ahp method: alpha = sum of alpha_A, plain additivity (Miller 1990, Table I). Squaring a sum is what makes ahc not a group-additivity scheme, so the two columns are not interchangeable and this one is the additive answer. Empirical, fitted to about 240 molecules, and isotropic."
+  ],
+  "facts": [
+   [
+    "electronic",
+    "Molecular polarizability",
+    "10.32",
+    "A^3",
+    "Polarizability",
+    "heuristic"
+   ],
+   [
+    "electronic",
+    "Polarizability",
+    "Hybrid assignment: CTE x1, Cl x4",
+    "",
+    "Polarizability",
+    "heuristic"
+   ],
+   [
+    "electronic",
+    "Polarizability",
+    "Miller's ahp method: alpha = sum of alpha_A, plain additivity (Miller 1990, Table I). Squaring a sum is what makes ahc not a group-additivity scheme, so the two columns are not interchangeable and this one is the additive answer. Empirical, fitted to about 240 molecules, and isotropic.",
+    "",
+    "Polarizability",
+    "heuristic"
+   ]
+  ],
+  "cells": [
+   [
+    "calculator:polarizability:Molecular polarizability",
+    "A^3",
+    "10.32"
+   ],
+   [
+    "calculator:polarizability:Polarizability",
+    "",
+    "Hybrid assignment: CTE x1, Cl x4"
+   ],
+   [
+    "calculator:polarizability:Polarizability",
+    "",
+    "Miller's ahp method: alpha = sum of alpha_A, plain additivity (Miller 1990, Table I). Squaring a sum is what makes ahc not a group-additivity scheme, so the two columns are not interchangeable and this one is the additive answer. Empirical, fitted to about 240 molecules, and isotropic."
+   ]
+  ]
+ },
+ "carbon tetrabromide | miller ahp": {
+  "state": "completed",
+  "error": null,
+  "summary": null,
+  "inapplicable": false,
+  "method": "miller_ahp",
+  "lines": [
+   "Molecular polarizability: 13.11 A^3",
+   "Hybrid assignment: Br x4, CTE x1",
+   "Miller's ahp method: alpha = sum of alpha_A, plain additivity (Miller 1990, Table I). Squaring a sum is what makes ahc not a group-additivity scheme, so the two columns are not interchangeable and this one is the additive answer. Empirical, fitted to about 240 molecules, and isotropic."
+  ],
+  "facts": [
+   [
+    "electronic",
+    "Molecular polarizability",
+    "13.11",
+    "A^3",
+    "Polarizability",
+    "heuristic"
+   ],
+   [
+    "electronic",
+    "Polarizability",
+    "Hybrid assignment: Br x4, CTE x1",
+    "",
+    "Polarizability",
+    "heuristic"
+   ],
+   [
+    "electronic",
+    "Polarizability",
+    "Miller's ahp method: alpha = sum of alpha_A, plain additivity (Miller 1990, Table I). Squaring a sum is what makes ahc not a group-additivity scheme, so the two columns are not interchangeable and this one is the additive answer. Empirical, fitted to about 240 molecules, and isotropic.",
+    "",
+    "Polarizability",
+    "heuristic"
+   ]
+  ],
+  "cells": [
+   [
+    "calculator:polarizability:Molecular polarizability",
+    "A^3",
+    "13.11"
+   ],
+   [
+    "calculator:polarizability:Polarizability",
+    "",
+    "Hybrid assignment: Br x4, CTE x1"
+   ],
+   [
+    "calculator:polarizability:Polarizability",
+    "",
+    "Miller's ahp method: alpha = sum of alpha_A, plain additivity (Miller 1990, Table I). Squaring a sum is what makes ahc not a group-additivity scheme, so the two columns are not interchangeable and this one is the additive answer. Empirical, fitted to about 240 molecules, and isotropic."
+   ]
+  ]
+ },
+ "acetic acid | miller ahp": {
+  "state": "completed",
+  "error": null,
+  "summary": null,
+  "inapplicable": false,
+  "method": "miller_ahp",
+  "lines": [
+   "Molecular polarizability: 4.80 A^3",
+   "Hybrid assignment: CTE x1, CTR x1, H x4, OPI2 x1, OTR4 x1",
+   "Miller's ahp method: alpha = sum of alpha_A, plain additivity (Miller 1990, Table I). Squaring a sum is what makes ahc not a group-additivity scheme, so the two columns are not interchangeable and this one is the additive answer. Empirical, fitted to about 240 molecules, and isotropic."
+  ],
+  "facts": [
+   [
+    "electronic",
+    "Molecular polarizability",
+    "4.80",
+    "A^3",
+    "Polarizability",
+    "heuristic"
+   ],
+   [
+    "electronic",
+    "Polarizability",
+    "Hybrid assignment: CTE x1, CTR x1, H x4, OPI2 x1, OTR4 x1",
+    "",
+    "Polarizability",
+    "heuristic"
+   ],
+   [
+    "electronic",
+    "Polarizability",
+    "Miller's ahp method: alpha = sum of alpha_A, plain additivity (Miller 1990, Table I). Squaring a sum is what makes ahc not a group-additivity scheme, so the two columns are not interchangeable and this one is the additive answer. Empirical, fitted to about 240 molecules, and isotropic.",
+    "",
+    "Polarizability",
+    "heuristic"
+   ]
+  ],
+  "cells": [
+   [
+    "calculator:polarizability:Molecular polarizability",
+    "A^3",
+    "4.80"
+   ],
+   [
+    "calculator:polarizability:Polarizability",
+    "",
+    "Hybrid assignment: CTE x1, CTR x1, H x4, OPI2 x1, OTR4 x1"
+   ],
+   [
+    "calculator:polarizability:Polarizability",
+    "",
+    "Miller's ahp method: alpha = sum of alpha_A, plain additivity (Miller 1990, Table I). Squaring a sum is what makes ahc not a group-additivity scheme, so the two columns are not interchangeable and this one is the additive answer. Empirical, fitted to about 240 molecules, and isotropic."
+   ]
+  ]
+ },
+ "glycine | miller ahp": {
+  "state": "completed",
+  "error": null,
+  "summary": null,
+  "inapplicable": false,
+  "method": "miller_ahp",
+  "lines": [
+   "Molecular polarizability: 6.16 A^3",
+   "Hybrid assignment: CTE x1, CTR x1, H x5, NTE x1, OPI2 x1, OTR4 x1",
+   "Miller's ahp method: alpha = sum of alpha_A, plain additivity (Miller 1990, Table I). Squaring a sum is what makes ahc not a group-additivity scheme, so the two columns are not interchangeable and this one is the additive answer. Empirical, fitted to about 240 molecules, and isotropic."
+  ],
+  "facts": [
+   [
+    "electronic",
+    "Molecular polarizability",
+    "6.16",
+    "A^3",
+    "Polarizability",
+    "heuristic"
+   ],
+   [
+    "electronic",
+    "Polarizability",
+    "Hybrid assignment: CTE x1, CTR x1, H x5, NTE x1, OPI2 x1, OTR4 x1",
+    "",
+    "Polarizability",
+    "heuristic"
+   ],
+   [
+    "electronic",
+    "Polarizability",
+    "Miller's ahp method: alpha = sum of alpha_A, plain additivity (Miller 1990, Table I). Squaring a sum is what makes ahc not a group-additivity scheme, so the two columns are not interchangeable and this one is the additive answer. Empirical, fitted to about 240 molecules, and isotropic.",
+    "",
+    "Polarizability",
+    "heuristic"
+   ]
+  ],
+  "cells": [
+   [
+    "calculator:polarizability:Molecular polarizability",
+    "A^3",
+    "6.16"
+   ],
+   [
+    "calculator:polarizability:Polarizability",
+    "",
+    "Hybrid assignment: CTE x1, CTR x1, H x5, NTE x1, OPI2 x1, OTR4 x1"
+   ],
+   [
+    "calculator:polarizability:Polarizability",
+    "",
+    "Miller's ahp method: alpha = sum of alpha_A, plain additivity (Miller 1990, Table I). Squaring a sum is what makes ahc not a group-additivity scheme, so the two columns are not interchangeable and this one is the additive answer. Empirical, fitted to about 240 molecules, and isotropic."
+   ]
+  ]
+ },
+ "ammonium chloride | miller ahp": {
+  "refused": "MULTICOMPONENT_UNSUPPORTED"
+ },
+ "tetramethylsilane | miller ahp": {
+  "state": "failed",
+  "error": "Miller's Table I has no parameter: atomic number 14 has no row in Miller's Table I",
+  "summary": null,
+  "inapplicable": false,
+  "method": "miller_ahp",
+  "lines": [],
+  "facts": [],
+  "cells": [
+   [
+    "calculator:polarizability",
+    "",
+    ""
+   ]
+  ]
+ },
+ "copper(II) | miller ahp": {
+  "state": "failed",
+  "error": "Miller's Table I has no parameter: atomic number 29 has no row in Miller's Table I",
+  "summary": null,
+  "inapplicable": false,
+  "method": "miller_ahp",
+  "lines": [],
+  "facts": [],
+  "cells": [
+   [
+    "calculator:polarizability",
+    "",
+    ""
+   ]
+  ]
+ },
+ "water | microspecies": {
+  "state": "completed",
+  "error": null,
+  "summary": null,
+  "inapplicable": false,
+  "method": "jensen",
+  "lines": [
+   "Molecular polarizability: 1.54 A^3",
+   "Computed on the major microspecies at pH 7.4.",
+   "Additive atomic scheme (Jensen et al. 2002). Aromatics and halogenated compounds are accurate to about 1%; saturated hydrocarbons come out roughly 11% high, because an atom-additive scheme has no hybridization dependence."
+  ],
+  "facts": [
+   [
+    "electronic",
+    "Molecular polarizability",
+    "1.54",
+    "A^3",
+    "Polarizability",
+    "heuristic"
+   ],
+   [
+    "electronic",
+    "Polarizability",
+    "Computed on the major microspecies at pH 7.4.",
+    "",
+    "Polarizability",
+    "heuristic"
+   ],
+   [
+    "electronic",
+    "Polarizability",
+    "Additive atomic scheme (Jensen et al. 2002). Aromatics and halogenated compounds are accurate to about 1%; saturated hydrocarbons come out roughly 11% high, because an atom-additive scheme has no hybridization dependence.",
+    "",
+    "Polarizability",
+    "heuristic"
+   ]
+  ],
+  "cells": [
+   [
+    "calculator:polarizability:Molecular polarizability",
+    "A^3",
+    "1.54"
+   ],
+   [
+    "calculator:polarizability:Polarizability",
+    "",
+    "Computed on the major microspecies at pH 7.4."
+   ],
+   [
+    "calculator:polarizability:Polarizability",
+    "",
+    "Additive atomic scheme (Jensen et al. 2002). Aromatics and halogenated compounds are accurate to about 1%; saturated hydrocarbons come out roughly 11% high, because an atom-additive scheme has no hybridization dependence."
+   ]
+  ]
+ },
+ "methane | microspecies": {
+  "state": "completed",
+  "error": null,
+  "summary": null,
+  "inapplicable": false,
+  "method": "jensen",
+  "lines": [
+   "Molecular polarizability: 2.88 A^3",
+   "Computed on the major microspecies at pH 7.4.",
+   "Additive atomic scheme (Jensen et al. 2002). Aromatics and halogenated compounds are accurate to about 1%; saturated hydrocarbons come out roughly 11% high, because an atom-additive scheme has no hybridization dependence."
+  ],
+  "facts": [
+   [
+    "electronic",
+    "Molecular polarizability",
+    "2.88",
+    "A^3",
+    "Polarizability",
+    "heuristic"
+   ],
+   [
+    "electronic",
+    "Polarizability",
+    "Computed on the major microspecies at pH 7.4.",
+    "",
+    "Polarizability",
+    "heuristic"
+   ],
+   [
+    "electronic",
+    "Polarizability",
+    "Additive atomic scheme (Jensen et al. 2002). Aromatics and halogenated compounds are accurate to about 1%; saturated hydrocarbons come out roughly 11% high, because an atom-additive scheme has no hybridization dependence.",
+    "",
+    "Polarizability",
+    "heuristic"
+   ]
+  ],
+  "cells": [
+   [
+    "calculator:polarizability:Molecular polarizability",
+    "A^3",
+    "2.88"
+   ],
+   [
+    "calculator:polarizability:Polarizability",
+    "",
+    "Computed on the major microspecies at pH 7.4."
+   ],
+   [
+    "calculator:polarizability:Polarizability",
+    "",
+    "Additive atomic scheme (Jensen et al. 2002). Aromatics and halogenated compounds are accurate to about 1%; saturated hydrocarbons come out roughly 11% high, because an atom-additive scheme has no hybridization dependence."
+   ]
+  ]
+ },
+ "ethanol | microspecies": {
+  "state": "completed",
+  "error": null,
+  "summary": null,
+  "inapplicable": false,
+  "method": "jensen",
+  "lines": [
+   "Molecular polarizability: 5.75 A^3",
+   "Computed on the major microspecies at pH 7.4.",
+   "Additive atomic scheme (Jensen et al. 2002). Aromatics and halogenated compounds are accurate to about 1%; saturated hydrocarbons come out roughly 11% high, because an atom-additive scheme has no hybridization dependence."
+  ],
+  "facts": [
+   [
+    "electronic",
+    "Molecular polarizability",
+    "5.75",
+    "A^3",
+    "Polarizability",
+    "heuristic"
+   ],
+   [
+    "electronic",
+    "Polarizability",
+    "Computed on the major microspecies at pH 7.4.",
+    "",
+    "Polarizability",
+    "heuristic"
+   ],
+   [
+    "electronic",
+    "Polarizability",
+    "Additive atomic scheme (Jensen et al. 2002). Aromatics and halogenated compounds are accurate to about 1%; saturated hydrocarbons come out roughly 11% high, because an atom-additive scheme has no hybridization dependence.",
+    "",
+    "Polarizability",
+    "heuristic"
+   ]
+  ],
+  "cells": [
+   [
+    "calculator:polarizability:Molecular polarizability",
+    "A^3",
+    "5.75"
+   ],
+   [
+    "calculator:polarizability:Polarizability",
+    "",
+    "Computed on the major microspecies at pH 7.4."
+   ],
+   [
+    "calculator:polarizability:Polarizability",
+    "",
+    "Additive atomic scheme (Jensen et al. 2002). Aromatics and halogenated compounds are accurate to about 1%; saturated hydrocarbons come out roughly 11% high, because an atom-additive scheme has no hybridization dependence."
+   ]
+  ]
+ },
+ "benzene | microspecies": {
+  "state": "completed",
+  "error": null,
+  "summary": null,
+  "inapplicable": false,
+  "method": "jensen",
+  "lines": [
+   "Molecular polarizability: 10.29 A^3",
+   "Computed on the major microspecies at pH 7.4.",
+   "Additive atomic scheme (Jensen et al. 2002). Aromatics and halogenated compounds are accurate to about 1%; saturated hydrocarbons come out roughly 11% high, because an atom-additive scheme has no hybridization dependence."
+  ],
+  "facts": [
+   [
+    "electronic",
+    "Molecular polarizability",
+    "10.29",
+    "A^3",
+    "Polarizability",
+    "heuristic"
+   ],
+   [
+    "electronic",
+    "Polarizability",
+    "Computed on the major microspecies at pH 7.4.",
+    "",
+    "Polarizability",
+    "heuristic"
+   ],
+   [
+    "electronic",
+    "Polarizability",
+    "Additive atomic scheme (Jensen et al. 2002). Aromatics and halogenated compounds are accurate to about 1%; saturated hydrocarbons come out roughly 11% high, because an atom-additive scheme has no hybridization dependence.",
+    "",
+    "Polarizability",
+    "heuristic"
+   ]
+  ],
+  "cells": [
+   [
+    "calculator:polarizability:Molecular polarizability",
+    "A^3",
+    "10.29"
+   ],
+   [
+    "calculator:polarizability:Polarizability",
+    "",
+    "Computed on the major microspecies at pH 7.4."
+   ],
+   [
+    "calculator:polarizability:Polarizability",
+    "",
+    "Additive atomic scheme (Jensen et al. 2002). Aromatics and halogenated compounds are accurate to about 1%; saturated hydrocarbons come out roughly 11% high, because an atom-additive scheme has no hybridization dependence."
+   ]
+  ]
+ },
+ "aspirin | microspecies": {
+  "state": "completed",
+  "error": null,
+  "summary": null,
+  "inapplicable": false,
+  "method": "jensen",
+  "lines": [
+   "Molecular polarizability: 17.72 A^3",
+   "Computed on the major microspecies at pH 7.4.",
+   "Additive atomic scheme (Jensen et al. 2002). Aromatics and halogenated compounds are accurate to about 1%; saturated hydrocarbons come out roughly 11% high, because an atom-additive scheme has no hybridization dependence."
+  ],
+  "facts": [
+   [
+    "electronic",
+    "Molecular polarizability",
+    "17.72",
+    "A^3",
+    "Polarizability",
+    "heuristic"
+   ],
+   [
+    "electronic",
+    "Polarizability",
+    "Computed on the major microspecies at pH 7.4.",
+    "",
+    "Polarizability",
+    "heuristic"
+   ],
+   [
+    "electronic",
+    "Polarizability",
+    "Additive atomic scheme (Jensen et al. 2002). Aromatics and halogenated compounds are accurate to about 1%; saturated hydrocarbons come out roughly 11% high, because an atom-additive scheme has no hybridization dependence.",
+    "",
+    "Polarizability",
+    "heuristic"
+   ]
+  ],
+  "cells": [
+   [
+    "calculator:polarizability:Molecular polarizability",
+    "A^3",
+    "17.72"
+   ],
+   [
+    "calculator:polarizability:Polarizability",
+    "",
+    "Computed on the major microspecies at pH 7.4."
+   ],
+   [
+    "calculator:polarizability:Polarizability",
+    "",
+    "Additive atomic scheme (Jensen et al. 2002). Aromatics and halogenated compounds are accurate to about 1%; saturated hydrocarbons come out roughly 11% high, because an atom-additive scheme has no hybridization dependence."
+   ]
+  ]
+ },
+ "caffeine | microspecies": {
+  "state": "completed",
+  "error": null,
+  "summary": null,
+  "inapplicable": false,
+  "method": "jensen",
+  "lines": [
+   "Molecular polarizability: 19.93 A^3",
+   "Computed on the major microspecies at pH 7.4.",
+   "Additive atomic scheme (Jensen et al. 2002). Aromatics and halogenated compounds are accurate to about 1%; saturated hydrocarbons come out roughly 11% high, because an atom-additive scheme has no hybridization dependence."
+  ],
+  "facts": [
+   [
+    "electronic",
+    "Molecular polarizability",
+    "19.93",
+    "A^3",
+    "Polarizability",
+    "heuristic"
+   ],
+   [
+    "electronic",
+    "Polarizability",
+    "Computed on the major microspecies at pH 7.4.",
+    "",
+    "Polarizability",
+    "heuristic"
+   ],
+   [
+    "electronic",
+    "Polarizability",
+    "Additive atomic scheme (Jensen et al. 2002). Aromatics and halogenated compounds are accurate to about 1%; saturated hydrocarbons come out roughly 11% high, because an atom-additive scheme has no hybridization dependence.",
+    "",
+    "Polarizability",
+    "heuristic"
+   ]
+  ],
+  "cells": [
+   [
+    "calculator:polarizability:Molecular polarizability",
+    "A^3",
+    "19.93"
+   ],
+   [
+    "calculator:polarizability:Polarizability",
+    "",
+    "Computed on the major microspecies at pH 7.4."
+   ],
+   [
+    "calculator:polarizability:Polarizability",
+    "",
+    "Additive atomic scheme (Jensen et al. 2002). Aromatics and halogenated compounds are accurate to about 1%; saturated hydrocarbons come out roughly 11% high, because an atom-additive scheme has no hybridization dependence."
+   ]
+  ]
+ },
+ "carbon tetrachloride | microspecies": {
+  "state": "completed",
+  "error": null,
+  "summary": null,
+  "inapplicable": false,
+  "method": "jensen",
+  "lines": [
+   "Molecular polarizability: 10.37 A^3",
+   "Computed on the major microspecies at pH 7.4.",
+   "Additive atomic scheme (Jensen et al. 2002). Aromatics and halogenated compounds are accurate to about 1%; saturated hydrocarbons come out roughly 11% high, because an atom-additive scheme has no hybridization dependence."
+  ],
+  "facts": [
+   [
+    "electronic",
+    "Molecular polarizability",
+    "10.37",
+    "A^3",
+    "Polarizability",
+    "heuristic"
+   ],
+   [
+    "electronic",
+    "Polarizability",
+    "Computed on the major microspecies at pH 7.4.",
+    "",
+    "Polarizability",
+    "heuristic"
+   ],
+   [
+    "electronic",
+    "Polarizability",
+    "Additive atomic scheme (Jensen et al. 2002). Aromatics and halogenated compounds are accurate to about 1%; saturated hydrocarbons come out roughly 11% high, because an atom-additive scheme has no hybridization dependence.",
+    "",
+    "Polarizability",
+    "heuristic"
+   ]
+  ],
+  "cells": [
+   [
+    "calculator:polarizability:Molecular polarizability",
+    "A^3",
+    "10.37"
+   ],
+   [
+    "calculator:polarizability:Polarizability",
+    "",
+    "Computed on the major microspecies at pH 7.4."
+   ],
+   [
+    "calculator:polarizability:Polarizability",
+    "",
+    "Additive atomic scheme (Jensen et al. 2002). Aromatics and halogenated compounds are accurate to about 1%; saturated hydrocarbons come out roughly 11% high, because an atom-additive scheme has no hybridization dependence."
+   ]
+  ]
+ },
+ "carbon tetrabromide | microspecies": {
+  "state": "completed",
+  "error": null,
+  "summary": null,
+  "inapplicable": false,
+  "method": "jensen",
+  "lines": [
+   "Molecular polarizability: 14.60 A^3",
+   "Computed on the major microspecies at pH 7.4.",
+   "Additive atomic scheme (Jensen et al. 2002). Aromatics and halogenated compounds are accurate to about 1%; saturated hydrocarbons come out roughly 11% high, because an atom-additive scheme has no hybridization dependence."
+  ],
+  "facts": [
+   [
+    "electronic",
+    "Molecular polarizability",
+    "14.60",
+    "A^3",
+    "Polarizability",
+    "heuristic"
+   ],
+   [
+    "electronic",
+    "Polarizability",
+    "Computed on the major microspecies at pH 7.4.",
+    "",
+    "Polarizability",
+    "heuristic"
+   ],
+   [
+    "electronic",
+    "Polarizability",
+    "Additive atomic scheme (Jensen et al. 2002). Aromatics and halogenated compounds are accurate to about 1%; saturated hydrocarbons come out roughly 11% high, because an atom-additive scheme has no hybridization dependence.",
+    "",
+    "Polarizability",
+    "heuristic"
+   ]
+  ],
+  "cells": [
+   [
+    "calculator:polarizability:Molecular polarizability",
+    "A^3",
+    "14.60"
+   ],
+   [
+    "calculator:polarizability:Polarizability",
+    "",
+    "Computed on the major microspecies at pH 7.4."
+   ],
+   [
+    "calculator:polarizability:Polarizability",
+    "",
+    "Additive atomic scheme (Jensen et al. 2002). Aromatics and halogenated compounds are accurate to about 1%; saturated hydrocarbons come out roughly 11% high, because an atom-additive scheme has no hybridization dependence."
+   ]
+  ]
+ },
+ "acetic acid | microspecies": {
+  "state": "completed",
+  "error": null,
+  "summary": null,
+  "inapplicable": false,
+  "method": "jensen",
+  "lines": [
+   "Molecular polarizability: 5.35 A^3",
+   "Computed on the major microspecies at pH 7.4.",
+   "Additive atomic scheme (Jensen et al. 2002). Aromatics and halogenated compounds are accurate to about 1%; saturated hydrocarbons come out roughly 11% high, because an atom-additive scheme has no hybridization dependence."
+  ],
+  "facts": [
+   [
+    "electronic",
+    "Molecular polarizability",
+    "5.35",
+    "A^3",
+    "Polarizability",
+    "heuristic"
+   ],
+   [
+    "electronic",
+    "Polarizability",
+    "Computed on the major microspecies at pH 7.4.",
+    "",
+    "Polarizability",
+    "heuristic"
+   ],
+   [
+    "electronic",
+    "Polarizability",
+    "Additive atomic scheme (Jensen et al. 2002). Aromatics and halogenated compounds are accurate to about 1%; saturated hydrocarbons come out roughly 11% high, because an atom-additive scheme has no hybridization dependence.",
+    "",
+    "Polarizability",
+    "heuristic"
+   ]
+  ],
+  "cells": [
+   [
+    "calculator:polarizability:Molecular polarizability",
+    "A^3",
+    "5.35"
+   ],
+   [
+    "calculator:polarizability:Polarizability",
+    "",
+    "Computed on the major microspecies at pH 7.4."
+   ],
+   [
+    "calculator:polarizability:Polarizability",
+    "",
+    "Additive atomic scheme (Jensen et al. 2002). Aromatics and halogenated compounds are accurate to about 1%; saturated hydrocarbons come out roughly 11% high, because an atom-additive scheme has no hybridization dependence."
+   ]
+  ]
+ },
+ "glycine | microspecies": {
+  "state": "completed",
+  "error": null,
+  "summary": null,
+  "inapplicable": false,
+  "method": "jensen",
+  "lines": [
+   "Molecular polarizability: 7.10 A^3",
+   "Computed on the major microspecies at pH 7.4.",
+   "Additive atomic scheme (Jensen et al. 2002). Aromatics and halogenated compounds are accurate to about 1%; saturated hydrocarbons come out roughly 11% high, because an atom-additive scheme has no hybridization dependence."
+  ],
+  "facts": [
+   [
+    "electronic",
+    "Molecular polarizability",
+    "7.10",
+    "A^3",
+    "Polarizability",
+    "heuristic"
+   ],
+   [
+    "electronic",
+    "Polarizability",
+    "Computed on the major microspecies at pH 7.4.",
+    "",
+    "Polarizability",
+    "heuristic"
+   ],
+   [
+    "electronic",
+    "Polarizability",
+    "Additive atomic scheme (Jensen et al. 2002). Aromatics and halogenated compounds are accurate to about 1%; saturated hydrocarbons come out roughly 11% high, because an atom-additive scheme has no hybridization dependence.",
+    "",
+    "Polarizability",
+    "heuristic"
+   ]
+  ],
+  "cells": [
+   [
+    "calculator:polarizability:Molecular polarizability",
+    "A^3",
+    "7.10"
+   ],
+   [
+    "calculator:polarizability:Polarizability",
+    "",
+    "Computed on the major microspecies at pH 7.4."
+   ],
+   [
+    "calculator:polarizability:Polarizability",
+    "",
+    "Additive atomic scheme (Jensen et al. 2002). Aromatics and halogenated compounds are accurate to about 1%; saturated hydrocarbons come out roughly 11% high, because an atom-additive scheme has no hybridization dependence."
+   ]
+  ]
+ },
+ "ammonium chloride | microspecies": {
+  "refused": "MULTICOMPONENT_UNSUPPORTED"
+ },
+ "tetramethylsilane | microspecies": {
+  "state": "completed",
+  "error": null,
+  "summary": null,
+  "inapplicable": false,
+  "method": "jensen",
+  "lines": [
+   "Molecular polarizability: 13.93 A^3",
+   "Computed on the major microspecies at pH 7.4.",
+   "Additive atomic scheme (Jensen et al. 2002). Aromatics and halogenated compounds are accurate to about 1%; saturated hydrocarbons come out roughly 11% high, because an atom-additive scheme has no hybridization dependence."
+  ],
+  "facts": [
+   [
+    "electronic",
+    "Molecular polarizability",
+    "13.93",
+    "A^3",
+    "Polarizability",
+    "heuristic"
+   ],
+   [
+    "electronic",
+    "Polarizability",
+    "Computed on the major microspecies at pH 7.4.",
+    "",
+    "Polarizability",
+    "heuristic"
+   ],
+   [
+    "electronic",
+    "Polarizability",
+    "Additive atomic scheme (Jensen et al. 2002). Aromatics and halogenated compounds are accurate to about 1%; saturated hydrocarbons come out roughly 11% high, because an atom-additive scheme has no hybridization dependence.",
+    "",
+    "Polarizability",
+    "heuristic"
+   ]
+  ],
+  "cells": [
+   [
+    "calculator:polarizability:Molecular polarizability",
+    "A^3",
+    "13.93"
+   ],
+   [
+    "calculator:polarizability:Polarizability",
+    "",
+    "Computed on the major microspecies at pH 7.4."
+   ],
+   [
+    "calculator:polarizability:Polarizability",
+    "",
+    "Additive atomic scheme (Jensen et al. 2002). Aromatics and halogenated compounds are accurate to about 1%; saturated hydrocarbons come out roughly 11% high, because an atom-additive scheme has no hybridization dependence."
+   ]
+  ]
+ },
+ "copper(II) | microspecies": {
+  "state": "failed",
+  "error": "No Jensen polarizability parameter for: Cu. The table covers H, C, N, O, S, F, Cl, Br, I, P, Si, B, Se.",
+  "summary": "Element outside Jensen's set",
+  "inapplicable": true,
+  "method": "jensen",
+  "lines": [],
+  "facts": [],
+  "cells": [
+   [
+    "calculator:polarizability",
+    "",
+    ""
+   ]
+  ]
+ },
+ "water | microspecies miller ahp": {
+  "state": "completed",
+  "error": null,
+  "summary": null,
+  "inapplicable": false,
+  "method": "miller_ahp",
+  "lines": [
+   "Molecular polarizability: 1.41 A^3",
+   "Computed on the major microspecies at pH 7.4.",
+   "Hybrid assignment: H x2, OTE x1",
+   "Miller's ahp method: alpha = sum of alpha_A, plain additivity (Miller 1990, Table I). Squaring a sum is what makes ahc not a group-additivity scheme, so the two columns are not interchangeable and this one is the additive answer. Empirical, fitted to about 240 molecules, and isotropic."
+  ],
+  "facts": [
+   [
+    "electronic",
+    "Molecular polarizability",
+    "1.41",
+    "A^3",
+    "Polarizability",
+    "heuristic"
+   ],
+   [
+    "electronic",
+    "Polarizability",
+    "Computed on the major microspecies at pH 7.4.",
+    "",
+    "Polarizability",
+    "heuristic"
+   ],
+   [
+    "electronic",
+    "Polarizability",
+    "Hybrid assignment: H x2, OTE x1",
+    "",
+    "Polarizability",
+    "heuristic"
+   ],
+   [
+    "electronic",
+    "Polarizability",
+    "Miller's ahp method: alpha = sum of alpha_A, plain additivity (Miller 1990, Table I). Squaring a sum is what makes ahc not a group-additivity scheme, so the two columns are not interchangeable and this one is the additive answer. Empirical, fitted to about 240 molecules, and isotropic.",
+    "",
+    "Polarizability",
+    "heuristic"
+   ]
+  ],
+  "cells": [
+   [
+    "calculator:polarizability:Molecular polarizability",
+    "A^3",
+    "1.41"
+   ],
+   [
+    "calculator:polarizability:Polarizability",
+    "",
+    "Computed on the major microspecies at pH 7.4."
+   ],
+   [
+    "calculator:polarizability:Polarizability",
+    "",
+    "Hybrid assignment: H x2, OTE x1"
+   ],
+   [
+    "calculator:polarizability:Polarizability",
+    "",
+    "Miller's ahp method: alpha = sum of alpha_A, plain additivity (Miller 1990, Table I). Squaring a sum is what makes ahc not a group-additivity scheme, so the two columns are not interchangeable and this one is the additive answer. Empirical, fitted to about 240 molecules, and isotropic."
+   ]
+  ]
+ },
+ "methane | microspecies miller ahp": {
+  "state": "completed",
+  "error": null,
+  "summary": null,
+  "inapplicable": false,
+  "method": "miller_ahp",
+  "lines": [
+   "Molecular polarizability: 2.61 A^3",
+   "Computed on the major microspecies at pH 7.4.",
+   "Hybrid assignment: CTE x1, H x4",
+   "Miller's ahp method: alpha = sum of alpha_A, plain additivity (Miller 1990, Table I). Squaring a sum is what makes ahc not a group-additivity scheme, so the two columns are not interchangeable and this one is the additive answer. Empirical, fitted to about 240 molecules, and isotropic."
+  ],
+  "facts": [
+   [
+    "electronic",
+    "Molecular polarizability",
+    "2.61",
+    "A^3",
+    "Polarizability",
+    "heuristic"
+   ],
+   [
+    "electronic",
+    "Polarizability",
+    "Computed on the major microspecies at pH 7.4.",
+    "",
+    "Polarizability",
+    "heuristic"
+   ],
+   [
+    "electronic",
+    "Polarizability",
+    "Hybrid assignment: CTE x1, H x4",
+    "",
+    "Polarizability",
+    "heuristic"
+   ],
+   [
+    "electronic",
+    "Polarizability",
+    "Miller's ahp method: alpha = sum of alpha_A, plain additivity (Miller 1990, Table I). Squaring a sum is what makes ahc not a group-additivity scheme, so the two columns are not interchangeable and this one is the additive answer. Empirical, fitted to about 240 molecules, and isotropic.",
+    "",
+    "Polarizability",
+    "heuristic"
+   ]
+  ],
+  "cells": [
+   [
+    "calculator:polarizability:Molecular polarizability",
+    "A^3",
+    "2.61"
+   ],
+   [
+    "calculator:polarizability:Polarizability",
+    "",
+    "Computed on the major microspecies at pH 7.4."
+   ],
+   [
+    "calculator:polarizability:Polarizability",
+    "",
+    "Hybrid assignment: CTE x1, H x4"
+   ],
+   [
+    "calculator:polarizability:Polarizability",
+    "",
+    "Miller's ahp method: alpha = sum of alpha_A, plain additivity (Miller 1990, Table I). Squaring a sum is what makes ahc not a group-additivity scheme, so the two columns are not interchangeable and this one is the additive answer. Empirical, fitted to about 240 molecules, and isotropic."
+   ]
+  ]
+ },
+ "ethanol | microspecies miller ahp": {
+  "state": "completed",
+  "error": null,
+  "summary": null,
+  "inapplicable": false,
+  "method": "miller_ahp",
+  "lines": [
+   "Molecular polarizability: 5.08 A^3",
+   "Computed on the major microspecies at pH 7.4.",
+   "Hybrid assignment: CTE x2, H x6, OTE x1",
+   "Miller's ahp method: alpha = sum of alpha_A, plain additivity (Miller 1990, Table I). Squaring a sum is what makes ahc not a group-additivity scheme, so the two columns are not interchangeable and this one is the additive answer. Empirical, fitted to about 240 molecules, and isotropic."
+  ],
+  "facts": [
+   [
+    "electronic",
+    "Molecular polarizability",
+    "5.08",
+    "A^3",
+    "Polarizability",
+    "heuristic"
+   ],
+   [
+    "electronic",
+    "Polarizability",
+    "Computed on the major microspecies at pH 7.4.",
+    "",
+    "Polarizability",
+    "heuristic"
+   ],
+   [
+    "electronic",
+    "Polarizability",
+    "Hybrid assignment: CTE x2, H x6, OTE x1",
+    "",
+    "Polarizability",
+    "heuristic"
+   ],
+   [
+    "electronic",
+    "Polarizability",
+    "Miller's ahp method: alpha = sum of alpha_A, plain additivity (Miller 1990, Table I). Squaring a sum is what makes ahc not a group-additivity scheme, so the two columns are not interchangeable and this one is the additive answer. Empirical, fitted to about 240 molecules, and isotropic.",
+    "",
+    "Polarizability",
+    "heuristic"
+   ]
+  ],
+  "cells": [
+   [
+    "calculator:polarizability:Molecular polarizability",
+    "A^3",
+    "5.08"
+   ],
+   [
+    "calculator:polarizability:Polarizability",
+    "",
+    "Computed on the major microspecies at pH 7.4."
+   ],
+   [
+    "calculator:polarizability:Polarizability",
+    "",
+    "Hybrid assignment: CTE x2, H x6, OTE x1"
+   ],
+   [
+    "calculator:polarizability:Polarizability",
+    "",
+    "Miller's ahp method: alpha = sum of alpha_A, plain additivity (Miller 1990, Table I). Squaring a sum is what makes ahc not a group-additivity scheme, so the two columns are not interchangeable and this one is the additive answer. Empirical, fitted to about 240 molecules, and isotropic."
+   ]
+  ]
+ },
+ "benzene | microspecies miller ahp": {
+  "state": "completed",
+  "error": null,
+  "summary": null,
+  "inapplicable": false,
+  "method": "miller_ahp",
+  "lines": [
+   "Molecular polarizability: 10.43 A^3",
+   "Computed on the major microspecies at pH 7.4.",
+   "Hybrid assignment: CTR x6, H x6",
+   "Miller's ahp method: alpha = sum of alpha_A, plain additivity (Miller 1990, Table I). Squaring a sum is what makes ahc not a group-additivity scheme, so the two columns are not interchangeable and this one is the additive answer. Empirical, fitted to about 240 molecules, and isotropic."
+  ],
+  "facts": [
+   [
+    "electronic",
+    "Molecular polarizability",
+    "10.43",
+    "A^3",
+    "Polarizability",
+    "heuristic"
+   ],
+   [
+    "electronic",
+    "Polarizability",
+    "Computed on the major microspecies at pH 7.4.",
+    "",
+    "Polarizability",
+    "heuristic"
+   ],
+   [
+    "electronic",
+    "Polarizability",
+    "Hybrid assignment: CTR x6, H x6",
+    "",
+    "Polarizability",
+    "heuristic"
+   ],
+   [
+    "electronic",
+    "Polarizability",
+    "Miller's ahp method: alpha = sum of alpha_A, plain additivity (Miller 1990, Table I). Squaring a sum is what makes ahc not a group-additivity scheme, so the two columns are not interchangeable and this one is the additive answer. Empirical, fitted to about 240 molecules, and isotropic.",
+    "",
+    "Polarizability",
+    "heuristic"
+   ]
+  ],
+  "cells": [
+   [
+    "calculator:polarizability:Molecular polarizability",
+    "A^3",
+    "10.43"
+   ],
+   [
+    "calculator:polarizability:Polarizability",
+    "",
+    "Computed on the major microspecies at pH 7.4."
+   ],
+   [
+    "calculator:polarizability:Polarizability",
+    "",
+    "Hybrid assignment: CTR x6, H x6"
+   ],
+   [
+    "calculator:polarizability:Polarizability",
+    "",
+    "Miller's ahp method: alpha = sum of alpha_A, plain additivity (Miller 1990, Table I). Squaring a sum is what makes ahc not a group-additivity scheme, so the two columns are not interchangeable and this one is the additive answer. Empirical, fitted to about 240 molecules, and isotropic."
+   ]
+  ]
+ },
+ "aspirin | microspecies miller ahp": {
+  "state": "completed",
+  "error": null,
+  "summary": null,
+  "inapplicable": false,
+  "method": "miller_ahp",
+  "lines": [
+   "Molecular polarizability: 18.20 A^3",
+   "Computed on the major microspecies at pH 7.4.",
+   "Hybrid assignment: CBR x3, CTE x1, CTR x5, H x7, OPI2 x1, OTR4 x3",
+   "Miller's ahp method: alpha = sum of alpha_A, plain additivity (Miller 1990, Table I). Squaring a sum is what makes ahc not a group-additivity scheme, so the two columns are not interchangeable and this one is the additive answer. Empirical, fitted to about 240 molecules, and isotropic."
+  ],
+  "facts": [
+   [
+    "electronic",
+    "Molecular polarizability",
+    "18.20",
+    "A^3",
+    "Polarizability",
+    "heuristic"
+   ],
+   [
+    "electronic",
+    "Polarizability",
+    "Computed on the major microspecies at pH 7.4.",
+    "",
+    "Polarizability",
+    "heuristic"
+   ],
+   [
+    "electronic",
+    "Polarizability",
+    "Hybrid assignment: CBR x3, CTE x1, CTR x5, H x7, OPI2 x1, OTR4 x3",
+    "",
+    "Polarizability",
+    "heuristic"
+   ],
+   [
+    "electronic",
+    "Polarizability",
+    "Miller's ahp method: alpha = sum of alpha_A, plain additivity (Miller 1990, Table I). Squaring a sum is what makes ahc not a group-additivity scheme, so the two columns are not interchangeable and this one is the additive answer. Empirical, fitted to about 240 molecules, and isotropic.",
+    "",
+    "Polarizability",
+    "heuristic"
+   ]
+  ],
+  "cells": [
+   [
+    "calculator:polarizability:Molecular polarizability",
+    "A^3",
+    "18.20"
+   ],
+   [
+    "calculator:polarizability:Polarizability",
+    "",
+    "Computed on the major microspecies at pH 7.4."
+   ],
+   [
+    "calculator:polarizability:Polarizability",
+    "",
+    "Hybrid assignment: CBR x3, CTE x1, CTR x5, H x7, OPI2 x1, OTR4 x3"
+   ],
+   [
+    "calculator:polarizability:Polarizability",
+    "",
+    "Miller's ahp method: alpha = sum of alpha_A, plain additivity (Miller 1990, Table I). Squaring a sum is what makes ahc not a group-additivity scheme, so the two columns are not interchangeable and this one is the additive answer. Empirical, fitted to about 240 molecules, and isotropic."
+   ]
+  ]
+ },
+ "caffeine | microspecies miller ahp": {
+  "state": "completed",
+  "error": null,
+  "summary": null,
+  "inapplicable": false,
+  "method": "miller_ahp",
+  "lines": [
+   "Molecular polarizability: 21.43 A^3",
+   "Computed on the major microspecies at pH 7.4.",
+   "Hybrid assignment: CBR x4, CTE x3, CTR x1, H x10, NPI2 x3, NTR2 x1, OTR4 x2",
+   "Miller's ahp method: alpha = sum of alpha_A, plain additivity (Miller 1990, Table I). Squaring a sum is what makes ahc not a group-additivity scheme, so the two columns are not interchangeable and this one is the additive answer. Empirical, fitted to about 240 molecules, and isotropic."
+  ],
+  "facts": [
+   [
+    "electronic",
+    "Molecular polarizability",
+    "21.43",
+    "A^3",
+    "Polarizability",
+    "heuristic"
+   ],
+   [
+    "electronic",
+    "Polarizability",
+    "Computed on the major microspecies at pH 7.4.",
+    "",
+    "Polarizability",
+    "heuristic"
+   ],
+   [
+    "electronic",
+    "Polarizability",
+    "Hybrid assignment: CBR x4, CTE x3, CTR x1, H x10, NPI2 x3, NTR2 x1, OTR4 x2",
+    "",
+    "Polarizability",
+    "heuristic"
+   ],
+   [
+    "electronic",
+    "Polarizability",
+    "Miller's ahp method: alpha = sum of alpha_A, plain additivity (Miller 1990, Table I). Squaring a sum is what makes ahc not a group-additivity scheme, so the two columns are not interchangeable and this one is the additive answer. Empirical, fitted to about 240 molecules, and isotropic.",
+    "",
+    "Polarizability",
+    "heuristic"
+   ]
+  ],
+  "cells": [
+   [
+    "calculator:polarizability:Molecular polarizability",
+    "A^3",
+    "21.43"
+   ],
+   [
+    "calculator:polarizability:Polarizability",
+    "",
+    "Computed on the major microspecies at pH 7.4."
+   ],
+   [
+    "calculator:polarizability:Polarizability",
+    "",
+    "Hybrid assignment: CBR x4, CTE x3, CTR x1, H x10, NPI2 x3, NTR2 x1, OTR4 x2"
+   ],
+   [
+    "calculator:polarizability:Polarizability",
+    "",
+    "Miller's ahp method: alpha = sum of alpha_A, plain additivity (Miller 1990, Table I). Squaring a sum is what makes ahc not a group-additivity scheme, so the two columns are not interchangeable and this one is the additive answer. Empirical, fitted to about 240 molecules, and isotropic."
+   ]
+  ]
+ },
+ "carbon tetrachloride | microspecies miller ahp": {
+  "state": "completed",
+  "error": null,
+  "summary": null,
+  "inapplicable": false,
+  "method": "miller_ahp",
+  "lines": [
+   "Molecular polarizability: 10.32 A^3",
+   "Computed on the major microspecies at pH 7.4.",
+   "Hybrid assignment: CTE x1, Cl x4",
+   "Miller's ahp method: alpha = sum of alpha_A, plain additivity (Miller 1990, Table I). Squaring a sum is what makes ahc not a group-additivity scheme, so the two columns are not interchangeable and this one is the additive answer. Empirical, fitted to about 240 molecules, and isotropic."
+  ],
+  "facts": [
+   [
+    "electronic",
+    "Molecular polarizability",
+    "10.32",
+    "A^3",
+    "Polarizability",
+    "heuristic"
+   ],
+   [
+    "electronic",
+    "Polarizability",
+    "Computed on the major microspecies at pH 7.4.",
+    "",
+    "Polarizability",
+    "heuristic"
+   ],
+   [
+    "electronic",
+    "Polarizability",
+    "Hybrid assignment: CTE x1, Cl x4",
+    "",
+    "Polarizability",
+    "heuristic"
+   ],
+   [
+    "electronic",
+    "Polarizability",
+    "Miller's ahp method: alpha = sum of alpha_A, plain additivity (Miller 1990, Table I). Squaring a sum is what makes ahc not a group-additivity scheme, so the two columns are not interchangeable and this one is the additive answer. Empirical, fitted to about 240 molecules, and isotropic.",
+    "",
+    "Polarizability",
+    "heuristic"
+   ]
+  ],
+  "cells": [
+   [
+    "calculator:polarizability:Molecular polarizability",
+    "A^3",
+    "10.32"
+   ],
+   [
+    "calculator:polarizability:Polarizability",
+    "",
+    "Computed on the major microspecies at pH 7.4."
+   ],
+   [
+    "calculator:polarizability:Polarizability",
+    "",
+    "Hybrid assignment: CTE x1, Cl x4"
+   ],
+   [
+    "calculator:polarizability:Polarizability",
+    "",
+    "Miller's ahp method: alpha = sum of alpha_A, plain additivity (Miller 1990, Table I). Squaring a sum is what makes ahc not a group-additivity scheme, so the two columns are not interchangeable and this one is the additive answer. Empirical, fitted to about 240 molecules, and isotropic."
+   ]
+  ]
+ },
+ "carbon tetrabromide | microspecies miller ahp": {
+  "state": "completed",
+  "error": null,
+  "summary": null,
+  "inapplicable": false,
+  "method": "miller_ahp",
+  "lines": [
+   "Molecular polarizability: 13.11 A^3",
+   "Computed on the major microspecies at pH 7.4.",
+   "Hybrid assignment: Br x4, CTE x1",
+   "Miller's ahp method: alpha = sum of alpha_A, plain additivity (Miller 1990, Table I). Squaring a sum is what makes ahc not a group-additivity scheme, so the two columns are not interchangeable and this one is the additive answer. Empirical, fitted to about 240 molecules, and isotropic."
+  ],
+  "facts": [
+   [
+    "electronic",
+    "Molecular polarizability",
+    "13.11",
+    "A^3",
+    "Polarizability",
+    "heuristic"
+   ],
+   [
+    "electronic",
+    "Polarizability",
+    "Computed on the major microspecies at pH 7.4.",
+    "",
+    "Polarizability",
+    "heuristic"
+   ],
+   [
+    "electronic",
+    "Polarizability",
+    "Hybrid assignment: Br x4, CTE x1",
+    "",
+    "Polarizability",
+    "heuristic"
+   ],
+   [
+    "electronic",
+    "Polarizability",
+    "Miller's ahp method: alpha = sum of alpha_A, plain additivity (Miller 1990, Table I). Squaring a sum is what makes ahc not a group-additivity scheme, so the two columns are not interchangeable and this one is the additive answer. Empirical, fitted to about 240 molecules, and isotropic.",
+    "",
+    "Polarizability",
+    "heuristic"
+   ]
+  ],
+  "cells": [
+   [
+    "calculator:polarizability:Molecular polarizability",
+    "A^3",
+    "13.11"
+   ],
+   [
+    "calculator:polarizability:Polarizability",
+    "",
+    "Computed on the major microspecies at pH 7.4."
+   ],
+   [
+    "calculator:polarizability:Polarizability",
+    "",
+    "Hybrid assignment: Br x4, CTE x1"
+   ],
+   [
+    "calculator:polarizability:Polarizability",
+    "",
+    "Miller's ahp method: alpha = sum of alpha_A, plain additivity (Miller 1990, Table I). Squaring a sum is what makes ahc not a group-additivity scheme, so the two columns are not interchangeable and this one is the additive answer. Empirical, fitted to about 240 molecules, and isotropic."
+   ]
+  ]
+ },
+ "acetic acid | microspecies miller ahp": {
+  "state": "completed",
+  "error": null,
+  "summary": null,
+  "inapplicable": false,
+  "method": "miller_ahp",
+  "lines": [
+   "Molecular polarizability: 4.71 A^3",
+   "Computed on the major microspecies at pH 7.4.",
+   "Hybrid assignment: CTE x1, CTR x1, H x3, OTR4 x2",
+   "Miller's ahp method: alpha = sum of alpha_A, plain additivity (Miller 1990, Table I). Squaring a sum is what makes ahc not a group-additivity scheme, so the two columns are not interchangeable and this one is the additive answer. Empirical, fitted to about 240 molecules, and isotropic."
+  ],
+  "facts": [
+   [
+    "electronic",
+    "Molecular polarizability",
+    "4.71",
+    "A^3",
+    "Polarizability",
+    "heuristic"
+   ],
+   [
+    "electronic",
+    "Polarizability",
+    "Computed on the major microspecies at pH 7.4.",
+    "",
+    "Polarizability",
+    "heuristic"
+   ],
+   [
+    "electronic",
+    "Polarizability",
+    "Hybrid assignment: CTE x1, CTR x1, H x3, OTR4 x2",
+    "",
+    "Polarizability",
+    "heuristic"
+   ],
+   [
+    "electronic",
+    "Polarizability",
+    "Miller's ahp method: alpha = sum of alpha_A, plain additivity (Miller 1990, Table I). Squaring a sum is what makes ahc not a group-additivity scheme, so the two columns are not interchangeable and this one is the additive answer. Empirical, fitted to about 240 molecules, and isotropic.",
+    "",
+    "Polarizability",
+    "heuristic"
+   ]
+  ],
+  "cells": [
+   [
+    "calculator:polarizability:Molecular polarizability",
+    "A^3",
+    "4.71"
+   ],
+   [
+    "calculator:polarizability:Polarizability",
+    "",
+    "Computed on the major microspecies at pH 7.4."
+   ],
+   [
+    "calculator:polarizability:Polarizability",
+    "",
+    "Hybrid assignment: CTE x1, CTR x1, H x3, OTR4 x2"
+   ],
+   [
+    "calculator:polarizability:Polarizability",
+    "",
+    "Miller's ahp method: alpha = sum of alpha_A, plain additivity (Miller 1990, Table I). Squaring a sum is what makes ahc not a group-additivity scheme, so the two columns are not interchangeable and this one is the additive answer. Empirical, fitted to about 240 molecules, and isotropic."
+   ]
+  ]
+ },
+ "glycine | microspecies miller ahp": {
+  "state": "completed",
+  "error": null,
+  "summary": null,
+  "inapplicable": false,
+  "method": "miller_ahp",
+  "lines": [
+   "Molecular polarizability: 6.45 A^3",
+   "Computed on the major microspecies at pH 7.4.",
+   "Hybrid assignment: CTE x1, CTR x1, H x5, NTE x1, OTR4 x2",
+   "Miller's ahp method: alpha = sum of alpha_A, plain additivity (Miller 1990, Table I). Squaring a sum is what makes ahc not a group-additivity scheme, so the two columns are not interchangeable and this one is the additive answer. Empirical, fitted to about 240 molecules, and isotropic."
+  ],
+  "facts": [
+   [
+    "electronic",
+    "Molecular polarizability",
+    "6.45",
+    "A^3",
+    "Polarizability",
+    "heuristic"
+   ],
+   [
+    "electronic",
+    "Polarizability",
+    "Computed on the major microspecies at pH 7.4.",
+    "",
+    "Polarizability",
+    "heuristic"
+   ],
+   [
+    "electronic",
+    "Polarizability",
+    "Hybrid assignment: CTE x1, CTR x1, H x5, NTE x1, OTR4 x2",
+    "",
+    "Polarizability",
+    "heuristic"
+   ],
+   [
+    "electronic",
+    "Polarizability",
+    "Miller's ahp method: alpha = sum of alpha_A, plain additivity (Miller 1990, Table I). Squaring a sum is what makes ahc not a group-additivity scheme, so the two columns are not interchangeable and this one is the additive answer. Empirical, fitted to about 240 molecules, and isotropic.",
+    "",
+    "Polarizability",
+    "heuristic"
+   ]
+  ],
+  "cells": [
+   [
+    "calculator:polarizability:Molecular polarizability",
+    "A^3",
+    "6.45"
+   ],
+   [
+    "calculator:polarizability:Polarizability",
+    "",
+    "Computed on the major microspecies at pH 7.4."
+   ],
+   [
+    "calculator:polarizability:Polarizability",
+    "",
+    "Hybrid assignment: CTE x1, CTR x1, H x5, NTE x1, OTR4 x2"
+   ],
+   [
+    "calculator:polarizability:Polarizability",
+    "",
+    "Miller's ahp method: alpha = sum of alpha_A, plain additivity (Miller 1990, Table I). Squaring a sum is what makes ahc not a group-additivity scheme, so the two columns are not interchangeable and this one is the additive answer. Empirical, fitted to about 240 molecules, and isotropic."
+   ]
+  ]
+ },
+ "ammonium chloride | microspecies miller ahp": {
+  "refused": "MULTICOMPONENT_UNSUPPORTED"
+ },
+ "tetramethylsilane | microspecies miller ahp": {
+  "state": "failed",
+  "error": "Miller's Table I has no parameter: atomic number 14 has no row in Miller's Table I",
+  "summary": null,
+  "inapplicable": false,
+  "method": "miller_ahp",
+  "lines": [],
+  "facts": [],
+  "cells": [
+   [
+    "calculator:polarizability",
+    "",
+    ""
+   ]
+  ]
+ },
+ "copper(II) | microspecies miller ahp": {
+  "state": "failed",
+  "error": "Miller's Table I has no parameter: atomic number 29 has no row in Miller's Table I",
+  "summary": null,
+  "inapplicable": false,
+  "method": "miller_ahp",
+  "lines": [],
+  "facts": [],
+  "cells": [
+   [
+    "calculator:polarizability",
+    "",
+    ""
+   ]
+  ]
+ },
+ "water | unknown label": {
+  "state": "completed",
+  "error": null,
+  "summary": null,
+  "inapplicable": false,
+  "method": "jensen",
+  "lines": [
+   "Molecular polarizability: 1.54 A^3",
+   "Additive atomic scheme (Jensen et al. 2002). Aromatics and halogenated compounds are accurate to about 1%; saturated hydrocarbons come out roughly 11% high, because an atom-additive scheme has no hybridization dependence."
+  ],
+  "facts": [
+   [
+    "electronic",
+    "Molecular polarizability",
+    "1.54",
+    "A^3",
+    "Polarizability",
+    "heuristic"
+   ],
+   [
+    "electronic",
+    "Polarizability",
+    "Additive atomic scheme (Jensen et al. 2002). Aromatics and halogenated compounds are accurate to about 1%; saturated hydrocarbons come out roughly 11% high, because an atom-additive scheme has no hybridization dependence.",
+    "",
+    "Polarizability",
+    "heuristic"
+   ]
+  ],
+  "cells": [
+   [
+    "calculator:polarizability:Molecular polarizability",
+    "A^3",
+    "1.54"
+   ],
+   [
+    "calculator:polarizability:Polarizability",
+    "",
+    "Additive atomic scheme (Jensen et al. 2002). Aromatics and halogenated compounds are accurate to about 1%; saturated hydrocarbons come out roughly 11% high, because an atom-additive scheme has no hybridization dependence."
+   ]
+  ]
+ },
+ "methane | unknown label": {
+  "state": "completed",
+  "error": null,
+  "summary": null,
+  "inapplicable": false,
+  "method": "jensen",
+  "lines": [
+   "Molecular polarizability: 2.88 A^3",
+   "Additive atomic scheme (Jensen et al. 2002). Aromatics and halogenated compounds are accurate to about 1%; saturated hydrocarbons come out roughly 11% high, because an atom-additive scheme has no hybridization dependence."
+  ],
+  "facts": [
+   [
+    "electronic",
+    "Molecular polarizability",
+    "2.88",
+    "A^3",
+    "Polarizability",
+    "heuristic"
+   ],
+   [
+    "electronic",
+    "Polarizability",
+    "Additive atomic scheme (Jensen et al. 2002). Aromatics and halogenated compounds are accurate to about 1%; saturated hydrocarbons come out roughly 11% high, because an atom-additive scheme has no hybridization dependence.",
+    "",
+    "Polarizability",
+    "heuristic"
+   ]
+  ],
+  "cells": [
+   [
+    "calculator:polarizability:Molecular polarizability",
+    "A^3",
+    "2.88"
+   ],
+   [
+    "calculator:polarizability:Polarizability",
+    "",
+    "Additive atomic scheme (Jensen et al. 2002). Aromatics and halogenated compounds are accurate to about 1%; saturated hydrocarbons come out roughly 11% high, because an atom-additive scheme has no hybridization dependence."
+   ]
+  ]
+ },
+ "ethanol | unknown label": {
+  "state": "completed",
+  "error": null,
+  "summary": null,
+  "inapplicable": false,
+  "method": "jensen",
+  "lines": [
+   "Molecular polarizability: 5.75 A^3",
+   "Additive atomic scheme (Jensen et al. 2002). Aromatics and halogenated compounds are accurate to about 1%; saturated hydrocarbons come out roughly 11% high, because an atom-additive scheme has no hybridization dependence."
+  ],
+  "facts": [
+   [
+    "electronic",
+    "Molecular polarizability",
+    "5.75",
+    "A^3",
+    "Polarizability",
+    "heuristic"
+   ],
+   [
+    "electronic",
+    "Polarizability",
+    "Additive atomic scheme (Jensen et al. 2002). Aromatics and halogenated compounds are accurate to about 1%; saturated hydrocarbons come out roughly 11% high, because an atom-additive scheme has no hybridization dependence.",
+    "",
+    "Polarizability",
+    "heuristic"
+   ]
+  ],
+  "cells": [
+   [
+    "calculator:polarizability:Molecular polarizability",
+    "A^3",
+    "5.75"
+   ],
+   [
+    "calculator:polarizability:Polarizability",
+    "",
+    "Additive atomic scheme (Jensen et al. 2002). Aromatics and halogenated compounds are accurate to about 1%; saturated hydrocarbons come out roughly 11% high, because an atom-additive scheme has no hybridization dependence."
+   ]
+  ]
+ },
+ "benzene | unknown label": {
+  "state": "completed",
+  "error": null,
+  "summary": null,
+  "inapplicable": false,
+  "method": "jensen",
+  "lines": [
+   "Molecular polarizability: 10.29 A^3",
+   "Additive atomic scheme (Jensen et al. 2002). Aromatics and halogenated compounds are accurate to about 1%; saturated hydrocarbons come out roughly 11% high, because an atom-additive scheme has no hybridization dependence."
+  ],
+  "facts": [
+   [
+    "electronic",
+    "Molecular polarizability",
+    "10.29",
+    "A^3",
+    "Polarizability",
+    "heuristic"
+   ],
+   [
+    "electronic",
+    "Polarizability",
+    "Additive atomic scheme (Jensen et al. 2002). Aromatics and halogenated compounds are accurate to about 1%; saturated hydrocarbons come out roughly 11% high, because an atom-additive scheme has no hybridization dependence.",
+    "",
+    "Polarizability",
+    "heuristic"
+   ]
+  ],
+  "cells": [
+   [
+    "calculator:polarizability:Molecular polarizability",
+    "A^3",
+    "10.29"
+   ],
+   [
+    "calculator:polarizability:Polarizability",
+    "",
+    "Additive atomic scheme (Jensen et al. 2002). Aromatics and halogenated compounds are accurate to about 1%; saturated hydrocarbons come out roughly 11% high, because an atom-additive scheme has no hybridization dependence."
+   ]
+  ]
+ },
+ "aspirin | unknown label": {
+  "state": "completed",
+  "error": null,
+  "summary": null,
+  "inapplicable": false,
+  "method": "jensen",
+  "lines": [
+   "Molecular polarizability: 18.11 A^3",
+   "Additive atomic scheme (Jensen et al. 2002). Aromatics and halogenated compounds are accurate to about 1%; saturated hydrocarbons come out roughly 11% high, because an atom-additive scheme has no hybridization dependence."
+  ],
+  "facts": [
+   [
+    "electronic",
+    "Molecular polarizability",
+    "18.11",
+    "A^3",
+    "Polarizability",
+    "heuristic"
+   ],
+   [
+    "electronic",
+    "Polarizability",
+    "Additive atomic scheme (Jensen et al. 2002). Aromatics and halogenated compounds are accurate to about 1%; saturated hydrocarbons come out roughly 11% high, because an atom-additive scheme has no hybridization dependence.",
+    "",
+    "Polarizability",
+    "heuristic"
+   ]
+  ],
+  "cells": [
+   [
+    "calculator:polarizability:Molecular polarizability",
+    "A^3",
+    "18.11"
+   ],
+   [
+    "calculator:polarizability:Polarizability",
+    "",
+    "Additive atomic scheme (Jensen et al. 2002). Aromatics and halogenated compounds are accurate to about 1%; saturated hydrocarbons come out roughly 11% high, because an atom-additive scheme has no hybridization dependence."
+   ]
+  ]
+ },
+ "caffeine | unknown label": {
+  "state": "completed",
+  "error": null,
+  "summary": null,
+  "inapplicable": false,
+  "method": "jensen",
+  "lines": [
+   "Molecular polarizability: 19.93 A^3",
+   "Additive atomic scheme (Jensen et al. 2002). Aromatics and halogenated compounds are accurate to about 1%; saturated hydrocarbons come out roughly 11% high, because an atom-additive scheme has no hybridization dependence."
+  ],
+  "facts": [
+   [
+    "electronic",
+    "Molecular polarizability",
+    "19.93",
+    "A^3",
+    "Polarizability",
+    "heuristic"
+   ],
+   [
+    "electronic",
+    "Polarizability",
+    "Additive atomic scheme (Jensen et al. 2002). Aromatics and halogenated compounds are accurate to about 1%; saturated hydrocarbons come out roughly 11% high, because an atom-additive scheme has no hybridization dependence.",
+    "",
+    "Polarizability",
+    "heuristic"
+   ]
+  ],
+  "cells": [
+   [
+    "calculator:polarizability:Molecular polarizability",
+    "A^3",
+    "19.93"
+   ],
+   [
+    "calculator:polarizability:Polarizability",
+    "",
+    "Additive atomic scheme (Jensen et al. 2002). Aromatics and halogenated compounds are accurate to about 1%; saturated hydrocarbons come out roughly 11% high, because an atom-additive scheme has no hybridization dependence."
+   ]
+  ]
+ },
+ "carbon tetrachloride | unknown label": {
+  "state": "completed",
+  "error": null,
+  "summary": null,
+  "inapplicable": false,
+  "method": "jensen",
+  "lines": [
+   "Molecular polarizability: 10.37 A^3",
+   "Additive atomic scheme (Jensen et al. 2002). Aromatics and halogenated compounds are accurate to about 1%; saturated hydrocarbons come out roughly 11% high, because an atom-additive scheme has no hybridization dependence."
+  ],
+  "facts": [
+   [
+    "electronic",
+    "Molecular polarizability",
+    "10.37",
+    "A^3",
+    "Polarizability",
+    "heuristic"
+   ],
+   [
+    "electronic",
+    "Polarizability",
+    "Additive atomic scheme (Jensen et al. 2002). Aromatics and halogenated compounds are accurate to about 1%; saturated hydrocarbons come out roughly 11% high, because an atom-additive scheme has no hybridization dependence.",
+    "",
+    "Polarizability",
+    "heuristic"
+   ]
+  ],
+  "cells": [
+   [
+    "calculator:polarizability:Molecular polarizability",
+    "A^3",
+    "10.37"
+   ],
+   [
+    "calculator:polarizability:Polarizability",
+    "",
+    "Additive atomic scheme (Jensen et al. 2002). Aromatics and halogenated compounds are accurate to about 1%; saturated hydrocarbons come out roughly 11% high, because an atom-additive scheme has no hybridization dependence."
+   ]
+  ]
+ },
+ "carbon tetrabromide | unknown label": {
+  "state": "completed",
+  "error": null,
+  "summary": null,
+  "inapplicable": false,
+  "method": "jensen",
+  "lines": [
+   "Molecular polarizability: 14.60 A^3",
+   "Additive atomic scheme (Jensen et al. 2002). Aromatics and halogenated compounds are accurate to about 1%; saturated hydrocarbons come out roughly 11% high, because an atom-additive scheme has no hybridization dependence."
+  ],
+  "facts": [
+   [
+    "electronic",
+    "Molecular polarizability",
+    "14.60",
+    "A^3",
+    "Polarizability",
+    "heuristic"
+   ],
+   [
+    "electronic",
+    "Polarizability",
+    "Additive atomic scheme (Jensen et al. 2002). Aromatics and halogenated compounds are accurate to about 1%; saturated hydrocarbons come out roughly 11% high, because an atom-additive scheme has no hybridization dependence.",
+    "",
+    "Polarizability",
+    "heuristic"
+   ]
+  ],
+  "cells": [
+   [
+    "calculator:polarizability:Molecular polarizability",
+    "A^3",
+    "14.60"
+   ],
+   [
+    "calculator:polarizability:Polarizability",
+    "",
+    "Additive atomic scheme (Jensen et al. 2002). Aromatics and halogenated compounds are accurate to about 1%; saturated hydrocarbons come out roughly 11% high, because an atom-additive scheme has no hybridization dependence."
+   ]
+  ]
+ },
+ "acetic acid | unknown label": {
+  "state": "completed",
+  "error": null,
+  "summary": null,
+  "inapplicable": false,
+  "method": "jensen",
+  "lines": [
+   "Molecular polarizability: 5.74 A^3",
+   "Additive atomic scheme (Jensen et al. 2002). Aromatics and halogenated compounds are accurate to about 1%; saturated hydrocarbons come out roughly 11% high, because an atom-additive scheme has no hybridization dependence."
+  ],
+  "facts": [
+   [
+    "electronic",
+    "Molecular polarizability",
+    "5.74",
+    "A^3",
+    "Polarizability",
+    "heuristic"
+   ],
+   [
+    "electronic",
+    "Polarizability",
+    "Additive atomic scheme (Jensen et al. 2002). Aromatics and halogenated compounds are accurate to about 1%; saturated hydrocarbons come out roughly 11% high, because an atom-additive scheme has no hybridization dependence.",
+    "",
+    "Polarizability",
+    "heuristic"
+   ]
+  ],
+  "cells": [
+   [
+    "calculator:polarizability:Molecular polarizability",
+    "A^3",
+    "5.74"
+   ],
+   [
+    "calculator:polarizability:Polarizability",
+    "",
+    "Additive atomic scheme (Jensen et al. 2002). Aromatics and halogenated compounds are accurate to about 1%; saturated hydrocarbons come out roughly 11% high, because an atom-additive scheme has no hybridization dependence."
+   ]
+  ]
+ },
+ "glycine | unknown label": {
+  "state": "completed",
+  "error": null,
+  "summary": null,
+  "inapplicable": false,
+  "method": "jensen",
+  "lines": [
+   "Molecular polarizability: 7.10 A^3",
+   "Additive atomic scheme (Jensen et al. 2002). Aromatics and halogenated compounds are accurate to about 1%; saturated hydrocarbons come out roughly 11% high, because an atom-additive scheme has no hybridization dependence."
+  ],
+  "facts": [
+   [
+    "electronic",
+    "Molecular polarizability",
+    "7.10",
+    "A^3",
+    "Polarizability",
+    "heuristic"
+   ],
+   [
+    "electronic",
+    "Polarizability",
+    "Additive atomic scheme (Jensen et al. 2002). Aromatics and halogenated compounds are accurate to about 1%; saturated hydrocarbons come out roughly 11% high, because an atom-additive scheme has no hybridization dependence.",
+    "",
+    "Polarizability",
+    "heuristic"
+   ]
+  ],
+  "cells": [
+   [
+    "calculator:polarizability:Molecular polarizability",
+    "A^3",
+    "7.10"
+   ],
+   [
+    "calculator:polarizability:Polarizability",
+    "",
+    "Additive atomic scheme (Jensen et al. 2002). Aromatics and halogenated compounds are accurate to about 1%; saturated hydrocarbons come out roughly 11% high, because an atom-additive scheme has no hybridization dependence."
+   ]
+  ]
+ },
+ "ammonium chloride | unknown label": {
+  "refused": "MULTICOMPONENT_UNSUPPORTED"
+ },
+ "tetramethylsilane | unknown label": {
+  "state": "completed",
+  "error": null,
+  "summary": null,
+  "inapplicable": false,
+  "method": "jensen",
+  "lines": [
+   "Molecular polarizability: 13.93 A^3",
+   "Additive atomic scheme (Jensen et al. 2002). Aromatics and halogenated compounds are accurate to about 1%; saturated hydrocarbons come out roughly 11% high, because an atom-additive scheme has no hybridization dependence."
+  ],
+  "facts": [
+   [
+    "electronic",
+    "Molecular polarizability",
+    "13.93",
+    "A^3",
+    "Polarizability",
+    "heuristic"
+   ],
+   [
+    "electronic",
+    "Polarizability",
+    "Additive atomic scheme (Jensen et al. 2002). Aromatics and halogenated compounds are accurate to about 1%; saturated hydrocarbons come out roughly 11% high, because an atom-additive scheme has no hybridization dependence.",
+    "",
+    "Polarizability",
+    "heuristic"
+   ]
+  ],
+  "cells": [
+   [
+    "calculator:polarizability:Molecular polarizability",
+    "A^3",
+    "13.93"
+   ],
+   [
+    "calculator:polarizability:Polarizability",
+    "",
+    "Additive atomic scheme (Jensen et al. 2002). Aromatics and halogenated compounds are accurate to about 1%; saturated hydrocarbons come out roughly 11% high, because an atom-additive scheme has no hybridization dependence."
+   ]
+  ]
+ },
+ "copper(II) | unknown label": {
+  "state": "failed",
+  "error": "No Jensen polarizability parameter for: Cu. The table covers H, C, N, O, S, F, Cl, Br, I, P, Si, B, Se.",
+  "summary": "Element outside Jensen's set",
+  "inapplicable": true,
+  "method": "jensen",
+  "lines": [],
+  "facts": [],
+  "cells": [
+   [
+    "calculator:polarizability",
+    "",
+    ""
+   ]
+  ]
+ }
+}

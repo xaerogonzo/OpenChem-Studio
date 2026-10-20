@@ -1119,3 +1119,138 @@ def test_a_deleted_run_with_no_recipe_answers_attached_does_not_rebuild_the_read
     bus.publish(QuantumChemistryRunDeleted(run_id="qc-1", molecule_uuid="x"))
     QCoreApplication.processEvents()
     assert rebuilt == []
+
+
+# --- the scores a person defined: when the panel re-reads them ------------------------------------------------------------------------------
+
+
+def _score(molecule):
+    return _report("score:user.t", "T (user-defined, unvalidated)", "T (user-defined, unvalidated)", molecule.uuid)
+
+
+def test_a_score_the_provider_returns_is_in_the_reader_as_soon_as_it_is_attached(panel):
+    widget, _bus, molecule, _project, _versions = panel
+    answers = _Answers()
+    answers.entries = [_score(molecule)]
+    widget.attach_score_answers(answers)
+    assert widget._attached_reader.merged().report_for("score:user.t") is not None
+    assert answers.calls[-1][0] == molecule.uuid
+
+
+def test_the_score_provider_is_asked_with_the_structure_version_the_reader_is_on(panel):
+    widget, _bus, molecule, _project, versions = panel
+    versions.version = 9
+    answers = _Answers()
+    widget.attach_score_answers(answers)
+    assert answers.calls[-1] == (molecule.uuid, 9)
+
+
+def test_the_score_provider_is_never_asked_with_no_molecule_selected(panel):
+    widget, bus, _molecule, _project, _versions = panel
+    answers = _Answers()
+    widget.attach_score_answers(answers)
+    answers.calls.clear()
+    bus.publish(MoleculeSelected(molecule_uuid=None))
+    QCoreApplication.processEvents()
+    assert answers.calls == []
+
+
+def test_a_finished_edit_re_reads_the_scores_even_with_no_recipe_answers_attached(panel):
+    from openchem.events.events import MoleculeChanged
+
+    widget, bus, molecule, _project, _versions = panel
+    answers = _Answers()
+    widget.attach_score_answers(answers)
+    _quiet(widget)
+    answers.calls.clear()
+    answers.entries = [_score(molecule)]
+    bus.publish(MoleculeChanged(molecule_uuid=molecule.uuid, during_edit=False))
+    QCoreApplication.processEvents()
+    assert answers.calls, "the reader did not look again"
+    assert widget._attached_reader.merged().report_for("score:user.t") is not None
+
+
+def test_a_change_to_the_definitions_makes_the_reader_look_again_whichever_molecule_it_was_for(panel):
+    from openchem.events.events import ScoreDefinitionsChanged
+
+    widget, bus, molecule, project, _versions = panel
+    answers = _Answers()
+    widget.attach_score_answers(answers)
+    answers.calls.clear()
+    answers.entries = [_score(molecule)]
+    bus.publish(ScoreDefinitionsChanged(project_uuid=project.uuid, score_ids=("user.t",)))
+    assert answers.calls and widget._attached_reader.merged().report_for("score:user.t") is not None
+
+
+def test_a_change_to_the_definitions_with_no_score_provider_attached_does_not_rebuild_the_reader(panel):
+    from openchem.events.events import ScoreDefinitionsChanged
+
+    widget, bus, _molecule, project, _versions = panel
+    _quiet(widget)
+    rebuilt = []
+    reader = widget._attached_reader
+    original = reader.set_reports
+    reader.set_reports = lambda *a, **k: rebuilt.append(1) or original(*a, **k)
+    bus.publish(ScoreDefinitionsChanged(project_uuid=project.uuid, score_ids=("user.t",)))
+    QCoreApplication.processEvents()
+    assert rebuilt == []
+
+
+def _recorded(molecule, name):
+    from openchem.domain.common import CacheState
+    from openchem.domain.descriptor import DescriptorValue
+    from openchem.domain.result_store import ResultIdentity, StoredResult
+    from openchem.events.events import ResultRecorded
+
+    result = DescriptorValue(name, name, "", "c", "rdkit", molecule.uuid, value=1.0, cache_state=CacheState.COMPLETED)
+    return ResultRecorded(stored=StoredResult(ResultIdentity(molecule.uuid, f"descriptor:rdkit:{name}", "drawing", "fp", "rdkit"), result))
+
+
+def test_a_recorded_result_re_reads_the_scores_once_after_the_events_already_queued(panel):
+    """A score reads the store, and a result's own event reaches the reader before the store has it: the re-read has to come AFTER the recording, and a flood
+    of results is one re-read, not thirty."""
+    widget, bus, molecule, _project, _versions = panel
+    answers = _Answers()
+    widget.attach_score_answers(answers)
+    _quiet(widget)
+    answers.calls.clear()
+    for i in range(30):
+        bus.publish(_recorded(molecule, f"x{i}"))
+    assert answers.calls == [], "the re-read was not deferred: it ran inside the dispatch, before anything could have recorded the result"
+    QCoreApplication.processEvents()
+    assert len(answers.calls) == 1
+
+
+def test_a_result_recorded_for_another_molecule_does_not_re_read_the_scores(panel):
+    widget, bus, _molecule, _project, _versions = panel
+    answers = _Answers()
+    widget.attach_score_answers(answers)
+    _quiet(widget)
+    answers.calls.clear()
+    bus.publish(_recorded(MoleculeModel(), "x"))
+    QCoreApplication.processEvents()
+    assert answers.calls == []
+
+
+def test_a_recorded_result_with_no_score_provider_attached_does_not_rebuild_the_reader(panel):
+    widget, bus, molecule, _project, _versions = panel
+    _quiet(widget)
+    rebuilt = []
+    reader = widget._attached_reader
+    original = reader.set_reports
+    reader.set_reports = lambda *a, **k: rebuilt.append(1) or original(*a, **k)
+    bus.publish(_recorded(molecule, "x"))
+    QCoreApplication.processEvents()
+    assert rebuilt == []
+
+
+def test_a_score_provider_that_raises_leaves_the_other_results_in_the_reader(panel, caplog):
+    widget, bus, molecule, _project, _versions = panel
+    _land(bus, _report("a", "A", "Formula", molecule.uuid))
+
+    def broken(*_args):
+        raise RuntimeError("unreadable")
+
+    widget.attach_score_answers(broken)
+    assert widget._attached_reader.merged().report_for("a") is not None
+    assert "Could not read the scores for" in caplog.text

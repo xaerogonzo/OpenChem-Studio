@@ -1,0 +1,110 @@
+
+    -----------------------------------------------------------------------
+          Psi4: An Open-Source Ab Initio Electronic Structure Package
+                               Psi4 1.11 release
+
+                         Git: Rev {} zzzzzzz 
+
+
+    D. G. A. Smith, L. A. Burns, A. C. Simmonett, R. M. Parrish,
+    M. C. Schieber, R. Galvelis, P. Kraus, H. Kruse, R. Di Remigio,
+    A. Alenaizan, A. M. James, S. Lehtola, J. P. Misiewicz, M. Scheurer,
+    R. A. Shaw, J. B. Schriber, Y. Xie, Z. L. Glick, D. A. Sirianni,
+    J. S. O'Brien, J. M. Waldrop, A. Kumar, E. G. Hohenstein,
+    B. P. Pritchard, B. R. Brooks, H. F. Schaefer III, A. Yu. Sokolov,
+    K. Patkowski, A. E. DePrince III, U. Bozkaya, R. A. King,
+    F. A. Evangelista, J. M. Turney, T. D. Crawford, C. D. Sherrill,
+    J. Chem. Phys. 152(18) 184108 (2020). https://doi.org/10.1063/5.0006002
+
+                            Additional Code Authors
+    E. T. Seidl, C. L. Janssen, E. F. Valeev, M. L. Leininger,
+    J. F. Gonthier, R. M. Richard, H. R. McAlexander, M. Saitow, X. Wang,
+    P. Verma, M. H. Lechner, A. Jiang, S. Behnle, A. G. Heide,
+    M. F. Herbst, D. L. Poole, T. Győri, E. C. Mitchell, J. P. Pederson,
+    and A. M. Wallace
+
+             Previous Authors, Complete List of Code Contributors,
+                       and Citations for Specific Modules
+    https://github.com/psi4/psi4/blob/master/codemeta.json
+    https://github.com/psi4/psi4/graphs/contributors
+    https://psicode.org/psi4manual/master/introduction.html#citing-psifour
+
+    -----------------------------------------------------------------------
+
+
+    Psi4 started on: Monday, 19 October 2026 09:33AM
+
+    Process ID: 31632
+    Host:       xaero
+    PSIDATADIR: D:\_scratch\psi4-spike\Library\share\psi4
+    Memory:     500.0 MiB
+    Threads:    2
+    Addons:     ~adcc~, ~ambit~, ~bse~, ~cct3~, ~cfour~, ~chemps2~, ~cppe~, ~ddx~, ~dftd3~, ~dftd4~, dkh,
+                ecpint, ~einsums~, ~forte~, ~gauxc~, ~gcp~, ~gdma~, ~geometric~, ~gpu_dfcc~,
+                ~integratorxx~, ~ipi~, ~libefp~, ~mdi~, ~mp2d~, ~mrcc~, ~ooo~,
+                ~openfermionpsi4~, pcmsolver, ~psi4fockci~, ~psixas~, ~pyeinsums~, ~resp~,
+                ~simint~, ~snsmp2~, ~v2rdm_casscf~
+
+  ==> Input File <==
+
+--------------------------------------------------------------------------
+memory 2 GB
+molecule {
+0 1
+O 0.0000000000 0.0000000000 0.1173000000
+H 0.0000000000 0.7572000000 -0.4692000000
+H 0.0000000000 -0.7572000000 -0.4692000000
+symmetry c1
+no_reorient
+no_com
+}
+set reference rhf
+set basis def2-svp
+set scf_type df
+set e_convergence 1e-8
+set d_convergence 1e-8
+energy('nosuchfunctional')
+--------------------------------------------------------------------------
+
+  Memory set to   1.863 GiB by Python driver.
+
+Scratch directory: C:\Users\pmpd\AppData\Local\Temp/
+
+Traceback (most recent call last):
+  File "D:\_scratch\psi4-spike\Scripts\psi4-script.py", line 374, in <module>
+    exec(content)
+  File "<string>", line 30, in <module>
+  File "D:\_scratch\psi4-spike\Lib\site-packages\psi4\driver\driver.py", line 461, in energy
+    plan = task_planner.task_planner("energy", lowername, molecule, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\_scratch\psi4-spike\Lib\site-packages\psi4\driver\task_planner.py", line 255, in task_planner
+    dermode = negotiate_derivative_type(driver, method, kwargs.pop('dertype', None), verbose=1)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\_scratch\psi4-spike\Lib\site-packages\psi4\driver\driver_util.py", line 222, in negotiate_derivative_type
+    highest_analytic_dertype, proc_messages = highest_analytic_derivative_available(method, proc)
+                                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\_scratch\psi4-spike\Lib\site-packages\psi4\driver\driver_util.py", line 358, in highest_analytic_derivative_available
+    raise MissingMethodError(_alternative_methods_message(method, "any", messages=proc_messages, proc=proc))
+
+psi4.driver.p4util.exceptions.MissingMethodError: Method=nosuchfunctional is not available for any derivative level.
+
+
+Printing out the relevant lines from the Psithon --> Python processed input file:
+    core.set_global_option("REFERENCE", "rhf")
+    core.set_global_option("BASIS", "def2-svp")
+    core.set_global_option("SCF_TYPE", "df")
+    core.set_global_option("E_CONVERGENCE", 1e-8)
+    core.set_global_option("D_CONVERGENCE", 1e-8)
+--> energy('nosuchfunctional')
+
+!---------------------------------------------------------------------!
+!                                                                     !
+!  Method=nosuchfunctional is not available for any derivative level. !
+!                                                                     !
+!---------------------------------------------------------------------!
+
+    Psi4 stopped on: Monday, 19 October 2026 09:33AM
+    Psi4 wall time for execution: 0:00:00.19
+
+*** Psi4 encountered an error. Buy a developer more coffee!
+*** Resources and help at github.com/psi4/psi4.

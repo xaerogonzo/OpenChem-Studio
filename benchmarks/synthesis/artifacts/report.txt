@@ -1,0 +1,18 @@
+QUALITY BENCHMARK: 300 targets drawn, 0 failed or missing
+VERDICT PARTIAL
+
+a route was returned (solved with the set stock)                    0.967  PASS
+the reference route is among the first 10 returned                  0.373  PARTIAL
+the first route is fully validated                                  0.993  PASS
+the solved flag is identical across three runs                   20 of 20  PASS
+
+reported, deciding nothing:
+  recovered at 1 / 5 / 10: 0.157 / 0.343 / 0.373 (published, uncontaminated model, tree edit distance: 0.20 / 0.55 / 0.61)
+  mean leaf overlap of the first route with the reference: 0.603
+  first route shorter than the reference: 0.483
+  targets with a first route that has a reaction: 298; of those fully validated: 296
+  seconds per target (median, run r1): 54.6
+  peak working set seen (MB): 2752
+
+CONTAMINATION: the public ONNX models may have been trained on these reference reactions; recovery is not evidence that the planner generalises (PREREGISTRATION.md).
+Feasibility is not measured and is never reported.

@@ -93,7 +93,7 @@ def test_the_name_reads_back_to_the_molecule(label, smiles, expected):
 
 #: The N-acyl isothiourea thiolate. Its ANION-mode plan with the parent `methane` claims the carbonyl oxygen twice, which the suite's STRICT ownership mode raises and the default mode
 #: turns into a rejected plan (the next plan names the molecule). That is a latent plan-generation flaw, recorded in KNOWN_LIMITATIONS, so this molecule is checked in the default mode.
-ACYL_THIOLATE = ("NC([S-])=NC(=O)c1ccccc1", "{[amino(sulfido)methylidene]carbamoyl}benzene")
+ACYL_THIOLATE = ("NC([S-])=NC(=O)c1ccccc1", "amino(benzoylimino)methanethiolate")  # naming round 54 (D-263) took out the double claim of the carbonyl oxygen: the same name in both ownership modes
 
 
 def test_the_s_minus_prefix_is_sulfido_not_the_parent_hydride_anion(monkeypatch):

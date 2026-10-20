@@ -88,6 +88,26 @@ class DescriptorProvider(ABC):
         up-front placeholder benefit."""
         return {}
 
+    def geometric_descriptor_ids(self) -> frozenset[str]:
+        """Optional: the ids of the descriptors MEASURED FROM 3D COORDINATES.
+
+        **EVERYTHING ELSE THIS PROVIDER EMITS IS A PROPERTY OF THE STRUCTURE
+        GRAPH, AND IS COMPUTED ON THE DRAWING ONLY.** A conformer arriving must
+        not re-run those on the explicit-hydrogen molecule it carries: they
+        answer a different question there. Measured on the 29-molecule census
+        panel, 7 of 17 structure-level RDKit descriptors moved (aspirin's
+        synthetic accessibility 1.58 -> 6.445, Bertz CT 343 -> 609), because
+        the drawing's hydrogens are implicit and the conformer's are atoms.
+
+        Empty by default, so a provider that has not said is treated as
+        structure-level and is never handed a conformer -- the safe side:
+        a provider opts INTO geometry, exactly as a registered calculator does
+        with `CalculatorDefinition.calculation_input`. The alert catalogs and
+        per-atom data it emits (`compute_alerts`, `compute_per_atom`) are
+        always structure-level.
+        """
+        return frozenset()
+
     def alert_ids(self) -> dict[str, str]:
         """Optional: alert_id -> display name, known WITHOUT computing.
 
@@ -376,6 +396,28 @@ class QuantumEngineProvider(ABC):
 
     provider_id: str
 
+    #: What a person calls the engine ("Psi4"); empty falls back to the upper-cased `provider_id` (so ORCA, which
+    #: predates this, needs nothing).
+    display_name: str = ""
+    #: The calculation types this engine runs, or `None` for "all of them" (ORCA's default). An engine that runs
+    #: fewer is not OFFERED the others, rather than offered and refused: `docs/PSI4_ENGINE_DESIGN.md`.
+    supported_calc_types: frozenset[str] | None = None
+
+    def engine_name(self) -> str:
+        return self.display_name or self.provider_id.upper()
+
+    def executable_setting(self) -> str:
+        """The settings key holding this engine's executable path. DEFAULTS TO ORCA's (`orca/executable_path`): before engines had
+        their own, every provider ran the one configured executable, and a provider that does not say otherwise still does. Psi4 says otherwise."""
+        return "orca/executable_path"
+
+    def executable_names(self) -> tuple[str, ...]:
+        """The names to look for on PATH when no path is configured (`shutil.which` adds the platform suffix). Defaults to ORCA's, for the reason above."""
+        return ("orca",)
+
+    def supports(self, calc_type: str) -> bool:
+        return self.supported_calc_types is None or calc_type in self.supported_calc_types
+
     @abstractmethod
     def build_input(
         self, mol: Chem.Mol, charge: int, multiplicity: int, method_basis: str, calc_type: str
@@ -441,6 +483,21 @@ class QuantumEngineProvider(ABC):
         modes" are different statements.
         """
         return None
+
+    def parse_per_atom_output(
+        self, output_text: str, mol: Chem.Mol, molecule_uuid: str, calc_type: str
+    ) -> list[PerAtomDataset]:
+        """Optional: per-atom datasets (condensed Fukui functions today) this engine's output yields for
+        `calc_type`, each keyed by the atom index of `mol`.
+
+        SEPARATE from `parse_output` because a value per atom is not a `DescriptorValue`'s one scalar, and from
+        `parse_spectrum_output` because the number is not a spectrum. Default empty: most calc types describe
+        the molecule as a whole, and "no per-atom data" is not an error.
+
+        Unlike the spectrum hooks this one may FAIL a run: a calc type whose whole point is the per-atom values
+        reads them in `parse_output` too and raises there, so the run is recorded as failed rather than
+        completed with nothing in it."""
+        return []
 
     def parse_spin_spin_coupling(
         self, output_text: str, calc_type: str

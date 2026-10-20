@@ -35,6 +35,9 @@ SOURCE_DESCRIPTOR = "descriptor"
 SOURCE_CALCULATOR = "calculator"
 SOURCE_DOCKING = "docking"
 SOURCE_DERIVED = "derived"
+#: A user-defined derived score (`domain/score_table.py`): a column computed from the table's own other cells, never run. Not `derived`, which is a
+#: column the batch itself makes (the Status column of a row that failed before anything ran).
+SOURCE_SCORE = "score"
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -65,6 +68,9 @@ class BatchColumn:
     #: column that looks selectable but yields an empty scatter is worse
     #: than one that is absent.
     numeric: bool = True
+    #: What the column IS, in a sentence or two, for a column whose definition is not a calculator's: a derived score's formula and what it reads. Shown on the
+    #: column's tooltip and in the report's methods section, where a calculator's column shows its method; empty for every column a calculator makes.
+    note: str = ""
 
     @property
     def header(self) -> str:
@@ -109,6 +115,8 @@ class BatchCell:
     #: says NON_SCALAR and the view offers the row action instead of
     #: printing a dash that reads as a failure.
     kind: str = SCALAR
+    #: Free text for this cell's tooltip, below its provenance: for a derived score, the inputs the row's number was computed from. Empty for every other cell.
+    detail: str = ""
 
     @property
     def failed(self) -> bool:

@@ -1,0 +1,75 @@
+{
+ "scratch": "C:\\Users\\pmpd\\AppData\\Local\\Temp\\fukui_rohf_sweep_jiuz1q_z",
+ "per_species": [
+  {
+   "kind": "uhf",
+   "species": "CO",
+   "max_abs_diff": 0.0214
+  },
+  {
+   "kind": "uhf",
+   "species": "CO2",
+   "max_abs_diff": 0.006
+  },
+  {
+   "kind": "uhf",
+   "species": "H2CO",
+   "max_abs_diff": 0.0042
+  },
+  {
+   "kind": "uhf",
+   "species": "acetone",
+   "max_abs_diff": null
+  },
+  {
+   "kind": "uhf",
+   "species": "CN-",
+   "max_abs_diff": 0.0101
+  },
+  {
+   "kind": "uhf",
+   "species": "NCO-",
+   "max_abs_diff": 0.005
+  },
+  {
+   "kind": "uhf",
+   "species": "CNO-",
+   "max_abs_diff": 0.0098
+  },
+  {
+   "kind": "rohf",
+   "species": "CO",
+   "max_abs_diff": 0.0171
+  },
+  {
+   "kind": "rohf",
+   "species": "CO2",
+   "max_abs_diff": 0.0066
+  },
+  {
+   "kind": "rohf",
+   "species": "H2CO",
+   "max_abs_diff": 0.0042
+  },
+  {
+   "kind": "rohf",
+   "species": "acetone",
+   "max_abs_diff": null
+  },
+  {
+   "kind": "rohf",
+   "species": "CN-",
+   "max_abs_diff": 0.005
+  },
+  {
+   "kind": "rohf",
+   "species": "NCO-",
+   "max_abs_diff": 0.005
+  },
+  {
+   "kind": "rohf",
+   "species": "CNO-",
+   "max_abs_diff": 0.7911
+  }
+ ]
+}

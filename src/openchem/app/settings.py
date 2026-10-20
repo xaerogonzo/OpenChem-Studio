@@ -105,12 +105,37 @@ CONFORMER_MAX_EMBEDDINGS = Preference(
 #: twenty of the kept set on the flexible molecules measured; see `chem.conformer_providers.STOP_RULE_KEPT_SET`.
 CONFORMER_EARLY_STOP = Preference("conformers/early_stop_kept_set", bool, False)
 
+#: Whether generating conformers again KEEPS the ones an ORCA optimization produced. ON by default, because an
+#: optimized geometry is the most expensive thing in the list and the one every later calculation prefers
+#: (`chem.calculation_input.canonical_conformer`); wiping it as a side effect of pressing Generate was the
+#: surprise. The kept geometries follow the new conformers, in their original order; OFF replaces everything, as
+#: it always did. A structure edit still clears all of them either way: the geometry no longer fits.
+CONFORMER_KEEP_OPTIMIZED = Preference("conformers/keep_quantum_optimized", bool, True)
+
+#: What the Generate Conformers window STARTS with for "also ORCA-optimize the lowest-energy conformer". OFF by
+#: default: an optimization takes minutes to hours and the person did not ask for one by pressing Generate. The
+#: window still decides each generation; this is only where its checkbox begins.
+CONFORMER_OPTIMIZE_LOWEST = Preference("conformers/orca_optimize_lowest", bool, False)
+
+#: Whether the Fukui functions of a species that is itself an ANION include its f+, f0 and dual descriptor, which come from a
+#: dianion that no basis set binds (`chem.fukui_plan`). ON by default: the numbers were asked for, f- does not depend on them, and a
+#: dianion that fails costs only them. OFF runs the anion and its neutral radical only, which is what Fukui v2 did and what its
+#: second preregistered gate tested, and the result says the dianion was left out. Neutral species and cations are not affected.
+FUKUI_ANION_F_PLUS = Preference("quantum_chemistry/fukui_anion_f_plus", bool, True)
+
+#: Whether a Fukui run looks for other states of the cation: three more ORCA jobs that start from the neutral's orbitals with the electron taken from the HOMO-1, HOMO-2 and
+#: HOMO-3 (`chem.fukui_plan.HOLE_OFFSETS`), so that f- is read from the LOWEST state found and a close second is reported (`chem.fukui_states`). ON by default: with one cation job
+#: the state f- is read from was whichever ORCA's SCF reached, which for benzaldehyde was not a function of the structure (6 of 14 runs one state, 8 the other). OFF runs the one
+#: job as Fukui v2 did, and the result says no search was run. Applies to the next run.
+FUKUI_CATION_SEARCH = Preference("quantum_chemistry/fukui_cation_search", bool, True)
+
 #: Every preference, in the order the Settings window groups them. Tests
 #: iterate this, so a preference added here is covered without a new test.
 PREFERENCES = (
     RAIL_HIDES_PANELS, RECOVERY_ENABLED, RECOVERY_DELAY_SECONDS, MAX_REVISIONS_KEPT,
     SHOW_HIDDEN_CALCULATORS, RECALC_MODE, RECALC_QUIET_MS, DRAWING_BOND_KEYS,
-    CONFORMER_MAX_EMBEDDINGS, DRAWING_BOND_CLICK, CONFORMER_EARLY_STOP,
+    CONFORMER_MAX_EMBEDDINGS, DRAWING_BOND_CLICK, CONFORMER_EARLY_STOP, CONFORMER_KEEP_OPTIMIZED,
+    CONFORMER_OPTIMIZE_LOWEST, FUKUI_ANION_F_PLUS, FUKUI_CATION_SEARCH,
 )
 
 #: Where one calculator's own visibility choice is stored: a plain

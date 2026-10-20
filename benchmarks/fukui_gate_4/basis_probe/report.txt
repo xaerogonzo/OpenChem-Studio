@@ -1,0 +1,58 @@
+
+pyrimidine  (printed range of the gap 0.48 to 0.80 eV)
+  6-31G*     0.000 (sigma), 0.909 (pi), 1.356 (sigma), 1.735 (pi)   | sigma-pi gap G = +0.909
+  6-31+G*    0.000 (sigma), 0.807 (pi), 0.887 (pi), 1.349 (sigma), 1.714 (pi)   | sigma-pi gap G = +0.807
+  def2-TZVP  0.000 (sigma), 0.877 (pi), 1.342 (sigma), 1.703 (pi)   | sigma-pi gap G = +0.877
+  S(6-31+G*) = +0.102 eV; distance of |G| from the printed range 0.109 -> 0.007
+  S(def2-TZVP) = +0.032 eV; distance of |G| from the printed range 0.109 -> 0.077
+
+pyrazine  (printed range of the gap 0.55 to 0.80 eV)
+  6-31G*     0.000 (sigma), 0.683 (pi), 1.735 (sigma), 2.173 (pi), 3.871 (sigma), 4.832 (pi), 5.219 (sigma)   | sigma-pi gap G = +0.683
+  6-31+G*    0.000 (sigma), 0.654 (pi), 1.726 (sigma), 2.152 (pi), 3.829 (sigma), 4.803 (pi), 5.175 (sigma)   | sigma-pi gap G = +0.654
+  def2-TZVP  0.000 (sigma), 0.632 (pi), 1.713 (sigma), 2.135 (pi), 3.775 (sigma), 4.802 (pi), 5.096 (sigma)   | sigma-pi gap G = +0.632
+  S(6-31+G*) = +0.029 eV; distance of |G| from the printed range 0.000 -> 0.000
+  S(def2-TZVP) = +0.051 eV; distance of |G| from the printed range 0.000 -> 0.000
+
+pyridazine  (printed range of the gap 1.30 to 1.52 eV)
+  6-31G*     0.000 (sigma), 1.564 (pi), 1.962 (pi), 2.001 (sigma)   | sigma-pi gap G = +1.564
+  6-31+G*    0.000 (sigma), 1.532 (pi), 1.933 (pi), 1.982 (sigma)   | sigma-pi gap G = +1.532
+  def2-TZVP  0.000 (sigma), 1.515 (pi), 1.926 (pi), 1.975 (sigma)   | sigma-pi gap G = +1.515
+  S(6-31+G*) = +0.032 eV; distance of |G| from the printed range 0.044 -> 0.012
+  S(def2-TZVP) = +0.049 eV; distance of |G| from the printed range 0.044 -> 0.000
+
+imidazole  (printed range of the gap 1.23 to 1.67 eV)
+  6-31G*     0.000 (pi), 1.174 (sigma)   | sigma-pi gap G = -1.174
+  6-31+G*    0.000 (pi), 1.196 (sigma)   | sigma-pi gap G = -1.196
+  def2-TZVP  0.000 (pi), 1.179 (sigma)   | sigma-pi gap G = -1.179
+  S(6-31+G*) = +0.022 eV; distance of |G| from the printed range 0.056 -> 0.034
+  S(def2-TZVP) = +0.005 eV; distance of |G| from the printed range 0.056 -> 0.051
+
+pyrazole  (printed range of the gap 1.55 to 1.55 eV)
+  6-31G*     0.000 (pi), 1.157 (sigma)   | sigma-pi gap G = -1.157
+  6-31+G*    0.000 (pi), 1.246 (sigma)   | sigma-pi gap G = -1.246
+  def2-TZVP  0.000 (pi), 1.239 (sigma)   | sigma-pi gap G = -1.239
+  S(6-31+G*) = +0.089 eV; distance of |G| from the printed range 0.393 -> 0.304
+  S(def2-TZVP) = +0.082 eV; distance of |G| from the printed range 0.393 -> 0.311
+
+oxazole  (printed range of the gap 1.36 to 1.36 eV)
+  6-31G*     0.000 (pi), 1.252 (sigma)   | sigma-pi gap G = -1.252
+  6-31+G*    0.000 (pi), 1.277 (sigma)   | sigma-pi gap G = -1.277
+  def2-TZVP  0.000 (pi), 1.269 (sigma)   | sigma-pi gap G = -1.269
+  S(6-31+G*) = +0.024 eV; distance of |G| from the printed range 0.108 -> 0.083
+  S(def2-TZVP) = +0.017 eV; distance of |G| from the printed range 0.108 -> 0.091
+
+pyridine  (calibration)
+  6-31G*     0.000 (sigma), 0.123 (pi), 0.803 (pi), 2.973 (sigma)   | sigma-pi gap G = +0.123
+  6-31+G*    0.000 (sigma), 0.116 (pi), 0.799 (pi), 2.945 (sigma)   | sigma-pi gap G = +0.116
+  def2-TZVP  0.000 (sigma), 0.120 (pi), 0.806 (pi), 2.906 (sigma)   | sigma-pi gap G = +0.120
+  S(6-31+G*) = +0.007 eV
+  S(def2-TZVP) = +0.003 eV
+
+pyridine against EOM-IP-CCSDT (+0.15, +0.85, +3.17 for the 1a2, 2b1 and 5b2 states above the 7a1):
+  6-31G*     0.000, 0.123, 0.803, 2.973   (EOM-IP-CCSDT 0.00, 0.15, 0.85, 3.17)
+  6-31+G*    0.000, 0.116, 0.799, 2.945   (EOM-IP-CCSDT 0.00, 0.15, 0.85, 3.17)
+  def2-TZVP  0.000, 0.120, 0.806, 2.906   (EOM-IP-CCSDT 0.00, 0.15, 0.85, 3.17)
+
+S(def2-TZVP) >= +0.10 in 0 of 6; below +0.05 in 4 of 6; the four outside their range each nearer: True, none farther: True; a change of the lowest state's kind: none
+
+READING RULE OF PLAN.md: NOT SUPPORTED

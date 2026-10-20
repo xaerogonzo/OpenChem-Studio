@@ -861,6 +861,7 @@ ENGINE_GROUP_FALLBACK: dict[str, str] = {
         "tellurosulfenate", "selenonate", "telluronate", "seleninate",
         "tellurinate", "tellurolate", "selenolate", "selenonamide",
         "seleninamide", "telluronamide", "tellurinamide", "carboselenoic_Se_acid",
+        "carboselenoic_O_acid",
         "selone", "tellone", "selenol")},
     **{t: _S_ACID for t in (
         "sulfinimidic_acid", "sulfonimidic_acid",

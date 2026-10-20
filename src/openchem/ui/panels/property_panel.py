@@ -54,6 +54,7 @@ from openchem.domain.calculator_taxonomy import (
     task_group_of,
 )
 from openchem.domain.common import CacheState, describe_failure
+from openchem.domain.conformer import quantum_optimized_note
 from openchem.domain.compare import (
     MAX_COMPARED,
     ComparedResult,
@@ -86,6 +87,8 @@ from openchem.domain.result_status import (
     status_of,
 )
 from openchem.domain.scientific_result import PerAtomDataset, SpectrumResult
+from openchem.domain.score_definition import ScoreDefinition
+from openchem.domain.score_run_inputs import run_inputs_of
 from openchem.domain.selection_presets import PresetStore
 from openchem.domain.structure_resolution import resolve_structure_for_report
 from openchem.ui import visual_check
@@ -98,6 +101,7 @@ from openchem.events.base import EventBus
 from openchem.events.events import (
     AlertComputed,
     CalculationFinished,
+    ConformersChanged,
     DescriptorComputed,
     ReportComputed,
     MoleculeChanged,
@@ -108,6 +112,7 @@ from openchem.events.events import (
     RecalculationDue,
     RecipeRunRecorded,
     ResultRecorded,
+    ScoreDefinitionsChanged,
     SettingsChanged,
     SpectrumComputed,
     StructureSetComputed,
@@ -514,7 +519,10 @@ _PRESETS_HELP = HelpTooltip(
         "and no molecules. One that names a calculator this version no longer has "
         "simply skips it. The first time this opens, the selection you had made in "
         "the Batch panel is copied in as a preset called \"From the Batch panel\" "
-        "-- copied, so the Batch panel still has it."
+        "-- copied, so the Batch panel still has it.\n\n"
+        "When the project has scores you defined, the menu also offers \"Tick what my scores read\": "
+        "it ticks the calculators they read and adds the always-on properties they read, "
+        "on top of what is ticked, so a project run gives each score a column."
     ),
     tier=2,
     help_id="properties.presets",
@@ -1331,6 +1339,19 @@ def _mnemonic_safe(text: str) -> str:
     return text.replace("&", "&&")
 
 
+class _StatusLabel(QLabel):
+    """The status line beside "Run selected": one line, and the whole text on hover.
+
+    A one-line label clips what does not fit, and the sentence most worth reading is often the last ("Left out: ...", "Not ticked, because the launcher is not offering them: ...").
+    Every caller sets the text with `setText` and only the idle hint ever set the tooltip, so a long message was cut off with no way to read it. Keeping the tooltip equal to the text
+    HERE covers every caller, and a line set to nothing has no tooltip left over from the one before.
+    """
+
+    def setText(self, text: str) -> None:
+        super().setText(text)
+        self.setToolTip(text)
+
+
 class _ElidingPushButton(QPushButton):
     """An "Open [Calculator]..." button that may be narrower than its label.
 
@@ -1853,6 +1874,9 @@ class PropertyPanel(QWidget):
         #: `RecipeService.answers_for`, or None (a panel with no recipes behind it). A CALLABLE, for the reason
         #: `structure_version_of` is: this needs the kept answers of one molecule and nothing else of the service.
         self._recipe_answers: Callable[[str, int], Sequence] | None = None
+        self._score_answers: Callable[[str, int], Sequence] | None = None
+        #: The project's score definitions as they are now, or None (a panel with no scores behind it): what "Tick what my scores read" reads. A CALLABLE, asked each time, so a score defined, edited or removed is in the next tick.
+        self._score_definitions: Callable[[], Sequence[ScoreDefinition]] | None = None
         #: The structure version each held descriptor was computed for (its dispatch
         #: version, or arrival time where the producer did not say). The reader's
         #: "Molecular Properties" entry is only as current as the OLDEST of these: a set
@@ -1968,7 +1992,7 @@ class PropertyPanel(QWidget):
         #
         # One line, with the full text on hover, because this is transient
         # status and not a result.
-        self._batch_status = QLabel("", self)
+        self._batch_status = _StatusLabel("", self)
         self._batch_status.setWordWrap(False)
         self._batch_status.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
         self._batch_status.setStyleSheet(_INFORMATION_STYLE)
@@ -2123,6 +2147,7 @@ class PropertyPanel(QWidget):
 
         event_bus.subscribe(MoleculeSelected, self._on_molecule_selected)
         event_bus.subscribe(MoleculeChanged, self._on_molecule_changed)
+        event_bus.subscribe(ConformersChanged, self._on_conformers_changed)
         event_bus.subscribe(RecalculationDue, self._on_recalculation_due)
         event_bus.subscribe(DescriptorComputed, self._on_descriptor_computed)
         event_bus.subscribe(AlertComputed, self._on_alert_computed)
@@ -2137,6 +2162,7 @@ class PropertyPanel(QWidget):
         event_bus.subscribe(SettingsChanged, self._on_settings_changed)
         event_bus.subscribe(RecipeRunRecorded, self._on_recipe_run_recorded)
         event_bus.subscribe(QuantumChemistryRunDeleted, self._on_quantum_chemistry_run_deleted)
+        event_bus.subscribe(ScoreDefinitionsChanged, self._on_score_definitions_changed)
 
     def attach_recipe_answers(self, answers_for: Callable[[str, int], Sequence] | None) -> None:
         """Let the Results reader show the recipe answers kept in the project.
@@ -2146,6 +2172,25 @@ class PropertyPanel(QWidget):
         """
         self._recipe_answers = answers_for
         self._refresh_reader()
+
+    def attach_score_answers(self, answers_for: Callable[[str, int], Sequence] | None) -> None:
+        """Let the Results reader show the user-defined scores of the project.
+
+        `answers_for(molecule_uuid, structure_version)` returns reader entries (`domain.score_answer`), built from the definitions and the molecule's current
+        results each time it is asked: a score's value is read, never stored here or anywhere.
+        """
+        self._score_answers = answers_for
+        self._refresh_reader()
+
+    def attach_score_definitions(self, definitions: Callable[[], Sequence[ScoreDefinition]] | None) -> None:
+        """Let the Presets menu offer to tick what the project's scores read (`domain/score_run_inputs.py`)."""
+        self._score_definitions = definitions
+
+    def _on_score_definitions_changed(self, _event: ScoreDefinitionsChanged) -> None:
+        """A score was made, edited or removed: it joins, changes in or leaves the reader of the molecule shown. Definitions belong to the project, so
+        whichever molecule it is, the reader looks again."""
+        if self._score_answers is not None:
+            self._refresh_reader()
 
     def _on_recipe_run_recorded(self, event: RecipeRunRecorded) -> None:
         """A recipe answer was kept: it joins the reader of every molecule that took part, if that is the one shown."""
@@ -2168,6 +2213,24 @@ class PropertyPanel(QWidget):
         # long session does not accumulate the positions of molecules nothing
         # can reach any more.
         self._reader_memory.clear()
+
+    def _refresh_geometry_badge(self) -> None:
+        """The line under the header's name that says the molecule holds an ORCA geometry, or none.
+
+        Read off the selected molecule's conformers every time it is asked: it is a fact about the molecule
+        and not a result, so it must follow an ORCA geometry landing, being undone, or the conformers being
+        generated again without waiting for any calculation.
+        """
+        molecule = (
+            self._project.find_molecule(self._selected_molecule_uuid)
+            if self._project is not None and self._selected_molecule_uuid is not None
+            else None
+        )
+        self._substance_card.set_badge(quantum_optimized_note(molecule.conformers) if molecule is not None else "")
+
+    def _on_conformers_changed(self, event: ConformersChanged) -> None:
+        if event.molecule_uuid == self._selected_molecule_uuid:
+            self._refresh_geometry_badge()
 
     def _on_molecule_selected(self, event: MoleculeSelected) -> None:
         self._selected_molecule_uuid = event.molecule_uuid
@@ -2202,6 +2265,7 @@ class PropertyPanel(QWidget):
         for section in self._sections.values():
             section.clear_rows()
         self._substance_card.clear()
+        self._refresh_geometry_badge()
         self._update_preflight()
         # **THE DOCKED READER FOLLOWS RATHER THAN CLOSING**, which is the one
         # behaviour that separates it from the window three lines above. It
@@ -2939,8 +3003,8 @@ class PropertyPanel(QWidget):
         if not event.during_edit:
             self._update_preflight()
             self._refresh_status_chips()
-            if self._recipe_answers is not None:
-                # A kept recipe answer is stale the moment ITS molecule is edited, and nothing that follows is
+            if self._recipe_answers is not None or self._score_answers is not None:
+                # A score's inputs stop being current the moment ITS molecule is edited, and a kept recipe answer is stale the moment ITS molecule is edited, and nothing that follows is
                 # certain to say so: the recomputation that does is not guaranteed to produce a result event.
                 # Coalesced, so a burst of edits is one rebuild.
                 self._refresh_reader_soon()
@@ -3288,6 +3352,11 @@ class PropertyPanel(QWidget):
         identity = event.stored.identity
         if identity.molecule_uuid != self._selected_molecule_uuid:
             return
+        if self._score_answers is not None:
+            # **A SCORE READS THE STORE, AND A RESULT'S OWN EVENT REACHES THE READER BEFORE THE STORE HAS IT.** `ReportComputed` and its kin refresh the reader first;
+            # a score waiting for that result evaluated then, found nothing, and was never told to look again (found by driving the real app: a calculator finished and the
+            # score stayed empty). This envelope arrives after the store recorded the result, and the refresh is coalesced, so a flood of descriptors is one.
+            self._refresh_reader_soon()
         producer = identity.producer
         if producer == identity.result_id or self._calculator_registry.get(producer) is None:
             return
@@ -3547,7 +3616,19 @@ class PropertyPanel(QWidget):
         # result store (`domain/recipe_answer.py` says why), so they are added here and re-read on every refresh, which
         # is also what keeps their staleness current.
         entries.extend(self._kept_recipe_answers(version))
+        # **THE SCORES A PERSON DEFINED**, a projection of the same kind: evaluated against this molecule's current results every time the reader refreshes,
+        # which is what keeps them current without anything being stored (`domain/score_answer.py`).
+        entries.extend(self._project_score_answers(version))
         return entries, version
+
+    def _project_score_answers(self, version: int) -> list:
+        if self._score_answers is None or not self._selected_molecule_uuid:
+            return []
+        try:
+            return list(self._score_answers(self._selected_molecule_uuid, version))
+        except Exception:  # noqa: BLE001 - a score that cannot be read must not take the other results with it
+            logger.exception("Could not read the scores for %s", self._selected_molecule_uuid)
+            return []
 
     def _kept_recipe_answers(self, version: int) -> list:
         if self._recipe_answers is None or not self._selected_molecule_uuid:
@@ -4076,6 +4157,11 @@ class PropertyPanel(QWidget):
         tick_shown = menu.addAction("Tick all shown")
         tick_shown.setData(("tick_shown", ""))
         actions["tick_shown"] = tick_shown
+        scores = len(self._score_definitions()) if self._score_definitions is not None else 0
+        if scores:
+            tick_scores = menu.addAction(f"Tick what my scores read ({scores})")
+            tick_scores.setData(("tick_scores", ""))
+            actions["tick_scores"] = tick_scores
         names = self._presets.names()
         if names:
             menu.addSeparator()
@@ -4116,6 +4202,8 @@ class PropertyPanel(QWidget):
             self.apply_preset(name)
         elif kind == "tick_shown":
             self.tick_all_shown()
+        elif kind == "tick_scores":
+            self.tick_score_inputs()
         elif kind == "delete":
             self._presets.delete(name)
             self._batch_status.setText(f"Deleted preset '{name}'.")
@@ -4288,6 +4376,41 @@ class PropertyPanel(QWidget):
             self._calculator_ticks[calculator_id].setChecked(True)
         self._batch_status.setText(f"Ticked {len(ids)} shown.")
         return len(ids)
+
+    def tick_score_inputs(self) -> int:
+        """Tick what the project's scores read, so a run gives each of them a column. Returns how many calculators it ticked.
+
+        **IT ADDS, AND NEVER REPLACES OR NARROWS.** A tick the person made stays, and the always-on properties are widened to include the ones a score reads (a box that was unticked is
+        ticked; "all" stays all). A preset replaces the ticks because it means "this set"; this means "also what my scores need". A calculator the launcher is not offering is left unticked and
+        named, because Run selected never runs what the person cannot see.
+        """
+        definitions = tuple(self._score_definitions()) if self._score_definitions is not None else ()
+        if not definitions:
+            self._batch_status.setText("No scores are defined in this project.")
+            return 0
+        inputs = run_inputs_of(definitions)
+        offered = [cid for cid in inputs.calculator_ids if cid in self._calculator_ticks and cid not in self._hidden_calculator_ids]
+        for calculator_id in offered:
+            self._calculator_ticks[calculator_id].setChecked(True)
+        if inputs.descriptor_ids:
+            known = set(self._descriptor_choices_flat())
+            if self._descriptor_choice is not None:
+                included = set(self._descriptor_choice)
+            else:
+                included = known if self._scope_descriptors.isChecked() else set()
+            self.set_descriptor_choice(included | set(inputs.descriptor_ids))
+        left_out = [cid for cid in inputs.calculator_ids if cid not in offered]
+        names = [definition.display_name if (definition := self._calculator_registry.get(cid)) is not None else cid for cid in left_out]
+        parts = [f"Ticked {len(offered)} calculator(s)" + (f" and included {len(inputs.descriptor_ids)} always-on propert{'y' if len(inputs.descriptor_ids) == 1 else 'ies'}" if inputs.descriptor_ids else "")
+                 + f" that {inputs.scores} score(s) read."]
+        if names:
+            parts.append("Not ticked, because the launcher is not offering them: " + ", ".join(names) + ".")
+        if inputs.unreadable:
+            parts.append("Nothing can be ticked for: " + ", ".join(inputs.unreadable) + ".")
+        if not self._selected_calculator_ids():
+            parts.append("Run selected needs a calculator ticked.")
+        self._batch_status.setText(" ".join(parts))
+        return len(offered)
 
     def set_section_ticks(self, category: str, ticked: bool) -> int:
         """Tick or untick every calculator in one section that is showing. Returns how many."""

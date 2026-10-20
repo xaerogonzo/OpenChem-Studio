@@ -14,6 +14,7 @@ from PySide6.QtWidgets import (
 )
 
 from openchem.domain.common import CacheState
+from openchem.domain.conformer import is_quantum_optimized, quantum_engine_name, quantum_level_of_theory
 from openchem.domain.report import ArrowAnnotation
 from openchem.services.spatial_overlay_service import SINGLE_VIEW_CELL
 from openchem.ui.widgets.flow_layout import flow_row
@@ -27,7 +28,7 @@ from openchem.events.events import (
 )
 from openchem.services.conformer_service import ConformerService
 from openchem.services.measurement_service import MeasurementService
-from openchem.app.settings import CONFORMER_EARLY_STOP, CONFORMER_MAX_EMBEDDINGS
+from openchem.app.settings import CONFORMER_EARLY_STOP, CONFORMER_MAX_EMBEDDINGS, CONFORMER_OPTIMIZE_LOWEST
 from openchem.ui.dialogs.conformer_options_dialog import ConformerOptionsDialog
 from openchem.ui.viewer_backend import ViewerBackend
 from openchem.ui.visualization import (
@@ -156,6 +157,20 @@ _HELP: dict[str, HelpTooltip] = {
         ),
         tier=3,
         help_id="viewer3d.use_in_editor",
+        topic="3d-viewer",
+    ),
+    "orca_optimize": HelpTooltip(
+        text=(
+            "Set up an ORCA geometry optimization of THIS conformer, the one on screen, and open the Quantum "
+            "Chemistry panel. It starts nothing: check the method and basis, then press Run there.\n\n"
+            "When the job finishes, the optimized geometry replaces this conformer in its slot (7 of 20 stays "
+            "7 of 20), this viewer lands on it, and the label says it came from ORCA. Undo puts the original "
+            "back.\n\n"
+            "Tools > ORCA Geometry Optimization... does the same for the conformer shown here, and the "
+            "Quantum Chemistry panel's Conformer box is where the choice is held."
+        ),
+        tier=2,
+        help_id="viewer3d.orca_optimize",
         topic="3d-viewer",
     ),
     "gallery": HelpTooltip(
@@ -305,6 +320,11 @@ class MoleculeViewer3DWidget(QWidget):
     #: which conformer was showing -- the same reason `FactLink` carries
     #: its parameters.
     conformer_adopted = Signal(str, object)
+    #: The person asked to optimize THE CONFORMER ON SCREEN with ORCA: `(molecule_uuid, conformer_id)`. An id and
+    #: not an index, for the reason `conformer_adopted` carries a molblock: the receiver must not have to re-derive
+    #: which conformer was showing, and an index that travels is a second place for the two to disagree. The window
+    #: points the Quantum Chemistry panel at it and starts nothing.
+    orca_optimize_requested = Signal(str, str)
 
     def __init__(
         self,
@@ -335,6 +355,10 @@ class MoleculeViewer3DWidget(QWidget):
         super().__init__(parent)
         #: Settings > Conformers; None for a bare widget, which then uses the documented budget.
         self._settings = settings
+        #: Asked, when the Generate Conformers window is built, what "also ORCA-optimize the lowest-energy
+        #: conformer" would do for the molecule on screen. Supplied by the application window (it alone sees the
+        #: ORCA install and the Quantum Chemistry panel); None for a bare widget, which then offers nothing.
+        self._orca_offer_provider = None
         self._init_state(conformer_service, measurement_service, spatial_overlay_service)
         self._init_backend(backend)
         self._build_controls()
@@ -436,6 +460,14 @@ class MoleculeViewer3DWidget(QWidget):
         self._use_button.clicked.connect(self._on_use_clicked)
         self._use_button.setEnabled(False)
 
+        # THE DOOR TO ORCA FROM WHERE THE CONFORMERS ARE. An optimization used to be reachable only from the
+        # Quantum Chemistry panel and always ran on the conformer every calculation uses, so the one you were
+        # looking at could not be the one optimized. This hands the one on screen to that panel and stops.
+        self._orca_button = QPushButton("ORCA optimize", self)
+        apply_help_tooltip(self._orca_button, _HELP['orca_optimize'])
+        self._orca_button.clicked.connect(self._on_orca_clicked)
+        self._orca_button.setEnabled(False)
+
         # THE GALLERY. "all separate images possible... you could check
         # several ones to be visible at a time if wanted, and on the screen
         # at the same time, yet independently rotatable."
@@ -520,6 +552,7 @@ class MoleculeViewer3DWidget(QWidget):
             self._generate_button,
             self._finish_button,
             self._use_button,
+            self._orca_button,
             self._gallery_check,
             self._size_combo,
             self._lock_check,
@@ -606,6 +639,14 @@ class MoleculeViewer3DWidget(QWidget):
     def _on_generate_clicked(self) -> None:
         self.generate_conformers()
 
+    def set_orca_offer_provider(self, provider) -> None:
+        """`provider(molecule) -> OrcaGenerationOffer`: what the optional ORCA step would be for that molecule.
+
+        A bound method of the application window, so it is looked up each time the Generate window is built and
+        never describes the Quantum Chemistry panel as it was at start-up.
+        """
+        self._orca_offer_provider = provider
+
     def generate_conformers(self) -> None:
         """Ask for conformers, from wherever the user started.
 
@@ -631,6 +672,7 @@ class MoleculeViewer3DWidget(QWidget):
             optimize=True,
             num_embeddings=dialog.embeddings_to_try(),
             options=dialog.options(),
+            optimize_lowest=dialog.optimize_lowest(),
         )
 
     def options_dialog(self):
@@ -641,17 +683,30 @@ class MoleculeViewer3DWidget(QWidget):
         rule. Public because a driven run must reach the same decisions the button does, and a step must not `exec()`
         the dialog.
         """
+        offer = self._orca_offer_provider(self._molecule) if self._orca_offer_provider is not None else None
         if self._settings is None:
-            return ConformerOptionsDialog(self)
+            return ConformerOptionsDialog(self, orca_offer=offer)
         return ConformerOptionsDialog(
             self,
             automatic_embeddings=int(self._settings.preference(CONFORMER_MAX_EMBEDDINGS)),
             early_stop=bool(self._settings.preference(CONFORMER_EARLY_STOP)),
+            orca_offer=offer,
+            optimize_lowest=bool(self._settings.preference(CONFORMER_OPTIMIZE_LOWEST)),
         )
 
     def _on_conformers_changed(self, event: ConformersChanged) -> None:
         if self._molecule is not None and event.molecule_uuid == self._molecule.uuid:
             self._conformer_index = 0
+            # A change about ONE conformer (an ORCA geometry landing in its slot, or an undo restoring the
+            # one it replaced) names it, and the viewer lands on it instead of returning to the first. In the
+            # gallery the page holding it is shown too: `_refresh_gallery` would otherwise move the selection
+            # to the first cell of whichever page was up.
+            if event.show_conformer_id:
+                for index, conformer in enumerate(self._molecule.conformers):
+                    if conformer.conformer_id == event.show_conformer_id:
+                        self._conformer_index = index
+                        self._page_start = (index // self._page_size()) * self._page_size()
+                        break
             self._refresh_view()
 
     def _on_job_state_changed(self, event: ConformerJobStateChanged) -> None:
@@ -863,6 +918,29 @@ class MoleculeViewer3DWidget(QWidget):
 
         self._backend.current_view(with_view)
 
+    def _on_orca_clicked(self, _checked: bool = False) -> None:
+        """Ask for an ORCA optimization of the conformer on screen.
+
+        **The conformer ON SCREEN, which is `_conformer_index`**: in the single view the one shown, in the
+        gallery the cell last clicked, exactly as "Use in 2D Editor" reads it. Nothing is computed here and
+        nothing is started anywhere; the window opens the Quantum Chemistry panel with this conformer chosen.
+        """
+        if self._molecule is None or not self._molecule.conformers:
+            return
+        index = min(self._conformer_index, len(self._molecule.conformers) - 1)
+        self.orca_optimize_requested.emit(self._molecule.uuid, self._molecule.conformers[index].conformer_id)
+
+    def conformer_id_on_screen(self, molecule) -> str | None:
+        """The `conformer_id` this viewer is showing for `molecule`, or None when it holds another molecule or none.
+
+        What Tools > ORCA Geometry Optimization... asks, so the menu optimizes the conformer you are LOOKING AT and
+        not the one every calculation uses (which the Quantum Chemistry panel's Automatic already means).
+        """
+        if self._molecule is not molecule or not molecule.conformers:
+            return None
+        index = min(self._conformer_index, len(molecule.conformers) - 1)
+        return molecule.conformers[index].conformer_id
+
     def geometry_on_screen(self, molecule) -> str | None:
         """The conformer this viewer is showing for `molecule`, or None.
 
@@ -907,11 +985,13 @@ class MoleculeViewer3DWidget(QWidget):
             # is present but does nothing is the failure this whole line
             # of work keeps finding.
             self._use_button.setEnabled(False)
+            self._orca_button.setEnabled(False)
             self._details_button.setEnabled(False)
             return
         if self._gallery and hasattr(self._backend, "load_conformer_grid"):
             self._refresh_gallery()
             self._use_button.setEnabled(True)
+            self._orca_button.setEnabled(True)
             self._details_button.setEnabled(True)
             return
         conformer = self._molecule.conformers[self._conformer_index]
@@ -934,13 +1014,10 @@ class MoleculeViewer3DWidget(QWidget):
         self._overlay_value = ""
         self._request_overlay()
         self._use_button.setEnabled(True)
+        self._orca_button.setEnabled(True)
         self._details_button.setEnabled(True)
         self._status_label.setText(self._conformer_label(conformer))
-        self._status_label.setToolTip(
-            f"Absolute energy {conformer.energy:.4f} kcal/mol"
-            if conformer.energy is not None
-            else "This conformer has no computed energy."
-        )
+        self._status_label.setToolTip(self._conformer_tooltip(conformer))
 
     # --- the gallery ---------------------------------------------------
 
@@ -1122,6 +1199,11 @@ class MoleculeViewer3DWidget(QWidget):
 
     def _cell_label(self, index: int) -> str:
         conformer = self._molecule.conformers[index]
+        # The gallery clears the shared tooltip, so this visible text is the only place a cell can say that
+        # its geometry came from ORCA. Never a force-field-relative energy: it has none, and a "+0.00" would
+        # claim a comparison nothing made.
+        if is_quantum_optimized(conformer):
+            return f"{index + 1} - {quantum_engine_name(conformer)}"
         energies = [c.energy for c in self._molecule.conformers if c.energy is not None]
         if conformer.energy is None or not energies:
             return f"{index + 1}"
@@ -1400,6 +1482,18 @@ class MoleculeViewer3DWidget(QWidget):
             tuple(conformer.timestamp for conformer in self._molecule.conformers),
         )
 
+    def _conformer_tooltip(self, conformer) -> str:
+        """What the status line's tooltip says about the conformer on screen."""
+        if is_quantum_optimized(conformer):
+            level = quantum_level_of_theory(conformer)
+            return (
+                f"Optimized with {quantum_engine_name(conformer)}{f' at {level}' if level else ''}, so it has no force-field energy to "
+                "compare with the others. It replaced the conformer it was optimized from; Details says which."
+            )
+        if conformer.energy is not None:
+            return f"Absolute energy {conformer.energy:.4f} kcal/mol"
+        return "This conformer has no computed energy."
+
     def _conformer_label(self, conformer) -> str:
         """`Conformer 2/11 - +0.55 kcal/mol`.
 
@@ -1416,6 +1510,10 @@ class MoleculeViewer3DWidget(QWidget):
         # a widget of its own, so it cannot survive a state change the
         # rest of the line reacts to.
         overlay = f" - {self._overlay_value}" if getattr(self, "_overlay_value", "") else ""
+        if is_quantum_optimized(conformer):
+            # Marked wherever you step, so an ORCA geometry is never mistaken for a force-field one.
+            level = quantum_level_of_theory(conformer)
+            return f"{position} - {quantum_engine_name(conformer)} optimized{f' ({level})' if level else ''}{overlay}"
         energies = [c.energy for c in self._molecule.conformers if c.energy is not None]
         if conformer.energy is None or not energies:
             return f"{position} - energy n/a{overlay}"

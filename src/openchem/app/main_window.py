@@ -39,6 +39,7 @@ from openchem.app.session import SessionManager
 from openchem.app.menu_help import MENU_HELP
 from openchem.app.shortcut_registry import ShortcutRegistry
 from openchem.app.settings import (
+    CONFORMER_KEEP_OPTIMIZED,
     DRAWING_BOND_CLICK,
     DRAWING_BOND_KEYS,
     RAIL_HIDES_PANELS,
@@ -49,16 +50,23 @@ from openchem.app.settings import (
     remember_chosen_path,
     suggested_save_path,
 )
-from openchem.chem.calculation_input import canonical_conformer, with_source_atom_map
+from openchem.chem.calculation_input import (
+    canonical_conformer,
+    find_source_conformer,
+    with_kept_quantum_optimized,
+    with_optimization_origin,
+    with_source_atom_map,
+)
 from openchem.chem.engine import StructureEditError
 from openchem.chem.identifiers import identifier_for_molblock
-from openchem.chem.isotopes import IsotopeError, element_at, set_isotope
+from openchem.chem.isotopes import IsotopeError, element_at, same_structure, set_isotope
 from openchem.chem.stereochemistry import StereochemistryConflict
 from openchem.chem.structure_clipboard import parse_structure_text
 from openchem.commands.conformer_commands import (
     AdoptConformerCommand,
     AddConformerCommand,
     RedrawFlatCommand,
+    ReplaceConformerCommand,
     SetConformersCommand,
 )
 from openchem.commands.docking_commands import SetDockingResultCommand
@@ -78,6 +86,7 @@ from openchem.domain.project import ProjectModel
 from openchem.domain.quantum_chemistry_run import QuantumChemistryRunStore
 from openchem.domain.recipe_run import RecipeRunStore
 from openchem.domain.result_store import SessionResultStore
+from openchem.domain.score_definition_store import ScoreDefinitionStore
 from openchem.events.events import (
     CrystalSelected,
     ConformersChanged,
@@ -96,6 +105,8 @@ from openchem.events.events import (
     QuantumChemistryResultReady,
     QuantumChemistryRunCompleted,
     QuantumChemistryRunDeleted,
+    ResultRecorded,
+    ScoreDefinitionsChanged,
 )
 from openchem.app.calculation_host import CalculationHost
 from openchem.plugins.manager import PluginManager
@@ -104,6 +115,7 @@ from openchem.services.result_store_service import SUBSTANCE_PART
 from openchem.ui.widgets.help_tooltip import apply_help_tooltip
 from openchem.ui.dialogs.about_dialog import AboutDialog
 from openchem.ui.dialogs.settings_dialog import EXTERNAL_TOOLS, PANELS, SettingsDialog
+from openchem.ui.dialogs.conformer_options_dialog import OrcaGenerationOffer
 from openchem.ui.dialogs.help_dialog import HelpDialog
 from openchem.ui.dialogs.periodic_table_dialog import PeriodicTableDialog
 from openchem.ui.dialogs.structure_lookup_dialog import StructureLookupDialog
@@ -115,6 +127,7 @@ from openchem.ui.panels.batch_panel import BatchPanel
 from openchem.ui.dialogs.calculator_settings_dialog import plain_label
 from openchem.ui.dialogs.goal_wizard_dialog import GoalWizardDialog
 from openchem.ui.dialogs.lewis_pairing_dialog import LewisPairingDialog, PairingContext, PairingHost
+from openchem.ui.dialogs.score_dialog import ScoreDialog, ScoreHost
 from openchem.ui.panels.docking_panel import DockingPanel
 from openchem.ui.panels.jobs_panel import JobsPanel
 from openchem.ui.panels.project_explorer_panel import ProjectExplorerPanel
@@ -210,6 +223,8 @@ _MENU_KEYWORDS: dict[str, tuple[str, ...]] = {
     ),
     "Receptor Library...": ("pdb", "protein", "target", "docking"),
     "Run Calculators by Goal...": ("wizard", "guided", "recommended", "charge", "solubility", "shape", "drug-likeness"),
+    # NOT "orca", "geometry" or "optimization": words of the label, which the palette finds directly.
+    "ORCA Geometry Optimization...": ("optimize", "optimise", "relax", "minimize", "quantum", "conformer"),
     "Periodic Table...": ("element", "isotope", "atomic number", "electron configuration"),
     # NOT "quark" or "hadron": both are words of the label, so the palette
     # finds them directly and a keyword would only pad the map.
@@ -496,6 +511,11 @@ class MainWindow(QMainWindow):
             # The answers kept in the project (Tools > Lewis Acid-Base Pairing > Keep) are read in Results, under each
             # molecule that took part, and read stale when the project has moved on from them.
             self._property_panel.attach_recipe_answers(services.recipe_service.answers_for)
+        if services.score_service is not None:
+            # The scores a person defined are read in Results beside everything else, evaluated against the molecule's current results each time.
+            self._property_panel.attach_score_answers(services.score_service.answers_for)
+            # And the Presets menu can tick what they read, so a project run gives each of them a column.
+            self._property_panel.attach_score_definitions(self._score_definitions)
         self._console_panel = ConsolePanel(self)
         self._docking_panel = DockingPanel(
             services.docking_service, services.chemistry_engine, self._settings, services.event_bus, self
@@ -550,6 +570,7 @@ class MainWindow(QMainWindow):
         self._property_panel.goal_wizard_requested.connect(self._on_goal_wizard_action)
         # THE LEWIS PAIRING WINDOW: one, built when first asked for and raised after that.
         self._lewis_pairing: LewisPairingDialog | None = None
+        self._score_dialog: ScoreDialog | None = None
         self._property_panel.workflow_tab_requested.connect(self._on_workflow_tab_requested)
         self._interactions_panel = InteractionsPanel(
             services.chemistry_engine, services.event_bus, self
@@ -634,6 +655,10 @@ class MainWindow(QMainWindow):
         self._editor.atom_number_status.connect(self._on_atom_number_status)
         # The way back from the 3D viewer -- see `_adopt_conformer`.
         self._viewer3d.conformer_adopted.connect(self._adopt_conformer)
+        # The way to ORCA from the conformers -- see `_on_orca_optimize_requested`.
+        self._viewer3d.orca_optimize_requested.connect(self._on_orca_optimize_requested)
+        # What "also ORCA-optimize the lowest-energy conformer" would run with, asked when the Generate window opens.
+        self._viewer3d.set_orca_offer_provider(self._orca_generation_offer)
         self._jobs_panel = JobsPanel(services.job_manager, self)
         self._structure_check_panel = StructureCheckPanel(
             services.structure_check_service,
@@ -663,6 +688,8 @@ class MainWindow(QMainWindow):
             # So a batch selection is not reassembled from 91 check boxes
             # every launch. IDS are stored, never tree positions.
             settings=settings,
+            # The same lookup the Results dock's project table gets, so a score is a column of this table too.
+            score_definitions=self._score_definitions,
         )
 
         # Connected after the panels exist, since the handler reads them.
@@ -776,6 +803,7 @@ class MainWindow(QMainWindow):
             on_analyse=self._show_batch_analysis,
             on_screen=self._show_virtual_screening,
             batch_service=services.batch_service,
+            score_definitions=self._score_definitions,
         )
         self._property_panel.project_run_started.connect(self._on_project_run_started)
         self._results_host = PopOutHost(
@@ -914,6 +942,10 @@ class MainWindow(QMainWindow):
         # describe: a run finishing, a structure edited, a geometry added.
         services.event_bus.subscribe(QuantumChemistryRunCompleted, self._refresh_lewis_pairing)
         services.event_bus.subscribe(QuantumChemistryRunDeleted, self._refresh_lewis_pairing)
+        # A definition is never also a result, so nothing else would tell the session it has something unsaved.
+        services.event_bus.subscribe(ScoreDefinitionsChanged, self._on_score_definitions_changed)
+        for event_type in (MoleculeSelected, MoleculeChanged, ResultRecorded):
+            services.event_bus.subscribe(event_type, self._refresh_scores_preview)
         services.event_bus.subscribe(MoleculeChanged, self._refresh_lewis_pairing)
         services.event_bus.subscribe(ConformersChanged, self._refresh_lewis_pairing)
         services.event_bus.subscribe(PluginLoaded, self._on_plugins_state_changed)
@@ -2424,6 +2456,17 @@ class MainWindow(QMainWindow):
             "lewis_pairing",
         )
         self._document(
+            tools_menu.addAction("Derived Scores...", self._on_scores_action),
+            "derived_scores",
+        )
+        # The same door as the 3D viewer's "ORCA optimize" button, from the menu: an ORCA optimization used to be
+        # reachable from the Quantum Chemistry panel alone, which is the kind of one-place-only option that goes
+        # unfound. It sets the panel up and starts nothing.
+        self._document(
+            tools_menu.addAction("ORCA Geometry Optimization...", self._on_orca_optimize_action),
+            "orca_optimize",
+        )
+        self._document(
             tools_menu.addAction("Periodic Table...", self._show_periodic_table),
             "periodic_table",
         )
@@ -2946,6 +2989,7 @@ class MainWindow(QMainWindow):
         results: SessionResultStore | None = None,
         qc_runs: QuantumChemistryRunStore | None = None,
         recipe_runs: RecipeRunStore | None = None,
+        derived_scores: ScoreDefinitionStore | None = None,
     ) -> None:
         # THE UNDO STACK BELONGS TO THE DOCUMENT, and every command holds a
         # direct reference to the project it was built against. Without
@@ -2961,6 +3005,9 @@ class MainWindow(QMainWindow):
         # molecule, and that selection has to find this project's results.
         if self._services.result_store_service is not None:
             self._services.result_store_service.set_project(project, results, qc_runs, recipe_runs)
+        # The score definitions are swapped on the same call, for the same reason.
+        if self._services.score_service is not None:
+            self._services.score_service.set_project(project, derived_scores)
         self._project_explorer.set_project(project)
         self._docking_panel.set_project(project)
         self._quantum_chemistry_panel.set_project(project)
@@ -2983,6 +3030,7 @@ class MainWindow(QMainWindow):
         # "you have unsaved changes" the moment they open the next one.
         if self._lewis_pairing is not None:
             self._lewis_pairing.refresh()
+        self._refresh_scores_dialog()
         self._session.mark_clean()
 
     def _open_project(self) -> None:
@@ -3001,7 +3049,8 @@ class MainWindow(QMainWindow):
         self._undo_stack.push(command)
         if command.loaded_project is not None:
             self._set_project(
-                command.loaded_project, command.loaded_results, command.loaded_qc_runs, command.loaded_recipe_runs
+                command.loaded_project, command.loaded_results, command.loaded_qc_runs, command.loaded_recipe_runs,
+                command.loaded_derived_scores,
             )
 
     def _save_project(self) -> bool:
@@ -3039,7 +3088,7 @@ class MainWindow(QMainWindow):
         results, fingerprints, qc_runs, recipe_runs = self._current_results()
         command = SaveProjectCommand(
             self._services.project_service, self._session.project, path, results, fingerprints, qc_runs,
-            recipe_runs,
+            recipe_runs, self._current_scores(),
         )
         self._undo_stack.push(command)
         self._session.mark_clean()
@@ -3105,6 +3154,7 @@ class MainWindow(QMainWindow):
                 source_path=getattr(self, "_project_path", ""),
                 qc_runs=qc_runs,
                 recipe_runs=recipe_runs,
+                derived_scores=self._current_scores(),
             )
         except Exception:  # noqa: BLE001 - a recovery copy must never interrupt work
             logger.exception("Could not write a recovery copy of %s", project.uuid)
@@ -3148,7 +3198,9 @@ class MainWindow(QMainWindow):
             service.discard(newest)
             return False
         document = service.load(newest)
-        self._set_project(document.project, document.results, document.qc_runs, document.recipe_runs)
+        self._set_project(
+            document.project, document.results, document.qc_runs, document.recipe_runs, document.derived_scores
+        )
         self._project_path = newest.source_path
         # Recovered work is unsaved by definition; keep the copy until it is.
         self._session.mark_dirty()
@@ -3898,7 +3950,7 @@ class MainWindow(QMainWindow):
             # One reader rebuild for the whole replay, not one per stored result: 50
             # calculators on two molecules cost 398 rebuilds and 2-4 s a switch.
             with self._property_panel.batched_reader_refresh():
-                store_service.replay(
+                replayed = store_service.replay(
                     molecule,
                     self._services.structure_check_service.current_version(molecule.uuid),
                 )
@@ -3909,6 +3961,14 @@ class MainWindow(QMainWindow):
         providers = missing - {SUBSTANCE_PART}
         if providers:
             self._services.descriptor_service.request_descriptors(molecule, only_providers=providers)
+        # **A COMPLETE RESTORE IS NOT AN ANSWER FOR THE SHAPE DESCRIPTORS.** The manifest is keyed on
+        # the drawing, whose answer for them is "Needs a 3D conformer", so a molecule that already
+        # holds a conformer (an older project, another build's set, an import) would show all ten
+        # FAILED until its conformers next changed -- the only place a geometry request was made.
+        # A provider re-run above already carried its own geometry run.
+        self._services.descriptor_service.request_missing_geometric_descriptors(
+            molecule, replayed, skip_providers=providers
+        )
 
     def _on_result_retained(self, molecule_uuid: str) -> None:
         self._session.mark_dirty()
@@ -3926,6 +3986,82 @@ class MainWindow(QMainWindow):
             store_service.qc_runs,
             store_service.recipe_runs,
         )
+
+    def _current_scores(self) -> ScoreDefinitionStore | None:
+        """The project's score definitions as a save writes them, or None without a score service."""
+        service = self._services.score_service
+        return service.store if service is not None else None
+
+    def _score_definitions(self):
+        """The project's score definitions as they are now, for the project table's score columns."""
+        service = self._services.score_service
+        return service.store.definitions() if service is not None else ()
+
+    def _on_score_definitions_changed(self, _event) -> None:
+        self._session.mark_dirty()
+        self._refresh_scores_dialog()
+
+    # --- the Derived Scores window ------------------------------------------------------------------
+
+    def _on_scores_action(self, _checked: bool = False) -> None:
+        self.show_scores()
+
+    def show_scores(self, *, activate: bool = True) -> ScoreDialog:
+        """Open the Derived Scores window, or raise the one that is open. There is never a second.
+
+        `activate=False` is for a driven run (`OPENCHEM_DRIVE`): it shows the window without taking the keyboard from whatever the person is typing in. A person who asked for the window
+        wants it in front and focused, so that is the default; a script that opens it on a timer must not, because the keys that person types next land in its Name field
+        (measured: 2 of 15 driven saves ended with a stray letter in the label and an "unsaved" form, which is also the cause of the one unexplained `score_dialog.json` failure).
+        """
+        if self._score_dialog is None:
+            self._score_dialog = ScoreDialog(self._score_host(), self)
+            if not activate:
+                self._score_dialog.setAttribute(Qt.WidgetAttribute.WA_ShowWithoutActivating)
+        else:
+            self._score_dialog.refresh()
+        self._score_dialog.show()
+        if activate:
+            self._score_dialog.raise_()
+            self._score_dialog.activateWindow()
+        return self._score_dialog
+
+    def _score_host(self) -> ScoreHost:
+        service = self._services.score_service
+
+        def molecule() -> tuple[str, str] | None:
+            uuid = self._property_panel.selected_molecule_uuid()
+            project = self._session.project
+            found = project.find_molecule(uuid) if project is not None and uuid else None
+            return (found.display_name, found.uuid) if found is not None else None
+
+        def preview(definition, uuid):
+            project = self._session.project
+            found = project.find_molecule(uuid) if project is not None else None
+            return service.preview(definition, found) if found is not None else None
+
+        return ScoreHost(
+            has_project=lambda: self._session.project is not None and service.project is not None,
+            scores=lambda: service.store.definitions(),
+            kept=lambda: service.store.kept(),
+            reserved_names=service.reserved_names,
+            molecule=molecule,
+            preview=preview,
+            create=service.create,
+            update=service.update,
+            remove=service.remove,
+        )
+
+    def _refresh_scores_dialog(self, _event=None) -> None:
+        """Re-read the open Derived Scores window: the project's scores changed, or another project is open. Cheap, and never opens one."""
+        dialog = self._score_dialog
+        if dialog is not None and not dialog.isHidden():
+            dialog.refresh()
+
+    def _refresh_scores_preview(self, _event=None) -> None:
+        """The selected molecule or its results changed: the open window's preview reads them again, and nothing else of it moves."""
+        dialog = self._score_dialog
+        if dialog is not None and not dialog.isHidden():
+            dialog.refresh_preview()
 
     # --- structure checking ----------------------------------------------------
 
@@ -4894,8 +5030,58 @@ class MainWindow(QMainWindow):
         molecule = self._current_molecule()
         if molecule is None or molecule.uuid != event.molecule_uuid:
             return
-        command = SetConformersCommand(molecule, event.conformers, self._services.event_bus)
+        # The ORCA-optimized conformers already on the molecule are carried over unless the user turned that
+        # off in Settings > Conformers: an optimization is the expensive thing in the list.
+        conformers = with_kept_quantum_optimized(
+            event.conformers, molecule.conformers, bool(self._settings.preference(CONFORMER_KEEP_OPTIMIZED))
+        )
+        command = SetConformersCommand(
+            molecule, conformers, self._services.event_bus, kept=len(conformers) - len(event.conformers)
+        )
         self._undo_stack.push(command)
+        if event.optimize_lowest:
+            self._optimize_lowest_generated(molecule, event.conformers)
+
+    def _orca_generation_offer(self, molecule) -> OrcaGenerationOffer:
+        """What the Generate Conformers window can promise about the optional ORCA step for `molecule`."""
+        if molecule is None:
+            return OrcaGenerationOffer(False, "Select a molecule first.")
+        if self._services.quantum_chemistry_service.orca_executable() is None:
+            return OrcaGenerationOffer(
+                False, "ORCA is not set up. Choose its executable in Settings > External Tools to enable this."
+            )
+        ok, text = self._quantum_chemistry_panel.optimization_offer(molecule)
+        return OrcaGenerationOffer(ok, text)
+
+    def _optimize_lowest_generated(self, molecule: MoleculeModel, generated: list) -> None:
+        """The Generate Conformers window's "also ORCA-optimize the lowest-energy conformer", once the set is in.
+
+        **LOWEST OF THE CONFORMERS JUST GENERATED**, by force-field energy: the ORCA geometries the molecule keeps
+        from an earlier run have no force-field energy to compare, and `canonical_conformer` (which prefers them)
+        is exactly the wrong question here. The run is the Quantum Chemistry panel's own Run on that conformer, so
+        its slot is recorded and the optimized geometry replaces it where it stands. **Whatever stops it is said in
+        the status bar**: the conformers are installed either way, and a person who ticked the box and sees no job
+        has to be told why.
+        """
+        ranked = [(c.energy, index) for index, c in enumerate(generated) if c.energy is not None]
+        if not ranked:
+            self.statusBar().showMessage(
+                "Conformers generated. None of them has an energy, so there is no lowest one to ORCA-optimize.", 12000
+            )
+            return
+        lowest = generated[min(ranked)[1]]
+        reason = self._quantum_chemistry_panel.start_optimization(molecule.uuid, lowest.conformer_id)
+        if reason:
+            self.statusBar().showMessage(
+                f"Conformers generated. The lowest-energy one was not ORCA-optimized: {reason}", 15000
+            )
+            return
+        slot = next(i for i, c in enumerate(molecule.conformers) if c.conformer_id == lowest.conformer_id) + 1
+        self.statusBar().showMessage(
+            f"Conformers generated. ORCA is optimizing conformer {slot} of {len(molecule.conformers)}, the "
+            "lowest in energy; follow or cancel it in the Jobs panel.",
+            15000,
+        )
 
     def _on_conformers_changed(self, event: ConformersChanged) -> None:
         # Fires after SetConformersCommand/AddConformerCommand redo AND
@@ -4921,6 +5107,24 @@ class MainWindow(QMainWindow):
         self._publish_molecule_snapshot(molecule)
 
     def _on_quantum_chemistry_result_ready(self, event: QuantumChemistryResultReady) -> None:
+        molecule = self._session.project.find_molecule(event.molecule_uuid) if self._session.project else None
+        if molecule is None:
+            return
+        # **THE STRUCTURE GATE, BEFORE ANYTHING IS INSTALLED OR SHOWN.** Nothing cancels an ORCA job when its
+        # molecule is edited, so it can land on a structure it was not run on: its geometry would be appended
+        # to the edited molecule and its numbers shown as that molecule's (`DescriptorComputed` with no
+        # version means "the current one"). The submitted canonical SMILES against the current one decides,
+        # and it does NOT ask whether conformers existed or whether `ConformersInvalidated` fired: that event
+        # is only published when there are conformers to clear, so a molecule that held none (the generation
+        # undone, then the structure edited) never raises it. Fails closed: an empty identity is withheld.
+        # The job's own run history and fingerprinted results are already recorded and stay as they are.
+        if not same_structure(event.structure_identity, molecule.canonical_smiles):
+            self.statusBar().showMessage(
+                "The structure was edited while the ORCA job ran, so its geometry and numbers were not "
+                "applied to the current structure. The finished run is still in the job history.",
+                15000,
+            )
+            return
         # Descriptors reuse the EXISTING DescriptorComputed mechanism
         # (PropertyPanel already displays these) rather than inventing a
         # separate quantum-chemistry-specific display path -- descriptors
@@ -4932,18 +5136,23 @@ class MainWindow(QMainWindow):
 
         if event.conformer is None:
             return
-        molecule = self._session.project.find_molecule(event.molecule_uuid) if self._session.project else None
-        if molecule is None:
-            return
-        # AddConformerCommand, not SetConformersCommand -- an ORCA-optimized
-        # geometry is added alongside whatever conformers already exist,
-        # never wiping them out. It then becomes the geometry every later
-        # calculation uses (`canonical_conformer`), so it first takes the
-        # drawing-atom map of the conformer it was optimized from.
+        # An ORCA-optimized geometry takes the SLOT of the conformer it was optimized from, so 7 of 20 stays
+        # 7 of 20 and the viewer lands on it (`ConformersChanged.show_conformer_id`). It then becomes the
+        # geometry every later calculation uses (`canonical_conformer`), so it first takes the drawing-atom
+        # map of that source.
+        located = find_source_conformer(molecule.conformers, event.input_fingerprint)
         conformer = with_source_atom_map(
             event.conformer, molecule.conformers, event.input_fingerprint, self._services.chemistry_engine
         )
-        command = AddConformerCommand(molecule, conformer, self._services.event_bus)
+        if located is None:
+            # No single source to take the place of (a Boltzmann run's lowest conformer), or the conformers
+            # were regenerated while the job ran with the structure unchanged: the geometry is still the
+            # user's, so it is added, and shown, rather than dropped.
+            command = AddConformerCommand(molecule, conformer, self._services.event_bus, show=True)
+        else:
+            _slot, source = located
+            conformer = with_optimization_origin(conformer, source.conformer_id, event.source_slot)
+            command = ReplaceConformerCommand(molecule, source, conformer, self._services.event_bus)
         self._undo_stack.push(command)
 
     def _on_docking_result_ready(self, event: DockingResultReady) -> None:
@@ -5259,6 +5468,41 @@ class MainWindow(QMainWindow):
 
     def _show_settings(self) -> None:
         self.show_settings()
+
+    def _on_orca_optimize_requested(self, molecule_uuid: str, conformer_id: str) -> None:
+        """Open the Quantum Chemistry panel set up to optimize ONE conformer, and stop.
+
+        The 3D viewer's "ORCA optimize" button and Tools > ORCA Geometry Optimization... both land here. The
+        panel's own Conformer box holds the choice and Run is still the person's: it takes a charge, a
+        multiplicity and a method, and an optimization can run for hours.
+        """
+        self._on_panel_chosen("Quantum_Chemistry")
+        if self._quantum_chemistry_panel.prepare_optimization(molecule_uuid, conformer_id):
+            self.statusBar().showMessage(
+                "Quantum Chemistry is set up to optimize that conformer. Check the method and basis, then press Run.",
+                10000,
+            )
+        else:
+            self.statusBar().showMessage(
+                "That conformer is no longer there (the conformers changed), so nothing was set up.", 8000
+            )
+
+    def _on_orca_optimize_action(self) -> None:
+        """Tools > ORCA Geometry Optimization...: the conformer the 3D viewer shows, or the one every calculation uses.
+
+        With nothing to optimize it SAYS so rather than doing nothing: a menu entry that is silently inert reads as
+        broken, and the way to get a conformer is one menu away.
+        """
+        molecule = self._current_molecule()
+        if molecule is None or not molecule.conformers:
+            self.statusBar().showMessage(
+                "ORCA optimizes a conformer: generate some first (Structure > Generate Conformers...).", 8000
+            )
+            return
+        conformer_id = self._viewer3d.conformer_id_on_screen(molecule)
+        if conformer_id is None:
+            conformer_id = canonical_conformer(molecule).conformer_id
+        self._on_orca_optimize_requested(molecule.uuid, conformer_id)
 
     def _on_service_panel_requested(self, panel_id: str, calculator_id: str) -> None:
         """Show the panel a Properties row stands for, with its calculation chosen.

@@ -1,0 +1,35 @@
+[
+  {"do": "smiles", "smiles": "CC(=O)Oc1ccccc1C(=O)O", "name": "Aspirin", "after_ms": 800},
+  {"do": "select", "molecule": -1, "after_ms": 3000},
+  {"do": "panel", "id": "Properties", "after_ms": 500},
+  {"do": "descriptors_report", "tag": "aspirin-drawing-only",
+   "values": {"sa_score": 1.58, "bertz_ct": 343.22, "labute_asa": 74.76, "num_hba": 3},
+   "equals_drawing": true, "alerts_equal_drawing": true},
+  {"do": "conformers", "count": 3, "after_ms": 9000},
+  {"do": "report", "tag": "aspirin-with-conformers"},
+  {"do": "descriptors_report", "tag": "aspirin-after-conformer",
+   "values": {"sa_score": 1.58, "bertz_ct": 343.22, "labute_asa": 74.76, "num_hba": 3},
+   "geometric_values": {"pmi1": null, "pbf": null, "radius_of_gyration": null},
+   "equals_drawing": true, "alerts_equal_drawing": true},
+  {"do": "shot", "path": "benchmarks/visual/artifacts/descriptors_survive_a_conformer.png"},
+
+  {"do": "project_run", "calculators": ["polar_surface_area"], "scope": "chosen", "chosen": [1], "descriptors": true,
+   "descriptor_ids": ["sa_score", "bertz_ct", "num_hba", "labute_asa", "pmi1"], "alert_ids": ["brenk"],
+   "after_ms": 7000},
+  {"do": "expect_project_table", "tag": "aspirin-project-table", "showing": true, "rows": 1,
+   "columns_contain": ["Synthetic Accessibility", "Principal Moment of Inertia 1", "Polar"],
+   "cells": {"Aspirin": {"Synthetic Accessibility": 1.58, "Molecular Complexity": 343.22,
+                         "H-Bond Acceptors": 3, "Approx. Surface Area": 74.76,
+                         "Principal Moment of Inertia 1": "number"}}},
+
+  {"do": "smiles", "smiles": "CCCCCCCCCCCCOCCOCCOCCOCCOCCO", "name": "C12E6", "after_ms": 800},
+  {"do": "select", "molecule": -1, "after_ms": 3000},
+  {"do": "descriptors_report", "tag": "c12e6-drawing-only", "equals_drawing": true, "alerts_equal_drawing": true},
+  {"do": "conformers", "count": 2, "after_ms": 15000},
+  {"do": "descriptors_report", "tag": "c12e6-after-conformer",
+   "geometric_values": {"pmi1": null, "pbf": null},
+   "equals_drawing": true, "alerts_equal_drawing": true},
+
+  {"do": "expect_clean"},
+  {"do": "quit"}
+]

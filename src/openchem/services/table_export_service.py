@@ -167,6 +167,8 @@ class TableExportService:
                 lines.append(f"- Method: {', '.join(methods)}")
             if column.prediction_basis:
                 lines.append(f"- Basis: **{column.prediction_basis.replace('_', ' ')}**")
+            if column.note:
+                lines.append(f"- Note: {column.note}")
             parameters = _parameters_of(present)
             if parameters:
                 lines.append(f"- Parameters: {parameters}")

@@ -128,6 +128,9 @@ The honest version of a comparison table: this one is about our own software.
 | Continuous integration | the suite and the naming, regulatory and ruleset checks gate every PR on Windows. Six benchmarks stay hand-run because they need ORCA, Vina or a multi-hundred-MB sidecar that no hosted runner can install |
 | Regulatory screening | an intelligence report, NEVER a compliance determination. Ships 4 rulesets across 2 domains (CWC Schedules 1–3, DEA listed chemicals — 91 rules); the other 12 domains register empty and say so, and a screen can be dated to ask what applied then. One rule knowingly over-broad at precision 0.50, [benchmarks/regulatory/](benchmarks/regulatory/) |
 | Solubility | ESOL baseline (~1.3 log RMSE), pH curve, and a bounded BCS screen that answers PASS/FAIL only when both bounds agree. Non-aqueous solubility for 91 solvents is a **lookup** on both sides — a compound nobody measured is refused by name. The non-aqueous shift cannot be validated (its coefficients were fitted to that endpoint); what is scored is the composite, MAE 0.68 against ESOL's own 0.61 on the same compounds, [benchmarks/solubility/](benchmarks/solubility/) |
+| Derived scores: a formula of your own over the application's numbers, as a sortable column of the project table | always labelled *user-defined, unvalidated* and never a prediction; units are checked and never converted; two estimates of one quantity cannot be combined; it reads results that already exist and starts no calculation; today it reads the drawing's numbers only. [docs/WHATS_NEW.md](docs/WHATS_NEW.md) |
+| AI Assistant that reads the stored results and runs the quick calculators itself | needs a provider that can use tools (Anthropic or OpenAI-compatible, not the Claude CLI); anything slow, large or unclassified waits for your **Approve**; ORCA and Vina jobs are described and started from their own panels. Checked with a scripted provider in the real window: the live run on a real provider has not been done, [docs/AI_CALCULATION_BRIDGE.md](docs/AI_CALCULATION_BRIDGE.md) |
+| Lewis acid-base pairing from stored ORCA runs | reproduces the documented BH₃/CO and BF₃/CO numbers within 0.01 eV at B3LYP/def2-SVP on ORCA 6.1.1 (preregistered gate, [benchmarks/lewis_gate/](benchmarks/lewis_gate/)); no other method, solvent or molecule is covered, and the three lines of evidence are never combined into one score |
 
 | Does not | Why |
 |---|---|
@@ -135,6 +138,8 @@ The honest version of a comparison table: this one is about our own software.
 | Solvent-dependent pKa | needs a QM/COSMO-RS-scale undertaking |
 | Missing-residue repair | measured and rejected — unsafe near a binding site |
 | macOS / Linux packaging | untested; source install may work, unverified |
+| Derived scores over other 3D numbers (force-field energies, the smallest radius from the centroid, Bird's index, per-ring HOMA values, torsions, the dipole's components and other charge models, ASA+ and ASA-) | not offered: the ten shape descriptors, eight of Geometry Analysis's sizes, HOMA's highest and lowest ring value, the Gasteiger dipole's magnitude and five surface numbers are, read from the conformer every calculation uses (a salt has none of the sizes, the dipole or the surface numbers; HOMA only from an ORCA-optimised geometry; the dipole only of a neutral species; the accessible areas only at the default probe on the structure as it is) |
+| The assistant starting an ORCA or Vina job | it describes the job and a person starts it from its panel |
 | Crystal structure prediction — a lattice from a drawing or a SMILES | an open research problem, not a missing menu item: real polymorphs sit under 1 kJ/mol apart, below the error of the methods ranking them. A crystal enters only as a measured structure |
 
 ## Why this is built differently
@@ -205,7 +210,8 @@ Everything lives in [`docs/`](docs/):
 [Scientific Limitations](docs/SCIENTIFIC_LIMITATIONS.md) ·
 [Architecture](docs/ARCHITECTURE.md) ·
 [Roadmap](docs/ROADMAP.md) ·
-[Plugin SDK](docs/PLUGIN_SDK.md)
+[Plugin SDK](docs/PLUGIN_SDK.md) ·
+[What's new](docs/WHATS_NEW.md)
 
 Contributions are welcome — see [CONTRIBUTING.md](CONTRIBUTING.md). It is
 worth reading first, because this project has an unusual bar: a new claim

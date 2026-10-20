@@ -216,6 +216,7 @@ class ExternalToolsPages(QWidget):
         # They go through the same path as everything else now.
         self._add_executable_tab(catalog.vina(), _VinaTab)
         self._add_executable_tab(catalog.orca(), ManagedExecutableTab)
+        self._add_executable_tab(catalog.psi4(), ManagedExecutableTab)
         self._add_sidecar_tab(catalog.pkasolver(), InterpreterSidecarTab)
         # Grouped with pkasolver rather than with the executables above:
         # both are "a Python interpreter, not an executable", and making
@@ -293,6 +294,7 @@ class ExternalToolsPages(QWidget):
         "nmr_index": "_nmr_db",
         "vina": "_vina",
         "orca": "_orca",
+        "psi4": "_psi4",
         "knowledge_vista": "_knowledge_vista",
     }
 

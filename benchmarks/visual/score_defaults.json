@@ -1,0 +1,66 @@
+[
+  {"do": "smiles", "smiles": "CC(=O)Oc1ccccc1C(=O)O", "name": "Aspirin", "after_ms": 1000},
+  {"do": "smiles", "smiles": "CCO", "name": "Ethanol", "after_ms": 1000},
+  {"do": "select", "molecule": 1, "after_ms": 4000},
+
+  {"do": "score_dialog", "new": true,
+   "fill": {"label": "Blend with a default", "formula": "ramp(psa, 140, 60) * ramp(ob, -100, 0)", "result_unit": "1",
+            "inputs": [["psa", "descriptor:tpsa"], ["ob", "calculator:oxygen_balance:Oxygen balance (CO basis)", "-50"]]},
+   "tag": "a-default-typed-in-the-real-input-row-previews-and-says-it-was-used", "after_ms": 800,
+   "expect": {"ok": true, "preview_contains": ["For Aspirin: 0.4775 (a default was used for ob: not calculated)"]}},
+  {"do": "shot", "path": "artifacts/visual/score_defaults_dialog.png", "widget": "scores", "after_ms": 500},
+  {"do": "score_dialog", "press": "save", "tag": "saving-stores-the-score-with-its-default", "after_ms": 800, "expect": {"ok": true, "dirty": false, "stored": 1}},
+
+  {"do": "score_results", "focus": true, "which": "Blend with a default", "tag": "results-say-a-default-stood-in-and-for-which-input", "after_ms": 800,
+   "expect": {"entries": 1, "has_value": true, "value_between": [0.47, 0.48], "stored_as_results": 0, "defaulted": ["ob"],
+              "facts_contain": ["(default used for ob)"],
+              "evidence_contains": ["A default stood in for an input nobody calculated for this molecule (ob)", "ob = -50", "A DEFAULT of this definition", "psa = 63.6"]}},
+  {"do": "shot", "path": "artifacts/visual/score_defaults_results.png", "widget": "results_reader", "after_ms": 500},
+
+  {"do": "score_define", "label": "Only a default", "formula": "ob", "result_unit": "%", "inputs": [["ob", "calculator:oxygen_balance:Oxygen balance (CO basis)"]],
+   "defaults": [["ob", -50]], "tag": "a-score-made-of-nothing-but-a-default", "after_ms": 800, "expect": {"made": true}},
+  {"do": "score_results", "which": "Only a default", "tag": "worked-out-from-a-default-alone-it-is-refused", "after_ms": 500,
+   "expect": {"entries": 2, "has_value": false, "reason_contains": ["defaults alone", "ob (calculator:oxygen_balance:Oxygen balance (CO basis))"], "defaulted": []}},
+
+  {"do": "ai_send", "text": "What do my scores say about this molecule?",
+   "script": [
+     {"tool": "read_scores", "input": {}},
+     {"text": "One uses a default for the oxygen balance and the other has no value."}
+   ], "after_ms": 3000},
+  {"do": "ai_expect", "tag": "the-assistant-is-told-a-default-was-used-and-never-that-it-was-computed",
+   "expect": {"tools_offered": ["read_scores"],
+              "tool_results_contain": [
+                "\"outcome\": \"computed_with_defaults\"", "\"defaults_used\": [\"ob\"]", "\"state\": \"default\"", "\"declared_defaults\": [{\"input\": \"ob\", \"value\": -50.0}]",
+                "A default stood in for an input nobody calculated for this molecule (ob)", "worked out from defaults alone", "\"inputs_defaulted\": [\"ob\"]"],
+              "ledger_rows": 0, "pending": 0, "notes": 0, "send_enabled": true}},
+
+  {"do": "project_run", "calculators": ["elemental_analysis"], "scope": "all", "descriptors": true, "descriptor_ids": ["tpsa"], "after_ms": 9000},
+  {"do": "expect_project_table", "rows": 3, "showing": true, "tag": "the-table-gave-the-score-a-column-though-the-run-never-computed-the-oxygen-balance",
+   "columns_contain": ["Blend with a default (user-defined, unvalidated)"],
+   "cells": {"Aspirin": {"Blend with a default": 0.4775}, "Ethanol": {"Blend with a default": 0.5}}},
+  {"do": "table_scores", "tag": "the-grid-the-hover-and-the-csv-all-say-which-input-was-given-a-default", "export_csv": "artifacts/visual/score_defaults.csv",
+   "expect": {"columns": ["Blend with a default (user-defined, unvalidated)", "Blend with a default (user-defined, unvalidated): inputs given a default"],
+              "note": "~Only a default (user-defined, unvalidated) reads Oxygen balance (CO basis)",
+              "grid": {"Aspirin": {"Blend with a default (user-defined, unvalidated)": "0.4775*", "inputs given a default": "ob"}, "Ethanol": {"Blend with a default (user-defined, unvalidated)": "0.5*"}},
+              "tooltips": {"Aspirin": {"Blend with a default (user-defined, unvalidated)": ["ob = -50 % (a default; not computed in this run)", "psa = 63.6"]}},
+              "column_tooltips": {"Blend with a default (user-defined, unvalidated)": ["Defaults, used only for an input this run did not compute: ob = -50", "marked *"]},
+              "csv_header_contains": ["Blend with a default (user-defined, unvalidated)", "inputs given a default"],
+              "csv_cells": {"Aspirin": {"Blend with a default (user-defined, unvalidated)": 0.4775}},
+              "csv_text": {"Aspirin": {"inputs given a default": "ob"}, "Ethanol": {"inputs given a default": "ob"}}}},
+  {"do": "shot", "path": "artifacts/visual/score_defaults_table.png", "widget": "project_table", "after_ms": 500},
+
+  {"do": "calculator", "id": "oxygen_balance", "reveal": false, "after_ms": 4000},
+  {"do": "score_results", "focus": true, "which": "Blend with a default", "tag": "once-the-calculator-has-run-the-default-is-not-used", "after_ms": 800,
+   "expect": {"entries": 2, "has_value": true, "value_between": [0.18, 0.21], "defaulted": [], "evidence_contains": ["ob = -79.9"]}},
+  {"do": "ai_send", "text": "And now?",
+   "script": [
+     {"tool": "read_scores", "input": {"scores": ["Blend with a default"]}},
+     {"text": "It is computed from the calculated oxygen balance now."}
+   ], "after_ms": 3000},
+  {"do": "ai_expect", "tag": "the-assistant-is-told-it-is-computed-and-nothing-about-a-default-was-used",
+   "expect": {"tool_results_contain": ["\"outcome\": \"computed\"", "\"state\": \"read\"", "\"declared_defaults\""],
+              "tool_results_exclude": ["\"outcome\": \"computed_with_defaults\"", "\"defaults_used\"", "A default stood in"], "ledger_rows": 0, "send_enabled": true}},
+
+  {"do": "expect_clean"},
+  {"do": "quit"}
+]

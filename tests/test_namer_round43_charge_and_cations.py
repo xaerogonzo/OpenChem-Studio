@@ -118,9 +118,14 @@ def test_a_pyrrolinium_has_no_hantzsch_widman_spelling():
         # Round 45 (D-234) names a zwitterion beside ONE other acid (see test_namer_round45_*); what is still refused is a quaternary carbon carrying both acids,
         # where the neutral acid cannot be masked and a count still cannot say which carboxy is the carboxylate.
         # Round 49 (D-245) names the quaternary carbon with TWO acids; what is still refused is a carboxylate beside TWO neutral acids, where the masking has more than one acid to hide.
+        # Round 54 masks every neutral acid, so the carboxylate beside TWO of them is named (test_namer_round45_*); nothing is pinned as refused here any more.
         "NC(=[NH2+])C(C(=O)O)(C(=O)O)C(=O)[O-]",
     ],
 )
-def test_a_zwitterion_that_cannot_say_which_acid_is_the_carboxylate_is_refused(smiles):
-    with pytest.raises(ValueError):
-        name_smiles(smiles)
+def test_a_zwitterion_that_cannot_say_which_acid_is_the_carboxylate_is_not_named_without_a_carboxylato(smiles):
+    """What this guarded: a name that cannot say which acid is the carboxylate. Whatever is returned must carry exactly one `carboxylato`."""
+    try:
+        name = name_smiles(smiles)
+    except ValueError:
+        return
+    assert name.count("carboxylato") == 1, name

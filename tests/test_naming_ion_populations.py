@@ -115,29 +115,155 @@ def test_the_names_only_run_works_on_a_small_sample_without_opsin():
     assert [r["verdict"] for r in results] == ["ok"] and results[0]["name"] == "acetate"
 
 
-# Round 51: five site patterns the first populations never tried.
+# Rounds 51 and 52: site patterns the first populations never tried. A molecule can match several kinds (an acethydrazide is a hydrazide AND an acyclic amide), so each test asks for one kind.
+def _of_kind(mode: str, smiles: str, kind: str) -> list[str]:
+    return [c.smiles for c in pop.generate(mode, [{"label": "m", "smiles": smiles}]) if c.kind == kind]
+
+
 def test_a_lactam_nitrogen_loses_its_proton_but_an_open_amide_does_not_count_as_one():
-    assert _smiles("anion", "O=C1CCCN1") == [_canon("O=C1CCC[N-]1")]
-    assert [c.kind for c in pop.generate("anion", [{"label": "a", "smiles": "CC(=O)NC"}])] == []
+    assert _of_kind("anion", "O=C1CCCN1", "lactam") == [_canon("O=C1CCC[N-]1")]
+    assert _of_kind("anion", "CC(=O)NC", "lactam") == []
 
 
 def test_a_hydrazide_nitrogen_loses_its_proton():
-    assert _smiles("anion", "CC(=O)NN") == [_canon("CC(=O)[N-]N")]
+    assert _of_kind("anion", "CC(=O)NN", "hydrazide") == [_canon("CC(=O)[N-]N")]
 
 
 def test_an_azole_nh_loses_its_proton():
-    assert _smiles("anion", "c1cc[nH]n1") == [_canon("c1cc[n-]n1")]
+    assert _of_kind("anion", "c1cc[nH]n1", "azole_nh") == [_canon("c1cc[n-]n1")]
 
 
 def test_a_hydroxamic_acid_loses_the_proton_of_its_oxygen():
-    assert _smiles("anion", "CC(=O)NO") == [_canon("CC(=O)N[O-]")]
+    assert _of_kind("anion", "CC(=O)NO", "hydroxamic") == [_canon("CC(=O)N[O-]")]
 
 
 def test_an_amide_oxygen_is_protonated_and_methylated():
-    assert _smiles("cation", "CC(=O)N") == [_canon("CC(N)=[OH+]")]
-    assert _smiles("quaternary", "CC(=O)N") == [_canon("CC(N)=[O+]C")]
+    assert _of_kind("cation", "CC(=O)N", "amide_o") == [_canon("CC(N)=[OH+]")]
+    assert _of_kind("quaternary", "CC(=O)N", "amide_o") == [_canon("CC(N)=[O+]C")]
 
 
 def test_a_ketone_oxygen_is_a_site_of_its_own_and_an_amide_oxygen_is_not_one_too():
     kinds = [(c.kind, c.smiles) for c in pop.generate("cation", [{"label": "k", "smiles": "CC(C)=O"}])]
     assert kinds == [("carbonyl_o", _canon("CC(C)=[OH+]"))]
+
+
+def test_round_52_anion_sites():
+    assert _of_kind("anion", "CC(=O)NC", "amide_acyclic") == [_canon("CC(=O)[N-]C")]
+    assert _of_kind("anion", "CNC(N)=O", "urea") == [_canon("C[N-]C(N)=O")]
+    assert _of_kind("anion", "CC(=S)NC", "thioamide") == [_canon("CC(=S)[N-]C")]
+    assert _of_kind("anion", "CC=NO", "oxime") == [_canon("CC=N[O-]")]
+    assert _of_kind("anion", "CP(=O)(O)C", "phosphonic") == [_canon("CP(=O)([O-])C")]
+    assert _of_kind("anion", "CS(=O)O", "sulfinic") == [_canon("CS(=O)[O-]")]
+
+
+def test_round_52_cation_sites():
+    assert _of_kind("cation", "CC(N)=S", "thiocarbonyl_s") == [_canon("CC(N)=[SH+]")]
+    assert _of_kind("cation", "CS(C)=O", "sulfoxide_o") == [_canon("CS(C)=[OH+]")]
+    assert _of_kind("cation", "CP(C)C", "phosphine_p") == [_canon("C[PH+](C)C")]
+    assert _of_kind("cation", "CC#N", "nitrile_n") == [_canon("CC#[NH+]")]
+
+
+def test_a_protonated_sulfoxide_and_its_sulfonium_drawing_are_one_ion():
+    """OPSIN reads `hydroxydi(methyl)sulfanium` as `O[S+](C)C`; the population draws `CS(C)=[OH+]`. InChI keeps them apart, the verdict must not (round 53)."""
+    assert pop.verdict("cation", "CS(C)=[OH+]", "hydroxydi(methyl)sulfanium", "O[S+](C)C") == "ok"
+    assert pop.verdict("cation", "CS(C)=[OH+]", "hydroxydi(methyl)sulfanium", "CS(C)=O") == "charge_changed"
+
+
+# Round 55: the multi-charge modes.
+def test_a_zwitterion_changes_an_acid_site_and_a_base_site_of_one_molecule():
+    rows = [{"label": "z", "smiles": "NCCC(=O)O"}]
+    ions = [(c.kind, c.smiles) for c in pop.generate("zwitterion", rows)]
+    assert ("carboxylic+amine_primary", _canon("[NH3+]CCC(=O)[O-]")) in ions
+
+
+def test_a_molecule_with_two_sites_of_a_kind_makes_no_pair_of_that_kind():
+    rows = [{"label": "d", "smiles": "OC(=O)CC(=O)O"}]
+    assert pop.generate("dianion", rows) == []
+
+
+def test_a_dianion_deprotonates_two_different_acid_sites():
+    rows = [{"label": "d", "smiles": "OC(=O)c1ccc(O)cc1"}]
+    assert [c.smiles for c in pop.generate("dianion", rows)] == [_canon("[O-]C(=O)c1ccc([O-])cc1")]
+
+
+def test_a_dication_protonates_two_different_base_sites():
+    rows = [{"label": "d", "smiles": "NCCc1ccncc1"}]
+    smiles = [c.smiles for c in pop.generate("dication", rows)]
+    assert _canon("[NH3+]CCc1cc[nH+]cc1") in smiles
+
+
+def test_the_two_sites_of_a_pair_are_different_atoms():
+    rows = [{"label": "s", "smiles": "CC(=O)O"}]
+    assert pop.generate("zwitterion", rows) == []
+
+
+def test_each_sulfonamidate_in_a_name_accounts_for_one_charge_opsin_does_not_read():
+    smiles = "Cc1ccc(S(=O)(=O)[N-]C)cc1.[Na+]"
+    assert pop.verdict("dianion", "O=C([O-])c1ccc(S(=O)(=O)[N-]C)cc1", "4-(methylsulfamoyl)benzoate-sulfonamidate", "O=C([O-])c1ccc(S(=O)(=O)NC)cc1") == "ok"
+    assert pop.verdict("dianion", "O=C([O-])c1ccc(S(=O)(=O)[N-]C)cc1", "4-(methylsulfamoyl)benzoate", "O=C([O-])c1ccc(S(=O)(=O)NC)cc1") == "charge_changed"
+
+
+# Round 57: a permanent cation (an N-methylated base) beside an acid or a protonated base.
+def test_a_betaine_methylates_a_base_and_deprotonates_an_acid_of_one_molecule():
+    rows = [{"label": "b", "smiles": "OC(=O)CCc1ccncc1"}]
+    ions = [(c.kind, c.smiles) for c in pop.generate("betaine", rows)]
+    assert ("carboxylic+aromatic_n", _canon("[O-]C(=O)CCc1cc[n+](C)cc1")) in ions
+
+
+def test_a_quaternary_dication_methylates_the_first_base_and_protonates_the_second():
+    rows = [{"label": "q", "smiles": "NCCc1ccncc1"}]
+    assert [c.smiles for c in pop.generate("quat_dication", rows)] == [_canon("C[NH2+]CCc1cc[nH+]cc1")]
+
+
+def test_the_new_modes_are_listed():
+    assert {"betaine", "quat_dication"} <= set(pop.MODES)
+
+
+# Round 58: carbon acids and a few more sites.
+def test_round_58_anion_sites():
+    assert _of_kind("anion", "CC(=O)CC(C)=O", "dicarbonyl_ch") == [_canon("CC(=O)[CH-]C(C)=O")]
+    assert _of_kind("anion", "N#CCC#N", "dinitrile_ch") == [_canon("N#C[CH-]C#N")]
+    assert _of_kind("anion", "CC(O)=CC", "enol") == [_canon("CC([O-])=CC")]
+    assert _of_kind("anion", "CNO", "hydroxylamine") == [_canon("C[NH][O-]")]
+    assert _of_kind("anion", "O=C1CCCS(=O)(=O)N1", "sultam") == [_canon("O=C1CCCS(=O)(=O)[N-]1")]
+    assert _of_kind("anion", "CNC(=O)OC", "carbamate") == [_canon("C[N-]C(=O)OC")]
+
+
+def test_a_carbon_acid_needs_both_acceptors():
+    assert _of_kind("anion", "CC(=O)CC", "dicarbonyl_ch") == []
+
+
+def test_a_thioether_sulfur_is_protonated_and_methylated():
+    assert _of_kind("cation", "CSC", "thioether_s") == [_canon("C[SH+]C")]
+    assert _of_kind("quaternary", "CSC", "thioether_s") == [_canon("C[S+](C)C")]
+
+
+# Round 59: heavier sites, three charges, and pairs that are one group drawn two ways.
+def test_round_59_sites():
+    assert _of_kind("anion", "C[SeH]", "selenol") == [_canon("C[Se-]")]
+    assert _of_kind("anion", "CB(O)O", "boronic") == []                         # two B-OH: not a single site
+    assert _of_kind("anion", "CP(=O)(C)O", "phosphinic") == [_canon("CP(=O)(C)[O-]")]
+    assert _of_kind("cation", "C[Se]C", "selenoether_se") == [_canon("C[SeH+]C")]
+    assert _of_kind("cation", "CP(C)(C)=O", "phosphine_oxide_o") == [_canon("CP(C)(C)=[OH+]")]
+
+
+def test_an_n_oxide_oxygen_is_protonated_but_a_nitro_group_is_not_an_n_oxide():
+    assert _of_kind("cation", "[O-][n+]1ccccc1", "n_oxide_o") == [_canon("O[n+]1ccccc1")]
+    assert _of_kind("cation", "O=[N+]([O-])c1ccccc1", "n_oxide_o") == []
+
+
+def test_an_n_oxide_oxygen_is_methylated_to_a_neutral_alkoxy_on_the_cationic_nitrogen():
+    assert _of_kind("quaternary", "[O-][n+]1ccccc1", "n_oxide_o") == [_canon("CO[n+]1ccccc1")]
+
+
+def test_three_charges_are_three_different_sites():
+    rows = [{"label": "t", "smiles": "NCCN(C)CCc1ccncc1"}]
+    ions = [c.smiles for c in pop.generate("trication", rows)]
+    assert ions == [_canon("[NH3+]CC[NH+](C)CCc1cc[nH+]cc1")]
+    assert "trianion" in pop.MODES and "trication" in pop.MODES
+
+
+def test_two_sites_within_two_bonds_are_one_group_not_an_ion_pair():
+    # an amide N- and its own O-protonated oxygen, an azole [n-] beside its [nH+]: a neutral compound drawn charge-separated
+    assert pop.generate("zwitterion", [{"label": "a", "smiles": "CC(=O)NC"}]) == []
+    assert pop.generate("zwitterion", [{"label": "a", "smiles": "c1cc[nH]n1"}]) == []

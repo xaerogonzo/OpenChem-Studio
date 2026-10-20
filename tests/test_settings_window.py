@@ -111,6 +111,10 @@ def test_the_stored_keys_are_stable_names():
         "conformers/max_embeddings",
         "drawing/bond_click_cycle",
         "conformers/early_stop_kept_set",
+        "conformers/keep_quantum_optimized",
+        "conformers/orca_optimize_lowest",
+        "quantum_chemistry/fukui_anion_f_plus",
+        "quantum_chemistry/fukui_cation_search",
     }
 
 
@@ -833,3 +837,53 @@ def test_the_experimental_early_stop_is_off_until_ticked_and_is_stored(qapp, dia
     assert _dialog(dialogs, Settings(EventBus()), section="conformers")._conformer_early_stop.isChecked() is True
     dialog._conformer_early_stop.setChecked(False)
     assert settings.preference(CONFORMER_EARLY_STOP) is False
+
+
+def test_keeping_orca_optimized_conformers_is_on_until_unticked_and_is_stored(qapp, dialogs):
+    from openchem.app.settings import CONFORMER_KEEP_OPTIMIZED
+
+    settings = Settings(EventBus())
+    dialog = _dialog(dialogs, settings, section="conformers")
+    assert CONFORMER_KEEP_OPTIMIZED.default is True, "the expensive geometry survives a regeneration by default"
+    assert dialog._conformer_keep_optimized.isChecked() is True
+    dialog._conformer_keep_optimized.setChecked(False)
+    assert settings.preference(CONFORMER_KEEP_OPTIMIZED) is False
+    assert _dialog(dialogs, Settings(EventBus()), section="conformers")._conformer_keep_optimized.isChecked() is False
+    dialog._conformer_keep_optimized.setChecked(True)
+    assert settings.preference(CONFORMER_KEEP_OPTIMIZED) is True
+
+
+def test_f_plus_of_an_anion_is_on_until_unticked_and_is_stored(qapp, dialogs):
+    """The Quantum chemistry section: one checkbox, on by default (the numbers were asked for), stored the moment it changes, and read back by a fresh window."""
+    from openchem.app.settings import FUKUI_ANION_F_PLUS
+    from openchem.ui.dialogs.settings_dialog import QUANTUM_CHEMISTRY
+
+    settings = Settings(EventBus())
+    dialog = _dialog(dialogs, settings, section=QUANTUM_CHEMISTRY)
+    assert dialog.current_section() == QUANTUM_CHEMISTRY
+    assert FUKUI_ANION_F_PLUS.default is True
+    assert dialog._fukui_anion_f_plus.objectName() == "fukuiAnionFPlus" and dialog._fukui_anion_f_plus.isChecked() is True
+    dialog._fukui_anion_f_plus.setChecked(False)
+    assert settings.preference(FUKUI_ANION_F_PLUS) is False
+    assert _dialog(dialogs, Settings(EventBus()), section=QUANTUM_CHEMISTRY)._fukui_anion_f_plus.isChecked() is False
+    dialog._fukui_anion_f_plus.setChecked(True)
+    assert settings.preference(FUKUI_ANION_F_PLUS) is True
+
+
+def test_the_search_for_other_cation_states_is_on_until_unticked_is_stored_and_is_a_separate_choice_from_the_anions_f_plus(qapp, dialogs):
+    """The second checkbox of the Quantum chemistry section: on by default (f- is not a function of the structure without it), stored the moment it changes, read back by a
+    fresh window, and independent of the first."""
+    from openchem.app.settings import FUKUI_ANION_F_PLUS, FUKUI_CATION_SEARCH
+    from openchem.ui.dialogs.settings_dialog import QUANTUM_CHEMISTRY
+
+    settings = Settings(EventBus())
+    dialog = _dialog(dialogs, settings, section=QUANTUM_CHEMISTRY)
+    assert FUKUI_CATION_SEARCH.default is True and FUKUI_CATION_SEARCH.key == "quantum_chemistry/fukui_cation_search"
+    assert dialog._fukui_cation_search.objectName() == "fukuiCationSearch" and dialog._fukui_cation_search.isChecked() is True
+    dialog._fukui_cation_search.setChecked(False)
+    assert settings.preference(FUKUI_CATION_SEARCH) is False and settings.preference(FUKUI_ANION_F_PLUS) is True
+    assert _dialog(dialogs, Settings(EventBus()), section=QUANTUM_CHEMISTRY)._fukui_cation_search.isChecked() is False
+    dialog._fukui_cation_search.setChecked(True)
+    dialog._fukui_anion_f_plus.setChecked(False)
+    assert settings.preference(FUKUI_CATION_SEARCH) is True and settings.preference(FUKUI_ANION_F_PLUS) is False
+

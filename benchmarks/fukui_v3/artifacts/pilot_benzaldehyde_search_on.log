@@ -1,0 +1,12 @@
+
+benzaldehyde (O=Cc1ccccc1), search ON, scratch C:\Users\pmpd\AppData\Local\Temp\pilot_v3_3e0zxt6k
+  reference   max|f- - reference| = 0.0000   states 3  competing_ev 0.127  gain 0.145  270 s
+  rotation0   max|f- - reference| = 0.0004   states 2  competing_ev 0.147  gain 0.147  361 s
+  rotation1   max|f- - reference| = 0.0001   states 1  competing_ev None  gain 0.0  403 s
+  rotation2   max|f- - reference| = 0.0002   states 3  competing_ev 0.127  gain 0.145  304 s
+  rotation3   max|f- - reference| = 0.0001   states 2  competing_ev 0.145  gain 0.145  389 s
+  noise0      max|f- - reference| = 0.0020   states 1  competing_ev None  gain 0.001  360 s
+  noise1      max|f- - reference| = 0.0019   states 1  competing_ev None  gain 0.0  281 s
+  noise2      max|f- - reference| = 0.0016   states 1  competing_ev None  gain 0.003  249 s
+  noise3      max|f- - reference| = 0.0021   states 1  competing_ev None  gain 0.0  241 s
+  WORST over 8 runs: 0.0021

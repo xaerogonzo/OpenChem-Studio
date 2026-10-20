@@ -1,0 +1,176 @@
+tolerances: T_HF 0.900 mEh, T_DFT 0.130 mEh, T_Eopt 0.130 mEh, T_geom 0.0021 A
+floors: HF 0.4499 mEh, DFT 0.0652 mEh, opt energy 0.0087 mEh, RMSD 0.00105 A
+
+a tolerance is 0.900 mEh, above the 0.5 mEh ceiling
+
+signed median d (Psi4 - ORCA, mEh) per combination:
+  HF       def2-SVP   median   +0.126  range   -0.006 ..   +0.217  (T = 0.900)
+  HF       6-31G(d)   median   +0.298  range   -0.023 ..   +0.516  (T = 0.900)
+  HF       def2-TZVP  median   +0.090  range   -0.014 ..   +0.172  (T = 0.900)
+  B3LYP    def2-SVP   median   +0.196  range   +0.047 ..   +0.393  (T = 0.130)
+  B3LYP    6-31G(d)   median   +0.140  range   +0.025 ..   +0.294  (T = 0.130)
+  B3LYP    def2-TZVP  median   +0.140  range   +0.018 ..   +0.303  (T = 0.130)
+  PBE0     def2-SVP   median   +0.274  range   +0.106 ..   +0.475  (T = 0.130)
+  PBE0     6-31G(d)   median   +0.221  range   +0.072 ..   +0.360  (T = 0.130)
+  PBE0     def2-TZVP  median   +0.166  range   +0.020 ..   +0.367  (T = 0.130)
+  M062X    def2-SVP   median   +0.485  range   +0.044 ..   +0.680  (T = 0.130)
+  M062X    6-31G(d)   median   +0.455  range   -0.183 ..   +0.751  (T = 0.130)
+  M062X    def2-TZVP  median   +0.380  range   +0.002 ..   +0.599  (T = 0.130)
+  B3LYP    pcSseg-1   median   +0.234  range   +0.108 ..   +0.377  (T = 0.130)
+  B3LYP    pcSseg-2   median   +0.150  range   +0.094 ..   +0.300  (T = 0.130)
+  B3LYP/G  def2-SVP   median   +0.196  range   +0.046 ..   +0.392  (T = 0.130)
+largest |d| per molecule (mEh): water 0.149, methane 0.161, chloromethane 0.247, ethanol 0.626, dimethyl ether 0.663, acetic acid 0.421, methyl formate 0.549, acetone 0.452, propanal 0.555, benzene 0.697, pyridine 0.643, fluorobenzene 0.751, thiophene 0.484, dimethyl sulfoxide 0.665, acetate 0.385, hydroxyl radical 0.131
+
+attribution (Psi4 with scf_type pk on the cells outside tolerance; decides nothing): d with density fitting -> d with exact integrals (mEh)
+  acetate B3LYP/G def2-SVP: +0.213 -> +0.227
+  acetate B3LYP 6-31G(d): +0.153 -> +0.190
+  acetate B3LYP def2-SVP: +0.213 -> +0.227
+  acetate B3LYP pcSseg-1: +0.208 -> +0.247
+  acetate B3LYP pcSseg-2: +0.148 -> +0.197
+  acetate M062X 6-31G(d): +0.385 -> +0.245
+  acetate M062X def2-SVP: +0.370 -> +0.291
+  acetate M062X def2-TZVP: +0.328 -> +0.308
+  acetate PBE0 6-31G(d): +0.207 -> +0.213
+  acetate PBE0 def2-SVP: +0.244 -> +0.245
+  acetate PBE0 def2-TZVP: +0.170 -> +0.199
+  acetic acid B3LYP/G def2-SVP: +0.266 -> +0.286
+  acetic acid B3LYP 6-31G(d): +0.210 -> +0.238
+  acetic acid B3LYP def2-SVP: +0.267 -> +0.287
+  acetic acid B3LYP def2-TZVP: +0.155 -> +0.216
+  acetic acid B3LYP pcSseg-1: +0.236 -> +0.281
+  acetic acid B3LYP pcSseg-2: +0.153 -> +0.217
+  acetic acid M062X 6-31G(d): +0.421 -> +0.275
+  acetic acid M062X def2-SVP: +0.421 -> +0.343
+  acetic acid M062X def2-TZVP: +0.298 -> +0.287
+  acetic acid PBE0 6-31G(d): +0.282 -> +0.281
+  acetic acid PBE0 def2-SVP: +0.311 -> +0.315
+  acetic acid PBE0 def2-TZVP: +0.198 -> +0.239
+  acetone B3LYP/G def2-SVP: +0.158 -> +0.199
+  acetone B3LYP def2-SVP: +0.158 -> +0.199
+  acetone B3LYP def2-TZVP: +0.173 -> +0.264
+  acetone B3LYP pcSseg-1: +0.280 -> +0.336
+  acetone B3LYP pcSseg-2: +0.225 -> +0.303
+  acetone M062X 6-31G(d): +0.452 -> +0.381
+  acetone M062X def2-SVP: +0.406 -> +0.375
+  acetone M062X def2-TZVP: +0.403 -> +0.429
+  acetone PBE0 6-31G(d): +0.234 -> +0.275
+  acetone PBE0 def2-SVP: +0.290 -> +0.320
+  acetone PBE0 def2-TZVP: +0.144 -> +0.208
+  benzene B3LYP/G def2-SVP: +0.278 -> +0.328
+  benzene B3LYP 6-31G(d): +0.211 -> +0.225
+  benzene B3LYP def2-SVP: +0.279 -> +0.329
+  benzene B3LYP def2-TZVP: +0.248 -> +0.323
+  benzene B3LYP pcSseg-1: +0.307 -> +0.378
+  benzene B3LYP pcSseg-2: +0.300 -> +0.364
+  benzene M062X 6-31G(d): +0.697 -> +0.526
+  benzene M062X def2-SVP: +0.575 -> +0.555
+  benzene M062X def2-TZVP: +0.599 -> +0.586
+  benzene PBE0 6-31G(d): +0.272 -> +0.255
+  benzene PBE0 def2-SVP: +0.311 -> +0.351
+  benzene PBE0 def2-TZVP: +0.271 -> +0.316
+  chloromethane B3LYP/G def2-SVP: +0.176 -> +0.214
+  chloromethane B3LYP def2-SVP: +0.176 -> +0.213
+  chloromethane B3LYP pcSseg-1: +0.186 -> +0.222
+  chloromethane M062X 6-31G(d): -0.183 -> -0.173
+  chloromethane M062X def2-SVP: +0.210 -> +0.215
+  chloromethane PBE0 def2-SVP: +0.247 -> +0.280
+  chloromethane PBE0 def2-TZVP: +0.148 -> +0.185
+  dimethyl ether B3LYP/G def2-SVP: +0.199 -> +0.241
+  dimethyl ether B3LYP 6-31G(d): +0.142 -> +0.263
+  dimethyl ether B3LYP def2-SVP: +0.199 -> +0.241
+  dimethyl ether B3LYP def2-TZVP: +0.229 -> +0.333
+  dimethyl ether B3LYP pcSseg-1: +0.233 -> +0.291
+  dimethyl ether B3LYP pcSseg-2: +0.161 -> +0.247
+  dimethyl ether M062X 6-31G(d): +0.563 -> +0.578
+  dimethyl ether M062X def2-SVP: +0.663 -> +0.644
+  dimethyl ether M062X def2-TZVP: +0.563 -> +0.610
+  dimethyl ether PBE0 6-31G(d): +0.360 -> +0.461
+  dimethyl ether PBE0 def2-SVP: +0.475 -> +0.508
+  dimethyl ether PBE0 def2-TZVP: +0.170 -> +0.246
+  dimethyl sulfoxide B3LYP/G def2-SVP: +0.256 -> +0.305
+  dimethyl sulfoxide B3LYP 6-31G(d): +0.138 -> +0.253
+  dimethyl sulfoxide B3LYP def2-SVP: +0.256 -> +0.305
+  dimethyl sulfoxide B3LYP pcSseg-1: +0.226 -> +0.290
+  dimethyl sulfoxide B3LYP pcSseg-2: +0.137 -> +0.205
+  dimethyl sulfoxide M062X 6-31G(d): +0.601 -> +0.471
+  dimethyl sulfoxide M062X def2-SVP: +0.665 -> +0.626
+  dimethyl sulfoxide M062X def2-TZVP: +0.509 -> +0.497
+  dimethyl sulfoxide PBE0 6-31G(d): +0.217 -> +0.284
+  dimethyl sulfoxide PBE0 def2-SVP: +0.282 -> +0.317
+  dimethyl sulfoxide PBE0 def2-TZVP: +0.162 -> +0.211
+  ethanol B3LYP/G def2-SVP: +0.167 -> +0.211
+  ethanol B3LYP def2-SVP: +0.167 -> +0.211
+  ethanol B3LYP pcSseg-1: +0.169 -> +0.230
+  ethanol M062X 6-31G(d): +0.147 -> +0.180
+  ethanol M062X def2-SVP: +0.626 -> +0.613
+  ethanol M062X def2-TZVP: +0.160 -> +0.195
+  ethanol PBE0 def2-SVP: +0.178 -> +0.213
+  fluorobenzene B3LYP/G def2-SVP: +0.392 -> +0.436
+  fluorobenzene B3LYP 6-31G(d): +0.294 -> +0.307
+  fluorobenzene B3LYP def2-SVP: +0.393 -> +0.437
+  fluorobenzene B3LYP def2-TZVP: +0.141 -> +0.210
+  fluorobenzene B3LYP pcSseg-1: +0.377 -> +0.460
+  fluorobenzene B3LYP pcSseg-2: +0.213 -> +0.285
+  fluorobenzene M062X 6-31G(d): +0.751 -> +0.521
+  fluorobenzene M062X def2-SVP: +0.680 -> +0.613
+  fluorobenzene M062X def2-TZVP: +0.594 -> +0.560
+  fluorobenzene PBE0 6-31G(d): +0.348 -> +0.320
+  fluorobenzene PBE0 def2-SVP: +0.408 -> +0.435
+  fluorobenzene PBE0 def2-TZVP: +0.367 -> +0.407
+  hydroxyl radical M062X def2-SVP: +0.131 -> +0.115
+  methane B3LYP/G def2-SVP: +0.134 -> +0.163
+  methane B3LYP def2-SVP: +0.134 -> +0.164
+  methane B3LYP pcSseg-1: +0.161 -> +0.188
+  methane M062X 6-31G(d): +0.148 -> +0.177
+  methane M062X def2-SVP: +0.155 -> +0.175
+  methane M062X def2-TZVP: +0.158 -> +0.202
+  methyl formate B3LYP/G def2-SVP: +0.262 -> +0.281
+  methyl formate B3LYP 6-31G(d): +0.214 -> +0.260
+  methyl formate B3LYP def2-SVP: +0.263 -> +0.281
+  methyl formate B3LYP def2-TZVP: +0.135 -> +0.203
+  methyl formate B3LYP pcSseg-1: +0.268 -> +0.313
+  methyl formate B3LYP pcSseg-2: +0.223 -> +0.290
+  methyl formate M062X 6-31G(d): +0.457 -> +0.314
+  methyl formate M062X def2-SVP: +0.549 -> +0.466
+  methyl formate M062X def2-TZVP: +0.357 -> +0.352
+  methyl formate PBE0 6-31G(d): +0.272 -> +0.286
+  methyl formate PBE0 def2-SVP: +0.303 -> +0.305
+  methyl formate PBE0 def2-TZVP: +0.218 -> +0.264
+  propanal B3LYP/G def2-SVP: +0.134 -> +0.176
+  propanal B3LYP def2-SVP: +0.134 -> +0.176
+  propanal B3LYP def2-TZVP: +0.192 -> +0.274
+  propanal B3LYP pcSseg-1: +0.261 -> +0.319
+  propanal M062X 6-31G(d): +0.513 -> +0.454
+  propanal M062X def2-SVP: +0.555 -> +0.527
+  propanal M062X def2-TZVP: +0.480 -> +0.500
+  propanal PBE0 6-31G(d): +0.152 -> +0.202
+  propanal PBE0 def2-SVP: +0.212 -> +0.243
+  pyridine B3LYP/G def2-SVP: +0.240 -> +0.276
+  pyridine B3LYP 6-31G(d): +0.173 -> +0.186
+  pyridine B3LYP def2-SVP: +0.241 -> +0.276
+  pyridine B3LYP def2-TZVP: +0.203 -> +0.266
+  pyridine B3LYP pcSseg-1: +0.238 -> +0.299
+  pyridine B3LYP pcSseg-2: +0.210 -> +0.268
+  pyridine M062X 6-31G(d): +0.643 -> +0.442
+  pyridine M062X def2-SVP: +0.551 -> +0.506
+  pyridine M062X def2-TZVP: +0.508 -> +0.482
+  pyridine PBE0 6-31G(d): +0.225 -> +0.202
+  pyridine PBE0 def2-SVP: +0.265 -> +0.288
+  pyridine PBE0 def2-TZVP: +0.183 -> +0.220
+  thiophene B3LYP/G def2-SVP: +0.193 -> +0.227
+  thiophene B3LYP 6-31G(d): +0.226 -> +0.255
+  thiophene B3LYP def2-SVP: +0.193 -> +0.226
+  thiophene B3LYP def2-TZVP: +0.303 -> +0.345
+  thiophene B3LYP pcSseg-1: +0.296 -> +0.344
+  thiophene B3LYP pcSseg-2: +0.289 -> +0.325
+  thiophene M062X 6-31G(d): +0.484 -> +0.297
+  thiophene M062X def2-SVP: +0.400 -> +0.358
+  thiophene M062X def2-TZVP: +0.427 -> +0.380
+  thiophene PBE0 6-31G(d): +0.283 -> +0.276
+  thiophene PBE0 def2-SVP: +0.347 -> +0.369
+  thiophene PBE0 def2-TZVP: +0.324 -> +0.343
+  water B3LYP def2-TZVP: +0.138 -> +0.167
+  water B3LYP pcSseg-1: +0.149 -> +0.172
+  water PBE0 def2-TZVP: +0.135 -> +0.161
+
+VERDICT NOT EVALUABLE

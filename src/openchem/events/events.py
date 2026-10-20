@@ -257,11 +257,20 @@ class ConformerJobStateChanged(Event):
 class ConformersReady(Event):
     molecule_uuid: str
     conformers: list[ConformerModel]
+    #: The person asked, in the Generate Conformers window, for the lowest-energy conformer of THIS generation to be
+    #: ORCA-optimized as soon as the set is installed. It travels with the set it belongs to (rather than being a
+    #: window setting read later) so the answer cannot change between asking and the conformers arriving.
+    optimize_lowest: bool = False
 
 
 @dataclass(frozen=True)
 class ConformersChanged(Event):
     molecule_uuid: str
+    #: The `conformer_id` the 3D viewer should land on, when the change is about ONE conformer (an
+    #: ORCA-optimized geometry arriving, or an undo restoring the one it replaced). Empty = no
+    #: preference, and the viewer returns to the first conformer as it always did, so every other
+    #: publisher is unchanged.
+    show_conformer_id: str = ""
 
 
 @dataclass(frozen=True)
@@ -333,6 +342,16 @@ class QuantumChemistryResultReady(Event):
     #: carry its drawing-atom map onto `conformer` (`chem.calculation_input.with_source_atom_map`). Empty
     #: for a result with no single source (a Boltzmann sequence).
     input_fingerprint: str = ""
+    #: The molecule's canonical SMILES AT SUBMISSION. The window compares it with the molecule's
+    #: current one before it installs the geometry or shows the numbers as current
+    #: (`chem.isotopes.same_structure`), because a job can finish after the structure it ran on was
+    #: edited. Empty = unverifiable, and an unverifiable landing is withheld, never assumed current.
+    structure_identity: str = ""
+    #: The ONE-BASED slot of the conformer the job was submitted on, AS IT STOOD WHEN RUN WAS PRESSED. 0 = not
+    #: known (a Boltzmann run has no single source). Carried here and not re-derived at landing because a
+    #: regeneration that keeps ORCA conformers can move the source while the job runs; the geometry's provenance
+    #: must say what the calculation actually started from.
+    source_slot: int = 0
 
 
 @dataclass(frozen=True)
@@ -373,6 +392,18 @@ class RecipeRunRecorded(Event):
 
     run_id: str
     molecule_uuids: tuple[str, ...]
+
+
+@dataclass(frozen=True)
+class ScoreDefinitionsChanged(Event):
+    """A derived score was made, edited or removed (`ScoreService`).
+
+    A definition is never also a result, so nothing else tells the session it has something unsaved; the window turns this into exactly that. The Results reader
+    refreshes for it too, because a score's value is read, not stored.
+    """
+
+    project_uuid: str
+    score_ids: tuple[str, ...]
 
 
 @dataclass(frozen=True)

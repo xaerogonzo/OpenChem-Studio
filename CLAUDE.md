@@ -199,7 +199,19 @@ OPENCHEM_DRIVE=/path/to/script.json uv run --no-sync python -m openchem.main
     {"do": "conformer_report", "tag": "x", "expect": {"canonical_method": "orca_opt",
      "canonical_mapped": true, "conformers": 3}}   each stored conformer (method, energy, whether it
                                           has the way back to the drawing's atoms, its GEOMETRY fingerprint,
-                                          the same string `qc_run` logs) and which one a calculation gets
+                                          the same string `qc_run` logs) and which one a calculation gets;
+                                          it also reads the 3D VIEWER and the status bar: `viewer_index`,
+                                          `viewer_on_canonical`, `viewer_label_contains`/`_excludes`,
+                                          `orca_conformers`, `origin_slot`, `status_contains` -- "the geometry
+                                          is stored" and "the viewer shows it" are different claims;
+                                          also `badge_contains`/`badge_empty` (the Properties header),
+                                          `explorer_contains`/`explorer_excludes` (the Project Explorer row)
+                                          and `methods` (every conformer's method in slot order)
+    {"do": "orca_optimize_button", "via": "button", "conformer": 1, "expect": {"chosen_slot": 2,
+     "calc_type": "Geometry Optimization", "job_started": false}}    put the viewer on a slot and press the REAL
+                                          "ORCA optimize" button (or `"via": "menu"`, Tools > ORCA Geometry
+                                          Optimization...), then assert what the Quantum Chemistry panel was SET UP
+                                          to do and that NOTHING started; Run is a separate `qc_run` step
     {"do": "jobs_report", "tag": "running"}   rows AND whether it is POLLING
     {"do": "jobs_cancel", "row": 0}           the real button in a real row
     {"do": "conformers_finish", "expect": {"enabled": true, "readout_contains": ["found"]}}
@@ -207,12 +219,18 @@ OPENCHEM_DRIVE=/path/to/script.json uv run --no-sync python -m openchem.main
                                           before it is pressed; "press": false only looks
     {"do": "conformers_provenance", "expect": {"stop_reason": "finished_early"}}  how the
                                           stored run ended; `conformers` takes "with_settings":
-                                          true for what Settings > Conformers adds
+                                          true for what Settings > Conformers adds, and
+                                          "optimize_lowest": true to tick the Generate window's ORCA box
+                                          (its real checkbox; `expect_offer` asserts what the window offered)
     {"do": "screen_run",  "receptor": 0}      the REAL Run button, and the
                                               PREP DICT the service got
     {"do": "qc_run", "calc_type": "NMR (raw shielding)", "method": "HF def2-SVP"}
                                               REAL ORCA, and the IDENTITY
-                                              the service was handed
+                                              the service was handed; add
+                                              `"conformer": 1` (zero-based slot) to
+                                              point the Conformer box first, or
+                                              `"automatic"` to put it back: the pick
+                                              PERSISTS between runs
     {"do": "inspector_report", "expect_spectrum": "stale"}  ASSERTS the held
                                               spectrum carries that identity
     {"do": "tautomer_run", "method": "HF STO-3G"}  the REAL "Tautomers..." button,
@@ -225,7 +243,8 @@ OPENCHEM_DRIVE=/path/to/script.json uv run --no-sync python -m openchem.main
                                               newest distribution run (answer its cost question with
                                               OPENCHEM_DRIVE_MODAL=yes); `tautomer_nmr_report` reads
                                               the traces DRAWN, the stored result and the combo
-    {"do": "save_project", "path": "..."}     the REAL save, results included
+    {"do": "save_project", "path": "..."}     the REAL save, results included; "results": false
+                                          writes the file an older build wrote (conformers, no results)
     {"do": "dock_move", "panel": "Results", "area": "top"}   as a drop
     {"do": "dock_move", "panel": "Results", "beside": "Properties"}
     {"do": "dock_tabify", "panel": "Results", "onto": "Properties"}
@@ -237,6 +256,11 @@ OPENCHEM_DRIVE=/path/to/script.json uv run --no-sync python -m openchem.main
     {"do": "expect_results", "expect": {"solubility": "ready",
                              "fragment_counts": {"facts_contain": ["nitro (2)"]}}}
                                           what Properties HOLDS, asserted
+    {"do": "descriptors_report", "tag": "x", "values": {"sa_score": 1.58}, "equals_drawing": true,
+     "alerts_equal_drawing": true}        the always-on descriptors the READER holds, against the same
+                                          computed on the DRAWING (a conformer must leave every one the
+                                          provider does not declare geometric alone); the geometric ones
+                                          are reported and need `geometric_values`
     {"do": "pka_worker_report", "tag": "x"}  the pKa sidecar: state, pid, spawns, requests,
                                           its own startup/prediction times (never creates one)
     {"do": "ai_bridge_run", "calculator": "polar_surface_area", "parameters": {"pH": 7}}
@@ -250,9 +274,11 @@ OPENCHEM_DRIVE=/path/to/script.json uv run --no-sync python -m openchem.main
                                           the assistant PANEL with a SCRIPTED provider: its real Send, the
                                           tool loop on its worker thread, the real host (give it `after_ms`)
     {"do": "ai_card", "action": "approve"}   press a REAL button on the preview card showing
-                                          ("approve" | "cancel" | "open" | "dismiss")
+                                          ("approve" | "cancel" | "open" | "dismiss"; add "card": "score" for a score
+                                          the assistant PROPOSED, whose Approve is the only way it is saved)
     {"do": "ai_expect", "expect": {"ledger_contains": [...], "pending": 1, "service_previews": 1,
-     "tool_results_contain": [...], "tools_offered": [...], "notes": 1, "panel_visible": "Quantum_Chemistry"}}
+     "tool_results_contain": [...], "tool_results_exclude": [...], "tools_offered": [...], "notes": 1, "panel_visible": "Quantum_Chemistry",
+     "score_proposals": 1, "scores_stored": 0, "scores_owner": [...], "sent_contains": [...]}}
                                           what the panel shows and what the model was told, asserted
     {"do": "lewis_pairing", "first": 0, "second": 1, "method": "B3LYP def2-SVP", "role": "acid",
      "press": "job:dscf_second", "expect": {"status": "partial", "jobs_to_do": 1, "panel_calc_type": "delta_scf"}}
@@ -265,8 +291,60 @@ OPENCHEM_DRIVE=/path/to/script.json uv run --no-sync python -m openchem.main
                                           what the Results READER holds of the recipe answers kept in the project, for the
                                           selected molecule: how many, how many stale, the line above the facts, and that none
                                           is also a stored result; `shot` takes "widget": "results_reader"
+    {"do": "score_define", "label": "Polar window", "formula": "ramp(psa, 140, 60)", "inputs": [["psa", "descriptor:tpsa"]],
+     "result_unit": "1", "constants": [], "defaults": [["logp", 3.5]], "expect": {"made": true}}      define a user-defined score through `ScoreService` (the call the
+                                          definition dialog will make); a refusal is asserted with `"made": false, "problem": "unit",
+                                          "message_contains": [...]` and must leave the project's scores as they were
+    {"do": "score_results", "focus": true, "which": "Polar window", "expect": {"entries": 1, "has_value": true,
+     "value_between": [0.95, 0.96], "evidence_contains": ["Formula:"], "reason_contains": [], "stored_as_results": 0, "defaulted": ["logp"]}}
+                                          what the Results READER holds of the scores, for the selected molecule: the number or the
+                                          reason there is none, the label, the evidence, and that none is also a stored result
+    {"do": "score_dialog", "new": true, "fill": {"label": "Polar window", "inputs": [["psa", "descriptor:tpsa"], ["ob", "calculator:oxygen_balance:Oxygen balance (CO basis)", "-50"]], "formula": "ramp(psa, 140, 60)",
+     "constants": [{"name": "hi", "value": "140", "unit": "\u00c5^2"}], "result_unit": "1"}, "press": "save", "confirm": "yes",
+     "expect": {"ok": true, "marked": [], "preview_contains": ["For Aspirin: 0.955"], "stored": 1, "project_unsaved": true,
+     "results_listed": ["Polar window"], "asked": ["Unsaved changes"]}}
+                                          the Derived Scores window (Tools menu) driven through its REAL controls: `new`, `choose` a list entry,
+                                          `fill` (presses Remove/Add and types into the edits, so it checks after every keystroke), `press`
+                                          save/revert/delete/new (a disabled button is logged, not pressed), `confirm` answers its two questions;
+                                          `expect` reads the window (message, `where`, fields outlined as `marked`, `pointer_column` of the caret, preview, buttons, list) and the project
+                                          (definitions stored, unsaved, listed in Results); `shot` takes "widget": "scores"
+    {"do": "table_scores", "export_csv": "C:/tmp/table.csv", "expect": {"columns": ["Polar window (user-defined, unvalidated)"], "note": "",
+     "grid": {"Aspirin": {"Polar window": "0.955"}}, "tooltips": {"Aspirin": {"Polar window": ["Inputs: psa = 63.6"]}},
+     "column_tooltips": {"Polar window": ["Formula:"]}, "csv_header_contains": ["Polar window"], "csv_cells": {"Aspirin": {"Polar window": 0.955}},
+     "csv_text": {"Aspirin": {"inputs given a default": "ob"}}}}
+                                          the user-defined SCORES in the Results dock's project table, read off the grid a person looks at (the exact score
+                                          headers in order, the note under the status, what a cell SHOWS, tooltips) and off the file the REAL "Export CSV"
+                                          button writes (the file dialog answered); pair it with `project_run` and `expect_project_table`; `shot` takes
+                                          "widget": "project_table"; `"panel": "batch"` reads the Batch panel's OWN table (after `batch_fill`) and
+                                          `shot` then takes "widget": "batch_table"
+    {"do": "tick_score_inputs", "tag": "x", "expect": {"menu_label": "Tick what my scores read (2)", "calculators": ["oxygen_balance"], "descriptor_choice": null,
+     "descriptors_box": true, "run_enabled": true, "status_contains": ["Ticked 1 calculator(s)"]}}
+                                          the Presets menu's REAL "Tick what my scores read" entry in Properties (a menu with no such entry fails), asserted off the
+                                          ticks, the always-on choice and the status line; `project_run` then takes `"keep_ticks": true` to run with the ticks as they are
+    {"do": "qc_setup", "method": "HF STO-3G"}   set the Quantum Chemistry panel's method (and "calc_type") and press NOTHING:
+                                          for a run something else starts, such as the Generate window's ORCA box
     {"do": "qc_wait", "timeout_ms": 600000}   hold the script until the Quantum Chemistry service has no job running (give up = an
                                           ERROR); use it after `qc_run` instead of guessing an `after_ms` for a job of unknown length
+    {"do": "qc_panel_report", "tag": "fukui", "expect": {"calc_type": "Fukui functions (Hirshfeld)", "run_calc_type": "fukui",
+     "run_status": "completed", "per_atom_outputs": 4, "results_contains": ["Largest f+"], "status_contains": []}}
+                                          what the Quantum Chemistry panel SHOWS after a job (its Calculation entry, the results line, the
+                                          status line) and what the newest stored run holds, asserted; `shot` saves the panel
+    {"do": "fukui_gate_begin"}  {"do": "fukui_gate_record", "species": "CO", "level": "HF/6-31G**", "attempt": 1}
+    {"do": "fukui_gate_floor"}  {"do": "fukui_gate_judge"}  {"do": "fukui_gate_report"}
+                                          the Fukui GATE (benchmarks/fukui_gate/PREREGISTRATION.md; the scripts are generated by
+                                          `benchmarks/fukui_gate/make_scripts.py`): `begin` ends the run before any job unless the noise
+                                          floor is measured and usable; `record` appends what the newest STORED Fukui run says (its datasets,
+                                          charge, method, ORCA version, and whether it ran on the ORCA-optimized geometry) as one attempt;
+                                          `floor` is the largest difference between two runs that should agree; `judge` is `app/fukui_gate.judge`
+                                          and writes the outcome beside the drive's own verdict (a FAIL of the gate is a result, not a broken
+                                          script); `report` writes the reported arm, which never decides
+    {"do": "fukui2_begin"}  {"do": "fukui2_record", "species": "phenol", "level": "B3LYP/6-31G*", "attempt": 1}
+    {"do": "fukui2_floor"}  {"do": "fukui2_judge"}  {"do": "fukui2_report"}
+                                          the SECOND Fukui gate (benchmarks/fukui_gate_2/PREREGISTRATION.md, arithmetic `app/fukui_gate_2.py`, scripts
+                                          from `benchmarks/fukui_gate_2/make_scripts.py`): the first gate's steps widened for what v2 needs -- an
+                                          anion's run holds ONE dataset, every record carries the provenance the judge checks (grid, functions, reference
+                                          charge, starts, the commit and whether `src/` differs from it, acrolein's dihedral), and `floor` measures two
+                                          floors (pyridine and formate) and uses the larger
     {"do": "lewis_gate_begin"}  {"do": "lewis_gate_floor", "a": -2, "b": -1}  {"do": "lewis_gate_pair", "bh3": -3, "bf3": -2, "co": -1}
                                           the Lewis pairing GATE (benchmarks/lewis_gate/PREREGISTRATION.md): `begin` ends the run before any
                                           job unless tolerance.json holds the tolerance the preregistered rule gives the recorded floor;
@@ -422,7 +500,7 @@ the window handle rather than through the machine:
   strictly better -- that one was a race, this asks whether the handle
   belongs to the expected pid, which cannot be.
 
-Three things that cost a run each:
+Four things that cost a run each:
 
 - **`quit()` closes all windows in Qt 6**, so a scripted run ended on a
   modal "Unsaved changes" box with nobody to answer it -- and removing
@@ -434,6 +512,94 @@ Three things that cost a run each:
 - **Do not `Set-StrictMode` in a dot-sourced module.** It applies to the
   caller's session; here it broke the harness's own exit-code handling
   and read as a failure of a capture that had just succeeded.
+- **A step that opens a window must not ACTIVATE it.** `MainWindow.show_scores()`
+  raises and focuses the Derived Scores window, which is right for a person and
+  wrong for a script on a timer: the keys a person types in another window next
+  land in its Name field. Measured 2026-10-15: 2 of 15 driven saves ended with one
+  stray letter in the label and a form that was "unsaved" (the cause of the one
+  unexplained `score_dialog.json` failure); 0 of 15 once the driven open used
+  `show_scores(activate=False)`. A new drive step that shows a window with text
+  fields takes the same care, and the app still takes the foreground when a run
+  starts, so type nothing into it in the first seconds.
+
+## The regulatory rulesets -- work on them by rule id
+
+`src/openchem/chem/regulatory/` screens a drawn structure against published
+regulations and reports which one lists a matching substance and what
+obligations may follow. It is a **detector**: the data holds recognition
+patterns, each regulation's verbatim wording with a citation URL, and a
+`legitimate_uses` field whose whole job is to stop the screen over-flagging
+ordinary laboratory reagents. There is no synthesis, route, procedure or
+yield information anywhere in it. The five rulesets under
+`src/openchem/chem/data/regulatory/sources/` are hand-reviewed; everything
+under `generated/` is machine-owned and must never be hand-edited.
+
+**Reading these files is fine. Repeating their contents into a conversation
+is what stops a session** -- a safety classifier fires on the vocabulary, and
+it has stopped mid-sentence explanations of rules more than once. So:
+
+- Refer to a rule by its `rule_id` (`cwc-1-a-1`, `dea-i-4`, `osha-z1-...`).
+  Never by substance name, and never by quoting its expression or its
+  `legal.quote`.
+- Do not paste ruleset JSON into a message, a commit message, a PR body or a
+  plan file. Point at `file:line` instead.
+- To check the data is sound, run the four `tests/test_regulatory_*.py` files
+  and the build's `--check`. Neither needs a JSON opened -- but **`--check`
+  is not quiet**: measured 2026-10-20, a bare run prints 382 lines and most
+  of them carry substance display names (OPSIN's parse warnings on stderr,
+  and one `UNRESOLVED`/`skipped` line per unresolved entry on stdout). Run it
+  filtered, which leaves the ruleset ids, the counts and the verdict:
+
+  ```bash
+  uv run --no-sync python tools/build_regulatory_rulesets.py --check \
+      2>/dev/null | grep -vE 'UNRESOLVED|skipped'
+  ```
+
+  The verdict to look for is `matches its source, hash intact` on all five,
+  and exit 0. Both halves matter: a hand-edited file still agrees with its
+  source-document hash, and a stale file still hashes correctly to its own
+  older content. pytest is quiet on its own (`186 passed`, no names).
+- Open a data file only when a rule is genuinely being added or corrected,
+  and then say what changed by id, not by content.
+
+The graph is told to stop volunteering the contents, in
+`.tokensave/queryignore` -- the data only, never the Python or the tests.
+**`.tokensave/` is gitignored**, so a clone, a fresh worktree or another
+machine has no such file until it is recreated there with these three lines:
+
+```
+src/openchem/chem/data/regulatory/generated/
+src/openchem/chem/data/regulatory/sources/*.json
+src/openchem/chem/data/regulatory/sources/*.xml
+```
+
+**The guard was measured, and `init` alone hides the data by accident.**
+A/B'd on 2026-10-20 with a literal search for `ruleset_sha256`, re-indexing
+in each state: 0 hits with the file, 5 without it, 0 with it restored. But
+`tokensave init` does not index artifact-extension files at all, so straight
+after an `init` the data looks safe whether or not the guard exists -- the
+first `sync -f` is what indexes it, and only then does the guard do the work.
+Do not read a fresh worktree's 0 as the guard working.
+
+**The main checkout needs its own copy, and now has one.** The MCP server
+resolves its root upward and serves `D:\Random Projects\OpenChem Studio`,
+whose index did return these files' contents on an ordinary search until the
+file was put there and the graph rebuilt on 2026-10-20 (the same probe went
+from 5 data-file hits to 0, with the Python, the tests and the README still
+indexed). `.tokensave/` being gitignored, no branch can carry this, so a new
+machine or a re-created index needs it again:
+
+```bash
+cp .tokensave/queryignore "D:/Random Projects/OpenChem Studio/.tokensave/queryignore"
+"D:/Claude Co worker/Token Save/tokensave.exe" sync -f "D:/Random Projects/OpenChem Studio"
+```
+
+Note the shape: `--project <path>` selects the project for `tokensave tool`
+subcommands, but `sync` takes the path **positionally** and rejects
+`--project`.
+
+Permissions were deliberately left alone: a `deny` rule would also block
+legitimate rule maintenance.
 
 ## Lessons (moved out of this file)
 
@@ -443,6 +609,10 @@ message — this index is. **If a title below names what you are
 about to touch, read that section before you start.** Headings there
 are verbatim, so grep the file for the line.
 
+- A MEASUREMENT MADE WITH THE LIBRARY DESCRIBED A STRUCTURE THE APPLICATION NEVER COMPUTES, AND A DECISION WAS TAKEN ON IT
+- A MOLECULE THAT ARRIVED WITH A CONFORMER SHOWED ITS SHAPE DESCRIPTORS AS FAILED, AND THE OBVIOUS FIX LOST ITS OWN RACE 37 TIMES IN 40
+- A CONFORMER RE-RAN THE WHOLE ALWAYS-ON SET ON ITS HYDROGENS, AND THE READER, THE PROJECT TABLE AND THE SAVED FILE ALL TOOK ITS ANSWER
+- A SHARD THAT FIT ON A FAST RUNNER DID NOT FIT ON A SLOW ONE, AND THE FIRST TEN PERCENT OF THE TESTS SAID SO
 - A PLUGIN PANEL OPENED AS A BARE RECTANGLE ON WINDOWS, AND NOTHING THE SUITE RUNS ON COULD SHOW IT
 - TWO CLOSE COPPER CONTACTS LOOKED LIKE A COUNTEREXAMPLE UNTIL THE LIGANDS' FIT AND THE PAPERS' OWN WORDS WERE READ
 - THE ACCESSIBLE SURFACE WAS COMPUTED WITH A RADIUS OF ZERO FOR EVERY ATOM, AND EVERY TEST COMPARED ONE MOLECULE WITH ANOTHER

@@ -1,0 +1,106 @@
+! B3LYP 6-31G*
+%scf
+  HFTyp RHF
+end
+%method
+  IntAcc 6.0
+end
+%output
+  Print[P_Hirshfeld] 1
+end
+* xyz 0 1
+C       -0.028892      0.000975      0.000000
+N        1.127654     -0.037938     -0.000000
+H       -1.098762      0.036963     -0.000000
+*
+
+$new_job
+! B3LYP 6-31G*
+%scf
+  HFTyp UHF
+end
+%method
+  IntAcc 6.0
+end
+%output
+  Print[P_Hirshfeld] 1
+end
+* xyz 1 2
+C       -0.028892      0.000975      0.000000
+N        1.127654     -0.037938     -0.000000
+H       -1.098762      0.036963     -0.000000
+*
+
+$new_job
+! B3LYP 6-31G*
+%scf
+  HFTyp UHF
+end
+%method
+  IntAcc 6.0
+end
+%output
+  Print[P_Hirshfeld] 1
+end
+* xyz -1 2
+C       -0.028892      0.000975      0.000000
+N        1.127654     -0.037938     -0.000000
+H       -1.098762      0.036963     -0.000000
+*
+
+$new_job
+! B3LYP 6-31G* MORead
+%moinp "job.gbw"
+%scf
+  HFTyp UHF
+  Rotate {5, 6, 90, 1, 1} end
+end
+%method
+  IntAcc 6.0
+end
+%output
+  Print[P_Hirshfeld] 1
+end
+* xyz 1 2
+C       -0.028892      0.000975      0.000000
+N        1.127654     -0.037938     -0.000000
+H       -1.098762      0.036963     -0.000000
+*
+
+$new_job
+! B3LYP 6-31G* MORead
+%moinp "job.gbw"
+%scf
+  HFTyp UHF
+  Rotate {4, 6, 90, 1, 1} end
+end
+%method
+  IntAcc 6.0
+end
+%output
+  Print[P_Hirshfeld] 1
+end
+* xyz 1 2
+C       -0.028892      0.000975      0.000000
+N        1.127654     -0.037938     -0.000000
+H       -1.098762      0.036963     -0.000000
+*
+
+$new_job
+! B3LYP 6-31G* MORead
+%moinp "job.gbw"
+%scf
+  HFTyp UHF
+  Rotate {3, 6, 90, 1, 1} end
+end
+%method
+  IntAcc 6.0
+end
+%output
+  Print[P_Hirshfeld] 1
+end
+* xyz 1 2
+C       -0.028892      0.000975      0.000000
+N        1.127654     -0.037938     -0.000000
+H       -1.098762      0.036963     -0.000000
+*

@@ -1,0 +1,40 @@
+[
+  {"do": "smiles", "smiles": "CC(=O)Oc1ccccc1C(=O)O", "name": "Aspirin", "after_ms": 1000},
+  {"do": "smiles", "smiles": "CCO", "name": "Ethanol", "after_ms": 1000},
+  {"do": "smiles", "smiles": "Cn1cnc2c1c(=O)n(C)c(=O)n2C", "name": "Caffeine", "after_ms": 1000},
+  {"do": "select", "molecule": 1, "after_ms": 3000},
+
+  {"do": "score_define", "label": "Polar window", "formula": "ramp(psa, 140, 60)", "inputs": [["psa", "descriptor:tpsa"]], "result_unit": "1",
+   "tag": "step-1-a-score-on-the-polar-surface-area", "expect": {"made": true}},
+  {"do": "score_define", "label": "Light on rings", "formula": "ramp(rings, 4, 0)", "inputs": [["rings", "calculator:bbb_descriptors:Aromatic rings"]], "result_unit": "1",
+   "tag": "step-2-a-score-on-the-aromatic-ring-count", "expect": {"made": true}},
+
+  {"do": "panel", "id": "Properties", "after_ms": 800},
+  {"do": "tick_score_inputs", "tag": "step-3-the-presets-entry-ticks-what-the-two-scores-read",
+   "expect": {"menu_label": "Tick what my scores read (2)", "calculators": ["bbb_descriptors"], "run_enabled": true,
+              "status_contains": ["Ticked 1 calculator(s) and included 1 always-on property that 2 score(s) read."]}},
+  {"do": "shot", "path": "artifacts/visual/scores_walkthrough_properties.png", "after_ms": 500},
+  {"do": "project_run", "keep_ticks": true, "scope": "all", "after_ms": 25000},
+  {"do": "table_scores", "tag": "step-4-both-scores-are-the-first-columns-of-the-project-table", "export_csv": "artifacts/visual/scores_walkthrough.csv",
+   "expect": {"columns": ["Polar window (user-defined, unvalidated)", "Light on rings (user-defined, unvalidated)"], "note": "",
+              "grid": {"Aspirin": {"Polar window": "0.955", "Light on rings": "0.75"}, "Ethanol": {"Polar window": "1", "Light on rings": "1"}, "Caffeine": {"Polar window": "0.9773", "Light on rings": "0.5"}},
+              "tooltips": {"Aspirin": {"Polar window": ["Inputs: psa = 63.6"]}, "Caffeine": {"Light on rings": ["Inputs: rings = 2"]}},
+              "csv_header_contains": ["Polar window (user-defined, unvalidated)", "Light on rings (user-defined, unvalidated)"],
+              "csv_cells": {"Aspirin": {"Polar window": 0.955, "Light on rings": 0.75}, "Caffeine": {"Polar window": 0.9773, "Light on rings": 0.5}}}},
+  {"do": "shot", "path": "artifacts/visual/scores_walkthrough_table.png", "widget": "project_table", "after_ms": 500},
+
+  {"do": "score_dialog", "choose": "Polar window", "fill": {"formula": "ramp(psa, 100, 60)"}, "press": "save", "tag": "step-5-edit-the-formula-in-its-window", "after_ms": 1200,
+   "expect": {"ok": true, "dirty": false}},
+  {"do": "table_scores", "tag": "step-5-the-table-follows-the-edit-without-another-run",
+   "expect": {"grid": {"Aspirin": {"Polar window": "0.91"}, "Ethanol": {"Polar window": "1"}, "Caffeine": {"Polar window": "0.9545"}}}},
+
+  {"do": "calculator", "id": "bbb_descriptors", "reveal": false, "after_ms": 3000},
+  {"do": "score_results", "focus": true, "which": "Light on rings", "tag": "step-6-the-this-molecule-page-gives-the-score-against-the-structure-as-it-is-now",
+   "expect": {"entries": 2, "has_value": true, "value_between": [0.7499, 0.7501], "evidence_contains": ["rings = 1"]}},
+  {"do": "score_results", "focus": true, "which": "Polar window", "tag": "and-the-edited-formula-too",
+   "expect": {"entries": 2, "has_value": true, "value_between": [0.9099, 0.9101]}},
+  {"do": "shot", "path": "artifacts/visual/scores_walkthrough_reader.png", "widget": "results_reader", "after_ms": 500},
+
+  {"do": "expect_clean"},
+  {"do": "quit"}
+]
