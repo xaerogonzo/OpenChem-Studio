@@ -494,16 +494,22 @@ after an `init` the data looks safe whether or not the guard exists -- the
 first `sync -f` is what indexes it, and only then does the guard do the work.
 Do not read a fresh worktree's 0 as the guard working.
 
-**The main checkout needs its own copy, and does not have one.** The MCP
-server resolves its root upward and serves `D:\Random Projects\OpenChem
-Studio`, whose index does return these files' contents on an ordinary search
-(measured the same day). `.tokensave/` being gitignored, no branch can carry
-the fix there:
+**The main checkout needs its own copy, and now has one.** The MCP server
+resolves its root upward and serves `D:\Random Projects\OpenChem Studio`,
+whose index did return these files' contents on an ordinary search until the
+file was put there and the graph rebuilt on 2026-10-20 (the same probe went
+from 5 data-file hits to 0, with the Python, the tests and the README still
+indexed). `.tokensave/` being gitignored, no branch can carry this, so a new
+machine or a re-created index needs it again:
 
 ```bash
 cp .tokensave/queryignore "D:/Random Projects/OpenChem Studio/.tokensave/queryignore"
-"D:/Claude Co worker/Token Save/tokensave.exe" sync -f --project "D:/Random Projects/OpenChem Studio"
+"D:/Claude Co worker/Token Save/tokensave.exe" sync -f "D:/Random Projects/OpenChem Studio"
 ```
+
+Note the shape: `--project <path>` selects the project for `tokensave tool`
+subcommands, but `sync` takes the path **positionally** and rejects
+`--project`.
 
 Permissions were deliberately left alone: a `deny` rule would also block
 legitimate rule maintenance.
