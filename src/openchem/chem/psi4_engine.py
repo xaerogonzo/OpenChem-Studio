@@ -18,7 +18,8 @@ THE BASIS IS PASSED THROUGH, but with `puream true` always: Psi4 uses CARTESIAN 
 neither that line nor anything after the error banner). The service does not look at the exit code, so `parse_output` is what turns a failure into a failed run, and it does so by that marker. (An earlier note in the design
 document said a failed run still prints the success banner; that was a misreading of two outputs read together and is corrected there.)
 
-Density fitting is Psi4's default (`scf_type df`); it is what a Psi4 user expects and costs 0.01 mEh on water here, and it is recorded in the provenance with the exact functional keyword so two engines' numbers are never read as one.
+The engine writes exact integrals (`scf_type pk`), not Psi4's default density fitting (`df`): the preregistered agreement check (`benchmarks/psi4_agreement/PLAN.md`, run 2026-10-19) found that density fitting alone moves the Hartree-Fock energy by 0.37 to 0.45 mEh at 6-31G(d), a method-sized change that made the comparison with ORCA
+(whose default is exact) NOT EVALUABLE. The scf_type is recorded in the provenance with the exact functional keyword so two engines' numbers are never read as one.
 """
 
 from __future__ import annotations
@@ -127,7 +128,7 @@ class Psi4QuantumEngineProvider(QuantumEngineProvider):
         verb = "optimize" if calc_type == "opt" else "energy"
         return "\n".join([
             f"memory {_MEMORY}", "molecule {", f"{charge} {multiplicity}", *rows, "symmetry c1", "no_reorient", "no_com", "}",
-            f"set reference {'rhf' if multiplicity == 1 else 'uhf'}", f"set basis {basis}", "set puream true", "set scf_type df",
+            f"set reference {'rhf' if multiplicity == 1 else 'uhf'}", f"set basis {basis}", "set puream true", "set scf_type pk",
             f"set e_convergence {_CONVERGENCE}", f"set d_convergence {_CONVERGENCE}", f"{verb}('{keyword}')", "",
         ])
 
@@ -149,7 +150,7 @@ class Psi4QuantumEngineProvider(QuantumEngineProvider):
         provenance = Provenance(
             created_by="core",
             method=self.provider_id,
-            parameters={"psi4_version": version.group(1) if version else "unknown", "scf_type": "df", "puream": True},
+            parameters={"psi4_version": version.group(1) if version else "unknown", "scf_type": "pk", "puream": True},
             timestamp=time.time(),
         )
         descriptors = [

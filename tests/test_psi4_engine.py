@@ -56,7 +56,7 @@ def test_the_input_is_a_complete_psi4_job_with_nothing_left_to_a_default(provide
     assert "set basis def2-SVP" in text
     # Pople bases are cartesian in Psi4 and spherical in ORCA: always spherical (1.8 mEh on 6-31G(d) water)
     assert "set puream true" in text
-    assert "set scf_type df" in text and "set e_convergence 1e-8" in text
+    assert "set scf_type pk" in text and "scf_type df" not in text and "set e_convergence 1e-8" in text
     assert text.rstrip().endswith("energy('b3lyp5')")
 
 
@@ -130,7 +130,7 @@ def test_a_single_point_reads_the_total_energy_and_names_what_ran(provider):
     assert energy.descriptor_id == "psi4.scf_energy" and energy.units == "Hartree"
     assert energy.value == pytest.approx(-76.32100289408265, abs=1e-12)
     assert energy.provenance.parameters["psi4_version"] == "1.11"
-    assert energy.provenance.parameters["scf_type"] == "df" and energy.provenance.parameters["puream"] is True
+    assert energy.provenance.parameters["scf_type"] == "pk" and energy.provenance.parameters["puream"] is True
 
 
 def test_an_open_shell_output_reads_too(provider):
