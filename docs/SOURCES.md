@@ -1,5 +1,5 @@
 <!-- GENERATED FROM docs/sources.toml -- do not edit -->
-<!-- SOURCE SHA256: a7e767a3c3c8480b58f45ea92c6b5e9c5891e57fc9e0f1dd53a9b0339f060451 -->
+<!-- SOURCE SHA256: 16fb00bebae49771a103529068fab6dd818906e3f2f7e0673d5d4a4a74be0e8d -->
 
 # Sources
 
@@ -98,6 +98,7 @@ next run of `tools/build_lewis_parameters.py`.
 | [`alves2014`](#alves2014) | literature | reference only | citation |
 | [`andersen1999`](#andersen1999) | literature | shipped | citation + claim |
 | [`aqsoldb`](#aqsoldb) | dataset | shipped | citation |
+| [`armstrong2026synthex`](#armstrong2026synthex) | literature | reference only | citation + claim |
 | [`autodock_vina`](#autodock_vina) | software | shipped | citation + claim |
 | [`avdeef2007`](#avdeef2007) | literature | shipped | citation + claim |
 | [`avdeef2020`](#avdeef2020) | literature | shipped | citation + claim |
@@ -169,12 +170,14 @@ next run of `tools/build_lewis_parameters.py`.
 | [`gavezzotti1983`](#gavezzotti1983) | literature | reference only | citation + claim |
 | [`geidl2015`](#geidl2015) | literature | reference only | citation |
 | [`genheden2020aizynthfinder`](#genheden2020aizynthfinder) | literature | reference only | citation + claim |
+| [`genheden2021ted`](#genheden2021ted) | literature | reference only | citation |
 | [`genheden2022paroutes`](#genheden2022paroutes) | literature | reference only | citation + claim |
 | [`glasser1995`](#glasser1995) | literature | shipped | citation |
 | [`gleiter1972`](#gleiter1972) | literature | shipped | citation + claim |
 | [`goerigk2017`](#goerigk2017) | literature | reference only | citation + claim |
 | [`goller2022`](#goller2022) | literature | shipped | citation + claim |
 | [`guo2006`](#guo2006) | literature | reference only | citation + claim |
+| [`guo2026routeevaluation`](#guo2026routeevaluation) | literature | reference only | citation |
 | [`gutmann1976`](#gutmann1976) | literature | shipped | citation + claim |
 | [`gutmann_frontiers2022`](#gutmann_frontiers2022) | literature | **not shipped** | citation |
 | [`halgren1996_mmff1`](#halgren1996_mmff1) | literature | shipped | citation |
@@ -224,6 +227,7 @@ next run of `tools/build_lewis_parameters.py`.
 | [`kwon2018`](#kwon2018) | literature | reference only | citation |
 | [`kwon2023`](#kwon2023) | dataset | shipped | citation + claim |
 | [`langes15`](#langes15) | reference_table | shipped | citation + claim |
+| [`li2024retrobleu`](#li2024retrobleu) | literature | reference only | citation |
 | [`llinas2008`](#llinas2008) | dataset | shipped | citation |
 | [`llinas2019`](#llinas2019) | dataset | reference only | citation |
 | [`llinas2020`](#llinas2020) | dataset | shipped | citation + claim |
@@ -237,6 +241,7 @@ next run of `tools/build_lewis_parameters.py`.
 | [`maverick2002`](#maverick2002) | literature | reference only | citation + claim |
 | [`mayer1975`](#mayer1975) | literature | reference only | citation |
 | [`mayo1990`](#mayo1990) | literature | shipped | citation + claim |
+| [`maziarz2025syntheseus`](#maziarz2025syntheseus) | literature | reference only | citation |
 | [`mcnutt2021`](#mcnutt2021) | literature | **not shipped** | citation |
 | [`miller1979`](#miller1979) | literature | shipped | citation + claim |
 | [`miller1990`](#miller1990) | literature | shipped | citation + claim |
@@ -244,6 +249,7 @@ next run of `tools/build_lewis_parameters.py`.
 | [`molstar`](#molstar) | software | shipped | citation |
 | [`moore1970`](#moore1970) | literature | shipped | citation + claim |
 | [`moreland1974`](#moreland1974) | literature | shipped | citation |
+| [`morgunov2025retrocast`](#morgunov2025retrocast) | literature | reference only | citation + claim |
 | [`mortier1986`](#mortier1986) | literature | reference only | citation |
 | [`moser2010`](#moser2010) | literature | reference only | citation + claim |
 | [`moss1995`](#moss1995) | literature | reference only | citation |
@@ -297,6 +303,7 @@ next run of `tools/build_lewis_parameters.py`.
 | [`roy1999`](#roy1999) | literature | shipped | citation + claim |
 | [`ruttkies2016`](#ruttkies2016) | literature | reference only | citation |
 | [`sablon2007`](#sablon2007) | literature | shipped | citation + claim |
+| [`saigiridharan2024aizynthfinder4`](#saigiridharan2024aizynthfinder4) | literature | reference only | citation |
 | [`schafer1973`](#schafer1973) | literature | shipped | citation + claim |
 | [`schindler2021`](#schindler2021) | literature | reference only | citation |
 | [`schindler2021_correction`](#schindler2021_correction) | literature | reference only | citation |
@@ -320,6 +327,7 @@ next run of `tools/build_lewis_parameters.py`.
 | [`thompson2002`](#thompson2002) | literature | reference only | citation |
 | [`threedmol`](#threedmol) | software | shipped | citation |
 | [`tolman1977`](#tolman1977) | literature | shipped | citation |
+| [`torrenperaire2024`](#torrenperaire2024) | literature | reference only | citation + claim |
 | [`tosco2011`](#tosco2011) | literature | shipped | citation + claim |
 | [`tosco2014`](#tosco2014) | literature | reference only | citation |
 | [`trofimov2008`](#trofimov2008) | literature | shipped | citation + claim |
@@ -6929,6 +6937,145 @@ outputs); the paper itself was NOT read, so this entry makes no claim about a nu
 | Used by | `docs/SYNTHESIS_HELPER_DESIGN.md` |
 
 **Why it is reference only.** THE PLANNER'S OWN PUBLISHED RESULT AND ITS WARNINGS (read from the open-access full text, PMC7672904): on 100 random ChEMBL compounds with the ZINC-subset stock and the then USPTO policy, AiZynthFinder found a route for 55 and ASKCOS for 62 (47 in common, 30 neither), average search 38.7 s and first solution 7.1 s; the stock, the template library and the target's complexity decide whether a route is found; the route score 'was designed to support the tree search and is rather indiscriminate with regard to the quality of the route'. No reference-route comparison, no feasibility check of the 55 routes and no random seed are reported. The training data it cites is Lowe's USPTO extraction. Author list from the PMC record.
+
+### torrenperaire2024
+
+<a id="torrenperaire2024"></a>
+
+> P. Torren-Peraire, A. K. Hassen, S. Genheden, J. Verhoeven, D.-A. Clevert, M. Preuss & I. V. Tetko, 'Models Matter: the impact of single-step retrosynthesis on synthesis planning', Digital Discovery 2024, 3, 558-572.
+
+| | |
+| --- | --- |
+| Identifier | [10.1039/D3DD00252G](https://doi.org/10.1039/D3DD00252G) |
+| Status | reference only |
+| Verification | citation + claim |
+| Verified | 2026-10-20 |
+| Licence | CC BY 3.0 |
+| Local copy | `torrenperaire2024_models_matter.pdf` (not checked) |
+| Used by | `docs/SYNTHESIS_HELPER_DESIGN.md`, `benchmarks/synthesis/RESULT.md` |
+
+**Why it is reference only.** THE ONLY PUBLISHED NUMBER FOR AiZynthFinder ON PaRoutes SET-N1 WITH A MODEL THAT EXCLUDES THE REFERENCE ROUTES: AiZynthFinder (template model trained on USPTO-PaRoutes-1M) recovers the gold-standard route for 23.7% of targets at top-1 and 60.7% at top-10 (61.8% at top-50), checked in the main text and in the supporting information Table S7 (top-3 48.5, top-5 56.5), with 200 iterations, the top 50 reactions added at every iteration and an 8-hour limit; the same paper reports success rates of at least 91% for every model and no relationship between success rate and route accuracy. The supporting information (torrenperaire2024_models_matter_si.pdf) was read for Table S7 only. The authors, journal, volume, pages and DOI were checked against the paper's own first page and Crossref. Only the open-access full text and its supporting information were read; the paper's own definition of 'route accuracy' is the PaRoutes one (the reference found among the first n routes), not restated.
+
+### maziarz2025syntheseus
+
+<a id="maziarz2025syntheseus"></a>
+
+> K. Maziarz, A. Tripp, G. Liu et al., 'Re-evaluating retrosynthesis algorithms with Syntheseus', Faraday Discussions 2025, 256.
+
+| | |
+| --- | --- |
+| Identifier | [10.1039/D4FD00093E](https://doi.org/10.1039/D4FD00093E) |
+| Status | reference only |
+| Verification | citation |
+| Verified | 2026-10-20 |
+| Local copy | `maziarz2025_syntheseus.pdf` (not checked) |
+| Used by | `docs/SYNTHESIS_HELPER_DESIGN.md` |
+
+**Why it is reference only.** THE NEXT CANDIDATE PLANNER AND EVALUATION FRAMEWORK, NOT USED: a benchmarking library for single-step models and multi-step planners that argues inconsistent comparisons have hidden weaknesses. Read for its best-practice list (the leakage pitfall S5 on atom mapping and the dataset-selection pitfall S6, which warns against unrealistic assumptions on pre-training data) and its abstract; the experiments were not read in full. The arXiv version (2310.19796) is the same text with the supporting information inside.
+
+### saigiridharan2024aizynthfinder4
+
+<a id="saigiridharan2024aizynthfinder4"></a>
+
+> L. Saigiridharan, A. K. Hassen, H. Lai, P. Torren-Peraire, O. Engkvist & S. Genheden, 'AiZynthFinder 4.0: developments based on learnings from 3 years of industrial application', J. Cheminform. 2024, 16, 57.
+
+| | |
+| --- | --- |
+| Identifier | [10.1186/s13321-024-00860-x](https://doi.org/10.1186/s13321-024-00860-x) |
+| Status | reference only |
+| Verification | citation |
+| Verified | 2026-10-20 |
+| Licence | CC BY 4.0 |
+| Local copy | `saigiridharan2024_aizynthfinder4.pdf` (not checked) |
+| Used by | `docs/SYNTHESIS_HELPER_DESIGN.md` |
+
+**Why it is reference only.** THE VERSION OF THE PLANNER THE SPIKE INSTALLED (4.4.1 is the later release): the paper describes the filter policy, support for any one-step model, the scoring framework (the default scorer rests on tree depth and the fraction of starting material in stock; Badowski's route cost is one alternative) and a large-scale analysis in which the number of routes found is above 100 for every target set while solved routes are fewer than 100. The authors, journal, volume and article number were checked against the paper's own first page. The run-time defaults the benchmark depends on (routes returned: at least 5 and at most 25 unless all solved routes are requested) were read from the installed package's source, not from this paper. The supporting information (saigiridharan2024_aizynthfinder4_si.docx) was not opened.
+
+### li2024retrobleu
+
+<a id="li2024retrobleu"></a>
+
+> J. Li, L. Fang & J.-G. Lou, 'Retro-BLEU: quantifying chemical plausibility of retrosynthesis routes through reaction template sequence analysis', Digital Discovery 2024, 3, 482-490.
+
+| | |
+| --- | --- |
+| Identifier | [10.1039/D3DD00219E](https://doi.org/10.1039/D3DD00219E) |
+| Status | reference only |
+| Verification | citation |
+| Verified | 2026-10-20 |
+| Licence | CC BY 3.0 |
+| Local copy | `li2024_retro_bleu.pdf` (not checked) |
+| Used by | `docs/SYNTHESIS_HELPER_DESIGN.md` |
+
+**Why it is reference only.** A POSSIBLE SOFTER ROUTE-AGREEMENT MEASURE, NOT USED: adapts BLEU to a route's sequence of reaction templates, evaluated on routes from PaRoutes made with AiZynthFinder and Retro*. Only the abstract and the evaluation set-up were read. The authors, journal, volume and pages were checked against the paper's own first page; the DOI is the one the publisher's page carries.
+
+### genheden2021ted
+
+<a id="genheden2021ted"></a>
+
+> S. Genheden, O. Engkvist & E. Bjerrum, 'Clustering of synthetic routes using tree edit distance', J. Chem. Inf. Model. 2021, 61, 3899-3907.
+
+| | |
+| --- | --- |
+| Identifier | [10.1021/acs.jcim.1c00232](https://doi.org/10.1021/acs.jcim.1c00232) |
+| Status | reference only |
+| Verification | citation |
+| Verified | 2026-10-20 |
+| Local copy | `genheden2021_ted_clustering.pdf` (not checked) |
+| Used by | `docs/SYNTHESIS_HELPER_DESIGN.md`, `benchmarks/synthesis/RESULT.md` |
+
+**Why it is reference only.** THE ROUTE-SIMILARITY MEASURE PaRoutes SCORES WITH: a tree edit distance between two routes using molecule and reaction fingerprint similarity. The DOI was confirmed through the registered supporting-information record (10.1021/acs.jcim.1c00232.s002) and the ChemRxiv preprint; the authors, volume and pages were checked against the paper's own first page. That the PaRoutes top-n scripts count a reference as found only when this distance is below 1e-6 is from the PaRoutes repository's analysis/route_quality.py (read 2026-10-20), not from this paper.
+
+### morgunov2025retrocast
+
+<a id="morgunov2025retrocast"></a>
+
+> A. Morgunov & V. S. Batista, 'Procrustean Bed for AI-Driven Retrosynthesis: A Unified Framework for Reproducible Evaluation', arXiv:2512.07079 (2025), preprint.
+
+| | |
+| --- | --- |
+| Identifier | [10.48550/arXiv.2512.07079](https://doi.org/10.48550/arXiv.2512.07079) |
+| Status | reference only |
+| Verification | citation + claim |
+| Verified | 2026-10-20 |
+| Local copy | `morgunov2025_retrocast.pdf` (not checked) |
+| Used by | `docs/SYNTHESIS_HELPER_DESIGN.md` |
+
+**Why it is reference only.** A PREPRINT (not peer reviewed). Two statements were checked against its text: that PaRoutes showed models with over 97% stock-termination rate reproducing the ground-truth route with only 35 to 50% top-10 accuracy (the range our measured 0.373 falls in, though the figure is the authors' summary of other work and its sources were not traced), and that rank-dependent metrics such as top-K depend on which population of outputs is ranked (they filter for structure and stock before ranking). It also proposes that the whole PaRoutes n1 and n5 sets be excluded from any training corpus. The 'complexity cliff' claim was read in the abstract only.
+
+### guo2026routeevaluation
+
+<a id="guo2026routeevaluation"></a>
+
+> Y. Guo, M. Kabeshov, T. H. D. Le, S. Genheden, M. V. Mijangos, V. Voinarvoska, G. Bergonzini, O. Engkvist & S. Kaski, 'Bridging Chemists and AI: An Expert-Augmented Framework for Interpretable Route Evaluation', arXiv:2605.29108 (2026), preprint.
+
+| | |
+| --- | --- |
+| Identifier | [10.48550/arXiv.2605.29108](https://doi.org/10.48550/arXiv.2605.29108) |
+| Status | reference only |
+| Verification | citation |
+| Verified | 2026-10-20 |
+| Local copy | `guo2026_route_evaluation.pdf` (not checked) |
+| Used by | `docs/SYNTHESIS_HELPER_DESIGN.md` |
+
+**Why it is reference only.** A PREPRINT (not peer reviewed). Argues data-driven route evaluators lean on patent routes as proxies for expert-validated routes, and trains a route scorer on tree edit distances fine-tuned with expert chemists' ratings. Only the abstract and introduction were read; its numbers were not checked.
+
+### armstrong2026synthex
+
+<a id="armstrong2026synthex"></a>
+
+> D. Armstrong, X.-V. Nguyen, O. Susanu et al., 'Strategy-first synthesis planning for complex natural products', arXiv:2608.07454 (2026), preprint.
+
+| | |
+| --- | --- |
+| Identifier | [10.48550/arXiv.2608.07454](https://doi.org/10.48550/arXiv.2608.07454) |
+| Status | reference only |
+| Verification | citation + claim |
+| Verified | 2026-10-20 |
+| Local copy | `armstrong2026_synthex.pdf` (not checked) |
+| Used by | `docs/SYNTHESIS_HELPER_DESIGN.md` |
+
+**Why it is reference only.** A PREPRINT (not peer reviewed). Its own statement about AiZynthFinder as a baseline was checked in the text: on 1,098 natural products from the authors' NP set, with a depth limit of 25 and 30 minutes per target, AiZynthFinder solved 13.8% (151 of 1,098), and 80% of structurally undemanding targets. It also says that patent-derived benchmarks (USPTO-190, PaRoutes, Pistachio-Hard) are close to saturated. These are the authors' claims about their own comparison and were not reproduced; the rest was not read in full. Relevant to the limits of what a USPTO-trained planner can say about complex targets, not to the PaRoutes result.
 
 ## Datasets
 

@@ -124,10 +124,70 @@ uv run --no-sync python benchmarks/synthesis/run_quality.py report --paroutes "D
 
 `run` resumes after an interruption and prints one line per target. Expect about three hours. Same rules as the proton-affinity and bond-dissociation runs: no edit to `src/` between the first search and the report, nothing changed after the report is seen, and the verdict stands. The result is its own PR.
 
+## The quality benchmark result (run 2026-10-19 to 2026-10-20): PARTIAL
+
+Full record in `benchmarks/synthesis/RESULT.md`. From the frozen commit, 300 seeded set-n1 targets, no failures:
+
+| Claim | Result | Verdict |
+|---|---|---|
+| A route was returned (solved with the set stock) | 0.967 (bar 0.90) | PASS |
+| The reference route is among the first 10 returned | **0.373** (PASS 0.50, PARTIAL 0.35) | **PARTIAL** |
+| The first route is fully validated | 0.993 (bar 0.95) | PASS |
+| The solved flag is identical across three runs | 20 of 20 (bar 19) | PASS |
+
+* **Why the third claim falls short, from the diagnostics (which decide nothing):** recovery depends on how deep the reference is (0.81 at depth 2, 0.29 at depth 3, 0.02 at depth 4) while the solved fraction stays 0.92 to 1.00 at every depth; the median first solution is at iteration 1 and **48% of first routes are shorter than the reference**, so the planner finds routes, often shorter ones, that are not the patent's. In 53% of targets one of the first 10 routes has exactly the reference's starting materials. It also returns few routes (median 11, 42% of targets under 10).
+* **The preregistered caveat cuts both ways and the verdict stands:** the public models are probably trained on these reference reactions (so 0.373 is not a generalisation figure, and a rate below the published 0.61 is the red flag the preregistration named), while the exact-reaction-set rule is harsher than the paper's tree-edit-distance credit.
+* **Cost, corrected:** 5.3 h of wall time for 340 searches (the preregistration said about three), a median 54 s of search per target, **peak 2.75 GB** with the set stock (the preregistration said under 1 GB; withdrawn).
+* **Not deterministic in its tree:** the solved flag and the recovery outcome were identical on all 20 repeated targets, but the node count differed on all 20 and the route count on 3.
+
+**Decision (Alex, 2026-10-20): continue to Stage 1 with the narrowed claim (option 2).** The product says "valid, repeatable routes that often differ from the patent route", never "known routes", and states 0.373 and its depth dependence beside any route. **Option 3 (re-measure on cleaner footing) is deferred, recorded as a to-do, not dropped:** it needs a new preregistration and either the PaRoutes-excluded Keras model (TensorFlow in the planner environment, the NumPy pin it may clash with, and no record yet read that says it excludes these reference reactions) or a non-USPTO reference set (a short list of literature routes Alex would supply, which would say more about generalisation than the Keras model), plus roughly another five hours of run time. It would sharpen the contamination caveat; it would not change the wording the product ships with. Option 1 (stop) was not taken.
+
+**Decision left to Alex, as it stood when the result was written** (no option taken then): stop and name the next candidate; continue to Stage 1 with the claim narrowed to what passed (valid, repeatable routes that often differ from the patent route, with 0.373 and the depth dependence stated beside any route); or re-measure on a cleaner footing under a new preregistration (the PaRoutes-excluded Keras model, which needs TensorFlow and the NumPy conflict, or a non-USPTO reference set).
+
+## After the result: the literature read, and a protocol difference it found (2026-10-20)
+
+Alex supplied eight papers after the result was written (all registered in `docs/sources.toml`: `torrenperaire2024`, `maziarz2025syntheseus`, `saigiridharan2024aizynthfinder4`, `li2024retrobleu`, `genheden2021ted`, `morgunov2025retrocast`, `guo2026routeevaluation`, `armstrong2026synthex`). **None of this changes the verdict, which stands as measured under the frozen protocol.** It changes what the number can be taken to mean, and it corrects two sentences of the preregistration (which is not edited; this is the correction).
+
+* **What "found" means in PaRoutes' own script.** `analysis/route_quality.py` of the PaRoutes repository (read 2026-10-20) counts a reference route as found only when the tree edit distance to a predicted route is below 1e-6, takes the top-k by rank, does no deduplication and leaves unsolved routes in the ranking. So the published top-n is an exact-match count, and **the preregistration's sentence that our exact-reaction-set rule is "stricter than the paper's tree edit distance, which gives credit for similar routes" is wrong for top-n accuracy** (the credit belongs to the similarity measure, not to the count). The two rules are of comparable strictness; ours keeps stereochemistry, theirs compares fingerprints.
+* **Stereochemistry is ruled out as the cause.** Re-scoring all 300 saved first-run results with stereo ignored gives the same 0.157, 0.343 and 0.373 at ranks 1, 5 and 10 (60 of the 300 reference routes carry stereo marks; their recovery is 0.383 either way).
+* **The route pool and its ranking differ, and they are configuration, not code.** Our runner called `build_routes()` with its defaults: at least 5 and at most 25 routes, `return_all` false, ranked by the default state score (`post_processing.min_routes`, `max_routes` and `all_routes`, `RouteSelectionArguments` in the installed 4.4.1, read from the package source). The median number of routes we returned was 11. The PaRoutes paper extracted a median of **273** routes per target with MCTS (its Table 2) and ranked them with Badowski's route cost with artificial leaf costs; AiZynthFinder 4.4.1 has both (`all_routes` and the `route cost` scorer). **Our recorded results hold only the routes returned, so recovery among solved routes that were not returned, or after a different ranking, cannot be recomputed from them. It needs a new search.** That this explains the gap is a hypothesis, not a finding.
+* **Published reference points.** PaRoutes: top-1 0.20, top-5 0.55, top-10 0.61 for MCTS on set-n1, with a model that excludes the reference reactions. Torren-Peraire et al. (200 iterations, top-50 reactions added per iteration) report 23.7%, 56.5% and 60.7% for AiZynthFinder with a model trained on the reference-excluding USPTO-PaRoutes-1M set, and 61.8% at top-50 (their Table S7). Ours: **0.157, 0.343, 0.373** with a public model that is probably *not* reference-excluding. A model that has seen the reference reactions should score higher, not lower, so the preregistration's red flag (a rate below the published figure) stands and its likeliest causes are protocol ones. Morgunov and Batista summarise PaRoutes as showing 35 to 50% top-10 accuracy for models with over 97% stock-termination, a range that contains ours (their figure is a summary of other work, not traced).
+* **Other evidence on what a PARTIAL here means.** The same papers say a solved route only means its leaves are in stock (Morgunov and Batista), that patent routes are a weak proxy for expert-validated ones (Guo et al., abstract; PaRoutes itself says other routes could be as effective as the reference), and that on 1,098 complex natural products AiZynthFinder solves 13.8% (Armstrong et al., the authors' own comparison, not reproduced). All support the narrowed wording ("valid, repeatable routes that often differ from the patent route"); none supports "known routes".
+
+**Option 3 is therefore reframed, and the advice given on 2026-10-20 to defer it is revised.** That advice said a cleaner measurement would not change what ships; the protocol difference above means the PARTIAL itself may be partly a measurement artifact. Three variants, none run, each needing its own preregistration:
+
+* **3a. Re-measure with the paper's extraction on the existing install:** `all_routes` true and the `route cost` scorer, the same public model and stock, the same 300 targets. They are no longer fresh (they were seen), so this is a paired comparison with the first run, not a second gate; about 5 hours; no new software or download. Decides whether 0.373 was the pool and ranking.
+* **3b. The reference-excluding Keras model** (TensorFlow in the planner environment and the NumPy pin it may clash with; no record read says its training set excludes these exact reactions beyond the paper's statement).
+* **3c. A non-USPTO reference set** (literature routes Alex would supply).
+
+**3a is `benchmarks/synthesis/PREREGISTRATION_2.md`: all seven choices approved by Alex on 2026-10-20, built, tested and frozen with its runner; NOT run (see "To run: protocol 2" below).** Reading PaRoutes' scripts also showed that its "top-10" counts every route in the first 10 score *levels* (equal scores share a rank), so it is not a count of 10 routes; the draft therefore measures both that (M1, which decides, because the bars were set against it) and the first 10 routes (M2, which any product wording must quote).
+
+Stage 1 does not wait on any of them: the route domain and the regulatory gate do not depend on how many routes a search returns. The decision the product does depend on, how many routes to ask the planner for and how to rank them, is made in slice 3 (the runner) and is better made after 3a.
+
+## To run: protocol 2 of the quality benchmark (recorded 2026-10-20; NOT run, to be started by Alex)
+
+Option 3a, approved in full on 2026-10-20 (`benchmarks/synthesis/PREREGISTRATION_2.md`, frozen on the commit that adds its runner). It needs the same planner environment and data as protocol 1 (`D:\_scratch\aizynth\`: `env\Scripts\python.exe`, `data\`; PaRoutes files in `D:\_scratch\aizynth\paroutes\`, MD5 checked) and **protocol 1's `artifacts/` folder** (its `draw.json`, `verdict.json`, committed records and, if still on disk, its InChI-key stock). From the repository root, with nothing else using the machine; **not at the same time as the proton-affinity or bond-dissociation ORCA runs** (one long job at a time):
+
+```bash
+uv run --no-sync python benchmarks/synthesis/run_quality_2.py draw   --paroutes "D:/_scratch/aizynth/paroutes"
+uv run --no-sync python benchmarks/synthesis/run_quality_2.py stock  --paroutes "D:/_scratch/aizynth/paroutes" --planner-python "D:/_scratch/aizynth/env/Scripts/python.exe"
+uv run --no-sync python benchmarks/synthesis/run_quality_2.py run    --paroutes "D:/_scratch/aizynth/paroutes" --planner-python "D:/_scratch/aizynth/env/Scripts/python.exe" --planner-data "D:/_scratch/aizynth/data"
+uv run --no-sync python benchmarks/synthesis/run_quality_2.py status
+uv run --no-sync python benchmarks/synthesis/run_quality_2.py report --paroutes "D:/_scratch/aizynth/paroutes"
+```
+
+Then, optionally and deciding nothing, the official-metric check in its own environment (the planner's must not be used for it):
+
+```bash
+"D:/_scratch/route_distances_env/Scripts/python.exe" -I benchmarks/synthesis/official_check.py --paroutes "D:/_scratch/aizynth/paroutes"
+```
+
+`draw` copies protocol 1's draw and stops if it does not reproduce from the seed; `stock` says whether the stock is identical to protocol 1's; `run` resumes after an interruption. **Expect about 5.5 hours** (340 searches, as protocol 1 measured 5.3 h; extraction of every solved route takes a fraction of a second) and a peak of about 2.75 GB. **The raw records are large**: every solved route is kept (about 12 KB each as JSON), so expect up to about 1 GB uncompressed (one target with 341 routes was 4.1 MB) in `benchmarks/synthesis/artifacts_protocol2/`; gzip them before committing and commit the raw files only if they are small. The report writes `report.txt`, `verdict.json` and `table.json`; the figure that decides is M1 at 10 and the one any product wording must quote is M2. Same rules as for protocol 1: no edit to `src/` between the first search and the report, nothing changed after the report is seen, the verdict stands, and no further variant is run to chase a better number. The result is its own PR.
+
 ## Where the spike stands
 
-0a to 0e are done: the install, the fixtures, the validator, and the preregistration with its tested judge, matching rule and runner. **No verdict yet**: the quality run has not been run (it is recorded above as Alex's to start). What the spike has established so far: the install route is reproducible only with a pin the README does not carry; the planner needs about 5 GB of memory to start; its routes are internally consistent and carry real atom maps; it gives no reason for stopping and no conditions; and the public models are probably contaminated on the standard benchmark.
+Stage 0 is complete and the verdict is **PARTIAL** (above). On 2026-10-20 Alex chose to continue to Stage 1 with the narrowed claim; option 3 (re-measure) is deferred. What the spike has established so far: the install route is reproducible only with a pin the README does not carry; the planner needs about 5 GB of memory to start; its routes are internally consistent and carry real atom maps; it gives no reason for stopping and no conditions; and the public models are probably contaminated on the standard benchmark.
 
-## Stage 1 (only on a GO)
+## Stage 1 (authorized 2026-10-20 on the narrowed claim of a PARTIAL; each slice still waits for Alex's merge)
 
 As the approved plan: route domain, internal provider seam, the runner and parser, `SynthesisPlanningService`, the regulatory gate in the shared service path, per-node annotations, the locate-only External Tools tab, the UI with `context.synthesis` and the reaction-SVG function, the confirm-gated assistant tool, docs and registries. Each slice its own PR; the external process isolated throughout (the pKa runner pattern); nothing merged without Alex's go.

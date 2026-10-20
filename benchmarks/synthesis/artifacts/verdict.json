@@ -1,0 +1,22 @@
+{
+ "overall": "PARTIAL",
+ "problem": null,
+ "claims": {
+  "solved": {
+   "value": 0.9666666666666667,
+   "verdict": "PASS"
+  },
+  "recovered": {
+   "value": 0.37333333333333335,
+   "verdict": "PARTIAL"
+  },
+  "valid": {
+   "value": 0.9932885906040269,
+   "verdict": "PASS"
+  },
+  "stable": {
+   "value": 20.0,
+   "verdict": "PASS"
+  }
+ }
+}
