@@ -34,6 +34,11 @@ from collections.abc import Sequence
 from dataclasses import dataclass, field
 from enum import StrEnum
 
+#: What the reachability guard accepts for a module nothing in the application imports YET. The route type is built first and on its own (Stage 1 slice 1); the planning service (slice 4) is its first importer, and the guard then fails this declaration, which is the reminder to delete it.
+REACHED_BY = (
+    "tooling: imported only by tests/test_synthesis_route.py until the synthesis planning service (Stage 1 slice 4 of docs/SYNTHESIS_HELPER_DESIGN.md) imports it; the feature is not yet reachable from the window"
+)
+
 #: The version of this structure. Results are session-only in v1, so nothing is read back yet; the number is here so the
 #: first thing that is stored does not have to guess what it holds.
 SYNTHESIS_ROUTE_FORMAT = 1
