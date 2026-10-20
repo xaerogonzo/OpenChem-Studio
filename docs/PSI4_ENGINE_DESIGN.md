@@ -109,6 +109,12 @@ Run exactly as `benchmarks/psi4_agreement/PLAN.md` froze it (commit `7bc3d20c`, 
 For the record only (not judged): the median Psi4 minus ORCA is +0.09 to +0.49 mEh in every one of the 15 combinations (M062X the largest), always positive, with no trace of the 37 mEh or 1.8 mEh errors found earlier; the largest single difference is 0.75 mEh. Density fitting does not explain the offset (the `pk` reruns moved cells by tens of microhartree). One Psi4 `gau_tight` pyridine optimization did not converge in 50 iterations.
 **Next, if wanted:** a new plan that settles the Psi4 default for Pople bases (density fitting against `pk`) and the HF floor's variants before any run. Not started. The stage-2 item in "Deferred" above is done; items 2 to 5 remain deferred.
 
+## Stage 2 result, version 2 (2026-10-20): NOT EVALUABLE again, for a different reason
+
+After version 1, the engine was changed to write exact integrals (`scf_type pk`, commit `a6741657`, decided by Alex) and a second preregistered plan was run (`benchmarks/psi4_agreement/PLAN_V2.md`, commit `68c3f8f1`, about 2 h 25 min). **The floors are now small** (HF 0.0000 mEh, DFT 0.063 mEh; tolerances 0.01 and 0.126 mEh), and **HF agrees with ORCA to the microhartree** (median 0.000 mEh in all three bases).
+**Verdict NOT EVALUABLE: 1 of 16 Psi4 optimizations is missing (6.2%, limit 5%)**, and the cause is an engine bug the run found: Psi4 prints chlorine as `CL` in the final geometry and the parser accepted only `Cl`, so every converged Psi4 optimization of a chlorine-containing molecule was refused. Fixed in its own commit afterwards.
+Not judged: the DFT energies sit a steady +0.2 to +0.4 mEh (median) above ORCA's, below the 0.5 mEh systematic threshold and above the 0.126 mEh tolerance; unexplained by density fitting. A third plan (same as version 2 on the fixed parser) is the next step, and also needs to settle the pyridine `tight` optimization floor job that exceeds the 30-minute cap. Not started.
+
 ## How it is validated before it is offered (the project standard: claims are measured)
 
 1. **The parser is written against real output**, saved as fixtures (`tests/fixtures/psi4/`), never against what the manual says it prints; a mutation check on it, as for every parser here.
