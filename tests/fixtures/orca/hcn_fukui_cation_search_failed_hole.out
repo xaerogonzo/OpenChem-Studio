@@ -1,0 +1,357 @@
+                         Program Version 6.1.1  -  RELEASE   -
+
+================================================================================
+                                       INPUT FILE
+================================================================================
+NAME = C:\Users\pmpd\AppData\Local\Temp\fukui_v2_fixtures_2ibttj6_\hcn_fukui_cation_search_failed_hole\job.inp
+|  1> ! B3LYP 6-31G*
+
+|  2> %scf
+
+|  3>   HFTyp RHF
+
+|  4> end
+
+|  5> %method
+
+|  6>   IntAcc 6.0
+
+|  7> end
+
+|  8> %output
+
+|  9>   Print[P_Hirshfeld] 1
+
+| 10> end
+
+| 11> * xyz 0 1
+
+| 12> C       -0.028892      0.000975      0.000000
+
+| 13> N        1.127654     -0.037938     -0.000000
+
+| 14> H       -1.098762      0.036963     -0.000000
+
+| 15> *
+
+| 16> 
+
+| 17> $new_job
+
+| 18> ! B3LYP 6-31G*
+
+| 19> %scf
+
+| 20>   HFTyp UHF
+
+| 21> end
+
+| 22> %method
+
+| 23>   IntAcc 6.0
+
+| 24> end
+
+| 25> %output
+
+| 26>   Print[P_Hirshfeld] 1
+
+| 27> end
+
+| 28> * xyz 1 2
+
+| 29> C       -0.028892      0.000975      0.000000
+
+| 30> N        1.127654     -0.037938     -0.000000
+
+| 31> H       -1.098762      0.036963     -0.000000
+
+| 32> *
+
+| 33> 
+
+| 34> $new_job
+
+| 35> ! B3LYP 6-31G*
+
+| 36> %scf
+
+| 37>   HFTyp UHF
+
+| 38> end
+
+| 39> %method
+
+| 40>   IntAcc 6.0
+
+| 41> end
+
+| 42> %output
+
+| 43>   Print[P_Hirshfeld] 1
+
+| 44> end
+
+| 45> * xyz -1 2
+
+| 46> C       -0.028892      0.000975      0.000000
+
+| 47> N        1.127654     -0.037938     -0.000000
+
+| 48> H       -1.098762      0.036963     -0.000000
+
+| 49> *
+
+| 50> 
+
+| 51> $new_job
+
+| 52> ! B3LYP 6-31G* MORead
+
+| 53> %moinp "job.gbw"
+
+| 54> %scf
+
+| 55>   HFTyp UHF
+
+| 56>   Rotate {5, 6, 90, 1, 1} end
+
+| 57> end
+
+| 58> %method
+
+| 59>   IntAcc 6.0
+
+| 60> end
+
+| 61> %output
+
+| 62>   Print[P_Hirshfeld] 1
+
+| 63> end
+
+| 64> * xyz 1 2
+
+| 65> C       -0.028892      0.000975      0.000000
+
+| 66> N        1.127654     -0.037938     -0.000000
+
+| 67> H       -1.098762      0.036963     -0.000000
+
+| 68> *
+
+| 69> 
+
+| 70> $new_job
+
+| 71> ! B3LYP 6-31G* MORead
+
+| 72> %moinp "job.gbw"
+
+| 73> %scf
+
+| 74>   MaxIter 2
+
+| 75>   HFTyp UHF
+
+| 76>   Rotate {4, 6, 90, 1, 1} end
+
+| 77> end
+
+| 78> %method
+
+| 79>   IntAcc 6.0
+
+| 80> end
+
+| 81> %output
+
+| 82>   Print[P_Hirshfeld] 1
+
+| 83> end
+
+| 84> * xyz 1 2
+
+| 85> C       -0.028892      0.000975      0.000000
+
+| 86> N        1.127654     -0.037938     -0.000000
+
+| 87> H       -1.098762      0.036963     -0.000000
+
+| 88> *
+
+| 89> 
+
+| 90> $new_job
+
+| 91> ! B3LYP 6-31G* MORead
+
+| 92> %moinp "job.gbw"
+
+| 93> %scf
+
+| 94>   HFTyp UHF
+
+| 95>   Rotate {3, 6, 90, 1, 1} end
+
+| 96> end
+
+| 97> %method
+
+| 98>   IntAcc 6.0
+
+| 99> end
+
+|100> %output
+
+|101>   Print[P_Hirshfeld] 1
+
+|102> end
+
+|103> * xyz 1 2
+
+|104> C       -0.028892      0.000975      0.000000
+
+|105> N        1.127654     -0.037938     -0.000000
+
+|106> H       -1.098762      0.036963     -0.000000
+
+|107> *
+
+|108> 
+|109>                          ****END OF INPUT****
+
+ Total Charge           Charge          ....    0
+ Multiplicity           Mult            ....    1
+ Number of Electrons    NEL             ....   14
+-----------------------
+MULLIKEN ATOMIC CHARGES
+-----------------------
+   0 C :    0.018671
+   1 N :   -0.263208
+   2 H :    0.244537
+Sum of atomic charges:    0.0000000
+
+----------------------
+LOEWDIN ATOMIC CHARGES
+----------------------
+   0 C :   -0.112492
+   1 N :   -0.060444
+   2 H :    0.172936
+
+
+----------------
+ORBITAL ENERGIES
+----------------
+
+  NO   OCC          E(Eh)            E(eV) 
+   0   2.0000     -14.355733      -390.6393 
+   1   2.0000     -10.236454      -278.5481 
+   2   2.0000      -0.915745       -24.9187 
+   3   2.0000      -0.605246       -16.4696 
+   4   2.0000      -0.376212       -10.2372 
+   5   2.0000      -0.355425        -9.6716 
+   6   2.0000      -0.355425        -9.6716 
+   7   0.0000       0.024066         0.6549 
+   8   0.0000       0.024066         0.6549 
+   9   0.0000       0.084318         2.2944 
+  10   0.0000       0.282514         7.6876 
+  11   0.0000       0.523239        14.2381 
+  12   0.0000       0.523240        14.2381 
+  13   0.0000       0.647989        17.6327 
+  14   0.0000       0.697891        18.9906 
+  15   0.0000       0.774856        21.0849 
+  16   0.0000       0.774857        21.0849 
+  17   0.0000       0.822201        22.3732 
+
+INITIAL GUESS: MODEL POTENTIAL
+
+------------------
+HIRSHFELD ANALYSIS
+------------------
+
+Total integrated alpha density =      7.000000075
+Total integrated beta density  =      7.000000075
+
+  ATOM     CHARGE      SPIN    
+   0 C    0.067463    0.000000
+   1 N   -0.193780    0.000000
+   2 H    0.126318    0.000000
+
+  TOTAL  -0.000000    0.000000
+
+FINAL SINGLE POINT ENERGY       -93.368193872298
+
+ Total Charge           Charge          ....    1
+ Multiplicity           Mult            ....    2
+ Number of Electrons    NEL             ....   13
+INITIAL GUESS: MOREAD
+Expectation value of <S**2>     :     0.751424
+Ideal value S*(S+1) for S=0.5   :     0.750000
+
+------------------
+HIRSHFELD ANALYSIS
+------------------
+
+Total integrated alpha density =      7.000000074
+Total integrated beta density  =      6.000000073
+
+  ATOM     CHARGE      SPIN    
+   0 C    0.503585    0.417075
+   1 N    0.255570    0.575599
+   2 H    0.240845    0.007327
+
+  TOTAL   1.000000    1.000000
+
+FINAL SINGLE POINT ENERGY       -92.874272156440
+
+ Total Charge           Charge          ....   -1
+ Multiplicity           Mult            ....    2
+ Number of Electrons    NEL             ....   15
+INITIAL GUESS: MOREAD
+Expectation value of <S**2>     :     0.752199
+Ideal value S*(S+1) for S=0.5   :     0.750000
+
+------------------
+HIRSHFELD ANALYSIS
+------------------
+
+Total integrated alpha density =      8.000000064
+Total integrated beta density  =      7.000000074
+
+  ATOM     CHARGE      SPIN    
+   0 C   -0.375080    0.466948
+   1 N   -0.600410    0.475201
+   2 H   -0.024511    0.057851
+
+  TOTAL  -1.000000    1.000000
+
+FINAL SINGLE POINT ENERGY       -93.222608188024
+
+ Total Charge           Charge          ....    1
+ Multiplicity           Mult            ....    2
+ Number of Electrons    NEL             ....   13
+INITIAL GUESS: MOREAD
+Expectation value of <S**2>     :     0.751424
+Ideal value S*(S+1) for S=0.5   :     0.750000
+
+------------------
+HIRSHFELD ANALYSIS
+------------------
+
+Total integrated alpha density =      7.000000073
+Total integrated beta density  =      6.000000056
+
+  ATOM     CHARGE      SPIN    
+   0 C    0.503585    0.417076
+   1 N    0.255570    0.575598
+   2 H    0.240845    0.007327
+
+  TOTAL   1.000000    1.000000
+
+FINAL SINGLE POINT ENERGY       -92.874272168972
+
+ Total Charge           Charge          ....    1
+ Multiplicity           Mult            ....    2
+ Number of Electrons    NEL             ....   13
+INITIAL GUESS: MOREAD

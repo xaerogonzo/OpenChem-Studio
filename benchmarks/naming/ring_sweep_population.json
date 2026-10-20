@@ -1,6 +1,6 @@
 {
  "n_rings": 371,
- "population_sha256": "dfd51894732ef8a2ceec63a0f638c12ca479287a3b1ec584c93a4c7285b11080",
+ "population_sha256": "97ed61411f61271ee739fc8f8a50d90478e6e0a8a651f9fcb34920f9bf34c5ef",
  "purpose": "the frozen ring denominator for tools/naming_ring_locant_sweep.py (naming round 13)",
  "rings": [
   {
@@ -13153,8 +13153,14 @@
   },
   {
    "atoms": 5,
-   "has_atom_locants": false,
-   "locant_atoms": [],
+   "has_atom_locants": true,
+   "locant_atoms": [
+    0,
+    1,
+    2,
+    3,
+    4
+   ],
    "name": "1,3,4-oxadiazole",
    "sites": [
     0,
@@ -13171,8 +13177,14 @@
   },
   {
    "atoms": 5,
-   "has_atom_locants": false,
-   "locant_atoms": [],
+   "has_atom_locants": true,
+   "locant_atoms": [
+    0,
+    1,
+    2,
+    3,
+    4
+   ],
    "name": "1,3,4-thiadiazole",
    "sites": [
     0,

@@ -922,6 +922,28 @@ which carbons they are, and nothing about any atom that is not carbon.
 
 ---
 
+## Derived scores (formulas you write)
+
+A derived score is a formula a person wrote over numbers the application computes. **It is not a prediction, and nothing has
+checked it.** That is why it is labelled *user-defined, unvalidated* wherever it appears, and why its name may not be close to the
+name of a calculator or of an output the application provides.
+
+- **It can only be as good as what it reads.** A score over the polar surface area inherits that number's limits (see
+  "Drug-likeness and complexity scores"); a score over a calculator's number inherits that calculator's section here.
+- **The shape of the formula is yours.** `ramp(psa, 140, 60)` says a polar surface area of 140 Å² scores 0 and 60 Å² scores 1.
+  Where those ends sit, and how scores are weighted and added, are choices nothing validates, and a weighted sum of desirabilities
+  looks more rigorous than it is.
+- **Two estimates of one quantity cannot be combined.** A consensus of predictors needs its own benchmark showing it adds
+  information, and none has been run. The refusal comes from a reviewed tag on each readable number; a tag is a judgement and can be
+  wrong.
+- **It reads the drawing, not a conformer.** Today every readable number is a number of the structure as drawn, with its hydrogens
+  implicit. A number that exists only for a 3D conformer is not offered until the rule for which conformer it reads is built; that
+  rule is decided (the conformer every calculation already gets) and recorded in `docs/DERIVED_SCORES_DESIGN.md`.
+- **A default is an assumption, not a result.** A number that used one says so everywhere it appears, and a score that would be
+  worked out from defaults alone is refused.
+- **A table is a snapshot.** A score column is as current as the run that filled the table; the Results page for one molecule is
+  worked out against the structure as it is now.
+
 <!-- help:limits-admet -->
 ## ADMET
 

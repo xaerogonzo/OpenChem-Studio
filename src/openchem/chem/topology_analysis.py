@@ -11,11 +11,18 @@ All confirmed live. Balaban J is RDKit's own `Descriptors.BalabanJ`.
 
 The SZEGED INDEX is now included, validated by a THEOREM rather than by a
 reference value: for any acyclic graph the Szeged and Wiener indices are
-equal (Gutman 1994), and for a cyclic graph Szeged strictly exceeds
-Wiener. Checked live -- n-butane 10 = 10, isobutane 9 = 9, benzene 54 > 27,
-naphthalene 243 > 109. That identity pins the implementation more firmly
-than agreeing with one tool's output would, since it cannot be satisfied
-by accident.
+equal (Gutman 1994). Checked live -- n-butane 10 = 10, isobutane 9 = 9.
+That identity pins the implementation more firmly than agreeing with one
+tool's output would, since it cannot be satisfied by accident.
+
+THE OTHER HALF OF THAT SENTENCE CLAIMED MORE THAN HAD BEEN MEASURED. It said
+that on a cyclic graph Szeged "strictly exceeds" Wiener. It does on every
+molecule with a ring of four or more atoms that was tried (cyclobutane 16 >
+8, cyclopentane 20 > 15, benzene 54 > 27, cycloheptane 63 > 42,
+bicyclobutane 9 > 7), and it does NOT where every ring is a triangle:
+cyclopropane, oxirane, aziridine and spiropentane are equal (3 = 3, 3 = 3,
+3 = 3, 14 = 14). Found 2026-10-15 by a test that asserted the old sentence
+on cyclopropane.
 
     (Mordred was investigated as a cross-check and does NOT implement it:
     its `SZ` descriptor is "sum of constitutional descriptor", giving 5.67
@@ -49,6 +56,7 @@ values.
 from __future__ import annotations
 
 import math
+from dataclasses import replace
 from typing import Any
 
 from rdkit import Chem
@@ -77,8 +85,9 @@ def harary_index(mol: Chem.Mol) -> float:
     reciprocal analogue, so close pairs dominate instead of distant ones."""
     matrix = _distance_matrix(mol)
     count = mol.GetNumAtoms()
-    return sum(
-        1.0 / matrix[i][j] for i in range(count) for j in range(i + 1, count) if matrix[i][j]
+    # `float(...)`: the sum of an empty generator is the int 0 and the sum of NumPy elements is a NumPy float, and the project file's codec takes only an exact `float`.
+    return float(
+        sum(1.0 / matrix[i][j] for i in range(count) for j in range(i + 1, count) if matrix[i][j])
     )
 
 
@@ -111,9 +120,12 @@ def platt_index(mol: Chem.Mol) -> int:
 def randic_index(mol: Chem.Mol) -> float:
     """Sum over bonds of 1/sqrt(deg(a)*deg(b)) -- the classic connectivity
     index (chi-1). Benzene 3.000, n-butane 1.914 (confirmed)."""
-    return sum(
-        1.0 / math.sqrt(bond.GetBeginAtom().GetDegree() * bond.GetEndAtom().GetDegree())
-        for bond in mol.GetBonds()
+    # `float(...)` for the reason `harary_index` gives: a molecule with no bond summed to the int 0.
+    return float(
+        sum(
+            1.0 / math.sqrt(bond.GetBeginAtom().GetDegree() * bond.GetEndAtom().GetDegree())
+            for bond in mol.GetBonds()
+        )
     )
 
 
@@ -178,9 +190,13 @@ def cyclomatic_number(mol: Chem.Mol) -> int:
 def ring_counts(mol: Chem.Mol) -> dict[str, int]:
     """The ring-related counts from Marvin's Topology Analysis list.
 
-    Aromatic ring count can exceed what SSSR alone reports for a
-    macroaromatic system, which is why RDKit's own aromatic-ring count is
-    used rather than filtering the SSSR set.
+    The aromatic ring count here FILTERS the SSSR rings to those whose atoms
+    are all aromatic. This docstring used to say RDKit's own aromatic-ring
+    count was used instead, which it is not: RDKit's `CalcNumAromaticRings`
+    wants a ring's BONDS aromatic, and the two differ on biphenylene (3 here,
+    2 there) and azulene (2 here, 0 there), measured 2026-10-16 and pinned by
+    `tests/test_bbb_descriptors_typed.py`. The BBB Score Descriptors calculator
+    reports RDKit's count, and that is the one a derived score may read.
     """
     ring_info = mol.GetRingInfo()
     rings = ring_info.AtomRings()
@@ -243,36 +259,60 @@ def compute_topology_analysis(
     places = decimals(parameters)
     rings = ring_counts(mol)
     stereo = stereo_counts(mol)
+    # The eight graph indices, computed once: the line shows each rounded to the person's decimal places and the fact keeps the number itself (below).
+    indices = {
+        "Platt index": platt_index(mol),
+        "Randic index": randic_index(mol),
+        "Balaban index": float(Descriptors.BalabanJ(mol)),
+        "Harary index": harary_index(mol),
+        "Hyper Wiener index": hyper_wiener_index(mol),
+        "Wiener index": wiener_index(mol),
+        "Szeged index": szeged_index(mol),
+        "Wiener polarity": wiener_polarity(mol),
+    }
+    # Ten of the report's counts also carry their number. Each line prints the count and the fact keeps it, so the two cannot drift (the lines are held to a recording made before any of this was typed).
+    counts = {
+        "Bond count": mol.GetNumBonds(),
+        "Cyclomatic number": cyclomatic_number(mol),
+        "Ring atom count": rings["ring_atom_count"],
+        "Ring bond count": rings["ring_bond_count"],
+        "Chain atom count": rings["chain_atom_count"],
+        "Chain bond count": rings["chain_bond_count"],
+        "Carbo ring count": rings["carbo_ring_count"],
+        "Hetero ring count": rings["hetero_ring_count"],
+        "Fused ring count": rings["fused_ring_count"],
+        "Asymmetric atom count": stereo["asymmetric_atom_count"],
+    }
     lines = [
         f"Atom count: {mol.GetNumAtoms()}",
-        f"Bond count: {mol.GetNumBonds()}",
-        f"Cyclomatic number: {cyclomatic_number(mol)}",
+        f"Bond count: {counts['Bond count']}",
+        f"Cyclomatic number: {counts['Cyclomatic number']}",
         f"Ring count: {rings['ring_count']}",
-        f"Ring atom count: {rings['ring_atom_count']}",
-        f"Ring bond count: {rings['ring_bond_count']}",
-        f"Chain atom count: {rings['chain_atom_count']}",
-        f"Chain bond count: {rings['chain_bond_count']}",
+        f"Ring atom count: {counts['Ring atom count']}",
+        f"Ring bond count: {counts['Ring bond count']}",
+        f"Chain atom count: {counts['Chain atom count']}",
+        f"Chain bond count: {counts['Chain bond count']}",
         f"Aliphatic ring count: {rings['aliphatic_ring_count']}",
         f"Aromatic ring count: {rings['aromatic_ring_count']}",
-        f"Carbo ring count: {rings['carbo_ring_count']}",
-        f"Hetero ring count: {rings['hetero_ring_count']}",
+        f"Carbo ring count: {counts['Carbo ring count']}",
+        f"Hetero ring count: {counts['Hetero ring count']}",
         f"Heteroaromatic ring count: {rings['heteroaromatic_ring_count']}",
-        f"Fused ring count: {rings['fused_ring_count']}",
+        f"Fused ring count: {counts['Fused ring count']}",
         f"Largest ring size: {rings['largest_ring_size']}",
         f"Smallest ring size: {rings['smallest_ring_size']}",
-        f"Platt index: {platt_index(mol)}",
-        f"Randic index: {randic_index(mol):.{places}f}",
-        f"Balaban index: {Descriptors.BalabanJ(mol):.{places}f}",
-        f"Harary index: {harary_index(mol):.{places}f}",
-        f"Hyper Wiener index: {hyper_wiener_index(mol)}",
-        f"Wiener index: {wiener_index(mol)}",
-        f"Szeged index: {szeged_index(mol)}",
-        f"Wiener polarity: {wiener_polarity(mol)}",
-        f"Asymmetric atom count: {stereo['asymmetric_atom_count']}",
+        f"Platt index: {indices['Platt index']}",
+        f"Randic index: {indices['Randic index']:.{places}f}",
+        f"Balaban index: {indices['Balaban index']:.{places}f}",
+        f"Harary index: {indices['Harary index']:.{places}f}",
+        f"Hyper Wiener index: {indices['Hyper Wiener index']}",
+        f"Wiener index: {indices['Wiener index']}",
+        f"Szeged index: {indices['Szeged index']}",
+        f"Wiener polarity: {indices['Wiener polarity']}",
+        f"Asymmetric atom count: {counts['Asymmetric atom count']}",
         f"Chiral center count: {stereo['chiral_center_count']}",
         f"Rotatable bond count: {rdMolDescriptors.CalcNumRotatableBonds(mol)}",
     ]
-    return report_from_fields(
+    report = report_from_fields(
         alert_id="topology_analysis",
         name="Topology Analysis",
         molecule_uuid=molecule_uuid,
@@ -280,6 +320,15 @@ def compute_topology_analysis(
         category="topology",
         provenance=Provenance(created_by="core", method="rdkit"),
     )
+    # **EIGHTEEN FACTS OF THE REPORT CARRY THEIR NUMBER: THE EIGHT INDICES AND TEN OF THE COUNTS.** Each fact's value was the text its line shows (`'6.11'`, `'7'`), which a derived score must not rest on: it
+    # would move with the decimal-places setting. The producer holds the number, so it hands it over, and the line, the label, the units and the cell's text do not move
+    # (`tests/test_topology_analysis_typed.py` holds them to a recording made before any of this was typed). **The counts typed are the ones that are neither an always-on descriptor nor ambiguous.** Four are the
+    # always-on descriptors under other labels, identical on all 34 molecules compared (atoms, rings, rotatable bonds, chiral centres); the largest and smallest ring size read 0 when there is no ring, which a score
+    # would take for a tiny ring; and the aromatic, aliphatic and heteroaromatic ring counts test the ATOMS for aromaticity, which is not RDKit's count (biphenylene 3 here, 2 there). Those seven stay text. An integer
+    # stays an `int`, since every one of these is a count of atoms, bonds, rings or paths; a rounded Randic index reading `6` is not, which is why this types at the producer and no parser could do it.
+    typed = {**indices, **counts}
+    facts = tuple(replace(fact, value=typed[fact.label]) if fact.label in typed else fact for fact in report.facts)
+    return replace(report, facts=facts)
 
 
 def compute_eccentricity_dataset(

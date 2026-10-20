@@ -1,0 +1,71 @@
+[
+  {"do": "smiles", "smiles": "CC(=O)Oc1ccccc1C(=O)O", "name": "Aspirin", "after_ms": 1000},
+  {"do": "select", "molecule": 1, "after_ms": 4000},
+
+  {"do": "ai_send", "text": "Make me a polar-surface-area window score.",
+   "script": [
+     {"tool": "list_score_outputs", "input": {}},
+     {"tool": "propose_score", "input": {"label": "Polar window", "formula": "ramp(psa, hi, lo)", "result_unit": "1",
+                                          "inputs": [{"name": "psa", "output": "descriptor:tpsa"}],
+                                          "constants": [{"name": "hi", "value": 140, "unit": "Å^2"}, {"name": "lo", "value": 60, "unit": "Å^2"}],
+                                          "note": "1 at or below 60 square angstroms, 0 at or above 140: a starting point, not a validated threshold"}},
+     {"text": "I have proposed it; it is waiting for you to approve."}
+   ], "after_ms": 3500},
+  {"do": "ai_expect", "tag": "a-proposal-is-a-card-and-nothing-is-saved",
+   "expect": {"tools_offered": ["list_score_outputs", "propose_score"],
+              "tool_results_contain": ["\"output_id\": \"descriptor:tpsa\"", "\"unit\": \"Å^2\"", "\"state\": \"awaiting_approval\"", "NOTHING IS SAVED", "you cannot approve it",
+                                       "\"owner_if_approved\": \"AI assistant (you approved it)\"", "\"name\": \"Polar window (user-defined, unvalidated)\""],
+              "tool_results_exclude": ["user.draft"],
+              "score_proposals": 1, "scores_stored": 0, "pending": 0, "notes": 0, "send_enabled": true,
+              "ledger_contains": ["score 'Polar window' on Aspirin: waiting for your approval"]}},
+  {"do": "shot", "path": "artifacts/visual/ai_score_card.png", "after_ms": 500},
+
+  {"do": "ai_card", "card": "score", "action": "approve", "after_ms": 800},
+  {"do": "ai_expect", "tag": "approving-saves-it-with-the-assistant-as-owner-and-the-model-is-told-next-time",
+   "expect": {"score_proposals": 0, "scores_stored": 1, "scores_owner": ["AI assistant (you approved it)"], "notes": 1,
+              "ledger_contains": ["score 'Polar window' on Aspirin: saved after you approved it"], "transcript_contains": ["Score 'Polar window': saved after you approved it."]}},
+  {"do": "score_results", "which": "Polar window", "focus": true, "tag": "the-saved-score-is-in-results-like-any-other", "after_ms": 800,
+   "expect": {"entries": 1, "has_value": true, "value_between": [0.95, 0.96], "stored_as_results": 0, "title_contains": ["Polar window (user-defined, unvalidated)"]}},
+
+  {"do": "ai_send", "text": "What does it give?",
+   "script": [
+     {"tool": "read_scores", "input": {}},
+     {"text": "It gives about 0.955 for aspirin."}
+   ], "after_ms": 3000},
+  {"do": "ai_expect", "tag": "the-note-rode-ahead-of-the-next-message-and-the-owner-is-not-sent",
+   "expect": {"sent_contains": ["[Application note] The score you proposed, 'Polar window', was saved after the user approved it (id user.polar_window)"],
+              "tool_results_contain": ["\"name\": \"Polar window (user-defined, unvalidated)\"", "\"outcome\": \"computed\""],
+              "tool_results_exclude": ["AI assistant (you approved it)"], "notes": 0}},
+
+  {"do": "ai_send", "text": "Call it TPSA.",
+   "script": [
+     {"tool": "propose_score", "input": {"label": "TPSA", "formula": "psa", "result_unit": "Å^2", "inputs": [{"name": "psa", "output": "descriptor:tpsa"}]}},
+     {"text": "That name is not allowed."}
+   ], "after_ms": 3000},
+  {"do": "ai_expect", "tag": "a-label-like-the-applications-own-name-is-refused-and-shows-no-card",
+   "expect": {"tool_results_contain": ["\"ok\": false", "\"problem\": \"does_not_check\"", "\"where\": \"label\"", "too close to", "\"nothing_saved\": true"],
+              "score_proposals": 0, "scores_stored": 1, "ledger_contains": ["score 'TPSA' on Aspirin: not started"]}},
+
+  {"do": "ai_send", "text": "Add the polar surface area to logP.",
+   "script": [
+     {"tool": "propose_score", "input": {"label": "Mixed units", "formula": "psa + logp", "result_unit": "1",
+                                          "inputs": [{"name": "psa", "output": "descriptor:tpsa"}, {"name": "logp", "output": "descriptor:mol_logp"}]}},
+     {"text": "Those units do not add."}
+   ], "after_ms": 3000},
+  {"do": "ai_expect", "tag": "a-formula-that-adds-an-area-to-a-plain-number-is-refused-with-the-place-in-it",
+   "expect": {"tool_results_contain": ["\"rule\": \"unit\"", "\"where\": \"formula\"", "\"position_in_formula\""], "score_proposals": 0, "scores_stored": 1}},
+
+  {"do": "ai_send", "text": "Propose a lipophilic window too.",
+   "script": [
+     {"tool": "propose_score", "input": {"label": "Lipophilic window", "formula": "ramp(logp, 0, 2)", "result_unit": "1", "inputs": [{"name": "logp", "output": "descriptor:mol_logp"}]}},
+     {"text": "Waiting for you."}
+   ], "after_ms": 3000},
+  {"do": "ai_expect", "tag": "the-second-proposal-waits", "expect": {"score_proposals": 1, "scores_stored": 1, "notes": 0}},
+  {"do": "ai_card", "card": "score", "action": "cancel", "after_ms": 800},
+  {"do": "ai_expect", "tag": "cancel-saves-nothing-and-the-model-is-told",
+   "expect": {"score_proposals": 0, "scores_stored": 1, "notes": 1, "ledger_contains": ["score 'Lipophilic window' on Aspirin: cancelled; nothing was saved"]}},
+  {"do": "shot", "path": "artifacts/visual/ai_score_after.png", "after_ms": 500},
+
+  {"do": "expect_clean"},
+  {"do": "quit"}
+]

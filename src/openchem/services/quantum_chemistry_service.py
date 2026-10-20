@@ -14,12 +14,13 @@ from PySide6.QtCore import QObject, QProcess, QProcessEnvironment
 from rdkit import Chem
 
 from openchem import paths as app_paths
-from openchem.app.settings import Settings
+from openchem.app.settings import FUKUI_ANION_F_PLUS, FUKUI_CATION_SEARCH, Settings
 from openchem.chem.boltzmann import (
     STANDARD_TEMPERATURE_K,
     boltzmann_average_spectrum,
     boltzmann_weights,
 )
+from openchem.chem.fukui import conformer_average_message
 from openchem.chem.nmr_reference import (
     SPECTRUM_TYPE_BY_ELEMENT,
     average_reference_shielding,
@@ -32,6 +33,7 @@ from openchem.chem.orca_engine import (
     find_mpi_bin,
     parse_frontier_orbitals,
 )
+from openchem.chem.psi4_engine import Psi4QuantumEngineProvider
 from openchem.chem.tautomer_distribution import (
     FAILURE_ENERGY_UNPARSEABLE,
     FAILURE_OPTIMIZATION_NOT_CONVERGED,
@@ -69,6 +71,7 @@ from openchem.events.base import EventBus
 from openchem.events.events import (
     NmrReferenceCalibrated,
     NmrScalingCalibrated,
+    PerAtomDataComputed,
     QuantumChemistryJobStateChanged,
     QuantumChemistryResultReady,
     QuantumChemistryRunCompleted,
@@ -94,6 +97,9 @@ _JOB_KEY_PROPERTY = "_openchem_job_key"
 # their own "OpenChemStudio" app-data locations.
 _APP_NAME = "OpenChemStudio"
 _JOB_KIND = "quantum_chemistry"
+#: Calc types whose output is not averaged over conformers. The Boltzmann path publishes the averaged spectrum and
+#: the lowest conformer's descriptors and nothing per-atom, so these would run every conformer and keep nothing.
+_SINGLE_CONFORMER_ONLY = frozenset({"fukui"})
 _REFERENCE_JOB_KIND = "quantum_chemistry_reference"
 _SCALING_JOB_KIND = "quantum_chemistry_scaling"
 
@@ -150,6 +156,11 @@ def _reference_job_key(method_basis: str) -> str:
 
 def _scaling_job_key(method_basis: str) -> str:
     return f"__nmr_scaling__::{method_basis}"
+
+
+def _no_executable_message(provider: QuantumEngineProvider) -> str:
+    """The refusal when an engine has no executable: its own name and settings key (ORCA's text is unchanged)."""
+    return f"No {provider.engine_name()} executable configured or found on PATH — set {provider.executable_setting()} in Settings."
 
 
 def _job_manager_kind(kind: str) -> str:
@@ -215,6 +226,9 @@ class _BoltzmannRun:
     #: conformer's `_ActiveJob` carries this same id, so QC run history
     #: shows one entry for the whole averaged run, not one per conformer.
     run_id: str = ""
+    #: As `_ActiveJob.structure_identity`, frozen at submission for the whole sequence: a run that finishes
+    #: on its original inputs after the structure was edited is withheld by the window, not re-planned.
+    structure_identity: str = ""
 
 
 @dataclass
@@ -288,6 +302,12 @@ class _ActiveJob:
     #: `_TautomerDistributionRun.run_id`, one id per logical operation, not
     #: per candidate.
     run_id: str = ""
+    #: The molecule's canonical SMILES AT SUBMISSION, stamped on the result event so the window can tell
+    #: whether the structure was edited while the job ran (`chem.isotopes.same_structure`).
+    structure_identity: str = ""
+    #: One-based slot of the conformer submitted on, when Run was pressed (0 = not known); see
+    #: `QuantumChemistryResultReady.source_slot`.
+    source_slot: int = 0
     stdout_chunks: list[str] = field(default_factory=list)
     cancelled: bool = False
 
@@ -342,6 +362,32 @@ def _with_run_settings(descriptors: list, job: _ActiveJob) -> list:
             logger.exception("Could not record the run settings on a QC descriptor for %s", job.molecule_uuid)
             stamped.append(descriptor)
     return stamped
+
+
+def _conformer_with_run_record(conformer, job: _ActiveJob):
+    """`conformer` with the run's method, basis and run id merged into its provenance, or untouched.
+
+    **THE GEOMETRY MUST SAY WHAT PRODUCED IT.** The provider's own provenance holds only `orca_version`, so
+    before this an ORCA-optimized conformer could not tell a viewer or the details dialog which level of
+    theory made it. MERGED, never replaced (the provider's keys survive), and a conformer with no provenance
+    gets one. Recording where a geometry came from must never lose the geometry, so any failure passes the
+    conformer on as it was.
+    """
+    if conformer is None:
+        return None
+    record = _run_record(job)
+    if job.run_id:
+        record[RUN_ID] = job.run_id
+    try:
+        provenance = conformer.provenance
+        if provenance is None:
+            provenance = Provenance(created_by="core", method=job.provider.provider_id, parameters=dict(record))
+        else:
+            provenance = dataclasses.replace(provenance, parameters={**provenance.parameters, **record})
+        return dataclasses.replace(conformer, provenance=provenance)
+    except Exception:  # noqa: BLE001 - a record of the settings must never cost the geometry
+        logger.exception("Could not record the run settings on a QC conformer for %s", job.molecule_uuid)
+        return conformer
 
 
 @dataclass
@@ -460,9 +506,18 @@ class QuantumChemistryService(QObject):
         super().__init__()
         self._event_bus = event_bus
         self._settings = settings
-        default_provider = OrcaQuantumEngineProvider()
+        # The person's choices about an anion's f+ and about the search for other cation states are read each time a Fukui input is written, not once: Settings applies
+        # as it changes. They close over the settings and not over `self`, so the provider (which this service holds) does not hold the service back.
+        default_provider = OrcaQuantumEngineProvider(
+            anion_f_plus=lambda: bool(settings.preference(FUKUI_ANION_F_PLUS)),
+            cation_search=lambda: bool(settings.preference(FUKUI_CATION_SEARCH)),
+        )
+        # ORCA first (it is the default engine everywhere), then Psi4: registered always, USED only when its executable is configured
+        # (`available_engines`), so a machine without Psi4 sees no change.
+        psi4_provider = Psi4QuantumEngineProvider(threads=self._effective_cores_or_default)
         self._providers: dict[str, QuantumEngineProvider] = (
-            providers if providers is not None else {default_provider.provider_id: default_provider}
+            providers if providers is not None
+            else {default_provider.provider_id: default_provider, psi4_provider.provider_id: psi4_provider}
         )
         self._active_jobs: dict[str, _ActiveJob] = {}
         # Keyed by molecule_uuid, same as _active_jobs: a Boltzmann run owns
@@ -497,6 +552,8 @@ class QuantumChemistryService(QObject):
         provider_id: str = "orca",
         input_fingerprint: str = "",
         calculation_input: str = "",
+        structure_identity: str = "",
+        source_slot: int = 0,
     ) -> None:
         """Run `calc_type` on `mol`, one ORCA job.
 
@@ -511,12 +568,12 @@ class QuantumChemistryService(QObject):
         if provider is None:
             self._publish_state(molecule_uuid, CacheState.FAILED, f"Unknown quantum engine: {provider_id}")
             return
-        executable_path = self._resolve_executable_path()
+        executable_path = self._resolve_executable_path(provider)
         if executable_path is None:
             self._publish_state(
                 molecule_uuid,
                 CacheState.FAILED,
-                "No ORCA executable configured or found on PATH — set orca/executable_path in Settings.",
+                _no_executable_message(provider),
             )
             return
         # Guards the real bug this used to have: request_calculation had no
@@ -562,6 +619,8 @@ class QuantumChemistryService(QObject):
             calculation_input=calculation_input,
             input_molblock=input_molblock,
             run_id=new_run_id(),
+            structure_identity=structure_identity,
+            source_slot=source_slot,
         )
 
     def request_boltzmann_nmr(
@@ -575,6 +634,7 @@ class QuantumChemistryService(QObject):
         provider_id: str = "orca",
         input_fingerprint: str = "",
         calculation_input: str = "",
+        structure_identity: str = "",
     ) -> None:
         """Runs `calc_type` on every conformer in `mols`, one after another,
         and publishes a single Boltzmann-averaged spectrum.
@@ -592,6 +652,9 @@ class QuantumChemistryService(QObject):
         (`chem.calculation_input.resolve_ensemble`), frozen here and stamped
         on the average -- see `_BoltzmannRun.input_fingerprint`.
         """
+        if calc_type in _SINGLE_CONFORMER_ONLY:
+            self._publish_state(molecule_uuid, CacheState.FAILED, conformer_average_message())
+            return
         if not mols:
             self._publish_state(molecule_uuid, CacheState.FAILED, "No conformers to average over.")
             return
@@ -599,12 +662,12 @@ class QuantumChemistryService(QObject):
         if provider is None:
             self._publish_state(molecule_uuid, CacheState.FAILED, f"Unknown quantum engine: {provider_id}")
             return
-        executable_path = self._resolve_executable_path()
+        executable_path = self._resolve_executable_path(provider)
         if executable_path is None:
             self._publish_state(
                 molecule_uuid,
                 CacheState.FAILED,
-                "No ORCA executable configured or found on PATH — set orca/executable_path in Settings.",
+                _no_executable_message(provider),
             )
             return
         # Takes the molecule's single job slot for the WHOLE sequence, not
@@ -634,6 +697,7 @@ class QuantumChemistryService(QObject):
             input_fingerprint=input_fingerprint,
             calculation_input=calculation_input,
             run_id=new_run_id(),
+            structure_identity=structure_identity,
         )
         self._boltzmann_runs[molecule_uuid] = run
         self._launch_next_conformer(run)
@@ -659,6 +723,7 @@ class QuantumChemistryService(QObject):
             input_fingerprint=run.input_fingerprint,
             calculation_input=run.calculation_input,
             run_id=run.run_id,
+            structure_identity=run.structure_identity,
         )
 
     def request_tautomer_distribution(
@@ -706,12 +771,12 @@ class QuantumChemistryService(QObject):
         if provider is None:
             self._publish_state(molecule_uuid, CacheState.FAILED, f"Unknown quantum engine: {provider_id}")
             return
-        executable_path = self._resolve_executable_path()
+        executable_path = self._resolve_executable_path(provider)
         if executable_path is None:
             self._publish_state(
                 molecule_uuid,
                 CacheState.FAILED,
-                "No ORCA executable configured or found on PATH — set orca/executable_path in Settings.",
+                _no_executable_message(provider),
             )
             return
         # Takes the molecule's single job slot for the WHOLE sequence, not
@@ -804,12 +869,12 @@ class QuantumChemistryService(QObject):
         if provider is None:
             self._publish_state(molecule_uuid, CacheState.FAILED, f"Unknown quantum engine: {provider_id}")
             return
-        executable_path = self._resolve_executable_path()
+        executable_path = self._resolve_executable_path(provider)
         if executable_path is None:
             self._publish_state(
                 molecule_uuid,
                 CacheState.FAILED,
-                "No ORCA executable configured or found on PATH — set orca/executable_path in Settings.",
+                _no_executable_message(provider),
             )
             return
         if not self._job_manager.try_start(
@@ -896,14 +961,14 @@ class QuantumChemistryService(QObject):
                 )
             )
             return
-        executable_path = self._resolve_executable_path()
+        executable_path = self._resolve_executable_path(provider)
         if executable_path is None:
             self._event_bus.publish(
                 NmrReferenceCalibrated(
                     method_basis=method_basis,
                     provider_id=provider_id,
                     values={},
-                    error="No ORCA executable configured or found on PATH — set orca/executable_path in Settings.",
+                    error=_no_executable_message(provider),
                 )
             )
             return
@@ -952,12 +1017,12 @@ class QuantumChemistryService(QObject):
         if provider is None:
             self._fail_scaling(method_basis, provider_id, f"Unknown quantum engine: {provider_id}")
             return
-        executable_path = self._resolve_executable_path()
+        executable_path = self._resolve_executable_path(provider)
         if executable_path is None:
             self._fail_scaling(
                 method_basis,
                 provider_id,
-                "No ORCA executable configured or found on PATH — set orca/executable_path in Settings.",
+                _no_executable_message(provider),
             )
             return
 
@@ -1045,6 +1110,8 @@ class QuantumChemistryService(QObject):
         calculation_input: str = "",
         input_molblock: str = "",
         run_id: str = "",
+        structure_identity: str = "",
+        source_slot: int = 0,
     ) -> None:
         """Shared QProcess launch mechanics for both `request_calculation`
         (a real molecule) and `request_reference_calibration` (TMS) --
@@ -1118,6 +1185,8 @@ class QuantumChemistryService(QObject):
             calculation_input=calculation_input,
             input_molblock=input_molblock,
             run_id=run_id,
+            structure_identity=structure_identity,
+            source_slot=source_slot,
         )
         self._active_jobs[key] = job
 
@@ -1341,6 +1410,7 @@ class QuantumChemistryService(QObject):
         # BEFORE the event and the store: the descriptors the event carries, the revision cache files
         # and the run keeps must be one set, each saying which method and basis produced it.
         descriptors = _with_run_settings(descriptors, job)
+        conformer = _conformer_with_run_record(conformer, job)
         self._event_bus.publish(
             QuantumChemistryResultReady(
                 molecule_uuid=molecule_uuid,
@@ -1348,6 +1418,8 @@ class QuantumChemistryService(QObject):
                 conformer=conformer,
                 # Only a stored conformer has a fingerprint to find it by; a job run on the drawing has none.
                 input_fingerprint=job.input_fingerprint if job.calculation_input == GEOMETRY else "",
+                structure_identity=job.structure_identity,
+                source_slot=job.source_slot,
             )
         )
         self._record_descriptors(descriptors, job)
@@ -1364,6 +1436,33 @@ class QuantumChemistryService(QObject):
             # that ends up in `MoleculeModel.conformers`.
             if conformer is not None:
                 run.output_conformer_id = conformer.conformer_id
+        # Per-atom datasets (condensed Fukui functions): their own parse and their own events, like the spectra
+        # below, and the same contract -- a failure here is a warning on a run whose core output (the
+        # descriptors, parsed above, and for a calc type that is ABOUT the per-atom values the provider's
+        # `parse_output` too) was fine. No `NOT_PRODUCED` entry for a calc type with none: that would add a key
+        # to every other run's saved record.
+        try:
+            per_atom = job.provider.parse_per_atom_output(output_text, job.mol, molecule_uuid, job.calc_type)
+        except Exception as exc:  # noqa: BLE001 - report failure, never crash
+            logger.exception("Failed to parse per-atom output for molecule %s", molecule_uuid)
+            if run is not None:
+                run.output_status["per_atom"] = OutputStatus.FAILED
+                run.warnings.append(f"Per-atom output could not be parsed: {exc}")
+        else:
+            if per_atom:
+                # The same stamp the descriptors got (method, basis, charge, multiplicity, run id), so a stored
+                # dataset can say which job made it however the panel's controls have moved since.
+                per_atom = _with_run_settings(per_atom, job)
+                for dataset in per_atom:
+                    self._event_bus.publish(PerAtomDataComputed(
+                        dataset=dataset,
+                        input_fingerprint=job.input_fingerprint,
+                        calculation_input=job.calculation_input,
+                    ))
+                self._record_descriptors(per_atom, job)
+                if run is not None:
+                    run.results["per_atom"] = list(per_atom)
+                    run.output_status["per_atom"] = OutputStatus.AVAILABLE
         try:
             spectrum = job.provider.parse_spectrum_output(output_text, job.mol, molecule_uuid, job.calc_type)
         except Exception as exc:  # noqa: BLE001 - a spectrum is an enhancement, must not fail an otherwise-successful job
@@ -1521,10 +1620,13 @@ class QuantumChemistryService(QObject):
         averaged_energy = self._boltzmann_average_energy_descriptor(run, lowest_descriptors, job)
         if averaged_energy is not None:
             lowest_descriptors.append(averaged_energy)
-        lowest_conformer = run.conformers[lowest_index]
+        lowest_conformer = _conformer_with_run_record(run.conformers[lowest_index], job)
         self._event_bus.publish(
             QuantumChemistryResultReady(
-                molecule_uuid=molecule_uuid, descriptors=lowest_descriptors, conformer=lowest_conformer
+                molecule_uuid=molecule_uuid,
+                descriptors=lowest_descriptors,
+                conformer=lowest_conformer,
+                structure_identity=run.structure_identity,
             )
         )
         self._record_descriptors(lowest_descriptors, job)
@@ -2043,7 +2145,8 @@ class QuantumChemistryService(QObject):
         self._event_bus.publish(QuantumChemistryRunCompleted(run=run))
 
     def _record_descriptors(self, descriptors: list, job: _ActiveJob) -> None:
-        """Wrap each descriptor into the generic revision-cache store too
+        """Wrap each descriptor (or per-atom dataset, which has no `provider` and is produced by the job's
+        engine) into the generic revision-cache store too
         (`ResultRecorded`, the same envelope `descriptor_service._record`
         publishes for every other calculator) -- SEPARATELY from
         `QuantumChemistryRunCompleted`/`qc_runs`, and for a different
@@ -2075,7 +2178,7 @@ class QuantumChemistryService(QObject):
                         result=descriptor,
                         calculation_input=job.calculation_input,
                         input_fingerprint=job.input_fingerprint,
-                        producer=descriptor.provider,
+                        producer=getattr(descriptor, "provider", None) or job.provider.provider_id,
                     ),
                     result=descriptor,
                     application_version=application_version(),
@@ -2550,6 +2653,15 @@ class QuantumChemistryService(QObject):
             QuantumChemistryJobStateChanged(molecule_uuid=molecule_uuid, state=state, message=message)
         )
 
+    def _effective_cores_or_default(self) -> int:
+        """Threads for an engine that takes them on its command line: the `orca/cores` setting when it is set (one core-count setting for
+        every engine until there is a reason for two), else the automatic choice. Unlike ORCA's there is no MPI to be missing."""
+        try:
+            configured = int(self._settings.get("orca/cores", 0))
+        except (TypeError, ValueError):
+            configured = 0
+        return configured if configured >= 1 else default_cores()
+
     def _effective_cores(self) -> int:
         """How many cores an ORCA job asks for: the `orca/cores` setting, or the
         automatic choice. ALWAYS 1 when no MPI is installed, because a parallel
@@ -2569,10 +2681,18 @@ class QuantumChemistryService(QObject):
         Public and read-only, so a caller that only needs to know whether a run COULD start (the
         assistant's preview of one) does not reach into a private resolver or start anything.
         """
-        return self._resolve_executable_path()
+        return self._resolve_executable_path(self._providers.get("orca"))
 
-    def _resolve_executable_path(self) -> str | None:
-        """The ORCA executable, in NATIVE separator form.
+    def engines(self) -> list[QuantumEngineProvider]:
+        """Every registered engine, in registration order (ORCA first)."""
+        return list(self._providers.values())
+
+    def available_engines(self) -> list[QuantumEngineProvider]:
+        """The engines whose executable is configured or on PATH: the ones a run could start on. Read-only."""
+        return [p for p in self._providers.values() if self._resolve_executable_path(p) is not None]
+
+    def _resolve_executable_path(self, provider: QuantumEngineProvider | None = None) -> str | None:
+        """The engine's executable (ORCA's when no provider is given), in NATIVE separator form.
 
         `str(Path(...))` is not tidiness. ORCA derives the directory of its
         own helper binaries (`orca_startup` and friends) from the path it
@@ -2598,7 +2718,13 @@ class QuantumChemistryService(QObject):
         `shutil.which` already returns a native path, so only the
         configured branch needs it.
         """
-        configured = self._settings.get("orca/executable_path", "")
+        key = provider.executable_setting() if provider is not None else "orca/executable_path"
+        names = provider.executable_names() if provider is not None else ("orca",)
+        configured = self._settings.get(key, "")
         if configured and Path(configured).is_file():
             return str(Path(configured))
-        return shutil.which("orca") or shutil.which("orca.exe")
+        for name in names:
+            found = shutil.which(name)
+            if found:
+                return found
+        return None

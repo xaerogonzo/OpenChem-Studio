@@ -223,6 +223,8 @@ SUBSUMPTION_TABLE: dict[tuple[str, str], bool] = {
     ("carboxylic_acid", "alcohol"): True,
     ("carboxylic_acid", "ketone"): True,
     # Thio-acids subsume their component patterns
+    ("carboselenoic_O_acid", "alcohol"): True,
+    ("carboselenoic_O_acid", "phenol"): True,
     ("carbothioic_O_acid", "alcohol"): True,
     ("carbothioic_O_acid", "phenol"): True,
     ("carbothioic_O_acid", "thione"): True,
@@ -633,6 +635,13 @@ class FGDetection:
                 continue
 
             matches = self._mol.GetSubstructMatches(pattern)  # type: ignore[attr-defined]
+            # A suffix group never names a POSITIVE chalcogen: `=S` / `=O` in a pattern is a thiocarbonyl or a carbonyl, and `NC(N)=[SH+]` (S-protonated thiourea) matched
+            # `thioamide` through its sulfonium sulfur, so the sulfonium parent and the group's prefix both claimed that atom and a nitrogen dropped out of the name
+            # (`thiocarbamoylsulfanium`, naming round 52).
+            matches = tuple(
+                m for m in matches
+                if not any(self._mol.GetAtomWithIdx(i).GetAtomicNum() in (8, 16, 34, 52) and self._mol.GetAtomWithIdx(i).GetFormalCharge() > 0 for i in m)  # type: ignore[attr-defined]
+            )
             # The plain "[#6]" pattern atoms are CONTEXT -- the R of an amine,
             # the N-R of an amide, both R of a ketone -- the same convention the
             # prefix-only groups below read as attachment context. Recorded

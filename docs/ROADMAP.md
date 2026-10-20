@@ -1489,14 +1489,16 @@ blocked by anything:
   result there is a much weaker statement than the same result on a
   form-shaped panel, and this defect class needs a guard of its own kind.
 
-### Recipes, derived scores and the assistant's bridge (2026-10-12)
+### Recipes, derived scores and the assistant's bridge (2026-10-12, updated 2026-10-16)
 
-Phase 1 (the assistant reads and runs calculators, and asks before anything heavy) is merged: `docs/AI_CALCULATION_BRIDGE.md`. Phase 2 is
-**designed and not built**, in two records: `docs/RECIPES_DESIGN.md` (typed dependencies between calculators, with the Lewis pairing as
-the first recipe and a preregistered BH3/CO gate on real ORCA) and `docs/DERIVED_SCORES_DESIGN.md` (a restricted formula over approved
-outputs, labelled user-defined and unvalidated). Their slices are numbered there. Two things they depend on are not built and are not
-assumed: a dispatch adapter for service-run (ORCA) calculators, and the assistant's snapshot holding ORCA runs. The live provider run
-for Phase 1 is still not done.
+Phase 1 (the assistant reads and runs calculators, and asks before anything heavy) is merged: `docs/AI_CALCULATION_BRIDGE.md`. **Phase 2 is
+built** (on 2026-10-12 it was designed and not built; the slices merged between 2026-10-13 and 2026-10-16): the recipe model, the run record, the
+Lewis pairing, its window and the kept answer in Results, and the preregistered BH3/CO gate, PASSED on 2026-10-13 (`docs/RECIPES_DESIGN.md`); and derived
+scores, slices 1 to 4 and their follow-ups (`docs/DERIVED_SCORES_DESIGN.md`). Still not built: a dispatch adapter for service-run (ORCA) calculators,
+so the assistant describes an ORCA job and a person starts it from its panel, and the assistant's frozen turn holds no quantum-chemistry runs
+(`domain/turn_snapshot.py` names none, checked 2026-10-16); scores over 3D numbers (decided on 2026-10-16, in the derived scores record); Phase 3 beyond its first calculator (Fukui functions were built on 2026-10-18 and
+failed two preregistered gates, the first by 0.0014 on one quantity and the second, on De Proft et al.'s tables, with 33 of 47 numbers within 0.02, so they are offered as experimental and not validated, `benchmarks/fukui_gate/PREREGISTRATION.md` and `benchmarks/fukui_gate_2/PREREGISTRATION.md`;
+proton affinity and bond dissociation energy are not started) and Phase 4 (the synthesis helper). The live provider run for Phase 1 is still not done. `docs/WHATS_NEW.md` is a tour of all of it.
 
 ### Visualization
 
@@ -1558,6 +1560,53 @@ steric clash, whatever the radius (a fix is on its own branch). `docs/VDW_RADII_
 the subject of the deferred Sci Downloads naming round) with a `kv` lookup by DOI or hash, and add a coverage
 report of which registered sources the maintainer's library lacks, which is the list of papers to fetch before
 the next explainer family is written.
+
+### The paper library: move it off D:, and make its location one setting (recorded 2026-10-19)
+
+**Decided (Alex, 2026-10-19):** the whole `Sci Downloads` folder moves to `E:\My Area\Documents` (so it becomes `E:\My Area\Documents\Sci Downloads`), on the 8 TB drive, because the library keeps growing. **Not today**; this records the plan and what it touches, so that
+it is not rediscovered.
+
+**What was measured (2026-10-19).** The library is 2.41 GB in 1,965 files in 53 folders (838 PDFs make 2.03 GB; the rest is text, structure files and spreadsheets), plus `Sci Downloads.index.sqlite`, 334 MB, beside it (the full-text index of
+`tools/library_index.py`). E: has 5.3 TB free and the target folder does not exist yet. **So the copy is minutes; the cost is the path references.** No environment variable and no OpenChem setting names the library today (checked in the user and machine
+environment and in the application's registry settings). The PDF tools (`tools/library_index.py`, `tools/index_literature.py`, `tools/index_pdf_library.py`) already read `OPENCHEM_PDF_LIBRARY` before falling back to a hard-coded default, so they
+need only the variable set. What does not read any variable: `tools/build_hansen_tables.py`, five benchmark scripts that read a supplement folder or a PDF there (`ionescu2013_benchmark.py`, `ionescu_eem_check.py`, `eqeq_check.py`, `nistor_extract.py`,
+`mathieu_eem_check.py`) and `tests/test_periodic_charges.py` (seven places); the Schindler check reads a variable of its own name, `OPENCHEM_SCI_DOWNLOADS`; and fourteen `local =` entries in `docs/sources.toml` hold an absolute path although the field
+is documented as a filename. The Vina executable, ORCA and the `.ocsproj` project files live elsewhere and are not part of this move.
+
+**Order of work.**
+1. **Make the location one setting, before moving anything.** `OPENCHEM_PDF_LIBRARY` is the name the tools already use: the seven places above read it (falling back to today's path), the Schindler check accepts it as well as its own name, and the fourteen
+   absolute `local =` paths become filenames. That can be done today without moving a file, and makes the move a one-line environment change.
+2. **The move.** Close whatever holds the folder (Claude sessions, a PDF reader). Copy with `robocopy /E /COPY:DAT /DCOPY:DAT`, compare the file count and a sha256 manifest (`OPENCHEM_PDF_LIBRARY=<new folder> python tools/index_literature.py --check` already verifies every held
+   file against its hash), copy the index beside it (or rebuild it with `tools/library_index.py update` if it keys files by path), set `OPENCHEM_PDF_LIBRARY` at user scope, rename the old
+   folder `Sci Downloads.OLD`, and delete it only after a week of normal use.
+3. **Point the assistant's sessions at the new folder.** The additional working directory is agent-control configuration, so it gets its own show-the-diff-and-approve step.
+4. **Keep a second copy.** One big disk is one failure. The library is small enough to mirror (`robocopy /MIR`) to another drive after the move; the sha256 manifest of step 2 is what makes a restore checkable.
+
+### Reference programs: what to learn from, and what we might emulate (bookmarked 2026-10-18)
+
+The project began as an open replacement for MarvinSketch-class editors, and Phases 1 to 9 track that. A second program is now **bookmarked as a
+reference, and nothing here is scheduled**:
+
+**Amsterdam Modeling Suite (AMS), by SCM** (Software for Chemistry & Materials, <https://www.scm.com>; its documentation, <https://www.scm.com/doc>,
+is public and needs no installation). It offers a 30-day trial; its pricing and licence terms were **not read**, and should be before the trial is used to
+produce reference values. It came up when its Fukui tutorial turned out to hold a Hirshfeld table for carbon monoxide from a program that is not
+Gaussian or ORCA, the one independent table the Fukui work (`benchmarks/fukui_gate/PREREGISTRATION.md`) had found (C f+ 0.670 and f- 0.674, O 0.330 and 0.326, from BP86; the page states neither the basis set nor the geometry). "Emulating" a feature of it means building it
+on this project's own engines (RDKit, ORCA, Open Babel) and checking it against a published reference, and never reusing SCM's code or text.
+
+What its tutorial index lists that overlaps this project's territory, by the tutorials' own titles (read on 2026-10-18; none was tried):
+
+| AMS tutorial area | What it lists | Here today |
+|---|---|---|
+| Analysis | QTAIM (Bader), localized orbitals and conceptual DFT; Fukui functions and the dual descriptor; Interacting Quantum Atoms; Energy Decomposition Analysis; charge displacement; visualization of densities and orbital potentials | Fukui functions (experimental, not validated); Lewis acid-base pairing and LED through ORCA; surfaces coloured by a scalar field. No QTAIM, IQA or localized orbitals |
+| Vibrational spectroscopy | IR, VCD, mode refinement and tracking, vibrationally resolved electronic spectra | IR from an ORCA frequency run; none of the rest |
+| Optical properties | TDDFT UV/Vis, core ionization (XPS) | UV/Vis measured and deliberately not shipped (above); nothing for XPS |
+| NMR | a spectrum with spin-spin coupling, shifts, analysis with localized molecular orbitals | ORCA NMR with coupling, and the HOSE lookup; no orbital analysis |
+| Structure and reactivity | transition state search, nudged elastic band, automated reaction pathway discovery, a reaction network | none; reactions here are two templates |
+| COSMO-RS | fluid thermodynamics, pKa, ionic liquids, polymers | a bounded solubility screen and a pKa sidecar |
+| Building and GUI | building molecules; "10 ways to get the energy and other properties"; a GUI tour of a UV/Vis spectrum | the editor and the Properties panel |
+
+Each row that is ever built goes through this project's usual gate first (a preregistered check against a published reference, or "measured, not shipped"). The
+rows most likely to pay are the ones where a calculator already exists: conceptual DFT beyond Fukui, an energy-decomposition view, and the assignment of IR bands.
 
 ### Naming, and the annotation engine underneath it
 

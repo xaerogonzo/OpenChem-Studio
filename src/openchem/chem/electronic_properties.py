@@ -40,6 +40,7 @@ iteration -- an independent reimplementation here diverged badly (chi from
 from __future__ import annotations
 
 import json
+from dataclasses import replace
 from functools import lru_cache
 from pathlib import Path
 from typing import Any
@@ -386,7 +387,7 @@ def compute_polarizability(
             + ", ".join(f"{symbol} x{count}" for symbol, count in sorted(assignment.items()))
         )
     lines.append(basis)
-    return report_from_fields(
+    report = report_from_fields(
         alert_id="polarizability",
         name="Polarizability",
         molecule_uuid=molecule_uuid,
@@ -398,6 +399,16 @@ def compute_polarizability(
             parameters={"polarizability_a3": total, "method": method},
         ),
     )
+    if method != "jensen" or parameters.get("major_microspecies"):
+        return report
+    # **THE DEFAULT ANSWER'S NUMBER IS TYPED, AND NO OTHER ONE IS.** The first line is a fact whose value was the text the line shows (`'10.29'`), which a derived score
+    # must not rest on: it would move with a display setting. The producer holds the number, so it hands it over, and the line, the label, the units and the cell's text do not move
+    # (`tests/test_polarizability_typed.py` holds them to a recording made before this change). Only Jensen's answer on the drawing is typed: Miller's two methods and the
+    # microspecies option are different estimators or a different structure under the same id and label, and a score must not read one as the other.
+    facts = tuple(
+        replace(fact, value=float(total)) if fact.label == "Molecular polarizability" else fact for fact in report.facts
+    )
+    return replace(report, facts=facts)
 
 
 def _miller_polarizability(

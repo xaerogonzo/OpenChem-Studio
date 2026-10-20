@@ -40,9 +40,13 @@ from PySide6.QtWidgets import (
 
 from openchem.app.settings import (
     CONFORMER_EARLY_STOP,
+    CONFORMER_KEEP_OPTIMIZED,
+    CONFORMER_OPTIMIZE_LOWEST,
     CONFORMER_MAX_EMBEDDINGS,
     DRAWING_BOND_CLICK,
     DRAWING_BOND_KEYS,
+    FUKUI_ANION_F_PLUS,
+    FUKUI_CATION_SEARCH,
     MAX_REVISIONS_KEPT,
     RAIL_HIDES_PANELS,
     RECALC_MODE,
@@ -83,6 +87,9 @@ DRAWING = "drawing"
 #: Section id of the 3D conformer search.
 CONFORMERS = "conformers"
 
+#: Section id of the quantum chemistry calculations' own choices (today: whether an anion's Fukui functions include its f+).
+QUANTUM_CHEMISTRY = "quantum_chemistry"
+
 #: Section id of the remembered file-dialog folders.
 FILE_DIALOGS = "file_dialogs"
 
@@ -99,6 +106,7 @@ SECTIONS = (
     (KEYBOARD, "Keyboard"),
     (DRAWING, "Drawing"),
     (CONFORMERS, "Conformers"),
+    (QUANTUM_CHEMISTRY, "Quantum chemistry"),
     (FILE_DIALOGS, "File dialogs"),
     (EXTERNAL_TOOLS, "External tools"),
 )
@@ -249,6 +257,74 @@ _HELP = {
         topic="settings",
         help_anchor="settings",
     ),
+    "conformer_keep_optimized": HelpTooltip(
+        text=(
+            "On (the default): generating conformers again keeps the geometries an ORCA optimization produced. "
+            "The new conformers come first and the kept ORCA ones follow them, in the order they had, with "
+            "their level of theory and origin intact.\n\n"
+            "Off: generating replaces everything, ORCA geometries included, which is what it did before this "
+            "choice existed. Undo restores the previous set either way.\n\n"
+            "Why on: an ORCA geometry takes minutes to hours and is the one every later calculation uses, so "
+            "losing it as a side effect of pressing Generate was the surprise.\n\n"
+            "Editing the structure still clears every conformer, ORCA ones included: the geometry no longer "
+            "fits the molecule."
+        ),
+        tier=2,
+        help_id="settings.conformer_keep_optimized",
+        topic="settings",
+        help_anchor="settings",
+    ),
+    "conformer_optimize_lowest": HelpTooltip(
+        text=(
+            "Off (the default): Generate Conformers only generates.\n\n"
+            "On: the Generate Conformers window starts with \"Also ORCA-optimize the lowest-energy conformer\" "
+            "ticked. When the set is installed, ORCA optimizes the conformer with the lowest force-field energy "
+            "in it, with the method, basis, charge and multiplicity the Quantum Chemistry panel shows at that "
+            "moment, exactly as if you had pressed Run there. The result replaces that conformer in its slot.\n\n"
+            "This is only where the window's checkbox starts: each generation can still tick or untick it. "
+            "Nothing starts when ORCA is not set up, and the window says so.\n\n"
+            "Why off: an optimization takes minutes to hours, and pressing Generate did not ask for one."
+        ),
+        tier=2,
+        help_id="settings.conformer_optimize_lowest",
+        topic="settings",
+        help_anchor="settings",
+    ),
+    "fukui_anion_f_plus": HelpTooltip(
+        text=(
+            "On (the default): the Fukui functions of a species that is itself an anion include f+, f0 and the dual "
+            "descriptor, from its dianion. No basis set binds a dianion, so these are the least trustworthy numbers the "
+            "calculator gives, and the result says by how many eV the dianion lies above the anion.\n\n"
+            "The dianion is run last, so f- (where an electron comes from, the function that describes an anion) is the "
+            "same either way, and a dianion that does not converge costs only f+ and what is made from it: you get f- "
+            "and a sentence saying why.\n\n"
+            "Off: only the anion and its neutral radical are run, which is what the second preregistered check tested, "
+            "and the result says the dianion was left out. Neutral molecules and cations are not affected.\n\n"
+            "Applies to the next Fukui run; results already computed are not changed."
+        ),
+        tier=2,
+        help_id="settings.fukui_anion_f_plus",
+        topic="settings",
+        help_anchor="settings",
+    ),
+    "fukui_cation_search": HelpTooltip(
+        text=(
+            "On (the default): a Fukui run also looks for other states of the cation. It starts three more cation jobs from the "
+            "neutral's orbitals, with the electron taken from the HOMO-1, HOMO-2 and HOMO-3, and f- is read from the LOWEST state "
+            "found (the average of the states if the lowest level is degenerate). When another state lies within 0.5 eV of it, the "
+            "result says so and how far that state's f- is from the one used.\n\n"
+            "Why: a cation can have several states a few tenths of an eV apart, and one cation job reaches only the one ORCA's SCF "
+            "falls into. For benzaldehyde that was not a function of the structure: 6 of 14 runs of the same molecule reached one "
+            "state and 8 the other, depending on a rotation, a displacement of 0.001 A or the embedding.\n\n"
+            "Off: one cation job, as before, and the result says no search was run. A search that finds nothing else costs the three "
+            "jobs (about 2.5 times the time of a run without it, measured) and changes no number. Species of any charge are searched; molecules with an element heavier than krypton are not.\n\n"
+            "Applies to the next Fukui run; results already computed are not changed."
+        ),
+        tier=2,
+        help_id="settings.fukui_cation_search",
+        topic="settings",
+        help_anchor="settings",
+    ),
     "bond_click": HelpTooltip(
         text=(
             "Off (the default): a click on a bond selects it, as it always has.\n\n"
@@ -346,6 +422,7 @@ class SettingsDialog(QDialog):
             KEYBOARD: self._build_keyboard_page,
             DRAWING: self._build_drawing_page,
             CONFORMERS: self._build_conformers_page,
+            QUANTUM_CHEMISTRY: self._build_quantum_chemistry_page,
             FILE_DIALOGS: self._build_file_dialogs_page,
         }
         for section_id, label in SECTIONS:
@@ -613,6 +690,22 @@ class SettingsDialog(QDialog):
         apply_help_tooltip(self._conformer_early_stop, _HELP["conformer_early_stop"])
         self._conformer_early_stop.toggled.connect(self._on_conformer_early_stop_toggled)
 
+        self._conformer_keep_optimized = QCheckBox(
+            "Keep ORCA-optimized conformers when generating conformers again", page
+        )
+        self._conformer_keep_optimized.setObjectName("conformerKeepOptimized")
+        self._conformer_keep_optimized.setChecked(bool(self._settings.preference(CONFORMER_KEEP_OPTIMIZED)))
+        apply_help_tooltip(self._conformer_keep_optimized, _HELP["conformer_keep_optimized"])
+        self._conformer_keep_optimized.toggled.connect(self._on_conformer_keep_optimized_toggled)
+
+        self._conformer_optimize_lowest = QCheckBox(
+            "Start the Generate Conformers window with \"Also ORCA-optimize the lowest-energy conformer\" ticked", page
+        )
+        self._conformer_optimize_lowest.setObjectName("conformerOptimizeLowest")
+        self._conformer_optimize_lowest.setChecked(bool(self._settings.preference(CONFORMER_OPTIMIZE_LOWEST)))
+        apply_help_tooltip(self._conformer_optimize_lowest, _HELP["conformer_optimize_lowest"])
+        self._conformer_optimize_lowest.toggled.connect(self._on_conformer_optimize_lowest_toggled)
+
         row = QHBoxLayout()
         row.addWidget(QLabel("Automatic search tries up to", page))
         row.addWidget(self._conformer_embeddings)
@@ -634,6 +727,18 @@ class SettingsDialog(QDialog):
             "will hand back. Faster, at the cost of sometimes missing a shape a full search would find.",
             page,
         ))
+        layout.addWidget(self._conformer_keep_optimized)
+        layout.addWidget(_note(
+            "An ORCA optimization is expensive and every later calculation prefers it, so generating again "
+            "keeps it by default. Untick to have Generate replace everything.",
+            page,
+        ))
+        layout.addWidget(self._conformer_optimize_lowest)
+        layout.addWidget(_note(
+            "Off by default, because an ORCA optimization takes minutes to hours. Each generation can still "
+            "tick it in its own window; this is only where that checkbox starts.",
+            page,
+        ))
         layout.addStretch(1)
         return page
 
@@ -642,6 +747,62 @@ class SettingsDialog(QDialog):
 
     def _on_conformer_early_stop_toggled(self, checked: bool) -> None:
         self._store(CONFORMER_EARLY_STOP, checked)
+
+    def _on_conformer_keep_optimized_toggled(self, checked: bool) -> None:
+        self._store(CONFORMER_KEEP_OPTIMIZED, checked)
+
+    def _on_conformer_optimize_lowest_toggled(self, checked: bool) -> None:
+        self._store(CONFORMER_OPTIMIZE_LOWEST, checked)
+
+    # --- Quantum chemistry ---------------------------------------------------------
+
+    def _build_quantum_chemistry_page(self) -> QWidget:
+        page = QWidget(self)
+        self._fukui_anion_f_plus = QCheckBox(
+            "Include f+, f0 and the dual descriptor for an anion (from its dianion, which no basis set binds)", page
+        )
+        self._fukui_anion_f_plus.setObjectName("fukuiAnionFPlus")
+        self._fukui_anion_f_plus.setChecked(bool(self._settings.preference(FUKUI_ANION_F_PLUS)))
+        apply_help_tooltip(self._fukui_anion_f_plus, _HELP["fukui_anion_f_plus"])
+        self._fukui_anion_f_plus.toggled.connect(self._on_fukui_anion_f_plus_toggled)
+
+        layout = QVBoxLayout(page)
+        layout.addWidget(_heading("Quantum chemistry", page))
+        layout.addWidget(_heading("Fukui functions", page))
+        layout.addWidget(self._fukui_anion_f_plus)
+        layout.addWidget(_note(
+            "An anion's f+ describes a state no basis set binds, so it is the least trustworthy number the calculator gives, "
+            "and the result says how far above the anion the dianion lies. f- does not depend on it: the dianion is run "
+            "last, and if it does not converge you get f- and a sentence saying why. Untick to run only the anion and its "
+            "neutral radical. Neutral molecules and cations always get all four. Applies to the next run.",
+            page,
+        ))
+
+        self._fukui_cation_search = QCheckBox(
+            "Look for other states of the cation (three more ORCA jobs) and read f- from the lowest", page
+        )
+        self._fukui_cation_search.setObjectName("fukuiCationSearch")
+        self._fukui_cation_search.setChecked(bool(self._settings.preference(FUKUI_CATION_SEARCH)))
+        apply_help_tooltip(self._fukui_cation_search, _HELP["fukui_cation_search"])
+        self._fukui_cation_search.toggled.connect(self._on_fukui_cation_search_toggled)
+        layout.addWidget(self._fukui_cation_search)
+        layout.addWidget(_note(
+            "f- is a difference between the neutral and its cation, and a cation can have several states a few tenths of an eV "
+            "apart. With one cation job, f- was taken from whichever state ORCA's SCF happened to reach, which for benzaldehyde "
+            "was not a function of the structure: 6 of 14 runs reached one state and 8 the other. The search also starts the "
+            "cation from the neutral's orbitals with the electron taken from the HOMO-1, HOMO-2 and HOMO-3, reads f- from the "
+            "lowest state it finds, and says when another lies within 0.5 eV and how far its f- is. It takes about 2.5 times as long as the one job, which is what unticking runs. "
+            "Applies to the next run.",
+            page,
+        ))
+        layout.addStretch(1)
+        return page
+
+    def _on_fukui_anion_f_plus_toggled(self, checked: bool) -> None:
+        self._store(FUKUI_ANION_F_PLUS, checked)
+
+    def _on_fukui_cation_search_toggled(self, checked: bool) -> None:
+        self._store(FUKUI_CATION_SEARCH, checked)
 
     # --- Results -----------------------------------------------------------------
 

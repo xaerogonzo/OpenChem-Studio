@@ -56,6 +56,9 @@ class FactCategory(str, Enum):
     TOPOLOGY = "topology"
     GEOMETRY = "geometry"
     REGULATORY = "regulatory"
+    #: A number a person defined from other numbers (`domain/score_answer.py`). Not a property of the structure that any calculator provides, so it does not
+    #: sit under one.
+    DERIVED = "derived"
 
 
 #: Display order. A category absent from a report is simply skipped, so
@@ -70,6 +73,7 @@ CATEGORY_ORDER: tuple[FactCategory, ...] = (
     FactCategory.TOPOLOGY,
     FactCategory.GEOMETRY,
     FactCategory.REGULATORY,
+    FactCategory.DERIVED,
 )
 
 CATEGORY_LABELS: dict[FactCategory, str] = {
@@ -82,13 +86,14 @@ CATEGORY_LABELS: dict[FactCategory, str] = {
     FactCategory.TOPOLOGY: "Topology",
     FactCategory.GEOMETRY: "Geometry",
     FactCategory.REGULATORY: "Regulatory",
+    FactCategory.DERIVED: "Derived scores",
 }
 
 #: Open expanded. Everything else starts collapsed: a hundred-odd facts
 #: rendered flat is a wall, and progressive disclosure is far cheaper to
 #: design in than to retrofit.
 DEFAULT_EXPANDED: frozenset[FactCategory] = frozenset(
-    {FactCategory.IDENTITY, FactCategory.ELECTRONIC}
+    {FactCategory.IDENTITY, FactCategory.ELECTRONIC, FactCategory.DERIVED}
 )
 
 

@@ -9,6 +9,7 @@
 | [ARCHITECTURE.md](ARCHITECTURE.md) | Internal design, layering, and the decisions worth remembering |
 | [ROADMAP.md](ROADMAP.md) | What is built, what is left, and why each remaining item is blocked |
 | [PLUGIN_SDK.md](PLUGIN_SDK.md) | Writing a plugin |
+| [WHATS_NEW.md](WHATS_NEW.md) | A dated tour of the assistant's calculator bridge, recipes and derived scores: what each is for, where it is in the application, and what it does not do |
 | [SOURCES.md](SOURCES.md) | Every paper, dataset, legal text and bundled library this project rests on, with what uses it and how far it has been checked |
 
 The rest of this directory is **assessments, audits and operational notes**.
@@ -27,6 +28,26 @@ so they are listed here rather than left for somebody to find:
 **Two of those are dated records and say so in their own first lines.** A
 measurement is not a claim about today, and re-reading one as though it were is
 how this project's own documentation has gone stale before.
+
+**Design records, references and maintainers' notes.** These were in the directory and not in this index:
+
+| | |
+|---|---|
+| [DERIVED_SCORES_DESIGN.md](DERIVED_SCORES_DESIGN.md) | Design record for derived scores, slice by slice: why a score is a projection and not a result, the approved outputs, what was measured, and the geometry decisions |
+| [RECIPES_DESIGN.md](RECIPES_DESIGN.md) | Design record for recipes (typed dependencies between calculators) and the Lewis pairing, with the preregistered gate |
+| [AI_CALCULATION_BRIDGE.md](AI_CALCULATION_BRIDGE.md) | Design record for the assistant's calculator bridge: the execution policy, the handle, the frozen turn and the approval flow |
+| [TAUTOMER_NMR_DESIGN.md](TAUTOMER_NMR_DESIGN.md) | Design for tautomer peaks on the NMR spectrum |
+| [CALCULATOR_REFERENCE.md](CALCULATOR_REFERENCE.md) | The generated reference for every calculator: options, limits and the evidence behind each (built from the registry; do not edit) |
+| [CALCULATOR_MATURITY.md](CALCULATOR_MATURITY.md) | Maintainer's document: calculator stages, default visibility, and how a calculator is classified or promoted |
+| [CALCULATOR_GAP_REPORT.md](CALCULATOR_GAP_REPORT.md) | Which calculators a user of a Marvin-like workstation might look for that OpenChem does not have, and an order to build them in |
+| [GEOMETRY_MARVIN_CHECKLIST.md](GEOMETRY_MARVIN_CHECKLIST.md) | Marvin's Geometrical Descriptors, definition by definition, written before the geometry calculators were merged |
+| [PANEL_FEATURE_INVENTORY.md](PANEL_FEATURE_INVENTORY.md) | The inventory behind "no feature may be lost" for the Batch, Docking, Quantum Chemistry and 3D Alignment panels |
+| [LESSONS.md](LESSONS.md) | The lessons moved out of `CLAUDE.md` so they are not loaded on every message |
+| [LITERATURE_LOG.md](LITERATURE_LOG.md) | Every paper opened for a question and what came of it, so a later search is not repeated |
+| [KETCHER_SPIKE.md](KETCHER_SPIKE.md) | Research note (2026-09-24): what was measured about driving the embedded Ketcher page |
+| [PERFORMANCE_CENSUS.md](PERFORMANCE_CENSUS.md) | **Dated 2026-10-07**: a survey of the running application's performance and memory (nothing was fixed) |
+| [VDW_RADII_ASSESSMENT.md](VDW_RADII_ASSESSMENT.md) | Van der Waals radii: what the application uses, where it comes from, and what the choice changes (investigated 2026-10-11) |
+| [BRANCH_CLEANUP.md](BRANCH_CLEANUP.md) | **Dated 2026-09-12**: the record of every feature branch deleted that day |
 
 `SOURCES.md` is **generated** from [`sources.toml`](sources.toml) by
 [`../tools/build_sources_doc.py`](../tools/build_sources_doc.py). Edit the

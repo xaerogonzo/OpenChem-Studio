@@ -1,0 +1,32 @@
+
+pyrimidine  (printed range of the gap 0.48 to 0.80 eV)
+  EOM cc-pVDZ      first IP 9.367 eV; 0.000 (sigma), 0.924 (pi), 1.493 (sigma), 1.745 (pi), 4.809 (sigma), 4.944 (pi) | G = +0.924   (lowest four roots: singles >= 91%) [53 s]
+  EOM aug-cc-pVDZ  first IP 9.582 eV; 0.000 (sigma), 0.847 (pi), 1.477 (sigma), 1.692 (pi), 4.740 (sigma), 4.886 (pi) | G = +0.847   (lowest four roots: singles >= 91%) [325 s]
+  EOM cc-pVTZ      first IP 9.700 eV; 0.000 (sigma), 0.800 (pi), 1.472 (sigma), 1.647 (pi), 4.698 (sigma), 4.834 (pi) | G = +0.800   (lowest four roots: singles >= 91%) [1086 s]
+  DFT gaps G: B3LYP 6-31G* +0.909, wB97X-D3 6-31G* +0.633, B3LYP def2-TZVP +0.877, wB97X-D3 def2-TZVP +0.592
+
+pyrazine  (printed range of the gap 0.55 to 0.80 eV)
+  EOM cc-pVDZ      first IP 9.300 eV; 0.000 (sigma), 0.652 (pi), 1.778 (sigma), 2.207 (pi), 4.224 (sigma), 4.968 (pi) | G = +0.652   (lowest four roots: singles >= 91%) [59 s]
+  EOM aug-cc-pVDZ  first IP 9.515 eV; 0.000 (sigma), 0.563 (pi), 1.758 (sigma), 2.154 (pi), 4.144 (sigma), 4.898 (pi) | G = +0.563   (lowest four roots: singles >= 90%) [318 s]
+  EOM cc-pVTZ      first IP 9.641 eV; 0.000 (sigma), 0.506 (pi), 1.748 (sigma), 2.099 (pi), 4.101 (sigma), 4.842 (pi) | G = +0.506   (lowest four roots: singles >= 91%) [1086 s]
+  DFT gaps G: B3LYP 6-31G* +0.683, wB97X-D3 6-31G* +0.337, B3LYP def2-TZVP +0.632, wB97X-D3 def2-TZVP +0.272
+
+pyridine  (calibration)
+  EOM cc-pVDZ      first IP 9.360 eV; 0.000 (sigma), 0.140 (pi), 0.843 (pi), 3.294 (sigma), 4.020 (pi), 4.426 (sigma) | G = +0.140   (lowest four roots: singles >= 92%) [55 s]
+  EOM aug-cc-pVDZ  first IP 9.555 eV; 0.000 (sigma), 0.075 (pi), 0.793 (pi), 3.220 (sigma), 3.966 (pi), 4.356 (sigma) | G = +0.075   (lowest four roots: singles >= 92%) [332 s]
+  EOM cc-pVTZ      first IP 9.675 eV; 0.000 (sigma), 0.025 (pi), 0.746 (pi), 3.192 (sigma), 3.916 (pi), 4.319 (sigma) | G = +0.025   (lowest four roots: singles >= 92%) [625 s]
+  DFT gaps G: B3LYP 6-31G* +0.123, wB97X-D3 6-31G* +0.046, B3LYP def2-TZVP +0.120, wB97X-D3 def2-TZVP +0.032
+
+pyridine against EOM-IP-CCSDT (+0.15, +0.85, +3.17 for the 1a2, 2b1 and 5b2 states above the 7a1):
+  EOM cc-pVDZ      0.000 (sigma), 0.140 (pi), 0.843 (pi), 3.294 (sigma)
+  EOM aug-cc-pVDZ  0.000 (sigma), 0.075 (pi), 0.793 (pi), 3.220 (sigma)
+  EOM cc-pVTZ      0.000 (sigma), 0.025 (pi), 0.746 (pi), 3.192 (sigma)
+  validation at cc-pVTZ: kinds sigma, pi, pi, sigma: True; errors 0.125, 0.104, 0.022 eV (tolerance 0.25)
+
+decision basis: cc-pVTZ
+validation of the pipeline on pyridine: PASSED
+change of G from aug-cc-pVDZ to cc-pVTZ: pyrimidine -0.047, pyrazine -0.057 -> converged (limit 0.1)
+pyrimidine: G(EOM) +0.800; B3LYP +0.877 (error 0.077), wB97X-D3 +0.592 (error 0.208) -> B3LYP
+pyrazine: G(EOM) +0.506; B3LYP +0.632 (error 0.126), wB97X-D3 +0.272 (error 0.234) -> B3LYP
+
+READING RULE OF PLAN.md: B3LYP NEARER

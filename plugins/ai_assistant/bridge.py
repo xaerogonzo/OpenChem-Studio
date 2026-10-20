@@ -25,13 +25,28 @@ from collections.abc import Callable
 from dataclasses import dataclass, field
 from typing import Any
 
-from openchem.domain.result_envelope import CAP_STEPS, Caps, outcome_envelope, results_view_envelope
+from openchem.domain.result_envelope import (
+    CAP_STEPS,
+    Caps,
+    outcome_envelope,
+    results_view_envelope,
+    score_outputs_envelope,
+    score_proposal_envelope,
+    score_refusal_envelope,
+    scores_view_envelope,
+)
 from openchem.domain.run_lifecycle import RunState
+from openchem.domain.score_proposal import ProposalRefusal, card_of
 from openchem.domain.turn_snapshot import TurnContext
 from openchem.plugins.calculation_access import PluginCalculations
 
 #: The most characters a tool reply may have. A model reads every one of them on every later request.
 REPLY_BUDGET = 12000
+
+#: The budget of `list_score_outputs` alone. The approved table is fixed knowledge the model reads once to propose a score, and with the ten shape outputs (51 rows, 2026-10-17) it no longer fit
+#: the general budget: the stepped caps dropped the last rows, so the model could not name them. Raised for this one reply and not for the others, which are read in full on every later request. It was 16,000 until
+#: Geometry Analysis's eight sizes (59 rows, 14,249 characters: the guard in `tests/test_ai_assistant_score_proposals.py` stops at 85%), and is 20,000 now.
+SCORE_OUTPUTS_BUDGET = 20000
 
 #: How many calculators one search returns at most, whatever the model asks for.
 MAX_SEARCH = 30
@@ -125,7 +140,7 @@ class ToolBridge:
             why = "no molecule is selected, so there is nothing to read or calculate"
         return _plain({"ok": False, "problem": "unavailable", "message": why})
 
-    # --- the four tools ---------------------------------------------------------------------------
+    # --- the tools --------------------------------------------------------------------------------
 
     def find_calculators(self, query: str = "", limit: int = 10) -> str:
         if not self._calculations.available:
@@ -181,6 +196,35 @@ class ToolBridge:
             self._turn, list(calculators) if calculators else None, include_not_current=bool(include_not_current)
         )
         return bounded_json(lambda caps: results_view_envelope(view, caps))
+
+    def read_scores(self, scores: list[str] | None = None) -> str:
+        """The user-defined scores of the selected molecule, worked out from what was stored and defined when the turn began. Read-only: a score cannot be made here."""
+        if not self.available:
+            return self._unavailable()
+        view = self._calculations.read_scores(self._turn, list(scores) if scores else None)
+        return bounded_json(lambda caps: scores_view_envelope(view, caps))
+
+    def list_score_outputs(self) -> str:
+        """What a score's formula may read. Fixed knowledge: it reads nothing of the user's molecule."""
+        outputs = self._calculations.list_score_outputs()
+        return bounded_json(lambda caps: score_outputs_envelope(outputs, caps), SCORE_OUTPUTS_BUDGET)
+
+    def propose_score(self, request: dict[str, Any]) -> str:
+        """Check a request for a score and leave it for the person to approve. **Stores nothing**, and has no way to: the approving is on an object this bridge is never given."""
+        if not self.available:
+            return self._unavailable()
+        result = self._calculations.propose_score(self._turn, request)
+        molecule = self._turn.display_name
+        if isinstance(result, ProposalRefusal):
+            label = request.get("label") if isinstance(request, dict) and isinstance(request.get("label"), str) else "a score"
+            self._emit(BridgeEvent(kind="refused", calculator=f"score {label!r}", molecule=molecule, detail=result.message))
+            return bounded_json(lambda caps: score_refusal_envelope(result, caps))
+        proposal = result.proposal
+        if not result.already_waiting:
+            self._emit(BridgeEvent(
+                kind="score_proposed", calculator=f"score {proposal.definition.label!r}", molecule=molecule, run_id=proposal.proposal_id, preparation=card_of(proposal),
+            ))
+        return bounded_json(lambda caps: score_proposal_envelope(result, caps))
 
     def run_calculator(self, calculator_id: str, parameters: dict[str, Any] | None = None) -> str:
         if not self.available:

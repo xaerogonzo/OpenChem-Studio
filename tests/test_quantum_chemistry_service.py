@@ -126,6 +126,52 @@ def _make_service(tmp_path, provider) -> tuple[QuantumChemistryService, EventBus
     return service, bus
 
 
+def test_the_default_orca_provider_reads_the_fukui_anion_setting_each_time_it_writes_an_input(qapp, tmp_path):
+    """The wiring and not the helper: the service hands its own settings to the provider it builds, so ticking and unticking the Settings checkbox changes the next Fukui
+    input of an anion (three jobs with its dianion, two without) and never a neutral molecule's."""
+    from openchem.app.settings import FUKUI_ANION_F_PLUS, FUKUI_CATION_SEARCH
+    from rdkit.Chem import AllChem
+
+    bus = EventBus()
+    settings = Settings(bus)
+    provider = QuantumChemistryService(bus, settings)._providers["orca"]
+    mol = Chem.AddHs(Chem.MolFromSmiles("C[O-]"))
+    AllChem.EmbedMolecule(mol, randomSeed=7)
+    # The search for other cation states adds its own jobs; it has its own wiring test below, so it is off here and only the dianion is counted.
+    settings.set_preference(FUKUI_CATION_SEARCH, False)
+
+    def jobs(charge: int) -> int:
+        return provider.build_input(mol, charge, 1, "B3LYP 6-31G*", "fukui").count("$new_job") + 1
+
+    assert settings.preference(FUKUI_ANION_F_PLUS) is True and jobs(-1) == 3
+    settings.set_preference(FUKUI_ANION_F_PLUS, False)
+    assert jobs(-1) == 2 and jobs(0) == 3
+    settings.set_preference(FUKUI_ANION_F_PLUS, True)
+    assert jobs(-1) == 3
+
+
+def test_the_default_orca_provider_reads_the_fukui_cation_search_setting_each_time_it_writes_an_input(qapp, tmp_path):
+    """The wiring and not the helper: the service hands its settings to the provider it builds, so ticking and unticking the Settings checkbox adds and removes the hole
+    starts of the next Fukui input (three more jobs for a closed-shell molecule with valence orbitals below its HOMO) and changes nothing else."""
+    from openchem.app.settings import FUKUI_CATION_SEARCH
+    from rdkit.Chem import AllChem
+
+    bus = EventBus()
+    settings = Settings(bus)
+    provider = QuantumChemistryService(bus, settings)._providers["orca"]
+    water = Chem.AddHs(Chem.MolFromSmiles("O"))
+    AllChem.EmbedMolecule(water, randomSeed=7)
+
+    def jobs() -> int:
+        return provider.build_input(water, 0, 1, "B3LYP 6-31G*", "fukui").count("$new_job") + 1
+
+    assert settings.preference(FUKUI_CATION_SEARCH) is True and jobs() == 6
+    settings.set_preference(FUKUI_CATION_SEARCH, False)
+    assert jobs() == 3
+    settings.set_preference(FUKUI_CATION_SEARCH, True)
+    assert jobs() == 6
+
+
 def test_quantum_chemistry_job_lifecycle_reaches_completed(qapp, tmp_path):
     provider = FakeQuantumEngineProvider(stdout_text="hello from fake orca")
     service, bus = _make_service(tmp_path, provider)
@@ -1367,3 +1413,123 @@ def test_a_job_run_on_the_drawing_names_no_conformer(qapp):
     sending the window looking for one."""
     event = _run_to_completion(qapp, "drawing", "d" * 64)
     assert event.input_fingerprint == ""
+
+
+# --- what a finished job says about itself: the structure it ran on, and the level of theory ---------------------
+
+
+class _ProvenancedOptimizerProvider(FakeQuantumEngineProvider):
+    """Returns an optimized conformer the way the ORCA engine does: provenance holding only the engine's own key."""
+
+    def parse_output(self, output_text: str, mol, molecule_uuid: str, calc_type: str):
+        from openchem.domain.common import Provenance
+
+        descriptors, _ = super().parse_output(output_text, mol, molecule_uuid, calc_type)
+        conformer = ConformerModel(
+            molblock="fake molblock",
+            method="orca_opt",
+            provenance=Provenance(created_by="core", method="fake", parameters={"orca_version": "6.0.1"}),
+        )
+        return descriptors, conformer
+
+
+def _run_one_opt_job(qapp, tmp_path, provider, **extra):
+    service, bus = _make_service(tmp_path, provider)
+    results: list[QuantumChemistryResultReady] = []
+    bus.subscribe(QuantumChemistryResultReady, results.append)
+    states: list[CacheState] = []
+    bus.subscribe(QuantumChemistryJobStateChanged, lambda e: states.append(e.state))
+    service.request_calculation(
+        mol=Chem.MolFromSmiles("CCO"),
+        molecule_uuid="mol-1",
+        calc_type="opt",
+        charge=0,
+        multiplicity=1,
+        method_basis="HF STO-3G",
+        provider_id="fake",
+        **extra,
+    )
+    assert _wait_until(qapp, lambda: states and states[-1] in (CacheState.COMPLETED, CacheState.FAILED))
+    assert states[-1] == CacheState.COMPLETED
+    return results
+
+
+def test_the_result_carries_the_structure_the_job_was_submitted_on(qapp, tmp_path):
+    results = _run_one_opt_job(qapp, tmp_path, FakeQuantumEngineProvider(), structure_identity="CCO")
+
+    assert [r.structure_identity for r in results] == ["CCO"]
+
+
+def test_a_caller_that_names_no_structure_gets_an_empty_identity_which_the_window_withholds(qapp, tmp_path):
+    results = _run_one_opt_job(qapp, tmp_path, FakeQuantumEngineProvider())
+
+    assert results[0].structure_identity == ""
+
+
+def test_the_optimized_conformer_says_which_level_of_theory_made_it_and_keeps_the_engines_own_keys(qapp, tmp_path):
+    from openchem.domain.common import RUN_CALC_TYPE, RUN_ID, RUN_METHOD_BASIS
+
+    results = _run_one_opt_job(qapp, tmp_path, _ProvenancedOptimizerProvider(), structure_identity="CCO")
+
+    parameters = results[0].conformer.provenance.parameters
+    assert parameters["orca_version"] == "6.0.1", "merged, never replaced"
+    assert parameters[RUN_METHOD_BASIS] == "HF STO-3G"
+    assert parameters[RUN_CALC_TYPE] == "opt"
+    assert parameters[RUN_ID], "the geometry can be traced to its run in the history"
+
+
+def test_a_conformer_with_no_provenance_gets_one_rather_than_losing_the_record(qapp, tmp_path):
+    from openchem.domain.common import RUN_METHOD_BASIS
+
+    results = _run_one_opt_job(qapp, tmp_path, FakeQuantumEngineProvider(), structure_identity="CCO")
+
+    assert results[0].conformer.provenance.parameters[RUN_METHOD_BASIS] == "HF STO-3G"
+
+
+def test_the_result_event_names_the_run_its_geometry_belongs_to(qapp, tmp_path):
+    """The run history and the geometry must agree on one run id, or 'where did this geometry come from' has no answer."""
+    from openchem.domain.common import RUN_ID
+
+    service, bus = _make_service(tmp_path, FakeQuantumEngineProvider())
+    results: list[QuantumChemistryResultReady] = []
+    bus.subscribe(QuantumChemistryResultReady, results.append)
+    states: list[CacheState] = []
+    bus.subscribe(QuantumChemistryJobStateChanged, lambda e: states.append(e.state))
+    service.request_calculation(
+        mol=Chem.MolFromSmiles("CCO"), molecule_uuid="mol-1", calc_type="opt", charge=0, multiplicity=1,
+        method_basis="HF STO-3G", provider_id="fake", structure_identity="CCO",
+    )
+    assert _wait_until(qapp, lambda: states and states[-1] == CacheState.COMPLETED)
+
+    descriptor_run_id = results[0].descriptors[0].provenance.parameters[RUN_ID]
+    assert results[0].conformer.provenance.parameters[RUN_ID] == descriptor_run_id
+
+
+def test_a_boltzmann_sequence_stamps_the_identity_it_was_submitted_with(qapp, tmp_path):
+    provider = _PerConformerProvider(energies=[-100.0, -100.0], shifts=[30.0, 10.0])
+    service, bus = _make_service(tmp_path, provider)
+    results: list[QuantumChemistryResultReady] = []
+    bus.subscribe(QuantumChemistryResultReady, results.append)
+    states: list[CacheState] = []
+    bus.subscribe(QuantumChemistryJobStateChanged, lambda e: states.append(e.state))
+
+    mol = Chem.MolFromSmiles("CCO")
+    service.request_boltzmann_nmr(
+        mols=[mol, mol], molecule_uuid="mol-1", calc_type="nmr", charge=0, multiplicity=1,
+        method_basis="B3LYP pcSseg-1", provider_id="fake", structure_identity="CCO",
+    )
+    assert _wait_until(qapp, lambda: states and states[-1] in (CacheState.COMPLETED, CacheState.FAILED))
+
+    assert [r.structure_identity for r in results] == ["CCO"], "one event for the sequence, with the submission's identity"
+
+
+def test_the_result_carries_the_slot_the_job_was_submitted_on(qapp, tmp_path):
+    results = _run_one_opt_job(qapp, tmp_path, FakeQuantumEngineProvider(), structure_identity="CCO", source_slot=7)
+
+    assert [r.source_slot for r in results] == [7]
+
+
+def test_a_caller_that_names_no_slot_gets_zero_which_means_not_recorded(qapp, tmp_path):
+    results = _run_one_opt_job(qapp, tmp_path, FakeQuantumEngineProvider(), structure_identity="CCO")
+
+    assert results[0].source_slot == 0

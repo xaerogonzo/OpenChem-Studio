@@ -1,0 +1,16 @@
+memory 2 GB
+molecule {
+0 1
+O 0.0000000000 0.0000000000 0.1173000000
+H 0.0000000000 0.7572000000 -0.4692000000
+H 0.0000000000 -0.7572000000 -0.4692000000
+symmetry c1
+no_reorient
+no_com
+}
+set reference rhf
+set basis def2-svp
+set scf_type df
+set e_convergence 1e-8
+set d_convergence 1e-8
+energy('b3lyp5')

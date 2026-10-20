@@ -277,7 +277,11 @@ def test_an_optimized_conformer_is_added_with_the_map_and_becomes_the_calculatio
 
     services.event_bus.publish(
         QuantumChemistryResultReady(
-            molecule_uuid=molecule.uuid, descriptors=[], conformer=optimized, input_fingerprint=fingerprint
+            molecule_uuid=molecule.uuid,
+            descriptors=[],
+            conformer=optimized,
+            input_fingerprint=fingerprint,
+            structure_identity=molecule.canonical_smiles,
         )
     )
     _drain(qapp)
@@ -303,7 +307,12 @@ def test_an_optimized_conformer_from_a_job_with_no_fingerprint_is_still_added(qa
     optimized = _optimized_copy_of(source)
 
     services.event_bus.publish(
-        QuantumChemistryResultReady(molecule_uuid=molecule.uuid, descriptors=[], conformer=optimized)
+        QuantumChemistryResultReady(
+            molecule_uuid=molecule.uuid,
+            descriptors=[],
+            conformer=optimized,
+            structure_identity=molecule.canonical_smiles,
+        )
     )
     _drain(qapp)
 

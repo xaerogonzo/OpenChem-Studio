@@ -18,19 +18,14 @@ import re
 from collections.abc import Collection
 from dataclasses import dataclass
 
-#: Why a tooling script, and not the application, reaches this module for now (see `score_formula.REACHED_BY`).
-REACHED_BY = (
-    "tooling: imported by score_formula.py, which tools/check_score_formula.py reaches; the application reaches both in slice 3 of "
-    "docs/DERIVED_SCORES_DESIGN.md"
-)
-
 #: The symbols a unit may be made of. CLOSED: a symbol not here is a typo or a unit nobody approved, and either way the definition
 #: is refused rather than guessed at. This is a STARTER set, read off the unit strings the application's results carry today
-#: (`units="eV"`, `"kcal/mol"`, `"g/mol"`, `"ppm"`, `"%"`, and so on). A symbol is added when an approved output (`score_outputs`) or a
+#: (`units="eV"`, `"kcal/mol"`, `"g/mol"`, `"ppm"`, `"%"`, and so on). `amu` is the atomic mass unit of a principal moment of inertia (`amu*Å^2`), and it is NOT `g/mol`: like every
+#: symbol here it is unrelated to the others, so nothing converts between them. A symbol is added when an approved output (`score_outputs`) or a
 #: result a person needs to declare calls for it; the spellings the results use (`A` and `Å`, `deg` and `degrees`, `""` and `dimensionless`)
 #: are reconciled per approved output, in its `carried_as`, and not here.
 SYMBOLS: frozenset[str] = frozenset(
-    {"eV", "Hartree", "kcal", "kJ", "mol", "g", "mg", "mL", "L", "cm", "nm", "Å", "K", "e", "%", "ppm", "D", "deg", "ps", "kbar"}
+    {"eV", "Hartree", "kcal", "kJ", "mol", "g", "mg", "mL", "L", "cm", "nm", "Å", "K", "e", "%", "ppm", "D", "deg", "ps", "kbar", "amu"}
 )
 
 #: The largest exponent a unit may carry. A unit like `eV^40` is a typo, and it keeps every product small.

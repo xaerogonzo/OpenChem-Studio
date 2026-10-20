@@ -111,6 +111,9 @@ def _context_cip_maps(mol: object) -> "tuple[dict[int, str], dict[tuple[int, int
             rdCIPLabeler.AssignCIPLabels(mol)
         except Exception:  # pragma: no cover — defensive only
             pass
+        from openchem.vendor.iupac_namer.perception.stereo import label_azolide_on_neutral_view
+
+        label_azolide_on_neutral_view(mol)
     except Exception as exc:  # pragma: no cover - defensive
         logger.debug("Failed to assign CIP codes before carving: %s", exc)
 

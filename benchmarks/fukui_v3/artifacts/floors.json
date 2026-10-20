@@ -1,0 +1,15 @@
+{
+ "floors": [
+  {
+   "species": "acetaldehyde",
+   "same_input_twice": 0.0,
+   "whole_chain_twice": 0.00013099999999999223
+  },
+  {
+   "species": "ethylene",
+   "same_input_twice": 0.0,
+   "whole_chain_twice": 3.999999999948489e-06
+  }
+ ],
+ "floor": 0.00013099999999999223
+}

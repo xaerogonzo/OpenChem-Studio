@@ -82,6 +82,12 @@ The script is a JSON list of steps, run in order:
                                  "method": "HF-3c"}   the REAL Run button,
                                                       and the identity the
                                                       SERVICE was handed
+      {"do": "qc_run",           "engine": "psi4", "calc_type": "Geometry Optimization",
+                                 "method": "B3LYP def2-SVP"}   pick the Engine box's entry first
+      {"do": "tool_path",        "tool": "psi4", "path": "D:/.../psi4.exe"}   set up a tool for
+                                                      THIS run; the real value is put back at `quit`
+      {"do": "qc_setup",         "method": "HF STO-3G"}   set the panel,
+                                                      press nothing
       {"do": "inspector_report", "expect_spectrum": "stale"}   asserts it
       {"do": "atom_numbers",     "mode": "locants", "tag": "on"}  the View
                                               menu's mode, and what the PAGE
@@ -99,6 +105,14 @@ The script is a JSON list of steps, run in order:
                                             "fragment_counts": {"facts_contain": ["Nitro"]}}}
                                               what the panels HOLD, so a clean
                                               log cannot pass by silence
+      {"do": "descriptors_report", "tag": "x", "values": {"sa_score": 1.58},
+       "equals_drawing": true, "alerts_equal_drawing": true}
+                                              the always-on descriptors the
+                                              READER holds against the same
+                                              computed on the DRAWING (see
+                                              `_do_descriptors_report`);
+                                              `expect_project_table` takes
+                                              `cells` to read the table's VALUES
       {"do": "expect_offered",   "hidden": ["detonation"], "footer": "1 calculator ..."}
                                               which calculators the Properties
                                               launcher OFFERS, by row visibility
@@ -584,12 +598,53 @@ class _Driver(QObject):
         combo.setCurrentIndex(index)
         logger.warning("OPENCHEM_DRIVE: dock_receptor -> %r", combo.currentText())
 
+    #: The tool settings a script may set for its own run, and no others.
+    _TOOL_PATH_KEYS = {"psi4": "psi4/executable_path"}
+
+    def _do_tool_path(self, step: dict[str, Any]) -> None:
+        """Point a tool at an executable for THIS run: `{"do": "tool_path", "tool": "psi4", "path": "D:/.../psi4.exe"}`.
+
+        The setting is the application's real one (the registry), so the first value of each key is remembered and `quit` puts it BACK (or removes the key if it
+        was unset), whatever else the script did: a diagnostic run must not leave a machine configured differently from how it found it. The Quantum Chemistry
+        panel is asked to refresh its Engine box, as the External Tools dialog does when it closes.
+        """
+        tool = str(step.get("tool", ""))
+        key = self._TOOL_PATH_KEYS.get(tool)
+        path = step.get("path")
+        if key is None or not path or not Path(str(path)).is_file():
+            logger.error("OPENCHEM_DRIVE: tool_path -- unknown tool %r or no file at %r", tool, path)
+            return
+        settings = self._window._settings
+        if not hasattr(self, "_tool_path_originals"):
+            self._tool_path_originals: dict[str, Any] = {}
+        if key not in self._tool_path_originals:
+            self._tool_path_originals[key] = settings.get(key, None)
+        settings.set(key, str(Path(str(path))))
+        panel = getattr(self._window, "_quantum_chemistry_panel", None)
+        if panel is not None:
+            panel._refresh_engines()
+        logger.warning("OPENCHEM_DRIVE: tool_path -- %s set for this run (the original is put back at quit)", key)
+
+    def _restore_tool_paths(self) -> None:
+        originals = getattr(self, "_tool_path_originals", {})
+        if not originals:
+            return  # no script step touched a tool setting: nothing to put back, and a bare test window has no settings
+        settings = self._window._settings
+        for key, original in originals.items():
+            if original is None:
+                settings.remove(key)
+            else:
+                settings.set(key, original)
+            logger.warning("OPENCHEM_DRIVE: %s put back", key)
+
     def _do_qc_run(self, step: dict[str, Any]) -> None:
         """Press the Quantum Chemistry panel's Run button, for real, and log the
         identity the SERVICE was handed.
 
         `{"do": "qc_run", "calc_type": "NMR (raw shielding)", "method": "HF-3c",
-        "boltzmann": false, "after_ms": 120000}`
+        "boltzmann": false, "conformer": 1, "after_ms": 120000}` -- `conformer` is the zero-based slot the panel's
+        Conformer box is pointed at first, or `"automatic"` to put it back (the pick PERSISTS between runs, as it does for a
+        person; omit the key to leave the box as it is).
 
         **WHAT THE SERVICE RECEIVED, read off its own job record** --
         `_active_jobs` or `_boltzmann_runs`, both set synchronously by the
@@ -619,16 +674,37 @@ class _Driver(QObject):
         if not select(panel._molecule_combo, molecule_uuid):
             logger.error("OPENCHEM_DRIVE: qc_run -- the selected molecule is not in the panel's combo")
             return
+        if step.get("engine") is not None:
+            # The Engine box, as a person would use it. An engine that is not set up has no entry: an ERROR, never a run on another engine.
+            engine_index = panel._engine_combo.findData(str(step["engine"]))
+            if engine_index < 0:
+                logger.error("OPENCHEM_DRIVE: qc_run -- engine %r is not in the Engine box (set up? %s)", step["engine"],
+                             [panel._engine_combo.itemData(i) for i in range(panel._engine_combo.count())])
+                return
+            panel._engine_combo.setCurrentIndex(engine_index)
         calc_type = step.get("calc_type")
         if calc_type is not None:
             index = panel._calc_type_combo.findText(str(calc_type))
-            if index < 0:
-                logger.error("OPENCHEM_DRIVE: qc_run -- calc_type %r matches no item", calc_type)
+            if index < 0 or not panel._calc_type_combo.model().item(index).isEnabled():
+                logger.error("OPENCHEM_DRIVE: qc_run -- calc_type %r matches no ENABLED item for this engine", calc_type)
                 return
             panel._calc_type_combo.setCurrentIndex(index)
         if step.get("method") is not None:
             panel._method_combo.setCurrentText(str(step["method"]))
-        panel._boltzmann_check.setChecked(bool(step.get("boltzmann", False)))
+        panel._boltzmann_check.setChecked(bool(step.get("boltzmann", False)) and panel._boltzmann_check.isEnabled())
+        if step.get("conformer") == "automatic":
+            panel._conformer_combo.setCurrentIndex(0)
+        elif step.get("conformer") is not None:
+            # The Conformer box, as the viewer's button or the Tools entry would fill it. `conformer` is the
+            # ZERO-BASED slot; a refusal (averaging is ticked, or the slot is not there) is an ERROR, never a
+            # run on some other conformer.
+            molecule = self._window._current_molecule()
+            slot = int(step["conformer"])
+            if molecule is None or not (0 <= slot < len(molecule.conformers)) or not panel.choose_conformer(
+                molecule.uuid, molecule.conformers[slot].conformer_id
+            ):
+                logger.error("OPENCHEM_DRIVE: qc_run -- could not choose conformer slot %s; not run", slot)
+                return
         if not panel._run_button.isEnabled():
             logger.error("OPENCHEM_DRIVE: qc_run -- the Run button is DISABLED; not clicked")
             return
@@ -648,6 +724,38 @@ class _Driver(QObject):
             record.input_fingerprint[:12],
             record.method_basis,
             panel._status_label.text(),
+        )
+
+    def _do_qc_setup(self, step: dict[str, Any]) -> None:
+        """Set the Quantum Chemistry panel up and press NOTHING.
+
+        `{"do": "qc_setup", "method": "HF STO-3G", "calc_type": "Geometry Optimization"}`
+
+        For a run that something ELSE starts: the Generate Conformers window's "also ORCA-optimize the lowest-energy
+        conformer" presses the panel's Run itself, with whatever the panel shows at that moment, so a script has to put
+        a fast method there first and then not press anything. The panel's molecule combo is pointed at the Properties
+        selection, as `qc_run` does, because the panel describes (and runs) whatever that combo holds.
+        """
+        from openchem.ui.molecule_combo import select
+
+        panel = getattr(self._window, "_quantum_chemistry_panel", None)
+        if panel is None:
+            logger.error("OPENCHEM_DRIVE: qc_setup -- no Quantum Chemistry panel on this window")
+            return
+        if not select(panel._molecule_combo, self._window._property_panel._selected_molecule_uuid):
+            logger.error("OPENCHEM_DRIVE: qc_setup -- the selected molecule is not in the panel's combo")
+            return
+        if step.get("calc_type") is not None:
+            index = panel._calc_type_combo.findText(str(step["calc_type"]))
+            if index < 0:
+                logger.error("OPENCHEM_DRIVE: qc_setup -- calc_type %r matches no item", step["calc_type"])
+                return
+            panel._calc_type_combo.setCurrentIndex(index)
+        if step.get("method") is not None:
+            panel._method_combo.setCurrentText(str(step["method"]))
+        logger.warning(
+            "OPENCHEM_DRIVE: qc_setup method=%r calc_type=%r (nothing pressed)",
+            panel._method_combo.currentText(), panel._calc_type_combo.currentText(),
         )
 
     def _do_tautomer_run(self, step: dict[str, Any]) -> None:
@@ -1970,7 +2078,8 @@ class _Driver(QObject):
         # lost the saved quantum-chemistry runs the real File > Open keeps, and a save-then-reopen script
         # could not have noticed: a harness disagreeing with the app about what a reopened project holds.
         self._window._set_project(
-            command.loaded_project, command.loaded_results, command.loaded_qc_runs, command.loaded_recipe_runs
+            command.loaded_project, command.loaded_results, command.loaded_qc_runs, command.loaded_recipe_runs,
+            command.loaded_derived_scores,
         )
         logger.warning(
             "OPENCHEM_DRIVE: opened %s -- %d molecule(s)",
@@ -1986,11 +2095,23 @@ class _Driver(QObject):
         Through `MainWindow.save_project_to`, which is everything the File
         menu's Save does once a path is chosen -- including the retained
         results, which is what a save-then-reopen check is checking.
+
+        `"results": false` writes the file a build from before results were
+        kept wrote: the molecules and their conformers, no `calculation_results`
+        block. That is how a driven run opens a molecule that already HOLDS a
+        conformer and has nothing stored, which no sequence of edits in one
+        session reaches (a conformer change always runs the geometry request).
+        This one bypasses the window's save, so the project stays unsaved.
         """
         from pathlib import Path as _Path
 
         path = _Path(str(step.get("path", "")))
-        self._window.save_project_to(path)
+        # `artifacts/` is untracked, so a fresh checkout has no such folder to save into.
+        path.parent.mkdir(parents=True, exist_ok=True)
+        if step.get("results") is False:
+            self._window._services.project_service.save(self._window._session.project, path)
+        else:
+            self._window.save_project_to(path)
         logger.warning("OPENCHEM_DRIVE: saved %s (%d bytes)", path, path.stat().st_size if path.exists() else -1)
 
     def _do_pop_out(self, step: dict[str, Any]) -> None:
@@ -2474,9 +2595,758 @@ class _Driver(QObject):
         else:
             logger.error("OPENCHEM_DRIVE: EXPECT recipe_results FAILED[%s] -- %s", tag, "; ".join(problems)[:800])
 
+    # -- derived scores ------------------------------------------------------------------------------------------
+    # A score is defined through `ScoreService` (the call the definition dialog will make) and read through the Results
+    # reader (what a person sees): the wiring between them is what is proved, not either end.
+
+    def _do_score_define(self, step: dict[str, Any]) -> None:
+        """`{"do": "score_define", "label": "Window blend", "formula": "ramp(psa, 140, 60)", "result_unit": "1",
+        "inputs": [["psa", "descriptor:tpsa"]], "constants": [{"name": "hi", "value": 140, "unit": "Å^2"}], "defaults": [["logp", 3.5]],
+        "tag": "x", "expect": {"made": true}}`
+
+        Makes a score in the open project, or logs why not. `expect`: `made` (true/false) and, for a refusal, `problem`
+        (the `Problem` code) and `message_contains`; a refused definition must leave the project's scores as they were.
+        """
+        from openchem.domain.score_constants import Constant
+        from openchem.domain.score_formula import FormulaError
+
+        service = self._window._services.score_service
+        before = len(service.store)
+        constants = [Constant(c["name"], c["value"], c["unit"]) for c in step.get("constants", [])]
+        made, refusal = None, None
+        try:
+            made = service.create(
+                label=step["label"], formula=step["formula"], result_unit=step.get("result_unit", "1"),
+                inputs=[tuple(pair) for pair in step["inputs"]], constants=constants,
+                defaults=[tuple(pair) for pair in step.get("defaults", [])],
+                owner=step.get("owner", ""), note=step.get("note", ""),
+            )
+        except FormulaError as exc:
+            refusal = exc
+        except ValueError as exc:
+            logger.error("OPENCHEM_DRIVE: score_define could not make a score: %s", exc)
+            return
+        logger.warning(
+            "OPENCHEM_DRIVE: score_define %s -> %s | scores in the project: %d",
+            step["label"], made.score_id if made else f"refused [{refusal.problem.value}] {refusal.message[:160]}", len(service.store),
+        )
+        expect = step.get("expect")
+        if not expect:
+            return
+        problems: list[str] = []
+        if "made" in expect and expect["made"] != (made is not None):
+            problems.append(f"made is {made is not None!r}, expected {expect['made']!r}")
+        if refusal is not None:
+            if "problem" in expect and expect["problem"] != refusal.problem.value:
+                problems.append(f"problem is {refusal.problem.value!r}, expected {expect['problem']!r}")
+            for needle in expect.get("message_contains", []):
+                if needle not in refusal.message:
+                    problems.append(f"the message lacks {needle!r} (it reads {refusal.message[:120]!r})")
+            if len(service.store) != before:
+                problems.append("a refused definition changed the project's scores")
+        tag = str(step.get("tag", ""))
+        if self._record_assertion("score_define", tag, not problems, "; ".join(problems) or "as expected"):
+            logger.warning("OPENCHEM_DRIVE: EXPECT score_define ok[%s]", tag)
+        else:
+            logger.error("OPENCHEM_DRIVE: EXPECT score_define FAILED[%s] -- %s", tag, "; ".join(problems)[:800])
+
+    def _do_score_results(self, step: dict[str, Any]) -> None:
+        """What the Results reader holds of the user-defined scores, for the SELECTED molecule.
+
+        `{"do": "score_results", "focus": true, "which": "part of a label", "expect": {"entries": 1, "has_value": true, "value_between": [0, 1],
+        "title_contains": ["(user-defined, unvalidated)"], "summary_contains": [], "facts_contain": [],
+        "evidence_contains": ["Formula:"], "evidence_excludes": [], "reason_contains": [], "stored_as_results": 0, "defaulted": ["ob"],
+        "differs_from": "before", "same_as": "before"}, "remember": "before"}`
+
+        `remember` keeps this step's value under a name, and a later step's `differs_from` / `same_as` compares its own value with it: how a script says "the score MOVED when the geometry
+        changed" and "undo put it back" without writing down a number the application computes.
+
+        The READER, not the service. `focus` focuses the first score (what a person does by choosing it in the list), which
+        is what makes the line above the facts and the fact rows the ones on screen, and what a `shot` of `results_reader`
+        then shows. `stored_as_results` counts the score's id among the session's stored results, which must be none.
+        """
+        from openchem.domain.score_answer import ScoreAnswer
+
+        reader = self._window._results_view
+        merged = reader.merged()
+        answers = [r for r in merged.reports if isinstance(r, ScoreAnswer)]
+        which = [a for a in answers if step.get("which", "") in a.name]
+        first = which[0] if which else (answers[0] if answers else None)
+        if first is not None and step.get("focus"):
+            self._window.reveal_results()
+            reader.set_focus(first.report_id)
+        listed = [reader._focus_box.itemText(i) for i in range(reader._focus_box.count())]
+        summary = reader._view.summary_text() if first is not None and reader.focus() == first.report_id else ""
+        facts = [f"{f.label}: {f.display_value}" for f in first.facts] if first is not None else []
+        evidence = [line for f in first.facts for line in f.evidence] + list(first.limitations) if first is not None else []
+        molecule = reader.molecule_uuid()
+        stored = [
+            r for r in self._window._services.result_store_service.store.all_results(molecule)
+            if str(getattr(r.identity, "result_id", "")).startswith(("score:", "user."))
+        ] if molecule else []
+        value = first.facts[0].value if first is not None and first.facts else None
+        logger.warning(
+            "OPENCHEM_DRIVE: score_results molecule=%s entries=%d | %s | value=%s | refused=%s | summary=%s",
+            molecule[:8], len(answers), "; ".join(a.name for a in answers), value,
+            (first.error or "")[:160] if first is not None and not first.facts else "", summary[:200],
+        )
+        remembered = self.__dict__.setdefault("_remembered_scores", {})
+        if step.get("remember") and value is not None:
+            remembered[str(step["remember"])] = float(value)
+        expect = step.get("expect")
+        if not expect:
+            return
+        problems: list[str] = []
+        wanted = {"entries": len(answers), "stored_as_results": len(stored), "has_value": value is not None}
+        for key, actual in wanted.items():
+            if key in expect and expect[key] != actual:
+                problems.append(f"{key} is {actual!r}, expected {expect[key]!r}")
+        if "value_between" in expect:
+            low, high = expect["value_between"]
+            if value is None or not (low <= value <= high):
+                problems.append(f"the value is {value!r}, expected between {low} and {high}")
+        for needle in expect.get("title_contains", []):
+            if not any(needle in a.name for a in answers):
+                problems.append(f"no entry is titled with {needle!r} (have {[a.name for a in answers]})")
+        for needle in expect.get("listed", []):
+            if not any(needle in text for text in listed):
+                problems.append(f"the list of results lacks {needle!r} (it holds {listed})")
+        for needle in expect.get("summary_contains", []):
+            if needle not in summary:
+                problems.append(f"the line above the facts lacks {needle!r} (it reads {summary[:120]!r})")
+        for needle in expect.get("facts_contain", []):
+            if not any(needle in fact for fact in facts):
+                problems.append(f"no fact contains {needle!r} (have {facts})")
+        for needle in expect.get("evidence_contains", []):
+            if not any(needle in line for line in evidence):
+                problems.append(f"no evidence line contains {needle!r}")
+        for needle in expect.get("evidence_excludes", []):
+            if any(needle in line for line in evidence):
+                problems.append(f"an evidence line contains {needle!r}, which it must not")
+        for needle in expect.get("reason_contains", []):
+            if first is None or needle not in (first.error or ""):
+                problems.append(f"the reason lacks {needle!r} (it reads {(first.error if first else None)!r})")
+        for key, same in (("differs_from", False), ("same_as", True)):
+            if key in expect:
+                other = remembered.get(str(expect[key]))
+                if other is None or value is None:
+                    problems.append(f"{key} {expect[key]!r}: nothing was remembered under that name, or this step has no value")
+                elif (abs(value - other) <= 1e-9 * max(1.0, abs(other))) is not same:
+                    problems.append(f"the value {value!r} {'differs from' if same else 'equals'} the remembered {expect[key]!r} ({other!r}), expected the opposite")
+        if "defaulted" in expect:
+            used = list(first.provenance.parameters.get("defaulted", [])) if first is not None and first.provenance is not None else None
+            if used != list(expect["defaulted"]):
+                problems.append(f"the inputs that used a default are {used!r}, expected {list(expect['defaulted'])!r}")
+        tag = str(step.get("tag", ""))
+        if self._record_assertion("score_results", tag, not problems, "; ".join(problems) or "as expected"):
+            logger.warning("OPENCHEM_DRIVE: EXPECT score_results ok[%s]", tag)
+        else:
+            logger.error("OPENCHEM_DRIVE: EXPECT score_results FAILED[%s] -- %s", tag, "; ".join(problems)[:800])
+
+    def _do_score_dialog(self, step: dict[str, Any]) -> None:
+        """The Derived Scores window, driven through its REAL controls (the Tools menu's own opener, the Add buttons, the line edits, Save).
+
+        `{"do": "score_dialog", "new": true, "fill": {"label": "Window blend", "formula": "ramp(psa, 140, 60)", "result_unit": "1",
+        "inputs": [["psa", "descriptor:tpsa"]], "constants": [{"name": "hi", "value": "140", "unit": "Å^2"}], "owner": "", "note": ""},
+        "choose": "Window blend", "press": "save", "confirm": "yes", "tag": "x", "expect": {"ok": true, "save_enabled": true}}`
+
+        Every part is optional and runs in this order: `new` presses New score; `choose` picks the list entry whose text starts with it; `fill` replaces the form
+        (it presses Remove on each row, Add on each new one, and types into the edits, so the window checks after every keystroke as it does for a person); `press`
+        is `"save"`, `"revert"`, `"delete"` or `"new"` (the REAL button, and nothing happens when it is disabled, which is logged). `confirm` is the answer to the
+        window's "discard changes?" and "delete?" questions (`yes` or `no`; the question is otherwise a modal nobody can answer).
+
+        `expect` reads what the window shows and the project: `ok`, `where`, `message_contains`, `works_out`, `pointer_column` (the formula's caret), `marked`
+        (the fields outlined: label, formula, unit, inputs, constants), `preview_contains`, `save_enabled`, `revert_enabled`, `delete_enabled`, `dirty`,
+        `scores` (the list, exactly), `current` (the score shown, by label), `stored` (definitions in the project), `project_unsaved`, `results_listed` (the Results
+        reader's list has these), `n_inputs`, `n_constants`, `asked` (the questions put to the person) and `shown_as_contains`.
+        """
+        from PySide6.QtWidgets import QApplication, QMessageBox
+
+        window = self._window
+        # Never activated: a person typing in another window would otherwise have the keys land in this one's Name field (see `MainWindow.show_scores`).
+        dialog = window.show_scores(activate=False)
+        if dialog.dirty:
+            # What a step starts from, so a question nobody expected ("discard unsaved changes?") can be traced to the form's state.
+            logger.warning("OPENCHEM_DRIVE: score_dialog starts DIRTY: draft=%r saved=%r", dialog.draft(), dialog._saved)
+        answers = {"yes": QMessageBox.StandardButton.Yes, "no": QMessageBox.StandardButton.No}
+        real_question = QMessageBox.question
+        asked: list[str] = []
+
+        def answer(_parent, title, _text, *_args, **_kwargs):
+            asked.append(str(title))
+            return answers[str(step.get("confirm", "no"))]
+
+        QMessageBox.question = staticmethod(answer)
+        try:
+            if step.get("new"):
+                dialog._new.click()
+            if "choose" in step:
+                rows = [dialog._list.item(i).text() for i in range(dialog._list.count())]
+                wanted = next((i for i, text in enumerate(rows) if text.startswith(str(step["choose"]))), None)
+                if wanted is None:
+                    logger.error("OPENCHEM_DRIVE: score_dialog has no list entry starting %r (it lists %s)", step["choose"], rows)
+                else:
+                    dialog._list.setCurrentRow(wanted)
+            if "fill" in step:
+                self._fill_score_form(dialog, step["fill"])
+            press = step.get("press")
+            if press:
+                button = {"save": dialog._save, "revert": dialog._revert, "delete": dialog._delete, "new": dialog._new}.get(str(press))
+                if button is None:
+                    logger.error("OPENCHEM_DRIVE: score_dialog cannot press %r", press)
+                elif not button.isEnabled():
+                    logger.warning("OPENCHEM_DRIVE: score_dialog %s is DISABLED, so nothing was pressed", press)
+                else:
+                    button.click()
+        finally:
+            QMessageBox.question = real_question
+        for _ in range(4):
+            QApplication.processEvents()
+        snap = dialog.snapshot()
+        marks = {
+            "label": dialog._label, "formula": dialog._formula, "unit": dialog._unit, "owner": dialog._owner,
+            "inputs": dialog._inputs_host, "constants": dialog._constants_host,
+        }
+        marked = sorted(name for name, widget in marks.items() if "border" in widget.styleSheet())
+        shown = next((d.display_label for d in window._services.score_service.store.definitions() if d.score_id == snap["current"]), None)
+        logger.warning(
+            "OPENCHEM_DRIVE: score_dialog ok=%s where=%s | %s | works_out=%s | preview=%s | save=%s revert=%s delete=%s dirty=%s | scores=%s | asked=%s | active=%s",
+            snap["ok"], snap["where"] or "-", snap["message"][:200], snap["works_out"], snap["preview"][:160],
+            snap["save_enabled"], snap["revert_enabled"], snap["delete_enabled"], snap["dirty"], snap["scores"], asked,
+            type(QApplication.activeWindow()).__name__,
+        )
+        if snap["dirty"] and step.get("press") in ("save", "revert"):
+            # A form that is still unsaved after the button that makes it clean: what each side holds, so the one intermittent failure of this step can be traced.
+            logger.warning("OPENCHEM_DRIVE: score_dialog ends DIRTY after %s: draft=%r saved=%r current=%r", step["press"], dialog.draft(), dialog._saved, dialog.current_score_id())
+        expect = step.get("expect")
+        if not expect:
+            return
+        problems: list[str] = []
+        results_box = window._results_view._focus_box
+        results = [results_box.itemText(i) for i in range(results_box.count())]
+        wanted_values = {
+            "ok": snap["ok"], "where": snap["where"], "works_out": snap["works_out"], "marked": marked, "save_enabled": snap["save_enabled"],
+            "revert_enabled": snap["revert_enabled"], "delete_enabled": snap["delete_enabled"], "dirty": snap["dirty"], "scores": snap["scores"],
+            "current": shown, "stored": len(window._services.score_service.store), "project_unsaved": window._session.is_dirty,
+            "pointer_column": snap["caret"], "n_inputs": len(snap["draft"].inputs),
+            "n_constants": len(snap["draft"].constants), "asked": asked,
+        }
+        for key, actual in wanted_values.items():
+            if key in expect and expect[key] != actual:
+                problems.append(f"{key} is {actual!r}, expected {expect[key]!r}")
+        for key, haystack in (
+            ("message_contains", snap["message"]), ("preview_contains", snap["preview"]), ("shown_as_contains", snap["shown_as"]),
+        ):
+            for needle in expect.get(key, []):
+                if needle not in haystack:
+                    problems.append(f"{key}: {needle!r} is not in {haystack[:140]!r}")
+        for needle in expect.get("results_listed", []):
+            if not any(needle in text for text in results):
+                problems.append(f"the Results list lacks {needle!r} (it holds {results})")
+        tag = str(step.get("tag", ""))
+        if self._record_assertion("score_dialog", tag, not problems, "; ".join(problems) or "as expected"):
+            logger.warning("OPENCHEM_DRIVE: EXPECT score_dialog ok[%s]", tag)
+        else:
+            logger.error("OPENCHEM_DRIVE: EXPECT score_dialog FAILED[%s] -- %s", tag, "; ".join(problems)[:800])
+
+    def _fill_score_form(self, dialog, fill: dict[str, Any]) -> None:
+        """Replace the Derived Scores form's contents by pressing its buttons and typing into its edits, row by row."""
+        if "inputs" in fill:
+            for row in list(dialog._input_rows):
+                row.remove_button.click()
+            for entry in fill["inputs"]:
+                name, output_id = entry[0], entry[1]
+                dialog._add_input.click()
+                row = dialog._input_rows[-1]
+                if len(entry) > 2:
+                    row.default.setText(str(entry[2]))
+                index = row.output.findData(output_id)
+                if index < 0:
+                    logger.error("OPENCHEM_DRIVE: score_dialog: the picker offers no output %r", output_id)
+                else:
+                    row.output.setCurrentIndex(index)
+                row.name.setText(name)
+        if "constants" in fill:
+            for row in list(dialog._constant_rows):
+                row.remove_button.click()
+            for constant in fill["constants"]:
+                dialog._add_constant.click()
+                row = dialog._constant_rows[-1]
+                row.name.setText(str(constant["name"]))
+                row.value.setText(str(constant["value"]))
+                row.unit.setText(str(constant["unit"]))
+        for key, edit in (("label", dialog._label), ("formula", dialog._formula), ("result_unit", dialog._unit), ("owner", dialog._owner)):
+            if key in fill:
+                edit.setText(str(fill[key]))
+        if "note" in fill:
+            dialog._note.setPlainText(str(fill["note"]))
+
     # -- the Lewis pairing gate -----------------------------------------------------------------------------------
     # `benchmarks/lewis_gate/PREREGISTRATION.md` fixes what these assert before any number exists; the arithmetic is
     # `app/lewis_gate.py` and is pure. The steps read the stored runs and write what they read.
+
+    def _do_qc_panel_report(self, step: dict[str, Any]) -> None:
+        """`{"do": "qc_panel_report", "tag": "fukui", "expect": {...}}` -- what the Quantum Chemistry panel SHOWS
+        after a job, asserted.
+
+        `expect` takes `results_contains` / `results_excludes` (lists of text the results line must / must not
+        hold), `status_contains` (the status line), `calc_type` (the panel's current Calculation entry),
+        `run_calc_type` (the newest stored run's calculation type), `run_status` (its status value) and
+        `per_atom_outputs` (how many per-atom datasets that run kept). Read off the widget and the stored run,
+        never off what the service published: a result the service sent and the panel did not draw reads as
+        "computed" in one place and "nothing" in the other.
+        """
+        panel = getattr(self._window, "_quantum_chemistry_panel", None)
+        if panel is None:
+            logger.error("OPENCHEM_DRIVE: qc_panel_report -- no Quantum Chemistry panel on this window")
+            return
+        tag = str(step.get("tag", ""))
+        molecule = panel._current_molecule()
+        runs = (
+            panel._result_store_service.qc_runs.runs_for(molecule.uuid)
+            if molecule is not None and panel._result_store_service is not None
+            else []
+        )
+        newest = runs[0] if runs else None
+        report = {
+            "calc_type": panel._calc_type_combo.currentText(),
+            "results": panel._results_label.text(),
+            "status": panel._status_label.text(),
+            "run_calc_type": None if newest is None else newest.calc_type,
+            "run_status": None if newest is None else newest.status.value,
+            "per_atom_outputs": 0 if newest is None else len(newest.results.get("per_atom") or []),
+            "runs": len(runs),
+        }
+        logger.warning("OPENCHEM_DRIVE: qc_panel_report[%s] %s", tag, json.dumps(report, default=str))
+        expect = step.get("expect") or {}
+        problems: list[str] = []
+        for text in expect.get("results_contains") or []:
+            if text not in report["results"]:
+                problems.append(f"results line lacks {text!r}")
+        for text in expect.get("results_excludes") or []:
+            if text in report["results"]:
+                problems.append(f"results line holds {text!r}")
+        for text in expect.get("status_contains") or []:
+            if text not in report["status"]:
+                problems.append(f"status line lacks {text!r}")
+        for key in ("calc_type", "run_calc_type", "run_status", "per_atom_outputs"):
+            if key in expect and report[key] != expect[key]:
+                problems.append(f"{key} is {report[key]!r}, wanted {expect[key]!r}")
+        if step.get("shot"):
+            panel.grab().save(str(step["shot"]))
+            logger.warning("OPENCHEM_DRIVE: wrote %s", step["shot"])
+        if self._record_assertion("qc_panel_report", tag, not problems, "; ".join(problems) or "as expected"):
+            logger.warning("OPENCHEM_DRIVE: EXPECT qc panel ok[%s]", tag)
+        else:
+            logger.error("OPENCHEM_DRIVE: EXPECT qc panel FAILED[%s] -- %s", tag, "; ".join(problems)[:800])
+
+    def _do_fukui_gate_record(self, step: dict[str, Any]) -> None:
+        """`{"do": "fukui_gate_record", "species": "CO", "level": "HF/6-31G**", "attempt": 1,
+        "artifact": "benchmarks/fukui_gate/artifacts/records.json"}` -- append what the newest stored Fukui run of the selected
+        molecule says to a records file (the Fukui gate, `benchmarks/fukui_gate/PREREGISTRATION.md`).
+
+        Read off the STORED RUN (`qc_runs`), never off what a panel shows: its per-atom datasets, the elements of the molblock
+        it ran on, its charge and multiplicity, the ORCA version it recorded, its method and basis, and whether its input
+        fingerprint is that of the molecule's ORCA-optimized conformer (`on_optimized_geometry`). A run that is missing, failed,
+        or at another method than the level names is recorded as NOT completed, with why. An attempt is one line; nothing is
+        replaced, so a repeat is a second line and the rule for repeats (`fukui_gate.settle_attempts`) reads them all.
+        """
+        from openchem.app import fukui_gate
+        from openchem.chem.calculation_input import canonical_conformer, geometry_fingerprint
+        from openchem.domain.quantum_chemistry_run import RunStatus
+
+        panel = getattr(self._window, "_quantum_chemistry_panel", None)
+        molecule = self._window._current_molecule()
+        if panel is None or molecule is None or panel._result_store_service is None:
+            logger.error("OPENCHEM_DRIVE: fukui_gate_record -- no panel, molecule or result store")
+            return
+        species, level = str(step["species"]), str(step["level"])
+        runs = [r for r in panel._result_store_service.qc_runs.runs_for(molecule.uuid) if r.calc_type == "fukui"]
+        problems: list[str] = []
+        record: dict[str, Any] = {
+            "species": species, "level": level, "label": step.get("label", ""), "attempt": int(step.get("attempt", 1)),
+            "completed": False,
+        }
+        if not runs:
+            problems.append("no stored Fukui run for the selected molecule")
+        else:
+            run = runs[0]
+            datasets = {d.property_id: d for d in (run.results.get("per_atom") or [])}
+            record.update({
+                "run_id": run.run_id, "status": run.status.value, "method_basis": run.method_basis,
+                "charge": run.charge, "multiplicity": run.multiplicity, "input_fingerprint": run.input_fingerprint,
+                "warnings": list(run.warnings),
+            })
+            if run.status not in (RunStatus.COMPLETED, RunStatus.COMPLETED_WITH_WARNINGS):
+                problems.append(f"the run's status is {run.status.value}")
+            expected_method = fukui_gate.METHOD_BASIS.get(level, step.get("method_basis", ""))
+            if run.method_basis != expected_method:
+                problems.append(f"the run used {run.method_basis!r}, the level names {expected_method!r}")
+            names = ("orca.fukui_plus", "orca.fukui_minus", "orca.fukui_zero", "orca.fukui_dual")
+            if not all(name in datasets for name in names):
+                problems.append(f"the run holds {sorted(datasets)}, not all four Fukui datasets")
+            if not problems:
+                mol = panel._chemistry_engine.mol_from_molblock(run.input_molblock)
+                size = mol.GetNumAtoms()
+                ordered = {name: [datasets[name].values[i] for i in range(size)] for name in names}
+                parameters = datasets["orca.fukui_plus"].provenance.parameters
+                canonical = canonical_conformer(molecule)
+                record.update({
+                    "symbols": [atom.GetSymbol() for atom in mol.GetAtoms()],
+                    "f_plus": ordered["orca.fukui_plus"], "f_minus": ordered["orca.fukui_minus"],
+                    "f_zero": ordered["orca.fukui_zero"], "dual": ordered["orca.fukui_dual"],
+                    "orca_version": parameters.get("orca_version", ""),
+                    "unbound_anion_ev": parameters.get("unbound_anion_ev"),
+                    "canonical_method": None if canonical is None else canonical.method,
+                    "canonical_fingerprint": "" if canonical is None else geometry_fingerprint(canonical),
+                })
+                record["on_optimized_geometry"] = bool(
+                    canonical is not None and canonical.method == "orca_opt"
+                    and run.calculation_input == "geometry" and run.input_fingerprint == record["canonical_fingerprint"]
+                )
+                record["completed"] = True
+        record["problems"] = problems
+        path = Path(str(step["artifact"]))
+        existing = json.loads(path.read_text(encoding="utf-8")) if path.exists() else []
+        existing.append(record)
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(json.dumps(existing, indent=1, default=str), encoding="utf-8")
+        logger.warning(
+            "OPENCHEM_DRIVE: fukui_gate_record %s at %s attempt %s -- completed=%s on_optimized=%s problems=%s -> %s",
+            species, level, record["attempt"], record["completed"], record.get("on_optimized_geometry"), problems, path,
+        )
+        self._record_assertion("fukui_gate_record", f"{species}@{level}", True, "recorded; " + ("; ".join(problems) or "completed"))
+
+    def _do_fukui_gate_floor(self, step: dict[str, Any]) -> None:
+        """`{"do": "fukui_gate_floor", "records": "...floor_records.json", "artifact": "...floor.json"}` -- the noise floor from
+        three recorded runs of one molecule: `a1` and `a2` (the same input twice) and `b` (the whole chain a second time).
+
+        The two repeats of the preregistration: the largest difference of any atom's f+, f-, f0 and dual descriptor. The same-input
+        pair must carry ONE input fingerprint and two different run ids, or the floor is not recorded (a cache hit is not a
+        repeat). Written with the limit it is judged against."""
+        from openchem.app import fukui_gate
+
+        records = json.loads(Path(str(step["records"])).read_text(encoding="utf-8"))
+        by_label = {r.get("label"): r for r in records if r.get("completed")}
+        missing = [label for label in ("a1", "a2", "b") if label not in by_label]
+        if missing:
+            logger.error("OPENCHEM_DRIVE: fukui_gate_floor -- no completed record labelled %s", missing)
+            return
+        a1, a2, b = (fukui_gate.measured_from_record(by_label[label]) for label in ("a1", "a2", "b"))
+        same_input = by_label["a1"]["input_fingerprint"] == by_label["a2"]["input_fingerprint"]
+        distinct = by_label["a1"]["run_id"] != by_label["a2"]["run_id"]
+        if not (same_input and distinct):
+            logger.error(
+                "OPENCHEM_DRIVE: fukui_gate_floor -- the repeat is not a repeat (same input: %s, distinct runs: %s)", same_input, distinct
+            )
+            return
+        same = fukui_gate.repeat_differences(a1, a2)
+        chain = fukui_gate.repeat_differences(a1, b)
+        floor = fukui_gate.noise_floor(same, chain)
+        result = {
+            "floor": floor, "limit": fukui_gate.FLOOR_LIMIT, "usable": floor <= fukui_gate.FLOOR_LIMIT + 1e-9,
+            "same_input_largest": max(same.values()), "whole_chain_largest": max(chain.values()),
+            "input_fingerprints": {k: by_label[k]["input_fingerprint"] for k in ("a1", "a2", "b")},
+            "run_ids": {k: by_label[k]["run_id"] for k in ("a1", "a2", "b")},
+        }
+        path = Path(str(step["artifact"]))
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(json.dumps(result, indent=1), encoding="utf-8")
+        logger.warning("OPENCHEM_DRIVE: fukui_gate_floor F=%.6f limit=%s usable=%s -> %s", floor, fukui_gate.FLOOR_LIMIT, result["usable"], path)
+        self._record_assertion("fukui_gate_floor", "floor", True, f"F={floor:.6f}")
+
+    def _do_fukui_gate_begin(self, step: dict[str, Any]) -> None:
+        """`{"do": "fukui_gate_begin", "floor": "benchmarks/fukui_gate/artifacts/floor.json"}` -- REFUSE TO GO ON UNTIL THE NOISE
+        FLOOR IS MEASURED AND USABLE, which is the preregistered order.
+
+        The first step of the gate script: the floor artifact must exist, say it is usable, and be at or below the limit the
+        preregistration fixes. With none the run ends here, before one ORCA job of a gate species has started.
+        """
+        from openchem.app import fukui_gate
+
+        path = Path(str(step.get("floor", "benchmarks/fukui_gate/artifacts/floor.json")))
+        problem = ""
+        try:
+            floor = json.loads(path.read_text(encoding="utf-8"))
+            value = float(floor["floor"])
+            if value > fukui_gate.FLOOR_LIMIT + 1e-9 or not floor.get("usable"):
+                problem = f"the noise floor {value} is above the limit {fukui_gate.FLOOR_LIMIT}"
+        except (OSError, ValueError, KeyError) as exc:
+            problem = f"{path} cannot be used: {exc}"
+        if problem:
+            logger.error("OPENCHEM_DRIVE: fukui_gate_begin REFUSED -- %s", problem)
+            self._record_assertion("fukui_gate_begin", "", False, problem)
+            self._hold_chain = True
+            self._do_quit({})
+            return
+        logger.warning("OPENCHEM_DRIVE: fukui_gate_begin T=%s, noise floor %.6f <= %s", fukui_gate.TOLERANCE, value, fukui_gate.FLOOR_LIMIT)
+        self._record_assertion("fukui_gate_begin", "", True, f"floor {value}")
+
+    def _do_fukui_gate_report(self, step: dict[str, Any]) -> None:
+        """`{"do": "fukui_gate_report", "records": "...reported_records.json", "artifact": "...reported.json"}` -- the REPORTED arm:
+        each published number of the diffuse-basis columns, and of formaldehyde at the application's default level, beside the
+        value a stored run measured. Written, never judged: `fukui_gate.reported_rows` marks every row `decided: false`, and the
+        verdict is `fukui_gate_judge`'s alone."""
+        from openchem.app import fukui_gate
+
+        records = json.loads(Path(str(step["records"])).read_text(encoding="utf-8"))
+        chosen, never, unfinished, conflicts = fukui_gate.settle_attempts(records)
+        runs = {pair: fukui_gate.measured_from_record(record) for pair, record in chosen.items()}
+        rows = fukui_gate.reported_rows(runs)
+        out = {
+            "rows": rows, "not_computed": sorted(f"{m} at {level}" for m, level in never),
+            "unfinished": unfinished, "conflicts": conflicts, "tolerance": fukui_gate.TOLERANCE,
+            "within": sum(1 for row in rows if row["within"]), "total": len(rows),
+        }
+        path = Path(str(step["artifact"]))
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(json.dumps(out, indent=1), encoding="utf-8")
+        logger.warning("OPENCHEM_DRIVE: fukui_gate_report %d of %d reported rows within %s (not decided on) -> %s",
+                       out["within"], out["total"], fukui_gate.TOLERANCE, path)
+        self._record_assertion("fukui_gate_report", "reported", True, f"{out['within']} of {out['total']}")
+
+    def _do_fukui_gate_judge(self, step: dict[str, Any]) -> None:
+        """`{"do": "fukui_gate_judge", "records": "...records.json", "floor": "...floor.json", "artifact": "...verdict.json"}` --
+        the gate's verdict, by `fukui_gate.judge_records`, which is pure and tested. The drive's own VERDICT says whether the step
+        ran; the gate's outcome is logged and written beside it, and is not the drive's to fail."""
+        import dataclasses
+
+        from openchem.app import fukui_gate
+
+        records = json.loads(Path(str(step["records"])).read_text(encoding="utf-8"))
+        floor_path = Path(str(step["floor"]))
+        floor = json.loads(floor_path.read_text(encoding="utf-8"))["floor"] if floor_path.exists() else None
+        verdict = fukui_gate.judge_records(records, floor=floor)
+        out = {
+            "outcome": verdict.outcome.value, "reasons": list(verdict.reasons), "anions_outside": list(verdict.anions_outside),
+            "floor": floor, "tolerance": fukui_gate.TOLERANCE,
+            "rows": [dataclasses.asdict(row) for row in verdict.rows],
+            "site_rows": [dataclasses.asdict(row) for row in verdict.site_rows],
+        }
+        path = Path(str(step["artifact"]))
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(json.dumps(out, indent=1), encoding="utf-8")
+        logger.warning("OPENCHEM_DRIVE: FUKUI GATE %s -- %d decided rows, %d site rows, reasons=%s -> %s",
+                       verdict.outcome.value.upper(), len(verdict.rows), len(verdict.site_rows), list(verdict.reasons), path)
+        self._record_assertion("fukui_gate_judge", "verdict", True, verdict.outcome.value)
+
+    # -- the second Fukui gate ----------------------------------------------------------------------------------------
+    # `benchmarks/fukui_gate_2/PREREGISTRATION.md` fixes what these assert before any number exists; the arithmetic is
+    # `app/fukui_gate_2.py` and is pure. The steps are the first gate's, widened for what the second one needs: an anion's
+    # run holds one dataset and not four, every record carries the provenance the judge checks (grid, functions, the
+    # reference charge, the commit), and two noise floors are measured, one for each route.
+
+    @staticmethod
+    def _fukui2_calculation_identity() -> tuple[str, bool]:
+        """(the commit the application runs from, whether the CODE differs from it): `src/`, `plugins/` and the lockfile only,
+        because the artifacts a gate writes into the repository are untracked files and would make every later record 'dirty'."""
+        import subprocess
+        from pathlib import Path
+
+        import openchem
+
+        repo = Path(openchem.__file__).resolve().parents[2]
+
+        def git(*arguments: str) -> str:
+            done = subprocess.run(["git", *arguments], cwd=repo, capture_output=True, text=True, timeout=60)
+            return done.stdout.strip() if done.returncode == 0 else ""
+
+        commit = git("rev-parse", "HEAD")
+        return commit, (not commit) or bool(git("status", "--porcelain", "--", "src", "plugins", "pyproject.toml", "uv.lock"))
+
+    def _do_fukui2_record(self, step: dict[str, Any]) -> None:
+        """`{"do": "fukui2_record", "species": "phenol", "level": "B3LYP/6-31G*", "attempt": 1, "artifact": ".../records.json"}` -- append
+        what the newest stored Fukui run of the selected molecule says to a records file (the second gate).
+
+        Read off the STORED RUN, never off a panel, as the first gate's step is, and widened: an anion's run must hold `orca.fukui_minus`
+        alone and any other species all four datasets; the record keeps the run's method and basis and the provenance of its datasets (the
+        grid, the functions computed, the reference charge, how many starts ran and failed and how far below the default one the chosen
+        start was), the commit and whether the code differs from it, and for acrolein the optimized O=C-C=C dihedral. A run that is missing,
+        failed or at another method than the level names is recorded as NOT completed, with why."""
+        from openchem.app import fukui_gate_2 as gate
+        from openchem.chem.calculation_input import canonical_conformer, geometry_fingerprint
+        from openchem.domain.quantum_chemistry_run import RunStatus
+
+        panel = getattr(self._window, "_quantum_chemistry_panel", None)
+        molecule = self._window._current_molecule()
+        if panel is None or molecule is None or panel._result_store_service is None:
+            logger.error("OPENCHEM_DRIVE: fukui2_record -- no panel, molecule or result store")
+            return
+        species_name, level = str(step["species"]), str(step["level"])
+        species = gate.ALL_SPECIES[species_name]
+        runs = [r for r in panel._result_store_service.qc_runs.runs_for(molecule.uuid) if r.calc_type == "fukui"]
+        problems: list[str] = []
+        record: dict[str, Any] = {
+            "species": species_name, "level": level, "label": step.get("label", ""), "attempt": int(step.get("attempt", 1)), "completed": False,
+        }
+        if not runs:
+            problems.append("no stored Fukui run for the selected molecule")
+        else:
+            run = runs[0]
+            datasets = {d.property_id: d for d in (run.results.get("per_atom") or [])}
+            record.update({
+                "run_id": run.run_id, "status": run.status.value, "method_basis": run.method_basis, "charge": run.charge,
+                "multiplicity": run.multiplicity, "input_fingerprint": run.input_fingerprint, "warnings": list(run.warnings),
+            })
+            if run.status not in (RunStatus.COMPLETED, RunStatus.COMPLETED_WITH_WARNINGS):
+                problems.append(f"the run's status is {run.status.value}")
+            expected_method = gate.METHOD_BASIS.get(level, step.get("method_basis", ""))
+            if run.method_basis != expected_method:
+                problems.append(f"the run used {run.method_basis!r}, the level names {expected_method!r}")
+            names = ("orca.fukui_minus",) if species.charge < 0 else ("orca.fukui_plus", "orca.fukui_minus", "orca.fukui_zero", "orca.fukui_dual")
+            if sorted(datasets) != sorted(names):
+                problems.append(f"the run holds {sorted(datasets)}, a species of charge {species.charge} should hold {sorted(names)}")
+            if not problems:
+                mol = panel._chemistry_engine.mol_from_molblock(run.input_molblock)
+                size = mol.GetNumAtoms()
+                ordered = {name: [datasets[name].values[i] for i in range(size)] for name in names}
+                parameters = datasets["orca.fukui_minus"].provenance.parameters
+                canonical = canonical_conformer(molecule)
+                commit, dirty = self._fukui2_calculation_identity()
+                record.update({
+                    "symbols": [atom.GetSymbol() for atom in mol.GetAtoms()],
+                    "f_plus": ordered.get("orca.fukui_plus", []), "f_minus": ordered["orca.fukui_minus"],
+                    "f_zero": ordered.get("orca.fukui_zero", []), "dual": ordered.get("orca.fukui_dual", []),
+                    "orca_version": parameters.get("orca_version", ""), "grid": parameters.get("grid", ""),
+                    "functions": parameters.get("functions", ""), "reference_charge": parameters.get("reference_charge"),
+                    "starts_run": parameters.get("starts_run"), "starts_failed": parameters.get("starts_failed"),
+                    "start_gain_ev": parameters.get("start_gain_ev"), "start_note": parameters.get("start_note", ""),
+                    "unbound_anion_ev": parameters.get("unbound_anion_ev"),
+                    "canonical_method": None if canonical is None else canonical.method,
+                    "canonical_fingerprint": "" if canonical is None else geometry_fingerprint(canonical),
+                    "calculation_commit": commit, "calculation_dirty": dirty,
+                })
+                record["on_optimized_geometry"] = bool(
+                    canonical is not None and canonical.method == "orca_opt"
+                    and run.calculation_input == "geometry" and run.input_fingerprint == record["canonical_fingerprint"]
+                )
+                if species_name == "acrolein":
+                    conformer = mol.GetConformer()
+                    positions = [(p.x, p.y, p.z) for p in (conformer.GetAtomPosition(i) for i in range(size))]
+                    record["dihedral_degrees"] = gate.acrolein_dihedral(species.labels, positions)
+                record["completed"] = True
+        record["problems"] = problems
+        path = Path(str(step["artifact"]))
+        existing = json.loads(path.read_text(encoding="utf-8")) if path.exists() else []
+        existing.append(record)
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(json.dumps(existing, indent=1, default=str), encoding="utf-8")
+        logger.warning(
+            "OPENCHEM_DRIVE: fukui2_record %s at %s attempt %s -- completed=%s on_optimized=%s functions=%s grid=%s problems=%s -> %s",
+            species_name, level, record["attempt"], record["completed"], record.get("on_optimized_geometry"), record.get("functions"),
+            record.get("grid"), problems, path,
+        )
+        self._record_assertion("fukui2_record", f"{species_name}@{level}", True, "recorded; " + ("; ".join(problems) or "completed"))
+
+    def _do_fukui2_floor(self, step: dict[str, Any]) -> None:
+        """`{"do": "fukui2_floor", "records": "...floor_records.json", "artifact": "...floor.json"}` -- the noise floor of each route, from
+        three recorded runs of each floor species (pyridine for the neutral and cation route, formate for the anion route): `a1` and `a2`
+        (the same input twice) and `b` (the whole chain a second time). The gate's floor is the larger of the two routes'. The same-input
+        pair must carry ONE input fingerprint and two different run ids, or the floor is not recorded."""
+        from openchem.app import fukui_gate_2 as gate
+
+        records = json.loads(Path(str(step["records"])).read_text(encoding="utf-8"))
+        results: dict[str, Any] = {}
+        detail: dict[str, Any] = {}
+        for name in gate.FLOOR_SPECIES:
+            by_label = {r.get("label"): r for r in records if r.get("species") == name and r.get("completed")}
+            missing = [label for label in ("a1", "a2", "b") if label not in by_label]
+            if missing:
+                logger.error("OPENCHEM_DRIVE: fukui2_floor -- no completed record of %s labelled %s", name, missing)
+                return
+            a1, a2, b = (gate.measured_from_record(by_label[label]) for label in ("a1", "a2", "b"))
+            same_input = by_label["a1"]["input_fingerprint"] == by_label["a2"]["input_fingerprint"]
+            distinct = by_label["a1"]["run_id"] != by_label["a2"]["run_id"]
+            if not (same_input and distinct):
+                logger.error(
+                    "OPENCHEM_DRIVE: fukui2_floor -- %s: the repeat is not a repeat (same input: %s, distinct runs: %s)", name, same_input, distinct
+                )
+                return
+            same = gate.repeat_differences(a1, a2)
+            chain = gate.repeat_differences(a1, b)
+            results[name] = gate.FloorResult(name, max(same.values()), max(chain.values()))
+            detail[name] = {
+                "same_input_largest": results[name].same_input, "whole_chain_largest": results[name].whole_chain,
+                "input_fingerprints": {k: by_label[k]["input_fingerprint"] for k in ("a1", "a2", "b")},
+                "run_ids": {k: by_label[k]["run_id"] for k in ("a1", "a2", "b")},
+            }
+        floor = gate.combined_floor(list(results.values()))
+        out = {"floor": floor, "limit": gate.FLOOR_LIMIT, "usable": floor <= gate.FLOOR_LIMIT + 1e-9, "routes": detail}
+        path = Path(str(step["artifact"]))
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(json.dumps(out, indent=1), encoding="utf-8")
+        logger.warning("OPENCHEM_DRIVE: fukui2_floor F=%.6f limit=%s usable=%s -> %s", floor, gate.FLOOR_LIMIT, out["usable"], path)
+        self._record_assertion("fukui2_floor", "floor", True, f"F={floor:.6f}")
+
+    def _do_fukui2_begin(self, step: dict[str, Any]) -> None:
+        """`{"do": "fukui2_begin", "floor": "benchmarks/fukui_gate_2/artifacts/floor.json"}` -- REFUSE TO GO ON UNTIL BOTH NOISE FLOORS
+        ARE MEASURED AND USABLE, the preregistered order. With none the run ends here, before one ORCA job of a gate species has started."""
+        from openchem.app import fukui_gate_2 as gate
+
+        path = Path(str(step.get("floor", "benchmarks/fukui_gate_2/artifacts/floor.json")))
+        problem = ""
+        try:
+            floor = json.loads(path.read_text(encoding="utf-8"))
+            value = float(floor["floor"])
+            if value > gate.FLOOR_LIMIT + 1e-9 or not floor.get("usable"):
+                problem = f"the noise floor {value} is above the limit {gate.FLOOR_LIMIT}"
+        except (OSError, ValueError, KeyError) as exc:
+            problem = f"{path} cannot be used: {exc}"
+        if problem:
+            logger.error("OPENCHEM_DRIVE: fukui2_begin REFUSED -- %s", problem)
+            self._record_assertion("fukui2_begin", "", False, problem)
+            self._hold_chain = True
+            self._do_quit({})
+            return
+        logger.warning("OPENCHEM_DRIVE: fukui2_begin T=%s, noise floor %.6f <= %s", gate.TOLERANCE, value, gate.FLOOR_LIMIT)
+        self._record_assertion("fukui2_begin", "", True, f"floor {value}")
+
+    def _do_fukui2_judge(self, step: dict[str, Any]) -> None:
+        """`{"do": "fukui2_judge", "records": "...records.json", "floor": "...floor.json", "artifact": "...verdict.json"}` -- the second gate's
+        verdict, by `fukui_gate_2.judge_records`, which is pure and tested, with the share of the decided numbers within 0.01 written beside it.
+        The drive's own VERDICT says whether the step ran; the gate's outcome is logged and written, and is not the drive's to fail."""
+        import dataclasses
+
+        from openchem.app import fukui_gate_2 as gate
+
+        records = json.loads(Path(str(step["records"])).read_text(encoding="utf-8"))
+        floor_path = Path(str(step["floor"]))
+        floor = json.loads(floor_path.read_text(encoding="utf-8"))["floor"] if floor_path.exists() else None
+        verdict = gate.judge_records(records, floor=floor)
+        within, total = gate.share_within(verdict.rows, 0.01)
+        out = {
+            "outcome": verdict.outcome.value, "reasons": list(verdict.reasons), "charged_outside": list(verdict.anions_outside),
+            "floor": floor, "tolerance": gate.TOLERANCE, "within_0_01": [within, total],
+            "rows": [dataclasses.asdict(row) for row in verdict.rows],
+            "site_rows": [dataclasses.asdict(row) for row in verdict.site_rows],
+        }
+        path = Path(str(step["artifact"]))
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(json.dumps(out, indent=1), encoding="utf-8")
+        logger.warning("OPENCHEM_DRIVE: FUKUI GATE 2 %s -- %d decided rows (%d within 0.01), %d site rows, reasons=%s -> %s",
+                       verdict.outcome.value.upper(), len(verdict.rows), within, len(verdict.site_rows), list(verdict.reasons), path)
+        self._record_assertion("fukui2_judge", "verdict", True, verdict.outcome.value)
+
+    def _do_fukui2_report(self, step: dict[str, Any]) -> None:
+        """`{"do": "fukui2_report", "records": "...reported_records.json", "artifact": "...reported.json"}` -- the REPORTED arm: every published
+        number outside the decision, and the decided numbers again at the application's default preset, beside what a stored run measured, plus the
+        statements the rules leave out with the experimental class of Table 5. Written, never judged."""
+        from openchem.app import fukui_gate_2 as gate
+
+        records = json.loads(Path(str(step["records"])).read_text(encoding="utf-8"))
+        chosen, never, unfinished, conflicts = gate.settle_attempts(records)
+        runs = {pair: gate.measured_from_record(record) for pair, record in chosen.items()}
+        rows = gate.reported_rows(runs)
+        out = {
+            "rows": rows, "site_rows": gate.reported_site_rows(runs), "not_computed": sorted(f"{m} at {level}" for m, level in never),
+            "unfinished": unfinished, "conflicts": conflicts, "tolerance": gate.TOLERANCE,
+            "within": sum(1 for row in rows if row["within"]), "total": len(rows),
+        }
+        path = Path(str(step["artifact"]))
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(json.dumps(out, indent=1), encoding="utf-8")
+        logger.warning("OPENCHEM_DRIVE: fukui2_report %d of %d reported rows within %s (not decided on) -> %s", out["within"], out["total"], gate.TOLERANCE, path)
+        self._record_assertion("fukui2_report", "reported", True, f"{out['within']} of {out['total']}")
 
     def _do_qc_wait(self, step: dict[str, Any]) -> None:
         """`{"do": "qc_wait", "timeout_ms": 600000, "quiet_ms": 1500, "after_ms": 500}` -- hold the script until the
@@ -2985,6 +3855,17 @@ class _Driver(QObject):
                 logger.error("OPENCHEM_DRIVE: no Lewis pairing window open; run {'do': 'lewis_pairing'}")
                 return
             target = self._window._lewis_pairing
+        elif step.get("widget") == "project_table":
+            # The Results dock's own project table, as the window builds it: the grid, its progress and status lines and the export row.
+            target = self._window._results_workspace.table_view
+        elif step.get("widget") == "batch_table":
+            # The Batch panel's own table view (grid, status line, export row), not the panel with its property picker.
+            target = self._window._batch_panel._view
+        elif step.get("widget") == "scores":
+            if self._window._score_dialog is None:
+                logger.error("OPENCHEM_DRIVE: no Derived Scores window open; run {'do': 'score_dialog'}")
+                return
+            target = self._window._score_dialog
         elif step.get("widget") == "results_reader":
             # The docked Results reader as the window builds it, not a second one: the same widget a person reads.
             target = self._window._results_view
@@ -3326,16 +4207,44 @@ class _Driver(QObject):
             logger.error("OPENCHEM_DRIVE: no molecule selected for conformers")
             return
         options = None
-        if step.get("with_settings"):
+        optimize_lowest = False
+        if step.get("with_settings") or "optimize_lowest" in step:
             # What the viewer's button would ask with, from Settings > Conformers: the SAME dialog the button builds,
             # never shown (a step must not `exec()` a modal).
-            options = window._viewer3d.options_dialog().options()
+            dialog = window._viewer3d.options_dialog()
+            options = dialog.options()
+            if "optimize_lowest" in step:
+                # THE CHECKBOX, not the argument behind it: the window has to offer the step, and a greyed box takes
+                # no tick (`optimize_lowest()` is then False, which is what a person would get).
+                check = dialog._orca_check
+                if check is None:
+                    logger.error("OPENCHEM_DRIVE: conformers -- the Generate window has no ORCA checkbox")
+                else:
+                    check.setChecked(bool(step["optimize_lowest"]))
+            optimize_lowest = dialog.optimize_lowest()
+            check, note = dialog._orca_check, dialog._orca_note
+            offered_enabled = check is not None and check.isEnabled()
+            offered_text = note.text() if note is not None else ""
+            logger.warning(
+                "OPENCHEM_DRIVE: conformers window | orca_box=%s enabled=%s ticked=%s | %r",
+                check is not None, offered_enabled, optimize_lowest, offered_text,
+            )
+            expect = step.get("expect_offer") or {}
+            if "available" in expect and bool(expect["available"]) != offered_enabled:
+                logger.error(
+                    "OPENCHEM_DRIVE: EXPECT conformers offer FAILED -- available is %s, wanted %s",
+                    offered_enabled, expect["available"],
+                )
+            for needle in expect.get("text_contains", []):
+                if needle not in offered_text:
+                    logger.error("OPENCHEM_DRIVE: EXPECT conformers offer FAILED -- %r lacks %r", offered_text, needle)
         window._services.conformer_service.request_conformers(
             molecule,
             num_conformers=int(step.get("count", 3)),
             optimize=bool(step.get("optimize", True)),
             num_embeddings=step.get("embeddings"),
             options=options,
+            optimize_lowest=optimize_lowest,
         )
 
     def _do_conformers_finish(self, step: dict[str, Any]) -> None:
@@ -4919,8 +5828,21 @@ class _Driver(QObject):
         service was handed, so "the job after the optimization ran on the optimized geometry" is a
         comparison of two logged strings rather than a belief. `expect` keys: `canonical_method`,
         `canonical_mapped` (true/false), `conformers` (count held); a miss is an `EXPECT ... FAILED`.
+
+        **THE 3D VIEWER AND THE STATUS BAR ARE READ TOO**, because "the optimized geometry is stored" and "the
+        viewer shows it" are different claims and only the second is what a person sees: `viewer_index` (which
+        conformer the viewer is on, zero-based, or None when it holds another molecule), `viewer_on_canonical`
+        (it is on the one a calculation would be handed), `viewer_label_contains` / `viewer_label_excludes` (its
+        status line), `orca_conformers` (how many held came from a quantum optimization), `origin_slot` (the
+        one-based slot the canonical conformer says it took) and `status_contains` (the window's status bar).
+
+        **AND WHAT SAYS THE MOLECULE HOLDS AN ORCA GEOMETRY**, the two places a person looks: `badge_contains` (the
+        Properties header's line under the name; `badge_empty: true` asserts there is none), `explorer_contains` (the Project
+        Explorer row of the selected molecule) and `methods` (every conformer's method in slot order, which is how
+        "it replaced slot 2 and nothing else moved" is asserted rather than believed).
         """
         from openchem.chem.calculation_input import canonical_conformer, geometry_fingerprint
+        from openchem.domain.conformer import OPTIMIZED_FROM_SLOT, is_quantum_optimized
 
         molecule = self._window._current_molecule()
         tag = step.get("tag", "")
@@ -4942,8 +5864,65 @@ class _Driver(QObject):
             )
         if best is None:
             logger.warning("OPENCHEM_DRIVE: conformer_report %s -- no conformer, so no canonical one", tag)
+        viewer = self._window._viewer3d
+        shows_this_molecule = getattr(viewer, "_molecule", None) is molecule
+        viewer_index = viewer._conformer_index if shows_this_molecule and molecule.conformers else None
+        viewer_label = viewer._status_label.text() if shows_this_molecule else ""
+        status = self._window.statusBar().currentMessage()
+        orca_held = sum(1 for c in molecule.conformers if is_quantum_optimized(c))
+        logger.warning(
+            "OPENCHEM_DRIVE: conformer_report %s viewer_index=%s viewer_label=%r orca_conformers=%d status=%r",
+            tag, viewer_index, viewer_label, orca_held, status,
+        )
+        badge = self._window._property_panel._substance_card.badge_text()
+        explorer = self._window._project_explorer
+        row_text = next(
+            (
+                explorer._list.item(i).text()
+                for i in range(explorer._list.count())
+                if explorer._list.item(i).data(Qt.ItemDataRole.UserRole) == molecule.uuid
+            ),
+            "",
+        )
+        methods = [c.method for c in molecule.conformers]
+        logger.warning(
+            "OPENCHEM_DRIVE: conformer_report %s badge=%r explorer_row=%r methods=%s", tag, badge, row_text, methods
+        )
         expect = step.get("expect") or {}
         problems = []
+        results_text = self._window._quantum_chemistry_panel._results_label.text()
+        if "qc_results_contains" in expect and expect["qc_results_contains"] not in results_text:
+            problems.append(f"Quantum Chemistry results {results_text!r} lack {expect['qc_results_contains']!r}")
+        if "qc_results_excludes" in expect and expect["qc_results_excludes"] in results_text:
+            problems.append(f"Quantum Chemistry results {results_text!r} contain {expect['qc_results_excludes']!r}")
+        if "badge_contains" in expect and expect["badge_contains"] not in badge:
+            problems.append(f"Properties badge {badge!r} lacks {expect['badge_contains']!r}")
+        if expect.get("badge_empty") and badge:
+            problems.append(f"Properties badge is {badge!r}, wanted none")
+        if "explorer_contains" in expect and expect["explorer_contains"] not in row_text:
+            problems.append(f"Project Explorer row {row_text!r} lacks {expect['explorer_contains']!r}")
+        if "explorer_excludes" in expect and expect["explorer_excludes"] in row_text:
+            problems.append(f"Project Explorer row {row_text!r} contains {expect['explorer_excludes']!r}")
+        if "methods" in expect and methods != expect["methods"]:
+            problems.append(f"conformer methods {methods}, wanted {expect['methods']}")
+        if "orca_conformers" in expect and orca_held != expect["orca_conformers"]:
+            problems.append(f"{orca_held} ORCA conformers held, wanted {expect['orca_conformers']}")
+        if "viewer_index" in expect and viewer_index != expect["viewer_index"]:
+            problems.append(f"viewer is on {viewer_index}, wanted {expect['viewer_index']}")
+        if expect.get("viewer_on_canonical"):
+            canonical_position = next((i for i, c in enumerate(molecule.conformers) if c is best), None)
+            if viewer_index is None or viewer_index != canonical_position:
+                problems.append(f"viewer is on {viewer_index}, the canonical conformer is {canonical_position}")
+        if "viewer_label_contains" in expect and expect["viewer_label_contains"] not in viewer_label:
+            problems.append(f"viewer label {viewer_label!r} lacks {expect['viewer_label_contains']!r}")
+        if "viewer_label_excludes" in expect and expect["viewer_label_excludes"] in viewer_label:
+            problems.append(f"viewer label {viewer_label!r} contains {expect['viewer_label_excludes']!r}")
+        if "status_contains" in expect and expect["status_contains"] not in status:
+            problems.append(f"status bar {status!r} lacks {expect['status_contains']!r}")
+        if "origin_slot" in expect:
+            recorded = best.provenance.parameters.get(OPTIMIZED_FROM_SLOT) if best and best.provenance else None
+            if recorded != expect["origin_slot"]:
+                problems.append(f"the canonical conformer records origin slot {recorded}, wanted {expect['origin_slot']}")
         if "conformers" in expect and len(molecule.conformers) != expect["conformers"]:
             problems.append(f"{len(molecule.conformers)} conformers held, wanted {expect['conformers']}")
         if "canonical_method" in expect and (best.method if best else None) != expect["canonical_method"]:
@@ -4954,6 +5933,67 @@ class _Driver(QObject):
             problems.append(f"canonical conformer mapped is {best is not None and best.drawing_atom_ids is not None}")
         if problems:
             logger.error("OPENCHEM_DRIVE: EXPECT conformer_report FAILED[%s] -- %s", tag, "; ".join(problems))
+
+    def _do_orca_optimize_button(self, step: dict[str, Any]) -> None:
+        """Ask for an ORCA optimization of one conformer through the REAL door, and assert it started nothing.
+
+        `{"do": "orca_optimize_button", "conformer": 1, "via": "button",
+          "expect": {"chosen_slot": 2, "calc_type": "Geometry Optimization", "job_started": false}}`
+
+        `conformer` is the ZERO-BASED slot the 3D viewer is put on first (the viewer's own state, as pressing `>` would);
+        `via` is `"button"` (the viewer's "ORCA optimize") or `"menu"` (Tools > ORCA Geometry Optimization...). Nothing is
+        pressed past that: the panel is only SET UP, and Run is a separate `qc_run` step. What the panel reads afterwards
+        is logged and asserted: `chosen_slot` (one-based slot its Conformer box holds, 0 = Automatic), `calc_type`,
+        `job_started` and `status_contains`.
+        """
+        from PySide6.QtGui import QAction
+
+        window = self._window
+        molecule = window._current_molecule()
+        if molecule is None or not molecule.conformers:
+            logger.error("OPENCHEM_DRIVE: orca_optimize_button -- no molecule with conformers is selected")
+            return
+        viewer = window._viewer3d
+        if "conformer" in step:
+            viewer._conformer_index = int(step["conformer"])
+            viewer._refresh_view()
+        service = window._services.quantum_chemistry_service
+        busy_before = len(service._active_jobs)
+        if step.get("via", "button") == "menu":
+            action = next(
+                (a for a in window.menuBar().findChildren(QAction) if a.text() == "ORCA Geometry Optimization..."), None
+            )
+            if action is None:
+                logger.error("OPENCHEM_DRIVE: orca_optimize_button -- the Tools menu has no such entry")
+                return
+            action.trigger()
+        else:
+            if not viewer._orca_button.isEnabled():
+                logger.error("OPENCHEM_DRIVE: orca_optimize_button -- the button is DISABLED; not clicked")
+                return
+            viewer._orca_button.click()
+        panel = window._quantum_chemistry_panel
+        chosen_id = panel._conformer_combo.currentData() or ""
+        chosen_slot = next((i + 1 for i, c in enumerate(molecule.conformers) if c.conformer_id == chosen_id), 0)
+        calc_type = panel._calc_type_combo.currentText()
+        started = len(service._active_jobs) > busy_before
+        status = window.statusBar().currentMessage()
+        logger.warning(
+            "OPENCHEM_DRIVE: orca_optimize_button via=%s chosen_slot=%s box=%r calc_type=%r job_started=%s status=%r",
+            step.get("via", "button"), chosen_slot, panel._conformer_combo.currentText(), calc_type, started, status,
+        )
+        expect = step.get("expect") or {}
+        problems = []
+        if "chosen_slot" in expect and chosen_slot != expect["chosen_slot"]:
+            problems.append(f"the Conformer box holds slot {chosen_slot}, wanted {expect['chosen_slot']}")
+        if "calc_type" in expect and calc_type != expect["calc_type"]:
+            problems.append(f"calculation is {calc_type!r}, wanted {expect['calc_type']!r}")
+        if "job_started" in expect and started != bool(expect["job_started"]):
+            problems.append(f"job_started is {started}, wanted {expect['job_started']}")
+        if "status_contains" in expect and expect["status_contains"] not in status:
+            problems.append(f"status bar {status!r} lacks {expect['status_contains']!r}")
+        if problems:
+            logger.error("OPENCHEM_DRIVE: EXPECT orca_optimize_button FAILED -- %s", "; ".join(problems))
 
     def _do_rotate(self, step: dict[str, Any]) -> None:
         """Turn the structure in the 2D editor, as a real drag.
@@ -6282,6 +7322,99 @@ class _Driver(QObject):
         else:
             logger.warning("OPENCHEM_DRIVE: EXPECT clean ok[%s]", tag)
 
+    def _do_descriptors_report(self, step: dict[str, Any]) -> None:
+        """`{"do": "descriptors_report", "tag": "after-conformer", "values": {"sa_score": 1.58},
+        "equals_drawing": true, "alerts_equal_drawing": true}` -- the always-on descriptors the
+        READER holds for the selected molecule, against the same descriptors computed on the DRAWING.
+
+        **THE READER'S AGGREGATE, NOT THE SERVICE'S EVENTS.** What is asserted is what
+        `PropertyPanel._reader_entries` hands every reader, because a descriptor that is right when
+        computed and replaced on its way to the screen is the defect this exists for: the geometry
+        request published a correct number for the explicit-hydrogen conformer, and the reader showed
+        it in place of the drawing's.
+
+        `values`           id -> the number (bool / string) the reader must hold, within 5e-3.
+        `equals_drawing`   every descriptor the provider does NOT declare geometric must equal the one
+                           computed on the drawing here; the geometric ones are reported and not compared.
+        `alerts_equal_drawing`  the same for the alert catalogs (the facts each one reads).
+        `geometric_values` id -> the number a geometric descriptor must hold (None: it must HAVE a value).
+
+        Every disagreement is logged with both numbers, so a failure names what moved.
+        """
+        from openchem.chem.descriptor_providers import RDKitDescriptorProvider
+        from openchem.chem.report_adapter import report_from_alert
+        from openchem.domain.common import CacheState
+
+        window = self._window
+        panel = window._property_panel
+        tag = str(step.get("tag", ""))
+        molecule = window._current_molecule()
+        if molecule is None or not molecule.molblock:
+            logger.error("OPENCHEM_DRIVE: descriptors_report[%s] -- no molecule with a drawing is selected", tag)
+            self._record_assertion("descriptors_report", tag, False, "no molecule with a drawing is selected")
+            return
+        provider = RDKitDescriptorProvider()
+        entries, _version = panel._reader_entries()
+        aggregate = next((e for e in entries if getattr(e, "report_id", "") == "molecular_properties"), None)
+        held = {d.descriptor_id: d for d in aggregate.descriptors} if aggregate is not None else {}
+        problems: list[str] = []
+        if aggregate is None:
+            problems.append("the reader holds no Molecular Properties entry")
+
+        def same(left, right) -> bool:
+            if isinstance(left, bool) or isinstance(right, bool) or left is None or right is None:
+                return left == right
+            if isinstance(left, (int, float)) and isinstance(right, (int, float)):
+                return abs(left - right) <= 5e-3
+            return left == right
+
+        geometric = set(provider.geometric_descriptor_ids())
+        drawn = {
+            v.descriptor_id: v
+            for v in provider.compute(window._services.chemistry_engine.mol_from_model(molecule), molecule.uuid)
+        }
+        for descriptor_id, expected in (step.get("values") or {}).items():
+            now = held.get(descriptor_id)
+            if now is None or not same(now.value, expected):
+                problems.append(f"{descriptor_id}: the reader holds {getattr(now, 'value', None)!r}, wanted {expected!r}")
+        for descriptor_id, expected in (step.get("geometric_values") or {}).items():
+            now = held.get(descriptor_id)
+            value = getattr(now, "value", None)
+            if expected is None and (now is None or now.cache_state is not CacheState.COMPLETED or value is None):
+                problems.append(f"{descriptor_id}: the reader holds no computed value ({getattr(now, 'cache_state', None)})")
+            elif expected is not None and not same(value, expected):
+                problems.append(f"{descriptor_id}: the reader holds {value!r}, wanted {expected!r}")
+        moved = []
+        for descriptor_id, then in drawn.items():
+            now = held.get(descriptor_id)
+            if descriptor_id in geometric or now is None:
+                continue
+            if now.cache_state is not then.cache_state or not same(now.value, then.value):
+                moved.append(descriptor_id)
+                logger.warning(
+                    "OPENCHEM_DRIVE: descriptors_report[%s] %s reader=%r (%s) drawing=%r (%s)",
+                    tag, descriptor_id, now.value, now.cache_state.value, then.value, then.cache_state.value,
+                )
+        if step.get("equals_drawing") and moved:
+            problems.append(f"{len(moved)} structure-level descriptors differ from the drawing's: {moved}")
+        if step.get("alerts_equal_drawing"):
+            engine = window._services.chemistry_engine
+            for alert in provider.compute_alerts(engine.mol_from_model(molecule), molecule.uuid):
+                report = panel._reports.get(alert.alert_id)
+                want = [(f.label, f.display_value) for f in report_from_alert(alert).facts]
+                have = [(f.label, f.display_value) for f in (report.facts if report is not None else ())]
+                if report is None or sorted(have) != sorted(want):
+                    problems.append(f"alert {alert.alert_id}: the reader holds {have[:4]}, the drawing gives {want[:4]}")
+        logger.warning(
+            "OPENCHEM_DRIVE: descriptors_report[%s] %d held, %d structure-level compared, %d moved, geometric %s",
+            tag, len(held), len([i for i in drawn if i not in geometric]), len(moved),
+            {i: (held[i].value if i in held else None) for i in sorted(geometric)},
+        )
+        if self._record_assertion("descriptors_report", tag, not problems, "; ".join(problems) or "as expected"):
+            logger.warning("OPENCHEM_DRIVE: EXPECT descriptors ok[%s]", tag)
+        else:
+            logger.error("OPENCHEM_DRIVE: EXPECT descriptors FAILED[%s] -- %s", tag, "; ".join(problems)[:900])
+
     def _do_expect_results(self, step: dict[str, Any]) -> None:
         """`{"do": "expect_results", "expect": {"<calculator or alert id>": ...}}`
         -- what Properties HOLDS for the selected molecule, asserted.
@@ -6365,14 +7498,19 @@ class _Driver(QObject):
         service is what this step exists to prove. `scope` is "this", "all" or
         "chosen" (with `chosen`: molecule indexes). Ticks are set from scratch, so
         a run is what the script says rather than what a previous step left ticked.
+
+        `"keep_ticks": true` is the one exception: the ticks and the always-on box stay exactly as they are (a `tick_score_inputs` step's, say) and only the scope is set, so the run is what the
+        person's own clicks left.
         """
         from openchem.ui.panels.property_panel import _SCOPE_ALL, _SCOPE_CHOSEN, _SCOPE_THIS
 
         panel = self._window._property_panel
-        for tick in panel._calculator_ticks.values():
-            tick.setChecked(False)
+        keep = bool(step.get("keep_ticks", False))
+        if not keep:
+            for tick in panel._calculator_ticks.values():
+                tick.setChecked(False)
         missing = []
-        for calculator_id in step.get("calculators", []):
+        for calculator_id in [] if keep else step.get("calculators", []):
             tick = panel._calculator_ticks.get(calculator_id)
             if tick is None:
                 missing.append(calculator_id)
@@ -6382,7 +7520,8 @@ class _Driver(QObject):
         scope = {"this": _SCOPE_THIS, "all": _SCOPE_ALL, "chosen": _SCOPE_CHOSEN}[step.get("scope", "all")]
         chosen = {molecules[i].uuid for i in step.get("chosen", []) if 0 <= i < len(molecules)}
         panel.set_scope(scope, chosen)
-        panel._scope_descriptors.setChecked(bool(step.get("descriptors", False)))
+        if not keep:
+            panel._scope_descriptors.setChecked(bool(step.get("descriptors", False)))
         # A SUBSET of the always-on properties or alert catalogs, by id (the picker's answer;
         # the picker is a modal, which a driven run cannot answer). Choosing ticks the box.
         if "descriptor_ids" in step:
@@ -6398,6 +7537,54 @@ class _Driver(QObject):
         )
         panel._run_selected_button.click()
         logger.warning("OPENCHEM_DRIVE: project_run status=%r", panel._batch_status.text())
+
+    def _do_tick_score_inputs(self, step: dict[str, Any]) -> None:
+        """`{"do": "tick_score_inputs", "tag": "x", "expect": {"menu_label": "Tick what my scores read (2)", "calculators": ["oxygen_balance"], "descriptor_choice": null,
+        "descriptors_box": true, "status_contains": ["Ticked 1 calculator(s)"], "run_enabled": true}}`
+        -- press the Presets menu's REAL "Tick what my scores read" entry in Properties, and read what it left ticked.
+
+        The menu is built apart from showing it (a `QMenu.exec` blocks a driven run) and the ACTION is triggered, which is what a click on the entry reaches. A menu with no such entry is a
+        failure, so a window that never gave the panel the score lookup cannot pass. `calculators` is the exact list of ticked calculators (sorted); `descriptor_choice` is the chosen subset
+        of always-on properties (sorted) or null for "all"; `descriptors_box` is whether "Include always-on properties" is ticked; `status_contains` are substrings of the line beside
+        Run selected. Pair it with `project_run` and `"keep_ticks": true`, which runs with the ticks as this step left them.
+        """
+        panel = self._window._property_panel
+        menu, actions = panel.build_presets_menu()
+        action = actions.get("tick_scores")
+        problems: list[str] = []
+        label = None
+        if action is None:
+            problems.append("the Presets menu has no 'Tick what my scores read' entry")
+        else:
+            label = action.text()
+            action.trigger()
+        menu.deleteLater()
+        ticked = sorted(panel._selected_calculator_ids())
+        choice = panel.descriptor_choice()
+        status = panel._batch_status.text()
+        logger.warning(
+            "OPENCHEM_DRIVE: tick_score_inputs entry=%r ticked=%s descriptor_choice=%s box=%s run_enabled=%s status=%r",
+            label, ticked, None if choice is None else sorted(choice), panel._scope_descriptors.isChecked(), panel._run_selected_button.isEnabled(), status[:200],
+        )
+        expect = step.get("expect") or {}
+        if "menu_label" in expect and label != expect["menu_label"]:
+            problems.append(f"the entry reads {label!r}, wanted {expect['menu_label']!r}")
+        if "calculators" in expect and ticked != sorted(expect["calculators"]):
+            problems.append(f"ticked {ticked}, wanted {sorted(expect['calculators'])}")
+        if "descriptor_choice" in expect:
+            wanted = None if expect["descriptor_choice"] is None else sorted(expect["descriptor_choice"])
+            if (None if choice is None else sorted(choice)) != wanted:
+                problems.append(f"the always-on choice is {None if choice is None else sorted(choice)}, wanted {wanted}")
+        if "descriptors_box" in expect and panel._scope_descriptors.isChecked() != bool(expect["descriptors_box"]):
+            problems.append(f"the always-on box is {panel._scope_descriptors.isChecked()}, wanted {expect['descriptors_box']}")
+        if "run_enabled" in expect and panel._run_selected_button.isEnabled() != bool(expect["run_enabled"]):
+            problems.append(f"Run selected enabled is {panel._run_selected_button.isEnabled()}, wanted {expect['run_enabled']}")
+        problems.extend(f"the status lacks {needle!r} (it reads {status[:200]!r})" for needle in expect.get("status_contains") or [] if needle not in status)
+        tag = str(step.get("tag", ""))
+        if self._record_assertion("tick_score_inputs", tag, not problems, "; ".join(problems) or "as expected"):
+            logger.warning("OPENCHEM_DRIVE: EXPECT tick_score_inputs ok[%s]", tag)
+        else:
+            logger.error("OPENCHEM_DRIVE: EXPECT tick_score_inputs FAILED[%s] -- %s", tag, "; ".join(problems)[:800])
 
     def _do_results_details(self, step: dict[str, Any]) -> None:
         """`{"do": "results_details", "molecule": 1, "expect": {"computed": ["polar_surface_area"]}}`
@@ -6464,12 +7651,45 @@ class _Driver(QObject):
         else:
             logger.error("OPENCHEM_DRIVE: EXPECT results_details FAILED[%s] -- %s", tag, "; ".join(problems)[:800])
 
+    @staticmethod
+    def _project_cell_problems(table, cells: dict[str, dict[str, Any]]) -> list[str]:
+        """What is wrong with the named cells of a project table; empty when they hold.
+
+        `cells` is `{row label: {column header (a substring): wanted}}`, where wanted is a number
+        (within 5e-3), `"number"` (any finite value that did not fail) or `"failed"`.
+        """
+        problems: list[str] = []
+        for label, columns in cells.items():
+            row = next((u for u in table.row_uuids if table.row_labels.get(u) == label), None)
+            if row is None:
+                problems.append(f"no row labelled {label!r} ({[table.row_labels.get(u) for u in table.row_uuids]})")
+                continue
+            for header, wanted in columns.items():
+                column = next((c for c in table.columns if header in c.header), None)
+                cell = table.cell(row, column.column_id) if column is not None else None
+                if cell is None:
+                    problems.append(f"{label}: no cell under a column containing {header!r}")
+                    continue
+                value = cell.value
+                if wanted == "failed":
+                    ok = cell.failed
+                elif wanted == "number":
+                    ok = not cell.failed and isinstance(value, (int, float)) and value == value
+                else:
+                    ok = not cell.failed and isinstance(value, (int, float)) and abs(value - float(wanted)) <= 5e-3
+                if not ok:
+                    problems.append(f"{label} / {column.header}: the table holds {value!r} ({cell.cache_state.value}), wanted {wanted!r}")
+        return problems
+
     def _do_expect_project_table(self, step: dict[str, Any]) -> None:
-        """`{"do": "expect_project_table", "rows": 2, "columns_contain": ["Polar"], "showing": true}`
+        """`{"do": "expect_project_table", "rows": 2, "columns_contain": ["Polar"], "showing": true,
+        "cells": {"Aspirin": {"Synthetic Accessibility": 1.58, "Principal Moment of Inertia 1": "number"}}}`
         -- what the Results dock's project table HOLDS, asserted.
 
         Reads the table off the workspace the dock is built from, so a table that
-        reached some other widget (the Batch panel's own) cannot satisfy it.
+        reached some other widget (the Batch panel's own) cannot satisfy it. `cells`
+        reads VALUES (see `_project_cell_problems`): a column that is present with the
+        conformer's figure in it is the defect this exists for, and `columns_contain` cannot see it.
         """
         workspace = self._window._results_workspace
         tag = str(step.get("tag", ""))
@@ -6490,12 +7710,117 @@ class _Driver(QObject):
             grid = workspace.table_view._results
             if grid.rowCount() != len(table.row_uuids):
                 problems.append(f"the grid draws {grid.rowCount()} rows for {len(table.row_uuids)}")
+            problems.extend(self._project_cell_problems(table, step.get("cells") or {}))
         if "showing" in step and workspace.showing_project_table() != bool(step["showing"]):
             problems.append(f"showing the table is {workspace.showing_project_table()}, wanted {bool(step['showing'])}")
         if self._record_assertion("expect_project_table", tag, not problems, "; ".join(problems) or "as expected"):
             logger.warning("OPENCHEM_DRIVE: EXPECT project table ok[%s]", tag)
         else:
             logger.error("OPENCHEM_DRIVE: EXPECT project table FAILED[%s] -- %s", tag, "; ".join(problems)[:800])
+
+    def _do_table_scores(self, step: dict[str, Any]) -> None:
+        """What the Results dock's project table shows of the user-defined SCORES, read off the grid a person looks at and off the files its REAL export button writes.
+
+        `{"do": "table_scores", "tag": "x", "export_csv": "C:/tmp/table.csv", "expect": {"columns": ["Polar window (user-defined, unvalidated)"],
+        "note": "", "grid": {"Aspirin": {"Polar window": "0.955"}}, "tooltips": {"Aspirin": {"Polar window": ["Inputs: psa = 63.6"]}},
+        "column_tooltips": {"Polar window": ["Formula:"]}, "csv_header_contains": ["Polar window"], "csv_cells": {"Aspirin": {"Polar window": 0.955}},
+        "csv_text": {"Aspirin": {"inputs given a default": "ob"}}}}`
+
+        `"panel": "batch"` reads the Batch panel's OWN table (its Fill table run) instead of the Results dock's; the two are separate views of separate runs.
+
+        `columns` is the exact list of score headers, in grid order. `note` is the line under the status ("" means it is hidden). `grid` is what a cell SHOWS (the text,
+        so a refusal reads `—`); `tooltips` and `column_tooltips` are substrings of what hovering shows. `export_csv` presses the REAL "Export CSV..." button with the file
+        dialog answered, and the `csv_*` expectations read the file it wrote: the exact header cells, and the full-precision number of a cell.
+        """
+        import csv
+
+        from PySide6.QtWidgets import QFileDialog
+
+        which = str(step.get("panel", "results"))
+        if which not in ("results", "batch"):
+            logger.error("OPENCHEM_DRIVE: table_scores panel %r is not 'results' or 'batch'", which)
+            return
+        view = self._window._batch_panel._view if which == "batch" else self._window._results_workspace.table_view
+        grid = view._results
+        table = view.table()
+        problems: list[str] = []
+        headers = [grid.horizontalHeaderItem(i).text() for i in range(grid.columnCount())]
+        score_headers = [column.header for column in (table.columns if table is not None else []) if column.source == "score"]
+        csv_rows: list[list[str]] = []
+        if step.get("export_csv"):
+            target = str(step["export_csv"])
+            real = QFileDialog.getSaveFileName
+            QFileDialog.getSaveFileName = staticmethod(lambda *_args, **_kwargs: (target, ""))
+            try:
+                if not view._csv_button.isEnabled():
+                    problems.append("the Export CSV button is disabled")
+                else:
+                    view._csv_button.click()
+            finally:
+                QFileDialog.getSaveFileName = real
+            try:
+                with open(target, encoding="utf-8-sig", newline="") as handle:
+                    csv_rows = list(csv.reader(handle))
+            except OSError as exc:
+                problems.append(f"the export wrote nothing readable: {exc}")
+        logger.warning(
+            "OPENCHEM_DRIVE: table_scores columns=%s | note=%r (hidden=%s) | csv header=%s",
+            score_headers, view._score_note.text()[:160], view._score_note.isHidden(), csv_rows[0] if csv_rows else None,
+        )
+        expect = step.get("expect") or {}
+        if "columns" in expect and score_headers != list(expect["columns"]):
+            problems.append(f"the score columns are {score_headers}, wanted {expect['columns']}")
+        if "note" in expect:
+            shown = "" if view._score_note.isHidden() else view._score_note.text()
+            if shown != expect["note"] and not (expect["note"].startswith("~") and expect["note"][1:] in shown):
+                problems.append(f"the note reads {shown!r}, wanted {expect['note']!r}")
+
+        def locate(label: str, header_part: str):
+            rows = [r for r in range(grid.rowCount()) if grid.item(r, 0).text() == label]
+            cols = [c for c, text in enumerate(headers) if header_part in text]
+            return (rows[0], cols[0]) if rows and cols else None
+
+        for label, wanted_cells in (expect.get("grid") or {}).items():
+            for header_part, wanted in wanted_cells.items():
+                found = locate(label, header_part)
+                shown = grid.item(*found).text() if found else None
+                if shown != wanted:
+                    problems.append(f"{label} / {header_part}: the grid shows {shown!r}, wanted {wanted!r}")
+        for label, wanted_cells in (expect.get("tooltips") or {}).items():
+            for header_part, needles in wanted_cells.items():
+                found = locate(label, header_part)
+                tip = grid.item(*found).toolTip() if found else ""
+                problems.extend(f"{label} / {header_part}: the tooltip lacks {needle!r} (it reads {tip[:160]!r})" for needle in needles if needle not in tip)
+        for header_part, needles in (expect.get("column_tooltips") or {}).items():
+            index = next((c for c, text in enumerate(headers) if header_part in text), None)
+            tip = grid.horizontalHeaderItem(index).toolTip() if index is not None else ""
+            problems.extend(f"column {header_part}: the tooltip lacks {needle!r}" for needle in needles if needle not in tip)
+        if csv_rows:
+            for needle in expect.get("csv_header_contains") or []:
+                if not any(needle in cell for cell in csv_rows[0]):
+                    problems.append(f"the CSV header has no cell containing {needle!r} ({csv_rows[0]})")
+            for label, wanted_cells in (expect.get("csv_cells") or {}).items():
+                row = next((r for r in csv_rows[1:] if r and r[0] == label), None)
+                for header_part, wanted in wanted_cells.items():
+                    column = next((i for i, text in enumerate(csv_rows[0]) if header_part in text), None)
+                    cell = row[column] if row is not None and column is not None and column < len(row) else None
+                    ok = (cell == "") if wanted is None else (cell not in (None, "") and abs(float(cell) - float(wanted)) <= 5e-3)
+                    if not ok:
+                        problems.append(f"CSV {label} / {header_part}: {cell!r}, wanted {wanted!r}")
+            for label, wanted_cells in (expect.get("csv_text") or {}).items():
+                row = next((r for r in csv_rows[1:] if r and r[0] == label), None)
+                for header_part, wanted in wanted_cells.items():
+                    column = next((i for i, text in enumerate(csv_rows[0]) if header_part in text), None)
+                    cell = row[column] if row is not None and column is not None and column < len(row) else None
+                    if cell != wanted:
+                        problems.append(f"CSV {label} / {header_part}: the text is {cell!r}, wanted {wanted!r}")
+        elif expect.get("csv_header_contains") or expect.get("csv_cells") or expect.get("csv_text"):
+            problems.append("a CSV expectation without an `export_csv` path")
+        tag = str(step.get("tag", ""))
+        if self._record_assertion("table_scores", tag, not problems, "; ".join(problems) or "as expected"):
+            logger.warning("OPENCHEM_DRIVE: EXPECT table_scores ok[%s]", tag)
+        else:
+            logger.error("OPENCHEM_DRIVE: EXPECT table_scores FAILED[%s] -- %s", tag, "; ".join(problems)[:800])
 
     def _do_edit_burst(self, step: dict[str, Any]) -> None:
         """`{"do": "edit_burst", "structures": ["CCO", "CCCO"], "edits": 20, "gap_ms": 150, "tag": "..."}`
@@ -7719,12 +9044,22 @@ class _Driver(QObject):
         panel._send_button.click()
 
     def _do_ai_card(self, step: dict[str, Any]) -> None:
-        """`{"do": "ai_card", "action": "approve" | "cancel" | "open" | "dismiss"}` -- press a REAL button on the
-        first preview card the assistant is showing."""
+        """`{"do": "ai_card", "action": "approve" | "cancel" | "open" | "dismiss", "card": "score"}` -- press a REAL button on the
+        first preview card the assistant is showing; `"card": "score"` means a score the assistant PROPOSED, whose Approve is the only way it is saved."""
         panel = self._ai_panel()
         if panel is None:
             return
         action = str(step["action"])
+        if step.get("card") == "score":
+            cards = list(panel._score_cards.values())
+            button = None
+            if cards and action in ("approve", "cancel"):
+                button = cards[0].approve_button if action == "approve" else cards[0].cancel_button
+            if button is None:
+                logger.error("OPENCHEM_DRIVE: ai_card score %s -- no such card is showing", action)
+                return
+            button.click()
+            return
         if action in ("approve", "cancel"):
             cards = list(panel._cards.values())
             button = None
@@ -7745,9 +9080,12 @@ class _Driver(QObject):
 
         Keys: `ledger_contains` (substrings, each in some ledger row), `ledger_rows` (exact count),
         `pending` (preview cards waiting), `service_previews` (service cards showing), `tool_results_contain`
-        (substrings of what the tools returned to the model), `tools_offered` (names the provider was
+        (substrings of what the tools returned to the model), `tool_results_exclude` (substrings that
+        must NOT be in anything a tool returned: a person's free text that was never to leave), `tools_offered` (names the provider was
         given on its first request), `transcript_contains`, `notes` (how many previews' outcomes wait for
-        the next message), `send_enabled`, `panel_visible` (a dock's objectName that must be showing).
+        the next message), `send_enabled`, `panel_visible` (a dock's objectName that must be showing), `score_proposals` (proposed-score cards waiting),
+        `scores_stored` (scores in the project), `scores_owner` (the owners stored, in order) and `sent_contains` (substrings of everything sent to the
+        provider, notes included).
         """
         panel = self._ai_panel()
         expect = dict(step.get("expect") or {})
@@ -7782,11 +9120,25 @@ class _Driver(QObject):
             for needle in expect.get("tool_results_contain", []):
                 if needle not in seen:
                     problems.append(f"no tool result contained {needle!r}")
+            for needle in expect.get("tool_results_exclude", []):
+                if needle in seen:
+                    problems.append(f"a tool result contained {needle!r}, which must never be sent")
             if "tools_offered" in expect:
                 offered = provider.requests[0][1] if provider and provider.requests else []
                 missing = [name for name in expect["tools_offered"] if name not in offered]
                 if missing:
                     problems.append(f"tools not offered: {missing} (offered {offered})")
+            if "score_proposals" in expect and len(panel.pending_score_ids()) != expect["score_proposals"]:
+                problems.append(f"{len(panel.pending_score_ids())} proposed scores waiting, wanted {expect['score_proposals']}")
+            stored_scores = self._window._services.score_service.store.definitions()
+            if "scores_stored" in expect and len(stored_scores) != expect["scores_stored"]:
+                problems.append(f"{len(stored_scores)} scores stored, wanted {expect['scores_stored']}")
+            if "scores_owner" in expect and [d.owner for d in stored_scores] != list(expect["scores_owner"]):
+                problems.append(f"the stored scores' owners are {[d.owner for d in stored_scores]}, wanted {list(expect['scores_owner'])}")
+            sent = "\n".join(message.content for request, _tools in (provider.requests if provider else []) for message in request.messages)
+            for needle in expect.get("sent_contains", []):
+                if needle not in sent:
+                    problems.append(f"nothing sent to the provider contained {needle!r}")
             if "panel_visible" in expect:
                 dock = self._dock(str(expect["panel_visible"]))
                 if dock is None or not dock.isVisible():
@@ -8190,6 +9542,7 @@ class _Driver(QObject):
         from PySide6.QtWidgets import QApplication
 
         logger.warning("OPENCHEM_DRIVE: quitting")
+        self._restore_tool_paths()
         # The verdict FIRST, while the window and its panels are still there to
         # be asked, and before anything below can log.
         self._allow.extend(str(a) for a in step.get("allow") or [])

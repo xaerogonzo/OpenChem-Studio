@@ -475,25 +475,28 @@ def test_an_unusable_conformer_falls_back_instead_of_failing_every_descriptor(qa
     engine.set_structure_from_smiles(model, "CCO")
     model.conformers.append(ConformerModel(molblock="not a molblock at all", energy=-1.0))
 
-    states: dict[str, CacheState] = {}
+    seen: dict[str, DescriptorComputed] = {}
 
     def handler(event: DescriptorComputed) -> None:
         if event.descriptor.cache_state in (CacheState.COMPLETED, CacheState.FAILED):
-            states[event.descriptor.descriptor_id] = event.descriptor.cache_state
+            seen[event.descriptor.descriptor_id] = event
 
     bus.subscribe(DescriptorComputed, handler)
     service.request_descriptors(model, GEOMETRY)
     _drain(qapp)
 
-    # The whole provider used to go down together. The descriptors that
-    # need no geometry must survive an unusable conformer.
-    assert states["mol_wt"] == CacheState.COMPLETED
-    assert states["formula"] == CacheState.COMPLETED
-    # The SHAPE descriptors still fail, and that is correct rather than a
-    # weaker result: falling back to the drawing means there is genuinely
-    # no 3D geometry, and `GEOMETRY` means prefer, not require. They say
-    # "needs a conformer", which is the honest answer.
-    assert states["radius_of_gyration"] == CacheState.FAILED
+    # The SHAPE descriptors say "needs a conformer", which is the honest answer: falling back to
+    # the drawing means there is genuinely no 3D geometry, and `GEOMETRY` means prefer, not
+    # require. The unusable conformer's parse error is not what they report.
+    shape = seen["radius_of_gyration"].descriptor
+    assert shape.cache_state == CacheState.FAILED
+    assert shape.error_summary == "Needs a 3D conformer"
+    # **AND NOTHING ELSE IS PUBLISHED.** This test used to assert that `mol_wt` and `formula`
+    # "survive an unusable conformer", because a conformer request re-ran every descriptor on
+    # it. A conformer request is now about the geometric descriptors only
+    # (`DescriptorProvider.geometric_descriptor_ids`), so an unusable one cannot reach a
+    # structure-level descriptor at all -- which is the stronger guarantee.
+    assert "mol_wt" not in seen and "formula" not in seen
 
 
 def test_a_published_report_records_which_structure_it_describes(qapp):

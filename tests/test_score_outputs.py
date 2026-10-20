@@ -52,7 +52,9 @@ import sweep_score_outputs as sweep_tool  # noqa: E402
 
 #: The calculators the table draws from, plus the two controls: `joback_properties` is limited and HIDDEN by default, and
 #: `polar_surface_area` carries its number as text rounded by the decimal-places setting.
-_CALCULATORS_UNDER_TEST = ["hbond_sites", "logd", "oxygen_balance", "solubility", "joback_properties", "polar_surface_area"]
+_CALCULATORS_UNDER_TEST = [
+    "bbb_descriptors", "dipole_moment", "geometry_analysis", "homa_aromaticity", "oxygen_balance", "polarizability", "solubility", "surface_analysis", "topology_analysis", "joback_properties", "polar_surface_area", "logd",
+]
 
 
 def _entry(**changes) -> ApprovedOutput:
@@ -107,31 +109,139 @@ def test_every_endpoint_tag_is_used_and_described():
 #: judgement and are what make a consensus unexpressible, so changing which outputs share one has to be done on purpose, here, where a reviewer
 #: sees it. A wrong tag is a wrong guard; moving an output into or out of a group changes what the application will refuse to combine.
 _SHARED_ENDPOINTS = {
+    "ring_count": ["calculator:topology_analysis:Cyclomatic number", "descriptor:ring_count"],
+    "stereocentre_count": ["calculator:topology_analysis:Asymmetric atom count", "descriptor:num_stereocenters"],
     "aqueous_solubility_intrinsic": [
-        "calculator:solubility:Predicted intrinsic solubility (log mol/L)",
         "calculator:solubility:Predicted intrinsic solubility (mg/mL)",
         "calculator:solubility:Predicted intrinsic solubility (mol/L)",
         "descriptor:esol_logs",
     ],
-    "hbond_acceptor_count": ["calculator:hbond_sites:Acceptors", "descriptor:num_hba"],
-    "hbond_donor_count": ["calculator:hbond_sites:Donors", "descriptor:num_hbd"],
-    "logd_ph_7_4": ["calculator:logd:LogD at pH 7.4", "calculator:logd:LogD at pH 7.4 (approximation)"],
 }
 
 #: The unit of every approved output, written out for the same reason: it decides what a formula over it may add and what it works out to.
 _UNITS = {
-    "calculator:hbond_sites:Acceptors": "1", "calculator:hbond_sites:Donors": "1", "calculator:logd:LogD at pH 7.4": "1",
-    "calculator:logd:LogD at pH 7.4 (approximation)": "1", "calculator:oxygen_balance:Oxygen balance (CO basis)": "%",
+    "calculator:bbb_descriptors:Aromatic rings": "1",
+    "calculator:dipole_moment:Dipole": "D",
+    "calculator:geometry_analysis:Max projection area": "Å^2",
+    "calculator:geometry_analysis:Max projection radius": "Å",
+    "calculator:geometry_analysis:Max radius (from centroid)": "Å",
+    "calculator:geometry_analysis:Mean radius (from centroid)": "Å",
+    "calculator:geometry_analysis:Min projection area": "Å^2",
+    "calculator:geometry_analysis:Min projection radius": "Å",
+    "calculator:geometry_analysis:Size perpendicular to the max projection": "Å",
+    "calculator:geometry_analysis:Size perpendicular to the min projection": "Å",
+    "calculator:homa_aromaticity:Highest HOMA of any ring": "1",
+    "calculator:homa_aromaticity:Lowest HOMA of any ring": "1",
+    "calculator:oxygen_balance:Oxygen balance (CO basis)": "%",
     "calculator:oxygen_balance:Oxygen balance (CO₂ basis)": "%",
-    "calculator:solubility:Predicted intrinsic solubility (log mol/L)": "1",
+    "calculator:polarizability:Molecular polarizability": "Å^3",
     "calculator:solubility:Predicted intrinsic solubility (mg/mL)": "mg/mL",
     "calculator:solubility:Predicted intrinsic solubility (mol/L)": "mol/L",
-    "descriptor:bertz_ct": "1", "descriptor:esol_logs": "1", "descriptor:exact_mass": "g/mol", "descriptor:fsp3": "1",
-    "descriptor:heavy_atom_count": "1", "descriptor:labute_asa": "Å^2", "descriptor:mol_logp": "1", "descriptor:mol_wt": "g/mol",
-    "descriptor:np_likeness": "1", "descriptor:num_hba": "1", "descriptor:num_hbd": "1", "descriptor:num_rotatable_bonds": "1",
-    "descriptor:num_stereocenters": "1", "descriptor:qed": "1", "descriptor:ring_count": "1", "descriptor:sa_score": "1",
+    "calculator:topology_analysis:Asymmetric atom count": "1",
+    "calculator:topology_analysis:Balaban index": "1",
+    "calculator:topology_analysis:Bond count": "1",
+    "calculator:topology_analysis:Carbo ring count": "1",
+    "calculator:topology_analysis:Chain atom count": "1",
+    "calculator:topology_analysis:Chain bond count": "1",
+    "calculator:topology_analysis:Cyclomatic number": "1",
+    "calculator:topology_analysis:Fused ring count": "1",
+    "calculator:topology_analysis:Harary index": "1",
+    "calculator:topology_analysis:Hetero ring count": "1",
+    "calculator:topology_analysis:Hyper Wiener index": "1",
+    "calculator:topology_analysis:Platt index": "1",
+    "calculator:topology_analysis:Randic index": "1",
+    "calculator:topology_analysis:Ring atom count": "1",
+    "calculator:topology_analysis:Ring bond count": "1",
+    "calculator:topology_analysis:Szeged index": "1",
+    "calculator:topology_analysis:Wiener index": "1",
+    "calculator:surface_analysis:ASA (solvent accessible)": "Å^2",
+    "calculator:surface_analysis:ASA_H (hydrophobic)": "Å^2",
+    "calculator:surface_analysis:ASA_P (polar)": "Å^2",
+    "calculator:surface_analysis:van der Waals surface area": "Å^2",
+    "calculator:surface_analysis:van der Waals volume": "Å^3",
+    "calculator:topology_analysis:Wiener polarity": "1",
+    "descriptor:asphericity": "1", "descriptor:bertz_ct": "1", "descriptor:esol_logs": "1", "descriptor:exact_mass": "g/mol", "descriptor:fsp3": "1",
+    "descriptor:heavy_atom_count": "1", "descriptor:inertial_shape_factor": "1/amu*Å^2", "descriptor:labute_asa": "Å^2", "descriptor:mol_logp": "1", "descriptor:mol_wt": "g/mol",
+    "descriptor:np_likeness": "1", "descriptor:npr1": "1", "descriptor:npr2": "1", "descriptor:num_hba": "1", "descriptor:num_hbd": "1", "descriptor:num_rotatable_bonds": "1",
+    "descriptor:num_stereocenters": "1", "descriptor:pbf": "Å", "descriptor:pmi1": "amu*Å^2", "descriptor:pmi2": "amu*Å^2", "descriptor:pmi3": "amu*Å^2",
+    "descriptor:qed": "1", "descriptor:radius_of_gyration": "Å", "descriptor:ring_count": "1", "descriptor:sa_score": "1", "descriptor:spherocity_index": "1",
     "descriptor:tpsa": "Å^2",
 }
+
+#: The outputs read from a CONFORMER's geometry and not from the drawing, written out for the same reason: it decides which structure a score means, and a score over one has no value for a
+#: molecule that has no conformer. Every other approved output is the drawing's. The ten shape descriptors, eight of Geometry Analysis's sizes, HOMA's two extremes, the dipole's magnitude and five surface numbers.
+_GEOMETRY_OUTPUTS = {
+    "descriptor:asphericity", "descriptor:inertial_shape_factor", "descriptor:npr1", "descriptor:npr2", "descriptor:pbf", "descriptor:pmi1", "descriptor:pmi2", "descriptor:pmi3",
+    "descriptor:radius_of_gyration", "descriptor:spherocity_index",
+    "calculator:geometry_analysis:Max projection area", "calculator:geometry_analysis:Max projection radius", "calculator:geometry_analysis:Max radius (from centroid)",
+    "calculator:geometry_analysis:Mean radius (from centroid)", "calculator:geometry_analysis:Min projection area", "calculator:geometry_analysis:Min projection radius",
+    "calculator:geometry_analysis:Size perpendicular to the max projection", "calculator:geometry_analysis:Size perpendicular to the min projection",
+    "calculator:homa_aromaticity:Highest HOMA of any ring", "calculator:homa_aromaticity:Lowest HOMA of any ring",
+    "calculator:dipole_moment:Dipole", "calculator:surface_analysis:ASA (solvent accessible)", "calculator:surface_analysis:ASA_H (hydrophobic)", "calculator:surface_analysis:ASA_P (polar)",
+    "calculator:surface_analysis:van der Waals surface area", "calculator:surface_analysis:van der Waals volume",
+}
+
+#: Which outputs ask more than "is it a number of the stored conformer": Geometry Analysis's own settings change what it measures (`score_value.not_applicable_reason`). The two radii from the
+#: centroid must be of the stored conformer as it is; the six projection numbers also of unscaled van der Waals radii.
+_AS_STORED = {"calculator:geometry_analysis:Max radius (from centroid)", "calculator:geometry_analysis:Mean radius (from centroid)"}
+_AS_STORED_UNSCALED = {
+    "calculator:geometry_analysis:Max projection area", "calculator:geometry_analysis:Max projection radius", "calculator:geometry_analysis:Min projection area",
+    "calculator:geometry_analysis:Min projection radius", "calculator:geometry_analysis:Size perpendicular to the max projection", "calculator:geometry_analysis:Size perpendicular to the min projection",
+}
+
+
+def test_exactly_these_outputs_are_read_from_a_conformer_and_all_the_others_from_the_drawing():
+    assert {entry.output_id for entry in APPROVED if entry.input == "geometry"} == _GEOMETRY_OUTPUTS
+    assert {entry.input for entry in APPROVED} == {"drawing", "geometry"}
+    assert all(entry.input == READ_FROM for entry in APPROVED if entry.output_id not in _GEOMETRY_OUTPUTS)
+
+
+def test_the_twenty_six_geometry_outputs_are_each_their_own_quantity():
+    """Three principal moments, two ratios, a radius, a plane distance and three anisotropy measures; two radii from the centroid and six projection numbers; the highest and the lowest ring HOMA; a dipole
+    and five surface numbers: all different numbers, so none shares a tag, and a formula may combine them."""
+    tags = [entry.endpoint for entry in APPROVED if entry.input == "geometry"]
+    assert len(tags) == len(set(tags)) == 26
+
+
+#: The outputs that read bond lengths and so only from a geometry a quantum calculation optimised: HOMA's two extremes.
+_NEEDS_QUANTUM = {"calculator:homa_aromaticity:Highest HOMA of any ring", "calculator:homa_aromaticity:Lowest HOMA of any ring"}
+
+
+def test_exactly_these_outputs_read_only_a_quantum_optimised_geometry():
+    assert {entry.output_id for entry in APPROVED if entry.needs_quantum_geometry} == _NEEDS_QUANTUM
+    assert all(entry.input == "geometry" for entry in APPROVED if entry.needs_quantum_geometry), "a drawing has no bond lengths to have measured"
+    assert not any(entry.whole_structure or entry.measured_as for entry in APPROVED if entry.needs_quantum_geometry), "HOMA has no options that change what it measures, and a ring's value does not depend on where the fragments sit"
+
+
+def test_exactly_these_outputs_ask_how_the_calculator_measured_them():
+    from openchem.domain.score_outputs import AS_STORED, AS_STORED_UNSCALED, MEASURED_AS
+
+    asking = {entry.output_id: entry.measured_as for entry in APPROVED if entry.measured_as}
+    assert asking == {**{output_id: AS_STORED for output_id in _AS_STORED}, **{output_id: AS_STORED_UNSCALED for output_id in _AS_STORED_UNSCALED}}
+    assert len(_AS_STORED) == 2 and len(_AS_STORED_UNSCALED) == 6
+    assert all(entry.measured_as in MEASURED_AS for entry in APPROVED)
+    assert all(entry.input == "geometry" for entry in APPROVED if entry.measured_as), "a drawing output has no geometry to have measured"
+
+
+#: The outputs whose number is read only at the settings the calculator ran with, and which: the dipole from Gasteiger's charges of a neutral species, the accessible areas at the default probe on the structure
+#: as it is, and the two van der Waals numbers (no probe) on the structure as it is. Written out because it decides which result a score will not read (`score_value._settings_reason`).
+_RUN_WITH = {
+    "calculator:dipole_moment:Dipole": "gasteiger_neutral",
+    "calculator:surface_analysis:ASA (solvent accessible)": "default_probe_as_drawn",
+    "calculator:surface_analysis:ASA_H (hydrophobic)": "default_probe_as_drawn",
+    "calculator:surface_analysis:ASA_P (polar)": "default_probe_as_drawn",
+    "calculator:surface_analysis:van der Waals surface area": "as_drawn",
+    "calculator:surface_analysis:van der Waals volume": "as_drawn",
+}
+
+
+def test_exactly_these_outputs_ask_which_settings_the_calculator_ran_with():
+    from openchem.domain.score_outputs import RUN_WITH
+
+    assert {entry.output_id: entry.run_with for entry in APPROVED if entry.run_with} == _RUN_WITH
+    assert all(entry.run_with in RUN_WITH for entry in APPROVED)
+    assert all(entry.input == "geometry" and entry.whole_structure for entry in APPROVED if entry.run_with), "they are numbers of the whole 3D structure, and a salt of them is declined"
+    assert not any(entry.needs_quantum_geometry or entry.measured_as for entry in APPROVED if entry.run_with)
 
 
 def test_the_outputs_that_share_an_endpoint_are_exactly_these():
@@ -143,6 +253,52 @@ def test_the_outputs_that_share_an_endpoint_are_exactly_these():
 
 def test_the_unit_of_every_approved_output_is_exactly_this():
     assert {entry.output_id: entry.unit for entry in APPROVED} == _UNITS
+
+
+#: What each unit the approved outputs carry MEASURES. A new unit has to be classified here, which is the moment someone must decide whether the table needs a conversion entry
+#: (`docs/DERIVED_SCORES_DESIGN.md`, "4b: no conversion"): the unit system converts nothing, so a quantity offered in two units by outputs a formula could combine is a formula
+#: that is refused for a reason no person can see from the formula.
+_QUANTITY = {
+    "1": "a plain number",
+    "%": "a percentage",
+    "g/mol": "molar mass",
+    "Å": "a length",
+    "Å^2": "an area",
+    "amu*Å^2": "a moment of inertia",
+    "1/amu*Å^2": "an inverse moment of inertia",
+    "Å^3": "a volume",
+    "D": "a dipole moment",
+    "mg/mL": "a solubility",
+    "mol/L": "a solubility",
+}
+
+
+def test_every_unit_the_approved_outputs_carry_says_what_it_measures():
+    unclassified = sorted({entry.unit for entry in APPROVED} - set(_QUANTITY))
+    assert not unclassified, f"{unclassified} are new units: say what each measures in _QUANTITY, then decide whether a conversion entry is needed (design record, 4b)"
+
+
+def test_no_quantity_is_offered_in_two_units_by_outputs_a_formula_could_combine():
+    """The measured reason the conversion table is still empty: the one quantity offered in two units is the solubility, and both of its outputs are one endpoint, so
+    a formula cannot name both (consensus is refused) and a conversion between them would need the molecule's molar mass, which is not a constant a table can hold."""
+    units_by_quantity: dict[str, dict[str, set[str]]] = {}
+    for entry in APPROVED:
+        units_by_quantity.setdefault(_QUANTITY[entry.unit], {}).setdefault(entry.unit, set()).add(entry.endpoint)
+    offenders = {}
+    for quantity, by_unit in units_by_quantity.items():
+        if len(by_unit) < 2:
+            continue
+        endpoints = set().union(*by_unit.values())
+        if len(endpoints) > 1:
+            offenders[quantity] = {unit: sorted(tags) for unit, tags in by_unit.items()}
+    assert not offenders, f"outputs of different endpoints offer one quantity in two units, so a formula could combine them and the unit check would refuse it: {offenders}. Add a conversion entry, or say why not"
+    assert units_by_quantity["a solubility"] == {"mg/mL": {"aqueous_solubility_intrinsic"}, "mol/L": {"aqueous_solubility_intrinsic"}}
+
+
+def test_the_two_solubility_outputs_cannot_be_combined_and_so_need_no_conversion():
+    with pytest.raises(FormulaError) as refused:
+        check_inputs([("a", "calculator:solubility:Predicted intrinsic solubility (mg/mL)"), ("b", "calculator:solubility:Predicted intrinsic solubility (mol/L)")])
+    assert refused.value.problem is Problem.CONSENSUS
 
 
 # --- an output that is not approved is refused ------------------------------------------------------------------------------
@@ -219,7 +375,7 @@ def test_the_real_pair_a_person_would_try_is_stopped():
     with pytest.raises(FormulaError) as caught:
         check_inputs([
             ("esol", "descriptor:esol_logs"),
-            ("model", "calculator:solubility:Predicted intrinsic solubility (log mol/L)"),
+            ("model", "calculator:solubility:Predicted intrinsic solubility (mol/L)"),
         ])
     assert caught.value.problem is Problem.CONSENSUS
 
@@ -235,7 +391,7 @@ def test_outputs_of_different_endpoints_are_never_refused_as_consensus():
 
 def test_an_unapproved_output_is_reported_before_a_consensus():
     with pytest.raises(FormulaError) as caught:
-        check_inputs([("a", "descriptor:num_hbd"), ("b", "descriptor:nope"), ("c", "calculator:hbond_sites:Donors")])
+        check_inputs([("a", "descriptor:esol_logs"), ("b", "descriptor:nope"), ("c", "calculator:solubility:Predicted intrinsic solubility (mol/L)")])
     assert caught.value.problem is Problem.OUTPUT
 
 
@@ -288,6 +444,17 @@ def test_a_number_with_the_declared_units_is_accepted_and_an_int_is_a_float():
 def test_a_value_the_producer_did_not_type_as_a_finite_number_is_refused(value):
     with pytest.raises(Refusal):
         accept_value(approved_output("descriptor:mol_wt"), value, "g/mol")
+
+
+def test_a_text_result_says_it_is_text_and_why_and_does_not_name_a_python_type():
+    """A person reaches this by running another method of a calculator whose default answer is typed (Polarizability, Miller's method): the reason is the one thing they will read."""
+    with pytest.raises(Refusal) as caught:
+        accept_value(approved_output("descriptor:mol_wt"), "180.16", "g/mol")
+    message = str(caught.value)
+    assert "is text" in message and "default answer" in message and "str" not in message.split("text")[0]
+    with pytest.raises(Refusal) as other:
+        accept_value(approved_output("descriptor:mol_wt"), [1.0], "g/mol")
+    assert "(list)" in str(other.value), "a value that is not text still names what it was"
 
 
 @pytest.mark.parametrize("carried", ["", "kg/mol", "G/MOL", "g/mol ", "Da"])
@@ -530,6 +697,77 @@ def test_a_wrong_declared_unit_is_caught_on_real_data(swept):
     assert any("'Da'" in p for p in problems), problems
 
 
+def _paired_sweep(first_values, second_values, second_input="drawing"):
+    sweep = sweep_tool.Sweep()
+    for output_id, values, calc_input in (("descriptor:mol_wt", first_values, "drawing"), ("descriptor:qed", second_values, second_input)):
+        candidate = sweep_tool.Candidate(output_id, "label", "descriptor", output_id.split(":")[1])
+        candidate.observations = [(f"row{i}", calc_input, v, "") for i, v in enumerate(values)]
+        sweep.candidates[output_id] = candidate
+    return sweep
+
+
+def _pair(first_tag="molecular_weight", second_tag="qed_drug_likeness"):
+    return [_entry(endpoint=first_tag), _entry(output_id="descriptor:qed", endpoint=second_tag)]
+
+
+def test_two_outputs_that_agree_on_every_shared_row_but_carry_different_tags_are_reported():
+    same = [1.0, 2.0, 3.0, 4.0, 5.0]
+    found = sweep_tool.identical_pairs(_pair(), _paired_sweep(same, same))
+    assert [(a.output_id, b.output_id) for a, b in found] == [("descriptor:mol_wt", "descriptor:qed")]
+
+
+@pytest.mark.parametrize(
+    "first, second, tags",
+    [
+        ([1.0, 2.0, 3.0, 4.0, 5.0], [1.0, 2.0, 3.0, 4.0, 5.1], ("molecular_weight", "qed_drug_likeness")),  # one row differs
+        ([1.0, 2.0, 3.0, 4.0], [1.0, 2.0, 3.0, 4.0], ("molecular_weight", "qed_drug_likeness")),  # too few shared rows
+        ([1.0, 2.0, 3.0, 4.0, 5.0], [1.0, 2.0, 3.0, 4.0, 5.0], ("molecular_weight", "molecular_weight")),  # already one tag
+    ],
+)
+def test_agreement_that_is_not_a_copy_is_not_reported(first, second, tags):
+    assert sweep_tool.identical_pairs(_pair(*tags), _paired_sweep(first, second)) == []
+
+
+def test_only_the_drawing_is_compared():
+    same = [1.0, 2.0, 3.0, 4.0, 5.0]
+    assert sweep_tool.identical_pairs(_pair(), _paired_sweep(same, same, second_input="geometry")) == []
+
+
+def test_a_difference_in_the_last_digit_still_separates_two_outputs():
+    first = [1.0, 2.0, 3.0, 4.0, 5.0]
+    assert sweep_tool.identical_pairs(_pair(), _paired_sweep(first, [1.0, 2.0, 3.0, 4.0, 5.0 + 1e-6])) == []
+
+
+def test_no_two_approved_outputs_are_one_number_under_two_tags(swept):
+    sweep, _ = swept
+    assert [(a.output_id, b.output_id) for a, b in sweep_tool.identical_pairs(APPROVED, sweep)] == []
+
+
+def test_the_copy_guard_finds_a_real_copy_on_real_data(swept):
+    """The control arm: the solubility calculator's log mol/L IS the ESOL descriptor (16 of 16 rows), which is why that entry was dropped."""
+    sweep, _ = swept
+    esol = approved_output("descriptor:esol_logs")
+    copy = _entry(output_id="calculator:solubility:Predicted intrinsic solubility (log mol/L)", endpoint="logp_octanol_water")
+    found = sweep_tool.identical_pairs([esol, copy], sweep)
+    assert [(a.output_id, b.output_id) for a, b in found] == [(esol.output_id, copy.output_id)]
+
+
+def test_logd_is_not_approved_because_the_panel_can_only_show_its_degenerate_case(swept):
+    """The plain id exists, on the panel, only for molecules with no ionizable centre (where it equals LogP), and the approximation only for the
+    ionizable ones: the two never share a row. With pkasolver unconfigured the panel cannot exercise the plain id's main path, so it cannot be
+    approved. If this turns red the census can run the tool: revisit the withdrawal."""
+    sweep, _ = swept
+    plain = sweep.candidates["calculator:logd:LogD at pH 7.4"]
+    weaker = sweep.candidates["calculator:logd:LogD at pH 7.4 (approximation)"]
+
+    def drawing_rows(candidate):
+        return {row for row, calc_input, _value, _units in candidate.observations if calc_input == READ_FROM}
+
+    assert len(drawing_rows(plain)) == 16 and len(drawing_rows(weaker)) == 9
+    assert not drawing_rows(plain) & drawing_rows(weaker)
+    assert approved_output(plain.output_id) is None and approved_output(weaker.output_id) is None
+
+
 def test_the_sweeps_limits_are_these_numbers():
     """Pinned as numbers: a test that reads them by name moves with them, which is how a limit moved by one went unnoticed in slice 1."""
     assert sweep_tool.MIN_ROWS == 5
@@ -539,12 +777,33 @@ def test_the_sweeps_limits_are_these_numbers():
 def test_the_panel_resolves_each_entry_on_enough_rows_to_mean_something(swept):
     sweep, _ = swept
     for entry in APPROVED:
-        rows = {row for row, calc_input, _v, _u in sweep.candidates[entry.output_id].observations if calc_input == READ_FROM}
-        assert len(rows) >= sweep_tool.MIN_ROWS, (entry.output_id, len(rows))
+        rows = {row for row, calc_input, _v, _u in sweep.candidates[entry.output_id].observations if calc_input == entry.input}
+        assert len(rows) >= sweep_tool.MIN_ROWS, (entry.output_id, entry.input, len(rows))
 
 
-def test_the_always_on_descriptors_reach_the_drawing_and_the_geometry_under_one_id(swept):
-    """The reason `READ_FROM` is one input: the same id is stored twice, and a score must read exactly one of the two."""
+def test_every_approved_descriptor_is_stored_under_the_input_its_entry_names_and_no_other(swept):
+    """An output has one input, and an approved descriptor is stored under that input ALONE: the drawing for the structure-level ones, the geometry for the ten shape ones.
+
+    This test used to assert the opposite: that `descriptor:mol_wt` was observed under both the drawing and a
+    geometry, "the same id stored twice, and a score must read exactly one of the two". That double storage was
+    a defect and not a design: a conformer carries explicit hydrogens, the drawing's are implicit, and re-running
+    the descriptors on it moved Synthetic Accessibility from 1.58 to 6.445 in the reader. A conformer request
+    computes only the provider's geometric descriptors now (`DescriptorProvider.geometric_descriptor_ids`), so an
+    approved output exists under one input alone and the choice of input cannot change a score.
+    """
     sweep, _ = swept
-    inputs = {calc_input for _row, calc_input, _v, _u in sweep.candidates["descriptor:mol_wt"].observations}
-    assert inputs == {"drawing", "geometry"}
+    stored_elsewhere = {
+        entry.output_id: sorted({i for _r, i, _v, _u in sweep.candidates[entry.output_id].observations} - {entry.input})
+        for entry in APPROVED
+        if entry.output_id.startswith("descriptor:")
+    }
+    assert {k: v for k, v in stored_elsewhere.items() if v} == {}
+    assert {i for _r, i, _v, _u in sweep.candidates["descriptor:mol_wt"].observations} == {"drawing"}
+
+
+def test_a_geometric_descriptor_is_stored_under_the_geometry_alone_and_is_approved_as_such(swept):
+    """The other half: the ten shape descriptors exist only where a conformer does, so they are read from the geometry, and a molecule without one has no number for them."""
+    sweep, _ = swept
+    assert {i for _r, i, _v, _u in sweep.candidates["descriptor:pmi1"].observations} == {"geometry"}
+    pmi1 = approved_output("descriptor:pmi1")
+    assert pmi1 is not None and pmi1.input == "geometry"

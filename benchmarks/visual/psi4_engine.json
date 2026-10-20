@@ -1,0 +1,25 @@
+[
+  {"do": "tool_path", "tool": "psi4", "path": "D:/_scratch/psi4-spike/Scripts/psi4.exe"},
+  {"do": "smiles", "smiles": "CCO", "name": "Ethanol", "after_ms": 3000},
+  {"do": "select", "molecule": -1, "after_ms": 3000},
+  {"do": "view_3d", "after_ms": 2000},
+  {"do": "conformers", "count": 3, "after_ms": 20000},
+  {"do": "conformer_report", "tag": "before-optimization",
+   "expect": {"conformers": 2, "orca_conformers": 0, "viewer_label_excludes": "optimized"}},
+
+  {"do": "panel", "id": "Quantum_Chemistry", "after_ms": 1500},
+  {"do": "shot", "path": "benchmarks/visual/artifacts/psi4_engine_box.png", "widget": "Quantum_Chemistry"},
+  {"do": "qc_run", "engine": "psi4", "calc_type": "Geometry Optimization", "method": "B3LYP def2-SVP"},
+  {"do": "qc_wait", "timeout_ms": 600000},
+  {"do": "conformer_report", "tag": "after-psi4-optimization",
+   "expect": {"conformers": 2, "orca_conformers": 1, "canonical_method": "psi4_opt", "canonical_mapped": true,
+              "viewer_on_canonical": true, "viewer_label_contains": "Psi4 optimized (B3LYP def2-SVP)", "origin_slot": 1}},
+  {"do": "shot", "path": "benchmarks/visual/artifacts/psi4_engine_after.png"},
+
+  {"do": "qc_run", "engine": "psi4", "calc_type": "Single Point", "method": "HF def2-SVP"},
+  {"do": "qc_wait", "timeout_ms": 600000},
+  {"do": "conformer_report", "tag": "after-psi4-single-point", "expect": {"conformers": 2, "canonical_method": "psi4_opt"}},
+
+  {"do": "expect_clean"},
+  {"do": "quit"}
+]

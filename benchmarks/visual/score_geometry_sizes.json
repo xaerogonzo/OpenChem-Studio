@@ -1,0 +1,57 @@
+[
+  {"do": "smiles", "smiles": "CCCCO", "name": "Butanol", "after_ms": 1500},
+  {"do": "select", "molecule": -1, "after_ms": 6000},
+
+  {"do": "score_define", "label": "Reach", "formula": "2 * reach", "inputs": [["reach", "calculator:geometry_analysis:Max radius (from centroid)"]], "result_unit": "Å",
+   "tag": "a-score-over-the-largest-radius", "after_ms": 1200, "expect": {"made": true}},
+  {"do": "score_define", "label": "Shadow", "formula": "area", "inputs": [["area", "calculator:geometry_analysis:Max projection area"]], "result_unit": "Å^2",
+   "tag": "a-score-over-the-largest-shadow", "after_ms": 1200, "expect": {"made": true}},
+  {"do": "score_define", "label": "Spread", "formula": "2 * rg", "inputs": [["rg", "descriptor:radius_of_gyration"]], "result_unit": "Å",
+   "tag": "a-score-over-a-shape-descriptor", "after_ms": 1200, "expect": {"made": true}},
+
+  {"do": "conformers", "count": 3, "after_ms": 20000},
+  {"do": "expect_conformers", "min": 2},
+  {"do": "score_results", "focus": true, "which": "Reach", "tag": "geometry-analysis-not-run-yet", "after_ms": 3000,
+   "expect": {"entries": 3, "has_value": false, "reason_contains": ["has not been calculated on this molecule's conformer yet"]}},
+
+  {"do": "calculator", "id": "geometry_analysis", "reveal": false, "after_ms": 6000},
+  {"do": "score_results", "focus": true, "which": "Reach", "remember": "reach", "tag": "the-reach-is-the-conformers", "after_ms": 1500,
+   "expect": {"entries": 3, "has_value": true, "value_between": [5.0, 7.5], "stored_as_results": 0,
+              "evidence_contains": ["Formula: 2 * reach", "reach = ", "computed on conformer 1 (id ", "MMFF94/UFF energy"], "evidence_excludes": ["computed on the drawing"]}},
+  {"do": "score_results", "focus": true, "which": "Shadow", "remember": "shadow", "tag": "the-shadow-is-the-conformers", "after_ms": 1500,
+   "expect": {"entries": 3, "has_value": true, "value_between": [25.0, 40.0], "evidence_contains": ["computed on conformer 1 (id "]}},
+  {"do": "shot", "path": "artifacts/visual/score_geometry_sizes_read.png", "widget": "results_reader", "after_ms": 500},
+
+  {"do": "calculator", "id": "geometry_analysis", "parameters": {"radius_scale": 1.2}, "reveal": false, "after_ms": 6000},
+  {"do": "score_results", "focus": true, "which": "Shadow", "tag": "a-run-with-scaled-radii-replaces-it-and-gives-no-number", "after_ms": 1500,
+   "expect": {"entries": 3, "has_value": false, "reason_contains": ["scaled by 1.2", "default settings"]}},
+  {"do": "shot", "path": "artifacts/visual/score_geometry_sizes_scaled.png", "widget": "results_reader", "after_ms": 500},
+  {"do": "score_results", "focus": true, "which": "Reach", "tag": "the-reach-is-no-distance-to-a-circle-so-it-still-reads", "after_ms": 800,
+   "expect": {"entries": 3, "has_value": true, "same_as": "reach"}},
+  {"do": "calculator", "id": "geometry_analysis", "reveal": false, "after_ms": 6000},
+  {"do": "score_results", "focus": true, "which": "Shadow", "tag": "run-again-with-the-defaults-and-the-number-is-back", "after_ms": 1500,
+   "expect": {"entries": 3, "has_value": true, "same_as": "shadow"}},
+
+  {"do": "smiles", "smiles": "CC(=O)[O-].[Na+]", "name": "Sodium acetate", "after_ms": 1500},
+  {"do": "select", "molecule": -1, "after_ms": 6000},
+  {"do": "conformers", "count": 2, "after_ms": 12000},
+  {"do": "expect_conformers", "min": 1},
+  {"do": "calculator", "id": "geometry_analysis", "reveal": false, "after_ms": 6000},
+  {"do": "score_results", "focus": true, "which": "Reach", "tag": "a-salt-has-no-size", "after_ms": 1500,
+   "expect": {"entries": 3, "has_value": false, "reason_contains": ["2 separate fragments", "score the parent structure"]}},
+  {"do": "shot", "path": "artifacts/visual/score_geometry_sizes_salt.png", "widget": "results_reader", "after_ms": 500},
+
+  {"do": "smiles", "smiles": "CN(C)C(=N)N=C(N)N.Cl", "name": "Metformin hydrochloride", "after_ms": 1500},
+  {"do": "select", "molecule": -1, "after_ms": 6000},
+  {"do": "conformers", "count": 3, "after_ms": 20000},
+  {"do": "expect_conformers", "min": 2},
+  {"do": "calculator", "id": "geometry_analysis", "reveal": false, "after_ms": 6000},
+  {"do": "score_results", "focus": true, "which": "Reach", "tag": "its-size-is-the-whole-structures-and-declined", "after_ms": 1500,
+   "expect": {"entries": 3, "has_value": false, "reason_contains": ["2 separate fragments"]}},
+  {"do": "score_results", "focus": true, "which": "Spread", "tag": "its-shape-descriptor-is-the-parents-and-read", "after_ms": 3000,
+   "expect": {"entries": 3, "has_value": true, "evidence_contains": ["computed on conformer 1 (id "]}},
+  {"do": "shot", "path": "artifacts/visual/score_geometry_sizes_parent.png", "widget": "results_reader", "after_ms": 500},
+
+  {"do": "expect_clean"},
+  {"do": "quit"}
+]

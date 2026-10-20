@@ -1,0 +1,639 @@
+{
+ "scratch": "C:\\Users\\pmpd\\AppData\\Local\\Temp\\fukui_grid_sweep_em1e50n6",
+ "summary": [
+  {
+   "grid": "default",
+   "level": "B3LYP/6-311+G**",
+   "attack": "f+",
+   "rows": 17,
+   "within": 5,
+   "max_abs_diff": 0.2421
+  },
+  {
+   "grid": "default",
+   "level": "B3LYP/6-311+G**",
+   "attack": "f-",
+   "rows": 17,
+   "within": 17,
+   "max_abs_diff": 0.0076
+  },
+  {
+   "grid": "default",
+   "level": "B3LYP/6-31G**",
+   "attack": "f+",
+   "rows": 11,
+   "within": 11,
+   "max_abs_diff": 0.0066
+  },
+  {
+   "grid": "default",
+   "level": "B3LYP/6-31G**",
+   "attack": "f-",
+   "rows": 12,
+   "within": 12,
+   "max_abs_diff": 0.0063
+  },
+  {
+   "grid": "default",
+   "level": "HF/6-311+G**",
+   "attack": "f+",
+   "rows": 17,
+   "within": 3,
+   "max_abs_diff": 0.2782
+  },
+  {
+   "grid": "default",
+   "level": "HF/6-311+G**",
+   "attack": "f-",
+   "rows": 17,
+   "within": 15,
+   "max_abs_diff": 0.0205
+  },
+  {
+   "grid": "default",
+   "level": "HF/6-31G**",
+   "attack": "f+",
+   "rows": 14,
+   "within": 14,
+   "max_abs_diff": 0.0068
+  },
+  {
+   "grid": "default",
+   "level": "HF/6-31G**",
+   "attack": "f-",
+   "rows": 11,
+   "within": 9,
+   "max_abs_diff": 0.0214
+  },
+  {
+   "grid": "default",
+   "level": "HF/6-31G**",
+   "bultinck": "C f+",
+   "diff": 0.0029,
+   "within": true
+  },
+  {
+   "grid": "default",
+   "level": "HF/6-31G**",
+   "bultinck": "C f-",
+   "diff": 0.0003,
+   "within": true
+  },
+  {
+   "grid": "default",
+   "level": "HF/6-31G**",
+   "bultinck": "H f+",
+   "diff": -0.0024,
+   "within": true
+  },
+  {
+   "grid": "default",
+   "level": "HF/6-31G**",
+   "bultinck": "H f-",
+   "diff": -0.0002,
+   "within": true
+  },
+  {
+   "grid": "default",
+   "level": "HF/6-31G**",
+   "bultinck": "O f+",
+   "diff": 0.0019,
+   "within": true
+  },
+  {
+   "grid": "default",
+   "level": "HF/6-31G**",
+   "bultinck": "O f-",
+   "diff": 0.0001,
+   "within": true
+  },
+  {
+   "grid": "IntAcc 6.0",
+   "level": "B3LYP/6-311+G**",
+   "attack": "f+",
+   "rows": 17,
+   "within": 4,
+   "max_abs_diff": 0.2432
+  },
+  {
+   "grid": "IntAcc 6.0",
+   "level": "B3LYP/6-311+G**",
+   "attack": "f-",
+   "rows": 17,
+   "within": 17,
+   "max_abs_diff": 0.0076
+  },
+  {
+   "grid": "IntAcc 6.0",
+   "level": "B3LYP/6-31G**",
+   "attack": "f+",
+   "rows": 11,
+   "within": 11,
+   "max_abs_diff": 0.0066
+  },
+  {
+   "grid": "IntAcc 6.0",
+   "level": "B3LYP/6-31G**",
+   "attack": "f-",
+   "rows": 12,
+   "within": 12,
+   "max_abs_diff": 0.0063
+  },
+  {
+   "grid": "IntAcc 6.0",
+   "level": "HF/6-311+G**",
+   "attack": "f+",
+   "rows": 17,
+   "within": 3,
+   "max_abs_diff": 0.273
+  },
+  {
+   "grid": "IntAcc 6.0",
+   "level": "HF/6-311+G**",
+   "attack": "f-",
+   "rows": 17,
+   "within": 15,
+   "max_abs_diff": 0.0205
+  },
+  {
+   "grid": "IntAcc 6.0",
+   "level": "HF/6-31G**",
+   "attack": "f+",
+   "rows": 14,
+   "within": 14,
+   "max_abs_diff": 0.0068
+  },
+  {
+   "grid": "IntAcc 6.0",
+   "level": "HF/6-31G**",
+   "attack": "f-",
+   "rows": 11,
+   "within": 9,
+   "max_abs_diff": 0.0214
+  },
+  {
+   "grid": "IntAcc 6.0",
+   "level": "HF/6-31G**",
+   "bultinck": "C f+",
+   "diff": 0.0029,
+   "within": true
+  },
+  {
+   "grid": "IntAcc 6.0",
+   "level": "HF/6-31G**",
+   "bultinck": "C f-",
+   "diff": 0.0003,
+   "within": true
+  },
+  {
+   "grid": "IntAcc 6.0",
+   "level": "HF/6-31G**",
+   "bultinck": "H f+",
+   "diff": -0.0024,
+   "within": true
+  },
+  {
+   "grid": "IntAcc 6.0",
+   "level": "HF/6-31G**",
+   "bultinck": "H f-",
+   "diff": -0.0002,
+   "within": true
+  },
+  {
+   "grid": "IntAcc 6.0",
+   "level": "HF/6-31G**",
+   "bultinck": "O f+",
+   "diff": 0.0019,
+   "within": true
+  },
+  {
+   "grid": "IntAcc 6.0",
+   "level": "HF/6-31G**",
+   "bultinck": "O f-",
+   "diff": 0.0001,
+   "within": true
+  }
+ ],
+ "movement": [
+  {
+   "species": "CO",
+   "level": "B3LYP/6-311+G**",
+   "max_change_in_f": 0.012,
+   "short_default": {
+    "neutral": 0.0,
+    "cation": 0.0,
+    "anion": 0.0142
+   },
+   "short_fine": {
+    "neutral": 0.0,
+    "cation": 0.0,
+    "anion": 0.0045
+   }
+  },
+  {
+   "species": "CO2",
+   "level": "B3LYP/6-311+G**",
+   "max_change_in_f": 0.0248,
+   "short_default": {
+    "neutral": 0.0,
+    "cation": 0.0001,
+    "anion": 0.0197
+   },
+   "short_fine": {
+    "neutral": 0.0,
+    "cation": 0.0,
+    "anion": 0.0028
+   }
+  },
+  {
+   "species": "H2CO",
+   "level": "B3LYP/6-311+G**",
+   "max_change_in_f": 0.0048,
+   "short_default": {
+    "neutral": -0.0,
+    "cation": 0.0,
+    "anion": 0.0061
+   },
+   "short_fine": {
+    "neutral": -0.0,
+    "cation": 0.0,
+    "anion": 0.0019
+   }
+  },
+  {
+   "species": "acetone",
+   "level": "B3LYP/6-311+G**",
+   "max_change_in_f": 0.0013,
+   "short_default": {
+    "neutral": -0.0,
+    "cation": 0.0,
+    "anion": -0.0004
+   },
+   "short_fine": {
+    "neutral": -0.0,
+    "cation": -0.0,
+    "anion": 0.0006
+   }
+  },
+  {
+   "species": "CN-",
+   "level": "B3LYP/6-311+G**",
+   "max_change_in_f": 0.0011,
+   "short_default": {
+    "neutral": -0.0002,
+    "cation": -0.0,
+    "anion": -0.0009
+   },
+   "short_fine": {
+    "neutral": -0.0,
+    "cation": -0.0,
+    "anion": -0.0012
+   }
+  },
+  {
+   "species": "NCO-",
+   "level": "B3LYP/6-311+G**",
+   "max_change_in_f": 0.0224,
+   "short_default": {
+    "neutral": -0.0001,
+    "cation": 0.0,
+    "anion": 0.01
+   },
+   "short_fine": {
+    "neutral": -0.0,
+    "cation": 0.0,
+    "anion": -0.0009
+   }
+  },
+  {
+   "species": "CNO-",
+   "level": "B3LYP/6-311+G**",
+   "max_change_in_f": 0.0065,
+   "short_default": {
+    "neutral": -0.0001,
+    "cation": -0.0,
+    "anion": 0.0179
+   },
+   "short_fine": {
+    "neutral": 0.0,
+    "cation": -0.0,
+    "anion": 0.0022
+   }
+  },
+  {
+   "species": "CO",
+   "level": "B3LYP/6-31G**",
+   "max_change_in_f": 0.0,
+   "short_default": {
+    "neutral": 0.0,
+    "cation": 0.0,
+    "anion": 0.0
+   },
+   "short_fine": {
+    "neutral": 0.0,
+    "cation": 0.0,
+    "anion": 0.0
+   }
+  },
+  {
+   "species": "CO2",
+   "level": "B3LYP/6-31G**",
+   "max_change_in_f": 0.0,
+   "short_default": {
+    "neutral": -0.0,
+    "cation": 0.0,
+    "anion": 0.0
+   },
+   "short_fine": {
+    "neutral": 0.0,
+    "cation": -0.0,
+    "anion": -0.0
+   }
+  },
+  {
+   "species": "H2CO",
+   "level": "B3LYP/6-31G**",
+   "max_change_in_f": 0.0,
+   "short_default": {
+    "neutral": 0.0,
+    "cation": 0.0,
+    "anion": 0.0
+   },
+   "short_fine": {
+    "neutral": 0.0,
+    "cation": -0.0,
+    "anion": 0.0
+   }
+  },
+  {
+   "species": "acetone",
+   "level": "B3LYP/6-31G**",
+   "max_change_in_f": 0.0,
+   "short_default": {
+    "neutral": -0.0,
+    "cation": -0.0,
+    "anion": 0.0
+   },
+   "short_fine": {
+    "neutral": -0.0,
+    "cation": -0.0,
+    "anion": 0.0
+   }
+  },
+  {
+   "species": "CN-",
+   "level": "B3LYP/6-31G**",
+   "max_change_in_f": 0.0,
+   "short_default": {
+    "neutral": -0.0,
+    "cation": -0.0,
+    "anion": -0.0
+   },
+   "short_fine": {
+    "neutral": 0.0,
+    "cation": 0.0,
+    "anion": 0.0
+   }
+  },
+  {
+   "species": "NCO-",
+   "level": "B3LYP/6-31G**",
+   "max_change_in_f": 0.0,
+   "short_default": {
+    "neutral": 0.0,
+    "cation": 0.0,
+    "anion": 0.0
+   },
+   "short_fine": {
+    "neutral": 0.0,
+    "cation": -0.0,
+    "anion": 0.0
+   }
+  },
+  {
+   "species": "CNO-",
+   "level": "B3LYP/6-31G**",
+   "max_change_in_f": 0.0,
+   "short_default": {
+    "neutral": 0.0,
+    "cation": 0.0,
+    "anion": 0.0
+   },
+   "short_fine": {
+    "neutral": 0.0,
+    "cation": 0.0,
+    "anion": 0.0
+   }
+  },
+  {
+   "species": "CO",
+   "level": "HF/6-311+G**",
+   "max_change_in_f": 0.0116,
+   "short_default": {
+    "neutral": 0.0,
+    "cation": 0.0,
+    "anion": 0.0164
+   },
+   "short_fine": {
+    "neutral": 0.0,
+    "cation": 0.0,
+    "anion": 0.005
+   }
+  },
+  {
+   "species": "CO2",
+   "level": "HF/6-311+G**",
+   "max_change_in_f": 0.022,
+   "short_default": {
+    "neutral": 0.0,
+    "cation": 0.0001,
+    "anion": 0.0226
+   },
+   "short_fine": {
+    "neutral": 0.0,
+    "cation": 0.0,
+    "anion": 0.0028
+   }
+  },
+  {
+   "species": "H2CO",
+   "level": "HF/6-311+G**",
+   "max_change_in_f": 0.0042,
+   "short_default": {
+    "neutral": -0.0,
+    "cation": 0.0,
+    "anion": 0.0062
+   },
+   "short_fine": {
+    "neutral": -0.0,
+    "cation": 0.0,
+    "anion": 0.0019
+   }
+  },
+  {
+   "species": "acetone",
+   "level": "HF/6-311+G**",
+   "max_change_in_f": 0.0002,
+   "short_default": {
+    "neutral": -0.0,
+    "cation": 0.0,
+    "anion": 0.0003
+   },
+   "short_fine": {
+    "neutral": -0.0,
+    "cation": -0.0,
+    "anion": 0.0001
+   }
+  },
+  {
+   "species": "CN-",
+   "level": "HF/6-311+G**",
+   "max_change_in_f": 0.0066,
+   "short_default": {
+    "neutral": -0.0001,
+    "cation": -0.0,
+    "anion": -0.0031
+   },
+   "short_fine": {
+    "neutral": -0.0,
+    "cation": -0.0,
+    "anion": -0.0045
+   }
+  },
+  {
+   "species": "NCO-",
+   "level": "HF/6-311+G**",
+   "max_change_in_f": 0.0202,
+   "short_default": {
+    "neutral": -0.0001,
+    "cation": 0.0,
+    "anion": 0.0171
+   },
+   "short_fine": {
+    "neutral": 0.0,
+    "cation": 0.0,
+    "anion": 0.0012
+   }
+  },
+  {
+   "species": "CNO-",
+   "level": "HF/6-311+G**",
+   "max_change_in_f": 0.0108,
+   "short_default": {
+    "neutral": -0.0001,
+    "cation": -0.0,
+    "anion": 0.0141
+   },
+   "short_fine": {
+    "neutral": -0.0,
+    "cation": -0.0,
+    "anion": 0.0013
+   }
+  },
+  {
+   "species": "CO",
+   "level": "HF/6-31G**",
+   "max_change_in_f": 0.0,
+   "short_default": {
+    "neutral": 0.0,
+    "cation": 0.0,
+    "anion": 0.0
+   },
+   "short_fine": {
+    "neutral": 0.0,
+    "cation": 0.0,
+    "anion": 0.0
+   }
+  },
+  {
+   "species": "CO2",
+   "level": "HF/6-31G**",
+   "max_change_in_f": 0.0,
+   "short_default": {
+    "neutral": 0.0,
+    "cation": 0.0,
+    "anion": 0.0
+   },
+   "short_fine": {
+    "neutral": 0.0,
+    "cation": -0.0,
+    "anion": 0.0
+   }
+  },
+  {
+   "species": "H2CO",
+   "level": "HF/6-31G**",
+   "max_change_in_f": 0.0,
+   "short_default": {
+    "neutral": 0.0,
+    "cation": -0.0,
+    "anion": 0.0
+   },
+   "short_fine": {
+    "neutral": 0.0,
+    "cation": 0.0,
+    "anion": 0.0
+   }
+  },
+  {
+   "species": "acetone",
+   "level": "HF/6-31G**",
+   "max_change_in_f": 0.0,
+   "short_default": {
+    "neutral": -0.0,
+    "cation": -0.0,
+    "anion": 0.0
+   },
+   "short_fine": {
+    "neutral": -0.0,
+    "cation": -0.0,
+    "anion": 0.0
+   }
+  },
+  {
+   "species": "CN-",
+   "level": "HF/6-31G**",
+   "max_change_in_f": 0.0,
+   "short_default": {
+    "neutral": -0.0,
+    "cation": -0.0,
+    "anion": -0.0
+   },
+   "short_fine": {
+    "neutral": 0.0,
+    "cation": 0.0,
+    "anion": 0.0
+   }
+  },
+  {
+   "species": "NCO-",
+   "level": "HF/6-31G**",
+   "max_change_in_f": 0.0,
+   "short_default": {
+    "neutral": 0.0,
+    "cation": 0.0,
+    "anion": 0.0
+   },
+   "short_fine": {
+    "neutral": -0.0,
+    "cation": -0.0,
+    "anion": -0.0
+   }
+  },
+  {
+   "species": "CNO-",
+   "level": "HF/6-31G**",
+   "max_change_in_f": 0.0,
+   "short_default": {
+    "neutral": 0.0,
+    "cation": 0.0,
+    "anion": 0.0
+   },
+   "short_fine": {
+    "neutral": 0.0,
+    "cation": -0.0,
+    "anion": 0.0
+   }
+  }
+ ]
+}

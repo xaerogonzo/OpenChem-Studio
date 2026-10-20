@@ -612,13 +612,13 @@
         {
             "_comment": "Stage 6 R2-G: Se analog of sulfonamide (R-Se(=O)(=O)-NH2).",
             "name": "selenonamide",
-            "smarts": "[#6][SeX4;!R](=O)(=O)[NX3,NX2-]",
+            "smarts": "[#6][SeX4;!R](=O)(=O)[NX3H2,NX2H1-]",
             "anchor_index": 1,
             "seniority": 1105,
             "bluebook_class": "11",
             "suffix_terminal": "-selenonamide",
             "suffix_nonterminal": "-selenonamide",
-            "prefix": "selenonamido",
+            "prefix": "aminoselenonyl",
             "elision": false
         },
         {
@@ -962,6 +962,17 @@
             "suffix_terminal": "-thioic O-acid",
             "suffix_nonterminal": "-carbothioic O-acid",
             "prefix": "hydroxy(thioxo)methyl",
+            "elision": false
+        },
+        {
+            "_comment": "Se-analog of carbothioic_O_acid (naming round 75). R-C(=Se)-OH; the anion R-C(=Se)-[O-] is the carboselenoate, which OPSIN reads. Without the entry the group fell to 'selanylidenemethanolate', which OPSIN reads as a hypervalent Se-H.",
+            "name": "carboselenoic_O_acid",
+            "smarts": "[CX3](=[Se])[OX2H1]",
+            "seniority": 710,
+            "bluebook_class": "7a",
+            "suffix_terminal": "-selenoic O-acid",
+            "suffix_nonterminal": "-carboselenoic O-acid",
+            "prefix": "hydroxy(selenoxo)methyl",
             "elision": false
         },
         {

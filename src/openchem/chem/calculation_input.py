@@ -18,6 +18,7 @@ being skipped.
 from __future__ import annotations
 
 import dataclasses
+import functools
 import hashlib
 import logging
 from collections.abc import Sequence
@@ -27,7 +28,15 @@ from rdkit import Chem
 
 from openchem.chem.engine import ChemistryEngine
 from openchem.domain.calculator import DRAWING, ENSEMBLE, GEOMETRY
-from openchem.domain.conformer import QUANTUM_OPTIMIZED_METHODS, ConformerModel
+from openchem.domain.common import Provenance
+from openchem.domain.conformer import (
+    OPTIMIZED_FROM_ID,
+    OPTIMIZED_FROM_SLOT,
+    QUANTUM_OPTIMIZED_METHODS,
+    ConformerModel,
+    is_quantum_optimized,
+    quantum_level_of_theory,
+)
 from openchem.domain.molecule import MoleculeModel
 
 logger = logging.getLogger("openchem.chemistry")
@@ -147,7 +156,8 @@ def with_source_atom_map(
     """
     if not source_fingerprint or optimized.drawing_atom_ids is not None:
         return optimized
-    source = next((c for c in conformers if geometry_fingerprint(c) == source_fingerprint), None)
+    located = find_source_conformer(conformers, source_fingerprint)
+    source = located[1] if located is not None else None
     if source is None or source.drawing_atom_ids is None or source.drawing_fingerprint is None:
         return optimized
     if len(source.drawing_atom_ids) != engine.mol_from_molblock(optimized.molblock).GetNumAtoms():
@@ -157,6 +167,64 @@ def with_source_atom_map(
         drawing_atom_ids=list(source.drawing_atom_ids),
         drawing_fingerprint=source.drawing_fingerprint,
     )
+
+
+def find_source_conformer(
+    conformers: Sequence[ConformerModel], source_fingerprint: str
+) -> tuple[int, ConformerModel] | None:
+    """The conformer (and its zero-based slot) a job was submitted on, or None.
+
+    Found by the `GEOMETRY` fingerprint, which holds the conformer's id AND its exact molblock, so a
+    list that was regenerated since the job started does not contain it and the answer is None. An
+    empty fingerprint (a result with no single source) finds nothing.
+    """
+    if not source_fingerprint:
+        return None
+    return next(
+        ((slot, c) for slot, c in enumerate(conformers) if geometry_fingerprint(c) == source_fingerprint), None
+    )
+
+
+def with_optimization_origin(
+    optimized: ConformerModel, source_id: str, source_slot: int
+) -> ConformerModel:
+    """`optimized` with where it came from written into its provenance (MERGED, never replaced).
+
+    Records the source's `conformer_id` and `source_slot`, its ONE-BASED slot WHEN RUN WAS PRESSED
+    (`domain.conformer.OPTIMIZED_FROM_SLOT`): the input the calculation used, not wherever the
+    replacement ends up. A slot of 0 means the caller did not know it and NOTHING is written for it
+    (never the landing slot in its place, which would describe something else). The provenance the
+    job's own landing already carries (`orca_version`, the run's method and basis) is kept; a
+    conformer with no provenance gets one rather than losing the record.
+    """
+    origin: dict[str, object] = {OPTIMIZED_FROM_ID: source_id}
+    if source_slot > 0:
+        origin[OPTIMIZED_FROM_SLOT] = source_slot
+    provenance = optimized.provenance
+    if provenance is None:
+        provenance = Provenance(created_by="core", method=optimized.method, parameters=origin)
+    else:
+        provenance = dataclasses.replace(provenance, parameters={**provenance.parameters, **origin})
+    return dataclasses.replace(optimized, provenance=provenance)
+
+
+def with_kept_quantum_optimized(
+    generated: Sequence[ConformerModel], existing: Sequence[ConformerModel], keep: bool
+) -> list[ConformerModel]:
+    """The conformer list after a regeneration: the new ones, then the ORCA-optimized ones that were there.
+
+    **WHAT "KEEP" PROMISES, EXACTLY.** The quantum-optimized conformers survive, in their original
+    relative order, AFTER the generated ones. They are the same objects, so their ids, provenance and
+    atom maps are untouched. It does NOT promise their slot numbers: "7 of 20 stays 7 of 20" holds
+    while an optimization replaces its source; after a regeneration the kept geometries follow the new
+    conformers. Off (`keep` False) is the old behaviour: the generated set replaces everything.
+
+    An optimized conformer whose molblock is empty is dropped, as nothing could use it.
+    """
+    kept = (
+        [c for c in existing if c.method in QUANTUM_OPTIMIZED_METHODS and c.molblock] if keep else []
+    )
+    return [*generated, *kept]
 
 
 def _fingerprint(*parts: str) -> str:
@@ -284,27 +352,49 @@ def resolve_calculation_input(
     `batch_service` already did for the same case.
     """
     if calculation_input == GEOMETRY:
-        conformer = canonical_conformer(model)
-        if conformer is not None:
-            try:
-                mol = engine.mol_from_molblock(conformer.molblock)
-            except Exception:  # noqa: BLE001 - the drawing remains a valid answer
-                logger.exception(
-                    "Conformer %s of molecule %s is unusable; using the drawn structure",
-                    conformer.conformer_id,
-                    model.uuid,
-                )
-            else:
-                if mol.GetNumConformers() > 0 and mol.GetConformer().Is3D():
-                    return ResolvedInput(mol, geometry_fingerprint(conformer), GEOMETRY)
-                logger.info(
-                    "Conformer %s of molecule %s is not 3D; using the drawn structure",
-                    conformer.conformer_id,
-                    model.uuid,
-                )
-    # The DRAWING fingerprint for a geometry request that fell back, on
-    # purpose: the calculator really was handed the drawing, so a result
-    # computed that way is the same input as a drawing-policy one.
+        return resolve_conformer_input(engine, model, canonical_conformer(model))
+    return _drawing_input(engine, model)
+
+
+def resolve_conformer_input(
+    engine: ChemistryEngine, model: MoleculeModel, conformer: ConformerModel | None
+) -> ResolvedInput:
+    """The molecule to hand a calculation that runs on ONE named conformer.
+
+    **The same validation `resolve_calculation_input` applies to the canonical conformer, for any
+    conformer**, so a job started on the one a person picked can neither be handed an unusable
+    geometry nor stamped with an identity that does not describe what it received. A conformer that
+    will not parse, or is not 3D, falls back to the drawing exactly as the canonical one does; the
+    caller can tell from `used`, and must not present the fallback as the conformer it asked for.
+
+    `conformer` None (a molecule with none) is the drawing.
+    """
+    if conformer is not None:
+        try:
+            mol = engine.mol_from_molblock(conformer.molblock)
+        except Exception:  # noqa: BLE001 - the drawing remains a valid answer
+            logger.exception(
+                "Conformer %s of molecule %s is unusable; using the drawn structure",
+                conformer.conformer_id,
+                model.uuid,
+            )
+        else:
+            if mol.GetNumConformers() > 0 and mol.GetConformer().Is3D():
+                return ResolvedInput(mol, geometry_fingerprint(conformer), GEOMETRY)
+            logger.info(
+                "Conformer %s of molecule %s is not 3D; using the drawn structure",
+                conformer.conformer_id,
+                model.uuid,
+            )
+    return _drawing_input(engine, model)
+
+
+def _drawing_input(engine: ChemistryEngine, model: MoleculeModel) -> ResolvedInput:
+    """The drawing, fingerprinted as the DRAWING.
+
+    The DRAWING fingerprint for a geometry request that fell back, on purpose: the calculator really
+    was handed the drawing, so a result computed that way is the same input as a drawing-policy one.
+    """
     molblock = model.molblock or ""
     return ResolvedInput(engine.mol_from_model(model), _fingerprint(DRAWING, molblock), DRAWING)
 
@@ -332,6 +422,16 @@ def resolve_calculation_input(
 #: Prefixing rather than renaming case by case means a calculator may use
 #: any parameter name it likes without this layer having to know.
 INPUT_PREFIX = "input_"
+
+#: The key that says how many separate pieces the conformer a result was computed on is made of (`geometry_provenance`). The domain reads it by this literal
+#: (`score_value.FRAGMENTS_KEY`, which cannot import this layer), and a test holds the two together.
+FRAGMENTS_KEY = f"{INPUT_PREFIX}fragments"
+
+#: The key that says what made the conformer a result was computed on (`ConformerModel.method`: `mmff94`, `orca_opt`...). The domain reads it by this literal (`score_value.CONFORMER_METHOD_KEY`), and a test holds the two together.
+CONFORMER_METHOD_KEY = f"{INPUT_PREFIX}conformer_method"
+
+#: The key that names the level of theory of a quantum-optimized conformer (`"B3LYP def2-SVP"`); absent when it was not recorded. Read by the domain as `score_value.LEVEL_OF_THEORY_KEY`.
+LEVEL_OF_THEORY_KEY = f"{INPUT_PREFIX}level_of_theory"
 
 
 #: What a recorded parameter value may be. **JSON-safe scalars only**, and
@@ -385,6 +485,16 @@ def recordable_parameters(parameters: dict[str, object] | None) -> dict[str, obj
     return kept
 
 
+@functools.lru_cache(maxsize=256)
+def fragment_count(molblock: str) -> int | None:
+    """How many separate pieces the structure in `molblock` is made of (a salt is two, a hydrate two), or None when it cannot be read.
+
+    Unsanitised on purpose: this counts bonded components and nothing else, so a metal complex that sanitisation would refuse is still counted.
+    """
+    mol = Chem.MolFromMolBlock(molblock, sanitize=False, removeHs=False) if molblock else None
+    return len(Chem.GetMolFrags(mol)) if mol is not None and mol.GetNumAtoms() else None
+
+
 def geometry_provenance(model: MoleculeModel, calculation_input: str) -> dict[str, object]:
     """What to record about which geometry a result was computed on.
 
@@ -397,6 +507,12 @@ def geometry_provenance(model: MoleculeModel, calculation_input: str) -> dict[st
     that cites only a position cannot be traced back to a geometry. The
     index is kept alongside because it is what the viewer shows, and
     "conformer 1 of 23" is how a person will describe it.
+
+    THE FRAGMENT COUNT is the number of separate pieces of that conformer. Where one piece sits
+    relative to another in 3D is not a property of the compound (the embedder packs them together at
+    an arbitrary offset), so a derived score declines a number a calculator measured on the WHOLE
+    structure when it has more than one (`score_value.not_applicable_reason`). Left out when the
+    count cannot be read, which that rule treats as unknown and refuses.
     """
     if calculation_input != GEOMETRY:
         return {f"{INPUT_PREFIX}source": "drawing"}
@@ -406,7 +522,7 @@ def geometry_provenance(model: MoleculeModel, calculation_input: str) -> dict[st
             f"{INPUT_PREFIX}source": "drawing",
             f"{INPUT_PREFIX}reason": "no conformer available",
         }
-    return {
+    stamp: dict[str, object] = {
         f"{INPUT_PREFIX}source": "automatic_lowest_energy",
         f"{INPUT_PREFIX}conformer_id": conformer.conformer_id,
         f"{INPUT_PREFIX}conformer_index": model.conformers.index(conformer),
@@ -415,3 +531,14 @@ def geometry_provenance(model: MoleculeModel, calculation_input: str) -> dict[st
             conformer.provenance.parameters.get("force_field") if conformer.provenance else None
         ),
     }
+    # What made the geometry, because a number that reads bond lengths means something different on a force-field conformer (the force field's own lengths) than on a measured one: the level of
+    # theory is named for a quantum-optimized conformer, and left out when it was not recorded (a project saved before the run's method was written into the conformer).
+    stamp[CONFORMER_METHOD_KEY] = conformer.method
+    if is_quantum_optimized(conformer):
+        level = quantum_level_of_theory(conformer)
+        if level:
+            stamp[LEVEL_OF_THEORY_KEY] = level
+    fragments = fragment_count(conformer.molblock)
+    if fragments is not None:
+        stamp[FRAGMENTS_KEY] = fragments
+    return stamp

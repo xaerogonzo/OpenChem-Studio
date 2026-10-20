@@ -179,8 +179,8 @@ def collect_isotope_labels(
             at_suffix = True
         elif element != "H" and unnumbered_ok and target_idx in unnumbered_ok:
             locant = None                       # a retained name numbers nothing here: the nuclide is cited bare
-        elif element != "H" and suffix_ok and target_idx in suffix_ok and locant is not None:
-            at_suffix = True
+        elif element != "H" and suffix_ok and target_idx in suffix_ok and (locant is not None or element == "C"):
+            at_suffix = True              # the carbon of a carbon-supplying suffix has no locant (naming round 69): `benzene(13C)carboxamide`
         # If the target atom has no addressable locant on this parent and the retained name does not own it,
         # drop the label rather than emitting a guess (the nuclide guard in `engine._check_nuclides_named` then refuses the name).
         elif locant is None:

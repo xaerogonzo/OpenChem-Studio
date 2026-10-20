@@ -1,0 +1,79 @@
+                         Program Version 6.1.1  -  RELEASE   -
+
+ Total Charge           Charge          ....   -1
+ Multiplicity           Mult            ....    1
+ Number of Electrons    NEL             ....   14
+-----------------------
+MULLIKEN ATOMIC CHARGES
+-----------------------
+   0 C :   -0.461470
+   1 N :   -0.538530
+Sum of atomic charges:   -1.0000000
+
+----------------------
+LOEWDIN ATOMIC CHARGES
+----------------------
+   0 C :   -0.558521
+   1 N :   -0.441479
+
+
+INITIAL GUESS: MODEL POTENTIAL
+
+------------------
+HIRSHFELD ANALYSIS
+------------------
+
+Total integrated alpha density =      7.000000053
+Total integrated beta density  =      7.000000053
+
+  ATOM     CHARGE      SPIN    
+   0 C   -0.470447    0.000000
+   1 N   -0.529553    0.000000
+
+  TOTAL  -1.000000    0.000000
+
+FINAL SINGLE POINT ENERGY       -92.769156504006
+
+ Total Charge           Charge          ....    0
+ Multiplicity           Mult            ....    2
+ Number of Electrons    NEL             ....   13
+INITIAL GUESS: MOREAD
+Expectation value of <S**2>     :     0.757664
+Ideal value S*(S+1) for S=0.5   :     0.750000
+
+------------------
+HIRSHFELD ANALYSIS
+------------------
+
+Total integrated alpha density =      7.000000063
+Total integrated beta density  =      6.000000069
+
+  ATOM     CHARGE      SPIN    
+   0 C    0.129087    0.780835
+   1 N   -0.129087    0.219165
+
+  TOTAL  -0.000000    1.000000
+
+FINAL SINGLE POINT ENERGY       -92.660651985336
+
+ Total Charge           Charge          ....   -2
+ Multiplicity           Mult            ....    2
+ Number of Electrons    NEL             ....   15
+INITIAL GUESS: MOREAD
+Expectation value of <S**2>     :     0.751473
+Ideal value S*(S+1) for S=0.5   :     0.750000
+
+------------------
+HIRSHFELD ANALYSIS
+------------------
+
+Total integrated alpha density =      8.000000050
+Total integrated beta density  =      7.000000052
+
+  ATOM     CHARGE      SPIN    
+   0 C   -1.065500    0.593164
+   1 N   -0.934500    0.406836
+
+  TOTAL  -2.000000    1.000000
+
+FINAL SINGLE POINT ENERGY       -92.290207363006

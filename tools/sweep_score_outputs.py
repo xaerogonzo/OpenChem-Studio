@@ -67,8 +67,9 @@ class Candidate:
     #: The descriptor id, or the registered calculator's id.
     source_id: str
     #: `(row id, calculation input, value, units string as carried)` for every run where it came back as a finite
-    #: number. The input is part of it because the always-on descriptors run on the drawing AND on a geometry, and the
-    #: two are two stored results with one id.
+    #: number. The input is part of it because the always-on descriptors used to run on the drawing AND on a geometry,
+    #: as two stored results with one id (the design's second finding). Since 2026-10-14 only the ten shape descriptors
+    #: are stored under a geometry, and an approved output is read from the ONE input its entry names (`ApprovedOutput.input`).
     observations: list[tuple[str, str, float, str]] = field(default_factory=list)
     #: True when two facts of one report carry this id, so it names no single number.
     ambiguous: bool = False
@@ -162,8 +163,6 @@ def entry_problems(entry, sweep: Sweep, census: dict[str, Any]) -> list[str]:
     Every message ends by saying what a failure here costs, because the person who sees it renamed a fact label and did not know a score
     read it.
     """
-    from openchem.domain.score_outputs import READ_FROM
-
     cost = f" -- this breaks every score that uses {entry.output_id}"
     candidate = sweep.candidates.get(entry.output_id)
     if candidate is None:
@@ -180,16 +179,42 @@ def entry_problems(entry, sweep: Sweep, census: dict[str, Any]) -> list[str]:
                 problems.append(f"{candidate.source_id} is {support['stage']}; only {sorted(APPROVABLE_STAGES)} outputs may be approved" + cost)
             if support["visibility"] != "shown":
                 problems.append(f"{candidate.source_id} is {support['visibility']} by default; only an output offered by default may be approved" + cost)
-    seen = [(row, units) for row, calc_input, _value, units in candidate.observations if calc_input == READ_FROM]
+    seen = [(row, units) for row, calc_input, _value, units in candidate.observations if calc_input == entry.input]
     rows = {row for row, _units in seen}
     if not seen:
-        problems.append(f"it was never a finite typed number on the {READ_FROM} input" + cost)
+        problems.append(f"it was never a finite typed number on the {entry.input} input" + cost)
     elif len(rows) < MIN_ROWS:
         problems.append(f"it was a finite number on {len(rows)} census rows; at least {MIN_ROWS} are needed" + cost)
     wrong = sorted({units for _row, units in seen if units != entry.carried_as})
     if wrong:
         problems.append(f"it carries the units {wrong!r}, not the declared {entry.carried_as!r}" + cost)
     return problems
+
+
+def identical_pairs(entries, sweep: Sweep) -> list[tuple[Any, Any]]:
+    """Pairs of approved outputs with DIFFERENT endpoints that gave the same value on every census row they share.
+
+    An endpoint tag is a person's judgement that two outputs estimate one quantity, and a judgement is forgotten. Two outputs that agree to
+    the last digit on at least `MIN_ROWS` rows are one number under two names (the ESOL descriptor and the solubility calculator's log
+    mol/L did, on 16 of 16 rows), so they must share a tag or the consensus rule would let a formula combine a number with itself. This
+    catches a copy, not two methods that merely estimate the same thing: those differ in value, and only a person can tag them.
+    """
+    values: dict[str, dict[str, float]] = {}
+    for entry in entries:
+        candidate = sweep.candidates.get(entry.output_id)
+        if candidate is not None:
+            values[entry.output_id] = {row: value for row, calc_input, value, _units in candidate.observations if calc_input == entry.input}
+    found = []
+    for i, first in enumerate(entries):
+        for second in entries[i + 1:]:
+            # Only outputs read from one input are compared: a number of the drawing and a number of a conformer are two measurements even where they agree.
+            if first.endpoint == second.endpoint or first.input != second.input:
+                continue
+            a, b = values.get(first.output_id, {}), values.get(second.output_id, {})
+            shared = sorted(set(a) & set(b))
+            if len(shared) >= MIN_ROWS and all(math.isclose(a[row], b[row], rel_tol=1e-9, abs_tol=1e-12) for row in shared):
+                found.append((first, second))
+    return found
 
 
 def _report(sweep: Sweep, census: dict[str, Any], json_path: str | None) -> None:
@@ -253,8 +278,11 @@ def main(argv: list[str] | None = None) -> int:
         for problem in problems:
             print(f"{output_id}: {problem}")
     bad = sum(1 for problems in found.values() if problems)
-    print(f"{len(found) - bad} of {len(found)} approved outputs hold")
-    return 1 if bad else 0
+    copies = identical_pairs(APPROVED, sweep)
+    for first, second in copies:
+        print(f"{first.output_id} and {second.output_id} agree on every shared row but carry different endpoints ({first.endpoint}, {second.endpoint})")
+    print(f"{len(found) - bad} of {len(found)} approved outputs hold; {len(copies)} untagged copies")
+    return 1 if bad or copies else 0
 
 
 if __name__ == "__main__":

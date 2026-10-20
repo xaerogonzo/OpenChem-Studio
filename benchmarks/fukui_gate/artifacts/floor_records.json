@@ -1,0 +1,137 @@
+[
+ {
+  "species": "water",
+  "level": "B3LYP/6-31G**",
+  "label": "a1",
+  "attempt": 1,
+  "completed": true,
+  "run_id": "66f97034ffdb4d0797685ea2071ebefd",
+  "status": "completed",
+  "method_basis": "B3LYP 6-31G**",
+  "charge": 0,
+  "multiplicity": 1,
+  "input_fingerprint": "251508707de90fbd68cd93bc9cabfe3a2869d43dce67f7a4d72e91f9e4bed2b2",
+  "warnings": [],
+  "symbols": [
+   "O",
+   "H",
+   "H"
+  ],
+  "f_plus": [
+   0.292508,
+   0.353708,
+   0.353783
+  ],
+  "f_minus": [
+   0.664024,
+   0.16798100000000002,
+   0.16799399999999998
+  ],
+  "f_zero": [
+   0.47826599999999997,
+   0.26084450000000003,
+   0.26088849999999997
+  ],
+  "dual": [
+   -0.37151599999999996,
+   0.185727,
+   0.18578900000000004
+  ],
+  "orca_version": "6.1.1",
+  "unbound_anion_ev": 4.725743497931868,
+  "canonical_method": "orca_opt",
+  "canonical_fingerprint": "251508707de90fbd68cd93bc9cabfe3a2869d43dce67f7a4d72e91f9e4bed2b2",
+  "on_optimized_geometry": true,
+  "problems": []
+ },
+ {
+  "species": "water",
+  "level": "B3LYP/6-31G**",
+  "label": "a2",
+  "attempt": 1,
+  "completed": true,
+  "run_id": "86734bf1e7dd4589a931aeb0db3d0951",
+  "status": "completed",
+  "method_basis": "B3LYP 6-31G**",
+  "charge": 0,
+  "multiplicity": 1,
+  "input_fingerprint": "251508707de90fbd68cd93bc9cabfe3a2869d43dce67f7a4d72e91f9e4bed2b2",
+  "warnings": [],
+  "symbols": [
+   "O",
+   "H",
+   "H"
+  ],
+  "f_plus": [
+   0.292508,
+   0.353708,
+   0.353783
+  ],
+  "f_minus": [
+   0.664024,
+   0.16798100000000002,
+   0.16799399999999998
+  ],
+  "f_zero": [
+   0.47826599999999997,
+   0.26084450000000003,
+   0.26088849999999997
+  ],
+  "dual": [
+   -0.37151599999999996,
+   0.185727,
+   0.18578900000000004
+  ],
+  "orca_version": "6.1.1",
+  "unbound_anion_ev": 4.725743497931868,
+  "canonical_method": "orca_opt",
+  "canonical_fingerprint": "251508707de90fbd68cd93bc9cabfe3a2869d43dce67f7a4d72e91f9e4bed2b2",
+  "on_optimized_geometry": true,
+  "problems": []
+ },
+ {
+  "species": "water",
+  "level": "B3LYP/6-31G**",
+  "label": "b",
+  "attempt": 1,
+  "completed": true,
+  "run_id": "27af9158f0f943ec979643fbe2b019b9",
+  "status": "completed",
+  "method_basis": "B3LYP 6-31G**",
+  "charge": 0,
+  "multiplicity": 1,
+  "input_fingerprint": "e45f4e2f3abbe7442afae8cbbbd3f6f5a95acc11d8cb17ba3bc4abf3818aedf9",
+  "warnings": [],
+  "symbols": [
+   "O",
+   "H",
+   "H"
+  ],
+  "f_plus": [
+   0.292508,
+   0.353708,
+   0.353783
+  ],
+  "f_minus": [
+   0.664024,
+   0.16798100000000002,
+   0.16799399999999998
+  ],
+  "f_zero": [
+   0.47826599999999997,
+   0.26084450000000003,
+   0.26088849999999997
+  ],
+  "dual": [
+   -0.37151599999999996,
+   0.185727,
+   0.18578900000000004
+  ],
+  "orca_version": "6.1.1",
+  "unbound_anion_ev": 4.725743497931868,
+  "canonical_method": "orca_opt",
+  "canonical_fingerprint": "e45f4e2f3abbe7442afae8cbbbd3f6f5a95acc11d8cb17ba3bc4abf3818aedf9",
+  "on_optimized_geometry": true,
+  "problems": []
+ }
+]

@@ -1,0 +1,66 @@
+[
+  {"do": "smiles", "smiles": "C#N", "name": "Hydrogen cyanide", "after_ms": 2500},
+  {"do": "select", "molecule": -1, "after_ms": 2500},
+  {"do": "conformers", "count": 3, "after_ms": 6000},
+  {"do": "qc_run", "calc_type": "Geometry Optimization", "method": "B3LYP 6-31G*", "after_ms": 1000},
+  {"do": "qc_wait", "timeout_ms": 900000},
+  {"do": "conformer_report", "tag": "optimized-geometry-is-the-canonical-one",
+   "expect": {"canonical_method": "orca_opt", "canonical_mapped": true}},
+
+  {"do": "qc_run", "calc_type": "Fukui functions (Hirshfeld)", "method": "B3LYP 6-31G*", "after_ms": 1000},
+  {"do": "qc_wait", "timeout_ms": 900000},
+  {"do": "qc_panel_report", "tag": "searched-hcn-finds-its-sigma-state",
+   "expect": {
+     "calc_type": "Fukui functions (Hirshfeld)",
+     "run_calc_type": "fukui", "run_status": "completed", "per_atom_outputs": 4,
+     "results_contains": [
+       "Largest f- (attack by an electrophile)",
+       "Another state of the cation lies 0.39 eV",
+       "above the one f- is read from, which is the lowest found. f- depends on which state is meant."
+     ],
+     "results_excludes": ["No search for other states"]}},
+
+  {"do": "dialog", "name": "SettingsDialog", "section": "quantum_chemistry", "after_ms": 1200},
+  {"do": "shot", "path": "C:/Users/pmpd/AppData/Local/Temp/claude/D--Random-Projects-OpenChem-Studio--claude-worktrees-calculator-result-selection-ff3f27/2ab0c6fd-b193-4829-a196-282f567a03a2/scratchpad/settings_cation_search.png", "widget": "dialog"},
+  {"do": "control", "name": "fukuiCationSearch", "value": false, "after_ms": 800},
+  {"do": "close_dialog", "after_ms": 800},
+  {"do": "qc_run", "calc_type": "Fukui functions (Hirshfeld)", "method": "B3LYP 6-31G*", "after_ms": 1000},
+  {"do": "qc_wait", "timeout_ms": 900000},
+  {"do": "qc_panel_report", "tag": "switched-off-through-the-real-checkbox-no-search",
+   "expect": {
+     "calc_type": "Fukui functions (Hirshfeld)",
+     "run_calc_type": "fukui", "run_status": "completed", "per_atom_outputs": 4,
+     "results_contains": [
+       "No search for other states of the cation was run (it was switched off in Settings > Quantum chemistry)",
+       "benzaldehyde did, 6 of 14 runs one state and 8 the other"
+     ],
+     "results_excludes": ["Another state of the cation"]}},
+
+  {"do": "dialog", "name": "SettingsDialog", "section": "quantum_chemistry", "after_ms": 1200},
+  {"do": "control", "name": "fukuiCationSearch", "value": true, "after_ms": 800},
+  {"do": "close_dialog", "after_ms": 800},
+  {"do": "qc_run", "calc_type": "Fukui functions (Hirshfeld)", "method": "B3LYP 6-31G*", "after_ms": 1000},
+  {"do": "qc_wait", "timeout_ms": 900000},
+  {"do": "qc_panel_report", "tag": "switched-back-on-the-search-runs-again",
+   "expect": {
+     "calc_type": "Fukui functions (Hirshfeld)",
+     "run_calc_type": "fukui", "run_status": "completed", "per_atom_outputs": 4,
+     "results_contains": ["Another state of the cation lies 0.39 eV"],
+     "results_excludes": ["No search for other states"]}},
+
+  {"do": "smiles", "smiles": "c1ccccc1", "name": "Benzene", "after_ms": 2500},
+  {"do": "select", "molecule": -1, "after_ms": 2500},
+  {"do": "conformers", "count": 3, "after_ms": 8000},
+  {"do": "qc_run", "calc_type": "Geometry Optimization", "method": "B3LYP 6-31G*", "after_ms": 1000},
+  {"do": "qc_wait", "timeout_ms": 900000},
+  {"do": "qc_run", "calc_type": "Fukui functions (Hirshfeld)", "method": "B3LYP 6-31G*", "after_ms": 1000},
+  {"do": "qc_wait", "timeout_ms": 900000},
+  {"do": "qc_panel_report", "tag": "benzene-degenerate-level-averaged",
+   "expect": {
+     "calc_type": "Fukui functions (Hirshfeld)",
+     "run_calc_type": "fukui", "run_status": "completed", "per_atom_outputs": 4,
+     "results_contains": ["The cation has 2 states within 0.01 eV of each other (a degenerate level), and f- is read from the average of their Hirshfeld charges"],
+     "results_excludes": ["No search for other states"]}},
+  {"do": "expect_clean"},
+  {"do": "quit"}
+]

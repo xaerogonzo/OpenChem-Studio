@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import contextlib
 import io
+import logging
 import sys
 import time
 from dataclasses import replace
@@ -183,6 +184,25 @@ from openchem.domain.report import Fact, FactCategory, ReportResult
 from openchem.domain.structure_issue import Basis, Severity
 from openchem.plugins.interfaces import DescriptorProvider
 
+logger = logging.getLogger("openchem.chemistry")
+
+
+def geometric_descriptor_ids_of(provider: DescriptorProvider) -> frozenset[str]:
+    """The descriptors `provider` measures from 3D coordinates; empty when it says none.
+
+    A provider is plugin code and this is read on the GUI thread inside the conformer
+    handler, so one that raises (or predates the declaration entirely) counts as having
+    none -- logged -- rather than taking the handler's other work down with it. Only ids
+    the provider also lists are kept: a declaration of something it does not emit would
+    otherwise scope a run to nothing.
+    """
+    try:
+        return frozenset(provider.geometric_descriptor_ids()) & frozenset(provider.descriptor_ids())
+    except Exception:  # noqa: BLE001 - see above
+        logger.exception("Descriptor provider %s could not say which descriptors are geometric", provider.provider_id)
+        return frozenset()
+
+
 # RDKitDescriptorProvider implements the same DescriptorProvider ABC a future
 # plugin would (openchem.plugins.interfaces.DescriptorProvider) — DescriptorService
 # can't tell a built-in provider from a plugin-supplied one.
@@ -282,18 +302,28 @@ _DESCRIPTOR_SPECS: list[tuple[str, str, str, str]] = [
 # exactly what `ChemistryEngine.mol_from_model` does before handing `mol` to
 # this provider. No `DescriptorProvider`/`DescriptorService` signature
 # change needed -- this is entirely a `compute()`-local check.
+#
+# **THE UNITS ARE MEASURED, NOT ASSUMED** (2026-10-17, `docs/DERIVED_SCORES_DESIGN.md` section 11). RDKit's principal moments are mass-weighted, so they are amu*Å^2:
+# a hand-built inertia tensor (atomic masses in amu, coordinates in Å) reproduces PMI1 to PMI3 to six digits, and doubling every length multiplies each by four. The inertial
+# shape factor is pm2/(pm1*pm3), so doubling every length divides it by four: 1/(amu*Å^2). These four used to declare no unit at all, which reads as dimensionless and
+# is false, and a score over one would have passed the unit check while adding a moment of inertia to a dimensionless output such as a ratio. The other six are what they always said: the radius of
+# gyration and the plane of best fit scale with length (Å), and the asphericity, the spherocity index and the two normalised ratios are unchanged by scaling.
 _SHAPE_DESCRIPTOR_SPECS: list[tuple[str, str, str]] = [
     ("radius_of_gyration", "Radius of Gyration", "Å"),
     ("asphericity", "Asphericity", ""),
     ("spherocity_index", "Spherocity Index", ""),
-    ("inertial_shape_factor", "Inertial Shape Factor", ""),
-    ("pmi1", "Principal Moment of Inertia 1", ""),
-    ("pmi2", "Principal Moment of Inertia 2", ""),
-    ("pmi3", "Principal Moment of Inertia 3", ""),
+    ("inertial_shape_factor", "Inertial Shape Factor", "1/(amu·Å²)"),
+    ("pmi1", "Principal Moment of Inertia 1", "amu·Å²"),
+    ("pmi2", "Principal Moment of Inertia 2", "amu·Å²"),
+    ("pmi3", "Principal Moment of Inertia 3", "amu·Å²"),
     ("npr1", "Normalized PMI Ratio 1", ""),
     ("npr2", "Normalized PMI Ratio 2", ""),
     ("pbf", "Plane of Best Fit", "Å"),
 ]
+
+#: The unit each shape descriptor declares, by id. What a saved project's copy is held to when it is opened (`DescriptorService.is_obsolete_result`): a copy that carries an
+#: earlier build's unit string is dropped and measured again, and never shown beside a current one.
+SHAPE_DESCRIPTOR_UNITS: dict[str, str] = {descriptor_id: units for descriptor_id, _name, units in _SHAPE_DESCRIPTOR_SPECS}
 
 #: The CELL form. Measured in the running application at Segoe UI 9,
 #: which is the font a user actually gets -- NOT under `offscreen`, whose
@@ -853,6 +883,16 @@ class RDKitDescriptorProvider(DescriptorProvider):
         categories = {descriptor_id: category for descriptor_id, _name, _units, category in _DESCRIPTOR_SPECS}
         categories.update({descriptor_id: "shape" for descriptor_id, _name, _units in _SHAPE_DESCRIPTOR_SPECS})
         return categories
+
+    def geometric_descriptor_ids(self) -> frozenset[str]:
+        """The ten shape descriptors, and only those.
+
+        See `DescriptorProvider.geometric_descriptor_ids`. Everything in
+        `_DESCRIPTOR_SPECS` is a function of the structure graph, measured
+        against the drawing (see the 29-molecule comparison recorded in
+        `tests/test_descriptor_input.py`).
+        """
+        return frozenset(descriptor_id for descriptor_id, _name, _units in _SHAPE_DESCRIPTOR_SPECS)
 
     def compute(self, mol: Chem.Mol, molecule_uuid: str) -> list[DescriptorValue]:
         """The descriptor set, each on the structure its scope names.
@@ -2607,8 +2647,10 @@ CALCULATOR_DEFINITIONS: list[CalculatorDefinition] = [
             "Graph-theoretic descriptors: ring and chain counts, cyclomatic number, "
             "Platt/Randic/Balaban/Harary/Wiener/hyper-Wiener/Szeged indices, Wiener "
             "polarity, and stereo centre counts. Szeged is validated by identity rather "
-            "than by a reference value -- it equals Wiener for any acyclic graph and "
-            "strictly exceeds it for a cyclic one. The Cao-Liu steric index is measured "
+            "than by a reference value -- it equals Wiener for any acyclic graph, and on "
+            "every molecule measured with a ring of four or more atoms it exceeds it "
+            "(where every ring is a triangle, as in cyclopropane, the two are equal). "
+            "The Cao-Liu steric index is measured "
             "toward a named reaction centre, so it is not a whole-molecule number and "
             "has its own per-atom calculator."
         ),
@@ -3722,7 +3764,11 @@ CALCULATOR_DEFINITIONS: list[CalculatorDefinition] = [
             "one's local aromatic character. It reads real bond lengths, so it needs "
             "a 3D conformer and refuses a drawing: a 2D layout gives every bond about "
             "the same length whatever its order. A geometric index -- it says how "
-            "equalised the bonds are, not whether the ring sustains a ring current."
+            "equalised the bonds are, not whether the ring sustains a ring current. "
+            "The report ends with the highest and the lowest ring value: one ring's own "
+            "value each, never a sum or a mean, which a derived score can read from a "
+            "geometry ORCA optimised (a force-field conformer's bond lengths are the "
+            "force field's own)."
         ),
         execution=RegistryExecution(compute=compute_aromaticity),
         calculation_input=GEOMETRY,

@@ -16,7 +16,9 @@ and provenance stay attached to the right structure.
 
 The **Project Explorer** panel lists them. Right-click to delete or rename;
 both go through the undo stack, so Ctrl+Z works on them like any structural
-edit.
+edit. A molecule that holds an ORCA-optimized geometry is marked
+`[ORCA-optimized]` in the list (hover for the level of theory), and the
+Properties header says the same under its name; neither is part of the name.
 
 A project file never stores a raw RDKit molecule. It stores the molblock
 plus canonical SMILES/InChI/InChIKey and metadata, and the structure is
@@ -524,6 +526,30 @@ flexible drug-like molecules it used about a quarter fewer embeddings and found 
 against about 19; the single lowest was the same every time. Details says when a run ended this way. It is a small
 sample, so it stays opt-in.
 
+**Settings > Conformers > Keep ORCA-optimized conformers when generating
+conformers again** is on by default. Generating again replaces the force-field
+conformers with new ones and carries the ORCA-optimized geometries over
+unchanged, after the new ones, because an optimization is the slow thing in the
+list and every later calculation prefers it. Untick it to have Generate replace
+everything. The kept geometries follow the new conformers, so their numbers
+change when you regenerate (the "7 of 20 stays 7 of 20" promise is about an
+optimization landing, not about a regeneration). Undo restores the previous set
+either way, and editing the structure clears every conformer, ORCA ones
+included, because a geometry no longer fits an edited molecule.
+
+**Also ORCA-optimize the lowest-energy conformer** is a checkbox in the Generate Conformers window, unticked
+unless **Settings > Conformers > Start the Generate Conformers window with "Also ORCA-optimize the lowest-energy
+conformer" ticked** says otherwise. Ticked, it does one thing more once the new conformers are in: it presses the
+Quantum Chemistry panel's Run for you on the conformer of this set with the lowest force-field energy, as a geometry
+optimization with the method, basis, charge and multiplicity the panel shows at that moment. The window names them
+beside the box, and greys the box with the reason when ORCA is not set up. The optimized geometry takes that
+conformer's place, as it does for any optimization, and Undo puts the force-field one back. It is an ordinary job: it is
+in the Jobs panel, which can cancel it, and the status bar says which conformer it is optimizing. Two things to know.
+*Lowest* means among the conformers just generated, because an ORCA geometry kept from an earlier run has no
+force-field energy to compare. And nothing asks again before ORCA starts, so look at the panel's method first if you
+have left it on something slow. If it cannot start (the panel is already running something, or ORCA was unset after the
+window opened) the conformers are still installed and the status bar says why.
+
 **Generate Conformers** asks for the counts, and hides the search
 settings behind **Advanced** — on **Automatic** it spends a documented
 budget, which is what you want unless you have a reason not to. Under
@@ -570,6 +596,29 @@ superposition is a viewing aid, recomputed each time.
 The energy shown is relative to the lowest (`+0.55 kcal/mol`), because the
 raw force-field number is not a quantity anybody compares to anything. The
 absolute value is in the tooltip.
+
+**ORCA optimize** sets up an ORCA geometry optimization of THE CONFORMER ON SCREEN
+(in the gallery, the cell you last clicked) and opens the Quantum Chemistry
+panel with that conformer chosen. It starts nothing: check the method and basis
+there and press Run. **Tools ▸ ORCA Geometry Optimization…** is the same door
+from the menu (it uses the conformer the viewer shows, or the one every
+calculation uses when the viewer shows another molecule), and the panel's own
+**Conformer** box is where the choice is held, so you can also pick a conformer
+there directly.
+
+**An ORCA-optimized conformer is marked wherever you step to it.** The status
+line reads `Conformer 7/20 - ORCA optimized (HF STO-3G)`, and in the gallery
+the cell's label reads `7 - ORCA`. It shows no energy relative to the others,
+because an ORCA energy and a force-field energy are not on one scale. When an
+optimization finishes, the optimized geometry **takes the place of the
+conformer it was run on**, so 7 of 20 stays 7 of 20, and the viewer jumps to
+it; Undo puts the original back. **Details** says which level of theory made
+it, the ORCA version, and which conformer it was optimized from, by the number
+that conformer had when you pressed Run (older projects, saved before that was
+recorded, say *not recorded*). That number does not follow the geometry around:
+if you generate conformers again while a job runs and the source moves, the
+result still replaces it wherever it now is, and still says it started from
+number 7.
 
 **The gallery** shows several conformers at once, each in its own cell and
 each rotatable on its own — tick *Gallery* in the 3D Viewer's toolbar. Six
@@ -1526,10 +1575,83 @@ string (the presets are editable; anything you type, including dispersion or
 solvation keywords, is passed through and is part of the calibration cache
 key).
 
+**A second engine, Psi4.** If you have installed Psi4 and pointed the app at it (**Tools ▸ External Tools ▸ Psi4**: Locate Installed or Browse, then Test), an **Engine** box
+appears above the Calculation list. Psi4 runs **single points and geometry optimizations** only, at B3LYP, PBE0, M062X and HF with a basis such as def2-SVP, def2-TZVP or 6-31G(d); the
+calculations it does not run are greyed out, and the solvent box and the conformer average (both ORCA's) are disabled. A Psi4 geometry is labelled **Psi4 optimized** wherever a conformer is
+named. Two engines' numbers are never mixed under one label: the name "B3LYP" is a different functional in the two programs (they differ by 37 mEh on water), which the Psi4 engine translates, and a
+result records the engine, level and settings that made it. Psi4 is large (about 2 GB installed) and the app does not download it.
+
+**Which conformer a single calculation runs on** is the **Conformer** box.
+**Automatic** is the one every calculation uses (the newest ORCA-optimized
+geometry if there is one, otherwise the lowest force-field energy) and says which
+number that is; a numbered conformer runs on that one. The 3D viewer's **ORCA
+optimize** button and **Tools ▸ ORCA Geometry Optimization…** fill it in for you
+and set the calculation to Geometry Optimization, then stop: nothing runs until
+you press **Run**. The box is greyed while **Average over all conformers** is
+ticked, since that runs on every conformer. After an optimization lands, the
+conformer you chose is gone (the result replaced it), so the box goes back to
+Automatic, which is now the optimized geometry.
+
+**A calculation other than an optimization, run on a conformer that is not the one
+every calculation uses, is kept under that conformer** and the panel says so when it
+finishes. Properties shows the results for the conformer every calculation uses (a
+stored result is replayed only while its input is still that conformer), so such a
+result is shown here and kept in the run history, and does not come back in
+Properties when you select the molecule again.
+
+**Where an optimized geometry goes.** A geometry optimization (or optimization
+plus frequencies) takes the place of the conformer it was run on, which is the
+one every calculation uses, and the 3D Viewer shows it, marked as ORCA
+optimized. If you **edit the structure while the job runs**, the job still
+finishes and its run stays in the history, but its geometry and numbers are not
+applied to the edited molecule, and the status bar says why: they describe the
+structure you had when you pressed Run, not the one on screen. The same goes
+for **Use in 2D Editor** while a job runs, when it gives the drawing a
+stereocentre it did not have: the structure is more specific than the one the job
+was run on. A multi-conformer (Boltzmann) run is not cut short by an edit either;
+it finishes on the inputs it was started with and applies nothing.
+
+**Started from Generate Conformers.** With *Also ORCA-optimize the lowest-energy conformer* ticked in that window,
+the panel is set up and Run is pressed for you on the lowest-energy conformer of the new set, with whatever method and
+basis the panel shows. Everything above applies to it: the result takes that conformer's place, and an edit while it
+runs applies nothing.
+
 **Calibrate Reference (TMS)** runs the reference calculation once per
 method/basis and caches it, so subsequent NMR jobs return real ppm shifts
 rather than raw shielding constants. Until you do, results are labelled as
 raw shielding — not silently presented as shifts.
+
+**Fukui functions (Hirshfeld)** say, atom by atom, where an added or a removed electron goes: f+ (attack by a nucleophile),
+f- (attack by an electrophile), f0 (a radical) and the dual descriptor f+ - f-. One job runs three single points, the neutral
+molecule, its cation and its anion (a species that is itself an **anion** is run the same way, its third state being a **dianion**, which no basis
+set binds: an anion's f+, f0 and dual descriptor are therefore the least trustworthy numbers here, the result says so with the energy by which the
+dianion lies above the anion, and f- does not depend on them. The dianion is run last, so if it does not converge, or its Hirshfeld table does not sum to
+its charge, you get f- alone and the result says why; **Settings ▸ Quantum chemistry** leaves the dianion out altogether), all at the geometry as supplied (so the numbers are vertical; optimise first if the drawn geometry is
+not good enough), and the per-atom results (four, or f- alone) appear in the Atom Inspector and in Properties like any other. The
+results line names the atom where each is largest, numbered from 1 as the Atom Inspector numbers them. It takes a closed-shell
+molecule (an open-shell one is refused before a job starts, since its ions have more than one spin state) and one conformer
+(**Average over all conformers** is refused for it), and Hirshfeld charges are the only scheme offered.
+
+**This calculation is not validated, and every result says so.** It failed two preregistered checks against published
+Hirshfeld values: an earlier version by 0.0014 on one quantity (52 of 54 numbers and all 13 documented reactive sites were reproduced), and the
+current one with 33 of 47 numbers of 15 molecules within 0.02 and 9 of 11 reactive sites reproduced (eight molecules in every number: phenol, aniline,
+fluorobenzene, styrene, nitrobenzene, acrolein, nitrous oxide and the nitrite ion; not hydrogen cyanide, the sulfur of thiocyanate, anilinium, benzaldehyde,
+pyrrole, furan or thiophene). For anilinium, benzaldehyde and thiophene the published values match a cation state a little above the lowest one this calculation
+finds: where a molecule's cation has two states that close, one cation job reaches whichever ORCA's SCF falls into (for benzaldehyde 6 of 14 runs one state and 8 the other), so
+the calculation now **looks for other states of the cation** (three more jobs; **Settings ▸ Quantum chemistry** turns it off), reads f- from the lowest it finds, and says when
+another lies within 0.5 eV and how far its f- is. That makes f- a function of the structure (in a pilot on benzaldehyde, the worst difference over rotations and displacements fell from 0.13 to 0.002);
+it does not make the numbers match the published ones, which describe a higher state, and **a note about a competing state appears only when some start ended in it, so no note is not evidence that there is none**.
+A third preregistered check of the search failed on one run of 114 (f- of 12 molecules reproducible to 0.0057 under rotations and displacements; anilinium re-embedded in another NH3+ rotamer differed by 0.0133 against a limit of 0.01, which is a different geometry and not a different state), and it also found that for acetophenone the single cation job
+had been a draw as it was for benzaldehyde. **The search takes about 2.5 times as long as a run without it** (three more unrestricted cation jobs). So it is marked experimental and kept out of the Properties launcher's default list (Settings > "Offer calculators that are hidden by default"
+brings it back; the Quantum Chemistry panel offers it either way). Read f- before f+: the anion of a neutral molecule is usually not
+bound at an ordinary basis set (the result gives the energy by which it lies above the neutral). **Do not add diffuse functions to improve f+**: with
+them the anion has more than one SCF solution and f+ was not reproducible in the cases measured (it changed by up to 0.31 between solutions, and
+one molecule embedded two ways gave two different anions), and a state whose Hirshfeld charges do not sum to its charge is refused, which happened to
+half the jobs at 6-311+G** (ORCA's default integration grid missing part of a diffuse electron). The calculation now uses a finer integration grid,
+which removed that refusal in the cases measured, and at a basis set with diffuse functions it starts an anionic state from three initial guesses and
+reads the lowest solution, saying when another start was lower (acetone at HF/6-311+G**: 1.01 eV lower); f+ there is still not validated. Without
+diffuse functions, at 6-31G**, every job reproduced across three starting geometries to 0.0004. An ion whose spin contamination is high (S squared more than 10% above 0.75) is named in
+the result. Do not take the largest value as where a reaction goes; the calculator's help has the measurements.
 
 NMR results arrive with several views: a **1D signals** tab (grouped
 equivalent protons, integration, multiplicity, a clickable peak spectrum,
@@ -1916,6 +2038,130 @@ not make it stale. An answer you kept while it was partial says so in Results to
 **How far it is checked.** For borane and boron trifluoride with carbon monoxide, at B3LYP/def2-SVP in the gas phase on ORCA 6.1.1, the numbers this window builds from stored runs reproduce
 the documented frontier gaps and hardness differences to within 0.01 eV, and the two lines still disagree about which borane binds carbon monoxide better (the hardness line gets this pair
 backwards, which is why they are never combined). That check does not cover other methods, solvents, molecules or ORCA versions.
+
+<!-- help:derived-scores -->
+### Derived scores: a formula over numbers the application computes
+
+**What a score is for.** A score turns several numbers into one that says how well a molecule fits a preference you hold.
+Suppose you have forty molecules and you want each to be polar enough but not too polar, with few aromatic rings. You can
+read two columns and apply that rule in your head forty times, or write the rule once as a formula and get one column to
+sort by. That is all a score is: a spreadsheet formula over numbers OpenChem has already computed, with its units
+checked, saved with the project, and shown as a column of the project table and as an entry in Results. It is for
+**triaging a table** (sort by it and read from the top), for **writing a rule of thumb down once** so that it is applied
+the same way every time and travels with the project, and for **handing one number to someone else** in the CSV. It is not
+a prediction (nothing checks a formula you wrote against measurements, which is why it is always labelled *user-defined,
+unvalidated*), it does not run any calculation for you (it reads results that already exist, so run the calculators
+first), and it does not replace a published score such as QED, which a calculator computes. It is how you write down your
+own preference.
+
+**A worked example, start to finish.** Put aspirin, ethanol and caffeine in a project. The numbers below were produced by
+running exactly these steps in the real application, so yours should match.
+
+1. **Tools ▸ Derived Scores…**, **New score**. Name it `Polar window`. Under what it **reads**, choose the topological polar
+   surface area and call it `psa`. Formula: `ramp(psa, 140, 60)`. Unit: `1`. **Save**. `ramp(x, bad, good)` is 0 at `bad` or
+   worse, 1 at `good` or better and a straight line between, so this reads: a polar surface area of 140 Å² or more scores 0
+   and 60 Å² or less scores 1.
+2. Make a second score, `Light on rings`, that reads the aromatic ring count (it comes from the BBB Score Descriptors
+   calculator) as `rings`, with the formula `ramp(rings, 4, 0)`: no aromatic ring scores 1 and four or more score 0.
+3. In **Properties**, set **Run on** to *all molecules*, open **Presets** and choose **Tick what my scores read**. It ticks
+   the calculator the second score needs and makes sure the always-on properties are included, and the line beside **Run
+   selected** says so. Press **Run selected** and let the table fill; it takes a little while.
+4. In **Results**, the **Project table** page has your two scores as the first columns after the molecule's name. For this
+   panel the polar window is 0.955 for aspirin, 1 for ethanol and 0.9773 for caffeine, and the other score is 0.75, 1 and
+   0.5 (aspirin has one aromatic ring and caffeine two). Click a header to sort. Hover a cell to see the formula and each
+   input with its unit. **Export CSV** carries the column.
+5. Change the first formula to `ramp(psa, 100, 60)` in the same window and save: the table follows (aspirin 0.91, caffeine
+   0.9545) without another run.
+6. The **This molecule** page of Results shows each score against the structure as it is now. You can also ask the AI
+   Assistant to propose a score; it shows a card, and nothing is saved until you press **Approve**.
+
+The rest of this topic is the reference: what each field accepts and what each refusal means.
+
+**Tools ▸ Derived Scores…** is where you write a score of your own: a formula over numbers the application already
+computes, such as a weighted sum of desirabilities. Press **New score**, give it a name, choose what it **reads**,
+write the **formula**, say what **unit** it works out to, and press **Save**. The window checks everything as you
+type and says what is wrong in the field it belongs to; a syntax error points at the place in the formula.
+
+**It is always labelled for what it is.** Every place a score appears it is shown as *name (user-defined,
+unvalidated)*, and that part cannot be edited away. Nothing has checked a formula you wrote against measurements, so
+a score is never called a prediction. Its name may not be close to the name of a calculator or of an output the
+application provides: a number you defined must not read as one the application computes.
+
+**What it can read.** Only outputs the application has approved for scores, each with its unit: typed numbers of the
+drawing such as the molecular weight, the topological polar surface area, the Crippen logP, the hydrogen-bond counts,
+the QED and synthetic-accessibility scores, and the oxygen balance, intrinsic solubility, polarizability and Topology Analysis calculators' numbers. You
+choose them from a list; you never type an identifier. Two inputs that estimate the same quantity (the ESOL solubility
+and the solubility calculator's, say) cannot be used together, because two estimates of one quantity combined are a
+consensus predictor, which this project has measured and does not offer. The polarizability is offered for its default answer only (the additive Jensen scheme, on the drawing): a calculator with several methods
+keeps the others' numbers as text, so a score over the polarizability has no number after you run Miller's method or compute it on the major microspecies, and says so.
+From Topology Analysis it offers the eight graph indices (Wiener, hyper-Wiener, Harary, Randić, Balaban J, Szeged, Platt and the Wiener polarity number), which are numbers of the structure drawn without its hydrogens: a score reads the
+drawing's, never a conformer's, and the decimal places you ask the calculator for change what its lines show and never what a score is made from. Ten of its counts are offered too: the bond, ring-atom, ring-bond, chain-atom and chain-bond counts, the cyclomatic number, the carbocyclic, heterocyclic and fused ring counts and the asymmetric atom count. Its atom,
+ring, rotatable-bond and chiral-centre counts are not (they are always-on properties already), nor are its ring sizes (0 when there is no ring) or its aromatic, aliphatic and heteroaromatic ring counts (the BBB Score
+Descriptors calculator's RDKit aromatic ring count is the one offered). The cyclomatic number counts nearly what the ring count does, and the asymmetric atom count nearly what the stereocentre count does (they differ
+on cages such as cubane), so a formula can read one of each pair and not both.
+From the BBB Score Descriptors calculator it offers the aromatic ring count (RDKit's count: a score over it has no number after you compute the calculator on the major microspecies, and says so). That calculator's other numbers
+are not offered: two are always-on properties already, and the rest have a unit a score cannot be written in or come from an optional tool.
+From the always-on properties it also offers the ten shape descriptors: the radius of gyration, the plane of best fit, the asphericity, the spherocity index, the two normalised moment ratios (NPR1 and NPR2), the three principal moments of inertia
+and the inertial shape factor. These are measured on a conformer, and a score reads them from the one every calculation uses: the newest ORCA-optimized geometry, otherwise the lowest force-field energy. The score's evidence names that conformer (and the level of theory of an ORCA one), and
+the project table's hover names the one its run measured. A molecule with no conformer has no number for them, and the score says it needs one (generate conformers first). When that conformer changes, because you generated again or an ORCA
+optimization landed, the old number is refused as "calculated for an earlier geometry of this molecule" until the shape descriptors have been measured again, which happens by itself, and the score then follows the new geometry. A principal moment
+is in amu·Å² and the inertial shape factor in 1/(amu·Å²), so a formula cannot add a moment to a ratio, and nothing is converted. A project saved by an earlier version had those four without a unit: they are measured again when you open it.
+From **Geometry Analysis** it offers eight sizes, measured on that same conformer after you run the calculator: the largest and the mean distance of an atom from the centroid, the smallest and the largest shadow the molecule casts over every
+viewing direction, the radius of the circle round each of those two shadows, and the size of the molecule along each of those two views. A score reads only a number measured on the stored conformer as it is, so a Geometry Analysis run that
+used another geometry (the lowest of several conformers it generated, or a copy it relaxed first) gives no number, and neither does a projection measured with van der Waals radii you scaled; the score names the setting and says to run the calculator
+with its defaults again. A structure of **more than one fragment** (a salt, a hydrate) has no size either, because Geometry Analysis measures the whole structure and the fragments are placed side by side at an arbitrary offset: the score says to use the
+parent structure. (The always-on shape descriptors need no such rule: they are computed on the parent compound already, and refused when there is none.)
+
+From **Aromaticity (HOMA)** it offers two numbers: the highest and the lowest HOMA of any ring of the molecule. Each is one ring's own value, never a sum or a mean (they are equal for a molecule with one ring, and a molecule
+with a ring HOMA has no parameters for has neither). HOMA reads bond lengths, so a score reads these two **only from a conformer ORCA optimised**, and its evidence names the level of theory (`ORCA-optimised at B3LYP def2-SVP`): a force-field
+conformer's bond lengths are the force field's own (naphthalene's rings read 0.94 on one, and 0.66, 0.74 or 0.77 on an ORCA geometry depending on the level), so a score on one says to optimise the molecule in ORCA and run HOMA again. HOMA is not
+recomputed by itself, so after an ORCA geometry lands, run the calculator again: until then the old number is refused as measured for an earlier geometry. Any ORCA level is accepted and named, and a minimal basis gives the lowest numbers.
+
+From **Dipole Moment** it offers the magnitude, in debye, measured on that conformer. A score reads only the **Gasteiger** dipole (the three charge models differ by a factor of up to five on one molecule: aspirin is 0.89 D from Gasteiger, 4.76 D from EEM and
+3.60 D from QEq, and the application's own benchmark error against experiment is 0.79, 1.79 and 1.69 D), and only for a **species with no net charge**: an ion's dipole depends on where the origin is put (acetate is 4.0 D about its centre of mass and 7.7 D about the centroid
+of its atoms), so it is not a property of the molecule, and a zwitterion, whose net charge is nothing, is read. The three components are not offered (they are the dipole in the conformer's own frame), and a salt has no dipole for the reason it has no size. A dipole is of one
+conformer, and a flexible molecule's differs between its conformers (1,2-dichloroethane is nothing anti and about 2 D gauche), so the evidence names which one. Running the calculator with EEM or QEq replaces the Gasteiger result, and the score then has no number until you run it again with Gasteiger.
+
+From **Molecular Surface Area (3D)** it offers five numbers, also of that conformer: the solvent-accessible area, its polar part (N, O and F and the hydrogens bonded to them) and its hydrophobic part (the rest), the van der Waals surface area and the van der Waals volume. A score
+reads the accessible areas only at the **default 1.4 Å probe** and on **the structure as it is**: a water-sized probe is the calculator's default, a smaller or larger probe changes the area (aspirin's is 7% lower at 1.2 Å and 24% higher at 2.0 Å) without changing the label of the polar and hydrophobic
+parts, and the major microspecies is another structure (acetic acid's ASA+ falls 29%). A result made another way gives no number and names the probe or the pH. The van der Waals area and volume touch no probe, so they are read from a result made with any probe, but never of the
+major microspecies. ASA+ and ASA- are not offered: they are the area of the atoms whose Gasteiger charge is above or below nothing, which in a hydrocarbon is simply the hydrogens' surface and is decided by tiny charges elsewhere.
+
+**What a score does not read.** Geometry Analysis's smallest radius from the centroid (it is zero when the centroid is on an atom) and its three force-field energies (an absolute force-field energy has no meaning between molecules), Bird's
+index, the per-ring HOMA values and the torsion table, the dipole's components and its other charge models, ASA+ and ASA-, quantum-chemistry results, an average over conformers, and a score that names one particular conformer. The decisions are recorded in `docs/DERIVED_SCORES_DESIGN.md`.
+
+**The units are checked, never converted.** Adding an area to a mass is refused, and so is declaring a unit the formula
+does not work out to. A bare number in the formula takes the unit of what it is added to or compared with, so
+`ramp(psa, 140, 60)` works. A **named constant** has a value and a unit of its own and is checked strictly: `hi = 140
+Å^2` is accepted, `hi = 140 nm^2` is refused, and `log10(mw / one)` with `one = 1 g/mol` is how to take the logarithm
+of a quantity that has a unit. The functions are abs, min, max, clamp, ramp, sqrt, ln, log10 and exp, and nothing in a
+formula is ever run as code.
+
+**It reads current results and starts nothing.** A score is evaluated against the molecule's current results of the
+drawing every time it is shown, never stored. If an input has not been calculated for the molecule, or was calculated
+for an earlier structure, or the calculator refused it, the score says which input and why instead of a number: never
+a zero, and never a term left out unless you have given that input a default (below). When the calculator finishes the
+score has its number. The window's last line shows what the score gives for the selected molecule while you edit it.
+
+**A default for an input nobody calculated.** For an optional input you may type a number in the box beside it. It is
+used only when that input has not been calculated for the molecule. An input that was calculated and refused, failed,
+belongs to an earlier structure or has another unit still refuses the score, and a score that would be worked out from
+defaults alone is refused. A default is not a result, and every number that used one says so: Results shows "(default
+used for ob)" and names the input in the evidence, the project table marks the cell with `*` and has a column beside the
+score that lists the inputs a default stood in for (so the exported CSV carries it), and the AI Assistant is told the
+score was computed with defaults and which inputs. It is your statement of what to assume, and nothing has checked it.
+
+**Where it appears.** In Results, under **Derived scores**, for the selected molecule; hover its value to see the
+formula and every input with its unit and the stored result it came from. The number a score reads is the drawing's,
+which for a few descriptors (the synthetic-accessibility and complexity scores among them) is not the number shown for a
+conformer. Scores are saved with the project. They are not calculators, so they are not in the calculator list and
+the assistant's calculator search does not offer them. The AI Assistant can read your scores and propose a new one (see Plugins), but a score exists only after you approve its card. In the **Project table** (Results, after a project run) a score is a column of its own, the first after the molecule's name: it is worked out from that table's other columns, so
+it needs the properties it reads to have been in the run, and a score whose inputs were not run is named under the table instead of shown as a column of dashes. It follows
+the definition as you edit it, without another run, and it is in the CSV and the report. The **Batch** panel's own table (its **Fill table** run) has the same score columns,
+named and exported the same way. To include what your scores read in a project run, open **Presets** in Properties and choose
+**Tick what my scores read**: it ticks the calculators they read and adds the always-on properties they read, on top of what you had ticked (it never unticks or narrows anything), and the line
+beside **Run selected** says what it did, including any calculator the launcher is not offering. A table is a snapshot of a run, so its score is as current as the run; the
+**This molecule** page is where a score is worked out against the structure as it is now.
 
 <!-- help:ir-spectra -->
 ### IR spectra and normal modes
@@ -2756,7 +3002,7 @@ the structure:
 | **Edit** | Undo/redo, Copy Structure As, Paste Structure, Duplicate, Rename, Settings |
 | **Structure** | Aromatize/Dearomatize, Layout, Clean Up, explicit hydrogens, CIP stereo descriptors, Generate Conformers, Check Structure |
 | **View** | Which panels are shown, and 2D Structure Display toggles |
-| **Tools** | Periodic Table, Identify Structure Online, Virtual Screening, External Tools |
+| **Tools** | ORCA Geometry Optimization, Periodic Table, Identify Structure Online, Virtual Screening, External Tools |
 
 The structure operations used to sit under Edit, between "Redo" and "Copy
 Structure As", where neither group was easy to find.
@@ -3053,6 +3299,18 @@ kept, which asks first.
   These are the window's shortcuts only: the keys typed while drawing belong to the
   editor and are not changed here. The search box narrows the list by name or by
   shortcut.
+- **Quantum chemistry.** Two choices, both about the Fukui functions (see the Fukui paragraph in the
+  quantum chemistry section); each applies to the next Fukui run, and results already computed are not changed.
+  **Include f+, f0 and the dual descriptor for an anion** (on by default): a species that is itself an
+  **anion** gets them from a dianion that no basis set binds. They are the least trustworthy numbers the
+  calculator gives, and the result says how far above the anion the dianion lies. f- does not depend on
+  them, because the dianion is run last: if it does not converge you get f- and a sentence saying why.
+  Untick it to run only the anion and its neutral radical; neutral molecules and cations always get all four.
+  **Look for other states of the cation** (on by default): three more ORCA jobs start the cation from the
+  neutral's orbitals with the electron taken from the HOMO-1, HOMO-2 and HOMO-3, f- is read from the lowest
+  state found, and the result says when another state lies within 0.5 eV and how far its f- is. Untick it to
+  run the one cation job as before, which reaches whichever state ORCA's SCF falls into; the result then
+  says no search was run.
 - **File dialogs.** Each kind of file dialog opens where it was last used:
   projects, molecules, and macromolecules with crystal structures. **Forget**
   sends one back to your Documents folder.
@@ -3119,7 +3377,10 @@ slow, any molecule above 41 heavy atoms and anything unclassified shows a previe
 that runs from its own panel (ORCA, Vina) is described, with what it needs and whether
 this machine is ready, and you start it from that panel. What it asked for, and what
 became of it, is listed under the conversation. It can also read the goal wizard's table (which calculators the
-application pairs with a question such as "where is the charge"), as a suggestion rather than a protocol. Those results are sent to the provider
+application pairs with a question such as "where is the charge"), as a suggestion rather than a protocol. It can also read the **derived scores** you
+defined (their names, formulas and values for the selected molecule; never the owner or the note), and says so when one cannot be worked out. It cannot save or change one, but it can propose a new one: a card shows the formula, what each
+input reads, the unit and what it gives for the selected molecule, and nothing is saved unless you press **Approve** (it is then saved with the assistant
+as its owner, and you change it in **Tools > Derived Scores** like any other). Those results, and a score's name and formula, are sent to the provider
 as part of the conversation, and a note under the box says where. **Plugins > Explain
 Stored Results** asks it to explain everything stored for the selected molecule.
 

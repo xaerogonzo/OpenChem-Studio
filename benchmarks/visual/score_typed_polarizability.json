@@ -1,0 +1,30 @@
+[
+  {"do": "smiles", "smiles": "CC(=O)Oc1ccccc1C(=O)O", "name": "Aspirin", "after_ms": 1000},
+  {"do": "smiles", "smiles": "CCO", "name": "Ethanol", "after_ms": 1000},
+  {"do": "smiles", "smiles": "Cn1cnc2c1c(=O)n(C)c(=O)n2C", "name": "Caffeine", "after_ms": 1000},
+  {"do": "select", "molecule": 1, "after_ms": 3000},
+
+  {"do": "score_define", "label": "Polarisable", "formula": "ramp(alpha, 30, 3)", "inputs": [["alpha", "calculator:polarizability:Molecular polarizability"]], "result_unit": "1",
+   "tag": "a-score-on-the-polarizability", "expect": {"made": true}},
+
+  {"do": "panel", "id": "Properties", "after_ms": 800},
+  {"do": "project_run", "calculators": ["polarizability"], "scope": "all", "descriptors": false, "after_ms": 9000},
+  {"do": "table_scores", "tag": "the-project-table-has-the-score-from-the-typed-number-and-its-csv-has-it-whole", "export_csv": "artifacts/visual/score_typed_polarizability.csv",
+   "expect": {"columns": ["Polarisable (user-defined, unvalidated)"], "note": "",
+              "grid": {"Aspirin": {"Polarisable": "0.4403"}, "Ethanol": {"Polarisable": "0.8981"}, "Caffeine": {"Polarisable": "0.3728"}},
+              "tooltips": {"Aspirin": {"Polarisable": ["Inputs: alpha = 18.113"]}},
+              "csv_header_contains": ["Polarisable (user-defined, unvalidated)"],
+              "csv_cells": {"Aspirin": {"Polarisable": 0.4403}, "Ethanol": {"Polarisable": 0.8981}}}},
+  {"do": "shot", "path": "artifacts/visual/score_typed_polarizability_table.png", "widget": "project_table", "after_ms": 500},
+
+  {"do": "calculator", "id": "polarizability", "reveal": false, "after_ms": 3000},
+  {"do": "score_results", "focus": true, "which": "Polarisable", "tag": "the-reader-gives-the-same-number-for-the-default-answer",
+   "expect": {"entries": 1, "has_value": true, "value_between": [0.4400, 0.4406], "evidence_contains": ["alpha = 18.113"]}},
+  {"do": "calculator", "id": "polarizability", "parameters": {"method": "Miller ahp"}, "reveal": false, "after_ms": 3000},
+  {"do": "score_results", "focus": true, "which": "Polarisable", "tag": "a-different-estimator-under-the-same-id-gives-the-score-no-number",
+   "expect": {"entries": 1, "has_value": false, "reason_contains": ["Molecular polarizability", "the result is text", "default answer"]}},
+  {"do": "shot", "path": "artifacts/visual/score_typed_polarizability_reader.png", "widget": "results_reader", "after_ms": 500},
+
+  {"do": "expect_clean"},
+  {"do": "quit"}
+]

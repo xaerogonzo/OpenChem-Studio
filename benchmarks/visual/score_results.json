@@ -1,0 +1,43 @@
+[
+  {"do": "smiles", "smiles": "CC(=O)Oc1ccccc1C(=O)O", "name": "Aspirin", "after_ms": 1500},
+  {"do": "select", "molecule": -1, "after_ms": 6000},
+
+  {"do": "score_results", "tag": "before-any-score", "expect": {"entries": 0, "stored_as_results": 0}},
+
+  {"do": "score_define", "label": "Polar window", "formula": "ramp(psa, 140, 60)", "inputs": [["psa", "descriptor:tpsa"]], "result_unit": "1",
+   "tag": "a-threshold-on-a-quantity-with-a-unit", "after_ms": 1500, "expect": {"made": true}},
+  {"do": "score_results", "focus": true, "tag": "a-score-is-in-results-with-a-number", "after_ms": 800,
+   "expect": {"entries": 1, "has_value": true, "value_between": [0.95, 0.96], "stored_as_results": 0,
+              "title_contains": ["Polar window (user-defined, unvalidated)"], "listed": ["Polar window (user-defined, unvalidated)"],
+              "facts_contain": ["Polar window (user-defined, unvalidated): 0.955"],
+              "evidence_contains": ["Formula: ramp(psa, 140, 60)", "psa = 63.6", "descriptor:tpsa", "A formula a person wrote"]}},
+  {"do": "shot", "path": "artifacts/visual/score_results_value.png", "widget": "results_reader", "after_ms": 500},
+
+  {"do": "score_define", "label": "Blend with a constant", "formula": "ramp(psa, hi, 60) * ramp(logp, 5, 2)",
+   "inputs": [["psa", "descriptor:tpsa"], ["logp", "descriptor:mol_logp"]], "constants": [{"name": "hi", "value": 140, "unit": "Å^2"}],
+   "result_unit": "1", "tag": "a-named-constant", "after_ms": 1500, "expect": {"made": true}},
+  {"do": "score_define", "label": "Wrong unit constant", "formula": "ramp(psa, hi, 60)", "inputs": [["psa", "descriptor:tpsa"]],
+   "constants": [{"name": "hi", "value": 140, "unit": "nm^2"}], "result_unit": "1", "tag": "a-threshold-in-the-wrong-unit-is-refused",
+   "expect": {"made": false, "problem": "unit", "message_contains": ["ramp needs x, a and b in one unit"]}},
+  {"do": "score_define", "label": "My consensus", "formula": "a + b", "inputs": [["a", "descriptor:esol_logs"], ["b", "calculator:solubility:Predicted intrinsic solubility (mol/L)"]],
+   "result_unit": "1", "tag": "two-estimates-of-one-quantity-are-refused", "expect": {"made": false, "problem": "consensus", "message_contains": ["consensus predictor"]}},
+  {"do": "score_define", "label": "CNS MPO again", "formula": "psa", "inputs": [["psa", "descriptor:tpsa"]], "result_unit": "Å^2",
+   "tag": "a-label-like-a-calculators-name-is-refused", "expect": {"made": false, "problem": "definition", "message_contains": ["too close to"]}},
+
+  {"do": "score_results", "focus": true, "tag": "two-scores-listed", "after_ms": 800,
+   "expect": {"entries": 2, "listed": ["Polar window (user-defined, unvalidated)", "Blend with a constant (user-defined, unvalidated)"]}},
+
+  {"do": "score_define", "label": "Needs a calculator", "formula": "ob", "inputs": [["ob", "calculator:oxygen_balance:Oxygen balance (CO basis)"]],
+   "result_unit": "%", "tag": "an-input-nothing-has-calculated", "after_ms": 1500, "expect": {"made": true}},
+  {"do": "score_results", "which": "Needs a calculator", "focus": true, "tag": "a-score-with-no-number-says-why", "after_ms": 800,
+   "expect": {"entries": 3, "has_value": false, "listed": ["Needs a calculator (user-defined, unvalidated)"],
+              "reason_contains": ["ob (calculator:oxygen_balance:Oxygen balance (CO basis))", "has not been calculated for this molecule"]}},
+  {"do": "shot", "path": "artifacts/visual/score_results_refused.png", "widget": "results_reader", "after_ms": 500},
+  {"do": "calculator", "id": "oxygen_balance", "reveal": false, "after_ms": 4000},
+  {"do": "score_results", "which": "Needs a calculator", "focus": true, "tag": "the-calculator-ran-and-the-score-has-its-number", "after_ms": 500,
+   "expect": {"entries": 3, "has_value": true, "value_between": [-80.0, -79.0], "evidence_contains": ["ob = -79.9"]}},
+  {"do": "shot", "path": "artifacts/visual/score_results_list.png", "widget": "results_reader", "after_ms": 500},
+
+  {"do": "expect_clean"},
+  {"do": "quit"}
+]

@@ -447,6 +447,47 @@ def test_a_result_with_no_recorded_settings_has_none_rather_than_a_guess():
     assert env.envelope_of(_entry(_qc_descriptor({"orca_version": "6.1.1"})))["parameters"] == {}
 
 
+def test_a_producers_recorded_caveat_is_a_caveat_and_not_a_setting():
+    """The Koopmans hardness that inverts ammonia and phosphine, a Fukui f+ taken on an unbound anion: the
+    producer records the warning in its provenance, and before this a model was sent the number without it,
+    because a descriptor and a per-atom dataset have no `assumptions` field to carry one."""
+    envelope = env.envelope_of(_entry(_qc_descriptor({
+        "orca_version": "6.1.1", "caveat": "no diffuse functions", RUN_CALC_TYPE: "sp",
+    })))
+    assert envelope["caveats"] == ["no diffuse functions"]
+    assert "caveat" not in envelope["parameters"]
+    json.dumps(envelope, allow_nan=False)
+
+
+def test_a_result_with_no_recorded_caveat_has_none():
+    assert env.envelope_of(_entry(_qc_descriptor({"orca_version": "6.1.1"})))["caveats"] == []
+
+
+@pytest.mark.parametrize("recorded", ["", "   ", None, 3, ["a caveat"], {"a": "caveat"}])
+def test_only_a_non_empty_string_is_taken_for_a_caveat(recorded):
+    """A project saved by something else can hold anything under the key; a number is not a warning."""
+    assert env.envelope_of(_entry(_qc_descriptor({"caveat": recorded})))["caveats"] == []
+
+
+def test_a_recorded_caveat_comes_after_the_freshness_note_and_a_runaway_one_is_cut():
+    long_caveat = "diffuse " * 400
+    envelope = env.envelope_of(_entry(_qc_descriptor({"caveat": long_caveat}), fresh=False))
+    assert len(envelope["caveats"]) == 2
+    assert envelope["caveats"][0] == envelope["freshness_note"] != ""
+    assert len(envelope["caveats"][1]) == env.RECORDED_CAVEAT_LIMIT and envelope["caveats"][1].endswith("…")
+    smallest = env.envelope_of(_entry(_qc_descriptor({"caveat": long_caveat})), env.CAP_STEPS[-1])["caveats"]
+    assert len(smallest[0]) == env.RECORDED_CAVEAT_LIMIT
+
+
+def test_a_producers_caveat_longer_than_a_header_caveat_arrives_whole_at_every_cap():
+    """The Fukui caveat is 492 characters with no warning on and 1320 with all of them, and its last sentence says the calculation is not
+    validated. Cut at the 400 a header caveat gets, that sentence never reached a model; the caps shrink rows, not what a number means."""
+    recorded = " ".join(f"Sentence {n} says something a reader needs about the number, in about as many words as a real caveat does." for n in range(11))
+    assert env.FULL.text < len(recorded) < env.RECORDED_CAVEAT_LIMIT
+    for caps in env.CAP_STEPS:
+        assert env.envelope_of(_entry(_qc_descriptor({"caveat": recorded})), caps)["caveats"] == [recorded]
+
+
 def test_a_registry_dialogs_dict_wins_over_a_run_setting_of_the_same_name():
     envelope = env.envelope_of(_entry(_qc_descriptor({
         INPUT_PREFIX + "parameters": {"charge": 3}, RUN_CHARGE: -1, RUN_CALC_TYPE: "sp",

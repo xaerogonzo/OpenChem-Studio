@@ -5,7 +5,7 @@ session notes. **Slice 1** (the execution policy, the shared search, this record
 (the host adapter, the plugin handle, the frozen turn snapshot, parameter validation, the run
 ledger) and **slice 3** (the result envelope, the five tools, the consent UI, the service preview
 adapter, the privacy note, "Explain Stored Results") are built; each section says "built" where it is.
-**What is not done is the live run on a real tool-capable provider** (section 11): it needs an API key,
+**Since then three tools were added for derived scores** (`read_scores`, `list_score_outputs` and `propose_score`; `DERIVED_SCORES_DESIGN.md`, slices 4a and 4d), so the five tools described below are eight. **What is not done is the live run on a real tool-capable provider** (section 11): it needs an API key,
 and every check so far used a scripted provider. Where a review changes this document, change it here first.
 
 Every statement about how the application works today was read in the source on the date above and
@@ -30,7 +30,7 @@ worth challenging are collected at the end.
 
 ## 2. The capability
 
-**A plugin gets `context.calculations`, a handle with eight operations and no objects behind it.**
+**A plugin gets `context.calculations`, a handle with eleven operations and no objects behind it.**
 It is built from a host object the window hands the `PluginManager`; a context built without one
 (a headless run, a test) answers every call with a typed `UNAVAILABLE`, never an exception.
 
@@ -40,10 +40,14 @@ It is built from a host object the window hands the `PluginManager`; a context b
 | `catalog(query, limit)` | any | `CalculatorCard`s from the registry, by the shared search (section 7) |
 | `describe(calculator_id)` | any | one card with its parameters, or `UNKNOWN` |
 | `read_results(turn, calculator_ids, include_not_current, limit)` | any | the turn's snapshot read by freshness and outcome (section 6). **Needs no host**: it reads only the frozen turn. |
+| `read_scores(turn, names)` | any | the user's own derived scores (`docs/DERIVED_SCORES_DESIGN.md`, slice 4a), worked out against the turn's frozen results and the definitions frozen with them. **Needs no host.** A score is not a stored result, so `read_results` never shows one; there is no call that makes, changes or removes a score. |
 | `prepare(turn, calculator_id, parameters)` | any | a `Preparation`: validated and normalised parameters, the execution decision, and a preview, or a typed refusal. **Starts nothing.** |
 | `run(turn, run_id)` | worker | for an `AUTO` preparation only: dispatches and waits (section 3) |
 | `pending()` | GUI | previews awaiting approval, for the panel |
+| `list_score_outputs()` | any | the outputs a derived score's formula may read, with units and endpoints (`docs/DERIVED_SCORES_DESIGN.md`, slice 4d). Fixed knowledge; needs no host. |
+| `propose_score(turn, request)` | any | checks a model's request for a score by the rules a typed definition meets and **leaves a card for a person**; it stores nothing and is the only score call here that can lead to a score existing. |
 | `approve(run_id)` / `cancel(run_id)` | **GUI only** | start or drop a pending preview |
+| `approve_score(proposal_id)` / `cancel_score(proposal_id)` | **GUI only** | make, or drop, a score the assistant proposed. The same split as a run's: a panel is given them and a tool is not. |
 
 `approve` and `cancel` are not reachable from a tool. **Built:** they, `pending`, `state_of` and
 `outcome_of` are methods of `CalculationHost` (`app/calculation_host.py`) and are absent from
@@ -266,7 +270,7 @@ per-conversation result) was rejected: it would show the model a number the pers
 the two models must never be mixed. A visible ledger lists what the assistant proposed, ran and was
 refused, with molecule, parameters and state (built: a wrapping list under the cards, one row per request,
 updated as the run moves). Tool output is sent to the configured provider on the next request, so a remote
-provider sees calculator results; the panel says so (built: `AIPrivacyNote`, which names the provider).
+provider sees calculator results; the panel says so (built: `AIPrivacyNote`, which names the provider). **Reading a score (derived scores slice 4a) sends its name and formula, which are a person's own text, too; the owner and note are never sent, and the note says so.**
 The outcome of a run the person approved reaches the model as a note on the NEXT message, never as a
 fabricated tool result.
 

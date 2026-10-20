@@ -41,6 +41,7 @@ from openchem.services.reaction_template_service import ReactionTemplateService
 from openchem.services.recalc_scheduler import RecalcScheduler
 from openchem.services.recipe_service import RecipeService
 from openchem.services.result_store_service import ResultStoreService
+from openchem.services.score_service import ScoreService
 from openchem.services.screening_service import ScreeningService
 from openchem.services.spatial_overlay_service import SpatialOverlayService
 from openchem.services.structure_check_service import StructureCheckService
@@ -98,6 +99,27 @@ _QM_CALC_TYPE_DESCRIPTIONS = {
         "vertical quantities. Slower than reading the frontier orbitals, and the "
         "one that reproduces the textbook hard/soft orderings."
     ),
+    "fukui": (
+        "Where an added or removed electron goes, atom by atom: the condensed Fukui functions f+ (attack "
+        "by a nucleophile), f- (attack by an electrophile), f0 (attack by a radical) and the dual "
+        "descriptor f+ - f-, from the Hirshfeld charges of the neutral, the cation and the anion. Three "
+        "single points in one job, all at the geometry as supplied (vertical): optimize first if the "
+        "drawn geometry is not good enough. Closed-shell species only. A species that is itself an anion "
+        "gets its f+ from a dianion, which no basis set binds in the gas phase, so for an anion f+ is the "
+        "least trustworthy number; the dianion is run last, and if it gives nothing usable the result is "
+        "f- alone and says why (Settings > Quantum chemistry can leave it out). Hirshfeld is the one charge "
+        "scheme offered because, of the five ORCA prints, it was the only one whose values stayed within "
+        "0.023 of themselves when diffuse functions were added and never went negative, on "
+        "formaldehyde, propene and pyridine. The anion of a neutral molecule is usually unbound at an "
+        "ordinary basis set, which makes f+ the less trustworthy half; the result says so. At a basis set "
+        "with diffuse functions an anionic state is also started from two more initial guesses and the "
+        "lowest solution is read, because there it can have more than one. The cation can have several "
+        "states a few tenths of an eV apart, and one cation job reaches whichever ORCA's SCF falls into "
+        "(for benzaldehyde, not a function of the structure), so three more cation jobs start from the "
+        "neutral's orbitals with the electron taken from the HOMO-1, HOMO-2 and HOMO-3, f- is read from "
+        "the lowest state found, and the result says when another lies within 0.5 eV and how far its f- is "
+        "(about 2.5 times the time of a run without it; Settings > Quantum chemistry can switch it off)."
+    ),
     "led": (
         "Breaks a non-covalent interaction energy into electrostatics, exchange, "
         "dispersion, charge transfer and the cost of distorting each partner, via "
@@ -107,6 +129,31 @@ _QM_CALC_TYPE_DESCRIPTIONS = {
         "is not a binding energy. Expensive and steeply so: measured 15 seconds for "
         "BH3-CO but 10 minutes and 1.9 GB of scratch disk for benzene-water, and it "
         "is not usable on anything drug-sized."
+    ),
+}
+
+# The calc types that declare a stage of their own. The rest predate the declaration and are `LEGACY_UNCLASSIFIED`, a closing
+# migration, so a calc type added today earns an honest stage here instead of joining that list.
+_QM_CALC_TYPE_SUPPORT = {
+    # EXPERIMENTAL, as the tautomer distribution below is: implemented, run through the application on real ORCA and measured
+    # against published values, and not validated for default use because it did not pass its own preregistered gate
+    # (benchmarks/fukui_gate/PREREGISTRATION.md section 11). A stage describes THIS implementation, never the published method.
+    "fukui": CalculatorSupport(
+        stage=SupportStage.EXPERIMENTAL,
+        default_visibility=Visibility.HIDDEN,
+        support_reason=(
+            "Not validated: it failed two preregistered checks against published Hirshfeld condensed Fukui values. "
+            "The first (an earlier version) missed by 0.0014 on the f- of carbon monoxide at HF/6-31G**, whose cation "
+            "is heavily spin-contaminated. The second, of the current version, reproduced 33 of 47 numbers to within "
+            "0.02 (23 of them to 0.002); the other 14 belong to hydrogen cyanide, thiocyanate, benzaldehyde, "
+            "anilinium, pyrrole, furan and thiophene, and for benzaldehyde, anilinium and thiophene the published "
+            "values match a cation state 0.09 to 0.45 eV above the lowest one. Offered in the Quantum Chemistry "
+            "panel, and every result says so."
+        ),
+        scope_note=(
+            "Closed-shell species, Hirshfeld charges only, ions at the neutral geometry (vertical); "
+            "needs a configured ORCA executable"
+        ),
     ),
 }
 
@@ -126,6 +173,7 @@ for _label, _calc_type in CALC_TYPE_LABELS.items():
                 panel_id="Quantum_Chemistry",
             ),
             prediction_basis="ab_initio",
+            support=_QM_CALC_TYPE_SUPPORT.get(_calc_type),
             parameters=[
                 CalculatorParameter(name="charge", label="Charge", kind="int", default=0, minimum=-10, maximum=10),
                 CalculatorParameter(
@@ -393,15 +441,20 @@ def build_service_container() -> ServiceContainer:
     structure_check_service = StructureCheckService(event_bus)
     # Named because the recipe service below reads THIS instance's project and stored runs.
     result_store_service = ResultStoreService(event_bus, engine, settings)
+    # Named because the store asks THIS instance, as a project is opened, which of the results a
+    # file brings back no build records any more (an earlier build re-ran the whole always-on
+    # set on a conformer and saved it under the GEOMETRY identity).
+    descriptor_service = DescriptorService(
+        event_bus,
+        engine,
+        calculator_registry=calculator_registry,
+        structure_version_of=structure_check_service.current_version,
+    )
+    result_store_service.set_obsolete_check(descriptor_service.is_obsolete_result)
     return ServiceContainer(
         event_bus=event_bus,
         chemistry_engine=engine,
-        descriptor_service=DescriptorService(
-            event_bus,
-            engine,
-            calculator_registry=calculator_registry,
-            structure_version_of=structure_check_service.current_version,
-        ),
+        descriptor_service=descriptor_service,
         import_service=ImportService(engine),
         export_service=ExportService(engine),
         project_service=ProjectService(event_bus),
@@ -440,6 +493,7 @@ def build_service_container() -> ServiceContainer:
         # calculator records can arrive before there is a store to take it.
         result_store_service=result_store_service,
         recipe_service=RecipeService(result_store_service, engine),
+        score_service=ScoreService(event_bus, result_store_service, calculator_registry),
         # The policy is read from Settings at every edit, never captured, so changing it
         # in the Settings window applies to the next edit.
         recalc_scheduler=RecalcScheduler(event_bus, settings.recalc_policy),
