@@ -1499,7 +1499,7 @@ scores, slices 1 to 4 and their follow-ups (`docs/DERIVED_SCORES_DESIGN.md`). St
 so the assistant describes an ORCA job and a person starts it from its panel, and the assistant's frozen turn holds no quantum-chemistry runs
 (`domain/turn_snapshot.py` names none, checked 2026-10-16); scores over 3D numbers (decided on 2026-10-16, in the derived scores record); Phase 3 beyond its first calculator (Fukui functions were built on 2026-10-18 and
 failed two preregistered gates, the first by 0.0014 on one quantity and the second, on De Proft et al.'s tables, with 33 of 47 numbers within 0.02, so they are offered as experimental and not validated, `benchmarks/fukui_gate/PREREGISTRATION.md` and `benchmarks/fukui_gate_2/PREREGISTRATION.md`;
-proton affinity was benchmarked and its primary arm passed, #398; bond dissociation energy is preregistered and not yet reported) and the last of Phase 4 (the synthesis helper's Stage 1 is built through slice 9, `docs/SYNTHESIS_HELPER_DESIGN.md`; what remains is the second quality protocol, which is Alex's to run, and saving plans in the project). The live provider run for Phase 1 is still not done. `docs/WHATS_NEW.md` is a tour of all of it.
+proton affinity was benchmarked and its primary arm passed, #398; bond dissociation energy is preregistered and not yet reported) and the last of Phase 4 (the synthesis helper's Stage 1 is built, `docs/SYNTHESIS_HELPER_DESIGN.md`, plans are saved in the project file; what remains is the second quality protocol, which is Alex's to run). The live provider run for Phase 1 is still not done. `docs/WHATS_NEW.md` is a tour of all of it.
 
 ### Visualization
 

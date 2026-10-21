@@ -46,17 +46,27 @@ from openchem.domain.synthesis_route import (
 #: The statuses a project file keeps: a search that ran to an end and either found routes or did not. Every other status is the outcome of one request and is asked again (see the module docstring).
 STORABLE = frozenset({RouteStatus.FOUND, RouteStatus.NO_ROUTE})
 
-#: Caps on what a file may make a build hold. A real plan is a dozen routes of a few steps; these are far above that and far below "without end".
+#: Caps on what a file may make a build hold. A real plan is a dozen routes of a few steps; each is far above that and far below "without end".
 MAX_ROUTES = 200
+#: The most steps one route may have.
 MAX_STEPS = 100
+#: The most reactants one step may consume.
 MAX_REACTANTS = 50
+#: The most starting materials one route may have.
 MAX_STARTING_MATERIALS = 200
+#: The most molecules one plan may carry a screening for.
 MAX_SCREENINGS = 5000
+#: The most findings one screened molecule may carry, and the most rulesets one may list as consulted.
 MAX_FINDINGS = 200
+#: The most entries a planner's model identity may have (an expansion policy, a stock and a filter are three).
 MAX_MODEL_ENTRIES = 20
+#: The longest sentence a screening reason or a kept left-out sentence may be, in characters.
 MAX_SENTENCE = 2000
+#: The longest SMILES or identifier a field may hold, in characters.
 _TOKEN = 20000
+#: The longest name, version or short label a field may hold, in characters.
 _WORDS = 500
+#: The longest reaction string a step may hold, in characters.
 _REACTION = 40000
 
 

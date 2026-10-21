@@ -171,6 +171,7 @@ BAD = {
     "newer format": lambda: mutate(("format",), 2),
     "format zero": lambda: mutate(("format",), 0),
     "format is text": lambda: mutate(("format",), "1"),
+    "format is a flag": lambda: mutate(("format",), True),
     "unknown status": lambda: mutate(("status",), "great"),
     "unknown termination": lambda: mutate(("termination",), "whenever"),
     "target not an object": lambda: mutate(("target",), "x"),
@@ -259,3 +260,11 @@ def test_the_file_is_never_given_a_path_to_run_code_or_construct_a_class():
     text = source.read_text(encoding="utf-8")
     for forbidden in ("eval(", "exec(", "pickle", "importlib", "getattr(", "__import__", "globals()"):
         assert forbidden not in text.replace("`", ""), forbidden
+
+
+def test_the_cap_on_routes_is_what_refuses_a_file_with_too_many():
+    """Not the duplicate products and ranks such a file would also have: the message must be the cap's."""
+    data = good()
+    data["routes"] = [data["routes"][0]] * (MAX_ROUTES + 1)
+    with pytest.raises(PlanDecodeError, match="at most"):
+        decode_route_set(data)

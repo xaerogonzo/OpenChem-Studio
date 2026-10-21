@@ -4308,6 +4308,48 @@ class _Driver(QObject):
         else:
             logger.warning("OPENCHEM_DRIVE: EXPECT synthesis ok[%s]", tag)
 
+    def _do_synthesis_fixture_plan(self, step: dict[str, Any]) -> None:
+        """Give the selected molecule a plan a real planner once made, so a script can save, reopen and read a plan without the planner.
+
+        `{"do": "synthesis_fixture_plan", "fixture": "aspirin_it100", "screen": true}`
+
+        The plan is the real parser's reading (`parse_document`) of a saved planner output in `benchmarks/synthesis/fixtures/`, screened by the real
+        annotator when `screen` is set, and stored the way a finished search stores one (`_store_and_announce`: the service's own write and the
+        `SynthesisRouteReady` the window marks the project unsaved on). The fixture's target must be the selected molecule's structure; a script that
+        names another one has made a plan for a different molecule, which is what `result_for` then calls an earlier plan.
+        """
+        from openchem.chem import aizynth_planner as planner
+        from openchem.chem.synthesis_gate import annotate_route_set
+        from openchem.domain.synthesis_route import SearchLimits, TargetIdentity
+
+        window = self._window
+        molecule = window._session.project.find_molecule(window._property_panel._selected_molecule_uuid)
+        service = window._services.synthesis_planning_service
+        if molecule is None or service is None:
+            logger.error("OPENCHEM_DRIVE: synthesis_fixture_plan -- no molecule selected, or no planning service")
+            return
+        path = Path("benchmarks") / "synthesis" / "fixtures" / f"{step.get('fixture', 'aspirin_it100')}.json"
+        document = json.loads(path.read_text(encoding="utf-8"))
+        document["schema"] = planner.RUN_SCHEMA
+        document["limits"].setdefault("all_routes", False)
+        document.pop("route_count", None)
+        limits = document["limits"]
+        selection = document["identity"]["selection"]
+        request = planner.PlanRequest(
+            target_smiles=document["target"],
+            config={"expansion": {"uspto": ["m.onnx", "t.csv.gz"]}, "stock": {"zinc": "s.hdf5"}},
+            stock=selection["stock"],
+            expansion="uspto",
+            filter=None if selection["filter"] == "none" else selection["filter"],
+            limits=SearchLimits(iteration_limit=limits["iteration_limit"], time_limit_seconds=limits["time_limit"], max_transforms=limits["max_transforms"]),
+        )
+        target = TargetIdentity(molecule_uuid=molecule.uuid, canonical_smiles=molecule.canonical_smiles, fingerprint="drive-fixture")
+        plan = planner.parse_document(document, request, target)
+        if step.get("screen"):
+            plan = annotate_route_set(plan)
+        service._store_and_announce(plan)
+        logger.warning("OPENCHEM_DRIVE: synthesis_fixture_plan -- %s stored for %s (%d route(s), status %s)", path.stem, molecule.display_name, len(plan.routes), plan.status.value)
+
     def _do_conformers(self, step: dict[str, Any]) -> None:
         """Generate conformers through the real service.
 
