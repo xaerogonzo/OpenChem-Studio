@@ -2501,6 +2501,8 @@ is not thereby free of obligations, and a molecule that could not be screened is
 first schedule (`cwc-schedule-1`): nothing is planned for it, and a target the check could not be applied to is treated the same way. That ruleset's own known limits apply to the refusal, and
 a refusal is not an accusation.
 
+**A saved plan is as old as the day it was made.** A plan is written into the project file and read back with it. When it comes back, the regulatory check on its target is run again and the route checks are recomputed, but the regulatory alerts beside its molecules are the ones from the day it was planned (the plan says the date) and are not repeated on opening, so a ruleset added or changed since then is not reflected until the molecule is planned again. The planner's models and stock are likewise as they were; a plan is a record of one search, not a standing answer.
+
 **It runs on your machine, and what the assistant reads leaves it.** The planner is a program of its own in your Python environment (about 1.7 GB on disk, 3 to 5 GB of memory while it runs). If you
 let the AI Assistant read a plan, the plan is sent to its provider as part of the conversation; the assistant can ask for a search, which starts only if you approve it, and cannot start one itself.
 

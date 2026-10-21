@@ -1499,7 +1499,7 @@ scores, slices 1 to 4 and their follow-ups (`docs/DERIVED_SCORES_DESIGN.md`). St
 so the assistant describes an ORCA job and a person starts it from its panel, and the assistant's frozen turn holds no quantum-chemistry runs
 (`domain/turn_snapshot.py` names none, checked 2026-10-16); scores over 3D numbers (decided on 2026-10-16, in the derived scores record); Phase 3 beyond its first calculator (Fukui functions were built on 2026-10-18 and
 failed two preregistered gates, the first by 0.0014 on one quantity and the second, on De Proft et al.'s tables, with 33 of 47 numbers within 0.02, so they are offered as experimental and not validated, `benchmarks/fukui_gate/PREREGISTRATION.md` and `benchmarks/fukui_gate_2/PREREGISTRATION.md`;
-proton affinity was benchmarked and its primary arm passed, #398; bond dissociation energy is preregistered and not yet reported) and the last of Phase 4 (the synthesis helper's Stage 1 is built through slice 9, `docs/SYNTHESIS_HELPER_DESIGN.md`; what remains is the second quality protocol, which is Alex's to run, and saving plans in the project). The live provider run for Phase 1 is still not done. `docs/WHATS_NEW.md` is a tour of all of it.
+proton affinity was benchmarked and its primary arm passed, #398; bond dissociation energy is preregistered and not yet reported) and the last of Phase 4 (the synthesis helper's Stage 1 is built, `docs/SYNTHESIS_HELPER_DESIGN.md`, plans are saved in the project file; what remains is the second quality protocol, which is Alex's to run). The live provider run for Phase 1 is still not done. `docs/WHATS_NEW.md` is a tour of all of it.
 
 ### Visualization
 
@@ -2353,6 +2353,12 @@ struck through and marked SHIPPED here, never deleted.
 Nothing here is simply unstarted — each is blocked on something nameable,
 and three were checked again recently rather than taken on trust.
 
+- **Re-screening a saved synthesis plan (recorded 2026-10-21).** A plan saved in the project file comes back with the regulatory alerts it had on the day it
+  was made, shown with that date and a sentence saying they were not repeated on opening, because screening takes 0.9 to 3.7 s a plan (about 0.1 s a
+  molecule, measured on 13 real planner outputs) and opening a project of 30 plans would take about a minute. So a ruleset added or changed since then is not
+  reflected until the molecule is planned again. Two ways to close it: a "re-screen" action on the Synthesis panel, or a worker that fills the screening in
+  after opening (which gives every surface a "screening" state to read). Blocked on nothing but need: build one if the stale date is felt
+  (`docs/SYNTHESIS_HELPER_DESIGN.md`, slice 11).
 - **Plugin-system extras** (`ToolbarProvider`/`ContextMenuProvider`, a
   `RemoteServicePlugin` base, numeric priority, declared permissions). The
   recorded trigger was "a fourth plugin whose real requirements tell us the

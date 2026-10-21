@@ -39,9 +39,11 @@ from enum import StrEnum
 
 from openchem.domain.synthesis_gate import NodeScreening
 
-#: The version of this structure. Results are session-only in v1, so nothing is read back yet; the number is here so the
-#: first thing that is stored does not have to guess what it holds.
+#: The version of this structure, written with every plan kept in a project file (`domain/synthesis_route_codec.py`) so a later build can tell what it is reading.
 SYNTHESIS_ROUTE_FORMAT = 1
+
+#: How the sentence about routes a planner returned and the parser left out begins. It is the one added sentence a plan read from a project file keeps (every other is re-derived by the build that reads it), so the codec has to recognise it.
+LEFT_OUT_PREFIX = "Routes the planner returned that are not shown: "
 
 #: What a field reads as when the planner did not supply it.
 NOT_PROVIDED = "not provided"

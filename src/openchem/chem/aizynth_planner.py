@@ -26,6 +26,7 @@ from pathlib import Path
 
 from openchem.chem.route_validation import validate_route
 from openchem.domain.synthesis_route import (
+    LEFT_OUT_PREFIX,
     STANDARD_LIMITATIONS,
     PlannerIdentity,
     Route,
@@ -341,7 +342,7 @@ def _left_out(counts: collections.Counter, reasons: set[str]) -> str:
         parts.append(f"{counts['no reaction']} had no reaction")
     if counts["other"]:
         parts.append(f"{counts['other']} could not be represented ({'; '.join(sorted(reasons))})")
-    return "Routes the planner returned that are not shown: " + "; ".join(parts) + "."
+    return LEFT_OUT_PREFIX + "; ".join(parts) + "."
 
 
 def parse_document(document: object, request: PlanRequest, target: TargetIdentity) -> RouteSet:
