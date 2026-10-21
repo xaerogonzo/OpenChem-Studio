@@ -1359,6 +1359,23 @@ document may cite a file or a test that does not exist.
   and reports it; it does not repair, block, or claim tamper-resistance (the
   hashes ride in the same unsigned exe), and a signature is what would.
 
+  **The build runs what it built.** After the file checks, `build.ps1` launches the
+  exe on `benchmarks/visual/frozen_smoke.json` through `tools/frozen_smoke.py`
+  (Python, so a hung run cannot hang the build and only its own process tree is
+  killed). The judge fails closed: exit status 0, a report written after the
+  launch, verdict PASS, every required assertion present and ok (`help_report`:
+  source is the bundle, every panel key resolves; `install_report`: `verified`;
+  `expect_clean`), nothing dropped from the error ledger, the whole script run.
+  This is what would have caught the seventeen missing data files, which
+  crashed the app at import and which no file-list check could see. Still
+  manual: the 2D editor draws, both 3D viewers render, a molecule gets named.
+  `build.ps1` refuses a tree with uncommitted changes (`-AllowDirty` for local
+  experiments, recorded in the stamp), and `-Release` refuses one outright.
+  `-Release` (`tools/make_release_zip.py`) writes a versioned-folder zip as
+  `.partial`, validates its inventory, smoke-tests the EXTRACTED copy in a path
+  with a space, and only then promotes the zip and `SHA256SUMS.txt` (a
+  transit-corruption checksum, not a signature).
+
   `plugins/` ships as source **beside** the exe rather than inside the
   payload, so a user can add one without a Python install;
   `PluginManager` looks there when `sys.frozen` is set. Sidecars (pkasolver,
