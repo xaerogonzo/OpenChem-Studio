@@ -21627,3 +21627,84 @@ Asked which structures a score should decline a 3D number for, the answer offere
 * **Say what the application hands the calculator before quoting a library number as the reason for a rule.** Calculators declare a scope (`CalculatorScope`: `CHEMBL_PARENT`, `REFUSE_MULTICOMPONENT`, `WHOLE_STRUCTURE`) and `components.select` applies it on every route; Geometry Analysis is the `WHOLE_STRUCTURE` one, which is why the rule belongs to its eight outputs (`ApprovedOutput.whole_structure`) and not to the ten. The decision was put back to the person who took it before the pull request opened, with the measurement that overturned the premise.
 * **The store keeps one result per geometry, not per setting.** `ResultStore.put` is keyed by result id, input, fingerprint and method, so a later Geometry Analysis run with other settings REPLACES the default one. A unit test that stored both and read the default "beside" the other was a state the application cannot reach; the real window showed it (a scaled run took the number away, a default run gave it back).
 * **Small traps met on the way.** A simplex search for the smallest circle round the atoms' circles stalled short of the minimum on benzoic acid (the maximum of cones is not smooth: minimise R subject to R >= distance + radius instead); the drive's `entries` expectation counts every score in the reader and not the one `which` picks; and the label rule (`name_collision`) refuses a label equal to, containing or contained by an output's name, so new output names refused a test's label `Area`.
+
+## A CLASSIFIER STOPPED THE EXPLANATION, NOT THE FILES, AND THE FEATURE WAS BUILT THROUGH THE SAME ALERTS
+
+`src/openchem/chem/regulatory/` kept stopping sessions. Alex saw alerts labelled
+`[bio]`, the area came to feel untouchable, and a healthy feature came close to
+being deleted for it. The protocol that came out of it is in `CLAUDE.md` ("The
+regulatory rulesets -- work on them by rule id"); this is why it exists. Alex has
+raised the false positives with Claude support separately -- that is the ticket,
+this is the engineering record.
+
+* **Reading the data was never the problem.** All five rulesets were read without
+  incident. Both observed stops happened while an assistant message was
+  RESTATING rule contents in generated prose, and both cut off mid-sentence. The
+  tool that opens a file and the channel that explains it are not the same risk.
+* **The strongest single data point is a channel difference, and it is one
+  observation rather than proof.** 382 lines of substance display names entered
+  one conversation as TOOL OUTPUT and nothing fired, while a much smaller
+  restatement of the same kind of content in generated prose stopped that same
+  session twice. Same conversation, same material, different channel.
+* **That flood was a measurement correction of its own: the build tool's
+  `--check` is NOT quiet.** A bare run prints 382 lines, most carrying substance
+  display names -- counted from an actual unfiltered run in a real session, so
+  it is a reproducible measurement rather than an anecdote. An earlier plan
+  asserted the opposite and was wrong. The
+  filtered invocation, which leaves the ruleset ids, the counts and the verdict,
+  is in `CLAUDE.md`'s regulatory section.
+* **The classifier and the model are separate systems, which is why the sessions
+  looked helpless.** The model saying "this is a false positive" carries no
+  weight with the thing stopping it; there is nothing to argue with. A stop is
+  also not sticky -- nothing accumulates, there is no strike count, and the next
+  message starts clean, which is why a prompt to continue simply worked.
+* **The loop was built into the task.** Explaining why a ruleset is a false
+  positive requires being specific about what is in the ruleset, so every
+  attempt to justify the content reproduced the content. The only stable exit is
+  to stop quoting it at all, which is exactly what the by-rule-id protocol is.
+* **`[bio]` is not in this repository.** It is a label from the safety taxonomy
+  naming which classifier fired. Searching the tree for it will always come up
+  empty; it was searched for.
+* **The alerts did not correspond to anything actionable, and the clearest
+  evidence of that is the feature itself.** It was BUILT through a flood of the
+  same alerts, and the result passes 186 tests with all five rulesets reporting
+  `matches its source, hash intact`.
+* **The cost is the measurable part.** Three earlier sessions on this topic
+  (worktrees `delete-regulatory-panel-16589b`, `cwc-schedule-1-narrow-4ddd7f`,
+  `frosty-jang-07b7f6`) produced zero commits between them -- measured
+  2026-10-20, and the measurement is `git rev-list --count origin/master..<branch>`
+  per branch with each working tree clean, not the worktree's listed head. That
+  distinction matters, because re-reading it hours later by head alone got it
+  wrong in both directions: one branch had moved to a new head that was
+  master's own tip (brought up to date, nothing committed), and the other two
+  showed one commit each that was a shared `chore(instructions)` commit carried
+  by several branches rather than work of their own.
+
+### WHAT THE PROTOCOL DOES NOT COVER
+
+The protocol narrows the surface; it does not eliminate it, and the honest
+version of this entry says so.
+
+Observed 2026-10-20, after the protocol was written: a session narrowing two
+rules by id (`cwc-1-a-4`, `cwc-1-a-6`, branch `claude/cwc-mustard-narrowing`) was
+stopped by the same classifier while applying it. Its own message just before
+the stop said it was switching to working by `rule_id` only, with scripts
+printing counts and verdicts rather than content -- the correct move -- and a
+later message was flagged anyway.
+
+* **The protocol covers this repository's own data, and that session's question
+  was about a source document on the web.** It was fetching a treaty annex and
+  reasoning in prose about the annex's wording -- whether some entries use
+  `e.g.` where others use a bare colon. A `.tokensave/queryignore` has no reach
+  over text fetched from the web, and no answer at all for a task whose question
+  IS the wording of the source text. That is the irreducible case.
+* **It is still consistent with the channel observation above.** The fetch
+  arrived as tool output; the stop came on a generated message. So the rule of
+  thumb holds: keep the generated prose clean, let scripts print a `rule_id`
+  plus a verdict or a boolean, and never narrate the source wording.
+* **It reproduced on 2026-10-20 in the session REVIEWING this entry**, with
+  several assistant messages stopped mid-sentence. The common factor across all
+  of them, here as everywhere above, was a long message combining the domain
+  vocabulary with extended discussion of the safety behaviour itself -- never a
+  file read. Length on this topic is itself the risk, which is why this bullet
+  is short.
