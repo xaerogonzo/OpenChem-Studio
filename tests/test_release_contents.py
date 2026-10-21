@@ -114,3 +114,9 @@ def test_the_page_names_the_four_help_documents_the_app_reads():
 
     for document in help_docs.HELP_DOCUMENTS:
         assert document.removesuffix(".md") in PAGE, f"{document} is a help document but the page does not name it"
+
+
+def test_the_page_describes_the_installer_and_where_its_script_lives():
+    assert "setup.exe" in PAGE and "openchem.iss" in PAGE
+    assert "per-user" in PAGE.lower() and "all-users" in PAGE.lower()
+    assert (ROOT / "packaging" / "openchem.iss").is_file()

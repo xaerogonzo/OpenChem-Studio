@@ -46,6 +46,25 @@ caches, downloaded tools and models live in the data directory
 `OPENCHEM_DATA_ROOT` overrides it; see `src/openchem/paths.py`), so
 replacing or deleting the install loses none of it.
 
+## The installer
+
+Beside the zip, a release also offers `OpenChemStudio-v<version>-windows-x64-setup.exe`
+(built from `packaging/openchem.iss`; the script is not inside it or the zip). It
+installs the **same tree as the zip**, so everything in the first table applies; what
+differs is how:
+
+- **Per-user or all-users**, chosen by the person at the start. Per-user needs no
+  administrator and installs under their own profile; all-users installs under
+  Program Files and asks for elevation.
+- **Upgrade in place.** Installing a newer version over an older one replaces it and
+  first deletes the old `_internal` folder, so no stale file survives. `plugins\` is
+  never cleared, because people add their own there.
+- **Uninstall asks.** After removing the program it shows two unticked boxes: remove
+  the settings and window layout (a registry key), and remove the caches, downloaded
+  tools and recovery copies (the default data folder). Saved project files are never
+  touched. A data folder the person moved elsewhere is only reported, never deleted.
+- **Not code-signed yet**, so Windows SmartScreen may warn on first run.
+
 ## The repository's top level
 
 Every tracked top-level entry, and whether it reaches a release.
@@ -59,7 +78,7 @@ Every tracked top-level entry, and whether it reaches a release.
 | `tests` | **No** | Build-time and development only |
 | `benchmarks` | **No** | Measurements and drive scripts, development only (the frozen smoke script is read from here by the build, not shipped) |
 | `tools` | **No** | Build and maintenance scripts |
-| `packaging` | **No** | The PyInstaller spec and launcher: they make the exe, they are not in it |
+| `packaging` | **No** | The PyInstaller spec and launcher and the installer script: they make the release files, they are not in them |
 | `build.ps1`, `build.bat`, `run.bat` | **No** | Build and run helpers |
 | `examples` | **No** | Plugin examples for developers |
 | `scripts`, `spikes`, `prof.out` | **No** | Probes and experiments |
@@ -74,6 +93,8 @@ Every tracked top-level entry, and whether it reaches a release.
 - `tools/frozen_smoke.py` launches the built exe, and again the extracted zip.
 - `tools/make_release_zip.py` validates the archive inventory (one versioned
   folder, required files present, nothing forbidden) before promoting it.
+- `tools/drive_installer.py` installs the compiled installer for real, runs the
+  installed app through the smoke test, upgrades and uninstalls it.
 
 ## Keeping this page true
 
