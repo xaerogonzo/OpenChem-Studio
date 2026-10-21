@@ -3400,7 +3400,18 @@ installed" state.
 ## Plugins
 
 Four plugins ship: **AI Assistant**, **Database Search**, **Reaction
-Prediction** and **Synthesis** (see its own section). Enable or disable them from the plugin manager.
+Prediction** and **Synthesis** (see its own section). Enable or disable them from the plugin manager. Each has a panel in the right-hand rail with its own **?**, which opens the section below.
+
+Plugins are loaded as source from a `plugins/` directory beside the
+application, so you can add or edit one without a Python install. They
+extend the app through the same interfaces the core uses — descriptor
+providers, calculators, panels, importers — rather than through a separate
+lesser API.
+
+See [PLUGIN_SDK.md](PLUGIN_SDK.md) to write one.
+
+<!-- help:plugin-ai-assistant -->
+### AI Assistant
 
 The AI Assistant opens from **Plugins > Open AI Assistant** (its panel is in the
 right-hand rail under *Compare and Extend*). Choose a provider and click
@@ -3420,13 +3431,25 @@ as its owner, and you change it in **Tools > Derived Scores** like any other). I
 as part of the conversation, and a note under the box says where. **Plugins > Explain
 Stored Results** asks it to explain everything stored for the selected molecule.
 
-Plugins are loaded as source from a `plugins/` directory beside the
-application, so you can add or edit one without a Python install. They
-extend the app through the same interfaces the core uses — descriptor
-providers, calculators, panels, importers — rather than through a separate
-lesser API.
+<!-- help:plugin-database-search -->
+### Database Search
 
-See [PLUGIN_SDK.md](PLUGIN_SDK.md) to write one.
+Searches **PubChem** and **ChEMBL** for a compound and brings a result into the project as a new molecule. Open it from **Plugins > Search Chemical Databases** (the panel is in the rail's *Compare and Extend* group).
+
+Type a name, a SMILES or an InChIKey, say which of the three it is in the second box, choose the source in the box after **in:**, and press **Search**. The table lists each hit with its source, its identifier there, its name, formula, molecular weight and SMILES. Select a row and press **Import as new molecule**: the structure is read from the SMILES into a new molecule of your project, named as the database names it (PubChem's IUPAC name or "CID" and its number; ChEMBL's preferred name or its identifier), and nothing in the project is replaced.
+
+It needs the network, and what you typed is sent to that database. It is a lookup, not a calculation: the application does not check the database's answer, so a hit is the database's record (a name can match a salt, a mixture or a different stereoisomer than the one you meant), and a source that is busy or slow says so in the line under the box ("rate limit reached", "timed out") rather than returning nothing. A hit with no SMILES is left out.
+
+<!-- help:plugin-reaction-prediction -->
+### Reaction Prediction
+
+Proposes products for one or two reactants. Open it from **Plugins > Predict Reaction Products**; with a molecule selected, its SMILES is filled into **Reactant 1**.
+
+Enter the reactants as SMILES (the second is optional), choose a **Method** and press **Predict**. The table lists each proposed product's SMILES, where the proposal came from and a confidence, and **Add as new molecule** puts the selected product in the project, named "Predicted product".
+
+Two methods are offered. **Templates** is always available and needs nothing set up: it applies a small library of named reaction patterns (two ship, Fischer esterification and amide coupling; a `reaction_templates.json` of your own in the application's data folder, and patterns another plugin registers, are added to them). It is deterministic and it gives no confidence, because a pattern match is not a scored prediction and a number would be invented; the Confidence column is blank. A reaction no pattern covers returns nothing, which says the library does not cover it and nothing about the chemistry. The **remote API** method sends the reactants to a prediction service you name under **Configure...** (a base URL and a key) and shows the confidence that service reports; the application does not validate it, and the reactants leave your machine.
+
+Either way a product is a proposal, not a result: no conditions, yield or by-products are given, and nothing here checks that the reaction works. For routes to a molecule rather than products from one, see the **Synthesis** section.
 
 ---
 
