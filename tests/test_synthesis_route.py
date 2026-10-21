@@ -14,6 +14,7 @@ from pathlib import Path
 import pytest
 
 from openchem.domain.synthesis_route import (
+    ALERTS_NOT_CHECKED,
     LIMITS_NOT_EXHAUSTIVE,
     NOT_PROVIDED,
     STANDARD_LIMITATIONS,
@@ -371,7 +372,7 @@ class TestRouteSetWords:
         flagged = found(two_step_route(validation=partial))
         assert any("could not be fully validated" in s for s in flagged.all_limitations())
         clean = found(two_step_route(validation=good_validation()))
-        assert clean.all_limitations() == STANDARD_LIMITATIONS
+        assert clean.all_limitations() == STANDARD_LIMITATIONS + (ALERTS_NOT_CHECKED,)  # validated, but the molecules have not been screened: that is said too
 
     def test_all_limitations_never_repeat_a_sentence(self):
         rs = found(two_step_route(), termination=SearchTermination.ITERATION_LIMIT, limitations=STANDARD_LIMITATIONS + (LIMITS_NOT_EXHAUSTIVE,))

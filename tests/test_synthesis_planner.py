@@ -106,7 +106,8 @@ def test_every_step_carries_what_the_planner_gave_and_nothing_else():
     step = route.steps[-1]
     assert step.product == route.target_smiles and step.reaction_smiles and step.template_id and step.policy_name == "uspto" and 0 < step.policy_probability <= 1
     assert all(m.in_stock is True for m in route.starting_materials)
-    assert route.score and 0 < route.score <= 1 and route.validation is None  # the planner's ranking number; validation is a later slice
+    assert route.score and 0 < route.score <= 1  # the planner's ranking number
+    assert route.validation is not None and route.validation.fully_validated  # every kept route is checked against its own bookkeeping (slice 6)
 
 
 def test_a_three_step_route_is_in_the_order_it_would_be_run():
