@@ -2079,7 +2079,7 @@ class _Driver(QObject):
         # could not have noticed: a harness disagreeing with the app about what a reopened project holds.
         self._window._set_project(
             command.loaded_project, command.loaded_results, command.loaded_qc_runs, command.loaded_recipe_runs,
-            command.loaded_derived_scores,
+            command.loaded_derived_scores, command.loaded_synthesis_plans,
         )
         logger.warning(
             "OPENCHEM_DRIVE: opened %s -- %d molecule(s)",
