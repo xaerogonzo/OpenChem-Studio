@@ -109,6 +109,22 @@ Run exactly as `benchmarks/psi4_agreement/PLAN.md` froze it (commit `7bc3d20c`, 
 For the record only (not judged): the median Psi4 minus ORCA is +0.09 to +0.49 mEh in every one of the 15 combinations (M062X the largest), always positive, with no trace of the 37 mEh or 1.8 mEh errors found earlier; the largest single difference is 0.75 mEh. Density fitting does not explain the offset (the `pk` reruns moved cells by tens of microhartree). One Psi4 `gau_tight` pyridine optimization did not converge in 50 iterations.
 **Next, if wanted:** a new plan that settles the Psi4 default for Pople bases (density fitting against `pk`) and the HF floor's variants before any run. Not started. The stage-2 item in "Deferred" above is done; items 2 to 5 remain deferred.
 
+## Stage 2 result, version 2 (2026-10-20): NOT EVALUABLE again, for a different reason
+
+After version 1, the engine was changed to write exact integrals (`scf_type pk`, commit `a6741657`, decided by Alex) and a second preregistered plan was run (`benchmarks/psi4_agreement/PLAN_V2.md`, commit `68c3f8f1`, about 2 h 25 min). **The floors are now small** (HF 0.0000 mEh, DFT 0.063 mEh; tolerances 0.01 and 0.126 mEh), and **HF agrees with ORCA to the microhartree** (median 0.000 mEh in all three bases).
+**Verdict NOT EVALUABLE: 1 of 16 Psi4 optimizations is missing (6.2%, limit 5%)**, and the cause is an engine bug the run found: Psi4 prints chlorine as `CL` in the final geometry and the parser accepted only `Cl`, so every converged Psi4 optimization of a chlorine-containing molecule was refused. Fixed in its own commit afterwards.
+Not judged: the DFT energies sit a steady +0.2 to +0.4 mEh (median) above ORCA's, below the 0.5 mEh systematic threshold and above the 0.126 mEh tolerance; unexplained by density fitting. A third plan (same as version 2 on the fixed parser) is the next step, and also needs to settle the pyridine `tight` optimization floor job that exceeds the 30-minute cap. Not started.
+
+## Stage 2 result, version 3 (2026-10-20): PARTIAL
+
+The third preregistered run (`benchmarks/psi4_agreement/PLAN_V3.md`, commit `58e31894`; version 2 on the fixed `CL` parser, the optimization floor on five molecules) is **complete (no missing cell) and PARTIAL**. **Hartree-Fock: PASS**, all 48 cells within 0.010 mEh of ORCA (medians 0.000 mEh). **DFT: PARTIAL**, 73.4% of 192 cells within the 0.126 mEh tolerance, a steady positive offset of +0.05 to +0.65 mEh (medians +0.20 to +0.42, M062X largest), no systematic offset by the plan's 0.5 mEh rule and nothing beyond 5 T. **Relative energies: PARTIAL** (91.1% within, none beyond 5 T). **Optimizations: PARTIAL** (energies +0.07 to +0.31 mEh, geometries to 0.0034 A, none beyond 5 T).
+`PSI4_METHODS` is unchanged. The offset is unexplained (not density fitting, grid or threads; not the 37 mEh VWN or 1.8 mEh cartesian-d errors); a grid test on the largest cells is the suggested measurement, not started. Practical reading: Psi4 HF is ORCA's HF; Psi4 DFT is the same method to a few tenths of a mEh with a systematic sign, so numbers from the two engines are never mixed under one label.
+
+## Grid-offset experiment (2026-10-20): PARTIAL; the M062X offset is mostly ORCA's default grid, the B3LYP offset is not a grid effect
+
+A preregistered measurement (`benchmarks/psi4_agreement/PLAN_GRID_OFFSET.md`, commit `81d9a320`; 6 molecules x 4 DFT combinations, each program at its default and a finer grid, with Hartree-Fock negative controls that moved 0.00002 mEh) asked whether version 3's DFT offset shrinks on finer grids. **By the rule: PARTIAL** (pooled median offset +0.331 to +0.238 mEh; 54% of cells within 0.252 mEh, 80% needed).
+Descriptively, split by functional (not preregistered): **Psi4's default grid is converged** (its finer grid moved every energy by 0.04 mEh at most); **ORCA's default grid (DefGrid2) is not converged for M062X** (its energy rises 0.3 to 0.4 mEh on DefGrid3), which accounts for about 0.3 mEh of M062X's +0.56 mEh median offset; **B3LYP's +0.26 mEh median offset does not move at all** with either grid. A uniform +0.1 to +0.3 mEh remains in every DFT cell, growing with the molecule, and is unexplained (candidate: each program's coding of the functional). No change to the engine or `PSI4_METHODS`.
+
 ## How it is validated before it is offered (the project standard: claims are measured)
 
 1. **The parser is written against real output**, saved as fixtures (`tests/fixtures/psi4/`), never against what the manual says it prints; a mutation check on it, as for every parser here.
