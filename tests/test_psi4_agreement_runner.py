@@ -58,8 +58,10 @@ def test_the_grid_is_fifteen_distinct_combinations_every_engine_can_write():
 def test_the_job_lists_have_the_sizes_the_plan_states():
     assert len(runner.grid_jobs("orca")) == len(runner.grid_jobs("psi4")) == 240
     assert len(runner.optimize_jobs("orca")) == 16
-    assert len(runner.floor_jobs("orca")) == 6 * 3 * 2 + 6 * 2
-    assert len(runner.floor_jobs("psi4")) == 6 * 3 * 4 + 6 * 2
+    # PLAN_V3: the optimization floor is taken on five molecules (pyridine's tight job exceeded the cap twice)
+    assert len(runner.floor_jobs("orca")) == 6 * 3 * 2 + 5 * 2
+    assert len(runner.floor_jobs("psi4")) == 6 * 3 * 3 + 5 * 2
+    assert not any(j.molecule == "pyridine" and j.calc_type == "opt" for j in runner.floor_jobs("psi4"))
     assert len({job.key for job in runner.grid_jobs("psi4")}) == 240, "every job has its own key, so a resume cannot skip the wrong one"
 
 
@@ -92,13 +94,16 @@ def test_psi4_variants_change_exactly_the_setting_they_name_and_keep_the_call_la
     _o, _oo, sp, opt = _inputs()
 
     assert runner.psi4_variant(sp, "default", "sp") == sp and runner.psi4_variant(sp, "one_thread", "sp") == sp
-    pk = runner.psi4_variant(sp, "pk", "sp")
-    assert "set scf_type pk" in pk and "set scf_type df" not in pk and pk.rstrip().endswith("energy('b3lyp5')")
+    # PLAN_V2: the engine writes exact integrals, so density fitting is the (attribution-only) variant
+    assert "set scf_type pk" in sp
+    pk = runner.psi4_variant(sp, "df", "sp")
+    assert "set scf_type df" in pk and "set scf_type pk" not in pk and pk.rstrip().endswith("energy('b3lyp5')")
+    assert "pk" not in runner.PSI4_VARIANTS and "df" not in runner.PSI4_VARIANTS
     grid = runner.psi4_variant(sp, "grid", "sp")
     assert "set dft_radial_points 99" in grid and "set dft_spherical_points 590" in grid and "set e_convergence 1e-10" in grid and "1e-8" not in grid
     assert grid.rstrip().endswith("energy('b3lyp5')")
     tight = runner.psi4_variant(opt, "tight", "opt")
-    assert "set g_convergence gau_tight" in tight and tight.rstrip().endswith("optimize('b3lyp5')")
+    assert "set g_convergence gau_tight" in tight and "set geom_maxiter 200" in tight and tight.rstrip().endswith("optimize('b3lyp5')")
     # no variant touches the molecule block
     for variant in (pk, grid, tight):
         assert variant.split("molecule {")[1].split("}")[0] == sp.split("molecule {")[1].split("}")[0]
@@ -152,7 +157,6 @@ def _floor_records(shift_pk_hf=1e-6, shift_grid_dft=4e-5, shift_tight_orca=2e-5,
             orca.append(_record("orca", runner.Job("floor", "orca", m, f, b, "default", "sp"), -100.0))
             orca.append(_record("orca", runner.Job("floor", "orca", m, f, b, "tight", "sp"), -100.0 + shift_tight_orca))
             psi4.append(_record("psi4", runner.Job("floor", "psi4", m, f, b, "default", "sp"), -100.0))
-            psi4.append(_record("psi4", runner.Job("floor", "psi4", m, f, b, "pk", "sp"), -100.0 + (shift_pk_hf if f == "HF" else 1e-6)))
             psi4.append(_record("psi4", runner.Job("floor", "psi4", m, f, b, "grid", "sp"), -100.0 + (0.0 if f == "HF" else shift_grid_dft)))
             psi4.append(_record("psi4", runner.Job("floor", "psi4", m, f, b, "one_thread", "sp"), -100.0))
         for engine, records in (("orca", orca), ("psi4", psi4)):
@@ -166,13 +170,13 @@ def test_the_floors_are_the_largest_changes_per_class_across_both_engines():
 
     floors = runner.floors_from(orca, psi4)
 
-    # DFT: the largest of ORCA's tight (0.02 mEh) and Psi4's finer grid (0.04 mEh); HF: ORCA's tight 0.02 mEh against Psi4's pk 0.001
+    # DFT: the largest of ORCA's tight (0.02 mEh) and Psi4's finer grid (0.04 mEh); HF: ORCA's tight 0.02 mEh (Psi4's variants move HF by 0)
     assert floors["dft_meh"] == pytest.approx(0.04)
     assert floors["hf_meh"] == pytest.approx(0.02)
     assert floors["opt_energy_meh"] == pytest.approx(0.03)
     assert 0.0005 < floors["rmsd_angstrom"] < 0.002  # a 0.002 A displacement of one atom of four
-    # counted: DFT = ORCA tight (6 molecules x 2 DFT combinations) + Psi4 pk, grid and one_thread (3 x 12); HF = 6 + 18; optimizations = 6 per engine
-    assert floors["measurements"] == {"hf": 24, "dft": 48, "opt": 12, "expected_sp_per_variant": 18}
+    # counted: DFT = ORCA tight (6 molecules x 2 DFT combinations) + Psi4 grid and one_thread (2 x 12); HF = 6 + 12; optimizations = 6 per engine
+    assert floors["measurements"] == {"hf": 18, "dft": 36, "opt": 12, "expected_sp_per_variant": 18}
 
 
 def test_a_floor_without_measurements_is_an_error_and_not_zero():
