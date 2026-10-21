@@ -41,7 +41,10 @@ class SynthesisHost:
 
     def target(self) -> SynthesisTarget | None:
         uuid = self._session.selected_molecule_uuid
-        molecule = self._molecule(uuid) if uuid else None
+        return self.structure_of(uuid) if uuid else None
+
+    def structure_of(self, molecule_uuid: str) -> SynthesisTarget | None:
+        molecule = self._molecule(molecule_uuid)
         if molecule is None or not (molecule.canonical_smiles or "").strip():
             return None
         return SynthesisTarget(molecule_uuid=molecule.uuid, display_name=molecule.display_name, canonical_smiles=molecule.canonical_smiles)
