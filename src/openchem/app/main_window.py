@@ -356,6 +356,9 @@ HELP_TOPIC_BY_DOCK = {
 #: A PLUGIN panel's dock (named by the panel id the plugin registered, spaces as underscores) -> topic. Kept apart from `HELP_TOPIC_BY_DOCK` because that map is read against the docks
 #: the window builds with no plugin loaded: a plugin's dock is absent from those windows, and a guard that expects every key to be on screen would fail for it.
 HELP_TOPIC_BY_PLUGIN_DOCK = {
+    "AI_Assistant": "plugin-ai-assistant",
+    "Database_Search": "plugin-database-search",
+    "Reaction_Prediction": "plugin-reaction-prediction",
     "Synthesis": "synthesis",
 }
 
