@@ -114,10 +114,19 @@ def test_near_misses_can_be_turned_off(registry):
 
 
 def test_an_approximate_rule_carries_its_limitation_into_the_result(registry):
-    """Chlorambucil is a licensed medicine that the nitrogen-mustard pattern
-    matches. The finding must arrive with the caveat -- a bare match here
-    would read as an accusation."""
-    result = _run(registry, "OC(=O)CCCc1ccc(cc1)N(CCCl)CCCl")
+    """An approximate rule's finding must reach the result with its caveat
+    -- a bare match from a rule broader than its entry would read as an
+    accusation.
+
+    THE ANCHOR MOVED, AND THE PROPERTY DID NOT. This used to go through a
+    licensed medicine that the motif pattern behind `cwc-1-a-6` matched.
+    That entry is a closed listing and the rule is an identity now, so the
+    medicine is matched by nothing -- which is the improvement, and is
+    pinned in `test_regulatory_rulesets.py`. `cwc-1-a-5` is the Schedule 1
+    family rule that still reads an enumerating entry as a family, so it
+    carries the same caveat and is the honest anchor.
+    """
+    result = _run(registry, "ClC=C[As](Cl)Cl")
 
     # A fact with its own label now, rather than an indented line of prose
     # in a string list -- so a reader can see it is a caveat rather than

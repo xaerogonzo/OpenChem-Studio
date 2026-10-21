@@ -45,9 +45,9 @@ AMIDOXIME_DICATION = [
 ]
 
 OXONIUM_ACYLUREA = [
-    ("an O-protonated acylthiourea", "CCCC(=[OH+])NC(=S)Nc1ccccc1", "[1-(anilinomethanethioylamino)butylidene]oxidanium"),
+    ("an O-protonated acylthiourea", "CCCC(=[OH+])NC(=S)Nc1ccccc1", "{1-[(anilinomethanethioyl)amino]butylidene}oxidanium"),
     ("an O-protonated acylurea", "CCCC(=[OH+])NC(=O)Nc1ccccc1", "{1-{[anilino(oxo)methyl]amino}butylidene}oxidanium"),
-    ("an O-methylated acylthiourea", "CCCC(=[O+]C)NC(=S)Nc1ccccc1", "[1-(anilinomethanethioylamino)butylidene](methyl)oxidanium"),
+    ("an O-methylated acylthiourea", "CCCC(=[O+]C)NC(=S)Nc1ccccc1", "{1-[(anilinomethanethioyl)amino]butylidene}(methyl)oxidanium"),
 ]
 
 ALL = ACYLSULFONAMIDE_BESIDE_CATION + AZANIDYL_ACYL_PREFIX + AMIDOXIME_DICATION + OXONIUM_ACYLUREA

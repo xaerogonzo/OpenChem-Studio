@@ -214,6 +214,16 @@ OPENCHEM_DRIVE=/path/to/script.json uv run --no-sync python -m openchem.main
                                           to do and that NOTHING started; Run is a separate `qc_run` step
     {"do": "jobs_report", "tag": "running"}   rows AND whether it is POLLING
     {"do": "jobs_cancel", "row": 0}           the real button in a real row
+    {"do": "synthesis_panel", "tag": "x", "press": "plan", "route": 1, "step": 0, "scroll": "end",
+     "expect": {"routes_at_least": 1, "picture": true, "status_contains": "routes found"}}
+                                          the Synthesis panel's REAL buttons and lists, and what it SHOWS (status, routes,
+                                          whether a step's picture is drawn, the limitations; `details_scroll` reaches the last
+                                          lines of the step's text, its consistency checks and alerts); press and report in
+                                          SEPARATE steps, since Plan waits for the configuration to be read off the GUI thread
+    {"do": "synthesis_setup", "python": "...", "config": "..."}  the planner's settings for THIS run ("" = not set up);
+                                          writes the real registry, so `quit` or `{"restore": true}` puts them back
+    {"do": "ai_card", "card": "synthesis", "action": "approve"}   the Approve (or "cancel") of a card for a synthesis SEARCH the assistant asked for; `ai_expect` takes
+                                          `synthesis_requests` (cards waiting) and `notes_contain` / `notes_exclude` (what is held to tell the model with its next message)
     {"do": "conformers_finish", "expect": {"enabled": true, "readout_contains": ["found"]}}
                                           the REAL Finish now in the 3D viewer, asserted
                                           before it is pressed; "press": false only looks
@@ -609,6 +619,7 @@ message — this index is. **If a title below names what you are
 about to touch, read that section before you start.** Headings there
 are verbatim, so grep the file for the line.
 
+- A CLASSIFIER STOPPED THE EXPLANATION, NOT THE FILES, AND THE FEATURE WAS BUILT THROUGH THE SAME ALERTS
 - A MEASUREMENT MADE WITH THE LIBRARY DESCRIBED A STRUCTURE THE APPLICATION NEVER COMPUTES, AND A DECISION WAS TAKEN ON IT
 - A MOLECULE THAT ARRIVED WITH A CONFORMER SHOWED ITS SHAPE DESCRIPTORS AS FAILED, AND THE OBVIOUS FIX LOST ITS OWN RACE 37 TIMES IN 40
 - A CONFORMER RE-RAN THE WHOLE ALWAYS-ON SET ON ITS HYDROGENS, AND THE READER, THE PROJECT TABLE AND THE SAVED FILE ALL TOOK ITS ANSWER

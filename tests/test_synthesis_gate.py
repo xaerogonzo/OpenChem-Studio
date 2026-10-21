@@ -189,8 +189,24 @@ def test_a_rule_that_requires_review_also_says_it_may_be_a_false_positive():
 
 
 def test_an_approximate_rule_says_it_may_be_a_false_positive(real_gate):
-    decision = _decision("ClCCSCCCl", real_gate)
+    """The anchor moved from `cwc-1-a-4` to `cwc-1-a-5` when the first was
+    narrowed to its entry's listing and became a verified identity. The
+    property under test is unchanged: an approximate match still has to say
+    it may be a false positive."""
+    decision = _decision("ClC=C[As](Cl)Cl", real_gate)
     assert decision.matches[0].confidence == "approximate" and "false positive" in decision.refusal_text()
+
+
+def test_a_verified_identity_does_NOT_claim_it_may_be_a_false_positive(real_gate):
+    """The other half, which nothing asserted while every Schedule 1 family
+    rule was approximate. A refusal on an exactly-listed substance must not
+    hedge: the caveat is what distinguishes a pattern broader than its entry
+    from a transcription of the entry, and printing it on both would make it
+    noise on the one that needs it."""
+    decision = _decision("ClCCN(CCCl)CCCl", real_gate)
+
+    assert decision.matches[0].confidence == "verified"
+    assert "false positive" not in decision.refusal_text()
 
 
 def test_every_part_of_a_mixture_is_screened_not_only_the_whole(shipped):

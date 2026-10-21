@@ -1,0 +1,27 @@
+[
+  {"do": "synthesis_setup", "python": "", "config": ""},
+  {"do": "smiles", "smiles": "CC(=O)Oc1ccccc1C(=O)O", "name": "Aspirin", "after_ms": 1500},
+  {"do": "select", "molecule": -1, "after_ms": 1500},
+
+  {"do": "ai_send", "text": "Find synthesis routes for this molecule.", "after_ms": 6000,
+   "script": [{"tool": "plan_synthesis", "input": {}}, {"text": "The synthesis planner is not set up."}]},
+  {"do": "ai_expect", "tag": "a-planner-that-is-not-set-up-leaves-no-card-and-sends-no-local-path", "expect": {
+    "tools_offered": ["plan_synthesis", "read_synthesis_plan"],
+    "synthesis_requests": 0,
+    "tool_results_contain": ["planner_not_set_up", "External Tools"],
+    "tool_results_exclude": ["D:\\", "C:\\", "Users"],
+    "ledger_contains": ["synthesis plan on Aspirin: not started"],
+    "send_enabled": true}},
+
+  {"do": "ai_send", "text": "What synthesis plan is stored for this molecule?", "after_ms": 6000,
+   "script": [{"tool": "read_synthesis_plan", "input": {}}, {"text": "None is stored."}]},
+  {"do": "ai_expect", "tag": "no-plan-is-said-not-guessed", "expect": {
+    "tool_results_contain": ["\"has_plan\": false", "plan_synthesis"],
+    "synthesis_requests": 0,
+    "send_enabled": true}},
+  {"do": "shot", "path": "benchmarks/visual/artifacts/synthesis_assistant_not_set_up.png", "after_ms": 500},
+
+  {"do": "synthesis_setup", "restore": true},
+  {"do": "expect_clean"},
+  {"do": "quit"}
+]

@@ -203,39 +203,49 @@
   {
    "rule_id": "cwc-1-a-4",
    "display_name": "Sulfur mustards (Schedule 1, A.4)",
-   "match_type": "structural_family",
-   "confidence": "approximate",
+   "match_type": "identity",
+   "confidence": "verified",
    "description": "The 2-chloroethyl thioether motif shared by the sulfur mustard family.",
    "legal": {
     "authority": "OPCW",
     "instrument": "CWC Annex on Chemicals",
     "section": "Schedule 1, A.4",
     "quote": "Sulphur mustards",
-    "citation_url": "https://www.international.gc.ca/controls-controles/notices_avis/exp/list_liste/105-ann1.aspx?lang=eng"
-   },
-   "expression": {
-    "op": "all",
-    "of": [
-     {
-      "op": "contains",
-      "smarts": "SCCCl",
-      "label": "2-chloroethyl thioether",
-      "min": 1
-     },
-     {
-      "op": "element_count",
-      "element": "S",
-      "min": 1,
-      "label": "contains sulfur"
-     }
-    ]
+    "citation_url": "https://www.international.gc.ca/controls-controles/notices_avis/exp/list_liste/105-ann1.aspx?lang=eng",
+    "cited_identifiers": {
+     "CAS (A.4.1)": "2625-76-5",
+     "CAS (A.4.2)": "505-60-2",
+     "CAS (A.4.3)": "63869-13-6",
+     "CAS (A.4.4)": "3563-36-8",
+     "CAS (A.4.5)": "63905-10-2",
+     "CAS (A.4.6)": "142868-93-7",
+     "CAS (A.4.7)": "142868-94-8",
+     "CAS (A.4.8)": "63918-90-1",
+     "CAS (A.4.9)": "63918-89-8"
+    }
    },
    "assumptions": [
-    "the family is identified by the 2-chloroethyl thioether arm rather than by enumerating each listed member"
+    "The entry is a heading followed by a list of named sub-items, each with an identifier the text prints. The generic entries in the same part introduce their examples with 'e.g.' and this one does not, so the list is read as the listing rather than as examples of a wider family.",
+    "Each identity is resolved from the identifier the entry itself prints, not from its name; the name was resolved separately and agreed in every case (12 of 12 across both entries).",
+    "Checked against two official reproductions of the same Annex, which agree on every sub-item and every printed identifier."
    ],
    "limitations": [
-    "The entry is a HEADING followed by an enumeration of named members with CAS numbers, which is not reproduced here. A family pattern is therefore broader than the entry and is marked approximate for that reason."
-   ]
+    "NARROWER THAN THE FAMILY PATTERN THIS REPLACES, deliberately. The former pattern matched the shared structural motif, and so also matched molecules the entry does not list -- measured over 23,432 real structures, 12 were matched on that motif and none of them is a listed sub-item. A structure sharing the motif without being listed is now not matched by this rule, which is what the entry says.",
+    "A sub-item's salts and stereoisomers are reached by the engine's policy (counter-ions stripped before comparison; same connectivity matched under the regulation's own isomer wording and reported as such), so those need no entry of their own. An alkylated salt is a different structure and is not reached, as elsewhere in this ruleset.",
+    "This rule no longer produces a near miss, because the engine's identity path does not: a structure one feature away from a sub-item is reported by neither a finding nor a near miss here. The family pattern could say 'close to this entry' and an identity list cannot."
+   ],
+   "inchikeys": [
+    "HHQVSDLFPSFPST-UHFFFAOYSA-N",
+    "QKSKPIVNLNLAAV-UHFFFAOYSA-N",
+    "RKTJTTAEKCRXNL-UHFFFAOYSA-N",
+    "AMGNHZVUZWILSB-UHFFFAOYSA-N",
+    "YHRGRBPJIRKFND-UHFFFAOYSA-N",
+    "AYSIRJGVBLMLAS-UHFFFAOYSA-N",
+    "CUJOZMZOOCTTAZ-UHFFFAOYSA-N",
+    "IJGBNRTYNRKNHS-UHFFFAOYSA-N",
+    "FWVCSXWHVOOTFJ-UHFFFAOYSA-N"
+   ],
+   "interpreter_version": 2
   },
   {
    "rule_id": "cwc-1-a-5",
@@ -273,32 +283,37 @@
   {
    "rule_id": "cwc-1-a-6",
    "display_name": "Nitrogen mustards (Schedule 1, A.6)",
-   "match_type": "structural_family",
-   "confidence": "approximate",
+   "match_type": "identity",
+   "confidence": "verified",
    "description": "Bis(2-chloroethyl)amine motif.",
    "legal": {
     "authority": "OPCW",
     "instrument": "CWC Annex on Chemicals",
     "section": "Schedule 1, A.6",
     "quote": "Nitrogen mustards",
-    "citation_url": "https://www.international.gc.ca/controls-controles/notices_avis/exp/list_liste/105-ann1.aspx?lang=eng"
+    "citation_url": "https://www.international.gc.ca/controls-controles/notices_avis/exp/list_liste/105-ann1.aspx?lang=eng",
+    "cited_identifiers": {
+     "CAS (A.6.1)": "538-07-8",
+     "CAS (A.6.2)": "51-75-2",
+     "CAS (A.6.3)": "555-77-1"
+    }
    },
-   "expression": {
-    "op": "all",
-    "of": [
-     {
-      "op": "contains",
-      "smarts": "N(CCCl)CCCl",
-      "label": "bis(2-chloroethyl)amine"
-     }
-    ]
-   },
-   "assumptions": [],
+   "assumptions": [
+    "The entry is a heading followed by a list of named sub-items, each with an identifier the text prints. The generic entries in the same part introduce their examples with 'e.g.' and this one does not, so the list is read as the listing rather than as examples of a wider family.",
+    "Each identity is resolved from the identifier the entry itself prints, not from its name; the name was resolved separately and agreed in every case (12 of 12 across both entries).",
+    "Checked against two official reproductions of the same Annex, which agree on every sub-item and every printed identifier."
+   ],
    "limitations": [
-    "The entry is a HEADING followed by an enumeration of named members with CAS numbers, which is not reproduced here. A family pattern is therefore broader than the entry and is marked approximate for that reason.",
-    "APPROXIMATE, and knowingly over-broad in a way worth stating: several nitrogen mustards are licensed cytotoxic medicines (chlorambucil, melphalan, cyclophosphamide) and share this motif. A match here is a prompt to check the schedule's enumeration, not a finding that a medicine is a chemical weapon.",
-    "Knowingly over-broad in a way worth stating: several nitrogen mustards are licensed cytotoxic medicines (chlorambucil, melphalan, cyclophosphamide) and share this motif. A match is a prompt to check the enumeration, not a finding that a medicine is a chemical weapon."
-   ]
+    "NARROWER THAN THE FAMILY PATTERN THIS REPLACES, deliberately. The former pattern matched the shared structural motif, and so also matched molecules the entry does not list -- measured over 23,432 real structures, 12 were matched on that motif and none of them is a listed sub-item. A structure sharing the motif without being listed is now not matched by this rule, which is what the entry says.",
+    "A sub-item's salts and stereoisomers are reached by the engine's policy (counter-ions stripped before comparison; same connectivity matched under the regulation's own isomer wording and reported as such), so those need no entry of their own. An alkylated salt is a different structure and is not reached, as elsewhere in this ruleset.",
+    "This rule no longer produces a near miss, because the engine's identity path does not: a structure one feature away from a sub-item is reported by neither a finding nor a near miss here. The family pattern could say 'close to this entry' and an identity list cannot."
+   ],
+   "inchikeys": [
+    "UQZPGHOJMQTOHB-UHFFFAOYSA-N",
+    "HAWPXGHAZFHHAD-UHFFFAOYSA-N",
+    "FDAYLTPAFBGXAB-UHFFFAOYSA-N"
+   ],
+   "interpreter_version": 2
   },
   {
    "rule_id": "cwc-1-a-13",

@@ -109,6 +109,7 @@ from openchem.events.events import (
     ScoreDefinitionsChanged,
 )
 from openchem.app.calculation_host import CalculationHost
+from openchem.app.synthesis_host import SynthesisHost
 from openchem.plugins.manager import PluginManager
 from openchem.services.container import ServiceContainer
 from openchem.services.result_store_service import SUBSTANCE_PART
@@ -348,6 +349,18 @@ HELP_TOPIC_BY_DOCK = {
     "Jobs": "jobs",
     "Console": "jobs",
 }
+
+#: A PLUGIN panel's dock (named by the panel id the plugin registered, spaces as underscores) -> topic. Kept apart from `HELP_TOPIC_BY_DOCK` because that map is read against the docks
+#: the window builds with no plugin loaded: a plugin's dock is absent from those windows, and a guard that expects every key to be on screen would fail for it.
+HELP_TOPIC_BY_PLUGIN_DOCK = {
+    "Synthesis": "synthesis",
+}
+
+
+def help_topic_of_dock(object_name: str) -> str | None:
+    """The topic a dock opens, whether the window builds the dock itself or a plugin supplies it; None when nothing is written about it."""
+    return HELP_TOPIC_BY_DOCK.get(object_name) or HELP_TOPIC_BY_PLUGIN_DOCK.get(object_name)
+
 
 #: Centre tab label -> topic, for when no panel with help is in front.
 HELP_TOPIC_BY_CENTRE_TAB = {
@@ -960,7 +973,9 @@ class MainWindow(QMainWindow):
         # The calculator bridge a plugin (the AI assistant) reaches through `context.calculations`.
         # Held here: the bus keeps only weak references to its handlers.
         self._calculation_host = CalculationHost(services, session)
-        self._plugin_manager = PluginManager(services, self, settings, self._calculation_host)
+        # The same for the synthesis planner (`context.synthesis`): the selected molecule, the planning service and the planner's setting.
+        self._synthesis_host = SynthesisHost(services, session, settings)
+        self._plugin_manager = PluginManager(services, self, settings, self._calculation_host, self._synthesis_host)
         self._plugin_manager.load_all()
         self._refresh_installed_plugins_menu()
 
@@ -986,7 +1001,7 @@ class MainWindow(QMainWindow):
         # Only for docks WITH a topic: a "?" that opened the wrong section
         # would be worse than none, and Console and Jobs have nothing
         # written about them.
-        topic = HELP_TOPIC_BY_DOCK.get(dock.objectName())
+        topic = help_topic_of_dock(dock.objectName())
         if topic is not None:
             # The topic travels on the title bar and comes back through the
             # signal. A `lambda topic=topic: self._show_help(topic)` here
@@ -1647,8 +1662,8 @@ class MainWindow(QMainWindow):
 
             return help_anchor_for(str(calculator_id))
         while widget is not None:
-            if isinstance(widget, QDockWidget) and widget.objectName() in HELP_TOPIC_BY_DOCK:
-                return HELP_TOPIC_BY_DOCK[widget.objectName()]
+            if isinstance(widget, QDockWidget) and help_topic_of_dock(widget.objectName()) is not None:
+                return help_topic_of_dock(widget.objectName())
             if widget is self._center_tabs:
                 # Reached the editor/viewer without passing through a dock.
                 # Checked HERE rather than as a last resort: the right-hand
@@ -1669,8 +1684,8 @@ class MainWindow(QMainWindow):
         # answer nothing at all under a test harness while looking correct
         # in the running app.
         for dock in self._right_docks:
-            if not dock.isHidden() and dock.objectName() in HELP_TOPIC_BY_DOCK:
-                return HELP_TOPIC_BY_DOCK[dock.objectName()]
+            if not dock.isHidden() and help_topic_of_dock(dock.objectName()) is not None:
+                return help_topic_of_dock(dock.objectName())
 
         return HELP_TOPIC_BY_CENTRE_TAB.get(
             self._center_tabs.tabText(self._center_tabs.currentIndex()), "projects"

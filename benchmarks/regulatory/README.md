@@ -42,8 +42,10 @@ beside it.
 Nothing is withheld when an entry carries no `as_of`, and that was checked
 rather than asserted: run the new scorer against the corpus with `historical`
 emptied and the per-rule table is **byte-identical** to the one master
-produces. Worst per-rule precision is unchanged at 0.50 (`cwc-1-a-6`), with
-the same two known mismatches.
+produces. Worst per-rule precision was unchanged at 0.50 (`cwc-1-a-6`), with
+the same two known mismatches. (That 0.50 is a figure of its date: the rule
+was narrowed on 2026-10-21 and scores 1.00 — see the section below. What the
+check established, that nothing is withheld without an `as_of`, is unchanged.)
 
 **One shipped claim went stale the moment this landed**, and it was found by
 a test assertion that was too loose rather than by review: Schedule 1's
@@ -212,22 +214,61 @@ Three Schedule 3 edge cases carry the weight:
 | `cwc-1-a-5` lewisites | 1 | 0 | 0 | 28 | 1.00 | 1.00 |
 | **`cwc-1-a-6` nitrogen mustards** | 2 | **2** | 0 | 25 | **0.50** | 1.00 |
 
-## The 0.50 is the point of the whole benchmark
+## The 0.50 was the point of the whole benchmark, and it is 1.00 now
 
-`cwc-1-a-6` matches **chlorambucil** and **melphalan**, both licensed
+**RESOLVED 2026-10-21 by narrowing the rule, not by editing the corpus** —
+which is the outcome this section was written hoping for.
+
+As recorded below, `cwc-1-a-6` scored 0.50 because it matched two licensed
+cytotoxic medicines that the entry does not list. Both were in `edge_cases`
+expecting **no match**, so the benchmark scored them as the failures they
+were rather than blessing the behaviour. That is the whole reason the number
+was visible to be acted on.
+
+What changed is the reading of the entry. A.4 and A.6 are each a heading
+followed by a closed list of named sub-items with printed identifiers; the
+generic entries in the same part introduce theirs with "e.g." and these two
+do not. Both rules are identities over those sub-items now, so a structure
+sharing the motif without being listed matches neither.
+
+| rule | TP | FP | FN | precision | recall |
+|---|---|---|---|---|---|
+| `cwc-1-a-4` | 3 → **9** | 0 | 0 | 1.00 | 1.00 |
+| `cwc-1-a-6` | 2 → **3** | **2 → 0** | 0 | **0.50 → 1.00** | 1.00 |
+
+The true-positive counts rise because every sub-item now has a case of its
+own: a rule-level positive is not a sub-item-level one, and for a rule
+listing nine substances the difference is eight of them
+(`test_every_sub_item_of_an_enumerated_entry_is_REACHED`).
+
+**Three corpus rows changed, and no expectation was loosened:**
+
+- the half-mustard edge case went from expecting `cwc-1-a-4` to expecting
+  nothing. It was recorded as a known over-broad match, so that the
+  benchmark measured the rule as written; the rule no longer matches it.
+- 8 sub-item positives added (4 were already present).
+- 11 negatives added — the structures the former patterns matched across
+  23,432 real molecules that the entries do not list. None of the 11
+  produces so much as a near miss anywhere in the shipped file.
+
+**One of the 12 former matches was a listed sub-item**, not an over-match,
+and still matches by exact salt-normalised identity. The over-refusal
+figure recorded during the gate work was therefore 11, not 12.
+
+The score remains **reported, not enforced**. A gate failing the build here
+would push someone to delete the honest edge case rather than fix the rule —
+and the fix is what happened.
+
+### What it looked like before (kept, because the record is the point)
+
+`cwc-1-a-6` matched **chlorambucil** and **melphalan**, both licensed
 cytotoxic medicines. Neither is among the HN1/HN2/HN3 the treaty entry
-enumerates, so both are genuine false positives of a pattern that keys on
-the bis(2-chloroethyl)amine motif.
-
-They are recorded in `edge_cases` as expecting **no match**, so the
-benchmark scores them as the failures they are rather than blessing the
-current behaviour. The rule ships anyway, marked `approximate`, carrying a
-limitation that says this in as many words — the alternative is to say
-nothing about nitrogen mustards at all, which is worse. What is not
-acceptable is shipping it while pretending precision is 1.00.
-
-The score is **reported, not enforced**. A gate failing the build here
-would push someone to delete the honest edge case rather than fix the rule.
+enumerates, so both were genuine false positives of a pattern that keyed on
+the bis(2-chloroethyl)amine motif. The rule shipped anyway, marked
+`approximate`, carrying a limitation that said so in as many words — the
+alternative was to say nothing about nitrogen mustards at all, which is
+worse. What was not acceptable was shipping it while pretending precision
+was 1.00.
 
 ## Why four corpora
 

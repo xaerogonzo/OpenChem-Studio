@@ -639,19 +639,24 @@ twenty-two did not when Schedule 3 landed, and a rule with no positive
 scores a perfect 1.00 while testing nothing — the same vacuous pass this
 section exists to refuse. A guard fails if a future rule ships without one.
 
-90 of the 91 rules — all three CWC schedules and the US DEA listed
-chemicals — score precision 1.00 and recall 1.00. The one that does not:
+**All 91 rules** — all three CWC schedules and the US DEA listed chemicals —
+score precision 1.00 and recall 1.00, as of 2026-10-21.
 
-| rule | precision | recall |
-|---|---|---|
-| `cwc-1-a-6` nitrogen mustards | **0.50** | 1.00 |
+The one that did not was `cwc-1-a-6`, at precision **0.50**: it matched
+**chlorambucil** and **melphalan**, licensed cytotoxic medicines and neither
+among the HN1/HN2/HN3 the entry enumerates. Both were recorded as expecting
+no match, so the benchmark scored them as the false positives they were, and
+the rule shipped marked `approximate` with a limitation saying so.
 
-It matches **chlorambucil** and **melphalan**, licensed cytotoxic medicines
-and neither among the HN1/HN2/HN3 the entry enumerates. Both are recorded as
-expecting no match, so the benchmark scores them as the false positives they
-are. The rule ships marked `approximate` with a limitation saying so —
-staying silent about nitrogen mustards would be worse, and reporting
-precision 1.00 would be worse still.
+**It was fixed by narrowing the rule, not by editing the corpus.** A.4 and
+A.6 are each a heading over a closed list of named sub-items with printed
+identifiers — the generic entries in the same part introduce theirs with
+"e.g." and these two do not — so `cwc-1-a-4` and `cwc-1-a-6` are identities
+over those sub-items, anchored on the identifier each sub-item prints.
+Measured over the 23,432 PaRoutes stock and patent-target structures: 12
+matched before, 1 after, and that 1 is a listed sub-item matched by exact
+salt-normalised identity. Nothing newly matched. Details and the three
+changed corpus rows are in `benchmarks/regulatory/README.md`.
 
 The edge cases carry the weight. **Diisopropyl fluorophosphate** has sarin's
 phosphoryl, fluorine and alkoxy, no P–C bond, and is not Schedule 1; a rule

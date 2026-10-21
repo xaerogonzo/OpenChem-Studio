@@ -1,0 +1,12 @@
+{
+ "verdict": "NOT EVALUABLE",
+ "why": [
+  "6.2% of the cells are missing, above the 5% limit"
+ ],
+ "tolerances": {
+  "hf_meh": 0.01,
+  "dft_meh": 0.1257143701423047,
+  "opt_energy_meh": 0.1257143701423047,
+  "geometry_angstrom": 0.0021037414972672865
+ }
+}

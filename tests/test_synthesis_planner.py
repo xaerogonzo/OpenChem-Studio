@@ -106,7 +106,8 @@ def test_every_step_carries_what_the_planner_gave_and_nothing_else():
     step = route.steps[-1]
     assert step.product == route.target_smiles and step.reaction_smiles and step.template_id and step.policy_name == "uspto" and 0 < step.policy_probability <= 1
     assert all(m.in_stock is True for m in route.starting_materials)
-    assert route.score and 0 < route.score <= 1 and route.validation is None  # the planner's ranking number; validation is a later slice
+    assert route.score and 0 < route.score <= 1  # the planner's ranking number
+    assert route.validation is not None and route.validation.fully_validated  # every kept route is checked against its own bookkeeping (slice 6)
 
 
 def test_a_three_step_route_is_in_the_order_it_would_be_run():
@@ -781,8 +782,15 @@ def test_cancelling_the_real_planner_leaves_no_process_that_is_running_the_runne
         pytest.skip("this machine cannot list processes by command line")
     cancel = threading.Event()
     midway: set[int] = set()
-    threading.Timer(3.0, lambda: midway.update(runner_processes() or set())).start()
-    threading.Timer(4.0, cancel.set).start()
+
+    def cancel_once_the_child_has_been_seen() -> None:
+        # Cancel only after the listing has actually shown the running child (a fixed delay raced a slow PowerShell under load), and never later than 60 s.
+        deadline = time.monotonic() + 60
+        while time.monotonic() < deadline and not midway:
+            midway.update((runner_processes() or set()) - before)
+        cancel.set()
+
+    threading.Thread(target=cancel_once_the_child_has_been_seen, daemon=True).start()
     began = time.monotonic()
 
     result = host.run_planner(_real_request(iterations=100000), TARGET, python=_PLANNER_PYTHON, cancel=cancel)
@@ -791,3 +799,22 @@ def test_cancelling_the_real_planner_leaves_no_process_that_is_running_the_runne
     assert midway - before, "the process listing never saw the running child, so 'none left' below would prove nothing"
     time.sleep(2.0)
     assert runner_processes() - before == set()
+
+
+def test_every_plan_carries_what_was_measured_about_the_planner_beside_the_standing_limitations():
+    for name in ("aspirin_it100", "caffeine_it100"):
+        result = parse(name)
+        assert result.limitations[: len(STANDARD_LIMITATIONS)] == STANDARD_LIMITATIONS and host.BENCHMARK_FINDING in result.limitations, name
+        assert host.BENCHMARK_FINDING in result.all_limitations()
+
+
+def test_the_benchmark_finding_says_only_what_the_result_file_says():
+    """The sentence is typed by hand, so each figure is held to `benchmarks/synthesis/RESULT.md`, which a re-run would change."""
+    result_file = (Path(__file__).parent.parent / "benchmarks" / "synthesis" / "RESULT.md").read_text(encoding="utf-8")
+    finding = host.BENCHMARK_FINDING
+    # (the figure as the sentence writes it, the figure as the file writes it)
+    for sentence, in_file in (("96.7%", "0.967"), ("37.3%", "0.373"), ("81%", "0.81"), ("29%", "0.29"), ("2%", "0.02")):
+        assert sentence in finding and in_file in result_file, sentence
+    assert "48%" in finding and "48% of first routes are shorter than the reference" in result_file
+    assert "300" in finding and "not as known routes" in finding and "probably trained on those same reactions" in finding, "the claim is narrowed and the contamination caveat is not dropped"
+    assert "known routes" in finding and "valid" not in finding.replace("internally consistent", ""), "never says a route is valid or feasible"

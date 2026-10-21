@@ -142,10 +142,15 @@ def main() -> int:
     print(f"\n{total} structures, {len(all_rules)} rules")
     print(f"worst per-rule precision: {worst_precision:.2f}")
     # Reported, not enforced. A known over-broad rule is a documented state
-    # here -- `cwc-1-a-6` matches licensed nitrogen-mustard medicines and
-    # says so in its limitations -- and a gate that failed the build for it
-    # would push someone to delete the honest edge case rather than fix the
-    # rule.
+    # here, and a gate that failed the build for it would push someone to
+    # delete the honest edge case rather than fix the rule.
+    #
+    # The example this comment used to name was `cwc-1-a-6`, which scored
+    # 0.50 on two licensed medicines its entry does not list. Being
+    # reported rather than enforced is what kept that number visible until
+    # the rule was narrowed to its entry's listing on 2026-10-21, at which
+    # point it became 1.00 -- so the reported-only policy is what the fix
+    # came out of, not a reason the fix was not needed.
     return 0
 
 

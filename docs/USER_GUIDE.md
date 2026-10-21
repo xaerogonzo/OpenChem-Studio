@@ -2319,6 +2319,27 @@ with it, and *Style* keeps working from the panel.
 
 ---
 
+<!-- help:synthesis -->
+## Synthesis
+
+The **Synthesis** panel (the rail's Extensions group, or **Plugins ▸ Plan Synthesis**) asks a synthesis planner for routes to the selected molecule. It is a front end for **AiZynthFinder**, a program you install yourself and point the application at under **Edit ▸ Settings ▸ External tools ▸ AiZynthFinder** (the application never downloads or installs it). Until that is done the panel says what is missing and where to set it up, and **Plan synthesis** answers that the planner is not available.
+
+**Before anything runs, the target is checked.** A molecule that matches the structural rules of the shipped `cwc-schedule-1` ruleset is refused, with the reason, and no planner starts; a molecule the check could not be applied to is refused the same way. A refusal is a result like any other and stays on the molecule until it is edited. The check covers the target only: a molecule in the middle of a route is flagged where a flag is meant to go, and is not a refusal.
+
+**Choosing.** Three lists, filled from the planner's configuration file when the panel is shown (a few seconds the first time, off the interface, so nothing freezes): the **expansion policy** that proposes reactions (default `uspto`), the **stock** of molecules a route may end at (default `zinc`) and an optional **filter** that discards reactions it scores as unlikely (default none, which is what the project's benchmark ran). A choice applies to the next plan; one already running keeps the choice it started with.
+
+**Planning.** A search takes about a minute and a half for a small target with the default stock (the planner's models load first) and needs 3 to 5 GB of memory; it runs in a program of its own, shows as a job in the Jobs panel, and **Cancel** stops it and ends that program. One molecule is planned at a time and one search runs at a time.
+
+**Reading the result.** Routes are listed in the planner's own order, each with its length, its starting materials and the planner's score; select one to list its steps in the order they would be run, and select a step to see it drawn (reactants, an arrow, the product) with everything the planner said about it beside it: its template, its policy and the policy's probability. Anything the planner did not supply is shown as **not provided**, not as a blank or a zero. The probability and the score are the planner's own numbers; neither is a yield or a chance that the step works. **No conditions, reagents or yields are given, because the planner does not give them**, and the standing limitations are printed beneath every result: a route is a hypothesis from a program trained on patent reactions, nobody has run these reactions, and "in stock" means a match to a catalogue snapshot, not that anyone sells it today.
+
+**What was checked about a route, and what was flagged.** Beside each step the panel lists the route's own bookkeeping, separately and never as one verdict: whether every molecule parses, whether each step's reaction parses and is made of the molecules the step connects, whether the atom mapping is complete, whether atoms are conserved (judged only where the mapping is complete; otherwise it says it could not be assessed), and whether the starting materials are in the stock. This says the planner's books are consistent. It does not say the chemistry is right. Every molecule of every route (the target, each intermediate, each starting material) is also screened against the application's regulatory rulesets, the shipped ones and any of your own, and what matched is listed with the rule, the ruleset, what kind of listing it is (a controlled substance, a precursor list, a workplace exposure limit and so on) and how sure the rule is. An alert never removes or refuses a route and is not a legal determination; a molecule with no alert is not thereby free of obligations, because the lists are finite; and a molecule that could not be screened says why and is never counted as having no alert. Ordinary solvents and reagents often match an exposure-limit listing, so a route with an alert is common and the listing's kind is what to read. The route list shows how many molecules of each route carry an alert.
+
+**A plan belongs to a structure.** If you edit the drawing after planning, the panel keeps the plan but labels it **EARLIER STRUCTURE** and says which structure it was made for; it is never shown as the plan for what is drawn now. Plans are kept for the session only and are not saved in the project.
+
+**Who may ask.** A person pressing **Plan synthesis**, or the AI Assistant asking for one: it puts a card on its panel and the search starts only if you press **Approve** (the same regulatory check runs first, and the assistant cannot press it). The `?` in this panel's title bar, and F1 with the focus in it, open this section.
+
+**What it was measured to do.** Every plan carries a sentence with the planner's benchmark result: on 300 patent routes it found a route for 96.7% of targets but had the patent route among its first 10 for only 37.3%, and it often finds routes shorter than the patent's. Read the routes as internally consistent, repeatable proposals that often differ from known routes, not as known routes; the numbers and what they do not show are in the Scientific Limitations document (Synthesis route planning).
+
 <!-- help:jobs -->
 ## Jobs and the console
 
@@ -3321,8 +3342,9 @@ kept, which asks first.
 <!-- help:external-tools -->
 ## External tools
 
-**Edit ▸ Settings… ▸ External tools** has eight tabs: AutoDock Vina, ORCA,
-pkasolver, ADMET, Java (Temurin), NMR Database, Knowledge Vista, and Storage. **Tools ▸
+**Edit ▸ Settings… ▸ External tools** has ten tabs: AutoDock Vina, ORCA, Psi4,
+AiZynthFinder, pkasolver, ADMET, Java (Temurin), NMR Database, Knowledge Vista,
+and Storage. **Tools ▸
 External Tools…**, and the Configure buttons on the Docking and Quantum
 Chemistry panels, open the same window at the right tab.
 
@@ -3336,6 +3358,20 @@ acid's pKa. A path that exists proves nothing; these prove the tool works.
 each candidate before accepting it, which matters more than it sounds: "ORCA"
 is a common name, and on a real machine this search found an unrelated
 `Orca.exe` in a Windows Installer cache before the right one.
+
+**AiZynthFinder** is the synthesis planner, and it is a tool you install yourself, in an
+environment of your own: the application never downloads, installs or removes it. The tab has two
+paths, the **Python** of the environment it is installed in and the **configuration** file
+(config.yml) that its `download_public_data` command wrote, and **Test** runs a real search of
+aspirin for a few iterations (the start-up alone takes about 20 seconds) and stops at the first thing
+it can name: a Python that is missing or has no AiZynthFinder, a configuration that will not read,
+or a policy model, template file, filter or stock that is not where the configuration says (each
+checked on its own, by file name). By default it uses the `uspto` policy, the `zinc` stock (or the first
+the file lists) and no filter, the configuration the project's benchmark ran. Installing it takes about 1 GB
+for the environment and 750 MB for its models and stock, a search needs 2.75 GB of memory with a small
+stock and up to 5 GB with ZINC, and a fresh install needs `pip install "pyarrow<21"` or it will not
+import. A route it proposes is a hypothesis from a program trained on patent reactions, with no
+conditions or yields. Nothing in the window plans a synthesis yet; this tab is the first part of that.
 
 **Knowledge Vista** is the one optional extra: a separate program (`kv`) that
 keeps track of where a library of PDFs is, by what the files contain, so a paper
@@ -3363,8 +3399,8 @@ installed" state.
 <!-- help:plugins -->
 ## Plugins
 
-Three plugins ship: **AI Assistant**, **Database Search** and **Reaction
-Prediction**. Enable or disable them from the plugin manager.
+Four plugins ship: **AI Assistant**, **Database Search**, **Reaction
+Prediction** and **Synthesis** (see its own section). Enable or disable them from the plugin manager.
 
 The AI Assistant opens from **Plugins > Open AI Assistant** (its panel is in the
 right-hand rail under *Compare and Extend*). Choose a provider and click
@@ -3380,7 +3416,7 @@ became of it, is listed under the conversation. It can also read the goal wizard
 application pairs with a question such as "where is the charge"), as a suggestion rather than a protocol. It can also read the **derived scores** you
 defined (their names, formulas and values for the selected molecule; never the owner or the note), and says so when one cannot be worked out. It cannot save or change one, but it can propose a new one: a card shows the formula, what each
 input reads, the unit and what it gives for the selected molecule, and nothing is saved unless you press **Approve** (it is then saved with the assistant
-as its owner, and you change it in **Tools > Derived Scores** like any other). Those results, and a score's name and formula, are sent to the provider
+as its owner, and you change it in **Tools > Derived Scores** like any other). It can ask to search for synthesis routes to the selected molecule: a card names the molecule, its structure and the policy, stock and filter the planner would use, and the planning program starts only if you press **Approve** (the application's regulatory check then runs first and can decline to plan; the assistant is told only that it was not planned, never why). When the search ends the assistant is told with your next message, and it can read the stored plan: each route's steps, the route's own consistency checks and the rule ids of any regulatory alerts (not the names of what they list; those are in the Synthesis panel). A route is a hypothesis from a program, and the assistant is told to give no conditions, reagents or yields, because the planner gives none. Those results, a score's name and formula, and any synthesis plan the assistant reads, are sent to the provider
 as part of the conversation, and a note under the box says where. **Plugins > Explain
 Stored Results** asks it to explain everything stored for the selected molecule.
 

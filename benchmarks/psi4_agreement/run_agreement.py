@@ -4,7 +4,7 @@
     python run_agreement.py floor-report                                                 floor.json: the four floors and the tolerances
     python run_agreement.py grid       --engine orca|psi4                                the 240 single points
     python run_agreement.py optimize   --engine orca|psi4                                the 16 optimizations
-    python run_agreement.py attribute                                                    Psi4 `scf_type pk` on every cell outside its tolerance (reported, decides nothing)
+    python run_agreement.py attribute                                                    Psi4 `scf_type df` on every cell outside its tolerance (reported, decides nothing)
     python run_agreement.py report                                                       report.txt and verdict.json
 
 Everything resumes: a job already recorded as completed is never run again. Records are `artifacts/<stage>/<engine>.jsonl`, one JSON line per attempt, each with the commit, whether `src/` was dirty, the engine's
@@ -69,9 +69,12 @@ GRID_COMBINATIONS = (
     + [("B3LYP", "pcSseg-1"), ("B3LYP", "pcSseg-2"), ("B3LYP/G", "def2-SVP")]
 )
 OPT_COMBINATION = ("B3LYP", "def2-SVP")
+#: PLAN_V3: pyridine's Psi4 `tight` optimization hit the 30-minute cap in versions 1 and 2, so the optimization floor is taken on the other five floor molecules, for both engines (declared in advance, not dropped after the fact).
+OPT_FLOOR_EXCLUDED = frozenset({"pyridine"})
 #: Variants of a floor run: the engine's own input, and each setting that does not change the method.
 ORCA_VARIANTS = ("default", "tight")
-PSI4_VARIANTS = ("default", "pk", "grid", "one_thread")
+# PLAN_V2: the engine writes exact integrals (`pk`) now, so density fitting left the floor (it is a method choice, not a harmless setting) and is only the `df` attribution rerun.
+PSI4_VARIANTS = ("default", "grid", "one_thread")
 
 
 # --- inputs ---------------------------------------------------------------------------------------------------------------
@@ -103,18 +106,18 @@ def orca_variant(text: str, variant: str, calc_type: str) -> str:
 
 
 def psi4_variant(text: str, variant: str, calc_type: str) -> str:
-    """Psi4's input as the engine writes it, with the nuisance variant's settings: `pk` (exact integrals instead of density fitting), `grid` (a finer DFT grid and tighter convergence), `one_thread` (the input is
+    """Psi4's input as the engine writes it, with the nuisance variant's settings: `df` (density fitting instead of the engine's exact integrals; attribution only), `grid` (a finer DFT grid and tighter convergence), `one_thread` (the input is
     unchanged: the thread count is the command's), `tight_opt` is added for an optimization's tight variant."""
     if variant in ("default", "one_thread"):
         return text
     lines = text.rstrip("\n").split("\n")
     verb = lines.pop()  # the last line is the energy(...) / optimize(...) call
-    if variant == "pk":
-        lines = [("set scf_type pk" if line == "set scf_type df" else line) for line in lines]
+    if variant == "df":
+        lines = [("set scf_type df" if line == "set scf_type pk" else line) for line in lines]
     elif variant == "grid":
         lines = [line.replace("1e-8", "1e-10") for line in lines] + ["set dft_radial_points 99", "set dft_spherical_points 590"]
     elif variant == "tight":
-        lines = lines + ["set g_convergence gau_tight"]
+        lines = lines + ["set g_convergence gau_tight", "set geom_maxiter 200"]  # PLAN_V2: v1's pyridine job hit the default 50 iterations
     else:
         raise ValueError(f"unknown Psi4 variant {variant!r}")
     return "\n".join([*lines, verb, ""])
@@ -243,7 +246,7 @@ def run_all(ctx: Context, jobs: list[Job]) -> None:
 def floor_jobs(engine: str) -> list[Job]:
     variants = ORCA_VARIANTS if engine == "orca" else PSI4_VARIANTS
     jobs = [Job("floor", engine, m, f, b, v, "sp") for m in FLOOR_MOLECULES for f, b in FLOOR_COMBINATIONS for v in variants]
-    jobs += [Job("floor", engine, m, *OPT_COMBINATION, v, "opt") for m in FLOOR_MOLECULES for v in ("default", "tight")]
+    jobs += [Job("floor", engine, m, *OPT_COMBINATION, v, "opt") for m in FLOOR_MOLECULES if m not in OPT_FLOOR_EXCLUDED for v in ("default", "tight")]
     return jobs
 
 
@@ -268,7 +271,7 @@ def floors_from(orca: list[dict], psi4: list[dict]) -> dict:
     dft: list[float] = []
     opt_energy: list[float] = []
     opt_rmsd: list[float] = []
-    for engine, records, variants in (("orca", orca, ("tight",)), ("psi4", psi4, ("pk", "grid", "one_thread"))):
+    for engine, records, variants in (("orca", orca, ("tight",)), ("psi4", psi4, ("grid", "one_thread"))):
         done = _completed(records)
         for m in FLOOR_MOLECULES:
             for f, b in FLOOR_COMBINATIONS:
@@ -358,7 +361,7 @@ def main() -> None:
     parser.add_argument("--engine", choices=["orca", "psi4"])
     parser.add_argument("--workers", type=int, default=3)
     parser.add_argument("--cores", type=int, default=4)
-    parser.add_argument("--out", default=str(HERE / "artifacts"))
+    parser.add_argument("--out", default=str(HERE / "artifacts_v3"))  # PLAN_V3; `artifacts/` (v1) and `artifacts_v2/` stay as the record
     parser.add_argument("--molecules", nargs="*", help="a subset (smoke tests only; a subset is never judged)")
     args = parser.parse_args()
     ctx = Context(Path(args.out), args.cores, args.workers)
@@ -382,7 +385,7 @@ def main() -> None:
         sp = single_point_records(ctx.records("grid", "orca"), ctx.records("grid", "psi4"))
         outside = [r for r in sp if r["orca"] is not None and r["psi4"] is not None and abs(r["psi4"] - r["orca"]) * judge.HARTREE_TO_MEH > tol.energy(r["functional"])]
         print(f"{len(outside)} cell(s) outside tolerance")
-        run_all(ctx, [Job("attribute", "psi4", r["molecule"], r["functional"], r["basis"], "pk", "sp") for r in outside])
+        run_all(ctx, [Job("attribute", "psi4", r["molecule"], r["functional"], r["basis"], "df", "sp") for r in outside])
     elif args.command == "report":
         floors = json.loads((ctx.out / "floor.json").read_text(encoding="utf-8"))
         tol = tolerances_from(floors)
@@ -399,7 +402,7 @@ def main() -> None:
                  *report_lines(sp, op, tol)]
         attribution = _completed(ctx.records("attribute", "psi4"))
         if attribution:
-            lines += ["", "attribution (Psi4 with scf_type pk on the cells outside tolerance; decides nothing): d with density fitting -> d with exact integrals (mEh)"]
+            lines += ["", "attribution (Psi4 with scf_type df on the cells outside tolerance; decides nothing): d with exact integrals -> d with density fitting (mEh)"]
             by_key = {(r["molecule"], r["functional"], r["basis"]): r for r in sp}
             for key, rec in sorted(attribution.items()):
                 cell = by_key[(rec["molecule"], rec["functional"], rec["basis"])]
