@@ -201,9 +201,7 @@ def candidate_sites(mol: Chem.Mol) -> list[dict]:
             kind = "lone_pair"  # N, O, P, S, and carbon monoxide's carbon
         elif atom.GetAtomicNum() == 6 and any(b.GetBondType() == Chem.BondType.AROMATIC for b in atom.GetBonds()):
             kind = "pi_carbon"  # every carbon of an aromatic ring, including one bonded only to heteroatoms
-        elif atom.GetAtomicNum() == 6 and any(b.GetBondType() == Chem.BondType.DOUBLE and b.GetOtherAtom(atom).GetAtomicNum() == 6 for b in atom.GetBonds()):
-            kind = "pi_carbon"
-        elif atom.GetAtomicNum() == 6 and any(b.GetBondType() == Chem.BondType.TRIPLE and b.GetOtherAtom(atom).GetAtomicNum() == 6 for b in atom.GetBonds()):
+        elif atom.GetAtomicNum() == 6 and any(b.GetBondType() == Chem.BondType.DOUBLE and b.GetOtherAtom(atom).GetAtomicNum() == 6 for b in atom.GetBonds()) or atom.GetAtomicNum() == 6 and any(b.GetBondType() == Chem.BondType.TRIPLE and b.GetOtherAtom(atom).GetAtomicNum() == 6 for b in atom.GetBonds()):
             kind = "pi_carbon"
         if kind is None or (kind, ranks[atom.GetIdx()]) in seen:
             continue
