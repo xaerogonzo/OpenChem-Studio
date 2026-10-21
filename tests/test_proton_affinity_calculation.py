@@ -163,3 +163,76 @@ def test_carbon_monoxide_is_the_one_charge_separated_structure_that_is_allowed()
 def test_unreadable_smiles_is_refused_not_raised_as_a_parser_error():
     with pytest.raises(pa.OutOfScope, match="could not be read"):
         pa.base_from_smiles("not a molecule (")
+
+
+# --- the sequence of jobs ---------------------------------------------------------------------------------------------------
+
+#: The planar H3O+ the benchmark's run produced: the same output with the umbrella mode imaginary.
+PLANAR_HYDRONIUM = HYDRONIUM.replace("6:     807.65 cm**-1", "6:    -601.55 cm**-1")
+
+
+def test_the_two_real_outputs_of_water_give_the_smoke_runs_proton_affinity():
+    sequence = pa.Sequence("O")
+    assert sequence.total == 2 and [s["role"] for s in sequence.structures] == ["base", "ion"]
+    structure, retry = sequence.next_job()
+    assert structure["role"] == "base" and retry is False
+    assert sequence.finish(WATER) == "recorded"
+    structure, _ = sequence.next_job()
+    assert structure["role"] == "ion"
+    assert sequence.finish(HYDRONIUM) == "recorded" and sequence.done
+    result = sequence.result()
+    # the preregistration's smoke run: H(water) -76.40397512 and H(H3O+) -76.66319385 Eh, PA 686.8 kJ/mol
+    assert result.pa_kj == pytest.approx(686.8, abs=0.1)
+    assert result.pa_site == 0 and result.sites[0].element == "O" and result.sites[0].chosen_pa
+    assert sequence.settled == 2
+
+
+def test_an_imaginary_mode_queues_one_retry_from_the_final_geometry_and_a_second_failure_drops_it():
+    sequence = pa.Sequence("O")
+    sequence.next_job()
+    sequence.finish(WATER)
+    sequence.next_job()
+    assert sequence.finish(PLANAR_HYDRONIUM) == "retrying" and not sequence.done and sequence.settled == 1
+    structure, retry = sequence.next_job()
+    assert retry is True and structure["role"] == "ion"
+    assert structure["coordinates"] == [list(c) for c in pa.parse_output(PLANAR_HYDRONIUM)["coordinates"]]  # the retry starts where the first attempt ended
+    assert "Calc_Hess true" in pa.orca_input(structure, 4, retry)
+    assert sequence.finish(PLANAR_HYDRONIUM) == "recorded" and sequence.done  # one retry only: it is not queued again
+    result = sequence.result()
+    assert result.pa_kcal is None and result.gb_kcal is None  # the benchmark lost water exactly this way
+    assert result.dropped == ("mol|ion|lone_pair0|0",)
+
+
+def test_a_retry_that_clears_the_imaginary_mode_is_accepted_and_replaces_the_first_attempt():
+    sequence = pa.Sequence("O")
+    sequence.next_job()
+    sequence.finish(WATER)
+    sequence.next_job()
+    sequence.finish(PLANAR_HYDRONIUM)
+    sequence.next_job()
+    assert sequence.finish(HYDRONIUM) == "recorded"
+    result = sequence.result()
+    assert result.pa_kj == pytest.approx(686.8, abs=0.1) and result.dropped == ()
+
+
+def test_an_output_that_cannot_be_read_fails_that_structure_with_its_reason_and_the_sequence_goes_on():
+    sequence = pa.Sequence("O")
+    sequence.next_job()
+    assert sequence.finish("ORCA died with nothing to read") == "failed"
+    assert "did not converge" in sequence.failures["mol|base|0"]
+    sequence.next_job()
+    assert sequence.finish(HYDRONIUM) == "recorded" and sequence.done
+    result = sequence.result()
+    assert result.pa_kcal is None  # no accepted base
+    assert "mol|base|0" in result.dropped and sequence.settled == 2
+
+
+def test_a_base_outside_the_scope_is_refused_before_any_job_exists():
+    with pytest.raises(pa.OutOfScope, match="radical"):
+        pa.Sequence("[CH3]")
+
+
+def test_the_validation_note_states_the_measured_error_and_its_limits():
+    for quantity, mae in (("pa", "1.55"), ("gb", "1.53")):
+        note = pa.validation_note(quantity)
+        assert mae in note and "too weakly" in note and "10 heavy atoms" in note and "Hunter and Lias" in note

@@ -15,6 +15,7 @@ from rdkit import Chem
 
 from openchem import paths as app_paths
 from openchem.app.settings import FUKUI_ANION_F_PLUS, FUKUI_CATION_SEARCH, Settings
+from openchem.chem import proton_affinity
 from openchem.chem.boltzmann import (
     STANDARD_TEMPERATURE_K,
     boltzmann_average_spectrum,
@@ -33,6 +34,9 @@ from openchem.chem.orca_engine import (
     find_mpi_bin,
     parse_frontier_orbitals,
 )
+from openchem.chem.proton_affinity import OutOfScope
+from openchem.chem.proton_affinity import Sequence as ProtonSequence
+from openchem.chem.proton_affinity import descriptors as proton_descriptors
 from openchem.chem.psi4_engine import Psi4QuantumEngineProvider
 from openchem.chem.tautomer_distribution import (
     FAILURE_ENERGY_UNPARSEABLE,
@@ -473,6 +477,26 @@ class _TautomerNmrRun:
     outcomes: dict[str, list] = field(default_factory=dict)
 
 
+@dataclass
+class _ProtonAffinityRun:
+    """One logical proton-affinity / gas-basicity operation: an ORCA `Opt Freq` per structure of the base and of each conjugate acid, run one after another (`chem/proton_affinity.py`).
+
+    The same single-flight, sequential and cancellation shape as `_TautomerDistributionRun`: it owns the molecule's job slot for the whole sequence, a per-structure failure is recorded and the sequence continues
+    (the other structures' results survive it), and a crash or a cancellation ends the whole operation with no result. The one `Calc_Hess` retry of a structure that kept an imaginary mode is the sequence's own business.
+    """
+
+    molecule_uuid: str
+    sequence: ProtonSequence
+    provider: QuantumEngineProvider
+    executable_path: str
+    #: The submitting molecule's own input identity, captured by the caller before any job starts (as the tautomer distribution's is),
+    #: so a mid-run edit cannot change what the recorded result claims to describe.
+    calculation_input: str = ""
+    input_fingerprint: str = ""
+    structure_identity: str = ""
+    run_id: str = ""
+
+
 class QuantumChemistryService(QObject):
     """Runs a `QuantumEngineProvider`'s calculation via `QProcess`, run
     **on the GUI thread** — a deliberate asymmetry from every other async
@@ -528,6 +552,8 @@ class QuantumChemistryService(QObject):
         # its whole sequence of candidates.
         self._tautomer_runs: dict[str, _TautomerDistributionRun] = {}
         self._tautomer_nmr_runs: dict[str, _TautomerNmrRun] = {}
+        # Keyed by molecule_uuid: a proton-affinity operation owns the molecule's job slot for its whole sequence of structures.
+        self._proton_runs: dict[str, _ProtonAffinityRun] = {}
         # Keyed by scaling-job key, one entry per in-flight calibration.
         self._scaling_runs: dict[str, _ScalingRun] = {}
         # Raw NMR results waiting on the TMS reference for their method/basis,
@@ -840,6 +866,76 @@ class QuantumChemistryService(QObject):
             run_id=run.run_id,
         )
 
+    def request_proton_affinity(
+        self,
+        smiles: str,
+        molecule_uuid: str,
+        calculation_input: str,
+        input_fingerprint: str,
+        structure_identity: str = "",
+        provider_id: str = "orca",
+    ) -> None:
+        """Runs the preregistered proton-affinity protocol on `smiles` (the base) and publishes ONE `QuantumChemistryResultReady` carrying `orca.proton_affinity` and `orca.gas_basicity`.
+
+        Every structure of the base and of each conjugate acid is optimized with ORCA, one after another, under the molecule's single job slot (`chem.proton_affinity`: scope, structures, the retry rule).
+        A base outside what the benchmark measured is refused here with its reason and no job is started. `calculation_input`/`input_fingerprint` identify the drawing the request was made on, captured by the
+        caller before this method runs (the same contract as `request_tautomer_distribution`).
+        """
+        try:
+            sequence = ProtonSequence(smiles)
+        except OutOfScope as refusal:
+            self._publish_state(molecule_uuid, CacheState.FAILED, f"Proton affinity does not apply: {refusal}")
+            return
+        except Exception as error:  # noqa: BLE001 - a base that cannot be embedded is refused with its reason, not crashed on
+            self._publish_state(molecule_uuid, CacheState.FAILED, f"Proton affinity could not start: {error}")
+            return
+        provider = self._providers.get(provider_id)
+        if provider is None:
+            self._publish_state(molecule_uuid, CacheState.FAILED, f"Unknown quantum engine: {provider_id}")
+            return
+        executable_path = self._resolve_executable_path(provider)
+        if executable_path is None:
+            self._publish_state(molecule_uuid, CacheState.FAILED, _no_executable_message(provider))
+            return
+        if not self._job_manager.try_start(_JOB_KIND, molecule_uuid, cancel_callback=lambda: self.cancel(molecule_uuid)):
+            self._publish_state(molecule_uuid, CacheState.FAILED, "A calculation is already running for this molecule — cancel it first.")
+            return
+        run = _ProtonAffinityRun(
+            molecule_uuid=molecule_uuid,
+            sequence=sequence,
+            provider=provider,
+            executable_path=executable_path,
+            calculation_input=calculation_input,
+            input_fingerprint=input_fingerprint,
+            structure_identity=structure_identity,
+            run_id=new_run_id(),
+        )
+        self._proton_runs[molecule_uuid] = run
+        self._launch_next_proton_job(run)
+
+    def _launch_next_proton_job(self, run: _ProtonAffinityRun) -> None:
+        structure, retry = run.sequence.next_job()
+        role = "base" if structure["role"] == "base" else "conjugate acid"
+        self._publish_state(
+            run.molecule_uuid,
+            CacheState.RUNNING,
+            f"Proton affinity: structure {run.sequence.settled + 1}/{run.sequence.total} ({role}{', Calc_Hess re-run' if retry else ''})",
+        )
+        self._launch_job(
+            key=run.molecule_uuid,
+            mol=run.sequence.base,
+            charge=structure["charge"],
+            multiplicity=1,
+            method_basis=proton_affinity.METHOD_LABEL,
+            calc_type="proton_affinity",
+            provider=run.provider,
+            executable_path=run.executable_path,
+            kind="proton_affinity",
+            molecule_uuid=run.molecule_uuid,
+            run_id=run.run_id,
+            input_text=proton_affinity.orca_input(structure, self._effective_cores(), retry),
+        )
+
     def request_tautomer_nmr(
         self,
         targets: list[TautomerNmrTarget],
@@ -1112,6 +1208,7 @@ class QuantumChemistryService(QObject):
         run_id: str = "",
         structure_identity: str = "",
         source_slot: int = 0,
+        input_text: str | None = None,
     ) -> None:
         """Shared QProcess launch mechanics for both `request_calculation`
         (a real molecule) and `request_reference_calibration` (TMS) --
@@ -1140,9 +1237,11 @@ class QuantumChemistryService(QObject):
 
         job_kind_for_manager = _job_manager_kind(kind)
         try:
-            input_text = provider.build_input(mol, charge, multiplicity, method_basis, calc_type)
-            if getattr(provider, "supports_parallel", False):
-                input_text = add_parallel_block(input_text, self._effective_cores())
+            if input_text is None:
+                input_text = provider.build_input(mol, charge, multiplicity, method_basis, calc_type)
+                if getattr(provider, "supports_parallel", False):
+                    input_text = add_parallel_block(input_text, self._effective_cores())
+            # else: the caller wrote the whole input, parallel block included (the proton-affinity protocol's preregistered keywords)
         except Exception as exc:  # noqa: BLE001 - bad input params, report don't crash
             self._cleanup_scratch(scratch_dir)
             self._publish_state(key, CacheState.FAILED, f"Failed to build input: {exc}")
@@ -1154,6 +1253,7 @@ class QuantumChemistryService(QObject):
             self._scaling_runs.pop(key, None)
             self._tautomer_runs.pop(key, None)
             self._tautomer_nmr_runs.pop(key, None)
+            self._proton_runs.pop(key, None)
             self._job_manager.finish(job_kind_for_manager, key)
             return
 
@@ -1273,6 +1373,7 @@ class QuantumChemistryService(QObject):
             self._boltzmann_runs.pop(key, None)
             self._scaling_runs.pop(key, None)
             self._tautomer_runs.pop(key, None)
+            self._proton_runs.pop(key, None)
             self._cleanup_scratch(job.scratch_dir)
             self._job_manager.finish(_job_manager_kind(job.kind), key)
 
@@ -1321,6 +1422,13 @@ class QuantumChemistryService(QObject):
             status = RunStatus.CANCELLED if job.cancelled else RunStatus.FAILED
             if run is not None:
                 self._record_run(self._new_tautomer_distribution_run(run, status, warnings=[message]))
+        elif job.kind == "proton_affinity":
+            # A crash or a cancellation (a structure whose output cannot be read never reaches here): the whole operation ends and no result is published.
+            self._publish_state(job.key, CacheState.FAILED, message)
+            run = self._proton_runs.get(job.key)
+            status = RunStatus.CANCELLED if job.cancelled else RunStatus.FAILED
+            if run is not None:
+                self._record_run(self._new_proton_affinity_run(run, status, warnings=[message]))
         elif job.kind == "tautomer_nmr":
             # A crash or a cancellation (a per-structure parse failure never reaches here): the whole
             # operation ends and no result is published.
@@ -1355,6 +1463,7 @@ class QuantumChemistryService(QObject):
                 self._scaling_runs.pop(key, None)
                 self._tautomer_runs.pop(key, None)
                 self._tautomer_nmr_runs.pop(key, None)
+                self._proton_runs.pop(key, None)
                 return
             # `finished` can fire before Qt has delivered the LAST
             # `readyReadStandardOutput` signal for data ORCA wrote right as
@@ -1378,6 +1487,8 @@ class QuantumChemistryService(QObject):
                 chaining = self._finish_scaling_job(job, output_text)
             elif job.kind == "tautomer_candidate":
                 chaining = self._finish_tautomer_candidate_job(job, output_text)
+            elif job.kind == "proton_affinity":
+                chaining = self._finish_proton_affinity_job(job, output_text)
             elif job.kind == "tautomer_nmr":
                 chaining = self._finish_tautomer_nmr_job(job, output_text)
             else:
@@ -1775,6 +1886,90 @@ class QuantumChemistryService(QObject):
         self._tautomer_runs.pop(molecule_uuid, None)
         self._finish_tautomer_distribution(run)
         return False
+
+    def _finish_proton_affinity_job(self, job: _ActiveJob, output_text: str) -> bool:
+        """Reads this structure's output into the sequence, then starts the next job (or the one retry) or publishes the result. Returns True when it started another job, which keeps the molecule's slot held.
+
+        A structure whose output cannot be read is recorded as failed and the sequence goes on; only a crash or a cancellation (`_report_job_failure`) ends the whole operation.
+        """
+        run = self._proton_runs.get(job.molecule_uuid)
+        if run is None:  # cancelled or already torn down
+            return False
+        outcome = run.sequence.finish(output_text)
+        if outcome == "failed":
+            logger.warning("Proton-affinity structure failed for %s: %s", job.molecule_uuid, list(run.sequence.failures.values())[-1])
+        if not run.sequence.done:
+            self._launch_next_proton_job(run)
+            return True
+        self._proton_runs.pop(job.molecule_uuid, None)
+        self._finish_proton_affinity(run, job)
+        return False
+
+    def _finish_proton_affinity(self, run: _ProtonAffinityRun, last_job: _ActiveJob) -> None:
+        """Publishes the one result of the whole operation: PA and GB with their provenance (each may be missing alone), and records the run."""
+        values = proton_descriptors(run.sequence, run.molecule_uuid, run_id=run.run_id)
+        # Stamped with the BASE's charge and multiplicity and the operation's own calculation type: the last job that ran was a conjugate acid (charge +1) and is not what the numbers describe.
+        stamped_job = dataclasses.replace(
+            last_job,
+            charge=0,
+            multiplicity=1,
+            calc_type="proton_affinity",
+            run_id=run.run_id,
+            calculation_input=run.calculation_input,
+            input_fingerprint=run.input_fingerprint,
+        )
+        values = _with_run_settings(values, stamped_job)
+        self._event_bus.publish(
+            QuantumChemistryResultReady(
+                molecule_uuid=run.molecule_uuid,
+                descriptors=values,
+                conformer=None,
+                input_fingerprint="",
+                structure_identity=run.structure_identity,
+                source_slot=0,
+            )
+        )
+        self._record_descriptors(values, stamped_job)
+
+        found = [d for d in values if d.value is not None]
+        result = run.sequence.result()
+        warnings: list[str] = []
+        if not found:
+            status = RunStatus.FAILED
+            message = "No accepted structure for the base or for any conjugate acid: no proton affinity or gas basicity."
+            warnings.append(message)
+        elif len(found) < len(values) or result.dropped:
+            status = RunStatus.COMPLETED_WITH_WARNINGS
+            message = f"Proton affinity computed; {len(result.dropped)} structure(s) were not accepted ({', '.join(result.dropped)})."
+            warnings.append(message)
+        else:
+            status = RunStatus.COMPLETED
+            message = "Proton affinity and gas basicity computed."
+        self._publish_state(run.molecule_uuid, CacheState.FAILED if status is RunStatus.FAILED else CacheState.COMPLETED, message)
+        qc_run = self._new_proton_affinity_run(run, status, warnings=warnings)
+        if qc_run is not None:
+            qc_run.results["descriptors"] = list(values)
+            qc_run.output_status["descriptors"] = OutputStatus.AVAILABLE
+        self._record_run(qc_run)
+
+    @staticmethod
+    def _new_proton_affinity_run(run: _ProtonAffinityRun, status: RunStatus, warnings: list[str] | None = None) -> QuantumChemistryRun | None:
+        """ONE run for the WHOLE operation, never one per structure (`domain/quantum_chemistry_run.py`: a run is what the user asked for). The base is charge 0, multiplicity 1."""
+        if not run.run_id:
+            return None
+        return QuantumChemistryRun(
+            run_id=run.run_id,
+            molecule_uuid=run.molecule_uuid,
+            calc_type="proton_affinity",
+            method_basis=proton_affinity.METHOD_LABEL,
+            charge=0,
+            multiplicity=1,
+            calculation_input=run.calculation_input,
+            input_fingerprint=run.input_fingerprint,
+            input_molblock="",
+            status=status,
+            warnings=list(warnings or []),
+        )
 
     def _finish_tautomer_nmr_job(self, job: _ActiveJob, output_text: str) -> bool:
         """Records this structure's referenced spectrum, or why it has none, then runs the next structure or

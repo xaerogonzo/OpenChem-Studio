@@ -23,6 +23,9 @@ import numpy as np
 from rdkit import Chem
 from rdkit.Chem import AllChem, rdDetermineBonds, rdMolAlign
 
+from openchem.domain.common import CacheState, Provenance
+from openchem.domain.descriptor import DescriptorValue
+
 #: CODATA 2018 (exact SI definitions where defined).
 K_B = 1.380649e-23  # J/K
 #: Planck constant, J s.
@@ -445,7 +448,7 @@ def resolve(base: Chem.Mol, records: list[dict]) -> ProtonationResult:
     PA: the base structure of lowest H and the conjugate acid of lowest H over every site and conformer; GB: likewise by the corrected G, chosen independently. A site is the base atom that gained the proton, equivalent atoms merged.
     `dropped` names the structures that are not accepted (an imaginary mode left, or the proton moved off the base's atoms), so a missing value has its reason."""
     done = accepted(records)
-    all_ids = {r["structure"] for r in records if r.get("completed", True)}
+    all_ids = {r["structure"] for r in records}  # a structure whose output could not be read is dropped too, with its record naming why
     dropped = tuple(sorted(all_ids - {r["structure"] for r in done}))
     bases = [r for r in done if r["role"] == "base"]
     ions = [r for r in done if r["role"] == "ion" and r.get("site_assigned") is not None]
@@ -472,3 +475,162 @@ def resolve(base: Chem.Mol, records: list[dict]) -> ProtonationResult:
         for atom, pa, gb, n in sorted(rows, key=lambda row: -row[1])
     )
     return ProtonationResult(pa_kcal=pa_row[1], gb_kcal=gb_row[2], pa_site=pa_row[0], gb_site=gb_row[0], sites=table, base_structures=len(bases), ion_structures=len(ions), dropped=dropped)
+
+
+# --- what was measured, stated beside every result --------------------------------------------------------------------------
+
+#: The benchmark's statistics on the 21 deciding bases (reference PA above propene's), kcal/mol, from `benchmarks/proton_affinity/artifacts/report.txt` (run 2026-10-20, commit 6ec0fd29): mean absolute error,
+#: mean signed error (negative: the calculation binds the proton too weakly) and the largest absolute error. A result carries these so a number is never shown without the accuracy it was measured to have.
+BENCHMARK = {
+    "pa": {"mae": 1.55, "mse": -1.19, "max": 2.94},
+    "gb": {"mae": 1.53, "mse": -1.27, "max": 2.99},
+    "bases": 21,
+    "reference": "NIST evaluation of Hunter and Lias (1998)",
+}
+
+
+def validation_note(quantity: str) -> str:
+    """The sentence that goes beside a PA ('pa') or GB ('gb') value: what the protocol scored against NIST, and what that does not cover."""
+    stats = BENCHMARK[quantity]
+    kj = KCAL_TO_KJ
+    return (
+        f"{METHOD_LABEL} protocol benchmarked on {BENCHMARK['bases']} bases against the {BENCHMARK['reference']}: mean absolute error {stats['mae']:.2f} kcal/mol ({stats['mae'] * kj:.1f} kJ/mol), "
+        f"mean signed error {stats['mse']:+.2f} kcal/mol (the proton is bound too weakly), largest {stats['max']:.2f}. Measured for neutral bases of at most {MAX_HEAVY_ATOMS} heavy atoms of H, C, N, O, P and S; "
+        "the lowest structure is used, with no Boltzmann averaging."
+    )
+
+
+# --- the sequence of jobs --------------------------------------------------------------------------------------------------
+
+
+class Sequence:
+    """The ordered ORCA jobs of one base and what each finished job does to the plan: no process, no Qt, so the order, the one retry and the failure bookkeeping are testable without ORCA.
+
+    `next_job()` hands out the structure to run (and whether it is the `Calc_Hess` retry); `finish(output_text)` reads that job's output, records it, and queues the one retry of a structure that kept an imaginary mode,
+    from its own final geometry. A job whose output cannot be read (the optimization did not converge, say) is a failed structure with its reason and is NOT retried (the benchmark retried only imaginary modes);
+    the sequence goes on, because the other structures' results survive it. `result()` is `resolve` over what has been recorded.
+    """
+
+    def __init__(self, smiles: str) -> None:
+        self.smiles = smiles
+        self.base = base_from_smiles(smiles)  # raises OutOfScope
+        self.structures = build_structures(self.base, key="mol")
+        self._queue: list[tuple[dict, bool]] = [(s, False) for s in self.structures]
+        self.current: tuple[dict, bool] | None = None
+        self.records: list[dict] = []
+        #: structure id -> why its output could not be read
+        self.failures: dict[str, str] = {}
+
+    @property
+    def total(self) -> int:
+        """The structures to run (a retry is not a new structure)."""
+        return len(self.structures)
+
+    @property
+    def settled(self) -> int:
+        """How many structures are finished: recorded without a pending retry, or failed."""
+        retrying = {s["id"] for s, retry in self._queue if retry}
+        done = {r["structure"] for r in self.records if r.get("completed", True)} | set(self.failures)
+        return len(done - retrying)
+
+    @property
+    def done(self) -> bool:
+        return not self._queue
+
+    def next_job(self) -> tuple[dict, bool]:
+        """The next structure to run and whether this is its `Calc_Hess` retry. Raises IndexError when the sequence is finished."""
+        self.current = self._queue.pop(0)
+        return self.current
+
+    def finish(self, output_text: str) -> str:
+        """Reads the output of the job `next_job` handed out. Returns 'recorded', 'retrying' (the same structure is queued again with `Calc_Hess`) or 'failed'."""
+        if self.current is None:
+            raise RuntimeError("no job is running")
+        structure, retry = self.current
+        try:
+            parsed = parse_output(output_text)
+            record = finish(structure, parsed, self.base)
+        except Exception as error:  # noqa: BLE001 - one structure's output costs that structure, never the sequence
+            reason = str(error) or type(error).__name__
+            self.failures[structure["id"]] = reason
+            self.records.append({"structure": structure["id"], "base": structure["base"], "role": structure["role"], "retry": retry, "completed": False, "error": reason})
+            return "failed"
+        record.update(structure=structure["id"], base=structure["base"], role=structure["role"], retry=retry, completed=True)
+        if structure["role"] == "ion" and "site_atom" in structure:
+            record["site_start"] = structure["site_atom"]
+        self.failures.pop(structure["id"], None)
+        if retry:
+            record["final"] = True
+        self.records.append(record)
+        if record["lowest_frequency"] < IMAGINARY_CM and not retry:
+            self._queue.insert(0, (dict(structure, symbols=record["symbols"], coordinates=record["coordinates"]), True))
+            return "retrying"
+        return "recorded"
+
+    def result(self) -> ProtonationResult:
+        return resolve(self.base, self.records)
+
+
+# --- the typed outputs -------------------------------------------------------------------------------------------------------
+
+#: The id of the proton-affinity output (an enthalpy).
+PA_DESCRIPTOR_ID = "orca.proton_affinity"
+#: The id of the gas-basicity output (a Gibbs energy).
+GB_DESCRIPTOR_ID = "orca.gas_basicity"
+#: The unit both outputs are given in, as NIST tabulates them.
+UNITS = "kJ/mol"
+
+
+def descriptors(sequence: Sequence, molecule_uuid: str, run_id: str = "", timestamp: float | None = None) -> list[DescriptorValue]:
+    """The two typed outputs of a finished sequence: `orca.proton_affinity` (an enthalpy) and `orca.gas_basicity` (a Gibbs energy), in kJ/mol as NIST tabulates them, each with its provenance.
+
+    PA and GB are separate outputs and each can be missing alone. A quantity with no value is a FAILED descriptor whose error names the structures that were dropped, never a zero.
+    The provenance records everything a reader needs to place the number: the method, 298.15 K and 1 atm, the proton's terms, the protonation site that won and the whole site table, how many structures stood behind it,
+    the symmetry numbers ORCA reported against the ones used, and the benchmark's measured error with its limits."""
+    result = sequence.result()
+    now = timestamp
+    h, s, g = proton_terms()
+    symmetric = [r for r in accepted(sequence.records) if r.get("sigma_true") != r.get("sigma_orca")]
+    common = {
+        "method": METHOD_LABEL, "program": "ORCA", "temperature_k": T_STANDARD, "pressure_atm": 1.0, "smiles": sequence.smiles,
+        "proton_terms_kcal": {"H": h * HARTREE_TO_KCAL, "TS": T_STANDARD * s * HARTREE_TO_KCAL, "G": g * HARTREE_TO_KCAL},
+        "base_structures": result.base_structures, "ion_structures": result.ion_structures, "dropped_structures": list(result.dropped),
+        "failures": dict(sequence.failures),
+        "symmetry_number_overrides": len(symmetric),
+        "sites": [{"atom": row.atom, "element": row.element, "kind": row.kind, "pa_kj": row.pa_kcal * KCAL_TO_KJ, "gb_kj": row.gb_kcal * KCAL_TO_KJ, "structures": row.structures,
+                   "chosen_pa": row.chosen_pa, "chosen_gb": row.chosen_gb} for row in result.sites],
+        "lowest_structure_only": True,
+    }
+    if run_id:
+        common["run_id"] = run_id
+    out = []
+    for quantity, value, site, descriptor_id, name in (
+        ("pa", result.pa_kj, result.pa_site, PA_DESCRIPTOR_ID, "Proton affinity (298.15 K)"),
+        ("gb", result.gb_kj, result.gb_site, GB_DESCRIPTOR_ID, "Gas-phase basicity (298.15 K)"),
+    ):
+        parameters = dict(common, quantity=quantity, validation=validation_note(quantity), site_atom=site)
+        if site is not None:
+            parameters["site_element"] = sequence.base.GetAtomWithIdx(site).GetSymbol()
+        provenance = Provenance(created_by="core", method=METHOD_LABEL, parameters=parameters, **({} if now is None else {"timestamp": now}))
+        error = None if value is not None else _missing_reason(result, sequence)
+        out.append(
+            DescriptorValue(
+                descriptor_id=descriptor_id, name=name, units=UNITS, category="quantum_chemistry", provider="orca", molecule_uuid=molecule_uuid, value=value, timestamp=now,
+                cache_state=CacheState.COMPLETED if value is not None else CacheState.FAILED, error=error,
+                error_summary=None if error is None else "No accepted structure", provenance=provenance,
+            )
+        )
+    return out
+
+
+def _missing_reason(result: ProtonationResult, sequence: Sequence) -> str:
+    """Why a quantity has no value, in the words of the structures that were dropped."""
+    if not result.base_structures:
+        side = "the base"
+    elif not result.ion_structures:
+        side = "any conjugate acid"
+    else:
+        side = "a structure"
+    named = ", ".join(result.dropped) or "none ran to completion"
+    return (f"No accepted structure for {side}: a structure is accepted only when its optimization converged and no vibrational frequency is below {IMAGINARY_CM:.0f} cm-1 after the one "
+            f"Calc_Hess re-run, and the proton must end on one atom of the base. Dropped: {named}.")

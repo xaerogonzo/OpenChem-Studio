@@ -8171,8 +8171,9 @@ kind = "literature"
 citation = "A. Moser, K. Range & D. M. York, 'Accurate Proton Affinity and Gas-Phase Basicity Values for Molecules Important in Biocatalysis', J. Phys. Chem. B 2010, 114, 13911-13921."
 identifier_type = "doi"
 identifier = "10.1021/jp107450n"
-status = "reference_only"
+status = "shipped"
 used_by = [
+    "src/openchem/chem/proton_affinity.py",
     "docs/PROTON_AFFINITY_DESIGN.md",
     "benchmarks/proton_affinity/PREREGISTRATION.md",
 ]
@@ -8180,6 +8181,8 @@ verification = "citation_and_claim"
 verified_date = 2026-10-19
 reason = """
 THE PROTON'S THERMOCHEMISTRY AND A BENCHMARK AGAINST NIST: standard state 298.15 K and 1 atm, H(H+) = 5/2 RT = 1.48 kcal/mol, S(H+) = 26.02 cal/(mol K) from Sackur-Tetrode, G(H+) = -6.28 kcal/mol (their eqs 2 and 3), which the benchmark's `pa_core.proton_terms` reproduces independently (1.4812, 26.012, -6.274); their Table 1 errors for model chemistries against NIST for protonated amines and imidazoles (the PAs of the corresponding bases). Read from an open copy of the PDF, not held in the library folder.
+
+SHIPPED AS THE CONVENTION OF THE PROTON-AFFINITY CALCULATION (2026-10-21): `chem/proton_affinity.py` implements this standard state and these proton terms (`proton_terms`, `proton_affinity`, `gas_basicity`), checked against the printed values; the calculator's accuracy statement comes from the benchmark in `benchmarks/proton_affinity/`, not from this paper.
 """
 
 [[source]]
