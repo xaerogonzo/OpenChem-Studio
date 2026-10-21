@@ -272,6 +272,15 @@ class TestAPluginPanelsHelp:
         qapp.processEvents()
         assert window._help_topic_for_visible_panel() == "centre-tabs"
 
+    def test_with_no_focus_the_front_panel_is_the_one_whose_topic_is_opened(self, qapp, tmp_path, widgets, monkeypatch):
+        from PySide6.QtWidgets import QApplication
+
+        window = self._window(qapp, tmp_path, widgets)
+        window.reveal_panel("Synthesis")
+        qapp.processEvents()
+        monkeypatch.setattr(QApplication, "focusWidget", staticmethod(lambda: None))
+        assert window._help_topic_for_visible_panel() == "synthesis"
+
     def test_a_plugin_dock_without_a_topic_keeps_the_native_title_bar(self, qapp, tmp_path, widgets):
         window = self._window(qapp, tmp_path, widgets)
         from openchem.app.main_window import help_topic_of_dock
