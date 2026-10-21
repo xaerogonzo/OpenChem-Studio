@@ -1090,6 +1090,7 @@
   "tests/test_ai_assistant_providers.py": 0,
   "tests/test_ai_assistant_score_proposals.py": 0,
   "tests/test_ai_assistant_scores.py": 1,
+  "tests/test_ai_assistant_synthesis.py": 0,
   "tests/test_ai_assistant_tools.py": 2,
   "tests/test_alignment.py": 2,
   "tests/test_alignment_panel.py": 1,
