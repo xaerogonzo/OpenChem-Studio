@@ -4189,6 +4189,125 @@ class _Driver(QObject):
         )
         button.click()
 
+    # -- the synthesis panel (`plugins/synthesis_planner/`) -----------------------------------------
+
+    def _synthesis_panel(self):
+        """The REAL panel the plugin built, or None (logged) when it is not in the window."""
+        from PySide6.QtWidgets import QWidget
+
+        dock = self._window._plugin_panels.get("Synthesis")
+        panel = None
+        if dock is not None:
+            panel = dock.widget() if type(dock.widget()).__name__ == "SynthesisPanel" else next((w for w in dock.findChildren(QWidget) if type(w).__name__ == "SynthesisPanel"), None)
+        if panel is None:
+            logger.error("OPENCHEM_DRIVE: no Synthesis panel (is the synthesis_planner plugin loaded?)")
+        return panel
+
+    def _do_synthesis_setup(self, step: dict[str, Any]) -> None:
+        """Point the planner's settings at an installation for this run, or put them back.
+
+        `{"do": "synthesis_setup", "python": "...", "config": "...", "expansion": "uspto", "stock": "zinc", "filter": "none"}`
+        `{"do": "synthesis_setup", "python": "", "config": ""}`  -- "not set up", whatever the machine has
+        `{"do": "synthesis_setup", "restore": true}`
+
+        **THIS WRITES THE REAL SETTINGS REGISTRY**, the one the External Tools tab writes, because the panel reads them through the real provider. It
+        shares `tool_path`'s bookkeeping: the first value of each key is remembered, `restore` puts every remembered key back (an unset one is
+        removed), and so does `quit`, whatever else the script did.
+        """
+        if step.get("restore"):
+            self._restore_tool_paths()
+            self._tool_path_originals = {}
+            return
+        names = {"python": "aizynthfinder/python_path", "config": "aizynthfinder/config_path", "expansion": "aizynthfinder/expansion", "stock": "aizynthfinder/stock", "filter": "aizynthfinder/filter"}
+        for field in ("python", "config"):
+            if step.get(field) and not Path(str(step[field])).is_file():  # an empty value clears the key for this run, which is how a script pins "not set up"
+                logger.error("OPENCHEM_DRIVE: synthesis_setup -- no file at %r", step[field])
+                return
+        settings = self._window._settings
+        if not hasattr(self, "_tool_path_originals"):
+            self._tool_path_originals: dict[str, Any] = {}
+        for field, key in names.items():
+            if field in step:
+                self._tool_path_originals.setdefault(key, settings.get(key, None))
+                settings.set(key, str(step[field]))
+        logger.warning("OPENCHEM_DRIVE: synthesis_setup -- %s set for this run (the originals are put back at quit)", sorted(field for field in names if field in step))
+
+    def _do_synthesis_panel(self, step: dict[str, Any]) -> None:
+        """Show the synthesis panel, press its REAL buttons, and say what it shows.
+
+        `{"do": "synthesis_panel", "tag": "after", "press": "plan", "route": 1, "step": 0, "expect": {...}}`
+
+        `press` is `plan` or `cancel`: the button's own `click()`, so the path a person's press takes (the configuration read off the GUI
+        thread, then `request_plan` through the one service path, where the regulatory gate runs first) is the path driven. `route` and
+        `step` select a row of the real lists, and `scroll` ("end", or a pixel offset) scrolls the panel inside its dock, and `details_scroll` does the same for the text box of what the planner said. `expect` keys: `status_contains`, `target_contains`, `routes`, `routes_at_least`, `steps`,
+        `picture` (a picture is on screen), `picture_message_contains`, `warning` (the earlier-structure line is showing),
+        `plan_enabled`, `cancel_enabled`, `limitations_contain`, `details_contain`, `expansion`, `stock`, `filter` (the list's current text).
+        """
+        window = self._window
+        window._on_panel_chosen("Synthesis")
+        panel = self._synthesis_panel()
+        if panel is None:
+            return
+        tag = str(step.get("tag", ""))
+        press = step.get("press")
+        if press == "plan":
+            panel._plan_button.click()
+        elif press == "cancel":
+            panel._cancel_button.click()
+        elif press:
+            logger.error("OPENCHEM_DRIVE: synthesis_panel -- unknown press %r", press)
+        if "route" in step:
+            panel._routes.setCurrentRow(int(step["route"]))
+        if "step" in step:
+            panel._steps.setCurrentRow(int(step["step"]))
+        if step.get("scroll"):
+            # The panel scrolls inside its dock; a shot of the picture and the limitations needs it at the end.
+            from PySide6.QtWidgets import QScrollArea
+
+            bar = panel.findChild(QScrollArea).verticalScrollBar()
+            bar.setValue(bar.maximum() if step["scroll"] == "end" else int(step["scroll"]))
+        if step.get("details_scroll"):
+            # The details box scrolls inside the panel, which scrolls inside its dock: a shot of its last lines (the alerts) needs it at the end too.
+            bar = panel._details.verticalScrollBar()
+            bar.setValue(bar.maximum() if step["details_scroll"] == "end" else int(step["details_scroll"]))
+        report = {
+            "target": panel._target_label.text().replace("\n", " | "),
+            "status": panel._status.text(),
+            "warning": "" if panel._warning.isHidden() else panel._warning.text(),
+            "routes": panel._routes.count(),
+            "steps": panel._steps.count(),
+            "picture": not panel._picture.isHidden(),
+            "picture_message": "" if panel._picture_message.isHidden() else panel._picture_message.text(),
+            "plan_enabled": panel._plan_button.isEnabled(),
+            "cancel_enabled": panel._cancel_button.isEnabled(),
+            "expansion": panel._expansion.currentText(),
+            "stock": panel._stock.currentText(),
+            "filter": panel._filter.currentText(),
+            "version": panel._version_label.text(),
+        }
+        logger.warning("OPENCHEM_DRIVE: synthesis_panel %s | %s", tag, report)
+        expect = step.get("expect") or {}
+        problems: list[str] = []
+        for key in ("routes", "steps", "picture", "plan_enabled", "cancel_enabled", "expansion", "stock", "filter"):
+            if key in expect and report[key] != expect[key]:
+                problems.append(f"{key} is {report[key]!r}, wanted {expect[key]!r}")
+        if "routes_at_least" in expect and report["routes"] < int(expect["routes_at_least"]):
+            problems.append(f"{report['routes']} route(s), wanted at least {expect['routes_at_least']}")
+        if "warning" in expect and bool(report["warning"]) != bool(expect["warning"]):
+            problems.append(f"warning showing is {bool(report['warning'])}, wanted {bool(expect['warning'])}")
+        shown_text = {
+            "status_contains": report["status"], "target_contains": report["target"], "picture_message_contains": report["picture_message"],
+            "limitations_contain": panel._limitations.text(), "details_contain": panel._details.toPlainText(),
+        }
+        for key, text in shown_text.items():
+            for wanted in ([expect[key]] if isinstance(expect.get(key), str) else expect.get(key, [])):
+                if wanted not in text:
+                    problems.append(f"{key}: {wanted!r} is not in {text[:200]!r}")
+        if problems:
+            logger.error("OPENCHEM_DRIVE: EXPECT synthesis FAILED[%s] -- %s", tag, "; ".join(problems)[:800])
+        else:
+            logger.warning("OPENCHEM_DRIVE: EXPECT synthesis ok[%s]", tag)
+
     def _do_conformers(self, step: dict[str, Any]) -> None:
         """Generate conformers through the real service.
 

@@ -32,6 +32,9 @@ def main() -> int:
     app.aboutToQuit.connect(shutdown_worker)
 
     services = build_service_container()
+    # A planner search is a child process in the user's own environment: the application ending must stop it, not leave it running.
+    if services.synthesis_planning_service is not None:
+        app.aboutToQuit.connect(services.synthesis_planning_service.shutdown)
     # Before the window exists, so the trace sees every window it shows.
     app._window_tracer = install_if_requested(app, services.event_bus)
     settings = Settings(services.event_bus)

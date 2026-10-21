@@ -21,9 +21,10 @@ import os
 import subprocess
 import threading
 import time
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from pathlib import Path
 
+from openchem.chem.route_validation import validate_route
 from openchem.domain.synthesis_route import (
     STANDARD_LIMITATIONS,
     PlannerIdentity,
@@ -40,15 +41,16 @@ from openchem.domain.synthesis_route import (
     read_termination,
 )
 
-#: What the reachability guard accepts for a module nothing in the application imports YET. This is the host half of the runner (Stage 1 slice 3); the planning service (slice 4) is its first importer, and the guard then fails this declaration, which is the reminder to delete it.
-REACHED_BY = (
-    "tooling: imported only by tests/test_synthesis_planner.py until the synthesis planning service (Stage 1 slice 4 of docs/SYNTHESIS_HELPER_DESIGN.md) imports it; the feature is not yet reachable from the window"
-)
-
 #: The request the runner reads (`chem/aizynth_runner.py` keeps its own copy; a test holds the two equal).
 REQUEST_SCHEMA = "aizynth-request-1"
 #: The response the runner writes.
 RUN_SCHEMA = "aizynth-run-1"
+#: The request that asks the runner to read a configuration file (`chem/aizynth_runner.py` keeps its own copy; a test holds them equal).
+INSPECT_REQUEST_SCHEMA = "aizynth-inspect-request-1"
+#: The runner's response to it (its own copy is held equal by a test).
+INSPECT_SCHEMA = "aizynth-inspect-1"
+#: The longest an inspection may take: it starts a Python and reads a file (0.2 s measured), so this bounds a hang, not a budget.
+INSPECT_TIMEOUT_SECONDS = 60.0
 #: The planner's name as every `PlannerIdentity` carries it.
 PLANNER_NAME = "AiZynthFinder"
 #: The runner script the planner's interpreter is handed as a path.
@@ -111,6 +113,88 @@ class PlanRequest:
     def selection(self) -> tuple[tuple[str, str], ...]:
         """The names of what was selected, which is what an identity carries instead of paths."""
         return (("expansion", self.expansion), ("filter", self.filter or "none"), ("stock", self.stock))
+
+
+@dataclass(frozen=True, kw_only=True)
+class PlannerSetup:
+    """Everything about HOW the planner is run that does not depend on the target: the user's planner Python, its configuration, what to select from it and the limits.
+
+    Captured by the caller BEFORE a search starts and carried with it, so a change to the setting while a search runs cannot reroute
+    it. Where it comes from (the External Tools tab) is a later slice; this is only its shape.
+    """
+
+    python: str
+    config: dict = field(compare=False)
+    stock: str
+    expansion: str
+    limits: SearchLimits
+    filter: str | None = None
+    all_routes: bool = False
+
+    def request_for(self, target_smiles: str) -> PlanRequest:
+        return PlanRequest(target_smiles=target_smiles, config=self.config, stock=self.stock, expansion=self.expansion, limits=self.limits, filter=self.filter, all_routes=self.all_routes)
+
+    def selection(self) -> tuple[tuple[str, str], ...]:
+        return (("expansion", self.expansion), ("filter", self.filter or "none"), ("stock", self.stock))
+
+
+@dataclass(frozen=True)
+class PlannerInspection:
+    """What reading the planner's configuration found, or why it could not.
+
+    `kind` is "" when `ok`; otherwise one of `python` (the interpreter is not there or will not start), `runner` (this installation's script is missing),
+    `planner` (aizynthfinder is not installed in that environment), `yaml`, `config` (missing, unreadable or not a mapping), `timeout`, `failed` or `malformed`.
+    """
+
+    ok: bool
+    kind: str = ""
+    reason: str = ""
+    #: The configuration with every policy, filter and stock path made absolute.
+    config: dict = field(default_factory=dict, compare=False)
+    #: The names the configuration offers, by section.
+    keys: dict = field(default_factory=dict, compare=False)
+    #: The versions installed in that environment (None = not installed).
+    packages: dict = field(default_factory=dict, compare=False)
+
+    @property
+    def version(self) -> str | None:
+        return self.packages.get("aizynthfinder")
+
+
+def _bad(kind: str, reason: str, packages: dict | None = None) -> PlannerInspection:
+    return PlannerInspection(ok=False, kind=kind, reason=_reason(reason), packages=packages or {})
+
+
+def inspect_environment(python: str | os.PathLike[str], config_path: str | os.PathLike[str], *, runner: str | os.PathLike[str] = RUNNER_PATH, timeout: float = INSPECT_TIMEOUT_SECONDS) -> PlannerInspection:
+    """Ask the planner's own Python to read its configuration file. Never raises; every failure is a `PlannerInspection` with a kind."""
+    if not str(python).strip() or not Path(python).is_file():
+        return _bad("python", f"the planner's Python was not found: {python}")
+    if not Path(runner).is_file():
+        return _bad("runner", f"the planner runner script is missing from this installation: {runner}")
+    payload = json.dumps({"schema": INSPECT_REQUEST_SCHEMA, "config_path": str(config_path)}, ensure_ascii=True).encode("utf-8")
+    try:
+        done = subprocess.run([str(python), "-I", str(runner)], input=payload, capture_output=True, timeout=timeout, env=dict(os.environ, PYTHONIOENCODING="utf-8", PYTHONUTF8="1"), creationflags=_NO_WINDOW)
+    except subprocess.TimeoutExpired:
+        return _bad("timeout", f"the planner's Python did not answer within {timeout:g} seconds")
+    except OSError as error:
+        return _bad("python", f"the planner's Python could not be started: {error}")
+    text = done.stdout.decode("utf-8", errors="replace").strip()
+    if not text:
+        tail = done.stderr.decode("utf-8", errors="replace")[-STDERR_TAIL_BYTES:]
+        return _bad("failed", f"the planner's Python exited with code {done.returncode} and wrote nothing. Its last words: {tail}" if tail.strip() else f"the planner's Python exited with code {done.returncode} and wrote nothing")
+    try:
+        document = json.loads(text)
+    except ValueError:
+        return _bad("malformed", "the planner's output was not a JSON document")
+    if not isinstance(document, dict) or document.get("schema") != INSPECT_SCHEMA:
+        return _bad("malformed", f"the planner's output has an unsupported schema ({_reason(document.get('schema') if isinstance(document, dict) else document)}); expected {INSPECT_SCHEMA}")
+    packages = document.get("packages") if isinstance(document.get("packages"), dict) else {}
+    if document.get("status") != "ok":
+        return _bad(str(document.get("kind") or "failed"), document.get("reason") or "no reason was given", packages)
+    config, keys = document.get("config"), document.get("keys")
+    if not isinstance(config, dict) or not isinstance(keys, dict):
+        return _bad("malformed", "the planner's document is missing the configuration or its keys", packages)
+    return PlannerInspection(ok=True, config=config, keys={k: tuple(v) for k, v in keys.items() if isinstance(v, list)}, packages=packages)
 
 
 # --- turning the child's document into a RouteSet ---------------------------------------------------------------------------------------
@@ -296,7 +380,7 @@ def parse_document(document: object, request: PlanRequest, target: TargetIdentit
         if not all(m.in_stock is True for m in route.starting_materials):
             counts["unsolved"] += 1
             continue
-        kept.append(route)
+        kept.append(replace(route, validation=validate_route(route)))
 
     termination = read_termination(identity.limits, statistics)
     limitations = STANDARD_LIMITATIONS + ((_left_out(counts, reasons),) if sum(counts.values()) else ())
@@ -441,4 +525,4 @@ def run_planner(
     return _interpret(b"".join(out_chunks), tail, proc.returncode if proc.returncode is not None else -1, request, target)
 
 
-__all__ = ["PLANNER_NAME", "PlanRequest", "RUN_SCHEMA", "REQUEST_SCHEMA", "RUNNER_PATH", "parse_document", "route_from_tree", "run_planner"]
+__all__ = ["INSPECT_REQUEST_SCHEMA", "INSPECT_SCHEMA", "PLANNER_NAME", "PlanRequest", "PlannerInspection", "PlannerSetup", "inspect_environment", "RUN_SCHEMA", "REQUEST_SCHEMA", "RUNNER_PATH", "parse_document", "route_from_tree", "run_planner"]

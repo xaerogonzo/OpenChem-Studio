@@ -106,7 +106,8 @@ def test_every_step_carries_what_the_planner_gave_and_nothing_else():
     step = route.steps[-1]
     assert step.product == route.target_smiles and step.reaction_smiles and step.template_id and step.policy_name == "uspto" and 0 < step.policy_probability <= 1
     assert all(m.in_stock is True for m in route.starting_materials)
-    assert route.score and 0 < route.score <= 1 and route.validation is None  # the planner's ranking number; validation is a later slice
+    assert route.score and 0 < route.score <= 1  # the planner's ranking number
+    assert route.validation is not None and route.validation.fully_validated  # every kept route is checked against its own bookkeeping (slice 6)
 
 
 def test_a_three_step_route_is_in_the_order_it_would_be_run():
@@ -781,8 +782,15 @@ def test_cancelling_the_real_planner_leaves_no_process_that_is_running_the_runne
         pytest.skip("this machine cannot list processes by command line")
     cancel = threading.Event()
     midway: set[int] = set()
-    threading.Timer(3.0, lambda: midway.update(runner_processes() or set())).start()
-    threading.Timer(4.0, cancel.set).start()
+
+    def cancel_once_the_child_has_been_seen() -> None:
+        # Cancel only after the listing has actually shown the running child (a fixed delay raced a slow PowerShell under load), and never later than 60 s.
+        deadline = time.monotonic() + 60
+        while time.monotonic() < deadline and not midway:
+            midway.update((runner_processes() or set()) - before)
+        cancel.set()
+
+    threading.Thread(target=cancel_once_the_child_has_been_seen, daemon=True).start()
     began = time.monotonic()
 
     result = host.run_planner(_real_request(iterations=100000), TARGET, python=_PLANNER_PYTHON, cancel=cancel)

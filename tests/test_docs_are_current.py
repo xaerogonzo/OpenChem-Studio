@@ -400,8 +400,10 @@ class Deferral:
     `reason` answers "is the recorded reason for deferring still true?" and
     belongs to DECISION alone -- OPEN means "not built, and nobody has
     decided not to", so there is no recorded reason that could go stale.
-    Only some reasons are countable: "there is still no concrete fourth
-    plugin" is `len(shipped plugins) < 4`; "the cause was never established"
+    Only some reasons are countable: "the fourth plugin has none of the
+    boilerplate the abstraction would hold" is a search of its source (this
+    was `len(shipped plugins) < 4` until the fourth shipped, which is how it
+    went stale); "the cause was never established"
     is not checkable by anything. Where a DECISION's reason is not
     countable, `reason` is None and `manual` must say why -- the same rule
     `test_every_allowlist_entry_is_explained` already enforces above.
@@ -436,6 +438,12 @@ def _shipped_plugins() -> list[str]:
     """Directories under `plugins/` that are real plugins."""
     root = _ROOT / "plugins"
     return sorted(p.name for p in root.iterdir() if (p / "manifest.toml").is_file())
+
+
+def _plugin_source(plugin_id: str) -> str:
+    """Every .py file of one shipped plugin, as one string."""
+    folder = _ROOT / "plugins" / plugin_id
+    return "\n".join(p.read_text(encoding="utf-8", errors="replace") for p in sorted(folder.rglob("*.py")))
 
 
 def _uvvis_reference_is_unsourced() -> bool:
@@ -607,9 +615,12 @@ DEFERRALS: list[Deferral] = [
             _defines(name)
             for name in ("ToolbarProvider", "ContextMenuProvider", "RemoteServicePlugin")
         ),
-        # "there is still no concrete fourth plugin whose actual requirements
-        # would tell us what these abstractions should look like" -- countable.
-        reason=lambda: len(_shipped_plugins()) < 4,
+        # THE FOURTH PLUGIN EXISTS (`synthesis_planner`, 2026-10-21), so "no concrete fourth plugin" is no longer the reason and the entry was
+        # rewritten rather than left reading as authoritative. What the fourth plugin showed is countable: it has none of the boilerplate a
+        # `RemoteServicePlugin` would hold (no secrets, no settings of its own). The day it grows some, this goes false and the entry is reconsidered.
+        reason=lambda: not any(
+            marker in _plugin_source("synthesis_planner") for marker in ("context.secrets", "context.settings", "RemoteServicePlugin")
+        ),
     ),
     Deferral(
         claim="`MacromoleculeModel` only stores raw PDB/mmCIF text",
