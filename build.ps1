@@ -116,6 +116,13 @@ if (Test-Path $HELP_BUNDLE) {
     throw "$HELP_BUNDLE already exists: a previous build crashed before cleaning up. Delete it and re-run."
 }
 
+# The install self-check's manifest is written by the spec (from its own datas
+# list) and removed below, on the same terms.
+$INTEGRITY = "$ROOT\src\openchem\_integrity.py"
+if (Test-Path $INTEGRITY) {
+    throw "$INTEGRITY already exists: a previous build crashed before cleaning up. Delete it and re-run."
+}
+
 try {
 
 Write-Host "  Bundling help documents ..." -ForegroundColor Cyan
@@ -134,12 +141,20 @@ $ErrorActionPreference = "Continue"
 $exitCode = $LASTEXITCODE
 $ErrorActionPreference = $prevEAP
 
+# Prove the spec's source-to-installed mapping on the tree PyInstaller produced,
+# while the manifest still exists: the same check the running app makes.
+if ($exitCode -eq 0) {
+    & uv run --no-sync python "$ROOT\tools\verify_install_tree.py" --manifest $INTEGRITY --root "$APPDIR\_internal"
+    if ($LASTEXITCODE -ne 0) { throw "The built tree does not match its own integrity manifest" }
+}
+
 } finally {
     # The stamp exists only for the duration of the freeze. Leaving it behind
     # would make a source checkout report the commit of the last BUILD rather
     # than of the code actually running -- a wrong answer that looks right.
     if (Test-Path $STAMP) { Remove-Item $STAMP -Force }
     if (Test-Path $HELP_BUNDLE) { Remove-Item $HELP_BUNDLE -Force }
+    if (Test-Path $INTEGRITY) { Remove-Item $INTEGRITY -Force }
 }
 
 if ($exitCode -ne 0) {
@@ -243,7 +258,10 @@ $pyzToc = "$ROOT\build\openchem\PYZ-00.toc"
 if (-not (Test-Path $pyzToc) -or -not (Select-String -Path $pyzToc -SimpleMatch "openchem._help_bundle" -Quiet)) {
     $missing += "openchem._help_bundle inside the compiled archive (build\openchem\PYZ-00.toc)"
 }
-foreach ($loose in @("_internal\openchem\docs", "_internal\openchem\_help_bundle.py")) {
+if (-not (Select-String -Path $pyzToc -SimpleMatch "openchem._integrity" -Quiet)) {
+    $missing += "openchem._integrity inside the compiled archive (build\openchem\PYZ-00.toc)"
+}
+foreach ($loose in @("_internal\openchem\docs", "_internal\openchem\_help_bundle.py", "_internal\openchem\_integrity.py")) {
     if (Test-Path "$APPDIR\$loose") { $missing += "$loose must not exist (help is bundled)" }
 }
 
