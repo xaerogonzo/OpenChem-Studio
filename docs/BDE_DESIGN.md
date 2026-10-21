@@ -53,9 +53,36 @@ PASS: the calculator is built (a service-level sequence, experimental, needing a
 4. The overnight run, then the report.
 5. Only then, on a PASS, the calculator in the application.
 
-## To run: the primary-arm ORCA benchmark (recorded 2026-10-19; NOT run)
+## Result: the primary arm was run on 2026-10-20/21 and is PARTIAL
 
-The runner is written, tested on real CN-radical and H-atom output and committed (`benchmarks/bde/run_bde.py`, `tests/test_bde_runner.py`); no benchmark job has been run, so the preregistration is frozen as of the runner's commit. It builds 68 structures (32 parents, 35 radical starts, the hydrogen atom); the run time is **unmeasured**. Run it after the proton-affinity run, never beside it (both want the cores):
+Run on commit `6ec0fd29f72945b1f708d67dfe95050fb20656bc`, clean `src/`, one commit in every record, ORCA 6.1.1, `run --workers 3 --cores 4`, nothing else heavy on the machine (the proton-affinity run had finished first). **Wall time 10 h 35 min** (20:14:58 to the last record at 06:49:33; 38,075 s; the jobs' own time sums to 29.4 h, which over three workers is 9.8 h). 68 structures, 72 jobs (four re-runs with `Calc_Hess`), 65 structures accepted; the longest job was 2.2 h (limit 4 h). Records: `benchmarks/bde/artifacts/primary/runs.jsonl`; report and verdict beside them.
+
+The judge's output (preregistered rule, unchanged), kcal/mol:
+
+| | n | MAE | MSE | largest | missing | |
+|---|---|---|---|---|---|---|
+| 25 deciding bonds | 22 | 1.76 | -1.53 | 4.57 | 3 | **PARTIAL** |
+| 8 loose-reference bonds (reported) | 8 | 1.24 | +0.07 | 2.32 | 0 | decides nothing |
+| all 33 | 30 | 1.62 | -1.10 | 4.57 | 3 | decides nothing |
+
+**Why PARTIAL, by the rule:** MAE 1.76 <= 2.5 and the largest error 4.57 <= 5.0 both pass, and three missing is within the allowed three (a fourth would have made it NOT EVALUABLE). **|MSE| = 1.53 exceeds the 1.5 limit**, so the arm is not PASS; MAE <= 3.5 makes it PARTIAL. The miss is by 0.03 kcal/mol and is a systematic bias, not scatter: of the 22 computed deciding bonds, 21 are below the experimental value (all but HCN's C-H, +2.53), i.e. the calculation underestimates the bond enthalpy by about 1.5 kcal/mol on average. The verdict stands as the judge gave it.
+
+**Missing cells (all three in the deciding stratum), by the preregistered rule:**
+* ethanol O-H: its radical kept a vibration at -105.8 cm-1 after the `Calc_Hess` re-run (-109.9 before);
+* toluene benzylic C-H: the toluene *parent* kept -49.4 cm-1 after the re-run (-59.7 before), so the bond has no parent;
+* methanethiol S-H: its radical (CH3S) converged to a stationary point with an imaginary mode of -1306 cm-1 (-1328 after the re-run), which is a saddle point, not a minimum.
+Nothing was repaired or re-started from other geometries: that would be a protocol change. Acetic acid's radical failed the -20 cm-1 rule once (-71.6) and passed after the re-run.
+
+**By class (reported, in no rule):** C-H n=15 (1 missing) MAE 1.32, MSE -0.89; O-H n=8 (1 missing) MAE 1.52, MSE -0.38; N-H (ammonia, n=1) -1.16; S-H (H2S, n=1, methanethiol missing) -1.39; Si-H (silane, n=1) -2.92; **peroxide O-H n=4 MAE 2.79, all four negative, methyl hydroperoxide -4.57 (the largest error of the run)**, which is the class Mardirossian's multireference warning pointed at. **Spin contamination: no radical's `<S**2>` is above 0.80** (largest 0.789, phenol, a loose-reference bond), so the errors are not explained by it. HCN's C-H (+2.53) is the only positive error in the deciding set.
+
+**Not computed:** the effect of lowest-structure against Boltzmann averaging, and time per job by bond, were named in the preregistration as reported items but are not produced by `run_bde.py report`; they were not computed by hand afterwards (the per-job records are committed).
+The peak load was not measured; 12 cores (3 workers x 4) and `%maxcore 3000` per core were configured, up to about 9 GB.
+
+**What this does under the preregistration:** PARTIAL means the failing cells are named (above), **nothing is built**, and whether a calculation with a stated larger error is wanted is Alex's decision. The secondary DLPNO-CCSD(T) arm is run only if the primary arm passes; it did not, so it was neither written nor run.
+
+## To run the primary-arm ORCA benchmark (as recorded 2026-10-19, before the result above)
+
+The runner is written, tested on real CN-radical and H-atom output and committed (`benchmarks/bde/run_bde.py`, `tests/test_bde_runner.py`); (as written before the run; it has since been run, see above). It builds 68 structures (32 parents, 35 radical starts, the hydrogen atom); the run time is **unmeasured**. Run it after the proton-affinity run, never beside it (both want the cores):
 
 ```bash
 uv run --no-sync python benchmarks/bde/run_bde.py structures
