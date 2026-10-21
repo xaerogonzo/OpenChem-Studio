@@ -217,8 +217,9 @@ OPENCHEM_DRIVE=/path/to/script.json uv run --no-sync python -m openchem.main
     {"do": "synthesis_panel", "tag": "x", "press": "plan", "route": 1, "step": 0, "scroll": "end",
      "expect": {"routes_at_least": 1, "picture": true, "status_contains": "routes found"}}
                                           the Synthesis panel's REAL buttons and lists, and what it SHOWS (status, routes,
-                                          whether a step's picture is drawn, the limitations); press and report in SEPARATE
-                                          steps, since Plan waits for the configuration to be read off the GUI thread
+                                          whether a step's picture is drawn, the limitations; `details_scroll` reaches the last
+                                          lines of the step's text, its consistency checks and alerts); press and report in
+                                          SEPARATE steps, since Plan waits for the configuration to be read off the GUI thread
     {"do": "synthesis_setup", "python": "...", "config": "..."}  the planner's settings for THIS run ("" = not set up);
                                           writes the real registry, so `quit` or `{"restore": true}` puts them back
     {"do": "conformers_finish", "expect": {"enabled": true, "readout_contains": ["found"]}}

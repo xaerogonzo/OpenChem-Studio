@@ -21,9 +21,10 @@ import os
 import subprocess
 import threading
 import time
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from pathlib import Path
 
+from openchem.chem.route_validation import validate_route
 from openchem.domain.synthesis_route import (
     STANDARD_LIMITATIONS,
     PlannerIdentity,
@@ -379,7 +380,7 @@ def parse_document(document: object, request: PlanRequest, target: TargetIdentit
         if not all(m.in_stock is True for m in route.starting_materials):
             counts["unsolved"] += 1
             continue
-        kept.append(route)
+        kept.append(replace(route, validation=validate_route(route)))
 
     termination = read_termination(identity.limits, statistics)
     limitations = STANDARD_LIMITATIONS + ((_left_out(counts, reasons),) if sum(counts.values()) else ())

@@ -519,3 +519,60 @@ def test_the_panel_follows_the_events_after_the_plugin_is_unloaded_without_error
     world.services.event_bus.publish(MoleculeSelected(molecule_uuid=UUID))
     QApplication.processEvents()  # the subscriptions were unwound, so nothing reaches the removed panel
     assert "synthesis_planner" not in world.manager.loaded_plugin_ids
+
+
+# --- validation and regulatory alerts (slice 6) --------------------------------------------------------------------------------
+
+
+def _screened_set(alert_on=()):
+    from openchem.domain.synthesis_gate import AlertFinding, NodeScreening
+    from openchem.domain.synthesis_route import route_molecules
+
+    base = route_set()
+    molecules = tuple(dict.fromkeys(m for route in base.routes for m in route_molecules(route)))
+
+    def screening(smiles):
+        if smiles in alert_on:
+            finding = AlertFinding(ruleset_id="osha-table-z1", rule_id="rule-9", display_name="a listed substance", domain="occupational_exposure", jurisdiction="united_states", section="Table Z-1", confidence="exact")
+            return NodeScreening(smiles=smiles, screened=True, findings=(finding,), rulesets_consulted=("osha-table-z1",), screened_on="2026-10-21")
+        return NodeScreening(smiles=smiles, screened=True, rulesets_consulted=("osha-table-z1",), screened_on="2026-10-21")
+
+    import dataclasses
+
+    return dataclasses.replace(base, node_screenings=tuple(screening(m) for m in molecules))
+
+
+def test_a_screened_plan_shows_its_alerts_in_the_route_list_and_the_details_and_keeps_every_route(loaded):
+    host = FakeHost()
+    with_result(host, _screened_set(alert_on=(SALICYLIC,)))
+    panel = loaded(host).panel
+
+    titles = [panel._routes.item(i).text() for i in range(panel._routes.count())]
+    assert len(titles) == 2  # an alert flags a molecule and never removes a route
+    assert titles[0].endswith(", 1 molecule with a regulatory alert") and titles[1].endswith(", 1 molecule with a regulatory alert")
+    text = panel._details.toPlainText()
+    assert "Regulatory alerts (a listing in a ruleset, not a legal determination" in text and "a listed substance" in text and "Regulatory alerts: not checked." not in text
+    assert "Some molecules of these routes" not in panel._limitations.text() and "have not been checked against the regulatory rulesets" not in panel._limitations.text()
+
+
+def test_a_plan_that_was_not_screened_says_so_beside_its_routes_and_in_the_limitations(loaded):
+    host = FakeHost()
+    with_result(host, route_set())
+    panel = loaded(host).panel
+    assert "Regulatory alerts: not checked." in panel._details.toPlainText()
+    assert "have not been checked against the regulatory rulesets, so the absence of an alert here means nothing" in panel._limitations.text()
+
+
+def test_a_routes_own_consistency_checks_are_shown_when_it_has_them(loaded):
+    import dataclasses
+
+    from openchem.domain.synthesis_route import Check, MappingStatus, StockStatus, ValidationReport
+
+    base = route_set()
+    report = ValidationReport(molecules=Check.PASS, reactions=Check.PASS, mapping=MappingStatus.COMPLETE, conservation=Check.PASS, stock=StockStatus.ALL_IN_STOCK, unmapped_right_atoms=4)
+    validated = dataclasses.replace(base, routes=tuple(dataclasses.replace(r, validation=report) for r in base.routes))
+    host = FakeHost()
+    with_result(host, validated)
+    text = loaded(host).panel._details.toPlainText()
+    assert "Internal consistency (the route's own bookkeeping, not the chemistry):" in text and "atom mapping: complete" in text and "atoms conserved: passed" in text
+    assert "Internal consistency: not checked." not in text
