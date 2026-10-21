@@ -1346,6 +1346,19 @@ document may cite a file or a test that does not exist.
   authenticity check. `docs\` is still staged beside the exe for people to read;
   the application never reads that copy.
 
+  **The release checks its own data files.** `packaging/openchem.spec` builds a
+  manifest (installed path, sha256, size) from its own `datas` list, restricted
+  to entries under `src/openchem` and honouring the same drop list as its `_keep`
+  filter, and writes it as the generated `openchem/_integrity.py` (in the exe's
+  archive; `build.ps1` removes it afterwards). `build.ps1` proves it against the
+  built `_internal` tree with `tools/verify_install_tree.py`. At startup
+  `app/install_monitor.py` runs `install_check.check_installed()` once on a worker
+  thread and records the answer for About; a finding also goes to the status bar.
+  Out of scope on purpose: third-party packages, `plugins/` (editable by design),
+  the human `docs\` copy, and the user's own data. It detects accidental change
+  and reports it; it does not repair, block, or claim tamper-resistance (the
+  hashes ride in the same unsigned exe), and a signature is what would.
+
   `plugins/` ships as source **beside** the exe rather than inside the
   payload, so a user can add one without a Python install;
   `PluginManager` looks there when `sys.frozen` is set. Sidecars (pkasolver,

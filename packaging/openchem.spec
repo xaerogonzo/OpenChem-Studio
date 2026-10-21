@@ -19,6 +19,7 @@ mostly breaks *silently*. Each one says what. Do not prune this list by
 inspection -- prune it by removing an entry and launching the exe.
 """
 
+import sys
 from pathlib import Path
 
 from PyInstaller.utils.hooks import collect_data_files, collect_submodules
@@ -160,6 +161,29 @@ datas += collect_data_files(
 )
 
 # --------------------------------------------------------------------------
+# Install self-check manifest
+# --------------------------------------------------------------------------
+# What the spec removes from the data entries above. ONE list, used by `_keep`
+# below and by the manifest, so the two cannot disagree about what ships.
+DROPPED_PREFIXES = ("openchem/chem/data/regulatory/sources/",)
+
+# The app checks its own data files against the hash and size each had when
+# this build was made (openchem/install_check.py; it reports, never repairs).
+# The manifest is made HERE, from the `datas` list itself, so there is no second
+# hand-written map of source path to installed path. It must exist before
+# Analysis runs (it is collected as an ordinary module, so it lives in the exe's
+# archive), and `build.ps1` deletes it afterwards and refuses to start if one is
+# already lying around.
+sys.path.insert(0, str(PKG.parent))
+from openchem import install_check  # noqa: E402 -- needs the path line above
+
+_INTEGRITY_MODULE = PKG / "_integrity.py"
+install_check.write_module_atomically(
+    _INTEGRITY_MODULE,
+    install_check.build_manifest(datas, PKG, drop_prefixes=DROPPED_PREFIXES),
+)
+
+# --------------------------------------------------------------------------
 # Hidden imports
 # --------------------------------------------------------------------------
 # Whole-package sweep of our own code. Panels, providers and the naming
@@ -213,7 +237,7 @@ def _keep(entry):
     dest = entry[0].replace("\\", "/")
     if "/qtwebengine_locales/" in dest:
         return dest.endswith("en-US.pak")
-    if dest.startswith("openchem/chem/data/regulatory/sources/"):
+    if dest.startswith(DROPPED_PREFIXES):
         return False  # the hand-edited input; see the chem/data entry above
     return not dest.endswith(".qm")
 

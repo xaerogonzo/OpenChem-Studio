@@ -53,4 +53,5 @@ def test_the_guard_fails_on_a_spec_without_the_entry():
 
 def test_the_spec_drops_the_ruleset_sources_from_the_directory_entry():
     spec = (ROOT / "packaging" / "openchem.spec").read_text(encoding="utf-8")
-    assert 'dest.startswith("openchem/chem/data/regulatory/sources/")' in spec
+    assert "dest.startswith(DROPPED_PREFIXES)" in spec
+    assert '"openchem/chem/data/regulatory/sources/"' in spec.split("DROPPED_PREFIXES = (")[1].split(")")[0]
