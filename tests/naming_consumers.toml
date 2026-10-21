@@ -495,6 +495,12 @@ scope = "core"
 owner = "namer"
 
 [[consumer]]
+file = "tests/test_namer_round76_diamide_n_locants_and_groups_a_parent_cannot_take.py"
+why = "a lone N-substituent on a later amide of a diamide cites its position (D-344), two thioic S-acids, a carbamate beside an acid and a nitro on an imidoyl carbon are not the groups a plan may take (D-345 .. D-347), and an acylamino on an oxygen, a hydrotrioxide and a compound acyl prefix after a locant are spelled where OPSIN reads them (D-348 .. D-350)"
+scope = "core"
+owner = "namer"
+
+[[consumer]]
 file = "tests/test_namer_round75_thio_and_seleno_acid_groups_in_prefixes_and_thioester_organyls.py"
 why = "a sulfonothioyl, sulfonoselenoyl, selenonyl or telluronyl group is a prefix (D-340, D-341), a carboselenoate has its own group (D-342), and an S- or O-ester's organyl is enclosed where OPSIN cannot read it bare (D-343)"
 scope = "core"

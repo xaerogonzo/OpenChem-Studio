@@ -941,6 +941,20 @@ def _name_heteroatom_fv_substituent(
                 frag_mol, att_idx_sub, _ = carve_substituent(
                     mol, comp, (attachment_idx, nb_idx),
                 )
+                if (
+                    element == 8 and len(sub_components) == 1 and mol.GetAtomWithIdx(nb_idx).GetAtomicNum() == 8
+                    and frag_mol.GetNumHeavyAtoms() == 2 and all(x.GetAtomicNum() == 8 for x in frag_mol.GetAtoms())
+                ):
+                    # R-O-O-OH, a hydrotrioxide: the carved `-O-OH` was named `hydroxyyl` and the whole `(hydroxyylperoxy)`, a name OPSIN cannot read. The
+                    # group is a hydroperoxy on an oxy, which OPSIN reads as written (naming round 76).
+                    return LeafTree(
+                        output_form=output_form,
+                        free_valence=free_valence,
+                        choices_made=(Choice(type="heteroatom_fv_substituent", detail="element=O, suffix=oxy, prefix=(hydroperoxy)oxy"),),
+                        decision_ctx=decision_ctx,
+                        validity_warnings=None,
+                        text="(hydroperoxy)oxy",
+                    )
                 sub_method = _select_substituent_method(frag_mol, att_idx_sub)
                 sub_fv = FreeValenceInfo(
                     bond_orders=(bo,),
@@ -17614,6 +17628,26 @@ class SubstitutivePath:
 
             _n_parent_positions: set[int] = set(_n_to_parent_pos.values())
             _n_needs_disambiguation = len(_n_parent_positions) > 1
+            if not _n_needs_disambiguation and _n_parent_positions:
+                # A PRIMARY amide has no N-substituent and is not in `_N_BEARING_FG_TYPES`, so a diamide with ONE substituted nitrogen counted one position
+                # and cited a bare `N-ethyl` wherever that nitrogen was: `CCNC(=O)CC(C)C(N)=O` came out `N-ethyl-2-methylbutanediamide`, which puts the ethyl on
+                # the amide at C1, the other molecule (naming round 76). A bare N is the first group's: the other groups cite their position (`N4-ethyl`).
+                _other_positions: set[int] = set()
+                for _fg in pcg_instances:
+                    if _fg.type not in ("amide", "thioamide") or not _fg_has_locant_on_parent(_fg, parent_atoms):
+                        continue
+                    _pos = _fg.anchor if _fg.anchor in parent_atoms else _find_parent_neighbor(_fg.anchor, parent_atoms, mol)
+                    if _pos is not None:
+                        _other_positions.add(_pos)
+                _every_position = _n_parent_positions | _other_positions
+                if len(_every_position) > 1:
+                    _values = {
+                        p: numbering.atom_to_locant[p]._numeric_value
+                        for p in _every_position
+                        if p in numbering.atom_to_locant and numbering.atom_to_locant[p]._numeric_value is not None
+                    }
+                    if len(_values) == len(_every_position) and any(_values[p] != min(_values.values()) for p in _n_parent_positions):
+                        _n_needs_disambiguation = True
 
             # P-16.3.3 / P-66.6.3: when multiple distinct N atoms attach to the
             # SAME parent position (e.g. ethene-1,1-diamine in ranitidine, or
