@@ -41,6 +41,7 @@
 | docs/ROADMAP.md | `/docs/ROADMAP.md` | Phased development plan, plus resolved investigations (naming) and documented extension points |
 | CALCULATOR_MATURITY.md | `/docs/CALCULATOR_MATURITY.md` | Calculator stages and default visibility, what a declaration obliges, and how a calculator is classified or promoted |
 | CLAUDE.md | `/CLAUDE.md` | How to run the tests here, and the traps that cost real time |
+| RELEASE_CONTENTS.md | `/docs/RELEASE_CONTENTS.md` | What a release zip holds and what stays in the repository, checked by `tests/test_release_contents.py` |
 | VENDORING.md | `/src/openchem/vendor/VENDORING.md` | What is vendored, from where, at which commit, and what was changed |
 | LICENSE | `/LICENSE` | GPL-3.0-or-later (required for optional Open Babel bindings use) |
 

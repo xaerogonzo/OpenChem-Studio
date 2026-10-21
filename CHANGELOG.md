@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Docs: what is in a release, and what is not
+- New `docs/RELEASE_CONTENTS.md`: every part of the release zip with what it is, whether the app reads it and whether editing it is safe; and every tracked top-level entry of the repository with whether it reaches a release. `tests/test_release_contents.py` keeps it true: a new top-level entry with no row fails, as does a "not shipped" entry that the spec or `build.ps1` copies, or a file the build refuses that the page does not mention.
+
 ### Release: the build runs the built app, and makes a release zip that cannot be mistaken for a finished one
 - `build.ps1` now launches the real exe on a drive script (`benchmarks/visual/frozen_smoke.json`, run by `tools/frozen_smoke.py`) and fails the build unless the report is a clean PASS: exit status 0, a fresh report, every required assertion present and ok, nothing dropped from the error ledger. It asserts the help is read from the bundle (new `help_report` driver step) and that the install self-check reached `verified` (new `install_report` step, which waits for the worker). The launcher is Python, not `Start-Process -Wait`, so a hung run cannot hang the build, and on a timeout it kills only its own process tree.
 - `build.ps1` refuses a tree with uncommitted changes (`-AllowDirty` for local experiments; the stamp records it and About says "MODIFIED TREE"), and `-Release` refuses a dirty tree outright, and an unknown version or commit.
