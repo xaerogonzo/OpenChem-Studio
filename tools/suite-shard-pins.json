@@ -1441,6 +1441,7 @@
   "tests/test_namer_round74_double_bond_and_sulfoxide_stereo_in_prefixes_and_azo_parents.py": 1,
   "tests/test_namer_round75_thio_and_seleno_acid_groups_in_prefixes_and_thioester_organyls.py": 0,
   "tests/test_namer_round76_diamide_n_locants_and_groups_a_parent_cannot_take.py": 1,
+  "tests/test_namer_round77_ring_atom_scan_naphthyridine_components_and_multiparent_fusion.py": 3,
   "tests/test_namer_salt_multiplier.py": 1,
   "tests/test_namer_stereo_cache_identity.py": 3,
   "tests/test_namer_stereo_locant_tie.py": 3,

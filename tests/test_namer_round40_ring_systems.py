@@ -85,7 +85,7 @@ UNCHANGED = [
     ("spiro on a carbocycle", "C1CC2CC1CC21CCCC1", "spiro[bicyclo[2.2.1]heptane-2,1'-cyclopentane]"),
     ("a spiro hydantoin on a ring", "C1CCC2(C1)NC(=O)NC2=O", "1,3-diazaspiro[4.4]nonane-2,4-dione"),
     ("a first-order fused name", "c1ccc2c(c1)[nH]c1ncncc12", "9H-pyrimido[4,5-b]indole"),
-    ("pyrrolopyridine", "c1cc2cc3cc[nH]c3nc2nc1", "1H-pyrido[2,3-b]pyrrolo[3,2-e]pyridine"),
+    ("pyrrolopyridine", "c1cc2cc3cc[nH]c3nc2nc1", "1H-pyrrolo[2,3-b][1,8]naphthyridine"),
 ]
 
 ALL = SPIRO_BICYCLE + TRIAZINYL + SPIRO_AZOLE + SECOND_ORDER + SPIRO_HYDRO + FUSED_CATION + UNCHANGED

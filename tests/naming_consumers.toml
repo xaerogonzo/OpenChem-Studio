@@ -495,6 +495,12 @@ scope = "core"
 owner = "namer"
 
 [[consumer]]
+file = "tests/test_namer_round77_ring_atom_scan_naphthyridine_components_and_multiparent_fusion.py"
+why = "the six naphthyridines are fusion components (D-351), two occurrences of the parent joined by one component get a multiparent name (D-352), a von Baeyer name cites the aromatic bonds as enes (D-353) and a fusion descriptor never cites one label twice (D-354)"
+scope = "core"
+owner = "namer"
+
+[[consumer]]
 file = "tests/test_namer_round76_diamide_n_locants_and_groups_a_parent_cannot_take.py"
 why = "a lone N-substituent on a later amide of a diamide cites its position (D-344), two thioic S-acids, a carbamate beside an acid and a nitro on an imidoyl carbon are not the groups a plan may take (D-345 .. D-347), and an acylamino on an oxygen, a hydrotrioxide and a compound acyl prefix after a locant are spelled where OPSIN reads them (D-348 .. D-350)"
 scope = "core"
