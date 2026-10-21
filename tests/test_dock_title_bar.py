@@ -268,6 +268,9 @@ class TestAPluginPanelsHelp:
         dock.widget().setFocus()
         qapp.processEvents()
         assert window._help_topic_for_visible_panel() == "synthesis", "focus inside the panel"
+        front, window._right_docks = window._right_docks, []  # so the front-panel fallback cannot be what answers: only the focus path can
+        assert window._help_topic_for_visible_panel() == "synthesis", "the focus path alone"
+        window._right_docks = front
         window._center_tabs.setFocus()  # focus in the editor beats a visible side panel, as `TestHelpRouting` pins; the panel's own topic needs focus in it
         qapp.processEvents()
         assert window._help_topic_for_visible_panel() == "centre-tabs"
