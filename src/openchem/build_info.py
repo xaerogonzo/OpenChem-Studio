@@ -19,6 +19,8 @@ import sys
 from dataclasses import dataclass, field
 from importlib import metadata
 
+from openchem import install_check
+
 #: How long to wait for `git rev-parse`. Generous enough for a cold disk,
 #: short enough that a broken git install cannot hang the About dialog --
 #: which is the one thing a diagnostics dialog must never do.
@@ -34,6 +36,8 @@ class BuildInfo:
     platform_name: str
     libraries: dict[str, str] = field(default_factory=dict)
     tools: dict[str, str] = field(default_factory=dict)
+    #: The install self-check's one-line answer (`openchem.install_check`); empty when unknown.
+    install: str = ""
 
     def as_text(self) -> str:
         """The form that goes in an issue -- plain text, one fact per line."""
@@ -42,6 +46,7 @@ class BuildInfo:
             f"Commit:   {self.commit} ({self.commit_source})",
             f"Python:   {self.python}",
             f"Platform: {self.platform_name}",
+            *([f"Install:  {self.install}"] if self.install else []),
             "",
             "Libraries:",
         ]
@@ -194,4 +199,5 @@ def collect(settings: object | None = None) -> BuildInfo:
         platform_name=f"{platform.system()} {platform.release()}",
         libraries=_libraries(),
         tools=_tools(settings),
+        install=install_check.current().summary(),
     )

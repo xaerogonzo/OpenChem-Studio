@@ -1288,6 +1288,7 @@
   "tests/test_hose_codes.py": 2,
   "tests/test_identifiers.py": 2,
   "tests/test_input_snapshot.py": 0,
+  "tests/test_install_check.py": 3,
   "tests/test_interaction_analysis_metals.py": 1,
   "tests/test_interaction_analysis_rules.py": 3,
   "tests/test_interactions_panel.py": 1,

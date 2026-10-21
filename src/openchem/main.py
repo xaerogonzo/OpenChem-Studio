@@ -7,6 +7,7 @@ from PySide6.QtCore import QCoreApplication, Qt, QTimer
 from PySide6.QtWidgets import QApplication
 
 from openchem.app.debug_drive import start_if_requested
+from openchem.app.install_monitor import attach as attach_install_monitor
 from openchem.app.logging_setup import configure_logging
 from openchem.app.main_window import MainWindow
 from openchem.app.session import SessionManager
@@ -42,6 +43,10 @@ def main() -> int:
 
     window = MainWindow(services, settings, session)
     window.show()
+    # The release's own data files against the hashes taken at build time; off
+    # the UI thread, silent unless something differs (a source run reports
+    # "not applicable"). Held on the window so a driven run can read it.
+    window._install_monitor = attach_install_monitor(window)
     # Off unless OPENCHEM_DRIVE names a script. Held for the process's
     # life because a QTimer whose owner is collected stops firing, which
     # would strand a script half-way and look like the app hanging.
