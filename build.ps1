@@ -104,7 +104,23 @@ commit = "$commit"
 version = "$appVersion"
 "@ | Set-Content -Path $STAMP -Encoding UTF8
 
+# ---------- Bundle the in-app help --------------------------------------------
+# The Help window's four documents go INTO the exe's archive as a generated
+# module, not out as loose files, so a user cannot save over the real help.
+# Same lifecycle as the stamp. A leftover from a crashed earlier run is refused
+# rather than overwritten: it would mean the last build did not clean up, and
+# deleting it by hand is the only way to know that is all it was.
+
+$HELP_BUNDLE = "$ROOT\src\openchem\_help_bundle.py"
+if (Test-Path $HELP_BUNDLE) {
+    throw "$HELP_BUNDLE already exists: a previous build crashed before cleaning up. Delete it and re-run."
+}
+
 try {
+
+Write-Host "  Bundling help documents ..." -ForegroundColor Cyan
+& uv run --no-sync python "$ROOT\tools\build_help_bundle.py" --out $HELP_BUNDLE
+if ($LASTEXITCODE -ne 0) { throw "Help bundle generation failed (exit $LASTEXITCODE)" }
 
 # ---------- Freeze ------------------------------------------------------------
 # PyInstaller writes progress to stderr; with $ErrorActionPreference = "Stop"
@@ -123,6 +139,7 @@ $ErrorActionPreference = $prevEAP
     # would make a source checkout report the commit of the last BUILD rather
     # than of the code actually running -- a wrong answer that looks right.
     if (Test-Path $STAMP) { Remove-Item $STAMP -Force }
+    if (Test-Path $HELP_BUNDLE) { Remove-Item $HELP_BUNDLE -Force }
 }
 
 if ($exitCode -ne 0) {
@@ -218,6 +235,16 @@ $required = @(
 $missing = @()
 foreach ($rel in $required) {
     if (-not (Test-Path "$APPDIR\$rel")) { $missing += $rel }
+}
+
+# The reverse check: things that must NOT be loose. The help lives in the exe's
+# archive; a loose copy would be the editable one this build exists to remove.
+$pyzToc = "$ROOT\build\openchem\PYZ-00.toc"
+if (-not (Test-Path $pyzToc) -or -not (Select-String -Path $pyzToc -SimpleMatch "openchem._help_bundle" -Quiet)) {
+    $missing += "openchem._help_bundle inside the compiled archive (build\openchem\PYZ-00.toc)"
+}
+foreach ($loose in @("_internal\openchem\docs", "_internal\openchem\_help_bundle.py")) {
+    if (Test-Path "$APPDIR\$loose") { $missing += "$loose must not exist (help is bundled)" }
 }
 
 if ($missing.Count -gt 0) {

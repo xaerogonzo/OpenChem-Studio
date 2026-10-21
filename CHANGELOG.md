@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Release: the in-app help is bundled, not shipped as editable files
+- A release build now carries the four help documents inside the exe's archive (`tools/build_help_bundle.py` generates `openchem/_help_bundle.py`; `help.py` reads it whenever the app is frozen and never falls back to disk). Before, the markdown sat loose in `_internal\openchem\docs\` and the Help window's Open file button opened it, so saving there could remove a help anchor and leave F1 empty.
+- Open file now opens a read-only copy in a temporary folder. A checkout still reads `docs/*.md` directly.
+
 ### Synthesis helper Stage 1, slice 11: plans are saved in the project file
 - A plan that found routes, or found none, is written into the `.ocsproj` under `synthesis_plans` and read back with it (`domain/synthesis_route_codec.py`, `domain/synthesis_plan_store.py`, `SynthesisPlanningService.set_project` / `plan_store`). A project that never planned a synthesis is byte for byte the file it was; an older build opening one drops the block at its next save, as with every block it does not know. A finished search marks the project unsaved and reaches the recovery copy.
 - **A file is treated as input from outside.** On opening, the regulatory gate is asked again for each plan's target (a refusal, an inability to tell and a gate that raises all drop the plan), each route is validated again, the sentences are this build's (the standing ones and the planner's CURRENT measured result; a sentence in the file is not read), a plan for a molecule the project lacks is dropped, and every field is bounded, printable and typed (`PlanDecodeError`, one bad plan costs only itself).

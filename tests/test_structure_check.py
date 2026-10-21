@@ -513,11 +513,9 @@ def test_the_hypervalent_rules_file_is_in_the_packaging_spec():
     frozen app. The spec's own comments record it happening twice already,
     once for `admet_runner.py`.
     """
-    from pathlib import Path
+    import conftest
 
-    spec = Path(__file__).resolve().parent.parent / "packaging" / "openchem.spec"
-
-    assert "hypervalent_rules.json" in spec.read_text(encoding="utf-8")
+    assert conftest.spec_ships("chem/data/hypervalent_rules.json")
 
 
 def test_every_rule_cites_a_reference_and_a_real_example():
