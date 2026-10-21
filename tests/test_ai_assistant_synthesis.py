@@ -549,6 +549,20 @@ def test_a_very_long_plan_is_shortened_to_the_budget_and_never_loses_a_route_or_
     assert one["detail"]["route"] == 3 and "shortened_for_length" not in one
 
 
+def test_a_route_loses_detail_in_steps_as_the_reply_is_shortened_and_never_its_steps(rig):
+    plan = screened(route_set())
+    steps = {}
+    for level in range(4):
+        detail = plan_envelope(TARGET, bound(plan), 2, level)["detail"]
+        steps[level] = detail["steps_in_the_order_they_would_be_run"][0]
+        assert [s["makes"] for s in detail["steps_in_the_order_they_would_be_run"]] == [step.product for step in plan.routes[1].steps], "every step stays"
+    assert "reaction_smiles" in steps[0] and "reaction_smiles" in steps[1] and "reaction_smiles" not in steps[2] and "reaction_smiles" not in steps[3]
+    assert "template_id" in steps[2] and "template_id" not in steps[3]
+    molecules = [plan_envelope(TARGET, bound(plan), 1, level)["detail"]["regulatory_alerts"]["molecules"] for level in range(4)]
+    assert all("alerts" in m for m in molecules[2]) and all("alerts" not in m and "alert_count" in m for m in molecules[3])
+    assert [m["alert_count"] for m in molecules[3]] == [len(m["alerts"]) for m in molecules[0]], "the count at the smallest step is the list at the largest"
+
+
 def test_what_is_read_is_the_plan_as_it_was_when_the_turn_began(rig):
     host = Host()
     host.results[UUID] = bound(route_set())
@@ -593,6 +607,30 @@ def test_the_synthesis_tools_are_offered_only_with_a_reachable_molecule_and_a_pr
     thread, _ = world.loop(NoTools([]), world.bridge())
     world.settle(thread)
     assert seen[3] is None
+
+
+def test_the_real_send_hands_the_model_the_synthesis_tools_and_a_card_it_cannot_approve(rig):
+    """The panel's own Send, not `_run_completion` called directly: the bridge is built there, so a build that dropped it would leave every other test green."""
+    world = rig()
+    panel = world.panel
+    provider = _two_step([_call("plan_synthesis")])
+    provider.requires_api_key = False
+    provider.provider_id = "scripted"
+    panel._providers["scripted"] = provider
+    panel._provider_combo.addItem("scripted")
+    panel._provider_combo.setCurrentText("scripted")
+    panel._input.setPlainText("find routes")
+    panel._send_button.click()
+    assert pump(lambda: panel._send_button.isEnabled() and len(provider.stream_calls) == 2)
+    assert panel.pending_synthesis_keys() == [card_key(UUID)] and [c for c in world.host.calls if c[0] == "request_plan"] == []
+    assert json.loads(told(provider)[0])["state"] == "awaiting_approval"
+
+
+def test_the_strip_of_cards_stays_while_only_a_synthesis_request_is_waiting(rig):
+    world = rig()
+    world.ask(_call("plan_synthesis"))
+    world.panel._sync_cards_host()
+    assert not world.panel._cards_host.isHidden()
 
 
 def test_a_bad_call_never_reaches_the_tool(rig):

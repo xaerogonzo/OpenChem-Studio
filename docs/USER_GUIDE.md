@@ -3397,8 +3397,8 @@ installed" state.
 <!-- help:plugins -->
 ## Plugins
 
-Three plugins ship: **AI Assistant**, **Database Search** and **Reaction
-Prediction**. Enable or disable them from the plugin manager.
+Four plugins ship: **AI Assistant**, **Database Search**, **Reaction
+Prediction** and **Synthesis** (see its own section). Enable or disable them from the plugin manager.
 
 The AI Assistant opens from **Plugins > Open AI Assistant** (its panel is in the
 right-hand rail under *Compare and Extend*). Choose a provider and click
@@ -3414,7 +3414,7 @@ became of it, is listed under the conversation. It can also read the goal wizard
 application pairs with a question such as "where is the charge"), as a suggestion rather than a protocol. It can also read the **derived scores** you
 defined (their names, formulas and values for the selected molecule; never the owner or the note), and says so when one cannot be worked out. It cannot save or change one, but it can propose a new one: a card shows the formula, what each
 input reads, the unit and what it gives for the selected molecule, and nothing is saved unless you press **Approve** (it is then saved with the assistant
-as its owner, and you change it in **Tools > Derived Scores** like any other). Those results, and a score's name and formula, are sent to the provider
+as its owner, and you change it in **Tools > Derived Scores** like any other). It can ask to search for synthesis routes to the selected molecule: a card names the molecule, its structure and the policy, stock and filter the planner would use, and the planning program starts only if you press **Approve** (the application's regulatory check then runs first and can decline to plan; the assistant is told only that it was not planned, never why). When the search ends the assistant is told with your next message, and it can read the stored plan: each route's steps, the route's own consistency checks and the rule ids of any regulatory alerts (not the names of what they list; those are in the Synthesis panel). A route is a hypothesis from a program, and the assistant is told to give no conditions, reagents or yields, because the planner gives none. Those results, a score's name and formula, and any synthesis plan the assistant reads, are sent to the provider
 as part of the conversation, and a note under the box says where. **Plugins > Explain
 Stored Results** asks it to explain everything stored for the selected molecule.
 

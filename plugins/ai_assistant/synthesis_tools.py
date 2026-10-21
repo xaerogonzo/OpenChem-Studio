@@ -144,7 +144,7 @@ class SynthesisBridge:
                 "ok": True, "started": False, "state": "plan_exists",
                 "message": "A plan for this exact structure is already stored. Read it with read_synthesis_plan. A new search is started by the person from the Synthesis panel.",
             })
-        if turn.planning or self._synthesis.is_planning(target.molecule_uuid):
+        if self._synthesis.is_planning(target.molecule_uuid):  # live, not as of Send: a search that ended since is not 'running'
             return _plain({
                 "ok": True, "started": False, "state": "already_running",
                 "message": "A search for this molecule is already running. Do not ask again; when it finishes you are told with the user's next message.",
