@@ -1332,6 +1332,19 @@ document may cite a file or a test that does not exist.
     frozen entry point (`packaging\openchem_launcher.py`) attaches real
     devnull streams before the app starts.
 
+  **The in-app help is not a loose file in a release.** The four
+  `help.HELP_DOCUMENTS` are compressed into a generated module,
+  `openchem/_help_bundle.py` (`tools/build_help_bundle.py`, written and removed
+  by `build.ps1` like the build stamp), which lands in the exe's archive. The
+  mode is decided by `sys.frozen` alone: a checkout always reads `docs/*.md`
+  (and ignores any stray bundle); a frozen build requires the bundle and never
+  falls back to disk, so a broken release fails loudly instead of hiding behind
+  a loose file. The Help window's Open file button opens a read-only temporary
+  copy, because the file it used to open could be saved over. The bundle detects
+  accidental damage only (a digest over the canonical bytes); it is not an
+  authenticity check. `docs\` is still staged beside the exe for people to read;
+  the application never reads that copy.
+
   `plugins/` ships as source **beside** the exe rather than inside the
   payload, so a user can add one without a Python install;
   `PluginManager` looks there when `sys.frozen` is set. Sidecars (pkasolver,

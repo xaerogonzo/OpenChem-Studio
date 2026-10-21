@@ -26,8 +26,19 @@ blank help window at run time.
 
 from __future__ import annotations
 
+import atexit
+import base64
+import hashlib
+import importlib
+import json
 import logging
+import os
 import re
+import shutil
+import stat
+import sys
+import tempfile
+import zlib
 from dataclasses import dataclass
 from functools import lru_cache
 from pathlib import Path
@@ -90,12 +101,183 @@ def docs_directory() -> Path:
     )
 
 
+# ---------------------------------------------------------------------------
+# Where the text comes from
+# ---------------------------------------------------------------------------
+# A release must not keep its help as loose files: the Help window offered to
+# open them in an editor, and a save there could drop an anchor and leave F1
+# landing on nothing. So the mode is decided by ONE fact, `sys.frozen`:
+#
+#   * not frozen (a checkout, the tests): read `docs/*.md`, always. A stray
+#     generated bundle left by a crashed build is ignored, so it cannot shadow
+#     an edited document, and `reload()` keeps working.
+#   * frozen: read the bundle `build.ps1` generated into the compiled-module
+#     archive, and NEVER fall back to disk. A fallback would hide a broken
+#     release behind a loose file that happens to be sitting there.
+#
+# The bundle's canonical bytes are the UTF-8 JSON of {document: text} in
+# HELP_DOCUMENTS order; the digest is over those exact bytes, and the stored
+# payload is base85(zlib(those bytes)). It detects accidental damage, which is
+# all it claims; it is not an authenticity check.
+
+BUNDLE_SCHEMA = 1
+_BUNDLE_MODULE = "openchem._help_bundle"
+
+
+def _frozen() -> bool:
+    return bool(getattr(sys, "frozen", False))
+
+
+def content_source() -> str:
+    """``"bundle"`` when the help is read from the compiled archive, else ``"files"``.
+
+    Live state, for the frozen smoke test to assert: a release that quietly
+    read loose files would pass every other check.
+    """
+    return "bundle" if _frozen() else "files"
+
+
+def source_documents() -> dict[str, str]:
+    """Every help document read from the markdown on disk, in HELP_DOCUMENTS order.
+
+    The bundle generator's input, and the reference the bundle is tested
+    against. Fails (rather than skipping) on a missing, empty or undecodable
+    document, because a bundle built from fewer documents is a smaller help.
+    """
+    directory = docs_directory()
+    documents: dict[str, str] = {}
+    for name in HELP_DOCUMENTS:
+        path = directory / name
+        if not path.is_file():
+            raise HelpUnavailable(f"Help document not found: {name}")
+        try:
+            text = path.read_text(encoding="utf-8")
+        except UnicodeDecodeError as exc:
+            raise HelpUnavailable(f"Help document is not UTF-8: {name}") from exc
+        if not text.strip():
+            raise HelpUnavailable(f"Help document is empty: {name}")
+        documents[name] = text
+    return documents
+
+
+def _canonical_bytes(documents: dict[str, str]) -> bytes:
+    return json.dumps(documents, ensure_ascii=False, separators=(",", ":")).encode("utf-8")
+
+
+def encode_bundle(documents: dict[str, str]) -> tuple[int, str, str]:
+    """``(schema, digest, payload)`` for the generated module."""
+    if tuple(documents) != HELP_DOCUMENTS:
+        raise HelpUnavailable("The bundle must hold exactly HELP_DOCUMENTS, in order")
+    canonical = _canonical_bytes(documents)
+    payload = base64.b85encode(zlib.compress(canonical, 9)).decode("ascii")
+    return BUNDLE_SCHEMA, hashlib.sha256(canonical).hexdigest(), payload
+
+
+def decode_bundle(schema: object, digest: object, payload: object) -> dict[str, str]:
+    """The documents a bundle holds, or `HelpUnavailable` naming what is wrong.
+
+    Messages carry a category and never document text.
+    """
+    if schema != BUNDLE_SCHEMA:
+        raise HelpUnavailable(f"Help bundle has an unsupported schema ({schema!r})")
+    if not isinstance(digest, str) or not isinstance(payload, str):
+        raise HelpUnavailable("Help bundle is malformed (digest or payload is not text)")
+    try:
+        canonical = zlib.decompress(base64.b85decode(payload))
+    except (ValueError, zlib.error) as exc:
+        raise HelpUnavailable("Help bundle payload cannot be decoded") from exc
+    if hashlib.sha256(canonical).hexdigest() != digest:
+        raise HelpUnavailable("Help bundle failed its integrity check (digest mismatch)")
+    try:
+        documents = json.loads(canonical.decode("utf-8"))
+    except (UnicodeDecodeError, ValueError) as exc:
+        raise HelpUnavailable("Help bundle payload is not valid JSON") from exc
+    if (
+        not isinstance(documents, dict)
+        or tuple(documents) != HELP_DOCUMENTS
+        or not all(isinstance(text, str) and text.strip() for text in documents.values())
+    ):
+        raise HelpUnavailable("Help bundle does not hold exactly the help documents")
+    return documents
+
+
+def _load_bundle_module():
+    """The generated module. A seam, so tests can stand in for it."""
+    return importlib.import_module(_BUNDLE_MODULE)
+
+
+@lru_cache(maxsize=1)
+def _bundle_documents() -> dict[str, str]:
+    """Decoded and verified once per process."""
+    try:
+        module = _load_bundle_module()
+    except ModuleNotFoundError as exc:
+        if exc.name == _BUNDLE_MODULE:
+            raise HelpUnavailable("This build has no help bundle (the generated module is missing)") from exc
+        raise HelpUnavailable(f"The help bundle could not be imported ({exc.name} is missing)") from exc
+    except Exception as exc:  # noqa: BLE001 - a broken module is reported as such, not masked
+        raise HelpUnavailable(f"The help bundle could not be imported ({type(exc).__name__})") from exc
+    return decode_bundle(
+        getattr(module, "SCHEMA", None),
+        getattr(module, "DIGEST", None),
+        getattr(module, "PAYLOAD", None),
+    )
+
+
 @lru_cache(maxsize=None)
 def _document_lines(document: str) -> tuple[str, ...]:
+    if _frozen():
+        documents = _bundle_documents()
+        if document not in documents:
+            raise HelpUnavailable(f"Help document not found: {document}")
+        return tuple(documents[document].splitlines())
     path = docs_directory() / document
     if not path.is_file():
         raise HelpUnavailable(f"Help document not found: {document}")
     return tuple(path.read_text(encoding="utf-8").splitlines())
+
+
+def document_text(document: str) -> str:
+    """A help document as written, anchors included (the reading copy's content)."""
+    if document not in HELP_DOCUMENTS:
+        raise HelpUnavailable(f"Not a help document: {document}")
+    return "\n".join(_document_lines(document)) + "\n"
+
+
+_COPY_DIRECTORY: Path | None = None
+
+
+def _remove_copy_directory() -> None:
+    directory = _COPY_DIRECTORY
+    if directory is None or not directory.is_dir():
+        return
+    for path in directory.iterdir():
+        try:
+            os.chmod(path, stat.S_IWRITE)
+        except OSError:
+            pass
+    # An editor may still hold a file; the system temp folder is the backstop.
+    shutil.rmtree(directory, ignore_errors=True)
+
+
+def reading_copy(document: str) -> Path:
+    """A read-only copy of a help document in a private temporary folder.
+
+    What "Open file" opens. The path is outside the install, which is the real
+    protection; the read-only bit only stops an editor offering to save over it
+    by accident. One folder per process, written once and reused, removed at
+    exit on a best-effort basis (never on open, since an editor may load lazily).
+    """
+    global _COPY_DIRECTORY
+    text = document_text(document)
+    if _COPY_DIRECTORY is None or not _COPY_DIRECTORY.is_dir():
+        _COPY_DIRECTORY = Path(tempfile.mkdtemp(prefix="openchem-help-"))
+        atexit.register(_remove_copy_directory)
+    path = _COPY_DIRECTORY / document
+    if not path.exists():
+        path.write_text(text, encoding="utf-8", newline="\n")
+        os.chmod(path, stat.S_IREAD)
+    return path
 
 
 @lru_cache(maxsize=1)
@@ -106,6 +288,9 @@ def topics() -> tuple[HelpTopic, ...]:
     running application -- except in a checkout, where `reload()` exists
     for exactly that.
     """
+    if _frozen():
+        # Fail closed: a broken bundle must not read as "fewer topics".
+        _bundle_documents()
     found: list[HelpTopic] = []
     seen: dict[str, str] = {}
     for document in HELP_DOCUMENTS:
@@ -281,7 +466,8 @@ def reload() -> None:
     """Drop the caches so an edited document is picked up.
 
     Only useful in a checkout, which is precisely where someone editing
-    the guide would want to see the result without restarting.
+    the guide would want to see the result without restarting. The frozen
+    bundle is immutable and is deliberately not reloaded.
     """
     _document_lines.cache_clear()
     topics.cache_clear()
