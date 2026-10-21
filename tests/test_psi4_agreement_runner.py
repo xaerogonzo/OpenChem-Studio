@@ -58,8 +58,10 @@ def test_the_grid_is_fifteen_distinct_combinations_every_engine_can_write():
 def test_the_job_lists_have_the_sizes_the_plan_states():
     assert len(runner.grid_jobs("orca")) == len(runner.grid_jobs("psi4")) == 240
     assert len(runner.optimize_jobs("orca")) == 16
-    assert len(runner.floor_jobs("orca")) == 6 * 3 * 2 + 6 * 2
-    assert len(runner.floor_jobs("psi4")) == 6 * 3 * 3 + 6 * 2
+    # PLAN_V3: the optimization floor is taken on five molecules (pyridine's tight job exceeded the cap twice)
+    assert len(runner.floor_jobs("orca")) == 6 * 3 * 2 + 5 * 2
+    assert len(runner.floor_jobs("psi4")) == 6 * 3 * 3 + 5 * 2
+    assert not any(j.molecule == "pyridine" and j.calc_type == "opt" for j in runner.floor_jobs("psi4"))
     assert len({job.key for job in runner.grid_jobs("psi4")}) == 240, "every job has its own key, so a resume cannot skip the wrong one"
 
 
