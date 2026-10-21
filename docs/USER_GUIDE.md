@@ -2336,7 +2336,9 @@ The **Synthesis** panel (the rail's Extensions group, or **Plugins ▸ Plan Synt
 
 **A plan belongs to a structure.** If you edit the drawing after planning, the panel keeps the plan but labels it **EARLIER STRUCTURE** and says which structure it was made for; it is never shown as the plan for what is drawn now. Plans are kept for the session only and are not saved in the project.
 
-**Who may ask.** Only a person pressing **Plan synthesis**; there is no other way to start a search from the window yet.
+**Who may ask.** A person pressing **Plan synthesis**, or the AI Assistant asking for one: it puts a card on its panel and the search starts only if you press **Approve** (the same regulatory check runs first, and the assistant cannot press it). The `?` in this panel's title bar, and F1 with the focus in it, open this section.
+
+**What it was measured to do.** Every plan carries a sentence with the planner's benchmark result: on 300 patent routes it found a route for 96.7% of targets but had the patent route among its first 10 for only 37.3%, and it often finds routes shorter than the patent's. Read the routes as internally consistent, repeatable proposals that often differ from known routes, not as known routes; the numbers and what they do not show are in the Scientific Limitations document (Synthesis route planning).
 
 <!-- help:jobs -->
 ## Jobs and the console

@@ -53,6 +53,15 @@ INSPECT_SCHEMA = "aizynth-inspect-1"
 INSPECT_TIMEOUT_SECONDS = 60.0
 #: The planner's name as every `PlannerIdentity` carries it.
 PLANNER_NAME = "AiZynthFinder"
+#: What was MEASURED about this planner, said beside every plan it makes, because the product's decided claim (Alex, 2026-10-20) is "valid, repeatable routes that often differ from the patent route", never "known routes", with
+#: the recovery figure and its dependence on depth stated. Every number is from `benchmarks/synthesis/RESULT.md` (300 seeded PaRoutes set-n1 targets, run 2026-10-19 to 2026-10-20) and `tests/test_synthesis_planner.py` holds
+#: each one to that file. The conditions differ from a user's (the benchmark's own stock and a fixed search budget) and the public models were probably trained on those reference reactions, so the figure is not a
+#: generalisation figure, and the sentence says so.
+BENCHMARK_FINDING = (
+    "On a benchmark of 300 patent routes (PaRoutes set-n1, with its own stock and a fixed search budget, and public models probably trained on those same reactions), this planner returned a route with every starting material in stock for 96.7% of targets "
+    "but had the patent route among its first 10 for only 37.3% (81% where the patent route has 2 steps, 29% at 3 steps, 2% at 4), and 48% of its first routes were shorter than the patent route. "
+    "Read these as internally consistent, repeatable proposals that often differ from known routes, not as known routes, and not as a measure of how well it does on a new molecule."
+)
 #: The runner script the planner's interpreter is handed as a path.
 RUNNER_PATH = Path(__file__).resolve().parent / "aizynth_runner.py"
 #: Seconds added to the planner's own time limit for the wall clock: the spike measured 16 to 18 s before any search (import, model and stock load) and the stock load alone peaked at 5.3 GB with the ZINC stock, so the margin is generous and is a bound on a hung child, not a budget.
@@ -383,7 +392,7 @@ def parse_document(document: object, request: PlanRequest, target: TargetIdentit
         kept.append(replace(route, validation=validate_route(route)))
 
     termination = read_termination(identity.limits, statistics)
-    limitations = STANDARD_LIMITATIONS + ((_left_out(counts, reasons),) if sum(counts.values()) else ())
+    limitations = STANDARD_LIMITATIONS + (BENCHMARK_FINDING,) + ((_left_out(counts, reasons),) if sum(counts.values()) else ())
     status_ = RouteStatus.FOUND if kept else RouteStatus.NO_ROUTE
     return RouteSet(status=status_, target=target, planner=identity, routes=tuple(kept), termination=termination, statistics=statistics, limitations=limitations)
 

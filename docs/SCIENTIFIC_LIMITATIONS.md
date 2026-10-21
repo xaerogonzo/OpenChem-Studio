@@ -2471,6 +2471,39 @@ moving the first atoms by 0.001 e. Which atoms carry that therefore depends on
 the order the file writes them in. The count of atoms it moved is reported
 beside the charges rather than left silent.
 
+<!-- help:limits-synthesis -->
+## Synthesis route planning
+
+**A route is a hypothesis from a program, not a synthesis.** The Synthesis panel shows what an external planner (AiZynthFinder, which you install) proposes. Nobody has run these reactions.
+The planner supplies no conditions, reagents, solvents, temperatures, yields or selectivity, and the application invents none: a field the planner did not give is shown as "not provided",
+never as zero. Stereochemistry in a route is the planner's and is often incomplete or dropped.
+
+**What was measured, and what it does not show.** Before any of this was built, the planner was run on 300 seeded targets from PaRoutes' set-n1 (patent routes from US patents), with
+its own stock and a fixed search budget (`benchmarks/synthesis/RESULT.md`). It returned a route with every starting material in stock for 96.7% of them. It had the patent route among its first 10
+for only **37.3%** (the preregistered bar was 50%, so the result was PARTIAL and the claim was narrowed): 81% where the patent route had 2 steps, 29% at 3, 2% at 4. 48% of its first routes
+were *shorter* than the patent route, so the planner often finds routes the patent did not use; that is not the same as finding good ones. The public models were probably trained on these very
+reactions, so 37.3% is **not** a figure for how it does on a molecule it has not seen, and the strict rule used (the exact reaction set) is harsher than the benchmark paper's tree-edit
+distance. What the application therefore says is "internally consistent, repeatable proposals that often differ from known routes", never "known routes". The sentence is shown under every plan.
+
+**The numbers on a route are the planner's.** A policy probability is the model's score for a template, not a yield and not the chance a step works. A route score ranks the planner's search
+states; its authors warn it is "rather indiscriminate with regard to the quality of the route". "In stock" is a match to a catalogue snapshot (the default stock is from April 2020), not
+availability, not price, and not whether the compound may be bought.
+
+**"No route found" is an answer about a search, not about chemistry.** The search stops at an iteration or time limit and says which; routes found are the ones found so far. The tree is not
+deterministic (the node count differed on all 20 repeated targets; whether a route was found, and whether the patent route was recovered, did not).
+
+**The checks beside a route are bookkeeping.** They say whether its molecules parse, whether each step's reaction is made of the molecules the step connects, whether atoms are conserved where
+the mapping allows it, and which stock flags the planner gave. Passing them says nothing about whether the chemistry is right.
+
+**Regulatory alerts are list matches, not legal determinations.** Every molecule of every route is screened against the shipped rulesets and yours, and what matched is listed with its rule, kind of
+listing and how sure the rule is. Ordinary solvents and reagents match workplace-exposure listings, so a route with an alert is common and the kind of listing is what to read; a molecule with no alert
+is not thereby free of obligations, and a molecule that could not be screened is said to be one. The only refusal is a target that matches the structural rules of the Chemical Weapons Convention's
+first schedule (`cwc-schedule-1`): nothing is planned for it, and a target the check could not be applied to is treated the same way. That ruleset's own known limits apply to the refusal, and
+a refusal is not an accusation.
+
+**It runs on your machine, and what the assistant reads leaves it.** The planner is a program of its own in your Python environment (about 1.7 GB on disk, 3 to 5 GB of memory while it runs). If you
+let the AI Assistant read a plan, the plan is sent to its provider as part of the conversation; the assistant can ask for a search, which starts only if you approve it, and cannot start one itself.
+
 ## Where this is enforced
 
 Most of these limits are also written into the module that implements the
