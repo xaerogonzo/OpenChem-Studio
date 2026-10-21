@@ -120,7 +120,9 @@ def docs_directory() -> Path:
 # payload is base85(zlib(those bytes)). It detects accidental damage, which is
 # all it claims; it is not an authenticity check.
 
+#: The bundle format `encode_bundle` writes and `decode_bundle` accepts; any other schema is refused.
 BUNDLE_SCHEMA = 1
+#: The generated module a frozen build reads its help from (`tools/build_help_bundle.py`).
 _BUNDLE_MODULE = "openchem._help_bundle"
 
 
@@ -244,6 +246,7 @@ def document_text(document: str) -> str:
     return "\n".join(_document_lines(document)) + "\n"
 
 
+#: This process's private folder of read-only reading copies (made on first use, removed at exit).
 _COPY_DIRECTORY: Path | None = None
 
 
