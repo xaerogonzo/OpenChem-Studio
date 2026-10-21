@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Synthesis helper Stage 1, slice 11: plans are saved in the project file
+- A plan that found routes, or found none, is written into the `.ocsproj` under `synthesis_plans` and read back with it (`domain/synthesis_route_codec.py`, `domain/synthesis_plan_store.py`, `SynthesisPlanningService.set_project` / `plan_store`). A project that never planned a synthesis is byte for byte the file it was; an older build opening one drops the block at its next save, as with every block it does not know. A finished search marks the project unsaved and reaches the recovery copy.
+- **A file is treated as input from outside.** On opening, the regulatory gate is asked again for each plan's target (a refusal, an inability to tell and a gate that raises all drop the plan), each route is validated again, the sentences are this build's (the standing ones and the planner's CURRENT measured result; a sentence in the file is not read), a plan for a molecule the project lacks is dropped, and every field is bounded, printable and typed (`PlanDecodeError`, one bad plan costs only itself).
+- The regulatory alerts of a saved plan are the ones from when it was made, shown with that date and a note that they were not repeated on opening (screening takes 0.9 to 3.7 s a plan, measured, too long for opening a project). A plan for a structure edited since comes back labelled as the earlier plan, as within a session. Not kept: refusals, failures, cancellations and a planner that was not set up.
+
 ### Help topics for the three other plugin panels
 - The AI Assistant, Database Search and Reaction Prediction docks now have a `?` in their title bar and F1 inside them opens their own section (`HELP_TOPIC_BY_PLUGIN_DOCK`, the map slice 10 added). The user guide's Plugins section is split into one section per panel (the assistant's text moved unchanged; Database Search and Reaction Prediction are new, written from the panels' own behaviour: what is sent where, that a template match carries no confidence, that a product is a proposal). The plugin-dock tests now run over every entry of the map.
 

@@ -208,6 +208,7 @@ def test_the_document_unpacks_as_a_tuple_and_reads_by_name(tmp_path: Path, qapp)
     path = tmp_path / "both.ocsproj"
     service.save(project, path)
     document = service.load_document(path)
-    unpacked_project, results, qc_runs, recipe_runs, derived_scores = document
-    assert (unpacked_project, results, qc_runs, recipe_runs, derived_scores) == (
-        document.project, document.results, document.qc_runs, document.recipe_runs, document.derived_scores)
+    unpacked_project, results, qc_runs, recipe_runs, derived_scores, synthesis_plans = document
+    assert (unpacked_project, results, qc_runs, recipe_runs, derived_scores, synthesis_plans) == (
+        document.project, document.results, document.qc_runs, document.recipe_runs, document.derived_scores,
+        document.synthesis_plans)

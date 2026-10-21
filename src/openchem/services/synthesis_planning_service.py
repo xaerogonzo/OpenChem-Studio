@@ -21,7 +21,17 @@ before it starts.
 CANCEL AND SHUTDOWN KILL THE CHILD. `cancel` sets the event `run_planner` watches; `shutdown` (wired to the application quitting)
 cancels every search and waits for the pool, so no planner process is left running.
 
-RESULTS ARE SESSION-ONLY in version 1: nothing is written to a project file. A `synthesis_runs` block like `recipe_runs` is the follow-up.
+PLANS ARE KEPT IN THE PROJECT FILE (`synthesis_plans`, `domain/synthesis_plan_store.py`), only the two outcomes that are a result: routes found, or none found. `plan_store(project)` is what a save writes (the
+plans of this project's molecules, in the project's order) and `set_project(project, plans)` is what an open or a new project calls, and it is where a plan read from a FILE is treated as what it is, input from outside:
+
+* **the gate is asked again**, for the plan's own target, before the plan is shown (`_decide`: a refusal, an `unscreened` and a gate that raises all drop the plan). Showing a stored plan starts no process, but a file
+  must not be a way to put routes for a refused target on screen, or in front of an assistant;
+* **each route is validated again** (`chem.route_validation`), because a file cannot be believed when it says a check passed, and the build that reads it may check more than the one that wrote it;
+* **the sentences are the reading build's**: the standing ones, the planner's measured result (the CURRENT one, so a claim narrowed since a plan was saved reaches the plan) and a sentence saying the regulatory screen is
+  from the date it was made and was not repeated, because a screening takes about a tenth of a second a molecule (measured, 2026-10-21, 1 to 4 s a plan) and a project of a few plans must open at once;
+* **a plan for a molecule that is not in the project is dropped**, and so is one for a molecule the file no longer has.
+
+A plan for a structure that was edited after it was made comes back as the EARLIER plan (`result_for`'s `is_current`), exactly as it does within a session: the stored target SMILES is compared with the drawing, not any session counter.
 """
 
 from __future__ import annotations
@@ -29,18 +39,22 @@ from __future__ import annotations
 import logging
 import threading
 from collections.abc import Callable
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from enum import StrEnum
 
 from PySide6.QtCore import QRunnable, QThreadPool
 
-from openchem.chem.aizynth_planner import PLANNER_NAME, PlannerSetup, run_planner
+from openchem.chem.aizynth_planner import BENCHMARK_FINDING, PLANNER_NAME, PlannerSetup, run_planner
 from openchem.chem.isotopes import same_structure
+from openchem.chem.route_validation import validate_route
 from openchem.chem.synthesis_gate import annotate_route_set, check_target
 from openchem.domain.common import CacheState
 from openchem.domain.molecule import MoleculeModel
+from openchem.domain.project import ProjectModel
 from openchem.domain.synthesis_gate import GateDecision, GateOutcome
+from openchem.domain.synthesis_plan_store import SynthesisPlanStore
 from openchem.domain.synthesis_route import (
+    STANDARD_LIMITATIONS,
     PlannerIdentity,
     RouteSet,
     RouteStatus,
@@ -193,6 +207,60 @@ class SynthesisPlanningService:
             is_current=False,
             note=f"This plan was made for an earlier version of this structure ({route_set.target.canonical_smiles}). It is not the plan for the structure now drawn.",
         )
+
+    # --- the project file ------------------------------------------------------------------------------------------------------
+
+    def set_project(self, project: ProjectModel | None, plans: SynthesisPlanStore | None = None) -> tuple[str, ...]:
+        """Start a project's plans: the lifecycle boundary, swapped with the result store's and the score definitions'. Call from the GUI thread, before any panel is told.
+
+        Replaces every plan held with the ones `plans` carries for `project`, each through `_restored` (see the module docstring). A store read for another project is ignored, as a result store is. Returns why plans
+        were not restored, one sentence each, naming no substance. A search still running for the project that was left finishes into a plan no save will write, since a save writes only the molecules of its project.
+        """
+        restored: dict[str, RouteSet] = {}
+        problems: list[str] = []
+        uuid = project.uuid if project is not None else ""
+        if plans is not None and plans.project_uuid != uuid:
+            logger.warning("Ignoring synthesis plans for project %s", plans.project_uuid)
+        elif plans is not None and project is not None:
+            for plan in plans.plans():
+                kept, why = self._restored(plan, project)
+                if kept is not None:
+                    restored[kept.target.molecule_uuid] = kept
+                else:
+                    problems.append(f"A stored synthesis plan was not restored: {why}.")
+        for problem in problems:
+            logger.warning("%s", problem)
+        with self._lock:
+            self._results = restored
+        return tuple(problems)
+
+    def plan_store(self, project: ProjectModel) -> SynthesisPlanStore:
+        """The plans a save of `project` writes: those of its own molecules that hold a result worth keeping (routes found, or none found), in the project's order."""
+        store = SynthesisPlanStore(project.uuid)
+        with self._lock:
+            held = dict(self._results)
+        for molecule in project.molecules:
+            plan = held.get(molecule.uuid)
+            if plan is not None:
+                store.put(plan)
+        return store
+
+    def _restored(self, plan: RouteSet, project: ProjectModel) -> tuple[RouteSet | None, str]:
+        """`plan`, read from a project file, as a plan this build will show: or None and why not."""
+        if project.find_molecule(plan.target.molecule_uuid) is None:
+            return None, "the molecule it was made for is not in this project"
+        if not self._decide(plan.target.canonical_smiles).permits_planning:
+            return None, "the regulatory check does not allow planning for its target"
+        routes = tuple(replace(route, validation=validate_route(route)) for route in plan.routes)
+        added = [s for s in plan.limitations if s not in STANDARD_LIMITATIONS]
+        measured = (BENCHMARK_FINDING,) if plan.planner.planner == PLANNER_NAME else ()
+        dates = sorted({s.screened_on for s in plan.node_screenings if s.screened})
+        screen_note = (
+            (f"The regulatory screen of these routes was made on {', '.join(dates)} and was not repeated when this plan was read from the project file, so a ruleset changed since then is not reflected here.",)
+            if dates
+            else ()
+        )
+        return replace(plan, routes=routes, limitations=STANDARD_LIMITATIONS + measured + tuple(added) + screen_note), ""
 
     def forget(self, molecule_uuid: str) -> None:
         """Drop a stored plan (a molecule removed from the project). Does not stop a running search."""

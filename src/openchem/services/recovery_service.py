@@ -40,6 +40,7 @@ from pathlib import Path
 from openchem.domain.project import ProjectModel
 from openchem.domain.quantum_chemistry_run import QuantumChemistryRunStore
 from openchem.domain.recipe_run import RecipeRunStore
+from openchem.domain.synthesis_plan_store import SynthesisPlanStore
 from openchem.domain.score_definition_store import ScoreDefinitionStore
 from openchem.domain.result_store import SessionResultStore
 from openchem.services.project_service import ProjectDocument, ProjectService
@@ -85,13 +86,16 @@ class RecoveryService:
         qc_runs: QuantumChemistryRunStore | None = None,
         recipe_runs: RecipeRunStore | None = None,
         derived_scores: ScoreDefinitionStore | None = None,
+        synthesis_plans: SynthesisPlanStore | None = None,
     ) -> bool:
         """Write a recovery copy, unless it was scheduled before a Save."""
         if generation != self.generation:
             logger.debug("Skipping a recovery write from generation %s (now %s)", generation, self.generation)
             return False
         document = json.loads(
-            self._project_service.serialise(project, results, fingerprints, qc_runs, recipe_runs, derived_scores)
+            self._project_service.serialise(
+                project, results, fingerprints, qc_runs, recipe_runs, derived_scores, synthesis_plans
+            )
         )
         payload = {
             "recovery_version": RECOVERY_VERSION,

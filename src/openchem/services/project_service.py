@@ -10,6 +10,7 @@ from openchem.domain.quantum_chemistry_run import QuantumChemistryRunStore
 from openchem.domain.recipe_run import RecipeRunStore
 from openchem.domain.result_store import SessionResultStore
 from openchem.domain.score_definition_store import ScoreDefinitionStore
+from openchem.domain.synthesis_plan_store import SynthesisPlanStore
 from openchem.events.base import EventBus
 from openchem.events.events import ProjectClosed, ProjectLoaded
 
@@ -27,6 +28,9 @@ RECIPE_RUNS_KEY = "recipe_runs"
 #: The key the user's derived-score definitions are written under. Written only when there is something to write (`ScoreDefinitionStore.is_empty`), so a project that
 #: never used scores is the file it always was; see `domain/score_definition_store.py` for what happens to definitions a build cannot read.
 DERIVED_SCORES_KEY = "derived_scores"
+#: The key the synthesis plans (routes found, or none found) are written under. Written only when there is a plan to write, so a project that never planned a synthesis is the file it always was; see
+#: `domain/synthesis_plan_store.py` for what happens to an entry a build cannot read.
+SYNTHESIS_PLANS_KEY = "synthesis_plans"
 
 
 class ProjectDocument(NamedTuple):
@@ -41,6 +45,7 @@ class ProjectDocument(NamedTuple):
     qc_runs: QuantumChemistryRunStore
     recipe_runs: RecipeRunStore
     derived_scores: ScoreDefinitionStore
+    synthesis_plans: SynthesisPlanStore
 
 
 class ProjectService:
@@ -63,9 +68,11 @@ class ProjectService:
         qc_runs: QuantumChemistryRunStore | None = None,
         recipe_runs: RecipeRunStore | None = None,
         derived_scores: ScoreDefinitionStore | None = None,
+        synthesis_plans: SynthesisPlanStore | None = None,
     ) -> None:
         path.write_text(
-            self.serialise(project, results, current_fingerprints, qc_runs, recipe_runs, derived_scores), encoding="utf-8"
+            self.serialise(project, results, current_fingerprints, qc_runs, recipe_runs, derived_scores, synthesis_plans),
+            encoding="utf-8",
         )
         logger.info("Saved project %s to %s", project.uuid, path)
 
@@ -77,6 +84,7 @@ class ProjectService:
         qc_runs: QuantumChemistryRunStore | None = None,
         recipe_runs: RecipeRunStore | None = None,
         derived_scores: ScoreDefinitionStore | None = None,
+        synthesis_plans: SynthesisPlanStore | None = None,
     ) -> str:
         """The file's text. Shared by Save and the recovery writer.
 
@@ -106,6 +114,8 @@ class ProjectService:
             data[RECIPE_RUNS_KEY] = recipe_runs.to_dict()
         if derived_scores is not None and not derived_scores.is_empty:
             data[DERIVED_SCORES_KEY] = derived_scores.to_dict()
+        if synthesis_plans is not None and not synthesis_plans.is_empty:
+            data[SYNTHESIS_PLANS_KEY] = synthesis_plans.to_dict()
         return json.dumps(data, indent=2)
 
     def load(self, path: Path) -> ProjectModel:
@@ -123,6 +133,8 @@ class ProjectService:
             logger.warning("Saved recipe runs not restored: %s", document.recipe_runs.load_problems)
         if document.derived_scores.load_problems:
             logger.warning("Saved score definitions kept but not used: %s", document.derived_scores.load_problems)
+        if document.synthesis_plans.load_problems:
+            logger.warning("Saved synthesis plans not restored: %s", document.synthesis_plans.load_problems)
         return document
 
     def parse(self, data: dict[str, Any]) -> ProjectDocument:
@@ -134,7 +146,8 @@ class ProjectService:
         qc_runs = QuantumChemistryRunStore.from_dict(data.get(QC_RUNS_KEY), project.uuid)
         recipe_runs = RecipeRunStore.from_dict(data.get(RECIPE_RUNS_KEY), project.uuid)
         derived_scores = ScoreDefinitionStore.from_dict(data.get(DERIVED_SCORES_KEY), project.uuid)
-        return ProjectDocument(project, results, qc_runs, recipe_runs, derived_scores)
+        synthesis_plans = SynthesisPlanStore.from_dict(data.get(SYNTHESIS_PLANS_KEY), project.uuid)
+        return ProjectDocument(project, results, qc_runs, recipe_runs, derived_scores, synthesis_plans)
 
     def close(self, project: ProjectModel) -> None:
         self._event_bus.publish(ProjectClosed(project_uuid=project.uuid))
