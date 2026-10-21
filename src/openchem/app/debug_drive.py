@@ -4239,7 +4239,7 @@ class _Driver(QObject):
 
         `press` is `plan` or `cancel`: the button's own `click()`, so the path a person's press takes (the configuration read off the GUI
         thread, then `request_plan` through the one service path, where the regulatory gate runs first) is the path driven. `route` and
-        `step` select a row of the real lists, and `scroll` ("end", or a pixel offset) scrolls the panel inside its dock. `expect` keys: `status_contains`, `target_contains`, `routes`, `routes_at_least`, `steps`,
+        `step` select a row of the real lists, and `scroll` ("end", or a pixel offset) scrolls the panel inside its dock, and `details_scroll` does the same for the text box of what the planner said. `expect` keys: `status_contains`, `target_contains`, `routes`, `routes_at_least`, `steps`,
         `picture` (a picture is on screen), `picture_message_contains`, `warning` (the earlier-structure line is showing),
         `plan_enabled`, `cancel_enabled`, `limitations_contain`, `details_contain`, `expansion`, `stock`, `filter` (the list's current text).
         """
@@ -4266,6 +4266,10 @@ class _Driver(QObject):
 
             bar = panel.findChild(QScrollArea).verticalScrollBar()
             bar.setValue(bar.maximum() if step["scroll"] == "end" else int(step["scroll"]))
+        if step.get("details_scroll"):
+            # The details box scrolls inside the panel, which scrolls inside its dock: a shot of its last lines (the alerts) needs it at the end too.
+            bar = panel._details.verticalScrollBar()
+            bar.setValue(bar.maximum() if step["details_scroll"] == "end" else int(step["details_scroll"]))
         report = {
             "target": panel._target_label.text().replace("\n", " | "),
             "status": panel._status.text(),

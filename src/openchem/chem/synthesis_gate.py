@@ -13,7 +13,7 @@ A FINDING DOES NOT CARRY ITS RULESET'S ID (`regulatory.types.Finding` holds the 
 from __future__ import annotations
 
 import logging
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from datetime import date
 
 from rdkit import Chem, rdBase
@@ -21,6 +21,7 @@ from rdkit import Chem, rdBase
 from openchem.chem.regulatory.engine import RegulatoryEngine
 from openchem.chem.regulatory.loader import load_all
 from openchem.chem.regulatory.types import Finding, Ruleset
+from openchem.domain.synthesis_route import RouteSet, RouteStatus, route_molecules
 from openchem.domain.synthesis_gate import (
     GATE_RULESET_ID,
     AlertFinding,
@@ -206,3 +207,19 @@ def screen_nodes(smiles: list[str] | tuple[str, ...], *, engine: RegulatoryEngin
         )
         results.append(NodeScreening(smiles=s, screened=True, findings=findings, rulesets_consulted=consulted, screened_on=stamp))
     return tuple(results)
+
+
+def annotate_route_set(route_set: RouteSet, *, screen=screen_nodes) -> RouteSet:
+    """`route_set` with every distinct molecule of its routes screened against the wider rulesets (`screen_nodes`), or unchanged when there are no routes.
+
+    A match is an alert on a molecule and NEVER removes a route or refuses anything: the target has already been through the gate, and every other molecule is shown with what matched. It cannot lose the plan either: if the screen cannot be run at all, every molecule is recorded as not screened, with the reason, so no surface reads a missing screening as "nothing matched".
+    """
+    if route_set.status is not RouteStatus.FOUND:
+        return route_set
+    molecules = tuple(dict.fromkeys(smiles for route in route_set.routes for smiles in route_molecules(route)))
+    try:
+        return replace(route_set, node_screenings=tuple(screen(molecules)))
+    except Exception as exc:  # noqa: BLE001 - the plan is kept; the molecules are marked unscreened (a screen that answers for the wrong molecules is a failed screen too)
+        logger.warning("Screening the molecules of a route set raised: %s", exc)
+        screenings = tuple(NodeScreening(smiles=smiles, screened=False, reason=f"the screen could not be run ({type(exc).__name__})") for smiles in molecules)
+    return replace(route_set, node_screenings=screenings)

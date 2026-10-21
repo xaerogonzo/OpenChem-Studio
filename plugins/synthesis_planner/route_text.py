@@ -7,17 +7,28 @@ for what it is: the policy's probability for the template is "the model's score 
 
 from __future__ import annotations
 
-from openchem.domain.synthesis_route import Check, MappingStatus, Route, RouteStep, StockStatus, ValidationReport, shown
+from openchem.domain.synthesis_route import Check, MappingStatus, Route, RouteSet, RouteStep, StockStatus, ValidationReport, shown
 
 
 def _plural(count: int, noun: str) -> str:
     return f"{count} {noun}{'' if count == 1 else 's'}"
 
 
-def route_title(route: Route) -> str:
-    """One line for the route list: its place in the planner's order, its length and its starting materials."""
+def route_title(route: Route, route_set: RouteSet | None = None) -> str:
+    """One line for the route list: its place in the planner's order, its length and its starting materials, and, when the set has been screened, how many molecules carry a regulatory alert.
+
+    No alert is never written as a good sign: a route whose molecules matched nothing says nothing about alerts, and one with molecules that could not be screened says so.
+    """
     score = "" if route.score is None else f", planner score {route.score:.3g}"
-    return f"Route {route.rank}: {_plural(route.length, 'step')}, {_plural(len(route.starting_materials), 'starting material')}{score}"
+    flags = ""
+    if route_set is not None:
+        screenings = route_set.screenings_for(route)
+        alerts = sum(1 for s in screenings if s.has_alert)
+        if alerts:
+            flags += f", {_plural(alerts, 'molecule')} with a regulatory alert"
+        if any(not s.screened for s in screenings):
+            flags += ", some molecules not screened"
+    return f"Route {route.rank}: {_plural(route.length, 'step')}, {_plural(len(route.starting_materials), 'starting material')}{score}{flags}"
 
 
 def step_title(index: int, step: RouteStep) -> str:
@@ -73,3 +84,38 @@ def validation_text(report: ValidationReport | None) -> str:
 def route_text(route: Route) -> str:
     """Everything the panel shows beside a route's steps: where it begins, and how it was checked."""
     return f"{starting_materials_text(route)}\n\n{validation_text(route.validation)}"
+
+
+def _role(route: Route, smiles: str) -> str:
+    if smiles == route.target_smiles:
+        return "the target"
+    if any(step.product == smiles for step in route.steps):
+        return "an intermediate"
+    return "a starting material"
+
+
+def alerts_text(route_set: RouteSet, route: Route) -> str:
+    """What the wider regulatory rulesets say about each molecule of this route, as listings and never as a verdict.
+
+    An alert is a match to a structural rule of a shipped (or your own) ruleset: it may be a controlled substance, a precursor list, a workplace exposure limit or a hazard listing, and each line names which. It is not a legal determination, and a molecule with no alert is not thereby free of obligations: the ruleset list is finite. A molecule that could not be screened says why and is never counted as having no alert. A set that was never screened says that, and nothing else.
+    """
+    screenings = route_set.screenings_for(route)
+    if not screenings:
+        return "Regulatory alerts: not checked."
+    lines = ["Regulatory alerts (a listing in a ruleset, not a legal determination; no alert does not mean nothing applies):"]
+    flagged = [s for s in screenings if s.has_alert]
+    for screening in flagged:
+        lines.append(f"  {screening.smiles}   ({_role(route, screening.smiles)})")
+        for finding in screening.findings:
+            where = ", ".join(part for part in (finding.jurisdiction, finding.section) if part)
+            mine = ", your own ruleset" if finding.user_supplied else ""
+            lines.append(f"    - {finding.display_name}   [{finding.rule_id}; {finding.ruleset_id}{mine}; {finding.domain}; {where}; confidence: {finding.confidence or 'not given'}]")
+    for screening in screenings:
+        if not screening.screened:
+            lines.append(f"  {screening.smiles}: could not be screened: {screening.reason}")
+    if not flagged:
+        consulted = sorted({name for s in screenings if s.screened for name in s.rulesets_consulted})
+        # "no molecule matched" would be false while one could not be screened: the claim is only about the ones that were
+        subject = "no molecule of this route" if all(s.screened for s in screenings) else "none of the molecules that could be screened"
+        lines.append(f"  {subject} matched a rule" + (f" in: {', '.join(consulted)}" if consulted else "") + ".")
+    return "\n".join(lines)

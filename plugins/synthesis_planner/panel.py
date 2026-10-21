@@ -188,7 +188,7 @@ class SynthesisPanel(QWidget):
 
         self._details = QPlainTextEdit(self)
         self._details.setReadOnly(True)
-        self._details.setMinimumHeight(140)
+        self._details.setMinimumHeight(230)  # a step, the route's books and its alerts: about twenty lines before it scrolls
 
         self._limitations = QLabel(self)
         self._limitations.setWordWrap(True)
@@ -274,7 +274,7 @@ class SynthesisPanel(QWidget):
         self._routes.clear()
         if self._shown is not None:
             for route in self._shown.routes:
-                self._routes.addItem(route_text.route_title(route))
+                self._routes.addItem(route_text.route_title(route, self._shown))
         self._routes.blockSignals(False)
         limitations = self._shown.all_limitations() if self._shown is not None else ()
         self._limitations.setText("\n".join(f"- {text}" for text in limitations))
@@ -318,7 +318,7 @@ class SynthesisPanel(QWidget):
             self._show_picture_message("")
             return
         step = route.steps[row]
-        self._details.setPlainText(f"{route_text.step_text(step)}\n\n{route_text.route_text(route)}")
+        self._details.setPlainText(f"{route_text.step_text(step)}\n\n{route_text.route_text(route)}\n\n{route_text.alerts_text(self._shown, route)}")
         try:
             svg = self._synthesis.depict(step)
         except (DepictionError, LookupError) as exc:

@@ -36,7 +36,7 @@ from PySide6.QtCore import QRunnable, QThreadPool
 
 from openchem.chem.aizynth_planner import PLANNER_NAME, PlannerSetup, run_planner
 from openchem.chem.isotopes import same_structure
-from openchem.chem.synthesis_gate import check_target
+from openchem.chem.synthesis_gate import annotate_route_set, check_target
 from openchem.domain.common import CacheState
 from openchem.domain.molecule import MoleculeModel
 from openchem.domain.synthesis_gate import GateDecision, GateOutcome
@@ -62,6 +62,7 @@ NOT_STARTED = "not started"
 SetupProvider = Callable[[], PlannerSetup | None]
 Gate = Callable[[str], GateDecision]
 Runner = Callable[..., RouteSet]
+Annotator = Callable[[RouteSet], RouteSet]
 
 
 class RequestOutcome(StrEnum):
@@ -106,6 +107,7 @@ class SynthesisPlanningService:
         job_manager: JobManager | None = None,
         gate: Gate = check_target,
         runner: Runner = run_planner,
+        annotator: Annotator = annotate_route_set,
         structure_version_of: Callable[[str], int] | None = None,
     ) -> None:
         self._event_bus = event_bus
@@ -113,6 +115,7 @@ class SynthesisPlanningService:
         self._job_manager = job_manager if job_manager is not None else JobManager()
         self._gate = gate
         self._runner = runner
+        self._annotator = annotator
         self._structure_version_of = structure_version_of
         # A pool of its own, one thread: see the module docstring. `shutdown` waits on THIS pool, never on the shared one.
         self._pool = QThreadPool()
@@ -218,6 +221,14 @@ class SynthesisPlanningService:
             logger.warning("The synthesis gate raised: %s", exc)
             return GateDecision(outcome=GateOutcome.UNSCREENED, reason=f"the target could not be screened against CWC Schedule 1: the gate failed ({type(exc).__name__}).")
 
+    def _annotated(self, route_set: RouteSet) -> RouteSet:
+        """The finished plan with its molecules screened against the wider rulesets, which add alerts and take nothing away: if the annotator raises, the plan is kept as it is and says its molecules were not checked."""
+        try:
+            return self._annotator(route_set)
+        except Exception as exc:  # noqa: BLE001 - an alert is an annotation; losing the plan over one would be worse
+            logger.warning("Annotating a plan failed: %s", exc)
+            return route_set
+
     def _finish_now(self, route_set: RouteSet) -> RequestOutcome:
         """Store and announce a result that needed no process."""
         self._store_and_announce(route_set)
@@ -258,4 +269,5 @@ class _PlanTask(QRunnable):
         except Exception as exc:  # noqa: BLE001 - report failure, never crash the pool
             logger.exception("Synthesis planning failed for %s", target.molecule_uuid)
             route_set = RouteSet(status=RouteStatus.FAILED, target=target, planner=_not_started(self._setup), termination=SearchTermination.FAILED, reason=f"The planner run failed unexpectedly ({type(exc).__name__}).")
+        route_set = service._annotated(route_set)
         service._store_and_announce(route_set)
