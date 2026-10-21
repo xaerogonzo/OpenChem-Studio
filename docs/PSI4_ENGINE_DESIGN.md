@@ -115,6 +115,11 @@ After version 1, the engine was changed to write exact integrals (`scf_type pk`,
 **Verdict NOT EVALUABLE: 1 of 16 Psi4 optimizations is missing (6.2%, limit 5%)**, and the cause is an engine bug the run found: Psi4 prints chlorine as `CL` in the final geometry and the parser accepted only `Cl`, so every converged Psi4 optimization of a chlorine-containing molecule was refused. Fixed in its own commit afterwards.
 Not judged: the DFT energies sit a steady +0.2 to +0.4 mEh (median) above ORCA's, below the 0.5 mEh systematic threshold and above the 0.126 mEh tolerance; unexplained by density fitting. A third plan (same as version 2 on the fixed parser) is the next step, and also needs to settle the pyridine `tight` optimization floor job that exceeds the 30-minute cap. Not started.
 
+## Stage 2 result, version 3 (2026-10-20): PARTIAL
+
+The third preregistered run (`benchmarks/psi4_agreement/PLAN_V3.md`, commit `58e31894`; version 2 on the fixed `CL` parser, the optimization floor on five molecules) is **complete (no missing cell) and PARTIAL**. **Hartree-Fock: PASS**, all 48 cells within 0.010 mEh of ORCA (medians 0.000 mEh). **DFT: PARTIAL**, 73.4% of 192 cells within the 0.126 mEh tolerance, a steady positive offset of +0.05 to +0.65 mEh (medians +0.20 to +0.42, M062X largest), no systematic offset by the plan's 0.5 mEh rule and nothing beyond 5 T. **Relative energies: PARTIAL** (91.1% within, none beyond 5 T). **Optimizations: PARTIAL** (energies +0.07 to +0.31 mEh, geometries to 0.0034 A, none beyond 5 T).
+`PSI4_METHODS` is unchanged. The offset is unexplained (not density fitting, grid or threads; not the 37 mEh VWN or 1.8 mEh cartesian-d errors); a grid test on the largest cells is the suggested measurement, not started. Practical reading: Psi4 HF is ORCA's HF; Psi4 DFT is the same method to a few tenths of a mEh with a systematic sign, so numbers from the two engines are never mixed under one label.
+
 ## How it is validated before it is offered (the project standard: claims are measured)
 
 1. **The parser is written against real output**, saved as fixtures (`tests/fixtures/psi4/`), never against what the manual says it prints; a mutation check on it, as for every parser here.
