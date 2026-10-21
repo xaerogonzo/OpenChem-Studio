@@ -22,6 +22,7 @@ from openchem.plugins.interfaces import (
     PanelProvider,
     QuantumEngineProvider,
 )
+from openchem.plugins.synthesis_access import PluginSynthesis, PluginSynthesisRequests, SynthesisHost
 from openchem.plugins.ui_registry import UIRegistry
 from openchem.services.container import ServiceContainer
 from openchem.services.reaction_template_service import ReactionTemplate
@@ -238,7 +239,7 @@ class PluginContext:
 
     Grouped into small namespaces (`descriptors`, `conformers`, `docking`,
     `quantum_chemistry`, `importers`, `exporters`, `panels`, `menus`,
-    `events`, `settings`, `secrets`, `molecules`, `reactions`, `calculations`) rather than
+    `events`, `settings`, `secrets`, `molecules`, `reactions`, `calculations`, `synthesis`) rather than
     one flat pile
     of `register_*` methods on this class directly.
 
@@ -256,6 +257,7 @@ class PluginContext:
         ui_registry: UIRegistry,
         settings: Settings,
         calculation_host: CalculationHost | None = None,
+        synthesis_host: SynthesisHost | None = None,
     ) -> None:
         self.plugin_id = plugin_id
         self.logger = logging.getLogger(f"openchem.plugin.{plugin_id}")
@@ -284,6 +286,10 @@ class PluginContext:
         #: A person's decision on a preview: approve, cancel, and a callback when a run finishes. **For a
         #: panel's buttons, never for a tool** -- a plugin must hand its tools `calculations` only.
         self.calculation_approvals = PluginCalculationApprovals(calculation_host, self._rollbacks)
+        #: Read the selected molecule and a synthesis plan, ask what the planner offers, and draw a step. **Cannot start anything**; answers "nothing" with no host.
+        self.synthesis = PluginSynthesis(synthesis_host)
+        #: Start, stop and configure a plan. **For a panel's buttons, never for a tool** -- a plugin must hand its tools `synthesis` only. The regulatory gate runs inside the service, whoever asks.
+        self.synthesis_requests = PluginSynthesisRequests(synthesis_host)
 
     def resource_path(self, relative: str) -> Path:
         """Path to a file bundled alongside this plugin (icons, templates, etc.)."""

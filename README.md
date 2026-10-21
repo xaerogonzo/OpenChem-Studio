@@ -193,6 +193,7 @@ preferences.
 | AutoDock Vina | molecular docking |
 | ORCA | ab initio quantum chemistry, NMR shielding, geometry optimisation |
 | nmrshiftdb2 index | the HOSE-code NMR lookup and the hybrid predictor |
+| AiZynthFinder (your own Python environment) | the synthesis planner behind the Synthesis panel; locate-only (you install it, the application never does) |
 | Knowledge Vista (`kv`) | nothing in the app; a separate program that keeps track of where your paper library is, for the development tools to use |
 | pkasolver | numeric pKa, and true Henderson–Hasselbalch logD |
 | ADMET-AI | hERG and CYP predictions alongside the rule-based checklist |

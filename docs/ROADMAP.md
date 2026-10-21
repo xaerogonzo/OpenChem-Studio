@@ -278,7 +278,8 @@ explicitly out of scope.
       (`ToolbarProvider`/`ContextMenuProvider`, a `RemoteServicePlugin` base
       class, numeric provider priority, declared permissions) — flagged in
       the code itself as "revisit if a fourth plugin needs the same shape,"
-      and still no concrete plugin needs them.
+      and the fourth plugin (`synthesis_planner`) did not: it needed `run_async`
+      and a purpose-built handle, and none of these.
 
       **No longer deferred**, corrected because this list had gone stale:
       hydrophobic/pi-stacking/cation-pi/salt-bridge/metal contact
@@ -2354,8 +2355,11 @@ and three were checked again recently rather than taken on trust.
 
 - **Plugin-system extras** (`ToolbarProvider`/`ContextMenuProvider`, a
   `RemoteServicePlugin` base, numeric priority, declared permissions). The
-  recorded trigger is "a fourth plugin whose real requirements tell us the
-  shape". There are still three. Building now means guessing.
+  recorded trigger was "a fourth plugin whose real requirements tell us the
+  shape". The fourth, `synthesis_planner`, has none of the boilerplate the base
+  class would hold (no secrets, no remote service), so it argues against that
+  class rather than for it; the other extras have still had no plugin ask for
+  them.
 
   **Plugin-provided reaction templates are NO LONGER on this list**, and
   this entry claimed otherwise in three places for longer than it should

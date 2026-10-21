@@ -23,6 +23,8 @@ from openchem.domain.calculator_support import (
 )
 from openchem.events.base import EventBus
 from openchem.services.alignment_service import AlignmentService
+from openchem.services.synthesis_planner_setup import SetupProvider
+from openchem.services.synthesis_planning_service import SynthesisPlanningService
 from openchem.services.atom_fact_service import AtomFactService
 from openchem.services.batch_service import BatchService
 from openchem.services.calculator_registry import CalculatorRegistry
@@ -439,6 +441,8 @@ def build_service_container() -> ServiceContainer:
     # result records which revision of the structure it describes. A second
     # checker would count a different molecule's edits.
     structure_check_service = StructureCheckService(event_bus)
+    # Named because the synthesis panel asks THIS instance what the planner's configuration offers; the planning service reads the same one.
+    synthesis_setup = SetupProvider(settings)
     # Named because the recipe service below reads THIS instance's project and stored runs.
     result_store_service = ResultStoreService(event_bus, engine, settings)
     # Named because the store asks THIS instance, as a project is opened, which of the results a
@@ -460,6 +464,15 @@ def build_service_container() -> ServiceContainer:
         project_service=ProjectService(event_bus),
         conformer_service=ConformerService(event_bus, engine, job_manager=job_manager),
         alignment_service=AlignmentService(event_bus, engine, job_manager=job_manager),
+        # The planner's Python and configuration come from the External Tools tab's settings: until both are set and the environment answers,
+        # the provider returns None and every request is `unavailable`, after the regulatory gate has had its say.
+        synthesis_planning_service=SynthesisPlanningService(
+            event_bus,
+            setup_provider=synthesis_setup,
+            job_manager=job_manager,
+            structure_version_of=structure_check_service.current_version,
+        ),
+        synthesis_setup=synthesis_setup,
         measurement_service=MeasurementService(engine),
         docking_service=docking_service,
         quantum_chemistry_service=QuantumChemistryService(event_bus, settings, job_manager=job_manager),
