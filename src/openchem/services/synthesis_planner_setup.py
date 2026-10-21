@@ -25,6 +25,7 @@ import shutil
 import subprocess
 import threading
 import time
+from dataclasses import dataclass
 from pathlib import Path
 
 from openchem.chem.aizynth_planner import PlannerInspection, PlannerSetup, inspect_environment, run_planner
@@ -244,6 +245,25 @@ class _Defaults:
         return default
 
 
+@dataclass(frozen=True)
+class PlannerOptions:
+    """What the configuration offers and what is chosen, for the synthesis panel's three lists.
+
+    `ok` is False when no plan can be made as things stand, and `problem` says why in a sentence (the External Tools tab's Test is what finds the cause inside the environment).
+    A chosen name of None means none: `chosen_filter` None is no filter, the default.
+    """
+
+    ok: bool
+    problem: str = ""
+    version: str | None = None
+    expansion: tuple[str, ...] = ()
+    stock: tuple[str, ...] = ()
+    filters: tuple[str, ...] = ()
+    chosen_expansion: str | None = None
+    chosen_stock: str | None = None
+    chosen_filter: str | None = None
+
+
 # --- the setting the planning service reads ------------------------------------------------------------------------------------------------
 
 
@@ -262,8 +282,7 @@ class SetupProvider:
         self._lock = threading.Lock()
 
     def __call__(self) -> PlannerSetup | None:
-        python = (self._settings.get(PYTHON_KEY, "") or "").strip()
-        config = (self._settings.get(CONFIG_KEY, "") or "").strip()
+        python, config = self._paths()
         if not python or not config or not Path(python).is_file() or not Path(config).is_file():
             return None
         inspection = self._inspection(python, config)
@@ -274,13 +293,58 @@ class SetupProvider:
             return None
         return PlannerSetup(python=python, config=inspection.config, stock=stock, expansion=expansion, filter=filter_name, limits=DEFAULT_LIMITS)
 
-    def _inspection(self, python: str, config: str) -> PlannerInspection | None:
+    def is_warm(self) -> bool:
+        """True when the configuration at the paths now set has already been read, so a request will not wait for it. Starts nothing."""
+        python, config = self._paths()
+        key = self._key(python, config) if python and config else None
+        with self._lock:
+            return key is not None and self._cache is not None and self._cache[0] == key
+
+    def options(self) -> PlannerOptions:
+        """What the configuration offers and what is chosen now, for the panel's three lists. May start the planner's Python (about 1.6 s the first time), so call it from a worker."""
+        python, config = self._paths()
+        if not python or not config or not Path(python).is_file() or not Path(config).is_file():
+            return PlannerOptions(ok=False, problem=describe_status(python, config))
+        inspection = self._inspection(python, config)
+        if inspection is None:
+            return PlannerOptions(ok=False, problem=f"The planner's Python or configuration could not be read ({python}).")
+        if not inspection.ok:
+            return PlannerOptions(ok=False, problem=explain_inspection(inspection, python))
+        keys = inspection.keys
+        expansion, stock, filter_name, problem = select_keys(inspection, self._settings)
+        if not problem:
+            missing = assets_problem(inspection, expansion, stock, filter_name)
+            problem = "" if missing is None else missing[1]
+        if problem:
+            problem = f"{problem[:1].upper()}{problem[1:]}."
+        return PlannerOptions(
+            ok=not problem,
+            problem=problem,
+            version=inspection.version,
+            expansion=tuple(keys.get("expansion", ())),
+            stock=tuple(keys.get("stock", ())),
+            filters=tuple(keys.get("filter", ())),
+            chosen_expansion=expansion,
+            chosen_stock=stock,
+            chosen_filter=filter_name,
+        )
+
+    def _paths(self) -> tuple[str, str]:
+        return (self._settings.get(PYTHON_KEY, "") or "").strip(), (self._settings.get(CONFIG_KEY, "") or "").strip()
+
+    @staticmethod
+    def _key(python: str, config: str) -> tuple | None:
         try:
             stat = Path(config).stat()
             python_stat = Path(python).stat()
         except OSError:
             return None
-        key = (python, config, stat.st_mtime_ns, stat.st_size, python_stat.st_mtime_ns)
+        return (python, config, stat.st_mtime_ns, stat.st_size, python_stat.st_mtime_ns)
+
+    def _inspection(self, python: str, config: str) -> PlannerInspection | None:
+        key = self._key(python, config)
+        if key is None:
+            return None
         with self._lock:
             if self._cache is not None and self._cache[0] == key:
                 return self._cache[1]
@@ -291,4 +355,4 @@ class SetupProvider:
         return inspection
 
 
-__all__ = ["CONFIG_KEY", "DEFAULT_LIMITS", "EXPANSION_KEY", "FILTER_KEY", "PYTHON_KEY", "STOCK_KEY", "SetupProvider", "assets_problem", "describe_status", "find_config", "find_python", "locate", "responds_as_planner", "select_keys", "verify"]
+__all__ = ["CONFIG_KEY", "DEFAULT_LIMITS", "EXPANSION_KEY", "FILTER_KEY", "PYTHON_KEY", "STOCK_KEY", "PlannerOptions", "SetupProvider", "assets_problem", "describe_status", "find_config", "find_python", "locate", "responds_as_planner", "select_keys", "verify"]

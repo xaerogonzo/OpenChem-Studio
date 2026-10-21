@@ -109,6 +109,7 @@ from openchem.events.events import (
     ScoreDefinitionsChanged,
 )
 from openchem.app.calculation_host import CalculationHost
+from openchem.app.synthesis_host import SynthesisHost
 from openchem.plugins.manager import PluginManager
 from openchem.services.container import ServiceContainer
 from openchem.services.result_store_service import SUBSTANCE_PART
@@ -960,7 +961,9 @@ class MainWindow(QMainWindow):
         # The calculator bridge a plugin (the AI assistant) reaches through `context.calculations`.
         # Held here: the bus keeps only weak references to its handlers.
         self._calculation_host = CalculationHost(services, session)
-        self._plugin_manager = PluginManager(services, self, settings, self._calculation_host)
+        # The same for the synthesis planner (`context.synthesis`): the selected molecule, the planning service and the planner's setting.
+        self._synthesis_host = SynthesisHost(services, session, settings)
+        self._plugin_manager = PluginManager(services, self, settings, self._calculation_host, self._synthesis_host)
         self._plugin_manager.load_all()
         self._refresh_installed_plugins_menu()
 
