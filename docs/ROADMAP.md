@@ -2353,6 +2353,12 @@ struck through and marked SHIPPED here, never deleted.
 Nothing here is simply unstarted — each is blocked on something nameable,
 and three were checked again recently rather than taken on trust.
 
+- **Re-screening a saved synthesis plan (recorded 2026-10-21).** A plan saved in the project file comes back with the regulatory alerts it had on the day it
+  was made, shown with that date and a sentence saying they were not repeated on opening, because screening takes 0.9 to 3.7 s a plan (about 0.1 s a
+  molecule, measured on 13 real planner outputs) and opening a project of 30 plans would take about a minute. So a ruleset added or changed since then is not
+  reflected until the molecule is planned again. Two ways to close it: a "re-screen" action on the Synthesis panel, or a worker that fills the screening in
+  after opening (which gives every surface a "screening" state to read). Blocked on nothing but need: build one if the stale date is felt
+  (`docs/SYNTHESIS_HELPER_DESIGN.md`, slice 11).
 - **Plugin-system extras** (`ToolbarProvider`/`ContextMenuProvider`, a
   `RemoteServicePlugin` base, numeric priority, declared permissions). The
   recorded trigger was "a fourth plugin whose real requirements tell us the
