@@ -1561,6 +1561,7 @@
   "tests/test_property_panel_result_rows.py": 1,
   "tests/test_property_panel_status_chips.py": 3,
   "tests/test_proton_affinity_benchmark.py": 0,
+  "tests/test_proton_affinity_calculation.py": 1,
   "tests/test_proton_affinity_runner.py": 3,
   "tests/test_protonation_geometry.py": 0,
   "tests/test_protonation_microspecies.py": 0,
