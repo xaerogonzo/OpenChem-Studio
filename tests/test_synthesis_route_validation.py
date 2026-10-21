@@ -309,3 +309,46 @@ def test_it_agrees_with_the_spike_on_what_each_mapping_mutation_does(aspirin_tre
         tree = copy.deepcopy(aspirin_tree)
         _reaction(tree)["metadata"]["mapped_reaction_smiles"] = text
         _same_outcomes(tree)
+
+
+# --- a route is judged by all its steps, not by any one of them --------------------------------------------------------------
+
+
+def _reactions_of(tree: dict) -> list[dict]:
+    found: list[dict] = []
+
+    def collect(node: dict) -> None:
+        for reaction in node.get("children", []):
+            found.append(reaction)
+            for child in reaction.get("children", []):
+                collect(child)
+
+    collect(tree)
+    return found
+
+
+def test_one_unmapped_step_among_mapped_ones_makes_the_route_partial_and_conservation_not_assessable():
+    tree = copy.deepcopy(_fixture("sildenafil")["routes"][0])  # three steps, every atom mapped
+    reaction = _reactions_of(tree)[0]
+    reaction["metadata"]["mapped_reaction_smiles"] = re.sub(r":\d+\]", "]", reaction["metadata"]["mapped_reaction_smiles"])  # one step loses every number
+
+    result = validate_route(parsed(tree))
+
+    assert result.mapping is MappingStatus.PARTIAL and result.conservation is Check.NOT_ASSESSABLE  # neither absent (two steps are mapped) nor complete (one is not)
+
+
+def test_one_partly_mapped_step_among_complete_ones_makes_the_route_partial():
+    tree = copy.deepcopy(_fixture("sildenafil")["routes"][0])
+    reaction = _reactions_of(tree)[1]
+    smiles = reaction["metadata"]["mapped_reaction_smiles"]
+    reaction["metadata"]["mapped_reaction_smiles"] = re.sub(r"\[(\w+):1\]", r"[\1]", smiles, count=1)  # one product atom of one step loses its number
+
+    result = validate_route(parsed(tree))
+
+    assert result.mapping is MappingStatus.PARTIAL and result.conservation is Check.NOT_ASSESSABLE
+
+
+def test_a_probability_of_zero_is_a_number_the_planner_gave_not_a_missing_field(aspirin_tree):
+    _reaction(aspirin_tree)["metadata"]["policy_probability"] = 0.0
+
+    assert validate_route(parsed(aspirin_tree)).missing == ()

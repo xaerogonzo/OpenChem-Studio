@@ -241,3 +241,14 @@ def test_an_annotator_that_raises_loses_nothing_and_the_plan_says_its_molecules_
 
     assert announced.status is RouteStatus.FOUND and announced.routes[0] == two_step_route()
     assert announced.node_screenings == () and ALERTS_NOT_CHECKED in announced.all_limitations()
+
+
+def test_the_screenings_of_a_route_are_only_those_of_its_own_molecules():
+    one = two_step_route(1)
+    other = Route(target_smiles=ASPIRIN, rank=2, steps=(RouteStep(product=ASPIRIN, reactants=(ANHYDRIDE, SALICYLIC)),), starting_materials=(RouteMolecule(smiles=ANHYDRIDE, in_stock=True), RouteMolecule(smiles=SALICYLIC, in_stock=True)))
+    base = found(one, other)
+    annotated = dataclasses.replace(base, node_screenings=every_molecule(base))
+
+    assert {s.smiles for s in annotated.screenings_for(other)} == set(route_molecules(other))
+    assert PHENOL not in {s.smiles for s in annotated.screenings_for(other)}  # phenol belongs to the first route only
+    assert len(annotated.screenings_for(one)) == len(route_molecules(one))
