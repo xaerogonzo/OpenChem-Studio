@@ -2334,9 +2334,11 @@ The **Synthesis** panel (the rail's Extensions group, or **Plugins ▸ Plan Synt
 
 **What was checked about a route, and what was flagged.** Beside each step the panel lists the route's own bookkeeping, separately and never as one verdict: whether every molecule parses, whether each step's reaction parses and is made of the molecules the step connects, whether the atom mapping is complete, whether atoms are conserved (judged only where the mapping is complete; otherwise it says it could not be assessed), and whether the starting materials are in the stock. This says the planner's books are consistent. It does not say the chemistry is right. Every molecule of every route (the target, each intermediate, each starting material) is also screened against the application's regulatory rulesets, the shipped ones and any of your own, and what matched is listed with the rule, the ruleset, what kind of listing it is (a controlled substance, a precursor list, a workplace exposure limit and so on) and how sure the rule is. An alert never removes or refuses a route and is not a legal determination; a molecule with no alert is not thereby free of obligations, because the lists are finite; and a molecule that could not be screened says why and is never counted as having no alert. Ordinary solvents and reagents often match an exposure-limit listing, so a route with an alert is common and the listing's kind is what to read. The route list shows how many molecules of each route carry an alert.
 
-**A plan belongs to a structure.** If you edit the drawing after planning, the panel keeps the plan but labels it **EARLIER STRUCTURE** and says which structure it was made for; it is never shown as the plan for what is drawn now. Plans are kept for the session only and are not saved in the project.
+**A plan belongs to a structure.** If you edit the drawing after planning, the panel keeps the plan but labels it **EARLIER STRUCTURE** and says which structure it was made for; it is never shown as the plan for what is drawn now. **Plans are saved with the project.** A plan that found routes, or found none, is written into the project file when you save and comes back when you open it (a finished search also marks the project as having unsaved changes, because it can take minutes to get). A plan that was refused, failed, was cancelled or could not start is not saved: asking again is cheap and gives the answer of the day. A saved plan is not trusted blindly when it comes back: the regulatory check is run again on its target before it is shown, so a project file cannot be a way around it, each route's own bookkeeping is checked again, and the sentences beside it are this version's. **The regulatory alerts beside a saved plan are the ones from when it was made, shown with that date, and are not repeated when the file is opened** (screening a plan takes seconds); plan again to refresh them. A project saved before this existed has no plans, and a version of the application that does not know about them drops them the next time it saves the project.
 
-**Who may ask.** Only a person pressing **Plan synthesis**; there is no other way to start a search from the window yet.
+**Who may ask.** A person pressing **Plan synthesis**, or the AI Assistant asking for one: it puts a card on its panel and the search starts only if you press **Approve** (the same regulatory check runs first, and the assistant cannot press it). The `?` in this panel's title bar, and F1 with the focus in it, open this section.
+
+**What it was measured to do.** Every plan carries a sentence with the planner's benchmark result: on 300 patent routes it found a route for 96.7% of targets but had the patent route among its first 10 for only 37.3%, and it often finds routes shorter than the patent's. Read the routes as internally consistent, repeatable proposals that often differ from known routes, not as known routes; the numbers and what they do not show are in the Scientific Limitations document (Synthesis route planning).
 
 <!-- help:jobs -->
 ## Jobs and the console
@@ -3397,8 +3399,19 @@ installed" state.
 <!-- help:plugins -->
 ## Plugins
 
-Three plugins ship: **AI Assistant**, **Database Search** and **Reaction
-Prediction**. Enable or disable them from the plugin manager.
+Four plugins ship: **AI Assistant**, **Database Search**, **Reaction
+Prediction** and **Synthesis** (see its own section). Enable or disable them from the plugin manager. Each has a panel in the right-hand rail with its own **?**, which opens the section below.
+
+Plugins are loaded as source from a `plugins/` directory beside the
+application, so you can add or edit one without a Python install. They
+extend the app through the same interfaces the core uses — descriptor
+providers, calculators, panels, importers — rather than through a separate
+lesser API.
+
+See [PLUGIN_SDK.md](PLUGIN_SDK.md) to write one.
+
+<!-- help:plugin-ai-assistant -->
+### AI Assistant
 
 The AI Assistant opens from **Plugins > Open AI Assistant** (its panel is in the
 right-hand rail under *Compare and Extend*). Choose a provider and click
@@ -3414,17 +3427,29 @@ became of it, is listed under the conversation. It can also read the goal wizard
 application pairs with a question such as "where is the charge"), as a suggestion rather than a protocol. It can also read the **derived scores** you
 defined (their names, formulas and values for the selected molecule; never the owner or the note), and says so when one cannot be worked out. It cannot save or change one, but it can propose a new one: a card shows the formula, what each
 input reads, the unit and what it gives for the selected molecule, and nothing is saved unless you press **Approve** (it is then saved with the assistant
-as its owner, and you change it in **Tools > Derived Scores** like any other). Those results, and a score's name and formula, are sent to the provider
+as its owner, and you change it in **Tools > Derived Scores** like any other). It can ask to search for synthesis routes to the selected molecule: a card names the molecule, its structure and the policy, stock and filter the planner would use, and the planning program starts only if you press **Approve** (the application's regulatory check then runs first and can decline to plan; the assistant is told only that it was not planned, never why). When the search ends the assistant is told with your next message, and it can read the stored plan: each route's steps, the route's own consistency checks and the rule ids of any regulatory alerts (not the names of what they list; those are in the Synthesis panel). A route is a hypothesis from a program, and the assistant is told to give no conditions, reagents or yields, because the planner gives none. Those results, a score's name and formula, and any synthesis plan the assistant reads, are sent to the provider
 as part of the conversation, and a note under the box says where. **Plugins > Explain
 Stored Results** asks it to explain everything stored for the selected molecule.
 
-Plugins are loaded as source from a `plugins/` directory beside the
-application, so you can add or edit one without a Python install. They
-extend the app through the same interfaces the core uses — descriptor
-providers, calculators, panels, importers — rather than through a separate
-lesser API.
+<!-- help:plugin-database-search -->
+### Database Search
 
-See [PLUGIN_SDK.md](PLUGIN_SDK.md) to write one.
+Searches **PubChem** and **ChEMBL** for a compound and brings a result into the project as a new molecule. Open it from **Plugins > Search Chemical Databases** (the panel is in the rail's *Compare and Extend* group).
+
+Type a name, a SMILES or an InChIKey, say which of the three it is in the second box, choose the source in the box after **in:**, and press **Search**. The table lists each hit with its source, its identifier there, its name, formula, molecular weight and SMILES. Select a row and press **Import as new molecule**: the structure is read from the SMILES into a new molecule of your project, named as the database names it (PubChem's IUPAC name or "CID" and its number; ChEMBL's preferred name or its identifier), and nothing in the project is replaced.
+
+It needs the network, and what you typed is sent to that database. It is a lookup, not a calculation: the application does not check the database's answer, so a hit is the database's record (a name can match a salt, a mixture or a different stereoisomer than the one you meant), and a source that is busy or slow says so in the line under the box ("rate limit reached", "timed out") rather than returning nothing. A hit with no SMILES is left out.
+
+<!-- help:plugin-reaction-prediction -->
+### Reaction Prediction
+
+Proposes products for one or two reactants. Open it from **Plugins > Predict Reaction Products**; with a molecule selected, its SMILES is filled into **Reactant 1**.
+
+Enter the reactants as SMILES (the second is optional), choose a **Method** and press **Predict**. The table lists each proposed product's SMILES, where the proposal came from and a confidence, and **Add as new molecule** puts the selected product in the project, named "Predicted product".
+
+Two methods are offered. **Templates** is always available and needs nothing set up: it applies a small library of named reaction patterns (two ship, Fischer esterification and amide coupling; a `reaction_templates.json` of your own in the application's data folder, and patterns another plugin registers, are added to them). It is deterministic and it gives no confidence, because a pattern match is not a scored prediction and a number would be invented; the Confidence column is blank. A reaction no pattern covers returns nothing, which says the library does not cover it and nothing about the chemistry. The **remote API** method sends the reactants to a prediction service you name under **Configure...** (a base URL and a key) and shows the confidence that service reports; the application does not validate it, and the reactants leave your machine.
+
+Either way a product is a proposal, not a result: no conditions, yield or by-products are given, and nothing here checks that the reaction works. For routes to a molecule rather than products from one, see the **Synthesis** section.
 
 ---
 

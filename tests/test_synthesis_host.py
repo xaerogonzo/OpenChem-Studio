@@ -76,6 +76,7 @@ def test_there_is_no_target_without_a_project_a_selection_that_exists_or_a_struc
     world.project.molecules.append(blank)
     world.session.select_molecule(blank.uuid)
     assert world.host.target() is None  # nothing drawn to plan for
+    assert world.host.structure_of(blank.uuid) is None and world.host.structure_of("not-in-the-project") is None
     world.session.set_project(None)
     assert world.host.target() is None
 
@@ -240,7 +241,7 @@ def test_the_reading_handle_has_no_way_to_start_stop_or_configure_a_plan():
     """The split that keeps a tool from starting a search: what a tool is handed is `synthesis`, and everything that acts is on the other object."""
     reading = {name for name in dir(PluginSynthesis) if not name.startswith("_")}
     acting = {name for name in dir(PluginSynthesisRequests) if not name.startswith("_")}
-    assert reading == {"available", "depict", "is_planning", "options", "result_for", "setup_is_warm", "target"}
+    assert reading == {"available", "depict", "is_planning", "options", "result_for", "setup_is_warm", "structure_of", "target"}
     assert acting == {"cancel", "choose", "request_plan"}
     assert reading.isdisjoint(acting)
 

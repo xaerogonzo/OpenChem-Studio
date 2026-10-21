@@ -222,6 +222,11 @@ OPENCHEM_DRIVE=/path/to/script.json uv run --no-sync python -m openchem.main
                                           SEPARATE steps, since Plan waits for the configuration to be read off the GUI thread
     {"do": "synthesis_setup", "python": "...", "config": "..."}  the planner's settings for THIS run ("" = not set up);
                                           writes the real registry, so `quit` or `{"restore": true}` puts them back
+    {"do": "synthesis_fixture_plan", "fixture": "aspirin_it100", "screen": true}  give the SELECTED molecule a plan a real planner once made (the real parser and annotator,
+                                          stored as a finished search stores one), so a script can save, reopen and read a plan without the planner; pair with `save_project`,
+                                          `menu` "New Project" and `open_project`
+    {"do": "ai_card", "card": "synthesis", "action": "approve"}   the Approve (or "cancel") of a card for a synthesis SEARCH the assistant asked for; `ai_expect` takes
+                                          `synthesis_requests` (cards waiting) and `notes_contain` / `notes_exclude` (what is held to tell the model with its next message)
     {"do": "conformers_finish", "expect": {"enabled": true, "readout_contains": ["found"]}}
                                           the REAL Finish now in the 3D viewer, asserted
                                           before it is pressed; "press": false only looks

@@ -884,6 +884,62 @@
    "expect": [
     "osha-z1-402"
    ]
+  },
+  {
+   "name": "Schedule 1 A.4 listing, item 1",
+   "smiles": "ClCCSCCl",
+   "expect": [
+    "cwc-1-a-4"
+   ]
+  },
+  {
+   "name": "Schedule 1 A.4 listing, item 3",
+   "smiles": "ClCCSCSCCCl",
+   "expect": [
+    "cwc-1-a-4"
+   ]
+  },
+  {
+   "name": "Schedule 1 A.4 listing, item 5",
+   "smiles": "ClCCSCCCSCCCl",
+   "expect": [
+    "cwc-1-a-4"
+   ]
+  },
+  {
+   "name": "Schedule 1 A.4 listing, item 6",
+   "smiles": "ClCCSCCCCSCCCl",
+   "expect": [
+    "cwc-1-a-4"
+   ]
+  },
+  {
+   "name": "Schedule 1 A.4 listing, item 7",
+   "smiles": "ClCCSCCCCCSCCCl",
+   "expect": [
+    "cwc-1-a-4"
+   ]
+  },
+  {
+   "name": "Schedule 1 A.4 listing, item 8",
+   "smiles": "ClCCSCOCSCCCl",
+   "expect": [
+    "cwc-1-a-4"
+   ]
+  },
+  {
+   "name": "Schedule 1 A.4 listing, item 9",
+   "smiles": "ClCCSCCOCCSCCCl",
+   "expect": [
+    "cwc-1-a-4"
+   ]
+  },
+  {
+   "name": "Schedule 1 A.6 listing, item 1",
+   "smiles": "CCN(CCCl)CCCl",
+   "expect": [
+    "cwc-1-a-6"
+   ]
   }
  ],
  "negatives": [
@@ -1056,6 +1112,61 @@
    "name": "naproxen sodium (a sodium-salt medicine)",
    "smiles": "[Na+].COc1ccc2cc(ccc2c1)C(C)C(=O)[O-]",
    "expect": []
+  },
+  {
+   "name": "former A.4 motif match, not listed",
+   "smiles": "O=S(=O)(Cl)CCCl",
+   "expect": []
+  },
+  {
+   "name": "former A.4 motif match, not listed",
+   "smiles": "O=C(Cl)CCS(=O)(=O)CCCl",
+   "expect": []
+  },
+  {
+   "name": "former A.4 motif match, not listed",
+   "smiles": "C[S+](C)CCCl",
+   "expect": []
+  },
+  {
+   "name": "former A.6 motif match, not listed",
+   "smiles": "Nc1ccc(N(CCCl)CCCl)cc1",
+   "expect": []
+  },
+  {
+   "name": "former A.4 motif match, not listed",
+   "smiles": "CSCCCl",
+   "expect": []
+  },
+  {
+   "name": "former A.6 motif match, not listed",
+   "smiles": "ClCCNCCCl",
+   "expect": []
+  },
+  {
+   "name": "former A.6 motif match, not listed",
+   "smiles": "O=S(=O)(c1ccccc1)N(CCCl)CCCl",
+   "expect": []
+  },
+  {
+   "name": "former A.6 motif match, not listed",
+   "smiles": "ClCCN(CCCl)Cc1ccccc1",
+   "expect": []
+  },
+  {
+   "name": "former A.6 motif match, not listed",
+   "smiles": "CN(C)CCC(=O)Nc1cccc(NC(=O)Nc2ccc(N(CCCl)CCCl)cc2)c1",
+   "expect": []
+  },
+  {
+   "name": "former A.4 motif match, not listed",
+   "smiles": "C=CS(=O)CCNC(=O)CCS(=O)(=O)CCCl",
+   "expect": []
+  },
+  {
+   "name": "former A.4 motif match, not listed",
+   "smiles": "O=Cc1ccc(SCCCl)cc1",
+   "expect": []
   }
  ],
  "edge_cases": [
@@ -1082,10 +1193,8 @@
   {
    "name": "2-chloroethyl ethyl sulfide (half-mustard)",
    "smiles": "CCSCCCl",
-   "expect": [
-    "cwc-1-a-4"
-   ],
-   "why": "KNOWN OVER-BROAD MATCH. The A.4 pattern keys on a single 2-chloroethyl thioether arm; the entry is a heading over an enumeration. Recorded as expected so the benchmark measures the rule as written rather than as hoped."
+   "expect": [],
+   "why": "THE ROW THAT RECORDED THE OVER-BROAD MATCH, AND NOW RECORDS ITS END. It expected cwc-1-a-4 while that rule keyed on a single arm of the motif, so the benchmark measured the rule as written rather than as hoped. The entry is a heading over a closed listing and the rule is an identity over those sub-items now, so this structure -- which the entry does not list -- correctly matches nothing. Kept as an edge case rather than moved to the negatives: it is one feature from a listed sub-item, which is the boundary worth keeping a named row on."
   },
   {
    "name": "chlorambucil (licensed medicine)",

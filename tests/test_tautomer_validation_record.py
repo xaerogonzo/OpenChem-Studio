@@ -164,9 +164,10 @@ def test_no_record_means_unvalidated_and_an_unreadable_one_is_skipped_not_fatal(
 def test_the_frozen_build_ships_both_files():
     """A data file that works from a checkout and is missing from the installer is this project's
     established failure mode, and here it would be invisible: every result would just read unvalidated."""
-    spec_text = (ROOT / "packaging" / "openchem.spec").read_text(encoding="utf-8")
-    assert "tautomer_validation_v2.json" in spec_text
-    assert "tautomer_validation_record_v2.json" in spec_text
+    import conftest
+
+    assert conftest.spec_ships("chem/data/tautomer_validation_v2.json")
+    assert conftest.spec_ships("chem/data/tautomer_validation_record_v2.json")
 
 
 # --- through the service -----------------------------------------------------------------------

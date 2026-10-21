@@ -2079,7 +2079,7 @@ class _Driver(QObject):
         # could not have noticed: a harness disagreeing with the app about what a reopened project holds.
         self._window._set_project(
             command.loaded_project, command.loaded_results, command.loaded_qc_runs, command.loaded_recipe_runs,
-            command.loaded_derived_scores,
+            command.loaded_derived_scores, command.loaded_synthesis_plans,
         )
         logger.warning(
             "OPENCHEM_DRIVE: opened %s -- %d molecule(s)",
@@ -4307,6 +4307,48 @@ class _Driver(QObject):
             logger.error("OPENCHEM_DRIVE: EXPECT synthesis FAILED[%s] -- %s", tag, "; ".join(problems)[:800])
         else:
             logger.warning("OPENCHEM_DRIVE: EXPECT synthesis ok[%s]", tag)
+
+    def _do_synthesis_fixture_plan(self, step: dict[str, Any]) -> None:
+        """Give the selected molecule a plan a real planner once made, so a script can save, reopen and read a plan without the planner.
+
+        `{"do": "synthesis_fixture_plan", "fixture": "aspirin_it100", "screen": true}`
+
+        The plan is the real parser's reading (`parse_document`) of a saved planner output in `benchmarks/synthesis/fixtures/`, screened by the real
+        annotator when `screen` is set, and stored the way a finished search stores one (`_store_and_announce`: the service's own write and the
+        `SynthesisRouteReady` the window marks the project unsaved on). The fixture's target must be the selected molecule's structure; a script that
+        names another one has made a plan for a different molecule, which is what `result_for` then calls an earlier plan.
+        """
+        from openchem.chem import aizynth_planner as planner
+        from openchem.chem.synthesis_gate import annotate_route_set
+        from openchem.domain.synthesis_route import SearchLimits, TargetIdentity
+
+        window = self._window
+        molecule = window._session.project.find_molecule(window._property_panel._selected_molecule_uuid)
+        service = window._services.synthesis_planning_service
+        if molecule is None or service is None:
+            logger.error("OPENCHEM_DRIVE: synthesis_fixture_plan -- no molecule selected, or no planning service")
+            return
+        path = Path("benchmarks") / "synthesis" / "fixtures" / f"{step.get('fixture', 'aspirin_it100')}.json"
+        document = json.loads(path.read_text(encoding="utf-8"))
+        document["schema"] = planner.RUN_SCHEMA
+        document["limits"].setdefault("all_routes", False)
+        document.pop("route_count", None)
+        limits = document["limits"]
+        selection = document["identity"]["selection"]
+        request = planner.PlanRequest(
+            target_smiles=document["target"],
+            config={"expansion": {"uspto": ["m.onnx", "t.csv.gz"]}, "stock": {"zinc": "s.hdf5"}},
+            stock=selection["stock"],
+            expansion="uspto",
+            filter=None if selection["filter"] == "none" else selection["filter"],
+            limits=SearchLimits(iteration_limit=limits["iteration_limit"], time_limit_seconds=limits["time_limit"], max_transforms=limits["max_transforms"]),
+        )
+        target = TargetIdentity(molecule_uuid=molecule.uuid, canonical_smiles=molecule.canonical_smiles, fingerprint="drive-fixture")
+        plan = planner.parse_document(document, request, target)
+        if step.get("screen"):
+            plan = annotate_route_set(plan)
+        service._store_and_announce(plan)
+        logger.warning("OPENCHEM_DRIVE: synthesis_fixture_plan -- %s stored for %s (%d route(s), status %s)", path.stem, molecule.display_name, len(plan.routes), plan.status.value)
 
     def _do_conformers(self, step: dict[str, Any]) -> None:
         """Generate conformers through the real service.
@@ -9164,11 +9206,22 @@ class _Driver(QObject):
 
     def _do_ai_card(self, step: dict[str, Any]) -> None:
         """`{"do": "ai_card", "action": "approve" | "cancel" | "open" | "dismiss", "card": "score"}` -- press a REAL button on the
-        first preview card the assistant is showing; `"card": "score"` means a score the assistant PROPOSED, whose Approve is the only way it is saved."""
+        first preview card the assistant is showing; `"card": "score"` means a score the assistant PROPOSED, whose Approve is the only way it is saved, and
+        `"card": "synthesis"` a search for synthesis routes it asked for, whose Approve is the only way the planner is asked (the regulatory gate speaks first)."""
         panel = self._ai_panel()
         if panel is None:
             return
         action = str(step["action"])
+        if step.get("card") == "synthesis":
+            cards = list(panel._synthesis_cards.values())
+            button = None
+            if cards and action in ("approve", "cancel"):
+                button = cards[0].approve_button if action == "approve" else cards[0].cancel_button
+            if button is None:
+                logger.error("OPENCHEM_DRIVE: ai_card synthesis %s -- no such card is showing", action)
+                return
+            button.click()
+            return
         if step.get("card") == "score":
             cards = list(panel._score_cards.values())
             button = None
@@ -9203,8 +9256,9 @@ class _Driver(QObject):
         must NOT be in anything a tool returned: a person's free text that was never to leave), `tools_offered` (names the provider was
         given on its first request), `transcript_contains`, `notes` (how many previews' outcomes wait for
         the next message), `send_enabled`, `panel_visible` (a dock's objectName that must be showing), `score_proposals` (proposed-score cards waiting),
-        `scores_stored` (scores in the project), `scores_owner` (the owners stored, in order) and `sent_contains` (substrings of everything sent to the
-        provider, notes included).
+        `scores_stored` (scores in the project), `scores_owner` (the owners stored, in order), `sent_contains` (substrings of everything sent to the
+        provider, notes included), `synthesis_requests` (synthesis-search cards waiting) and `notes_contain` / `notes_exclude` (substrings of the
+        notes held for the model's next message).
         """
         panel = self._ai_panel()
         expect = dict(step.get("expect") or {})
@@ -9258,6 +9312,15 @@ class _Driver(QObject):
             for needle in expect.get("sent_contains", []):
                 if needle not in sent:
                     problems.append(f"nothing sent to the provider contained {needle!r}")
+            if "synthesis_requests" in expect and len(panel.pending_synthesis_keys()) != expect["synthesis_requests"]:
+                problems.append(f"{len(panel.pending_synthesis_keys())} synthesis requests waiting, wanted {expect['synthesis_requests']}")
+            held = "\n".join(panel._notes)
+            for needle in expect.get("notes_contain", []):
+                if needle not in held:
+                    problems.append(f"no held note contains {needle!r}")
+            for needle in expect.get("notes_exclude", []):
+                if needle in held:
+                    problems.append(f"a held note contains {needle!r}, which must never be sent")
             if "panel_visible" in expect:
                 dock = self._dock(str(expect["panel_visible"]))
                 if dock is None or not dock.isVisible():

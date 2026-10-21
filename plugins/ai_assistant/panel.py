@@ -26,6 +26,9 @@ from PySide6.QtWidgets import (
 from openchem.domain.result_envelope import outcome_envelope
 from openchem.domain.run_lifecycle import RunOutcome, RunState
 from openchem.domain.score_proposal import ProposalOutcome, ProposalState
+from openchem.domain.synthesis_route import RouteStatus
+from openchem.events.events import SynthesisRouteReady
+from openchem.services.synthesis_planning_service import RequestOutcome
 from openchem.plugins.async_task import run_async
 from openchem.plugins.context import PluginContext
 
@@ -33,6 +36,16 @@ from .bridge import BridgeEvent, ToolBridge, bounded_json
 from .calculation_tools import CALCULATION_HANDLERS, CALCULATION_TOOLS
 from .context_builder import MoleculeContextCache
 from .providers import AIMessage, AIProvider, AIProviderError, AIRequest, AIResponse, ToolCall
+from .synthesis_tools import (
+    GATE_DECLINED,
+    REQUEST_NAME,
+    SYNTHESIS_HANDLERS,
+    SYNTHESIS_TOOLS,
+    SynthesisBridge,
+    begin_synthesis_turn,
+    card_key,
+    card_lines,
+)
 from .tools import AVAILABLE_TOOLS, TOOL_REGISTRY, validate_arguments
 
 # A runaway model that keeps requesting tools forever must not hang the
@@ -63,7 +76,9 @@ SYSTEM_PROMPT_PREFIX = (
     "solubility, shape ...) and why, and is editorial rather than a validated protocol; "
     "read_results returns what has already been computed; read_scores returns the user's own score formulas worked out for "
     "this molecule (formulas a person wrote, not predictions); list_score_outputs and propose_score let you suggest a new one, which exists only if the person approves a card "
-    "that you cannot approve for them; run_calculator runs one. A run you request is recorded in "
+    "that you cannot approve for them; run_calculator runs one. plan_synthesis asks the user to let an external program search for synthesis routes to the selected molecule "
+    "(you cannot start it, and the application's regulatory check can decline it), and read_synthesis_plan reads the plan that is stored: a route is a hypothesis, the program gives "
+    "no conditions, reagents or yields, and you must not supply any. A run you request is recorded in "
     "the user's project and appears in their Results like one they ran themselves, so run only what the question "
     "needs. Some calculators need the user to approve a preview first: tell them it is waiting for their approval, "
     "do not ask again, and never imply you approved or started it.\n\n"
@@ -94,6 +109,18 @@ _SCORE_LABELS = {
     ProposalState.CANCELLED: "cancelled; nothing was saved",
     ProposalState.VOID: "not saved: the project changed",
     ProposalState.FAILED: "approved but could not be saved",
+}
+
+
+#: What the ledger says about a synthesis plan the assistant asked for, by how it ended.
+_PLAN_LABELS = {
+    RouteStatus.FOUND: "routes found",
+    RouteStatus.NO_ROUTE: "no route found within the search limits",
+    RouteStatus.REFUSED: "not planned: the regulatory check did not allow it",
+    RouteStatus.UNSCREENED: "not planned: the regulatory check could not be completed",
+    RouteStatus.FAILED: "the search failed",
+    RouteStatus.UNAVAILABLE: "the planner is not available",
+    RouteStatus.CANCELLED: "cancelled",
 }
 
 
@@ -211,6 +238,53 @@ class _ScoreCard(QFrame):
 
     def _on_cancel(self, _checked: bool = False) -> None:
         self.cancel_clicked.emit(self.proposal_id)
+
+
+class _SynthesisCard(QFrame):
+    """A search for synthesis routes the assistant asked for. Approve and Cancel are the ONLY way it ever starts, and a model has no call that presses either.
+
+    The card is drawn from the application's own record (`synthesis_tools.card_lines`): the molecule, its structure and the planner's choices, as plain text. The model supplies none of it.
+    """
+
+    approve_clicked = Signal(str)
+    cancel_clicked = Signal(str)
+
+    def __init__(self, key: str, card: dict, parent: QWidget | None = None) -> None:
+        super().__init__(parent)
+        self.key = key
+        self.card = dict(card)
+        self.setObjectName("AISynthesisCard")
+        self.setFrameShape(QFrame.Shape.StyledPanel)
+        title = QLabel("Search for synthesis routes?", self)
+        font = title.font()
+        font.setBold(True)
+        title.setFont(font)
+        title.setTextFormat(Qt.TextFormat.PlainText)
+        self.body = QLabel("\n".join(card_lines(card)), self)
+        self.body.setObjectName("AISynthesisCardBody")
+        self.body.setTextFormat(Qt.TextFormat.PlainText)
+        self.body.setWordWrap(True)
+        self.body.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
+        self.approve_button = QPushButton("Approve", self)
+        self.approve_button.setObjectName("AISynthesisApprove")
+        self.cancel_button = QPushButton("Cancel", self)
+        self.cancel_button.setObjectName("AISynthesisCancel")
+        self.approve_button.clicked.connect(self._on_approve)
+        self.cancel_button.clicked.connect(self._on_cancel)
+        buttons = QHBoxLayout()
+        buttons.addStretch()
+        buttons.addWidget(self.approve_button)
+        buttons.addWidget(self.cancel_button)
+        layout = QVBoxLayout(self)
+        layout.addWidget(title)
+        layout.addWidget(self.body)
+        layout.addLayout(buttons)
+
+    def _on_approve(self, _checked: bool = False) -> None:
+        self.approve_clicked.emit(self.key)
+
+    def _on_cancel(self, _checked: bool = False) -> None:
+        self.cancel_clicked.emit(self.key)
 
 
 class _ServiceCard(QFrame):
@@ -368,6 +442,10 @@ class AIAssistantPanel(QWidget):
         self._notes: list[str] = []
         #: proposal id -> the card on screen for a score the assistant proposed.
         self._score_cards: dict[str, _ScoreCard] = {}
+        #: card key -> the card on screen for a synthesis search the assistant asked for.
+        self._synthesis_cards: dict[str, _SynthesisCard] = {}
+        #: molecule uuid -> its name, for each search the user approved and that has not ended: only these are told to the model afterwards.
+        self._synthesis_awaiting: dict[str, str] = {}
         self._cards: dict[str, _PreviewCard] = {}
         self._service_cards: dict[str, _ServiceCard] = {}
         self._service_count = 0
@@ -454,6 +532,7 @@ class AIAssistantPanel(QWidget):
         self._refresh_privacy()
         context.calculation_approvals.on_finished(self._on_run_finished)
         context.calculation_approvals.on_score_finished(self._on_score_finished)
+        context.events.subscribe(SynthesisRouteReady, self._on_synthesis_ready)
 
     def prefill_and_focus(self, text: str) -> None:
         self._input.setPlainText(text)
@@ -521,10 +600,13 @@ class AIAssistantPanel(QWidget):
         # calls in this reply reads that and nothing else, so selecting another molecule while it streams
         # cannot change what an answer was based on.
         bridge = None
+        synthesis = None
         if provider.supports_tools:
             bridge = ToolBridge(
                 self._context.calculations, self._context.calculations.begin_turn(), self._bridge_signal.event.emit
             )
+            # The synthesis tools get the READING handle only; the object that starts a search stays here, behind the card's Approve.
+            synthesis = SynthesisBridge(self._context.synthesis, begin_synthesis_turn(self._context.synthesis), self._bridge_signal.event.emit)
 
         self._stream_active = False
         signal = _ChunkSignal()
@@ -534,7 +616,7 @@ class AIAssistantPanel(QWidget):
         self._send_button.setEnabled(False)
         run_async(
             lambda: self._run_completion(
-                provider, system_context, history_snapshot, model, api_key, signal.chunk_received.emit, bridge
+                provider, system_context, history_snapshot, model, api_key, signal.chunk_received.emit, bridge, synthesis
             ),
             AIProviderError,
             self._on_response,
@@ -550,6 +632,7 @@ class AIAssistantPanel(QWidget):
         api_key: str,
         on_chunk: Callable[[str], None],
         bridge: ToolBridge | None = None,
+        synthesis: SynthesisBridge | None = None,
     ) -> AIResponse:
         """Runs off the GUI thread (called from `run_async`'s lambda).
 
@@ -565,7 +648,7 @@ class AIAssistantPanel(QWidget):
 
         `bridge` is the turn's frozen access to the calculators (`bridge.py`). The calculator tools are
         offered only when it is usable (a host, and a molecule selected); without one the loop is exactly
-        what it was before they existed.
+        what it was before they existed. `synthesis` is the same for the two synthesis tools (`synthesis_tools.py`).
         """
         messages = list(messages)
         tools = None
@@ -573,6 +656,8 @@ class AIAssistantPanel(QWidget):
             tools = list(AVAILABLE_TOOLS)
             if bridge is not None and bridge.available:
                 tools.extend(CALCULATION_TOOLS)
+            if synthesis is not None and synthesis.available:
+                tools.extend(SYNTHESIS_TOOLS)
         response = AIResponse(text="")
         for _ in range(MAX_TOOL_ITERATIONS):
             request = AIRequest(system_context=system_context, messages=messages, model=model, api_key=api_key)
@@ -582,11 +667,11 @@ class AIAssistantPanel(QWidget):
             messages.append(AIMessage(role="assistant", content=response.text, tool_calls=response.tool_calls))
             for tool_call in response.tool_calls:
                 messages.append(
-                    AIMessage(role="tool", content=self._execute_tool(tool_call, bridge), tool_call_id=tool_call.id)
+                    AIMessage(role="tool", content=self._execute_tool(tool_call, bridge, synthesis), tool_call_id=tool_call.id)
                 )
         return response
 
-    def _execute_tool(self, tool_call: ToolCall, bridge: ToolBridge | None = None) -> str:
+    def _execute_tool(self, tool_call: ToolCall, bridge: ToolBridge | None = None, synthesis: SynthesisBridge | None = None) -> str:
         """Run one tool call, after checking it against the tool's own schema.
 
         The check is ours, not the provider's: a model can send a missing field, a wrong type or an
@@ -594,10 +679,11 @@ class AIAssistantPanel(QWidget):
         on a wrong value. Problems are returned to the model and nothing runs.
         """
         calculation = tool_call.name in CALCULATION_HANDLERS
-        handler = CALCULATION_HANDLERS.get(tool_call.name) or TOOL_REGISTRY.get(tool_call.name)
+        planning = tool_call.name in SYNTHESIS_HANDLERS
+        handler = CALCULATION_HANDLERS.get(tool_call.name) or SYNTHESIS_HANDLERS.get(tool_call.name) or TOOL_REGISTRY.get(tool_call.name)
         if handler is None:
             return f"Unknown tool: {tool_call.name}"
-        definition = next((d for d in [*AVAILABLE_TOOLS, *CALCULATION_TOOLS] if d.name == tool_call.name), None)
+        definition = next((d for d in [*AVAILABLE_TOOLS, *CALCULATION_TOOLS, *SYNTHESIS_TOOLS] if d.name == tool_call.name), None)
         if definition is not None:
             problems = validate_arguments(definition.input_schema, tool_call.input)
             if problems:
@@ -607,6 +693,10 @@ class AIAssistantPanel(QWidget):
                 if bridge is None:
                     return '{"ok": false, "problem": "unavailable", "message": "calculator access is not available in this conversation"}'
                 return handler(bridge, **tool_call.input)
+            if planning:
+                if synthesis is None:
+                    return '{"ok": false, "problem": "unavailable", "message": "synthesis planning is not available in this conversation"}'
+                return handler(synthesis, **tool_call.input)
             return handler(**tool_call.input)
         except Exception as exc:  # noqa: BLE001 - a bad tool call must not crash the loop
             return f"Tool {tool_call.name} failed: {exc}"
@@ -621,16 +711,16 @@ class AIAssistantPanel(QWidget):
             return ""
         if not provider.supports_tools:
             return (
-                f"{provider_id} cannot use this application's tools, so it can neither read nor run calculators, nor read your scores. "
+                f"{provider_id} cannot use this application's tools, so it can neither read nor run calculators, nor read your scores or a synthesis plan. "
                 f"Your messages and the selected molecule's summary are sent to it."
             )
         if getattr(provider, "_base_url", None):
             return (
-                f"Calculator results the assistant reads, and the names and formulas of your scores it reads, are sent to the server at "
+                f"Calculator results the assistant reads, the names and formulas of your scores it reads, and any synthesis plan it reads, are sent to the server at "
                 f"{provider._base_url}, as part of the conversation."
             )
         return (
-            f"Calculator results the assistant reads or runs, and the names and formulas of your scores it reads, are sent to "
+            f"Calculator results the assistant reads or runs, the names and formulas of your scores it reads, and any synthesis plan it reads, are sent to "
             f"{provider_id} as part of the conversation, so they leave this machine."
         )
 
@@ -675,6 +765,9 @@ class AIAssistantPanel(QWidget):
         if event.kind == "score_proposed":
             self._add_score_card(event)
             return
+        if event.kind == "synthesis_proposed":
+            self._add_synthesis_card(event)
+            return
         self._runs[event.run_id] = (event.calculator, event.molecule)
         if event.kind == "previewed":
             self._awaiting.add(event.run_id)
@@ -717,8 +810,8 @@ class AIAssistantPanel(QWidget):
         self._sync_cards_host()
 
     def _sync_cards_host(self) -> None:
-        """The strip of cards is there while any card is: a run's preview, a service-run description or a proposed score."""
-        self._cards_host.setVisible(bool(self._cards or self._service_cards or self._score_cards))
+        """The strip of cards is there while any card is: a run's preview, a service-run description, a proposed score or a requested search."""
+        self._cards_host.setVisible(bool(self._cards or self._service_cards or self._score_cards or self._synthesis_cards))
 
     def service_preview_keys(self) -> list[str]:
         """Service-run previews on screen."""
@@ -739,6 +832,87 @@ class AIAssistantPanel(QWidget):
             card.setParent(None)
             card.deleteLater()
         self._sync_cards_host()
+
+    # --- a search for synthesis routes the assistant asked for ---------------------------------------------
+
+    def _add_synthesis_card(self, event: BridgeEvent) -> None:
+        """A tool left a request for a plan. GUI thread: it arrived through a queued signal."""
+        key = event.run_id
+        if key in self._synthesis_cards:
+            return  # already on screen: a second card for one molecule would be one the person could press twice
+        card = _SynthesisCard(key, event.preparation, self._cards_host)
+        card.approve_clicked.connect(self._on_synthesis_approve)
+        card.cancel_clicked.connect(self._on_synthesis_cancel)
+        self._synthesis_cards[key] = card
+        self._cards_layout.addWidget(card)
+        self._cards_host.setVisible(True)
+        self._set_ledger(key, self._ledger_text(event.calculator, event.molecule, "waiting for your approval"))
+
+    def _remove_synthesis_card(self, key: str) -> _SynthesisCard | None:
+        card = self._synthesis_cards.pop(key, None)
+        if card is not None:
+            self._cards_layout.removeWidget(card)
+            card.setParent(None)
+            card.deleteLater()
+        self._sync_cards_host()
+        return card
+
+    def pending_synthesis_keys(self) -> list[str]:
+        """Requests for a synthesis search on screen waiting for a decision."""
+        return list(self._synthesis_cards)
+
+    def _on_synthesis_approve(self, key: str) -> None:
+        """The user pressed Approve. The only path by which the assistant's request ever reaches `request_plan`, where the regulatory gate speaks first."""
+        card = self._remove_synthesis_card(key)
+        if card is None:
+            return
+        info = card.card
+        uuid, name = str(info.get("molecule_uuid", "")), str(info.get("name", ""))
+        current = self._context.synthesis.structure_of(uuid)
+        if current is None or current.canonical_smiles != info.get("smiles"):
+            # What the person saw is not what would be planned: the structure was edited, or the molecule removed, since the request was made.
+            self._synthesis_decided(key, name, "not started: the structure changed after the request was made", f"The synthesis search you asked for, for {name}, was not started because the structure changed after the request was made.")
+            return
+        # Registered BEFORE the request: a refusal by the gate is announced from inside it.
+        self._synthesis_awaiting[uuid] = name
+        outcome = self._context.synthesis_requests.request_plan(uuid, requested_by="the assistant, approved by the user")
+        if outcome is RequestOutcome.STARTED:
+            self._set_ledger(key, self._ledger_text(REQUEST_NAME, name, "searching"))
+        elif outcome is RequestOutcome.ALREADY_RUNNING:
+            self._synthesis_awaiting.pop(uuid, None)
+            self._synthesis_decided(key, name, "not started again: a search for it is already running", f"The synthesis search you asked for, for {name}, was not started again because one was already running.")
+        elif outcome is RequestOutcome.REJECTED:
+            self._synthesis_awaiting.pop(uuid, None)
+            self._synthesis_decided(key, name, "not started", f"The synthesis search you asked for, for {name}, was not started.")
+
+    def _on_synthesis_cancel(self, key: str) -> None:
+        card = self._remove_synthesis_card(key)
+        if card is None:
+            return
+        name = str(card.card.get("name", ""))
+        self._synthesis_decided(key, name, "cancelled; nothing was started", f"The synthesis search you asked for, for {name}, was cancelled by the user. Nothing was started.")
+
+    def _synthesis_decided(self, key: str, name: str, label: str, note: str) -> None:
+        self._set_ledger(key, self._ledger_text(REQUEST_NAME, name, label))
+        self._append_transcript("Application", f"Synthesis plan for {name}: {label}.")
+        self._notes.append(f"[Application note] {note}")
+
+    def _on_synthesis_ready(self, event: SynthesisRouteReady) -> None:
+        """A planning request ended, whatever its status. Only a search the user approved for the assistant is told to the model. GUI thread."""
+        name = self._synthesis_awaiting.pop(event.molecule_uuid, None)
+        if name is None:
+            return
+        status = event.route_set.status
+        label = _PLAN_LABELS.get(status, status.value)
+        self._set_ledger(card_key(event.molecule_uuid),self._ledger_text(REQUEST_NAME, name, label))
+        self._append_transcript("Application", f"Synthesis plan for {name}: {label}.")
+        head = f"[Application note] The synthesis search you asked for, for {name}, ended"
+        if status in (RouteStatus.FOUND, RouteStatus.NO_ROUTE):
+            self._notes.append(f"{head}: {event.route_set.message()} Read it with read_synthesis_plan. A route is a hypothesis, not a validated synthesis.")
+        elif status in (RouteStatus.REFUSED, RouteStatus.UNSCREENED):
+            self._notes.append(f"{head} with status '{status.value}'. {GATE_DECLINED}")
+        else:
+            self._notes.append(f"{head} with status '{status.value}'; the Synthesis panel shows the planner's message. There are no routes to read.")
 
     # --- a score the assistant proposed ------------------------------------------------------------------
 
