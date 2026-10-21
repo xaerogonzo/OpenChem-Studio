@@ -4684,6 +4684,22 @@ FIXED: list[tuple[str, str, str, str, str]] = [
     ("D-350", "O=C(CNc1ccccc1)N(NC)P(=O)(O)O", "1-(anilinoacetyl)-2-methylhydrazine-1-phosphonic acid",
      "1-anilinoacetyl-2-methylhydrazine-1-phosphonic acid",
      "`anilinoacetyl` was a simple prefix, left unenclosed after a locant, and OPSIN cannot parse it there"),
+    # Naming round 77 (D-351 .. D-354).
+    ("D-086a", "c1cc2cc3cocc3cc2o1", "benzo[1,2-b:4,5-c']difuran",
+     "[NAMING ERROR: No valid naming plan found for c1cc2cc3cocc3cc2o1]",
+     "a multiparent name (P-25.3.4.1.3, p. 234), the book's own example; closed by D-352 in naming round 77"),
+    ("D-351", "c1cnc2nc3ccncc3cc2c1", "pyrido[2,3-b][1,6]naphthyridine",
+     "[NAMING ERROR: No valid naming plan found for c1cnc2nc3ccncc3cc2c1]",
+     "the six naphthyridines were not components of the fusion constructor, so the three pyridine rings were three equal parents and the system had no name"),
+    ("D-352", "c1cnc2c(c1)oc1cccnc12", "furo[3,2-b:4,5-b']dipyridine",
+     "[NAMING ERROR: No valid naming plan found for c1cnc2c(c1)oc1cccnc12]",
+     "two occurrences of the parent component joined by one other component (the aza analogues of carbazole, dibenzofuran and dibenzothiophene) had no multiparent name"),
+    ("D-353", "c1cc2ccc3ncc4ncc5cnc6ccc1c1c2c3c4c5c61", "2,5,9-triazaheptacyclo[14.6.2.0^{4,21}.0^{7,20}.0^{10,19}.0^{13,18}.0^{17,22}]tetracosa-1(23),2,4,6,8,10,12,14,16(24),17,19,21-dodecaene",
+     "2,5,9-triazaheptacyclo[14.6.2.0^{4,21}.0^{7,20}.0^{10,19}.0^{13,18}.0^{17,22}]tetracosane",
+     "the von Baeyer route returned no unsaturation for an aromatic system, so every peri-fused azaarene the fusion constructor declined was a saturated cage: another molecule"),
+    ("D-354", "c1cc2ccc3ccc4ncc5ccc6ccc1c1c2c3c4c5c61", "2-azaheptacyclo[14.6.2.0^{4,21}.0^{7,20}.0^{10,19}.0^{13,18}.0^{17,22}]tetracosa-1,3,5,7,9,11,13,15,17(22),18,20,23-dodecaene",
+     "pyreno[3a,3,5,4,3a-aklmn]phenanthridine",
+     "a peri descriptor cited one label of the attached component twice, a name OPSIN cannot read"),
     # D-162, recorded OPEN in naming round 14 and closed by the same change: the same group in an ester's alcohol part. Its target was derived then and is what the fixed engine writes.
     ("D-162", "CC(=O)OCC(=O)N(O)C", "2-[hydroxy(methyl)amino]-2-oxoethyl acetate",
      "[(hydroxycarbamoyl)methyl]methyl acetate",
@@ -4723,9 +4739,6 @@ OPEN: list[tuple[str, str, str, str, str]] = [
     # a construction general fusion does not build yet. The book's PIN is the
     # target; the second column is today's output (a von Baeyer name, or none
     # where that construction fails too).
-    ("D-086a", "c1cc2cc3cocc3cc2o1", "benzo[1,2-b:4,5-c']difuran",
-     "[NAMING ERROR: No valid naming plan found for c1cc2cc3cocc3cc2o1]",
-     "a multiparent name (P-25.3.4.1.3, p. 234)"),
     ("D-086b", "C1=CC2=c3ccncc3=NC2=C1", "cyclopenta[4,5]pyrrolo[2,3-c]pyridine",
      "2,5-diazatricyclo[7.3.0.0^{3,8}]dodeca-1(12),2,4,6,8,10-hexaene",
      "a second-order attached component (p. 239)"),
