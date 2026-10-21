@@ -3,7 +3,6 @@ from __future__ import annotations
 import dataclasses
 import os
 import time
-
 from pathlib import Path
 
 from PySide6.QtCore import Qt
@@ -40,7 +39,11 @@ from openchem.chem.calculation_input import (
     resolve_ensemble,
 )
 from openchem.chem.engine import ChemistryEngine
-from openchem.chem.fukui import conformer_average_message, open_shell_message, summary_lines
+from openchem.chem.fukui import (
+    conformer_average_message,
+    open_shell_message,
+    summary_lines,
+)
 from openchem.chem.isotopes import same_structure
 from openchem.chem.nmr_correlation import (
     compute_cosy_pairs,
@@ -55,13 +58,15 @@ from openchem.chem.orca_engine import (
     default_cores,
     find_mpi_bin,
 )
-from openchem.chem.tautomer_nmr import targets_from_distribution
+from openchem.chem.proton_affinity import OutOfScope as ProtonAffinityOutOfScope
+from openchem.chem.proton_affinity import Sequence as ProtonAffinitySequence
 from openchem.chem.tautomer_distribution import (
     CONFIRMATION_THRESHOLD,
     generate_tautomer_candidates,
     policy_for_mode,
     tautomer_distribution_table,
 )
+from openchem.chem.tautomer_nmr import targets_from_distribution
 from openchem.domain.calculator import DRAWING, ENSEMBLE, GEOMETRY
 from openchem.domain.compare import ComparedResult, CompareRefusal, compare
 from openchem.domain.conformer import conformer_choice_text
@@ -87,10 +92,11 @@ from openchem.events.events import (
     TautomerNmrResultReady,
 )
 from openchem.services.quantum_chemistry_service import QuantumChemistryService
-from openchem.ui.table_export import install_table_export
+from openchem.services.table_export_service import write_rows_csv
 from openchem.ui.dialogs.compare_results_dialog import CompareResultsDialog
 from openchem.ui.dialogs.settings_dialog import EXTERNAL_TOOLS, SettingsDialog
 from openchem.ui.molecule_combo import repopulate, select
+from openchem.ui.table_export import install_table_export
 from openchem.ui.widgets.empty_state import (
     empty_state,
     empty_state_text,
@@ -109,7 +115,6 @@ from openchem.ui.widgets.pop_out_host import PopOutHost
 from openchem.ui.widgets.scroll_safe import make_scroll_safe
 from openchem.ui.widgets.sortable_item import SortableItem
 from openchem.ui.widgets.structure_grid_widget import StructureGridWidget
-from openchem.services.table_export_service import write_rows_csv
 
 _NMR_SPECTRUM_COLUMNS = ("Atom", "Element", "Value (ppm)")
 _CORRELATION_COLUMNS = ("Atom A", "Atom B", "Shift A", "Shift B", "J (Hz)")
@@ -427,6 +432,22 @@ _HELP: dict[str, HelpTooltip] = {
         help_id="quantum.tautomer_distribution",
         topic="quantum-chemistry",
         help_anchor="tautomer-distribution",
+    ),
+    "proton_affinity": HelpTooltip(
+        text=(
+            "Runs ORCA on this neutral base and on its conjugate acid at every place a proton can go, and reports the "
+            "gas-phase proton affinity (an enthalpy) and gas-phase basicity (a Gibbs energy) in kJ/mol at 298.15 K, the best "
+            "site and every site's own value.\n\n"
+            "Measured against NIST on 28 bases: mean absolute error about 1.5 kcal/mol, with the proton bound about 1.2 "
+            "kcal/mol too weakly. Only neutral closed-shell bases of at most ten heavy atoms of H, C, N, O, P and S are "
+            "accepted; anything else is refused with the reason.\n\n"
+            "Many ORCA jobs (minutes to hours). A structure that keeps an imaginary vibration after one re-run is dropped, "
+            "so a base can end with no value, and the result says why."
+        ),
+        tier=3,
+        help_id="quantum.proton_affinity",
+        topic="quantum-chemistry",
+        help_anchor="proton-affinity",
     ),
     "tautomer_full_orca": HelpTooltip(
         text=(
@@ -969,6 +990,9 @@ class QuantumChemistryPanel(QWidget):
         self._tautomer_distribution_button = QPushButton("Tautomers...", self)
         apply_help_tooltip(self._tautomer_distribution_button, _HELP["tautomer_distribution"])
         self._tautomer_distribution_button.clicked.connect(self._on_tautomer_distribution_clicked)
+        self._proton_affinity_button = QPushButton("Proton affinity...", self)
+        apply_help_tooltip(self._proton_affinity_button, _HELP["proton_affinity"])
+        self._proton_affinity_button.clicked.connect(self._on_proton_affinity_clicked)
         # Which conformer search the button above runs. A MODEL choice, not a
         # performance knob: each setting is its own model version.
         self._tautomer_full_check = QCheckBox("Full ORCA conformers", self)
@@ -1376,6 +1400,7 @@ class QuantumChemistryPanel(QWidget):
         run_row.layout().addWidget(self._run_button)
         run_row.layout().addWidget(self._cancel_button)
         run_row.layout().addWidget(self._tautomer_distribution_button)
+        run_row.layout().addWidget(self._proton_affinity_button)
         run_row.layout().addWidget(self._tautomer_full_check)
         run_row.layout().addWidget(self._tautomer_nmr_button)
         run_row.layout().addWidget(self._tautomer_nmr_conformers_check)
@@ -2241,6 +2266,7 @@ class QuantumChemistryPanel(QWidget):
         self._optimized_conformer_molblock = ""
         self._run_button.setEnabled(False)
         self._tautomer_distribution_button.setEnabled(False)
+        self._proton_affinity_button.setEnabled(False)
         self._cancel_button.setEnabled(True)
         self._output_log.clear()
         self._results_label.setText("")
@@ -2263,6 +2289,66 @@ class QuantumChemistryPanel(QWidget):
             calculation_input=DRAWING,
             input_fingerprint=input_fingerprint(self._chemistry_engine, molecule, DRAWING),
             policy=policy,
+        )
+
+    #: Above this many ORCA jobs the button asks before starting (a base with three conformers and three sites is a dozen).
+    _PROTON_AFFINITY_CONFIRM_ABOVE = 4
+
+    def _on_proton_affinity_clicked(self) -> None:
+        """Runs the benchmarked proton-affinity protocol on the current structure (`QuantumChemistryService.request_proton_affinity`).
+
+        Needs no pre-existing conformer (every structure is embedded fresh from the 2D structure) and no method choice: the protocol is exactly the one
+        that was measured, so the Method/basis box does not apply. A base outside what was measured is refused here with its reason, before anything is queued;
+        the number of ORCA jobs is named before a long run starts.
+        """
+        molecule = self._current_molecule()
+        if molecule is None or not molecule.molblock or not molecule.canonical_smiles:
+            self._status_label.setText("Select a molecule with a structure first.")
+            return
+        try:
+            sequence = ProtonAffinitySequence(molecule.canonical_smiles)
+        except ProtonAffinityOutOfScope as refusal:
+            self._status_label.setText(f"Proton affinity does not apply: {refusal}")
+            return
+        except Exception as error:  # noqa: BLE001 - a structure that cannot be embedded is refused with its reason, not crashed on
+            self._status_label.setText(f"Proton affinity could not start: {error}")
+            return
+        jobs = sequence.total
+        if jobs > self._PROTON_AFFINITY_CONFIRM_ABOVE:
+            answer = QMessageBox.question(
+                self,
+                "Run proton affinity?",
+                f"This will run {jobs} ORCA geometry optimizations with frequencies (M062X/def2-TZVPD) for the base and its conjugate acids, "
+                "one after another, and a structure that keeps an imaginary vibration is run once more. It can take minutes to hours. Continue?",
+                QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+                QMessageBox.StandardButton.No,
+            )
+            if answer != QMessageBox.StandardButton.Yes:
+                return
+        self._pending_molecule_uuid = molecule.uuid
+        self._pending_mol = self._chemistry_engine.mol_from_molblock(molecule.molblock)
+        self._pending_molblock = molecule.molblock
+        self._pending_conformer_molblock = ""
+        self._pending_conformer_note = ""
+        self._optimized_conformer_molblock = ""
+        self._run_button.setEnabled(False)
+        self._tautomer_distribution_button.setEnabled(False)
+        self._proton_affinity_button.setEnabled(False)
+        self._cancel_button.setEnabled(True)
+        self._output_log.clear()
+        self._results_label.setText("")
+        self._spectrum_table.setRowCount(0)
+        self._spectrum_table.setVisible(False)
+        self._spectrum_note_label.setVisible(False)
+        self._correlation_tabs.setVisible(False)
+        self._reset_empty_states()
+        self._status_label.setText(f"queued -- {jobs} optimization(s) for the proton affinity")
+        self._quantum_chemistry_service.request_proton_affinity(
+            smiles=molecule.canonical_smiles,
+            molecule_uuid=molecule.uuid,
+            calculation_input=DRAWING,
+            input_fingerprint=input_fingerprint(self._chemistry_engine, molecule, DRAWING),
+            structure_identity=molecule.canonical_smiles,
         )
 
     def _on_tautomer_nmr_conformers_toggled(self, checked: bool) -> None:
@@ -2333,6 +2419,7 @@ class QuantumChemistryPanel(QWidget):
         self._tautomer_nmr_distribution = distribution
         self._run_button.setEnabled(False)
         self._tautomer_distribution_button.setEnabled(False)
+        self._proton_affinity_button.setEnabled(False)
         self._tautomer_nmr_button.setEnabled(False)
         self._cancel_button.setEnabled(True)
         self._output_log.clear()
@@ -2414,7 +2501,9 @@ class QuantumChemistryPanel(QWidget):
         """The tautomer peaks on their own spectrum, for a molecule with no referenced spectrum of its own."""
         from openchem.chem.tautomer_nmr import tautomer_overlay
         from openchem.ui.widgets.nmr_spectrum_widget import NmrSpectrumWidget
-        from openchem.ui.widgets.tautomer_overlay_controls import TautomerOverlayControls
+        from openchem.ui.widgets.tautomer_overlay_controls import (
+            TautomerOverlayControls,
+        )
 
         dialog = QDialog(self)
         dialog.setWindowTitle("Tautomer NMR")
@@ -2798,6 +2887,7 @@ class QuantumChemistryPanel(QWidget):
         if event.state.value in ("completed", "failed"):
             self._run_button.setEnabled(True)
             self._tautomer_distribution_button.setEnabled(True)
+            self._proton_affinity_button.setEnabled(True)
             self._update_tautomer_nmr_buttons(self._active_run)
             self._cancel_button.setEnabled(False)
             if event.state.value == "failed":
@@ -2827,10 +2917,41 @@ class QuantumChemistryPanel(QWidget):
         molecule = self._project.find_molecule(event.molecule_uuid)
         return molecule is not None and same_structure(event.structure_identity, molecule.canonical_smiles)
 
+    @staticmethod
+    def _descriptor_line(descriptor) -> str:
+        """One result line. A descriptor with no value (a proton affinity whose structures were all dropped) says why instead of formatting None;
+        the proton affinity and gas basicity are kJ/mol to one decimal, which is all their measured error supports, and every other number keeps its six."""
+        if descriptor.value is None:
+            return f"{descriptor.name}: no value -- {descriptor.error or descriptor.error_summary or 'not computed'}"
+        if descriptor.units == "kJ/mol":
+            return f"{descriptor.name}: {descriptor.value:.1f} {descriptor.units}"
+        return f"{descriptor.name}: {descriptor.value:.6f} {descriptor.units}"
+
+    @staticmethod
+    def _proton_affinity_lines(descriptors) -> list[str]:
+        """The site table and the measured error that belong beside a proton affinity, from the output's own provenance (empty for any other result)."""
+        pa = next((d for d in descriptors if d.descriptor_id == "orca.proton_affinity"), None)
+        if pa is None or pa.provenance is None:
+            return []
+        parameters = pa.provenance.parameters
+        lines = []
+        sites = parameters.get("sites") or []
+        if sites:
+            lines.append("Protonation sites (atom, element: PA / GB in kJ/mol; * marks the one reported):")
+            for site in sites:
+                marks = ("*PA" if site.get("chosen_pa") else "") + (" *GB" if site.get("chosen_gb") else "")
+                lines.append(f"  {site['atom']}, {site['element']}: {site['pa_kj']:.1f} / {site['gb_kj']:.1f} {marks}".rstrip())
+        if parameters.get("dropped_structures"):
+            lines.append("Not accepted: " + ", ".join(parameters["dropped_structures"]))
+        if parameters.get("validation"):
+            lines.append(parameters["validation"])
+        return lines
+
     def _on_result_ready(self, event: QuantumChemistryResultReady) -> None:
         if event.molecule_uuid != self._pending_molecule_uuid:
             return
-        lines = [f"{d.name}: {d.value:.6f} {d.units}" for d in event.descriptors]
+        lines = [self._descriptor_line(d) for d in event.descriptors]
+        lines.extend(self._proton_affinity_lines(event.descriptors))
         if self._pending_conformer_note:
             lines.append(self._pending_conformer_note)
         if event.conformer is not None:

@@ -155,9 +155,9 @@ def test_a_plugin_loaded_without_a_host_gets_an_unavailable_handle(tmp_path, qap
 def test_the_registry_lists_every_calculator_as_a_copy():
     registry = build_service_container().calculator_registry
     listed = registry.definitions()
-    assert len(listed) == 73 and listed[0].calculator_id == next(iter(registry._definitions))
+    assert len(listed) == 74 and listed[0].calculator_id == next(iter(registry._definitions))
     listed.clear()
-    assert len(registry.definitions()) == 73
+    assert len(registry.definitions()) == 74
 
 
 def test_the_engine_counts_the_heavy_atoms_of_a_drawing():
