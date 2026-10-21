@@ -10,7 +10,7 @@ therefore a fact about which object it was handed. THE REGULATORY GATE DOES NOT 
 **A CONTEXT BUILT WITHOUT A HOST IS NOT AN ERROR.** A headless run or a test has none; every read then answers "nothing" and every request is `REJECTED`, the behaviour a plugin gets for any capability the
 host did not provide.
 
-THREADS: `target`, `request_plan`, `cancel`, `choose` and `result_for` are GUI-thread calls (they read the live project, or start a job that must be announced there). `options` can start the planner's
+THREADS: `target`, `structure_of`, `request_plan`, `cancel`, `choose` and `result_for` are GUI-thread calls (they read the live project, or start a job that must be announced there). `options` can start the planner's
 Python (about 1.6 s the first time) and is for a worker; `setup_is_warm` says whether that wait is over. `depict` is pure drawing and may be called from any thread.
 """
 
@@ -44,6 +44,8 @@ class SynthesisHost(Protocol):
 
     def target(self) -> SynthesisTarget | None: ...
 
+    def structure_of(self, molecule_uuid: str) -> SynthesisTarget | None: ...
+
     def result_for(self, molecule_uuid: str) -> BoundResult | None: ...
 
     def is_planning(self, molecule_uuid: str) -> bool: ...
@@ -74,6 +76,10 @@ class PluginSynthesis:
     def target(self) -> SynthesisTarget | None:
         """The selected molecule, or None when nothing is selected, it has no structure, or no host is present. GUI thread."""
         return self._host.target() if self._host is not None else None
+
+    def structure_of(self, molecule_uuid: str) -> SynthesisTarget | None:
+        """That molecule as it is drawn now, selected or not, or None when the project has no such molecule or it has no structure. How a request made earlier (a card waiting for a person) checks it still describes the same structure. GUI thread."""
+        return self._host.structure_of(molecule_uuid) if self._host is not None else None
 
     def result_for(self, molecule_uuid: str) -> BoundResult | None:
         """The stored plan for that molecule, bound to the structure it was made for (`BoundResult.is_current`), or None. GUI thread."""
