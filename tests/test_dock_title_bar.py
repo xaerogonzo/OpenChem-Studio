@@ -14,7 +14,7 @@ from PySide6.QtCore import QEvent, QPoint, Qt
 from PySide6.QtGui import QMouseEvent
 from PySide6.QtWidgets import QDockWidget, QLabel, QMainWindow, QToolButton
 
-from openchem.app.main_window import HELP_TOPIC_BY_DOCK
+from openchem.app.main_window import HELP_TOPIC_BY_DOCK, HELP_TOPIC_BY_PLUGIN_DOCK
 from openchem.ui.widgets.dock_title_bar import DockTitleBar
 
 import conftest
@@ -244,12 +244,13 @@ class TestAPluginPanelsHelp:
         return window
 
     @staticmethod
-    def _dock(window):
-        return next(d for d in window.findChildren(QDockWidget) if d.objectName() == "Synthesis")
+    def _dock(window, name="Synthesis"):
+        return next(d for d in window.findChildren(QDockWidget) if d.objectName() == name)
 
-    def test_the_synthesis_dock_has_a_help_button_that_opens_its_section(self, qapp, tmp_path, widgets):
+    @pytest.mark.parametrize("name", sorted(HELP_TOPIC_BY_PLUGIN_DOCK))
+    def test_a_plugin_dock_has_a_help_button_that_opens_its_section(self, qapp, tmp_path, widgets, name):
         window = self._window(qapp, tmp_path, widgets)
-        dock = self._dock(window)
+        dock = self._dock(window, name)
         bar = dock.titleBarWidget()
         assert isinstance(bar, DockTitleBar)
         buttons = [b for b in bar.findChildren(QToolButton) if b.text() == "?"]
@@ -257,32 +258,35 @@ class TestAPluginPanelsHelp:
         buttons[0].click()
         qapp.processEvents()
         dialog = window._help_dialog
-        assert dialog is not None and dialog._current_key == "synthesis"
+        assert dialog is not None and dialog._current_key == HELP_TOPIC_BY_PLUGIN_DOCK[name]
         dialog.close()
 
-    def test_f1_in_the_synthesis_panel_selects_its_topic(self, qapp, tmp_path, widgets):
+    @pytest.mark.parametrize("name", sorted(HELP_TOPIC_BY_PLUGIN_DOCK))
+    def test_f1_in_a_plugin_panel_selects_its_topic(self, qapp, tmp_path, widgets, name):
         window = self._window(qapp, tmp_path, widgets)
-        window.reveal_panel("Synthesis")
+        expected = HELP_TOPIC_BY_PLUGIN_DOCK[name]
+        window.reveal_panel(name.replace("_", " "))
         qapp.processEvents()
-        dock = self._dock(window)
+        dock = self._dock(window, name)
         dock.widget().setFocus()
         qapp.processEvents()
-        assert window._help_topic_for_visible_panel() == "synthesis", "focus inside the panel"
+        assert window._help_topic_for_visible_panel() == expected, "focus inside the panel"
         front, window._right_docks = window._right_docks, []  # so the front-panel fallback cannot be what answers: only the focus path can
-        assert window._help_topic_for_visible_panel() == "synthesis", "the focus path alone"
+        assert window._help_topic_for_visible_panel() == expected, "the focus path alone"
         window._right_docks = front
         window._center_tabs.setFocus()  # focus in the editor beats a visible side panel, as `TestHelpRouting` pins; the panel's own topic needs focus in it
         qapp.processEvents()
         assert window._help_topic_for_visible_panel() == "centre-tabs"
 
-    def test_with_no_focus_the_front_panel_is_the_one_whose_topic_is_opened(self, qapp, tmp_path, widgets, monkeypatch):
+    @pytest.mark.parametrize("name", sorted(HELP_TOPIC_BY_PLUGIN_DOCK))
+    def test_with_no_focus_the_front_panel_is_the_one_whose_topic_is_opened(self, qapp, tmp_path, widgets, monkeypatch, name):
         from PySide6.QtWidgets import QApplication
 
         window = self._window(qapp, tmp_path, widgets)
-        window.reveal_panel("Synthesis")
+        window.reveal_panel(name.replace("_", " "))
         qapp.processEvents()
         monkeypatch.setattr(QApplication, "focusWidget", staticmethod(lambda: None))
-        assert window._help_topic_for_visible_panel() == "synthesis"
+        assert window._help_topic_for_visible_panel() == HELP_TOPIC_BY_PLUGIN_DOCK[name]
 
     def test_a_plugin_dock_without_a_topic_keeps_the_native_title_bar(self, qapp, tmp_path, widgets):
         window = self._window(qapp, tmp_path, widgets)
