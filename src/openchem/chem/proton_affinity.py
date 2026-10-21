@@ -15,10 +15,6 @@ WHAT IT CANNOT SAY (the benchmark's own limits): 28 neutral bases of at most ten
 """
 from __future__ import annotations
 
-#: What the reachability guard accepts for a module nothing in the application imports YET: this is the first stage of the proton-affinity calculator (the chemistry, held to the benchmark's records by its own tests),
-#: and the service that runs it is the next change, which imports this module and deletes this declaration (the guard fails a declaration on a module the entry point can reach, so it cannot be forgotten).
-REACHED_BY = "tooling: imported only by tests/test_proton_affinity_calculation.py until the service that runs the calculation (the next change in the same series) imports it; then this line is deleted"
-
 import math
 import re
 from dataclasses import dataclass, field
