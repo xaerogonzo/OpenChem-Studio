@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Restart protocol v2: the exploratory rerun is recorded and a preregistration is drafted (benchmark record; nothing in the application changes)
+- `benchmarks/restart_diagnosis/` records an exploratory rerun of the four structures the proton-affinity and bond-dissociation rules dropped (H3O+, the ethanol radical, toluene, the CH3S radical), re-optimized from a geometry displaced along the imaginary mode: H3O+ repaired in both directions, the ethanol radical and toluene in one, the CH3S radical not. `benchmarks/restart_v2/PREREGISTRATION.md` is a DRAFT (not frozen, not run) of the displaced-restart rule with a held-out arm as its only evidence, because the four cells' outcomes were seen first; the v1 verdicts are unchanged.
+
 ### Naming: ring-atom scans find fused systems with no name
 - Round 77 added a population: every CH of a polycyclic skeleton (naphthalene to coronene, carbazole, dibenzofuran, dibenzothiophene) replaced by N, up to three at a time, and the five-membered ring's heteroatom varied (916 + 1,443 systems), named and read back through OPSIN; the census molecules with one ring atom changed (2,200) are clean to a fraction of a percent. On the bare ring systems 150 of 916 failed: the six naphthyridines were not fusion components, so `pyrido[2,3-b][1,6]naphthyridine` had no name (D-351); the aza analogues of carbazole, dibenzofuran and dibenzothiophene had no multiparent name, `furo[3,2-b:4,5-b']dipyridine` (D-352); the von Baeyer route dropped the aromatic bonds, so an aza-coronene was a saturated `...tetracosane`, another molecule (D-353); and a peri descriptor citing one label twice was emitted (D-354). 916 -> 0 failures, and 1,443 of 1,443 with a methyl on each.
 
