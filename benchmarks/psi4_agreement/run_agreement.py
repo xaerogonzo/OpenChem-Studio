@@ -69,6 +69,8 @@ GRID_COMBINATIONS = (
     + [("B3LYP", "pcSseg-1"), ("B3LYP", "pcSseg-2"), ("B3LYP/G", "def2-SVP")]
 )
 OPT_COMBINATION = ("B3LYP", "def2-SVP")
+#: PLAN_V3: pyridine's Psi4 `tight` optimization hit the 30-minute cap in versions 1 and 2, so the optimization floor is taken on the other five floor molecules, for both engines (declared in advance, not dropped after the fact).
+OPT_FLOOR_EXCLUDED = frozenset({"pyridine"})
 #: Variants of a floor run: the engine's own input, and each setting that does not change the method.
 ORCA_VARIANTS = ("default", "tight")
 # PLAN_V2: the engine writes exact integrals (`pk`) now, so density fitting left the floor (it is a method choice, not a harmless setting) and is only the `df` attribution rerun.
@@ -244,7 +246,7 @@ def run_all(ctx: Context, jobs: list[Job]) -> None:
 def floor_jobs(engine: str) -> list[Job]:
     variants = ORCA_VARIANTS if engine == "orca" else PSI4_VARIANTS
     jobs = [Job("floor", engine, m, f, b, v, "sp") for m in FLOOR_MOLECULES for f, b in FLOOR_COMBINATIONS for v in variants]
-    jobs += [Job("floor", engine, m, *OPT_COMBINATION, v, "opt") for m in FLOOR_MOLECULES for v in ("default", "tight")]
+    jobs += [Job("floor", engine, m, *OPT_COMBINATION, v, "opt") for m in FLOOR_MOLECULES if m not in OPT_FLOOR_EXCLUDED for v in ("default", "tight")]
     return jobs
 
 
@@ -359,7 +361,7 @@ def main() -> None:
     parser.add_argument("--engine", choices=["orca", "psi4"])
     parser.add_argument("--workers", type=int, default=3)
     parser.add_argument("--cores", type=int, default=4)
-    parser.add_argument("--out", default=str(HERE / "artifacts_v2"))  # PLAN_V2; v1's `artifacts/` stays as the record
+    parser.add_argument("--out", default=str(HERE / "artifacts_v3"))  # PLAN_V3; `artifacts/` (v1) and `artifacts_v2/` stay as the record
     parser.add_argument("--molecules", nargs="*", help="a subset (smoke tests only; a subset is never judged)")
     args = parser.parse_args()
     ctx = Context(Path(args.out), args.cores, args.workers)
