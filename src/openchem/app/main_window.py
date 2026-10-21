@@ -87,6 +87,8 @@ from openchem.domain.quantum_chemistry_run import QuantumChemistryRunStore
 from openchem.domain.recipe_run import RecipeRunStore
 from openchem.domain.result_store import SessionResultStore
 from openchem.domain.score_definition_store import ScoreDefinitionStore
+from openchem.domain.synthesis_plan_store import SynthesisPlanStore
+from openchem.domain.synthesis_route import RouteStatus
 from openchem.events.events import (
     CrystalSelected,
     ConformersChanged,
@@ -107,6 +109,7 @@ from openchem.events.events import (
     QuantumChemistryRunDeleted,
     ResultRecorded,
     ScoreDefinitionsChanged,
+    SynthesisRouteReady,
 )
 from openchem.app.calculation_host import CalculationHost
 from openchem.app.synthesis_host import SynthesisHost
@@ -960,6 +963,8 @@ class MainWindow(QMainWindow):
         services.event_bus.subscribe(QuantumChemistryRunDeleted, self._refresh_lewis_pairing)
         # A definition is never also a result, so nothing else would tell the session it has something unsaved.
         services.event_bus.subscribe(ScoreDefinitionsChanged, self._on_score_definitions_changed)
+        # A synthesis plan that found routes (or none) is kept in the project file, and a search can take minutes: finishing one is an unsaved change.
+        services.event_bus.subscribe(SynthesisRouteReady, self._on_synthesis_route_ready)
         for event_type in (MoleculeSelected, MoleculeChanged, ResultRecorded):
             services.event_bus.subscribe(event_type, self._refresh_scores_preview)
         services.event_bus.subscribe(MoleculeChanged, self._refresh_lewis_pairing)
@@ -3008,6 +3013,7 @@ class MainWindow(QMainWindow):
         qc_runs: QuantumChemistryRunStore | None = None,
         recipe_runs: RecipeRunStore | None = None,
         derived_scores: ScoreDefinitionStore | None = None,
+        synthesis_plans: SynthesisPlanStore | None = None,
     ) -> None:
         # THE UNDO STACK BELONGS TO THE DOCUMENT, and every command holds a
         # direct reference to the project it was built against. Without
@@ -3026,6 +3032,9 @@ class MainWindow(QMainWindow):
         # The score definitions are swapped on the same call, for the same reason.
         if self._services.score_service is not None:
             self._services.score_service.set_project(project, derived_scores)
+        # The synthesis plans the same: the planning service holds one project's plans at a time, and a plan read from a file is checked before it is shown.
+        if self._services.synthesis_planning_service is not None:
+            self._services.synthesis_planning_service.set_project(project, synthesis_plans)
         self._project_explorer.set_project(project)
         self._docking_panel.set_project(project)
         self._quantum_chemistry_panel.set_project(project)
@@ -3068,7 +3077,7 @@ class MainWindow(QMainWindow):
         if command.loaded_project is not None:
             self._set_project(
                 command.loaded_project, command.loaded_results, command.loaded_qc_runs, command.loaded_recipe_runs,
-                command.loaded_derived_scores,
+                command.loaded_derived_scores, command.loaded_synthesis_plans,
             )
 
     def _save_project(self) -> bool:
@@ -3106,7 +3115,7 @@ class MainWindow(QMainWindow):
         results, fingerprints, qc_runs, recipe_runs = self._current_results()
         command = SaveProjectCommand(
             self._services.project_service, self._session.project, path, results, fingerprints, qc_runs,
-            recipe_runs, self._current_scores(),
+            recipe_runs, self._current_scores(), self._current_plans(),
         )
         self._undo_stack.push(command)
         self._session.mark_clean()
@@ -3173,6 +3182,7 @@ class MainWindow(QMainWindow):
                 qc_runs=qc_runs,
                 recipe_runs=recipe_runs,
                 derived_scores=self._current_scores(),
+                synthesis_plans=self._current_plans(),
             )
         except Exception:  # noqa: BLE001 - a recovery copy must never interrupt work
             logger.exception("Could not write a recovery copy of %s", project.uuid)
@@ -3217,7 +3227,8 @@ class MainWindow(QMainWindow):
             return False
         document = service.load(newest)
         self._set_project(
-            document.project, document.results, document.qc_runs, document.recipe_runs, document.derived_scores
+            document.project, document.results, document.qc_runs, document.recipe_runs, document.derived_scores,
+            document.synthesis_plans,
         )
         self._project_path = newest.source_path
         # Recovered work is unsaved by definition; keep the copy until it is.
@@ -4009,6 +4020,22 @@ class MainWindow(QMainWindow):
         """The project's score definitions as a save writes them, or None without a score service."""
         service = self._services.score_service
         return service.store if service is not None else None
+
+    def _current_plans(self) -> SynthesisPlanStore | None:
+        """The synthesis plans of the open project as a save writes them, or None without a planning service."""
+        service = self._services.synthesis_planning_service
+        project = self._session.project
+        return service.plan_store(project) if service is not None and project is not None else None
+
+    def _on_synthesis_route_ready(self, event: SynthesisRouteReady) -> None:
+        """A plan worth keeping arrived for a molecule of this project: there is now something unsaved. Refusals, failures and cancellations are not kept, so they change nothing."""
+        project = self._session.project
+        if project is None or event.route_set.status not in (RouteStatus.FOUND, RouteStatus.NO_ROUTE):
+            return
+        if project.find_molecule(event.molecule_uuid) is None:
+            return
+        self._session.mark_dirty()
+        self._schedule_recovery()
 
     def _score_definitions(self):
         """The project's score definitions as they are now, for the project table's score columns."""
