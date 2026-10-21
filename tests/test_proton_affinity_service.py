@@ -10,19 +10,28 @@ from pathlib import Path
 
 import pytest
 from rdkit import Chem
+from test_quantum_chemistry_service import FakeQuantumEngineProvider, _wait_until
 
 from openchem import paths as app_paths
 from openchem.app.settings import Settings
 from openchem.domain.calculator import DRAWING
-from openchem.domain.common import RUN_CALC_TYPE, RUN_CHARGE, RUN_MULTIPLICITY, CacheState
+from openchem.domain.common import (
+    RUN_CALC_TYPE,
+    RUN_CHARGE,
+    RUN_MULTIPLICITY,
+    CacheState,
+)
 from openchem.domain.quantum_chemistry_run import RunStatus
 from openchem.events.base import EventBus
-from openchem.events.events import QuantumChemistryJobStateChanged, QuantumChemistryResultReady, QuantumChemistryRunCompleted, ResultRecorded
+from openchem.events.events import (
+    QuantumChemistryJobStateChanged,
+    QuantumChemistryResultReady,
+    QuantumChemistryRunCompleted,
+    ResultRecorded,
+)
 from openchem.plugins.interfaces import QuantumEngineProvider
 from openchem.services.job_manager import JobManager
 from openchem.services.quantum_chemistry_service import QuantumChemistryService
-
-from test_quantum_chemistry_service import FakeQuantumEngineProvider, _wait_until
 
 _FIXTURES = Path(__file__).parent / "fixtures" / "orca"
 WATER = (_FIXTURES / "pa_water_optfreq.out").read_text(encoding="utf-8")
