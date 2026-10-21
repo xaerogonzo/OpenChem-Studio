@@ -2319,6 +2319,23 @@ with it, and *Style* keeps working from the panel.
 
 ---
 
+<!-- help:synthesis -->
+## Synthesis
+
+The **Synthesis** panel (the rail's Extensions group, or **Plugins ▸ Plan Synthesis**) asks a synthesis planner for routes to the selected molecule. It is a front end for **AiZynthFinder**, a program you install yourself and point the application at under **Edit ▸ Settings ▸ External tools ▸ AiZynthFinder** (the application never downloads or installs it). Until that is done the panel says what is missing and where to set it up, and **Plan synthesis** answers that the planner is not available.
+
+**Before anything runs, the target is checked.** A molecule that matches the structural rules of the shipped `cwc-schedule-1` ruleset is refused, with the reason, and no planner starts; a molecule the check could not be applied to is refused the same way. A refusal is a result like any other and stays on the molecule until it is edited. The check covers the target only: a molecule in the middle of a route is flagged where a flag is meant to go, and is not a refusal.
+
+**Choosing.** Three lists, filled from the planner's configuration file when the panel is shown (a few seconds the first time, off the interface, so nothing freezes): the **expansion policy** that proposes reactions (default `uspto`), the **stock** of molecules a route may end at (default `zinc`) and an optional **filter** that discards reactions it scores as unlikely (default none, which is what the project's benchmark ran). A choice applies to the next plan; one already running keeps the choice it started with.
+
+**Planning.** A search takes about a minute and a half for a small target with the default stock (the planner's models load first) and needs 3 to 5 GB of memory; it runs in a program of its own, shows as a job in the Jobs panel, and **Cancel** stops it and ends that program. One molecule is planned at a time and one search runs at a time.
+
+**Reading the result.** Routes are listed in the planner's own order, each with its length, its starting materials and the planner's score; select one to list its steps in the order they would be run, and select a step to see it drawn (reactants, an arrow, the product) with everything the planner said about it beside it: its template, its policy and the policy's probability. Anything the planner did not supply is shown as **not provided**, not as a blank or a zero. The probability and the score are the planner's own numbers; neither is a yield or a chance that the step works. **No conditions, reagents or yields are given, because the planner does not give them**, and the standing limitations are printed beneath every result: a route is a hypothesis from a program trained on patent reactions, nobody has run these reactions, and "in stock" means a match to a catalogue snapshot, not that anyone sells it today.
+
+**A plan belongs to a structure.** If you edit the drawing after planning, the panel keeps the plan but labels it **EARLIER STRUCTURE** and says which structure it was made for; it is never shown as the plan for what is drawn now. Plans are kept for the session only and are not saved in the project.
+
+**Who may ask.** Only a person pressing **Plan synthesis**; there is no other way to start a search from the window yet.
+
 <!-- help:jobs -->
 ## Jobs and the console
 
