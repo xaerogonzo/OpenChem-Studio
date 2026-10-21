@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Bond dissociation benchmark: the primary arm was run, PARTIAL (benchmark record; nothing in the application changes)
+- 68 structures of M062X/def2-TZVPD `Opt Freq` with ORCA 6.1.1 on commit 6ec0fd29, 10 h 35 min wall at 3 workers x 4 cores; on the 25 deciding X-H bonds (22 computed, 3 missing to unremoved imaginary modes: ethanol O-H, toluene benzylic C-H, methanethiol S-H) MAE 1.76 and largest 4.57 kcal/mol pass, but MSE -1.53 exceeds the 1.5 limit by 0.03, so PARTIAL. Peroxide O-H is the worst class (MAE 2.79, all negative); no radical is spin-contaminated. The DLPNO arm was not written or run. Details in `docs/BDE_DESIGN.md`; report, verdict and per-job records in `benchmarks/bde/artifacts/` (force-added).
+
 ### Release: the in-app help is bundled, not shipped as editable files
 - A release build now carries the four help documents inside the exe's archive (`tools/build_help_bundle.py` generates `openchem/_help_bundle.py`; `help.py` reads it whenever the app is frozen and never falls back to disk). Before, the markdown sat loose in `_internal\openchem\docs\` and the Help window's Open file button opened it, so saving there could remove a help anchor and leave F1 empty.
 - Open file now opens a read-only copy in a temporary folder. A checkout still reads `docs/*.md` directly.

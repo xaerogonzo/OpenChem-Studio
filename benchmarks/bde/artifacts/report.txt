@@ -1,0 +1,51 @@
+PRIMARY ARM (M062X/def2-TZVPD), 65 accepted structures of 72 jobs
+deciding (25, uncertainty <= 1.0)  n=22 missing= 3 MAE=1.76 MSE=-1.53 max=4.57 kcal/mol
+loose reference (8, reported only) n= 8 missing= 0 MAE=1.24 MSE=+0.07 max=2.32 kcal/mol
+all 33                             n=30 missing= 3 MAE=1.62 MSE=-1.10 max=4.57 kcal/mol
+VERDICT PARTIAL
+
+by class (all bonds, reported only):
+  C-H                              n=15 missing= 1 MAE=1.32 MSE=-0.89 max=2.53 kcal/mol
+  N-H                              n= 1 missing= 0 MAE=1.16 MSE=-1.16 max=1.16 kcal/mol
+  O-H                              n= 8 missing= 1 MAE=1.52 MSE=-0.38 max=2.32 kcal/mol
+  S-H                              n= 1 missing= 1 MAE=1.39 MSE=-1.39 max=1.39 kcal/mol
+  Si-H                             n= 1 missing= 0 MAE=2.92 MSE=-2.92 max=2.92 kcal/mol
+  peroxide O-H                     n= 4 missing= 0 MAE=2.79 MSE=-2.79 max=4.57 kcal/mol
+
+bond                                 calc      ref   error   <S2>
+methane C-H                        103.83   104.99   -1.16  0.755
+ethane C-H                          99.84   101.10   -1.26  0.755
+propane secondary C-H               96.86    98.60   -1.74  0.755
+butane secondary C-H                97.10    98.20   -1.10  0.755
+isobutane tertiary C-H              94.98    96.50   -1.52  0.755
+ethene C-H                         108.87   110.70   -1.83  0.766
+ethyne C-H                         131.59   133.32   -1.73  0.774
+benzene C-H                        110.98   112.90   -1.92  0.762
+propene allylic C-H                 87.18    88.80   -1.62  0.782
+toluene benzylic C-H                    -    89.80 missing      -
+methanol C-H                        95.07    96.10   -1.03  0.755
+methanol O-H                       102.73   104.60   -1.87  0.754
+ethanol O-H                             -   104.70 missing      -
+2-propanol O-H                     104.34   105.70   -1.36  0.754
+tert-butanol O-H                   104.76   106.30   -1.54  0.754
+methanethiol S-H                        -    87.40 missing      -
+hydrogen sulfide S-H                89.81    91.20   -1.39  0.754
+ammonia N-H                        106.44   107.60   -1.16  0.754
+water O-H                          116.89   118.82   -1.93  0.753
+hydrogen peroxide O-H               85.00    87.80   -2.80  0.755
+methyl hydroperoxide O-H            83.43    88.00   -4.57  0.755
+formaldehyde C-H                    87.52    88.14   -0.63  0.754
+acetaldehyde formyl C-H             88.40    89.40   -1.00  0.754
+hydrogen cyanide C-H               128.83   126.30   +2.53  0.765
+silane Si-H                         88.78    91.70   -2.92  0.753
+acetaldehyde methyl C-H             93.94    94.00   -0.06  0.770 *
+phenol O-H                          89.14    90.00   -0.86  0.789 *
+ethyl hydroperoxide O-H             83.17    85.00   -1.83  0.756 *
+tert-butyl hydroperoxide O-H        82.06    84.00   -1.94  0.756 *
+formic acid O-H                    113.67   112.00   +1.67  0.754 *
+acetic acid O-H                    112.57   112.00   +0.57  0.754 *
+benzoic acid O-H                   113.32   111.00   +2.32  0.755 *
+methanethiol C-H                    94.69    94.00   +0.69  0.757 *
+
+* loose reference (reported only); ! <S2> above 0.80
+spin-contaminated radicals: 0
