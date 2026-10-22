@@ -1,6 +1,6 @@
 {
  "n_rings": 371,
- "population_sha256": "97ed61411f61271ee739fc8f8a50d90478e6e0a8a651f9fcb34920f9bf34c5ef",
+ "population_sha256": "2d6b4240a7ba54b80ea29003cff790cf7767c73fd2c97a8aff31cec18ca517af",
  "purpose": "the frozen ring denominator for tools/naming_ring_locant_sweep.py (naming round 13)",
  "rings": [
   {
@@ -6270,8 +6270,18 @@
   },
   {
    "atoms": 9,
-   "has_atom_locants": false,
-   "locant_atoms": [],
+   "has_atom_locants": true,
+   "locant_atoms": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8
+   ],
    "name": "3H-pyrrolo[2,3-d]pyrimidine",
    "sites": [
     0,

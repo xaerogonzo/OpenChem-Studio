@@ -108,6 +108,7 @@ def plan_hydrogens(
     group_carbons: Iterable[int],
     locant_of: dict[int, object],
     saturated_groups: Iterable[int] = (),
+    cationic_chalcogen: bool = False,
 ) -> HydrogenPlan | None:
     """Indicated / added / hydro atoms for ring suffixes, per P-58.2.
 
@@ -151,10 +152,16 @@ def plan_hydrogens(
     pi_capable: set[int] = set()
     for idx in ring:
         atom = kek.GetAtomWithIdx(idx)
-        if atom.GetFormalCharge() != 0 or atom.GetNumRadicalElectrons():
-            return None
         symbol = atom.GetSymbol()
         ring_degree = sum(1 for nb in atom.GetNeighbors() if nb.GetIdx() in ring)
+        if (cationic_chalcogen and atom.GetFormalCharge() == 1 and not atom.GetNumRadicalElectrons()
+                and any(bd.GetBondTypeAsDouble() == 2.0 and bd.GetOtherAtomIdx(idx) in ring for bd in atom.GetBonds())
+                and ((symbol in ("O", "S", "Se", "Te") and ring_degree == 2)
+                     or (symbol == "N" and atom.GetTotalNumHs() == 0 and ring_degree <= 3))):
+            pi_capable.add(idx)  # the ring heteroatom of a pyrylium- or N-substituted pyridinium-type cation takes a double bond like a pyridine nitrogen
+            continue
+        if atom.GetFormalCharge() != 0 or atom.GetNumRadicalElectrons():
+            return None
         if symbol in ("O", "S", "Se", "Te") and ring_degree == 2:
             continue  # divalent chalcogen: never in a ring double bond
         if symbol in _PNICTOGENS and ring_degree == 3:
@@ -295,7 +302,10 @@ _NOT_MANCUDE_BASE = re.compile(
     # cycloalkane ("cyclohexane"); a locanted "-ene" ending. NOT a bare
     # "cyclo": "cyclopenta[a]phenanthrene" is a fusion name, and refusing it
     # kept every steroid ketone out (found by timing the planner on them).
+    # A BRIDGED fusion parent ("2,6-methano-3-benzazocine"): its bridge atom has a locant of its own that the mancude skeleton does not, and a hydrogen
+    # planned on it ("2,3,4,5,6,11-hexahydro-1H-...-1-ol") is a name OPSIN cannot read (naming round 79).
     r"^benzene$|cyclo\[|spiro\[|^cyclo[a-z]+ane$|-\d+(?:,\d+)*-[a-z]*en(?:e|$)|ane$"
+    r"|^\d+[a-z]?(?:,\d+[a-z]?)*-(?:methano|ethano|propano|butano|pentano|epoxy|epithio|epimino|epidioxy|etheno|metheno)"
 )
 _HYDRO_MULT = {2: "di", 4: "tetra", 6: "hexa", 8: "octa", 10: "deca", 12: "dodeca",
                14: "tetradeca", 16: "hexadeca", 18: "octadeca"}
@@ -371,7 +381,7 @@ def _deprotonated_twin(mol, ring: frozenset[int]):
     return rw.GetMol()
 
 
-def _resolve(mol, named_parent, numbering, suffix_groups, free_valence=None):
+def _resolve(mol, named_parent, numbering, suffix_groups, free_valence=None, oxo_atoms=()):
     """The P-58.2 plan for a named parent, or None where this module declines.
 
     Declines when:
@@ -404,7 +414,7 @@ def _resolve(mol, named_parent, numbering, suffix_groups, free_valence=None):
     plain = twin is not None
     if plain:
         mol = twin
-    if not (suffix_groups or fv_atoms or plain):
+    if not (suffix_groups or fv_atoms or plain or oxo_atoms):
         return None
     ring_double = _ring_double_bond_atoms(mol, ring)
     atom_at = {}
@@ -413,6 +423,9 @@ def _resolve(mol, named_parent, numbering, suffix_groups, free_valence=None):
         if loc is not None:
             atom_at[str(loc)] = a
     groups, sat_groups = [], []
+    # A ring C=O cited as an `oxo` PREFIX (the ring is a cation, whose suffix is -ylium) places hydrogens exactly as the suffix `-one` does
+    # (P-31.1.4.3.4): without them `3-oxochromenylium` is read as another tautomer (naming round 79).
+    groups.extend(a for a in oxo_atoms if a in ring)
     for sg in suffix_groups:
         if sg.base_form in _RING_CX_SUFFIXES and sg.fg.anchor in ring:
             groups.append(sg.fg.anchor)
@@ -483,7 +496,7 @@ def _resolve(mol, named_parent, numbering, suffix_groups, free_valence=None):
             unnamed.add(a)
         locant_of[a] = loc
 
-    plan = plan_hydrogens(mol, ring, groups, locant_of, sat_groups)
+    plan = plan_hydrogens(mol, ring, groups, locant_of, sat_groups, cationic_chalcogen=bool(oxo_atoms))
     if plan is None or (plan.indicated | plan.added | plan.hydro) & unnamed:
         return None
     if fv_atoms and _better_orientation_exists(mol, ring, groups, sat_groups, locant_of, plan):
@@ -534,7 +547,7 @@ def added_hydrogen_tier(mol, named_parent, numbering, suffix_groups) -> tuple[in
     return tuple(values)
 
 
-def apply_to_parent(mol, named_parent, numbering, suffix_groups, free_valence=None):
+def apply_to_parent(mol, named_parent, numbering, suffix_groups, free_valence=None, oxo_atoms=()):
     """Re-describe the hydrogens of a ring parent carrying suffixes or a free valence.
 
     Returns ``(named_parent, suffix_groups, free_valence_added_hydrogen)``
@@ -544,7 +557,7 @@ def apply_to_parent(mol, named_parent, numbering, suffix_groups, free_valence=No
     hydrogen and the added hydrogen change, so the structure the name
     denotes cannot move -- only how it is said.
     """
-    resolved = _resolve(mol, named_parent, numbering, suffix_groups, free_valence)
+    resolved = _resolve(mol, named_parent, numbering, suffix_groups, free_valence, oxo_atoms)
     if resolved is None:
         return None
     plan, locant_of, base_name, base_stem, described = resolved
@@ -552,7 +565,11 @@ def apply_to_parent(mol, named_parent, numbering, suffix_groups, free_valence=No
     def labels(atoms):
         return [str(loc) for loc in sorted(locant_of[a] for a in atoms)]
 
-    indicated, hydro = labels(plan.indicated), labels(plan.hydro)
+    hydro_atoms = plan.hydro
+    if oxo_atoms:
+        # an `oxo` prefix cannot carry an added hydrogen ("-one(4H)"): the ketone carbon and the added positions are said as hydro prefixes
+        hydro_atoms = plan.hydro | plan.added | frozenset(a for a in oxo_atoms if a in locant_of)
+    indicated, hydro = labels(plan.indicated), labels(hydro_atoms)
     # "Completely modified" counts every way a position is described --
     # hydro, indicated, added, or the group itself: "hexahydro-1H-isoindole-
     # 1,3(2H)-dione (PIN)" (pdf p. 666) cites no hydro locants.
@@ -566,7 +583,7 @@ def apply_to_parent(mol, named_parent, numbering, suffix_groups, free_valence=No
     # The rendered "(1H,5H)" block pairs added hydrogens with suffix locants
     # in suffix order, so the whole sorted block rides on the lowest suffix;
     # with no suffix it rides on the free valence ("pyridin-1(2H)-yl").
-    added = tuple(sorted(locant_of[a] for a in plan.added))
+    added = () if oxo_atoms else tuple(sorted(locant_of[a] for a in plan.added))
     if not suffix_groups:
         return new_parent, (), added
     first = min(range(len(suffix_groups)), key=lambda i: min(suffix_groups[i].locants))
