@@ -1,6 +1,6 @@
 """Options shared across calculators.
 
-ChemAxon exposes the same handful of controls on nearly every plugin --
+The vendor exposes the same handful of controls on nearly every plugin --
 decimal places, and "take major microspecies at pH". Defining them once
 here rather than re-declaring them in 34 registrations keeps their labels,
 defaults and behaviour identical everywhere, which is the whole point of a
@@ -46,7 +46,7 @@ HYDROGEN_MODE_DESCRIPTIONS = {
 
 
 def hydrogen_mode_parameter(default: str = HEAVY_ATOMS_ONLY) -> CalculatorParameter:
-    """Marvin names the middle one "Increment of Hs", and so does
+    """The reference editor names the middle one "Increment of Hs", and so does
     `compute_gasteiger_charges` -- which has offered exactly this fold since
     Phase 18. Reusing the wording rather than inventing a third name for it.
     """

@@ -425,10 +425,10 @@ def test_both_data_files_ship_in_the_frozen_build():
     """A data file that works from a checkout and is missing from the installer is this project's
     established failure mode, and both of these are read unconditionally. Same guard
     `test_lewis_adduct` and `test_element_reference` use."""
-    spec = (pathlib.Path(__file__).resolve().parent.parent / "packaging" / "openchem.spec").read_text(
-        encoding="utf-8")
-    assert "eqeq_ionization.json" in spec
-    assert "eqeq_charge_centres.json" in spec
+    import conftest
+
+    assert conftest.spec_ships("chem/data/eqeq_ionization.json")
+    assert conftest.spec_ships("chem/data/eqeq_charge_centres.json")
 
 
 def test_the_ionisation_table_keeps_its_sources_and_its_absences():

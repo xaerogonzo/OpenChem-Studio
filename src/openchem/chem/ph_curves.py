@@ -242,7 +242,7 @@ def compute_pka_distribution(
     mol: Chem.Mol, molecule_uuid: str, parameters: dict[str, Any] | None = None,
     interpreter_path: str | None = None,
 ) -> PhCurveResult:
-    """Microspecies distribution (%) against pH -- Marvin's pKa plugin chart."""
+    """Microspecies distribution (%) against pH -- the reference editor's pKa plugin chart."""
     pkas, n_acids, n_bases, error = _resolve_pkas(mol, interpreter_path)
     if error:
         return _failed_curve("pka_microspecies", "Microspecies distribution", molecule_uuid, error)
@@ -405,7 +405,7 @@ def compute_hbond_vs_ph(
     """Hydrogen-bond donor and acceptor counts against pH.
 
     Counted on the DOMINANT microspecies at each pH via Dimorphite-DL,
-    which is honest about what it is: Marvin describes a weighted average
+    which is honest about what it is: the reference editor describes a weighted average
     over all microspecies, and computing that would need each microspecies'
     actual structure rather than just its fraction. Named accordingly so
     the two are not confused.
@@ -445,7 +445,7 @@ def compute_hbond_vs_ph(
 def compute_major_microspecies(
     mol: Chem.Mol, molecule_uuid: str, parameters: dict[str, Any] | None = None
 ) -> StructureSetResult:
-    """The dominant protonation form at a given pH -- Marvin's Major
+    """The dominant protonation form at a given pH -- the reference editor's Major
     Microspecies plugin. Returned as a one-entry structure set so it gets
     the grid's depiction for free."""
     from openchem.chem.pka_providers import protonate_at_ph

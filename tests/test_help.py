@@ -9,6 +9,7 @@ make it loud instead.
 from __future__ import annotations
 
 import re
+from pathlib import Path
 
 import pytest
 
@@ -129,17 +130,22 @@ def test_an_unknown_key_raises_rather_than_returning_nothing():
         help_docs.topic_markdown("no-such-topic")
 
 
-def test_the_packaged_docs_location_is_declared_in_the_spec():
-    """`docs/` is outside the package, so unlike every other data
-    directory it cannot mirror its source path and is easy to forget.
-    Without the spec entry the help window is empty in a release build and
-    perfect from a checkout -- which is the hardest kind of bug to notice.
+def test_the_help_is_bundled_not_shipped_loose():
+    """A release carries the help inside the exe's archive, not as files.
+
+    This used to assert the spec shipped `docs/` as `openchem/docs`. That
+    copy is what the Help window's Open file button opened, so a save over
+    it broke F1. The spec must no longer ship it, and `build.ps1` must
+    generate the module that replaces it -- either half missing gives a
+    release with no help, which a checkout cannot show.
     """
-    spec = (
-        help_docs.docs_directory().parent / "packaging" / "openchem.spec"
-    ).read_text(encoding="utf-8")
-    assert 'ROOT / "docs"' in spec
-    assert '"openchem/docs"' in spec
+    root = help_docs.docs_directory().parent
+    spec = (root / "packaging" / "openchem.spec").read_text(encoding="utf-8")
+    assert 'str(ROOT / "docs")' not in spec
+    assert '"openchem/docs"' not in spec
+    build = (root / "build.ps1").read_text(encoding="utf-8")
+    assert "build_help_bundle.py" in build
+    assert "_help_bundle.py" in build
 
 
 class TestHelpRouting:
@@ -404,7 +410,12 @@ class TestHelpWindowBehaviour:
 
         assert len(opened) == 1
         assert opened[0].isLocalFile()
-        assert opened[0].toLocalFile().replace("\\", "/").endswith("docs/CALCULATOR_REFERENCE.md")
+        opened_path = Path(opened[0].toLocalFile())
+        # A COPY: the document the help is read from is never the one opened.
+        assert opened_path.name == "CALCULATOR_REFERENCE.md"
+        assert opened_path != help_docs.docs_directory() / "CALCULATOR_REFERENCE.md"
+        assert opened_path.read_text(encoding="utf-8") == help_docs.document_text("CALCULATOR_REFERENCE.md")
+        help_docs._remove_copy_directory()
 
     def test_open_the_file_says_so_when_the_system_has_no_program_for_it(self, qapp, help_widgets, monkeypatch):
         from openchem.ui.dialogs import help_dialog

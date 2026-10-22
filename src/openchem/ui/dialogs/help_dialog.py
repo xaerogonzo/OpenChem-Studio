@@ -86,12 +86,12 @@ _HELP: dict[str, HelpTooltip] = {
     ),
     "open_file": HelpTooltip(
         text=(
-            "Opens the markdown file this page is read from in whatever "
+            "Opens a read-only copy of this document in whatever "
             "program your system uses for .md files, so a long document "
             "can be read, searched or printed there.\n\n"
-            "It opens the file as it is on disk and nothing more: if your "
-            "system has no program for markdown the status line says so "
-            "instead of opening nothing in silence."
+            "It is a copy in a temporary folder: saving over it cannot "
+            "change the help. If your system has no program for markdown "
+            "the status line says so instead of opening nothing in silence."
         ),
         tier=1,
         help_id="help.open_file",
@@ -338,6 +338,9 @@ class HelpDialog(QDialog):
     def _source_note(self) -> str:
         if not self._current_document:
             return ""
+        if help_docs.content_source() == "bundle":
+            # A release has no file to edit; saying so would send people looking for one.
+            return f"{self._current_document} - built into this release."
         return f"docs/{self._current_document} - edit that file to change this page."
 
     def _highlight_query(self) -> None:
@@ -391,13 +394,18 @@ class HelpDialog(QDialog):
         self._view.verticalScrollBar().setValue(0)
 
     def _open_document_file(self) -> None:
-        """Open the current document's markdown file in the system's program for it."""
+        """Open a read-only copy of the current document in the system's program for it.
+
+        A copy, never the file the help is read from: a release has none, and a
+        checkout's contributors open the repository file in their own editor.
+        """
         document = getattr(self, "_current_document", "")
         if not document:
             return
-        path = help_docs.docs_directory() / document
-        if not path.is_file():
-            self._status.setText(f"Could not find {path}.")
+        try:
+            path = help_docs.reading_copy(document)
+        except (help_docs.HelpUnavailable, OSError) as exc:
+            self._status.setText(f"Could not prepare a copy of {document} to open: {exc}")
             return
         if not QDesktopServices.openUrl(QUrl.fromLocalFile(str(path))):
             self._status.setText(

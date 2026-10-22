@@ -2,7 +2,7 @@
 
 Solvent-accessible surface area is computed by `chem/sasa.py` (Shrake-Rupley on a deterministic
 point set, about 0.3% from a 200,000-point reference); it yields one area per atom, so the per-atom
-breakdown Marvin shows costs nothing extra.
+breakdown the reference editor shows costs nothing extra.
 
 **THE RADII ARE PASSED IN, AND THAT IS NOT A DETAIL.** Until 2026-10-10 this called
 `rdFreeSASA.classifyAtoms(mol)` and used what came back. That classifier looks atoms up by
@@ -17,7 +17,7 @@ not: it equals Batsanov's 2001 recommended crystallographic radii, and differs f
 (`docs/VDW_RADII_ASSESSMENT.md`). On 46 molecules whose volumes Bondi published, his list errs 1.84% on average against
 RDKit's 2.12%, all of the difference in halides. The docking module keeps its own table, for contacts.
 
-Marvin additionally splits the accessible surface into ASA+/ASA- (by
+The reference editor additionally splits the accessible surface into ASA+/ASA- (by
 partial-charge sign) and ASA_H/ASA_P (hydrophobic vs polar). Both are
 sums of the same per-atom values over different atom subsets, so they come
 essentially free once the per-atom areas exist. The polarity split uses
@@ -52,7 +52,7 @@ from openchem.chem.report_adapter import report_from_fields
 from openchem.domain.scientific_result import PerAtomDataset
 
 #: The probe radius, in Angstrom: a water molecule's, which is what "solvent accessible" means by
-#: default and what ChemAxon's `asa` takes as its default.
+#: default and what the vendor's `asa` takes as its default.
 DEFAULT_SOLVENT_RADIUS = 1.4
 
 #: The bounds a probe radius may take. Zero is the van der Waals surface itself (nothing probes it);
@@ -139,7 +139,7 @@ def per_atom_sasa(mol: Chem.Mol, probe: float = DEFAULT_SOLVENT_RADIUS) -> dict[
 
 
 def surface_areas(mol: Chem.Mol, probe: float = DEFAULT_SOLVENT_RADIUS) -> dict[str, float]:
-    """Total accessible surface plus Marvin's four sub-splits, the van der Waals surface and the
+    """Total accessible surface plus the reference editor's four sub-splits, the van der Waals surface and the
     van der Waals volume."""
     areas = per_atom_sasa(mol, probe)
     total = sum(areas.values())
@@ -168,7 +168,7 @@ def surface_areas(mol: Chem.Mol, probe: float = DEFAULT_SOLVENT_RADIUS) -> dict[
         "asa_negative": negative,
         "asa_hydrophobic": hydrophobic,
         "asa_polar": polar,
-        # The surface of the fused spheres themselves, no probe: Marvin's `vdwsa`.
+        # The surface of the fused spheres themselves, no probe: the reference editor's `vdwsa`.
         "vdw_area": van_der_waals_surface_area(mol),
         # Was `AllChem.ComputeMolVolume(mol)` -- the GRID routine, which
         # measures about 0.5% high on aspirin and 5% low on a lone atom.
@@ -197,7 +197,7 @@ def compute_surface_analysis(
 ) -> ReportResult:
     """The "surface" category's Molecular Surface Area (3D) calculator.
 
-    Two options beyond the decimals, both ChemAxon's: the solvent probe's radius, and the major
+    Two options beyond the decimals, both the vendor's: the solvent probe's radius, and the major
     microspecies at a pH. **The microspecies changes the structure, so the geometry is the stored
     conformer's with its protons moved** (`protonation_geometry`): every heavy atom keeps its
     coordinates and only a hydrogen the new state adds is placed. A structure for which that cannot

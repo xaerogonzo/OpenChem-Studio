@@ -7,7 +7,7 @@ A NOTE ON RESONANCE, confirmed live and load-bearing for both the code and
 the UI:
 
 1. `ResonanceMolSupplier` with DEFAULT flags returns **zero** forms for
-   diazomethane -- which is the example in Marvin's own documentation.
+   diazomethane -- which is the example in the reference editor's own documentation.
    `ALLOW_CHARGE_SEPARATION` is required to get any, and adding
    `ALLOW_INCOMPLETE_OCTETS|UNCONSTRAINED_CATIONS|UNCONSTRAINED_ANIONS`
    takes it from 2 forms to 6. So the flag set is a user-facing option,
@@ -32,7 +32,7 @@ from openchem.chem.tautomer_ranking import RDKIT_VERSION, competition_ranks, sco
 from openchem.domain.common import Provenance
 from openchem.domain.scientific_result import StructureEntry, StructureSetResult
 
-# Marvin offers "major contributors" versus everything. These two flag sets
+# The reference editor offers "major contributors" versus everything. These two flag sets
 # are that distinction, with the exact behaviour confirmed on diazomethane.
 RESONANCE_FLAG_SETS: dict[str, int] = {
     "Major contributors": Chem.ALLOW_CHARGE_SEPARATION,

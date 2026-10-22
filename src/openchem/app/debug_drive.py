@@ -95,6 +95,14 @@ The script is a JSON list of steps, run in order:
       {"do": "process_report",   "modules": ["openchem.chem.engine"]}  pid,
                                               HEAD, and where each module
                                               was imported from
+      {"do": "help_report", "expect": {"source": "bundle", "documents": 4, "topics_at_least": 15,
+       "panel_keys_resolve": true, "search": {"query": "Vina", "hits_at_least": 1}}}
+                                              where the HELP text came from and that every
+                                              panel's key resolves, read off the running
+                                              process (the frozen smoke test asserts "bundle")
+      {"do": "install_report", "expect": {"status": "verified"}, "wait_ms": 15000}
+                                              the install self-check's answer; WAITS while it
+                                              is still checking, and fails if it never finishes
       {"do": "log_report",       "tag": "after-draw"}   what the APPLICATION
                                               logged so far (WARNING and up),
                                               de-duplicated by where it happened
@@ -2079,7 +2087,7 @@ class _Driver(QObject):
         # could not have noticed: a harness disagreeing with the app about what a reopened project holds.
         self._window._set_project(
             command.loaded_project, command.loaded_results, command.loaded_qc_runs, command.loaded_recipe_runs,
-            command.loaded_derived_scores,
+            command.loaded_derived_scores, command.loaded_synthesis_plans,
         )
         logger.warning(
             "OPENCHEM_DRIVE: opened %s -- %d molecule(s)",
@@ -4188,6 +4196,167 @@ class _Driver(QObject):
             "OPENCHEM_DRIVE: jobs_cancel row %d (enabled=%s)", row, button.isEnabled()
         )
         button.click()
+
+    # -- the synthesis panel (`plugins/synthesis_planner/`) -----------------------------------------
+
+    def _synthesis_panel(self):
+        """The REAL panel the plugin built, or None (logged) when it is not in the window."""
+        from PySide6.QtWidgets import QWidget
+
+        dock = self._window._plugin_panels.get("Synthesis")
+        panel = None
+        if dock is not None:
+            panel = dock.widget() if type(dock.widget()).__name__ == "SynthesisPanel" else next((w for w in dock.findChildren(QWidget) if type(w).__name__ == "SynthesisPanel"), None)
+        if panel is None:
+            logger.error("OPENCHEM_DRIVE: no Synthesis panel (is the synthesis_planner plugin loaded?)")
+        return panel
+
+    def _do_synthesis_setup(self, step: dict[str, Any]) -> None:
+        """Point the planner's settings at an installation for this run, or put them back.
+
+        `{"do": "synthesis_setup", "python": "...", "config": "...", "expansion": "uspto", "stock": "zinc", "filter": "none"}`
+        `{"do": "synthesis_setup", "python": "", "config": ""}`  -- "not set up", whatever the machine has
+        `{"do": "synthesis_setup", "restore": true}`
+
+        **THIS WRITES THE REAL SETTINGS REGISTRY**, the one the External Tools tab writes, because the panel reads them through the real provider. It
+        shares `tool_path`'s bookkeeping: the first value of each key is remembered, `restore` puts every remembered key back (an unset one is
+        removed), and so does `quit`, whatever else the script did.
+        """
+        if step.get("restore"):
+            self._restore_tool_paths()
+            self._tool_path_originals = {}
+            return
+        names = {"python": "aizynthfinder/python_path", "config": "aizynthfinder/config_path", "expansion": "aizynthfinder/expansion", "stock": "aizynthfinder/stock", "filter": "aizynthfinder/filter"}
+        for field in ("python", "config"):
+            if step.get(field) and not Path(str(step[field])).is_file():  # an empty value clears the key for this run, which is how a script pins "not set up"
+                logger.error("OPENCHEM_DRIVE: synthesis_setup -- no file at %r", step[field])
+                return
+        settings = self._window._settings
+        if not hasattr(self, "_tool_path_originals"):
+            self._tool_path_originals: dict[str, Any] = {}
+        for field, key in names.items():
+            if field in step:
+                self._tool_path_originals.setdefault(key, settings.get(key, None))
+                settings.set(key, str(step[field]))
+        logger.warning("OPENCHEM_DRIVE: synthesis_setup -- %s set for this run (the originals are put back at quit)", sorted(field for field in names if field in step))
+
+    def _do_synthesis_panel(self, step: dict[str, Any]) -> None:
+        """Show the synthesis panel, press its REAL buttons, and say what it shows.
+
+        `{"do": "synthesis_panel", "tag": "after", "press": "plan", "route": 1, "step": 0, "expect": {...}}`
+
+        `press` is `plan` or `cancel`: the button's own `click()`, so the path a person's press takes (the configuration read off the GUI
+        thread, then `request_plan` through the one service path, where the regulatory gate runs first) is the path driven. `route` and
+        `step` select a row of the real lists, and `scroll` ("end", or a pixel offset) scrolls the panel inside its dock, and `details_scroll` does the same for the text box of what the planner said. `expect` keys: `status_contains`, `target_contains`, `routes`, `routes_at_least`, `steps`,
+        `picture` (a picture is on screen), `picture_message_contains`, `warning` (the earlier-structure line is showing),
+        `plan_enabled`, `cancel_enabled`, `limitations_contain`, `details_contain`, `expansion`, `stock`, `filter` (the list's current text).
+        """
+        window = self._window
+        window._on_panel_chosen("Synthesis")
+        panel = self._synthesis_panel()
+        if panel is None:
+            return
+        tag = str(step.get("tag", ""))
+        press = step.get("press")
+        if press == "plan":
+            panel._plan_button.click()
+        elif press == "cancel":
+            panel._cancel_button.click()
+        elif press:
+            logger.error("OPENCHEM_DRIVE: synthesis_panel -- unknown press %r", press)
+        if "route" in step:
+            panel._routes.setCurrentRow(int(step["route"]))
+        if "step" in step:
+            panel._steps.setCurrentRow(int(step["step"]))
+        if step.get("scroll"):
+            # The panel scrolls inside its dock; a shot of the picture and the limitations needs it at the end.
+            from PySide6.QtWidgets import QScrollArea
+
+            bar = panel.findChild(QScrollArea).verticalScrollBar()
+            bar.setValue(bar.maximum() if step["scroll"] == "end" else int(step["scroll"]))
+        if step.get("details_scroll"):
+            # The details box scrolls inside the panel, which scrolls inside its dock: a shot of its last lines (the alerts) needs it at the end too.
+            bar = panel._details.verticalScrollBar()
+            bar.setValue(bar.maximum() if step["details_scroll"] == "end" else int(step["details_scroll"]))
+        report = {
+            "target": panel._target_label.text().replace("\n", " | "),
+            "status": panel._status.text(),
+            "warning": "" if panel._warning.isHidden() else panel._warning.text(),
+            "routes": panel._routes.count(),
+            "steps": panel._steps.count(),
+            "picture": not panel._picture.isHidden(),
+            "picture_message": "" if panel._picture_message.isHidden() else panel._picture_message.text(),
+            "plan_enabled": panel._plan_button.isEnabled(),
+            "cancel_enabled": panel._cancel_button.isEnabled(),
+            "expansion": panel._expansion.currentText(),
+            "stock": panel._stock.currentText(),
+            "filter": panel._filter.currentText(),
+            "version": panel._version_label.text(),
+        }
+        logger.warning("OPENCHEM_DRIVE: synthesis_panel %s | %s", tag, report)
+        expect = step.get("expect") or {}
+        problems: list[str] = []
+        for key in ("routes", "steps", "picture", "plan_enabled", "cancel_enabled", "expansion", "stock", "filter"):
+            if key in expect and report[key] != expect[key]:
+                problems.append(f"{key} is {report[key]!r}, wanted {expect[key]!r}")
+        if "routes_at_least" in expect and report["routes"] < int(expect["routes_at_least"]):
+            problems.append(f"{report['routes']} route(s), wanted at least {expect['routes_at_least']}")
+        if "warning" in expect and bool(report["warning"]) != bool(expect["warning"]):
+            problems.append(f"warning showing is {bool(report['warning'])}, wanted {bool(expect['warning'])}")
+        shown_text = {
+            "status_contains": report["status"], "target_contains": report["target"], "picture_message_contains": report["picture_message"],
+            "limitations_contain": panel._limitations.text(), "details_contain": panel._details.toPlainText(),
+        }
+        for key, text in shown_text.items():
+            for wanted in ([expect[key]] if isinstance(expect.get(key), str) else expect.get(key, [])):
+                if wanted not in text:
+                    problems.append(f"{key}: {wanted!r} is not in {text[:200]!r}")
+        if problems:
+            logger.error("OPENCHEM_DRIVE: EXPECT synthesis FAILED[%s] -- %s", tag, "; ".join(problems)[:800])
+        else:
+            logger.warning("OPENCHEM_DRIVE: EXPECT synthesis ok[%s]", tag)
+
+    def _do_synthesis_fixture_plan(self, step: dict[str, Any]) -> None:
+        """Give the selected molecule a plan a real planner once made, so a script can save, reopen and read a plan without the planner.
+
+        `{"do": "synthesis_fixture_plan", "fixture": "aspirin_it100", "screen": true}`
+
+        The plan is the real parser's reading (`parse_document`) of a saved planner output in `benchmarks/synthesis/fixtures/`, screened by the real
+        annotator when `screen` is set, and stored the way a finished search stores one (`_store_and_announce`: the service's own write and the
+        `SynthesisRouteReady` the window marks the project unsaved on). The fixture's target must be the selected molecule's structure; a script that
+        names another one has made a plan for a different molecule, which is what `result_for` then calls an earlier plan.
+        """
+        from openchem.chem import aizynth_planner as planner
+        from openchem.chem.synthesis_gate import annotate_route_set
+        from openchem.domain.synthesis_route import SearchLimits, TargetIdentity
+
+        window = self._window
+        molecule = window._session.project.find_molecule(window._property_panel._selected_molecule_uuid)
+        service = window._services.synthesis_planning_service
+        if molecule is None or service is None:
+            logger.error("OPENCHEM_DRIVE: synthesis_fixture_plan -- no molecule selected, or no planning service")
+            return
+        path = Path("benchmarks") / "synthesis" / "fixtures" / f"{step.get('fixture', 'aspirin_it100')}.json"
+        document = json.loads(path.read_text(encoding="utf-8"))
+        document["schema"] = planner.RUN_SCHEMA
+        document["limits"].setdefault("all_routes", False)
+        document.pop("route_count", None)
+        limits = document["limits"]
+        selection = document["identity"]["selection"]
+        request = planner.PlanRequest(
+            target_smiles=document["target"],
+            config={"expansion": {"uspto": ["m.onnx", "t.csv.gz"]}, "stock": {"zinc": "s.hdf5"}},
+            stock=selection["stock"],
+            expansion="uspto",
+            filter=None if selection["filter"] == "none" else selection["filter"],
+            limits=SearchLimits(iteration_limit=limits["iteration_limit"], time_limit_seconds=limits["time_limit"], max_transforms=limits["max_transforms"]),
+        )
+        target = TargetIdentity(molecule_uuid=molecule.uuid, canonical_smiles=molecule.canonical_smiles, fingerprint="drive-fixture")
+        plan = planner.parse_document(document, request, target)
+        if step.get("screen"):
+            plan = annotate_route_set(plan)
+        service._store_and_announce(plan)
+        logger.warning("OPENCHEM_DRIVE: synthesis_fixture_plan -- %s stored for %s (%d route(s), status %s)", path.stem, molecule.display_name, len(plan.routes), plan.status.value)
 
     def _do_conformers(self, step: dict[str, Any]) -> None:
         """Generate conformers through the real service.
@@ -7284,6 +7453,59 @@ class _Driver(QObject):
         self._assertions.append({"step": step, "tag": tag, "ok": ok, "detail": detail})
         return ok
 
+    def _do_help_report(self, step: dict[str, Any]) -> None:
+        """`{"do": "help_report", "expect": {...}}` -- see `app/drive_release.py`.
+
+        Read from the RUNNING modules. A release that fell back to loose files
+        or lost its bundle fails here and nowhere else.
+        """
+        from openchem.app import drive_release
+
+        expect = dict(step.get("expect") or {})
+        query = str((expect.get("search") or {}).get("query", ""))
+        state = drive_release.help_state(query)
+        failures = drive_release.evaluate_help(expect, state)
+        tag = str(step.get("tag", ""))
+        self._record_assertion("help_report", tag, not failures, "; ".join(failures) or f"help ok: {state}")
+        if failures:
+            logger.error("OPENCHEM_DRIVE: help_report FAILED[%s]: %s", tag, "; ".join(failures))
+        else:
+            logger.warning("OPENCHEM_DRIVE: help_report ok[%s] %s", tag, state)
+
+    def _do_install_report(self, step: dict[str, Any]) -> None:
+        """`{"do": "install_report", "expect": {"status": "verified"}, "wait_ms": 15000}`.
+
+        The check runs on a worker thread after the window shows, so a script
+        that asked at once would read `checking`. This HOLDS the chain and
+        polls until it answers or `wait_ms` runs out; a check that never
+        answers is a failed assertion, never a silent move on.
+        """
+        import time
+
+        self._install_wait = {"step": step, "deadline": time.monotonic() + int(step.get("wait_ms", 15000)) / 1000.0}
+        self._hold_chain = True
+        self._poll_install_report()
+
+    def _poll_install_report(self) -> None:
+        import time
+
+        from openchem.app import drive_release
+
+        wait = self._install_wait
+        step = wait["step"]
+        state = drive_release.install_state()
+        if drive_release.install_pending(state) and time.monotonic() < wait["deadline"]:
+            QTimer.singleShot(250, self._window, self._poll_install_report)
+            return
+        failures = drive_release.evaluate_install(dict(step.get("expect") or {}), state)
+        tag = str(step.get("tag", ""))
+        self._record_assertion("install_report", tag, not failures, "; ".join(failures) or f"install ok: {state}")
+        if failures:
+            logger.error("OPENCHEM_DRIVE: install_report FAILED[%s]: %s", tag, "; ".join(failures))
+        else:
+            logger.warning("OPENCHEM_DRIVE: install_report ok[%s] %s", tag, state)
+        QTimer.singleShot(int(step.get("after_ms", _DEFAULT_AFTER_MS)), self._window, self._run_next)
+
     def _do_log_report(self, step: dict[str, Any]) -> None:
         """`{"do": "log_report", "tag": "after-draw"}` -- what the APPLICATION
         has logged so far, de-duplicated by where it happened.
@@ -9045,11 +9267,22 @@ class _Driver(QObject):
 
     def _do_ai_card(self, step: dict[str, Any]) -> None:
         """`{"do": "ai_card", "action": "approve" | "cancel" | "open" | "dismiss", "card": "score"}` -- press a REAL button on the
-        first preview card the assistant is showing; `"card": "score"` means a score the assistant PROPOSED, whose Approve is the only way it is saved."""
+        first preview card the assistant is showing; `"card": "score"` means a score the assistant PROPOSED, whose Approve is the only way it is saved, and
+        `"card": "synthesis"` a search for synthesis routes it asked for, whose Approve is the only way the planner is asked (the regulatory gate speaks first)."""
         panel = self._ai_panel()
         if panel is None:
             return
         action = str(step["action"])
+        if step.get("card") == "synthesis":
+            cards = list(panel._synthesis_cards.values())
+            button = None
+            if cards and action in ("approve", "cancel"):
+                button = cards[0].approve_button if action == "approve" else cards[0].cancel_button
+            if button is None:
+                logger.error("OPENCHEM_DRIVE: ai_card synthesis %s -- no such card is showing", action)
+                return
+            button.click()
+            return
         if step.get("card") == "score":
             cards = list(panel._score_cards.values())
             button = None
@@ -9084,8 +9317,9 @@ class _Driver(QObject):
         must NOT be in anything a tool returned: a person's free text that was never to leave), `tools_offered` (names the provider was
         given on its first request), `transcript_contains`, `notes` (how many previews' outcomes wait for
         the next message), `send_enabled`, `panel_visible` (a dock's objectName that must be showing), `score_proposals` (proposed-score cards waiting),
-        `scores_stored` (scores in the project), `scores_owner` (the owners stored, in order) and `sent_contains` (substrings of everything sent to the
-        provider, notes included).
+        `scores_stored` (scores in the project), `scores_owner` (the owners stored, in order), `sent_contains` (substrings of everything sent to the
+        provider, notes included), `synthesis_requests` (synthesis-search cards waiting) and `notes_contain` / `notes_exclude` (substrings of the
+        notes held for the model's next message).
         """
         panel = self._ai_panel()
         expect = dict(step.get("expect") or {})
@@ -9139,6 +9373,15 @@ class _Driver(QObject):
             for needle in expect.get("sent_contains", []):
                 if needle not in sent:
                     problems.append(f"nothing sent to the provider contained {needle!r}")
+            if "synthesis_requests" in expect and len(panel.pending_synthesis_keys()) != expect["synthesis_requests"]:
+                problems.append(f"{len(panel.pending_synthesis_keys())} synthesis requests waiting, wanted {expect['synthesis_requests']}")
+            held = "\n".join(panel._notes)
+            for needle in expect.get("notes_contain", []):
+                if needle not in held:
+                    problems.append(f"no held note contains {needle!r}")
+            for needle in expect.get("notes_exclude", []):
+                if needle in held:
+                    problems.append(f"a held note contains {needle!r}, which must never be sent")
             if "panel_visible" in expect:
                 dock = self._dock(str(expect["panel_visible"]))
                 if dock is None or not dock.isVisible():

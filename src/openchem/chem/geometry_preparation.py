@@ -1,6 +1,6 @@
 """Optimising a copy of a geometry, and choosing the lowest-energy of several.
 
-ChemAxon's Geometrical Descriptors plugin has three controls that change WHICH geometry its
+The vendor's Geometrical Descriptors plugin has three controls that change WHICH geometry its
 numbers are measured on: optimise before the MMFF94 energy, optimise before the projections,
 and "calculate for the lowest energy conformer". This is that, built on what OpenChem already
 has -- the conformer provider's embedding, its force-field selection and its four optimisation

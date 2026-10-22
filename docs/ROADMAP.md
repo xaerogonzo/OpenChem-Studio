@@ -278,7 +278,8 @@ explicitly out of scope.
       (`ToolbarProvider`/`ContextMenuProvider`, a `RemoteServicePlugin` base
       class, numeric provider priority, declared permissions) — flagged in
       the code itself as "revisit if a fourth plugin needs the same shape,"
-      and still no concrete plugin needs them.
+      and the fourth plugin (`synthesis_planner`) did not: it needed `run_async`
+      and a purpose-built handle, and none of these.
 
       **No longer deferred**, corrected because this list had gone stale:
       hydrophobic/pi-stacking/cation-pi/salt-bridge/metal contact
@@ -1258,7 +1259,7 @@ it regardless.
 **Shipped: the isotope envelope, deterministically.** `chem/mass_spectrum.py`
 convolves an ion's composition against RDKit's own natural-abundance table.
 Two callers, one engine: Elemental Analysis draws the molecular ion's
-envelope beside its percentages — the picture MarvinSketch's own window
+envelope beside its percentages — the picture the reference editor's own window
 shows, reproduced to every digit it prints for 2,3-dibromobenzoic acid — and
 a **Mass Spectrum** calculator carries the ionisation modes.
 
@@ -1498,7 +1499,7 @@ scores, slices 1 to 4 and their follow-ups (`docs/DERIVED_SCORES_DESIGN.md`). St
 so the assistant describes an ORCA job and a person starts it from its panel, and the assistant's frozen turn holds no quantum-chemistry runs
 (`domain/turn_snapshot.py` names none, checked 2026-10-16); scores over 3D numbers (decided on 2026-10-16, in the derived scores record); Phase 3 beyond its first calculator (Fukui functions were built on 2026-10-18 and
 failed two preregistered gates, the first by 0.0014 on one quantity and the second, on De Proft et al.'s tables, with 33 of 47 numbers within 0.02, so they are offered as experimental and not validated, `benchmarks/fukui_gate/PREREGISTRATION.md` and `benchmarks/fukui_gate_2/PREREGISTRATION.md`;
-proton affinity and bond dissociation energy are not started) and Phase 4 (the synthesis helper). The live provider run for Phase 1 is still not done. `docs/WHATS_NEW.md` is a tour of all of it.
+proton affinity was benchmarked and its primary arm passed, #398; bond dissociation energy is preregistered and not yet reported) and the last of Phase 4 (the synthesis helper's Stage 1 is built, `docs/SYNTHESIS_HELPER_DESIGN.md`, plans are saved in the project file; what remains is the second quality protocol, which is Alex's to run). The live provider run for Phase 1 is still not done. `docs/WHATS_NEW.md` is a tour of all of it.
 
 ### Visualization
 
@@ -1581,32 +1582,6 @@ is documented as a filename. The Vina executable, ORCA and the `.ocsproj` projec
    folder `Sci Downloads.OLD`, and delete it only after a week of normal use.
 3. **Point the assistant's sessions at the new folder.** The additional working directory is agent-control configuration, so it gets its own show-the-diff-and-approve step.
 4. **Keep a second copy.** One big disk is one failure. The library is small enough to mirror (`robocopy /MIR`) to another drive after the move; the sha256 manifest of step 2 is what makes a restore checkable.
-
-### Reference programs: what to learn from, and what we might emulate (bookmarked 2026-10-18)
-
-The project began as an open replacement for MarvinSketch-class editors, and Phases 1 to 9 track that. A second program is now **bookmarked as a
-reference, and nothing here is scheduled**:
-
-**Amsterdam Modeling Suite (AMS), by SCM** (Software for Chemistry & Materials, <https://www.scm.com>; its documentation, <https://www.scm.com/doc>,
-is public and needs no installation). It offers a 30-day trial; its pricing and licence terms were **not read**, and should be before the trial is used to
-produce reference values. It came up when its Fukui tutorial turned out to hold a Hirshfeld table for carbon monoxide from a program that is not
-Gaussian or ORCA, the one independent table the Fukui work (`benchmarks/fukui_gate/PREREGISTRATION.md`) had found (C f+ 0.670 and f- 0.674, O 0.330 and 0.326, from BP86; the page states neither the basis set nor the geometry). "Emulating" a feature of it means building it
-on this project's own engines (RDKit, ORCA, Open Babel) and checking it against a published reference, and never reusing SCM's code or text.
-
-What its tutorial index lists that overlaps this project's territory, by the tutorials' own titles (read on 2026-10-18; none was tried):
-
-| AMS tutorial area | What it lists | Here today |
-|---|---|---|
-| Analysis | QTAIM (Bader), localized orbitals and conceptual DFT; Fukui functions and the dual descriptor; Interacting Quantum Atoms; Energy Decomposition Analysis; charge displacement; visualization of densities and orbital potentials | Fukui functions (experimental, not validated); Lewis acid-base pairing and LED through ORCA; surfaces coloured by a scalar field. No QTAIM, IQA or localized orbitals |
-| Vibrational spectroscopy | IR, VCD, mode refinement and tracking, vibrationally resolved electronic spectra | IR from an ORCA frequency run; none of the rest |
-| Optical properties | TDDFT UV/Vis, core ionization (XPS) | UV/Vis measured and deliberately not shipped (above); nothing for XPS |
-| NMR | a spectrum with spin-spin coupling, shifts, analysis with localized molecular orbitals | ORCA NMR with coupling, and the HOSE lookup; no orbital analysis |
-| Structure and reactivity | transition state search, nudged elastic band, automated reaction pathway discovery, a reaction network | none; reactions here are two templates |
-| COSMO-RS | fluid thermodynamics, pKa, ionic liquids, polymers | a bounded solubility screen and a pKa sidecar |
-| Building and GUI | building molecules; "10 ways to get the energy and other properties"; a GUI tour of a UV/Vis spectrum | the editor and the Properties panel |
-
-Each row that is ever built goes through this project's usual gate first (a preregistered check against a published reference, or "measured, not shipped"). The
-rows most likely to pay are the ones where a calculator already exists: conceptual DFT beyond Fukui, an energy-decomposition view, and the assignment of IR bands.
 
 ### Naming, and the annotation engine underneath it
 
@@ -2352,10 +2327,19 @@ struck through and marked SHIPPED here, never deleted.
 Nothing here is simply unstarted — each is blocked on something nameable,
 and three were checked again recently rather than taken on trust.
 
+- **Re-screening a saved synthesis plan (recorded 2026-10-21).** A plan saved in the project file comes back with the regulatory alerts it had on the day it
+  was made, shown with that date and a sentence saying they were not repeated on opening, because screening takes 0.9 to 3.7 s a plan (about 0.1 s a
+  molecule, measured on 13 real planner outputs) and opening a project of 30 plans would take about a minute. So a ruleset added or changed since then is not
+  reflected until the molecule is planned again. Two ways to close it: a "re-screen" action on the Synthesis panel, or a worker that fills the screening in
+  after opening (which gives every surface a "screening" state to read). Blocked on nothing but need: build one if the stale date is felt
+  (`docs/SYNTHESIS_HELPER_DESIGN.md`, slice 11).
 - **Plugin-system extras** (`ToolbarProvider`/`ContextMenuProvider`, a
   `RemoteServicePlugin` base, numeric priority, declared permissions). The
-  recorded trigger is "a fourth plugin whose real requirements tell us the
-  shape". There are still three. Building now means guessing.
+  recorded trigger was "a fourth plugin whose real requirements tell us the
+  shape". The fourth, `synthesis_planner`, has none of the boilerplate the base
+  class would hold (no secrets, no remote service), so it argues against that
+  class rather than for it; the other extras have still had no plugin ask for
+  them.
 
   **Plugin-provided reaction templates are NO LONGER on this list**, and
   this entry claimed otherwise in three places for longer than it should
@@ -2403,7 +2387,7 @@ and three were checked again recently rather than taken on trust.
   three shipped.** They are `tsei_projection`, `griffin_hlb` and
   `polarizability` in the live registry. Each was deferred for reasons that
   expired without anyone re-reading them — "the parameters are unpublished"
-  was a claim about ChemAxon's documentation rather than the literature, and
+  was a claim about the vendor's documentation rather than the literature, and
   "no reference value to gate against" was true when written and false by
   2004. **A deferral's reasons rot independently of its verdict**, which is
   why the corrected accounts are kept in `docs/sources.toml` under the

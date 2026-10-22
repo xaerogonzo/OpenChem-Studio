@@ -18,7 +18,8 @@ THE BASIS IS PASSED THROUGH, but with `puream true` always: Psi4 uses CARTESIAN 
 neither that line nor anything after the error banner). The service does not look at the exit code, so `parse_output` is what turns a failure into a failed run, and it does so by that marker. (An earlier note in the design
 document said a failed run still prints the success banner; that was a misreading of two outputs read together and is corrected there.)
 
-Density fitting is Psi4's default (`scf_type df`); it is what a Psi4 user expects and costs 0.01 mEh on water here, and it is recorded in the provenance with the exact functional keyword so two engines' numbers are never read as one.
+The engine writes exact integrals (`scf_type pk`), not Psi4's default density fitting (`df`): the preregistered agreement check (`benchmarks/psi4_agreement/PLAN.md`, run 2026-10-19) found that density fitting alone moves the Hartree-Fock energy by 0.37 to 0.45 mEh at 6-31G(d), a method-sized change that made the comparison with ORCA
+(whose default is exact) NOT EVALUABLE. The scf_type is recorded in the provenance with the exact functional keyword so two engines' numbers are never read as one.
 """
 
 from __future__ import annotations
@@ -49,8 +50,9 @@ PSI4_METHODS = {
 #: The calculation types version 1 runs.
 PSI4_CALC_TYPES = frozenset({"sp", "opt"})
 
-#: The memory a job is given, in the input. Psi4's own default (500 MB) is too small for a def2-TZVP job on a drug-sized molecule and a failed allocation reads like a broken input.
-_MEMORY = "2 GB"
+#: The memory a job is given when nothing says otherwise, in GB, in the input. Psi4's own default (500 MB) is too small for a def2-TZVP job on a drug-sized molecule and a failed allocation reads like a broken input.
+#: The person's own choice is `app.settings.PSI4_MEMORY_GB`, whose default is this number (held equal by a test), so a default input is unchanged.
+DEFAULT_MEMORY_GB = 2
 
 #: What the SCF is converged to, tighter than Psi4's default (1e-6) so that two engines' energies differ by their methods and not by an unconverged SCF.
 _CONVERGENCE = "1e-8"
@@ -63,8 +65,9 @@ _ENERGY_RE = re.compile(r"^\s+Total Energy =\s+(-?\d+\.\d+)\s*$", re.MULTILINE)
 _ERROR_MARKER = "Psi4 encountered an error"
 #: The heading of the converged geometry an optimization prints last.
 _FINAL_GEOMETRY = "Final optimized geometry and variables:"
-#: One atom of that geometry: element, then x, y, z in Angstrom.
-_GEOMETRY_ROW = re.compile(r"^\s+([A-Z][a-z]?)\s+(-?\d+\.\d+)\s+(-?\d+\.\d+)\s+(-?\d+\.\d+)\s*$")
+#: One atom of that geometry: element, then x, y, z in Angstrom. Psi4 prints a two-letter element in CAPITALS (`CL`, measured on chloromethane; the agreement check's optimization
+#: arm lost a molecule to `Cl` being the only spelling accepted), so the symbol is matched in any case and normalised by the caller.
+_GEOMETRY_ROW = re.compile(r"^\s+([A-Za-z]{1,2})\s+(-?\d+\.\d+)\s+(-?\d+\.\d+)\s+(-?\d+\.\d+)\s*$")
 
 
 class Psi4OutputError(RuntimeError):
@@ -102,8 +105,10 @@ class Psi4QuantumEngineProvider(QuantumEngineProvider):
     #: Threads are `-n` on the command line, not an input block, so the service adds nothing of its own.
     supports_parallel = False
 
-    def __init__(self, threads: Callable[[], int] | None = None) -> None:
+    def __init__(self, threads: Callable[[], int] | None = None, memory_gb: Callable[[], int] | None = None) -> None:
+        # Callables, read each time an input is written: Settings applies as it changes, and a provider the service holds must not hold the settings back.
         self._threads = threads if threads is not None else _default_threads
+        self._memory_gb = memory_gb if memory_gb is not None else (lambda: DEFAULT_MEMORY_GB)
 
     def executable_setting(self) -> str:
         return "psi4/executable_path"
@@ -126,8 +131,8 @@ class Psi4QuantumEngineProvider(QuantumEngineProvider):
         # A closed shell is `rhf` and anything else `uhf`, written down and not left to a default (a default can change the state: the ORCA Fukui work found that).
         verb = "optimize" if calc_type == "opt" else "energy"
         return "\n".join([
-            f"memory {_MEMORY}", "molecule {", f"{charge} {multiplicity}", *rows, "symmetry c1", "no_reorient", "no_com", "}",
-            f"set reference {'rhf' if multiplicity == 1 else 'uhf'}", f"set basis {basis}", "set puream true", "set scf_type df",
+            f"memory {max(1, int(self._memory_gb()))} GB", "molecule {", f"{charge} {multiplicity}", *rows, "symmetry c1", "no_reorient", "no_com", "}",
+            f"set reference {'rhf' if multiplicity == 1 else 'uhf'}", f"set basis {basis}", "set puream true", "set scf_type pk",
             f"set e_convergence {_CONVERGENCE}", f"set d_convergence {_CONVERGENCE}", f"{verb}('{keyword}')", "",
         ])
 
@@ -149,7 +154,7 @@ class Psi4QuantumEngineProvider(QuantumEngineProvider):
         provenance = Provenance(
             created_by="core",
             method=self.provider_id,
-            parameters={"psi4_version": version.group(1) if version else "unknown", "scf_type": "df", "puream": True},
+            parameters={"psi4_version": version.group(1) if version else "unknown", "scf_type": "pk", "puream": True},
             timestamp=time.time(),
         )
         descriptors = [
@@ -180,7 +185,8 @@ class Psi4QuantumEngineProvider(QuantumEngineProvider):
         for line in output_text[start:].splitlines()[1:]:
             match = _GEOMETRY_ROW.match(line)
             if match:
-                rows.append(match.groups())
+                symbol, x, y, z = match.groups()
+                rows.append((symbol.capitalize(), x, y, z))
             elif rows:
                 break
         atoms = list(mol.GetAtoms())

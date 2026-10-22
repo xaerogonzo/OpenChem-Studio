@@ -13,7 +13,7 @@ Every section says what the calculator produces, what it needs to run, whether i
 <!-- help:calc-elemental-analysis -->
 ### Elemental Analysis
 
-Molecular formula, average and exact mass, atom count and elemental composition (w/w %). Validated against MarvinSketch's own output for tyramine hydrochloride.
+Molecular formula, average and exact mass, atom count and elemental composition (w/w %). Validated against the reference editor's own output for tyramine hydrochloride.
 
 - Produces a list of facts, each with its own units, basis and evidence.
 - Runs on the 2D drawing, so no conformer is needed.
@@ -637,7 +637,7 @@ An overlay chosen by atom-type and charge similarity alone, with no regard to wh
 
 **How it works**
 
-The 2D maximum common substructure of the two molecules, restricted to heavy atoms, fixes the pairing first, and Open3DAlign then fits the rest around it, treating those pairs as constraints. The two-stage design follows ChemAxon's description of its own plug-in and is not part of the Open3DALIGN paper [1]; the atom-type matching inside the second stage is the one described under Extended atom types. If the molecules share no common substructure, or only hydrogens, it refuses and suggests the atom-type method instead.
+The 2D maximum common substructure of the two molecules, restricted to heavy atoms, fixes the pairing first, and Open3DAlign then fits the rest around it, treating those pairs as constraints. The two-stage design follows the vendor's description of its own plug-in and is not part of the Open3DALIGN paper [1]; the atom-type matching inside the second stage is the one described under Extended atom types. If the molecules share no common substructure, or only hydrogens, it refuses and suggests the atom-type method instead.
 
 **What the result means**
 
@@ -818,7 +818,7 @@ cone angle, percent buried volume, ligand steric bulk, Tolman
 <!-- help:calc-molecular-dynamics -->
 ### Molecular Dynamics (vacuum)
 
-Velocity-Verlet dynamics over MMFF94/UFF forces. VACUUM only: no thermostat, no barostat, no constraints, no periodic boundaries, no solvent. Not Dreiding, so energies are not comparable to MarvinSketch's. Needs a conformer.
+Velocity-Verlet dynamics over MMFF94/UFF forces. VACUUM only: no thermostat, no barostat, no constraints, no periodic boundaries, no solvent. Not Dreiding, so energies are not comparable to the reference editor's. Needs a conformer.
 
 - Produces a trajectory you can play.
 - Runs on a real 3D conformer -- generate one first.
@@ -984,7 +984,7 @@ HLB, hydrophile-lipophile balance, Griffin, emulsifier
 <!-- help:calc-surface-analysis -->
 ### Molecular Surface Area (3D)
 
-Solvent-accessible surface area with Marvin's ASA+/ASA-/ASA_H/ASA_P splits, plus the van der Waals surface area and volume. The solvent probe's radius can be changed (1.4 A, a water molecule, by default), and the structure can be the major microspecies at a pH, built on the stored conformer by moving protons only. Needs a conformer.
+Solvent-accessible surface area with the reference editor's ASA+/ASA-/ASA_H/ASA_P splits, plus the van der Waals surface area and volume. The solvent probe's radius can be changed (1.4 A, a water molecule, by default), and the structure can be the major microspecies at a pH, built on the stored conformer by moving protons only. Needs a conformer.
 
 - Produces a list of facts, each with its own units, basis and evidence.
 - Runs on a real 3D conformer -- generate one first.
@@ -1204,7 +1204,7 @@ Predicted hERG blockade, CYP450 inhibition/substrate and Ames mutagenicity via A
 <!-- help:calc-bbb-descriptors -->
 ### BBB Score Descriptors
 
-The five inputs to Gupta et al.'s (2019) BBB Score: aromatic rings, heavy atoms, MWHBN, TPSA and the most basic pKa. The composite score itself is not computed -- its weight functions are unpublished, and ChemAxon's single worked example cannot validate five unknown curves. Aromatic rings, heavy atoms and MWHBN all reproduce that example exactly.
+The five inputs to Gupta et al.'s (2019) BBB Score: aromatic rings, heavy atoms, MWHBN, TPSA and the most basic pKa. The composite score itself is not computed -- its weight functions are unpublished, and the vendor's single worked example cannot validate five unknown curves. Aromatic rings, heavy atoms and MWHBN all reproduce that example exactly.
 
 - Produces a list of facts, each with its own units, basis and evidence.
 - Runs on the 2D drawing, so no conformer is needed.
@@ -1217,7 +1217,7 @@ The five inputs to Gupta et al.'s (2019) BBB Score: aromatic rings, heavy atoms,
 <!-- help:calc-cns-mpo -->
 ### CNS MPO Score
 
-Wager et al. CNS multiparameter optimisation score, 0-6 from six desirability functions. Breakpoints validated against ChemAxon's documented aspirin example (5.75). Without a pkasolver environment the pKa term is omitted rather than assumed favourable, and the score is reported out of 5.
+Wager et al. CNS multiparameter optimisation score, 0-6 from six desirability functions. Breakpoints validated against the vendor's documented aspirin example (5.75). Without a pkasolver environment the pKa term is omitted rather than assumed favourable, and the score is reported out of 5.
 
 - Produces a list of facts, each with its own units, basis and evidence.
 - Runs on the 2D drawing, so no conformer is needed.
@@ -1505,6 +1505,51 @@ Geometry optimization + frequency analysis via ORCA. Produces an optimized geome
   - `charge` -- Charge default `0` range -10 to 10
   - `multiplicity` -- Multiplicity default `1` range 1 to 10
   - `method_basis` -- Method/basis (B3LYP def2-SVP, PBE0 def2-TZVP, M062X def2-TZVP, B3LYP 6-31G(d), B3LYP pcSseg-1, B3LYP pcSseg-2) default `B3LYP def2-SVP`
+
+<!-- help:calc-orca-proton-affinity -->
+### Proton Affinity and Gas Basicity
+
+The gas-phase proton affinity (an enthalpy) and gas-phase basicity (a Gibbs energy) of a neutral base at 298.15 K and 1 atm, from ORCA M062X/def2-TZVPD optimizations and frequencies of the base and of its conjugate acid at every protonation site (every N, O, S or P lone pair and every pi-system carbon), the lowest structure of each, with ORCA's symmetry number replaced by the true one. Reports kJ/mol, the site that won and every site's own value. Benchmarked on 28 bases against the NIST evaluation of Hunter and Lias: on the 21 above propene's proton affinity the mean absolute error is 1.55 kcal/mol (PA) and 1.53 (GB), with the proton bound about 1.2 kcal/mol too weakly; measured for neutral bases of at most ten heavy atoms of H, C, N, O, P and S, and refused outside that. A structure that keeps an imaginary vibration after one re-run is dropped, so a base can have no value (the benchmark lost water this way). Many ORCA jobs (minutes to hours): needs an ORCA executable; run from the Quantum Chemistry panel's 'Proton affinity...' button -- no 3D conformer needed, each structure is embedded fresh from the 2D structure.
+
+- Support level: **Experimental**. Hidden by default; enable it under Settings > Calculators.
+- Why: The protocol passed its preregistered benchmark (28 bases against NIST, mean absolute error 1.55 kcal/mol for proton affinity and 1.53 for gas basicity), but this implementation has not yet been driven through the application on real ORCA, and it needs many ORCA jobs. Every result states the measured error and its limits.
+- Covers: Neutral closed-shell bases of at most ten heavy atoms of H, C, N, O, P and S; the lowest structure only; needs a configured ORCA executable.
+- Runs from the **Quantum Chemistry panel** panel rather than from a Properties button.
+- Runs on the 2D drawing, so no conformer is needed.
+- Basis: ab initio (computed from theory rather than fitted).
+- Options:
+  - `method_basis` -- Method/basis (fixed: the benchmarked protocol) (M062X/def2-TZVPD) default `M062X/def2-TZVPD`
+
+#### What it does
+
+Says how strongly a neutral molecule holds a proton in the gas phase. Two numbers, in kJ/mol, as NIST tabulates them: the **proton affinity** (PA), the enthalpy released when the molecule takes up a proton at 298.15 K and 1 atm, and the **gas-phase basicity** (GB), the Gibbs energy of the same step, which also carries the entropy of the proton and of both species. A molecule with several places a proton can go (an amine and a ring nitrogen, an oxygen and a nitrogen, a carbon of a pi system) has a value for each place; the result gives the best one, says which atom it is, and lists every site's own value, because a proton affinity belongs to a site.
+
+#### How it works
+
+Shipped: the molecule and its conjugate acid at every candidate site are each optimized and given a frequency calculation with ORCA at M062X/def2-TZVPD (`! M062X def2-TZVPD TightSCF TightOpt DefGrid3 Opt Freq`). The candidate sites are every nitrogen, oxygen, sulfur or phosphorus atom without a positive charge and every carbon of a C=C, C#C or aromatic bond (plus the carbon of carbon monoxide), sites that are equivalent by the molecule's symmetry counted once. Each species is embedded fresh from the 2D structure with ETKDG (seed 7, 30 conformers), relaxed with MMFF94, deduplicated by an all-atom RMSD of 0.5 angstrom, and the lowest three within 5 kcal/mol are optimized. A structure with any vibrational frequency below -20 cm-1 is re-run once from its final geometry with the Hessian calculated at the start, and dropped if it still has one; a conjugate acid in which the proton ends on anything but one atom of the base is dropped too. The proton has no electrons, so its enthalpy and Gibbs energy are the translational ones for an ideal gas, 1.4812 and -6.274 kcal/mol at 298.15 K and 1 atm, which is the standard state and the values used in the literature this was compared with [1]. **ORCA's symmetry number is replaced by the true one**, counted from the molecule's proper rotations, because ORCA gave a C3v hydronium ion the number 1 (measured here: 0.65 kcal/mol in the Gibbs energy); this changes GB and never PA. Then PA is the enthalpy of the lowest base structure plus the proton's, minus the enthalpy of the lowest conjugate acid over every site, and GB the same with Gibbs energies, each chosen on its own. Nothing is averaged over conformers: the lowest structure stands alone.
+
+The functional was chosen from the literature, not by trial: M06-2X was reported to have a mean unsigned error of 1.75 kcal/mol on eight small-molecule proton affinities against experiment, [2] and 1.2 against high-level theory on a larger set of 26 [3]. The reference values are the evaluated proton affinities and gas basicities of Hunter and Lias, the numbers behind NIST's tables [4].
+
+#### What the result means
+
+**It was measured, once, and each result states the measurement.** On the 21 of the 28 benchmark bases whose evaluated proton affinity is above propene's (the range where the evaluation is well established), the mean absolute error against NIST was **1.55 kcal/mol (6.5 kJ/mol) for PA and 1.53 for GB**, the largest error 2.94 and 2.99, and the **mean signed error -1.19 and -1.27: the calculation binds the proton about 1.2 kcal/mol too weakly on average**, a bias and not scatter. Both passed the rule fixed before the run (mean absolute error at most 2.5, no error above 5.0, mean signed error within 1.5). The evaluated values themselves are uncertain by about 8 kJ/mol (1.9 kcal/mol) for most entries [4], so an error of that size is not shown to be the calculation's. The seven weaker bases (carbon monoxide, ethene, water, hydrogen sulfide, hydrogen cyanide, formaldehyde, benzene) were computed and reported but decided nothing.
+
+**A number can be missing.** A structure that keeps an imaginary vibration after its one re-run is dropped, and a base or acid with no accepted structure has no value: the benchmark lost water this way, because the hydronium ion optimized to a planar saddle point. The result then says which structures were dropped and why, and the missing quantity is an error and never a zero. PA and GB can be missing separately.
+
+#### When to use it, when not
+
+Use it for a neutral base of at most ten heavy atoms of H, C, N, O, P and S, to compare two bases or two sites of one base, with the error above in mind. It is **refused** for a charged or radical species, a mixture, anything with another element (halogens, metals, silicon) and anything larger than ten heavy atoms, because the benchmark measured none of these and a number with no measured error is not offered. It is not a solution-phase basicity and not a pKa. It runs many ORCA jobs (one per structure: a base with three conformers and three sites is about a dozen), which takes minutes to hours, so it asks for approval before it starts and holds the molecule until it finishes or is cancelled.
+
+#### Search for
+
+proton affinity, gas-phase basicity, protonation site, conjugate acid
+
+#### Sources
+
+- [4] E. P. L. Hunter & S. G. Lias, 'Evaluated Gas Phase Basicities and Proton Affinities of Molecules: An Update', J. Phys. Chem. Ref. Data 1998, 27, 413-656. DOI 10.1063/1.556018. Supports: the evaluated proton affinities and gas basicities the calculation was measured against, and their stated uncertainty
+- [1] A. Moser, K. Range & D. M. York, 'Accurate Proton Affinity and Gas-Phase Basicity Values for Molecules Important in Biocatalysis', J. Phys. Chem. B 2010, 114, 13911-13921. DOI 10.1021/jp107450n. Supports: the standard state and the proton's enthalpy and Gibbs energy
+- [2] Y. Zhao & D. G. Truhlar, 'The M06 suite of density functionals for main group thermochemistry, thermochemical kinetics, noncovalent interactions, excited states, and transition elements: two new functionals and systematic testing of four M06-class functionals and 12 other functionals', Theor. Chem. Acc. 2008, 120, 215-241. DOI 10.1007/s00214-007-0310-x. Supports: the published error of M06-2X on eight proton affinities against experiment
+- [3] L. Goerigk, A. Hansen, C. Bauer, S. Ehrlich, A. Najibi & S. Grimme, 'A look at the density functional theory zoo with the advanced GMTKN55 database for general main group thermochemistry, kinetics and noncovalent interactions', Phys. Chem. Chem. Phys. 2017, 19, 32184-32215. DOI 10.1039/c7cp04913g. Supports: the published error of M06-2X on the PA26 set of proton affinities against high-level theory
 
 <!-- help:calc-orca-sp -->
 ### Single Point

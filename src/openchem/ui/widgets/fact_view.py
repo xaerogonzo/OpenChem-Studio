@@ -1185,7 +1185,7 @@ class FactView(QWidget):
     def open_in_window(self) -> QDialog | None:
         """The same report, in its own window.
 
-        Marvin opens each result in a window and it is genuinely useful --
+        The reference editor opens each result in a window and it is genuinely useful --
         two reports side by side, or one kept open while you work. The
         detached copy is a second `FactView` on the same report rather
         than a re-implementation, so it cannot drift.

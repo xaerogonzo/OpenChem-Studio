@@ -3,7 +3,7 @@
 Reported three times across one session, most recently: *"you should be
 able to rotate even a 2d structure in the 2d editor, I still low key am
 not much of a fan having to go into a 3d viewer to even generate
-conformers still. With Marvin, it was a calculator like any other, there
+conformers still. With the reference editor, it was a calculator like any other, there
 was no dedicated 3d viewer that was required to go into in order to do
 basic functions."*
 

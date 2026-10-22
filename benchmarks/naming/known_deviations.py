@@ -24,6 +24,11 @@ def load() -> list[dict]:
     return tomllib.loads(PATH.read_text(encoding="utf-8"))["deviation"]
 
 
+def load_constructor() -> list[dict]:
+    """The deviations of the fusion CONSTRUCTOR (naming round 78): declared, but a name carries one without any curated ring, so `deviation_in` does not flag them."""
+    return tomllib.loads(PATH.read_text(encoding="utf-8")).get("constructor_deviation", [])
+
+
 def deviation_in(name: str | None) -> str | None:
     """The id of the declared deviation a NAME carries, or None. A legacy label counts only in a name that also names the ring it belongs to."""
     if not name:

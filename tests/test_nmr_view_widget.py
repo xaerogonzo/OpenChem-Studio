@@ -207,7 +207,7 @@ def test_changing_frequency_refreshes_the_notes_stated_frequency(qapp):
 
 
 def test_table_columns_have_no_prediction_quality(qapp):
-    """Marvin shows a confidence rating here because it has an experimental
+    """The reference editor shows a confidence rating here because it has an experimental
     reference database behind every number. Nothing here does, so rating one
     would be invented rather than measured."""
     view, _backend, _molecule, _spectrum = _make_view(qapp)
@@ -316,7 +316,7 @@ def test_selecting_a_table_row_highlights_the_peak(qapp):
 
 
 def test_selecting_a_signal_zooms_to_it_by_default(qapp):
-    """Marvin's own "Zoom Follows Selection", on by default -- a peak
+    """The reference editor's own "Zoom Follows Selection", on by default -- a peak
     click, a table row, and a 3D atom click all resolve through
     `_select_signal`, so one check here covers all three paths."""
     view, _backend, _molecule, _spectrum = _make_view(qapp)

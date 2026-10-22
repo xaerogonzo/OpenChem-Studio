@@ -26,6 +26,8 @@ from openchem.services.atom_fact_service import AtomFactService
 from openchem.services.reaction_template_service import ReactionTemplateService
 from openchem.services.score_service import ScoreService
 from openchem.services.structure_check_service import StructureCheckService
+from openchem.services.synthesis_planner_setup import SetupProvider as SynthesisSetupProvider
+from openchem.services.synthesis_planning_service import SynthesisPlanningService
 from openchem.services.table_export_service import TableExportService
 
 
@@ -72,6 +74,11 @@ class ServiceContainer:
     recipe_service: RecipeService | None = None
     #: The project's derived-score definitions, and their values read from the stored results. Defaulted for the same reason: a container without one has no scores.
     score_service: ScoreService | None = None
+    #: Plans a synthesis for one molecule through the user's own AiZynthFinder environment, behind the regulatory gate. Defaulted for the same reason: a container without one plans nothing.
+    synthesis_planning_service: SynthesisPlanningService | None = None
+    #: The planner's setting as the External Tools tab holds it: the same object the planning service reads, kept here so the synthesis panel can ask what the configuration offers
+    #: (and whether it has been read yet) without a second reader of the file. Defaulted for the same reason.
+    synthesis_setup: SynthesisSetupProvider | None = None
     #: When a canvas edit's recomputation runs. Defaulted for the same reason: a container
     #: without it recomputes on every edit, as drawing always did.
     recalc_scheduler: RecalcScheduler | None = None
