@@ -19,6 +19,7 @@ from __future__ import annotations
 
 import argparse
 import hashlib
+import importlib.util
 import json
 import os
 import re
@@ -38,9 +39,27 @@ from rdkit.Chem import AllChem
 
 HERE = Path(__file__).resolve().parent
 REPO = HERE.parents[1]
-sys.path.insert(0, str(HERE))
 
-import judge  # noqa: E402
+
+def _load_judge():
+    """This folder's `judge.py`, loaded under a name of its own.
+
+    `benchmarks/` holds several files called `judge.py` (bde, proton_affinity, synthesis, this one). A bare `import judge` returns whichever of them was imported first in the
+    process, so when the suite runs another benchmark's tests before this runner's in one shard the runner got THAT judge and failed with "module 'judge' has no attribute
+    'HARTREE_TO_MEH'" (three tests, found 2026-10-22 on the first full run after the BDE benchmark merged). A name no other file uses cannot collide, and this folder is no longer
+    put on `sys.path`, which would have made the reverse collision for the others.
+    """
+    name = "psi4_agreement_judge"
+    if name in sys.modules:
+        return sys.modules[name]
+    spec = importlib.util.spec_from_file_location(name, HERE / "judge.py")
+    module = importlib.util.module_from_spec(spec)
+    sys.modules[name] = module  # a dataclass looks its own module up by name
+    spec.loader.exec_module(module)
+    return module
+
+
+judge = _load_judge()
 
 from openchem.chem.orca_engine import OrcaQuantumEngineProvider, add_parallel_block  # noqa: E402
 from openchem.chem.psi4_engine import Psi4QuantumEngineProvider  # noqa: E402
