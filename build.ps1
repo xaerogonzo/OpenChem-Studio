@@ -28,7 +28,10 @@ param(
     [switch]$AllowDirty,
     # After a passing build, make the release zip (tools\make_release_zip.py).
     [switch]$Release,
-    # With -Release: replace a zip of the same version that already exists.
+    # After a passing build, ALSO make the Windows installer (Inno Setup,
+    # packaging\openchem.iss) and drive it through install, upgrade and uninstall.
+    [switch]$Installer,
+    # With -Release / -Installer: replace one of the same version that already exists.
     [switch]$Force
 )
 
@@ -102,8 +105,8 @@ foreach ($stale in @($APPDIR, "$ROOT\build")) {
 
 $dirtyLines = @(& git -C $ROOT status --porcelain 2>$null)
 $dirty = ($LASTEXITCODE -eq 0) -and ($dirtyLines.Count -gt 0)
-if ($dirty -and $Release) {
-    throw "Refusing to make a release from a tree with uncommitted changes ($($dirtyLines.Count) path(s)). Commit them, or build without -Release."
+if ($dirty -and ($Release -or $Installer)) {
+    throw "Refusing to make a release artifact from a tree with uncommitted changes ($($dirtyLines.Count) path(s)). Commit them, or build without -Release / -Installer."
 }
 if ($dirty -and -not $AllowDirty) {
     throw "The tree has uncommitted changes ($($dirtyLines.Count) path(s)), so the build could not be reproduced from its commit. Commit them, or pass -AllowDirty for a local experiment."
@@ -124,7 +127,7 @@ $commit = (& git -C $ROOT rev-parse --short HEAD 2>$null)
 if ($LASTEXITCODE -ne 0 -or -not $commit) { $commit = "unknown" }
 $appVersion = (& uv run --no-sync python -c "import tomllib,pathlib;print(tomllib.loads(pathlib.Path('pyproject.toml').read_text())['project']['version'])" 2>$null)
 if ($LASTEXITCODE -ne 0 -or -not $appVersion) { $appVersion = "unknown" }
-if ($Release -and ($appVersion -eq "unknown" -or $commit -eq "unknown")) {
+if (($Release -or $Installer) -and ($appVersion -eq "unknown" -or $commit -eq "unknown")) {
     throw "Refusing to make a release with an unknown version or commit ($appVersion @ $commit)."
 }
 
@@ -331,6 +334,25 @@ if ($Release) {
     if ($Force) { $zipArgs += "--force" }
     & uv run --no-sync python "$ROOT\tools\make_release_zip.py" @zipArgs
     if ($LASTEXITCODE -ne 0) { throw "Release zip failed (see the output above)" }
+}
+
+# ---------- Installer -------------------------------------------------------------
+# After the zip, so its SHA256SUMS.txt line is appended to the file the zip wrote.
+# The installer is then really INSTALLED, upgraded and uninstalled (per-user, silent,
+# into a folder with a space), and the installed app passes the smoke test.
+# tools\drive_installer.py refuses to run if this installer's AppId is already
+# registered here, rather than replace a real installation's uninstall entry.
+if ($Installer) {
+    Write-Host ""
+    Write-Host "  Making the installer ..." -ForegroundColor Cyan
+    $setupArgs = @("--dist", $APPDIR, "--version", $appVersion, "--out-dir", $DIST)
+    if ($Force) { $setupArgs += "--force" }
+    & uv run --no-sync python "$ROOT\tools\make_installer.py" @setupArgs
+    if ($LASTEXITCODE -ne 0) { throw "Installer build failed (see the output above)" }
+
+    Write-Host "  Testing the installer (install, upgrade, uninstall) ..." -ForegroundColor Cyan
+    & uv run --no-sync python "$ROOT\tools\drive_installer.py" --installer "$DIST\OpenChemStudio-v$appVersion-windows-x64-setup.exe"
+    if ($LASTEXITCODE -ne 0) { throw "The installer failed its lifecycle test (see the output above)" }
 }
 
 Write-Host ""
