@@ -21708,3 +21708,63 @@ later message was flagged anyway.
   vocabulary with extended discussion of the safety behaviour itself -- never a
   file read. Length on this topic is itself the risk, which is why this bullet
   is short.
+
+## ORCA COMPOUND INPUT: A LATER JOB'S GUESS KEYWORD BEATS MOREAD, A FAILED JOB ENDS THE RUN, AND HFTyp IS INHERITED
+
+Measured on ORCA 6.1.1 (Windows) while building Fukui v2 (`chem/fukui_plan.py`,
+`chem/orca_engine.py`). Each of these is silent unless the output is read, and
+a compound input (`$new_job`, several jobs in one file) meets all of them.
+
+* **An explicit guess keyword in a later job replaces "read the previous job's
+  orbitals".** The output's `INITIAL GUESS:` line says which was used:
+  `MODEL POTENTIAL` (job 1), `MOREAD` (a later job with no keyword), `HCORE`
+  (`! HCore`), `MINIMAL BASIS EHT` (`! Hueckel`), `POLARIZED ATOMIC DENSITIES`
+  (`! PAtom`). A harmless "MOInp is set but Guess=HCore" warning appears. Fukui v3
+  reads the hole it started from out of ORCA's echo of the input for exactly this
+  reason: the guess line of a hole-start job says `MOREAD`, which says nothing
+  about which hole.
+* **A job that does not converge ends the WHOLE run:** exit code 115, no
+  `ORCA TERMINATED NORMALLY`, the earlier jobs' output complete, the failed job's
+  charge echo printed with no energy, later jobs never run. The service ignores
+  the exit code and parses the output, so a compound input is ordered with the
+  jobs the answer needs first (an anion's dianion is written last because its
+  failure costs f+ and not f-).
+* **`HFTyp` is inherited.** ORCA switches the first doublet to UHF/UKS ("WILL
+  SWITCH to UHF/UKS") and a later closed-shell job of the same input then prints
+  `HFTyp .... UHF` and `<S**2> 0.000`. Write `%scf HFTyp RHF` (RKS too) or `UHF`
+  in EVERY job. With it written, the compound job reproduces the standalone
+  restricted run to every printed digit.
+* **`%method IntAcc 6.0 end`** is the valid finer-grid form (not `IntAcc 6` on the
+  simple line, not `Grid7 NoFinalGrid`); it costs 8 to 28% on 21 to 33 atom
+  molecules at B3LYP/6-31G*.
+* **Each job's own stretch of output** starts with `$$$$$$$$ JOB NUMBER n
+  $$$$$$$$` and, a few lines on, its own `Total Charge ... Charge` echo (once per
+  job). The echo is the reliable per-job delimiter, and also works on trimmed
+  fixtures that dropped the JOB NUMBER lines.
+* **ORCA's output on Windows has CRLF line ends.** Found 2026-10-05 by the first
+  real-ORCA tautomer-NMR run: `_CARTESIAN_BLOCK_RE` required `\n`, so it found NO
+  coordinate block in any real run (3357 of 3357 lines were CRLF) and a tautomer
+  distribution kept energies with no geometry. The unit fixtures are LF, so every
+  test passed. Use `\r?\n` (or `[^\r\n]`) and write a CRLF variant of any new
+  output-parsing test; the same parser serves ordinary Geometry Optimization.
+  The SCF-energy and NMR regexes happened to tolerate it.
+
+## RDKIT CONFORMER POOLS: SEED 0 GIVES ONE GEOMETRY N TIMES, A SYMMETRY-BLIND RMSD PRUNE KEEPS ROTAMERS, AND RAW ETKDG IS NOT A MINIMUM
+
+Measured 2026-10-03 on RDKit 2025.09.6 with acetylacetone, while building the
+tautomer validation's conformer pool (`chem/tautomer_conformers.py`). They
+explain the failure of the tautomer-validation run called v3 at the time, and
+would silently defeat any top-K pool.
+
+* **`EmbedMultipleConfs(..., randomSeed=0)` returns N IDENTICAL conformers**
+  (pre-MMFF RMSD 0.00 over 50). Seeds 1, 2, 3, 42, 1000 and -1 are diverse; a
+  single `EmbedMolecule` with seed 0 or 1 gives the same geometry. Never seed a
+  pool with 0, and assert that the pool holds more than one distinct geometry.
+* **A fixed-atom-order, all-atom RMSD prune is blind to symmetry.** It left 47
+  "distinct" diketo conformers from 2 real minima, because methyl hydrogens are
+  symmetry-equivalent. Compare heavy atoms plus polar hydrogens (on N, O, S, P)
+  only, align with mirror images allowed (`reflect=True`), and add an
+  energy-degenerate, symmetry-aware test.
+* **Raw ETKDG geometries are not relaxed.** That v3 run sent the raw seed-0
+  enol (O-H...O 4.76 A) to ORCA, which stayed in the non-hydrogen-bonded minimum
+  14.7 kcal/mol above the bonded one. MMFF-minimise before ORCA.

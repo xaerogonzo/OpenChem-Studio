@@ -425,7 +425,7 @@ def test_the_test_runs_a_trivial_search_with_the_chosen_selection_and_reports_wh
 
     message, seen = run_verify(tmp_path, result)
 
-    assert seen["request"].target_smiles == setup.TEST_TARGET and seen["request"].limits == setup.TEST_LIMITS and seen["request"].filter is None and seen["request"].all_routes is False
+    assert seen["request"].target_smiles == setup.TEST_TARGET and seen["request"].limits == setup.TEST_LIMITS and seen["request"].filter is None and seen["request"].all_routes is True
     assert seen["target"].molecule_uuid == "external-tools-test" and "cancel" not in seen["kw"]
     assert message.startswith("AiZynthFinder 4.4.1") and "answered a trivial search (aspirin, 20 iterations" in message and "no route within it" in message and "no filter" in message
     assert "Expansion uspto, stock zinc" in message
@@ -498,7 +498,7 @@ def test_the_provider_builds_the_setup_the_service_runs_with_the_benchmarks_limi
     result = provider()
 
     assert isinstance(result, host.PlannerSetup) and result.python == settings.get(setup.PYTHON_KEY) and result.config == config
-    assert (result.expansion, result.stock, result.filter, result.all_routes) == ("uspto", "zinc", None, False)
+    assert (result.expansion, result.stock, result.filter, result.all_routes) == ("uspto", "zinc", None, True)
     assert result.limits == SearchLimits(iteration_limit=500, time_limit_seconds=1800.0, max_transforms=10) == setup.DEFAULT_LIMITS
 
 
