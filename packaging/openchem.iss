@@ -51,6 +51,11 @@ AppPublisherURL=https://github.com/xaerogonzo/OpenChem-Studio
 AppSupportURL=https://github.com/xaerogonzo/OpenChem-Studio/issues
 AppUpdatesURL=https://github.com/xaerogonzo/OpenChem-Studio/releases
 VersionInfoVersion={#AppVersion}
+VersionInfoProductVersion={#AppVersion}
+VersionInfoProductName=OpenChem Studio
+VersionInfoCompany=OpenChem Studio
+VersionInfoDescription=OpenChem Studio Setup
+VersionInfoCopyright=Copyright (C) OpenChem Studio contributors. GPL-3.0-or-later.
 DefaultDirName={autopf}\OpenChem Studio
 DisableProgramGroupPage=yes
 PrivilegesRequired=lowest
@@ -59,6 +64,10 @@ ArchitecturesAllowed=x64compatible
 ArchitecturesInstallIn64BitMode=x64compatible
 MinVersion=10.0
 LicenseFile={#SourceDir}\LICENSE
+; Shown during installation, after the licence: what the program contacts, and that nothing is
+; sent unless a feature that needs a service is used. Code signing terms require this page for
+; software that can send user data. Kept in step with docs/CODE_SIGNING_POLICY.md by a test.
+InfoBeforeFile={#SourcePath}installer_privacy.txt
 OutputDir={#OutputDir}
 OutputBaseFilename={#OutputName}
 WizardStyle=modern
