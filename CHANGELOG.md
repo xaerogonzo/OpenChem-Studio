@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Psi4 vs ORCA: a preregistered test of the B3LYP residual (written, not yet run)
+- `benchmarks/psi4_agreement/PLAN_FUNCTIONAL_LADDER.md` asks whether the steady +0.1 to +0.3 mEh DFT offset that no grid removes is common to every density functional or lives in one functional's coding: HF (control), PBE, BLYP, B3LYP and PBE0 on six molecules at def2-SVP, both engines, with the rule fixed before any job. Its runner (`run_functional_ladder.py`, which adds a `functional:` variant to `run_agreement.py` that swaps only a functional's name, never reached by an earlier plan) and 18 tests (mutations of the rule's boundaries and of the input swap are all caught) are committed; **no job has been run**, and nothing changes in the engine either way.
+
 ### Proton affinity calculation, stage 3: the calculator, the button and the help (experimental, hidden from the launcher)
 - `orca.proton_affinity` is registered as a calculator (EXPERIMENTAL and hidden by default: the benchmark passed, but this implementation has not yet been driven through the application on real ORCA; execution policy: needs approval, as ORCA runs are), with no method parameters because the protocol is exactly the one that was benchmarked. The Quantum Chemistry panel gains a **Proton affinity...** button that refuses a base the benchmark did not measure before queueing anything, names the number of ORCA jobs before a long run, and shows PA and GB in kJ/mol with the site table, the structures not accepted and the measured error. A quantity with no value (a base whose structures were all dropped) now reads "no value" with its reason, where the panel's result line would have raised on formatting `None`. A tooltip, a User Guide section and a reference explainer (`docs/explainers/thermochemistry.md`) state what was measured and what is refused.
 

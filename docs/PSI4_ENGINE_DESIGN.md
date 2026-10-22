@@ -125,6 +125,10 @@ The third preregistered run (`benchmarks/psi4_agreement/PLAN_V3.md`, commit `58e
 A preregistered measurement (`benchmarks/psi4_agreement/PLAN_GRID_OFFSET.md`, commit `81d9a320`; 6 molecules x 4 DFT combinations, each program at its default and a finer grid, with Hartree-Fock negative controls that moved 0.00002 mEh) asked whether version 3's DFT offset shrinks on finer grids. **By the rule: PARTIAL** (pooled median offset +0.331 to +0.238 mEh; 54% of cells within 0.252 mEh, 80% needed).
 Descriptively, split by functional (not preregistered): **Psi4's default grid is converged** (its finer grid moved every energy by 0.04 mEh at most); **ORCA's default grid (DefGrid2) is not converged for M062X** (its energy rises 0.3 to 0.4 mEh on DefGrid3), which accounts for about 0.3 mEh of M062X's +0.56 mEh median offset; **B3LYP's +0.26 mEh median offset does not move at all** with either grid. A uniform +0.1 to +0.3 mEh remains in every DFT cell, growing with the molecule, and is unexplained (candidate: each program's coding of the functional). No change to the engine or `PSI4_METHODS`.
 
+## The B3LYP residual (2026-10-22): a preregistered test is written and NOT yet run
+
+The grid test left a uniform +0.1 to +0.3 mEh in every DFT cell that no grid moves (B3LYP's +0.26 mEh median in particular). `benchmarks/psi4_agreement/PLAN_FUNCTIONAL_LADDER.md` asks whether it is common to every density functional or lives in one functional's coding, by running HF (control), PBE, BLYP, B3LYP and PBE0 on the six floor molecules at def2-SVP on both engines (60 jobs, about half an hour), with its runner and rule committed first (`run_functional_ladder.py`, `tests/test_psi4_functional_ladder.py`). **To run when Psi4 and ORCA are free; nothing in it changes the engine.**
+
 ## How it is validated before it is offered (the project standard: claims are measured)
 
 1. **The parser is written against real output**, saved as fixtures (`tests/fixtures/psi4/`), never against what the manual says it prints; a mutation check on it, as for every parser here.
