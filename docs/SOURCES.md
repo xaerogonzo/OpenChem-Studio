@@ -1,5 +1,5 @@
 <!-- GENERATED FROM docs/sources.toml -- do not edit -->
-<!-- SOURCE SHA256: 16fb00bebae49771a103529068fab6dd818906e3f2f7e0673d5d4a4a74be0e8d -->
+<!-- SOURCE SHA256: a66624c15bf4b96907f233657d8e53dee6cca275a966b6270e6037146d77f3ef -->
 
 # Sources
 
@@ -251,7 +251,7 @@ next run of `tools/build_lewis_parameters.py`.
 | [`moreland1974`](#moreland1974) | literature | shipped | citation |
 | [`morgunov2025retrocast`](#morgunov2025retrocast) | literature | reference only | citation + claim |
 | [`mortier1986`](#mortier1986) | literature | reference only | citation |
-| [`moser2010`](#moser2010) | literature | reference only | citation + claim |
+| [`moser2010`](#moser2010) | literature | shipped | citation + claim |
 | [`moss1995`](#moss1995) | literature | reference only | citation |
 | [`murrayrust1983`](#murrayrust1983) | literature | shipped | citation + claim |
 | [`muser2012`](#muser2012) | literature | reference only | citation + claim |
@@ -6745,12 +6745,10 @@ outputs); the paper itself was NOT read, so this entry makes no claim about a nu
 | | |
 | --- | --- |
 | Identifier | [10.1021/jp107450n](https://doi.org/10.1021/jp107450n) |
-| Status | reference only |
+| Status | shipped |
 | Verification | citation + claim |
 | Verified | 2026-10-19 |
-| Used by | `docs/PROTON_AFFINITY_DESIGN.md`, `benchmarks/proton_affinity/PREREGISTRATION.md` |
-
-**Why it is reference only.** THE PROTON'S THERMOCHEMISTRY AND A BENCHMARK AGAINST NIST: standard state 298.15 K and 1 atm, H(H+) = 5/2 RT = 1.48 kcal/mol, S(H+) = 26.02 cal/(mol K) from Sackur-Tetrode, G(H+) = -6.28 kcal/mol (their eqs 2 and 3), which the benchmark's `pa_core.proton_terms` reproduces independently (1.4812, 26.012, -6.274); their Table 1 errors for model chemistries against NIST for protonated amines and imidazoles (the PAs of the corresponding bases). Read from an open copy of the PDF, not held in the library folder.
+| Used by | `src/openchem/chem/proton_affinity.py`, `docs/PROTON_AFFINITY_DESIGN.md`, `benchmarks/proton_affinity/PREREGISTRATION.md` |
 
 ### riplinger2013dlpno
 
