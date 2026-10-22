@@ -19984,7 +19984,28 @@ class SubstitutivePath:
                 ),
             )
         _fv_added_h: tuple = ()
-        _p58 = _p58_apply(mol, _named_parent, plan.numbering, _suffix_groups, free_valence)
+        # a ring carbon whose `oxo` prefix is the only ketone the name can say, on a ring CATION (the suffix is -ylium)
+        _oxo_ring_atoms = ()
+        if plan.named_parent.candidate.ring_system is not None and any(
+            mol.GetAtomWithIdx(_i).GetFormalCharge() > 0 and (
+                mol.GetAtomWithIdx(_i).GetSymbol() in ("O", "S", "Se", "Te")
+                or (mol.GetAtomWithIdx(_i).GetSymbol() == "N" and mol.GetAtomWithIdx(_i).GetTotalNumHs() == 0)
+            )
+            for _i in plan.named_parent.candidate.atom_indices
+        ):
+            _ring_set = set(plan.named_parent.candidate.atom_indices)
+            _found = []
+            for _pe in prefixes:
+                for _ca in getattr(_pe, "claimed_atoms", ()):
+                    _oa = mol.GetAtomWithIdx(_ca)
+                    if _oa.GetAtomicNum() != 8 or _oa.GetDegree() != 1:
+                        continue
+                    _bond = _oa.GetBonds()[0]
+                    _nb = _bond.GetOtherAtomIdx(_ca)
+                    if _bond.GetBondTypeAsDouble() == 2.0 and _nb in _ring_set:
+                        _found.append(_nb)
+            _oxo_ring_atoms = tuple(_found)
+        _p58 = _p58_apply(mol, _named_parent, plan.numbering, _suffix_groups, free_valence, _oxo_ring_atoms)
         if _p58 is not None:
             _named_parent, _suffix_groups, _fv_added_h = _p58
 

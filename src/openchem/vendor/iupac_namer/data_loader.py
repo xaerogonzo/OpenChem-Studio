@@ -3365,8 +3365,9 @@ _RING_CURATED_SMILES: dict[str, dict] = {
     "c1cc2cnc[nH]c-2n1": {"name": "1H-pyrrolo[2,3-d]pyrimidine", "substituent_form": "1H-pyrrolo[2,3-d]pyrimidinyl", "alkyl_stem_ok": False,
                            "atom_locants": {6: 1, 5: 2, 4: 3, 3: 4, 2: "4a", 1: 5, 0: 6, 8: 7, 7: "7a"}},
     # 3H-pyrrolo[2,3-d]pyrimidine: NH on N3 (pyrimidine N).
-    # Canonical c1cc2c[nH]cnc-2n1: derived by chloro-probing analogous to above.
-    "c1cc2c[nH]cnc-2n1": {"name": "3H-pyrrolo[2,3-d]pyrimidine", "substituent_form": "3H-pyrrolo[2,3-d]pyrimidinyl", "alkyl_stem_ok": False},
+    # Canonical c1cc2c[nH]cnc-2n1: idx0=C6, idx1=C5, idx2=C4a, idx3=C4, idx4=N3(H), idx5=C2, idx6=N1, idx7=C7a, idx8=N7 (the entry had NO atom_locants, so a hydro name numbered N7 as 8: naming round 79).
+    "c1cc2c[nH]cnc-2n1": {"name": "3H-pyrrolo[2,3-d]pyrimidine", "substituent_form": "3H-pyrrolo[2,3-d]pyrimidinyl", "alkyl_stem_ok": False,
+                          "atom_locants": {6: 1, 5: 2, 4: 3, 3: 4, 2: "4a", 1: 5, 0: 6, 8: 7, 7: "7a"}},
 
     # 1H-pyrazolo[4,3-d]pyrimidin-7(6H)-one (sildenafil/vardenafil-class core).
     # Bicyclic 5,6-fused: pyrazole (5-ring, positions 1-3 + 3a, 7a) ortho-fused
