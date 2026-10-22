@@ -14,7 +14,7 @@ from PySide6.QtCore import QObject, QProcess, QProcessEnvironment
 from rdkit import Chem
 
 from openchem import paths as app_paths
-from openchem.app.settings import FUKUI_ANION_F_PLUS, FUKUI_CATION_SEARCH, Settings
+from openchem.app.settings import FUKUI_ANION_F_PLUS, FUKUI_CATION_SEARCH, PSI4_MEMORY_GB, PSI4_THREADS, Settings
 from openchem.chem import proton_affinity
 from openchem.chem.boltzmann import (
     STANDARD_TEMPERATURE_K,
@@ -538,7 +538,9 @@ class QuantumChemistryService(QObject):
         )
         # ORCA first (it is the default engine everywhere), then Psi4: registered always, USED only when its executable is configured
         # (`available_engines`), so a machine without Psi4 sees no change.
-        psi4_provider = Psi4QuantumEngineProvider(threads=self._effective_cores_or_default)
+        psi4_provider = Psi4QuantumEngineProvider(
+            threads=self._psi4_threads, memory_gb=lambda: int(settings.preference(PSI4_MEMORY_GB)),
+        )
         self._providers: dict[str, QuantumEngineProvider] = (
             providers if providers is not None
             else {default_provider.provider_id: default_provider, psi4_provider.provider_id: psi4_provider}
@@ -2848,9 +2850,14 @@ class QuantumChemistryService(QObject):
             QuantumChemistryJobStateChanged(molecule_uuid=molecule_uuid, state=state, message=message)
         )
 
+    def _psi4_threads(self) -> int:
+        """Threads for a Psi4 job: its own setting when it is 1 or more, else (0, automatic) what `_effective_cores_or_default` says."""
+        configured = int(self._settings.preference(PSI4_THREADS))
+        return configured if configured >= 1 else self._effective_cores_or_default()
+
     def _effective_cores_or_default(self) -> int:
-        """Threads for an engine that takes them on its command line: the `orca/cores` setting when it is set (one core-count setting for
-        every engine until there is a reason for two), else the automatic choice. Unlike ORCA's there is no MPI to be missing."""
+        """Threads for an engine that takes them on its command line: the `orca/cores` setting when it is set (the fallback for Psi4's own
+        thread setting when that is automatic), else the automatic choice. Unlike ORCA's there is no MPI to be missing."""
         try:
             configured = int(self._settings.get("orca/cores", 0))
         except (TypeError, ValueError):
