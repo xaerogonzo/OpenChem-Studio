@@ -263,6 +263,10 @@ $required = @(
     # sys.path, which the default data collection drops. Its absence broke
     # every Physicochemical property, not just this one descriptor.
     "_internal\rdkit\Contrib\SA_Score\sascorer.py",
+    # The natural-product scorer: module AND model. Missing, the whole rdkit descriptor batch
+    # fails ("No module named 'npscorer'") and every score that reads a descriptor has no value.
+    "_internal\rdkit\Contrib\NP_Score\npscorer.py",
+    "_internal\rdkit\Contrib\NP_Score\publicnp.model.gz",
     # Open Babel's format plugins and data tables, which it dlopen's from
     # beside its own DLL. Without them the ONLY thing that breaks is docking,
     # with a ValueError naming neither Open Babel nor a file.
