@@ -1574,6 +1574,7 @@
   "tests/test_psi4_agreement_runner.py": 2,
   "tests/test_psi4_engine.py": 2,
   "tests/test_psi4_grid_offset.py": 0,
+  "tests/test_psi4_settings.py": 0,
   "tests/test_psi4_tool.py": 3,
   "tests/test_qm_surfaces.py": 2,
   "tests/test_qt_object_disposal.py": 0,
