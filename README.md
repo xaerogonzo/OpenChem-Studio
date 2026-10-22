@@ -164,10 +164,15 @@ each prediction can and cannot tell you.
 
 **From a release** — Windows, no Python required, runs fully offline.
 Download the zip from
-[Releases](https://github.com/xaerogonzo/OpenChem-Studio/releases), unzip, run
-`OpenChemStudio.exe`. Ship the whole directory; the `.exe` alone does
-nothing. It is ~650 MB, almost all of it PySide6 — QtWebEngine alone is a
-full Chromium, and the app hosts three web views.
+[Releases](https://github.com/xaerogonzo/OpenChem-Studio/releases), **extract
+all of it into a new folder** (running the `.exe` from inside the zip preview
+cannot work, and extracting over an older version can mix two versions'
+files), then run `OpenChemStudio.exe`. Ship the whole directory; the `.exe`
+alone does nothing. It is ~650 MB, almost all of it PySide6 — QtWebEngine alone
+is a full Chromium, and the app hosts three web views. Each release lists a
+`SHA256SUMS.txt`; checking the zip against it (for example `certutil -hashfile
+<zip> SHA256`) detects a damaged download, but it is a checksum, not a
+signature, and says nothing about who published the file.
 
 **From source:**
 

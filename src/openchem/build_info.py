@@ -77,6 +77,10 @@ def _commit() -> tuple[str, str]:
     """Returns (commit, where it came from) -- never raises."""
     stamped = _stamped("commit", "")
     if stamped:
+        # A build made from a tree with uncommitted changes cannot be reproduced
+        # from this commit, and About must not let it look as if it could.
+        if _stamped("dirty", "False") == "True":
+            return stamped, "baked at build time, MODIFIED TREE"
         return stamped, "baked at build time"
 
     if getattr(sys, "frozen", False):
