@@ -13,6 +13,16 @@
 # 1-based), target_basis PRINTED (the book prints the ring's numbering) or DERIVED (P-25.3.3.3.1 applied by the engine's own generic rule to the ring), reason and
 # oracle_statement in words.
 
+# A deviation of the fusion CONSTRUCTOR (naming round 78), not of the ring table: it is not a curated ring, so the scan above does not see it and `deviation_in` does not flag a name.
+[[constructor_deviation]]
+id = "KD-constructor-interior"
+engine = "the CAS letter after the highest peripheral locant, nearest atom first: 8b (acenaphthylene), 10b/10c (pyrene)"
+normative = "the nearest peripheral locant with a superscript for the bond count: 2a1 (acenaphthylene), 3a1/5a1 (pyrene)"
+rule = "P-25.3.3.3.1"
+page = 224
+reason = "Every interior carbon of a peri-fused system the constructor numbers is written in the former CAS form, as the ring table writes pyrene's and perylene's. OPSIN reads it and does not read the book's superscripts, so a hydro or substituent name that cites an interior atom could not be verified."
+oracle_statement = "OPSIN reads 8b and does not read 2a1 (`2a1H-acenaphthylene` is unparsable, `8bH-acenaphthylene` is not)."
+
 [[deviation]]
 id = "KD-pyrene"
 ring = "pyrene"

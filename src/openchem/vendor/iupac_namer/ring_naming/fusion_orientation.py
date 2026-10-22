@@ -431,7 +431,9 @@ def numberings_for(d: Drawing, mol) -> list[dict[int, Locant]]:
         number = 0
         letter = 0
         a = start
+        last = start
         for _ in range(len(succ)):
+            last = a
             if count[a] == 1 or element(a) != "C":
                 number += 1
                 letter = 0
@@ -445,14 +447,38 @@ def numberings_for(d: Drawing, mol) -> list[dict[int, Locant]]:
             carbon = [x for x in interior if element(x) == "C"]
             if hetero:
                 raise Unsupported("interior heteroatoms (P-25.3.3.2) are not numbered here")
-            for x in carbon:
-                loc[x] = _interior_carbon_locant(mol, x, loc, peripheral)
+            for x, label in _cas_interior_labels(mol, system, carbon, loc, peripheral, last).items():
+                loc[x] = label
         out.append(loc)
     return out
 
 
 def succ_pred(succ: dict[int, int]) -> dict[int, int]:
     return {v: u for u, v in succ.items()}
+
+
+def _cas_interior_labels(mol, system, carbon, loc, peripheral, last) -> dict[int, Locant]:
+    """The interior carbons in the former CAS form OPSIN reads ("8b" for acenaphthylene, "10b", "10c" for pyrene), not P-25.3.3.3.1's superscripts ("2a1").
+
+    They continue the letters of the highest peripheral locant, nearest atom first, the book's locant deciding a tie (naming round 78: the book's form is a
+    name the oracle cannot read, and the ring table already makes the same declared exception, see known_deviations.toml).
+    """
+    atoms = set(system.atoms)
+    dist, frontier = {last: 0}, [last]
+    while frontier:
+        nxt = []
+        for a in frontier:
+            for nb in mol.GetAtomWithIdx(a).GetNeighbors():
+                b = nb.GetIdx()
+                if b in atoms and b not in dist:
+                    dist[b] = dist[a] + 1
+                    nxt.append(b)
+        frontier = nxt
+    top = loc[last]
+    letters = top.suffix[-1:] if top.suffix else ""
+    nxt_letter = ord(letters) - ord("a") + 1 if letters else 0
+    order = sorted(carbon, key=lambda x: (dist.get(x, 99), locant_key(_interior_carbon_locant(mol, x, loc, peripheral)), x))
+    return {x: Locant.numeric(top._numeric_value or 0, chr(ord("a") + nxt_letter + i)) for i, x in enumerate(order)}
 
 
 def _interior_carbon_locant(mol, atom, loc, peripheral) -> Locant:
