@@ -110,6 +110,10 @@ The error is **systematic, not scatter**: the mean signed error is negative (the
 
 **What this does under the preregistration:** the primary arm passed for each of PA and GB, so the calculator may be built with the primary protocol as its default, each of PA and GB offered with the error found stated beside it (MAE 1.5, systematic -1.2 kcal/mol, on bases of at most ten heavy atoms). The secondary DLPNO-CCSD(T) arm is a **later stage and was not written or run**; it needs Alex's go. Nothing was built.
 
+## Exploratory rerun of water's H3O+ (2026-10-21; not a benchmark record)
+
+Re-optimizing H3O+ from a geometry displaced 0.15 Angstrom along its -601.6 cm-1 mode gave a real minimum in either direction (lowest mode 0.0), H = -76.66319626 Eh, which matches the preregistration's smoke-run value (-76.66319385); so water's missing cell was a starting-geometry effect, as the disclosure above said. This does not change the verdict (water is a reported-only base); see `benchmarks/restart_diagnosis/` and the draft `benchmarks/restart_v2/PREREGISTRATION.md`.
+
 ## To run the primary-arm ORCA benchmark (as recorded 2026-10-19, before the result above)
 
 The runner is written, tested on real water and H3O+ output and committed (`benchmarks/proton_affinity/run_pa.py`, `tests/test_proton_affinity_runner.py`); (as written before the run; it has since been run, see above). It builds 74 structures (28 bases and 46 conjugate-acid starts over every rule-enumerated site; `structures` prints the count) of M062X/def2-TZVPD `Opt Freq`, each a few minutes to some tens of minutes at 4 cores (the duration of the whole run is **unmeasured**; the water smoke job took minutes).

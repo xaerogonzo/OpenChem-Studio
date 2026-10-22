@@ -1,0 +1,35 @@
+{
+ "case": "toluene",
+ "start_lowest_freq": -49.43,
+ "hess_lowest": -49.361150674506355,
+ "hess_lowest_five": [
+  -49.361150674506355,
+  0.0,
+  0.0,
+  0.0,
+  0.0,
+  0.0,
+  0.0,
+  211.2315149831266
+ ],
+ "freq_seconds": 2456,
+ "displaced": [
+  {
+   "sign": 1,
+   "amp": 0.15,
+   "energy": -271.535984732783,
+   "enthalpy": -271.40100015,
+   "lowest_frequency": -31.3,
+   "seconds": 3684
+  },
+  {
+   "sign": -1,
+   "amp": 0.15,
+   "energy": -271.535982353463,
+   "enthalpy": -271.40099483,
+   "lowest_frequency": -12.72,
+   "seconds": 3077
+  }
+ ],
+ "start_enthalpy": -271.40099749
+}
