@@ -93,6 +93,8 @@ Every tracked top-level entry, and whether it reaches a release.
 - `tools/frozen_smoke.py` launches the built exe, and again the extracted zip.
 - `tools/make_release_zip.py` validates the archive inventory (one versioned
   folder, required files present, nothing forbidden) before promoting it.
+- `.github/workflows/release.yml` builds all of this on a clean machine from a tag and
+  drafts the release (see [RELEASING.md](RELEASING.md)).
 - `tools/drive_installer.py` installs the compiled installer for real, runs the
   installed app through the smoke test, upgrades and uninstalls it.
 

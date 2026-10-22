@@ -2905,6 +2905,11 @@ four result shapes and compares them; each guard was confirmed to fail on a plan
 - A release build now carries the four help documents inside the exe's archive (`tools/build_help_bundle.py` generates `openchem/_help_bundle.py`; `help.py` reads it whenever the app is frozen and never falls back to disk). Before, the markdown sat loose in `_internal\openchem\docs\` and the Help window's Open file button opened it, so saving there could remove a help anchor and leave F1 empty.
 - Open file now opens a read-only copy in a temporary folder. A checkout still reads `docs/*.md` directly.
 
+### Release: a GitHub Actions workflow builds and drafts the release from a tag
+- `.github/workflows/release.yml` builds the release on a clean Windows runner when a `v<version>` tag is pushed: `build.ps1 -Release -Installer` (which smoke-tests the built app, the extracted zip and the installed app), a checksum check, a build provenance attestation (`gh attestation verify` proves a file came from this workflow and repository), then a DRAFT GitHub Release with the zip, the installer and `SHA256SUMS.txt`. Nothing is published; a person tries the installer and presses Publish. A pull request that changes how a release is made runs the same build as a dry run, and `workflow_dispatch` runs it on demand.
+- Safety shape, held by `tests/test_release_workflow.py` (five mutations each fail it): no permissions by default and only the draft job can write; every third-party action pinned to a full commit SHA; no `${{ }}` spliced into a shell script; Inno Setup pinned by version and sha256 (Chocolatey has no 6.7.3); a tag that does not match `pyproject.toml`, or a version with no changelog section, fails in seconds before the long build (`tools/release_info.py`).
+- New `docs/RELEASING.md`: how to cut a release, the by-hand checklist before Publish, how to check a download, and what to do when it fails. Still not signed; SignPath Foundation is the free route and wants exactly this kind of build.
+
 ## [0.10.0] — 2026-08-17
 
 328 commits since 0.9.0. Summarised by capability; the git log is the
