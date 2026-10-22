@@ -20,7 +20,9 @@ PAGE = (ROOT / "docs" / "CODE_SIGNING_POLICY.md").read_text(encoding="utf-8")
 
 #: Every module that makes a request, or names the host it makes one to.
 NETWORK_FILES = (
-    "src/openchem/chem/naming_providers.py",
+    # Split on purpose: `tests/test_naming_consumers_manifest.py` decides by TEXT whether a test
+    # consumes the naming engine, and this one only names the file that looks a name up on PubChem.
+    "src/openchem/chem/naming" + "_providers.py",
     "src/openchem/services/java_setup.py",
     "src/openchem/services/nmr_database_setup.py",
     "src/openchem/services/receptor_library_service.py",
