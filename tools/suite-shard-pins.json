@@ -1729,6 +1729,7 @@
   "tests/test_synthesis_protocol2.py": 2,
   "tests/test_synthesis_route.py": 2,
   "tests/test_synthesis_route_codec.py": 2,
+  "tests/test_synthesis_route_ranking.py": 3,
   "tests/test_synthesis_route_text.py": 3,
   "tests/test_synthesis_route_validation.py": 2,
   "tests/test_synthesis_route_validator.py": 1,

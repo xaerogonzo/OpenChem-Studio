@@ -809,12 +809,17 @@ def test_every_plan_carries_what_was_measured_about_the_planner_beside_the_stand
 
 
 def test_the_benchmark_finding_says_only_what_the_result_file_says():
-    """The sentence is typed by hand, so each figure is held to `benchmarks/synthesis/RESULT.md`, which a re-run would change."""
-    result_file = (Path(__file__).parent.parent / "benchmarks" / "synthesis" / "RESULT.md").read_text(encoding="utf-8")
+    """The sentence is typed by hand, so each figure is held to `benchmarks/synthesis/RESULT_2.md` (protocol 2, whose M2 is the count of the first 10 routes shown), which a re-run would change."""
+    result_file = (Path(__file__).parent.parent / "benchmarks" / "synthesis" / "RESULT_2.md").read_text(encoding="utf-8")
     finding = host.BENCHMARK_FINDING
     # (the figure as the sentence writes it, the figure as the file writes it)
-    for sentence, in_file in (("96.7%", "0.967"), ("37.3%", "0.373"), ("81%", "0.81"), ("29%", "0.29"), ("2%", "0.02")):
+    for sentence, in_file in (("96.7%", "**0.967** (290)"), ("41.7%", "**0.417 (125 of 300)**"), ("54.7%", "| 0.547 |")):
         assert sentence in finding and in_file in result_file, sentence
-    assert "48%" in finding and "48% of first routes are shorter than the reference" in result_file
+    # the depth figures are the file's table row by row: reference depth 2, 3 and 4, in the order M1 / M2 / pool
+    for sentence, row in (("81%", "**0.86 / 0.81 / 0.86**"), ("39%", "**0.54 / 0.39 / 0.55**"), ("4% at 4", "**0.20 / 0.04 / 0.24**")):
+        assert sentence in finding and row in result_file, sentence
+    assert "51%" in finding and "the first route is shorter than the reference in 51%" in result_file
+    assert "37.3%" not in finding and "53.3%" not in finding, "protocol 1's figure is superseded and the PaRoutes count is not the one quoted"
+    assert "first 10 routes it showed" in finding, "the figure is about the list a person is shown"
     assert "300" in finding and "not as known routes" in finding and "probably trained on those same reactions" in finding, "the claim is narrowed and the contamination caveat is not dropped"
     assert "known routes" in finding and "valid" not in finding.replace("internally consistent", ""), "never says a route is valid or feasible"

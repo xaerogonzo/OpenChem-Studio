@@ -99,7 +99,7 @@ _FILTER_HELP = HelpTooltip(
     help_id="synthesis.filter_policy",
 )
 _ROUTES_HELP = HelpTooltip(
-    text="The routes the planner returned, in the planner's own order. The order is the planner's, and a first place does not say the route is the best or that it would work.",
+    text="The best-ranked routes the planner found (at most ten), fewer steps and more starting materials in stock first, then the planner's own score. A first place does not say the route is the best or that it would work.",
     tier=1,
     help_id="synthesis.routes",
 )
@@ -199,7 +199,7 @@ class SynthesisPanel(QWidget):
         self._route_block = QWidget(self)
         block = QVBoxLayout(self._route_block)
         block.setContentsMargins(0, 0, 0, 0)
-        block.addWidget(QLabel("Routes (proposed, in the planner's order):", self))
+        block.addWidget(QLabel("Routes (proposed, in the order shown):", self))
         block.addWidget(self._routes)
         block.addWidget(QLabel("Steps, in the order they would be run:", self))
         block.addWidget(self._steps)

@@ -289,7 +289,7 @@ class Route:
 
     `target_smiles` is the planner's own string for the molecule the route makes, which need not be the user's canonical
     SMILES (that is `TargetIdentity`'s). `score` is the planner's ranking quantity and `rank` this route's place in the
-    planner's order (1 = first); neither says the route would work.
+    order shown (1 = first); neither says the route would work.
     """
 
     target_smiles: str
@@ -342,7 +342,7 @@ class RouteSet:
             raise ValueError("a cancelled request cannot report another way of stopping")
         ranks = [r.rank for r in self.routes]
         if ranks != list(range(1, len(ranks) + 1)):
-            raise ValueError("routes are kept in the planner's order and ranked 1, 2, 3 ...")
+            raise ValueError("routes are kept in the order they are shown and ranked 1, 2, 3 ...")
         missing = [s for s in STANDARD_LIMITATIONS if s not in self.limitations]
         if missing:
             raise ValueError("limitations must include every standard sentence")
