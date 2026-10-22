@@ -229,6 +229,16 @@ worth reading first, because this project has an unusual bar: a new claim
 needs a measurement, and "I measured it and it was not better, so I did not
 ship it" is a perfectly good outcome for a pull request.
 
+## Code signing policy and privacy
+
+Releases are **not code-signed yet**; the project is applying to the
+[SignPath Foundation](https://signpath.org/) for free signing, and until then Windows
+SmartScreen may say "unknown publisher" (More info, then Run anyway). The program
+collects nothing about you: no accounts, no telemetry, no update checks. It contacts
+other services only when you use a feature that needs one. The signing policy, who
+approves a release, and the list of every service the program can contact are in
+[docs/CODE_SIGNING_POLICY.md](docs/CODE_SIGNING_POLICY.md).
+
 ## License
 
 GPL-3.0-or-later — see [LICENSE](LICENSE).

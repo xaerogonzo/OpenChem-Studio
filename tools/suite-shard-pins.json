@@ -1158,6 +1158,7 @@
   "tests/test_ci_crash_classifier.py": 3,
   "tests/test_ci_deselections.py": 0,
   "tests/test_cli.py": 0,
+  "tests/test_code_signing_policy.py": 0,
   "tests/test_command_palette.py": 0,
   "tests/test_command_palette_vocabulary.py": 0,
   "tests/test_commands.py": 2,

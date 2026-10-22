@@ -300,6 +300,14 @@ foreach ($loose in @("_internal\openchem\docs", "_internal\openchem\_help_bundle
     if (Test-Path "$APPDIR\$loose") { $missing += "$loose must not exist (help is bundled)" }
 }
 
+# The exe says which product and version it is. Blank until 2026-10-22, which is harmless
+# to run and disqualifying to sign: code signing wants the signed file's product name and
+# version to match the project's. Read back from the BUILT file, not from what the spec meant.
+$exeInfo = (Get-Item "$APPDIR\OpenChemStudio.exe").VersionInfo
+if ($exeInfo.ProductName -ne "OpenChem Studio") { $missing += "OpenChemStudio.exe ProductName is '$($exeInfo.ProductName)', expected 'OpenChem Studio'" }
+if ($exeInfo.ProductVersion -ne $appVersion) { $missing += "OpenChemStudio.exe ProductVersion is '$($exeInfo.ProductVersion)', expected '$appVersion'" }
+if ($exeInfo.FileVersion -ne $appVersion) { $missing += "OpenChemStudio.exe FileVersion is '$($exeInfo.FileVersion)', expected '$appVersion'" }
+
 if ($missing.Count -gt 0) {
     Write-Host ""
     Write-Host "  [FAIL] the build is missing files that fail silently at runtime:" -ForegroundColor Red
