@@ -591,7 +591,7 @@ _SIMPLE_YLIDENE = re.compile(r"^([a-z]+)(ylidene|ylidyne)$")
 # Detachable prefixes that, LEADING a longer word, make it a substituted
 # substituent: "hydroxymethyl", "aminomethyl", "chloroethyl", "oxopropyl".
 _LEADING_PREFIX_WORDS = (
-    "hydroxy", "amino", "imino", "oxo", "thioxo", "carboxy", "sulfo", "sulfanyl",
+    "hydroxy", "amino", "anilino", "imino", "oxo", "thioxo", "carboxy", "sulfo", "sulfanyl",
     "fluoro", "chloro", "bromo", "iodo", "nitro", "nitroso", "cyano", "isocyano",
     "azido", "methoxy", "ethoxy", "propoxy", "butoxy", "phenoxy", "formyl",
     "acetyl", "carbamoyl", "hydroperoxy", "phosphono", "diazo", "nitramido",
@@ -649,6 +649,7 @@ _HYDRIDE_ACYL = re.compile(
 _SUBSTITUTED_HYDRIDE_ACYL = re.compile(
     r"^(\(.+\)|[a-z]+yl)(methyl|ethyl|propyl|butyl)(sulfonyl|sulfinyl)$"
 )
+_AMIDO_OXY = re.compile(r"([a-z]+amido)oxy")
 _PEROXY = re.compile(r"^\(([a-z]+?)oxy\)oxy$")
 _DICHALCOGENYL = re.compile(r"^\(([a-z]+yl)(sulfanyl|selanyl|tellanyl)\)\2$")
 _ANILINO = re.compile(r"^\((\d[^()\[\]{}]*phenyl)\)amino$")
@@ -671,7 +672,11 @@ def _preferred_prefix_spelling(name: str) -> str:
       (p. 352): "(methylamino)(oxo)methyl" is "methylcarbamoyl", as the
       adjudicated "{[2-(azocan-1-yl)ethyl]carbamoyl}".
     (Naming round 4.)
+
+    Naming round 76: an acylamino on an oxygen is `(acetamido)oxy`. OPSIN reads `acetamidooxy` as `acetamido` and drops the `oxy` (`2-acetamidooxybenzoic
+    acid` is 2-acetamidobenzoic acid), wherever the prefix was composed: on a carbon, a phosphorus, a carbonyl.
     """
+    name = _AMIDO_OXY.sub(r"(\1)oxy", name)
     if name == "phenylmethyl":
         return "benzyl"
     if name == "phenylmethylidene":
@@ -705,7 +710,8 @@ def _preferred_prefix_spelling(name: str) -> str:
     # methane (PIN)" -- where the engine nested "(methyloxy)oxy" and
     # "(methylsulfanyl)sulfanyl".
     m = _PEROXY.match(name)
-    if m:
+    if m and m.group(1) != "hydroper":
+        # (`(hydroperoxy)oxy` is the oxygen chain R-O-O-O-H; contracted it became `hydroperylperoxy`, naming round 76)
         stem = m.group(1) if m.group(1).endswith("yl") else m.group(1) + "yl"
         return stem + "peroxy"
     m = _DICHALCOGENYL.match(name)

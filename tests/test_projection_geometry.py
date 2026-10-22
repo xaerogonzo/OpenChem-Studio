@@ -1,7 +1,7 @@
 """Shape descriptors, checked against the shapes with exact answers.
 
-**Marvin's own figures are deliberately not used as fixtures.** We do not
-have the conformer Marvin measured, so a number from its screenshots
+**The reference editor's own figures are deliberately not used as fixtures.** We do not
+have the conformer the reference editor measured, so a number from its screenshots
 tests our embedding rather than our arithmetic -- the "fixture typed from
 memory" trap this project has already paid for once. Every assertion here
 is against a closed form: a sphere's volume, its surface, its shadow.

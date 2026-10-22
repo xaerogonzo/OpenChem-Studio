@@ -1,10 +1,10 @@
 """The status-bar structure-check light.
 
-Marvin puts one in the corner and it is the right idea: checking is only
+The reference editor puts one in the corner and it is the right idea: checking is only
 useful if you find out it happened. A panel you have to open first tells
 you nothing about the structure you are drawing right now.
 
-Four states, following Marvin's own: disabled (no structure to check),
+Four states, following the reference editor's own: disabled (no structure to check),
 clean, warning, error. Colour is never the only signal -- each state also
 carries a symbol and a word, because roughly one man in twelve cannot
 distinguish the red from the green.

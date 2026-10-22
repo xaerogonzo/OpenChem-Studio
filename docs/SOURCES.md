@@ -1,5 +1,5 @@
 <!-- GENERATED FROM docs/sources.toml -- do not edit -->
-<!-- SOURCE SHA256: 16fb00bebae49771a103529068fab6dd818906e3f2f7e0673d5d4a4a74be0e8d -->
+<!-- SOURCE SHA256: 84aef07be62d50519fdbbe9eb0b92ec067b5a4f19245a69cdb33ede5b6f2cf82 -->
 
 # Sources
 
@@ -251,7 +251,7 @@ next run of `tools/build_lewis_parameters.py`.
 | [`moreland1974`](#moreland1974) | literature | shipped | citation |
 | [`morgunov2025retrocast`](#morgunov2025retrocast) | literature | reference only | citation + claim |
 | [`mortier1986`](#mortier1986) | literature | reference only | citation |
-| [`moser2010`](#moser2010) | literature | reference only | citation + claim |
+| [`moser2010`](#moser2010) | literature | shipped | citation + claim |
 | [`moss1995`](#moss1995) | literature | reference only | citation |
 | [`murrayrust1983`](#murrayrust1983) | literature | shipped | citation + claim |
 | [`muser2012`](#muser2012) | literature | reference only | citation + claim |
@@ -1722,7 +1722,7 @@ THE PARAMETERS ARE PUBLISHED, WHICH IS THE DEFERRAL THIS CLOSES.
 docs/VALIDATION.md recorded "The parameters are unpublished. A
 reconstruction missed benzene by +27% and CCl4 by -50%, so there was
 nothing to validate against." The first sentence was a claim about
-ChemAxon's documentation, not about the literature: Table I,
+The vendor's documentation, not about the literature: Table I,
 "Parameters for Atoms in Hybrid Configurations", prints all twenty rows.
 
 READ OFF A 400 DPI RENDER. The text layer gives `0.392 0.31 1 0.3 13
@@ -6745,12 +6745,10 @@ outputs); the paper itself was NOT read, so this entry makes no claim about a nu
 | | |
 | --- | --- |
 | Identifier | [10.1021/jp107450n](https://doi.org/10.1021/jp107450n) |
-| Status | reference only |
+| Status | shipped |
 | Verification | citation + claim |
 | Verified | 2026-10-19 |
-| Used by | `docs/PROTON_AFFINITY_DESIGN.md`, `benchmarks/proton_affinity/PREREGISTRATION.md` |
-
-**Why it is reference only.** THE PROTON'S THERMOCHEMISTRY AND A BENCHMARK AGAINST NIST: standard state 298.15 K and 1 atm, H(H+) = 5/2 RT = 1.48 kcal/mol, S(H+) = 26.02 cal/(mol K) from Sackur-Tetrode, G(H+) = -6.28 kcal/mol (their eqs 2 and 3), which the benchmark's `pa_core.proton_terms` reproduces independently (1.4812, 26.012, -6.274); their Table 1 errors for model chemistries against NIST for protonated amines and imidazoles (the PAs of the corresponding bases). Read from an open copy of the PDF, not held in the library folder.
+| Used by | `src/openchem/chem/proton_affinity.py`, `docs/PROTON_AFFINITY_DESIGN.md`, `benchmarks/proton_affinity/PREREGISTRATION.md` |
 
 ### riplinger2013dlpno
 
@@ -8066,7 +8064,7 @@ for the one case it exists for -- it lived in `solvent_shift` while
 | Used by | `docs/VALIDATION.md` |
 
 **Why it is reference only.** KEPT AS THE RECORD OF A ROTTED REASON, NOT AS A LIVE DEFERRAL. This entry
-read "THE PARAMETERS ARE UNPUBLISHED", which was a claim about ChemAxon's
+read "THE PARAMETERS ARE UNPUBLISHED", which was a claim about the vendor's
 documentation rather than about the literature: [source:miller1990]'s Table I
 prints all twenty rows. Miller polarizability SHIPPED as the `polarizability`
 calculator.
@@ -8105,8 +8103,8 @@ a result against." Three of those four clauses fell to one paper:
 worked constants, and Davies' group numbers. Griffin HLB SHIPPED as the
 `griffin_hlb` calculator.
 
-THE FOURTH CLAUSE STANDS and is not chased -- ChemAxon's default is
-proprietary, so agreeing with Marvin is unreachable. That is why the
+THE FOURTH CLAUSE STANDS and is not chased -- the vendor's default is
+proprietary, so agreeing with the reference editor is unreachable. That is why the
 calculator ships under the specific name and never as a bare "HLB": the same
 paper supplies the reason the name is ambiguous, saying the Davies scale
 "differs substantially from the Griffin scale in the entire range of

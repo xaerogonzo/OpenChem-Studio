@@ -8,6 +8,7 @@ from openchem.domain.quantum_chemistry_run import QuantumChemistryRunStore
 from openchem.domain.recipe_run import RecipeRunStore
 from openchem.domain.score_definition_store import ScoreDefinitionStore
 from openchem.domain.result_store import SessionResultStore
+from openchem.domain.synthesis_plan_store import SynthesisPlanStore
 from openchem.services.project_service import ProjectService
 
 
@@ -29,6 +30,7 @@ class SaveProjectCommand(OpenChemCommand):
         qc_runs: QuantumChemistryRunStore | None = None,
         recipe_runs: RecipeRunStore | None = None,
         derived_scores: ScoreDefinitionStore | None = None,
+        synthesis_plans: SynthesisPlanStore | None = None,
     ) -> None:
         super().__init__(f"Save project '{project.name}'")
         self._project_service = project_service
@@ -39,11 +41,12 @@ class SaveProjectCommand(OpenChemCommand):
         self._qc_runs = qc_runs
         self._recipe_runs = recipe_runs
         self._derived_scores = derived_scores
+        self._synthesis_plans = synthesis_plans
 
     def redo(self) -> None:
         self._project_service.save(
             self._project, self._path, self._results, self._current_fingerprints, self._qc_runs,
-            self._recipe_runs, self._derived_scores,
+            self._recipe_runs, self._derived_scores, self._synthesis_plans,
         )
 
     def undo(self) -> None:
@@ -66,6 +69,7 @@ class OpenProjectCommand(OpenChemCommand):
         self.loaded_qc_runs: QuantumChemistryRunStore | None = None
         self.loaded_recipe_runs: RecipeRunStore | None = None
         self.loaded_derived_scores: ScoreDefinitionStore | None = None
+        self.loaded_synthesis_plans: SynthesisPlanStore | None = None
 
     def redo(self) -> None:
         document = self._project_service.load_document(self._path)
@@ -74,6 +78,7 @@ class OpenProjectCommand(OpenChemCommand):
         self.loaded_qc_runs = document.qc_runs
         self.loaded_recipe_runs = document.recipe_runs
         self.loaded_derived_scores = document.derived_scores
+        self.loaded_synthesis_plans = document.synthesis_plans
 
     def undo(self) -> None:
         if self.loaded_project is not None:

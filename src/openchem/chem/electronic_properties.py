@@ -6,7 +6,7 @@ J. Chem. Phys.), summing per-element contributions in cubic angstroms.
     Validated two ways. Against experiment: benzene 10.29 vs 10.32,
     CCl4 10.37 vs 10.51, toluene 12.40 vs 12.30, chloromethane 4.75 vs
     4.72 -- all inside 1.5%, with ~5.7% mean absolute error across a
-    13-molecule set. And against ChemAxon's own screenshot, whose per-atom
+    13-molecule set. And against the vendor's own screenshot, whose per-atom
     values read 1.36 for aromatic carbon and 0.39 for hydrogen against
     Jensen's 1.3266 and 0.3888 -- close enough to identify the parameter
     set they are using.
@@ -17,7 +17,7 @@ J. Chem. Phys.), summing per-element contributions in cubic angstroms.
     carbon from an aromatic one. Aromatics and halogenated compounds --
     most drug-like matter -- are the accurate cases.
 
-    MILLER's method is NOT offered. ChemAxon lists it as their second
+    MILLER's method is NOT offered. The vendor lists it as their second
     option, but their docs do not publish its parameters, and an
     implementation from recalled atomic-hybrid values reproduced saturated
     hydrocarbons well while missing benzene by +27% and CCl4 by -50%.
@@ -235,7 +235,7 @@ def pi_orbital_electronegativities(mol: Chem.Mol) -> dict[int, float]:
 
 
 def _maybe_microspecies(mol: Chem.Mol, parameters: dict[str, Any]) -> Chem.Mol:
-    """Marvin offers "take major microspecies at pH" on both plugins, and
+    """The reference editor offers "take major microspecies at pH" on both plugins, and
     it genuinely matters: protonation changes both polarizability and
     electronegativity. Falls back to the drawn form if Dimorphite-DL
     cannot build one, rather than failing the whole calculation."""
@@ -456,7 +456,7 @@ def compute_atomic_polarizability(
     mol: Chem.Mol, molecule_uuid: str, parameters: dict[str, Any] | None = None
 ) -> PerAtomDataset:
     """Per-atom polarizability contributions, projected onto 2D and 3D --
-    the "atomic" Type option in Marvin's panel."""
+    the "atomic" Type option in the reference editor's panel."""
     _places = decimals(parameters)
     parameters = parameters or {}
     target = _maybe_microspecies(mol, parameters)
@@ -520,7 +520,7 @@ def orbital_electronegativities(
 ) -> dict[int, float]:
     """chi at each atom's converged PEOE charge, in eV.
 
-    Hydrogens are excluded by default, matching Marvin, which displays
+    Hydrogens are excluded by default, matching the reference editor, which displays
     "orbital EN values next to the atoms (except hydrogens)".
     """
     working = Chem.Mol(mol)

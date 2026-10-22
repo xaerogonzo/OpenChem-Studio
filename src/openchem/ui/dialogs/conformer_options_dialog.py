@@ -207,7 +207,7 @@ _HELP: dict[str, HelpTooltip] = {
         text=(
             "How hard to minimise each embedding: iteration count and "
             "gradient tolerance.\n\n"
-            "THESE ARE OPENCHEM'S LEVELS, inspired by Marvin's control and "
+            "THESE ARE OPENCHEM'S LEVELS, inspired by the reference editor's control and "
             "NOT numerically equivalent to it -- a setting of the same name "
             "in another program does not mean the same thing.\n\n"
             "Measured over 30 embeddings each of seven molecules: every "
@@ -349,8 +349,8 @@ class ConformerOptionsDialog(QDialog):
         self._time_limit_spin.setSuffix(" s")
         apply_help_tooltip(self._time_limit_spin, _HELP['time_limit'])
 
-        # **Marvin's word appears nowhere**, not in this label, not in the
-        # tooltip, and not in provenance. ChemAxon's `hyperfine` is short
+        # **The reference editor's word appears nowhere**, not in this label, not in the
+        # tooltip, and not in provenance. The vendor's `hyperfine` is short
         # molecular dynamics followed by strict optimisation; there is no
         # MD engine here and a second minimisation is not an
         # approximation of trajectory sampling.

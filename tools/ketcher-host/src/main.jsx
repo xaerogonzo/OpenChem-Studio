@@ -633,7 +633,7 @@ function ensureRotationStyles() {
 // --- 3D rotation mode --------------------------------------------------
 //
 // "we need the rotation rulers and live angle readouts too inside the 2d
-// editor definitely", against a MarvinSketch screenshot.
+// editor definitely", against the reference editor screenshot.
 //
 // **MEASURED BEFORE IT WAS BUILT** (the gate in
 // tests/test_ketcher_holds_3d_coordinates.py and its spike):

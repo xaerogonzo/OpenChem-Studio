@@ -115,6 +115,8 @@ def test_the_stored_keys_are_stable_names():
         "conformers/orca_optimize_lowest",
         "quantum_chemistry/fukui_anion_f_plus",
         "quantum_chemistry/fukui_cation_search",
+        "quantum_chemistry/psi4_memory_gb",
+        "quantum_chemistry/psi4_threads",
     }
 
 

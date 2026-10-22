@@ -498,7 +498,7 @@ _RING_CURATED_SMILES: dict[str, dict] = {
     #               idx12=13, idx13=12, idx15=11, idx16=10, idx17=9, idx18=8,
     #               idx20=14.
     #   Junctions:  idx3=14b, idx4=4a, idx8=6a, idx10=7a,
-    #               idx11=13a, idx14=11a, idx19=14a, idx21=7b.
+    #               idx11=13a, idx14=11a, idx19=7b, idx21=14a.
     # All peripheral positions verified by dichloro canonical probe;
     # junctions assigned by ring-membership adjacency + C2-pair analysis.
     # ``stage2_fusion_base: False`` (5-ring scaffold).
@@ -510,8 +510,8 @@ _RING_CURATED_SMILES: dict[str, dict] = {
                          4: "4a", 5: 4, 6: 5, 7: 6,
                          8: "6a", 9: 7, 10: "7a", 11: "13a",
                          12: 13, 13: 12, 14: "11a", 15: 11,
-                         16: 10, 17: 9, 18: 8, 19: "14a",
-                         20: 14, 21: "7b"},
+                         16: 10, 17: 9, 18: 8, 19: "7b",
+                         20: 14, 21: "14a"},
         "stage2_fusion_base": False},
 
     # Pyrene (Stage 14 R14-A-1) — 4-ring peri-fused PAH (D2h symmetry),
@@ -2581,13 +2581,13 @@ _RING_CURATED_SMILES: dict[str, dict] = {
     # idx 4 = pos 1 (C adjacent to X+), idx 5 = X+ (pos 2), idx 6 = pos 3, idx 7 = pos 4,
     # idx 3 = pos 4a (junction), idx 9,0,1,2 = benzo (pos 5,6,7,8), idx 8 = pos 8a (junction adjacent to pos 1).
     "c1ccc2c[o+]ccc2c1":  {"name": "isochromenylium", "substituent_form": "isochromenyl", "alkyl_stem_ok": False,
-                           "atom_locants": {4: 1, 5: 2, 6: 3, 7: 4, 3: "4a", 9: 5, 0: 6, 1: 7, 2: 8, 8: "8a"}},
+                           "atom_locants": {4: 1, 5: 2, 6: 3, 7: 4, 3: "8a", 9: 5, 0: 6, 1: 7, 2: 8, 8: "4a"}},
     "c1ccc2c[s+]ccc2c1":  {"name": "isothiochromenylium", "substituent_form": "isothiochromenyl", "alkyl_stem_ok": False,
-                           "atom_locants": {4: 1, 5: 2, 6: 3, 7: 4, 3: "4a", 9: 5, 0: 6, 1: 7, 2: 8, 8: "8a"}},
+                           "atom_locants": {4: 1, 5: 2, 6: 3, 7: 4, 3: "8a", 9: 5, 0: 6, 1: 7, 2: 8, 8: "4a"}},
     "c1ccc2c[se+]ccc2c1": {"name": "isoselenochromenylium", "substituent_form": "isoselenochromenyl", "alkyl_stem_ok": False,
-                           "atom_locants": {4: 1, 5: 2, 6: 3, 7: 4, 3: "4a", 9: 5, 0: 6, 1: 7, 2: 8, 8: "8a"}},
+                           "atom_locants": {4: 1, 5: 2, 6: 3, 7: 4, 3: "8a", 9: 5, 0: 6, 1: 7, 2: 8, 8: "4a"}},
     "c1ccc2c[te+]ccc2c1": {"name": "isotellurochromenylium", "substituent_form": "isotellurochromenyl", "alkyl_stem_ok": False,
-                           "atom_locants": {4: 1, 5: 2, 6: 3, 7: 4, 3: "4a", 9: 5, 0: 6, 1: 7, 2: 8, 8: "8a"}},
+                           "atom_locants": {4: 1, 5: 2, 6: 3, 7: 4, 3: "8a", 9: 5, 0: 6, 1: 7, 2: 8, 8: "4a"}},
 
     # -----------------------------------------------------------------------
     # Tricyclic ring systems
@@ -3331,16 +3331,16 @@ _RING_CURATED_SMILES: dict[str, dict] = {
     # -----------------------------------------------------------------------
 
     # imidazo[1,2-b]pyridazine: 9-atom bicyclic. 6-ring=(0,8,7,3,2,1), 5-ring=(4,3,7,6,5).
-    # Bridgeheads: idx3=N3a, idx7=C8a.
+    # Bridgeheads: idx3=N4 (a fusion heteroatom takes a numeral, not 3a: OPSIN has no 3a), idx7=C8a.
     # Verified: 2-Cl->idx5, 3-Cl->idx4, 6-Cl->idx1, 7-Cl->idx0, 8-Cl->idx8.
     "c1cnn2ccnc2c1":    {"name": "imidazo[1,2-b]pyridazine", "substituent_form": "imidazo[1,2-b]pyridazinyl", "alkyl_stem_ok": False,
-                         "atom_locants": {6: 1, 5: 2, 4: 3, 3: "3a", 2: 5, 1: 6, 0: 7, 8: 8, 7: "8a"}},
+                         "atom_locants": {6: 1, 5: 2, 4: 3, 3: 4, 2: 5, 1: 6, 0: 7, 8: 8, 7: "8a"}},
 
     # 2,1,3-benzoxadiazole (benzofurazan): N at 1,3; O at 2; benzo at 4-7.
     # C2v symmetry: pos4=pos7, pos5=pos6. Bridgeheads: idx3=C3a, idx7=C7a.
     # Verified: 4-Cl->idx8, 5-Cl->idx0.
     "c1ccc2nonc2c1":    {"name": "2,1,3-benzoxadiazole", "substituent_form": "2,1,3-benzoxadiazolyl", "alkyl_stem_ok": False,
-                         "atom_locants": {4: 1, 5: 2, 6: 3, 3: "3a", 8: 4, 0: 5, 1: 6, 2: 7, 7: "7a"}},
+                         "atom_locants": {4: 1, 5: 2, 6: 3, 3: "7a", 8: 4, 0: 5, 1: 6, 2: 7, 7: "3a"}},
 
     # pyrazolo[1,5-a]pyrimidine: 9-atom bicyclic. 6-ring=(pyrimidine) fused with 5-ring(pyrazole).
     # Verified: 2-Cl->idx5, 3-Cl->idx4, 5-Cl->idx1, 6-Cl->idx0, 7-Cl->idx8.
@@ -3456,7 +3456,7 @@ _RING_CURATED_SMILES: dict[str, dict] = {
     # Bridgeheads: idx3=C4a, idx8=C8a.
     # Verified: 2-Cl->idx1, 3-Cl->idx0, 4-Cl->idx9.
     "c1cnc2cccnc2c1":   {"name": "1,5-naphthyridine", "substituent_form": "1,5-naphthyridinyl", "alkyl_stem_ok": False,
-                          "atom_locants": {2: 1, 1: 2, 0: 3, 9: 4, 3: "4a", 7: 5, 6: 6, 5: 7, 4: 8, 8: "8a"}},
+                          "atom_locants": {2: 1, 1: 2, 0: 3, 9: 4, 3: "8a", 7: 5, 6: 6, 5: 7, 4: 8, 8: "4a"}},
 
     # 1,8-naphthyridine: C2v symmetry; N at pos1 (idx2) and pos8 (idx4).
     # Bridgeheads: idx8=C4a, idx3=C8a.
@@ -4119,13 +4119,13 @@ _RING_CURATED_SMILES: dict[str, dict] = {
 
     # Pyrazolo[1,5-a]pyridine: 5-ring (pyrazole) ortho-fused to 6-ring
     # (pyridine) sharing one bridgehead N.  Canonical 'c1ccn2nccc2c1':
-    #   idx4 = degree-2 N (locant 1), idx3 = bridgehead N (7a).
+    #   idx4 = degree-2 N (locant 1), idx3 = bridgehead N (8: a fusion heteroatom takes a numeral, OPSIN has no 7a).
     # Locants verified via OPSIN methyl-probing at L=1..7,3a.
     "c1ccn2nccc2c1": {
         "name": "pyrazolo[1,5-a]pyridine",
         "substituent_form": "pyrazolo[1,5-a]pyridinyl",
         "alkyl_stem_ok": False,
-        "atom_locants": {4: 1, 5: 2, 6: 3, 7: "3a", 8: 4, 0: 5, 1: 6, 2: 7, 3: "7a"}},
+        "atom_locants": {4: 1, 5: 2, 6: 3, 7: "3a", 8: 4, 0: 5, 1: 6, 2: 7, 3: 8}},
 
     # 1,3,2-Benzodioxaborole: dioxaborole 5-ring ortho-fused to benzene.
     # Canonical 'B1Oc2ccccc2O1':

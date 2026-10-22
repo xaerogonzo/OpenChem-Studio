@@ -188,7 +188,7 @@ def cyclomatic_number(mol: Chem.Mol) -> int:
 
 
 def ring_counts(mol: Chem.Mol) -> dict[str, int]:
-    """The ring-related counts from Marvin's Topology Analysis list.
+    """The ring-related counts from the reference editor's Topology Analysis list.
 
     The aromatic ring count here FILTERS the SSSR rings to those whose atoms
     are all aromatic. This docstring used to say RDKit's own aromatic-ring
@@ -241,7 +241,7 @@ def ring_counts(mol: Chem.Mol) -> dict[str, int]:
 
 def stereo_counts(mol: Chem.Mol) -> dict[str, int]:
     """Asymmetric atoms (four different substituents) vs. tetrahedral
-    stereogenic centres. These genuinely differ: Marvin's own
+    stereogenic centres. These genuinely differ: the reference editor's own
     documentation notes 1,4-dimethylcyclohexane has two stereogenic
     centres and no asymmetric atoms.
     """
@@ -255,7 +255,7 @@ def compute_topology_analysis(
     mol: Chem.Mol, molecule_uuid: str, parameters: dict[str, Any] | None = None
 ) -> ReportResult:
     """The "topology" category's Topology Analysis calculator -- the whole
-    index set as one readout, the way Marvin's own window presents it."""
+    index set as one readout, the way the reference editor's own window presents it."""
     places = decimals(parameters)
     rings = ring_counts(mol)
     stereo = stereo_counts(mol)

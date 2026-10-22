@@ -854,16 +854,13 @@ def _detect_vb_unsaturation(
 
     Uses the VB locant map (atom_idx -> integer_locant).
 
-    Aromatic rings are excluded (all-aromatic bridged systems are unusual, but
-    if encountered we return empty lists).  For mixed systems containing some
-    aromatic and some saturated rings (e.g., ansa-macrolides where a
-    macrocycle bridges a fused aromatic core), aromatic ring bonds must be
-    cited as enes after Kekulization so OPSIN reproduces the correct Kekulé
-    pattern; otherwise the VB skeleton is named as fully saturated.
+    Aromatic ring bonds are cited as enes after Kekulization, whether the system
+    is mixed (an ansa-macrolide's macrocycle bridging a fused aromatic core) or
+    wholly aromatic: OPSIN then reproduces the Kekulé pattern, where an early
+    return left the skeleton named as fully saturated, another molecule (naming
+    round 77: every peri-fused azaarene the fusion constructor declined, such as
+    an aza-coronene, was `2,5-diazaheptacyclo[...]tetracosane`).
     """
-    if ring_system.aromatic:
-        return [], []
-
     from rdkit.Chem import BondType
 
     ring_atom_set = ring_system.atom_indices

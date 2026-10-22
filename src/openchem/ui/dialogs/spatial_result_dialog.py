@@ -8,7 +8,7 @@ from openchem.ui.widgets.mol3d_viewer_backend import Mol3DViewerBackend
 
 
 class SpatialResultDialog(QDialog):
-    """A shape-valued result on a 3D model -- Marvin's dipole popup, ours.
+    """A shape-valued result on a 3D model -- the reference editor's dipole popup, ours.
 
     Shown for a `ReportResult` whose producer declared `spatial`
     annotations: the conformer with the annotation drawn on it, and the

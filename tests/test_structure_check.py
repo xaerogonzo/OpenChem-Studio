@@ -233,7 +233,7 @@ def test_charged_atoms_are_not_mistaken_for_bad_valences(registry, label, smiles
 
 
 def test_a_carbene_is_a_warning_and_not_an_error(registry):
-    """Marvin's yellow rather than its red. A valence below the element's
+    """The reference editor's yellow rather than its red. A valence below the element's
     maximum is a radical or a carbene -- things people draw on purpose --
     and calling those errors is how a user learns to ignore errors."""
     result = check(registry, "[CH2]")
@@ -513,11 +513,9 @@ def test_the_hypervalent_rules_file_is_in_the_packaging_spec():
     frozen app. The spec's own comments record it happening twice already,
     once for `admet_runner.py`.
     """
-    from pathlib import Path
+    import conftest
 
-    spec = Path(__file__).resolve().parent.parent / "packaging" / "openchem.spec"
-
-    assert "hypervalent_rules.json" in spec.read_text(encoding="utf-8")
+    assert conftest.spec_ships("chem/data/hypervalent_rules.json")
 
 
 def test_every_rule_cites_a_reference_and_a_real_example():

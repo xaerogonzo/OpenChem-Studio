@@ -4,7 +4,7 @@
     python run_agreement.py floor-report                                                 floor.json: the four floors and the tolerances
     python run_agreement.py grid       --engine orca|psi4                                the 240 single points
     python run_agreement.py optimize   --engine orca|psi4                                the 16 optimizations
-    python run_agreement.py attribute                                                    Psi4 `scf_type pk` on every cell outside its tolerance (reported, decides nothing)
+    python run_agreement.py attribute                                                    Psi4 `scf_type df` on every cell outside its tolerance (reported, decides nothing)
     python run_agreement.py report                                                       report.txt and verdict.json
 
 Everything resumes: a job already recorded as completed is never run again. Records are `artifacts/<stage>/<engine>.jsonl`, one JSON line per attempt, each with the commit, whether `src/` was dirty, the engine's
@@ -19,6 +19,7 @@ from __future__ import annotations
 
 import argparse
 import hashlib
+import importlib.util
 import json
 import os
 import re
@@ -38,9 +39,27 @@ from rdkit.Chem import AllChem
 
 HERE = Path(__file__).resolve().parent
 REPO = HERE.parents[1]
-sys.path.insert(0, str(HERE))
 
-import judge  # noqa: E402
+
+def _load_judge():
+    """This folder's `judge.py`, loaded under a name of its own.
+
+    `benchmarks/` holds several files called `judge.py` (bde, proton_affinity, synthesis, this one). A bare `import judge` returns whichever of them was imported first in the
+    process, so when the suite runs another benchmark's tests before this runner's in one shard the runner got THAT judge and failed with "module 'judge' has no attribute
+    'HARTREE_TO_MEH'" (three tests, found 2026-10-22 on the first full run after the BDE benchmark merged). A name no other file uses cannot collide, and this folder is no longer
+    put on `sys.path`, which would have made the reverse collision for the others.
+    """
+    name = "psi4_agreement_judge"
+    if name in sys.modules:
+        return sys.modules[name]
+    spec = importlib.util.spec_from_file_location(name, HERE / "judge.py")
+    module = importlib.util.module_from_spec(spec)
+    sys.modules[name] = module  # a dataclass looks its own module up by name
+    spec.loader.exec_module(module)
+    return module
+
+
+judge = _load_judge()
 
 from openchem.chem.orca_engine import OrcaQuantumEngineProvider, add_parallel_block  # noqa: E402
 from openchem.chem.psi4_engine import Psi4QuantumEngineProvider  # noqa: E402
@@ -69,9 +88,19 @@ GRID_COMBINATIONS = (
     + [("B3LYP", "pcSseg-1"), ("B3LYP", "pcSseg-2"), ("B3LYP/G", "def2-SVP")]
 )
 OPT_COMBINATION = ("B3LYP", "def2-SVP")
+#: PLAN_V3: pyridine's Psi4 `tight` optimization hit the 30-minute cap in versions 1 and 2, so the optimization floor is taken on the other five floor molecules, for both engines (declared in advance, not dropped after the fact).
+OPT_FLOOR_EXCLUDED = frozenset({"pyridine"})
 #: Variants of a floor run: the engine's own input, and each setting that does not change the method.
 ORCA_VARIANTS = ("default", "tight")
-PSI4_VARIANTS = ("default", "pk", "grid", "one_thread")
+# PLAN_V2: the engine writes exact integrals (`pk`) now, so density fitting left the floor (it is a method choice, not a harmless setting) and is only the `df` attribution rerun.
+PSI4_VARIANTS = ("default", "grid", "one_thread")
+
+
+#: PLAN_FUNCTIONAL_LADDER: a job whose variant starts with this takes the shipped B3LYP input and swaps only the functional to the name after the colon. Never reached by an earlier plan.
+FUNCTIONAL_VARIANT = "functional:"
+#: The two functionals the ladder adds to the shipped ones, each as the engine's own keyword (neither is in the application's table: they are tried here, not offered).
+LADDER_ORCA_KEYWORDS = {"PBE": "PBE", "BLYP": "BLYP"}
+LADDER_PSI4_KEYWORDS = {"PBE": "pbe", "BLYP": "blyp"}
 
 
 # --- inputs ---------------------------------------------------------------------------------------------------------------
@@ -99,22 +128,39 @@ def orca_variant(text: str, variant: str, calc_type: str) -> str:
         index = next(i for i, line in enumerate(lines) if line.startswith("!"))
         lines[index] = lines[index] + extra
         return "\n".join(lines)
+    if variant.startswith(FUNCTIONAL_VARIANT):
+        # PLAN_FUNCTIONAL_LADDER: the shipped B3LYP input with only the functional's name changed on the `!` line (`! B3LYP def2-SVP ...` -> `! PBE def2-SVP ...`).
+        new = variant[len(FUNCTIONAL_VARIANT):]
+        lines = text.split("\n")
+        index = next(i for i, line in enumerate(lines) if line.startswith("!"))
+        tokens = lines[index].split(" ")
+        if tokens[1] != "B3LYP" or new not in LADDER_ORCA_KEYWORDS:
+            raise ValueError(f"cannot swap {tokens[1]!r} for {new!r} on {lines[index]!r}")
+        tokens[1] = LADDER_ORCA_KEYWORDS[new]
+        lines[index] = " ".join(tokens)
+        return "\n".join(lines)
     raise ValueError(f"unknown ORCA variant {variant!r}")
 
 
 def psi4_variant(text: str, variant: str, calc_type: str) -> str:
-    """Psi4's input as the engine writes it, with the nuisance variant's settings: `pk` (exact integrals instead of density fitting), `grid` (a finer DFT grid and tighter convergence), `one_thread` (the input is
+    """Psi4's input as the engine writes it, with the nuisance variant's settings: `df` (density fitting instead of the engine's exact integrals; attribution only), `grid` (a finer DFT grid and tighter convergence), `one_thread` (the input is
     unchanged: the thread count is the command's), `tight_opt` is added for an optimization's tight variant."""
     if variant in ("default", "one_thread"):
         return text
     lines = text.rstrip("\n").split("\n")
     verb = lines.pop()  # the last line is the energy(...) / optimize(...) call
-    if variant == "pk":
-        lines = [("set scf_type pk" if line == "set scf_type df" else line) for line in lines]
+    if variant.startswith(FUNCTIONAL_VARIANT):
+        # PLAN_FUNCTIONAL_LADDER: the shipped B3LYP input with only the functional keyword of the energy(...) call changed.
+        new = variant[len(FUNCTIONAL_VARIANT):]
+        if verb != "energy('b3lyp5')" or new not in LADDER_PSI4_KEYWORDS:
+            raise ValueError(f"cannot swap the functional of {verb!r} for {new!r}")
+        return "\n".join([*lines, f"energy('{LADDER_PSI4_KEYWORDS[new]}')", ""])
+    if variant == "df":
+        lines = [("set scf_type df" if line == "set scf_type pk" else line) for line in lines]
     elif variant == "grid":
         lines = [line.replace("1e-8", "1e-10") for line in lines] + ["set dft_radial_points 99", "set dft_spherical_points 590"]
     elif variant == "tight":
-        lines = lines + ["set g_convergence gau_tight"]
+        lines = lines + ["set g_convergence gau_tight", "set geom_maxiter 200"]  # PLAN_V2: v1's pyridine job hit the default 50 iterations
     else:
         raise ValueError(f"unknown Psi4 variant {variant!r}")
     return "\n".join([*lines, verb, ""])
@@ -243,7 +289,7 @@ def run_all(ctx: Context, jobs: list[Job]) -> None:
 def floor_jobs(engine: str) -> list[Job]:
     variants = ORCA_VARIANTS if engine == "orca" else PSI4_VARIANTS
     jobs = [Job("floor", engine, m, f, b, v, "sp") for m in FLOOR_MOLECULES for f, b in FLOOR_COMBINATIONS for v in variants]
-    jobs += [Job("floor", engine, m, *OPT_COMBINATION, v, "opt") for m in FLOOR_MOLECULES for v in ("default", "tight")]
+    jobs += [Job("floor", engine, m, *OPT_COMBINATION, v, "opt") for m in FLOOR_MOLECULES if m not in OPT_FLOOR_EXCLUDED for v in ("default", "tight")]
     return jobs
 
 
@@ -268,7 +314,7 @@ def floors_from(orca: list[dict], psi4: list[dict]) -> dict:
     dft: list[float] = []
     opt_energy: list[float] = []
     opt_rmsd: list[float] = []
-    for engine, records, variants in (("orca", orca, ("tight",)), ("psi4", psi4, ("pk", "grid", "one_thread"))):
+    for engine, records, variants in (("orca", orca, ("tight",)), ("psi4", psi4, ("grid", "one_thread"))):
         done = _completed(records)
         for m in FLOOR_MOLECULES:
             for f, b in FLOOR_COMBINATIONS:
@@ -358,7 +404,7 @@ def main() -> None:
     parser.add_argument("--engine", choices=["orca", "psi4"])
     parser.add_argument("--workers", type=int, default=3)
     parser.add_argument("--cores", type=int, default=4)
-    parser.add_argument("--out", default=str(HERE / "artifacts"))
+    parser.add_argument("--out", default=str(HERE / "artifacts_v3"))  # PLAN_V3; `artifacts/` (v1) and `artifacts_v2/` stay as the record
     parser.add_argument("--molecules", nargs="*", help="a subset (smoke tests only; a subset is never judged)")
     args = parser.parse_args()
     ctx = Context(Path(args.out), args.cores, args.workers)
@@ -382,7 +428,7 @@ def main() -> None:
         sp = single_point_records(ctx.records("grid", "orca"), ctx.records("grid", "psi4"))
         outside = [r for r in sp if r["orca"] is not None and r["psi4"] is not None and abs(r["psi4"] - r["orca"]) * judge.HARTREE_TO_MEH > tol.energy(r["functional"])]
         print(f"{len(outside)} cell(s) outside tolerance")
-        run_all(ctx, [Job("attribute", "psi4", r["molecule"], r["functional"], r["basis"], "pk", "sp") for r in outside])
+        run_all(ctx, [Job("attribute", "psi4", r["molecule"], r["functional"], r["basis"], "df", "sp") for r in outside])
     elif args.command == "report":
         floors = json.loads((ctx.out / "floor.json").read_text(encoding="utf-8"))
         tol = tolerances_from(floors)
@@ -399,7 +445,7 @@ def main() -> None:
                  *report_lines(sp, op, tol)]
         attribution = _completed(ctx.records("attribute", "psi4"))
         if attribution:
-            lines += ["", "attribution (Psi4 with scf_type pk on the cells outside tolerance; decides nothing): d with density fitting -> d with exact integrals (mEh)"]
+            lines += ["", "attribution (Psi4 with scf_type df on the cells outside tolerance; decides nothing): d with exact integrals -> d with density fitting (mEh)"]
             by_key = {(r["molecule"], r["functional"], r["basis"]): r for r in sp}
             for key, rec in sorted(attribution.items()):
                 cell = by_key[(rec["molecule"], rec["functional"], rec["basis"])]

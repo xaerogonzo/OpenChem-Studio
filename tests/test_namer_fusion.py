@@ -113,8 +113,8 @@ def test_the_construction_follows_the_rule_it_cites(smiles, expected):
 @pytest.mark.parametrize(
     "smiles,code,why",
     [
-        # benzo[1,2-b:4,5-c']difuran (p. 234): multiparent beats a fusion name
-        ("c1cc2cc3cocc3cc2o1", Unsupported.NEEDS_UNBUILT_CONSTRUCTION, "multiparent"),
+        # three occurrences of the parent (benzo[1,2-b:3,4-b':5,6-b'']trifuran): only two are built (round 77)
+        ("c1coc2c1c1ccoc1c1ccoc21", Unsupported.NEEDS_UNBUILT_CONSTRUCTION, "multiparent"),
         # cyclopenta[4,5]pyrrolo[2,3-c]pyridine (p. 239): a second-order component
         ("C1=CC2=c3ccncc3=NC2=C1", Unsupported.NEEDS_UNBUILT_CONSTRUCTION, "second order"),
         # 1H-cyclopropabenzene: P-52.2.4.1, fewer than two rings of five or more
@@ -135,12 +135,11 @@ def test_a_refusal_says_what_kind_it_is(smiles, code, why):
 def test_a_multiparent_system_is_not_handed_to_the_older_fusion_route():
     """Before: "furo[2,3-f]2-benzofuran", a fusion-looking name that is not
     the book's construction (nor well formed: a benzo parent takes brackets).
-    The older route no longer stands in; what remains is a von Baeyer name
-    where that construction succeeds, and a stated refusal where it does not
-    (it does not for this one) -- never the stand-in."""
-    got = name_smiles("c1cc2cc3cocc3cc2o1")
-    assert "2-benzofuran" not in got
-    assert "cyclo[" in got or got.startswith("[NAMING ERROR")
+    The older route no longer stands in; since naming round 77 two occurrences
+    of the parent joined by one component get the book's multiparent name
+    (P-25.3.4.1.2, p. 234), and three still keep a stated refusal."""
+    assert name_smiles("c1cc2cc3cocc3cc2o1") == "benzo[1,2-b:4,5-c']difuran"
+    assert "2-benzofuran" not in name_smiles("c1coc2c1c1ccoc1c1ccoc21")
 
 
 @pytest.mark.parametrize(

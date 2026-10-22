@@ -1,7 +1,7 @@
 """Phase 30: Huckel, dipole, vacuum MD, CNS MPO, structural frameworks.
 
 Every reference value is a closed-form answer, a symmetry argument, or a
-number ChemAxon published -- never this implementation's first run.
+number the vendor published -- never this implementation's first run.
 """
 
 from __future__ import annotations
@@ -219,11 +219,11 @@ def test_a_seeded_run_is_reproducible():
     assert a == b
 
 
-# --- CNS MPO: validated against ChemAxon's documented example ----------
+# --- CNS MPO: validated against the vendor's documented example ----------
 
 
-def test_cns_mpo_reproduces_chemaxons_documented_aspirin_score():
-    """ChemAxon documents aspirin at 5.75, every component 1.00 except
+def test_cns_mpo_reproduces_vendors_documented_aspirin_score():
+    """The vendor documents aspirin at 5.75, every component 1.00 except
     HBD_SCORE = 0.75. Reproducing that total exactly is what validates the
     breakpoints -- they are not otherwise published in their docs."""
     aspirin = Chem.MolFromSmiles("CC(=O)Oc1ccccc1C(=O)O")
