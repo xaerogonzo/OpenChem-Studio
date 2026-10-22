@@ -1142,6 +1142,7 @@
   "tests/test_calculator_taxonomy.py": 1,
   "tests/test_calculator_visibility.py": 3,
   "tests/test_camera_orientation.py": 2,
+  "tests/test_changelog_fragments.py": 3,
   "tests/test_charge_consumers.py": 1,
   "tests/test_charge_effective_structure.py": 1,
   "tests/test_charge_equilibration.py": 1,
