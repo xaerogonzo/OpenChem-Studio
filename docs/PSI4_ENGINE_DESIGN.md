@@ -97,7 +97,7 @@ HF 0.0000 mEh; PBE0 +0.10; M062X +0.09; B3LYP (Psi4 `b3lyp5`) +0.10 at def2-SVP,
    (`--workers 3 --cores 4`; expect a few hours; every stage resumes): `run_agreement.py floor --engine orca`, `floor --engine psi4`, `floor-report`, `grid --engine orca`, `grid --engine psi4`, `optimize --engine orca`, `optimize --engine psi4`, `attribute`, `report`. **Commit the tree first and do not edit `src/` while it runs** (the report refuses a dirty `src/` or two commits). Then write the outcome into the plan's last section,
    in `docs/PSI4_ENGINE_DESIGN.md` and the CHANGELOG, and act on the verdict as the plan says (a FAIL removes the functional from `PSI4_METHODS`).
 2. **Settings for Psi4's memory and threads** (a job is given a fixed 2 GB in its input; threads reuse the ORCA cores setting).
-3. **Panel text that still says ORCA** (most tooltips, "Configure ORCA...", "Full ORCA conformers"): true for ORCA's features, not Psi4-aware.
+3. **Panel text that still says ORCA** (most tooltips, "Configure ORCA...", "Full ORCA conformers"): true for ORCA's features, not Psi4-aware. **Done 2026-10-22:** with Psi4 chosen the ORCA-only controls (TMS and scaling calibrations, the tautomer distribution and its NMR, proton affinity, the Full ORCA conformers box) are disabled with a tooltip that says why, and Configure names and opens the chosen engine's tab; the tooltips of ORCA's own features are unchanged because they are true of ORCA.
 4. **Calculation types beyond `sp` and `opt`** (frequencies, dipole) only after 1, each behind its own decision; none are planned.
 5. **A pinned download** only if Alex reverses "locate-only" (a pinned source URL and checksum, the size in the confirmation: about 330 MB download, 1.87 GB installed).
 

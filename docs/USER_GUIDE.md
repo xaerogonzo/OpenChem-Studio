@@ -1577,7 +1577,7 @@ key).
 
 **A second engine, Psi4.** If you have installed Psi4 and pointed the app at it (**Tools ▸ External Tools ▸ Psi4**: Locate Installed or Browse, then Test), an **Engine** box
 appears above the Calculation list. Psi4 runs **single points and geometry optimizations** only, at B3LYP, PBE0, M062X and HF with a basis such as def2-SVP, def2-TZVP or 6-31G(d); the
-calculations it does not run are greyed out, and the solvent box and the conformer average (both ORCA's) are disabled. A Psi4 geometry is labelled **Psi4 optimized** wherever a conformer is
+calculations it does not run are greyed out, and the solvent box, the conformer average, the TMS and scaling calibrations, the tautomer buttons and Proton affinity (all ORCA's, and each would start an ORCA job) are disabled with a tooltip saying so, and **Configure** opens the Psi4 tab. A Psi4 geometry is labelled **Psi4 optimized** wherever a conformer is
 named. Two engines' numbers are never mixed under one label: the name "B3LYP" is a different functional in the two programs (they differ by 37 mEh on water), which the Psi4 engine translates, and a
 result records the engine, level and settings that made it. Psi4 is large (about 2 GB installed) and the app does not download it. Psi4's **memory per job** (2 GB unless changed) and **threads** (Automatic follows ORCA's core count) are set under **Edit ▸ Settings… ▸ Quantum chemistry ▸ Psi4** and apply to the next Psi4 job.
 
