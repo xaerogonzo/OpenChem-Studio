@@ -1446,6 +1446,7 @@
   "tests/test_namer_round76_diamide_n_locants_and_groups_a_parent_cannot_take.py": 1,
   "tests/test_namer_round77_ring_atom_scan_naphthyridine_components_and_multiparent_fusion.py": 3,
   "tests/test_namer_round78_hydro_polycycles_interior_atoms_and_the_ring_table_fusion_labels.py": 1,
+  "tests/test_namer_round79_ring_table_scans_bridged_parents_oxo_on_cations_and_missing_locants.py": 0,
   "tests/test_namer_salt_multiplier.py": 1,
   "tests/test_namer_stereo_cache_identity.py": 3,
   "tests/test_namer_stereo_locant_tie.py": 3,

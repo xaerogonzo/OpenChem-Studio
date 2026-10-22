@@ -26,7 +26,7 @@ NAMED = [
     ("N-methyl", "C[n+]1ccn2c1[nH]c1ccccc12", "1-methyl-9H-imidazo[1,2-a][1,3]benzimidazol-1-ium"),
     ("N-methyl with substituents", "Cc1c(C)[n+](C)c2[nH]c3ccccc3n12", "1,2,3-trimethyl-9H-imidazo[1,2-a][1,3]benzimidazol-1-ium"),
     ("a purinium inside a substituent", "Cn1c(=O)[nH]c(=O)c2c1[nH]c(NCCC[n+]1cc[nH]c1)[n+]2CCO",
-     "7-(2-hydroxyethyl)-8-{[3-(1H-imidazol-3-ium-3-yl)propyl]amino}-3-methyl-2,6-dioxo-1H-purin-7-ium"),
+     "7-(2-hydroxyethyl)-8-{[3-(1H-imidazol-3-ium-3-yl)propyl]amino}-3-methyl-2,6-dioxo-2,3,6,9-tetrahydro-1H-purin-7-ium"),
     ("a protonated pyrido[3,4-b]indole", "COc1cc2[nH+]c3c(C)[nH]ccc-3c2cc1Br", "6-bromo-7-methoxy-1-methyl-2H-pyrido[3,4-b]indol-9-ium"),
     ("a protonated pyrazolo-triazolo-pyrimidine", "CCc1ccc(-c2nnc3c4cnn(-c5ccc(C)cc5C)c4[nH+]cn23)cc1",
      "7-(2,4-dimethylphenyl)-3-(4-ethylphenyl)-7H-pyrazolo[4,3-e][1,2,4]triazolo[4,3-c]pyrimidin-6-ium"),

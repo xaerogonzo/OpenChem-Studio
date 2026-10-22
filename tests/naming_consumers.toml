@@ -495,6 +495,12 @@ scope = "core"
 owner = "namer"
 
 [[consumer]]
+file = "tests/test_namer_round79_ring_table_scans_bridged_parents_oxo_on_cations_and_missing_locants.py"
+why = "a ring alcohol on a bridged fusion parent keeps the hydro parent's own text (D-361), an oxo prefix on a ring cation is said with hydro prefixes (D-362) and the 3H-pyrrolo[2,3-d]pyrimidine entry numbers its pyrrole nitrogen 7 (D-363)"
+scope = "core"
+owner = "namer"
+
+[[consumer]]
 file = "tests/test_namer_round78_hydro_polycycles_interior_atoms_and_the_ring_table_fusion_labels.py"
 why = "an interior atom of a peri-fused system is written in the CAS letter form OPSIN reads (D-355), the ring table's fusion-atom labels are the ones OPSIN reads (D-356 .. D-359) and a hydro prefix before a selenium or tellurium parent takes a hyphen (D-360)"
 scope = "core"
