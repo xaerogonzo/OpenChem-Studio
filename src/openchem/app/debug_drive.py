@@ -95,6 +95,14 @@ The script is a JSON list of steps, run in order:
       {"do": "process_report",   "modules": ["openchem.chem.engine"]}  pid,
                                               HEAD, and where each module
                                               was imported from
+      {"do": "help_report", "expect": {"source": "bundle", "documents": 4, "topics_at_least": 15,
+       "panel_keys_resolve": true, "search": {"query": "Vina", "hits_at_least": 1}}}
+                                              where the HELP text came from and that every
+                                              panel's key resolves, read off the running
+                                              process (the frozen smoke test asserts "bundle")
+      {"do": "install_report", "expect": {"status": "verified"}, "wait_ms": 15000}
+                                              the install self-check's answer; WAITS while it
+                                              is still checking, and fails if it never finishes
       {"do": "log_report",       "tag": "after-draw"}   what the APPLICATION
                                               logged so far (WARNING and up),
                                               de-duplicated by where it happened
@@ -7444,6 +7452,59 @@ class _Driver(QObject):
     def _record_assertion(self, step: str, tag: str, ok: bool, detail: str) -> bool:
         self._assertions.append({"step": step, "tag": tag, "ok": ok, "detail": detail})
         return ok
+
+    def _do_help_report(self, step: dict[str, Any]) -> None:
+        """`{"do": "help_report", "expect": {...}}` -- see `app/drive_release.py`.
+
+        Read from the RUNNING modules. A release that fell back to loose files
+        or lost its bundle fails here and nowhere else.
+        """
+        from openchem.app import drive_release
+
+        expect = dict(step.get("expect") or {})
+        query = str((expect.get("search") or {}).get("query", ""))
+        state = drive_release.help_state(query)
+        failures = drive_release.evaluate_help(expect, state)
+        tag = str(step.get("tag", ""))
+        self._record_assertion("help_report", tag, not failures, "; ".join(failures) or f"help ok: {state}")
+        if failures:
+            logger.error("OPENCHEM_DRIVE: help_report FAILED[%s]: %s", tag, "; ".join(failures))
+        else:
+            logger.warning("OPENCHEM_DRIVE: help_report ok[%s] %s", tag, state)
+
+    def _do_install_report(self, step: dict[str, Any]) -> None:
+        """`{"do": "install_report", "expect": {"status": "verified"}, "wait_ms": 15000}`.
+
+        The check runs on a worker thread after the window shows, so a script
+        that asked at once would read `checking`. This HOLDS the chain and
+        polls until it answers or `wait_ms` runs out; a check that never
+        answers is a failed assertion, never a silent move on.
+        """
+        import time
+
+        self._install_wait = {"step": step, "deadline": time.monotonic() + int(step.get("wait_ms", 15000)) / 1000.0}
+        self._hold_chain = True
+        self._poll_install_report()
+
+    def _poll_install_report(self) -> None:
+        import time
+
+        from openchem.app import drive_release
+
+        wait = self._install_wait
+        step = wait["step"]
+        state = drive_release.install_state()
+        if drive_release.install_pending(state) and time.monotonic() < wait["deadline"]:
+            QTimer.singleShot(250, self._window, self._poll_install_report)
+            return
+        failures = drive_release.evaluate_install(dict(step.get("expect") or {}), state)
+        tag = str(step.get("tag", ""))
+        self._record_assertion("install_report", tag, not failures, "; ".join(failures) or f"install ok: {state}")
+        if failures:
+            logger.error("OPENCHEM_DRIVE: install_report FAILED[%s]: %s", tag, "; ".join(failures))
+        else:
+            logger.warning("OPENCHEM_DRIVE: install_report ok[%s] %s", tag, state)
+        QTimer.singleShot(int(step.get("after_ms", _DEFAULT_AFTER_MS)), self._window, self._run_next)
 
     def _do_log_report(self, step: dict[str, Any]) -> None:
         """`{"do": "log_report", "tag": "after-draw"}` -- what the APPLICATION
