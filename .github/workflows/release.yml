@@ -44,6 +44,7 @@ on:
       - 'tools/verify_install_tree.py'
       - 'tools/build_help_bundle.py'
       - 'tools/release_info.py'
+      - 'tools/changelog.py'
       - 'benchmarks/visual/frozen_smoke.json'
   workflow_dispatch:
 
@@ -86,6 +87,13 @@ jobs:
         env:
           TAG: ${{ github.ref_name }}
         run: python tools/release_info.py notes "$TAG" > /dev/null
+
+      # A fragment still in changelog.d/ was never folded into the version's section, so the
+      # notes above may be missing it. `changelog.py` is standard library only, like release_info.
+      - name: No changelog fragment may be left unfolded
+        if: github.ref_type == 'tag'
+        shell: bash
+        run: python tools/changelog.py check --no-pending
 
       - name: Install uv
         uses: astral-sh/setup-uv@37802adc94f370d6bfd71619e3f0bf239e1f3b78 # v7

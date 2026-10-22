@@ -81,6 +81,15 @@ DOCS = [
     "docs/SOURCES.md",
 ]
 
+# Changelog fragments carry the citations CHANGELOG.md used to, and they are discovered, not
+# listed: a hand-kept list is how a whole file once escaped this guard. README.md in the same
+# folder is instructions, not a fragment, and does not match the filename pattern.
+DOCS += sorted(
+    p.relative_to(_ROOT).as_posix()
+    for p in (_ROOT / "changelog.d").glob("*.md")
+    if re.fullmatch(r"\d{12}-[a-z0-9-]+-[0-9a-f]{4}\.md", p.name)
+)
+
 #: Backticked paths that deliberately do NOT resolve in this repo, each
 #: with the reason. Anything added here needs one.
 ALLOWED_MISSING_PATHS = {

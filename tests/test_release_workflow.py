@@ -160,6 +160,7 @@ def test_it_runs_on_a_release_tag_on_relevant_pull_requests_and_on_demand():
     assert "pull_request:\n    # " in WORKFLOW and "workflow_dispatch:" in WORKFLOW
     paths = re.findall(r"^      - '([^']+)'$", WORKFLOW.split("pull_request:", 1)[1].split("workflow_dispatch:", 1)[0], re.M)
     assert ".github/workflows/release.yml" in paths and "build.ps1" in paths and "packaging/**" in paths
+    assert "tools/changelog.py" in paths  # it decides whether a tag can be cut
     for path in paths:
         if "*" not in path:
             assert (ROOT / path).exists(), f"the workflow watches {path}, which does not exist"
@@ -207,7 +208,10 @@ def test_no_expression_is_spliced_into_a_shell_script():
 
 def test_the_tag_and_the_changelog_are_checked_before_the_long_build():
     build = _job("build")
-    order = [build.index(s) for s in ("check-tag", "release_info.py notes", "Install uv", "build.ps1")]
+    order = [
+        build.index(s)
+        for s in ("check-tag", "release_info.py notes", "changelog.py check --no-pending", "Install uv", "build.ps1")
+    ]
     assert order == sorted(order), "the cheap checks must come before the build"
 
 
