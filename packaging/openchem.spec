@@ -256,6 +256,21 @@ a.datas = [entry for entry in a.datas if _keep(entry)]
 
 pyz = PYZ(a.pure)  # noqa: F821
 
+# The exe's Windows version resource (product name, company, version), from the one version in
+# pyproject.toml. Without it the exe's Properties > Details tab is blank, and code signing
+# wants the signed file to say which product and version it is. See packaging/win_version_info.py
+# (loaded by path: `packaging/` is not a package and its name would shadow PyPI's).
+import importlib.util
+import tomllib
+
+_version_spec = importlib.util.spec_from_file_location("win_version_info", ROOT / "packaging" / "win_version_info.py")
+_win_version = importlib.util.module_from_spec(_version_spec)
+_version_spec.loader.exec_module(_win_version)
+_VERSION_FILE = _win_version.write(
+    ROOT / "build" / "version_info.txt",
+    tomllib.loads((ROOT / "pyproject.toml").read_text(encoding="utf-8"))["project"]["version"],
+)
+
 exe = EXE(  # noqa: F821
     pyz,
     a.scripts,
@@ -272,6 +287,7 @@ exe = EXE(  # noqa: F821
     target_arch=None,
     codesign_identity=None,
     entitlements_file=None,
+    version=str(_VERSION_FILE),
     icon=str(ROOT / "icon.ico") if (ROOT / "icon.ico").exists() else None,
 )
 
