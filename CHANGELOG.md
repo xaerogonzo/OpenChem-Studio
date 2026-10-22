@@ -2914,6 +2914,9 @@ four result shapes and compares them; each guard was confirmed to fail on a plan
 - Comments, docstrings, documents, test names and user-visible descriptions that described a commercial structure editor and its maker by name now say "the reference editor" and "the vendor", defined once in `docs/README.md`; where a number was checked against it, the text still says what was checked and where it was read. 95 files; the geometry definitions checklist was renamed to `GEOMETRY_DEFINITIONS_CHECKLIST.md`; `CALCULATOR_REFERENCE.md` and `SOURCES.md` were regenerated, not edited. A roadmap section of reference programs to emulate was removed from `docs/ROADMAP.md`. Third-party bundles (Ketcher, Mol*) and a file-format header tag in molfile fixtures are left as they are.
 - New `tests/test_no_competitor_names.py` fails if any tracked text file (or a file name) names such a product, so it cannot creep back. Git history is not rewritten.
 
+### Release: the built app was missing RDKit's natural-product scorer, which broke the descriptor batch
+- Found by running the scores and AI-assistant drive scripts against the BUILT app (the "feature smoke" in progress): the whole rdkit descriptor batch failed with `No module named 'npscorer'`, so every derived score that reads a descriptor had no value. `packaging/openchem.spec` collected `Contrib/SA_Score/*.py` but not `Contrib/NP_Score/*.py` (the model file came with the data collection; the module did not), the same trap that once broke every Physicochemical property. The spec now collects it, `build.ps1` checks the module and its model are in the built tree, and `tests/test_packaged_data.py` scans the code for every `RDContribDir/<name>` it reads and fails if the spec or the build check does not name it, so a third one cannot be added silently.
+
 ## [0.10.0] — 2026-08-17
 
 328 commits since 0.9.0. Summarised by capability; the git log is the

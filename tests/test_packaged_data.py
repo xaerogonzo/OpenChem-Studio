@@ -55,3 +55,37 @@ def test_the_spec_drops_the_ruleset_sources_from_the_directory_entry():
     spec = (ROOT / "packaging" / "openchem.spec").read_text(encoding="utf-8")
     assert "dest.startswith(DROPPED_PREFIXES)" in spec
     assert '"openchem/chem/data/regulatory/sources/"' in spec.split("DROPPED_PREFIXES = (")[1].split(")")[0]
+
+
+# --- RDKit's Contrib modules are source imported by name, which the freezer cannot see ----------
+
+
+def test_every_rdkit_contrib_directory_the_code_reads_is_collected_by_the_spec():
+    """`Contrib/SA_Score` was caught by a launch (every Physicochemical property failed) and
+    `Contrib/NP_Score` was caught the same way later, because the code appends
+    `RDConfig.RDContribDir/<name>` to `sys.path` and imports a module by name: PyInstaller's
+    analysis never sees it and `collect_data_files` skips `.py` files. This scans the code, so a
+    third one cannot be added without the spec."""
+    import re
+
+    spec = (ROOT / "packaging" / "openchem.spec").read_text(encoding="utf-8")
+    build = (ROOT / "build.ps1").read_text(encoding="utf-8")
+    used = set()
+    for path in (ROOT / "src" / "openchem").rglob("*.py"):
+        if "vendor" in path.parts:
+            continue
+        used.update(re.findall(r"RDContribDir\}?/([A-Za-z_]+)", path.read_text(encoding="utf-8")))
+    assert {"SA_Score", "NP_Score"} <= used, f"the scan found {used}; has the access pattern changed?"
+    for name in sorted(used):
+        assert f"Contrib/{name}/*.py" in spec, f"the code reads RDKit's Contrib/{name} but the spec does not collect its .py files"
+        directory = "Contrib" + chr(92) + name + chr(92)
+        assert directory in build, f"build.ps1 does not check that {directory} is in the built tree"
+
+
+def test_the_natural_product_scorer_works_the_way_the_frozen_app_will_load_it():
+    """From a checkout the module is found where RDKit installs it; this is the same call the
+    app makes, so a descriptor batch cannot be broken by this import."""
+    from openchem.chem import descriptor_providers
+
+    module, model = descriptor_providers._load_npscorer()
+    assert hasattr(module, "scoreMol") and model
