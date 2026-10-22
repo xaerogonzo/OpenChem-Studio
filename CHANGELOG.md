@@ -1006,12 +1006,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Fixed: the pKa line named the site by its zero-based index.** Acetic acid's acidic oxygen read "O3", which the canvas, the Atom Inspector and the bond reports give to the carbonyl oxygen beside it. One label (`drawing_label`) now counts from 1 and the pKa line, the torsions and the new sites share it.
 - Drive: `benchmarks/visual/torsions_and_ionisable_sites.json`.
 
-### Geometry and Molecular Surface Area (3D) gain ChemAxon-style options, and the accessible surface area was wrong
+### Geometry and Molecular Surface Area (3D) gain reference-editor-style options, and the accessible surface area was wrong
 - **Fixed: the accessible surface area was computed with a radius of zero for every atom.** `rdFreeSASA.classifyAtoms` looks atoms up by PDB atom name and returns zeros for anything else, so ethanol read 97 A^2 where Bondi radii give 199, benzene 127 against 234, water 41 against 124. Ordering was right (a longer chain read larger) and every test compared one molecule with another, so nothing noticed. It now uses Bondi radii through `chem/sasa.py`, a deterministic Shrake-Rupley accurate to about 0.3% against a 200,000-point reference. RDKit's slicing read 3.8% low on flat benzene and its analytic routine 4.5% high, so neither was used as the arbiter; lone spheres match 4 pi r^2 exactly and a diatomic its closed form to 1%. The same bug affected the ASA+/ASA-/ASA_H/ASA_P splits and the per-atom surface.
 - **Molecular Surface Area (3D)** takes a **solvent probe radius** (1.4 A default, named in the result when it is not) and **the major microspecies at a pH** (the stored conformer's protons moved, heavy atoms unmoved, the result says whether it changed anything), and reports the **van der Waals surface area**. Per-atom surface takes the probe too.
-- **Geometry** searches the orientations for its minimum and maximum projection (exact area per orientation, `chem/disc_union.py`; benzene's minimum was 20.07 A^2 on the principal planes and is 18.75 A^2), reports the **size along** each, and takes ChemAxon-style options built on OpenChem's own conformer provider: energy unit (kJ/mol converts the stored energy), optimise a COPY before the MMFF94 energy and/or the projections, use the lowest of N seeded conformers (never called the global minimum), the optimisation limit, and a radius scale on the projections. The 3D axes are drawn only when the numbers were measured on the displayed geometry.
+- **Geometry** searches the orientations for its minimum and maximum projection (exact area per orientation, `chem/disc_union.py`; benzene's minimum was 20.07 A^2 on the principal planes and is 18.75 A^2), reports the **size along** each, and takes reference-editor-style options built on OpenChem's own conformer provider: energy unit (kJ/mol converts the stored energy), optimise a COPY before the MMFF94 energy and/or the projections, use the lowest of N seeded conformers (never called the global minimum), the optimisation limit, and a radius scale on the projections. The 3D axes are drawn only when the numbers were measured on the displayed geometry.
 - **Method versions**: Geometry is `geometry-v2` and the surface calculators `surface-v2`. A result saved before is kept beside the new one in its own slot and labelled as the previous (surface: withdrawn) method, never replayed as the new one.
-- Not built, and why: ChemAxon's per-atom steric hindrance, which has no published formula (`docs/GEOMETRY_MARVIN_CHECKLIST.md`).
+- Not built, and why: the vendor's per-atom steric hindrance, which has no published formula (`docs/GEOMETRY_DEFINITIONS_CHECKLIST.md`).
 - Drive: `benchmarks/visual/geometry_and_surface.json` ran both calculators with options in the real app.
 
 ### Batch gaps closed in Properties and Results: pick individual properties, Details that computes, bulk ticks
@@ -1295,7 +1295,7 @@ four result shapes and compares them; each guard was confirmed to fail on a plan
 
 ### Click-to-cycle bonds now works with any atom tool armed
 
-- Settings > Drawing > "A click on a bond cycles its order" worked only in the Select tool, which is rarely the tool you are in when you want to fix a bond. It now also works with **any element's atom tool** armed (C, N, O, ...), as in Marvin: keep the element, click a bond, single -> double -> triple. The bond tool already cycled natively and is untouched. Still off by default. In an atom tool the press is withheld from Ketcher together with its release and click (without that the edit does not stick). Atoms under the pointer still belong to the atom tool. `benchmarks/visual/bond_click_cycle.json` gains N and O rows; the ketcher bundle is rebuilt. **Not yet confirmed with a real mouse in an atom tool** (the driven check dispatches the events inside the page).
+- Settings > Drawing > "A click on a bond cycles its order" worked only in the Select tool, which is rarely the tool you are in when you want to fix a bond. It now also works with **any element's atom tool** armed (C, N, O, ...), as in the reference editor: keep the element, click a bond, single -> double -> triple. The bond tool already cycled natively and is untouched. Still off by default. In an atom tool the press is withheld from Ketcher together with its release and click (without that the edit does not stick). Atoms under the pointer still belong to the atom tool. `benchmarks/visual/bond_click_cycle.json` gains N and O rows; the ketcher bundle is rebuilt. **Not yet confirmed with a real mouse in an atom tool** (the driven check dispatches the events inside the page).
 
 ### ESOL no longer answers for nitramines and nitrate esters
 
@@ -1528,7 +1528,7 @@ four result shapes and compares them; each guard was confirmed to fail on a plan
 - **The 1D spectrum can now be zoomed and panned**, matching the 2D correlation plots' own interaction (scroll to zoom around the cursor,
   drag to pan, double-click to reset) via zoom/pan arithmetic extracted into a shared `ui/widgets/plot_zoom.py` that both widgets now use.
   Selecting a signal (a peak click, a table row, or a 3D atom click) also re-centres and zooms on that signal's full multiplet extent by
-  default ("Zoom to selection", matching Marvin's own "Zoom Follows Selection" -- an opt-out checkbox, not forced). Both the 1D and 2D plots
+  default ("Zoom to selection", matching the reference editor's own "Zoom Follows Selection" -- an opt-out checkbox, not forced). Both the 1D and 2D plots
   now draw real intermediate numeric ticks at a "nice" spacing instead of only the axis endpoints.
 - **The NMR and IR pop-outs are resizable instead of a fixed stack.** Nested `QSplitter`s (NMR: an inner [2D structure | 3D view] pair inside
   an outer [structures | spectrum | table]; IR: the same outer three, with no inner pair since IR has only one structure pane) replace the
@@ -1557,7 +1557,7 @@ four result shapes and compares them; each guard was confirmed to fail on a plan
   include symmetry-completed equivalent-partner values when ORCA reports only a subset of an equivalent group -- flagged via
   `coupling_groups_inferred` and a sentence in the existing honest-coupling note, never silently presented as if every member had been directly
   reported. This is a first-order approximation, not a full spin-Hamiltonian simulation -- no roofing, no second-order effects, no magnetic
-  nonequivalence. The stored `multiplicity` letter is unchanged ("m" still reads "m", matching Marvin's own choice for genuinely complex cases);
+  nonequivalence. The stored `multiplicity` letter is unchanged ("m" still reads "m", matching the reference editor's own choice for genuinely complex cases);
   only what gets drawn changes.
 - **The 1D spectrum can show ppm or a Hz frequency offset.** Restricted to a referenced chemical shift -- disabled on a raw-shielding spectrum,
   since isotropic shielding has no reference-frequency relationship to convert through and showing one would look like a fabricated
@@ -2644,7 +2644,7 @@ four result shapes and compares them; each guard was confirmed to fail on a plan
 
 - **Mass spectrometry, as a capability rather than a feature.** Elemental
   Analysis draws the molecular ion's natural-abundance isotope envelope
-  beside its percentages -- the picture MarvinSketch's own window shows --
+  beside its percentages -- the picture the reference editor's own window shows --
   and a new **Mass Spectrum** calculator carries the ionisation modes: eight
   ions from a closed vocabulary, unit or exact resolution, and a minimum
   reported intensity. Both call ONE engine, so the envelope cannot differ
@@ -2912,6 +2912,10 @@ four result shapes and compares them; each guard was confirmed to fail on a plan
 - `.github/workflows/release.yml` builds the release on a clean Windows runner when a `v<version>` tag is pushed: `build.ps1 -Release -Installer` (which smoke-tests the built app, the extracted zip and the installed app), a checksum check, a build provenance attestation (`gh attestation verify` proves a file came from this workflow and repository), then a DRAFT GitHub Release with the zip, the installer and `SHA256SUMS.txt`. Nothing is published; a person tries the installer and presses Publish. A pull request that changes how a release is made runs the same build as a dry run, and `workflow_dispatch` runs it on demand.
 - Safety shape, held by `tests/test_release_workflow.py` (five mutations each fail it): no permissions by default and only the draft job can write; every third-party action pinned to a full commit SHA; no `${{ }}` spliced into a shell script; Inno Setup pinned by version and sha256 (Chocolatey has no 6.7.3); a tag that does not match `pyproject.toml`, or a version with no changelog section, fails in seconds before the long build (`tools/release_info.py`).
 - New `docs/RELEASING.md`: how to cut a release, the by-hand checklist before Publish, how to check a download, and what to do when it fails. Still not signed; SignPath Foundation is the free route and wants exactly this kind of build.
+
+### Docs and code: other companies' products are no longer named in the repository
+- Comments, docstrings, documents, test names and user-visible descriptions that described a commercial structure editor and its maker by name now say "the reference editor" and "the vendor", defined once in `docs/README.md`; where a number was checked against it, the text still says what was checked and where it was read. 95 files; the geometry definitions checklist was renamed to `GEOMETRY_DEFINITIONS_CHECKLIST.md`; `CALCULATOR_REFERENCE.md` and `SOURCES.md` were regenerated, not edited. A roadmap section of reference programs to emulate was removed from `docs/ROADMAP.md`. Third-party bundles (Ketcher, Mol*) and a file-format header tag in molfile fixtures are left as they are.
+- New `tests/test_no_competitor_names.py` fails if any tracked text file (or a file name) names such a product, so it cannot creep back. Git history is not rewritten.
 
 ### Release: the exe says which product and version it is, and the code signing policy and privacy page
 - `OpenChemStudio.exe` carried NO version information (blank product name, company and version in Properties > Details); the installer already did. `packaging/win_version_info.py` now writes the exe's Windows version resource from the one version in `pyproject.toml` (the spec passes it to PyInstaller), the installer script states its product name, company and version explicitly, and `build.ps1` reads the BUILT exe back and fails if the product name or version is not what it should be. Code signing wants this: SignPath Foundation's terms enforce product name and version metadata.

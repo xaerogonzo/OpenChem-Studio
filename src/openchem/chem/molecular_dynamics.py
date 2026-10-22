@@ -5,7 +5,7 @@ WHAT THIS IS, stated plainly because MD invites assumptions it cannot meet:
     VACUUM molecular dynamics. No thermostat, no barostat, no constraints,
     no periodic boundaries, no implicit solvent. Forces come from MMFF94
     (or UFF), not Dreiding -- so energies are NOT comparable to
-    MarvinSketch's.
+    The reference editor's.
 
 It is a real integrator over real forces (`CalcGrad` is confirmed to
 return 3N genuine gradient components), useful for watching a molecule
@@ -246,7 +246,7 @@ def compute_molecular_dynamics(
             "caveat": (
                 f"Vacuum molecular dynamics ({field_name}). No thermostat, no barostat, no "
                 f"constraints, no periodic boundaries, no solvent. Not Dreiding, so energies "
-                f"are not comparable to MarvinSketch's."
+                f"are not comparable to the reference editor's."
             ),
         },
         provenance=Provenance(

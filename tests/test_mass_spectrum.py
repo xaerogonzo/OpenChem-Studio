@@ -8,7 +8,7 @@ so a fault in the convolution cannot also move the thing it is being
 checked against. Remembering "Br2 is 1:2:1" and asserting that would be a
 weaker test AND a citation nobody checked.
 
-The one cross-tool check is the molecule in MarvinSketch's own output --
+The one cross-tool check is the molecule in the reference editor's own output --
 the same kind of comparison `chem/elemental_analysis.py`'s docstring
 already records against that tool, and for the same reason.
 """
@@ -318,7 +318,7 @@ def test_the_average_mass_is_probability_weighted_over_the_whole_envelope():
     that is computed from STANDARD ATOMIC WEIGHTS and this from the
     abundance table, which are different sources that IUPAC revises
     separately. `chem/elemental_analysis.py` records the same difference
-    against Marvin."""
+    against the reference editor."""
     mol = Chem.AddHs(Chem.MolFromSmiles("OC(=O)c1cccc(Br)c1Br"))
     spectrum = isotope_envelope(element_counts(mol), DEFAULT_ION)
     assert spectrum.average_mz == pytest.approx(Descriptors.MolWt(mol), abs=0.05)
@@ -328,8 +328,8 @@ def test_the_average_mass_is_probability_weighted_over_the_whole_envelope():
 # --- the cross-tool check ------------------------------------------------
 
 
-def test_the_dibromobenzoic_acid_envelope_matches_marvins_own_output():
-    """MarvinSketch's elemental analysis of 2,3-dibromobenzoic acid, read
+def test_the_dibromobenzoic_acid_envelope_matches_reference_editors_own_output():
+    """The reference editor's elemental analysis of 2,3-dibromobenzoic acid, read
     off its own window: 278 0.51, 279 0.04, 280 1.00, 281 0.08, 282 0.49,
     283 0.04, with an exact molecular weight of 277.857805.
 
@@ -574,12 +574,12 @@ def test_the_fold_carries_one_merged_bin_per_shift():
     assert drug[min(drug)][1] > 0.0, "the lightest branch carries the monoisotopic peak"
 
 
-def test_the_merged_fold_still_reproduces_the_marvin_envelope():
+def test_the_merged_fold_still_reproduces_the_reference_editor_envelope():
     """The CONTROL, and it is why the guard above is safe to tighten.
 
     Merging during the fold is exact rather than approximate, so the
     reported envelope must be byte-identical to the one this file's own
-    Marvin fixture pins. If a future speed-up ever starts pruning inside
+    The reference editor fixture pins. If a future speed-up ever starts pruning inside
     the fold, this is what says so.
     """
     spectrum = isotope_envelope(_counts("OC(=O)c1cccc(Br)c1Br"), DEFAULT_ION)

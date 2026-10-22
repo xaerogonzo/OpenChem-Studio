@@ -1,7 +1,7 @@
 """The minimum and maximum shadow over every orientation.
 
 The references are shapes with a CLOSED FORM, which is the only kind of anchor available:
-ChemAxon documents no formula and no radii table for its own projection figures, so nothing it
+The vendor documents no formula and no radii table for its own projection figures, so nothing it
 prints could be asserted against. A sphere casts pi r^2 from anywhere; two spheres side by
 side are seen end-on as one circle and side-on as a lens-shaped union; a rod of spheres is
 the same, repeated. A real molecule is held to a much denser sweep of orientations than the

@@ -890,7 +890,7 @@ def _calculator_descriptions() -> dict[str, str]:
 #: **TWO ENTRIES WERE RETIRED BY THIS GUARD'S OWN FIRST RUN**, which is
 #: the record worth keeping rather than the entries themselves.
 #: `polarizability` said "Miller's method is not offered -- its parameters
-#: are not published in ChemAxon's docs"; `topology_analysis` said Szeged
+#: are not published in the vendor's docs"; `topology_analysis` said Szeged
 #: and the steric index "are deliberately omitted". Both were false when
 #: this list was written -- Szeged had been computed for months -- and
 #: both descriptions are rewritten now, so their fragments occur zero

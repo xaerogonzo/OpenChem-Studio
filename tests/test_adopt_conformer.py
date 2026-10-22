@@ -435,7 +435,7 @@ def test_an_oriented_drawing_keeps_its_third_dimension(engine):
 
     The molblock stays 3D and the editor draws its x/y, so what lands on
     the canvas is a projection of the real geometry -- which is what
-    MarvinSketch shows for buckminsterfullerene. Ketcher holds those
+    The reference editor shows for buckminsterfullerene. Ketcher holds those
     coordinates through an edit; that was gated before this was written.
     """
     molecule = _molecule(engine, CHOLESTEROL)

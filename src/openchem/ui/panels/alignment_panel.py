@@ -1,6 +1,6 @@
 """Superimpose several of the project's molecules in one 3D frame.
 
-Marvin's 3D Alignment plugin compares two or more structures; the
+The reference editor's 3D Alignment plugin compares two or more structures; the
 registry calculator built alongside it can only take one molecule plus a
 typed-in reference SMILES, because `CalculatorRegistry.compute` receives
 exactly one molecule and no project handle. This panel is where the

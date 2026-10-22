@@ -3,7 +3,7 @@
 TWO NUMBERINGS, AND THEY ARE DIFFERENT CLAIMS.
 
 `index` is the atom's 1-based position in the current drawing. It is what
-MarvinSketch shows and what a chemist counts along a chain with. It is NOT a
+The reference editor shows and what a chemist counts along a chain with. It is NOT a
 stable identifier: it follows the molfile, so deleting an atom renumbers
 everything after it, and it means nothing to another program.
 

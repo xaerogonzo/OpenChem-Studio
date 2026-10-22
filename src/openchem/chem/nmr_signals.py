@@ -8,7 +8,7 @@ from rdkit import Chem
 from openchem.domain.scientific_result import SpectrumResult
 
 #: n+1 rule: n equivalent coupling partners split a signal into n+1 lines.
-#: Abbreviations are Marvin's own (singlet through septet); anything beyond a
+#: Abbreviations are the reference editor's own (singlet through septet); anything beyond a
 #: septet, or any signal coupling to more than one distinct partner group, is
 #: reported as "m" -- see _multiplicity_for's docstring for why that isn't a
 #: cop-out but the only honest first-order answer.
@@ -221,7 +221,7 @@ def _multiplicity_for(mol: Chem.Mol, group: list[int], group_of_atom: dict[int, 
     not as a single letter: a proton coupled to one partner with J1 and
     another with J2 gives a doublet of doublets, and calling that a
     "triplet" would assert a line pattern the molecule doesn't have. Real
-    line-shape simulation (which is how Marvin arrives at letters like the
+    line-shape simulation (which is how the reference editor arrives at letters like the
     "sx" it reports for ibuprofen's benzylic protons) needs the actual J
     values, which no predictor wired up here supplies.
     """
@@ -359,7 +359,7 @@ def build_nmr_signals(
     `align_mol_to_spectrum` first if it came from an editor molblock.
 
     Equivalence comes from `Chem.CanonicalRankAtoms(breakTies=False)`, which
-    reproduces 8 of the 9 groups MarvinSketch reports for ibuprofen exactly;
+    reproduces 8 of the 9 groups the reference editor reports for ibuprofen exactly;
     the 9th is the diastereotopic benzylic split `_split_diastereotopic`
     adds. Note that when a split does happen, both resulting signals carry
     the same shift unless the underlying predictor distinguishes them --
@@ -574,7 +574,7 @@ def multiplet_lines(
 
 
 def compact_multiplet_label(signal: NMRSignal) -> str:
-    """A Marvin-style compact label like "qddd", derived directly from
+    """A reference-editor-style compact label like "qddd", derived directly from
     `coupling_groups` -- descriptive only, never substituted for or
     written back into the stored `multiplicity` field, and never
     consulted by `multiplet_lines` itself.
@@ -583,7 +583,7 @@ def compact_multiplet_label(signal: NMRSignal) -> str:
     descending), so the label reads large-to-small exactly as the plot
     renders the pattern. A group whose (count + 1) line count exceeds
     `_MULTIPLICITY_BY_LINE_COUNT`'s septet ceiling falls back to an
-    explicit "(n-line)" fragment rather than guessing a letter Marvin
+    explicit "(n-line)" fragment rather than guessing a letter the reference editor
     never defined.
     """
     if not signal.coupling_groups:
