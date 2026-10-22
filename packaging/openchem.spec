@@ -126,8 +126,18 @@ datas += collect_data_files("rdkit")
 # Physicochemical property in the Properties panel read
 # "No module named 'sascorer'", because one failing provider takes the whole
 # rdkit descriptor batch down with it.
+#
+# Contrib/NP_Score/npscorer.py is the SAME case and was missed the same way. The natural-product
+# likeness descriptor imports `npscorer` by name from `RDContribDir/NP_Score` at call time, and
+# its model (`publicnp.model.gz`) came along with the data line above while the module did not.
+# Found 2026-10-22 by running the BUILT app's scores scripts: the whole rdkit descriptor batch
+# failed with "No module named 'npscorer'", so every derived score that reads a descriptor had no
+# value. EVERY Contrib directory the code reads is listed here, and tests/test_packaged_data.py
+# fails if the code reads one that this list does not name.
 datas += collect_data_files(
-    "rdkit", include_py_files=True, includes=["Contrib/SA_Score/*.py"]
+    "rdkit",
+    include_py_files=True,
+    includes=["Contrib/SA_Score/*.py", "Contrib/NP_Score/*.py"],
 )
 
 # py2opsin ships OPSIN as a 14 MB jar beside its module and shells out to

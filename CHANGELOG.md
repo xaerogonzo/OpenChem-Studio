@@ -2910,6 +2910,9 @@ four result shapes and compares them; each guard was confirmed to fail on a plan
 - Safety shape, held by `tests/test_release_workflow.py` (five mutations each fail it): no permissions by default and only the draft job can write; every third-party action pinned to a full commit SHA; no `${{ }}` spliced into a shell script; Inno Setup pinned by version and sha256 (Chocolatey has no 6.7.3); a tag that does not match `pyproject.toml`, or a version with no changelog section, fails in seconds before the long build (`tools/release_info.py`).
 - New `docs/RELEASING.md`: how to cut a release, the by-hand checklist before Publish, how to check a download, and what to do when it fails. Still not signed; SignPath Foundation is the free route and wants exactly this kind of build.
 
+### Release: the built app was missing RDKit's natural-product scorer, which broke the descriptor batch
+- Found by running the scores and AI-assistant drive scripts against the BUILT app (the "feature smoke" in progress): the whole rdkit descriptor batch failed with `No module named 'npscorer'`, so every derived score that reads a descriptor had no value. `packaging/openchem.spec` collected `Contrib/SA_Score/*.py` but not `Contrib/NP_Score/*.py` (the model file came with the data collection; the module did not), the same trap that once broke every Physicochemical property. The spec now collects it, `build.ps1` checks the module and its model are in the built tree, and `tests/test_packaged_data.py` scans the code for every `RDContribDir/<name>` it reads and fails if the spec or the build check does not name it, so a third one cannot be added silently.
+
 ## [0.10.0] — 2026-08-17
 
 328 commits since 0.9.0. Summarised by capability; the git log is the
