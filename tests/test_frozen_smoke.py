@@ -283,7 +283,7 @@ def test_the_build_smoke_tests_and_the_release_refuses_a_dirty_tree():
     build = (ROOT / "build.ps1").read_text(encoding="utf-8")
     assert "frozen_smoke.py" in build and "throw \"The built app failed its smoke test" in build
     assert "status --porcelain" in build
-    assert "$dirty -and $Release" in build  # a release is never made from a modified tree
+    assert "$dirty -and ($Release -or $Installer)" in build  # a release artifact is never made from a modified tree
     assert "make_release_zip.py" in build
     assert 'dirty = $(if ($dirty)' in build  # the stamp records it
 

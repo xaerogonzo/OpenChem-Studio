@@ -10189,6 +10189,11 @@ class _ImidoRetry(threading.local):
 _IMIDO_RETRY = _ImidoRetry()
 
 
+#: OPSIN reads `dihydroselenochromenylium` as `dihydroseleno` + `chromenylium` (a hydroselanyl prefix on another molecule), so a hydro prefix directly before a
+#: selenium or tellurium parent takes a hyphen: `3,4-dihydro-selenochromenylium` (naming round 78). Sulfur has no such prefix.
+_HYDRO_BEFORE_CHALCOGEN = re.compile(r"(hydro)(?=(?:seleno|telluro))")
+
+
 def _name_smiles_bound(smiles: str, strategy) -> str:
     """Name a molecule from SMILES, *strategy* already bound (never None); refuse a name that loses a nuclide or a charge.
 
@@ -10211,6 +10216,7 @@ def _name_smiles_bound(smiles: str, strategy) -> str:
         name = _restore_dropped_oximium(mol, name)
         name = _restore_dropped_oxidanium(mol, name)
         _check_charge_named(mol, name)
+        name = _HYDRO_BEFORE_CHALCOGEN.sub(r"\1-", name)
     return name
 
 
