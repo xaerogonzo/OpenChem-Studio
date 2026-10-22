@@ -1,0 +1,35 @@
+{
+ "case": "ethanol_radical",
+ "start_lowest_freq": -105.75,
+ "hess_lowest": -106.0326859114035,
+ "hess_lowest_five": [
+  -106.0326859114035,
+  0.0,
+  0.0,
+  0.0,
+  0.0,
+  0.0,
+  0.0,
+  248.2211840491366
+ ],
+ "freq_seconds": 446,
+ "displaced": [
+  {
+   "sign": 1,
+   "amp": 0.15,
+   "energy": -154.354322175783,
+   "enthalpy": -154.28373255,
+   "lowest_frequency": 0.0,
+   "seconds": 1174
+  },
+  {
+   "sign": -1,
+   "amp": 0.15,
+   "energy": -154.354331855252,
+   "enthalpy": -154.28484551,
+   "lowest_frequency": -63.96,
+   "seconds": 983
+  }
+ ],
+ "start_enthalpy": -154.28483662
+}

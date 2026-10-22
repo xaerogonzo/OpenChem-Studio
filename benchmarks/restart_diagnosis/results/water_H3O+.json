@@ -1,0 +1,35 @@
+{
+ "case": "water_H3O+",
+ "start_lowest_freq": -601.56,
+ "hess_lowest": -601.5569836996674,
+ "hess_lowest_five": [
+  -601.5569836996674,
+  0.0,
+  0.0,
+  0.0,
+  0.0,
+  0.0,
+  0.0,
+  1599.7874880214504
+ ],
+ "freq_seconds": 32,
+ "displaced": [
+  {
+   "sign": 1,
+   "amp": 0.15,
+   "energy": -76.701418348129,
+   "enthalpy": -76.66319626,
+   "lowest_frequency": 0.0,
+   "seconds": 89
+  },
+  {
+   "sign": -1,
+   "amp": 0.15,
+   "energy": -76.701418347182,
+   "enthalpy": -76.66319626,
+   "lowest_frequency": 0.0,
+   "seconds": 89
+  }
+ ],
+ "start_enthalpy": -76.66272409
+}
