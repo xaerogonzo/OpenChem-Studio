@@ -776,7 +776,7 @@ def _document_header(table: QTableWidget, keys: tuple[str, ...]) -> None:
 class QuantumChemistryPanel(QWidget):
     """Pick a molecule from the current project, configure a calculation,
     and run it via whichever `QuantumEngineProvider` is registered
-    (`OrcaQuantumEngineProvider` is the only one today). Streams ORCA's
+    (ORCA, and Psi4 when it is set up: the Engine box picks). Streams the engine's
     stdout live and shows a summary once results arrive.
     """
 
@@ -904,6 +904,10 @@ class QuantumChemistryPanel(QWidget):
 
         # The engine. Filled by `_refresh_engines` and SHOWN only when more than one engine is set up, so a machine with ORCA alone sees
         # exactly the form it always had.
+        # Whether the chosen engine runs ORCA's own workflows (the TMS and scaling calibrations, the tautomer distribution and its NMR, proton affinity), and what each
+        # of those buttons WANTS to be (idle or busy, runnable or not) while an engine without them is chosen: see `_set_orca_only_enabled`.
+        self._engine_has_orca_features = True
+        self._orca_only_wanted: dict[QPushButton, bool] = {}
         self._engine_combo = QComboBox(self)
         apply_help_tooltip(self._engine_combo, _HELP["engine"])
         self._engine_combo.currentIndexChanged.connect(self._on_engine_changed)
@@ -1003,7 +1007,7 @@ class QuantumChemistryPanel(QWidget):
         self._tautomer_nmr_button = QPushButton("Tautomer NMR...", self)
         apply_help_tooltip(self._tautomer_nmr_button, _HELP["tautomer_nmr"])
         self._tautomer_nmr_button.clicked.connect(self._on_tautomer_nmr_clicked)
-        self._tautomer_nmr_button.setEnabled(False)
+        self._set_orca_only_enabled(self._tautomer_nmr_button, False)
         self._tautomer_nmr_conformers_check = QCheckBox("Average NMR over conformers", self)
         apply_help_tooltip(self._tautomer_nmr_conformers_check, _HELP["tautomer_nmr_conformers"])
         self._tautomer_nmr_conformers_check.setChecked(
@@ -2009,7 +2013,8 @@ class QuantumChemistryPanel(QWidget):
         self._update_surfaces_view()
 
     def _on_configure_clicked(self) -> None:
-        dialog = SettingsDialog(self._settings, self, section=EXTERNAL_TOOLS, tool="orca")
+        # The tab of the engine the Engine box has chosen ("orca" or "psi4"; ORCA when there is no choice).
+        dialog = SettingsDialog(self._settings, self, section=EXTERNAL_TOOLS, tool=self._selected_engine_id())
         dialog.exec()
         # A tool may have been set up or removed in there.
         self._refresh_engines()
@@ -2265,8 +2270,8 @@ class QuantumChemistryPanel(QWidget):
         self._pending_conformer_note = ""
         self._optimized_conformer_molblock = ""
         self._run_button.setEnabled(False)
-        self._tautomer_distribution_button.setEnabled(False)
-        self._proton_affinity_button.setEnabled(False)
+        self._set_orca_only_enabled(self._tautomer_distribution_button, False)
+        self._set_orca_only_enabled(self._proton_affinity_button, False)
         self._cancel_button.setEnabled(True)
         self._output_log.clear()
         self._results_label.setText("")
@@ -2332,8 +2337,8 @@ class QuantumChemistryPanel(QWidget):
         self._pending_conformer_note = ""
         self._optimized_conformer_molblock = ""
         self._run_button.setEnabled(False)
-        self._tautomer_distribution_button.setEnabled(False)
-        self._proton_affinity_button.setEnabled(False)
+        self._set_orca_only_enabled(self._tautomer_distribution_button, False)
+        self._set_orca_only_enabled(self._proton_affinity_button, False)
         self._cancel_button.setEnabled(True)
         self._output_log.clear()
         self._results_label.setText("")
@@ -2364,7 +2369,7 @@ class QuantumChemistryPanel(QWidget):
         if distribution is not None:
             targets, _problems = targets_from_distribution(distribution)
             runnable = bool(targets)
-        self._tautomer_nmr_button.setEnabled(runnable and idle)
+        self._set_orca_only_enabled(self._tautomer_nmr_button, runnable and idle)
         self._view_tautomer_nmr_button.setEnabled(run is not None and run.results.get("tautomer_nmr") is not None)
 
     @staticmethod
@@ -2418,9 +2423,9 @@ class QuantumChemistryPanel(QWidget):
         self._pending_molecule_uuid = molecule.uuid
         self._tautomer_nmr_distribution = distribution
         self._run_button.setEnabled(False)
-        self._tautomer_distribution_button.setEnabled(False)
-        self._proton_affinity_button.setEnabled(False)
-        self._tautomer_nmr_button.setEnabled(False)
+        self._set_orca_only_enabled(self._tautomer_distribution_button, False)
+        self._set_orca_only_enabled(self._proton_affinity_button, False)
+        self._set_orca_only_enabled(self._tautomer_nmr_button, False)
         self._cancel_button.setEnabled(True)
         self._output_log.clear()
         self._status_label.setText(f"queued -- {jobs} NMR calculation(s) for {len(targets)} tautomer(s)")
@@ -2812,6 +2817,49 @@ class QuantumChemistryPanel(QWidget):
         log_index = self._correlation_tabs.indexOf(self._output_log)
         if log_index >= 0:
             self._correlation_tabs.setTabText(log_index, f"{name} Log")
+        self._apply_engine_to_orca_only_controls(orca_like, name)
+
+    def _orca_only_controls(self) -> tuple[tuple[QWidget, str], ...]:
+        """Every control that starts one of ORCA's own workflows, each with the help contract its tooltip goes back to when ORCA is chosen again."""
+        return (
+            (self._calibrate_button, "tms_reference_calibration"),
+            (self._scaling_button, "empirical_shift_scaling"),
+            (self._tautomer_distribution_button, "tautomer_distribution"),
+            (self._proton_affinity_button, "proton_affinity"),
+            (self._tautomer_full_check, "tautomer_full_orca"),
+            (self._tautomer_nmr_button, "tautomer_nmr"),
+            (self._tautomer_nmr_conformers_check, "tautomer_nmr_conformers"),
+        )
+
+    def _set_orca_only_enabled(self, button: QPushButton, wanted: bool) -> None:
+        """Enable or disable one of the buttons above. What it WANTS (a job is running, nothing is selected, a run is ready) is remembered, and an engine that does not run it
+        keeps it disabled whatever it wants, so a job finishing while Psi4 is chosen cannot switch ORCA's tautomer button back on; choosing ORCA again restores what it wanted."""
+        self._orca_only_wanted[button] = wanted
+        button.setEnabled(wanted and self._engine_has_orca_features)
+
+    def _apply_engine_to_orca_only_controls(self, orca_like: bool, engine_name: str) -> None:
+        """Make the ORCA-only controls say so. With an engine that runs only a subset of calculations (Psi4) they are disabled with a tooltip that names the reason, because each of them
+        would otherwise start an ORCA job while the Engine box and the log tab say Psi4; with ORCA they are what they were. The Configure button follows the engine too."""
+        self._engine_has_orca_features = orca_like
+        for widget, key in self._orca_only_controls():
+            if orca_like:
+                apply_help_tooltip(widget, _HELP[key])
+            else:
+                widget.setToolTip(f"This runs on ORCA only, and {engine_name} is chosen in the Engine box. Choose ORCA there to use it.")
+            if isinstance(widget, QPushButton):
+                # A button nothing has set yet (enabled by default) wants what it is now, recorded before it is switched off so that ORCA can have it back.
+                wanted = self._orca_only_wanted.setdefault(widget, widget.isEnabled())
+                widget.setEnabled(wanted and orca_like)
+            else:
+                widget.setEnabled(orca_like)
+        self._configure_button.setText(f"Configure {engine_name}...")
+        if orca_like:
+            apply_help_tooltip(self._configure_button, _HELP["configure_orca"])
+        else:
+            self._configure_button.setToolTip(
+                f"Opens the external-tools settings at the {engine_name} entry, where the path to the executable is set and a two-atom test calculation can be run. "
+                f"{engine_name} is installed by you and is not bundled with this application."
+            )
 
     def _on_calc_type_changed(self, label: str) -> None:
         """Steers NMR runs onto an NMR-appropriate basis.
@@ -2832,7 +2880,7 @@ class QuantumChemistryPanel(QWidget):
         if not method_basis:
             self._status_label.setText("Enter a method/basis before calibrating.")
             return
-        self._calibrate_button.setEnabled(False)
+        self._set_orca_only_enabled(self._calibrate_button, False)
         self._status_label.setText(f"Calibrating reference (TMS) for {method_basis!r} — this may take a while.")
         self._quantum_chemistry_service.request_reference_calibration(method_basis)
 
@@ -2841,7 +2889,7 @@ class QuantumChemistryPanel(QWidget):
         if not method_basis:
             self._status_label.setText("Enter a method/basis before calibrating.")
             return
-        self._scaling_button.setEnabled(False)
+        self._set_orca_only_enabled(self._scaling_button, False)
         self._status_label.setText(
             f"Calibrating scaling factors for {method_basis!r} across 11 reference compounds — "
             "this runs 11 ORCA jobs and will take a while."
@@ -2849,7 +2897,7 @@ class QuantumChemistryPanel(QWidget):
         self._quantum_chemistry_service.request_scaling_calibration(method_basis)
 
     def _on_scaling_calibrated(self, event: NmrScalingCalibrated) -> None:
-        self._scaling_button.setEnabled(True)
+        self._set_orca_only_enabled(self._scaling_button, True)
         if not event.factors:
             self._status_label.setText(f"Scaling calibration failed: {event.error}")
             return
@@ -2865,7 +2913,7 @@ class QuantumChemistryPanel(QWidget):
         self._status_label.setText(message)
 
     def _on_reference_calibrated(self, event: NmrReferenceCalibrated) -> None:
-        self._calibrate_button.setEnabled(True)
+        self._set_orca_only_enabled(self._calibrate_button, True)
         if event.error:
             self._status_label.setText(f"Reference calibration failed: {event.error}")
         else:
@@ -2886,8 +2934,8 @@ class QuantumChemistryPanel(QWidget):
             self._correlation_tabs.setCurrentWidget(self._output_log)
         if event.state.value in ("completed", "failed"):
             self._run_button.setEnabled(True)
-            self._tautomer_distribution_button.setEnabled(True)
-            self._proton_affinity_button.setEnabled(True)
+            self._set_orca_only_enabled(self._tautomer_distribution_button, True)
+            self._set_orca_only_enabled(self._proton_affinity_button, True)
             self._update_tautomer_nmr_buttons(self._active_run)
             self._cancel_button.setEnabled(False)
             if event.state.value == "failed":
