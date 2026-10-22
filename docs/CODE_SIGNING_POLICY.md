@@ -32,9 +32,9 @@ means a file is.*
 
   | Role | What it means | Who |
   |---|---|---|
-  | Author | commits code to the repository | [@xaerogonzo](https://github.com/xaerogonzo) |
-  | Reviewer | reviews changes from people who are not authors | [@xaerogonzo](https://github.com/xaerogonzo) |
-  | Approver | approves each release before it is signed and published | [@xaerogonzo](https://github.com/xaerogonzo) |
+  | Author | commits code to the repository | Alexander L Corthell ([@xaerogonzo](https://github.com/xaerogonzo)) |
+  | Reviewer | reviews changes from people who are not authors | Alexander L Corthell ([@xaerogonzo](https://github.com/xaerogonzo)) |
+  | Approver | approves each release before it is signed and published | Alexander L Corthell ([@xaerogonzo](https://github.com/xaerogonzo)) |
 
   The project currently has one maintainer, who holds all three roles. Anyone else's
   change reaches a release only through a pull request the maintainer reviews.
