@@ -323,10 +323,10 @@ large slice to decline, and it is printed beside the accuracy, because a
 model that refuses its hard cases looks better the more it refuses.
 
 **A claim in this project's own notes was overturned by the better
-measurement.** The solubility module said ESOL beat Marvin on Marvin's own
+measurement.** The solubility module said ESOL beat the reference editor on the reference editor's own
 documentation molecule, resting on an ESOL-era experimental value of −2.19
 for aspirin. SC-2's interlaboratory mean over 16 sources is **−1.67**, and
-against that Marvin (0.14 off) and AqSolDB (0.05) both beat ESOL (0.42).
+against that the reference editor (0.14 off) and AqSolDB (0.05) both beat ESOL (0.42).
 
 **Non-aqueous — scored, and the shift is NOT validated by it.** Abraham's
 coefficients are "obtained by linear regression using experimentally
@@ -861,7 +861,7 @@ hydrogens — which shipped instead.
 
 **Miller polarizability — SHIPPED, and the reason it was not is the
 clearest case of a rotted reason in this file.** It read "the parameters
-are unpublished", which was a claim about ChemAxon's documentation rather
+are unpublished", which was a claim about the vendor's documentation rather
 than about the literature: Miller 1990's Table I prints all twenty rows
 ([source:miller1990]). Both recorded failures have causes now. The +27% on
 benzene is the `CBR` row, whose symbol reads as "carbon in a benzene ring"
@@ -890,7 +890,7 @@ implementation's default is a proprietary consensus method. Nothing to
 check a result against." Three of those four clauses fell to one paper:
 [source:schott1989] prints Griffin's Eq. [1], its closed form Eq. [2] with
 worked constants, and Davies' group numbers. The fourth stands and is not
-chased — ChemAxon's default is proprietary, so agreeing with Marvin is
+chased — the vendor's default is proprietary, so agreeing with the reference editor is
 unreachable.
 
 That paper also supplies the *reason the name is ambiguous*, which shaped

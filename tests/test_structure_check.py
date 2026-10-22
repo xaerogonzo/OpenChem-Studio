@@ -233,7 +233,7 @@ def test_charged_atoms_are_not_mistaken_for_bad_valences(registry, label, smiles
 
 
 def test_a_carbene_is_a_warning_and_not_an_error(registry):
-    """Marvin's yellow rather than its red. A valence below the element's
+    """The reference editor's yellow rather than its red. A valence below the element's
     maximum is a radical or a carbene -- things people draw on purpose --
     and calling those errors is how a user learns to ignore errors."""
     result = check(registry, "[CH2]")

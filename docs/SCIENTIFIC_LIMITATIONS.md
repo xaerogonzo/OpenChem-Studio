@@ -468,7 +468,7 @@ approximation** ([10.1016/j.addr.2007.05.008](https://doi.org/10.1016/j.addr.200
 solubility exceeds intrinsic by about **four orders of magnitude for a
 weak acid and three for a weak base**. It is asymmetric because a sodium
 and a chloride salt are not equally soluble. This replaced a symmetric
-+2 that had been inferred from a single ChemAxon screenshot and had no
++2 that had been inferred from a single the vendor screenshot and had no
 source; on propranolol at gastric pH it moves the prediction from 7 to
 70 mg/mL, against a real hydrochloride solubility near 50.
 
@@ -614,7 +614,7 @@ Sorbitan esters are the case most likely to be got wrong. Griffin's
 *formula* does not apply to them: sorbitan is a polyhydric alcohol, so
 polyoxyethylene is not the sole hydrophile.
 
-**It will not agree with Marvin**, whose default is a proprietary consensus
+**It will not agree with the reference editor**, whose default is a proprietary consensus
 method. That is documented rather than chased.
 
 **"HLB" names two incompatible quantities.** Davies' scale shares the name
@@ -1359,11 +1359,11 @@ specific than the structure. The name is shown with a note saying so,
 rather than withheld — the nomenclature engine is not wrong, it simply
 cannot express what the geometry added.
 
-**The generation controls emulate Marvin's, not its algorithms.** The
+**The generation controls emulate the reference editor's, not its algorithms.** The
 diversity threshold, optimisation level, time limit and refinement pass
-are modelled on ChemAxon's Generate3D options because those are the knobs
-people expect; none of them reproduces ChemAxon's implementation, and
-ChemAxon publishes no default values for any of them, so the defaults here
+are modelled on the vendor's conformer-generation options because those are the knobs
+people expect; none of them reproduces the vendor's implementation, and
+The vendor publishes no default values for any of them, so the defaults here
 are this application's own. In particular **"enhanced refinement" is not
 "hyperfine"** — that runs short molecular dynamics before a strict
 optimisation, and repeated minimisation is not an approximation of

@@ -1,6 +1,6 @@
 """SMARTS substructure search with highlightable matches.
 
-Not one of Marvin's plugins -- added because it is genuinely useful and
+Not one of the reference editor's plugins -- added because it is genuinely useful and
 because this codebase already contains a lot of validated SMARTS that
 becomes browsable through it: the PAINS and BRENK catalogs, the curated
 functional-group set, and the hERG basic-amine pattern whose 9 test cases

@@ -20,8 +20,8 @@ formulas published, no worked example, and the reference implementation's
 default is a proprietary consensus method. Nothing to check a result
 against." Three of those four clauses are answered by Schott, which
 prints both formulas and worked constants. The fourth still stands and is
-not chased: ChemAxon's default is a proprietary consensus method, so
-agreeing with Marvin here is not reachable, and this reports what Griffin
+not chased: the vendor's default is a proprietary consensus method, so
+agreeing with the reference editor here is not reachable, and this reports what Griffin
 defines rather than being tuned toward another tool -- the same call
 `bbb_stereo` makes about its pKa disagreement.
 
@@ -330,7 +330,7 @@ def compute_griffin_hlb(
                 "GRIFFIN, NOT DAVIES. The two scales share the name and disagree "
                 "substantially across the whole range of practical applications, so a "
                 "number reported as bare 'HLB' is ambiguous between them.",
-                "Marvin's default is a proprietary consensus method and will not "
+                "The reference editor's default is a proprietary consensus method and will not "
                 "agree with this.",
             ),
         ),

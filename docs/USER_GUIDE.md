@@ -324,7 +324,7 @@ draw one) says so rather than copying a blank.
 
 Four ways in, all the same mode: the **Rotate 3D** button at the top of
 the 2D Editor tab, **Structure ▸ Rotate 3D**, **right-click on an atom**,
-and **F7** — the key Marvin uses for it. All four tick together, because
+and **F7** — the key the reference editor uses for it. All four tick together, because
 they are one control shown in four places.
 
 While the mode is on, **dragging turns the molecule instead of drawing**,
@@ -409,7 +409,7 @@ conformer; butane has two. Requesting more does not create more.
 **Some results draw themselves on a 3D model.** A calculator whose answer
 is a *shape* — the dipole moment's vector, a ligand's steric cone, the
 principal axes behind the molecular dimensions — opens its **Details…**
-onto the stored conformer with that shape drawn on it, the way Marvin's
+onto the stored conformer with that shape drawn on it, the way the reference editor's
 dipole plugin shows its arrow. The arrow's direction is the physics
 (it points from the negative end toward the positive, the raw Σq·r
 vector); its drawn *length* is scaled to the molecule for legibility, and
@@ -558,7 +558,7 @@ batch, how many quiet batches end the search, and a time limit. Changing
 the batch size does not change what gets sampled, only how often the
 search checks whether it is still finding things.
 
-The remaining controls are modelled on ChemAxon's Generate3D calculator,
+The remaining controls are modelled on the vendor's conformer-generation calculator,
 and are emulations of those controls rather than of the algorithms behind
 them:
 
@@ -570,7 +570,7 @@ them:
   are a flat continuum with no gap for a threshold to sit in.
 - **Optimisation** — Loose, Normal, Strict or Very strict, setting how many
   iterations and how tight a gradient each embedding is minimised to.
-  These are OpenChem's levels, not numerical equivalents of Marvin's.
+  These are OpenChem's levels, not numerical equivalents of the reference editor's.
   Measured over 30 embeddings each of seven molecules, every level
   converged 30 of 30 and the retained count differed on only one
   molecule — ethylmorphine, where Loose found 8 against 9 elsewhere. A
@@ -579,7 +579,7 @@ them:
   Not a hard ceiling: neither RDKit's embedder nor its minimiser can be
   interrupted part-way, so a run can overshoot by one embedding.
 - **Enhanced refinement** — a second, stricter minimisation over the
-  survivors. **This is not Marvin's "hyperfine"**, which runs short
+  survivors. **This is not the reference editor's "hyperfine"**, which runs short
   molecular dynamics before its strict optimisation; there is no MD engine
   here, and a minimiser cannot leave the basin it is already in. Measured,
   it changes nothing at Normal or above, and its one visible effect was
@@ -656,7 +656,7 @@ to get one.
 to, not the first — and hands the 2D editor **the 3D structure as you have
 it rotated**. The molblock keeps its z, the editor draws its x and y, so
 what you get is a projection of the geometry you were just looking at,
-the way MarvinSketch draws buckminsterfullerene in perspective. Crossing
+the way the reference editor draws buckminsterfullerene in perspective. Crossing
 bonds are not a fault: that is what a projection of a real 3D shape looks
 like. It is a single undoable step, and Ketcher holds those coordinates
 through subsequent edits.
@@ -2833,7 +2833,7 @@ no Units box and stays in the unit it was computed in; run it again to get
 the choice.)
 
 **The category is computed from the intrinsic value, not the pH-adjusted
-one**, which is how ChemAxon defines those thresholds: below 0.01 mg/mL
+one**, which is how the vendor defines those thresholds: below 0.01 mg/mL
 Low, up to 0.06 Moderate, above it High.
 
 ### If your molecule is a base, the panel says so
@@ -2886,7 +2886,7 @@ not be taken "as gospel", so it is refused rather than guessed.
 
 pH, the pH–solubility curve, the Low/Moderate/High category and the BCS
 screen are all **aqueous concepts**. Henderson–Hasselbalch, the pKa values
-behind it, ChemAxon's thresholds and the ICH M9 window are every one of
+behind it, the vendor's thresholds and the ICH M9 window are every one of
 them defined on water.
 
 So a non-aqueous solvent gives you an intrinsic solubility and nothing
@@ -3047,7 +3047,7 @@ External Tools.
 <!-- help:menus -->
 ## Where things live in the menus
 
-Following Marvin, **Edit** is about the document and **Structure** is about
+Following the reference editor, **Edit** is about the document and **Structure** is about
 the structure:
 
 | Menu | Holds |
@@ -3500,7 +3500,7 @@ Either way a product is a proposal, not a result: no conditions, yield or by-pro
   smallest shadow was 20.07 Å² there and is 18.75 Å² searched); a result saved
   before that is kept beside the new one, labelled as the previous method.
   The "radius" is the circle that encloses the shadow, and the "size" is the
-  molecule's extent along that view, surface to surface — ChemAxon defines
+  molecule's extent along that view, surface to surface — the vendor defines
   neither, so each fact states what it means here.
 - **Geometry takes options, and every one works on a copy.** Energy unit
   (kcal/mol or kJ/mol — the same energy, converted); optimise before the MMFF94

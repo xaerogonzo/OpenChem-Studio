@@ -1100,8 +1100,8 @@ document may cite a file or a test that does not exist.
   hydrogens (Crippen and Jensen per-atom) are scoped per component instead.
 
 - **DECISION** -- the 3D alignment overlay has ONE pane with a colour
-  mode, not ChemAxon's two side-by-side views. Requested from a
-  MarvinSpace screenshot on 2026-08-25, showing the same overlay twice --
+  mode, not the vendor's two side-by-side views. Requested from a
+  The reference editor's 3D viewer screenshot on 2026-08-25, showing the same overlay twice --
   once per-molecule-coloured and once by element.
 
   **A second pane means a second 3Dmol viewer**, and `createViewerGrid`
@@ -1284,7 +1284,7 @@ document may cite a file or a test that does not exist.
   **"Literal 3D" meant the previous fix aimed at the wrong target.**
   `drawing_from_conformer` deliberately AVOIDED the projection, on the
   grounds that a projection overlaps. But crossing bonds are what a
-  projection of a real geometry looks like -- MarvinSketch draws
+  projection of a real geometry looks like -- the reference editor draws
   buckminsterfullerene that way. It now rotates the conformer by the
   viewer's camera and writes a **3D** molblock, which Ketcher holds
   through subsequent edits (gated first, `7966951`: one uniform 3D

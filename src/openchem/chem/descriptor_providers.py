@@ -769,12 +769,12 @@ def compute_gasteiger_charges(mol: Chem.Mol, include_hydrogens: bool = False) ->
     Gasteiger-charge logic isn't duplicated between them.
 
     `include_hydrogens=True` adds each heavy atom's implicit-hydrogen
-    charge to its own -- Marvin's "Increment of Hs" option, the bracketed
+    charge to its own -- the reference editor's "Increment of Hs" option, the bracketed
     second number in its charge screenshots. RDKit exposes exactly this as
     `_GasteigerHCharge` (confirmed live), so it is real data rather than
     an approximation.
 
-    A NOTE ON SIGMA/PI: Marvin also offers a sigma/pi/total selector.
+    A NOTE ON SIGMA/PI: the reference editor also offers a sigma/pi/total selector.
     RDKit implements PEOE, which is a SIGMA-charge method -- it has no pi
     component to separate out, so that selector is deliberately not
     offered here rather than being faked by relabelling one number three
@@ -2107,7 +2107,7 @@ def compute_polar_surface_area(
     """The "surface" category's 2D Polar Surface Area calculator.
 
     Reports TPSA for the neutral structure AND for the dominant
-    microspecies at a given pH -- Marvin shows both, and they genuinely
+    microspecies at a given pH -- the reference editor shows both, and they genuinely
     differ: protonating an amine or deprotonating an acid changes the polar
     atom set. Reuses `protonate_at_ph` (Phase 18), the same transformation
     the pH-dependent charge calculator already applies.
@@ -2545,7 +2545,7 @@ CALCULATOR_DEFINITIONS: list[CalculatorDefinition] = [
         category="identity",
         description=(
             "Molecular formula, average and exact mass, atom count and elemental "
-            "composition (w/w %). Validated against MarvinSketch's own output for "
+            "composition (w/w %). Validated against the reference editor's own output for "
             "tyramine hydrochloride."
         ),
         execution=RegistryExecution(compute=compute_elemental_analysis),
@@ -2780,7 +2780,7 @@ CALCULATOR_DEFINITIONS: list[CalculatorDefinition] = [
         display_name="Molecular Surface Area (3D)",
         category="surface",
         description=(
-            "Solvent-accessible surface area with Marvin's ASA+/ASA-/ASA_H/ASA_P splits, "
+            "Solvent-accessible surface area with the reference editor's ASA+/ASA-/ASA_H/ASA_P splits, "
             "plus the van der Waals surface area and volume. The solvent probe's radius can "
             "be changed (1.4 A, a water molecule, by default), and the structure can be the "
             "major microspecies at a pH, built on the stored conformer by moving protons "
@@ -3469,7 +3469,7 @@ CALCULATOR_DEFINITIONS: list[CalculatorDefinition] = [
         description=(
             "Velocity-Verlet dynamics over MMFF94/UFF forces. VACUUM only: no thermostat, no "
             "barostat, no constraints, no periodic boundaries, no solvent. Not Dreiding, so "
-            "energies are not comparable to MarvinSketch's. Needs a conformer."
+            "energies are not comparable to the reference editor's. Needs a conformer."
         ),
         execution=RegistryExecution(compute=compute_molecular_dynamics),
         parameters=[
@@ -3503,7 +3503,7 @@ CALCULATOR_DEFINITIONS: list[CalculatorDefinition] = [
         category="admet",
         description=(
             "Wager et al. CNS multiparameter optimisation score, 0-6 from six desirability "
-            "functions. Breakpoints validated against ChemAxon's documented aspirin example "
+            "functions. Breakpoints validated against the vendor's documented aspirin example "
             "(5.75). Without a pkasolver environment the pKa term is omitted rather than "
             "assumed favourable, and the score is reported out of 5."
         ),
@@ -3575,7 +3575,7 @@ CALCULATOR_DEFINITIONS: list[CalculatorDefinition] = [
         description=(
             "The five inputs to Gupta et al.'s (2019) BBB Score: aromatic rings, heavy atoms, "
             "MWHBN, TPSA and the most basic pKa. The composite score itself is not computed -- "
-            "its weight functions are unpublished, and ChemAxon's single worked example cannot "
+            "its weight functions are unpublished, and the vendor's single worked example cannot "
             "validate five unknown curves. Aromatic rings, heavy atoms and MWHBN all reproduce "
             "that example exactly."
         ),

@@ -373,7 +373,7 @@ class ChemistryEngine:
         **With a `view`, this keeps the 3D geometry and simply turns it.**
         That is the whole point of the feature -- reported as "the
         structure is not in a *literal* 3d shape, which is the entire point
-        of what I'm trying to do", against a MarvinSketch screenshot of
+        of what I'm trying to do", against the reference editor screenshot of
         buckminsterfullerene drawn in perspective inside a 2D editor. The
         molblock stays 3D and the editor draws its x/y, so crossing bonds
         are not a defect: they are what the projection of a real geometry

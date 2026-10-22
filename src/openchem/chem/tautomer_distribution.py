@@ -62,9 +62,9 @@ DEFAULT_MAX_CANDIDATES = 200
 #: Candidates at or under this count queue without confirmation; above it,
 #: the caller must show the user the actual count ("this will run N
 #: geometry optimizations with ORCA") before queuing them. This is
-#: OpenChem's own expensive-QC-work threshold, not Marvin's unrelated
+#: OpenChem's own expensive-QC-work threshold, not the reference editor's unrelated
 #: "eight tautomers shown at once" display convention -- chosen to land
-#: near it, but justified by cost here, not by what Marvin's viewer shows.
+#: near it, but justified by cost here, not by what the reference editor's viewer shows.
 CONFIRMATION_THRESHOLD = 8
 
 #: A population below this is shown as "<0.01%" rather than a bare

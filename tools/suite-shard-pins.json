@@ -1489,6 +1489,7 @@
   "tests/test_nmr_view_dialog.py": 3,
   "tests/test_nmr_view_widget.py": 3,
   "tests/test_nmr_view_widget_tautomers.py": 2,
+  "tests/test_no_competitor_names.py": 0,
   "tests/test_no_stray_top_level_windows.py": 0,
   "tests/test_nuclide_table.py": 1,
   "tests/test_nuclides.py": 2,

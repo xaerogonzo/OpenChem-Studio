@@ -158,7 +158,7 @@ def _check_valence(context: CheckContext) -> list[StructureIssue]:
             continue
 
         # Below the element's maximum but not one of its usual states --
-        # a radical, a carbene, a nitrene, or a slip. Marvin's yellow, not
+        # a radical, a carbene, a nitrene, or a slip. The reference editor's yellow, not
         # its red: these are all things somebody draws on purpose.
         issues.append(
             StructureIssue(

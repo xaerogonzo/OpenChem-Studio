@@ -1,7 +1,7 @@
 """The two calculators that show an isotope envelope, and their contract.
 
 One engine, two callers. Elemental Analysis draws the molecular ion's
-envelope beside its percentages -- the way MarvinSketch's own window does
+envelope beside its percentages -- the way the reference editor's own window does
 -- and the Mass Spectrum calculator is where the ionisation modes live.
 The most important test in this file is that they agree.
 """
@@ -68,7 +68,7 @@ def test_elemental_analysis_declares_the_molecular_ion_envelope():
     assert DEFAULT_ION.label in chart.title
 
 
-def test_the_envelope_is_the_one_marvin_draws():
+def test_the_envelope_is_the_one_reference_editor_draws():
     """The screenshot that motivated the feature: 278, 280 and 282 in a
     1:2:1 bromine pattern, with the small odd-mass carbon satellites
     between them."""
@@ -88,7 +88,7 @@ def test_m_over_z_runs_low_mass_to_the_left():
 
 
 def test_the_nominal_mass_is_reported_beside_the_exact_one():
-    """Marvin's own window shows both, and they answer different
+    """The reference editor's own window shows both, and they answer different
     questions."""
     lines = compute_elemental_analysis(_mol(), "u").matched
     assert any(line.startswith("Nominal mass: 278") for line in lines)
