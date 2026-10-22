@@ -1376,6 +1376,18 @@ document may cite a file or a test that does not exist.
   with a space, and only then promotes the zip and `SHA256SUMS.txt` (a
   transit-corruption checksum, not a signature).
 
+  **The installer** (`packaging/openchem.iss`, `build.ps1 -Installer`). Per-user or
+  all-users, chosen by the person at install. An upgrade is in place under one AppId
+  and deletes the previous `_internal` first so no stale file survives; `plugins\`
+  is left alone. Uninstall removes what the installer put down, then asks (two
+  unticked boxes) whether to also remove the settings registry key and the default
+  data folder; a data folder the person moved elsewhere (recorded in `data_root.txt`)
+  is only reported, and removal is confined to a folder named for the application.
+  `build.ps1` installs it for real (per-user, silent), smoke-tests the installed app,
+  upgrades, uninstalls and checks what is kept; the removal options are driven against a
+  sandbox TEST build (`tools/drive_installer.py --removal`). The interactive form and the
+  all-users path (which needs an elevation prompt) are checked by hand. Unsigned.
+
   `plugins/` ships as source **beside** the exe rather than inside the
   payload, so a user can add one without a Python install;
   `PluginManager` looks there when `sys.frozen` is set. Sidecars (pkasolver,

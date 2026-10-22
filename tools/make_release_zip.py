@@ -128,9 +128,20 @@ def checksum_line(archive_path: Path, name: str | None = None) -> str:
     return f"{sha256_of(archive_path)} *{name or archive_path.name}\n"
 
 
-def write_checksums(sums_path: Path, archive_path: Path, name: str | None = None) -> None:
-    # UTF-8, no BOM, LF: a BOM or CRLF makes `sha256sum -c` read the first name wrongly.
-    sums_path.write_bytes(checksum_line(archive_path, name).encode("utf-8"))
+def write_checksums(sums_path: Path, archive_path: Path, name: str | None = None, keep_from: Path | None = None) -> None:
+    """Write this file's line, keeping the other lines of `keep_from` (the installer's, say).
+
+    UTF-8, no BOM, LF: a BOM or CRLF makes `sha256sum -c` read the first name wrongly.
+    """
+    line = checksum_line(archive_path, name).rstrip("\n")
+    own = f" *{name or archive_path.name}"
+    kept: list[str] = []
+    if keep_from is not None and keep_from.exists():
+        kept = [
+            existing for existing in keep_from.read_text(encoding="utf-8").splitlines()
+            if existing.strip() and not existing.rstrip().endswith(own)
+        ]
+    sums_path.write_bytes(("\n".join([line] + kept) + "\n").encode("utf-8"))
 
 
 def extract(archive_path: Path, destination: Path) -> None:
@@ -175,7 +186,7 @@ def build_release(
         if smoke is not None and not smoke(extracted_exe):
             raise ReleaseError("the smoke test failed on the extracted zip")
         # The sums name the FINAL file, which is what a downloader has.
-        write_checksums(partial_sums, partial, final.name)
+        write_checksums(partial_sums, partial, final.name, keep_from=sums)
         os.replace(partial, final)
         os.replace(partial_sums, sums)
     except BaseException:
