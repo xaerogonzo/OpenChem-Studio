@@ -986,6 +986,123 @@ class _Driver(QObject):
         else:
             logger.error("OPENCHEM_DRIVE: EXPECT tautomer FAILED[%s] -- %s", tag, "; ".join(problems)[:800])
 
+    def _do_proton_affinity_run(self, step: dict[str, Any]) -> None:
+        """Press the Quantum Chemistry panel's "Proton affinity..." button, for real.
+
+        `{"do": "proton_affinity_run", "expect_refusal": "Cl"}` -- the BUTTON, not `request_proton_affinity`, so the panel's own scope check,
+        its cost question (answered by `OPENCHEM_DRIVE_MODAL=yes`) and the identity it captures are what is driven. What the service was handed is read off its run
+        record (`_proton_runs`, set synchronously by the request) and REMEMBERED for `proton_affinity_report`. A refusal is asserted with `expect_refusal`: the
+        status line must hold that text and NO run may have started. Follow a real run with `qc_wait`.
+        """
+        from openchem.ui.molecule_combo import select
+
+        panel = getattr(self._window, "_quantum_chemistry_panel", None)
+        if panel is None:
+            logger.error("OPENCHEM_DRIVE: proton_affinity_run -- no Quantum Chemistry panel on this window")
+            return
+        molecule_uuid = self._window._property_panel._selected_molecule_uuid
+        if not select(panel._molecule_combo, molecule_uuid):
+            logger.error("OPENCHEM_DRIVE: proton_affinity_run -- the selected molecule is not in the panel's combo")
+            return
+        if not panel._proton_affinity_button.isEnabled():
+            logger.error("OPENCHEM_DRIVE: proton_affinity_run -- the Proton affinity button is DISABLED; not clicked")
+            return
+        panel._proton_affinity_button.click()
+        run = panel._quantum_chemistry_service._proton_runs.get(molecule_uuid)
+        refusal = step.get("expect_refusal")
+        if refusal is not None:
+            problems = []
+            if run is not None:
+                problems.append("a run started, but the structure should have been refused")
+            if str(refusal) not in panel._status_label.text():
+                problems.append(f"status {panel._status_label.text()!r} lacks {refusal!r}")
+            if self._record_assertion("proton_affinity_run", str(refusal), not problems, "; ".join(problems) or "refused as expected"):
+                logger.warning("OPENCHEM_DRIVE: EXPECT proton affinity refusal ok[%s] status=%r", refusal, panel._status_label.text())
+            else:
+                logger.error("OPENCHEM_DRIVE: EXPECT proton affinity refusal FAILED[%s] -- %s", refusal, "; ".join(problems))
+            return
+        if run is None:
+            logger.error("OPENCHEM_DRIVE: proton_affinity_run -- no run was started; status=%r", panel._status_label.text())
+            return
+        self._proton_submitted = (molecule_uuid, run.calculation_input, run.input_fingerprint, run.run_id)
+        logger.warning(
+            "OPENCHEM_DRIVE: proton_affinity_run submitted structures=%d input=%s fingerprint=%s run_id=%s status=%r",
+            run.sequence.total, run.calculation_input, run.input_fingerprint[:12], run.run_id, panel._status_label.text(),
+        )
+
+    def _do_proton_affinity_report(self, step: dict[str, Any]) -> None:
+        """`{"do": "proton_affinity_report", "tag": "ammonia", "expect": {...}}` -- what the application HOLDS after a proton-affinity run, read off the stored result,
+        the stored run and the panel's own text.
+
+        `expect` keys (each optional, each asserted): `pa_kj` / `gb_kj` (`[low, high]` the stored value must lie in; `null` means the output has NO value),
+        `site_element`, `run_status` (the newest stored run's status value), `run_calc_type`, `results_contains` (text the panel's results line holds),
+        `fingerprint_is_submitted` (the stored outputs' identity carries the fingerprint the service was handed) and `stored_outputs` (how many of the two outputs are in the store).
+
+        **READ OFF THE STORE, NOT THE EVENT**: a result the service published and nothing kept reads as "computed" at one end and as nothing at the other.
+        """
+        window = self._window
+        panel = getattr(window, "_quantum_chemistry_panel", None)
+        if panel is None:
+            logger.error("OPENCHEM_DRIVE: proton_affinity_report -- no Quantum Chemistry panel")
+            return
+        tag = str(step.get("tag", ""))
+        submitted = getattr(self, "_proton_submitted", None)
+        problems: list[str] = []
+        stored: dict[str, Any] = {}
+        fingerprints: list[str] = []
+        if submitted is not None:
+            record = window._services.result_store_service.store._molecules.get(submitted[0])
+            for key in (record.results if record is not None else {}):
+                result = getattr(record.results[key], "result", None)
+                if getattr(result, "descriptor_id", "") in ("orca.proton_affinity", "orca.gas_basicity"):
+                    stored[result.descriptor_id] = result
+                    fingerprints.append(key[2])
+        molecule = panel._current_molecule()
+        runs = panel._result_store_service.qc_runs.runs_for(molecule.uuid) if molecule is not None and panel._result_store_service is not None else []
+        newest = runs[0] if runs else None
+        pa, gb = stored.get("orca.proton_affinity"), stored.get("orca.gas_basicity")
+        sites = (pa.provenance.parameters.get("sites") if pa is not None and pa.provenance is not None else None) or []
+        report = {
+            "pa_kj": None if pa is None else pa.value, "gb_kj": None if gb is None else gb.value,
+            "pa_error": None if pa is None else (pa.error or "")[:160],
+            "site_element": (pa.provenance.parameters.get("site_element") if pa is not None and pa.provenance else None),
+            "sites": [(row["atom"], row["element"], round(row["pa_kj"], 1), round(row["gb_kj"], 1)) for row in sites],
+            "run": None if newest is None else {"calc_type": newest.calc_type, "status": newest.status.value, "warnings": list(newest.warnings)[:2]},
+            "stored_outputs": len(stored), "results_label": panel._results_label.text()[:400], "status": panel._status_label.text(),
+        }
+        logger.warning("OPENCHEM_DRIVE: proton_affinity_report[%s] %s", tag, json.dumps(report))
+
+        expect = step.get("expect") or {}
+        for key, found in (("pa_kj", None if pa is None else pa.value), ("gb_kj", None if gb is None else gb.value)):
+            if key not in expect:
+                continue
+            want = expect[key]
+            if want is None:
+                if found is not None:
+                    problems.append(f"{key} is {found}, wanted no value")
+            elif found is None or not (float(want[0]) <= found <= float(want[1])):
+                problems.append(f"{key} is {found}, wanted within {want}")
+        if "site_element" in expect and report["site_element"] != expect["site_element"]:
+            problems.append(f"site element {report['site_element']!r}, wanted {expect['site_element']!r}")
+        if "run_status" in expect and (newest is None or newest.status.value != expect["run_status"]):
+            problems.append(f"newest run status {None if newest is None else newest.status.value!r}, wanted {expect['run_status']!r}")
+        if "run_calc_type" in expect and (newest is None or newest.calc_type != expect["run_calc_type"]):
+            problems.append(f"newest run calc type {None if newest is None else newest.calc_type!r}, wanted {expect['run_calc_type']!r}")
+        for needle in expect.get("results_contains") or []:
+            if needle not in panel._results_label.text():
+                problems.append(f"the panel's results line lacks {needle!r}")
+        if "stored_outputs" in expect and len(stored) != int(expect["stored_outputs"]):
+            problems.append(f"{len(stored)} proton-affinity outputs stored, wanted {expect['stored_outputs']}")
+        if expect.get("fingerprint_is_submitted"):
+            if submitted is None:
+                problems.append("no proton_affinity_run step preceded this one")
+            elif submitted[2] not in fingerprints:
+                problems.append(f"stored fingerprints {[f[:12] for f in fingerprints]} lack the submitted {submitted[2][:12]}")
+        if self._record_assertion("proton_affinity_report", tag, not problems, "; ".join(problems) or "as expected"):
+            logger.warning("OPENCHEM_DRIVE: EXPECT proton affinity ok[%s]", tag)
+        else:
+            logger.error("OPENCHEM_DRIVE: EXPECT proton affinity FAILED[%s] -- %s", tag, "; ".join(problems)[:800])
+
     def _do_tautomer_nmr_run(self, step: dict[str, Any]) -> None:
         """Press the Quantum Chemistry panel's "Tautomer NMR..." button, for real.
 
@@ -3384,7 +3501,7 @@ class _Driver(QObject):
 
         wait = self._qc_wait
         service = wait["service"]
-        busy = bool(service._active_jobs) or bool(getattr(service, "_boltzmann_runs", {}))
+        busy = bool(service._active_jobs) or bool(getattr(service, "_boltzmann_runs", {})) or bool(getattr(service, "_proton_runs", {}))
         now = time.monotonic()
         if busy:
             wait["quiet_since"] = None

@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Proton affinity: a run with no value no longer breaks the Runs history, and the real window can be driven through it
+- Driving the new **Proton affinity...** button in the real window on real ORCA found a defect the unit tests had not: the Quantum Chemistry panel's **Runs history** formatted every stored output as a number, so re-rendering a stored proton-affinity run whose structures were all dropped (water, as the benchmark found) raised `TypeError` on `None` the moment the next molecule was added. It now reads through the same line and site-table readers the live result uses, so a stored run shows its reason, its sites and the measured error as it did when it finished. New drive steps `proton_affinity_run` and `proton_affinity_report` (`benchmarks/visual/proton_affinity_run.json`): in the first real run the refusal of chloromethane was asserted, ammonia reproduced the benchmark's PA and GB to the last printed digit (844.5166 and 810.1305 kJ/mol), and water gave no value, as the benchmark found; the methylamine case was interrupted before it finished.
+
 ### Psi4: memory and threads settings
 - **Settings > Quantum chemistry now has a Psi4 section: memory per job (GB) and threads.** Psi4 was given a fixed 2 GB and ORCA's core count; both are now yours to set. The defaults change nothing (2 GB, and Automatic threads, which follow ORCA's core count when set and the machine's otherwise), so a default Psi4 input is byte-for-byte what it was. A threads value of your own wins over ORCA's; a damaged stored value falls back to the default. Applies to the next Psi4 job. `app/settings.py` (`PSI4_MEMORY_GB`, `PSI4_THREADS`), `chem/psi4_engine.py`, `tests/test_psi4_settings.py` (5 mutations of the new code, all caught).
 

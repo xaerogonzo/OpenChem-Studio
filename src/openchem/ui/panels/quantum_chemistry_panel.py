@@ -1980,7 +1980,10 @@ class QuantumChemistryPanel(QWidget):
                     break
 
         descriptors = run.results.get("descriptors") or []
-        lines = [f"{d.name}: {d.value:.6f} {d.units}" for d in descriptors]
+        # The same two readers the live result uses (`_on_result_ready`), so a stored run reads as it did when it finished: a proton-affinity output with no value says why instead of
+        # raising on formatting None (found by driving the real window: the Runs history re-rendered the run the moment the next molecule was added), and its site table comes back.
+        lines = [self._descriptor_line(d) for d in descriptors]
+        lines.extend(self._proton_affinity_lines(descriptors))
         lines.extend(self._per_atom_summary_lines(run, self._display_mol))
         self._results_label.setText("\n".join(lines))
 
