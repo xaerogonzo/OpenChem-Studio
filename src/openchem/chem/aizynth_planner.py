@@ -10,7 +10,7 @@ THE PROCESS CONTRACT, each point a failure with a typed `RouteSet` and never an 
 * a named asset that is not there (the planner's Python, the policy model, the templates, the filter, the stock) is `unavailable` and says which;
 * NOTHING RETRIES, and no limit is ever changed to make a search succeed.
 
-WHICH OF THE PLANNER'S ROUTES BECOME ROUTES (decided here, because the planner returns more than solved routes: a strychnine search at 100 iterations returns the bare target and four one-step routes into a precursor that is not in stock). A route is kept only if it has at least one reaction and EVERY starting material carries an `in_stock` flag that is true, so "a route was returned" means what the benchmark's "solved" meant. The rest are counted and said (a limitation on the set), never silently dropped: a search that returned only unsolved routes is `no_route`. THE ORDER IS THE PLANNER'S, unchanged; re-ranking (the PaRoutes route score) is a decision for after protocol 2 of the quality benchmark, and `PlanRequest.all_routes` (every solved route instead of the default 5 to 25) is the other half of it.
+WHICH OF THE PLANNER'S ROUTES BECOME ROUTES (decided here, because the planner returns more than solved routes: a strychnine search at 100 iterations returns the bare target and four one-step routes into a precursor that is not in stock). A route is kept only if it has at least one reaction and EVERY starting material carries an `in_stock` flag that is true, so "a route was returned" means what the benchmark's "solved" meant. The rest are counted and said (a limitation on the set), never silently dropped: a search that returned only unsolved routes is `no_route`. THE ORDER IS NOT THE PLANNER'S, and at most `ROUTES_SHOWN` ARE KEPT (decided from protocol 2 of the quality benchmark, `benchmarks/synthesis/RESULT_2.md`): the kept routes are ordered as the benchmark ordered them (`chem/route_ranking.py`: the PaRoutes route score, then the planner's own score, then its order) and the first ten are the plan. `PlanRequest.all_routes` is ON by default, so the planner is asked for every solved route and the ten come from all of them; a search that found more says how many it did not keep.
 """
 from __future__ import annotations
 
@@ -25,6 +25,7 @@ from dataclasses import dataclass, field, replace
 from pathlib import Path
 
 from openchem.chem.route_validation import validate_route
+from openchem.chem.route_ranking import shown_order
 from openchem.domain.synthesis_route import (
     LEFT_OUT_PREFIX,
     STANDARD_LIMITATIONS,
@@ -54,13 +55,16 @@ INSPECT_SCHEMA = "aizynth-inspect-1"
 INSPECT_TIMEOUT_SECONDS = 60.0
 #: The planner's name as every `PlannerIdentity` carries it.
 PLANNER_NAME = "AiZynthFinder"
+#: How many routes a plan keeps. It is the number the benchmark's user-facing figure is about ("among the first 10 shown"), so the sentence beside the plan describes the list exactly; a plan that found more says how many it left out.
+ROUTES_SHOWN = 10
 #: What was MEASURED about this planner, said beside every plan it makes, because the product's decided claim (Alex, 2026-10-20) is "valid, repeatable routes that often differ from the patent route", never "known routes", with
-#: the recovery figure and its dependence on depth stated. Every number is from `benchmarks/synthesis/RESULT.md` (300 seeded PaRoutes set-n1 targets, run 2026-10-19 to 2026-10-20) and `tests/test_synthesis_planner.py` holds
-#: each one to that file. The conditions differ from a user's (the benchmark's own stock and a fixed search budget) and the public models were probably trained on those reference reactions, so the figure is not a
-#: generalisation figure, and the sentence says so.
+#: the recovery figure and its dependence on depth stated. Every number is from `benchmarks/synthesis/RESULT_2.md` (protocol 2: the same 300 seeded PaRoutes set-n1 targets, run 2026-10-22, every solved route returned and the first 10
+#: shown in the order `chem/route_ranking.py` gives) and `tests/test_synthesis_planner.py` holds each one to that file. The figure is the one a person shown 10 routes sees (its M2), not the PaRoutes count that counts every route in the
+#: first ten score levels (0.533, a median of 37 routes). The conditions differ from a user's (the benchmark's own stock and a fixed search budget) and the public models were probably trained on those reference reactions, so the figure
+#: is not a generalisation figure, and the sentence says so.
 BENCHMARK_FINDING = (
     "On a benchmark of 300 patent routes (PaRoutes set-n1, with its own stock and a fixed search budget, and public models probably trained on those same reactions), this planner returned a route with every starting material in stock for 96.7% of targets "
-    "but had the patent route among its first 10 for only 37.3% (81% where the patent route has 2 steps, 29% at 3 steps, 2% at 4), and 48% of its first routes were shorter than the patent route. "
+    "but had the patent route among the first 10 routes it showed for only 41.7% (81% where the patent route has 2 steps, 39% at 3 steps, 4% at 4; the patent route was among all the solved routes for 54.7%), and 51% of its first routes were shorter than the patent route. "
     "Read these as internally consistent, repeatable proposals that often differ from known routes, not as known routes, and not as a measure of how well it does on a new molecule."
 )
 #: The runner script the planner's interpreter is handed as a path.
@@ -92,8 +96,8 @@ class PlanRequest:
     expansion: str
     limits: SearchLimits
     filter: str | None = None
-    #: Ask for every solved route instead of the planner's default of at least 5 and at most 25.
-    all_routes: bool = False
+    #: Ask for every solved route instead of the planner's default of at least 5 and at most 25. On by default: protocol 2 found the larger pool worth 0.034 of recovery at no cost in search time, and the plan keeps `ROUTES_SHOWN` of them.
+    all_routes: bool = True
 
     def __post_init__(self) -> None:
         for name in ("target_smiles", "stock", "expansion"):
@@ -139,7 +143,7 @@ class PlannerSetup:
     expansion: str
     limits: SearchLimits
     filter: str | None = None
-    all_routes: bool = False
+    all_routes: bool = True
 
     def request_for(self, target_smiles: str) -> PlanRequest:
         return PlanRequest(target_smiles=target_smiles, config=self.config, stock=self.stock, expansion=self.expansion, limits=self.limits, filter=self.filter, all_routes=self.all_routes)
@@ -342,6 +346,8 @@ def _left_out(counts: collections.Counter, reasons: set[str]) -> str:
         parts.append(f"{counts['no reaction']} had no reaction")
     if counts["other"]:
         parts.append(f"{counts['other']} could not be represented ({'; '.join(sorted(reasons))})")
+    if counts["beyond"]:
+        parts.append(f"{counts['beyond']} more solved route{'s' if counts['beyond'] != 1 else ''} ranked below the {ROUTES_SHOWN} shown")
     return LEFT_OUT_PREFIX + "; ".join(parts) + "."
 
 
@@ -370,7 +376,7 @@ def parse_document(document: object, request: PlanRequest, target: TargetIdentit
     except (KeyError, TypeError, ValueError, AttributeError) as error:
         return _failure(RouteStatus.FAILED, request, target, f"the planner's document is malformed ({type(error).__name__}: {error})")
 
-    kept: list[Route] = []
+    candidates: list[tuple[dict, Route]] = []
     counts: collections.Counter = collections.Counter()
     reasons: set[str] = set()
     for tree in trees:
@@ -379,7 +385,7 @@ def parse_document(document: object, request: PlanRequest, target: TargetIdentit
             reasons.add("not a route object")
             continue
         try:
-            route = route_from_tree(tree, rank=len(kept) + 1)
+            route = route_from_tree(tree, rank=1)
         except _Unrepresentable as error:
             if str(error) == "no reaction":
                 counts["no reaction"] += 1
@@ -390,7 +396,12 @@ def parse_document(document: object, request: PlanRequest, target: TargetIdentit
         if not all(m.in_stock is True for m in route.starting_materials):
             counts["unsolved"] += 1
             continue
-        kept.append(replace(route, validation=validate_route(route)))
+        candidates.append((tree, route))
+
+    # The shown order, then the cap; only the routes that are kept are validated.
+    order = shown_order([tree for tree, _ in candidates])
+    counts["beyond"] = max(0, len(order) - ROUTES_SHOWN)
+    kept = [replace(candidates[i][1], rank=place, validation=validate_route(candidates[i][1])) for place, i in enumerate(order[:ROUTES_SHOWN], start=1)]
 
     termination = read_termination(identity.limits, statistics)
     limitations = STANDARD_LIMITATIONS + (BENCHMARK_FINDING,) + ((_left_out(counts, reasons),) if sum(counts.values()) else ())

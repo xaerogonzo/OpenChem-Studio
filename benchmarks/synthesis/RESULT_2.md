@@ -65,6 +65,10 @@ M1 sits 0.077 under the published 0.61 at 10 and close to it at 1 and 5, with a 
 
 `artifacts_protocol2/`: `report.txt`, `verdict.json`, `table.json` (the per-target table), `draw.json`, `provenance.jsonl`, `planner_config.json`, `targets_r{1,2,3}.json`, and the raw records of the two repeat runs as `results_r{2,3}.jsonl.gz` (2.3 MB each). The raw main-run records (`results_r1.jsonl`, 714 MB; 38 MB gzipped) are **not committed** (too large for the repository to carry); they stay on the machine that ran it and `run_quality_2.py report` needs them to be re-run. `official.txt` and `official.json` are the official-metric output, and `stock_n1_inchikeys.txt` (the InChI-key stock, 376 KB) is kept so that a later run can compare against it, which protocol 1 did not allow.
 
+## Added after the result (2026-10-22)
+
+Applying the result to the product (slice 3's ranking, `docs/SYNTHESIS_HELPER_DESIGN.md`, "Protocol 2 result", "Applied") found that **the routes the run returned with `all_routes` on are not only routes whose starting materials are all in stock**: in 281 of the solved targets some returned route had a starting material that is not in stock (a median 30% of the returned routes), and such routes took 90 of the 2,877 places in M2's first ten. The sentences above that say "every solved route" and give a pool of 291 routes count them, and the preregistration's "every solved route" was imprecise in the same way. The verdict is unchanged. `stocked_rescore.py` (a diagnostic of the saved records, deciding nothing) re-scores with only the routes whose every starting material is in stock, which is what the product keeps: **M2 is the same 125 of 300 (0.417), the pool recall the same 0.547 and M1 the same 0.533**, so the figures above hold for the list the product shows. Its output is `artifacts_protocol2/stocked_rescore.txt`.
+
 ## What it changes for the product and for slice 3
 
 See `docs/SYNTHESIS_HELPER_DESIGN.md`, section "Protocol 2 result".

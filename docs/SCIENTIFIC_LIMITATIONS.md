@@ -2479,11 +2479,14 @@ The planner supplies no conditions, reagents, solvents, temperatures, yields or 
 never as zero. Stereochemistry in a route is the planner's and is often incomplete or dropped.
 
 **What was measured, and what it does not show.** Before any of this was built, the planner was run on 300 seeded targets from PaRoutes' set-n1 (patent routes from US patents), with
-its own stock and a fixed search budget (`benchmarks/synthesis/RESULT.md`). It returned a route with every starting material in stock for 96.7% of them. It had the patent route among its first 10
-for only **37.3%** (the preregistered bar was 50%, so the result was PARTIAL and the claim was narrowed): 81% where the patent route had 2 steps, 29% at 3, 2% at 4. 48% of its first routes
-were *shorter* than the patent route, so the planner often finds routes the patent did not use; that is not the same as finding good ones. The public models were probably trained on these very
-reactions, so 37.3% is **not** a figure for how it does on a molecule it has not seen, and the strict rule used (the exact reaction set) is harsher than the benchmark paper's tree-edit
-distance. What the application therefore says is "internally consistent, repeatable proposals that often differ from known routes", never "known routes". The sentence is shown under every plan.
+its own stock and a fixed search budget, twice: `benchmarks/synthesis/RESULT.md` (the planner's own order, at most 25 routes) and, after reading how the published figure is counted,
+`benchmarks/synthesis/RESULT_2.md` (every solved route, ranked as the application ranks them). It returned a route with every starting material in stock for 96.7% of them. It had the
+patent route among the **first 10 routes shown** for only **41.7%**: 81% where the patent route had 2 steps, 39% at 3, 4% at 4; it had it anywhere among all its solved routes for 54.7%,
+which is the most any ranking of them could reach. Counted the way PaRoutes publishes its top-10 (every route in the first ten score levels, a median of 37 routes here) the figure is 53.3%;
+that count is generous by construction and is not the one the application quotes. The first run's 37.3% was mostly this difference in counting (73% of the gap), then the number of
+routes asked for (21%), and only 6% the ranking. 51% of the first routes were *shorter* than the patent route, so the planner often finds routes the patent did not use; that is not the
+same as finding good ones. The public models were probably trained on these very reactions, so 41.7% is **not** a figure for how it does on a molecule it has not seen. What the
+application therefore says is "internally consistent, repeatable proposals that often differ from known routes", never "known routes". The sentence is shown under every plan.
 
 **The numbers on a route are the planner's.** A policy probability is the model's score for a template, not a yield and not the chance a step works. A route score ranks the planner's search
 states; its authors warn it is "rather indiscriminate with regard to the quality of the route". "In stock" is a match to a catalogue snapshot (the default stock is from April 2020), not

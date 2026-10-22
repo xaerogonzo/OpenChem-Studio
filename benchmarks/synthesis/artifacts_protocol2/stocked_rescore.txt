@@ -1,0 +1,7 @@
+PROTOCOL 2 RE-SCORED WITH ONLY THE ROUTES WHOSE EVERY STARTING MATERIAL IS IN STOCK (a diagnostic; decides nothing)
+targets 300
+as measured (every route the planner returned)   M1 0.5333   M2 0.4167 (125 of 300)   pool 0.5467
+only routes with every starting material in stock M1 0.5333   M2 0.4167 (125 of 300)   pool 0.5467
+solved targets whose returned routes include some with a starting material not in stock: 281
+share of such routes in a target's returned routes (median / mean): 0.301 / 0.336
+places in M2's first 10 taken by such a route: 90 of 2877

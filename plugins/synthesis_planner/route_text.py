@@ -15,7 +15,7 @@ def _plural(count: int, noun: str) -> str:
 
 
 def route_title(route: Route, route_set: RouteSet | None = None) -> str:
-    """One line for the route list: its place in the planner's order, its length and its starting materials, and, when the set has been screened, how many molecules carry a regulatory alert.
+    """One line for the route list: its place in the order shown, its length and its starting materials, and, when the set has been screened, how many molecules carry a regulatory alert.
 
     No alert is never written as a good sign: a route whose molecules matched nothing says nothing about alerts, and one with molecules that could not be screened says so.
     """
