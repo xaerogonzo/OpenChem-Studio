@@ -84,8 +84,8 @@ What stays open is Question 2, the docking table's metals, which is a logic fix 
    quantity has already moved once under a dependency upgrade (carbon by 0.25 angstrom). *Read.*
 6. **Other tables in the neighbourhood.** Open Babel's data file header is reported (search summary; the raw file could
    not be fetched) to name Mantina et al. 2009 as its van der Waals source and to give hydrogen 1.10, which would make it
-   a third table, not RDKit's. ChemAxon publishes no radius table for Marvin: a staff reply on their forum describes
-   "spheres at the atomic centres" without saying which radii. *Reported.* So **comparability with Marvin cannot be
+   a third table, not RDKit's. The vendor publishes no radius table for the reference editor: a staff reply on their forum describes
+   "spheres at the atomic centres" without saying which radii. *Reported.* So **comparability with the reference editor cannot be
    claimed on the radii, whichever table is used.**
 
 ## The sets side by side (angstrom)
@@ -481,7 +481,7 @@ no note was attached; re-running the dock (or the analysis) replaces them. (c) *
 
 - BODR's real origin. The identification with Batsanov rests on exact equality across 65 elements, not on any statement
   by RDKit or BODR.
-- The Open Babel header and the ChemAxon forum reply were seen through search summaries only.
+- The Open Babel header and the reference editor forum reply were seen through search summaries only.
 - Bondi's group increments for volume were read from Tables XV and XVI and used for the oracle above; his area increments, his Table XVII corrections and the other nine tables of Batsanov were not used. The oracle's molecules are 17 and share one MMFF94 geometry each.
 - Mantina et al. 2009 and Rowland and Taylor 1996 are now read, and Alex's copy of Batsanov matches the public one first read. What was read of each is in its registry row, with what was not.
 - The published buried volumes come from crystal geometries; the application's from free ligands.

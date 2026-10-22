@@ -50,8 +50,9 @@ PSI4_METHODS = {
 #: The calculation types version 1 runs.
 PSI4_CALC_TYPES = frozenset({"sp", "opt"})
 
-#: The memory a job is given, in the input. Psi4's own default (500 MB) is too small for a def2-TZVP job on a drug-sized molecule and a failed allocation reads like a broken input.
-_MEMORY = "2 GB"
+#: The memory a job is given when nothing says otherwise, in GB, in the input. Psi4's own default (500 MB) is too small for a def2-TZVP job on a drug-sized molecule and a failed allocation reads like a broken input.
+#: The person's own choice is `app.settings.PSI4_MEMORY_GB`, whose default is this number (held equal by a test), so a default input is unchanged.
+DEFAULT_MEMORY_GB = 2
 
 #: What the SCF is converged to, tighter than Psi4's default (1e-6) so that two engines' energies differ by their methods and not by an unconverged SCF.
 _CONVERGENCE = "1e-8"
@@ -104,8 +105,10 @@ class Psi4QuantumEngineProvider(QuantumEngineProvider):
     #: Threads are `-n` on the command line, not an input block, so the service adds nothing of its own.
     supports_parallel = False
 
-    def __init__(self, threads: Callable[[], int] | None = None) -> None:
+    def __init__(self, threads: Callable[[], int] | None = None, memory_gb: Callable[[], int] | None = None) -> None:
+        # Callables, read each time an input is written: Settings applies as it changes, and a provider the service holds must not hold the settings back.
         self._threads = threads if threads is not None else _default_threads
+        self._memory_gb = memory_gb if memory_gb is not None else (lambda: DEFAULT_MEMORY_GB)
 
     def executable_setting(self) -> str:
         return "psi4/executable_path"
@@ -128,7 +131,7 @@ class Psi4QuantumEngineProvider(QuantumEngineProvider):
         # A closed shell is `rhf` and anything else `uhf`, written down and not left to a default (a default can change the state: the ORCA Fukui work found that).
         verb = "optimize" if calc_type == "opt" else "energy"
         return "\n".join([
-            f"memory {_MEMORY}", "molecule {", f"{charge} {multiplicity}", *rows, "symmetry c1", "no_reorient", "no_com", "}",
+            f"memory {max(1, int(self._memory_gb()))} GB", "molecule {", f"{charge} {multiplicity}", *rows, "symmetry c1", "no_reorient", "no_com", "}",
             f"set reference {'rhf' if multiplicity == 1 else 'uhf'}", f"set basis {basis}", "set puream true", "set scf_type pk",
             f"set e_convergence {_CONVERGENCE}", f"set d_convergence {_CONVERGENCE}", f"{verb}('{keyword}')", "",
         ])

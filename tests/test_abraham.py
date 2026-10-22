@@ -295,7 +295,7 @@ def test_a_value_row_names_the_solvent_instead_of_saying_intrinsic():
 
 
 def test_the_aqueous_category_is_withheld_outside_water():
-    """**ChemAxon's Low/Moderate/High ARE AQUEOUS THRESHOLDS.** They encode
+    """**The vendor's Low/Moderate/High ARE AQUEOUS THRESHOLDS.** They encode
     expectations about dissolution in the gut, so calling 52.81 mg/mL in
     ethanol "High" borrows an aqueous verdict's authority for a different
     question -- the same scoping mistake the BCS screen is guarded against

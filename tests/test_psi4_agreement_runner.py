@@ -16,12 +16,25 @@ from openchem.chem.orca_engine import OrcaQuantumEngineProvider
 from openchem.chem.psi4_engine import PSI4_METHODS, Psi4QuantumEngineProvider
 
 _DIRECTORY = Path(__file__).parent.parent / "benchmarks" / "psi4_agreement"
-sys.path.insert(0, str(_DIRECTORY))
 _spec = importlib.util.spec_from_file_location("psi4_agreement_runner", _DIRECTORY / "run_agreement.py")
 runner = importlib.util.module_from_spec(_spec)
 sys.modules[_spec.name] = runner
 _spec.loader.exec_module(runner)
 judge = runner.judge
+
+
+def test_the_runner_loads_its_own_judge_whatever_another_benchmark_put_in_sys_modules(monkeypatch):
+    """`benchmarks/` has several `judge.py` files. With a bare `import judge` the runner got whichever was imported first in the process: in a shard that ran the BDE tests before
+    these, `module 'judge' has no attribute 'HARTREE_TO_MEH'`. Plant a `judge` that is not ours and load the runner again."""
+    import types
+
+    monkeypatch.setitem(sys.modules, "judge", types.ModuleType("judge"))
+    spec = importlib.util.spec_from_file_location("psi4_agreement_runner_again", _DIRECTORY / "run_agreement.py")
+    again = importlib.util.module_from_spec(spec)
+    monkeypatch.setitem(sys.modules, spec.name, again)
+    spec.loader.exec_module(again)
+
+    assert again.judge.__name__ == "psi4_agreement_judge" and hasattr(again.judge, "HARTREE_TO_MEH")
 
 
 # --- the fixed lists of the plan ------------------------------------------------------------------------------------------

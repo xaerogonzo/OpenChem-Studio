@@ -1,23 +1,23 @@
 # Calculator gap report
 
 **What this is.** Stage 5 of the calculator-organisation plan: which calculators OpenChem Studio does
-not have that a user of a Marvin-like workstation would reasonably look for, with what already
+not have that a user of a reference-editor-like workstation would reasonably look for, with what already
 covers part of each, what a correct version would need, and an order to build them in. **It is
 research only.** No registry entry, calculator, source or maturity classification was added or
 changed to write it.
 
 Written 2026-10-10. Every "OpenChem has / lacks" statement was checked against the generated
 `docs/CALCULATOR_REFERENCE.md` (80 entries) and, where the reference was not enough, the source
-named in the row. Statements about ChemAxon come only from pages and search results read that
+named in the row. Statements about the vendor come only from pages and search results read that
 day, and say so.
 
-## How far Marvin parity already goes
+## How far reference-editor parity already goes
 
-ChemAxon's plugin catalogue could not be read as one list: its overview page redirects to a 404
+The vendor's plugin catalogue could not be read as one list: its overview page redirects to a 404
 and its introduction page names no plugin. What search results and individual pages confirmed
-exists in Marvin, and has an OpenChem counterpart:
+exists in the reference editor, and has an OpenChem counterpart:
 
-| Marvin plugin (confirmed to exist) | OpenChem |
+| Reference plugin (confirmed to exist) | OpenChem |
 |---|---|
 | pKa, major microspecies, microspecies distribution | `pKa`, `Major Microspecies`, `Microspecies Distribution` |
 | isoelectric point | `Isoelectric Point` |
@@ -28,9 +28,9 @@ exists in Marvin, and has an OpenChem counterpart:
 | conformer, tautomer generation, stereoisomer generation, stereo analysis | the conformer search, `Tautomers`, `Stereoisomers`, `Stereo Descriptors` |
 | solubility, HLB, NMR, hERG, BBB score, CNS MPO | `Solubility`, `HLB (Griffin)`, `NMR Shifts (experimental)`, `ADMET (hERG, CYP, Ames, ADME)`, `BBB Score Descriptors`, `CNS MPO Score` |
 
-Not confirmed either way, so not claimed: a plugin list beyond these, and whether any Marvin
+Not confirmed either way, so not claimed: a plugin list beyond these, and whether any the reference editor
 calculator outside it is missing here. The candidates below therefore come from what the
-application's own output leaves out, not from a Marvin checklist.
+application's own output leaves out, not from a reference-editor checklist.
 
 **Already present, and so NOT gaps** (each was a candidate before it was checked): Rule of Three
 (an always-on descriptor), the Pfizer 3/75 and GSK 4/400 rules, Lipinski, Veber, Ghose, Egan, QED,
@@ -70,7 +70,7 @@ to be confirmed when a candidate is approved.
 - **Existing coverage:** the counts, and Dimorphite-DL's dominant form at each pH.
 - **Reference needed:** the definition of a donor and an acceptor. The counts are RDKit's
   `Lipinski.NumHDonors` and `NumHAcceptors`, so the table should be built from the same definition
-  (or the difference stated); Marvin's own per-atom values were not read.
+  (or the difference stated); the reference editor's own per-atom values were not read.
 - **Effort:** medium. Per-atom, pH-dependent, and the atoms must be mapped back to the drawing
   through the microspecies (`protonation_geometry` already does that for 3D).
 - **Depends on:** nothing new. **Risk:** medium: two definitions in use already would become three
@@ -161,7 +161,7 @@ to be confirmed when a candidate is approved.
 
 1. **Torsion table**: smallest, no model risk, fills a visible hole.
 2. **Ionisable-site summary**: small, and only reads what `pKa` already has.
-3. **Hydrogen-bond site table**: parity with what a Marvin user expects; settle the definition
+3. **Hydrogen-bond site table**: parity with what a reference-editor user expects; settle the definition
    first so it agrees with the count.
 4. **Lead-likeness**: small once the thresholds are chosen.
 5. **Ring puckering**: medium, with closed-form checks.
@@ -175,8 +175,8 @@ to be confirmed when a candidate is approved.
 - **Per-atom surface area takes a probe but not a pH.** A pH changes the atoms, so the per-atom
   result's indices would no longer match the drawing. Left out on purpose; recorded here so it is
   not mistaken for an oversight.
-- **ChemAxon's per-atom steric hindrance is not built**, because no formula is published
-  (`docs/GEOMETRY_MARVIN_CHECKLIST.md`).
+- **The vendor's per-atom steric hindrance is not built**, because no formula is published
+  (`docs/GEOMETRY_DEFINITIONS_CHECKLIST.md`).
 - **Batch inventory B09**: a section heading has no "n / total" readout or partial-tick state
   (`docs/PANEL_FEATURE_INVENTORY.md`).
 
@@ -194,7 +194,7 @@ to be confirmed when a candidate is approved.
 
 ## What this report did not do
 
-- It did not read ChemAxon's per-plugin pages for hydrogen-bond donor/acceptor, polarizability,
-  refractivity or Hückel, so nothing here claims Marvin matches or exceeds OpenChem on them.
+- It did not read the vendor's per-plugin pages for hydrogen-bond donor/acceptor, polarizability,
+  refractivity or Hückel, so nothing here claims the reference editor matches or exceeds OpenChem on them.
 - It did not fetch any paper, so no threshold or definition above is verified.
 - It did not rank the candidates by user demand, which nothing in the repository measures.

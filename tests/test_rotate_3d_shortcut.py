@@ -3,7 +3,7 @@
 **IT WAS REACHABLE ONLY FROM ONE BUTTON**, on the editor's own bar, so it
 existed only while the 2D Editor tab was showing and was discoverable only
 by noticing it. `docs/USER_GUIDE.md` described it; the Structure menu did
-not offer it and no key pressed it. F7 is the key Marvin binds to the same
+not offer it and no key pressed it. F7 is the key the reference editor binds to the same
 gesture.
 
 **WHAT IS ASSERTED HERE IS AN INVARIANT, NOT A STATE.** Entering the mode

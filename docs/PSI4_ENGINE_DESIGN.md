@@ -85,7 +85,7 @@ HF 0.0000 mEh; PBE0 +0.10; M062X +0.09; B3LYP (Psi4 `b3lyp5`) +0.10 at def2-SVP,
 
 **Corrected in this stage:** the spike's table said a failed Psi4 run still prints "Psi4 exiting successfully". It does not: a failed run exits 1 and ends "Psi4 encountered an error" (re-measured on a bad functional and a bad basis); the earlier row was a misreading of two outputs read together. The parser keys on the error marker, which is right either way.
 
-**Left for later:** a Settings control for Psi4's memory (a job is given 2 GB in its input) and threads (it uses the ORCA cores setting), the stage-2 agreement check, calculation types beyond `sp` and `opt`, and text on the panel that still says ORCA (most tooltips and the Configure button) which is true of the panel's ORCA features and not wrong for Psi4 but is not Psi4-aware.
+**Left for later (the memory and threads controls were added 2026-10-22: `PSI4_MEMORY_GB` default 2 and `PSI4_THREADS` default Automatic, in Settings > Quantum chemistry):** the stage-2 agreement check, calculation types beyond `sp` and `opt`, and text on the panel that still says ORCA (most tooltips and the Configure button) which is true of the panel's ORCA features and not wrong for Psi4 but is not Psi4-aware.
 
 ## Deferred 2026-10-19: where it stands and what is left (Alex: not a priority, somewhat redundant beside ORCA; do it in its own session)
 
@@ -97,7 +97,7 @@ HF 0.0000 mEh; PBE0 +0.10; M062X +0.09; B3LYP (Psi4 `b3lyp5`) +0.10 at def2-SVP,
    (`--workers 3 --cores 4`; expect a few hours; every stage resumes): `run_agreement.py floor --engine orca`, `floor --engine psi4`, `floor-report`, `grid --engine orca`, `grid --engine psi4`, `optimize --engine orca`, `optimize --engine psi4`, `attribute`, `report`. **Commit the tree first and do not edit `src/` while it runs** (the report refuses a dirty `src/` or two commits). Then write the outcome into the plan's last section,
    in `docs/PSI4_ENGINE_DESIGN.md` and the CHANGELOG, and act on the verdict as the plan says (a FAIL removes the functional from `PSI4_METHODS`).
 2. **Settings for Psi4's memory and threads** (a job is given a fixed 2 GB in its input; threads reuse the ORCA cores setting).
-3. **Panel text that still says ORCA** (most tooltips, "Configure ORCA...", "Full ORCA conformers"): true for ORCA's features, not Psi4-aware.
+3. **Panel text that still says ORCA** (most tooltips, "Configure ORCA...", "Full ORCA conformers"): true for ORCA's features, not Psi4-aware. **Done 2026-10-22:** with Psi4 chosen the ORCA-only controls (TMS and scaling calibrations, the tautomer distribution and its NMR, proton affinity, the Full ORCA conformers box) are disabled with a tooltip that says why, and Configure names and opens the chosen engine's tab; the tooltips of ORCA's own features are unchanged because they are true of ORCA.
 4. **Calculation types beyond `sp` and `opt`** (frequencies, dipole) only after 1, each behind its own decision; none are planned.
 5. **A pinned download** only if Alex reverses "locate-only" (a pinned source URL and checksum, the size in the confirmation: about 330 MB download, 1.87 GB installed).
 
@@ -124,6 +124,10 @@ The third preregistered run (`benchmarks/psi4_agreement/PLAN_V3.md`, commit `58e
 
 A preregistered measurement (`benchmarks/psi4_agreement/PLAN_GRID_OFFSET.md`, commit `81d9a320`; 6 molecules x 4 DFT combinations, each program at its default and a finer grid, with Hartree-Fock negative controls that moved 0.00002 mEh) asked whether version 3's DFT offset shrinks on finer grids. **By the rule: PARTIAL** (pooled median offset +0.331 to +0.238 mEh; 54% of cells within 0.252 mEh, 80% needed).
 Descriptively, split by functional (not preregistered): **Psi4's default grid is converged** (its finer grid moved every energy by 0.04 mEh at most); **ORCA's default grid (DefGrid2) is not converged for M062X** (its energy rises 0.3 to 0.4 mEh on DefGrid3), which accounts for about 0.3 mEh of M062X's +0.56 mEh median offset; **B3LYP's +0.26 mEh median offset does not move at all** with either grid. A uniform +0.1 to +0.3 mEh remains in every DFT cell, growing with the molecule, and is unexplained (candidate: each program's coding of the functional). No change to the engine or `PSI4_METHODS`.
+
+## The B3LYP residual (2026-10-22): a preregistered test is written and NOT yet run
+
+The grid test left a uniform +0.1 to +0.3 mEh in every DFT cell that no grid moves (B3LYP's +0.26 mEh median in particular). `benchmarks/psi4_agreement/PLAN_FUNCTIONAL_LADDER.md` asks whether it is common to every density functional or lives in one functional's coding, by running HF (control), PBE, BLYP, B3LYP and PBE0 on the six floor molecules at def2-SVP on both engines (60 jobs, about half an hour), with its runner and rule committed first (`run_functional_ladder.py`, `tests/test_psi4_functional_ladder.py`). **To run when Psi4 and ORCA are free; nothing in it changes the engine.**
 
 ## How it is validated before it is offered (the project standard: claims are measured)
 

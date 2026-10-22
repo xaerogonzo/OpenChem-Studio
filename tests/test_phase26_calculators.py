@@ -1,6 +1,6 @@
 """Phase 26 calculator batch.
 
-Reference values here are either MarvinSketch's own published output or
+Reference values here are either the reference editor's own published output or
 textbook graph-theory values, not this implementation's first run -- a
 test that only pins current behaviour would have happily locked in the
 bugs found while building these (see the interaction-analysis cases).
@@ -54,13 +54,13 @@ def _embed(smiles: str, seed: int = 11) -> Chem.Mol:
 
 
 # --- Elemental analysis -------------------------------------------------
-# Reference: MarvinSketch's own Elemental Analysis window for tyramine
+# Reference: the reference editor's own Elemental Analysis window for tyramine
 # hydrochloride, the molecule in its documentation screenshot.
 
 TYRAMINE_HCL = "NCCc1ccc(O)cc1.Cl"
 
 
-def test_elemental_composition_matches_marvin_for_tyramine_hydrochloride():
+def test_elemental_composition_matches_reference_editor_for_tyramine_hydrochloride():
     composition = element_composition(Chem.AddHs(Chem.MolFromSmiles(TYRAMINE_HCL)))
 
     assert composition["C"] == pytest.approx(55.34, abs=0.01)
@@ -70,12 +70,12 @@ def test_elemental_composition_matches_marvin_for_tyramine_hydrochloride():
     assert composition["O"] == pytest.approx(9.21, abs=0.01)
 
 
-def test_elemental_analysis_reports_marvins_formula_exact_mass_and_atom_count():
+def test_elemental_analysis_reports_reference_editors_formula_exact_mass_and_atom_count():
     lines = compute_elemental_analysis(Chem.MolFromSmiles(TYRAMINE_HCL), "mol-1").matched
     joined = "\n".join(lines)
 
     assert "Formula: C8H12ClNO" in joined
-    assert "Exact mass: 173.060742" in joined  # Marvin: 173.060741718
+    assert "Exact mass: 173.060742" in joined  # the reference editor: 173.060741718
     assert "Atom count: 23" in joined
 
 
@@ -138,7 +138,7 @@ def test_ring_counts_classify_a_fused_heteroaromatic():
 
 
 def test_chiral_centres_and_asymmetric_atoms_are_not_the_same_thing():
-    """Marvin's own documentation cites this exact case: 1,4-dimethyl-
+    """The reference editor's own documentation cites this exact case: 1,4-dimethyl-
     cyclohexane has two stereogenic centres and no asymmetric atoms."""
     counts = stereo_counts(Chem.MolFromSmiles("CC1CCC(C)CC1"))
 
@@ -147,7 +147,7 @@ def test_chiral_centres_and_asymmetric_atoms_are_not_the_same_thing():
 
 
 def test_steric_effect_index_is_deliberately_absent():
-    """TSEI appears in Marvin's Topology Analysis and is NOT implemented:
+    """TSEI appears in the reference editor's Topology Analysis and is NOT implemented:
     its literature definitions conflict and no reference value was found
     to validate against. This test exists so re-adding it is a conscious
     decision rather than an accident.

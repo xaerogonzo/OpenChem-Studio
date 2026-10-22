@@ -914,7 +914,7 @@ class MainWindow(QMainWindow):
         )
         self._show_only_right_dock(self._properties_dock)
 
-        # A structure-check light in the corner, following Marvin's. The
+        # A structure-check light in the corner, following the reference editor's. The
         # panel is only useful to someone who opens it; this is how you
         # find out there is something to open it for.
         self._checker_indicator = CheckerStatusIndicator(self)
@@ -2250,7 +2250,7 @@ class MainWindow(QMainWindow):
 
         # --- Structure -------------------------------------------------------
         #
-        # Its own menu, following Marvin, which separates editing the
+        # Its own menu, following the reference editor, which separates editing the
         # DOCUMENT (undo, clipboard, which molecule) from operating on the
         # STRUCTURE. These all lived under Edit, where six Ketcher bridges
         # sat between "Redo" and "Copy Structure As" and neither group was
@@ -2335,7 +2335,7 @@ class MainWindow(QMainWindow):
         # **ROTATE 3D HAD NO MENU ENTRY AND NO SHORTCUT.** It existed only
         # as a button on the editor's own bar, so it was reachable only
         # while the 2D Editor tab was showing and discoverable only by
-        # noticing it. F7 is the key Marvin uses for the same gesture.
+        # noticing it. F7 is the key the reference editor uses for the same gesture.
         #
         # **CHECKABLE, AND MIRRORING THE BUTTON RATHER THAN DUPLICATING
         # IT.** The mode is a state, so an entry that could not show it
@@ -2847,7 +2847,7 @@ class MainWindow(QMainWindow):
         labels Python computes.
 
         TWO MODES BECAUSE THEY ARE TWO CLAIMS. "Drawing atom numbers" is the
-        atom's position in the drawing (what MarvinSketch shows, and what a
+        atom's position in the drawing (what the reference editor shows, and what a
         chemist counts along a chain with); "IUPAC locants" is the naming
         engine's numbering, which is a chemical claim and covers only the
         atoms it can name -- the status bar says how many. The first is

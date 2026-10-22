@@ -126,8 +126,18 @@ datas += collect_data_files("rdkit")
 # Physicochemical property in the Properties panel read
 # "No module named 'sascorer'", because one failing provider takes the whole
 # rdkit descriptor batch down with it.
+#
+# Contrib/NP_Score/npscorer.py is the SAME case and was missed the same way. The natural-product
+# likeness descriptor imports `npscorer` by name from `RDContribDir/NP_Score` at call time, and
+# its model (`publicnp.model.gz`) came along with the data line above while the module did not.
+# Found 2026-10-22 by running the BUILT app's scores scripts: the whole rdkit descriptor batch
+# failed with "No module named 'npscorer'", so every derived score that reads a descriptor had no
+# value. EVERY Contrib directory the code reads is listed here, and tests/test_packaged_data.py
+# fails if the code reads one that this list does not name.
 datas += collect_data_files(
-    "rdkit", include_py_files=True, includes=["Contrib/SA_Score/*.py"]
+    "rdkit",
+    include_py_files=True,
+    includes=["Contrib/SA_Score/*.py", "Contrib/NP_Score/*.py"],
 )
 
 # py2opsin ships OPSIN as a 14 MB jar beside its module and shells out to
@@ -246,6 +256,21 @@ a.datas = [entry for entry in a.datas if _keep(entry)]
 
 pyz = PYZ(a.pure)  # noqa: F821
 
+# The exe's Windows version resource (product name, company, version), from the one version in
+# pyproject.toml. Without it the exe's Properties > Details tab is blank, and code signing
+# wants the signed file to say which product and version it is. See packaging/win_version_info.py
+# (loaded by path: `packaging/` is not a package and its name would shadow PyPI's).
+import importlib.util
+import tomllib
+
+_version_spec = importlib.util.spec_from_file_location("win_version_info", ROOT / "packaging" / "win_version_info.py")
+_win_version = importlib.util.module_from_spec(_version_spec)
+_version_spec.loader.exec_module(_win_version)
+_VERSION_FILE = _win_version.write(
+    ROOT / "build" / "version_info.txt",
+    tomllib.loads((ROOT / "pyproject.toml").read_text(encoding="utf-8"))["project"]["version"],
+)
+
 exe = EXE(  # noqa: F821
     pyz,
     a.scripts,
@@ -262,6 +287,7 @@ exe = EXE(  # noqa: F821
     target_arch=None,
     codesign_identity=None,
     entitlements_file=None,
+    version=str(_VERSION_FILE),
     icon=str(ROOT / "icon.ico") if (ROOT / "icon.ico").exists() else None,
 )
 

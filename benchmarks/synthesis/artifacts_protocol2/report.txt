@@ -1,0 +1,30 @@
+QUALITY BENCHMARK, PROTOCOL 2 (all solved routes, PaRoutes ranking): 300 targets drawn, 0 failed or missing
+VERDICT (protocol 2) GO; protocol 1's PARTIAL stands as measured
+
+a route was returned (solved with the set stock)                          0.967  PASS
+the reference route is among the first 10 returned [M1: the PaRoutes top-10]    0.533  PASS
+the first route is fully validated                                        0.993  PASS
+the solved flag is identical across three runs                         20 of 20  PASS
+
+THE DECOMPOSITION (recovered at 10; each step changes one thing):
+  protocol 1 (planner's order, 5 to 25 routes returned):                     0.373
+  M3  planner's own order over the full pool (consistency check):             0.407
+  M2  first 10 routes ranked by route score (the user-facing count):          0.417
+  M1  every route in the first 10 score levels (the PaRoutes count):          0.533
+  pool: the reference is anywhere among the returned routes (the ceiling):    0.547
+
+reported, deciding nothing:
+  M1 at 1 / 5 / 10: 0.193 / 0.500 / 0.533 (published, reference-excluding model: 0.20 / 0.55 / 0.61)
+  M2 at 1 / 5 / 10: 0.140 / 0.337 / 0.417
+  M3 at 1 / 5 / 10: 0.170 / 0.343 / 0.407
+  routes returned per target (median / max): 292 / 836
+  routes inside the PaRoutes top-10 (median / max): 37 / 328; distinct score levels (median / max): 104 / 313
+  score level of the best-ranked matching route (median, over targets that have one): 2
+  targets with a first route that has a reaction: 298; of those fully validated: 296
+  mean leaf overlap of the first route with the reference: 0.619; first route shorter than the reference: 0.513
+  seconds per target (median, run r1): 42.7; peak working set seen (MB): 2865
+
+PREREGISTERED READING OF M1 AT 10 (0.533): the shortfall was protocol: pool, ranking and tie-counting explain protocol 1's PARTIAL (quote M2 beside any PaRoutes-style figure)
+
+CONTAMINATION: the same public ONNX model, probably trained on these reference reactions; recovery is not evidence that the planner generalises (PREREGISTRATION.md).
+M1 counts tied score levels and is generous by construction; the user-facing count is M2. Feasibility is not measured and is never reported.
