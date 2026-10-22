@@ -78,6 +78,7 @@ Every tracked top-level entry, and whether it reaches a release.
 | `tests` | **No** | Build-time and development only |
 | `benchmarks` | **No** | Measurements and drive scripts, development only (the frozen smoke script is read from here by the build, not shipped) |
 | `tools` | **No** | Build and maintenance scripts |
+| `changelog.d` | **No** | Pending changelog entries, one file per change; `tools/changelog.py build` folds them into `CHANGELOG.md` (which does ship) before a release is tagged |
 | `packaging` | **No** | The PyInstaller spec and launcher and the installer script: they make the release files, they are not in them |
 | `build.ps1`, `build.bat`, `run.bat` | **No** | Build and run helpers |
 | `examples` | **No** | Plugin examples for developers |

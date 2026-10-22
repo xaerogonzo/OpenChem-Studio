@@ -8,7 +8,10 @@ checks itself is in [ARCHITECTURE.md](ARCHITECTURE.md) ("Packaging").
 
 ## Cutting one
 
-1. **Bump the version and the changelog in one PR.** Change `version` in `pyproject.toml`,
+1. **Bump the version and the changelog in one PR.** Run `python tools/changelog.py preview`
+   to see the pending entries, then `python tools/changelog.py build`, which folds every
+   fragment in `changelog.d/` into `## [Unreleased]` and deletes it (see
+   [changelog.d/README.md](../changelog.d/README.md)). Change `version` in `pyproject.toml`,
    and move the entries under `## [Unreleased]` you are shipping to a new
    `## [<version>] — <date>` heading in `CHANGELOG.md`. Those entries become the release
    notes. `tests/test_release_workflow.py` fails if the version has no changelog section.
@@ -16,8 +19,9 @@ checks itself is in [ARCHITECTURE.md](ARCHITECTURE.md) ("Packaging").
 3. **Tag that commit** `v<version>` (exactly: `v0.11.0`, no suffix) and push the tag. From
    GitHub: Releases, Draft a new release, choose a new tag on `master`, then save it as a
    draft; or from a terminal, `git tag v0.11.0 <commit>` and `git push origin v0.11.0`.
-   The workflow refuses a tag that does not match `pyproject.toml`, and a version with no
-   changelog section, in the first seconds, before the long build.
+   The workflow refuses a tag that does not match `pyproject.toml`, a version with no
+   changelog section, and any changelog fragment still in `changelog.d/`, in the first
+   seconds, before the long build.
 4. **Wait** (about 30 minutes). The workflow builds with `build.ps1 -Release -Installer`,
    which refuses a dirty tree and smoke-tests the built app, the zip's extracted copy and
    the installed app; checks the checksums; attests where the files came from; and drafts

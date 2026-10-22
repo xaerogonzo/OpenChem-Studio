@@ -21,6 +21,13 @@ contribution, not a failure.
 If something cannot be validated, say so and leave it out rather than
 shipping it with a plausible-looking number attached.
 
+## Changelog entries
+
+Do not edit `CHANGELOG.md` in a pull request. Add a fragment instead, with
+`uv run --no-sync python tools/changelog.py new <short-topic>` and fill in the file it
+prints (one `### Title` line, then `- ` bullets). Two pull requests then add two different
+files and never conflict. `changelog.d/README.md` has the rules.
+
 ## Running the tests
 
 CI runs the suite, the naming benchmark, the regulatory benchmark and
