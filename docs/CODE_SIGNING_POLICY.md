@@ -80,11 +80,13 @@ only the service that feature names. Nothing is sent in the background.
 | Search ChEMBL (Database Search) | ChEMBL at EMBL-EBI (`www.ebi.ac.uk`) | what you searched for |
 | Fetch a protein structure by its PDB id (Receptor Library) | RCSB (`files.rcsb.org`, `www.rcsb.org`) | the PDB id |
 | Predict a reaction (Reaction Prediction plugin) | IBM RXN (`rxn.res.ibm.com`) | the reaction SMILES you entered, with **your own** API key |
-| Ask the AI assistant (AI Assistant plugin) | the provider you choose and configure: Anthropic (`api.anthropic.com`), OpenAI (`api.openai.com`), or a local Ollama on your own machine (`localhost`) | your messages and any calculation results you ask it to read, with **your own** API key, which is stored only on your computer |
+| Ask the AI assistant (AI Assistant plugin) | the provider you choose and configure: Anthropic (`api.anthropic.com`), OpenAI (`api.openai.com`), a local Ollama on your own machine (`localhost`), or the **Claude Code** command-line program if it is installed on your computer, which the assistant runs and which sends the conversation to Anthropic under your own login | your messages and any calculation results you ask it to read, with **your own** API key (or your own Claude Code login); a key is stored only on your computer |
 | Set up Java for name-to-structure conversion | Adoptium (`api.adoptium.net`) | a download request for the Temurin runtime |
 | Set up AutoDock Vina | GitHub (`api.github.com`, `github.com`) | a download request for the release |
 | Build the NMR database | SourceForge (`sourceforge.net`) | a download request for nmrshiftdb2 |
-| Set up the pKa predictor | PyTorch (`download.pytorch.org`) and PyG (`data.pyg.org`) wheel indexes | download requests for the packages |
+| Set up the pKa predictor | PyTorch (`download.pytorch.org`) and PyG (`data.pyg.org`) wheel indexes, the Python Package Index (PyPI, `pypi.org`) for the other packages, GitHub (`github.com`) for the predictor's source and trained models, and, if no suitable Python is installed, a standalone Python build that `uv` downloads from GitHub | download requests for the packages, the source and the models |
+| Set up the ADMET predictor | the Python Package Index (PyPI, `pypi.org`) and, if no suitable Python is installed, a standalone Python from GitHub through `uv` | a download request for the `admet-ai` package, whose trained weights are inside it |
+| Use synthesis route planning (Synthesis Planner plugin) | nothing, from OpenChem | it runs the AiZynthFinder program you installed yourself, on your computer. That program's own downloads (its models and stock) are made by that program when you set it up, not by OpenChem |
 
 Some buttons only open a web page in **your browser** (the ChemSpider search, the
 vendor pages for ORCA and Psi4, which you install yourself). The program sends nothing
@@ -98,5 +100,8 @@ statement before it installs anything.
 
 ## Changing this page
 
-`tests/test_code_signing_policy.py` fails if the program contacts a host that this page
-does not name, so the privacy statement cannot quietly fall behind the code.
+`tests/test_code_signing_policy.py` fails if a module that makes network requests or runs an
+installer is not accounted for here, or names a host this page does not, so the privacy
+statement cannot quietly fall behind the code. It cannot see a service reached through a
+library or a program the code starts (the AI providers, `pip`, `uv`, `git`): those rows are
+kept by hand and the test only checks that the page still names them.

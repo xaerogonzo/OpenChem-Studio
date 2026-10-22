@@ -10,10 +10,10 @@ the service that feature names. Nothing is sent in the background:
   - PubChem and ChEMBL, when you look up or search compounds
   - RCSB, when you fetch a protein structure by its PDB id
   - IBM RXN, when you use reaction prediction, with your own API key
-  - Anthropic, OpenAI, or a local Ollama, when you use the AI assistant, with your own
-    API key
-  - Adoptium, GitHub, SourceForge, PyTorch and PyG, when you ask the program to set up
-    Java, AutoDock Vina, the NMR database or the pKa predictor
+  - Anthropic, OpenAI, a local Ollama, or the Claude Code program on your computer, when
+    you use the AI assistant, with your own API key or login
+  - Adoptium, GitHub, SourceForge, PyPI, PyTorch and PyG, when you ask the program to set
+    up Java, AutoDock Vina, the NMR database, or the pKa or ADMET predictors
 
 You can turn any plugin off from the Plugins menu. The AI assistant and reaction
 prediction do nothing until you give them a key.

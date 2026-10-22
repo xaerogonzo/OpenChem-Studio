@@ -30,6 +30,35 @@ NETWORK_FILES = (
     "src/openchem/services/pkasolver_setup.py",
     "plugins/database_search/providers.py",
     "plugins/reaction_prediction/providers.py",
+    # Reaches Anthropic and OpenAI through their SDKs and the local Claude Code program through a
+    # subprocess, so no literal host shows up in it; the page names them by hand (see below).
+    "plugins/ai_assistant/providers.py",
+    # `pip` / `uv pip install` of the ADMET package from PyPI; no literal host either.
+    "src/openchem/services/admet_setup.py",
+)
+
+#: The one module every plain HTTP request goes through. It names no service of its own.
+HELPERS = {"src/openchem/net.py"}
+
+#: Modules whose text mentions a command or a link (a hint to the user, a comment) and runs nothing.
+#: If one ever starts fetching, move it to NETWORK_FILES and give the page a row.
+MENTION_ONLY = {
+    "src/openchem/services/sidecar_inventory.py",
+    "src/openchem/services/storage_service.py",
+    "src/openchem/ui/dialogs/external_tool_catalog.py",
+    "src/openchem/services/synthesis_planner_setup.py",
+}
+
+#: What marks a module as one that makes a request, runs an installer or starts a provider. Deliberately
+#: loose and indentation-tolerant: the providers import their SDKs inside the functions that use them.
+_CAPABILITY = re.compile(
+    r"^\s*(import|from)\s+(urllib\.request|requests|httpx|anthropic|openai)\b"
+    r"|urlopen\("
+    r"|openchem\.net|from openchem import net"
+    r"|\bpip\b.{0,50}\binstall\b|\"pip\", \"install\""
+    r"|\"clone\"|git clone"
+    r"|\buv\b.{0,30}(venv|pip)",
+    re.MULTILINE,
 )
 
 #: Hosts the code names that the program only SHOWS A LINK to (opened in the person's browser,
@@ -38,6 +67,7 @@ LINKS_ONLY = {
     "www.chemspider.com": "ChemSpider",
     "psicode.org": "Psi4",
     "www.faccts.de": "ORCA",
+    "claude.com": "Claude Code",
 }
 
 #: Hosts that are this project's own, or specifications, not services the program sends data to.
@@ -183,7 +213,7 @@ def test_the_installer_shows_the_privacy_notice_during_installation():
 def test_the_notice_makes_the_same_promises_as_the_page_and_names_the_same_services():
     for claim in ("no telemetry", "no accounts", "does not check for updates", "only when you use a feature"):
         assert claim.replace("no ", "no ") in NOTICE.lower() or claim in NOTICE.lower(), claim
-    for service in ("PubChem", "ChEMBL", "RCSB", "IBM RXN", "Anthropic", "OpenAI", "Ollama", "Adoptium", "GitHub", "SourceForge", "PyTorch"):
+    for service in ("PubChem", "ChEMBL", "RCSB", "IBM RXN", "Anthropic", "OpenAI", "Ollama", "Claude Code", "Adoptium", "GitHub", "SourceForge", "PyTorch", "PyPI"):
         assert service in NOTICE, f"the installer notice does not mention {service}"
         assert service in PAGE, f"the policy page does not mention {service}"
     assert "Plugins menu" in NOTICE and "Plugins menu" in PAGE
@@ -193,3 +223,49 @@ def test_the_notice_makes_the_same_promises_as_the_page_and_names_the_same_servi
 def test_the_notice_is_plain_text_the_installer_can_show():
     NOTICE.encode("ascii")  # Inno shows this file as ANSI text; anything else risks mojibake
     assert len(NOTICE.splitlines()) < 60, "a wizard page that needs a long scroll is not read"
+
+
+# --- a new network module cannot slip past a hand-written list ----------------------------------
+
+
+def _discovered() -> set[str]:
+    found = set()
+    for base in ("src", "plugins"):
+        for path in (ROOT / base).rglob("*.py"):
+            rel = path.relative_to(ROOT).as_posix()
+            if "/vendor/" in rel or "/resources/" in rel:
+                continue
+            if _CAPABILITY.search(path.read_text(encoding="utf-8", errors="replace")):
+                found.add(rel)
+    return found
+
+
+def test_every_module_that_can_reach_a_service_is_accounted_for():
+    """The host scan above only reads the files NETWORK_FILES names, so a hand-written list cannot
+    see a module someone adds next year. This FINDS them: any module under src/ or plugins/ that
+    imports a request library or an AI SDK, calls `openchem.net`, or runs `pip`, `uv` or `git` to
+    install something must be listed (and so appear on the page) or be marked mention-only."""
+    known = set(NETWORK_FILES) | HELPERS | MENTION_ONLY
+    new = sorted(_discovered() - known)
+    assert not new, (
+        f"{new} can reach an external service or run an installer, and is not accounted for. Add it to "
+        "NETWORK_FILES and give docs/CODE_SIGNING_POLICY.md a row (what it contacts, when, what is sent); "
+        "or, if it only mentions a command or a link and runs nothing, add it to MENTION_ONLY."
+    )
+
+
+def test_the_accounting_has_no_stale_entries():
+    known = set(NETWORK_FILES) | HELPERS | MENTION_ONLY
+    for rel in sorted(known - _discovered()):
+        assert (ROOT / rel).is_file(), f"{rel} is listed but does not exist"
+    # an entry that no longer matches the scan is a module that stopped doing it, or a scan that broke
+    stale = sorted(known - _discovered())
+    assert not stale, f"listed but no longer matching the scan: {stale}"
+
+
+def test_the_page_names_the_services_the_scan_cannot_see():
+    """The AI providers, `pip`, `uv` and `git` reach services with no literal host in the code, so
+    these are checked by name. Each was once missing from the page."""
+    for text in ("Claude Code", "pypi.org", "admet-ai", "AiZynthFinder", "uv", "github.com", "Ollama"):
+        assert text in PAGE, f"the privacy table does not mention {text}"
+    assert "ADMET predictor" in PAGE and "pKa predictor" in PAGE
