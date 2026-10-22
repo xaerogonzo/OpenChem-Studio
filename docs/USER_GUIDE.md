@@ -1893,6 +1893,38 @@ Hydrogens on one carbon are merged into one peak, so diastereotopic hydrogens ar
 not resolved. These are gas-phase predictions from one geometry per tautomer, not a
 solution spectrum.
 
+<!-- help:proton-affinity -->
+### Proton affinity and gas basicity
+
+The **Proton affinity...** button runs ORCA on the current structure, a neutral base, and on the conjugate acid
+it makes at every place a proton can go, and reports two numbers in kJ/mol at 298.15 K and 1 atm: the
+**proton affinity** (an enthalpy) and the **gas-phase basicity** (a Gibbs energy, which also carries the entropy
+of the proton and of both species). It needs no 3D conformer: each structure is embedded fresh from the 2D
+drawing. It asks for confirmation first, naming the number of ORCA jobs, and holds the molecule until it
+finishes or you press Cancel.
+
+**A proton affinity belongs to a site.** The candidate sites are every nitrogen, oxygen, sulfur or phosphorus
+atom without a positive charge and every carbon of a C=C, C#C or aromatic bond (and the carbon of carbon
+monoxide); equivalent sites count once. Every site is optimized, the result gives the best one and the atom it
+is, and lists each site's own value, so you can see how far the runner-up is.
+
+**What it was measured to do.** The protocol (M062X/def2-TZVPD optimizations and frequencies, the lowest
+structure of each species, ORCA's symmetry number replaced by the true one) was run through a preregistered
+benchmark of 28 bases against the NIST evaluation of Hunter and Lias. On the 21 whose proton affinity is above
+propene's, the mean absolute error was **1.55 kcal/mol (6.5 kJ/mol) for proton affinity and 1.53 for gas
+basicity**, with the proton bound **about 1.2 kcal/mol too weakly** on average, so read each value as a little
+low. The reference values are themselves uncertain by about 8 kJ/mol. Every result repeats this beside the
+number.
+
+**What is refused, and what can be missing.** It applies to a single neutral closed-shell base of at most ten
+heavy atoms made of H, C, N, O, P and S; a charged or radical species, a mixture, another element or a larger
+molecule is refused with its reason, because no error was measured for it. A structure whose optimization
+keeps an imaginary vibration after one re-run is dropped, and a base or acid with none left has no value: the
+result says which structures were dropped, and PA and GB can be missing separately (the benchmark lost water
+this way). The lowest structure is used, with no averaging over conformers, and the calculation is experimental
+until it has been driven through the application on real ORCA; it is hidden from the Properties launcher by
+default.
+
 <!-- help:2d-correlation -->
 ### HSQC, HMBC and COSY — connectivity, not a simulated spectrum
 
