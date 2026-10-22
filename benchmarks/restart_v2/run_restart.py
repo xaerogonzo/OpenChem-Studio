@@ -144,7 +144,7 @@ def run_orca(input_text: str, want_hessian: bool = False) -> tuple[str, str | No
     scratch = Path(tempfile.mkdtemp(prefix="restart_"))
     try:
         (scratch / "job.inp").write_text(input_text, encoding="utf-8")
-        completed = subprocess.run([bde.ORCA, "job.inp"], cwd=scratch, capture_output=True, text=True, timeout=bde.JOB_TIMEOUT_SECONDS)
+        completed = subprocess.run([bde.ORCA, "job.inp"], cwd=scratch, capture_output=True, text=True, timeout=bde.JOB_TIMEOUT_SECONDS, check=False)
         hessian = None
         if want_hessian and (scratch / "job.hess").exists():
             hessian = (scratch / "job.hess").read_text(encoding="utf-8")
