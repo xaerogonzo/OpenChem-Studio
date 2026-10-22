@@ -166,3 +166,28 @@ def test_the_installer_carries_the_same_product_name_and_version():
     assert f"VersionInfoProductName={info.PRODUCT_NAME}" in script
     assert f"VersionInfoCompany={info.COMPANY_NAME}" in script
     assert "VersionInfoProductVersion={#AppVersion}" in script and "VersionInfoVersion={#AppVersion}" in script
+
+
+# --- the installer shows the privacy statement before it installs -------------------------
+
+NOTICE = (ROOT / "packaging" / "installer_privacy.txt").read_text(encoding="utf-8")
+
+
+def test_the_installer_shows_the_privacy_notice_during_installation():
+    script = (ROOT / "packaging" / "openchem.iss").read_text(encoding="utf-8")
+    assert "InfoBeforeFile={#SourcePath}installer_privacy.txt" in script
+
+
+def test_the_notice_makes_the_same_promises_as_the_page_and_names_the_same_services():
+    for claim in ("no telemetry", "no accounts", "does not check for updates", "only when you use a feature"):
+        assert claim.replace("no ", "no ") in NOTICE.lower() or claim in NOTICE.lower(), claim
+    for service in ("PubChem", "ChEMBL", "RCSB", "IBM RXN", "Anthropic", "OpenAI", "Ollama", "Adoptium", "GitHub", "SourceForge", "PyTorch"):
+        assert service in NOTICE, f"the installer notice does not mention {service}"
+        assert service in PAGE, f"the policy page does not mention {service}"
+    assert "Plugins menu" in NOTICE and "Plugins menu" in PAGE
+    assert "not code-signed yet" in NOTICE and r"docs\CODE_SIGNING_POLICY.md" in NOTICE
+
+
+def test_the_notice_is_plain_text_the_installer_can_show():
+    NOTICE.encode("ascii")  # Inno shows this file as ANSI text; anything else risks mojibake
+    assert len(NOTICE.splitlines()) < 60, "a wizard page that needs a long scroll is not read"

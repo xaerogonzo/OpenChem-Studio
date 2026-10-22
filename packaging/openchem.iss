@@ -64,6 +64,10 @@ ArchitecturesAllowed=x64compatible
 ArchitecturesInstallIn64BitMode=x64compatible
 MinVersion=10.0
 LicenseFile={#SourceDir}\LICENSE
+; Shown during installation, after the licence: what the program contacts, and that nothing is
+; sent unless a feature that needs a service is used. Code signing terms require this page for
+; software that can send user data. Kept in step with docs/CODE_SIGNING_POLICY.md by a test.
+InfoBeforeFile={#SourcePath}installer_privacy.txt
 OutputDir={#OutputDir}
 OutputBaseFilename={#OutputName}
 WizardStyle=modern

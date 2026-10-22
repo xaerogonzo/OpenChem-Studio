@@ -92,7 +92,9 @@ to those sites; your browser does, as you choose.
 
 Each service has its own privacy policy, which applies to what it receives. If you do not
 want a service to see a query, do not use the feature that sends it. The AI assistant and
-reaction prediction are plugins that stay idle until you configure a key.
+reaction prediction are plugins that stay idle until you configure a key, and **you can
+turn any plugin off from the Plugins menu**. The installer shows a short version of this
+statement before it installs anything.
 
 ## Changing this page
 
