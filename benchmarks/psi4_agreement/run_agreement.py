@@ -96,6 +96,13 @@ ORCA_VARIANTS = ("default", "tight")
 PSI4_VARIANTS = ("default", "grid", "one_thread")
 
 
+#: PLAN_FUNCTIONAL_LADDER: a job whose variant starts with this takes the shipped B3LYP input and swaps only the functional to the name after the colon. Never reached by an earlier plan.
+FUNCTIONAL_VARIANT = "functional:"
+#: The two functionals the ladder adds to the shipped ones, each as the engine's own keyword (neither is in the application's table: they are tried here, not offered).
+LADDER_ORCA_KEYWORDS = {"PBE": "PBE", "BLYP": "BLYP"}
+LADDER_PSI4_KEYWORDS = {"PBE": "pbe", "BLYP": "blyp"}
+
+
 # --- inputs ---------------------------------------------------------------------------------------------------------------
 
 
@@ -121,6 +128,17 @@ def orca_variant(text: str, variant: str, calc_type: str) -> str:
         index = next(i for i, line in enumerate(lines) if line.startswith("!"))
         lines[index] = lines[index] + extra
         return "\n".join(lines)
+    if variant.startswith(FUNCTIONAL_VARIANT):
+        # PLAN_FUNCTIONAL_LADDER: the shipped B3LYP input with only the functional's name changed on the `!` line (`! B3LYP def2-SVP ...` -> `! PBE def2-SVP ...`).
+        new = variant[len(FUNCTIONAL_VARIANT):]
+        lines = text.split("\n")
+        index = next(i for i, line in enumerate(lines) if line.startswith("!"))
+        tokens = lines[index].split(" ")
+        if tokens[1] != "B3LYP" or new not in LADDER_ORCA_KEYWORDS:
+            raise ValueError(f"cannot swap {tokens[1]!r} for {new!r} on {lines[index]!r}")
+        tokens[1] = LADDER_ORCA_KEYWORDS[new]
+        lines[index] = " ".join(tokens)
+        return "\n".join(lines)
     raise ValueError(f"unknown ORCA variant {variant!r}")
 
 
@@ -131,6 +149,12 @@ def psi4_variant(text: str, variant: str, calc_type: str) -> str:
         return text
     lines = text.rstrip("\n").split("\n")
     verb = lines.pop()  # the last line is the energy(...) / optimize(...) call
+    if variant.startswith(FUNCTIONAL_VARIANT):
+        # PLAN_FUNCTIONAL_LADDER: the shipped B3LYP input with only the functional keyword of the energy(...) call changed.
+        new = variant[len(FUNCTIONAL_VARIANT):]
+        if verb != "energy('b3lyp5')" or new not in LADDER_PSI4_KEYWORDS:
+            raise ValueError(f"cannot swap the functional of {verb!r} for {new!r}")
+        return "\n".join([*lines, f"energy('{LADDER_PSI4_KEYWORDS[new]}')", ""])
     if variant == "df":
         lines = [("set scf_type df" if line == "set scf_type pk" else line) for line in lines]
     elif variant == "grid":

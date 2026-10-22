@@ -1575,6 +1575,7 @@
   "tests/test_psi4_agreement_judge.py": 1,
   "tests/test_psi4_agreement_runner.py": 2,
   "tests/test_psi4_engine.py": 2,
+  "tests/test_psi4_functional_ladder.py": 0,
   "tests/test_psi4_grid_offset.py": 0,
   "tests/test_psi4_settings.py": 0,
   "tests/test_psi4_tool.py": 3,
