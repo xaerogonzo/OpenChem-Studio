@@ -737,14 +737,22 @@ def test_the_runner_and_the_host_agree_on_a_whole_exchange(tmp_path, fake_librar
 
 _PLANNER_PYTHON = Path("D:/_scratch/aizynth/env/Scripts/python.exe")
 _PLANNER_DATA = Path("D:/_scratch/aizynth/data")
-_STOCK_KEYS = Path(__file__).parent.parent / "benchmarks" / "synthesis" / "artifacts" / "stock_n1_inchikeys.txt"
+# The reference stock the benchmark ran on, as the InChI keys the planner reads. It is protocol 2's, committed with its records: protocol 1 never kept its copy, and these tests pointed at that missing file and skipped silently on every machine (found 2026-10-22).
+_STOCK_KEYS = Path(__file__).parent.parent / "benchmarks" / "synthesis" / "artifacts_protocol2" / "stock_n1_inchikeys.txt"
 _REAL = pytest.mark.skipif(not (_PLANNER_PYTHON.exists() and (_PLANNER_DATA / "uspto_model.onnx").exists() and _STOCK_KEYS.exists()), reason="the planner environment and the reference stock are not on this machine")
 
 
-def _real_request(iterations=30):
+def test_the_stock_file_the_real_planner_tests_need_is_committed_so_they_cannot_skip_for_want_of_it():
+    """A skip is silent. The real-planner tests skip when the planner is not installed, which is honest; they must never skip because the stock they read is not in the repository."""
+    assert _STOCK_KEYS.is_file() and _STOCK_KEYS.stat().st_size > 100_000, "the benchmark's reference stock (13,414 InChI keys) is missing"
+    keys = _STOCK_KEYS.read_text(encoding="utf-8").split()
+    assert len(set(keys)) == 13414 and all(len(key) == 27 for key in keys)
+
+
+def _real_request(iterations=30, target="CC(=O)Oc1ccccc1C(=O)O", **kw):
     config = {"expansion": {"uspto": [str(_PLANNER_DATA / "uspto_model.onnx"), str(_PLANNER_DATA / "uspto_templates.csv.gz")]}, "stock": {"n1": str(_STOCK_KEYS)}}
-    target = "CC(=O)Oc1ccccc1C(=O)O"  # aspirin: solved in one step from the reference stock's own molecules? not guaranteed; the test checks the exchange, not the chemistry
-    return host.PlanRequest(target_smiles=target, config=config, stock="n1", expansion="uspto", limits=SearchLimits(iteration_limit=iterations, time_limit_seconds=300, max_transforms=6))
+    # (the default target is aspirin: the exchange is checked, not the chemistry)
+    return host.PlanRequest(target_smiles=target, config=config, stock="n1", expansion="uspto", limits=SearchLimits(iteration_limit=iterations, time_limit_seconds=300, max_transforms=6), **kw)
 
 
 @_REAL
@@ -754,6 +762,24 @@ def test_the_real_planner_answers_through_the_real_runner():
     assert result.status in (RouteStatus.FOUND, RouteStatus.NO_ROUTE), result.reason
     assert result.planner.version == "4.4.1" and result.planner.limits.iteration_limit == 30 and result.statistics.iterations == 30
     assert result.termination is SearchTermination.ITERATION_LIMIT
+
+
+@_REAL
+def test_a_real_search_asks_for_every_solved_route_and_keeps_ten_ranked_and_validated_and_says_how_many_it_left_out():
+    """Paracetamol at 200 iterations returned 145 routes (86 with every starting material in stock) when measured on 2026-10-22; the count varies, the shape of the answer does not."""
+    target = TargetIdentity(molecule_uuid="u-2", canonical_smiles="CC(=O)Nc1ccc(O)cc1", fingerprint="fp2")
+    request = _real_request(iterations=200, target=target.canonical_smiles)
+    assert request.all_routes is True
+
+    result = host.run_planner(request, target, python=_PLANNER_PYTHON)
+
+    assert result.status is RouteStatus.FOUND, result.reason
+    assert len(result.routes) == host.ROUTES_SHOWN and [r.rank for r in result.routes] == list(range(1, host.ROUTES_SHOWN + 1))
+    assert all(r.validation is not None and r.validation.fully_validated for r in result.routes)
+    assert all(m.in_stock is True for r in result.routes for m in r.starting_materials)
+    left_out = [s for s in result.limitations if s.startswith("Routes the planner returned that are not shown: ")]
+    assert len(left_out) == 1 and "more solved routes ranked below the 10 shown" in left_out[0], result.limitations
+    assert host.BENCHMARK_FINDING in result.limitations
 
 
 @_REAL
