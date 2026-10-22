@@ -1,7 +1,7 @@
 """The Structure Checker: what is wrong, why we think so, and what to do.
 
-Modelled on Marvin's structure checker, with one structural difference that
-is forced on us. Marvin highlights the offending atoms in its own canvas;
+Modelled on the reference editor's structure checker, with one structural difference that
+is forced on us. The reference editor highlights the offending atoms in its own canvas;
 ours is vendored Ketcher, whose build has no highlighting API at all
 (`setHighlights` appears zero times in the bundle). So selecting an issue
 highlights in OUR depiction, drawn beside the list -- which turns out to

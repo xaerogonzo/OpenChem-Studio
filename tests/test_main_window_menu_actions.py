@@ -121,7 +121,7 @@ def test_structure_menu_actions_proxy_to_the_real_ketcher_buttons(qapp, tmp_path
     reimplementation.
 
     They moved out of Edit into their own Structure menu, following
-    Marvin -- Edit is for the document (undo, clipboard, which molecule),
+    The reference editor -- Edit is for the document (undo, clipboard, which molecule),
     Structure is for operating on the structure.
 
     **Calculate CIP was in this list and left it.** It is calculated

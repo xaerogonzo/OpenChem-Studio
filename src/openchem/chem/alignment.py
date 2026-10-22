@@ -1,11 +1,11 @@
 """3D alignment of one molecule onto another.
 
-Two methods, matching ChemAxon's plugin:
+Two methods, matching the vendor's plugin:
 
 EXTENDED ATOM TYPES -- Open3DAlign (O3A) [source:tosco2011], which pairs atoms by MMFF atom
 type and maximises the overlap of like-typed atoms. MMFF types encode
 atomic number, hybridization and aromaticity, so an aromatic nitrogen does
-not pair with a tertiary amine. That is the same discrimination ChemAxon
+not pair with a tertiary amine. That is the same discrimination the vendor
 describes for its extended atom types.
 
     MMFF cannot type every element -- confirmed that selenium and platinum
@@ -16,7 +16,7 @@ describes for its extended atom types.
 
 COMMON SCAFFOLD -- the 2D maximum common substructure fixes the atom
 pairing, then O3A refines everything else around it via its constraint
-map. That two-stage shape is ChemAxon's own description ("after MCS
+map. That two-stage shape is the vendor's own description ("after MCS
 pairing is established, extended atom type alignment applies to remaining
 atoms"), not an invention here.
 
@@ -45,13 +45,13 @@ from openchem.domain.refusal_kinds import MissingInput, RefusalKind, refusal_par
 from openchem.domain.common import CacheState, Provenance
 from openchem.domain.scientific_result import StructureEntry, StructureSetResult
 
-# Labels are ChemAxon's; the values are what the code branches on.
+# Labels are the vendor's; the values are what the code branches on.
 ALIGNMENT_METHODS: dict[str, str] = {
     "Extended atom types": "atom_types",
     "Common scaffold (MCS)": "mcs",
 }
 
-# ChemAxon's three accuracy levels, expressed as what they actually change
+# The vendor's three accuracy levels, expressed as what they actually change
 # here: how many starting conformers are tried, and how long the MCS search
 # may run. More conformers means a better chance of finding the pose that
 # really overlays, at linear cost.
@@ -66,7 +66,7 @@ logger = logging.getLogger("openchem.chemistry")
 
 DEFAULT_ACCURACY = "Normal"
 
-# ChemAxon's rigid/flexible switch. It is NOT a third method: it composes
+# The vendor's rigid/flexible switch. It is NOT a third method: it composes
 # with both of the two above, because it governs how the probe's STARTING
 # GEOMETRY is prepared rather than how atoms are paired.
 #
@@ -520,7 +520,7 @@ def align(
 ) -> AlignmentResult:
     """Align `probe` onto `reference`, keeping the best of several starts.
 
-    Trying multiple conformers is the point of ChemAxon's "initial
+    Trying multiple conformers is the point of the vendor's "initial
     conformation count": a flexible molecule's alignment quality depends
     heavily on which starting geometry it began from, so the best score
     across a diverse set beats one arbitrary pose.

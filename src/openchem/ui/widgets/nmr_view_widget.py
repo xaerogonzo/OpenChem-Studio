@@ -56,8 +56,8 @@ from openchem.ui.widgets.sortable_item import SortableItem
 from openchem.ui.widgets.tautomer_overlay_controls import TautomerOverlayControls
 
 #: Column headers for the signal table, in display order. Deliberately NO
-#: "Prediction quality" column, which is what MarvinSketch shows here.
-#: Marvin can rate its own confidence because it has a HOSE-code
+#: "Prediction quality" column, which is what the reference editor shows here.
+#: The reference editor can rate its own confidence because it has a HOSE-code
 #: experimental reference database behind every number; nothing wired up
 #: here does, so a rating would be invented rather than measured --
 #: exactly the fabricated precision this project refuses elsewhere (the
@@ -123,7 +123,7 @@ NMR_VIEWER_DEFAULTS = NmrViewerSettings()
 
 
 class NmrViewWidget(QWidget):
-    """The Marvin-parity NMR view: peak spectrum, signal table, and the
+    """The reference-editor parity NMR view: peak spectrum, signal table, and the
     shifts drawn on the structure, all wired to each other.
 
     Its own widget rather than another tab in `CalculatorInspectorDialog`,
@@ -206,7 +206,7 @@ class NmrViewWidget(QWidget):
         self._table.itemSelectionChanged.connect(self._on_table_selection_changed)
         self._table.setMinimumHeight(80)
 
-        # Two more VIEWS of the same signals (Marvin splits its table the
+        # Two more VIEWS of the same signals (the reference editor splits its table the
         # same way): per-atom and per-coupling. They are projections, never a
         # second dataset -- rebuilt from `self._signals` in
         # `_populate_projections`, and every row carries the owning signal's
@@ -223,7 +223,7 @@ class NmrViewWidget(QWidget):
         self._table_tabs.addTab(self._atoms_table, "Atoms")
         self._table_tabs.addTab(self._couplings_table, "Couplings")
 
-        # Marvin's own NMR panel offers both. Neither changes a predicted
+        # The reference editor's own NMR panel offers both. Neither changes a predicted
         # shift -- frequency only sets how far apart a multiplet's lines
         # fall in ppm, and the solvent peak is the solvent's, not the
         # sample's -- but both are what make a plot read like a real
@@ -260,7 +260,7 @@ class NmrViewWidget(QWidget):
         self._decoupled_check.toggled.connect(self._spectrum_widget.set_decoupled)
         self._integral_check = QCheckBox("Relative integral", self)
         self._integral_check.toggled.connect(self._spectrum_widget.set_show_integral)
-        # Default on, matching Marvin's own "Zoom Follows Selection" --
+        # Default on, matching the reference editor's own "Zoom Follows Selection" --
         # a checkbox rather than always-on so it can be turned off if it
         # ever feels disruptive rather than helpful.
         self._zoom_follow_check = QCheckBox("Zoom to selection", self)
@@ -754,8 +754,8 @@ class NmrViewWidget(QWidget):
 
     def _on_copy_spectrum_image_clicked(self) -> None:
         """Copies the spectrum PLOT only, not the structure panes or the
-        table -- Marvin's own "copy any panel as an image" is ambiguous
-        about scope; this picks the one Marvin wording actually calls the
+        table -- the reference editor's own "copy any panel as an image" is ambiguous
+        about scope; this picks the one the reference editor wording actually calls the
         "spectrum" and names the action accordingly."""
         QApplication.clipboard().setPixmap(self._spectrum_widget.grab())
 

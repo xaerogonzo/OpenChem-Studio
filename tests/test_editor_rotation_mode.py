@@ -1,7 +1,7 @@
 """Turning a structure in the 2D editor, against the real Ketcher bundle.
 
 *"we need the rotation rulers and live angle readouts too inside the 2d
-editor definitely"*, against a MarvinSketch screenshot.
+editor definitely"*, against the reference editor screenshot.
 
 **The engineering was never the maths.** Getting a molecule to move on
 screen is easy; keeping Ketcher's model coherent is the part that can go

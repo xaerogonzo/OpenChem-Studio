@@ -13,7 +13,7 @@ Every section says what the calculator produces, what it needs to run, whether i
 <!-- help:calc-elemental-analysis -->
 ### Elemental Analysis
 
-Molecular formula, average and exact mass, atom count and elemental composition (w/w %). Validated against MarvinSketch's own output for tyramine hydrochloride.
+Molecular formula, average and exact mass, atom count and elemental composition (w/w %). Validated against the reference editor's own output for tyramine hydrochloride.
 
 - Produces a list of facts, each with its own units, basis and evidence.
 - Runs on the 2D drawing, so no conformer is needed.
@@ -637,7 +637,7 @@ An overlay chosen by atom-type and charge similarity alone, with no regard to wh
 
 **How it works**
 
-The 2D maximum common substructure of the two molecules, restricted to heavy atoms, fixes the pairing first, and Open3DAlign then fits the rest around it, treating those pairs as constraints. The two-stage design follows ChemAxon's description of its own plug-in and is not part of the Open3DALIGN paper [1]; the atom-type matching inside the second stage is the one described under Extended atom types. If the molecules share no common substructure, or only hydrogens, it refuses and suggests the atom-type method instead.
+The 2D maximum common substructure of the two molecules, restricted to heavy atoms, fixes the pairing first, and Open3DAlign then fits the rest around it, treating those pairs as constraints. The two-stage design follows the vendor's description of its own plug-in and is not part of the Open3DALIGN paper [1]; the atom-type matching inside the second stage is the one described under Extended atom types. If the molecules share no common substructure, or only hydrogens, it refuses and suggests the atom-type method instead.
 
 **What the result means**
 
@@ -818,7 +818,7 @@ cone angle, percent buried volume, ligand steric bulk, Tolman
 <!-- help:calc-molecular-dynamics -->
 ### Molecular Dynamics (vacuum)
 
-Velocity-Verlet dynamics over MMFF94/UFF forces. VACUUM only: no thermostat, no barostat, no constraints, no periodic boundaries, no solvent. Not Dreiding, so energies are not comparable to MarvinSketch's. Needs a conformer.
+Velocity-Verlet dynamics over MMFF94/UFF forces. VACUUM only: no thermostat, no barostat, no constraints, no periodic boundaries, no solvent. Not Dreiding, so energies are not comparable to the reference editor's. Needs a conformer.
 
 - Produces a trajectory you can play.
 - Runs on a real 3D conformer -- generate one first.
@@ -984,7 +984,7 @@ HLB, hydrophile-lipophile balance, Griffin, emulsifier
 <!-- help:calc-surface-analysis -->
 ### Molecular Surface Area (3D)
 
-Solvent-accessible surface area with Marvin's ASA+/ASA-/ASA_H/ASA_P splits, plus the van der Waals surface area and volume. The solvent probe's radius can be changed (1.4 A, a water molecule, by default), and the structure can be the major microspecies at a pH, built on the stored conformer by moving protons only. Needs a conformer.
+Solvent-accessible surface area with the reference editor's ASA+/ASA-/ASA_H/ASA_P splits, plus the van der Waals surface area and volume. The solvent probe's radius can be changed (1.4 A, a water molecule, by default), and the structure can be the major microspecies at a pH, built on the stored conformer by moving protons only. Needs a conformer.
 
 - Produces a list of facts, each with its own units, basis and evidence.
 - Runs on a real 3D conformer -- generate one first.
@@ -1204,7 +1204,7 @@ Predicted hERG blockade, CYP450 inhibition/substrate and Ames mutagenicity via A
 <!-- help:calc-bbb-descriptors -->
 ### BBB Score Descriptors
 
-The five inputs to Gupta et al.'s (2019) BBB Score: aromatic rings, heavy atoms, MWHBN, TPSA and the most basic pKa. The composite score itself is not computed -- its weight functions are unpublished, and ChemAxon's single worked example cannot validate five unknown curves. Aromatic rings, heavy atoms and MWHBN all reproduce that example exactly.
+The five inputs to Gupta et al.'s (2019) BBB Score: aromatic rings, heavy atoms, MWHBN, TPSA and the most basic pKa. The composite score itself is not computed -- its weight functions are unpublished, and the vendor's single worked example cannot validate five unknown curves. Aromatic rings, heavy atoms and MWHBN all reproduce that example exactly.
 
 - Produces a list of facts, each with its own units, basis and evidence.
 - Runs on the 2D drawing, so no conformer is needed.
@@ -1217,7 +1217,7 @@ The five inputs to Gupta et al.'s (2019) BBB Score: aromatic rings, heavy atoms,
 <!-- help:calc-cns-mpo -->
 ### CNS MPO Score
 
-Wager et al. CNS multiparameter optimisation score, 0-6 from six desirability functions. Breakpoints validated against ChemAxon's documented aspirin example (5.75). Without a pkasolver environment the pKa term is omitted rather than assumed favourable, and the score is reported out of 5.
+Wager et al. CNS multiparameter optimisation score, 0-6 from six desirability functions. Breakpoints validated against the vendor's documented aspirin example (5.75). Without a pkasolver environment the pKa term is omitted rather than assumed favourable, and the score is reported out of 5.
 
 - Produces a list of facts, each with its own units, basis and evidence.
 - Runs on the 2D drawing, so no conformer is needed.

@@ -2,7 +2,7 @@
 
 The shared view for every `StructureSetResult` -- stereoisomers,
 tautomers, resonance forms, conformers and Markush library members --
-matching the grid MarvinSketch shows for all of them.
+matching the grid the reference editor shows for all of them.
 
 Renders each entry from its own molblock via `ChemistryEngine.render_2d_svg`.
 Deliberately does NOT deduplicate: resonance contributors collapse to
@@ -34,7 +34,7 @@ _CELL_HEIGHT = 210
 
 class _StructureCell(QFrame):
     """One depiction plus its caption. Clickable, so a grid can act as a
-    picker -- Marvin's own grid has a "Select" action along the bottom."""
+    picker -- the reference editor's own grid has a "Select" action along the bottom."""
 
     clicked = Signal(int)
 
@@ -82,7 +82,7 @@ class _StructureCell(QFrame):
 
 
 class StructureGridWidget(QWidget):
-    """Marvin-style grid of generated structures."""
+    """Reference-editor-style grid of generated structures."""
 
     structure_selected = Signal(int)  # index into the result's entries
 

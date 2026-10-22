@@ -16,7 +16,7 @@
 **Name:** OpenChem Studio
 **Stack:** Python 3.11+, PySide6 (+ PySide6-Addons/QWebEngine), RDKit, Open Babel (optional extra), uv for dependency management, pytest for testing
 **Entry point:** `uv run python -m openchem.main` (also installed as the `openchem` console script)
-**Purpose:** Open-source, plugin-based chemistry workstation — a modern, extensible replacement for proprietary molecular editors like MarvinSketch.
+**Purpose:** Open-source, plugin-based chemistry workstation — a modern, extensible alternative to proprietary molecular editors.
 
 ---
 

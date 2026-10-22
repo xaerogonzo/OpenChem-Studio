@@ -9,13 +9,13 @@ WHY THIS IS HAND-BUILT RATHER THAN DELEGATED TO RDKIT
 `rdMolEnumerator` exists, but confirmed live that `EnumeratorType` covers
 only **LinkNode, PositionVariation and RepeatUnit** -- it has no notion of
 R-groups or atom lists, which are the two central Markush features and the
-first two rows of Marvin's own feature table. So R-group and atom-list
+first two rows of the reference editor's own feature table. So R-group and atom-list
 enumeration is implemented here directly (RWMol surgery and atomic-number
 substitution, both verified live).
 
 What RDKit DOES give us for free is `MolEnumeratorParams.doRandom`,
 `maxToEnumerate` and `randomSeed` -- which is why the option names below
-line up with Marvin's: random enumeration and a generation cap are
+line up with the reference editor's: random enumeration and a generation cap are
 established ideas, not invented here.
 
 FEATURE COVERAGE, stated honestly rather than implied:
@@ -25,7 +25,7 @@ FEATURE COVERAGE, stated honestly rather than implied:
     Bond lists      NOT supported
     Nested R-groups NOT supported (an R-group definition containing another)
 
-The four enumeration modes are Marvin's own, because they answer genuinely
+The four enumeration modes are the reference editor's own, because they answer genuinely
 different questions:
     library size        how big is the class? (combinatorial, no enumeration)
     sequential          the first N members, in a reproducible order
@@ -54,7 +54,7 @@ from openchem.domain.scientific_result import StructureEntry, StructureSetResult
 # than 1 so it can never collide with an R-label the user is defining.
 ATTACHMENT_MAP_NUM = 99
 
-DEFAULT_MAX_STRUCTURES = 1000  # Marvin's own default "Generate maximum"
+DEFAULT_MAX_STRUCTURES = 1000  # the reference editor's own default "Generate maximum"
 
 
 class MarkushError(ValueError):
@@ -79,7 +79,7 @@ class RGroupDefinition:
 
 @dataclass(frozen=True)
 class AtomListPosition:
-    """One position that may be any of several elements -- Marvin's "atom
+    """One position that may be any of several elements -- the reference editor's "atom
     list" feature, written `[C,N,O]` on the diagram."""
 
     atom_index: int
@@ -115,7 +115,7 @@ class MarkushStructure:
         points: list[tuple[str, Any, int]] = []
         for group in sorted(self.r_groups, key=lambda g: g.label):
             # One R-label can appear at several positions on the core, and
-            # Marvin treats each occurrence as independently substitutable.
+            # The reference editor treats each occurrence as independently substitutable.
             occurrences = _label_occurrences(self.core_mol(), group.label)
             for _ in range(max(occurrences, 1)):
                 points.append(("rgroup", group.label, len(group.substituents)))
@@ -133,10 +133,10 @@ def library_size(markush: MarkushStructure, only_labels: set[int] | None = None)
 
     Computed COMBINATORIALLY -- the product of each variable point's option
     count -- never by enumerating. That is the whole point of the feature:
-    Marvin's own documentation example reports 38,102,400 members, and the
+    The reference editor's own documentation example reports 38,102,400 members, and the
     only way to answer that is arithmetic.
 
-    The count deliberately ignores the valence filter, matching Marvin,
+    The count deliberately ignores the valence filter, matching the reference editor,
     whose docs state the library size "does not consider the valence check
     filter". Filtering would require generating every member.
     """
@@ -213,7 +213,7 @@ def _build_member(
     such a structure usable and depictable (a quaternary carbon swapped to
     nitrogen gives `CN(C)(C)C`, which draws fine and is chemically wrong).
     That is what lets the valence filter genuinely change the result count
-    the way Marvin's does, instead of being an inert checkbox.
+    the way the reference editor's does, instead of being an inert checkbox.
 
     `(None, False)` means the combination could not be built at all.
     """
@@ -258,7 +258,7 @@ def _choice_space(markush: MarkushStructure, only_labels: set[int] | None) -> li
 
 
 def _sequential_combinations(space: list[int]) -> Iterator[tuple[int, ...]]:
-    """Marvin's sequential order: vary the first definition of the first
+    """The reference editor's sequential order: vary the first definition of the first
     variable first. `itertools.product` over ranges is exactly that."""
     return itertools.product(*(range(count) for count in space))
 
@@ -297,7 +297,7 @@ def enumerate_markush(
     """Enumerate the library.
 
     `mode` is "sequential" or "random". `only_labels` restricts enumeration
-    to some R-labels (Marvin's "selected part enumeration"), leaving the
+    to some R-labels (the reference editor's "selected part enumeration"), leaving the
     others as generic attachment points in the output -- which is why those
     results are still Markush structures, just more specific ones.
     """
@@ -424,7 +424,7 @@ def compute_markush_enumeration(
     core is drawn in Ketcher. Substituent definitions come from the
     settings text field.
 
-    Covers all four of Marvin's enumeration modes plus the valence filter:
+    Covers all four of the reference editor's enumeration modes plus the valence filter:
     `mode` selects sequential vs random, `only_labels` gives selected-part
     enumeration, `max_structures` is "generate maximum", and the "Markush
     library size" mode reports the combinatorial count without enumerating.
@@ -509,7 +509,7 @@ def _failed(molecule_uuid: str, message: str, code: str = "") -> StructureSetRes
 
 
 def describe_library_size(markush: MarkushStructure, only_labels: set[int] | None = None) -> str:
-    """Marvin shows the exact value up to 20 digits and the magnitude above
+    """The reference editor shows the exact value up to 20 digits and the magnitude above
     that. Same convention here -- an exact count is more useful when it is
     readable, and a magnitude is more honest when it is not."""
     total = library_size(markush, only_labels)

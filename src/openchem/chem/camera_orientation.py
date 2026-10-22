@@ -2,7 +2,7 @@
 
 Used to hand the 2D editor the conformer *as it is currently oriented on
 screen* -- so the drawing is a projection of the geometry the user arranged,
-which is what MarvinSketch does when it draws buckminsterfullerene in
+which is what the reference editor does when it draws buckminsterfullerene in
 perspective inside a 2D editor.
 
 **THE COORDINATE-FRAME CONTRACT**, written down because six frames are in

@@ -4,7 +4,7 @@ CNS MPO (Wager et al.) sums six desirability functions, each mapping one
 property onto 0-1, for a total of 0-6. A score >= 4.0 is generally taken
 as favourable for CNS exposure.
 
-THE BREAKPOINTS ARE VALIDATED, not guessed. ChemAxon's documentation gives
+THE BREAKPOINTS ARE VALIDATED, not guessed. The vendor's documentation gives
 a worked aspirin example -- MW 180.16, LogP 1.24, LogD -2.16, TPSA 63.60,
 HBD 1.00, pKa -7.14, total 5.75, with every component 1.00 except
 HBD_SCORE = 0.75. The functions below reproduce that total exactly, and

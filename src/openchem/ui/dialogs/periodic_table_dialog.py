@@ -19,7 +19,7 @@ dropped; the editor's own tools still draw them.
 The detail pane is the reason this table exists at all -- selecting an
 element shows its configuration, radii, electronegativity, the oxidation
 states it is actually found in, and its naturally occurring isotopes with
-abundances. That last one is the part Marvin's own table does not really
+abundances. That last one is the part the reference editor's own table does not really
 do, and it came free: RDKit's periodic table carries the full abundance
 data.
 
@@ -626,7 +626,7 @@ class PeriodicTableDialog(QDialog):
     def _build_isotopes_tab(self) -> QWidget:
         """Every ground state of the selected element, in a declared order.
 
-        **THIS IS THE PART MARVIN'S OWN TABLE DOES NOT REALLY DO**, and
+        **THIS IS THE PART THE REFERENCE EDITOR'S OWN TABLE DOES NOT REALLY DO**, and
         the reason the whole nuclide table was worth shipping: setting an
         isotope used to mean typing a mass number into Ketcher's Atom
         Properties with nothing on screen to say whether it exists, how

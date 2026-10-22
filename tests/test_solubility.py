@@ -267,7 +267,7 @@ def test_a_mole_per_litre_of_aspirin_is_180_mg_per_ml():
     """**THE ANTI-1000x GUARD.** One mol/L of a 180.16 g/mol compound is
     180.16 g/L, and a g/L IS a mg/mL. A review of the plan proposed
     dividing by 1000 here; that would make this 0.18, and would drop
-    aspirin from ChemAxon's published High to Low.
+    aspirin from the vendor's published High to Low.
     """
     assert logs_to_mg_per_ml(0.0, 180.16) == pytest.approx(180.16)
     assert logs_to_mol_per_l(0.0) == pytest.approx(1.0)
@@ -289,7 +289,7 @@ def test_a_conversion_with_no_molecular_weight_refuses():
 # --- categories --------------------------------------------------------
 
 
-def test_the_category_boundaries_fall_exactly_where_chemaxon_documents():
+def test_the_category_boundaries_fall_exactly_where_vendor_documents():
     """Both published numbers, at the value itself rather than near it."""
     assert intrinsic_category(LOW_MODERATE_BOUNDARY_MG_PER_ML - 1e-9) is SolubilityCategory.LOW
     assert intrinsic_category(LOW_MODERATE_BOUNDARY_MG_PER_ML) is SolubilityCategory.MODERATE
@@ -297,7 +297,7 @@ def test_the_category_boundaries_fall_exactly_where_chemaxon_documents():
     assert intrinsic_category(MODERATE_HIGH_BOUNDARY_MG_PER_ML + 1e-9) is SolubilityCategory.HIGH
 
 
-def test_aspirin_lands_in_the_category_chemaxon_publishes_for_it():
+def test_aspirin_lands_in_the_category_vendor_publishes_for_it():
     """Their own worked example: -1.81 logS is 2.79 mg/mL, reported High.
     Ours is a different baseline (-2.09) and must still be High, which is
     what says the threshold is being read on the right scale."""

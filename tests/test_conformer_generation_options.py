@@ -1,11 +1,11 @@
 """Diversity, optimisation strictness, a time limit, and refinement.
 
 Reported as "Generating conformers in our system is still very, very bad.
-I think we should make it resemble marvin's conformer generator calculator
-much more closely", with ChemAxon's Generate3D page.
+I think we should make it resemble the reference editor's conformer generator calculator
+much more closely", with the vendor's conformer-generation page.
 
 **The controls are emulated; algorithmic equivalence is NOT claimed**, and
-several tests here exist to keep it that way. ChemAxon's page states no
+several tests here exist to keep it that way. The vendor's page states no
 default values for any of the four -- checked, so ours are not presented
 as matching theirs.
 """
@@ -229,7 +229,7 @@ def _non_docstring_strings(path):
     """Every string literal in a file that is not a docstring.
 
     The distinction is the whole point: a COMMENT or a docstring saying
-    "this is not Marvin's hyperfine" is exactly what should be written,
+    "this is not the reference editor's hyperfine" is exactly what should be written,
     while a string literal can reach a label, a tooltip, or a stored
     property. Only the second kind is forbidden.
     """
@@ -252,10 +252,10 @@ def _non_docstring_strings(path):
     ]
 
 
-def test_marvins_word_never_reaches_a_user_or_a_stored_file():
+def test_reference_editors_word_never_reaches_a_user_or_a_stored_file():
     """**"hyperfine" may be EXPLAINED but never SHOWN or WRITTEN.**
 
-    ChemAxon's hyperfine is short molecular dynamics followed by strict
+    The vendor's hyperfine is short molecular dynamics followed by strict
     optimisation; this is a second minimisation pass, and a minimiser
     cannot leave the basin it is already in -- which is the whole point of
     the dynamics. So the word belongs in comments saying what this is not,
@@ -278,7 +278,7 @@ def test_marvins_word_never_reaches_a_user_or_a_stored_file():
             if "hyperfine" in text.lower():
                 offenders.append((path.relative_to(root), text[:60]))
 
-    assert not offenders, f"Marvin's term is user-visible in {offenders}"
+    assert not offenders, f"the reference editor's term is user-visible in {offenders}"
 
 
 def test_refinement_is_recorded_as_enhanced_optimization_in_provenance():
@@ -323,11 +323,11 @@ def test_refinement_is_off_by_default():
 # --- what is NOT claimed -----------------------------------------------------
 
 
-def test_the_shipped_diversity_default_is_ours_and_is_not_claimed_as_marvins():
-    """ChemAxon's Generate3D page states NO default for the diversity
+def test_the_shipped_diversity_default_is_ours_and_is_not_claimed_as_reference_editors():
+    """The vendor's conformer-generation page states NO default for the diversity
     parameter -- checked, twice, rather than inferred. So 0.5 is
     OpenChem's own value and nothing in the code or the UI may present it
-    as matching Marvin's."""
+    as matching the reference editor's."""
     assert DEFAULT_RMS_THRESHOLD == 0.5
 
 
