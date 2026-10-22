@@ -263,6 +263,10 @@ $required = @(
     # sys.path, which the default data collection drops. Its absence broke
     # every Physicochemical property, not just this one descriptor.
     "_internal\rdkit\Contrib\SA_Score\sascorer.py",
+    # The natural-product scorer: module AND model. Missing, the whole rdkit descriptor batch
+    # fails ("No module named 'npscorer'") and every score that reads a descriptor has no value.
+    "_internal\rdkit\Contrib\NP_Score\npscorer.py",
+    "_internal\rdkit\Contrib\NP_Score\publicnp.model.gz",
     # Open Babel's format plugins and data tables, which it dlopen's from
     # beside its own DLL. Without them the ONLY thing that breaks is docking,
     # with a ValueError naming neither Open Babel nor a file.
@@ -299,6 +303,14 @@ if (-not (Select-String -Path $pyzToc -SimpleMatch "openchem._integrity" -Quiet)
 foreach ($loose in @("_internal\openchem\docs", "_internal\openchem\_help_bundle.py", "_internal\openchem\_integrity.py")) {
     if (Test-Path "$APPDIR\$loose") { $missing += "$loose must not exist (help is bundled)" }
 }
+
+# The exe says which product and version it is. Blank until 2026-10-22, which is harmless
+# to run and disqualifying to sign: code signing wants the signed file's product name and
+# version to match the project's. Read back from the BUILT file, not from what the spec meant.
+$exeInfo = (Get-Item "$APPDIR\OpenChemStudio.exe").VersionInfo
+if ($exeInfo.ProductName -ne "OpenChem Studio") { $missing += "OpenChemStudio.exe ProductName is '$($exeInfo.ProductName)', expected 'OpenChem Studio'" }
+if ($exeInfo.ProductVersion -ne $appVersion) { $missing += "OpenChemStudio.exe ProductVersion is '$($exeInfo.ProductVersion)', expected '$appVersion'" }
+if ($exeInfo.FileVersion -ne $appVersion) { $missing += "OpenChemStudio.exe FileVersion is '$($exeInfo.FileVersion)', expected '$appVersion'" }
 
 if ($missing.Count -gt 0) {
     Write-Host ""

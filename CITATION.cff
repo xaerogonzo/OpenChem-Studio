@@ -5,7 +5,9 @@ message: >-
   using the metadata below.
 type: software
 authors:
-  - alias: xaerogonzo
+  - family-names: Corthell
+    given-names: Alexander L
+    alias: xaerogonzo
     website: "https://github.com/xaerogonzo"
 repository-code: "https://github.com/xaerogonzo/OpenChem-Studio"
 url: "https://github.com/xaerogonzo/OpenChem-Studio"

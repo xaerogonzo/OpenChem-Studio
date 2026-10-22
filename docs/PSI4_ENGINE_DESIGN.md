@@ -85,7 +85,7 @@ HF 0.0000 mEh; PBE0 +0.10; M062X +0.09; B3LYP (Psi4 `b3lyp5`) +0.10 at def2-SVP,
 
 **Corrected in this stage:** the spike's table said a failed Psi4 run still prints "Psi4 exiting successfully". It does not: a failed run exits 1 and ends "Psi4 encountered an error" (re-measured on a bad functional and a bad basis); the earlier row was a misreading of two outputs read together. The parser keys on the error marker, which is right either way.
 
-**Left for later:** a Settings control for Psi4's memory (a job is given 2 GB in its input) and threads (it uses the ORCA cores setting), the stage-2 agreement check, calculation types beyond `sp` and `opt`, and text on the panel that still says ORCA (most tooltips and the Configure button) which is true of the panel's ORCA features and not wrong for Psi4 but is not Psi4-aware.
+**Left for later (the memory and threads controls were added 2026-10-22: `PSI4_MEMORY_GB` default 2 and `PSI4_THREADS` default Automatic, in Settings > Quantum chemistry):** the stage-2 agreement check, calculation types beyond `sp` and `opt`, and text on the panel that still says ORCA (most tooltips and the Configure button) which is true of the panel's ORCA features and not wrong for Psi4 but is not Psi4-aware.
 
 ## Deferred 2026-10-19: where it stands and what is left (Alex: not a priority, somewhat redundant beside ORCA; do it in its own session)
 

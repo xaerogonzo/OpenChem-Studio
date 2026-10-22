@@ -5,7 +5,7 @@ description = "Open-source, plugin-based chemistry workstation (molecular editor
 readme = "README.md"
 license = "GPL-3.0-or-later"
 authors = [
-    { name = "Alex", email = "pmpd@outlook.com" }
+    { name = "Alexander L Corthell", email = "pmpd@outlook.com" }
 ]
 requires-python = ">=3.11"
 dependencies = [
