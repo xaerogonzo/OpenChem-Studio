@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Psi4: memory and threads settings
+- **Settings > Quantum chemistry now has a Psi4 section: memory per job (GB) and threads.** Psi4 was given a fixed 2 GB and ORCA's core count; both are now yours to set. The defaults change nothing (2 GB, and Automatic threads, which follow ORCA's core count when set and the machine's otherwise), so a default Psi4 input is byte-for-byte what it was. A threads value of your own wins over ORCA's; a damaged stored value falls back to the default. Applies to the next Psi4 job. `app/settings.py` (`PSI4_MEMORY_GB`, `PSI4_THREADS`), `chem/psi4_engine.py`, `tests/test_psi4_settings.py` (5 mutations of the new code, all caught).
+
 ### Proton affinity calculation, stage 3: the calculator, the button and the help (experimental, hidden from the launcher)
 - `orca.proton_affinity` is registered as a calculator (EXPERIMENTAL and hidden by default: the benchmark passed, but this implementation has not yet been driven through the application on real ORCA; execution policy: needs approval, as ORCA runs are), with no method parameters because the protocol is exactly the one that was benchmarked. The Quantum Chemistry panel gains a **Proton affinity...** button that refuses a base the benchmark did not measure before queueing anything, names the number of ORCA jobs before a long run, and shows PA and GB in kJ/mol with the site table, the structures not accepted and the measured error. A quantity with no value (a base whose structures were all dropped) now reads "no value" with its reason, where the panel's result line would have raised on formatting `None`. A tooltip, a User Guide section and a reference explainer (`docs/explainers/thermochemistry.md`) state what was measured and what is refused.
 
