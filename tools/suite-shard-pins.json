@@ -1452,6 +1452,7 @@
   "tests/test_namer_round79_ring_table_scans_bridged_parents_oxo_on_cations_and_missing_locants.py": 0,
   "tests/test_namer_round80_ring_as_substituent_oxo_forms_cation_esters_and_a_fusion_label.py": 2,
   "tests/test_namer_round81_ring_pairs_n_linked_purines_added_hydrogen_and_bi_assemblies.py": 3,
+  "tests/test_namer_round82_benzodithiete_sibling_rings_and_polycyclic_bi_assemblies.py": 1,
   "tests/test_namer_salt_multiplier.py": 1,
   "tests/test_namer_stereo_cache_identity.py": 3,
   "tests/test_namer_stereo_locant_tie.py": 3,
