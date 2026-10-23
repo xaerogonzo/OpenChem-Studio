@@ -15,7 +15,9 @@ from rdkit import Chem
 
 from openchem import paths as app_paths
 from openchem.app.settings import FUKUI_ANION_F_PLUS, FUKUI_CATION_SEARCH, PSI4_MEMORY_GB, PSI4_THREADS, Settings
-from openchem.chem import proton_affinity
+from openchem.chem import bond_dissociation, proton_affinity
+from openchem.chem.bond_dissociation import Sequence as BondSequence
+from openchem.chem.bond_dissociation import descriptors as bond_descriptors
 from openchem.chem.boltzmann import (
     STANDARD_TEMPERATURE_K,
     boltzmann_average_spectrum,
@@ -497,6 +499,24 @@ class _ProtonAffinityRun:
     run_id: str = ""
 
 
+@dataclass
+class _BondDissociationRun:
+    """One logical bond-dissociation operation: the hydrogen atom, the parent's conformers and a radical per chosen bond and conformer, each an ORCA job, run one after another (`chem/bond_dissociation.py`).
+
+    The same single-flight, sequential and cancellation shape as `_ProtonAffinityRun`: it owns the molecule's job slot for the whole sequence, a per-structure failure is recorded and the sequence continues, and a crash or a cancellation ends
+    the whole operation with no result. The hydrogen atom runs first and its failure ends the sequence itself (the sequence's business, not a crash).
+    """
+
+    molecule_uuid: str
+    sequence: BondSequence
+    provider: QuantumEngineProvider
+    executable_path: str
+    calculation_input: str = ""
+    input_fingerprint: str = ""
+    structure_identity: str = ""
+    run_id: str = ""
+
+
 class QuantumChemistryService(QObject):
     """Runs a `QuantumEngineProvider`'s calculation via `QProcess`, run
     **on the GUI thread** — a deliberate asymmetry from every other async
@@ -556,6 +576,8 @@ class QuantumChemistryService(QObject):
         self._tautomer_nmr_runs: dict[str, _TautomerNmrRun] = {}
         # Keyed by molecule_uuid: a proton-affinity operation owns the molecule's job slot for its whole sequence of structures.
         self._proton_runs: dict[str, _ProtonAffinityRun] = {}
+        # Keyed by molecule_uuid: a bond-dissociation operation owns the molecule's job slot for its whole sequence of structures.
+        self._bond_runs: dict[str, _BondDissociationRun] = {}
         # Keyed by scaling-job key, one entry per in-flight calibration.
         self._scaling_runs: dict[str, _ScalingRun] = {}
         # Raw NMR results waiting on the TMS reference for their method/basis,
@@ -938,6 +960,77 @@ class QuantumChemistryService(QObject):
             input_text=proton_affinity.orca_input(structure, self._effective_cores(), retry),
         )
 
+    def request_bond_dissociation(
+        self,
+        smiles: str,
+        atoms: list[int] | None,
+        molecule_uuid: str,
+        calculation_input: str,
+        input_fingerprint: str,
+        structure_identity: str = "",
+        provider_id: str = "orca",
+    ) -> None:
+        """Runs the bond-dissociation protocol on `smiles` for the X-H bonds of the heavy atoms `atoms` (None: every bond class) and publishes ONE `QuantumChemistryResultReady` carrying `orca.bond_dissociation_enthalpy`.
+
+        The hydrogen atom, the parent's conformers and a radical per bond and conformer are optimized with ORCA, one after another, under the molecule's single job slot (`chem.bond_dissociation`: scope, structures, the retry rule).
+        A molecule outside what the benchmarks measured, or a choice of bonds that is not valid, is refused here with its reason and no job is started. `calculation_input`/`input_fingerprint` identify the drawing the request was made on,
+        captured by the caller before this method runs (the same contract as `request_proton_affinity`).
+        """
+        try:
+            sequence = BondSequence(smiles, atoms)
+        except OutOfScope as refusal:
+            self._publish_state(molecule_uuid, CacheState.FAILED, f"Bond dissociation does not apply: {refusal}")
+            return
+        except Exception as error:  # noqa: BLE001 - a molecule that cannot be embedded is refused with its reason, not crashed on
+            self._publish_state(molecule_uuid, CacheState.FAILED, f"Bond dissociation could not start: {error}")
+            return
+        provider = self._providers.get(provider_id)
+        if provider is None:
+            self._publish_state(molecule_uuid, CacheState.FAILED, f"Unknown quantum engine: {provider_id}")
+            return
+        executable_path = self._resolve_executable_path(provider)
+        if executable_path is None:
+            self._publish_state(molecule_uuid, CacheState.FAILED, _no_executable_message(provider))
+            return
+        if not self._job_manager.try_start(_JOB_KIND, molecule_uuid, cancel_callback=lambda: self.cancel(molecule_uuid)):
+            self._publish_state(molecule_uuid, CacheState.FAILED, "A calculation is already running for this molecule — cancel it first.")
+            return
+        run = _BondDissociationRun(
+            molecule_uuid=molecule_uuid,
+            sequence=sequence,
+            provider=provider,
+            executable_path=executable_path,
+            calculation_input=calculation_input,
+            input_fingerprint=input_fingerprint,
+            structure_identity=structure_identity,
+            run_id=new_run_id(),
+        )
+        self._bond_runs[molecule_uuid] = run
+        self._launch_next_bond_job(run)
+
+    def _launch_next_bond_job(self, run: _BondDissociationRun) -> None:
+        structure, retry = run.sequence.next_job()
+        role = {"atom": "hydrogen atom", "parent": "parent", "radical": "radical"}[structure["role"]]
+        self._publish_state(
+            run.molecule_uuid,
+            CacheState.RUNNING,
+            f"Bond dissociation: structure {run.sequence.settled + 1}/{run.sequence.total} ({role}{', Calc_Hess re-run' if retry else ''})",
+        )
+        self._launch_job(
+            key=run.molecule_uuid,
+            mol=run.sequence.mol,
+            charge=structure["charge"],
+            multiplicity=structure["mult"],
+            method_basis=bond_dissociation.METHOD_LABEL,
+            calc_type="bond_dissociation",
+            provider=run.provider,
+            executable_path=run.executable_path,
+            kind="bond_dissociation",
+            molecule_uuid=run.molecule_uuid,
+            run_id=run.run_id,
+            input_text=bond_dissociation.orca_input(structure, self._effective_cores(), retry),
+        )
+
     def request_tautomer_nmr(
         self,
         targets: list[TautomerNmrTarget],
@@ -1256,6 +1349,7 @@ class QuantumChemistryService(QObject):
             self._tautomer_runs.pop(key, None)
             self._tautomer_nmr_runs.pop(key, None)
             self._proton_runs.pop(key, None)
+            self._bond_runs.pop(key, None)
             self._job_manager.finish(job_kind_for_manager, key)
             return
 
@@ -1376,6 +1470,7 @@ class QuantumChemistryService(QObject):
             self._scaling_runs.pop(key, None)
             self._tautomer_runs.pop(key, None)
             self._proton_runs.pop(key, None)
+            self._bond_runs.pop(key, None)
             self._cleanup_scratch(job.scratch_dir)
             self._job_manager.finish(_job_manager_kind(job.kind), key)
 
@@ -1431,6 +1526,13 @@ class QuantumChemistryService(QObject):
             status = RunStatus.CANCELLED if job.cancelled else RunStatus.FAILED
             if run is not None:
                 self._record_run(self._new_proton_affinity_run(run, status, warnings=[message]))
+        elif job.kind == "bond_dissociation":
+            # A crash or a cancellation (a structure whose output cannot be read never reaches here): the whole operation ends and no result is published.
+            self._publish_state(job.key, CacheState.FAILED, message)
+            run = self._bond_runs.get(job.key)
+            status = RunStatus.CANCELLED if job.cancelled else RunStatus.FAILED
+            if run is not None:
+                self._record_run(self._new_bond_dissociation_run(run, status, warnings=[message]))
         elif job.kind == "tautomer_nmr":
             # A crash or a cancellation (a per-structure parse failure never reaches here): the whole
             # operation ends and no result is published.
@@ -1466,6 +1568,7 @@ class QuantumChemistryService(QObject):
                 self._tautomer_runs.pop(key, None)
                 self._tautomer_nmr_runs.pop(key, None)
                 self._proton_runs.pop(key, None)
+                self._bond_runs.pop(key, None)
                 return
             # `finished` can fire before Qt has delivered the LAST
             # `readyReadStandardOutput` signal for data ORCA wrote right as
@@ -1491,6 +1594,8 @@ class QuantumChemistryService(QObject):
                 chaining = self._finish_tautomer_candidate_job(job, output_text)
             elif job.kind == "proton_affinity":
                 chaining = self._finish_proton_affinity_job(job, output_text)
+            elif job.kind == "bond_dissociation":
+                chaining = self._finish_bond_dissociation_job(job, output_text)
             elif job.kind == "tautomer_nmr":
                 chaining = self._finish_tautomer_nmr_job(job, output_text)
             else:
@@ -1964,6 +2069,91 @@ class QuantumChemistryService(QObject):
             molecule_uuid=run.molecule_uuid,
             calc_type="proton_affinity",
             method_basis=proton_affinity.METHOD_LABEL,
+            charge=0,
+            multiplicity=1,
+            calculation_input=run.calculation_input,
+            input_fingerprint=run.input_fingerprint,
+            input_molblock="",
+            status=status,
+            warnings=list(warnings or []),
+        )
+
+    def _finish_bond_dissociation_job(self, job: _ActiveJob, output_text: str) -> bool:
+        """Reads this structure's output into the sequence, then starts the next job (or the one retry) or publishes the result. Returns True when it started another job, which keeps the molecule's slot held.
+
+        A structure whose output cannot be read is recorded as failed and the sequence goes on (a failed hydrogen atom ends it); only a crash or a cancellation (`_report_job_failure`) ends the whole operation.
+        """
+        run = self._bond_runs.get(job.molecule_uuid)
+        if run is None:  # cancelled or already torn down
+            return False
+        outcome = run.sequence.finish(output_text)
+        if outcome == "failed":
+            logger.warning("Bond-dissociation structure failed for %s: %s", job.molecule_uuid, list(run.sequence.failures.values())[-1])
+        if not run.sequence.done:
+            self._launch_next_bond_job(run)
+            return True
+        self._bond_runs.pop(job.molecule_uuid, None)
+        self._finish_bond_dissociation(run, job)
+        return False
+
+    def _finish_bond_dissociation(self, run: _BondDissociationRun, last_job: _ActiveJob) -> None:
+        """Publishes the one result of the whole operation: the weakest computed bond with the whole bond table and the benchmarks' error, and records the run."""
+        values = bond_descriptors(run.sequence, run.molecule_uuid, run_id=run.run_id)
+        # Stamped with the PARENT's charge and multiplicity and the operation's own calculation type: the last job that ran was a radical (multiplicity 2) and is not what the number describes.
+        stamped_job = dataclasses.replace(
+            last_job,
+            charge=0,
+            multiplicity=1,
+            calc_type="bond_dissociation",
+            run_id=run.run_id,
+            calculation_input=run.calculation_input,
+            input_fingerprint=run.input_fingerprint,
+        )
+        values = _with_run_settings(values, stamped_job)
+        self._event_bus.publish(
+            QuantumChemistryResultReady(
+                molecule_uuid=run.molecule_uuid,
+                descriptors=values,
+                conformer=None,
+                input_fingerprint="",
+                structure_identity=run.structure_identity,
+                source_slot=0,
+            )
+        )
+        self._record_descriptors(values, stamped_job)
+
+        found = [d for d in values if d.value is not None]
+        result = run.sequence.result()
+        without = [b for b in result.bonds if b.dh_kcal is None]
+        warnings: list[str] = []
+        if not found:
+            status = RunStatus.FAILED
+            message = f"No bond has a value: {values[0].error}"
+            warnings.append(message)
+        elif without:
+            status = RunStatus.COMPLETED_WITH_WARNINGS
+            message = f"Bond dissociation computed; {len(without)} of {len(result.bonds)} bond(s) have no value ({'; '.join(f'{b.label}: {b.reason}' for b in without)})."
+            warnings.append(message)
+        else:
+            status = RunStatus.COMPLETED
+            message = "Bond dissociation enthalpy computed."
+        self._publish_state(run.molecule_uuid, CacheState.FAILED if status is RunStatus.FAILED else CacheState.COMPLETED, message)
+        qc_run = self._new_bond_dissociation_run(run, status, warnings=warnings)
+        if qc_run is not None:
+            qc_run.results["descriptors"] = list(values)
+            qc_run.output_status["descriptors"] = OutputStatus.AVAILABLE
+        self._record_run(qc_run)
+
+    @staticmethod
+    def _new_bond_dissociation_run(run: _BondDissociationRun, status: RunStatus, warnings: list[str] | None = None) -> QuantumChemistryRun | None:
+        """ONE run for the WHOLE operation, never one per structure (`domain/quantum_chemistry_run.py`: a run is what the user asked for). The parent is charge 0, multiplicity 1."""
+        if not run.run_id:
+            return None
+        return QuantumChemistryRun(
+            run_id=run.run_id,
+            molecule_uuid=run.molecule_uuid,
+            calc_type="bond_dissociation",
+            method_basis=bond_dissociation.METHOD_LABEL,
             charge=0,
             multiplicity=1,
             calculation_input=run.calculation_input,
