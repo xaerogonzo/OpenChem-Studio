@@ -2525,6 +2525,16 @@ what can be verified.
   `tests/test_namer_known_defects.py`. Three earlier tests pinned refusals this round turned into names and now pin the cases still refused: a carboxylate beside two neutral acids
   (`test_namer_round43_*`, `test_namer_round45_*`) and a pyrazolone anion (`test_namer_round46_*`).
 
+## 2026-10-23 -- naming round 81: pairs of rings (D-367 .. D-370)
+
+`pair.py` (scratch, `D:\_scratch\r60\r80`): two curated rings (371 entries, 16 atoms or fewer, no charge, no B/Si/P/As/Se/Te/Sb) joined at a random hydrogen-bearing atom of each, directly or through CH2, O or NH: 4 x 1,500 molecules, then 1,500 + 2,500 + 2,500 more with other seeds. Named, read back through OPSIN, compared on the standard InChIKey. 96.8% read back at the first look; the rest is OPSIN's stereo defaults (cephem, cepham, penam, carbapenem) and the finds below.
+
+* **D-367.** `_heteroaryl_substituent_with_locant` prefixed the curated ring's indicated hydrogen (`9H-`) to a purine joined through a ring nitrogen: `(9H-purin-7-yl)acetic acid` has a hydrogen on N9 AND the substituent on N7. The carved fragment's `[nH]` sits on the attachment nitrogen, which is the indicated-hydrogen site: `(7H-purin-7-yl)`, `(1H-purin-1-yl)`, `(3H-purin-3-yl)`. Taken only when that is the fragment's single aromatic N-H.
+* **D-368.** The inline added hydrogen of a curated ring ketone, `5,6,7,8-tetrahydropteridin-4(3H)-one`, stayed on N3 with a substituent on N1 (a hydrogen on N3 AND the substituent on N1). `retained_lookup._retag_added_hydrogen` moves it to the single substituted ring nitrogen when the `(nH)` nitrogen is a bare `=N-`; the substituent form does the same in `_heteroaryl_substituent_with_locant` (`imidazo[5,1-f][1,2,4]triazin-4(1H)-on-1-yl`).
+* **D-369.** A ring assembly of a component that starts with an indicated hydrogen and has fusion brackets ran the hydrogen into the `bi`: `3,1'-bi5H-dibenz[b,f]azepine` reads as another molecule. It is enclosed: `3,1'-bi(5H-dibenz[b,f]azepine)`. `4,4'-bi1H-indole` reads and keeps its spelling.
+* **D-370.** The heteroatom-substituent short-circuit took any curated retained substituent form whole, and the nucleobase forms fix a ring nitrogen (`adenin-9-yl`): adenine joined through its AMINO nitrogen to a ring nitrogen was `1-(adenin-9-yl)-...`, another molecule. The seven nucleobases are excluded there: `1-[(9H-purin-6-yl)amino]-...`.
+* **Measured.** The 1,500-molecule bond scan (seed 2): 44 wrong + 5 unreadable before, 43 wrong + 2 unreadable after (the wrong are OPSIN's stereo defaults for the beta-lactam and morphinan rings; the 2 unreadable are the hypoxanthine drawing in the limits); 2,500 more bonds (seed 3): 72 wrong + 1 unreadable; 2,500 NH-linked (seed 4): 81 wrong, one a real find (D-370), the rest stereo. New `tests/test_namer_round81_ring_pairs_n_linked_purines_added_hydrogen_and_bi_assemblies.py`.
+
 ## 2026-10-22 -- naming round 80: a ring named as a substituent (D-364 .. D-366)
 
 `yl.py` (scratch, `D:\_scratch\r60\r80`): every substitutable ring atom of every curated ring (371 entries, 1,952 molecules per attachment) joined to a more senior parent so that the ring is named as a `-yl` prefix: acetic acid, acetamide, acetate, thioacetate, a methyl ketone, a secondary alcohol, acetonitrile. Named, read back through OPSIN, compared on the standard InChIKey.

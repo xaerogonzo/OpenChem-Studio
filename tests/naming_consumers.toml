@@ -495,6 +495,12 @@ scope = "core"
 owner = "namer"
 
 [[consumer]]
+file = "tests/test_namer_round81_ring_pairs_n_linked_purines_added_hydrogen_and_bi_assemblies.py"
+why = "a purine joined through a ring nitrogen takes that nitrogen as its indicated hydrogen (D-367), the added hydrogen of a ring ketone follows the substituted nitrogen (D-368), a ring assembly brackets an indicated-hydrogen fusion component (D-369) and a nucleobase's retained substituent form applies to a ring attachment only (D-370)"
+scope = "core"
+owner = "namer"
+
+[[consumer]]
 file = "tests/test_namer_round80_ring_as_substituent_oxo_forms_cation_esters_and_a_fusion_label.py"
 why = "a ring ketone cited as a substituent says its oxo prefixes before the ring's hydrogens (D-364), a ring O/S/Se/Te cation outranks an ester (D-365) and the curated octahydropyrrolo[3,4-b]pyridine labels its fusion carbon 4a (D-366)"
 scope = "core"
