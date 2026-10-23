@@ -8561,3 +8561,73 @@ verified_date = 2026-10-20
 reason = """
 A PREPRINT (not peer reviewed). Its own statement about AiZynthFinder as a baseline was checked in the text: on 1,098 natural products from the authors' NP set, with a depth limit of 25 and 30 minutes per target, AiZynthFinder solved 13.8% (151 of 1,098), and 80% of structurally undemanding targets. It also says that patent-derived benchmarks (USPTO-190, PaRoutes, Pistachio-Hard) are close to saturated. These are the authors' claims about their own comparison and were not reproduced; the rest was not read in full. Relevant to the limits of what a USPTO-trained planner can say about complex targets, not to the PaRoutes result.
 """
+
+[[source]]
+key = "atct1228"
+kind = "dataset"
+citation = "Active Thermochemical Tables (ATcT), Thermochemical Network version 1.228: enthalpies of formation of 3,455 species at 0 K and 298.15 K, with uncertainties; Argonne National Laboratory (page generated 2026-10-22)."
+identifier_type = "url"
+identifier = "https://atct.anl.gov/Thermochemical%20Data/version%201.228/index.php"
+status = "reference_only"
+used_by = [
+    "benchmarks/restart_v2/PREREGISTRATION.md",
+    "benchmarks/bde_heldout/extract_atct.py",
+]
+local = "ATcT Thermochemical Values ver. 1.228.htm"
+verification = "citation"
+verified_date = 2026-10-22
+reason = """
+THE REFERENCE VALUES OF THE HELD-OUT BOND-DISSOCIATION ARM: `benchmarks/bde_heldout/extract_atct.py` parses the saved page (3,455 species rows, kJ/mol at 298.15 K) and combines a parent's, a radical's and the hydrogen atom's enthalpies of formation into DH298 and its uncertainty. The arithmetic was checked against the 22 bonds Blanksby and Ellison also give: ATcT minus theirs is -0.11 kcal/mol on average, within 0.2 for every reference held to 0.1 or better, beyond three combined uncertainties for one bond (propene's allylic C-H, 87.50 against 88.8). Nothing is shipped from it yet; it backs a benchmark's reference column.
+"""
+
+[[source]]
+key = "ruscic2004"
+kind = "literature"
+citation = "B. Ruscic, R. E. Pinzon, M. L. Morton, G. von Laszevski, S. J. Bittner, S. G. Nijsure, K. A. Amin, M. Minkoff & A. F. Wagner, 'Introduction to Active Thermochemical Tables: Several 'Key' Enthalpies of Formation Revisited', J. Phys. Chem. A 2004, 108, 9979-9997."
+identifier_type = "doi"
+identifier = "10.1021/jp047912y"
+status = "reference_only"
+used_by = [
+    "benchmarks/restart_v2/PREREGISTRATION.md",
+]
+local = "ruscic2004.pdf"
+verification = "citation"
+verified_date = 2026-10-22
+reason = """
+THE METHOD BEHIND THE HELD-OUT REFERENCES: the thermochemical-network approach by which ATcT enthalpies of formation, and so the held-out bond enthalpies, are obtained, and the statement of its uncertainties. Cited for what the numbers are; the arm uses the tables, not this paper's values.
+"""
+
+[[source]]
+key = "ruscic2015"
+kind = "literature"
+citation = "B. Ruscic, 'Active Thermochemical Tables: Sequential Bond Dissociation Enthalpies of Methane, Ethane, and Methanol and the Related Thermochemistry', J. Phys. Chem. A 2015, 119, 7810-7837."
+identifier_type = "doi"
+identifier = "10.1021/acs.jpca.5b01346"
+status = "reference_only"
+used_by = [
+    "benchmarks/restart_v2/PREREGISTRATION.md",
+]
+local = "ruscic2015.pdf"
+verification = "citation"
+verified_date = 2026-10-22
+reason = """
+THE ATcT BOND ENTHALPIES OF THE METHANE, ETHANE AND METHANOL SYSTEMS, in print: the second reference column the held-out arm's preregistration asks for where the first run's bonds overlap, and a check on how a bond enthalpy is formed from enthalpies of formation. Not yet read for numbers.
+"""
+
+[[source]]
+key = "luo2007"
+kind = "reference_table"
+citation = "Y.-R. Luo, 'Comprehensive Handbook of Chemical Bond Energies', CRC Press (Taylor & Francis), Boca Raton, 1st ed., 2007."
+identifier_type = "bibliographic"
+identifier = "Luo, Comprehensive Handbook of Chemical Bond Energies, CRC Press 2007, Table 7.1.1 (N-H bond dissociation energies in non-anilines)"
+status = "reference_only"
+used_by = [
+    "benchmarks/restart_v2/PREREGISTRATION.md",
+    "benchmarks/bde_heldout/extract_atct.py",
+]
+local = "Comprehensive Handbook of Chemical Bond Energies -- Yu-Ran Luo -- 1 edition, March 9, 2007 -- CRC PRESS,TAYLOR & FRANCIS GROUP,LLC.pdf"
+verification = "citation"
+verified_date = 2026-10-22
+reason = """
+THE EXPERIMENTAL SPREAD BEHIND TWO EXCLUDED BONDS: Table 7.1.1 lists five experimental H-NCO values (109.6 to 111.5 kcal/mol) and five H-N3 values (88.7 to 93.7), which is part of why those bonds are excluded from the deciding set and what a v2 scope would have to reconcile. It is also the second reference column the preregistration asks for on the N-H bonds, to be read by page before the arm is frozen; that has not been done.
+"""

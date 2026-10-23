@@ -1,5 +1,5 @@
 <!-- GENERATED FROM docs/sources.toml -- do not edit -->
-<!-- SOURCE SHA256: 84aef07be62d50519fdbbe9eb0b92ec067b5a4f19245a69cdb33ede5b6f2cf82 -->
+<!-- SOURCE SHA256: 2ada04f0e12d459b1da14cc4de44ecb045bd8d417551ae0ff41706b3d1ecc57e -->
 
 # Sources
 
@@ -99,6 +99,7 @@ next run of `tools/build_lewis_parameters.py`.
 | [`andersen1999`](#andersen1999) | literature | shipped | citation + claim |
 | [`aqsoldb`](#aqsoldb) | dataset | shipped | citation |
 | [`armstrong2026synthex`](#armstrong2026synthex) | literature | reference only | citation + claim |
+| [`atct1228`](#atct1228) | dataset | reference only | citation |
 | [`autodock_vina`](#autodock_vina) | software | shipped | citation + claim |
 | [`avdeef2007`](#avdeef2007) | literature | shipped | citation + claim |
 | [`avdeef2020`](#avdeef2020) | literature | shipped | citation + claim |
@@ -233,6 +234,7 @@ next run of `tools/build_lewis_parameters.py`.
 | [`llinas2020`](#llinas2020) | dataset | shipped | citation + claim |
 | [`lorentzon1995`](#lorentzon1995) | literature | reference only | citation + claim |
 | [`lovering2009`](#lovering2009) | literature | shipped | citation |
+| [`luo2007`](#luo2007) | reference_table | reference only | citation |
 | [`mann1947`](#mann1947) | literature | shipped | citation + claim |
 | [`mantina2009`](#mantina2009) | literature | shipped | citation + claim |
 | [`mardirossian2017`](#mardirossian2017) | literature | reference only | citation + claim |
@@ -301,6 +303,8 @@ next run of `tools/build_lewis_parameters.py`.
 | [`riplinger2013triples`](#riplinger2013triples) | literature | reference only | citation + claim |
 | [`rowland1996`](#rowland1996) | literature | shipped | citation + claim |
 | [`roy1999`](#roy1999) | literature | shipped | citation + claim |
+| [`ruscic2004`](#ruscic2004) | literature | reference only | citation |
+| [`ruscic2015`](#ruscic2015) | literature | reference only | citation |
 | [`ruttkies2016`](#ruttkies2016) | literature | reference only | citation |
 | [`sablon2007`](#sablon2007) | literature | shipped | citation + claim |
 | [`saigiridharan2024aizynthfinder4`](#saigiridharan2024aizynthfinder4) | literature | reference only | citation |
@@ -7075,6 +7079,40 @@ outputs); the paper itself was NOT read, so this entry makes no claim about a nu
 
 **Why it is reference only.** A PREPRINT (not peer reviewed). Its own statement about AiZynthFinder as a baseline was checked in the text: on 1,098 natural products from the authors' NP set, with a depth limit of 25 and 30 minutes per target, AiZynthFinder solved 13.8% (151 of 1,098), and 80% of structurally undemanding targets. It also says that patent-derived benchmarks (USPTO-190, PaRoutes, Pistachio-Hard) are close to saturated. These are the authors' claims about their own comparison and were not reproduced; the rest was not read in full. Relevant to the limits of what a USPTO-trained planner can say about complex targets, not to the PaRoutes result.
 
+### ruscic2004
+
+<a id="ruscic2004"></a>
+
+> B. Ruscic, R. E. Pinzon, M. L. Morton, G. von Laszevski, S. J. Bittner, S. G. Nijsure, K. A. Amin, M. Minkoff & A. F. Wagner, 'Introduction to Active Thermochemical Tables: Several 'Key' Enthalpies of Formation Revisited', J. Phys. Chem. A 2004, 108, 9979-9997.
+
+| | |
+| --- | --- |
+| Identifier | [10.1021/jp047912y](https://doi.org/10.1021/jp047912y) |
+| Status | reference only |
+| Verification | citation |
+| Verified | 2026-10-22 |
+| Local copy | `ruscic2004.pdf` (not checked) |
+| Used by | `benchmarks/restart_v2/PREREGISTRATION.md` |
+
+**Why it is reference only.** THE METHOD BEHIND THE HELD-OUT REFERENCES: the thermochemical-network approach by which ATcT enthalpies of formation, and so the held-out bond enthalpies, are obtained, and the statement of its uncertainties. Cited for what the numbers are; the arm uses the tables, not this paper's values.
+
+### ruscic2015
+
+<a id="ruscic2015"></a>
+
+> B. Ruscic, 'Active Thermochemical Tables: Sequential Bond Dissociation Enthalpies of Methane, Ethane, and Methanol and the Related Thermochemistry', J. Phys. Chem. A 2015, 119, 7810-7837.
+
+| | |
+| --- | --- |
+| Identifier | [10.1021/acs.jpca.5b01346](https://doi.org/10.1021/acs.jpca.5b01346) |
+| Status | reference only |
+| Verification | citation |
+| Verified | 2026-10-22 |
+| Local copy | `ruscic2015.pdf` (not checked) |
+| Used by | `benchmarks/restart_v2/PREREGISTRATION.md` |
+
+**Why it is reference only.** THE ATcT BOND ENTHALPIES OF THE METHANE, ETHANE AND METHANOL SYSTEMS, in print: the second reference column the held-out arm's preregistration asks for where the first run's bonds overlap, and a check on how a bond enthalpy is formed from enthalpies of formation. Not yet read for numbers.
+
 ## Datasets
 
 ### bradley2014
@@ -7633,6 +7671,23 @@ the one rule every calculator's `CalculatorScope` follows.
 
 **Why it is reference only.** THE PaRoutes ROUTE SETS, STOCKS, TEMPLATE LIBRARIES AND A KERAS MODEL: ref_routes_n1.json (64 MB), ref_routes_n5.json (82 MB), targets_n1.txt and targets_n5.txt, stock_n1.txt and stock_n5.txt, uspto_unique_templates.csv.gz (3.3 MB, confirmed by the download), uspto_keras_model.hdf5 (275 MB). Licence field CC-BY-4.0 as the record states; the licence of the underlying USPTO extraction is not restated on this record.
 
+### atct1228
+
+<a id="atct1228"></a>
+
+> Active Thermochemical Tables (ATcT), Thermochemical Network version 1.228: enthalpies of formation of 3,455 species at 0 K and 298.15 K, with uncertainties; Argonne National Laboratory (page generated 2026-10-22).
+
+| | |
+| --- | --- |
+| Identifier | <https://atct.anl.gov/Thermochemical%20Data/version%201.228/index.php> |
+| Status | reference only |
+| Verification | citation |
+| Verified | 2026-10-22 |
+| Local copy | `ATcT Thermochemical Values ver. 1.228.htm` (not checked) |
+| Used by | `benchmarks/restart_v2/PREREGISTRATION.md`, `benchmarks/bde_heldout/extract_atct.py` |
+
+**Why it is reference only.** THE REFERENCE VALUES OF THE HELD-OUT BOND-DISSOCIATION ARM: `benchmarks/bde_heldout/extract_atct.py` parses the saved page (3,455 species rows, kJ/mol at 298.15 K) and combines a parent's, a radical's and the hydrogen atom's enthalpies of formation into DH298 and its uncertainty. The arithmetic was checked against the 22 bonds Blanksby and Ellison also give: ATcT minus theirs is -0.11 kcal/mol on average, within 0.2 for every reference held to 0.1 or better, beyond three combined uncertainties for one bond (propene's allylic C-H, 87.50 against 88.8). Nothing is shipped from it yet; it backs a benchmark's reference column.
+
 ## Legal texts
 
 ### cwc_annex_on_chemicals
@@ -8173,6 +8228,23 @@ a check that cannot run is worse than a stated limit.
 Read these with `pymupdf` (`uv pip install --system pymupdf`, then `fitz`);
 there is no PDF text extractor in the project venv and `pdftoppm` is not
 installed, so `Read` on a PDF fails.
+
+### luo2007
+
+<a id="luo2007"></a>
+
+> Y.-R. Luo, 'Comprehensive Handbook of Chemical Bond Energies', CRC Press (Taylor & Francis), Boca Raton, 1st ed., 2007.
+
+| | |
+| --- | --- |
+| Identifier | Luo, Comprehensive Handbook of Chemical Bond Energies, CRC Press 2007, Table 7.1.1 (N-H bond dissociation energies in non-anilines) |
+| Status | reference only |
+| Verification | citation |
+| Verified | 2026-10-22 |
+| Local copy | `Comprehensive Handbook of Chemical Bond Energies -- Yu-Ran Luo -- 1 edition, March 9, 2007 -- CRC PRESS,TAYLOR & FRANCIS GROUP,LLC.pdf` (not checked) |
+| Used by | `benchmarks/restart_v2/PREREGISTRATION.md`, `benchmarks/bde_heldout/extract_atct.py` |
+
+**Why it is reference only.** THE EXPERIMENTAL SPREAD BEHIND TWO EXCLUDED BONDS: Table 7.1.1 lists five experimental H-NCO values (109.6 to 111.5 kcal/mol) and five H-N3 values (88.7 to 93.7), which is part of why those bonds are excluded from the deciding set and what a v2 scope would have to reconcile. It is also the second reference column the preregistration asks for on the N-H bonds, to be read by page before the arm is frozen; that has not been done.
 
 ## Bundled and depended-on software
 
