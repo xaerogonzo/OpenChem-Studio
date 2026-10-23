@@ -13,10 +13,6 @@ A bond whose radical keeps an imaginary mode after the one re-run has no value: 
 """
 from __future__ import annotations
 
-#: Stage 1 of the calculator: the chemistry, tested against the benchmarks, with no engine behind it yet; stage 2 (the service) imports it and this line goes.
-REACHED_BY = "tooling: stage 1 of the bond-dissociation calculator, imported by its tests until the service stage wires it"
-
-
 import re
 from dataclasses import dataclass, field
 
