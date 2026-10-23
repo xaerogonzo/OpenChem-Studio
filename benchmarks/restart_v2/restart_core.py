@@ -41,6 +41,30 @@ def read_hessian_modes(hess_text: str) -> tuple[np.ndarray, np.ndarray]:
     return modes, frequencies
 
 
+BOHR = 0.529177210903
+
+
+def read_hessian_atoms(hess_text: str) -> tuple[list[str], np.ndarray]:
+    """(element symbols, coordinates in Angstrom) of the `$atoms` block, the frame the modes are written in (ORCA prints Bohr)."""
+    if "$atoms" not in hess_text:
+        raise ValueError("the Hessian file has no $atoms block")
+    rows = hess_text.split("$atoms")[1].split("$")[0].strip().splitlines()
+    count = int(rows[0].split()[0])
+    entries = [row.split() for row in rows[1:1 + count]]
+    return [e[0] for e in entries], np.array([[float(v) for v in e[2:5]] for e in entries]) * BOHR
+
+
+def same_frame(hess_text: str, symbols: list[str], coordinates, tolerance: float = 1e-3) -> bool:
+    """Whether the modes of the Hessian file are written in the frame of the geometry that is displaced: the same atoms in the same order, differing at most by one common translation (ORCA moves the centre of mass; measured on a water in an arbitrary pose, 2026-10-22).
+    A rotation would make the displacement a different direction in the molecule, so it is refused."""
+    found_symbols, found = read_hessian_atoms(hess_text)
+    xyz = np.asarray(coordinates, dtype=float)
+    if [s.capitalize() for s in found_symbols] != [s.capitalize() for s in symbols] or found.shape != xyz.shape:
+        return False
+    shift = found - xyz
+    return bool(np.abs(shift - shift[0]).max() <= tolerance)
+
+
 def lowest_mode(hess_text: str) -> tuple[float, np.ndarray]:
     """(the most negative frequency, its displacement vector as N x 3), the vector scaled so its largest single component (absolute value) is 1."""
     modes, frequencies = read_hessian_modes(hess_text)
