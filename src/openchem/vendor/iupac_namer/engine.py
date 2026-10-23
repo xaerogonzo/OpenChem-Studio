@@ -802,9 +802,12 @@ def _name_heteroatom_fv_substituent(
         from openchem.vendor.iupac_namer.data_loader import lookup_retained_name
         frag_smiles = Chem.MolToSmiles(mol)
         retained = lookup_retained_name(frag_smiles)
+        # A nucleobase's substituent form states the ring nitrogen a sugar hangs on (`adenin-9-yl`); this fragment is joined through an exocyclic heteroatom (adenine's amino
+        # nitrogen on a ring nitrogen), and the retained form named another molecule: `1-(adenin-9-yl)-...` (naming round 81).
         if (retained is not None
                 and retained.get("substituent_form")
-                and bond_order == 1):
+                and bond_order == 1
+                and retained.get("name") not in _NUCLEOBASE_RETAINED_NAMES):
             sub_form = retained["substituent_form"]
             return LeafTree(
                 output_form=output_form,
@@ -4344,6 +4347,11 @@ def _name_biaryl_ring_assembly(
 
     loc_a_str, loc_b_str = a_loc, b_loc
 
+    # An indicated-hydrogen component in fusion brackets runs into the `bi`: OPSIN reads
+    # `3,1'-bi5H-dibenz[b,f]azepine` as another molecule, `3,1'-bi(5H-dibenz[b,f]azepine)` as the
+    # right one (naming round 81). A plain `bi1H-indole` reads and keeps its spelling.
+    if re.match(r"^\d+[a-z]?H-", bi_stem) and "[" in bi_stem:
+        bi_stem = f"({bi_stem})"
     text = f"{loc_a_str},{loc_b_str}'-bi{bi_stem}"
 
     return LeafTree(
@@ -13024,6 +13032,10 @@ def _generate_retained_plans(perception, mol, output_form, free_valence, strateg
             yield (score, session.next_seq(), plan)
 
 
+#: The retained nucleobases whose substituent form fixes the ring nitrogen of the attachment.
+_NUCLEOBASE_RETAINED_NAMES = frozenset({"adenine", "guanine", "cytosine", "thymine", "uracil", "hypoxanthine", "xanthine"})
+
+
 _TAKES_MOL: dict[type, bool] = {}
 
 
@@ -13674,6 +13686,34 @@ def _heteroaryl_substituent_with_locant(
                         and not _re_ih.match(r"^[\d,]+-(?:di|tri)?oxo-", _base)
                     ):
                         _base = _ih_match.group(1) + _base
+                        # The carved fragment puts its [nH] on the ATTACHMENT nitrogen
+                        # of an N-substituted ring, and that nitrogen is the ring's
+                        # indicated-hydrogen slot (`7H-purin-7-yl`, not `9H-purin-7-yl`,
+                        # which names a second hydrogen; naming round 81).
+                        _att = mol.GetAtomWithIdx(attachment_idx)
+                        if (
+                            _att.GetAtomicNum() == 7
+                            and _att.GetIsAromatic()
+                            and _att.GetTotalNumHs() >= 1
+                            and sum(1 for _a in mol.GetAtoms() if _a.GetAtomicNum() == 7 and _a.GetIsAromatic() and _a.GetTotalNumHs() >= 1) == 1
+                            and _re_ih.match(r"^\d+[a-z]?H-$", _ih_match.group(1))
+                            and _re_ih.fullmatch(r"\d+", _loc_str)
+                        ):
+                            _base = _loc_str + "H-" + _base[len(_ih_match.group(1)):]
+                    # An added hydrogen `(3H)` of a ring ketone follows the same nitrogen
+                    # when the ring is attached there (`4(1H)-on-1-yl`, round 81).
+                    _att2 = mol.GetAtomWithIdx(attachment_idx)
+                    _added = _re_ih.search(r"\((\d+)H\)", _base)
+                    if (
+                        _added
+                        and _added.group(1) != _loc_str
+                        and _re_ih.fullmatch(r"\d+", _loc_str)
+                        and _att2.GetAtomicNum() == 7
+                        and _att2.GetIsAromatic()
+                        and _att2.GetTotalNumHs() >= 1
+                        and sum(1 for _a in mol.GetAtoms() if _a.GetAtomicNum() == 7 and _a.GetIsAromatic() and _a.GetTotalNumHs() >= 1) == 1
+                    ):
+                        _base = _base[:_added.start()] + f"({_loc_str}H)" + _base[_added.end():]
                     return f"{_base}-{_loc_str}-{fv_suffix}"
     except Exception:
         pass  # fall through to generic path
