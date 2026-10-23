@@ -31,6 +31,8 @@ from PySide6.QtWidgets import (
 )
 
 from openchem.app.settings import Settings
+from openchem.chem import bond_dissociation
+from openchem.chem.bond_dissociation import Sequence as BondDissociationSequence
 from openchem.chem.calculation_input import (
     canonical_conformer,
     find_source_conformer,
@@ -449,6 +451,22 @@ _HELP: dict[str, HelpTooltip] = {
         topic="quantum-chemistry",
         help_anchor="proton-affinity",
     ),
+    "bond_dissociation": HelpTooltip(
+        text=(
+            "Runs ORCA on this neutral molecule, on the radical each X-H bond you choose leaves behind and on the hydrogen atom, and "
+            "reports the homolytic bond dissociation enthalpy at 298.15 K in kJ/mol: the weakest bond computed, and every bond's own "
+            "value or the reason it has none.\n\n"
+            "Measured on 49 bonds against experiment and the Active Thermochemical Tables: mean absolute error about 1.5 kcal/mol, with "
+            "every class running LOW by about 1.4 kcal/mol, and an O-H next to another oxygen or a nitrogen low by 3.3. Only neutral "
+            "closed-shell molecules of at most nine heavy atoms of H, C, N, O and S are accepted; anything else is refused with the reason.\n\n"
+            "Many ORCA jobs (minutes to hours). A radical that keeps an imaginary vibration after one re-run (thiyl radicals do) gives "
+            "that bond no value, and the result says why."
+        ),
+        tier=3,
+        help_id="quantum.bond_dissociation",
+        topic="quantum-chemistry",
+        help_anchor="bond-dissociation",
+    ),
     "tautomer_full_orca": HelpTooltip(
         text=(
             "Unchecked (the default), each stereoisomer's conformers are scored with a "
@@ -773,6 +791,67 @@ def _document_header(table: QTableWidget, keys: tuple[str, ...]) -> None:
 
 
 
+class _BondChoiceDialog(QDialog):
+    """Which X-H bonds of the molecule to compute: one tick per bond class (equivalent atoms are one), each costing a radical optimization per conformer.
+
+    The dialog says, before anything runs, what the benchmarks measured for each class (an O-H next to another oxygen or a nitrogen runs lowest; an S-H bond's radical may have no value) so the person
+    chooses knowing it. It takes plain dicts from `bond_dissociation.describe_bonds` and knows no chemistry of its own.
+    """
+
+    def __init__(self, bonds: list[dict], parent: QWidget | None = None) -> None:
+        super().__init__(parent)
+        self.setWindowTitle("Bond dissociation: which bonds?")
+        self.setObjectName("bondChoiceDialog")
+        self._bonds = bonds
+        layout = QVBoxLayout(self)
+        intro = QLabel(
+            f"Each bond you tick costs one radical optimization per conformer of the molecule, on top of the molecule's own and the hydrogen atom's. "
+            f"At most {bond_dissociation.MAX_BONDS} bonds per run.",
+            self,
+        )
+        intro.setWordWrap(True)
+        layout.addWidget(intro)
+        self._boxes: list[QCheckBox] = []
+        for number, bond in enumerate(bonds):
+            note = ""
+            if bond["next_to_heteroatom"]:
+                note = " -- measured to run lowest: low by 3.3 kcal/mol on average"
+            elif bond["element"] == "S":
+                note = " -- the radical may have no value"
+            box = QCheckBox(f"{bond['label']}{note}", self)
+            box.setObjectName(f"bondChoice{number}")
+            box.setChecked(number < bond_dissociation.MAX_BONDS)
+            box.toggled.connect(self._update_run_button)
+            layout.addWidget(box)
+            self._boxes.append(box)
+        accuracy = QLabel(bond_dissociation.validation_note([bond["class_key"] for bond in bonds]), self)
+        accuracy.setWordWrap(True)
+        layout.addWidget(accuracy)
+        buttons = QHBoxLayout()
+        buttons.addStretch(1)
+        self._run = QPushButton("Run", self)
+        self._run.setObjectName("bondChoiceRun")
+        self._run.setDefault(True)
+        self._run.clicked.connect(self.accept)
+        cancel = QPushButton("Cancel", self)
+        cancel.setObjectName("bondChoiceCancel")
+        cancel.clicked.connect(self.reject)
+        buttons.addWidget(self._run)
+        buttons.addWidget(cancel)
+        layout.addLayout(buttons)
+        self.setMinimumWidth(480)
+        self._update_run_button()
+
+    def chosen_atoms(self) -> list[int]:
+        """The heavy atoms (one per bond class) whose boxes are ticked, in the order shown."""
+        return [bond["atom"] for bond, box in zip(self._bonds, self._boxes) if box.isChecked()]
+
+    def _update_run_button(self, _checked: bool = False) -> None:
+        count = len(self.chosen_atoms())
+        self._run.setEnabled(1 <= count <= bond_dissociation.MAX_BONDS)
+        self._run.setToolTip("" if self._run.isEnabled() else f"Tick between 1 and {bond_dissociation.MAX_BONDS} bonds.")
+
+
 class QuantumChemistryPanel(QWidget):
     """Pick a molecule from the current project, configure a calculation,
     and run it via whichever `QuantumEngineProvider` is registered
@@ -997,6 +1076,9 @@ class QuantumChemistryPanel(QWidget):
         self._proton_affinity_button = QPushButton("Proton affinity...", self)
         apply_help_tooltip(self._proton_affinity_button, _HELP["proton_affinity"])
         self._proton_affinity_button.clicked.connect(self._on_proton_affinity_clicked)
+        self._bond_dissociation_button = QPushButton("Bond dissociation...", self)
+        apply_help_tooltip(self._bond_dissociation_button, _HELP["bond_dissociation"])
+        self._bond_dissociation_button.clicked.connect(self._on_bond_dissociation_clicked)
         # Which conformer search the button above runs. A MODEL choice, not a
         # performance knob: each setting is its own model version.
         self._tautomer_full_check = QCheckBox("Full ORCA conformers", self)
@@ -1405,6 +1487,7 @@ class QuantumChemistryPanel(QWidget):
         run_row.layout().addWidget(self._cancel_button)
         run_row.layout().addWidget(self._tautomer_distribution_button)
         run_row.layout().addWidget(self._proton_affinity_button)
+        run_row.layout().addWidget(self._bond_dissociation_button)
         run_row.layout().addWidget(self._tautomer_full_check)
         run_row.layout().addWidget(self._tautomer_nmr_button)
         run_row.layout().addWidget(self._tautomer_nmr_conformers_check)
@@ -1984,6 +2067,7 @@ class QuantumChemistryPanel(QWidget):
         # raising on formatting None (found by driving the real window: the Runs history re-rendered the run the moment the next molecule was added), and its site table comes back.
         lines = [self._descriptor_line(d) for d in descriptors]
         lines.extend(self._proton_affinity_lines(descriptors))
+        lines.extend(self._bond_dissociation_lines(descriptors))
         lines.extend(self._per_atom_summary_lines(run, self._display_mol))
         self._results_label.setText("\n".join(lines))
 
@@ -2275,6 +2359,7 @@ class QuantumChemistryPanel(QWidget):
         self._run_button.setEnabled(False)
         self._set_orca_only_enabled(self._tautomer_distribution_button, False)
         self._set_orca_only_enabled(self._proton_affinity_button, False)
+        self._set_orca_only_enabled(self._bond_dissociation_button, False)
         self._cancel_button.setEnabled(True)
         self._output_log.clear()
         self._results_label.setText("")
@@ -2342,6 +2427,7 @@ class QuantumChemistryPanel(QWidget):
         self._run_button.setEnabled(False)
         self._set_orca_only_enabled(self._tautomer_distribution_button, False)
         self._set_orca_only_enabled(self._proton_affinity_button, False)
+        self._set_orca_only_enabled(self._bond_dissociation_button, False)
         self._cancel_button.setEnabled(True)
         self._output_log.clear()
         self._results_label.setText("")
@@ -2353,6 +2439,79 @@ class QuantumChemistryPanel(QWidget):
         self._status_label.setText(f"queued -- {jobs} optimization(s) for the proton affinity")
         self._quantum_chemistry_service.request_proton_affinity(
             smiles=molecule.canonical_smiles,
+            molecule_uuid=molecule.uuid,
+            calculation_input=DRAWING,
+            input_fingerprint=input_fingerprint(self._chemistry_engine, molecule, DRAWING),
+            structure_identity=molecule.canonical_smiles,
+        )
+
+    #: Above this many ORCA jobs the button asks again before starting (a molecule with three conformers and three bonds is a dozen).
+    _BOND_DISSOCIATION_CONFIRM_ABOVE = 6
+
+    def _on_bond_dissociation_clicked(self) -> None:
+        """Runs the benchmarked bond-dissociation protocol on the current structure for the bonds the person chooses (`QuantumChemistryService.request_bond_dissociation`).
+
+        Needs no pre-existing conformer and no method choice: the protocol is exactly the one that was measured. A molecule outside what was measured is refused here with its reason, before
+        anything is asked or queued; the choice of bonds is a real dialog (each bond costs radical optimizations, so the person says which), and the number of ORCA jobs is named before a long run starts.
+        """
+        molecule = self._current_molecule()
+        if molecule is None or not molecule.molblock or not molecule.canonical_smiles:
+            self._status_label.setText("Select a molecule with a structure first.")
+            return
+        try:
+            bonds = bond_dissociation.describe_bonds(molecule.canonical_smiles)
+        except ProtonAffinityOutOfScope as refusal:
+            self._status_label.setText(f"Bond dissociation does not apply: {refusal}")
+            return
+        except Exception as error:  # noqa: BLE001 - a structure that cannot be read is refused with its reason, not crashed on
+            self._status_label.setText(f"Bond dissociation could not start: {error}")
+            return
+        dialog = _BondChoiceDialog(bonds, self)
+        if dialog.exec() != QDialog.DialogCode.Accepted:
+            return
+        atoms = dialog.chosen_atoms()
+        try:
+            sequence = BondDissociationSequence(molecule.canonical_smiles, atoms)
+        except ProtonAffinityOutOfScope as refusal:
+            self._status_label.setText(f"Bond dissociation does not apply: {refusal}")
+            return
+        except Exception as error:  # noqa: BLE001
+            self._status_label.setText(f"Bond dissociation could not start: {error}")
+            return
+        jobs = sequence.total
+        if jobs > self._BOND_DISSOCIATION_CONFIRM_ABOVE:
+            answer = QMessageBox.question(
+                self,
+                "Run bond dissociation?",
+                f"This will run {jobs} ORCA jobs (M062X/def2-TZVPD: the hydrogen atom, then optimizations with frequencies of the molecule and of each radical), one after another, "
+                "and a structure that keeps an imaginary vibration is run once more. It can take minutes to hours. Continue?",
+                QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+                QMessageBox.StandardButton.No,
+            )
+            if answer != QMessageBox.StandardButton.Yes:
+                return
+        self._pending_molecule_uuid = molecule.uuid
+        self._pending_mol = self._chemistry_engine.mol_from_molblock(molecule.molblock)
+        self._pending_molblock = molecule.molblock
+        self._pending_conformer_molblock = ""
+        self._pending_conformer_note = ""
+        self._optimized_conformer_molblock = ""
+        self._run_button.setEnabled(False)
+        self._set_orca_only_enabled(self._tautomer_distribution_button, False)
+        self._set_orca_only_enabled(self._proton_affinity_button, False)
+        self._set_orca_only_enabled(self._bond_dissociation_button, False)
+        self._cancel_button.setEnabled(True)
+        self._output_log.clear()
+        self._results_label.setText("")
+        self._spectrum_table.setRowCount(0)
+        self._spectrum_table.setVisible(False)
+        self._spectrum_note_label.setVisible(False)
+        self._correlation_tabs.setVisible(False)
+        self._reset_empty_states()
+        self._status_label.setText(f"queued -- {jobs} job(s) for the bond dissociation enthalpy")
+        self._quantum_chemistry_service.request_bond_dissociation(
+            smiles=molecule.canonical_smiles,
+            atoms=atoms,
             molecule_uuid=molecule.uuid,
             calculation_input=DRAWING,
             input_fingerprint=input_fingerprint(self._chemistry_engine, molecule, DRAWING),
@@ -2428,6 +2587,7 @@ class QuantumChemistryPanel(QWidget):
         self._run_button.setEnabled(False)
         self._set_orca_only_enabled(self._tautomer_distribution_button, False)
         self._set_orca_only_enabled(self._proton_affinity_button, False)
+        self._set_orca_only_enabled(self._bond_dissociation_button, False)
         self._set_orca_only_enabled(self._tautomer_nmr_button, False)
         self._cancel_button.setEnabled(True)
         self._output_log.clear()
@@ -2829,6 +2989,7 @@ class QuantumChemistryPanel(QWidget):
             (self._scaling_button, "empirical_shift_scaling"),
             (self._tautomer_distribution_button, "tautomer_distribution"),
             (self._proton_affinity_button, "proton_affinity"),
+            (self._bond_dissociation_button, "bond_dissociation"),
             (self._tautomer_full_check, "tautomer_full_orca"),
             (self._tautomer_nmr_button, "tautomer_nmr"),
             (self._tautomer_nmr_conformers_check, "tautomer_nmr_conformers"),
@@ -2939,6 +3100,7 @@ class QuantumChemistryPanel(QWidget):
             self._run_button.setEnabled(True)
             self._set_orca_only_enabled(self._tautomer_distribution_button, True)
             self._set_orca_only_enabled(self._proton_affinity_button, True)
+            self._set_orca_only_enabled(self._bond_dissociation_button, True)
             self._update_tautomer_nmr_buttons(self._active_run)
             self._cancel_button.setEnabled(False)
             if event.state.value == "failed":
@@ -2998,11 +3160,35 @@ class QuantumChemistryPanel(QWidget):
             lines.append(parameters["validation"])
         return lines
 
+    @staticmethod
+    def _bond_dissociation_lines(descriptors) -> list[str]:
+        """The bond table and the measured error that belong beside a bond dissociation enthalpy, from the output's own provenance (empty for any other result)."""
+        bde = next((d for d in descriptors if d.descriptor_id == "orca.bond_dissociation_enthalpy"), None)
+        if bde is None or bde.provenance is None:
+            return []
+        parameters = bde.provenance.parameters
+        lines = []
+        bonds = parameters.get("bonds") or []
+        if bonds:
+            lines.append("Bonds (kJ/mol and kcal/mol; * marks the weakest, the one reported above):")
+            for bond in bonds:
+                if bond.get("dh_kj") is None:
+                    lines.append(f"  {bond['label']}: no value -- {bond.get('reason') or 'not computed'}")
+                    continue
+                marks = ("*" if bond.get("weakest") else "") + (" (the radical's spin is contaminated)" if bond.get("spin_contaminated") else "")
+                lines.append(f"  {bond['label']}: {bond['dh_kj']:.1f} kJ/mol ({bond['dh_kcal']:.1f} kcal/mol) {marks}".rstrip())
+        if parameters.get("dropped_structures"):
+            lines.append("Not accepted: " + ", ".join(parameters["dropped_structures"]))
+        if parameters.get("validation"):
+            lines.append(parameters["validation"])
+        return lines
+
     def _on_result_ready(self, event: QuantumChemistryResultReady) -> None:
         if event.molecule_uuid != self._pending_molecule_uuid:
             return
         lines = [self._descriptor_line(d) for d in event.descriptors]
         lines.extend(self._proton_affinity_lines(event.descriptors))
+        lines.extend(self._bond_dissociation_lines(event.descriptors))
         if self._pending_conformer_note:
             lines.append(self._pending_conformer_note)
         if event.conformer is not None:

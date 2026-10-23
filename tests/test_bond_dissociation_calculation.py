@@ -180,6 +180,7 @@ def test_ethanol_has_three_bond_classes_and_the_oxygen_is_not_next_to_a_heteroat
     classes = bd.bond_classes(bd.molecule_from_smiles("CCO"))
     assert [(c["element"], c["hydrogens"]) for c in classes] == [("C", 3), ("C", 2), ("O", 1)]
     assert [c["atom"] for c in classes] == [0, 1, 2] and not any(c["next_to_heteroatom"] for c in classes)
+    assert [c["label"] for c in classes] == ["CH3-H, bonded to C", "CH2-H, bonded to C, O", "O-H, bonded to C"]
 
 
 def test_equivalent_atoms_are_one_bond_class_and_aromatic_positions_are_distinct():

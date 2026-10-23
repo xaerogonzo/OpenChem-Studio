@@ -1925,6 +1925,32 @@ this way). The lowest structure is used, with no averaging over conformers, and 
 until it has been driven through the application on real ORCA; it is hidden from the Properties launcher by
 default.
 
+<!-- help:bond-dissociation -->
+### X-H bond dissociation enthalpy
+
+The **Bond dissociation...** button asks which X-H bonds of the current structure, a neutral molecule, to break
+(C-H, N-H, O-H or S-H; equivalent atoms count once), then runs ORCA on the molecule, on the radical each chosen
+bond leaves and on the hydrogen atom, and reports the **homolytic bond dissociation enthalpy at 298.15 K** in
+kJ/mol: the weakest bond computed in the headline, and every chosen bond's own value (also in kcal/mol) or the
+reason it has none. It needs no 3D conformer. Each bond costs one radical optimization per conformer of the
+molecule, so the window says that, a run takes at most six bonds, and a long run asks once more, naming the
+number of ORCA jobs. It holds the molecule until it finishes or you press Cancel.
+
+**What it was measured to do.** The protocol (M062X/def2-TZVPD optimizations and frequencies, a radical started
+from the molecule's own conformers, the lowest structure of each species) was measured on 49 bonds: 22 against
+experiment and 27 held out against the Active Thermochemical Tables. The mean absolute error was **1.48 kcal/mol
+(6.2 kJ/mol)** and the values run **low by about 1.4 kcal/mol** in every class; an **O-H next to another oxygen or
+a nitrogen** (a peroxide, a hydroxylamine, an oxime) ran low by **3.3 kcal/mol, up to 4.6**. The bias is not
+corrected. Every result repeats this beside the number, for the classes of the bonds you chose.
+
+**What is refused, and what can be missing.** It applies to a single neutral closed-shell molecule of at most
+nine heavy atoms made of H, C, N, O and S; anything else is refused with its reason, because no error was measured
+for it. A radical whose optimization keeps an imaginary vibration after one re-run gives that bond no value, and
+the result says which structure and why: thiyl radicals (an S-H bond) do this, so the window marks S-H bonds. If
+the hydrogen atom's own job fails, nothing can be computed and the run stops. The calculation is experimental
+until it has been driven through the application on real ORCA; it is hidden from the Properties launcher by
+default.
+
 <!-- help:2d-correlation -->
 ### HSQC, HMBC and COSY — connectivity, not a simulated spectrum
 

@@ -257,6 +257,12 @@ OPENCHEM_DRIVE=/path/to/script.json uv run --no-sync python -m openchem.main
                                               follow a run with `qc_wait`; `proton_affinity_report` reads the STORED
                                               outputs (`pa_kj`/`gb_kj` windows or `null` for no value), the stored run
                                               and the panel's text; benchmarks/visual/proton_affinity_run.json
+    {"do": "bond_dissociation_run", "bonds": [0, 1]}  the REAL "Bond dissociation..." button and its REAL bond-choice dialog
+                                              (ticked and pressed through its own widgets from a timer, since it is modal;
+                                              `"cancel": true`, or `expect_refusal` before the dialog opens); follow a run with
+                                              `qc_wait`; `bond_dissociation_report` reads the STORED output (`dh_kj`, each bond's
+                                              kJ/mol by label prefix or `null`, `reason_contains`), the stored run and the panel's
+                                              text; benchmarks/visual/bond_dissociation_run.json
     {"do": "tautomer_nmr_run", "method": "HF STO-3G"}  the REAL "Tautomer NMR..." button on the
                                               newest distribution run (answer its cost question with
                                               OPENCHEM_DRIVE_MODAL=yes); `tautomer_nmr_report` reads
