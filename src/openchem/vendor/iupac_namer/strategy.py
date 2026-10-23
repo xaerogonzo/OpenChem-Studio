@@ -482,12 +482,15 @@ class IUPACCanonical(NamingStrategy):
             # [N+] atom, that piece must take a cation suffix (e.g. -ium)
             # which cannot be expressed via FC ester syntax.  Substitutive
             # naming with the ring-cation parent is the only correct route.
+            # The same holds for a ring O+, S+, Se+ or Te+ (a chromenylium's
+            # ester was the neutral ring's `chromen-2-yl acetate`, naming
+            # round 80) and for a ring P+ or As+.
             pieces = plan.decomposition.pieces or ()
             for piece in pieces:
                 if piece.mol is None:
                     continue
                 for atom in piece.mol.GetAtoms():
-                    if (atom.GetSymbol() == "N"
+                    if (atom.GetSymbol() in ("N", "P", "As", "Sb", "Bi", "O", "S", "Se", "Te")
                             and atom.GetFormalCharge() == 1
                             and atom.IsInRing()):
                         return False

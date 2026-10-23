@@ -13668,6 +13668,10 @@ def _heteroaryl_substituent_with_locant(
                         _ih_match
                         and "[nH]" in _frag_smiles
                         and not _re_ih.match(r"^\d+[a-z]?H-", _base)
+                        # Oxo prefixes come first in a substituent prefix
+                        # and the ring's own hydro/indicated hydrogens
+                        # follow them: "2H-2,4-dioxo-1H-..." is no name.
+                        and not _re_ih.match(r"^[\d,]+-(?:di|tri)?oxo-", _base)
                     ):
                         _base = _ih_match.group(1) + _base
                     return f"{_base}-{_loc_str}-{fv_suffix}"
