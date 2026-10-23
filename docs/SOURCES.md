@@ -1,5 +1,5 @@
 <!-- GENERATED FROM docs/sources.toml -- do not edit -->
-<!-- SOURCE SHA256: abadebf16d61f19b099e8065c1b271367d377594158746f185ddcb377b52e728 -->
+<!-- SOURCE SHA256: a4c0255a0c66e46313205cbd9850c82c1625404c483ba75c05bb4c066aefa48d -->
 
 # Sources
 
@@ -6852,7 +6852,7 @@ outputs); the paper itself was NOT read, so this entry makes no claim about a nu
 | Verification | citation + claim |
 | Verified | 2026-10-19 |
 | Local copy | `blanksby2003.pdf` (not checked) |
-| Used by | `src/openchem/chem/bond_dissociation.py`, `docs/BDE_DESIGN.md`, `benchmarks/bde/PREREGISTRATION.md` |
+| Used by | `src/openchem/chem/bond_dissociation.py`, `docs/explainers/thermochemistry.md`, `docs/BDE_DESIGN.md`, `benchmarks/bde/PREREGISTRATION.md` |
 
 ### vo2022
 
@@ -6884,7 +6884,7 @@ outputs); the paper itself was NOT read, so this entry makes no claim about a nu
 | Verification | citation + claim |
 | Verified | 2026-10-19 |
 | Local copy | `stjohn2020_bde_db.pdf` (not checked) |
-| Used by | `docs/BDE_DESIGN.md`, `benchmarks/bde/PREREGISTRATION.md` |
+| Used by | `docs/explainers/thermochemistry.md`, `docs/BDE_DESIGN.md`, `benchmarks/bde/PREREGISTRATION.md` |
 
 **Why it is reference only.** THE CLOSEST PUBLISHED MATCH TO THE BDE BENCHMARK'S PROTOCOL: gas-phase enthalpies at 298 K and 1 atm with unscaled ZPE and thermal corrections after a conformer search; against 368 experimental iBond bond enthalpies M06-2X/def2-TZVP has an MAE of about 2.1 kcal/mol (Fig. 1a, text layer), equal to DLPNO-CCSD(T)/cc-pVTZ and better than B3LYP-D3 and wB97X-D; about 2.5 kcal/mol for large molecules outside the training set.
 
@@ -6901,7 +6901,7 @@ outputs); the paper itself was NOT read, so this entry makes no claim about a nu
 | Verification | citation + claim |
 | Verified | 2026-10-19 |
 | Local copy | `mardirossian2017_mgcdb84.pdf` (not checked) |
-| Used by | `docs/BDE_DESIGN.md`, `benchmarks/bde/PREREGISTRATION.md` |
+| Used by | `docs/explainers/thermochemistry.md`, `docs/BDE_DESIGN.md`, `benchmarks/bde/PREREGISTRATION.md` |
 
 **Why it is reference only.** PER-SET ERRORS OF 200 FUNCTIONALS (the SI file MADValues.csv, against CCSD(T)/CBS-type references): M06-2X MAD 1.83 kcal/mol on BDE99nonMR and 2.50 on HAT707nonMR, 6.32 and 5.08 on the multireference sets BDE99MR and HAT707MR; B3LYP 3.19 and 3.08 on the non-multireference sets.
 
@@ -7682,7 +7682,7 @@ the one rule every calculator's `CalculatorScope` follows.
 | Verification | citation |
 | Verified | 2026-10-22 |
 | Local copy | `ATcT Thermochemical Values ver. 1.228.htm` (not checked) |
-| Used by | `src/openchem/chem/bond_dissociation.py`, `benchmarks/restart_v2/PREREGISTRATION.md`, `benchmarks/bde_heldout/extract_atct.py` |
+| Used by | `src/openchem/chem/bond_dissociation.py`, `docs/explainers/thermochemistry.md`, `benchmarks/restart_v2/PREREGISTRATION.md`, `benchmarks/bde_heldout/extract_atct.py` |
 
 **Why it is reference only.** THE REFERENCE VALUES OF THE HELD-OUT BOND-DISSOCIATION ARM: `benchmarks/bde_heldout/extract_atct.py` parses the saved page (3,455 species rows, kJ/mol at 298.15 K) and combines a parent's, a radical's and the hydrogen atom's enthalpies of formation into DH298 and its uncertainty. The arithmetic was checked against the 22 bonds Blanksby and Ellison also give: ATcT minus theirs is -0.11 kcal/mol on average, within 0.2 for every reference held to 0.1 or better, beyond three combined uncertainties for one bond (propene's allylic C-H, 87.50 against 88.8). Nothing is shipped from it yet; it backs a benchmark's reference column.
 
