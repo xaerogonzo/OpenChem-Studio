@@ -186,6 +186,9 @@ def attempt(structure: dict, cores: int, retry: bool, stage: str, run, commit: s
         record["completed"] = True
     except subprocess.TimeoutExpired:
         record["error"] = f"timeout after {bde.JOB_TIMEOUT_SECONDS} s"
+    except OSError as error:
+        # ORCA could not be started at all (a wrong path, a locked folder): not a result about the structure, so its chain is not closed and a later run does it again
+        record["error"], record["infrastructure"] = f"{type(error).__name__}: {error}"[:300], True
     except Exception as error:  # noqa: BLE001 - a failed job is a missing structure, recorded with its reason
         record["error"] = f"{type(error).__name__}: {error}"[:300]
     record["seconds"] = round(time.time() - began, 1)
@@ -203,8 +206,16 @@ def restart(structure: dict, retried: dict, cores: int, run, commit: str, dirty:
         _, hessian = run(hessian_input(at, cores), True)
         if hessian is None:
             raise ValueError("ORCA wrote no Hessian file")
-        frequency, vector = core.lowest_mode(hessian)
-        record.update(hessian_ok=True, mode_frequency=frequency)
+        if not core.same_frame(hessian, retried["symbols"], retried["coordinates"]):
+            raise ValueError("the Hessian file's atoms are not the geometry that was given (a rotation or another order)")
+        lowest = float(core.read_hessian_modes(hessian)[1].min())
+        record["mode_frequency"] = lowest
+        if lowest >= core.IMAGINARY_CM:
+            raise ValueError(f"the Hessian job found no imaginary mode (lowest {lowest:.1f} cm-1): there is no direction to displace along")
+        _, vector = core.lowest_mode(hessian)
+        record["hessian_ok"] = True
+    except OSError as error:
+        record["error"], record["infrastructure"] = f"{type(error).__name__}: {error}"[:300], True
     except Exception as error:  # noqa: BLE001
         record["error"] = f"{type(error).__name__}: {error}"[:300]
     record["seconds"] = round(time.time() - began, 1)
@@ -217,8 +228,18 @@ def restart(structure: dict, retried: dict, cores: int, run, commit: str, dirty:
         append(attempt(moved, cores, True, f"restart{sign}", run, commit, dirty, parent=structure["id"]))
 
 
-def process(structure: dict, cores: int, run, commit: str, dirty: bool, append) -> None:
-    """The whole chain of one structure, then its closing record."""
+def process(structure: dict, cores: int, run, commit: str, dirty: bool, append) -> bool:
+    """The whole chain of one structure, then its closing record. A job that could not even be started (`infrastructure`) leaves the chain OPEN and returns False: the structure is done again by the next run, never a permanent missing cell."""
+    broken: list[bool] = []
+
+    def keep(record: dict) -> None:
+        broken.append(bool(record.get("infrastructure")))
+        append(record)
+
+    return _chain(structure, cores, run, commit, dirty, keep, broken)
+
+
+def _chain(structure: dict, cores: int, run, commit: str, dirty: bool, append, broken: list[bool]) -> bool:
     first = attempt(structure, cores, False, "opt", run, commit, dirty)
     append(first)
     if first["completed"] and structure["role"] != "atom" and first["lowest_frequency"] < core.IMAGINARY_CM:
@@ -228,12 +249,15 @@ def process(structure: dict, cores: int, run, commit: str, dirty: bool, append) 
         append(second)
         if core.needs_restart(second):
             restart(structure, second, cores, run, commit, dirty, append)
+    if any(broken):
+        return False
     append({"structure": structure["id"], "role": structure["role"], "stage": "closed", "completed": False, "final": True, "commit": commit, "dirty": dirty})
+    return True
 
 
 def git_state() -> tuple[str, bool]:
     commit = subprocess.run(["git", "rev-parse", "HEAD"], capture_output=True, text=True, cwd=REPO, check=False).stdout.strip()
-    dirty = bool(subprocess.run(["git", "status", "--porcelain", "--", "src"], capture_output=True, text=True, cwd=REPO, check=False).stdout.strip())
+    dirty = bool(subprocess.run(["git", "status", "--porcelain", "--", "src", "benchmarks/restart_v2", "benchmarks/bde", "benchmarks/bde_heldout", "benchmarks/proton_affinity", ":(exclude)benchmarks/restart_v2/artifacts"], capture_output=True, text=True, cwd=REPO, check=False).stdout.strip())
     return commit, dirty
 
 
@@ -256,8 +280,8 @@ def run_stage(arm: str, out: Path, cores: int, workers: int, run=run_orca) -> No
             handle.write(json.dumps(record) + "\n")
 
     def work(structure: dict) -> None:
-        process(structure, cores, run, commit, dirty, append)
-        print(f"{structure['id']} closed", flush=True)
+        closed = process(structure, cores, run, commit, dirty, append)
+        print(f"{structure['id']} {'closed' if closed else 'LEFT OPEN: ORCA could not be started'}", flush=True)
 
     with ThreadPoolExecutor(max_workers=workers) as pool:
         list(pool.map(work, todo))
@@ -327,8 +351,11 @@ def v1_deciding_rows() -> list[dict]:
     return [r for r in rows if not judge.is_low(r) and r["dh_kcal"] is not None]
 
 
-def heldout_report(records: list[dict], bonds: list[dict]) -> tuple[str, dict]:
+def heldout_report(records: list[dict], bonds: list[dict], structures: list[dict] | None = None) -> tuple[str, dict]:
     problem = bde.provenance_problem(records)
+    if structures is not None and (open_chains := pending(structures, records)) and not problem:
+        # a chain still open could repair a cell the judge would call missing, so a verdict on it is not one
+        problem = f"{len(open_chains)} structure chain(s) are not closed"
     rows = bde.judge_records(records, bonds)
     for row, bond in zip(rows, bonds):
         row["element"], row["excluded"] = bond["element"], bond["excluded"]
@@ -395,7 +422,7 @@ def main() -> None:
     else:
         structures = json.loads(structures_path.read_text(encoding="utf-8"))
         records = pa.records_of(runs_path)
-        text, verdict = stress_report(records, structures) if args.arm == "stress" else heldout_report(records, heldout_bonds())
+        text, verdict = stress_report(records, structures) if args.arm == "stress" else heldout_report(records, heldout_bonds(), structures)
         print(text)
         (out / args.arm / "report.txt").write_text(text, encoding="utf-8")
         (out / args.arm / "verdict.json").write_text(json.dumps(verdict, indent=1, default=str), encoding="utf-8")

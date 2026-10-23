@@ -179,6 +179,18 @@ def test_the_hessian_job_is_a_frequency_calculation_without_an_optimization_at_t
     assert text.startswith("! M062X def2-TZVPD TightSCF DefGrid3 Freq\n") and "Opt" not in text.splitlines()[0] and "* xyz 1 1" in text and "%pal nprocs 4 end" in text and "Calc_Hess" not in text
 
 
+def _hessian_for(input_text: str, rotate: bool = False) -> str:
+    """The fixture's modes with its `$atoms` block rewritten to the geometry the job was GIVEN, shifted by one common translation as ORCA does (a rotation if asked), so the frame check sees what a real file shows."""
+    rows = [line.split() for line in input_text.split("* xyz")[1].splitlines()[1:] if line.strip() and line.strip() != "*"]
+    xyz = np.array([[float(v) for v in row[1:4]] for row in rows])
+    if rotate:
+        xyz = xyz[:, [2, 0, 1]] * np.array([1.0, -1.0, 1.0])
+    xyz = (xyz + np.array([0.31, -0.12, 0.2])) / core.BOHR
+    block = "\n".join(f" {row[0]:<2}{1.0:>12.5f}{x:>20.12f}{y:>20.12f}{z:>20.12f}" for row, (x, y, z) in zip(rows, xyz))
+    head, tail = HESSIAN.split("$atoms")
+    return head + "$atoms\n" + f"{len(rows)}\n" + block + "\n\n$" + tail.split("$", 1)[1]
+
+
 class _Orca:
     """A stand-in for ORCA that answers each job with the next scripted output and records the input it was given."""
 
@@ -190,7 +202,13 @@ class _Orca:
         self.inputs.append(input_text)
         answer = self.answers.pop(0)
         if answer == "HESSIAN":
-            return "", HESSIAN
+            return "", _hessian_for(input_text)
+        if answer == "ROTATED HESSIAN":
+            return "", _hessian_for(input_text, rotate=True)
+        if answer == "STABLE HESSIAN":
+            return "", _hessian_for(input_text).replace("-541.6097381237101445", "541.6097381237101445")
+        if answer == "OSERROR":
+            raise FileNotFoundError("orca.exe")
         if answer == "NO HESSIAN":
             return "", None
         return answer, None
@@ -249,6 +267,26 @@ def test_a_hessian_that_cannot_be_read_ends_the_restart_and_the_chain_still_clos
     records = _process(structure, orca)
     assert [r["stage"] for r in records] == ["opt", "retry", "hessian", "closed"] and records[2]["hessian_ok"] is False and "no Hessian" in records[2]["error"]
     assert len(orca.inputs) == 3 and run.bde.accepted(records) == []
+
+
+def test_a_hessian_in_another_frame_or_without_an_imaginary_mode_ends_the_restart(stress_structures):
+    structure = _h3o_structure(stress_structures)
+    for answer, words in (("ROTATED HESSIAN", "not the geometry"), ("STABLE HESSIAN", "no imaginary mode")):
+        records = _process(structure, _Orca([PLANAR_H3O, PLANAR_H3O, answer]))
+        assert [r["stage"] for r in records] == ["opt", "retry", "hessian", "closed"] and records[2]["hessian_ok"] is False and words in records[2]["error"]
+
+
+def test_the_frame_check_accepts_a_common_translation_and_refuses_a_rotation():
+    xyz = np.array([[0.0, 0.0, 0.0], [1.0, 0.0, 0.0], [0.0, 1.0, 0.5]])
+    text = "$atoms\n3\n" + "\n".join(f" {s}  1.0 {x / core.BOHR + 0.3} {y / core.BOHR - 0.2} {z / core.BOHR + 0.1}" for s, (x, y, z) in zip("OHH", xyz)) + "\n\n"
+    assert core.same_frame(text, ["O", "H", "H"], xyz) and not core.same_frame(text, ["O", "H", "H"], xyz[:, [1, 0, 2]]) and not core.same_frame(text, ["O", "H", "N"], xyz)
+
+
+def test_an_orca_that_cannot_be_started_leaves_the_chain_open_and_a_failed_calculation_closes_it(stress_structures):
+    structure = _h3o_structure(stress_structures)
+    records = _process(structure, _Orca(["OSERROR"]))
+    assert [r["stage"] for r in records] == ["opt"] and records[0]["infrastructure"] is True
+    assert run.pending([structure], records) == [structure]
 
 
 def test_a_job_whose_output_cannot_be_read_is_recorded_with_its_reason_and_is_not_retried(stress_structures):
