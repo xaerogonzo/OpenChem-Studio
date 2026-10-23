@@ -1,5 +1,5 @@
 <!-- GENERATED FROM docs/sources.toml -- do not edit -->
-<!-- SOURCE SHA256: 2ada04f0e12d459b1da14cc4de44ecb045bd8d417551ae0ff41706b3d1ecc57e -->
+<!-- SOURCE SHA256: 5bf9a3046cd6cc041b20b4556a502deba99ba1eafd51e2a75c328258bbf7434b -->
 
 # Sources
 
@@ -7109,9 +7109,9 @@ outputs); the paper itself was NOT read, so this entry makes no claim about a nu
 | Verification | citation |
 | Verified | 2026-10-22 |
 | Local copy | `ruscic2015.pdf` (not checked) |
-| Used by | `benchmarks/restart_v2/PREREGISTRATION.md` |
+| Used by | `benchmarks/restart_v2/PREREGISTRATION.md`, `benchmarks/restart_v2/second_column.py` |
 
-**Why it is reference only.** THE ATcT BOND ENTHALPIES OF THE METHANE, ETHANE AND METHANOL SYSTEMS, in print: the second reference column the held-out arm's preregistration asks for where the first run's bonds overlap, and a check on how a bond enthalpy is formed from enthalpies of formation. Not yet read for numbers.
+**Why it is reference only.** THE ATcT BOND ENTHALPIES OF THE METHANE, ETHANE AND METHANOL SYSTEMS, in print: the second reference column the held-out arm's preregistration asks for where the first run's bonds overlap, and a check on how a bond enthalpy is formed from enthalpies of formation. Read by table for the six first-run bonds of the methane, ethane and methanol systems (`benchmarks/restart_v2/second_column.py`): they agree with the ATcT 1.228 values the held-out references come from to within 0.24 kcal/mol, the ethane C-H (version 1.122 lower by 0.24) the largest.
 
 ## Datasets
 
@@ -8242,9 +8242,9 @@ installed, so `Read` on a PDF fails.
 | Verification | citation |
 | Verified | 2026-10-22 |
 | Local copy | `Comprehensive Handbook of Chemical Bond Energies -- Yu-Ran Luo -- 1 edition, March 9, 2007 -- CRC PRESS,TAYLOR & FRANCIS GROUP,LLC.pdf` (not checked) |
-| Used by | `benchmarks/restart_v2/PREREGISTRATION.md`, `benchmarks/bde_heldout/extract_atct.py` |
+| Used by | `benchmarks/restart_v2/PREREGISTRATION.md`, `benchmarks/restart_v2/second_column.py`, `benchmarks/bde_heldout/extract_atct.py` |
 
-**Why it is reference only.** THE EXPERIMENTAL SPREAD BEHIND TWO EXCLUDED BONDS: Table 7.1.1 lists five experimental H-NCO values (109.6 to 111.5 kcal/mol) and five H-N3 values (88.7 to 93.7), which is part of why those bonds are excluded from the deciding set and what a v2 scope would have to reconcile. It is also the second reference column the preregistration asks for on the N-H bonds, to be read by page before the arm is frozen; that has not been done.
+**Why it is reference only.** THE EXPERIMENTAL SPREAD BEHIND TWO EXCLUDED BONDS: Table 7.1.1 lists five experimental H-NCO values (109.6 to 111.5 kcal/mol) and five H-N3 values (88.7 to 93.7), which is part of why those bonds are excluded from the deciding set and what a v2 scope would have to reconcile. It is also the second reference column of the held-out arm, read after the result by page and by boldface (`benchmarks/restart_v2/second_column.py`): the handbook gives one usable gas-phase number for 14 of the 27 deciding bonds, scatters about the ATcT values by 1.5 kcal/mol (mean +0.15), and is therefore a check on direction and not on size.
 
 ## Bundled and depended-on software
 
