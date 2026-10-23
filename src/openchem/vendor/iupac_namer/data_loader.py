@@ -2722,7 +2722,7 @@ _RING_CURATED_SMILES: dict[str, dict] = {
     # N-ethyl-probing position 9.  FDA-0938 (acronine/acronycine-type diacid) is
     # 9-ethyl-4,6-dioxo-10-propyl-9H-pyrano[3,2-g]quinoline-2,8-dicarboxylic acid.
     "O=c1cc[nH]c2cc3occc(=O)c3cc12": {"name": "4H-pyrano[3,2-g]quinoline-4,6(9H)-dione",
-                                       "substituent_form": "4,6-dioxo-9H-pyrano[3,2-g]quinolin-yl",
+                                       "substituent_form": "4,6-dioxo-4,6-dihydro-9H-pyrano[3,2-g]quinolin-yl",
                                        "alkyl_stem_ok": False,
                                        "atom_locants": {1: 6, 2: 7, 3: 8, 4: 9, 5: "9a",
                                                         6: 10, 7: "10a", 8: 1, 9: 2, 10: 3,
@@ -4459,7 +4459,7 @@ _RING_CURATED_SMILES: dict[str, dict] = {
         "name": "octahydro-1H-pyrrolo[3,4-b]pyridine",
         "substituent_form": "octahydro-1H-pyrrolo[3,4-b]pyridin-1-yl",
         "alkyl_stem_ok": False,
-        "atom_locants": {2: 1, 1: 2, 0: 3, 7: "3a", 8: 4, 6: 5, 5: 6, 4: 7, 3: "7a"}},
+        "atom_locants": {2: 1, 1: 2, 0: 3, 7: "4a", 8: 4, 6: 5, 5: 6, 4: 7, 3: "7a"}},
 
     # 1H-3,1-benzoxazine-2,4-dione (isatoic anhydride): benzofused 6-ring
     # with N at pos 1 (NH), C=O at pos 2, ring-O at pos 3, C=O at pos 4.
@@ -4483,7 +4483,7 @@ _RING_CURATED_SMILES: dict[str, dict] = {
     # Locants verified via OPSIN chloro-probing of L=5..8 and 1-methyl probe.
     "O=c1[nH]c2ccccc2c(=O)o1": {
         "name": "2H-3,1-benzoxazine-2,4(1H)-dione",
-        "substituent_form": "2,4-dioxo-1H-3,1-benzoxazin-N-yl",
+        "substituent_form": "2,4-dioxo-1,4-dihydro-2H-3,1-benzoxazin-N-yl",
         "alkyl_stem_ok": False,
         "atom_locants": {1: 2, 2: 1, 3: "8a", 4: 8, 5: 7, 6: 6, 7: 5,
                           8: "4a", 9: 4, 11: 3}},

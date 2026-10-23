@@ -4735,6 +4735,16 @@ FIXED: list[tuple[str, str, str, str, str]] = [
     ("D-363", "O=c1nc2[nH]ccc2c[nH]1", "3,7-dihydro-2H-pyrrolo[2,3-d]pyrimidin-2-one",
      "3,8-dihydro-2H-pyrrolo[2,3-d]pyrimidin-2-one",
      "the curated 3H-pyrrolo[2,3-d]pyrimidine had no atom locants, so the generic numbering counted its pyrrole nitrogen as 8"),
+    # Naming round 80 (D-364 .. D-366).
+    ("D-364", "O=C(O)Cc1ccc2[nH]c(=O)oc(=O)c2c1", "(2,4-dioxo-1,4-dihydro-2H-3,1-benzoxazin-6-yl)acetic acid",
+     "(2H-2,4-dioxo-1H-3,1-benzoxazin-6-yl)acetic acid",
+     "a curated ring ketone cited as a substituent put the ring's indicated hydrogen before its oxo prefixes, a name OPSIN cannot read (also the pyrano[3,2-g]quinoline-4,6-dione)"),
+    ("D-365", "CC(=O)Oc1ccc2ccccc2[o+]1", "2-(acetyloxy)chromenylium",
+     "chromen-2-yl acetate",
+     "the ester route took a ring O+, S+, Se+ or Te+ cation as its alcohol part and named the neutral ring; the charge guard then refused it (61 molecules); a cation outranks an ester, as the ring N+ case already did"),
+    ("D-366", "O=C(O)CC12CCCNC1CNC2", "(octahydro-1H-pyrrolo[3,4-b]pyridin-4a-yl)acetic acid",
+     "(octahydro-1H-pyrrolo[3,4-b]pyridin-3a-yl)acetic acid",
+     "the curated octahydro-1H-pyrrolo[3,4-b]pyridine labelled its fusion carbon 3a; OPSIN reads 4a and has no 3a there"),
     # D-162, recorded OPEN in naming round 14 and closed by the same change: the same group in an ester's alcohol part. Its target was derived then and is what the fixed engine writes.
     ("D-162", "CC(=O)OCC(=O)N(O)C", "2-[hydroxy(methyl)amino]-2-oxoethyl acetate",
      "[(hydroxycarbamoyl)methyl]methyl acetate",
