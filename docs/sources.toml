@@ -8288,6 +8288,7 @@ identifier = "10.1021/ar020230d"
 status = "shipped"
 used_by = [
     "src/openchem/chem/bond_dissociation.py",
+    "docs/explainers/thermochemistry.md",
     "docs/BDE_DESIGN.md",
     "benchmarks/bde/PREREGISTRATION.md",
 ]
@@ -8326,6 +8327,7 @@ identifier_type = "doi"
 identifier = "10.1038/s41467-020-16201-z"
 status = "reference_only"
 used_by = [
+    "docs/explainers/thermochemistry.md",
     "docs/BDE_DESIGN.md",
     "benchmarks/bde/PREREGISTRATION.md",
 ]
@@ -8344,6 +8346,7 @@ identifier_type = "doi"
 identifier = "10.1080/00268976.2017.1333644"
 status = "reference_only"
 used_by = [
+    "docs/explainers/thermochemistry.md",
     "docs/BDE_DESIGN.md",
     "benchmarks/bde/PREREGISTRATION.md",
 ]
@@ -8574,6 +8577,7 @@ identifier = "https://atct.anl.gov/Thermochemical%20Data/version%201.228/index.p
 status = "reference_only"
 used_by = [
     "src/openchem/chem/bond_dissociation.py",
+    "docs/explainers/thermochemistry.md",
     "benchmarks/restart_v2/PREREGISTRATION.md",
     "benchmarks/bde_heldout/extract_atct.py",
 ]
