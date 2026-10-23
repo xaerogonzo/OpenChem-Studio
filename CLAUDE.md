@@ -252,6 +252,11 @@ OPENCHEM_DRIVE=/path/to/script.json uv run --no-sync python -m openchem.main
      "view_enabled": true}, "view": true}     where the result is REACHABLE from, read
                                               off the widgets (Results list, Runs combo,
                                               the View button, no auto-popped dialog)
+    {"do": "proton_affinity_run", "expect_refusal": "Cl"}   the REAL "Proton affinity..." button (answer its cost question with
+                                              OPENCHEM_DRIVE_MODAL=yes), or a refusal asserted before anything is queued;
+                                              follow a run with `qc_wait`; `proton_affinity_report` reads the STORED
+                                              outputs (`pa_kj`/`gb_kj` windows or `null` for no value), the stored run
+                                              and the panel's text; benchmarks/visual/proton_affinity_run.json
     {"do": "tautomer_nmr_run", "method": "HF STO-3G"}  the REAL "Tautomer NMR..." button on the
                                               newest distribution run (answer its cost question with
                                               OPENCHEM_DRIVE_MODAL=yes); `tautomer_nmr_report` reads

@@ -158,3 +158,39 @@ def test_the_buttons_come_back_when_the_run_ends_in_either_state(qapp, dispose):
         assert not panel._proton_affinity_button.isEnabled()
         bus.publish(QuantumChemistryJobStateChanged(molecule_uuid=molecule.uuid, state=state, message=""))
         assert panel._proton_affinity_button.isEnabled() and panel._run_button.isEnabled() and not panel._cancel_button.isEnabled()
+
+
+def _stored_run_for(smiles: str, outputs: list[str], molecule_uuid: str):
+    """A finished run as the Runs history holds it: the descriptors the real chemistry built from the benchmark's outputs."""
+    from openchem.domain.quantum_chemistry_run import QuantumChemistryRun, RunStatus
+
+    sequence = pa.Sequence(smiles)
+    for text in outputs:
+        sequence.next_job()
+        sequence.finish(text)
+    return QuantumChemistryRun(
+        run_id="r-pa", molecule_uuid=molecule_uuid, calc_type="proton_affinity", method_basis=pa.METHOD_LABEL, charge=0, multiplicity=1,
+        calculation_input=DRAWING, input_fingerprint="", input_molblock="", status=RunStatus.FAILED,
+        results={"descriptors": pa.descriptors(sequence, molecule_uuid)},
+    )
+
+
+def test_a_stored_run_with_no_value_re_renders_from_the_runs_history_without_raising(qapp, dispose):
+    """Found by driving the real window: adding the next molecule re-rendered the newest stored run, and the history's own formatter raised on the proton affinity that had no value."""
+    panel, molecule, _service, _bus = _panel_with("O")
+    dispose(panel)
+
+    panel._render_run(_stored_run_for("O", [WATER, PLANAR_HYDRONIUM, PLANAR_HYDRONIUM], molecule.uuid))
+
+    text = panel._results_label.text()
+    assert "Proton affinity (298.15 K): no value" in text and "Not accepted: mol|ion|lone_pair0|0" in text
+
+
+def test_a_stored_run_comes_back_with_its_site_table_and_the_measured_error(qapp, dispose):
+    panel, molecule, _service, _bus = _panel_with("O")
+    dispose(panel)
+
+    panel._render_run(_stored_run_for("O", [WATER, HYDRONIUM], molecule.uuid))
+
+    text = panel._results_label.text()
+    assert "Proton affinity (298.15 K): 686.8 kJ/mol" in text and "Protonation sites" in text and "1.55 kcal/mol" in text
