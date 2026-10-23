@@ -1,5 +1,5 @@
 <!-- GENERATED FROM docs/sources.toml -- do not edit -->
-<!-- SOURCE SHA256: 5bf9a3046cd6cc041b20b4556a502deba99ba1eafd51e2a75c328258bbf7434b -->
+<!-- SOURCE SHA256: 96d479ffa61542b44e9a092294bf44f0d5245262480264a1dc690335e916eff3 -->
 
 # Sources
 
@@ -116,7 +116,7 @@ next run of `tools/build_lewis_parameters.py`.
 | [`bickerton2012`](#bickerton2012) | literature | shipped | citation |
 | [`bilbrey2013`](#bilbrey2013) | literature | shipped | citation |
 | [`bird1985`](#bird1985) | literature | shipped | citation |
-| [`blanksby2003`](#blanksby2003) | literature | reference only | citation + claim |
+| [`blanksby2003`](#blanksby2003) | literature | shipped | citation + claim |
 | [`bolovinos1984`](#bolovinos1984) | literature | shipped | citation + claim |
 | [`bondi1964`](#bondi1964) | literature | shipped | citation + claim |
 | [`bradley2014`](#bradley2014) | dataset | shipped | citation + claim |
@@ -6848,13 +6848,11 @@ outputs); the paper itself was NOT read, so this entry makes no claim about a nu
 | | |
 | --- | --- |
 | Identifier | [10.1021/ar020230d](https://doi.org/10.1021/ar020230d) |
-| Status | reference only |
+| Status | shipped |
 | Verification | citation + claim |
 | Verified | 2026-10-19 |
 | Local copy | `blanksby2003.pdf` (not checked) |
-| Used by | `docs/BDE_DESIGN.md`, `benchmarks/bde/PREREGISTRATION.md` |
-
-**Why it is reference only.** THE REFERENCE VALUES OF THE BOND-DISSOCIATION BENCHMARK: Table 1 gives the experimental bond enthalpy DH298 (kcal/mol) of RH -> R + H with its stated uncertainty for 33 bonds the benchmark uses (read from the page image; the text layer agrees). Also states that DH298 and D0 differ by about 1.5 kcal/mol for R-H (the heat-content integral of the hydrogen atom, 1.48 kcal/mol at 298 K), which is why the benchmark computes an enthalpy and not an electronic energy.
+| Used by | `src/openchem/chem/bond_dissociation.py`, `docs/BDE_DESIGN.md`, `benchmarks/bde/PREREGISTRATION.md` |
 
 ### vo2022
 
@@ -7684,7 +7682,7 @@ the one rule every calculator's `CalculatorScope` follows.
 | Verification | citation |
 | Verified | 2026-10-22 |
 | Local copy | `ATcT Thermochemical Values ver. 1.228.htm` (not checked) |
-| Used by | `benchmarks/restart_v2/PREREGISTRATION.md`, `benchmarks/bde_heldout/extract_atct.py` |
+| Used by | `src/openchem/chem/bond_dissociation.py`, `benchmarks/restart_v2/PREREGISTRATION.md`, `benchmarks/bde_heldout/extract_atct.py` |
 
 **Why it is reference only.** THE REFERENCE VALUES OF THE HELD-OUT BOND-DISSOCIATION ARM: `benchmarks/bde_heldout/extract_atct.py` parses the saved page (3,455 species rows, kJ/mol at 298.15 K) and combines a parent's, a radical's and the hydrogen atom's enthalpies of formation into DH298 and its uncertainty. The arithmetic was checked against the 22 bonds Blanksby and Ellison also give: ATcT minus theirs is -0.11 kcal/mol on average, within 0.2 for every reference held to 0.1 or better, beyond three combined uncertainties for one bond (propene's allylic C-H, 87.50 against 88.8). Nothing is shipped from it yet; it backs a benchmark's reference column.
 
