@@ -285,11 +285,11 @@ def _orca_only(panel):
 
 
 def test_choosing_psi4_disables_what_would_start_an_orca_job_and_names_the_reason(tmp_path, monkeypatch, qapp):
-    """The tautomer, proton-affinity and calibration buttons always run ORCA. With Psi4 in the Engine box and its log tab, they must not be offered."""
+    """The tautomer, proton-affinity, bond-dissociation and calibration buttons always run ORCA. With Psi4 in the Engine box and its log tab, they must not be offered."""
     panel, _engine, _service = _two_engine_panel(tmp_path, monkeypatch)
     try:
         before = {widget: widget.toolTip() for widget in _orca_only(panel)}
-        assert len(before) == 7 and all(widget.isEnabled() for widget in _orca_only(panel) if widget is not panel._tautomer_nmr_button)
+        assert len(before) == 8 and all(widget.isEnabled() for widget in _orca_only(panel) if widget is not panel._tautomer_nmr_button)
 
         panel._engine_combo.setCurrentIndex(panel._engine_combo.findData("psi4"))
 
@@ -301,7 +301,7 @@ def test_choosing_psi4_disables_what_would_start_an_orca_job_and_names_the_reaso
         panel._engine_combo.setCurrentIndex(panel._engine_combo.findData("orca"))
         for widget in _orca_only(panel):
             assert widget.toolTip() == before[widget], "ORCA's help contract comes back word for word"
-        assert panel._tautomer_distribution_button.isEnabled() and panel._proton_affinity_button.isEnabled()
+        assert panel._tautomer_distribution_button.isEnabled() and panel._proton_affinity_button.isEnabled() and panel._bond_dissociation_button.isEnabled()
         assert panel._calibrate_button.isEnabled() and panel._scaling_button.isEnabled()
         assert panel._tautomer_full_check.isEnabled() and panel._tautomer_nmr_conformers_check.isEnabled()
         assert panel._configure_button.text() == "Configure ORCA..."
