@@ -32,14 +32,21 @@ from openchem.domain.descriptor import DescriptorValue
 HEADER = pa.HEADER
 #: The hydrogen atom: a single point of the same method, basis and grid.
 ATOM_HEADER = "! M062X def2-TZVPD TightSCF DefGrid3"
+#: The model chemistry as a result states it.
 METHOD_LABEL = pa.METHOD_LABEL
+#: A vibrational frequency below this (cm-1) makes a structure not accepted.
 IMAGINARY_CM = pa.IMAGINARY_CM
+#: ORCA's memory per core in MB (the benchmark's setting).
 MAXCORE_MB = pa.MAXCORE_MB
+#: The temperature of the benchmarks and of every reference value in them.
 T_STANDARD = pa.T_STANDARD
+#: kcal/mol per Hartree.
 HARTREE_TO_KCAL = pa.HARTREE_TO_KCAL
+#: kJ per kcal.
 KCAL_TO_KJ = pa.KCAL_TO_KJ
-#: <S**2> of a clean doublet, and how far above it a radical is flagged as spin-contaminated (reported, never a rule).
+#: <S**2> of a clean doublet.
 S2_DOUBLET = 0.75
+#: How far above 0.75 a radical's <S**2> is flagged as spin-contaminated (reported, never a rule).
 S2_FLAG_EXCESS = 0.05
 #: The id of the hydrogen atom's structure.
 ATOM_ID = "atom|H"

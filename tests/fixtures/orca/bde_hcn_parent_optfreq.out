@@ -83,7 +83,6 @@
   Axel Koslowski         : Symmetry handling                             
   Simone Kossmann        : meta-GGA functionals, TD-DFT gradient, OOMP2, (MP2 Hessian; deprecated post 5.0) 
   Lucas Lang             : DCDCAS, Hyperfine gauge corrections, ICE-SOC+SSC
-  Marvin Lechner         : AUTO-CI (C++ implementation), FIC-MRCC        
   Spencer Leger          : CASSCF response                               
   Dagmar Lenk            : GEPOL surface, SMD, ORCA-2-JSON               
   Dimitrios Liakos       : Extrapolation schemes; Compound Job, Property file
@@ -127,7 +126,6 @@
   Ronald Cardenas        : ETS/NOCV                                      
   Martina Colucci        : COVALED                                       
   Sebastian Ehlert       : rSCAN, r2SCAN, r2SCAN-3c, D4, dhf basis sets  
-  Marvin Friede          : D4 for Fr, Ra, Ac-Lr                          
   Lars Goerigk           : TD-DFT with DH, B97 family of functionals     
   Stefan Grimme          : VdW corrections, initial TS optimization, DFT functionals, gCP, sTDA/sTD-DF 
   Waldemar Hujo          : DFT-NL                                        
