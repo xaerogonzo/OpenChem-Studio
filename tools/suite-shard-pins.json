@@ -1119,6 +1119,7 @@
   "tests/test_bird.py": 3,
   "tests/test_bluebook_protocol.py": 1,
   "tests/test_boltzmann.py": 0,
+  "tests/test_bond_dissociation_calculation.py": 1,
   "tests/test_bond_order_keys.py": 2,
   "tests/test_bond_report.py": 2,
   "tests/test_bootstrap.py": 3,
