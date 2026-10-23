@@ -13,10 +13,6 @@ A bond whose radical keeps an imaginary mode after the one re-run has no value: 
 """
 from __future__ import annotations
 
-#: Stage 1 of the calculator: the chemistry, tested against the benchmarks, with no engine behind it yet; stage 2 (the service) imports it and this line goes.
-REACHED_BY = "tooling: stage 1 of the bond-dissociation calculator, imported by its tests until the service stage wires it"
-
-
 import re
 from dataclasses import dataclass, field
 
@@ -145,9 +141,15 @@ def bond_classes(mol: Chem.Mol) -> list[dict]:
         next_to = symbol == "O" and any(n in ("O", "N") for n in heavy_neighbors)
         out.append({
             "atom": atom.GetIdx(), "element": symbol, "hydrogens": hydrogens, "aromatic": atom.GetIsAromatic(), "next_to_heteroatom": next_to,
-            "label": f"{symbol}{'H' + str(hydrogens) if hydrogens > 1 else 'H'}{' (aromatic)' if atom.GetIsAromatic() else ''}-H, bonded to {', '.join(heavy_neighbors) if heavy_neighbors else 'no other heavy atom'}",
+            "label": f"{symbol}{'H' + str(hydrogens) if hydrogens > 1 else ''}{' (aromatic)' if atom.GetIsAromatic() else ''}-H, bonded to {', '.join(heavy_neighbors) if heavy_neighbors else 'no other heavy atom'}",
         })
     return out
+
+
+def describe_bonds(smiles: str) -> list[dict]:
+    """The choosable X-H bonds of a molecule, as plain dicts a panel can show (`bond_classes`' fields plus `class_key`), or OutOfScope with the reason the calculation does not apply: the one call a window needs before it asks which bonds."""
+    mol = molecule_from_smiles(smiles)
+    return [dict(bond, class_key=class_key(bond)) for bond in bond_classes(mol)]
 
 
 def class_key(bond: dict) -> str:

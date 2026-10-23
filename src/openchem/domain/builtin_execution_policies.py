@@ -160,7 +160,7 @@ _table["docking.vina"] = _confirm(
 )
 for _id in (
     "orca.sp", "orca.opt", "orca.opt_freq", "orca.nmr", "orca.nmr_coupling", "orca.delta_scf",
-    "orca.led", "orca.tautomer_distribution", "orca.fukui", "orca.proton_affinity",
+    "orca.led", "orca.tautomer_distribution", "orca.fukui", "orca.proton_affinity", "orca.bond_dissociation_enthalpy",
 ):
     _table[_id] = _confirm(
         "ORCA runs for minutes to hours depending on the molecule and method, and writes its own files.",

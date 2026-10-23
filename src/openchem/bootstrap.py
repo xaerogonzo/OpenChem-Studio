@@ -5,6 +5,7 @@ import functools
 
 from openchem.app.settings import Settings
 from openchem.chem.admet_providers import ADMET_PYTHON_SETTING
+from openchem.chem.bond_dissociation import METHOD_LABEL as BOND_DISSOCIATION_METHOD
 from openchem.chem.descriptor_providers import CALCULATOR_DEFINITIONS
 from openchem.chem.engine import ChemistryEngine
 from openchem.chem.orca_engine import CALC_TYPE_LABELS, METHOD_BASIS_PRESETS
@@ -311,6 +312,56 @@ _EXTERNAL_CALCULATOR_DEFINITIONS.append(
             ),
             scope_note=(
                 "Neutral closed-shell bases of at most ten heavy atoms of H, C, N, O, P and S; the lowest structure only; needs a configured ORCA executable"
+            ),
+        ),
+    )
+)
+
+
+# Standalone like the proton affinity, for the same reason: bond dissociation is not one ORCA calc type, it dispatches the hydrogen atom, an `Opt Freq` of the parent's conformers and one
+# of a doublet radical per chosen bond and conformer (QuantumChemistryService.request_bond_dissociation). No method or charge parameters on purpose: the protocol is exactly the one that was
+# benchmarked (benchmarks/bde/PREREGISTRATION.md, then the held-out arm of benchmarks/restart_v2/), and its one parameter shows it.
+_EXTERNAL_CALCULATOR_DEFINITIONS.append(
+    CalculatorDefinition(
+        calculator_id="orca.bond_dissociation_enthalpy",
+        display_name="X-H Bond Dissociation Enthalpy",
+        category="quantum_chemistry",
+        description=(
+            "The homolytic bond dissociation enthalpy at 298.15 K of the C-H, N-H, O-H or S-H bonds you choose in a neutral closed-shell molecule, "
+            "DH298 = H(radical) + H(H atom) - H(molecule), from ORCA M062X/def2-TZVPD optimizations and frequencies of the molecule, of the doublet radical "
+            "each bond leaves and a single point of the hydrogen atom, the lowest structure of each. Reports kJ/mol: the weakest bond computed in the headline and every bond's own value "
+            "or the reason it has none. Benchmarked on 49 bonds (22 against experiment, 27 held out against the Active Thermochemical Tables): mean absolute error 1.48 kcal/mol, "
+            "and the calculation runs LOW by 1.38 kcal/mol on average, in every class (an O-H next to another oxygen or a nitrogen: 3.3, up to 4.6). Measured for molecules of at most "
+            "nine heavy atoms of H, C, N, O and S, refused outside that. A radical that keeps an imaginary vibration after one re-run gives that bond no value (thiyl radicals do). "
+            "Many ORCA jobs (minutes to hours): needs an ORCA executable; run from the Quantum Chemistry panel's 'Bond dissociation...' button -- no 3D conformer needed."
+        ),
+        execution=ServiceExecution(
+            service_name="quantum_chemistry_service",
+            panel_name="Quantum Chemistry panel",
+            panel_id="Quantum_Chemistry",
+        ),
+        prediction_basis="ab_initio",
+        parameters=[
+            CalculatorParameter(
+                name="method_basis",
+                label="Method/basis (fixed: the benchmarked protocol)",
+                kind="choice",
+                default=BOND_DISSOCIATION_METHOD,
+                choices=[BOND_DISSOCIATION_METHOD],
+            ),
+        ],
+        # EXPERIMENTAL like the proton affinity, for the same reason: the stage describes THIS implementation, and until it has been driven through the application on real ORCA
+        # (its recorded run is the change that promotes it, docs/CALCULATOR_MATURITY.md) the benchmarks' verdicts are about the benchmarks' own runner.
+        support=CalculatorSupport(
+            stage=SupportStage.EXPERIMENTAL,
+            default_visibility=Visibility.HIDDEN,
+            support_reason=(
+                "The protocol was measured on 49 bonds (22 against experiment, PARTIAL by 0.03 kcal/mol on the bias; 27 held out against the Active Thermochemical Tables, PASS): mean absolute error 1.48 kcal/mol, "
+                "values run about 1.4 kcal/mol low, and an O-H next to O or N runs 3.3 low. This implementation has not yet been driven through the application on real ORCA, and it needs many ORCA jobs. "
+                "Every result states the measured error and its limits."
+            ),
+            scope_note=(
+                "Neutral closed-shell molecules of at most nine heavy atoms of H, C, N, O and S; C-H, N-H, O-H and S-H bonds; the lowest structure only; needs a configured ORCA executable"
             ),
         ),
     )
