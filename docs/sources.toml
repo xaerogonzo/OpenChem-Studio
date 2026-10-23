@@ -8285,8 +8285,9 @@ kind = "literature"
 citation = "S. J. Blanksby & G. B. Ellison, 'Bond Dissociation Energies of Organic Molecules', Acc. Chem. Res. 2003, 36, 255-263."
 identifier_type = "doi"
 identifier = "10.1021/ar020230d"
-status = "reference_only"
+status = "shipped"
 used_by = [
+    "src/openchem/chem/bond_dissociation.py",
     "docs/BDE_DESIGN.md",
     "benchmarks/bde/PREREGISTRATION.md",
 ]
@@ -8295,6 +8296,8 @@ verification = "citation_and_claim"
 verified_date = 2026-10-19
 reason = """
 THE REFERENCE VALUES OF THE BOND-DISSOCIATION BENCHMARK: Table 1 gives the experimental bond enthalpy DH298 (kcal/mol) of RH -> R + H with its stated uncertainty for 33 bonds the benchmark uses (read from the page image; the text layer agrees). Also states that DH298 and D0 differ by about 1.5 kcal/mol for R-H (the heat-content integral of the hydrogen atom, 1.48 kcal/mol at 298 K), which is why the benchmark computes an enthalpy and not an electronic energy.
+
+SHIPPED AS THE DEFINITION OF THE BOND-DISSOCIATION CALCULATION (2026-10-23): `chem/bond_dissociation.py` computes this quantity, DH298(R-H) = H(R.) + H(H.) - H(RH) at 298.15 K, with the hydrogen atom's (5/2) kT; the calculator's accuracy statement comes from the benchmarks in `benchmarks/bde/` and `benchmarks/restart_v2/` (this paper's Table 1 is the first of their two references), not from the paper itself.
 """
 
 [[source]]
@@ -8570,6 +8573,7 @@ identifier_type = "url"
 identifier = "https://atct.anl.gov/Thermochemical%20Data/version%201.228/index.php"
 status = "reference_only"
 used_by = [
+    "src/openchem/chem/bond_dissociation.py",
     "benchmarks/restart_v2/PREREGISTRATION.md",
     "benchmarks/bde_heldout/extract_atct.py",
 ]
