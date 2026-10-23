@@ -1,11 +1,10 @@
 # OpenChem Studio — Basic Instructions
 
-> **This is a tooling file, not documentation.** It is TokenSave Manager's
-> project baseline, and the `@` line below is a template include pointing at
-> an absolute path on the maintainer's machine — which is why it stays in
-> the repository root while the real documentation lives in [`docs/`](docs/).
-> If you are looking for user or developer documentation, start at
-> [`README.md`](README.md) or [`docs/`](docs/).
+> **This is a tooling file, not documentation.** The `@` line below includes
+> `project-baseline.md`, TokenSave Manager's committed baseline copy, which is
+> why this file stays in the repository root while the real documentation lives
+> in [`docs/`](docs/). If you are looking for user or developer documentation,
+> start at [`README.md`](README.md) or [`docs/`](docs/).
 
 @project-baseline.md
 
