@@ -30,6 +30,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from openchem.app.settings import STRUCTURE_COVERAGE
 from openchem.chem.calculation_input import canonical_conformer
 from openchem.chem.engine import ChemistryEngine
 from openchem.chem.result_reduction import PER_ATOM_AGGREGATES
@@ -91,6 +92,14 @@ from openchem.domain.scientific_result import PerAtomDataset, SpectrumResult
 from openchem.domain.score_definition import ScoreDefinition
 from openchem.domain.score_run_inputs import run_inputs_of
 from openchem.domain.selection_presets import PresetStore
+from openchem.domain.structure_coverage import (
+    CAVEAT_CHIP_LABEL,
+    COVERED_CHIP_LABEL,
+    SERVICE_ROW_MARKS,
+    Coverage,
+    CoverageKind,
+    tooltip_sentence,
+)
 from openchem.domain.structure_resolution import resolve_structure_for_report
 from openchem.ui import visual_check
 from openchem.ui.result_adapters import summarise
@@ -245,6 +254,15 @@ _STATUS_APPEARANCE: dict[str, tuple[str, str]] = {
     # applicable", which is the one thing they must not read as.
     NEEDS_INPUT: (_WARNING_GLYPH + "Needs input", _WARNING_STYLE),
     NEEDS_SETUP: (_WARNING_GLYPH + "Needs setup", _WARNING_STYLE),
+}
+
+#: What a registry row's chip says BEFORE any run when its calculator has made a claim about the drawn structure
+#: (`domain.structure_coverage`). A refusal is the existing "Not applicable"; "Can run" has no glyph so the green
+#: check stays "Ready", which means a run succeeded; "With limits" takes the amber triangle every "look at this" state uses.
+_COVERAGE_APPEARANCE: dict[CoverageKind, tuple[str, str]] = {
+    CoverageKind.COVERED: (COVERED_CHIP_LABEL, _INFORMATION_STYLE),
+    CoverageKind.CAVEAT: (_WARNING_GLYPH + CAVEAT_CHIP_LABEL, _WARNING_STYLE),
+    CoverageKind.REFUSES: _STATUS_APPEARANCE[INAPPLICABLE],
 }
 
 #: Which calculator a status chip belongs to, carried on the chip.
@@ -1394,8 +1412,22 @@ class _ElidingPushButton(QPushButton):
         self.setSizePolicy(QSizePolicy.Policy.Ignored, QSizePolicy.Policy.Fixed)
         self.setMinimumWidth(_ELIDED_BUTTON_MIN_WIDTH)
 
+    def set_full_text(self, text: str) -> None:
+        """Replace the label this button elides from, and re-elide it at once.
+
+        The tooltip is deliberately left alone: it is the contract text the caller set, and this is only the
+        visible label (a leading mark that appears and goes as the structure is edited).
+        """
+        self._full_text = text
+        self._shown_text = text
+        super().setText(_mnemonic_safe(text))
+        self._elide()
+
     def resizeEvent(self, event) -> None:  # noqa: N802 - Qt's own casing
         super().resizeEvent(event)
+        self._elide()
+
+    def _elide(self) -> None:
         metrics = QFontMetrics(self.font())
         available = max(0, self.width() - _ELIDED_BUTTON_PADDING)
         elided = metrics.elidedText(self._full_text, Qt.TextElideMode.ElideRight, available)
@@ -1911,9 +1943,10 @@ class PropertyPanel(QWidget):
         #: producer, and ONLY when the producer is not the result's own id (the other case
         #: `_reports` already answers). Keyed and cleared as `_reports` is.
         self._produced_results: dict[str, object] = {}
-        #: calculator id -> why it is certain to refuse the selected molecule, known before any run
-        #: (`CalculatorDefinition.preflight`). Only calculators that declare a hook appear.
-        self._preflight_reasons: dict[str, str] = {}
+        #: calculator id -> what it says about the selected molecule before any run: covered, covered with a
+        #: limit or certain to refuse (`CalculatorDefinition.preflight`, `domain.structure_coverage`). Only a
+        #: calculator that made a claim appears, and it is empty while Settings has the indicator off.
+        self._coverage: dict[str, Coverage] = {}
         self._sections: dict[str, _CollapsibleSection] = {}
         #: Task-group heading labels, by group id (see `_group_header`).
         self._group_headers: dict[str, QLabel] = {}
@@ -3067,25 +3100,45 @@ class PropertyPanel(QWidget):
             self._refresh_status_chips()
             self._perceive_substance_if_needed(event.molecule_uuid)
 
-    def _update_preflight(self) -> None:
-        """Ask each calculator that declares a hook whether it is certain to refuse this molecule.
+    def _coverage_enabled(self) -> bool:
+        """The Settings switch (Recalculation page); on where there is no settings object, as in a fixture."""
+        if self._settings is None:
+            return True
+        return bool(self._settings.preference(STRUCTURE_COVERAGE))
 
-        The chip draws the answer; this only keeps it. Cheap by contract (Joback's is one
-        fragmentation), and run when the structure settles, never per keystroke of a drag.
+    def _update_preflight(self) -> None:
+        """Ask each calculator that can say whether it takes this molecule, and keep the answers.
+
+        The chip and the service rows draw them; this only keeps them. Cheap by contract (one pass of
+        a few milliseconds for every calculator together), run when the structure settles and never per
+        keystroke of a drag. Does nothing, and clears what was kept, while Settings has it switched off.
         """
-        self._preflight_reasons.clear()
-        if self._project is None or self._selected_molecule_uuid is None:
-            return
-        molecule = self._project.find_molecule(self._selected_molecule_uuid)
-        if molecule is None:
-            return
-        for calculator_id in self._calculator_status:
+        self._coverage.clear()
+        if self._coverage_enabled() and self._project is not None and self._selected_molecule_uuid is not None:
+            molecule = self._project.find_molecule(self._selected_molecule_uuid)
+            if molecule is not None:
+                ids = [*self._calculator_status, *self._service_rows]
+                coverage_pass = getattr(self._descriptor_service, "coverage_pass", None)
+                if coverage_pass is not None:
+                    self._coverage.update(coverage_pass(molecule, ids))
+        self._refresh_service_rows()
+
+    def _refresh_service_rows(self) -> None:
+        """Put the mark before each service row's name, and the sentence in its tooltip, in step with `_coverage`.
+
+        These rows have no chip, and are one elided button, so the answer is one leading character from the
+        set this panel has proven it can draw; absent when nothing is known.
+        """
+        for calculator_id, button in self._service_rows.items():
             definition = self._calculator_registry.get(calculator_id)
-            if definition is None or definition.preflight is None:
+            if definition is None or not isinstance(button, _ElidingPushButton):
                 continue
-            reason = self._descriptor_service.preflight(molecule, calculator_id)
-            if reason:
-                self._preflight_reasons[calculator_id] = reason
+            coverage = self._coverage.get(calculator_id)
+            base = f"{definition.display_name} > {definition.execution.panel_name}"
+            button.set_full_text(f"{SERVICE_ROW_MARKS[coverage.kind]} {base}" if coverage else base)
+            apply_help_tooltip(button, service_row_help(definition))
+            if coverage is not None:
+                button.setToolTip(f"{button.toolTip()}\n\n{tooltip_sentence(coverage)}")
 
     def _perceive_substance_if_needed(self, molecule_uuid: str) -> None:
         # The same gate as a selection: undoing back to a structure whose
@@ -3467,8 +3520,8 @@ class PropertyPanel(QWidget):
         if status == NOT_RUN and calculator_id in self._finished_calculator_ids:
             chip.setVisible(False)
             return
-        known_beforehand = self._preflight_reasons.get(calculator_id, "") if status == NOT_RUN else ""
-        text, style = _STATUS_APPEARANCE[INAPPLICABLE if known_beforehand else status]
+        coverage = self._coverage.get(calculator_id) if status == NOT_RUN else None
+        text, style = _COVERAGE_APPEARANCE[coverage.kind] if coverage else _STATUS_APPEARANCE[status]
         chip.setText(text)
         chip.setStyleSheet(style)
         # DISABLED rather than hidden where there is nothing to open: the
@@ -3490,12 +3543,9 @@ class PropertyPanel(QWidget):
         descriptions that can disagree.
         """
         base = _STATUS_CHIP_HELP.text
-        known_beforehand = self._preflight_reasons.get(calculator_id, "") if status == NOT_RUN else ""
-        if known_beforehand:
-            return (
-                f"{base}\n\nNot run yet, and known not to apply before running it: "
-                f"{known_beforehand}"
-            )
+        coverage = self._coverage.get(calculator_id) if status == NOT_RUN else None
+        if coverage is not None:
+            return f"{base}\n\n{tooltip_sentence(coverage)}"
         if status == NEEDS_INPUT and result is not None:
             definition = self._calculator_registry.get(calculator_id)
             phrases = needed_input_phrases(definition, missing_inputs_of(result)) if definition else []
@@ -3998,6 +4048,9 @@ class PropertyPanel(QWidget):
     def _on_settings_changed(self, event: SettingsChanged) -> None:
         if str(event.key).startswith("calculators/"):
             self._apply_calculator_visibility()
+        if str(event.key) == STRUCTURE_COVERAGE.key:
+            self._update_preflight()
+            self._refresh_status_chips()
 
     def _about_menu_for(self, calculator_id: str) -> QMenu:
         """The context menu of one calculator's button.

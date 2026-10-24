@@ -124,6 +124,10 @@ The script is a JSON list of steps, run in order:
       {"do": "expect_offered",   "hidden": ["detonation"], "footer": "1 calculator ..."}
                                               which calculators the Properties
                                               launcher OFFERS, by row visibility
+      {"do": "expect_coverage",  "chips": {"griffin_hlb": "Can run"}, "rows": {"orca.proton_affinity": "✓"}}
+                                              what the rows SAY about the drawn
+                                              structure before a run, read off
+                                              the chips and service-row labels
       {"do": "expect_help",      "topic": "calc-joback-properties"}
                                               which help topic is in FRONT
       {"do": "chip",             "calculator": "detonation", "expect": {"status": "needs_input"}}
@@ -9311,6 +9315,50 @@ class _Driver(QObject):
             logger.warning("OPENCHEM_DRIVE: EXPECT offered ok[%s]", tag)
         else:
             logger.error("OPENCHEM_DRIVE: EXPECT offered FAILED[%s] -- %s", tag, "; ".join(problems)[:800])
+
+    def _do_expect_coverage(self, step: dict[str, Any]) -> None:
+        """`{"do": "expect_coverage", "chips": {"griffin_hlb": "Can run"}, "rows": {"orca.proton_affinity": "✓"}, "silent": [...], "tooltips": {"griffin_hlb": ["polyoxyethylene"]}}`
+        -- what the Properties rows SAY about the drawn structure before any run, asserted off the widgets.
+
+            "chips"     registry id -> the chip's text; it matches when the chip ends with it ("Not applicable"
+                        for "○ Not applicable"), so the glyph is not what is being tested
+            "rows"      service-row id -> the mark its label starts with ("" for none)
+            "silent"    registry ids whose chip must read "Not run" (no claim made)
+            "tooltips"  id (chip or service row) -> substrings its tooltip must hold
+
+        Read off the chip and the button, not off `_coverage`, which is what the panel believes: a claim the
+        screen does not show is not a claim anybody read.
+        """
+        panel = self._window._property_panel
+        tag = str(step.get("tag", ""))
+        problems: list[str] = []
+        for calculator_id, wanted in (step.get("chips") or {}).items():
+            chip = panel._calculator_status.get(calculator_id)
+            if chip is None:
+                problems.append(f"{calculator_id}: no chip")
+            elif not chip.text().endswith(wanted):
+                problems.append(f"{calculator_id}: chip reads {chip.text()!r}, wanted {wanted!r}")
+        for calculator_id in step.get("silent") or []:
+            chip = panel._calculator_status.get(calculator_id)
+            if chip is None or chip.text() != "Not run":
+                problems.append(f"{calculator_id}: chip reads {chip.text() if chip else None!r}, wanted 'Not run'")
+        for calculator_id, mark in (step.get("rows") or {}).items():
+            row = panel._service_rows.get(calculator_id)
+            if row is None:
+                problems.append(f"{calculator_id}: no service row")
+                continue
+            label = row._full_text
+            has = label[:1] in ("✓", "△", "○")
+            if (mark == "" and has) or (mark != "" and not label.startswith(mark)):
+                problems.append(f"{calculator_id}: row reads {label!r}, wanted a mark of {mark!r}")
+        for calculator_id, needles in (step.get("tooltips") or {}).items():
+            widget = panel._calculator_status.get(calculator_id) or panel._service_rows.get(calculator_id)
+            tip = widget.toolTip() if widget is not None else ""
+            problems.extend(f"{calculator_id}: tooltip lacks {needle!r}" for needle in needles if needle not in tip)
+        if self._record_assertion("expect_coverage", tag, not problems, "; ".join(problems) or "as expected"):
+            logger.warning("OPENCHEM_DRIVE: EXPECT coverage ok[%s]", tag)
+        else:
+            logger.error("OPENCHEM_DRIVE: EXPECT coverage FAILED[%s] -- %s", tag, "; ".join(problems)[:800])
 
     def _finish(self, *, tolerate_errors: bool = False) -> int:
         """End the run: log the verdict, write the report, return the exit status.

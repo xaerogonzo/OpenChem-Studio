@@ -1716,6 +1716,7 @@
   "tests/test_structure_check_panel.py": 1,
   "tests/test_structure_clipboard.py": 2,
   "tests/test_structure_contents_dialog.py": 2,
+  "tests/test_structure_coverage.py": 2,
   "tests/test_structure_grid_widget.py": 2,
   "tests/test_structure_resolution.py": 1,
   "tests/test_structure_summary.py": 2,

@@ -5,6 +5,7 @@ import functools
 
 from openchem.app.settings import Settings
 from openchem.chem.admet_providers import ADMET_PYTHON_SETTING
+from openchem.chem import coverage_hooks
 from openchem.chem.bond_dissociation import METHOD_LABEL as BOND_DISSOCIATION_METHOD
 from openchem.chem.descriptor_providers import CALCULATOR_DEFINITIONS
 from openchem.chem.engine import ChemistryEngine
@@ -288,6 +289,7 @@ _EXTERNAL_CALCULATOR_DEFINITIONS.append(
             panel_name="Quantum Chemistry panel",
             panel_id="Quantum_Chemistry",
         ),
+        preflight=coverage_hooks.proton_affinity_coverage,
         prediction_basis="ab_initio",
         # One option, a fixed choice, so the dialog says WHICH protocol this is rather than offering the free method box the other ORCA entries have;
         # a calculator with no option at all is refused by tests/test_calculator_options.py.
@@ -343,6 +345,7 @@ _EXTERNAL_CALCULATOR_DEFINITIONS.append(
             panel_name="Quantum Chemistry panel",
             panel_id="Quantum_Chemistry",
         ),
+        preflight=coverage_hooks.bond_dissociation_coverage,
         prediction_basis="ab_initio",
         parameters=[
             CalculatorParameter(

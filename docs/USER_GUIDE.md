@@ -842,12 +842,23 @@ and the cursor on the first (nothing runs until you press OK), and **Needs
 setup** opens Settings > External Tools on the tab that sets that calculator up.
 Hover the chip to see what it needs before you press it.
 
+**Before you run anything**, a row can already tell you whether the structure on
+screen is one that calculator takes, and it stays right as you edit: the chip
+reads `Can run` (the structure is inside what the method covers), `△ With
+limits` (it will run, and the tooltip names the limit) or `○ Not applicable`
+(it will refuse, and the tooltip says why). A calculator that has no way to
+know yet still reads `Not run`; `Can run` is about the drawn structure only and
+does not say a tool is set up or that the answer will be accurate. The check
+is the calculator's own refusal test, takes a few milliseconds once each time
+the drawing settles, and can be switched off in Settings > Recalculation.
+
 Calculators that are run from **another panel** — the ORCA jobs (single point,
 optimisation, frequencies, NMR, coupling, Delta-SCF, LED), Hardness/Softness
 and Vina docking — have a row in Properties too, under **Quantum Chemistry**,
 **Lewis Acid/Base** and **Docking**. It is a button, not a launcher: it has no
 tick box and no status chip, it is labelled with the panel it opens ("Single
-Point Energy > Quantum Chemistry panel"), and pressing it shows that panel with
+Point Energy > Quantum Chemistry panel", with a `✓`, `△` or `○` before the name
+when it can already say whether the drawn structure is in scope), and pressing it shows that panel with
 the calculation already chosen. Nothing runs until you press Run there, because
 those jobs take a charge, a multiplicity and a method, and "Run selected" never
 includes them.
