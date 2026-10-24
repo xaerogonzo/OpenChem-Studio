@@ -84,7 +84,7 @@ Every tracked top-level entry, and whether it reaches a release.
 | `examples` | **No** | Plugin examples for developers |
 | `scripts`, `spikes`, `prof.out` | **No** | Probes and experiments |
 | `pyproject.toml`, `uv.lock`, `.python-version` | **No** | Development environment; the frozen app carries its own Python |
-| `CLAUDE.md`, `BASIC_INSTRUCTIONS.md`, `project-baseline.md`, `.agent-tool.json`, `.codegraph` | **No** | Instructions and indexes for development tooling |
+| `CLAUDE.md`, `project-baseline.md`, `.agent-tool.json`, `.codegraph` | **No** | Instructions and indexes for development tooling |
 | `.github`, `.gitignore`, `.gitattributes` | **No** | Repository configuration |
 
 ## What the release is checked against
