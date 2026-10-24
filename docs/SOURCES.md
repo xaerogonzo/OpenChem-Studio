@@ -1,5 +1,5 @@
 <!-- GENERATED FROM docs/sources.toml -- do not edit -->
-<!-- SOURCE SHA256: 3a09d8b62e1a73392c2756254402e5249a8547a6058074ee6dac2862ee29b646 -->
+<!-- SOURCE SHA256: 8199516348e06e88af1af2f62d7b3ef00a35a5e9301f4c8a079f76818d9aa057 -->
 
 # Sources
 
@@ -235,6 +235,7 @@ next run of `tools/build_lewis_parameters.py`.
 | [`kwon2018`](#kwon2018) | literature | reference only | citation |
 | [`kwon2023`](#kwon2023) | dataset | shipped | citation + claim |
 | [`langes15`](#langes15) | reference_table | shipped | citation + claim |
+| [`lease2023`](#lease2023) | literature | shipped | citation + claim |
 | [`li2024retrobleu`](#li2024retrobleu) | literature | reference only | citation |
 | [`llinas2008`](#llinas2008) | dataset | shipped | citation |
 | [`llinas2019`](#llinas2019) | dataset | reference only | citation |
@@ -349,6 +350,7 @@ next run of `tools/build_lewis_parameters.py`.
 | [`trofimov2017`](#trofimov2017) | literature | shipped | citation + claim |
 | [`trott_olson2010`](#trott_olson2010) | literature | shipped | citation + claim |
 | [`trygubenko2002`](#trygubenko2002) | literature | shipped | citation + claim |
+| [`tsang1974`](#tsang1974) | literature | shipped | citation + claim |
 | [`tsei`](#tsei) | reference_table | reference only | citation |
 | [`verlet1967`](#verlet1967) | literature | shipped | citation + claim |
 | [`verstraelen2009`](#verstraelen2009) | literature | reference only | citation + claim |
@@ -4833,6 +4835,79 @@ The book prints no DOI; the ISBN is the one on its imprint page. The text
 layer drops minus signs (Table 5.2 reads "73.96" for TNT); the signs are
 the book's, read from its Eq. 5.1. Its Eq. 5.2 and the TNT example are the
 C/H/N/O form [source:klapotke2017] already supplies.
+
+### tsang1974
+
+<a id="tsang1974"></a>
+
+> W. Tsang & E. S. Domalski, 'An Appraisal of Methods for Estimating Self-Reaction Hazards', NBSIR 74-551, National Bureau of Standards, Washington, D.C., June 1974 (interim report for the Department of Transportation).
+
+| | |
+| --- | --- |
+| Identifier | NBSIR 74-551 (National Bureau of Standards, 1974) |
+| Status | shipped |
+| Verification | citation + claim |
+| Verified | 2026-10-24 |
+| Local copy | `An Appraisal of Methods for Estimating Self-Reaction Hazards_1974.pdf` (not checked) |
+| Used by | `src/openchem/chem/energetics.py`, `tests/test_oxygen_balance_extended.py` |
+
+**THE ONLY SOURCE FOUND THAT STATES A BROMINE PRODUCT.** After Meyer, Conkling,
+Persson, Cooper, Akhavan, Klapoetke's textbook and three-volume Encyclopedia, a
+brominated-TNT preprint and 68 LMU dissertations printed no bromine balance,
+this US Government report (so freely redistributable) does. Section C, "Oxygen
+Balance" (p13, read from the page image), writes the reaction and the formula
+for each composition class, the halogen ones being
+
+    C(a)H(b)Cl(e) + (a + b/4 - e/4) O2 -> a CO2 + (b/2 - e/2) H2O + e HCl
+    C(a)H(b)Br(f) + (a + b/4 - f/4) O2 -> a CO2 + (b/2 - f/2) H2O + f HBr
+    oxygen balance = -1600 (2a + b/2 - f/2) / (formula wt.)
+
+so bromine goes to HBr, sparing half an oxygen exactly as chlorine does to
+HCl. Table 4 (p14) prints propargyl bromide C3H3Br at -94.1%, which the
+formula gives (-94.15), and vinyl chloride -128.0 and ethyl chloride -148.8,
+which it gives too. The tests reproduce those three.
+
+Not every row of its Table 4 is used. Its nitromethane (-13.1) is one third of
+the formula's -39.3, its mercury fulminate (-16.9) burns mercury to HgO where
+Meyer leaves it as the metal, and its silver azide (-10.7) follows neither
+convention here; none of those rows is a halogen compound.
+
+The report's formulas are printed for hydrocarbons (and the chloro and bromo
+ones for C/H/X only); the extension to oxygen and nitrogen is the same as for
+every other element here. It prints no metal bromide, no balance for a bromine
+compound that also holds oxygen or nitrogen, and no Br2 figure, so none of
+those is given; a bromine a metal takes follows the chlorides.
+
+### lease2023
+
+<a id="lease2023"></a>
+
+> N. Lease, K. D. Spielvogel, J. V. Davis, J. T. Tisdale, L. M. Klamborowski, M. J. Cawkwell & V. W. Manner, 'Halogenated PETN derivatives: interplay between physical and chemical factors in explosive sensitivity', Chemical Science 14, 7044-7056 (2023).
+
+| | |
+| --- | --- |
+| Identifier | [10.1039/D3SC01627G](https://doi.org/10.1039/D3SC01627G) |
+| Status | shipped |
+| Verification | citation + claim |
+| Verified | 2026-10-24 |
+| Local copy | `Lease2023.pdf` (not checked) |
+| Used by | `src/openchem/chem/energetics.py`, `tests/test_oxygen_balance_extended.py` |
+
+Open access. Table 3 prints the oxygen balance of three brominated pentaerythritol
+tetranitrate (PETN) derivatives, "calculated ... using stoichiometry": the
+mono-, di- and tri-bromo compounds (one, two or three nitrate ester groups
+replaced by bromine) at -21.6, -32.0 and -41.4%. HBr reproduces them to
+0.3 points (-21.55, -31.82, -41.10), where Br2 left over would give -24.0,
+-36.4 and -47.6, so it is a second, independent statement that bromine goes to
+HBr, and the only printed value for a bromine compound that holds oxygen and
+nitrogen. The 0.3 is not hidden: the paper does not give its atomic masses.
+
+**ITS CHLORINE AND IODINE ROWS LOOK SWAPPED, SO THEY ARE NOT USED.** The printed
+chloro row (-21.0, -28.7, -34.5) reproduces the IODO compounds with iodine
+left as I2, and the printed iodo row (-24.9, -42.8, -64.7) reproduces the chloro
+compounds with HCl. A heavier halogen cannot make the balance more negative at
+the same oxygen deficit, so the labels, not the numbers, look wrong. The bromine
+rows do not depend on it.
 
 ### dufter2026
 

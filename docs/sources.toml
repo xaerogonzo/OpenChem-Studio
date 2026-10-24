@@ -4801,6 +4801,81 @@ C/H/N/O form [source:klapotke2017] already supplies.
 """
 
 [[source]]
+key = "tsang1974"
+kind = "literature"
+citation = "W. Tsang & E. S. Domalski, 'An Appraisal of Methods for Estimating Self-Reaction Hazards', NBSIR 74-551, National Bureau of Standards, Washington, D.C., June 1974 (interim report for the Department of Transportation)."
+identifier_type = "bibliographic"
+identifier = "NBSIR 74-551 (National Bureau of Standards, 1974)"
+status = "shipped"
+used_by = [
+    "src/openchem/chem/energetics.py",
+    "tests/test_oxygen_balance_extended.py",
+]
+local = "An Appraisal of Methods for Estimating Self-Reaction Hazards_1974.pdf"
+verification = "citation_and_claim"
+verified_date = 2026-10-24
+note = """
+**THE ONLY SOURCE FOUND THAT STATES A BROMINE PRODUCT.** After Meyer, Conkling,
+Persson, Cooper, Akhavan, Klapoetke's textbook and three-volume Encyclopedia, a
+brominated-TNT preprint and 68 LMU dissertations printed no bromine balance,
+this US Government report (so freely redistributable) does. Section C, "Oxygen
+Balance" (p13, read from the page image), writes the reaction and the formula
+for each composition class, the halogen ones being
+
+    C(a)H(b)Cl(e) + (a + b/4 - e/4) O2 -> a CO2 + (b/2 - e/2) H2O + e HCl
+    C(a)H(b)Br(f) + (a + b/4 - f/4) O2 -> a CO2 + (b/2 - f/2) H2O + f HBr
+    oxygen balance = -1600 (2a + b/2 - f/2) / (formula wt.)
+
+so bromine goes to HBr, sparing half an oxygen exactly as chlorine does to
+HCl. Table 4 (p14) prints propargyl bromide C3H3Br at -94.1%, which the
+formula gives (-94.15), and vinyl chloride -128.0 and ethyl chloride -148.8,
+which it gives too. The tests reproduce those three.
+
+Not every row of its Table 4 is used. Its nitromethane (-13.1) is one third of
+the formula's -39.3, its mercury fulminate (-16.9) burns mercury to HgO where
+Meyer leaves it as the metal, and its silver azide (-10.7) follows neither
+convention here; none of those rows is a halogen compound.
+
+The report's formulas are printed for hydrocarbons (and the chloro and bromo
+ones for C/H/X only); the extension to oxygen and nitrogen is the same as for
+every other element here. It prints no metal bromide, no balance for a bromine
+compound that also holds oxygen or nitrogen, and no Br2 figure, so none of
+those is given; a bromine a metal takes follows the chlorides.
+"""
+
+[[source]]
+key = "lease2023"
+kind = "literature"
+citation = "N. Lease, K. D. Spielvogel, J. V. Davis, J. T. Tisdale, L. M. Klamborowski, M. J. Cawkwell & V. W. Manner, 'Halogenated PETN derivatives: interplay between physical and chemical factors in explosive sensitivity', Chemical Science 14, 7044-7056 (2023)."
+identifier_type = "doi"
+identifier = "10.1039/D3SC01627G"
+status = "shipped"
+used_by = [
+    "src/openchem/chem/energetics.py",
+    "tests/test_oxygen_balance_extended.py",
+]
+local = "Lease2023.pdf"
+verification = "citation_and_claim"
+verified_date = 2026-10-24
+note = """
+Open access. Table 3 prints the oxygen balance of three brominated pentaerythritol
+tetranitrate (PETN) derivatives, "calculated ... using stoichiometry": the
+mono-, di- and tri-bromo compounds (one, two or three nitrate ester groups
+replaced by bromine) at -21.6, -32.0 and -41.4%. HBr reproduces them to
+0.3 points (-21.55, -31.82, -41.10), where Br2 left over would give -24.0,
+-36.4 and -47.6, so it is a second, independent statement that bromine goes to
+HBr, and the only printed value for a bromine compound that holds oxygen and
+nitrogen. The 0.3 is not hidden: the paper does not give its atomic masses.
+
+**ITS CHLORINE AND IODINE ROWS LOOK SWAPPED, SO THEY ARE NOT USED.** The printed
+chloro row (-21.0, -28.7, -34.5) reproduces the IODO compounds with iodine
+left as I2, and the printed iodo row (-24.9, -42.8, -64.7) reproduces the chloro
+compounds with HCl. A heavier halogen cannot make the balance more negative at
+the same oxygen deficit, so the labels, not the numbers, look wrong. The bromine
+rows do not depend on it.
+"""
+
+[[source]]
 key = "dufter2026"
 kind = "literature"
 citation = "A. M. W. Dufter-Muenster, 'Investigation of Next-Generation Visible Light-Producing Pyrotechnics', Dissertation, Ludwig-Maximilians-Universitaet Muenchen, Fakultaet fuer Chemie und Pharmazie, 2026 (Klapoetke group)."
