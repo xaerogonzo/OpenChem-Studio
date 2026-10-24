@@ -1,12 +1,12 @@
 """Elemental composition of a molecule.
 
-Validated against MarvinSketch's own Elemental Analysis output for
+Validated against the reference editor's own Elemental Analysis output for
 tyramine hydrochloride (the molecule in its documentation screenshot):
-formula `C8H12ClNO`, exact mass 173.060742 (Marvin: 173.060741718), atom
+formula `C8H12ClNO`, exact mass 173.060742 (the reference editor: 173.060741718), atom
 count 23, and composition C 55.34 / H 6.97 / Cl 20.42 / N 8.07 / O 9.21 --
-every percentage matching to the two decimals Marvin reports.
+every percentage matching to the two decimals the reference editor reports.
 
-Average molecular mass comes out 173.643 against Marvin's 173.640. That is
+Average molecular mass comes out 173.643 against the reference editor's 173.640. That is
 a standard-atomic-weight table revision, not an error in either tool:
 IUPAC revises these periodically and the two were built against different
 editions. Not worth chasing, but worth knowing before someone reports it
@@ -66,7 +66,7 @@ def isotope_formula(mol: Chem.Mol) -> str:
 def dot_disconnected_formula(mol: Chem.Mol) -> str:
     """Per-fragment formulas joined by dots, e.g. `C8H11NO.ClH` for a
     hydrochloride salt -- which is how a salt's composition is normally
-    written, and what Marvin reports separately from the plain formula."""
+    written, and what the reference editor reports separately from the plain formula."""
     fragments = Chem.GetMolFrags(mol, asMols=True, sanitizeFrags=False)
     return ".".join(rdMolDescriptors.CalcMolFormula(fragment) for fragment in fragments)
 
@@ -93,7 +93,7 @@ def compute_elemental_analysis(
 
     Reported as an `AlertResult` rather than a pile of separate scalars
     because it is one coherent readout a chemist reads together -- exactly
-    how Marvin's own Elemental Analysis window presents it -- and because
+    how the reference editor's own Elemental Analysis window presents it -- and because
     `AlertResult.matched` already renders as a labelled list in the
     Property Panel with no new result shape or view needed.
     """
@@ -125,7 +125,7 @@ def compute_elemental_analysis(
     )
     lines.extend(microspecies_note(parameters))
 
-    # **THE PICTURE MARVIN DRAWS BESIDE THESE NUMBERS.** The molecular
+    # **THE PICTURE THE REFERENCE EDITOR DRAWS BESIDE THESE NUMBERS.** The molecular
     # ion's natural-abundance envelope: the same window this module's
     # docstring already validates the composition against shows one, and
     # the arithmetic for it is the composition restated per isotope.

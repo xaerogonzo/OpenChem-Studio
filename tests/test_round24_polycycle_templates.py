@@ -83,6 +83,12 @@ EXPECTED = {
     "purine": (9, (5, 6)),
     "acridarsine": (14, (6, 6, 6)),
     "acridophosphine": (14, (6, 6, 6)),
+    "[1,5]naphthyridine": (10, (6, 6)),
+    "[1,6]naphthyridine": (10, (6, 6)),
+    "[1,7]naphthyridine": (10, (6, 6)),
+    "[1,8]naphthyridine": (10, (6, 6)),
+    "[2,6]naphthyridine": (10, (6, 6)),
+    "[2,7]naphthyridine": (10, (6, 6)),
 }
 
 

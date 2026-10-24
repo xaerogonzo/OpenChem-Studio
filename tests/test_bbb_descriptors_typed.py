@@ -173,7 +173,7 @@ def test_the_count_is_the_one_rdkit_gives_for_the_structure_the_registry_hands_o
 def test_the_values_a_person_can_check_by_hand(registry):
     expected = {"water": 0, "butane": 0, "cyclohexane": 0, "benzene": 1, "pyridine": 1, "naphthalene": 2, "aspirin": 1, "caffeine": 2, "propranolol": 2, "sildenafil": 3}
     assert {name: _typed(_completed(registry, name))[AROMATIC_RINGS] for name in expected} == expected
-    # The module's own worked example: ChemAxon's sildenafil has 3 aromatic rings, "exact".
+    # The module's own worked example: the vendor's sildenafil has 3 aromatic rings, "exact".
     assert expected["sildenafil"] == 3
 
 

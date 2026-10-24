@@ -7,14 +7,14 @@ aromatic ring count, heavy atom count, MWHBN, TPSA and the most basic pKa
 -- through stepwise and polynomial weight functions into a 0-6 score,
 where 4-6 indicates a CNS drug.
 
-All five INPUTS are reproducible here and were checked against ChemAxon's
+All five INPUTS are reproducible here and were checked against the vendor's
 own worked example for sildenafil: aromatic rings 3 (exact), heavy atoms
 33 (exact), and MWHBN 0.3672 against their 0.37 -- which incidentally
 confirms MWHBN = (HBD + HBA) / sqrt(MW), a definition the docs never spell
 out. TPSA comes out 113.42 against their 109.13; a real ~4% difference
 between two TPSA implementations, noted rather than hidden.
 
-The five WEIGHT FUNCTIONS are not published in ChemAxon's documentation,
+The five WEIGHT FUNCTIONS are not published in the vendor's documentation,
 and unlike CNS MPO -- where the docs gave per-component scores that pinned
 each function individually -- the BBB page gives only component VALUES and
 one total. Five unknown curves against one data point cannot be validated:
@@ -25,11 +25,11 @@ with the classification bands stated, and the composite score does not.
 That is the same call already made for HLB and the steric indices.
 
 The fifth input, the most basic pKa, comes from pkasolver and does NOT
-agree with ChemAxon on the example: 9.15 against their 6.59 for
+agree with the vendor on the example: 9.15 against their 6.59 for
 sildenafil's piperazine. That is a disagreement between two pKa models,
 not a defect in this calculator -- the number is reported as what our own
 predictor says, with the predictor named, rather than adjusted toward
-theirs. Literature values for sildenafil cluster nearer 6.5, so ChemAxon
+theirs. Literature values for sildenafil cluster nearer 6.5, so the vendor
 is likely closer here.
 
 STEREO DESCRIPTORS are RDKit's own CIP assignment, which is a real
@@ -59,7 +59,7 @@ BBB_CNS_THRESHOLD = 4.0
 def mwhbn(mol: Chem.Mol) -> float:
     """(HBD + HBA) / sqrt(MW).
 
-    Confirmed against ChemAxon's sildenafil example: 8 / sqrt(474.59) =
+    Confirmed against the vendor's sildenafil example: 8 / sqrt(474.59) =
     0.3672 versus their reported 0.37. Their docs do not state the
     definition, so this was recovered from the worked example.
     """
@@ -119,7 +119,7 @@ def compute_bbb_descriptors(
     lines.append(
         "These are the five inputs to the Gupta et al. (2019) BBB Score. The composite score "
         "itself is NOT computed: its stepwise and polynomial weight functions are not published "
-        "in ChemAxon's documentation, and one worked example cannot validate five unknown "
+        "in the vendor's documentation, and one worked example cannot validate five unknown "
         "curves. For reference, that score runs 0-6 with 4-6 indicating a CNS drug."
     )
     report = report_from_fields(

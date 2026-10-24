@@ -106,7 +106,8 @@ def test_every_step_carries_what_the_planner_gave_and_nothing_else():
     step = route.steps[-1]
     assert step.product == route.target_smiles and step.reaction_smiles and step.template_id and step.policy_name == "uspto" and 0 < step.policy_probability <= 1
     assert all(m.in_stock is True for m in route.starting_materials)
-    assert route.score and 0 < route.score <= 1 and route.validation is None  # the planner's ranking number; validation is a later slice
+    assert route.score and 0 < route.score <= 1  # the planner's ranking number
+    assert route.validation is not None and route.validation.fully_validated  # every kept route is checked against its own bookkeeping (slice 6)
 
 
 def test_a_three_step_route_is_in_the_order_it_would_be_run():
@@ -736,14 +737,22 @@ def test_the_runner_and_the_host_agree_on_a_whole_exchange(tmp_path, fake_librar
 
 _PLANNER_PYTHON = Path("D:/_scratch/aizynth/env/Scripts/python.exe")
 _PLANNER_DATA = Path("D:/_scratch/aizynth/data")
-_STOCK_KEYS = Path(__file__).parent.parent / "benchmarks" / "synthesis" / "artifacts" / "stock_n1_inchikeys.txt"
+# The reference stock the benchmark ran on, as the InChI keys the planner reads. It is protocol 2's, committed with its records: protocol 1 never kept its copy, and these tests pointed at that missing file and skipped silently on every machine (found 2026-10-22).
+_STOCK_KEYS = Path(__file__).parent.parent / "benchmarks" / "synthesis" / "artifacts_protocol2" / "stock_n1_inchikeys.txt"
 _REAL = pytest.mark.skipif(not (_PLANNER_PYTHON.exists() and (_PLANNER_DATA / "uspto_model.onnx").exists() and _STOCK_KEYS.exists()), reason="the planner environment and the reference stock are not on this machine")
 
 
-def _real_request(iterations=30):
+def test_the_stock_file_the_real_planner_tests_need_is_committed_so_they_cannot_skip_for_want_of_it():
+    """A skip is silent. The real-planner tests skip when the planner is not installed, which is honest; they must never skip because the stock they read is not in the repository."""
+    assert _STOCK_KEYS.is_file() and _STOCK_KEYS.stat().st_size > 100_000, "the benchmark's reference stock (13,414 InChI keys) is missing"
+    keys = _STOCK_KEYS.read_text(encoding="utf-8").split()
+    assert len(set(keys)) == 13414 and all(len(key) == 27 for key in keys)
+
+
+def _real_request(iterations=30, target="CC(=O)Oc1ccccc1C(=O)O", **kw):
     config = {"expansion": {"uspto": [str(_PLANNER_DATA / "uspto_model.onnx"), str(_PLANNER_DATA / "uspto_templates.csv.gz")]}, "stock": {"n1": str(_STOCK_KEYS)}}
-    target = "CC(=O)Oc1ccccc1C(=O)O"  # aspirin: solved in one step from the reference stock's own molecules? not guaranteed; the test checks the exchange, not the chemistry
-    return host.PlanRequest(target_smiles=target, config=config, stock="n1", expansion="uspto", limits=SearchLimits(iteration_limit=iterations, time_limit_seconds=300, max_transforms=6))
+    # (the default target is aspirin: the exchange is checked, not the chemistry)
+    return host.PlanRequest(target_smiles=target, config=config, stock="n1", expansion="uspto", limits=SearchLimits(iteration_limit=iterations, time_limit_seconds=300, max_transforms=6), **kw)
 
 
 @_REAL
@@ -753,6 +762,24 @@ def test_the_real_planner_answers_through_the_real_runner():
     assert result.status in (RouteStatus.FOUND, RouteStatus.NO_ROUTE), result.reason
     assert result.planner.version == "4.4.1" and result.planner.limits.iteration_limit == 30 and result.statistics.iterations == 30
     assert result.termination is SearchTermination.ITERATION_LIMIT
+
+
+@_REAL
+def test_a_real_search_asks_for_every_solved_route_and_keeps_ten_ranked_and_validated_and_says_how_many_it_left_out():
+    """Paracetamol at 200 iterations returned 145 routes (86 with every starting material in stock) when measured on 2026-10-22; the count varies, the shape of the answer does not."""
+    target = TargetIdentity(molecule_uuid="u-2", canonical_smiles="CC(=O)Nc1ccc(O)cc1", fingerprint="fp2")
+    request = _real_request(iterations=200, target=target.canonical_smiles)
+    assert request.all_routes is True
+
+    result = host.run_planner(request, target, python=_PLANNER_PYTHON)
+
+    assert result.status is RouteStatus.FOUND, result.reason
+    assert len(result.routes) == host.ROUTES_SHOWN and [r.rank for r in result.routes] == list(range(1, host.ROUTES_SHOWN + 1))
+    assert all(r.validation is not None and r.validation.fully_validated for r in result.routes)
+    assert all(m.in_stock is True for r in result.routes for m in r.starting_materials)
+    left_out = [s for s in result.limitations if s.startswith("Routes the planner returned that are not shown: ")]
+    assert len(left_out) == 1 and "more solved routes ranked below the 10 shown" in left_out[0], result.limitations
+    assert host.BENCHMARK_FINDING in result.limitations
 
 
 @_REAL
@@ -781,8 +808,15 @@ def test_cancelling_the_real_planner_leaves_no_process_that_is_running_the_runne
         pytest.skip("this machine cannot list processes by command line")
     cancel = threading.Event()
     midway: set[int] = set()
-    threading.Timer(3.0, lambda: midway.update(runner_processes() or set())).start()
-    threading.Timer(4.0, cancel.set).start()
+
+    def cancel_once_the_child_has_been_seen() -> None:
+        # Cancel only after the listing has actually shown the running child (a fixed delay raced a slow PowerShell under load), and never later than 60 s.
+        deadline = time.monotonic() + 60
+        while time.monotonic() < deadline and not midway:
+            midway.update((runner_processes() or set()) - before)
+        cancel.set()
+
+    threading.Thread(target=cancel_once_the_child_has_been_seen, daemon=True).start()
     began = time.monotonic()
 
     result = host.run_planner(_real_request(iterations=100000), TARGET, python=_PLANNER_PYTHON, cancel=cancel)
@@ -791,3 +825,27 @@ def test_cancelling_the_real_planner_leaves_no_process_that_is_running_the_runne
     assert midway - before, "the process listing never saw the running child, so 'none left' below would prove nothing"
     time.sleep(2.0)
     assert runner_processes() - before == set()
+
+
+def test_every_plan_carries_what_was_measured_about_the_planner_beside_the_standing_limitations():
+    for name in ("aspirin_it100", "caffeine_it100"):
+        result = parse(name)
+        assert result.limitations[: len(STANDARD_LIMITATIONS)] == STANDARD_LIMITATIONS and host.BENCHMARK_FINDING in result.limitations, name
+        assert host.BENCHMARK_FINDING in result.all_limitations()
+
+
+def test_the_benchmark_finding_says_only_what_the_result_file_says():
+    """The sentence is typed by hand, so each figure is held to `benchmarks/synthesis/RESULT_2.md` (protocol 2, whose M2 is the count of the first 10 routes shown), which a re-run would change."""
+    result_file = (Path(__file__).parent.parent / "benchmarks" / "synthesis" / "RESULT_2.md").read_text(encoding="utf-8")
+    finding = host.BENCHMARK_FINDING
+    # (the figure as the sentence writes it, the figure as the file writes it)
+    for sentence, in_file in (("96.7%", "**0.967** (290)"), ("41.7%", "**0.417 (125 of 300)**"), ("54.7%", "| 0.547 |")):
+        assert sentence in finding and in_file in result_file, sentence
+    # the depth figures are the file's table row by row: reference depth 2, 3 and 4, in the order M1 / M2 / pool
+    for sentence, row in (("81%", "**0.86 / 0.81 / 0.86**"), ("39%", "**0.54 / 0.39 / 0.55**"), ("4% at 4", "**0.20 / 0.04 / 0.24**")):
+        assert sentence in finding and row in result_file, sentence
+    assert "51%" in finding and "the first route is shorter than the reference in 51%" in result_file
+    assert "37.3%" not in finding and "53.3%" not in finding, "protocol 1's figure is superseded and the PaRoutes count is not the one quoted"
+    assert "first 10 routes it showed" in finding, "the figure is about the list a person is shown"
+    assert "300" in finding and "not as known routes" in finding and "probably trained on those same reactions" in finding, "the claim is narrowed and the contamination caveat is not dropped"
+    assert "known routes" in finding and "valid" not in finding.replace("internally consistent", ""), "never says a route is valid or feasible"

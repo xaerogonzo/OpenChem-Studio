@@ -14,7 +14,7 @@ one. The sampling is dense enough that this has not happened in measurement (see
 `tests/test_projection_search.py`, which compares against a far denser sweep), and the result
 says how many orientations it looked at rather than claiming a proof.
 
-**THREE QUANTITIES PER ORIENTATION, EACH DEFINED HERE** because ChemAxon's documentation
+**THREE QUANTITIES PER ORIENTATION, EACH DEFINED HERE** because the vendor's documentation
 defines none of them:
 
 * *area* -- the area of the union of the atoms' circles, projected along the direction;

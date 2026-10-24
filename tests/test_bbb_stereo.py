@@ -1,6 +1,6 @@
 """BBB Score descriptors and stereo descriptors.
 
-The BBB tests pin the three inputs that were checked against ChemAxon's
+The BBB tests pin the three inputs that were checked against the vendor's
 own worked sildenafil example, since those are what justify shipping the
 descriptors at all -- and one test pins the ABSENCE of the composite
 score, so restoring it stays a conscious decision rather than an
@@ -22,11 +22,11 @@ from openchem.chem.bbb_stereo import (
 )
 from openchem.domain.common import CacheState
 
-# ChemAxon's own BBB Score documentation example.
+# The vendor's own BBB Score documentation example.
 SILDENAFIL = "CCCc1nn(C)c2c1nc([nH]c2=O)-c1cc(ccc1OCC)S(=O)(=O)N1CCN(C)CC1"
 
 
-def test_bbb_inputs_reproduce_chemaxons_sildenafil_example():
+def test_bbb_inputs_reproduce_vendors_sildenafil_example():
     """Their page reports aromatic rings 3, heavy atoms 33, MWHBN 0.37.
 
     TPSA is deliberately NOT asserted against their 109.13: RDKit gives
@@ -43,7 +43,7 @@ def test_bbb_inputs_reproduce_chemaxons_sildenafil_example():
 
 
 def test_mwhbn_is_hydrogen_bond_count_over_root_molecular_weight():
-    """The definition ChemAxon's docs never state, recovered from the
+    """The definition the vendor's docs never state, recovered from the
     worked example above. Ethanol: 1 donor + 1 acceptor over sqrt(46.07).
     """
     assert mwhbn(Chem.MolFromSmiles("CCO")) == pytest.approx(2 / 46.07**0.5, abs=1e-4)

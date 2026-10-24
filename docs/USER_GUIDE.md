@@ -324,7 +324,7 @@ draw one) says so rather than copying a blank.
 
 Four ways in, all the same mode: the **Rotate 3D** button at the top of
 the 2D Editor tab, **Structure ▸ Rotate 3D**, **right-click on an atom**,
-and **F7** — the key Marvin uses for it. All four tick together, because
+and **F7** — the key the reference editor uses for it. All four tick together, because
 they are one control shown in four places.
 
 While the mode is on, **dragging turns the molecule instead of drawing**,
@@ -409,7 +409,7 @@ conformer; butane has two. Requesting more does not create more.
 **Some results draw themselves on a 3D model.** A calculator whose answer
 is a *shape* — the dipole moment's vector, a ligand's steric cone, the
 principal axes behind the molecular dimensions — opens its **Details…**
-onto the stored conformer with that shape drawn on it, the way Marvin's
+onto the stored conformer with that shape drawn on it, the way the reference editor's
 dipole plugin shows its arrow. The arrow's direction is the physics
 (it points from the negative end toward the positive, the raw Σq·r
 vector); its drawn *length* is scaled to the molecule for legibility, and
@@ -558,7 +558,7 @@ batch, how many quiet batches end the search, and a time limit. Changing
 the batch size does not change what gets sampled, only how often the
 search checks whether it is still finding things.
 
-The remaining controls are modelled on ChemAxon's Generate3D calculator,
+The remaining controls are modelled on the vendor's conformer-generation calculator,
 and are emulations of those controls rather than of the algorithms behind
 them:
 
@@ -570,7 +570,7 @@ them:
   are a flat continuum with no gap for a threshold to sit in.
 - **Optimisation** — Loose, Normal, Strict or Very strict, setting how many
   iterations and how tight a gradient each embedding is minimised to.
-  These are OpenChem's levels, not numerical equivalents of Marvin's.
+  These are OpenChem's levels, not numerical equivalents of the reference editor's.
   Measured over 30 embeddings each of seven molecules, every level
   converged 30 of 30 and the retained count differed on only one
   molecule — ethylmorphine, where Loose found 8 against 9 elsewhere. A
@@ -579,7 +579,7 @@ them:
   Not a hard ceiling: neither RDKit's embedder nor its minimiser can be
   interrupted part-way, so a run can overshoot by one embedding.
 - **Enhanced refinement** — a second, stricter minimisation over the
-  survivors. **This is not Marvin's "hyperfine"**, which runs short
+  survivors. **This is not the reference editor's "hyperfine"**, which runs short
   molecular dynamics before its strict optimisation; there is no MD engine
   here, and a minimiser cannot leave the basin it is already in. Measured,
   it changes nothing at Normal or above, and its one visible effect was
@@ -656,7 +656,7 @@ to get one.
 to, not the first — and hands the 2D editor **the 3D structure as you have
 it rotated**. The molblock keeps its z, the editor draws its x and y, so
 what you get is a projection of the geometry you were just looking at,
-the way MarvinSketch draws buckminsterfullerene in perspective. Crossing
+the way the reference editor draws buckminsterfullerene in perspective. Crossing
 bonds are not a fault: that is what a projection of a real 3D shape looks
 like. It is a single undoable step, and Ketcher holds those coordinates
 through subsequent edits.
@@ -1577,9 +1577,9 @@ key).
 
 **A second engine, Psi4.** If you have installed Psi4 and pointed the app at it (**Tools ▸ External Tools ▸ Psi4**: Locate Installed or Browse, then Test), an **Engine** box
 appears above the Calculation list. Psi4 runs **single points and geometry optimizations** only, at B3LYP, PBE0, M062X and HF with a basis such as def2-SVP, def2-TZVP or 6-31G(d); the
-calculations it does not run are greyed out, and the solvent box and the conformer average (both ORCA's) are disabled. A Psi4 geometry is labelled **Psi4 optimized** wherever a conformer is
+calculations it does not run are greyed out, and the solvent box, the conformer average, the TMS and scaling calibrations, the tautomer buttons and Proton affinity (all ORCA's, and each would start an ORCA job) are disabled with a tooltip saying so, and **Configure** opens the Psi4 tab. A Psi4 geometry is labelled **Psi4 optimized** wherever a conformer is
 named. Two engines' numbers are never mixed under one label: the name "B3LYP" is a different functional in the two programs (they differ by 37 mEh on water), which the Psi4 engine translates, and a
-result records the engine, level and settings that made it. Psi4 is large (about 2 GB installed) and the app does not download it.
+result records the engine, level and settings that made it. Psi4 is large (about 2 GB installed) and the app does not download it. Psi4's **memory per job** (2 GB unless changed) and **threads** (Automatic follows ORCA's core count) are set under **Edit ▸ Settings… ▸ Quantum chemistry ▸ Psi4** and apply to the next Psi4 job.
 
 **Which conformer a single calculation runs on** is the **Conformer** box.
 **Automatic** is the one every calculation uses (the newest ORCA-optimized
@@ -1892,6 +1892,64 @@ never). The panel under the checkboxes names everything left out of the average.
 Hydrogens on one carbon are merged into one peak, so diastereotopic hydrogens are
 not resolved. These are gas-phase predictions from one geometry per tautomer, not a
 solution spectrum.
+
+<!-- help:proton-affinity -->
+### Proton affinity and gas basicity
+
+The **Proton affinity...** button runs ORCA on the current structure, a neutral base, and on the conjugate acid
+it makes at every place a proton can go, and reports two numbers in kJ/mol at 298.15 K and 1 atm: the
+**proton affinity** (an enthalpy) and the **gas-phase basicity** (a Gibbs energy, which also carries the entropy
+of the proton and of both species). It needs no 3D conformer: each structure is embedded fresh from the 2D
+drawing. It asks for confirmation first, naming the number of ORCA jobs, and holds the molecule until it
+finishes or you press Cancel.
+
+**A proton affinity belongs to a site.** The candidate sites are every nitrogen, oxygen, sulfur or phosphorus
+atom without a positive charge and every carbon of a C=C, C#C or aromatic bond (and the carbon of carbon
+monoxide); equivalent sites count once. Every site is optimized, the result gives the best one and the atom it
+is, and lists each site's own value, so you can see how far the runner-up is.
+
+**What it was measured to do.** The protocol (M062X/def2-TZVPD optimizations and frequencies, the lowest
+structure of each species, ORCA's symmetry number replaced by the true one) was run through a preregistered
+benchmark of 28 bases against the NIST evaluation of Hunter and Lias. On the 21 whose proton affinity is above
+propene's, the mean absolute error was **1.55 kcal/mol (6.5 kJ/mol) for proton affinity and 1.53 for gas
+basicity**, with the proton bound **about 1.2 kcal/mol too weakly** on average, so read each value as a little
+low. The reference values are themselves uncertain by about 8 kJ/mol. Every result repeats this beside the
+number.
+
+**What is refused, and what can be missing.** It applies to a single neutral closed-shell base of at most ten
+heavy atoms made of H, C, N, O, P and S; a charged or radical species, a mixture, another element or a larger
+molecule is refused with its reason, because no error was measured for it. A structure whose optimization
+keeps an imaginary vibration after one re-run is dropped, and a base or acid with none left has no value: the
+result says which structures were dropped, and PA and GB can be missing separately (the benchmark lost water
+this way). The lowest structure is used, with no averaging over conformers, and the calculation is experimental
+until it has been driven through the application on real ORCA; it is hidden from the Properties launcher by
+default.
+
+<!-- help:bond-dissociation -->
+### X-H bond dissociation enthalpy
+
+The **Bond dissociation...** button asks which X-H bonds of the current structure, a neutral molecule, to break
+(C-H, N-H, O-H or S-H; equivalent atoms count once), then runs ORCA on the molecule, on the radical each chosen
+bond leaves and on the hydrogen atom, and reports the **homolytic bond dissociation enthalpy at 298.15 K** in
+kJ/mol: the weakest bond computed in the headline, and every chosen bond's own value (also in kcal/mol) or the
+reason it has none. It needs no 3D conformer. Each bond costs one radical optimization per conformer of the
+molecule, so the window says that, a run takes at most six bonds, and a long run asks once more, naming the
+number of ORCA jobs. It holds the molecule until it finishes or you press Cancel.
+
+**What it was measured to do.** The protocol (M062X/def2-TZVPD optimizations and frequencies, a radical started
+from the molecule's own conformers, the lowest structure of each species) was measured on 49 bonds: 22 against
+experiment and 27 held out against the Active Thermochemical Tables. The mean absolute error was **1.48 kcal/mol
+(6.2 kJ/mol)** and the values run **low by about 1.4 kcal/mol** in every class; an **O-H next to another oxygen or
+a nitrogen** (a peroxide, a hydroxylamine, an oxime) ran low by **3.3 kcal/mol, up to 4.6**. The bias is not
+corrected. Every result repeats this beside the number, for the classes of the bonds you chose.
+
+**What is refused, and what can be missing.** It applies to a single neutral closed-shell molecule of at most
+nine heavy atoms made of H, C, N, O and S; anything else is refused with its reason, because no error was measured
+for it. A radical whose optimization keeps an imaginary vibration after one re-run gives that bond no value, and
+the result says which structure and why: thiyl radicals (an S-H bond) do this, so the window marks S-H bonds. If
+the hydrogen atom's own job fails, nothing can be computed and the run stops. The calculation is experimental
+until it has been driven through the application on real ORCA; it is hidden from the Properties launcher by
+default.
 
 <!-- help:2d-correlation -->
 ### HSQC, HMBC and COSY — connectivity, not a simulated spectrum
@@ -2318,6 +2376,27 @@ room](#giving-a-picture-more-room). The angle you have turned it to comes
 with it, and *Style* keeps working from the panel.
 
 ---
+
+<!-- help:synthesis -->
+## Synthesis
+
+The **Synthesis** panel (the rail's Extensions group, or **Plugins ▸ Plan Synthesis**) asks a synthesis planner for routes to the selected molecule. It is a front end for **AiZynthFinder**, a program you install yourself and point the application at under **Edit ▸ Settings ▸ External tools ▸ AiZynthFinder** (the application never downloads or installs it). Until that is done the panel says what is missing and where to set it up, and **Plan synthesis** answers that the planner is not available.
+
+**Before anything runs, the target is checked.** A molecule that matches the structural rules of the shipped `cwc-schedule-1` ruleset is refused, with the reason, and no planner starts; a molecule the check could not be applied to is refused the same way. A refusal is a result like any other and stays on the molecule until it is edited. The check covers the target only: a molecule in the middle of a route is flagged where a flag is meant to go, and is not a refusal.
+
+**Choosing.** Three lists, filled from the planner's configuration file when the panel is shown (a few seconds the first time, off the interface, so nothing freezes): the **expansion policy** that proposes reactions (default `uspto`), the **stock** of molecules a route may end at (default `zinc`) and an optional **filter** that discards reactions it scores as unlikely (default none, which is what the project's benchmark ran). A choice applies to the next plan; one already running keeps the choice it started with.
+
+**Planning.** A search takes about a minute and a half for a small target with the default stock (the planner's models load first) and needs 3 to 5 GB of memory; it runs in a program of its own, shows as a job in the Jobs panel, and **Cancel** stops it and ends that program. One molecule is planned at a time and one search runs at a time.
+
+**Reading the result.** At most ten routes are listed, best-ranked first: fewer steps and more starting materials in stock rank first (the PaRoutes route score), then the planner's own score, and a plan that found more says how many it did not keep. Each shows its length, its starting materials and the planner's score; select one to list its steps in the order they would be run, and select a step to see it drawn (reactants, an arrow, the product) with everything the planner said about it beside it: its template, its policy and the policy's probability. Anything the planner did not supply is shown as **not provided**, not as a blank or a zero. The probability and the score are the planner's own numbers; neither is a yield or a chance that the step works. **No conditions, reagents or yields are given, because the planner does not give them**, and the standing limitations are printed beneath every result: a route is a hypothesis from a program trained on patent reactions, nobody has run these reactions, and "in stock" means a match to a catalogue snapshot, not that anyone sells it today.
+
+**What was checked about a route, and what was flagged.** Beside each step the panel lists the route's own bookkeeping, separately and never as one verdict: whether every molecule parses, whether each step's reaction parses and is made of the molecules the step connects, whether the atom mapping is complete, whether atoms are conserved (judged only where the mapping is complete; otherwise it says it could not be assessed), and whether the starting materials are in the stock. This says the planner's books are consistent. It does not say the chemistry is right. Every molecule of every route (the target, each intermediate, each starting material) is also screened against the application's regulatory rulesets, the shipped ones and any of your own, and what matched is listed with the rule, the ruleset, what kind of listing it is (a controlled substance, a precursor list, a workplace exposure limit and so on) and how sure the rule is. An alert never removes or refuses a route and is not a legal determination; a molecule with no alert is not thereby free of obligations, because the lists are finite; and a molecule that could not be screened says why and is never counted as having no alert. Ordinary solvents and reagents often match an exposure-limit listing, so a route with an alert is common and the listing's kind is what to read. The route list shows how many molecules of each route carry an alert.
+
+**A plan belongs to a structure.** If you edit the drawing after planning, the panel keeps the plan but labels it **EARLIER STRUCTURE** and says which structure it was made for; it is never shown as the plan for what is drawn now. **Plans are saved with the project.** A plan that found routes, or found none, is written into the project file when you save and comes back when you open it (a finished search also marks the project as having unsaved changes, because it can take minutes to get). A plan that was refused, failed, was cancelled or could not start is not saved: asking again is cheap and gives the answer of the day. A saved plan is not trusted blindly when it comes back: the regulatory check is run again on its target before it is shown, so a project file cannot be a way around it, each route's own bookkeeping is checked again, and the sentences beside it are this version's. **The regulatory alerts beside a saved plan are the ones from when it was made, shown with that date, and are not repeated when the file is opened** (screening a plan takes seconds); plan again to refresh them. A project saved before this existed has no plans, and a version of the application that does not know about them drops them the next time it saves the project.
+
+**Who may ask.** A person pressing **Plan synthesis**, or the AI Assistant asking for one: it puts a card on its panel and the search starts only if you press **Approve** (the same regulatory check runs first, and the assistant cannot press it). The `?` in this panel's title bar, and F1 with the focus in it, open this section.
+
+**What it was measured to do.** Every plan carries a sentence with the planner's benchmark result: on 300 patent routes it found a route for 96.7% of targets but had the patent route among the first 10 it showed for only 41.7% (81% where the patent route has two steps, 39% at three, 4% at four), and it often finds routes shorter than the patent's. Read the routes as internally consistent, repeatable proposals that often differ from known routes, not as known routes; the numbers and what they do not show are in the Scientific Limitations document (Synthesis route planning).
 
 <!-- help:jobs -->
 ## Jobs and the console
@@ -2780,7 +2859,7 @@ no Units box and stays in the unit it was computed in; run it again to get
 the choice.)
 
 **The category is computed from the intrinsic value, not the pH-adjusted
-one**, which is how ChemAxon defines those thresholds: below 0.01 mg/mL
+one**, which is how the vendor defines those thresholds: below 0.01 mg/mL
 Low, up to 0.06 Moderate, above it High.
 
 ### If your molecule is a base, the panel says so
@@ -2833,7 +2912,7 @@ not be taken "as gospel", so it is refused rather than guessed.
 
 pH, the pH–solubility curve, the Low/Moderate/High category and the BCS
 screen are all **aqueous concepts**. Henderson–Hasselbalch, the pKa values
-behind it, ChemAxon's thresholds and the ICH M9 window are every one of
+behind it, the vendor's thresholds and the ICH M9 window are every one of
 them defined on water.
 
 So a non-aqueous solvent gives you an intrinsic solubility and nothing
@@ -2994,7 +3073,7 @@ External Tools.
 <!-- help:menus -->
 ## Where things live in the menus
 
-Following Marvin, **Edit** is about the document and **Structure** is about
+Following the reference editor, **Edit** is about the document and **Structure** is about
 the structure:
 
 | Menu | Holds |
@@ -3321,8 +3400,9 @@ kept, which asks first.
 <!-- help:external-tools -->
 ## External tools
 
-**Edit ▸ Settings… ▸ External tools** has eight tabs: AutoDock Vina, ORCA,
-pkasolver, ADMET, Java (Temurin), NMR Database, Knowledge Vista, and Storage. **Tools ▸
+**Edit ▸ Settings… ▸ External tools** has ten tabs: AutoDock Vina, ORCA, Psi4,
+AiZynthFinder, pkasolver, ADMET, Java (Temurin), NMR Database, Knowledge Vista,
+and Storage. **Tools ▸
 External Tools…**, and the Configure buttons on the Docking and Quantum
 Chemistry panels, open the same window at the right tab.
 
@@ -3336,6 +3416,20 @@ acid's pKa. A path that exists proves nothing; these prove the tool works.
 each candidate before accepting it, which matters more than it sounds: "ORCA"
 is a common name, and on a real machine this search found an unrelated
 `Orca.exe` in a Windows Installer cache before the right one.
+
+**AiZynthFinder** is the synthesis planner, and it is a tool you install yourself, in an
+environment of your own: the application never downloads, installs or removes it. The tab has two
+paths, the **Python** of the environment it is installed in and the **configuration** file
+(config.yml) that its `download_public_data` command wrote, and **Test** runs a real search of
+aspirin for a few iterations (the start-up alone takes about 20 seconds) and stops at the first thing
+it can name: a Python that is missing or has no AiZynthFinder, a configuration that will not read,
+or a policy model, template file, filter or stock that is not where the configuration says (each
+checked on its own, by file name). By default it uses the `uspto` policy, the `zinc` stock (or the first
+the file lists) and no filter, the configuration the project's benchmark ran. Installing it takes about 1 GB
+for the environment and 750 MB for its models and stock, a search needs 2.75 GB of memory with a small
+stock and up to 5 GB with ZINC, and a fresh install needs `pip install "pyarrow<21"` or it will not
+import. A route it proposes is a hypothesis from a program trained on patent reactions, with no
+conditions or yields. Nothing in the window plans a synthesis yet; this tab is the first part of that.
 
 **Knowledge Vista** is the one optional extra: a separate program (`kv`) that
 keeps track of where a library of PDFs is, by what the files contain, so a paper
@@ -3363,8 +3457,19 @@ installed" state.
 <!-- help:plugins -->
 ## Plugins
 
-Three plugins ship: **AI Assistant**, **Database Search** and **Reaction
-Prediction**. Enable or disable them from the plugin manager.
+Four plugins ship: **AI Assistant**, **Database Search**, **Reaction
+Prediction** and **Synthesis** (see its own section). Enable or disable them from the plugin manager. Each has a panel in the right-hand rail with its own **?**, which opens the section below.
+
+Plugins are loaded as source from a `plugins/` directory beside the
+application, so you can add or edit one without a Python install. They
+extend the app through the same interfaces the core uses — descriptor
+providers, calculators, panels, importers — rather than through a separate
+lesser API.
+
+See [PLUGIN_SDK.md](PLUGIN_SDK.md) to write one.
+
+<!-- help:plugin-ai-assistant -->
+### AI Assistant
 
 The AI Assistant opens from **Plugins > Open AI Assistant** (its panel is in the
 right-hand rail under *Compare and Extend*). Choose a provider and click
@@ -3380,17 +3485,29 @@ became of it, is listed under the conversation. It can also read the goal wizard
 application pairs with a question such as "where is the charge"), as a suggestion rather than a protocol. It can also read the **derived scores** you
 defined (their names, formulas and values for the selected molecule; never the owner or the note), and says so when one cannot be worked out. It cannot save or change one, but it can propose a new one: a card shows the formula, what each
 input reads, the unit and what it gives for the selected molecule, and nothing is saved unless you press **Approve** (it is then saved with the assistant
-as its owner, and you change it in **Tools > Derived Scores** like any other). Those results, and a score's name and formula, are sent to the provider
+as its owner, and you change it in **Tools > Derived Scores** like any other). It can ask to search for synthesis routes to the selected molecule: a card names the molecule, its structure and the policy, stock and filter the planner would use, and the planning program starts only if you press **Approve** (the application's regulatory check then runs first and can decline to plan; the assistant is told only that it was not planned, never why). When the search ends the assistant is told with your next message, and it can read the stored plan: each route's steps, the route's own consistency checks and the rule ids of any regulatory alerts (not the names of what they list; those are in the Synthesis panel). A route is a hypothesis from a program, and the assistant is told to give no conditions, reagents or yields, because the planner gives none. Those results, a score's name and formula, and any synthesis plan the assistant reads, are sent to the provider
 as part of the conversation, and a note under the box says where. **Plugins > Explain
 Stored Results** asks it to explain everything stored for the selected molecule.
 
-Plugins are loaded as source from a `plugins/` directory beside the
-application, so you can add or edit one without a Python install. They
-extend the app through the same interfaces the core uses — descriptor
-providers, calculators, panels, importers — rather than through a separate
-lesser API.
+<!-- help:plugin-database-search -->
+### Database Search
 
-See [PLUGIN_SDK.md](PLUGIN_SDK.md) to write one.
+Searches **PubChem** and **ChEMBL** for a compound and brings a result into the project as a new molecule. Open it from **Plugins > Search Chemical Databases** (the panel is in the rail's *Compare and Extend* group).
+
+Type a name, a SMILES or an InChIKey, say which of the three it is in the second box, choose the source in the box after **in:**, and press **Search**. The table lists each hit with its source, its identifier there, its name, formula, molecular weight and SMILES. Select a row and press **Import as new molecule**: the structure is read from the SMILES into a new molecule of your project, named as the database names it (PubChem's IUPAC name or "CID" and its number; ChEMBL's preferred name or its identifier), and nothing in the project is replaced.
+
+It needs the network, and what you typed is sent to that database. It is a lookup, not a calculation: the application does not check the database's answer, so a hit is the database's record (a name can match a salt, a mixture or a different stereoisomer than the one you meant), and a source that is busy or slow says so in the line under the box ("rate limit reached", "timed out") rather than returning nothing. A hit with no SMILES is left out.
+
+<!-- help:plugin-reaction-prediction -->
+### Reaction Prediction
+
+Proposes products for one or two reactants. Open it from **Plugins > Predict Reaction Products**; with a molecule selected, its SMILES is filled into **Reactant 1**.
+
+Enter the reactants as SMILES (the second is optional), choose a **Method** and press **Predict**. The table lists each proposed product's SMILES, where the proposal came from and a confidence, and **Add as new molecule** puts the selected product in the project, named "Predicted product".
+
+Two methods are offered. **Templates** is always available and needs nothing set up: it applies a small library of named reaction patterns (two ship, Fischer esterification and amide coupling; a `reaction_templates.json` of your own in the application's data folder, and patterns another plugin registers, are added to them). It is deterministic and it gives no confidence, because a pattern match is not a scored prediction and a number would be invented; the Confidence column is blank. A reaction no pattern covers returns nothing, which says the library does not cover it and nothing about the chemistry. The **remote API** method sends the reactants to a prediction service you name under **Configure...** (a base URL and a key) and shows the confidence that service reports; the application does not validate it, and the reactants leave your machine.
+
+Either way a product is a proposal, not a result: no conditions, yield or by-products are given, and nothing here checks that the reaction works. For routes to a molecule rather than products from one, see the **Synthesis** section.
 
 ---
 
@@ -3409,7 +3526,7 @@ See [PLUGIN_SDK.md](PLUGIN_SDK.md) to write one.
   smallest shadow was 20.07 Å² there and is 18.75 Å² searched); a result saved
   before that is kept beside the new one, labelled as the previous method.
   The "radius" is the circle that encloses the shadow, and the "size" is the
-  molecule's extent along that view, surface to surface — ChemAxon defines
+  molecule's extent along that view, surface to surface — the vendor defines
   neither, so each fact states what it means here.
 - **Geometry takes options, and every one works on a copy.** Energy unit
   (kcal/mol or kJ/mol — the same energy, converted); optimise before the MMFF94

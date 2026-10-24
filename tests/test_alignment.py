@@ -76,7 +76,7 @@ def test_both_methods_align_two_related_drugs(method):
     assert result.matched_atoms >= 4
 
 
-def test_both_of_chemaxons_methods_are_offered():
+def test_both_of_vendors_methods_are_offered():
     assert set(ALIGNMENT_METHODS) == {"Extended atom types", "Common scaffold (MCS)"}
 
 
@@ -96,7 +96,7 @@ def test_the_two_methods_produce_different_pairings():
 
 
 def test_accuracy_controls_how_many_conformers_are_tried():
-    """ChemAxon's 'initial conformation count' -- a flexible molecule's
+    """The vendor's 'initial conformation count' -- a flexible molecule's
     alignment depends heavily on its starting geometry."""
     fast = align(Chem.MolFromSmiles(IBUPROFEN), Chem.MolFromSmiles(NAPROXEN), accuracy="Fast")
     accurate = align(Chem.MolFromSmiles(IBUPROFEN), Chem.MolFromSmiles(NAPROXEN), accuracy="Accurate")

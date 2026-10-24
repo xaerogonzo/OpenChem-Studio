@@ -4,7 +4,7 @@ pKa answers "does it give up a proton", which is the wrong question for
 most of inorganic and organometallic chemistry. Carbon monoxide is a
 negligible Brønsted base and still forms an isolable adduct with borane
 (H3B·CO, Burg & Schlesinger 1937). Nothing in this application, or in
-Marvin, could say anything about that.
+The reference editor, could say anything about that.
 
 **An acceptor is an atom with an accessible low-energy acceptor orbital,
 not an atom with an empty p orbital.** The empty-p reading fits BF3 and

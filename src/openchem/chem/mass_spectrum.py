@@ -105,7 +105,7 @@ ELECTRON_MASS_DA = 0.000548579909
 DEFAULT_PRUNE_THRESHOLD = 1e-6
 
 #: The relative intensity a peak must reach to be reported at all, when a
-#: caller asks for the display form. Marvin's own elemental-analysis
+#: caller asks for the display form. The reference editor's own elemental-analysis
 #: spectrum shows lines down to about this, and below it a stick is a
 #: pixel of noise on a plot rather than a peak anybody reads.
 DISPLAY_THRESHOLD = 0.005
@@ -450,7 +450,7 @@ def compute_mass_spectrum(mol, molecule_uuid: str, parameters=None) -> "ReportRe
 
     **THE MODES LIVE HERE AND NOT ON ELEMENTAL ANALYSIS.** That calculator
     is about composition and draws the molecular ion's envelope beside its
-    percentages, the way Marvin's own window does; a `[M+Na]+` selector on
+    percentages, the way the reference editor's own window does; a `[M+Na]+` selector on
     it would be an ionisation control on a composition readout. Both call
     ONE engine, so the two can never disagree about the same ion.
 

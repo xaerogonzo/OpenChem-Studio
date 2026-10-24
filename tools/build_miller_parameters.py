@@ -6,7 +6,7 @@
 `docs/VALIDATION.md` recorded Miller polarizability as measured and not
 shipped: "The parameters are unpublished. A reconstruction missed benzene
 by +27% and CCl4 by -50%, so there was nothing to validate against." The
-first sentence was a claim about ChemAxon's documentation, not about the
+first sentence was a claim about the vendor's documentation, not about the
 literature. Miller, *JACS* **112** (1990) 8533-8542, Table I, "Parameters
 for Atoms in Hybrid Configurations", prints all of them.
 

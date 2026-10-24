@@ -43,7 +43,7 @@ def test_aromatics_and_halides_land_within_a_few_percent_of_experiment(
     assert value == pytest.approx(experimental, rel=0.05), label
 
 
-def test_the_parameters_match_the_values_visible_in_chemaxons_screenshot():
+def test_the_parameters_match_the_values_visible_in_vendors_screenshot():
     """Their per-atom display reads 1.36 for aromatic carbon and 0.39 for
     hydrogen, which identifies the Jensen parameter set."""
     assert JENSEN_POLARIZABILITY["C"] == pytest.approx(1.36, abs=0.04)
@@ -87,7 +87,7 @@ def test_an_unparameterised_element_fails_rather_than_undercounting():
 
 
 def test_polarizability_can_be_taken_on_the_major_microspecies():
-    """Protonation genuinely changes polarizability, which is why Marvin
+    """Protonation genuinely changes polarizability, which is why the reference editor
     offers the option."""
     acid = Chem.MolFromSmiles("CC(=O)O")
     plain = compute_polarizability(acid, "mol-1", {})
@@ -135,7 +135,7 @@ def test_values_land_in_a_physically_sensible_range():
 
 
 def test_hydrogens_are_excluded_by_default():
-    """Matching Marvin, which shows values next to every atom except H."""
+    """Matching the reference editor, which shows values next to every atom except H."""
     mol = Chem.AddHs(Chem.MolFromSmiles("CCO"))
     values = orbital_electronegativities(mol)
     assert all(mol.GetAtomWithIdx(index).GetSymbol() != "H" for index in values)
@@ -145,7 +145,7 @@ def test_hydrogens_are_excluded_by_default():
 
 
 def test_only_the_sigma_component_is_offered():
-    """Marvin also exposes a pi component. Relabelling sigma as pi would be
+    """The reference editor also exposes a pi component. Relabelling sigma as pi would be
     worse than not offering it."""
     dataset = compute_orbital_electronegativity(Chem.MolFromSmiles("c1ccccc1"), "mol-1")
     assert "sigma" in dataset.name.lower()

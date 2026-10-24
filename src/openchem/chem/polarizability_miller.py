@@ -3,7 +3,7 @@
 WHY THIS WAS DEFERRED. `docs/VALIDATION.md`: "The parameters are
 unpublished. A reconstruction missed benzene by +27% and CCl4 by -50%, so
 there was nothing to validate against." The first sentence was a claim
-about ChemAxon's documentation rather than about the literature -- Miller
+about the vendor's documentation rather than about the literature -- Miller
 1990's Table I ([source:miller1990]) prints every one of them.
 
 **TWO METHODS, AND MIXING THEM IS THE FIRST TRAP.**

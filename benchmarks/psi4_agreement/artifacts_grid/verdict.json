@@ -1,0 +1,6 @@
+{
+ "verdict": "PARTIAL",
+ "why": [
+  "median offset at the default grids +0.331 mEh, at the finer grids +0.238 mEh; 54% of 24 cells within 0.252 mEh at the finer grids; largest Hartree-Fock control move 0.00002 mEh"
+ ]
+}

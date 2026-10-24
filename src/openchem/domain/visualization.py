@@ -116,7 +116,7 @@ class ResidueColorLayer:
 
 # Surface representations 3Dmol's vendored bundle actually supports --
 # confirmed live that `$3Dmol.SurfaceType` is {VDW:1, MS:2, SAS:3, SES:4}
-# (SES is real here even though Marvin doesn't offer it).
+# (SES is real here even though the reference editor doesn't offer it).
 #
 # `SurfaceLayer.representation` is deliberately a plain `str` rather than
 # an Enum constrained to these four: electrostatic-potential, electron-
@@ -147,7 +147,7 @@ class SurfaceLayer:
     `atom_colors` is optional -- a plain uncoloured surface (just shape) is
     a legitimate and common use. When present, surface vertices take the
     colour of the nearest atom, which is how a per-atom property such as
-    partial charge gets mapped onto the surface the way Marvin shows it.
+    partial charge gets mapped onto the surface the way the reference editor shows it.
 
     `scalar_field_dx` is the OTHER way to paint one, and it is not a
     variation on `atom_colors`: nearest-atom colouring is a step function

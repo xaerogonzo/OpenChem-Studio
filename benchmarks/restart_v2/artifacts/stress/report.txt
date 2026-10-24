@@ -1,0 +1,24 @@
+STRESS SET (descriptive; the adoption rule is the only decision)
+new species : {'structures': 14, 'accepted_by_the_first_runs_stages': 12, 'triggered_the_restart': 2, 'rescued_by_the_restart': 0, 'not_closed': 0}
+controls    : {'structures': 4, 'accepted_by_the_first_runs_stages': 0, 'triggered_the_restart': 4, 'rescued_by_the_restart': 3, 'not_closed': 0}  (outcomes known in advance; no weight)
+ADOPTION RULE on the new species: 0 of 2 triggered structures were rescued, under 50% -> DO NOT ADOPT
+
+structure                                    class                        v1-ok trig  resc  dH(kcal)
+ion|H3O+|lone_pair0|0                        tiny base's conjugate acid   False True  True  -0.30  (control)
+parent|toluene|0                             free methyl rotor            False True  True  +0.00  (control)
+radical|ethoxyl|0                            alkoxyl or thiyl radical     False True  True  +0.69  (control)
+radical|methylthiyl|0                        alkoxyl or thiyl radical     False True  False -  (control)
+ion|H3S+|lone_pair0|0                        tiny base's conjugate acid   True  False False -
+ion|PH4+|lone_pair0|0                        tiny base's conjugate acid   True  False False -
+ion|protonated methanol|lone_pair1|0         tiny base's conjugate acid   True  False False -
+ion|protonated dimethyl ether|lone_pair1|0   tiny base's conjugate acid   True  False False -
+parent|p-xylene|0                            free methyl rotor            True  False False -
+parent|ethylbenzene|0                        free methyl rotor            True  False False -
+parent|anisole|0                             free methyl rotor            True  False False -
+radical|ethanethiyl|0                        alkoxyl or thiyl radical     False True  False -
+radical|ethanethiyl|1                        alkoxyl or thiyl radical     False True  False -
+radical|1-propoxyl|0                         alkoxyl or thiyl radical     True  False False -
+radical|1-propoxyl|1                         alkoxyl or thiyl radical     True  False False -
+radical|1-propoxyl|2                         alkoxyl or thiyl radical     True  False False -
+radical|2-propoxyl|0                         alkoxyl or thiyl radical     True  False False -
+radical|tert-butoxyl|0                       alkoxyl or thiyl radical     True  False False -

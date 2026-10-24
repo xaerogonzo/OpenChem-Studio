@@ -22,7 +22,7 @@ from openchem.chem.nmr_signals import (
 )
 from openchem.domain.scientific_result import NMRSpectrumResult
 
-# The reference case throughout: MarvinSketch's own 1H output for this exact
+# The reference case throughout: the reference editor's own 1H output for this exact
 # molecule is in hand (0.86 6H d, 1.44 3H d, 1.83 1H m, 2.31 1H sx, 2.58 1H
 # sx, 3.69 1H m, 7.11 2H sx, 7.21 2H q, 10.61 1H s), so the grouping and
 # integration columns can be checked against a real commercial predictor
@@ -56,13 +56,13 @@ def _benzylic_carbon(mol: Chem.Mol) -> int:
     return matches[0][0]
 
 
-def test_ibuprofen_groups_into_marvins_nine_signals():
+def test_ibuprofen_groups_into_reference_editors_nine_signals():
     signals = _proton_signals(IBUPROFEN)
     assert len(signals) == 9
 
 
-def test_ibuprofen_integrations_match_marvins():
-    """Marvin reports 6H, 3H, 2H, 2H and five 1H signals for ibuprofen.
+def test_ibuprofen_integrations_match_reference_editors():
+    """The reference editor reports 6H, 3H, 2H, 2H and five 1H signals for ibuprofen.
     Equivalence grouping alone gets 8 of those; the ninth (the second 1H)
     only appears once the diastereotopic benzylic CH2 is split."""
     signals = _proton_signals(IBUPROFEN)
@@ -70,8 +70,8 @@ def test_ibuprofen_integrations_match_marvins():
 
 
 def test_ibuprofen_isopropyl_methyls_stay_one_six_proton_signal():
-    """Both isopropyl methyls are one 6H doublet (Marvin's 0.86) -- they are
-    diastereotopic as groups, but Marvin does not split them and neither
+    """Both isopropyl methyls are one 6H doublet (the reference editor's 0.86) -- they are
+    diastereotopic as groups, but the reference editor does not split them and neither
     does this, since the split is only ever applied to geminal protons on
     one carbon."""
     signals = _proton_signals(IBUPROFEN)
@@ -105,7 +105,7 @@ def test_every_signal_carries_its_atoms():
 
 def test_ibuprofen_benzylic_ch2_is_diastereotopic():
     """The positive gate. The adjacent stereocentre makes these two protons
-    inequivalent -- Marvin reports them separately at 2.31 and 2.58."""
+    inequivalent -- the reference editor reports them separately at 2.31 and 2.58."""
     mol = Chem.AddHs(Chem.MolFromSmiles(IBUPROFEN))
     h_a, h_b = _ch2_protons(mol, _benzylic_carbon(mol))
     assert are_diastereotopic(mol, h_a, h_b)

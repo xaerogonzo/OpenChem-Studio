@@ -2288,6 +2288,40 @@ _INDICATED_H_PREFIX_RE = _re.compile(
 _HYDRO_HEAD_RE = _re.compile(r"^\d+[a-z]?(?:,\d+[a-z]?)*-(?:di|tri|tetra|penta|hexa|hepta|octa|nona|deca)hydro-")
 
 
+def _retag_added_hydrogen(name, mol, ring_system, atom_to_locant, loc_key) -> str:
+    """Move an inline added hydrogen `(3H)` of a curated ring ketone onto the substituted nitrogen (naming round 81).
+
+    `5,6,7,8-tetrahydropteridin-4(3H)-one` is keyed on the tautomer with its hydrogen on N3. A molecule substituted on N1 and with no hydrogen on N3 is the `4(1H)` tautomer, and
+    the 3H name read back as another molecule (a hydrogen on N3 AND the substituent on N1). Acts only when the nitrogen of the `(nH)` is a bare ring `=N-` and exactly one other
+    aromatic ring nitrogen is substituted without a hydrogen; anything else keeps the curated name."""
+    m = _re.search(r"\((\d+[a-z]?)H\)", name)
+    if m is None:
+        return name
+    target = None
+    for atom_idx, loc in atom_to_locant.items():
+        if str(loc) == m.group(1) and atom_idx in ring_system.atom_indices:
+            target = mol.GetAtomWithIdx(atom_idx)
+            break
+    if target is None or target.GetAtomicNum() != 7 or not target.GetIsAromatic():
+        return name
+    if target.GetTotalNumHs(includeNeighbors=False) >= 1 or target.GetFormalCharge() != 0:
+        return name
+    if any(n.GetIdx() not in ring_system.atom_indices for n in target.GetNeighbors()):
+        return name
+    subs = []
+    for atom_idx in ring_system.atom_indices:
+        a = mol.GetAtomWithIdx(atom_idx)
+        if atom_idx not in atom_to_locant or a.GetAtomicNum() != 7 or not a.GetIsAromatic() or a.GetFormalCharge() != 0:
+            continue
+        if a.GetTotalNumHs(includeNeighbors=False) >= 1:
+            return name
+        if any(n.GetIdx() not in ring_system.atom_indices for n in a.GetNeighbors()):
+            subs.append(atom_to_locant[atom_idx])
+    if len(set(map(str, subs))) != 1:
+        return name
+    return name[:m.start()] + f"({subs[0]}H)" + name[m.end():]
+
+
 def _retag_indicated_h(
     *,
     name: str,
@@ -2398,7 +2432,7 @@ def _retag_indicated_h(
         _rest = name[len(_hydro_head):]
         m_ih = _INDICATED_H_PREFIX_RE.match(_rest)
         if not m_ih:
-            return name
+            return _retag_added_hydrogen(name, mol, ring_system, atom_to_locant, _loc_key)
         try:
             ih_locant_str = m_ih.group(1)[:-1]  # strip trailing "H"
             # Parse leading number

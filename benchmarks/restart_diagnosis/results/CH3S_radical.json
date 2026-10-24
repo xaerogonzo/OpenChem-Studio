@@ -1,0 +1,35 @@
+{
+ "case": "CH3S_radical",
+ "start_lowest_freq": -1328.21,
+ "hess_lowest": -1331.7545263368686,
+ "hess_lowest_five": [
+  -1331.7545263368686,
+  0.0,
+  0.0,
+  0.0,
+  0.0,
+  0.0,
+  0.0,
+  742.5401391073445
+ ],
+ "freq_seconds": 152,
+ "displaced": [
+  {
+   "sign": 1,
+   "amp": 0.15,
+   "energy": -438.041444305558,
+   "enthalpy": -438.00319156,
+   "lowest_frequency": -1743.53,
+   "seconds": 473
+  },
+  {
+   "sign": -1,
+   "amp": 0.15,
+   "energy": -438.041441397542,
+   "enthalpy": -438.0031593,
+   "lowest_frequency": -1553.13,
+   "seconds": 485
+  }
+ ],
+ "start_enthalpy": -438.00313005
+}
