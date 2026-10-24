@@ -719,6 +719,35 @@ def test_leases_brominated_petn_derivatives_reproduce_with_hbr(n, printed):
     assert abs(br2 - printed) > 2.0
 
 
+#: Wang et al. 2024, Table 1 (OB(CO2), "all C element is oxidized to CO2"): the
+#: carriers beside TNT, two of them bromine compounds and one with both halogens.
+WANG = [
+    ("3-bromo-5-fluoro-2,4,6-trinitroanisole", "COc1c([N+](=O)[O-])c(Br)c([N+](=O)[O-])c(F)c1[N+](=O)[O-]", -35.3),
+    ("3-bromo-2,4,6-trinitroanisole (TNBA)", "COc1c([N+](=O)[O-])c(Br)c([N+](=O)[O-])cc1[N+](=O)[O-]", -42.2),
+    ("3,5-difluoro-2,4,6-trinitroanisole", "COc1c([N+](=O)[O-])c(F)c([N+](=O)[O-])c(F)c1[N+](=O)[O-]", -43.0),
+]
+
+
+@pytest.mark.parametrize("name,smiles,printed", WANG, ids=[r[0] for r in WANG])
+def test_wangs_halogenated_trinitroanisoles_reproduce_to_the_digit(name, smiles, printed):
+    result = E.extended_oxygen_balance(_mol(smiles))
+    assert result.applicable, E.refusal_text(result)
+    assert result.to_full_oxidation == pytest.approx(printed, abs=0.05)
+
+
+def test_the_patent_for_the_same_compound_ignores_its_halogens_and_is_not_followed():
+    """CN 117447330 A prints -40.00% for the bromofluoro compound: the plain
+    C/H/N/O formula with no halogen term, 1600 x (7 - 15.5) / M. The paper's
+    -35.3 is the one used."""
+    smiles = WANG[0][1]
+    mol = Chem.AddHs(_mol(smiles))
+    counts = {s: sum(1 for a in mol.GetAtoms() if a.GetSymbol() == s) for s in "CHO"}
+    mass = sum(a.GetMass() for a in mol.GetAtoms())
+    ignoring_halogens = 1600 * (counts["O"] - (2 * counts["C"] + counts["H"] / 2)) / mass
+    assert ignoring_halogens == pytest.approx(-40.00, abs=0.01)
+    assert E.extended_oxygen_balance(_mol(smiles)).to_full_oxidation == pytest.approx(-35.3, abs=0.05)
+
+
 @pytest.mark.parametrize("bromo,chloro", [
     ("CBr", "CCl"),
     ("OC(=O)c1ccccc1Br", "OC(=O)c1ccccc1Cl"),

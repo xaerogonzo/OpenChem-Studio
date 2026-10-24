@@ -3,7 +3,7 @@ them where a source says what each other element burns to: [source:meyer2016],
 [source:conkling2019], [source:zeuner2003], [source:shimizu1996],
 [source:he2016], [source:klapotke2021], [source:amcp706187],
 [source:persson1994], [source:dufter2026], [source:tsang1974],
-[source:lease2023].
+[source:lease2023], [source:wang2024].
 
 Oxygen balance says whether a substance carries enough oxygen to burn its own
 carbon and hydrogen, as a percentage of its mass. Zero means exactly enough;
@@ -54,7 +54,7 @@ charges is refused. The other oxide's figure is reported beside the answer.
 **BROMINE GOES TO HBr**, as chlorine goes to HCl: Tsang & Domalski's NBS report writes
 the product as HBr and prints propargyl bromide at -94.1%, and Lease et al.'s three
 brominated PETN derivatives (-21.6, -32.0, -41.4%) agree to 0.3 with it where Br2
-would not. The sources print bromine only on carbon, so a metal bromide follows the
+would not, as do Wang et al.'s bromo-trinitroanisoles (-35.3 and -42.2, to the digit). The sources print bromine only on carbon, so a metal bromide follows the
 metal chlorides and the result says so.
 
 **IODINE IS LEFT AS I2, AND THAT IS THE ONE PLACE A HALOGEN DOES NOT TAKE
@@ -290,7 +290,8 @@ _FLUORINE = ElementAccounting(
 _BROMINE = ElementAccounting(
     "HBr, or the metal's bromide", -1,
     "Tsang & Domalski's HBr formula and propargyl bromide -94.1%; Lease's "
-    "brominated PETN derivatives -21.6, -32.0 and -41.4%")
+    "brominated PETN derivatives -21.6, -32.0 and -41.4%; Wang's bromo-"
+    "trinitroanisoles -35.3 and -42.2%")
 #: The halogens this module gives a product for; each takes a partner.
 _HALOGENS = {"Cl": _CHLORINE, "F": _FLUORINE, "Br": _BROMINE}
 #: The halogens' names, for a refusal that has to say which one ran out of partners.

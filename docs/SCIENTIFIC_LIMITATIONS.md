@@ -798,7 +798,8 @@ and prints the other oxide's figure beside the answer, which is that reading.
 NBS report by Tsang & Domalski (1974) states it in its oxygen-balance formula and
 prints propargyl bromide at −94.1%, and Lease et al.'s (2023) three brominated PETN
 derivatives (−21.6, −32.0, −41.4%) agree to 0.3 points where Br₂ left over would be off
-by 2 to 6. It took a long search: Meyer, Conkling & Mocella, Persson, Cooper, Akhavan,
+by 2 to 6; Wang et al.'s (2024) bromo-trinitroanisoles (−35.3, −42.2) reproduce to the digit.
+(The same group's patent for the bromofluoro compound prints −40.0%, the halogens ignored.) It took a long search: Meyer, Conkling & Mocella, Persson, Cooper, Akhavan,
 Klapötke's textbook and Encyclopedia, a brominated-TNT preprint and all 68 Klapötke-group
 LMU dissertations print no bromine balance. Neither source prints a metal bromide, so a
 bromine a metal takes follows the chlorides and the result says so. Bromine beyond what

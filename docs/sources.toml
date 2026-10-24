@@ -4844,6 +4844,40 @@ those is given; a bromine a metal takes follows the chlorides.
 """
 
 [[source]]
+key = "wang2024"
+kind = "literature"
+citation = "Y. Wang, X. Song, Z. Yu, D. Song, C. An & F. Li, 'A high density and low sensitivity carrier explosive promising to replace TNT: 3-Bromo-5-fluoro-2,4,6-trinitroanisole', Energetic Materials Frontiers 5, 131-140 (2024)."
+identifier_type = "doi"
+identifier = "10.1016/j.enmf.2024.06.003"
+status = "shipped"
+used_by = [
+    "src/openchem/chem/energetics.py",
+    "tests/test_oxygen_balance_extended.py",
+]
+local = "A high density and low sensitivity carrier explosive promising to replace TNT 3-Bromo-5-fluoro-2,4,6-trinitroanisole.pdf"
+verification = "citation_and_claim"
+verified_date = 2026-10-24
+note = """
+Open access (CC BY-NC-ND). Table 1 prints OB(CO2), "all C element is oxidized
+to CO2", for three halogenated trinitroanisoles and for the carriers beside
+them: 3-bromo-5-fluoro-2,4,6-trinitroanisole -35.3%, 3-bromo-2,4,6-trinitroanisole
+(TNBA) -42.2%, 3,5-difluoro-2,4,6-trinitroanisole -43.0%, TNT -74.0%, DNAN
+-96.9%. Each reproduces to the printed digit with bromine going to HBr and
+fluorine to HF (-35.29, -42.23, -42.99, -73.97, -96.90), so this is a third
+independent statement of the bromine convention (after [source:tsang1974] and
+[source:lease2023]) and the first for a compound with BOTH halogens.
+
+**THE SAME COMPOUND'S PATENT PRINTS -40.00%, WHICH IS THE HALOGENS IGNORED.**
+The applicants' Chinese patent application CN 117447330 A (2024) states an
+oxygen balance of -40.00% for the same bromofluorotrinitroanisole. That is the
+plain C/H/N/O formula with no halogen term (the CO2 balance with every
+halogen left as the element and no hydrogen spared), where the peer-reviewed
+paper of the same group prints -35.3. The paper is used; the patent is
+recorded as the disagreement. Its Table 5 mixtures (-31 and -44%) are
+formulations and are not used.
+"""
+
+[[source]]
 key = "lease2023"
 kind = "literature"
 citation = "N. Lease, K. D. Spielvogel, J. V. Davis, J. T. Tisdale, L. M. Klamborowski, M. J. Cawkwell & V. W. Manner, 'Halogenated PETN derivatives: interplay between physical and chemical factors in explosive sensitivity', Chemical Science 14, 7044-7056 (2023)."

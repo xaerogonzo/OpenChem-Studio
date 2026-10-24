@@ -20,8 +20,8 @@
   nitrate at +35.02%, which reproduces.
 - Bromine is now computed, to HBr (or the metal's bromide), as chlorine is. It took a long search:
   an NBS report (Tsang & Domalski 1974) states the HBr product in its formula and prints propargyl
-  bromide at −94.1%, and Lease et al. (2023) print three brominated PETN derivatives that agree
-  to 0.3. A metal bromide is not printed by either, so it follows the chlorides and the result
+  bromide at −94.1%, Lease et al. (2023) print three brominated PETN derivatives that agree
+  to 0.3, and Wang et al. (2024) print two bromo-trinitroanisoles that agree to the digit. A metal bromide is not printed by either, so it follows the chlorides and the result
   says so. Bromine beyond what hydrogen and metals can take is refused.
 - Still refused, by name: every other element. Jain's
   1987 paper, where the method comes from, covers C, H, O, N and Cl only.

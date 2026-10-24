@@ -1,5 +1,5 @@
 <!-- GENERATED FROM docs/sources.toml -- do not edit -->
-<!-- SOURCE SHA256: 8199516348e06e88af1af2f62d7b3ef00a35a5e9301f4c8a079f76818d9aa057 -->
+<!-- SOURCE SHA256: 1091f101de37b843104a8c26805d13fa16029696feaa24931d98a133f30677c9 -->
 
 # Sources
 
@@ -363,6 +363,7 @@ next run of `tools/build_lewis_parameters.py`.
 | [`wang2019`](#wang2019) | literature | shipped | citation + claim |
 | [`wang2021`](#wang2021) | literature | reference only | citation |
 | [`wang2022`](#wang2022) | literature | reference only | citation |
+| [`wang2024`](#wang2024) | literature | shipped | citation + claim |
 | [`wells2014`](#wells2014) | literature | reference only | citation |
 | [`westwell1995`](#westwell1995) | literature | **not shipped** | citation |
 | [`wildman1999`](#wildman1999) | literature | shipped | citation |
@@ -4877,6 +4878,39 @@ ones for C/H/X only); the extension to oxygen and nitrogen is the same as for
 every other element here. It prints no metal bromide, no balance for a bromine
 compound that also holds oxygen or nitrogen, and no Br2 figure, so none of
 those is given; a bromine a metal takes follows the chlorides.
+
+### wang2024
+
+<a id="wang2024"></a>
+
+> Y. Wang, X. Song, Z. Yu, D. Song, C. An & F. Li, 'A high density and low sensitivity carrier explosive promising to replace TNT: 3-Bromo-5-fluoro-2,4,6-trinitroanisole', Energetic Materials Frontiers 5, 131-140 (2024).
+
+| | |
+| --- | --- |
+| Identifier | [10.1016/j.enmf.2024.06.003](https://doi.org/10.1016/j.enmf.2024.06.003) |
+| Status | shipped |
+| Verification | citation + claim |
+| Verified | 2026-10-24 |
+| Local copy | `A high density and low sensitivity carrier explosive promising to replace TNT 3-Bromo-5-fluoro-2,4,6-trinitroanisole.pdf` (not checked) |
+| Used by | `src/openchem/chem/energetics.py`, `tests/test_oxygen_balance_extended.py` |
+
+Open access (CC BY-NC-ND). Table 1 prints OB(CO2), "all C element is oxidized
+to CO2", for three halogenated trinitroanisoles and for the carriers beside
+them: 3-bromo-5-fluoro-2,4,6-trinitroanisole -35.3%, 3-bromo-2,4,6-trinitroanisole
+(TNBA) -42.2%, 3,5-difluoro-2,4,6-trinitroanisole -43.0%, TNT -74.0%, DNAN
+-96.9%. Each reproduces to the printed digit with bromine going to HBr and
+fluorine to HF (-35.29, -42.23, -42.99, -73.97, -96.90), so this is a third
+independent statement of the bromine convention (after [source:tsang1974] and
+[source:lease2023]) and the first for a compound with BOTH halogens.
+
+**THE SAME COMPOUND'S PATENT PRINTS -40.00%, WHICH IS THE HALOGENS IGNORED.**
+The applicants' Chinese patent application CN 117447330 A (2024) states an
+oxygen balance of -40.00% for the same bromofluorotrinitroanisole. That is the
+plain C/H/N/O formula with no halogen term (the CO2 balance with every
+halogen left as the element and no hydrogen spared), where the peer-reviewed
+paper of the same group prints -35.3. The paper is used; the patent is
+recorded as the disagreement. Its Table 5 mixtures (-31 and -44%) are
+formulations and are not used.
 
 ### lease2023
 
