@@ -243,17 +243,17 @@ def test_loosening_the_calculators_own_rule_loosens_the_indicator(monkeypatch):
     learned sulfur from Meyer's Explosives, and thioethanol went from refused to covered with no edit here."""
     thioethanol = _mol(PANEL["thioethanol"])
     assert coverage_hooks.oxygen_balance_coverage(thioethanol).kind is CoverageKind.COVERED
-    fluoride = _mol("CCF")
-    assert coverage_hooks.oxygen_balance_coverage(fluoride).kind is CoverageKind.REFUSES
-    widened = dict(energetics._MEYER_ELEMENTS, F=energetics.ElementAccounting("HF", -1, "probe"))
-    monkeypatch.setattr(energetics, "_MEYER_ELEMENTS", widened)
-    assert coverage_hooks.oxygen_balance_coverage(fluoride).kind is CoverageKind.COVERED
+    phosphate = _mol("OP(=O)(O)O")
+    assert coverage_hooks.oxygen_balance_coverage(phosphate).kind is CoverageKind.REFUSES
+    widened = dict(energetics._PRODUCTS, P=energetics.ElementAccounting("P4O10", 5, "probe"))
+    monkeypatch.setattr(energetics, "_PRODUCTS", widened)
+    assert coverage_hooks.oxygen_balance_coverage(phosphate).kind is CoverageKind.COVERED
 
 
 def test_tightening_the_rule_tightens_it_too(monkeypatch):
     thioethanol = _mol(PANEL["thioethanol"])
-    narrowed = {e: a for e, a in energetics._MEYER_ELEMENTS.items() if e != "S"}
-    monkeypatch.setattr(energetics, "_MEYER_ELEMENTS", narrowed)
+    narrowed = {e: a for e, a in energetics._PRODUCTS.items() if e != "S"}
+    monkeypatch.setattr(energetics, "_PRODUCTS", narrowed)
     assert coverage_hooks.oxygen_balance_coverage(thioethanol).kind is CoverageKind.REFUSES
 
 

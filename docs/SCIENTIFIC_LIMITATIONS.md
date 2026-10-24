@@ -755,20 +755,26 @@ different quantities for the same molecule — TNT is −74.0% against −24.7% 
 so a figure quoted as a bare "oxygen balance" is ambiguous between them. The
 source subscripts them for that reason and so does this.
 
-**Beyond CHNO, only where the source says what an element burns to.** The
+**Beyond CHNO, only where a source says what an element burns to.** The
 closed form is stated for CₐH_bN_cO_d. Meyer's *Explosives* defines the
-balance to "CO2, H2O, SO2, Al2O3, etc." and states chlorine to HCl, so sulfur,
-chlorine (taken by a hydrogen as HCl or by a metal as its chloride, which
-gives the same number either way) and thirteen metals are accepted, each at the
-oxide the book's own printed balances use; mercury and silver are left
-unoxidised because that is what the book does. Akhavan's *The Chemistry of
+balance to "CO2, H2O, SO2, Al2O3, etc." and states chlorine to HCl; Conkling
+& Mocella's *Chemistry of Pyrotechnics* (Table 2.5, the "pyro valences")
+states a product for each element, and a US patent states boron to B2O3. So
+sulfur, chlorine and fluorine (taken by a hydrogen as HCl/HF or by a metal as
+its halide, which gives the same number either way), boron, silicon and
+sixteen metals are accepted, each at the product a source states or the
+oxide its printed balances use; mercury and silver are left unoxidised
+because that is what Meyer does. Akhavan's *The Chemistry of
 Explosives* states the same definition and agrees on silver and lead, but
 burns mercury to HgO (mercury fulminate −16.86% against Meyer's −11.2%); the
 result follows Meyer and prints the HgO figure beside it. 35 of its printed balances are
-reproduced to its own printing. Fluorine, bromine, iodine, boron, phosphorus,
-magnesium, iron, copper and every other element are **refused rather than
-given a confident wrong number**: the book gives no product for them, or (for
-iron) two different ones. Only the CO₂ basis is extended; the CO basis stays
+reproduced to its own printing, and so are Conkling's printed net valences,
+Klapötke's two borate esters and the patent's boron igniter. Bromine, iodine,
+phosphorus, iron, copper and every other element are **refused rather than
+given a confident wrong number**: no source gives a product for them, or (for
+iron) the sources give different ones depending on the compound or its role.
+Silicon and zirconium are accepted on Conkling's statement alone; no printed
+balance uses them. Only the CO₂ basis is extended; the CO basis stays
 C/H/N/O.
 
 **Three of the book's own values disagree with it, and are recorded rather

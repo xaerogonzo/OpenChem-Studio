@@ -2331,15 +2331,17 @@ and three were checked again recently rather than taken on trust.
   source or a benchmark measured is a **warning**, the number computed and labelled an estimate (proton affinity and bond dissociation, #447; Hansen below three
   carbons and solubility's intrinsic estimate for an ampholyte, the change that recorded this). An audit of every refusal the calculator census panel produces
   (29 molecules, 30 of 63 calculators refusing something) left these, in order of how much work each needs:
-  1. **Oxygen balance beyond C/H/N/O: done for S, Cl and thirteen metals; the rest stays refused.** Meyer, Koehler & Homburg's *Explosives* (7th ed.)
-     names the products (CO2, H2O, SO2, Al2O3; chlorine to HCl; alkaline earths to their oxides), and which oxide every other metal forms is read off its 41
-     printed balances beyond C/H/N/O, 38 of which one valence per element reproduces (35 are tests, with three rows of Akhavan's Table 5.2 as an independent
-     check). Accepted: S, Cl (by hydrogen or a metal, which gives the same number), Al, Li, Na, K, Ca, Sr, Ba, Pb, Zn, Cr, Co, and Hg and Ag left as the metal
-     (Akhavan burns mercury to HgO; the result prints that figure too). CO2 basis only. **What remains**: F, Br, I, B, P, Mg, Cu, Fe and every other element,
-     and chlorine beyond what hydrogen and metals can take; each needs a source that prints a balance using it. Boron is the nearest: Klapoetke prints two
-     boron esters whose balances B2O3 reproduces exactly, but no source here states the product. Iron needs a rule for which oxide, since Meyer uses FeO
-     for ferrocene and Fe2O3 for iron acetylacetonate. Formulations still refuse a non-C/H/N/O component. **Kamlet-Jacobs detonation**: read, and not
-     extendable from these sources -- all four Kamlet papers and Meyer's entry state it for C-H-N-O explosives; its oxygen-window refusal stands too.
+  1. **Oxygen balance beyond C/H/N/O: done for S, Cl, F, B, Si and sixteen metals; the rest stays refused.** Meyer, Koehler & Homburg's *Explosives*
+     (7th ed.) names the products (CO2, H2O, SO2, Al2O3; chlorine to HCl; alkaline earths to their oxides) and prints 41 balances beyond C/H/N/O, 38 of
+     which one valence per element reproduces; Conkling & Mocella's *Chemistry of Pyrotechnics* (3rd ed.) states that valence per element (Table 2.5, the
+     "pyro valence") and adds B, F, Mg, Ti, Si and Zr; US 6,599,380 states boron to B2O3. Tested against 35 of Meyer's balances, Conkling's printed net
+     valences and worked mixtures, Klapoetke's two borates, the patent's boron igniter and three rows of Akhavan's Table 5.2. Accepted: S, Cl and F (by
+     hydrogen or a metal, which gives the same number), B, Si, Al, Li, Na, K, Mg, Ca, Sr, Ba, Ti, Zr, Cr, Co, Zn, Pb, and Hg and Ag left as the metal
+     (Akhavan burns mercury to HgO; the result prints that figure too). CO2 basis only. Si and Zr rest on the table's statement alone. **What remains**:
+     Br, I, P, Cu, Fe and every other element, and halogen beyond what hydrogen and metals can take (CCl4, Teflon); each needs a source that states a
+     product. Iron needs a rule for which oxide: Meyer uses FeO for ferrocene and Fe2O3 for iron acetylacetonate, Conkling makes it depend on whether the
+     iron is a fuel or an oxidizer. Formulations still refuse a non-C/H/N/O component. **Kamlet-Jacobs detonation**: read, and not extendable from these
+     sources -- all four Kamlet papers and Meyer's entry state it for C-H-N-O explosives; its oxygen-window refusal stands too.
   2. **A drawing of several disconnected pieces with no single parent** (ChEMBL's rule leaves two or more components: a mixture, two organic ions, or a metal
      complex drawn as separate ions, which is the only case its metal exclusion fires on). About 16 compound-property calculators refuse it. Computing on
      the whole drawing is the error the component rule was built to stop; the open design is to ask which component is meant (the largest, by default) and

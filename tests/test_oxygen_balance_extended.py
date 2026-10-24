@@ -1,4 +1,7 @@
-"""Oxygen balance beyond C/H/N/O, held to Meyer's own printed balances.
+"""Oxygen balance beyond C/H/N/O, held to the sources' own printed values.
+
+Meyer's Explosives first (most of the elements), then Conkling & Mocella's
+Table 2.5 and the boron sources for what Meyer never prints.
 
 Meyer, Köhler & Homburg, *Explosives*, 7th ed. [source:meyer2016]. The
 definition (p247) names the products -- "CO2, H2O, SO2, Al2O3, etc." -- and
@@ -127,25 +130,133 @@ def test_the_fixture_really_is_the_compound_the_book_names(name, smiles, formula
 
 @pytest.mark.parametrize("name,smiles,formula,printed,tol", MEYER, ids=IDS)
 def test_meyers_printed_balance_reproduces(name, smiles, formula, printed, tol):
-    result = E.meyer_oxygen_balance(_mol(smiles))
+    result = E.extended_oxygen_balance(_mol(smiles))
     assert result.applicable, E.refusal_text(result)
     assert result.to_full_oxidation == pytest.approx(printed, abs=tol)
 
 
+#: Accepted on a source's STATEMENT alone: Conkling & Mocella's Table 2.5
+#: names the product, and no printed balance uses the element. Held to the
+#: table instead (`test_the_statement_only_elements_are_the_tables_rows`).
+STATED_ONLY = {"Si", "Zr"}
+
+
 def test_every_accepted_element_is_pinned_by_a_printed_value():
     """An element in the table with no fixture would be a product nobody
-    checked against the book -- exactly what this work exists not to ship."""
+    checked against a source -- exactly what this work exists not to ship."""
     pinned: set[str] = set()
-    for _, smiles, *_ in MEYER:
+    for _, smiles, *_ in MEYER + CONKLING_UNITS + BORATES:
         pinned.update(a.GetSymbol() for a in _mol(smiles).GetAtoms())
-    accepted = set(E._MEYER_ELEMENTS) | {"Cl"}
-    assert accepted - pinned - {"C", "H", "N"} == set()
+    pinned |= {"B", "Ti", "Mg"}  # the mixtures below
+    accepted = set(E._PRODUCTS) | set(E._HALOGENS)
+    assert accepted - pinned - {"C", "H", "N"} == STATED_ONLY
 
 
 def test_the_fixtures_cover_both_signs_and_every_kind_of_partner():
     values = [row[3] for row in MEYER]
     assert min(values) < -100 and max(values) > 50
     assert len(MEYER) == 35
+
+
+# ---------------------------------------------------------------------------
+# 1b  Conkling & Mocella's pyro valences, and the boron sources
+# ---------------------------------------------------------------------------
+#
+# A pyro valence is the oxygen a formula needs in HALF-oxygens, so the book's
+# numbers convert exactly: valence = -balance x M / 800, and for a mixture
+# the valence of 100 g is -(mass-weighted balance) / 8.
+
+
+def _valence(smiles: str) -> float:
+    result = E.extended_oxygen_balance(_mol(smiles))
+    assert result.applicable, E.refusal_text(result)
+    return -result.to_full_oxidation * result.molecular_weight / 800
+
+
+def _valence_per_100_g(*parts: tuple[float, str]) -> float:
+    return -sum(grams / 100 * E.extended_oxygen_balance(_mol(s)).to_full_oxidation
+                for grams, s in parts) / 8
+
+
+#: Conkling & Mocella's printed net valences (Tables 2.6, 2.7 and 3.7): the
+#: whole formula, or a polymer's repeat unit drawn as its monomer.
+CONKLING_UNITS = [
+    ("potassium perchlorate", f"[K+].{PERCHLORATE}", "KClO4", -8),
+    ("potassium chlorate", f"[K+].{CHLORATE}", "KClO3", -6),
+    ("potassium nitrate", f"[K+].{NITRATE}", "KNO3", -5),
+    ("ammonium perchlorate", f"[NH4+].{PERCHLORATE}", "H4NClO4", -5),
+    ("barium nitrate", f"[Ba+2].{NITRATE}.{NITRATE}", "BaN2O6", -10),
+    ("barium chromate", "[Ba+2].[O-][Cr](=O)(=O)[O-]", "BaCrO4", -3),
+    ("ammonium nitrate", f"[NH4+].{NITRATE}", "H4N2O3", -2),
+    ("TNT", "Cc1c(cc(cc1[N+](=O)[O-])[N+](=O)[O-])[N+](=O)[O-]", "C7H5N3O6", +21),
+    ("RDX", "O=[N+]([O-])N1CN(CN(C1)[N+](=O)[O-])[N+](=O)[O-]", "C3H6N6O6", +6),
+    ("EGDN", "C(CO[N+](=O)[O-])O[N+](=O)[O-]", "C2H4N2O6", 0),
+    ("nitroglycerine", "C(C(CO[N+](=O)[O-])O[N+](=O)[O-])O[N+](=O)[O-]", "C3H5N3O9", -1),
+    ("glucose", "OCC1OC(O)C(O)C(O)C1O", "C6H12O6", +24),
+    ("PVC, per unit", "C=CCl", "C2H3Cl", +10),
+    ("Viton, per unit", "C=C(F)F", "C2H2F2", +8),
+]
+
+
+@pytest.mark.parametrize("name,smiles,formula,printed", CONKLING_UNITS,
+                         ids=[r[0] for r in CONKLING_UNITS])
+def test_conklings_printed_net_valences_reproduce(name, smiles, formula, printed):
+    drawn = rdMolDescriptors.CalcMolFormula(Chem.AddHs(_mol(smiles)))
+    assert _elements(drawn.replace("+", "").replace("-", "")) == _elements(formula)
+    assert _valence(smiles) == pytest.approx(printed, abs=1e-6)
+
+
+def test_conklings_titanium_mixtures():
+    """KClO4/Ti 80/20 is printed at -2.95 per 100 g, and 60/35/5 with PMMA
+    at +0.66 (p27-28)."""
+    kp, ti, pmma = f"[K+].{PERCHLORATE}", "[Ti]", "CC(=C)C(=O)OC"
+    assert _valence_per_100_g((80, kp), (20, ti)) == pytest.approx(-2.95, abs=0.005)
+    assert _valence_per_100_g((60, kp), (35, ti), (5, pmma)) == pytest.approx(0.66, abs=0.005)
+
+
+def test_conklings_magnesium_flare_and_its_stoichiometric_point():
+    """45/35/20 Ba(NO3)2/Mg/PVC is printed as -1.72, +2.88 and +3.20 per
+    100 g (p31); NaNO3/Mg is stoichiometric at 58.4/41.6, the book's
+    percentages being rounded to 0.1."""
+    assert _valence_per_100_g((45, f"[Ba+2].{NITRATE}.{NITRATE}")) == pytest.approx(-1.72, abs=0.005)
+    assert _valence_per_100_g((35, "[Mg]")) == pytest.approx(2.88, abs=0.005)
+    assert _valence_per_100_g((20, "C=CCl")) == pytest.approx(3.20, abs=0.005)
+    assert _valence_per_100_g((58.4, f"[Na+].{NITRATE}"), (41.6, "[Mg]")) == pytest.approx(0, abs=0.02)
+
+
+#: Klapötke, Chemistry of High-Energy Materials 4th ed., the borate esters
+#: of its Introduction. -59.70 is the largest miss of any fixture here
+#: (-59.79); leaving the boron out gives -51.2, so B2O3 is what was used.
+BORATES = [
+    ("tris(2-nitroethyl) borate", "B(OCC[N+](=O)[O-])(OCC[N+](=O)[O-])OCC[N+](=O)[O-]",
+     "C6H12BN3O9", -59.70, 0.1),
+    ("tris(2,2,2-trinitroethyl) borate",
+     "B(OCC([N+](=O)[O-])([N+](=O)[O-])[N+](=O)[O-])(OCC([N+](=O)[O-])([N+](=O)[O-])"
+     "[N+](=O)[O-])OCC([N+](=O)[O-])([N+](=O)[O-])[N+](=O)[O-]", "C6H6BN9O21", +13.07, 0.01),
+]
+
+
+@pytest.mark.parametrize("name,smiles,formula,printed,tol", BORATES, ids=[r[0] for r in BORATES])
+def test_klapotkes_borates_reproduce_with_boron_to_B2O3(name, smiles, formula, printed, tol):
+    drawn = rdMolDescriptors.CalcMolFormula(Chem.AddHs(_mol(smiles)))
+    assert _elements(drawn.replace("+", "").replace("-", "")) == _elements(formula)
+    assert E.extended_oxygen_balance(_mol(smiles)).to_full_oxidation == pytest.approx(printed, abs=tol)
+
+
+def test_the_patents_boron_igniter():
+    """US 6,599,380 B2, Comparative Example 1: 26 parts boron, 74 potassium
+    nitrate, -28.4%. Oxygen balance is per gram, so a mixture's is the
+    mass-weighted sum of its components'."""
+    boron = E.extended_oxygen_balance(_mol("[B]")).to_full_oxidation
+    nitrate = E.extended_oxygen_balance(_mol(f"[K+].{NITRATE}")).to_full_oxidation
+    assert 0.26 * boron + 0.74 * nitrate == pytest.approx(-28.4, abs=0.05)
+
+
+def test_the_statement_only_elements_are_the_tables_rows():
+    """Silicon and zirconium have no printed balance to test against, so they
+    are held to Table 2.5's rows: +4 to SiO2, +4 to ZrO2."""
+    assert (E._PRODUCTS["Si"].product, E._PRODUCTS["Si"].valence) == ("SiO2", 4)
+    assert (E._PRODUCTS["Zr"].product, E._PRODUCTS["Zr"].valence) == ("ZrO2", 4)
 
 
 # ---------------------------------------------------------------------------
@@ -160,7 +271,7 @@ def test_picryl_chloride_is_the_one_chlorine_value_that_ignores_HCl():
     follows the stated rule."""
     mol = _mol("Clc1c(cc(cc1[N+](=O)[O-])[N+](=O)[O-])[N+](=O)[O-]")
     assert rdMolDescriptors.CalcMolFormula(mol) == "C6H2ClN3O6"
-    assert E.meyer_oxygen_balance(mol).to_full_oxidation == pytest.approx(-42.0, abs=0.05)
+    assert E.extended_oxygen_balance(mol).to_full_oxidation == pytest.approx(-42.0, abs=0.05)
 
 
 @pytest.mark.parametrize("name,anhydrous,water,printed", [
@@ -171,8 +282,8 @@ def test_two_hydrates_were_printed_for_the_anhydrous_salt(name, anhydrous, water
     """The entries name a hydrate and print the anhydrous salt's balance,
     while lead styphnate's and lead acetylsalicylate's include their water
     (fixtures above). So the code balances what is DRAWN and says so."""
-    dry = E.meyer_oxygen_balance(_mol(anhydrous))
-    wet = E.meyer_oxygen_balance(_mol(anhydrous + ".O" * water))
+    dry = E.extended_oxygen_balance(_mol(anhydrous))
+    wet = E.extended_oxygen_balance(_mol(anhydrous + ".O" * water))
     assert dry.to_full_oxidation == pytest.approx(printed, abs=0.05)
     assert wet.to_full_oxidation < dry.to_full_oxidation - 1.0
     assert wet.has_water and not dry.has_water
@@ -184,7 +295,7 @@ def test_two_hydrates_were_printed_for_the_anhydrous_salt(name, anhydrous, water
      "CC(=O)/C=C(/C)[O-].[Fe+3]")),
 ])
 def test_iron_is_refused_because_the_book_uses_two_oxides(name, smiles):
-    result = E.meyer_oxygen_balance(_mol(smiles))
+    result = E.extended_oxygen_balance(_mol(smiles))
     assert result.refusal is E.OxygenBalanceRefusal.UNCOVERED_ATOM
     assert "FeO" in result.detail and "Fe2O3" in result.detail
 
@@ -203,7 +314,7 @@ AKHAVAN = [
 def test_akhavans_table_agrees_on_silver_and_lead(name, smiles, formula, printed):
     drawn = rdMolDescriptors.CalcMolFormula(Chem.AddHs(_mol(smiles)))
     assert _elements(drawn.replace("+", "").replace("-", "")) == _elements(formula)
-    assert E.meyer_oxygen_balance(_mol(smiles)).to_full_oxidation == pytest.approx(
+    assert E.extended_oxygen_balance(_mol(smiles)).to_full_oxidation == pytest.approx(
         printed, abs=0.01)
 
 
@@ -212,7 +323,7 @@ def test_mercury_is_where_the_two_books_differ_and_the_report_says_by_how_much()
     -16.86%, mercury to HgO. Meyer's is shipped; Akhavan's is printed in the
     result as a number, so neither reader is left with an unexplained gap."""
     fulminate = _mol("[Hg+2].[C-]#[N+][O-].[C-]#[N+][O-]")
-    assert E.meyer_oxygen_balance(fulminate).to_full_oxidation == pytest.approx(-11.2, abs=0.05)
+    assert E.extended_oxygen_balance(fulminate).to_full_oxidation == pytest.approx(-11.2, abs=0.05)
     report = E.compute_oxygen_balance(fulminate, "uuid-1")
     balance = next(f for f in report.facts if f.units == "%")
     assert any("HgO" in line and "-16.9%" in line for line in balance.limitations)
@@ -230,15 +341,24 @@ def test_a_chlorine_counts_the_same_whichever_partner_takes_it():
     potassium perchlorate and ammonium perchlorate need no order between
     hydrogen and metal, and neither does a salt holding both."""
     mol = _mol(f"[K+].[NH4+].{PERCHLORATE}.{NITRATE}")
-    result = E.meyer_oxygen_balance(mol)
+    result = E.extended_oxygen_balance(mol)
     # O8 against H4 (2 O) + K (0.5 O) - Cl (0.5 O) = 2 O needed.
     assert result.oxygen_needed == pytest.approx(2.0)
+
+
+def test_teflon_has_no_partner_for_its_fluorine_and_is_refused():
+    """Conkling prints Teflon at -4 with its carbon left as C, a product the
+    calculator's carbon row does not use; and no source says what fluorine
+    with neither hydrogen nor metal becomes."""
+    result = E.extended_oxygen_balance(_mol("FC(F)=C(F)F"))
+    assert result.refusal is E.OxygenBalanceRefusal.UNCOVERED_ATOM
+    assert "4 fluorine" in result.detail
 
 
 def test_more_chlorine_than_anything_can_take_is_refused():
     """Carbon tetrachloride has no hydrogen or metal for its chlorine, and the
     source never says what the rest becomes."""
-    result = E.meyer_oxygen_balance(_mol("ClC(Cl)(Cl)Cl"))
+    result = E.extended_oxygen_balance(_mol("ClC(Cl)(Cl)Cl"))
     assert result.refusal is E.OxygenBalanceRefusal.UNCOVERED_ATOM
     assert "4 chlorine" in result.detail
     assert result.to_full_oxidation is None
@@ -247,7 +367,7 @@ def test_more_chlorine_than_anything_can_take_is_refused():
 def test_mercury_cannot_take_a_chlorine():
     """Left unoxidised, mercury has no valence to give a chlorine, so a bare
     mercury chloride has nothing to balance it against."""
-    assert not E.meyer_oxygen_balance(_mol("Cl[Hg]Cl")).applicable
+    assert not E.extended_oxygen_balance(_mol("Cl[Hg]Cl")).applicable
 
 
 # ---------------------------------------------------------------------------
@@ -256,15 +376,14 @@ def test_mercury_cannot_take_a_chlorine():
 
 
 @pytest.mark.parametrize("name,smiles,element", [
-    ("a fluoride", "FC(F)F", "F"),
     ("a bromide", "CBr", "Br"),
-    ("a boron ester", "B(OC)(OC)OC", "B"),
+    ("an iodide", "CI", "I"),
     ("a phosphate", "OP(=O)(O)O", "P"),
-    ("magnesium", "[Mg]", "Mg"),
     ("copper azide", "[Cu+2].[N-]=[N+]=[N-].[N-]=[N+]=[N-]", "Cu"),
+    ("molybdenum", "[Mo]", "Mo"),
 ])
 def test_an_element_the_book_gives_no_product_for_is_refused_by_name(name, smiles, element):
-    result = E.meyer_oxygen_balance(_mol(smiles))
+    result = E.extended_oxygen_balance(_mol(smiles))
     assert result.refusal is E.OxygenBalanceRefusal.UNCOVERED_ATOM
     assert element in result.detail
     assert element in E.refusal_text(result)
@@ -307,7 +426,7 @@ def test_the_extended_accounting_IS_klapotkes_on_chno(name):
     """Not what the calculator relies on -- C/H/N/O never reaches it -- but
     a valence table that disagreed with Klapötke on the four elements they
     share would be wrong about everything else too."""
-    extended = E.meyer_oxygen_balance(_mol(CHNO_SMILES[name])).to_full_oxidation
+    extended = E.extended_oxygen_balance(_mol(CHNO_SMILES[name])).to_full_oxidation
     assert extended == pytest.approx(BEFORE[name][0], abs=1e-9)
 
 
@@ -327,7 +446,7 @@ def test_kamlet_jacobs_and_formulations_still_refuse_what_they_cannot_model():
 def test_the_report_names_each_product_it_assumed():
     report = E.compute_oxygen_balance(_mol(f"[K+].{PERCHLORATE}"), "uuid-1")
     assert report.cache_state is not CacheState.FAILED
-    assert report.provenance.method == "oxygen_balance_meyer"
+    assert report.provenance.method == "oxygen_balance_extended"
     balance = next(f for f in report.facts if f.units == "%")
     assert balance.label == "Oxygen balance (CO₂ basis)"
     assert balance.display_value == "+46.2"
