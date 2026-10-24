@@ -548,7 +548,7 @@ Numeric pKa via pkasolver, run out of process from its own environment (configur
 <!-- help:calc-hansen-solubility -->
 ### Hansen Solubility Parameters
 
-The three Hansen partial solubility parameters -- dispersion, polar and hydrogen bonding -- and their Hildebrand total, from the structure alone by Stefanis and Panayiotou's group contributions. Two passes: first-order UNIFAC groups partition the molecule, then second-order conjugation groups correct it where they apply, which is what the paper's W switch selects. Below 3 MPa^0.5 the polar and hydrogen-bonding parameters come from the paper's SEPARATE low-range regression rather than from the main equations, and the result says which was used. Needs three or more carbons excluding the characteristic group's own atom, and refuses a structure carrying an atom in no group rather than returning a partial sum.
+The three Hansen partial solubility parameters -- dispersion, polar and hydrogen bonding -- and their Hildebrand total, from the structure alone by Stefanis and Panayiotou's group contributions. Two passes: first-order UNIFAC groups partition the molecule, then second-order conjugation groups correct it where they apply, which is what the paper's W switch selects. Below 3 MPa^0.5 the polar and hydrogen-bonding parameters come from the paper's SEPARATE low-range regression rather than from the main equations, and the result says which was used. The paper states it for three or more carbons excluding the characteristic group's own atom; below that it is computed and labelled outside the stated domain. It refuses a structure carrying an atom in no group rather than returning a partial sum.
 
 - Produces a list of facts, each with its own units, basis and evidence.
 - Runs on the 2D drawing, so no conformer is needed.
@@ -559,7 +559,7 @@ The three Hansen partial solubility parameters -- dispersion, polar and hydrogen
 <!-- help:calc-solubility -->
 ### Solubility
 
-Predicted intrinsic aqueous solubility in logS, mg/mL and mol/L, its Low/Moderate/High category, the value at a chosen pH, an ICH M9 high-solubility screening estimate, and the solubility-versus-pH curve across the range you choose. Ampholytes and salts are refused rather than modelled; a molecule with no ionizable centre gets a flat line, which is an answer rather than a failure.
+Predicted intrinsic aqueous solubility in logS, mg/mL and mol/L, its Low/Moderate/High category, the value at a chosen pH, an ICH M9 high-solubility screening estimate, and the solubility-versus-pH curve across the range you choose. An ampholyte gets its intrinsic estimate only, with the pH profile withheld and the reason shown; a salt is refused rather than modelled; a molecule with no ionizable centre gets a flat line, which is an answer rather than a failure.
 
 Also known as **Solubility vs pH** -- retired and folded in here. Folded into Solubility, which reported the same nine facts and the same curve points and already honoured the pH range it now offers.
 

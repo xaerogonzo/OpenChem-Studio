@@ -2327,6 +2327,33 @@ struck through and marked SHIPPED here, never deleted.
 Nothing here is simply unstarted — each is blocked on something nameable,
 and three were checked again recently rather than taken on trust.
 
+- **Refusals that still need work (recorded 2026-10-23).** The rule since then (Alex): a calculator refuses only what it **cannot compute**; the edge of what a
+  source or a benchmark measured is a **warning**, the number computed and labelled an estimate (proton affinity and bond dissociation, #447; Hansen below three
+  carbons and solubility's intrinsic estimate for an ampholyte, the change that recorded this). An audit of every refusal the calculator census panel produces
+  (29 molecules, 30 of 63 calculators refusing something) left these, in order of how much work each needs:
+  1. **Oxygen balance beyond C/H/N/O: the clearest gap.** Refused for any S, halogen, P, B or metal, because the published balance is the C/H/N/O one and each
+     other element needs its own oxidation accounting (S to SO2 or SO3, a halogen to HX, a metal to its oxide); computing the C/H/N/O sum and ignoring them
+     would be a wrong number, not an estimate. Needs a source that states the extended balance, then the accounting per element, checked against the source's
+     own worked values. **Kamlet-Jacobs detonation** has the same C/H/N/O statement and also refuses a compound outside the H2O-CO2 arbitrary's oxygen window;
+     whether a published extension covers either has not been read.
+  2. **A drawing of several disconnected pieces with no single parent** (ChEMBL's rule leaves two or more components: a mixture, two organic ions, or a metal
+     complex drawn as separate ions, which is the only case its metal exclusion fires on). About 16 compound-property calculators refuse it. Computing on
+     the whole drawing is the error the component rule was built to stop; the open design is to ask which component is meant (the largest, by default) and
+     label the answer.
+  3. **Parameters missing for an element**: Jensen's atomic polarizability (no Na, Fe, Pt ...), Bultinck's EEM charges (no Cl, B, S), TSEI (no Pt covalent
+     radius in Lange's table), molecular dynamics (no MMFF or UFF type). Each is a parameter-table extension from a source, measured against that source; none
+     can be a warning, because there is no number to label.
+  4. **Group coverage**: Joback has no group for a ring tertiary nitrogen and several other environments, Hansen (Stefanis-Panayiotou) none for silicon and
+     some N and O environments. A later group-contribution table (or the same authors' extensions) would have to be read first.
+  5. **Solubility of an ampholyte**: the intrinsic estimate is now shown, but its pH profile, the value at a pH and the BCS screen are withheld, because
+     Henderson-Hasselbalch puts a zwitterion's minimum in the wrong place. A species-weighted model (each microspecies' own intrinsic solubility) would lift it.
+     Solubility as a whole also still carries its measured base bias, reported and not corrected.
+  6. **Benchmarks that would widen a LIMITED scope**: proton affinity beyond ten heavy atoms (a held-out set of 11 to 20), bond dissociation beyond nine
+     and for S-H (thiyl radicals keep an imaginary mode; a v3 protocol), Si-H and P-H classes. Until then those run with the warning.
+
+  **Refused by definition, and staying refused**: Griffin's HLB without a polyoxyethylene chain, the aromaticity indices with no ring, Hueckel with no pi
+  system, the isoelectric point and microspecies with no ionisable centre, the steric (ligand) measures with no donor atom. There is nothing to compute.
+
 - **Re-screening a saved synthesis plan (recorded 2026-10-21).** A plan saved in the project file comes back with the regulatory alerts it had on the day it
   was made, shown with that date and a sentence saying they were not repeated on opening, because screening takes 0.9 to 3.7 s a plan (about 0.1 s a
   molecule, measured on 13 real planner outputs) and opening a project of 30 plans would take about a minute. So a ruleset added or changed since then is not

@@ -62,8 +62,14 @@ _TABLE_PATH = Path(__file__).parent / "data" / "hansen_groups.json"
 
 PARAMETERS = ("d", "p", "hb")
 
-#: p574. Stated as a limit of the model, so it is a refusal rather than a note.
+#: p574: the paper states the method for three or more carbons. Below it the sum is still COMPUTED (every group is in the table) and
+#: labelled outside the stated domain (Alex, 2026-10-23: the edge of what a source measured is a warning, not a refusal; only what cannot
+#: be computed is refused). It was a refusal until then.
 MINIMUM_CARBONS = 3
+#: The sentence every number of a molecule below `MINIMUM_CARBONS` carries.
+OUTSIDE_DOMAIN_NOTE = (
+    "OUTSIDE THE MODEL'S STATED DOMAIN: Stefanis and Panayiotou state the method for compounds with three or more carbons (p574), and this one has {n}. The groups are all in the table, so the sum is computed, but no error was measured for so small a molecule: read it as an estimate."
+)
 
 
 class HansenRefusal(Enum):
@@ -78,7 +84,6 @@ class HansenRefusal(Enum):
     CHARGED = "the structure carries a net formal charge"
     NO_HEAVY_ATOMS = "the structure has no heavy atoms"
     UNCOVERED_ATOM = "an atom belongs to no Stefanis-Panayiotou group"
-    TOO_FEW_CARBONS = "the model needs three or more carbons"
     NO_CONTRIBUTION = "a group in this molecule has no contribution for that parameter"
 
 
@@ -404,6 +409,8 @@ class Fragmentation:
     refusal: HansenRefusal | None = None
     detail: str = ""
     molecular_weight: float = 0.0
+    #: Non-empty when the molecule is computed but outside the paper's stated domain (fewer than three carbons): the sentence its numbers carry.
+    outside_domain: str = ""
 
     @property
     def applicable(self) -> bool:
@@ -434,11 +441,8 @@ def fragment(mol: Chem.Mol | None) -> Fragmentation:
         return Fragmentation(refusal=HansenRefusal.NOT_A_PURE_COMPONENT)
     if Chem.GetFormalCharge(working) != 0:
         return Fragmentation(refusal=HansenRefusal.CHARGED)
-    if _carbon_count(working) < MINIMUM_CARBONS:
-        return Fragmentation(
-            refusal=HansenRefusal.TOO_FEW_CARBONS,
-            detail=f"{_carbon_count(working)} carbon(s)",
-        )
+    carbons = _carbon_count(working)
+    outside = OUTSIDE_DOMAIN_NOTE.format(n=carbons) if carbons < MINIMUM_CARBONS else ""
 
     walk = claim_groups(working, _first_order_patterns())
     if not walk.complete:
@@ -451,6 +455,7 @@ def fragment(mol: Chem.Mol | None) -> Fragmentation:
         first=walk.counts,
         second=count_overlapping(working, _second_order_patterns()),
         molecular_weight=Descriptors.MolWt(working),
+        outside_domain=outside,
     )
 
 
@@ -626,6 +631,8 @@ def compute_hansen(
             "second_order_groups": dict(sorted(f.second.items())) if f.applicable else None,
             "W": f.w if f.applicable else None,
             "refusal": f.refusal.name if f.refusal else None,
+            "outside_stated_domain": bool(f.outside_domain),
+            **({"caveat": f.outside_domain} if f.outside_domain else {}),
             TOTAL: decline_total(
                 "delta-t is not the sum of the three: Eq. 4 combines them in "
                 "QUADRATURE, sqrt(d^2 + p^2 + hb^2). Adding them gives a larger "
@@ -644,8 +651,8 @@ def compute_hansen(
             error=refusal_text(f),
             # Every reason but an unreadable structure is outside the method.
             inapplicable=f.refusal is not HansenRefusal.NOT_A_STRUCTURE,
-            # The CELL form. `refusal_text` appends the detail -- "2 carbon(s)",
-            # an uncovered atom's element and connectivity -- which is what a
+            # The CELL form. `refusal_text` appends the detail -- an uncovered
+            # atom's element and connectivity -- which is what a
             # reader needs on hover and what clips in a 100 px column.
             error_summary=f.refusal.value if f.refusal else None,
             provenance=provenance,
@@ -686,7 +693,7 @@ def compute_hansen(
             # 0.960 (delta_hb, 375), read off Figs. 1-3 of the paper.
             basis=Basis.HEURISTIC,
             evidence=(f"From {value.basis.value}, with {order}.",),
-            limitations=(
+            limitations=((f.outside_domain,) if f.outside_domain else ()) + (
                 (
                     "BELOW 3 MPa^0.5 this comes from the paper's SEPARATE "
                     "low-range regression (Eqs. 27 and 28), not from Eqs. 25 "
@@ -708,7 +715,7 @@ def compute_hansen(
             source="hansen_solubility",
             basis=Basis.HEURISTIC,
             evidence=("Eq. 4: the three parameters combined in quadrature.",),
-            limitations=(
+            limitations=((f.outside_domain,) if f.outside_domain else ()) + (
                 "NOT the sum of the three above. Adding them gives a larger "
                 "number that means nothing.",
             ),
@@ -740,12 +747,13 @@ def compute_hansen(
         cache_state=CacheState.COMPLETED,
         facts=tuple(facts),
         provenance=provenance,
-        limitations=(
+        limitations=((f.outside_domain,) if f.outside_domain else ()) + (
             "A GROUP-CONTRIBUTION ESTIMATE, not a measurement. The paper reports "
             "r2 = 0.935 for delta-d over 344 data points, 0.925 for delta-p over "
             "350, and 0.960 for delta-hb over 375; errors of one to three "
             "MPa^0.5 are ordinary.",
             "The model is stated for organic compounds with three or more carbon "
-            "atoms, excluding the characteristic group's own atom.",
+            "atoms, excluding the characteristic group's own atom; below that it is "
+            "computed and labelled outside the stated domain.",
         ),
     )
