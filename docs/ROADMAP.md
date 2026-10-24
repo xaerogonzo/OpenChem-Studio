@@ -2347,7 +2347,7 @@ and three were checked again recently rather than taken on trust.
      the answer. **What remains**: Br (no source anywhere states or prints a bromine product: read for it, with nothing, were Meyer, Conkling, Persson, Cooper (C/H/N/O only), Akhavan, Klapoetke's
      Encyclopedia in all three volumes, a preprint on brominated TNTs (no balance column) and ALL 68 Klapoetke-group LMU dissertations (every bromine formula in their text layers checked against its page's
      printed numbers under HBr and Br2, CO2 and CO bases: no match; the bromine in them is synthesis precursors and IR pellets); the next places to look are a paper on a
-     bromo compound with an OB column, Bretherick/CHETAH-style hazard literature, or the iomosaic oxygen-balance paper; the choice is HBr by analogy with Cl, which the iodine result
+     bromo compound with an OB column, Bretherick/CHETAH-style hazard literature (Shanley & Melhem 1995, the iomosaic paper, was read: three pages, C/H/O only, no halogen of any kind); the choice is HBr by analogy with Cl, which the iodine result
      shows is not safe, or a labelled estimate) and every other element, and halogen beyond what hydrogen and metals can take (CCl4, Teflon); each needs a source that states a
      product. Formulations still refuse a non-C/H/N/O component. **Kamlet-Jacobs detonation**: read, and not extendable from these
      sources -- all four Kamlet papers and Meyer's entry state it for C-H-N-O explosives; its oxygen-window refusal stands too.
