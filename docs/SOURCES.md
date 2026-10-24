@@ -1,5 +1,5 @@
 <!-- GENERATED FROM docs/sources.toml -- do not edit -->
-<!-- SOURCE SHA256: a6c9549a8aa290450cc1255f7cfddacf2b744d0a70eff6f93385a355d7dfb7bd -->
+<!-- SOURCE SHA256: 1143351e0adae168137acc8d728f2574755eaa1a0c7ff3f9fc0ed579616887b2 -->
 
 # Sources
 
@@ -287,6 +287,7 @@ next run of `tools/build_lewis_parameters.py`.
 | [`pearson1968`](#pearson1968) | literature | reference only | citation |
 | [`pearson1988`](#pearson1988) | literature | shipped | citation + claim |
 | [`perry2025`](#perry2025) | literature | reference only | citation |
+| [`persson1994`](#persson1994) | literature | shipped | citation + claim |
 | [`piancastelli1983`](#piancastelli1983) | literature | shipped | citation + claim |
 | [`pkasolver`](#pkasolver) | software | shipped | citation |
 | [`platts1999`](#platts1999) | literature | **not shipped** | citation + claim |
@@ -4831,6 +4832,53 @@ The book prints no DOI; the ISBN is the one on its imprint page. The text
 layer drops minus signs (Table 5.2 reads "73.96" for TNT); the signs are
 the book's, read from its Eq. 5.1. Its Eq. 5.2 and the TNT example are the
 C/H/N/O form [source:klapotke2017] already supplies.
+
+### persson1994
+
+<a id="persson1994"></a>
+
+> P.-A. Persson, R. Holmberg & J. Lee, 'Rock Blasting and Explosives Engineering', CRC Press, Boca Raton, 1994 (ISBN 0-8493-8978-X); reprinted 2018.
+
+| | |
+| --- | --- |
+| Identifier | [10.1201/9780203740514](https://doi.org/10.1201/9780203740514) |
+| Status | shipped |
+| Verification | citation + claim |
+| Verified | 2026-10-24 |
+| Local copy | `Rock Blasting and Explosives Engineering -- Per-Anders Persson (Author); Roger Holmberg (Author); Jaimin -- 1, 2018 may 04.pdf` (not checked) |
+| Used by | `src/openchem/chem/energetics.py`, `tests/test_oxygen_balance_extended.py` |
+
+An independent statement of the whole accounting for the eleven elements it
+covers, in one closed form. Section 4.4.6 defines the balance as the oxygen
+needed to take hydrogen to water, carbon to CO2 "and all other fuel components
+to their highest degree of oxidation (e.g., aluminum to Al2O3)", and Eq. 4.43
+gives it for Al, B, C, Ca, Cl, F, H, K, N, Na and O:
+
+    OB = -32 (3/4 al + 3/4 b + 1 c + 1/2 ca - 1/4 cl - 1/4 f + 1/4 h + 1/4 k
+              + 0 n + 1/4 na - 1/2 o) / M x 100%
+
+read from the page image, since the text layer garbles it. Each coefficient
+is this module's valence over four: Al3 and B3 (to Al2O3 and B2O3), Ca2 (CaO),
+K1 and Na1 (K2O, Na2O), H1, C4, N0, O-2, and **Cl and F -1: each halogen spares
+half an oxygen**, "assumed ... enough hydrogen in the formulation to bind
+chlorine and fluorine to hydrochloric and hydrofluoric acids". It is the
+statement of the chlorine and fluorine convention that [source:meyer2016] and
+[source:conkling2019] make by example, and a third statement that boron goes
+to B2O3 (with [source:conkling2019] and [source:zeuner2003]).
+
+The tests run the closed form beside the calculator on every structure that
+meets its hydrogen assumption. It prints TNT -73.98% and nitroglycerine +3.52%,
+and says the balance is "calculated with carbon dioxide as the product", with
+the CO basis "often" used in rocket propellant treatises.
+
+**WHERE IT DISAGREES WITH THE CALCULATOR, ON PURPOSE.** "Highest degree of
+oxidation" read literally burns every metal to its highest oxide: iron to
+Fe2O3, copper to CuO, mercury to HgO, lead to PbO2. The calculator follows
+the printed values instead: Meyer's ferrocene is FeO (-223.6%) and his
+mercury fulminate leaves the metal. The other oxide's figure is printed beside
+the answer, which is the "highest" reading in every case where the two
+differ. Persson prints no bromine, iodine, sulfur, phosphorus, magnesium or
+transition-metal term, and no balance for any compound containing them.
 
 ### he2016
 

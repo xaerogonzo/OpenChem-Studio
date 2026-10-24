@@ -1,7 +1,8 @@
 """Oxygen balance for C/H/N/O substances [source:klapotke2017], and beyond
 them where a source says what each other element burns to: [source:meyer2016],
 [source:conkling2019], [source:zeuner2003], [source:shimizu1996],
-[source:he2016], [source:klapotke2021], [source:amcp706187].
+[source:he2016], [source:klapotke2021], [source:amcp706187],
+[source:persson1994].
 
 Oxygen balance says whether a substance carries enough oxygen to burn its own
 carbon and hydrogen, as a percentage of its mass. Zero means exactly enough;
@@ -34,6 +35,10 @@ Meyer everywhere the two overlap except lead in an oxidizer (red lead to the
 metal; Meyer and Akhavan burn lead to PbO) and iron, whose product it makes
 depend on whether the iron is a fuel or an oxidizer. An element in no source
 is refused by name.
+
+Persson, Holmberg & Lee [source:persson1994] give the whole accounting as one
+closed form for Al, B, C, Ca, Cl, F, H, K, N, Na and O (their Eq. 4.43), halogens
+sparing half an oxygen each, and the tests hold this module to it.
 
 **IRON AND COPPER BURN TO THE OXIDE OF THE STATE THEY ARE DRAWN IN.** No source
 states this as a rule, and every source that prints a value follows it: Meyer's

@@ -13,6 +13,9 @@
   what every printed value follows (Meyer's ferrocene −223.6% and iron acetylacetonate, to the
   digit; Conkling's two copper oxides). An atom drawn with another charge, or none, is refused
   by name, and the other oxide's figure is printed beside the answer.
+- Persson, Holmberg & Lee's closed form (Eq. 4.43) is now held against the calculator term for
+  term, an independent statement of the oxide and halogen conventions (boron to B₂O₃, chlorine
+  and fluorine sparing half an oxygen each).
 - Still refused, by name: bromine (no source gives a product) and every other element. Jain's
   1987 paper, where the method comes from, covers C, H, O, N and Cl only.
 - Iodine is now computed too, left as I₂ (it takes no hydrogen, unlike chlorine), following He,

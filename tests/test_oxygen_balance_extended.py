@@ -340,7 +340,72 @@ def test_iodine_takes_no_hydrogen_unlike_chlorine():
 
 
 # ---------------------------------------------------------------------------
-# 1c  the Cl2 figure the Encyclopedia prints, shown beside the HCl answer
+# 1c  Persson, Holmberg & Lee's closed form (Eq. 4.43), term for term
+# ---------------------------------------------------------------------------
+
+#: Eq. 4.43, "32 (3/4 al + 3/4 b + 1 c + 1/2 ca - 1/4 cl - 1/4 f + 1/4 h + 1/4 k
+#: + 0 n + 1/4 na - 1/2 o) / M", read from the page image. Atom counts times
+#: these, in units of 32 g of oxygen.
+PERSSON_COEFFICIENTS = {
+    "Al": 0.75, "B": 0.75, "C": 1.0, "Ca": 0.5, "Cl": -0.25, "F": -0.25,
+    "H": 0.25, "K": 0.25, "N": 0.0, "Na": 0.25, "O": -0.5,
+}
+
+
+def _persson(smiles: str) -> float:
+    mol = Chem.AddHs(_mol(smiles))
+    mass = sum(a.GetMass() for a in mol.GetAtoms())
+    total = sum(PERSSON_COEFFICIENTS[a.GetSymbol()] for a in mol.GetAtoms())
+    return -32 * total / mass * 100
+
+
+#: Every one meets the book's assumption that "there is enough hydrogen ... to
+#: bind chlorine and fluorine", or has none of either.
+PERSSON_CASES = [
+    ("TNT (printed -73.98)", "Cc1c(cc(cc1[N+](=O)[O-])[N+](=O)[O-])[N+](=O)[O-]"),
+    ("nitroglycerine (printed +3.52)", "C(C(CO[N+](=O)[O-])O[N+](=O)[O-])O[N+](=O)[O-]"),
+    ("ammonium nitrate", f"[NH4+].{NITRATE}"),
+    ("ammonium perchlorate", f"[NH4+].{PERCHLORATE}"),
+    ("aluminum", "[Al]"),
+    ("boron", "[B]"),
+    ("tris(2-nitroethyl) borate", "B(OCC[N+](=O)[O-])(OCC[N+](=O)[O-])OCC[N+](=O)[O-]"),
+    ("sodium nitrate", f"[Na+].{NITRATE}"),
+    ("potassium nitrate", f"[K+].{NITRATE}"),
+    ("potassium perchlorate", f"[K+].{PERCHLORATE}"),
+    ("calcium nitrate", f"[Ca+2].{NITRATE}.{NITRATE}"),
+    ("chlorobenzene", "Clc1ccccc1"),
+    ("PVC unit", "C=CCl"),
+    ("Viton unit", "C=C(F)F"),
+    ("fluorobenzene", "Fc1ccccc1"),
+    ("guanidinium perchlorate", f"NC(N)=[NH2+].{PERCHLORATE}"),
+]
+
+
+@pytest.mark.parametrize("name,smiles", PERSSON_CASES, ids=[r[0] for r in PERSSON_CASES])
+def test_persson_equation_4_43_agrees_with_the_calculator_term_for_term(name, smiles):
+    ours = E.extended_oxygen_balance(_mol(smiles))
+    assert ours.applicable, E.refusal_text(ours)
+    assert ours.to_full_oxidation == pytest.approx(_persson(smiles), abs=1e-6)
+
+
+def test_persson_prints_tnt_and_nitroglycerine():
+    """Section 4.4 (p110-111): 'These have oxygen balances -73.98%, +3.52%,
+    and -0.04%' for TNT, nitroglycerin and ANFO (the last a mixture)."""
+    # TNT is 0.014 off the printed digits: Persson's own table uses M = 227.14
+    # where this module computes 227.13, and -73.96 is what that mass gives.
+    assert _persson(PERSSON_CASES[0][1]) == pytest.approx(-73.98, abs=0.03)
+    assert _persson(PERSSON_CASES[1][1]) == pytest.approx(3.52, abs=0.01)
+
+
+def test_persson_assumes_hydrogen_for_its_halogens_and_the_calculator_refuses_without():
+    """The closed form gives Teflon a number by assuming hydrogen that is not
+    there; no source says what the fluorine becomes without it, so the
+    calculator refuses."""
+    assert E.extended_oxygen_balance(_mol("FC(F)=C(F)F")).refusal is not None
+
+
+# ---------------------------------------------------------------------------
+# 1d  the Cl2 figure the Encyclopedia prints, shown beside the HCl answer
 # ---------------------------------------------------------------------------
 
 #: Klapötke, Energetic Materials Encyclopedia 2nd ed.: the entries whose

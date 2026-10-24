@@ -2334,8 +2334,8 @@ and three were checked again recently rather than taken on trust.
   1. **Oxygen balance beyond C/H/N/O: done for S, Cl, F, I, B, Si, P and twenty metals; the rest stays refused.** Meyer, Koehler & Homburg's *Explosives*
      (7th ed.) names the products (CO2, H2O, SO2, Al2O3; chlorine to HCl; alkaline earths to their oxides) and prints 41 balances beyond C/H/N/O, 38 of
      which one valence per element reproduces; Conkling & Mocella's *Chemistry of Pyrotechnics* (3rd ed.) states that valence per element (Table 2.5, the
-     "pyro valence") and adds B, F, Mg, Ti, Si, Zr, P (P2O5, also Shimizu's *Fireworks*), Mo (MoO3, its worked exercise) and W (WO3); US 6,599,380 states
-     boron to B2O3. Tested against 35 of Meyer's balances, Conkling's printed net valences, worked mixtures and its grams-of-fuel-per-gram-of-oxygen
+     "pyro valence") and adds B, F, Mg, Ti, Si, Zr, P (P2O5, also Shimizu's *Fireworks*), Mo (MoO3, its worked exercise) and W (WO3); US 6,599,380 and Persson, Holmberg & Lee's *Rock Blasting and Explosives Engineering* (Eq. 4.43, run term for
+     term against the calculator for Al, B, C, Ca, Cl, F, H, K, N, Na and O) state boron to B2O3. Tested against 35 of Meyer's balances, Conkling's printed net valences, worked mixtures and its grams-of-fuel-per-gram-of-oxygen
      columns, Klapoetke's two borates, the patent's boron igniter, seven of He/Hooper/Shreeve's iodine-rich salts (iodine left as I2, their formula being the CO basis)
      and three rows of Akhavan's Table 5.2. Accepted: S, Cl and F (by hydrogen or a metal, which gives the same number), I (as I2, no hydrogen), B, Si, P, Al, Li, Na, K, Mg, Ca, Sr, Ba, Ti, Zr, Cr, Mo, W, Co, Zn, Pb, and Hg and Ag left as the metal (Akhavan burns
      mercury to HgO; the result prints that figure too). CO2 basis only. Si, Zr, P and W rest on a source's statement and its numeric column, with no

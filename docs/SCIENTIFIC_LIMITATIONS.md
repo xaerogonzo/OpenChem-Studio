@@ -787,8 +787,15 @@ values, Conkling's two copper oxides and Shancita's iodates all follow. A
 structure drawn with a different charge, or none (a neutral iron atom), is
 refused, and the other oxide's figure is printed beside the answer.
 
+Persson, Holmberg & Lee's *Rock Blasting and Explosives Engineering* (Eq. 4.43) states
+the same accounting as one closed form for Al, B, C, Ca, Cl, F, H, K, N, Na and O, halogens
+sparing half an oxygen each, and the tests run it beside the calculator. Its wording, "highest
+degree of oxidation", read literally would burn iron to Fe₂O₃ and mercury to HgO whatever
+the drawing; the calculator follows the printed values instead (Meyer's ferrocene is FeO)
+and prints the other oxide's figure beside the answer, which is that reading.
+
 Bromine and every other element are **refused rather than given a
-confident wrong number**: no source gives a product for them. Silicon, zirconium, phosphorus and tungsten are accepted on
+confident wrong number**: no source gives a product for them, including Persson's. Silicon, zirconium, phosphorus and tungsten are accepted on
 Conkling's statement and its grams-of-fuel-per-gram-of-oxygen column; no
 printed balance uses them. A phosphorus, molybdenum or tungsten halide is
 refused: no source says how many halogens it holds. Only the CO₂ basis is extended; the CO basis stays
