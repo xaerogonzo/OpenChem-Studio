@@ -1483,6 +1483,21 @@ def _tracked_markdown() -> list[str]:
     )
 
 
+_A_LONE_CARRIAGE_RETURN = re.compile(rb"\r(?!\n)")
+
+
+def test_a_lone_carriage_return_is_detected_and_a_line_ending_is_not():
+    """The guard below has to be able to fail: a Windows path typed with a backslash before `results` in a Python string became a carriage return in a merged doc, and the terminal drew it as a missing letter."""
+    assert _A_LONE_CARRIAGE_RETURN.search(b"D:/x/records" + bytes([13]) + b"esults")
+    assert not _A_LONE_CARRIAGE_RETURN.search(b"one line" + bytes([13, 10]) + b"another" + bytes([10]))
+
+
+def test_no_tracked_markdown_file_holds_a_lone_carriage_return():
+    """A CR that is not half of a CRLF is never meant in prose, and it hides: most terminals draw the text after it over the start of the line, so the page looks as if letters are missing."""
+    found = [rel for rel in _tracked_markdown() if _A_LONE_CARRIAGE_RETURN.search((_ROOT / rel).read_bytes())]
+    assert not found, f"these markdown files contain a lone carriage return (usually a backslash-r in a Python string that built them): {found}"
+
+
 def test_no_doc_states_a_stale_calculator_count():
     """WIDE: any doc not declared history must state the LIVE count.
 
