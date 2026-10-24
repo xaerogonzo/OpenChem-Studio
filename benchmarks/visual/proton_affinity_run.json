@@ -1,5 +1,5 @@
 [
-  {"do": "smiles", "smiles": "CCl", "name": "Chloromethane", "after_ms": 2500},
+  {"do": "smiles", "smiles": "C[N+](C)(C)C", "name": "Tetramethylammonium", "after_ms": 2500},
   {"do": "select", "molecule": -1, "after_ms": 2500},
   {"do": "proton_affinity_run", "expect_refusal": "does not apply", "after_ms": 500},
 
