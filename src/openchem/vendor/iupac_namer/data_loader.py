@@ -3545,7 +3545,7 @@ _RING_CURATED_SMILES: dict[str, dict] = {
     "c1ccc2ssc2c1":    {"name": "1,2-benzodithiete",
                         "substituent_form": "1,2-benzodithiet-yl",
                         "alkyl_stem_ok": False,
-                        "atom_locants": {4: 2, 5: 1, 0: 5, 7: 6}},
+                        "atom_locants": {4: 1, 5: 2, 6: "2a", 7: 3, 0: 4, 1: 5, 2: 6, 3: "6a"}},
 
     # 6,7,8,9-tetrahydro-4H-pyrido[1,2-a]pyrimidin-4-one (paliperidone core, FDA-1012).
     # OPSIN '6,7,8,9-tetrahydro-4H-pyrido[1,2-a]pyrimidin-4-one' -> ...; RDKit canonical:
