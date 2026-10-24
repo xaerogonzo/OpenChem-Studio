@@ -300,15 +300,18 @@ _EXTERNAL_CALCULATOR_DEFINITIONS.append(
                 choices=[PROTON_AFFINITY_METHOD],
             ),
         ],
-        # EXPERIMENTAL, honestly, although its benchmark PASSED: the stage describes THIS implementation, and this one has had no live run through the
-        # application on real ORCA yet (the benchmark ran its own runner, and the service is tested against the benchmark's real outputs with a stand-in
-        # process). A promotion to LIMITED is one change with that driven run recorded (docs/CALCULATOR_MATURITY.md).
+        # LIMITED, and shown: the benchmark PASSED, and this implementation has now been driven through the application on real ORCA, reproducing the
+        # benchmark's own numbers from the STORED result (benchmarks/visual/proton_affinity_run.json, recorded in docs/PROTON_AFFINITY_DESIGN.md), which is
+        # what EXPERIMENTAL waited for. LIMITED and not STABLE because the scope is narrow (neutral bases of at most ten heavy atoms of six elements) and one
+        # benchmark is not the held-out, stratified result STABLE asks for (docs/CALCULATOR_MATURITY.md). It was hidden only for want of the driven run;
+        # to hide it again, set default_visibility back to HIDDEN.
         support=CalculatorSupport(
-            stage=SupportStage.EXPERIMENTAL,
-            default_visibility=Visibility.HIDDEN,
+            stage=SupportStage.LIMITED,
+            default_visibility=Visibility.SHOWN,
             support_reason=(
-                "The protocol passed its preregistered benchmark (28 bases against NIST, mean absolute error 1.55 kcal/mol for proton affinity and 1.53 for gas basicity), "
-                "but this implementation has not yet been driven through the application on real ORCA, and it needs many ORCA jobs. Every result states the measured error and its limits."
+                "Limited to neutral closed-shell bases of at most ten heavy atoms of H, C, N, O, P and S. The protocol passed its preregistered benchmark (28 bases against NIST, mean absolute error "
+                "1.55 kcal/mol for proton affinity and 1.53 for gas basicity, the proton bound about 1.2 kcal/mol too weakly) and this implementation reproduces the benchmark's numbers when driven "
+                "through the application on real ORCA. It needs many ORCA jobs. Every result states the measured error and its limits."
             ),
             scope_note=(
                 "Neutral closed-shell bases of at most ten heavy atoms of H, C, N, O, P and S; the lowest structure only; needs a configured ORCA executable"
