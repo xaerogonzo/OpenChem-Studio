@@ -764,7 +764,7 @@ sulfur, chlorine and fluorine (taken by a hydrogen as HCl/HF or by a metal as
 its halide, which gives the same number either way), iodine (left as I₂, taking
 no hydrogen), boron, silicon,
 phosphorus (to P₂O₅, also Shimizu's *Fireworks*) and
-eighteen metals are accepted, each at the product a source states or the
+twenty metals are accepted, each at the product a source states or the
 oxide its printed balances use; mercury and silver are left unoxidised
 because that is what Meyer does. Akhavan's *The Chemistry of
 Explosives* states the same definition and agrees on silver and lead, but
@@ -780,21 +780,26 @@ hydrogen took a chlorine. A metal chloride gives the same number either way.
 Iodine is the opposite case: He, Hooper & Shreeve's formula has no iodine term
 and seven of their printed balances reproduce with iodine untouched.
 
-Bromine,
-iron, copper and every other element are **refused rather than given a
-confident wrong number**: no source gives a product for them, or the sources
-give different ones (iron by the compound or its role; Conkling prints copper
-as "Cu₂O/CuO"). Silicon, zirconium, phosphorus and tungsten are accepted on
+**Iron and copper burn to the oxide of the charge they are drawn with**
+(Fe(II) to FeO, Fe(III) to Fe₂O₃, Cu(I) to Cu₂O, Cu(II) to CuO). No source
+states that as a rule: it is what Meyer's ferrocene and iron acetylacetonate
+values, Conkling's two copper oxides and Shancita's iodates all follow. A
+structure drawn with a different charge, or none (a neutral iron atom), is
+refused, and the other oxide's figure is printed beside the answer.
+
+Bromine and every other element are **refused rather than given a
+confident wrong number**: no source gives a product for them. Silicon, zirconium, phosphorus and tungsten are accepted on
 Conkling's statement and its grams-of-fuel-per-gram-of-oxygen column; no
 printed balance uses them. A phosphorus, molybdenum or tungsten halide is
 refused: no source says how many halogens it holds. Only the CO₂ basis is extended; the CO basis stays
 C/H/N/O.
 
-**Three of the book's own values disagree with it, and are recorded rather
+**Two of the book's own values disagree with it, and are recorded rather
 than fitted:** picryl chloride is printed as if its chlorine became Cl₂, two
 hydrates are printed for the anhydrous salt while two others include their
-water, and two iron compounds use FeO and Fe₂O₃. A hydrate is balanced as
-drawn and the result says so.
+water. A hydrate is balanced as drawn and the result says so. (Its two iron
+values, FeO for ferrocene and Fe₂O₃ for iron acetylacetonate, looked like a
+third disagreement and are the iron(II)/iron(III) rule above.)
 
 ### Detonation (Kamlet–Jacobs)
 

@@ -147,8 +147,8 @@ def test_every_accepted_element_is_pinned_by_a_printed_value():
     pinned: set[str] = set()
     for _, smiles, *_ in MEYER + CONKLING_UNITS + BORATES + SHREEVE:
         pinned.update(a.GetSymbol() for a in _mol(smiles).GetAtoms())
-    pinned |= {"B", "Ti", "Mg", "Mo"}  # the mixtures below
-    accepted = set(E._PRODUCTS) | set(E._HALOGENS)
+    pinned |= {"B", "Ti", "Mg", "Mo", "Fe", "Cu"}  # the mixtures and charge-matched tests below
+    accepted = set(E._PRODUCTS) | set(E._HALOGENS) | set(E._CHARGE_MATCHED)
     assert accepted - pinned - {"C", "H", "N"} == STATED_ONLY
 
 
@@ -405,15 +405,82 @@ def test_two_hydrates_were_printed_for_the_anhydrous_salt(name, anhydrous, water
     assert wet.has_water and not dry.has_water
 
 
-@pytest.mark.parametrize("name,smiles", [
-    ("ferrocene, printed -223.6% (FeO)", "[CH-]1C=CC=C1.[CH-]1C=CC=C1.[Fe+2]"),
-    ("iron acetylacetonate, printed 163.1% (Fe2O3)", ("CC(=O)/C=C(/C)[O-].CC(=O)/C=C(/C)[O-]."
-     "CC(=O)/C=C(/C)[O-].[Fe+3]")),
+# ---------------------------------------------------------------------------
+# 2b  iron and copper: the oxide of the drawn charge
+# ---------------------------------------------------------------------------
+#
+# No source states this as a rule. Every value any of them prints follows it:
+# Meyer's two iron values are iron(II) to FeO and iron(III) to Fe2O3 to the
+# printed digit, and Conkling prints a figure for each of copper's two oxides.
+
+FERROCENE = "[CH-]1C=CC=C1.[CH-]1C=CC=C1.[Fe+2]"
+FE_ACAC = "CC(=O)/C=C(/C)[O-].CC(=O)/C=C(/C)[O-].CC(=O)/C=C(/C)[O-].[Fe+3]"
+
+
+def test_meyers_ferrocene_is_iron_II_to_FeO():
+    """Printed -223.6% for C10H10Fe."""
+    result = E.extended_oxygen_balance(_mol(FERROCENE))
+    assert result.to_full_oxidation == pytest.approx(-223.6, abs=0.05)
+    assert result.charge_products == (("Fe", "FeO"),)
+
+
+def test_meyers_iron_acetylacetonate_is_iron_III_to_Fe2O3():
+    """Printed '+163.1%' for C15H21O6Fe. The sign is a misprint -- six oxygens
+    in 353 g/mol cannot burn 36 oxygens' worth of carbon and hydrogen to
+    anything positive -- and the MAGNITUDE is Fe2O3 to the digit, where FeO
+    gives 160.8. This used to be filed as the book disagreeing with itself:
+    it was the iron's oxidation state."""
+    result = E.extended_oxygen_balance(_mol(FE_ACAC))
+    assert result.to_full_oxidation == pytest.approx(-163.1, abs=0.05)
+    assert result.charge_products == (("Fe", "Fe2O3"),)
+
+
+@pytest.mark.parametrize("name,smiles,printed", [
+    ("copper(I) to Cu2O", "[Cu+]", 7.94),
+    ("copper(II) to CuO", "[Cu+2]", 3.97),
 ])
-def test_iron_is_refused_because_the_book_uses_two_oxides(name, smiles):
+def test_conklings_two_copper_oxides_are_the_two_copper_states(name, smiles, printed):
+    """Table 3.4 prints 'Cu2O/CuO' with '7.94/3.97' grams of fuel per gram of O."""
+    balance = E.extended_oxygen_balance(_mol(smiles)).to_full_oxidation
+    assert 100 / -balance == pytest.approx(printed, abs=0.01)
+
+
+def test_the_other_oxide_is_reported_beside_the_answer():
+    ferrocene = E.extended_oxygen_balance(_mol(FERROCENE))
+    assert [(e, p) for e, p, _ in ferrocene.alternatives] == [("Fe", "Fe2O3")]
+    assert ferrocene.alternatives[0][2] == pytest.approx(-227.9, abs=0.05)
+    report = E.compute_oxygen_balance(_mol(FERROCENE), "uuid-1")
+    balance = next(f for f in report.facts if f.units == "%")
+    assert any("Fe2O3" in line and "-227.9" in line for line in balance.limitations)
+    assert any("FeO" in line for line in balance.limitations)
+
+
+@pytest.mark.parametrize("name,smiles,fragment", [
+    ("iron drawn with no charge", "[Fe]", "no charge"),
+    ("iron(IV)", "[Fe+4]", "+4"),
+    ("copper drawn with no charge", "[Cu]", "no charge"),
+    ("copper(III)", "[Cu+3]", "+3"),
+])
+def test_a_charge_the_sources_have_no_oxide_for_is_refused_by_name(name, smiles, fragment):
     result = E.extended_oxygen_balance(_mol(smiles))
     assert result.refusal is E.OxygenBalanceRefusal.UNCOVERED_ATOM
-    assert "FeO" in result.detail and "Fe2O3" in result.detail
+    assert fragment in result.detail
+    assert "Fe(II)" in result.detail or "Cu(I)" in result.detail
+
+
+@pytest.mark.parametrize("smiles,metal", [
+    ("[Fe+3].[Cl-].[Cl-].[Cl-]", "Fe"),
+    ("[Fe+2].[Cl-].[Cl-]", "Fe"),
+    ("[Cu+2].[Cl-].[Cl-]", "Cu"),
+    ("[Cu+].[Cl-]", "Cu"),
+])
+def test_a_charge_matched_metal_takes_its_chlorides_like_any_other_metal(smiles, metal):
+    """FeCl3 balances at zero: the metal's valence is the chlorine count."""
+    assert E.extended_oxygen_balance(_mol(smiles)).to_full_oxidation == pytest.approx(0.0, abs=1e-9)
+
+
+def test_a_metal_with_more_chlorine_than_its_charge_holds_is_refused():
+    assert not E.extended_oxygen_balance(_mol("[Fe+2].[Cl-].[Cl-].[Cl-]")).applicable
 
 
 #: Akhavan, The Chemistry of Explosives, 3rd ed. [source:akhavan2011], Table
@@ -506,8 +573,7 @@ def test_mercury_cannot_take_a_chlorine():
 
 @pytest.mark.parametrize("name,smiles,element", [
     ("a bromide", "CBr", "Br"),
-    ("a copper salt", "[Cu+2].[O-][N+](=O)[O-].[O-][N+](=O)[O-]", "Cu"),
-    ("copper azide", "[Cu+2].[N-]=[N+]=[N-].[N-]=[N+]=[N-]", "Cu"),
+    ("a manganese salt", "[Mn+2].[O-][N+](=O)[O-].[O-][N+](=O)[O-]", "Mn"),
     ("manganese dioxide", "O=[Mn]=O", "Mn"),
 ])
 def test_an_element_the_book_gives_no_product_for_is_refused_by_name(name, smiles, element):

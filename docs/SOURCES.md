@@ -1,5 +1,5 @@
 <!-- GENERATED FROM docs/sources.toml -- do not edit -->
-<!-- SOURCE SHA256: 5cc909338b776b7cf8dc2326e6b0ced7bc7240595af11263a77ac9d639e51a0c -->
+<!-- SOURCE SHA256: a6c9549a8aa290450cc1255f7cfddacf2b744d0a70eff6f93385a355d7dfb7bd -->
 
 # Sources
 
@@ -4887,10 +4887,10 @@ citation only.
 
 **ITS EQUATIONS (R8) TO (R11) ARE NOT BALANCED AS PRINTED** (R8 has twelve
 oxygens on the left and six on the right), so they name products and are
-used for nothing else. Naming CuO and Fe2O3 does not settle copper or iron
-here: they are decompositions of copper(II) and iron(III) compounds, and
-[source:conkling2019] prints copper's product as "Cu2O/CuO" and makes iron's
-depend on its role, so both stay refused.
+used for nothing else. They are decompositions of copper(II) and iron(III)
+compounds that name CuO and Fe2O3, which is what the charge-matched rule for
+iron and copper gives (see [source:meyer2016]): the oxide of the state the
+metal is drawn in.
 
 ### klapotke2021
 
@@ -5028,15 +5028,16 @@ analysis of the formula of the reaction product"; tungsten to WO3 in Table
 gram of O" for every element they list, and the calculator reproduces it for
 Al, B, C, Mg, P, Si, S, Ti, W, Zn and Zr to the printed two places (phosphorus
 by one unit in the last place: the book used 31.0, which gives 0.775).
-Copper is printed as "Cu2O/CuO" with both figures, so which one is not
-stated, and copper stays refused. Phosphorus, molybdenum and tungsten halides
-are refused too: no source says how many halogens they hold.
+Copper is printed as "Cu2O/CuO" with a figure for each (7.94 and 3.97 g of
+copper per g of O), which are copper(I) and copper(II): see the charge-matched
+rule below. Phosphorus, molybdenum and tungsten halides are refused: no source
+says how many halogens they hold.
 
 **WHERE IT DEPENDS ON ROLE, AND SO IS NOT USED:** iron is the metal in an
 oxidizer and Fe2O3 as a fuel; red lead goes to the metal (valence -8, "-2 if
 PbO is formed"); sodium azide's sodium is left as the metal. A drawn
-compound does not say which role it plays, so iron stays refused, and lead
-and sodium follow Meyer and Akhavan (PbO, Na2O). Teflon is printed at -4
+compound does not say which role it plays, so lead and sodium follow Meyer and
+Akhavan (PbO, Na2O), and iron follows its drawn charge instead (below). Teflon is printed at -4
 with its carbon left as C; the calculator refuses it, having no hydrogen or
 metal for its fluorine.
 
@@ -5118,9 +5119,21 @@ the code to them:
   perchlorate trihydrate (+38.1%) are printed for the anhydrous salt; lead
   styphnate monohydrate (-18.8%) and lead acetylsalicylate monohydrate
   (-98.7%) include their water.
-- **Iron.** Ferrocene (-223.6%) is burned to FeO and iron acetylacetonate
-  (printed 163.1%, the Fe2O3 value with its sign lost) to Fe2O3, so iron is
-  refused.
+
+**ONE THAT ONLY LOOKED LIKE A DISAGREEMENT, AND IS THE IRON AND COPPER RULE.**
+Ferrocene (-223.6%) is burned to FeO and iron acetylacetonate (printed
+"+163.1%": the sign is a misprint, the magnitude is Fe2O3 to the digit, FeO
+gives 160.8) to Fe2O3. They are iron(II) and iron(III). **No source states
+the rule**, but every value any of them prints follows it, so iron and
+copper burn to the oxide of the charge they are drawn with: Fe(II) to FeO,
+Fe(III) to Fe2O3, Cu(I) to Cu2O, Cu(II) to CuO ([source:conkling2019]'s
+Table 3.4 prints both copper oxides, 7.94 and 3.97 g of copper per g of O;
+[source:shancita2020]'s iron(III) and copper(II) iodates give Fe2O3 and
+CuO). A structure drawn with another charge, or none, is refused naming
+the atom, and the other oxide's figure is reported beside the answer, as for
+mercury. The rule is this project's, resting on those values; ferrocene and
+the acetylacetonate are its only printed iron checks, and copper has the
+two numeric columns and no printed balance.
 
 Boron does not occur in the book's balances at all; its product comes from
 [source:conkling2019] and [source:zeuner2003].

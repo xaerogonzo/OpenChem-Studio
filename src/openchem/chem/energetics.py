@@ -35,6 +35,16 @@ metal; Meyer and Akhavan burn lead to PbO) and iron, whose product it makes
 depend on whether the iron is a fuel or an oxidizer. An element in no source
 is refused by name.
 
+**IRON AND COPPER BURN TO THE OXIDE OF THE STATE THEY ARE DRAWN IN.** No source
+states this as a rule, and every source that prints a value follows it: Meyer's
+ferrocene (-223.6%) is FeO and its iron acetylacetonate (printed 163.1% with
+the sign lost) is Fe2O3, to the digit, which are iron(II) and iron(III);
+Conkling prints copper's product as "Cu2O/CuO" with a figure for each, which
+are copper(I) and copper(II); Shancita's iron(III) and copper(II) iodates
+decompose to Fe2O3 and CuO. So the oxide is read off the atom's formal
+charge (`_CHARGE_MATCHED`), and a structure drawn without one of the supported
+charges is refused. The other oxide's figure is reported beside the answer.
+
 **IODINE IS LEFT AS I2, AND THAT IS THE ONE PLACE A HALOGEN DOES NOT TAKE
 HYDROGEN.** He, Hooper & Shreeve [source:he2016] print the formula
 OB = 1600(c - b/2 - a)/MW for CaHbOcNdIe -- the CO basis, carbon taking one
@@ -260,17 +270,27 @@ _FLUORINE = ElementAccounting(
 #: The halogens a source gives a product for; each takes a partner.
 _HALOGENS = {"Cl": _CHLORINE, "F": _FLUORINE}
 #: Elements whose valence is not offered to a halogen (see `extended_oxygen_balance`).
+#: The two elements whose oxide is read off the drawn charge, as
+#: {element: {charge: (product, valence, why)}}. The valence IS the charge: the
+#: oxidation state of the metal in its oxide.
+_CHARGE_MATCHED: dict[str, dict[int, tuple[str, int]]] = {
+    "Fe": {2: ("FeO", 2), 3: ("Fe2O3", 3)},
+    "Cu": {1: ("Cu2O", 1), 2: ("CuO", 2)},
+}
+
+#: What pins each charge-matched element, for the result's evidence line.
+_CHARGE_MATCHED_PINS: dict[str, str] = {
+    "Fe": "Meyer's ferrocene -223.6% (iron(II) to FeO) and iron acetylacetonate "
+          "163.1% (iron(III) to Fe2O3); Shancita's iron(III) iodate to Fe2O3",
+    "Cu": "Conkling & Mocella Table 3.4, Cu2O 7.94 and CuO 3.97 g of copper per g "
+          "of O; Shancita's copper(II) iodate to CuO",
+}
+
 #: Phosphorus, molybdenum and tungsten join them: no source says how many
 #: halogens their chlorides hold (PCl3 and PCl5 differ, as do MoCl5 and MoCl6),
 #: so a halide of theirs is refused rather than counted at the oxide's valence.
 _NOT_A_HALOGEN_PARTNER = frozenset({"C", "N", "S", "B", "Si", "P", "Mo", "W"})
 
-#: Why a specific element is not covered, where there is more to say than
-#: "the source gives no product for it".
-_NOT_COVERED_BECAUSE = {
-    "Fe": ("Meyer burns one iron compound to FeO and another to Fe2O3, and Conkling & "
-           "Mocella take iron to the metal in an oxidizer but to Fe2O3 as a fuel"),
-}
 
 #: 100 x the atomic mass of oxygen. The source writes the constant as 1600
 #: rather than deriving it, and it is kept that way so the expression can be
@@ -428,6 +448,11 @@ class ExtendedOxygenBalance:
     #: it prints. None when no hydrogen took a chlorine (a metal chloride is
     #: the same number either way), or when fluorine shares the partners.
     chlorine_as_cl2: float | None = None
+    #: (element, product) for each charge-matched metal present, e.g. ("Fe", "FeO").
+    charge_products: tuple[tuple[str, str], ...] = ()
+    #: (element, other product, balance with it) for each charge-matched metal:
+    #: the same structure with that metal in the other oxidation state.
+    alternatives: tuple[tuple[str, str, float], ...] = ()
 
     @property
     def applicable(self) -> bool:
@@ -443,9 +468,16 @@ class ExtendedOxygenBalance:
         for element, _ in self.counts:
             if element == "O":
                 continue
+            if element in _CHARGE_MATCHED:
+                continue
             accounting = _HALOGENS.get(element) or _PRODUCTS[element]
             rows.append((element, accounting.product))
+        rows.extend(self.charge_products)
         return tuple(rows)
+
+
+def _roman(charge: int) -> str:
+    return {1: "(I)", 2: "(II)", 3: "(III)"}.get(charge, f"({charge})")
 
 
 def extended_oxygen_balance(mol: Chem.Mol | None) -> ExtendedOxygenBalance:
@@ -474,18 +506,48 @@ def extended_oxygen_balance(mol: Chem.Mol | None) -> ExtendedOxygenBalance:
     formula = rdMolDescriptors.CalcMolFormula(mol)
     counts = tuple(sorted(tally.items()))
 
-    uncovered = sorted(e for e in tally if e not in _PRODUCTS and e != "O" and e not in _HALOGENS)
+    uncovered = sorted(
+        e for e in tally
+        if e not in _PRODUCTS and e != "O" and e not in _HALOGENS and e not in _CHARGE_MATCHED)
     if uncovered:
-        reasons = [_NOT_COVERED_BECAUSE[e] for e in uncovered if e in _NOT_COVERED_BECAUSE]
-        detail = (
-            f"the source gives no product for {', '.join(uncovered)} in this structure"
-            if not reasons else
-            f"this structure contains {', '.join(uncovered)}, and {'; '.join(reasons)}"
-        )
+        detail = f"no source gives a product for {', '.join(uncovered)}"
         return ExtendedOxygenBalance(
             refusal=OxygenBalanceRefusal.UNCOVERED_ATOM, detail=detail,
             formula=formula, counts=counts,
         )
+
+    # Iron and copper: the oxide of the drawn charge, or a refusal naming the atom.
+    matched_valence: dict[str, int] = {}
+    switched_valence: dict[str, int] = {}
+    products: dict[str, set[str]] = {}
+    for atom in counted.GetAtoms():
+        element = atom.GetSymbol()
+        if element not in _CHARGE_MATCHED:
+            continue
+        table = _CHARGE_MATCHED[element]
+        charge = atom.GetFormalCharge()
+        if charge not in table:
+            states = " and ".join(
+                f"{element}{_roman(q)} to {p}" for q, (p, _) in sorted(table.items()))
+            drawn = "no charge" if charge == 0 else f"a charge of {charge:+d}"
+            return ExtendedOxygenBalance(
+                refusal=OxygenBalanceRefusal.UNCOVERED_ATOM,
+                detail=(
+                    f"this structure draws {element} with {drawn}, and the sources burn "
+                    f"{states}, so the oxide can only be told from a drawn "
+                    f"{' or '.join(f'{q:+d}' for q in sorted(table))}"),
+                formula=formula, counts=counts,
+            )
+        matched_valence[element] = matched_valence.get(element, 0) + table[charge][1]
+        # the same atom in the other state, for the alternative figure
+        other = next(q for q in table if q != charge)
+        switched_valence[element] = switched_valence.get(element, 0) + table[other][1]
+        products.setdefault(element, set()).add(table[charge][0])
+
+    def element_valence(element: str, number: int) -> int:
+        if element in _CHARGE_MATCHED:
+            return matched_valence[element]
+        return _PRODUCTS[element].valence * number
 
     halogens = sum(tally.get(h, 0) for h in _HALOGENS)
     # What can take a halogen: each hydrogen, and each valence of a metal whose
@@ -495,7 +557,7 @@ def extended_oxygen_balance(mol: Chem.Mol | None) -> ExtendedOxygenBalance:
     # and not mercury or silver, which Meyer leaves unoxidised and so has no
     # valence to give.
     partners = sum(
-        _PRODUCTS[e].valence * n
+        element_valence(e, n)
         for e, n in tally.items()
         if e not in _NOT_A_HALOGEN_PARTNER and e != "O" and e not in _HALOGENS
     )
@@ -517,13 +579,13 @@ def extended_oxygen_balance(mol: Chem.Mol | None) -> ExtendedOxygenBalance:
         return ExtendedOxygenBalance(refusal=OxygenBalanceRefusal.NO_ATOMS)
 
     half_oxygens = sum(
-        _PRODUCTS[e].valence * n for e, n in tally.items() if e != "O" and e not in _HALOGENS
+        element_valence(e, n) for e, n in tally.items() if e != "O" and e not in _HALOGENS
     ) - halogens
     needed = half_oxygens / 2
     # Metals take chlorine first, so what a HYDROGEN took is the remainder.
     chlorine = tally.get("Cl", 0)
     metal_valences = sum(
-        _PRODUCTS[e].valence * n for e, n in tally.items()
+        element_valence(e, n) for e, n in tally.items()
         if e not in _NOT_A_HALOGEN_PARTNER and e not in ("O", "H") and e not in _HALOGENS
     )
     on_hydrogen = max(0, chlorine - metal_valences)
@@ -531,9 +593,23 @@ def extended_oxygen_balance(mol: Chem.Mol | None) -> ExtendedOxygenBalance:
     if on_hydrogen and "F" not in tally:
         as_cl2 = (tally.get("O", 0) - (half_oxygens + on_hydrogen) / 2) \
             * _PERCENT_TIMES_OXYGEN_MASS / mass
+    alternatives = []
+    for element in sorted(matched_valence):
+        shifted = half_oxygens - matched_valence[element] + switched_valence[element]
+        # a chloride the new state could not hold has no figure to give
+        if halogens > partners - matched_valence[element] + switched_valence[element]:
+            continue
+        other_product = next(
+            p for q, (p, _) in _CHARGE_MATCHED[element].items() if p not in products[element])
+        alternatives.append((
+            element, other_product,
+            (tally.get("O", 0) - shifted / 2) * _PERCENT_TIMES_OXYGEN_MASS / mass))
     return ExtendedOxygenBalance(
         to_full_oxidation=(tally.get("O", 0) - needed) * _PERCENT_TIMES_OXYGEN_MASS / mass,
         chlorine_as_cl2=as_cl2,
+        charge_products=tuple(
+            (e, "/".join(sorted(products[e]))) for e in sorted(products)),
+        alternatives=tuple(alternatives),
         formula=formula,
         molecular_weight=mass,
         counts=counts,
@@ -707,8 +783,13 @@ def _extended_report(result: ExtendedOxygenBalance, molecule_uuid: str, places: 
     beyond = [(e, p) for e, p in result.products if e not in CHNO]
     assumed = tuple(
         f"{element} to {product}: the product the source's printed balances use "
-        f"({(_HALOGENS.get(element) or _PRODUCTS[element]).pinned_by})."
+        f"({_CHARGE_MATCHED_PINS[element] if element in _CHARGE_MATCHED else (_HALOGENS.get(element) or _PRODUCTS[element]).pinned_by})."
         for element, product in beyond
+    ) + tuple(
+        f"{element} burned to {product} instead (the other oxidation state) gives "
+        f"{value:+.{places}f}% for this structure; the oxide used is the one matching "
+        f"the charge {element} is drawn with."
+        for element, product, value in result.alternatives
     )
     if result.chlorine_as_cl2 is not None:
         assumed += (

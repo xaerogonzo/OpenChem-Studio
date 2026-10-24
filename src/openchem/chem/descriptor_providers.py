@@ -3719,7 +3719,7 @@ CALCULATOR_DEFINITIONS: list[CalculatorDefinition] = [
             "reported, because they are different quantities for the same substance: "
             "TNT is -74.0% burning carbon to CO2 and -24.7% burning it only to CO, and "
             "a substance can be negative on one and positive on the other. Beyond "
-            "C/H/N/O, sulfur, chlorine, fluorine, iodine, boron, silicon, phosphorus and eighteen metals are "
+            "C/H/N/O, sulfur, chlorine, fluorine, iodine, boron, silicon, phosphorus and twenty metals are "
             "burned to the products the sources state or print (Meyer's Explosives, "
             "Conkling & Mocella's pyro valences: SO2, HCl or HF or the metal's halide, "
             "B2O3, each metal's oxide), on the CO2 basis only, with every assumed "
