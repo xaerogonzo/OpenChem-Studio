@@ -44,7 +44,8 @@ def joback_coverage(mol: Chem.Mol) -> Coverage | None:
 
 
 def hansen_coverage(mol: Chem.Mol) -> Coverage | None:
-    """Hansen: the refusal of `fragment`, and a limit where it runs but a parameter has no published contribution.
+    """Hansen: the refusal of `fragment`, and a limit where it runs but a parameter has no published contribution
+    or the structure is outside the paper's stated domain (fewer than three carbons: computed and labelled).
 
     The second is the calculator's own `parameter_value`, which `compute_hansen` reports as "not available"
     for that parameter, so a row saying "with limits" matches a result that shows a gap.
@@ -58,6 +59,9 @@ def hansen_coverage(mol: Chem.Mol) -> Coverage | None:
     if missing:
         names = ", ".join(hansen._LABELS[which] for which in missing)
         return Coverage.caveat(f"no value will be available for {names}: a group in this molecule has no published contribution for it.")
+    if result.outside_domain:
+        # Computed and labelled, not refused: the sentence is the one the result's numbers carry.
+        return Coverage.caveat(result.outside_domain)
     return Coverage.covered()
 
 

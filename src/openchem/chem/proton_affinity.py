@@ -11,7 +11,7 @@ THE PROTOCOL. `PA = H(B) + H(H+) - H(BH+)` and `GB = G(B) + G(H+) - G(BH+)` at 2
 * THE SYMMETRY NUMBER IS OVERRIDDEN: ORCA gave a C3v H3O+ the number 1, which is 0.65 kcal/mol in G; `rotational_symmetry_number` counts the proper rotations from the graph's automorphisms and `symmetry_correction_eh` is added to ORCA's Gibbs energy. The enthalpy has no symmetry term.
 * No Boltzmann averaging over conformers: the lowest structure only.
 
-WHAT IT CANNOT SAY (the benchmark's own limits): 28 neutral bases of at most ten heavy atoms with H, C, N, O, P and S; nothing about larger or charged bases, radicals, metals, halogens or solutions. A base outside that scope is refused by `check_scope`, not computed with an unmeasured error. A structure that keeps an imaginary mode after the one re-run is dropped, so a base with no accepted structure has no value (the benchmark lost water to it: its H3O+ optimized planar, a saddle point).
+WHAT IT CANNOT SAY (the benchmark's own limits): 28 neutral bases of at most ten heavy atoms with H, C, N, O, P and S; nothing about larger bases, metals, halogens or solutions. A base the protocol CANNOT compute (charged, a radical, several components, an element the basis set lacks) is refused by `check_scope`; a base it can compute but the benchmark did not measure (larger, other elements) is computed, and `scope_warnings` says what was not measured so the window asks first and the result says the measured error does not apply (Alex, 2026-10-23: a shortcoming of our benchmarking is a warning, not a refusal). A structure that keeps an imaginary mode after the one re-run is dropped, so a base with no accepted structure has no value (the benchmark lost water to it: its H3O+ optimized planar, a saddle point).
 """
 from __future__ import annotations
 
@@ -67,15 +67,19 @@ IMAGINARY_CM = -20.0
 #: ORCA's memory per core in MB (the benchmark's setting).
 MAXCORE_MB = 3000
 
-#: What the benchmark measured: the elements and the size of its 28 bases.
+#: What the benchmark measured: the elements and the size of its 28 bases. Outside them a base is still computed, with a warning (`scope_warnings`).
 SUPPORTED_ELEMENTS = frozenset({1, 6, 7, 8, 15, 16})
-#: The largest base the benchmark measured, in heavy atoms.
+#: The largest base the benchmark measured, in heavy atoms: the edge of the measured error, not of what can be computed.
 MAX_HEAVY_ATOMS = 10
+#: The elements the def2 basis sets carry (H to Rn, the lanthanides excepted): what the protocol can compute at all; anything else is refused.
+BASIS_ELEMENTS = frozenset(set(range(1, 57)) | set(range(72, 87)))
+#: The d-block metals: computable, but the protocol assumes a closed-shell singlet, which many of their compounds are not, so the warning says so.
+D_BLOCK = frozenset(set(range(21, 31)) | set(range(39, 49)) | set(range(72, 81)))
 
-#: The elements whose lone pair is a protonation site: N, O, P and S.
-LONE_PAIR_ELEMENTS = {7, 8, 15, 16}  # N, O, P, S
+#: The elements whose lone pair is a protonation site: N, O, P and S (the benchmark's), and the halogens and selenium, which none of its bases had: a base with only those is computed with a warning, not refused.
+LONE_PAIR_ELEMENTS = {7, 8, 15, 16, 9, 17, 35, 53, 34}  # N, O, P, S; F, Cl, Br, I, Se
 #: The X-H distance (Angstrom) a new proton starts at, by the atomic number of X.
-XH_DISTANCE = {6: 1.09, 7: 1.02, 8: 0.97, 15: 1.42, 16: 1.34}
+XH_DISTANCE = {6: 1.09, 7: 1.02, 8: 0.97, 15: 1.42, 16: 1.34, 9: 0.93, 17: 1.28, 35: 1.42, 53: 1.61, 34: 1.47}
 
 
 class OutOfScope(ValueError):
@@ -156,26 +160,39 @@ def base_from_smiles(smiles: str) -> Chem.Mol:
 
 
 def check_scope(mol: Chem.Mol) -> Chem.Mol:
-    """Returns `mol` if it is the kind of base the benchmark measured, else raises OutOfScope saying which limit it passes.
-
-    The kind: one neutral closed-shell molecule of at most ten heavy atoms made of H, C, N, O, P and S (carbon monoxide, the benchmark's one charge-separated structure, is allowed)."""
+    """Returns `mol` if the protocol can compute it at all, else raises OutOfScope saying why: one neutral closed-shell molecule (carbon monoxide, the benchmark's one charge-separated
+    structure, is allowed) of elements the basis set carries, with a protonation site. Every job is written as a neutral base and a +1 ion, so a charged or open-shell input would be computed
+    WRONGLY, not merely without a measured error. What the benchmark did not measure is not refused here: see `scope_warnings`."""
     if len(Chem.GetMolFrags(mol)) != 1:
         raise OutOfScope("more than one component: a base is one molecule")
     heavy = sum(1 for a in mol.GetAtoms() if a.GetAtomicNum() > 1)
     if heavy == 0:
         raise OutOfScope("no heavy atom to protonate")
-    if heavy > MAX_HEAVY_ATOMS:
-        raise OutOfScope(f"{heavy} heavy atoms: the benchmark measured bases of at most {MAX_HEAVY_ATOMS}")
-    odd = sorted({a.GetSymbol() for a in mol.GetAtoms() if a.GetAtomicNum() not in SUPPORTED_ELEMENTS})
-    if odd:
-        raise OutOfScope(f"{', '.join(odd)}: the benchmark measured only H, C, N, O, P and S")
+    missing = sorted({a.GetSymbol() for a in mol.GetAtoms() if a.GetAtomicNum() not in BASIS_ELEMENTS})
+    if missing:
+        raise OutOfScope(f"{', '.join(missing)}: the def2-TZVPD basis set has no functions for it")
     if any(a.GetNumRadicalElectrons() for a in mol.GetAtoms()):
         raise OutOfScope("a radical: the benchmark measured closed-shell bases")
     if _is_charged(mol):
         raise OutOfScope("a charged or zwitterionic structure: the benchmark measured neutral bases")
     if not candidate_sites(mol):
-        raise OutOfScope("no protonation site (no N, O, S or P lone pair and no pi-system carbon)")
+        raise OutOfScope("no protonation site (no N, O, S, P, halogen or Se lone pair and no pi-system carbon)")
     return mol
+
+
+def scope_warnings(mol: Chem.Mol) -> list[str]:
+    """What the benchmark did not measure about this base, one sentence each (empty inside the measured scope). Computed anyway; the window asks first and the result says the measured error does not apply."""
+    warnings = []
+    heavy = sum(1 for a in mol.GetAtoms() if a.GetAtomicNum() > 1)
+    if heavy > MAX_HEAVY_ATOMS:
+        warnings.append(f"{heavy} heavy atoms: the benchmark measured bases of at most {MAX_HEAVY_ATOMS}")
+    odd = sorted({a.GetSymbol() for a in mol.GetAtoms() if a.GetAtomicNum() not in SUPPORTED_ELEMENTS})
+    if odd:
+        warnings.append(f"{', '.join(odd)}: the benchmark measured only H, C, N, O, P and S")
+    metals = sorted({a.GetSymbol() for a in mol.GetAtoms() if a.GetAtomicNum() in D_BLOCK})
+    if metals:
+        warnings.append(f"{', '.join(metals)}: the protocol assumes a closed-shell singlet, which many metal compounds are not")
+    return warnings
 
 
 def _is_charged(mol: Chem.Mol) -> bool:
@@ -489,15 +506,18 @@ BENCHMARK = {
 }
 
 
-def validation_note(quantity: str) -> str:
-    """The sentence that goes beside a PA ('pa') or GB ('gb') value: what the protocol scored against NIST, and what that does not cover."""
+def validation_note(quantity: str, outside: list[str] | None = None) -> str:
+    """The sentence that goes beside a PA ('pa') or GB ('gb') value: what the protocol scored against NIST, what that does not cover, and, for a base outside the measured scope (`outside`, from `scope_warnings`), that the error above does not apply to it."""
     stats = BENCHMARK[quantity]
     kj = KCAL_TO_KJ
-    return (
+    note = (
         f"{METHOD_LABEL} protocol benchmarked on {BENCHMARK['bases']} bases against the {BENCHMARK['reference']}: mean absolute error {stats['mae']:.2f} kcal/mol ({stats['mae'] * kj:.1f} kJ/mol), "
         f"mean signed error {stats['mse']:+.2f} kcal/mol (the proton is bound too weakly), largest {stats['max']:.2f}. Measured for neutral bases of at most {MAX_HEAVY_ATOMS} heavy atoms of H, C, N, O, P and S; "
         "the lowest structure is used, with no Boltzmann averaging."
     )
+    if outside:
+        note += " OUTSIDE WHAT WAS MEASURED (" + "; ".join(outside) + "): the error above was not measured for this base, so read the value as an estimate."
+    return note
 
 
 # --- the sequence of jobs --------------------------------------------------------------------------------------------------
@@ -514,6 +534,8 @@ class Sequence:
     def __init__(self, smiles: str) -> None:
         self.smiles = smiles
         self.base = base_from_smiles(smiles)  # raises OutOfScope
+        #: what the benchmark did not measure about this base (computed anyway; see `scope_warnings`)
+        self.scope_warnings = scope_warnings(self.base)
         self.structures = build_structures(self.base, key="mol")
         self._queue: list[tuple[dict, bool]] = [(s, False) for s in self.structures]
         self.current: tuple[dict, bool] | None = None
@@ -600,6 +622,7 @@ def descriptors(sequence: Sequence, molecule_uuid: str, run_id: str = "", timest
         "sites": [{"atom": row.atom, "element": row.element, "kind": row.kind, "pa_kj": row.pa_kcal * KCAL_TO_KJ, "gb_kj": row.gb_kcal * KCAL_TO_KJ, "structures": row.structures,
                    "chosen_pa": row.chosen_pa, "chosen_gb": row.chosen_gb} for row in result.sites],
         "lowest_structure_only": True,
+        "within_measured_scope": not sequence.scope_warnings, "outside_measured_scope": list(sequence.scope_warnings),
     }
     if run_id:
         common["run_id"] = run_id
@@ -608,7 +631,7 @@ def descriptors(sequence: Sequence, molecule_uuid: str, run_id: str = "", timest
         ("pa", result.pa_kj, result.pa_site, PA_DESCRIPTOR_ID, "Proton affinity (298.15 K)"),
         ("gb", result.gb_kj, result.gb_site, GB_DESCRIPTOR_ID, "Gas-phase basicity (298.15 K)"),
     ):
-        parameters = dict(common, quantity=quantity, validation=validation_note(quantity), site_atom=site)
+        parameters = dict(common, quantity=quantity, validation=validation_note(quantity, sequence.scope_warnings), site_atom=site)
         if site is not None:
             parameters["site_element"] = sequence.base.GetAtomWithIdx(site).GetSymbol()
         provenance = Provenance(created_by="core", method=METHOD_LABEL, parameters=parameters, **({} if now is None else {"timestamp": now}))

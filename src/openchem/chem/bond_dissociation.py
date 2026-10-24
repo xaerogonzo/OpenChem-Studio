@@ -47,12 +47,14 @@ S2_FLAG_EXCESS = 0.05
 #: The id of the hydrogen atom's structure.
 ATOM_ID = "atom|H"
 
-#: What the benchmarks measured: the elements and the size of the molecules.
+#: What the benchmarks measured: the elements and the size of the molecules. Outside them a molecule is still computed, with a warning (`scope_warnings`).
 SUPPORTED_ELEMENTS = frozenset({1, 6, 7, 8, 16})
-#: The largest parent the benchmarks measured, in heavy atoms (benzoic acid, a bond whose reference is too loose to decide; the deciding bonds go up to seven, toluene).
+#: The largest parent the benchmarks measured, in heavy atoms (benzoic acid, a bond whose reference is too loose to decide; the deciding bonds go up to seven, toluene): the edge of the measured error, not of what can be computed.
 MAX_HEAVY_ATOMS = 9
-#: The elements whose X-H bond this calculates.
-BOND_ELEMENTS = {6: "C", 7: "N", 8: "O", 16: "S"}
+#: The elements the def2 basis sets carry (the proton-affinity protocol's): what can be computed at all.
+BASIS_ELEMENTS = pa.BASIS_ELEMENTS
+#: The bond classes whose error was measured (`BENCHMARK`); a bond of another element is computed with a warning.
+MEASURED_BOND_ELEMENTS = frozenset({"C", "N", "O", "S", "Si"})
 #: The most bonds one run computes: each costs up to three radical optimizations.
 MAX_BONDS = 6
 
@@ -99,26 +101,45 @@ def molecule_from_smiles(smiles: str) -> Chem.Mol:
 
 
 def check_scope(mol: Chem.Mol) -> Chem.Mol:
-    """Returns `mol` if it is the kind of molecule the benchmarks measured, else raises OutOfScope saying which limit it passes.
-
-    The kind: one neutral closed-shell molecule of at most nine heavy atoms made of H, C, N, O and S, with at least one C-H, N-H, O-H or S-H bond."""
+    """Returns `mol` if the protocol can compute it at all, else raises OutOfScope saying why: one neutral closed-shell molecule of elements the basis set carries, with at least one X-H bond.
+    Every job is written as a neutral parent (a singlet) and a neutral doublet radical, so a charged or open-shell input would be computed WRONGLY, not merely without a measured error. What the
+    benchmarks did not measure is not refused here: see `scope_warnings`."""
     if len(Chem.GetMolFrags(mol)) != 1:
         raise OutOfScope("more than one component: a bond dissociation enthalpy is one molecule's")
     heavy = sum(1 for a in mol.GetAtoms() if a.GetAtomicNum() > 1)
     if heavy == 0:
         raise OutOfScope("no heavy atom: there is no X-H bond")
+    missing = sorted({a.GetSymbol() for a in mol.GetAtoms() if a.GetAtomicNum() not in BASIS_ELEMENTS})
+    if missing:
+        raise OutOfScope(f"{', '.join(missing)}: the def2-TZVPD basis set has no functions for it")
+    if any(a.GetNumRadicalElectrons() for a in mol.GetAtoms()):
+        raise OutOfScope("a radical: the protocol computes a closed-shell parent and its doublet radical")
+    if any(a.GetFormalCharge() for a in mol.GetAtoms()):
+        raise OutOfScope("a charged or zwitterionic structure: the protocol computes a neutral parent and a neutral radical")
+    if not bond_classes(mol):
+        raise OutOfScope("no bond between a heavy atom and a hydrogen")
+    return mol
+
+
+def scope_warnings(mol: Chem.Mol, atoms: list[int] | None = None) -> list[str]:
+    """What the benchmarks did not measure about this molecule and, when `atoms` names the chosen bonds, about those bonds (empty inside the measured scope). Computed anyway; the window asks first
+    and the result says the measured error does not apply."""
+    warnings = []
+    heavy = sum(1 for a in mol.GetAtoms() if a.GetAtomicNum() > 1)
     if heavy > MAX_HEAVY_ATOMS:
-        raise OutOfScope(f"{heavy} heavy atoms: the benchmarks measured molecules of at most {MAX_HEAVY_ATOMS}")
+        warnings.append(f"{heavy} heavy atoms: the benchmarks measured molecules of at most {MAX_HEAVY_ATOMS}")
     odd = sorted({a.GetSymbol() for a in mol.GetAtoms() if a.GetAtomicNum() not in SUPPORTED_ELEMENTS})
     if odd:
-        raise OutOfScope(f"{', '.join(odd)}: the benchmarks measured only H, C, N, O and S")
-    if any(a.GetNumRadicalElectrons() for a in mol.GetAtoms()):
-        raise OutOfScope("a radical: the benchmarks measured closed-shell molecules")
-    if any(a.GetFormalCharge() for a in mol.GetAtoms()):
-        raise OutOfScope("a charged or zwitterionic structure: the benchmarks measured neutral molecules")
-    if not bond_classes(mol):
-        raise OutOfScope("no C-H, N-H, O-H or S-H bond")
-    return mol
+        warnings.append(f"{', '.join(odd)}: the benchmarks measured molecules of only H, C, N, O and S")
+    metals = sorted({a.GetSymbol() for a in mol.GetAtoms() if a.GetAtomicNum() in pa.D_BLOCK})
+    if metals:
+        warnings.append(f"{', '.join(metals)}: the protocol assumes a closed-shell parent and a simple doublet radical, which many metal compounds are not")
+    if atoms is not None:
+        classes = {b["atom"]: b for b in bond_classes(mol)}
+        unmeasured = sorted({classes[a]["element"] for a in atoms if a in classes and classes[a]["element"] not in MEASURED_BOND_ELEMENTS})
+        if unmeasured:
+            warnings.append(f"{', '.join(e + '-H' for e in unmeasured)} bonds: no bond of that kind was measured")
+    return warnings
 
 
 # --- the bonds --------------------------------------------------------------------------------------------------------------
@@ -132,7 +153,7 @@ def bond_classes(mol: Chem.Mol) -> list[dict]:
     seen: set[int] = set()
     out = []
     for atom in mol.GetAtoms():
-        symbol = BOND_ELEMENTS.get(atom.GetAtomicNum())
+        symbol = atom.GetSymbol() if atom.GetAtomicNum() > 1 else None
         hydrogens = sum(1 for n in atom.GetNeighbors() if n.GetAtomicNum() == 1)
         if symbol is None or not hydrogens or ranks[atom.GetIdx()] in seen:
             continue
@@ -357,11 +378,13 @@ BENCHMARK = {
     "O-H": {"n": 4, "mae": 1.68, "mse": -1.68, "max": 1.93},
     "O-H next to O or N": {"n": 4, "mae": 3.30, "mse": -3.30, "max": 4.57},
     "S-H": {"n": 1, "mae": 1.39, "mse": -1.39, "max": 1.39},
+    "Si-H": {"n": 1, "mae": 2.92, "mse": -2.92, "max": 2.92},
 }
 
 
-def validation_note(class_keys: list[str]) -> str:
-    """The sentence that goes beside a result: what the protocol scored, in the classes this molecule's bonds belong to, and what that does not cover."""
+def validation_note(class_keys: list[str], outside: list[str] | None = None) -> str:
+    """The sentence that goes beside a result: what the protocol scored, in the classes this molecule's bonds belong to, what that does not cover, and, for a molecule or bond outside the measured scope
+    (`outside`, from `scope_warnings`), that the error above does not apply to it."""
     total = BENCHMARK["all"]
     parts = [
         (f"{METHOD_LABEL} protocol benchmarked on {total['n']} X-H bonds against experiment and the Active Thermochemical Tables: mean absolute error {total['mae']:.2f} kcal/mol ({total['mae'] * KCAL_TO_KJ:.1f} kJ/mol), "
@@ -376,6 +399,8 @@ def validation_note(class_keys: list[str]) -> str:
     if "S-H" in class_keys:
         parts.append("An S-H bond's radical may have no value: the benchmark's CH3S radical kept a -1306 cm-1 mode after the re-run.")
     parts.append(f"Measured for neutral closed-shell molecules of at most {MAX_HEAVY_ATOMS} heavy atoms of H, C, N, O and S; the lowest structure is used, with no Boltzmann averaging.")
+    if outside:
+        parts.append("OUTSIDE WHAT WAS MEASURED (" + "; ".join(outside) + "): the error above was not measured for this, so read the value as an estimate.")
     return " ".join(parts)
 
 
@@ -402,6 +427,8 @@ class Sequence:
         if len(set(chosen)) != len(chosen):
             raise OutOfScope("a bond was chosen twice")
         self.atoms = chosen
+        #: what the benchmarks did not measure about this molecule and these bonds (computed anyway; see `scope_warnings`)
+        self.scope_warnings = scope_warnings(self.mol, chosen)
         self.structures = build_structures(self.mol, chosen, key="mol")
         self._queue: list[tuple[dict, bool]] = [(s, False) for s in self.structures]
         self.current: tuple[dict, bool] | None = None
@@ -486,7 +513,8 @@ def descriptors(sequence: Sequence, molecule_uuid: str, run_id: str = "", timest
     value = None if weakest is None else weakest.dh_kj
     parameters = {
         "method": METHOD_LABEL, "program": "ORCA", "temperature_k": T_STANDARD, "pressure_atm": 1.0, "smiles": sequence.smiles, "quantity": "bond_dissociation_enthalpy",
-        "hydrogen_atom_translation_kcal": 2.5 * h * HARTREE_TO_KCAL, "validation": validation_note(class_keys),
+        "hydrogen_atom_translation_kcal": 2.5 * h * HARTREE_TO_KCAL, "validation": validation_note(class_keys, sequence.scope_warnings),
+        "within_measured_scope": not sequence.scope_warnings, "outside_measured_scope": list(sequence.scope_warnings),
         "bonds": [{"atom": b.atom, "element": b.element, "label": b.label, "class": b.class_key, "dh_kj": b.dh_kj, "dh_kcal": b.dh_kcal, "s2": b.s2, "spin_contaminated": b.spin_contaminated,
                    "structures": b.structures, "weakest": b.weakest, "reason": b.reason} for b in result.bonds],
         "bonds_without_value": sum(1 for b in result.bonds if b.dh_kcal is None), "parent_structures": result.parent_structures, "dropped_structures": list(result.dropped),

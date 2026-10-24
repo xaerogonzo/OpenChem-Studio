@@ -441,8 +441,8 @@ _HELP: dict[str, HelpTooltip] = {
             "gas-phase proton affinity (an enthalpy) and gas-phase basicity (a Gibbs energy) in kJ/mol at 298.15 K, the best "
             "site and every site's own value.\n\n"
             "Measured against NIST on 28 bases: mean absolute error about 1.5 kcal/mol, with the proton bound about 1.2 "
-            "kcal/mol too weakly. Only neutral closed-shell bases of at most ten heavy atoms of H, C, N, O, P and S are "
-            "accepted; anything else is refused with the reason.\n\n"
+            "kcal/mol too weakly, for neutral bases of at most ten heavy atoms of H, C, N, O, P and S. A base outside that is "
+            "still computed after a warning, the result labelled an estimate; a charged or radical structure is refused with the reason.\n\n"
             "Many ORCA jobs (minutes to hours). A structure that keeps an imaginary vibration after one re-run is dropped, "
             "so a base can end with no value, and the result says why."
         ),
@@ -457,8 +457,9 @@ _HELP: dict[str, HelpTooltip] = {
             "reports the homolytic bond dissociation enthalpy at 298.15 K in kJ/mol: the weakest bond computed, and every bond's own "
             "value or the reason it has none.\n\n"
             "Measured on 49 bonds against experiment and the Active Thermochemical Tables: mean absolute error about 1.5 kcal/mol, with "
-            "every class running LOW by about 1.4 kcal/mol, and an O-H next to another oxygen or a nitrogen low by 3.3. Only neutral "
-            "closed-shell molecules of at most nine heavy atoms of H, C, N, O and S are accepted; anything else is refused with the reason.\n\n"
+            "every class running LOW by about 1.4 kcal/mol, and an O-H next to another oxygen or a nitrogen low by 3.3. Measured for "
+            "neutral molecules of at most nine heavy atoms of H, C, N, O and S; outside that it still computes after a warning, the result labelled an estimate. "
+            "A charged or radical structure is refused with the reason.\n\n"
             "Many ORCA jobs (minutes to hours). A radical that keeps an imaginary vibration after one re-run (thiyl radicals do) gives "
             "that bond no value, and the result says why."
         ),
@@ -791,6 +792,20 @@ def _document_header(table: QTableWidget, keys: tuple[str, ...]) -> None:
 
 
 
+def _outside_scope_text(warnings: list[str]) -> str:
+    """The paragraph a run's question opens with when the molecule is outside what the benchmark measured (empty inside it): computed anyway, and said so."""
+    if not warnings:
+        return ""
+    return ("This molecule is outside what the benchmark measured: " + "; ".join(warnings) + ". It can still be computed, but the measured error does not apply to it, "
+            "so read the result as an estimate.\n\n")
+
+
+def _outside_scope_lines(parameters: dict) -> list[str]:
+    """The first line of a result computed outside the measured scope, from the output's own provenance (none inside it)."""
+    outside = parameters.get("outside_measured_scope") or []
+    return ["Outside what was measured (" + "; ".join(outside) + "): an estimate, the measured error does not apply."] if outside else []
+
+
 class _BondChoiceDialog(QDialog):
     """Which X-H bonds of the molecule to compute: one tick per bond class (equivalent atoms are one), each costing a radical optimization per conformer.
 
@@ -818,6 +833,8 @@ class _BondChoiceDialog(QDialog):
                 note = " -- measured to run lowest: low by 3.3 kcal/mol on average"
             elif bond["element"] == "S":
                 note = " -- the radical may have no value"
+            elif bond["element"] not in bond_dissociation.MEASURED_BOND_ELEMENTS:
+                note = " -- no bond of this kind was measured"
             box = QCheckBox(f"{bond['label']}{note}", self)
             box.setObjectName(f"bondChoice{number}")
             box.setChecked(number < bond_dissociation.MAX_BONDS)
@@ -2391,8 +2408,8 @@ class QuantumChemistryPanel(QWidget):
         """Runs the benchmarked proton-affinity protocol on the current structure (`QuantumChemistryService.request_proton_affinity`).
 
         Needs no pre-existing conformer (every structure is embedded fresh from the 2D structure) and no method choice: the protocol is exactly the one
-        that was measured, so the Method/basis box does not apply. A base outside what was measured is refused here with its reason, before anything is queued;
-        the number of ORCA jobs is named before a long run starts.
+        that was measured, so the Method/basis box does not apply. A base the protocol cannot compute is refused here with its reason, before anything is queued; one it can
+        compute but the benchmark did not measure is named in the question before it runs (computed anyway, labelled an estimate), as is the number of ORCA jobs of a long run.
         """
         molecule = self._current_molecule()
         if molecule is None or not molecule.molblock or not molecule.canonical_smiles:
@@ -2407,11 +2424,12 @@ class QuantumChemistryPanel(QWidget):
             self._status_label.setText(f"Proton affinity could not start: {error}")
             return
         jobs = sequence.total
-        if jobs > self._PROTON_AFFINITY_CONFIRM_ABOVE:
+        if jobs > self._PROTON_AFFINITY_CONFIRM_ABOVE or sequence.scope_warnings:
             answer = QMessageBox.question(
                 self,
                 "Run proton affinity?",
-                f"This will run {jobs} ORCA geometry optimizations with frequencies (M062X/def2-TZVPD) for the base and its conjugate acids, "
+                _outside_scope_text(sequence.scope_warnings)
+                + f"This will run {jobs} ORCA geometry optimizations with frequencies (M062X/def2-TZVPD) for the base and its conjugate acids, "
                 "one after another, and a structure that keeps an imaginary vibration is run once more. It can take minutes to hours. Continue?",
                 QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
                 QMessageBox.StandardButton.No,
@@ -2479,11 +2497,12 @@ class QuantumChemistryPanel(QWidget):
             self._status_label.setText(f"Bond dissociation could not start: {error}")
             return
         jobs = sequence.total
-        if jobs > self._BOND_DISSOCIATION_CONFIRM_ABOVE:
+        if jobs > self._BOND_DISSOCIATION_CONFIRM_ABOVE or sequence.scope_warnings:
             answer = QMessageBox.question(
                 self,
                 "Run bond dissociation?",
-                f"This will run {jobs} ORCA jobs (M062X/def2-TZVPD: the hydrogen atom, then optimizations with frequencies of the molecule and of each radical), one after another, "
+                _outside_scope_text(sequence.scope_warnings)
+                + f"This will run {jobs} ORCA jobs (M062X/def2-TZVPD: the hydrogen atom, then optimizations with frequencies of the molecule and of each radical), one after another, "
                 "and a structure that keeps an imaginary vibration is run once more. It can take minutes to hours. Continue?",
                 QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
                 QMessageBox.StandardButton.No,
@@ -3147,7 +3166,7 @@ class QuantumChemistryPanel(QWidget):
         if pa is None or pa.provenance is None:
             return []
         parameters = pa.provenance.parameters
-        lines = []
+        lines = _outside_scope_lines(parameters)
         sites = parameters.get("sites") or []
         if sites:
             lines.append("Protonation sites (atom, element: PA / GB in kJ/mol; * marks the one reported):")
@@ -3167,7 +3186,7 @@ class QuantumChemistryPanel(QWidget):
         if bde is None or bde.provenance is None:
             return []
         parameters = bde.provenance.parameters
-        lines = []
+        lines = _outside_scope_lines(parameters)
         bonds = parameters.get("bonds") or []
         if bonds:
             lines.append("Bonds (kJ/mol and kcal/mol; * marks the weakest, the one reported above):")

@@ -163,16 +163,44 @@ def test_cancelling_the_dialog_queues_nothing_and_leaves_the_buttons_alone(qapp,
     assert service.bond_requests == [] and panel._bond_dissociation_button.isEnabled() and panel._run_button.isEnabled() and not panel._cancel_button.isEnabled()
 
 
-def test_a_molecule_the_benchmarks_did_not_measure_is_refused_before_the_question_is_asked(qapp, dispose, answer_dialog):
-    panel, _molecule, service, _bus = _panel_with("CCl")
+def test_a_molecule_the_protocol_cannot_compute_is_refused_before_the_question_is_asked(qapp, dispose, answer_dialog):
+    panel, _molecule, service, _bus = _panel_with("C[N+](C)(C)C")
     dispose(panel)
     seen = answer_dialog()
 
     panel._on_bond_dissociation_clicked()
 
     assert seen == [] and service.bond_requests == []
-    assert "does not apply" in panel._status_label.text() and "Cl" in panel._status_label.text()
+    assert "does not apply" in panel._status_label.text() and "charged" in panel._status_label.text()
     assert panel._bond_dissociation_button.isEnabled() and panel._run_button.isEnabled()
+
+
+def test_a_molecule_the_benchmarks_did_not_measure_asks_first_and_runs_on_yes(qapp, dispose, answer_dialog, monkeypatch):
+    panel, _molecule, service, _bus = _panel_with("CCl")  # chlorine: computable, not measured
+    dispose(panel)
+    answer_dialog()
+    asked = []
+
+    def answer(reply):
+        def question(parent, title, text, *args, **kwargs):
+            asked.append(text)
+            return reply
+        return question
+
+    monkeypatch.setattr(QMessageBox, "question", answer(QMessageBox.StandardButton.No))
+    panel._on_bond_dissociation_clicked()
+    assert service.bond_requests == [] and "outside what the benchmark measured" in asked[0] and "Cl:" in asked[0]
+
+    monkeypatch.setattr(QMessageBox, "question", answer(QMessageBox.StandardButton.Yes))
+    panel._on_bond_dissociation_clicked()
+    assert len(service.bond_requests) == 1
+
+
+def test_the_dialog_marks_a_bond_of_a_kind_that_was_never_measured(qapp):
+    dialog = panel_module._BondChoiceDialog(bd.describe_bonds("c1ccccc1P"), None)
+    texts = [box.text() for box in dialog._boxes]
+    assert any(t.startswith("PH2-H") and t.endswith("no bond of this kind was measured") for t in texts)
+    dialog.deleteLater()
 
 
 def test_a_long_run_names_its_job_count_and_can_be_declined(qapp, dispose, answer_dialog, monkeypatch):

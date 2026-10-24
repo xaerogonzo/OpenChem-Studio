@@ -270,6 +270,15 @@ def test_hansen_says_with_limits_when_a_parameter_will_be_missing(monkeypatch):
     assert coverage.kind is CoverageKind.CAVEAT and "hydrogen" in coverage.reason.lower()
 
 
+def test_hansen_says_with_limits_below_three_carbons_with_the_sentence_its_numbers_carry():
+    """Ethanol is computed and labelled outside the stated domain, not refused: the row says so and quotes the label."""
+    ethanol = _mol(PANEL["ethanol"])
+    coverage = coverage_hooks.hansen_coverage(ethanol)
+    assert coverage.kind is CoverageKind.CAVEAT
+    assert coverage.reason == hansen.OUTSIDE_DOMAIN_NOTE.format(n=2)
+    assert coverage_hooks.hansen_coverage(_mol("CCCO")).kind is CoverageKind.COVERED
+
+
 def test_an_unreadable_structure_is_a_fault_not_a_limit_and_makes_no_claim():
     assert coverage_hooks.griffin_hlb_coverage(None) is None
     assert coverage_hooks.oxygen_balance_coverage(None) is None

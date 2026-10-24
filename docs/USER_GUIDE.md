@@ -1927,9 +1927,12 @@ basicity**, with the proton bound **about 1.2 kcal/mol too weakly** on average, 
 low. The reference values are themselves uncertain by about 8 kJ/mol. Every result repeats this beside the
 number.
 
-**What is refused, and what can be missing.** It applies to a single neutral closed-shell base of at most ten
-heavy atoms made of H, C, N, O, P and S; a charged or radical species, a mixture, another element or a larger
-molecule is refused with its reason, because no error was measured for it. A structure whose optimization
+**What was measured, what is refused, and what can be missing.** The error above was measured for single neutral
+closed-shell bases of at most ten heavy atoms made of H, C, N, O, P and S. A base outside that (larger, or with a
+halogen, silicon or a metal) is still computed: the button says what was not measured and asks before it runs,
+and the result says the measured error does not apply, so read it as an estimate. Only what the protocol cannot
+compute is refused, with its reason: a charged or radical species (every job is written as a neutral base and a
++1 ion), a mixture, a base with no protonation site, or an element the basis set lacks. A structure whose optimization
 keeps an imaginary vibration after one re-run is dropped, and a base or acid with none left has no value: the
 result says which structures were dropped, and PA and GB can be missing separately (the benchmark lost water
 this way). The lowest structure is used, with no averaging over conformers. The calculation is marked **limited**: driven
@@ -1954,9 +1957,12 @@ experiment and 27 held out against the Active Thermochemical Tables. The mean ab
 a nitrogen** (a peroxide, a hydroxylamine, an oxime) ran low by **3.3 kcal/mol, up to 4.6**. The bias is not
 corrected. Every result repeats this beside the number, for the classes of the bonds you chose.
 
-**What is refused, and what can be missing.** It applies to a single neutral closed-shell molecule of at most
-nine heavy atoms made of H, C, N, O and S; anything else is refused with its reason, because no error was measured
-for it. A radical whose optimization keeps an imaginary vibration after one re-run gives that bond no value, and
+**What was measured, what is refused, and what can be missing.** The error above was measured for single neutral
+closed-shell molecules of at most nine heavy atoms made of H, C, N, O and S, and for C-H, N-H, O-H, S-H and Si-H
+bonds. A molecule or bond outside that is still computed: the button says what was not measured and asks before it
+runs, and the result says the measured error does not apply. Only what the protocol cannot compute is refused, with
+its reason: a charged or radical species (the jobs are a neutral parent and a neutral doublet radical), a mixture,
+a molecule with no X-H bond, or an element the basis set lacks. A radical whose optimization keeps an imaginary vibration after one re-run gives that bond no value, and
 the result says which structure and why: thiyl radicals (an S-H bond) do this, so the window marks S-H bonds. If
 the hydrogen atom's own job fails, nothing can be computed and the run stops. The calculation is experimental
 until it has been driven through the application on real ORCA; it is hidden from the Properties launcher by
