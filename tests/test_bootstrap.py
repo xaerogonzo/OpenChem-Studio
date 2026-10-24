@@ -44,6 +44,7 @@ def test_calculator_registry_includes_docking_and_quantum_chemistry_categories(q
         # conjugate acid. Its benchmark passed; EXPERIMENTAL and hidden until it
         # has been driven through the application on real ORCA.
         "orca.proton_affinity",
+        "orca.bond_dissociation_enthalpy",
     }
 
     for definition in registry.by_category("docking") + registry.by_category("quantum_chemistry"):

@@ -96,3 +96,26 @@ uv run --no-sync python benchmarks/bde/run_bde.py report                        
 ```
 
 Same rules as the proton-affinity run: no edit to `src/` between the first job and the report, one stage at a time, no threshold changed after the report is seen, the DLPNO arm only if the primary arm passes.
+
+## The calculator (2026-10-23): what Alex decided and what it states
+
+The first run was PARTIAL and the rule said building was Alex's decision; he decided the calculator is wanted ("I would like to fix anything if it can be fixed"), so after the displaced restart (`benchmarks/restart_v2/`: not adopted, thiyl radicals not rescued) and the held-out arm (**PASS**, 27 ATcT bonds, mean absolute error 1.25, mean signed -1.25, nothing missing) the calculator is built **with the first run's protocol unchanged**, in three stacked changes like proton affinity: the chemistry (`src/openchem/chem/bond_dissociation.py`, held to both benchmarks' records by `tests/test_bond_dissociation_calculation.py`), the service sequence, and the registered calculator with the panel button, help and a recorded driven run on real ORCA.
+
+**What a result states, beside every number** (`BENCHMARK`, recomputed from the committed records by a test): 49 deciding bonds in all (the first run's 22 computed against Blanksby and Ellison, the 27 held-out against ATcT), mean absolute error **1.48 kcal/mol**, mean signed error **-1.38** (the calculation runs LOW, and only HCN's C-H is above its reference), largest 4.57; by class C-H 32 bonds MAE 1.28, N-H 7 bonds 1.02, ordinary O-H 4 bonds 1.68, and **O-H next to another oxygen or a nitrogen 4 bonds, mean absolute error 3.30, all low, up to 4.57** (hydrogen peroxide, methyl hydroperoxide, hydroxylamine, formaldoxime). **That last class was separated after the results were seen**, which the stated note says; it is a description of what the records show, not a preregistered stratum.
+The bias is NOT subtracted: the preregistered bias test did not reproduce the first run's -1.53 on the held-out bonds (-1.25, interval -1.50 to -1.01), so a correction was not supported.
+
+**What it refuses or may not give:** molecules with an element outside H, C, N, O, S (silane, the one Si bond, is out), charged or open-shell ones, more than nine heavy atoms (the largest measured), several components. **A bond whose radical keeps an imaginary mode after the one re-run has no value, named with its reason**: the benchmark lost methanethiol's S-H that way and the stress set's ethanethiyl radicals were not rescued by the displaced restart (0 of 2), so S-H bonds are offered with that warning and one measured bond (H2S, -1.39) is not an error bar.
+**The headline is one number**, the weakest bond among those computed (the bonds chosen are listed, and a bond with no value is listed beside it with its reason); the per-bond values are in the result's table. A run computes at most six bonds: each costs up to three radical optimizations on top of the parent's, one after another.
+
+### The driven run on real ORCA (2026-10-23)
+
+`benchmarks/visual/bond_dissociation_run.json` was driven through the real window (the real button, the real bond-choice dialog ticked through its own widgets, ORCA 6.1.1) on commit `44158e14` of the stage-3 branch, clean `src/`, nothing else running ORCA: **VERDICT PASS, 6 of 6 assertions**, 14 minutes. Chloromethane was refused before the dialog opened; cancelling the dialog queued nothing; and the values read back from the STORED result reproduce the first benchmark run's records:
+
+| bond | driven run | first run's record |
+|---|---|---|
+| methanol C-H (the weakest, the headline) | 397.76 kJ/mol | 397.76 |
+| methanol O-H | 429.82 | 429.82 |
+| hydrogen peroxide O-H | 355.62 | 355.62 |
+| methanethiol S-H | no value: the radical still at -1326 cm-1 after the one re-run | no value (-1328 cm-1) |
+
+**The first attempt at this run FAILED, and the cause was not found.** On the same code an hour earlier, the refusal and the cancel passed but all three runs failed at their first job: the hydrogen atom's output was handed to the sequence within a second of the job starting, without ORCA's closing line, so the run correctly stopped with "the hydrogen atom's single point failed". The same input runs to completion in ORCA directly, through the real service in a script (HCN, 539.0 kJ/mol) and through the window twice since. It happened while another session's test suite was finishing; nothing in the application's log says what ended the ORCA process. It is recorded here because a run that failed once for an unknown reason is a fact about the run, not something a later pass erases. If it recurs, the drive's wrapper that keeps each job's handed output (used for the passing run) is the way to see it.
