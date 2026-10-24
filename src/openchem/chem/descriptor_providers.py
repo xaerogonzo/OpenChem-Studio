@@ -77,7 +77,7 @@ from openchem.chem.hlb import compute_griffin_hlb
 from openchem.chem.energetics import compute_detonation, compute_oxygen_balance
 from openchem.chem.aromaticity import compute_aromaticity, compute_bird_index
 from openchem.chem.hansen import compute_hansen
-from openchem.chem.joback import compute_joback, preflight_reason as joback_preflight
+from openchem.chem.joback import compute_joback
 from openchem.chem.huckel import compute_huckel_analysis, compute_pi_electron_density
 from openchem.chem.lewis import compute_lewis_sites
 from openchem.chem.lewis_adduct import (
@@ -152,7 +152,7 @@ from openchem.chem.topology_analysis import (
     compute_topology_analysis,
 )
 from openchem.domain.mass_spectrum import DEFAULT_ION, SUPPORTED_IONS
-from openchem.chem import components
+from openchem.chem import components, coverage_hooks
 from openchem.chem.components import drawing_label
 from openchem.domain.calculator import (
     ELEMENT_OUTSIDE_PARAMETER_SET,
@@ -3640,6 +3640,7 @@ CALCULATOR_DEFINITIONS: list[CalculatorDefinition] = [
             "applications, so the two must not be reported under one label."
         ),
         execution=RegistryExecution(compute=compute_griffin_hlb),
+        preflight=coverage_hooks.griffin_hlb_coverage,
         prediction_basis="empirical",
         tags=["surface", "surfactant", "hlb", "formulation"],
         parameters=[decimal_places_parameter()],
@@ -3724,6 +3725,7 @@ CALCULATOR_DEFINITIONS: list[CalculatorDefinition] = [
             "something is."
         ),
         execution=RegistryExecution(compute=compute_oxygen_balance),
+        preflight=coverage_hooks.oxygen_balance_coverage,
         prediction_basis="empirical",
         tags=["energetic", "oxygen balance", "combustion", "stoichiometry"],
         parameters=[decimal_places_parameter(1)],
@@ -3745,6 +3747,7 @@ CALCULATOR_DEFINITIONS: list[CalculatorDefinition] = [
             "given a reference by analogy. Needs a 3D conformer."
         ),
         execution=RegistryExecution(compute=compute_bird_index),
+        preflight=coverage_hooks.bird_coverage,
         calculation_input=GEOMETRY,
         prediction_basis="empirical",
         tags=["aromaticity", "bird", "ring", "geometry", "bond order"],
@@ -3771,6 +3774,7 @@ CALCULATOR_DEFINITIONS: list[CalculatorDefinition] = [
             "force field's own)."
         ),
         execution=RegistryExecution(compute=compute_aromaticity),
+        preflight=coverage_hooks.homa_coverage,
         calculation_input=GEOMETRY,
         prediction_basis="empirical",
         tags=["aromaticity", "homa", "ring", "geometry", "krygowski"],
@@ -3794,6 +3798,7 @@ CALCULATOR_DEFINITIONS: list[CalculatorDefinition] = [
             "atom in no group rather than returning a partial sum."
         ),
         execution=RegistryExecution(compute=compute_hansen),
+        preflight=coverage_hooks.hansen_coverage,
         prediction_basis="empirical",
         tags=["solubility", "hansen", "hildebrand", "solvent", "group contribution"],
         parameters=[decimal_places_parameter(2)],
@@ -3816,7 +3821,7 @@ CALCULATOR_DEFINITIONS: list[CalculatorDefinition] = [
             "times the error."
         ),
         execution=RegistryExecution(compute=compute_joback),
-        preflight=joback_preflight,
+        preflight=coverage_hooks.joback_coverage,
         prediction_basis="empirical",
         # LIMITED, and hidden by default, on MEASURED evidence rather than a
         # judgement: on 2026-09-24 this implementation ran on TNT, PETN and

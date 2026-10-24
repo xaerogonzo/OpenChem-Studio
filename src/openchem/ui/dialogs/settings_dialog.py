@@ -55,6 +55,7 @@ from openchem.app.settings import (
     RECALC_QUIET_MS,
     RECOVERY_DELAY_SECONDS,
     RECOVERY_ENABLED,
+    STRUCTURE_COVERAGE,
     Preference,
     Settings,
 )
@@ -195,6 +196,21 @@ _HELP = {
         ),
         tier=2,
         help_id="settings.recalc_mode",
+        topic="settings",
+        help_anchor="settings",
+    ),
+    "structure_coverage": HelpTooltip(
+        text=(
+            "On (the default): before you run anything, each calculator in Properties says whether the structure "
+            "on screen is one it takes -- Can run, With limits (it runs, and the tooltip says what the limit is), "
+            "or Not applicable (it will refuse, and the tooltip says why). Rows that open another panel show a "
+            "check, a triangle or a circle before their name. Rows with no check say nothing.\n\n"
+            "The check is the calculator's own refusal test, run once each time the structure settles (never while "
+            "you drag), about 5 ms for all calculators together. Off: nothing is checked and every row says Not run "
+            "until you run it."
+        ),
+        tier=2,
+        help_id="settings.structure_coverage",
         topic="settings",
         help_anchor="settings",
     ),
@@ -582,6 +598,9 @@ class SettingsDialog(QDialog):
         self._recovery_delay.setEnabled(checked)
         self._store(RECOVERY_ENABLED, checked)
 
+    def _on_structure_coverage_toggled(self, checked: bool) -> None:
+        self._store(STRUCTURE_COVERAGE, checked)
+
     def _on_recovery_delay_changed(self, seconds: int) -> None:
         self._store(RECOVERY_DELAY_SECONDS, seconds)
 
@@ -628,6 +647,11 @@ class SettingsDialog(QDialog):
         layout.addWidget(_heading("Recalculation", page))
         layout.addLayout(mode_row)
         layout.addLayout(delay_row)
+        self._structure_coverage = QCheckBox("Say whether each calculator takes the structure, before I run it", page)
+        self._structure_coverage.setObjectName("structureCoverage")
+        self._structure_coverage.setChecked(bool(self._settings.preference(STRUCTURE_COVERAGE)))
+        apply_help_tooltip(self._structure_coverage, _HELP["structure_coverage"])
+        self._structure_coverage.toggled.connect(self._on_structure_coverage_toggled)
         layout.addWidget(_note(
             "Results are marked Stale the moment you edit, whichever you choose; this decides "
             "when they are refreshed. Recomputing fifty results for every bond you draw made "
@@ -635,6 +659,8 @@ class SettingsDialog(QDialog):
             "Recalculate Now (F5) does it whenever you ask.",
             page,
         ))
+        layout.addSpacing(8)
+        layout.addWidget(self._structure_coverage)
         layout.addStretch(1)
         return page
 

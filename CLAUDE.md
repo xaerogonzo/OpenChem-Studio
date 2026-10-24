@@ -266,6 +266,10 @@ OPENCHEM_DRIVE=/path/to/script.json uv run --no-sync python -m openchem.main
                                           PRESS a status chip and assert where
                                           the press went; `tool_setup` is the
                                           window half of a "Needs setup" press
+    {"do": "expect_coverage", "chips": {"griffin_hlb": "Can run"}, "rows": {"orca.proton_affinity": "✓"},
+     "silent": [...], "tooltips": {...}}  what the Properties rows SAY about the drawn structure before any run
+                                          (`domain/structure_coverage.py`), read off the chips and service-row
+                                          labels; Settings > Recalculation switches it off
     {"do": "inspector_report", "tag": "after-edit"}  the Atom Inspector's
                                           pinned line, HELD results and state
     {"do": "inspect", "id": "geometry_partial_charge", "parameters": {"ph_dependent": true}}

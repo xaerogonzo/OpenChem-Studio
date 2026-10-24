@@ -117,6 +117,7 @@ def test_the_stored_keys_are_stable_names():
         "quantum_chemistry/fukui_cation_search",
         "quantum_chemistry/psi4_memory_gb",
         "quantum_chemistry/psi4_threads",
+        "compute/structure_coverage",
     }
 
 
