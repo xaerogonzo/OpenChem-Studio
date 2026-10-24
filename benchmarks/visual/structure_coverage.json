@@ -22,8 +22,8 @@
 
   {"do": "select", "molecule": 2, "after_ms": 2500},
   {"do": "expect_coverage", "tag": "surfactant", "chips": {"griffin_hlb": "Can run", "oxygen_balance": "Can run", "joback_properties": "Can run", "hansen_solubility": "Can run"},
-   "rows": {"orca.proton_affinity": "○", "orca.bond_dissociation_enthalpy": "○"},
-   "tooltips": {"orca.proton_affinity": ["heavy atoms", "known not to apply"]}},
+   "rows": {"orca.proton_affinity": "△", "orca.bond_dissociation_enthalpy": "△"},
+   "tooltips": {"orca.proton_affinity": ["heavy atoms", "accepted, with a limit"]}},
   {"do": "properties_grab", "path": "artifacts/visual/structure_coverage_surfactant.png"},
 
   {"do": "select", "molecule": 3, "after_ms": 2500},

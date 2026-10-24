@@ -92,9 +92,9 @@ reads "Not run" as before; switching it takes effect at once.
 
 ## Follow-ups that depend on open pull requests
 
-* Proton affinity and BDE (#447) turn "outside what was measured" into a warning. Their hooks call
-  `check_scope`, which stays the refusal; once `scope_warnings` is on master the hooks return a caveat
-  from it.
+* Proton affinity and BDE (#447, merged) turn "outside what was measured" into a warning. Their hooks call
+  `check_scope`, which stays the refusal, and return a caveat from `scope_warnings`. The bonds of a BDE run
+  are chosen later, so only the molecule-level warnings are known when a row is drawn.
 * Hansen (#448, merged) computes fewer than three carbons and labels it; the hook returns a caveat from
   `outside_domain`, so the row reads "With limits" and quotes the label.
 
