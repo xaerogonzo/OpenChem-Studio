@@ -1,0 +1,15 @@
+{
+ "paper": "hou2018_ghrelin_pet",
+ "decision": "excluded",
+ "exclusion_reason": "lead_route_over_4_steps",
+ "exclusion_detail": "Lead 10b (picomolar fluorine-bearing compound, the abstract's best affinity) needs 6 reactions: benzoxazinone from 2-amino-5-bromobenzoic acid + 2-fluorobenzoyl chloride (6), ring opening with (R)-1-Boc-3-(aminomethyl)piperidine (7), LiOH/ethylene glycol cyclisation to quinazolinone (8), Cu-catalysed Ullmann ether with 6-hydroxybenzothiazole, Boc removal (9b), N-isopropylation (10b).",
+ "lead": {
+  "label": "10b",
+  "why": "Abstract: 'one fluorine-bearing compound (10b) with picomolar binding affinity (20 pM), representing the highest binding affinity for GHS-R1a reported to date'; the Results call it 'the best candidate for developing into a radiotracer'."
+ },
+ "target": null,
+ "reactions": [],
+ "alt_variants": [],
+ "other_qualifying_compounds": [],
+ "notes": "Abstract also names 5b and 5e as 'lead compounds' that were 18F-radiolabelled, and 5i and 17 as subnanomolar. 10b was taken as the lead because it is the 'best' compound named; 5b/5e are radiolabelling precursors/leads (radiochemistry would also be out of scope). All final compounds need at least 5 steps (3 for the quinazolinone core, Ullmann, Boc removal), so none qualifies under the 4-step limit. 10c needs 6 as well."
+}

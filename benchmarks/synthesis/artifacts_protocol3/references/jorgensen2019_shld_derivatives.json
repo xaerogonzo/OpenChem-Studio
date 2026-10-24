@@ -1,0 +1,12 @@
+{
+ "paper": "jorgensen2019_shld_derivatives",
+ "decision": "excluded",
+ "exclusion_reason": "no_lead_identifiable",
+ "exclusion_detail": "The abstract describes a series of 35 Shld analogues and says only that 'some' are better than Shld and 'generally small, polar substituents showed the best GFP accumulation'; no compound is named. The paper has no single follow-up compound either: the discussion names several (29, 30 and 32 as best in plants with Erel 113%, 126%, 107%; 25, 29, 30, 32, 34 as most potent binders). Choosing one would be arbitrary. The analogues are in any case assembled from the A, B and C fragments in many steps (Schemes 1-9).",
+ "lead": {"label": "none", "why": "Abstract: 'Generally small, polar substituents showed the best GFP accumulation' (no compound named); discussion lists 29, 30, 32 as best analogues in the plant assay."},
+ "target": null,
+ "reactions": [],
+ "alt_variants": [],
+ "other_qualifying_compounds": null,
+ "notes": "Only the main text was read (abstract, discussion, scheme list); the experimental part in this file was not examined for step counts. Truncated analogue 35 is made by coupling commercial 3-(3,4-dimethoxyphenyl)propanol with intermediate 56 (itself a multi-step B-C fragment), so it is unlikely to be short."
+}

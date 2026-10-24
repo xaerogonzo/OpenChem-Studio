@@ -1,0 +1,17 @@
+{
+ "paper": "olmo2024_benzalphthalides_maob",
+ "my_lead": "16 (3',4'-dichloro-BPH): abstract 'The most potent compound with IC50 = 0.6 nM was the 3',4'-dichloro-BPH 16'",
+ "lead_agrees": true,
+ "reactions": [
+  {
+   "step": 1,
+   "ok": true,
+   "issue": ""
+  }
+ ],
+ "leaf_issues": [],
+ "step_count_ok": true,
+ "smiles_issues": [],
+ "overall": "confirmed",
+ "notes": "Method A (phthalic anhydride 2.2 mmol, arylacetic acid 2.7 mmol, KOAc 0.26 mmol, toluene, Dean-Stark, 220-240 C), compound 16: 4 h, 58%, mp 196-198 C, HRMS C15H9Cl2O2. Reactants correct (1:1); potassium acetate correctly omitted as base/catalyst (Results section says 'potassium carbonate', experimental says acetate: no effect). Z geometry: I parsed O/C(=C\\Ar) as O and aryl cis = Z, matching the paper (all BPHs Z by NOE/ROESY). 3,4-Dichlorophenylacetic acid is not named, inferred from the product name (certain). Leaves: 'All commercial chemicals (Aldrich, Alpha, Fischer, SDS) were used as purchased' (4.1.1). One step."
+}

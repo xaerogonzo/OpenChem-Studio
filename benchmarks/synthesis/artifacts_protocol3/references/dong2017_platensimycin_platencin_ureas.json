@@ -1,0 +1,15 @@
+{
+ "decision": "excluded",
+ "exclusion_reason": "route_not_explicit",
+ "exclusion_detail": "The starting material platensimycin (1) is isolated from a 6 L fermentation of Streptomyces platensis SB12029 (not purchased); the route (HCl hydrolysis to platensic acid, DPPA Curtius, coupling with ADHBA) is therefore not from commercial starting materials.",
+ "lead": {
+  "label": "7 (urea-PTM)",
+  "why": "No single best compound is named; the paper (title and abstract) features the urea- and carbamate-PTM analogues; urea-PTM (7), the first named and the one with the 35% route, is taken as lead. Carbamate-PTM (8) has the identical problem."
+ },
+ "target": null,
+ "reactions": [],
+ "alt_variants": [],
+ "other_qualifying_compounds": [],
+ "notes": "Route would otherwise be 3 steps (9 from PTM; azide/isocyanate; coupling with 3-amino-2,4-dihydroxybenzoic acid), but PTM is a fermentation product.",
+ "paper": "dong2017_platensimycin_platencin_ureas"
+}

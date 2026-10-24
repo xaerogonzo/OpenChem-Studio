@@ -1,0 +1,12 @@
+{
+ "paper": "boraei2019_triazoles_parp1",
+ "decision": "excluded",
+ "exclusion_reason": "no_lead_identifiable",
+ "exclusion_detail": "The abstract speaks only of 'identified lead molecules' without naming any. Six hits (3, 4, 5, 6, 7, 11) are all taken through the same follow-up assays (MTT, wound healing, BrdU, PARP-1 cleavage), so rule 2 gives no single compound either (5 and 7 are the most potent PARP-1 inhibitors; 7 is the most effective in MTT).",
+ "lead": {"label": "none (3, 4, 5, 6, 7, 11 tested together; 5 and 7 most potent in the enzyme assay)", "why": "Abstract: 'the identified lead molecules were efficiently impeding cell migration and cell proliferation'; text: 'compounds 5 and 7 proved to be the most potent compounds tested'."},
+ "target": null,
+ "reactions": [],
+ "alt_variants": [],
+ "other_qualifying_compounds": ["3", "4", "5", "6", "7"],
+ "notes": "The route is explicit in section 4.3-4.7 (indole-2-carbohydrazide 1 + PhNCS in EtOH -> thiosemicarbazide 2 -> reflux 4 N KOH -> triazolethione 3; then 3 + 1-bromopropan-2-ol/K2CO3 -> 5; 3 + allyl bromide/Et3N -> 6; 3 + 2 allyl bromide/K2CO3 -> 7 (or 6 + allyl bromide); 3 + acetobromoglucose/NaHCO3 -> 4). So 3 = 2 steps, 4/5/6 = 3 steps, 7 = 3 steps. Indole-2-carbohydrazide is bought ('all the reagents were purchased'). If a looser lead rule is allowed, 7 (most frequent best performer) or 5 (most potent PARP-1 IC50 0.33 uM) would be the natural pick. Compound 11 route (8, 9, 10, 11) is 5 steps."
+}

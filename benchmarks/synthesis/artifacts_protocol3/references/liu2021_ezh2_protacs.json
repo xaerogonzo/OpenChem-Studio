@@ -1,0 +1,12 @@
+{
+ "paper": "liu2021_ezh2_protacs",
+ "decision": "excluded",
+ "exclusion_reason": "lead_route_over_4_steps",
+ "exclusion_detail": "The abstract names E7 (an EPZ6438-based PROTAC). Its route from commercial materials is about 10 reactions: hydroxythalidomide 1b from 1a, bromoalkyl ether 1c-k, and the EPZ6438-type amine 2g (nitro reduction, two reductive aminations, ester hydrolysis, amide coupling, Suzuki coupling, Boc-type deprotection from 2a), then the final N-alkylation.",
+ "lead": {"label": "E7", "why": "Preliminary assessment identified E7 as the most active PROTAC molecule, which decreased PRC2 subunits and H3K27me2/3 levels in various cancer cells."},
+ "target": null,
+ "reactions": [],
+ "alt_variants": [],
+ "other_qualifying_compounds": ["G4", "G5", "G6", "G7", "G8"],
+ "notes": "The GSK126-based PROTACs G4-G12 take 3 steps (1a + 3-aminopiperidine-2,6-dione -> 1b; 1b + dibromoalkane -> 1c-k; 1c-k + commercial GSK126 -> G). GSK126 is used as purchased (all chemicals stated to be commercial). Not transcribed."
+}

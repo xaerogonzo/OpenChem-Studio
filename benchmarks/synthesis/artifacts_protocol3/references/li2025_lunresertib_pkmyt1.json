@@ -1,0 +1,67 @@
+{
+ "paper": "li2025_lunresertib_pkmyt1",
+ "decision": "route",
+ "exclusion_reason": null,
+ "exclusion_detail": "",
+ "lead": {"label": "RP-6306 (lunresertib)", "why": "Title/abstract: process development of 'an efficient, robust, and scalable synthetic route that allows the rapid production of large quantities of lunresertib drug substance (RP-6306)'; it is the paper's target API."},
+ "target": {"name": "2-amino-1-(3-hydroxy-2,6-dimethylphenyl)-5,6-dimethyl-1H-pyrrolo[2,3-b]pyridine-3-carboxamide (racemate 7; RP-6306 is its (S)-atropisomer)", "smiles": "NC(=O)c1c(N)n(-c2c(C)ccc(O)c2C)c2nc(C)c(C)cc12"},
+ "reactions": [
+  {"step": 1,
+   "product": {"label": "5", "name": "3-Bromo-N-(3-methoxy-2,6-dimethylphenyl)-5,6-dimethylpyridin-2-amine", "smiles": "Cc1ccc(OC)c(C)c1Nc1nc(C)c(C)cc1Br"},
+   "reactants": [
+    {"label": "4", "name": "3-methoxy-2,6-dimethylaniline", "smiles": "Cc1ccc(OC)c(C)c1N", "origin": "commercial"},
+    {"label": "3", "name": "2,3-dibromo-5,6-dimethyl-pyridine", "smiles": "Cc1nc(Br)c(Br)cc1C", "origin": "commercial"}
+   ],
+   "conditions": "4 (1 equiv), 3 (1.1 equiv), Cs2CO3 (2 equiv), XantPhos (0.06 equiv), Pd(OAc)2 (0.02 equiv), DME, 85 C, 20 h; precipitated with water, reslurried in EtOH; 82 %.",
+   "source": "Experimental section, p.1683 (Buchwald-Hartwig amination, 5)"},
+  {"step": 2,
+   "product": {"label": "2", "name": "2-Amino-1-(3-methoxy-2,6-dimethylphenyl)-5,6-dimethyl-1H-pyrrolo[2,3-b]-pyridine-3-carbonitrile", "smiles": "N#Cc1c(N)n(-c2c(C)ccc(OC)c2C)c2nc(C)c(C)cc12"},
+   "reactants": [
+    {"label": "5", "name": "3-Bromo-N-(3-methoxy-2,6-dimethylphenyl)-5,6-dimethylpyridin-2-amine", "smiles": "Cc1ccc(OC)c(C)c1Nc1nc(C)c(C)cc1Br", "origin": "made_here"},
+    {"label": "malononitrile", "name": "malononitrile", "smiles": "N#CCC#N", "origin": "reagent"}
+   ],
+   "conditions": "Malononitrile (1.2 equiv), NaOtBu (1.5 equiv), DME; then 5, dppf (0.02 equiv), Pd(dppf)Cl2.CH2Cl2 (0.02 equiv), 85 C, 22 h; 74 % of racemic 2.",
+   "source": "Experimental section, p.1683 (Pd-mediated coupling/intramolecular cyclisation, 2)"},
+  {"step": 3,
+   "product": {"label": "7 (racemic RP-6306)", "name": "2-amino-1-(3-hydroxy-2,6-dimethylphenyl)-5,6-dimethyl-1H-pyrrolo[2,3-b]pyridine-3-carboxamide", "smiles": "NC(=O)c1c(N)n(-c2c(C)ccc(O)c2C)c2nc(C)c(C)cc12"},
+   "reactants": [
+    {"label": "2", "name": "2-Amino-1-(3-methoxy-2,6-dimethylphenyl)-5,6-dimethyl-1H-pyrrolo[2,3-b]-pyridine-3-carbonitrile", "smiles": "N#Cc1c(N)n(-c2c(C)ccc(OC)c2C)c2nc(C)c(C)cc12", "origin": "made_here"},
+    {"label": "water", "name": "water", "smiles": "O", "origin": "reagent"}
+   ],
+   "conditions": "One pot: MsOH containing a controlled amount of water, 44 C, 8 h (nitrile hydration to the primary amide); then DL-methionine (4 equiv), 75 C, 20 h (O-demethylation); quench into water, pH 7-9 with NaOH, THF reslurry (crude 100 %), recrystallisation from MeOH/water (76 %). In the paper this is done on the resolved (S)-2 (1R)-camphorsulfonate 8, giving (S)-RP-6306; the resolution is a separation, so the reference target is the racemate.",
+   "source": "Experimental section, p.1683; text p.1682 (one-pot hydration/demethylation); medicinal chemistry route to racemate 7 in the Results text p.1677"}
+ ],
+ "alt_variants": [
+  [
+   {"step": 1,
+    "product": {"label": "5", "name": "3-Bromo-N-(3-methoxy-2,6-dimethylphenyl)-5,6-dimethylpyridin-2-amine", "smiles": "Cc1ccc(OC)c(C)c1Nc1nc(C)c(C)cc1Br"},
+    "reactants": [
+     {"label": "4", "name": "3-methoxy-2,6-dimethylaniline", "smiles": "Cc1ccc(OC)c(C)c1N", "origin": "commercial"},
+     {"label": "3", "name": "2,3-dibromo-5,6-dimethyl-pyridine", "smiles": "Cc1nc(Br)c(Br)cc1C", "origin": "commercial"}
+    ],
+    "conditions": "As main variant.", "source": "p.1683"},
+   {"step": 2,
+    "product": {"label": "2", "name": "2-Amino-1-(3-methoxy-2,6-dimethylphenyl)-5,6-dimethyl-1H-pyrrolo[2,3-b]-pyridine-3-carbonitrile", "smiles": "N#Cc1c(N)n(-c2c(C)ccc(OC)c2C)c2nc(C)c(C)cc12"},
+    "reactants": [
+     {"label": "5", "name": "", "smiles": "Cc1ccc(OC)c(C)c1Nc1nc(C)c(C)cc1Br", "origin": "made_here"},
+     {"label": "malononitrile", "name": "malononitrile", "smiles": "N#CCC#N", "origin": "reagent"}
+    ],
+    "conditions": "As main variant.", "source": "p.1683"},
+   {"step": 3,
+    "product": {"label": "1/6 (racemic methyl ether amide)", "name": "2-amino-1-(3-methoxy-2,6-dimethylphenyl)-5,6-dimethyl-1H-pyrrolo[2,3-b]pyridine-3-carboxamide", "smiles": "NC(=O)c1c(N)n(-c2c(C)ccc(OC)c2C)c2nc(C)c(C)cc12"},
+    "reactants": [
+     {"label": "2", "name": "", "smiles": "N#Cc1c(N)n(-c2c(C)ccc(OC)c2C)c2nc(C)c(C)cc12", "origin": "made_here"},
+     {"label": "water", "name": "water", "smiles": "O", "origin": "reagent"}
+    ],
+    "conditions": "MsOH/water, 40-44 C, 1 h (initial two-step process, Scheme 5 text, p.1682; medicinal chemistry route used H2SO4/MsOH).", "source": "p.1682"},
+   {"step": 4,
+    "product": {"label": "7 (racemic RP-6306)", "name": "2-amino-1-(3-hydroxy-2,6-dimethylphenyl)-5,6-dimethyl-1H-pyrrolo[2,3-b]pyridine-3-carboxamide", "smiles": "NC(=O)c1c(N)n(-c2c(C)ccc(O)c2C)c2nc(C)c(C)cc12"},
+    "reactants": [
+     {"label": "1/6", "name": "", "smiles": "NC(=O)c1c(N)n(-c2c(C)ccc(OC)c2C)c2nc(C)c(C)cc12", "origin": "made_here"}
+    ],
+    "conditions": "DL-methionine, methanesulfonic acid (O-demethylation).", "source": "p.1682"}
+  ]
+ ],
+ "other_qualifying_compounds": null,
+ "notes": "Lead is the (S)-atropisomer RP-6306, obtained from racemic 2 only by classical resolution ((R)-CSA salt 8, anisole) plus recrystallisation, so per the brief the target is the racemate (no stereo in the SMILES; atropisomer axis unspecified). Resolution/recrystallisation steps are separations and not counted. Name of the racemate is the printed RP-6306 name with '(S)-' dropped. Experimental text labels the product of step 1 as '3' at the end of its procedure ('afford 3 as a yellow solid'), a typo for 5. Compounds 3 and 4 are used as received with no preparation (treated as commercial; the paper does not state a supplier). The 3 steps in the main route are the paper's process steps; alt_variant is the earlier non-telescoped two-step hydration then demethylation (4 steps). Authors' Scheme 2 (medicinal chemistry route) gives the same racemate via 6 then 7."
+}

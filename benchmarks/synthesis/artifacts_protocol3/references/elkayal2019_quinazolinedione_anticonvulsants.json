@@ -1,0 +1,37 @@
+{
+ "paper": "elkayal2019_quinazolinedione_anticonvulsants",
+ "decision": "route",
+ "exclusion_reason": null,
+ "exclusion_detail": "",
+ "lead": {"label": "7m", "why": "Abstract: 'Pharmacological studies have revealed the leader compound 2-(2,4-dioxo-1,4-dihydroquinazolin-3(2H)-yl)-N-[(2,4-dichlorophenyl)methyl]acetamide, which improved all the experimental convulsive syndrome rates in mice ...' (7m, R = CH2-2,4-diClC6H5)."},
+ "target": {"name": "2-(2,4-dioxo-1,4-dihydroquinazolin-3(2H)-yl)-N-[(2,4-dichlorophenyl)methyl]acetamide", "smiles": "O=C(NCc1ccc(Cl)cc1Cl)CN1C(=O)Nc2ccccc2C1=O"},
+ "reactions": [
+  {"step": 1,
+   "product": {"label": "3", "name": "2-(4-oxo-2-thioxo-1,4-dihydroquinazolin-3(2H)-yl)acetic acid", "smiles": "OC(=O)CN1C(=S)Nc2ccccc2C1=O"},
+   "reactants": [
+    {"label": "1", "name": "methyl 2-isothiocyanatobenzoate", "smiles": "COC(=O)c1ccccc1N=C=S", "origin": "commercial"},
+    {"label": "2", "name": "glycine", "smiles": "NCC(=O)O", "origin": "commercial"}
+   ],
+   "conditions": "Glycine (0.1 mol) in water/Et3N (1 equiv) added to the isothiocyanate (0.1 mol) in 2-propanol; boiled 30 min; acidified with HCl to pH 2; precipitate washed with water and boiled in acetone.",
+   "source": "Results (Scheme 1) and 'General method of synthesis' in Materials and Methods (pp. 9, 17-18 of the accepted manuscript)"},
+  {"step": 2,
+   "product": {"label": "4", "name": "2-(2,4-dioxo-1,4-dihydroquinazolin-3(2H)-yl)acetic acid", "smiles": "OC(=O)CN1C(=O)Nc2ccccc2C1=O"},
+   "reactants": [
+    {"label": "3", "name": "2-(4-oxo-2-thioxo-1,4-dihydroquinazolin-3(2H)-yl)acetic acid", "smiles": "OC(=O)CN1C(=S)Nc2ccccc2C1=O", "origin": "made_here"},
+    {"label": "H2O2", "name": "hydrogen peroxide", "smiles": "OO", "origin": "reagent"}
+   ],
+   "conditions": "NaOH (3 equiv) in water at 50 C; 50% H2O2 (10 equiv, diluted 1:1) added dropwise at 5 C, temperature kept below 70 C; stirred 30 min; cooled, acidified with AcOH; precipitate recrystallised from DMF/ethanol.",
+   "source": "Results (Scheme 1) and General method, p. 17-18. H2O2 listed because it is the oxidant that replaces S by O (the O may equally come from hydroxide); heavy atoms of the product other than that O come from 3."},
+  {"step": 3,
+   "product": {"label": "7m", "name": "2-(2,4-dioxo-1,4-dihydroquinazolin-3(2H)-yl)-N-[(2,4-dichlorophenyl)methyl]acetamide", "smiles": "O=C(NCc1ccc(Cl)cc1Cl)CN1C(=O)Nc2ccccc2C1=O"},
+   "reactants": [
+    {"label": "4", "name": "2-(2,4-dioxo-1,4-dihydroquinazolin-3(2H)-yl)acetic acid", "smiles": "OC(=O)CN1C(=O)Nc2ccccc2C1=O", "origin": "made_here"},
+    {"label": "6 (R = CH2-2,4-diClC6H5)", "name": "", "smiles": "NCc1ccc(Cl)cc1Cl", "origin": "commercial"}
+   ],
+   "conditions": "Acid 4 (0.1 mol) in anhydrous dioxane with N,N'-carbonyldiimidazole (0.12 mol), boiled 2-4 h (acylimidazole); then amine (0.12 mol) added, boiled 2 h more; poured into water, precipitate washed with 2-propanol, recrystallised from DMF/2-propanol. CDI leaves no atom (CO2 and imidazole lost).",
+   "source": "Scheme 2 and General method, p. 18; 7m entry in the compound list"}
+ ],
+ "alt_variants": [],
+ "other_qualifying_compounds": null,
+ "notes": "The amine for 7m is described only as 'the corresponding amine' of Scheme 2 (R = CH2-2,4-diClC6H5), so its name is derived: 2,4-dichlorobenzylamine; all reagents are said to be Sigma-Aldrich products. The paper's procedure text garbles names of 3 and 4 ('tetrahydroxy-quinazolin'); I used the main-text names. The experimental is one general method for 7a-7n, with 7m-specific amounts not given; intermediates 3 and 4 have no separate characterisation data. Step 3 treated as one pot (acylimidazole not isolated)."
+}

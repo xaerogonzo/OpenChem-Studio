@@ -1,0 +1,12 @@
+{
+ "paper": "jiang2024_organotin_arylformylhydrazones",
+ "decision": "excluded",
+ "exclusion_reason": "not_small_molecule_organic",
+ "exclusion_detail": "The lead (complex C2, {BuPhSn[2-OH-C6H4(O)C=N-N=C(Me)COO](MeOH)}2) is a dinuclear organotin(IV) complex made by a one-pot microwave reaction of hydrazide, keto acid and butylphenyltin dichloride; an organometallic complex, not a small organic molecule.",
+ "lead": {"label": "C2", "why": "Abstract: 'Complex C2 demonstrated the optimal inhibitory effect on HepG2 cells, with an IC50 value of 0.82 uM'."},
+ "target": null,
+ "reactions": [],
+ "alt_variants": [],
+ "other_qualifying_compounds": null,
+ "notes": "Organometallic (tin) complexes throughout the paper; no organic-only compound is the product."
+}

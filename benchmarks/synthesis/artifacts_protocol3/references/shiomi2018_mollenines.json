@@ -1,0 +1,67 @@
+{
+ "paper": "shiomi2018_mollenines",
+ "decision": "excluded",
+ "exclusion_reason": "route_not_explicit",
+ "exclusion_detail": "The paper names mollenines A and B as co-targets (no single 'best' compound; mollenine A, the first-named and the precursor of B, was taken as lead). Both routes start from the prenylated pyrrolidinoindoline 4 (D-Trp-OEt + prenyl alcohol, acid, H2O), which the main text only summarises in one sentence and the SI cites as 'S1' (Tanaka, Shiomi, Ishikawa, J. Nat. Prod. 2017) with no procedure, so the first step has no procedure in this paper or its SI.",
+ "lead": {
+  "label": "(-)-mollenine A [(-)-10 / (-)-1']",
+  "why": "Abstract/title: 'Total syntheses ... of mollenines A and B'; A named first, 'accomplished via three- and four-step sequences' (A three, B four); B is made from A. Co-lead ambiguity, A chosen as first named."
+ },
+ "target": {
+  "name": "(3S,5aS,10bS,11aS)-3-isobutyl-10b-(3-methylbut-2-en-1-yl)-6,10b,11,11a-tetrahydro-[1,4]oxazino[4',3':1,5]pyrrolo[2,3-b]indole-1,4(3H,5aH)-dione",
+  "smiles": "O=C1OC(CC(C)C)C(=O)N2C1CC3(CC=C(C)C)c4ccccc4NC32"
+ },
+ "reactions": [
+  {
+   "step": 1,
+   "product": {
+    "label": "4",
+    "name": "",
+    "smiles": "CCOC(=O)C1CC2(CC=C(C)C)c3ccccc3NC2N1"
+   },
+   "reactants": [
+    {
+     "label": "D-tryptophan ethyl ester (3)",
+     "name": "D-tryptophan ethyl ester",
+     "smiles": "CCOC(=O)C(N)Cc1c[nH]c2ccccc12",
+     "origin": "commercial"
+    },
+    {
+     "label": "prenyl alcohol",
+     "name": "prenylalcohol",
+     "smiles": "CC(C)=CCO",
+     "origin": "commercial"
+    }
+   ],
+   "conditions": "Bioinspired prenylation/cyclisation: prenyl alcohol, acid, water (acid and temperature not stated here); procedure only by reference (Tanaka, Shiomi, Ishikawa, J. Nat. Prod. 2017, 80, 2371; SI ref S1).",
+   "source": "Main text Scheme 1 discussion; SI cites 4 as 'S1'"
+  },
+  {
+   "step": 2,
+   "product": {
+    "label": "(-)-mollenine A",
+    "name": "(3S,5aS,10bS,11aS)-3-isobutyl-10b-(3-methylbut-2-en-1-yl)-6,10b,11,11a-tetrahydro-[1,4]oxazino[4',3':1,5]pyrrolo[2,3-b]indole-1,4(3H,5aH)-dione",
+    "smiles": "O=C1OC(CC(C)C)C(=O)N2C1CC3(CC=C(C)C)c4ccccc4NC32"
+   },
+   "reactants": [
+    {
+     "label": "4",
+     "name": "",
+     "smiles": "CCOC(=O)C1CC2(CC=C(C)C)c3ccccc3NC2N1",
+     "origin": "made_here"
+    },
+    {
+     "label": "L-(-)-leucic acid",
+     "name": "L-(-)-leucic acid",
+     "smiles": "CC(C)CC(O)C(=O)O",
+     "origin": "commercial"
+    }
+   ],
+   "conditions": "One pot (SI): 4 (20 mg), leucic acid (1.03 equiv), DMT-MM (1.1 equiv), dry EtOH, 0 C, 3.5 h; EtOH evaporated; then DBU (2 equiv), 4A MS, toluene, 23 C, 4 days; 75%. Amide coupling then DBU lactonisation with loss of EtOH, with epimerisation at C16.",
+   "source": "Main text Scheme 2; SI p. S4 (mollenine A)"
+  }
+ ],
+ "alt_variants": [],
+ "other_qualifying_compounds": [],
+ "notes": "If a looser reader accepts the one-sentence description of step 1 (D-tryptophan ethyl ester + prenyl alcohol / acid / water -> 4, acid not named in text), the route would be: D-Trp-OEt -> 4 (prenylation, ref only); 4 + (S)-leucic acid, DMT-MM, EtOH 0 C, then DBU/4A MS/toluene 23 C 4 days (one pot, 75%) -> mollenine A. Mollenine B = A + HCO2H/Ac2O (71%). That is 3 steps (A) / 4 (B) by the paper's own count. Not transcribed with SMILES because the reviewer rule excludes it. SMILES here are FLAT (no stereo): the stereodescriptors (3S,5aS,10bS,11aS) in the printed name were not hand-encoded to avoid errors. Mollenine B (formylation of A with HCO2H/Ac2O, 71%) would be step 3 of this sequence. Lead ambiguity: A and B are co-targets; A taken as first named."
+}

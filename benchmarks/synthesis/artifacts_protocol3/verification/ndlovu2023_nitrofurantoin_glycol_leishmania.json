@@ -1,0 +1,24 @@
+{
+ "paper": "ndlovu2023_nitrofurantoin_glycol_leishmania",
+ "my_lead": "2j (co-named with 2k: 'Analogues 2j and 2k had the best antipromastigote activities')",
+ "lead_agrees": "co-named",
+ "reactions": [
+  {
+   "step": 1,
+   "ok": true,
+   "issue": "Monosubstituted ethylene glycol (3 eq) + PBr3 (1 eq), CHCl3, 0 C then reflux 60 C 12 h -> bromide 1j (crude, 70-90% for series). PBr3 supplies the Br so listing is right. The paper calls this 'Hell-Volhard-Zelinsky' but it is OH -> Br. The glycol for 1j is never printed; 2-(4-bromophenoxy)ethanol is deduced from the name of 2j (3-[2-(4-bromophenoxy)ethyl]); the O-arylated analogues 2i-l confirm aryloxy glycols."
+  },
+  {
+   "step": 2,
+   "ok": true,
+   "issue": "Nitrofurantoin (Et3N, DMF) + 1j (2 eq), rt 48 h -> 2j, 10%. Alkylation at the hydantoin N3-H (the 11.1 ppm NH signal disappears), consistent with SMILES; E configuration kept."
+  }
+ ],
+ "leaf_issues": [
+  "2-(4-bromophenoxy)ethanol: not named anywhere in the main text; support is only 'All chemicals and reagents were purchased from various suppliers' (4.1.1). No SI was available, so the glycol identity rests on the product name."
+ ],
+ "step_count_ok": true,
+ "smiles_issues": [],
+ "overall": "confirmed",
+ "notes": "2 steps. Lead 2j vs 2k is a genuine tie (2j best vs L. major, 0.19 uM; 2k best vs L. donovani, 0.73 vs 0.78 uM). The bromide 1j is not characterised in the main text."
+}

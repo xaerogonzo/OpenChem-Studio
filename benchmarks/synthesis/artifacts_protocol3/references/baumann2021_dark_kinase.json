@@ -1,0 +1,56 @@
+{
+ "paper": "baumann2021_dark_kinase",
+ "decision": "route",
+ "exclusion_reason": null,
+ "exclusion_detail": "",
+ "lead": {"label": "10f", "why": "Abstract: 'The top compound, 10f, was further profiled for efficacy, toxicity, and bioavailability in a zebrafish polycystic kidney disease model.'"},
+ "target": {"name": "(R)-N-(1-Hydroxy-3-(1H-indol-3-yl)propan-2-yl)-4-(1H-pyrrolo[2,3-b]pyridin-4-yl)benzenesulfonamide",
+            "smiles": "O=S(=O)(N[C@H](Cc1c[nH]c2ccccc12)CO)c1ccc(cc1)-c1ccnc2[nH]ccc12"},
+ "reactions": [
+  {"step": 1,
+   "product": {"label": "8f", "name": "(R)-2-Amino-3-(1H-indol-3-yl)propan-1-ol", "smiles": "N[C@H](Cc1c[nH]c2ccccc12)CO"},
+   "reactants": [
+     {"label": "D-tryptophan", "name": "D-tryptophan", "smiles": "N[C@H](Cc1c[nH]c2ccccc12)C(=O)O", "origin": "commercial"}],
+   "conditions": "NaBH4, I2, dry THF, 0 C then reflux 19 h; MeOH quench; 20% aq. KOH, rt 15 h; pH 11; crude 8f 84% (Meyers procedure)",
+   "source": "Experimental Section, compound 8f"},
+  {"step": 2,
+   "product": {"label": "9f", "name": "(R)-4-Bromo-N-(1-hydroxy-3-(1H-indol-3-yl)propan-2-yl)benzenesulfonamide", "smiles": "O=S(=O)(N[C@H](Cc1c[nH]c2ccccc12)CO)c1ccc(Br)cc1"},
+   "reactants": [
+     {"label": "8f", "name": "(R)-2-Amino-3-(1H-indol-3-yl)propan-1-ol", "smiles": "N[C@H](Cc1c[nH]c2ccccc12)CO", "origin": "made_here"},
+     {"label": "1", "name": "4-bromobenzenesulfonyl chloride", "smiles": "O=S(=O)(Cl)c1ccc(Br)cc1", "origin": "commercial"}],
+   "conditions": "DIPEA, DCM/MeCN 1:2, 0 C to rt, 24 h; column; 43%",
+   "source": "Experimental Section, compound 9f; Scheme 3 step a"},
+  {"step": 3,
+   "product": {"label": "boronate from 9f (not isolated)", "name": "", "smiles": "O=S(=O)(N[C@H](Cc1c[nH]c2ccccc12)CO)c1ccc(cc1)B1OC(C)(C)C(C)(C)O1"},
+   "reactants": [
+     {"label": "9f", "name": "(R)-4-Bromo-N-(1-hydroxy-3-(1H-indol-3-yl)propan-2-yl)benzenesulfonamide", "smiles": "O=S(=O)(N[C@H](Cc1c[nH]c2ccccc12)CO)c1ccc(Br)cc1", "origin": "made_here"},
+     {"label": "B2pin2", "name": "bis(pinacolato)diboron", "smiles": "CC1(C)OB(OC1(C)C)B1OC(C)(C)C(C)(C)O1", "origin": "reagent"}],
+   "conditions": "Miyaura borylation (general procedure B as exemplified for 3a): KOAc, PdCl2(dppf), DMF, 100 C, 3 h; filtered through Celite, aqueous work-up, crude pinacol boronate used without purification",
+   "source": "General Procedure B / compound 3a; Scheme 3 step b ('not isolated')"},
+  {"step": 4,
+   "product": {"label": "10f", "name": "(R)-N-(1-Hydroxy-3-(1H-indol-3-yl)propan-2-yl)-4-(1H-pyrrolo[2,3-b]pyridin-4-yl)benzenesulfonamide", "smiles": "O=S(=O)(N[C@H](Cc1c[nH]c2ccccc12)CO)c1ccc(cc1)-c1ccnc2[nH]ccc12"},
+   "reactants": [
+     {"label": "boronate from 9f", "name": "", "smiles": "O=S(=O)(N[C@H](Cc1c[nH]c2ccccc12)CO)c1ccc(cc1)B1OC(C)(C)C(C)(C)O1", "origin": "made_here"},
+     {"label": "4-bromo-7-azaindole", "name": "4-bromo-7-azaindole", "smiles": "Brc1ccnc2[nH]ccc12", "origin": "commercial"}],
+   "conditions": "sat. aq. NaHCO3, Pd(PPh3)4, DMF, 100 C, 18 h (3a conditions); column; 62%",
+   "source": "Experimental Section, compound 10f (general procedure B); Scheme 3 step c"}
+ ],
+ "alt_variants": [
+  [
+   {"step": 1, "product": {"label": "8f", "name": "(R)-2-Amino-3-(1H-indol-3-yl)propan-1-ol", "smiles": "N[C@H](Cc1c[nH]c2ccccc12)CO"},
+    "reactants": [{"label": "D-tryptophan", "name": "D-tryptophan", "smiles": "N[C@H](Cc1c[nH]c2ccccc12)C(=O)O", "origin": "commercial"}],
+    "conditions": "NaBH4, I2, THF, reflux; KOH", "source": "compound 8f"},
+   {"step": 2, "product": {"label": "9f", "name": "(R)-4-Bromo-N-(1-hydroxy-3-(1H-indol-3-yl)propan-2-yl)benzenesulfonamide", "smiles": "O=S(=O)(N[C@H](Cc1c[nH]c2ccccc12)CO)c1ccc(Br)cc1"},
+    "reactants": [{"label": "8f", "name": "(R)-2-Amino-3-(1H-indol-3-yl)propan-1-ol", "smiles": "N[C@H](Cc1c[nH]c2ccccc12)CO", "origin": "made_here"},
+                  {"label": "1", "name": "4-bromobenzenesulfonyl chloride", "smiles": "O=S(=O)(Cl)c1ccc(Br)cc1", "origin": "commercial"}],
+    "conditions": "DIPEA, DCM/MeCN", "source": "compound 9f"},
+   {"step": 3, "product": {"label": "10f", "name": "(R)-N-(1-Hydroxy-3-(1H-indol-3-yl)propan-2-yl)-4-(1H-pyrrolo[2,3-b]pyridin-4-yl)benzenesulfonamide", "smiles": "O=S(=O)(N[C@H](Cc1c[nH]c2ccccc12)CO)c1ccc(cc1)-c1ccnc2[nH]ccc12"},
+    "reactants": [{"label": "9f", "name": "(R)-4-Bromo-N-(1-hydroxy-3-(1H-indol-3-yl)propan-2-yl)benzenesulfonamide", "smiles": "O=S(=O)(N[C@H](Cc1c[nH]c2ccccc12)CO)c1ccc(Br)cc1", "origin": "made_here"},
+                  {"label": "4-bromo-7-azaindole", "name": "4-bromo-7-azaindole", "smiles": "Brc1ccnc2[nH]ccc12", "origin": "commercial"},
+                  {"label": "B2pin2", "name": "bis(pinacolato)diboron", "smiles": "CC1(C)OB(OC1(C)C)B1OC(C)(C)C(C)(C)O1", "origin": "reagent"}],
+    "conditions": "borylation then Suzuki treated as one procedure (general procedure B); KOAc, PdCl2(dppf), DMF 100 C; then NaHCO3 aq, Pd(PPh3)4, 100 C", "source": "general procedure B"}
+  ]
+ ],
+ "other_qualifying_compounds": null,
+ "notes": "Main reading counts borylation and Suzuki coupling as two reactions (work-up between them, boronate crude and not characterised); alt_variants gives the 3-step reading. No name is printed for the boronate, structure derived from the text. Stereo: D-tryptophan to (R)-tryptophanol, retention of the carbon, CIP checked by hand (R). D-tryptophan, 4-bromobenzenesulfonyl chloride and 4-bromo-7-azaindole are used as received; the main-text snippet did not contain an explicit 'commercially available' statement for them (8a-c are stated as commercial)."
+}

@@ -1,0 +1,12 @@
+{
+ "paper": "zhang2019_hdac1_indoles",
+ "decision": "excluded",
+ "exclusion_reason": "route_not_explicit",
+ "exclusion_detail": "Lead 4l is made by TBTU amide coupling of acid 1 with a tryptophan anilide 2l (3-bromophenyl), then ester -> hydroxamic acid with NH2OK. Procedures are given for those two steps (3x, 4x), but the tryptophan anilides 2a-2t are 'obtained following our team previously published methods' (ref 11) with no procedure here, and the source of acid 1 is not stated, so the route from commercial materials is not explicit.",
+ "lead": {"label": "4l", "why": "Abstract: 'Among these analogs, 4l exhibited selectivity to HDAC1' (title is about HDAC1 inhibitors; Sec. 2.4 'with 4l being the most' selective; 4l is the compound docked into HDAC1). The abstract also lists 4h, 4i, 4j, 4l, 4r as superior to SAHA, so rule 1 is not unique; 4l is the only one the abstract singles out."},
+ "target": null,
+ "reactions": [],
+ "alt_variants": [],
+ "other_qualifying_compounds": [],
+ "notes": "Every target 4a-4w depends on an intermediate 2x prepared by reference only, so I found no compound with an explicit complete route. Numbering warning: the Experimental headings do not map cleanly to the text's labels (the text implies 4j = 4-Br with 4k/4l the ortho/meta isomers, whereas the heading order of the experimental section would put 2-Br and 3-Br at 4j/4k); the identity of 4l as the 3-bromo or 2-bromo anilide is therefore uncertain. Not material to this exclusion."
+}

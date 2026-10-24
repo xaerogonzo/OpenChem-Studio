@@ -1,0 +1,35 @@
+{
+ "paper": "ning2017_naphthoquinone_dithiocarbamates_pkm2",
+ "decision": "route",
+ "exclusion_reason": null,
+ "exclusion_detail": "",
+ "lead": {"label": "3h", "why": "Abstract: 'compound 3f (IC50 = 1.05) and 3h (IC50 = 0.96 uM) exhibited potent inhibition of PKM2, superior to 3k and shikonin'; the abstract names two, 3h has the lowest IC50 (most potent). 3f was the one used as 'representative compound' for the normal-cell cytotoxicity test, so 3f is the alternative reading; its route is identical with thiomorpholine in place of thiazolidine."},
+ "target": {"name": "dithiazolidine-dithiocarbamic acid 3-dithiazolidinethiocarbamoylsulphanylmethyl-1,4-dioxo-1,4-dihydro-naphthalen-2-ylmethyl ester", "smiles": "O=C1C(CSC(=S)N2CCSC2)=C(CSC(=S)N2CCSC2)C(=O)c2ccccc12"},
+ "reactions": [
+  {"step": 1,
+   "product": {"label": "2", "name": "2,3-bis-chloromethyl-[1,4]naphthoquinone", "smiles": "O=C1C(CCl)=C(CCl)C(=O)c2ccccc12"},
+   "reactants": [
+    {"label": "1", "name": "1,4-naphthaquinone", "smiles": "O=C1C=CC(=O)c2ccccc12", "origin": "commercial"},
+    {"label": "formaldehyde", "name": "formaldehyde (36% aq.)", "smiles": "C=O", "origin": "reagent"},
+    {"label": "formaldehyde", "name": "formaldehyde (36% aq.)", "smiles": "C=O", "origin": "reagent"},
+    {"label": "HCl", "name": "hydrogen chloride (dry gas)", "smiles": "Cl", "origin": "reagent"},
+    {"label": "HCl", "name": "hydrogen chloride (dry gas)", "smiles": "Cl", "origin": "reagent"}
+   ],
+   "conditions": "1,4-naphthoquinone (1 g, 6.3 mmol) in glacial AcOH (20 mL), 36% aq. HCHO (6 mL), ice-water cooling, dry HCl passed 2 h, then rt 48 h; poured on ice, EtOAc extraction, column; 68.9%.",
+   "source": "main text p.3 'Procedure for preparation of 2,3-bis-chloromethyl-[1,4]naphthoquinone (2)'"},
+  {"step": 2,
+   "product": {"label": "3h", "name": "dithiazolidine-dithiocarbamic acid 3-dithiazolidinethiocarbamoylsulphanylmethyl-1,4-dioxo-1,4-dihydro-naphthalen-2-ylmethyl ester", "smiles": "O=C1C(CSC(=S)N2CCSC2)=C(CSC(=S)N2CCSC2)C(=O)c2ccccc12"},
+   "reactants": [
+    {"label": "2", "name": "2,3-bis-chloromethyl-[1,4]naphthoquinone", "smiles": "O=C1C(CCl)=C(CCl)C(=O)c2ccccc12", "origin": "made_here"},
+    {"label": "CS2", "name": "carbon disulphide", "smiles": "S=C=S", "origin": "reagent"},
+    {"label": "CS2", "name": "carbon disulphide", "smiles": "S=C=S", "origin": "reagent"},
+    {"label": "thiazolidine", "name": "thiazolidine", "smiles": "C1CSCN1", "origin": "commercial"},
+    {"label": "thiazolidine", "name": "thiazolidine", "smiles": "C1CSCN1", "origin": "commercial"}
+   ],
+   "conditions": "General procedure: CS2 (3 mmol) and amine (3 mmol) in MeCN (5 mL), 30 min; 2 (1 mmol) added in portions; rt 48 h; concentrated, H2O/CH2Cl2 extraction, column (PE/CH2Cl2); 88.8% for 3h.",
+   "source": "main text p.3 'General procedure for preparation of ... (3a-3h)' and data for 3h"}
+ ],
+ "alt_variants": [],
+ "other_qualifying_compounds": null,
+ "notes": "The amine for 3h is not printed as a stand-alone name; 'thiazolidinyl' (R column, results text) and the NMR (12H, 2 NCH2CH2SCH2) fix it as thiazolidin-3-yl. Printed names are the paper's own non-IUPAC style and may not parse in OPSIN. Two equivalents of CS2, amine, HCHO and HCl are incorporated (listed twice). Lead choice between 3f and 3h is a near tie (IC50 1.05 vs 0.96); 3h chosen as the lowest IC50; 3f (thiomorpholine, SMILES O=C1C(CSC(=S)N2CCSCC2)=C(CSC(=S)N2CCSCC2)C(=O)c2ccccc12) shares the same two-step route."
+}

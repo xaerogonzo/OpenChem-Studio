@@ -1,0 +1,18 @@
+{
+ "paper": "aida2018_piperazinyl_pyrrolidinones",
+ "my_lead": "(R)-3t: abstract names 'a potent and reversible MAGL inhibitor, compound (R)-3t' and the PD mouse study uses it",
+ "lead_agrees": true,
+ "reactions": [
+  {"step": 1, "ok": true, "issue": "1-(pyrimidin-2-yl)piperazine + 2(5H)-furanone Michael addition -> 9b (85%, 'similar procedure to 9a'). Piperazine is not named in the text (inferred from 9b's name) but is the only possibility."},
+  {"step": 2, "ok": true, "issue": "9b + 3-bromo-5-fluoroaniline, DABAL-Me3 (procedure of 10b) -> 10d (73%). Aniline inferred from the product name 10d. SMILES regiochemistry (HOCH2-CH(N-pip)-CH2-C(=O)NHAr) is right."},
+  {"step": 3, "ok": true, "issue": "Intramolecular Mitsunobu 10d -> 11c (65%, 'similar procedure to 3i'; 3i uses ADDP + tri-n-butylphosphine, THF). Reagents supply no atom and are correctly omitted."},
+  {"step": 4, "ok": true, "issue": "Suzuki 11c + 2-methylpyridin-3-ylboronic acid -> racemic 3t (78%, 'similar procedure to 3l'). Boronic acid inferred from product name (not printed). Ring/substituent positions in the SMILES check out (3-F-5-(2-methylpyridin-3-yl)phenyl)."}
+ ],
+ "leaf_issues": [
+  "No specific purchase sentence per reagent; only the general 'Reagents and solvents were obtained from commercial sources and used without further purification' (Experimental, General). Piperazine, 3-bromo-5-fluoroaniline and the boronic acid are never named; 2(5H)-furanone is named (compound 8). Acceptable but all three are inferred."
+ ],
+ "step_count_ok": true,
+ "smiles_issues": [],
+ "overall": "minor_issues",
+ "notes": "The four chemical reactions are right. ISSUE: the lead is the single enantiomer (R)-3t but the transcribed target is the RACEMATE of 3t (the chiral separation was deliberately removed in the 2026-10-24 edit). The paper isolates (R)-3t only after a separation of the racemate (Scheme 2 step (f) 'optical resolution by SFC'; Experimental: 'A racemate of compound 3t (4.40 g, 10.2 mmol) was separated by preparative HPLC (CHIRALCEL OD ...)' giving (R)-3t, 34%; note the scheme says SFC and the experimental says preparative HPLC). Under the brief's criterion 5 (racemate vs enantiomer matters) target != lead as isolated. The separation is not a chemical reaction, so the reaction count stays 4; if a maintainer counts it as a step (the paper draws it as step (f) of Scheme 2), the route is 5 and must be excluded. Recommend flagging the target as 'racemate of the lead; lead enantiomer needs a resolution' and keeping the lead label as '(R)-3t'. Also (R) was assigned from the X-ray of (S)-3t; the R enantiomer is the one with shorter retention on CHIRALCEL OD."
+}

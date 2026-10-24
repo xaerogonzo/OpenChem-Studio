@@ -1,0 +1,70 @@
+{
+ "paper": "karki2019_factor_d",
+ "decision": "route",
+ "exclusion_reason": null,
+ "exclusion_detail": "",
+ "lead": {"label": "12", "why": "Abstract: 'culminating in the discovery of 12, an orally bioavailable and selective FD inhibitor' (also the compound taken into the in vivo models)."},
+ "target": {"name": "(S)-2-(2-((3′-(1-Amino-2-hydroxyethyl)-[1,1′-biphenyl]-3-yl)methoxy)phenyl)acetic Acid", "smiles": "N[C@H](CO)c1cccc(c1)-c1cccc(COc2ccccc2CC(O)=O)c1"},
+ "reactions": [
+  {"step": 1,
+   "product": {"label": "25", "name": "Methyl 2-(2-((3-Bromobenzyl)oxy)phenyl)acetate", "smiles": "COC(=O)Cc1ccccc1OCc1cccc(Br)c1"},
+   "reactants": [
+    {"label": "methyl 2-(2-hydroxyphenyl)acetate", "name": "methyl 2-(2-hydroxyphenyl)acetate", "smiles": "COC(=O)Cc1ccccc1O", "origin": "commercial"},
+    {"label": "3-bromobenzyl bromide", "name": "3-bromobenzyl bromide", "smiles": "BrCc1cccc(Br)c1", "origin": "commercial"}
+   ],
+   "conditions": "K2CO3, DMF, rt, 18 h; 94% crude, used without purification",
+   "source": "Experimental Section, compound 25 (main text p. 4665)"},
+  {"step": 2,
+   "product": {"label": "boronate", "name": "methyl 2-(2-((3-(4,4,5,5-tetramethyl-1,3,2-dioxaborolan-2-yl)benzyl)oxy)phenyl)acetate", "smiles": "COC(=O)Cc1ccccc1OCc1cccc(c1)B1OC(C)(C)C(C)(C)O1"},
+   "reactants": [
+    {"label": "25", "name": "Methyl 2-(2-((3-Bromobenzyl)oxy)phenyl)acetate", "smiles": "COC(=O)Cc1ccccc1OCc1cccc(Br)c1", "origin": "made_here"},
+    {"label": "B2pin2", "name": "4,4,4′,4′,5,5,5′,5′-octamethyl-2,2′-bi(1,3,2-dioxaborolane)", "smiles": "CC1(C)OB(OC1(C)C)B1OC(C)(C)C(C)(C)O1", "origin": "reagent"}
+   ],
+   "conditions": "KOAc, PdCl2(dppf)·CH2Cl2, DMF, 110 °C, 90 min; 72%",
+   "source": "Experimental Section, compound 12 procedure, first paragraph"},
+  {"step": 3,
+   "product": {"label": "Boc/methyl ester biaryl", "name": "(S)-methyl 2-(2-((3′-(1-((tert-butoxycarbonyl)amino)-2-hydroxyethyl)-[1,1′-biphenyl]-3-yl)methoxy)phenyl)acetate", "smiles": "CC(C)(C)OC(=O)N[C@H](CO)c1cccc(c1)-c1cccc(COc2ccccc2CC(=O)OC)c1"},
+   "reactants": [
+    {"label": "boronate", "name": "methyl 2-(2-((3-(4,4,5,5-tetramethyl-1,3,2-dioxaborolan-2-yl)benzyl)oxy)phenyl)acetate", "smiles": "COC(=O)Cc1ccccc1OCc1cccc(c1)B1OC(C)(C)C(C)(C)O1", "origin": "made_here"},
+    {"label": "Boc bromo amino alcohol", "name": "(S)-tert-butyl (1-(3-bromophenyl)-2-hydroxyethyl)carbamate", "smiles": "CC(C)(C)OC(=O)N[C@H](CO)c1cccc(Br)c1", "origin": "commercial"}
+   ],
+   "conditions": "Suzuki coupling: K3PO4, PdCl2(dppf)·CH2Cl2, MeCN/water, 45 °C, ca. 15 h; 77%",
+   "source": "Experimental Section, compound 12 procedure, second paragraph (CAS 910308-92-8 given, i.e. purchased)"},
+  {"step": 4,
+   "product": {"label": "12", "name": "(S)-2-(2-((3′-(1-Amino-2-hydroxyethyl)-[1,1′-biphenyl]-3-yl)methoxy)phenyl)acetic Acid", "smiles": "N[C@H](CO)c1cccc(c1)-c1cccc(COc2ccccc2CC(O)=O)c1"},
+   "reactants": [
+    {"label": "Boc/methyl ester biaryl", "name": "(S)-methyl 2-(2-((3′-(1-((tert-butoxycarbonyl)amino)-2-hydroxyethyl)-[1,1′-biphenyl]-3-yl)methoxy)phenyl)acetate", "smiles": "CC(C)(C)OC(=O)N[C@H](CO)c1cccc(c1)-c1cccc(COc2ccccc2CC(=O)OC)c1", "origin": "made_here"}
+   ],
+   "conditions": "4 M HCl in dioxane, 2 h, concentrate to dryness; then LiOH, THF/MeOH/water, 15 h; acid work-up and neutralisation with NH3/MeOH, precipitate; 54%",
+   "source": "Experimental Section, compound 12 procedure, third paragraph. Boc removal and ester hydrolysis are written as one continuous procedure without isolating the amino ester, so counted as one step."}
+ ],
+ "alt_variants": [
+  [
+   {"step": 1, "product": {"label": "25", "name": "Methyl 2-(2-((3-Bromobenzyl)oxy)phenyl)acetate", "smiles": "COC(=O)Cc1ccccc1OCc1cccc(Br)c1"},
+    "reactants": [
+     {"label": "methyl 2-(2-hydroxyphenyl)acetate", "name": "methyl 2-(2-hydroxyphenyl)acetate", "smiles": "COC(=O)Cc1ccccc1O", "origin": "commercial"},
+     {"label": "3-bromobenzyl bromide", "name": "3-bromobenzyl bromide", "smiles": "BrCc1cccc(Br)c1", "origin": "commercial"}],
+    "conditions": "K2CO3, DMF, rt, 18 h", "source": "as above"},
+   {"step": 2, "product": {"label": "boronate", "name": "methyl 2-(2-((3-(4,4,5,5-tetramethyl-1,3,2-dioxaborolan-2-yl)benzyl)oxy)phenyl)acetate", "smiles": "COC(=O)Cc1ccccc1OCc1cccc(c1)B1OC(C)(C)C(C)(C)O1"},
+    "reactants": [
+     {"label": "25", "name": "Methyl 2-(2-((3-Bromobenzyl)oxy)phenyl)acetate", "smiles": "COC(=O)Cc1ccccc1OCc1cccc(Br)c1", "origin": "made_here"},
+     {"label": "B2pin2", "name": "4,4,4′,4′,5,5,5′,5′-octamethyl-2,2′-bi(1,3,2-dioxaborolane)", "smiles": "CC1(C)OB(OC1(C)C)B1OC(C)(C)C(C)(C)O1", "origin": "reagent"}],
+    "conditions": "KOAc, PdCl2(dppf), DMF, 110 °C", "source": "as above"},
+   {"step": 3, "product": {"label": "Boc/methyl ester biaryl", "name": "(S)-methyl 2-(2-((3′-(1-((tert-butoxycarbonyl)amino)-2-hydroxyethyl)-[1,1′-biphenyl]-3-yl)methoxy)phenyl)acetate", "smiles": "CC(C)(C)OC(=O)N[C@H](CO)c1cccc(c1)-c1cccc(COc2ccccc2CC(=O)OC)c1"},
+    "reactants": [
+     {"label": "boronate", "name": "", "smiles": "COC(=O)Cc1ccccc1OCc1cccc(c1)B1OC(C)(C)C(C)(C)O1", "origin": "made_here"},
+     {"label": "Boc bromo amino alcohol", "name": "(S)-tert-butyl (1-(3-bromophenyl)-2-hydroxyethyl)carbamate", "smiles": "CC(C)(C)OC(=O)N[C@H](CO)c1cccc(Br)c1", "origin": "commercial"}],
+    "conditions": "K3PO4, PdCl2(dppf), MeCN/water, 45 °C", "source": "as above"},
+   {"step": 4, "product": {"label": "amino ester", "name": "", "smiles": "N[C@H](CO)c1cccc(c1)-c1cccc(COc2ccccc2CC(=O)OC)c1"},
+    "reactants": [
+     {"label": "Boc/methyl ester biaryl", "name": "", "smiles": "CC(C)(C)OC(=O)N[C@H](CO)c1cccc(c1)-c1cccc(COc2ccccc2CC(=O)OC)c1", "origin": "made_here"}],
+    "conditions": "HCl in dioxane, 2 h, concentrated to dryness (not isolated or characterised)", "source": "as above"},
+   {"step": 5, "product": {"label": "12", "name": "(S)-2-(2-((3′-(1-Amino-2-hydroxyethyl)-[1,1′-biphenyl]-3-yl)methoxy)phenyl)acetic Acid", "smiles": "N[C@H](CO)c1cccc(c1)-c1cccc(COc2ccccc2CC(O)=O)c1"},
+    "reactants": [
+     {"label": "amino ester", "name": "", "smiles": "N[C@H](CO)c1cccc(c1)-c1cccc(COc2ccccc2CC(=O)OC)c1", "origin": "made_here"}],
+    "conditions": "LiOH, THF/MeOH/water, 15 h", "source": "as above"}
+  ]
+ ],
+ "other_qualifying_compounds": null,
+ "notes": "4 reactions if the HCl deprotection and LiOH hydrolysis are one telescoped procedure (as the paper writes it); 5 if counted separately (alt_variants holds that reading), which would exceed the limit. The paper's chemistry section says 12 is made 'in a similar fashion' only for 13; 12 itself is fully written out. The Boc amino alcohol is cited with a CAS number (910308-92-8) and no preparation, so treated as purchased. Stereocentre is (S) as printed; SMILES N[C@H](CO)Ar checked by hand to be S (same as (S)-phenylglycinol). Pd catalysts, bases, solvents omitted from reactants. No SI file."
+}

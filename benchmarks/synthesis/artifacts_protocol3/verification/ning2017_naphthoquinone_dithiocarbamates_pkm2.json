@@ -1,0 +1,14 @@
+{
+ "paper": "ning2017_naphthoquinone_dithiocarbamates_pkm2",
+ "my_lead": "3f and 3h (abstract names both as potent PKM2 inhibitors superior to 3k and shikonin; 3h has the lowest IC50 0.96 uM)",
+ "lead_agrees": "co-named",
+ "reactions": [
+  {"step": 1, "ok": true, "issue": "1,4-naphthoquinone + 2 HCHO + 2 HCl -> 2,3-bis(chloromethyl)-1,4-naphthoquinone (68.9%). HCHO and HCl each listed twice; atom balance fine (C-H + CH2O + HCl -> CH2Cl + H2O twice). Matches p.3 procedure and Scheme 1 step a."},
+  {"step": 2, "ok": true, "issue": "2 + 2 CS2 + 2 thiazolidine -> 3h (88.8%). Each listed twice. General procedure 3a-3h uses 3 mmol CS2 and 3 mmol amine per 1 mmol of 2, i.e. two equivalents incorporated. Scheme 1 step b."}
+ ],
+ "leaf_issues": [],
+ "step_count_ok": true,
+ "smiles_issues": [],
+ "overall": "confirmed",
+ "notes": "Two steps. SMILES checked: quinone, bis-chloromethyl quinone, thiazolidine C1CSCN1 and product (N-thiazolidin-3-yl dithiocarbamate S-esters at both CH2 groups, 12H NCH2CH2SCH2 NMR) all correct. Leaf support: 'All chemicals, reagents and solvents were purchased from commercial sources.' (p.2). The amine for 3h is never named as a stand-alone compound; 'thiazolidinyl' in Table 1 and the NMR fix it as thiazolidine. Reference 24 (Thomson 1953) is cited for step 1 but the full procedure is printed here, so nothing is outsourced. Origin 'reagent' for HCHO, HCl and CS2 is only a label; they are bulk commercial chemicals incorporated in the product, so a planner test should treat them as available. Note 3b is the most cytotoxic compound but the abstract names 3f/3h, so 3h or 3f is a valid lead; both share the identical route (3f: thiomorpholine)."
+}

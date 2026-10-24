@@ -1,0 +1,12 @@
+{
+ "paper": "pagare2022_nap_isosteres",
+ "decision": "excluded",
+ "exclusion_reason": "route_not_explicit",
+ "exclusion_detail": "The abstract names three analogs (25, 26, 31) without ranking them; by rule 2 the lead is 25 (6alpha-thienylcarboxamido NAP isostere), the compound used for permeability and brain/plasma distribution studies. The 6alpha-naltrexamine precursor is described only in one summary sentence ('synthesized according to previously reported procedures', reductive amination of naltrexone then hydrogenation) with no procedure or conditions in the article, and no SI file is present; only the amide coupling/K2CO3 step has a procedure.",
+ "lead": {"label": "25", "why": "Abstract: 'Three analogs, namely, 25, 26, and 31, were identified as potent MOR antagonists in vivo'; results: 'penetration studies for the most potent compound 25' and brain/plasma distribution study run on 25."},
+ "target": {"name": "17-Cyclopropylmethyl-3,14beta-dihydroxy-4,5alpha-epoxy-6alpha-(2'-thienylcarboxamido)morphinan Hydrochloride", "smiles": null},
+ "reactions": [],
+ "alt_variants": [],
+ "other_qualifying_compounds": [],
+ "notes": "Every target needs 6alpha- or 6beta-naltrexamine, never given a procedure in this paper, so no other compound qualifies under the explicit-route rule. The amide coupling would be 1 step from 6alpha-NTA plus thiophene-2-carboxylic acid (EDCI/HOBt, then K2CO3/MeOH) if a reviewer decides the NTA is a buyable starting material, but I did not assume that."
+}

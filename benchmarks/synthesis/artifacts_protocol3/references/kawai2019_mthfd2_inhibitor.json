@@ -1,0 +1,12 @@
+{
+ "paper": "kawai2019_mthfd2_inhibitor",
+ "decision": "excluded",
+ "exclusion_reason": "lead_route_over_4_steps",
+ "exclusion_detail": "Lead 41 (DS44960156) needs 6 reactions in the SI: (1) triflation of N-Boc-4-oxo-3-piperidinecarboxylic acid ethyl ester -> S19, (2) Miyaura borylation -> 42, (3) Suzuki coupling/lactonisation with 2-bromophenol -> S20, (4) Boc removal -> 39, (5) amide coupling with 4-(tert-butoxycarbonyl)benzoic acid -> 40, (6) TFA removal of tert-butyl ester -> 41. The first-generation route to 39 is only 'followed the reported one' (not explicit) and is lower-yielding.",
+ "lead": {"label": "41 (DS44960156)", "why": "Abstract: 'we disclose a novel isozyme-selective MTHFD2 inhibitor DS44960156, with a tricyclic coumarin scaffold'; text: 'Compound 41 (DS44960156) was found to be more potent than the other derivatives'."},
+ "target": null,
+ "reactions": [],
+ "alt_variants": [],
+ "other_qualifying_compounds": ["24 (3 steps: SI compound 22 by amide coupling of commercial ethyl 4-oxo-3-piperidinecarboxylate HCl, 23a by condensation with formamidine, TFA)", "3 (likely 4 steps: S1, S2, 15/3 via amide coupling and hydrolysis; amidine/Boc-ketoester steps not read in detail)"],
+ "notes": "SI file read for the synthesis of 41, 39, 42, 22, 23a, 24. Other pyrimidinone analogues (25-29, 32-34) were listed by the grep but not checked step by step."
+}

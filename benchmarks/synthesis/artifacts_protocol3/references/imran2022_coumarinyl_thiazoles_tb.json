@@ -1,0 +1,12 @@
+{
+ "paper": "imran2022_coumarinyl_thiazoles_tb",
+ "decision": "excluded",
+ "exclusion_reason": "route_not_explicit",
+ "exclusion_detail": "Every target (4a-4j) is made in one step from ethionamide or prothionamide (purchased) and a coumarin intermediate 3a-3e whose preparation from salicylaldehydes 1a-1e and ethyl acetoacetate is only referred to ('reported in our earlier publication [9]'); no procedure, reagents or names for 3a-3e are given in this paper.",
+ "lead": {"label": "4j", "why": "The abstract names no single best compound (4c-4e and 4h-4j tie at MIC 1.562 ug/ml); by the second rule the docking highlight is 4j, which 'displayed the highest negative DS with 6HEZ in addition to 4F4Q, and the second maximum negative DS with 4NCR'."},
+ "target": null,
+ "reactions": [],
+ "alt_variants": [],
+ "other_qualifying_compounds": [],
+ "notes": "The final step is explicit (intermediate 3 + ETH/PTH, equimolar, absolute EtOH, reflux 2 h; 4a procedure, 4b-4j 'in a similar manner') but all ten compounds depend on the unprocedured 3a-3e, so none qualifies. Lead choice under rule 2 is a judgement (docking was run for all ten compounds); the exclusion is the same for any of them."
+}

@@ -1,0 +1,12 @@
+{
+ "paper": "shao2017_benzodiazepinediones_anticonvulsant",
+ "decision": "excluded",
+ "exclusion_reason": "route_not_explicit",
+ "exclusion_detail": "Lead 8c (7-(4-fluorobenzylamino)-1,5-dimethyl-1H-benzo[b][1,4]diazepine-2,4(3H,5H)-dione) is made explicitly in three steps from compound 3 (N,N'-dimethylation with NaH/MeI to the 7-nitro-1,5-dimethyl compound 6, nitro reduction with hydrazine/Pd-C to the 7-amine 7, N-benzylation with 4-fluorobenzyl bromide/K2CO3/KI to 8c), but the paper gives no source or preparation for the 7-nitro-1H-benzodiazepinedione 3 (the text only says compound 4, the 7-amine, 'was prepared according to reference' to a coordination chemistry paper; the scheme is a drawing not present in the text layer).",
+ "lead": {"label": "8c", "why": "Abstract: 'the compound 8c (7-(4-fluorobenzylamino)-1,5-dimethyl-1H-benzo[b][1,4]diazepine-2,4(3H,5H)-dione) was the most promising compound' (ED50 36.5 mg/kg)."},
+ "target": null,
+ "reactions": [],
+ "alt_variants": [],
+ "other_qualifying_compounds": [],
+ "notes": "If the reviewer can see Scheme 1 and it shows 3 made from 4-nitro-o-phenylenediamine plus a malonyl component, or states 3 is purchased, the route would be 3 to 4 steps: [maybe 3 from diamine], 3 -> 6 (NaH, MeI, DMF, 92%), 6 -> 7 (N2H4, Pd/C, iPrOH, 80 C, 97%), 7 -> 8c (4-fluorobenzyl bromide, K2CO3, KI, DMF, 80 C, 54%). Names printed: 6 '7-nitro-1,5-dimethyl-1H-benzo[b][1,4]diazepine-2,4(3H,5H)-dione', 7 '7-amino-1,5-dimethyl-...', 8c as above. Not transcribed to JSON route because the first step is undocumented."
+}

@@ -1,0 +1,38 @@
+{
+ "paper": "abdellatif2018_thioxoimidazolidinones",
+ "decision": "route",
+ "exclusion_reason": null,
+ "exclusion_detail": "",
+ "lead": {"label": "11c", "why": "Abstract: '11c (IC50 = 22.7 and 29.2 uM) and 11f (IC50 = 28.7 and 16.9 uM) were the most potent among all compounds against both PC-3 and MCF-7 respectively'. The abstract names TWO co-leads (11c best on PC-3, 11f best on MCF-7; both used for docking and the topo I assay); 11c, named first, was transcribed. 11f uses identical chemistry with 4-methylphenyl isothiocyanate."},
+ "target": {"name": "2-Methylthio-5-methyl-3-phenyl-5-(piperidinomethyl)-4-imidazolidinone", "smiles": "CSC1=NC(C)(CN2CCCCC2)C(=O)N1c1ccccc1"},
+ "reactions": [
+  {"step": 1,
+   "product": {"label": "9a", "name": "5-Methyl-3-phenyl-2-thioxo-4-imidazolidinone", "smiles": "CC1NC(=S)N(c2ccccc2)C1=O"},
+   "reactants": [
+    {"label": "7", "name": "DL-alanine", "smiles": "CC(N)C(=O)O", "origin": "commercial"},
+    {"label": "8a", "name": "phenyl isothiocyanate", "smiles": "S=C=Nc1ccccc1", "origin": "commercial"}
+   ],
+   "conditions": "aqueous KOH / EtOH, reflux 3 h (thiourea formation), then conc. HCl, reflux 2 h (cyclisation); 95%",
+   "source": "Section 2.1.1 General procedure (9a-b); Scheme 1 step a"},
+  {"step": 2,
+   "product": {"label": "10c", "name": "5-Methyl-3-phenyl-5-(piperidinomethyl)-2-thioxo-4-imidazolidinone", "smiles": "CC1(CN2CCCCC2)NC(=S)N(c2ccccc2)C1=O"},
+   "reactants": [
+    {"label": "9a", "name": "5-Methyl-3-phenyl-2-thioxo-4-imidazolidinone", "smiles": "CC1NC(=S)N(c2ccccc2)C1=O", "origin": "made_here"},
+    {"label": "piperidine", "name": "piperidine", "smiles": "C1CCNCC1", "origin": "commercial"},
+    {"label": "formalin", "name": "formaldehyde (formalin 30%)", "smiles": "C=O", "origin": "reagent"}
+   ],
+   "conditions": "Mannich reaction: EtOH, reflux 5-8 h; column chromatography; 83%",
+   "source": "Section 2.1.2 General procedure (10a-f), entry 10c; Scheme 1 step b"},
+  {"step": 3,
+   "product": {"label": "11c", "name": "2-Methylthio-5-methyl-3-phenyl-5-(piperidinomethyl)-4-imidazolidinone", "smiles": "CSC1=NC(C)(CN2CCCCC2)C(=O)N1c1ccccc1"},
+   "reactants": [
+    {"label": "10c", "name": "5-Methyl-3-phenyl-5-(piperidinomethyl)-2-thioxo-4-imidazolidinone", "smiles": "CC1(CN2CCCCC2)NC(=S)N(c2ccccc2)C1=O", "origin": "made_here"},
+    {"label": "MeI", "name": "methyl iodide", "smiles": "CI", "origin": "reagent"}
+   ],
+   "conditions": "ethanolic KOH (2%, 1.1 equiv), MeI (1.2 equiv), rt, 12 h; column chromatography; 71%",
+   "source": "Section 2.1.3 General procedure (11a-f), entry 11c; Scheme 1 step c"}
+ ],
+ "alt_variants": [],
+ "other_qualifying_compounds": null,
+ "notes": "Co-lead 11f (2-methylthio-5-methyl-5-(piperidinomethyl)-3-(p-tolyl)-4-imidazolidinone) is the same 3-step route from DL-alanine and p-tolyl isothiocyanate (via 9b, 10f). 11c is racemic (DL-alanine, no stereo). The S-methylation gives the 2-(methylthio)-imidazol-4-one tautomer (C2=N1, 13C 160.4 C=N, 183.4 C=O, 74.3 quaternary C5), so the SMILES has C2=N1; the title/name calls it '4-imidazolidinone' loosely. Paper uses reagents 'purchased from Aldrich'; no explicit statement for piperidine specifically. 9a text has an inconsistent MS value (not relevant)."
+}

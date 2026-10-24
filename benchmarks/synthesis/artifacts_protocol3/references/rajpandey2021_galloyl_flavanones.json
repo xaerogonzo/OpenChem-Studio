@@ -1,0 +1,43 @@
+{
+ "paper": "rajpandey2021_galloyl_flavanones",
+ "decision": "route",
+ "exclusion_reason": null,
+ "exclusion_detail": "",
+ "lead": {"label": "5e", "why": "Abstract: 'compound 5e as the most potent bone anabolic agent, found to be active at 1 pM ... assessed for its osteogenic potential in vivo'."},
+ "target": {"name": "3,4,5-Trimethoxy-N-(2-(3-methoxyphenyl)-4-oxochroman-6-yl)benzamide", "smiles": "COc1cccc(c1)C1CC(=O)c2cc(NC(=O)c3cc(OC)c(OC)c(OC)c3)ccc2O1"},
+ "reactions": [
+  {"step": 1,
+   "product": {"label": "2e", "name": "(E)-1-(2-Hydroxy-5-nitrophenyl)-3-(3-methoxyphenyl)prop-2-en-1-one", "smiles": "COc1cccc(c1)/C=C/C(=O)c1cc([N+](=O)[O-])ccc1O"},
+   "reactants": [
+    {"label": "1e", "name": "2'-hydroxy-5'-nitroacetophenone", "smiles": "CC(=O)c1cc([N+](=O)[O-])ccc1O", "origin": "commercial"},
+    {"label": "3-methoxybenzaldehyde", "name": "", "smiles": "COc1cccc(C=O)c1", "origin": "commercial"}
+   ],
+   "conditions": "Claisen-Schmidt: ketone (10 mmol) and aldehyde (10 mmol) in EtOH, NaOH (4 M), rt overnight; neutralised with 1 N HCl, precipitate filtered; 80%.",
+   "source": "Experimental, General Synthesis of chalcones (2a-n) and entry 2e; Scheme 1 step (i)"},
+  {"step": 2,
+   "product": {"label": "3e", "name": "2-(3-Methoxyphenyl)-6-nitro-4H-chromen-4-one", "smiles": "COc1cccc(c1)C1CC(=O)c2cc([N+](=O)[O-])ccc2O1"},
+   "reactants": [
+    {"label": "2e", "name": "(E)-1-(2-Hydroxy-5-nitrophenyl)-3-(3-methoxyphenyl)prop-2-en-1-one", "smiles": "COc1cccc(c1)/C=C/C(=O)c1cc([N+](=O)[O-])ccc1O", "origin": "made_here"}
+   ],
+   "conditions": "Intramolecular oxa-Michael cyclisation: chalcone (0.01 mol) in EtOH, conc. H2SO4 added slowly, reflux 4-6 h; neutralised with sat. NaHCO3, EtOAc extraction; 74%.",
+   "source": "Experimental, General Synthesis of 5'-nitro flavanones (3a-n) and entry 3e; Scheme 1 step (ii)"},
+  {"step": 3,
+   "product": {"label": "4e", "name": "6-Amino-2-(3-methoxyphenyl)-4H-chromen-4-one", "smiles": "COc1cccc(c1)C1CC(=O)c2cc(N)ccc2O1"},
+   "reactants": [
+    {"label": "3e", "name": "2-(3-Methoxyphenyl)-6-nitro-4H-chromen-4-one", "smiles": "COc1cccc(c1)C1CC(=O)c2cc([N+](=O)[O-])ccc2O1", "origin": "made_here"}
+   ],
+   "conditions": "Fe powder (0.03 mol), CaCl2 (0.01 mol), EtOH/H2O, reflux 4-5 h; filtered over celite, EtOAc extraction; 89% (reddish oil).",
+   "source": "Experimental, General Synthesis of 5'-amino flavanones (4a-n) and entry 4e; Scheme 1 step (iii)"},
+  {"step": 4,
+   "product": {"label": "5e", "name": "3,4,5-Trimethoxy-N-(2-(3-methoxyphenyl)-4-oxochroman-6-yl)benzamide", "smiles": "COc1cccc(c1)C1CC(=O)c2cc(NC(=O)c3cc(OC)c(OC)c(OC)c3)ccc2O1"},
+   "reactants": [
+    {"label": "4e", "name": "6-Amino-2-(3-methoxyphenyl)-4H-chromen-4-one", "smiles": "COc1cccc(c1)C1CC(=O)c2cc(N)ccc2O1", "origin": "made_here"},
+    {"label": "3,4,5-trimethoxybenzoyl chloride", "name": "3,4,5-trimethoxybenzoyl chloride", "smiles": "COc1cc(cc(OC)c1OC)C(=O)Cl", "origin": "commercial"}
+   ],
+   "conditions": "Amine (0.01 mol) in CH2Cl2 at 0 C, Et3N added, then acid chloride (0.01 mol) in CH2Cl2, rt 2 h; workup, column (EtOAc/hexane); 84%.",
+   "source": "Experimental, General Synthesis of galloyl conjugates (5a-n) and entry 5e; Scheme 1 step (iv)"}
+ ],
+ "alt_variants": [],
+ "other_qualifying_compounds": null,
+ "notes": "4 steps (limit). No SI text was provided; the article's Experimental section was sufficient. 5e is racemic (stereocentre at C-2 not specified; later resolved by HPLC) so no stereo in SMILES. The printed names of the flavanone intermediates 3e and 4e say '4H-chromen-4-one' (which is the flavone oxidation level and would not match my SMILES under OPSIN) but their NMR (H-2 dd 5.86/5.46, H-3 dd) and the later 'chroman-4-one' names show they are 2,3-dihydro flavanones; my SMILES are the flavanones. The 4e NMR lists '2.78 (s, 3H)' where OMe (3.78) is meant. The aldehyde is not named in the general procedure ('the respective aldehyde'); 3-methoxybenzaldehyde is inferred from chalcone 2e's name. 3,4,5-Trimethoxybenzoyl chloride is not stated as purchased but is used without preparation. 'Reagents obtained from commercial sources'."
+}

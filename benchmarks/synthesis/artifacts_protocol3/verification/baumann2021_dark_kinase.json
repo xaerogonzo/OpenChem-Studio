@@ -1,0 +1,16 @@
+{
+ "paper": "baumann2021_dark_kinase",
+ "my_lead": "10f - abstract: 'The top compound, 10f, was further profiled ...'",
+ "lead_agrees": true,
+ "reactions": [
+  {"step": 1, "ok": true, "issue": ""},
+  {"step": 2, "ok": true, "issue": ""},
+  {"step": 3, "ok": true, "issue": "Borylation and Suzuki are separate reactions in Scheme 3 (steps b and c, 'not isolated'), with filtration/aqueous workup between them in the 3a exemplar. Counting them as two steps is correct."},
+  {"step": 4, "ok": true, "issue": ""}
+ ],
+ "leaf_issues": [],
+ "step_count_ok": true,
+ "smiles_issues": [],
+ "overall": "confirmed",
+ "notes": "Stereo re-derived by hand: D-Trp N[C@H](CH2Ar)C(=O)O is R (L-Trp is @@); reduction keeps the carbon, N[C@H](CH2Ar)CH2OH is R, and the sulfonamide N-bound SMILES keeps the same neighbour order, R. 7-azaindol-4-yl SMILES c1ccnc2[nH]ccc12 correct (attachment adjacent to C3a, N7 next to C7a). Boronate is para (derived, never named in the paper), correct. Leaves: Experimental General Information 'Unless otherwise noted, starting materials and reagents were purchased from commercial sources and used without further purification'; 8f made from D-tryptophan by the Meyers NaBH4/I2 procedure (compound 8f entry, 84%); 4-bromobenzenesulfonyl chloride (1) and 4-bromo-7-azaindole are used with no preparation anywhere. 10f is made 'from 9f ... following general procedure B', which is the one-pot-style borylation then Suzuki exemplified for 3a (reagents: B2pin2, KOAc, PdCl2(dppf), then 4-bromo-7-azaindole, aq NaHCO3, Pd(PPh3)4). 4 steps. Minor: the paper has no explicit 'commercially available' for those three leaves, only the general statement (acceptable)."
+}

@@ -1,0 +1,15 @@
+{
+ "paper": "lai2023_tetrahydrobenzothiophene_antibacterials",
+ "my_lead": "3b: abstract: 'compound 3b showed excellent activity ... a promising lead compound was identified'",
+ "lead_agrees": true,
+ "reactions": [
+  {"step": 1, "ok": true, "issue": "Gewald three-component one-pot (ketone + ethyl cyanoacetate + S8, morpholine as base omitted correctly). 4-methylcyclohexanone gives the 6-methyl tetrahydrobenzothiophene (ketone C1 -> C3a, ring methyl lands on C6); SMILES matches. Sulfur supplies the ring S so listing it is right; [S] is an odd SMILES for S8 but harmless."},
+  {"step": 2, "ok": true, "issue": "N-acylation of the 2-amino ester with 2-iodobenzoyl chloride, Et3N omitted correctly; 62% per Scheme 1(b)."},
+  {"step": 3, "ok": true, "issue": "NaOH ester hydrolysis to the acid; 3b isolated 35.6% (scheme says 95% generically)."}
+ ],
+ "leaf_issues": [],
+ "step_count_ok": true,
+ "smiles_issues": [],
+ "overall": "confirmed",
+ "notes": "3 steps, within the limit. Leaves covered by Experimental: 'All starting materials and reagents were commercially available and were used without further purification.' The paper never names the cyclohexanone or the benzoyl chloride used for 3b (general procedures say 'cyclohexanone derivatives', 'benzoyl chloride derivative'); 4-methylcyclohexanone and 2-iodobenzoyl chloride are inferred from the printed name of 3b (the only reading consistent with a 6-methyl / 2-iodobenzamido product; 13C 93.87 supports C-I) - a maintainer should know this is inferred. Racemic (C6 unspecified). No SI in my bundle."
+}

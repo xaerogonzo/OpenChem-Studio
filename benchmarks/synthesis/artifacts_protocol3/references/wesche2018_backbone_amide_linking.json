@@ -1,0 +1,12 @@
+{
+ "paper": "wesche2018_backbone_amide_linking",
+ "decision": "excluded",
+ "exclusion_reason": "not_small_molecule_organic",
+ "exclusion_detail": "Synthesis of (permethylated) rhabdopeptides, linear nonribosomal peptides, by solid-phase backbone amide linking and on-resin N-methylation; peptides are out of scope.",
+ "lead": {"label": "not selected (peptides)", "why": "Abstract names no single compound; it describes a method for permethylated rhabdopeptides."},
+ "target": null,
+ "reactions": [],
+ "alt_variants": [],
+ "other_qualifying_compounds": [],
+ "notes": ""
+}

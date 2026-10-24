@@ -1,0 +1,67 @@
+{
+ "decision": "route",
+ "exclusion_reason": null,
+ "exclusion_detail": "",
+ "lead": {
+  "label": "19",
+  "why": "Abstract: 'The most promising compound (19) inhibited human MAO-A and MAO-B with IC50 values of 6.34 uM and 0.30 uM'."
+ },
+ "target": {
+  "name": "1-(4-chloro-2-hydroxyphenyl)-3-(1H-indol-5-yl)thiourea",
+  "smiles": "S=C(Nc1ccc2[nH]ccc2c1)Nc1ccc(Cl)cc1O"
+ },
+ "reactions": [
+  {
+   "step": 1,
+   "product": {
+    "label": "1H-indol-5-yl isothiocyanate (2, reverse process)",
+    "name": "1H-indole-5-isothiocyanate",
+    "smiles": "S=C=Nc1ccc2[nH]ccc2c1"
+   },
+   "reactants": [
+    {
+     "label": "1H-indol-5-amine (1)",
+     "name": "1H-indol-5-amine",
+     "smiles": "Nc1ccc2[nH]ccc2c1",
+     "origin": "commercial"
+    },
+    {
+     "label": "carbon disulfide",
+     "name": "carbon disulfide",
+     "smiles": "S=C=S",
+     "origin": "reagent"
+    }
+   ],
+   "conditions": "Amine (3 mmol) in THF, CS2 (10 equiv), Et3N (1 equiv), rt, 30-60 min to dithiocarbamate salt; then ice bath, Boc2O (0.99 equiv) and DMAP (cat.), 15-60 min; volatiles evaporated, crude isothiocyanate used directly.",
+   "source": "Main text section 5.1.2 (general procedure for isothiocyanates, electron-rich amines; text says reverse process used for phenol-containing thioureas incl. 19); Scheme 1 conditions a, c"
+  },
+  {
+   "step": 2,
+   "product": {
+    "label": "19",
+    "name": "1-(4-chloro-2-hydroxyphenyl)-3-(1H-indol-5-yl)thiourea",
+    "smiles": "S=C(Nc1ccc2[nH]ccc2c1)Nc1ccc(Cl)cc1O"
+   },
+   "reactants": [
+    {
+     "label": "1H-indol-5-yl isothiocyanate",
+     "name": "1H-indole-5-isothiocyanate",
+     "smiles": "S=C=Nc1ccc2[nH]ccc2c1",
+     "origin": "made_here"
+    },
+    {
+     "label": "2-amino-5-chlorophenol",
+     "name": "",
+     "smiles": "Nc1ccc(Cl)cc1O",
+     "origin": "commercial"
+    }
+   ],
+   "conditions": "Aromatic amine (1 mmol) in DCM (5 mL); isothiocyanate (1 mmol) in DCM (2 mL) added dropwise; stirred 20 h at rt; column chromatography (CHCl3-MeOH), recrystallised from Et2O-EtOAc. Yield 38%.",
+   "source": "Main text section 5.1.4 and characterisation of 19 (p.17-18); Scheme 1 condition d"
+  }
+ ],
+ "alt_variants": [],
+ "other_qualifying_compounds": null,
+ "notes": "The aryl amine used for 19 is not named in the paper; it is inferred from the product name (4-chloro-2-hydroxyphenyl attached through N, so 2-amino-5-chlorophenol, SMILES Nc1ccc(Cl)cc1O); the paper says only 'All reagents purchased from commercial sources'. The general procedure text says the reverse process (indole isothiocyanate first) was used for final thioureas with free phenolic groups, explicitly listing 19. The scheme-1 'normal' direction is the alternative for other analogues. Isothiocyanate is used crude without isolation/characterisation (could be considered one-pot with step 2; counted as 2 steps).",
+ "paper": "hroch2017_frentizole_thioureas_mao_abad"
+}

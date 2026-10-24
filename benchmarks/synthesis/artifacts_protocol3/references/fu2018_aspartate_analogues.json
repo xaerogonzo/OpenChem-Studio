@@ -1,0 +1,12 @@
+{
+ "paper": "fu2018_aspartate_analogues",
+ "decision": "excluded",
+ "exclusion_reason": "no_lead_identifiable",
+ "exclusion_detail": "The abstract names families, not one best compound (L-threo 13a-e and 13g-k as pan inhibitors, TFB-TBOA analogues 3b-e, hybrids 8 and 9), and the conclusion gives no single featured compound or follow-up experiment.",
+ "lead": {"label": "none", "why": "Abstract lists compound series (13a-e, 13g-k; 3b-e; 8 and 9) with no single best or lead compound; no in vivo or other follow-up on one compound."},
+ "target": null,
+ "reactions": [],
+ "alt_variants": [],
+ "other_qualifying_compounds": null,
+ "notes": "Chemoenzymatic route (MAL-L384A enzyme step) for most compounds; the DL-threo building block 16 comes from a previously reported Sharpless aminohydroxylation. Did not assess other compounds for a looser rule."
+}

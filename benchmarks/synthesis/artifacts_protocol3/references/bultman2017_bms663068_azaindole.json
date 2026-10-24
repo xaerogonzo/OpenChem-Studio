@@ -1,0 +1,12 @@
+{
+ "paper": "bultman2017_bms663068_azaindole",
+ "decision": "excluded",
+ "exclusion_reason": "route_not_explicit",
+ "exclusion_detail": "The paper's product is the 6-azaindole core 5 (4-methoxy-1-(phenylsulfonyl)-1H-pyrrolo[2,3-c]pyridine), a key intermediate of BMS-663068; BMS-663068 itself is not made here (Part 4 of a series). The starting ketopyrrole 2 is never named in the text, is not said to be purchased, and is made 'starting from pyrrole 6' only by citation (ref 2a, J. Org. Chem. 2014, 79, 8757; no procedure in this paper), so the complete route from commercial materials is not explicit; the lead (API vs core) is also ambiguous.",
+ "lead": {"label": "5 (azaindole core of BMS-663068; BMS-663068 (1) is the API it serves)", "why": "Abstract: 'construction of the 6-azaindole core, a key intermediate in the synthesis of the clinical candidate BMS-663068... efficient and scalable method to access the 6-azaindole from a protected 3-ketopyrrole'."},
+ "target": null,
+ "reactions": [],
+ "alt_variants": [],
+ "other_qualifying_compounds": [],
+ "notes": "If a reviewer accepts ketopyrrole 2 as a leaf and 5 as the lead, the paper gives an explicit 3-step route: 2 -> ketal 3 (ethylene glycol, TMOF, H2SO4, MeOH, 60 C; 4-methyl-N-((2-(1-(phenylsulfonyl)-1H-pyrrol-3-yl)-1,3-dioxolan-2-yl)methyl)benzenesulfonamide), 3 -> 4 (paraformaldehyde, TFA, DCM, Pictet-Spengler; 1-(phenylsulfonyl)-6-tosyl-6,7-dihydro-1H-pyrrolo[2,3-c]pyridin-4(5H)-one), 4 -> 5 (MSA, TMOF, cumene hydroperoxide, MeOH, 30-35 C). 2's structure would have to be inferred (N-formyl-N-[2-oxo-2-(1-phenylsulfonylpyrrol-3-yl)ethyl]tosylamide, from the text on N-formyl removal) since its name is not printed; I did not transcribe it."
+}

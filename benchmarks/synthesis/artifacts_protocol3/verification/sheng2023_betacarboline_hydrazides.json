@@ -1,0 +1,16 @@
+{
+ "paper": "sheng2023_betacarboline_hydrazides",
+ "my_lead": "4de and 4dq co-named: abstract says 'compounds 4de (EC50 0.23) and 4dq (EC50 0.11) displayed the best efficacy'; 4de is also the in vivo compound",
+ "lead_agrees": "co-named",
+ "reactions": [
+  {"step": 1, "ok": true, "issue": "Pictet-Spengler of L-Trp-OMe.HCl (24.5 mmol) with glyoxylic acid (1.2 eq), cat. conc. H2SO4, water, rt overnight; 95% (Scheme 2a). Product 1 SMILES (1-COOH, 3-CO2Me tetrahydro-beta-carboline) is consistent with 2 being the 3-CO2Me/1-COOH aromatic acid; stereocentres omitted, harmless since step 2 aromatises. Reactant given as free base while the paper uses the hydrochloride."},
+  {"step": 2, "ok": true, "issue": "CuBr2 (0.2 eq)/DBU/MeCN/air oxidative aromatisation; 92%; catalyst and base correctly omitted."},
+  {"step": 3, "ok": true, "issue": "Aminolysis of the 3-methyl ester with NH3.H2O in MeOH reflux 24 h; 85%; ammonia supplies the N so listing it is right. Selectivity (ester, not the acid) matches the 3-carbamoyl-1-carboxylic acid name; the printed HRMS formula 'C13H13N2O4' is a typo (256.0717 = C13H10N3O3)."},
+  {"step": 4, "ok": true, "issue": "PyBOP/Et3N coupling of acid 3 with (4-fluorophenyl)hydrazine (0.8 eq), 88%; coupling reagent and base omitted correctly. Hydrazine identity inferred from the name of 4de (not named in the general procedure). Acylation at the terminal NH2 matches the printed name."}
+ ],
+ "leaf_issues": [],
+ "step_count_ok": true,
+ "smiles_issues": [],
+ "overall": "confirmed",
+ "notes": "Exactly 4 steps (Scheme 2 a-d), at the limit. Leaves: 'all chemicals required in this route are commercially available' (main text, p.9041) and 'All chemicals and reagents directly used in this study were of analytical grade (provided by Shanghai Crystal Pure Biological Technology)'. Paper states no purification of any intermediate is needed. SMILES of 2, 3 and 4de checked against the printed names (C3 carboxamide / ester, C1 acid / hydrazide, p-F aryl on the terminal hydrazine N). 4dq (same route, different hydrazine) is the co-lead; its hydrazine was not checked."
+}

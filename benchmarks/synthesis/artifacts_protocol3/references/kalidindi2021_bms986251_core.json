@@ -1,0 +1,12 @@
+{
+ "paper": "kalidindi2021_bms986251_core",
+ "decision": "excluded",
+ "exclusion_reason": "lead_route_over_4_steps",
+ "exclusion_detail": "The lead is BMS-986251 itself; the abstract states it is made from 6-iodotetralone in 13 chemical transformations (8 isolated intermediates), well over the 4-reaction limit. Convergent partner 3 is made in a separate (preceding) paper.",
+ "lead": {"label": "BMS-986251 (1)", "why": "Abstract: 'BMS-986251, a potent and efficacious RORgt inverse agonist, was synthesized starting from 6-iodotetralone using 13 chemical transformations with only eight isolated intermediates.'"},
+ "target": null,
+ "reactions": [],
+ "alt_variants": [],
+ "other_qualifying_compounds": ["6", "7"],
+ "notes": "Process-chemistry paper. 6 (vinyl sulfide from 6-iodotetralone 4 + 4-fluorothiophenol 5) is 1 step and 7 (vinyl sulfone) 2 steps from those, but these are early intermediates, not leads, and I did not verify that 4 and 5 are stated as purchased. The tricyclic amine 2 is also over 4 steps."
+}

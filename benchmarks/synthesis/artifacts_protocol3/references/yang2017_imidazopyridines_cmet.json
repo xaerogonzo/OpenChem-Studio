@@ -1,0 +1,12 @@
+{
+ "paper": "yang2017_imidazopyridines_cmet",
+ "decision": "excluded",
+ "exclusion_reason": "lead_route_over_4_steps",
+ "exclusion_detail": "Lead 7g needs 7 reactions from commercial materials, all with procedures: (1) esterification of 2-aminonicotinic acid, (2) LiAlH4 reduction to (2-aminopyridin-3-yl)methanol, (3) CuBr2 bromination of 2,4-dichloroacetophenone, (4) cyclisation of 2 with the bromoketone to the imidazopyridine methanol 4g, (5) 3,6-dichloropyridazine + semicarbazide to the triazolopyridazinone 5, (6) POCl3 to 6, (7) NaH coupling of 4g with 6 to give 7g.",
+ "lead": {"label": "7g", "why": "Abstract: 'compound 7g exhibited the most inhibitory activity against c-Met with IC50 of 53.4 nM and 253 nM in enzymatic and cellular level'."},
+ "target": {"name": "6-chloro-3-((2-(2,4-dichlorophenyl)imidazo[1,2-a]pyridin-8-yl)methoxy)-[1,2,4]triazolo[4,3-b]pyridazine", "smiles": "Clc1ccc(c(Cl)c1)-c1cn2cccc(COc3nnc4ccc(Cl)nn34)c2n1"},
+ "reactions": [],
+ "alt_variants": [],
+ "other_qualifying_compounds": [],
+ "notes": "Every compound 7a-7j shares the same two branches (4 steps for the imidazopyridine, 2 for the chlorotriazolopyridazine, plus the coupling), so all are 7 steps. No SI in the bundle (accepted manuscript; not needed)."
+}

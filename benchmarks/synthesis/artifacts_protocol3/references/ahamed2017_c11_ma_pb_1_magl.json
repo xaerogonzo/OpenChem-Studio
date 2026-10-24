@@ -1,0 +1,15 @@
+{
+ "decision": "excluded",
+ "exclusion_reason": "not_small_molecule_organic",
+ "exclusion_detail": "Radiolabelling paper: the lead is the carbon-11 PET tracer [11C]MA-PB-1; its synthesis is a 11C-methylation radiosynthesis (radiolabelling is excluded by the brief).",
+ "lead": {
+  "label": "[11C]MA-PB-1",
+  "why": "Title/abstract: 'We report [11C]MA-PB-1 as an irreversible MAGL inhibitor PET tracer'."
+ },
+ "target": null,
+ "reactions": [],
+ "alt_variants": [],
+ "other_qualifying_compounds": null,
+ "notes": "Not transcribed. The cold reference MA-PB-1 and its precursor were not examined.",
+ "paper": "ahamed2017_c11_ma_pb_1_magl"
+}

@@ -1,0 +1,12 @@
+{
+ "paper": "cheruku2021_erlotinib_chlorins",
+ "decision": "excluded",
+ "exclusion_reason": "route_not_explicit",
+ "exclusion_detail": "The abstract names PS 10 as the most effective candidate, but the Experimental section states 'Compounds 10 and 11 are known compounds' (ref 38) and gives no procedure for 10 in this article; no SI text file is available. The precursor 9 (from pyropheophorbide-a, a chlorophyll-derived natural-product derivative) also has no procedure here.",
+ "lead": {"label": "PS 10", "why": "Among the conjugates investigated, the PS 10 was identified as the most effective candidate for achieving tumor cell-specific accumulation and yielding improved long-term tumor control."},
+ "target": null,
+ "reactions": [],
+ "alt_variants": [],
+ "other_qualifying_compounds": ["5", "8"],
+ "notes": "Other compounds 5 (azide click on erlotinib then EDC coupling to HPPH 4) and 8 (EDC coupling of HPPH 4 with 3-iodobenzylamine to 7, then Pd Sonogashira with erlotinib) are 2-step routes with procedures in the main text, but they start from HPPH 4, itself a semisynthetic chlorophyll-derived tetrapyrrole whose origin is not stated; counted as qualifying only if HPPH counts as a bought/used-as-is starting material. Not transcribed."
+}

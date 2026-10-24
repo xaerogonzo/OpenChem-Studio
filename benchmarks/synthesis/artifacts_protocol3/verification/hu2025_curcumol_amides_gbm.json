@@ -1,0 +1,37 @@
+{
+ "paper": "hu2025_curcumol_amides_gbm",
+ "my_lead": "13t (4-fluorophenyl amide): abstract 'most potent dose-dependent inhibition of GBM cell viability'",
+ "lead_agrees": true,
+ "reactions": [
+  {
+   "step": 1,
+   "ok": false,
+   "issue": "Curcumol -> 10 is two reactions (mCPBA epoxidation, Na2S2O3 work-up and extraction, crude epoxide, then NaOH/iPrOH 70 C); the paper counts them as one 'two-step yield' within a 'four-step procedure'. Chemistry and product 10 are right (allylic CH2OH, endocyclic alkene: 1H 5.83 d, 4.09 s 2H; 13C 144.0/123.5, 103.4 hemiketal, 64.5 CH2OH; C15H25O3 253.1804). mCPBA is legitimately an O-atom donor."
+  },
+  {
+   "step": 2,
+   "ok": true,
+   "issue": ""
+  },
+  {
+   "step": 3,
+   "ok": true,
+   "issue": ""
+  },
+  {
+   "step": 4,
+   "ok": true,
+   "issue": ""
+  }
+ ],
+ "leaf_issues": [
+  "Curcumol 9 is marked 'commercial' but NOTHING in the main text or SI says it was purchased; neither file has a general 'reagents were purchased' sentence for the chemistry. The only statement about its origin is the Introduction: 'Curcumol 9 is also a sesquiterpene isolated from Curcuma wenyujin'. It is a plant natural product with no source or preparation given, so it is not a supportable purchased leaf. The SI headline also says 'Curcumenol Derivatives' and the SI quantity '2.36 g, 6.7 mmol' does not match curcumol (M 236.35 gives 10.0 mmol), so even the starting-material identity is not pinned down by the paper.",
+  "4-Fluoroaniline is not named (inferred from the 13t name and '4-fluorophenyl' in the text; certain); general procedure says 'amines (1.1 equiv.)'."
+ ],
+ "step_count_ok": false,
+ "smiles_issues": [
+  "Curcumol SMILES CC1CCC2C(=C)CC3(O)OC12CC3C(C)C and the 10/11/12/13t SMILES are consistent with each other, with the 13t name (3a,6-epoxyazulene, 3-Me, 5-iPr, 6-OH, C8 substituent, C7=C8) and with the HRMS/NMR of 10-12; stereo omitted (printed name carries it). I cannot verify the curcumol structure itself because the paper never prints it."
+ ],
+ "overall": "reject",
+ "notes": "Reject because (1) the only starting material of the chain is a natural product described as 'isolated from Curcuma wenyujin' with no purchase statement anywhere, so 'commercial' is unsupported (a natural-source leaf is not a purchased leaf), and (2) the step count is 4 only by the paper's own telescoped counting; as separate reactions it is 5 (epoxidation, base ring-opening, DMP, Pinnick, HATU amidation). Steps 2-4 verified against SI: DMP/NaHCO3 78%, NaClO2/NaH2PO4/H2O2 Pinnick 93%, HATU + amine in MeCN 91% for 13t. Masses for 10/11/12 are consistent (200 mg 10 = 0.79 mmol). The main text swaps 13s/13t once in the results sentence, but abstract, conclusion and SI name give 13t = 4-fluorophenyl (IC50 26.75 uM, better than 13s 58.85 uM). Could be reinstated only if the maintainer decides curcumol counts as a catalogue compound AND accepts the 4-step telescoped count; the paper itself supports neither."
+}

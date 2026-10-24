@@ -1,0 +1,19 @@
+{
+ "paper": "li2025_lunresertib_pkmyt1",
+ "my_lead": "RP-6306 / lunresertib, the (S)-atropisomer (title and abstract: the whole paper is the scalable synthesis of this drug substance)",
+ "lead_agrees": true,
+ "reactions": [
+  {"step": 1, "ok": true, "issue": "Buchwald-Hartwig: 3-methoxy-2,6-dimethylaniline (4) + 2,3-dibromo-5,6-dimethylpyridine (3) -> 5 (82%). Matches the experimental. SMILES verified (amination at C2, Br retained at C3). The paper's text mislabels the product as '3' at the end of the procedure (typo for 5), as the transcriber noted."},
+  {"step": 2, "ok": true, "issue": "5 + malononitrile (Pd, NaOtBu) -> 2-aminoazaindole-3-carbonitrile 2 (74%, racemic). Malononitrile incorporated once (one nitrile becomes the C2-NH2, one stays as CN). SMILES verified."},
+  {"step": 3, "ok": false, "issue": "As a route to the LEAD this step is not what the paper isolates. The one-pot hydration/demethylation in the experimental is run on the resolved (S)-2 (1R)-camphorsulfonate salt 8, not on racemic 2; the racemate 7 route (2 -> 6 -> 7, one-pot) is only described in the results text for the medicinal-chemistry route (ref 7, 'Scheme 2'), and the conditions quoted in this JSON (44 C/8 h, 4 equiv methionine, 1.6% water, THF reslurry, 76% recrystallisation) are the process conditions for 8. The chemistry (nitrile -> primary amide with MsOH/H2O, then ArOMe -> ArOH with DL-methionine) and the SMILES of the racemic product are correct."}
+ ],
+ "leaf_issues": [
+  "2,3-Dibromo-5,6-dimethylpyridine (3) and 3-methoxy-2,6-dimethylaniline (4): no sentence anywhere in the article (there is no SI) says they are purchased, nor any general 'reagents were commercial' statement; they are simply used. 3 in particular is not a common catalogue item, and its preparation is not given here (it may be in ref 7 or WO2024130425, not available). Treat as unconfirmed leaves."
+ ],
+ "step_count_ok": true,
+ "smiles_issues": [
+  "Lead is the (S)-atropisomer of a hindered C-N axis; the SMILES have no axis stereo (not representable in plain SMILES), so the transcribed target is the racemate 7, which is a different compound from the paper's isolated drug substance."
+ ],
+ "overall": "minor_issues",
+ "notes": "Core chemistry (3 steps racemic, 4 with the paper's non-telescoped hydration then demethylation) is correct and within the 4-step limit. Maintainer must know: (a) the paper's isolated lead is the single atropisomer made via classical resolution of 2 with (1R)-(-)-10-camphorsulfonic acid in anisole (salt 8, then recrystallisation), so the faithful route is 2 -> 8 (resolution) -> RP-6306, i.e. 4 steps if the resolution/salt formation is counted as a step; the racemate route is a proxy, and the enantiomer-vs-racemate difference matters under the brief. (b) The condition text under step 3 should be re-labelled as belonging to 8, or the step given from 8. (c) Leaves 3 and 4 have no supporting sentence in this paper. Supporting sentences quoted: 'RP-6306 was initially prepared on multigram scale using the process outlined in Scheme 2. The synthesis started with Buchwald-Hartwig amination ... of 2,3-dibromo-5,6-dimethylpyridine (3) with 3-methoxy-2,6-dimethylaniline (4)' (p.1677); 'demethylation with DL-methionine in one-pot to provide racemate 7' (p.1677)."
+}

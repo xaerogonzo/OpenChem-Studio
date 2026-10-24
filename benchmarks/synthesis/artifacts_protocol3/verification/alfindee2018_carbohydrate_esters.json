@@ -1,0 +1,15 @@
+{
+ "paper": "alfindee2018_carbohydrate_esters",
+ "my_lead": "MAN014 (6-O-tetradecanoyl-D-mannopyranose) - abstract: 'The identified lead compound, MAN014'",
+ "lead_agrees": true,
+ "reactions": [
+  {"step": 1, "ok": true, "issue": "D-mannose (0.5 g, 1 equiv) + myristoyl chloride (1.5 equiv) in pyridine, overnight rt, silica chromatography (General procedure 6.2; entry 6.11: 0.52 g, 1.33 mmol, 48%; also 30 g scale, 48% + 28% diacyl). One acyl chloride incorporated, correct. Pyridine (solvent/base) and DMAP (mentioned only in Sec. 2 as catalyst, not in 6.2) correctly not listed. Name matches: 6-O-Tetradecanoyl-D-mannopyranose; 14-carbon acyl chain verified in both SMILES."}
+ ],
+ "leaf_issues": [],
+ "step_count_ok": true,
+ "smiles_issues": [
+  "none in the connectivity or sugar stereochemistry: I assigned CIP by hand to the D-mannose SMILES (C5 R, C4 S, C3 S, C2 S in the sugar numbering, i.e. manno, with C2 inverted relative to gluco) and it is D-mannopyranose with the anomeric centre left unspecified, as the paper reports an alpha/beta 3:1 mixture."
+ ],
+ "overall": "minor_issues",
+ "notes": "Leaf support: 'All chemicals were purchased from the commercially available resources without any further purification' (6.1). Route is one step, well within the limit. Flag for a maintainer: the paper itself says (Sec. 2) that the mono-acylation of mannose gave 'an inseparable mixture of 6-O-acylated mannose and 2-O-acylated mannose in 4:1 ratio' (for the small-scale library; 'a similar ratio ... for all the reactions') plus an alpha/beta anomer mixture 3:1, yet entry 6.11 and the abstract name the product as the pure 6-O ester MAN014. The target as transcribed is therefore the major component of a regioisomeric mixture, not a cleanly isolated single regioisomer; the scale-up section does not restate the 4:1 ratio, and the SI contains only spectra. A planner that proposes selective primary-OH acylation of unprotected mannose matches the paper's own one-step claim, but the reference product's identity is 'major regioisomer'. The paper also states MAN014 'has been reported previously' (ref. 40) - not a leaf issue."
+}

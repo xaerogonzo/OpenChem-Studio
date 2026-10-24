@@ -1,0 +1,12 @@
+{
+ "paper": "meta2017_pyrazolyl_ureas_imidazopyrazoles",
+ "decision": "excluded",
+ "exclusion_reason": "route_not_explicit",
+ "exclusion_detail": "Lead is compound 3 (ethyl 1-(2-hydroxyalkyl)-5-(3-(3-trifluoromethylphenyl)ureido)pyrazole-4-carboxylate series 1-4). Its N1 hydroxyalkyl chain is not named anywhere in the text (only the drawn scheme), its characterisation/procedure is given only for 1 of the general procedure 1-4, and the hydrazino alcohols 28a-d are 'prepared by reaction of the appropriate oxirane with hydrate hydrazine, as previously reported [9]' with no procedure for 28 or for the aminopyrazoles 29a-d (the experimental gives 29d's use only).",
+ "lead": {"label": "3", "why": "Abstract: 'Screening of the compound library for inhibition of endothelial cell migration... showed significant activity for compound 3... compound 3 represents a potential inhibitor of angiogenesis.'"},
+ "target": null,
+ "reactions": [],
+ "alt_variants": [],
+ "other_qualifying_compounds": [],
+ "notes": "Structure of 3 cannot be written from the text layer (the chain differs between 1-4; only 1 = 2-hydroxypropyl is named). Accepted manuscript, no SI in bundle."
+}

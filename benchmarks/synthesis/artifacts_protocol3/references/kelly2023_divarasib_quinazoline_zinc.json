@@ -1,0 +1,12 @@
+{
+ "paper": "kelly2023_divarasib_quinazoline_zinc",
+ "decision": "excluded",
+ "exclusion_reason": "route_not_explicit",
+ "exclusion_detail": "The featured product is the quinazoline organozinc 3, made from the advanced bromoquinazoline 1 (a divarasib intermediate, 3.5 kg scale) by Br/Mg exchange and transmetalation; 1 is not prepared in this paper and the organozinc is never isolated (a THF solution, assayed by AcOH quench), so there is no isolated, structurally defined product or purchased starting material.",
+ "lead": {"label": "organozinc 3", "why": "Abstract: development of a scalable continuous flow process to synthesize a densely functionalized quinazoline organozinc intermediate toward divarasib."},
+ "target": null,
+ "reactions": [],
+ "alt_variants": [],
+ "other_qualifying_compounds": [],
+ "notes": "Process paper (OPRD); the reactions are an organometallic exchange and transmetalation of a solution species, not a route to a compound a planner could be tested on. The divarasib synthesis itself is only cited (refs 4, 5)."
+}

@@ -1,0 +1,12 @@
+{
+ "paper": "mills2020_chiro_inositol",
+ "decision": "excluded",
+ "exclusion_reason": "lead_route_over_4_steps",
+ "exclusion_detail": "Lead D-chiro-inositol ribophostin 10 needs the protected inositol triflate 11 (from racemic myo-inositol bisketal PMB ether via diastereomeric camphanate esters, separation, hydrolysis and triflation), the protected ribose 12, the NaH coupling to 13, trans-ketal removal, monobenzylation (15/16 separation), PMB removal, phosphitylation/oxidation (17 to 19) and global deprotection: well over 4 reactions (roughly 10 or more even with 11 and 12 counted as one step each from the paper's own sequence).",
+ "lead": {"label": "10", "why": "Abstract/title: 'D-chiro-Inositol ribophostin 10 was synthesized ...'; 'D-chiro-Inositol ribophostin is the most potent small-molecule Ins(1,4,5)P3 receptor agonist without a nucleobase yet synthesized.'"},
+ "target": null,
+ "reactions": [],
+ "alt_variants": [],
+ "other_qualifying_compounds": [],
+ "notes": "Only one target (10) plus intermediates; every other compound in the paper is an intermediate of the same long sequence. No SI file in the bundle."
+}

@@ -1,0 +1,12 @@
+{
+ "paper": "wang2020_anti_hcv_guanosine",
+ "decision": "excluded",
+ "exclusion_reason": "lead_route_over_4_steps",
+ "exclusion_detail": "The lead AL-611 (42) is a phosphoramidate prodrug of 2',4'-difluoro-2'-C-methylguanosine. Even starting from the pre-made nucleoside 27 (itself 'prepared according to published procedures'), Scheme 3 needs at least 9 reactions (MMTr protection, 6-OEt formation, 5'-iodination, DBU elimination, iodofluorination, benzoylation, benzoate displacement, debenzoylation, MMTr re-protection/benzoate steps, then phosphoramidation and deprotection).",
+ "lead": {"label": "42 (AL-611)", "why": "Abstract: 'A lead compound AL-611 showed high levels of the nucleoside 5'-triphosphate in vitro in primary human hepatocytes and in vivo in dog liver'; the text calls it the lead prodrug AL-611 (42)."},
+ "target": {"name": "AL-611 (42), Sp-phosphoramidate prodrug of 2',4'-difluoro-2'-C-methyl-6-O-ethylguanosine type", "smiles": null},
+ "reactions": [],
+ "alt_variants": [],
+ "other_qualifying_compounds": [],
+ "notes": "Also not explicit: the starting nucleoside 27/11c is made 'according to known procedures' from references. Compounds 1, 2, 3, 8 are 'synthesized according to published procedures'. Compounds 4-7 (Scheme 1) and 9, 10 (Scheme 2) all need more than 4 reactions."
+}

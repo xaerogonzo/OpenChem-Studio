@@ -1,0 +1,17 @@
+{
+ "paper": "kaur2018_benzoxazole_cox2",
+ "my_lead": "3d - abstract: 3d (84.09%) best in vivo of the six potent COX-2 inhibitors; text calls it the most potent compound of the series",
+ "lead_agrees": true,
+ "reactions": [
+  {"step": 1, "ok": true, "issue": "2,4-diaminophenol dihydrochloride + 3,5-dimethoxybenzoic acid, PPA, 80-95 C, 84%. Ring closure uses the 2-NH2 and leaves the 5-NH2 (para to O): SMILES correct. Free base drawn for the dihydrochloride; harmless."},
+  {"step": 2, "ok": true, "issue": "2-chlorobenzoic anhydride from 2 equiv 2-chlorobenzoic acid + 0.5 equiv DCC (acid 0.02 mol, DCC 0.01 mol), 81%. Acid listed twice, correct; DCC supplies no atom. The acid is not named in the general procedure ('substituted acid derivative'), inferred from product name 2d."},
+  {"step": 3, "ok": true, "issue": "Amine 1 (0.012 mol) + anhydride (0.01 mol), Zn dust, AcOH/DCM reflux, 71%. Zn is an additive, correctly omitted. Target SMILES matches '2-Chloro-N-(2-(3,5-dimethoxyphenyl)benzoxazol-5-yl)benzamide'."}
+ ],
+ "leaf_issues": [
+  "Only the general sentence 'The chemical and solvents used were purchased from Merck Co. and Sigma by commercial vendors' supports the leaves; nothing is prepared for them. The anhydride's acid is inferred, not named."
+ ],
+ "step_count_ok": true,
+ "smiles_issues": [],
+ "overall": "confirmed",
+ "notes": "3 steps; the anhydride is a stoichiometric acylating agent made in the paper (counted as step 2, correct). The paper text mislabels 3g as 4-ethylphenyl (scheme says 2-methylphenyl), irrelevant to 3d. Other potent compounds (3a, 3g) exist but 3d is the clear best. A planner may legitimately find an acid-chloride coupling instead of the anhydride; the reference route is the anhydride one."
+}

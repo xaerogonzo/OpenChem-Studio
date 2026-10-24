@@ -1,0 +1,12 @@
+{
+ "paper": "gao2023_tetrasubstituted_pyrimidines",
+ "decision": "excluded",
+ "exclusion_reason": "route_not_explicit",
+ "exclusion_detail": "Lead 27g is made through the pyrimidine core 24g, the side chain 19, 25g and 26g; the Experimental states these were 'synthesized according to the published literature [29-32]' and gives no procedure for them, so the route is not explicit. It would also be 5 reactions (Biginelli, amide formation of 19, substitution, POCl3 chlorination, thiolate substitution), over the 4-step limit.",
+ "lead": {"label": "27g", "why": "Abstract: 'compound 27g showed the best antiproliferative activity on MGC-803 cells' and was used for the mechanism studies."},
+ "target": null,
+ "reactions": [],
+ "alt_variants": [],
+ "other_qualifying_compounds": [],
+ "notes": "Only the last step (22a-af from 21, 27a-j from 26) has a procedure. No SI in bundle. The substituent of 27g was not transcribed."
+}

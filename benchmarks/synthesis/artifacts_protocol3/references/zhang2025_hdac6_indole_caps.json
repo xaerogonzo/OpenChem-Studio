@@ -1,0 +1,37 @@
+{
+ "paper": "zhang2025_hdac6_indole_caps",
+ "decision": "route",
+ "exclusion_reason": null,
+ "exclusion_detail": "",
+ "lead": {"label": "10n", "why": "Abstract: 'We finally identified compound 10n, substituted with a cyclopropyl-methyl group in the N-1 position of its indole ring, as the most potent HDAC6 inhibitor (IC50 = 3.11 nM)'"},
+ "target": {"name": "1-(cyclopropylmethyl)-N-(4-(hydroxycarbamoyl)benzyl)-1H-indole-3-carboxamide", "smiles": "ONC(=O)c1ccc(CNC(=O)c2cn(CC3CC3)c3ccccc23)cc1"},
+ "reactions": [
+  {"step": 1,
+   "product": {"label": "8a (indole-3-carboxamide methyl ester, unsubstituted indole member of series 8)", "name": "", "smiles": "COC(=O)c1ccc(CNC(=O)c2c[nH]c3ccccc23)cc1"},
+   "reactants": [
+    {"label": "7a", "name": "indole-3-carboxylic acid", "smiles": "OC(=O)c1c[nH]c2ccccc12", "origin": "commercial"},
+    {"label": "amine", "name": "methyl 4-(aminomethyl)benzoate hydrochloride", "smiles": "COC(=O)c1ccc(CN)cc1", "origin": "commercial"}
+   ],
+   "conditions": "General process 1.6 (SI): acid 5 mmol in DCM, EDCI 15 mmol and HOBT 5 mmol, 0.5 h rt; then amine hydrochloride 6 mmol and Et3N 7.5 mmol, rt 10-12 h; column chromatography, 75-85% (series).",
+   "source": "SI section 1.6; main text Scheme 3 and p. 3 text"},
+  {"step": 2,
+   "product": {"label": "9n", "name": "", "smiles": "COC(=O)c1ccc(CNC(=O)c2cn(CC3CC3)c3ccccc23)cc1"},
+   "reactants": [
+    {"label": "8a", "name": "", "smiles": "COC(=O)c1ccc(CNC(=O)c2c[nH]c3ccccc23)cc1", "origin": "made_here"},
+    {"label": "cyclopropylmethyl halide", "name": "(bromomethyl)cyclopropane", "smiles": "BrCC1CC1", "origin": "commercial"}
+   ],
+   "conditions": "General process 1.7 (SI): 8 (2 mmol) in DMF (10 mL), KOH (4 mmol), alkyl halide (3 mmol), rt 3-5 h (alternative Cu/diamine toluene conditions for inert halides); 55-70% (series).",
+   "source": "SI section 1.7; main text Scheme 3 step (b)"},
+  {"step": 3,
+   "product": {"label": "10n", "name": "1-(cyclopropylmethyl)-N-(4-(hydroxycarbamoyl)benzyl)-1H-indole-3-carboxamide", "smiles": "ONC(=O)c1ccc(CNC(=O)c2cn(CC3CC3)c3ccccc23)cc1"},
+   "reactants": [
+    {"label": "9n", "name": "", "smiles": "COC(=O)c1ccc(CNC(=O)c2cn(CC3CC3)c3ccccc23)cc1", "origin": "made_here"},
+    {"label": "hydroxylamine", "name": "hydroxylamine", "smiles": "NO", "origin": "reagent"}
+   ],
+   "conditions": "General process 1.8 (SI): 9 (0.5 mmol) in DCM:MeOH 1:2 (9 mL), NH2OH (50% aq, 15 mmol) 0.5 h rt, then NaOH (5 mmol) 0.5-1 h; acidify with formic acid to pH 5-6; 10n yield 67%.",
+   "source": "SI sections 1.8 and 1.8.14; main text Scheme 3 step (c)"}
+ ],
+ "alt_variants": [],
+ "other_qualifying_compounds": null,
+ "notes": "The papers give general processes only; intermediates 8a and 9n have no printed names or individual procedures (names left empty, structures derived from the general process and the product name). The alkyl halide for 10n is not named in the paper (only 'corresponding bromine-, chlorine-, iodide-substituted reagents'); the cyclopropylmethyl group is certain from the product name, the halide (bromide drawn) is an assumption that does not change the product. That 7a is unsubstituted indole-3-carboxylic acid is inferred from 10n having no other ring substituent. Amine is supplied as hydrochloride; free base drawn. Hydroxylamine supplies N and O to the product so is listed as a reagent."
+}

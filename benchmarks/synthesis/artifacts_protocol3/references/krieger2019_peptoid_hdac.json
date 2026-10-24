@@ -1,0 +1,45 @@
+{
+ "paper": "krieger2019_peptoid_hdac",
+ "decision": "excluded",
+ "exclusion_reason": "route_not_explicit",
+ "exclusion_detail": "Lead 2a is a 4-step Ugi route, but its coupling partner tert-butyl-(2-aminophenyl)carbamate is stated to be 'prepared according to published procedures' (ref 25) with no procedure in this paper, so under the brief's rule the route is not explicit. It is a plain mono-Boc-o-phenylenediamine (commercially common), so the transcription is supplied anyway in case the rule is relaxed for such building blocks.",
+ "lead": {"label": "2a", "why": "Abstract: 'In particular, compound 2a revealed potent chemosensitizing properties and full reversal of cisplatin resistance in Cal27CisR cells.'"},
+ "target": {"name": "N-{4-[(2-Aminophenyl)carbamoyl]benzyl}-N-[2-(benzylamino)-2-oxoethyl]-4-(dimethylamino)benzamide", "smiles": "CN(C)c1ccc(cc1)C(=O)N(Cc1ccc(cc1)C(=O)Nc1ccccc1N)CC(=O)NCc1ccccc1"},
+ "reactions": [
+  {"step": 1,
+   "product": {"label": "12a", "name": "Methyl 4-({N-[2-(Benzylamino)-2-oxoethyl]-4-(dimethylamino)benzamido}methyl)benzoate", "smiles": "COC(=O)c1ccc(CN(CC(=O)NCc2ccccc2)C(=O)c2ccc(N(C)C)cc2)cc1"},
+   "reactants": [
+    {"label": "methyl 4-(aminomethyl)benzoate (as HCl salt)", "name": "methyl 4-(aminomethyl)benzoate hydrochloride", "smiles": "COC(=O)c1ccc(CN)cc1", "origin": "commercial"},
+    {"label": "paraformaldehyde", "name": "paraformaldehyde", "smiles": "C=O", "origin": "reagent"},
+    {"label": "4-(dimethylamino)benzoic acid", "name": "", "smiles": "CN(C)c1ccc(cc1)C(=O)O", "origin": "commercial"},
+    {"label": "benzyl isocyanide", "name": "", "smiles": "[C-]#[N+]Cc1ccccc1", "origin": "commercial"}
+   ],
+   "conditions": "Ugi four-component reaction: amine HCl (1.2 equiv), paraformaldehyde (1.2 equiv), Et3N (1.2 equiv), 4 A MS, dry MeOH (0.5 M), RT 30 min; then carboxylic acid (1 equiv), after 10 min isocyanide (1 equiv), RT 24 h; flash chromatography. 68% for 12a.",
+   "source": "Scheme 4 step (a); Experimental, general procedure for 3a-h and 12a-f; characterisation of 12a"},
+  {"step": 2,
+   "product": {"label": "acid from 12a", "name": "", "smiles": "OC(=O)c1ccc(CN(CC(=O)NCc2ccccc2)C(=O)c2ccc(N(C)C)cc2)cc1"},
+   "reactants": [
+    {"label": "12a", "name": "Methyl 4-({N-[2-(Benzylamino)-2-oxoethyl]-4-(dimethylamino)benzamido}methyl)benzoate", "smiles": "COC(=O)c1ccc(CN(CC(=O)NCc2ccccc2)C(=O)c2ccc(N(C)C)cc2)cc1", "origin": "made_here"}
+   ],
+   "conditions": "LiOH.H2O (2 equiv), MeOH, RT, 16 h; acidify to pH ~1 with 1 M HCl, extract with EtOAc; crude acid used directly. Acid is not given a number or name in the paper (derived from the ester).",
+   "source": "Scheme 4 step (b)(i); Experimental, general procedure for 13a-f"},
+  {"step": 3,
+   "product": {"label": "13a", "name": "tert-Butyl-{2-[4-({N-[2-(benzylamino)-2-oxoethyl]-4-(dimethylamino)benzamido}methyl)benzamido]phenyl}carbamate", "smiles": "CC(C)(C)OC(=O)Nc1ccccc1NC(=O)c1ccc(CN(CC(=O)NCc2ccccc2)C(=O)c2ccc(N(C)C)cc2)cc1"},
+   "reactants": [
+    {"label": "acid from 12a", "name": "", "smiles": "OC(=O)c1ccc(CN(CC(=O)NCc2ccccc2)C(=O)c2ccc(N(C)C)cc2)cc1", "origin": "made_here"},
+    {"label": "tert-butyl (2-aminophenyl)carbamate", "name": "tert-butyl-(2-aminophenyl)carbamate", "smiles": "CC(C)(C)OC(=O)Nc1ccccc1N", "origin": "commercial"}
+   ],
+   "conditions": "EDC.HCl, DMAP, CH2Cl2/DMF (1:1), RT, 24 h; flash chromatography; 61%. The Boc-diamine is 'prepared according to published procedures' (ref 25), hence the exclusion; origin marked commercial only for the alternative reading.",
+   "source": "Scheme 4 step (b)(ii); Experimental, general procedure for 13a-f; characterisation of 13a"},
+  {"step": 4,
+   "product": {"label": "2a", "name": "N-{4-[(2-Aminophenyl)carbamoyl]benzyl}-N-[2-(benzylamino)-2-oxoethyl]-4-(dimethylamino)benzamide", "smiles": "CN(C)c1ccc(cc1)C(=O)N(Cc1ccc(cc1)C(=O)Nc1ccccc1N)CC(=O)NCc1ccccc1"},
+   "reactants": [
+    {"label": "13a", "name": "tert-Butyl-{2-[4-({N-[2-(benzylamino)-2-oxoethyl]-4-(dimethylamino)benzamido}methyl)benzamido]phenyl}carbamate", "smiles": "CC(C)(C)OC(=O)Nc1ccccc1NC(=O)c1ccc(CN(CC(=O)NCc2ccccc2)C(=O)c2ccc(N(C)C)cc2)cc1", "origin": "made_here"}
+   ],
+   "conditions": "15% TFA in CH2Cl2, RT, 30 min; basic work-up (sat. Na2CO3, 1 M NaOH); precipitated from hexane/EtOAc; 82%.",
+   "source": "Scheme 4 step (c); Experimental, general procedure for 1a-k and 2a-f; characterisation of 2a"}
+ ],
+ "alt_variants": [],
+ "other_qualifying_compounds": [],
+ "notes": "No SI file. Names of the amine HCl, paraformaldehyde, acid and isocyanide are not printed as such for 2a (they are only given generically R1COOH / R2NC in Scheme 4); the acid and benzyl isocyanide are derived from the structure of 2a (4-Me2N-Ph acyl, benzylamide). Steps 2 and 3 are one general procedure (hydrolysis, crude acid, then coupling); counted as two reactions, so total 4 either way (3 if counted as one pot). Every other compound in the paper uses the same Boc-diamine route or analogous published Boc-diamines, so no other compound qualifies under the strict rule."
+}

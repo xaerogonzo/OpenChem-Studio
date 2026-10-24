@@ -1,0 +1,12 @@
+{
+ "paper": "ikeda2022_enteropeptidase",
+ "decision": "excluded",
+ "exclusion_reason": "route_not_explicit",
+ "exclusion_detail": "The abstract names two final compounds, (S)-5b (SCO-792, named first and the one carried into the conclusion) and 6b; the lead was taken as (S)-5b. Its route (Scheme 7: ester hydrolysis then amide coupling to give 19, acylation with 4-carbamimidamidobenzoyl chloride, hydrogenolysis) starts from the optically active dihydrobenzofuran ester (S)-17b, which has no preparation in this paper and is only cited to a patent ('Production method of optically active dihydrobenzofuran derivatives', WO 2012111849), i.e. prepared as previously reported. The alternative lead 6b is not shorter (cycloaddition/hydrolysis, di-tert-butyl esterification, hydrogenolysis, chiral resolution, acylation, TFA deprotection, desalting: 6 or more steps plus a prepared aldoxime 21).",
+ "lead": {"label": "(S)-5b (SCO-792)", "why": "Abstract: 'revealed two series of potent enteropeptidase inhibitors, a dihydrobenzofuran analogue ((S)-5b, SCO-792) and phenylisoxazoline (6b)'; conclusion: 'identification of (S)-5b (SCO-792) as a potent enteropeptidase inhibitor'. Two compounds are named in the abstract; (S)-5b is first."},
+ "target": {"name": "N-({(3S)-6-[(4-Carbamimidamidobenzoyl)oxy]-2,3-dihydro-1-benzofuran-3-yl}acetyl)-L-aspartic Acid Hydrate", "smiles": "NC(=N)Nc1ccc(cc1)C(=O)Oc1ccc2c(c1)OC[C@H]2CC(=O)N[C@@H](CC(=O)O)C(=O)O"},
+ "reactions": [],
+ "alt_variants": [],
+ "other_qualifying_compounds": ["1c", "2a"],
+ "notes": "1c (7a = 4-hydroxyphenylacetic acid, 5.00 g = 32.9 mmol, so MW 152; glycine tBu ester amide 8a, acylation, deprotection) and 2a (7a + di-tert-butyl L-aspartate -> 15a? / 9b -> 2a) look like 3-step routes from commercial 7a, but I did not verify each procedure in full. The (S)-5b SMILES stereocentre assignment was not checked against a drawn structure (only the printed name was used). No SI file in the bundle."
+}

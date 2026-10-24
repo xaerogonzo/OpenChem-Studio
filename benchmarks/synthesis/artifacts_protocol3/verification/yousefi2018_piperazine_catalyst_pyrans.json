@@ -1,0 +1,15 @@
+{
+ "paper": "yousefi2018_piperazine_catalyst_pyrans",
+ "my_lead": "1f (4-chlorophenyl / dimedone pyran): abstract names no compound; rule 2 -> the model reaction used for optimisation (Table 1), the 10 mmol scale-up, catalyst recycling and the GC-MS mechanism study",
+ "lead_agrees": true,
+ "reactions": [
+  {"step": 1, "ok": true, "issue": "4-chlorobenzaldehyde (1 mmol) + malononitrile (1.1 mmol) + dimedone (1 mmol), piperazine (catalyst), water, 90 C or rt -> 1f. One-pot three-component Knoevenagel/Michael/cyclisation reported as one procedure (Sect 2.2, Sect 3). Piperazine and water correctly omitted. Scale-up 10 mmol, 15 mol% piperazine, rt, 92% (Sect 3)."}
+ ],
+ "leaf_issues": [
+  "All three reactants are covered only by 'Chemicals were purchased from Fluka, Merck, and Aldrich chemical companies' (Sect 2.1); adequate for these trivially commercial materials."
+ ],
+ "step_count_ok": true,
+ "smiles_issues": [],
+ "overall": "confirmed",
+ "notes": "SMILES N#CC1=C(N)OC2=C(C1c1ccc(Cl)cc1)C(=O)CC(C)(C)C2 checked atom by atom: 2-amino-3-cyano-4-(4-ClC6H4)-7,7-dimethyl-5-oxo-5,6,7,8-tetrahydro-4H-chromene, correct. Product is racemic (C4 stereocentre unspecified). Caveats: methodology paper, so 'lead' is by rule 2 only; the paper also tested antibacterial activity of 11 'selected' products (1a, 1j, 1k, 1o, 2a, 2i, 2j, 4a, 4k, 4l, 4o), which does not include 1f, but the abstract and all follow-up chemistry centre on the 1f model reaction. Note the paper's general-procedure heading (2.2) wrongly says '5-arylmethylene-pyrimidine-2,4,6-trione derivatives' (copy-paste error); the procedure text itself is the pyran synthesis."
+}

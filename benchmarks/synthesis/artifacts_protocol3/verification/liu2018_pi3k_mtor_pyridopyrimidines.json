@@ -1,0 +1,19 @@
+{
+ "paper": "liu2018_pi3k_mtor_pyridopyrimidines",
+ "my_lead": "3j - abstract: 'especially 3j whose potency against SKOV3 was 8-fold higher than AZD8055 ... 3j showed better antitumor activity and PK in vivo'",
+ "lead_agrees": true,
+ "reactions": [
+  {"step": 1, "ok": true, "issue": "Compound 14 has no printed name (it is only drawn in Scheme 2). 2-Amino-6-chloronicotinamide is inferred from the name of 15; the mass fits (500 mg = 2.90 mmol, MW 171.6). Pivaldehyde 754 mg = 8.80 mmol, correct. CuCl2 (stoichiometric) is an oxidant/catalyst and rightly not listed."},
+  {"step": 2, "ok": true, "issue": ""},
+  {"step": 3, "ok": true, "issue": "POCl3 chlorination of the lactam and the displacement by 3S-methylmorpholine are one procedure and one scheme step (j) with the chloro intermediate not isolated or named; counting it as one step follows the paper. Crude 17 has no yield given."},
+  {"step": 4, "ok": true, "issue": "The boron partner is only called 'phenylborate ester' in the text. Identity inferred, not stated (see notes). Also the 3j paragraph repeats a stray 3S-methylmorpholine/CH2Cl2 sentence after the Suzuki step (copy-paste artefact; ignore)."}
+ ],
+ "leaf_issues": [
+  "Aryl boron partner is not named or characterised anywhere in the paper; it is only 'phenylborate ester' (3j) / 'corresponding borate ester' (3k). The 3-hydroxymethyl-4-methoxyphenyl group is certain from the product. The pinacol ester is a reading, not a statement; the free boronic acid cannot be excluded by the text alone, although the mass supports the pinacol ester.",
+  "Compound 14 is a leaf by the general statement only; the paper neither names it nor says where it is from."
+ ],
+ "step_count_ok": true,
+ "smiles_issues": [],
+ "overall": "minor_issues",
+ "notes": "Evidence for the pinacol ester: the 3j procedure gives '(59 mg, 0.22 mmol)'; pinacol ester C14H21BO4 (MW 264.1) gives 0.223 mmol, the free boronic acid (MW 182) would be 0.32 mmol, neopentyl glycol ester (MW 250) 0.236 mmol. So the pinacol ester, listed as origin commercial, is the best reading; a maintainer should record the boron partner as 'inferred from stoichiometry'. Leaf support: 'All chemicals were obtained from commercial purchase and solvents were purified and dried by standard procedures' (4.1.1). Stereo: (S)-3-methylmorpholine C[C@H]1COCCN1 re-derived by hand as S; in the products N2CCOC[C@@H]2C is also S; the name '3S-methyl morpholine' is what the paper uses. Pyrido[2,3-d]pyrimidine numbering (tBu C2, morpholine C4, aryl C7), aryl substitution (CH2OH ortho to OMe, attachment para to OMe) all match the names. Scheme 2 reuses letters h/i/j twice, but the text and Section 4.1.18-4.1.21 make the sequence 15, 16, 17, 3j unambiguous. 4 reactions from commercial 14, pivaldehyde, 3S-methylmorpholine and the borate."
+}

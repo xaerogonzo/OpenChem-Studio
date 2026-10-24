@@ -1,0 +1,12 @@
+{
+ "paper": "wang2020_quinazolinone_blm",
+ "decision": "excluded",
+ "exclusion_reason": "route_not_explicit",
+ "exclusion_detail": "Lead 9h (3-(2-chloroethyl) quinazolinone) would be 4 steps (Ac2O benzoxazinone, amine opening, SNAr with 3-(diethylamino)propylamine, Knoevenagel with 4-isopropylbenzaldehyde), but the paper never describes the 3-(2-chloroethyl) intermediate: the only 3-haloethyl intermediates printed are 2b5 and 3b7, both named 2-fluoroethyl (their NMR has two triplets, which would fit chloroethyl, but the printed names say fluoroethyl), and the amine used for 2b2-2b5 is only called 'aliphatic amines'. The 2-chloroethylamine reagent would have to be inferred, so no transcription.",
+ "lead": {"label": "9h", "why": "Abstract: 'Among them, compound 9h exhibited nanomolar inhibitory activity and binding affinity for BLM'; 9h = (E)-3-(2-chloroethyl)-7-((3-(diethylamino)propyl)amino)-6-fluoro-2-(4-isopropylstyryl)quinazolin-4(3H)-one"},
+ "target": {"name": "(E)-3-(2-Chloroethyl)-7-((3-(diethylamino)propyl)amino)-6-fluoro-2-(4-isopropylstyryl)quinazolin-4(3H)-one", "smiles": "CC(C)c1ccc(/C=C/c2nc3cc(NCCCN(CC)CC)c(F)cc3c(=O)n2CCCl)cc1"},
+ "reactions": [],
+ "alt_variants": [],
+ "other_qualifying_compounds": ["4h", "6h", "7h", "8h"],
+ "notes": "Source is main text only (no SI file in bundle); experimental section is in the article. Candidates 4h/6h/7h/8h (3-methyl/ethyl/ethyl+ethylamino/isobutyl) are 4-step routes from 2-amino-4,5-difluorobenzoic acid via Ac2O -> 1b1, amine -> 2b2/2b3/2b4, diethylaminopropylamine (or ethylamine) SNAr -> 3b-series, aldehyde Knoevenagel; the amine for the 3-substituent is implied by the intermediate names rather than stated, so listed with that caveat. Also: 3b7 NMR has a typo ('4.81-1.62')."
+}

@@ -1,0 +1,12 @@
+{
+ "paper": "qian2018_d2_mglu5_bivalent",
+ "decision": "excluded",
+ "exclusion_reason": "lead_route_over_4_steps",
+ "exclusion_detail": "Lead 22a is made by CuAAC of the DPAT-alkyne 1 (prepared 'as described earlier', refs 26,29,30; no procedure here) with azide 21a, itself an EDC amide of acid 3a (ester 10a/11a/saponification from thiazole 8, 8 from chloroacetyl chloride in 2 steps by published procedures) with the linker amine 6a (13 from N-methylcaprolactam in 4 steps, aldehyde 15a in 2 steps, reductive amination 16a, Boc removal). Counting the convergent branches gives at least 14 reactions, and the alkyne 1 and thiazole 8 preparations are by reference only.",
+ "lead": {"label": "22a", "why": "Abstract: 'Bivalent ligand 22a with a linker consisting of 20 atoms showed 4-fold increase in affinity for cells coexpressing D2R and mGluR5'; also the compound used for modelling and cAMP assays."},
+ "target": null,
+ "reactions": [],
+ "alt_variants": [],
+ "other_qualifying_compounds": [],
+ "notes": "The monovalent precursors 3a/3b (carboxylic acids) and ester 10a/b are the only short sequences, but they depend on thiazole 8 'following published procedures' with no procedure in the article, so no other compound has an explicit route of 4 steps or fewer. No separate SI file was supplied; the experimental section in the main text was read."
+}

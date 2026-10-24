@@ -1,0 +1,12 @@
+{
+ "paper": "peng2018_quindoline_styryl",
+ "decision": "excluded",
+ "exclusion_reason": "route_not_explicit",
+ "exclusion_detail": "Lead 4a-10 comes from the 11-chloro quindoline intermediates 1a-x and from p-(methylthio)styrene, both stated to be 'prepared following the procedures previously reported' (refs 40-42) with no procedure in this paper; compound 4a-10 itself also has no experimental entry or named side chain in the article text (no SI file available).",
+ "lead": {"label": "4a-10", "why": "Abstract: 'One of the hits, 4a-10, showed strong stabilizing activity on the G-quadruplex and subsequently repressed NRAS's translation and inhibited tumor cells proliferation.'"},
+ "target": null,
+ "reactions": [],
+ "alt_variants": [],
+ "other_qualifying_compounds": [],
+ "notes": "Every compound in the paper (series I and II) is made from intermediates 1a-1, 1a-2, 1b-1, 1b-2 prepared per earlier reports, so no compound has an explicit route in this paper. Experimental text covers only the Heck coupling (2a/2b), N-methylation (3a/3b) and the general amination methods."
+}

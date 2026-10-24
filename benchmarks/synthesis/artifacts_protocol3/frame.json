@@ -1,0 +1,275 @@
+{
+ "note": "The frame lists (paper identifiers) are kept outside the repository: its DOI guard fails a tracked file that carries a DOI the registry lacks. Seeds, sizes and per-journal counts only.",
+ "criterion": "journal articles whose title contains 'synthes' (synthesis, synthesized, syntheses...), correction notices dropped, DOI-sorted, Python random.Random(seed).sample",
+ "strata": {
+  "1_jmedchem_2018_2022": {
+   "seed": 2026102402,
+   "n": 60,
+   "frame_size": 446,
+   "source": "Europe PMC (J Med Chem, research articles)"
+  },
+  "2_other_journals_2018_2022": {
+   "seed": 2026102403,
+   "n": 60,
+   "frame_size": 8530,
+   "source": "Crossref",
+   "per_journal": [
+    [
+     "ACS Medicinal Chemistry Letters",
+     1847,
+     153,
+     145
+    ],
+    [
+     "European Journal of Medicinal Chemistry",
+     4871,
+     1500,
+     1393
+    ],
+    [
+     "Bioorganic & Medicinal Chemistry",
+     2792,
+     828,
+     771
+    ],
+    [
+     "Bioorganic & Medicinal Chemistry Letters",
+     3364,
+     1014,
+     977
+    ],
+    [
+     "MedChemComm",
+     506,
+     127,
+     107
+    ],
+    [
+     "RSC Medicinal Chemistry",
+     538,
+     80,
+     92
+    ],
+    [
+     "Medicinal Chemistry Research",
+     873,
+     409,
+     405
+    ],
+    [
+     "Archiv der Pharmazie",
+     754,
+     331,
+     330
+    ],
+    [
+     "Journal of Enzyme Inhibition and Medicinal Chemistry",
+     909,
+     295,
+     295
+    ],
+    [
+     "Bioorganic Chemistry",
+     3844,
+     1621,
+     1619
+    ],
+    [
+     "Chemical Biology & Drug Design",
+     908,
+     171,
+     164
+    ],
+    [
+     "ChemMedChem",
+     1534,
+     314,
+     281
+    ],
+    [
+     "Future Medicinal Chemistry",
+     893,
+     126,
+     127
+    ],
+    [
+     "Anti-Cancer Agents in Medicinal Chemistry",
+     1304,
+     181,
+     179
+    ],
+    [
+     "Current Topics in Medicinal Chemistry",
+     1179,
+     48,
+     48
+    ],
+    [
+     "Letters in Drug Design & Discovery",
+     654,
+     239,
+     242
+    ],
+    [
+     "Pharmaceutical Chemistry Journal",
+     1082,
+     258,
+     254
+    ],
+    [
+     "Chemical and Pharmaceutical Bulletin",
+     823,
+     137,
+     136
+    ],
+    [
+     "Molecular Diversity",
+     777,
+     349,
+     346
+    ],
+    [
+     "Organic Process Research & Development",
+     1547,
+     436,
+     424
+    ]
+   ]
+  },
+  "3_all_journals_2017_and_2023_2025": {
+   "seed": 2026102404,
+   "n": 70,
+   "spares": 10,
+   "frame_size": 6623,
+   "source": "Crossref",
+   "per_journal": [
+    [
+     "Journal of Medicinal Chemistry",
+     4619,
+     444,
+     452
+    ],
+    [
+     "ACS Medicinal Chemistry Letters",
+     1580,
+     164,
+     145
+    ],
+    [
+     "European Journal of Medicinal Chemistry",
+     3926,
+     1074,
+     1393
+    ],
+    [
+     "Bioorganic & Medicinal Chemistry",
+     1736,
+     545,
+     771
+    ],
+    [
+     "Bioorganic & Medicinal Chemistry Letters",
+     2084,
+     655,
+     977
+    ],
+    [
+     "MedChemComm",
+     274,
+     70,
+     107
+    ],
+    [
+     "RSC Medicinal Chemistry",
+     1012,
+     237,
+     92
+    ],
+    [
+     "Medicinal Chemistry Research",
+     860,
+     361,
+     405
+    ],
+    [
+     "Archiv der Pharmazie",
+     781,
+     236,
+     330
+    ],
+    [
+     "Journal of Enzyme Inhibition and Medicinal Chemistry",
+     540,
+     151,
+     295
+    ],
+    [
+     "Bioorganic Chemistry",
+     3020,
+     945,
+     1619
+    ],
+    [
+     "Chemical Biology & Drug Design",
+     940,
+     172,
+     164
+    ],
+    [
+     "ChemMedChem",
+     1222,
+     257,
+     281
+    ],
+    [
+     "Future Medicinal Chemistry",
+     726,
+     200,
+     127
+    ],
+    [
+     "Anti-Cancer Agents in Medicinal Chemistry",
+     659,
+     78,
+     179
+    ],
+    [
+     "Current Topics in Medicinal Chemistry",
+     682,
+     37,
+     48
+    ],
+    [
+     "Letters in Drug Design & Discovery",
+     951,
+     151,
+     242
+    ],
+    [
+     "Pharmaceutical Chemistry Journal",
+     902,
+     184,
+     254
+    ],
+    [
+     "Chemical and Pharmaceutical Bulletin",
+     614,
+     117,
+     136
+    ],
+    [
+     "Molecular Diversity",
+     764,
+     225,
+     346
+    ],
+    [
+     "Organic Process Research & Development",
+     1282,
+     399,
+     424
+    ]
+   ]
+  }
+ }
+}
