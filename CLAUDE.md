@@ -91,6 +91,7 @@ by `tests/test_layering.py`.
 - `src/openchem/chem/periodic_charges.py` — EQeq charges for a crystal; the only calculation here about a periodic solid, reached through `crystal_report.py` rather than the calculator registry (a `CalculationRequest` cannot name a crystal)
 - `src/openchem/domain/refusal_kinds.py` — why a calculator declined (limit / needs input / needs setup); a refusal with no kind is a fault
 - `src/openchem/domain/calculator_support.py` — a calculator's stage (maturity of this implementation) and default visibility, with the reason; `LEGACY_UNCLASSIFIED` only shrinks (see `docs/CALCULATOR_MATURITY.md`)
+- `src/openchem/domain/support_marker.py` / `ui/widgets/stage_marker.py` — the small star beside a calculator (full = STABLE, half = LIMITED, empty = EXPERIMENTAL) on Properties rows and in the Results reader; an unclassified calculator gets none, and the rows of a section that has a star keep the room for one; `tests/test_support_marker.py`, driven by `benchmarks/visual/stage_markers.json`
 - `src/openchem/domain/execution_policy.py` / `builtin_execution_policies.py` -- whether a model may start a calculator or a person approves a preview first; measured in `benchmarks/calculator_cost/`, attached to each definition by `bootstrap`; the design the assistant bridge follows is `docs/AI_CALCULATION_BRIDGE.md`
 - `src/openchem/app/calculation_host.py` / `plugins/calculation_access.py` -- the window's side of the assistant's calculator bridge and the handle a plugin gets as `context.calculations` (no way to approve a run); pure parts in `domain/calculation_bridge.py` (cards, validation), `turn_snapshot.py` (what a turn may read) and `run_lifecycle.py` (the run ledger); driven in the real window by `benchmarks/visual/ai_bridge_run.json`
 - `src/openchem/domain/result_envelope.py` -- what a stored result looks like to a model: every number with its method, settings, structure, units, status, freshness and caveats; `plugins/ai_assistant/bridge.py` / `calculation_tools.py` are the eight tools built on it (`read_scores` reads the user's derived scores, which are not stored results, and `propose_score` / `list_score_outputs` let it PROPOSE a new one that only a person can save (`domain/score_proposal.py`, `CalculationHost.propose_score`, approved on `PluginCalculationApprovals.approve_score`, driven by `benchmarks/visual/ai_score_proposals.json`); `list_goals` reads `domain/calculator_goals.py` as knowledge; nothing calls `PropertyPanel.run_goal`, which skips the execution policy) (and the only place a tool is handed the calculation handle, never the approvals one); driven in the real window by `benchmarks/visual/ai_assistant_tools.json`
@@ -494,6 +495,13 @@ OPENCHEM_DRIVE=/path/to/script.json uv run --no-sync python -m openchem.main
                                           job unless tolerance.json holds the tolerance the preregistered rule gives the recorded floor;
                                           `floor` measures the noise floor from two repeats of CO; `pair` judges BH3/CO and BF3/CO against
                                           the documented numbers. The gate was PASSED on 2026-10-13 (PREREGISTRATION.md section 9) and a decided outcome is final: do not re-run it to see whether the number moves
+    {"do": "stage_report", "tag": "x", "expect": {"rows": {"torsion_table": "full", "oxygen_balance": null},
+     "reader_header": "half", "reader_rows": 0}}   the support-stage STARS on screen: each Properties row's
+                                          fill (full/half/empty, or none), its tooltip carrying the reason, the star beside
+                                          "Showing" and how many reader rows carry one; read off the widgets
+    {"do": "color_scheme", "scheme": "dark"}   Qt's light/dark override for THIS process ("unknown" hands it back);
+                                          for a widget that borrows the palette
+    {"do": "reader_filter", "text": "Donors"}  type into the docked reader's fact filter (it expands what it matches)
     {"do": "wait"} {"do": "quit"}
 
 **A DRIVEN RUN ENDS IN A VERDICT, AND EXITS NON-ZERO WHEN IT FAILED.**
