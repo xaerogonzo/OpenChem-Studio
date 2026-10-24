@@ -212,18 +212,32 @@ def test_every_scope_refusal_is_one_the_real_run_makes(registry):
 
 
 @pytest.mark.parametrize("name", sorted(PANEL))
-def test_the_proton_affinity_and_bde_hooks_are_the_scope_check_the_window_runs(name):
+def test_the_proton_affinity_and_bde_hooks_are_the_scope_check_and_warnings_the_window_runs(name):
+    """A refusal where `check_scope` raises, a limit where `scope_warnings` has something to say, covered otherwise."""
     mol = _mol(PANEL[name])
-    for hook, check in (
-        (coverage_hooks.proton_affinity_coverage, proton_affinity.check_scope),
-        (coverage_hooks.bond_dissociation_coverage, bond_dissociation.check_scope),
+    for hook, module in (
+        (coverage_hooks.proton_affinity_coverage, proton_affinity),
+        (coverage_hooks.bond_dissociation_coverage, bond_dissociation),
     ):
+        base = Chem.AddHs(mol)
         try:
-            check(Chem.AddHs(mol))
-            expected = CoverageKind.COVERED
+            module.check_scope(base)
+            expected = CoverageKind.CAVEAT if module.scope_warnings(base) else CoverageKind.COVERED
         except proton_affinity.OutOfScope:
             expected = CoverageKind.REFUSES
         assert hook(mol).kind is expected, (hook.__name__, name)
+
+
+def test_a_base_outside_what_was_measured_is_a_limit_not_a_refusal_and_quotes_the_warning():
+    surfactant = _mol(PANEL["peg_dodecyl"])
+    for hook, module in (
+        (coverage_hooks.proton_affinity_coverage, proton_affinity),
+        (coverage_hooks.bond_dissociation_coverage, bond_dissociation),
+    ):
+        coverage = hook(surfactant)
+        assert coverage.kind is CoverageKind.CAVEAT
+        for warning in module.scope_warnings(Chem.AddHs(surfactant)):
+            assert warning in coverage.reason
 
 
 def test_a_hook_with_a_rule_of_its_own_is_caught_by_the_agreement_check(registry):

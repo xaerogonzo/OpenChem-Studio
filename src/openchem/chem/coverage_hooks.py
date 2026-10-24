@@ -91,18 +91,28 @@ def bird_coverage(mol: Chem.Mol) -> Coverage | None:
 
 
 def proton_affinity_coverage(mol: Chem.Mol) -> Coverage | None:
-    """Proton affinity: the `check_scope` the window and the service run before a single job is written."""
+    """Proton affinity: the `check_scope` the window and the service run before a single job is written, and
+    the `scope_warnings` the window asks about first (what the benchmark did not measure: computed anyway)."""
+    base = Chem.AddHs(mol)
     try:
-        proton_affinity.check_scope(Chem.AddHs(mol))
+        proton_affinity.check_scope(base)
     except proton_affinity.OutOfScope as scope:
         return Coverage.refuses(f"proton affinity is not computed for this structure: {scope}.")
+    warnings = proton_affinity.scope_warnings(base)
+    if warnings:
+        return Coverage.caveat("outside what was measured, so the stated error does not apply: " + "; ".join(warnings) + ".")
     return Coverage.covered()
 
 
 def bond_dissociation_coverage(mol: Chem.Mol) -> Coverage | None:
-    """X-H bond dissociation enthalpy: the `check_scope` the window and the service run before a single job is written."""
+    """X-H bond dissociation enthalpy: the `check_scope` the window and the service run before a single job is
+    written, and the molecule-level `scope_warnings` (the bonds are chosen later, so none of theirs is known here)."""
+    molecule = Chem.AddHs(mol)
     try:
-        bond_dissociation.check_scope(Chem.AddHs(mol))
+        bond_dissociation.check_scope(molecule)
     except proton_affinity.OutOfScope as scope:
         return Coverage.refuses(f"a bond dissociation enthalpy is not computed for this structure: {scope}.")
+    warnings = bond_dissociation.scope_warnings(molecule)
+    if warnings:
+        return Coverage.caveat("outside what was measured, so the stated error does not apply: " + "; ".join(warnings) + ".")
     return Coverage.covered()
