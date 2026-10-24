@@ -1,5 +1,5 @@
 <!-- GENERATED FROM docs/sources.toml -- do not edit -->
-<!-- SOURCE SHA256: 6a11875cf4bb9cb63c6c5fae4b862efc5e8328a4e86c7f1ce1a57cf4f5cd6b14 -->
+<!-- SOURCE SHA256: 5cc909338b776b7cf8dc2326e6b0ced7bc7240595af11263a77ac9d639e51a0c -->
 
 # Sources
 
@@ -97,6 +97,7 @@ next run of `tools/build_lewis_parameters.py`.
 | [`almenningen1963`](#almenningen1963) | literature | **not shipped** | citation + claim |
 | [`alvarez2013`](#alvarez2013) | literature | reference only | citation |
 | [`alves2014`](#alves2014) | literature | reference only | citation |
+| [`amcp706187`](#amcp706187) | standard | shipped | citation |
 | [`andersen1999`](#andersen1999) | literature | shipped | citation + claim |
 | [`aqsoldb`](#aqsoldb) | dataset | shipped | citation |
 | [`armstrong2026synthex`](#armstrong2026synthex) | literature | reference only | citation + claim |
@@ -195,6 +196,7 @@ next run of `tools/build_lewis_parameters.py`.
 | [`harding2006`](#harding2006) | literature | shipped | citation + claim |
 | [`harding2013`](#harding2013) | literature | reference only | citation + claim |
 | [`harmony1979`](#harmony1979) | literature | reference only | citation + claim |
+| [`he2016`](#he2016) | literature | shipped | citation + claim |
 | [`hejazi2016`](#hejazi2016) | literature | reference only | citation |
 | [`hlb`](#hlb) | reference_table | reference only | citation |
 | [`holland2013`](#holland2013) | literature | shipped | citation + claim |
@@ -221,6 +223,7 @@ next run of `tools/build_lewis_parameters.py`.
 | [`kendall2008`](#kendall2008) | literature | shipped | citation |
 | [`ketcher`](#ketcher) | software | shipped | citation |
 | [`klapotke2017`](#klapotke2017) | literature | shipped | citation + claim |
+| [`klapotke2021`](#klapotke2021) | literature | shipped | citation + claim |
 | [`kobayashi1982`](#kobayashi1982) | literature | shipped | citation + claim |
 | [`koes2013`](#koes2013) | literature | **not shipped** | citation |
 | [`kruszewski1972`](#kruszewski1972) | literature | shipped | citation |
@@ -318,6 +321,7 @@ next run of `tools/build_lewis_parameters.py`.
 | [`schott1989`](#schott1989) | literature | shipped | citation + claim |
 | [`sci_downloads_note`](#sci_downloads_note) | reference_table | reference only | citation |
 | [`sefcik2002`](#sefcik2002) | literature | reference only | citation + claim |
+| [`shancita2020`](#shancita2020) | literature | shipped | citation |
 | [`shannon1976`](#shannon1976) | literature | shipped | citation + claim |
 | [`shimizu1996`](#shimizu1996) | literature | shipped | citation |
 | [`shojaei2010`](#shojaei2010) | literature | shipped | citation + claim |
@@ -4828,6 +4832,103 @@ layer drops minus signs (Table 5.2 reads "73.96" for TNT); the signs are
 the book's, read from its Eq. 5.1. Its Eq. 5.2 and the TNT example are the
 C/H/N/O form [source:klapotke2017] already supplies.
 
+### he2016
+
+<a id="he2016"></a>
+
+> C. He, J. P. Hooper & J. M. Shreeve, 'Iodine-Rich Imidazolium Iodate and Periodate Salts: En Route to Single-Based Biocidal Agents', Inorg. Chem. 2016, 55, 12844-12850.
+
+| | |
+| --- | --- |
+| Identifier | [10.1021/acs.inorgchem.6b02195](https://doi.org/10.1021/acs.inorgchem.6b02195) |
+| Status | shipped |
+| Verification | citation + claim |
+| Verified | 2026-10-24 |
+| Local copy | `Shreeve_Iodine-Rich_2016.pdf` (not checked) |
+| Used by | `src/openchem/chem/energetics.py`, `tests/test_oxygen_balance_extended.py` |
+
+The statement and the numbers behind iodine being left as I2. Table 2's
+footnote gives the formula, "Oxygen balance for CaHbOcNdIe: OB = 1600(c - b/2
+- a)/MW", with no iodine term, and the table prints a balance for each of the
+eleven salts.
+
+**THAT FORMULA IS THE CO BASIS** (carbon takes ONE oxygen, where
+[source:klapotke2017]'s CO2 form takes two). The tests therefore add a x
+1600/MW to this module's CO2 figure before comparing, and seven of the
+eleven reproduce to the paper's whole-number printing: 13 -12, 14 -17, 17
+-12, 18 -8, 19 -13, 22 -9, 23 -4 (worst miss 0.4). The other four (15, 16,
+20, 21) are the dimeric salts, one of them drawn with three waters, and were
+not used.
+
+Its CHEETAH decomposition products are 70 to 80 wt% I2 and about 0.1 wt% HI,
+which is why iodine takes no hydrogen here although chlorine does. The paper
+prints no balance for its two bromide salts, so it settles nothing for
+bromine.
+
+### shancita2020
+
+<a id="shancita2020"></a>
+
+> I. Shancita, K. K. Miller, P. D. Silverstein, J. Kalman & M. L. Pantoya, 'Synthesis of metal iodates from an energetic salt', RSC Adv. 2020, 10, 14403-14409.
+
+| | |
+| --- | --- |
+| Identifier | [10.1039/d0ra02250k](https://doi.org/10.1039/d0ra02250k) |
+| Status | shipped |
+| Verification | citation |
+| Verified | 2026-10-24 |
+| Local copy | `Shancita2020.pdf` (not checked) |
+| Used by | `src/openchem/chem/energetics.py` |
+
+Supports iodine to I2 from the other side: metal iodates decompose to the
+metal oxide and I2 (Cu(IO3)2 to CuO, Fe(IO3)3 to Fe2O3, BiO(IO3) to Bi2O3,
+Al(IO3)3 to Al2O3). It states no oxygen balance, so `verification` is the
+citation only.
+
+**ITS EQUATIONS (R8) TO (R11) ARE NOT BALANCED AS PRINTED** (R8 has twelve
+oxygens on the left and six on the right), so they name products and are
+used for nothing else. Naming CuO and Fe2O3 does not settle copper or iron
+here: they are decompositions of copper(II) and iron(III) compounds, and
+[source:conkling2019] prints copper's product as "Cu2O/CuO" and makes iron's
+depend on its role, so both stay refused.
+
+### klapotke2021
+
+<a id="klapotke2021"></a>
+
+> T. M. Klapoetke, 'Energetic Materials Encyclopedia', 2nd, completely revised and updated edition, 3 volumes, De Gruyter, Berlin/Boston, 2021.
+
+| | |
+| --- | --- |
+| Identifier | Klapoetke, Energetic Materials Encyclopedia, 2nd ed., De Gruyter, 2021, volumes 1 (A-D), 2 (E-N) and 3 (O-Z) |
+| Status | shipped |
+| Verification | citation + claim |
+| Verified | 2026-10-24 |
+| Local copy | `Energetic Materials Encyclopedia, Volume 2, E - N -- Thomas M_ Klapötke -- 2nd, completely revised and updated edition, 2021.pdf` (not checked) |
+| Used by | `src/openchem/chem/energetics.py`, `tests/test_oxygen_balance_extended.py` |
+
+All three volumes were scanned for every entry whose formula goes beyond
+C/H/N/O. Few do (about two dozen), and **none is bromine, iodine, phosphorus,
+copper or iron with a printed balance** (the copper azide entries print none;
+DBX-1's table is an image). What it gives instead is a second convention for
+chlorine.
+
+**IT LEAVES CHLORINE AS Cl2 WHERE MEYER AND CONKLING USE HCl.** Guanidinium
+perchlorate is -10.0% (HCl: -5.0), hydrazinium perchlorate +18.1% (HCl:
++24.1) and trinitrochlorobenzene -45.24% (HCl: -42.0; Meyer prints -45.3 for
+the same compound). The calculator's HCl answer is shown, and the Cl2 figure
+is reported beside it whenever a hydrogen took a chlorine. Where a metal took
+it the two conventions agree: potassium and sodium perchlorate (+46.2,
++52.3) and potassium chlorate (+39.2) equal this module's numbers, as do the
+hexanitrodiphenyl sulfide (-56) and sulfone (-46).
+
+**ITS METAL CONVENTIONS VARY BY ENTRY**, so none of its metal values is used
+as a test: barium nitrate +36.7 and calcium potassium styphnate -23.8 leave
+the metals unoxidised, barium chlorate +26.3 oxidises barium to BaO, lead
+styphnate -22.2 reproduces only with lead to PbO2 (Meyer and Akhavan: PbO,
+-18.8), and mercury fulminate -16.86 burns mercury to HgO (Meyer: the metal,
+-11.2).
+
 ### jain1987
 
 <a id="jain1987"></a>
@@ -5009,7 +5110,10 @@ the code to them:
 - **Picryl chloride, -45.3%**, is the value with its chlorine left as Cl2.
   Its stated rule, HCl, gives -42.0, and five other chlorine compounds
   (ammonium chloride and perchlorate, chlorodinitrobenzene, guanidinium and
-  hydrazinium perchlorate) follow the rule.
+  hydrazinium perchlorate) follow the rule. [source:klapotke2021] prints the
+  Cl2 figure for trinitrochlorobenzene (-45.24, the same compound) and for
+  guanidinium (-10.0) and hydrazinium (+18.1) perchlorates, so the sources
+  split on chlorine and the result shows both numbers.
 - **Hydrates.** Barium chlorate monohydrate (+31.55%) and barium
   perchlorate trihydrate (+38.1%) are printed for the anhydrous salt; lead
   styphnate monohydrate (-18.8%) and lead acetylsalicylate monohydrate
@@ -8015,6 +8119,32 @@ unless the client permits compression; its own error message says so, which
 is the only reason that was cheap to find.
 
 ## Standards
+
+### amcp706187
+
+<a id="amcp706187"></a>
+
+> U.S. Army Materiel Command, 'Engineering Design Handbook: Military Pyrotechnics Series, Part Three: Properties of Materials Used in Pyrotechnic Compositions', AMCP 706-187, Washington, 1963. DTIC AD830394.
+
+| | |
+| --- | --- |
+| Identifier | DTIC AD830394 (AMCP 706-187, 1963) |
+| Status | shipped |
+| Verification | citation |
+| Verified | 2026-10-24 |
+| Local copy | `Engineering Design Handbook - Military Pyrotechnics Series, -- AD830394 -- AMCP 706-187, 3, 1963 -- U_S_ Army Materiel Command.pdf` (not checked) |
+| Used by | `src/openchem/chem/energetics.py` |
+
+A second, independent statement that molybdenum burns to MoO3 (its
+molybdenum sheet: "oxidized to MoO3 at red heat"), beside the worked answer
+in [source:conkling2019]. A US Government publication, so freely
+redistributable.
+
+It was read for copper, iron, bromine, iodine and phosphorus products and
+gives none: the copper sheet says only that it "oxidized rapidly at 270 C",
+and its "Oxygen Balance" lines are for organic explosives. Its tungsten
+section carries a WO2 sheet beside tungsten, which settles nothing about
+what tungsten burns to; WO3 rests on [source:conkling2019]'s Table 3.4.
 
 ### ich_m9
 

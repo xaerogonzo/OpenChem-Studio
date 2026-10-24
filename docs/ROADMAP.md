@@ -2331,16 +2331,18 @@ and three were checked again recently rather than taken on trust.
   source or a benchmark measured is a **warning**, the number computed and labelled an estimate (proton affinity and bond dissociation, #447; Hansen below three
   carbons and solubility's intrinsic estimate for an ampholyte, the change that recorded this). An audit of every refusal the calculator census panel produces
   (29 molecules, 30 of 63 calculators refusing something) left these, in order of how much work each needs:
-  1. **Oxygen balance beyond C/H/N/O: done for S, Cl, F, B, Si, P and eighteen metals; the rest stays refused.** Meyer, Koehler & Homburg's *Explosives*
+  1. **Oxygen balance beyond C/H/N/O: done for S, Cl, F, I, B, Si, P and eighteen metals; the rest stays refused.** Meyer, Koehler & Homburg's *Explosives*
      (7th ed.) names the products (CO2, H2O, SO2, Al2O3; chlorine to HCl; alkaline earths to their oxides) and prints 41 balances beyond C/H/N/O, 38 of
      which one valence per element reproduces; Conkling & Mocella's *Chemistry of Pyrotechnics* (3rd ed.) states that valence per element (Table 2.5, the
      "pyro valence") and adds B, F, Mg, Ti, Si, Zr, P (P2O5, also Shimizu's *Fireworks*), Mo (MoO3, its worked exercise) and W (WO3); US 6,599,380 states
      boron to B2O3. Tested against 35 of Meyer's balances, Conkling's printed net valences, worked mixtures and its grams-of-fuel-per-gram-of-oxygen
-     columns, Klapoetke's two borates, the patent's boron igniter and three rows of Akhavan's Table 5.2. Accepted: S, Cl and F (by hydrogen or a metal,
-     which gives the same number), B, Si, P, Al, Li, Na, K, Mg, Ca, Sr, Ba, Ti, Zr, Cr, Mo, W, Co, Zn, Pb, and Hg and Ag left as the metal (Akhavan burns
+     columns, Klapoetke's two borates, the patent's boron igniter, seven of He/Hooper/Shreeve's iodine-rich salts (iodine left as I2, their formula being the CO basis)
+     and three rows of Akhavan's Table 5.2. Accepted: S, Cl and F (by hydrogen or a metal, which gives the same number), I (as I2, no hydrogen), B, Si, P, Al, Li, Na, K, Mg, Ca, Sr, Ba, Ti, Zr, Cr, Mo, W, Co, Zn, Pb, and Hg and Ag left as the metal (Akhavan burns
      mercury to HgO; the result prints that figure too). CO2 basis only. Si, Zr, P and W rest on a source's statement and its numeric column, with no
-     printed balance. Jain's 1987 paper (the method's origin) covers C, H, O, N and Cl only. **What remains**: Br, I, Cu (Conkling lists "Cu2O/CuO"),
-     Fe and every other element, and halogen beyond what hydrogen and metals can take (CCl4, Teflon); each needs a source that states a
+     printed balance. Jain's 1987 paper (the method's origin) covers C, H, O, N and Cl only. **Chlorine is the one convention the sources split on**: Klapoetke's *Encyclopedia* leaves it as
+     Cl2 where Meyer, Conkling and Jain use HCl (three entries differ by 5 to 6 points), so the result prints the Cl2 figure beside the HCl one. Read and
+     no help for the rest: Shancita 2020, Davis 1943 and AMCP 706-187 state no copper, iron or bromine product. **What remains**: Br, Cu (Conkling lists
+     "Cu2O/CuO"), Fe and every other element, and halogen beyond what hydrogen and metals can take (CCl4, Teflon); each needs a source that states a
      product. Iron needs a rule for which oxide: Meyer uses FeO for ferrocene and Fe2O3 for iron acetylacetonate, Conkling makes it depend on whether the
      iron is a fuel or an oxidizer. Formulations still refuse a non-C/H/N/O component. **Kamlet-Jacobs detonation**: read, and not extendable from these
      sources -- all four Kamlet papers and Meyer's entry state it for C-H-N-O explosives; its oxygen-window refusal stands too.

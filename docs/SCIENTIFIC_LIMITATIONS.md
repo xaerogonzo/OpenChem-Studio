@@ -761,7 +761,8 @@ balance to "CO2, H2O, SO2, Al2O3, etc." and states chlorine to HCl; Conkling
 & Mocella's *Chemistry of Pyrotechnics* (Table 2.5, the "pyro valences")
 states a product for each element, and a US patent states boron to B2O3. So
 sulfur, chlorine and fluorine (taken by a hydrogen as HCl/HF or by a metal as
-its halide, which gives the same number either way), boron, silicon,
+its halide, which gives the same number either way), iodine (left as I₂, taking
+no hydrogen), boron, silicon,
 phosphorus (to P₂O₅, also Shimizu's *Fireworks*) and
 eighteen metals are accepted, each at the product a source states or the
 oxide its printed balances use; mercury and silver are left unoxidised
@@ -770,7 +771,16 @@ Explosives* states the same definition and agrees on silver and lead, but
 burns mercury to HgO (mercury fulminate −16.86% against Meyer's −11.2%); the
 result follows Meyer and prints the HgO figure beside it. 35 of its printed balances are
 reproduced to its own printing, and so are Conkling's printed net valences,
-Klapötke's two borate esters and the patent's boron igniter. Bromine, iodine,
+Klapötke's two borate esters and the patent's boron igniter. **Chlorine is the one place the sources split.** Meyer, Conkling, Jain and
+Klapötke's textbook take it to HCl; Klapötke's *Encyclopedia* leaves it as Cl₂
+for guanidinium and hydrazinium perchlorates and trinitrochlorobenzene (−10.0%,
++18.1%, −45.24%, against −5.0%, +24.1%, −42.0%), as does Meyer's picryl chloride
+entry. The result follows HCl and prints the Cl₂ figure beside it whenever a
+hydrogen took a chlorine. A metal chloride gives the same number either way.
+Iodine is the opposite case: He, Hooper & Shreeve's formula has no iodine term
+and seven of their printed balances reproduce with iodine untouched.
+
+Bromine,
 iron, copper and every other element are **refused rather than given a
 confident wrong number**: no source gives a product for them, or the sources
 give different ones (iron by the compound or its role; Conkling prints copper

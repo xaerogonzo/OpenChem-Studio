@@ -1,6 +1,7 @@
 """Oxygen balance for C/H/N/O substances [source:klapotke2017], and beyond
 them where a source says what each other element burns to: [source:meyer2016],
-[source:conkling2019], [source:zeuner2003], [source:shimizu1996].
+[source:conkling2019], [source:zeuner2003], [source:shimizu1996],
+[source:he2016], [source:klapotke2021], [source:amcp706187].
 
 Oxygen balance says whether a substance carries enough oxygen to burn its own
 carbon and hydrogen, as a percentage of its mass. Zero means exactly enough;
@@ -33,6 +34,26 @@ Meyer everywhere the two overlap except lead in an oxidizer (red lead to the
 metal; Meyer and Akhavan burn lead to PbO) and iron, whose product it makes
 depend on whether the iron is a fuel or an oxidizer. An element in no source
 is refused by name.
+
+**IODINE IS LEFT AS I2, AND THAT IS THE ONE PLACE A HALOGEN DOES NOT TAKE
+HYDROGEN.** He, Hooper & Shreeve [source:he2016] print the formula
+OB = 1600(c - b/2 - a)/MW for CaHbOcNdIe -- the CO basis, carbon taking one
+oxygen -- with no term for iodine, and seven of the eleven balances in their
+Table 2 (the rest are dimeric salts or hydrates) reproduce to the printed
+integer. This module's balance is the CO2 one, so the test adds back a x
+1600/MW to compare; what it pins is that iodine asks for no oxygen.
+Their CHEETAH products are 70 to 80 wt% I2 and 0.1 wt% HI. Metal iodates
+decompose to the oxide and I2 in [source:shancita2020]. Chlorine is the
+opposite case (HCl in Meyer, Conkling and Jain), so the two halogens are not
+interchangeable here.
+
+**THE SOURCES DISAGREE ON CHLORINE ITSELF, AND THE RESULT SAYS WHERE.**
+Klapötke's textbook prints ammonium perchlorate at +34.0% (HCl), but his
+Encyclopedia [source:klapotke2021] prints guanidinium perchlorate -10.0%,
+hydrazinium perchlorate +18.1% and trinitrochlorobenzene -45.24%, which leave
+the chlorine as Cl2 (as does one Meyer entry, picryl chloride -45.3%). The
+calculator follows HCl, the larger group, and reports the Cl2 figure beside
+the answer whenever a hydrogen took a chlorine.
 
 **A CHLORINE (OR FLUORINE) COUNTS THE SAME WHICHEVER PARTNER TAKES IT.** HCl spares the
 half-oxygen its hydrogen would have needed; KCl or BaCl2 spares the
@@ -206,13 +227,17 @@ _PRODUCTS: dict[str, ElementAccounting] = {
     "Zr": ElementAccounting(
         "ZrO2", 4, "Conkling & Mocella Table 2.5 and its table of metal fuels' "
         "oxides (no printed balance)"),
+    "I": ElementAccounting(
+        "I2 (not oxidised)", 0, "He, Hooper & Shreeve's formula and seven of its "
+        "printed balances (13, 14, 17, 18, 19, 22, 23); metal iodates to the oxide "
+        "and I2 in Shancita et al."),
     # -- three more Conkling & Mocella states outside Table 2.5 ----------------
     "P": ElementAccounting(
         "P2O5", 5, "Conkling & Mocella Table 3.5 (red and white phosphorus, 0.78 g "
         "of fuel per g of O) and Shimizu's 4 P + 5 O2 -> 2 P2O5"),
     "Mo": ElementAccounting(
         "MoO3", 6, "Conkling & Mocella exercise 4: BaCrO4/KClO4/Mo at 67.9/10.0/22.1 "
-        "is stoichiometric with Mo to MoO3"),
+        "is stoichiometric with Mo to MoO3; AMCP 706-187: 'oxidized to MoO3 at red heat'"),
     "W": ElementAccounting(
         "WO3", 6, "Conkling & Mocella Table 3.4 (3.83 g of fuel per g of O)"),
     "Ag": ElementAccounting(
@@ -398,6 +423,11 @@ class ExtendedOxygenBalance:
     #: Whether a separate water molecule is drawn -- a hydrate -- because the
     #: source is inconsistent about those and the report says so.
     has_water: bool = False
+    #: The balance with every chlorine that a HYDROGEN took left as Cl2
+    #: instead, which is what Klapötke's Encyclopedia prints for the entries
+    #: it prints. None when no hydrogen took a chlorine (a metal chloride is
+    #: the same number either way), or when fluorine shares the partners.
+    chlorine_as_cl2: float | None = None
 
     @property
     def applicable(self) -> bool:
@@ -490,8 +520,20 @@ def extended_oxygen_balance(mol: Chem.Mol | None) -> ExtendedOxygenBalance:
         _PRODUCTS[e].valence * n for e, n in tally.items() if e != "O" and e not in _HALOGENS
     ) - halogens
     needed = half_oxygens / 2
+    # Metals take chlorine first, so what a HYDROGEN took is the remainder.
+    chlorine = tally.get("Cl", 0)
+    metal_valences = sum(
+        _PRODUCTS[e].valence * n for e, n in tally.items()
+        if e not in _NOT_A_HALOGEN_PARTNER and e not in ("O", "H") and e not in _HALOGENS
+    )
+    on_hydrogen = max(0, chlorine - metal_valences)
+    as_cl2 = None
+    if on_hydrogen and "F" not in tally:
+        as_cl2 = (tally.get("O", 0) - (half_oxygens + on_hydrogen) / 2) \
+            * _PERCENT_TIMES_OXYGEN_MASS / mass
     return ExtendedOxygenBalance(
         to_full_oxidation=(tally.get("O", 0) - needed) * _PERCENT_TIMES_OXYGEN_MASS / mass,
+        chlorine_as_cl2=as_cl2,
         formula=formula,
         molecular_weight=mass,
         counts=counts,
@@ -668,6 +710,14 @@ def _extended_report(result: ExtendedOxygenBalance, molecule_uuid: str, places: 
         f"({(_HALOGENS.get(element) or _PRODUCTS[element]).pinned_by})."
         for element, product in beyond
     )
+    if result.chlorine_as_cl2 is not None:
+        assumed += (
+            f"Chlorine left as Cl2 instead of taking hydrogen as HCl gives "
+            f"{result.chlorine_as_cl2:+.{places}f}% for this structure: Klapötke's "
+            "Encyclopedia prints guanidinium perchlorate (-10.0%) and hydrazinium "
+            "perchlorate (+18.1%) that way, and one Meyer entry does; Meyer's other "
+            "chlorine entries, Conkling and Jain count HCl, which is what is shown.",
+        )
     mercury = result.count("Hg")
     if mercury:
         # The one product two sources disagree on. Meyer leaves mercury as the

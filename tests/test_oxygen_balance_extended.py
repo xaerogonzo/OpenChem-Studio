@@ -145,7 +145,7 @@ def test_every_accepted_element_is_pinned_by_a_printed_value():
     """An element in the table with no fixture would be a product nobody
     checked against a source -- exactly what this work exists not to ship."""
     pinned: set[str] = set()
-    for _, smiles, *_ in MEYER + CONKLING_UNITS + BORATES:
+    for _, smiles, *_ in MEYER + CONKLING_UNITS + BORATES + SHREEVE:
         pinned.update(a.GetSymbol() for a in _mol(smiles).GetAtoms())
     pinned |= {"B", "Ti", "Mg", "Mo"}  # the mixtures below
     accepted = set(E._PRODUCTS) | set(E._HALOGENS)
@@ -299,6 +299,81 @@ def test_the_statement_only_elements_are_the_tables_rows():
     assert (E._PRODUCTS["Zr"].product, E._PRODUCTS["Zr"].valence) == ("ZrO2", 4)
 
 
+#: He, Hooper & Shreeve, Inorg. Chem. 2016, 55, 12844, Table 2: iodine-rich
+#: imidazolium iodates (13, 14, 17, 18) and periodates (19, 22, 23), with the
+#: formula the paper prints for each and its printed balance. **THAT BALANCE IS
+#: THE CO BASIS** -- "OB = 1600(c - b/2 - a)/MW", carbon taking ONE oxygen --
+#: so the test adds a x 1600/MW to the CO2 figure this module returns. What it
+#: pins is that iodine asks for no oxygen. The paper prints whole numbers.
+SHREEVE = [
+    ("13 triiodo iodate", "Cn1c(I)c(I)[n+](C)c1I.[O-]I(=O)=O", "C5H6I4N2O3", -12),
+    ("14 diiodo iodate", "Cn1c(I)c(I)[n+](C)c1.[O-]I(=O)=O", "C5H7I3N2O3", -17),
+    ("17 amino iodate", "Cn1c[n+](N)c(I)c1I.[O-]I(=O)=O", "C4H6I3N3O3", -12),
+    ("18 diamino iodate", "Nn1c[n+](N)c(I)c1I.[O-]I(=O)=O", "C3H5I3N4O3", -8),
+    ("19 dimethyl periodate", "Cn1c[n+](C)c(I)c1I.[O-]I(=O)(=O)=O", "C5H7I3N2O4", -13),
+    ("22 amino periodate", "Cn1c[n+](N)c(I)c1I.[O-]I(=O)(=O)=O", "C4H6I3N3O4", -9),
+    ("23 diamino periodate", "Nn1c[n+](N)c(I)c1I.[O-]I(=O)(=O)=O", "C3H5I3N4O4", -4),
+]
+
+
+@pytest.mark.parametrize("name,smiles,formula,printed", SHREEVE, ids=[r[0] for r in SHREEVE])
+def test_shreeves_iodine_rich_salts_with_iodine_left_as_I2(name, smiles, formula, printed):
+    mol = _mol(smiles)
+    assert _elements(rdMolDescriptors.CalcMolFormula(Chem.AddHs(mol)).replace("+", "").replace("-", "")) \
+        == _elements(formula)
+    result = E.extended_oxygen_balance(mol)
+    assert result.applicable, E.refusal_text(result)
+    co_basis = result.to_full_oxidation + result.count("C") * 1600 / result.molecular_weight
+    assert co_basis == pytest.approx(printed, abs=0.5)
+    # and the paper's own closed form, term for term: iodine does not appear in it
+    a, b, c = result.count("C"), result.count("H"), result.count("O")
+    assert co_basis == pytest.approx(1600 * (c - b / 2 - a) / result.molecular_weight, abs=1e-9)
+
+
+def test_iodine_takes_no_hydrogen_unlike_chlorine():
+    """Iodoform is CHI3: iodine left as I2 asks for nothing, so only the carbon
+    and hydrogen are counted. Chloroform's chlorine takes the hydrogen as HCl
+    and then has two more with nothing to take them, so it is refused."""
+    iodoform = E.extended_oxygen_balance(_mol("IC(I)I"))
+    assert iodoform.applicable and iodoform.oxygen_needed == pytest.approx(2.5)
+    assert not E.extended_oxygen_balance(_mol("ClC(Cl)Cl")).applicable
+
+
+# ---------------------------------------------------------------------------
+# 1c  the Cl2 figure the Encyclopedia prints, shown beside the HCl answer
+# ---------------------------------------------------------------------------
+
+#: Klapötke, Energetic Materials Encyclopedia 2nd ed.: the entries whose
+#: formula carries a hydrogen-taken chlorine. The value is what the
+#: Encyclopedia prints, and it is the Cl2 figure (HCl gives Meyer's).
+CL2_ENTRIES = [
+    ("guanidinium perchlorate", f"NC(N)=[NH2+].{PERCHLORATE}", -10.0, -5.0),
+    ("hydrazinium perchlorate", f"N[NH3+].{PERCHLORATE}", +18.1, +24.1),
+    ("trinitrochlorobenzene", "Clc1c(cc(cc1[N+](=O)[O-])[N+](=O)[O-])[N+](=O)[O-]", -45.24, -42.0),
+]
+
+
+@pytest.mark.parametrize("name,smiles,cl2,hcl", CL2_ENTRIES, ids=[r[0] for r in CL2_ENTRIES])
+def test_the_encyclopedias_cl2_figure_is_reported_beside_the_hcl_answer(name, smiles, cl2, hcl):
+    result = E.extended_oxygen_balance(_mol(smiles))
+    assert result.to_full_oxidation == pytest.approx(hcl, abs=0.1)
+    assert result.chlorine_as_cl2 == pytest.approx(cl2, abs=0.05)
+    report = E.compute_oxygen_balance(_mol(smiles), "uuid-1")
+    balance = next(f for f in report.facts if f.units == "%")
+    assert any("Cl2" in line and f"{cl2:+.1f}" in line for line in balance.limitations)
+
+
+@pytest.mark.parametrize("name,smiles", [
+    ("potassium perchlorate", f"[K+].{PERCHLORATE}"),
+    ("sodium chlorate", f"[Na+].{CHLORATE}"),
+    ("barium perchlorate", f"[Ba+2].{PERCHLORATE}.{PERCHLORATE}"),
+])
+def test_a_chlorine_taken_by_a_metal_has_no_cl2_alternative(name, smiles):
+    """KCl is the product whichever way it is written, and the Encyclopedia's
+    potassium and sodium perchlorate values (+46.2, +52.3) equal ours."""
+    assert E.extended_oxygen_balance(_mol(smiles)).chlorine_as_cl2 is None
+
+
 # ---------------------------------------------------------------------------
 # 2  where the book disagrees with itself, recorded rather than fitted
 # ---------------------------------------------------------------------------
@@ -307,8 +382,9 @@ def test_the_statement_only_elements_are_the_tables_rows():
 def test_picryl_chloride_is_the_one_chlorine_value_that_ignores_HCl():
     """The book prints -45.3% for picryl chloride (C6H2N3O6Cl). Its own
     stated rule -- chlorine to HCl, which five other printed values follow --
-    gives -42.0; -45.2 is what leaving the chlorine as Cl2 gives. The code
-    follows the stated rule."""
+    gives -42.0; -45.2 is what leaving the chlorine as Cl2 gives, and the
+    Encyclopedia prints that Cl2 figure too (-45.24). The code follows the
+    stated rule and reports the Cl2 figure beside it."""
     mol = _mol("Clc1c(cc(cc1[N+](=O)[O-])[N+](=O)[O-])[N+](=O)[O-]")
     assert rdMolDescriptors.CalcMolFormula(mol) == "C6H2ClN3O6"
     assert E.extended_oxygen_balance(mol).to_full_oxidation == pytest.approx(-42.0, abs=0.05)
@@ -430,7 +506,6 @@ def test_mercury_cannot_take_a_chlorine():
 
 @pytest.mark.parametrize("name,smiles,element", [
     ("a bromide", "CBr", "Br"),
-    ("an iodide", "CI", "I"),
     ("a copper salt", "[Cu+2].[O-][N+](=O)[O-].[O-][N+](=O)[O-]", "Cu"),
     ("copper azide", "[Cu+2].[N-]=[N+]=[N-].[N-]=[N+]=[N-]", "Cu"),
     ("manganese dioxide", "O=[Mn]=O", "Mn"),
