@@ -755,9 +755,27 @@ different quantities for the same molecule — TNT is −74.0% against −24.7% 
 so a figure quoted as a bare "oxygen balance" is ambiguous between them. The
 source subscripts them for that reason and so does this.
 
-**CHNO only.** The closed form is stated for CₐH_bN_cO_d. A sulfur or a metal
-needs different accounting, so anything else is **refused rather than given a
-confident wrong number** by silently ignoring those atoms.
+**Beyond CHNO, only where the source says what an element burns to.** The
+closed form is stated for CₐH_bN_cO_d. Meyer's *Explosives* defines the
+balance to "CO2, H2O, SO2, Al2O3, etc." and states chlorine to HCl, so sulfur,
+chlorine (taken by a hydrogen as HCl or by a metal as its chloride, which
+gives the same number either way) and thirteen metals are accepted, each at the
+oxide the book's own printed balances use; mercury and silver are left
+unoxidised because that is what the book does. Akhavan's *The Chemistry of
+Explosives* states the same definition and agrees on silver and lead, but
+burns mercury to HgO (mercury fulminate −16.86% against Meyer's −11.2%); the
+result follows Meyer and prints the HgO figure beside it. 35 of its printed balances are
+reproduced to its own printing. Fluorine, bromine, iodine, boron, phosphorus,
+magnesium, iron, copper and every other element are **refused rather than
+given a confident wrong number**: the book gives no product for them, or (for
+iron) two different ones. Only the CO₂ basis is extended; the CO basis stays
+C/H/N/O.
+
+**Three of the book's own values disagree with it, and are recorded rather
+than fitted:** picryl chloride is printed as if its chlorine became Cl₂, two
+hydrates are printed for the anhydrous salt while two others include their
+water, and two iron compounds use FeO and Fe₂O₃. A hydrate is balanced as
+drawn and the result says so.
 
 ### Detonation (Kamlet–Jacobs)
 

@@ -241,12 +241,15 @@ def test_the_sign_is_shown_explicitly():
 
 
 def test_a_refused_structure_reports_FAILED_and_says_why():
-    report = E.compute_oxygen_balance(_mol("CCS"), "uuid-1")
+    """A thiol was this test's structure until the calculator learned
+    Meyer's products (`test_oxygen_balance_meyer`); fluorine is one the book
+    gives none for."""
+    report = E.compute_oxygen_balance(_mol("CCF"), "uuid-1")
     from openchem.domain.common import CacheState
 
     assert report.cache_state is CacheState.FAILED
     assert not report.facts
-    assert "C/H/N/O" in report.error
+    assert "C/H/N/O" in report.error and "F" in report.error
 
 
 def test_the_calculator_declines_a_total():

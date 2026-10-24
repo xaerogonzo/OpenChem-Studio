@@ -1330,7 +1330,7 @@ Detonation pressure and velocity for a C/H/N/O explosive, by Kamlet and Jacobs' 
 <!-- help:calc-oxygen-balance -->
 ### Oxygen Balance
 
-Whether a substance carries enough oxygen to burn its own carbon and hydrogen, as a percentage of its mass. BOTH published conventions are reported, because they are different quantities for the same substance: TNT is -74.0% burning carbon to CO2 and -24.7% burning it only to CO, and a substance can be negative on one and positive on the other. Defined for C/H/N/O only, so a sulfur, a halogen or a metal is refused with the element named rather than silently ignored. A composition figure, not a performance one -- it says nothing on its own about how powerful or how sensitive something is.
+Whether a substance carries enough oxygen to burn its own carbon and hydrogen, as a percentage of its mass. BOTH published conventions are reported, because they are different quantities for the same substance: TNT is -74.0% burning carbon to CO2 and -24.7% burning it only to CO, and a substance can be negative on one and positive on the other. Beyond C/H/N/O, sulfur, chlorine and thirteen metals are burned to the products Meyer's Explosives uses (SO2, HCl or the metal's chloride, each metal's oxide), the CO2 basis only, with every assumed product named in the result; any other element is refused by name rather than silently ignored. A composition figure, not a performance one -- it says nothing on its own about how powerful or how sensitive something is.
 
 - Produces a list of facts, each with its own units, basis and evidence.
 - Runs on the 2D drawing, so no conformer is needed.

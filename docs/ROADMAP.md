@@ -2327,6 +2327,37 @@ struck through and marked SHIPPED here, never deleted.
 Nothing here is simply unstarted — each is blocked on something nameable,
 and three were checked again recently rather than taken on trust.
 
+- **Refusals that still need work (recorded 2026-10-23).** The rule since then (Alex): a calculator refuses only what it **cannot compute**; the edge of what a
+  source or a benchmark measured is a **warning**, the number computed and labelled an estimate (proton affinity and bond dissociation, #447; Hansen below three
+  carbons and solubility's intrinsic estimate for an ampholyte, the change that recorded this). An audit of every refusal the calculator census panel produces
+  (29 molecules, 30 of 63 calculators refusing something) left these, in order of how much work each needs:
+  1. **Oxygen balance beyond C/H/N/O: done for S, Cl and thirteen metals; the rest stays refused.** Meyer, Koehler & Homburg's *Explosives* (7th ed.)
+     names the products (CO2, H2O, SO2, Al2O3; chlorine to HCl; alkaline earths to their oxides), and which oxide every other metal forms is read off its 41
+     printed balances beyond C/H/N/O, 38 of which one valence per element reproduces (35 are tests, with three rows of Akhavan's Table 5.2 as an independent
+     check). Accepted: S, Cl (by hydrogen or a metal, which gives the same number), Al, Li, Na, K, Ca, Sr, Ba, Pb, Zn, Cr, Co, and Hg and Ag left as the metal
+     (Akhavan burns mercury to HgO; the result prints that figure too). CO2 basis only. **What remains**: F, Br, I, B, P, Mg, Cu, Fe and every other element,
+     and chlorine beyond what hydrogen and metals can take; each needs a source that prints a balance using it. Boron is the nearest: Klapoetke prints two
+     boron esters whose balances B2O3 reproduces exactly, but no source here states the product. Iron needs a rule for which oxide, since Meyer uses FeO
+     for ferrocene and Fe2O3 for iron acetylacetonate. Formulations still refuse a non-C/H/N/O component. **Kamlet-Jacobs detonation**: read, and not
+     extendable from these sources -- all four Kamlet papers and Meyer's entry state it for C-H-N-O explosives; its oxygen-window refusal stands too.
+  2. **A drawing of several disconnected pieces with no single parent** (ChEMBL's rule leaves two or more components: a mixture, two organic ions, or a metal
+     complex drawn as separate ions, which is the only case its metal exclusion fires on). About 16 compound-property calculators refuse it. Computing on
+     the whole drawing is the error the component rule was built to stop; the open design is to ask which component is meant (the largest, by default) and
+     label the answer.
+  3. **Parameters missing for an element**: Jensen's atomic polarizability (no Na, Fe, Pt ...), Bultinck's EEM charges (no Cl, B, S), TSEI (no Pt covalent
+     radius in Lange's table), molecular dynamics (no MMFF or UFF type). Each is a parameter-table extension from a source, measured against that source; none
+     can be a warning, because there is no number to label.
+  4. **Group coverage**: Joback has no group for a ring tertiary nitrogen and several other environments, Hansen (Stefanis-Panayiotou) none for silicon and
+     some N and O environments. A later group-contribution table (or the same authors' extensions) would have to be read first.
+  5. **Solubility of an ampholyte**: the intrinsic estimate is now shown, but its pH profile, the value at a pH and the BCS screen are withheld, because
+     Henderson-Hasselbalch puts a zwitterion's minimum in the wrong place. A species-weighted model (each microspecies' own intrinsic solubility) would lift it.
+     Solubility as a whole also still carries its measured base bias, reported and not corrected.
+  6. **Benchmarks that would widen a LIMITED scope**: proton affinity beyond ten heavy atoms (a held-out set of 11 to 20), bond dissociation beyond nine
+     and for S-H (thiyl radicals keep an imaginary mode; a v3 protocol), Si-H and P-H classes. Until then those run with the warning.
+
+  **Refused by definition, and staying refused**: Griffin's HLB without a polyoxyethylene chain, the aromaticity indices with no ring, Hueckel with no pi
+  system, the isoelectric point and microspecies with no ionisable centre, the steric (ligand) measures with no donor atom. There is nothing to compute.
+
 - **Re-screening a saved synthesis plan (recorded 2026-10-21).** A plan saved in the project file comes back with the regulatory alerts it had on the day it
   was made, shown with that date and a sentence saying they were not repeated on opening, because screening takes 0.9 to 3.7 s a plan (about 0.1 s a
   molecule, measured on 13 real planner outputs) and opening a project of 30 plans would take about a minute. So a ruleset added or changed since then is not

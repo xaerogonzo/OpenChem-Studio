@@ -1,5 +1,5 @@
 <!-- GENERATED FROM docs/sources.toml -- do not edit -->
-<!-- SOURCE SHA256: 0f58e8c974c8b9121cdf8a597fa5a27af52663f18d372e5bafd7cae97494edb7 -->
+<!-- SOURCE SHA256: b7938a79d1910b24a8178aa1542660d8aa38932e23861a86a011680a5715bb17 -->
 
 # Sources
 
@@ -90,6 +90,7 @@ next run of `tools/build_lewis_parameters.py`.
 | [`adoptium_temurin`](#adoptium_temurin) | software | shipped | citation |
 | [`agarwal2022`](#agarwal2022) | literature | shipped | citation + claim |
 | [`agboola2026`](#agboola2026) | literature | shipped | citation + claim |
+| [`akhavan2011`](#akhavan2011) | literature | shipped | citation + claim |
 | [`allen2014`](#allen2014) | literature | reference only | citation |
 | [`allen2016`](#allen2016) | literature | reference only | citation |
 | [`allred1961`](#allred1961) | reference_table | shipped | citation |
@@ -245,6 +246,7 @@ next run of `tools/build_lewis_parameters.py`.
 | [`mayo1990`](#mayo1990) | literature | shipped | citation + claim |
 | [`maziarz2025syntheseus`](#maziarz2025syntheseus) | literature | reference only | citation |
 | [`mcnutt2021`](#mcnutt2021) | literature | **not shipped** | citation |
+| [`meyer2016`](#meyer2016) | literature | shipped | citation + claim |
 | [`miller1979`](#miller1979) | literature | shipped | citation + claim |
 | [`miller1990`](#miller1990) | literature | shipped | citation + claim |
 | [`miller_polarizability`](#miller_polarizability) | reference_table | reference only | citation |
@@ -4788,6 +4790,97 @@ toward the textbook:
 The book also carries the Springall-Roberts rules and a worked TNT
 decomposition (Table 4.2), which is the fixture the detonation work will
 need.
+
+### akhavan2011
+
+<a id="akhavan2011"></a>
+
+> J. Akhavan, 'The Chemistry of Explosives', 3rd edition, Royal Society of Chemistry, Cambridge, 2011. ISBN 978-1-84973-330-4.
+
+| | |
+| --- | --- |
+| Identifier | 978-1-84973-330-4 |
+| Status | shipped |
+| Verification | citation + claim |
+| Verified | 2026-10-23 |
+| Local copy | `the-chemistry-of-explosives_V3.pdf` (not checked) |
+| Used by | `src/openchem/chem/energetics.py`, `tests/test_oxygen_balance_meyer.py` |
+
+The independent check on [source:meyer2016]'s products. Chapter 5 (p86)
+defines the balance in the same words -- "complete conversion of the
+explosive material to carbon dioxide, water, sulfur dioxide, aluminium
+oxide, etc." -- and Table 5.2 (p88) prints three compounds beyond C/H/N/O.
+Silver azide 0.00 (silver left as the metal), lead azide -5.49 and lead
+styphnate -18.79 (lead to PbO, the water of the monohydrate included) all
+agree with Meyer's products to 0.01.
+
+**MERCURY IS THE ONE DISAGREEMENT.** Table 5.2's mercury fulminate is -16.86,
+which is mercury to HgO; Meyer prints -11.2, mercury left as the metal. The
+calculator follows Meyer and states Akhavan's value for the structure in
+its limitations.
+
+The book prints no DOI; the ISBN is the one on its imprint page. The text
+layer drops minus signs (Table 5.2 reads "73.96" for TNT); the signs are
+the book's, read from its Eq. 5.1. Its Eq. 5.2 and the TNT example are the
+C/H/N/O form [source:klapotke2017] already supplies.
+
+### meyer2016
+
+<a id="meyer2016"></a>
+
+> R. Meyer, J. Koehler & A. Homburg, 'Explosives', 7th, completely revised and updated edition, Wiley-VCH, Weinheim, 2016. ISBN 978-3-527-33776-7.
+
+| | |
+| --- | --- |
+| Identifier | [10.1002/9783527689583](https://doi.org/10.1002/9783527689583) |
+| Status | shipped |
+| Verification | citation + claim |
+| Verified | 2026-10-23 |
+| Local copy | `meyer2016_explosives_7th.pdf` (not checked) |
+| Used by | `src/openchem/chem/energetics.py`, `tests/test_oxygen_balance_meyer.py` |
+
+What the oxygen balance burns each element TO beyond C/H/N/O. The Oxygen
+Balance entry (p247) defines it as the oxygen left after "complete conversion
+of the explosive material to CO2, H2O, SO2, Al2O3, etc." and prints Table 21;
+the Thermodynamic Calculation entry (p321) adds "Chlorine will be converted
+into HCl; sulfur into SO2" and the alkaline-earth metals to their oxides.
+
+**WHICH OXIDE EVERY OTHER METAL FORMS IS NOT WRITTEN; IT IS READ OFF THE
+BOOK'S PRINTED BALANCES.** Every compound entry prints a formula and a
+balance, and the 41 beyond C/H/N/O were run through one valence per element
+before any code existed: 38 agree to the book's own printing (worst 0.08
+percentage points). The edition is identified by the oBook ISBN
+978-3-527-68958-3 printed in the file, which is this DOI.
+
+Two products are not what a reader would guess and both are the book's:
+mercury and silver are left as the METAL (mercury fulminate -11.2%, silver
+azide 0%, silver acetylide -26.7%), and the cobalt of BNCP, a cobalt(III)
+complex, goes to CoO (-8.8%). A chlorine counts the same whether hydrogen
+(HCl) or a metal (its chloride) takes it, so the book needs no stated order.
+
+THREE PLACES WHERE THE BOOK DISAGREES WITH ITSELF, recorded so nobody fits
+the code to them:
+
+- **Picryl chloride, -45.3%**, is the value with its chlorine left as Cl2.
+  Its stated rule, HCl, gives -42.0, and five other chlorine compounds
+  (ammonium chloride and perchlorate, chlorodinitrobenzene, guanidinium and
+  hydrazinium perchlorate) follow the rule.
+- **Hydrates.** Barium chlorate monohydrate (+31.55%) and barium
+  perchlorate trihydrate (+38.1%) are printed for the anhydrous salt; lead
+  styphnate monohydrate (-18.8%) and lead acetylsalicylate monohydrate
+  (-98.7%) include their water.
+- **Iron.** Ferrocene (-223.6%) is burned to FeO and iron acetylacetonate
+  (printed 163.1%, the Fe2O3 value with its sign lost) to Fe2O3, so iron is
+  refused.
+
+Boron does not occur in the book's balances at all, so it is refused here
+although [source:klapotke2017] prints two boron esters' balances (-59.70%,
++13.07%) that B2O3 reproduces; that book does not state the product either.
+Table 21's element rows were computed with whole atomic masses (sulfur
+-100.0 is 32/32; 32.06 gives -99.8).
+
+**Its Kamlet-Jacobs entry extends nothing beyond C/H/N/O** and prints
+K = 15.88, the textbook value that [source:kamlet1968] contradicts.
 
 ### westwell1995
 
