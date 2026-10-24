@@ -830,6 +830,8 @@ class BcsReason(Enum):
     # refusal that names the wrong cause sends the reader to fix the wrong
     # thing.
     NON_AQUEOUS_SOLVENT = "ICH M9 is defined on aqueous media"
+    #: Henderson-Hasselbalch puts an ampholyte's minimum in the wrong place, and the screen is the minimum over the window.
+    AMPHOLYTE = "an ampholyte's pH profile is not modelled"
     #: The baseline model is known to overpredict for this molecule (`esol_domain_warning`), and the screen is
     #: built on it.
     BASELINE_OUT_OF_DOMAIN = "the baseline model is known to overpredict for this molecule"
@@ -1012,6 +1014,16 @@ _ZWITTERION_NOTE = (
     "Henderson-Hasselbalch assumes the undissolved species is the one with no site ionized. "
     "A zwitterion's un-ionized form IS the zwitterion, which is highly soluble, so the model "
     "puts the solubility minimum in the wrong place. Refused rather than reported."
+)
+
+#: What an ampholyte's result says instead of a pH profile. The intrinsic estimate is the model's own number and does not depend on
+#: Henderson-Hasselbalch, so it is shown; the profile, the value at a pH and the ICH M9 screen all do, and they are withheld, because
+#: for a zwitterion they would be a plausible curve for a different compound (Alex, 2026-10-23: a source's edge is a warning, but what
+#: would mislead is still not shown). Until then the whole result was refused, the intrinsic number with it.
+AMPHOLYTE_NOTE = (
+    "AN AMPHOLYTE: this molecule has both acidic and basic centres. The intrinsic solubility below is the model's estimate for the "
+    "neutral structure as drawn; the pH profile, the value at a chosen pH and the BCS screen are NOT computed, because "
+    + _ZWITTERION_NOTE.replace(" Refused rather than reported.", "")
 )
 
 
@@ -1267,12 +1279,9 @@ def analyse_solubility(
             pkas=[], is_acid=[], refusal=refusal, refusal_code=refusal_code, shift=shift,
             domain_warning=warning,
         )
-    if ionization is IonizationClass.AMPHOLYTE:
-        refusal = (
-            "This molecule has both acidic and basic centres, so it is an ampholyte. "
-            + _ZWITTERION_NOTE
-        )
-        refusal_code = "AMPHOLYTE"
+    if ionization is IonizationClass.AMPHOLYTE and estimate.status is ModelStatus.AVAILABLE:
+        # COMPUTED: the intrinsic estimate only; `compute_solubility` withholds everything Henderson-Hasselbalch would draw.
+        pass
     elif ionization is IonizationClass.UNSUPPORTED:
         if not is_single_component(mol):
             refusal = (
@@ -1702,8 +1711,17 @@ def compute_solubility(
         )
 
     ph = float(parameters.get("pH", DEFAULT_PH))
+    ampholyte = analysis.ionization is IonizationClass.AMPHOLYTE
 
     facts = _baseline_facts(analysis)
+    if ampholyte:
+        # A ROW, FIRST, for the reason the ESOL warning below is one: a report-level limitation alone is easy to miss.
+        facts.insert(0, _fact(
+            "pH profile", "not computed (an ampholyte)",
+            "Not computed: an ampholyte's solubility minimum is not where Henderson-Hasselbalch puts it",
+            evidence=(AMPHOLYTE_NOTE,),
+            detail=Detail.STANDARD,
+        ))
     if analysis.domain_warning:
         # A ROW, FIRST, BECAUSE NOTHING ELSE IS READ. The warning is in the report's limitations, which the merged
         # reader pools with every other report's under one status line (the Substance report's note came first and
@@ -1717,7 +1735,8 @@ def compute_solubility(
             detail=Detail.STANDARD,
         ))
     facts += _gutmann_facts(analysis.solvent.key)
-    facts += _ph_facts(analysis, ph)
+    if not ampholyte:
+        facts += _ph_facts(analysis, ph)
     facts += _model_facts(
         analysis, mol, admet_interpreter_path,
         compare=bool(parameters.get("compare_models", False)),
@@ -1728,7 +1747,7 @@ def compute_solubility(
     # one thing it said that this did not. Empty outside water and empty
     # when nothing reached the cap, so a molecule that never saturates
     # gains no row.
-    if analysis.baseline_logs is not None and analysis.solvent.is_water:
+    if analysis.baseline_logs is not None and analysis.solvent.is_water and not ampholyte:
         facts += limit_facts(analysis, solubility_profile(analysis, parameters)[0])
 
     # **A FACT-LEVEL LIMITATION IS A TOOLTIP, AND A TOOLTIP IS NOT TELLING
@@ -1738,13 +1757,16 @@ def compute_solubility(
     # and were invisible on screen -- found by grabbing the panel, with
     # every test green. They are carried in BOTH places: on the fact for
     # the tooltip and the export, and here so they are actually read.
-    limitations = [*_domain_limitation(analysis), _BCS_NOTE]
+    limitations = [*((AMPHOLYTE_NOTE,) if ampholyte else ()), *_domain_limitation(analysis), _BCS_NOTE]
     limitations.extend(_base_bias_limitation(analysis))
     if not analysis.solvent.is_water and analysis.shift is not None:
         limitations.extend(_NON_AQUEOUS_ACCURACY_LIMITATIONS)
     dose_mg = parameters.get("dose_mg")
     dose = float(dose_mg) if dose_mg not in (None, "") else None
-    if analysis.domain_warning:
+    if ampholyte:
+        screen = BcsScreen.undetermined(BcsReason.AMPHOLYTE)
+        window = None
+    elif analysis.domain_warning:
         # A regulatory-shaped PASS built on a baseline known to run high is the one output here that could do
         # harm, so it is withheld; the number and its warning above are what is offered instead.
         screen = BcsScreen.undetermined(BcsReason.BASELINE_OUT_OF_DOMAIN)
@@ -1812,7 +1834,7 @@ def compute_solubility(
             analysis.molecular_weight,
         ),
         limitations=tuple(limitations),
-        provenance=provenance,
+        provenance=replace(provenance, parameters={**provenance.parameters, "caveat": AMPHOLYTE_NOTE}) if ampholyte else provenance,
     )
 
 
@@ -1918,6 +1940,8 @@ def solubility_chart(analysis, parameters: dict | None = None):
 
     if analysis.refusal or analysis.baseline_logs is None or not analysis.solvent.is_water:
         return None
+    if analysis.ionization is IonizationClass.AMPHOLYTE:
+        return None  # the curve Henderson-Hasselbalch would draw for a zwitterion is a different compound's (AMPHOLYTE_NOTE)
     renderings = []
     for unit in DISPLAY_UNITS:
         grid, series = solubility_profile(analysis, parameters, unit)

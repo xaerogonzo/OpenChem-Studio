@@ -2928,11 +2928,13 @@ it is installed, and you can **type your own** into the pKa field
 (`3.49`, or `4.8, 9.4` for a diprotic) — a measured pKa always beats a
 predicted one, and a manual entry overrides the predictor.
 
-**Ampholytes and salts are refused.** A zwitterion's un-ionized form *is*
-the zwitterion, which is highly soluble, so Henderson–Hasselbalch puts the
-minimum in the wrong place; a drawn salt is already the species the
-correction models forming. Both say so rather than producing a plausible
-curve for a different compound.
+**An ampholyte gets its intrinsic estimate and no pH curve; a salt is refused.**
+A zwitterion's un-ionized form *is* the zwitterion, which is highly soluble, so
+Henderson–Hasselbalch puts the minimum in the wrong place: for an ampholyte the
+result shows the model's intrinsic solubility, and a first row says the pH
+profile, the value at a pH and the BCS screen are not computed and why. A drawn
+salt is already the species the correction models forming, so it is refused
+rather than given a plausible curve for a different compound.
 
 ### The BCS line is a screen, not a classification
 

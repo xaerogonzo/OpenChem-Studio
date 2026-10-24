@@ -3231,8 +3231,8 @@ CALCULATOR_DEFINITIONS: list[CalculatorDefinition] = [
             "Predicted intrinsic aqueous solubility in logS, mg/mL and mol/L, its "
             "Low/Moderate/High category, the value at a chosen pH, an ICH M9 "
             "high-solubility screening estimate, and the solubility-versus-pH curve "
-            "across the range you choose. Ampholytes and salts are refused rather "
-            "than modelled; a molecule with no ionizable centre gets a flat line, "
+            "across the range you choose. An ampholyte gets its intrinsic estimate only, with the pH profile withheld and the reason "
+            "shown; a salt is refused rather than modelled; a molecule with no ionizable centre gets a flat line, "
             "which is an answer rather than a failure."
         ),
         execution=RegistryExecution(compute=compute_solubility),
@@ -3789,9 +3789,9 @@ CALCULATOR_DEFINITIONS: list[CalculatorDefinition] = [
             "correct it where they apply, which is what the paper's W switch selects. "
             "Below 3 MPa^0.5 the polar and hydrogen-bonding parameters come from the "
             "paper's SEPARATE low-range regression rather than from the main equations, "
-            "and the result says which was used. Needs three or more carbons excluding "
-            "the characteristic group's own atom, and refuses a structure carrying an "
-            "atom in no group rather than returning a partial sum."
+            "and the result says which was used. The paper states it for three or more carbons excluding "
+            "the characteristic group's own atom; below that it is computed and labelled outside the stated domain. It refuses a structure "
+            "carrying an atom in no group rather than returning a partial sum."
         ),
         execution=RegistryExecution(compute=compute_hansen),
         prediction_basis="empirical",

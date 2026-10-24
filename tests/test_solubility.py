@@ -629,11 +629,19 @@ def test_a_neutral_molecule_gets_a_flat_curve_rather_than_a_failure():
     assert "does not vary" in chart.title
 
 
-def test_an_ampholyte_is_refused_with_the_reason_named():
+def test_an_ampholyte_gets_its_intrinsic_estimate_and_no_ph_profile_with_the_reason_named():
+    """Was refused whole. The intrinsic estimate does not depend on Henderson-Hasselbalch, so it is shown; the pH profile, the value at a
+    pH and the BCS screen all do, and for a zwitterion they would be another compound's curve, so they are withheld and the row says why
+    (Alex, 2026-10-23: an edge is a warning, but what would mislead is still not shown)."""
     report = compute_solubility(mol(GLYCINE), "u", {})
-    assert report.error
-    assert "ampholyte" in report.error
-    assert "zwitterion" in report.error.lower()
+    assert report.cache_state is CacheState.COMPLETED and not report.error
+    labels = [fact.label for fact in report.facts]
+    assert labels[0] == "pH profile" and "ampholyte" in report.facts[0].display_value
+    assert any("zwitterion" in item.lower() for item in report.facts[0].evidence)
+    assert not report.charts, "no curve for an ampholyte: HH would draw a different compound's"
+    screen = next(fact for fact in report.facts if fact.label == "BCS high-solubility screening estimate")
+    assert "ampholyte" in screen.display_value
+    assert "AMPHOLYTE" in report.limitations[0] and "caveat" in report.provenance.parameters
 
 
 def test_a_salt_is_refused_and_told_to_draw_the_parent():
