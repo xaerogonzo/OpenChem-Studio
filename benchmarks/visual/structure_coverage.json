@@ -15,9 +15,9 @@
   {"do": "expand", "section": "quantum_chemistry"},
 
   {"do": "select", "molecule": 1, "after_ms": 2500},
-  {"do": "expect_coverage", "tag": "ethanol", "chips": {"griffin_hlb": "Not applicable", "oxygen_balance": "Can run", "joback_properties": "Can run"},
+  {"do": "expect_coverage", "tag": "ethanol", "chips": {"griffin_hlb": "Not applicable", "oxygen_balance": "Can run", "joback_properties": "Can run", "hansen_solubility": "With limits"},
    "rows": {"orca.proton_affinity": "✓", "orca.bond_dissociation_enthalpy": "✓", "orca.nmr": ""},
-   "tooltips": {"griffin_hlb": ["polyoxyethylene"], "orca.proton_affinity": ["inside what the method covers"]}},
+   "tooltips": {"griffin_hlb": ["polyoxyethylene"], "hansen_solubility": ["OUTSIDE THE MODEL"], "orca.proton_affinity": ["inside what the method covers"]}},
   {"do": "properties_grab", "path": "artifacts/visual/structure_coverage_ethanol.png"},
 
   {"do": "select", "molecule": 2, "after_ms": 2500},

@@ -95,9 +95,8 @@ reads "Not run" as before; switching it takes effect at once.
 * Proton affinity and BDE (#447) turn "outside what was measured" into a warning. Their hooks call
   `check_scope`, which stays the refusal; once `scope_warnings` is on master the hooks return a caveat
   from it.
-* Hansen (#448) computes fewer than three carbons and labels it, so `fragment` stops refusing it; the hook
-  then returns a caveat from `outside_domain`. Nothing in the hook names the old refusal, so until then it
-  simply follows.
+* Hansen (#448, merged) computes fewer than three carbons and labels it; the hook returns a caveat from
+  `outside_domain`, so the row reads "With limits" and quotes the label.
 
 ## Not done
 
