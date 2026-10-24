@@ -1723,6 +1723,7 @@
   "tests/test_substance_card.py": 3,
   "tests/test_suite_shards.py": 2,
   "tests/test_suite_timings.py": 0,
+  "tests/test_support_marker.py": 2,
   "tests/test_surface_options.py": 3,
   "tests/test_surface_typed.py": 3,
   "tests/test_synthesis_annotations.py": 1,
