@@ -213,8 +213,8 @@ _MAX_OPTIMISATION_ATTEMPTS = 2
 #: molecules, ethanol to erythromycin; `benchmarks/perf/probes/minimise_slices.py`).
 _BATCH_API_FORCE_TOL = 1e-4
 
-#: Optimisation strictness, inspired by Marvin's `[o]{1}{3}` control and
-#: **NOT numerically equivalent to it** -- ChemAxon documents theirs as a
+#: Optimisation strictness, inspired by the reference editor's `[o]{1}{3}` control and
+#: **NOT numerically equivalent to it** -- the vendor documents theirs as a
 #: gradient convergence criterion but publishes no values, so a claim of
 #: parity would be unfounded. These are OpenChem's levels.
 #:
@@ -378,7 +378,7 @@ class GenerationOptions:
     #: `None` means no limit. Not a hard ceiling -- see `_out_of_time`.
     time_limit_seconds: float | None = None
     #: A second, stricter optimisation pass over the survivors.
-    #: **This is not Marvin's `hyperfine`**, which samples trajectories
+    #: **This is not the reference editor's `hyperfine`**, which samples trajectories
     #: with molecular dynamics; there is no MD engine here and repeated
     #: minimisation does not approximate one. Serialised as
     #: `enhanced_optimization`, never as `hyperfine`, because an SDF
@@ -1321,7 +1321,7 @@ class RDKitConformerProvider(ConformerProvider):
                 if should_continue is False:
                     break
         # Ascending by energy so conformer 1/N is the lowest-energy (most
-        # relevant) one -- matches Marvin/standard conformer-tool convention.
+        # relevant) one -- matches the reference editor/standard conformer-tool convention.
         # Duplicate embeddings are NOT pruned here. `ConformerService` does
         # it, so that a plugin-supplied provider gets the same treatment
         # without having to remember to, and so the counts before and after
@@ -1454,7 +1454,7 @@ class RDKitConformerProvider(ConformerProvider):
     ) -> list[tuple[Chem.Mol, float | None]]:
         """A second, stricter minimisation over the survivors.
 
-        **THIS IS NOT MARVIN'S `hyperfine`.** ChemAxon describes that as
+        **THIS IS NOT THE REFERENCE EDITOR'S `hyperfine`.** the vendor describes that as
         short low-temperature molecular dynamics followed by strict
         optimisation. There is no MD engine here, and repeated
         minimisation is not an approximation of trajectory sampling --
@@ -1462,7 +1462,7 @@ class RDKitConformerProvider(ConformerProvider):
         whole point of the dynamics. It is called "enhanced refinement"
         everywhere it is named, including in provenance, so that nobody
         reading a stored property six months from now concludes the
-        ChemAxon algorithm ran.
+        The vendor algorithm ran.
 
         What it can honestly do is take each survivor to a tighter
         gradient than the run's own level asked for, which drops

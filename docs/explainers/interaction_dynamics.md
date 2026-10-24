@@ -126,7 +126,7 @@ An overlay chosen by atom-type and charge similarity alone, with no regard to wh
 ### Method: Common scaffold (MCS)
 
 #### How it works
-The 2D maximum common substructure of the two molecules, restricted to heavy atoms, fixes the pairing first, and Open3DAlign then fits the rest around it, treating those pairs as constraints. The two-stage design follows ChemAxon's description of its own plug-in and is not part of the Open3DALIGN paper [source:tosco2011]; the atom-type matching inside the second stage is the one described under Extended atom types. If the molecules share no common substructure, or only hydrogens, it refuses and suggests the atom-type method instead.
+The 2D maximum common substructure of the two molecules, restricted to heavy atoms, fixes the pairing first, and Open3DAlign then fits the rest around it, treating those pairs as constraints. The two-stage design follows the vendor's description of its own plug-in and is not part of the Open3DALIGN paper [source:tosco2011]; the atom-type matching inside the second stage is the one described under Extended atom types. If the molecules share no common substructure, or only hydrogens, it refuses and suggests the atom-type method instead.
 
 #### What the result means
 Because the pairing comes from the 2D graph and not from chemical similarity, atoms are paired even where their environments differ: benzene onto cyclohexane was paired on all 6 ring atoms with an RMSD of 0.207, a fit of shape and not of chemistry. For molecules with a real shared core it agrees with the atom-type method (aspirin onto salicylic acid: score 88.86 against 88.87), and it is the one to prefer when you know which part of the molecules should coincide.

@@ -75,10 +75,10 @@ def test_the_hydro_positions_of_the_old_text_must_still_agree_with_the_plan(monk
     captured = []
     real = p58._resolve
 
-    def spy(mol, named_parent, numbering, suffix_groups, free_valence=None):
+    def spy(mol, named_parent, numbering, suffix_groups, free_valence=None, *rest):
         if (named_parent.name or "").startswith("5,9-dihydro-2H-purine"):
             captured.append((mol, named_parent, numbering, suffix_groups))
-        return real(mol, named_parent, numbering, suffix_groups, free_valence)
+        return real(mol, named_parent, numbering, suffix_groups, free_valence, *rest)
 
     monkeypatch.setattr(p58, "_resolve", spy)
     name_smiles("N1C(SC)=NC2C(=O)N=CN=C21")

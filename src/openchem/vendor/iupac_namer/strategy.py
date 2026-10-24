@@ -457,6 +457,20 @@ class IUPACCanonical(NamingStrategy):
 
     def accept_plan(self, plan: NamingPlan) -> bool:
         """Hard structural reject for FC plans that violate IUPAC rules."""
+        if isinstance(plan, SubstitutivePlan):
+            # `butanedithioic S-acid` for two `-thioic S-acid` groups is read by OPSIN as ONE group, `C(=S)S` (the chalcogen-replaced dithioic acid), and no
+            # spelling of the two-group name is readable (naming round 76); one group takes the suffix and the other is `sulfanyl(oxo)` / `hydroxy(thioxo)`.
+            _chalcogen_acids = [
+                sg for sg in plan.suffix_groups
+                if sg.base_form.endswith(("thioic S-acid", "thioic O-acid", "selenoic Se-acid", "selenoic O-acid"))
+            ]
+            # (all-`carbo` ones, on a ring, are read: `benzene-1,2-dicarbothioic S-acid`; a `carbo` one beside a terminal one is joined as `carbothioic S-acidthioic S-acid`)
+            if len(_chalcogen_acids) > 1 and any(not sg.base_form.startswith("carbo") for sg in _chalcogen_acids):
+                return False
+            # A carbamate is an ESTER, named by the functional-class route (or as a `carbamoyloxy` prefix). Taken as a substitutive PRINCIPAL group it is
+            # `2-(phosphonooxy)ethane-1-carbamate`, which OPSIN reads as the N-alkyl carbamate ANION: another molecule.
+            if plan.pcg_type in ("carbamate", "thionocarbamate", "dithiocarbamate"):
+                return False
         if isinstance(plan, FunctionalClassPlan):
             # Hard reject: intramolecular FC (lactones, cyclic anhydrides)
             if plan.decomposition.intramolecular:
@@ -468,12 +482,15 @@ class IUPACCanonical(NamingStrategy):
             # [N+] atom, that piece must take a cation suffix (e.g. -ium)
             # which cannot be expressed via FC ester syntax.  Substitutive
             # naming with the ring-cation parent is the only correct route.
+            # The same holds for a ring O+, S+, Se+ or Te+ (a chromenylium's
+            # ester was the neutral ring's `chromen-2-yl acetate`, naming
+            # round 80) and for a ring P+ or As+.
             pieces = plan.decomposition.pieces or ()
             for piece in pieces:
                 if piece.mol is None:
                     continue
                 for atom in piece.mol.GetAtoms():
-                    if (atom.GetSymbol() == "N"
+                    if (atom.GetSymbol() in ("N", "P", "As", "Sb", "Bi", "O", "S", "Se", "Te")
                             and atom.GetFormalCharge() == 1
                             and atom.IsInRing()):
                         return False

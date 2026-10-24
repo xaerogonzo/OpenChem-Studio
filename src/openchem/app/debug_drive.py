@@ -95,6 +95,14 @@ The script is a JSON list of steps, run in order:
       {"do": "process_report",   "modules": ["openchem.chem.engine"]}  pid,
                                               HEAD, and where each module
                                               was imported from
+      {"do": "help_report", "expect": {"source": "bundle", "documents": 4, "topics_at_least": 15,
+       "panel_keys_resolve": true, "search": {"query": "Vina", "hits_at_least": 1}}}
+                                              where the HELP text came from and that every
+                                              panel's key resolves, read off the running
+                                              process (the frozen smoke test asserts "bundle")
+      {"do": "install_report", "expect": {"status": "verified"}, "wait_ms": 15000}
+                                              the install self-check's answer; WAITS while it
+                                              is still checking, and fails if it never finishes
       {"do": "log_report",       "tag": "after-draw"}   what the APPLICATION
                                               logged so far (WARNING and up),
                                               de-duplicated by where it happened
@@ -977,6 +985,278 @@ class _Driver(QObject):
             logger.warning("OPENCHEM_DRIVE: EXPECT tautomer ok[%s]", tag)
         else:
             logger.error("OPENCHEM_DRIVE: EXPECT tautomer FAILED[%s] -- %s", tag, "; ".join(problems)[:800])
+
+    def _do_proton_affinity_run(self, step: dict[str, Any]) -> None:
+        """Press the Quantum Chemistry panel's "Proton affinity..." button, for real.
+
+        `{"do": "proton_affinity_run", "expect_refusal": "Cl"}` -- the BUTTON, not `request_proton_affinity`, so the panel's own scope check,
+        its cost question (answered by `OPENCHEM_DRIVE_MODAL=yes`) and the identity it captures are what is driven. What the service was handed is read off its run
+        record (`_proton_runs`, set synchronously by the request) and REMEMBERED for `proton_affinity_report`. A refusal is asserted with `expect_refusal`: the
+        status line must hold that text and NO run may have started. Follow a real run with `qc_wait`.
+        """
+        from openchem.ui.molecule_combo import select
+
+        panel = getattr(self._window, "_quantum_chemistry_panel", None)
+        if panel is None:
+            logger.error("OPENCHEM_DRIVE: proton_affinity_run -- no Quantum Chemistry panel on this window")
+            return
+        molecule_uuid = self._window._property_panel._selected_molecule_uuid
+        if not select(panel._molecule_combo, molecule_uuid):
+            logger.error("OPENCHEM_DRIVE: proton_affinity_run -- the selected molecule is not in the panel's combo")
+            return
+        if not panel._proton_affinity_button.isEnabled():
+            logger.error("OPENCHEM_DRIVE: proton_affinity_run -- the Proton affinity button is DISABLED; not clicked")
+            return
+        panel._proton_affinity_button.click()
+        run = panel._quantum_chemistry_service._proton_runs.get(molecule_uuid)
+        refusal = step.get("expect_refusal")
+        if refusal is not None:
+            problems = []
+            if run is not None:
+                problems.append("a run started, but the structure should have been refused")
+            if str(refusal) not in panel._status_label.text():
+                problems.append(f"status {panel._status_label.text()!r} lacks {refusal!r}")
+            if self._record_assertion("proton_affinity_run", str(refusal), not problems, "; ".join(problems) or "refused as expected"):
+                logger.warning("OPENCHEM_DRIVE: EXPECT proton affinity refusal ok[%s] status=%r", refusal, panel._status_label.text())
+            else:
+                logger.error("OPENCHEM_DRIVE: EXPECT proton affinity refusal FAILED[%s] -- %s", refusal, "; ".join(problems))
+            return
+        if run is None:
+            logger.error("OPENCHEM_DRIVE: proton_affinity_run -- no run was started; status=%r", panel._status_label.text())
+            return
+        self._proton_submitted = (molecule_uuid, run.calculation_input, run.input_fingerprint, run.run_id)
+        logger.warning(
+            "OPENCHEM_DRIVE: proton_affinity_run submitted structures=%d input=%s fingerprint=%s run_id=%s status=%r",
+            run.sequence.total, run.calculation_input, run.input_fingerprint[:12], run.run_id, panel._status_label.text(),
+        )
+
+    def _do_proton_affinity_report(self, step: dict[str, Any]) -> None:
+        """`{"do": "proton_affinity_report", "tag": "ammonia", "expect": {...}}` -- what the application HOLDS after a proton-affinity run, read off the stored result,
+        the stored run and the panel's own text.
+
+        `expect` keys (each optional, each asserted): `pa_kj` / `gb_kj` (`[low, high]` the stored value must lie in; `null` means the output has NO value),
+        `site_element`, `run_status` (the newest stored run's status value), `run_calc_type`, `results_contains` (text the panel's results line holds),
+        `fingerprint_is_submitted` (the stored outputs' identity carries the fingerprint the service was handed) and `stored_outputs` (how many of the two outputs are in the store).
+
+        **READ OFF THE STORE, NOT THE EVENT**: a result the service published and nothing kept reads as "computed" at one end and as nothing at the other.
+        """
+        window = self._window
+        panel = getattr(window, "_quantum_chemistry_panel", None)
+        if panel is None:
+            logger.error("OPENCHEM_DRIVE: proton_affinity_report -- no Quantum Chemistry panel")
+            return
+        tag = str(step.get("tag", ""))
+        submitted = getattr(self, "_proton_submitted", None)
+        problems: list[str] = []
+        stored: dict[str, Any] = {}
+        fingerprints: list[str] = []
+        if submitted is not None:
+            record = window._services.result_store_service.store._molecules.get(submitted[0])
+            for key in (record.results if record is not None else {}):
+                result = getattr(record.results[key], "result", None)
+                if getattr(result, "descriptor_id", "") in ("orca.proton_affinity", "orca.gas_basicity"):
+                    stored[result.descriptor_id] = result
+                    fingerprints.append(key[2])
+        molecule = panel._current_molecule()
+        runs = panel._result_store_service.qc_runs.runs_for(molecule.uuid) if molecule is not None and panel._result_store_service is not None else []
+        newest = runs[0] if runs else None
+        pa, gb = stored.get("orca.proton_affinity"), stored.get("orca.gas_basicity")
+        sites = (pa.provenance.parameters.get("sites") if pa is not None and pa.provenance is not None else None) or []
+        report = {
+            "pa_kj": None if pa is None else pa.value, "gb_kj": None if gb is None else gb.value,
+            "pa_error": None if pa is None else (pa.error or "")[:160],
+            "site_element": (pa.provenance.parameters.get("site_element") if pa is not None and pa.provenance else None),
+            "sites": [(row["atom"], row["element"], round(row["pa_kj"], 1), round(row["gb_kj"], 1)) for row in sites],
+            "run": None if newest is None else {"calc_type": newest.calc_type, "status": newest.status.value, "warnings": list(newest.warnings)[:2]},
+            "stored_outputs": len(stored), "results_label": panel._results_label.text()[:400], "status": panel._status_label.text(),
+        }
+        logger.warning("OPENCHEM_DRIVE: proton_affinity_report[%s] %s", tag, json.dumps(report))
+
+        expect = step.get("expect") or {}
+        for key, found in (("pa_kj", None if pa is None else pa.value), ("gb_kj", None if gb is None else gb.value)):
+            if key not in expect:
+                continue
+            want = expect[key]
+            if want is None:
+                if found is not None:
+                    problems.append(f"{key} is {found}, wanted no value")
+            elif found is None or not (float(want[0]) <= found <= float(want[1])):
+                problems.append(f"{key} is {found}, wanted within {want}")
+        if "site_element" in expect and report["site_element"] != expect["site_element"]:
+            problems.append(f"site element {report['site_element']!r}, wanted {expect['site_element']!r}")
+        if "run_status" in expect and (newest is None or newest.status.value != expect["run_status"]):
+            problems.append(f"newest run status {None if newest is None else newest.status.value!r}, wanted {expect['run_status']!r}")
+        if "run_calc_type" in expect and (newest is None or newest.calc_type != expect["run_calc_type"]):
+            problems.append(f"newest run calc type {None if newest is None else newest.calc_type!r}, wanted {expect['run_calc_type']!r}")
+        for needle in expect.get("results_contains") or []:
+            if needle not in panel._results_label.text():
+                problems.append(f"the panel's results line lacks {needle!r}")
+        if "stored_outputs" in expect and len(stored) != int(expect["stored_outputs"]):
+            problems.append(f"{len(stored)} proton-affinity outputs stored, wanted {expect['stored_outputs']}")
+        if expect.get("fingerprint_is_submitted"):
+            if submitted is None:
+                problems.append("no proton_affinity_run step preceded this one")
+            elif submitted[2] not in fingerprints:
+                problems.append(f"stored fingerprints {[f[:12] for f in fingerprints]} lack the submitted {submitted[2][:12]}")
+        if self._record_assertion("proton_affinity_report", tag, not problems, "; ".join(problems) or "as expected"):
+            logger.warning("OPENCHEM_DRIVE: EXPECT proton affinity ok[%s]", tag)
+        else:
+            logger.error("OPENCHEM_DRIVE: EXPECT proton affinity FAILED[%s] -- %s", tag, "; ".join(problems)[:800])
+
+    def _do_bond_dissociation_run(self, step: dict[str, Any]) -> None:
+        """Press the Quantum Chemistry panel's "Bond dissociation..." button, for real, and answer the bond-choice dialog it opens through that dialog's own controls.
+
+        `{"do": "bond_dissociation_run", "bonds": [1], "after_ms": 1000}` -- the BUTTON, not `request_bond_dissociation`, so the panel's own scope check, the dialog, the cost question
+        (answered by `OPENCHEM_DRIVE_MODAL=yes`) and the identity it captures are what is driven. `bonds` is which of the dialog's boxes stay TICKED (zero-based, in the order shown; omit for the default),
+        `"cancel": true` presses Cancel instead of Run. The dialog is modal and `click()` does not return until it closes, so a timer set BEFORE the press finds it and ticks and presses its real buttons.
+        What the service was handed is read off its run record (`_bond_runs`, set synchronously by the request) and REMEMBERED for `bond_dissociation_report`. A refusal is asserted with
+        `expect_refusal`: the status line must hold that text, no dialog may have opened and NO run may have started. Follow a real run with `qc_wait`.
+        """
+        from openchem.ui.molecule_combo import select
+
+        panel = getattr(self._window, "_quantum_chemistry_panel", None)
+        if panel is None:
+            logger.error("OPENCHEM_DRIVE: bond_dissociation_run -- no Quantum Chemistry panel on this window")
+            return
+        molecule_uuid = self._window._property_panel._selected_molecule_uuid
+        if not select(panel._molecule_combo, molecule_uuid):
+            logger.error("OPENCHEM_DRIVE: bond_dissociation_run -- the selected molecule is not in the panel's combo")
+            return
+        if not panel._bond_dissociation_button.isEnabled():
+            logger.error("OPENCHEM_DRIVE: bond_dissociation_run -- the Bond dissociation button is DISABLED; not clicked")
+            return
+        refusal = step.get("expect_refusal")
+        self._bond_dialog_seen = []
+        if refusal is None:
+            self._bond_step = step
+            QTimer.singleShot(int(step.get("answer_after_ms", 500)), self._window, self._answer_bond_dialog)
+        panel._bond_dissociation_button.click()
+        run = panel._quantum_chemistry_service._bond_runs.get(molecule_uuid)
+        if refusal is not None:
+            problems = []
+            if run is not None:
+                problems.append("a run started, but the structure should have been refused")
+            if str(refusal) not in panel._status_label.text():
+                problems.append(f"status {panel._status_label.text()!r} lacks {refusal!r}")
+            if self._record_assertion("bond_dissociation_run", str(refusal), not problems, "; ".join(problems) or "refused as expected"):
+                logger.warning("OPENCHEM_DRIVE: EXPECT bond dissociation refusal ok[%s] status=%r", refusal, panel._status_label.text())
+            else:
+                logger.error("OPENCHEM_DRIVE: EXPECT bond dissociation refusal FAILED[%s] -- %s", refusal, "; ".join(problems))
+            return
+        if step.get("cancel"):
+            ok = run is None and bool(self._bond_dialog_seen)
+            if self._record_assertion("bond_dissociation_run", "cancel", ok, "cancelled in the dialog, nothing queued" if ok else f"dialog seen={bool(self._bond_dialog_seen)} run={run is not None}"):
+                logger.warning("OPENCHEM_DRIVE: EXPECT bond dissociation dialog cancel ok")
+            return
+        if run is None:
+            logger.error("OPENCHEM_DRIVE: bond_dissociation_run -- no run was started; dialog seen=%s status=%r", bool(self._bond_dialog_seen), panel._status_label.text())
+            return
+        self._bond_submitted = (molecule_uuid, run.calculation_input, run.input_fingerprint, run.run_id)
+        logger.warning(
+            "OPENCHEM_DRIVE: bond_dissociation_run submitted structures=%d bonds=%s input=%s fingerprint=%s run_id=%s status=%r",
+            run.sequence.total, run.sequence.atoms, run.calculation_input, run.input_fingerprint[:12], run.run_id, panel._status_label.text(),
+        )
+
+    def _answer_bond_dialog(self) -> None:
+        """The person's side of the bond-choice dialog: tick what the step says and press Run (or Cancel), on the real widgets of the modal dialog that is open."""
+        from PySide6.QtWidgets import QApplication, QPushButton
+
+        from openchem.ui.panels.quantum_chemistry_panel import _BondChoiceDialog
+
+        dialog = QApplication.activeModalWidget()
+        if not isinstance(dialog, _BondChoiceDialog):
+            logger.error("OPENCHEM_DRIVE: bond_dissociation_run -- the bond-choice dialog is not open (active modal: %r)", dialog)
+            return
+        step = getattr(self, "_bond_step", {}) or {}
+        self._bond_dialog_seen.append([box.text() for box in dialog._boxes])
+        ticks = step.get("bonds")
+        if ticks is not None:
+            for number, box in enumerate(dialog._boxes):
+                box.setChecked(number in ticks)
+        logger.warning("OPENCHEM_DRIVE: bond dialog bonds=%s ticked=%s run_enabled=%s", [box.text()[:60] for box in dialog._boxes], dialog.chosen_atoms(), dialog._run.isEnabled())
+        if step.get("cancel"):
+            dialog.findChild(QPushButton, "bondChoiceCancel").click()
+        else:
+            dialog._run.click()
+
+    def _do_bond_dissociation_report(self, step: dict[str, Any]) -> None:
+        """`{"do": "bond_dissociation_report", "tag": "methanol", "expect": {...}}` -- what the application HOLDS after a bond-dissociation run, read off the stored result,
+        the stored run and the panel's own text.
+
+        `expect` keys (each optional, each asserted): `dh_kj` (`[low, high]` the stored headline must lie in; `null` means the output has NO value), `bonds` (`{"<label starts with>": [low, high] | null}`:
+        each bond's own kJ/mol, `null` for a bond with no value), `reason_contains` (text that a bond's reason holds), `run_status` (the newest stored run's status value), `run_calc_type`, `results_contains`
+        (text the panel's results line holds), `fingerprint_is_submitted` (the stored output's identity carries the fingerprint the service was handed) and `stored_outputs`.
+
+        **READ OFF THE STORE, NOT THE EVENT**: a result the service published and nothing kept reads as "computed" at one end and as nothing at the other.
+        """
+        window = self._window
+        panel = getattr(window, "_quantum_chemistry_panel", None)
+        if panel is None:
+            logger.error("OPENCHEM_DRIVE: bond_dissociation_report -- no Quantum Chemistry panel")
+            return
+        tag = str(step.get("tag", ""))
+        submitted = getattr(self, "_bond_submitted", None)
+        problems: list[str] = []
+        stored: dict[str, Any] = {}
+        fingerprints: list[str] = []
+        if submitted is not None:
+            record = window._services.result_store_service.store._molecules.get(submitted[0])
+            for key in (record.results if record is not None else {}):
+                result = getattr(record.results[key], "result", None)
+                if getattr(result, "descriptor_id", "") == "orca.bond_dissociation_enthalpy":
+                    stored[result.descriptor_id] = result
+                    fingerprints.append(key[2])
+        molecule = panel._current_molecule()
+        runs = panel._result_store_service.qc_runs.runs_for(molecule.uuid) if molecule is not None and panel._result_store_service is not None else []
+        newest = runs[0] if runs else None
+        output = stored.get("orca.bond_dissociation_enthalpy")
+        bonds = (output.provenance.parameters.get("bonds") if output is not None and output.provenance is not None else None) or []
+        report = {
+            "dh_kj": None if output is None else output.value, "error": None if output is None else (output.error or "")[:200],
+            "bonds": [(row["label"][:40], None if row["dh_kj"] is None else round(row["dh_kj"], 1), None if row["dh_kcal"] is None else round(row["dh_kcal"], 2), row.get("s2"), (row.get("reason") or "")[:120]) for row in bonds],
+            "run": None if newest is None else {"calc_type": newest.calc_type, "status": newest.status.value, "warnings": list(newest.warnings)[:2]},
+            "stored_outputs": len(stored), "results_label": panel._results_label.text()[:600], "status": panel._status_label.text(),
+        }
+        logger.warning("OPENCHEM_DRIVE: bond_dissociation_report[%s] %s", tag, json.dumps(report))
+
+        expect = step.get("expect") or {}
+        if "dh_kj" in expect:
+            want, found = expect["dh_kj"], None if output is None else output.value
+            if want is None:
+                if found is not None:
+                    problems.append(f"dh_kj is {found}, wanted no value")
+            elif found is None or not (float(want[0]) <= found <= float(want[1])):
+                problems.append(f"dh_kj is {found}, wanted within {want}")
+        for prefix, want in (expect.get("bonds") or {}).items():
+            row = next((r for r in bonds if r["label"].startswith(prefix)), None)
+            if row is None:
+                problems.append(f"no bond whose label starts {prefix!r}")
+            elif want is None:
+                if row["dh_kj"] is not None:
+                    problems.append(f"bond {prefix!r} is {row['dh_kj']}, wanted no value")
+            elif row["dh_kj"] is None or not (float(want[0]) <= row["dh_kj"] <= float(want[1])):
+                problems.append(f"bond {prefix!r} is {row['dh_kj']}, wanted within {want}")
+        for needle in expect.get("reason_contains") or []:
+            if not any(needle in (row.get("reason") or "") for row in bonds):
+                problems.append(f"no bond's reason holds {needle!r}")
+        if "run_status" in expect and (newest is None or newest.status.value != expect["run_status"]):
+            problems.append(f"newest run status {None if newest is None else newest.status.value!r}, wanted {expect['run_status']!r}")
+        if "run_calc_type" in expect and (newest is None or newest.calc_type != expect["run_calc_type"]):
+            problems.append(f"newest run calc type {None if newest is None else newest.calc_type!r}, wanted {expect['run_calc_type']!r}")
+        for needle in expect.get("results_contains") or []:
+            if needle not in panel._results_label.text():
+                problems.append(f"the panel's results line lacks {needle!r}")
+        if "stored_outputs" in expect and len(stored) != int(expect["stored_outputs"]):
+            problems.append(f"{len(stored)} bond-dissociation outputs stored, wanted {expect['stored_outputs']}")
+        if expect.get("fingerprint_is_submitted"):
+            if submitted is None:
+                problems.append("no bond_dissociation_run step preceded this one")
+            elif submitted[2] not in fingerprints:
+                problems.append(f"stored fingerprints {[f[:12] for f in fingerprints]} lack the submitted {submitted[2][:12]}")
+        if self._record_assertion("bond_dissociation_report", tag, not problems, "; ".join(problems) or "as expected"):
+            logger.warning("OPENCHEM_DRIVE: EXPECT bond dissociation ok[%s]", tag)
+        else:
+            logger.error("OPENCHEM_DRIVE: EXPECT bond dissociation FAILED[%s] -- %s", tag, "; ".join(problems)[:800])
 
     def _do_tautomer_nmr_run(self, step: dict[str, Any]) -> None:
         """Press the Quantum Chemistry panel's "Tautomer NMR..." button, for real.
@@ -2079,7 +2359,7 @@ class _Driver(QObject):
         # could not have noticed: a harness disagreeing with the app about what a reopened project holds.
         self._window._set_project(
             command.loaded_project, command.loaded_results, command.loaded_qc_runs, command.loaded_recipe_runs,
-            command.loaded_derived_scores,
+            command.loaded_derived_scores, command.loaded_synthesis_plans,
         )
         logger.warning(
             "OPENCHEM_DRIVE: opened %s -- %d molecule(s)",
@@ -3376,7 +3656,7 @@ class _Driver(QObject):
 
         wait = self._qc_wait
         service = wait["service"]
-        busy = bool(service._active_jobs) or bool(getattr(service, "_boltzmann_runs", {}))
+        busy = bool(service._active_jobs) or bool(getattr(service, "_boltzmann_runs", {})) or bool(getattr(service, "_proton_runs", {}))
         now = time.monotonic()
         if busy:
             wait["quiet_since"] = None
@@ -4188,6 +4468,167 @@ class _Driver(QObject):
             "OPENCHEM_DRIVE: jobs_cancel row %d (enabled=%s)", row, button.isEnabled()
         )
         button.click()
+
+    # -- the synthesis panel (`plugins/synthesis_planner/`) -----------------------------------------
+
+    def _synthesis_panel(self):
+        """The REAL panel the plugin built, or None (logged) when it is not in the window."""
+        from PySide6.QtWidgets import QWidget
+
+        dock = self._window._plugin_panels.get("Synthesis")
+        panel = None
+        if dock is not None:
+            panel = dock.widget() if type(dock.widget()).__name__ == "SynthesisPanel" else next((w for w in dock.findChildren(QWidget) if type(w).__name__ == "SynthesisPanel"), None)
+        if panel is None:
+            logger.error("OPENCHEM_DRIVE: no Synthesis panel (is the synthesis_planner plugin loaded?)")
+        return panel
+
+    def _do_synthesis_setup(self, step: dict[str, Any]) -> None:
+        """Point the planner's settings at an installation for this run, or put them back.
+
+        `{"do": "synthesis_setup", "python": "...", "config": "...", "expansion": "uspto", "stock": "zinc", "filter": "none"}`
+        `{"do": "synthesis_setup", "python": "", "config": ""}`  -- "not set up", whatever the machine has
+        `{"do": "synthesis_setup", "restore": true}`
+
+        **THIS WRITES THE REAL SETTINGS REGISTRY**, the one the External Tools tab writes, because the panel reads them through the real provider. It
+        shares `tool_path`'s bookkeeping: the first value of each key is remembered, `restore` puts every remembered key back (an unset one is
+        removed), and so does `quit`, whatever else the script did.
+        """
+        if step.get("restore"):
+            self._restore_tool_paths()
+            self._tool_path_originals = {}
+            return
+        names = {"python": "aizynthfinder/python_path", "config": "aizynthfinder/config_path", "expansion": "aizynthfinder/expansion", "stock": "aizynthfinder/stock", "filter": "aizynthfinder/filter"}
+        for field in ("python", "config"):
+            if step.get(field) and not Path(str(step[field])).is_file():  # an empty value clears the key for this run, which is how a script pins "not set up"
+                logger.error("OPENCHEM_DRIVE: synthesis_setup -- no file at %r", step[field])
+                return
+        settings = self._window._settings
+        if not hasattr(self, "_tool_path_originals"):
+            self._tool_path_originals: dict[str, Any] = {}
+        for field, key in names.items():
+            if field in step:
+                self._tool_path_originals.setdefault(key, settings.get(key, None))
+                settings.set(key, str(step[field]))
+        logger.warning("OPENCHEM_DRIVE: synthesis_setup -- %s set for this run (the originals are put back at quit)", sorted(field for field in names if field in step))
+
+    def _do_synthesis_panel(self, step: dict[str, Any]) -> None:
+        """Show the synthesis panel, press its REAL buttons, and say what it shows.
+
+        `{"do": "synthesis_panel", "tag": "after", "press": "plan", "route": 1, "step": 0, "expect": {...}}`
+
+        `press` is `plan` or `cancel`: the button's own `click()`, so the path a person's press takes (the configuration read off the GUI
+        thread, then `request_plan` through the one service path, where the regulatory gate runs first) is the path driven. `route` and
+        `step` select a row of the real lists, and `scroll` ("end", or a pixel offset) scrolls the panel inside its dock, and `details_scroll` does the same for the text box of what the planner said. `expect` keys: `status_contains`, `target_contains`, `routes`, `routes_at_least`, `steps`,
+        `picture` (a picture is on screen), `picture_message_contains`, `warning` (the earlier-structure line is showing),
+        `plan_enabled`, `cancel_enabled`, `limitations_contain`, `details_contain`, `expansion`, `stock`, `filter` (the list's current text).
+        """
+        window = self._window
+        window._on_panel_chosen("Synthesis")
+        panel = self._synthesis_panel()
+        if panel is None:
+            return
+        tag = str(step.get("tag", ""))
+        press = step.get("press")
+        if press == "plan":
+            panel._plan_button.click()
+        elif press == "cancel":
+            panel._cancel_button.click()
+        elif press:
+            logger.error("OPENCHEM_DRIVE: synthesis_panel -- unknown press %r", press)
+        if "route" in step:
+            panel._routes.setCurrentRow(int(step["route"]))
+        if "step" in step:
+            panel._steps.setCurrentRow(int(step["step"]))
+        if step.get("scroll"):
+            # The panel scrolls inside its dock; a shot of the picture and the limitations needs it at the end.
+            from PySide6.QtWidgets import QScrollArea
+
+            bar = panel.findChild(QScrollArea).verticalScrollBar()
+            bar.setValue(bar.maximum() if step["scroll"] == "end" else int(step["scroll"]))
+        if step.get("details_scroll"):
+            # The details box scrolls inside the panel, which scrolls inside its dock: a shot of its last lines (the alerts) needs it at the end too.
+            bar = panel._details.verticalScrollBar()
+            bar.setValue(bar.maximum() if step["details_scroll"] == "end" else int(step["details_scroll"]))
+        report = {
+            "target": panel._target_label.text().replace("\n", " | "),
+            "status": panel._status.text(),
+            "warning": "" if panel._warning.isHidden() else panel._warning.text(),
+            "routes": panel._routes.count(),
+            "steps": panel._steps.count(),
+            "picture": not panel._picture.isHidden(),
+            "picture_message": "" if panel._picture_message.isHidden() else panel._picture_message.text(),
+            "plan_enabled": panel._plan_button.isEnabled(),
+            "cancel_enabled": panel._cancel_button.isEnabled(),
+            "expansion": panel._expansion.currentText(),
+            "stock": panel._stock.currentText(),
+            "filter": panel._filter.currentText(),
+            "version": panel._version_label.text(),
+        }
+        logger.warning("OPENCHEM_DRIVE: synthesis_panel %s | %s", tag, report)
+        expect = step.get("expect") or {}
+        problems: list[str] = []
+        for key in ("routes", "steps", "picture", "plan_enabled", "cancel_enabled", "expansion", "stock", "filter"):
+            if key in expect and report[key] != expect[key]:
+                problems.append(f"{key} is {report[key]!r}, wanted {expect[key]!r}")
+        if "routes_at_least" in expect and report["routes"] < int(expect["routes_at_least"]):
+            problems.append(f"{report['routes']} route(s), wanted at least {expect['routes_at_least']}")
+        if "warning" in expect and bool(report["warning"]) != bool(expect["warning"]):
+            problems.append(f"warning showing is {bool(report['warning'])}, wanted {bool(expect['warning'])}")
+        shown_text = {
+            "status_contains": report["status"], "target_contains": report["target"], "picture_message_contains": report["picture_message"],
+            "limitations_contain": panel._limitations.text(), "details_contain": panel._details.toPlainText(),
+        }
+        for key, text in shown_text.items():
+            for wanted in ([expect[key]] if isinstance(expect.get(key), str) else expect.get(key, [])):
+                if wanted not in text:
+                    problems.append(f"{key}: {wanted!r} is not in {text[:200]!r}")
+        if problems:
+            logger.error("OPENCHEM_DRIVE: EXPECT synthesis FAILED[%s] -- %s", tag, "; ".join(problems)[:800])
+        else:
+            logger.warning("OPENCHEM_DRIVE: EXPECT synthesis ok[%s]", tag)
+
+    def _do_synthesis_fixture_plan(self, step: dict[str, Any]) -> None:
+        """Give the selected molecule a plan a real planner once made, so a script can save, reopen and read a plan without the planner.
+
+        `{"do": "synthesis_fixture_plan", "fixture": "aspirin_it100", "screen": true}`
+
+        The plan is the real parser's reading (`parse_document`) of a saved planner output in `benchmarks/synthesis/fixtures/`, screened by the real
+        annotator when `screen` is set, and stored the way a finished search stores one (`_store_and_announce`: the service's own write and the
+        `SynthesisRouteReady` the window marks the project unsaved on). The fixture's target must be the selected molecule's structure; a script that
+        names another one has made a plan for a different molecule, which is what `result_for` then calls an earlier plan.
+        """
+        from openchem.chem import aizynth_planner as planner
+        from openchem.chem.synthesis_gate import annotate_route_set
+        from openchem.domain.synthesis_route import SearchLimits, TargetIdentity
+
+        window = self._window
+        molecule = window._session.project.find_molecule(window._property_panel._selected_molecule_uuid)
+        service = window._services.synthesis_planning_service
+        if molecule is None or service is None:
+            logger.error("OPENCHEM_DRIVE: synthesis_fixture_plan -- no molecule selected, or no planning service")
+            return
+        path = Path("benchmarks") / "synthesis" / "fixtures" / f"{step.get('fixture', 'aspirin_it100')}.json"
+        document = json.loads(path.read_text(encoding="utf-8"))
+        document["schema"] = planner.RUN_SCHEMA
+        document["limits"].setdefault("all_routes", False)
+        document.pop("route_count", None)
+        limits = document["limits"]
+        selection = document["identity"]["selection"]
+        request = planner.PlanRequest(
+            target_smiles=document["target"],
+            config={"expansion": {"uspto": ["m.onnx", "t.csv.gz"]}, "stock": {"zinc": "s.hdf5"}},
+            stock=selection["stock"],
+            expansion="uspto",
+            filter=None if selection["filter"] == "none" else selection["filter"],
+            limits=SearchLimits(iteration_limit=limits["iteration_limit"], time_limit_seconds=limits["time_limit"], max_transforms=limits["max_transforms"]),
+        )
+        target = TargetIdentity(molecule_uuid=molecule.uuid, canonical_smiles=molecule.canonical_smiles, fingerprint="drive-fixture")
+        plan = planner.parse_document(document, request, target)
+        if step.get("screen"):
+            plan = annotate_route_set(plan)
+        service._store_and_announce(plan)
+        logger.warning("OPENCHEM_DRIVE: synthesis_fixture_plan -- %s stored for %s (%d route(s), status %s)", path.stem, molecule.display_name, len(plan.routes), plan.status.value)
 
     def _do_conformers(self, step: dict[str, Any]) -> None:
         """Generate conformers through the real service.
@@ -7284,6 +7725,59 @@ class _Driver(QObject):
         self._assertions.append({"step": step, "tag": tag, "ok": ok, "detail": detail})
         return ok
 
+    def _do_help_report(self, step: dict[str, Any]) -> None:
+        """`{"do": "help_report", "expect": {...}}` -- see `app/drive_release.py`.
+
+        Read from the RUNNING modules. A release that fell back to loose files
+        or lost its bundle fails here and nowhere else.
+        """
+        from openchem.app import drive_release
+
+        expect = dict(step.get("expect") or {})
+        query = str((expect.get("search") or {}).get("query", ""))
+        state = drive_release.help_state(query)
+        failures = drive_release.evaluate_help(expect, state)
+        tag = str(step.get("tag", ""))
+        self._record_assertion("help_report", tag, not failures, "; ".join(failures) or f"help ok: {state}")
+        if failures:
+            logger.error("OPENCHEM_DRIVE: help_report FAILED[%s]: %s", tag, "; ".join(failures))
+        else:
+            logger.warning("OPENCHEM_DRIVE: help_report ok[%s] %s", tag, state)
+
+    def _do_install_report(self, step: dict[str, Any]) -> None:
+        """`{"do": "install_report", "expect": {"status": "verified"}, "wait_ms": 15000}`.
+
+        The check runs on a worker thread after the window shows, so a script
+        that asked at once would read `checking`. This HOLDS the chain and
+        polls until it answers or `wait_ms` runs out; a check that never
+        answers is a failed assertion, never a silent move on.
+        """
+        import time
+
+        self._install_wait = {"step": step, "deadline": time.monotonic() + int(step.get("wait_ms", 15000)) / 1000.0}
+        self._hold_chain = True
+        self._poll_install_report()
+
+    def _poll_install_report(self) -> None:
+        import time
+
+        from openchem.app import drive_release
+
+        wait = self._install_wait
+        step = wait["step"]
+        state = drive_release.install_state()
+        if drive_release.install_pending(state) and time.monotonic() < wait["deadline"]:
+            QTimer.singleShot(250, self._window, self._poll_install_report)
+            return
+        failures = drive_release.evaluate_install(dict(step.get("expect") or {}), state)
+        tag = str(step.get("tag", ""))
+        self._record_assertion("install_report", tag, not failures, "; ".join(failures) or f"install ok: {state}")
+        if failures:
+            logger.error("OPENCHEM_DRIVE: install_report FAILED[%s]: %s", tag, "; ".join(failures))
+        else:
+            logger.warning("OPENCHEM_DRIVE: install_report ok[%s] %s", tag, state)
+        QTimer.singleShot(int(step.get("after_ms", _DEFAULT_AFTER_MS)), self._window, self._run_next)
+
     def _do_log_report(self, step: dict[str, Any]) -> None:
         """`{"do": "log_report", "tag": "after-draw"}` -- what the APPLICATION
         has logged so far, de-duplicated by where it happened.
@@ -9045,11 +9539,22 @@ class _Driver(QObject):
 
     def _do_ai_card(self, step: dict[str, Any]) -> None:
         """`{"do": "ai_card", "action": "approve" | "cancel" | "open" | "dismiss", "card": "score"}` -- press a REAL button on the
-        first preview card the assistant is showing; `"card": "score"` means a score the assistant PROPOSED, whose Approve is the only way it is saved."""
+        first preview card the assistant is showing; `"card": "score"` means a score the assistant PROPOSED, whose Approve is the only way it is saved, and
+        `"card": "synthesis"` a search for synthesis routes it asked for, whose Approve is the only way the planner is asked (the regulatory gate speaks first)."""
         panel = self._ai_panel()
         if panel is None:
             return
         action = str(step["action"])
+        if step.get("card") == "synthesis":
+            cards = list(panel._synthesis_cards.values())
+            button = None
+            if cards and action in ("approve", "cancel"):
+                button = cards[0].approve_button if action == "approve" else cards[0].cancel_button
+            if button is None:
+                logger.error("OPENCHEM_DRIVE: ai_card synthesis %s -- no such card is showing", action)
+                return
+            button.click()
+            return
         if step.get("card") == "score":
             cards = list(panel._score_cards.values())
             button = None
@@ -9084,8 +9589,9 @@ class _Driver(QObject):
         must NOT be in anything a tool returned: a person's free text that was never to leave), `tools_offered` (names the provider was
         given on its first request), `transcript_contains`, `notes` (how many previews' outcomes wait for
         the next message), `send_enabled`, `panel_visible` (a dock's objectName that must be showing), `score_proposals` (proposed-score cards waiting),
-        `scores_stored` (scores in the project), `scores_owner` (the owners stored, in order) and `sent_contains` (substrings of everything sent to the
-        provider, notes included).
+        `scores_stored` (scores in the project), `scores_owner` (the owners stored, in order), `sent_contains` (substrings of everything sent to the
+        provider, notes included), `synthesis_requests` (synthesis-search cards waiting) and `notes_contain` / `notes_exclude` (substrings of the
+        notes held for the model's next message).
         """
         panel = self._ai_panel()
         expect = dict(step.get("expect") or {})
@@ -9139,6 +9645,15 @@ class _Driver(QObject):
             for needle in expect.get("sent_contains", []):
                 if needle not in sent:
                     problems.append(f"nothing sent to the provider contained {needle!r}")
+            if "synthesis_requests" in expect and len(panel.pending_synthesis_keys()) != expect["synthesis_requests"]:
+                problems.append(f"{len(panel.pending_synthesis_keys())} synthesis requests waiting, wanted {expect['synthesis_requests']}")
+            held = "\n".join(panel._notes)
+            for needle in expect.get("notes_contain", []):
+                if needle not in held:
+                    problems.append(f"no held note contains {needle!r}")
+            for needle in expect.get("notes_exclude", []):
+                if needle in held:
+                    problems.append(f"a held note contains {needle!r}, which must never be sent")
             if "panel_visible" in expect:
                 dock = self._dock(str(expect["panel_visible"]))
                 if dock is None or not dock.isVisible():

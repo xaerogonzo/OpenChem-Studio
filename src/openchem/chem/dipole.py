@@ -1,7 +1,7 @@
 """Molecular dipole moment from partial charges and 3D geometry.
 
 mu = SUM q_i * r_i, converted to Debye. Reported as a vector plus its
-magnitude, matching what MarvinSketch's Dipole Moment plugin shows.
+magnitude, matching what the reference editor's Dipole Moment plugin shows.
 
 ORIGIN DEPENDENCE, and why it does not matter here: a point-charge dipole
 only has a well-defined value independent of origin when the total charge
@@ -12,7 +12,7 @@ than being silently swept away by picking an origin and not saying so.
 THE CHARGE MODEL IS THE ANSWER'S LIMIT. These are Gasteiger (PEOE)
 charges, not ab initio ones, so the number is only as good as that model.
 Magnitudes typically land in the right range but are not expected to match
-experiment closely -- 1,1-dichloroethene comes out near Marvin's own
+experiment closely -- 1,1-dichloroethene comes out near the reference editor's own
 Gasteiger-based figure rather than near the experimental value, because
 both tools are computing the same approximation. The direction and the
 symmetry behaviour are much more reliable than the magnitude, which is why

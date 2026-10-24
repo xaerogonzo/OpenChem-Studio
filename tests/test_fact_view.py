@@ -199,7 +199,7 @@ def test_a_fact_about_nothing_in_particular_clears_the_highlight(qapp):
 
 
 def test_open_in_window_shows_the_same_report(qapp):
-    """Marvin opens each result in its own window and it is genuinely
+    """The reference editor opens each result in its own window and it is genuinely
     useful -- two side by side, or one kept open while you work. The copy
     is a second FactView on the SAME report, so it cannot drift."""
     report = _report(_fact("Element"), _fact("Charge", FactCategory.ELECTRONIC))

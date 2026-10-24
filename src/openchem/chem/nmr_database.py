@@ -11,7 +11,7 @@ as good as the coverage and no worse.
 Second, and the reason this was worth building at all: the SPREAD of the
 matching values is a real, earned measure of confidence. Every previous
 attempt in this project to report a prediction quality was refused
-because the number would have been invented -- Marvin can rate its own
+because the number would have been invented -- the reference editor can rate its own
 because it has a reference database behind it, and now so can we. A shift
 averaged over forty measurements that agree to 0.3 ppm is a different
 claim from one averaged over two that disagree by nine, and this is the

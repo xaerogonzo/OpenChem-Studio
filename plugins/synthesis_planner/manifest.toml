@@ -1,0 +1,9 @@
+plugin_id = "synthesis_planner"
+version = "0.1.0"
+api_version = 1
+display_name = "Synthesis Planner"
+author = "OpenChem Studio"
+description = "Proposes synthetic routes to the selected molecule with AiZynthFinder, which you install yourself (Settings > External tools). The target is screened against the chemical-weapons schedule first; the routes are proposals, with no conditions or yields."
+homepage = ""
+license = "GPL-3.0-or-later"
+dependencies = []

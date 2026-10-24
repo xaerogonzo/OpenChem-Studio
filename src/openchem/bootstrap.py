@@ -5,10 +5,12 @@ import functools
 
 from openchem.app.settings import Settings
 from openchem.chem.admet_providers import ADMET_PYTHON_SETTING
+from openchem.chem.bond_dissociation import METHOD_LABEL as BOND_DISSOCIATION_METHOD
 from openchem.chem.descriptor_providers import CALCULATOR_DEFINITIONS
 from openchem.chem.engine import ChemistryEngine
 from openchem.chem.orca_engine import CALC_TYPE_LABELS, METHOD_BASIS_PRESETS
 from openchem.chem.pka_providers import PKASOLVER_PYTHON_SETTING
+from openchem.chem.proton_affinity import METHOD_LABEL as PROTON_AFFINITY_METHOD
 from openchem.domain.calculator import (
     CalculatorDefinition,
     CalculatorParameter,
@@ -23,6 +25,8 @@ from openchem.domain.calculator_support import (
 )
 from openchem.events.base import EventBus
 from openchem.services.alignment_service import AlignmentService
+from openchem.services.synthesis_planner_setup import SetupProvider
+from openchem.services.synthesis_planning_service import SynthesisPlanningService
 from openchem.services.atom_fact_service import AtomFactService
 from openchem.services.batch_service import BatchService
 from openchem.services.calculator_registry import CalculatorRegistry
@@ -259,6 +263,110 @@ _EXTERNAL_CALCULATOR_DEFINITIONS.append(
     )
 )
 
+# Like the tautomer distribution, NOT in CALC_TYPE_LABELS: proton affinity is not one ORCA calc type, it dispatches an `Opt Freq` per structure
+# of the base and of every conjugate acid (QuantumChemistryService.request_proton_affinity), so it is a standalone entry. It has no method or
+# free method or charge parameters on purpose: the protocol is exactly the one that was benchmarked, and a different functional or basis is a different
+# protocol that needs its own benchmark (benchmarks/proton_affinity/PREREGISTRATION.md). Its one parameter shows the fixed protocol.
+_EXTERNAL_CALCULATOR_DEFINITIONS.append(
+    CalculatorDefinition(
+        calculator_id="orca.proton_affinity",
+        display_name="Proton Affinity and Gas Basicity",
+        category="quantum_chemistry",
+        description=(
+            "The gas-phase proton affinity (an enthalpy) and gas-phase basicity (a Gibbs energy) of a neutral base at 298.15 K and 1 atm, "
+            "from ORCA M062X/def2-TZVPD optimizations and frequencies of the base and of its conjugate acid at every protonation site "
+            "(every N, O, S or P lone pair and every pi-system carbon), the lowest structure of each, with ORCA's symmetry number "
+            "replaced by the true one. Reports kJ/mol, the site that won and every site's own value. Benchmarked on 28 bases against the NIST "
+            "evaluation of Hunter and Lias: on the 21 above propene's proton affinity the mean absolute error is 1.55 kcal/mol (PA) and 1.53 (GB), "
+            "with the proton bound about 1.2 kcal/mol too weakly; measured for neutral bases of at most ten heavy atoms of H, C, N, O, P and S, and "
+            "refused outside that. A structure that keeps an imaginary vibration after one re-run is dropped, so a base can have no value "
+            "(the benchmark lost water this way). Many ORCA jobs (minutes to hours): needs an ORCA executable; run from the Quantum Chemistry "
+            "panel's 'Proton affinity...' button -- no 3D conformer needed, each structure is embedded fresh from the 2D structure."
+        ),
+        execution=ServiceExecution(
+            service_name="quantum_chemistry_service",
+            panel_name="Quantum Chemistry panel",
+            panel_id="Quantum_Chemistry",
+        ),
+        prediction_basis="ab_initio",
+        # One option, a fixed choice, so the dialog says WHICH protocol this is rather than offering the free method box the other ORCA entries have;
+        # a calculator with no option at all is refused by tests/test_calculator_options.py.
+        parameters=[
+            CalculatorParameter(
+                name="method_basis",
+                label="Method/basis (fixed: the benchmarked protocol)",
+                kind="choice",
+                default=PROTON_AFFINITY_METHOD,
+                choices=[PROTON_AFFINITY_METHOD],
+            ),
+        ],
+        # EXPERIMENTAL, honestly, although its benchmark PASSED: the stage describes THIS implementation, and this one has had no live run through the
+        # application on real ORCA yet (the benchmark ran its own runner, and the service is tested against the benchmark's real outputs with a stand-in
+        # process). A promotion to LIMITED is one change with that driven run recorded (docs/CALCULATOR_MATURITY.md).
+        support=CalculatorSupport(
+            stage=SupportStage.EXPERIMENTAL,
+            default_visibility=Visibility.HIDDEN,
+            support_reason=(
+                "The protocol passed its preregistered benchmark (28 bases against NIST, mean absolute error 1.55 kcal/mol for proton affinity and 1.53 for gas basicity), "
+                "but this implementation has not yet been driven through the application on real ORCA, and it needs many ORCA jobs. Every result states the measured error and its limits."
+            ),
+            scope_note=(
+                "Neutral closed-shell bases of at most ten heavy atoms of H, C, N, O, P and S; the lowest structure only; needs a configured ORCA executable"
+            ),
+        ),
+    )
+)
+
+
+# Standalone like the proton affinity, for the same reason: bond dissociation is not one ORCA calc type, it dispatches the hydrogen atom, an `Opt Freq` of the parent's conformers and one
+# of a doublet radical per chosen bond and conformer (QuantumChemistryService.request_bond_dissociation). No method or charge parameters on purpose: the protocol is exactly the one that was
+# benchmarked (benchmarks/bde/PREREGISTRATION.md, then the held-out arm of benchmarks/restart_v2/), and its one parameter shows it.
+_EXTERNAL_CALCULATOR_DEFINITIONS.append(
+    CalculatorDefinition(
+        calculator_id="orca.bond_dissociation_enthalpy",
+        display_name="X-H Bond Dissociation Enthalpy",
+        category="quantum_chemistry",
+        description=(
+            "The homolytic bond dissociation enthalpy at 298.15 K of the C-H, N-H, O-H or S-H bonds you choose in a neutral closed-shell molecule, "
+            "DH298 = H(radical) + H(H atom) - H(molecule), from ORCA M062X/def2-TZVPD optimizations and frequencies of the molecule, of the doublet radical "
+            "each bond leaves and a single point of the hydrogen atom, the lowest structure of each. Reports kJ/mol: the weakest bond computed in the headline and every bond's own value "
+            "or the reason it has none. Benchmarked on 49 bonds (22 against experiment, 27 held out against the Active Thermochemical Tables): mean absolute error 1.48 kcal/mol, "
+            "and the calculation runs LOW by 1.38 kcal/mol on average, in every class (an O-H next to another oxygen or a nitrogen: 3.3, up to 4.6). Measured for molecules of at most "
+            "nine heavy atoms of H, C, N, O and S, refused outside that. A radical that keeps an imaginary vibration after one re-run gives that bond no value (thiyl radicals do). "
+            "Many ORCA jobs (minutes to hours): needs an ORCA executable; run from the Quantum Chemistry panel's 'Bond dissociation...' button -- no 3D conformer needed."
+        ),
+        execution=ServiceExecution(
+            service_name="quantum_chemistry_service",
+            panel_name="Quantum Chemistry panel",
+            panel_id="Quantum_Chemistry",
+        ),
+        prediction_basis="ab_initio",
+        parameters=[
+            CalculatorParameter(
+                name="method_basis",
+                label="Method/basis (fixed: the benchmarked protocol)",
+                kind="choice",
+                default=BOND_DISSOCIATION_METHOD,
+                choices=[BOND_DISSOCIATION_METHOD],
+            ),
+        ],
+        # EXPERIMENTAL like the proton affinity, for the same reason: the stage describes THIS implementation, and until it has been driven through the application on real ORCA
+        # (its recorded run is the change that promotes it, docs/CALCULATOR_MATURITY.md) the benchmarks' verdicts are about the benchmarks' own runner.
+        support=CalculatorSupport(
+            stage=SupportStage.EXPERIMENTAL,
+            default_visibility=Visibility.HIDDEN,
+            support_reason=(
+                "The protocol was measured on 49 bonds (22 against experiment, PARTIAL by 0.03 kcal/mol on the bias; 27 held out against the Active Thermochemical Tables, PASS): mean absolute error 1.48 kcal/mol, "
+                "values run about 1.4 kcal/mol low, and an O-H next to O or N runs 3.3 low. This implementation has not yet been driven through the application on real ORCA, and it needs many ORCA jobs. "
+                "Every result states the measured error and its limits."
+            ),
+            scope_note=(
+                "Neutral closed-shell molecules of at most nine heavy atoms of H, C, N, O and S; C-H, N-H, O-H and S-H bonds; the lowest structure only; needs a configured ORCA executable"
+            ),
+        ),
+    )
+)
+
 
 # Conceptual-DFT descriptors are produced by ANY ORCA job (see
 # `OrcaQuantumEngineProvider._parse_conceptual_dft`), so this entry runs no
@@ -439,6 +547,8 @@ def build_service_container() -> ServiceContainer:
     # result records which revision of the structure it describes. A second
     # checker would count a different molecule's edits.
     structure_check_service = StructureCheckService(event_bus)
+    # Named because the synthesis panel asks THIS instance what the planner's configuration offers; the planning service reads the same one.
+    synthesis_setup = SetupProvider(settings)
     # Named because the recipe service below reads THIS instance's project and stored runs.
     result_store_service = ResultStoreService(event_bus, engine, settings)
     # Named because the store asks THIS instance, as a project is opened, which of the results a
@@ -460,6 +570,15 @@ def build_service_container() -> ServiceContainer:
         project_service=ProjectService(event_bus),
         conformer_service=ConformerService(event_bus, engine, job_manager=job_manager),
         alignment_service=AlignmentService(event_bus, engine, job_manager=job_manager),
+        # The planner's Python and configuration come from the External Tools tab's settings: until both are set and the environment answers,
+        # the provider returns None and every request is `unavailable`, after the regulatory gate has had its say.
+        synthesis_planning_service=SynthesisPlanningService(
+            event_bus,
+            setup_provider=synthesis_setup,
+            job_manager=job_manager,
+            structure_version_of=structure_check_service.current_version,
+        ),
+        synthesis_setup=synthesis_setup,
         measurement_service=MeasurementService(engine),
         docking_service=docking_service,
         quantum_chemistry_service=QuantumChemistryService(event_bus, settings, job_manager=job_manager),

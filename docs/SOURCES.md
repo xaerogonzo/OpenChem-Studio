@@ -1,5 +1,5 @@
 <!-- GENERATED FROM docs/sources.toml -- do not edit -->
-<!-- SOURCE SHA256: 16fb00bebae49771a103529068fab6dd818906e3f2f7e0673d5d4a4a74be0e8d -->
+<!-- SOURCE SHA256: 0f58e8c974c8b9121cdf8a597fa5a27af52663f18d372e5bafd7cae97494edb7 -->
 
 # Sources
 
@@ -99,6 +99,7 @@ next run of `tools/build_lewis_parameters.py`.
 | [`andersen1999`](#andersen1999) | literature | shipped | citation + claim |
 | [`aqsoldb`](#aqsoldb) | dataset | shipped | citation |
 | [`armstrong2026synthex`](#armstrong2026synthex) | literature | reference only | citation + claim |
+| [`atct1228`](#atct1228) | dataset | reference only | citation |
 | [`autodock_vina`](#autodock_vina) | software | shipped | citation + claim |
 | [`avdeef2007`](#avdeef2007) | literature | shipped | citation + claim |
 | [`avdeef2020`](#avdeef2020) | literature | shipped | citation + claim |
@@ -115,7 +116,7 @@ next run of `tools/build_lewis_parameters.py`.
 | [`bickerton2012`](#bickerton2012) | literature | shipped | citation |
 | [`bilbrey2013`](#bilbrey2013) | literature | shipped | citation |
 | [`bird1985`](#bird1985) | literature | shipped | citation |
-| [`blanksby2003`](#blanksby2003) | literature | reference only | citation + claim |
+| [`blanksby2003`](#blanksby2003) | literature | shipped | citation + claim |
 | [`bolovinos1984`](#bolovinos1984) | literature | shipped | citation + claim |
 | [`bondi1964`](#bondi1964) | literature | shipped | citation + claim |
 | [`bradley2014`](#bradley2014) | dataset | shipped | citation + claim |
@@ -233,6 +234,7 @@ next run of `tools/build_lewis_parameters.py`.
 | [`llinas2020`](#llinas2020) | dataset | shipped | citation + claim |
 | [`lorentzon1995`](#lorentzon1995) | literature | reference only | citation + claim |
 | [`lovering2009`](#lovering2009) | literature | shipped | citation |
+| [`luo2007`](#luo2007) | reference_table | reference only | citation |
 | [`mann1947`](#mann1947) | literature | shipped | citation + claim |
 | [`mantina2009`](#mantina2009) | literature | shipped | citation + claim |
 | [`mardirossian2017`](#mardirossian2017) | literature | reference only | citation + claim |
@@ -251,7 +253,7 @@ next run of `tools/build_lewis_parameters.py`.
 | [`moreland1974`](#moreland1974) | literature | shipped | citation |
 | [`morgunov2025retrocast`](#morgunov2025retrocast) | literature | reference only | citation + claim |
 | [`mortier1986`](#mortier1986) | literature | reference only | citation |
-| [`moser2010`](#moser2010) | literature | reference only | citation + claim |
+| [`moser2010`](#moser2010) | literature | shipped | citation + claim |
 | [`moss1995`](#moss1995) | literature | reference only | citation |
 | [`murrayrust1983`](#murrayrust1983) | literature | shipped | citation + claim |
 | [`muser2012`](#muser2012) | literature | reference only | citation + claim |
@@ -301,6 +303,8 @@ next run of `tools/build_lewis_parameters.py`.
 | [`riplinger2013triples`](#riplinger2013triples) | literature | reference only | citation + claim |
 | [`rowland1996`](#rowland1996) | literature | shipped | citation + claim |
 | [`roy1999`](#roy1999) | literature | shipped | citation + claim |
+| [`ruscic2004`](#ruscic2004) | literature | reference only | citation |
+| [`ruscic2015`](#ruscic2015) | literature | reference only | citation |
 | [`ruttkies2016`](#ruttkies2016) | literature | reference only | citation |
 | [`sablon2007`](#sablon2007) | literature | shipped | citation + claim |
 | [`saigiridharan2024aizynthfinder4`](#saigiridharan2024aizynthfinder4) | literature | reference only | citation |
@@ -1722,7 +1726,7 @@ THE PARAMETERS ARE PUBLISHED, WHICH IS THE DEFERRAL THIS CLOSES.
 docs/VALIDATION.md recorded "The parameters are unpublished. A
 reconstruction missed benzene by +27% and CCl4 by -50%, so there was
 nothing to validate against." The first sentence was a claim about
-ChemAxon's documentation, not about the literature: Table I,
+The vendor's documentation, not about the literature: Table I,
 "Parameters for Atoms in Hybrid Configurations", prints all twenty rows.
 
 READ OFF A 400 DPI RENDER. The text layer gives `0.392 0.31 1 0.3 13
@@ -6745,12 +6749,10 @@ outputs); the paper itself was NOT read, so this entry makes no claim about a nu
 | | |
 | --- | --- |
 | Identifier | [10.1021/jp107450n](https://doi.org/10.1021/jp107450n) |
-| Status | reference only |
+| Status | shipped |
 | Verification | citation + claim |
 | Verified | 2026-10-19 |
-| Used by | `docs/PROTON_AFFINITY_DESIGN.md`, `benchmarks/proton_affinity/PREREGISTRATION.md` |
-
-**Why it is reference only.** THE PROTON'S THERMOCHEMISTRY AND A BENCHMARK AGAINST NIST: standard state 298.15 K and 1 atm, H(H+) = 5/2 RT = 1.48 kcal/mol, S(H+) = 26.02 cal/(mol K) from Sackur-Tetrode, G(H+) = -6.28 kcal/mol (their eqs 2 and 3), which the benchmark's `pa_core.proton_terms` reproduces independently (1.4812, 26.012, -6.274); their Table 1 errors for model chemistries against NIST for protonated amines and imidazoles (the PAs of the corresponding bases). Read from an open copy of the PDF, not held in the library folder.
+| Used by | `src/openchem/chem/proton_affinity.py`, `docs/PROTON_AFFINITY_DESIGN.md`, `benchmarks/proton_affinity/PREREGISTRATION.md` |
 
 ### riplinger2013dlpno
 
@@ -6846,13 +6848,11 @@ outputs); the paper itself was NOT read, so this entry makes no claim about a nu
 | | |
 | --- | --- |
 | Identifier | [10.1021/ar020230d](https://doi.org/10.1021/ar020230d) |
-| Status | reference only |
+| Status | shipped |
 | Verification | citation + claim |
 | Verified | 2026-10-19 |
 | Local copy | `blanksby2003.pdf` (not checked) |
-| Used by | `docs/BDE_DESIGN.md`, `benchmarks/bde/PREREGISTRATION.md` |
-
-**Why it is reference only.** THE REFERENCE VALUES OF THE BOND-DISSOCIATION BENCHMARK: Table 1 gives the experimental bond enthalpy DH298 (kcal/mol) of RH -> R + H with its stated uncertainty for 33 bonds the benchmark uses (read from the page image; the text layer agrees). Also states that DH298 and D0 differ by about 1.5 kcal/mol for R-H (the heat-content integral of the hydrogen atom, 1.48 kcal/mol at 298 K), which is why the benchmark computes an enthalpy and not an electronic energy.
+| Used by | `src/openchem/chem/bond_dissociation.py`, `docs/explainers/thermochemistry.md`, `docs/BDE_DESIGN.md`, `benchmarks/bde/PREREGISTRATION.md` |
 
 ### vo2022
 
@@ -6884,7 +6884,7 @@ outputs); the paper itself was NOT read, so this entry makes no claim about a nu
 | Verification | citation + claim |
 | Verified | 2026-10-19 |
 | Local copy | `stjohn2020_bde_db.pdf` (not checked) |
-| Used by | `docs/BDE_DESIGN.md`, `benchmarks/bde/PREREGISTRATION.md` |
+| Used by | `docs/explainers/thermochemistry.md`, `docs/BDE_DESIGN.md`, `benchmarks/bde/PREREGISTRATION.md` |
 
 **Why it is reference only.** THE CLOSEST PUBLISHED MATCH TO THE BDE BENCHMARK'S PROTOCOL: gas-phase enthalpies at 298 K and 1 atm with unscaled ZPE and thermal corrections after a conformer search; against 368 experimental iBond bond enthalpies M06-2X/def2-TZVP has an MAE of about 2.1 kcal/mol (Fig. 1a, text layer), equal to DLPNO-CCSD(T)/cc-pVTZ and better than B3LYP-D3 and wB97X-D; about 2.5 kcal/mol for large molecules outside the training set.
 
@@ -6901,7 +6901,7 @@ outputs); the paper itself was NOT read, so this entry makes no claim about a nu
 | Verification | citation + claim |
 | Verified | 2026-10-19 |
 | Local copy | `mardirossian2017_mgcdb84.pdf` (not checked) |
-| Used by | `docs/BDE_DESIGN.md`, `benchmarks/bde/PREREGISTRATION.md` |
+| Used by | `docs/explainers/thermochemistry.md`, `docs/BDE_DESIGN.md`, `benchmarks/bde/PREREGISTRATION.md` |
 
 **Why it is reference only.** PER-SET ERRORS OF 200 FUNCTIONALS (the SI file MADValues.csv, against CCSD(T)/CBS-type references): M06-2X MAD 1.83 kcal/mol on BDE99nonMR and 2.50 on HAT707nonMR, 6.32 and 5.08 on the multireference sets BDE99MR and HAT707MR; B3LYP 3.19 and 3.08 on the non-multireference sets.
 
@@ -7076,6 +7076,40 @@ outputs); the paper itself was NOT read, so this entry makes no claim about a nu
 | Used by | `docs/SYNTHESIS_HELPER_DESIGN.md` |
 
 **Why it is reference only.** A PREPRINT (not peer reviewed). Its own statement about AiZynthFinder as a baseline was checked in the text: on 1,098 natural products from the authors' NP set, with a depth limit of 25 and 30 minutes per target, AiZynthFinder solved 13.8% (151 of 1,098), and 80% of structurally undemanding targets. It also says that patent-derived benchmarks (USPTO-190, PaRoutes, Pistachio-Hard) are close to saturated. These are the authors' claims about their own comparison and were not reproduced; the rest was not read in full. Relevant to the limits of what a USPTO-trained planner can say about complex targets, not to the PaRoutes result.
+
+### ruscic2004
+
+<a id="ruscic2004"></a>
+
+> B. Ruscic, R. E. Pinzon, M. L. Morton, G. von Laszevski, S. J. Bittner, S. G. Nijsure, K. A. Amin, M. Minkoff & A. F. Wagner, 'Introduction to Active Thermochemical Tables: Several 'Key' Enthalpies of Formation Revisited', J. Phys. Chem. A 2004, 108, 9979-9997.
+
+| | |
+| --- | --- |
+| Identifier | [10.1021/jp047912y](https://doi.org/10.1021/jp047912y) |
+| Status | reference only |
+| Verification | citation |
+| Verified | 2026-10-22 |
+| Local copy | `ruscic2004.pdf` (not checked) |
+| Used by | `benchmarks/restart_v2/PREREGISTRATION.md` |
+
+**Why it is reference only.** THE METHOD BEHIND THE HELD-OUT REFERENCES: the thermochemical-network approach by which ATcT enthalpies of formation, and so the held-out bond enthalpies, are obtained, and the statement of its uncertainties. Cited for what the numbers are; the arm uses the tables, not this paper's values.
+
+### ruscic2015
+
+<a id="ruscic2015"></a>
+
+> B. Ruscic, 'Active Thermochemical Tables: Sequential Bond Dissociation Enthalpies of Methane, Ethane, and Methanol and the Related Thermochemistry', J. Phys. Chem. A 2015, 119, 7810-7837.
+
+| | |
+| --- | --- |
+| Identifier | [10.1021/acs.jpca.5b01346](https://doi.org/10.1021/acs.jpca.5b01346) |
+| Status | reference only |
+| Verification | citation |
+| Verified | 2026-10-22 |
+| Local copy | `ruscic2015.pdf` (not checked) |
+| Used by | `benchmarks/restart_v2/PREREGISTRATION.md`, `benchmarks/restart_v2/second_column.py` |
+
+**Why it is reference only.** THE ATcT BOND ENTHALPIES OF THE METHANE, ETHANE AND METHANOL SYSTEMS, in print: the second reference column the held-out arm's preregistration asks for where the first run's bonds overlap, and a check on how a bond enthalpy is formed from enthalpies of formation. Read by table for the six first-run bonds of the methane, ethane and methanol systems (`benchmarks/restart_v2/second_column.py`): they agree with the ATcT 1.228 values the held-out references come from to within 0.24 kcal/mol, the ethane C-H (version 1.122 lower by 0.24) the largest.
 
 ## Datasets
 
@@ -7635,6 +7669,23 @@ the one rule every calculator's `CalculatorScope` follows.
 
 **Why it is reference only.** THE PaRoutes ROUTE SETS, STOCKS, TEMPLATE LIBRARIES AND A KERAS MODEL: ref_routes_n1.json (64 MB), ref_routes_n5.json (82 MB), targets_n1.txt and targets_n5.txt, stock_n1.txt and stock_n5.txt, uspto_unique_templates.csv.gz (3.3 MB, confirmed by the download), uspto_keras_model.hdf5 (275 MB). Licence field CC-BY-4.0 as the record states; the licence of the underlying USPTO extraction is not restated on this record.
 
+### atct1228
+
+<a id="atct1228"></a>
+
+> Active Thermochemical Tables (ATcT), Thermochemical Network version 1.228: enthalpies of formation of 3,455 species at 0 K and 298.15 K, with uncertainties; Argonne National Laboratory (page generated 2026-10-22).
+
+| | |
+| --- | --- |
+| Identifier | <https://atct.anl.gov/Thermochemical%20Data/version%201.228/index.php> |
+| Status | reference only |
+| Verification | citation |
+| Verified | 2026-10-22 |
+| Local copy | `ATcT Thermochemical Values ver. 1.228.htm` (not checked) |
+| Used by | `src/openchem/chem/bond_dissociation.py`, `docs/explainers/thermochemistry.md`, `benchmarks/restart_v2/PREREGISTRATION.md`, `benchmarks/bde_heldout/extract_atct.py` |
+
+**Why it is reference only.** THE REFERENCE VALUES OF THE HELD-OUT BOND-DISSOCIATION ARM: `benchmarks/bde_heldout/extract_atct.py` parses the saved page (3,455 species rows, kJ/mol at 298.15 K) and combines a parent's, a radical's and the hydrogen atom's enthalpies of formation into DH298 and its uncertainty. The arithmetic was checked against the 22 bonds Blanksby and Ellison also give: ATcT minus theirs is -0.11 kcal/mol on average, within 0.2 for every reference held to 0.1 or better, beyond three combined uncertainties for one bond (propene's allylic C-H, 87.50 against 88.8). Nothing is shipped from it yet; it backs a benchmark's reference column.
+
 ## Legal texts
 
 ### cwc_annex_on_chemicals
@@ -8066,7 +8117,7 @@ for the one case it exists for -- it lived in `solvent_shift` while
 | Used by | `docs/VALIDATION.md` |
 
 **Why it is reference only.** KEPT AS THE RECORD OF A ROTTED REASON, NOT AS A LIVE DEFERRAL. This entry
-read "THE PARAMETERS ARE UNPUBLISHED", which was a claim about ChemAxon's
+read "THE PARAMETERS ARE UNPUBLISHED", which was a claim about the vendor's
 documentation rather than about the literature: [source:miller1990]'s Table I
 prints all twenty rows. Miller polarizability SHIPPED as the `polarizability`
 calculator.
@@ -8105,8 +8156,8 @@ a result against." Three of those four clauses fell to one paper:
 worked constants, and Davies' group numbers. Griffin HLB SHIPPED as the
 `griffin_hlb` calculator.
 
-THE FOURTH CLAUSE STANDS and is not chased -- ChemAxon's default is
-proprietary, so agreeing with Marvin is unreachable. That is why the
+THE FOURTH CLAUSE STANDS and is not chased -- the vendor's default is
+proprietary, so agreeing with the reference editor is unreachable. That is why the
 calculator ships under the specific name and never as a bare "HLB": the same
 paper supplies the reason the name is ambiguous, saying the Davies scale
 "differs substantially from the Griffin scale in the entire range of
@@ -8175,6 +8226,23 @@ a check that cannot run is worse than a stated limit.
 Read these with `pymupdf` (`uv pip install --system pymupdf`, then `fitz`);
 there is no PDF text extractor in the project venv and `pdftoppm` is not
 installed, so `Read` on a PDF fails.
+
+### luo2007
+
+<a id="luo2007"></a>
+
+> Y.-R. Luo, 'Comprehensive Handbook of Chemical Bond Energies', CRC Press (Taylor & Francis), Boca Raton, 1st ed., 2007.
+
+| | |
+| --- | --- |
+| Identifier | Luo, Comprehensive Handbook of Chemical Bond Energies, CRC Press 2007, Table 7.1.1 (N-H bond dissociation energies in non-anilines) |
+| Status | reference only |
+| Verification | citation |
+| Verified | 2026-10-22 |
+| Local copy | `Comprehensive Handbook of Chemical Bond Energies -- Yu-Ran Luo -- 1 edition, March 9, 2007 -- CRC PRESS,TAYLOR & FRANCIS GROUP,LLC.pdf` (not checked) |
+| Used by | `benchmarks/restart_v2/PREREGISTRATION.md`, `benchmarks/restart_v2/second_column.py`, `benchmarks/bde_heldout/extract_atct.py` |
+
+**Why it is reference only.** THE EXPERIMENTAL SPREAD BEHIND TWO EXCLUDED BONDS: Table 7.1.1 lists five experimental H-NCO values (109.6 to 111.5 kcal/mol) and five H-N3 values (88.7 to 93.7), which is part of why those bonds are excluded from the deciding set and what a v2 scope would have to reconcile. It is also the second reference column of the held-out arm, read after the result by page and by boldface (`benchmarks/restart_v2/second_column.py`): the handbook gives one usable gas-phase number for 14 of the 27 deciding bonds, scatters about the ATcT values by 1.5 kcal/mol (mean +0.15), and is therefore a check on direction and not on size.
 
 ## Bundled and depended-on software
 

@@ -22,6 +22,9 @@ THE RULES THIS TYPE ENFORCES, each one a thing the Stage 0 spike measured:
   "step 1, step 2" is never ambiguous.
 * **Only a successful search carries routes.** `refused`, `failed`, `cancelled`, `unavailable` and `unscreened` carry a
   reason and no route; `no_route` carries neither.
+* **An alert on a molecule is a screening of that molecule, and an absent screening is not "no alert".** `RouteSet.node_screenings`
+  holds one `NodeScreening` for every distinct molecule of every route once the wider regulatory rulesets have been asked, each
+  saying whether it was screened; an empty tuple means they have not been asked (a limitation says so), never that nothing matched.
 
 Nothing here knows whose planner it is: `PlannerIdentity` says. There is no seed field because the planner has none; the
 repeatability a user can expect is the one the benchmark measured (the solved flag, not the tree).
@@ -34,14 +37,13 @@ from collections.abc import Sequence
 from dataclasses import dataclass, field
 from enum import StrEnum
 
-#: What the reachability guard accepts for a module nothing in the application imports YET. The route type is built first and on its own (Stage 1 slice 1); the planning service (slice 4) is its first importer, and the guard then fails this declaration, which is the reminder to delete it.
-REACHED_BY = (
-    "tooling: imported only by tests/test_synthesis_route.py until the synthesis planning service (Stage 1 slice 4 of docs/SYNTHESIS_HELPER_DESIGN.md) imports it; the feature is not yet reachable from the window"
-)
+from openchem.domain.synthesis_gate import NodeScreening
 
-#: The version of this structure. Results are session-only in v1, so nothing is read back yet; the number is here so the
-#: first thing that is stored does not have to guess what it holds.
+#: The version of this structure, written with every plan kept in a project file (`domain/synthesis_route_codec.py`) so a later build can tell what it is reading.
 SYNTHESIS_ROUTE_FORMAT = 1
+
+#: How the sentence about routes a planner returned and the parser left out begins. It is the one added sentence a plan read from a project file keeps (every other is re-derived by the build that reads it), so the codec has to recognise it.
+LEFT_OUT_PREFIX = "Routes the planner returned that are not shown: "
 
 #: What a field reads as when the planner did not supply it.
 NOT_PROVIDED = "not provided"
@@ -58,6 +60,12 @@ STANDARD_LIMITATIONS: tuple[str, ...] = (
     "bought.",
     "Stereochemistry in a route is the planner's and is often incomplete or dropped.",
 )
+
+#: Added to a result whose routes have not been screened against the wider regulatory rulesets: no alert is shown, and that is not "nothing matched".
+ALERTS_NOT_CHECKED = "The molecules of these routes have not been checked against the regulatory rulesets, so the absence of an alert here means nothing."
+
+#: Added to a result in which some molecule could not be screened: its row says why, and no empty list of alerts stands for "nothing matched".
+SOME_NOT_SCREENED = "Some molecules of these routes could not be screened against the regulatory rulesets; each says why."
 
 #: Added to a result whose search stopped at a limit: the routes are the ones found so far, not all of them.
 LIMITS_NOT_EXHAUSTIVE = (
@@ -281,7 +289,7 @@ class Route:
 
     `target_smiles` is the planner's own string for the molecule the route makes, which need not be the user's canonical
     SMILES (that is `TargetIdentity`'s). `score` is the planner's ranking quantity and `rank` this route's place in the
-    planner's order (1 = first); neither says the route would work.
+    order shown (1 = first); neither says the route would work.
     """
 
     target_smiles: str
@@ -318,6 +326,8 @@ class RouteSet:
     statistics: SearchStatistics = field(default_factory=SearchStatistics)
     reason: str = ""
     limitations: tuple[str, ...] = STANDARD_LIMITATIONS
+    #: One screening per distinct molecule of the routes, or empty when the routes have not been screened (see the module docstring).
+    node_screenings: tuple[NodeScreening, ...] = ()
     format: int = SYNTHESIS_ROUTE_FORMAT
 
     def __post_init__(self) -> None:
@@ -332,10 +342,17 @@ class RouteSet:
             raise ValueError("a cancelled request cannot report another way of stopping")
         ranks = [r.rank for r in self.routes]
         if ranks != list(range(1, len(ranks) + 1)):
-            raise ValueError("routes are kept in the planner's order and ranked 1, 2, 3 ...")
+            raise ValueError("routes are kept in the order they are shown and ranked 1, 2, 3 ...")
         missing = [s for s in STANDARD_LIMITATIONS if s not in self.limitations]
         if missing:
             raise ValueError("limitations must include every standard sentence")
+        if self.node_screenings:
+            if self.status is not RouteStatus.FOUND:
+                raise ValueError(f"status '{self.status}' carries no routes to screen")
+            screened = [s.smiles for s in self.node_screenings]
+            expected = {smiles for route in self.routes for smiles in route_molecules(route)}
+            if len(set(screened)) != len(screened) or set(screened) != expected:
+                raise ValueError("node screenings must be exactly the molecules of the routes, each once")
 
     @property
     def stopped_at_a_limit(self) -> bool:
@@ -346,11 +363,24 @@ class RouteSet:
         extra: list[str] = []
         if self.status is RouteStatus.FOUND and self.stopped_at_a_limit:
             extra.append(LIMITS_NOT_EXHAUSTIVE)
+        if self.status is RouteStatus.FOUND and not self.node_screenings:
+            extra.append(ALERTS_NOT_CHECKED)
+        elif any(not s.screened for s in self.node_screenings):
+            extra.append(SOME_NOT_SCREENED)
         if self.status is RouteStatus.FOUND and any(r.validation is None for r in self.routes):
             extra.append("Some routes have not been checked for internal consistency.")
         elif self.status is RouteStatus.FOUND and any(not r.validation.fully_validated for r in self.routes):
             extra.append("Some routes could not be fully validated; each says which check was not possible.")
         return tuple(dict.fromkeys(self.limitations + tuple(extra)))
+
+    def screenings_for(self, route: Route) -> tuple[NodeScreening, ...]:
+        """The screenings of this route's molecules (target, intermediates, starting materials), in the order `route_molecules` gives them. Empty if the set has not been screened."""
+        by_smiles = {s.smiles: s for s in self.node_screenings}
+        return tuple(by_smiles[smiles] for smiles in route_molecules(route) if smiles in by_smiles)
+
+    def alert_count(self, route: Route) -> int:
+        """How many of this route's molecules matched a rule. Zero says nothing about molecules that were not screened: ask `screenings_for`."""
+        return sum(1 for s in self.screenings_for(route) if s.has_alert)
 
     def message(self) -> str:
         """The one-line status a surface shows. Never says a route does not exist, only that none was found."""
@@ -396,6 +426,16 @@ def read_termination(limits: SearchLimits, statistics: SearchStatistics) -> Sear
     if limits.time_limit_seconds is not None and statistics.search_seconds is not None and statistics.search_seconds >= limits.time_limit_seconds:
         return SearchTermination.TIME_LIMIT
     return SearchTermination.UNKNOWN
+
+
+def route_molecules(route: Route) -> tuple[str, ...]:
+    """Every distinct molecule of a route as the planner wrote it, target first, then each step's product and reactants in the order the steps are run, then the starting materials."""
+    found: list[str] = [route.target_smiles]
+    for step in route.steps:
+        found.append(step.product)
+        found.extend(step.reactants)
+    found.extend(material.smiles for material in route.starting_materials)
+    return tuple(dict.fromkeys(found))
 
 
 def shown(value: object) -> str:

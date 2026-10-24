@@ -1,0 +1,25 @@
+{
+ "arm": "stress",
+ "verdict": "DO NOT ADOPT",
+ "problem": null,
+ "new": {
+  "structures": 14,
+  "accepted_by_the_first_runs_stages": 12,
+  "triggered_the_restart": 2,
+  "rescued_by_the_restart": 0,
+  "not_closed": 0
+ },
+ "controls": {
+  "structures": 4,
+  "accepted_by_the_first_runs_stages": 0,
+  "triggered_the_restart": 4,
+  "rescued_by_the_restart": 3,
+  "not_closed": 0
+ },
+ "adoption": {
+  "adopt": false,
+  "triggered": 2,
+  "rescued": 0,
+  "why": "0 of 2 triggered structures were rescued, under 50%"
+ }
+}

@@ -304,7 +304,7 @@ class _ConformerGenerationTask(QRunnable):
                 "rms_threshold": self._options.diversity_rmsd,
                 "optimisation_level": self._options.optimisation,
                 "time_limit_seconds": self._options.time_limit_seconds,
-                # **NEVER "hyperfine".** Marvin's hyperfine is short
+                # **NEVER "hyperfine".** the reference editor's hyperfine is short
                 # molecular dynamics followed by strict optimisation;
                 # this is a second minimisation pass and nothing more.
                 # A stored property outlives every UI that wrote it,

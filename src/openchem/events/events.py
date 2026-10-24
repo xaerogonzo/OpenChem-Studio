@@ -21,6 +21,7 @@ from openchem.domain.scientific_result import (
     TrajectoryResult,
 )
 from openchem.domain.structure_issue import CheckerResult
+from openchem.domain.synthesis_route import RouteSet
 from openchem.events.base import Event
 
 
@@ -553,6 +554,31 @@ class EnsembleAlignmentReady(Event):
     entries: list[EnsembleEntry]
     method: str
     accuracy: str
+
+
+@dataclass(frozen=True)
+class SynthesisJobStateChanged(Event):
+    """Progress of one synthesis-planning request (`SynthesisPlanningService`), keyed on the molecule it is for.
+
+    A request the gate refused, or that never started a process, goes straight to COMPLETED or FAILED without passing
+    through RUNNING: nothing ran.
+    """
+
+    molecule_uuid: str
+    state: CacheState
+    message: str = ""
+
+
+@dataclass(frozen=True)
+class SynthesisRouteReady(Event):
+    """One finished planning request, whatever its status: routes, no route within the limits, refused by the gate, unscreened, unavailable, failed or cancelled.
+
+    The `RouteSet` carries the `TargetIdentity` captured BEFORE the planner started, so a consumer shows it against that
+    structure and not against whatever is selected when it arrives (`SynthesisPlanningService.result_for` does the comparison).
+    """
+
+    molecule_uuid: str
+    route_set: RouteSet
 
 
 @dataclass(frozen=True)
