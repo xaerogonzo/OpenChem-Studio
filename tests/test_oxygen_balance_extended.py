@@ -140,6 +140,11 @@ def test_meyers_printed_balance_reproduces(name, smiles, formula, printed, tol):
 #: (`test_conklings_grams_of_fuel_per_gram_of_oxygen`).
 STATED_ONLY = {"Si", "Zr", "P", "W"}
 
+#: Accepted with NO source at all: an estimate by analogy, labelled as one in
+#: the result. It stays out of the pinned check on purpose, and the tests in
+#: section 4b hold it to what an estimate may claim.
+ESTIMATED = {"Br"}
+
 
 def test_every_accepted_element_is_pinned_by_a_printed_value():
     """An element in the table with no fixture would be a product nobody
@@ -149,7 +154,7 @@ def test_every_accepted_element_is_pinned_by_a_printed_value():
         pinned.update(a.GetSymbol() for a in _mol(smiles).GetAtoms())
     pinned |= {"B", "Ti", "Mg", "Mo", "Fe", "Cu", "Ce"}  # the mixtures and charge-matched tests below
     accepted = set(E._PRODUCTS) | set(E._HALOGENS) | set(E._CHARGE_MATCHED)
-    assert accepted - pinned - {"C", "H", "N"} == STATED_ONLY
+    assert accepted - pinned - {"C", "H", "N"} == STATED_ONLY | ESTIMATED
 
 
 def test_the_fixtures_cover_both_signs_and_every_kind_of_partner():
@@ -665,7 +670,7 @@ def test_mercury_cannot_take_a_chlorine():
 
 
 @pytest.mark.parametrize("name,smiles,element", [
-    ("a bromide", "CBr", "Br"),
+    ("a selenium compound", "C[Se]C", "Se"),
     ("a manganese salt", "[Mn+2].[O-][N+](=O)[O-].[O-][N+](=O)[O-]", "Mn"),
     ("manganese dioxide", "O=[Mn]=O", "Mn"),
 ])
@@ -674,6 +679,79 @@ def test_an_element_the_book_gives_no_product_for_is_refused_by_name(name, smile
     assert result.refusal is E.OxygenBalanceRefusal.UNCOVERED_ATOM
     assert element in result.detail
     assert element in E.refusal_text(result)
+
+
+# ---------------------------------------------------------------------------
+# 4b  bromine: an estimate, labelled as one
+# ---------------------------------------------------------------------------
+#
+# NO source prints a balance for a bromine compound (see the roadmap for what
+# was read), so there is no printed value to hold this to. What can be held:
+# it equals chlorine's accounting term for term, it prints the Br2 figure beside
+# the HBr one, and the result says in words that it is an estimate.
+
+
+@pytest.mark.parametrize("bromo,chloro", [
+    ("CBr", "CCl"),
+    ("OC(=O)c1ccccc1Br", "OC(=O)c1ccccc1Cl"),
+    ("[NH4+].[Br-]", "[NH4+].[Cl-]"),
+    ("[Na+].[Br-]", "[Na+].[Cl-]"),
+])
+def test_bromine_is_counted_as_chlorine_is_with_its_own_mass(bromo, chloro):
+    """Same accounting, so the OXYGEN NEEDED is identical; only the molar mass
+    differs. Checked by rescaling the two balances to the same denominator."""
+    b = E.extended_oxygen_balance(_mol(bromo))
+    c = E.extended_oxygen_balance(_mol(chloro))
+    assert b.applicable and c.applicable
+    assert b.oxygen_needed == pytest.approx(c.oxygen_needed)
+    assert b.to_full_oxidation * b.molecular_weight == pytest.approx(
+        c.to_full_oxidation * c.molecular_weight)
+
+
+def test_bromine_balance_by_hand():
+    """Bromomethane CH3Br: C 4 + H 3 - Br 1 = 6 half-oxygens, 3 O needed;
+    1600 x (0 - 3) / 94.94 = -50.56."""
+    assert E.extended_oxygen_balance(_mol("CBr")).to_full_oxidation == pytest.approx(
+        -4800 / 94.939, abs=0.01)
+
+
+def test_the_br2_figure_is_printed_beside_the_hbr_one():
+    result = E.extended_oxygen_balance(_mol("CBr"))
+    # HBr taken from the hydrogen is one half-oxygen less than Br2 left over
+    assert result.bromine_as_br2 == pytest.approx(
+        result.to_full_oxidation - 1600 * 0.5 / result.molecular_weight, abs=1e-9)
+    assert result.bromine_as_br2 < result.to_full_oxidation
+
+
+def test_a_metal_bromide_has_no_br2_alternative_because_the_metal_took_it():
+    result = E.extended_oxygen_balance(_mol("[Na+].[Br-]"))
+    assert result.to_full_oxidation == pytest.approx(0.0, abs=1e-9)
+    assert result.bromine_as_br2 is None
+
+
+def test_bromine_beyond_what_hydrogen_and_metals_can_take_is_refused():
+    """Bromoform has one hydrogen for three bromines; no source says what the
+    rest becomes, so there is nothing honest to compute, estimate or not."""
+    result = E.extended_oxygen_balance(_mol("C(Br)(Br)Br"))
+    assert result.refusal is E.OxygenBalanceRefusal.UNCOVERED_ATOM
+    assert "3 bromine" in result.detail
+
+
+def test_the_result_says_bromine_is_an_estimate_and_no_other_element_is():
+    bromo = E.compute_oxygen_balance(_mol("CCBr"), "uuid-1")
+    fact = next(f for f in bromo.facts if f.units == "%")
+    text = " ".join(fact.limitations)
+    assert "ESTIMATE, NOT FROM A SOURCE" in text and "Br2" in text
+    assert "EXCEPT bromine" in text
+    chloro = E.compute_oxygen_balance(_mol("CCCl"), "uuid-2")
+    cfact = next(f for f in chloro.facts if f.units == "%")
+    assert "ESTIMATE" not in " ".join(cfact.limitations)
+
+
+def test_bromine_is_the_only_element_whose_row_claims_no_source():
+    rows = list(E._PRODUCTS.values()) + list(E._HALOGENS.values())
+    flagged = {r.product for r in rows if r.estimate}
+    assert flagged == {E._BROMINE.product}
 
 
 # ---------------------------------------------------------------------------

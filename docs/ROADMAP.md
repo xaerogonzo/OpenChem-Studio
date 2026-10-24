@@ -2344,11 +2344,11 @@ and three were checked again recently rather than taken on trust.
      no help for bromine: Shancita 2020, Davis 1943 and AMCP 706-187 state none. **Iron and copper** burn to the oxide of their DRAWN CHARGE (Fe(II) FeO, Fe(III)
      Fe2O3, Cu(I) Cu2O, Cu(II) CuO), a rule no source states but every printed value follows: Meyer's ferrocene -223.6 and iron acetylacetonate 163.1 (its
      sign lost) to the digit, Conkling's 7.94 and 3.97 g of Cu per g of O; another charge, or none, is refused and the other oxide's figure printed beside
-     the answer. **What remains**: Br (no source anywhere states or prints a bromine product: read for it, with nothing, were Meyer, Conkling, Persson, Cooper (C/H/N/O only), Akhavan, Klapoetke's
+     the answer. **Bromine is shipped as a labelled ESTIMATE** (chlorine's accounting by analogy: HBr or a metal bromide, the Br2 figure printed beside it, a "no source" warning in the result; replace the row the day a source turns up). **What remains**: a bromine SOURCE (no source anywhere states or prints a bromine product: read for it, with nothing, were Meyer, Conkling, Persson, Cooper (C/H/N/O only), Akhavan, Klapoetke's
      Encyclopedia in all three volumes, a preprint on brominated TNTs (no balance column) and ALL 68 Klapoetke-group LMU dissertations (every bromine formula in their text layers checked against its page's
      printed numbers under HBr and Br2, CO2 and CO bases: no match; the bromine in them is synthesis precursors and IR pellets); the next places to look are a paper on a
-     bromo compound with an OB column, Bretherick/CHETAH-style hazard literature (Shanley & Melhem 1995, the iomosaic paper, was read: three pages, C/H/O only, no halogen of any kind); the choice is HBr by analogy with Cl, which the iodine result
-     shows is not safe, or a labelled estimate) and every other element, and halogen beyond what hydrogen and metals can take (CCl4, Teflon); each needs a source that states a
+     bromo compound with an OB column, Bretherick/CHETAH-style hazard literature (Shanley & Melhem 1995, the iomosaic paper, was read: three pages, C/H/O only, no halogen of any kind); the estimate rests on HBr by analogy with Cl, which the iodine result
+     shows is not safe) and every other element, and halogen beyond what hydrogen and metals can take (CCl4, Teflon); each needs a source that states a
      product. Formulations still refuse a non-C/H/N/O component. **Kamlet-Jacobs detonation**: read, and not extendable from these
      sources -- all four Kamlet papers and Meyer's entry state it for C-H-N-O explosives; its oxygen-window refusal stands too.
   2. **A drawing of several disconnected pieces with no single parent** (ChEMBL's rule leaves two or more components: a mixture, two organic ions, or a metal

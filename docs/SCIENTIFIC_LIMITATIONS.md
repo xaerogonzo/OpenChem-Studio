@@ -794,8 +794,17 @@ degree of oxidation", read literally would burn iron to Fe₂O₃ and mercury to
 the drawing; the calculator follows the printed values instead (Meyer's ferrocene is FeO)
 and prints the other oxide's figure beside the answer, which is that reading.
 
-Bromine and every other element are **refused rather than given a
-confident wrong number**: no source gives a product for them, including Persson's. Silicon, zirconium, phosphorus and tungsten are accepted on
+**Bromine is the one element computed with no source at all.** It is counted as
+chlorine is (HBr or a metal bromide, each sparing half an oxygen), and the result is
+labelled an ESTIMATE and prints the Br₂ figure beside it. Measured before it was
+allowed: Meyer, Conkling & Mocella, Persson, Cooper, Akhavan, Klapötke's textbook and
+three-volume Encyclopedia, Shanley & Melhem, a preprint on brominated TNTs and all 68
+Klapötke-group LMU dissertations print no balance for any bromine compound, so there
+is no value to hold it to. Iodine shows the analogy can fail (Shreeve's iodine-rich
+salts leave I₂), so treat a bromine figure as provisional. Bromine beyond what hydrogen and
+metals can take (CBr₄, bromoform) is refused. Every other uncovered element is **refused
+rather than given a confident wrong number**: no source gives a product for it, including
+Persson's. Silicon, zirconium, phosphorus and tungsten are accepted on
 Conkling's statement and its grams-of-fuel-per-gram-of-oxygen column; no
 printed balance uses them. A phosphorus, molybdenum or tungsten halide is
 refused: no source says how many halogens it holds. Only the CO₂ basis is extended; the CO basis stays

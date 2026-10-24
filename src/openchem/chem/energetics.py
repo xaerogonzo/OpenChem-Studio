@@ -193,6 +193,9 @@ class ElementAccounting:
     product: str
     valence: int
     pinned_by: str
+    #: True when NO source states or prints this element's product and the row is
+    #: this project's extension by analogy. The result says so in its own words.
+    estimate: bool = False
 
 
 #: Every element the extended balance accepts, with the product a source
@@ -275,8 +278,23 @@ _CHLORINE = ElementAccounting(
 _FLUORINE = ElementAccounting(
     "HF, or the metal's fluoride", -1,
     "Conkling & Mocella Table 2.5; Viton (C2H2F2) +8 per unit")
-#: The halogens a source gives a product for; each takes a partner.
-_HALOGENS = {"Cl": _CHLORINE, "F": _FLUORINE}
+#: **BROMINE IS AN ESTIMATE, THE ONE ROW HERE NO SOURCE STATES.** It is chlorine's
+#: accounting carried down the group: bromine takes a hydrogen as HBr or a metal
+#: as its bromide, sparing the half-oxygen they would have needed. Measured
+#: before it was shipped: Meyer, Conkling & Mocella, Persson, Cooper, Akhavan,
+#: Klapotke's Encyclopedia, a preprint on brominated TNTs and all 68 Klapotke-
+#: group dissertations print no balance for any bromine compound. The analogy
+#: is not safe in general (iodine does NOT follow it: Shreeve's iodine-rich salts
+#: leave I2), so the answer carries the Br2 figure beside it and says it is an
+#: estimate; replace this row the day a source turns up.
+_BROMINE = ElementAccounting(
+    "HBr, or the metal's bromide", -1,
+    "NO SOURCE states a bromine product; this is chlorine's accounting by "
+    "analogy, an estimate", estimate=True)
+#: The halogens this module gives a product for; each takes a partner.
+_HALOGENS = {"Cl": _CHLORINE, "F": _FLUORINE, "Br": _BROMINE}
+#: The halogens' names, for a refusal that has to say which one ran out of partners.
+_HALOGEN_NAMES = {"Cl": "chlorine", "F": "fluorine", "Br": "bromine"}
 #: Elements whose valence is not offered to a halogen (see `extended_oxygen_balance`).
 #: The two elements whose oxide is read off the drawn charge, as
 #: {element: {charge: (product, valence, why)}}. The valence IS the charge: the
@@ -456,6 +474,9 @@ class ExtendedOxygenBalance:
     #: it prints. None when no hydrogen took a chlorine (a metal chloride is
     #: the same number either way), or when fluorine shares the partners.
     chlorine_as_cl2: float | None = None
+    #: The same for bromine: the balance with every bromine a hydrogen took left
+    #: as Br2 instead. None when no hydrogen took a bromine.
+    bromine_as_br2: float | None = None
     #: (element, product) for each charge-matched metal present, e.g. ("Fe", "FeO").
     charge_products: tuple[tuple[str, str], ...] = ()
     #: (element, other product, balance with it) for each charge-matched metal:
@@ -570,8 +591,7 @@ def extended_oxygen_balance(mol: Chem.Mol | None) -> ExtendedOxygenBalance:
         if e not in _NOT_A_HALOGEN_PARTNER and e != "O" and e not in _HALOGENS
     )
     if halogens > partners:
-        named = " and ".join(
-            f"{tally[h]} {'chlorine' if h == 'Cl' else 'fluorine'}" for h in _HALOGENS if h in tally)
+        named = " and ".join(f"{tally[h]} {_HALOGEN_NAMES[h]}" for h in _HALOGENS if h in tally)
         return ExtendedOxygenBalance(
             refusal=OxygenBalanceRefusal.UNCOVERED_ATOM,
             detail=(
@@ -598,9 +618,18 @@ def extended_oxygen_balance(mol: Chem.Mol | None) -> ExtendedOxygenBalance:
     )
     on_hydrogen = max(0, chlorine - metal_valences)
     as_cl2 = None
-    if on_hydrogen and "F" not in tally:
+    if on_hydrogen and "F" not in tally and "Br" not in tally:
         as_cl2 = (tally.get("O", 0) - (half_oxygens + on_hydrogen) / 2) \
             * _PERCENT_TIMES_OXYGEN_MASS / mass
+    # Bromine is the last to be given a metal's valence, after chlorine and
+    # fluorine; the figure is the same whichever takes it, only this split moves.
+    as_br2 = None
+    bromine = tally.get("Br", 0)
+    if bromine:
+        left_for_bromine = max(0, metal_valences - chlorine - tally.get("F", 0))
+        br_on_hydrogen = max(0, bromine - left_for_bromine)
+        if br_on_hydrogen:
+            as_br2 = (tally.get("O", 0) - (half_oxygens + br_on_hydrogen) / 2) * _PERCENT_TIMES_OXYGEN_MASS / mass
     alternatives = []
     for element in sorted(matched_valence):
         shifted = half_oxygens - matched_valence[element] + switched_valence[element]
@@ -615,6 +644,7 @@ def extended_oxygen_balance(mol: Chem.Mol | None) -> ExtendedOxygenBalance:
     return ExtendedOxygenBalance(
         to_full_oxidation=(tally.get("O", 0) - needed) * _PERCENT_TIMES_OXYGEN_MASS / mass,
         chlorine_as_cl2=as_cl2,
+        bromine_as_br2=as_br2,
         charge_products=tuple(
             (e, "/".join(sorted(products[e]))) for e in sorted(products)),
         alternatives=tuple(alternatives),
@@ -789,10 +819,22 @@ def _extended_report(result: ExtendedOxygenBalance, molecule_uuid: str, places: 
         )
 
     beyond = [(e, p) for e, p in result.products if e not in CHNO]
+    estimated = {
+        e for e, _ in beyond
+        if e not in _CHARGE_MATCHED and (_HALOGENS.get(e) or _PRODUCTS[e]).estimate
+    }
     assumed = tuple(
         f"{element} to {product}: the product the source's printed balances use "
         f"({_CHARGE_MATCHED_PINS[element] if element in _CHARGE_MATCHED else (_HALOGENS.get(element) or _PRODUCTS[element]).pinned_by})."
         for element, product in beyond
+        if element not in estimated
+    ) + tuple(
+        f"ESTIMATE, NOT FROM A SOURCE: {element} to {product}. No source states or "
+        f"prints a balance for any {_HALOGEN_NAMES.get(element, element)} compound; this "
+        "takes it as chlorine is taken (HBr or a metal bromide), by analogy. Iodine "
+        "shows the analogy can fail, so treat the number as provisional."
+        for element, product in beyond
+        if element in estimated
     ) + tuple(
         f"{element} burned to {product} instead (the other oxidation state) gives "
         f"{value:+.{places}f}% for this structure; the oxide used is the one matching "
@@ -806,6 +848,13 @@ def _extended_report(result: ExtendedOxygenBalance, molecule_uuid: str, places: 
             "Encyclopedia prints guanidinium perchlorate (-10.0%) and hydrazinium "
             "perchlorate (+18.1%) that way, and one Meyer entry does; Meyer's other "
             "chlorine entries, Conkling and Jain count HCl, which is what is shown.",
+        )
+    if result.bromine_as_br2 is not None:
+        assumed += (
+            f"Bromine left as Br2 instead of taking hydrogen as HBr gives "
+            f"{result.bromine_as_br2:+.{places}f}% for this structure. No source prints "
+            "either, so neither is the 'right' one; HBr is shown because it is the "
+            "chlorine convention most sources use.",
         )
     mercury = result.count("Hg")
     if mercury:
@@ -838,7 +887,8 @@ def _extended_report(result: ExtendedOxygenBalance, molecule_uuid: str, places: 
             ),
             limitations=assumed + (
                 "Each element's product is the one a source states or its printed values use: "
-                "Meyer's Explosives, Conkling & Mocella's Table 2.5, and for boron US 6,599,380.",
+                "Meyer's Explosives, Conkling & Mocella's Table 2.5, and for boron US 6,599,380"
+                + (", EXCEPT bromine, which no source covers (marked ESTIMATE above)." if estimated else "."),
                 "A composition figure, not a performance one. It says nothing on its own "
                 "about how powerful, sensitive or stable a substance is.",
             ),
