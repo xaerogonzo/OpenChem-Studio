@@ -1,5 +1,5 @@
 <!-- GENERATED FROM docs/sources.toml -- do not edit -->
-<!-- SOURCE SHA256: 0f58e8c974c8b9121cdf8a597fa5a27af52663f18d372e5bafd7cae97494edb7 -->
+<!-- SOURCE SHA256: 892f9858d79cb7114e35c79f1686b533b1721dcff0e02fe877ec4454461f634d -->
 
 # Sources
 
@@ -90,6 +90,7 @@ next run of `tools/build_lewis_parameters.py`.
 | [`adoptium_temurin`](#adoptium_temurin) | software | shipped | citation |
 | [`agarwal2022`](#agarwal2022) | literature | shipped | citation + claim |
 | [`agboola2026`](#agboola2026) | literature | shipped | citation + claim |
+| [`akhavan2011`](#akhavan2011) | literature | shipped | citation + claim |
 | [`allen2014`](#allen2014) | literature | reference only | citation |
 | [`allen2016`](#allen2016) | literature | reference only | citation |
 | [`allred1961`](#allred1961) | reference_table | shipped | citation |
@@ -143,6 +144,7 @@ next run of `tools/build_lewis_parameters.py`.
 | [`claesen2023`](#claesen2023) | literature | reference only | citation |
 | [`clavier2010`](#clavier2010) | literature | shipped | citation |
 | [`cod`](#cod) | dataset | shipped | citation |
+| [`conkling2019`](#conkling2019) | literature | shipped | citation + claim |
 | [`coppens2006`](#coppens2006) | literature | **not shipped** | citation |
 | [`cradock1973`](#cradock1973) | literature | shipped | citation + claim |
 | [`crc_handbook`](#crc_handbook) | reference_table | shipped | citation + claim |
@@ -245,6 +247,7 @@ next run of `tools/build_lewis_parameters.py`.
 | [`mayo1990`](#mayo1990) | literature | shipped | citation + claim |
 | [`maziarz2025syntheseus`](#maziarz2025syntheseus) | literature | reference only | citation |
 | [`mcnutt2021`](#mcnutt2021) | literature | **not shipped** | citation |
+| [`meyer2016`](#meyer2016) | literature | shipped | citation + claim |
 | [`miller1979`](#miller1979) | literature | shipped | citation + claim |
 | [`miller1990`](#miller1990) | literature | shipped | citation + claim |
 | [`miller_polarizability`](#miller_polarizability) | reference_table | reference only | citation |
@@ -360,6 +363,7 @@ next run of `tools/build_lewis_parameters.py`.
 | [`yalkowsky_banerjee1992`](#yalkowsky_banerjee1992) | dataset | shipped | citation |
 | [`zenodo7341155`](#zenodo7341155) | dataset | reference only | citation + claim |
 | [`zenodo7797465`](#zenodo7797465) | dataset | reference only | citation + claim |
+| [`zeuner2003`](#zeuner2003) | literature | shipped | citation + claim |
 | [`zhang2009`](#zhang2009) | literature | reference only | citation |
 | [`zhao2003`](#zhao2003) | literature | reference only | citation + claim |
 | [`zhao2008`](#zhao2008) | literature | reference only | citation + claim |
@@ -4788,6 +4792,170 @@ toward the textbook:
 The book also carries the Springall-Roberts rules and a worked TNT
 decomposition (Table 4.2), which is the fixture the detonation work will
 need.
+
+### akhavan2011
+
+<a id="akhavan2011"></a>
+
+> J. Akhavan, 'The Chemistry of Explosives', 3rd edition, Royal Society of Chemistry, Cambridge, 2011. ISBN 978-1-84973-330-4.
+
+| | |
+| --- | --- |
+| Identifier | 978-1-84973-330-4 |
+| Status | shipped |
+| Verification | citation + claim |
+| Verified | 2026-10-23 |
+| Local copy | `the-chemistry-of-explosives_V3.pdf` (not checked) |
+| Used by | `src/openchem/chem/energetics.py`, `tests/test_oxygen_balance_extended.py` |
+
+The independent check on [source:meyer2016]'s products. Chapter 5 (p86)
+defines the balance in the same words -- "complete conversion of the
+explosive material to carbon dioxide, water, sulfur dioxide, aluminium
+oxide, etc." -- and Table 5.2 (p88) prints three compounds beyond C/H/N/O.
+Silver azide 0.00 (silver left as the metal), lead azide -5.49 and lead
+styphnate -18.79 (lead to PbO, the water of the monohydrate included) all
+agree with Meyer's products to 0.01.
+
+**MERCURY IS THE ONE DISAGREEMENT.** Table 5.2's mercury fulminate is -16.86,
+which is mercury to HgO; Meyer prints -11.2, mercury left as the metal. The
+calculator follows Meyer and states Akhavan's value for the structure in
+its limitations.
+
+The book prints no DOI; the ISBN is the one on its imprint page. The text
+layer drops minus signs (Table 5.2 reads "73.96" for TNT); the signs are
+the book's, read from its Eq. 5.1. Its Eq. 5.2 and the TNT example are the
+C/H/N/O form [source:klapotke2017] already supplies.
+
+### conkling2019
+
+<a id="conkling2019"></a>
+
+> J. A. Conkling & C. J. Mocella, 'Chemistry of Pyrotechnics: Basic Principles and Theory', 3rd edition, CRC Press (Taylor & Francis), Boca Raton, 2019. ISBN 978-1-138-07992-2.
+
+| | |
+| --- | --- |
+| Identifier | [10.1201/9780429262135](https://doi.org/10.1201/9780429262135) |
+| Status | shipped |
+| Verification | citation + claim |
+| Verified | 2026-10-24 |
+| Local copy | `Chemistry of Pyrotechnics - Basic Principles and Theory 3 -- Conkling John A_; Mocella Christopher J_ -- 3rd Edition, 2019.pdf` (not checked) |
+| Used by | `src/openchem/chem/energetics.py`, `tests/test_oxygen_balance_extended.py` |
+
+The per-element statement the oxygen balance beyond C/H/N/O rests on where
+[source:meyer2016] only prints values. Chapter 2's "Pyro Valence Method"
+(after Jain 1987), Table 2.5 (p22): each element's valence is the oxidation
+state of its assumed product -- Al +3 Al2O3, Ba +2 BaO, B +3 B2O3, Ca +2 CaO,
+C +4 CO2, Cl -1 HCl or metal chlorides, Cr +3 Cr2O3, F -1 HF or metal
+fluorides, H +1 H2O, Fe 0 in an oxidizer or +3 as a fuel, Mg +2 MgO, N 0,
+O -2, K +1 K2O or KCl, Si +4 SiO2, S +4 SO2, Ti +4 TiO2, Zr +4 ZrO2 -- so a
+molecule's net valence is its oxygen demand in half-oxygens and the balance
+is -800 x valence / M. TNT +21 is -73.97%.
+
+**IT AGREES WITH MEYER WHEREVER THE TWO OVERLAP**, and its net valences in
+Tables 2.6 and 2.7 (KClO4 -8, KClO3 -6, KNO3 -5, AP -5, Ba(NO3)2 -10,
+BaCrO4 -3, NH4NO3 -2, TNT +21, RDX +6, EGDN 0, NG -1, glucose +24, PVC +10,
+Viton +8 per unit in Table 3.7) all come out of the calculator's table.
+What it adds, each with the worked values the tests hold it to: boron;
+fluorine (Viton); magnesium (NaNO3/Mg stoichiometric at 41.6% Mg; 35 g Mg
+at +2.88 valence per 100 g); titanium (KClO4/Ti 80/20 at -2.95, and
+60/35/5 with PMMA at +0.66). Silicon and zirconium are accepted on the
+statement alone (Table 2.5, plus Eq. 3.24 for SiO2 and the metal-fuel
+table's oxide column for ZrO2): no printed balance uses them.
+
+**WHERE IT DEPENDS ON ROLE, AND SO IS NOT USED:** iron is the metal in an
+oxidizer and Fe2O3 as a fuel; red lead goes to the metal (valence -8, "-2 if
+PbO is formed"); sodium azide's sodium is left as the metal. A drawn
+compound does not say which role it plays, so iron stays refused, and lead
+and sodium follow Meyer and Akhavan (PbO, Na2O). Teflon is printed at -4
+with its carbon left as C; the calculator refuses it, having no hydrogen or
+metal for its fluorine.
+
+**ONE ARITHMETIC SLIP:** Eq. 3.24, 2Fe2O3 + 3Si -> 4Fe + 3SiO2, is printed
+as "stoichiometric at 83% iron(III) oxide and 17% silicon"; the equation
+gives 79.1% and 20.9%. The products are not in question.
+
+The DOI resolves to the publisher's page for the e-book (ISBN
+9781351626569); the file is the hardback's text, ISBN 978-1-138-07992-2.
+
+### zeuner2003
+
+<a id="zeuner2003"></a>
+
+> S. Zeuner, A. Hofmann, R. Schropp & K.-H. Roedig (TRW Airbag Systems GmbH), 'Guanidine-thermite igniter composition for use in gas generators', US patent 6,599,380 B2, granted 2003-07-29.
+
+| | |
+| --- | --- |
+| Identifier | <https://patents.google.com/patent/US6599380B2/en> |
+| Status | shipped |
+| Verification | citation + claim |
+| Verified | 2026-10-24 |
+| Used by | `src/openchem/chem/energetics.py`, `tests/test_oxygen_balance_extended.py` |
+
+The one source that STATES boron's product in the definition itself: oxygen
+balance is the oxygen "released upon complete reaction of the fuel to form
+CO2, H2O, Al2O3, B2O3 or other metal oxides". Its Comparative Example 1, 26
+parts boron to 74 potassium nitrate, is printed at -28.4%; boron to B2O3 and
+potassium to K2O, weighted by mass, give -28.44. [source:conkling2019]'s
+Table 2.5 says B2O3 too, and [source:klapotke2017]'s two borate esters
+(-59.70%, +13.07%) are reproduced by it (-59.79, +13.07; leaving the boron
+out gives -51.2).
+
+### meyer2016
+
+<a id="meyer2016"></a>
+
+> R. Meyer, J. Koehler & A. Homburg, 'Explosives', 7th, completely revised and updated edition, Wiley-VCH, Weinheim, 2016. ISBN 978-3-527-33776-7.
+
+| | |
+| --- | --- |
+| Identifier | [10.1002/9783527689583](https://doi.org/10.1002/9783527689583) |
+| Status | shipped |
+| Verification | citation + claim |
+| Verified | 2026-10-23 |
+| Local copy | `meyer2016_explosives_7th.pdf` (not checked) |
+| Used by | `src/openchem/chem/energetics.py`, `tests/test_oxygen_balance_extended.py` |
+
+What the oxygen balance burns each element TO beyond C/H/N/O. The Oxygen
+Balance entry (p247) defines it as the oxygen left after "complete conversion
+of the explosive material to CO2, H2O, SO2, Al2O3, etc." and prints Table 21;
+the Thermodynamic Calculation entry (p321) adds "Chlorine will be converted
+into HCl; sulfur into SO2" and the alkaline-earth metals to their oxides.
+
+**WHICH OXIDE EVERY OTHER METAL FORMS IS NOT WRITTEN; IT IS READ OFF THE
+BOOK'S PRINTED BALANCES.** Every compound entry prints a formula and a
+balance, and the 41 beyond C/H/N/O were run through one valence per element
+before any code existed: 38 agree to the book's own printing (worst 0.08
+percentage points). The edition is identified by the oBook ISBN
+978-3-527-68958-3 printed in the file, which is this DOI.
+
+Two products are not what a reader would guess and both are the book's:
+mercury and silver are left as the METAL (mercury fulminate -11.2%, silver
+azide 0%, silver acetylide -26.7%), and the cobalt of BNCP, a cobalt(III)
+complex, goes to CoO (-8.8%). A chlorine counts the same whether hydrogen
+(HCl) or a metal (its chloride) takes it, so the book needs no stated order.
+
+THREE PLACES WHERE THE BOOK DISAGREES WITH ITSELF, recorded so nobody fits
+the code to them:
+
+- **Picryl chloride, -45.3%**, is the value with its chlorine left as Cl2.
+  Its stated rule, HCl, gives -42.0, and five other chlorine compounds
+  (ammonium chloride and perchlorate, chlorodinitrobenzene, guanidinium and
+  hydrazinium perchlorate) follow the rule.
+- **Hydrates.** Barium chlorate monohydrate (+31.55%) and barium
+  perchlorate trihydrate (+38.1%) are printed for the anhydrous salt; lead
+  styphnate monohydrate (-18.8%) and lead acetylsalicylate monohydrate
+  (-98.7%) include their water.
+- **Iron.** Ferrocene (-223.6%) is burned to FeO and iron acetylacetonate
+  (printed 163.1%, the Fe2O3 value with its sign lost) to Fe2O3, so iron is
+  refused.
+
+Boron does not occur in the book's balances at all; its product comes from
+[source:conkling2019] and [source:zeuner2003].
+Table 21's element rows were computed with whole atomic masses (sulfur
+-100.0 is 32/32; 32.06 gives -99.8).
+
+**Its Kamlet-Jacobs entry extends nothing beyond C/H/N/O** and prints
+K = 15.88, the textbook value that [source:kamlet1968] contradicts.
 
 ### westwell1995
 

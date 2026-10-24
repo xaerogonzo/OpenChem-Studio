@@ -239,18 +239,22 @@ def test_a_hook_with_a_rule_of_its_own_is_caught_by_the_agreement_check(registry
 
 
 def test_loosening_the_calculators_own_rule_loosens_the_indicator(monkeypatch):
-    """Alex's policy: refuse less, and the row follows with no edit to the hook."""
+    """Alex's policy: refuse less, and the row follows with no edit to the hook. It did, for real: oxygen balance
+    learned sulfur from Meyer's Explosives, and thioethanol went from refused to covered with no edit here."""
     thioethanol = _mol(PANEL["thioethanol"])
-    assert coverage_hooks.oxygen_balance_coverage(thioethanol).kind is CoverageKind.REFUSES
-    monkeypatch.setattr(energetics, "CHNO", energetics.CHNO | {"S"})
     assert coverage_hooks.oxygen_balance_coverage(thioethanol).kind is CoverageKind.COVERED
+    phosphate = _mol("OP(=O)(O)O")
+    assert coverage_hooks.oxygen_balance_coverage(phosphate).kind is CoverageKind.REFUSES
+    widened = dict(energetics._PRODUCTS, P=energetics.ElementAccounting("P4O10", 5, "probe"))
+    monkeypatch.setattr(energetics, "_PRODUCTS", widened)
+    assert coverage_hooks.oxygen_balance_coverage(phosphate).kind is CoverageKind.COVERED
 
 
 def test_tightening_the_rule_tightens_it_too(monkeypatch):
-    ethanol = _mol(PANEL["ethanol"])
-    assert coverage_hooks.oxygen_balance_coverage(ethanol).kind is CoverageKind.COVERED
-    monkeypatch.setattr(energetics, "CHNO", frozenset({"C", "H", "N"}))
-    assert coverage_hooks.oxygen_balance_coverage(ethanol).kind is CoverageKind.REFUSES
+    thioethanol = _mol(PANEL["thioethanol"])
+    narrowed = {e: a for e, a in energetics._PRODUCTS.items() if e != "S"}
+    monkeypatch.setattr(energetics, "_PRODUCTS", narrowed)
+    assert coverage_hooks.oxygen_balance_coverage(thioethanol).kind is CoverageKind.REFUSES
 
 
 def test_hansen_says_with_limits_when_a_parameter_will_be_missing(monkeypatch):
