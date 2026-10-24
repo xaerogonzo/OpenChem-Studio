@@ -548,7 +548,7 @@ Numeric pKa via pkasolver, run out of process from its own environment (configur
 <!-- help:calc-hansen-solubility -->
 ### Hansen Solubility Parameters
 
-The three Hansen partial solubility parameters -- dispersion, polar and hydrogen bonding -- and their Hildebrand total, from the structure alone by Stefanis and Panayiotou's group contributions. Two passes: first-order UNIFAC groups partition the molecule, then second-order conjugation groups correct it where they apply, which is what the paper's W switch selects. Below 3 MPa^0.5 the polar and hydrogen-bonding parameters come from the paper's SEPARATE low-range regression rather than from the main equations, and the result says which was used. Needs three or more carbons excluding the characteristic group's own atom, and refuses a structure carrying an atom in no group rather than returning a partial sum.
+The three Hansen partial solubility parameters -- dispersion, polar and hydrogen bonding -- and their Hildebrand total, from the structure alone by Stefanis and Panayiotou's group contributions. Two passes: first-order UNIFAC groups partition the molecule, then second-order conjugation groups correct it where they apply, which is what the paper's W switch selects. Below 3 MPa^0.5 the polar and hydrogen-bonding parameters come from the paper's SEPARATE low-range regression rather than from the main equations, and the result says which was used. The paper states it for three or more carbons excluding the characteristic group's own atom; below that it is computed and labelled outside the stated domain. It refuses a structure carrying an atom in no group rather than returning a partial sum.
 
 - Produces a list of facts, each with its own units, basis and evidence.
 - Runs on the 2D drawing, so no conformer is needed.
@@ -559,7 +559,7 @@ The three Hansen partial solubility parameters -- dispersion, polar and hydrogen
 <!-- help:calc-solubility -->
 ### Solubility
 
-Predicted intrinsic aqueous solubility in logS, mg/mL and mol/L, its Low/Moderate/High category, the value at a chosen pH, an ICH M9 high-solubility screening estimate, and the solubility-versus-pH curve across the range you choose. Ampholytes and salts are refused rather than modelled; a molecule with no ionizable centre gets a flat line, which is an answer rather than a failure.
+Predicted intrinsic aqueous solubility in logS, mg/mL and mol/L, its Low/Moderate/High category, the value at a chosen pH, an ICH M9 high-solubility screening estimate, and the solubility-versus-pH curve across the range you choose. An ampholyte gets its intrinsic estimate only, with the pH profile withheld and the reason shown; a salt is refused rather than modelled; a molecule with no ionizable centre gets a flat line, which is an answer rather than a failure.
 
 Also known as **Solubility vs pH** -- retired and folded in here. Folded into Solubility, which reported the same nine facts and the same curve points and already honoured the pH range it now offers.
 
@@ -1511,8 +1511,8 @@ Geometry optimization + frequency analysis via ORCA. Produces an optimized geome
 
 The gas-phase proton affinity (an enthalpy) and gas-phase basicity (a Gibbs energy) of a neutral base at 298.15 K and 1 atm, from ORCA M062X/def2-TZVPD optimizations and frequencies of the base and of its conjugate acid at every protonation site (every N, O, S or P lone pair and every pi-system carbon), the lowest structure of each, with ORCA's symmetry number replaced by the true one. Reports kJ/mol, the site that won and every site's own value. Benchmarked on 28 bases against the NIST evaluation of Hunter and Lias: on the 21 above propene's proton affinity the mean absolute error is 1.55 kcal/mol (PA) and 1.53 (GB), with the proton bound about 1.2 kcal/mol too weakly; measured for neutral bases of at most ten heavy atoms of H, C, N, O, P and S, and refused outside that. A structure that keeps an imaginary vibration after one re-run is dropped, so a base can have no value (the benchmark lost water this way). Many ORCA jobs (minutes to hours): needs an ORCA executable; run from the Quantum Chemistry panel's 'Proton affinity...' button -- no 3D conformer needed, each structure is embedded fresh from the 2D structure.
 
-- Support level: **Experimental**. Hidden by default; enable it under Settings > Calculators.
-- Why: The protocol passed its preregistered benchmark (28 bases against NIST, mean absolute error 1.55 kcal/mol for proton affinity and 1.53 for gas basicity), but this implementation has not yet been driven through the application on real ORCA, and it needs many ORCA jobs. Every result states the measured error and its limits.
+- Support level: **Limited**.
+- Why: Limited to neutral closed-shell bases of at most ten heavy atoms of H, C, N, O, P and S. The protocol passed its preregistered benchmark (28 bases against NIST, mean absolute error 1.55 kcal/mol for proton affinity and 1.53 for gas basicity, the proton bound about 1.2 kcal/mol too weakly) and this implementation reproduces the benchmark's numbers when driven through the application on real ORCA. It needs many ORCA jobs. Every result states the measured error and its limits.
 - Covers: Neutral closed-shell bases of at most ten heavy atoms of H, C, N, O, P and S; the lowest structure only; needs a configured ORCA executable.
 - Runs from the **Quantum Chemistry panel** panel rather than from a Properties button.
 - Runs on the 2D drawing, so no conformer is needed.

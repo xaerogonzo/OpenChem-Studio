@@ -124,6 +124,10 @@ The script is a JSON list of steps, run in order:
       {"do": "expect_offered",   "hidden": ["detonation"], "footer": "1 calculator ..."}
                                               which calculators the Properties
                                               launcher OFFERS, by row visibility
+      {"do": "expect_coverage",  "chips": {"griffin_hlb": "Can run"}, "rows": {"orca.proton_affinity": "✓"}}
+                                              what the rows SAY about the drawn
+                                              structure before a run, read off
+                                              the chips and service-row labels
       {"do": "expect_help",      "topic": "calc-joback-properties"}
                                               which help topic is in FRONT
       {"do": "chip",             "calculator": "detonation", "expect": {"status": "needs_input"}}
@@ -9312,6 +9316,50 @@ class _Driver(QObject):
         else:
             logger.error("OPENCHEM_DRIVE: EXPECT offered FAILED[%s] -- %s", tag, "; ".join(problems)[:800])
 
+    def _do_expect_coverage(self, step: dict[str, Any]) -> None:
+        """`{"do": "expect_coverage", "chips": {"griffin_hlb": "Can run"}, "rows": {"orca.proton_affinity": "✓"}, "silent": [...], "tooltips": {"griffin_hlb": ["polyoxyethylene"]}}`
+        -- what the Properties rows SAY about the drawn structure before any run, asserted off the widgets.
+
+            "chips"     registry id -> the chip's text; it matches when the chip ends with it ("Not applicable"
+                        for "○ Not applicable"), so the glyph is not what is being tested
+            "rows"      service-row id -> the mark its label starts with ("" for none)
+            "silent"    registry ids whose chip must read "Not run" (no claim made)
+            "tooltips"  id (chip or service row) -> substrings its tooltip must hold
+
+        Read off the chip and the button, not off `_coverage`, which is what the panel believes: a claim the
+        screen does not show is not a claim anybody read.
+        """
+        panel = self._window._property_panel
+        tag = str(step.get("tag", ""))
+        problems: list[str] = []
+        for calculator_id, wanted in (step.get("chips") or {}).items():
+            chip = panel._calculator_status.get(calculator_id)
+            if chip is None:
+                problems.append(f"{calculator_id}: no chip")
+            elif not chip.text().endswith(wanted):
+                problems.append(f"{calculator_id}: chip reads {chip.text()!r}, wanted {wanted!r}")
+        for calculator_id in step.get("silent") or []:
+            chip = panel._calculator_status.get(calculator_id)
+            if chip is None or chip.text() != "Not run":
+                problems.append(f"{calculator_id}: chip reads {chip.text() if chip else None!r}, wanted 'Not run'")
+        for calculator_id, mark in (step.get("rows") or {}).items():
+            row = panel._service_rows.get(calculator_id)
+            if row is None:
+                problems.append(f"{calculator_id}: no service row")
+                continue
+            label = row._full_text
+            has = label[:1] in ("✓", "△", "○")
+            if (mark == "" and has) or (mark != "" and not label.startswith(mark)):
+                problems.append(f"{calculator_id}: row reads {label!r}, wanted a mark of {mark!r}")
+        for calculator_id, needles in (step.get("tooltips") or {}).items():
+            widget = panel._calculator_status.get(calculator_id) or panel._service_rows.get(calculator_id)
+            tip = widget.toolTip() if widget is not None else ""
+            problems.extend(f"{calculator_id}: tooltip lacks {needle!r}" for needle in needles if needle not in tip)
+        if self._record_assertion("expect_coverage", tag, not problems, "; ".join(problems) or "as expected"):
+            logger.warning("OPENCHEM_DRIVE: EXPECT coverage ok[%s]", tag)
+        else:
+            logger.error("OPENCHEM_DRIVE: EXPECT coverage FAILED[%s] -- %s", tag, "; ".join(problems)[:800])
+
     def _finish(self, *, tolerate_errors: bool = False) -> int:
         """End the run: log the verdict, write the report, return the exit status.
 
@@ -9666,6 +9714,87 @@ class _Driver(QObject):
     def _do_wait(self, step: dict[str, Any]) -> None:
         """Nothing; the pause is `after_ms`. Present so a script can say
         it is waiting rather than hiding it in the previous step."""
+
+    def _do_color_scheme(self, step: dict[str, Any]) -> None:
+        """`{"do": "color_scheme", "scheme": "dark"}` -- ask Qt for the light or the dark scheme.
+
+        For a check of what a widget that borrows the palette looks like in both, without
+        touching the OS setting or any stored preference: it is Qt's own override for this
+        process and ends with it. `"scheme": "unknown"` hands the choice back to the system.
+        """
+        from PySide6.QtCore import Qt
+        from PySide6.QtGui import QGuiApplication
+
+        scheme = {"dark": Qt.ColorScheme.Dark, "light": Qt.ColorScheme.Light}.get(
+            str(step.get("scheme", "")), Qt.ColorScheme.Unknown
+        )
+        QGuiApplication.styleHints().setColorScheme(scheme)
+        logger.warning("OPENCHEM_DRIVE: colour scheme set to %s", scheme.name)
+
+    def _do_reader_filter(self, step: dict[str, Any]) -> None:
+        """`{"do": "reader_filter", "text": "Donors"}` -- type into the docked reader's fact filter.
+
+        The REAL box's own state (`set_filter_state`, what a restore uses): a filter expands
+        the sections it matches in, which is how a shot of "All results" gets a collapsed
+        section's rows on screen. An empty text clears it.
+        """
+        self._window._results_view._view.set_filter_state(str(step.get("text", "")), True)
+        logger.warning("OPENCHEM_DRIVE: reader fact filter set to %r", step.get("text", ""))
+
+    def _do_stage_report(self, step: dict[str, Any]) -> None:
+        """`{"do": "stage_report", "tag": "x", "expect": {...}}` -- the support-stage stars on screen.
+
+        Reads the WIDGETS, not the registry: every Properties row's star (its fill, hidden or
+        not, and whether its tooltip carries the calculator's own reason) and the Results
+        reader's (the one beside "Showing" and how many rows carry one). `expect` takes
+
+            "rows"          {calculator_id: "full" | "half" | "empty" | None}
+            "reason_in_tooltip"  [calculator_id, ...] whose tooltip must hold its support_reason
+            "reader_header" "full" | "half" | "empty" | None -- the star beside "Showing"
+            "reader_rows"   how many fact rows of the reader carry a star ("reader_rows_at_least": a floor)
+        """
+        from openchem.ui.widgets.stage_marker import StageMarker
+
+        tag = str(step.get("tag", ""))
+        expect = dict(step.get("expect") or {})
+        window = self._window
+        panel = window._property_panel
+        registry = window._services.calculator_registry
+        problems: list[str] = []
+
+        def shown(widget):
+            marker = None if widget.isHidden() else widget.marker()
+            return None if marker is None else marker.fill.value
+
+        rows = {cid: shown(widget) for cid, widget in panel._calculator_stage_markers.items()}
+        marked = {cid: fill for cid, fill in rows.items() if fill is not None}
+        reader = window._results_view
+        header = shown(reader.stage_marker())
+        row_stars = [
+            m for m in reader.findChildren(StageMarker) if m is not reader.stage_marker() and not m.isHidden()
+        ]
+        logger.warning(
+            "OPENCHEM_DRIVE: stage_report[%s]: %d of %d Properties rows carry a star %s; reader header=%s, reader rows=%d",
+            tag, len(marked), len(rows), marked, header, len(row_stars),
+        )
+        for cid, wanted in dict(expect.get("rows") or {}).items():
+            if rows.get(cid, "missing") != wanted:
+                problems.append(f"row {cid}: star {rows.get(cid, 'missing')!r}, wanted {wanted!r}")
+        for cid in expect.get("reason_in_tooltip") or ():
+            widget = panel._calculator_stage_markers.get(cid)
+            reason = registry.get(cid).support.support_reason
+            if widget is None or not reason or reason not in widget.toolTip():
+                problems.append(f"row {cid}: tooltip does not carry its reason")
+        if "reader_header" in expect and header != expect["reader_header"]:
+            problems.append(f"reader header star {header!r}, wanted {expect['reader_header']!r}")
+        if "reader_rows" in expect and len(row_stars) != int(expect["reader_rows"]):
+            problems.append(f"reader rows with a star: {len(row_stars)}, wanted {expect['reader_rows']}")
+        if "reader_rows_at_least" in expect and len(row_stars) < int(expect["reader_rows_at_least"]):
+            problems.append(f"reader rows with a star: {len(row_stars)}, wanted at least {expect['reader_rows_at_least']}")
+        if self._record_assertion("stage_report", tag, not problems, "; ".join(problems) or "as expected"):
+            logger.warning("OPENCHEM_DRIVE: EXPECT stage ok[%s]", tag)
+        else:
+            logger.error("OPENCHEM_DRIVE: EXPECT stage FAILED[%s] -- %s", tag, "; ".join(problems)[:900])
 
     # -- resource census probes (`drive_probes`; `tools/perf_census.py`) -----
     #

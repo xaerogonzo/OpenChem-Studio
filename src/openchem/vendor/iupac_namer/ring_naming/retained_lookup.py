@@ -4125,6 +4125,19 @@ def _build_numbering_from_atom_locants(
             allowed_atoms = set(rs_atoms)
         all_matches = [m for m in all_matches if all(a in allowed_atoms for a in m)]
         if not all_matches:
+            # The strict (hydrogen-pinned) query matched only a SIBLING ring of the same
+            # curated key: two 2H-benzotriazoles joined by a bond, the parent with its N2
+            # substituted and the other holding the [nH], numbered the parent by a generic
+            # fallback (`...-2H-benzotriazole-5-carboxylic acid` for a 4-acid; naming round
+            # 82). The tautomer-tolerant matches are tried inside the ring system too.
+            try:
+                _loose = list(mol.GetSubstructMatches(ring_mol, uniquify=False))
+                if ring_query_taut is not None:
+                    _loose += list(mol.GetSubstructMatches(ring_query_taut, uniquify=False))
+            except Exception:
+                _loose = []
+            all_matches = [m for m in dict.fromkeys(tuple(x) for x in _loose) if all(a in allowed_atoms for a in m)]
+        if not all_matches:
             logger.debug(
                 "_build_numbering_from_atom_locants: no substructure match within ring_system"
             )

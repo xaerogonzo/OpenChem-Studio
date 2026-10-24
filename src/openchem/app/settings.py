@@ -138,6 +138,12 @@ PSI4_MEMORY_GB = Preference("quantum_chemistry/psi4_memory_gb", int, 2, minimum=
 #: choice, which is what Psi4 used before it had a setting of its own. A number from 1 up is used as it stands, whatever ORCA's is. Applies to the next Psi4 job.
 PSI4_THREADS = Preference("quantum_chemistry/psi4_threads", int, 0, minimum=0, maximum=256)
 
+#: Whether the rows of the Properties panel say, before any run, whether the drawn structure is something that calculator takes
+#: (`domain.structure_coverage`; "Can run", "With limits", "Not applicable"). ON by default. The check runs once each time the structure
+#: settles (never per drag keystroke) and measured a median 5 ms, a mean 9 ms and a worst 31 ms for every calculator that has a hook or a scope, together
+#: (`docs/STRUCTURE_COVERAGE_DESIGN.md`); OFF skips it entirely and the rows say "Not run" until a run, as they did before it existed.
+STRUCTURE_COVERAGE = Preference("compute/structure_coverage", bool, True)
+
 #: Every preference, in the order the Settings window groups them. Tests
 #: iterate this, so a preference added here is covered without a new test.
 PREFERENCES = (
@@ -145,6 +151,7 @@ PREFERENCES = (
     SHOW_HIDDEN_CALCULATORS, RECALC_MODE, RECALC_QUIET_MS, DRAWING_BOND_KEYS,
     CONFORMER_MAX_EMBEDDINGS, DRAWING_BOND_CLICK, CONFORMER_EARLY_STOP, CONFORMER_KEEP_OPTIMIZED,
     CONFORMER_OPTIMIZE_LOWEST, FUKUI_ANION_F_PLUS, FUKUI_CATION_SEARCH, PSI4_MEMORY_GB, PSI4_THREADS,
+    STRUCTURE_COVERAGE,
 )
 
 #: Where one calculator's own visibility choice is stored: a plain

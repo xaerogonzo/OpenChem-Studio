@@ -842,12 +842,23 @@ and the cursor on the first (nothing runs until you press OK), and **Needs
 setup** opens Settings > External Tools on the tab that sets that calculator up.
 Hover the chip to see what it needs before you press it.
 
+**Before you run anything**, a row can already tell you whether the structure on
+screen is one that calculator takes, and it stays right as you edit: the chip
+reads `Can run` (the structure is inside what the method covers), `△ With
+limits` (it will run, and the tooltip names the limit) or `○ Not applicable`
+(it will refuse, and the tooltip says why). A calculator that has no way to
+know yet still reads `Not run`; `Can run` is about the drawn structure only and
+does not say a tool is set up or that the answer will be accurate. The check
+is the calculator's own refusal test, takes a few milliseconds once each time
+the drawing settles, and can be switched off in Settings > Recalculation.
+
 Calculators that are run from **another panel** — the ORCA jobs (single point,
 optimisation, frequencies, NMR, coupling, Delta-SCF, LED), Hardness/Softness
 and Vina docking — have a row in Properties too, under **Quantum Chemistry**,
 **Lewis Acid/Base** and **Docking**. It is a button, not a launcher: it has no
 tick box and no status chip, it is labelled with the panel it opens ("Single
-Point Energy > Quantum Chemistry panel"), and pressing it shows that panel with
+Point Energy > Quantum Chemistry panel", with a `✓`, `△` or `○` before the name
+when it can already say whether the drawn structure is in scope), and pressing it shows that panel with
 the calculation already chosen. Nothing runs until you press Run there, because
 those jobs take a charge, a multiplicity and a method, and "Run selected" never
 includes them.
@@ -1921,9 +1932,9 @@ heavy atoms made of H, C, N, O, P and S; a charged or radical species, a mixture
 molecule is refused with its reason, because no error was measured for it. A structure whose optimization
 keeps an imaginary vibration after one re-run is dropped, and a base or acid with none left has no value: the
 result says which structures were dropped, and PA and GB can be missing separately (the benchmark lost water
-this way). The lowest structure is used, with no averaging over conformers, and the calculation is experimental
-until it has been driven through the application on real ORCA; it is hidden from the Properties launcher by
-default.
+this way). The lowest structure is used, with no averaging over conformers. The calculation is marked **limited**: driven
+through the application on real ORCA it reproduces the benchmark's own numbers, and what limits it is the narrow
+scope above.
 
 <!-- help:bond-dissociation -->
 ### X-H bond dissociation enthalpy
@@ -2470,6 +2481,16 @@ own section of the [calculator reference](CALCULATOR_REFERENCE.md): what it
 computes, what it needs, what it refuses and why, and — for a limited or
 specialist calculator — its support level and what it covers.
 
+**A small star shows how far a calculator can be trusted.** In Properties, at
+the right end of a calculator's row, and in Results, beside **Showing** (and on
+each fact of **All results**), a full star means the calculator is **Stable**, a
+half star **Limited** (validated inside a scope that leaves out much of what
+people draw) and an empty star **Experimental** (not yet validated for everyday
+use). Hover it for what that means and the calculator's own reason. The stage
+speaks about this application's implementation, never about the published
+method. **No star means nobody has declared a stage for that calculator yet**,
+which is not a claim either way.
+
 ---
 
 <!-- help:compare -->
@@ -2928,11 +2949,13 @@ it is installed, and you can **type your own** into the pKa field
 (`3.49`, or `4.8, 9.4` for a diprotic) — a measured pKa always beats a
 predicted one, and a manual entry overrides the predictor.
 
-**Ampholytes and salts are refused.** A zwitterion's un-ionized form *is*
-the zwitterion, which is highly soluble, so Henderson–Hasselbalch puts the
-minimum in the wrong place; a drawn salt is already the species the
-correction models forming. Both say so rather than producing a plausible
-curve for a different compound.
+**An ampholyte gets its intrinsic estimate and no pH curve; a salt is refused.**
+A zwitterion's un-ionized form *is* the zwitterion, which is highly soluble, so
+Henderson–Hasselbalch puts the minimum in the wrong place: for an ampholyte the
+result shows the model's intrinsic solubility, and a first row says the pH
+profile, the value at a pH and the BCS screen are not computed and why. A drawn
+salt is already the species the correction models forming, so it is refused
+rather than given a plausible curve for a different compound.
 
 ### The BCS line is a screen, not a classification
 
