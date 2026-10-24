@@ -15,7 +15,7 @@ from __future__ import annotations
 from rdkit import Chem
 
 from openchem.chem import aromaticity, bond_dissociation, hansen, hlb, joback, proton_affinity
-from openchem.chem.energetics import OxygenBalanceRefusal, oxygen_balance
+from openchem.chem.energetics import OxygenBalanceRefusal, calculator_balance
 from openchem.chem.energetics import refusal_text as oxygen_balance_refusal_text
 from openchem.domain.structure_coverage import Coverage
 
@@ -29,8 +29,9 @@ def griffin_hlb_coverage(mol: Chem.Mol) -> Coverage | None:
 
 
 def oxygen_balance_coverage(mol: Chem.Mol) -> Coverage | None:
-    """Oxygen balance: the refusal of `oxygen_balance` itself (a sulfur, a halogen or a metal is named)."""
-    result = oxygen_balance(mol)
+    """Oxygen balance: the refusal of `calculator_balance`, the call `compute_oxygen_balance` makes (an element the
+    source gives no product for is named)."""
+    result = calculator_balance(mol)
     if result.refusal is OxygenBalanceRefusal.NOT_A_STRUCTURE:
         return None
     return Coverage.covered() if result.applicable else Coverage.refuses(oxygen_balance_refusal_text(result))

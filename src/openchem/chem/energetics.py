@@ -446,17 +446,31 @@ def meyer_oxygen_balance(mol: Chem.Mol | None) -> MeyerOxygenBalance:
     )
 
 
+def calculator_balance(mol: Chem.Mol | None) -> OxygenBalance | MeyerOxygenBalance:
+    """The result the calculator reports: Klapötke's for C/H/N/O, else Meyer's.
+
+    ONE function, because the Properties row's "will this run" check
+    (`coverage_hooks`) has to ask the calculator's own question: a check
+    that read `oxygen_balance` alone went on saying a sulfur was refused
+    after the calculator learned to compute it. C/H/N/O never reaches the
+    extended accounting, so its numbers are master's by construction rather
+    than by a test that could drift.
+    """
+    result = oxygen_balance(mol)
+    if result.refusal is OxygenBalanceRefusal.NOT_CHNO:
+        return meyer_oxygen_balance(mol)
+    return result
+
+
 def compute_oxygen_balance(
     mol: Chem.Mol, molecule_uuid: str, parameters: dict[str, Any] | None = None
 ) -> ReportResult:
     """Both oxygen balances as the "energetic" category's calculator."""
     parameters = parameters or {}
     places = int(parameters.get("decimal_places", 1))
-    result = oxygen_balance(mol)
-    # C/H/N/O never reaches the extended accounting, so its numbers are
-    # today's by construction rather than by a test that could drift.
-    if result.refusal is OxygenBalanceRefusal.NOT_CHNO:
-        return _meyer_report(meyer_oxygen_balance(mol), molecule_uuid, places)
+    result = calculator_balance(mol)
+    if isinstance(result, MeyerOxygenBalance):
+        return _meyer_report(result, molecule_uuid, places)
 
     provenance = Provenance(
         created_by="core",
