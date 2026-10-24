@@ -1519,6 +1519,7 @@
   "tests/test_organometallic_adapter.py": 3,
   "tests/test_osha_table_z1.py": 3,
   "tests/test_oxidation_states.py": 3,
+  "tests/test_oxygen_balance_extended.py": 3,
   "tests/test_packaged_data.py": 2,
   "tests/test_panel_rail.py": 0,
   "tests/test_panel_table_export.py": 0,
