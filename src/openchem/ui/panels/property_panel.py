@@ -43,6 +43,7 @@ from openchem.domain.calculator import (
 )
 from openchem.domain.batch import BatchRequest
 from openchem.domain.calculator_support import help_anchor_for, is_offered_by_default
+from openchem.domain.support_marker import marker_for
 from openchem.domain import calculator_search
 from openchem.domain.calculator_taxonomy import (
     CATEGORY_LABELS,
@@ -136,6 +137,7 @@ from openchem.ui.dialogs.calculator_settings_dialog import (
 from openchem.ui.dialogs.molecule_scope_dialog import MoleculeScopeDialog
 from openchem.ui.dialogs.property_choice_dialog import Choice, PropertyChoiceDialog
 from openchem.ui.widgets.project_table import _title
+from openchem.ui.widgets.stage_marker import StageMarker
 from openchem.ui.dialogs.nmr_view_dialog import NmrViewDialog
 from openchem.ui.widgets.substance_card import SubstanceCard, card_data_from_report
 from openchem.ui.widgets.collapsible_section import CollapsibleSection as _CollapsibleSection
@@ -1863,6 +1865,8 @@ class PropertyPanel(QWidget):
         self._last_comparison: weakref.ref | None = None
         #: The rows that open another panel, by calculator id.
         self._service_rows: dict[str, QPushButton] = {}
+        #: What is actually in the list for each service row: the button, or the button and its star.
+        self._service_row_widgets: dict[str, QWidget] = {}
         #: The last hint written to the batch status line (see `_refresh_batch_hint`).
         self._last_batch_hint = ""
         self._descriptor_values: dict[tuple[str, str], DescriptorValue] = {}
@@ -1962,6 +1966,8 @@ class PropertyPanel(QWidget):
         #: that adding and deleting form rows mid-life is a worse risk than
         #: one permanently-parked label, and a hidden widget costs no space.
         self._calculator_status: dict[str, QPushButton] = {}
+        #: The support-stage star on each registry row (hidden for an unclassified one).
+        self._calculator_stage_markers: dict[str, StageMarker] = {}
         #: Calculators whose dispatch has ENDED, however it ended.
         #:
         #: Kept apart from the results because `CalculationFinished`
@@ -2290,6 +2296,16 @@ class PropertyPanel(QWidget):
         title = _category_label(category)
         section = _CollapsibleSection(title, expanded, self._sections_container)
         self._sections[category] = section
+        # Whether this section has a star on any of its rows, per kind of row: the rows of a
+        # kind then all keep the room for one, so their chips and buttons stay in line.
+        stage_in_rows = stage_in_service_rows = False
+        for definition in self._calculator_registry.by_category(category):
+            if marker_for(definition) is None:
+                continue
+            if isinstance(definition.execution, RegistryExecution):
+                stage_in_rows = True
+            elif isinstance(definition.execution, ServiceExecution) and definition.execution.panel_id:
+                stage_in_service_rows = True
         # A-Z inside a section (`calculator_browse_sort_key`), NOT registration
         # order: the registry's editorial order is still what the Results reader
         # sorts by, but a launcher is scanned by name.
@@ -2303,7 +2319,9 @@ class PropertyPanel(QWidget):
                 # ab initio NMR in Properties found nothing to press. No tick box and no
                 # status chip: nothing here runs, and "Run selected" cannot include it.
                 if isinstance(definition.execution, ServiceExecution) and definition.execution.panel_id:
-                    section.add_calculator_widget(self._service_row(definition, section.content))
+                    section.add_calculator_widget(
+                        self._service_row(definition, section.content, reserve_stage_room=stage_in_service_rows)
+                    )
                 continue
             # NO "Open " PREFIX. The label used to be `Open {name}...`,
             # which spent about 32 px of a 192 px button on the same five
@@ -2322,6 +2340,7 @@ class PropertyPanel(QWidget):
             # decimal-places setting, so every one of these buttons really
             # does open a dialog. Making it conditional would have added a
             # branch that never runs.
+            reserve_stage_room = stage_in_rows
             button = _ElidingPushButton(f"{definition.display_name}...", section.content)
             apply_help_tooltip(button, calculator_help(definition))
             # A BOUND METHOD, never a lambda that captures `self`.
@@ -2405,6 +2424,13 @@ class PropertyPanel(QWidget):
             apply_help_tooltip(status, _STATUS_CHIP_HELP)
             self._calculator_status[definition.calculator_id] = status
             row_layout.addWidget(status)
+            # THE SUPPORT STAGE, RIGHTMOST, so the stars line up at the row's edge whatever
+            # the chip says. It exists only for a calculator somebody classified and is
+            # otherwise hidden, so an unmarked row is exactly what it was.
+            stage = StageMarker(row, reserve=reserve_stage_room)
+            stage.set_marker(marker_for(definition))
+            row_layout.addWidget(stage)
+            self._calculator_stage_markers[definition.calculator_id] = stage
             self._refresh_status_chip(definition.calculator_id)
             section.add_calculator_widget(row)
             self._calculator_rows[definition.calculator_id] = row
@@ -2443,7 +2469,9 @@ class PropertyPanel(QWidget):
         self._reorder_sections()
         return section
 
-    def _service_row(self, definition: CalculatorDefinition, parent: QWidget) -> QWidget:
+    def _service_row(
+        self, definition: CalculatorDefinition, parent: QWidget, reserve_stage_room: bool = False
+    ) -> QWidget:
         """One row that opens the panel a ServiceExecution calculator is run from.
 
         The label carries the panel's name -- "Single Point Energy > Quantum Chemistry
@@ -2464,7 +2492,23 @@ class PropertyPanel(QWidget):
         button.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
         button.customContextMenuRequested.connect(self._on_calculator_button_menu)
         self._service_rows[definition.calculator_id] = button
-        return button
+        # THE SUPPORT STAGE, for the rows where it matters most: the ORCA workflows are the
+        # calculators that are still experimental, and they are all rows of this kind. A row
+        # with no declared stage stays the bare button it was.
+        marker = marker_for(definition)
+        if marker is None and not reserve_stage_room:
+            self._service_row_widgets[definition.calculator_id] = button
+            return button
+        row = QWidget(parent)
+        row_layout = QHBoxLayout(row)
+        row_layout.setContentsMargins(0, 0, 0, 0)
+        row_layout.addWidget(button, 1)
+        stage = StageMarker(row, reserve=True)
+        stage.set_marker(marker)
+        row_layout.addWidget(stage)
+        self._calculator_stage_markers[definition.calculator_id] = stage
+        self._service_row_widgets[definition.calculator_id] = row
+        return row
 
     def _on_service_row_clicked(self, _checked: bool = False) -> None:
         button = self.sender()
@@ -3243,11 +3287,23 @@ class PropertyPanel(QWidget):
         # THE RENDER CONTEXT. Without it a declared depiction has nothing to
         # draw ON, which is why the Lewis-site diagram never appeared.
         reader.set_structure_resolver(self._resolve_structure_for_report)
+        # HOW GOOD A CALCULATOR IS, beside its result: the registry is the panel's, so the
+        # reader is handed a lookup and never a registry.
+        reader.set_support_resolver(self._support_marker_for_report)
         reader.set_reader_memory(self._reader_memory)
         # A bound SIGNAL, never a lambda: PySide6 holds a plain callable
         # strongly and this panel has paid for that.
         reader.link_activated.connect(self.link_activated)
         self._sync_attached_reader()
+
+    def _support_marker_for_report(self, report_id: str):
+        """The support-stage marker for the calculator that produced `report_id`, or None.
+
+        By id only: a result filed under another name (`nmr_13c`) names no calculator
+        here, and a guess would put a star on the wrong one. The always-on descriptors,
+        recipe answers and scores are not calculators and have none.
+        """
+        return marker_for(self._calculator_registry.get(report_id))
 
     def _sync_attached_reader(self) -> None:
         """Move the persistent reader onto the selected molecule and feed it.
@@ -3927,7 +3983,7 @@ class PropertyPanel(QWidget):
             section_match = False
             for definition in self._calculator_registry.by_category(category):
                 calculator_id = definition.calculator_id
-                widget = self._calculator_rows.get(calculator_id) or self._service_rows.get(calculator_id)
+                widget = self._calculator_rows.get(calculator_id) or self._service_row_widgets.get(calculator_id)
                 if widget is None or calculator_id in self._hidden_calculator_ids:
                     continue
                 matched = self._find_matches(definition, needle)

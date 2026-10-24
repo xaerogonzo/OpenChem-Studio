@@ -2476,6 +2476,16 @@ own section of the [calculator reference](CALCULATOR_REFERENCE.md): what it
 computes, what it needs, what it refuses and why, and — for a limited or
 specialist calculator — its support level and what it covers.
 
+**A small star shows how far a calculator can be trusted.** In Properties, at
+the right end of a calculator's row, and in Results, beside **Showing** (and on
+each fact of **All results**), a full star means the calculator is **Stable**, a
+half star **Limited** (validated inside a scope that leaves out much of what
+people draw) and an empty star **Experimental** (not yet validated for everyday
+use). Hover it for what that means and the calculator's own reason. The stage
+speaks about this application's implementation, never about the published
+method. **No star means nobody has declared a stage for that calculator yet**,
+which is not a claim either way.
+
 ---
 
 <!-- help:compare -->

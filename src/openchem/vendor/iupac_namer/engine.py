@@ -4270,7 +4270,10 @@ def _name_biaryl_ring_assembly(
     # cyclohexyl).
     import re as _re
     def _split(sub: str) -> tuple[str, str] | None:
-        m = _re.match(r"^(.*?)-(\d+(?:[a-z])?)-(yl)$", sub)
+        # An added hydrogen after the locant (`hexahydropentalen-3a(1H)-yl`) is the attachment's
+        # own locant too; without it the name read as `...yl` and the locant defaulted to 1
+        # (`1,1'-bioctahydropentalene` for a 3a,3a' bond; naming round 82).
+        m = _re.match(r"^(.*?)-(\d+(?:[a-z])?)(?:\(\d+H\))?-(yl)$", sub)
         if m:
             stem, loc, _yl = m.group(1), m.group(2), m.group(3)
             return stem, loc
@@ -4350,7 +4353,23 @@ def _name_biaryl_ring_assembly(
     # An indicated-hydrogen component in fusion brackets runs into the `bi`: OPSIN reads
     # `3,1'-bi5H-dibenz[b,f]azepine` as another molecule, `3,1'-bi(5H-dibenz[b,f]azepine)` as the
     # right one (naming round 81). A plain `bi1H-indole` reads and keeps its spelling.
-    if re.match(r"^\d+[a-z]?H-", bi_stem) and "[" in bi_stem:
+    # Round 82: the same for a component OPSIN cannot read behind `bi` at all. A tricyclic or larger one
+    # (`3,4'-bidibenzothiophene` reads as other locants), a von Baeyer or hydro one (`1,1'-bioctahydropentalene`,
+    # `8,3'-bibicyclo[4.2.0]octa-3,5-diene`), and a retained one that needs its indicated hydrogen once it is a
+    # component (`3,1'-bi(9H-xanthene)`; `bixanthene` and `bi(xanthene)` do not read).
+    _bi_ih = {"xanthene": "9H-xanthene", "phenothiazine": "10H-phenothiazine", "phenoxazine": "10H-phenoxazine", "thioxanthene": "9H-thioxanthene"}
+    bi_stem = _bi_ih.get(bi_stem, bi_stem)
+    try:
+        _bi_rings = _Chem.GetSSSR(lookup_mol).__len__() if lookup_smi is not None else 0
+    except Exception:
+        _bi_rings = 0
+    if (
+        (re.match(r"^\d+[a-z]?H-", bi_stem) and "[" in bi_stem)
+        or bi_stem in _bi_ih.values()
+        or "hydro" in bi_stem
+        or (bi_stem.startswith(("bicyclo", "tricyclo")) and "ene" in bi_stem)
+        or (_bi_rings >= 3 and not bi_stem.startswith("(") and parent_hydride_name is not None)
+    ):
         bi_stem = f"({bi_stem})"
     text = f"{loc_a_str},{loc_b_str}'-bi{bi_stem}"
 
