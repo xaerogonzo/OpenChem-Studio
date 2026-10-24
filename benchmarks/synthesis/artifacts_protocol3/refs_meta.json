@@ -1,0 +1,461 @@
+{
+ "pant2018_hepsin": {
+  "stratum": "1",
+  "year": 2018,
+  "period": "2018-2022",
+  "tier": "A",
+  "publisher": "ACS",
+  "substitute": false,
+  "preprint": false
+ },
+ "aida2018_piperazinyl_pyrrolidinones": {
+  "stratum": "1",
+  "year": 2018,
+  "period": "2018-2022",
+  "tier": "B",
+  "publisher": "ACS",
+  "substitute": false,
+  "preprint": false
+ },
+ "li2018_alpha7_pams": {
+  "stratum": "1",
+  "year": 2019,
+  "period": "2018-2022",
+  "tier": "B",
+  "publisher": "ACS",
+  "substitute": false,
+  "preprint": false
+ },
+ "subbaiah2019_atazanavir_prodrugs": {
+  "stratum": "1",
+  "year": 2019,
+  "period": "2018-2022",
+  "tier": "B",
+  "publisher": "ACS",
+  "substitute": false,
+  "preprint": false
+ },
+ "karki2019_factor_d": {
+  "stratum": "1",
+  "year": 2019,
+  "period": "2018-2022",
+  "tier": "B",
+  "publisher": "ACS",
+  "substitute": false,
+  "preprint": false
+ },
+ "wang2019_tasin_analogues": {
+  "stratum": "1",
+  "year": 2019,
+  "period": "2018-2022",
+  "tier": "A",
+  "publisher": "ACS",
+  "substitute": false,
+  "preprint": false
+ },
+ "peery2020_survivin": {
+  "stratum": "1",
+  "year": 2020,
+  "period": "2018-2022",
+  "tier": "B",
+  "publisher": "ACS",
+  "substitute": false,
+  "preprint": false
+ },
+ "hao2021_acyclic_nucleosides": {
+  "stratum": "1",
+  "year": 2021,
+  "period": "2018-2022",
+  "tier": "A",
+  "publisher": "ACS",
+  "substitute": false,
+  "preprint": false
+ },
+ "rajpandey2021_galloyl_flavanones": {
+  "stratum": "1",
+  "year": 2021,
+  "period": "2018-2022",
+  "tier": "A",
+  "publisher": "ACS",
+  "substitute": false,
+  "preprint": false
+ },
+ "bai2021_thienodiazepine_pet": {
+  "stratum": "1",
+  "year": 2021,
+  "period": "2018-2022",
+  "tier": "A",
+  "publisher": "ACS",
+  "substitute": false,
+  "preprint": false
+ },
+ "baumann2021_dark_kinase": {
+  "stratum": "1",
+  "year": 2022,
+  "period": "2018-2022",
+  "tier": "A",
+  "publisher": "ACS",
+  "substitute": false,
+  "preprint": false
+ },
+ "staerz2022_proteasome_activators": {
+  "stratum": "1",
+  "year": 2022,
+  "period": "2018-2022",
+  "tier": "B",
+  "publisher": "ACS",
+  "substitute": false,
+  "preprint": false
+ },
+ "musella2022_retigabine_analogue": {
+  "stratum": "1",
+  "year": 2022,
+  "period": "2018-2022",
+  "tier": "A",
+  "publisher": "ACS",
+  "substitute": false,
+  "preprint": false
+ },
+ "abdellatif2018_thioxoimidazolidinones": {
+  "stratum": "2",
+  "year": 2018,
+  "period": "2018-2022",
+  "tier": "B",
+  "publisher": "Bentham",
+  "substitute": false,
+  "preprint": false
+ },
+ "kaur2018_benzoxazole_cox2": {
+  "stratum": "2",
+  "year": 2018,
+  "period": "2018-2022",
+  "tier": "A",
+  "publisher": "Wiley",
+  "substitute": false,
+  "preprint": false
+ },
+ "trefzger2019_nitrofuran_isoxazoles": {
+  "stratum": "2",
+  "year": 2019,
+  "period": "2018-2022",
+  "tier": "B",
+  "publisher": "Wiley",
+  "substitute": false,
+  "preprint": false
+ },
+ "liu2018_pi3k_mtor_pyridopyrimidines": {
+  "stratum": "2",
+  "year": 2018,
+  "period": "2018-2022",
+  "tier": "B",
+  "publisher": "Elsevier",
+  "substitute": false,
+  "preprint": false
+ },
+ "abolhasani2021_spiroisoxazolines_cox2": {
+  "stratum": "2",
+  "year": 2021,
+  "period": "2018-2022",
+  "tier": "A",
+  "publisher": "Elsevier",
+  "substitute": false,
+  "preprint": false
+ },
+ "yousefi2018_piperazine_catalyst_pyrans": {
+  "stratum": "2",
+  "year": 2018,
+  "period": "2018-2022",
+  "tier": "A",
+  "publisher": "Elsevier",
+  "substitute": false,
+  "preprint": false
+ },
+ "sabry2019_quinazolinones": {
+  "stratum": "2",
+  "year": 2019,
+  "period": "2018-2022",
+  "tier": "A",
+  "publisher": "Elsevier",
+  "substitute": false,
+  "preprint": false
+ },
+ "wang2020_pyrazole_naphthalenes": {
+  "stratum": "2",
+  "year": 2020,
+  "period": "2018-2022",
+  "tier": "A",
+  "publisher": "Elsevier",
+  "substitute": false,
+  "preprint": false
+ },
+ "elkayal2019_quinazolinedione_anticonvulsants": {
+  "stratum": "2",
+  "year": 2019,
+  "period": "2018-2022",
+  "tier": "A",
+  "publisher": "Elsevier",
+  "substitute": false,
+  "preprint": false
+ },
+ "wang2021_picolinamides_tak1": {
+  "stratum": "2",
+  "year": 2021,
+  "period": "2018-2022",
+  "tier": "B",
+  "publisher": "Elsevier",
+  "substitute": false,
+  "preprint": false
+ },
+ "peytam2019_imidazopyrazoles_glucosidase": {
+  "stratum": "2",
+  "year": 2019,
+  "period": "2018-2022",
+  "tier": "A",
+  "publisher": "Springer",
+  "substitute": false,
+  "preprint": false
+ },
+ "gray2019_tyclopyrazoflor_thiol_ene": {
+  "stratum": "2",
+  "year": 2019,
+  "period": "2018-2022",
+  "tier": "A",
+  "publisher": "ACS",
+  "substitute": false,
+  "preprint": false
+ },
+ "mokrov2021_trimethoxybenzyl_diamines": {
+  "stratum": "2",
+  "year": 2021,
+  "period": "2018-2022",
+  "tier": "B",
+  "publisher": "Springer",
+  "substitute": false,
+  "preprint": false
+ },
+ "tenaperez2020_macamides_tnf": {
+  "stratum": "2",
+  "year": 2020,
+  "period": "2018-2022",
+  "tier": "A",
+  "publisher": "RSC",
+  "substitute": false,
+  "preprint": false
+ },
+ "jumde2018_acylhydrazone_bioisosteres": {
+  "stratum": "2",
+  "year": 2018,
+  "period": "2018-2022",
+  "tier": "A",
+  "publisher": "Wiley",
+  "substitute": true,
+  "preprint": false
+ },
+ "alfindee2018_carbohydrate_esters": {
+  "stratum": "2",
+  "year": 2018,
+  "period": "2018-2022",
+  "tier": "B",
+  "publisher": "Elsevier",
+  "substitute": true,
+  "preprint": false
+ },
+ "rosaleshurtado2019_hlm006474_enantiomers": {
+  "stratum": "2",
+  "year": 2019,
+  "period": "2018-2022",
+  "tier": "B",
+  "publisher": "Elsevier",
+  "substitute": true,
+  "preprint": false
+ },
+ "hroch2017_frentizole_thioureas_mao_abad": {
+  "stratum": "3",
+  "year": 2017,
+  "period": "2017",
+  "tier": "A",
+  "publisher": "Elsevier",
+  "substitute": false,
+  "preprint": false
+ },
+ "dobrikov2017_mdl860_analogues": {
+  "stratum": "3",
+  "year": 2017,
+  "period": "2017",
+  "tier": "A",
+  "publisher": "Elsevier",
+  "substitute": false,
+  "preprint": false
+ },
+ "kratky2017_fluorophenylalanines": {
+  "stratum": "3",
+  "year": 2017,
+  "period": "2017",
+  "tier": "A",
+  "publisher": "Elsevier",
+  "substitute": false,
+  "preprint": false
+ },
+ "ning2017_naphthoquinone_dithiocarbamates_pkm2": {
+  "stratum": "3",
+  "year": 2017,
+  "period": "2017",
+  "tier": "A",
+  "publisher": "Taylor and Francis",
+  "substitute": false,
+  "preprint": false
+ },
+ "shintre2017_benzimidazoles_microwave": {
+  "stratum": "3",
+  "year": 2017,
+  "period": "2017",
+  "tier": "A",
+  "publisher": "Springer",
+  "substitute": false,
+  "preprint": false
+ },
+ "kausar2017_spirooxindoles_green": {
+  "stratum": "3",
+  "year": 2017,
+  "period": "2017",
+  "tier": "A",
+  "publisher": "Springer",
+  "substitute": false,
+  "preprint": false
+ },
+ "ungoren2017_aminopyrimidines_dbu": {
+  "stratum": "3",
+  "year": 2017,
+  "period": "2017",
+  "tier": "B",
+  "publisher": "Springer",
+  "substitute": false,
+  "preprint": false
+ },
+ "deng2017_benzothiazepines_acyliminium": {
+  "stratum": "3",
+  "year": 2017,
+  "period": "2017",
+  "tier": "A",
+  "publisher": "ACS",
+  "substitute": false,
+  "preprint": false
+ },
+ "ndlovu2023_nitrofurantoin_glycol_leishmania": {
+  "stratum": "3",
+  "year": 2023,
+  "period": "2023-2025",
+  "tier": "A",
+  "publisher": "Wiley",
+  "substitute": false,
+  "preprint": false
+ },
+ "lai2023_tetrahydrobenzothiophene_antibacterials": {
+  "stratum": "3",
+  "year": 2023,
+  "period": "2023-2025",
+  "tier": "A",
+  "publisher": "RSC",
+  "substitute": false,
+  "preprint": false
+ },
+ "wang2024_pyranochromene_antibacterials": {
+  "stratum": "3",
+  "year": 2024,
+  "period": "2023-2025",
+  "tier": "B",
+  "publisher": "Elsevier",
+  "substitute": false,
+  "preprint": false
+ },
+ "lin2024_piperidine_parp1": {
+  "stratum": "3",
+  "year": 2024,
+  "period": "2023-2025",
+  "tier": "A",
+  "publisher": "Elsevier",
+  "substitute": false,
+  "preprint": false
+ },
+ "sardo2025_styrylquinoline_carboxamides": {
+  "stratum": "3",
+  "year": 2025,
+  "period": "2023-2025",
+  "tier": "A",
+  "publisher": "Wiley",
+  "substitute": false,
+  "preprint": false
+ },
+ "hu2025_usp5_in_1_derivatives": {
+  "stratum": "3",
+  "year": 2025,
+  "period": "2023-2025",
+  "tier": "A",
+  "publisher": "Elsevier",
+  "substitute": false,
+  "preprint": false
+ },
+ "zhang2025_hdac6_indole_caps": {
+  "stratum": "3",
+  "year": 2025,
+  "period": "2023-2025",
+  "tier": "B",
+  "publisher": "Elsevier",
+  "substitute": false,
+  "preprint": false
+ },
+ "cetin2025_thiophene_derivatives_ache": {
+  "stratum": "3",
+  "year": 2025,
+  "period": "2023-2025",
+  "tier": "B",
+  "publisher": "Elsevier",
+  "substitute": false,
+  "preprint": false
+ },
+ "shi2025_dual_protacs_dehydrographolide": {
+  "stratum": "3",
+  "year": 2025,
+  "period": "2023-2025",
+  "tier": "A",
+  "publisher": "Springer",
+  "substitute": false,
+  "preprint": false
+ },
+ "li2025_lunresertib_pkmyt1": {
+  "stratum": "3",
+  "year": 2025,
+  "period": "2023-2025",
+  "tier": "B",
+  "publisher": "ACS",
+  "substitute": false,
+  "preprint": false
+ },
+ "thumma2024_ibuprofen_benzoxazoles": {
+  "stratum": "3",
+  "year": 2024,
+  "period": "2023-2025",
+  "tier": "B",
+  "publisher": "RSC",
+  "substitute": true,
+  "preprint": false
+ },
+ "sheng2023_betacarboline_hydrazides": {
+  "stratum": "3",
+  "year": 2023,
+  "period": "2023-2025",
+  "tier": "A",
+  "publisher": "ACS",
+  "substitute": true,
+  "preprint": false
+ },
+ "olmo2024_benzalphthalides_maob": {
+  "stratum": "3",
+  "year": 2024,
+  "period": "2023-2025",
+  "tier": "A",
+  "publisher": "Elsevier",
+  "substitute": true,
+  "preprint": false
+ }
+}

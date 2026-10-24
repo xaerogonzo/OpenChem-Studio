@@ -1,6 +1,6 @@
 # Synthesis planner quality benchmark, protocol 3 (option 3c): routes the model cannot have memorised
 
-**Status: DRAFT of 2026-10-24, not frozen.** It freezes when Alex approves the decisions in the last section. Nothing in the planner has been run on these routes: the references were read and checked first, the protocol is written second, the run is third. Protocols 1 and 2 (`PREREGISTRATION.md`, `PREREGISTRATION_2.md`, `RESULT.md`, `RESULT_2.md`) are the context, and this document uses their matching rule, ranking, settings and vocabulary unchanged unless it says otherwise.
+**Status: FROZEN on 2026-10-24.** Alex approved all eight decisions in the last section as recommended. It was drafted first, the references were read and checked before it was written, and nothing in the planner has been run on these routes. A change after this point is a new, dated section here, never an edit above it, and any result produced under a changed rule says so. Protocols 1 and 2 (`PREREGISTRATION.md`, `PREREGISTRATION_2.md`, `RESULT.md`, `RESULT_2.md`) are the context, and this document uses their matching rule, ranking, settings and vocabulary unchanged unless it says otherwise.
 
 ## The question, and what it can and cannot say
 
@@ -105,7 +105,7 @@ About 51 targets times three stocks at about 1 to 5 minutes each, plus two repea
 
 `run_quality_3.py` (reads the references, builds the three stock files and refuses as protocol 2 does), the lenient match and the reaction-level recall as pure functions with tests on synthetic routes, `judge_3.py` (the readings above), and the committed `artifacts_protocol3/`. No change under `src/` in the PR that carries the run.
 
-## Decisions for approval (recommended answer first)
+## Decisions (all eight APPROVED by Alex on 2026-10-24, as recommended)
 
 1. **Primary stock:** protocol 2's n1 stock plus the references' starting materials minus their intermediates and targets (recommended); alternatives are starting materials only, or ZINC.
 2. **The lead rule stays strict, with no fallback** (recommended); the 26 papers that list other short routes stay unread.
@@ -114,4 +114,8 @@ About 51 targets times three stocks at about 1 to 5 minutes each, plus two repea
 5. **The reading rule of item 2** (lower tail below 0.05 against protocol 2's depth rates; otherwise "no evidence of a drop") and no GO / PARTIAL gate.
 6. **Late papers:** papers that arrive before this freezes are read and added; none after (recommended).
 7. **The pilot's eight routes stay out** (recommended).
-8. **When to run it,** given the queued ORCA runs (about 5 hours, CPU-heavy).
+8. **When to run it:** as soon as the machine is free, meaning no ORCA, Psi4, Vina or planner process is running (checked when the run starts; about 5 hours, CPU-heavy). Approved as recommended, this reading of the item being the one the run uses.
+
+## Freeze log
+
+* 2026-10-24: frozen. No paper had arrived since the references were fixed (checked against every missing paper of the three draws and the two extra wanted papers). 51 references, 190 papers read.
