@@ -2525,6 +2525,13 @@ what can be verified.
   `tests/test_namer_known_defects.py`. Three earlier tests pinned refusals this round turned into names and now pin the cases still refused: a carboxylate beside two neutral acids
   (`test_namer_round43_*`, `test_namer_round45_*`) and a pyrazolone anion (`test_namer_round46_*`).
 
+## 2026-10-24 -- naming round 83: a hypoxanthine with no ring N-H (D-375)
+
+Four populations, clean: curated rings joined by 12 functional linkers (ester, amide, reverse amide, ketone, sulfone, thioether, N-methylamine, OCH2CH2, CH2O, CH2N, C=N; about 3,000), 1-2 richer substituents on every curated ring (1,677), charged curated rings, and 1,500 pairs x 4 joins on a new seed (6,000). The only misses were OPSIN's beta-lactam and morphinan stereo defaults and the case round 81 recorded.
+
+* **D-375.** A purine with an oxo and NO ring N-H (`O=C1N=CN=C2N=C(R)N=C12`, a quinoid 6H-purin-6-one) kept the curated `9H-`: `methyl 6-oxo-9H-purine-8-carboxylate`, `6-oxo-9H-purin-8-yl`, a hydrogen on N9 the drawing lacks (OPSIN reads another tautomer, or nothing beside the ring in an ester). `_retag_indicated_h` now moves the indicated hydrogen to the one ring carbon that holds an `=O` (or `=S`, `=Se`, `=Te`) when no ring N bears a hydrogen and none is substituted: `6-oxo-6H-purine-8-carboxylate`, `6-oxo-6H-purin-8-yl`, `6-thioxo-6H-purine-8-carboxylate`. The ketone (`2-methyl-6H-purin-6-one`) and the lactam with its N-H (`6-oxo-1H,7H-purine-8-carboxylate`) are unchanged.
+* New `tests/test_namer_round83_hypoxanthine_with_no_ring_nh_takes_the_oxo_carbons_indicated_hydrogen.py`. Mutation: of five mutants, one killed; the survivors are a `len == 1` against `>= 1` guard (no input has two oxo carbons and no N-H), the `GetTotalNumHs() == 0` guard (an N-H at the indicated slot of a non-aromatic ring) and the `oxo_loc is None` guard (the helper is only reached with an oxo).
+
 ## 2026-10-23 -- naming round 82: polysubstituted rings and ring assemblies (D-371 .. D-374)
 
 `poly.py` (scratch, `D:\_scratch\r60\r80`): every curated ring with three or four mixed substituents (16 groups: acid, amine, hydroxyl, chlorine, methyl, nitro, amide, nitrile, methoxy, sulfonic acid, aldehyde, bromine, ethyl, trifluoromethyl, thiol, acetyl) at random positions, 1,427 + 4,725 molecules. Clean but for the beta-lactam stereo defaults and the first find. `assm.py`: a curated ring of 14 atoms or fewer joined to one or two copies of itself, with an optional substituent, 1,246 + 1,880 molecules. Named, read back through OPSIN, compared on the standard InChIKey.
