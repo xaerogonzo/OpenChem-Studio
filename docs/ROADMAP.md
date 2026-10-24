@@ -2331,7 +2331,7 @@ and three were checked again recently rather than taken on trust.
   source or a benchmark measured is a **warning**, the number computed and labelled an estimate (proton affinity and bond dissociation, #447; Hansen below three
   carbons and solubility's intrinsic estimate for an ampholyte, the change that recorded this). An audit of every refusal the calculator census panel produces
   (29 molecules, 30 of 63 calculators refusing something) left these, in order of how much work each needs:
-  1. **Oxygen balance beyond C/H/N/O: done for S, Cl, F, I, B, Si, P and twenty metals; the rest stays refused.** Meyer, Koehler & Homburg's *Explosives*
+  1. **Oxygen balance beyond C/H/N/O: done for S, Cl, F, I, B, Si, P and twenty-one metals; the rest stays refused.** Meyer, Koehler & Homburg's *Explosives*
      (7th ed.) names the products (CO2, H2O, SO2, Al2O3; chlorine to HCl; alkaline earths to their oxides) and prints 41 balances beyond C/H/N/O, 38 of
      which one valence per element reproduces; Conkling & Mocella's *Chemistry of Pyrotechnics* (3rd ed.) states that valence per element (Table 2.5, the
      "pyro valence") and adds B, F, Mg, Ti, Si, Zr, P (P2O5, also Shimizu's *Fireworks*), Mo (MoO3, its worked exercise) and W (WO3); US 6,599,380 and Persson, Holmberg & Lee's *Rock Blasting and Explosives Engineering* (Eq. 4.43, run term for
@@ -2344,7 +2344,9 @@ and three were checked again recently rather than taken on trust.
      no help for bromine: Shancita 2020, Davis 1943 and AMCP 706-187 state none. **Iron and copper** burn to the oxide of their DRAWN CHARGE (Fe(II) FeO, Fe(III)
      Fe2O3, Cu(I) Cu2O, Cu(II) CuO), a rule no source states but every printed value follows: Meyer's ferrocene -223.6 and iron acetylacetonate 163.1 (its
      sign lost) to the digit, Conkling's 7.94 and 3.97 g of Cu per g of O; another charge, or none, is refused and the other oxide's figure printed beside
-     the answer. **What remains**: Br (no source anywhere states or prints a bromine product; the choice is HBr by analogy with Cl, which the iodine result
+     the answer. **What remains**: Br (no source anywhere states or prints a bromine product: read for it, with nothing, were Meyer, Conkling, Persson, Cooper (C/H/N/O only), Akhavan, Klapoetke's
+     Encyclopedia in all three volumes, a preprint on brominated TNTs (no balance column) and eighteen Klapoetke-group LMU dissertations; the next places to look are the other fifty
+     of those theses and any bromo-azole paper with an OB column; the choice is HBr by analogy with Cl, which the iodine result
      shows is not safe, or a labelled estimate) and every other element, and halogen beyond what hydrogen and metals can take (CCl4, Teflon); each needs a source that states a
      product. Formulations still refuse a non-C/H/N/O component. **Kamlet-Jacobs detonation**: read, and not extendable from these
      sources -- all four Kamlet papers and Meyer's entry state it for C-H-N-O explosives; its oxygen-window refusal stands too.

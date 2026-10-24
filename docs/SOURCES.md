@@ -1,5 +1,5 @@
 <!-- GENERATED FROM docs/sources.toml -- do not edit -->
-<!-- SOURCE SHA256: 1143351e0adae168137acc8d728f2574755eaa1a0c7ff3f9fc0ed579616887b2 -->
+<!-- SOURCE SHA256: 3a09d8b62e1a73392c2756254402e5249a8547a6058074ee6dac2862ee29b646 -->
 
 # Sources
 
@@ -159,6 +159,7 @@ next run of `tools/build_lewis_parameters.py`.
 | [`drago1965`](#drago1965) | literature | shipped | citation + claim |
 | [`drago1990`](#drago1990) | literature | shipped | citation |
 | [`drago1993`](#drago1993) | literature | shipped | citation |
+| [`dufter2026`](#dufter2026) | literature | shipped | citation + claim |
 | [`dunitz1997`](#dunitz1997) | literature | shipped | citation + claim |
 | [`dunitz2004`](#dunitz2004) | literature | shipped | citation + claim |
 | [`ertl2000`](#ertl2000) | literature | shipped | citation |
@@ -4832,6 +4833,36 @@ The book prints no DOI; the ISBN is the one on its imprint page. The text
 layer drops minus signs (Table 5.2 reads "73.96" for TNT); the signs are
 the book's, read from its Eq. 5.1. Its Eq. 5.2 and the TNT example are the
 C/H/N/O form [source:klapotke2017] already supplies.
+
+### dufter2026
+
+<a id="dufter2026"></a>
+
+> A. M. W. Dufter-Muenster, 'Investigation of Next-Generation Visible Light-Producing Pyrotechnics', Dissertation, Ludwig-Maximilians-Universitaet Muenchen, Fakultaet fuer Chemie und Pharmazie, 2026 (Klapoetke group).
+
+| | |
+| --- | --- |
+| Identifier | <https://edoc.ub.uni-muenchen.de/37604/> |
+| Status | shipped |
+| Verification | citation + claim |
+| Verified | 2026-10-24 |
+| Used by | `src/openchem/chem/energetics.py`, `tests/test_oxygen_balance_extended.py` |
+
+States cerium's product with a value that reproduces: "Ceric ammonium nitrate
+(CAN) has an oxygen balance of 35.02% assuming combustion to cerium(IV)
+oxide". (NH4)2Ce(NO3)6 gives +35.02 to the printed digit with Ce to CeO2. The
+same passage prints stearic acid at -292.46% (C/H/O) and a 15:1 CAN/stearic
+acid mixture at 14.55%, which is the mass-weighted sum; both reproduce.
+
+**ITS LITHIUM BORATE TABLES DO NOT FOLLOW ITS OWN FOOTNOTE.** The footnote says
+"oxygen balance with respect to formation of CO2, Li2O and B2O3", but the
+printed values (lithium 5-aminotetrazolate -52.75, lithium
+dihydrobis(tetrazol-1-yl)borate monohydrate -54.58) reproduce only with the
+lithium and the boron left UNOXIDISED. So its statements of Li2O and B2O3 are
+not used as evidence, and none of its table values is a test.
+
+Open-access thesis, found while searching the Klapoetke group's LMU
+dissertations for a bromine balance: eighteen were read and none prints one.
 
 ### persson1994
 

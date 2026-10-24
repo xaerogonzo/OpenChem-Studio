@@ -147,7 +147,7 @@ def test_every_accepted_element_is_pinned_by_a_printed_value():
     pinned: set[str] = set()
     for _, smiles, *_ in MEYER + CONKLING_UNITS + BORATES + SHREEVE:
         pinned.update(a.GetSymbol() for a in _mol(smiles).GetAtoms())
-    pinned |= {"B", "Ti", "Mg", "Mo", "Fe", "Cu"}  # the mixtures and charge-matched tests below
+    pinned |= {"B", "Ti", "Mg", "Mo", "Fe", "Cu", "Ce"}  # the mixtures and charge-matched tests below
     accepted = set(E._PRODUCTS) | set(E._HALOGENS) | set(E._CHARGE_MATCHED)
     assert accepted - pinned - {"C", "H", "N"} == STATED_ONLY
 
@@ -337,6 +337,34 @@ def test_iodine_takes_no_hydrogen_unlike_chlorine():
     iodoform = E.extended_oxygen_balance(_mol("IC(I)I"))
     assert iodoform.applicable and iodoform.oxygen_needed == pytest.approx(2.5)
     assert not E.extended_oxygen_balance(_mol("ClC(Cl)Cl")).applicable
+
+
+# ---------------------------------------------------------------------------
+# 1b2 cerium: ceric ammonium nitrate and stearic acid (Dufter-Muenster thesis)
+# ---------------------------------------------------------------------------
+
+CAN = "[NH4+].[NH4+].[Ce+4]" + (".[O-][N+](=O)[O-]" * 6)
+STEARIC_ACID = "CCCCCCCCCCCCCCCCCC(=O)O"
+
+
+def test_ceric_ammonium_nitrate_is_35_02_with_cerium_to_ceO2():
+    """'Ceric ammonium nitrate (CAN) has an oxygen balance of 35.02 % assuming
+    combustion to cerium(IV) oxide.' Cerium is not in the C/H/N/O function, so
+    this is the extended accounting."""
+    result = E.extended_oxygen_balance(_mol(CAN))
+    assert result.applicable, E.refusal_text(result)
+    assert result.to_full_oxidation == pytest.approx(35.02, abs=0.01)
+    assert ("Ce", "CeO2") in result.products
+
+
+def test_the_theses_stearic_acid_and_its_15_to_1_mixture():
+    """Stearic acid -292.46% (a C/H/O check of the same passage), and a 15:1
+    CAN/stearic acid mixture at 14.55%: the mass-weighted sum, since a balance
+    is per gram."""
+    stearic = E.oxygen_balance(_mol(STEARIC_ACID)).to_carbon_dioxide
+    assert stearic == pytest.approx(-292.46, abs=0.01)
+    can = E.extended_oxygen_balance(_mol(CAN)).to_full_oxidation
+    assert (15 * can + stearic) / 16 == pytest.approx(14.55, abs=0.01)
 
 
 # ---------------------------------------------------------------------------

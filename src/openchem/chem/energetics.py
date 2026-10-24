@@ -2,7 +2,7 @@
 them where a source says what each other element burns to: [source:meyer2016],
 [source:conkling2019], [source:zeuner2003], [source:shimizu1996],
 [source:he2016], [source:klapotke2021], [source:amcp706187],
-[source:persson1994].
+[source:persson1994], [source:dufter2026].
 
 Oxygen balance says whether a substance carries enough oxygen to burn its own
 carbon and hydrogen, as a percentage of its mass. Zero means exactly enough;
@@ -242,6 +242,9 @@ _PRODUCTS: dict[str, ElementAccounting] = {
     "Zr": ElementAccounting(
         "ZrO2", 4, "Conkling & Mocella Table 2.5 and its table of metal fuels' "
         "oxides (no printed balance)"),
+    "Ce": ElementAccounting(
+        "CeO2", 4, "Dufter-Muenster's ceric ammonium nitrate, +35.02% 'assuming "
+        "combustion to cerium(IV) oxide'"),
     "I": ElementAccounting(
         "I2 (not oxidised)", 0, "He, Hooper & Shreeve's formula and seven of its "
         "printed balances (13, 14, 17, 18, 19, 22, 23); metal iodates to the oxide "

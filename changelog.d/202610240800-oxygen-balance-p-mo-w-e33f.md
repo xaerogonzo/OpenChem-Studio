@@ -16,6 +16,8 @@
 - Persson, Holmberg & Lee's closed form (Eq. 4.43) is now held against the calculator term for
   term, an independent statement of the oxide and halogen conventions (boron to B₂O₃, chlorine
   and fluorine sparing half an oxygen each).
+- Cerium is now computed, to CeO₂: a Klapötke-group thesis states it and prints ceric ammonium
+  nitrate at +35.02%, which reproduces.
 - Still refused, by name: bromine (no source gives a product) and every other element. Jain's
   1987 paper, where the method comes from, covers C, H, O, N and Cl only.
 - Iodine is now computed too, left as I₂ (it takes no hydrogen, unlike chlorine), following He,

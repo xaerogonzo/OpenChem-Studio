@@ -4801,6 +4801,37 @@ C/H/N/O form [source:klapotke2017] already supplies.
 """
 
 [[source]]
+key = "dufter2026"
+kind = "literature"
+citation = "A. M. W. Dufter-Muenster, 'Investigation of Next-Generation Visible Light-Producing Pyrotechnics', Dissertation, Ludwig-Maximilians-Universitaet Muenchen, Fakultaet fuer Chemie und Pharmazie, 2026 (Klapoetke group)."
+identifier_type = "url"
+identifier = "https://edoc.ub.uni-muenchen.de/37604/"
+status = "shipped"
+used_by = [
+    "src/openchem/chem/energetics.py",
+    "tests/test_oxygen_balance_extended.py",
+]
+verification = "citation_and_claim"
+verified_date = 2026-10-24
+note = """
+States cerium's product with a value that reproduces: "Ceric ammonium nitrate
+(CAN) has an oxygen balance of 35.02% assuming combustion to cerium(IV)
+oxide". (NH4)2Ce(NO3)6 gives +35.02 to the printed digit with Ce to CeO2. The
+same passage prints stearic acid at -292.46% (C/H/O) and a 15:1 CAN/stearic
+acid mixture at 14.55%, which is the mass-weighted sum; both reproduce.
+
+**ITS LITHIUM BORATE TABLES DO NOT FOLLOW ITS OWN FOOTNOTE.** The footnote says
+"oxygen balance with respect to formation of CO2, Li2O and B2O3", but the
+printed values (lithium 5-aminotetrazolate -52.75, lithium
+dihydrobis(tetrazol-1-yl)borate monohydrate -54.58) reproduce only with the
+lithium and the boron left UNOXIDISED. So its statements of Li2O and B2O3 are
+not used as evidence, and none of its table values is a test.
+
+Open-access thesis, found while searching the Klapoetke group's LMU
+dissertations for a bromine balance: eighteen were read and none prints one.
+"""
+
+[[source]]
 key = "persson1994"
 kind = "literature"
 citation = "P.-A. Persson, R. Holmberg & J. Lee, 'Rock Blasting and Explosives Engineering', CRC Press, Boca Raton, 1994 (ISBN 0-8493-8978-X); reprinted 2018."

@@ -764,7 +764,7 @@ sulfur, chlorine and fluorine (taken by a hydrogen as HCl/HF or by a metal as
 its halide, which gives the same number either way), iodine (left as I₂, taking
 no hydrogen), boron, silicon,
 phosphorus (to P₂O₅, also Shimizu's *Fireworks*) and
-twenty metals are accepted, each at the product a source states or the
+twenty-one metals are accepted, each at the product a source states or the
 oxide its printed balances use; mercury and silver are left unoxidised
 because that is what Meyer does. Akhavan's *The Chemistry of
 Explosives* states the same definition and agrees on silver and lead, but
