@@ -1921,9 +1921,9 @@ heavy atoms made of H, C, N, O, P and S; a charged or radical species, a mixture
 molecule is refused with its reason, because no error was measured for it. A structure whose optimization
 keeps an imaginary vibration after one re-run is dropped, and a base or acid with none left has no value: the
 result says which structures were dropped, and PA and GB can be missing separately (the benchmark lost water
-this way). The lowest structure is used, with no averaging over conformers, and the calculation is experimental
-until it has been driven through the application on real ORCA; it is hidden from the Properties launcher by
-default.
+this way). The lowest structure is used, with no averaging over conformers. The calculation is marked **limited**: driven
+through the application on real ORCA it reproduces the benchmark's own numbers, and what limits it is the narrow
+scope above.
 
 <!-- help:bond-dissociation -->
 ### X-H bond dissociation enthalpy

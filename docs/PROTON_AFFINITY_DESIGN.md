@@ -128,3 +128,18 @@ uv run --no-sync python benchmarks/proton_affinity/run_pa.py report             
 ```
 
 Rules that go with it: one stage at a time; never edit a threshold or a rule after the report is seen (an amendment section, disclosed); **the secondary DLPNO arm is a later stage, written and run only if the primary arm passes** (stage order, not a rule change); a failed or partial verdict is the deliverable, as the preregistration says. Machine capacity: `--workers 3 --cores 4` assumes 12 free cores and about 9 GB of RAM (`%maxcore 3000`).
+
+## Driven through the application on real ORCA, and promoted to LIMITED (2026-10-23)
+
+`benchmarks/visual/proton_affinity_run.json` drives the real window: the real **Proton affinity...** button, real ORCA 6.1.1, and the values read back from the STORED result, the stored run and the panel's text. It was run twice, both **VERDICT PASS, 5 of 5 assertions, no application error**:
+
+| | 2026-10-22, commit `b41c2e93` (#429) | 2026-10-23, commit `fb65056a` (master, clean tree) | benchmark |
+|---|---|---|---|
+| chloromethane | refused before anything was queued | refused before anything was queued | out of scope |
+| ammonia PA / GB (kJ/mol) | 844.5166 / 810.1305 | 844.5166 / 810.1305 | 844.5166 / 810.1305 |
+| methylamine PA / GB | 890.8002 / 856.3339 | 890.8002 / 856.3339 | 890.8003 / 856.3341 |
+| water | no value, the planar H3O+ named | no value, the planar H3O+ named | no value |
+
+The first of these runs found a defect no unit test had reached (the Runs history raising on a stored run with no value), fixed in #429. The second was made on the commit the promotion was made from, after the service gained the bond-dissociation sequence beside this one.
+
+**What the promotion is.** `orca.proton_affinity` was EXPERIMENTAL and hidden for one stated reason: the benchmark passed, but this implementation had not been driven through the application on real ORCA. With that recorded it is **LIMITED and shown by default** (`docs/CALCULATOR_MATURITY.md`: a promotion is one change carrying the metadata, the evidence and the changelog entry). It is LIMITED and not STABLE because the scope is narrow (neutral closed-shell bases of at most ten heavy atoms of H, C, N, O, P and S) and one preregistered benchmark is not the independent, held-out, stratified result STABLE asks for. Its execution policy is unchanged: a model may not start it without a person's approval.
