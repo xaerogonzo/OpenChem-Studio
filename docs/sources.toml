@@ -4801,6 +4801,61 @@ C/H/N/O form [source:klapotke2017] already supplies.
 """
 
 [[source]]
+key = "jain1987"
+kind = "literature"
+citation = "S. R. Jain, 'Energetics of Propellants, Fuels and Explosives; a Chemical Valence Approach', Propellants, Explosives, Pyrotechnics 1987, 12, 188-195."
+identifier_type = "doi"
+identifier = "10.1002/prep.19870120603"
+status = "shipped"
+used_by = [
+    "src/openchem/chem/energetics.py",
+]
+local = "jain1987.pdf"
+verification = "citation_and_claim"
+verified_date = 2026-10-24
+note = """
+The origin of the valence method [source:conkling2019] teaches as the "Pyro
+Valence Method": a mixture balances when its oxidizing and reducing valences
+sum to zero, hydrogen and carbon being reducing (+1, +4 here) and oxygen and
+chlorine oxidizing, nitrogen neutral. Its worked examples agree with this
+module's table (ammonium perchlorate +5 in the paper's sign, glucose -24,
+methanol -6, nitric acid +5; 24 AP + 5 glucose -> 30 CO2 + 24 HCl + 12 N2 + 66
+H2O).
+
+**IT COVERS C, H, O, N AND Cl ONLY** ("involving C, H, O, N and Cl atoms"),
+with one passing mention of aluminised AP. The paper was read in full for a
+per-element table covering bromine, iodine, copper or iron, as the likeliest
+place for one; there is none. Its signs are the opposite of Conkling's.
+"""
+
+[[source]]
+key = "shimizu1996"
+kind = "literature"
+citation = "T. Shimizu, 'Fireworks: The Art, Science and Technique', 3rd edition, Pyrotechnica Publications, Austin, Texas, 1996 (first published 1981). ISBN 0-929388-05-4."
+identifier_type = "isbn"
+identifier = "0-929388-05-4"
+status = "shipped"
+used_by = [
+    "src/openchem/chem/energetics.py",
+    "tests/test_oxygen_balance_extended.py",
+]
+local = "vdoc.pub_fireworks-the-art-science-and-technique.pdf"
+verification = "citation"
+verified_date = 2026-10-24
+note = """
+An independent statement of two products the oxygen balance relies on, in
+the smoke chapter (printed p80): "Phosphorus or metalic sodium burn in the air
+generating dense white smoke ... 4 P + 5 O2 --> 2 P2O5 + ca.700 kcal, 4 Na + O2
+--> 2 Na2O + ca. 200 kcal". It agrees with [source:conkling2019]'s Table 3.5
+(phosphorus to P2O5) and with [source:meyer2016]'s sodium oxide.
+
+The book states no oxygen balance and no per-element valence, and it was
+searched for bromine, iodine, copper and iron products without result, so
+`verification` is the citation only: nothing here is a balance computed from
+it. The file is a text copy of the third edition's contents.
+"""
+
+[[source]]
 key = "conkling2019"
 kind = "literature"
 citation = "J. A. Conkling & C. J. Mocella, 'Chemistry of Pyrotechnics: Basic Principles and Theory', 3rd edition, CRC Press (Taylor & Francis), Boca Raton, 2019. ISBN 978-1-138-07992-2."
@@ -4835,6 +4890,19 @@ at +2.88 valence per 100 g); titanium (KClO4/Ti 80/20 at -2.95, and
 60/35/5 with PMMA at +0.66). Silicon and zirconium are accepted on the
 statement alone (Table 2.5, plus Eq. 3.24 for SiO2 and the metal-fuel
 table's oxide column for ZrO2): no printed balance uses them.
+
+**THREE MORE ELEMENTS COME FROM OUTSIDE TABLE 2.5.** Phosphorus burns to
+P2O5 in Table 3.5 (red and white, 0.78 g of fuel per g of O); molybdenum to
+MoO3 in the worked answer to Exercise 4, where BaCrO4/KClO4/Mo at
+67.9/10.0/22.1 is stoichiometric with a Mo valence of +6 "obtained by
+analysis of the formula of the reaction product"; tungsten to WO3 in Table
+3.4 (3.83 g per g of O). Tables 3.4 and 3.5 print "grams of fuel consumed per
+gram of O" for every element they list, and the calculator reproduces it for
+Al, B, C, Mg, P, Si, S, Ti, W, Zn and Zr to the printed two places (phosphorus
+by one unit in the last place: the book used 31.0, which gives 0.775).
+Copper is printed as "Cu2O/CuO" with both figures, so which one is not
+stated, and copper stays refused. Phosphorus, molybdenum and tungsten halides
+are refused too: no source says how many halogens they hold.
 
 **WHERE IT DEPENDS ON ROLE, AND SO IS NOT USED:** iron is the metal in an
 oxidizer and Fe2O3 as a fuel; red lead goes to the metal (valence -8, "-2 if

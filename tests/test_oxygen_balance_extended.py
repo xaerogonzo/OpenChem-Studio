@@ -135,10 +135,10 @@ def test_meyers_printed_balance_reproduces(name, smiles, formula, printed, tol):
     assert result.to_full_oxidation == pytest.approx(printed, abs=tol)
 
 
-#: Accepted on a source's STATEMENT alone: Conkling & Mocella's Table 2.5
-#: names the product, and no printed balance uses the element. Held to the
-#: table instead (`test_the_statement_only_elements_are_the_tables_rows`).
-STATED_ONLY = {"Si", "Zr"}
+#: Accepted on a source's STATEMENT, with no printed BALANCE using the
+#: element; each is held to the book's numeric column instead
+#: (`test_conklings_grams_of_fuel_per_gram_of_oxygen`).
+STATED_ONLY = {"Si", "Zr", "P", "W"}
 
 
 def test_every_accepted_element_is_pinned_by_a_printed_value():
@@ -147,7 +147,7 @@ def test_every_accepted_element_is_pinned_by_a_printed_value():
     pinned: set[str] = set()
     for _, smiles, *_ in MEYER + CONKLING_UNITS + BORATES:
         pinned.update(a.GetSymbol() for a in _mol(smiles).GetAtoms())
-    pinned |= {"B", "Ti", "Mg"}  # the mixtures below
+    pinned |= {"B", "Ti", "Mg", "Mo"}  # the mixtures below
     accepted = set(E._PRODUCTS) | set(E._HALOGENS)
     assert accepted - pinned - {"C", "H", "N"} == STATED_ONLY
 
@@ -250,6 +250,46 @@ def test_the_patents_boron_igniter():
     boron = E.extended_oxygen_balance(_mol("[B]")).to_full_oxidation
     nitrate = E.extended_oxygen_balance(_mol(f"[K+].{NITRATE}")).to_full_oxidation
     assert 0.26 * boron + 0.74 * nitrate == pytest.approx(-28.4, abs=0.05)
+
+
+#: Conkling & Mocella's Tables 3.4 and 3.5: "grams of fuel consumed per gram
+#: of O" for the element burned to the product beside it. The number is the
+#: book's own, so it pins the product's OXYGEN COUNT whether or not any
+#: balance is printed. (Fe and Cu are in the table and left out: iron's
+#: product depends on its role and copper's is printed as Cu2O/CuO.)
+FUEL_PER_GRAM_OF_OXYGEN = [
+    ("Al", "[Al]", 1.12), ("B", "[B]", 0.45), ("C", "[C]", 0.38), ("Mg", "[Mg]", 1.52),
+    ("P (red)", "[P]", 0.78), ("Si", "[Si]", 0.88), ("S", "[S]", 1.00), ("Ti", "[Ti]", 1.50),
+    ("W", "[W]", 3.83), ("Zn", "[Zn]", 4.09), ("Zr", "[Zr]", 2.85),
+]
+
+
+@pytest.mark.parametrize("name,smiles,printed", FUEL_PER_GRAM_OF_OXYGEN,
+                         ids=[r[0] for r in FUEL_PER_GRAM_OF_OXYGEN])
+def test_conklings_grams_of_fuel_per_gram_of_oxygen(name, smiles, printed):
+    """Grams of fuel per gram of O is 100 / -balance. The book rounds to two
+    places and used rounded atomic weights (phosphorus 31.0: 0.775 to 0.78
+    where 30.97 gives 0.774), so the tolerance is one printed unit."""
+    balance = E.extended_oxygen_balance(_mol(smiles)).to_full_oxidation
+    assert 100 / -balance == pytest.approx(printed, abs=0.0075)
+
+
+def test_conklings_molybdenum_delay_composition():
+    """Exercise 4 (p29): BaCrO4/KClO4/Mo at 67.9/10.0/22.1 is the stoichiometric
+    mixture with Mo to MoO3, a valence of +6 "obtained by analysis of the formula
+    of the reaction product". Its valences sum to zero to the printed digits."""
+    total = _valence_per_100_g(
+        (67.9, "[Ba+2].[O-][Cr](=O)(=O)[O-]"), (10.0, f"[K+].{PERCHLORATE}"), (22.1, "[Mo]"))
+    assert total == pytest.approx(0, abs=0.01)
+    assert E._PRODUCTS["Mo"].product == "MoO3" and E._PRODUCTS["Mo"].valence == 6
+
+
+def test_phosphorus_is_p2o5_in_both_books_that_say_so():
+    """Conkling's Table 3.5 and Shimizu's "4 P + 5 O2 --> 2 P2O5" (p80)."""
+    assert (E._PRODUCTS["P"].product, E._PRODUCTS["P"].valence) == ("P2O5", 5)
+    # Phosphoric acid IS the fully burned product (P2O5 + 3 H2O), so it balances at zero.
+    phosphoric = E.extended_oxygen_balance(_mol("OP(=O)(O)O")).to_full_oxidation
+    assert phosphoric == pytest.approx(0.0, abs=1e-9)
 
 
 def test_the_statement_only_elements_are_the_tables_rows():
@@ -355,6 +395,19 @@ def test_teflon_has_no_partner_for_its_fluorine_and_is_refused():
     assert "4 fluorine" in result.detail
 
 
+@pytest.mark.parametrize("name,smiles", [
+    ("phosphorus trichloride", "ClP(Cl)Cl"),
+    ("molybdenum pentachloride", "Cl[Mo](Cl)(Cl)(Cl)Cl"),
+    ("tungsten hexachloride", "Cl[W](Cl)(Cl)(Cl)(Cl)Cl"),
+])
+def test_a_halide_of_phosphorus_molybdenum_or_tungsten_is_refused(name, smiles):
+    """No source says how many halogens their halides hold, so their oxide
+    valence is not offered to a halogen."""
+    result = E.extended_oxygen_balance(_mol(smiles))
+    assert result.refusal is E.OxygenBalanceRefusal.UNCOVERED_ATOM
+    assert "chlorine" in result.detail
+
+
 def test_more_chlorine_than_anything_can_take_is_refused():
     """Carbon tetrachloride has no hydrogen or metal for its chlorine, and the
     source never says what the rest becomes."""
@@ -378,9 +431,9 @@ def test_mercury_cannot_take_a_chlorine():
 @pytest.mark.parametrize("name,smiles,element", [
     ("a bromide", "CBr", "Br"),
     ("an iodide", "CI", "I"),
-    ("a phosphate", "OP(=O)(O)O", "P"),
+    ("a copper salt", "[Cu+2].[O-][N+](=O)[O-].[O-][N+](=O)[O-]", "Cu"),
     ("copper azide", "[Cu+2].[N-]=[N+]=[N-].[N-]=[N+]=[N-]", "Cu"),
-    ("molybdenum", "[Mo]", "Mo"),
+    ("manganese dioxide", "O=[Mn]=O", "Mn"),
 ])
 def test_an_element_the_book_gives_no_product_for_is_refused_by_name(name, smiles, element):
     result = E.extended_oxygen_balance(_mol(smiles))

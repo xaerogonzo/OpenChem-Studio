@@ -1,5 +1,5 @@
 <!-- GENERATED FROM docs/sources.toml -- do not edit -->
-<!-- SOURCE SHA256: 892f9858d79cb7114e35c79f1686b533b1721dcff0e02fe877ec4454461f634d -->
+<!-- SOURCE SHA256: 6a11875cf4bb9cb63c6c5fae4b862efc5e8328a4e86c7f1ce1a57cf4f5cd6b14 -->
 
 # Sources
 
@@ -209,6 +209,7 @@ next run of `tools/build_lewis_parameters.py`.
 | [`iupac2013`](#iupac2013) | standard | shipped | citation + claim |
 | [`iupac_goldbook`](#iupac_goldbook) | standard | shipped | citation + claim |
 | [`iupac_namer`](#iupac_namer) | software | shipped | citation |
+| [`jain1987`](#jain1987) | literature | shipped | citation + claim |
 | [`jenkins1999`](#jenkins1999) | literature | shipped | citation + claim |
 | [`joback1987`](#joback1987) | literature | shipped | citation + claim |
 | [`kamlet1968`](#kamlet1968) | literature | shipped | citation + claim |
@@ -318,6 +319,7 @@ next run of `tools/build_lewis_parameters.py`.
 | [`sci_downloads_note`](#sci_downloads_note) | reference_table | reference only | citation |
 | [`sefcik2002`](#sefcik2002) | literature | reference only | citation + claim |
 | [`shannon1976`](#shannon1976) | literature | shipped | citation + claim |
+| [`shimizu1996`](#shimizu1996) | literature | shipped | citation |
 | [`shojaei2010`](#shojaei2010) | literature | shipped | citation + claim |
 | [`shrake1973`](#shrake1973) | literature | shipped | citation |
 | [`snider2007`](#snider2007) | literature | reference only | citation |
@@ -4826,6 +4828,60 @@ layer drops minus signs (Table 5.2 reads "73.96" for TNT); the signs are
 the book's, read from its Eq. 5.1. Its Eq. 5.2 and the TNT example are the
 C/H/N/O form [source:klapotke2017] already supplies.
 
+### jain1987
+
+<a id="jain1987"></a>
+
+> S. R. Jain, 'Energetics of Propellants, Fuels and Explosives; a Chemical Valence Approach', Propellants, Explosives, Pyrotechnics 1987, 12, 188-195.
+
+| | |
+| --- | --- |
+| Identifier | [10.1002/prep.19870120603](https://doi.org/10.1002/prep.19870120603) |
+| Status | shipped |
+| Verification | citation + claim |
+| Verified | 2026-10-24 |
+| Local copy | `jain1987.pdf` (not checked) |
+| Used by | `src/openchem/chem/energetics.py` |
+
+The origin of the valence method [source:conkling2019] teaches as the "Pyro
+Valence Method": a mixture balances when its oxidizing and reducing valences
+sum to zero, hydrogen and carbon being reducing (+1, +4 here) and oxygen and
+chlorine oxidizing, nitrogen neutral. Its worked examples agree with this
+module's table (ammonium perchlorate +5 in the paper's sign, glucose -24,
+methanol -6, nitric acid +5; 24 AP + 5 glucose -> 30 CO2 + 24 HCl + 12 N2 + 66
+H2O).
+
+**IT COVERS C, H, O, N AND Cl ONLY** ("involving C, H, O, N and Cl atoms"),
+with one passing mention of aluminised AP. The paper was read in full for a
+per-element table covering bromine, iodine, copper or iron, as the likeliest
+place for one; there is none. Its signs are the opposite of Conkling's.
+
+### shimizu1996
+
+<a id="shimizu1996"></a>
+
+> T. Shimizu, 'Fireworks: The Art, Science and Technique', 3rd edition, Pyrotechnica Publications, Austin, Texas, 1996 (first published 1981). ISBN 0-929388-05-4.
+
+| | |
+| --- | --- |
+| Identifier | 0-929388-05-4 |
+| Status | shipped |
+| Verification | citation |
+| Verified | 2026-10-24 |
+| Local copy | `vdoc.pub_fireworks-the-art-science-and-technique.pdf` (not checked) |
+| Used by | `src/openchem/chem/energetics.py`, `tests/test_oxygen_balance_extended.py` |
+
+An independent statement of two products the oxygen balance relies on, in
+the smoke chapter (printed p80): "Phosphorus or metalic sodium burn in the air
+generating dense white smoke ... 4 P + 5 O2 --> 2 P2O5 + ca.700 kcal, 4 Na + O2
+--> 2 Na2O + ca. 200 kcal". It agrees with [source:conkling2019]'s Table 3.5
+(phosphorus to P2O5) and with [source:meyer2016]'s sodium oxide.
+
+The book states no oxygen balance and no per-element valence, and it was
+searched for bromine, iodine, copper and iron products without result, so
+`verification` is the citation only: nothing here is a balance computed from
+it. The file is a text copy of the third edition's contents.
+
 ### conkling2019
 
 <a id="conkling2019"></a>
@@ -4861,6 +4917,19 @@ at +2.88 valence per 100 g); titanium (KClO4/Ti 80/20 at -2.95, and
 60/35/5 with PMMA at +0.66). Silicon and zirconium are accepted on the
 statement alone (Table 2.5, plus Eq. 3.24 for SiO2 and the metal-fuel
 table's oxide column for ZrO2): no printed balance uses them.
+
+**THREE MORE ELEMENTS COME FROM OUTSIDE TABLE 2.5.** Phosphorus burns to
+P2O5 in Table 3.5 (red and white, 0.78 g of fuel per g of O); molybdenum to
+MoO3 in the worked answer to Exercise 4, where BaCrO4/KClO4/Mo at
+67.9/10.0/22.1 is stoichiometric with a Mo valence of +6 "obtained by
+analysis of the formula of the reaction product"; tungsten to WO3 in Table
+3.4 (3.83 g per g of O). Tables 3.4 and 3.5 print "grams of fuel consumed per
+gram of O" for every element they list, and the calculator reproduces it for
+Al, B, C, Mg, P, Si, S, Ti, W, Zn and Zr to the printed two places (phosphorus
+by one unit in the last place: the book used 31.0, which gives 0.775).
+Copper is printed as "Cu2O/CuO" with both figures, so which one is not
+stated, and copper stays refused. Phosphorus, molybdenum and tungsten halides
+are refused too: no source says how many halogens they hold.
 
 **WHERE IT DEPENDS ON ROLE, AND SO IS NOT USED:** iron is the metal in an
 oxidizer and Fe2O3 as a fuel; red lead goes to the metal (valence -8, "-2 if

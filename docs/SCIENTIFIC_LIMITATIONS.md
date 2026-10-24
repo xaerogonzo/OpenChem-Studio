@@ -761,8 +761,9 @@ balance to "CO2, H2O, SO2, Al2O3, etc." and states chlorine to HCl; Conkling
 & Mocella's *Chemistry of Pyrotechnics* (Table 2.5, the "pyro valences")
 states a product for each element, and a US patent states boron to B2O3. So
 sulfur, chlorine and fluorine (taken by a hydrogen as HCl/HF or by a metal as
-its halide, which gives the same number either way), boron, silicon and
-sixteen metals are accepted, each at the product a source states or the
+its halide, which gives the same number either way), boron, silicon,
+phosphorus (to P₂O₅, also Shimizu's *Fireworks*) and
+eighteen metals are accepted, each at the product a source states or the
 oxide its printed balances use; mercury and silver are left unoxidised
 because that is what Meyer does. Akhavan's *The Chemistry of
 Explosives* states the same definition and agrees on silver and lead, but
@@ -770,11 +771,13 @@ burns mercury to HgO (mercury fulminate −16.86% against Meyer's −11.2%); the
 result follows Meyer and prints the HgO figure beside it. 35 of its printed balances are
 reproduced to its own printing, and so are Conkling's printed net valences,
 Klapötke's two borate esters and the patent's boron igniter. Bromine, iodine,
-phosphorus, iron, copper and every other element are **refused rather than
-given a confident wrong number**: no source gives a product for them, or (for
-iron) the sources give different ones depending on the compound or its role.
-Silicon and zirconium are accepted on Conkling's statement alone; no printed
-balance uses them. Only the CO₂ basis is extended; the CO basis stays
+iron, copper and every other element are **refused rather than given a
+confident wrong number**: no source gives a product for them, or the sources
+give different ones (iron by the compound or its role; Conkling prints copper
+as "Cu₂O/CuO"). Silicon, zirconium, phosphorus and tungsten are accepted on
+Conkling's statement and its grams-of-fuel-per-gram-of-oxygen column; no
+printed balance uses them. A phosphorus, molybdenum or tungsten halide is
+refused: no source says how many halogens it holds. Only the CO₂ basis is extended; the CO basis stays
 C/H/N/O.
 
 **Three of the book's own values disagree with it, and are recorded rather

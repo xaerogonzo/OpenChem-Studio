@@ -1,6 +1,6 @@
 """Oxygen balance for C/H/N/O substances [source:klapotke2017], and beyond
 them where a source says what each other element burns to: [source:meyer2016],
-[source:conkling2019], [source:zeuner2003].
+[source:conkling2019], [source:zeuner2003], [source:shimizu1996].
 
 Oxygen balance says whether a substance carries enough oxygen to burn its own
 carbon and hydrogen, as a percentage of its mass. Zero means exactly enough;
@@ -22,10 +22,13 @@ and agrees on silver and lead; it burns mercury to HgO where Meyer leaves the
 metal, and the result says so.
 
 Conkling & Mocella's "pyro valence" (Table 2.5) IS this accounting, written
-down per element: each element's valence is the oxidation state of its
+down per element (the method is Jain's [source:jain1987], whose own paper
+covers C, H, O, N and Cl only): each element's valence is the oxidation state of its
 product, so a molecule's net valence is the oxygen it needs in half-oxygens.
 It adds boron (B2O3, also stated by [source:zeuner2003]), fluorine (HF or a
-metal fluoride), magnesium, titanium, silicon and zirconium, and agrees with
+metal fluoride), magnesium, titanium, silicon, zirconium, phosphorus (P2O5,
+also stated by [source:shimizu1996]), molybdenum (MoO3, from its worked
+exercise) and tungsten (WO3), and agrees with
 Meyer everywhere the two overlap except lead in an oxidizer (red lead to the
 metal; Meyer and Akhavan burn lead to PbO) and iron, whose product it makes
 depend on whether the iron is a fuel or an oxidizer. An element in no source
@@ -203,6 +206,15 @@ _PRODUCTS: dict[str, ElementAccounting] = {
     "Zr": ElementAccounting(
         "ZrO2", 4, "Conkling & Mocella Table 2.5 and its table of metal fuels' "
         "oxides (no printed balance)"),
+    # -- three more Conkling & Mocella states outside Table 2.5 ----------------
+    "P": ElementAccounting(
+        "P2O5", 5, "Conkling & Mocella Table 3.5 (red and white phosphorus, 0.78 g "
+        "of fuel per g of O) and Shimizu's 4 P + 5 O2 -> 2 P2O5"),
+    "Mo": ElementAccounting(
+        "MoO3", 6, "Conkling & Mocella exercise 4: BaCrO4/KClO4/Mo at 67.9/10.0/22.1 "
+        "is stoichiometric with Mo to MoO3"),
+    "W": ElementAccounting(
+        "WO3", 6, "Conkling & Mocella Table 3.4 (3.83 g of fuel per g of O)"),
     "Ag": ElementAccounting(
         "Ag (not oxidised)", 0, "silver azide 0%, silver acetylide -26.7%"),
 }
@@ -223,7 +235,10 @@ _FLUORINE = ElementAccounting(
 #: The halogens a source gives a product for; each takes a partner.
 _HALOGENS = {"Cl": _CHLORINE, "F": _FLUORINE}
 #: Elements whose valence is not offered to a halogen (see `extended_oxygen_balance`).
-_NOT_A_HALOGEN_PARTNER = frozenset({"C", "N", "S", "B", "Si"})
+#: Phosphorus, molybdenum and tungsten join them: no source says how many
+#: halogens their chlorides hold (PCl3 and PCl5 differ, as do MoCl5 and MoCl6),
+#: so a halide of theirs is refused rather than counted at the oxide's valence.
+_NOT_A_HALOGEN_PARTNER = frozenset({"C", "N", "S", "B", "Si", "P", "Mo", "W"})
 
 #: Why a specific element is not covered, where there is more to say than
 #: "the source gives no product for it".
