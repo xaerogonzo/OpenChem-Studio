@@ -1383,6 +1383,7 @@
   "tests/test_molecule_report.py": 3,
   "tests/test_molecule_viewer3d_widget.py": 1,
   "tests/test_molstar_viewer_backend.py": 0,
+  "tests/test_mp_bp_corpus.py": 3,
   "tests/test_multicomponent_scope.py": 3,
   "tests/test_multicomponent_sweep.py": 2,
   "tests/test_mutagenicity_alerts.py": 3,
