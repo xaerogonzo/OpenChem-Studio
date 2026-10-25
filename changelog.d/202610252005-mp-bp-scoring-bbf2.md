@@ -1,4 +1,5 @@
-### Research: the scorer for the melting- and boiling-point benchmark
+### Research: result of the melting- and boiling-point benchmark: no method passed
 
-- `benchmarks/mp_bp/mpbp_score.py` and `mpbp_models.py` score Joback, Marrero-Gani and a project-owned refit of Joback's groups against the handbook corpus, with the preregistered gate (error ceilings, improvement over a development-only family baseline, coverage, at least 300 paired entities, 10,000-resample bootstrap) and a PASS / FAIL / NOT EVALUABLE verdict.
-- The holdout is scored once, in code: it refuses without an explicit flag, if any file that decides a score changed since the freeze, or a second time. Nothing user-facing changes.
+- The preregistered holdout was scored once (`benchmarks/mp_bp/RESULT.md`, `results/`). Candidate C, Joback's 41 groups refit on development rows, FAILED both gates on the point-error ceiling alone: 20.8 K for boiling point against 19.35 K, and 38.6 K for melting point against 33.9 K; it beat the family-mean baseline by 66% and 43% with intervals clear of the thresholds. Joback and Marrero-Gani cannot make an independent claim because neither paper lists its fit population, so they are NOT EVALUABLE; Marrero-Gani's melting-point error (36.4 K against a 37.35 K ceiling) would have met every numeric criterion, and that is reported as exploratory.
+- Joback's freezing point as a melting-point proxy runs 38 K high on average and is never gate-eligible. No calculator is added or promoted; nothing user-facing changes.
+- The scorer (`mpbp_score.py`) keeps the holdout to one look in code, and `mpbp_result.py` writes the result document from the committed reports.

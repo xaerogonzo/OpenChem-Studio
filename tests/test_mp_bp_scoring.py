@@ -306,3 +306,61 @@ def test_joback_freezing_point_is_reported_as_a_proxy_and_never_gate_eligible(tm
     c = next(r for r in reports if r["model"] == "candidate_c" and r["target"] == "melting_point")
     assert c["leakage"]["status"] == "known_population_no_overlap" and c["leakage"]["may_claim_independent_holdout"]
     assert all(r["leakage"]["status"] == "unknown" for r in reports if r["model"] in ("joback", "marrero_gani"))
+
+
+# ------------------------------------------------------------------------------------- the committed result
+RESULTS = BENCH / "results"
+result_mod = _load("mpbp_result", BENCH / "mpbp_result.py")
+
+
+def _reports(partition):
+    return [json.loads(p.read_text(encoding="utf-8")) for p in sorted(RESULTS.glob(f"{partition}_*.json"))]
+
+
+def test_every_committed_verdict_follows_from_its_own_numbers():
+    reports = _reports("holdout") + _reports("selection") + _reports("development")
+    assert len(reports) == 18
+    for r in reports:
+        m = r["metrics"]
+        again = score.evaluate_gate(
+            model=r["model"], prop=r["target"], gate_eligible=r["gate_eligible"], leakage_status=r["leakage"]["status"],
+            paired=r["counts"]["paired_with_baseline"], coverage=r["coverage"], mae=m["mae"], mae_ci=m["mae_ci95"],
+            improvement=m["improvement_over_baseline"], improvement_ci=m["improvement_ci95"])
+        assert again["evaluation_status"] == r["gate"]["evaluation_status"], (r["model"], r["target"], r["partition"])
+
+
+def test_the_holdout_was_examined_once_and_by_no_other_report():
+    for r in _reports("development") + _reports("selection"):
+        assert all(p["partition"] != "holdout" for p in r["partitions_examined"])
+    holdout = _reports("holdout")
+    assert len(holdout) == 6 and all(p["partition"] == "holdout" for p in holdout)
+    assert all(sum(1 for e in r["partitions_examined"] if e["partition"] == "holdout") == 1 for r in holdout)
+    assert (RESULTS / "holdout_scored.lock").read_text(encoding="utf-8").startswith("started ")
+
+
+def test_the_freeze_records_the_preregistered_grid_and_thresholds():
+    freeze = json.loads((RESULTS / "freeze.json").read_text(encoding="utf-8"))
+    assert all(p in models.RIDGE_GRID for p in freeze["penalties"].values())
+    assert freeze["dirty_tree"] is False
+    t = freeze["thresholds"]
+    assert (t["point_factor"], t["upper_factor"], t["min_improvement"], t["min_improvement_lower"], t["min_coverage"], t["min_paired"]) == (
+        score.POINT_FACTOR, score.UPPER_FACTOR, score.MIN_IMPROVEMENT, score.MIN_IMPROVEMENT_LOWER, score.MIN_COVERAGE, score.MIN_PAIRED)
+    summary = json.loads((BENCH / "corpus_summary.json").read_text(encoding="utf-8"))
+    assert freeze["manifest_checksum"] == summary["manifest_checksum"]
+    assert set(freeze["file_hashes"]) == set(score.FROZEN_FILES)
+
+
+def test_no_proxy_or_unknown_leakage_report_is_ever_a_pass_and_candidate_c_leakage_is_known():
+    for r in _reports("holdout") + _reports("selection") + _reports("development"):
+        if not r["gate_eligible"] or r["leakage"]["status"] == "unknown":
+            assert r["gate"]["evaluation_status"] != "PASS"
+        if r["model"] == "candidate_c":
+            # in-sample on development (its fit population IS that partition), clear on selection and holdout
+            expected = "known_population_overlap_removed" if r["partition"] == "development" else "known_population_no_overlap"
+            assert r["leakage"]["status"] == expected
+        else:
+            assert r["leakage"]["status"] == "unknown" and not r["leakage"]["may_claim_independent_holdout"]
+
+
+def test_the_committed_result_document_is_what_the_generator_makes_from_the_committed_reports():
+    assert (BENCH / "RESULT.md").read_text(encoding="utf-8") == result_mod.render()
