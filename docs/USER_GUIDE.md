@@ -842,12 +842,23 @@ and the cursor on the first (nothing runs until you press OK), and **Needs
 setup** opens Settings > External Tools on the tab that sets that calculator up.
 Hover the chip to see what it needs before you press it.
 
+**Before you run anything**, a row can already tell you whether the structure on
+screen is one that calculator takes, and it stays right as you edit: the chip
+reads `Can run` (the structure is inside what the method covers), `△ With
+limits` (it will run, and the tooltip names the limit) or `○ Not applicable`
+(it will refuse, and the tooltip says why). A calculator that has no way to
+know yet still reads `Not run`; `Can run` is about the drawn structure only and
+does not say a tool is set up or that the answer will be accurate. The check
+is the calculator's own refusal test, takes a few milliseconds once each time
+the drawing settles, and can be switched off in Settings > Recalculation.
+
 Calculators that are run from **another panel** — the ORCA jobs (single point,
 optimisation, frequencies, NMR, coupling, Delta-SCF, LED), Hardness/Softness
 and Vina docking — have a row in Properties too, under **Quantum Chemistry**,
 **Lewis Acid/Base** and **Docking**. It is a button, not a launcher: it has no
 tick box and no status chip, it is labelled with the panel it opens ("Single
-Point Energy > Quantum Chemistry panel"), and pressing it shows that panel with
+Point Energy > Quantum Chemistry panel", with a `✓`, `△` or `○` before the name
+when it can already say whether the drawn structure is in scope), and pressing it shows that panel with
 the calculation already chosen. Nothing runs until you press Run there, because
 those jobs take a charge, a multiplicity and a method, and "Run selected" never
 includes them.
@@ -1137,7 +1148,7 @@ several molecules the results go to **Results > Project table**, as with **Run s
 | Category | What's in it |
 |---|---|
 | Physicochemical | MW, logP, TPSA, HBD/HBA, rotatable bonds |
-| Energetic Materials | oxygen balance on both published conventions — burning carbon to CO₂ and to CO, which are different quantities for the same substance and can disagree in sign — and Kamlet–Jacobs detonation pressure and velocity, which require a measured loading density and enthalpy of formation and refuse without them. C/H/N/O only |
+| Energetic Materials | oxygen balance on both published conventions — burning carbon to CO₂ and to CO, which are different quantities for the same substance and can disagree in sign — and Kamlet–Jacobs detonation pressure and velocity, which require a measured loading density and enthalpy of formation and refuse without them. Kamlet–Jacobs is C/H/N/O only; oxygen balance also takes sulfur, the halogens chlorine and fluorine, boron, silicon and sixteen metals on the CO₂ basis, naming the product it assumed for each |
 | Aromaticity | HOMA per ring, from Krygowski's reference bond lengths: 1 is a ring whose bonds all sit at the optimal length, 0 is the reference Kekulé structure, and there is no lower bound — a saturated or bond-alternating ring goes negative. Also Bird's index, which converts each bond length to a Gordy bond order and measures how UNIFORM those orders are rather than how close the lengths are to one ideal — reported as I5 or I6 because the paper says values for different ring sizes are not comparable. Both need a 3D conformer and refuse a drawing, because a 2D layout gives every bond about the same length whatever its order |
 | Thermophysical | Joback group contributions: normal boiling and freezing points, the three critical constants, enthalpy and Gibbs energy of formation, ideal-gas heat capacity, enthalpies of vaporization and fusion, and liquid viscosity — refused with the atom named when a structure carries a group the method has no contribution for |
 | Solubility | ESOL solubility, the Low/Moderate/High category, solubility at a chosen pH, the pH–solubility curve, a BCS high-solubility screening estimate, solubility in 91 non-aqueous solvents, and Gutmann donor and acceptor numbers for the chosen solvent where they were measured. Also the three Hansen partial solubility parameters and their Hildebrand total by Stefanis-Panayiotou group contribution, which says which of the paper's two parameter sets produced each value |
@@ -1916,14 +1927,17 @@ basicity**, with the proton bound **about 1.2 kcal/mol too weakly** on average, 
 low. The reference values are themselves uncertain by about 8 kJ/mol. Every result repeats this beside the
 number.
 
-**What is refused, and what can be missing.** It applies to a single neutral closed-shell base of at most ten
-heavy atoms made of H, C, N, O, P and S; a charged or radical species, a mixture, another element or a larger
-molecule is refused with its reason, because no error was measured for it. A structure whose optimization
+**What was measured, what is refused, and what can be missing.** The error above was measured for single neutral
+closed-shell bases of at most ten heavy atoms made of H, C, N, O, P and S. A base outside that (larger, or with a
+halogen, silicon or a metal) is still computed: the button says what was not measured and asks before it runs,
+and the result says the measured error does not apply, so read it as an estimate. Only what the protocol cannot
+compute is refused, with its reason: a charged or radical species (every job is written as a neutral base and a
++1 ion), a mixture, a base with no protonation site, or an element the basis set lacks. A structure whose optimization
 keeps an imaginary vibration after one re-run is dropped, and a base or acid with none left has no value: the
 result says which structures were dropped, and PA and GB can be missing separately (the benchmark lost water
-this way). The lowest structure is used, with no averaging over conformers, and the calculation is experimental
-until it has been driven through the application on real ORCA; it is hidden from the Properties launcher by
-default.
+this way). The lowest structure is used, with no averaging over conformers. The calculation is marked **limited**: driven
+through the application on real ORCA it reproduces the benchmark's own numbers, and what limits it is the narrow
+scope above.
 
 <!-- help:bond-dissociation -->
 ### X-H bond dissociation enthalpy
@@ -1943,9 +1957,12 @@ experiment and 27 held out against the Active Thermochemical Tables. The mean ab
 a nitrogen** (a peroxide, a hydroxylamine, an oxime) ran low by **3.3 kcal/mol, up to 4.6**. The bias is not
 corrected. Every result repeats this beside the number, for the classes of the bonds you chose.
 
-**What is refused, and what can be missing.** It applies to a single neutral closed-shell molecule of at most
-nine heavy atoms made of H, C, N, O and S; anything else is refused with its reason, because no error was measured
-for it. A radical whose optimization keeps an imaginary vibration after one re-run gives that bond no value, and
+**What was measured, what is refused, and what can be missing.** The error above was measured for single neutral
+closed-shell molecules of at most nine heavy atoms made of H, C, N, O and S, and for C-H, N-H, O-H, S-H and Si-H
+bonds. A molecule or bond outside that is still computed: the button says what was not measured and asks before it
+runs, and the result says the measured error does not apply. Only what the protocol cannot compute is refused, with
+its reason: a charged or radical species (the jobs are a neutral parent and a neutral doublet radical), a mixture,
+a molecule with no X-H bond, or an element the basis set lacks. A radical whose optimization keeps an imaginary vibration after one re-run gives that bond no value, and
 the result says which structure and why: thiyl radicals (an S-H bond) do this, so the window marks S-H bonds. If
 the hydrogen atom's own job fails, nothing can be computed and the run stops. The calculation is experimental
 until it has been driven through the application on real ORCA; it is hidden from the Properties launcher by
@@ -2470,6 +2487,16 @@ own section of the [calculator reference](CALCULATOR_REFERENCE.md): what it
 computes, what it needs, what it refuses and why, and — for a limited or
 specialist calculator — its support level and what it covers.
 
+**A small star shows how far a calculator can be trusted.** In Properties, at
+the right end of a calculator's row, and in Results, beside **Showing** (and on
+each fact of **All results**), a full star means the calculator is **Stable**, a
+half star **Limited** (validated inside a scope that leaves out much of what
+people draw) and an empty star **Experimental** (not yet validated for everyday
+use). Hover it for what that means and the calculator's own reason. The stage
+speaks about this application's implementation, never about the published
+method. **No star means nobody has declared a stage for that calculator yet**,
+which is not a claim either way.
+
 ---
 
 <!-- help:compare -->
@@ -2928,11 +2955,13 @@ it is installed, and you can **type your own** into the pKa field
 (`3.49`, or `4.8, 9.4` for a diprotic) — a measured pKa always beats a
 predicted one, and a manual entry overrides the predictor.
 
-**Ampholytes and salts are refused.** A zwitterion's un-ionized form *is*
-the zwitterion, which is highly soluble, so Henderson–Hasselbalch puts the
-minimum in the wrong place; a drawn salt is already the species the
-correction models forming. Both say so rather than producing a plausible
-curve for a different compound.
+**An ampholyte gets its intrinsic estimate and no pH curve; a salt is refused.**
+A zwitterion's un-ionized form *is* the zwitterion, which is highly soluble, so
+Henderson–Hasselbalch puts the minimum in the wrong place: for an ampholyte the
+result shows the model's intrinsic solubility, and a first row says the pH
+profile, the value at a pH and the BCS screen are not computed and why. A drawn
+salt is already the species the correction models forming, so it is refused
+rather than given a plausible curve for a different compound.
 
 ### The BCS line is a screen, not a classification
 

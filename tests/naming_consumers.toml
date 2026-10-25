@@ -495,6 +495,12 @@ scope = "core"
 owner = "namer"
 
 [[consumer]]
+file = "tests/test_namer_round82_benzodithiete_sibling_rings_and_polycyclic_bi_assemblies.py"
+why = "the curated 1,2-benzodithiete numbers every position (D-371), a ring numbers by tolerant matches inside itself when the strict query only finds its sibling (D-372), a ring assembly brackets a component OPSIN cannot read behind bi (D-373) and parses an added hydrogen after its attachment locant (D-374)"
+scope = "core"
+owner = "namer"
+
+[[consumer]]
 file = "tests/test_namer_round81_ring_pairs_n_linked_purines_added_hydrogen_and_bi_assemblies.py"
 why = "a purine joined through a ring nitrogen takes that nitrogen as its indicated hydrogen (D-367), the added hydrogen of a ring ketone follows the substituted nitrogen (D-368), a ring assembly brackets an indicated-hydrogen fusion component (D-369) and a nucleobase's retained substituent form applies to a ring attachment only (D-370)"
 scope = "core"

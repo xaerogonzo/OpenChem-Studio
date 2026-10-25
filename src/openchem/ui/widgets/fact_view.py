@@ -79,6 +79,7 @@ from openchem.ui.widgets.collapsible_section import (
 from openchem.ui.fact_help import contract_for
 from openchem.ui.widgets.help_tooltip import HelpTooltip, apply_help_tooltip
 from openchem.ui.widgets.chart_widgets import CHART_WIDGET_TYPES, chart_widget_for
+from openchem.ui.widgets.stage_marker import StageMarker
 from openchem.ui.widgets.stick_chart_widget import StickChartWidget
 from openchem.ui.widgets.widget_disposal import discard_widget
 
@@ -351,6 +352,13 @@ class FactView(QWidget):
         #: How to resolve `molecule_uuid` to a molblock, set by a host that
         #: has a project. None until one does; see `set_structure_resolver`.
         self._structure_resolver = None
+        #: report id -> the calculator's `SupportMarker`, or None. Set by a host that
+        #: has a registry (`set_support_resolver`); None until one does, so a view
+        #: with no registry around it draws no star.
+        self._support_resolver = None
+        #: Whether each row carries its calculator's star. Off for a view already
+        #: focused on one calculator, whose header says it once.
+        self._stage_on_rows = False
         self._sections: dict[str, CollapsibleSection] = {}
         #: **THE CHART SECTIONS LIVE APART FROM `_sections` ON PURPOSE.**
         #: `_render` runs `_clear_sections` on every search keystroke, so a
@@ -520,7 +528,7 @@ class FactView(QWidget):
     # --- what it is showing --------------------------------------------------
 
     def set_report(
-        self, report, title: str = "", summary: str = "", expanded=None
+        self, report, title: str = "", summary: str = "", expanded=None, stage_on_rows: bool = True
     ) -> None:
         """Show `report`. `expanded` overrides which categories start open.
 
@@ -543,6 +551,7 @@ class FactView(QWidget):
         unchanged.
         """
         self._source_report = report
+        self._stage_on_rows = stage_on_rows
         self._expanded_override = (
             None if expanded is None else frozenset(expanded)
         )
@@ -860,6 +869,30 @@ class FactView(QWidget):
         add_picture_actions(menu, widget, self, str(widget.property(_PICTURE_STEM) or "picture"))
         menu.exec(widget.mapToGlobal(position))
 
+    def set_support_resolver(self, resolver) -> None:
+        """Say how a fact's origin maps to its calculator's support-stage marker.
+
+        `resolver(report_id)` returns a `SupportMarker` or None. Fed by the host that
+        owns the calculator registry, for the reason `set_structure_resolver` is: this
+        widget knows no registry and no chemistry. Without one no row carries a star.
+        """
+        self._support_resolver = resolver
+
+    def _stage_marker_for(self, fact: Fact, parent: QWidget) -> StageMarker | None:
+        """A star for `fact`'s calculator, or None -- nothing is built for an unmarked row."""
+        if self._support_resolver is None or not self._stage_on_rows or not fact.origin:
+            return None
+        try:
+            marker = self._support_resolver(fact.origin)
+        except Exception:  # noqa: BLE001 - a star that cannot be resolved must not cost a fact its row
+            logger.exception("Could not resolve the support stage for %s", fact.origin)
+            return None
+        if marker is None:
+            return None
+        widget = StageMarker(parent)
+        widget.set_marker(marker)
+        return widget
+
     def set_structure_resolver(self, resolver) -> None:
         """Supply how to resolve a REPORT to coordinates, or None.
 
@@ -1053,7 +1086,8 @@ class FactView(QWidget):
         value.setToolTip(provenance)
         value.hovered.connect(self._on_row_hovered)
         value.context_requested.connect(self._on_row_context_menu)
-        if fact.link is None:
+        stage = self._stage_marker_for(fact, section.content)
+        if fact.link is None and stage is None:
             section.content_layout().addRow(
                 self._caption(section, fact, provenance), value
             )
@@ -1063,12 +1097,17 @@ class FactView(QWidget):
         row_layout = QHBoxLayout(row)
         row_layout.setContentsMargins(0, 0, 0, 0)
         row_layout.addWidget(value, 1)
-        open_button = QPushButton(">", row)
-        open_button.setToolTip(fact.link.label or "Open the tool this came from")
-        open_button.setMaximumWidth(28)
-        open_button.setProperty(_LINK_PROPERTY, fact.link)
-        open_button.clicked.connect(self._on_link_clicked)
-        row_layout.addWidget(open_button)
+        if fact.link is not None:
+            open_button = QPushButton(">", row)
+            open_button.setToolTip(fact.link.label or "Open the tool this came from")
+            open_button.setMaximumWidth(28)
+            open_button.setProperty(_LINK_PROPERTY, fact.link)
+            open_button.clicked.connect(self._on_link_clicked)
+            row_layout.addWidget(open_button)
+        if stage is not None:
+            # Top-aligned: a value that wraps is several lines tall and the star belongs to
+            # the first.
+            row_layout.addWidget(stage, 0, Qt.AlignmentFlag.AlignTop)
         section.content_layout().addRow(self._caption(section, fact, provenance), row)
 
     def _status_text(self, report, shown: int, needle: str, hidden_by_depth: int) -> str:

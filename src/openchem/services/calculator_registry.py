@@ -5,9 +5,11 @@ from typing import Any
 from rdkit import Chem
 
 from openchem.chem import components
-from openchem.domain.calculator import CalculatorDefinition, RegistryExecution, active_parameters
+from openchem.domain.calculator import CalculationRefusal, CalculatorDefinition, RegistryExecution, active_parameters
 from openchem.domain.calculator_taxonomy import assign_plugin_category_group
 from openchem.domain.common import ScientificResult
+from openchem.domain.refusal_kinds import RefusalKind
+from openchem.domain.structure_coverage import Coverage, CoverageKind, as_coverage
 
 
 class CalculatorRegistry:
@@ -84,22 +86,64 @@ class CalculatorRegistry:
         result = execution.compute(selection.mol, molecule_uuid, active)
         return components.read_back(result, definition.scope, selection)
 
-    def preflight(self, calculator_id: str, mol: Chem.Mol) -> str:
-        """Why this calculator is certain to refuse `mol`, or "" when nothing is known to.
+    def coverage(
+        self, calculator_id: str, mol: Chem.Mol, *, shared: dict | None = None
+    ) -> Coverage | None:
+        """Whether this calculator takes `mol`: covered, covered with a limit, certain to refuse, or None (no claim).
 
-        Applies the calculator's scope first, so the hook sees the component the run would.
+        **THE SCOPE IS APPLIED FIRST, BY THE VERY CALL A RUN MAKES** (`components.select`), so a salt handed to
+        a pure-substance method, a structure with no carbon handed to an organic one, or a metal complex handed
+        to a parent-compound one reads REFUSES here with the refusal's own sentence, for every calculator that
+        declares such a scope and with no rule written for any of them. A scope that lets the structure
+        through says nothing, because the calculator may still refuse for its own reasons; only a declared
+        hook can say COVERED, and it is handed the component the run would be.
+
+        `shared` is one pass's memory of the scope step, handed to every calculator asked about the same
+        `mol`: about twenty calculators take ChEMBL's parent of a salt or refuse a metal complex the same way,
+        and that was nearly all of the 141 and 208 ms a salt and ferrocene cost across all of them. A refusal
+        is kept with the name it was raised for and reworded for the next calculator, because its sentence
+        opens with that name and is otherwise identical.
+
         Never raises: a check that cannot be made is not a claim.
         """
         definition = self._definitions.get(calculator_id)
-        if definition is None or definition.preflight is None:
-            return ""
+        if definition is None:
+            return None
         try:
             target = mol
             if definition.scope is not None:
-                target = components.select(mol, definition.scope, definition.display_name).mol
-            return str(definition.preflight(target) or "")
+                # The note is in the key because a refusal's sentence ends with it.
+                key = (definition.scope.selection, definition.scope.domain, definition.scope.note)
+                if shared is None or key not in shared:
+                    try:
+                        outcome: Any = components.select(mol, definition.scope, definition.display_name).mol
+                    except CalculationRefusal as refusal:
+                        outcome = (refusal, definition.display_name)
+                    if shared is not None:
+                        shared[key] = outcome
+                else:
+                    outcome = shared[key]
+                if isinstance(outcome, tuple):
+                    refusal, raised_for = outcome
+                    if refusal.kind is not RefusalKind.LIMIT:
+                        return None
+                    sentence = refusal.detail or refusal.summary
+                    return Coverage.refuses(sentence.replace(raised_for, definition.display_name))
+                target = outcome
+            if definition.preflight is None:
+                return None
+            # A copy: `target` may be shared with the next calculator asked, and a hook that edited it would answer for them.
+            return as_coverage(definition.preflight(Chem.Mol(target)))
         except Exception:  # noqa: BLE001 - see the docstring
-            return ""
+            return None
+
+    def preflight(self, calculator_id: str, mol: Chem.Mol) -> str:
+        """Why this calculator is certain to refuse `mol`, or "" when nothing is known to.
+
+        The refusal half of `coverage`, kept for the callers that only ask that question.
+        """
+        coverage = self.coverage(calculator_id, mol)
+        return coverage.reason if coverage is not None and coverage.kind is CoverageKind.REFUSES else ""
 
     def by_category(self, category: str) -> list[CalculatorDefinition]:
         return [d for d in self._definitions.values() if d.category == category]

@@ -143,17 +143,41 @@ def test_a_base_with_several_sites_gets_a_site_table_whose_winner_is_the_reporte
     [
         ("CC[NH3+]", "charged"),
         ("[CH3]", "radical"),
-        ("CCl", "Cl"),
         ("O.O", "more than one component"),
-        ("CCCCCCCCCCCO", "heavy atoms"),
         ("[H][H]", "no heavy atom"),
         ("C", "no protonation site"),
         ("[O-]C(=O)C", "charged"),
+        ("[U]", "basis set has no functions"),
+        ("C[Ce]", "basis set has no functions"),
     ],
 )
-def test_a_base_outside_what_the_benchmark_measured_is_refused_with_its_reason(smiles, reason):
+def test_a_base_the_protocol_cannot_compute_is_refused_with_its_reason(smiles, reason):
+    """Every job is a neutral base and a +1 ion: a charged or open-shell input would be computed WRONGLY, and an element the basis lacks cannot be computed at all."""
     with pytest.raises(pa.OutOfScope, match=reason):
         pa.base_from_smiles(smiles)
+
+
+@pytest.mark.parametrize(
+    "smiles, warned",
+    [
+        ("CCl", ["Cl: the benchmark measured only H, C, N, O, P and S"]),
+        ("CCCCCCCCCCCO", ["12 heavy atoms: the benchmark measured bases of at most 10"]),
+        ("ClCCCCCCCCCCCN", ["13 heavy atoms: the benchmark measured bases of at most 10", "Cl: the benchmark measured only H, C, N, O, P and S"]),
+        ("C[Zn]CN", ["Zn: the benchmark measured only H, C, N, O, P and S", "Zn: the protocol assumes a closed-shell singlet, which many metal compounds are not"]),
+        ("N", []),
+        ("CCCCCCCCCN", []),  # ten heavy atoms: inside
+    ],
+)
+def test_a_base_the_benchmark_did_not_measure_is_computed_with_its_warnings(smiles, warned):
+    """Alex, 2026-10-23: our benchmark's edge is a warning, not a refusal. The base is built; what was not measured is named."""
+    base = pa.base_from_smiles(smiles)
+    assert pa.scope_warnings(base) == warned
+
+
+def test_a_result_outside_the_measured_scope_says_the_error_does_not_apply():
+    note = pa.validation_note("pa", ["12 heavy atoms: the benchmark measured bases of at most 10"])
+    assert "1.55" in note and "OUTSIDE WHAT WAS MEASURED (12 heavy atoms" in note and "estimate" in note
+    assert "OUTSIDE" not in pa.validation_note("pa")
 
 
 def test_carbon_monoxide_is_the_one_charge_separated_structure_that_is_allowed():

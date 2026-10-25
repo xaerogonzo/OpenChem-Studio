@@ -1,6 +1,6 @@
 {
  "n_rings": 371,
- "population_sha256": "2d6b4240a7ba54b80ea29003cff790cf7767c73fd2c97a8aff31cec18ca517af",
+ "population_sha256": "6d5da04954ccfa7b2209e5de2651d9879f093a0c3d7619fe5f997d318657a2cd",
  "purpose": "the frozen ring denominator for tools/naming_ring_locant_sweep.py (naming round 13)",
  "rings": [
   {
@@ -11295,8 +11295,12 @@
    "has_atom_locants": true,
    "locant_atoms": [
     0,
+    1,
+    2,
+    3,
     4,
     5,
+    6,
     7
    ],
    "name": "1,2-benzodithiete",

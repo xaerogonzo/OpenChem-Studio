@@ -5,6 +5,7 @@ import functools
 
 from openchem.app.settings import Settings
 from openchem.chem.admet_providers import ADMET_PYTHON_SETTING
+from openchem.chem import coverage_hooks
 from openchem.chem.bond_dissociation import METHOD_LABEL as BOND_DISSOCIATION_METHOD
 from openchem.chem.descriptor_providers import CALCULATOR_DEFINITIONS
 from openchem.chem.engine import ChemistryEngine
@@ -278,8 +279,8 @@ _EXTERNAL_CALCULATOR_DEFINITIONS.append(
             "(every N, O, S or P lone pair and every pi-system carbon), the lowest structure of each, with ORCA's symmetry number "
             "replaced by the true one. Reports kJ/mol, the site that won and every site's own value. Benchmarked on 28 bases against the NIST "
             "evaluation of Hunter and Lias: on the 21 above propene's proton affinity the mean absolute error is 1.55 kcal/mol (PA) and 1.53 (GB), "
-            "with the proton bound about 1.2 kcal/mol too weakly; measured for neutral bases of at most ten heavy atoms of H, C, N, O, P and S, and "
-            "refused outside that. A structure that keeps an imaginary vibration after one re-run is dropped, so a base can have no value "
+            "with the proton bound about 1.2 kcal/mol too weakly; measured for neutral bases of at most ten heavy atoms of H, C, N, O, P and S; "
+            "a larger base or other elements are computed after a warning, the result labelled an estimate. A structure that keeps an imaginary vibration after one re-run is dropped, so a base can have no value "
             "(the benchmark lost water this way). Many ORCA jobs (minutes to hours): needs an ORCA executable; run from the Quantum Chemistry "
             "panel's 'Proton affinity...' button -- no 3D conformer needed, each structure is embedded fresh from the 2D structure."
         ),
@@ -288,6 +289,7 @@ _EXTERNAL_CALCULATOR_DEFINITIONS.append(
             panel_name="Quantum Chemistry panel",
             panel_id="Quantum_Chemistry",
         ),
+        preflight=coverage_hooks.proton_affinity_coverage,
         prediction_basis="ab_initio",
         # One option, a fixed choice, so the dialog says WHICH protocol this is rather than offering the free method box the other ORCA entries have;
         # a calculator with no option at all is refused by tests/test_calculator_options.py.
@@ -300,18 +302,22 @@ _EXTERNAL_CALCULATOR_DEFINITIONS.append(
                 choices=[PROTON_AFFINITY_METHOD],
             ),
         ],
-        # EXPERIMENTAL, honestly, although its benchmark PASSED: the stage describes THIS implementation, and this one has had no live run through the
-        # application on real ORCA yet (the benchmark ran its own runner, and the service is tested against the benchmark's real outputs with a stand-in
-        # process). A promotion to LIMITED is one change with that driven run recorded (docs/CALCULATOR_MATURITY.md).
+        # LIMITED, and shown: the benchmark PASSED, and this implementation has now been driven through the application on real ORCA, reproducing the
+        # benchmark's own numbers from the STORED result (benchmarks/visual/proton_affinity_run.json, recorded in docs/PROTON_AFFINITY_DESIGN.md), which is
+        # what EXPERIMENTAL waited for. LIMITED and not STABLE because the scope is narrow (neutral bases of at most ten heavy atoms of six elements) and one
+        # benchmark is not the held-out, stratified result STABLE asks for (docs/CALCULATOR_MATURITY.md). It was hidden only for want of the driven run;
+        # to hide it again, set default_visibility back to HIDDEN.
         support=CalculatorSupport(
-            stage=SupportStage.EXPERIMENTAL,
-            default_visibility=Visibility.HIDDEN,
+            stage=SupportStage.LIMITED,
+            default_visibility=Visibility.SHOWN,
             support_reason=(
-                "The protocol passed its preregistered benchmark (28 bases against NIST, mean absolute error 1.55 kcal/mol for proton affinity and 1.53 for gas basicity), "
-                "but this implementation has not yet been driven through the application on real ORCA, and it needs many ORCA jobs. Every result states the measured error and its limits."
+                "Limited: the measured error holds for neutral closed-shell bases of at most ten heavy atoms of H, C, N, O, P and S (outside that it still computes, after a warning, as an estimate). The protocol passed its preregistered benchmark (28 bases against NIST, mean absolute error "
+                "1.55 kcal/mol for proton affinity and 1.53 for gas basicity, the proton bound about 1.2 kcal/mol too weakly) and this implementation reproduces the benchmark's numbers when driven "
+                "through the application on real ORCA. It needs many ORCA jobs. Every result states the measured error and its limits."
             ),
             scope_note=(
-                "Neutral closed-shell bases of at most ten heavy atoms of H, C, N, O, P and S; the lowest structure only; needs a configured ORCA executable"
+                "Measured for neutral closed-shell bases of at most ten heavy atoms of H, C, N, O, P and S (larger or other elements: computed after a warning, an estimate); "
+                "charged, radical and multi-component structures are refused; the lowest structure only; needs a configured ORCA executable"
             ),
         ),
     )
@@ -332,7 +338,7 @@ _EXTERNAL_CALCULATOR_DEFINITIONS.append(
             "each bond leaves and a single point of the hydrogen atom, the lowest structure of each. Reports kJ/mol: the weakest bond computed in the headline and every bond's own value "
             "or the reason it has none. Benchmarked on 49 bonds (22 against experiment, 27 held out against the Active Thermochemical Tables): mean absolute error 1.48 kcal/mol, "
             "and the calculation runs LOW by 1.38 kcal/mol on average, in every class (an O-H next to another oxygen or a nitrogen: 3.3, up to 4.6). Measured for molecules of at most "
-            "nine heavy atoms of H, C, N, O and S, refused outside that. A radical that keeps an imaginary vibration after one re-run gives that bond no value (thiyl radicals do). "
+            "nine heavy atoms of H, C, N, O and S; outside that it computes after a warning, the result labelled an estimate. A radical that keeps an imaginary vibration after one re-run gives that bond no value (thiyl radicals do). "
             "Many ORCA jobs (minutes to hours): needs an ORCA executable; run from the Quantum Chemistry panel's 'Bond dissociation...' button -- no 3D conformer needed."
         ),
         execution=ServiceExecution(
@@ -340,6 +346,7 @@ _EXTERNAL_CALCULATOR_DEFINITIONS.append(
             panel_name="Quantum Chemistry panel",
             panel_id="Quantum_Chemistry",
         ),
+        preflight=coverage_hooks.bond_dissociation_coverage,
         prediction_basis="ab_initio",
         parameters=[
             CalculatorParameter(
@@ -361,7 +368,8 @@ _EXTERNAL_CALCULATOR_DEFINITIONS.append(
                 "Every result states the measured error and its limits."
             ),
             scope_note=(
-                "Neutral closed-shell molecules of at most nine heavy atoms of H, C, N, O and S; C-H, N-H, O-H and S-H bonds; the lowest structure only; needs a configured ORCA executable"
+                "Measured for neutral closed-shell molecules of at most nine heavy atoms of H, C, N, O and S and their C-H, N-H, O-H, S-H and Si-H bonds (outside that: computed after a warning, an estimate); "
+                "charged, radical and multi-component structures are refused; the lowest structure only; needs a configured ORCA executable"
             ),
         ),
     )
