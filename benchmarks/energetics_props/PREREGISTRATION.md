@@ -1,0 +1,347 @@
+# Preregistration: energetic materials — crystal density, condensed-phase enthalpy of formation, melting point and decomposition (Phase B)
+
+**Status: DRAFT for owner review (not merged, not frozen).** Nothing here has been scored: no corpus has been built, no method has been run, no label has been compared with a prediction. The numbers in sections 8, 9 and 11 are proposals with a stated rationale, to be confirmed or changed in section 14 and then frozen by a dated merge, exactly as `benchmarks/mp_bp/PREREGISTRATION.md` was. After the freeze a number changes only by a dated amendment that says what was seen first.
+
+This document follows Phase A's discipline (`benchmarks/mp_bp/PREREGISTRATION.md`, `RESULT.md`, `CORPUS_REPORT.md`) and **does not touch Phase A**: `benchmarks/mp_bp/` is not edited, its spent holdout is not re-scored, and `tools/validation_rows.py` is not edited either, because Phase A's `freeze.json` records that file's hash (`FROZEN_FILES` in `mpbp_score.py`). Everything Phase B needs beyond that schema lives in new modules next to this file.
+
+## 1. The question
+
+For known energetic compounds, how well do published and project-built estimation methods predict (a) the **crystal density**, (b) the **condensed-phase enthalpy of formation**, (c) the **melting point**, against measured reference values; where do they refuse; and is any of them good enough, on a held-out part of the data, to ship as a narrowly scoped experimental calculator?
+
+**Decomposition onset is a fourth property with an evidence layer and no gate** (section 3.5): no held paper offers a method for it, so it is described, not scored.
+
+A **FAIL**, a **NOT EVALUABLE** and a **PASS** are all complete outcomes. With a corpus of a few hundred compounds the most likely complete outcome for several (method, property) pairs is NOT EVALUABLE, and this document says in advance what that means (section 11.4) so that it is not argued about afterwards.
+
+Out of scope, fixed by Phase A section 11 and not reopened here: ranking compounds, inverse design, any detonation property. **Kamlet-Jacobs detonation stays `NEEDS_INPUT`** (`src/openchem/chem/energetics.py`, refusal `NO_LOADING_DENSITY`, kind `NEEDS_INPUT` in `domain/refusal_kinds.py`) unless a separate, owner-approved product decision defines a new, explicitly named input. No result of this benchmark is that decision.
+
+## 2. Properties, targets, and what each result may be called
+
+Every report line carries: target property, the model output's definition **and its own reference state**, the reference event's definition, `target_matched`, and any proxy assumption.
+
+| # | target | the reference observation is | a method's output must be | gate-eligible methods |
+|---|---|---|---|---|
+| P1 | `crystal_density` (g/cm3) | a measured crystal density (single-crystal or powder diffraction) at a stated temperature, of a stated form | a crystal density of the neutral compound at a declared temperature | those whose output is a crystal density (section 10) |
+| P2 | `enthalpy_formation_condensed` (kJ/mol, 298.15 K, solid) | a measured standard enthalpy of formation of the solid (liquid is a separate stratum), from calorimetry or derived from it with the source saying so | a condensed-phase value; a gas-phase value plus a sublimation step is a **route**, scored as one route with both parts named | direct condensed methods, and routes whose every step has provenance |
+| P3 | `melting_point` (K) | a clean melting event (Phase A section 3.2), event kind recorded | a melting point | methods whose output is a melting point |
+| P4 | `decomposition_temperature` (K) | a decomposition event with its kind and heating-rate class (section 3.5) | no method held | none: evidence only |
+
+* **Crystal density is not loading density and is not theoretical maximum density.** A method that passes P1 yields a **crystal-density estimate and nothing more**. Its output may not be labelled "density", "loading density" or "TMD" in any report, help text or calculator, and may not be wired to the detonation calculator's `loading_density_g_cm3` input (section 12).
+* A **proxy** (a method whose output is a different quantity from the target, as Joback's freezing point was for melting) is reported with `gate_eligible = false`, cannot PASS and cannot promote anything.
+* **Temperature basis is part of the output.** A method that returns a density normalised to 200 K (Davis 2024 trained on CSD densities normalised to 200 K, per `docs/research/literature.toml`) is compared with a label at 295 K only as a **proxy for that comparison**, never gate-eligible, because no conversion is preregistered (section 3.2).
+* The published methods' parameters are the ones transcribed in the repository or, where not yet transcribed, in the paper, **unmodified**. A change to a parameter table or a group-assignment rule after a diagnostic error has been seen makes a new method version, and a new version needs a new untouched evaluation.
+
+## 3. The reference observation
+
+### 3.1 Value kind is a field, and only some kinds are references
+
+Phase A had one kind of reference (a handbook value). The energetic literature mixes kinds that look identical on the page. Every observation carries `value_kind`:
+
+| `value_kind` | meaning | may be a reference label |
+|---|---|---|
+| `measured` | the source reports its own measurement, or cites one for this value | yes |
+| `derived_from_measured` | computed from a measured quantity by an arithmetic step the source states (kJ/kg to kJ/mol, combustion energy to formation enthalpy) | yes, lineage kept |
+| `computed` | the source says the value is calculated: CBS-4M, G2/G3, DFT, EXPLO5, ACD/Labs, group additivity, "estimated", "theoretical", "predicted" | **no** (reported as a separate stratum, never a gate label) |
+| `unlabelled` | the source prints a number and does not say which | **no** for a gate label until a second source or the primary paper settles it |
+
+Why this is not optional: in the held sources the label is usually absent. Klapötke 2017 flags calculated values (CBS-4M, EXPLO5) but Meyer 2016, Agrawal 2010 and Akhavan 2011 print enthalpies of formation with no measured/calculated tag at all (`INVENTORY.md`); Lease 2023's Table 3 enthalpies are DFT values; a paper's "theoretical density" column can hold a measured number (Wang 2024, journal p. 133, says its BFTNAN entry of the theoretical-density column was obtained by measuring the size and weight of a cast column, i.e. it is neither a crystal density nor a theoretical maximum density). `unlabelled` is the default, and promotion to `measured` needs a stated reason on the record.
+
+### 3.2 Crystal density
+
+* Event: a diffraction (or pycnometric, labelled as such) measurement of a **crystal**. Admitted `density_kind`: `crystal_xray`, `crystal_other_measured`. Excluded and counted: `bulk`, `pressed`, `cast`, `loading`, `tmd`, `computed`, `unlabelled`. A cell reading "1.62 (bulk density ...)" is a bulk density even when it sits in a column headed density.
+* **Temperature.** Every row carries the temperature of the measurement. The primary cohort is rows with a stated temperature in **273-303 K**. Rows at another temperature are kept, reported as their own stratum, and **not converted**: low-temperature structures are common in the modern literature, and a thermal-expansion difference over 100-200 K is of the same size as the tolerance this benchmark asks of a method. A single fixed volumetric expansion coefficient may be applied in a **sensitivity analysis only**; its value is read from a held source (Hofmann 2002 derives expansion coefficients from the CSD) and recorded as an amendment **before any score exists**. It is not guessed here.
+* **Form.** Density is a property of a polymorph (Meyer 2016 prints HMX at 1.84 for the alpha form and 1.90 for the beta form, and FOX-7 at 1.89 and 1.80 for alpha and beta: differences of 0.06-0.09 g/cm3, larger than the criterion of section 11). The label is attached to the form the source names. An entity whose observations name different forms with no statement of which is the ambient-stable form is **unresolved for P1** (Phase A's polymorph rule, kept).
+* A value the source prints twice and differently is a **source conflict**, not a choice: Kim 2008 prints picric acid's density as 1.655 in Table 1 (the TNT row's value above it) and 1.771 in Table 3 (`benchmarks/thermophysical/kim2008_crystal_densities.py`). Both are kept; the rules of section 8 decide.
+
+### 3.3 Condensed-phase enthalpy of formation
+
+* Reference state fixed: **solid, 298.15 K, kJ/mol**. A liquid (nitroglycerin) is a separate stratum. A **gas-phase** value is a different property (`enthalpy_formation_gas`); it is never a label for P2 and enters only as the first leg of a route, whose second leg is a sublimation enthalpy with its own provenance (a measured value from a primary report, or a named sublimation method with its own row in the candidate registry).
+* **Units are normalised once, with the original kept.** kJ/kg, kcal/kg, kcal/mol and kJ/mol all occur. A value is converted using the molar mass of the *resolved structure*; where a source prints two units for one value and they disagree by more than 1% after conversion, the row is flagged `unit_conflict` and neither is used until the page is read (section 8). The held literature already contains such a case (Agrawal 2010, Table 1.5, CL-20 given in both kJ/kg and kJ/mol; `INVENTORY.md` section 4).
+* Meyer 2016 prints both an "enthalpy of formation" and an "energy of formation" per kilogram. They are different quantities; a row records which was read, and the energy is never used as an enthalpy.
+* A label from a **computational paper** is `computed` even when it is labelled "experimental" in a table of that paper unless the table cites the measurement.
+
+### 3.4 Melting point
+
+Phase A's rules (section 3.2) apply unchanged: only a clean `melting` event is a label; `melting_with_decomposition`, `decomposition`, estimated and unreached values are not; a range is scored as an interval and never replaced by its midpoint. Two additions:
+
+* **The method of the event is recorded** (capillary, hot stage, DSC onset, DSC peak). A DSC *peak* temperature for a melt is a different number from an onset; different methods are compared only within the same method class in the agreement check of section 8.
+* **A melting point at or above the same record's decomposition onset** is not a clean melting point; the record is `melting_with_decomposition` and goes to the evidence layer (this is the rule that keeps TATB-like "melting points" out of P3: Akhavan 2011 prints TATB's melting point as 448.5 C beside a decomposition above 350 C in the same entry).
+
+### 3.5 Decomposition: evidence layer, no gate
+
+`decomposition_temperature` already exists in `tools/validation_rows.py` as a target with a clean event `decomposition`. For energetics that single label hides at least four different quantities: extrapolated DSC onset, DSC peak (exotherm) temperature, ignition or explosion temperature in a timed test, and a thermogravimetric threshold, each depending on heating rate. Agrawal 2010 Table 3.6 prints melting point, ignition temperature and exotherm temperature as separate columns for exactly this reason, and Wang 2024 Table 1 gives TNT's "thermal decomposition peak temperature" at 20 C/min.
+
+Rules, so the evidence is usable later and cannot be mixed now:
+
+* `td_kind` in {`dsc_onset`, `dsc_peak`, `ignition_test`, `tga`, `unknown`} and `heating_rate_k_per_min` (or `unknown`) are required fields. **No conversion between kinds, ever.**
+* Two Td values are compared (agreement check, section 8) only within the same `td_kind` and a heating rate within a factor of 2.
+* No candidate method for P4 is held (`docs/research/literature.toml` lists none), so P4's status is **`NOT EVALUABLE (no candidate)`** and the deliverable is the described corpus: counts by kind, and the fraction of compounds whose melting precedes decomposition. A method offered later needs its own preregistered amendment before it sees a label.
+
+### 3.6 What is kept for every observation
+
+Original value, unit and qualifiers as printed; the normalised value and the normalisation; `value_kind` and the words that decided it; temperature as printed and normalised; the form and method where stated; source file hash and edition; table, page and entry; primary or secondary and the upstream citation where traced; and `lineage_root` (section 8.3). The original is never discarded after conversion.
+
+## 4. Entities, keys and the statistical unit
+
+Phase A's four keys are kept (entity id; observation id; leakage key = first InChIKey block; split key = the same block), plus one:
+
+5. **Form key** (P1 only): the polymorph or hydrate/solvate label where stated.
+
+**The statistical unit is one unique eligible entity (P2, P3) or one unique (entity, form) (P1) with a verified numeric label.** Every observation is kept; no entity gets more than one vote.
+
+* **Primary-label rule.** For an entity with several admissible observations: the **verified** value of section 8 if one exists; otherwise the primary-source value; otherwise the most recent edition held; if the surviving values then differ by more than the agreement tolerance of section 8.2, the entity is **unresolved** for that property and is not scored in the primary analysis. (Phase A used 1.0 K for temperatures; the tolerances here are in section 8.2.)
+* **Sensitivity analysis**: the primary analysis is repeated with each alternative admissible observation in turn; the spread of MAE is reported; nothing is averaged.
+* Two books printing one value are two observations of one entity, **and are counted as one observation when they share a lineage root** (section 8.3).
+
+## 5. Population and strata
+
+"**Known energetic compounds with a measured reference value in the held literature**" is the description of the population until the counts are known. No claim is made about all energetic materials, and availability of a clean measurement is itself a selection (the best-characterised compounds are the commercial and military ones; very sensitive, unstable and newly made compounds are under-represented).
+
+* **Organic** here means: contains carbon and no element outside {H, B, C, N, O, F, Si, P, S, Cl, Br, I}. **This is not Phase A's rule** (a carbon with at least one C-H or C-C bond): that rule would have dropped NTO, nitroguanidine, 5-aminotetrazole and 3,6-diaminotetrazine, whose carbons bond only to heteroatoms (held in `tests/test_energetics_props_families.py`). An energetic benchmark that inherited it would lose the nitrogen-rich compounds it is about.
+* **Primary set**: neutral, single-component, non-polymeric organic compounds. **Salts (ammonium, hydrazinium, guanidinium and metal salts), hydrates and solvates, co-crystals, organometallics, carbon-free compounds (ammonium nitrate, azides of metals), mixtures, compositions and polymers** are separate reported strata outside the primary gate. Many modern energetic materials are salts; no candidate in section 10 other than Beaucamp 2003 (density) is scoped to them, and that is a finding about coverage, not a reason to widen the gate.
+* **Families**, structure only, fixed before any score, by the **first match** in this order (`epb_families.py`, held by `tests/test_energetics_props_families.py`):
+
+| # | family | rule |
+|---|---|---|
+| 1 | nitrate_ester | `[OX2][N+](=O)[O-]` |
+| 2 | nitramine | N-nitro: `[#7;!$([N+](=O)[O-])][N+](=O)[O-]` |
+| 3 | nitroaromatic | `[c][N+](=O)[O-]` (includes nitro on a heteroaromatic carbon) |
+| 4 | nitroaliphatic | `[#6;!c][N+](=O)[O-]` |
+| 5 | azide | `[N-]=[N+]=[N]` |
+| 6 | peroxide | `[OX2][OX2]` |
+| 7 | n_rich_heterocycle | a ring holding two or more nitrogens |
+| 8 | halogenated | `[F,Cl,Br,I]` |
+| 9 | other_organic | the rest |
+
+Precedence is deliberate: tetryl and TNAZ carry both N-nitro and C-nitro groups and are nitramines. A **cage** flag (some atom belongs to three or more rings, RDKit's symmetrized smallest rings: cubane, adamantane; flat fused rings and simple bridged bicycles are not cages) is reported beside the family, never instead. Strata overlap only through the cage flag and the form/phase strata. **A stratum with fewer than 30 entities in the holdout supports no standalone claim.** With a 20% holdout that means a family claim needs about 150 verified entities in the family; the corpus will probably support such a claim for at most one or two families, and the report says so.
+
+## 6. Counts and denominators
+
+Reported separately, every time: entities considered; entities with an eligible numeric label (and, separately, a **verified** one, section 8); entities each candidate predicted and refused (coded reasons); paired candidate/baseline entities; the all-method common cohort; source observations; entities with more than one observation; unresolved entities; `NoEventRecord` population by event; and the **`computed`, `unlabelled`, bulk/pressed/cast and wrong-temperature populations**, which are the energetic literature's way of looking like data without being a reference.
+
+**Coverage = (entities the method predicts within its declared scope) / (entities with an eligible verified label).**
+
+## 7. Building the corpus (a later PR; the rules are fixed here)
+
+Every candidate row gets exactly one visible disposition (Phase A's list, plus `value_kind_not_reference`, `temperature_out_of_window`, `form_unresolved`, `unit_conflict`, `row_implausible`). Counts are generated from the structured records, never typed.
+
+1. Locate entries by **field label** in the source, keeping page and entry; parse value, unit, qualifier, temperature, form and method. **Never infer** a missing unit, a temperature, a phase or which of several numbers in a cell is the one meant. The cell grammar is closed; anything outside it is refused with a reason.
+2. Resolve the printed name to a structure through the app's naming path; record unique, ambiguous or failed. Where a source prints a **formula** (Meyer, Klapötke), the formula and molar mass must equal the structure's (Phase A section 13.6 rule); the energetic literature uses abbreviations (RDX, FOX-7, TEX) that resolve through a reviewed alias table, every alias attributed.
+3. Classify value kind, density kind, event and method; apply the admission functions.
+4. Cross-check against every other held source, tracking lineage (section 8).
+5. The parser has hand-checked positive examples and plausible-but-wrong negative examples; every manual override is explicit, attributed and regression-tested; the **parser is frozen before any selection or holdout score exists**.
+
+**Text layers lie in source-specific ways, and each is a test case before it is a parser rule.** Minus signs are lost or spaced ("- 115"); exponents are flattened; a property block's heading can be the wrong substance after a page break; a scanned book has no text layer at all (`INVENTORY.md` section 4 lists the instances found while counting).
+
+**Two evidence layers, as in Phase A.** The books are copyrighted and are not committed. The repository holds the schema, the family module and its test, the parser's fixtures (a few hand-typed facts), the frozen split manifest and checksum, the judge, aggregate results, and `INVENTORY.md` (counts and locators, no per-compound values from a copyrighted table). Tsang & Domalski 1974 is a US Government report and may be committed in full; the two open-access papers (Wang 2024 is CC BY-NC-ND, Lease 2023 is open access) are treated as copyrighted for this purpose until a licence check says otherwise. The corpus is built beside the local library (`OPENCHEM_PDF_LIBRARY`); a run without it reports `NOT_RUN`, never a pass.
+
+## 8. Detecting label errors before scoring, not after
+
+Phase A found its label errors only by comparing two books and reading rendered pages after the corpus existed, and the handbooks it used are mostly *independent compilations of the same upstream*. The held energetics sources are worse in three specific ways found while counting them (`INVENTORY.md`): values are copied between books (Akhavan 2011's enthalpies for HNS, TATB, HMX and nitroglycerin match Cooper 1996; Agrawal 2010's kJ/kg for ammonium nitrate, ammonium perchlorate and ADN match Meyer's *energy* of formation), the same compound's value differs by tens of kJ/mol between books (RDX 61.5 to 70.3, tetryl 19.5 to 34, TNT -26 to -67 kJ/mol across the sources compared), and a source can print a wrong sign, a wrong unit or the wrong heading. So detection is a stage with fixed rules, run **before any partition is scored** and frozen with the parser.
+
+### 8.1 Within-row plausibility (no second source needed)
+
+Each rule uses the row alone, is fixed now, and sends a failing row to `row_implausible` (kept, counted, not scored):
+
+* **Density**: 0.8 < rho < 3.5 g/cm3; and a **packing coefficient** k = rho x N_A x Vvdw / M (Vvdw the molecular van der Waals volume of the resolved structure, Bondi radii; M its molar mass) outside [0.55, 0.90] is flagged. The bounds here are placeholders to be **set on development rows only** before the freeze (a range wide enough to keep every development row that survives the other rules, and no wider), recorded, and not adjusted after a selection or holdout row is seen. The check exists because a bulk density read as a crystal density gives a packing coefficient far below any crystal's.
+* **Enthalpy of formation**: kJ/kg and kJ/mol printed together must agree within 1% after conversion with the resolved molar mass (the unit-conflict rule of 3.3); a solid and a gas value for one compound must differ by a positive sublimation enthalpy of plausible size (**40-250 kJ/mol**, set on development rows); a value of the right size and wrong sign is detected only by agreement (8.2).
+* **Melting point**: not at or above the same record's decomposition onset (3.4); not above the same source's boiling point where both are printed (Phase A section 13.10).
+* **Identity**: the printed formula and molar mass must equal the structure's. Meyer 2016 and Klapötke's Encyclopedia print both, so a wrong heading (a property block under the wrong substance after a page break, found in the held copy of Meyer) fails here instead of scoring against a different molecule.
+
+### 8.2 Cross-source agreement, with tolerances fixed now
+
+An entity-property is **verified** when it has at least two observations of different `lineage_root` that agree, or one observation carrying a primary-literature measurement with a locator that was read on the page. Agreement (within the same kind/method class):
+
+| property | agree when | rationale |
+|---|---|---|
+| crystal density | within 0.02 g/cm3, same form, temperatures both in the 273-303 K window | thermal expansion over 30 K is ~0.01 g/cm3; smaller than the 0.04 criterion of section 11 |
+| enthalpy of formation (condensed) | within 10 kJ/mol | the same book prints RDX twice 18 kJ/mol apart (66.6 in prose, 85.0 in Table 9.6: `benchmarks/thermophysical/validation_rows_energetics.py`); 10 kJ/mol is half the 21 kJ/mol criterion |
+| melting point | within 2 K, same method class; ranges overlapping | DSC onset versus capillary differ by 1-3 K; Phase A used 1.0 K for handbooks |
+| decomposition | not applicable to a gate (3.5) | |
+
+A disagreement keeps both observations, marks the entity `disagree`, and sends the page to review (8.4); it is never resolved by averaging or by taking the "better" source.
+
+### 8.3 Lineage
+
+`lineage_root` is the furthest-back citation traced for a value (the book's own reference marker where it prints one: Klapötke's Encyclopedia and Viswanath 2018 do; Meyer 2016, Agrawal 2010 and Akhavan 2011 print none per value). Two observations that share a root, or that are **identical to the last printed digit in two books with no root traced and the same unit conversion**, count as one observation for the purpose of "two sources". Where a lineage cannot be traced, the pair is `agree_untraced` and does **not** verify the entity on its own. (Meyer 2016 and Klapötke's text print identical values for new compounds, e.g. the bis(nitramino)triazinone entry; that is transcription consistency, not replication.)
+
+### 8.4 Review, and what review may do
+
+A flagged row (implausible, disagree, unit_conflict, agree_untraced) is read on the rendered page. The reader records what the page prints, whether the text layer matched it, and the disposition; a correction to what the page prints is an explicit, attributed override with a regression fixture. Review **never** uses a prediction, a method's output or a partition: the reviewer sees the row and its sources and nothing else. Review runs on development, selection **and** holdout rows alike (a label error is a label error), but only on rows flagged by the rules above, and the rules are frozen first; a holdout row's disposition is fixed before any score exists and a holdout-informed *change to a rule* is logged and invalidates the untouched status of that part (section 9.4).
+
+### 8.5 What the primary cohort is
+
+**Recommended (D5): the primary gate cohort is the verified entities.** Single-source and `agree_untraced` entities are scored in a labelled secondary report. Phase A's holdout shows why: Joback's boiling-point MAE was 27.1 K on all entities and 21.8 K where both books agreed (RESULT.md), a 20% swing caused by label quality alone. The cost is cohort size (section 13), and the alternative (all entities, subsets as sensitivity) is the owner's call.
+
+## 9. The split, the sealed holdout, and what has already been seen
+
+### 9.1 Partitions
+
+Three, by SHA-256 of the split key: **60% development, 20% selection, 20% holdout** (`validation_rows.PARTITION_SHARES`, partition independent of which rows exist). The manifest and its checksum are committed. A **second report, grouped by structural family rather than by hash**, is a different claim (generalisation to an unseen family) and is never merged into the headline.
+
+### 9.2 Compounds already examined are forced out of the holdout
+
+The repository already compared routes on RDX, HMX, TNT, PETN, metriol trinitrate, dinitropiperazine and nine calibration compounds (`benchmarks/thermophysical/compare_energetics.py`, `validation_rows_energetics.py`, `orca_atom_equivalents.py`), and recorded Kim 2008's 41 densities as `selection`. For P1 and P2 those compounds were **examined while choosing methods**. Rule: every identity block in those modules is **forced into `development` or `selection` regardless of its hash**, recorded in the manifest with the reason `previously_examined`. The remaining compounds keep their hash partition, so the rule does not depend on which rows exist.
+
+### 9.3 Phase A's holdout is not a source of evidence here
+
+P3 overlaps Phase A's handbook corpus (the primary stratum held 385 nitro, 8 nitrate-ester and 5 nitramine melting points, `CORPUS_REPORT.md`). Rule: an identity block that `benchmarks/mp_bp/split_manifest.json` assigns to `holdout` is **excluded from Phase B's P3 holdout for Marrero-Gani, Joback and Candidate C** (their behaviour on that molecule's handbook label was scored once already); it may be scored for methods Phase A did not run. The manifest is read for partition membership only, never for labels or predictions. Phase A's per-entity predictions are not read.
+
+### 9.4 One look per property, and how a defect is handled
+
+* `epb_score.py select` writes a `freeze.json` per property (penalties and coefficients of any refit candidate, hash of every file that decides a score, thresholds, seed); `holdout` refuses without `--confirm-holdout-once`, and refuses unless every hashed file is byte-identical to the freeze and the tracked tree is clean; it writes a lock **before** the first holdout label is read, and refuses a second run. These are the guards of `mpbp_score.py`, reused, with **one lock per property** because the properties become ready at different times.
+* Parser, identity and label defects are found and fixed on development rows and fixed fixtures. A holdout-informed change to the parser, a rule, a threshold or a method is logged, and **that property's holdout no longer supports an untouched final claim**; the gate artifact states which partitions were examined, when and for what.
+* **A defect in shared code found after one property's holdout has been read**: that property's verdict stands as scored; each later property is re-frozen on the fixed code with the diff recorded. A fix that changes any development label is shown, and the later property's verdict says so.
+
+### 9.5 A prospective arm, for methods whose population cannot be listed
+
+A method with leakage `unknown` can be given a **prospective cohort**: verified entities whose *first reported measurement of that property was published after the method's declared data cut* (the paper's CSD snapshot or submission date). That is evidence of non-overlap by date, status `no_overlap_by_evidence`, for that cohort only; it is scored once, separately from the holdout, and never merged. It is leakage by identity only: a near neighbour of a trained-on compound is not excluded. The held sources give very few such compounds (Lease 2023's PETN derivatives; Wang 2024's single new compound; the cut date of each CSD-trained model must still be read), so this arm will be descriptive. `INVENTORY.md` section 6 lists the small series.
+
+## 10. Candidate methods and the leakage status each will have
+
+Leakage is judged per (model, property) on chemical identity, as in Phase A. **`unknown` is not a form of clean**: such a model produces exploratory statistics, labelled non-blind, and cannot PASS (`may_claim_independent_holdout`). The table is the status **as of this draft**, from each paper's own text (read for this document; a population not listed in the paper is `unknown`), and what could change it.
+
+Two energetics-specific leakage routes are checked beside identity, and either alone makes a model's result non-blind for the affected rows (flag `source_shared`, row-level):
+
+* **Label-source overlap.** A model fitted to a compendium (the NIST WebBook, Pedley's tables) is not independent of a book that cites the same compendium for its label (Klapötke's Encyclopedia cites the NIST WebBook for some values).
+* **Training on the crystals the labels come from.** The crystal-density labels are mostly diffraction structures deposited in the Cambridge Structural Database; every CSD-trained density model has plausibly seen them.
+
+### 10.1 Crystal density (P1)
+
+| id | method | published fit population | recoverable? | status | what changes it | in repo |
+|---|---|---|---|---|---|---|
+| D1 | Tarver 1979 group additivity | 188 explosives and related compounds, 173 compared (p1 abstract); tabulated in the paper | yes, from its tables | `known_population_overlap_removed` once the tables are transcribed | transcribe the table and resolve identities | no (Table 11 groups to transcribe) |
+| D2 | Ammon 1998 / 2001 / 2008 volume additivity | >11,000, ~26,000, then ~41,000 (atom/group) and ~48,000 (atom_code) CSD structures; not listed | no | **`unknown`** | a CSD licence and the lists, or the prospective arm (Ammon 2008 cut: read before freeze) | no |
+| D3 | Hofmann 2002 element volumes | 182,239 CSD structures after screening (p2); not listed | no | **`unknown`** | as D2 | no |
+| D4 | Keshavarz 2009 (nitro/nitrate/nitramine; polynitroarenes) | fit tables in each paper; compounds drawn as images | after transcription | **`unknown`** until transcribed, then known | transcribe and resolve identities | no |
+| D5 | Rice 2007 / Qiu 2007 / Kim 2008 / Rice 2013 (QM surface descriptors) | small sets in the papers; Kim 2008 reports 41 CSD structures (the table already in the repo) | yes | `known_population_overlap_removed`; **the 41 Kim rows are pre-examined (9.2)** | read each paper's train/test statement | no |
+| D6 | Nguyen 2021 (ML) | 10,251 CSD compounds as of Dec 2018; refcode list in the SI | if the SI is obtained, by refcode only | **`unknown`** | SI plus a refcode-to-identity route (CSD), or prospective arm after Dec 2018 | no |
+| D7 | Yang 2021 (GNN, CCDC) | a CCDC set, with an independent test set retained | unread for membership | **`unknown`** | read the membership statement | no |
+| D8 | Jin 2023 (transformer, open access) | 12,072 CSD CHON compounds | unread whether released | **`unknown`** | check the data availability statement | no |
+| D9 | Davis 2024 (ML) | ~21,000 CSD compounds, 70/20/10 split; SI "not held" (`literature.toml`) | no | **`unknown`**; output normalised to 200 K, so a proxy against 295 K labels | obtain the SI; resolve the temperature basis | no |
+| D10 | **Candidate D (this project's refit)** | the development partition of this corpus | yes, by construction | `known_population_no_overlap` | n/a | no |
+
+**Candidate D**: density = M / (sum of fitted volumes), volumes for the element counts and at most ten functional-group counts (nitro, nitramine N-nitro, nitrate ester, N-oxide, azide, furazan/azole ring, ... fixed list written before fitting), ridge penalty from the fixed grid {0.01, 0.1, 1, 10, 100} chosen by lowest MAE on **selection**, fitted on **development only**, intercept-free, a group absent from development unfitted and refusing. It is named as the project's own in every report. **It is offered only if the verified development partition has at least 10 rows per fitted parameter.**
+
+**Consequence stated now**: D2, D3, D6-D9 cannot PASS an independent-holdout claim on this corpus as it stands, however well they score; their results are exploratory and their verdict `NOT EVALUABLE`. This is a finding about what is knowable. Only D1 (after transcription), D4, D5 and Candidate D can be evaluable.
+
+### 10.2 Condensed-phase enthalpy of formation (P2)
+
+| id | method | published fit population | status | in repo |
+|---|---|---|---|---|
+| H1 | Keshavarz 2006 (nitramines, nitrate esters, nitroaliphatics; 2009 nitroaromatics) | fit tables in the papers; reported rms 25.7 kJ/mol for 26 nitroaromatics (2009) and 42.3 for 59 complex molecules (2006) | **`unknown`** until transcribed | nitroaromatic 2009: `keshavarz_nitroaromatic2009.py`, **reproduced** against its own Table 1 |
+| H2 | Keshavarz and Sadeghi 2009 (nitramine/nitrate/nitroaliphatic sister paper) | fit table in the paper | **cannot be scored as published: its own coefficients do not reproduce its own printed table** (`literature.toml`); `NOT EVALUABLE (not reproducible)` | `keshavarz_sadeghi2009.py` |
+| H3 | Nazari 2016 / Jafari 2016 | 222 compounds (2016); 119 data points (Jafari) | **`unknown`** until transcribed | no |
+| H4 | **ORCA atom-equivalent route** (this project) | 9 calibration compounds, listed (`CALIBRATION_SET`) | `known_population_overlap_removed` (the 9 and the pre-examined compounds leave) | `orca_atom_equivalents.py`; gas-phase output, needs a sublimation leg; **PETN topology refused by evidence** (ROADMAP) |
+| H5 | Mathieu 2018 APC (gas phase) + Keshavarz 2010 sublimation (condensed route) | APC: 2,671 compiled entries, training list in the SI (not held); sublimation: 92-107 compounds in tables drawn as images | **`unknown` twice** (APC SI absent; sublimation tables untranscribed); `source_shared` with the NIST WebBook | `mathieu2018_apc.py`, `keshavarz2010_sublimation.py` (reproduced on one row) |
+| H6 | Cawkwell 2021 atom equivalents (gas phase) + sublimation leg | training set of 103 molecules, listed in its Table 1 (the 45 Byrd and Rice molecules plus 58) | `known_population_overlap_removed` after transcription | no |
+| H7 | Byrd and Rice 2005/2006 | training and test sets stated and tabulated | known after transcription (gas phase; sublimation leg needed) | no |
+
+Candidate "H-refit" (a composition-and-group regression fitted on development) is **not offered**, because the verified condensed-phase development partition is expected to be well under the 150 rows its 15 parameters would need (section 13).
+
+A **route** is gate-eligible only when every leg has a recorded population or an explicit `unknown`, and a route containing an `unknown` leg is `unknown`. The two legs' errors are also reported separately where the sublimation leg has measured values (Acree 2010: `INVENTORY.md` section 3).
+
+### 10.3 Melting point (P3)
+
+| id | method | published fit population | status |
+|---|---|---|---|
+| M1 | Marrero-Gani first order, Tm | 1,547 data points, not listed (Phase A) | **`unknown`** |
+| M2 | Constantinou-Gani 1994 | not read for this document | **`unknown`** until read |
+| M3 | Joback Tf | 388 compounds, not listed | **`unknown`**, and a freezing-point **proxy** (not gate-eligible) |
+
+Phase A's Candidate C **FAILED** its gate on ordinary organics (RESULT.md) and is **not offered** here: refitting 41 parameters on the energetic development rows would be a new method on a corpus an order of magnitude smaller. With M1-M3 all `unknown`, **P3 is expected to end as an exploratory description**: how far each method is from measured energetic melting points, by family, and how often the event is not a clean melt. That is a useful result, and it is not a pass.
+
+### 10.4 Decomposition (P4): no candidate (3.5).
+
+## 11. Scoring, thresholds, minimum n, outcomes
+
+**Primary metric**: mean absolute error over unique entities (g/cm3, kJ/mol, K). Also reported: RMSE, median absolute error, signed bias, coverage, refusal reasons, n per stratum. Two comparisons, neither substituting for the other: the **all-method common cohort**, and each candidate against the **baseline on its own paired cohort**, with its coverage against the eligible denominator, so that a method cannot improve its headline by refusing hard cases.
+
+**Baselines** (fixed, development rows only, no selection or holdout label): P1, the mean density of the molecule's family (section 5) falling back to the mean of all; P2, an ordinary-least-squares regression of the enthalpy on C, H, N, O counts (a composition-only model, because a family mean is meaningless over a range of about 1,200 kJ/mol); P3, the family mean.
+
+**Intervals**: bootstrap over unique entities, 10,000 resamples, 95% percentile intervals, for the holdout MAE and the relative improvement over the baseline. The seed is the freeze date as YYYYMMDD, written to `freeze.json`.
+
+### 11.1 PASS requires all of the following, for a stated property and scope, on the holdout
+
+1. leakage status for that (model, property, cohort) is not `unknown`;
+2. **replication criterion**: point MAE <= **1.5 x** the method's own published error where the paper reports a comparable mean absolute error (Tarver 1979: 0.0191 g/cm3 on 173 compounds; Marrero-Gani Tm: 24.90 K), **and** the upper bound of the 95% interval <= **2.0 x** it. Where the paper reports only a percentage, an R2 or an rms, this criterion is **not applicable** and is stated as such for that method;
+3. **usefulness criterion** (absolute, from the downstream need rather than from a paper): point MAE <= **0.04 g/cm3** and upper bound <= **0.05** (P1); point MAE <= **21 kJ/mol** and upper bound <= **28** (P2); point MAE <= **37.35 K** and upper bound <= **49.8 K** (P3: Phase A's Marrero-Gani ceiling, kept for comparability);
+4. point improvement over the baseline >= **20%** and the lower bound of its 95% interval >= **10%**;
+5. coverage >= **70%** of the eligible verified denominator;
+6. **at least 60 paired unique eligible verified holdout entities** (section 11.2).
+
+Rationale. Density: Kim 2008 state performance needs density "within an error of 0.03 g/cc" (quoted in `docs/research/SENSITIVITY.md`); the illustrative worked example there (RDX, Kamlet-Jacobs Table III) moves the detonation pressure by about 4.6-4.7% for a 0.04 g/cm3 step, because pressure goes as density squared; and 0.04 is about twice the 0.019 that Tarver 1979, an early group-additivity method, reports for itself. Enthalpy: Kim 2008 give 5 kcal/mol (21 kJ/mol) as the need, quoted in the same note; the published condensed-phase methods report rms errors of 25-45 kJ/mol, so **the usefulness criterion is expected to be failed by most published methods, and that is the intended reading** (a method that is as good as its paper but not good enough to use has FAILED the criterion that matters for shipping). Melting point: Phase A's ceiling, kept so that the two benchmarks can be compared. 20%/10%, 70% and the intervals are Phase A's. All of these are engineering criteria, not scientific standards, fixed before scoring for that reason. **If the owner prefers Phase A's relative-only form, D2 in section 14 says what changes.**
+
+### 11.2 Minimum n, derived rather than copied
+
+Phase A required 300 paired holdout entities. That is not reachable here (section 13) and is not needed for the thresholds above. For a point ceiling P and an upper-interval ceiling U = (4/3) P (the 1.5x/2.0x ratio), the 95% interval half-width at the ceiling is 1.96 s / sqrt(n), and the interval clears U when 1.96 s / sqrt(n) <= U - P = P/3. Taking the worst case s = P (the standard deviation of the absolute error as large as its mean, which is the exponential-error case), n >= (3 x 1.96)^2 = **34.6**. Allowing for non-normal bootstrap behaviour and a baseline comparison on the same entities, the preregistered minimum is **60 paired verified holdout entities**. With a 20% holdout, a property needs **at least 300 verified eligible entities in the primary population** before any verdict other than NOT EVALUABLE is possible. This is stated now so that a corpus of 120 is not made to look like a corpus of 300.
+
+### 11.3 Outcomes
+
+`PASS`, `FAIL`, `NOT EVALUABLE` (fewer than 60 paired verified holdout entities; leakage `unknown`; unresolved identity; no candidate; not reproducible as published), and the machine-readable full-evaluation status `NOT_RUN` (the corpus was not available). A threshold is never relaxed after the corpus is seen. `NOT EVALUABLE` is not `FAIL`.
+
+### 11.4 If the corpus is smaller than needed
+
+Below 60 paired holdout entities for a property the verdict is `NOT EVALUABLE`, the thresholds are **unchanged**, and the report carries (a) the counts, (b) descriptive error statistics on all partitions labelled non-blind, and (c) the number of verified entities that would have been needed. No shares are re-cut after the count is known, no threshold is loosened, and the holdout is not scored "to see". If the owner wants a different split for a small corpus, D4 in section 14 is where it is decided, **before** the corpus is built.
+
+### 11.5 What a pass allows
+
+At most a narrowly scoped, EXPERIMENTAL, hidden calculator for that property and scope (`docs/CALCULATOR_MATURITY.md`). A P1 pass allows a **crystal-density estimate** for the passing family, named so, with its temperature basis; a P2 pass allows a condensed-phase enthalpy estimate for the passing family with its legs named; nothing here promotes a STABLE claim, a proxy never promotes, and each property promotes nothing about the others. A calculator also needs everything in that document (source entry, independent implementation check, units and reference conditions, coded refusals, help text, support reason, regression fixture, changelog).
+
+## 12. Boundaries carried from Phase A section 11 (not reopened)
+
+* Melting point and decomposition onset are separate properties (3.4, 3.5).
+* Crystal density is not loading density and not theoretical maximum density; a P1 pass yields a crystal-density estimate and nothing more; **Kamlet-Jacobs stays `NEEDS_INPUT`**. Nothing in a P1 pass is wired to `loading_density_g_cm3`. A loading-density input, a TMD input or a "crystal density used as a stand-in" is a separate product decision by the owner, defining a new, explicitly named input; it is not made by this benchmark, and no result here is evidence for it.
+* Enthalpy of formation is the condensed-phase quantity; a gas-phase route carries its sublimation leg and provenance (3.3, 10.2).
+* A source-printed oxygen balance is a formula-reproduction consistency check (`tests/test_oxygen_balance_extended.py`), never independent evidence for any property here.
+* Scope is validation of published methods on known compounds.
+
+### 12.1 The PETN decision: when its reversal conditions count as met
+
+`docs/ROADMAP.md` (recorded 2026-10-05) states the decision that the ORCA atom-equivalent route is not an automatic detonation input, and what would reverse it: **(R1)** "a four-arm quaternary-carbon calibrant with a measured gas-phase enthalpy", or **(R2)** "a held-out set of nitramines large enough to ship the route scoped to that family alone with the PETN class refused by a coded limit". They count as met **only** by frozen records and these rules:
+
+* **R1 is met** when the frozen corpus holds at least one verified row (value kind `measured`, phase `gas`, a primary-source locator read on the page, a different identity block from PETN) whose structure matches the four-arm rule `[CX4;H0]([CH2][!#1])([CH2][!#1])([CH2][!#1])[CH2][!#1]` bearing four identical arms, **and** the owner has approved that compound as a PETN-topology calibrant (D8). R1 met means the PETN miss is *testable as a calibration gap*; it does not ship anything.
+* **R2 is met** when H4 (the ORCA route), frozen on development rows only, passes the P2 gate **scoped to the `nitramine` family** with at least 30 paired verified holdout nitramines (the stratum rule of section 5), **and** the PETN class (a nitrate ester with a four-arm quaternary carbon) is refused by a coded limit implemented and tested before the freeze. The inventory does not break entries down by family (that needs identity resolution), so no verified-nitramine count exists yet; R2 is not reachable unless the nitramine stratum reaches about 150 verified entities, and the ceilings of section 13 make that doubtful. If it does not, R2 is `NOT EVALUABLE`, not relaxed.
+* Neither condition changes `Detonation`'s `NEEDS_INPUT` status by itself; both only allow a *separate* product decision to be taken on evidence.
+
+## 13. What the held literature can support
+
+`INVENTORY.md` (generated from `inventory.json`, tested) counts, per source, per property, the entries that print a numeric value, with page or table locators and the extraction error rate measured by hand checks. It counts **entries and table rows before any structure identification**, so every figure is an upper bound on usable distinct compounds: the usable number is what survives identity (section 7), value kind (3.1), temperature and form (3.2), and verification (8). `INVENTORY.md` section 7 states the resulting upper bounds per property and the sample sizes they allow against the 300-entity requirement of 11.2. This section is the summary of that, and is filled in from it:
+
+**The ceilings (`INVENTORY.md` section 7; entries, not distinct compounds, summed over sources with every double count left in):**
+
+| property | ceiling on entries | largest single source | against the 300 verified entities that 11.2 needs |
+|---|---|---|---|
+| P1 crystal density, qualified as a crystal measurement | 235 | 187 (Klapötke's Encyclopedia, scaled) | **already below 300** |
+| P1 density, any (unqualified, bulk, "theoretical" included) | 672 | 385 | reachable only by counting values that are not crystal densities |
+| P2 condensed enthalpy, labelled experimental | 112 | 99 | **already below 300** |
+| P2 enthalpy, any label | 597 | 315 | reachable only by counting calculated and unlabelled values |
+| P3 melting point, clean melting event | 541 | 212 | not excluded by the ceiling, but every candidate's leakage is `unknown` |
+| P4 decomposition (evidence only) | 466 | 323 | not applicable |
+
+What this does and does not say:
+
+* **It does not say how many verified entities exist.** That needs identity resolution, and verification (two lineage roots that agree, section 8.2) cuts a ceiling hard: across the three or four books compared for eight well-known compounds the enthalpy spread runs from 0 to 88 kJ/mol (`INVENTORY.md` section 5), and the zero is a digit-for-digit copy, not a replication; and the Encyclopedia's densities and enthalpies mix crystal and bulk, measured and calculated, solid and gas in one entry. A realistic verified count is a fraction of the ceiling, and cannot be stated before the corpus build.
+* **It does say that, from the held literature alone, P1 (qualified) and P2 (labelled experimental) cannot reach 300 verified entities at 60/20/20**, because their ceilings are below it. Under the rules as drafted the expected outcome for both is `NOT EVALUABLE` for every method, however well it scores: a measured description of the methods and of the labels, with exploratory error statistics, and no PASS. A holdout share of 30% (D4) lowers the requirement to 200 verified entities, which the P1 ceiling of 235 cannot realistically meet after verification either.
+* **P3** is the only property whose ceiling does not rule out the minimum, and it is the one where every candidate's leakage is `unknown`; its expected outcome is also `NOT EVALUABLE`, for a different reason.
+* The honest first deliverable of Phase B is therefore the **corpus and its label-quality report** (what fraction of the entries are measured, crystal, in the temperature window, verified), exactly as Phase A's second PR was; the first one that could end in a PASS needs data this library does not hold (D9: crystal labels from the CSD, or measured-enthalpy compendia). Nothing in the thresholds is changed to make a small corpus look sufficient.
+* The Encyclopedia counts are on 329 of 413 entries (volume 3 only 70 of 129, volume 1 161 of 186); its volumes 1 and 3 are image tables read by OCR with a measured error rate of one wrong field in 24 checked and an OCR-specific rate not established. The figures above scale the uncovered entries at the covered rate, which is an assumption.
+* **The LMU Munich dissertations (the Klapötke group) are not in the library** (`INVENTORY.md` section 8); they were not counted.
+
+## 14. Decisions for the owner
+
+Each has a recommendation; the draft numbers above are the recommendations.
+
+* **D1. Which property goes first.** *Recommendation: P1 crystal density, then P2, with P3 as a description and P4 as evidence only.* Density has the cleanest event (a diffraction measurement with a temperature and a form), the most candidates with a listable fit population (Tarver 1979, the Keshavarz papers, Kim 2008, and Candidate D), a prospective arm, and no compute cost. P2 needs a sublimation leg, a measured-or-computed decision on every row (3.1) and DFT time. P3 is expected to end NOT EVALUABLE because every candidate's leakage is `unknown`.
+* **D2. The form of the gate.** *Recommendation: both a replication criterion (1.5x / 2.0x of the paper's own error, where the paper gives a comparable one) and a usefulness criterion (absolute).* Phase A used only the relative form. The relative form alone would let a method that is faithfully as bad as its paper pass; the absolute form alone ignores what the paper claimed. If the owner wants Phase A parity, drop criterion 3 of 11.1; nothing else in the document changes, and more methods become able to PASS.
+* **D3. The numbers.** *Recommendation: as written in 11.1* (0.04 / 0.05 g/cm3; 21 / 28 kJ/mol; 37.35 / 49.8 K; 20% / 10% improvement; 70% coverage; 60 paired holdout entities). The first two absolute pairs are the ones most open to challenge: both are tied to a single sourced statement of need (Kim 2008) and an illustrative worked example, and 21 kJ/mol is below what most published condensed-phase methods report for themselves.
+* **D4. Minimum n and the shares.** *Recommendation: 60 paired verified holdout entities, which needs about 300 verified eligible entities at 60/20/20 (11.2); keep the shares; below that the verdict is NOT EVALUABLE and nothing is loosened.* The alternative is to give the holdout a larger share (for example 50/20/30, which needs about 200 verified entities) at the cost of a smaller development set for Candidate D. If the counts of section 13 make 300 unreachable for the property the owner cares about, this must be decided **before the corpus is built**, not after.
+* **D5. The primary cohort.** *Recommendation: verified entities only (8.5).* The alternative (all entities with a label, verification as a sensitivity subset) gives more entities and, by Phase A's own measurement, a worse MAE for reasons that are the labels' and not the method's.
+* **D6. The population.** *Recommendation: as written in section 5* (neutral single-component organic compounds; salts, hydrates, co-crystals, organometallics, mixtures and polymers as strata outside the primary gate; "organic" redefined so that NTO, nitroguanidine and the aminotetrazoles stay in).
+* **D7. Pre-examined compounds and Phase A's holdout.** *Recommendation: yes to both rules* (9.2: every compound the repository's earlier survey examined is forced out of the holdout; 9.3: Phase A holdout members are excluded from the P3 holdout for the methods Phase A scored). The cost is a holdout without RDX, HMX, TNT and PETN, which are the compounds a reader would look for first; the benefit is that nothing already looked at is called untouched.
+* **D8. The PETN conditions.** *Recommendation: the R1 and R2 definitions of 12.1,* and the owner's approval of which compound (if any) counts as a four-arm calibrant. R2 is not reachable unless the verified nitramine stratum reaches about 150 entities; the draft says so rather than shrinking the number.
+* **D9. Access to the Cambridge Structural Database and to the supporting information of Nguyen 2021 and Davis 2024.** *Question for the owner: is a CSD licence available?* Without it, D2, D3 and D6-D9 stay `unknown` and the prospective arm is the only route to a non-exploratory result for them. With it there are two different uses, and they conflict: CSD **labels** would make P1 large (thousands of structures with a temperature and an R factor) but would make every CSD-trained model leak by construction, leaving only Tarver, Keshavarz, Kim-type and Candidate D evaluable; CSD **membership lists** (not labels) would let the CSD-trained models be evaluated by identity on the held-source labels. *Recommendation: do not decide this before reading the counts; ask for the licence status.*
+* **D10. The temperature window and the expansion coefficient.** *Recommendation: 273-303 K, no conversion in the primary analysis, and one fixed coefficient read from Hofmann 2002 in a sensitivity analysis only, recorded as an amendment before any score* (3.2).
+* **D11. Candidate D.** *Recommendation: offer it for P1 if the verified development partition has at least 10 rows per fitted parameter; do not offer a refit for P2 or P3* (10.1, 10.2, 10.3). Offering it is the Phase A decision (D4 there) repeated for the one property where a refit is plausible at this corpus size.
+* **D12. Decomposition (P4).** *Recommendation: evidence layer only, no gate* (3.5). If the owner wants a decomposition predictor evaluated, a candidate must be named and a preregistered amendment written before it sees a label.
+* **D13. The ORCA route's compute budget.** *Recommendation: decide after the verified condensed-phase count is known (13), then run H4 on development and selection molecules only until the freeze.* The earlier survey needed a full DFT geometry optimisation per molecule; the budget is the owner's.
+* **D14. The LMU dissertations.** They are not in the library (`INVENTORY.md` section 8). *Recommendation: do not fetch them now.* Their contents were never inventoried (the eighteen read earlier, per `docs/sources.toml`, were searched for an oxygen-balance convention only), and the Klapoetke group's work is dominated by salts and primary explosives, which are outside the primary gate; that is an expectation, not a count. Re-open if section 13 shows a property that one dissertation series could rescue.
