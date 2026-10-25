@@ -4771,6 +4771,10 @@ FIXED: list[tuple[str, str, str, str, str]] = [
     ("D-374", "C1CC2CCCC2(C23CCCC2CCC3)C1", "3a,3a'-bi(octahydropentalene)",
      "1,1'-bioctahydropentalene",
      "the substituent name `hexahydropentalen-3a(1H)-yl` was not parsed for its locant, so an assembly bond at a fusion atom took locant 1"),
+    # Naming round 83 (D-375).
+    ("D-375", "O=C1N=CN=C2N=C(C(=O)OC)N=C12", "methyl 6-oxo-6H-purine-8-carboxylate",
+     "methyl 6-oxo-9H-purine-8-carboxylate",
+     "a hypoxanthine drawn with no ring N-H kept the curated 9H, a hydrogen on N9 the drawing lacks (another tautomer); the indicated hydrogen is the oxo carbon's"),
     # D-162, recorded OPEN in naming round 14 and closed by the same change: the same group in an ester's alcohol part. Its target was derived then and is what the fixed engine writes.
     ("D-162", "CC(=O)OCC(=O)N(O)C", "2-[hydroxy(methyl)amino]-2-oxoethyl acetate",
      "[(hydroxycarbamoyl)methyl]methyl acetate",

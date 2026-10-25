@@ -2322,6 +2322,26 @@ def _retag_added_hydrogen(name, mol, ring_system, atom_to_locant, loc_key) -> st
     return name[:m.start()] + f"({subs[0]}H)" + name[m.end():]
 
 
+def _oxo_carbon_indicated_h(mol, ring_system, atom_to_locant):
+    """Locant of the ONE ring carbon that holds an `=O` (or `=S`, `=Se`, `=Te`), or None.
+
+    Naming round 83: a quinoid tautomer with NO ring N-H at all (hypoxanthine drawn `O=C1N=CN=C2N=C(R)N=C12`) has its sp3-like position on the
+    ring carbon that holds the =O, so the indicated hydrogen is that carbon's (`6-oxo-6H-purine-8-carboxylate`). The curated `9H-` put a hydrogen
+    on N9 the drawing does not have, and OPSIN read a different tautomer.
+    """
+    found = []
+    for atom_idx in sorted(ring_system.atom_indices):
+        if atom_idx not in atom_to_locant:
+            continue
+        a = mol.GetAtomWithIdx(atom_idx)
+        if a.GetAtomicNum() != 6:
+            continue
+        if any(b.GetBondTypeAsDouble() == 2.0 and b.GetOtherAtom(a).GetAtomicNum() in (8, 16, 34, 52)
+               and b.GetOtherAtomIdx(atom_idx) not in ring_system.atom_indices for b in a.GetBonds()):
+            found.append(atom_to_locant[atom_idx])
+    return found[0] if len(found) == 1 else None
+
+
 def _retag_indicated_h(
     *,
     name: str,
@@ -2467,6 +2487,10 @@ def _retag_indicated_h(
             return name
         # If the indicated-H atom is not aromatic N, leave the name alone
         # (this branch is only meaningful for aromatic-tautomer indicated-H).
+        if ih_atom.GetAtomicNum() == 7 and not ih_atom.GetIsAromatic() and ih_atom.GetTotalNumHs() == 0 and ih_atom.GetFormalCharge() == 0                 and not any(n.GetIdx() not in ring_system.atom_indices for n in ih_atom.GetNeighbors()):
+            _oxo_loc = _oxo_carbon_indicated_h(mol, ring_system, atom_to_locant)
+            if _oxo_loc is not None:
+                return _hydro_head + f"{_oxo_loc}H-" + _rest[m_ih.end():]
         if ih_atom.GetAtomicNum() != 7 or not ih_atom.GetIsAromatic():
             return name
         # Has exocyclic substituent? -> case (a), keep the name -- UNLESS that atom is the cationic centre. An N-alkyl
@@ -2510,7 +2534,10 @@ def _retag_indicated_h(
                 continue
             sub_n_locants.append(atom_to_locant[atom_idx])
         if not sub_n_locants:
-            return name
+            oxo_loc = _oxo_carbon_indicated_h(mol, ring_system, atom_to_locant)
+            if oxo_loc is None:
+                return name
+            return _hydro_head + f"{oxo_loc}H-" + _rest[m_ih.end():]
         sub_n_sorted = sorted(set(sub_n_locants), key=_loc_key)
         new_ih_prefix = f"{sub_n_sorted[0]}H-"
         return _hydro_head + new_ih_prefix + _rest[m_ih.end():]

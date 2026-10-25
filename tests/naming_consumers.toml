@@ -495,6 +495,12 @@ scope = "core"
 owner = "namer"
 
 [[consumer]]
+file = "tests/test_namer_round83_hypoxanthine_with_no_ring_nh_takes_the_oxo_carbons_indicated_hydrogen.py"
+why = "a ring with an oxo and no ring N-H takes the oxo carbon's indicated hydrogen, not the curated 9H (D-375: methyl 6-oxo-6H-purine-8-carboxylate), read back through OPSIN"
+scope = "core"
+owner = "namer"
+
+[[consumer]]
 file = "tests/test_namer_round82_benzodithiete_sibling_rings_and_polycyclic_bi_assemblies.py"
 why = "the curated 1,2-benzodithiete numbers every position (D-371), a ring numbers by tolerant matches inside itself when the strict query only finds its sibling (D-372), a ring assembly brackets a component OPSIN cannot read behind bi (D-373) and parses an added hydrogen after its attachment locant (D-374)"
 scope = "core"
