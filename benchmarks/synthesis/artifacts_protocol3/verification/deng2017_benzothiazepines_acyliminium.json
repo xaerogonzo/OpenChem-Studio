@@ -1,0 +1,16 @@
+{
+ "paper": "deng2017_benzothiazepines_acyliminium",
+ "my_lead": "1 = 7-methoxy-2,3,4,5-tetrahydrobenzo[1,4]thiazepine (the only compound the abstract names; four steps, 68% overall)",
+ "lead_agrees": true,
+ "reactions": [
+  {"step": 1, "ok": true, "issue": "4-methoxythiophenol + 2-chloroethylamine (as HCl) -> 2 (95%). Free amine drawn for the hydrochloride, fine."},
+  {"step": 2, "ok": true, "issue": "2 + benzyl chloroformate -> Cbz carbamate 4a (89%); Cbz-Cl supplies the carbamate atoms so listing it is right."},
+  {"step": 3, "ok": true, "issue": "4a + paraformaldehyde (10 equiv used, one CH2O incorporated) -> 5a (84%), N-acyliminium Pictet-Spengler type cyclisation. Listed once, which is correct (one CH2 incorporated)."},
+  {"step": 4, "ok": true, "issue": "5a + HBr/AcOH -> 1 as HBr salt (96%); free base drawn as target. Cbz removal, HBr is the only reagent."}
+ ],
+ "leaf_issues": [],
+ "step_count_ok": true,
+ "smiles_issues": [],
+ "overall": "confirmed",
+ "notes": "4 steps, 95 x 89 x 84 x 96 = 68% as the paper states. Ring regiochemistry checked: COc1ccc2SCCNCc2c1 puts OMe para to S-bearing carbon and meta to the CH2-bearing carbon, which is the 7-methoxy isomer expected from cyclisation ortho to S of a 4-methoxy thiophenol; 5a SMILES likewise. Leaf support: 'starting from the commercially available 4-methoxythiophenol' (p.6) and 'Solvents and reagents were of commercial grade and used without further purification' (p.7); 2-chloroethylamine hydrochloride, benzyl chloroformate and paraformaldehyde are covered by the second sentence only (no specific statement). The paper isolates the HBr salt, free base is the compared structure (acceptable). Target is achiral."
+}

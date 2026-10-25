@@ -1,0 +1,12 @@
+{
+ "paper": "mendez2019_positive_allosteric_modulators",
+ "decision": "excluded",
+ "exclusion_reason": "lead_route_over_4_steps",
+ "exclusion_detail": "Lead 19 (Scheme 2): HATU coupling of Fmoc-Trp(Boc) 9b with pyrrolidine building block 15, Dess-Martin oxidation, formic acid cyclisation, Fmoc removal, amide coupling with 2-(4,4-difluorocyclohexyl)acetic acid, LiOH ester hydrolysis = 6 reactions; building block 15 is only referenced (ref 37).",
+ "lead": {"label": "19", "why": "Abstract: 'favorable ADME and pharmacological profiles for the best compound 19'."},
+ "target": null,
+ "reactions": [],
+ "alt_variants": [],
+ "other_qualifying_compounds": [],
+ "notes": "Compound 9 (Scheme 1) needs coupling, Pictet-Spengler, Boc protection, deprotection, Z removal, amide coupling (over 4). Other compounds' procedures are only in the SI (not provided)."
+}

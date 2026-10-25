@@ -1,0 +1,16 @@
+{
+ "paper": "jumde2018_acylhydrazone_bioisosteres",
+ "my_lead": "(S)-2 (amide bioisostere): abstract says 'The most successful bioisostere is equipotent, bears an amide linker and we confirmed its binding mode by X-ray crystallography'; text confirms it is (S)-2 (Ki 6.1 uM, PDB 5OJE)",
+ "lead_agrees": true,
+ "reactions": [
+  {"step": 1, "ok": true, "issue": "N-Boc-L-tryptophan (5) + 2-mesitylethanamine hydrochloride (10), CDI, dry THF, Et3N to free the amine (SI p.S5-S6 and SI reference note 4), 80% (main text, Scheme 1 step e / SI Scheme 3) -> Boc-amide. Main text calls this (S)-14, SI calls it (S)-13 (SI labels (S)-14 for the Boc-ester of (S)-3); the transcriber followed the SI, which is right. CDI and Et3N correctly omitted. Stereo SMILES is the L-Trp configuration, kept unchanged."},
+  {"step": 2, "ok": true, "issue": "TFA/DCM deprotection of the Boc-amide to (S)-2 (quantitative; 400 mg; SI p.S6, Scheme 1 step f). Free base obtained after NaHCO3 wash."}
+ ],
+ "leaf_issues": [
+  "2-Mesitylethanamine hydrochloride (10) is not prepared anywhere in main text or SI; support is only SI General Experimental Details: 'Starting materials and reagents were purchased from Aldrich, Acros or TCI.' (the main text calls 8 and 11, not 10, 'building blocks' to be seen in Schemes S1-S4, and the SI makes 8->9 but not 10 or 11). SI reference note (4) on 10 is a neutralisation note (Et3N 2 eq. added to the hydrochloride), not a literature preparation. Acceptable as commercial, but it is the weakest leaf (specialty amine, no supplier named)."
+ ],
+ "step_count_ok": true,
+ "smiles_issues": [],
+ "overall": "confirmed",
+ "notes": "Checked: target N[C@@H](Cc1c[nH]c2ccccc12)C(=O)NCCc1c(C)cc(C)cc1C is (S)-2-amino-3-(indol-3-yl)-N-(2,4,6-trimethylphenethyl)propanamide; the stereocentre is written with the same neighbour order as L-Trp (S), consistent in step 1 and step 2. The mesityl ring is 2,4,6-trimethyl. Route is 2 steps. The hydrazone/DCC parent (S)-1 is not part of this route. The SI heading numbers the final compound '2' (the main text uses (S)-2 too)."
+}

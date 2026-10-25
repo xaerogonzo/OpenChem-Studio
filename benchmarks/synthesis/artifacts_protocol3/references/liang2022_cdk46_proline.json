@@ -1,0 +1,12 @@
+{
+ "paper": "liang2022_cdk46_proline",
+ "decision": "excluded",
+ "exclusion_reason": "lead_route_over_4_steps",
+ "exclusion_detail": "Lead 7c needs 5 reactions (Scheme 1 / section 3.1): EDCI/HOBt coupling of Boc-D-proline with 3-aminopyridine, TFA Boc removal, phenyl chloroformate carbamate formation, hydrazinolysis to the semicarbazide, MsCl-mediated coupling with 2-chlorobenzoic acid. All of 7a-7s share this route, so 7p is 5 steps too.",
+ "lead": {"label": "7c", "why": "Abstract names two potent compounds (7c and 7p) and says '7c exhibited promised anti-breast cancer effect in vivo' (rule 2: the compound of the main follow-up experiment)."},
+ "target": null,
+ "reactions": [],
+ "alt_variants": [],
+ "other_qualifying_compounds": [],
+ "notes": "Abstract does not single out one best compound (7c and 7p), so rule 2 (in vivo experiment) picks 7c; 7p would also be 5 steps, so the decision is unaffected."
+}

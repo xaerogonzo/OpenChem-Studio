@@ -554,10 +554,9 @@ def test_the_parameter_file_ships_in_the_frozen_build():
     """A data file that works from a checkout and is missing from the
     installer is this project's established failure mode -- the spec has a
     comment about it. Same guard `test_element_reference` uses."""
-    from pathlib import Path
+    import conftest
 
-    spec = Path("packaging/openchem.spec")
-    assert "lewis_parameters.json" in spec.read_text(encoding="utf-8")
+    assert conftest.spec_ships("chem/data/lewis_parameters.json")
 
 
 def test_the_engine_survives_the_table_being_absent(tmp_path, monkeypatch):

@@ -4,7 +4,7 @@ Requires real 3D coordinates -- everything here is meaningless on the flat
 2D editor structure, so each function raises rather than silently
 returning a number computed from a degenerate geometry.
 
-ON "DREIDING ENERGY": Marvin's Geometry plugin reports a Dreiding force
+ON "DREIDING ENERGY": the reference editor's Geometry plugin reports a Dreiding force
 field energy, and for a long time this module could not. Neither RDKit
 nor OpenBabel implements Dreiding (checked: OpenBabel offers GAFF,
 Ghemical, MMFF94, MMFF94s and UFF), so the note here used to say the
@@ -96,7 +96,7 @@ def molecular_radii(mol: Chem.Mol) -> dict[str, float]:
 
     The maximum is the radius of the smallest sphere centred on the
     centroid that contains every atom -- a direct read of overall molecular
-    extent, which is what Marvin's Geometry plugin surfaces alongside its
+    extent, which is what the reference editor's Geometry plugin surfaces alongside its
     3D projection.
     """
     conformer = _require_conformer(mol)
@@ -270,7 +270,7 @@ def compute_geometry_analysis(
 
     # THE SHADOW. The area at each orientation is exact; which orientation is the extreme is searched
     # (`projection_search`). The radius, the size and the radii they use are defined here because
-    # ChemAxon documents none of them.
+    # The vendor documents none of them.
     scale_note = (
         f"Van der Waals radii scaled by {options.radius_scale:g}."
         if options.radius_scale != 1.0

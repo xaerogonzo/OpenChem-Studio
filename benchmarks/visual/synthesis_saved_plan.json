@@ -1,0 +1,27 @@
+[
+  {"do": "synthesis_setup", "python": "", "config": ""},
+  {"do": "smiles", "smiles": "CC(=O)Oc1ccccc1C(=O)O", "name": "Aspirin", "after_ms": 1500},
+  {"do": "select", "molecule": -1, "after_ms": 1500},
+
+  {"do": "synthesis_fixture_plan", "fixture": "aspirin_it100", "screen": true, "after_ms": 4000},
+  {"do": "synthesis_panel", "tag": "a-plan-in-this-session", "after_ms": 1000,
+   "expect": {"routes_at_least": 10, "status_contains": "routes found", "warning": false,
+              "limitations_contain": ["not a validated or feasible synthesis"]}},
+
+  {"do": "save_project", "path": "artifacts/visual/synthesis_saved_plan.ocsproj", "after_ms": 1500},
+  {"do": "menu", "text": "New Project", "after_ms": 1500},
+  {"do": "synthesis_panel", "tag": "a-new-project-holds-no-plan", "after_ms": 1000, "expect": {"routes": 0}},
+
+  {"do": "open_project", "path": "artifacts/visual/synthesis_saved_plan.ocsproj", "after_ms": 2500},
+  {"do": "select", "molecule": -1, "after_ms": 1500},
+  {"do": "synthesis_panel", "tag": "the-saved-plan-is-back", "after_ms": 1000,
+   "expect": {"target_contains": "Aspirin", "routes_at_least": 10, "status_contains": "routes found", "warning": false,
+              "limitations_contain": ["not a validated or feasible synthesis", "was not repeated when this plan was read from the project file", "96.7%"]}},
+  {"do": "synthesis_panel", "tag": "its-first-route", "route": 0, "step": 0, "after_ms": 1000,
+   "expect": {"steps": 1, "picture": true}},
+  {"do": "shot", "path": "artifacts/visual/synthesis_saved_plan.png", "after_ms": 500},
+
+  {"do": "synthesis_setup", "restore": true},
+  {"do": "expect_clean"},
+  {"do": "quit"}
+]

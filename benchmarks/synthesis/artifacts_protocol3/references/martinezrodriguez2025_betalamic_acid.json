@@ -1,0 +1,12 @@
+{
+ "paper": "martinezrodriguez2025_betalamic_acid",
+ "decision": "excluded",
+ "exclusion_reason": "not_small_molecule_organic",
+ "exclusion_detail": "The pigments are made only by enzymatic whole-cell biotransformation (E. coli expressing 4,5-DODA, alpha-methyl-DOPA plus indoline in a bioreactor, 72 h), then purified by prep HPLC; there is no chemical synthesis step a retrosynthesis planner could reproduce, and no product name or drawn-structure text is given for the lead.",
+ "lead": {"label": "indoline-6-methyl-betacyanin", "why": "Abstract: 'indoline-6-methyl-betacyanin identified as the most antioxidant'."},
+ "target": null,
+ "reactions": [],
+ "alt_variants": [],
+ "other_qualifying_compounds": [],
+ "notes": "Section 2.4 of the article: all ten methylated betalains come from the same enzymatic one-pot biotransformation of commercial alpha-methyl-DOPA with amines/amino acids/indoline. If a looser rule accepted enzymatic steps, the route would be one pot from alpha-methyl-DOPA + indoline, but the lead's structure is not printed in the text layer, so not transcribed."
+}

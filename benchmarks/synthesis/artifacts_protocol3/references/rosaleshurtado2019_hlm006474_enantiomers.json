@@ -1,0 +1,30 @@
+{
+ "paper": "rosaleshurtado2019_hlm006474_enantiomers",
+ "decision": "route",
+ "exclusion_reason": null,
+ "exclusion_detail": "",
+ "lead": {"label": "1 (HLM006474)", "why": "Title and abstract: 'An improved green synthesis of the E2F inhibitor HLM0066474 is described'; the only compound made. The (+)-R enantiomer is the active one, but the enantiomers are obtained by preparative chiral HPLC of the racemate, which is a separation, not a reaction."},
+ "target": {"name": "7-[(4-Ethoxy-3-methylphenyl)(2-pyridinylamino)methyl]-2-methyl-8-quinolinol", "smiles": "CCOc1ccc(cc1C)C(Nc1ccccn1)c1ccc2ccc(C)nc2c1O"},
+ "reactions": [
+  {"step": 1,
+   "product": {"label": "3", "name": "4-Ethoxy-3-methyl benzaldehyde", "smiles": "CCOc1ccc(C=O)cc1C"},
+   "reactants": [
+    {"label": "4-hydroxy-3-methylbenzaldehyde", "name": "4-hydroxy-3-methylbenzaldehyde", "smiles": "Cc1cc(C=O)ccc1O", "origin": "commercial"},
+    {"label": "bromoethane", "name": "bromoethane", "smiles": "CCBr", "origin": "reagent"}
+   ],
+   "conditions": "K2CO3, DMF, rt 25 min then 80 °C, 3 h; 77%, used without further purification",
+   "source": "SI, '4-Ethoxy-3-methyl benzaldehyde 3'; main text p. 380"},
+  {"step": 2,
+   "product": {"label": "1", "name": "7-[(4-Ethoxy-3-methylphenyl)(2-pyridinylamino)methyl]-2-methyl-8-quinolinol", "smiles": "CCOc1ccc(cc1C)C(Nc1ccccn1)c1ccc2ccc(C)nc2c1O"},
+   "reactants": [
+    {"label": "3", "name": "4-Ethoxy-3-methyl benzaldehyde", "smiles": "CCOc1ccc(C=O)cc1C", "origin": "made_here"},
+    {"label": "2-aminopyridine (4)", "name": "2-aminopyridine", "smiles": "Nc1ccccn1", "origin": "commercial"},
+    {"label": "2-methyl-8-quinolinol (5)", "name": "2-methyl-8-quinolinol", "smiles": "Cc1ccc2cccc(O)c2n1", "origin": "commercial"}
+   ],
+   "conditions": "Three-component Betti reaction, solvent-free, 55 °C, 24 h (thermal), 66%; or microwave 60 °C 24 h (71%) or 95 °C 6.5 h with 1.2 eq. aminopyridine (67-70%). Triturated in EtOH.",
+   "source": "SI, 'Thermal preparation of ... (HLM006474) 1' and 'Microwave assisted preparation'; main text Tables 1-2"}
+ ],
+ "alt_variants": [],
+ "other_qualifying_compounds": null,
+ "notes": "Target is the racemate (one stereocentre, drawn without stereo). The (R) and (S) enantiomers come from semi-preparative chiral HPLC (Chiralpak ID) of the racemate, so there is no stereo-selective reaction. Reagents 'purchased from Aldrich or Fluka'. Printed name of 1 is the SI/introduction form; the HRMS line in the SI reads 'M - H' for a [M+H] value (paper's inconsistency, irrelevant to the structure). The paper's introduction also describes the earlier literature route (same two steps)."
+}

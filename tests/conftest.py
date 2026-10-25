@@ -1404,3 +1404,35 @@ def pytest_sessionfinish(session, exitstatus):
         return
     _census_write(f"# session finished exitstatus={exitstatus}")
     _census_where[0] = "<session teardown>"
+
+
+# --- what the frozen build ships ----------------------------------------------------------------
+
+_SPEC_PATH = Path(__file__).resolve().parent.parent / "packaging" / "openchem.spec"
+#: What the spec's `_keep` filter drops from a directory entry; keep in step with it.
+_SPEC_DROPS = ("chem/data/regulatory/sources/",)
+
+
+def spec_ships(relative: str, spec_text: str | None = None) -> bool:
+    """Whether `packaging/openchem.spec` ships the package file `relative` (e.g. ``chem/data/elements.json``).
+
+    A `datas` entry named `str(PKG / "a" / "b")` covers that file or directory,
+    so a directory entry covers everything under it. Asked of the SPEC'S
+    MEANING and not of its text: several tests used to look for a filename in
+    the spec, which passed or failed on how the entry was written rather than
+    on whether the file shipped. `spec_text` exists so a guard can be shown to
+    fail on a spec that lacks the entry.
+    """
+    import re
+
+    text = spec_text if spec_text is not None else _SPEC_PATH.read_text(encoding="utf-8")
+    code = "\n".join(line for line in text.splitlines() if not line.lstrip().startswith("#"))
+    wanted = relative.replace("\\", "/")
+    if any(wanted.startswith(drop) for drop in _SPEC_DROPS):
+        return False
+    for match in re.finditer(r'str\(PKG((?:\s*/\s*"[^"]+")*)\s*\)', code):
+        parts = re.findall(r'"([^"]+)"', match.group(1))
+        covered = "/".join(parts)
+        if covered and (wanted == covered or wanted.startswith(covered + "/")):
+            return True
+    return False

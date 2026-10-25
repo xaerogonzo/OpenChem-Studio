@@ -1,0 +1,12 @@
+{
+ "paper": "he2024_rhein_piperazine_furanones",
+ "decision": "excluded",
+ "exclusion_reason": "route_not_explicit",
+ "exclusion_detail": "Lead 5e is diacerein-3-carbonyl piperazine linked to 3-chloro-5-methoxy-2(5H)-furanone. The article gives procedures for diacerein (rhein + Ac2O/H2SO4) and for the acid chloride 3 plus coupling (Section 4.2), but the piperazinyl furanone partner 4 is only 'compound 4 (ref. 24 and 25)' and the preparation of its precursor 4-1 (mucochloric acid + MeOH, Dean-Stark) is described only in a sentence of the Results; no reagents, amounts or conditions appear in the article, and the ESI is not in the bundle.",
+ "lead": {"label": "5e", "why": "Abstract: 'Hybrid 5e (IC50 = 5.74 uM), the most potent compound'; 'Hybrid 5e is expected to be a leading candidate for anti-lung cancer drugs'."},
+ "target": null,
+ "reactions": [],
+ "alt_variants": [],
+ "other_qualifying_compounds": [],
+ "notes": "Counting steps if the missing procedures were accepted: rhein -> diacerein; diacerein -> acid chloride; mucochloric acid + MeOH -> 3,4-dichloro-5-methoxyfuranone; + piperazine -> 4e; coupling to 5e = 5 reactions, i.e. over 4 as well. Either way the lead does not qualify."
+}

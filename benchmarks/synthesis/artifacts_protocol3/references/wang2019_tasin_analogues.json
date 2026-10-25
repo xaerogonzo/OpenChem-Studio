@@ -1,0 +1,43 @@
+{
+ "paper": "wang2019_tasin_analogues",
+ "decision": "route",
+ "exclusion_reason": null,
+ "exclusion_detail": "",
+ "lead": {
+  "label": "22",
+  "why": "The abstract names no compound. Main follow-up experiment: 'we selected compounds 16, 22, and 92 for in vivo pharmacokinetic (PK) analysis'; of these only 22 was taken further ('We selected compound 22 for oral bioavailability', 52% at 20 mg/kg; plasma protein binding also by ultrafiltration for 22). Rule 2 applied, 22 chosen as the one taken furthest."
+ },
+ "target": {
+  "name": "1′-((4-(Difluoromethoxy)phenyl)sulfonyl)-4-methyl-1,4′-bipiperidine",
+  "smiles": "CC1CCN(CC1)C1CCN(CC1)S(=O)(=O)c1ccc(OC(F)F)cc1"
+ },
+ "reactions": [
+  {
+   "step": 1,
+   "product": {
+    "label": "22",
+    "name": "1′-((4-(Difluoromethoxy)phenyl)sulfonyl)-4-methyl-1,4′-bipiperidine",
+    "smiles": "CC1CCN(CC1)C1CCN(CC1)S(=O)(=O)c1ccc(OC(F)F)cc1"
+   },
+   "reactants": [
+    {
+     "label": "1a",
+     "name": "4-methyl-1,4′-bipiperidine",
+     "smiles": "CC1CCN(CC1)C1CCNCC1",
+     "origin": "commercial"
+    },
+    {
+     "label": "sulfonyl chloride",
+     "name": "4-(difluoromethoxy)benzene-1-sulfonyl chloride",
+     "smiles": "O=S(=O)(Cl)c1ccc(OC(F)F)cc1",
+     "origin": "commercial"
+    }
+   ],
+   "conditions": "General Procedure A: amine (1.0 equiv), sulfonyl chloride (1.1 equiv), iPr2NEt (1.5 equiv), CH2Cl2, rt, overnight; 69%, light orange solid, mp 132-135 C.",
+   "source": "Main article, Experimental Section (entry for compound 22: 'Reaction of amine 1a with 4-(difluoromethoxy)benzene-1-sulfonyl chloride (Procedure A)'); Scheme 1; no SI file"
+  }
+ ],
+ "alt_variants": [],
+ "other_qualifying_compounds": null,
+ "notes": "Lead choice is a judgement call: three compounds (16, 22, 92) went into PK, and 22 alone into oral bioavailability. 16 (4-Cl analogue) is also a one-step sulfonylation of 1a but is not the lead under the rule as applied. Amine 1a and the sulfonyl chloride are not stated as 'purchased' in so many words; the text says 'commercially available aryl- or heteroaryl-sulfonyl chlorides' and treats the bipiperidines 1a-c as starting materials with no preparation anywhere in the paper, so both are taken as commercial. Product structure derived from the printed name (the text layer has no drawn structures)."
+}

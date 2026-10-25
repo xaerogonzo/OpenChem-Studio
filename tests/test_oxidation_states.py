@@ -316,11 +316,9 @@ def test_the_electronegativity_file_is_in_the_packaging_spec():
     """`chem/data` is shipped file by file, so a new data file has to be
     named in the spec or the frozen build raises FileNotFoundError the
     first time anybody asks for an oxidation state."""
-    from pathlib import Path
+    import conftest
 
-    spec = Path(__file__).resolve().parent.parent / "packaging" / "openchem.spec"
-
-    assert "electronegativity.json" in spec.read_text(encoding="utf-8")
+    assert conftest.spec_ships("chem/data/electronegativity.json")
 
 
 def test_format_state_writes_zero_without_a_sign():

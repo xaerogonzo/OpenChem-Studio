@@ -1,0 +1,12 @@
+{
+ "paper": "he2020_methylene_lactones",
+ "decision": "excluded",
+ "exclusion_reason": "route_not_explicit",
+ "exclusion_detail": "The abstract names no lead; the main follow-up experiment (glutathione conjugation, Scheme 4) uses iodolactone 5a, made by NIS iodolactonization of a dienoic acid 'easily available' / from refs 44-45 (Scheme 1). The article has no experimental section and no SI file was supplied, so neither the dienoic acid preparation nor the iodolactonization procedure is in the text (structures exist only in drawn schemes).",
+ "lead": {"label": "5a", "why": "Abstract names none; rule 2: 5a is the compound used for the paper's only follow-up/mechanism experiment (reaction with GSH). Note the text also calls 15a 'a potent lead' in the SAR discussion (not in the abstract)."},
+ "target": null,
+ "reactions": [],
+ "alt_variants": [],
+ "other_qualifying_compounds": null,
+ "notes": "Not looked for other qualifying compounds because the paper holds no experimental procedures at all (Scheme conditions only: e.g. NIS, EtOAc, rt, 10 min for 5a). If 15a were taken as the lead instead the outcome would be the same exclusion."
+}

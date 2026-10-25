@@ -1,0 +1,12 @@
+{
+ "paper": "alomari2019_biscoumarin_urease",
+ "decision": "excluded",
+ "exclusion_reason": "route_not_explicit",
+ "exclusion_detail": "All 18 compounds are made from the amino bis-coumarin 'b' (3,3'-((4-aminophenyl)methylene)bis(4-hydroxy-2H-chromen-2-one)), and both precursors 'a' (nitro) and 'b' are given in the Experimental as 'As we have reported in our previous article [40]' with no procedure; the reduction conditions appear nowhere in this paper.",
+ "lead": {"label": "16", "why": "Abstract/SAR: compound 16 (4-CF3-phenyl thiadiazole, IC50 0.12 uM) is the most potent urease inhibitor; the docking section calls it 'the most active compound 16'."},
+ "target": {"name": "3,3'-((4-((5-(4-(trifluoromethyl)phenyl)-1,3,4-thiadiazol-2-yl)amino)phenyl)methylene)bis(4-hydroxy-2H-chromen-2-one)", "smiles": ""},
+ "reactions": [],
+ "alt_variants": [],
+ "other_qualifying_compounds": [],
+ "notes": "Without the previous-article preparation of 'b' the route cannot be written from this paper; every compound 1-18 shares that dependency, so none qualifies. The thiadiazole-forming step itself (CS2, THF, 3 h, then reflux with the aryl hydrazide) is described."
+}

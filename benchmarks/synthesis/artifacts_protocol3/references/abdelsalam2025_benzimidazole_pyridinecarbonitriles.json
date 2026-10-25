@@ -1,0 +1,49 @@
+{
+ "paper": "abdelsalam2025_benzimidazole_pyridinecarbonitriles",
+ "decision": "excluded",
+ "exclusion_reason": "route_not_explicit",
+ "exclusion_detail": "Both starting materials have no sourcing in the paper (no purchased-reagents statement; one is a custom N-propargyl-2-acetylbenzimidazole whose preparation is only cited for other series) (second reader: reject). (Reclassified 2026-10-24 after the verification pass.)",
+ "lead": {
+  "label": "4f",
+  "why": "Section 2.x/POM text: 'the most active compound, 4f'; abstract: 'derivatives 4f and 4m demonstrated the best behavior' and 'molecular docking and molecular dynamics (MD) simulations validated the stability of compound 4f within the catalytic binding pocket of the DNA gyrase receptor' (4f is the compound used for all follow-up: docking, MD, POM, MESP)."
+ },
+ "target": {
+  "name": "2-Methoxy-4-(4-methoxyphenyl)-6-(1-(prop-2-yn-1-yl)-1H-benzo[d]imidazol-2-yl)nicotinonitrile",
+  "smiles": "COc1ccc(cc1)-c1cc(nc(OC)c1C#N)-c1nc2ccccc2n1CC#C"
+ },
+ "reactions": [
+  {
+   "step": 1,
+   "product": {
+    "label": "4f",
+    "name": "2-Methoxy-4-(4-methoxyphenyl)-6-(1-(prop-2-yn-1-yl)-1H-benzo[d]imidazol-2-yl)nicotinonitrile",
+    "smiles": "COc1ccc(cc1)-c1cc(nc(OC)c1C#N)-c1nc2ccccc2n1CC#C"
+   },
+   "reactants": [
+    {
+     "label": "1",
+     "name": "",
+     "smiles": "CC(=O)c1nc2ccccc2n1CC#C",
+     "origin": "commercial"
+    },
+    {
+     "label": "2 (for 4f)",
+     "name": "",
+     "smiles": "COc1ccc(cc1)C=C(C#N)C#N",
+     "origin": "commercial"
+    },
+    {
+     "label": "NaOMe (3)",
+     "name": "sodium methoxide",
+     "smiles": "C[O-].[Na+]",
+     "origin": "reagent"
+    }
+   ],
+   "conditions": "Equimolar 2-acetyl N-propyne-benzimidazole (1) and ylidenemalononitrile (2) (10 mmol each), freshly prepared NaOMe from Na (0.46 g, 20 mmol) in MeOH (20 mL), r.t. 6-10 h; precipitate filtered, washed with water, recrystallised (4f: 65.9 %, ethanol).",
+   "source": "Section 3.1.1 general procedure and 3.1.7 (4f), main text p.9; Scheme 1 p.3"
+  }
+ ],
+ "alt_variants": [],
+ "other_qualifying_compounds": null,
+ "notes": "The paper never says whether 1 or 2 are purchased or prepared (only 'following the previously optimized procedure [63-66]' for the Michael addition/cyclisation itself). Treated as used without preparation, so leaves; 1 is not a catalogue compound as far as I know, so the reviewer may prefer to exclude as route_not_explicit. Neither is named by a printed name ('2-acetyl N-propyne-benzimidazole (1)', 'ylidenemalononitrile (2)'), so both SMILES are derived: 1 from that name and the propargyl/benzimidazole in every product name; 2 (4-methoxybenzylidenemalononitrile) from the 4-(4-methoxyphenyl) in 4f's name. The methoxy at pyridine C2 comes from the methoxide/methanol (atom-supplying reagent; product C24H18N4O2 = 1 + 2 + OMe minus H2O/H2 equivalents as per the general mechanism). Lead named in abstract as 4f and 4m jointly; 4f chosen as the compound of the docking/MD/POM follow-up and called 'most active' in the text."
+}

@@ -1,0 +1,12 @@
+{
+ "paper": "li2021_teriflunomide_derivatives",
+ "decision": "excluded",
+ "exclusion_reason": "lead_route_over_4_steps",
+ "exclusion_detail": "Lead 13t is made from 2,4,5-trifluorobenzonitrile by Scheme 2: ammonolysis, SNAr with the chiral trifluoroisopropanol, nitrile hydrolysis (to 4e), acylation with 5-methylisoxazole-4-carbonyl chloride (10e), acid chloride + 2,6-difluoroaniline amide coupling, and NaOH isoxazole ring opening: 6 reactions at minimum (7 if the acid chloride is counted). Also, the experimental section gives procedures only for compound 1a's route; 13t's own steps are 'the same process', so it is not explicit either.",
+ "lead": {"label": "13t", "why": "Abstract: '13t was the optimal compound with promising enzymatic activity (IC50 = 16.0 nM), potent antiproliferative activity against human lymphoma Raji cells ... a preclinical candidate'."},
+ "target": null,
+ "reactions": [],
+ "alt_variants": [],
+ "other_qualifying_compounds": [],
+ "notes": "All final compounds (1a, 13a-y) share the same 5-6 step route, so none qualifies at <=4 steps. 13t = (S)-4-(2-cyano-3-hydroxybut-2-enamido)-N-(2,6-difluorophenyl)-5-fluoro-2-((1,1,1-trifluoropropan-2-yl)oxy)benzamide. Source: main text Scheme 2 and Experimental Section; no SI file used."
+}

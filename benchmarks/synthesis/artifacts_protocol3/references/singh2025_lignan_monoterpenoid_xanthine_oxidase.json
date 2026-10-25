@@ -1,0 +1,12 @@
+{
+ "paper": "singh2025_lignan_monoterpenoid_xanthine_oxidase",
+ "decision": "excluded",
+ "exclusion_reason": "route_not_explicit",
+ "exclusion_detail": "The article gives only a scheme caption and one paragraph (no experimental section, no SI in the bundle, no compound names printed); the lead MT7 is identified only by the table column 'n' (n = 2, isoeugenol series) whose meaning (carbon count of the dibromoalkane) is not defined in the text, and the text contradicts itself (calls 5a-e 'N-bromoalkyl sesamols', calls three carbons optimal while MT7 with n = 2 is the most potent).",
+ "lead": {"label": "MT7", "why": "Abstract: 'MT7 was most active (XO: IC50 = 0.263 uM)' and 'MT7 as an effective lead molecule'."},
+ "target": null,
+ "reactions": [],
+ "alt_variants": [],
+ "other_qualifying_compounds": null,
+ "notes": "Probable route if a reviewer wants to supply the SI: sesamol + BrCH2CH2Br (K2CO3, DMF) -> bromoethyl ether; NaN3, DMF -> azide; isoeugenol + propargyl bromide (K2CO3, DMF) -> propargyl ether (10); CuAAC (CuSO4/Na ascorbate, DMF) -> MT7. That would be 4 steps, but I did not transcribe it because the structure of MT7 (linker length) and the procedures are not stated in the text layer. SI file is not in the bundle (paper has an ACS SI)."
+}

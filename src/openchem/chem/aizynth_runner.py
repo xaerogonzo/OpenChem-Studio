@@ -6,6 +6,7 @@ THE CONTRACT (`chem/aizynth_planner.py` is the other half):
 * ONE response document on stdout (schema `aizynth-run-1`) and NOTHING ELSE. The library may print or log anywhere, so stdout is taken away from it until the document is written; logs go to stderr.
 * THE STATUS IS IN THE DOCUMENT: `completed`, `unavailable` (a named asset is not there: `kind` is `config`, `model`, `templates`, `filter` or `stock`) or `failed` (`kind` `invalid_target`, `bad_request` or `error`). The exit code is 0 for `completed` and 1 otherwise, and the parent trusts the document and checks the two agree.
 * THE ASSETS ARE CHECKED HERE BEFORE THE LIBRARY IS LOADED, because the library's own messages for a missing one are poor (a policy with no template file raises `ValueError: not enough values to unpack`; an unparseable target raises `AttributeError: 'NoneType'`). A missing file is `unavailable` with the file named, a target that does not parse is `invalid_target`.
+* A SECOND REQUEST, `aizynth-inspect-request-1`, READS THE PLANNER'S OWN CONFIGURATION FILE and answers `aizynth-inspect-1` without importing the library (0.2 s measured): the parsed configuration with every relative path made absolute against the file's folder, the names it offers (expansion policies, filters, stocks) and the versions installed. It exists because OpenChem has no YAML reader and the planner's environment always has one (`pyyaml` is a dependency of `aizynthfinder`), and because the file is read here as UTF-8, where the library reads it with the Windows locale codec.
 * NOTHING RETRIES and no limit is changed: the limits asked for are the limits run and are echoed back. The planner has no seed, so two runs of one request can differ in their tree; the identity of what ran is in the response.
 """
 from __future__ import annotations
@@ -28,6 +29,10 @@ REACHED_BY = (
 REQUEST_SCHEMA = "aizynth-request-1"
 #: The response this script writes.
 RUN_SCHEMA = "aizynth-run-1"
+#: The request that asks for the configuration to be read.
+INSPECT_REQUEST_SCHEMA = "aizynth-inspect-request-1"
+#: The response to it.
+INSPECT_SCHEMA = "aizynth-inspect-1"
 
 #: The packages whose versions identify a run.
 _IDENTITY_PACKAGES = ("aizynthfinder", "onnxruntime", "numpy", "rdkit", "pyarrow")
@@ -45,6 +50,60 @@ def _identity(config: dict, selection: dict) -> dict:
             packages[name] = None
     digest = hashlib.sha256(json.dumps(config, sort_keys=True, ensure_ascii=True).encode("utf-8")).hexdigest()
     return {"planner": "aizynthfinder", "packages": packages, "python": sys.version.split()[0], "config_sha256": digest, "selection": selection}
+
+
+def _installed(name: str) -> str | None:
+    from importlib.metadata import version
+
+    try:
+        return version(name)
+    except Exception:  # noqa: BLE001 - a missing package is data
+        return None
+
+
+def _absolute(value: object, folder: str) -> object:
+    """A path made absolute against the configuration file's folder; anything that is not a path string is left alone."""
+    if isinstance(value, str) and value and not os.path.isabs(value):
+        return os.path.normpath(os.path.join(folder, value))
+    return value
+
+
+def _resolved(config: dict, folder: str) -> dict:
+    """The configuration with the paths of the three sections the planner needs made absolute: the policy files, the filter model and the stock."""
+    out = dict(config)
+    for section in ("expansion", "filter", "stock"):
+        entries = config.get(section)
+        if not isinstance(entries, dict):
+            continue
+        out[section] = {key: ([_absolute(item, folder) for item in value] if isinstance(value, list) else _absolute(value, folder)) for key, value in entries.items()}
+    return out
+
+
+def inspect(request: dict) -> dict:
+    """Read the configuration file and say what is installed, without loading the planner."""
+    path = request.get("config_path")
+    if not isinstance(path, str) or not path:
+        return {"schema": INSPECT_SCHEMA, "status": "failed", "kind": "bad_request", "reason": "the request has no 'config_path'"}
+    packages = {name: _installed(name) for name in (*_IDENTITY_PACKAGES, "pyyaml")}
+    answer = {"schema": INSPECT_SCHEMA, "packages": packages, "python": sys.version.split()[0]}
+    if packages["aizynthfinder"] is None:
+        return {**answer, "status": "unavailable", "kind": "planner", "reason": "aizynthfinder is not installed in this Python environment"}
+    if not os.path.isfile(path):
+        return {**answer, "status": "unavailable", "kind": "config", "reason": f"the configuration file is not there: {path}"}
+    try:
+        import yaml
+    except ImportError:
+        return {**answer, "status": "failed", "kind": "yaml", "reason": "this environment has no YAML reader (pyyaml), which aizynthfinder needs"}
+    try:
+        with open(path, encoding="utf-8") as handle:
+            config = yaml.safe_load(handle)
+    except Exception as error:  # noqa: BLE001 - an unreadable file is a typed answer
+        return {**answer, "status": "failed", "kind": "config", "reason": f"the configuration file could not be read ({type(error).__name__}: {str(error)[:200]})"}
+    if not isinstance(config, dict):
+        return {**answer, "status": "failed", "kind": "config", "reason": "the configuration file is not a mapping of settings"}
+    resolved = _resolved(config, os.path.dirname(os.path.abspath(path)))
+    keys = {section: sorted(resolved[section]) if isinstance(resolved.get(section), dict) else [] for section in ("expansion", "filter", "stock")}
+    return {**answer, "status": "ok", "config": resolved, "keys": keys}
 
 
 def _peak_mb() -> float | None:
@@ -180,7 +239,7 @@ def main() -> int:
         except (ValueError, UnicodeDecodeError) as error:
             document = {"schema": RUN_SCHEMA, "status": "failed", "kind": "bad_request", "reason": f"the request is not readable JSON ({type(error).__name__})"}
         else:
-            document = run(request)
+            document = inspect(request) if isinstance(request, dict) and request.get("schema") == INSPECT_REQUEST_SCHEMA else run(request)
     except Exception as error:  # noqa: BLE001 - every failure is reported as the one document
         document = {"schema": RUN_SCHEMA, "status": "failed", "kind": "error", "reason": f"{type(error).__name__}: {error}"[:400], "traceback": traceback.format_exc()[-1500:]}
     finally:
@@ -188,7 +247,7 @@ def main() -> int:
     sys.stdout.write(json.dumps(document, ensure_ascii=True))
     sys.stdout.write("\n")
     sys.stdout.flush()
-    return 0 if document.get("status") == "completed" else 1
+    return 0 if document.get("status") in ("completed", "ok") else 1
 
 
 if __name__ == "__main__":

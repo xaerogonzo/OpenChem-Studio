@@ -1,0 +1,19 @@
+{
+ "paper": "mokrov2021_trimethoxybenzyl_diamines",
+ "my_lead": "ALM-844 (1c) and ALM-851 (1a) - abstract names both as the most active; neither favoured",
+ "lead_agrees": "co-named",
+ "reactions": [
+  {
+   "step": 1,
+   "ok": true,
+   "issue": "General method: aldehyde 2 (77 mmol) + alkanediamine 3 (35 mmol, 2.2:1) in EtOH, 1 h rt, then H2 over PdO/C, then conc. HCl in acetone for the dihydrochloride. 'Reductive amination ... in a 2:1 ratio' confirms two aldehyde molecules incorporated; JSON correctly lists the aldehyde twice. Imine formation + hydrogenation is one pot, one step. HCl salt formation is work-up to the salt; the SMILES is the free base, acceptable."
+  }
+ ],
+ "leaf_issues": [
+  "Neither 2,3,4-trimethoxybenzaldehyde nor 1,5-pentanediamine is described as purchased (no supplier statement, no general reagent statement); both are used with no preparation. Commodity chemicals; commercial by inference only."
+ ],
+ "step_count_ok": true,
+ "smiles_issues": [],
+ "overall": "minor_issues",
+ "notes": "Aryl pattern verified: SMILES COc1ccc(CN...)c(OC)c1OC is 2,3,4-trimethoxybenzyl (OMe at C2, C3, C4; the two aromatic doublets J 8.7 Hz fit H5/H6). Chain: five CH2 between the NH groups = pentane-1,5-diamine. The paper's own name slips are as the transcriber says: the 1c heading prints 'pentane-1,3-diamine' (text says prepared from 1,5-pentanediamine, formula C25H40Cl2N2O6, 1H NMR 2.82 t 4H / 1.67 4H / 1.35 2H fits 1,5) and the abstract's ALM-851 'propane-1,4-diamine' (experimental: propane-1,3-diamine, n=3). Yield 59% (1c). ALM-851 (1a, n=3, 71%, from 1,3-propanediamine) would be an equally valid co-lead route. Edit: note that no explicit commercial statement exists."
+}

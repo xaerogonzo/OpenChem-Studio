@@ -1,0 +1,18 @@
+{
+ "paper": "ayre2022_lung_retentive_prodrugs",
+ "decision": "excluded",
+ "exclusion_reason": "lead_route_over_4_steps",
+ "exclusion_detail": "Lead 23 needs at least 7 reactions: transesterification of methyl benzilate with N-Boc-4-hydroxypiperidine, Boc removal (1), N-acylation with 1-chloroethyl chloroformate (2), Ag2O coupling with a Boc-tert-leucine, Boc removal (amine 18), HATU coupling with di-Boc-lysine (23i), TFA deprotection (23).",
+ "lead": {
+  "label": "23",
+  "why": "Abstract: 'Extensive optimization resulted in 1-(((R)-2-((S)-2,6-diaminohexanamido)-3,3-dimethylbutanoyl)oxy)ethyl 4-(2-hydroxy-2,2-diphenylacetoxy)piperidine-1-carboxylate (23)'."
+ },
+ "target": null,
+ "reactions": [],
+ "alt_variants": [],
+ "other_qualifying_compounds": [
+  "1",
+  "2"
+ ],
+ "notes": "Only the intermediates 1 (2 steps) and 2 (3 steps) have explicit routes of 4 steps or fewer; every amino acid prodrug (3-28) needs 5 or more. Count taken from Schemes 1-3 and the experimental section of the main article; no SI file."
+}

@@ -1,6 +1,6 @@
 """Aqueous solubility, and how it varies with pH.
 
-ChemAxon's Solubility Predictor is the shape being matched: an intrinsic
+The vendor's Solubility Predictor is the shape being matched: an intrinsic
 solubility, a value at a chosen pH, a Low/Moderate/High category, and a
 pH-solubility curve.
 
@@ -21,7 +21,7 @@ thermodynamic intrinsic-solubility model.
 
 MEASURED BEFORE ANY OF THIS WAS BUILT, against literature values:
 
-    aspirin      ESOL -2.09   AqSolDB -1.62   Marvin -1.81   "exp" -2.19
+    aspirin      ESOL -2.09   AqSolDB -1.62   the reference editor -1.81   "exp" -2.19
     ibuprofen    ESOL -3.54                                        -3.62
     propranolol  ESOL -3.57                                        -3.62
     caffeine     ESOL -0.53                                        -0.80
@@ -30,8 +30,8 @@ MEASURED BEFORE ANY OF THIS WAS BUILT, against literature values:
 correction rather than quietly edited.** That -2.19 came from the
 ESOL-era literature. The Solubility Challenge 2 interlaboratory mean is
 **-1.67**, SD 0.15 over 16 sources -- much better evidence. Against it,
-Marvin (0.14 off) and AqSolDB (0.05) both beat ESOL (0.42), which is the
-opposite of the "ESOL beats Marvin on Marvin's own documentation
+The reference editor (0.14 off) and AqSolDB (0.05) both beat ESOL (0.42), which is the
+opposite of the "ESOL beats the reference editor on the reference editor's own documentation
 molecule" this file used to claim. Four molecules rank nothing; that is
 what `benchmarks/solubility/` is for.
 
@@ -104,7 +104,7 @@ from openchem.domain.structure_issue import Basis
 #: chloride salts respectively begin to precipitate and the profile
 #: levels off.
 #:
-#: This replaced a symmetric +2.0 that was inferred from one ChemAxon
+#: This replaced a symmetric +2.0 that was inferred from one the vendor
 #: screenshot and had no source. It is asymmetric because the two salts
 #: are not equally soluble, and it is cited.
 #:
@@ -285,7 +285,7 @@ def resolve_solvent(key: str | None) -> Solvent:
 
 # --- categories --------------------------------------------------------
 
-#: ChemAxon's documented thresholds, in mg/mL. Their page states these
+#: The vendor's documented thresholds, in mg/mL. Their page states these
 #: classify INTRINSIC solubility, and their own aspirin example confirms
 #: it: -1.81 logS is 2.79 mg/mL, which is the "High" they report.
 LOW_MODERATE_BOUNDARY_MG_PER_ML = 0.01
@@ -299,7 +299,7 @@ class SolubilityCategory(Enum):
 
 
 def intrinsic_category(mg_per_ml: float) -> SolubilityCategory:
-    """Category of the BASELINE solubility, following ChemAxon's thresholds.
+    """Category of the BASELINE solubility, following the vendor's thresholds.
 
     **THE INPUT IS THE BASELINE, NEVER THE pH-ADJUSTED VALUE.** Feeding it
     the pH-adjusted number produces a category that changes when the user
@@ -335,7 +335,7 @@ def logs_to_mg_per_ml(logs: float, molecular_weight: float) -> float:
 
     A review of this module's plan proposed dividing by 1000 here, in the
     point it titled "the most dangerous conversion bug". It would have put
-    every category one or two bands too low -- aspirin, which ChemAxon
+    every category one or two bands too low -- aspirin, which the vendor
     publishes as High, would have come out Low.
     `test_a_mole_per_litre_of_aspirin_is_180_mg_per_ml` pins it against a
     number anybody can check by hand.
@@ -830,6 +830,8 @@ class BcsReason(Enum):
     # refusal that names the wrong cause sends the reader to fix the wrong
     # thing.
     NON_AQUEOUS_SOLVENT = "ICH M9 is defined on aqueous media"
+    #: Henderson-Hasselbalch puts an ampholyte's minimum in the wrong place, and the screen is the minimum over the window.
+    AMPHOLYTE = "an ampholyte's pH profile is not modelled"
     #: The baseline model is known to overpredict for this molecule (`esol_domain_warning`), and the screen is
     #: built on it.
     BASELINE_OUT_OF_DOMAIN = "the baseline model is known to overpredict for this molecule"
@@ -1012,6 +1014,16 @@ _ZWITTERION_NOTE = (
     "Henderson-Hasselbalch assumes the undissolved species is the one with no site ionized. "
     "A zwitterion's un-ionized form IS the zwitterion, which is highly soluble, so the model "
     "puts the solubility minimum in the wrong place. Refused rather than reported."
+)
+
+#: What an ampholyte's result says instead of a pH profile. The intrinsic estimate is the model's own number and does not depend on
+#: Henderson-Hasselbalch, so it is shown; the profile, the value at a pH and the ICH M9 screen all do, and they are withheld, because
+#: for a zwitterion they would be a plausible curve for a different compound (Alex, 2026-10-23: a source's edge is a warning, but what
+#: would mislead is still not shown). Until then the whole result was refused, the intrinsic number with it.
+AMPHOLYTE_NOTE = (
+    "AN AMPHOLYTE: this molecule has both acidic and basic centres. The intrinsic solubility below is the model's estimate for the "
+    "neutral structure as drawn; the pH profile, the value at a chosen pH and the BCS screen are NOT computed, because "
+    + _ZWITTERION_NOTE.replace(" Refused rather than reported.", "")
 )
 
 
@@ -1267,12 +1279,9 @@ def analyse_solubility(
             pkas=[], is_acid=[], refusal=refusal, refusal_code=refusal_code, shift=shift,
             domain_warning=warning,
         )
-    if ionization is IonizationClass.AMPHOLYTE:
-        refusal = (
-            "This molecule has both acidic and basic centres, so it is an ampholyte. "
-            + _ZWITTERION_NOTE
-        )
-        refusal_code = "AMPHOLYTE"
+    if ionization is IonizationClass.AMPHOLYTE and estimate.status is ModelStatus.AVAILABLE:
+        # COMPUTED: the intrinsic estimate only; `compute_solubility` withholds everything Henderson-Hasselbalch would draw.
+        pass
     elif ionization is IonizationClass.UNSUPPORTED:
         if not is_single_component(mol):
             refusal = (
@@ -1454,7 +1463,7 @@ def _baseline_facts(analysis: SolubilityAnalysis) -> list[Fact]:
 
     if not aqueous:
         # **THE THRESHOLDS ARE AQUEOUS AND SAYING SO IS THE WHOLE POINT.**
-        # ChemAxon states Low/Moderate/High for INTRINSIC (aqueous)
+        # The vendor states Low/Moderate/High for INTRINSIC (aqueous)
         # solubility; they encode expectations about dissolution in the gut,
         # not about a compound's behaviour in ethanol. Classifying 52.81
         # mg/mL in ethanol as "High" would borrow an aqueous verdict's
@@ -1469,7 +1478,7 @@ def _baseline_facts(analysis: SolubilityAnalysis) -> list[Fact]:
             _fact(
                 "Solubility category", "n/a", "Not applicable outside water",
                 evidence=(
-                    "ChemAxon's Low/Moderate/High thresholds are defined on INTRINSIC AQUEOUS "
+                    "The vendor's Low/Moderate/High thresholds are defined on INTRINSIC AQUEOUS "
                     "solubility. There is no published equivalent for other solvents, and "
                     "reusing the aqueous numbers would be inventing one.",
                 ),
@@ -1481,7 +1490,7 @@ def _baseline_facts(analysis: SolubilityAnalysis) -> list[Fact]:
         _fact(
             "Solubility category", category.value, category.value,
             evidence=(
-                f"ChemAxon's thresholds on INTRINSIC solubility: below "
+                f"the vendor's thresholds on INTRINSIC solubility: below "
                 f"{LOW_MODERATE_BOUNDARY_MG_PER_ML} mg/mL Low, up to "
                 f"{MODERATE_HIGH_BOUNDARY_MG_PER_ML} mg/mL Moderate, above it High.",
                 f"Classified from {mg_per_ml:.4g} mg/mL.",
@@ -1702,8 +1711,17 @@ def compute_solubility(
         )
 
     ph = float(parameters.get("pH", DEFAULT_PH))
+    ampholyte = analysis.ionization is IonizationClass.AMPHOLYTE
 
     facts = _baseline_facts(analysis)
+    if ampholyte:
+        # A ROW, FIRST, for the reason the ESOL warning below is one: a report-level limitation alone is easy to miss.
+        facts.insert(0, _fact(
+            "pH profile", "not computed (an ampholyte)",
+            "Not computed: an ampholyte's solubility minimum is not where Henderson-Hasselbalch puts it",
+            evidence=(AMPHOLYTE_NOTE,),
+            detail=Detail.STANDARD,
+        ))
     if analysis.domain_warning:
         # A ROW, FIRST, BECAUSE NOTHING ELSE IS READ. The warning is in the report's limitations, which the merged
         # reader pools with every other report's under one status line (the Substance report's note came first and
@@ -1717,7 +1735,8 @@ def compute_solubility(
             detail=Detail.STANDARD,
         ))
     facts += _gutmann_facts(analysis.solvent.key)
-    facts += _ph_facts(analysis, ph)
+    if not ampholyte:
+        facts += _ph_facts(analysis, ph)
     facts += _model_facts(
         analysis, mol, admet_interpreter_path,
         compare=bool(parameters.get("compare_models", False)),
@@ -1728,7 +1747,7 @@ def compute_solubility(
     # one thing it said that this did not. Empty outside water and empty
     # when nothing reached the cap, so a molecule that never saturates
     # gains no row.
-    if analysis.baseline_logs is not None and analysis.solvent.is_water:
+    if analysis.baseline_logs is not None and analysis.solvent.is_water and not ampholyte:
         facts += limit_facts(analysis, solubility_profile(analysis, parameters)[0])
 
     # **A FACT-LEVEL LIMITATION IS A TOOLTIP, AND A TOOLTIP IS NOT TELLING
@@ -1738,13 +1757,16 @@ def compute_solubility(
     # and were invisible on screen -- found by grabbing the panel, with
     # every test green. They are carried in BOTH places: on the fact for
     # the tooltip and the export, and here so they are actually read.
-    limitations = [*_domain_limitation(analysis), _BCS_NOTE]
+    limitations = [*((AMPHOLYTE_NOTE,) if ampholyte else ()), *_domain_limitation(analysis), _BCS_NOTE]
     limitations.extend(_base_bias_limitation(analysis))
     if not analysis.solvent.is_water and analysis.shift is not None:
         limitations.extend(_NON_AQUEOUS_ACCURACY_LIMITATIONS)
     dose_mg = parameters.get("dose_mg")
     dose = float(dose_mg) if dose_mg not in (None, "") else None
-    if analysis.domain_warning:
+    if ampholyte:
+        screen = BcsScreen.undetermined(BcsReason.AMPHOLYTE)
+        window = None
+    elif analysis.domain_warning:
         # A regulatory-shaped PASS built on a baseline known to run high is the one output here that could do
         # harm, so it is withheld; the number and its warning above are what is offered instead.
         screen = BcsScreen.undetermined(BcsReason.BASELINE_OUT_OF_DOMAIN)
@@ -1812,7 +1834,7 @@ def compute_solubility(
             analysis.molecular_weight,
         ),
         limitations=tuple(limitations),
-        provenance=provenance,
+        provenance=replace(provenance, parameters={**provenance.parameters, "caveat": AMPHOLYTE_NOTE}) if ampholyte else provenance,
     )
 
 
@@ -1918,6 +1940,8 @@ def solubility_chart(analysis, parameters: dict | None = None):
 
     if analysis.refusal or analysis.baseline_logs is None or not analysis.solvent.is_water:
         return None
+    if analysis.ionization is IonizationClass.AMPHOLYTE:
+        return None  # the curve Henderson-Hasselbalch would draw for a zwitterion is a different compound's (AMPHOLYTE_NOTE)
     renderings = []
     for unit in DISPLAY_UNITS:
         grid, series = solubility_profile(analysis, parameters, unit)

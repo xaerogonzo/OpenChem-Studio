@@ -124,6 +124,11 @@ POLYCYCLES: dict[str, str] = {
     "cinnoline": "C1CCC2NNCCC2C1",
     "pteridine": "C1CNC2NCNCC2N1",
     "phenanthridine": "C1CCC2C(C1)CNC1CCCCC21",
+    # Table 2.8 names the six naphthyridines by heteroatom locants in brackets when they are a component ("pyrido[4,3-b][1,8]naphthyridine"); the
+    # numbering is the fusion rules' (lowest locants to the nitrogens), and a naphthyridine alone keeps its retained "1,8-naphthyridine" name
+    "[1,5]naphthyridine": "C1CNC2CCCNC2C1", "[1,6]naphthyridine": "C1CNC2CCNCC2C1",
+    "[1,7]naphthyridine": "C1CNC2CNCCC2C1", "[1,8]naphthyridine": "C1CNC2NCCCC2C1",
+    "[2,6]naphthyridine": "C1CC2CNCCC2CN1", "[2,7]naphthyridine": "C1CC2CCNCC2CN1",
     "perimidine": "C1CC2CCCC3NCNC(C1)C23",
     "phenazine": "C1CCC2NC3CCCCC3NC2C1",
     "phenoxazine": "C1CCC2OC3CCCCC3NC2C1",
@@ -678,7 +683,12 @@ def fusion_descriptor(parent: Component, parent_map: dict[int, str],
     # endpoint stays (naphtho[1,8a-b]azirine)
     keep = [a for i, a in enumerate(path)
             if i in (0, len(path) - 1) or not any(ch.isalpha() for ch in attached_map[a])]
-    locs = ",".join(attached_map[a] for a in keep)
+    cited = [attached_map[a] for a in keep]
+    if len(set(cited)) != len(cited):
+        # one label cited twice ("pyreno[3a,3,5,4,3a-aklmn]phenanthridine") is not a descriptor OPSIN or the book can read: the attached
+        # component's numbering does not describe this peri path (naming round 77)
+        return None
+    locs = ",".join(cited)
     letters = "".join(_letter(i) for i in sorted(fused))
     return tuple(sorted(fused)), letters, locs
 
@@ -733,6 +743,9 @@ def name_fusion(mol, ring_atom_tuples, second_order: bool = False) -> FusionName
     for p, q in itertools.combinations(parents, 2):
         if not (p.rings & q.rings) and not _shares_bond(p, q, system):
             # two occurrences joined through another component: P-25.3.4.1.3
+            text = _multiparent_name(p, q, components, system) if len(parents) == 2 else None
+            if text is not None:
+                return FusionName(text=text, numberings=tuple(numberings))
             raise Unsupported("the parent component occurs twice (a multiparent system)",
                               code=Unsupported.NEEDS_UNBUILT_CONSTRUCTION)
     # P-25.3.5.3: a multiparent name beats a benzo-heterocycle -- look past
@@ -742,6 +755,9 @@ def name_fusion(mol, ring_atom_tuples, second_order: bool = False) -> FusionName
         top_plain = [c for c in plain if seniority_key(c) == seniority_key(plain[0])]
         for p, q in itertools.combinations(top_plain, 2):
             if not (p.rings & q.rings) and not _shares_bond(p, q, system):
+                text = _multiparent_name(p, q, components, system) if len(top_plain) == 2 else None
+                if text is not None:
+                    return FusionName(text=text, numberings=tuple(numberings))
                 raise Unsupported("the senior component occurs twice (a multiparent system)",
                               code=Unsupported.NEEDS_UNBUILT_CONSTRUCTION)
 
@@ -767,6 +783,38 @@ def name_fusion(mol, ring_atom_tuples, second_order: bool = False) -> FusionName
             code=Unsupported.NEEDS_UNBUILT_CONSTRUCTION,
         )
     return FusionName(text=best[1], numberings=tuple(numberings))
+
+
+def _multiparent_name(p: Component, q: Component, components, system: _System) -> str | None:
+    """P-25.3.4.1.2: two occurrences of the parent component joined by ONE other component are named by that component as a prefix and the
+    parent multiplied, "furo[2,3-b:5,4-c']dipyridine". Only this shape is built (a plain parent, one central component, one letter each);
+    anything else returns None and the caller keeps its refusal. The descriptors take the lowest letters, then the lowest locants of the
+    central component, and the first group is the one with the lowest locants (naming round 77)."""
+    if p.name != q.name or p.name.startswith("[") or (p.rings & q.rings):
+        return None
+    rest = frozenset(range(len(system.rings))) - p.rings - q.rings
+    best = None
+    for c in components:
+        if c.rings != rest or c.name == p.name or not (_shares_bond(c, p, system) and _shares_bond(c, q, system)):
+            continue
+        for amap in c.label_maps():
+            for pmap in p.label_maps():
+                d1 = fusion_descriptor(p, pmap, c, amap, system.ring_sets, system.ring_bonds)
+                if d1 is None or len(d1[1]) != 1:
+                    continue
+                for qmap in q.label_maps():
+                    d2 = fusion_descriptor(q, qmap, c, amap, system.ring_sets, system.ring_bonds)
+                    if d2 is None or len(d2[1]) != 1:
+                        continue
+                    groups = sorted(((tuple(_locant_key(x) for x in d[2].split(",")), d) for d in (d1, d2)), key=lambda g: g[0])
+                    letters = tuple(sorted(d[0][0] for _k, d in groups))
+                    key = (letters, tuple(k for k, _d in groups), tuple(d[0][0] for _k, d in groups))
+                    if best is None or key < best[0]:
+                        first, second = groups[0][1], groups[1][1]
+                        text = (f"{c.prefix}[{first[2]}-{first[1]}:{second[2]}-{second[1]}']"
+                                f"di{p.parent_name}")
+                        best = (key, text)
+    return None if best is None else best[1]
 
 
 def _partitions(rest: frozenset[int], components, parent: Component, system: _System):

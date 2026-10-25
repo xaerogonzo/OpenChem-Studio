@@ -1,0 +1,178 @@
+[
+ {
+  "bond": "methane C-H",
+  "atct_dh298": 104.921,
+  "atct_uncertainty": 0.015,
+  "be_dh298": 104.99,
+  "be_uncertainty": 0.03,
+  "difference": -0.069
+ },
+ {
+  "bond": "ethane C-H",
+  "atct_dh298": 101.044,
+  "atct_uncertainty": 0.052,
+  "be_dh298": 101.1,
+  "be_uncertainty": 0.4,
+  "difference": -0.056
+ },
+ {
+  "bond": "propane secondary C-H",
+  "atct_dh298": 98.42,
+  "atct_uncertainty": 0.097,
+  "be_dh298": 98.6,
+  "be_uncertainty": 0.4,
+  "difference": -0.18
+ },
+ {
+  "bond": "ethene C-H",
+  "atct_dh298": 110.607,
+  "atct_uncertainty": 0.062,
+  "be_dh298": 110.7,
+  "be_uncertainty": 0.6,
+  "difference": -0.093
+ },
+ {
+  "bond": "ethyne C-H",
+  "atct_dh298": 133.31,
+  "atct_uncertainty": 0.044,
+  "be_dh298": 133.32,
+  "be_uncertainty": 0.07,
+  "difference": -0.01
+ },
+ {
+  "bond": "benzene C-H",
+  "atct_dh298": 113.315,
+  "atct_uncertainty": 0.142,
+  "be_dh298": 112.9,
+  "be_uncertainty": 0.5,
+  "difference": 0.415
+ },
+ {
+  "bond": "propene allylic C-H",
+  "atct_dh298": 87.497,
+  "atct_uncertainty": 0.089,
+  "be_dh298": 88.8,
+  "be_uncertainty": 0.4,
+  "difference": -1.303
+ },
+ {
+  "bond": "toluene benzylic C-H",
+  "atct_dh298": 90.647,
+  "atct_uncertainty": 0.143,
+  "be_dh298": 89.8,
+  "be_uncertainty": 0.6,
+  "difference": 0.847
+ },
+ {
+  "bond": "methanol C-H",
+  "atct_dh298": 96.183,
+  "atct_uncertainty": 0.075,
+  "be_dh298": 96.1,
+  "be_uncertainty": 0.2,
+  "difference": 0.083
+ },
+ {
+  "bond": "methanol O-H",
+  "atct_dh298": 105.27,
+  "atct_uncertainty": 0.071,
+  "be_dh298": 104.6,
+  "be_uncertainty": 0.7,
+  "difference": 0.67
+ },
+ {
+  "bond": "ethanol O-H",
+  "atct_dh298": 105.365,
+  "atct_uncertainty": 0.11,
+  "be_dh298": 104.7,
+  "be_uncertainty": 0.8,
+  "difference": 0.665
+ },
+ {
+  "bond": "ammonia N-H",
+  "atct_dh298": 107.464,
+  "atct_uncertainty": 0.025,
+  "be_dh298": 107.6,
+  "be_uncertainty": 0.1,
+  "difference": -0.136
+ },
+ {
+  "bond": "water O-H",
+  "atct_dh298": 118.863,
+  "atct_uncertainty": 0.007,
+  "be_dh298": 118.82,
+  "be_uncertainty": 0.07,
+  "difference": 0.043
+ },
+ {
+  "bond": "hydrogen peroxide O-H",
+  "atct_dh298": 87.355,
+  "atct_uncertainty": 0.036,
+  "be_dh298": 87.8,
+  "be_uncertainty": 0.5,
+  "difference": -0.445
+ },
+ {
+  "bond": "methyl hydroperoxide O-H",
+  "atct_dh298": 85.743,
+  "atct_uncertainty": 0.129,
+  "be_dh298": 88.0,
+  "be_uncertainty": 1.0,
+  "difference": -2.257
+ },
+ {
+  "bond": "formaldehyde C-H",
+  "atct_dh298": 88.189,
+  "atct_uncertainty": 0.026,
+  "be_dh298": 88.144,
+  "be_uncertainty": 0.008,
+  "difference": 0.045
+ },
+ {
+  "bond": "acetaldehyde formyl C-H",
+  "atct_dh298": 89.194,
+  "atct_uncertainty": 0.087,
+  "be_dh298": 89.4,
+  "be_uncertainty": 0.3,
+  "difference": -0.206
+ },
+ {
+  "bond": "acetaldehyde methyl C-H",
+  "atct_dh298": 95.478,
+  "atct_uncertainty": 0.137,
+  "be_dh298": 94.0,
+  "be_uncertainty": 2.0,
+  "difference": 1.478
+ },
+ {
+  "bond": "hydrogen cyanide C-H",
+  "atct_dh298": 126.367,
+  "atct_uncertainty": 0.037,
+  "be_dh298": 126.3,
+  "be_uncertainty": 0.2,
+  "difference": 0.067
+ },
+ {
+  "bond": "hydrogen sulfide S-H",
+  "atct_dh298": 91.192,
+  "atct_uncertainty": 0.054,
+  "be_dh298": 91.2,
+  "be_uncertainty": 0.1,
+  "difference": -0.008
+ },
+ {
+  "bond": "phenol O-H",
+  "atct_dh298": 87.75,
+  "atct_uncertainty": 0.244,
+  "be_dh298": 90.0,
+  "be_uncertainty": 3.0,
+  "difference": -2.25
+ },
+ {
+  "bond": "ethyl hydroperoxide O-H",
+  "atct_dh298": 85.284,
+  "atct_uncertainty": 0.206,
+  "be_dh298": 85.0,
+  "be_uncertainty": 2.0,
+  "difference": 0.284
+ }
+]

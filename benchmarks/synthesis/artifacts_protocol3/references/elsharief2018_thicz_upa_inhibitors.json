@@ -1,0 +1,12 @@
+{
+ "paper": "elsharief2018_thicz_upa_inhibitors",
+ "decision": "excluded",
+ "exclusion_reason": "no_lead_identifiable",
+ "exclusion_detail": "The abstract names four equally 'most promising' compounds (5, 8, 10 and 17) and the paper's follow-up work (DNA damage, docking, surface maps) covers all four; no single lead is named. The figure caption calls 5 'the most active compound' but the abstract's own numbers rank 8 best (IC50 4.00 ug/ml, uPA 2.70 ng/ml vs 5.24 and 3.80 for 5), so choosing one would be arbitrary.",
+ "lead": {"label": "none (5, 8, 10, 17)", "why": "Abstract: 'Compounds 5, 8, 10 and 17 displayed the most promising antitumor activities against the breast cancer cell line' and 'represent the most significant uPA inhibitors of our study'."},
+ "target": null,
+ "reactions": [],
+ "alt_variants": [],
+ "other_qualifying_compounds": ["4", "5", "6", "7", "14"],
+ "notes": "All THICZs are one-step products (indole + aldehyde or ketone, MeOH, cat. conc. H2SO4, reflux 1 h; general procedure 5.1.1), so routes are short, but the printed structures are drawn only in the scheme (not in the text layer) and 5.1.1 does not state which aldehyde gives which compound; for 4-7 it can be derived from the names (5-methylfuran-2-yl, 4-nitrofuran-2-yl, piperonyl, 3,4-dimethoxyphenyl). Compound 8 (pyridyl derivative) is described as 'known' with no data in this paper. Several printed names look inconsistent (e.g. compound 2 as '6,12-didodecyl', compound 13 'dichloro-bis(chloromethyl)' from chloroacetyl chloride), so the SI was not usable to settle them; the SI contains only spectra figures."
+}

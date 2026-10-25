@@ -1,0 +1,18 @@
+{
+ "paper": "mughal2018_flavonol_glycosides_cholinesterase",
+ "my_lead": "22 (thiophene analogue) blind - abstract names no best compound and singles out only 'the structure of compound 22 was also analyzed by X-ray diffraction'; on reading the body, 27 is 'the most active dual inhibitor' and gets the docking highlight (Figs 5, 6), so 22 and 27 are both defensible",
+ "lead_agrees": "co-named",
+ "reactions": [
+  {"step": 1, "ok": true, "issue": "Claisen-Schmidt: 2-hydroxyacetophenone + aldehyde, NaOH/MeOH, 24 h. The paper's general procedure names only benzaldehyde; the 4-isobutyl aldehyde is inferred from the name of 27 (2-(4-isobutylphenyl)). The chalcone is not named or isolated in the text."},
+  {"step": 2, "ok": true, "issue": "AFO oxidative cyclisation with 35% H2O2 added to the same flask; the text itself calls flavonol formation a 'two steps sequence' (Section 3.1) but the general procedure is one pot with no chalcone isolation. Counting it as step 2 is the stricter reading; the alt_variants 2-step reading is also acceptable. Flavonols 11-20 are numbered, the chalcones are not."},
+  {"step": 3, "ok": true, "issue": "Phase-transfer 3-O-glycosylation of the flavonol with acetobromo-alpha-D-glucose. Conditions conflict inside the paper: Section 3.1 says 'potassium carbonate and dimethylformamide (DMF) under phase transfer catalytic conditions', Section 2.1 gives K2CO3/TBAB in CHCl3/H2O, 36 h, rt. The transcription used 2.1 (the experimental). Reactants complete: flavonol + peracetylglycosyl bromide (1.5 equiv); K2CO3 and TBAB supply no atoms. The bromide is 592 mg for '1.5 mmol' (MW 411 gives 1.44 mmol), a harmless rounding."}
+ ],
+ "leaf_issues": [
+  "4-Isobutylbenzaldehyde is never named: the Experimental has one general procedure written with benzaldehyde and a Table 1 of structures that cannot be read in the text layer; its identity is derived from the printed product name. Commercial by the blanket statement only.",
+  "2-Hydroxyacetophenone, the aldehyde and acetobromo-alpha-D-glucose are supported only by 'All the chemicals were purchased from Merck (Germany) and Sigma-Aldrich (USA) and used as delivered' (Section 2). That is a legitimate blanket statement; no per-compound supplier."
+ ],
+ "step_count_ok": true,
+ "smiles_issues": [],
+ "overall": "minor_issues",
+ "notes": "I checked the beta-D-glucopyranosyl SMILES by CIP: C5 (R), C2 (R), C3 (S) as in beta-D-glucose, and the anomeric [C@@H] in the product vs [C@H] in the bromide is consistent with the stated alpha-bromide to beta-glycoside inversion; the acetate pattern is the same as D-glucose pentaacetate. Flavonol 3-OH and the 2-(4-isobutylphenyl)chromen-4-one core match the name; chalcone SMILES matches. HRMS for 27 fits [M+H]+ C33H37O12 625.2285. WARNING on the data in the paper: the 13C and 1H lists given for 27 are not consistent with the structure (flavone C=O listed at 192.2 rather than about 173; isobutyl signals 2.40 d 2H, 1.74 d 2H, 1.05 d; anomeric H d J = 6 Hz), so the paper's own characterisation of 27 is unreliable; the structure rests on the name, the yield (83%) and the HRMS. The yield of 27 is stated as 83%. Table 1 confirms 27 AChE 2.05 uM, BChE 5.42 uM (most potent dual inhibitor); 22 gets the X-ray (CCDC 1846188). Because every compound 21-30 follows the same 3-step route, a maintainer may prefer to record both 22 (thiophene-2-carbaldehyde) and 27 as the 'lead'. No SI usable (NMR spectra only)."
+}

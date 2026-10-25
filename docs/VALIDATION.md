@@ -323,10 +323,10 @@ large slice to decline, and it is printed beside the accuracy, because a
 model that refuses its hard cases looks better the more it refuses.
 
 **A claim in this project's own notes was overturned by the better
-measurement.** The solubility module said ESOL beat Marvin on Marvin's own
+measurement.** The solubility module said ESOL beat the reference editor on the reference editor's own
 documentation molecule, resting on an ESOL-era experimental value of −2.19
 for aspirin. SC-2's interlaboratory mean over 16 sources is **−1.67**, and
-against that Marvin (0.14 off) and AqSolDB (0.05) both beat ESOL (0.42).
+against that the reference editor (0.14 off) and AqSolDB (0.05) both beat ESOL (0.42).
 
 **Non-aqueous — scored, and the shift is NOT validated by it.** Abraham's
 coefficients are "obtained by linear regression using experimentally
@@ -639,19 +639,24 @@ twenty-two did not when Schedule 3 landed, and a rule with no positive
 scores a perfect 1.00 while testing nothing — the same vacuous pass this
 section exists to refuse. A guard fails if a future rule ships without one.
 
-90 of the 91 rules — all three CWC schedules and the US DEA listed
-chemicals — score precision 1.00 and recall 1.00. The one that does not:
+**All 91 rules** — all three CWC schedules and the US DEA listed chemicals —
+score precision 1.00 and recall 1.00, as of 2026-10-21.
 
-| rule | precision | recall |
-|---|---|---|
-| `cwc-1-a-6` nitrogen mustards | **0.50** | 1.00 |
+The one that did not was `cwc-1-a-6`, at precision **0.50**: it matched
+**chlorambucil** and **melphalan**, licensed cytotoxic medicines and neither
+among the HN1/HN2/HN3 the entry enumerates. Both were recorded as expecting
+no match, so the benchmark scored them as the false positives they were, and
+the rule shipped marked `approximate` with a limitation saying so.
 
-It matches **chlorambucil** and **melphalan**, licensed cytotoxic medicines
-and neither among the HN1/HN2/HN3 the entry enumerates. Both are recorded as
-expecting no match, so the benchmark scores them as the false positives they
-are. The rule ships marked `approximate` with a limitation saying so —
-staying silent about nitrogen mustards would be worse, and reporting
-precision 1.00 would be worse still.
+**It was fixed by narrowing the rule, not by editing the corpus.** A.4 and
+A.6 are each a heading over a closed list of named sub-items with printed
+identifiers — the generic entries in the same part introduce theirs with
+"e.g." and these two do not — so `cwc-1-a-4` and `cwc-1-a-6` are identities
+over those sub-items, anchored on the identifier each sub-item prints.
+Measured over the 23,432 PaRoutes stock and patent-target structures: 12
+matched before, 1 after, and that 1 is a listed sub-item matched by exact
+salt-normalised identity. Nothing newly matched. Details and the three
+changed corpus rows are in `benchmarks/regulatory/README.md`.
 
 The edge cases carry the weight. **Diisopropyl fluorophosphate** has sarin's
 phosphoryl, fluorine and alkoxy, no P–C bond, and is not Schedule 1; a rule
@@ -856,7 +861,7 @@ hydrogens — which shipped instead.
 
 **Miller polarizability — SHIPPED, and the reason it was not is the
 clearest case of a rotted reason in this file.** It read "the parameters
-are unpublished", which was a claim about ChemAxon's documentation rather
+are unpublished", which was a claim about the vendor's documentation rather
 than about the literature: Miller 1990's Table I prints all twenty rows
 ([source:miller1990]). Both recorded failures have causes now. The +27% on
 benzene is the `CBR` row, whose symbol reads as "carbon in a benzene ring"
@@ -885,7 +890,7 @@ implementation's default is a proprietary consensus method. Nothing to
 check a result against." Three of those four clauses fell to one paper:
 [source:schott1989] prints Griffin's Eq. [1], its closed form Eq. [2] with
 worked constants, and Davies' group numbers. The fourth stands and is not
-chased — ChemAxon's default is proprietary, so agreeing with Marvin is
+chased — the vendor's default is proprietary, so agreeing with the reference editor is
 unreachable.
 
 That paper also supplies the *reason the name is ambiguous*, which shaped

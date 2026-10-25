@@ -1,0 +1,17 @@
+{
+ "paper": "ungoren2017_aminopyrimidines_dbu",
+ "my_lead": "2i (methyl 2-amino-4-methylpyrimidine-5-carboxylate): no compound named in abstract; 1i/2i is the model substrate for all optimisation (Table 2) and the best yield (93%). Judgement call under rule 2",
+ "lead_agrees": true,
+ "reactions": [
+  {
+   "step": 1,
+   "ok": false,
+   "issue": "Cyanamide is used as two equivalents (4.2 mmol vs 2.0 mmol 1i) and the paper's mechanism says the enaminone reacts 'with two equivalents of cyanamide ... a dicyanamide derivative is generated', then isocyanic acid is released. Both cyanamides are incorporated before HNCO is lost, so cyanamide should be listed TWICE among the reactants (by-products HNCO, 2 MeOH, Me2NH). Atom balance proves it: C5H8O3 + C5H13NO2 + 2 CH2N2 = C7H9N3O2 + CHNO + C2H7N + 2 CH4O (C12 H25 N5 O5 both sides). With cyanamide listed once the N does not balance (3 N in, product 3 N + Me2NH N out). The transcriber's 'carbon balance' argument only checks carbon."
+  }
+ ],
+ "leaf_issues": [],
+ "step_count_ok": true,
+ "smiles_issues": [],
+ "overall": "minor_issues",
+ "notes": "Edit needed: list cyanamide twice in the one reaction. Product SMILES COC(=O)c1cnc(N)nc1C is correct (4-Me, 5-CO2Me, C6-H from DMF-DMA CH, N1-C2(NH2)-N3 from cyanamide; matches name and NMR 8.63 s 1H, 2.50 s CH3). 1i = methyl acetoacetate (Table 1 drawing H3C, OCH3, O, O); leaf supported by 'Experimental: 1,3-dicarbonyl compounds (except 1a-f), DMF-DMA, Et3N, DBU, DMAP, cyanamide, and solvents were purchased from commercial sources (Sigma-Aldrich, Merck and Acros Organics) and used as received.' 1a-f (Claisen-made) are not used by this route. Origin 'reagent' for DMF-DMA and cyanamide is fine (purchased, supply atoms). DBU is catalyst, correctly absent. The paper's Conclusion reverses the regiochemistry wording (4-acyl-5-alkyl) but names, Table 1 and Experimental all give 4-methyl-5-carboxylate. HRMS found value for 2i is a typo (168.07632). One-pot, one step."
+}

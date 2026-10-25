@@ -1,0 +1,18 @@
+{
+ "hf_meh": 1.1081993989137118e-05,
+ "dft_meh": 0.06285718507115234,
+ "opt_energy_meh": 0.008684870067554584,
+ "rmsd_angstrom": 0.0010518707486336432,
+ "measurements": {
+  "hf": 18,
+  "dft": 36,
+  "opt": 10,
+  "expected_sp_per_variant": 18
+ },
+ "tolerances": {
+  "hf_meh": 0.01,
+  "dft_meh": 0.1257143701423047,
+  "opt_energy_meh": 0.1257143701423047,
+  "geometry_angstrom": 0.0021037414972672865
+ }
+}

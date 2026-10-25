@@ -1,0 +1,34 @@
+{
+ "paper": "abolhasani2021_spiroisoxazolines_cox2",
+ "my_lead": "9f - abstract: highest COX-2 inhibition, most potent cytotoxicity on MCF-7 (0.03 uM), used for apoptosis/Bax/Bcl-2/docking/MD",
+ "lead_agrees": true,
+ "reactions": [
+  {
+   "step": 1,
+   "ok": true,
+   "issue": ""
+  },
+  {
+   "step": 2,
+   "ok": true,
+   "issue": "Oxone supplies the oxygens, appropriately unlisted"
+  },
+  {
+   "step": 3,
+   "ok": true,
+   "issue": "Hydroxylamine hydrochloride is labelled origin 'reagent' with SMILES NO; it supplies N and O of the oxime, so it is a real reactant (commercial). NaOH is a base and correctly omitted. Oxime 8f yield 57% per 4.1.11."
+  },
+  {
+   "step": 4,
+   "ok": true,
+   "issue": "NaOCl (oxidant for in-situ nitrile oxide) correctly unlisted. 2.5 equiv oxime used but incorporated once."
+  }
+ ],
+ "leaf_issues": [
+  "Indanone (3) and 4-methylthiobenzaldehyde (4) are not named in a supplier sentence; support is 'Most of the reagents were obtained from Sigma-Aldrich or Merck ... All commercially available materials, including compounds 7a-7g, were used without further purification' plus no preparation anywhere. 3,4-Dimethoxybenzaldehyde (7f) is explicitly commercial."
+ ],
+ "step_count_ok": true,
+ "smiles_issues": [],
+ "overall": "confirmed",
+ "notes": "4 reactions (longest chain 3: 5 -> 6 -> 9f; oxime 8f is a parallel one-step branch). Paper says 9f and 9g 'were reported previously (ref 26)' but gives the full procedure here (4.1.13, 9f entry: 42%, mp 160-162 C). Target SMILES checked: spiro carbon bonded to ring O, CH2 and C=O of the indanone (spiro[indene-2,5'-isoxazol]-1(3H)-one), C3' carries 3,4-dimethoxyphenyl and C=N, C4' carries 4-MeSO2C6H4; matches the isoxazolin H4' singlet at 5.00 and the formula C26H23NO6S. Regiochemistry rests on the printed name (no drawn structure in the text). Racemic, no stereo stated."
+}

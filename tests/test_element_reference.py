@@ -295,9 +295,9 @@ def test_every_element_can_be_described_without_raising():
 
 
 def test_the_elements_file_is_in_the_packaging_spec():
-    spec = Path(__file__).resolve().parent.parent / "packaging" / "openchem.spec"
+    import conftest
 
-    assert "elements.json" in spec.read_text(encoding="utf-8")
+    assert conftest.spec_ships("chem/data/elements.json")
 
 
 # --- A3: the valence row is RDKit's model, and says so ----------------------

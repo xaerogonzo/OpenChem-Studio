@@ -62,7 +62,7 @@ def test_exactly_one_tautomer_is_flagged_canonical():
 
 def test_resonance_flag_set_changes_how_many_forms_are_found():
     """The load-bearing finding: RDKit's DEFAULT flags return ZERO forms for
-    diazomethane -- Marvin's own documentation example. The wider flag set
+    diazomethane -- the reference editor's own documentation example. The wider flag set
     finds more than the narrow one, which is why this is a user choice
     rather than a hardcoded constant."""
     narrow = enumerate_resonance_forms(
@@ -107,7 +107,7 @@ def test_library_size_is_the_product_of_the_option_counts():
 
 
 def test_library_size_is_computed_without_enumerating():
-    """The whole point of the feature -- Marvin's documentation example
+    """The whole point of the feature -- the reference editor's documentation example
     reports 38,102,400 members, which can only be answered by arithmetic.
     A space far too large to walk must still return instantly."""
     huge = MarkushStructure(
@@ -170,7 +170,7 @@ def test_random_enumeration_returns_distinct_members():
 
 
 def test_selected_part_enumeration_leaves_other_labels_generic():
-    """Marvin's documented behaviour: enumerating only part of a Markush
+    """The reference editor's documented behaviour: enumerating only part of a Markush
     structure yields MORE SPECIFIC MARKUSH STRUCTURES, not fully specified
     molecules -- the untouched attachment point survives in the output."""
     result = enumerate_markush(_markush(), "m", only_labels={1}, max_structures=10)
@@ -227,7 +227,7 @@ def test_valence_labels_stay_ascii():
 
 
 def test_library_size_ignores_the_valence_filter():
-    """Matches Marvin, whose docs state the size 'does not consider the
+    """Matches the reference editor, whose docs state the size 'does not consider the
     valence check filter' -- filtering would require generating everything,
     defeating the purpose."""
     assert library_size(_quaternary_swap()) == 4

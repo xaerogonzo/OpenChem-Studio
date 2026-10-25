@@ -1,0 +1,15 @@
+{
+ "paper": "hu2025_usp5_in_1_derivatives",
+ "my_lead": "1a and 1h co-named in the abstract ('compounds 1a and 1h exhibited enhanced inhibitory effects'); no single best named in the abstract, 1a has the lowest IC50 (4.38 vs 6.64 uM, Table 1)",
+ "lead_agrees": "co-named",
+ "reactions": [
+  {"step": 1, "ok": true, "issue": "Sulfonamide formation (TEA omitted correctly). Aryl cycloamine = 4-(4-bromophenyl)piperidine is inferred from the name of 1a (the general procedure only says 'aryl cycloamine compounds')."},
+  {"step": 2, "ok": true, "issue": "Hydrazinolysis of the methyl ester (hydrazine hydrate, EtOH reflux 2 h); hydrazine supplies the N-N atoms so listing it is right."},
+  {"step": 3, "ok": true, "issue": "Hydrazide + alkyl chloroformate, DMAP omitted correctly. Ethyl chloroformate is inferred from the ethyl carbamate in 1a's name (1H 4.15-4.00 2H, 13C 14.6)."}
+ ],
+ "leaf_issues": [],
+ "step_count_ok": true,
+ "smiles_issues": [],
+ "overall": "confirmed",
+ "notes": "3 steps (Scheme 1). Leaves: 'commercially available methyl 4-(chlorosulfonyl)benzoate (4)' (p.2) and 'all reagents and solvents were obtained from commercial suppliers and used without further purification' (4.1). 1a yield 469.6 mg = 92% of 510.4 g/mol at 1.0 mmol, consistent with the ethyl compound. Intermediates 6a and 7a are not separately named/characterised; steps 1 and 2 are performed telescoped-style in the general procedure but are distinct chemical steps. SMILES of 1a, 6a, 7a checked against the 1a name."
+}

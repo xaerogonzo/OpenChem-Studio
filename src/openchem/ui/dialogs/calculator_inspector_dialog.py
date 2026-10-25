@@ -81,7 +81,7 @@ def _provenance(result) -> dict:
 
 
 class _CalculatorResultView(QWidget):
-    """One calculator result's Marvin-style inspection: overall value, a
+    """One calculator result's reference-editor-style inspection: overall value, a
     2D-colored-and-numbered depiction of the molecule's own editor
     structure, and a 3D-colored-and-numbered view -- all built from the
     SAME `VisualizationLayer` (`build_visualization_layer`) so the 2D and
@@ -285,7 +285,7 @@ class _CalculatorResultView(QWidget):
             self._viewer3d.apply_visualization(layer_3d)
 
         # Phase 25b: the same per-atom data, optionally painted onto a
-        # molecular surface -- the Marvin charge/LogP screenshots show the
+        # molecular surface -- the reference editor charge/LogP screenshots show the
         # property as a coloured surface, not only as coloured sticks.
         # Off by default so the numbered stick view stays the first thing
         # seen; a surface hides the atom labels underneath it.
@@ -676,7 +676,7 @@ class _CalculatorResultView(QWidget):
             # Charges are recomputed on the CONFORMER rather than reused
             # from the dataset on screen, and the difference is not
             # cosmetic. The dataset is computed on the implicit-hydrogen
-            # editor molecule and (matching Marvin) excludes each heavy
+            # editor molecule and (matching the reference editor) excludes each heavy
             # atom's hydrogen charge, so it covers only heavy atoms and
             # does not sum to the molecular charge. Feeding that to a
             # field gave neutral acetic acid a net -0.40 e and painted
@@ -769,7 +769,7 @@ class _PhCurveResultView(QWidget):
 
         Controls are hidden: a handful of scalars beside a graph does not
         need a search box, and the full panel is a page of chrome in a
-        space Marvin uses for four lines of text.
+        space the reference editor uses for four lines of text.
         """
         if not result.facts:
             return None
@@ -954,7 +954,7 @@ def inspector_budget_message() -> str | None:
 
 
 class CalculatorInspectorDialog(QDialog):
-    """Marvin-style calculator-result inspector -- overall value plus 2D-
+    """Reference-editor-style calculator-result inspector -- overall value plus 2D-
     and 3D-colored-and-numbered depictions for ONE calculator's result.
     Opened from the Property Panel's per-category "Open [Calculator]..."
     row, after that calculator's settings dialog (if it has parameters).

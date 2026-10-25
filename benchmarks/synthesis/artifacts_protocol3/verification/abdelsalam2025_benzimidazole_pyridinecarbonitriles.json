@@ -1,0 +1,21 @@
+{
+ "paper": "abdelsalam2025_benzimidazole_pyridinecarbonitriles",
+ "my_lead": "4f - abstract: 4f and 4m 'demonstrated the best behavior'; 4f alone used for docking/MD/POM",
+ "lead_agrees": true,
+ "reactions": [
+  {
+   "step": 1,
+   "ok": false,
+   "issue": "Chemistry as transcribed is right (ketone 1 + 4-methoxybenzylidenemalononitrile + NaOMe/MeOH, rt 6-10 h -> 2-methoxynicotinonitrile 4f, 65.9%; formula balances with one OMe from methoxide; SMILES matches the name). But BOTH reactants are unsupported as commercial: see leaf_issues."
+  }
+ ],
+ "leaf_issues": [
+  "Compound 1 ('2-acetyl N-propyne-benzimidazole', i.e. 1-propargyl-2-acetylbenzimidazole) is a custom N-propargylated benzimidazole, not an obvious catalogue chemical; the paper never says it was bought OR how it was made. The Experimental section (3.1.1 onward) has NO general materials/reagents statement at all (searched for purchased/commercial/Sigma/reagents/chemicals/materials: nothing). The only sourcing text is 'General procedure: following the previously optimized procedure [63-66]', and refs 63-66 are the authors' papers on benzofuran/indole-pyridine series, i.e. a citation for the Michael addition procedure, not a source for 1.",
+  "Ylidenemalononitrile 2 (4-methoxybenzylidenemalononitrile for 4f) is likewise never stated to be purchased or prepared; it is normally made by Knoevenagel condensation of the aldehyde with malononitrile, which the paper does not mention.",
+  "Neither 1 nor 2 has a printed name beyond the generic labels; both SMILES are deduced from product names."
+ ],
+ "step_count_ok": true,
+ "smiles_issues": [],
+ "overall": "reject",
+ "notes": "Per the brief, a 'commercial' credit needs a supporting sentence or at least a general purchased-reagents statement; here there is none, and 1 is almost certainly made from 2-acetylbenzimidazole + propargyl bromide in the authors' earlier work (not in this paper). Treating the route as 1 step from commercial leaves overstates what the paper supports. Even if a maintainer accepts 4-methoxybenzylidenemalononitrile as catalogue material, compound 1 would need at least one extra step (N-propargylation of 2-acetylbenzimidazole) that this paper does not describe. Recommend dropping or marking route_not_explicit."
+}

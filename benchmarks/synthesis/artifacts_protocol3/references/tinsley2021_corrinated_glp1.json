@@ -1,0 +1,12 @@
+{
+ "paper": "tinsley2021_corrinated_glp1",
+ "decision": "excluded",
+ "exclusion_reason": "not_small_molecule_organic",
+ "exclusion_detail": "The lead (optimised conjugate 22) is a dicyanocobinamide (cobalt corrin complex) conjugate of the 39-residue peptide exendin-4: a peptide plus a metal complex, made by solid-phase peptide synthesis and conjugation.",
+ "lead": {"label": "22", "why": "Abstract: 'An optimized conjugate (22), comparable with Ex4, was successfully screened and subsequently assayed for insulin secretion in rat islets and in vivo in shrews.'"},
+ "target": null,
+ "reactions": [],
+ "alt_variants": [],
+ "other_qualifying_compounds": [],
+ "notes": "Peptide and metal-complex conjugates throughout; no small-molecule organic target."
+}

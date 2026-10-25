@@ -1,0 +1,12 @@
+{
+ "paper": "shaik2017_pyrazolochalcones_pi3k",
+ "decision": "excluded",
+ "exclusion_reason": "no_lead_identifiable",
+ "exclusion_detail": "The abstract names a set of fifteen potent conjugates (13b-e, 13h-j, 14c-d, 15a, 15c-d, 16b, 16d, 18f) and a follow-up set of five (13b, 13c, 13d, 16b, 14d); the text calls 13c, 13d, 16b and 14d the 'most active' and runs the same mechanism and docking experiments on all of them. No single lead is named.",
+ "lead": {"label": "none (13b/13c/13d/14d/16b as a set)", "why": "Abstract: 'Conjugates 13b, 13c, 13d, 16b and 14d were also evaluated ... The promising candidates induced cell cycle arrest ...'"},
+ "target": null,
+ "reactions": [],
+ "alt_variants": [],
+ "other_qualifying_compounds": [],
+ "notes": "Every conjugate is made by Claisen-Schmidt condensation of a pyrazole-5-carbaldehyde (12a-d), which itself needs four steps from an acetophenone (oxalate condensation, pyrazole formation, LiAlH4 reduction, IBX oxidation), so every compound is 5 steps, over the limit even if a lead were chosen."
+}

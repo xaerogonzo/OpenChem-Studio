@@ -1,0 +1,19 @@
+{
+ "paper": "lin2024_piperidine_parp1",
+ "my_lead": "6a and 15d (abstract names both as potent; 15d is the one taken to the xenograft study and called 'most promising lead compound' in the conclusions, so 15d by rule 2)",
+ "lead_agrees": "co-named",
+ "reactions": [
+  {"step": 1, "ok": true, "issue": "Enaminone 7 + hydrazine hydrate (EtOH, 80 C, 6 h, 81%) -> Boc pyrazolo[4,3-c]pyridine 12. Regiochemistry of SMILES checked: pyrazole C bearing N is the former ketone carbon (attached through two CH2 to N-Boc), CH carbon from the enamine CH. Correct."},
+  {"step": 2, "ok": true, "issue": "12 + cyclopropanesulfonyl chloride -> 13 (sulfonyl on N2, adjacent to C3-H, matching the printed name '2-(cyclopropylsulfonyl)-...-2H-pyrazolo[4,3-c]pyridine'). Sulfonyl chloride is never named in the text; inferred from the name of 15d, which is unambiguous. Scheme 3 caption says NaH/THF, procedure 4.4.2 says Et3N/THF; irrelevant to the structures."},
+  {"step": 3, "ok": true, "issue": "Boc removal with HCl in EtOAc (Scheme 3 step c, 4.2.2) gives 14 (HCl salt, free amine drawn)."},
+  {"step": 4, "ok": true, "issue": "14 + acid 5 with HATU/DIPEA/DMF -> 15d. Acid 5 is never drawn or named in the text, but the SMILES (2-fluoro-5-[(4-oxo-3,4-dihydrophthalazin-1-yl)methyl]benzoic acid, the olaparib acid) is exactly what the name '4-(3-(carbonyl)-4-fluorobenzyl)phthalazin-1(2H)-one' requires (F ortho to C=O, CH2 para to F)."}
+ ],
+ "leaf_issues": [
+  "Enaminone 7 (tert-butyl (E)-3-((dimethylamino)methylene)-4-oxopiperidine-1-carboxylate): no sentence says it is purchased or how it is made; only the general 'Reagents and solvents were purchased from commercial sources' (4.1.1) covers it. Acceptable under the brief, but weaker than 1, 2 and 5, which are called 'commercially available' (2.1, 4.2.1, 4.2.3).",
+  "Cyclopropanesulfonyl chloride is not named anywhere ('acyl chloride or alkyl sulfonyl chloride'); commercial status rests on the general sentence and on inference from 15d."
+ ],
+ "step_count_ok": true,
+ "smiles_issues": [],
+ "overall": "confirmed",
+ "notes": "4 steps. Target SMILES for 15d checked ring by ring (phthalazinone C4-CH2, 3-carbonyl-4-fluorophenyl, N-5 amide of the tetrahydropyrazolo[4,3-c]pyridine, N2 sulfonyl). 6a (pyridopyrimidine series) would be an alternative lead via Scheme 1 (1 + amidine, Boc removal, HATU) but is not what was transcribed. No SI exists for this paper; all procedures are in section 4 of the article."
+}

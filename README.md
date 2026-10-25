@@ -163,11 +163,21 @@ each prediction can and cannot tell you.
 ## Install
 
 **From a release** — Windows, no Python required, runs fully offline.
-Download the zip from
-[Releases](https://github.com/xaerogonzo/OpenChem-Studio/releases), unzip, run
-`OpenChemStudio.exe`. Ship the whole directory; the `.exe` alone does
-nothing. It is ~650 MB, almost all of it PySide6 — QtWebEngine alone is a
-full Chromium, and the app hosts three web views.
+Download from [Releases](https://github.com/xaerogonzo/OpenChem-Studio/releases)
+either the **installer** (`OpenChemStudio-v<version>-windows-x64-setup.exe`) or the
+**zip**. The installer asks whether to install for just you (no administrator needed)
+or for all users, adds a Start menu entry, replaces an older version cleanly, and
+its uninstaller asks whether to also remove your settings and the caches and
+downloaded tools (it never touches your saved project files). For the zip,
+**extract all of it into a new folder** (running the `.exe` from inside the zip preview
+cannot work, and extracting over an older version can mix two versions' files), then run
+`OpenChemStudio.exe`. Ship the whole directory; the `.exe` alone does nothing. It is
+~720 MB unpacked, almost all of it PySide6 — QtWebEngine alone is a full Chromium, and
+the app hosts three web views. Each release lists a `SHA256SUMS.txt`; checking a download
+against it (for example `certutil -hashfile <file> SHA256`) detects a damaged download,
+but it is a checksum, not a signature. **The installer and the exe are not code-signed
+yet**, so Windows SmartScreen may say "unknown publisher" the first time: choose More
+info, then Run anyway.
 
 **From source:**
 
@@ -193,6 +203,7 @@ preferences.
 | AutoDock Vina | molecular docking |
 | ORCA | ab initio quantum chemistry, NMR shielding, geometry optimisation |
 | nmrshiftdb2 index | the HOSE-code NMR lookup and the hybrid predictor |
+| AiZynthFinder (your own Python environment) | the synthesis planner behind the Synthesis panel; locate-only (you install it, the application never does) |
 | Knowledge Vista (`kv`) | nothing in the app; a separate program that keeps track of where your paper library is, for the development tools to use |
 | pkasolver | numeric pKa, and true Henderson–Hasselbalch logD |
 | ADMET-AI | hERG and CYP predictions alongside the rule-based checklist |
@@ -217,6 +228,16 @@ Contributions are welcome — see [CONTRIBUTING.md](CONTRIBUTING.md). It is
 worth reading first, because this project has an unusual bar: a new claim
 needs a measurement, and "I measured it and it was not better, so I did not
 ship it" is a perfectly good outcome for a pull request.
+
+## Code signing policy and privacy
+
+Releases are **not code-signed yet**; the project is applying to the
+[SignPath Foundation](https://signpath.org/) for free signing, and until then Windows
+SmartScreen may say "unknown publisher" (More info, then Run anyway). The program
+collects nothing about you: no accounts, no telemetry, no update checks. It contacts
+other services only when you use a feature that needs one. The signing policy, who
+approves a release, and the list of every service the program can contact are in
+[docs/CODE_SIGNING_POLICY.md](docs/CODE_SIGNING_POLICY.md).
 
 ## License
 

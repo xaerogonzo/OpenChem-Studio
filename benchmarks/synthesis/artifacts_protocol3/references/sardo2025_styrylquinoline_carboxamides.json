@@ -1,0 +1,37 @@
+{
+ "paper": "sardo2025_styrylquinoline_carboxamides",
+ "decision": "route",
+ "exclusion_reason": null,
+ "exclusion_detail": "",
+ "lead": {"label": "4i", "why": "Abstract: 'compound 4i displaying sub-micromolar IC50 values across multiple lymphoma cell lines'; 4i is the compound used for the mechanism studies (G2/M arrest, apoptosis, ROS)."},
+ "target": {"name": "(E)-N-(4-Nitrophenyl)-2-Styrylquinoline-4-Carboxamide", "smiles": "O=C(Nc1ccc([N+](=O)[O-])cc1)c1cc(/C=C/c2ccccc2)nc2ccccc12"},
+ "reactions": [
+  {"step": 1,
+   "product": {"label": "2", "name": "2-Methylquinoline-4-Carboxylic Acid", "smiles": "Cc1cc(C(=O)O)c2ccccc2n1"},
+   "reactants": [
+    {"label": "1", "name": "isatin", "smiles": "O=C1Nc2ccccc2C1=O", "origin": "commercial"},
+    {"label": "acetone", "name": "acetone", "smiles": "CC(C)=O", "origin": "commercial"}
+   ],
+   "conditions": "Pfitzinger: aq. KOH 10%, acetone, microwave 150 C, 100 W, 2 x 15 min; then HCl 37% to pH < 6.5. 93%.",
+   "source": "Section 4.1.2 (main text, p. 9); Scheme 1 step a"},
+  {"step": 2,
+   "product": {"label": "3i", "name": "2-Methyl-N-(4-Nitrophenyl)Quinoline-4-Carboxamide", "smiles": "Cc1cc(C(=O)Nc2ccc([N+](=O)[O-])cc2)c2ccccc2n1"},
+   "reactants": [
+    {"label": "2", "name": "2-Methylquinoline-4-Carboxylic Acid", "smiles": "Cc1cc(C(=O)O)c2ccccc2n1", "origin": "made_here"},
+    {"label": "4-nitroaniline", "name": "4-nitroaniline", "smiles": "Nc1ccc([N+](=O)[O-])cc1", "origin": "commercial"}
+   ],
+   "conditions": "EDC.HCl, HOBt (0.2 eq), DMAP (2 eq), anhydrous MeCN, microwave 50 C, 60 W, 2 x 20 min; water, crystallisation from EtOH. 55%.",
+   "source": "Section 4.1.3 general procedure and 4.1.3.9 (3i); Scheme 1 step b"},
+  {"step": 3,
+   "product": {"label": "4i", "name": "(E)-N-(4-Nitrophenyl)-2-Styrylquinoline-4-Carboxamide", "smiles": "O=C(Nc1ccc([N+](=O)[O-])cc1)c1cc(/C=C/c2ccccc2)nc2ccccc12"},
+   "reactants": [
+    {"label": "3i", "name": "2-Methyl-N-(4-Nitrophenyl)Quinoline-4-Carboxamide", "smiles": "Cc1cc(C(=O)Nc2ccc([N+](=O)[O-])cc2)c2ccccc2n1", "origin": "made_here"},
+    {"label": "benzaldehyde", "name": "benzaldehyde", "smiles": "O=Cc1ccccc1", "origin": "commercial"}
+   ],
+   "conditions": "Benzaldehyde (1.0 eq), glacial AcOH (1.5 mL/mmol), microwave 150 C, 200 W, 2 x 20 min; water, crystallisation from EtOH. 63%.",
+   "source": "Section 4.1.4 general procedure and 4.1.4.9 (4i); Scheme 1 step c"}
+ ],
+ "alt_variants": [],
+ "other_qualifying_compounds": null,
+ "notes": "Benzaldehyde as the aldehyde for 4i is inferred from the product name (unsubstituted styryl); the general procedure says 'appropriately substituted benzaldehyde'. Acetone given as a commercial building block (carbon source in the Pfitzinger step)."
+}

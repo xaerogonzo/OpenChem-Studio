@@ -1,0 +1,12 @@
+{
+ "paper": "mcgowan2018_tlr7_8_agonists",
+ "decision": "excluded",
+ "exclusion_reason": "lead_route_over_4_steps",
+ "exclusion_detail": "Lead 52a1 is made in 5 reactions from commercial ethyl 1-benzyl-4-oxopiperidine-3-carboxylate HCl (5a): guanidine carbonate cyclisation (6a), hydrogenolytic debenzylation (50), N-acylation with 2-methylthiazole-4-carbonyl chloride, POCl3 chlorination (51a), SNAr with (S)-3-aminohexan-1-ol (52a1). SI gives each as a separate 'Step' with isolation.",
+ "lead": {"label": "52a1", "why": "Abstract: 'Optimization of this series ... resulted in the identification of compound 52a1' (also the compound taken into mouse PK/PD)."},
+ "target": {"name": "[2-amino-4-[[(1S)-1-(2-hydroxyethyl)butyl]amino]-7,8-dihydro-5H-pyrido[4,3-d]pyrimidin-6-yl]-(2-methylthiazol-4-yl)methanone", "smiles": "CCC[C@@H](CCO)Nc1nc(N)nc2CCN(C(=O)c3csc(C)n3)Cc12"},
+ "reactions": [],
+ "alt_variants": [],
+ "other_qualifying_compounds": ["8a", "8b", "9a", "9b"],
+ "notes": "Target SMILES given only for reference (ring-fusion atom order of the SMILES was not independently checked). Qualifying others are intermediates that are also tested compounds: 8a is 3 steps (guanidine, POCl3, n-butylamine), 9a is 4 (plus hydrogenolysis); 8b/9b are 'similar method' from the regioisomeric ketoester, not separately detailed. Counting the SI's two 'Step' pairs for 50 and 51a as separate reactions; if the paper's 'in two steps' were read as two one-pot operations the count would still be 5 distinct operations."
+}

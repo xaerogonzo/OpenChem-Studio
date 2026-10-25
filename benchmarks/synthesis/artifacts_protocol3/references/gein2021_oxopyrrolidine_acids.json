@@ -1,0 +1,12 @@
+{
+ "paper": "gein2021_oxopyrrolidine_acids",
+ "decision": "excluded",
+ "exclusion_reason": "no_lead_identifiable",
+ "exclusion_detail": "The abstract and title name no best/lead compound (only 'compounds with an aromatic or heterocyclic radical in the 1-position were slightly more active'); no compound is singled out for a follow-up experiment. Table 3 hot-plate values: II 19.7, III 18.4, V 19.6, VI 20.0 (similar); antihypoxic Table 4 tests I, II, IV, VII with different winners per model.",
+ "lead": {"label": "none", "why": "Abstract: 'The analgesic activity was slightly greater for compounds with an aromatic or heterocyclic radical in the 1-position.' No single compound named."},
+ "target": null,
+ "reactions": [],
+ "alt_variants": [],
+ "other_qualifying_compounds": ["I", "II", "III", "VI", "VII"],
+ "notes": "All seven compounds are one-step (itaconic acid + amine, fusion or reflux with AcOH cat.), so any would qualify if a looser lead rule were used; IV and V are 'analogously prepared' to III. Inconsistency: VII is named 1-(3-carboxyphenyl) but the procedure uses '4-carboxyaniline'. Compound II is named benzo[d]thiazol-2-yl but made from 2-aminothiazole (formula C12H10N2O3S matches benzothiazole, so the reagent name is probably a typo for 2-aminobenzothiazole; 0.47 g/5 mmol matches aminothiazole MW 100 not aminobenzothiazole 150)."
+}

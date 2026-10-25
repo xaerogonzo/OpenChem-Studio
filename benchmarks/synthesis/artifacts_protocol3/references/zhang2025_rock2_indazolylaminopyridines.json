@@ -1,0 +1,12 @@
+{
+ "paper": "zhang2025_rock2_indazolylaminopyridines",
+ "decision": "excluded",
+ "exclusion_reason": "lead_route_over_4_steps",
+ "exclusion_detail": "Lead S9 (cyclopentylamino analogue, ROCK2 IC50 0.020 uM) needs the indazole arm (nitration-type cyclisation to 2, THP protection, nitro reduction = 3 reactions), prolinol substitution (6), Curtius carbamate formation (7), SNAr coupling (8), nitro reduction plus chloroacetylation (9, 2 reactions), then amination and TFA deprotection (2 reactions): at least 10 reactions.",
+ "lead": {"label": "S9", "why": "Abstract: 'cyclopentylamino analogues S9 (ROCK2 IC50 = 0.020 uM) as the most potent ROCK2 inhibitor'; used for the cell and mechanism studies."},
+ "target": null,
+ "reactions": [],
+ "alt_variants": [],
+ "other_qualifying_compounds": [],
+ "notes": "All target compounds share the same linear route, so none is 4 steps or fewer."
+}

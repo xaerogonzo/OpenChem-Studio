@@ -1,0 +1,12 @@
+{
+ "paper": "krylova2025_chlorin_quinazoline_conjugates_preprint",
+ "decision": "excluded",
+ "exclusion_reason": "not_small_molecule_organic",
+ "exclusion_detail": "The lead is the In(III) chlorin-e6 / arylaminoquinazoline conjugate (a metal complex of a large tetrapyrrole macrocycle, built from natural-source chlorin e6 derivatives); metal complexes and organometallic/inorganic compounds are out of scope.",
+ "lead": {"label": "16 (In-2)", "why": "Abstract: 'the In-containing conjugate effectively inhibited tumor cell proliferation at nanomolar concentrations'; text calls 16 (In-2) 'the most promising conjugate' used for in vivo PDT."},
+ "target": null,
+ "reactions": [],
+ "alt_variants": [],
+ "other_qualifying_compounds": [],
+ "notes": "All conjugates are Zn/In/Pd chlorin-e6 metallocomplexes; chlorin e6 itself is derived from a natural source (chlorophyll)."
+}

@@ -1,0 +1,38 @@
+{
+ "paper": "li2018_alpha7_pams",
+ "decision": "route",
+ "exclusion_reason": null,
+ "exclusion_detail": "",
+ "lead": {"label": "3ea", "why": "Abstract: 'The structure-activity relationship analysis identified the compound 3ea as a potent and efficacious PAM with the maximum activation effect of the alpha7 current of over 1633% ... EC50 = 1.26 uM'; it is also the compound used in the rat PK and mouse prepulse-inhibition experiments."},
+ "target": {"name": "6-(2-Chloro-6-methylphenyl)-2-(benzylthio)thiazolo[4,5-d]pyrimidin-7(6H)-one", "smiles": "O=c1c2sc(SCc3ccccc3)nc2ncn1-c1c(C)cccc1Cl"},
+ "reactions": [
+  {"step": 1,
+   "product": {"label": "4a", "name": "2-Chloro-N-(2-chloro-6-methylphenyl)acetamide", "smiles": "Cc1cccc(Cl)c1NC(=O)CCl"},
+   "reactants": [
+    {"label": "2-chloro-6-methylaniline", "name": "2-chloro-6-methylaniline", "smiles": "Cc1cccc(Cl)c1N", "origin": "commercial"},
+    {"label": "chloroacetyl chloride", "name": "chloroacetyl chloride", "smiles": "ClCC(=O)Cl", "origin": "commercial"}
+   ],
+   "conditions": "Aniline (100 mmol) in glacial AcOH with saturated aq. NaOAc, ice bath, chloroacetyl chloride (1.5 equiv) dropwise, 6 h; precipitate filtered; 58%.",
+   "source": "main text Experimental Section, '2-Chloro-N-(2-chloro-6-methyphenyl)acetamide (4a)'; Scheme 4 step a"},
+  {"step": 2,
+   "product": {"label": "10a", "name": "", "smiles": "Cc1cccc(Cl)c1NC(=O)c1sc(SCc2ccccc2)nc1N"},
+   "reactants": [
+    {"label": "4a", "name": "2-Chloro-N-(2-chloro-6-methylphenyl)acetamide", "smiles": "Cc1cccc(Cl)c1NC(=O)CCl", "origin": "made_here"},
+    {"label": "dipotassium cyanodithioimidocarbonate", "name": "dipotassium cyanodithioimidocarbonate", "smiles": "[K+].[K+].N#CN=C([S-])[S-]", "origin": "commercial"},
+    {"label": "benzyl bromide", "name": "benzyl bromide", "smiles": "BrCc1ccccc1", "origin": "commercial"}
+   ],
+   "conditions": "4a (5 mmol) in acetone with aq. dipotassium cyanodithioimidocarbonate (1 equiv) and 2 M NaOH (2.5 mL), rt 2 h then 80 C 0.5 h (Thorpe-Ziegler cyclisation); cooled, benzyl bromide (1 equiv) added dropwise; poured into ice water, solid filtered and dried (intermediate 10a, yield not given).",
+   "source": "main text Experimental Section, procedure for 3ea; Scheme 4 steps a, b; Results text"},
+  {"step": 3,
+   "product": {"label": "3ea", "name": "6-(2-Chloro-6-methylphenyl)-2-(benzylthio)thiazolo[4,5-d]pyrimidin-7(6H)-one", "smiles": "O=c1c2sc(SCc3ccccc3)nc2ncn1-c1c(C)cccc1Cl"},
+   "reactants": [
+    {"label": "10a", "name": "", "smiles": "Cc1cccc(Cl)c1NC(=O)c1sc(SCc2ccccc2)nc1N", "origin": "made_here"},
+    {"label": "formic acid", "name": "formic acid", "smiles": "OC=O", "origin": "reagent"}
+   ],
+   "conditions": "10a (3 mmol) in HCOOH (2 mL), reflux 1 h; quenched with water, extracted with Et2O, silica gel chromatography (PE/EtOAc 10:1); 75%, yellow solid.",
+   "source": "main text Experimental Section, procedure for 3ea; Scheme 4 step c"}
+ ],
+ "alt_variants": [],
+ "other_qualifying_compounds": null,
+ "notes": "(1) The 3ea procedure calls the chloroacetamide 'compound 5a' (1.10 g, 5 mmol), but 5a is not otherwise defined; the amount and context match 4a (MW 218), whose procedure is given separately, so I used 4a. (2) The printed name of 4a is '2-Chloro-N-(2-chloro-6-methyphenyl)acetamide' (typo, 'methyphenyl'); I wrote the corrected spelling. (3) 10a has no printed name (only the number; it is the benzylthio analogue of printed compound 5, '4-Amino-N-(2-chloro-6-methylphenyl)-2-(ethylthio)thiazole-5-carboxamide'); structure derived accordingly. (4) Dipotassium cyanodithioimidocarbonate is listed as a purchased reagent in the sense of the general statement; its SMILES is written as the dianion salt K2[N#CN=C(S)S]. (5) Step 2 as written is a one-pot sequence (cyclisation then S-alkylation) with an isolated crude solid 10a; I counted it as one step."
+}

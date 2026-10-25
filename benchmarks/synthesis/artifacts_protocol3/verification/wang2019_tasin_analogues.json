@@ -1,0 +1,19 @@
+{
+ "paper": "wang2019_tasin_analogues",
+ "my_lead": "22 - abstract names none; main follow-up is PK of 16/22/92 and only 22 taken on to oral bioavailability (52% at 20 mg/kg)",
+ "lead_agrees": true,
+ "reactions": [
+  {
+   "step": 1,
+   "ok": true,
+   "issue": ""
+  }
+ ],
+ "leaf_issues": [
+  "No sentence calls amine 1a or 4-(difluoromethoxy)benzenesulfonyl chloride 'purchased'. Support is indirect: 'Standard sulfonylation of substituted 1,4'-bipiperidines 1a-c ... with a variety of commercially available aryl- or heteroaryl-sulfonyl chlorides' and 'sulfonamide analogues not directly available from direct sulfonylation of commercially available amines'; the experimental says 'all commercially available reagents were used as received'. 1a is never prepared anywhere."
+ ],
+ "step_count_ok": true,
+ "smiles_issues": [],
+ "overall": "confirmed",
+ "notes": "Experimental entry for 22: 'Reaction of amine 1a with 4-(difluoromethoxy)benzene-1-sulfonyl chloride (Procedure A) yielded 22 as a light orange solid (69%); mp 132-135 C'. Procedure A: amine 1.0, sulfonyl chloride 1.1, iPr2NEt 1.5 equiv, CH2Cl2, rt overnight. 1a = 4-methyl-1,4'-bipiperidine is confirmed by the sibling names (e.g. 5 = 4-methyl-1'-(phenylsulfonyl)-1,4'-bipiperidine from 1a) and by the text 'condensation of 4-methyl-1,4'-bipiperidine'. SMILES for 22, 1a and the sulfonyl chloride read correctly (methyl on the N-linked ring, sulfonyl on 1'-N, OCHF2 para). Lead is a judgement call (16, 22, 92 all go into PK); 22 is the only one taken to oral dosing. Single step; achiral, no stereo issue."
+}

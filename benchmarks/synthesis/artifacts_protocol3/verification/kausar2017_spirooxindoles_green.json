@@ -1,0 +1,11 @@
+{
+ "paper": "kausar2017_spirooxindoles_green",
+ "my_lead": "6a: no best compound in abstract; 6a is the compound arbitrarily chosen for the only follow-up (MTT cytotoxicity) experiment (rule 2)",
+ "lead_agrees": true,
+ "reactions": [{"step": 1, "ok": true, "issue": ""}],
+ "leaf_issues": [],
+ "step_count_ok": true,
+ "smiles_issues": [],
+ "overall": "confirmed",
+ "notes": "One-pot three-component domino of isatin (1), 6-aminouracil (2) and 3-phenylisoxazolone (5) in ethyl L-lactate, rt, 60 min, 95% (Table 4 entry 1 / p.7 text: '(6a) was obtained in excellent yield (95%, 60 min)'). The product SMILES agrees with the printed name 3'-phenyl-5'H-spiro[indoline-3,4'-isoxazolo[4',5':5,6]pyrido[2,3-d]pyrimidine]-2,5',7'-trione (spiro C bonded to isoxazole C4 and uracil C5; isoxazole C5(O)-NH-uracil C6; 3-Ph; formula C21H13N5O4 = sum - 2 H2O). Fusion regiochemistry cannot be read from the text layer (structure drawing absent) - checked only for consistency with the name. Leaves: no preparation of any of the three anywhere; only the general sentence 'Synthetic grade chemicals from Sigma-Aldrich, Spectrochem, and E-Merck were used for carrying out the organic reactions'. No SI available to me."
+}

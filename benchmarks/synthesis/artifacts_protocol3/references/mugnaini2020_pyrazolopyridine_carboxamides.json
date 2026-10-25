@@ -1,0 +1,12 @@
+{
+ "paper": "mugnaini2020_pyrazolopyridine_carboxamides",
+ "decision": "excluded",
+ "exclusion_reason": "lead_route_over_4_steps",
+ "exclusion_detail": "Lead 51 needs 6 reactions from commercial methyl 4-nitro-1H-pyrazole-3-carboxylate: (1) N-methylation with CH3I (gives 4 and 5, 5 is the 1-methyl isomer, separated by chromatography); (2) Fe/CaCl2 nitro reduction -> 9; (3) N-butylation -> 16; (4) acylation with methyl 3-chloro-3-oxopropionate -> 27; (5) Dieckmann condensation -> 38; (6) aminolysis with 1-aminoadamantane -> 51.",
+ "lead": {"label": "51", "why": "Abstract: 'compound 51 emerged as a potent CB2R agonist able to reduce pain in rats carrying OA'; text: 'we selected 51 as the lead'."},
+ "target": {"name": "N-(Adamantan-1-yl)-4-(1-butyl)-4,5-dihydro-7-hydroxy-1-methyl-5-oxo-2H-pyrazolo[4,3-b]pyridin-6-carboxamide", "smiles": "CCCCN1C(=O)C(C(=O)NC23CC4CC(CC(C4)C2)C3)=C(O)c2c1cn(C)n2"},
+ "reactions": [],
+ "alt_variants": [],
+ "other_qualifying_compounds": [],
+ "notes": "All 18 final compounds (45-62) go through the same alkylation / reduction / alkylation / acylation / Dieckmann / aminolysis sequence (6 steps, 7 for 61 and 62), so no other compound is within 4 steps. The target SMILES is for reference only: the printed name has the pyrazole tautomer '2H' with a 1-methyl, which is internally inconsistent as drawn; I did not verify the tautomer/regiochemistry against OPSIN. The 1-methyl vs 2-methyl isomers were distinguished by X-ray in the paper (5 = 1-methyl)."
+}

@@ -1,0 +1,17 @@
+{
+ "paper": "kratky2017_fluorophenylalanines",
+ "my_lead": "3j (phenyl 2-acetamido-3-(4-fluorophenyl)propanoate): abstract names it the selective and most potent BChE inhibitor",
+ "lead_agrees": true,
+ "reactions": [
+  {
+   "step": 1,
+   "ok": true,
+   "issue": ""
+  }
+ ],
+ "leaf_issues": [],
+ "step_count_ok": true,
+ "smiles_issues": [],
+ "overall": "confirmed",
+ "notes": "Section 4.1.2.2 ester procedure: acid (1 eq), phenol (1.1 eq), Et3N, DMAP, EDC in DCM; Et3N/DMAP/EDC correctly omitted. Table 1 prints acid 3 = N-acetyl-DL-p-FPhe = 2-acetamido-3-(4-fluorophenyl)propanoic acid, so SMILES for acid and ester are right; racemic, no stereo drawn. Leaf support: 'the commercially available N-acetyl-o/m/p-fluorophenylalanines 1-3' (Sect. 2.1) and 'All of the reagents and solvents were purchased from Sigma-Aldrich ... or Penta Chemicals' (4.1.1). Phenol covered by the blanket sentence. One-step route."
+}

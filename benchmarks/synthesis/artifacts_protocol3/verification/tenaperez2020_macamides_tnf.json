@@ -1,0 +1,13 @@
+{
+ "paper": "tenaperez2020_macamides_tnf",
+ "my_lead": "4a - abstract: 'Synthetic macamide 4a was the most active (IC50 = 0.009 uM)'",
+ "lead_agrees": true,
+ "reactions": [
+  {"step": 1, "ok": true, "issue": "Linoleoyl chloride (0.46 mmol, 139 mg) + 1-(3,5-dimethylphenyl)ethan-1-ol (0.46 mmol, 70 mg), general procedure 3.4 (Et3N 1.2 eq, dry CH2Cl2, 0 C, 10 min, 10% HCl work-up, flash Hex-AcOEt 6:1) -> 4a, 80% (128 mg). Main text: 'The synthetic methodology used to obtain 4a was the same as that used to synthesise 2g, reacting the acid chloride with an alcohol' and 'the difference between the amide bond and the ester bond' for 4a. Et3N correctly omitted. Both reactants listed once (1:1). SMILES checked: C18 chain, 9Z,12Z (/C=C\\ pattern is cis at both), ester O-CH(CH3)-3,5-dimethylphenyl; 13C 173.1 (ester C=O) and 72.1 (OCH) in the paper agree."}
+ ],
+ "leaf_issues": [],
+ "step_count_ok": true,
+ "smiles_issues": [],
+ "overall": "confirmed",
+ "notes": "One step. Support for leaves: 'The solvents and reagents used were purchased from commercial sources and used without prior purification.' (section 3.1); the paper never prepares the acid chloride (no SOCl2/oxalyl chloride anywhere) or the alcohol. The printed name of 4a, '...-octadeca-9,12-dien-1-olate', is a naming error in the paper (olate = alkoxide); the compound is the ester 1-(3,5-dimethylphenyl)ethyl linoleate, and the transcription's SMILES is that ester. The 4a NMR listing contains an amide-type NH doublet (5.60, 1H) that looks copy-pasted from 3m; irrelevant to the route. Alcohol is racemic (no stereo given), so the target carries no stereocentre label, which is correct. Target = lead = form isolated."
+}

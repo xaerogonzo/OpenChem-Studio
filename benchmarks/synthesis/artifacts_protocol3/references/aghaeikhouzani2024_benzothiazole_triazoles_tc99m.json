@@ -1,0 +1,12 @@
+{
+ "paper": "aghaeikhouzani2024_benzothiazole_triazoles_tc99m",
+ "decision": "excluded",
+ "exclusion_reason": "route_not_explicit",
+ "exclusion_detail": "Section 2.1 says the key intermediates 4 (the propargyl ether of the 2-arylbenzothiazole), 7 (2-chloro-N-arylacetamide) and 8 were 'prepared according to the previously described method' [35-38]; only the final click step (7 + NaN3, then 4, CuSO4/ascorbate) has a procedure here. In addition the abstract names no single lead (8b, 8f, 8i as highly cytotoxic, 8g similar to doxorubicin in MCF7), so the lead rule gives no_lead_identifiable as well.",
+ "lead": {"label": "none single (8b, 8f, 8i named together; 8g for MCF7)", "why": "Abstract: 'Compounds 8b, 8f and 8i possessed high cytotoxic activity as compared with doxorubicin. Compound 8g has a similar inhibitory effect ... as doxorubicin.'"},
+ "target": null,
+ "reactions": [],
+ "alt_variants": [],
+ "other_qualifying_compounds": [],
+ "notes": "No SI in the bundle. Every member 8a-8o depends on the same unexplained intermediates 4 and 7, so none qualifies."
+}

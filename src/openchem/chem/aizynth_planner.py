@@ -10,7 +10,7 @@ THE PROCESS CONTRACT, each point a failure with a typed `RouteSet` and never an 
 * a named asset that is not there (the planner's Python, the policy model, the templates, the filter, the stock) is `unavailable` and says which;
 * NOTHING RETRIES, and no limit is ever changed to make a search succeed.
 
-WHICH OF THE PLANNER'S ROUTES BECOME ROUTES (decided here, because the planner returns more than solved routes: a strychnine search at 100 iterations returns the bare target and four one-step routes into a precursor that is not in stock). A route is kept only if it has at least one reaction and EVERY starting material carries an `in_stock` flag that is true, so "a route was returned" means what the benchmark's "solved" meant. The rest are counted and said (a limitation on the set), never silently dropped: a search that returned only unsolved routes is `no_route`. THE ORDER IS THE PLANNER'S, unchanged; re-ranking (the PaRoutes route score) is a decision for after protocol 2 of the quality benchmark, and `PlanRequest.all_routes` (every solved route instead of the default 5 to 25) is the other half of it.
+WHICH OF THE PLANNER'S ROUTES BECOME ROUTES (decided here, because the planner returns more than solved routes: a strychnine search at 100 iterations returns the bare target and four one-step routes into a precursor that is not in stock). A route is kept only if it has at least one reaction and EVERY starting material carries an `in_stock` flag that is true, so "a route was returned" means what the benchmark's "solved" meant. The rest are counted and said (a limitation on the set), never silently dropped: a search that returned only unsolved routes is `no_route`. THE ORDER IS NOT THE PLANNER'S, and at most `ROUTES_SHOWN` ARE KEPT (decided from protocol 2 of the quality benchmark, `benchmarks/synthesis/RESULT_2.md`): the kept routes are ordered as the benchmark ordered them (`chem/route_ranking.py`: the PaRoutes route score, then the planner's own score, then its order) and the first ten are the plan. `PlanRequest.all_routes` is ON by default, so the planner is asked for every solved route and the ten come from all of them; a search that found more says how many it did not keep.
 """
 from __future__ import annotations
 
@@ -21,10 +21,13 @@ import os
 import subprocess
 import threading
 import time
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from pathlib import Path
 
+from openchem.chem.route_validation import validate_route
+from openchem.chem.route_ranking import shown_order
 from openchem.domain.synthesis_route import (
+    LEFT_OUT_PREFIX,
     STANDARD_LIMITATIONS,
     PlannerIdentity,
     Route,
@@ -40,17 +43,37 @@ from openchem.domain.synthesis_route import (
     read_termination,
 )
 
-#: What the reachability guard accepts for a module nothing in the application imports YET. This is the host half of the runner (Stage 1 slice 3); the planning service (slice 4) is its first importer, and the guard then fails this declaration, which is the reminder to delete it.
-REACHED_BY = (
-    "tooling: imported only by tests/test_synthesis_planner.py until the synthesis planning service (Stage 1 slice 4 of docs/SYNTHESIS_HELPER_DESIGN.md) imports it; the feature is not yet reachable from the window"
-)
-
 #: The request the runner reads (`chem/aizynth_runner.py` keeps its own copy; a test holds the two equal).
 REQUEST_SCHEMA = "aizynth-request-1"
 #: The response the runner writes.
 RUN_SCHEMA = "aizynth-run-1"
+#: The request that asks the runner to read a configuration file (`chem/aizynth_runner.py` keeps its own copy; a test holds them equal).
+INSPECT_REQUEST_SCHEMA = "aizynth-inspect-request-1"
+#: The runner's response to it (its own copy is held equal by a test).
+INSPECT_SCHEMA = "aizynth-inspect-1"
+#: The longest an inspection may take: it starts a Python and reads a file (0.2 s measured), so this bounds a hang, not a budget.
+INSPECT_TIMEOUT_SECONDS = 60.0
 #: The planner's name as every `PlannerIdentity` carries it.
 PLANNER_NAME = "AiZynthFinder"
+#: How many routes a plan keeps. It is the number the benchmark's user-facing figure is about ("among the first 10 shown"), so the sentence beside the plan describes the list exactly; a plan that found more says how many it left out.
+ROUTES_SHOWN = 10
+#: What was MEASURED about this planner, said beside every plan it makes, because the product's decided claim (Alex, 2026-10-20) is "valid, repeatable routes that often differ from the patent route", never "known routes", with
+#: the recovery figure and its dependence on depth stated. The figure to quote is PROTOCOL 3's (`benchmarks/synthesis/RESULT_3.md`, run 2026-10-24: 51 routes from journal papers published after the model's training data, the first 10
+#: shown in the order `chem/route_ranking.py` gives, on a stock of the paper's own starting materials), because it is the one about molecules the model could not have seen; the preregistered reading was LOWER than protocol 2's
+#: depth-matched rates (8 of 36 against 14.0 expected, p = 0.0073). Protocol 2's 41.7% (`RESULT_2.md`: the same 300 seeded PaRoutes set-n1 patent targets, run 2026-10-22) is for targets the public models probably trained on, so it is
+#: quoted as the patent-target figure and NEVER ALONE; the PaRoutes count of the first ten score levels (0.533, a median of 37 routes) is not the figure a person shown 10 routes sees and is not quoted. The conditions differ from a
+#: user's (a benchmark stock and a fixed search budget). `tests/test_synthesis_planner.py` holds every number here to the result file's rows. The 17-of-51 figure is the targets for which a route from the paper's own starting
+#: materials was among the first 10 (`RESULT_3.md`, "By stock"): it is why a missing paper route is not evidence a plan is wrong.
+BENCHMARK_FINDING = (
+    "On 51 routes from journal papers published after the planner's models were trained (a benchmark stock and a fixed search budget), the paper's route was among the first 10 routes it showed for 13 of 51 targets, 25.5% (95% interval 15.5% to 38.9%): "
+    "5 of 15 where the paper's route has 1 step, 6 of 10 at 2 steps, 2 of 14 at 3, 0 of 12 at 4. That is lower than the planner's rate on patent routes at the same depths. "
+    "On 300 patent routes (PaRoutes set-n1, with its own stock and a fixed search budget, and public models probably trained on those same reactions) it returned a route with every starting material in stock for 96.7% of targets "
+    "but had the patent route among the first 10 routes it showed for only 41.7% (81% where the patent route has 2 steps, 39% at 3 steps, 4% at 4; the patent route was among all the solved routes for 54.7%), and 51% of its first routes were shorter than the patent route; "
+    "41.7% is not a figure for a molecule the model has not seen. "
+    "A route that differs from the paper's is the normal outcome, not a fault, and a missing paper route is not evidence that a plan is wrong: a route from the paper's own starting materials was among the first 10 for 17 of the 51 targets. "
+    "These papers' routes are 4 reactions or fewer of ordinary analogue-library chemistry, so the figures say nothing about long or hard routes, and feasibility was not measured. "
+    "Read these as internally consistent, repeatable proposals that often differ from known routes, not as known routes."
+)
 #: The runner script the planner's interpreter is handed as a path.
 RUNNER_PATH = Path(__file__).resolve().parent / "aizynth_runner.py"
 #: Seconds added to the planner's own time limit for the wall clock: the spike measured 16 to 18 s before any search (import, model and stock load) and the stock load alone peaked at 5.3 GB with the ZINC stock, so the margin is generous and is a bound on a hung child, not a budget.
@@ -80,8 +103,8 @@ class PlanRequest:
     expansion: str
     limits: SearchLimits
     filter: str | None = None
-    #: Ask for every solved route instead of the planner's default of at least 5 and at most 25.
-    all_routes: bool = False
+    #: Ask for every solved route instead of the planner's default of at least 5 and at most 25. On by default: protocol 2 found the larger pool worth 0.034 of recovery at no cost in search time, and the plan keeps `ROUTES_SHOWN` of them.
+    all_routes: bool = True
 
     def __post_init__(self) -> None:
         for name in ("target_smiles", "stock", "expansion"):
@@ -111,6 +134,88 @@ class PlanRequest:
     def selection(self) -> tuple[tuple[str, str], ...]:
         """The names of what was selected, which is what an identity carries instead of paths."""
         return (("expansion", self.expansion), ("filter", self.filter or "none"), ("stock", self.stock))
+
+
+@dataclass(frozen=True, kw_only=True)
+class PlannerSetup:
+    """Everything about HOW the planner is run that does not depend on the target: the user's planner Python, its configuration, what to select from it and the limits.
+
+    Captured by the caller BEFORE a search starts and carried with it, so a change to the setting while a search runs cannot reroute
+    it. Where it comes from (the External Tools tab) is a later slice; this is only its shape.
+    """
+
+    python: str
+    config: dict = field(compare=False)
+    stock: str
+    expansion: str
+    limits: SearchLimits
+    filter: str | None = None
+    all_routes: bool = True
+
+    def request_for(self, target_smiles: str) -> PlanRequest:
+        return PlanRequest(target_smiles=target_smiles, config=self.config, stock=self.stock, expansion=self.expansion, limits=self.limits, filter=self.filter, all_routes=self.all_routes)
+
+    def selection(self) -> tuple[tuple[str, str], ...]:
+        return (("expansion", self.expansion), ("filter", self.filter or "none"), ("stock", self.stock))
+
+
+@dataclass(frozen=True)
+class PlannerInspection:
+    """What reading the planner's configuration found, or why it could not.
+
+    `kind` is "" when `ok`; otherwise one of `python` (the interpreter is not there or will not start), `runner` (this installation's script is missing),
+    `planner` (aizynthfinder is not installed in that environment), `yaml`, `config` (missing, unreadable or not a mapping), `timeout`, `failed` or `malformed`.
+    """
+
+    ok: bool
+    kind: str = ""
+    reason: str = ""
+    #: The configuration with every policy, filter and stock path made absolute.
+    config: dict = field(default_factory=dict, compare=False)
+    #: The names the configuration offers, by section.
+    keys: dict = field(default_factory=dict, compare=False)
+    #: The versions installed in that environment (None = not installed).
+    packages: dict = field(default_factory=dict, compare=False)
+
+    @property
+    def version(self) -> str | None:
+        return self.packages.get("aizynthfinder")
+
+
+def _bad(kind: str, reason: str, packages: dict | None = None) -> PlannerInspection:
+    return PlannerInspection(ok=False, kind=kind, reason=_reason(reason), packages=packages or {})
+
+
+def inspect_environment(python: str | os.PathLike[str], config_path: str | os.PathLike[str], *, runner: str | os.PathLike[str] = RUNNER_PATH, timeout: float = INSPECT_TIMEOUT_SECONDS) -> PlannerInspection:
+    """Ask the planner's own Python to read its configuration file. Never raises; every failure is a `PlannerInspection` with a kind."""
+    if not str(python).strip() or not Path(python).is_file():
+        return _bad("python", f"the planner's Python was not found: {python}")
+    if not Path(runner).is_file():
+        return _bad("runner", f"the planner runner script is missing from this installation: {runner}")
+    payload = json.dumps({"schema": INSPECT_REQUEST_SCHEMA, "config_path": str(config_path)}, ensure_ascii=True).encode("utf-8")
+    try:
+        done = subprocess.run([str(python), "-I", str(runner)], input=payload, capture_output=True, timeout=timeout, env=dict(os.environ, PYTHONIOENCODING="utf-8", PYTHONUTF8="1"), creationflags=_NO_WINDOW)
+    except subprocess.TimeoutExpired:
+        return _bad("timeout", f"the planner's Python did not answer within {timeout:g} seconds")
+    except OSError as error:
+        return _bad("python", f"the planner's Python could not be started: {error}")
+    text = done.stdout.decode("utf-8", errors="replace").strip()
+    if not text:
+        tail = done.stderr.decode("utf-8", errors="replace")[-STDERR_TAIL_BYTES:]
+        return _bad("failed", f"the planner's Python exited with code {done.returncode} and wrote nothing. Its last words: {tail}" if tail.strip() else f"the planner's Python exited with code {done.returncode} and wrote nothing")
+    try:
+        document = json.loads(text)
+    except ValueError:
+        return _bad("malformed", "the planner's output was not a JSON document")
+    if not isinstance(document, dict) or document.get("schema") != INSPECT_SCHEMA:
+        return _bad("malformed", f"the planner's output has an unsupported schema ({_reason(document.get('schema') if isinstance(document, dict) else document)}); expected {INSPECT_SCHEMA}")
+    packages = document.get("packages") if isinstance(document.get("packages"), dict) else {}
+    if document.get("status") != "ok":
+        return _bad(str(document.get("kind") or "failed"), document.get("reason") or "no reason was given", packages)
+    config, keys = document.get("config"), document.get("keys")
+    if not isinstance(config, dict) or not isinstance(keys, dict):
+        return _bad("malformed", "the planner's document is missing the configuration or its keys", packages)
+    return PlannerInspection(ok=True, config=config, keys={k: tuple(v) for k, v in keys.items() if isinstance(v, list)}, packages=packages)
 
 
 # --- turning the child's document into a RouteSet ---------------------------------------------------------------------------------------
@@ -248,7 +353,9 @@ def _left_out(counts: collections.Counter, reasons: set[str]) -> str:
         parts.append(f"{counts['no reaction']} had no reaction")
     if counts["other"]:
         parts.append(f"{counts['other']} could not be represented ({'; '.join(sorted(reasons))})")
-    return "Routes the planner returned that are not shown: " + "; ".join(parts) + "."
+    if counts["beyond"]:
+        parts.append(f"{counts['beyond']} more solved route{'s' if counts['beyond'] != 1 else ''} ranked below the {ROUTES_SHOWN} shown")
+    return LEFT_OUT_PREFIX + "; ".join(parts) + "."
 
 
 def parse_document(document: object, request: PlanRequest, target: TargetIdentity) -> RouteSet:
@@ -276,7 +383,7 @@ def parse_document(document: object, request: PlanRequest, target: TargetIdentit
     except (KeyError, TypeError, ValueError, AttributeError) as error:
         return _failure(RouteStatus.FAILED, request, target, f"the planner's document is malformed ({type(error).__name__}: {error})")
 
-    kept: list[Route] = []
+    candidates: list[tuple[dict, Route]] = []
     counts: collections.Counter = collections.Counter()
     reasons: set[str] = set()
     for tree in trees:
@@ -285,7 +392,7 @@ def parse_document(document: object, request: PlanRequest, target: TargetIdentit
             reasons.add("not a route object")
             continue
         try:
-            route = route_from_tree(tree, rank=len(kept) + 1)
+            route = route_from_tree(tree, rank=1)
         except _Unrepresentable as error:
             if str(error) == "no reaction":
                 counts["no reaction"] += 1
@@ -296,10 +403,15 @@ def parse_document(document: object, request: PlanRequest, target: TargetIdentit
         if not all(m.in_stock is True for m in route.starting_materials):
             counts["unsolved"] += 1
             continue
-        kept.append(route)
+        candidates.append((tree, route))
+
+    # The shown order, then the cap; only the routes that are kept are validated.
+    order = shown_order([tree for tree, _ in candidates])
+    counts["beyond"] = max(0, len(order) - ROUTES_SHOWN)
+    kept = [replace(candidates[i][1], rank=place, validation=validate_route(candidates[i][1])) for place, i in enumerate(order[:ROUTES_SHOWN], start=1)]
 
     termination = read_termination(identity.limits, statistics)
-    limitations = STANDARD_LIMITATIONS + ((_left_out(counts, reasons),) if sum(counts.values()) else ())
+    limitations = STANDARD_LIMITATIONS + (BENCHMARK_FINDING,) + ((_left_out(counts, reasons),) if sum(counts.values()) else ())
     status_ = RouteStatus.FOUND if kept else RouteStatus.NO_ROUTE
     return RouteSet(status=status_, target=target, planner=identity, routes=tuple(kept), termination=termination, statistics=statistics, limitations=limitations)
 
@@ -441,4 +553,4 @@ def run_planner(
     return _interpret(b"".join(out_chunks), tail, proc.returncode if proc.returncode is not None else -1, request, target)
 
 
-__all__ = ["PLANNER_NAME", "PlanRequest", "RUN_SCHEMA", "REQUEST_SCHEMA", "RUNNER_PATH", "parse_document", "route_from_tree", "run_planner"]
+__all__ = ["INSPECT_REQUEST_SCHEMA", "INSPECT_SCHEMA", "PLANNER_NAME", "PlanRequest", "PlannerInspection", "PlannerSetup", "inspect_environment", "RUN_SCHEMA", "REQUEST_SCHEMA", "RUNNER_PATH", "parse_document", "route_from_tree", "run_planner"]

@@ -1,0 +1,12 @@
+{
+ "paper": "jatav2023_coumarin_triazolyl_glycoconjugates",
+ "decision": "excluded",
+ "exclusion_reason": "route_not_explicit",
+ "exclusion_detail": "Lead 5d (abstract: 'compound 5d being the most active one') is the CuAAC product of 7-propargyloxycoumarin (3, procedure given) and a protected azido-sugar 4d; 4d is only said to be 'readily prepared from commercially available monosaccharides ... reported in the literature [15, 16] (Supporting Information Table S1)', with no procedure in the article, and no SI is in the bundle.",
+ "lead": {"label": "5d", "why": "Abstract: 'compound 5d being the most active one with zones of inhibition ...'"},
+ "target": null,
+ "reactions": [],
+ "alt_variants": [],
+ "other_qualifying_compounds": null,
+ "notes": "Every 5a-f needs a literature-prepared azido sugar, so none has an explicit route here. The coumarin half (7-hydroxycoumarin + propargyl bromide) is explicit; the sugar half is not."
+}

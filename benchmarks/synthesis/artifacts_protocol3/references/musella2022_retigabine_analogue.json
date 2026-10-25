@@ -1,0 +1,29 @@
+{
+ "paper": "musella2022_retigabine_analogue",
+ "decision": "route",
+ "exclusion_reason": null,
+ "exclusion_detail": "",
+ "lead": {"label": "60", "why": "Among all tested compounds, 60 emerged as a potent and photochemically stable neuronal Kv7 channel activator (abstract)."},
+ "target": {"name": "N-(2-Amino-3-fluoro-4-((4-(trifluoromethyl)benzyl)amino)phenyl)-3,3-dimethylbutanamide", "smiles": "CC(C)(C)CC(=O)Nc1ccc(NCc2ccc(C(F)(F)F)cc2)c(F)c1N"},
+ "reactions": [
+  {"step": 1,
+   "product": {"label": "58", "name": "2-Fluoro-4-nitro-N1-(4-(trifluoromethyl)benzyl)benzene-1,3-diamine", "smiles": "Nc1c(F)c(NCc2ccc(C(F)(F)F)cc2)ccc1[N+](=O)[O-]"},
+   "reactants": [
+    {"label": "2,3-difluoro-6-nitroaniline", "name": "2,3-Difluoro-6-nitroaniline", "smiles": "Nc1c(F)c(F)ccc1[N+](=O)[O-]", "origin": "commercial"},
+    {"label": "4-(trifluoromethyl)benzylamine", "name": "4-trifluoromethyl benzylamine", "smiles": "NCc1ccc(C(F)(F)F)cc1", "origin": "commercial"}
+   ],
+   "conditions": "DIPEA (1.2 equiv), catalytic I2, DMF, 170 C, 4 h (SNAr of the fluorine para to the nitro group); 81% yield.",
+   "source": "Experimental section, compound 58 (main text, text of Scheme 4); the procedure text says 'giving intermediate 65' which is a typo for 58 (65 is a different compound)."},
+  {"step": 2,
+   "product": {"label": "60", "name": "N-(2-Amino-3-fluoro-4-((4-(trifluoromethyl)benzyl)amino)phenyl)-3,3-dimethylbutanamide", "smiles": "CC(C)(C)CC(=O)Nc1ccc(NCc2ccc(C(F)(F)F)cc2)c(F)c1N"},
+   "reactants": [
+    {"label": "58", "name": "2-Fluoro-4-nitro-N1-(4-(trifluoromethyl)benzyl)benzene-1,3-diamine", "smiles": "Nc1c(F)c(NCc2ccc(C(F)(F)F)cc2)ccc1[N+](=O)[O-]", "origin": "made_here"},
+    {"label": "3,3-dimethylbutyryl chloride", "name": "3,3-dimethylbutyryl chloride", "smiles": "CC(C)(C)CC(=O)Cl", "origin": "commercial"}
+   ],
+   "conditions": "General procedure H, one pot: Zn (5 equiv), NH4Cl (5 equiv), MeOH, rt until nitro consumed; then acyl chloride (1.2 equiv) and DIPEA (1.2 equiv), rt, 45 min; 66% yield. Acylation is on the nitrogen derived from the nitro group.",
+   "source": "Experimental section, compound 60 and General Procedure H (main text)."}
+ ],
+ "alt_variants": [],
+ "other_qualifying_compounds": null,
+ "notes": "Printed name of 58 (1,3-diamine, F at 2, NO2 at 4, benzyl on N1) is consistent with SNAr displacement of the F para to NO2 in 2,3-difluoro-6-nitroaniline. Zn/NH4Cl reduction and acylation are reported as ONE procedure (H), counted as one step; the intermediate triamine is not isolated. The acyl chloride is not explicitly stated as purchased, but the General section says all reagents were purchased from Sigma-Aldrich unless noted."
+}

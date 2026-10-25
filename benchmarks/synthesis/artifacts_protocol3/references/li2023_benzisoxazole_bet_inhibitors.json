@@ -1,0 +1,12 @@
+{
+ "paper": "li2023_benzisoxazole_bet_inhibitors",
+ "decision": "excluded",
+ "exclusion_reason": "route_not_explicit",
+ "exclusion_detail": "Lead 17b is made from the monovalent inhibitor 7 (Y06037), which the paper says was 'synthesized according to our previous protocol [64]' with no procedure in this paper; no SI in the bundle. The two final steps (ditosylation of a PEG diol, then double alkylation of 7) are explicit but 7 is a made-with-citation starting material.",
+ "lead": {"label": "17b (Y13021)", "why": "Abstract: 'The representative bivalent inhibitor 17b effectively inhibited the cell growth of LNCaP, exhibiting 32 folds more potency than monovalent inhibitor 7.'"},
+ "target": null,
+ "reactions": [],
+ "alt_variants": [],
+ "other_qualifying_compounds": [],
+ "notes": "All final compounds (12, 14, 15, 17 series) derive from 7, whose preparation is only cited. Intermediates 8a/8b/9a/9b are 2 steps from 7, equally dependent on 7."
+}

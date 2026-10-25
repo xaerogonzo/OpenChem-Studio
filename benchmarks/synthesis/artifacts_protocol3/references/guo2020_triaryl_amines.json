@@ -1,0 +1,12 @@
+{
+ "paper": "guo2020_triaryl_amines",
+ "decision": "excluded",
+ "exclusion_reason": "lead_route_over_4_steps",
+ "exclusion_detail": "Lead 58 is made by Suzuki coupling (11a), Mitsunobu with phthalimide (13a), hydrazinolysis (14a), Buchwald-Hartwig with aryl halide 19 (35), then reductive amination with D-serine: 5 reactions, plus any preparation of aryl halide 19 ('purchased or synthesized as described in the Experimental Section').",
+ "lead": {"label": "58", "why": "Abstract: 'compound 58 showed the most potent inhibitory activity and binding affinity with hPD-L1'."},
+ "target": null,
+ "reactions": [],
+ "alt_variants": [],
+ "other_qualifying_compounds": [],
+ "notes": "Every analogue in the series passes through the same 11 -> amine -> Buchwald -> reductive amination chain (5 steps), so no other compound qualifies."
+}

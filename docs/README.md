@@ -1,5 +1,11 @@
 # OpenChem Studio documentation
 
+*Two terms used in the design and validation documents.* **The reference editor** is a
+commercial structure editor whose public documentation and published output were read to
+decide which quantities, options and worked examples to compare against. **The vendor** is
+its maker. Neither is named in this repository on purpose; where a number was checked
+against one of them, the document says what was checked and where it was read.
+
 | | |
 |---|---|
 | [QUICKSTART.md](QUICKSTART.md) | Install and run — from the release zip or from source, plus the optional external tools |
@@ -39,8 +45,8 @@ how this project's own documentation has gone stale before.
 | [TAUTOMER_NMR_DESIGN.md](TAUTOMER_NMR_DESIGN.md) | Design for tautomer peaks on the NMR spectrum |
 | [CALCULATOR_REFERENCE.md](CALCULATOR_REFERENCE.md) | The generated reference for every calculator: options, limits and the evidence behind each (built from the registry; do not edit) |
 | [CALCULATOR_MATURITY.md](CALCULATOR_MATURITY.md) | Maintainer's document: calculator stages, default visibility, and how a calculator is classified or promoted |
-| [CALCULATOR_GAP_REPORT.md](CALCULATOR_GAP_REPORT.md) | Which calculators a user of a Marvin-like workstation might look for that OpenChem does not have, and an order to build them in |
-| [GEOMETRY_MARVIN_CHECKLIST.md](GEOMETRY_MARVIN_CHECKLIST.md) | Marvin's Geometrical Descriptors, definition by definition, written before the geometry calculators were merged |
+| [CALCULATOR_GAP_REPORT.md](CALCULATOR_GAP_REPORT.md) | Which calculators a user of a reference-editor-like workstation might look for that OpenChem does not have, and an order to build them in |
+| [GEOMETRY_DEFINITIONS_CHECKLIST.md](GEOMETRY_DEFINITIONS_CHECKLIST.md) | The reference editor's Geometrical Descriptors, definition by definition, written before the geometry calculators were merged |
 | [PANEL_FEATURE_INVENTORY.md](PANEL_FEATURE_INVENTORY.md) | The inventory behind "no feature may be lost" for the Batch, Docking, Quantum Chemistry and 3D Alignment panels |
 | [LESSONS.md](LESSONS.md) | The lessons moved out of `CLAUDE.md` so they are not loaded on every message |
 | [LITERATURE_LOG.md](LITERATURE_LOG.md) | Every paper opened for a question and what came of it, so a later search is not repeated |

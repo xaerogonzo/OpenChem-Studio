@@ -1,0 +1,12 @@
+{
+ "paper": "yu2019_phenol_ether_proteasome",
+ "decision": "excluded",
+ "exclusion_reason": "lead_route_over_4_steps",
+ "exclusion_detail": "Lead 18x (4-butylphenoxy, pyridazin-4-yl amide) is made in 5 reactions: ethyl chloroacetate + isopropylamine (14a), chloroacetylation (15a), phenol ether formation with 4-butylphenol (16d), ester hydrolysis (17d), mixed-anhydride amide coupling with pyridazin-4-amine (18x).",
+ "lead": {"label": "18x", "why": "Abstract: 'compound 18x proved to be the most potent compound (chymotrypsin-like: IC50 = 49 nM)'."},
+ "target": null,
+ "reactions": [],
+ "alt_variants": [],
+ "other_qualifying_compounds": [],
+ "notes": "All series members (18a-18ae, 12a-12c) need at least 5 reactions."
+}

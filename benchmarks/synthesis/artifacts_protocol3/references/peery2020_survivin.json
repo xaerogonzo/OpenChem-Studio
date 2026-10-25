@@ -1,0 +1,49 @@
+{
+ "paper": "peery2020_survivin",
+ "decision": "route",
+ "exclusion_reason": null,
+ "exclusion_detail": "",
+ "lead": {
+  "label": "7I",
+  "why": "We found one compound, 7I, that is more active than the parent compound, LQZ-7, and when given orally effectively inhibits xenograft tumor growth ... 7I ... can be used as a lead for further optimization"
+ },
+ "target": {
+  "name": "N2,N3-bis(4-fluorophenyl)quinoxaline-2,3-diamine",
+  "smiles": "Fc1ccc(Nc2nc3ccccc3nc2Nc2ccc(F)cc2)cc1"
+ },
+ "reactions": [
+  {
+   "step": 1,
+   "product": {
+    "label": "7I",
+    "name": "N2,N3-bis(4-fluorophenyl)quinoxaline-2,3-diamine",
+    "smiles": "Fc1ccc(Nc2nc3ccccc3nc2Nc2ccc(F)cc2)cc1"
+   },
+   "reactants": [
+    {
+     "label": "1",
+     "name": "2,3-dichloroquinoxaline",
+     "smiles": "Clc1nc2ccccc2nc1Cl",
+     "origin": "commercial"
+    },
+    {
+     "label": "2",
+     "name": "4-fluoroaniline",
+     "smiles": "Nc1ccc(F)cc1",
+     "origin": "commercial"
+    },
+    {
+     "label": "2",
+     "name": "4-fluoroaniline",
+     "smiles": "Nc1ccc(F)cc1",
+     "origin": "commercial"
+    }
+   ],
+   "conditions": "General procedure for 7I/7J (method A): 2,3-dichloroquinoxaline (1.0 equiv), 4-fluoroaniline (2.2 equiv; two molecules are incorporated), EtOH (0.2 M), reflux 16 h; EtOAc/water workup; column chromatography; 52% yield",
+   "source": "Main article, Chemical Synthesis and Methods (page 8-10 of the accepted manuscript) and the 7I characterisation paragraph; Figure 1C; SI is figures only"
+  }
+ ],
+ "alt_variants": [],
+ "other_qualifying_compounds": null,
+ "notes": "Two aniline molecules are incorporated (symmetric double SNAr), listed once. The text contradicts itself on the starting material: the prose says '1,4-dihydro-2,3-quinoxalinedione (1)' while the experimental says 'commercially available 2,3-dichloroquinoxaline (1)' (chlorines are lost in the reaction; the experimental reading is chemically sensible and used here). Alternative reading with quinoxalinedione is not used because ethanol reflux with anilines would not displace a dione oxygen."
+}

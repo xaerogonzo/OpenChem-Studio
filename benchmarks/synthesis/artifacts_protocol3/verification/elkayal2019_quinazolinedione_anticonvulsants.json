@@ -1,0 +1,15 @@
+{
+ "paper": "elkayal2019_quinazolinedione_anticonvulsants",
+ "my_lead": "7m - abstract: 'Pharmacological studies have revealed the leader compound 2-(2,4-dioxo-1,4-dihydroquinazolin-3(2H)-yl)-N-[(2,4-dichlorophenyl)methyl]acetamide'; main text labels it 'Absolute leader-compound 7m' (R = CH2-2,4-diClC6H5)",
+ "lead_agrees": true,
+ "reactions": [
+  {"step": 1, "ok": true, "issue": "Methyl 2-isothiocyanatobenzoate (1) + glycine (2), Et3N, 2-propanol, boil 30 min, acidify to pH 2 -> 2-(4-oxo-2-thioxo-quinazolin-3-yl)acetic acid (3) (Scheme 1; General method; conclusions). Thiourea formation then cyclisation with loss of MeOH, so both reactants are fully listed; Et3N and HCl correctly omitted. SMILES of 3 correct (CH2COOH on N3, C2=S, N1-H, C4=O)."},
+  {"step": 2, "ok": true, "issue": "3 + NaOH (3 equiv) + 50% H2O2 (10 equiv), 5-70 C, 30 min, acidify with AcOH -> 2-(2,4-dioxoquinazolin-3-yl)acetic acid (4) (Scheme 1 text 'oxidation of 3 by hydrogen peroxide'). Listing H2O2 is a judgement call: it is an oxidant whose O may or may not be the one that ends up in the product (the paper does not say); acceptable but a maintainer may prefer to drop it or mark it as an oxidant. SMILES of 4 correct."},
+  {"step": 3, "ok": true, "issue": "4 + CDI (1.2 equiv), dioxane, boil 2-4 h, then amine (1.2 equiv), 2 h -> 7m, 78% (General method; Scheme 2; 7m entry). CDI atoms are lost, correctly omitted. Amine for 7m is not named, only 'the corresponding amine' R-NH2 with R = CH2-2,4-diClC6H5, i.e. 2,4-dichlorobenzylamine; SMILES NCc1ccc(Cl)cc1Cl is 2,4-dichloro (checked ring positions); product SMILES O=C(NCc1ccc(Cl)cc1Cl)CN1C(=O)Nc2ccccc2C1=O matches the printed name and C17H13Cl2N3O3 (LC-MS 378.0 [M+H]+)."}
+ ],
+ "leaf_issues": [],
+ "step_count_ok": true,
+ "smiles_issues": [],
+ "overall": "confirmed",
+ "notes": "3 steps from commercial materials. Support for leaves: 'Reagents manufactured by Sigma-Aldrich, USA were used in this work' (Materials and Methods); none of methyl 2-isothiocyanatobenzoate, glycine or 2,4-dichlorobenzylamine is prepared or cited to another paper. The experimental is one general method for 7a-7n with no 7m-specific amounts and no separate data for 3 and 4 (the procedure text garbles their names as 'tetrahydroxy-quinazolin'; the main-text names are right). The amine identity for 7m is therefore derived from the R table rather than read from a sentence. The paper's elemental-analysis numbers are internally inconsistent with the formulas but do not affect the route."
+}

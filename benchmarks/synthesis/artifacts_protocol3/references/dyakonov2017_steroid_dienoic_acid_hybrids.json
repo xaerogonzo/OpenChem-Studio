@@ -1,0 +1,12 @@
+{
+ "paper": "dyakonov2017_steroid_dienoic_acid_hybrids",
+ "decision": "excluded",
+ "exclusion_reason": "route_not_explicit",
+ "exclusion_detail": "The abstract names no lead; by the fallback rule the lead is 6e (the pregnenolone ester, the most cytotoxic and the only one taken to flow cytometry). Its precursor THP ether of hepta-5,6-dien-1-ol is made from hex-5-yn-1-ol 'by a reported procedure [20-22]' and the cyclomagnesiation/Jones oxidation to diacid 4 'according to known procedures [23]', with no procedure in the paper; with the allene preparation the chain would also exceed 4 reactions.",
+ "lead": {"label": "6e", "why": "Not named in the abstract; text: 'Compound 6e was the most active inhibitor of the HEK293, Jurkat, and K562 tumor cell growth' and acid 6e was the sole compound taken to the flow cytometry (apoptosis) follow-up."},
+ "target": {"name": "(5Z,9Z)-14-oxo-14-{[(3beta)-20-oxopregn-5-en-3-yl]oxy}tetradeca-5,9-dienoic acid", "smiles": null},
+ "reactions": [],
+ "alt_variants": [],
+ "other_qualifying_compounds": [],
+ "notes": "Only the final DCC/DMAP esterification (steroid 5e = pregnenolone, commercial, + diacid 4) has a described transformation, and even there the experimental gives only product data for 6a-g; the preceding steps are by citation only."
+}

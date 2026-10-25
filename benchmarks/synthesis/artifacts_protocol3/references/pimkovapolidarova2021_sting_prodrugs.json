@@ -1,0 +1,12 @@
+{
+ "paper": "pimkovapolidarova2021_sting_prodrugs",
+ "decision": "excluded",
+ "exclusion_reason": "not_small_molecule_organic",
+ "exclusion_detail": "Lead (Rp,Rp)-4a is a bis(pivaloyloxymethyl) prodrug of a cyclic dinucleotide (3',3'-c-di(2'F,2'dAMP), a nucleotide / oligonucleotide-class compound with two stereogenic phosphorus centres). Excluded because a safe SMILES cannot be written from the paper: the configuration of the 2'-F on the sugars is never stated in the text (only 'Rp,Rp' at phosphorus), and the P-stereo CIP labels of a macrocyclic bisphosphotriester cannot be checked without the drawn structure.",
+ "lead": {"label": "(Rp,Rp)-4a", "why": "Discussion: 'we selected the symmetric bis(POM) prodrug (Rp,Rp)-4a to be the best candidate for further studies'; it is also the compound used for the 3H-labelled uptake study. The abstract itself names no single compound."},
+ "target": null,
+ "reactions": [],
+ "alt_variants": [],
+ "other_qualifying_compounds": null,
+ "notes": "For a reviewer who wants it anyway: the route would be 1 reaction (about 2 operations in one General Procedure GP1): parent CDN 1 ('either purchased from a commercial supplier or prepared according to the literature', ref 31, so a leaf) is converted to its Bu4N+ salt (1 M Bu4NOH in MeOH, rt 30 min) and alkylated with iodomethyl pivalate (2a, POM-I, 10 equiv, dry MeCN, rt, 9 h, RP-HPLC); gives mono-POM (Rp)-3a 12%, (Rp,Sp)-4a 8% and (Rp,Rp)-4a 20% (diastereomer mixture separated by HPLC). Experimental section is in the main article p.7606+. No SI file in the bundle."
+}

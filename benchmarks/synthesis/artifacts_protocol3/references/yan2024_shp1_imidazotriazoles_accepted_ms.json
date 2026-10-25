@@ -1,0 +1,12 @@
+{
+ "paper": "yan2024_shp1_imidazotriazoles_accepted_ms",
+ "decision": "excluded",
+ "exclusion_reason": "route_not_explicit",
+ "exclusion_detail": "Lead 5p needs its 3-amino-1,2,4-triazole 4p, which the text says was 'prepared according to the reported procedure [42]' (acid chloride / aroylamidoguanidine / water ring closure described only in general terms and with the scheme and text disagreeing on the solvent: DCM vs 1,4-dioxane); no procedure, quantities or characterisation for 4p or its precursors are in the bundle (the supplementary data link is a placeholder and no SI file exists). The aldehyde of the final multicomponent step is also never named as a reagent, only implied by the product name.",
+ "lead": {"label": "5p", "why": "Abstract: 'The representative compound 5p exhibited remarkable fluorescence response with fluorescence quantum yields (QY) of 0.37 and inhibitory rate of 85.21 +/- 5.17% against SHP1PTP'; it is the compound taken to the ion-sensing and cell-imaging follow-up."},
+ "target": {"name": "5-(6-(tert-butylamino)-2-(3-methoxyphenyl)-1H-imidazo[1,2-b][1,2,4]triazol-5-yl)-2-hydroxybenzoic acid", "smiles": null},
+ "reactions": [],
+ "alt_variants": [],
+ "other_qualifying_compounds": [],
+ "notes": "The final step is explicit (aminotriazole + aromatic aldehyde + tert-butyl isocyanide, HClO4 cat., MeOH, rt; general procedure 4.2, yield 59% for 5p); the aldehyde for 5p would be 5-formylsalicylic acid by inference from the name. The whole series needs an aryl aminotriazole 4 made by citation, so no other compound qualifies. Document is an SSRN preprint / accepted manuscript."
+}

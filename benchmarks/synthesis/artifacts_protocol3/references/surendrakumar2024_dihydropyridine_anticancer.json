@@ -1,0 +1,12 @@
+{
+ "paper": "surendrakumar2024_dihydropyridine_anticancer",
+ "decision": "excluded",
+ "exclusion_reason": "route_not_explicit",
+ "exclusion_detail": "The key precursor 'compound 2' (and 1) is made 'by a literature-based method [28]' with no procedure in the paper, and the only procedure given (H2SO4 / drop of NH3 on compound 2) cannot be tied to a defined reactant structure. The lead 3g is also internally inconsistent: its heading repeats the 4-methoxyphenyl name of 3f while its NMR, formula (C19H22N8S2) and Figure 2 R-group list indicate the 4-dimethylaminophenyl compound.",
+ "lead": {"label": "3g", "why": "Abstract: 'In cytotoxic activity, the compound 3g (IC50 24.5 uM) is slightly active ...'; 3g also the docking highlight (-7.7 kcal/mol). (3c is named for antibacterial activity; the title and the follow-up docking point to 3g.)"},
+ "target": null,
+ "reactions": [],
+ "alt_variants": [],
+ "other_qualifying_compounds": [],
+ "notes": "Sections 2.2, 2.3, 4.1, Figure 2 of the article (no SI). Figure 2 conditions: (i) thiosemicarbazide/DMSO, (ii) H2SO4/NH3, (iii) NaOH/dil. HCl; steps (i) and the origin of compounds 1 and 2 are only referred to literature. Also the stated amount '0.01 mol, 4.09 g' of compound 2 does not match any product here."
+}

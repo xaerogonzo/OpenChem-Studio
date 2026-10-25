@@ -1,9 +1,9 @@
 """The options of the Geometry calculator, declared once and read once.
 
-They are modelled on ChemAxon's Geometrical Descriptors plugin because those are the controls
+They are modelled on the vendor's Geometrical Descriptors plugin because those are the controls
 people expect (energy unit, optimise before the energy, optimise before the projection, which
 conformer to use, how tightly to optimise). **They are OpenChem's own implementations of those
-controls, not ChemAxon's**: ChemAxon publishes no defaults and no algorithms for any of them,
+controls, not the vendor's**: the vendor publishes no defaults and no algorithms for any of them,
 so the defaults here are chosen for what leaves existing results unchanged, and every value is
 recorded in the result's provenance.
 

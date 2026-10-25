@@ -87,6 +87,8 @@ from openchem.domain.quantum_chemistry_run import QuantumChemistryRunStore
 from openchem.domain.recipe_run import RecipeRunStore
 from openchem.domain.result_store import SessionResultStore
 from openchem.domain.score_definition_store import ScoreDefinitionStore
+from openchem.domain.synthesis_plan_store import SynthesisPlanStore
+from openchem.domain.synthesis_route import RouteStatus
 from openchem.events.events import (
     CrystalSelected,
     ConformersChanged,
@@ -107,8 +109,10 @@ from openchem.events.events import (
     QuantumChemistryRunDeleted,
     ResultRecorded,
     ScoreDefinitionsChanged,
+    SynthesisRouteReady,
 )
 from openchem.app.calculation_host import CalculationHost
+from openchem.app.synthesis_host import SynthesisHost
 from openchem.plugins.manager import PluginManager
 from openchem.services.container import ServiceContainer
 from openchem.services.result_store_service import SUBSTANCE_PART
@@ -348,6 +352,21 @@ HELP_TOPIC_BY_DOCK = {
     "Jobs": "jobs",
     "Console": "jobs",
 }
+
+#: A PLUGIN panel's dock (named by the panel id the plugin registered, spaces as underscores) -> topic. Kept apart from `HELP_TOPIC_BY_DOCK` because that map is read against the docks
+#: the window builds with no plugin loaded: a plugin's dock is absent from those windows, and a guard that expects every key to be on screen would fail for it.
+HELP_TOPIC_BY_PLUGIN_DOCK = {
+    "AI_Assistant": "plugin-ai-assistant",
+    "Database_Search": "plugin-database-search",
+    "Reaction_Prediction": "plugin-reaction-prediction",
+    "Synthesis": "synthesis",
+}
+
+
+def help_topic_of_dock(object_name: str) -> str | None:
+    """The topic a dock opens, whether the window builds the dock itself or a plugin supplies it; None when nothing is written about it."""
+    return HELP_TOPIC_BY_DOCK.get(object_name) or HELP_TOPIC_BY_PLUGIN_DOCK.get(object_name)
+
 
 #: Centre tab label -> topic, for when no panel with help is in front.
 HELP_TOPIC_BY_CENTRE_TAB = {
@@ -895,7 +914,7 @@ class MainWindow(QMainWindow):
         )
         self._show_only_right_dock(self._properties_dock)
 
-        # A structure-check light in the corner, following Marvin's. The
+        # A structure-check light in the corner, following the reference editor's. The
         # panel is only useful to someone who opens it; this is how you
         # find out there is something to open it for.
         self._checker_indicator = CheckerStatusIndicator(self)
@@ -944,6 +963,8 @@ class MainWindow(QMainWindow):
         services.event_bus.subscribe(QuantumChemistryRunDeleted, self._refresh_lewis_pairing)
         # A definition is never also a result, so nothing else would tell the session it has something unsaved.
         services.event_bus.subscribe(ScoreDefinitionsChanged, self._on_score_definitions_changed)
+        # A synthesis plan that found routes (or none) is kept in the project file, and a search can take minutes: finishing one is an unsaved change.
+        services.event_bus.subscribe(SynthesisRouteReady, self._on_synthesis_route_ready)
         for event_type in (MoleculeSelected, MoleculeChanged, ResultRecorded):
             services.event_bus.subscribe(event_type, self._refresh_scores_preview)
         services.event_bus.subscribe(MoleculeChanged, self._refresh_lewis_pairing)
@@ -960,7 +981,9 @@ class MainWindow(QMainWindow):
         # The calculator bridge a plugin (the AI assistant) reaches through `context.calculations`.
         # Held here: the bus keeps only weak references to its handlers.
         self._calculation_host = CalculationHost(services, session)
-        self._plugin_manager = PluginManager(services, self, settings, self._calculation_host)
+        # The same for the synthesis planner (`context.synthesis`): the selected molecule, the planning service and the planner's setting.
+        self._synthesis_host = SynthesisHost(services, session, settings)
+        self._plugin_manager = PluginManager(services, self, settings, self._calculation_host, self._synthesis_host)
         self._plugin_manager.load_all()
         self._refresh_installed_plugins_menu()
 
@@ -986,7 +1009,7 @@ class MainWindow(QMainWindow):
         # Only for docks WITH a topic: a "?" that opened the wrong section
         # would be worse than none, and Console and Jobs have nothing
         # written about them.
-        topic = HELP_TOPIC_BY_DOCK.get(dock.objectName())
+        topic = help_topic_of_dock(dock.objectName())
         if topic is not None:
             # The topic travels on the title bar and comes back through the
             # signal. A `lambda topic=topic: self._show_help(topic)` here
@@ -1647,8 +1670,8 @@ class MainWindow(QMainWindow):
 
             return help_anchor_for(str(calculator_id))
         while widget is not None:
-            if isinstance(widget, QDockWidget) and widget.objectName() in HELP_TOPIC_BY_DOCK:
-                return HELP_TOPIC_BY_DOCK[widget.objectName()]
+            if isinstance(widget, QDockWidget) and help_topic_of_dock(widget.objectName()) is not None:
+                return help_topic_of_dock(widget.objectName())
             if widget is self._center_tabs:
                 # Reached the editor/viewer without passing through a dock.
                 # Checked HERE rather than as a last resort: the right-hand
@@ -1669,8 +1692,8 @@ class MainWindow(QMainWindow):
         # answer nothing at all under a test harness while looking correct
         # in the running app.
         for dock in self._right_docks:
-            if not dock.isHidden() and dock.objectName() in HELP_TOPIC_BY_DOCK:
-                return HELP_TOPIC_BY_DOCK[dock.objectName()]
+            if not dock.isHidden() and help_topic_of_dock(dock.objectName()) is not None:
+                return help_topic_of_dock(dock.objectName())
 
         return HELP_TOPIC_BY_CENTRE_TAB.get(
             self._center_tabs.tabText(self._center_tabs.currentIndex()), "projects"
@@ -2227,7 +2250,7 @@ class MainWindow(QMainWindow):
 
         # --- Structure -------------------------------------------------------
         #
-        # Its own menu, following Marvin, which separates editing the
+        # Its own menu, following the reference editor, which separates editing the
         # DOCUMENT (undo, clipboard, which molecule) from operating on the
         # STRUCTURE. These all lived under Edit, where six Ketcher bridges
         # sat between "Redo" and "Copy Structure As" and neither group was
@@ -2312,7 +2335,7 @@ class MainWindow(QMainWindow):
         # **ROTATE 3D HAD NO MENU ENTRY AND NO SHORTCUT.** It existed only
         # as a button on the editor's own bar, so it was reachable only
         # while the 2D Editor tab was showing and discoverable only by
-        # noticing it. F7 is the key Marvin uses for the same gesture.
+        # noticing it. F7 is the key the reference editor uses for the same gesture.
         #
         # **CHECKABLE, AND MIRRORING THE BUTTON RATHER THAN DUPLICATING
         # IT.** The mode is a state, so an entry that could not show it
@@ -2824,7 +2847,7 @@ class MainWindow(QMainWindow):
         labels Python computes.
 
         TWO MODES BECAUSE THEY ARE TWO CLAIMS. "Drawing atom numbers" is the
-        atom's position in the drawing (what MarvinSketch shows, and what a
+        atom's position in the drawing (what the reference editor shows, and what a
         chemist counts along a chain with); "IUPAC locants" is the naming
         engine's numbering, which is a chemical claim and covers only the
         atoms it can name -- the status bar says how many. The first is
@@ -2990,6 +3013,7 @@ class MainWindow(QMainWindow):
         qc_runs: QuantumChemistryRunStore | None = None,
         recipe_runs: RecipeRunStore | None = None,
         derived_scores: ScoreDefinitionStore | None = None,
+        synthesis_plans: SynthesisPlanStore | None = None,
     ) -> None:
         # THE UNDO STACK BELONGS TO THE DOCUMENT, and every command holds a
         # direct reference to the project it was built against. Without
@@ -3008,6 +3032,9 @@ class MainWindow(QMainWindow):
         # The score definitions are swapped on the same call, for the same reason.
         if self._services.score_service is not None:
             self._services.score_service.set_project(project, derived_scores)
+        # The synthesis plans the same: the planning service holds one project's plans at a time, and a plan read from a file is checked before it is shown.
+        if self._services.synthesis_planning_service is not None:
+            self._services.synthesis_planning_service.set_project(project, synthesis_plans)
         self._project_explorer.set_project(project)
         self._docking_panel.set_project(project)
         self._quantum_chemistry_panel.set_project(project)
@@ -3050,7 +3077,7 @@ class MainWindow(QMainWindow):
         if command.loaded_project is not None:
             self._set_project(
                 command.loaded_project, command.loaded_results, command.loaded_qc_runs, command.loaded_recipe_runs,
-                command.loaded_derived_scores,
+                command.loaded_derived_scores, command.loaded_synthesis_plans,
             )
 
     def _save_project(self) -> bool:
@@ -3088,7 +3115,7 @@ class MainWindow(QMainWindow):
         results, fingerprints, qc_runs, recipe_runs = self._current_results()
         command = SaveProjectCommand(
             self._services.project_service, self._session.project, path, results, fingerprints, qc_runs,
-            recipe_runs, self._current_scores(),
+            recipe_runs, self._current_scores(), self._current_plans(),
         )
         self._undo_stack.push(command)
         self._session.mark_clean()
@@ -3155,6 +3182,7 @@ class MainWindow(QMainWindow):
                 qc_runs=qc_runs,
                 recipe_runs=recipe_runs,
                 derived_scores=self._current_scores(),
+                synthesis_plans=self._current_plans(),
             )
         except Exception:  # noqa: BLE001 - a recovery copy must never interrupt work
             logger.exception("Could not write a recovery copy of %s", project.uuid)
@@ -3199,7 +3227,8 @@ class MainWindow(QMainWindow):
             return False
         document = service.load(newest)
         self._set_project(
-            document.project, document.results, document.qc_runs, document.recipe_runs, document.derived_scores
+            document.project, document.results, document.qc_runs, document.recipe_runs, document.derived_scores,
+            document.synthesis_plans,
         )
         self._project_path = newest.source_path
         # Recovered work is unsaved by definition; keep the copy until it is.
@@ -3991,6 +4020,22 @@ class MainWindow(QMainWindow):
         """The project's score definitions as a save writes them, or None without a score service."""
         service = self._services.score_service
         return service.store if service is not None else None
+
+    def _current_plans(self) -> SynthesisPlanStore | None:
+        """The synthesis plans of the open project as a save writes them, or None without a planning service."""
+        service = self._services.synthesis_planning_service
+        project = self._session.project
+        return service.plan_store(project) if service is not None and project is not None else None
+
+    def _on_synthesis_route_ready(self, event: SynthesisRouteReady) -> None:
+        """A plan worth keeping arrived for a molecule of this project: there is now something unsaved. Refusals, failures and cancellations are not kept, so they change nothing."""
+        project = self._session.project
+        if project is None or event.route_set.status not in (RouteStatus.FOUND, RouteStatus.NO_ROUTE):
+            return
+        if project.find_molecule(event.molecule_uuid) is None:
+            return
+        self._session.mark_dirty()
+        self._schedule_recovery()
 
     def _score_definitions(self):
         """The project's score definitions as they are now, for the project table's score columns."""

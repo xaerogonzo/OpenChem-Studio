@@ -1,0 +1,12 @@
+{
+ "paper": "yang2025_methoxypyrimidines_gpr119_dpp4",
+ "decision": "excluded",
+ "exclusion_reason": "lead_route_over_4_steps",
+ "exclusion_detail": "Lead compound 27 (5-methoxypyrimidine-tropane linked to sitagliptin through a five-carbon diamide linker, 2-Cl-4-MeSO2-phenyl) needs 5 reactions: SNAr of 4,6-dichloro-5-methoxypyrimidine with endo-N-Boc-tropinamine (1), Buchwald-Hartwig with the arylamine (4), Boc removal (7), acylation with glutaric acid/anhydride (17), HATU coupling with sitagliptin (27).",
+ "lead": {"label": "27", "why": "Abstract: compound 27 exhibited the strongest DPP-4 inhibitory activity (97.5 % at 10 uM) with potent GPR119 agonism (EC50 = 1.3 uM) and was the compound used in the mouse oGTT."},
+ "target": null,
+ "reactions": [],
+ "alt_variants": [],
+ "other_qualifying_compounds": [],
+ "notes": "Every target in the paper (20-28, 32-38, 41-46) goes through the SNAr, Buchwald and Boc-removal intermediates (3 steps) plus at least two further couplings, so none is 4 steps or fewer. The glutaric (n=3) assignment of 27 follows the paper's remark that 24, 27 carry a five-carbon linker and 26-28 carry the 2-Cl aryl; the count is 5 either way."
+}

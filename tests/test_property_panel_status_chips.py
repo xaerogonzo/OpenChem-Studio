@@ -15,6 +15,7 @@ from openchem.domain.calculator import CalculatorDefinition, RegistryExecution
 from openchem.domain.common import CacheState
 from openchem.domain.molecule import MoleculeModel
 from openchem.domain.project import ProjectModel
+from openchem.domain.structure_coverage import Coverage
 from openchem.domain.report import Basis, Fact, FactCategory, ReportResult
 from openchem.events.base import EventBus
 from openchem.domain.result_store import ResultIdentity, StoredResult, result_id_of
@@ -369,6 +370,6 @@ def test_a_pre_flight_claim_follows_an_edit_and_never_outranks_a_result(prefligh
     QCoreApplication.processEvents()
     assert _chip(widget, GAMMA).text() == "Not run"
     # And a real result is what the chip reports, whatever the hook said.
-    widget._preflight_reasons[GAMMA] = GAMMA_REASON
+    widget._coverage[GAMMA] = Coverage.refuses(GAMMA_REASON)
     _land(bus, _report(GAMMA, "Gamma", ethanol.uuid))
     assert _chip(widget, GAMMA).text().endswith("Ready")

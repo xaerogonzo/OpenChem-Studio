@@ -1,0 +1,12 @@
+{
+ "paper": "milovic2024_chlorinated_tetrahydropyrimidines",
+ "decision": "excluded",
+ "exclusion_reason": "route_not_explicit",
+ "exclusion_detail": "The abstract names two co-leads, 4a (IC50 1.76 uM) and 4b (1.66 uM, the lower value). Each is a one-step Biginelli product (N-methylurea + vanillin-derived aldehyde 2a or 2b + ethyl 4-chloroacetoacetate, AcOH, 60 C, 48 h; Section 4.2.1), but the aldehydes 2a-d (vanillin O-acetate and 5-bromovanillin, per Table 1 R1/R2) are 'derivatives of vanillin' that are never given a name, a source or a preparation in the article. The Experimental lists only vanillin, alkyl halides and p-toluoyl chloride as purchased; the supporting files (File S1 NMR, File S2 MS) are not in the bundle and no product or aldehyde name is printed in the main text.",
+ "lead": {"label": "4a / 4b (tie)", "why": "Abstract: 'mechanisms ... examined for two compounds 4a and 4b which showed the strongest and selective cytotoxicity against ... K562 cells (IC50 = 1.76 +/- 0.09, and 1.66 +/- 0.05, respectively)'."},
+ "target": null,
+ "reactions": [],
+ "alt_variants": [],
+ "other_qualifying_compounds": [],
+ "notes": "Lead rule is ambiguous (two compounds named equally); either way the aldehyde (vanillin acetate / 5-bromovanillin, from Table 1 substituent codes R1=Ac, R2=H and R1=H, R2=Br) is not described as purchased or prepared. If the user allows assuming both aldehydes are commercial, 4b would be a 1-step route: 5-bromovanillin + N-methylurea + ethyl 4-chloroacetoacetate -> ethyl 4-(3-bromo-4-hydroxy-5-methoxyphenyl)-6-(chloromethyl)-1-methyl-2-oxo-1,2,3,4-tetrahydropyrimidine-5-carboxylate (the position of the N-methyl, N1 vs N3, is not stated in text). Not transcribed because the structure drawings are not in the text layer."
+}

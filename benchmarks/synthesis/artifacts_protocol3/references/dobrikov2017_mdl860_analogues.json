@@ -1,0 +1,21 @@
+{
+ "paper": "dobrikov2017_mdl860_analogues",
+ "decision": "route",
+ "exclusion_reason": null,
+ "exclusion_detail": "",
+ "lead": {"label": "14", "why": "Abstract: 'Compounds 14, 24 and 25 manifested strong antiviral effects against CVB1 and PV1 (SI values of 405 and 118)'; 14 is named first, and the text says 14 showed the highest in vivo activity (PI 50%) and the closest resemblance to MDL-860."},
+ "target": {"name": "2-(3,4-difluorophenoxy)-5-nitrobenzonitrile", "smiles": "N#Cc1cc([N+](=O)[O-])ccc1Oc1ccc(F)c(F)c1"},
+ "reactions": [
+  {"step": 1,
+   "product": {"label": "14", "name": "2-(3,4-difluorophenoxy)-5-nitrobenzonitrile", "smiles": "N#Cc1cc([N+](=O)[O-])ccc1Oc1ccc(F)c(F)c1"},
+   "reactants": [
+    {"label": "1", "name": "2-chloro-5-nitrobenzonitrile", "smiles": "N#Cc1cc([N+](=O)[O-])ccc1Cl", "origin": "commercial"},
+    {"label": "2", "name": "3,4-difluorophenol", "smiles": "Oc1ccc(F)c(F)c1", "origin": "commercial"}
+   ],
+   "conditions": "GP1: phenol (1.2 eq) + powdered NaOH (1.2 eq) in dry DMSO, 50 C 20 min; then 2-chloro-5-nitrobenzonitrile (1.0 eq), 80 C, 8 h; water, DCM extraction, column; 84%.",
+   "source": "main text p.2 (Scheme 1 discussion); SI S2, General procedure 1 and compound 14 entry"}
+ ],
+ "alt_variants": [],
+ "other_qualifying_compounds": null,
+ "notes": "Phenol 2 is not named in the text layer (scheme drawing not extracted); its identity as 3,4-difluorophenol is derived from the printed product name of 14 and the SI quantity (0.256 g = 1.97 mmol, MW 130). Paper states all starting compounds except phenols 7 and 8 are commercial."
+}

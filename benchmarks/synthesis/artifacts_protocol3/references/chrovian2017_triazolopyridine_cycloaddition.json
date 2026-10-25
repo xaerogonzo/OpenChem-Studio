@@ -1,0 +1,12 @@
+{
+ "paper": "chrovian2017_triazolopyridine_cycloaddition",
+ "decision": "excluded",
+ "exclusion_reason": "lead_route_over_4_steps",
+ "exclusion_detail": "Lead is compound 35 (clinical candidate; the abstract names 29 and 35, and 35 is the one 'chosen as a clinical candidate'). Its explicit route from commercial materials is 5 reactions: (1) 2-chloro-5-fluoropyrimidine + hydrazine -> 5-fluoro-2-hydrazinylpyrimidine, (2) NaNO2/AcOH -> 2-azido-5-fluoropyrimidine, (3) one-pot pyrrolidine enamine / azide cycloaddition then m-CPBA Cope elimination with tert-butyl (S)-2-methyl-4-oxopiperidine-1-carboxylate, (4) Boc removal with HCl (-> 41), (5) HATU amide coupling with 3-fluoro-2-(trifluoromethyl)isonicotinic acid. The scale-up route (Scheme 5) is also 5 (acid chloride, amide to the ketone, azide x2, cycloaddition/Cope; SFC separation not counted).",
+ "lead": {"label": "35", "why": "Compound 35 was chosen as a clinical candidate for advancement into phase I clinical trials (abstract; 29 and 35 are both named, 35 is the one advanced)."},
+ "target": null,
+ "reactions": [],
+ "alt_variants": [],
+ "other_qualifying_compounds": ["9a", "11", "22", "25", "26"],
+ "notes": "other_qualifying list is from a quick look, not a full audit: 9a and the 1-aryl triazoles 11-20 and 22/25 are one-pot ketone + commercially available azide (+ pyrrolidine, then m-CPBA) per the general procedure (Table 3 text says commercial azides); 26 is 3 steps from (S)-ketone + phenyl azide (cycloaddition/Cope, Boc removal, amide coupling) if 2-chloro-3-(trifluoromethyl)benzoyl chloride is counted as bought (its preparation is in the SI, which was not supplied). If the azide 2-azido-5-fluoropyrimidine were counted as a purchased reagent, 35 would be 3 steps, but the paper prepares it in two steps (experimental), so it is not a leaf. Compound 29 would also be 5 steps by the same route."
+}

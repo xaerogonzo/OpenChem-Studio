@@ -1,0 +1,43 @@
+{
+ "paper": "alfindee2018_carbohydrate_esters",
+ "decision": "route",
+ "exclusion_reason": null,
+ "exclusion_detail": "",
+ "lead": {
+  "label": "MAN014",
+  "why": "Abstract: 'The identified lead compound, MAN014, can be used as an antimicrobial...'"
+ },
+ "target": {
+  "name": "6-O-Tetradecanoyl-D-mannopyranose",
+  "smiles": "CCCCCCCCCCCCCC(=O)OC[C@H]1OC(O)[C@@H](O)[C@@H](O)[C@@H]1O"
+ },
+ "reactions": [
+  {
+   "step": 1,
+   "product": {
+    "label": "MAN014",
+    "name": "6-O-Tetradecanoyl-D-mannopyranose",
+    "smiles": "CCCCCCCCCCCCCC(=O)OC[C@H]1OC(O)[C@@H](O)[C@@H](O)[C@@H]1O"
+   },
+   "reactants": [
+    {
+     "label": "D-mannose",
+     "name": "mannose",
+     "smiles": "OC[C@H]1OC(O)[C@@H](O)[C@@H](O)[C@@H]1O",
+     "origin": "commercial"
+    },
+    {
+     "label": "myristoyl chloride",
+     "name": "myristoyl chloride",
+     "smiles": "CCCCCCCCCCCCCC(=O)Cl",
+     "origin": "commercial"
+    }
+   ],
+   "conditions": "General procedure 6.2: sugar (0.5 g, 1 equiv) and acyl chloride (1.5 equiv) stirred in pyridine (20 mL) overnight at rt; concentrated, silica gel chromatography (EtOAc to EtOAc/MeOH 9:1). Also run at 30 g scale (1.5 equiv myristoyl chloride, 48%).",
+   "source": "Main article sections 2, 4, 6.2 and 6.11 (MAN014 1.33 mmol, 48%, a/b anomers 3:1)"
+  }
+ ],
+ "alt_variants": [],
+ "other_qualifying_compounds": null,
+ "notes": "One-step regioselective acylation. Product is a mixture of alpha/beta anomers (3:1); SMILES leaves the anomeric centre unspecified, other stereocentres are D-manno. Minor 2-O-acyl regioisomer (about 4:1 6-O:2-O at small scale) and the di-acyl by-product (28%) are noted in the paper; MAN014 is drawn as the 6-O ester per the paper's name. Name of mannose is printed as 'mannose'/'D-mannose' in text; the myristoyl chloride name is from the text of section 4. DMAP mentioned only in the purity remark, not in the general procedure."
+}

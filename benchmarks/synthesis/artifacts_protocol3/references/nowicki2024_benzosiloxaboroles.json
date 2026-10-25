@@ -1,0 +1,15 @@
+{
+ "decision": "excluded",
+ "exclusion_reason": "lead_route_over_4_steps",
+ "exclusion_detail": "Abstract names no single best compound (6, 12, 20, 22-24 are active); compound 20 (2-(phenylsulfonyl)ethylthio derivative) is the one used for the LeuRS mechanism assay and docking/MD, so it is the lead by rule 2. Its route is 5 reactions: 1-bromo-3,5-difluorobenzene -> thiophenol 1b (LDA, S8) -> TBDMS thioether 1c -> silane 1d (LDA, HSiMe2Cl) -> benzosiloxaborole thiol 1e (t-BuLi, B(OMe)3, NaOH) -> thiol-Michael with phenyl vinyl sulfone -> 20.",
+ "lead": {
+  "label": "20",
+  "why": "Abstract: 'The in vitro assay performed with 2-(phenylsulfonyl)ethylthio derivative 20 revealed ... leucyl-tRNA synthetase' (main follow-up compound; the abstract names no best compound)."
+ },
+ "target": null,
+ "reactions": [],
+ "alt_variants": [],
+ "other_qualifying_compounds": [],
+ "notes": "All derivatives go through 1e or 2e (4 steps from commercial halogenated benzene/sulfonyl chloride) plus at least one more reaction, so none qualifies at <=4. Michael acceptors for some compounds need extra SI steps.",
+ "paper": "nowicki2024_benzosiloxaboroles"
+}

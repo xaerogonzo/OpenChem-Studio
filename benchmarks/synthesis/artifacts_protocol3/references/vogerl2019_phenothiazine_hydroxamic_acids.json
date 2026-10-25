@@ -1,0 +1,12 @@
+{
+ "paper": "vogerl2019_phenothiazine_hydroxamic_acids",
+ "decision": "excluded",
+ "exclusion_reason": "route_not_explicit",
+ "exclusion_detail": "The lead 7i (4-[(10H-benzo[b]pyrido[2,3-e][1,4]thiazin-10-yl)methyl]-N-hydroxybenzamide) is made in 3 reactions with full procedures (LiHMDS N-alkylation of 2i with methyl 4-(bromomethyl)benzoate -> 4i; NaOH hydrolysis -> 5i; COMU/NH2OH -> 7i), but the starting 1-azaphenothiazine 2i is only 'synthesized according to Kutscher et al.' (ref 82, Liebigs Ann. Chem. 1995) with no procedure and no statement that it is purchased, so the route from commercial materials is not explicit.",
+ "lead": {"label": "7i", "why": "Abstract: incorporation of a nitrogen atom into the phenothiazine framework increases potency and selectivity; 'the potent azaphenothiazine inhibitor' was co-crystallised with zHDAC6 CD2; the Results call 7i the most potent and selective compound (5 nM, 538-fold) and the one co-crystallised."},
+ "target": null,
+ "reactions": [],
+ "alt_variants": [],
+ "other_qualifying_compounds": ["1a", "7c", "7d", "7f", "7g"],
+ "notes": "If a looser rule accepts 2i as a purchasable building block, 7i would be a 3-step route. The five labels in other_qualifying_compounds are TENTATIVE: 1a (from 10H-phenothiazine; 4 reactions incl. THP route) and the chloro/methoxy-substituted phenothiazine congeners, whose cap groups the Experimental section uses without saying whether bought or made; not verified."
+}
