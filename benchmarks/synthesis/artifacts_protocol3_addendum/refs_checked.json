@@ -1,0 +1,25 @@
+{
+ "kral2024_purpurogallin_carboxamides_influenza": {
+  "decision": "route",
+  "reason": null,
+  "steps": 4,
+  "problems": [],
+  "warnings": []
+ },
+ "ma2025_autotaxin_pyrazolopyridinone": {
+  "decision": "excluded",
+  "reason": "lead_route_over_4_steps",
+  "steps": 0,
+  "problems": [],
+  "warnings": []
+ },
+ "singh2025_lignan_monoterpenoid_xanthine_oxidase": {
+  "decision": "route",
+  "reason": null,
+  "steps": 4,
+  "problems": [],
+  "warnings": [
+   "step 1 reactant: OPSIN cannot read the name 'sesamol'"
+  ]
+ }
+}

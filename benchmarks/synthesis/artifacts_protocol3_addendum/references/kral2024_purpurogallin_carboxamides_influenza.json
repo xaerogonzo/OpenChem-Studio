@@ -1,0 +1,172 @@
+{
+ "paper": "kral2024_purpurogallin_carboxamides_influenza",
+ "decision": "route",
+ "exclusion_reason": null,
+ "exclusion_detail": "",
+ "lead": {
+  "label": "14a",
+  "why": "Abstract: 'the most potent inhibitors exhibiting IC50 values around 0.35 uM'; in Table 1 the only compound with 0.35 uM is 14a (the C-4' unsubstituted tetrazolylbenzyl carboxamide; next best 14b 0.7, 13b 0.8, 13a 0.82). The abstract names no compound number; 10a (crystal structure, 1.5 uM) is the featured compound of the X-ray part but is not described as most potent."
+ },
+ "target": {
+  "name": "N-(3-(1H-Tetrazol-5-Yl)Benzyl)-3,4,6-Trihydroxy-5-Oxo-5H-Benzocycloheptene-8-Carboxamide",
+  "smiles": "O=C1C(O)=CC(C(=O)NCc3cccc(c3)-c3nnn[nH]3)=CC2=CC=C(O)C(O)=C12"
+ },
+ "reactions": [
+  {
+   "step": 1,
+   "product": {
+    "label": "1a",
+    "name": "3,4,6-Trihydroxy-5-Oxo-5H-Benzocycloheptene-8-Carboxylic acid",
+    "smiles": "O=C1C(O)=CC(C(=O)O)=CC2=CC=C(O)C(O)=C12"
+   },
+   "reactants": [
+    {
+     "label": "gallic acid",
+     "name": "gallic acid",
+     "smiles": "OC(=O)c1cc(O)c(O)c(O)c1",
+     "origin": "commercial"
+    },
+    {
+     "label": "pyrocatechol",
+     "name": "pyrocatechol",
+     "smiles": "Oc1ccccc1O",
+     "origin": "commercial"
+    }
+   ],
+   "conditions": "Laccase from Trametes versicolor (Sigma), acetone / sodium phosphate buffer (50 mM, pH 5) 1:2, intensive stirring 24 h (Scheme 1: overnight), centrifuge, wash solid, recrystallise from MeCN. Yield 55% (1a).",
+   "source": "main text Experimental Section, General Procedure for Dehydroxypurpurogallin-Carboxylic Acid (p. 6) and compound 1a entry; Scheme 1 step a. The general procedure is written with dihydroxybiphenyl (series b); for 1a the partner is pyrocatechol per the abstract/Chemistry text."
+  },
+  {
+   "step": 2,
+   "product": {
+    "label": "2a",
+    "name": "3,4,6-Tris(Acetyloxy)-5-Oxo-5H-Benzocycloheptene-8-Carboxylic Acid",
+    "smiles": "O=C1C(OC(C)=O)=CC(C(=O)O)=CC2=CC=C(OC(C)=O)C(OC(C)=O)=C12"
+   },
+   "reactants": [
+    {
+     "label": "1a",
+     "name": "3,4,6-Trihydroxy-5-Oxo-5H-Benzocycloheptene-8-Carboxylic acid",
+     "smiles": "O=C1C(O)=CC(C(=O)O)=CC2=CC=C(O)C(O)=C12",
+     "origin": "made_here"
+    },
+    {
+     "label": "acetic anhydride",
+     "name": "acetic anhydride",
+     "smiles": "CC(=O)OC(C)=O",
+     "origin": "reagent"
+    },
+    {
+     "label": "acetic anhydride",
+     "name": "acetic anhydride",
+     "smiles": "CC(=O)OC(C)=O",
+     "origin": "reagent"
+    },
+    {
+     "label": "acetic anhydride",
+     "name": "acetic anhydride",
+     "smiles": "CC(=O)OC(C)=O",
+     "origin": "reagent"
+    }
+   ],
+   "conditions": "Ac2O (20 equiv), 3 drops conc. H2SO4, neat, 80 C, 10 min; ice water, EtOAc extraction, silica column (EtOAc), recrystallisation EtOAc/toluene. Yield 51%.",
+   "source": "main text Experimental Section, General Procedure for Triacetylation and compound 2a entry; Scheme 1 step b."
+  },
+  {
+   "step": 3,
+   "product": {
+    "label": "triacetyl-14a",
+    "name": "",
+    "smiles": "O=C1C(OC(C)=O)=CC(C(=O)NCc3cccc(c3)-c3nnn[nH]3)=CC2=CC=C(OC(C)=O)C(OC(C)=O)=C12"
+   },
+   "reactants": [
+    {
+     "label": "2a",
+     "name": "3,4,6-Tris(Acetyloxy)-5-Oxo-5H-Benzocycloheptene-8-Carboxylic Acid",
+     "smiles": "O=C1C(OC(C)=O)=CC(C(=O)O)=CC2=CC=C(OC(C)=O)C(OC(C)=O)=C12",
+     "origin": "made_here"
+    },
+    {
+     "label": "3-(1H-tetrazol-5-yl)benzylamine",
+     "name": "",
+     "smiles": "NCc1cccc(c1)-c1nnn[nH]1",
+     "origin": "commercial"
+    }
+   ],
+   "conditions": "Amine (1.5 equiv), Et3N (2 equiv), HATU (1.2 equiv), dry DMF, rt, overnight; quench with water, extract EtOAc, wash with water, evaporate (crude triacetylated amide used directly).",
+   "source": "main text Experimental Section, General Procedure for Amidation of Triacetylated Dehydroxypurpurogallin-Carboxylic Acid (p. 6-7); Scheme 1 step c."
+  },
+  {
+   "step": 4,
+   "product": {
+    "label": "14a",
+    "name": "N-(3-(1H-Tetrazol-5-Yl)Benzyl)-3,4,6-Trihydroxy-5-Oxo-5H-Benzocycloheptene-8-Carboxamide",
+    "smiles": "O=C1C(O)=CC(C(=O)NCc3cccc(c3)-c3nnn[nH]3)=CC2=CC=C(O)C(O)=C12"
+   },
+   "reactants": [
+    {
+     "label": "triacetyl-14a",
+     "name": "",
+     "smiles": "O=C1C(OC(C)=O)=CC(C(=O)NCc3cccc(c3)-c3nnn[nH]3)=CC2=CC=C(OC(C)=O)C(OC(C)=O)=C12",
+     "origin": "made_here"
+    }
+   ],
+   "conditions": "MeOH, HCl in dioxane (4 M), 8-12 h (methanolysis of the three acetates); evaporate, C18 reversed-phase flash chromatography (water 0.1% TFA / MeCN). Yield 28% over steps 3-4 (45 mg).",
+   "source": "same general procedure (p. 7); Scheme 1 step d; compound 14a entry."
+  }
+ ],
+ "alt_variants": [
+  [
+   {
+    "step": 1,
+    "product": {
+     "label": "1a",
+     "name": "3,4,6-Trihydroxy-5-Oxo-5H-Benzocycloheptene-8-Carboxylic acid",
+     "smiles": "O=C1C(O)=CC(C(=O)O)=CC2=CC=C(O)C(O)=C12"
+    },
+    "reactants": [
+     {
+      "label": "gallic acid",
+      "name": "gallic acid",
+      "smiles": "OC(=O)c1cc(O)c(O)c(O)c1",
+      "origin": "commercial"
+     },
+     {
+      "label": "pyrocatechol",
+      "name": "pyrocatechol",
+      "smiles": "Oc1ccccc1O",
+      "origin": "commercial"
+     }
+    ],
+    "conditions": "laccase from Trametes versicolor, acetone / phosphate buffer pH 5, 24 h",
+    "source": "as main step 1"
+   },
+   {
+    "step": 2,
+    "product": {
+     "label": "14a",
+     "name": "N-(3-(1H-Tetrazol-5-Yl)Benzyl)-3,4,6-Trihydroxy-5-Oxo-5H-Benzocycloheptene-8-Carboxamide",
+     "smiles": "O=C1C(O)=CC(C(=O)NCc3cccc(c3)-c3nnn[nH]3)=CC2=CC=C(O)C(O)=C12"
+    },
+    "reactants": [
+     {
+      "label": "1a",
+      "name": "3,4,6-Trihydroxy-5-Oxo-5H-Benzocycloheptene-8-Carboxylic acid",
+      "smiles": "O=C1C(O)=CC(C(=O)O)=CC2=CC=C(O)C(O)=C12",
+      "origin": "made_here"
+     },
+     {
+      "label": "3-(1H-tetrazol-5-yl)benzylamine",
+      "name": "",
+      "smiles": "NCc1cccc(c1)-c1nnn[nH]1",
+      "origin": "commercial"
+     }
+    ],
+    "conditions": "amine (1.2 equiv), EEDQ (1.2 equiv), dry THF, 80 C, 3 h; C18 flash chromatography",
+    "source": "General Procedure for Amidation of Dehydroxypurpurogallin-Carboxylic Acid; Scheme 1 step e. The paper does not say which of the two amidation procedures made 14a."
+   }
+  ]
+ ],
+ "other_qualifying_compounds": null,
+ "notes": "(1) The paper does not state which amidation route made each amide (HATU on triacetate 2a, or EEDQ on free acid 1a); main reading is the HATU/methanolysis route (the paper's described 'two-step procedure' giving 'good yields'), the EEDQ 2-step route is in alt_variants. (2) Inconsistency: the SAR text (p. 4) says 13a,b = 3-(tetrazol-5-yl)benzyl and 14a,b = 4-(tetrazol-5-yl)benzyl, but the experimental headings give 13a,b = 4- and 14a,b = 3-. I followed the experimental headings; the printed NMR agrees with them (13b: two 2H doublets at 7.97/7.31 = para; 14a/14b: a 1H singlet and dt, and a t, J=8 Hz = meta). A reviewer may want to confirm against the scheme drawing (Table 1) that 14a is the meta isomer. If the text is right instead, the target and amine would be the para isomer. (3) The amine has no printed name or procedure; 'All chemicals ... purchased from Sigma-Aldrich, Combi-Blocks, and Enamine'; its structure is derived from the product name. (4) The general procedure for the acids is written for dihydroxybiphenyl (1b); 1a uses pyrocatechol (abstract). (5) Steps 3 and 4 are reported in one general procedure with a work-up between them; counted as two (Scheme 1 c, d); a 3-step reading would merge them. (6) Lead choice rests on the 0.35 uM value; 10a (crystallised, 1.5 uM) was NOT chosen. SI text layer has no experimental procedures (spectra and assay tables only); all procedures come from the main article. | Addendum fix: the triacetylation puts three acetyl groups on 1a, so acetic anhydride is listed three times (once per acetyl, the brief's rule for equivalents); the reader had listed it once and the carbon balance check flagged it."
+}
