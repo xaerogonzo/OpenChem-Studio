@@ -1,6 +1,6 @@
 # Preregistration: melting and normal boiling points of organic compounds
 
-**Status: READY TO FREEZE.** The owner answered the open decisions in section 12 on 2026-10-25 by accepting the recommendations as drafted. **The preregistration is frozen when this file is merged**; until then no corpus is built and no method is scored. After it is frozen, any change is a dated amendment that says what changed and why, and a number is never changed after a result that bears on it has been seen.
+**Status: FROZEN (merged as #461 on 2026-10-25).** Changes since are dated amendments that say what changed and why (section 13: Amendment 1); a number is never changed after a result that bears on it has been seen. No method has been scored.
 
 ## 1. The question
 
@@ -217,3 +217,43 @@ Separate preregistration, not begun until this verdict exists. Boundaries alread
 * **D3. The primary-label rule**: kept as written (primary source, else most recent edition, else unresolved if values differ by more than 1.0 K).
 * **D4. Candidate C is added** (section 2.1) and the published methods are reported as exploratory: Phase A therefore delivers a measured description of the shipped and published methods, and a promotable candidate if C earns it.
 * **D5. Phase B (energetic materials) starts only after this verdict exists.**
+
+## 13. Amendment 1 (2026-10-25): conventions read from the table headers, and rules settled while building the parser
+
+Written after reading the two handbooks' own explanations of their notation (section 3.3 said this would be recorded) and after tallying the SHAPES of the cell text (digits replaced by `#`) to see what notation the tables use. **No method has been scored, no selection or holdout label has been compared with any prediction, and no number in section 10 changes.** What was examined is the text of the tables; the parser rules below are fixed before any score exists.
+
+**13.1 Sources and recency.** Lange's Handbook of Chemistry, 15th ed. (McGraw-Hill, 1999), Section 1, Table 1.15 (formula from the empirical formula index, Table 1.14); CRC Handbook of Chemistry and Physics, 97th ed. (2016), "Physical Constants of Organic Compounds". Both are secondary compilations, so the primary-label rule of section 4 takes the **CRC (2016)** value where both books give one, and the Lange (1999) value only where the CRC gives none. File names and SHA-256 are recorded in the build summary.
+
+**13.2 Normal-pressure convention (section 3.3).** Lange: "Boiling Point is given at atmospheric pressure (760 mmHg) unless otherwise indicated"; a superscript pressure in mmHg marks a reduced-pressure value. CRC: bp is "the temperature at which the liquid phase is in equilibrium with the vapor at a pressure of 760 mmHg (101.325 kPa)"; "when the normal boiling point is not available, a boiling point at reduced pressure may be listed with a superscript indicating the pressure in mmHg". An entry with no printed pressure therefore has `pressure_basis = table_convention_normal`; one with a superscript has `pressure_basis = stated` and is admitted only if within the +-1.5 kPa of section 3.3.
+
+**13.3 Event notation.**
+
+| table | cell | notation | event |
+|---|---|---|---|
+| Lange mp | `250 d` | melting with decomposition | `melting_with_decomposition` |
+| Lange mp | `d 250` | decomposition only at 250 and above | `decomposition` |
+| Lange mp, bp | `subl`, `subl 550`, `550 subl` | sublimes | `sublimation` |
+| Lange bp | `d`, `250 d`, `explodes` | not a true boiling point | `decomposition` |
+| CRC mp | `dec` after a value | decomposition observed at that temperature | `melting_with_decomposition` |
+| CRC mp | `tp` | triple point, at its own pressure | `unknown` (not a normal melting point) |
+| CRC bp | `sp`, `sub` | sublimation point, or sublimes appreciably | `sublimation` |
+| CRC bp | `dec`, `exp` | "may not be a true boiling point" | `decomposition` |
+
+A number in parentheses after a CRC value is a combined expanded uncertainty (about 95 %): recorded, never used to score. A reported range is scored as an interval (section 3.2). A cell holding a qualifier the text layer shows as `<`, `>`, `~` or `ca.`, a Greek-letter form label, a hydrate or sealed-tube note, or any text outside the grammar is **refused with its reason** (`parser_ambiguity`), never guessed; a cell that wraps over several lines is joined only if the joined text matches the grammar.
+
+**13.4 Signs.** Lange prints the minus sign (and some qualifiers) as a symbol-font glyph the PDF's text layer does not carry; acetaldehyde's melting point reads `123` in the text layer and is -123. Each such glyph is drawn at 500 dpi and classified by its ink: a solid bar at least four times as long as it is thick is a minus sign; every other symbol is unreadable and refuses its cell. The CRC's text layer is mapped and needs none of this.
+
+**13.5 Dispositions.** Section 7's list is extended, not reduced: `identity_unresolved` (no spelling of the name resolved) and `identity_unchecked` (no formula or weight to check against) join `identity_mismatch` and `identity_ambiguous`; `source_conflict` is assigned to every accepted observation of an entity whose most recent edition's observations disagree by more than 1.0 K. A candidate row is one (entry, property) pair with a non-empty cell; an empty cell is the source being silent and produces no row.
+
+**13.6 Identity (section 7, step 3).** A name is offered to OPSIN in every spelling its line breaks allow (a line ending in a hyphen is tried both as a break and as a real locant hyphen; a soft hyphen is a break), with a leading optical sign `(+)-`, `(-)-`, `(+/-)-` removed and a CRC trailing descriptor `, (+-)-` moved to the front and removed. A Greek-letter locant whose glyph was lost is **not** offered (dropping it would name a different isomer); Greek letters the CRC prints are spelled out (`beta`); any other non-ASCII character means the name is not sent. A spelling is kept only if its structure's formula equals the printed formula and its weight is within `max(0.5 x 10^-d, 2e-4 x MW)`; if the kept spellings give different structures the entry is `identity_ambiguous`. **Lange's formula comes from Table 1.14; an entry that index does not list is `identity_unchecked` and not accepted**, which costs Lange coverage but never lets a name through on its weight alone.
+
+**13.7 Strata (section 5).** By the first rule that applies to the resolved structure: `multicomponent` (more than one fragment: salts, hydrates, mixtures), `ionic` (net formal charge), `organometallic_or_inorganic` (an atom outside H B C N O F Si P S Cl As Se Br Te I), `not_organic` (no carbon with a C-H or C-C bond), `polymer` (the name contains "poly"), else `primary`. Only `primary` enters the primary gate.
+
+**13.8 Where the corpus lives.** Outside Git, as section 7 requires. This run's folder is `D:/_scratch/mp_bp_corpus` because the folder beside the PDF library was not writable from the building session; its location does not enter any record, and moving it changes nothing.
+
+**13.9 Cross-source agreement** (an entity read from both books) is reported as transcription consistency, not as independent replication (section 4).
+
+**13.10 Two refusals added after reading the first corpus build, and the label-quality subsets.** Both use only the row itself and no prediction or method score, so they are fixed before any score exists.
+* **A malformed number is refused**: a number with a leading zero before a digit (`02.9`) has lost a digit in the text layer (Lange prints triethylborane's -92.9 that way) and is never read.
+* **An implausible row is refused**: a row whose melting point is at or above its own normal boiling point (no printed pressure) has a cell in the wrong column (Lange's 4-bromobenzophenone prints 82 under boiling point and 350 under flash point), and neither of its two cells is used.
+* **Label-quality subsets (secondary analysis, never a gate).** The primary analysis and every threshold of section 10 are unchanged. Each entity read from both books is marked `agree` (within 1.0 K; ranges overlapping) or `disagree`; the others are `single_source`. Comparing the two books found real handbook faults the parser cannot see (the report lists the ones checked on the rendered pages), so the sensitivity analysis of section 4 also reports each candidate's error on the `agree` subset alone, and says how far the headline moves.
