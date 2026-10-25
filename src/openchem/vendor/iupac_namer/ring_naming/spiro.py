@@ -792,10 +792,8 @@ def _build_component_submol(
             if bond is None:
                 continue
             rw.AddBond(full_to_sub[old], full_to_sub[j], bond.GetBondType())
-    sub_mol = rw.GetMol()
-    try:
-        Chem.SanitizeMol(sub_mol)
-    except Exception:
+    sub_mol = _sanitize_partner(rw, mol, full_to_sub)
+    if sub_mol is None:
         return None
     sub_to_full = {v: k for k, v in full_to_sub.items()}
     return sub_mol, sub_to_full
@@ -996,6 +994,57 @@ def _split_ring_atoms_at(
     return [frozenset(c) for c in components]
 
 
+def _sanitize_partner(rw, mol, old_to_new: dict[int, int]):
+    """Sanitize a partner sub-mol rebuilt from bare elements, or None.
+
+    Naming round 84: a ring carbon that held an exocyclic =O (a pyridone, `...c(=O)cc[nH]...`) lost its oxygen with the rebuild, and the ring cannot be
+    kekulized with the N-H still on. The component is the pyridine and the ketone is a suffix of the whole name, so the aromatic hydrogens are dropped
+    and the partner builds (`spiro[5,6,7,8-tetrahydroquinoline-6,1'-cyclopropane]` for a spiro quinolin-4(1H)-one, which was a NAMING ERROR).
+    """
+    sub_mol = rw.GetMol()
+    try:
+        Chem.SanitizeMol(sub_mol)
+        return sub_mol
+    except Exception:
+        pass
+    stripped = False
+    for old, new_idx in old_to_new.items():
+        orig = mol.GetAtomWithIdx(old)
+        if orig.GetIsAromatic() and orig.GetAtomicNum() != 6 and orig.GetTotalNumHs() > 0:
+            rw.GetAtomWithIdx(new_idx).SetNumExplicitHs(0)
+            rw.GetAtomWithIdx(new_idx).SetNoImplicit(False)
+            stripped = True
+    if stripped:
+        sub_mol = rw.GetMol()
+        try:
+            Chem.SanitizeMol(sub_mol)
+            return sub_mol
+        except Exception:
+            pass
+    # No N-H to drop (a bridgehead nitrogen, a ring S): build the partner from the Kekule form, so the carbon that held the =O is a CH2 of the component
+    # (`4H-pyrido[1,2-a]pyrimidine`) and the ketone is the suffix of the whole name.
+    kek = Chem.Mol(mol)
+    try:
+        Chem.Kekulize(kek, clearAromaticFlags=True)
+    except Exception:
+        return None
+    new_to_old = {v: k for k, v in old_to_new.items()}
+    for bond in rw.GetBonds():
+        kb = kek.GetBondBetweenAtoms(new_to_old[bond.GetBeginAtomIdx()], new_to_old[bond.GetEndAtomIdx()])
+        if kb is None:
+            return None
+        bond.SetBondType(kb.GetBondType())
+        bond.SetIsAromatic(False)
+    for atom in rw.GetAtoms():
+        atom.SetIsAromatic(False)
+    sub_mol = rw.GetMol()
+    try:
+        Chem.SanitizeMol(sub_mol)
+    except Exception:
+        return None
+    return sub_mol
+
+
 def _keep_aromatic_hydrogen(orig, new_atom) -> None:
     """Carry the N-H (or O/S-H) of an aromatic heteroatom onto a copied atom.
 
@@ -1044,10 +1093,8 @@ def _build_partner_submol(
             if bond is None:
                 continue
             rw.AddBond(full_to_sub[old], full_to_sub[j], bond.GetBondType())
-    sub_mol = rw.GetMol()
-    try:
-        Chem.SanitizeMol(sub_mol)
-    except Exception:
+    sub_mol = _sanitize_partner(rw, mol, full_to_sub)
+    if sub_mol is None:
         return None
     sub_to_full = {v: k for k, v in full_to_sub.items()}
     return sub_mol, sub_to_full
@@ -1686,10 +1733,8 @@ def _build_sub_ring_system(
             if bond is None:
                 continue
             rw.AddBond(old_to_new[old], old_to_new[j], bond.GetBondType())
-    sub_mol = rw.GetMol()
-    try:
-        Chem.SanitizeMol(sub_mol)
-    except Exception:
+    sub_mol = _sanitize_partner(rw, mol, old_to_new)
+    if sub_mol is None:
         return None, None, None
     new_to_old = {v: k for k, v in old_to_new.items()}
     try:

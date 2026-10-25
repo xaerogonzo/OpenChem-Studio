@@ -495,6 +495,12 @@ scope = "core"
 owner = "namer"
 
 [[consumer]]
+file = "tests/test_namer_round84_spiro_joints_of_lactam_rings_and_a_numbering_search_that_never_returned.py"
+why = "a polycycle with dozens of bridges has no von Baeyer numbering past 50,000 orderings (D-376, the call never returned), and a spiro ring ketone on a pyridone-type, bridgehead-nitrogen or sulfur component names its partner from the pyridine or the Kekule form (D-377, D-378), read back through OPSIN"
+scope = "core"
+owner = "namer"
+
+[[consumer]]
 file = "tests/test_namer_round83_hypoxanthine_with_no_ring_nh_takes_the_oxo_carbons_indicated_hydrogen.py"
 why = "a ring with an oxo and no ring N-H takes the oxo carbon's indicated hydrogen, not the curated 9H (D-375: methyl 6-oxo-6H-purine-8-carboxylate), read back through OPSIN"
 scope = "core"

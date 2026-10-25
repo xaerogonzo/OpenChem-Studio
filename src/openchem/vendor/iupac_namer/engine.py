@@ -20071,6 +20071,22 @@ class SubstitutivePath:
         _p58 = _p58_apply(mol, _named_parent, plan.numbering, _suffix_groups, free_valence, _oxo_ring_atoms)
         if _p58 is not None:
             _named_parent, _suffix_groups, _fv_added_h = _p58
+        elif _suffix_groups and "spiro" in str(getattr(plan.named_parent.candidate.ring_system, "type", "")):
+            # Naming round 84: the P-58 planner declines a spiro name, so a ring ketone on a pyridone-type component (`spiro[...quinoline-6,1'-cyclopropane]-4-one`)
+            # said nothing of the ring N-H, which OPSIN reads as another tautomer. The N-H is the added hydrogen: `-4(1H)-one`.
+            from dataclasses import replace as _dc_replace
+            _l2a = plan.numbering.locant_to_atom
+            _ring_atoms = set(plan.named_parent.candidate.atom_indices)
+            _nh = [a for a in sorted(_ring_atoms) if mol.GetAtomWithIdx(a).GetIsAromatic()
+                   and mol.GetAtomWithIdx(a).GetAtomicNum() == 7 and mol.GetAtomWithIdx(a).GetTotalNumHs() > 0]
+            _nh_loc = {a: l for l, a in _l2a.items() if a in _nh}
+            if len(_nh_loc) == 1 and all(
+                    sg.base_form == "one" and not sg.added_indicated_h and len(sg.locants) == 1
+                    and (lambda c: c is not None and mol.GetAtomWithIdx(c).GetIsAromatic())(_l2a.get(sg.locants[0]))
+                    for sg in _suffix_groups):
+                _suffix_groups = tuple(
+                    _dc_replace(sg, added_indicated_h=(next(iter(_nh_loc.values())),)) if i == 0 else sg
+                    for i, sg in enumerate(_suffix_groups))
 
         tree = SubstitutiveTree(
             output_form=output_form,
