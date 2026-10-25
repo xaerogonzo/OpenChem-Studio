@@ -102,7 +102,7 @@ first benchmark in this survey with a held-out set, and `tools/validation_rows.p
 * **A range is scored as an interval**, never by its midpoint.
 * **Unknown leakage is a status** (`assess_leakage`), and `may_claim_independent_holdout` is false for it.
   Neither Joback's nor Marrero-Gani's fit population is listed in its paper, so neither can pass an
-  independent-holdout gate on handbook data (the preregistration says so and offers a way forward).
+  independent-holdout gate on handbook data (the preregistration says so and adds a refit candidate whose fit population is known).
 * **The split key is conservative and is not an identity claim**: the first InChIKey block, so stereoisomers
   and charge variants of a skeleton share a partition.
 

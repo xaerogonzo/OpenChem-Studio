@@ -1,6 +1,6 @@
 # Preregistration: melting and normal boiling points of organic compounds
 
-**Status: DRAFT. Not frozen.** It freezes when the owner confirms the open decisions in section 12 and this file is merged. Until then no corpus is built and no method is scored. After it is frozen, any change is a dated amendment that says what changed and why, and a number is never changed after a result that bears on it has been seen.
+**Status: READY TO FREEZE.** The owner answered the open decisions in section 12 on 2026-10-25 by accepting the recommendations as drafted. **The preregistration is frozen when this file is merged**; until then no corpus is built and no method is scored. After it is frozen, any change is a dated amendment that says what changed and why, and a number is never changed after a result that bears on it has been seen.
 
 ## 1. The question
 
@@ -19,10 +19,24 @@ Every line of every report carries: target property, the model output's definiti
 | melting point (`melting_point`) | Marrero-Gani first-order Tm | yes | yes |
 | melting point | **Joback Tf, as a PROXY** | **no** | **no** |
 | normal boiling point (`normal_boiling_point`) | Joback Tb; Marrero-Gani first-order Tb | yes | yes |
+| melting point | **Candidate C**, Tm refit (section 2.1) | yes | yes |
+| normal boiling point | **Candidate C**, Tb refit (section 2.1) | yes | yes |
 
 * **Joback's Tf is a freezing-point output.** Its own paper says the estimate "is not accurate and should be considered as only very approximate". It is compared with measured melting points as a **diagnostic proxy only**: coverage, errors, bias, strata and failures are reported with `gate_eligible = False`. It cannot PASS, cannot promote anything, and no report, heading or help text may call it a validated melting-point predictor. A feature built on it as a proxy would need its own declared claim and its own gate.
 * **Decomposition onset is its own property** (`decomposition_temperature`) and is never a boiling-point target. Whether a compound decomposes before it boils is a classification question and is out of scope.
-* The two methods' parameters are the ones in `src/openchem/chem/joback.py` and `benchmarks/thermophysical/marrero2001_table.py`, **unmodified**. A change to a group table, a coverage rule or a decomposition after a diagnostic error has been seen makes a new method version, and a new version needs a new untouched evaluation.
+* The two published methods' parameters are the ones in `src/openchem/chem/joback.py` and `benchmarks/thermophysical/marrero2001_table.py`, **unmodified**. A change to a group table, a coverage rule or a decomposition after a diagnostic error has been seen makes a new method version, and a new version needs a new untouched evaluation.
+
+### 2.1 Candidate C: Joback's groups, refit on the development partition only
+
+Added at the owner's decision (D4) because every published method's fit population is unknown (section 9), so none of them can pass here. **It is this project's own method and is named so in every report; it is not Joback's.**
+
+* **Groups**: the 41 groups and the group assignment exactly as shipped in `src/openchem/chem/joback.py` and `group_contribution.py`, unmodified. A molecule any group cannot describe is **refused**, as Joback refuses it, so C's coverage can be no larger than Joback's.
+* **Model**: target = intercept + sum over groups of (count x coefficient), one model per target (Tm, Tb).
+* **Fit**: ridge regression on **development rows only**, intercept unpenalised, features unscaled. The penalty is chosen from the fixed grid {0.01, 0.1, 1, 10, 100} by lowest MAE on the **selection** partition. The holdout is never used to fit or choose anything.
+* **A group with no development example gets coefficient 0 and is marked unfitted; a molecule that uses an unfitted group is refused** (so a zero is never read as a fitted contribution).
+* **Leakage status: `known_population_no_overlap` by construction.** Its fit population is the development rows; evaluation uses selection and holdout rows, which share no grouping key with them.
+* **Published-error reference for C's ceiling**, since C has no paper of its own: the error its group family published. C-Tb: 12.9 K (Joback Tb, Table VI). C-Tm: **22.6 K** (Joback's own freezing-point error for the same 41 groups, Table VI). Used only as the ceiling in section 10 (x 1.5 point, x 2.0 interval: Tb 19.35 / 25.8 K, Tm 33.9 / 45.2 K); the 22.6 K is **not** used to describe Joback's Tf as a melting-point predictor, because here the coefficients are fitted to melting points.
+* A PASS for C would allow, at most, an experimental calculator named as this project's refit, with the groups' limits (Joback has no group for a ring tertiary nitrogen and stops at divalent sulfur) stated as its scope.
 
 ## 3. The reference observation
 
@@ -127,8 +141,9 @@ Every candidate row gets exactly one visible disposition: accepted for the melti
 | Joback, Tf | 388 compounds (same table) | no | **unknown** |
 | Marrero-Gani, Tm | 1547 data points (Table 3, p192); regression data come from a data bank, not listed | no | **unknown** |
 | Marrero-Gani, Tb | 1794 data points (Table 3, p192) | no | **unknown** |
+| Candidate C, Tm and Tb | the development partition of this corpus | yes, by construction | `known_population_no_overlap` |
 
-**Consequence, stated now so that it is not discovered later:** with these four statuses `unknown`, **neither published method can PASS an independent-holdout gate on this corpus**, however well it scores. Their results are reported as exploratory and the verdict for each is `NOT EVALUABLE` for an independent claim. This is a finding about what is knowable, not a failure to try. Decision D4 (section 12) is about what, if anything, to add so that a promotable candidate can exist.
+**Consequence, stated now so that it is not discovered later:** with these four statuses `unknown`, **neither published method can PASS an independent-holdout gate on this corpus**, however well it scores. Their results are reported as exploratory and the verdict for each is `NOT EVALUABLE` for an independent claim. This is a finding about what is knowable, not a failure to try. Candidate C (section 2.1), added by decision D4, is what makes a promotable candidate possible; the published methods stay in the benchmark as the reference for what is already shipped.
 
 ## 10. Scoring, thresholds and the verdict
 
@@ -146,11 +161,13 @@ Every candidate row gets exactly one visible disposition: accepted for the melti
 | Joback, Tf (same table) | 22.6 K | same | its own 388 | **not used for any gate** (proxy) |
 | Marrero-Gani, Tm, first-order (Table 3, p192) | 24.90 K | "AAE", mean of |estimated - experimental| | its own 1547 regression points | for the Tm gate, same caveat |
 | Marrero-Gani, Tb, first-order (Table 3, p192) | 7.90 K | "AAE" | its own 1794 points | for the Tb gate, same caveat |
+| Candidate C, Tb: Joback Tb as above | 12.9 K | "average absolute error" | the group family's 438 compounds | ceiling only; C has no paper of its own |
+| Candidate C, Tm: Joback Tf as above | 22.6 K | "average absolute error" | the group family's 388 compounds | ceiling only; the same 41 groups, fitted here to melting points |
 
 **PASS requires all of the following, for a stated property and scope, on the holdout:**
 
 1. leakage status for that (model, property) is not `unknown`;
-2. point MAE <= **1.5 x** the reference above (Joback Tb 19.35 K; Marrero-Gani Tm 37.35 K, Tb 11.85 K) **and** the upper bound of its 95% interval <= **2.0 x** (25.8, 49.8, 15.8 K);
+2. point MAE <= **1.5 x** the reference above (Joback Tb 19.35 K; Marrero-Gani Tm 37.35 K, Tb 11.85 K; Candidate C Tb 19.35 K, Tm 33.9 K) **and** the upper bound of its 95% interval <= **2.0 x** (25.8, 49.8, 15.8, 25.8, 45.2 K);
 3. point improvement over the baseline >= **20%** **and** the lower bound of its 95% interval >= **10%**;
 4. coverage >= **70%** of the eligible denominator;
 5. **at least 300 paired unique eligible holdout entities** (candidate and baseline both predicted).
@@ -193,10 +210,10 @@ Why these numbers: 1.5 x leaves room for a benchmark population that differs fro
 
 Separate preregistration, not begun until this verdict exists. Boundaries already fixed: melting point and decomposition onset are separate properties; **crystal density is not loading density and is not theoretical maximum density**, so a passing crystal-density method yields a crystal-density estimate and nothing more, and **Kamlet-Jacobs detonation stays `NEEDS_INPUT`** unless a separate, owner-approved product decision defines a new, explicitly named input; enthalpy of formation is the condensed-phase quantity, and a gas-phase route needs its sublimation step and provenance; an oxygen balance printed in a source is a check that the formula was applied as intended, not an independent measurement; scope is validation of published methods on known compounds. The ROADMAP's PETN reversal conditions count as met only by frozen records and a rule the Phase B preregistration names.
 
-## 12. Open decisions for the owner (this file freezes when these are answered)
+## 12. Decisions (answered 2026-10-25: the recommendations, as drafted)
 
-* **D1. The gate numbers**: 1.5x and 2.0x of the published error, 20% and 10% improvement over baseline, 70% coverage, 300 paired entities, 60/20/20, +-1.5 kPa. Keep or change.
-* **D2. The population rules** in section 5: what counts as organic; salts, hydrates, polymers and organometallics outside the primary gate.
-* **D3. The primary-label rule**: primary source, else most recent edition, else unresolved if values differ by more than 1.0 K.
-* **D4. Because every published method's fit population is `unknown` (section 9), no existing method can PASS here.** Options: (a) accept it: Phase A then delivers the measured description and an exploratory result, and no calculator; (b) **add a third candidate, "Joback's 41 groups with coefficients refit on the development partition only"**, whose fit population is the development partition and so is known by construction, evaluated on selection and holdout like any other; it would be this project's own method, not Joback's, and would be named so; (c) look for the fit populations (Joback's 1984 report, the data bank behind Marrero-Gani), which are unlikely to be obtainable. **Recommended: (a) plus (b).** Option (b) is NOT in the plan the owner approved and is not added without an answer.
-* **D5. Whether Phase B starts only after this verdict** (default yes).
+* **D1. The gate numbers**: kept as written (1.5x and 2.0x of the published error, 20% and 10% improvement over baseline, 70% coverage, 300 paired entities, 60/20/20, +-1.5 kPa).
+* **D2. The population rules** in section 5: kept as written.
+* **D3. The primary-label rule**: kept as written (primary source, else most recent edition, else unresolved if values differ by more than 1.0 K).
+* **D4. Candidate C is added** (section 2.1) and the published methods are reported as exploratory: Phase A therefore delivers a measured description of the shipped and published methods, and a promotable candidate if C earns it.
+* **D5. Phase B (energetic materials) starts only after this verdict exists.**
