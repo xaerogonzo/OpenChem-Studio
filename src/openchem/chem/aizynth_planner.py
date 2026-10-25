@@ -58,14 +58,21 @@ PLANNER_NAME = "AiZynthFinder"
 #: How many routes a plan keeps. It is the number the benchmark's user-facing figure is about ("among the first 10 shown"), so the sentence beside the plan describes the list exactly; a plan that found more says how many it left out.
 ROUTES_SHOWN = 10
 #: What was MEASURED about this planner, said beside every plan it makes, because the product's decided claim (Alex, 2026-10-20) is "valid, repeatable routes that often differ from the patent route", never "known routes", with
-#: the recovery figure and its dependence on depth stated. Every number is from `benchmarks/synthesis/RESULT_2.md` (protocol 2: the same 300 seeded PaRoutes set-n1 targets, run 2026-10-22, every solved route returned and the first 10
-#: shown in the order `chem/route_ranking.py` gives) and `tests/test_synthesis_planner.py` holds each one to that file. The figure is the one a person shown 10 routes sees (its M2), not the PaRoutes count that counts every route in the
-#: first ten score levels (0.533, a median of 37 routes). The conditions differ from a user's (the benchmark's own stock and a fixed search budget) and the public models were probably trained on those reference reactions, so the figure
-#: is not a generalisation figure, and the sentence says so.
+#: the recovery figure and its dependence on depth stated. The figure to quote is PROTOCOL 3's (`benchmarks/synthesis/RESULT_3.md`, run 2026-10-24: 51 routes from journal papers published after the model's training data, the first 10
+#: shown in the order `chem/route_ranking.py` gives, on a stock of the paper's own starting materials), because it is the one about molecules the model could not have seen; the preregistered reading was LOWER than protocol 2's
+#: depth-matched rates (8 of 36 against 14.0 expected, p = 0.0073). Protocol 2's 41.7% (`RESULT_2.md`: the same 300 seeded PaRoutes set-n1 patent targets, run 2026-10-22) is for targets the public models probably trained on, so it is
+#: quoted as the patent-target figure and NEVER ALONE; the PaRoutes count of the first ten score levels (0.533, a median of 37 routes) is not the figure a person shown 10 routes sees and is not quoted. The conditions differ from a
+#: user's (a benchmark stock and a fixed search budget). `tests/test_synthesis_planner.py` holds every number here to the result file's rows. The 17-of-51 figure is the targets for which a route from the paper's own starting
+#: materials was among the first 10 (`RESULT_3.md`, "By stock"): it is why a missing paper route is not evidence a plan is wrong.
 BENCHMARK_FINDING = (
-    "On a benchmark of 300 patent routes (PaRoutes set-n1, with its own stock and a fixed search budget, and public models probably trained on those same reactions), this planner returned a route with every starting material in stock for 96.7% of targets "
-    "but had the patent route among the first 10 routes it showed for only 41.7% (81% where the patent route has 2 steps, 39% at 3 steps, 4% at 4; the patent route was among all the solved routes for 54.7%), and 51% of its first routes were shorter than the patent route. "
-    "Read these as internally consistent, repeatable proposals that often differ from known routes, not as known routes, and not as a measure of how well it does on a new molecule."
+    "On 51 routes from journal papers published after the planner's models were trained (a benchmark stock and a fixed search budget), the paper's route was among the first 10 routes it showed for 13 of 51 targets, 25.5% (95% interval 15.5% to 38.9%): "
+    "5 of 15 where the paper's route has 1 step, 6 of 10 at 2 steps, 2 of 14 at 3, 0 of 12 at 4. That is lower than the planner's rate on patent routes at the same depths. "
+    "On 300 patent routes (PaRoutes set-n1, with its own stock and a fixed search budget, and public models probably trained on those same reactions) it returned a route with every starting material in stock for 96.7% of targets "
+    "but had the patent route among the first 10 routes it showed for only 41.7% (81% where the patent route has 2 steps, 39% at 3 steps, 4% at 4; the patent route was among all the solved routes for 54.7%), and 51% of its first routes were shorter than the patent route; "
+    "41.7% is not a figure for a molecule the model has not seen. "
+    "A route that differs from the paper's is the normal outcome, not a fault, and a missing paper route is not evidence that a plan is wrong: a route from the paper's own starting materials was among the first 10 for 17 of the 51 targets. "
+    "These papers' routes are 4 reactions or fewer of ordinary analogue-library chemistry, so the figures say nothing about long or hard routes, and feasibility was not measured. "
+    "Read these as internally consistent, repeatable proposals that often differ from known routes, not as known routes."
 )
 #: The runner script the planner's interpreter is handed as a path.
 RUNNER_PATH = Path(__file__).resolve().parent / "aizynth_runner.py"

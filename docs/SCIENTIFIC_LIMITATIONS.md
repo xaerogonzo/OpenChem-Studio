@@ -2502,14 +2502,28 @@ beside the charges rather than left silent.
 The planner supplies no conditions, reagents, solvents, temperatures, yields or selectivity, and the application invents none: a field the planner did not give is shown as "not provided",
 never as zero. Stereochemistry in a route is the planner's and is often incomplete or dropped.
 
-**What was measured, and what it does not show.** Before any of this was built, the planner was run on 300 seeded targets from PaRoutes' set-n1 (patent routes from US patents), with
+**What was measured, and what it does not show.** Two benchmarks were run, and the one to quote is the second.
+
+*Routes from papers after the model's training data (protocol 3, `benchmarks/synthesis/RESULT_3.md`, run 2026-10-24).* 51 routes were transcribed from journal papers published after the public models were trained (190 papers
+read from 21 medicinal-chemistry journals, 2017 to 2025; each paper's lead compound by a fixed rule, its own route of 4 reactions or fewer), and each was searched with the settings of the first two benchmarks on a stock
+holding the paper's own starting materials. **The paper's route was among the first 10 routes shown for 13 of 51 = 25.5% (95% interval 15.5% to 38.9%):** 5 of 15 where the paper's route has 1 step, 6 of 10 at 2, 2 of 14 at 3,
+0 of 12 at 4. For the 36 routes of 2 steps or more this is *lower* than the patent figure below predicts at the same depths (8 recovered against 14.0 expected; probability of so few 0.0073, fixed in advance as the test).
+Most misses are the model never proposing the paper's reaction (none of a route's reactions appears in any returned route for 18 of the 38 misses), not the order the routes are shown in. The stock decides a great deal: with the
+stock the application ships by default (ZINC, which sells some of the papers' own intermediates) the figure was 3 of 51, because a route that stops at a purchasable intermediate is a shorter valid route the exact rule cannot credit.
+**A route that differs from the paper's is the normal outcome, not a fault, and a missing paper route is not evidence that a plan is wrong:** a route made from the paper's own starting materials was among the first 10 for
+17 of the 51 targets, and for 10 of the 38 misses. What this cannot say: whether any route can be carried out (nothing was run); anything about long, hard or poorly documented routes (only 51 of the 190 papers qualified, and
+their chemistry is analogue-library chemistry of ordinary reaction types); other models. The 2017 papers are a few months after the training data and may hold similar chemistry, and the reference transcriptions were made by
+reader agents and re-read by a second, with 19 of the 51 resting on some inferred reactant. With 51 routes a subgroup (a journal, a year, a depth) supports a description and not a comparison.
+
+*Patent routes the model probably saw (protocols 1 and 2).* Before any of this was built, the planner was run on 300 seeded targets from PaRoutes' set-n1 (patent routes from US patents), with
 its own stock and a fixed search budget, twice: `benchmarks/synthesis/RESULT.md` (the planner's own order, at most 25 routes) and, after reading how the published figure is counted,
 `benchmarks/synthesis/RESULT_2.md` (every solved route, ranked as the application ranks them). It returned a route with every starting material in stock for 96.7% of them. It had the
 patent route among the **first 10 routes shown** for only **41.7%**: 81% where the patent route had 2 steps, 39% at 3, 4% at 4; it had it anywhere among all its solved routes for 54.7%,
 which is the most any ranking of them could reach. Counted the way PaRoutes publishes its top-10 (every route in the first ten score levels, a median of 37 routes here) the figure is 53.3%;
 that count is generous by construction and is not the one the application quotes. The first run's 37.3% was mostly this difference in counting (73% of the gap), then the number of
 routes asked for (21%), and only 6% the ranking. 51% of the first routes were *shorter* than the patent route, so the planner often finds routes the patent did not use; that is not the
-same as finding good ones. The public models were probably trained on these very reactions, so 41.7% is **not** a figure for how it does on a molecule it has not seen. What the
+same as finding good ones. The public models were probably trained on these very reactions, so 41.7% is **not** a figure for how it does on a molecule it has not seen, and **it is never quoted alone**:
+the routes from papers after the training data (above) are the figure for that. What the
 application therefore says is "internally consistent, repeatable proposals that often differ from known routes", never "known routes". The sentence is shown under every plan.
 
 **The numbers on a route are the planner's.** A policy probability is the model's score for a template, not a yield and not the chance a step works. A route score ranks the planner's search

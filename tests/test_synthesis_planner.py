@@ -834,18 +834,35 @@ def test_every_plan_carries_what_was_measured_about_the_planner_beside_the_stand
         assert host.BENCHMARK_FINDING in result.all_limitations()
 
 
-def test_the_benchmark_finding_says_only_what_the_result_file_says():
-    """The sentence is typed by hand, so each figure is held to `benchmarks/synthesis/RESULT_2.md` (protocol 2, whose M2 is the count of the first 10 routes shown), which a re-run would change."""
-    result_file = (Path(__file__).parent.parent / "benchmarks" / "synthesis" / "RESULT_2.md").read_text(encoding="utf-8")
+def test_the_benchmark_finding_says_only_what_the_result_files_say():
+    """The sentence is typed by hand, so each figure is held to the rows of the result file it comes from, which a re-run would change: protocol 3 (`RESULT_3.md`, routes after the model's training data, the figure to quote) and protocol 2 (`RESULT_2.md`, patent targets the model probably saw, whose M2 is the count of the first 10 routes shown)."""
+    bench = Path(__file__).parent.parent / "benchmarks" / "synthesis"
+    result_3 = (bench / "RESULT_3.md").read_text(encoding="utf-8")
+    result_2 = (bench / "RESULT_2.md").read_text(encoding="utf-8")
     finding = host.BENCHMARK_FINDING
-    # (the figure as the sentence writes it, the figure as the file writes it)
+    # protocol 3: (the figure as the sentence writes it, the figure as the file writes it)
+    for sentence, in_file in (
+        ("13 of 51 targets, 25.5% (95% interval 15.5% to 38.9%)", "13 of 51 = 0.255 (95% 0.155 to 0.389)"),
+        ("5 of 15 where", "| 1 | 15 | 5 (0.33) |"),
+        ("6 of 10 at 2 steps", "| 2 | 10 | 6 (0.60) |"),
+        ("2 of 14 at 3", "| 3 | 14 | 2 (0.14) |"),
+        ("0 of 12 at 4", "| 4 | 12 | 0 |"),
+        ("17 of the 51 targets", "| 13 | 13 | 15 | 15 | 17 | 43 |"),  # the primary stock's row: exact, lenient, M1, pool, a same-materials route in the first 10, solved
+    ):
+        assert sentence in finding and in_file in result_3, sentence
+    assert "LOWER" in result_3.splitlines()[0] and "lower than the planner's rate on patent routes" in finding, "the reading was LOWER than protocol 2's depth-matched rates and the sentence says so"
+    # protocol 2: the same rows as before, now the patent-target figure
     for sentence, in_file in (("96.7%", "**0.967** (290)"), ("41.7%", "**0.417 (125 of 300)**"), ("54.7%", "| 0.547 |")):
-        assert sentence in finding and in_file in result_file, sentence
+        assert sentence in finding and in_file in result_2, sentence
     # the depth figures are the file's table row by row: reference depth 2, 3 and 4, in the order M1 / M2 / pool
     for sentence, row in (("81%", "**0.86 / 0.81 / 0.86**"), ("39%", "**0.54 / 0.39 / 0.55**"), ("4% at 4", "**0.20 / 0.04 / 0.24**")):
-        assert sentence in finding and row in result_file, sentence
-    assert "51%" in finding and "the first route is shorter than the reference in 51%" in result_file
+        assert sentence in finding and row in result_2, sentence
+    assert "51%" in finding and "the first route is shorter than the reference in 51%" in result_2
     assert "37.3%" not in finding and "53.3%" not in finding, "protocol 1's figure is superseded and the PaRoutes count is not the one quoted"
     assert "first 10 routes it showed" in finding, "the figure is about the list a person is shown"
-    assert "300" in finding and "not as known routes" in finding and "probably trained on those same reactions" in finding, "the claim is narrowed and the contamination caveat is not dropped"
+    # the larger figure is never quoted alone, and the caveats stay
+    assert finding.index("13 of 51") < finding.index("41.7%"), "protocol 3's figure comes first"
+    assert "probably trained on those same reactions" in finding and "41.7% is not a figure for a molecule the model has not seen" in finding, "the contamination caveat is not dropped"
+    assert "not evidence that a plan is wrong" in finding and "normal outcome, not a fault" in finding, "a different or missing route is not a fault"
+    assert "feasibility was not measured" in finding and "not as known routes" in finding
     assert "known routes" in finding and "valid" not in finding.replace("internally consistent", ""), "never says a route is valid or feasible"
