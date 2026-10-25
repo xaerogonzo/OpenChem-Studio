@@ -4775,6 +4775,13 @@ FIXED: list[tuple[str, str, str, str, str]] = [
     ("D-375", "O=C1N=CN=C2N=C(C(=O)OC)N=C12", "methyl 6-oxo-6H-purine-8-carboxylate",
      "methyl 6-oxo-9H-purine-8-carboxylate",
      "a hypoxanthine drawn with no ring N-H kept the curated 9H, a hydrogen on N9 the drawing lacks (another tautomer); the indicated hydrogen is the oxo carbon's"),
+    # Naming round 84 (D-377, D-378; D-376 is a hang, tested in the round file).
+    ("D-377", "O=c1cc[nH]c2c1CC1(CC1)CC2", "spiro[5,6,7,8-tetrahydroquinoline-6,1'-cyclopropane]-4(1H)-one",
+     "[NAMING ERROR: No valid naming plan found for O=c1cc[nH]c2c1CC1(CC2)CC1]",
+     "a ring ketone on a pyridone-type component of a spiro system: the partner rebuilt without its =O could not be kekulized with the N-H on"),
+    ("D-378", "O=c1ccnc2n1CCC1(CCCCC1)C2", "spiro[6,7,8,9-tetrahydro-4H-pyrido[1,2-a]pyrimidine-8,1'-cyclohexane]-4-one",
+     "[NAMING ERROR: No valid naming plan found for O=c1ccnc2n1CCC1(CCCCC1)C2]",
+     "the same with a bridgehead nitrogen or a ring sulfur and no N-H to drop: the partner is built from the Kekule form, the carbon that held the =O a CH2"),
     # D-162, recorded OPEN in naming round 14 and closed by the same change: the same group in an ester's alcohol part. Its target was derived then and is what the fixed engine writes.
     ("D-162", "CC(=O)OCC(=O)N(O)C", "2-[hydroxy(methyl)amino]-2-oxoethyl acetate",
      "[(hydroxycarbamoyl)methyl]methyl acetate",
