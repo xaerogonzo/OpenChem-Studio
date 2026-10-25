@@ -1964,9 +1964,9 @@ runs, and the result says the measured error does not apply. Only what the proto
 its reason: a charged or radical species (the jobs are a neutral parent and a neutral doublet radical), a mixture,
 a molecule with no X-H bond, or an element the basis set lacks. A radical whose optimization keeps an imaginary vibration after one re-run gives that bond no value, and
 the result says which structure and why: thiyl radicals (an S-H bond) do this, so the window marks S-H bonds. If
-the hydrogen atom's own job fails, nothing can be computed and the run stops. The calculation is experimental
-until it has been driven through the application on real ORCA; it is hidden from the Properties launcher by
-default.
+the hydrogen atom's own job fails, nothing can be computed and the run stops. The calculation is marked **limited**:
+driven through the application on real ORCA it reproduces the benchmark's own numbers (and the same S-H with no
+value), and what limits it is the narrow scope above, the low bias, and the thiyl radicals.
 
 <!-- help:2d-correlation -->
 ### HSQC, HMBC and COSY — connectivity, not a simulated spectrum
