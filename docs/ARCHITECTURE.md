@@ -1073,17 +1073,22 @@ document may cite a file or a test that does not exist.
   covers the whole Settings window.
 
 
-- **OPEN** -- a salt with no single ChEMBL parent has no compound
-  properties. Round 5 scoped every calculator (`CalculatorScope`,
-  `chem/components.py`), and a compound property is computed on ChEMBL's
-  parent -- which does not exist when every component is a listed salt
-  (sodium acetate, NaCl, trisodium citrate) or none is (choline
-  salicylate). Those properties refuse with `MULTICOMPONENT_UNSUPPORTED`
-  rather than describe the ions together. The fix wanted is a rule for a
-  metal cation beside a listed organic anion (the organic ion is the
-  species meant), or a user-designated component; either needs a source or
-  an explicit choice, not a heuristic. See SCIENTIFIC_LIMITATIONS, "Salts,
-  hydrates and mixtures".
+- **SETTLED** (2026-10-25) -- a drawing with no single ChEMBL parent is
+  computed on its LARGEST component, re-neutralised, and labelled. Round 5
+  scoped every calculator (`CalculatorScope`, `chem/components.py`) and a
+  compound property is computed on ChEMBL's parent, which does not exist when
+  every component is a listed salt (sodium acetate, trisodium citrate) or none
+  is (choline salicylate); those used to refuse with
+  `MULTICOMPONENT_UNSUPPORTED`. `components._largest_component` now hands the
+  calculator the largest component by heavy atoms (re-neutralised the way
+  ChEMBL's own parent is), and `Selection.note` travels with every result as its
+  `caveat`, its first limitation and `component_choice` / `components_left_out`
+  in its record (a calculator with a coverage hook also reads "With limits"
+  before it is run; none of the sixteen has one yet). It is a guess at the
+  species meant and says so, loudest when the runner-up is within half its
+  size. Still refused: components of one size that are different species (NaCl),
+  and ChEMBL's metal exclusion. Not built: naming the component in the window.
+  See SCIENTIFIC_LIMITATIONS, "Salts, hydrates and mixtures".
 
 - **OPEN** -- a hydrate is refused by the pure-component methods.
   Solubility, Joback and Hansen are scoped `REFUSE_MULTICOMPONENT` because

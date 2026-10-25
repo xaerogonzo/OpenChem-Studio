@@ -160,7 +160,7 @@ class ApprovedOutput:
     measured_as: str = ""
     #: True when the producer measures EVERY fragment of the structure (Geometry Analysis's scope is the whole structure). A structure of several fragments (a salt, a hydrate) then has no shape of its
     #: own, because the embedder packs the pieces together at an arbitrary offset, and a score declines it. False for the always-on shape descriptors, which are computed on the ChEMBL parent compound
-    #: (`chem/components.py`) and refused by the producer when there is no single parent, so a salt is already handled where they are made.
+    #: (`chem/components.py`; the largest component, labelled, when there is no single parent, and a refusal when no component is larger), so a salt is already handled where they are made.
     whole_structure: bool = False
     #: True when the number reads BOND LENGTHS, which are a measurement only on a geometry a quantum calculation optimised: on a force-field conformer they are the force field's own (HOMA of naphthalene's rings is
     #: 0.94 on the MMFF94 conformer and 0.74 on an ORCA B3LYP/def2-SVP geometry). A score reads such a number only from a conformer whose method is a quantum optimisation (`conformer.QUANTUM_OPTIMIZED_METHODS`),
