@@ -1368,6 +1368,7 @@
   "tests/test_main_window_lewis_pairing.py": 2,
   "tests/test_main_window_menu_actions.py": 0,
   "tests/test_main_window_scores.py": 3,
+  "tests/test_marrero2001_groups.py": 3,
   "tests/test_marrero2001_table.py": 2,
   "tests/test_mass_spectrum.py": 1,
   "tests/test_mass_spectrum_calculators.py": 3,
