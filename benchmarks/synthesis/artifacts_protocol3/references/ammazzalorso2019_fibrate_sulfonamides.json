@@ -1,0 +1,12 @@
+{
+ "paper": "ammazzalorso2019_fibrate_sulfonamides",
+ "decision": "excluded",
+ "exclusion_reason": "no_lead_identifiable",
+ "exclusion_detail": "The abstract names no best or lead compound, only structural modifications. The results text calls fenofibrate derivative 18 a 'novel lead compound', but 18 was 'previously synthesised' (ref 30) so its route is not in this paper, and the docking section discusses several compounds (3, 18, 21, 22, 24) with no single featured one.",
+ "lead": {"label": "none (text calls 18 a lead, but outside the abstract)", "why": "Abstract: 'Structural modifications explored within this scaffold are: presence of an aryl ring on the sulphonamide, p-substitution...'; Results: 'we selected fenofibrate derivative 18 as a novel lead compound'."},
+ "target": null,
+ "reactions": [],
+ "alt_variants": [],
+ "other_qualifying_compounds": ["19", "21", "22", "26", "27"],
+ "notes": "No SI file. Explicit routes in the paper: 19-25 = fenofibric acid + p-substituted benzenesulphonamide, EDC/DMAP (1 step from fenofibric acid; the paper says the acid comes from hydrolysis of fenofibrate, no procedure given, so it would have to be treated as a purchased acid); 26 and 27 = 4-hydroxybenzophenone + ethyl bromoacetate / ethyl 2-bromovalerate with Na/EtOH, then NaOH hydrolysis, then EDC coupling with benzenesulphonamide (3 steps). Compounds 1-14 not examined."
+}

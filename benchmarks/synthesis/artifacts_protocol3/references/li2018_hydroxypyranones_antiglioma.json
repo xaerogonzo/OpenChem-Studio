@@ -1,0 +1,12 @@
+{
+ "paper": "li2018_hydroxypyranones_antiglioma",
+ "decision": "excluded",
+ "exclusion_reason": "route_not_explicit",
+ "exclusion_detail": "The text file is the accepted manuscript with no experimental section and no SI file. The aldehyde (R group) that gives lead 4a is not stated anywhere in the text layer (only in Scheme 1/Table 1 drawings), so its structure cannot be derived; the route itself would be short (allomaltol from kojic acid in 2 steps, then DABCO aldol with 0.5 eq aldehyde, 3 reactions) but is not transcribable without the structure.",
+ "lead": {"label": "4a", "why": "Abstract: 'Among these novel compounds, 4a exhibited promising anti-proliferative activity ... the most active compound (4a)'."},
+ "target": null,
+ "reactions": [],
+ "alt_variants": [],
+ "other_qualifying_compounds": [],
+ "notes": "General route (Scheme 1): kojic acid + SOCl2 (chloride), Zn/HCl reduction -> allomaltol (1, 5-hydroxy-2-methyl-4H-pyran-4-one); series II (4a-4f): allomaltol (1 eq) + aldehyde (0.5 eq), DABCO, dioxane:H2O 1:1, 50 C, 24 h. If the aldehyde of 4a could be read from the drawn Table 1/Scheme 1 it would be 3 reactions, but the first step uses a literature reference (ref 4) with no procedure in the paper."
+}

@@ -1,0 +1,21 @@
+{
+ "paper": "cetin2025_thiophene_derivatives_ache",
+ "decision": "route",
+ "exclusion_reason": null,
+ "exclusion_detail": "",
+ "lead": {"label": "3", "why": "Abstract: compound 3 was more cytotoxic and apoptotic than 5, bound AChE better by docking and inhibited AChE more effectively; conclusion: '3, which was synthesized for the first time ... seems to have potential in both cancer and Alzheimer's disease treatment'."},
+ "target": {"name": "3-bromo-2-(p-tolylethynyl)thiophene", "smiles": "Cc1ccc(C#Cc2sccc2Br)cc1"},
+ "reactions": [
+  {"step": 1,
+   "product": {"label": "3", "name": "3-bromo-2-(p-tolylethynyl)thiophene", "smiles": "Cc1ccc(C#Cc2sccc2Br)cc1"},
+   "reactants": [
+    {"label": "2,3-dibromothiophene", "name": "2,3-Dibromothiophene", "smiles": "Brc1ccsc1Br", "origin": "commercial"},
+    {"label": "4-ethynyltoluene", "name": "4-ethynyltoluene", "smiles": "C#Cc1ccc(C)cc1", "origin": "commercial"}
+   ],
+   "conditions": "Sonogashira: PdCl2(PPh3)2 (3 mol%), CuI (6 mol%), Et3N/THF 1:1, argon, 80 C, 12 h; Celite filtration, silica chromatography; 69 % (section 2.1.1). Section 3.1 says room temperature for 12 h instead of 80 C.",
+   "source": "Section 2.1.1 and 3.1 (Fig. 1) of the article; no SI used"}
+ ],
+ "alt_variants": [],
+ "other_qualifying_compounds": null,
+ "notes": "Single step. The paper does not say the two starting materials are purchased but uses them without preparation. Regiochemistry (alkynylation at C2 of 2,3-dibromothiophene) follows the printed product name. Temperature inconsistency between experimental (80 C) and results text (room temperature). Compound 5 (the second compound, 2 steps via 3) is not the lead."
+}

@@ -1,0 +1,16 @@
+{
+ "paper": "shen2019_oridonin_14_substituted",
+ "my_lead": "C7 - abstract: 'compound C7 ... exhibited the most potent anti-proliferative activity', also carried into the in vivo xenograft",
+ "lead_agrees": true,
+ "reactions": [
+  {"step": 1, "ok": true, "issue": "Oridonin (14-OH selectively) + 6-methoxyindole-2-carboxylic acid, EDCI/DMAP, CH2Cl2, 87% (4.1 general procedure, 4.1.19). Reactants right; EDCI/DMAP correctly omitted. SMILES: oridonin skeleton (ent-kaurane, 7,20-hemiketal, 1,6,14-OH, 15-one, 16-ene) checked atom by atom, C20H28O6; ester on C14; 6-OMe indole-2-carboxylate correct. Stereo omitted (flat)."}
+ ],
+ "leaf_issues": [
+  "6-Methoxyindole-2-carboxylic acid is NOT presented as purchased: C1-C9 use indole-2-acids 8a-8i, of which 8d-8i (6-F, 6-Cl, 6-Br, 6-OMe = 8g, 5,6-diOMe, 4,5,6-triOMe) are said to be 'obtained by condensation of different substituted benzaldehydes with ethyl-2-azidoacetate followed by cyclisation and hydrolysation of NaOH [51]' (Scheme 1 steps h, j, k). So the paper makes this acid (cites ref 51, no procedure given), contrary to origin 'commercial'.",
+  "Oridonin is a natural product ('initially isolated from various Isodon species'); the only supply statement is the general 'All chemicals were purchased from commercial source and used without further purification'."
+ ],
+ "step_count_ok": true,
+ "smiles_issues": [],
+ "overall": "minor_issues",
+ "notes": "The 1-step route (oridonin + acid) is chemically right, but by the paper's own text the acid is prepared in 3 steps from a benzaldehyde plus ethyl azidoacetate (condensation, thermolysis in xylene, NaOH hydrolysis), then the coupling = 4 steps, still within the limit. The benzaldehyde is not named (3-methoxybenzaldehyde is the chemically expected one, but Hemetsberger cyclisation could also give the 4-OMe isomer) and there is no procedure or yield for the acid in main text or SI (SI is spectra only). Either mark the acid as made/cited by the paper, or treat it as commercial only by outside knowledge (it is a catalogue chemical). Supporting sentence: 'Simultaneously, other substituted indole-2-acid intermediates 8d-8i were obtained by condensation of different substituted benzaldehydes with ethyl-2-azidoacetate followed by cyclisation and hydrolysation of NaOH [51].'"
+}

@@ -1,0 +1,12 @@
+{
+ "paper": "xu2019_aminopyrimidines_bace1",
+ "decision": "excluded",
+ "exclusion_reason": "route_not_explicit",
+ "exclusion_detail": "The article text has no experimental section (procedures, 1H NMR and HRMS are in the Supporting Information, which was not provided) and the substituents of 13g are only in the drawn Table 1/Scheme 4, not in the text layer. The scheme-level route (bromination, thiazole formation, chloroacetylation, preparation of thiol 12b, S-alkylation) would also be 5 reactions, i.e. over the 4-step limit.",
+ "lead": {"label": "13g", "why": "Abstract: 'The potency of the optimized compound, 13g (IC50 = 1.4 uM), was 26-fold greater than that of 1'."},
+ "target": null,
+ "reactions": [],
+ "alt_variants": [],
+ "other_qualifying_compounds": null,
+ "notes": "13g is a diaminopyrimidine (route via 12b, 4,6-diaminopyrimidine-2-thiol from malononitrile + thiourea + NaOEt) alkylated with a chloroacetamide 5 (from a 2-aminothiazole 4, from alpha-bromoketone 3, from ketone 2); the 3-methoxy R1 is on the aryl group but exact structure of 5 for 13g not stated in the text layer. Not transcribed."
+}

@@ -1,0 +1,12 @@
+{
+ "paper": "vandeplassche2020_nonnatural_amino_acids",
+ "decision": "excluded",
+ "exclusion_reason": "not_small_molecule_organic",
+ "exclusion_detail": "The featured probes (7, 8; probe 8 with pipecolinic acid at P2 is the paper's new selective cell-permeable probe) are tetrapeptide acyloxymethylketone activity-based probes with an azido-hexanoyl N-terminus and a BODIPY/fluorophore tag, assembled by peptide chemistry and click conjugation (Scheme 1 'General Synthesis Route of the New ABPs'), i.e. peptide-based conjugates.",
+ "lead": {"label": "probe 8", "why": "Abstract: the non-natural amino acid pipecolinic acid at P2 'leads to improved selectivity toward MALT1 and results in cell-permeable fluorescent probes'; the text calls out 'new probe 8' as the selective probe used in follow-up cell experiments."},
+ "target": null,
+ "reactions": [],
+ "alt_variants": [],
+ "other_qualifying_compounds": null,
+ "notes": "Lead identified from the discussion text (probe 8 vs probes 7 and 9), not from the abstract itself, which names no compound number. Not transcribed since it is a peptidic conjugate. No SI file in the bundle."
+}

@@ -1,0 +1,12 @@
+{
+ "paper": "kazlauskas2017_hsp90_thiadiazoles",
+ "decision": "excluded",
+ "exclusion_reason": "route_not_explicit",
+ "exclusion_detail": "The paper gives procedures only for the hydrazinecarboxylates 2 (ketone 1 + ethyl carbazate) and the Hurd-Mori cyclisation to the thiadiazoles 3 (SOCl2). The starting ketones 1 are said to be 'prepared via boron trifluoride diethyl etherate mediated reaction between commercially available 4-substituted benzene-1,3-diols and carboxylic acids [21, 22]' with no procedure or characterisation in this paper, so the first step is cited only. The abstract also names no single lead.",
+ "lead": {"label": "3fa (cyclopentylmethyl compound; named only in the Conclusion)", "why": "Conclusion: 'compound with cyclopentylmethyl moiety (3fa) performed best in both Hsp90 binding and cell growth inhibitory assays.' The abstract names no single compound (four compounds with Kd 0.6-0.8 nM)."},
+ "target": null,
+ "reactions": [],
+ "alt_variants": [],
+ "other_qualifying_compounds": [],
+ "notes": "No SI in the bundle. All 14 compounds 3 share the uncited-procedure ketone step, so none qualifies. Reading the lead as 3fa from the Conclusion is a judgement; the abstract-based rule would give no_lead_identifiable. Either way excluded."
+}

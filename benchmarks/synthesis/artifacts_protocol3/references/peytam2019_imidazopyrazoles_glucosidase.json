@@ -1,0 +1,22 @@
+{
+ "paper": "peytam2019_imidazopyrazoles_glucosidase",
+ "decision": "route",
+ "exclusion_reason": null,
+ "exclusion_detail": "",
+ "lead": {"label": "4j", "why": "Abstract: 'Among the synthesized compounds, the most potent compound was compound 4j with eightfold higher inhibitory activity compared to acarbose.'"},
+ "target": {"name": "Ethyl 3-(cyclohexylimino)-2-(4-hydroxy-3-methoxyphenyl)-6-phenyl-3H-imidazo[1,2-b]pyrazole-7-carboxylate", "smiles": "CCOC(=O)C1=C2N=C(c3ccc(O)c(OC)c3)C(=NC3CCCCC3)N2N=C1c1ccccc1"},
+ "reactions": [
+  {"step": 1,
+   "product": {"label": "4j", "name": "Ethyl 3-(cyclohexylimino)-2-(4-hydroxy-3-methoxyphenyl)-6-phenyl-3H-imidazo[1,2-b]pyrazole-7-carboxylate", "smiles": "CCOC(=O)C1=C2N=C(c3ccc(O)c(OC)c3)C(=NC3CCCCC3)N2N=C1c1ccccc1"},
+   "reactants": [
+    {"label": "1j (aldehyde, Ar = 4-hydroxy-3-methoxyphenyl)", "name": "", "smiles": "O=Cc1ccc(O)c(OC)c1", "origin": "commercial"},
+    {"label": "2", "name": "ethyl 3-amino-5-phenyl-1H-pyrazole-4-carboxylate", "smiles": "CCOC(=O)c1c(N)n[nH]c1-c1ccccc1", "origin": "commercial"},
+    {"label": "3 (isocyanide, R = cyclohexyl)", "name": "", "smiles": "[C-]#[N+]C1CCCCC1", "origin": "commercial"}
+   ],
+   "conditions": "One-pot three-component reaction: aldehyde (1 mmol), aminopyrazole 2 (1 mmol), isocyanide (1.2 mmol), NH4Cl (20 mol%), toluene (10 mL), reflux 8 h; evaporate, recrystallise from n-hexane. Yield 81%. Atmospheric oxidation implied (mechanism: 'under further oxidation').",
+   "source": "Main text, Chemistry section, Scheme 1, Experimental 'Procedure for the synthesis of imidazo[1,2-b]pyrazoles 4a-o' and compound 4j entry; no SI used"}
+ ],
+ "alt_variants": [],
+ "other_qualifying_compounds": null,
+ "notes": "The aldehyde and isocyanide for 4j are not named in the text; they were derived from the product name (4-hydroxy-3-methoxyphenyl at C2 and cyclohexylimino at C3), and the Table 1 drawing was not visible in the text layer. The paper states only generally that reagents were purchased from Sigma-Aldrich and Merck; aminopyrazole 2 has no preparation in the paper. Atom balance: C27H28N4O4 = aldehyde C8H8O3 + aminopyrazole C12H13N3O2 + isocyanide C7H11N - H2O - 2H (oxidation)."
+}

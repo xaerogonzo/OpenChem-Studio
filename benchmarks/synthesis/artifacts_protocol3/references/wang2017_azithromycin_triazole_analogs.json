@@ -1,0 +1,15 @@
+{
+ "decision": "excluded",
+ "exclusion_reason": "lead_route_over_4_steps",
+ "exclusion_detail": "Lead 9k (abstract: 'compound 9k was the most effective'). Route from azithromycin: Ac2O (2) -> CDI (5, acylimidazolide + 11,12-cyclic carbonate) -> propargylamine/DBU -> MeOH deacetylation (7) -> CuAAC with 2-chlorobenzyl azide (8k) -> 4-methoxybenzylamine/pyridine HCl (9k), plus preparation of the azide: at least 6 reactions.",
+ "lead": {
+  "label": "9k",
+  "why": "Abstract: 'Particularly, compound 9k was the most effective (0.06, 0.03 and 0.125 ug/mL) against all the erythromycin-resistant S. pneumoniae'."
+ },
+ "target": null,
+ "reactions": [],
+ "alt_variants": [],
+ "other_qualifying_compounds": [],
+ "notes": "Every target series needs azithromycin acetylation, CDI activation, carbamate formation, deacetylation and a triazole step (>=5). Azithromycin is purchased (Nexchem), so the exclusion is purely step count.",
+ "paper": "wang2017_azithromycin_triazole_analogs"
+}

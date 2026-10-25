@@ -1,0 +1,12 @@
+{
+ "paper": "wu2019_urat1_triazoles",
+ "decision": "excluded",
+ "exclusion_reason": "lead_route_over_4_steps",
+ "exclusion_detail": "Lead 1g (N-(pyridin-3-yl)sulfonamide) needs at least 5 reactions from the triazolethione 2: S-alkylation to 3, NBS bromination to 4, LiOH retro-Michael to 5, N-(pyridin-3-yl)chloromethanesulfonamide 9g from 3-aminopyridine (bis-sulfonylation then NaOH mono-desulfonation, 1 or 2 steps), and the final S-alkylation 5 + 9g -> 1g. Counting 8g separately and the preparation of 2 it is 7. Also compound 2 itself is only 'prepared from 1,4-dibromonaphthalene following known procedures' with no procedure in this paper or SI.",
+ "lead": {"label": "1g", "why": "The SAR exploration led to the discovery of a highly potent novel URAT1 inhibitor 1g, which was 225-fold more potent than the parent lesinurad (abstract)."},
+ "target": {"name": "1-((5-Bromo-4-((4-bromonaphth-1-yl)methyl)-4H-1,2,4-triazol-3-yl)thio)-N-(pyridin-3-yl)methanesulfonamide", "smiles": null},
+ "reactions": [],
+ "alt_variants": [],
+ "other_qualifying_compounds": [],
+ "notes": "Every compound in the series branches from intermediate 5, which depends on 2, whose preparation is by reference only, so no compound in the paper has a fully explicit route; hence []. Shortest series members (1d: 3,4,5,1d = 4 steps from 2) still rely on 2."
+}

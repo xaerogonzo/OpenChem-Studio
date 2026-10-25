@@ -1,0 +1,16 @@
+{
+ "paper": "balaramnavar2021_rohitukine_ptp1b",
+ "my_lead": "K5 - abstract: 'The most potent compound K5 was analyzed for antidiabetic and antidyslipidemic activity in vivo'",
+ "lead_agrees": true,
+ "reactions": [
+  {"step": 1, "ok": true, "issue": "The sulfonylation itself is transcribed correctly (RH + 2,4,6-trimethylbenzenesulfonyl chloride, pyridine/Et3N 6:2, DCM, 40 C, 68%; K5 name 'piperidin-3-yl 2,4,6-trimethylbenzenesulfonate' matches the SMILES; ESI-MS 488.2 (M+1) matches C25H29NO7S). The reaction is fine; the problem is its only complex precursor (see leaf_issues). No stereochemistry is given in the paper, so none is drawn; rohitukine is a chiral natural product so the SMILES is a stereo-undefined representation."}
+ ],
+ "leaf_issues": [
+  "Rohitukine (RH) is not a purchased material. The paper isolates it: Section 3.2 'Isolation of RH': 1 kg dried Dysoxylum binectariferum stem bark extracted with 95% ethanol, fractionated, F2 chromatographed on silica ('The fraction collected with 5% methanol: chloroform gave a single component, RH (yield = 1.2 g)'). The brief says to flag any leaf the paper itself isolates from a natural source. The transcription marks it made_here with no reaction, so the 'route' hides that the only leaf besides the commercial sulfonyl chloride is a natural-product isolation.",
+  "The sulfonyl chloride is only 'the required sulphonyl chlorides' / 'different substituted sulfonyl chlorides'. There is no explicit purchase statement anywhere; the 2,4,6-trimethylbenzenesulfonyl chloride identity for K5 is certain from the K5 name, but its commercial origin is by default."
+ ],
+ "step_count_ok": true,
+ "smiles_issues": [],
+ "overall": "reject",
+ "notes": "Reject as a planner test case. The only way to make K5 in this paper starts from a plant extract, not from commercial building blocks; counting RH as a leaf would credit a natural product that the paper itself isolates. If the maintainers decide rohitukine counts as a purchasable natural product (vendors do list it, but the paper does not say so), the route is a single, regiochemically questionable sulfonylation (three OH groups: two phenols and the secondary piperidinol; the paper asserts only the piperidin-3-yl sulfonate) and is not a meaningful multi-step test. Other cautions: the abstract's inhibition percentages (K2 51.3, K3 65.6, K5 71.9, K8 55.9) are inconsistent with Table 1 (K3 32.3, K8 55.2, K10 65.6), so the paper has internal inconsistencies, but K5 is the most potent by IC50 (6.43 uM) and by percentage in both, so the lead is safe. The paper's own 'Table 1' also lists ten analogues K1-K10 made by one general method."
+}

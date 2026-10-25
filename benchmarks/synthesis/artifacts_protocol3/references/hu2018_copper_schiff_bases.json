@@ -1,0 +1,12 @@
+{
+ "paper": "hu2018_copper_schiff_bases",
+ "decision": "excluded",
+ "exclusion_reason": "not_small_molecule_organic",
+ "exclusion_detail": "The featured compounds are three copper(II) coordination complexes (C1-C3) of quinoline Schiff-base ligands L1/L2; metal complexes are out of scope.",
+ "lead": {"label": "C1-C3 (copper(II) complexes)", "why": "Abstract: three copper(II) complexes [Cu(L1)(NO3)2] (C1), [Cu(L2)Cl2] (C2), [Cu(L2)SO4]2.H2O (C3) were designed and synthesized; no single best compound named."},
+ "target": null,
+ "reactions": [],
+ "alt_variants": [],
+ "other_qualifying_compounds": [],
+ "notes": "The free ligands L1/L2 (imines from quinoline-8-carbaldehyde and methyl/ethyl 4-aminobenzoate) are one-step but are not the featured compounds."
+}

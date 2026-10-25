@@ -1,0 +1,12 @@
+{
+ "paper": "khan2019_oxindole_chalcones",
+ "decision": "excluded",
+ "exclusion_reason": "route_not_explicit",
+ "exclusion_detail": "The paper is a bioassay report on compounds 1-20 whose syntheses and characterisation were published earlier (Taha et al. 2015); this paper gives only a three-sentence outline (6-chlorooxindole + 4-formylbenzoic acid, piperidine, then hydrazide formation, then condensation with acetophenones/aldehydes in AcOH) with no procedures, reagents list or the structure of any numbered compound in the text (structures are drawn in figures only).",
+ "lead": {"label": "1 (most potent, IC50 155.22 uM)", "why": "Abstract lists analogues 1, 3, 4, 5, 7 and 20 as potent, and names no single best; 1 has the lowest IC50 and is shown in Fig. 1, so it is the most defensible reading. Under a strict lead rule this is no_lead_identifiable instead."},
+ "target": null,
+ "reactions": [],
+ "alt_variants": [],
+ "other_qualifying_compounds": [],
+ "notes": "Text inconsistency: 'III' is named (E)-4-((5-chloro-2-oxoindolin-3-ylidene)methyl)benzoic acid while the starting material is 6-chlorooxindole and the next compound IV is the 6-chloro hydrazide. 'Prepared by a known methodology (Zhang 2002)' and 'detailed spectroscopic studies reported in our previous study (Taha 2015)'. No SI supplied."
+}

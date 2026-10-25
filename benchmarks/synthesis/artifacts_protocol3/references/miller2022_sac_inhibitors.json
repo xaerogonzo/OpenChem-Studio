@@ -1,0 +1,12 @@
+{
+ "paper": "miller2022_sac_inhibitors",
+ "decision": "excluded",
+ "exclusion_reason": "lead_route_over_4_steps",
+ "exclusion_detail": "The featured compound TDI-11861 (33) is made in Scheme 5 in about 10 reactions from ethyl 4-iodo-1H-pyrazole-3-carboxylate (THP protection, Grignard/aldehyde addition, TMSCl/NaI deoxygenation, N-difluoromethylation, Claisen-type keto-ester formation, guanidine condensation, POCl3, dihydroxylation, periodate cleavage, reductive amination; the SI also shows a THP removal), far above the 4-reaction limit.",
+ "lead": {"label": "33 (TDI-11861)", "why": "The abstract says the campaign identified sAC inhibitors with high potency, fast on and slow off rates; the paper's conclusions name TDI-11861 (33) as the optimised compound (Kd 3.3 nM vs 160 nM for TDI-10229, tested in vivo in mice)."},
+ "target": {"name": "[(3R)-4-[2-[2-[[3-(2-Amino-6-chloro-pyrimidin-4-yl)-1-(difluoromethyl)pyrazol-4-yl]methyl]phenoxy]ethyl]morpholin-3-yl]methanol", "smiles": null},
+ "reactions": [],
+ "alt_variants": [],
+ "other_qualifying_compounds": [],
+ "notes": "Schemes 1-5 of the main text and the SI experimental were read for 2, 4, 19, 20 and 33; all need 6 or more reactions. The SI analogues 5-14, 16-18 and 21-32 were not read individually; they share the same pyrazole ester, keto ester, aminochloropyrimidine sequence, so I expect none to be 4 steps or fewer, but I did not verify each."
+}

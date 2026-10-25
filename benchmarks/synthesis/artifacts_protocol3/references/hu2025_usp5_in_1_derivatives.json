@@ -1,0 +1,37 @@
+{
+ "paper": "hu2025_usp5_in_1_derivatives",
+ "decision": "route",
+ "exclusion_reason": null,
+ "exclusion_detail": "",
+ "lead": {"label": "1a", "why": "Abstract: 'compounds 1a and 1h exhibited enhanced inhibitory effects on USP5 ...'. Both are named together; 1a is taken because it has the lowest IC50 in Table 1 (4.38 uM vs 6.64 uM for 1h) and is listed first."},
+ "target": {"name": "Ethyl 2-(4-((4-(4-bromophenyl)piperidin-1-yl)sulfonyl)benzoyl)hydrazine-1-carboxylate", "smiles": "CCOC(=O)NNC(=O)c1ccc(cc1)S(=O)(=O)N1CCC(CC1)c1ccc(Br)cc1"},
+ "reactions": [
+  {"step": 1,
+   "product": {"label": "6a", "name": "", "smiles": "COC(=O)c1ccc(cc1)S(=O)(=O)N1CCC(CC1)c1ccc(Br)cc1"},
+   "reactants": [
+    {"label": "4", "name": "methyl 4-(chlorosulfonyl)benzoate", "smiles": "COC(=O)c1ccc(cc1)S(=O)(=O)Cl", "origin": "commercial"},
+    {"label": "5a", "name": "", "smiles": "Brc1ccc(cc1)C1CCNCC1", "origin": "commercial"}
+   ],
+   "conditions": "Et3N (2.0 eq), CH2Cl2, rt, 3 h; aqueous work-up gives a light yellow solid used directly.",
+   "source": "Section 4.1.1, general route for 1a-1j (main text p. 7-8); Scheme 1"},
+  {"step": 2,
+   "product": {"label": "7a", "name": "", "smiles": "NNC(=O)c1ccc(cc1)S(=O)(=O)N1CCC(CC1)c1ccc(Br)cc1"},
+   "reactants": [
+    {"label": "6a", "name": "", "smiles": "COC(=O)c1ccc(cc1)S(=O)(=O)N1CCC(CC1)c1ccc(Br)cc1", "origin": "made_here"},
+    {"label": "hydrazine", "name": "hydrazine hydrate", "smiles": "NN", "origin": "reagent"}
+   ],
+   "conditions": "Hydrazine hydrate (5 mL), EtOH, reflux 80 C, 2 h; product precipitates on cooling, washed with cold EtOH.",
+   "source": "Section 4.1.1; Scheme 1"},
+  {"step": 3,
+   "product": {"label": "1a", "name": "Ethyl 2-(4-((4-(4-bromophenyl)piperidin-1-yl)sulfonyl)benzoyl)hydrazine-1-carboxylate", "smiles": "CCOC(=O)NNC(=O)c1ccc(cc1)S(=O)(=O)N1CCC(CC1)c1ccc(Br)cc1"},
+   "reactants": [
+    {"label": "7a", "name": "", "smiles": "NNC(=O)c1ccc(cc1)S(=O)(=O)N1CCC(CC1)c1ccc(Br)cc1", "origin": "made_here"},
+    {"label": "ethyl chloroformate", "name": "ethyl chloroformate", "smiles": "CCOC(=O)Cl", "origin": "reagent"}
+   ],
+   "conditions": "Alkyl chloroformate (1.2 eq), DMAP (0.2 eq), THF, 0 C to rt, overnight; 92% (469.6 mg from 1.0 mmol).",
+   "source": "Section 4.1.1 and 4.1.1.1 (1a); Scheme 1"}
+ ],
+ "alt_variants": [],
+ "other_qualifying_compounds": null,
+ "notes": "The paper does not print names for intermediates 6a and 7a or for the aryl piperidine (general procedure with 'aryl cycloamine compounds'); the piperidine is inferred from the name of 1a (4-(4-bromophenyl)piperidin-1-yl) and 'all reagents from commercial suppliers'. Ethyl chloroformate is inferred from the ethyl carbamate in 1a's name; the generic text says 'corresponding alkyl chloroformate'. Step 1 and 2 products are not individually characterised. Lead is 1a or 1h by the abstract; 1a chosen on IC50."
+}

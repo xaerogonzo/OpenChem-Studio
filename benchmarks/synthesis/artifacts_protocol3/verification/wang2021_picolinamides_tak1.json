@@ -1,0 +1,17 @@
+{
+ "paper": "wang2021_picolinamides_tak1",
+ "my_lead": "38 - abstract: 'the most promising compound 38'",
+ "lead_agrees": true,
+ "reactions": [
+  {"step": 1, "ok": true, "issue": "2,4-dichloropyrimidine + piperidine, Et3N (base, omitted), MeOH, giving a 4-substituted 2-chloropyrimidine (the paper's 'key intermediates 8a-e'). The letter of the piperidine member is not printed (scheme is a drawing), but 38's name (4-(piperidin-1-yl)pyrimidin-2-yl) fixes it. C4 regiochemistry taken from the paper's wording."},
+  {"step": 2, "ok": true, "issue": "14e = 4-(4-aminophenoxy)-N-methylpicolinamide from 4-aminophenol + 12c with NaOH/Na2CO3, THF/H2O, 80 C, 6 h (text garbles NaOH as 'hydrogen sodium'). 12c is NEVER defined or prepared in the text (12a,b are the chlorothienopyrimidines); its identity as 4-chloro-N-methylpicolinamide is an inference from the product class (series 37-40 are N-methylpicolinamides)."},
+  {"step": 3, "ok": true, "issue": "14e + 8 (piperidine), p-TsOH, dioxane, 80 C, 12 h, 57.2% (section 4.8.22). Target SMILES matches the name N-methyl-4-(4-((4-(piperidin-1-yl)pyrimidin-2-yl)amino)phenoxy)picolinamide."}
+ ],
+ "leaf_issues": [
+  "12c (4-chloro-N-methylpicolinamide) is not printed anywhere in the text; marked commercial by inference. It is a standard catalogue chemical and the only consistent reading, but the paper gives no sentence about it beyond the general statement 'All the materials were obtained from commercial suppliers and used without purification, unless otherwise specified'."
+ ],
+ "step_count_ok": true,
+ "smiles_issues": [],
+ "overall": "minor_issues",
+ "notes": "3 steps, both branches start from commercial materials. Flag in the record that the 12c identity is inferred (the scheme is a drawing, not in the text layer). If the drawn scheme shows 12c as something else the route would change; that 14e is the picolinamide aryl ether is supported by the 37-40 names and the characterisation of 38."
+}

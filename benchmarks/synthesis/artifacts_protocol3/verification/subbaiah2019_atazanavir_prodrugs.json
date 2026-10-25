@@ -1,0 +1,19 @@
+{
+ "paper": "subbaiah2019_atazanavir_prodrugs",
+ "my_lead": "74 (L-Phe-Sar-1 dipeptide prodrug) - abstract: 'culminated in the discovery of the self-immolative L-Phe-Sar dipeptide derivative 74 that gave four-fold improved AUC'",
+ "lead_agrees": true,
+ "reactions": [
+  {"step": 1, "ok": true, "issue": "1 + Boc-Sar-OH (1.419 mmol vs 0.709 mmol = 2 equiv), DCC/DMAP not listed; product 35 matches ('2-((tert-butoxycarbonyl)(methyl)amino)acetate'); 64%. Atazanavir SMILES identical to the PubChem stereo-SMILES."},
+  {"step": 2, "ok": true, "issue": "35 + 4 N HCl/dioxane -> 45 (2HCl), 19% (Experimental, compound 45; Scheme 3 step b). Correct."},
+  {"step": 3, "ok": true, "issue": "45 + Boc-Phe-OH (0.471 mmol vs 0.236 = 2 equiv, one incorporated), HATU/DIPEA/DMF; 81%. Scheme 8 caption says CH2Cl2, procedure says DMF; irrelevant to reactants. L-configuration of Boc-Phe SMILES checked (S)."},
+  {"step": 4, "ok": true, "issue": "79 + 4 N HCl/dioxane -> 74 dihydrochloride, 98%. Correct."}
+ ],
+ "leaf_issues": [
+  "atazanavir (1): no sentence in the main text says it is purchased or how it was obtained; the Experimental Section only says 'Details of materials and general methods are provided in the Supporting Information'. It is a marketed drug (the intro says it was FDA-approved in 2003) but the paper itself gives no supply statement, and it is a many-step molecule that a planner could be asked to build; treat 'commercial' as an assumption, not a paper-supported fact.",
+  "Boc-Sar-OH and Boc-Phe-OH: no preparation anywhere in the paper; no explicit 'commercial' sentence in the main text either (only the pointer to SI materials). Standard reagents, acceptable."
+ ],
+ "step_count_ok": true,
+ "smiles_issues": [],
+ "overall": "minor_issues",
+ "notes": "Route is exactly as the paper describes: 1 -> 35 (Scheme 3a) -> 45 (Scheme 3b) -> 79 (Scheme 8b) -> 74 (Scheme 8c); text confirms 'prodrugs 74, 81, and 82 were prepared from the readily available Sar prodrug 45 in two steps'. 4 reactions from atazanavir. Only concern is that atazanavir itself is credited 'commercial' without a supporting sentence in the main text (SI not provided). Target is the dihydrochloride (paper isolates 74 as the 2HCl salt); SMILES carries .Cl.Cl, fine."
+}

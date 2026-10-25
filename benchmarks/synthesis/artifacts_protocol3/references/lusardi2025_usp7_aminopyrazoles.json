@@ -1,0 +1,12 @@
+{
+ "paper": "lusardi2025_usp7_aminopyrazoles",
+ "decision": "excluded",
+ "exclusion_reason": "route_not_explicit",
+ "exclusion_detail": "Lead 1d is made in one step from the 5-aminopyrazole intermediate 3a and 3-(trifluoromethyl)phenyl isocyanate, but 3a is 'prepared as previously reported' (ref. 24) with no procedure in this paper, and no SI is in the bundle.",
+ "lead": {"label": "1d", "why": "Abstract: 'Notably, 1d, bearing a meta-trifluoromethylphenyl group linked to the carbamate moiety, proved to be the most active candidate.'"},
+ "target": {"name": "Ethyl 5-Amino-1-(2-(((3-(Trifluoromethyl)Phenyl)Carbamoyl)Oxy)Propyl)-1H-Pyrazole-4-Carboxylate", "smiles": "CCOC(=O)c1cnn(CC(C)OC(=O)Nc2cccc(C(F)(F)F)c2)c1N"},
+ "reactions": [],
+ "alt_variants": [],
+ "other_qualifying_compounds": [],
+ "notes": "All compounds of the paper (1a-d, 2a-d) start from 3a/3b, both 'prepared as previously reported'; so none qualifies. Final step for reference: 3a + isocyanate, dry DMF, 100 C, 12 h, 43% for 1d."
+}

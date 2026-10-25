@@ -1,0 +1,12 @@
+{
+ "paper": "mardirossian2020_antibacterial_peptides",
+ "decision": "excluded",
+ "exclusion_reason": "not_small_molecule_organic",
+ "exclusion_detail": "Proline-rich antimicrobial peptides (Bac7(1-16) derivatives, e.g. B7-001 to B7-005) made by automated Fmoc solid-phase peptide synthesis; peptides are out of scope.",
+ "lead": {"label": "not selected (peptides)", "why": "Abstract names five new Bac7(1-16) derivatives without singling one out; paper is excluded as peptides."},
+ "target": null,
+ "reactions": [],
+ "alt_variants": [],
+ "other_qualifying_compounds": [],
+ "notes": ""
+}

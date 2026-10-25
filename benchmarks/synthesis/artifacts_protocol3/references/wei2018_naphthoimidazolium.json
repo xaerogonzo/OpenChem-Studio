@@ -1,0 +1,12 @@
+{
+ "paper": "wei2018_naphthoimidazolium",
+ "decision": "excluded",
+ "exclusion_reason": "lead_route_over_4_steps",
+ "exclusion_detail": "Lead 12b is made in 5 reactions from purchased 2,3-dichloro-1,4-naphthoquinone (Scheme 2): amination with 2-methoxyethylamine (8), N-acetylation (9), displacement with benzylamine (10a), HBr cyclisation to the 2-methylimidazolium (11a), then condensation with indole-3-carbaldehyde (12b).",
+ "lead": {"label": "12b", "why": "Abstract: '12b, which showed potent cytotoxicity against the three tested cell lines with IC50 values in the range of 0.06-0.21 uM ... compound 12b was chosen for further in-depth studies' (also the in vivo compound)."},
+ "target": null,
+ "reactions": [],
+ "alt_variants": [],
+ "other_qualifying_compounds": [],
+ "notes": "Series 7a-l (Scheme 1) needs 6 reactions (amination, acetylation, amine substitution, cyclisation, N-ethylation, aldehyde condensation) and its first two intermediates are 'known compounds prepared as previously published'; series 12a-g all share the 5-step route. Source: main text Scheme 2 and Experimental 4.2.2; no SI file."
+}

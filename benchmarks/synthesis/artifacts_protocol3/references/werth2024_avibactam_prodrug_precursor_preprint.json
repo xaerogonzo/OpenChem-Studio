@@ -1,0 +1,12 @@
+{
+ "paper": "werth2024_avibactam_prodrug_precursor_preprint",
+ "decision": "excluded",
+ "exclusion_reason": "route_not_explicit",
+ "exclusion_detail": "The lead is the novel aryl-OMe 2-methylbenzimidazole sulfonate analog the models predicted to have a higher DSC onset (119 C); the main text contains no experimental section, and says analog preparation is in the Supporting Information ('see Supporting Information for details'), which is not in the bundle (preprint, data-science paper). Its precursor (compound 1, a chlorosulfate) is also only 'previously disclosed'.",
+ "lead": {"label": "aryl-OMe 2-Me-benzimidazole analog (Fig. 6D)", "why": "Abstract: 'The resulting models were deployed to predict a novel analog with a higher onset temperature'; text: 'an aryl-OMe derivative was synthesized to test the model ... exhibited a higher DSC onset value of 119 C'."},
+ "target": null,
+ "reactions": [],
+ "alt_variants": [],
+ "other_qualifying_compounds": null,
+ "notes": "No procedures anywhere in the main text (checked the whole file: results/discussion and conclusion only). Structure of the lead is only a drawing (text layer gives no name), so not even the target could be written without guessing."
+}

@@ -1,0 +1,45 @@
+{
+ "paper": "song2021_triazole_quinolinones",
+ "decision": "excluded",
+ "exclusion_reason": "route_not_explicit",
+ "exclusion_detail": "Lead compound 7 (N-benzyl-4-(1,2,4-triazol-4-yl)aniline) is 'an accidental product' separated during the preparation of 5b; it has no procedure of its own (only a yield and spectra), the benzylating agent for 5b/7 is never named (general procedure uses R'X), and the paper does not say how the acetyl group is lost. Net 4a + benzyl halide -> 7 is the only reading, but it would be a guess for the reagent and mechanism.",
+ "lead": {"label": "7", "why": "Abstract: 'Especially compound 7 exhibited higher levels of efficacy than the reference standard fluoxetine in the FST and the tail suspension test' (also the featured compound in the open field test and the conclusions)."},
+ "target": {"name": "N-benzyl-4-(4H-1,2,4-triazol-4-yl)aniline", "smiles": "c1ccc(CNc2ccc(cc2)-n2cnnc2)cc1"},
+ "reactions": [
+  {"step": 1,
+   "product": {"label": "2a", "name": "", "smiles": "CC(=O)Nc1ccc(cc1)[N+](=O)[O-]"},
+   "reactants": [
+    {"label": "1", "name": "4-Nitroaniline", "smiles": "Nc1ccc(cc1)[N+](=O)[O-]", "origin": "commercial"},
+    {"label": "acetic anhydride", "name": "acetic anhydride", "smiles": "CC(=O)OC(C)=O", "origin": "reagent"}
+   ],
+   "conditions": "Ac2O (2 equiv), AcOH, 120 C, 6 h; poured into water; 86.8%.",
+   "source": "Section 3.1.1 (main text only, no SI)"},
+  {"step": 2,
+   "product": {"label": "3a", "name": "", "smiles": "CC(=O)Nc1ccc(N)cc1"},
+   "reactants": [
+    {"label": "2a", "name": "", "smiles": "CC(=O)Nc1ccc(cc1)[N+](=O)[O-]", "origin": "made_here"}
+   ],
+   "conditions": "NH2NH2.H2O, Pd/C, isopropanol, 80 C, 3 h; 82.8%.",
+   "source": "Section 3.1.3"},
+  {"step": 3,
+   "product": {"label": "4a", "name": "N-(4-(4H-1,2,4-triazol-4-yl)phenyl)acetamide", "smiles": "CC(=O)Nc1ccc(cc1)-n1cnnc1"},
+   "reactants": [
+    {"label": "3a", "name": "", "smiles": "CC(=O)Nc1ccc(N)cc1", "origin": "made_here"},
+    {"label": "triethyl orthoformate", "name": "triethyl orthoformate", "smiles": "CCOC(OCC)OCC", "origin": "reagent"},
+    {"label": "formylhydrazine", "name": "formylhydrazine", "smiles": "O=CNN", "origin": "reagent"}
+   ],
+   "conditions": "HC(OEt)3 (3 equiv), formylhydrazine (3 equiv), isopropanol (text) / EtOH (scheme), 90 C, 12 h; 78% (75% in characterisation).",
+   "source": "Section 3.1.4; Scheme 1 (iii)"},
+  {"step": 4,
+   "product": {"label": "7", "name": "N-benzyl-4-(4H-1,2,4-triazol-4-yl)aniline", "smiles": "c1ccc(CNc2ccc(cc2)-n2cnnc2)cc1"},
+   "reactants": [
+    {"label": "4a", "name": "N-(4-(4H-1,2,4-triazol-4-yl)phenyl)acetamide", "smiles": "CC(=O)Nc1ccc(cc1)-n1cnnc1", "origin": "made_here"},
+    {"label": "benzyl halide (halide not stated)", "name": "", "smiles": "BrCc1ccccc1", "origin": "reagent"}
+   ],
+   "conditions": "General alkylation: CH3ONa (2 equiv), TEBA (0.1 equiv), CH3CN, 60 C (text) / 80 C (scheme), 18 h. 7 was separated as a by-product alongside 5b (N-acetyl-N-benzyl, 26%); 7 isolated in 45%. Benzyl halide identity is an assumption (bromide by analogy with 1-bromopentane for 5a).",
+   "source": "Section 3.1.5 and characterisation of 7; Scheme 1 (iv)"}
+ ],
+ "alt_variants": [],
+ "other_qualifying_compounds": ["4a", "4b", "5a", "6a", "6e"],
+ "notes": "Main text only (no SI file; the text layer has the full experimental). Transcription is supplied although the paper is excluded, so a reviewer can overrule: it is a literal reading in which 7 comes from 4a in the benzylation step. Internal inconsistencies: solvent for step 3 (isopropanol in text, EtOH in scheme), temperature for alkylation (60 vs 80 C), 3a/4a yield numbers. other_qualifying: 4a is 3 steps; 5a (pentyl bromide) and 6a/6e (via 2b/3b/4b with propionic anhydride then alkyl halide) are 4 steps; 6e uses an unnamed benzyl halide too, so strictly only 4a, 4b and 5a (named 1-bromopentane) and 6a (propyl halide unnamed) are fully explicit; list is optimistic for 6a and 6e."
+}

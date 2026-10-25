@@ -1,0 +1,29 @@
+{
+ "paper": "staerz2022_proteasome_activators",
+ "my_lead": "19 - abstract names none; text: 'by far the most potent 20S proteasome activator', EC200 0.4 uM, used for the alpha-synuclein and A53T cell experiments",
+ "lead_agrees": true,
+ "reactions": [
+  {
+   "step": 1,
+   "ok": true,
+   "issue": ""
+  },
+  {
+   "step": 2,
+   "ok": true,
+   "issue": "Acryloyl chloride is labelled origin 'reagent'; it supplies the acryloyl atoms, so it is a real reactant and should be treated like a commercial leaf. Conditions: procedure says warm to rt, 12 h; Scheme 4 footnote and text say reflux 12 h (60% scheme vs 90% experimental)."
+  },
+  {
+   "step": 3,
+   "ok": true,
+   "issue": "Triton B correctly omitted (base catalyst). 2-chlorophenothiazine used in 2 equiv, incorporated once: listed once, correct."
+  }
+ ],
+ "leaf_issues": [
+  "The article has no statement anywhere that 4-fluoroaniline, 4-fluorophenylboronic acid, acryloyl chloride or 2-chlorophenothiazine were purchased (searching for purchase/commercial/supplier/reagent finds nothing; SI not supplied). Commodity chemicals prepared nowhere in the paper, so commercial by inference only. The Chan-Lam-Evans type coupling is 'previously reported' (ref 34) but the paper gives its own experimental (S2), so it is a made-here step, not a cited leaf."
+ ],
+ "step_count_ok": true,
+ "smiles_issues": [],
+ "overall": "minor_issues",
+ "notes": "Verified: Scheme 4 a/b/c = Chan-Lam (Cu(OAc)2, TEA, air, 4A MS, DCM, 48% scheme / 44% exptl), acylation with acryloyl chloride (60% / 90%), aza-Michael of 2-chlorophenothiazine onto 14 with Triton B in toluene (50% / 80%). 3 steps. SMILES: 2-chlorophenothiazine has Cl para to S (matches the CPZ 2-position), same pattern in target; N-CH2CH2-C(=O)N(4-FC6H4)2 correct. Edits needed: flag 'no explicit commercial-availability statement in the paper' and relabel acryloyl chloride as a commercial reactant."
+}

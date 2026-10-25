@@ -1,0 +1,12 @@
+{
+ "paper": "nirogi2018_heteroaromatic_amides",
+ "decision": "excluded",
+ "exclusion_reason": "lead_route_over_4_steps",
+ "exclusion_detail": "Lead 4o is a 1,3,4-oxadiazole from the pyrazolo[1,5-a]pyridine hydrazide 18 and an N-substituted lithium isonipecotate 14: acid A3 alone takes 3 steps (acylation of 2-picoline, N-amination/cyclisation, lithiation/CO2), then ester 17, hydrazide 18, N-alkylation 13, hydrolysis 14, POCl3 cyclisation: about 8 reactions.",
+ "lead": {"label": "4o", "why": "Abstract: 'compound 4o was identified as a potent 5-HT4R partial agonist with favorable ADME properties and good in vivo efficacy'."},
+ "target": null,
+ "reactions": [],
+ "alt_variants": [],
+ "other_qualifying_compounds": [],
+ "notes": "Experimental procedures are in the SI, which was not supplied; every series member needs more than 4 steps from commercial materials anyway."
+}

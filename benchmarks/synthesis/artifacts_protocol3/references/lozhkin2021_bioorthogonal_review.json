@@ -1,0 +1,12 @@
+{
+ "paper": "lozhkin2021_bioorthogonal_review",
+ "decision": "excluded",
+ "exclusion_reason": "no_synthesis_in_paper",
+ "exclusion_detail": "Review article (Bioorg. Med. Chem. 45, 116310) on bioorthogonal strategies for in vivo synthesis or release of drugs; no experimental synthesis of a lead compound.",
+ "lead": {"label": "none", "why": "Review article; no lead compound."},
+ "target": null,
+ "reactions": [],
+ "alt_variants": [],
+ "other_qualifying_compounds": null,
+ "notes": ""
+}

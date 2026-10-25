@@ -1,0 +1,14 @@
+{
+ "paper": "bai2021_thienodiazepine_pet",
+ "my_lead": "3a and 6a co-named (abstract: 'identified two compounds, 3a and 6a, as potent BET inhibitors'); 6a is the one carried into PK/metabolism work",
+ "lead_agrees": "co-named",
+ "reactions": [
+  {"step": 1, "ok": true, "issue": "JQ1 carboxylic acid (1, 0.25 mmol) + diol (0.38 mmol, 1.5 equiv) with cat. p-TSA in CHCl3 -> 5a, 55.1%. Diethylene glycol correct for the 2-(2-hydroxyethoxy)ethyl ester; incorporated once. p-TSA correctly not listed. Temperature differs (Scheme 1: 50 C, 24 h; procedure: rt overnight) but irrelevant to reactants."},
+  {"step": 2, "ok": true, "issue": "5a + DAST (10 equiv), CH2Cl2, -78 C to rt -> 6a, 56.1%. DAST supplies the F atom so listing it is correct (its origin is labelled 'reagent' rather than 'commercial'; fine if the schema allows)."}
+ ],
+ "leaf_issues": [],
+ "step_count_ok": true,
+ "smiles_issues": [],
+ "overall": "confirmed",
+ "notes": "Text: 'commercially available (+)-JQ1 carboxylic acid (1) was chosen as the starting material'; Materials: 'All reagents and solvents were obtained from commercial sources, Sigma-Aldrich and Thermo Fisher'. JQ1-acid SMILES chirality hand-checked as (S) (N > triazole C > CH2 > H), matching the paper's (S) names; thienotriazolodiazepine ring and 2,3,9-trimethyl/4-chlorophenyl pattern correct. 6a SMILES = 5a with terminal OH replaced by F, correct. Two reactions from commercial. Caveat: the abstract's actual PET probe is [18F]6a (radiolabelled in a separate two-step Scheme 2); the transcription targets non-radioactive 6a, which the paper does isolate and characterise (56.1%, HPLC purity 98.1%), so this is acceptable. 6a is a co-lead with 3a (3a = same chemistry with ethylene glycol, 66.3%)."
+}

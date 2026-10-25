@@ -1,0 +1,12 @@
+{
+ "paper": "rong2022_non_nucleoside_inhibitors",
+ "decision": "excluded",
+ "exclusion_reason": "lead_route_over_4_steps",
+ "exclusion_detail": "Lead compound 41 (S-enantiomer, 6-aryl-4-(tetrahydropyridinyl)pyrrolo[2,3-d]pyrimidine) needs 7 reactions from commercial 4-chloro-7H-pyrrolo[2,3-d]pyrimidine (55a): N-sulfonylation (72), iodination with HI/NaI (73), C6 bromination (74), N-desulfonylation (75), Suzuki with Boc-tetrahydropyridine boronate then Boc removal (76), Mitsunobu to the boronic ester 71c, final Suzuki to 41.",
+ "lead": {"label": "41", "why": "Abstract: SAR exploration and metabolic stability optimization led to the discovery of compound 41 as a potent PRMT5 inhibitor with good selectivity."},
+ "target": {"name": "(S)-6-(4-(1-Phenylethoxy)phenyl)-4-(1,2,3,6-tetrahydropyridin-4-yl)-7H-pyrrolo[2,3-d]pyrimidine", "smiles": "C[C@H](Oc1ccc(cc1)-c1cc2c(ncnc2[nH]1)C1=CCNCC1)c1ccccc1"},
+ "reactions": [],
+ "alt_variants": [],
+ "other_qualifying_compounds": ["12", "13", "14", "15"],
+ "notes": "Route read from Scheme 6 and Experimental (compounds 72, 73, 74, 75, 76, 71c, 41); no SI file for this paper. other_qualifying_compounds: Scheme 1 compounds 12-15 are made in 2 steps (N-alkylation of 55a / 6-chloropurine with RBr and NaH to 56a-d, then NH3 amination in a sealed tube); 56a-d have explicit procedures. I did not check every other compound in Schemes 2-5, so the list may be incomplete."
+}

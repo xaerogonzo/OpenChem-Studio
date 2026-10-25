@@ -1,0 +1,12 @@
+{
+ "paper": "makhaeva2019_trifluorobutanoates_cholinesterase",
+ "decision": "excluded",
+ "exclusion_reason": "no_lead_identifiable",
+ "exclusion_detail": "The abstract names four compounds equally (geraniol ester 3d and adamantol ester 3e as hCES2 inhibitors; borneol 3f and isoborneol 3g as hCES1 inhibitors), and the follow-up work (kinetics, docking) covers 3d-g together. No single best, lead or featured compound is named, so the lead rule gives none.",
+ "lead": {"label": "none (3d, 3e, 3f, 3g named together)", "why": "Abstract: 'Esters of geraniol (3d) and adamantol (3e) proved to be highly active and selective inhibitors of hCES2... esters of borneol (3f) and isoborneol (3g) were more active and selective against hCES1.'"},
+ "target": null,
+ "reactions": [],
+ "alt_variants": [],
+ "other_qualifying_compounds": ["3a", "3c", "3d", "3e", "3f"],
+ "notes": "All members of the series share a short route: ethyl 4,4,4-trifluoro-3-oxobutanoate + alcohol (toluene, Dean-Stark) then LiH gives lithium enolate 2, then azo coupling with tolyldiazonium chloride gives 3 (about 2-3 reactions, in main text section 2.3 with named compounds, no SI procedure needed). Caveats if a looser rule is used: the diazonium salt preparation is only 'standard procedure [37]' (not explicit), and the transesterification and lithium-salt formation is described as one procedure for 2a-j (one pot or two steps is ambiguous). 3a is the hexyl ester, 3b is insoluble and was not tested. I listed the compounds with explicit named procedures; 3h-j not listed (3j is the cholesterol ester, 3h/3i the menthyl esters; they are equally short)."
+}

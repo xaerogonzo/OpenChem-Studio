@@ -1,0 +1,39 @@
+{
+ "paper": "pant2018_hepsin",
+ "decision": "route",
+ "exclusion_reason": null,
+ "exclusion_detail": "",
+ "lead": {
+  "label": "53",
+  "why": "Abstract: 'In progressing from the initial hit 7 to compound 53, the IC50 value against hepsin was improved from ~1 uM to 22 nM, and the selectivity over urokinase-type plasminogen activator (uPA) was increased from 30-fold to >6000-fold.'"
+ },
+ "target": {
+  "name": "(R)-N-(4-Carbamimidoylphenyl)-2-((4-methylphenyl)sulfonamido)-2-phenylacetamide",
+  "smiles": "Cc1ccc(cc1)S(=O)(=O)N[C@H](c1ccccc1)C(=O)Nc1ccc(cc1)C(N)=N"
+ },
+ "reactions": [
+  {
+   "step": 1,
+   "product": {"label": "sulfonamide intermediate", "name": "", "smiles": "Cc1ccc(cc1)S(=O)(=O)N[C@H](c1ccccc1)C(=O)O"},
+   "reactants": [
+    {"label": "(R)-phenylglycine", "name": "", "smiles": "N[C@H](c1ccccc1)C(=O)O", "origin": "commercial"},
+    {"label": "TsCl", "name": "4-methylbenzene-1-sulfonyl chloride", "smiles": "Cc1ccc(cc1)S(=O)(=O)Cl", "origin": "commercial"}
+   ],
+   "conditions": "As written for 33: amino acid dissolved in aqueous NaOH (2.1 equiv, as the sodium salt), sulfonyl chloride (1.1 equiv) in MeCN added dropwise, stirred overnight; then EtOAc / 1 N HCl extraction and evaporation to the crude sulfonamide (not purified or characterised).",
+   "source": "Main article, Experimental: 'Synthesis of Noncommercial Compounds from Table 6 in Batch Mode' (procedure written out for 33; 'Compounds 48, 52, and 53 were prepared using an analogous method to compound 33'); Scheme 1"
+  },
+  {
+   "step": 2,
+   "product": {"label": "53", "name": "(R)-N-(4-Carbamimidoylphenyl)-2-((4-methylphenyl)sulfonamido)-2-phenylacetamide", "smiles": "Cc1ccc(cc1)S(=O)(=O)N[C@H](c1ccccc1)C(=O)Nc1ccc(cc1)C(N)=N"},
+   "reactants": [
+    {"label": "sulfonamide intermediate", "name": "", "smiles": "Cc1ccc(cc1)S(=O)(=O)N[C@H](c1ccccc1)C(=O)O", "origin": "made_here"},
+    {"label": "4-aminobenzamidine", "name": "4-aminobenzimidamide", "smiles": "Nc1ccc(cc1)C(N)=N", "origin": "commercial"}
+   ],
+   "conditions": "HATU (1 equiv) in NMP added to the acid, 10 min; then 4-aminobenzamidine dihydrochloride with DIPEA (1 equiv) in NMP; 80 C, 20 min, microwave; reverse-phase preparative HPLC; 53 isolated as the formic acid salt, white solid, 21 mg, 7%.",
+   "source": "Main article, Experimental (procedure of 33, and the 53 entry); Scheme 1 (HATU coupling to aminoamidine 18)"
+  }
+ ],
+ "alt_variants": [],
+ "other_qualifying_compounds": null,
+ "notes": "The route for 53 is given only by analogy to the written-out procedure for 33 ('analogous method'); the 53 entry has no reagent list, so the use of (R)-phenylglycine is inferred from the product name and from 33 using (R)-cyclohexylglycine. The CIP label is unchanged between acid, sulfonamide and amide (priorities N > C(=O) > aryl > H), so the amino acid is (R)-phenylglycine (D-phenylglycine); the paper does not discuss racemisation. 4-Aminobenzamidine is used as its dihydrochloride (SMILES given as free base); the product is isolated as the formic acid salt and the target SMILES is the neutral amidine. The intermediate acid has no printed name. Reagents were 'purchased from commercial suppliers'. The Supporting Information (which the paper says has full details) was not available. 7% overall yield for the last step."
+}

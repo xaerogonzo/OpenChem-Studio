@@ -1,0 +1,12 @@
+{
+ "paper": "iftikhar2017_dihydropyrimidine_urease",
+ "decision": "excluded",
+ "exclusion_reason": "route_not_explicit",
+ "exclusion_detail": "Lead 5a (isatin Schiff base of the 3-bromophenyl thioxo-DHPM carbohydrazide) is made from 2i (hydrazinolysis of the DHPM ester 1i) plus 6-hydroxyisatin, but the DHPM ester 1i itself is only 'synthesized by our previously reported method [24]' (Section 4.1; Scheme 1 hints at SnCl2/ultrasound but gives no procedure, reagents or amounts). The aryl-aldehyde / thiourea / ethyl acetoacetate Biginelli step is therefore not described in this paper.",
+ "lead": {"label": "5a", "why": "Abstract: 'isatin Schiff base derivative 5a (0.23 mM)', the most potent urease inhibitor, also the compound shown in the docking figure as 'the most active compound 5a'."},
+ "target": null,
+ "reactions": [],
+ "alt_variants": [],
+ "other_qualifying_compounds": [],
+ "notes": "Every compound in the paper starts from DHPM esters 1a-i prepared by the cited earlier method, so none has an explicit complete route here. 5a's own steps (Section 4.2 hydrazinolysis in n-butanol, 4.5 condensation with 6-hydroxyindoline-2,3-dione) are described; only the Biginelli ester is missing."
+}

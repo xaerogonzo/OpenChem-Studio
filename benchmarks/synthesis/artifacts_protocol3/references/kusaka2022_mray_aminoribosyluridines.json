@@ -1,0 +1,12 @@
+{
+ "paper": "kusaka2022_mray_aminoribosyluridines",
+ "decision": "excluded",
+ "exclusion_reason": "lead_route_over_4_steps",
+ "exclusion_detail": "The abstract names no single compound; rule 2 gives analogue 6 (5'-ethyl), the most potent MraY inhibitor of the new analogues (IC50 4.5 uM) and the only one with antibacterial activity (M. abscessus). Its route from the LNA/BNA uridine 7 (which is itself 'prepared by 13 steps from D-glucose', cited, not described here) takes well over 4 reactions (three-step protecting-group sequence to 8, TFA to 9, IBX oxidation, ethynyl addition to 13, hydrogenation to 14, ribosylation, azide reduction, deprotections). All analogues 1, 4, 5, 6 are likewise long.",
+ "lead": {"label": "6", "why": "Abstract names no compound; in the text 6 'showed 10- and 5-fold stronger inhibitory activity compared to 1 and 2' (IC50 4.5 uM) and is the only analogue with antibacterial activity (M. abscessus MIC50 32 ug/mL)."},
+ "target": null,
+ "reactions": [],
+ "alt_variants": [],
+ "other_qualifying_compounds": [],
+ "notes": "Whichever of 1, 4, 5, 6 is taken as lead, the route is far over 4 steps and starts from a 13-step precursor 7 not prepared in this paper."
+}

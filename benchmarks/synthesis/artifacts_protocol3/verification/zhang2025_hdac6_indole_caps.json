@@ -1,0 +1,17 @@
+{
+ "paper": "zhang2025_hdac6_indole_caps",
+ "my_lead": "10n (abstract: 'finally identified compound 10n ... as the most potent HDAC6 inhibitor')",
+ "lead_agrees": true,
+ "reactions": [
+  {"step": 1, "ok": true, "issue": "Indole-3-carboxylic acid (7a) + methyl 4-(aminomethyl)benzoate hydrochloride, EDCI/HOBT/Et3N, DCM -> NH-indole amide ester (8). SI 1.6 says 'commercially available indole-3-carboxylic acid 7a-g'. Label '8a' is the transcriber's: the paper has 7a-g (7 acids) but 8a-i (9 amides) and never says which of them is the unsubstituted one; the structure is fixed by 10n having no ring substituent (NMR: only 4 benzo H and C2-H)."},
+  {"step": 2, "ok": true, "issue": "N-alkylation of 8 with a halide, KOH, DMF, rt (SI 1.7) -> 9. The paper does not name the halide ('different bromine-, chlorine-, iodide-substituted reagents'); the cyclopropylmethyl group is certain from 10n's name and NMR (4.08 d, 0.57, 0.42), the bromide is an assumption that does not change the product. Alternative Cu conditions apply only to inert halides."},
+  {"step": 3, "ok": true, "issue": "Methyl ester + NH2OH (50% aq.)/NaOH, DCM:MeOH 1:2, then formic acid to pH 5-6 -> hydroxamic acid 10n, 67% (SI 1.8.14). Hydroxylamine supplies N and O, so listing it is right."}
+ ],
+ "leaf_issues": [
+  "(Bromomethyl)cyclopropane is not named in the paper (halide identity inferred); commercial status rests on 'all of the solvents and reagents were bought from commercial companies' (SI 1.1)."
+ ],
+ "step_count_ok": true,
+ "smiles_issues": [],
+ "overall": "minor_issues",
+ "notes": "3 steps; route stands. Edit/flag: record the alkyl halide as an inferred reagent (the paper only says 'corresponding bromine-, chlorine-, iodide-substituted reagents') and the intermediate labels 8a/9n as the transcriber's. Supporting sentence for the acid: SI 1.6 'commercially available indole-3-carboxylic acid 7a-g (5 mmol)'; for the amine: methyl 4-(aminomethyl)benzoate hydrochloride is named in Scheme 3 step a and falls under SI 1.1. Main text also notes 10n was reported previously (ref 30), which does not affect the route. SMILES for 7a, the amine, 8, 9 and 10n all checked and correct (indole N1 substituted, C3 carboxamide, para-hydroxamic acid benzyl)."
+}

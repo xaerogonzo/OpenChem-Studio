@@ -1,0 +1,22 @@
+{
+ "paper": "kausar2017_spirooxindoles_green",
+ "decision": "route",
+ "exclusion_reason": null,
+ "exclusion_detail": "",
+ "lead": {"label": "6a", "why": "Abstract names no best compound ('the cytotoxic activity of one of the isoxazole-fused spirooxindoles was evaluated in MDA-MB 468'); the text says 'compound 6a was arbitrarily chosen to examine the cytotoxic activity', so 6a is the compound of the paper's only follow-up (biological) experiment (lead rule 2)."},
+ "target": {"name": "3'-phenyl-5'H-spiro[indoline-3,4'-isoxazolo[4',5':5,6]pyrido[2,3-d]pyrimidine]-2,5',7'(6'H,8'H,9'H)-trione", "smiles": "O=C1Nc2ccccc2C13C4=C(ON=C4c5ccccc5)NC6=C3C(=O)NC(=O)N6"},
+ "reactions": [
+  {"step": 1,
+   "product": {"label": "6a", "name": "3'-phenyl-5'H-spiro[indoline-3,4'-isoxazolo[4',5':5,6]pyrido[2,3-d]pyrimidine]-2,5',7'(6'H,8'H,9'H)-trione", "smiles": "O=C1Nc2ccccc2C13C4=C(ON=C4c5ccccc5)NC6=C3C(=O)NC(=O)N6"},
+   "reactants": [
+    {"label": "1", "name": "isatin", "smiles": "O=C1Nc2ccccc2C1=O", "origin": "commercial"},
+    {"label": "2", "name": "6-aminouracil", "smiles": "Nc1cc(=O)[nH]c(=O)[nH]1", "origin": "commercial"},
+    {"label": "5", "name": "3-phenylisoxazolone", "smiles": "O=C1CC(c2ccccc2)=NO1", "origin": "commercial"}
+   ],
+   "conditions": "Three-component domino reaction: isatin (1 mmol), 6-aminouracil (1 mmol), 3-phenylisoxazolone (1 mmol) in ethyl L-lactate (3 mL), room temperature, no catalyst, 60 min; precipitate filtered, washed with water; yield 95%.",
+   "source": "Results text p. 8 (Scheme 3, Table 4 entry 1) and General procedure, Experimental"}
+ ],
+ "alt_variants": [],
+ "other_qualifying_compounds": null,
+ "notes": "Structure of 6a is not drawn in the text layer; the SMILES is derived from the printed name (positions 3'-phenyl, 5',7'-dione = uracil carbonyls, 6',8',9'-NH) and the standard Knoevenagel/Michael/cyclodehydration mechanism (isoxazolone C4 attached to the spiro carbon, isoxazolone C5 bearing O and bonded to the ring NH), formula C21H13N5O4 = isatin + aminouracil + phenylisoxazolone - 2 H2O. Please check OPSIN agreement; the fusion nomenclature is awkward. Reagent purchase: the paper only says 'synthetic grade chemicals from Sigma-Aldrich, Spectrochem and E-Merck were used'; 3-phenylisoxazolone has no preparation in the paper. Name of the isoxazolone is as printed in the scheme/table text ('3-phenylisoxazolone', also '3-phenyl isoxazolone'). The 6-aminouracil is printed '6-amino uracil'."
+}

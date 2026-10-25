@@ -1,0 +1,34 @@
+{
+ "paper": "thumma2024_ibuprofen_benzoxazoles",
+ "my_lead": "7h - abstract: 7h active against MCF-7 AND MDA-MB-231 (7j only MCF-7); 7h is the docked 'best active compound'",
+ "lead_agrees": true,
+ "reactions": [
+  {
+   "step": 1,
+   "ok": true,
+   "issue": "Ibuprofen + resorcinol, fused ZnCl2, 130/140 C -> ketone 3 (Nencki acylation). Paper calls 3 'a reported compound' but gives the procedure here, so made-here is right. Ibuprofen is the free acid; SMILES correct."
+  },
+  {
+   "step": 2,
+   "ok": true,
+   "issue": "3 + HNO3/AcOH (1:1), <30 C, 7 h, 65% -> 5-nitro compound 4; nitro position (between the OH groups' ring carbons, C5) verified against name and SMILES."
+  },
+  {
+   "step": 3,
+   "ok": true,
+   "issue": "4: Na2S2O4 in MeOH/H2O reflux (nitro -> amine, not isolated), then KOH + CS2 (3 eq) reflux 65 C 6 h -> 2-mercaptobenzoxazole 5, 75%. Regiochemistry (5-acyl-6-hydroxy) verified. Dithionite and KOH correctly not listed. Caveat: two chemical transformations in one procedure, see notes."
+  },
+  {
+   "step": 4,
+   "ok": true,
+   "issue": "5 + 3-(trifluoromethyl)benzyl bromide (6h, 1 eq), DIPEA, DMF, rt 1 h, 81% -> 7h. SMILES has CF3 meta, matches name."
+  }
+ ],
+ "leaf_issues": [
+  "Ibuprofen, resorcinol, 3-(trifluoromethyl)benzyl bromide: supported only by 'All synthetic reagents, catalysts, and solvents were bought from commercial vendors Merck, Spectrochem, TCI, SDFine, and Avra chemicals'. The benzyl bromide is not named in the text (derived from 7h's name). No natural-source or doubled-reagent problems."
+ ],
+ "step_count_ok": true,
+ "smiles_issues": [],
+ "overall": "minor_issues",
+ "notes": "Step count is 4 only if the nitro reduction + CS2 cyclisation is counted as one step, as the paper does (single 'Synthesis of 5' procedure, no numbered aminophenol; main text: 'Compound 4 was refluxed with Na2S2O4 ... followed by the addition of CS2 and KOH'). The abstract, however, lists 'nitration, reduction, and condensation-cyclization' as separate reactions; counted that way the route is 5 steps and fails the 4-step limit. Maintainer should flag the one-pot step (or accept it by the paper's own numbering). Also, the 13C data printed for 7g (2-CF3) and 7h (3-CF3) are almost identical (apparent copy-paste), so the CF3 regiochemistry rests on the name and the stated reagent '(3-trifluoromethyl)benzyl'. Racemic ibuprofen/product, no stereo stated."
+}

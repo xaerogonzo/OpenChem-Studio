@@ -1,0 +1,12 @@
+{
+ "paper": "surase2017_mycobacterial_atp_synthase",
+ "decision": "excluded",
+ "exclusion_reason": "no_lead_identifiable",
+ "exclusion_detail": "The abstract names three compounds equally ('compounds 14a, 14b and 24a with improved activity against MTb.H37Rv') and no single best/lead compound; there is no single main follow-up compound either (7n is highlighted for logD/solubility, 'selected compounds' for CYP). Independently, each candidate route (14a, 14b: 5 steps in Scheme 2; 24a: 5 steps in Scheme 4; hit 1 and 7n: 5 steps in Scheme 1) exceeds 4 reactions, so no choice would have produced a route.",
+ "lead": {"label": "none (14a, 14b, 24a named together)", "why": "Abstract: 'A scaffold hopping approach was used to identify compounds 14a, 14b and 24a with improved activity against MTb.H37Rv.'"},
+ "target": null,
+ "reactions": [],
+ "alt_variants": [],
+ "other_qualifying_compounds": [],
+ "notes": "Looked at all series: Scheme 1 (hit 1, 7a-7n) is 5 steps from commercial diethyl pyrazole-3,5-dicarboxylate (alkylation, azide, Staudinger cyclisation, AlMe3 amidation, N-benzylation); Scheme 2 (14a/b) 'over five steps'; Scheme 3 (18a/b) 6 steps; Scheme 4 (24a/b) 'five steps'. None is 4 or fewer, hence other_qualifying_compounds is empty."
+}

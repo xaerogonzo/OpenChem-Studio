@@ -1,0 +1,109 @@
+{
+ "paper": "aida2018_piperazinyl_pyrrolidinones",
+ "decision": "route",
+ "exclusion_reason": null,
+ "exclusion_detail": "",
+ "lead": {
+  "label": "(R)-3t",
+  "why": "Abstract: 'we identified a potent and reversible MAGL inhibitor, compound (R)-3t. Oral administration of compound (R)-3t to mice decreased AA levels and elevated 2-AG levels in the brain.'"
+ },
+ "target": {
+  "name": "(R)-1-[3-Fluoro-5-(2-methylpyridin-3-yl)phenyl]-4-[4-(pyrimidin-2-yl)piperazin-1-yl]pyrrolidin-2-one (racemate; the (R) enantiomer is separated by chiral HPLC, not a reaction)",
+  "smiles": "Cc1ncccc1-c1cc(F)cc(c1)N1CC(CC1=O)N1CCN(CC1)c1ncccn1"
+ },
+ "reactions": [
+  {
+   "step": 1,
+   "product": {
+    "label": "9b",
+    "name": "4-[4-(Pyrimidin-2-yl)piperazin-1-yl]dihydrofuran-2(3H)-one",
+    "smiles": "O=C1CC(CO1)N1CCN(CC1)c1ncccn1"
+   },
+   "reactants": [
+    {
+     "label": "1-(pyrimidin-2-yl)piperazine",
+     "name": "",
+     "smiles": "C1CN(CCN1)c1ncccn1",
+     "origin": "commercial"
+    },
+    {
+     "label": "8",
+     "name": "2(5H)-furanone",
+     "smiles": "O=C1C=CCO1",
+     "origin": "commercial"
+    }
+   ],
+   "conditions": "Michael addition: piperazine and 2(5H)-furanone in MeOH, 0 C to rt, overnight (procedure of 9a: 'similar procedure'); 85%.",
+   "source": "Scheme 2 (a); Experimental, 9a procedure and 9b ('similar procedure to 9a', 85%)"
+  },
+  {
+   "step": 2,
+   "product": {
+    "label": "10d",
+    "name": "N-(3-Bromo-5-fluorophenyl)-4-hydroxy-3-[4-(pyrimidin-2-yl)piperazin-1-yl]butanamide",
+    "smiles": "OCC(CC(=O)Nc1cc(F)cc(Br)c1)N1CCN(CC1)c1ncccn1"
+   },
+   "reactants": [
+    {
+     "label": "9b",
+     "name": "4-[4-(Pyrimidin-2-yl)piperazin-1-yl]dihydrofuran-2(3H)-one",
+     "smiles": "O=C1CC(CO1)N1CCN(CC1)c1ncccn1",
+     "origin": "made_here"
+    },
+    {
+     "label": "3-bromo-5-fluoroaniline",
+     "name": "",
+     "smiles": "Nc1cc(F)cc(Br)c1",
+     "origin": "commercial"
+    }
+   ],
+   "conditions": "Aluminium-mediated lactone aminolysis: aniline, DABAL-Me3, toluene, 80 C, 1 h (procedure of 10b); 73%. The aniline is not named in the text; derived from the product name 10d.",
+   "source": "Scheme 2 (b); Experimental, 10b and 10d"
+  },
+  {
+   "step": 3,
+   "product": {
+    "label": "11c",
+    "name": "1-(3-Bromo-5-fluorophenyl)-4-[4-(pyrimidin-2-yl)piperazin-1-yl]pyrrolidin-2-one",
+    "smiles": "O=C1CC(CN1c1cc(F)cc(Br)c1)N1CCN(CC1)c1ncccn1"
+   },
+   "reactants": [
+    {
+     "label": "10d",
+     "name": "N-(3-Bromo-5-fluorophenyl)-4-hydroxy-3-[4-(pyrimidin-2-yl)piperazin-1-yl]butanamide",
+     "smiles": "OCC(CC(=O)Nc1cc(F)cc(Br)c1)N1CCN(CC1)c1ncccn1",
+     "origin": "made_here"
+    }
+   ],
+   "conditions": "Intramolecular Mitsunobu cyclisation (amide N-alkylation): ADDP, tri-n-butylphosphine, THF, 0 C to rt, overnight (procedure of 3i); 65%.",
+   "source": "Scheme 2 (c); Experimental, 3i and 11c ('similar procedure to 3i')"
+  },
+  {
+   "step": 4,
+   "product": {
+    "label": "3t (racemate)",
+    "name": "1-[3-Fluoro-5-(2-methylpyridin-3-yl)phenyl]-4-[4-(pyrimidin-2-yl)piperazin-1-yl]pyrrolidin-2-one",
+    "smiles": "Cc1ncccc1-c1cc(F)cc(c1)N1CC(CC1=O)N1CCN(CC1)c1ncccn1"
+   },
+   "reactants": [
+    {
+     "label": "11c",
+     "name": "1-(3-Bromo-5-fluorophenyl)-4-[4-(pyrimidin-2-yl)piperazin-1-yl]pyrrolidin-2-one",
+     "smiles": "O=C1CC(CN1c1cc(F)cc(Br)c1)N1CCN(CC1)c1ncccn1",
+     "origin": "made_here"
+    },
+    {
+     "label": "2-methylpyridin-3-ylboronic acid",
+     "name": "",
+     "smiles": "Cc1ncccc1B(O)O",
+     "origin": "commercial"
+    }
+   ],
+   "conditions": "Suzuki-Miyaura coupling: boronic acid, (A-taPhos)2PdCl2, Cs2CO3, toluene/water, 100 C, microwave (procedure of 3l); 78%. The boronic acid is not named in the text; derived from the product structure.",
+   "source": "Scheme 2 (e); Experimental, 3l and 3t ('similar procedure to 3l', 78%)"
+  }
+ ],
+ "alt_variants": [],
+ "other_qualifying_compounds": null,
+ "notes": "No SI file. Counted as 4 chemical reactions (steps 1-4) plus one chiral separation (step 5, not a reaction); if a reviewer counts the resolution, the route is 5 and the paper must be excluded as over 4. Stereo-SMILES (R) derived by hand: [C@@H] in the written order (CH2C=O, H, N-piperazine, CH2N) is R (priorities N > CH2N > CH2C=O > H). Aniline and boronic acid reagents are inferred from product names, not printed. Substrate 1-(pyrimidin-2-yl)piperazine is not named (procedure by analogy with 9a, whose piperazine is named); the paper says all reagents are from commercial sources. The stereocentre arises only at step 1 (racemic). | EDITED 2026-10-24: step 5 (chiral HPLC resolution) removed, target is the racemate."
+}

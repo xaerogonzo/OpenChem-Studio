@@ -1,0 +1,44 @@
+{
+ "paper": "deng2017_benzothiazepines_acyliminium",
+ "decision": "route",
+ "exclusion_reason": null,
+ "exclusion_detail": "",
+ "lead": {"label": "1 (7-methoxy-2,3,4,5-tetrahydrobenzo[f][1,4]thiazepine)", "why": "Abstract: 'We report an efficient and scalable synthesis of 7-methoxy-2,3,4,5-tetrahydrobenzo[1,4]thiazepine ... proceeding via acyliminum cyclization, gives the target product in four steps and 68% overall yield'; the process paper's target API building block and model product."},
+ "target": {"name": "7-Methoxy-2,3,4,5-tetrahydrobenzo[f][1,4]thiazepine", "smiles": "COc1ccc2SCCNCc2c1"},
+ "reactions": [
+  {"step": 1,
+   "product": {"label": "2", "name": "2-(4-Methoxyphenylthio)ethanamine", "smiles": "COc1ccc(SCCN)cc1"},
+   "reactants": [
+    {"label": "4-methoxythiophenol", "name": "4-Methoxythiophenol", "smiles": "COc1ccc(S)cc1", "origin": "commercial"},
+    {"label": "2-chloroethylamine", "name": "2-chloroethylamine hydrochloride", "smiles": "NCCCl", "origin": "commercial"}
+   ],
+   "conditions": "K2CO3 (1.6 equiv), N,N-diisopropylethylamine (0.07 equiv), anhydrous THF, reflux under argon, 16 h; acid/base extraction. 95% yield.",
+   "source": "Experimental section, '2-(4-Methoxyphenylthio)ethanamine (2)'; text says 4-methoxythiophenol is commercially available"},
+  {"step": 2,
+   "product": {"label": "4a", "name": "Benzyl 2-(4-methoxyphenylthio)ethylcarbamate", "smiles": "COc1ccc(SCCNC(=O)OCc2ccccc2)cc1"},
+   "reactants": [
+    {"label": "2", "name": "2-(4-Methoxyphenylthio)ethanamine", "smiles": "COc1ccc(SCCN)cc1", "origin": "made_here"},
+    {"label": "Cbz-Cl", "name": "benzyl chloroformate", "smiles": "O=C(Cl)OCc1ccccc1", "origin": "reagent"}
+   ],
+   "conditions": "NaHCO3 (1.5 equiv), water/DCM, 0 C then rt, 2 h. 89% yield.",
+   "source": "Experimental section, 'Benzyl 2-(4-methoxyphenylthio)ethylcarbamate (4a)'"},
+  {"step": 3,
+   "product": {"label": "5a", "name": "Benzyl 7-methoxy-2,3-dihydrobenzo[f][1,4]thiazepine-4(5H)-carboxylate", "smiles": "COc1ccc2SCCN(Cc2c1)C(=O)OCc1ccccc1"},
+   "reactants": [
+    {"label": "4a", "name": "Benzyl 2-(4-methoxyphenylthio)ethylcarbamate", "smiles": "COc1ccc(SCCNC(=O)OCc2ccccc2)cc1", "origin": "made_here"},
+    {"label": "paraformaldehyde", "name": "paraformaldehyde", "smiles": "C=O", "origin": "reagent"}
+   ],
+   "conditions": "p-TsOH (0.3 equiv), paraformaldehyde (10 equiv, added in 5 portions over 5 h), toluene, 70 C, 16 h; N-acyliminium (Pictet-Spengler type) cyclization. 84% yield.",
+   "source": "Experimental section, 'Benzyl 7-methoxy-2,3-dihydrobenzo[f][1,4]thiazepine-4(5H)-carboxylate (5a)'"},
+  {"step": 4,
+   "product": {"label": "1", "name": "7-Methoxy-2,3,4,5-tetrahydrobenzo[f][1,4]thiazepine", "smiles": "COc1ccc2SCCNCc2c1"},
+   "reactants": [
+    {"label": "5a", "name": "Benzyl 7-methoxy-2,3-dihydrobenzo[f][1,4]thiazepine-4(5H)-carboxylate", "smiles": "COc1ccc2SCCN(Cc2c1)C(=O)OCc1ccccc1", "origin": "made_here"}
+   ],
+   "conditions": "33% HBr in acetic acid, DCM, rt, 1 h; Cbz removal; isolated as the hydrobromide salt (96%). Free base written as the target.",
+   "source": "Experimental section, '7-Methoxy-2,3,4,5-tetrahydrobenzo[f][1,4]thiazepine hydrobromide (1-HBr salt)'"}
+ ],
+ "alt_variants": [],
+ "other_qualifying_compounds": null,
+ "notes": "Target is isolated as the HBr salt; the free base is the compared structure. Names of 2 and 4a are as printed in the Experimental headings; 5a and the target names are the printed headings (target without 'hydrobromide'). 2-Chloroethylamine is supplied as the hydrochloride (written as free amine). Atom balance for step 3 checked: C17H19NO3S + CH2O -> C18H19NO3S + H2O (HRMS [M+H]+ C18H20NO3S found). The paper's own count is 4 steps and 68% overall (95 x 89 x 84 x 96 = 68%), matching this transcription."
+}

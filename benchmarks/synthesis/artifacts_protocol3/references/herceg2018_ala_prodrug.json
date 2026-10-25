@@ -1,0 +1,12 @@
+{
+ "paper": "herceg2018_ala_prodrug",
+ "decision": "excluded",
+ "exclusion_reason": "lead_route_over_4_steps",
+ "exclusion_detail": "The paper reports a single new compound, the glucuronide prodrug Glu-ALA-Hex, made in 7 steps (Scheme 1, section 2.2: 'synthesized in 7-steps') from D-glucuronolactone.",
+ "lead": {"label": "Glu-ALA-Hex", "why": "We have designed and synthesized a new prodrug of ALA-Hex ... The glucuronide prodrug Glu-ALA-Hex demonstrates excellent stability ... (abstract); it is the only final compound."},
+ "target": {"name": "Glu-ALA-Hex", "smiles": null},
+ "reactions": [],
+ "alt_variants": [],
+ "other_qualifying_compounds": [],
+ "notes": "Only one target compound in the paper; intermediates 1-3 etc. are not the lead."
+}

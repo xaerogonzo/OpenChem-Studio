@@ -1,0 +1,13 @@
+{
+ "paper": "peery2020_survivin",
+ "my_lead": "7I - abstract: 'We found one compound, 7I, that is more active than the parent compound, LQZ-7 ... can be used as a lead'",
+ "lead_agrees": true,
+ "reactions": [
+  {"step": 1, "ok": true, "issue": "General procedure for 7I/7J: 2,3-dichloroquinoxaline (1.0 equiv, 200 mg, 1.0 mmol) + aniline (2.2 equiv) in EtOH reflux 16 h; 7I made 'using method A from commercially available (1) and 4-Fluoroaniline (2)', 52% yield. Two anilines incorporated, listed twice as required. MS C20H15F2N4 [M+H]+ 349.2 matches the target formula. No base/solvent listed."}
+ ],
+ "leaf_issues": [],
+ "step_count_ok": true,
+ "smiles_issues": [],
+ "overall": "minor_issues",
+ "notes": "Route stands (1 step, both leaves commercial). Flag only: the paper contradicts itself on the starting material. The Chemical Synthesis prose says 'commercially available 1,4-dihydro-2,3-quinoxalinedione (1, Figure 1C) ... Treating (1) with 4-fluoroaniline (2) ... in reflux ethanol afforded 7I', but the general procedure and the 7I entry say 'commercially available 2,3-dichloroquinoxaline (1)' (200 mg, 1.0 mmol). The chlorine reading is the only chemically sensible one (EtOH reflux, no activator, for a double SNAr) and agrees with the quantities, so the transcription is right, but the maintainer should note the dione wording in the prose. Commercial support: 'Starting materials and reagents were used as received from commercial suppliers' and 'commercially available 2,3-dichloroquinoxaline (1)'. 4-Fluoroaniline: same general statement. SI is figures only (no extra chemistry). 7F (from an earlier study) is co-mentioned as a lead of a different scaffold in the conclusion, but the abstract names 7I; no issue."
+}

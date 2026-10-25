@@ -1,0 +1,12 @@
+{
+ "paper": "domanski2022_imidazolium_ionic_liquids",
+ "decision": "excluded",
+ "exclusion_reason": "no_lead_identifiable",
+ "exclusion_detail": "Process-chemistry paper on a microwave flow reactor. The abstract and title name no compound; about 20 imidazolium salts are made as examples of the method. The model substrate [BMIM]Br (1-butyl-3-methylimidazolium bromide, from 1-methylimidazole and 1-bromobutane, one step, 150 C in MeCN) is the paper's optimisation and 1 kg scale-up case, but it is a model reaction, not a lead or featured product, and the experimental procedures are in an SI that was not supplied.",
+ "lead": {"label": "none ([BMIM]Br is the model substrate)", "why": "Abstract: 'synthesize alkyl imidazolium salts as ionic liquids/ionic liquid precursors in up to near-quantitative yields, 100-600 g/h'; no single compound named."},
+ "target": null,
+ "reactions": [],
+ "alt_variants": [],
+ "other_qualifying_compounds": ["[BMIM]Br (1 step: 1-methylimidazole + 1-bromobutane)"],
+ "notes": "If the caller wants to treat [BMIM]Br as the rule-2 'main follow-up' compound (it is the compound of Tables 2, 7 and Figure 6), the route is trivially one reaction: 1-methylimidazole (CN1C=CN=C1) + 1-bromobutane (CCCCBr) -> CCCCN1C=C[N+](C)=C1.[Br-], neat or in MeCN, 150 C, 2.1 min residence time in AFT microwave flow, 97.5% (Table 2 entry 4). The printed name is the abbreviation [BMIM]Br; the full name 1-butyl-3-methylimidazolium bromide appears only in references. Only the main text was available, no SI. I decided not to apply rule 2 because the paper reports many equal substrates."
+}

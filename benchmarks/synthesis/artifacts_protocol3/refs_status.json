@@ -1,0 +1,1522 @@
+{
+ "wurz2017_click_protacs": {
+  "batch": "1",
+  "decision": "excluded",
+  "reason": "lead_route_over_4_steps",
+  "steps": null,
+  "tier": null,
+  "verify": null
+ },
+ "chrovian2017_triazolopyridine_cycloaddition": {
+  "batch": "1",
+  "decision": "excluded",
+  "reason": "lead_route_over_4_steps",
+  "steps": null,
+  "tier": null,
+  "verify": null
+ },
+ "pant2018_hepsin": {
+  "batch": "1",
+  "decision": "route",
+  "reason": null,
+  "steps": 2,
+  "tier": "A",
+  "verify": "confirmed"
+ },
+ "hou2018_ghrelin_pet": {
+  "batch": "1",
+  "decision": "excluded",
+  "reason": "lead_route_over_4_steps",
+  "steps": null,
+  "tier": null,
+  "verify": null
+ },
+ "wesche2018_backbone_amide_linking": {
+  "batch": "1",
+  "decision": "excluded",
+  "reason": "not_small_molecule_organic",
+  "steps": null,
+  "tier": null,
+  "verify": null
+ },
+ "peng2018_quindoline_styryl": {
+  "batch": "1",
+  "decision": "excluded",
+  "reason": "route_not_explicit",
+  "steps": null,
+  "tier": null,
+  "verify": null
+ },
+ "nirogi2018_heteroaromatic_amides": {
+  "batch": "1",
+  "decision": "excluded",
+  "reason": "lead_route_over_4_steps",
+  "steps": null,
+  "tier": null,
+  "verify": null
+ },
+ "qian2018_d2_mglu5_bivalent": {
+  "batch": "1",
+  "decision": "excluded",
+  "reason": "lead_route_over_4_steps",
+  "steps": null,
+  "tier": null,
+  "verify": null
+ },
+ "fu2018_aspartate_analogues": {
+  "batch": "1",
+  "decision": "excluded",
+  "reason": "no_lead_identifiable",
+  "steps": null,
+  "tier": null,
+  "verify": null
+ },
+ "aida2018_piperazinyl_pyrrolidinones": {
+  "batch": "1",
+  "decision": "route",
+  "reason": null,
+  "steps": 4,
+  "tier": "B",
+  "verify": "minor_issues"
+ },
+ "li2018_alpha7_pams": {
+  "batch": "1",
+  "decision": "route",
+  "reason": null,
+  "steps": 3,
+  "tier": "B",
+  "verify": "minor_issues"
+ },
+ "vogerl2019_phenothiazine_hydroxamic_acids": {
+  "batch": "1",
+  "decision": "excluded",
+  "reason": "route_not_explicit",
+  "steps": null,
+  "tier": null,
+  "verify": null
+ },
+ "beneker2019_braf_type_iv": {
+  "batch": "1",
+  "decision": "excluded",
+  "reason": "not_small_molecule_organic",
+  "steps": null,
+  "tier": null,
+  "verify": null
+ },
+ "romagnoli2019_thienopyrimidines": {
+  "batch": "1",
+  "decision": "excluded",
+  "reason": "route_not_explicit",
+  "steps": null,
+  "tier": null,
+  "verify": null
+ },
+ "covaleda2019_m14_carboxypeptidase": {
+  "batch": "1",
+  "decision": "excluded",
+  "reason": "not_small_molecule_organic",
+  "steps": null,
+  "tier": null,
+  "verify": null
+ },
+ "subbaiah2019_atazanavir_prodrugs": {
+  "batch": "1",
+  "decision": "route",
+  "reason": null,
+  "steps": 4,
+  "tier": "B",
+  "verify": "minor_issues"
+ },
+ "karki2019_factor_d": {
+  "batch": "1",
+  "decision": "route",
+  "reason": null,
+  "steps": 4,
+  "tier": "B",
+  "verify": "minor_issues"
+ },
+ "kronenberg2019_spirocyclic_benzopyrans": {
+  "batch": "1",
+  "decision": "excluded",
+  "reason": "lead_route_over_4_steps",
+  "steps": null,
+  "tier": null,
+  "verify": null
+ },
+ "jorgensen2019_shld_derivatives": {
+  "batch": "1",
+  "decision": "excluded",
+  "reason": "no_lead_identifiable",
+  "steps": null,
+  "tier": null,
+  "verify": null
+ },
+ "wang2019_tasin_analogues": {
+  "batch": "1",
+  "decision": "route",
+  "reason": null,
+  "steps": 1,
+  "tier": "A",
+  "verify": "confirmed"
+ },
+ "cerchia2019_naphthylphenylketones": {
+  "batch": "1",
+  "decision": "excluded",
+  "reason": "lead_route_over_4_steps",
+  "steps": null,
+  "tier": null,
+  "verify": null
+ },
+ "krieger2019_peptoid_hdac": {
+  "batch": "1",
+  "decision": "excluded",
+  "reason": "route_not_explicit",
+  "steps": null,
+  "tier": null,
+  "verify": null
+ },
+ "peery2020_survivin": {
+  "batch": "1",
+  "decision": "route",
+  "reason": null,
+  "steps": 1,
+  "tier": "B",
+  "verify": "minor_issues"
+ },
+ "mugnaini2020_pyrazolopyridine_carboxamides": {
+  "batch": "1",
+  "decision": "excluded",
+  "reason": "lead_route_over_4_steps",
+  "steps": null,
+  "tier": null,
+  "verify": null
+ },
+ "mardirossian2020_antibacterial_peptides": {
+  "batch": "1",
+  "decision": "excluded",
+  "reason": "not_small_molecule_organic",
+  "steps": null,
+  "tier": null,
+  "verify": null
+ },
+ "mackie2020_ntmt1_inhibitors": {
+  "batch": "1",
+  "decision": "excluded",
+  "reason": "not_small_molecule_organic",
+  "steps": null,
+  "tier": null,
+  "verify": null
+ },
+ "wang2020_quinazolinone_blm": {
+  "batch": "1",
+  "decision": "excluded",
+  "reason": "route_not_explicit",
+  "steps": null,
+  "tier": null,
+  "verify": null
+ },
+ "wang2020_anti_hcv_guanosine": {
+  "batch": "1",
+  "decision": "excluded",
+  "reason": "lead_route_over_4_steps",
+  "steps": null,
+  "tier": null,
+  "verify": null
+ },
+ "guo2020_triaryl_amines": {
+  "batch": "1",
+  "decision": "excluded",
+  "reason": "lead_route_over_4_steps",
+  "steps": null,
+  "tier": null,
+  "verify": null
+ },
+ "huang2019_fungal_hsp90": {
+  "batch": "1",
+  "decision": "excluded",
+  "reason": "no_lead_identifiable",
+  "steps": null,
+  "tier": null,
+  "verify": null
+ },
+ "mendez2019_positive_allosteric_modulators": {
+  "batch": "1",
+  "decision": "excluded",
+  "reason": "lead_route_over_4_steps",
+  "steps": null,
+  "tier": null,
+  "verify": null
+ },
+ "vandeplassche2020_nonnatural_amino_acids": {
+  "batch": "1",
+  "decision": "excluded",
+  "reason": "not_small_molecule_organic",
+  "steps": null,
+  "tier": null,
+  "verify": null
+ },
+ "mills2020_chiro_inositol": {
+  "batch": "1",
+  "decision": "excluded",
+  "reason": "lead_route_over_4_steps",
+  "steps": null,
+  "tier": null,
+  "verify": null
+ },
+ "yin2021_anti_gm3_vaccine": {
+  "batch": "1",
+  "decision": "excluded",
+  "reason": "not_small_molecule_organic",
+  "steps": null,
+  "tier": null,
+  "verify": null
+ },
+ "hao2021_acyclic_nucleosides": {
+  "batch": "1",
+  "decision": "route",
+  "reason": null,
+  "steps": 1,
+  "tier": "A",
+  "verify": "confirmed"
+ },
+ "cheruku2021_erlotinib_chlorins": {
+  "batch": "1",
+  "decision": "excluded",
+  "reason": "route_not_explicit",
+  "steps": null,
+  "tier": null,
+  "verify": null
+ },
+ "chi2021_aurora_myc": {
+  "batch": "1",
+  "decision": "excluded",
+  "reason": "lead_route_over_4_steps",
+  "steps": null,
+  "tier": null,
+  "verify": null
+ },
+ "ge2021_gaq_uveal_melanoma": {
+  "batch": "1",
+  "decision": "excluded",
+  "reason": "lead_route_over_4_steps",
+  "steps": null,
+  "tier": null,
+  "verify": null
+ },
+ "liu2021_ezh2_protacs": {
+  "batch": "1",
+  "decision": "excluded",
+  "reason": "lead_route_over_4_steps",
+  "steps": null,
+  "tier": null,
+  "verify": null
+ },
+ "rajpandey2021_galloyl_flavanones": {
+  "batch": "1",
+  "decision": "route",
+  "reason": null,
+  "steps": 4,
+  "tier": "A",
+  "verify": "confirmed"
+ },
+ "tinsley2021_corrinated_glp1": {
+  "batch": "1",
+  "decision": "excluded",
+  "reason": "not_small_molecule_organic",
+  "steps": null,
+  "tier": null,
+  "verify": null
+ },
+ "pimkovapolidarova2021_sting_prodrugs": {
+  "batch": "1",
+  "decision": "excluded",
+  "reason": "not_small_molecule_organic",
+  "steps": null,
+  "tier": null,
+  "verify": null
+ },
+ "matsuda2021_t914_pet": {
+  "batch": "1",
+  "decision": "excluded",
+  "reason": "not_small_molecule_organic",
+  "steps": null,
+  "tier": null,
+  "verify": null
+ },
+ "elhalem2021_dag_lactones": {
+  "batch": "1",
+  "decision": "excluded",
+  "reason": "lead_route_over_4_steps",
+  "steps": null,
+  "tier": null,
+  "verify": null
+ },
+ "bragaemidio2021_tff3": {
+  "batch": "1",
+  "decision": "excluded",
+  "reason": "not_small_molecule_organic",
+  "steps": null,
+  "tier": null,
+  "verify": null
+ },
+ "bai2021_thienodiazepine_pet": {
+  "batch": "1",
+  "decision": "route",
+  "reason": null,
+  "steps": 2,
+  "tier": "A",
+  "verify": "confirmed"
+ },
+ "li2021_teriflunomide_derivatives": {
+  "batch": "1",
+  "decision": "excluded",
+  "reason": "lead_route_over_4_steps",
+  "steps": null,
+  "tier": null,
+  "verify": null
+ },
+ "baumann2021_dark_kinase": {
+  "batch": "1",
+  "decision": "route",
+  "reason": null,
+  "steps": 4,
+  "tier": "A",
+  "verify": "confirmed"
+ },
+ "giglio2021_gsk3_pet": {
+  "batch": "1",
+  "decision": "excluded",
+  "reason": "not_small_molecule_organic",
+  "steps": null,
+  "tier": null,
+  "verify": null
+ },
+ "staerz2022_proteasome_activators": {
+  "batch": "1",
+  "decision": "route",
+  "reason": null,
+  "steps": 3,
+  "tier": "B",
+  "verify": "minor_issues"
+ },
+ "yu2022_aminopteridinones": {
+  "batch": "1",
+  "decision": "excluded",
+  "reason": "lead_route_over_4_steps",
+  "steps": null,
+  "tier": null,
+  "verify": null
+ },
+ "pagare2022_nap_isosteres": {
+  "batch": "1",
+  "decision": "excluded",
+  "reason": "route_not_explicit",
+  "steps": null,
+  "tier": null,
+  "verify": null
+ },
+ "rong2022_non_nucleoside_inhibitors": {
+  "batch": "1",
+  "decision": "excluded",
+  "reason": "lead_route_over_4_steps",
+  "steps": null,
+  "tier": null,
+  "verify": null
+ },
+ "ayre2022_lung_retentive_prodrugs": {
+  "batch": "1",
+  "decision": "excluded",
+  "reason": "lead_route_over_4_steps",
+  "steps": null,
+  "tier": null,
+  "verify": null
+ },
+ "ikeda2022_enteropeptidase": {
+  "batch": "1",
+  "decision": "excluded",
+  "reason": "route_not_explicit",
+  "steps": null,
+  "tier": null,
+  "verify": null
+ },
+ "musella2022_retigabine_analogue": {
+  "batch": "1",
+  "decision": "route",
+  "reason": null,
+  "steps": 2,
+  "tier": "A",
+  "verify": "confirmed"
+ },
+ "vavrina2022_deazapurine_cdns": {
+  "batch": "1",
+  "decision": "excluded",
+  "reason": "no_lead_identifiable",
+  "steps": null,
+  "tier": null,
+  "verify": null
+ },
+ "tian2022_ncs382_camkii": {
+  "batch": "1",
+  "decision": "excluded",
+  "reason": "lead_route_over_4_steps",
+  "steps": null,
+  "tier": null,
+  "verify": null
+ },
+ "miller2022_sac_inhibitors": {
+  "batch": "1",
+  "decision": "excluded",
+  "reason": "lead_route_over_4_steps",
+  "steps": null,
+  "tier": null,
+  "verify": null
+ },
+ "simeon2021_tspo_pet_radioligands": {
+  "batch": "1-substitute",
+  "decision": "excluded",
+  "reason": "route_not_explicit",
+  "steps": null,
+  "tier": null,
+  "verify": null
+ },
+ "hopper2021_p2x7_lu_af27139": {
+  "batch": "1-substitute",
+  "decision": "excluded",
+  "reason": "lead_route_over_4_steps",
+  "steps": null,
+  "tier": null,
+  "verify": null
+ },
+ "li2022_sugar_imidazoles_cmyc": {
+  "batch": "1-substitute",
+  "decision": "excluded",
+  "reason": "route_not_explicit",
+  "steps": null,
+  "tier": null,
+  "verify": null
+ },
+ "kawai2019_mthfd2_inhibitor": {
+  "batch": "2",
+  "decision": "excluded",
+  "reason": "lead_route_over_4_steps",
+  "steps": null,
+  "tier": null,
+  "verify": null
+ },
+ "abdellatif2018_thioxoimidazolidinones": {
+  "batch": "2",
+  "decision": "route",
+  "reason": null,
+  "steps": 3,
+  "tier": "B",
+  "verify": "minor_issues"
+ },
+ "kaur2018_benzoxazole_cox2": {
+  "batch": "2",
+  "decision": "route",
+  "reason": null,
+  "steps": 3,
+  "tier": "A",
+  "verify": "confirmed"
+ },
+ "trefzger2019_nitrofuran_isoxazoles": {
+  "batch": "2",
+  "decision": "route",
+  "reason": null,
+  "steps": 3,
+  "tier": "B",
+  "verify": "minor_issues"
+ },
+ "liu2018_pi3k_mtor_pyridopyrimidines": {
+  "batch": "2",
+  "decision": "route",
+  "reason": null,
+  "steps": 4,
+  "tier": "B",
+  "verify": "minor_issues"
+ },
+ "pavelyev2018_pyridoxine_alkenyl": {
+  "batch": "2",
+  "decision": "excluded",
+  "reason": "route_not_explicit",
+  "steps": null,
+  "tier": null,
+  "verify": null
+ },
+ "zhang2019_hdac1_indoles": {
+  "batch": "2",
+  "decision": "excluded",
+  "reason": "route_not_explicit",
+  "steps": null,
+  "tier": null,
+  "verify": null
+ },
+ "he2020_methylene_lactones": {
+  "batch": "2",
+  "decision": "excluded",
+  "reason": "route_not_explicit",
+  "steps": null,
+  "tier": null,
+  "verify": null
+ },
+ "abolhasani2021_spiroisoxazolines_cox2": {
+  "batch": "2",
+  "decision": "route",
+  "reason": null,
+  "steps": 4,
+  "tier": "A",
+  "verify": "confirmed"
+ },
+ "lozhkin2021_bioorthogonal_review": {
+  "batch": "2",
+  "decision": "excluded",
+  "reason": "no_synthesis_in_paper",
+  "steps": null,
+  "tier": null,
+  "verify": null
+ },
+ "kusaka2022_mray_aminoribosyluridines": {
+  "batch": "2",
+  "decision": "excluded",
+  "reason": "lead_route_over_4_steps",
+  "steps": null,
+  "tier": null,
+  "verify": null
+ },
+ "shiomi2018_mollenines": {
+  "batch": "2",
+  "decision": "excluded",
+  "reason": "route_not_explicit",
+  "steps": null,
+  "tier": null,
+  "verify": null
+ },
+ "toba2018_vgf_inducers": {
+  "batch": "2",
+  "decision": "excluded",
+  "reason": "no_lead_identifiable",
+  "steps": null,
+  "tier": null,
+  "verify": null
+ },
+ "mcgowan2018_tlr7_8_agonists": {
+  "batch": "2",
+  "decision": "excluded",
+  "reason": "lead_route_over_4_steps",
+  "steps": null,
+  "tier": null,
+  "verify": null
+ },
+ "wu2019_urat1_triazoles": {
+  "batch": "2",
+  "decision": "excluded",
+  "reason": "lead_route_over_4_steps",
+  "steps": null,
+  "tier": null,
+  "verify": null
+ },
+ "duong2020_atranorin_hydrazides": {
+  "batch": "2",
+  "decision": "excluded",
+  "reason": "route_not_explicit",
+  "steps": null,
+  "tier": null,
+  "verify": "minor_issues"
+ },
+ "recnik2020_carboplatin_analogues": {
+  "batch": "2",
+  "decision": "excluded",
+  "reason": "not_small_molecule_organic",
+  "steps": null,
+  "tier": null,
+  "verify": null
+ },
+ "herceg2018_ala_prodrug": {
+  "batch": "2",
+  "decision": "excluded",
+  "reason": "lead_route_over_4_steps",
+  "steps": null,
+  "tier": null,
+  "verify": null
+ },
+ "yousefi2018_piperazine_catalyst_pyrans": {
+  "batch": "2",
+  "decision": "route",
+  "reason": null,
+  "steps": 1,
+  "tier": "A",
+  "verify": "confirmed"
+ },
+ "sabry2019_quinazolinones": {
+  "batch": "2",
+  "decision": "route",
+  "reason": null,
+  "steps": 3,
+  "tier": "A",
+  "verify": "confirmed"
+ },
+ "alomari2019_biscoumarin_urease": {
+  "batch": "2",
+  "decision": "excluded",
+  "reason": "route_not_explicit",
+  "steps": null,
+  "tier": null,
+  "verify": null
+ },
+ "wang2020_pyrazole_naphthalenes": {
+  "batch": "2",
+  "decision": "route",
+  "reason": null,
+  "steps": 3,
+  "tier": "A",
+  "verify": "confirmed"
+ },
+ "wang2020_daphnetin_gpcr": {
+  "batch": "2",
+  "decision": "excluded",
+  "reason": "no_lead_identifiable",
+  "steps": null,
+  "tier": null,
+  "verify": null
+ },
+ "song2021_triazole_quinolinones": {
+  "batch": "2",
+  "decision": "excluded",
+  "reason": "route_not_explicit",
+  "steps": null,
+  "tier": null,
+  "verify": null
+ },
+ "balaramnavar2021_rohitukine_ptp1b": {
+  "batch": "2",
+  "decision": "excluded",
+  "reason": "route_not_explicit",
+  "steps": null,
+  "tier": null,
+  "verify": "reject"
+ },
+ "liang2022_cdk46_proline": {
+  "batch": "2",
+  "decision": "excluded",
+  "reason": "lead_route_over_4_steps",
+  "steps": null,
+  "tier": null,
+  "verify": null
+ },
+ "hassannazmy2022_phthalazines_egfr_pi3k": {
+  "batch": "2",
+  "decision": "excluded",
+  "reason": "route_not_explicit",
+  "steps": null,
+  "tier": null,
+  "verify": null
+ },
+ "jadala2019_combretastatin_carboxamides": {
+  "batch": "2",
+  "decision": "excluded",
+  "reason": "route_not_explicit",
+  "steps": null,
+  "tier": null,
+  "verify": "minor_issues"
+ },
+ "xu2019_aminopyrimidines_bace1": {
+  "batch": "2",
+  "decision": "excluded",
+  "reason": "route_not_explicit",
+  "steps": null,
+  "tier": null,
+  "verify": null
+ },
+ "tokuyama2021_benzyne_heterocycles": {
+  "batch": "2",
+  "decision": "excluded",
+  "reason": "no_synthesis_in_paper",
+  "steps": null,
+  "tier": null,
+  "verify": null
+ },
+ "wei2018_naphthoimidazolium": {
+  "batch": "2",
+  "decision": "excluded",
+  "reason": "lead_route_over_4_steps",
+  "steps": null,
+  "tier": null,
+  "verify": null
+ },
+ "yu2019_phenol_ether_proteasome": {
+  "batch": "2",
+  "decision": "excluded",
+  "reason": "lead_route_over_4_steps",
+  "steps": null,
+  "tier": null,
+  "verify": null
+ },
+ "elkayal2019_quinazolinedione_anticonvulsants": {
+  "batch": "2",
+  "decision": "route",
+  "reason": null,
+  "steps": 3,
+  "tier": "A",
+  "verify": "confirmed"
+ },
+ "boraei2019_triazoles_parp1": {
+  "batch": "2",
+  "decision": "excluded",
+  "reason": "no_lead_identifiable",
+  "steps": null,
+  "tier": null,
+  "verify": null
+ },
+ "borsoi2020_quinolinyloxyacetamides_tb": {
+  "batch": "2",
+  "decision": "excluded",
+  "reason": "route_not_explicit",
+  "steps": null,
+  "tier": null,
+  "verify": null
+ },
+ "fang2020_polyamine_cxcr4": {
+  "batch": "2",
+  "decision": "excluded",
+  "reason": "route_not_explicit",
+  "steps": null,
+  "tier": null,
+  "verify": "minor_issues"
+ },
+ "bouton2021_fluorinated_deazapurines": {
+  "batch": "2",
+  "decision": "excluded",
+  "reason": "no_lead_identifiable",
+  "steps": null,
+  "tier": null,
+  "verify": null
+ },
+ "wang2021_picolinamides_tak1": {
+  "batch": "2",
+  "decision": "route",
+  "reason": null,
+  "steps": 3,
+  "tier": "B",
+  "verify": "minor_issues"
+ },
+ "ammazzalorso2019_fibrate_sulfonamides": {
+  "batch": "2",
+  "decision": "excluded",
+  "reason": "no_lead_identifiable",
+  "steps": null,
+  "tier": null,
+  "verify": null
+ },
+ "li2018_hydroxypyranones_antiglioma": {
+  "batch": "2",
+  "decision": "excluded",
+  "reason": "route_not_explicit",
+  "steps": null,
+  "tier": null,
+  "verify": null
+ },
+ "hu2018_copper_schiff_bases": {
+  "batch": "2",
+  "decision": "excluded",
+  "reason": "not_small_molecule_organic",
+  "steps": null,
+  "tier": null,
+  "verify": null
+ },
+ "khan2019_oxindole_chalcones": {
+  "batch": "2",
+  "decision": "excluded",
+  "reason": "route_not_explicit",
+  "steps": null,
+  "tier": null,
+  "verify": null
+ },
+ "mahmoud2022_donepezil_analogs": {
+  "batch": "2",
+  "decision": "excluded",
+  "reason": "route_not_explicit",
+  "steps": null,
+  "tier": null,
+  "verify": null
+ },
+ "peytam2019_imidazopyrazoles_glucosidase": {
+  "batch": "2",
+  "decision": "route",
+  "reason": null,
+  "steps": 1,
+  "tier": "A",
+  "verify": "confirmed"
+ },
+ "gholivand2021_phosphonic_acids_cholinesterase": {
+  "batch": "2",
+  "decision": "excluded",
+  "reason": "route_not_explicit",
+  "steps": null,
+  "tier": null,
+  "verify": null
+ },
+ "hadiyal2022_benzofuran_thiazoles": {
+  "batch": "2",
+  "decision": "excluded",
+  "reason": "route_not_explicit",
+  "steps": null,
+  "tier": null,
+  "verify": null
+ },
+ "kalidindi2021_bms986251_core": {
+  "batch": "2",
+  "decision": "excluded",
+  "reason": "lead_route_over_4_steps",
+  "steps": null,
+  "tier": null,
+  "verify": null
+ },
+ "domanski2022_imidazolium_ionic_liquids": {
+  "batch": "2",
+  "decision": "excluded",
+  "reason": "no_lead_identifiable",
+  "steps": null,
+  "tier": null,
+  "verify": null
+ },
+ "gray2019_tyclopyrazoflor_thiol_ene": {
+  "batch": "2",
+  "decision": "route",
+  "reason": null,
+  "steps": 1,
+  "tier": "A",
+  "verify": "confirmed"
+ },
+ "gein2021_oxopyrrolidine_acids": {
+  "batch": "2",
+  "decision": "excluded",
+  "reason": "no_lead_identifiable",
+  "steps": null,
+  "tier": null,
+  "verify": null
+ },
+ "mokrov2021_trimethoxybenzyl_diamines": {
+  "batch": "2",
+  "decision": "route",
+  "reason": null,
+  "steps": 1,
+  "tier": "B",
+  "verify": "minor_issues"
+ },
+ "imran2022_coumarinyl_thiazoles_tb": {
+  "batch": "2",
+  "decision": "excluded",
+  "reason": "route_not_explicit",
+  "steps": null,
+  "tier": null,
+  "verify": null
+ },
+ "tenaperez2020_macamides_tnf": {
+  "batch": "2",
+  "decision": "route",
+  "reason": null,
+  "steps": 1,
+  "tier": "A",
+  "verify": "confirmed"
+ },
+ "jumde2018_acylhydrazone_bioisosteres": {
+  "batch": "2-substitute",
+  "decision": "route",
+  "reason": null,
+  "steps": 2,
+  "tier": "A",
+  "verify": "confirmed"
+ },
+ "zhai2019_dithiocarbamate_diphenylaminopyrimidines": {
+  "batch": "2-substitute",
+  "decision": "excluded",
+  "reason": "lead_route_over_4_steps",
+  "steps": null,
+  "tier": null,
+  "verify": null
+ },
+ "shen2019_oridonin_14_substituted": {
+  "batch": "2-substitute",
+  "decision": "excluded",
+  "reason": "route_not_explicit",
+  "steps": null,
+  "tier": null,
+  "verify": "minor_issues"
+ },
+ "alfindee2018_carbohydrate_esters": {
+  "batch": "2-substitute",
+  "decision": "route",
+  "reason": null,
+  "steps": 1,
+  "tier": "B",
+  "verify": "minor_issues"
+ },
+ "mughal2018_flavonol_glycosides_cholinesterase": {
+  "batch": "2-substitute",
+  "decision": "excluded",
+  "reason": "route_not_explicit",
+  "steps": null,
+  "tier": null,
+  "verify": "minor_issues"
+ },
+ "elsharief2018_thicz_upa_inhibitors": {
+  "batch": "2-substitute",
+  "decision": "excluded",
+  "reason": "no_lead_identifiable",
+  "steps": null,
+  "tier": null,
+  "verify": null
+ },
+ "yamashita2018_hdac_topoisomerase2_inhibitors": {
+  "batch": "2-substitute",
+  "decision": "excluded",
+  "reason": "lead_route_over_4_steps",
+  "steps": null,
+  "tier": null,
+  "verify": null
+ },
+ "magalhaes2021_glucosyl_triazoles_eugenol": {
+  "batch": "2-substitute",
+  "decision": "excluded",
+  "reason": "lead_route_over_4_steps",
+  "steps": null,
+  "tier": null,
+  "verify": null
+ },
+ "rosaleshurtado2019_hlm006474_enantiomers": {
+  "batch": "2-substitute",
+  "decision": "route",
+  "reason": null,
+  "steps": 2,
+  "tier": "B",
+  "verify": "minor_issues"
+ },
+ "makhaeva2019_trifluorobutanoates_cholinesterase": {
+  "batch": "2-substitute",
+  "decision": "excluded",
+  "reason": "no_lead_identifiable",
+  "steps": null,
+  "tier": null,
+  "verify": null
+ },
+ "dyakonov2017_steroid_dienoic_acid_hybrids": {
+  "batch": "3",
+  "decision": "excluded",
+  "reason": "route_not_explicit",
+  "steps": null,
+  "tier": null,
+  "verify": null
+ },
+ "kazlauskas2017_hsp90_thiadiazoles": {
+  "batch": "3",
+  "decision": "excluded",
+  "reason": "route_not_explicit",
+  "steps": null,
+  "tier": null,
+  "verify": null
+ },
+ "hroch2017_frentizole_thioureas_mao_abad": {
+  "batch": "3",
+  "decision": "route",
+  "reason": null,
+  "steps": 2,
+  "tier": "A",
+  "verify": "confirmed"
+ },
+ "dong2017_platensimycin_platencin_ureas": {
+  "batch": "3",
+  "decision": "excluded",
+  "reason": "route_not_explicit",
+  "steps": null,
+  "tier": null,
+  "verify": null
+ },
+ "surase2017_mycobacterial_atp_synthase": {
+  "batch": "3",
+  "decision": "excluded",
+  "reason": "no_lead_identifiable",
+  "steps": null,
+  "tier": null,
+  "verify": null
+ },
+ "dobrikov2017_mdl860_analogues": {
+  "batch": "3",
+  "decision": "route",
+  "reason": null,
+  "steps": 1,
+  "tier": "A",
+  "verify": "confirmed"
+ },
+ "yang2017_imidazopyridines_cmet": {
+  "batch": "3",
+  "decision": "excluded",
+  "reason": "lead_route_over_4_steps",
+  "steps": null,
+  "tier": null,
+  "verify": null
+ },
+ "kratky2017_fluorophenylalanines": {
+  "batch": "3",
+  "decision": "route",
+  "reason": null,
+  "steps": 1,
+  "tier": "A",
+  "verify": "confirmed"
+ },
+ "iftikhar2017_dihydropyrimidine_urease": {
+  "batch": "3",
+  "decision": "excluded",
+  "reason": "route_not_explicit",
+  "steps": null,
+  "tier": null,
+  "verify": null
+ },
+ "meta2017_pyrazolyl_ureas_imidazopyrazoles": {
+  "batch": "3",
+  "decision": "excluded",
+  "reason": "route_not_explicit",
+  "steps": null,
+  "tier": null,
+  "verify": null
+ },
+ "ahamed2017_c11_ma_pb_1_magl": {
+  "batch": "3",
+  "decision": "excluded",
+  "reason": "not_small_molecule_organic",
+  "steps": null,
+  "tier": null,
+  "verify": null
+ },
+ "shaik2017_pyrazolochalcones_pi3k": {
+  "batch": "3",
+  "decision": "excluded",
+  "reason": "no_lead_identifiable",
+  "steps": null,
+  "tier": null,
+  "verify": null
+ },
+ "ning2017_naphthoquinone_dithiocarbamates_pkm2": {
+  "batch": "3",
+  "decision": "route",
+  "reason": null,
+  "steps": 2,
+  "tier": "A",
+  "verify": "confirmed"
+ },
+ "pang2017_selenium_isocombretastatins": {
+  "batch": "3",
+  "decision": "excluded",
+  "reason": "lead_route_over_4_steps",
+  "steps": null,
+  "tier": null,
+  "verify": null
+ },
+ "mironov2017_bacteriopurpurinimides": {
+  "batch": "3",
+  "decision": "excluded",
+  "reason": "route_not_explicit",
+  "steps": null,
+  "tier": null,
+  "verify": null
+ },
+ "davis2017_hsp90_c_terminal_library": {
+  "batch": "3",
+  "decision": "excluded",
+  "reason": "no_lead_identifiable",
+  "steps": null,
+  "tier": null,
+  "verify": null
+ },
+ "shintre2017_benzimidazoles_microwave": {
+  "batch": "3",
+  "decision": "route",
+  "reason": null,
+  "steps": 4,
+  "tier": "A",
+  "verify": "confirmed"
+ },
+ "shao2017_benzodiazepinediones_anticonvulsant": {
+  "batch": "3",
+  "decision": "excluded",
+  "reason": "route_not_explicit",
+  "steps": null,
+  "tier": null,
+  "verify": null
+ },
+ "kausar2017_spirooxindoles_green": {
+  "batch": "3",
+  "decision": "route",
+  "reason": null,
+  "steps": 1,
+  "tier": "A",
+  "verify": "confirmed"
+ },
+ "ungoren2017_aminopyrimidines_dbu": {
+  "batch": "3",
+  "decision": "route",
+  "reason": null,
+  "steps": 1,
+  "tier": "B",
+  "verify": "minor_issues"
+ },
+ "bultman2017_bms663068_azaindole": {
+  "batch": "3",
+  "decision": "excluded",
+  "reason": "route_not_explicit",
+  "steps": null,
+  "tier": null,
+  "verify": null
+ },
+ "deng2017_benzothiazepines_acyliminium": {
+  "batch": "3",
+  "decision": "route",
+  "reason": null,
+  "steps": 4,
+  "tier": "A",
+  "verify": "confirmed"
+ },
+ "ndlovu2023_nitrofurantoin_glycol_leishmania": {
+  "batch": "3",
+  "decision": "route",
+  "reason": null,
+  "steps": 2,
+  "tier": "A",
+  "verify": "confirmed"
+ },
+ "li2023_benzisoxazole_bet_inhibitors": {
+  "batch": "3",
+  "decision": "excluded",
+  "reason": "route_not_explicit",
+  "steps": null,
+  "tier": null,
+  "verify": null
+ },
+ "gao2023_tetrasubstituted_pyrimidines": {
+  "batch": "3",
+  "decision": "excluded",
+  "reason": "route_not_explicit",
+  "steps": null,
+  "tier": null,
+  "verify": null
+ },
+ "kelly2023_divarasib_quinazoline_zinc": {
+  "batch": "3",
+  "decision": "excluded",
+  "reason": "route_not_explicit",
+  "steps": null,
+  "tier": null,
+  "verify": null
+ },
+ "lai2023_tetrahydrobenzothiophene_antibacterials": {
+  "batch": "3",
+  "decision": "route",
+  "reason": null,
+  "steps": 3,
+  "tier": "A",
+  "verify": "confirmed"
+ },
+ "wang2024_pyranochromene_antibacterials": {
+  "batch": "3",
+  "decision": "route",
+  "reason": null,
+  "steps": 4,
+  "tier": "B",
+  "verify": "minor_issues"
+ },
+ "lin2024_piperidine_parp1": {
+  "batch": "3",
+  "decision": "route",
+  "reason": null,
+  "steps": 4,
+  "tier": "A",
+  "verify": "confirmed"
+ },
+ "jiang2024_organotin_arylformylhydrazones": {
+  "batch": "3",
+  "decision": "excluded",
+  "reason": "not_small_molecule_organic",
+  "steps": null,
+  "tier": null,
+  "verify": null
+ },
+ "wu2024_triazole_antifungals_phenylthiophene": {
+  "batch": "3",
+  "decision": "excluded",
+  "reason": "lead_route_over_4_steps",
+  "steps": null,
+  "tier": null,
+  "verify": null
+ },
+ "milovic2024_chlorinated_tetrahydropyrimidines": {
+  "batch": "3",
+  "decision": "excluded",
+  "reason": "route_not_explicit",
+  "steps": null,
+  "tier": null,
+  "verify": null
+ },
+ "yan2024_shp1_imidazotriazoles_accepted_ms": {
+  "batch": "3",
+  "decision": "excluded",
+  "reason": "route_not_explicit",
+  "steps": null,
+  "tier": null,
+  "verify": null
+ },
+ "aghaeikhouzani2024_benzothiazole_triazoles_tc99m": {
+  "batch": "3",
+  "decision": "excluded",
+  "reason": "route_not_explicit",
+  "steps": null,
+  "tier": null,
+  "verify": null
+ },
+ "surendrakumar2024_dihydropyridine_anticancer": {
+  "batch": "3",
+  "decision": "excluded",
+  "reason": "route_not_explicit",
+  "steps": null,
+  "tier": null,
+  "verify": null
+ },
+ "li2024_sulfonium_lipids_preprint": {
+  "batch": "3",
+  "decision": "excluded",
+  "reason": "route_not_explicit",
+  "steps": null,
+  "tier": null,
+  "verify": null
+ },
+ "alkorbi2024_indole_thiazole_hybrids": {
+  "batch": "3",
+  "decision": "excluded",
+  "reason": "route_not_explicit",
+  "steps": null,
+  "tier": null,
+  "verify": null
+ },
+ "werth2024_avibactam_prodrug_precursor_preprint": {
+  "batch": "3",
+  "decision": "excluded",
+  "reason": "route_not_explicit",
+  "steps": null,
+  "tier": null,
+  "verify": null
+ },
+ "he2024_rhein_piperazine_furanones": {
+  "batch": "3",
+  "decision": "excluded",
+  "reason": "route_not_explicit",
+  "steps": null,
+  "tier": null,
+  "verify": null
+ },
+ "nowicki2024_benzosiloxaboroles": {
+  "batch": "3",
+  "decision": "excluded",
+  "reason": "lead_route_over_4_steps",
+  "steps": null,
+  "tier": null,
+  "verify": null
+ },
+ "elbadawi2025_triazole_benzothiazoles_alzheimer": {
+  "batch": "3",
+  "decision": "excluded",
+  "reason": "lead_route_over_4_steps",
+  "steps": null,
+  "tier": null,
+  "verify": null
+ },
+ "sardo2025_styrylquinoline_carboxamides": {
+  "batch": "3",
+  "decision": "route",
+  "reason": null,
+  "steps": 3,
+  "tier": "A",
+  "verify": "confirmed"
+ },
+ "hu2025_usp5_in_1_derivatives": {
+  "batch": "3",
+  "decision": "route",
+  "reason": null,
+  "steps": 3,
+  "tier": "A",
+  "verify": "confirmed"
+ },
+ "yang2025_methoxypyrimidines_gpr119_dpp4": {
+  "batch": "3",
+  "decision": "excluded",
+  "reason": "lead_route_over_4_steps",
+  "steps": null,
+  "tier": null,
+  "verify": null
+ },
+ "hu2025_curcumol_amides_gbm": {
+  "batch": "3",
+  "decision": "excluded",
+  "reason": "route_not_explicit",
+  "steps": null,
+  "tier": null,
+  "verify": "reject"
+ },
+ "zhang2025_hdac6_indole_caps": {
+  "batch": "3",
+  "decision": "route",
+  "reason": null,
+  "steps": 3,
+  "tier": "B",
+  "verify": "minor_issues"
+ },
+ "martinezrodriguez2025_betalamic_acid": {
+  "batch": "3",
+  "decision": "excluded",
+  "reason": "not_small_molecule_organic",
+  "steps": null,
+  "tier": null,
+  "verify": null
+ },
+ "abdelsalam2025_benzimidazole_pyridinecarbonitriles": {
+  "batch": "3",
+  "decision": "excluded",
+  "reason": "route_not_explicit",
+  "steps": null,
+  "tier": null,
+  "verify": "reject"
+ },
+ "zhang2025_rock2_indazolylaminopyridines": {
+  "batch": "3",
+  "decision": "excluded",
+  "reason": "lead_route_over_4_steps",
+  "steps": null,
+  "tier": null,
+  "verify": null
+ },
+ "kral2025_purpurogallin_carboxamides_influenza": {
+  "batch": "3",
+  "decision": "excluded",
+  "reason": "no_synthesis_in_paper",
+  "steps": null,
+  "tier": null,
+  "verify": null
+ },
+ "greve2025_bicyclomarin": {
+  "batch": "3",
+  "decision": "excluded",
+  "reason": "not_small_molecule_organic",
+  "steps": null,
+  "tier": null,
+  "verify": null
+ },
+ "krylova2025_chlorin_quinazoline_conjugates_preprint": {
+  "batch": "3",
+  "decision": "excluded",
+  "reason": "not_small_molecule_organic",
+  "steps": null,
+  "tier": null,
+  "verify": null
+ },
+ "cetin2025_thiophene_derivatives_ache": {
+  "batch": "3",
+  "decision": "route",
+  "reason": null,
+  "steps": 1,
+  "tier": "B",
+  "verify": "minor_issues"
+ },
+ "shi2025_dual_protacs_dehydrographolide": {
+  "batch": "3",
+  "decision": "route",
+  "reason": null,
+  "steps": 3,
+  "tier": "A",
+  "verify": "confirmed"
+ },
+ "mthembu2025_s_tbutyl_cys_peptides_tfa": {
+  "batch": "3",
+  "decision": "excluded",
+  "reason": "not_small_molecule_organic",
+  "steps": null,
+  "tier": null,
+  "verify": null
+ },
+ "li2025_lunresertib_pkmyt1": {
+  "batch": "3",
+  "decision": "route",
+  "reason": null,
+  "steps": 3,
+  "tier": "B",
+  "verify": "minor_issues"
+ },
+ "thumma2024_ibuprofen_benzoxazoles": {
+  "batch": "3-spare",
+  "decision": "route",
+  "reason": null,
+  "steps": 4,
+  "tier": "B",
+  "verify": "minor_issues"
+ },
+ "lusardi2025_usp7_aminopyrazoles": {
+  "batch": "3-spare",
+  "decision": "excluded",
+  "reason": "route_not_explicit",
+  "steps": null,
+  "tier": null,
+  "verify": null
+ },
+ "sheng2023_betacarboline_hydrazides": {
+  "batch": "3-spare",
+  "decision": "route",
+  "reason": null,
+  "steps": 4,
+  "tier": "A",
+  "verify": "confirmed"
+ },
+ "olmo2024_benzalphthalides_maob": {
+  "batch": "3-spare",
+  "decision": "route",
+  "reason": null,
+  "steps": 1,
+  "tier": "A",
+  "verify": "confirmed"
+ },
+ "jatav2023_coumarin_triazolyl_glycoconjugates": {
+  "batch": "3-spare",
+  "decision": "excluded",
+  "reason": "route_not_explicit",
+  "steps": null,
+  "tier": null,
+  "verify": null
+ },
+ "abdelhameid2025_diaryl_acetamides_hl60": {
+  "batch": "3-spare",
+  "decision": "excluded",
+  "reason": "lead_route_over_4_steps",
+  "steps": null,
+  "tier": null,
+  "verify": null
+ },
+ "singh2025_lignan_monoterpenoid_xanthine_oxidase": {
+  "batch": "3-spare",
+  "decision": "excluded",
+  "reason": "route_not_explicit",
+  "steps": null,
+  "tier": null,
+  "verify": null
+ },
+ "wang2017_azithromycin_triazole_analogs": {
+  "batch": "3-spare",
+  "decision": "excluded",
+  "reason": "lead_route_over_4_steps",
+  "steps": null,
+  "tier": null,
+  "verify": null
+ },
+ "singh2025_thiazolidinedione_triazines_hiv": {
+  "batch": "3-spare",
+  "decision": "excluded",
+  "reason": "lead_route_over_4_steps",
+  "steps": null,
+  "tier": null,
+  "verify": null
+ }
+}

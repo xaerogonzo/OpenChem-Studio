@@ -1,0 +1,12 @@
+{
+ "paper": "beneker2019_braf_type_iv",
+ "decision": "excluded",
+ "exclusion_reason": "not_small_molecule_organic",
+ "exclusion_detail": "The compounds are macrocyclic peptides made by solid-phase peptide synthesis and head-to-tail or side-chain cyclisation (cyclo 508-513 series); the abstract calls the leads 'macrocyclic peptides'.",
+ "lead": {"label": "lead macrocyclic peptides (not a single numbered compound)", "why": "Abstract: 'The lead compounds identified are type-IV kinase inhibitors' and are macrocyclic peptides."},
+ "target": null,
+ "reactions": [],
+ "alt_variants": [],
+ "other_qualifying_compounds": [],
+ "notes": "Experimental section opens with 'Solid-Phase Synthesis of Linear Peptides'. No SI file."
+}

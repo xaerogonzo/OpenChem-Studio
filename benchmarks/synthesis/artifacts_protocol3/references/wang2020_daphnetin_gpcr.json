@@ -1,0 +1,12 @@
+{
+ "paper": "wang2020_daphnetin_gpcr",
+ "decision": "excluded",
+ "exclusion_reason": "no_lead_identifiable",
+ "exclusion_detail": "The abstract names groups of compounds (activators 3-5, 16, 19 with EC50 1.18-1.91 nM; inhibitors 6, 11, 14, 18 with IC50 1.26-1.38 nM) but no single best or lead compound, and there is no follow-up experiment (no in vivo, docking or mechanism work) on any one of them. The numerically most potent activator is 5 (EC50 1.18 nM) but the paper does not call it the lead, so the lead rule is not applied.",
+ "lead": {"label": "none", "why": "Abstract: 'derivatives 3-5, 16 and 19 presented significant activation potency ... EC50 values in the range of 1.18-1.91 nM. Derivatives 6, 11, 14 and 18 showed significant inhibitory potency'; no single compound featured."},
+ "target": null,
+ "reactions": [],
+ "alt_variants": [],
+ "other_qualifying_compounds": ["15", "16", "18", "19", "20"],
+ "notes": "Derivatives 15-21 are one step (Sc(OTf)3 Pechmann condensation of pyrogallol with a ketoester, general procedure 3.2.3) from commercial reagents. Derivatives 1-14 are one step from daphnetin, but daphnetin was supplied as a natural product isolated from Daphne giraldii root bark by a collaborating university (not purchased), so I did not list them. Compound 22 is two steps from pyrogallol (via 16). Compound 5 (hexanoyl diester, EC50 1.18 nM) would be the numerically best if a looser lead rule were used. Source: main text only; no SI file."
+}

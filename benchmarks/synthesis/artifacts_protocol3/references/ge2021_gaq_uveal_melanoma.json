@@ -1,0 +1,12 @@
+{
+ "paper": "ge2021_gaq_uveal_melanoma",
+ "decision": "excluded",
+ "exclusion_reason": "lead_route_over_4_steps",
+ "exclusion_detail": "Lead GQ127 is made from commercial N-Cbz amino acids by phenacyl ester formation/imidazole ring closure (7), N-alkylation with ethyl bromoacetate (8), hydrogenolysis/lactamization (9), BH3 reduction (10), HATU coupling with a protected amino acid and TFA deprotection: at least 6 reactions even counting the ester + NH4OAc cyclisation as one pot.",
+ "lead": {"label": "GQ127", "why": "Abstract: 'The most promising compound GQ127 showed good efficacy and safety in inositol monophosphate (IP1) assay ...'"},
+ "target": null,
+ "reactions": [],
+ "alt_variants": [],
+ "other_qualifying_compounds": [],
+ "notes": "All GQ111-GQ166 share the same imidazopiperazine core sequence (Scheme 1: i-ix), so no compound in the series has a route of 4 reactions or fewer. No SI file in the bundle."
+}

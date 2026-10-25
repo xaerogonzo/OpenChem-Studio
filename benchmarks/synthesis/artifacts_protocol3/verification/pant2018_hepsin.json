@@ -1,0 +1,14 @@
+{
+ "paper": "pant2018_hepsin",
+ "my_lead": "53 - abstract: 'In progressing from the initial hit 7 to compound 53' (IC50 22 nM, >6000-fold selective over uPA)",
+ "lead_agrees": true,
+ "reactions": [
+  {"step": 1, "ok": true, "issue": "TsCl + (R)-phenylglycine in aq NaOH (sodium salt) gives N-tosyl-(R)-phenylglycine, extracted with EtOAc/1N HCl and used crude; procedure written for 33 (cyclohexylglycine), 53 'prepared using an analogous method'. Text line ~386 'product derived from (R)-phenylglycine, compound 53' confirms the amino acid. NaOH is correctly not listed."},
+  {"step": 2, "ok": true, "issue": "HATU coupling of the acid with 4-aminobenzamidine dihydrochloride (DIPEA, NMP, 80 C MW 20 min); 53 isolated as formic acid salt. HATU/DIPEA correctly omitted. Amide at the aniline N, amidine protected as HCl salt (paper states this)."}
+ ],
+ "leaf_issues": [],
+ "step_count_ok": true,
+ "smiles_issues": [],
+ "overall": "confirmed",
+ "notes": "I checked the CIP descriptor by hand: N[C@H](c1ccccc1)C(=O)X with priorities N > C(=O) > Ph > H is R in the acid, sulfonamide and amide SMILES, matching the printed (R) names. Commercial claim: 'Reagents and solvents were purchased from commercial suppliers' and 'Compound 7 can be readily disconnected to three reaction components, each readily accessible through commercial suppliers'. Caveat only: the 53 entry has no reagent list (SI not in the text); the route is by analogy with 33, which the paper states explicitly ('Compounds 48, 52, and 53 were prepared using an analogous method to compound 33'). Not a reject. The reactants of step 1/2 are in the paper's own two-step numbering (Scheme 1: 15+16 -> 17, 17+18 -> 19)."
+}

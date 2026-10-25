@@ -1,0 +1,12 @@
+{
+ "paper": "kral2025_purpurogallin_carboxamides_influenza",
+ "decision": "excluded",
+ "exclusion_reason": "no_synthesis_in_paper",
+ "exclusion_detail": "The file is a two-page ChemMedChem corrigendum that only reprints a corrected Table 1 (R' and R groups, IC50 values); it contains no synthesis, procedure or lead statement. The original article (e202400577) is not in the bundle.",
+ "lead": {"label": "none (corrigendum)", "why": "The file is a corrigendum with only a corrected table; no abstract names a lead."},
+ "target": null,
+ "reactions": [],
+ "alt_variants": [],
+ "other_qualifying_compounds": null,
+ "notes": "The original article may be worth supplying; it is a different file."
+}

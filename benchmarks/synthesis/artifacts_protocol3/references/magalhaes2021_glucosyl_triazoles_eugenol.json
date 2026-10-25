@@ -1,0 +1,12 @@
+{
+ "paper": "magalhaes2021_glucosyl_triazoles_eugenol",
+ "decision": "excluded",
+ "exclusion_reason": "lead_route_over_4_steps",
+ "exclusion_detail": "Lead 17 (peracetylated glucosyl triazole of eugenol) is 5 reactions: propargylation of eugenol (7); D-glucose -> pentaacetate 14; 14 -> acetobromoglucose 15; 15 -> glucosyl azide 16; CuAAC of 7 with 16. Steps 14 and 15 are also only cited ('according to Guilherme et al.') with no procedure in the paper or SI, so the route is additionally not fully explicit.",
+ "lead": {"label": "17", "why": "Abstract: 'the peracetylated triazoles 17 and 18 were the most promising ones. Eugenol derivative 17 was active against three species of Candida at 26.1-52.1 uM.' 17 is described first and in detail; 18 (dihydroeugenol analogue) has the same route length."},
+ "target": null,
+ "reactions": [],
+ "alt_variants": [],
+ "other_qualifying_compounds": ["29", "30", "31", "32", "33"],
+ "notes": "The non-glucosylated triazoles 29-34 (alkyne 7-12 + NaN3/HCHO/AcOH/Cu(OAc)2/ascorbate in one pot) are 2 steps from the phenol and have procedures in the SI. Labels 29-33 are inferred from SI numbering (29 = eugenol-derived, HRMS table C13H15N3O2) and not individually verified. The glucosyl series 17-28 all share the three sugar steps, so all are >=5."
+}

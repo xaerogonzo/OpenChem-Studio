@@ -1,0 +1,67 @@
+{
+ "paper": "borsoi2020_quinolinyloxyacetamides_tb",
+ "decision": "excluded",
+ "exclusion_reason": "route_not_explicit",
+ "exclusion_detail": "Lead 4k is a 2-step route, but step 1 (Conrad-Limpach synthesis of 4-hydroxyquinoline 2 from ethyl 3-oxobutanoate and 4-methoxyaniline) is given only as 'according to an already-reported protocol [9]' with no procedure in the article (no SI supplied); only the O-alkylation (general procedure 4.2) is described. Reactants of step 1 are named in the text, so the candidate route is transcribed below for reinstatement if the lead allows it.",
+ "lead": {
+  "label": "4k",
+  "why": "Abstract: 'MIC values as low as 0.3 uM against M. tuberculosis H37Rv'; Results: 3,4-dichlorobenzyl derivative 4k 'showed the highest antimycobacterial activity of the series' (MIC 0.3 uM); also the compound carried into the macrophage study. The abstract itself does not print the label 4k."
+ },
+ "target": {
+  "name": "4-((3,4-Dichlorobenzyl)oxy)-6-methoxy-2-methylquinoline",
+  "smiles": "COc1ccc2nc(C)cc(OCc3ccc(Cl)c(Cl)c3)c2c1"
+ },
+ "reactions": [
+  {
+   "step": 1,
+   "product": {
+    "label": "2",
+    "name": "",
+    "smiles": "COc1ccc2nc(C)cc(O)c2c1"
+   },
+   "reactants": [
+    {
+     "label": "ethyl 3-oxobutanoate",
+     "name": "ethyl 3-oxobutanoate",
+     "smiles": "CCOC(=O)CC(C)=O",
+     "origin": "commercial"
+    },
+    {
+     "label": "4-methoxyaniline",
+     "name": "4-methoxyaniline",
+     "smiles": "COc1ccc(N)cc1",
+     "origin": "commercial"
+    }
+   ],
+   "conditions": "Conrad-Limpach cyclocondensation 'according to an already-reported protocol [9]'; conditions NOT given in this paper.",
+   "source": "Main article section 2 (Results) and 4.2, first sentences"
+  },
+  {
+   "step": 2,
+   "product": {
+    "label": "4k",
+    "name": "4-((3,4-Dichlorobenzyl)oxy)-6-methoxy-2-methylquinoline",
+    "smiles": "COc1ccc2nc(C)cc(OCc3ccc(Cl)c(Cl)c3)c2c1"
+   },
+   "reactants": [
+    {
+     "label": "2",
+     "name": "",
+     "smiles": "COc1ccc2nc(C)cc(O)c2c1",
+     "origin": "made_here"
+    },
+    {
+     "label": "3,4-dichlorobenzyl bromide",
+     "name": "",
+     "smiles": "BrCc1ccc(Cl)c(Cl)c1",
+     "origin": "commercial"
+    }
+   ],
+   "conditions": "General procedure 4.2: alkyl halide (1.2 mmol), 4-hydroxyquinoline (1 mmol), K2CO3 (3.12 mmol), DMF (6 mL), 25 C, 18 h; dilute with water, precipitate centrifuged and washed; 63% for 4k.",
+   "source": "Main article section 4.2 and 4.2.24 (4k)"
+  }
+ ],
+ "alt_variants": [],
+ "other_qualifying_compounds": null,
+ "notes": "Name of 2 is printed only as '4-hydroxyquinoline (2)' (generic); its structure is derived from Conrad-Limpach of ethyl 3-oxobutanoate with 4-methoxyaniline, and agrees with the product names of 3a/4a (6-methoxy-2-methylquinolin-4-yl ethers). The alkylating agent for 4k is not named explicitly: the text says 'benzyl bromides' for series 4 and 'the appropriate alkyl halide', so 3,4-dichlorobenzyl bromide is inferred from the product name (bromide, not chloride, is inferred). Hydroxy tautomer drawn (4-quinolone also possible)."
+}

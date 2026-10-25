@@ -1,0 +1,18 @@
+{
+ "paper": "wang2020_pyrazole_naphthalenes",
+ "my_lead": "5j (4-ethoxyphenyl) - abstract: 'found to be the most active compound in this series'; also the one taken into tubulin, cell-cycle, apoptosis and docking studies",
+ "lead_agrees": true,
+ "reactions": [
+  {"step": 1, "ok": true, "issue": "1-methoxynaphthalene (12 mmol) + phenylacetic acid 2 (8 mmol) with TFAA/TFA, rt overnight (Scheme: 12 h) -> deoxybenzoin 3 (Friedel-Crafts para to OMe, giving 4-methoxynaphthalen-1-yl ketone). TFAA/TFA are activator/solvent and correctly not listed. For 5j the acid is 4-ethoxyphenylacetic acid, inferred from Table 1 (5j: R = 4-C2H5O); the paper only says 'appropriate commercially available phenylacetic acids'."},
+  {"step": 2, "ok": true, "issue": "3 (5 mmol) in DMF-DMA (12 mL), 80 C, 24 h -> enamine 4. DMF-DMA supplies the =CH-NMe2 unit, correctly listed once. 3j/4j are not individually named in the paper (general procedures only); structures derived correctly."},
+  {"step": 3, "ok": true, "issue": "4 (0.5 mmol) + N2H4.H2O (1.5 mmol, 3 equiv), i-PrOH, rt 1 h then 40 C 1 h -> 5j, 56% (Sec. 4.1.13). Correct."}
+ ],
+ "leaf_issues": [
+  "4-ethoxyphenylacetic acid: the specific acid is never named for 5j; support is 'appropriate commercially available phenylacetic acids 2' (Sec. 2.1) and 'All starting materials and reagents were purchased from commercial suppliers' (4.1). Acceptable.",
+  "1-methoxynaphthalene, DMF-DMA, hydrazine hydrate: covered by the same general purchase sentence."
+ ],
+ "step_count_ok": true,
+ "smiles_issues": [],
+ "overall": "confirmed",
+ "notes": "SMILES checked: 5j = CCOc1ccc(cc1)-c1cn[nH]c1-c1ccc(OC)c2ccccc12 gives 4-(4-ethoxyphenyl) on pyrazole C4, 4-methoxynaphth-1-yl on C5, 1H: matches the printed name. The 1H/2H tautomer is arbitrary for an NH pyrazole. 3j and 4j SMILES are consistent with the procedures (enamine geometry unspecified, fine). Three reactions from commercial, as in the paper's Scheme 1 (a)-(c). Minor discrepancy in the paper itself: step (a) 'overnight' in text vs '12 h' in the scheme."
+}

@@ -1,0 +1,13 @@
+{
+ "paper": "gray2019_tyclopyrazoflor_thiol_ene",
+ "my_lead": "4 (methyl 3-((3,3,3-trifluoropropyl)thio)propanoate) - the abstract's optimised compound; tyclopyrazoflor (1) is only the downstream insecticide candidate and its synthesis is not in this paper",
+ "lead_agrees": true,
+ "reactions": [
+  {"step": 1, "ok": true, "issue": "Methyl 3-mercaptopropionate (2) + 3,3,3-trifluoropropene (3), 1:1 (7.49 mol : 7.86 mol in the semibatch procedure). Product is the linear anti-Markovnikov thioether, SMILES COC(=O)CCSCCC(F)(F)F matches the name and the 1H/13C/19F data (CF3 q at 125.93, 19F -66.5, 2 CH2 triplets, OMe s 3.71). Initiators (AIBN, benzoyl peroxide, N,N-dimethyl- or N,N,4-trimethylaniline) supply no atoms and are rightly not listed. Conditions text is consistent with the three procedures (AIBN 80 C 78%; BP/DMA about 1 C 19 h, 77% in pot, 69% isolated; BP/TMA semibatch -5 C, 91% in pot, 50:1)."}
+ ],
+ "leaf_issues": [],
+ "step_count_ok": true,
+ "smiles_issues": [],
+ "overall": "confirmed",
+ "notes": "Leaf support (Experimental, General): 'All of the reagents were commercially available and used as purchased without further purification.' Route D of Scheme 2 is the paper's chosen route; route A (3-halo-1,1,1-trifluoropropane substitution) is only mentioned for early 100 g batches, no conditions, so not transcribable. A planner must pick the radical anti-Markovnikov addition over the Michael (route B, needs the costly thiol) and the branched isomer 12/14 is the side product; the test is the regiochemistry. The route is one step and the target is an intermediate, not the final insecticide, so it is a trivial test case; the maintainer should know that 'lead' here means the process-optimised intermediate 4. Note the 90:1 selectivity is from the small-scale Table 3 entry; the worked procedure gives 50:1."
+}

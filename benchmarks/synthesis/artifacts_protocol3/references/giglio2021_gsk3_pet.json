@@ -1,0 +1,12 @@
+{
+ "paper": "giglio2021_gsk3_pet",
+ "decision": "excluded",
+ "exclusion_reason": "not_small_molecule_organic",
+ "exclusion_detail": "Radiolabelling paper: the lead is the carbon-11 tracer [11C]-2, made by [11C]CH3I methylation of its desmethyl precursor from cyclotron [11C]CO2; the paper's featured synthesis is the radiolabelling.",
+ "lead": {"label": "[11C]-2", "why": "Abstract: '3-Acetyl-4-(1-[11C]-methyl-1H-indol-3-yl)[1H]pyrrole-2,5-dione ([11C]-2) was obtained by direct methylation using [11C]-CH3I'; it is the tracer taken into biodistribution and PET imaging."},
+ "target": null,
+ "reactions": [],
+ "alt_variants": [],
+ "other_qualifying_compounds": null,
+ "notes": "I did not look into the cold (unlabelled) synthesis of 2 or its precursor, since the lead rule picks the radiolabelled compound."
+}

@@ -1,0 +1,17 @@
+{
+ "paper": "duong2020_atranorin_hydrazides",
+ "my_lead": "2 - abstract: 'Molecular dynamics simulations were carried out with compound 2 demonstrating the best docking model' (main text: 'Compound 2 was the most active', IC50 6.67 uM)",
+ "lead_agrees": true,
+ "reactions": [
+  {"step": 1, "ok": true, "issue": "Phenylacetic acid -> methyl phenylacetate, CH3OH/H2SO4 reflux 8 h (Scheme 1 caption, step a). Never named or isolated in the text; SI says N2 'was prepared from 2-phenylacetic acid by esterification and then hydrazination following the method of Xu et al. (2018)'. Methanol correctly listed since it supplies the OMe; H2SO4 correctly omitted. Conditions come only from the scheme caption, not an experimental paragraph."},
+  {"step": 2, "ok": true, "issue": "Methyl ester + N2H4 (80%) in EtOH reflux 6 h (Scheme 1 step b) -> phenylacetohydrazide N2 (overall 50.4%). The SI calls N2 'Benzohydrazide' but that is a naming slip: HRESIMS of 2 (C27H25N2O8 [M-H]-) needs the phenylacetyl hydrazide, and the main text speaks of 'the benzyl group of hydrazide N2'. Transcriber's choice of NNC(=O)Cc1ccccc1 is right."},
+  {"step": 3, "ok": true, "issue": "Atranorin (1) + hydrazide (3 equiv) in EtOH:AcOH (7:0.3), 50 C, 120 min -> hydrazone 2, 82.0% (SI general procedure 3). AcOH correctly omitted. SMILES of atranorin and of 2 checked ring by ring against the known structure (3-hydroxy-4-methoxycarbonyl-2,5-dimethylphenyl 3-formyl-2,4-dihydroxy-6-methylbenzoate): positions correct, formyl converted to CH=N-NH-C(=O)CH2Ph; formula C27H26N2O8 matches HRESIMS."}
+ ],
+ "leaf_issues": [
+  "Atranorin (1) is marked 'commercial' but the paper does NOT buy it: 'Atranorin (1) was purified from the lichens P. tsavoense and P. praesorediosum' (refs 15-18; main text p.3). The SI's 'All reagents were purchased from Sigma-Aldrich' cannot be read to cover it. Atranorin is in fact a catalogue chemical elsewhere, but the supporting sentence in this paper is an isolation from a natural source. Origin should be changed to natural-product isolate (or the entry kept only if the maintainers accept a catalogue-available natural product as a leaf)."
+ ],
+ "step_count_ok": true,
+ "smiles_issues": [],
+ "overall": "minor_issues",
+ "notes": "Route is chemically right and 3 synthetic steps from phenylacetic acid / atranorin (<= 4). Phenylacetic acid is supported only by the general SI sentence 'All reagents were purchased from Sigma-Aldrich'. 'reagent' origin for methanol and hydrazine: both supply atoms, fine, but they are not typed 'commercial' like the others. N2 preparation is by citation (Xu 2018) plus the scheme caption conditions; no experimental paragraph exists for the ester or N2. If the test set must contain only commercially bought leaves, this route should be rejected because of atranorin; as it stands it is a semi-synthesis of an isolated natural product. Target has no printed name for 2 (name field blank in the JSON is correct); hydrazone C=N geometry is not specified and the SMILES leaves it unspecified."
+}

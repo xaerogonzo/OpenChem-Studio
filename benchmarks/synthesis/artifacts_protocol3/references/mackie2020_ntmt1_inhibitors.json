@@ -1,0 +1,12 @@
+{
+ "paper": "mackie2020_ntmt1_inhibitors",
+ "decision": "excluded",
+ "exclusion_reason": "not_small_molecule_organic",
+ "exclusion_detail": "The lead (BM30; its cell-permeable analogue DC432) is a peptidomimetic made by standard Fmoc solid-phase synthesis on Rink amide resin and cleaved with a TFA cocktail (main text, Experimental), i.e. a peptide-type compound, not a small-molecule route from commercial building blocks.",
+ "lead": {"label": "BM30", "why": "Abstract: 'the rational design and development of the first potent peptidomimetic inhibitor for NTMT1/2 ... BM30 (IC50 0.89 +/- 0.10 uM)'; DC432 is named as its cell-permeable analogue."},
+ "target": null,
+ "reactions": [],
+ "alt_variants": [],
+ "other_qualifying_compounds": [],
+ "notes": "All compounds in the paper are peptide/peptidomimetic SPPS products (Fmoc-amino acids on resin)."
+}

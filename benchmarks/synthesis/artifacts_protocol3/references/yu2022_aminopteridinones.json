@@ -1,0 +1,12 @@
+{
+ "paper": "yu2022_aminopteridinones",
+ "decision": "excluded",
+ "exclusion_reason": "lead_route_over_4_steps",
+ "exclusion_detail": "Lead 57 (Scheme 3 route) takes 5 scheme steps (a) Buchwald coupling of the aryl bromide with the N-Boc-methylpiperazine, (b) Boc removal then N-alkylation with tert-butyl (2-bromoethyl)carbamate, (c) Boc removal then SNAr with 4,6-dichloropyrimidine-2,5-diamine, (d) cyclisation with ethyl glyoxylate, (e) Suzuki coupling with (5-methylfuran-2-yl)boronic acid; 7 reactions if each deprotection is counted separately.",
+ "lead": {"label": "57", "why": "Abstract: 'Compound 57 stood out with an IC50 value of 8.3 nM against A2AR'; (S)-2-amino-8-(2-(4-(2-fluoro-4-methoxyphenyl)-2-methylpiperazin-1-yl)ethyl)-4-(5-methylfuran-2-yl)pteridin-7(8H)-one."},
+ "target": null,
+ "reactions": [],
+ "alt_variants": [],
+ "other_qualifying_compounds": ["3", "7", "13"],
+ "notes": "Compounds 3, 6-15 are made in 3 steps (SNAr of 1a = 4,6-dichloropyrimidine-2,5-diamine with the arylmethyl/arylethyl amine, ethyl glyoxylate cyclisation, Suzuki); the amines 6a-15a are described only as the corresponding substituted amines (assumed commercial), so these labels are tentative."
+}

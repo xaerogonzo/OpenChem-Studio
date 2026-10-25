@@ -1740,6 +1740,7 @@
   "tests/test_synthesis_planner_setup.py": 1,
   "tests/test_synthesis_planning_service.py": 3,
   "tests/test_synthesis_protocol2.py": 2,
+  "tests/test_synthesis_protocol3.py": 2,
   "tests/test_synthesis_route.py": 2,
   "tests/test_synthesis_route_codec.py": 2,
   "tests/test_synthesis_route_ranking.py": 3,

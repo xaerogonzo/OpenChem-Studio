@@ -1,0 +1,148 @@
+{
+ "paper": "hu2025_curcumol_amides_gbm",
+ "decision": "excluded",
+ "exclusion_reason": "route_not_explicit",
+ "exclusion_detail": "The starting material, curcumol, is an isolated plant natural product with no purchase statement, and the 4-step count needs a telescoped epoxidation/ring-opening (second reader: reject). (Reclassified 2026-10-24 after the verification pass.)",
+ "lead": {
+  "label": "13t",
+  "why": "Abstract: 'Among them, 13t with a 4-fluorophenyl demonstrated the most potent dose-dependent inhibition of GBM cell viability, providing a novel lead compound'."
+ },
+ "target": {
+  "name": "(3S,3aS,5S,6S,8aS)-N-(4-fluorophenyl)-6-hydroxy-5-isopropyl-3-methyl-2,3,4,5,6,8a-hexahydro-1H-3a,6-epoxyazulene-8-carboxamide",
+  "smiles": "CC1CCC2C(C(=O)Nc3ccc(F)cc3)=CC3(O)OC12CC3C(C)C"
+ },
+ "reactions": [
+  {
+   "step": 1,
+   "product": {
+    "label": "10",
+    "name": "",
+    "smiles": "CC1CCC2C(CO)=CC3(O)OC12CC3C(C)C"
+   },
+   "reactants": [
+    {
+     "label": "curcumol 9",
+     "name": "curcumol",
+     "smiles": "CC1CCC2C(=C)CC3(O)OC12CC3C(C)C",
+     "origin": "commercial"
+    },
+    {
+     "label": "mCPBA",
+     "name": "meta-chloroperoxybenzoic acid",
+     "smiles": "OOC(=O)c1cccc(Cl)c1",
+     "origin": "reagent"
+    }
+   ],
+   "conditions": "(i) mCPBA (2 equiv), CH2Cl2, rt, 2 h; quench with aq. Na2S2O3, extract, crude epoxide used directly; (ii) NaOH (3 equiv), iPrOH, 70 C, 2 h; silica chromatography; 56 % over the two steps.",
+   "source": "Main text p.2 and SI 'Synthesis of 10'"
+  },
+  {
+   "step": 2,
+   "product": {
+    "label": "11",
+    "name": "",
+    "smiles": "CC1CCC2C(C=O)=CC3(O)OC12CC3C(C)C"
+   },
+   "reactants": [
+    {
+     "label": "10",
+     "name": "",
+     "smiles": "CC1CCC2C(CO)=CC3(O)OC12CC3C(C)C",
+     "origin": "made_here"
+    }
+   ],
+   "conditions": "Dess-Martin periodinane (1.5 equiv), NaHCO3 (2 equiv), CH2Cl2, 0 C to rt, 6 h; 78 %.",
+   "source": "SI 'Synthesis of 11'"
+  },
+  {
+   "step": 3,
+   "product": {
+    "label": "12",
+    "name": "",
+    "smiles": "CC1CCC2C(C(=O)O)=CC3(O)OC12CC3C(C)C"
+   },
+   "reactants": [
+    {
+     "label": "11",
+     "name": "",
+     "smiles": "CC1CCC2C(C=O)=CC3(O)OC12CC3C(C)C",
+     "origin": "made_here"
+    }
+   ],
+   "conditions": "Pinnick: NaClO2 (1.4 equiv), NaH2PO4 (0.3 equiv), 30 % H2O2, MeCN/H2O, rt, overnight; acidify with 2 N HCl and filter; 93 %.",
+   "source": "SI 'Synthesis of 12'"
+  },
+  {
+   "step": 4,
+   "product": {
+    "label": "13t",
+    "name": "(3S,3aS,5S,6S,8aS)-N-(4-fluorophenyl)-6-hydroxy-5-isopropyl-3-methyl-2,3,4,5,6,8a-hexahydro-1H-3a,6-epoxyazulene-8-carboxamide",
+    "smiles": "CC1CCC2C(C(=O)Nc3ccc(F)cc3)=CC3(O)OC12CC3C(C)C"
+   },
+   "reactants": [
+    {
+     "label": "12",
+     "name": "",
+     "smiles": "CC1CCC2C(C(=O)O)=CC3(O)OC12CC3C(C)C",
+     "origin": "made_here"
+    },
+    {
+     "label": "4-fluoroaniline",
+     "name": "",
+     "smiles": "Nc1ccc(F)cc1",
+     "origin": "commercial"
+    }
+   ],
+   "conditions": "HATU (1.2 equiv), amine (1.1 equiv), MeCN, rt, overnight; silica chromatography; 91 % for 13t.",
+   "source": "SI 'Synthesis of 13a-13x' (general procedure) and entry 13t"
+  }
+ ],
+ "alt_variants": [
+  [
+   {
+    "step": 1,
+    "product": {
+     "label": "curcumol epoxide",
+     "name": "",
+     "smiles": "CC1CCC2C3(CO3)CC4(O)OC12CC4C(C)C"
+    },
+    "reactants": [
+     {
+      "label": "curcumol 9",
+      "name": "curcumol",
+      "smiles": "CC1CCC2C(=C)CC3(O)OC12CC3C(C)C",
+      "origin": "commercial"
+     },
+     {
+      "label": "mCPBA",
+      "name": "meta-chloroperoxybenzoic acid",
+      "smiles": "OOC(=O)c1cccc(Cl)c1",
+      "origin": "reagent"
+     }
+    ],
+    "conditions": "mCPBA (2 equiv), CH2Cl2, rt, 2 h; Na2S2O3 quench; crude, not characterised.",
+    "source": "SI 'Synthesis of 10' first half"
+   },
+   {
+    "step": 2,
+    "product": {
+     "label": "10",
+     "name": "",
+     "smiles": "CC1CCC2C(CO)=CC3(O)OC12CC3C(C)C"
+    },
+    "reactants": [
+     {
+      "label": "curcumol epoxide",
+      "name": "",
+      "smiles": "CC1CCC2C3(CO3)CC4(O)OC12CC4C(C)C",
+      "origin": "made_here"
+     }
+    ],
+    "conditions": "NaOH (3 equiv), iPrOH, 70 C, 2 h.",
+    "source": "SI 'Synthesis of 10' second half"
+   }
+  ]
+ ],
+ "other_qualifying_compounds": null,
+ "notes": "CHECK: (1) The paper counts the route as 'four-step' and gives one procedure and one two-step yield for curcumol -> 10 (epoxidation then NaOH ring opening with only a work-up between, epoxide never isolated); I count it as one step per the telescoped-sequence rule, so 4 steps; as two separate reactions it would be 5 (second variant lists steps 1-2 of that reading, steps 3-5 are the same as above). (2) Curcumol is not printed with a structure or name anywhere in the text and the paper does not say it is purchased or isolated; I derived its SMILES (exocyclic 8-methylene guaiane hemiketal, C15H24O2) from product 10 (C15H24O3, allylic CH2OH, ring CH=) and from my knowledge of curcumol; the spiro-epoxide of the methylene opened by base to the endocyclic allylic alcohol explains 10. The SI title says 'Curcumenol' although the paper says curcumol, and the SI's mass/mmol of curcumol (2.36 g, 6.7 mmol) does not match curcumol's molar mass. (3) Main text swaps labels once (says 13s = 4-fluorophenyl and 13t = 4-bromophenyl), but abstract, conclusion and SI all give 13t = 4-fluorophenyl and 13s = 4-bromophenyl. (4) Stereodescriptors are in the printed name only; the SMILES are flat. 4-Fluoroaniline is not named in the paper; inferred from the 13t name (no doubt). NaClO2 oxygen not listed as an atom-supplying reagent."
+}
