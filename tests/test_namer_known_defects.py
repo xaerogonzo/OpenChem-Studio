@@ -1572,8 +1572,8 @@ FIXED: list[tuple[str, str, str, str, str]] = [
     # elsewhere an empty locant, and the name went out as "fluoro-...": 32
     # entries were measured with such a gap. The substitutive builder now
     # refuses the plan and another parent is chosen.
-    ("D-073a", "Fc1ccc2ssc2c1", "5-fluoro-1,2-benzodithiete", "fluoro-1,2-benzodithiete",
-     "the former did not parse back"),
+    ("D-073a", "Fc1ccc2ssc2c1", "4-fluoro-1,2-benzodithiete", "fluoro-1,2-benzodithiete",
+     "the former did not parse back (round 82: 4 and 5 are the same position by the C2v symmetry, and the lowest locant is 4; OPSIN reads both)"),
     ("D-073b", "Cc1ccncc1", "4-methylpyridine", "4-methylpyridine",
      "converse: a complete entry is untouched"),
     # --- D-074: a ring acid's locant carried into its cation (A7) -----------
@@ -4758,6 +4758,19 @@ FIXED: list[tuple[str, str, str, str, str]] = [
     ("D-370", "O=C1NCCc2cnn(Nc3ncnc4[nH]cnc34)c21", "1-[(9H-purin-6-yl)amino]-1,4,5,6-tetrahydro-7H-pyrazolo[3,4-c]pyridin-7-one",
      "1-(adenin-9-yl)-1,4,5,6-tetrahydro-7H-pyrazolo[3,4-c]pyridin-7-one",
      "adenine joined through its amino nitrogen took the nucleoside substituent form `adenin-9-yl`, another molecule"),
+    # Naming round 82 (D-371 .. D-374).
+    ("D-371", "CC(=O)c1c(C(N)=O)c(Cl)cc2ssc12", "3-acetyl-5-chloro-1,2-benzodithiete-4-carboxamide",
+     "[NAMING ERROR: parent '1,2-benzodithiete' has no locant for a substituted ring position]",
+     "the curated 1,2-benzodithiete had atom locants for four of its ten atoms (no 3, 4, 2a or 6a); a substituted one was an error or a wrong molecule"),
+    ("D-372", "O=C(O)c1cccc2nn(-c3ccc4n[nH]nc4c3)nc12", "2-(2H-benzotriazol-5-yl)-2H-benzotriazole-4-carboxylic acid",
+     "2-(2H-benzotriazol-5-yl)-2H-benzotriazole-5-carboxylic acid",
+     "two copies of a curated ring: the hydrogen-pinned query matched only the sibling ring, and the parent was numbered by the generic fallback (a 4-acid became a 5-acid)"),
+    ("D-373", "c1ccc2c(c1)Cc1ccc(-c3cccc4c3Cc3ccccc3O4)cc1O2", "3,1'-bi(9H-xanthene)",
+     "3,1'-bixanthene",
+     "a ring assembly whose component OPSIN cannot read behind bi: tricyclic, hydro or von Baeyer, or a retained name that needs its indicated hydrogen as a component"),
+    ("D-374", "C1CC2CCCC2(C23CCCC2CCC3)C1", "3a,3a'-bi(octahydropentalene)",
+     "1,1'-bioctahydropentalene",
+     "the substituent name `hexahydropentalen-3a(1H)-yl` was not parsed for its locant, so an assembly bond at a fusion atom took locant 1"),
     # D-162, recorded OPEN in naming round 14 and closed by the same change: the same group in an ester's alcohol part. Its target was derived then and is what the fixed engine writes.
     ("D-162", "CC(=O)OCC(=O)N(O)C", "2-[hydroxy(methyl)amino]-2-oxoethyl acetate",
      "[(hydroxycarbamoyl)methyl]methyl acetate",

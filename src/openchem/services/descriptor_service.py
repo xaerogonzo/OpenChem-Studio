@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 import threading
 import time
-from collections.abc import Callable
+from collections.abc import Callable, Iterable
 from dataclasses import replace
 
 from PySide6.QtCore import QRunnable, QThreadPool
@@ -23,6 +23,7 @@ from openchem.chem.descriptor_providers import (
 )
 from openchem.chem.engine import ChemistryEngine
 from openchem.domain.calculator import DRAWING, GEOMETRY, CalculationRefusal, CalculationRequest
+from openchem.domain.structure_coverage import Coverage, CoverageKind
 from openchem.domain.refusal_kinds import MissingInput, RefusalKind, refusal_parameters
 from openchem.domain.input_snapshot import InputSnapshot, snapshot_model
 from openchem.domain.common import CacheState, Provenance
@@ -708,20 +709,52 @@ class DescriptorService:
         self._pool = QThreadPool.globalInstance()
         self._claims = _GeometryClaims()
 
-    def preflight(self, model: MoleculeModel, calculator_id: str) -> str:
-        """Why `calculator_id` is certain to refuse this molecule, or "" (see `CalculatorDefinition.preflight`).
+    def coverage(
+        self, model: MoleculeModel, calculator_id: str, *, shared: dict | None = None
+    ) -> Coverage | None:
+        """Whether `calculator_id` takes this molecule: covered, covered with a limit, certain to refuse, or None.
 
-        Resolved the way a run resolves its input, so the hook sees what the run would. Never
-        raises: no structure, an unresolvable input and a failing hook all read as no claim.
+        See `CalculatorRegistry.coverage` and `domain.structure_coverage`. Resolved the way a run resolves its
+        input, so the check sees what the run would. Never raises: no structure, an unresolvable input (a
+        calculator that needs a 3D structure of a molecule that has none) and a failing check all read as no claim.
+
+        `shared` is one pass's memory (see `coverage_pass`); leave it out to ask about a single calculator.
         """
         definition = self._calculator_registry.get(calculator_id)
-        if definition is None or definition.preflight is None:
-            return ""
+        if definition is None or (definition.preflight is None and definition.scope is None):
+            return None
         try:
-            resolved = resolve_calculation_input(self._engine, model, definition.calculation_input)
-            return self._calculator_registry.preflight(calculator_id, resolved.mol)
+            kind = definition.calculation_input
+            if shared is None:
+                mol = resolve_calculation_input(self._engine, model, kind).mol
+            else:
+                inputs = shared.setdefault("inputs", {})
+                if kind not in inputs:
+                    inputs[kind] = resolve_calculation_input(self._engine, model, kind).mol
+                mol = inputs[kind]
+            scoped = shared.setdefault(("scope", kind), {}) if shared is not None else None
+            return self._calculator_registry.coverage(calculator_id, mol, shared=scoped)
         except Exception:  # noqa: BLE001
-            return ""
+            return None
+
+    def coverage_pass(self, model: MoleculeModel, calculator_ids: Iterable[str]) -> dict[str, Coverage]:
+        """`coverage` for each id, sharing the work between them; only the ones that make a claim appear.
+
+        This is the whole cost of the indicator: one call per settled structure (never per drag keystroke),
+        measured in `docs/STRUCTURE_COVERAGE_DESIGN.md`.
+        """
+        shared: dict = {}
+        answers = {}
+        for calculator_id in calculator_ids:
+            coverage = self.coverage(model, calculator_id, shared=shared)
+            if coverage is not None:
+                answers[calculator_id] = coverage
+        return answers
+
+    def preflight(self, model: MoleculeModel, calculator_id: str) -> str:
+        """Why `calculator_id` is certain to refuse this molecule, or "" (the refusal half of `coverage`)."""
+        coverage = self.coverage(model, calculator_id)
+        return coverage.reason if coverage is not None and coverage.kind is CoverageKind.REFUSES else ""
 
     def run_calculator(self, model: MoleculeModel, request: CalculationRequest) -> None:
         """On-demand (not eager) calculator dispatch (Phase 18) -- looks up

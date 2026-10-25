@@ -21768,3 +21768,34 @@ would silently defeat any top-K pool.
 * **Raw ETKDG geometries are not relaxed.** That v3 run sent the raw seed-0
   enol (O-H...O 4.76 A) to ORCA, which stayed in the non-hydrogen-bonded minimum
   14.7 kcal/mol above the bonded one. MMFF-minimise before ORCA.
+
+## A BARE `import judge` RETURNED ANOTHER BENCHMARK'S FILE, AND ONLY A PROCESS THAT RAN BOTH SAW IT
+
+Measured 2026-10-22, the first time the quantum-chemistry and panel test files were run together in one process after the BDE benchmark merged
+(`benchmarks/bde/`). Three tests of the Psi4 agreement runner failed with `AttributeError: module 'judge' has no attribute 'HARTREE_TO_MEH'`; each
+file's own tests passed alone (14 passed), and the runner's tests passed with the grid-offset test beside them (25 passed).
+
+* **`benchmarks/` holds four files called `judge.py`** (`bde`, `proton_affinity`, `psi4_agreement`, `synthesis`). A runner that does
+  `sys.path.insert(0, HERE)` and then `import judge` gets whichever of them is already in `sys.modules`, not the one beside it, because the import
+  system looks `judge` up by name first and only searches the path on a miss. Two runners in one process share one `judge`, and the second gets the
+  first one's file.
+* **CI was in a position to hit it and had not yet.** `tools/suite-shard-pins.json` pins `tests/test_bde_runner.py` and
+  `tests/test_psi4_agreement_runner.py` to the same shard, and `tools/suite_shards.py` hands each shard its files sorted by name, so the BDE tests load their judge first.
+  Both pull requests were green on their own: the Psi4 runner went in before the BDE benchmark existed, so the collision was made by two pull
+  requests that each passed. Master's green history was no evidence about the combination (see "ADDING A TEST FILE RE-BALANCES THE SHARDS").
+  It was found by running 64 files that touch one panel in a single process, not by any single test.
+* **Fix:** load the folder's own file by path under a name no other file uses (`importlib.util.spec_from_file_location("psi4_agreement_judge", ...)`,
+  registered in `sys.modules` first because a dataclass looks its own module up by name), and do not put the folder on `sys.path`, which would make the
+  reverse collision for everyone else. The BDE runner (`run_bde.py`) already did this; `proton_affinity/run_pa.py` still does the bare import, and is
+  only correct because it inserts its own folder at the front of `sys.path` first and nothing has put another `judge` in `sys.modules` before it.
+* **The test that holds it** plants a foreign `judge` module in `sys.modules` (`monkeypatch.setitem`) and loads the runner again; restoring the bare
+  import fails it. A test that only runs the runner alone cannot see this class of defect: it needs the other module to be present.
+
+A second thing from the same session, because it cost a mutation run. A test of a rule's boundary ("the largest median is at most twice the smallest")
+**survived the mutation that made the comparison exclusive**, because it reached the boundary through energy differences in Hartree, and the
+floating-point noise put the ratio just under 2.0 whichever way the comparison went. Test a boundary at the judge itself, with numbers that are exactly
+representable (0.125 and 0.25, not 0.15 and 0.30), and run the mutation: a boundary test that passes with the boundary flipped has not tested the boundary.
+
+**How to apply:** give a helper module in a benchmark folder a name no other folder uses (`pa_core`, `bde_core`), or load it by path under a unique name;
+never rely on `sys.path.insert` plus a bare `import` for a name that could exist in another folder; and before trusting a green shard for a new
+benchmark, run its tests in one process with the other benchmarks' tests.

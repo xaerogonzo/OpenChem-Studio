@@ -94,7 +94,7 @@ class RefusalKind(str, Enum):
 #: decides whether it is a limit, a missing input or a missing setup.
 _LIMIT_CODES = (
     "NO_RINGS", "NO_PI_SYSTEM", "NO_IONIZABLE_CENTRE", "NOT_CHNO", "AMPHOLYTE",
-    "TOO_FEW_CARBONS", "UNCOVERED_ATOM", "NO_DONOR_ATOM", "NO_POLYOXYETHYLENE",
+    "UNCOVERED_ATOM", "NO_DONOR_ATOM", "NO_POLYOXYETHYLENE",
     "REFUSE_ELEMENT_NOT_PARAMETERISED", "NO_KNOWN_FRAGMENTS",
 )
 

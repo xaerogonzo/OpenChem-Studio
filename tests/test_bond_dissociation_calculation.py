@@ -165,7 +165,7 @@ def test_the_stated_error_is_recomputed_from_the_committed_records():
     for stated, measured in ((bd.BENCHMARK["all"], errors["ALL"]), (bd.BENCHMARK["first_run"], errors["ALL first run"]), (bd.BENCHMARK["held_out"], errors["ALL held out"])):
         s = stats(measured)
         assert stated["n"] == s["n"] and stated["mae"] == pytest.approx(s["mae"], abs=0.005) and stated["mse"] == pytest.approx(s["mse"], abs=0.005) and stated["max"] == pytest.approx(s["max"], abs=0.005)
-    for key in ("C-H", "N-H", "O-H", "O-H next to O or N", "S-H"):
+    for key in ("C-H", "N-H", "O-H", "O-H next to O or N", "S-H", "Si-H"):
         s = stats(classes[key])
         stated = bd.BENCHMARK[key]
         assert stated["n"] == s["n"] and stated["mae"] == pytest.approx(s["mae"], abs=0.005) and stated["mse"] == pytest.approx(s["mse"], abs=0.005) and stated["max"] == pytest.approx(s["max"], abs=0.005), key
@@ -202,13 +202,38 @@ def test_an_oxygen_bonded_to_another_oxygen_or_a_nitrogen_is_flagged_as_the_clas
 @pytest.mark.parametrize(
     ("smiles", "reason"),
     [
-        ("[Si]", "Si"), ("CCl", "Cl"), ("c1ccccc1P", "P"), ("[CH3]", "radical"), ("C[N+](C)(C)C", "charged"), ("[Na+].[Cl-]", "more than one"), ("CC(C)(C)C(C)(C)C(C)(C)C", "11 heavy atoms"),
-        ("O=C=O", "no C-H"), ("not a smiles", "could not be read"),
+        ("[CH3]", "radical"), ("C[N+](C)(C)C", "charged"), ("[Na+].[Cl-]", "more than one"), ("O=C=O", "no bond between a heavy atom and a hydrogen"),
+        ("not a smiles", "could not be read"), ("[UH3]", "basis set has no functions"),
     ],
 )
-def test_a_molecule_outside_what_the_benchmarks_measured_is_refused_with_its_reason(smiles, reason):
+def test_a_molecule_the_protocol_cannot_compute_is_refused_with_its_reason(smiles, reason):
+    """The jobs are a neutral singlet parent and a neutral doublet radical: a charged or open-shell input would be computed WRONGLY, not merely without a measured error."""
     with pytest.raises(pa.OutOfScope, match=reason):
         bd.molecule_from_smiles(smiles)
+
+
+@pytest.mark.parametrize(
+    ("smiles", "atoms", "warned"),
+    [
+        ("CCl", None, ["Cl: the benchmarks measured molecules of only H, C, N, O and S"]),
+        ("CC(C)(C)C(C)(C)C(C)(C)C", None, ["11 heavy atoms: the benchmarks measured molecules of at most 9"]),
+        ("c1ccccc1P", [6], ["P: the benchmarks measured molecules of only H, C, N, O and S", "P-H bonds: no bond of that kind was measured"]),
+        ("c1ccccc1P", [0], ["P: the benchmarks measured molecules of only H, C, N, O and S"]),
+        ("[SiH4]", [0], ["Si: the benchmarks measured molecules of only H, C, N, O and S"]),  # silane's Si-H was measured once, the element is outside the deciding set
+        ("CO", [0, 1], []),
+    ],
+)
+def test_a_molecule_the_benchmarks_did_not_measure_is_computed_with_its_warnings(smiles, atoms, warned):
+    """Alex, 2026-10-23: our benchmarks' edge is a warning, not a refusal."""
+    assert bd.scope_warnings(bd.molecule_from_smiles(smiles), atoms) == warned
+
+
+def test_a_sequence_outside_the_measured_scope_carries_its_warnings_into_the_result():
+    sequence = bd.Sequence("c1ccccc1P", [6])
+    assert "P-H bonds: no bond of that kind was measured" in sequence.scope_warnings
+    sequence.records = [{"structure": "atom|H", "role": "atom", "completed": True, "energy": -0.49982}]
+    parameters = bd.descriptors(sequence, "u")[0].provenance.parameters
+    assert parameters["within_measured_scope"] is False and "OUTSIDE WHAT WAS MEASURED" in parameters["validation"]
 
 
 def test_a_run_names_which_bonds_and_refuses_a_choice_that_is_not_a_class_or_is_too_big():

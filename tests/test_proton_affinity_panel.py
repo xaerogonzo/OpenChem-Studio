@@ -94,15 +94,46 @@ def test_a_click_hands_the_service_the_structure_and_the_identity_captured_now(q
     assert not panel._proton_affinity_button.isEnabled() and not panel._run_button.isEnabled() and panel._cancel_button.isEnabled()
 
 
-def test_a_base_the_benchmark_did_not_measure_is_refused_in_the_panel_before_anything_is_queued(qapp, dispose):
-    panel, _molecule, service, _bus = _panel_with("CCl")
+def test_a_base_the_protocol_cannot_compute_is_refused_in_the_panel_before_anything_is_queued(qapp, dispose):
+    panel, _molecule, service, _bus = _panel_with("C[N+](C)(C)C")
     dispose(panel)
 
     panel._on_proton_affinity_clicked()
 
     assert service.proton_affinity_requests == []
-    assert "does not apply" in panel._status_label.text() and "Cl" in panel._status_label.text()
+    assert "does not apply" in panel._status_label.text() and "charged" in panel._status_label.text()
     assert panel._proton_affinity_button.isEnabled() and panel._run_button.isEnabled()
+
+
+def test_a_base_the_benchmark_did_not_measure_asks_first_and_runs_on_yes(qapp, dispose, monkeypatch):
+    panel, _molecule, service, _bus = _panel_with("CCl")  # chlorine: computable, not measured
+    dispose(panel)
+    asked = []
+
+    def answer(reply):
+        def question(parent, title, text, *args, **kwargs):
+            asked.append(text)
+            return reply
+        return question
+
+    monkeypatch.setattr(QMessageBox, "question", answer(QMessageBox.StandardButton.No))
+    panel._on_proton_affinity_clicked()
+    assert service.proton_affinity_requests == [] and "outside what the benchmark measured" in asked[0] and "Cl:" in asked[0] and "measured error does not apply" in asked[0]
+
+    monkeypatch.setattr(QMessageBox, "question", answer(QMessageBox.StandardButton.Yes))
+    panel._on_proton_affinity_clicked()
+    assert len(service.proton_affinity_requests) == 1
+
+
+def test_a_result_outside_the_measured_scope_says_so_first(qapp, dispose):
+    panel, molecule, _service, bus = _panel_with("O")
+    dispose(panel)
+    panel._pending_molecule_uuid = molecule.uuid
+    event = _result_for("O", [WATER, HYDRONIUM], molecule.uuid)
+    for descriptor in event.descriptors:
+        descriptor.provenance.parameters["outside_measured_scope"] = ["Cl: the benchmark measured only H, C, N, O, P and S"]
+    bus.publish(event)
+    assert panel._results_label.text().splitlines()[2].startswith("Outside what was measured (Cl:")
 
 
 def test_a_long_run_names_its_job_count_and_can_be_declined(qapp, dispose, monkeypatch):

@@ -1,8 +1,47 @@
-"""Oxygen balance for C/H/N/O substances [source:klapotke2017].
+"""Oxygen balance for C/H/N/O substances [source:klapotke2017], and beyond
+them where a source says what each other element burns to: [source:meyer2016],
+[source:conkling2019], [source:zeuner2003].
 
 Oxygen balance says whether a substance carries enough oxygen to burn its own
 carbon and hydrogen, as a percentage of its mass. Zero means exactly enough;
 positive means an excess; negative means a deficiency.
+
+BEYOND C/H/N/O, ONE ELEMENT AT A TIME
+=====================================
+
+Meyer defines the balance as the oxygen left after "complete conversion of
+the explosive material to CO2, H2O, SO2, Al2O3, etc." and, in its
+thermodynamic entry, states that "Chlorine will be converted into HCl" and
+alkaline-earth metals into their oxides. **WHICH oxide each metal forms is
+not written in Meyer; it is read off the book's own printed balances**. The
+41 compounds whose formula and balance the book prints were run through one
+valence per element (`_PRODUCTS`) before it was written: 38 agree to the
+book's one-decimal printing. The three that do not are recorded, not fitted
+(see `docs/sources.toml`). [source:akhavan2011] states the same definition
+and agrees on silver and lead; it burns mercury to HgO where Meyer leaves the
+metal, and the result says so.
+
+Conkling & Mocella's "pyro valence" (Table 2.5) IS this accounting, written
+down per element: each element's valence is the oxidation state of its
+product, so a molecule's net valence is the oxygen it needs in half-oxygens.
+It adds boron (B2O3, also stated by [source:zeuner2003]), fluorine (HF or a
+metal fluoride), magnesium, titanium, silicon and zirconium, and agrees with
+Meyer everywhere the two overlap except lead in an oxidizer (red lead to the
+metal; Meyer and Akhavan burn lead to PbO) and iron, whose product it makes
+depend on whether the iron is a fuel or an oxidizer. An element in no source
+is refused by name.
+
+**A CHLORINE (OR FLUORINE) COUNTS THE SAME WHICHEVER PARTNER TAKES IT.** HCl spares the
+half-oxygen its hydrogen would have needed; KCl or BaCl2 spares the
+half-oxygen per valence the metal's oxide would have needed. So "chlorine
+takes hydrogen first" and "chlorine takes the metal first" give one number
+for every compound with enough of both, and the code does not have to choose
+an order the source never states. When there is MORE halogen than hydrogen
+and oxide-forming metal valence to take it -- carbon tetrachloride, Teflon --
+the remainder's product is not stated, and the structure is refused.
+
+Only the CO2 basis is extended. The CO basis is Klapötke's, stated for
+CaHbNcOd, and no source here writes it for a sulfur or a metal.
 
 WHY THERE ARE TWO OF THEM, AND WHY BOTH ARE REPORTED
 ====================================================
@@ -96,8 +135,102 @@ USER_FACING_PROVIDER = "Oxygen balance, through the 'Oxygen Balance' calculator"
 #: a metal each need their own oxidation accounting -- silently ignoring
 #: those atoms would return a confident wrong number for, say, a
 #: perchlorate, which is exactly the substance class somebody would ask
-#: about.
+#: about. `oxygen_balance` keeps it, because Kamlet-Jacobs and the
+#: formulation composite read this function and are C/H/N/O methods; the
+#: calculator goes on to `extended_oxygen_balance` for anything else.
 CHNO = frozenset({"C", "H", "N", "O"})
+
+
+@dataclass(frozen=True)
+class ElementAccounting:
+    """What one element burns to, in Meyer's balance [source:meyer2016].
+
+    `valence` is the oxygen it consumes per atom, in HALF-oxygens -- the
+    oxidation state of its product -- so that hydrogen's H2O (1) and
+    aluminium's Al2O3 (3) are both integers. `pinned_by` names the values in
+    the book that fix it; an element with none is not in the table.
+    """
+
+    product: str
+    valence: int
+    pinned_by: str
+
+
+#: Every element the extended balance accepts, with the product a source
+#: states or prints. **NOT A LIST OF "METALS AND THEIR USUAL OXIDES"** -- the
+#: Meyer rows are the oxide the book's own printed balances use, and two are
+#: surprising enough to say so: mercury and silver are left as the METAL
+#: (mercury fulminate is -11.2%, silver azide 0%), and the cobalt of a
+#: cobalt(III) complex goes to CoO. Iron is absent because Meyer uses FeO
+#: for ferrocene (-223.6%) and Fe2O3 for iron
+#: acetylacetonate (its printed 163.1% is the Fe2O3 value, sign aside), so
+#: which oxide applies is not stated.
+_PRODUCTS: dict[str, ElementAccounting] = {
+    "C": ElementAccounting("CO2", 4, "carbon -266.7% (Table 21)"),
+    "H": ElementAccounting("H2O", 1, "every printed balance"),
+    "N": ElementAccounting("N2", 0, "every printed balance"),
+    "S": ElementAccounting(
+        "SO2", 4, "the definition; sulfur -100.0% (Table 21), hexanitrodiphenyl "
+        "sulfide -56.1%, hexanitrodiphenyl sulfone -45.8%"),
+    "Al": ElementAccounting("Al2O3", 3, "the definition; aluminum -89.0% (Table 21)"),
+    "Li": ElementAccounting("Li2O", 1, "lithium nitrate +58.1%"),
+    "Na": ElementAccounting("Na2O", 1, "sodium nitrate +47.1% (+47.0% in Table 21)"),
+    "K": ElementAccounting("K2O", 1, "potassium nitrate +39.6%"),
+    "Ca": ElementAccounting("CaO", 2, "the thermodynamic entry; C12H2CaK2N6O16 -29%"),
+    "Sr": ElementAccounting("SrO", 2, "strontium nitrate +37.8%"),
+    "Ba": ElementAccounting("BaO", 2, "barium nitrate +30.6%"),
+    "Pb": ElementAccounting(
+        "PbO", 2, "lead nitrate +24.2%, lead azide -5.5%, lead dioxide +6.7%, "
+        "lead picrate -31.4%, lead styphnate -18.8%"),
+    "Zn": ElementAccounting("ZnO", 2, "zinc peroxide +16.43%"),
+    "Cr": ElementAccounting(
+        "Cr2O3", 3, "ammonium dichromate 0%, lead chromate +7.43%"),
+    "Co": ElementAccounting("CoO", 2, "C2ClCoH12N14O8 -8.8%"),
+    "Hg": ElementAccounting("Hg (not oxidised)", 0, "mercury fulminate -11.2%"),
+    # -- the six Conkling & Mocella's Table 2.5 adds -----------------------
+    "B": ElementAccounting(
+        "B2O3", 3, "Conkling & Mocella Table 2.5 and US 6,599,380; Klapötke's "
+        "tris(2-nitroethyl) borate -59.70% and tris(2,2,2-trinitroethyl) borate "
+        "+13.07%; the patent's boron/KNO3 26/74 at -28.4%"),
+    "Mg": ElementAccounting(
+        "MgO", 2, "Conkling & Mocella Table 2.5; its NaNO3/Mg stoichiometric at "
+        "41.6% Mg, and 35 g of Mg at +2.88 valence per 100 g"),
+    "Ti": ElementAccounting(
+        "TiO2", 4, "Conkling & Mocella Table 2.5; its KClO4/Ti 80/20 at -2.95 and "
+        "KClO4/Ti/PMMA 60/35/5 at +0.66 valence per 100 g"),
+    "Si": ElementAccounting(
+        "SiO2", 4, "Conkling & Mocella Table 2.5 and Eq. 3.24 (no printed balance)"),
+    "Zr": ElementAccounting(
+        "ZrO2", 4, "Conkling & Mocella Table 2.5 and its table of metal fuels' "
+        "oxides (no printed balance)"),
+    "Ag": ElementAccounting(
+        "Ag (not oxidised)", 0, "silver azide 0%, silver acetylide -26.7%"),
+}
+
+#: Chlorine's own row is a NEGATIVE valence: each one returns the half-oxygen
+#: its partner -- a hydrogen as HCl, or one valence of a metal as its
+#: chloride -- would otherwise have needed. See the module docstring.
+_CHLORINE = ElementAccounting(
+    "HCl, or the metal's chloride", -1,
+    "Meyer's 'Chlorine will be converted into HCl' and Conkling & Mocella Table "
+    "2.5; ammonium chloride -44.9%, ammonium perchlorate +34.0%, potassium "
+    "chlorate +39.2%, potassium perchlorate +46.2%, PVC +10 per unit")
+#: Fluorine works exactly as chlorine does, from Conkling & Mocella's row:
+#: "HF, MgF2, other metal fluorides". Meyer prints no fluorine compound.
+_FLUORINE = ElementAccounting(
+    "HF, or the metal's fluoride", -1,
+    "Conkling & Mocella Table 2.5; Viton (C2H2F2) +8 per unit")
+#: The halogens a source gives a product for; each takes a partner.
+_HALOGENS = {"Cl": _CHLORINE, "F": _FLUORINE}
+#: Elements whose valence is not offered to a halogen (see `extended_oxygen_balance`).
+_NOT_A_HALOGEN_PARTNER = frozenset({"C", "N", "S", "B", "Si"})
+
+#: Why a specific element is not covered, where there is more to say than
+#: "the source gives no product for it".
+_NOT_COVERED_BECAUSE = {
+    "Fe": ("Meyer burns one iron compound to FeO and another to Fe2O3, and Conkling & "
+           "Mocella take iron to the metal in an oxidizer but to Fe2O3 as a fuel"),
+}
 
 #: 100 x the atomic mass of oxygen. The source writes the constant as 1600
 #: rather than deriving it, and it is kept that way so the expression can be
@@ -115,6 +248,11 @@ class OxygenBalanceRefusal(Enum):
     NOT_A_STRUCTURE = "the structure could not be read"
     NOT_CHNO = "the structure contains an element outside C, H, N and O"
     NO_ATOMS = "the structure has no atoms"
+    #: The extended balance's refusal: an element the source gives no
+    #: product for, or chlorine with nothing left to take it. The name is
+    #: the one Joback and Hansen already raise for "an atom the method does
+    #: not cover", which `refusal_kinds` classifies as a limit.
+    UNCOVERED_ATOM = "the structure contains an atom the source gives no product for"
 
 
 @dataclass(frozen=True)
@@ -211,9 +349,159 @@ def refusal_text(result: OxygenBalance) -> str:
             "need their own oxidation accounting, so ignoring those atoms would give a "
             "confident wrong number rather than a rougher one."
         )
+    if result.refusal is OxygenBalanceRefusal.UNCOVERED_ATOM:
+        return (
+            f"Oxygen balance beyond C/H/N/O needs to know what each element burns to, "
+            f"and {result.detail}. Leaving those atoms out would give a confident wrong "
+            "number rather than a rougher one."
+        )
     if result.refusal is OxygenBalanceRefusal.NO_ATOMS:
         return "This structure has no atoms to balance."
     return "This structure could not be read."
+
+
+@dataclass(frozen=True)
+class ExtendedOxygenBalance:
+    """The balance to full oxidation for a substance beyond C/H/N/O, or why
+    it cannot be given [source:meyer2016].
+
+    `to_full_oxidation` is None exactly when `refusal` is set. It is the
+    CO2-basis quantity -- carbon to CO2 -- with every other element burned to
+    the product `_PRODUCTS` names.
+    """
+
+    to_full_oxidation: float | None = None
+    refusal: OxygenBalanceRefusal | None = None
+    #: For a refusal, the clause saying which atoms and why.
+    detail: str = ""
+    formula: str = ""
+    molecular_weight: float = 0.0
+    #: Every element and its count, so a reader can check the arithmetic.
+    counts: tuple[tuple[str, int], ...] = ()
+    #: The oxygen atoms the products need, which can be fractional.
+    oxygen_needed: float = 0.0
+    #: Whether a separate water molecule is drawn -- a hydrate -- because the
+    #: source is inconsistent about those and the report says so.
+    has_water: bool = False
+
+    @property
+    def applicable(self) -> bool:
+        return self.refusal is None
+
+    def count(self, element: str) -> int:
+        return dict(self.counts).get(element, 0)
+
+    @property
+    def products(self) -> tuple[tuple[str, str], ...]:
+        """(element, what it was burned to) for every element present but O."""
+        rows = []
+        for element, _ in self.counts:
+            if element == "O":
+                continue
+            accounting = _HALOGENS.get(element) or _PRODUCTS[element]
+            rows.append((element, accounting.product))
+        return tuple(rows)
+
+
+def extended_oxygen_balance(mol: Chem.Mol | None) -> ExtendedOxygenBalance:
+    """The oxygen balance to full oxidation, element by element.
+
+        Omega = (d - n/2) x 1600 / M,   n = sum(valence x count) - halogens
+
+    where `n` is the oxygen the products need in half-oxygens, read off
+    `_PRODUCTS`. For a C/H/N/O substance this IS Klapötke's
+    Omega_CO2, term for term -- carbon 4, hydrogen 1, nitrogen 0 -- but the
+    calculator does not route C/H/N/O here, so that identity is a test
+    rather than something the shipped numbers depend on.
+    """
+    if mol is None:
+        return ExtendedOxygenBalance(refusal=OxygenBalanceRefusal.NOT_A_STRUCTURE)
+    if mol.GetNumAtoms() == 0:
+        return ExtendedOxygenBalance(refusal=OxygenBalanceRefusal.NO_ATOMS)
+    try:
+        counted = Chem.AddHs(Chem.Mol(mol))
+    except Exception:
+        return ExtendedOxygenBalance(refusal=OxygenBalanceRefusal.NOT_A_STRUCTURE)
+
+    tally: dict[str, int] = {}
+    for atom in counted.GetAtoms():
+        tally[atom.GetSymbol()] = tally.get(atom.GetSymbol(), 0) + 1
+    formula = rdMolDescriptors.CalcMolFormula(mol)
+    counts = tuple(sorted(tally.items()))
+
+    uncovered = sorted(e for e in tally if e not in _PRODUCTS and e != "O" and e not in _HALOGENS)
+    if uncovered:
+        reasons = [_NOT_COVERED_BECAUSE[e] for e in uncovered if e in _NOT_COVERED_BECAUSE]
+        detail = (
+            f"the source gives no product for {', '.join(uncovered)} in this structure"
+            if not reasons else
+            f"this structure contains {', '.join(uncovered)}, and {'; '.join(reasons)}"
+        )
+        return ExtendedOxygenBalance(
+            refusal=OxygenBalanceRefusal.UNCOVERED_ATOM, detail=detail,
+            formula=formula, counts=counts,
+        )
+
+    halogens = sum(tally.get(h, 0) for h in _HALOGENS)
+    # What can take a halogen: each hydrogen, and each valence of a metal whose
+    # oxide the table names -- the sources' "HCl, KCl, other metal chlorides"
+    # and "HF, MgF2, other metal fluorides". Not carbon, sulfur, nitrogen or
+    # the metalloids boron and silicon, whose products are the oxides above,
+    # and not mercury or silver, which Meyer leaves unoxidised and so has no
+    # valence to give.
+    partners = sum(
+        _PRODUCTS[e].valence * n
+        for e, n in tally.items()
+        if e not in _NOT_A_HALOGEN_PARTNER and e != "O" and e not in _HALOGENS
+    )
+    if halogens > partners:
+        named = " and ".join(
+            f"{tally[h]} {'chlorine' if h == 'Cl' else 'fluorine'}" for h in _HALOGENS if h in tally)
+        return ExtendedOxygenBalance(
+            refusal=OxygenBalanceRefusal.UNCOVERED_ATOM,
+            detail=(
+                f"this structure has {named} and only {partners} hydrogen or metal "
+                "valences to take them as HCl/HF or a metal halide; no source says "
+                "what the rest becomes"
+            ),
+            formula=formula, counts=counts,
+        )
+
+    mass = Descriptors.MolWt(mol)
+    if mass <= 0:
+        return ExtendedOxygenBalance(refusal=OxygenBalanceRefusal.NO_ATOMS)
+
+    half_oxygens = sum(
+        _PRODUCTS[e].valence * n for e, n in tally.items() if e != "O" and e not in _HALOGENS
+    ) - halogens
+    needed = half_oxygens / 2
+    return ExtendedOxygenBalance(
+        to_full_oxidation=(tally.get("O", 0) - needed) * _PERCENT_TIMES_OXYGEN_MASS / mass,
+        formula=formula,
+        molecular_weight=mass,
+        counts=counts,
+        oxygen_needed=needed,
+        has_water=any(
+            Chem.MolToSmiles(fragment) == "O"
+            for fragment in Chem.GetMolFrags(mol, asMols=True, sanitizeFrags=False)
+        ),
+    )
+
+
+def calculator_balance(mol: Chem.Mol | None) -> OxygenBalance | ExtendedOxygenBalance:
+    """The result the calculator reports: Klapötke's for C/H/N/O, else Meyer's.
+
+    ONE function, because the Properties row's "will this run" check
+    (`coverage_hooks`) has to ask the calculator's own question: a check
+    that read `oxygen_balance` alone went on saying a sulfur was refused
+    after the calculator learned to compute it. C/H/N/O never reaches the
+    extended accounting, so its numbers are master's by construction rather
+    than by a test that could drift.
+    """
+    result = oxygen_balance(mol)
+    if result.refusal is OxygenBalanceRefusal.NOT_CHNO:
+        return extended_oxygen_balance(mol)
+    return result
 
 
 def compute_oxygen_balance(
@@ -222,7 +510,9 @@ def compute_oxygen_balance(
     """Both oxygen balances as the "energetic" category's calculator."""
     parameters = parameters or {}
     places = int(parameters.get("decimal_places", 1))
-    result = oxygen_balance(mol)
+    result = calculator_balance(mol)
+    if isinstance(result, ExtendedOxygenBalance):
+        return _extended_report(result, molecule_uuid, places)
 
     provenance = Provenance(
         created_by="core",
@@ -319,6 +609,110 @@ def compute_oxygen_balance(
             "Reported on both conventions because they are different quantities. "
             "A figure quoted as a bare 'oxygen balance' is ambiguous between them.",
         ),
+        provenance=provenance,
+    )
+
+
+def _extended_report(result: ExtendedOxygenBalance, molecule_uuid: str, places: int) -> ReportResult:
+    """The calculator's answer for a substance beyond C/H/N/O.
+
+    **ONE FACT, NOT TWO.** The CO basis is stated only for CaHbNcOd, so it is
+    said not to be reported rather than computed by a rule no source wrote.
+    The CO2-basis label is kept because it is the same quantity Klapötke's
+    names -- carbon to CO2 -- now with the other elements burned too, which
+    is what a derived score reading that label expects.
+    """
+    provenance = Provenance(
+        created_by="core",
+        method="oxygen_balance_extended",
+        parameters={
+            "decimal_places": places,
+            "formula": result.formula,
+            "refusal": result.refusal.name if result.refusal else None,
+            TOTAL: decline_total(
+                "One substance's balance, not a component of a sum. Adding it to "
+                "anything means nothing."
+            ),
+        },
+    )
+    if not result.applicable:
+        return ReportResult(
+            report_id="oxygen_balance",
+            name="Oxygen Balance",
+            category="energetic",
+            molecule_uuid=molecule_uuid,
+            cache_state=CacheState.FAILED,
+            error=refusal_text(result),
+            inapplicable=True,
+            provenance=provenance,
+        )
+
+    beyond = [(e, p) for e, p in result.products if e not in CHNO]
+    assumed = tuple(
+        f"{element} to {product}: the product the source's printed balances use "
+        f"({(_HALOGENS.get(element) or _PRODUCTS[element]).pinned_by})."
+        for element, product in beyond
+    )
+    mercury = result.count("Hg")
+    if mercury:
+        # The one product two sources disagree on. Meyer leaves mercury as the
+        # metal; Akhavan's Table 5.2 burns it to HgO (mercury fulminate -16.86%
+        # against Meyer's -11.2%). Meyer's is shipped and the other is said,
+        # as a number, because a reader comparing against Akhavan would
+        # otherwise see an unexplained discrepancy.
+        other = result.to_full_oxidation - mercury * _PERCENT_TIMES_OXYGEN_MASS / result.molecular_weight
+        assumed += (
+            f"Mercury burned to HgO instead, as Akhavan's Table 5.2 does, gives "
+            f"{other:+.{places}f}% for this structure.",
+        )
+    counts = ", ".join(f"{e}={n}" for e, n in result.counts)
+    facts = (
+        Fact(
+            category=FactCategory.STRUCTURE,
+            label="Oxygen balance (CO₂ basis)",
+            value=result.to_full_oxidation,
+            display_value=f"{result.to_full_oxidation:+.{places}f}",
+            units="%",
+            source="oxygen_balance",
+            basis=Basis.DETERMINISTIC,
+            evidence=(
+                f"(O - n) x 1600 / M, with {counts}, n={result.oxygen_needed:g} oxygen "
+                f"atoms needed by the products, M={result.molecular_weight:.2f}.",
+                "Products: " + "; ".join(f"{e} to {p}" for e, p in result.products) + ".",
+                "Positive means the substance carries more oxygen than it needs to "
+                "burn itself completely; negative means less; zero means exactly enough.",
+            ),
+            limitations=assumed + (
+                "Each element's product is the one a source states or its printed values use: "
+                "Meyer's Explosives, Conkling & Mocella's Table 2.5, and for boron US 6,599,380.",
+                "A composition figure, not a performance one. It says nothing on its own "
+                "about how powerful, sensitive or stable a substance is.",
+            ),
+        ),
+        Fact(
+            category=FactCategory.IDENTITY,
+            label="Formula",
+            value=result.formula,
+            display_value=result.formula,
+            source="oxygen_balance",
+            basis=Basis.DETERMINISTIC,
+            evidence=("Hydrogens counted explicitly, since the formula needs all of them.",),
+        ),
+    )
+    return ReportResult(
+        report_id="oxygen_balance",
+        name="Oxygen Balance",
+        category="energetic",
+        molecule_uuid=molecule_uuid,
+        facts=facts,
+        limitations=(
+            "Only the CO2 basis is reported. The CO basis is published for C/H/N/O "
+            "substances, and no source here states it for "
+            + ", ".join(e for e, _ in beyond) + ".",
+        ) + ((
+            "The water drawn with this structure is balanced as part of it; the source "
+            "itself prints some hydrates' balances with the water and some without.",
+        ) if result.has_water else ()),
         provenance=provenance,
     )
 

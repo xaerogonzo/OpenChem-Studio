@@ -182,16 +182,16 @@ def test_one_run_and_one_stored_result_per_output_are_recorded_for_the_whole_ope
     assert {s.stored.result.descriptor_id for s in stored} == {"orca.proton_affinity", "orca.gas_basicity"}
 
 
-def test_a_base_outside_what_the_benchmark_measured_is_refused_with_its_reason_and_starts_no_job(qapp):
+def test_a_base_the_protocol_cannot_compute_is_refused_with_its_reason_and_starts_no_job(qapp):
     provider = _OrcaStandIn([WATER])
     job_manager = JobManager()
     service, bus = _make_service(provider, job_manager=job_manager)
     states = []
     bus.subscribe(QuantumChemistryJobStateChanged, states.append)
 
-    _request(service, smiles="CCl")
+    _request(service, smiles="C[N+](C)(C)C")
 
-    assert states[-1].state is CacheState.FAILED and "Proton affinity does not apply" in states[-1].message and "Cl" in states[-1].message
+    assert states[-1].state is CacheState.FAILED and "Proton affinity does not apply" in states[-1].message and "charged" in states[-1].message
     assert provider.inputs == [] and not job_manager.is_active("quantum_chemistry", "mol-1")
 
 
