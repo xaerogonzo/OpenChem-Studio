@@ -170,14 +170,20 @@ def groups(rows: list[dict], key: str, measure: str) -> dict:
     return {str(g): rate([r for r in rows if r[key] == g], measure) for g in sorted({r[key] for r in rows})}
 
 
+def same_planner(identity: dict) -> dict:
+    """What has to be the same in every record and in protocol 2: the packages, Python, expansion and filter. The STOCK name differs between the three stocks by design, so it is left out."""
+    normalised = p2.normalised(identity)
+    return {"packages": normalised["packages"], "python": normalised["python"], "selection": {k: v for k, v in normalised["selection"].items() if k != "stock"}}
+
+
 def identity_problems(records_by_run: dict[str, list[dict]], provenance: list[dict]) -> list[str]:
     found = []
     if len({p["commit"] for p in provenance}) > 1:
         found.append("the runs come from more than one commit")
     if any(p["dirty"] for p in provenance):
         found.append("some runs were made with a dirty src/")
-    ours = {json.dumps(p2.normalised(r["identity"]), sort_keys=True) for records in records_by_run.values() for r in records}
-    theirs = {json.dumps(p2.normalised(r["identity"]), sort_keys=True) for r in read_lines(P2 / "results_r1.jsonl")[:1]}
+    ours = {json.dumps(same_planner(r["identity"]), sort_keys=True) for records in records_by_run.values() for r in records}
+    theirs = {json.dumps(same_planner(r["identity"]), sort_keys=True) for r in read_lines(P2 / "results_r1.jsonl")[:1]}
     if len(ours) > 1:
         found.append("the records carry more than one planner identity")
     elif ours and theirs and next(iter(ours)) not in theirs:

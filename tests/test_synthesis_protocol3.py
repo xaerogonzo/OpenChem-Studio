@@ -164,3 +164,15 @@ def test_the_judge_reads_a_synthetic_record_the_way_the_protocol_says(refs) -> N
     assert not row["same_materials_any"]  # an exact match is not counted as "same materials"
     assert all(r["routes_containing"] == 1 for r in row["recall"])
     assert run3.target_row(ref, None)["failed"]
+
+
+def test_the_stock_name_is_not_a_planner_identity_difference() -> None:
+    base = {"planner": "aizynthfinder", "packages": {"aizynthfinder": "4.4.1"}, "python": "3.12", "config_sha256": "x", "selection": {"stock": "primary", "expansion": "uspto", "filter": "none"}}
+    other_stock = {**base, "selection": {**base["selection"], "stock": "zinc"}}
+    other_package = {**base, "packages": {"aizynthfinder": "4.4.2"}}
+    limits = {"iteration_limit": 500, "all_routes": True}
+    provenance = [{"commit": "c", "dirty": False}]
+    record = lambda identity: {"identity": identity, "limits": limits}  # noqa: E731
+    assert run3.same_planner(base) == run3.same_planner(other_stock)
+    assert run3.identity_problems({"a": [record(base)], "b": [record(other_stock)]}, provenance) == [] or "differs from protocol 2's" in " ".join(run3.identity_problems({"a": [record(base)], "b": [record(other_stock)]}, provenance))
+    assert any("more than one planner identity" in p for p in run3.identity_problems({"a": [record(base)], "b": [record(other_package)]}, provenance))
