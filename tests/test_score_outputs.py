@@ -763,7 +763,9 @@ def test_logd_is_not_approved_because_the_panel_can_only_show_its_degenerate_cas
     def drawing_rows(candidate):
         return {row for row, calc_input, _value, _units in candidate.observations if calc_input == READ_FROM}
 
-    assert len(drawing_rows(plain)) == 16 and len(drawing_rows(weaker)) == 9
+    # 16 and 9 until group 3 of the refusal audit: the panel's two salts (sodium acetate, ammonium nitrate) are now computed on their
+    # largest component instead of refused, one more row for each id. The two ids still never share a row, which is the claim.
+    assert len(drawing_rows(plain)) == 17 and len(drawing_rows(weaker)) == 10
     assert not drawing_rows(plain) & drawing_rows(weaker)
     assert approved_output(plain.output_id) is None and approved_output(weaker.output_id) is None
 
