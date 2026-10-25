@@ -1,6 +1,9 @@
 """Oxygen balance for C/H/N/O substances [source:klapotke2017], and beyond
 them where a source says what each other element burns to: [source:meyer2016],
-[source:conkling2019], [source:zeuner2003].
+[source:conkling2019], [source:zeuner2003], [source:shimizu1996],
+[source:he2016], [source:klapotke2021], [source:amcp706187],
+[source:persson1994], [source:dufter2026], [source:tsang1974],
+[source:lease2023], [source:wang2024].
 
 Oxygen balance says whether a substance carries enough oxygen to burn its own
 carbon and hydrogen, as a percentage of its mass. Zero means exactly enough;
@@ -22,14 +25,57 @@ and agrees on silver and lead; it burns mercury to HgO where Meyer leaves the
 metal, and the result says so.
 
 Conkling & Mocella's "pyro valence" (Table 2.5) IS this accounting, written
-down per element: each element's valence is the oxidation state of its
+down per element (the method is Jain's [source:jain1987], whose own paper
+covers C, H, O, N and Cl only): each element's valence is the oxidation state of its
 product, so a molecule's net valence is the oxygen it needs in half-oxygens.
 It adds boron (B2O3, also stated by [source:zeuner2003]), fluorine (HF or a
-metal fluoride), magnesium, titanium, silicon and zirconium, and agrees with
+metal fluoride), magnesium, titanium, silicon, zirconium, phosphorus (P2O5,
+also stated by [source:shimizu1996]), molybdenum (MoO3, from its worked
+exercise) and tungsten (WO3), and agrees with
 Meyer everywhere the two overlap except lead in an oxidizer (red lead to the
 metal; Meyer and Akhavan burn lead to PbO) and iron, whose product it makes
 depend on whether the iron is a fuel or an oxidizer. An element in no source
 is refused by name.
+
+Persson, Holmberg & Lee [source:persson1994] give the whole accounting as one
+closed form for Al, B, C, Ca, Cl, F, H, K, N, Na and O (their Eq. 4.43), halogens
+sparing half an oxygen each, and the tests hold this module to it.
+
+**IRON AND COPPER BURN TO THE OXIDE OF THE STATE THEY ARE DRAWN IN.** No source
+states this as a rule, and every source that prints a value follows it: Meyer's
+ferrocene (-223.6%) is FeO and its iron acetylacetonate (printed 163.1% with
+the sign lost) is Fe2O3, to the digit, which are iron(II) and iron(III);
+Conkling prints copper's product as "Cu2O/CuO" with a figure for each, which
+are copper(I) and copper(II); Shancita's iron(III) and copper(II) iodates
+decompose to Fe2O3 and CuO. So the oxide is read off the atom's formal
+charge (`_CHARGE_MATCHED`), and a structure drawn without one of the supported
+charges is refused. The other oxide's figure is reported beside the answer.
+
+**BROMINE GOES TO HBr**, as chlorine goes to HCl: Tsang & Domalski's NBS report writes
+the product as HBr and prints propargyl bromide at -94.1%, and Lease et al.'s three
+brominated PETN derivatives (-21.6, -32.0, -41.4%) agree to 0.3 with it where Br2
+would not, as do Wang et al.'s bromo-trinitroanisoles (-35.3 and -42.2, to the digit). The sources print bromine only on carbon, so a metal bromide follows the
+metal chlorides and the result says so.
+
+**IODINE IS LEFT AS I2, AND THAT IS THE ONE PLACE A HALOGEN DOES NOT TAKE
+HYDROGEN.** He, Hooper & Shreeve [source:he2016] print the formula
+OB = 1600(c - b/2 - a)/MW for CaHbOcNdIe -- the CO basis, carbon taking one
+oxygen -- with no term for iodine, and seven of the eleven balances in their
+Table 2 (the rest are dimeric salts or hydrates) reproduce to the printed
+integer. This module's balance is the CO2 one, so the test adds back a x
+1600/MW to compare; what it pins is that iodine asks for no oxygen.
+Their CHEETAH products are 70 to 80 wt% I2 and 0.1 wt% HI. Metal iodates
+decompose to the oxide and I2 in [source:shancita2020]. Chlorine is the
+opposite case (HCl in Meyer, Conkling and Jain), so the two halogens are not
+interchangeable here.
+
+**THE SOURCES DISAGREE ON CHLORINE ITSELF, AND THE RESULT SAYS WHERE.**
+Klapötke's textbook prints ammonium perchlorate at +34.0% (HCl), but his
+Encyclopedia [source:klapotke2021] prints guanidinium perchlorate -10.0%,
+hydrazinium perchlorate +18.1% and trinitrochlorobenzene -45.24%, which leave
+the chlorine as Cl2 (as does one Meyer entry, picryl chloride -45.3%). The
+calculator follows HCl, the larger group, and reports the Cl2 figure beside
+the answer whenever a hydrogen took a chlorine.
 
 **A CHLORINE (OR FLUORINE) COUNTS THE SAME WHICHEVER PARTNER TAKES IT.** HCl spares the
 half-oxygen its hydrogen would have needed; KCl or BaCl2 spares the
@@ -203,6 +249,22 @@ _PRODUCTS: dict[str, ElementAccounting] = {
     "Zr": ElementAccounting(
         "ZrO2", 4, "Conkling & Mocella Table 2.5 and its table of metal fuels' "
         "oxides (no printed balance)"),
+    "Ce": ElementAccounting(
+        "CeO2", 4, "Dufter-Muenster's ceric ammonium nitrate, +35.02% 'assuming "
+        "combustion to cerium(IV) oxide'"),
+    "I": ElementAccounting(
+        "I2 (not oxidised)", 0, "He, Hooper & Shreeve's formula and seven of its "
+        "printed balances (13, 14, 17, 18, 19, 22, 23); metal iodates to the oxide "
+        "and I2 in Shancita et al."),
+    # -- three more Conkling & Mocella states outside Table 2.5 ----------------
+    "P": ElementAccounting(
+        "P2O5", 5, "Conkling & Mocella Table 3.5 (red and white phosphorus, 0.78 g "
+        "of fuel per g of O) and Shimizu's 4 P + 5 O2 -> 2 P2O5"),
+    "Mo": ElementAccounting(
+        "MoO3", 6, "Conkling & Mocella exercise 4: BaCrO4/KClO4/Mo at 67.9/10.0/22.1 "
+        "is stoichiometric with Mo to MoO3; AMCP 706-187: 'oxidized to MoO3 at red heat'"),
+    "W": ElementAccounting(
+        "WO3", 6, "Conkling & Mocella Table 3.4 (3.83 g of fuel per g of O)"),
     "Ag": ElementAccounting(
         "Ag (not oxidised)", 0, "silver azide 0%, silver acetylide -26.7%"),
 }
@@ -220,17 +282,42 @@ _CHLORINE = ElementAccounting(
 _FLUORINE = ElementAccounting(
     "HF, or the metal's fluoride", -1,
     "Conkling & Mocella Table 2.5; Viton (C2H2F2) +8 per unit")
-#: The halogens a source gives a product for; each takes a partner.
-_HALOGENS = {"Cl": _CHLORINE, "F": _FLUORINE}
+#: Bromine goes to HBr, as chlorine goes to HCl: Tsang & Domalski's formula for
+#: C(a)H(b)Br(f) writes "fHBr" as the product (propargyl bromide -94.1%), and
+#: Lease et al.'s three brominated PETN derivatives (-21.6, -32.0, -41.4%) agree
+#: with it to 0.3 where Br2 left over gives -24.0, -36.4, -47.6. Neither
+#: states a metal's bromide; that follows the metal chlorides by analogy.
+_BROMINE = ElementAccounting(
+    "HBr, or the metal's bromide", -1,
+    "Tsang & Domalski's HBr formula and propargyl bromide -94.1%; Lease's "
+    "brominated PETN derivatives -21.6, -32.0 and -41.4%; Wang's bromo-"
+    "trinitroanisoles -35.3 and -42.2%")
+#: The halogens this module gives a product for; each takes a partner.
+_HALOGENS = {"Cl": _CHLORINE, "F": _FLUORINE, "Br": _BROMINE}
+#: The halogens' names, for a refusal that has to say which one ran out of partners.
+_HALOGEN_NAMES = {"Cl": "chlorine", "F": "fluorine", "Br": "bromine"}
 #: Elements whose valence is not offered to a halogen (see `extended_oxygen_balance`).
-_NOT_A_HALOGEN_PARTNER = frozenset({"C", "N", "S", "B", "Si"})
-
-#: Why a specific element is not covered, where there is more to say than
-#: "the source gives no product for it".
-_NOT_COVERED_BECAUSE = {
-    "Fe": ("Meyer burns one iron compound to FeO and another to Fe2O3, and Conkling & "
-           "Mocella take iron to the metal in an oxidizer but to Fe2O3 as a fuel"),
+#: The two elements whose oxide is read off the drawn charge, as
+#: {element: {charge: (product, valence, why)}}. The valence IS the charge: the
+#: oxidation state of the metal in its oxide.
+_CHARGE_MATCHED: dict[str, dict[int, tuple[str, int]]] = {
+    "Fe": {2: ("FeO", 2), 3: ("Fe2O3", 3)},
+    "Cu": {1: ("Cu2O", 1), 2: ("CuO", 2)},
 }
+
+#: What pins each charge-matched element, for the result's evidence line.
+_CHARGE_MATCHED_PINS: dict[str, str] = {
+    "Fe": "Meyer's ferrocene -223.6% (iron(II) to FeO) and iron acetylacetonate "
+          "163.1% (iron(III) to Fe2O3); Shancita's iron(III) iodate to Fe2O3",
+    "Cu": "Conkling & Mocella Table 3.4, Cu2O 7.94 and CuO 3.97 g of copper per g "
+          "of O; Shancita's copper(II) iodate to CuO",
+}
+
+#: Phosphorus, molybdenum and tungsten join them: no source says how many
+#: halogens their chlorides hold (PCl3 and PCl5 differ, as do MoCl5 and MoCl6),
+#: so a halide of theirs is refused rather than counted at the oxide's valence.
+_NOT_A_HALOGEN_PARTNER = frozenset({"C", "N", "S", "B", "Si", "P", "Mo", "W"})
+
 
 #: 100 x the atomic mass of oxygen. The source writes the constant as 1600
 #: rather than deriving it, and it is kept that way so the expression can be
@@ -383,6 +470,19 @@ class ExtendedOxygenBalance:
     #: Whether a separate water molecule is drawn -- a hydrate -- because the
     #: source is inconsistent about those and the report says so.
     has_water: bool = False
+    #: The balance with every chlorine that a HYDROGEN took left as Cl2
+    #: instead, which is what Klapötke's Encyclopedia prints for the entries
+    #: it prints. None when no hydrogen took a chlorine (a metal chloride is
+    #: the same number either way), or when fluorine shares the partners.
+    chlorine_as_cl2: float | None = None
+    #: How many bromines a METAL took, which no source prints (Tsang & Domalski
+    #: and Lease print only bromine on carbon), so it follows the chlorides.
+    bromine_on_metal: int = 0
+    #: (element, product) for each charge-matched metal present, e.g. ("Fe", "FeO").
+    charge_products: tuple[tuple[str, str], ...] = ()
+    #: (element, other product, balance with it) for each charge-matched metal:
+    #: the same structure with that metal in the other oxidation state.
+    alternatives: tuple[tuple[str, str, float], ...] = ()
 
     @property
     def applicable(self) -> bool:
@@ -398,9 +498,16 @@ class ExtendedOxygenBalance:
         for element, _ in self.counts:
             if element == "O":
                 continue
+            if element in _CHARGE_MATCHED:
+                continue
             accounting = _HALOGENS.get(element) or _PRODUCTS[element]
             rows.append((element, accounting.product))
+        rows.extend(self.charge_products)
         return tuple(rows)
+
+
+def _roman(charge: int) -> str:
+    return {1: "(I)", 2: "(II)", 3: "(III)"}.get(charge, f"({charge})")
 
 
 def extended_oxygen_balance(mol: Chem.Mol | None) -> ExtendedOxygenBalance:
@@ -429,18 +536,48 @@ def extended_oxygen_balance(mol: Chem.Mol | None) -> ExtendedOxygenBalance:
     formula = rdMolDescriptors.CalcMolFormula(mol)
     counts = tuple(sorted(tally.items()))
 
-    uncovered = sorted(e for e in tally if e not in _PRODUCTS and e != "O" and e not in _HALOGENS)
+    uncovered = sorted(
+        e for e in tally
+        if e not in _PRODUCTS and e != "O" and e not in _HALOGENS and e not in _CHARGE_MATCHED)
     if uncovered:
-        reasons = [_NOT_COVERED_BECAUSE[e] for e in uncovered if e in _NOT_COVERED_BECAUSE]
-        detail = (
-            f"the source gives no product for {', '.join(uncovered)} in this structure"
-            if not reasons else
-            f"this structure contains {', '.join(uncovered)}, and {'; '.join(reasons)}"
-        )
+        detail = f"no source gives a product for {', '.join(uncovered)}"
         return ExtendedOxygenBalance(
             refusal=OxygenBalanceRefusal.UNCOVERED_ATOM, detail=detail,
             formula=formula, counts=counts,
         )
+
+    # Iron and copper: the oxide of the drawn charge, or a refusal naming the atom.
+    matched_valence: dict[str, int] = {}
+    switched_valence: dict[str, int] = {}
+    products: dict[str, set[str]] = {}
+    for atom in counted.GetAtoms():
+        element = atom.GetSymbol()
+        if element not in _CHARGE_MATCHED:
+            continue
+        table = _CHARGE_MATCHED[element]
+        charge = atom.GetFormalCharge()
+        if charge not in table:
+            states = " and ".join(
+                f"{element}{_roman(q)} to {p}" for q, (p, _) in sorted(table.items()))
+            drawn = "no charge" if charge == 0 else f"a charge of {charge:+d}"
+            return ExtendedOxygenBalance(
+                refusal=OxygenBalanceRefusal.UNCOVERED_ATOM,
+                detail=(
+                    f"this structure draws {element} with {drawn}, and the sources burn "
+                    f"{states}, so the oxide can only be told from a drawn "
+                    f"{' or '.join(f'{q:+d}' for q in sorted(table))}"),
+                formula=formula, counts=counts,
+            )
+        matched_valence[element] = matched_valence.get(element, 0) + table[charge][1]
+        # the same atom in the other state, for the alternative figure
+        other = next(q for q in table if q != charge)
+        switched_valence[element] = switched_valence.get(element, 0) + table[other][1]
+        products.setdefault(element, set()).add(table[charge][0])
+
+    def element_valence(element: str, number: int) -> int:
+        if element in _CHARGE_MATCHED:
+            return matched_valence[element]
+        return _PRODUCTS[element].valence * number
 
     halogens = sum(tally.get(h, 0) for h in _HALOGENS)
     # What can take a halogen: each hydrogen, and each valence of a metal whose
@@ -450,13 +587,12 @@ def extended_oxygen_balance(mol: Chem.Mol | None) -> ExtendedOxygenBalance:
     # and not mercury or silver, which Meyer leaves unoxidised and so has no
     # valence to give.
     partners = sum(
-        _PRODUCTS[e].valence * n
+        element_valence(e, n)
         for e, n in tally.items()
         if e not in _NOT_A_HALOGEN_PARTNER and e != "O" and e not in _HALOGENS
     )
     if halogens > partners:
-        named = " and ".join(
-            f"{tally[h]} {'chlorine' if h == 'Cl' else 'fluorine'}" for h in _HALOGENS if h in tally)
+        named = " and ".join(f"{tally[h]} {_HALOGEN_NAMES[h]}" for h in _HALOGENS if h in tally)
         return ExtendedOxygenBalance(
             refusal=OxygenBalanceRefusal.UNCOVERED_ATOM,
             detail=(
@@ -472,11 +608,43 @@ def extended_oxygen_balance(mol: Chem.Mol | None) -> ExtendedOxygenBalance:
         return ExtendedOxygenBalance(refusal=OxygenBalanceRefusal.NO_ATOMS)
 
     half_oxygens = sum(
-        _PRODUCTS[e].valence * n for e, n in tally.items() if e != "O" and e not in _HALOGENS
+        element_valence(e, n) for e, n in tally.items() if e != "O" and e not in _HALOGENS
     ) - halogens
     needed = half_oxygens / 2
+    # Metals take chlorine first, so what a HYDROGEN took is the remainder.
+    chlorine = tally.get("Cl", 0)
+    metal_valences = sum(
+        element_valence(e, n) for e, n in tally.items()
+        if e not in _NOT_A_HALOGEN_PARTNER and e not in ("O", "H") and e not in _HALOGENS
+    )
+    on_hydrogen = max(0, chlorine - metal_valences)
+    as_cl2 = None
+    if on_hydrogen and "F" not in tally:
+        as_cl2 = (tally.get("O", 0) - (half_oxygens + on_hydrogen) / 2) \
+            * _PERCENT_TIMES_OXYGEN_MASS / mass
+    # Bromine is the last to be given a metal's valence, after chlorine and
+    # fluorine; the figure is the same whichever takes it, only this count moves.
+    bromine = tally.get("Br", 0)
+    left_for_bromine = max(0, metal_valences - chlorine - tally.get("F", 0))
+    bromine_on_metal = min(bromine, left_for_bromine)
+    alternatives = []
+    for element in sorted(matched_valence):
+        shifted = half_oxygens - matched_valence[element] + switched_valence[element]
+        # a chloride the new state could not hold has no figure to give
+        if halogens > partners - matched_valence[element] + switched_valence[element]:
+            continue
+        other_product = next(
+            p for q, (p, _) in _CHARGE_MATCHED[element].items() if p not in products[element])
+        alternatives.append((
+            element, other_product,
+            (tally.get("O", 0) - shifted / 2) * _PERCENT_TIMES_OXYGEN_MASS / mass))
     return ExtendedOxygenBalance(
         to_full_oxidation=(tally.get("O", 0) - needed) * _PERCENT_TIMES_OXYGEN_MASS / mass,
+        chlorine_as_cl2=as_cl2,
+        bromine_on_metal=bromine_on_metal,
+        charge_products=tuple(
+            (e, "/".join(sorted(products[e]))) for e in sorted(products)),
+        alternatives=tuple(alternatives),
         formula=formula,
         molecular_weight=mass,
         counts=counts,
@@ -650,9 +818,28 @@ def _extended_report(result: ExtendedOxygenBalance, molecule_uuid: str, places: 
     beyond = [(e, p) for e, p in result.products if e not in CHNO]
     assumed = tuple(
         f"{element} to {product}: the product the source's printed balances use "
-        f"({(_HALOGENS.get(element) or _PRODUCTS[element]).pinned_by})."
+        f"({_CHARGE_MATCHED_PINS[element] if element in _CHARGE_MATCHED else (_HALOGENS.get(element) or _PRODUCTS[element]).pinned_by})."
         for element, product in beyond
+    ) + tuple(
+        f"{element} burned to {product} instead (the other oxidation state) gives "
+        f"{value:+.{places}f}% for this structure; the oxide used is the one matching "
+        f"the charge {element} is drawn with."
+        for element, product, value in result.alternatives
     )
+    if result.chlorine_as_cl2 is not None:
+        assumed += (
+            f"Chlorine left as Cl2 instead of taking hydrogen as HCl gives "
+            f"{result.chlorine_as_cl2:+.{places}f}% for this structure: Klapötke's "
+            "Encyclopedia prints guanidinium perchlorate (-10.0%) and hydrazinium "
+            "perchlorate (+18.1%) that way, and one Meyer entry does; Meyer's other "
+            "chlorine entries, Conkling and Jain count HCl, which is what is shown.",
+        )
+    if result.bromine_on_metal:
+        assumed += (
+            f"{result.bromine_on_metal} bromine taken by a metal as its bromide: no source "
+            "prints a metal bromide, so this follows the chlorides, which give the same "
+            "number as HBr would.",
+        )
     mercury = result.count("Hg")
     if mercury:
         # The one product two sources disagree on. Meyer leaves mercury as the

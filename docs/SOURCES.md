@@ -1,5 +1,5 @@
 <!-- GENERATED FROM docs/sources.toml -- do not edit -->
-<!-- SOURCE SHA256: 892f9858d79cb7114e35c79f1686b533b1721dcff0e02fe877ec4454461f634d -->
+<!-- SOURCE SHA256: 1091f101de37b843104a8c26805d13fa16029696feaa24931d98a133f30677c9 -->
 
 # Sources
 
@@ -97,6 +97,7 @@ next run of `tools/build_lewis_parameters.py`.
 | [`almenningen1963`](#almenningen1963) | literature | **not shipped** | citation + claim |
 | [`alvarez2013`](#alvarez2013) | literature | reference only | citation |
 | [`alves2014`](#alves2014) | literature | reference only | citation |
+| [`amcp706187`](#amcp706187) | standard | shipped | citation |
 | [`andersen1999`](#andersen1999) | literature | shipped | citation + claim |
 | [`aqsoldb`](#aqsoldb) | dataset | shipped | citation |
 | [`armstrong2026synthex`](#armstrong2026synthex) | literature | reference only | citation + claim |
@@ -158,6 +159,7 @@ next run of `tools/build_lewis_parameters.py`.
 | [`drago1965`](#drago1965) | literature | shipped | citation + claim |
 | [`drago1990`](#drago1990) | literature | shipped | citation |
 | [`drago1993`](#drago1993) | literature | shipped | citation |
+| [`dufter2026`](#dufter2026) | literature | shipped | citation + claim |
 | [`dunitz1997`](#dunitz1997) | literature | shipped | citation + claim |
 | [`dunitz2004`](#dunitz2004) | literature | shipped | citation + claim |
 | [`ertl2000`](#ertl2000) | literature | shipped | citation |
@@ -195,6 +197,7 @@ next run of `tools/build_lewis_parameters.py`.
 | [`harding2006`](#harding2006) | literature | shipped | citation + claim |
 | [`harding2013`](#harding2013) | literature | reference only | citation + claim |
 | [`harmony1979`](#harmony1979) | literature | reference only | citation + claim |
+| [`he2016`](#he2016) | literature | shipped | citation + claim |
 | [`hejazi2016`](#hejazi2016) | literature | reference only | citation |
 | [`hlb`](#hlb) | reference_table | reference only | citation |
 | [`holland2013`](#holland2013) | literature | shipped | citation + claim |
@@ -209,6 +212,7 @@ next run of `tools/build_lewis_parameters.py`.
 | [`iupac2013`](#iupac2013) | standard | shipped | citation + claim |
 | [`iupac_goldbook`](#iupac_goldbook) | standard | shipped | citation + claim |
 | [`iupac_namer`](#iupac_namer) | software | shipped | citation |
+| [`jain1987`](#jain1987) | literature | shipped | citation + claim |
 | [`jenkins1999`](#jenkins1999) | literature | shipped | citation + claim |
 | [`joback1987`](#joback1987) | literature | shipped | citation + claim |
 | [`kamlet1968`](#kamlet1968) | literature | shipped | citation + claim |
@@ -220,6 +224,7 @@ next run of `tools/build_lewis_parameters.py`.
 | [`kendall2008`](#kendall2008) | literature | shipped | citation |
 | [`ketcher`](#ketcher) | software | shipped | citation |
 | [`klapotke2017`](#klapotke2017) | literature | shipped | citation + claim |
+| [`klapotke2021`](#klapotke2021) | literature | shipped | citation + claim |
 | [`kobayashi1982`](#kobayashi1982) | literature | shipped | citation + claim |
 | [`koes2013`](#koes2013) | literature | **not shipped** | citation |
 | [`kruszewski1972`](#kruszewski1972) | literature | shipped | citation |
@@ -230,6 +235,7 @@ next run of `tools/build_lewis_parameters.py`.
 | [`kwon2018`](#kwon2018) | literature | reference only | citation |
 | [`kwon2023`](#kwon2023) | dataset | shipped | citation + claim |
 | [`langes15`](#langes15) | reference_table | shipped | citation + claim |
+| [`lease2023`](#lease2023) | literature | shipped | citation + claim |
 | [`li2024retrobleu`](#li2024retrobleu) | literature | reference only | citation |
 | [`llinas2008`](#llinas2008) | dataset | shipped | citation |
 | [`llinas2019`](#llinas2019) | dataset | reference only | citation |
@@ -283,6 +289,7 @@ next run of `tools/build_lewis_parameters.py`.
 | [`pearson1968`](#pearson1968) | literature | reference only | citation |
 | [`pearson1988`](#pearson1988) | literature | shipped | citation + claim |
 | [`perry2025`](#perry2025) | literature | reference only | citation |
+| [`persson1994`](#persson1994) | literature | shipped | citation + claim |
 | [`piancastelli1983`](#piancastelli1983) | literature | shipped | citation + claim |
 | [`pkasolver`](#pkasolver) | software | shipped | citation |
 | [`platts1999`](#platts1999) | literature | **not shipped** | citation + claim |
@@ -317,7 +324,9 @@ next run of `tools/build_lewis_parameters.py`.
 | [`schott1989`](#schott1989) | literature | shipped | citation + claim |
 | [`sci_downloads_note`](#sci_downloads_note) | reference_table | reference only | citation |
 | [`sefcik2002`](#sefcik2002) | literature | reference only | citation + claim |
+| [`shancita2020`](#shancita2020) | literature | shipped | citation |
 | [`shannon1976`](#shannon1976) | literature | shipped | citation + claim |
+| [`shimizu1996`](#shimizu1996) | literature | shipped | citation |
 | [`shojaei2010`](#shojaei2010) | literature | shipped | citation + claim |
 | [`shrake1973`](#shrake1973) | literature | shipped | citation |
 | [`snider2007`](#snider2007) | literature | reference only | citation |
@@ -341,6 +350,7 @@ next run of `tools/build_lewis_parameters.py`.
 | [`trofimov2017`](#trofimov2017) | literature | shipped | citation + claim |
 | [`trott_olson2010`](#trott_olson2010) | literature | shipped | citation + claim |
 | [`trygubenko2002`](#trygubenko2002) | literature | shipped | citation + claim |
+| [`tsang1974`](#tsang1974) | literature | shipped | citation + claim |
 | [`tsei`](#tsei) | reference_table | reference only | citation |
 | [`verlet1967`](#verlet1967) | literature | shipped | citation + claim |
 | [`verstraelen2009`](#verstraelen2009) | literature | reference only | citation + claim |
@@ -353,6 +363,7 @@ next run of `tools/build_lewis_parameters.py`.
 | [`wang2019`](#wang2019) | literature | shipped | citation + claim |
 | [`wang2021`](#wang2021) | literature | reference only | citation |
 | [`wang2022`](#wang2022) | literature | reference only | citation |
+| [`wang2024`](#wang2024) | literature | shipped | citation + claim |
 | [`wells2014`](#wells2014) | literature | reference only | citation |
 | [`westwell1995`](#westwell1995) | literature | **not shipped** | citation |
 | [`wildman1999`](#wildman1999) | literature | shipped | citation |
@@ -4826,6 +4837,340 @@ layer drops minus signs (Table 5.2 reads "73.96" for TNT); the signs are
 the book's, read from its Eq. 5.1. Its Eq. 5.2 and the TNT example are the
 C/H/N/O form [source:klapotke2017] already supplies.
 
+### tsang1974
+
+<a id="tsang1974"></a>
+
+> W. Tsang & E. S. Domalski, 'An Appraisal of Methods for Estimating Self-Reaction Hazards', NBSIR 74-551, National Bureau of Standards, Washington, D.C., June 1974 (interim report for the Department of Transportation).
+
+| | |
+| --- | --- |
+| Identifier | NBSIR 74-551 (National Bureau of Standards, 1974) |
+| Status | shipped |
+| Verification | citation + claim |
+| Verified | 2026-10-24 |
+| Local copy | `An Appraisal of Methods for Estimating Self-Reaction Hazards_1974.pdf` (not checked) |
+| Used by | `src/openchem/chem/energetics.py`, `tests/test_oxygen_balance_extended.py` |
+
+**THE ONLY SOURCE FOUND THAT STATES A BROMINE PRODUCT.** After Meyer, Conkling,
+Persson, Cooper, Akhavan, Klapoetke's textbook and three-volume Encyclopedia, a
+brominated-TNT preprint and 68 LMU dissertations printed no bromine balance,
+this US Government report (so freely redistributable) does. Section C, "Oxygen
+Balance" (p13, read from the page image), writes the reaction and the formula
+for each composition class, the halogen ones being
+
+    C(a)H(b)Cl(e) + (a + b/4 - e/4) O2 -> a CO2 + (b/2 - e/2) H2O + e HCl
+    C(a)H(b)Br(f) + (a + b/4 - f/4) O2 -> a CO2 + (b/2 - f/2) H2O + f HBr
+    oxygen balance = -1600 (2a + b/2 - f/2) / (formula wt.)
+
+so bromine goes to HBr, sparing half an oxygen exactly as chlorine does to
+HCl. Table 4 (p14) prints propargyl bromide C3H3Br at -94.1%, which the
+formula gives (-94.15), and vinyl chloride -128.0 and ethyl chloride -148.8,
+which it gives too. The tests reproduce those three.
+
+Not every row of its Table 4 is used. Its nitromethane (-13.1) is one third of
+the formula's -39.3, its mercury fulminate (-16.9) burns mercury to HgO where
+Meyer leaves it as the metal, and its silver azide (-10.7) follows neither
+convention here; none of those rows is a halogen compound.
+
+The report's formulas are printed for hydrocarbons (and the chloro and bromo
+ones for C/H/X only); the extension to oxygen and nitrogen is the same as for
+every other element here. It prints no metal bromide, no balance for a bromine
+compound that also holds oxygen or nitrogen, and no Br2 figure, so none of
+those is given; a bromine a metal takes follows the chlorides.
+
+### wang2024
+
+<a id="wang2024"></a>
+
+> Y. Wang, X. Song, Z. Yu, D. Song, C. An & F. Li, 'A high density and low sensitivity carrier explosive promising to replace TNT: 3-Bromo-5-fluoro-2,4,6-trinitroanisole', Energetic Materials Frontiers 5, 131-140 (2024).
+
+| | |
+| --- | --- |
+| Identifier | [10.1016/j.enmf.2024.06.003](https://doi.org/10.1016/j.enmf.2024.06.003) |
+| Status | shipped |
+| Verification | citation + claim |
+| Verified | 2026-10-24 |
+| Local copy | `A high density and low sensitivity carrier explosive promising to replace TNT 3-Bromo-5-fluoro-2,4,6-trinitroanisole.pdf` (not checked) |
+| Used by | `src/openchem/chem/energetics.py`, `tests/test_oxygen_balance_extended.py` |
+
+Open access (CC BY-NC-ND). Table 1 prints OB(CO2), "all C element is oxidized
+to CO2", for three halogenated trinitroanisoles and for the carriers beside
+them: 3-bromo-5-fluoro-2,4,6-trinitroanisole -35.3%, 3-bromo-2,4,6-trinitroanisole
+(TNBA) -42.2%, 3,5-difluoro-2,4,6-trinitroanisole -43.0%, TNT -74.0%, DNAN
+-96.9%. Each reproduces to the printed digit with bromine going to HBr and
+fluorine to HF (-35.29, -42.23, -42.99, -73.97, -96.90), so this is a third
+independent statement of the bromine convention (after [source:tsang1974] and
+[source:lease2023]) and the first for a compound with BOTH halogens.
+
+**THE SAME COMPOUND'S PATENT PRINTS -40.00%, WHICH IS THE HALOGENS IGNORED.**
+The applicants' Chinese patent application CN 117447330 A (2024) states an
+oxygen balance of -40.00% for the same bromofluorotrinitroanisole. That is the
+plain C/H/N/O formula with no halogen term (the CO2 balance with every
+halogen left as the element and no hydrogen spared), where the peer-reviewed
+paper of the same group prints -35.3. The paper is used; the patent is
+recorded as the disagreement. Its Table 5 mixtures (-31 and -44%) are
+formulations and are not used.
+
+### lease2023
+
+<a id="lease2023"></a>
+
+> N. Lease, K. D. Spielvogel, J. V. Davis, J. T. Tisdale, L. M. Klamborowski, M. J. Cawkwell & V. W. Manner, 'Halogenated PETN derivatives: interplay between physical and chemical factors in explosive sensitivity', Chemical Science 14, 7044-7056 (2023).
+
+| | |
+| --- | --- |
+| Identifier | [10.1039/D3SC01627G](https://doi.org/10.1039/D3SC01627G) |
+| Status | shipped |
+| Verification | citation + claim |
+| Verified | 2026-10-24 |
+| Local copy | `Lease2023.pdf` (not checked) |
+| Used by | `src/openchem/chem/energetics.py`, `tests/test_oxygen_balance_extended.py` |
+
+Open access. Table 3 prints the oxygen balance of three brominated pentaerythritol
+tetranitrate (PETN) derivatives, "calculated ... using stoichiometry": the
+mono-, di- and tri-bromo compounds (one, two or three nitrate ester groups
+replaced by bromine) at -21.6, -32.0 and -41.4%. HBr reproduces them to
+0.3 points (-21.55, -31.82, -41.10), where Br2 left over would give -24.0,
+-36.4 and -47.6, so it is a second, independent statement that bromine goes to
+HBr, and the only printed value for a bromine compound that holds oxygen and
+nitrogen. The 0.3 is not hidden: the paper does not give its atomic masses.
+
+**ITS CHLORINE AND IODINE ROWS LOOK SWAPPED, SO THEY ARE NOT USED.** The printed
+chloro row (-21.0, -28.7, -34.5) reproduces the IODO compounds with iodine
+left as I2, and the printed iodo row (-24.9, -42.8, -64.7) reproduces the chloro
+compounds with HCl. A heavier halogen cannot make the balance more negative at
+the same oxygen deficit, so the labels, not the numbers, look wrong. The bromine
+rows do not depend on it.
+
+### dufter2026
+
+<a id="dufter2026"></a>
+
+> A. M. W. Dufter-Muenster, 'Investigation of Next-Generation Visible Light-Producing Pyrotechnics', Dissertation, Ludwig-Maximilians-Universitaet Muenchen, Fakultaet fuer Chemie und Pharmazie, 2026 (Klapoetke group).
+
+| | |
+| --- | --- |
+| Identifier | <https://edoc.ub.uni-muenchen.de/37604/> |
+| Status | shipped |
+| Verification | citation + claim |
+| Verified | 2026-10-24 |
+| Used by | `src/openchem/chem/energetics.py`, `tests/test_oxygen_balance_extended.py` |
+
+States cerium's product with a value that reproduces: "Ceric ammonium nitrate
+(CAN) has an oxygen balance of 35.02% assuming combustion to cerium(IV)
+oxide". (NH4)2Ce(NO3)6 gives +35.02 to the printed digit with Ce to CeO2. The
+same passage prints stearic acid at -292.46% (C/H/O) and a 15:1 CAN/stearic
+acid mixture at 14.55%, which is the mass-weighted sum; both reproduce.
+
+**ITS LITHIUM BORATE TABLES DO NOT FOLLOW ITS OWN FOOTNOTE.** The footnote says
+"oxygen balance with respect to formation of CO2, Li2O and B2O3", but the
+printed values (lithium 5-aminotetrazolate -52.75, lithium
+dihydrobis(tetrazol-1-yl)borate monohydrate -54.58) reproduce only with the
+lithium and the boron left UNOXIDISED. So its statements of Li2O and B2O3 are
+not used as evidence, and none of its table values is a test.
+
+Open-access thesis, found while searching the Klapoetke group's LMU
+dissertations for a bromine balance: eighteen were read and none prints one.
+
+### persson1994
+
+<a id="persson1994"></a>
+
+> P.-A. Persson, R. Holmberg & J. Lee, 'Rock Blasting and Explosives Engineering', CRC Press, Boca Raton, 1994 (ISBN 0-8493-8978-X); reprinted 2018.
+
+| | |
+| --- | --- |
+| Identifier | [10.1201/9780203740514](https://doi.org/10.1201/9780203740514) |
+| Status | shipped |
+| Verification | citation + claim |
+| Verified | 2026-10-24 |
+| Local copy | `Rock Blasting and Explosives Engineering -- Per-Anders Persson (Author); Roger Holmberg (Author); Jaimin -- 1, 2018 may 04.pdf` (not checked) |
+| Used by | `src/openchem/chem/energetics.py`, `tests/test_oxygen_balance_extended.py` |
+
+An independent statement of the whole accounting for the eleven elements it
+covers, in one closed form. Section 4.4.6 defines the balance as the oxygen
+needed to take hydrogen to water, carbon to CO2 "and all other fuel components
+to their highest degree of oxidation (e.g., aluminum to Al2O3)", and Eq. 4.43
+gives it for Al, B, C, Ca, Cl, F, H, K, N, Na and O:
+
+    OB = -32 (3/4 al + 3/4 b + 1 c + 1/2 ca - 1/4 cl - 1/4 f + 1/4 h + 1/4 k
+              + 0 n + 1/4 na - 1/2 o) / M x 100%
+
+read from the page image, since the text layer garbles it. Each coefficient
+is this module's valence over four: Al3 and B3 (to Al2O3 and B2O3), Ca2 (CaO),
+K1 and Na1 (K2O, Na2O), H1, C4, N0, O-2, and **Cl and F -1: each halogen spares
+half an oxygen**, "assumed ... enough hydrogen in the formulation to bind
+chlorine and fluorine to hydrochloric and hydrofluoric acids". It is the
+statement of the chlorine and fluorine convention that [source:meyer2016] and
+[source:conkling2019] make by example, and a third statement that boron goes
+to B2O3 (with [source:conkling2019] and [source:zeuner2003]).
+
+The tests run the closed form beside the calculator on every structure that
+meets its hydrogen assumption. It prints TNT -73.98% and nitroglycerine +3.52%,
+and says the balance is "calculated with carbon dioxide as the product", with
+the CO basis "often" used in rocket propellant treatises.
+
+**WHERE IT DISAGREES WITH THE CALCULATOR, ON PURPOSE.** "Highest degree of
+oxidation" read literally burns every metal to its highest oxide: iron to
+Fe2O3, copper to CuO, mercury to HgO, lead to PbO2. The calculator follows
+the printed values instead: Meyer's ferrocene is FeO (-223.6%) and his
+mercury fulminate leaves the metal. The other oxide's figure is printed beside
+the answer, which is the "highest" reading in every case where the two
+differ. Persson prints no bromine, iodine, sulfur, phosphorus, magnesium or
+transition-metal term, and no balance for any compound containing them.
+
+### he2016
+
+<a id="he2016"></a>
+
+> C. He, J. P. Hooper & J. M. Shreeve, 'Iodine-Rich Imidazolium Iodate and Periodate Salts: En Route to Single-Based Biocidal Agents', Inorg. Chem. 2016, 55, 12844-12850.
+
+| | |
+| --- | --- |
+| Identifier | [10.1021/acs.inorgchem.6b02195](https://doi.org/10.1021/acs.inorgchem.6b02195) |
+| Status | shipped |
+| Verification | citation + claim |
+| Verified | 2026-10-24 |
+| Local copy | `Shreeve_Iodine-Rich_2016.pdf` (not checked) |
+| Used by | `src/openchem/chem/energetics.py`, `tests/test_oxygen_balance_extended.py` |
+
+The statement and the numbers behind iodine being left as I2. Table 2's
+footnote gives the formula, "Oxygen balance for CaHbOcNdIe: OB = 1600(c - b/2
+- a)/MW", with no iodine term, and the table prints a balance for each of the
+eleven salts.
+
+**THAT FORMULA IS THE CO BASIS** (carbon takes ONE oxygen, where
+[source:klapotke2017]'s CO2 form takes two). The tests therefore add a x
+1600/MW to this module's CO2 figure before comparing, and seven of the
+eleven reproduce to the paper's whole-number printing: 13 -12, 14 -17, 17
+-12, 18 -8, 19 -13, 22 -9, 23 -4 (worst miss 0.4). The other four (15, 16,
+20, 21) are the dimeric salts, one of them drawn with three waters, and were
+not used.
+
+Its CHEETAH decomposition products are 70 to 80 wt% I2 and about 0.1 wt% HI,
+which is why iodine takes no hydrogen here although chlorine does. The paper
+prints no balance for its two bromide salts, so it settles nothing for
+bromine.
+
+### shancita2020
+
+<a id="shancita2020"></a>
+
+> I. Shancita, K. K. Miller, P. D. Silverstein, J. Kalman & M. L. Pantoya, 'Synthesis of metal iodates from an energetic salt', RSC Adv. 2020, 10, 14403-14409.
+
+| | |
+| --- | --- |
+| Identifier | [10.1039/d0ra02250k](https://doi.org/10.1039/d0ra02250k) |
+| Status | shipped |
+| Verification | citation |
+| Verified | 2026-10-24 |
+| Local copy | `Shancita2020.pdf` (not checked) |
+| Used by | `src/openchem/chem/energetics.py` |
+
+Supports iodine to I2 from the other side: metal iodates decompose to the
+metal oxide and I2 (Cu(IO3)2 to CuO, Fe(IO3)3 to Fe2O3, BiO(IO3) to Bi2O3,
+Al(IO3)3 to Al2O3). It states no oxygen balance, so `verification` is the
+citation only.
+
+**ITS EQUATIONS (R8) TO (R11) ARE NOT BALANCED AS PRINTED** (R8 has twelve
+oxygens on the left and six on the right), so they name products and are
+used for nothing else. They are decompositions of copper(II) and iron(III)
+compounds that name CuO and Fe2O3, which is what the charge-matched rule for
+iron and copper gives (see [source:meyer2016]): the oxide of the state the
+metal is drawn in.
+
+### klapotke2021
+
+<a id="klapotke2021"></a>
+
+> T. M. Klapoetke, 'Energetic Materials Encyclopedia', 2nd, completely revised and updated edition, 3 volumes, De Gruyter, Berlin/Boston, 2021.
+
+| | |
+| --- | --- |
+| Identifier | Klapoetke, Energetic Materials Encyclopedia, 2nd ed., De Gruyter, 2021, volumes 1 (A-D), 2 (E-N) and 3 (O-Z) |
+| Status | shipped |
+| Verification | citation + claim |
+| Verified | 2026-10-24 |
+| Local copy | `Energetic Materials Encyclopedia, Volume 2, E - N -- Thomas M_ Klapötke -- 2nd, completely revised and updated edition, 2021.pdf` (not checked) |
+| Used by | `src/openchem/chem/energetics.py`, `tests/test_oxygen_balance_extended.py` |
+
+All three volumes were scanned for every entry whose formula goes beyond
+C/H/N/O. Few do (about two dozen), and **none is bromine, iodine, phosphorus,
+copper or iron with a printed balance** (the copper azide entries print none;
+DBX-1's table is an image). What it gives instead is a second convention for
+chlorine.
+
+**IT LEAVES CHLORINE AS Cl2 WHERE MEYER AND CONKLING USE HCl.** Guanidinium
+perchlorate is -10.0% (HCl: -5.0), hydrazinium perchlorate +18.1% (HCl:
++24.1) and trinitrochlorobenzene -45.24% (HCl: -42.0; Meyer prints -45.3 for
+the same compound). The calculator's HCl answer is shown, and the Cl2 figure
+is reported beside it whenever a hydrogen took a chlorine. Where a metal took
+it the two conventions agree: potassium and sodium perchlorate (+46.2,
++52.3) and potassium chlorate (+39.2) equal this module's numbers, as do the
+hexanitrodiphenyl sulfide (-56) and sulfone (-46).
+
+**ITS METAL CONVENTIONS VARY BY ENTRY**, so none of its metal values is used
+as a test: barium nitrate +36.7 and calcium potassium styphnate -23.8 leave
+the metals unoxidised, barium chlorate +26.3 oxidises barium to BaO, lead
+styphnate -22.2 reproduces only with lead to PbO2 (Meyer and Akhavan: PbO,
+-18.8), and mercury fulminate -16.86 burns mercury to HgO (Meyer: the metal,
+-11.2).
+
+### jain1987
+
+<a id="jain1987"></a>
+
+> S. R. Jain, 'Energetics of Propellants, Fuels and Explosives; a Chemical Valence Approach', Propellants, Explosives, Pyrotechnics 1987, 12, 188-195.
+
+| | |
+| --- | --- |
+| Identifier | [10.1002/prep.19870120603](https://doi.org/10.1002/prep.19870120603) |
+| Status | shipped |
+| Verification | citation + claim |
+| Verified | 2026-10-24 |
+| Local copy | `jain1987.pdf` (not checked) |
+| Used by | `src/openchem/chem/energetics.py` |
+
+The origin of the valence method [source:conkling2019] teaches as the "Pyro
+Valence Method": a mixture balances when its oxidizing and reducing valences
+sum to zero, hydrogen and carbon being reducing (+1, +4 here) and oxygen and
+chlorine oxidizing, nitrogen neutral. Its worked examples agree with this
+module's table (ammonium perchlorate +5 in the paper's sign, glucose -24,
+methanol -6, nitric acid +5; 24 AP + 5 glucose -> 30 CO2 + 24 HCl + 12 N2 + 66
+H2O).
+
+**IT COVERS C, H, O, N AND Cl ONLY** ("involving C, H, O, N and Cl atoms"),
+with one passing mention of aluminised AP. The paper was read in full for a
+per-element table covering bromine, iodine, copper or iron, as the likeliest
+place for one; there is none. Its signs are the opposite of Conkling's.
+
+### shimizu1996
+
+<a id="shimizu1996"></a>
+
+> T. Shimizu, 'Fireworks: The Art, Science and Technique', 3rd edition, Pyrotechnica Publications, Austin, Texas, 1996 (first published 1981). ISBN 0-929388-05-4.
+
+| | |
+| --- | --- |
+| Identifier | 0-929388-05-4 |
+| Status | shipped |
+| Verification | citation |
+| Verified | 2026-10-24 |
+| Local copy | `vdoc.pub_fireworks-the-art-science-and-technique.pdf` (not checked) |
+| Used by | `src/openchem/chem/energetics.py`, `tests/test_oxygen_balance_extended.py` |
+
+An independent statement of two products the oxygen balance relies on, in
+the smoke chapter (printed p80): "Phosphorus or metalic sodium burn in the air
+generating dense white smoke ... 4 P + 5 O2 --> 2 P2O5 + ca.700 kcal, 4 Na + O2
+--> 2 Na2O + ca. 200 kcal". It agrees with [source:conkling2019]'s Table 3.5
+(phosphorus to P2O5) and with [source:meyer2016]'s sodium oxide.
+
+The book states no oxygen balance and no per-element valence, and it was
+searched for bromine, iodine, copper and iron products without result, so
+`verification` is the citation only: nothing here is a balance computed from
+it. The file is a text copy of the third edition's contents.
+
 ### conkling2019
 
 <a id="conkling2019"></a>
@@ -4862,11 +5207,25 @@ at +2.88 valence per 100 g); titanium (KClO4/Ti 80/20 at -2.95, and
 statement alone (Table 2.5, plus Eq. 3.24 for SiO2 and the metal-fuel
 table's oxide column for ZrO2): no printed balance uses them.
 
+**THREE MORE ELEMENTS COME FROM OUTSIDE TABLE 2.5.** Phosphorus burns to
+P2O5 in Table 3.5 (red and white, 0.78 g of fuel per g of O); molybdenum to
+MoO3 in the worked answer to Exercise 4, where BaCrO4/KClO4/Mo at
+67.9/10.0/22.1 is stoichiometric with a Mo valence of +6 "obtained by
+analysis of the formula of the reaction product"; tungsten to WO3 in Table
+3.4 (3.83 g per g of O). Tables 3.4 and 3.5 print "grams of fuel consumed per
+gram of O" for every element they list, and the calculator reproduces it for
+Al, B, C, Mg, P, Si, S, Ti, W, Zn and Zr to the printed two places (phosphorus
+by one unit in the last place: the book used 31.0, which gives 0.775).
+Copper is printed as "Cu2O/CuO" with a figure for each (7.94 and 3.97 g of
+copper per g of O), which are copper(I) and copper(II): see the charge-matched
+rule below. Phosphorus, molybdenum and tungsten halides are refused: no source
+says how many halogens they hold.
+
 **WHERE IT DEPENDS ON ROLE, AND SO IS NOT USED:** iron is the metal in an
 oxidizer and Fe2O3 as a fuel; red lead goes to the metal (valence -8, "-2 if
 PbO is formed"); sodium azide's sodium is left as the metal. A drawn
-compound does not say which role it plays, so iron stays refused, and lead
-and sodium follow Meyer and Akhavan (PbO, Na2O). Teflon is printed at -4
+compound does not say which role it plays, so lead and sodium follow Meyer and
+Akhavan (PbO, Na2O), and iron follows its drawn charge instead (below). Teflon is printed at -4
 with its carbon left as C; the calculator refuses it, having no hydrogen or
 metal for its fluorine.
 
@@ -4940,14 +5299,29 @@ the code to them:
 - **Picryl chloride, -45.3%**, is the value with its chlorine left as Cl2.
   Its stated rule, HCl, gives -42.0, and five other chlorine compounds
   (ammonium chloride and perchlorate, chlorodinitrobenzene, guanidinium and
-  hydrazinium perchlorate) follow the rule.
+  hydrazinium perchlorate) follow the rule. [source:klapotke2021] prints the
+  Cl2 figure for trinitrochlorobenzene (-45.24, the same compound) and for
+  guanidinium (-10.0) and hydrazinium (+18.1) perchlorates, so the sources
+  split on chlorine and the result shows both numbers.
 - **Hydrates.** Barium chlorate monohydrate (+31.55%) and barium
   perchlorate trihydrate (+38.1%) are printed for the anhydrous salt; lead
   styphnate monohydrate (-18.8%) and lead acetylsalicylate monohydrate
   (-98.7%) include their water.
-- **Iron.** Ferrocene (-223.6%) is burned to FeO and iron acetylacetonate
-  (printed 163.1%, the Fe2O3 value with its sign lost) to Fe2O3, so iron is
-  refused.
+
+**ONE THAT ONLY LOOKED LIKE A DISAGREEMENT, AND IS THE IRON AND COPPER RULE.**
+Ferrocene (-223.6%) is burned to FeO and iron acetylacetonate (printed
+"+163.1%": the sign is a misprint, the magnitude is Fe2O3 to the digit, FeO
+gives 160.8) to Fe2O3. They are iron(II) and iron(III). **No source states
+the rule**, but every value any of them prints follows it, so iron and
+copper burn to the oxide of the charge they are drawn with: Fe(II) to FeO,
+Fe(III) to Fe2O3, Cu(I) to Cu2O, Cu(II) to CuO ([source:conkling2019]'s
+Table 3.4 prints both copper oxides, 7.94 and 3.97 g of copper per g of O;
+[source:shancita2020]'s iron(III) and copper(II) iodates give Fe2O3 and
+CuO). A structure drawn with another charge, or none, is refused naming
+the atom, and the other oxide's figure is reported beside the answer, as for
+mercury. The rule is this project's, resting on those values; ferrocene and
+the acetylacetonate are its only printed iron checks, and copper has the
+two numeric columns and no printed balance.
 
 Boron does not occur in the book's balances at all; its product comes from
 [source:conkling2019] and [source:zeuner2003].
@@ -7946,6 +8320,32 @@ unless the client permits compression; its own error message says so, which
 is the only reason that was cheap to find.
 
 ## Standards
+
+### amcp706187
+
+<a id="amcp706187"></a>
+
+> U.S. Army Materiel Command, 'Engineering Design Handbook: Military Pyrotechnics Series, Part Three: Properties of Materials Used in Pyrotechnic Compositions', AMCP 706-187, Washington, 1963. DTIC AD830394.
+
+| | |
+| --- | --- |
+| Identifier | DTIC AD830394 (AMCP 706-187, 1963) |
+| Status | shipped |
+| Verification | citation |
+| Verified | 2026-10-24 |
+| Local copy | `Engineering Design Handbook - Military Pyrotechnics Series, -- AD830394 -- AMCP 706-187, 3, 1963 -- U_S_ Army Materiel Command.pdf` (not checked) |
+| Used by | `src/openchem/chem/energetics.py` |
+
+A second, independent statement that molybdenum burns to MoO3 (its
+molybdenum sheet: "oxidized to MoO3 at red heat"), beside the worked answer
+in [source:conkling2019]. A US Government publication, so freely
+redistributable.
+
+It was read for copper, iron, bromine, iodine and phosphorus products and
+gives none: the copper sheet says only that it "oxidized rapidly at 270 C",
+and its "Oxygen Balance" lines are for organic explosives. Its tungsten
+section carries a WO2 sheet beside tungsten, which settles nothing about
+what tungsten burns to; WO3 rests on [source:conkling2019]'s Table 3.4.
 
 ### ich_m9
 

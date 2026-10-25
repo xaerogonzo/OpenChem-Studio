@@ -257,11 +257,11 @@ def test_loosening_the_calculators_own_rule_loosens_the_indicator(monkeypatch):
     learned sulfur from Meyer's Explosives, and thioethanol went from refused to covered with no edit here."""
     thioethanol = _mol(PANEL["thioethanol"])
     assert coverage_hooks.oxygen_balance_coverage(thioethanol).kind is CoverageKind.COVERED
-    phosphate = _mol("OP(=O)(O)O")
-    assert coverage_hooks.oxygen_balance_coverage(phosphate).kind is CoverageKind.REFUSES
-    widened = dict(energetics._PRODUCTS, P=energetics.ElementAccounting("P4O10", 5, "probe"))
+    bromide = _mol("C[Se]C")
+    assert coverage_hooks.oxygen_balance_coverage(bromide).kind is CoverageKind.REFUSES
+    widened = dict(energetics._PRODUCTS, Se=energetics.ElementAccounting("SeO2", 4, "probe"))
     monkeypatch.setattr(energetics, "_PRODUCTS", widened)
-    assert coverage_hooks.oxygen_balance_coverage(phosphate).kind is CoverageKind.COVERED
+    assert coverage_hooks.oxygen_balance_coverage(bromide).kind is CoverageKind.COVERED
 
 
 def test_tightening_the_rule_tightens_it_too(monkeypatch):

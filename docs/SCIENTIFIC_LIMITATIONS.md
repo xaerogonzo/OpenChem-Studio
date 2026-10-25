@@ -761,27 +761,62 @@ balance to "CO2, H2O, SO2, Al2O3, etc." and states chlorine to HCl; Conkling
 & Mocella's *Chemistry of Pyrotechnics* (Table 2.5, the "pyro valences")
 states a product for each element, and a US patent states boron to B2O3. So
 sulfur, chlorine and fluorine (taken by a hydrogen as HCl/HF or by a metal as
-its halide, which gives the same number either way), boron, silicon and
-sixteen metals are accepted, each at the product a source states or the
+its halide, which gives the same number either way), iodine (left as I₂, taking
+no hydrogen), boron, silicon,
+phosphorus (to P₂O₅, also Shimizu's *Fireworks*) and
+twenty-one metals are accepted, each at the product a source states or the
 oxide its printed balances use; mercury and silver are left unoxidised
 because that is what Meyer does. Akhavan's *The Chemistry of
 Explosives* states the same definition and agrees on silver and lead, but
 burns mercury to HgO (mercury fulminate −16.86% against Meyer's −11.2%); the
 result follows Meyer and prints the HgO figure beside it. 35 of its printed balances are
 reproduced to its own printing, and so are Conkling's printed net valences,
-Klapötke's two borate esters and the patent's boron igniter. Bromine, iodine,
-phosphorus, iron, copper and every other element are **refused rather than
-given a confident wrong number**: no source gives a product for them, or (for
-iron) the sources give different ones depending on the compound or its role.
-Silicon and zirconium are accepted on Conkling's statement alone; no printed
-balance uses them. Only the CO₂ basis is extended; the CO basis stays
+Klapötke's two borate esters and the patent's boron igniter. **Chlorine is the one place the sources split.** Meyer, Conkling, Jain and
+Klapötke's textbook take it to HCl; Klapötke's *Encyclopedia* leaves it as Cl₂
+for guanidinium and hydrazinium perchlorates and trinitrochlorobenzene (−10.0%,
++18.1%, −45.24%, against −5.0%, +24.1%, −42.0%), as does Meyer's picryl chloride
+entry. The result follows HCl and prints the Cl₂ figure beside it whenever a
+hydrogen took a chlorine. A metal chloride gives the same number either way.
+Iodine is the opposite case: He, Hooper & Shreeve's formula has no iodine term
+and seven of their printed balances reproduce with iodine untouched.
+
+**Iron and copper burn to the oxide of the charge they are drawn with**
+(Fe(II) to FeO, Fe(III) to Fe₂O₃, Cu(I) to Cu₂O, Cu(II) to CuO). No source
+states that as a rule: it is what Meyer's ferrocene and iron acetylacetonate
+values, Conkling's two copper oxides and Shancita's iodates all follow. A
+structure drawn with a different charge, or none (a neutral iron atom), is
+refused, and the other oxide's figure is printed beside the answer.
+
+Persson, Holmberg & Lee's *Rock Blasting and Explosives Engineering* (Eq. 4.43) states
+the same accounting as one closed form for Al, B, C, Ca, Cl, F, H, K, N, Na and O, halogens
+sparing half an oxygen each, and the tests run it beside the calculator. Its wording, "highest
+degree of oxidation", read literally would burn iron to Fe₂O₃ and mercury to HgO whatever
+the drawing; the calculator follows the printed values instead (Meyer's ferrocene is FeO)
+and prints the other oxide's figure beside the answer, which is that reading.
+
+**Bromine goes to HBr, as chlorine goes to HCl**, each sparing half an oxygen. The
+NBS report by Tsang & Domalski (1974) states it in its oxygen-balance formula and
+prints propargyl bromide at −94.1%, and Lease et al.'s (2023) three brominated PETN
+derivatives (−21.6, −32.0, −41.4%) agree to 0.3 points where Br₂ left over would be off
+by 2 to 6; Wang et al.'s (2024) bromo-trinitroanisoles (−35.3, −42.2) reproduce to the digit.
+(The same group's patent for the bromofluoro compound prints −40.0%, the halogens ignored.) It took a long search: Meyer, Conkling & Mocella, Persson, Cooper, Akhavan,
+Klapötke's textbook and Encyclopedia, a brominated-TNT preprint and all 68 Klapötke-group
+LMU dissertations print no bromine balance. Neither source prints a metal bromide, so a
+bromine a metal takes follows the chlorides and the result says so. Bromine beyond what
+hydrogen and metals can take (CBr₄, bromoform) is refused. Every other uncovered element
+is **refused rather than given a confident wrong number**: no source gives a product for
+it, including Persson's. Silicon, zirconium, phosphorus and tungsten are accepted on
+Conkling's statement and its grams-of-fuel-per-gram-of-oxygen column; no
+printed balance uses them. A phosphorus, molybdenum or tungsten halide is
+refused: no source says how many halogens it holds. Only the CO₂ basis is extended; the CO basis stays
 C/H/N/O.
 
-**Three of the book's own values disagree with it, and are recorded rather
+**Two of the book's own values disagree with it, and are recorded rather
 than fitted:** picryl chloride is printed as if its chlorine became Cl₂, two
 hydrates are printed for the anhydrous salt while two others include their
-water, and two iron compounds use FeO and Fe₂O₃. A hydrate is balanced as
-drawn and the result says so.
+water. A hydrate is balanced as drawn and the result says so. (Its two iron
+values, FeO for ferrocene and Fe₂O₃ for iron acetylacetonate, looked like a
+third disagreement and are the iron(II)/iron(III) rule above.)
 
 ### Detonation (Kamlet–Jacobs)
 
