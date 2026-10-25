@@ -1,0 +1,78 @@
+{
+ "paper": "liu2018_pi3k_mtor_pyridopyrimidines",
+ "decision": "route",
+ "exclusion_reason": null,
+ "exclusion_detail": "",
+ "lead": {"label": "3j", "why": "Abstract: 'especially 3j whose potency against SKOV3 was 8-fold higher than the positive control AZD8055 ... 3j showed better antitumor activity and pharmacokinetic properties in vivo'; 3j is the compound selected for the in vivo and PK studies."},
+ "target": {"name": "(S)-(5-(2-(tert-Butyl)-4-(3-methylmorpholino)pyrido[2,3-d]pyrimidin-7-yl)-2-methoxyphenyl)methanol", "smiles": "CC(C)(C)c1nc(N2CCOC[C@@H]2C)c2ccc(nc2n1)-c1ccc(OC)c(CO)c1"},
+ "reactions": [
+  {"step": 1,
+   "product": {"label": "15", "name": "2-(tert-Butyl)-7-chloro-2,3-dihydropyrido[2,3-d]pyrimidin-4(1H)-one", "smiles": "CC(C)(C)C1Nc2nc(Cl)ccc2C(=O)N1"},
+   "reactants": [
+     {"label": "14", "name": "", "smiles": "NC(=O)c1ccc(Cl)nc1N", "origin": "commercial"},
+     {"label": "pivaldehyde (trimethyl acetaldehyde)", "name": "trimethyl acetaldehyde", "smiles": "CC(C)(C)C=O", "origin": "reagent"}
+   ],
+   "conditions": "14 (500 mg, 2.90 mmol), (CH3)3CHO (8.80 mmol), CuCl2 (8.80 mmol), ethanol (5 mL), 75 C, 12 h; yield 29%.",
+   "source": "Section 4.1.18 (compound 15); Scheme 2 step (h); main text p. 3994/3998"},
+  {"step": 2,
+   "product": {"label": "16", "name": "2-(tert-Butyl)-7-chloropyrido[2,3-d]pyrimidin-4(3H)-one", "smiles": "CC(C)(C)c1nc2nc(Cl)ccc2c(=O)[nH]1"},
+   "reactants": [
+     {"label": "15", "name": "2-(tert-Butyl)-7-chloro-2,3-dihydropyrido[2,3-d]pyrimidin-4(1H)-one", "smiles": "CC(C)(C)C1Nc2nc(Cl)ccc2C(=O)N1", "origin": "made_here"}
+   ],
+   "conditions": "DDQ (2 equiv), CH2Cl2, rt, 1 h; yield 75%.",
+   "source": "Section 4.1.19 (compound 16); Scheme 2 step (i)"},
+  {"step": 3,
+   "product": {"label": "17", "name": "(S)-4-(2-(tert-Butyl)-7-chloropyrido[2,3-d]pyrimidin-4-yl)-3-methylmorpholine", "smiles": "CC(C)(C)c1nc(N2CCOC[C@@H]2C)c2ccc(Cl)nc2n1"},
+   "reactants": [
+     {"label": "16", "name": "2-(tert-Butyl)-7-chloropyrido[2,3-d]pyrimidin-4(3H)-one", "smiles": "CC(C)(C)c1nc2nc(Cl)ccc2c(=O)[nH]1", "origin": "made_here"},
+     {"label": "3S-methyl morpholine", "name": "3S-methyl morpholine", "smiles": "C[C@H]1COCCN1", "origin": "commercial"}
+   ],
+   "conditions": "16 refluxed in POCl3 (2 mL) 0.5 h, concentrated; residue added to 3S-methylmorpholine in CH2Cl2, rt, 1 h; crude 17 used directly (one-pot as written).",
+   "source": "Section 4.1.20 (compound 17); Scheme 2 step (j)"},
+  {"step": 4,
+   "product": {"label": "3j", "name": "(S)-(5-(2-(tert-Butyl)-4-(3-methylmorpholino)pyrido[2,3-d]pyrimidin-7-yl)-2-methoxyphenyl)methanol", "smiles": "CC(C)(C)c1nc(N2CCOC[C@@H]2C)c2ccc(nc2n1)-c1ccc(OC)c(CO)c1"},
+   "reactants": [
+     {"label": "17", "name": "(S)-4-(2-(tert-Butyl)-7-chloropyrido[2,3-d]pyrimidin-4-yl)-3-methylmorpholine", "smiles": "CC(C)(C)c1nc(N2CCOC[C@@H]2C)c2ccc(Cl)nc2n1", "origin": "made_here"},
+     {"label": "aryl borate ester (the paper: 'phenylborate ester')", "name": "", "smiles": "COc1ccc(cc1CO)B1OC(C)(C)C(C)(C)O1", "origin": "commercial"}
+   ],
+   "conditions": "17 (60 mg, 0.19 mmol), phenylborate ester (1.2 equiv), Pd(PPh3)4 (10 mol%), K2CO3 (3 equiv), dioxane/H2O 4:1, 80 C, 12 h; yield 65%.",
+   "source": "Section 4.1.21 (compound 3j); Scheme 2 step (h, second use)"}
+ ],
+ "alt_variants": [
+  [
+   {"step": 1,
+    "product": {"label": "15", "name": "2-(tert-Butyl)-7-chloro-2,3-dihydropyrido[2,3-d]pyrimidin-4(1H)-one", "smiles": "CC(C)(C)C1Nc2nc(Cl)ccc2C(=O)N1"},
+    "reactants": [
+      {"label": "14", "name": "", "smiles": "NC(=O)c1ccc(Cl)nc1N", "origin": "commercial"},
+      {"label": "pivaldehyde", "name": "trimethyl acetaldehyde", "smiles": "CC(C)(C)C=O", "origin": "reagent"}
+    ],
+    "conditions": "as main variant",
+    "source": "Section 4.1.18"},
+   {"step": 2,
+    "product": {"label": "16", "name": "2-(tert-Butyl)-7-chloropyrido[2,3-d]pyrimidin-4(3H)-one", "smiles": "CC(C)(C)c1nc2nc(Cl)ccc2c(=O)[nH]1"},
+    "reactants": [
+      {"label": "15", "name": "", "smiles": "CC(C)(C)C1Nc2nc(Cl)ccc2C(=O)N1", "origin": "made_here"}
+    ],
+    "conditions": "as main variant",
+    "source": "Section 4.1.19"},
+   {"step": 3,
+    "product": {"label": "17", "name": "(S)-4-(2-(tert-Butyl)-7-chloropyrido[2,3-d]pyrimidin-4-yl)-3-methylmorpholine", "smiles": "CC(C)(C)c1nc(N2CCOC[C@@H]2C)c2ccc(Cl)nc2n1"},
+    "reactants": [
+      {"label": "16", "name": "", "smiles": "CC(C)(C)c1nc2nc(Cl)ccc2c(=O)[nH]1", "origin": "made_here"},
+      {"label": "3S-methyl morpholine", "name": "3S-methyl morpholine", "smiles": "C[C@H]1COCCN1", "origin": "commercial"}
+    ],
+    "conditions": "as main variant",
+    "source": "Section 4.1.20"},
+   {"step": 4,
+    "product": {"label": "3j", "name": "(S)-(5-(2-(tert-Butyl)-4-(3-methylmorpholino)pyrido[2,3-d]pyrimidin-7-yl)-2-methoxyphenyl)methanol", "smiles": "CC(C)(C)c1nc(N2CCOC[C@@H]2C)c2ccc(nc2n1)-c1ccc(OC)c(CO)c1"},
+    "reactants": [
+      {"label": "17", "name": "", "smiles": "CC(C)(C)c1nc(N2CCOC[C@@H]2C)c2ccc(Cl)nc2n1", "origin": "made_here"},
+      {"label": "aryl boronic acid reading of 'phenylborate ester'", "name": "", "smiles": "OB(O)c1ccc(OC)c(CO)c1", "origin": "commercial"}
+    ],
+    "conditions": "as main variant; boron partner read as the free boronic acid",
+    "source": "Section 4.1.21"}
+  ]
+ ],
+ "other_qualifying_compounds": null,
+ "notes": "(1) The Suzuki partner is called only 'phenylborate ester' (3j) / 'corresponding borate ester' (3k); the aryl group (3-hydroxymethyl-4-methoxyphenyl) is certain from the product, but the boron group is NOT stated. I wrote the pinacol ester as the main reading (the usual commercial reagent) and the free boronic acid as the alternative; the name field is empty because the paper gives none. (2) 'Compound 14' has no printed name; its structure (2-amino-6-chloronicotinamide) is derived from the name of its product 15 and checked by mass (500 mg = 2.90 mmol gives MW about 172). The paper states all chemicals were obtained by commercial purchase, so 14 is a leaf. (3) The 3j experimental paragraph repeats a stray sentence about 3S-methylmorpholine after the Suzuki step (copy-paste artefact), ignored. (4) Step 3 combines POCl3 chlorination and morpholine displacement as one procedure; counted as one step. (5) Stereocentre: (S)-3-methylmorpholine written as C[C@H]1COCCN1 and, in the N-aryl products, N2CCOC[C@@H]2C (same (S) centre; please let the checker confirm the CIP label). (6) Scheme 2 lists letters h/i/j twice; the 3j steps are the ones in 4.1.18-4.1.21."
+}

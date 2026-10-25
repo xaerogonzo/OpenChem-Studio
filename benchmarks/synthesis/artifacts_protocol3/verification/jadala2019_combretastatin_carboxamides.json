@@ -1,0 +1,33 @@
+{
+ "paper": "jadala2019_combretastatin_carboxamides",
+ "my_lead": "5ab - abstract: most potent member of the series (IC50 0.36 uM), taken into tubulin, docking, cell-cycle, apoptosis and migration studies",
+ "lead_agrees": true,
+ "reactions": [
+  {
+   "step": 1,
+   "ok": true,
+   "issue": "Text only: 'synthesis of different substituted sulfonamides 2a-e by reacting piperazine with different benzenesulfonyl chlorides 1 in CH2Cl2'. Mono-sulfonylation implied; no stoichiometry or base given. The 4-Cl member for 5ab is inferred from the name of 5ab only."
+  },
+  {
+   "step": 2,
+   "ok": true,
+   "issue": "Text: 'phenyl acetic acid (3) was treated with substituted aldehydes to afford the (E)-3-phenyl-2-(2,3,4-trimethoxyphenyl)acrylic acids 4a-f'. No reagents or conditions; 'Perkin' is the transcriber's inference. 3 is printed as 'phenyl acetic acid' while the products carry a trimethoxyphenyl, so 3 must be (trimethoxyphenyl)acetic acid; the 3,4,5 vs 2,3,4 pattern is contradictory in the text."
+  },
+  {
+   "step": 3,
+   "ok": true,
+   "issue": "EDCI/HOBt, dry DMF, 85-90% yields stated for the series."
+  }
+ ],
+ "leaf_issues": [
+  "Nothing in the supplied text says piperazine, 4-chlorobenzenesulfonyl chloride, (3,4,5-trimethoxyphenyl)acetic acid or 4-chlorobenzaldehyde were purchased; there is no experimental section (SI is only linked). Commodity chemicals, commercial by inference only.",
+  "Compound 3 is printed as 'phenyl acetic acid'; its trimethoxy pattern is never stated for the starting acid."
+ ],
+ "step_count_ok": true,
+ "smiles_issues": [
+  "Trimethoxy regiochemistry: Results text says '(E)-3-phenyl-2-(2,3,4-trimethoxyphenyl)acrylic acids 4a-f', but the abstract name of 5ab ('...2-(3,4,5-trimethoxyphenyl)prop-2-en-1-one') and the Introduction (3,4,5-trimethoxy, CA4 pharmacophore) say 3,4,5. The transcription follows 3,4,5, the best-supported reading, but it is a typo-resolution by the transcriber.",
+  "E geometry checked: at C2 the C(=O)N group outranks the aryl, at C3 the 4-ClC6H4 outranks H; the SMILES puts C=O and 4-ClC6H4 trans (E), i.e. the two aryl groups cis, as for CA4 and as the printed (E) requires. Correct."
+ ],
+ "overall": "minor_issues",
+ "notes": "Route stands (3 steps: sulfonamide, acrylic acid, EDCI/HOBt amide) but is thinly documented: no experimental text, conditions for steps 1 and 2 not given, intermediates unnamed, and the pairing of 5ab with the 4-Cl sulfonamide and 4-Cl aldehyde comes solely from the printed name (the position of 5ab in the 5a-ad grid is not recoverable from the text). Recommend flagging: step 2 conditions unknown, leaves unsupported by an explicit statement, trimethoxy-pattern typo in the paper. If the SI becomes available it should be checked for the real procedures."
+}

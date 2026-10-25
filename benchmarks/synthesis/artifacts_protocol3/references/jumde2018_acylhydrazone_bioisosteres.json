@@ -1,0 +1,28 @@
+{
+ "paper": "jumde2018_acylhydrazone_bioisosteres",
+ "decision": "route",
+ "exclusion_reason": null,
+ "exclusion_detail": "",
+ "lead": {"label": "(S)-2", "why": "Abstract: 'The most successful bioisostere is equipotent, bears an amide linker and we confirmed its binding mode by X-ray crystallography'; text: 'The most potent inhibitor, the amide bioisostere (S)-2, displays a Ki value of 6.1 uM' and its crystal structure with endothiapepsin was solved (PDB 5OJE)."},
+ "target": {"name": "(S)-2-Amino-3-(1H-indol-3-yl)-N-(2,4,6-trimethylphenethyl)propanamide", "smiles": "N[C@@H](Cc1c[nH]c2ccccc12)C(=O)NCCc1c(C)cc(C)cc1C"},
+ "reactions": [
+  {"step": 1,
+   "product": {"label": "(S)-13 (Boc-protected amide; called (S)-14 in the main text)", "name": "", "smiles": "CC(C)(C)OC(=O)N[C@@H](Cc1c[nH]c2ccccc12)C(=O)NCCc1c(C)cc(C)cc1C"},
+   "reactants": [
+    {"label": "5", "name": "N-Boc-L-tryptophan", "smiles": "CC(C)(C)OC(=O)N[C@@H](Cc1c[nH]c2ccccc12)C(=O)O", "origin": "commercial"},
+    {"label": "10", "name": "mesitylethylamine hydrochloride (2-mesitylethanamine hydrochloride)", "smiles": "NCCc1c(C)cc(C)cc1C", "origin": "commercial"}
+   ],
+   "conditions": "1,1'-Carbonyldiimidazole (1 eq.), dry THF, ice cooling then rt 2 h (activation of 5); then amine 10 (1 eq., as HCl salt, with Et3N 2 eq. to free the amine per SI note), rt overnight; aqueous work-up, crude used directly. Main text: 80% yield.",
+   "source": "Main text p.2 and Scheme 1 (step e); SI p.S4 (Scheme 3) and p.S5-S6 (experimental, 'Synthesis of bioisosteres')"},
+  {"step": 2,
+   "product": {"label": "(S)-2", "name": "(S)-2-Amino-3-(1H-indol-3-yl)-N-(2,4,6-trimethylphenethyl)propanamide", "smiles": "N[C@@H](Cc1c[nH]c2ccccc12)C(=O)NCCc1c(C)cc(C)cc1C"},
+   "reactants": [
+    {"label": "(S)-13", "name": "", "smiles": "CC(C)(C)OC(=O)N[C@@H](Cc1c[nH]c2ccccc12)C(=O)NCCc1c(C)cc(C)cc1C", "origin": "made_here"}
+   ],
+   "conditions": "TFA, dry DCM, 0 C to rt, 1-1.5 h; then CHCl3, wash with sat. NaHCO3 (free base); quantitative.",
+   "source": "Main text p.2 and Scheme 1 (step f); SI p.S6"}
+ ],
+ "alt_variants": [],
+ "other_qualifying_compounds": null,
+ "notes": "Intermediate labels 13/14 are swapped between the main text ((S)-14 = Boc amide) and the SI scheme/experimental ((S)-13 = Boc amide, (S)-14 = Boc ester for (S)-3); SI scheme was followed. The intermediate has no printed name (name \"\"); structure derived from the scheme/text. Amine 10 is written as the free base; the paper uses the hydrochloride salt (neutralised with Et3N). The SI states 'Starting materials and reagents were purchased from Aldrich, Acros or TCI' and prepares no mesitylethylamine, so 10 is treated as commercial. The heading in the SI numbers the final compound as '2'."
+}

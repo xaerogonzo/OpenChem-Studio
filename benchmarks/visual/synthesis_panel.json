@@ -1,0 +1,31 @@
+[
+  {"do": "synthesis_setup", "python": "", "config": ""},
+  {"do": "smiles", "smiles": "CC(=O)Oc1ccccc1C(=O)O", "name": "Aspirin", "after_ms": 1500},
+  {"do": "select", "molecule": -1, "after_ms": 1500},
+
+  {"do": "synthesis_panel", "tag": "show", "after_ms": 2500},
+  {"do": "synthesis_panel", "tag": "shown-with-nothing-set-up", "after_ms": 500,
+   "expect": {"target_contains": "Aspirin", "plan_enabled": true, "cancel_enabled": false, "routes": 0,
+              "status_contains": "Set it up under Edit > Settings > External tools > AiZynthFinder"}},
+
+  {"do": "synthesis_panel", "tag": "press", "press": "plan", "after_ms": 3000},
+  {"do": "synthesis_panel", "tag": "plan-with-nothing-set-up", "after_ms": 500,
+   "expect": {"status_contains": "The planner is not available", "routes": 0, "plan_enabled": true, "cancel_enabled": false,
+              "limitations_contain": ["not a validated or feasible synthesis", "gives no reaction conditions"]}},
+  {"do": "shot", "path": "benchmarks/visual/artifacts/synthesis_panel_not_set_up.png", "after_ms": 500},
+
+  {"do": "smiles", "smiles": "CC(C)OP(C)(=O)F", "name": "Schedule 1 target", "after_ms": 1500},
+  {"do": "select", "molecule": -1, "after_ms": 1500},
+  {"do": "synthesis_panel", "tag": "press", "press": "plan", "after_ms": 3000},
+  {"do": "synthesis_panel", "tag": "a-schedule-1-target-is-refused-before-anything-starts", "after_ms": 500,
+   "expect": {"target_contains": "Schedule 1 target", "status_contains": "Not planned", "routes": 0, "plan_enabled": true, "cancel_enabled": false}},
+  {"do": "shot", "path": "benchmarks/visual/artifacts/synthesis_panel_refused.png", "after_ms": 500},
+
+  {"do": "select", "molecule": -2, "after_ms": 1500},
+  {"do": "synthesis_panel", "tag": "back-on-the-first-molecule-its-own-result-is-shown", "after_ms": 1000,
+   "expect": {"target_contains": "Aspirin", "status_contains": "The planner is not available"}},
+
+  {"do": "synthesis_setup", "restore": true},
+  {"do": "expect_clean"},
+  {"do": "quit"}
+]

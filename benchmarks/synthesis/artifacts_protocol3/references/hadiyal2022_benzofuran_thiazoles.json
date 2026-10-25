@@ -1,0 +1,12 @@
+{
+ "paper": "hadiyal2022_benzofuran_thiazoles",
+ "decision": "excluded",
+ "exclusion_reason": "route_not_explicit",
+ "exclusion_detail": "Lead 8g (indol-3-ylmethylene hydrazinyl thiazole) needs the substituted hydrazinecarbothioamide 6g, whose preparation is never described, and the printed 'general procedure' for the final cyclocondensation step is a copy of the 2a/2b acetone/K2CO3 text, so the actual conditions for 8g are not given (only Table 1 optimisation: EtOH/H2O 1:1, microwave 70 C, 10 min). Counting 6g's preparation the route would also be 5 reactions (sesamol to 2a, 4a, 5a, 6g, 8g).",
+ "lead": {"label": "8g", "why": "Abstract: 'Compound 8g and 8h were displayed remarkable antiproliferative activity ... Compound 8g showed higher potency as a cytotoxic molecule then fluorouracil' (8g is called 'the most potent compound' in the Biology section)."},
+ "target": {"name": "2-(2-((1H-indol-3-yl)methylene)hydrazinyl)-5-([1,3]dioxolo[4,5-f]benzofuran-6-yl)thiazole", "smiles": ""},
+ "reactions": [],
+ "alt_variants": [],
+ "other_qualifying_compounds": [],
+ "notes": "Paper has no SI in the bundle. Intermediates 2a (formylation of sesamol with paraformaldehyde/MgCl2/Et3N), 4a (chloroacetone, K2CO3, acetone) and 5a (Br2, CHCl3) have procedures, but every final compound depends on the unprepared thiosemicarbazones 6a-j (none described, not stated commercial). The paper also names the thiazole attachment inconsistently (4-yl in the text/scheme description, 5-yl in the spectral headings). Procedure text for 5a lists the yield/purification as '2a and 2b' (copy error). Other compounds share the same missing 6x preparation, so none qualifies."
+}

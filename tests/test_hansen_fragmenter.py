@@ -278,8 +278,6 @@ def test_a_main_range_value_says_so():
 @pytest.mark.parametrize(
     "smiles,expected",
     [
-        ("CC", HansenRefusal.TOO_FEW_CARBONS),
-        ("C", HansenRefusal.TOO_FEW_CARBONS),
         ("CCC.CCC", HansenRefusal.NOT_A_PURE_COMPONENT),
         ("CCC[O-]", HansenRefusal.CHARGED),
     ],
@@ -290,11 +288,13 @@ def test_a_structure_outside_the_model_is_refused(smiles, expected):
     assert f.refusal is expected
 
 
-def test_the_carbon_floor_is_the_papers_own():
-    """p574: three or more carbons. A LIMIT, so a refusal rather than a note."""
+def test_the_carbon_floor_is_the_papers_own_and_below_it_the_sum_is_computed_and_labelled():
+    """p574: three or more carbons. Below it the method is outside its stated domain, not unable to compute: every group is in the table,
+    so the sum is made and every number carries the sentence (Alex, 2026-10-23: a source's edge is a warning; it was a refusal before)."""
     assert hansen.MINIMUM_CARBONS == 3
-    assert _fragment("CCC").applicable
-    assert not _fragment("CC").applicable
+    assert _fragment("CCC").applicable and not _fragment("CCC").outside_domain
+    ethanol = _fragment("CCO")
+    assert ethanol.applicable and "OUTSIDE THE MODEL'S STATED DOMAIN" in ethanol.outside_domain and "has 2" in ethanol.outside_domain
 
 
 def test_an_unreadable_structure_refuses_rather_than_raising():
@@ -302,9 +302,19 @@ def test_an_unreadable_structure_refuses_rather_than_raising():
 
 
 def test_a_refusal_carries_a_reason_a_reader_can_act_on():
-    text = hansen.refusal_text(_fragment("CC"))
-    assert "three or more carbons" in text
-    assert "2 carbon" in text
+    text = hansen.refusal_text(_fragment("CCC[O-]"))
+    assert "charge" in text
+
+
+def test_a_molecule_below_the_carbon_floor_is_computed_and_every_number_says_so():
+    result = hansen.compute_hansen(Chem.MolFromSmiles("CCO"), "u")
+    assert result.cache_state.value == "completed"
+    numbers = [fact for fact in result.facts if isinstance(fact.value, float)]
+    assert numbers and all(any("OUTSIDE THE MODEL'S STATED DOMAIN" in item for item in fact.limitations) for fact in numbers)
+    assert result.provenance.parameters["outside_stated_domain"] is True and "three or more" in result.provenance.parameters["caveat"]
+    assert "OUTSIDE THE MODEL'S STATED DOMAIN" in result.limitations[0]
+    inside = hansen.compute_hansen(Chem.MolFromSmiles("CCCO"), "u")
+    assert inside.provenance.parameters["outside_stated_domain"] is False and "caveat" not in inside.provenance.parameters
 
 
 # ---------------------------------------------------------------------------
@@ -322,7 +332,7 @@ def test_the_total_is_the_pythagorean_combination_not_a_sum():
 
 
 def test_a_refused_structure_has_no_total():
-    assert hansen.total_parameter(_fragment("CC")) is None
+    assert hansen.total_parameter(_fragment("CCC[O-]")) is None
 
 
 # ---------------------------------------------------------------------------
@@ -470,28 +480,27 @@ def test_the_registry_refusal_path_also_works():
     definition = next(
         d for d in CALCULATOR_DEFINITIONS if d.calculator_id == "hansen_solubility"
     )
-    result = definition.execution.compute(Chem.MolFromSmiles("CC"), "uuid-1", {})
+    result = definition.execution.compute(Chem.MolFromSmiles("CCC.CCC"), "uuid-1", {})
 
     assert result.cache_state is CacheState.FAILED
-    assert "three or more carbons" in result.error
+    assert "fragment" in result.error
 
 
 def test_a_refusal_gives_a_cell_form_and_a_full_one():
     """`error_summary` is the reason; `error` adds the detail.
 
-    `refusal_text` appends "2 carbon(s)", or an uncovered atom's element and
-    connectivity -- exactly what a reader needs on hover and exactly what
-    clips in a 100 px column.
+    `refusal_text` appends an uncovered atom's element and connectivity --
+    exactly what a reader needs on hover and exactly what clips in a 100 px column.
     """
     from openchem.domain.common import describe_failure
 
-    result = hansen.compute_hansen(Chem.MolFromSmiles("CC"), "u")
+    result = hansen.compute_hansen(Chem.MolFromSmiles("CCC[Si](C)(C)C"), "u")  # silicon belongs to no group
     cell, hover = describe_failure(result.error, result.error_summary)
 
-    assert cell == "the model needs three or more carbons"
+    assert cell == "an atom belongs to no Stefanis-Panayiotou group"
     assert hover.startswith(cell)
-    assert "2 carbon" in hover
-    assert "2 carbon" not in cell, "the detail belongs on the hover, not the cell"
+    assert "Si at index" in hover
+    assert "Si at index" not in cell, "the detail belongs on the hover, not the cell"
 
 
 def test_a_completed_result_carries_no_failure_strings():

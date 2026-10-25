@@ -1,0 +1,15 @@
+{
+ "paper": "peytam2019_imidazopyrazoles_glucosidase",
+ "my_lead": "4j - abstract: 'the most potent compound was compound 4j with eightfold higher inhibitory activity compared to acarbose'",
+ "lead_agrees": true,
+ "reactions": [
+  {"step": 1, "ok": true, "issue": "One-pot Groebke-Blackburn-Bienayme-type three-component reaction: aldehyde 1 (1 mmol) + ethyl 3-amino-5-phenyl-1H-pyrazole-4-carboxylate 2 (1 mmol) + isocyanide 3 (1.2 mmol), NH4Cl 20 mol%, toluene reflux 8 h; 4j 81%. Three molecules incorporated once each; NH4Cl (catalyst) and toluene correctly omitted. The paper does not name the aldehyde or isocyanide for 4j in text (Table 1 drawing not in the text layer); they are fixed by the printed name of 4j (4-hydroxy-3-methoxyphenyl at C2 = vanillin; cyclohexylimino at C3 = cyclohexyl isocyanide) and by the series split 'tert-butylimino 4a-e, cyclohexylimino 4f-o'. Atom balance verified: aldehyde C8H8O3 + 2 C12H13N3O2 + isocyanide C7H11N - H2O - 2H = C27H28N4O4, matching the paper's analysis formula for 4j."}
+ ],
+ "leaf_issues": [
+  "all three leaves rest only on the general sentence 'Commercially available reagents and solvents were purchased from Sigma-Aldrich and Merck'; aminopyrazole 2 is never prepared or cited, vanillin and cyclohexyl isocyanide are standard catalogue items. Acceptable."
+ ],
+ "step_count_ok": true,
+ "smiles_issues": [],
+ "overall": "confirmed",
+ "notes": "Ring system hand-checked: SMILES CCOC(=O)C1=C2N=C(Ar)C(=NCy)N2N=C1Ph is the 3H-imidazo[1,2-b]pyrazole with 7-CO2Et, 6-Ph, 2-aryl, 3-(cyclohexylimino); vanillin SMILES O=Cc1ccc(O)c(OC)c1 has OH para and OMe meta, as required. Aminopyrazole SMILES is the 3-amino-5-phenyl-4-ester pyrazole. Single-step route from commercial reagents, so well within the 4-step limit (it is a multicomponent reaction: a planner must disconnect into three reactants, which is the point of the test case). 'Reactants listed twice' not applicable (each incorporated once)."
+}

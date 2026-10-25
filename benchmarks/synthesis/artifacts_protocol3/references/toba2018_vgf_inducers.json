@@ -1,0 +1,12 @@
+{
+ "paper": "toba2018_vgf_inducers",
+ "decision": "excluded",
+ "exclusion_reason": "no_lead_identifiable",
+ "exclusion_detail": "The abstract names no compound (only 'compounds with higher efficacy and lower propensity for adverse effects') and the paper has no in vivo or other follow-up experiment. The body text calls 27 'the most potent VGF inducer' and the conclusion cites 'compounds such as 27'; if 27 were taken as lead anyway it would still be excluded, as its route (SI) is at least 7 reactions: 13a -> triflate 14a -> alkylation of piperazine 4 (15a) -> TBAF (16a) -> triflate 17a -> aryl ether with 4-hydroxy-2,3,6-trimethylbenzenesulfonamide (27), plus diol/TBDPS steps (12a, 13a, 'known compound 13a') and the preparation of amine 4.",
+ "lead": {"label": "27 (by body text only)", "why": "Results: 'The trimethyl derivative 27 was found to be the most potent VGF inducer exceeding the level of 1.' Not named in the abstract."},
+ "target": null,
+ "reactions": [],
+ "alt_variants": [],
+ "other_qualifying_compounds": null,
+ "notes": "Applied the lead rule literally (abstract, then follow-up experiment); strictly it gives no_lead_identifiable, but the 27 route is over 4 steps in any case, so the paper is excluded either way. Did not check how amine 4 is made, so other_qualifying_compounds (e.g. 5-8 via epoxide 3 + 4, 10) left null."
+}

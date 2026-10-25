@@ -1,0 +1,44 @@
+{
+ "paper": "shintre2017_benzimidazoles_microwave",
+ "decision": "route",
+ "exclusion_reason": null,
+ "exclusion_detail": "",
+ "lead": {"label": "5r", "why": "Abstract names two trioxygenated derivatives 5p and 5r as the best antimicrobial/antioxidant compounds (no single winner), so rule 2 applies: the docking follow-up highlights 5r ('5r (most potent)' and 5h docked into topoisomerase II DNA gyrase; 'Compound 5r ... the most active')."},
+ "target": {"name": "Methyl 1-(4-fluorophenyl)-2-(2,3,4-trihydroxyphenyl)-1H-benzo[d]imidazole-5-carboxylate", "smiles": "COC(=O)c1ccc2c(c1)nc(n2-c1ccc(F)cc1)-c1ccc(O)c(O)c1O"},
+ "reactions": [
+  {"step": 1,
+   "product": {"label": "2", "name": "methyl 4-fluoro-3-nitrobenzoate", "smiles": "COC(=O)c1ccc(F)c([N+](=O)[O-])c1"},
+   "reactants": [
+    {"label": "1", "name": "4-Fluoro-3-nitrobenzoic acid", "smiles": "OC(=O)c1ccc(F)c([N+](=O)[O-])c1", "origin": "commercial"},
+    {"label": "methanol", "name": "methanol", "smiles": "CO", "origin": "reagent"}
+   ],
+   "conditions": "MeOH, conc. H2SO4, microwave 80 C, 10 min; 95%.",
+   "source": "main text, Materials and methods, 'General procedure for the preparation of methyl 4-fluoro-3-nitrobenzoate (2)'; Scheme 1"},
+  {"step": 2,
+   "product": {"label": "3", "name": "methyl 4-(4-fluoroaniline)-3-nitrobenzoate", "smiles": "COC(=O)c1ccc(Nc2ccc(F)cc2)c([N+](=O)[O-])c1"},
+   "reactants": [
+    {"label": "2", "name": "methyl 4-fluoro-3-nitrobenzoate", "smiles": "COC(=O)c1ccc(F)c([N+](=O)[O-])c1", "origin": "made_here"},
+    {"label": "4-fluoroaniline", "name": "", "smiles": "Nc1ccc(F)cc1", "origin": "commercial"}
+   ],
+   "conditions": "DMF, microwave 80 C, 5 min; chromatography; 90%.",
+   "source": "main text, general procedure for compound 3; Scheme 1"},
+  {"step": 3,
+   "product": {"label": "4", "name": "methyl 3-amino-4-(4-fluoroaniline) benzoate", "smiles": "COC(=O)c1ccc(Nc2ccc(F)cc2)c(N)c1"},
+   "reactants": [
+    {"label": "3", "name": "methyl 4-(4-fluoroaniline)-3-nitrobenzoate", "smiles": "COC(=O)c1ccc(Nc2ccc(F)cc2)c([N+](=O)[O-])c1", "origin": "made_here"}
+   ],
+   "conditions": "Zn, ammonium formate, MeOH, rt, 10 min; Celite filtration, chromatography; 92%.",
+   "source": "main text, general procedure for compound 4; Scheme 1"},
+  {"step": 4,
+   "product": {"label": "5r", "name": "Methyl 1-(4-fluorophenyl)-2-(2,3,4-trihydroxyphenyl)-1H-benzo[d]imidazole-5-carboxylate", "smiles": "COC(=O)c1ccc2c(c1)nc(n2-c1ccc(F)cc1)-c1ccc(O)c(O)c1O"},
+   "reactants": [
+    {"label": "4", "name": "methyl 3-amino-4-(4-fluoroaniline) benzoate", "smiles": "COC(=O)c1ccc(Nc2ccc(F)cc2)c(N)c1", "origin": "made_here"},
+    {"label": "2,3,4-trihydroxybenzaldehyde", "name": "", "smiles": "O=Cc1ccc(O)c(O)c1O", "origin": "commercial"}
+   ],
+   "conditions": "Microwave method (primary): neat, equimolar, 110 C, 5-10 min (Table 1: 8 min for 5r), chromatography; 85%. Alternatives in paper: grinding with I2 (10 mol%), or Na2S2O5/EtOH reflux.",
+   "source": "main text, general procedure for benzimidazoles 5a-5v, Table 1 row 5r (aldehyde substituent '2,3,4-(OH)3 Ph'), compound 5r entry"}
+ ],
+ "alt_variants": [],
+ "other_qualifying_compounds": null,
+ "notes": "Lead ambiguity: abstract names both 5p and 5r (and 5e for antifungal); 5r chosen via the docking follow-up. 5p would be the same route with 2-hydroxy-4,6-dimethoxybenzaldehyde. The aldehyde is not named in the text (Table 1 gives the aryl group only), so it is derived from the product name; the paper says all chemicals were supplied by Sigma-Aldrich. Printed intermediate names use 'fluoroaniline' nomenclature that OPSIN may not parse. The paper's text calls the aniline '4-fluorophenyl aniline' (0.36 mL, 2.34 mmol), clearly 4-fluoroaniline. Methanol written as atom-supplying reagent (the methyl ester carbon)."
+}

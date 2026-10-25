@@ -1,0 +1,29 @@
+{
+ "paper": "sardo2025_styrylquinoline_carboxamides",
+ "my_lead": "4i - abstract singles out 4i (sub-micromolar IC50s) and the mechanism studies use 4i",
+ "lead_agrees": true,
+ "reactions": [
+  {
+   "step": 1,
+   "ok": true,
+   "issue": "Pfitzinger: isatin + acetone, aq. KOH 10%, MW 150 C 2 x 15 min, then HCl to pH<6.5; 93% -> 2-methylquinoline-4-carboxylic acid (4.1.2). Acetone ('acetone RPE') supplies C2/CH3; KOH not listed, correctly."
+  },
+  {
+   "step": 2,
+   "ok": true,
+   "issue": "2 + 4-nitroaniline, EDC.HCl/HOBt/DMAP, MeCN, MW 50 C 2 x 20 min; 55% -> 3i (4.1.3.9, 2-methyl-N-(4-nitrophenyl)quinoline-4-carboxamide)."
+  },
+  {
+   "step": 3,
+   "ok": true,
+   "issue": "3i + benzaldehyde (R2 = H for 4a-j per the text), AcOH, MW 150 C 2 x 20 min; 63% -> 4i (4.1.4.9). Benzaldehyde is implicit from 'unsubstituted styryl'."
+  }
+ ],
+ "leaf_issues": [
+  "Isatin: 'commercially available isatin (1)' (abstract and 2.1). Acetone, 4-nitroaniline, benzaldehyde: only 'All reagents and solvents were purchased from Sigma-Aldrich, TCI, Fluka, Merck, and Across' (4.1.1)."
+ ],
+ "step_count_ok": true,
+ "smiles_issues": [],
+ "overall": "confirmed",
+ "notes": "3 steps, matches the abstract's 'three steps from commercially available isatin'. E-styryl SMILES and quinoline 2,4-substitution checked."
+}

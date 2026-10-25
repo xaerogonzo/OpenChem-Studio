@@ -1,0 +1,12 @@
+{
+ "paper": "covaleda2019_m14_carboxypeptidase",
+ "decision": "excluded",
+ "exclusion_reason": "not_small_molecule_organic",
+ "exclusion_detail": "The compounds are phosphinic pseudopeptides made on Wang resin by solid-phase peptide synthesis (Fmoc strategy, resin cleavage, RP-HPLC) from a phosphinic dipeptide building block that itself takes seven steps in solution; compound 11 is a pseudopeptide-PEG-cyanine dye conjugate. Independently, each route is over 4 reactions.",
+ "lead": {"label": "8 (and its probe derivative 11)", "why": "The abstract names no single compound; rule 2: the text says 'compound 8 displaying a high potency and selectivity toward hCPA 1, 2, and 3 was selected as a relevant starting scaffold for the development of an optical probe 11', the main follow-up experiment (crystal structures of three candidates were also obtained)."},
+ "target": null,
+ "reactions": [],
+ "alt_variants": [],
+ "other_qualifying_compounds": [],
+ "notes": "Only the solution-phase building block 17 (Fmoc-Ala-POOAd-hPhe-OH, Scheme 1: diethylmalonate -> acrylate 12 (3 steps) -> benzyl ester 13 -> P-Michael with phosphinic acid 15 (made from 14, 'previously reported') -> adamantyl protection, hydrogenolysis) is a small-molecule synthesis, and it is 7+ steps and relies on a previously reported precursor. Not examined further."
+}

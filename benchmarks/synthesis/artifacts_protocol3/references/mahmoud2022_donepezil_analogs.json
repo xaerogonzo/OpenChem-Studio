@@ -1,0 +1,12 @@
+{
+ "paper": "mahmoud2022_donepezil_analogs",
+ "decision": "excluded",
+ "exclusion_reason": "route_not_explicit",
+ "exclusion_detail": "Every compound derives from the Gewald aminothiophenes 1a/1b, which the experimental section says were 'prepared according to the reported procedure' [25-27] with no procedure and no starting materials given; they are not described as purchased, so the route does not start from stated commercial materials.",
+ "lead": {"label": "3j", "why": "Abstract: 'compound 3j (IC50 = 0.498 +/- 0.02 uM) showed the best inhibitory activity comparable to that of donepezil'. (The abstract also highlights 3g for beta-amyloid inhibition; 3j chosen as the one named 'best inhibitory activity', the paper's primary AChE endpoint.)"},
+ "target": null,
+ "reactions": [],
+ "alt_variants": [],
+ "other_qualifying_compounds": [],
+ "notes": "Lead choice is slightly ambiguous (3g vs 3j); both are ethyl esters from 1b, so the exclusion is the same either way. If 1b were accepted as a leaf, 3j would be 2 steps: 1b + 2-chloropropionyl chloride (AcOH, rt, overnight) -> 2d; 2d + 1-phenylpiperazine (K2CO3, KI, dry acetone, reflux 14 h) -> 3j (55%). 2c (the chloroacetyl ester used for 3g) is itself 'prepared according to the reported procedure [39]'."
+}

@@ -1,0 +1,44 @@
+{
+ "paper": "sheng2023_betacarboline_hydrazides",
+ "decision": "route",
+ "exclusion_reason": null,
+ "exclusion_detail": "",
+ "lead": {"label": "4de", "why": "Abstract: 'compounds 4de (EC50 = 0.23 ug/mL) and 4dq (EC50 = 0.11 ug/mL) displayed the best efficacy'; 4de is named first and is the one taken to in vivo curative tests against Fg ('compound 4de ... in vivo curative activities')."},
+ "target": {"name": "1-(2-(4-Fluorophenyl)hydrazine-1-carbonyl)-9H-pyrido[3,4-b]indole-3-carboxamide", "smiles": "NC(=O)c1cc2c([nH]c3ccccc23)c(n1)C(=O)NNc1ccc(F)cc1"},
+ "reactions": [
+  {"step": 1,
+   "product": {"label": "1", "name": "", "smiles": "COC(=O)C1Cc2c([nH]c3ccccc23)C(N1)C(=O)O"},
+   "reactants": [
+    {"label": "L-tryptophan methyl ester (hydrochloride)", "name": "L-tryptophan methyl ester hydrochloride", "smiles": "COC(=O)C(N)Cc1c[nH]c2ccccc12", "origin": "commercial"},
+    {"label": "glyoxylic acid", "name": "glyoxylic acid", "smiles": "OC(=O)C=O", "origin": "commercial"}
+   ],
+   "conditions": "Pictet-Spengler: conc. H2SO4 (0.5 mL), water, rt, overnight (12 h); product precipitates, filtered; 95%.",
+   "source": "main text, Results/Chemistry and Experimental, 'Synthesis of Compound 1'; Scheme 2 step a"},
+  {"step": 2,
+   "product": {"label": "2", "name": "3-(Methoxycarbonyl)-9H-pyrido[3,4-b]indole-1-carboxylic acid", "smiles": "COC(=O)c1cc2c([nH]c3ccccc23)c(n1)C(=O)O"},
+   "reactants": [
+    {"label": "1", "name": "", "smiles": "COC(=O)C1Cc2c([nH]c3ccccc23)C(N1)C(=O)O", "origin": "made_here"}
+   ],
+   "conditions": "CuBr2 (0.2 equiv), DBU (2 equiv), MeCN, air, rt, 2.5 h; yellow solid filtered; 92%.",
+   "source": "main text Experimental, 'Synthesis of Compound 2'; Scheme 2 step b"},
+  {"step": 3,
+   "product": {"label": "3", "name": "3-Carbamoyl-9H-pyrido[3,4-b]indole-1-carboxylic acid", "smiles": "NC(=O)c1cc2c([nH]c3ccccc23)c(n1)C(=O)O"},
+   "reactants": [
+    {"label": "2", "name": "3-(Methoxycarbonyl)-9H-pyrido[3,4-b]indole-1-carboxylic acid", "smiles": "COC(=O)c1cc2c([nH]c3ccccc23)c(n1)C(=O)O", "origin": "made_here"},
+    {"label": "ammonia", "name": "ammonia", "smiles": "N", "origin": "reagent"}
+   ],
+   "conditions": "NH3.H2O (aq. ammonium hydroxide), MeOH, reflux, 24 h; pH adjusted to 8 with 1 M HCl; 85%.",
+   "source": "main text Experimental, 'Synthesis of Compound 3'; Scheme 2 step c"},
+  {"step": 4,
+   "product": {"label": "4de", "name": "1-(2-(4-Fluorophenyl)hydrazine-1-carbonyl)-9H-pyrido[3,4-b]indole-3-carboxamide", "smiles": "NC(=O)c1cc2c([nH]c3ccccc23)c(n1)C(=O)NNc1ccc(F)cc1"},
+   "reactants": [
+    {"label": "3", "name": "3-Carbamoyl-9H-pyrido[3,4-b]indole-1-carboxylic acid", "smiles": "NC(=O)c1cc2c([nH]c3ccccc23)c(n1)C(=O)O", "origin": "made_here"},
+    {"label": "4-fluorophenylhydrazine", "name": "(4-fluorophenyl)hydrazine", "smiles": "NNc1ccc(F)cc1", "origin": "commercial"}
+   ],
+   "conditions": "PyBOP (1 equiv), Et3N (8 equiv), CH2Cl2, rt, overnight; product precipitates; 88%.",
+   "source": "main text Experimental, general procedure for 3da-3dp and 4da-4fj and entry 4de; Scheme 2 step d"}
+ ],
+ "alt_variants": [],
+ "other_qualifying_compounds": null,
+ "notes": "Abstract names two best compounds (4de and 4dq, both made by the same 4-step route, differing only in the hydrazine); 4de chosen as it is also the in vivo compound. Compound 1 has no printed name; structure derived from the text (Pictet-Spengler of Trp-OMe with glyoxylic acid, then 1-carboxylic acid / 3-methyl ester, consistent with product 2 name); stereochemistry omitted (not stated, C1 centre not defined). The substituted hydrazine (4-fluorophenylhydrazine) is not named explicitly in the general procedure; inferred from the product name 4de (4-fluorophenyl on the hydrazide NH). Reagents are described as purchased (analytical grade supplier) in the general statement; no hydrazine supplier is given individually. Printed HRMS formula for 3 (C13H13N2O4) is a typo in the paper; irrelevant to the structure."
+}

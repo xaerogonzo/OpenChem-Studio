@@ -228,14 +228,16 @@ def test_the_real_registry_page_names_joback_and_detonation(qapp):
     page = CalculatorVisibilityPage(Settings(EventBus()), definitions)
     # Every CLASSIFIED calculator has a row, shown or hidden by default: the three that were hidden
     # or limited, and the ones classified since (the pKa-based site summary, the torsion table, the
-    # hydrogen-bond site table and the Fukui functions, which did not pass their own preregistered check).
+    # hydrogen-bond site table, the Fukui functions, which did not pass their own preregistered check, the proton affinity, LIMITED and shown since its driven run, and the bond dissociation enthalpy, not yet promoted).
     assert sorted(page._row_ticks) == [
         "detonation", "hbond_sites", "ionisable_sites", "joback_properties",
-        "orca.fukui", "orca.tautomer_distribution", "torsion_table",
+        "orca.bond_dissociation_enthalpy", "orca.fukui", "orca.proton_affinity", "orca.tautomer_distribution", "torsion_table",
     ]
     assert page.offered("joback_properties") is False and page.offered("detonation") is False
     assert page.offered("orca.tautomer_distribution") is False
     assert page.offered("orca.fukui") is False
+    assert page.offered("orca.proton_affinity") is True
+    assert page.offered("orca.bond_dissociation_enthalpy") is False
 
 
 # --- the launcher ------------------------------------------------------------

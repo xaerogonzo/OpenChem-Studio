@@ -1,0 +1,12 @@
+{
+ "paper": "greve2025_bicyclomarin",
+ "decision": "excluded",
+ "exclusion_reason": "not_small_molecule_organic",
+ "exclusion_detail": "The target is a bicyclic cyclic heptapeptide (cyclomarin derivative) made by peptide coupling and two macrolactamisations.",
+ "lead": {"label": "conformationally fixed bicyclomarin derivative", "why": "Title/abstract: synthesis of a conformationally fixed, bicyclic cyclomarin derivative (the only target)."},
+ "target": null,
+ "reactions": [],
+ "alt_variants": [],
+ "other_qualifying_compounds": null,
+ "notes": "Peptide natural-product analogue; outside the planner's small-molecule scope."
+}

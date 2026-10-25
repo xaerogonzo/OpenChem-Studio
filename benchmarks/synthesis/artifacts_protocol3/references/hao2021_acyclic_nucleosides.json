@@ -1,0 +1,21 @@
+{
+ "paper": "hao2021_acyclic_nucleosides",
+ "decision": "route",
+ "exclusion_reason": null,
+ "exclusion_detail": "",
+ "lead": {"label": "9b", "why": "Abstract: '3-(6-chloro-9H-purin-9-yl)dodecan-1-ol (9b) exhibited the most potent effect against the HCT-116 and SW480 cells ... compound 9b may serve as a promising lead compound'."},
+ "target": {"name": "3-(6-Chloro-9H-purin-9-yl)dodecan-1-ol", "smiles": "OCCC(CCCCCCCCC)n1cnc2c(Cl)ncnc21"},
+ "reactions": [
+  {"step": 1,
+   "product": {"label": "9b (racemic)", "name": "3-(6-Chloro-9H-purin-9-yl)dodecan-1-ol", "smiles": "OCCC(CCCCCCCCC)n1cnc2c(Cl)ncnc21"},
+   "reactants": [
+    {"label": "6-chloropurine", "name": "6-Chloro-9H-purine", "smiles": "Clc1ncnc2[nH]cnc12", "origin": "commercial"},
+    {"label": "dodec-2-enal", "name": "(E)-dodec-2-enal", "smiles": "CCCCCCCCC/C=C/C=O", "origin": "commercial"}
+   ],
+   "conditions": "6-Chloropurine (0.2 mmol), L-proline (10 mol%), benzoic acid (10 mol%), MeOH (1.5 mL), (E)-dodec-2-enal (1.5 equiv), rt 24 h (aza-Michael addition); then cooled to 0 C, NaBH4 (3 equiv) added, 10 min; quenched with sat. NH4Cl, EtOAc extraction, silica column (PE/EA 3:1). 77.5% yield, racemic (Cat. I = L-proline).",
+   "source": "Section 6.1.26 (page 2092-2093), Scheme 1; one-pot two-stage procedure counted as one step"}
+ ],
+ "alt_variants": [],
+ "other_qualifying_compounds": null,
+ "notes": "9b as named in the abstract is the racemate (all primary screening used racemates). The paper also makes (R)-9b and (S)-9b asymmetrically (Scheme 2, chiral prolinol catalyst, same two-stage one-pot idea) and says (R)-configured compounds are more potent; the lead rule gives 9b, so I transcribed the racemic route and gave no stereo. Aldehyde and purine are said to be 'purchased from commercial suppliers' (general statement). The ring SMILES 'Clc1ncnc2[nH]cnc12' is 6-chloropurine (N9-H tautomer), consistent with the printed 6-Chloro-9H-purine."
+}

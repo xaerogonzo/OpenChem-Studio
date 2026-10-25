@@ -1,6 +1,6 @@
 """The shared options pass.
 
-ChemAxon puts the same handful of controls on nearly every plugin. These
+The vendor puts the same handful of controls on nearly every plugin. These
 tests check both that the options exist and that they actually DO
 something -- an inert option is worse than a missing one, because it looks
 like a working control.
@@ -137,7 +137,7 @@ def test_huckel_reports_the_electron_count_it_used():
 
 
 def test_every_numeric_text_calculator_offers_decimal_places():
-    """The single most systematic gap found in the audit: ChemAxon puts
+    """The single most systematic gap found in the audit: the vendor puts
     this on nearly every panel and we had it on none."""
     registry = build_service_container().calculator_registry
     expected = {
@@ -285,7 +285,7 @@ def test_the_range_reaches_the_real_curve_not_just_the_dialog(qapp):
 
 
 def test_every_registered_calculator_offers_at_least_one_option():
-    """ChemAxon puts controls on nearly every plugin; the gap here was 12
+    """The vendor puts controls on nearly every plugin; the gap here was 12
     calculators with none, which made the settings step feel arbitrary --
     some rows opened a dialog, others did nothing visible."""
     from openchem.bootstrap import build_service_container

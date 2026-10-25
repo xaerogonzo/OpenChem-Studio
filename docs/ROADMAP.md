@@ -278,7 +278,8 @@ explicitly out of scope.
       (`ToolbarProvider`/`ContextMenuProvider`, a `RemoteServicePlugin` base
       class, numeric provider priority, declared permissions) — flagged in
       the code itself as "revisit if a fourth plugin needs the same shape,"
-      and still no concrete plugin needs them.
+      and the fourth plugin (`synthesis_planner`) did not: it needed `run_async`
+      and a purpose-built handle, and none of these.
 
       **No longer deferred**, corrected because this list had gone stale:
       hydrophobic/pi-stacking/cation-pi/salt-bridge/metal contact
@@ -1258,7 +1259,7 @@ it regardless.
 **Shipped: the isotope envelope, deterministically.** `chem/mass_spectrum.py`
 convolves an ion's composition against RDKit's own natural-abundance table.
 Two callers, one engine: Elemental Analysis draws the molecular ion's
-envelope beside its percentages — the picture MarvinSketch's own window
+envelope beside its percentages — the picture the reference editor's own window
 shows, reproduced to every digit it prints for 2,3-dibromobenzoic acid — and
 a **Mass Spectrum** calculator carries the ionisation modes.
 
@@ -1498,7 +1499,7 @@ scores, slices 1 to 4 and their follow-ups (`docs/DERIVED_SCORES_DESIGN.md`). St
 so the assistant describes an ORCA job and a person starts it from its panel, and the assistant's frozen turn holds no quantum-chemistry runs
 (`domain/turn_snapshot.py` names none, checked 2026-10-16); scores over 3D numbers (decided on 2026-10-16, in the derived scores record); Phase 3 beyond its first calculator (Fukui functions were built on 2026-10-18 and
 failed two preregistered gates, the first by 0.0014 on one quantity and the second, on De Proft et al.'s tables, with 33 of 47 numbers within 0.02, so they are offered as experimental and not validated, `benchmarks/fukui_gate/PREREGISTRATION.md` and `benchmarks/fukui_gate_2/PREREGISTRATION.md`;
-proton affinity and bond dissociation energy are not started) and Phase 4 (the synthesis helper). The live provider run for Phase 1 is still not done. `docs/WHATS_NEW.md` is a tour of all of it.
+proton affinity was benchmarked and its primary arm passed, #398; bond dissociation energy is preregistered and not yet reported) and the last of Phase 4 (the synthesis helper's Stage 1 is built, `docs/SYNTHESIS_HELPER_DESIGN.md`, plans are saved in the project file; what remains is the second quality protocol, which is Alex's to run). The live provider run for Phase 1 is still not done. `docs/WHATS_NEW.md` is a tour of all of it.
 
 ### Visualization
 
@@ -1581,32 +1582,6 @@ is documented as a filename. The Vina executable, ORCA and the `.ocsproj` projec
    folder `Sci Downloads.OLD`, and delete it only after a week of normal use.
 3. **Point the assistant's sessions at the new folder.** The additional working directory is agent-control configuration, so it gets its own show-the-diff-and-approve step.
 4. **Keep a second copy.** One big disk is one failure. The library is small enough to mirror (`robocopy /MIR`) to another drive after the move; the sha256 manifest of step 2 is what makes a restore checkable.
-
-### Reference programs: what to learn from, and what we might emulate (bookmarked 2026-10-18)
-
-The project began as an open replacement for MarvinSketch-class editors, and Phases 1 to 9 track that. A second program is now **bookmarked as a
-reference, and nothing here is scheduled**:
-
-**Amsterdam Modeling Suite (AMS), by SCM** (Software for Chemistry & Materials, <https://www.scm.com>; its documentation, <https://www.scm.com/doc>,
-is public and needs no installation). It offers a 30-day trial; its pricing and licence terms were **not read**, and should be before the trial is used to
-produce reference values. It came up when its Fukui tutorial turned out to hold a Hirshfeld table for carbon monoxide from a program that is not
-Gaussian or ORCA, the one independent table the Fukui work (`benchmarks/fukui_gate/PREREGISTRATION.md`) had found (C f+ 0.670 and f- 0.674, O 0.330 and 0.326, from BP86; the page states neither the basis set nor the geometry). "Emulating" a feature of it means building it
-on this project's own engines (RDKit, ORCA, Open Babel) and checking it against a published reference, and never reusing SCM's code or text.
-
-What its tutorial index lists that overlaps this project's territory, by the tutorials' own titles (read on 2026-10-18; none was tried):
-
-| AMS tutorial area | What it lists | Here today |
-|---|---|---|
-| Analysis | QTAIM (Bader), localized orbitals and conceptual DFT; Fukui functions and the dual descriptor; Interacting Quantum Atoms; Energy Decomposition Analysis; charge displacement; visualization of densities and orbital potentials | Fukui functions (experimental, not validated); Lewis acid-base pairing and LED through ORCA; surfaces coloured by a scalar field. No QTAIM, IQA or localized orbitals |
-| Vibrational spectroscopy | IR, VCD, mode refinement and tracking, vibrationally resolved electronic spectra | IR from an ORCA frequency run; none of the rest |
-| Optical properties | TDDFT UV/Vis, core ionization (XPS) | UV/Vis measured and deliberately not shipped (above); nothing for XPS |
-| NMR | a spectrum with spin-spin coupling, shifts, analysis with localized molecular orbitals | ORCA NMR with coupling, and the HOSE lookup; no orbital analysis |
-| Structure and reactivity | transition state search, nudged elastic band, automated reaction pathway discovery, a reaction network | none; reactions here are two templates |
-| COSMO-RS | fluid thermodynamics, pKa, ionic liquids, polymers | a bounded solubility screen and a pKa sidecar |
-| Building and GUI | building molecules; "10 ways to get the energy and other properties"; a GUI tour of a UV/Vis spectrum | the editor and the Properties panel |
-
-Each row that is ever built goes through this project's usual gate first (a preregistered check against a published reference, or "measured, not shipped"). The
-rows most likely to pay are the ones where a calculator already exists: conceptual DFT beyond Fukui, an energy-decomposition view, and the assignment of IR bands.
 
 ### Naming, and the annotation engine underneath it
 
@@ -2352,10 +2327,58 @@ struck through and marked SHIPPED here, never deleted.
 Nothing here is simply unstarted — each is blocked on something nameable,
 and three were checked again recently rather than taken on trust.
 
+- **Refusals that still need work (recorded 2026-10-23).** The rule since then (Alex): a calculator refuses only what it **cannot compute**; the edge of what a
+  source or a benchmark measured is a **warning**, the number computed and labelled an estimate (proton affinity and bond dissociation, #447; Hansen below three
+  carbons and solubility's intrinsic estimate for an ampholyte, the change that recorded this). An audit of every refusal the calculator census panel produces
+  (29 molecules, 30 of 63 calculators refusing something) left these, in order of how much work each needs:
+  1. **Oxygen balance beyond C/H/N/O: done for S, Cl, F, Br, I, B, Si, P and twenty-one metals; the rest stays refused.** Meyer, Koehler & Homburg's *Explosives*
+     (7th ed.) names the products (CO2, H2O, SO2, Al2O3; chlorine to HCl; alkaline earths to their oxides) and prints 41 balances beyond C/H/N/O, 38 of
+     which one valence per element reproduces; Conkling & Mocella's *Chemistry of Pyrotechnics* (3rd ed.) states that valence per element (Table 2.5, the
+     "pyro valence") and adds B, F, Mg, Ti, Si, Zr, P (P2O5, also Shimizu's *Fireworks*), Mo (MoO3, its worked exercise) and W (WO3); US 6,599,380 and Persson, Holmberg & Lee's *Rock Blasting and Explosives Engineering* (Eq. 4.43, run term for
+     term against the calculator for Al, B, C, Ca, Cl, F, H, K, N, Na and O) state boron to B2O3. Tested against 35 of Meyer's balances, Conkling's printed net valences, worked mixtures and its grams-of-fuel-per-gram-of-oxygen
+     columns, Klapoetke's two borates, the patent's boron igniter, seven of He/Hooper/Shreeve's iodine-rich salts (iodine left as I2, their formula being the CO basis)
+     and three rows of Akhavan's Table 5.2. Accepted: S, Cl, F and Br (by hydrogen or a metal, which gives the same number), I (as I2, no hydrogen), B, Si, P, Al, Li, Na, K, Mg, Ca, Sr, Ba, Ti, Zr, Cr, Mo, W, Co, Zn, Pb, and Hg and Ag left as the metal (Akhavan burns
+     mercury to HgO; the result prints that figure too). CO2 basis only. Si, Zr, P and W rest on a source's statement and its numeric column, with no
+     printed balance. Jain's 1987 paper (the method's origin) covers C, H, O, N and Cl only. **Chlorine is the one convention the sources split on**: Klapoetke's *Encyclopedia* leaves it as
+     Cl2 where Meyer, Conkling and Jain use HCl (three entries differ by 5 to 6 points), so the result prints the Cl2 figure beside the HCl one. Read and
+     no help for bromine: Shancita 2020, Davis 1943 and AMCP 706-187 state none. **Iron and copper** burn to the oxide of their DRAWN CHARGE (Fe(II) FeO, Fe(III)
+     Fe2O3, Cu(I) Cu2O, Cu(II) CuO), a rule no source states but every printed value follows: Meyer's ferrocene -223.6 and iron acetylacetonate 163.1 (its
+     sign lost) to the digit, Conkling's 7.94 and 3.97 g of Cu per g of O; another charge, or none, is refused and the other oxide's figure printed beside
+     the answer. **Bromine goes to HBr**, found after a long search in Tsang & Domalski's NBS report (NBSIR 74-551, 1974: the formula and propargyl bromide -94.1) and Lease et al. 2023 (three brominated PETN derivatives, -21.6/-32.0/-41.4 to 0.3) and Wang et al. 2024 (bromo-trinitroanisoles -35.3/-42.2, to the digit); the many sources read first (Meyer, Conkling, Persson, Cooper (C/H/N/O only), Akhavan, Klapoetke's Encyclopedia in three volumes, the brominated-TNT preprint, all 68 Klapoetke-group LMU dissertations, Shanley & Melhem 1995) print none. A metal bromide is not printed by either source and follows the chlorides, said in the result. **What remains**: every other element, and halogen beyond what hydrogen and metals can take (CCl4, Teflon); each needs a source that states a
+     product. Formulations still refuse a non-C/H/N/O component. **Kamlet-Jacobs detonation**: read, and not extendable from these
+     sources -- all four Kamlet papers and Meyer's entry state it for C-H-N-O explosives; its oxygen-window refusal stands too.
+  2. **A drawing of several disconnected pieces with no single parent: done for the 16 compound-property calculators (2026-10-25).** They are handed the
+     largest component, re-neutralised, with the choice in the result's first limitation and caveat (`docs/SCIENTIFIC_LIMITATIONS.md`, "Salts, hydrates and
+     mixtures"). What is left: components of one size that are different species (NaCl, two small organics) and ChEMBL's metal exclusion still refuse, because
+     there is no one species to hand over; the three pure-substance methods (solubility, Joback, Hansen) still refuse any second component, a hydrate
+     included, which could first lose its listed solvent; and the choice is a guess the person cannot yet correct from the window (naming the component).
+  3. **Parameters missing for an element**: Jensen's atomic polarizability (no Na, Fe, Pt ...), Bultinck's EEM charges (no Cl, B, S), TSEI (no Pt covalent
+     radius in Lange's table), molecular dynamics (no MMFF or UFF type). Each is a parameter-table extension from a source, measured against that source; none
+     can be a warning, because there is no number to label.
+  4. **Group coverage**: Joback has no group for a ring tertiary nitrogen and several other environments, Hansen (Stefanis-Panayiotou) none for silicon and
+     some N and O environments. A later group-contribution table (or the same authors' extensions) would have to be read first.
+  5. **Solubility of an ampholyte**: the intrinsic estimate is now shown, but its pH profile, the value at a pH and the BCS screen are withheld, because
+     Henderson-Hasselbalch puts a zwitterion's minimum in the wrong place. A species-weighted model (each microspecies' own intrinsic solubility) would lift it.
+     Solubility as a whole also still carries its measured base bias, reported and not corrected.
+  6. **Benchmarks that would widen a LIMITED scope**: proton affinity beyond ten heavy atoms (a held-out set of 11 to 20), bond dissociation beyond nine
+     and for S-H (thiyl radicals keep an imaginary mode; a v3 protocol), Si-H and P-H classes. Until then those run with the warning.
+
+  **Refused by definition, and staying refused**: Griffin's HLB without a polyoxyethylene chain, the aromaticity indices with no ring, Hueckel with no pi
+  system, the isoelectric point and microspecies with no ionisable centre, the steric (ligand) measures with no donor atom. There is nothing to compute.
+
+- **Re-screening a saved synthesis plan (recorded 2026-10-21).** A plan saved in the project file comes back with the regulatory alerts it had on the day it
+  was made, shown with that date and a sentence saying they were not repeated on opening, because screening takes 0.9 to 3.7 s a plan (about 0.1 s a
+  molecule, measured on 13 real planner outputs) and opening a project of 30 plans would take about a minute. So a ruleset added or changed since then is not
+  reflected until the molecule is planned again. Two ways to close it: a "re-screen" action on the Synthesis panel, or a worker that fills the screening in
+  after opening (which gives every surface a "screening" state to read). Blocked on nothing but need: build one if the stale date is felt
+  (`docs/SYNTHESIS_HELPER_DESIGN.md`, slice 11).
 - **Plugin-system extras** (`ToolbarProvider`/`ContextMenuProvider`, a
   `RemoteServicePlugin` base, numeric priority, declared permissions). The
-  recorded trigger is "a fourth plugin whose real requirements tell us the
-  shape". There are still three. Building now means guessing.
+  recorded trigger was "a fourth plugin whose real requirements tell us the
+  shape". The fourth, `synthesis_planner`, has none of the boilerplate the base
+  class would hold (no secrets, no remote service), so it argues against that
+  class rather than for it; the other extras have still had no plugin ask for
+  them.
 
   **Plugin-provided reaction templates are NO LONGER on this list**, and
   this entry claimed otherwise in three places for longer than it should
@@ -2403,7 +2426,7 @@ and three were checked again recently rather than taken on trust.
   three shipped.** They are `tsei_projection`, `griffin_hlb` and
   `polarizability` in the live registry. Each was deferred for reasons that
   expired without anyone re-reading them — "the parameters are unpublished"
-  was a claim about ChemAxon's documentation rather than the literature, and
+  was a claim about the vendor's documentation rather than the literature, and
   "no reference value to gate against" was true when written and false by
   2004. **A deferral's reasons rot independently of its verdict**, which is
   why the corrected accounts are kept in `docs/sources.toml` under the

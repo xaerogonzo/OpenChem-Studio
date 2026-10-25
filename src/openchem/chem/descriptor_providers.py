@@ -77,7 +77,7 @@ from openchem.chem.hlb import compute_griffin_hlb
 from openchem.chem.energetics import compute_detonation, compute_oxygen_balance
 from openchem.chem.aromaticity import compute_aromaticity, compute_bird_index
 from openchem.chem.hansen import compute_hansen
-from openchem.chem.joback import compute_joback, preflight_reason as joback_preflight
+from openchem.chem.joback import compute_joback
 from openchem.chem.huckel import compute_huckel_analysis, compute_pi_electron_density
 from openchem.chem.lewis import compute_lewis_sites
 from openchem.chem.lewis_adduct import (
@@ -152,7 +152,7 @@ from openchem.chem.topology_analysis import (
     compute_topology_analysis,
 )
 from openchem.domain.mass_spectrum import DEFAULT_ION, SUPPORTED_IONS
-from openchem.chem import components
+from openchem.chem import components, coverage_hooks
 from openchem.chem.components import drawing_label
 from openchem.domain.calculator import (
     ELEMENT_OUTSIDE_PARAMETER_SET,
@@ -769,12 +769,12 @@ def compute_gasteiger_charges(mol: Chem.Mol, include_hydrogens: bool = False) ->
     Gasteiger-charge logic isn't duplicated between them.
 
     `include_hydrogens=True` adds each heavy atom's implicit-hydrogen
-    charge to its own -- Marvin's "Increment of Hs" option, the bracketed
+    charge to its own -- the reference editor's "Increment of Hs" option, the bracketed
     second number in its charge screenshots. RDKit exposes exactly this as
     `_GasteigerHCharge` (confirmed live), so it is real data rather than
     an approximation.
 
-    A NOTE ON SIGMA/PI: Marvin also offers a sigma/pi/total selector.
+    A NOTE ON SIGMA/PI: the reference editor also offers a sigma/pi/total selector.
     RDKit implements PEOE, which is a SIGMA-charge method -- it has no pi
     component to separate out, so that selector is deliberately not
     offered here rather than being faked by relabelling one number three
@@ -2107,7 +2107,7 @@ def compute_polar_surface_area(
     """The "surface" category's 2D Polar Surface Area calculator.
 
     Reports TPSA for the neutral structure AND for the dominant
-    microspecies at a given pH -- Marvin shows both, and they genuinely
+    microspecies at a given pH -- the reference editor shows both, and they genuinely
     differ: protonating an amine or deprotonating an acid changes the polar
     atom set. Reuses `protonate_at_ph` (Phase 18), the same transformation
     the pH-dependent charge calculator already applies.
@@ -2545,7 +2545,7 @@ CALCULATOR_DEFINITIONS: list[CalculatorDefinition] = [
         category="identity",
         description=(
             "Molecular formula, average and exact mass, atom count and elemental "
-            "composition (w/w %). Validated against MarvinSketch's own output for "
+            "composition (w/w %). Validated against the reference editor's own output for "
             "tyramine hydrochloride."
         ),
         execution=RegistryExecution(compute=compute_elemental_analysis),
@@ -2780,7 +2780,7 @@ CALCULATOR_DEFINITIONS: list[CalculatorDefinition] = [
         display_name="Molecular Surface Area (3D)",
         category="surface",
         description=(
-            "Solvent-accessible surface area with Marvin's ASA+/ASA-/ASA_H/ASA_P splits, "
+            "Solvent-accessible surface area with the reference editor's ASA+/ASA-/ASA_H/ASA_P splits, "
             "plus the van der Waals surface area and volume. The solvent probe's radius can "
             "be changed (1.4 A, a water molecule, by default), and the structure can be the "
             "major microspecies at a pH, built on the stored conformer by moving protons "
@@ -3231,8 +3231,8 @@ CALCULATOR_DEFINITIONS: list[CalculatorDefinition] = [
             "Predicted intrinsic aqueous solubility in logS, mg/mL and mol/L, its "
             "Low/Moderate/High category, the value at a chosen pH, an ICH M9 "
             "high-solubility screening estimate, and the solubility-versus-pH curve "
-            "across the range you choose. Ampholytes and salts are refused rather "
-            "than modelled; a molecule with no ionizable centre gets a flat line, "
+            "across the range you choose. An ampholyte gets its intrinsic estimate only, with the pH profile withheld and the reason "
+            "shown; a salt is refused rather than modelled; a molecule with no ionizable centre gets a flat line, "
             "which is an answer rather than a failure."
         ),
         execution=RegistryExecution(compute=compute_solubility),
@@ -3469,7 +3469,7 @@ CALCULATOR_DEFINITIONS: list[CalculatorDefinition] = [
         description=(
             "Velocity-Verlet dynamics over MMFF94/UFF forces. VACUUM only: no thermostat, no "
             "barostat, no constraints, no periodic boundaries, no solvent. Not Dreiding, so "
-            "energies are not comparable to MarvinSketch's. Needs a conformer."
+            "energies are not comparable to the reference editor's. Needs a conformer."
         ),
         execution=RegistryExecution(compute=compute_molecular_dynamics),
         parameters=[
@@ -3503,7 +3503,7 @@ CALCULATOR_DEFINITIONS: list[CalculatorDefinition] = [
         category="admet",
         description=(
             "Wager et al. CNS multiparameter optimisation score, 0-6 from six desirability "
-            "functions. Breakpoints validated against ChemAxon's documented aspirin example "
+            "functions. Breakpoints validated against the vendor's documented aspirin example "
             "(5.75). Without a pkasolver environment the pKa term is omitted rather than "
             "assumed favourable, and the score is reported out of 5."
         ),
@@ -3575,7 +3575,7 @@ CALCULATOR_DEFINITIONS: list[CalculatorDefinition] = [
         description=(
             "The five inputs to Gupta et al.'s (2019) BBB Score: aromatic rings, heavy atoms, "
             "MWHBN, TPSA and the most basic pKa. The composite score itself is not computed -- "
-            "its weight functions are unpublished, and ChemAxon's single worked example cannot "
+            "its weight functions are unpublished, and the vendor's single worked example cannot "
             "validate five unknown curves. Aromatic rings, heavy atoms and MWHBN all reproduce "
             "that example exactly."
         ),
@@ -3640,6 +3640,7 @@ CALCULATOR_DEFINITIONS: list[CalculatorDefinition] = [
             "applications, so the two must not be reported under one label."
         ),
         execution=RegistryExecution(compute=compute_griffin_hlb),
+        preflight=coverage_hooks.griffin_hlb_coverage,
         prediction_basis="empirical",
         tags=["surface", "surfactant", "hlb", "formulation"],
         parameters=[decimal_places_parameter()],
@@ -3717,13 +3718,18 @@ CALCULATOR_DEFINITIONS: list[CalculatorDefinition] = [
             "hydrogen, as a percentage of its mass. BOTH published conventions are "
             "reported, because they are different quantities for the same substance: "
             "TNT is -74.0% burning carbon to CO2 and -24.7% burning it only to CO, and "
-            "a substance can be negative on one and positive on the other. Defined for "
-            "C/H/N/O only, so a sulfur, a halogen or a metal is refused with the element "
-            "named rather than silently ignored. A composition figure, not a performance "
+            "a substance can be negative on one and positive on the other. Beyond "
+            "C/H/N/O, sulfur, chlorine, fluorine, bromine, iodine, boron, silicon, phosphorus and twenty-one metals are "
+            "burned to the products the sources state or print (Meyer's Explosives, "
+            "Conkling & Mocella's pyro valences: SO2, HCl, HF or HBr or the metal's halide, "
+            "B2O3, each metal's oxide), on the CO2 basis only, with every assumed "
+            "product named in the result; any other element is refused by name rather "
+            "than silently ignored. A composition figure, not a performance "
             "one -- it says nothing on its own about how powerful or how sensitive "
             "something is."
         ),
         execution=RegistryExecution(compute=compute_oxygen_balance),
+        preflight=coverage_hooks.oxygen_balance_coverage,
         prediction_basis="empirical",
         tags=["energetic", "oxygen balance", "combustion", "stoichiometry"],
         parameters=[decimal_places_parameter(1)],
@@ -3745,6 +3751,7 @@ CALCULATOR_DEFINITIONS: list[CalculatorDefinition] = [
             "given a reference by analogy. Needs a 3D conformer."
         ),
         execution=RegistryExecution(compute=compute_bird_index),
+        preflight=coverage_hooks.bird_coverage,
         calculation_input=GEOMETRY,
         prediction_basis="empirical",
         tags=["aromaticity", "bird", "ring", "geometry", "bond order"],
@@ -3771,6 +3778,7 @@ CALCULATOR_DEFINITIONS: list[CalculatorDefinition] = [
             "force field's own)."
         ),
         execution=RegistryExecution(compute=compute_aromaticity),
+        preflight=coverage_hooks.homa_coverage,
         calculation_input=GEOMETRY,
         prediction_basis="empirical",
         tags=["aromaticity", "homa", "ring", "geometry", "krygowski"],
@@ -3789,11 +3797,12 @@ CALCULATOR_DEFINITIONS: list[CalculatorDefinition] = [
             "correct it where they apply, which is what the paper's W switch selects. "
             "Below 3 MPa^0.5 the polar and hydrogen-bonding parameters come from the "
             "paper's SEPARATE low-range regression rather than from the main equations, "
-            "and the result says which was used. Needs three or more carbons excluding "
-            "the characteristic group's own atom, and refuses a structure carrying an "
-            "atom in no group rather than returning a partial sum."
+            "and the result says which was used. The paper states it for three or more carbons excluding "
+            "the characteristic group's own atom; below that it is computed and labelled outside the stated domain. It refuses a structure "
+            "carrying an atom in no group rather than returning a partial sum."
         ),
         execution=RegistryExecution(compute=compute_hansen),
+        preflight=coverage_hooks.hansen_coverage,
         prediction_basis="empirical",
         tags=["solubility", "hansen", "hildebrand", "solvent", "group contribution"],
         parameters=[decimal_places_parameter(2)],
@@ -3816,7 +3825,7 @@ CALCULATOR_DEFINITIONS: list[CalculatorDefinition] = [
             "times the error."
         ),
         execution=RegistryExecution(compute=compute_joback),
-        preflight=joback_preflight,
+        preflight=coverage_hooks.joback_coverage,
         prediction_basis="empirical",
         # LIMITED, and hidden by default, on MEASURED evidence rather than a
         # judgement: on 2026-09-24 this implementation ran on TNT, PETN and

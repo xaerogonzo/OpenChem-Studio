@@ -2288,6 +2288,60 @@ _INDICATED_H_PREFIX_RE = _re.compile(
 _HYDRO_HEAD_RE = _re.compile(r"^\d+[a-z]?(?:,\d+[a-z]?)*-(?:di|tri|tetra|penta|hexa|hepta|octa|nona|deca)hydro-")
 
 
+def _retag_added_hydrogen(name, mol, ring_system, atom_to_locant, loc_key) -> str:
+    """Move an inline added hydrogen `(3H)` of a curated ring ketone onto the substituted nitrogen (naming round 81).
+
+    `5,6,7,8-tetrahydropteridin-4(3H)-one` is keyed on the tautomer with its hydrogen on N3. A molecule substituted on N1 and with no hydrogen on N3 is the `4(1H)` tautomer, and
+    the 3H name read back as another molecule (a hydrogen on N3 AND the substituent on N1). Acts only when the nitrogen of the `(nH)` is a bare ring `=N-` and exactly one other
+    aromatic ring nitrogen is substituted without a hydrogen; anything else keeps the curated name."""
+    m = _re.search(r"\((\d+[a-z]?)H\)", name)
+    if m is None:
+        return name
+    target = None
+    for atom_idx, loc in atom_to_locant.items():
+        if str(loc) == m.group(1) and atom_idx in ring_system.atom_indices:
+            target = mol.GetAtomWithIdx(atom_idx)
+            break
+    if target is None or target.GetAtomicNum() != 7 or not target.GetIsAromatic():
+        return name
+    if target.GetTotalNumHs(includeNeighbors=False) >= 1 or target.GetFormalCharge() != 0:
+        return name
+    if any(n.GetIdx() not in ring_system.atom_indices for n in target.GetNeighbors()):
+        return name
+    subs = []
+    for atom_idx in ring_system.atom_indices:
+        a = mol.GetAtomWithIdx(atom_idx)
+        if atom_idx not in atom_to_locant or a.GetAtomicNum() != 7 or not a.GetIsAromatic() or a.GetFormalCharge() != 0:
+            continue
+        if a.GetTotalNumHs(includeNeighbors=False) >= 1:
+            return name
+        if any(n.GetIdx() not in ring_system.atom_indices for n in a.GetNeighbors()):
+            subs.append(atom_to_locant[atom_idx])
+    if len(set(map(str, subs))) != 1:
+        return name
+    return name[:m.start()] + f"({subs[0]}H)" + name[m.end():]
+
+
+def _oxo_carbon_indicated_h(mol, ring_system, atom_to_locant):
+    """Locant of the ONE ring carbon that holds an `=O` (or `=S`, `=Se`, `=Te`), or None.
+
+    Naming round 83: a quinoid tautomer with NO ring N-H at all (hypoxanthine drawn `O=C1N=CN=C2N=C(R)N=C12`) has its sp3-like position on the
+    ring carbon that holds the =O, so the indicated hydrogen is that carbon's (`6-oxo-6H-purine-8-carboxylate`). The curated `9H-` put a hydrogen
+    on N9 the drawing does not have, and OPSIN read a different tautomer.
+    """
+    found = []
+    for atom_idx in sorted(ring_system.atom_indices):
+        if atom_idx not in atom_to_locant:
+            continue
+        a = mol.GetAtomWithIdx(atom_idx)
+        if a.GetAtomicNum() != 6:
+            continue
+        if any(b.GetBondTypeAsDouble() == 2.0 and b.GetOtherAtom(a).GetAtomicNum() in (8, 16, 34, 52)
+               and b.GetOtherAtomIdx(atom_idx) not in ring_system.atom_indices for b in a.GetBonds()):
+            found.append(atom_to_locant[atom_idx])
+    return found[0] if len(found) == 1 else None
+
+
 def _retag_indicated_h(
     *,
     name: str,
@@ -2398,7 +2452,7 @@ def _retag_indicated_h(
         _rest = name[len(_hydro_head):]
         m_ih = _INDICATED_H_PREFIX_RE.match(_rest)
         if not m_ih:
-            return name
+            return _retag_added_hydrogen(name, mol, ring_system, atom_to_locant, _loc_key)
         try:
             ih_locant_str = m_ih.group(1)[:-1]  # strip trailing "H"
             # Parse leading number
@@ -2433,6 +2487,10 @@ def _retag_indicated_h(
             return name
         # If the indicated-H atom is not aromatic N, leave the name alone
         # (this branch is only meaningful for aromatic-tautomer indicated-H).
+        if ih_atom.GetAtomicNum() == 7 and not ih_atom.GetIsAromatic() and ih_atom.GetTotalNumHs() == 0 and ih_atom.GetFormalCharge() == 0                 and not any(n.GetIdx() not in ring_system.atom_indices for n in ih_atom.GetNeighbors()):
+            _oxo_loc = _oxo_carbon_indicated_h(mol, ring_system, atom_to_locant)
+            if _oxo_loc is not None:
+                return _hydro_head + f"{_oxo_loc}H-" + _rest[m_ih.end():]
         if ih_atom.GetAtomicNum() != 7 or not ih_atom.GetIsAromatic():
             return name
         # Has exocyclic substituent? -> case (a), keep the name -- UNLESS that atom is the cationic centre. An N-alkyl
@@ -2476,7 +2534,10 @@ def _retag_indicated_h(
                 continue
             sub_n_locants.append(atom_to_locant[atom_idx])
         if not sub_n_locants:
-            return name
+            oxo_loc = _oxo_carbon_indicated_h(mol, ring_system, atom_to_locant)
+            if oxo_loc is None:
+                return name
+            return _hydro_head + f"{oxo_loc}H-" + _rest[m_ih.end():]
         sub_n_sorted = sorted(set(sub_n_locants), key=_loc_key)
         new_ih_prefix = f"{sub_n_sorted[0]}H-"
         return _hydro_head + new_ih_prefix + _rest[m_ih.end():]
@@ -4090,6 +4151,19 @@ def _build_numbering_from_atom_locants(
         except Exception:
             allowed_atoms = set(rs_atoms)
         all_matches = [m for m in all_matches if all(a in allowed_atoms for a in m)]
+        if not all_matches:
+            # The strict (hydrogen-pinned) query matched only a SIBLING ring of the same
+            # curated key: two 2H-benzotriazoles joined by a bond, the parent with its N2
+            # substituted and the other holding the [nH], numbered the parent by a generic
+            # fallback (`...-2H-benzotriazole-5-carboxylic acid` for a 4-acid; naming round
+            # 82). The tautomer-tolerant matches are tried inside the ring system too.
+            try:
+                _loose = list(mol.GetSubstructMatches(ring_mol, uniquify=False))
+                if ring_query_taut is not None:
+                    _loose += list(mol.GetSubstructMatches(ring_query_taut, uniquify=False))
+            except Exception:
+                _loose = []
+            all_matches = [m for m in dict.fromkeys(tuple(x) for x in _loose) if all(a in allowed_atoms for a in m)]
         if not all_matches:
             logger.debug(
                 "_build_numbering_from_atom_locants: no substructure match within ring_system"

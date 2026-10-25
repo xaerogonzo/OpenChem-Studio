@@ -1,0 +1,43 @@
+{
+ "paper": "shen2019_oridonin_14_substituted",
+ "decision": "excluded",
+ "exclusion_reason": "route_not_explicit",
+ "exclusion_detail": "The 6-methoxyindole-2-carboxylic acid is prepared in the paper (cited to ref 51, no procedure), not bought (second reader). (Reclassified 2026-10-24 after the verification pass.)",
+ "lead": {
+  "label": "C7",
+  "why": "Among them, compound C7 (IC50 = 0.16 uM) exhibited the most potent anti-proliferative activity against HCT116 cells ... compound C7 could be a potential lead compound"
+ },
+ "target": {
+  "name": "(1S,4aR,5S,6S,6aR,9S,11aS,14R)-1,5,6-trihydroxy-4,4-dimethyl-8-methylene-7-oxododecahydro-1H-6,11b-(epoxymethano)-6a,9-methanocyclohepta[a]naphthalen-14-yl 6-methoxy-1H-indole-2-carboxylate",
+  "smiles": "OC1CCC(C)(C)C2C(O)C3(O)OCC12C4CCC5C(=C)C(=O)C34C5OC(=O)c1cc2ccc(OC)cc2[nH]1"
+ },
+ "reactions": [
+  {
+   "step": 1,
+   "product": {
+    "label": "C7",
+    "name": "(1S,4aR,5S,6S,6aR,9S,11aS,14R)-1,5,6-trihydroxy-4,4-dimethyl-8-methylene-7-oxododecahydro-1H-6,11b-(epoxymethano)-6a,9-methanocyclohepta[a]naphthalen-14-yl 6-methoxy-1H-indole-2-carboxylate",
+    "smiles": "OC1CCC(C)(C)C2C(O)C3(O)OCC12C4CCC5C(=C)C(=O)C34C5OC(=O)c1cc2ccc(OC)cc2[nH]1"
+   },
+   "reactants": [
+    {
+     "label": "oridonin",
+     "name": "oridonin",
+     "smiles": "OC1CCC(C)(C)C2C(O)C3(O)OCC12C4CCC5C(=C)C(=O)C34C5O",
+     "origin": "commercial"
+    },
+    {
+     "label": "8 (6-methoxyindole-2-carboxylic acid)",
+     "name": "6-methoxy-1H-indole-2-carboxylic acid",
+     "smiles": "COc1ccc2cc([nH]c2c1)C(=O)O",
+     "origin": "commercial"
+    }
+   ],
+   "conditions": "General procedure 4.1: oridonin (0.1 mmol), carboxylic acid (0.15 mmol), EDCI (0.3 mmol), DMAP (10 mg), dry CH2Cl2, 25 C, 2-8 h; chromatography; yield 87% for C7",
+   "source": "Main article Sections 2.1 and 4.1 (general procedure) and 4.1.19 (C7 characterisation); Scheme 2"
+  }
+ ],
+ "alt_variants": [],
+ "other_qualifying_compounds": null,
+ "notes": "FLAT SMILES: the printed names carry full stereochemistry (oridonin is a chiral ent-kaurane); I did not write stereo in SMILES because I could not verify it, so compare with stereo ignored. Oridonin SMILES was derived by hand from the ent-kaurane skeleton (C20H28O6, 14-OH on the one-carbon bridge) and checked by atom count only. Oridonin name 'oridonin' is the paper's own term. CAVEAT for reviewer: Scheme 1 says the indole-2-carboxylic acids 8a-8i were prepared (benzaldehyde + ethyl 2-azidoacetate, cyclisation, NaOH hydrolysis, ref 51) but NO procedure for them is given in the main text or SI (SI is NMR spectra only); the Experimental says all chemicals were purchased. 6-Methoxyindole-2-carboxylic acid is a stock chemical so I treated it as a commercial leaf; under a strict reading of the brief (prepared as reported, no procedure) this paper could instead be route_not_explicit. Reactants of C7 are the two listed; EDCI/DMAP are coupling reagents leaving no atoms."
+}

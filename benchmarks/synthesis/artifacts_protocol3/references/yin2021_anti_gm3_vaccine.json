@@ -1,0 +1,12 @@
+{
+ "paper": "yin2021_anti_gm3_vaccine",
+ "decision": "excluded",
+ "exclusion_reason": "not_small_molecule_organic",
+ "exclusion_detail": "Liposomal anti-GM3 cancer vaccine candidates: GM3 sialylated oligosaccharide antigen conjugated to alpha-GalCer or lipid anchors (glycolipid/carbohydrate vaccine constructs, then liposome formulation and immunology). Complex oligosaccharide-glycolipid conjugates are far beyond a 4-step small-molecule route.",
+ "lead": {"label": "GM3-alphaGalCer (covalent) / GM3-betaGalCer (lipid anchor)", "why": "Abstract: 'betaGalCer is an exceptionally optimized lipid anchor, which enables the noncovalent vaccine candidate GM3-betaGalCer/alphaGalCer to evoke a comparable antibody level to GM3-alphaGalCer.' No single best compound is a small molecule."},
+ "target": null,
+ "reactions": [],
+ "alt_variants": [],
+ "other_qualifying_compounds": null,
+ "notes": "Not examined further: vaccine/glycoconjugate paper."
+}

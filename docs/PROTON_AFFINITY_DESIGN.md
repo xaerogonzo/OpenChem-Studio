@@ -85,9 +85,38 @@ The **numeric thresholds of the gate are fixed from these sources and that paper
 
 **Still open:** the 2024 paper could not be obtained, so the thresholds are fixed from Moser et al. (DFT and multilevel errors against NIST), from the references' own stated uncertainty (about 1.9 kcal/mol) and from the DLPNO papers, unless an alternative DFT benchmark arrives; the preregistration states exactly what each number rests on.
 
-## To run: the primary-arm ORCA benchmark (recorded 2026-10-19; NOT run, deferred by Alex, who would rather run it overnight)
+## Result: the primary arm was run on 2026-10-20 and PASSED, for PA and for GB
 
-The runner is written, tested on real water and H3O+ output and committed (`benchmarks/proton_affinity/run_pa.py`, `tests/test_proton_affinity_runner.py`); **no benchmark job has been run**, so the preregistration's "before any job" still holds. It builds 74 structures (28 bases and 46 conjugate-acid starts over every rule-enumerated site; `structures` prints the count) of M062X/def2-TZVPD `Opt Freq`, each a few minutes to some tens of minutes at 4 cores (the duration of the whole run is **unmeasured**; the water smoke job took minutes).
+Run on commit `6ec0fd29f72945b1f708d67dfe95050fb20656bc` (master after #392), clean `src/`, one commit for every record, ORCA 6.1.1, `run --workers 3 --cores 4`, nothing else heavy on the machine. **Wall time 11 h 49 min** (started 08:23, last record written 20:12:09, 42,526 s, on 2026-10-20; the jobs' own seconds sum to 34.9 h, which over three workers is 11.6 h, so the wall time is the work and not a pause). 77 jobs for the 74 structures (three were re-runs with `Calc_Hess`), 73 structures accepted. Longest job: aniline's C-protonated ion, 2.5 h (limit 4 h). The records are `benchmarks/proton_affinity/artifacts/primary/runs.jsonl`; the report and verdict are beside them (committed with `git add -f`; the ORCA outputs themselves were not kept).
+
+The judge's output (preregistered rule, unchanged), kcal/mol, on the 21 deciding bases (reference PA above propene's):
+
+| | MAE | MSE | largest | missing | verdict |
+|---|---|---|---|---|---|
+| PA, 21 deciding | 1.55 | -1.19 | 2.94 | 0 | **PASS** (needs MAE <= 2.5, max <= 5.0, \|MSE\| <= 1.5) |
+| GB, 21 deciding | 1.53 | -1.27 | 2.99 | 0 | **PASS** |
+| PA, 7 low (reported only) | 1.80 | -1.75 | 4.34 | 1 | decides nothing |
+| GB, 7 low (reported only) | 1.83 | -1.69 | 4.37 | 1 | decides nothing |
+
+The error is **systematic, not scatter**: the mean signed error is negative (the calculation underbinds the proton by about 1.2 to 1.3 kcal/mol on average), and |MSE| = 1.19 for PA is closer to its 1.5 limit than the MAE is to 2.5. Every deciding PA error lies within 2.94. The calculated site is the chemically expected one for every base (amines, pyridine and pyrimidine at N, imidazole at N, ethers and carbonyls at O, H2S/CH3SH/Me2S at S, phosphines at P, benzene and ethene at C, CO at C). Among the largest PA errors are acetic acid (-12.3 kJ/mol), ammonia (-9.1), dimethyl ether (-8.6) and formamide (+8.5); the reference itself is uncertain by about 8 kJ/mol, so most of these are not shown to be the calculation's.
+
+**Disclosures (what the run did that the notes did not predict):**
+* **Water has no computed value.** Its H3O+ optimized at M062X/def2-TZVPD from the runner's RDKit start to a planar, D3h-like geometry with a vibration at -601.6 cm-1; the `Calc_Hess` re-run kept it (-601.6), so by the preregistered rule it was dropped and water's PA and GB are missing cells. Water is in the low stratum, so the verdict is unaffected (one of seven missing; the judge allows two of the 21 deciding). The smoke run recorded in the preregistration got a real C3v H3O+ from a different start, so this is a start-geometry effect of the protocol, not of the method. **It was not repaired**: a retry from a symmetry-broken start would be a protocol change; if a calculator is built, water and other tiny ions are a case to handle in its design.
+* Two other structures (pyrrolidine's N-protonated ion at -50.6 cm-1, acetic acid's carbonyl-protonated ion at -68.9 cm-1) failed the -20 cm-1 rule once and passed after the `Calc_Hess` re-run, as designed.
+* The structure count is 74 as the notes say, but its split is 29 bases and 45 conjugate-acid starts rather than the 28 and 46 written above: tetrahydrofuran has two distinct base conformers within the window, and its ion therefore has two starts too (the note's breakdown miscounted; the total, and the 28 bases, stand).
+* **Symmetry numbers:** ORCA's differed from the one used here in 25 of 73 accepted structures (ORCA reports 1 for most C2v/C3v molecules). The GB shifts range from +0.41 to +1.47 kcal/mol (ammonium +1.47, benzene +1.06); the PA is not affected by the override, GB is (by up to those amounts per species, in the direction the species' role sets). The override was a preregistered part of the protocol.
+* The preregistration also lists three reported-only diagnostics that `run_pa.py report` does not produce (GB - PA against the evaluators' protonation entropy, lowest-structure against Boltzmann averaging, time per job by base). They were not computed after the fact by hand; the per-job seconds and the full records are in the committed jsonl.
+* The peak load was not measured; the configuration requested 12 cores (3 workers x 4) and `%maxcore 3000` per core, so up to about 9 GB.
+
+**What this does under the preregistration:** the primary arm passed for each of PA and GB, so the calculator may be built with the primary protocol as its default, each of PA and GB offered with the error found stated beside it (MAE 1.5, systematic -1.2 kcal/mol, on bases of at most ten heavy atoms). The secondary DLPNO-CCSD(T) arm is a **later stage and was not written or run**; it needs Alex's go. Nothing was built.
+
+## Exploratory rerun of water's H3O+ (2026-10-21; not a benchmark record)
+
+Re-optimizing H3O+ from a geometry displaced 0.15 Angstrom along its -601.6 cm-1 mode gave a real minimum in either direction (lowest mode 0.0), H = -76.66319626 Eh, which matches the preregistration's smoke-run value (-76.66319385); so water's missing cell was a starting-geometry effect, as the disclosure above said. This does not change the verdict (water is a reported-only base); see `benchmarks/restart_diagnosis/` and the draft `benchmarks/restart_v2/PREREGISTRATION.md`.
+
+## To run the primary-arm ORCA benchmark (as recorded 2026-10-19, before the result above)
+
+The runner is written, tested on real water and H3O+ output and committed (`benchmarks/proton_affinity/run_pa.py`, `tests/test_proton_affinity_runner.py`); (as written before the run; it has since been run, see above). It builds 74 structures (28 bases and 46 conjugate-acid starts over every rule-enumerated site; `structures` prints the count) of M062X/def2-TZVPD `Opt Freq`, each a few minutes to some tens of minutes at 4 cores (the duration of the whole run is **unmeasured**; the water smoke job took minutes).
 
 From the repository root, on the commit the preregistration froze (no edit to `src/` between the first job and the report, or the report is refused), with nothing else using the cores:
 
@@ -99,3 +128,18 @@ uv run --no-sync python benchmarks/proton_affinity/run_pa.py report             
 ```
 
 Rules that go with it: one stage at a time; never edit a threshold or a rule after the report is seen (an amendment section, disclosed); **the secondary DLPNO arm is a later stage, written and run only if the primary arm passes** (stage order, not a rule change); a failed or partial verdict is the deliverable, as the preregistration says. Machine capacity: `--workers 3 --cores 4` assumes 12 free cores and about 9 GB of RAM (`%maxcore 3000`).
+
+## Driven through the application on real ORCA, and promoted to LIMITED (2026-10-23)
+
+`benchmarks/visual/proton_affinity_run.json` drives the real window: the real **Proton affinity...** button, real ORCA 6.1.1, and the values read back from the STORED result, the stored run and the panel's text. It was run twice, both **VERDICT PASS, 5 of 5 assertions, no application error**:
+
+| | 2026-10-22, commit `b41c2e93` (#429) | 2026-10-23, commit `fb65056a` (master, clean tree) | benchmark |
+|---|---|---|---|
+| chloromethane | refused before anything was queued | refused before anything was queued | out of scope |
+| ammonia PA / GB (kJ/mol) | 844.5166 / 810.1305 | 844.5166 / 810.1305 | 844.5166 / 810.1305 |
+| methylamine PA / GB | 890.8002 / 856.3339 | 890.8002 / 856.3339 | 890.8003 / 856.3341 |
+| water | no value, the planar H3O+ named | no value, the planar H3O+ named | no value |
+
+The first of these runs found a defect no unit test had reached (the Runs history raising on a stored run with no value), fixed in #429. The second was made on the commit the promotion was made from, after the service gained the bond-dissociation sequence beside this one.
+
+**What the promotion is.** `orca.proton_affinity` was EXPERIMENTAL and hidden for one stated reason: the benchmark passed, but this implementation had not been driven through the application on real ORCA. With that recorded it is **LIMITED and shown by default** (`docs/CALCULATOR_MATURITY.md`: a promotion is one change carrying the metadata, the evidence and the changelog entry). It is LIMITED and not STABLE because the scope is narrow (neutral closed-shell bases of at most ten heavy atoms of H, C, N, O, P and S) and one preregistered benchmark is not the independent, held-out, stratified result STABLE asks for. Its execution policy is unchanged: a model may not start it without a person's approval.

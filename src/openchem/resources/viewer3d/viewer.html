@@ -85,7 +85,7 @@
 
       // Confirmed live against this exact vendored bundle:
       // $3Dmol.SurfaceType === {VDW:1, MS:2, SAS:3, SES:4}. SES is real
-      // here even though Marvin doesn't offer it.
+      // here even though the reference editor doesn't offer it.
       function surfaceTypeFor(representation) {
         switch (String(representation).toLowerCase()) {
           case 'sas':
@@ -131,7 +131,7 @@
           // colorfunc is invoked once per atom (confirmed: 9 calls for a
           // 9-atom ethanol), and surface vertices take the colour of the
           // nearest atom -- which is what maps a per-atom property like
-          // partial charge onto the surface the way Marvin shows it.
+          // partial charge onto the surface the way the reference editor shows it.
           style.colorfunc = function (atom) {
             var color = atomColors[String(atom.index)];
             return color || '#cccccc';
@@ -181,7 +181,7 @@
         // global setStyle({}) would flatten them all to one colour the
         // moment the user switched from stick to ball-and-stick.
         if (currentEnsemble) {
-          // TWO READINGS OF ONE OVERLAY, which is what ChemAxon shows in
+          // TWO READINGS OF ONE OVERLAY, which is what the vendor shows in
           // two panes. Colouring BY MOLECULE answers "which structure is
           // this atom in"; colouring BY ELEMENT answers "what is it".
           // Neither is a substitute for the other, and a second viewer to

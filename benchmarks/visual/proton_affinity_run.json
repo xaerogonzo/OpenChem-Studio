@@ -1,0 +1,39 @@
+[
+  {"do": "smiles", "smiles": "C[N+](C)(C)C", "name": "Tetramethylammonium", "after_ms": 2500},
+  {"do": "select", "molecule": -1, "after_ms": 2500},
+  {"do": "proton_affinity_run", "expect_refusal": "does not apply", "after_ms": 500},
+
+  {"do": "smiles", "smiles": "N", "name": "Ammonia", "after_ms": 2500},
+  {"do": "select", "molecule": -1, "after_ms": 2500},
+  {"do": "proton_affinity_run", "after_ms": 1000},
+  {"do": "qc_wait", "timeout_ms": 1800000},
+  {"do": "proton_affinity_report", "tag": "ammonia-reproduces-the-benchmark",
+   "expect": {
+     "pa_kj": [844.0, 845.0], "gb_kj": [809.6, 810.6], "site_element": "N",
+     "run_calc_type": "proton_affinity", "run_status": "completed", "stored_outputs": 2, "fingerprint_is_submitted": true,
+     "results_contains": ["Proton affinity (298.15 K): 844.5 kJ/mol", "Gas-phase basicity (298.15 K): 810.1 kJ/mol", "Protonation sites", "1.55 kcal/mol", "too weakly"]
+   }},
+
+  {"do": "smiles", "smiles": "O", "name": "Water", "after_ms": 2500},
+  {"do": "select", "molecule": -1, "after_ms": 2500},
+  {"do": "proton_affinity_run", "after_ms": 1000},
+  {"do": "qc_wait", "timeout_ms": 1800000},
+  {"do": "proton_affinity_report", "tag": "water-has-no-value-as-the-benchmark-found",
+   "expect": {
+     "pa_kj": null, "gb_kj": null, "run_calc_type": "proton_affinity", "run_status": "failed", "stored_outputs": 2,
+     "results_contains": ["Proton affinity (298.15 K): no value", "Gas-phase basicity (298.15 K): no value", "mol|ion|lone_pair0|0"]
+   }},
+
+  {"do": "smiles", "smiles": "CN", "name": "Methylamine", "after_ms": 2500},
+  {"do": "select", "molecule": -1, "after_ms": 2500},
+  {"do": "proton_affinity_run", "after_ms": 1000},
+  {"do": "qc_wait", "timeout_ms": 1800000},
+  {"do": "proton_affinity_report", "tag": "methylamine-reproduces-the-benchmark",
+   "expect": {
+     "pa_kj": [890.3, 891.3], "gb_kj": [855.8, 856.8], "site_element": "N",
+     "run_calc_type": "proton_affinity", "run_status": "completed", "stored_outputs": 2, "fingerprint_is_submitted": true
+   }},
+
+  {"do": "expect_clean"},
+  {"do": "quit"}
+]

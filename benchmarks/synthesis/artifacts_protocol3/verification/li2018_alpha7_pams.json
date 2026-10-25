@@ -1,0 +1,18 @@
+{
+ "paper": "li2018_alpha7_pams",
+ "my_lead": "3ea - abstract: 'identified the compound 3ea as a potent and efficacious PAM', used in PK and mouse PPI experiments",
+ "lead_agrees": true,
+ "reactions": [
+  {"step": 1, "ok": true, "issue": "4a from 2-chloro-6-methylaniline + chloroacetyl chloride (100 mmol / 150 mmol); NaOAc/AcOH is base/solvent, correctly omitted. SMILES correct."},
+  {"step": 2, "ok": true, "issue": "Procedure: 4a + K2[NCN=CS2] + NaOH (Thorpe-Ziegler) then benzyl bromide, crude 10a isolated. All three molecules incorporated and listed. 10a SMILES (4-amino-2-benzylthio-thiazole-5-carboxanilide) is right. But it is a one-pot, two-operation step that Scheme 4 labels (a) and (b) separately; counting them separately gives 4 steps, still within the limit."},
+  {"step": 3, "ok": true, "issue": "10a + HCOOH reflux 1 h, 75%. Formic acid supplies the C5-H of the pyrimidinone, so listing it is correct (origin 'reagent' rather than 'commercial' is fine, but it is a real reactant). Product SMILES: thiazolo[4,5-d]pyrimidin-7(6H)-one numbering checked, N6-aryl, 2-SBn correct."}
+ ],
+ "leaf_issues": [
+  "The 3ea procedure says 'Compound 5a (1.10 g, 5 mmol)'; 5a is not defined anywhere, the amount matches 4a (MW 218), so the transcriber's use of 4a is right but the paper has this typo.",
+  "All four leaves rest only on the general sentence 'Commercial reagents were purchased from Ouhe, Aladdin, and J&K Scientific'; dipotassium cyanodithioimidocarbonate and benzyl bromide are not individually named, but nothing is prepared for them."
+ ],
+ "step_count_ok": true,
+ "smiles_issues": [],
+ "overall": "minor_issues",
+ "notes": "Route stands (3 steps, target = lead 3ea, no stereo). Edit/flag: (1) step 2 merges two Scheme-4 steps (a: cyclisation, b: S-alkylation) into one with an isolated crude 10a, say so; (2) 'compound 5a' typo in the 3ea procedure; (3) formic acid is an atom-supplying reactant (kept). Supporting sentence: 'Commercial reagents were purchased from Ouhe, Aladdin, and J&K Scientific and used without further purification.'"
+}

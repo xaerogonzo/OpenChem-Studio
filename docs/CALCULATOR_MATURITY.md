@@ -65,6 +65,17 @@ is metadata about the calculator, not about the calculation. A change to the
 method, its parameters or its model does, and reaches stored results through the
 identity key as it always has.
 
+## Where the stage is shown
+
+A calculator with a declared stage carries a small star: full for `STABLE`, half for `LIMITED`, empty for
+`EXPERIMENTAL` (`domain/support_marker.py`, drawn by `ui/widgets/stage_marker.py`). It is at the right end of
+its Properties row and in the Results reader (beside "Showing" for a focused result, on each fact of "All
+results"), and its tooltip gives the stage's meaning and the calculator's `support_reason`. **A
+`LEGACY_UNCLASSIFIED` calculator gets no star**: it is *treated as* `STABLE` so nothing changed, but nobody
+earned that, and a star would claim a validation that was never made. Classifying one therefore also makes its
+star appear, which is a reason to classify it honestly. A result filed under a different id than its calculator
+resolves to no calculator and shows no star.
+
 ## Moving between stages
 
 Legal moves: `EXPERIMENTAL → LIMITED → STABLE`, any stage to retired

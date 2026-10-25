@@ -1,0 +1,12 @@
+{
+ "paper": "singh2025_thiazolidinedione_triazines_hiv",
+ "decision": "excluded",
+ "exclusion_reason": "lead_route_over_4_steps",
+ "exclusion_detail": "Lead 12a needs 5 reactions as the paper describes them: (1) 2,4-thiazolidinedione from chloroacetic acid + thiourea (procedure given in 3.1.2.1), (2) Knoevenagel with 2-hydroxybenzaldehyde giving 5a, (3) 4-((4,6-dichloro-1,3,5-triazin-2-yl)amino)benzonitrile (8) from cyanuric chloride + 4-aminobenzonitrile, (4) 9a from 8 + 5a, (5) 12a from 9a + 2-(morpholin-4-yl)ethanol. Even if thiazolidinedione were bought it would be 4 plus an unlisted 9a heading, so the count is 5 by the brief's rule.",
+ "lead": {"label": "12a", "why": "Abstract: 'Compounds 12a was identified as prospective lead compound against HIV-1 ... Compound 12a was found effective against HIV-1 in a cell-based experiment ... therapeutic index of 113 and an EC50 of 125.1 nM'."},
+ "target": {"name": "(Z)-4-((4-(5-(2-hydroxybenzylidene)-2,4-dioxothiazolidin-3-yl)-6-(2-morpholinoethoxy)-1,3,5-triazin-2-yl)amino)benzonitrile", "smiles": null},
+ "reactions": [],
+ "alt_variants": [],
+ "other_qualifying_compounds": [],
+ "notes": "The di-substituted series 10a-e (TZD prep, Knoevenagel, 8, 9, NH3 amination) is also 5 steps, and every intermediate 9 needs the same chain, so no compound of the paper is within 4 steps. Step 3 text prints a nonsensical quantity for cyanuric chloride ('5.0 g, mol'). The 9a intermediate has no heading of its own, only the general procedure."
+}

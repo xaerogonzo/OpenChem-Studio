@@ -1,0 +1,55 @@
+{
+ "paper": "ungoren2017_aminopyrimidines_dbu",
+ "decision": "route",
+ "exclusion_reason": null,
+ "exclusion_detail": "",
+ "lead": {
+  "label": "2i",
+  "why": "Methodology paper; the abstract names no single product. 1i is the model substrate used for all optimisation (Table 2, 'During the optimization studies with 1i (model substrate)'), giving 2i in the best yield (93%). Lead chosen under the methodology rule (model product)."
+ },
+ "target": {
+  "name": "Methyl 2-amino-4-methylpyrimidine-5-carboxylate",
+  "smiles": "COC(=O)c1cnc(N)nc1C"
+ },
+ "reactions": [
+  {
+   "step": 1,
+   "product": {
+    "label": "2i",
+    "name": "Methyl 2-amino-4-methylpyrimidine-5-carboxylate",
+    "smiles": "COC(=O)c1cnc(N)nc1C"
+   },
+   "reactants": [
+    {
+     "label": "1i",
+     "name": "",
+     "smiles": "COC(=O)CC(C)=O",
+     "origin": "commercial"
+    },
+    {
+     "label": "DMF-DMA",
+     "name": "N,N-dimethylformamide dimethyl acetal",
+     "smiles": "CN(C)C(OC)OC",
+     "origin": "reagent"
+    },
+    {
+     "label": "cyanamide",
+     "name": "cyanamide",
+     "smiles": "N#CN",
+     "origin": "reagent"
+    },
+    {
+     "label": "cyanamide",
+     "name": "cyanamide",
+     "smiles": "N#CN",
+     "origin": "reagent"
+    }
+   ],
+   "conditions": "1i (2.0 mmol), DMF-DMA (2.1 mmol), DBU (15 mol %), cyanamide (4.2 mmol, i.e. 2 equiv, in THF) added dropwise, benzene, reflux, 30 min; one pot. Yield 93%.",
+   "source": "Results and discussion; Table 1 entry 9 and Table 2 entry 6; Experimental 'General procedure for the synthesis of 2' and entry 2i (main article)"
+  }
+ ],
+ "alt_variants": [],
+ "other_qualifying_compounds": null,
+ "notes": "The paper does not print a name for 1i (methyl acetoacetate, structure from Table 1 drawing and from 2i's name; the 'Experimental' says 1,3-dicarbonyls other than 1a-f were purchased). Two equivalents of cyanamide are used but the mechanism (Scheme 3) expels isocyanic acid, so the product keeps only one cyanamide carbon: cyanamide listed once so that carbon balance holds (C5 + C1 from DMF-DMA CH + C1 = C7). DMF-DMA supplies the ring C6-H carbon only. The paper's Conclusion reverses the regiochemistry wording (4-acyl-5-alkyl) but all compound names and the earlier text give the 4-methyl-5-carboxylate pattern. HRMS 'found' value for 2i is mis-typed (168.07632); irrelevant to structure. | EDITED 2026-10-24 after verification: cyanamide listed twice (2 equiv, both incorporated by the nitrogen balance)."
+}

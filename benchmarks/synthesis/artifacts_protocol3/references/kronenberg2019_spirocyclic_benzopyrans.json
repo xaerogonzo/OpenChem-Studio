@@ -1,0 +1,12 @@
+{
+ "paper": "kronenberg2019_spirocyclic_benzopyrans",
+ "decision": "excluded",
+ "exclusion_reason": "lead_route_over_4_steps",
+ "exclusion_detail": "The abstract names cis-11b as the highest-affinity compound. Scheme 1 route from 2-bromobenzaldehyde (1): Wittig homologation, methanol addition to the acetal, BuLi/cyclohexane-1,4-dione addition (hydroxy acetal 2), HCl transacetalization to methoxy ketone 9, reductive amination with cyclohexylmethylamine (cis-10b after separation), reductive N-methylation = 6 reactions.",
+ "lead": {"label": "cis-11b", "why": "cis-configured 2-benzopyran cis-11b bearing a methoxy group and a tertiary cyclohexylmethylamino moiety showed the highest sigma1 affinity (Ki = 1.9 nM) of this series of compounds."},
+ "target": null,
+ "reactions": [],
+ "alt_variants": [],
+ "other_qualifying_compounds": ["cis-19b", "cis-14b"],
+ "notes": "cis-19b (Scheme 2: PBr3 on 2-(2-bromophenyl)ethanol, Parham cyclization with cyclohexane-1,4-dione monoethylene ketal, ketal hydrolysis, reductive amination) is 4 steps. cis-14b (Scheme 1: acetalization of 1, BuLi/dione then pTsOH reported as one two-step entry, reductive amination) is 3-4 steps depending on how the 'over two steps' entry is counted. Experimental details of their starting materials were not checked, so treat as candidates only."
+}

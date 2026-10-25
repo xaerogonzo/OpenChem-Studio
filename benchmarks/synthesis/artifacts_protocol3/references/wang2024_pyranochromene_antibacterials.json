@@ -1,0 +1,45 @@
+{
+ "paper": "wang2024_pyranochromene_antibacterials",
+ "decision": "route",
+ "exclusion_reason": null,
+ "exclusion_detail": "",
+ "lead": {"label": "5a", "why": "Abstract: 'Bioactivity screening identified a lead compound 5a with broad-spectrum antibacterial activity against Gram-positive stains'."},
+ "target": {"name": "2-((6-Acetyl-2,8-dimethyl-2,8-bis(4-methylpent-3-en-1-yl)-2H,8H-pyrano[2,3-f]chromen-5-yl)oxy)-N-(2-(dimethylamino)ethyl)acetamide", "smiles": "CC(=O)c1c(OCC(=O)NCCN(C)C)c2C=CC(C)(CCC=C(C)C)Oc2c2C=CC(C)(CCC=C(C)C)Oc12"},
+ "reactions": [
+  {"step": 1,
+   "product": {"label": "2", "name": "1-(5-Hydroxy-2,8-dimethyl-2,8-bis(4-methylpent-3-en-1-yl)-2H,8H-pyrano[2,3-f]chromen-6-yl)ethan-1-one", "smiles": "CC(=O)c1c(O)c2C=CC(C)(CCC=C(C)C)Oc2c2C=CC(C)(CCC=C(C)C)Oc12"},
+   "reactants": [
+    {"label": "1", "name": "", "smiles": "CC(=O)c1c(O)cc(O)cc1O", "origin": "commercial"},
+    {"label": "citral dimethyl acetal (1)", "name": "citraldimethylacetal", "smiles": "COC(OC)C=C(C)CCC=C(C)C", "origin": "commercial"},
+    {"label": "citral dimethyl acetal (2)", "name": "citraldimethylacetal", "smiles": "COC(OC)C=C(C)CCC=C(C)C", "origin": "commercial"}
+   ],
+   "conditions": "Pyridine, 150 C, 10 h, then more citral dimethyl acetal and a further 8 h (SI); main-text Scheme 1 says 150 C, 18 h. 50%.",
+   "source": "SI 'Chemistry' compound 2; main text Scheme 1 (a)"},
+  {"step": 2,
+   "product": {"label": "3", "name": "Ethyl 2-((6-acetyl-2,8-dimethyl-2,8-bis(4-methylpent-3-en-1-yl)-2H,8H-pyrano[2,3-f]chromen-5-yl)oxy)acetate", "smiles": "CC(=O)c1c(OCC(=O)OCC)c2C=CC(C)(CCC=C(C)C)Oc2c2C=CC(C)(CCC=C(C)C)Oc12"},
+   "reactants": [
+    {"label": "2", "name": "1-(5-Hydroxy-2,8-dimethyl-2,8-bis(4-methylpent-3-en-1-yl)-2H,8H-pyrano[2,3-f]chromen-6-yl)ethan-1-one", "smiles": "CC(=O)c1c(O)c2C=CC(C)(CCC=C(C)C)Oc2c2C=CC(C)(CCC=C(C)C)Oc12", "origin": "made_here"},
+    {"label": "ethyl bromoacetate", "name": "ethyl bromoacetate", "smiles": "BrCC(=O)OCC", "origin": "commercial"}
+   ],
+   "conditions": "K2CO3, CH3CN, 60 C, 10 h; 82%.",
+   "source": "SI compound 3; Scheme 1 (b)"},
+  {"step": 3,
+   "product": {"label": "4", "name": "2-((6-Acetyl-2,8-dimethyl-2,8-bis(4-methylpent-3-en-1-yl)-2H,8H-pyrano[2,3-f]chromen-5-yl)oxy)acetic acid", "smiles": "CC(=O)c1c(OCC(=O)O)c2C=CC(C)(CCC=C(C)C)Oc2c2C=CC(C)(CCC=C(C)C)Oc12"},
+   "reactants": [
+    {"label": "3", "name": "Ethyl 2-((6-acetyl-2,8-dimethyl-2,8-bis(4-methylpent-3-en-1-yl)-2H,8H-pyrano[2,3-f]chromen-5-yl)oxy)acetate", "smiles": "CC(=O)c1c(OCC(=O)OCC)c2C=CC(C)(CCC=C(C)C)Oc2c2C=CC(C)(CCC=C(C)C)Oc12", "origin": "made_here"}
+   ],
+   "conditions": "NaOH, MeOH/H2O (1:1), 55 C, 6 h; acidify to pH 2-3; 80%.",
+   "source": "SI compound 4; Scheme 1 (c)"},
+  {"step": 4,
+   "product": {"label": "5a", "name": "2-((6-Acetyl-2,8-dimethyl-2,8-bis(4-methylpent-3-en-1-yl)-2H,8H-pyrano[2,3-f]chromen-5-yl)oxy)-N-(2-(dimethylamino)ethyl)acetamide", "smiles": "CC(=O)c1c(OCC(=O)NCCN(C)C)c2C=CC(C)(CCC=C(C)C)Oc2c2C=CC(C)(CCC=C(C)C)Oc12"},
+   "reactants": [
+    {"label": "4", "name": "2-((6-Acetyl-2,8-dimethyl-2,8-bis(4-methylpent-3-en-1-yl)-2H,8H-pyrano[2,3-f]chromen-5-yl)oxy)acetic acid", "smiles": "CC(=O)c1c(OCC(=O)O)c2C=CC(C)(CCC=C(C)C)Oc2c2C=CC(C)(CCC=C(C)C)Oc12", "origin": "made_here"},
+    {"label": "amine", "name": "", "smiles": "CN(C)CCN", "origin": "commercial"}
+   ],
+   "conditions": "HATU, DIPEA, CH3CN, rt, 5 h; 70% (general procedure for 5a-5g).",
+   "source": "SI general procedure for 5a-5g and compound 5a; Scheme 1 (d)"}
+ ],
+ "alt_variants": [],
+ "other_qualifying_compounds": null,
+ "notes": "REVIEW: the SI never names ketone 1 ('compound 1', 7.50 g, 49.29 mmol). I inferred 2,4,6-trihydroxyacetophenone from the product name/HRMS of 2 (ring carbon pattern, no aromatic H, three ring O plus acetyl C=O, 2 equivalents of citral acetal, 14.01 ppm chelated OH). Caveat: 7.50 g / 49.29 mmol corresponds to MW 152 (a dihydroxyacetophenone), not 168 (phloroacetophenone), a mass-versus-mmol inconsistency in the SI. Amine for 5a is not printed as a reagent name (SI says 'different amino compounds'); N,N-dimethylethylenediamine inferred from the printed product name. Stereocentres at C2/C8 of the pyranochromene are unspecified (likely a diastereomer mixture). Main text gives 18 h for step 1, SI 10 h + 8 h."
+}

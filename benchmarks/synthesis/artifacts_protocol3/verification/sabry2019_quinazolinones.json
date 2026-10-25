@@ -1,0 +1,17 @@
+{
+ "paper": "sabry2019_quinazolinones",
+ "my_lead": "21 - abstract names '21, 53 and 60' first, with the lowest average IC50 (6.7 uM); 29/33 lead on DHFR, so could be co-named",
+ "lead_agrees": true,
+ "reactions": [
+  {"step": 1, "ok": true, "issue": "5-nitroanthranilic acid (13) + 4-methoxyphenyl isothiocyanate (15), TEA, EtOH reflux, 65%. Nitro position checked (5-nitroanthranilic gives the 6-nitroquinazolinone, para to N1). Isothiocyanate 15 is unnamed in the text ('appropriate substituted phenylisothiocyanate'), derived from the name of 17: reasonable. Drawn as the thiol tautomer, as the paper names it."},
+  {"step": 2, "ok": true, "issue": "S-methylation with MeI/K2CO3, acetone, 77%. MeI supplies the SMe carbon; K2CO3 correctly omitted."},
+  {"step": 3, "ok": true, "issue": "SnCl2.2H2O reduction of NO2, acetone reflux, 63%. SnCl2 is a stoichiometric reductant supplying no atom, correctly omitted. Target SMILES matches the name."}
+ ],
+ "leaf_issues": [
+  "'Starting materials and reagents were purchased from Sigma-Aldrich Co., El-Gomhoria and El-Nasr Pharmaceutical and Chemical Co.' is the only support; nothing is prepared for 5-nitroanthranilic acid or 4-methoxyphenyl isothiocyanate."
+ ],
+ "step_count_ok": true,
+ "smiles_issues": [],
+ "overall": "confirmed",
+ "notes": "3 steps, target 21 is the lead. The abstract's best DHFR inhibitors are 29 and 33 (amides made from 21 or 20 in one more step); choosing 21 is consistent with rule 1 as the abstract's first-named and lowest-IC50 compound. Supporting sentence: 'Starting materials and reagents were purchased from Sigma-Aldrich Co., U.S.A., El-Gomhoria and El-Nasr Pharmaceutical and Chemical Co., Egypt.'"
+}

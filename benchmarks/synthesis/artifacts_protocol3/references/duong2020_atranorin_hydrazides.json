@@ -1,0 +1,91 @@
+{
+ "paper": "duong2020_atranorin_hydrazides",
+ "decision": "excluded",
+ "exclusion_reason": "route_not_explicit",
+ "exclusion_detail": "The starting material, atranorin, is isolated from lichen by the authors, not bought (second reader: leaf unsupported). (Reclassified 2026-10-24 after the verification pass.)",
+ "lead": {
+  "label": "2",
+  "why": "Abstract: 'Molecular dynamics simulations were carried out with compound 2 demonstrating the best docking model'; main text: 'Compound 2 was the most active' (IC50 6.67 uM), the benzyl (phenylacetyl) hydrazone of atranorin."
+ },
+ "target": {
+  "name": "",
+  "smiles": "COC(=O)c1c(C)cc(OC(=O)c2c(C)cc(O)c(C=NNC(=O)Cc3ccccc3)c2O)c(C)c1O"
+ },
+ "reactions": [
+  {
+   "step": 1,
+   "product": {
+    "label": "methyl 2-phenylacetate",
+    "name": "",
+    "smiles": "COC(=O)Cc1ccccc1"
+   },
+   "reactants": [
+    {
+     "label": "2-phenylacetic acid",
+     "name": "2-phenylacetic acid",
+     "smiles": "OC(=O)Cc1ccccc1",
+     "origin": "commercial"
+    },
+    {
+     "label": "methanol",
+     "name": "methanol",
+     "smiles": "CO",
+     "origin": "reagent"
+    }
+   ],
+   "conditions": "CH3OH / H2SO4, reflux, 8 h (Scheme 1, step a). Ester not named or isolated in the text; its existence is implied by 'esterification and then hydrazination'.",
+   "source": "main text Scheme 1 caption (conditions a, b); SI section 2 (N2 prepared from 2-phenylacetic acid by esterification then hydrazination)"
+  },
+  {
+   "step": 2,
+   "product": {
+    "label": "N2",
+    "name": "",
+    "smiles": "NNC(=O)Cc1ccccc1"
+   },
+   "reactants": [
+    {
+     "label": "methyl 2-phenylacetate",
+     "name": "",
+     "smiles": "COC(=O)Cc1ccccc1",
+     "origin": "made_here"
+    },
+    {
+     "label": "hydrazine",
+     "name": "hydrazine",
+     "smiles": "NN",
+     "origin": "reagent"
+    }
+   ],
+   "conditions": "N2H4 80% / ethanol, reflux, 6 h (Scheme 1, step b); overall yield for N2 50.4%.",
+   "source": "main text Scheme 1; SI section 2"
+  },
+  {
+   "step": 3,
+   "product": {
+    "label": "2",
+    "name": "",
+    "smiles": "COC(=O)c1c(C)cc(OC(=O)c2c(C)cc(O)c(C=NNC(=O)Cc3ccccc3)c2O)c(C)c1O"
+   },
+   "reactants": [
+    {
+     "label": "atranorin (1)",
+     "name": "atranorin",
+     "smiles": "COC(=O)c1c(C)cc(OC(=O)c2c(C)cc(O)c(C=O)c2O)c(C)c1O",
+     "origin": "commercial"
+    },
+    {
+     "label": "N2",
+     "name": "",
+     "smiles": "NNC(=O)Cc1ccccc1",
+     "origin": "made_here"
+    }
+   ],
+   "conditions": "Atranorin (59.8 mg, 0.16 mmol), hydrazide (3 equiv), EtOH:AcOH (7:0.3, 3 mL), 50 C, 120 min; work-up and silica column; yield 82.0%.",
+   "source": "SI section 3 (general procedure for 2-13; Compound 2: HRESIMS C27H25N2O8 [M-H]-)"
+  }
+ ],
+ "alt_variants": [],
+ "other_qualifying_compounds": null,
+ "notes": "REVIEW: (1) Atranorin (1) is a lichen natural product the authors purified from Parmotrema species (ref 15-18, isolation not described here); I marked it 'commercial' because it is used as the starting material and is sold by suppliers, but the paper did not buy it. (2) The SI calls N2 'Benzohydrazide (N2 ...) prepared from 2-phenylacetic acid'; benzohydrazide would give 26 C but the HRESIMS of 2 (C27H25N2O8 [M-H]-) requires phenylacetohydrazide, and the main text says 'benzyl group of hydrazide N2', so I used phenylacetohydrazide and left the printed name blank. (3) N2 preparation has conditions only in the Scheme 1 caption (cites Xu 2018), no experimental procedure; the methyl ester is never named. Counts as explicit only if the scheme conditions are accepted. (4) No name is printed for compound 2; structure derived from atranorin + N2 hydrazone (imine C=N at the former aldehyde, dH 8.57-8.95). Atranorin SMILES from known structure (3-hydroxy-4-methoxycarbonyl-2,5-dimethylphenyl 3-formyl-2,4-dihydroxy-6-methylbenzoate), formula C19H18O8; product formula C27H26N2O8 matches HRESIMS."
+}

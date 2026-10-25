@@ -2,7 +2,7 @@
 
 **This is a GATE, not a feature test.** "Use in 2D Editor" is meant to hand
 the 2D canvas the conformer you are looking at, oriented the way you have it
-rotated -- a projection of a real 3D geometry, the way MarvinSketch draws
+rotated -- a projection of a real 3D geometry, the way the reference editor draws
 buckminsterfullerene in perspective inside a 2D editor. That is only
 reachable if the molblock's own coordinates survive the round trip through
 Ketcher.

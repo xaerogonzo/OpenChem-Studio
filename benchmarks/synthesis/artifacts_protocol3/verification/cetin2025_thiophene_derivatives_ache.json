@@ -1,0 +1,15 @@
+{
+ "paper": "cetin2025_thiophene_derivatives_ache",
+ "my_lead": "3 (3-bromo-2-(p-tolylethynyl)thiophene): conclusion names 3 as the compound with potential; 3 outperforms 5 in cytotoxicity, apoptosis and docking",
+ "lead_agrees": true,
+ "reactions": [
+  {"step": 1, "ok": true, "issue": "Sonogashira of 2,3-dibromothiophene (4.6 mmol, 1.113 g checks) with 4-ethynyltoluene (4.6 mmol, 534 mg checks), PdCl2(PPh3)2/CuI/Et3N omitted correctly; 69%. Regiochemistry (alkynylation at C2) follows the printed name and is the expected selectivity; SMILES Cc1ccc(C#Cc2sccc2Br)cc1 is 3-bromo-2-alkynyl as named."}
+ ],
+ "leaf_issues": [
+  "No sentence anywhere in the main text says the starting materials were purchased (grep for commercial/purchased/supplier/Sigma finds nothing relevant); 2,3-dibromothiophene and 4-ethynyltoluene are simply used from the bottle with no preparation or citation. Commercial status rests on their being ordinary catalogue reagents, not on a statement."
+ ],
+ "step_count_ok": true,
+ "smiles_issues": [],
+ "overall": "minor_issues",
+ "notes": "Route stands (1 step). Flag: leaf status is inferred, not stated (see leaf_issues). Also flag the temperature inconsistency: Experimental 2.1.1 says heated to 80 C for 12 h, results text (line ~254) says 'room temperature for 12 h'. Only main text available (no SI). Compound 5 (2 steps via 3) is not the lead."
+}

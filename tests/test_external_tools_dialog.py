@@ -19,6 +19,8 @@ def test_dialog_has_every_tool_tab_and_focuses_the_requested_one(qapp):
         "ORCA",
         # A second quantum-chemistry engine, right after the first: the user locates it, the app does not fetch it.
         "Psi4",
+        # The synthesis planner, in an environment of the user's own: locate-only, with the Python and the configuration file as two paths.
+        "AiZynthFinder",
         "pkasolver (pKa)",
         # Grouped with the other out-of-process Python environments rather
         # than with the executables above -- same shape, same problem.
@@ -43,7 +45,7 @@ def test_dialog_can_focus_the_pkasolver_tab(qapp):
 
     dialog = ExternalToolsPages(settings, focus="pkasolver")
 
-    assert dialog._tabs.currentIndex() == 3
+    assert dialog._tabs.currentIndex() == 4
 
 
 def test_editing_pkasolver_path_saves_immediately_to_settings(qapp):

@@ -1,0 +1,43 @@
+{
+ "paper": "balaramnavar2021_rohitukine_ptp1b",
+ "decision": "excluded",
+ "exclusion_reason": "route_not_explicit",
+ "exclusion_detail": "The only starting material, rohitukine, is isolated from plant bark by the authors, not bought (second reader: reject). (Reclassified 2026-10-24 after the verification pass.)",
+ "lead": {
+  "label": "K5",
+  "why": "Abstract: 'The most potent compound K5 was analyzed for antidiabetic and antidyslipidemic activity in vivo.'"
+ },
+ "target": {
+  "name": "4-(5,7-dihydroxy-2-methyl-4-oxo-4H-chromen-8-yl)-1-methylpiperidin-3-yl 2,4,6-trimethylbenzenesulfonate",
+  "smiles": "CC1=CC(=O)c2c(O)cc(O)c(C3CCN(C)CC3OS(=O)(=O)c3c(C)cc(C)cc3C)c2O1"
+ },
+ "reactions": [
+  {
+   "step": 1,
+   "product": {
+    "label": "K5",
+    "name": "4-(5,7-dihydroxy-2-methyl-4-oxo-4H-chromen-8-yl)-1-methylpiperidin-3-yl 2,4,6-trimethylbenzenesulfonate",
+    "smiles": "CC1=CC(=O)c2c(O)cc(O)c(C3CCN(C)CC3OS(=O)(=O)c3c(C)cc(C)cc3C)c2O1"
+   },
+   "reactants": [
+    {
+     "label": "RH",
+     "name": "rohitukine",
+     "smiles": "CC1=CC(=O)c2c(O)cc(O)c(C3CCN(C)CC3O)c2O1",
+     "origin": "made_here"
+    },
+    {
+     "label": "mesitylsulfonyl chloride",
+     "name": "2,4,6-trimethylbenzenesulfonyl chloride",
+     "smiles": "Cc1cc(C)c(S(Cl)(=O)=O)c(C)c1",
+     "origin": "commercial"
+    }
+   ],
+   "conditions": "General method K1-K10: RH stirred in pyridine/triethylamine (6:2) in dry DCM at 40 C for 1 h; sulfonyl chloride added, 4 h; neutralised with 1 N HCl, DCM extraction, silica column. Yield 68% (K5).",
+   "source": "Section 2.1 general method, Scheme 1; K5 characterisation Section 3.2.2.5 (page 8)"
+  }
+ ],
+ "alt_variants": [],
+ "other_qualifying_compounds": null,
+ "notes": "IMPORTANT: the sole precursor rohitukine (RH) is a natural product isolated by the authors from Dysoxylum binectariferum stem bark (Section 3.2 'Isolation of RH': ethanol percolation, fractionation, silica column, 1.2 g from 1 kg), not purchased. It is not a chemical reaction, so I mark it made_here with no step; a reviewer may prefer to treat rohitukine as the starting material (route = 1 reaction) or drop this paper. Sulfonylation presumably occurs at the secondary 3-OH of the piperidine (K5 name says 'piperidin-3-yl ...sulfonate'). Stereochemistry is not stated in the paper, so none is drawn. The sulfonyl chloride is not explicitly said to be purchased ('required sulphonyl chlorides')."
+}

@@ -1,0 +1,12 @@
+{
+ "paper": "tokuyama2021_benzyne_heterocycles",
+ "decision": "excluded",
+ "exclusion_reason": "no_synthesis_in_paper",
+ "exclusion_detail": "This is an Account (review) of a benzyne-mediated cyclization/functionalization method and its use in total syntheses of heptaphylline, batzellines and dictyodendrines. It has no experimental section or procedures (no mmol, no General procedure), and the total syntheses it summarizes are multi-step routes reported in earlier papers.",
+ "lead": {"label": "none (heptaphylline / batzellines / dictyodendrines are only summarized)", "why": "The abstract names no single best or lead compound; it lists three natural-product families as applications."},
+ "target": null,
+ "reactions": [],
+ "alt_variants": [],
+ "other_qualifying_compounds": [],
+ "notes": "Review/account without procedures; no route can be transcribed from this text."
+}

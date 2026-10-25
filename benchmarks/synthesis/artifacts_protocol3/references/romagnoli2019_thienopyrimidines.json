@@ -1,0 +1,12 @@
+{
+ "paper": "romagnoli2019_thienopyrimidines",
+ "decision": "excluded",
+ "exclusion_reason": "route_not_explicit",
+ "exclusion_detail": "Lead 6g = 4-(3',4',5'-trimethoxyanilino)-6-(p-tolyl)thieno[3,2-d]pyrimidine. The article gives three steps from methyl 3-amino-5-(p-tolyl)thiophene-2-carboxylate (9g): formamide cyclisation (10g), POCl3 (11g), 3,4,5-trimethoxyaniline/iPrOH (6g). But 9g is not stated to be commercial; its preparation is relegated to the Supporting Information, which I did not have, so the true starting materials and the total step count (>=4, possibly >4) cannot be established.",
+ "lead": {"label": "6g", "why": "Abstract: 'The 4-(3',4',5'-trimethoxyanilino)-6-(p-tolyl)thieno[3,2-d]pyrimidine derivative 6g was the most potent compound of the series' (and the compound used for the follow-up mechanism and in vivo work)."},
+ "target": null,
+ "reactions": [],
+ "alt_variants": [],
+ "other_qualifying_compounds": ["8a", "8b"],
+ "notes": "Main-text steps for 6g, for reference: 9g + HCONH2, 180 C, 18 h -> 10g; 10g + POCl3, 110 C -> 11g; 11g + 3,4,5-trimethoxyaniline (2 equiv), iPrOH, drop of conc. HCl, reflux 18 h -> 6g (75%). 8a and 8b (thieno[2,3-d]pyrimidines) start from ethyl 2-aminothiophene-3-carboxylates 12a,b, which the Experimental says are commercially available -> 3 steps (formamide, POCl3, aniline). I did not check which substituents 12a,b carry, and the paper's own numbering is inconsistent (text calls the thieno[2,3-d] series both 7a-d and 8a-l); treat the 8a/8b labels as unverified."
+}

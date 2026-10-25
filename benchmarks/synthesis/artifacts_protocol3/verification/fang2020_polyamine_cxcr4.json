@@ -1,0 +1,15 @@
+{
+ "paper": "fang2020_polyamine_cxcr4",
+ "my_lead": "21 (HF50731): abstract names it 'a representative compound 21 (namely HF50731)' with IC50 19.8 nM; all follow-up assays use it",
+ "lead_agrees": true,
+ "reactions": [
+  {"step": 1, "ok": true, "issue": "Terephthalaldehyde + 2 x N-(3-aminopropyl)cyclohexylamine, 4 A MS, MeOH 70 C, then NaBH4 (Sect 5.1.3 general procedure; Scheme 1 step (a)). Both equivalents of amine are listed, correct. Chemoselectivity is right: the primary NH2 of the diamine forms the imine, the secondary cyclohexylamine NH stays untouched, giving the 1,4-phenylenebis(methylene) bis-secondary-amine. BUT see notes: it is ambiguous whether this reaction gives 21 directly or only its crude free base before Boc protection/HCl deprotection."}
+ ],
+ "leaf_issues": [
+  "None serious. Terephthalaldehyde is listed in 5.1.3 / Sect 2.2 as a 'commercially available dialdehyde'; N-(3-aminopropyl)cyclohexylamine is not separately flagged but 5.1 says 'All chemical materials, reagents, and anhydrous solvents were commercially available and used directly without further purification'."
+ ],
+ "step_count_ok": true,
+ "smiles_issues": [],
+ "overall": "minor_issues",
+ "notes": "SMILES C1CCC(CC1)NCCCNCc1ccc(CNCCCNC2CCCCC2)cc1 matches the printed name N1,N1'-(1,4-phenylenebis(methylene))bis(N3-cyclohexylpropane-1,3-diamine) (free base of the HCl salt). The paper is internally inconsistent about how 21 is isolated, and the one-step transcription is only one of two readings: (i) Sect 2.2 and 5.1.3 say the reductive amination residue 'can be either directly purified by preparative RP-LC ... (compounds 21-25 and 35-36), or further' Boc-protected (10-14, 17) and then '4 N HCl ... to afford desired compounds 21 and 26-34'. So 21 is listed in BOTH groups. (ii) Evidence that 21 as isolated came through the Boc route: it is characterised as a hydrochloride salt (270 mg, 32%, D2O NMR), whereas the RP-LC compounds with 0.1% TFA eluent (24, 25) are TFA salts, and the Scheme 1 caption lists 21 under both step (a) and the HCl deprotection (g) route. Hence the isolated HCl salt most probably needs three reactions (reductive amination -> tetra-Boc 10 via (Boc)2O/Na2CO3 -> 4 N HCl/dioxane), still within the 4-step limit, but the one-step version yields a TFA-salt/free base by direct purification. Maintainer should either keep 1 step with a note that the text supports 'direct purification' for 21 (target = free base, salt form irrelevant), or encode the 3-step Boc route (intermediate 10 is not printed with a structure; it would be the tetra-Boc of the target). Either way the lead and reactants are right. Relevant quote: 'The residue can be either directly purified by preparative RP-LC system ... to provide these compounds (21-25 and 35-36), or further suspended in tert-butanol/water ... Boc-protected intermediates 10-14 and 17.' and 'Boc-protected intermediates 10-20 were treated with 4 N HCl/1,4-dioxane ... to afford desired compounds 21 and 26-34'."
+}

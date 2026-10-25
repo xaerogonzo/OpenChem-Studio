@@ -1,0 +1,180 @@
+{
+ "builder_version": "mp_bp-corpus-1",
+ "candidate_rows": 21627,
+ "cross_source_agreement": {
+  "melting_point:agree": 1215,
+  "melting_point:disagree": 494,
+  "normal_boiling_point:agree": 1053,
+  "normal_boiling_point:disagree": 513
+ },
+ "dispositions": {
+  "accepted_melting_point": 7951,
+  "accepted_normal_boiling_point": 6508,
+  "event_not_comparable": 0,
+  "evidence_only_decomposition_or_sublimation": 857,
+  "identity_ambiguous": 130,
+  "identity_mismatch": 362,
+  "identity_unchecked": 535,
+  "identity_unresolved": 2274,
+  "parser_ambiguity": 411,
+  "pressure_incomparable": 2214,
+  "source_conflict": 385
+ },
+ "dispositions_by_source": {
+  "crc97": {
+   "accepted_melting_point": 5875,
+   "accepted_normal_boiling_point": 4662,
+   "evidence_only_decomposition_or_sublimation": 723,
+   "identity_ambiguous": 123,
+   "identity_mismatch": 86,
+   "identity_unchecked": 10,
+   "identity_unresolved": 1683,
+   "parser_ambiguity": 229,
+   "pressure_incomparable": 1483,
+   "source_conflict": 307
+  },
+  "lange15": {
+   "accepted_melting_point": 2076,
+   "accepted_normal_boiling_point": 1846,
+   "evidence_only_decomposition_or_sublimation": 134,
+   "identity_ambiguous": 7,
+   "identity_mismatch": 276,
+   "identity_unchecked": 525,
+   "identity_unresolved": 591,
+   "parser_ambiguity": 182,
+   "pressure_incomparable": 731,
+   "source_conflict": 78
+  }
+ },
+ "entities_by_stratum": {
+  "multicomponent": 216,
+  "not_organic": 90,
+  "organometallic_or_inorganic": 70,
+  "primary": 8878
+ },
+ "entities_unresolved_by_conflict": {
+  "melting_point": 89,
+  "normal_boiling_point": 56
+ },
+ "entities_with_a_structure": 9254,
+ "entities_with_resolved_label": {
+  "melting_point": 6215,
+  "normal_boiling_point": 4889
+ },
+ "entities_with_resolved_label_in_primary_stratum": {
+  "melting_point": 5963,
+  "normal_boiling_point": 4808
+ },
+ "identity_by_source": {
+  "crc97:ambiguous": 95,
+  "crc97:mismatch": 92,
+  "crc97:ok": 9046,
+  "crc97:unchecked": 24,
+  "crc97:unresolved": 1599,
+  "lange15:ambiguous": 6,
+  "lange15:mismatch": 224,
+  "lange15:ok": 3302,
+  "lange15:unchecked": 361,
+  "lange15:unresolved": 480
+ },
+ "lange_pages_skipped": [
+  {
+   "pdf_page": 252,
+   "skipped": "no entry ids in the id column"
+  },
+  {
+   "pdf_page": 300,
+   "skipped": "no entry ids in the id column"
+  },
+  {
+   "pdf_page": 308,
+   "skipped": "no entry ids in the id column"
+  },
+  {
+   "pdf_page": 342,
+   "skipped": "no entry ids in the id column"
+  }
+ ],
+ "manifest_checksum": "705c8a859e21121ae0348447576b5510cab12574499b7de1b585a6a579a3fd29",
+ "no_label_event_records": {
+  "melting_point:decomposition": 17,
+  "melting_point:melting_with_decomposition": 370,
+  "melting_point:sublimation": 5,
+  "normal_boiling_point:decomposition": 206,
+  "normal_boiling_point:sublimation": 259
+ },
+ "primary_stratum_by_cross_source": {
+  "melting_point:agree": 1183,
+  "melting_point:disagree": 469,
+  "melting_point:single_source": 4311,
+  "normal_boiling_point:agree": 1035,
+  "normal_boiling_point:disagree": 499,
+  "normal_boiling_point:single_source": 3274
+ },
+ "primary_stratum_by_family": {
+  "melting_point": {
+   "alcohol_phenol": 608,
+   "aliphatic_hydrocarbon": 346,
+   "amide": 289,
+   "amine": 508,
+   "aromatic_hydrocarbon": 240,
+   "carboxylic_acid": 483,
+   "ester": 508,
+   "ether": 149,
+   "halogenated": 1287,
+   "ketone_aldehyde": 457,
+   "nitramine": 5,
+   "nitrate_ester": 8,
+   "nitrile": 84,
+   "nitro": 385,
+   "other": 395,
+   "sulfur": 211
+  },
+  "normal_boiling_point": {
+   "alcohol_phenol": 475,
+   "aliphatic_hydrocarbon": 437,
+   "amide": 81,
+   "amine": 432,
+   "aromatic_hydrocarbon": 206,
+   "carboxylic_acid": 105,
+   "ester": 528,
+   "ether": 253,
+   "halogenated": 1214,
+   "ketone_aldehyde": 318,
+   "nitramine": 3,
+   "nitrate_ester": 9,
+   "nitrile": 75,
+   "nitro": 112,
+   "other": 389,
+   "sulfur": 171
+  }
+ },
+ "primary_stratum_by_partition": {
+  "melting_point": {
+   "development": 3551,
+   "holdout": 1226,
+   "selection": 1186
+  },
+  "normal_boiling_point": {
+   "development": 2867,
+   "holdout": 976,
+   "selection": 965
+  }
+ },
+ "source_entries": {
+  "crc97": 10856,
+  "lange15": 4373
+ },
+ "source_files": {
+  "crc97": {
+   "edition": "Haynes (ed.), CRC Handbook of Chemistry and Physics, 97th ed., CRC Press, 2016 (Physical Constants of Organic Compounds)",
+   "file": "CRC_Handbook_of_Chemistry_and_Physics_97.pdf",
+   "sha256": "60a59278683215474bc827ae67876ce8ac7e51702acac3f4f52fc7a0f920597f"
+  },
+  "lange15": {
+   "edition": "Dean (ed.), Lange's Handbook of Chemistry, 15th ed., McGraw-Hill, 1999 (Section 1, Table 1.15)",
+   "file": "Section 01. Organic Compounds .pdf",
+   "sha256": "b9ecec4d2e428621737492a46145668743282bc6f5cce83c9f6d564680588dd1"
+  }
+ }
+}

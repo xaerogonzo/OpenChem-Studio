@@ -1,0 +1,12 @@
+{
+ "paper": "tian2022_ncs382_camkii",
+ "decision": "excluded",
+ "exclusion_reason": "lead_route_over_4_steps",
+ "exclusion_detail": "Lead Ph-HTBA (1i) is made from benzaldehyde 2i by Wittig (GP B), hydrogenation (GP C), PPA cyclization (GP D), Claisen-Schmidt with glyoxylic acid (GP G) and Luche reduction (GP A): 5 reactions. The alternative via 5b + Suzuki is longer.",
+ "lead": {"label": "1i (Ph-HTBA)", "why": "Abstract: 'we present Ph-HTBA (1i) with enhanced mid-nanomolar affinity for the CaMKIIalpha binding site'"},
+ "target": {"name": "(E)-2-(5-Hydroxy-2-phenyl-5,7,8,9-tetrahydro-6H-benzo[7]annulen-6-ylidene)acetic acid", "smiles": null},
+ "reactions": [],
+ "alt_variants": [],
+ "other_qualifying_compounds": [],
+ "notes": "Every analog 1a-n goes through the same 5-reaction core sequence (Wittig, hydrogenation, cyclization, condensation, Luche) or longer (cross-couplings), so no other compound qualifies. Step count 5 read from Scheme 1 text and General Procedures A-G; 2i's procedure sources were not checked further."
+}

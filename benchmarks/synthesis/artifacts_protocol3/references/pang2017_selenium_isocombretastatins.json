@@ -1,0 +1,12 @@
+{
+ "paper": "pang2017_selenium_isocombretastatins",
+ "decision": "excluded",
+ "exclusion_reason": "lead_route_over_4_steps",
+ "exclusion_detail": "Lead 11a (3-methylseleno isoCA-4) is made by Scheme 1 (a-i) then Scheme 2: NBS bromination of 2-methoxyphenol, nitration, O-methylation, Fe reduction, diazotisation/KSeCN, KOH to diselenide, NaBH4/MeI to the aryl methyl selenide, n-BuLi addition to the benzaldehyde, IBX oxidation, Wittig methylenation. That is about 10 reactions, far over 4.",
+ "lead": {"label": "11a", "why": "Abstract: '11a, the 3-methylseleno derivative of isocombretastatin A-4 (isoCA-4) represented the most active compound with IC50 values of 2-34 nM against 12 cancer cell lines'."},
+ "target": null,
+ "reactions": [],
+ "alt_variants": [],
+ "other_qualifying_compounds": [],
+ "notes": "All compounds in the paper share the same 9-10 step route (aryl selenide intermediate 8 needs a 7-step sequence), so no other compound qualifies. 11ab (phosphate salt) is further downstream still."
+}

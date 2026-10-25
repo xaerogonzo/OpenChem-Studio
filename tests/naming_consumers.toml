@@ -495,6 +495,54 @@ scope = "core"
 owner = "namer"
 
 [[consumer]]
+file = "tests/test_namer_round83_hypoxanthine_with_no_ring_nh_takes_the_oxo_carbons_indicated_hydrogen.py"
+why = "a ring with an oxo and no ring N-H takes the oxo carbon's indicated hydrogen, not the curated 9H (D-375: methyl 6-oxo-6H-purine-8-carboxylate), read back through OPSIN"
+scope = "core"
+owner = "namer"
+
+[[consumer]]
+file = "tests/test_namer_round82_benzodithiete_sibling_rings_and_polycyclic_bi_assemblies.py"
+why = "the curated 1,2-benzodithiete numbers every position (D-371), a ring numbers by tolerant matches inside itself when the strict query only finds its sibling (D-372), a ring assembly brackets a component OPSIN cannot read behind bi (D-373) and parses an added hydrogen after its attachment locant (D-374)"
+scope = "core"
+owner = "namer"
+
+[[consumer]]
+file = "tests/test_namer_round81_ring_pairs_n_linked_purines_added_hydrogen_and_bi_assemblies.py"
+why = "a purine joined through a ring nitrogen takes that nitrogen as its indicated hydrogen (D-367), the added hydrogen of a ring ketone follows the substituted nitrogen (D-368), a ring assembly brackets an indicated-hydrogen fusion component (D-369) and a nucleobase's retained substituent form applies to a ring attachment only (D-370)"
+scope = "core"
+owner = "namer"
+
+[[consumer]]
+file = "tests/test_namer_round80_ring_as_substituent_oxo_forms_cation_esters_and_a_fusion_label.py"
+why = "a ring ketone cited as a substituent says its oxo prefixes before the ring's hydrogens (D-364), a ring O/S/Se/Te cation outranks an ester (D-365) and the curated octahydropyrrolo[3,4-b]pyridine labels its fusion carbon 4a (D-366)"
+scope = "core"
+owner = "namer"
+
+[[consumer]]
+file = "tests/test_namer_round79_ring_table_scans_bridged_parents_oxo_on_cations_and_missing_locants.py"
+why = "a ring alcohol on a bridged fusion parent keeps the hydro parent's own text (D-361), an oxo prefix on a ring cation is said with hydro prefixes (D-362) and the 3H-pyrrolo[2,3-d]pyrimidine entry numbers its pyrrole nitrogen 7 (D-363)"
+scope = "core"
+owner = "namer"
+
+[[consumer]]
+file = "tests/test_namer_round78_hydro_polycycles_interior_atoms_and_the_ring_table_fusion_labels.py"
+why = "an interior atom of a peri-fused system is written in the CAS letter form OPSIN reads (D-355), the ring table's fusion-atom labels are the ones OPSIN reads (D-356 .. D-359) and a hydro prefix before a selenium or tellurium parent takes a hyphen (D-360)"
+scope = "core"
+owner = "namer"
+
+[[consumer]]
+file = "tests/test_namer_round77_ring_atom_scan_naphthyridine_components_and_multiparent_fusion.py"
+why = "the six naphthyridines are fusion components (D-351), two occurrences of the parent joined by one component get a multiparent name (D-352), a von Baeyer name cites the aromatic bonds as enes (D-353) and a fusion descriptor never cites one label twice (D-354)"
+scope = "core"
+owner = "namer"
+
+[[consumer]]
+file = "tests/test_namer_round76_diamide_n_locants_and_groups_a_parent_cannot_take.py"
+why = "a lone N-substituent on a later amide of a diamide cites its position (D-344), two thioic S-acids, a carbamate beside an acid and a nitro on an imidoyl carbon are not the groups a plan may take (D-345 .. D-347), and an acylamino on an oxygen, a hydrotrioxide and a compound acyl prefix after a locant are spelled where OPSIN reads them (D-348 .. D-350)"
+scope = "core"
+owner = "namer"
+
+[[consumer]]
 file = "tests/test_namer_round75_thio_and_seleno_acid_groups_in_prefixes_and_thioester_organyls.py"
 why = "a sulfonothioyl, sulfonoselenoyl, selenonyl or telluronyl group is a prefix (D-340, D-341), a carboselenoate has its own group (D-342), and an S- or O-ester's organyl is enclosed where OPSIN cannot read it bare (D-343)"
 scope = "core"

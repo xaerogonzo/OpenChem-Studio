@@ -1,0 +1,12 @@
+{
+ "paper": "huang2019_fungal_hsp90",
+ "decision": "excluded",
+ "exclusion_reason": "no_lead_identifiable",
+ "exclusion_detail": "Abstract names no best compound (a library of ~130 aminopyrazole resorcylate amides). The text names groups, not one compound: 'six lead compounds' (SPR), fungal-selective sets 112-114 and 130-132, 106 as the only single-agent C. neoformans inhibitor below 10 uM, 130 as best with fluconazole; no single follow-up compound. In any case every compound goes through acid 12 (4 steps from aryl bromide 11) plus esterification, Pd amination, hydrolysis, amidation and MOM removal, i.e. about 9 reactions, so a lead would exceed 4 steps.",
+ "lead": {"label": "none", "why": "Abstract: 'a series of synthetic aminopyrazole-substituted resorcylate amides with broad, potent, and fungal-selective Hsp90 inhibitory activity'; no single compound identified."},
+ "target": null,
+ "reactions": [],
+ "alt_variants": [],
+ "other_qualifying_compounds": [],
+ "notes": "No SI text was available; the article's Scheme 1/3 conditions were read but the experimental section was not transcribed because of the exclusion. Second-generation route (Scheme 3): 11 -> (formylation, BBr3, MOMCl, Pinnick) -> 12 -> methyl ester 17 -> Pd coupling with aminopyrazole 10 -> KOH -> amide coupling -> HCl/MeOH."
+}

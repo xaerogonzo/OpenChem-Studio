@@ -1,0 +1,12 @@
+{
+ "paper": "li2024_sulfonium_lipids_preprint",
+ "decision": "excluded",
+ "exclusion_reason": "route_not_explicit",
+ "exclusion_detail": "The abstract names no lead (12 lipids A1-A12; A9-A12 'worthy of further investigation'); the only follow-up compound is A9 (cellular uptake), but the paper contradicts itself on what A9 is: Table 1 and the text give A9 as the C16 chain with m=2 (triethylene glycol) tetrahydrothiophenium, while the experimental section prepares A9 from Q5 = dodecyl, tetraethylene glycol (and the C16 triethylene glycol compound is A5). The identity of the lead cannot be fixed without guessing.",
+ "lead": {"label": "A9 (by rule 2: the compound used in the fluorescence uptake experiment)", "why": "Abstract names no single best compound; 'SL/DNA nano particle was taken into the cell at low efficiency' and the Results use A9/Cy5-eGFP for the cellular-uptake experiment."},
+ "target": null,
+ "reactions": [],
+ "alt_variants": [],
+ "other_qualifying_compounds": ["A1", "A2"],
+ "notes": "Every A compound is a 3-step route (mono-alkylation of oligo(ethylene glycol) with alkyl iodide using NaH; ethanesulfonyl chloride then NaI to the iodide Q; AgBF4-promoted S-alkylation of tetrahydrothiophene/tetrahydrothiopyran with Cl- exchange) with procedures given, but P and Q are 'used without characterization'. Only A1 and A2 (nonyl, triethylene glycol) have Table 1 and the experimental section in agreement; for A3-A12 the Table 1 assignments (e.g. P2/Q2 = C9, m=3) disagree with the experimental headings (Q2 = dodecyl, triethylene glycol). Also the text says 'A9-A12 with 16 aliphatic carbons' whereas the experimental A9/A10 are dodecyl."
+}

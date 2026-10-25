@@ -1,0 +1,12 @@
+{
+ "paper": "alkorbi2024_indole_thiazole_hybrids",
+ "decision": "excluded",
+ "exclusion_reason": "route_not_explicit",
+ "exclusion_detail": "The lead 4b is a one-pot three-component reaction of thiosemicarbazide, 5-chloroisatin and bromoketone 3, but the paper gives contradictory structures for 3 (abstract: N-(4-(2-bromoacetyl)phenyl)-4-tolylsulfonamide, i.e. tosyl on the anilide N; results/experimental: 4-(bromoacetyl)-N-(4-methylphenyl)benzenesulfonamide, i.e. p-tolyl on the sulfonamide N) and the product names (N-phenyl-4-tolylsulfonamide) match neither; 3 is neither stated to be purchased nor prepared, and no scheme structures are readable in the text.",
+ "lead": {"label": "4b", "why": "Abstract: 'The target compound 4b was the most active anti-inflammatory candidate and exhibited higher edema inhibition (EI = 38.50 %) than celecoxib'"},
+ "target": null,
+ "reactions": [],
+ "alt_variants": [],
+ "other_qualifying_compounds": [],
+ "notes": "All of 4a-f share the same unexplained reagent 3, so no compound qualifies. Isomer ambiguity cannot be resolved from the formulas (both isomers give the same molecular formula C24H18ClN5O3S2 for 4b). Preprint (Research Square) version, no SI."
+}

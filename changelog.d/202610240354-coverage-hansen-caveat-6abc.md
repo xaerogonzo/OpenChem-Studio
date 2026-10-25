@@ -1,0 +1,2 @@
+### The Hansen row says "With limits" for a structure it now computes outside its stated domain
+- Hansen no longer refuses fewer than three carbons: it computes and labels the result as outside the paper's stated domain. The structure-coverage hook (`chem/coverage_hooks.py`) reads that same label off `fragment`, so the row reads `△ With limits` and its tooltip quotes the sentence the numbers will carry, instead of the `Not applicable` it showed while that was a refusal.

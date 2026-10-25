@@ -267,7 +267,7 @@ def test_a_mole_per_litre_of_aspirin_is_180_mg_per_ml():
     """**THE ANTI-1000x GUARD.** One mol/L of a 180.16 g/mol compound is
     180.16 g/L, and a g/L IS a mg/mL. A review of the plan proposed
     dividing by 1000 here; that would make this 0.18, and would drop
-    aspirin from ChemAxon's published High to Low.
+    aspirin from the vendor's published High to Low.
     """
     assert logs_to_mg_per_ml(0.0, 180.16) == pytest.approx(180.16)
     assert logs_to_mol_per_l(0.0) == pytest.approx(1.0)
@@ -289,7 +289,7 @@ def test_a_conversion_with_no_molecular_weight_refuses():
 # --- categories --------------------------------------------------------
 
 
-def test_the_category_boundaries_fall_exactly_where_chemaxon_documents():
+def test_the_category_boundaries_fall_exactly_where_vendor_documents():
     """Both published numbers, at the value itself rather than near it."""
     assert intrinsic_category(LOW_MODERATE_BOUNDARY_MG_PER_ML - 1e-9) is SolubilityCategory.LOW
     assert intrinsic_category(LOW_MODERATE_BOUNDARY_MG_PER_ML) is SolubilityCategory.MODERATE
@@ -297,7 +297,7 @@ def test_the_category_boundaries_fall_exactly_where_chemaxon_documents():
     assert intrinsic_category(MODERATE_HIGH_BOUNDARY_MG_PER_ML + 1e-9) is SolubilityCategory.HIGH
 
 
-def test_aspirin_lands_in_the_category_chemaxon_publishes_for_it():
+def test_aspirin_lands_in_the_category_vendor_publishes_for_it():
     """Their own worked example: -1.81 logS is 2.79 mg/mL, reported High.
     Ours is a different baseline (-2.09) and must still be High, which is
     what says the threshold is being read on the right scale."""
@@ -629,11 +629,19 @@ def test_a_neutral_molecule_gets_a_flat_curve_rather_than_a_failure():
     assert "does not vary" in chart.title
 
 
-def test_an_ampholyte_is_refused_with_the_reason_named():
+def test_an_ampholyte_gets_its_intrinsic_estimate_and_no_ph_profile_with_the_reason_named():
+    """Was refused whole. The intrinsic estimate does not depend on Henderson-Hasselbalch, so it is shown; the pH profile, the value at a
+    pH and the BCS screen all do, and for a zwitterion they would be another compound's curve, so they are withheld and the row says why
+    (Alex, 2026-10-23: an edge is a warning, but what would mislead is still not shown)."""
     report = compute_solubility(mol(GLYCINE), "u", {})
-    assert report.error
-    assert "ampholyte" in report.error
-    assert "zwitterion" in report.error.lower()
+    assert report.cache_state is CacheState.COMPLETED and not report.error
+    labels = [fact.label for fact in report.facts]
+    assert labels[0] == "pH profile" and "ampholyte" in report.facts[0].display_value
+    assert any("zwitterion" in item.lower() for item in report.facts[0].evidence)
+    assert not report.charts, "no curve for an ampholyte: HH would draw a different compound's"
+    screen = next(fact for fact in report.facts if fact.label == "BCS high-solubility screening estimate")
+    assert "ampholyte" in screen.display_value
+    assert "AMPHOLYTE" in report.limitations[0] and "caveat" in report.provenance.parameters
 
 
 def test_a_salt_is_refused_and_told_to_draw_the_parent():

@@ -1,0 +1,47 @@
+{
+ "paper": "subbaiah2019_atazanavir_prodrugs",
+ "decision": "route",
+ "exclusion_reason": null,
+ "exclusion_detail": "",
+ "lead": {"label": "74 (L-Phe-Sar-1)", "why": "Abstract: 'culminated in the discovery of the self-immolative L-Phe-Sar dipeptide derivative 74 that gave four-fold improved AUC and eight-fold higher Ctrough values of 1'."},
+ "target": {"name": "(5S,10S,11S,14S)-11-Benzyl-5,14-di-tert-butyl-3,6,13,16-tetraoxo-8-(4-(pyridin-2-yl)benzyl)-2,17-dioxa-4,7,8,12,15-pentaazaoctadecan-10-yl 2-((S)-2-Amino-N-methyl-3-phenylpropanamido)acetate, Dihydrochloride",
+            "smiles": "CC(C)(C)[C@@H](C(=O)N[C@@H](Cc1ccccc1)[C@H](CN(Cc1ccc(cc1)-c1ccccn1)NC(=O)[C@H](C(C)(C)C)NC(=O)OC)OC(=O)CN(C)C(=O)[C@H](Cc1ccccc1)N)NC(=O)OC.Cl.Cl"},
+ "reactions": [
+  {"step": 1,
+   "product": {"label": "35 (Boc-Sar-1)", "name": "(5S,10S,11S,14S)-11-Benzyl-5,14-di-tert-butyl-3,6,13,16-tetraoxo-8-(4-(pyridin-2-yl)benzyl)-2,17-dioxa-4,7,8,12,15-pentaazaoctadecan-10-yl 2-((tert-Butoxycarbonyl)(methyl)amino)acetate",
+               "smiles": "CC(C)(C)[C@@H](C(=O)N[C@@H](Cc1ccccc1)[C@H](CN(Cc1ccc(cc1)-c1ccccn1)NC(=O)[C@H](C(C)(C)C)NC(=O)OC)OC(=O)CN(C)C(=O)OC(C)(C)C)NC(=O)OC"},
+   "reactants": [
+     {"label": "1 (atazanavir)", "name": "atazanavir", "smiles": "CC(C)(C)[C@@H](C(=O)N[C@@H](Cc1ccccc1)[C@H](CN(Cc1ccc(cc1)-c1ccccn1)NC(=O)[C@H](C(C)(C)C)NC(=O)OC)O)NC(=O)OC", "origin": "commercial"},
+     {"label": "Boc-Sar-OH", "name": "2-((tert-Butoxycarbonyl)(methyl)amino)acetic acid", "smiles": "CN(CC(=O)O)C(=O)OC(C)(C)C", "origin": "commercial"}],
+   "conditions": "Boc-Sar-OH (2 equiv), DMAP (1 equiv), DCC (2 equiv), CH2Cl2, rt, overnight; prep HPLC; 64%",
+   "source": "Experimental Section, compound 35 (main article p. R-S); Scheme 3 (general step a)"},
+  {"step": 2,
+   "product": {"label": "45 (Sar-1)", "name": "(5S,10S,11S,14S)-11-Benzyl-5,14-di-tert-butyl-3,6,13,16-tetraoxo-8-(4-(pyridin-2-yl)benzyl)-2,17-dioxa-4,7,8,12,15-pentaazaoctadecan-10-yl 2-(Methylamino)acetate Dihydrochloride",
+               "smiles": "CC(C)(C)[C@@H](C(=O)N[C@@H](Cc1ccccc1)[C@H](CN(Cc1ccc(cc1)-c1ccccn1)NC(=O)[C@H](C(C)(C)C)NC(=O)OC)OC(=O)CNC)NC(=O)OC.Cl.Cl"},
+   "reactants": [
+     {"label": "35", "name": "(5S,10S,11S,14S)-11-Benzyl-5,14-di-tert-butyl-3,6,13,16-tetraoxo-8-(4-(pyridin-2-yl)benzyl)-2,17-dioxa-4,7,8,12,15-pentaazaoctadecan-10-yl 2-((tert-Butoxycarbonyl)(methyl)amino)acetate",
+      "smiles": "CC(C)(C)[C@@H](C(=O)N[C@@H](Cc1ccccc1)[C@H](CN(Cc1ccc(cc1)-c1ccccn1)NC(=O)[C@H](C(C)(C)C)NC(=O)OC)OC(=O)CN(C)C(=O)OC(C)(C)C)NC(=O)OC", "origin": "made_here"}],
+   "conditions": "4 N HCl in dioxane, 0 C to rt, 2 h; Boc removal; 19%. HCl supplies the chloride counter-ions only.",
+   "source": "Experimental Section, compound 45; Scheme 3 (step b)"},
+  {"step": 3,
+   "product": {"label": "79", "name": "(5S,10S,11S,14S)-11-Benzyl-5,14-di-tert-butyl-3,6,13,16-tetraoxo-8-(4-(pyridin-2-yl)benzyl)-2,17-dioxa-4,7,8,12,15-pentaazaoctadecan-10-yl 2-((S)-2-((tert-Butoxycarbonyl)amino)-N-methyl-3-phenylpropanamido)acetate",
+               "smiles": "CC(C)(C)[C@@H](C(=O)N[C@@H](Cc1ccccc1)[C@H](CN(Cc1ccc(cc1)-c1ccccn1)NC(=O)[C@H](C(C)(C)C)NC(=O)OC)OC(=O)CN(C)C(=O)[C@H](Cc1ccccc1)NC(=O)OC(C)(C)C)NC(=O)OC"},
+   "reactants": [
+     {"label": "45", "name": "(5S,10S,11S,14S)-11-Benzyl-5,14-di-tert-butyl-3,6,13,16-tetraoxo-8-(4-(pyridin-2-yl)benzyl)-2,17-dioxa-4,7,8,12,15-pentaazaoctadecan-10-yl 2-(Methylamino)acetate Dihydrochloride",
+      "smiles": "CC(C)(C)[C@@H](C(=O)N[C@@H](Cc1ccccc1)[C@H](CN(Cc1ccc(cc1)-c1ccccn1)NC(=O)[C@H](C(C)(C)C)NC(=O)OC)OC(=O)CNC)NC(=O)OC.Cl.Cl", "origin": "made_here"},
+     {"label": "Boc-L-Phe-OH", "name": "(S)-2-((tert-Butoxycarbonyl)amino)-3-phenylpropanoic acid", "smiles": "OC(=O)[C@H](Cc1ccccc1)NC(=O)OC(C)(C)C", "origin": "commercial"}],
+   "conditions": "Boc-Phe-OH (2 equiv), HATU (1.5 equiv), DIPEA (5 equiv), DMF (scheme caption says CH2Cl2), rt, 8 h; prep HPLC; 81%",
+   "source": "Experimental Section, compound 79; Scheme 8 (step b)"},
+  {"step": 4,
+   "product": {"label": "74 (L-Phe-Sar-1)", "name": "(5S,10S,11S,14S)-11-Benzyl-5,14-di-tert-butyl-3,6,13,16-tetraoxo-8-(4-(pyridin-2-yl)benzyl)-2,17-dioxa-4,7,8,12,15-pentaazaoctadecan-10-yl 2-((S)-2-Amino-N-methyl-3-phenylpropanamido)acetate, Dihydrochloride",
+               "smiles": "CC(C)(C)[C@@H](C(=O)N[C@@H](Cc1ccccc1)[C@H](CN(Cc1ccc(cc1)-c1ccccn1)NC(=O)[C@H](C(C)(C)C)NC(=O)OC)OC(=O)CN(C)C(=O)[C@H](Cc1ccccc1)N)NC(=O)OC.Cl.Cl"},
+   "reactants": [
+     {"label": "79", "name": "(5S,10S,11S,14S)-11-Benzyl-5,14-di-tert-butyl-3,6,13,16-tetraoxo-8-(4-(pyridin-2-yl)benzyl)-2,17-dioxa-4,7,8,12,15-pentaazaoctadecan-10-yl 2-((S)-2-((tert-Butoxycarbonyl)amino)-N-methyl-3-phenylpropanamido)acetate",
+      "smiles": "CC(C)(C)[C@@H](C(=O)N[C@@H](Cc1ccccc1)[C@H](CN(Cc1ccc(cc1)-c1ccccn1)NC(=O)[C@H](C(C)(C)C)NC(=O)OC)OC(=O)CN(C)C(=O)[C@H](Cc1ccccc1)NC(=O)OC(C)(C)C)NC(=O)OC", "origin": "made_here"}],
+   "conditions": "4 N HCl in dioxane, 0 C to rt, 1 h; Boc removal; 98%",
+   "source": "Experimental Section, compound 74; Scheme 8 (step c)"}
+ ],
+ "alt_variants": [],
+ "other_qualifying_compounds": null,
+ "notes": "Atazanavir (1) is the parent drug used as received; the experimental text gives no purchase statement for it (the SI 'details of materials' was not available to me), so its origin 'commercial' is an assumption. Product names are the paper's long von Baeyer-style names and may not parse in OPSIN; the dihydrochloride is written as '.Cl.Cl'. The neutral parent ester without HCl is the same skeleton. Stereo (S at Tle x2, Phe-derived C, carbinol C) was checked by hand against the printed 5S,10S,11S,14S descriptors. Text says Sar prodrug 45 is made from 35 (Boc-Sar-1) in Scheme 3 and reused in Scheme 8; counted 4 reactions. Scheme 8 caption names DMF-less CH2Cl2 for HATU coupling whereas the procedure says DMF; the procedure is used."
+}

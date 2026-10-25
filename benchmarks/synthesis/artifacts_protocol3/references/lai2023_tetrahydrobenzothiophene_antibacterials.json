@@ -1,0 +1,37 @@
+{
+ "paper": "lai2023_tetrahydrobenzothiophene_antibacterials",
+ "decision": "route",
+ "exclusion_reason": null,
+ "exclusion_detail": "",
+ "lead": {"label": "3b", "why": "Abstract: 'In particular, compound 3b showed excellent activity with an MIC value of 1.11 uM against E. coli, 1.00 uM against P. aeruginosa, 0.54 uM against Salmonella, and 1.11 uM against S. aureus. ... a promising lead compound was identified'."},
+ "target": {"name": "2-(2-Iodobenzamido)-6-methyl-4,5,6,7-tetrahydrobenzo[b]thiophene-3-carboxylic acid", "smiles": "OC(=O)c1c(NC(=O)c3ccccc3I)sc2CC(C)CCc12"},
+ "reactions": [
+  {"step": 1,
+   "product": {"label": "1 (6-methyl member of 1a-1b)", "name": "", "smiles": "CCOC(=O)c1c(N)sc2CC(C)CCc12"},
+   "reactants": [
+    {"label": "4-methylcyclohexanone", "name": "", "smiles": "CC1CCC(=O)CC1", "origin": "commercial"},
+    {"label": "ethyl cyanoacetate", "name": "ethyl cyanoacetate", "smiles": "CCOC(=O)CC#N", "origin": "commercial"},
+    {"label": "sulfur", "name": "sulfur", "smiles": "[S]", "origin": "reagent"}
+   ],
+   "conditions": "Gewald reaction: cyclohexanone derivative (0.1 mol), ethyl cyanoacetate (0.12 mol), morpholine (0.15 mol), sulfur (0.12 mol), EtOH (100 mL), 80 C, 1 h; brine wash, column (hexane/EtOAc 20/1). Scheme 1 step (a): 82 %.",
+   "source": "Section 3, General procedure for the synthesis of compounds 1a-1b; Scheme 1(a), main article"},
+  {"step": 2,
+   "product": {"label": "2 (2-iodobenzoyl amide ester)", "name": "", "smiles": "CCOC(=O)c1c(NC(=O)c3ccccc3I)sc2CC(C)CCc12"},
+   "reactants": [
+    {"label": "1", "name": "", "smiles": "CCOC(=O)c1c(N)sc2CC(C)CCc12", "origin": "made_here"},
+    {"label": "2-iodobenzoyl chloride", "name": "", "smiles": "O=C(Cl)c1ccccc1I", "origin": "commercial"}
+   ],
+   "conditions": "1 (1 g, 4.45 mmol), Et3N (6.67 mmol), dry DCM (10 mL), 0 C; benzoyl chloride derivative (6.67 mmol) added slowly, rt, 2 h; washed with 10 % HCl, 10 % NaHCO3, brine; used without purification. Scheme 1(b): 62 %.",
+   "source": "Section 3, General procedure for the synthesis of compounds 2a-2r; Scheme 1(b), main article"},
+  {"step": 3,
+   "product": {"label": "3b", "name": "2-(2-Iodobenzamido)-6-methyl-4,5,6,7-tetrahydrobenzo[b]thiophene-3-carboxylic acid", "smiles": "OC(=O)c1c(NC(=O)c3ccccc3I)sc2CC(C)CCc12"},
+   "reactants": [
+    {"label": "2", "name": "", "smiles": "CCOC(=O)c1c(NC(=O)c3ccccc3I)sc2CC(C)CCc12", "origin": "made_here"}
+   ],
+   "conditions": "2 (1 g) in EtOH (10 mL), 1 M NaOH (20 mL), 80 C, 2 h; acidified with 1 M HCl to pH 2-3, extracted with EtOAc, column (hexane/EtOAc 10/1). Yield of 3b 35.6 % (Scheme 1(c) says 95 % for the step in general).",
+   "source": "Section 3, General procedure for the synthesis of compounds 3a-3r and the entry for 3b; Scheme 1(c), main article"}
+ ],
+ "alt_variants": [],
+ "other_qualifying_compounds": null,
+ "notes": "The general procedures use 'cyclohexanone derivatives' and 'benzoyl chloride derivative' without naming the ones used for 3b; they are inferred from the product name (6-methyl from 4-methylcyclohexanone via the Gewald numbering; 2-iodobenzamido from 2-iodobenzoyl chloride) and leave no doubt. Intermediates 1 and 2 have no individual name or entry; the paper only gives their general descriptions (ethyl 2-amino-4,5,6,7-tetrahydrobenzo[b]thiophene-3-carboxylate derivatives), so the names are left empty. The text mentions '1a-1b' and '2a-2f' / '2a-2r' inconsistently; this does not affect 3b. The Gewald step has a citation [20, 28] but a full procedure is given in this paper. No SI in the bundle (ESI exists but is not needed). Racemic (stereocentre at C6 not specified)."
+}

@@ -1,0 +1,18 @@
+{
+ "paper": "trefzger2019_nitrofuran_isoxazoles",
+ "my_lead": "14p - abstract: 'with emphasis on compound 14p, which showed strong activity against the amastigote form (IC50 = 0.6 uM)' and 'active against all the strains tested'",
+ "lead_agrees": true,
+ "reactions": [
+  {"step": 1, "ok": true, "issue": "5-nitrofuraldehyde 15 + NH2OH.HCl/NaOH, H2O/EtOH, rt 3 h, 80% -> oxime (Scheme 1a). Only a scheme line; no experimental procedure and the oxime is unnamed/unlabelled in the text; ref. 28 cited for the sequence. NaOH correctly not listed."},
+  {"step": 2, "ok": true, "issue": "oxime + NCS, DMF, 60 C, 2 h, 78% -> '5-nitrofuraldehyde chloro-oxime 17' (Scheme 1b). Same caveat: scheme-only. NCS supplies Cl, correctly listed."},
+  {"step": 3, "ok": true, "issue": "chloro-oxime 17 (2 mmol) + terminal acetylene (2.2 mmol, 1.1 equiv), CuSO4.5H2O/Na ascorbate/KHCO3, THF/CH2Cl2, rt 48 h; Table 1 gives 14p = -CH2Cl, 68%, recrystallised from EtOH; Experimental entry '5-(Chloromethyl)-3-(5-nitrofuran-2-yl)isoxazole (14p)' 68%. Acetylene for CH2Cl is propargyl chloride: correct. Catalyst/base not listed: correct."}
+ ],
+ "leaf_issues": [
+  "5-nitrofuraldehyde (15): the paper never says it is purchased ('synthesized from 5-nitrofuraldehyde 15 in two steps'); support is only the general sentence 'All chemicals used for synthesis were of reagent grade and used without purification unless noted otherwise'. It is a common catalogue chemical, so 'commercial' is plausible but is inferred.",
+  "propargyl chloride (22p): supported by 'Alkyl- and chloroalkyl-substituted acetylenes 22k-q and 22s were obtained as commercially available reagents' (the acetylene numbering in Table 1 vs the text is slightly inconsistent for 22r, but 22p/CH2Cl is within 22k-q)."
+ ],
+ "step_count_ok": true,
+ "smiles_issues": [],
+ "overall": "minor_issues",
+ "notes": "Target SMILES ClCc1cc(no1)-c1ccc(o1)[N+](=O)[O-] = 5-(chloromethyl)-3-(5-nitrofuran-2-yl)isoxazole: nitrofuran on C3, CH2Cl on C5, matches the printed name; regiochemistry (nitrile oxide + terminal alkyne -> 3,5-disubstituted) as in the paper's title. Intermediates 16 (oxime) and 17 SMILES are right. Hydroxylamine listed as free 'NO' although used as the hydrochloride: fine. Three reactions from commercial. Flags: (a) steps 1-2 have no experimental text, only Scheme 1 conditions and yields with ref. 28; (b) 5-nitrofuraldehyde purchase is not stated explicitly (only the general reagent-grade sentence). 14o and 14g are also highlighted in the abstract (14o most active antifungal on C. parapsilosis; 14g best SI), so a second co-lead is arguable, but 14p is the 'emphasis' compound."
+}

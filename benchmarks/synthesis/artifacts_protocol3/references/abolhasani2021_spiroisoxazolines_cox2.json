@@ -1,0 +1,44 @@
+{
+ "paper": "abolhasani2021_spiroisoxazolines_cox2",
+ "decision": "route",
+ "exclusion_reason": null,
+ "exclusion_detail": "",
+ "lead": {"label": "9f", "why": "Abstract: 'compound 9f, which possesses 3,4-dimethoxyphenyl on C-3' carbon atom of isoxazoline ring, exhibited the highest COX-2 inhibitory activity, and also displayed the most potent cytotoxicity on MCF-7 cells (IC50 0.03 uM)'; also the compound used for apoptosis/Bax/Bcl-2/caspase-3 and docking/MD follow-up."},
+ "target": {"name": "3'-(3,4-dimethoxyphenyl)-4'-(4-(methylsulfonyl)phenyl)-4'H-spiro[indene-2,5'-isoxazol]-1(3H)-one", "smiles": "COc1ccc(cc1OC)C1=NOC2(Cc3ccccc3C2=O)C1c1ccc(cc1)S(C)(=O)=O"},
+ "reactions": [
+  {"step": 1,
+   "product": {"label": "5", "name": "2-(4-(Methylthio)benzylidene)-2,3-dihydro-1H-inden-1-one", "smiles": "CSc1ccc(C=C2Cc3ccccc3C2=O)cc1"},
+   "reactants": [
+    {"label": "3", "name": "2,3-dihydro-1H-inden-1-one", "smiles": "O=C1CCc2ccccc12", "origin": "commercial"},
+    {"label": "4", "name": "4-methylthiobenzaldehyde", "smiles": "CSc1ccc(C=O)cc1", "origin": "commercial"}
+   ],
+   "conditions": "Aldol (Claisen-Schmidt) condensation: NaOH (2.5 equiv), MeOH, ambient temperature, 3 h; solid filtered, recrystallised from MeOH; 87%.",
+   "source": "Section 4.1.1-4.1.2, main article p.9"},
+  {"step": 2,
+   "product": {"label": "6", "name": "2-(4-(Methylsulfonyl)benzylidene)-2,3-dihydroinden-1(2H)-one", "smiles": "CS(=O)(=O)c1ccc(C=C2Cc3ccccc3C2=O)cc1"},
+   "reactants": [
+    {"label": "5", "name": "2-(4-(Methylthio)benzylidene)-2,3-dihydro-1H-inden-1-one", "smiles": "CSc1ccc(C=C2Cc3ccccc3C2=O)cc1", "origin": "made_here"}
+   ],
+   "conditions": "Oxone (5 g per 1 g), THF/water, ambient temperature, 2 h; extracted CHCl3, washed 10% NaHCO3; 89%. Oxidant supplies the two O atoms (sulfide to sulfone) but is a bulk oxidant, not listed as reactant.",
+   "source": "Section 4.1.3-4.1.4"},
+  {"step": 3,
+   "product": {"label": "8f", "name": "3,4-Dimethoxybenzaldehyde oxime", "smiles": "COc1ccc(C=NO)cc1OC"},
+   "reactants": [
+    {"label": "7f", "name": "3,4-dimethoxybenzaldehyde", "smiles": "COc1ccc(C=O)cc1OC", "origin": "commercial"},
+    {"label": "NH2OH.HCl", "name": "hydroxylamine hydrochloride", "smiles": "NO", "origin": "reagent"}
+   ],
+   "conditions": "NH2OH.HCl (4 g per 1 g aldehyde), 10% aq NaOH, 95% EtOH, 60 then 70 C reflux, 2 h; acidified with 6 M HCl, solid filtered; 57% for 8f.",
+   "source": "Section 4.1.5 and 4.1.11 (general procedure for 8a-8g; 7a-7g stated commercially available)"},
+  {"step": 4,
+   "product": {"label": "9f", "name": "3'-(3,4-dimethoxyphenyl)-4'-(4-(methylsulfonyl)phenyl)-4'H-spiro[indene-2,5'-isoxazol]-1(3H)-one", "smiles": "COc1ccc(cc1OC)C1=NOC2(Cc3ccccc3C2=O)C1c1ccc(cc1)S(C)(=O)=O"},
+   "reactants": [
+    {"label": "6", "name": "2-(4-(Methylsulfonyl)benzylidene)-2,3-dihydroinden-1(2H)-one", "smiles": "CS(=O)(=O)c1ccc(C=C2Cc3ccccc3C2=O)cc1", "origin": "made_here"},
+    {"label": "8f", "name": "3,4-Dimethoxybenzaldehyde oxime", "smiles": "COc1ccc(C=NO)cc1OC", "origin": "made_here"}
+   ],
+   "conditions": "In situ nitrile oxide (oxime + 5% NaOCl, aq/CHCl3, -10 to -5 C, dropwise over 20 min, then 1-2 h at rt) and 1,3-dipolar cycloaddition onto the exocyclic alkene of 6; recrystallised from MeOH; 42%.",
+   "source": "Section 4.1.13-4.1.14 (9f entry); Scheme 1 step (d)"}
+ ],
+ "alt_variants": [],
+ "other_qualifying_compounds": null,
+ "notes": "Regiochemistry (aryl nitrile oxide carbon bonded to the CH(Ar) carbon; O bonded to the spiro carbon) taken from the compound name 'spiro[indene-2,5'-isoxazol]' with 3'-aryl and 4'-(methylsulfonylphenyl). The paper notes 9f/9g were reported previously (ref 26) but this paper gives the full procedure. Two name variants printed for 9f (4'H-spiro[indene-2,5'-isoxazol]-1(3H)-one in text, 4'H-spiro[isoxazole-5',2-inden]-1-one in experimental). Racemic, no stereo stated. Oxime 8f yield 57% given as per list."
+}

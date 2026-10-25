@@ -1,0 +1,18 @@
+{
+ "paper": "abdellatif2018_thioxoimidazolidinones",
+ "my_lead": "11c and 11f (co-named): abstract says 11c and 11f 'were the most potent among all compounds' and both were used for docking and the topo I assay",
+ "lead_agrees": "co-named",
+ "reactions": [
+  {"step": 1, "ok": true, "issue": "DL-alanine + phenyl isothiocyanate, KOH aq/EtOH reflux 3 h then conc. HCl reflux 2 h -> 9a (95%, Sect 2.1.1). Thiohydantoin SMILES correct (N3-phenyl between C=S and C=O, C5-methyl next to N1-H). KOH/HCl omitted correctly."},
+  {"step": 2, "ok": true, "issue": "9a + piperidine + formalin (Mannich), EtOH reflux 5-8 h -> 10c (83%, Sect 2.1.2). Formaldehyde supplies the CH2 and is correctly listed, but its origin is 'reagent' (see leaf_issues). The paper's own claim (NMR: CH quartet disappears, NH retained) puts the aminomethyl on C5; SMILES follows the paper."},
+  {"step": 3, "ok": true, "issue": "10c + MeI in 2% ethanolic KOH, rt 12 h -> 11c (71%, Sect 2.1.3). S-methylation; SMILES gives the 2-(methylthio)-imidazol-4-one C2=N1 form, consistent with the reported 13C data (160.41 C=N, 183.41 C=O, 74.27 quaternary C5), although the paper's name says '4-imidazolidinone'."}
+ ],
+ "leaf_issues": [
+  "Formaldehyde (formalin 30%) and methyl iodide are given origin 'reagent', a non-standard category in the schema: both incorporate atoms (CH2 and S-CH3) so they are real reactants and should be 'commercial'.",
+  "Support for all leaves is the single general sentence in Sect 2.1: 'All other reagents, purchased from the Aldrich Chemical Company (Milwaukee, WI), were used without further purification.' No piperidine-specific sentence; DL-alanine is named in the procedure (compound 7), phenyl isothiocyanate as 8a (named only as 'arylisothiocyanate 8a-b' in the procedure; the structure of 8a is R = H from the scheme legend)."
+ ],
+ "step_count_ok": true,
+ "smiles_issues": [],
+ "overall": "minor_issues",
+ "notes": "Route stands (3 steps from DL-alanine/PhNCS/piperidine). Edits: change origin 'reagent' to 'commercial' for formaldehyde and MeI. 11c is racemic (DL-alanine; the quaternary C5 stereocentre is not controlled). Minor paper inconsistency: Results text says 9a/9b were 94/95% (order swapped relative to the Experimental, where 9a = 95%); irrelevant to the route. Co-lead 11f follows the identical route from p-tolyl isothiocyanate (9b -> 10f 60% -> 11f 83%)."
+}

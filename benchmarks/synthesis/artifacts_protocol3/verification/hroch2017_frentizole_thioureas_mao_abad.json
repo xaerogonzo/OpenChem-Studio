@@ -1,0 +1,24 @@
+{
+ "paper": "hroch2017_frentizole_thioureas_mao_abad",
+ "my_lead": "19 - abstract: 'The most promising compound (19) inhibited human MAO-A and MAO-B'",
+ "lead_agrees": true,
+ "reactions": [
+  {
+   "step": 1,
+   "ok": true,
+   "issue": "1H-indol-5-amine + CS2 (10 eq, Et3N) then Boc2O/DMAP -> indol-5-yl isothiocyanate; CS2 supplies C and S so listing it is right; Et3N, Boc2O, DMAP correctly omitted. Section 5.1.2 states the 'reverse process' (indole isothiocyanate first) was used for the free-phenol thioureas, explicitly including 19."
+  },
+  {
+   "step": 2,
+   "ok": true,
+   "issue": "Isothiocyanate + aryl amine (1 mmol each, DCM, rt, 20 h) -> 19, 38% (section 5.1.4 + characterisation of 19). Product SMILES matches the printed name (indol-5-yl, 4-chloro-2-hydroxyphenyl)."
+  }
+ ],
+ "leaf_issues": [
+  "The aryl amine is never named in the text; 2-amino-5-chlorophenol is deduced from the printed product name (4-chloro-2-hydroxyphenyl attached through N) - the deduction is unambiguous. Support for 'commercial': 'All reagents and solvents were purchased from commercial sources (Sigma Aldrich, Merck)' (5.1.1). Indol-5-amine is likewise covered only by that general sentence."
+ ],
+ "step_count_ok": true,
+ "smiles_issues": [],
+ "overall": "confirmed",
+ "notes": "Isothiocyanate is used crude without isolation ('used in next step without further purification'), so the two steps are sequential, not a one-pot; still 2 steps. No natural-source or doubled reagents. SMILES ring/substituent positions checked by hand: indol-5-yl and Nc1ccc(Cl)cc1O (Cl para to N, OH ortho) are right."
+}

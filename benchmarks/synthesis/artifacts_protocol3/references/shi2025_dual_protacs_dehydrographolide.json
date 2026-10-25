@@ -1,0 +1,37 @@
+{
+ "paper": "shi2025_dual_protacs_dehydrographolide",
+ "decision": "route",
+ "exclusion_reason": null,
+ "exclusion_detail": "",
+ "lead": {"label": "DP6", "why": "Abstract: 'Among the synthesized compounds, DP6 exhibited the most potent anti-proliferative activity in MCF-7 cells ... Western blotting confirmed that DP6 induced concentration-dependent EGFR degradation'."},
+ "target": {"name": "((1R,2R,4aR,5R,8aS)-2-((4-((8-((2-(2,6-dioxopiperidin-3-yl)-1,3-dioxoisoindolin-4-yl)amino)octyl)amino)-4-oxobutanoyl)oxy)-1,4a-dimethyl-6-methylene-5-((E)-2-(2-oxo-2,5-dihydrofuran-3-yl)vinyl)decahydronaphthalen-1-yl)methyl 4-((8-((2-(2,6-dioxopiperidin-3-yl)-1,3-dioxoisoindolin-4-yl)amino)octyl)amino)-4-oxobutanoate", "smiles": "CC1(COC(=O)CCC(=O)NCCCCCCCCNc2cccc3c2C(=O)N(C3=O)C4CCC(=O)NC4=O)C(OC(=O)CCC(=O)NCCCCCCCCNc5cccc6c5C(=O)N(C6=O)C7CCC(=O)NC7=O)CCC8(C)C1CCC(=C)C8C=CC9=CCOC9=O"},
+ "reactions": [
+  {"step": 1,
+   "product": {"label": "3f", "name": "tert-butyl (8-((2-(2,6-dioxopiperidin-3-yl)-1,3-dioxoisoindolin-4-yl)amino)octyl)carbamate", "smiles": "CC(C)(C)OC(=O)NCCCCCCCCNc1cccc2c1C(=O)N(C2=O)C1CCC(=O)NC1=O"},
+   "reactants": [
+    {"label": "fluorothalidomide", "name": "", "smiles": "O=C1CCC(N2C(=O)c3cccc(F)c3C2=O)C(=O)N1", "origin": "commercial"},
+    {"label": "N-Boc-1,8-diaminooctane", "name": "N-Boc-1,8-diaminooctane", "smiles": "CC(C)(C)OC(=O)NCCCCCCCCN", "origin": "commercial"}
+   ],
+   "conditions": "SNAr: DIPEA (2 eq), dry DMF, 90 C, ~12 h; column chromatography; 39.4%.",
+   "source": "main text Experimental, 'Synthesis of DP1-DP9 PROTACs', compound 3a procedure and 3f (same procedure replacing Boc-diaminoethane with N-Boc-1,8-diaminooctane); Scheme 1 step a"},
+  {"step": 2,
+   "product": {"label": "4f", "name": "", "smiles": "NCCCCCCCCNc1cccc2c1C(=O)N(C2=O)C1CCC(=O)NC1=O"},
+   "reactants": [
+    {"label": "3f", "name": "tert-butyl (8-((2-(2,6-dioxopiperidin-3-yl)-1,3-dioxoisoindolin-4-yl)amino)octyl)carbamate", "smiles": "CC(C)(C)OC(=O)NCCCCCCCCNc1cccc2c1C(=O)N(C2=O)C1CCC(=O)NC1=O", "origin": "made_here"}
+   ],
+   "conditions": "TFA/DCM (25%), ice bath then rt, concentrate; used crude, no purification (free amine written; isolated as TFA salt oil).",
+   "source": "main text Experimental, synthesis of 4a and 'The synthesis methods of 4b-f ... followed the same procedure as 4a'; Scheme 1 step b"},
+  {"step": 3,
+   "product": {"label": "DP6", "name": "((1R,2R,4aR,5R,8aS)-2-((4-((8-((2-(2,6-dioxopiperidin-3-yl)-1,3-dioxoisoindolin-4-yl)amino)octyl)amino)-4-oxobutanoyl)oxy)-1,4a-dimethyl-6-methylene-5-((E)-2-(2-oxo-2,5-dihydrofuran-3-yl)vinyl)decahydronaphthalen-1-yl)methyl 4-((8-((2-(2,6-dioxopiperidin-3-yl)-1,3-dioxoisoindolin-4-yl)amino)octyl)amino)-4-oxobutanoate", "smiles": "CC1(COC(=O)CCC(=O)NCCCCCCCCNc2cccc3c2C(=O)N(C3=O)C4CCC(=O)NC4=O)C(OC(=O)CCC(=O)NCCCCCCCCNc5cccc6c5C(=O)N(C6=O)C7CCC(=O)NC7=O)CCC8(C)C1CCC(=C)C8C=CC9=CCOC9=O"},
+   "reactants": [
+    {"label": "PDS (free diacid form)", "name": "potassium dehydroandrographolide succinate", "smiles": "CC1(COC(=O)CCC(=O)O)C(OC(=O)CCC(=O)O)CCC2(C)C1CCC(=C)C2C=CC3=CCOC3=O", "origin": "commercial"},
+    {"label": "4f", "name": "", "smiles": "NCCCCCCCCNc1cccc2c1C(=O)N(C2=O)C1CCC(=O)NC1=O", "origin": "made_here"},
+    {"label": "4f (second equivalent)", "name": "", "smiles": "NCCCCCCCCNc1cccc2c1C(=O)N(C2=O)C1CCC(=O)NC1=O", "origin": "made_here"}
+   ],
+   "conditions": "PDS (1 eq), amine 4f (2.5 eq), EDCI (2 eq), HOBt (3 eq), DIPEA (3 eq), dry DMF, rt, 12 h; precipitated with ice water, purified by PTLC (DCM:MeOH 13:1); 32.7%.",
+   "source": "main text Experimental, DP1 procedure and DP6 entry ('followed the same procedure as DP1, replacing 3f with 3a' as printed); Scheme 1 step c"}
+ ],
+ "alt_variants": [],
+ "other_qualifying_compounds": null,
+ "notes": "PDS (a marketed andrographolide derivative, dipotassium disuccinate salt) is used without preparation and 'all reagents obtained commercially'; the free diacid is written (counter-ions not compared). Stereochemistry is omitted from the SMILES although the printed name carries it (hand-assigning 5 stereocentres plus the E alkene was judged riskier than connectivity); a connectivity-level comparison is intended. Fluorothalidomide and 4f have no printed name (printed 'Fluoro-thalidomide', structure assumed to be 4-fluorothalidomide because the products are 4-aminoisoindoline-1,3-diones). DP6 is the octyl-linker compound (printed name has two 8-aminooctyl chains; HRMS C70H88N8O16 is consistent). The paper's text says DP6 is made 'replacing 3f with 3a' meaning from 4f. The alkene geometry and C16 butenolide as printed. Racemic thalidomide centre (not stated)."
+}

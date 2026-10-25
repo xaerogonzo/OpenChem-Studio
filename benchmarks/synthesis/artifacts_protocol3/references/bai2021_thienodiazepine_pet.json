@@ -1,0 +1,29 @@
+{
+ "paper": "bai2021_thienodiazepine_pet",
+ "decision": "route",
+ "exclusion_reason": null,
+ "exclusion_detail": "",
+ "lead": {"label": "6a", "why": "Abstract names two potent BET inhibitors, 3a and 6a; 6a is the one taken into the in vivo pharmacokinetic and metabolic-stability studies ('excellent brain penetration') and is called '[18F]6a is a potential PET radiotracer'. The cold (non-radioactive) 6a is the compound transcribed; its 18F radiolabelling (Scheme 2) is not transcribed."},
+ "target": {"name": "2-(2-Fluoroethoxy)ethyl (S)-2-(4-(4-Chlorophenyl)-2,3,9-trimethyl-6H-thieno[3,2-f][1,2,4]triazolo[4,3-a][1,4]diazepin-6-yl)acetate", "smiles": "CC1=C(SC2=C1C(=N[C@H](C3=NN=C(N32)C)CC(=O)OCCOCCF)C4=CC=C(C=C4)Cl)C"},
+ "reactions": [
+  {"step": 1,
+   "product": {"label": "5a", "name": "2-(2-Hydroxyethoxy)ethyl (S)-2-(4-(4-Chlorophenyl)-2,3,9-trimethyl-6H-thieno[3,2-f][1,2,4]triazolo[4,3-a][1,4]diazepin-6-yl)acetate", "smiles": "CC1=C(SC2=C1C(=N[C@H](C3=NN=C(N32)C)CC(=O)OCCOCCO)C4=CC=C(C=C4)Cl)C"},
+   "reactants": [
+    {"label": "1", "name": "(+)-JQ1 carboxylic acid", "smiles": "CC1=C(SC2=C1C(=N[C@H](C3=NN=C(N32)C)CC(=O)O)C4=CC=C(C=C4)Cl)C", "origin": "commercial"},
+    {"label": "diethylene glycol", "name": "diethylene glycol", "smiles": "OCCOCCO", "origin": "commercial"}
+   ],
+   "conditions": "p-TSA (cat.), CHCl3, diol added (the text says dropwise addition of the acid solution to the diol solution to reduce dimerisation); Scheme 1 says 50 C, 24 h, procedure says rt overnight; 55.1% (5a)",
+   "source": "Results/Chemistry, Scheme 1 step a; Experimental 'General Procedure for Synthesis of Intermediates 2a-e and 5a-c'; 5a entry"},
+  {"step": 2,
+   "product": {"label": "6a", "name": "2-(2-Fluoroethoxy)ethyl (S)-2-(4-(4-Chlorophenyl)-2,3,9-trimethyl-6H-thieno[3,2-f][1,2,4]triazolo[4,3-a][1,4]diazepin-6-yl)acetate", "smiles": "CC1=C(SC2=C1C(=N[C@H](C3=NN=C(N32)C)CC(=O)OCCOCCF)C4=CC=C(C=C4)Cl)C"},
+   "reactants": [
+    {"label": "5a", "name": "2-(2-Hydroxyethoxy)ethyl (S)-2-(4-(4-Chlorophenyl)-2,3,9-trimethyl-6H-thieno[3,2-f][1,2,4]triazolo[4,3-a][1,4]diazepin-6-yl)acetate", "smiles": "CC1=C(SC2=C1C(=N[C@H](C3=NN=C(N32)C)CC(=O)OCCOCCO)C4=CC=C(C=C4)Cl)C", "origin": "made_here"},
+    {"label": "DAST", "name": "diethylaminosulfur trifluoride", "smiles": "CCN(CC)S(F)(F)F", "origin": "reagent"}
+   ],
+   "conditions": "DAST (10 equiv), CH2Cl2, -78 C to rt, overnight; 56.1% (6a)",
+   "source": "Scheme 1 step c; Experimental 'General Procedure for Synthesis of 3a-e and 6a-c'; 6a entry"}
+  ],
+ "alt_variants": [],
+ "other_qualifying_compounds": null,
+ "notes": "No SI file. Two-step route from commercial (+)-JQ1 carboxylic acid. 3a (2-fluoroethyl ester, also named in the abstract) would be the same chemistry with ethylene glycol. Stereocentre (S) as stated; SMILES chirality tag is copied from the PubChem-style SMILES of (+)-JQ1 acid and should be checked as S by the OPSIN comparison. The paper's 3d entry is mislabelled '2-Fluoroethyl' (typo), irrelevant for 6a. Step 1 temperature differs between Scheme 1 (50 C, 24 h) and the experimental text (rt, overnight); the DAST equivalents are 10 (0.33 mL, 2.5 mmol per 0.25 mmol)."
+}

@@ -1,0 +1,44 @@
+{
+ "paper": "lin2024_piperidine_parp1",
+ "decision": "route",
+ "exclusion_reason": null,
+ "exclusion_detail": "",
+ "lead": {"label": "15d", "why": "Abstract: '6a and 15d demonstrated potent antiproliferative effects... Based on its impressive pharmacodynamic data in vitro, we conducted a study to evaluate the efficacy of 15d in a xenograft tumor model... 15d could be promising drug candidates'; conclusion: 'The most promising lead compound, 15d'."},
+ "target": {"name": "4-(3-(2-(cyclopropylsulfonyl)-4,5,6,7-tetrahydro-2H-pyrazolo[4,3-c]pyridine-5-carbonyl)-4-fluorobenzyl)phthalazin-1(2H)-one", "smiles": "O=C(c1cc(Cc2n[nH]c(=O)c3ccccc23)ccc1F)N1CCc2nn(cc2C1)S(=O)(=O)C1CC1"},
+ "reactions": [
+  {"step": 1,
+   "product": {"label": "12", "name": "tert-butyl 2,4,6,7-tetrahydro-5H-pyrazolo[4,3-c]pyridine-5-carboxylate", "smiles": "CC(C)(C)OC(=O)N1CCc2n[nH]cc2C1"},
+   "reactants": [
+    {"label": "7", "name": "tert-butyl (E)-3-((dimethylamino)methylene)-4-oxopiperidine-1-carboxylate", "smiles": "CC(C)(C)OC(=O)N1CCC(=O)C(=CN(C)C)C1", "origin": "commercial"},
+    {"label": "hydrazine hydrate", "name": "hydrazine", "smiles": "NN", "origin": "reagent"}
+   ],
+   "conditions": "NH2NH2.H2O (1.2 eq), EtOH, 80 C, 6 h; 81 %.",
+   "source": "Section 4.4.1, p.8; Scheme 3 step (a)"},
+  {"step": 2,
+   "product": {"label": "13 (R = cyclopropylsulfonyl)", "name": "", "smiles": "CC(C)(C)OC(=O)N1CCc2nn(cc2C1)S(=O)(=O)C1CC1"},
+   "reactants": [
+    {"label": "12", "name": "tert-butyl 2,4,6,7-tetrahydro-5H-pyrazolo[4,3-c]pyridine-5-carboxylate", "smiles": "CC(C)(C)OC(=O)N1CCc2n[nH]cc2C1", "origin": "made_here"},
+    {"label": "cyclopropanesulfonyl chloride", "name": "cyclopropanesulfonyl chloride", "smiles": "ClS(=O)(=O)C1CC1", "origin": "commercial"}
+   ],
+   "conditions": "General procedure 4.4.2: sulfonyl chloride (1.2 eq) in THF added at -5 C to 12 and Et3N (2 eq) in THF, then r.t. 6 h; 78-89 %. (Scheme 3 caption says NaH, THF.)",
+   "source": "Section 4.4.2, p.8; Scheme 3 step (b)"},
+  {"step": 3,
+   "product": {"label": "14 (R = cyclopropylsulfonyl)", "name": "", "smiles": "N1CCc2nn(cc2C1)S(=O)(=O)C1CC1"},
+   "reactants": [
+    {"label": "13", "name": "", "smiles": "CC(C)(C)OC(=O)N1CCc2nn(cc2C1)S(=O)(=O)C1CC1", "origin": "made_here"}
+   ],
+   "conditions": "HCl in ethyl acetate (4 N), r.t. (Boc removal, procedure of 4.2.2); free base written, HCl salt ignored.",
+   "source": "Scheme 3 step (c); Section 4.4.3 refers to 4.2.2"},
+  {"step": 4,
+   "product": {"label": "15d", "name": "4-(3-(2-(cyclopropylsulfonyl)-4,5,6,7-tetrahydro-2H-pyrazolo[4,3-c]pyridine-5-carbonyl)-4-fluorobenzyl)phthalazin-1(2H)-one", "smiles": "O=C(c1cc(Cc2n[nH]c(=O)c3ccccc23)ccc1F)N1CCc2nn(cc2C1)S(=O)(=O)C1CC1"},
+   "reactants": [
+    {"label": "5", "name": "", "smiles": "OC(=O)c1cc(Cc2n[nH]c(=O)c3ccccc23)ccc1F", "origin": "commercial"},
+    {"label": "14", "name": "", "smiles": "N1CCc2nn(cc2C1)S(=O)(=O)C1CC1", "origin": "made_here"}
+   ],
+   "conditions": "HATU (1.2 eq), DIPEA (3 eq), DMF, r.t. 2 h (procedure 4.2.3, 'according to the method of 6a-6j').",
+   "source": "Sections 4.2.3, 4.4.3; Scheme 3 step (d); 15d data p.9"}
+ ],
+ "alt_variants": [],
+ "other_qualifying_compounds": null,
+ "notes": "4 steps. Compound 5 is stated to be 'commercially available' but its structure/name is never printed in the text; SMILES derived from the product names (2-fluoro-5-[(4-oxo-3,4-dihydrophthalazin-1-yl)methyl]benzoic acid, the olaparib acid; no doubt). Enaminone 7 is used without any stated source or preparation (not said to be purchased; treated as starting material). The acyl/sulfonyl chloride for 15d is not printed as a name; cyclopropanesulfonyl chloride inferred from 15d's name. Names of 13 and 14 not given. Conflict: Scheme 3 caption says NaH for the sulfonylation, experimental says Et3N. The sulfonyl position (N2 of the pyrazole) is taken from the printed name of 15d. 12 is printed as 'tert-butyl 2,4,6,7-tetrahydro-5H-pyrazolo[4,3-c]pyridine-5-carboxylate'."
+}

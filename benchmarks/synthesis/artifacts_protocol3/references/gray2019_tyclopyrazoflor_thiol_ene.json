@@ -1,0 +1,43 @@
+{
+ "paper": "gray2019_tyclopyrazoflor_thiol_ene",
+ "decision": "route",
+ "exclusion_reason": null,
+ "exclusion_detail": "",
+ "lead": {
+  "label": "4",
+  "why": "Title and abstract: 'A Scalable Synthesis of Methyl 3-((3,3,3-Trifluoropropyl)thio)propanoate via Thiol-Ene Chemistry'; 'Optimization of the thiol-ene reaction for the preparation of methyl 3-((3,3,3-trifluoropropyl)thio)propanoate (4), a key intermediate in the synthesis of ... tyclopyrazoflor (1)'. This is a process paper whose only subject compound is 4."
+ },
+ "target": {
+  "name": "methyl 3-((3,3,3-trifluoropropyl)thio)propanoate",
+  "smiles": "COC(=O)CCSCCC(F)(F)F"
+ },
+ "reactions": [
+  {
+   "step": 1,
+   "product": {
+    "label": "4",
+    "name": "methyl 3-((3,3,3-trifluoropropyl)thio)propanoate",
+    "smiles": "COC(=O)CCSCCC(F)(F)F"
+   },
+   "reactants": [
+    {
+     "label": "2",
+     "name": "methyl 3-mercaptopropionate",
+     "smiles": "COC(=O)CCS",
+     "origin": "commercial"
+    },
+    {
+     "label": "3",
+     "name": "3,3,3-trifluoropropene",
+     "smiles": "C=CC(F)(F)F",
+     "origin": "commercial"
+    }
+   ],
+   "conditions": "Radical anti-Markovnikov thiol-ene addition. Best (semibatch, 1 gal reactor): benzoyl peroxide (~1.1 mol%) / N,N,4-trimethylaniline initiator in toluene, -5 C, 91% in-pot yield, 50:1 to 90:1 linear:branched. Batch alternatives: AIBN, toluene, 80 C, 20 h (78%, 11:1 linear/branched); BP/N,N-dimethylaniline, about 1 C, 19 h (77% in pot, 69% isolated after distillation, 55:1).",
+   "source": "main text, Experimental Section 'Representative Procedure for the Preparation of 4' (AIBN batch, BP/DMA batch, BP/TMA semibatch); Scheme 2 route D; Table 3. No SI file."
+  }
+ ],
+ "alt_variants": [],
+ "other_qualifying_compounds": null,
+ "notes": "One-step route; the paper is a process-chemistry study of a single reaction. The product is the linear (anti-Markovnikov) thioether; the branched isomer is the side product. Route A of Scheme 2 (substitution of methyl 3-mercaptopropionate with a 3-halo-1,1,1-trifluoropropane, used for early 100 g batches) is mentioned only in the introduction with no conditions and no single named halide, so it is not transcribed. Starting materials are stated as 'commercially available and used as purchased'. Initiators (AIBN, benzoyl peroxide, dialkylaniline) supply no atoms to the product."
+}

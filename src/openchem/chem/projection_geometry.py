@@ -1,11 +1,11 @@
 """Molecular shape from the van der Waals surface: volume, area, extent.
 
-The descriptors MarvinSketch's Geometry plugin reports beside its
+The descriptors the reference editor's Geometry plugin reports beside its
 energies -- van der Waals volume, minimal and maximal projection area and
 radius -- and the ones a chemist reaches for when asking "will this fit".
 
 **Every number here is validated against a case with a known answer.**
-Marvin's own figures cannot serve: we do not have its conformer, and
+The reference editor's own figures cannot serve: we do not have its conformer, and
 asserting against numbers from a different geometry is the "fixture typed
 from memory" trap this project has already paid for once. So the
 references are analytic -- one atom is a sphere, so its volume is
