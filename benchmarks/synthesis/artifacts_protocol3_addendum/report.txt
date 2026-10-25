@@ -1,0 +1,15 @@
+PROTOCOL 3 ADDENDUM (papers that arrived after the freeze): 2 references, one search each on the primary stock
+
+kral2024_purpurogallin_carboxamides_influenza: depth 4, 4 reactions, tier B: solved False, 21 routes; exact match in the first 10: False; in the pool: False; same starting materials by other chemistry in the first 10: False
+    reaction to CC(=O)Oc1ccc2cc(C(=O)NCc3cccc(-c4nnn[nH]4)c3)cc(OC(C)=O)c(=O)c2c1OC(C)=O: in 0 returned routes
+    reaction to CC(=O)Oc1ccc2cc(C(=O)O)cc(OC(C)=O)c(=O)c2c1OC(C)=O: in 0 returned routes
+    reaction to O=C(NCc1cccc(-c2nnn[nH]2)c1)c1cc(O)c(=O)c2c(O)c(O)ccc2c1: in 0 returned routes
+    reaction to O=C(O)c1cc(O)c(=O)c2c(O)c(O)ccc2c1: in 0 returned routes
+singh2025_lignan_monoterpenoid_xanthine_oxidase: depth 3, 4 reactions, tier B: solved True, 298 routes; exact match in the first 10: False; in the pool: False; same starting materials by other chemistry in the first 10: False
+    reaction to BrCCCOc1ccc2c(c1)OCO2: in 14 returned routes
+    reaction to C#CCOc1ccc(/C=C/C)cc1OC: in 149 returned routes
+    reaction to C/C=C/c1ccc(OCc2cn(CCCOc3ccc4c(c3)OCO4)nn2)c(OC)c1: in 16 returned routes
+    reaction to [N-]=[N+]=NCCCOc1ccc2c(c1)OCO2: in 1 returned routes
+
+recovered in the first 10: 0 of 2 (frozen protocol 3: 13 of 51). Protocol 2's depth rates would expect 0.43 of the 2 routes of depth 2 or more.
+No reading is made: this few routes cannot support a test, and the frozen reading (LOWER) is not revised by it.
