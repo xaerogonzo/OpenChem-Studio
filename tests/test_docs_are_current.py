@@ -552,11 +552,6 @@ DEFERRALS: list[Deferral] = [
         ),
     ),
     Deferral(
-        claim="a salt with no single ChEMBL parent has no compound",
-        # Unbuilt while the parent rule still refuses sodium acetate.
-        unbuilt=lambda: _parent_refuses("CC(=O)[O-].[Na+]", "chembl_parent"),
-    ),
-    Deferral(
         claim="a hydrate is refused by the pure-component methods",
         unbuilt=lambda: _parent_refuses("Cn1cnc2c1c(=O)n(C)c(=O)n2C.O", "refuse_multicomponent"),
     ),

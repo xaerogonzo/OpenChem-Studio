@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import pytest
 from PySide6.QtCore import QThreadPool
 
 from openchem.chem.conformer_providers import RDKitConformerProvider
@@ -568,7 +569,16 @@ def test_a_service_with_no_version_counter_still_publishes_its_report(qapp):
     assert reports[0].structure_version == 0
 
 
-def test_a_sodium_salt_keeps_every_result_but_the_one_that_cannot_apply(qapp):
+@pytest.mark.parametrize(
+    "smiles,mcgowan",
+    [
+        # The original drawing of the defect, now with the sodium BONDED into the one molecule: since group 3 of the
+        # refusal audit the SALT is computed on its acetate and never hands sodium to McGowan at all.
+        ("CC(=O)O[Na]", CacheState.FAILED),
+        ("CC(=O)[O-].[Na+]", CacheState.COMPLETED),
+    ],
+)
+def test_a_sodium_salt_keeps_every_result_but_the_one_that_cannot_apply(qapp, smiles, mcgowan):
     """Measured 2026-09-18, driving master on sodium acetate: NO result at all.
     The McGowan volume raised for Na inside the eager provider, the service
     returned early, and every descriptor, alert and per-atom dataset went
@@ -578,7 +588,7 @@ def test_a_sodium_salt_keeps_every_result_but_the_one_that_cannot_apply(qapp):
     engine = ChemistryEngine()
     service = DescriptorService(bus, engine)
     model = MoleculeModel()
-    engine.set_structure_from_smiles(model, "CC(=O)[O-].[Na+]")
+    engine.set_structure_from_smiles(model, smiles)
 
     final: dict[str, object] = {}
     alerts, datasets = [], []
@@ -588,9 +598,10 @@ def test_a_sodium_salt_keeps_every_result_but_the_one_that_cannot_apply(qapp):
     service.request_descriptors(model)
     _drain(qapp)
 
-    mcgowan = final["mcgowan_volume"]
-    assert mcgowan.cache_state == CacheState.FAILED and mcgowan.inapplicable
-    assert "Na" in mcgowan.error
+    volume = final["mcgowan_volume"]
+    assert volume.cache_state == mcgowan
+    if mcgowan is CacheState.FAILED:
+        assert volume.inapplicable and "Na" in volume.error
     assert final["mol_wt"].cache_state == CacheState.COMPLETED
     assert "fragment_counts" in alerts
     assert datasets, "the per-atom data went with the failed descriptor"

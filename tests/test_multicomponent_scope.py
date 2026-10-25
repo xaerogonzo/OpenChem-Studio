@@ -94,16 +94,112 @@ def test_a_hydrogen_the_calculator_added_fails_rather_than_landing_on_a_wrong_at
 @pytest.mark.parametrize(
     "smiles,code",
     [
-        ("CC(=O)[O-].[Na+]", MULTICOMPONENT_UNSUPPORTED),        # every component a listed salt
-        ("C[N+](C)(C)CCO.OC1=CC=CC=C1C([O-])=O", MULTICOMPONENT_UNSUPPORTED),  # none listed
-        ("[cH-]1cccc1.[cH-]1cccc1.[Fe+2]", "METAL_CONTAINING_UNSUPPORTED"),
+        ("[Na+].[Cl-]", MULTICOMPONENT_UNSUPPORTED),                      # two species of one size: neither is larger
+        ("[Ca+2].[Cl-].[Cl-]", MULTICOMPONENT_UNSUPPORTED),               # a cation and an anion of one atom each
+        ("c1ccc2ccccc2c1.c1ccc2ncccc2c1", MULTICOMPONENT_UNSUPPORTED),    # two unlisted organics of ten heavy atoms each
+        ("[cH-]1cccc1.[cH-]1cccc1.[Fe+2]", "METAL_CONTAINING_UNSUPPORTED"),  # the complex is excluded; its ligands are not it
     ],
 )
-def test_no_single_parent_is_a_coded_refusal(smiles, code):
+def test_a_drawing_with_no_species_to_hand_over_is_a_coded_refusal(smiles, code):
+    """What STILL refuses after the largest component became the default: there is no one species to compute on."""
     scope = CalculatorScope(ComponentSelection.CHEMBL_PARENT, Aggregation.SCALAR)
     with pytest.raises(CalculationRefusal) as refused:
         components.select(Chem.MolFromSmiles(smiles), scope, "test")
     assert refused.value.code == code and refused.value.inapplicable
+
+
+def test_the_largest_component_is_taken_neutralised_and_the_selection_says_so():
+    """Sodium acetate was refused (every component a listed salt); the organic ion is plainly the species meant."""
+    scope = CalculatorScope(ComponentSelection.CHEMBL_PARENT, Aggregation.SCALAR)
+    selection = components.select(Chem.MolFromSmiles("[Na+].CC(=O)[O-]"), scope, "test")
+    assert Chem.MolToSmiles(selection.mol) == "CC(=O)O"
+    assert selection.drawing_atoms == (1, 2, 3, 4) and selection.components == (1,)
+    assert selection.parent_smiles == "CC(=O)O" and selection.left_out == ("[Na+]",)
+    # The drawn ion and the neutral form BOTH appear: a person must be able to see that the species changed.
+    assert "CC(=O)[O-]" in selection.note and "neutralised" in selection.note and "[Na+]" in selection.note
+    assert "close in size" not in selection.note
+
+
+def test_a_component_with_coordinates_is_kept_as_drawn_because_a_hydrogen_would_have_no_position():
+    """The census found `geometry_partial_charge` refusing sodium acetate ("hydrogens are not atoms"): the
+    neutralised component implied a hydrogen the conformer does not hold. With coordinates it is not neutralised."""
+    from rdkit.Chem import AllChem
+
+    mol = Chem.AddHs(Chem.MolFromSmiles("[Na+].CC(=O)[O-]"))
+    assert AllChem.EmbedMolecule(mol, randomSeed=7) == 0
+    scope = CalculatorScope(ComponentSelection.CHEMBL_PARENT, Aggregation.SCALAR)
+    selection = components.select(mol, scope, "test")
+    assert Chem.MolToSmiles(Chem.RemoveHs(selection.mol)) == "CC(=O)[O-]"
+    assert selection.mol.GetNumConformers() == 1
+    assert all(atom.GetTotalNumHs() == 0 for atom in selection.mol.GetAtoms()), "every hydrogen is still an atom"
+    assert "not neutralised" in selection.note and "(the drawn" not in selection.note
+
+
+def test_a_neutral_component_is_never_described_as_left_un_neutralised():
+    """The 3D clause names what was NOT done to a charged ion; a neutral component had nothing to neutralise."""
+    from rdkit.Chem import AllChem
+
+    mol = Chem.AddHs(Chem.MolFromSmiles("c1ccc2ccccc2c1.Oc1ccc2ccccc2c1"))
+    assert AllChem.EmbedMolecule(mol, randomSeed=7) == 0
+    scope = CalculatorScope(ComponentSelection.CHEMBL_PARENT, Aggregation.SCALAR)
+    selection = components.select(mol, scope, "test")
+    assert "neutralised" not in selection.note and "close in size" in selection.note
+
+
+def test_the_applications_own_molecule_is_a_drawing_and_is_neutralised():
+    """THE REAL WINDOW FOUND THIS. The application's molecule comes from a molblock, so it carries the drawing's 2D
+    coordinates; "has a conformer" took it for a 3D structure and computed sodium acetate as the ion."""
+    from rdkit.Chem import AllChem
+
+    drawn = Chem.MolFromSmiles("[Na+].CC(=O)[O-]")
+    AllChem.Compute2DCoords(drawn)
+    through_a_molblock = Chem.MolFromMolBlock(Chem.MolToMolBlock(drawn))
+    assert through_a_molblock.GetNumConformers() == 1 and not through_a_molblock.GetConformer().Is3D()
+    scope = CalculatorScope(ComponentSelection.CHEMBL_PARENT, Aggregation.SCALAR)
+    selection = components.select(through_a_molblock, scope, "test")
+    assert Chem.MolToSmiles(selection.mol) == "CC(=O)O" and "neutralised" in selection.note
+    assert "not neutralised" not in selection.note
+
+
+def test_identical_components_are_one_species_and_a_close_second_is_called_a_guess():
+    scope = CalculatorScope(ComponentSelection.CHEMBL_PARENT, Aggregation.SCALAR)
+    calcium = components.select(Chem.MolFromSmiles("[Ca+2].CC(=O)[O-].CC(=O)[O-]"), scope, "test")
+    assert Chem.MolToSmiles(calcium.mol) == "CC(=O)O" and calcium.components == (1,)
+    choline = components.select(Chem.MolFromSmiles("C[N+](C)(C)CCO.OC1=CC=CC=C1C([O-])=O"), scope, "test")
+    assert Chem.MolToSmiles(choline.mol) == "O=C(O)c1ccccc1O"
+    assert "close in size" in choline.note and "guess" in choline.note
+
+
+@pytest.mark.parametrize("smiles", ["CN(C)C(=N)N=C(N)N.Cl", "[Na+].[O-]c1ccccc1", "C[N+](C)(C)C.[Br-]"])
+def test_a_chembl_parent_is_not_called_a_choice(smiles):
+    """ChEMBL's rule is the source there; only the largest-component fallback is a guess and carries a label."""
+    scope = CalculatorScope(ComponentSelection.CHEMBL_PARENT, Aggregation.SCALAR)
+    assert components.select(Chem.MolFromSmiles(smiles), scope, "test").note == ""
+
+
+def test_the_label_travels_with_the_result_into_its_caveat_and_its_limitations():
+    from dataclasses import dataclass
+
+    from openchem.domain.common import Provenance
+
+    @dataclass(frozen=True)
+    class Stand:
+        provenance: Provenance
+        limitations: tuple[str, ...] = ()
+
+    scope = CalculatorScope(ComponentSelection.CHEMBL_PARENT, Aggregation.SCALAR)
+    selection = components.select(Chem.MolFromSmiles("[Na+].CC(=O)[O-]"), scope, "test")
+    result = Stand(Provenance(created_by="t", method="m", timestamp=0.0, parameters={"caveat": "the producer's own"}), ("old",))
+    read = components.read_back(result, scope, selection)
+    assert read.limitations == (selection.note, "old")
+    caveat = read.provenance.parameters["caveat"]
+    assert caveat.startswith(selection.note) and caveat.endswith("the producer's own")
+    assert read.provenance.parameters["component_choice"] == "largest"
+    assert read.provenance.parameters["components_left_out"] == ["[Na+]"]
+    # A result computed on a ChEMBL parent has no choice to record.
+    parent = components.select(Chem.MolFromSmiles("CN(C)C(=N)N=C(N)N.Cl"), scope, "test")
+    plain = components.read_back(Stand(Provenance(created_by="t", method="m", timestamp=0.0), ("old",)), scope, parent)
+    assert plain.limitations == ("old",) and "caveat" not in plain.provenance.parameters
 
 
 def test_a_single_charged_component_is_not_neutralised():

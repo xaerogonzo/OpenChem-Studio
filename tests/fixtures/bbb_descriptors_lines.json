@@ -3143,25 +3143,227 @@
  ]
 },
 "sodium acetate | 0 places": {
- "refused": "MULTICOMPONENT_UNSUPPORTED"
+ "state": "completed",
+ "error": null,
+ "summary": null,
+ "inapplicable": false,
+ "method": "gupta_bbb_inputs",
+ "lines": [
+  "Aromatic rings: 0",
+  "Heavy atoms: 4",
+  "MWHBN: 0",
+  "TPSA: 37 A^2",
+  "pKa (most basic): unavailable (needs a configured pkasolver environment (Tools > External Tools))",
+  "These are the five inputs to the Gupta et al. (2019) BBB Score. The composite score itself is NOT computed: its stepwise and polynomial weight functions are not published in the vendor's documentation, and one worked example cannot validate five unknown curves. For reference, that score runs 0-6 with 4-6 indicating a CNS drug."
+ ],
+ "facts": [
+  ["structure","Aromatic rings","0","","BBB Score Descriptors","heuristic"],
+  ["structure","Heavy atoms","4","","BBB Score Descriptors","heuristic"],
+  ["structure","MWHBN","0","","BBB Score Descriptors","heuristic"],
+  ["structure","TPSA","37","A^2","BBB Score Descriptors","heuristic"],
+  ["structure","BBB Score Descriptors","pKa (most basic): unavailable (needs a configured pkasolver environment (Tools > External Tools))","","BBB Score Descriptors","heuristic"],
+  ["structure","BBB Score Descriptors","These are the five inputs to the Gupta et al. (2019) BBB Score. The composite score itself is NOT computed: its stepwise and polynomial weight functions are not published in the vendor's documentation, and one worked example cannot validate five unknown curves. For reference, that score runs 0-6 with 4-6 indicating a CNS drug.","","BBB Score Descriptors","heuristic"]
+ ],
+ "cells": [
+  ["calculator:bbb_descriptors:Aromatic rings","","0"],
+  ["calculator:bbb_descriptors:Heavy atoms","","4"],
+  ["calculator:bbb_descriptors:MWHBN","","0"],
+  ["calculator:bbb_descriptors:TPSA","A^2","37"],
+  ["calculator:bbb_descriptors:BBB Score Descriptors","","pKa (most basic): unavailable (needs a configured pkasolver environment (Tools > External Tools))"],
+  ["calculator:bbb_descriptors:BBB Score Descriptors","","These are the five inputs to the Gupta et al. (2019) BBB Score. The composite score itself is NOT computed: its stepwise and polynomial weight functions are not published in the vendor's documentation, and one worked example cannot validate five unknown curves. For reference, that score runs 0-6 with 4-6 indicating a CNS drug."]
+ ]
 },
 "sodium acetate | 8 places": {
- "refused": "MULTICOMPONENT_UNSUPPORTED"
+ "state": "completed",
+ "error": null,
+ "summary": null,
+ "inapplicable": false,
+ "method": "gupta_bbb_inputs",
+ "lines": [
+  "Aromatic rings: 0",
+  "Heavy atoms: 4",
+  "MWHBN: 0.25808708",
+  "TPSA: 37.30000000 A^2",
+  "pKa (most basic): unavailable (needs a configured pkasolver environment (Tools > External Tools))",
+  "These are the five inputs to the Gupta et al. (2019) BBB Score. The composite score itself is NOT computed: its stepwise and polynomial weight functions are not published in the vendor's documentation, and one worked example cannot validate five unknown curves. For reference, that score runs 0-6 with 4-6 indicating a CNS drug."
+ ],
+ "facts": [
+  ["structure","Aromatic rings","0","","BBB Score Descriptors","heuristic"],
+  ["structure","Heavy atoms","4","","BBB Score Descriptors","heuristic"],
+  ["structure","MWHBN","0.25808708","","BBB Score Descriptors","heuristic"],
+  ["structure","TPSA","37.30000000","A^2","BBB Score Descriptors","heuristic"],
+  ["structure","BBB Score Descriptors","pKa (most basic): unavailable (needs a configured pkasolver environment (Tools > External Tools))","","BBB Score Descriptors","heuristic"],
+  ["structure","BBB Score Descriptors","These are the five inputs to the Gupta et al. (2019) BBB Score. The composite score itself is NOT computed: its stepwise and polynomial weight functions are not published in the vendor's documentation, and one worked example cannot validate five unknown curves. For reference, that score runs 0-6 with 4-6 indicating a CNS drug.","","BBB Score Descriptors","heuristic"]
+ ],
+ "cells": [
+  ["calculator:bbb_descriptors:Aromatic rings","","0"],
+  ["calculator:bbb_descriptors:Heavy atoms","","4"],
+  ["calculator:bbb_descriptors:MWHBN","","0.25808708"],
+  ["calculator:bbb_descriptors:TPSA","A^2","37.30000000"],
+  ["calculator:bbb_descriptors:BBB Score Descriptors","","pKa (most basic): unavailable (needs a configured pkasolver environment (Tools > External Tools))"],
+  ["calculator:bbb_descriptors:BBB Score Descriptors","","These are the five inputs to the Gupta et al. (2019) BBB Score. The composite score itself is NOT computed: its stepwise and polynomial weight functions are not published in the vendor's documentation, and one worked example cannot validate five unknown curves. For reference, that score runs 0-6 with 4-6 indicating a CNS drug."]
+ ]
 },
 "sodium acetate | 99 places": {
- "refused": "MULTICOMPONENT_UNSUPPORTED"
+ "state": "completed",
+ "error": null,
+ "summary": null,
+ "inapplicable": false,
+ "method": "gupta_bbb_inputs",
+ "lines": [
+  "Aromatic rings: 0",
+  "Heavy atoms: 4",
+  "MWHBN: 0.25808708",
+  "TPSA: 37.30000000 A^2",
+  "pKa (most basic): unavailable (needs a configured pkasolver environment (Tools > External Tools))",
+  "These are the five inputs to the Gupta et al. (2019) BBB Score. The composite score itself is NOT computed: its stepwise and polynomial weight functions are not published in the vendor's documentation, and one worked example cannot validate five unknown curves. For reference, that score runs 0-6 with 4-6 indicating a CNS drug."
+ ],
+ "facts": [
+  ["structure","Aromatic rings","0","","BBB Score Descriptors","heuristic"],
+  ["structure","Heavy atoms","4","","BBB Score Descriptors","heuristic"],
+  ["structure","MWHBN","0.25808708","","BBB Score Descriptors","heuristic"],
+  ["structure","TPSA","37.30000000","A^2","BBB Score Descriptors","heuristic"],
+  ["structure","BBB Score Descriptors","pKa (most basic): unavailable (needs a configured pkasolver environment (Tools > External Tools))","","BBB Score Descriptors","heuristic"],
+  ["structure","BBB Score Descriptors","These are the five inputs to the Gupta et al. (2019) BBB Score. The composite score itself is NOT computed: its stepwise and polynomial weight functions are not published in the vendor's documentation, and one worked example cannot validate five unknown curves. For reference, that score runs 0-6 with 4-6 indicating a CNS drug.","","BBB Score Descriptors","heuristic"]
+ ],
+ "cells": [
+  ["calculator:bbb_descriptors:Aromatic rings","","0"],
+  ["calculator:bbb_descriptors:Heavy atoms","","4"],
+  ["calculator:bbb_descriptors:MWHBN","","0.25808708"],
+  ["calculator:bbb_descriptors:TPSA","A^2","37.30000000"],
+  ["calculator:bbb_descriptors:BBB Score Descriptors","","pKa (most basic): unavailable (needs a configured pkasolver environment (Tools > External Tools))"],
+  ["calculator:bbb_descriptors:BBB Score Descriptors","","These are the five inputs to the Gupta et al. (2019) BBB Score. The composite score itself is NOT computed: its stepwise and polynomial weight functions are not published in the vendor's documentation, and one worked example cannot validate five unknown curves. For reference, that score runs 0-6 with 4-6 indicating a CNS drug."]
+ ]
 },
 "sodium acetate | default": {
- "refused": "MULTICOMPONENT_UNSUPPORTED"
+ "state": "completed",
+ "error": null,
+ "summary": null,
+ "inapplicable": false,
+ "method": "gupta_bbb_inputs",
+ "lines": [
+  "Aromatic rings: 0",
+  "Heavy atoms: 4",
+  "MWHBN: 0.26",
+  "TPSA: 37.30 A^2",
+  "pKa (most basic): unavailable (needs a configured pkasolver environment (Tools > External Tools))",
+  "These are the five inputs to the Gupta et al. (2019) BBB Score. The composite score itself is NOT computed: its stepwise and polynomial weight functions are not published in the vendor's documentation, and one worked example cannot validate five unknown curves. For reference, that score runs 0-6 with 4-6 indicating a CNS drug."
+ ],
+ "facts": [
+  ["structure","Aromatic rings","0","","BBB Score Descriptors","heuristic"],
+  ["structure","Heavy atoms","4","","BBB Score Descriptors","heuristic"],
+  ["structure","MWHBN","0.26","","BBB Score Descriptors","heuristic"],
+  ["structure","TPSA","37.30","A^2","BBB Score Descriptors","heuristic"],
+  ["structure","BBB Score Descriptors","pKa (most basic): unavailable (needs a configured pkasolver environment (Tools > External Tools))","","BBB Score Descriptors","heuristic"],
+  ["structure","BBB Score Descriptors","These are the five inputs to the Gupta et al. (2019) BBB Score. The composite score itself is NOT computed: its stepwise and polynomial weight functions are not published in the vendor's documentation, and one worked example cannot validate five unknown curves. For reference, that score runs 0-6 with 4-6 indicating a CNS drug.","","BBB Score Descriptors","heuristic"]
+ ],
+ "cells": [
+  ["calculator:bbb_descriptors:Aromatic rings","","0"],
+  ["calculator:bbb_descriptors:Heavy atoms","","4"],
+  ["calculator:bbb_descriptors:MWHBN","","0.26"],
+  ["calculator:bbb_descriptors:TPSA","A^2","37.30"],
+  ["calculator:bbb_descriptors:BBB Score Descriptors","","pKa (most basic): unavailable (needs a configured pkasolver environment (Tools > External Tools))"],
+  ["calculator:bbb_descriptors:BBB Score Descriptors","","These are the five inputs to the Gupta et al. (2019) BBB Score. The composite score itself is NOT computed: its stepwise and polynomial weight functions are not published in the vendor's documentation, and one worked example cannot validate five unknown curves. For reference, that score runs 0-6 with 4-6 indicating a CNS drug."]
+ ]
 },
 "sodium acetate | microspecies 2": {
- "refused": "MULTICOMPONENT_UNSUPPORTED"
+ "state": "completed",
+ "error": null,
+ "summary": null,
+ "inapplicable": false,
+ "method": "gupta_bbb_inputs",
+ "lines": [
+  "Aromatic rings: 0",
+  "Heavy atoms: 4",
+  "MWHBN: 0.26",
+  "TPSA: 37.30 A^2",
+  "pKa (most basic): unavailable (needs a configured pkasolver environment (Tools > External Tools))",
+  "Computed on the major microspecies at pH 2.",
+  "These are the five inputs to the Gupta et al. (2019) BBB Score. The composite score itself is NOT computed: its stepwise and polynomial weight functions are not published in the vendor's documentation, and one worked example cannot validate five unknown curves. For reference, that score runs 0-6 with 4-6 indicating a CNS drug."
+ ],
+ "facts": [
+  ["structure","Aromatic rings","0","","BBB Score Descriptors","heuristic"],
+  ["structure","Heavy atoms","4","","BBB Score Descriptors","heuristic"],
+  ["structure","MWHBN","0.26","","BBB Score Descriptors","heuristic"],
+  ["structure","TPSA","37.30","A^2","BBB Score Descriptors","heuristic"],
+  ["structure","BBB Score Descriptors","pKa (most basic): unavailable (needs a configured pkasolver environment (Tools > External Tools))","","BBB Score Descriptors","heuristic"],
+  ["structure","BBB Score Descriptors","Computed on the major microspecies at pH 2.","","BBB Score Descriptors","heuristic"],
+  ["structure","BBB Score Descriptors","These are the five inputs to the Gupta et al. (2019) BBB Score. The composite score itself is NOT computed: its stepwise and polynomial weight functions are not published in the vendor's documentation, and one worked example cannot validate five unknown curves. For reference, that score runs 0-6 with 4-6 indicating a CNS drug.","","BBB Score Descriptors","heuristic"]
+ ],
+ "cells": [
+  ["calculator:bbb_descriptors:Aromatic rings","","0"],
+  ["calculator:bbb_descriptors:Heavy atoms","","4"],
+  ["calculator:bbb_descriptors:MWHBN","","0.26"],
+  ["calculator:bbb_descriptors:TPSA","A^2","37.30"],
+  ["calculator:bbb_descriptors:BBB Score Descriptors","","pKa (most basic): unavailable (needs a configured pkasolver environment (Tools > External Tools))"],
+  ["calculator:bbb_descriptors:BBB Score Descriptors","","Computed on the major microspecies at pH 2."],
+  ["calculator:bbb_descriptors:BBB Score Descriptors","","These are the five inputs to the Gupta et al. (2019) BBB Score. The composite score itself is NOT computed: its stepwise and polynomial weight functions are not published in the vendor's documentation, and one worked example cannot validate five unknown curves. For reference, that score runs 0-6 with 4-6 indicating a CNS drug."]
+ ]
 },
 "sodium acetate | microspecies 7.4": {
- "refused": "MULTICOMPONENT_UNSUPPORTED"
+ "state": "completed",
+ "error": null,
+ "summary": null,
+ "inapplicable": false,
+ "method": "gupta_bbb_inputs",
+ "lines": [
+  "Aromatic rings: 0",
+  "Heavy atoms: 4",
+  "MWHBN: 0.26",
+  "TPSA: 40.13 A^2",
+  "pKa (most basic): unavailable (needs a configured pkasolver environment (Tools > External Tools))",
+  "Computed on the major microspecies at pH 7.4.",
+  "These are the five inputs to the Gupta et al. (2019) BBB Score. The composite score itself is NOT computed: its stepwise and polynomial weight functions are not published in the vendor's documentation, and one worked example cannot validate five unknown curves. For reference, that score runs 0-6 with 4-6 indicating a CNS drug."
+ ],
+ "facts": [
+  ["structure","Aromatic rings","0","","BBB Score Descriptors","heuristic"],
+  ["structure","Heavy atoms","4","","BBB Score Descriptors","heuristic"],
+  ["structure","MWHBN","0.26","","BBB Score Descriptors","heuristic"],
+  ["structure","TPSA","40.13","A^2","BBB Score Descriptors","heuristic"],
+  ["structure","BBB Score Descriptors","pKa (most basic): unavailable (needs a configured pkasolver environment (Tools > External Tools))","","BBB Score Descriptors","heuristic"],
+  ["structure","BBB Score Descriptors","Computed on the major microspecies at pH 7.4.","","BBB Score Descriptors","heuristic"],
+  ["structure","BBB Score Descriptors","These are the five inputs to the Gupta et al. (2019) BBB Score. The composite score itself is NOT computed: its stepwise and polynomial weight functions are not published in the vendor's documentation, and one worked example cannot validate five unknown curves. For reference, that score runs 0-6 with 4-6 indicating a CNS drug.","","BBB Score Descriptors","heuristic"]
+ ],
+ "cells": [
+  ["calculator:bbb_descriptors:Aromatic rings","","0"],
+  ["calculator:bbb_descriptors:Heavy atoms","","4"],
+  ["calculator:bbb_descriptors:MWHBN","","0.26"],
+  ["calculator:bbb_descriptors:TPSA","A^2","40.13"],
+  ["calculator:bbb_descriptors:BBB Score Descriptors","","pKa (most basic): unavailable (needs a configured pkasolver environment (Tools > External Tools))"],
+  ["calculator:bbb_descriptors:BBB Score Descriptors","","Computed on the major microspecies at pH 7.4."],
+  ["calculator:bbb_descriptors:BBB Score Descriptors","","These are the five inputs to the Gupta et al. (2019) BBB Score. The composite score itself is NOT computed: its stepwise and polynomial weight functions are not published in the vendor's documentation, and one worked example cannot validate five unknown curves. For reference, that score runs 0-6 with 4-6 indicating a CNS drug."]
+ ]
 },
 "sodium acetate | not a number": {
- "refused": "MULTICOMPONENT_UNSUPPORTED"
+ "state": "completed",
+ "error": null,
+ "summary": null,
+ "inapplicable": false,
+ "method": "gupta_bbb_inputs",
+ "lines": [
+  "Aromatic rings: 0",
+  "Heavy atoms: 4",
+  "MWHBN: 0.26",
+  "TPSA: 37.30 A^2",
+  "pKa (most basic): unavailable (needs a configured pkasolver environment (Tools > External Tools))",
+  "These are the five inputs to the Gupta et al. (2019) BBB Score. The composite score itself is NOT computed: its stepwise and polynomial weight functions are not published in the vendor's documentation, and one worked example cannot validate five unknown curves. For reference, that score runs 0-6 with 4-6 indicating a CNS drug."
+ ],
+ "facts": [
+  ["structure","Aromatic rings","0","","BBB Score Descriptors","heuristic"],
+  ["structure","Heavy atoms","4","","BBB Score Descriptors","heuristic"],
+  ["structure","MWHBN","0.26","","BBB Score Descriptors","heuristic"],
+  ["structure","TPSA","37.30","A^2","BBB Score Descriptors","heuristic"],
+  ["structure","BBB Score Descriptors","pKa (most basic): unavailable (needs a configured pkasolver environment (Tools > External Tools))","","BBB Score Descriptors","heuristic"],
+  ["structure","BBB Score Descriptors","These are the five inputs to the Gupta et al. (2019) BBB Score. The composite score itself is NOT computed: its stepwise and polynomial weight functions are not published in the vendor's documentation, and one worked example cannot validate five unknown curves. For reference, that score runs 0-6 with 4-6 indicating a CNS drug.","","BBB Score Descriptors","heuristic"]
+ ],
+ "cells": [
+  ["calculator:bbb_descriptors:Aromatic rings","","0"],
+  ["calculator:bbb_descriptors:Heavy atoms","","4"],
+  ["calculator:bbb_descriptors:MWHBN","","0.26"],
+  ["calculator:bbb_descriptors:TPSA","A^2","37.30"],
+  ["calculator:bbb_descriptors:BBB Score Descriptors","","pKa (most basic): unavailable (needs a configured pkasolver environment (Tools > External Tools))"],
+  ["calculator:bbb_descriptors:BBB Score Descriptors","","These are the five inputs to the Gupta et al. (2019) BBB Score. The composite score itself is NOT computed: its stepwise and polynomial weight functions are not published in the vendor's documentation, and one worked example cannot validate five unknown curves. For reference, that score runs 0-6 with 4-6 indicating a CNS drug."]
+ ]
 },
 "water | 0 places": {
  "state": "completed",

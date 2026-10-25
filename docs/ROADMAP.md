@@ -2347,10 +2347,11 @@ and three were checked again recently rather than taken on trust.
      the answer. **Bromine goes to HBr**, found after a long search in Tsang & Domalski's NBS report (NBSIR 74-551, 1974: the formula and propargyl bromide -94.1) and Lease et al. 2023 (three brominated PETN derivatives, -21.6/-32.0/-41.4 to 0.3) and Wang et al. 2024 (bromo-trinitroanisoles -35.3/-42.2, to the digit); the many sources read first (Meyer, Conkling, Persson, Cooper (C/H/N/O only), Akhavan, Klapoetke's Encyclopedia in three volumes, the brominated-TNT preprint, all 68 Klapoetke-group LMU dissertations, Shanley & Melhem 1995) print none. A metal bromide is not printed by either source and follows the chlorides, said in the result. **What remains**: every other element, and halogen beyond what hydrogen and metals can take (CCl4, Teflon); each needs a source that states a
      product. Formulations still refuse a non-C/H/N/O component. **Kamlet-Jacobs detonation**: read, and not extendable from these
      sources -- all four Kamlet papers and Meyer's entry state it for C-H-N-O explosives; its oxygen-window refusal stands too.
-  2. **A drawing of several disconnected pieces with no single parent** (ChEMBL's rule leaves two or more components: a mixture, two organic ions, or a metal
-     complex drawn as separate ions, which is the only case its metal exclusion fires on). About 16 compound-property calculators refuse it. Computing on
-     the whole drawing is the error the component rule was built to stop; the open design is to ask which component is meant (the largest, by default) and
-     label the answer.
+  2. **A drawing of several disconnected pieces with no single parent: done for the 16 compound-property calculators (2026-10-25).** They are handed the
+     largest component, re-neutralised, with the choice in the result's first limitation and caveat (`docs/SCIENTIFIC_LIMITATIONS.md`, "Salts, hydrates and
+     mixtures"). What is left: components of one size that are different species (NaCl, two small organics) and ChEMBL's metal exclusion still refuse, because
+     there is no one species to hand over; the three pure-substance methods (solubility, Joback, Hansen) still refuse any second component, a hydrate
+     included, which could first lose its listed solvent; and the choice is a guess the person cannot yet correct from the window (naming the component).
   3. **Parameters missing for an element**: Jensen's atomic polarizability (no Na, Fe, Pt ...), Bultinck's EEM charges (no Cl, B, S), TSEI (no Pt covalent
      radius in Lange's table), molecular dynamics (no MMFF or UFF type). Each is a parameter-table extension from a source, measured against that source; none
      can be a warning, because there is no number to label.
