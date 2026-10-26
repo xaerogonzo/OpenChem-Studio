@@ -50,6 +50,7 @@ from openchem.chem.molecule_report import build_molecule_report
 from openchem.chem.calculation_input import input_fingerprint
 from openchem.chem.engine import ChemistryEngine
 from openchem.domain.calculator import DRAWING, ENSEMBLE, GEOMETRY
+from openchem.ui import theme
 from openchem.ui.widgets.help_tooltip import HelpTooltip, apply_help_tooltip
 from openchem.domain.molecule_report import MoleculeReport
 from openchem.domain.atom_report import (
@@ -315,7 +316,7 @@ class AtomInspectorPanel(QWidget):
         self._facts.highlight_requested.connect(self._on_highlight_requested)
 
         intro = WrappedLabel(_INTRO, self)
-        intro.setStyleSheet("color: #666666; font-style: italic;")
+        theme.style(intro, "color: #666666; font-style: italic;")
 
         # Disabled until an ATOM is the subject: a bond has two elements
         # and a molecule has many, so "which isotopes" has no answer for

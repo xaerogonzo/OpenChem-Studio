@@ -29,6 +29,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 
 from PySide6.QtCore import Qt
+from openchem.ui import theme
 from openchem.ui.widgets.collapsible_section import WrappedLabel
 from openchem.ui.widgets.widget_disposal import discard_widget
 from PySide6.QtWidgets import (
@@ -156,7 +157,7 @@ class SubstanceCard(QFrame):
         layout.addWidget(self._name)
 
         self._subtitle = QLabel("", self)
-        self._subtitle.setStyleSheet("color: #555;")
+        theme.style(self._subtitle, "color: #555;")
         self._subtitle.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
         layout.addWidget(self._subtitle)
 
@@ -164,7 +165,7 @@ class SubstanceCard(QFrame):
         # not a field of `SubstanceCardData`: the card's data is replaced by every substance report, and an ORCA
         # geometry arriving or being undone is not a report.
         self._badge = QLabel("", self)
-        self._badge.setStyleSheet("color: #1f6f3f; font-weight: bold;")
+        theme.style(self._badge, "color: #1f6f3f; font-weight: bold;")
         self._badge.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
         self._badge.hide()
         layout.addWidget(self._badge)
@@ -189,7 +190,7 @@ class SubstanceCard(QFrame):
         # claiming the panel's stretch -- the failure mode recorded against
         # the batch status line.
         self._reason = WrappedLabel("", self)
-        self._reason.setStyleSheet("color: #8a6d00;")
+        theme.style(self._reason, "color: #8a6d00;")
         self._reason.hide()
         layout.addWidget(self._reason)
 
@@ -231,7 +232,7 @@ class SubstanceCard(QFrame):
 
         for index, (label, value) in enumerate(data.rows):
             caption = QLabel(label, self._rows_container)
-            caption.setStyleSheet("color: #555;")
+            theme.style(caption, "color: #555;")
             content = QLabel(value, self._rows_container)
             content.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
             self._rows.addWidget(caption, index, 0, Qt.AlignmentFlag.AlignTop)

@@ -55,6 +55,7 @@ from openchem.domain.calculator_goals import (
     needs_conformer,
 )
 from openchem.domain.execution_plan import build_execution_plan
+from openchem.ui import theme
 from openchem.ui.dialogs.calculator_settings_dialog import CalculatorSettingsDialog
 from openchem.ui.dialogs.molecule_scope_dialog import MoleculeScopeDialog
 from openchem.ui.widgets.help_tooltip import HelpTooltip, apply_help_tooltip
@@ -468,7 +469,7 @@ class GoalWizardDialog(QDialog):
         check.toggled.connect(self._on_entry_toggled)
         self._entry_checks[entry.calculator_id] = check
         reason = QLabel(entry.reason, row)
-        reason.setStyleSheet("color: #666666;")
+        theme.style(reason, "color: #666666;")
         reason.setWordWrap(True)
         row_layout.addWidget(check)
         row_layout.addWidget(reason, 1)

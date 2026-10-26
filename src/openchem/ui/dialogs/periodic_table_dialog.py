@@ -64,6 +64,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from openchem.ui import theme
 from openchem.ui.widgets.atom_diagram import AtomDiagram
 from openchem.ui.widgets.help_tooltip import HelpTooltip, apply_help_tooltip
 from openchem.ui.widgets.collapsible_section import WrappedLabel
@@ -686,7 +687,7 @@ class PeriodicTableDialog(QDialog):
             container,
         )
         self._isotope_note.setWordWrap(True)
-        self._isotope_note.setStyleSheet("font-size: 9px; color: #444444;")
+        theme.style(self._isotope_note, "font-size: 9px; color: #444444;")
         column.addWidget(self._isotope_note)
 
         row = QHBoxLayout()
@@ -703,7 +704,7 @@ class PeriodicTableDialog(QDialog):
         apply_help_tooltip(self._isotope_all, _HELP["apply_all"])
         row.addWidget(self._isotope_all)
         self._isotope_hint = QLabel("", container)
-        self._isotope_hint.setStyleSheet(_MUTED_NOTE)
+        theme.style(self._isotope_hint, _MUTED_NOTE)
         row.addWidget(self._isotope_hint)
         row.addStretch(1)
         column.addLayout(row)
@@ -864,7 +865,7 @@ class PeriodicTableDialog(QDialog):
                 # Reinforcement only: the text already carries the mark,
                 # which is this table's rule that colour never says
                 # anything on its own.
-                table.item(row, 2).setForeground(_QUALIFIED_COLOUR)
+                table.item(row, 2).setForeground(theme.ink(_QUALIFIED_COLOUR))
                 table.item(row, 2).setToolTip(
                     "Not an exact measurement -- see the note below the table."
                 )
@@ -907,7 +908,7 @@ class PeriodicTableDialog(QDialog):
 
         self._decay_legend = QLabel("", container)
         self._decay_legend.setWordWrap(True)
-        self._decay_legend.setStyleSheet("font-size: 9px; color: #444444;")
+        theme.style(self._decay_legend, "font-size: 9px; color: #444444;")
         column.addWidget(self._decay_legend)
 
         row = QHBoxLayout()
@@ -916,7 +917,7 @@ class PeriodicTableDialog(QDialog):
         self._decay_insert.clicked.connect(self._insert_decay_nuclide)
         row.addWidget(self._decay_insert)
         self._decay_hint = QLabel("", container)
-        self._decay_hint.setStyleSheet(_MUTED_NOTE)
+        theme.style(self._decay_hint, _MUTED_NOTE)
         row.addWidget(self._decay_hint)
         row.addStretch(1)
         column.addLayout(row)
@@ -1199,7 +1200,7 @@ class PeriodicTableDialog(QDialog):
         """
         self._legend = QLabel(palettes.legend_for(self._palette_key), self)
         self._legend.setWordWrap(True)
-        self._legend.setStyleSheet("font-size: 9px; color: #444444;")
+        theme.style(self._legend, "font-size: 9px; color: #444444;")
         self._legend.setSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Fixed)
         return self._legend
 

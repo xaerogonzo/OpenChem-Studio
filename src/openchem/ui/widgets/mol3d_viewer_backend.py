@@ -21,6 +21,7 @@ from openchem.domain.report import (
     valid_spatial_annotation,
 )
 from openchem.ui.viewer_backend import ViewerBackend
+from openchem.ui.widgets.web_appearance import PageLook, call_script
 from openchem.ui.visualization import AnyVisualizationLayer, SurfaceLayer, VisualizationLayer
 
 logger = logging.getLogger("openchem.ui")
@@ -207,6 +208,8 @@ class Mol3DViewerBackend(ViewerBackend):
         self._page.setWebChannel(self._channel)
 
         self._page_ready = False
+        # Told the look when the page is ready and on every change; see `web_appearance`.
+        self._look = PageLook(self._view, self._page, lambda look: call_script("openchemViewer", look))
         #: (molblock, keep_camera) queued until the page is ready.
         self._pending_molblock: tuple[str, bool] | None = None
         #: The viewer-session identity of what is on screen; see
@@ -263,6 +266,8 @@ class Mol3DViewerBackend(ViewerBackend):
             logger.error("Failed to load 3D viewer page from %s", _VIEWER_HTML)
             return
         self._page_ready = True
+        # First, so the structure is drawn on the right background rather than recoloured a frame later.
+        self._look.ready()
         # `QWebEngineView.installEventFilter` alone does nothing for wheel
         # input: Chromium's actual input-receiving widget is an internal
         # child Qt creates once the page has a renderer, never the

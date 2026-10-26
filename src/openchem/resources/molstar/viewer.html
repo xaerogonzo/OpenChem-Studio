@@ -115,6 +115,21 @@
       }
 
       window.openchemMolstarViewer = {
+        // Light or dark, never "system": Python resolves that. Only the 3D canvas and the page behind it
+        // change. Mol*'s own panels (sequence, the left and right controls) are the one light skin this
+        // build ships, and stay light: documented in docs/APPEARANCE_DESIGN.md rather than hidden.
+        setAppearance: function (look) {
+          var dark = look === 'dark';
+          document.documentElement.style.colorScheme = dark ? 'dark' : 'light';
+          document.body.style.background = dark ? '#1e1e1e' : '#ffffff';
+          whenReady(function () {
+            var canvas = viewer.plugin.canvas3d;
+            if (canvas) {
+              canvas.setProps({ renderer: { backgroundColor: dark ? 0x1e1e1e : 0xffffff } });
+            }
+          });
+        },
+
         loadStructure: function (structureText, format, label) {
           whenReady(function () {
             // Claim a generation BEFORE queueing, so a pose requested after

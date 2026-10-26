@@ -45,6 +45,7 @@ from openchem.events.events import (
     MoleculeSelected,
     ReportComputed,
 )
+from openchem.ui import theme
 from openchem.ui.table_export import install_table_export
 from openchem.ui.widgets.collapsible_section import WrappedLabel
 from openchem.ui.widgets.empty_state import empty_state, empty_state_text, is_empty_state
@@ -149,7 +150,7 @@ class ComparisonPanel(QWidget):
         )
 
         intro = WrappedLabel(_INTRO, self)
-        intro.setStyleSheet("color: #666666; font-style: italic;")
+        theme.style(intro, "color: #666666; font-style: italic;")
 
         controls = QHBoxLayout()
         controls.addWidget(self._differences_only)

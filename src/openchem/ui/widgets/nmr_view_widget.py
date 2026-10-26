@@ -42,6 +42,7 @@ from openchem.chem.nmr_signals import (
 )
 from openchem.chem.tautomer_nmr import TautomerOverlay, tautomer_overlay
 from openchem.domain.scientific_result import SpectrumResult, StructureSetResult, TautomerNmrResult
+from openchem.ui import theme
 from openchem.ui.viewer_backend import ViewerBackend
 from openchem.ui.visualization import VisualizationLayer
 from openchem.ui.widgets.mol3d_viewer_backend import Mol3DViewerBackend
@@ -162,7 +163,7 @@ class NmrViewWidget(QWidget):
         # the plot otherwise.
         self._coupling_note_label = QLabel("", self)
         self._coupling_note_label.setWordWrap(True)
-        self._coupling_note_label.setStyleSheet("color: #666;")
+        theme.style(self._coupling_note_label, "color: #666;")
 
         # `make_scroll_safe` on every combo below: confirmed live
         # (OPENCHEM_DRIVE's wheel_trace/wheel steps) that a `QComboBox`
@@ -176,6 +177,7 @@ class NmrViewWidget(QWidget):
         self._scroll_safe_guards.append(make_scroll_safe(self._element_combo))
 
         self._svg_widget = QSvgWidget(self)
+        theme.paper(self._svg_widget)
         # Small enough that the splitter below can give the spectrum --
         # the primary analytical view -- the majority of the space by
         # DEFAULT, which a large minimum here would have prevented
@@ -292,7 +294,7 @@ class NmrViewWidget(QWidget):
         self._reference_peaks_check.setEnabled(False)
         self._reference_note_label = QLabel("", self)
         self._reference_note_label.setWordWrap(True)
-        self._reference_note_label.setStyleSheet("color: #666;")
+        theme.style(self._reference_note_label, "color: #666;")
         self._reference_note_label.setVisible(False)
         # Tautomer peaks drawn over the spectrum, with their toggles and notes. Hidden until a tautomer NMR
         # result is attached (`set_tautomer_nmr`); view state like the reference, so Reset Settings leaves it.
