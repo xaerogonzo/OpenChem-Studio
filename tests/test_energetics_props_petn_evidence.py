@@ -61,9 +61,9 @@ def test_every_row_quotes_a_value_but_none_reproduces_a_table():
         assert len(r["note"]) <= 700, r["id"]
 
 
-def test_the_seven_papers_were_read_and_say_so():
+def test_the_supplied_papers_were_read_and_say_so():
     read = [r for r in EVIDENCE["rows"] if r["group"] == "F_papers_read"]
-    assert len(read) >= 10
+    assert len(read) >= 12
     assert sum("read" in r["source"].lower() for r in read) >= 10
 
 

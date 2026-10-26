@@ -1105,6 +1105,38 @@
    "lineage_root": "Muravyev 2021; Suntsova and Dorofeeva, J. Mol. Graph. Model. 72 (2017) 220",
    "independent_of_inventory": "yes",
    "note": "two calculated gas-phase values for PETN differ by 18.1 kJ/mol; the derived experimental value of A07 (-388.1 +/- 1.5) is nearer the W1-F12 one"
+  },
+  {
+   "id": "F15",
+   "group": "F_papers_read",
+   "compound": "PETN",
+   "property": "enthalpy_formation_gas_solid_and_sublimation_calculated",
+   "value": "calculated, this work: dfH(g) -413.6 +/- 4.0 kJ/mol, dsubH 135.0, dfH(cr) -548.6; experimental: dsubH 146.6, dfH(cr) -538.5 +/- 0.8 (refs [43] Oxley 2012 and [44] Ornellas 1966); a further literature dfH(cr) -593.0 [45, Huynh et al.], which the text calls possibly too negative; the predicted dsubH agrees with experiment within 12 kJ/mol although nitrate esters are not in the training set",
+   "unit": "kJ/mol",
+   "value_kind": "computed",
+   "phase_form": "gas and solid (calculated); solid (experimental, two rows)",
+   "temperature": "298 K",
+   "source": "Suntsova and Dorofeeva, J. Mol. Graph. Model. 72 (2017) 220, DOI 10.1016/j.jmgm.2017.01.013, table of calculated and experimental values (PDF p. 4) and the paragraph before it (read); the SI (14 pages, Tables S1 and S2: training and test sets of sublimation enthalpies and ESP parameters) holds no PETN or nitrate-ester row",
+   "locator": "table row 7",
+   "lineage_root": "Suntsova 2017 (calculated gas value); Oxley 2012 and Ornellas 1966 (experimental)",
+   "independent_of_inventory": "yes",
+   "note": "a third calculated gas-phase value for PETN: -413.6 (this), -395.5 (Muravyev W1-F12), derived experimental -388.1; spread 25.5 kJ/mol. The 'Exp' PETN sublimation value they use is Oxley's TGA 146.6, not Cundall's 150.4"
+  },
+  {
+   "id": "F16",
+   "group": "F_papers_read",
+   "compound": "PETN, nitroglycerin, EGDN",
+   "property": "vapour_pressure_review",
+   "value": "PETN: seven vapour-pressure studies [Cundall, Lau et al., Rosen and Dickinson, John, Edwards, Crimmins, ...] agree 'fairly' except John's; the Clausius-Clapeyron fit uses only the Lau and Dionne data and gives a sublimation enthalpy of 150.8 kJ/mol, in good agreement with Cundall's 150.4. Nitroglycerin: melts at 12.8 C, six papers on the liquid, no paper on the vapour pressure of the solid. EGDN: six papers",
+   "unit": "kJ/mol",
+   "value_kind": "measured",
+   "phase_form": "solid to gas (PETN)",
+   "temperature": "",
+   "source": "Ostmark, Wallin, Ang, Propellants Explos. Pyrotech. 37 (2012) 12, DOI 10.1002/prep.201100083, section 4.6 (printed p. 17), 4.8 and 4.9 (read)",
+   "locator": "sections 4.6, 4.8, 4.9",
+   "lineage_root": "a review of Cundall 1978, Lau, Dionne, Edwards 1953, Rosen and Dickinson 1969, Crimmins 1969",
+   "independent_of_inventory": "yes",
+   "note": "the 150.8 in Muravyev's SI table is this review's fit, not an eighth measurement"
   }
  ]
 }
