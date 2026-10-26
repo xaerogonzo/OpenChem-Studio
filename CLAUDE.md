@@ -969,6 +969,20 @@ are verbatim, so grep the file for the line.
 - The two orbital measures disagree on the motivating case
 - Alex has the paywalled papers. Ask before hedging around one.
 
+## Books and papers: use the facts
+
+Measured values, short runs of values from one cell, spreads, units, temperatures and forms are
+**facts**: read every held book, handbook and paper for them (`D:\Xaero Stuff\Documents\Sci Downloads`,
+`tools/library_index.py`) and **quote them with source and page** in the committed docs and JSON. Do not
+withhold them, and do not write "counted only", "not read" or "not held" without having looked. What stays
+out of git is a whole table or page reproduced, running prose, figures, and a **bulk extracted corpus**
+(hundreds of rows, such as Phase A's handbook corpus, which is built beside the library and was used in
+full). A value in a committed file carries `value_kind`, temperature, form, page and lineage, and a row's
+value is a short cell, not a table. Older wording in the Phase A preregistration (frozen) and in the
+energetic-materials draft's section 7 ("books are not committed", "no per-compound values from a
+copyrighted table") describes where a bulk corpus lives; it is not a reason to skip a source or to omit a
+fact. Owner's instruction, 2026-10-26.
+
 ## Verification standard
 
 This project's convention, established across many sessions: **claims are
