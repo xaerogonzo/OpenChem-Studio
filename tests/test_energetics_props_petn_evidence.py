@@ -47,7 +47,7 @@ def test_every_row_has_a_source_a_locator_and_a_closed_value_kind():
     for r in EVIDENCE["rows"]:
         assert r["value_kind"] in VALUE_KINDS, r["id"]
         assert r["source"].strip() and r["locator"].strip(), r["id"]
-        assert r["group"].startswith(("A_", "B_", "C_", "D_", "E_", "F_")), r["id"]
+        assert r["group"].startswith(("A_", "B_", "C_", "D_", "E_", "F_", "G_")), r["id"]
 
 
 def test_every_row_quotes_a_value_but_none_reproduces_a_table():
