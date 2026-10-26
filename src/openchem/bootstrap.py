@@ -357,15 +357,19 @@ _EXTERNAL_CALCULATOR_DEFINITIONS.append(
                 choices=[BOND_DISSOCIATION_METHOD],
             ),
         ],
-        # EXPERIMENTAL like the proton affinity, for the same reason: the stage describes THIS implementation, and until it has been driven through the application on real ORCA
-        # (its recorded run is the change that promotes it, docs/CALCULATOR_MATURITY.md) the benchmarks' verdicts are about the benchmarks' own runner.
+        # LIMITED, and shown, like the proton affinity and for the same reason: EXPERIMENTAL waited for this implementation to be driven through the application on real ORCA, and it has
+        # been (benchmarks/visual/bond_dissociation_run.json: the stage-3 branch, then twice on master c86f3e0a with a clean tree, 2026-10-25, the same stored values to the
+        # digit each time; recorded in docs/BDE_DESIGN.md). LIMITED and not STABLE because the scope is narrow (nine heavy atoms of five elements, neutral closed-shell), the calculation runs
+        # about 1.4 kcal/mol low and a thiyl radical gives its S-H no value, and because the held-out arm is one benchmark, not the stratified independent result STABLE asks for
+        # (docs/CALCULATOR_MATURITY.md). To hide it again, set default_visibility back to HIDDEN.
         support=CalculatorSupport(
-            stage=SupportStage.EXPERIMENTAL,
-            default_visibility=Visibility.HIDDEN,
+            stage=SupportStage.LIMITED,
+            default_visibility=Visibility.SHOWN,
             support_reason=(
-                "The protocol was measured on 49 bonds (22 against experiment, PARTIAL by 0.03 kcal/mol on the bias; 27 held out against the Active Thermochemical Tables, PASS): mean absolute error 1.48 kcal/mol, "
-                "values run about 1.4 kcal/mol low, and an O-H next to O or N runs 3.3 low. This implementation has not yet been driven through the application on real ORCA, and it needs many ORCA jobs. "
-                "Every result states the measured error and its limits."
+                "Limited to neutral closed-shell molecules of at most nine heavy atoms of H, C, N, O and S (larger or other: computed after a warning, an estimate). The protocol was measured on 49 bonds "
+                "(22 against experiment, PARTIAL by 0.03 kcal/mol on the bias; 27 held out against the Active Thermochemical Tables, PASS): mean absolute error 1.48 kcal/mol, values run about 1.4 kcal/mol low, "
+                "an O-H next to O or N runs 3.3 low, and an S-H gets no value because its thiyl radical keeps an imaginary vibration. This implementation reproduces the benchmark's numbers when driven through the "
+                "application on real ORCA. It needs many ORCA jobs. Every result states the measured error and its limits."
             ),
             scope_note=(
                 "Measured for neutral closed-shell molecules of at most nine heavy atoms of H, C, N, O and S and their C-H, N-H, O-H, S-H and Si-H bonds (outside that: computed after a warning, an estimate); "
