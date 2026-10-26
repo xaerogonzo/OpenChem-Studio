@@ -1,6 +1,6 @@
 # PETN and the nitrate-ester family: an evidence hunt for Phase B
 
-An inventory, not a score. No corpus was built, no method was run, and no number of `PREREGISTRATION.md` was changed (that file is an unfrozen draft and is not edited here). Every item carries its source, page or table, the value as printed, its `value_kind` (preregistration 3.1), the temperature and form, and whether it is independent of what `INVENTORY.md` already holds. The rows are in `PETN_EVIDENCE.json` (79 rows, ids `A01`... below); the COD rows are in `cod_nitrate_extra.json`; the searches are in section 9. Nine papers the owner supplied (and four SI files) were read after the first pass (section 3.5, rows `F01`-`F18` and the mined fit tables and further NIST rows `G01`-`G06`).
+An inventory, not a score. No corpus was built, no method was run, and no number of `PREREGISTRATION.md` was changed (that file is an unfrozen draft and is not edited here). Every item carries its source, page or table, the value as printed, its `value_kind` (preregistration 3.1), the temperature and form, and whether it is independent of what `INVENTORY.md` already holds. The rows are in `PETN_EVIDENCE.json` (83 rows, ids `A01`... below); the COD rows are in `cod_nitrate_extra.json`; the searches are in section 9. Nine papers the owner supplied (and four SI files) were read after the first pass (section 3.5, rows `F01`-`F18` and the mined fit tables and further NIST rows `G01`-`G06`, and the four remaining held books `G07`-`G10`).
 
 <!-- cod_nitrate_extra: total=73 outside_window=41 single=52 formulas=64 four_arm=32 -->
 
@@ -124,6 +124,10 @@ NIST WebBook rows (public data; ids C01-C10, values in the JSON): nitroglycerin 
 ### 5.1 The fit tables, mined
 
 The Keshavarz, Nazari, Cawkwell and Byrd-Rice papers hold the nitrate-ester rows of the held literature's "fit tables" (INVENTORY section 6). Read page by page: **they repeat NIST** (G01, G06; Keshavarz 2006's footnote says so), include liquids as "densities" (G04), and add one genuinely useful set, **Cawkwell 2021's experimental gas-phase values** for nitroglycerin (-66.71 kcal/mol), methyl, ethyl and t-butyl nitrate and furazandimethanol dinitrate (G05), together with its finding that an atom-equivalent scheme struggles with the nitrate ester group in nitroglycerin (12.1 kcal/mol for the 7-parameter model in the text, 12.9 from its Table 1 values, and 25.5 for the 4-parameter model). That is the same shape of failure as the repository's PETN miss, now seen in a second method on a three-arm molecule. Byrd and Rice 2005's table lists nitrate esters (methyl, ethyl and propyl nitrate, nitroglycerin, PETN, metriol trinitrate, butanetriol trinitrate, trimethylolpropane trinitrate, furazandimethanol dinitrate) and the printed list carries phase flags, but the experimental values were not found in the main text.
+
+### 5.2 Four more held books
+
+Klapoetke's 4th edition (Tab. 9.16b, printed p. 270), Viswanath 2018 (Table 2.15), Akhavan (Table 2.7, nitroglycerin) and Boddu and Redner 2010 were read on the page. **None adds an independent number for PETN or its family.** Klapoetke's table reprints PETN (141.3 C, 1.760, -539 kJ/mol) and NG (14 C, 1.60, -370) beside a new tetranitrate ester that is not an R1 candidate (G08); Viswanath's Table 2.15 repeats Meyer's -407.4 kcal/kg and the X-ray density 1.778 for PETN (G09, same digits as A11 and A13); Akhavan's nitroglycerin table (G07) is a liquid and its -1633 kJ/kg is about -371 kJ/mol, NIST's liquid value; Boddu holds no PETN or nitrate-ester value at all (G10). The handoff's "Akhavan Table 5.11" is not in the file held (a 28-page chapter) and Viswanath's Table 5.11 is NTO vacuum stability.
 
 ## 6. The COD
 
