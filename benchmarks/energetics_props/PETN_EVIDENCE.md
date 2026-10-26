@@ -1,6 +1,6 @@
 # PETN and the nitrate-ester family: an evidence hunt for Phase B
 
-An inventory, not a score. No corpus was built, no method was run, and no number of `PREREGISTRATION.md` was changed (that file is an unfrozen draft and is not edited here). Every item carries its source, page or table, the value as printed, its `value_kind` (preregistration 3.1), the temperature and form, and whether it is independent of what `INVENTORY.md` already holds. The rows are in `PETN_EVIDENCE.json` (71 rows, ids `A01`... below); the COD rows are in `cod_nitrate_extra.json`; the searches are in section 9. Nine papers the owner supplied (and four SI files) were read after the first pass (section 3.5, rows `F01`-`F16`).
+An inventory, not a score. No corpus was built, no method was run, and no number of `PREREGISTRATION.md` was changed (that file is an unfrozen draft and is not edited here). Every item carries its source, page or table, the value as printed, its `value_kind` (preregistration 3.1), the temperature and form, and whether it is independent of what `INVENTORY.md` already holds. The rows are in `PETN_EVIDENCE.json` (73 rows, ids `A01`... below); the COD rows are in `cod_nitrate_extra.json`; the searches are in section 9. Nine papers the owner supplied (and four SI files) were read after the first pass (section 3.5, rows `F01`-`F18`).
 
 <!-- cod_nitrate_extra: total=73 outside_window=41 single=52 formulas=64 four_arm=32 -->
 
@@ -18,7 +18,7 @@ An inventory, not a score. No corpus was built, no method was run, and no number
 
 | # | finding | where |
 |---|---|---|
-| 1 | PETN has **no experimental gas-phase enthalpy of formation**. Its derived gas value is a measured solid value (-538.5 +/- 0.8, two bomb-calorimeter runs, Ornellas 1966) plus a measured sublimation enthalpy (150.4 +/- 1.3): **-388.1 +/- 1.5 kJ/mol**, `derived_from_measured`. A W1-F12 calculation gives -395.5 (Muravyev 2021), 7.4 kJ/mol lower; Suntsova 2017 calculates -413.6 +/- 4 (three calculated or derived values span 25.5 kJ/mol). | A01, A07, F01, F08, F14, F15 |
+| 1 | PETN has **no experimental gas-phase enthalpy of formation**. Its derived gas value is a measured solid value (-538.5 +/- 0.8, two bomb-calorimeter runs, Ornellas 1966) plus a measured sublimation enthalpy (150.4 +/- 1.3): **-388.1 +/- 1.5 kJ/mol**, `derived_from_measured`. A W1-F12 calculation gives -395.5 (Muravyev 2021), 7.4 kJ/mol lower; Suntsova 2017 calculates -413.6 +/- 4; Manaa 2016 calculates -410.0 (ccCA-PS3), -442.2 (G4) and -443.5 (G3) and derives an experimental -381.2 with the larger sublimation value. The derived experimental gas value is **-381 to -388** and the calculated ones span **-395.5 to -443.5**. | A01, A07, F01, F08, F14, F15, F17 |
 | 2 | Five measured PETN sublimation enthalpies agree within 146.6-156.9 kJ/mol (Ostmark's 2012 review of seven vapour-pressure studies fits 150.8 from Lau and Dionne's data), so PETN is a **well-pinned derived gas-phase point**, not a gap. If the repository's route used the 138.0 kJ/mol Keshavarz value (the number `literature.toml` records for the APC route), about **12 of the recorded 59.5 kJ/mol PETN miss is the sublimation leg**; against the W1-F12 gas value the gas-phase miss is about 54. | F11, section 3.4 |
 | 3 | **Pentaerythritol** is the only compound found that matches the R1 pattern with oxygen arms and measured data (solid -920.5 +/- 2.8; sublimation 96-163 kJ/mol across polymorphs). Its gas value is `derived_from_measured` only (about +/- 16 kJ/mol), so it **does not meet R1 as written**. | B01-B04 |
 | 4 | The **R1 pattern is also matched by 3,3-diethylpentane**, so the owner's D8 approval does all the selecting; a test pins this. | B05 |
@@ -71,13 +71,14 @@ The Klapoetke density cell also lists nine further values for PETN, labelled pyc
 | A20 | 151.9 (Lange's Sec. 06, PDF p. 74) | unlabelled | a compilation of A06's last row |
 | A07 | **-388.1 +/- 1.5** kJ/mol, gas, 298 K (A01 + A04) | derived_from_measured | this inventory |
 | A08 | -92.5 kcal/mol (= -387.0 kJ/mol), Cox and Pilcher; Burcat's text, section 3.25: 'No experimental value is known for this explosive material'; Burcat's own calculations -89.89, -98.2, -95.3 kcal/mol | unlabelled | Burcat 1999, Table 52, p. 118 (rendered page read) |
+| F17 | experimental by Hess's law: -91.1 kcal/mol (= -381.2 kJ/mol) from -128.7 and a sublimation of 37.6 kcal/mol (157.3 kJ/mol); calculated -98.0 (ccCA-PS3), -106.0 (G3), -105.7 (G4) kcal/mol (= -410.0, -443.5, -442.2 kJ/mol); the authors: no consistent method reaches 1-2 kcal/mol for these molecules | computed | Manaa, Fried, Kuo 2015 (LLNL), Table I and PDF pp. 10-11 (**read**) |
 | F08, F14, F15 | **-395.5** (W1-F12 atomization energy); another calculation -413.6 +/- 4 (Suntsova and Dorofeeva 2017, their sublimation model gives 135.0 against an experimental 146.6) | computed | Muravyev 2021, Table 1 and SI p. 22; Suntsova 2017, table, PDF p. 4 (**read**) |
 
 PETN therefore has a derived gas-phase enthalpy known to about 2 kJ/mol (five sublimation measurements within 10), a W1-F12 value 7.4 kJ/mol below it, and **no measured gas-phase enthalpy**. R1 requires `measured`, so it cannot be met by PETN or by any compound whose gas value is solid-plus-sublimation.
 
 ### 3.4 What this does to the repository's recorded PETN miss
 
-`benchmarks/thermophysical/orca_atom_equivalents.py` records the 6-fit PETN solid value -479.5 against a measured -539.0 (59.5 kJ/mol), and `docs/research/literature.toml` records, for the APC route, gas -344.0 with Keshavarz's sublimation 138.0. **If** the ORCA route's sublimation leg for PETN was also 138.0, its implied gas value is -341.5, against the derived -388.1 (a gas-phase miss of about 47) and against the W1-F12 -395.5 (about 54); 12.4 kJ/mol of the recorded miss is the sublimation leg (138.0 against a measured 150.4 +/- 1.3, or 147.6 +/- 3.5). The gas-phase miss is the quantity R1 would test. This is arithmetic on recorded numbers; which sublimation value the ORCA route used is not confirmed here.
+`benchmarks/thermophysical/orca_atom_equivalents.py` records the 6-fit PETN solid value -479.5 against a measured -539.0 (59.5 kJ/mol), and `docs/research/literature.toml` records, for the APC route, gas -344.0 with Keshavarz's sublimation 138.0. **If** the ORCA route's sublimation leg for PETN was also 138.0, its implied gas value is -341.5, against the derived -381.2 to -388.1 (a gas-phase miss of about 40-47), against the W1-F12 -395.5 (about 54) and the ccCA-PS3 -410.0 (about 68); 12.4 kJ/mol of the recorded miss is the sublimation leg (138.0 against a measured 150.4 +/- 1.3, or 147.6 +/- 3.5). The gas-phase miss is the quantity R1 would test. This is arithmetic on recorded numbers; which sublimation value the ORCA route used is not confirmed here.
 
 ### 3.5 What the supplied papers add (all read)
 
@@ -91,6 +92,8 @@ PETN therefore has a derived gas-phase enthalpy known to about 2 kJ/mol (five su
 | Oxley 2012 | sublimation enthalpies and vapour pressures by TGA (PETN 146.6, ETN 117.7, DNTN 105.3); pycnometer densities; **its heats of formation are literature values fed to Cheetah** (F04) |
 | Ostmark 2012 | PETN vapour pressure: seven studies agree except John's; fit gives 150.8 kJ/mol; no vapour pressure of solid nitroglycerin exists (melts 12.8 C) |
 | Suntsova 2017 and SI | a calculated PETN gas value -413.6; a further literature solid enthalpy -593.0; the SI has no PETN or nitrate-ester row |
+| Manaa 2015 | the experimental PETN gas value by Hess's law (-381.2 kJ/mol with a 157.3 sublimation) and G2, G3, G4 and ccCA-PS3 calculations spanning 33 kJ/mol |
+| Cooper 1996, Agrawal 2010 | condensed enthalpies only (PETN -128.7 kcal/mol, -538 kJ/mol); no gas-phase value in either book |
 | Muravyev 2021 and SI | a W1-F12 gas enthalpy and a modified-TG sublimation enthalpy for PETN, ETN and SMX (= DNTN); DSC melting data with purity (PETN 140.9 +/- 0.3 C, 48.1 +/- 1.1 kJ/mol; ETN 61.2 +/- 0.7, 36.9 +/- 3.3); the **-371 vs -542** contradiction for the Chavez compound |
 
 ## 4. R1: four-arm quaternary carbons

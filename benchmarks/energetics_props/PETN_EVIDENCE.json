@@ -1137,6 +1137,38 @@
    "lineage_root": "a review of Cundall 1978, Lau, Dionne, Edwards 1953, Rosen and Dickinson 1969, Crimmins 1969",
    "independent_of_inventory": "yes",
    "note": "the 150.8 in Muravyev's SI table is this review's fit, not an eighth measurement"
+  },
+  {
+   "id": "F17",
+   "group": "F_papers_read",
+   "compound": "PETN",
+   "property": "enthalpy_formation_gas_experimental_and_calculated",
+   "value": "experimental gas phase by Hess's law: dfH(s) -128.7 +/- 0.2 kcal/mol [Ornellas] and dHsub 37.6 +/- 0.8 kcal/mol (= 157.3 kJ/mol) give dfH(g) -91.1 kcal/mol (= -381.2 kJ/mol); calculated: ccCA-PS3 -98.0 (= -410.0 kJ/mol), G3 -106.0 (= -443.5), G4 -105.7 (= -442.2) kcal/mol; deviations from experiment 6.9 (ccCA-PS3) and about 14 (G3, G4) kcal/mol; G3 and G4 differ by 0.3, G3 and ccCA by 8.0",
+   "unit": "kcal/mol",
+   "value_kind": "computed",
+   "phase_form": "gas",
+   "temperature": "298 K",
+   "source": "Manaa, Fried, Kuo, Chem. Phys. Lett. (LLNL-JRNL-680299, Dec 2015), Table I (experimental, with sublimation and Hess's-law gas value), abstract and the discussion on PDF pp. 10-11 (read)",
+   "locator": "Table I row PETN; text on PETN",
+   "lineage_root": "Manaa 2015 (calculations); Ornellas 1966 and the sublimation reference [30] (experimental)",
+   "independent_of_inventory": "yes",
+   "note": "the experimental gas value here uses the larger sublimation enthalpy (157.3 kJ/mol, near Acree's 156.9 at 369 K); with Cundall's 150.4 the same arithmetic gives -388.1 (A07): the derived experimental gas value is -381.2 to -388.1 depending on the sublimation row, and the calculated values span -395.5 to -443.5"
+  },
+  {
+   "id": "F18",
+   "group": "F_papers_read",
+   "compound": "PETN, NG, DEGDN, TEGDN",
+   "property": "enthalpy_formation_condensed_books",
+   "value": "Cooper, Table 9.2 (printed p. 125, rendered page read), kcal/mol at 25 C: PETN -128.7, NG -88.6, DEGN (DEGDN) -99.4; Agrawal, Table 1.5 (printed p. 26): PETN -1703 kJ/kg = -538 kJ/mol, TEGDN -2506 kJ/kg = -601.7 kJ/mol",
+   "unit": "mixed",
+   "value_kind": "unlabelled",
+   "phase_form": "solid or liquid (unstated)",
+   "temperature": "25 C",
+   "source": "Cooper, Explosives Engineering (1996), Table 9.2, printed p. 125 ('Data from Ref. 6'); Agrawal, High Energy Materials (2010), Table 1.5, printed p. 26 (text layer)",
+   "locator": "one row each",
+   "lineage_root": "Ornellas 1966 for PETN (-128.7); TEGDN -601.7 is close to the Tavernier -603.8 of NIST; both books state condensed values only",
+   "independent_of_inventory": "no (same upstream)",
+   "note": "no held book prints a gas-phase enthalpy of PETN or of any nitrate ester other than through a handbook's derived column; Cooper's DEGN -99.4 kcal/mol (= -415.9 kJ/mol) is 35 kJ/mol above the NIST liquid value (-451.0) and 60 above the solid (-476.1)"
   }
  ]
 }
