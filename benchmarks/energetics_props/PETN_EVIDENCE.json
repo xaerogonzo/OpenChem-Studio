@@ -1713,6 +1713,54 @@
    "lineage_root": "a primary: the calorimeter, samples (from Bruceton) and bomb data are described in the report; Koch's ref. [8], and the 'Stegeman 1945' NIST names in a comment",
    "independent_of_inventory": "yes: the first primary for nitroguanidine, HMX, DINA and tetryl read here",
    "note": "HMX +49.8 kJ/mol is far below Krien (+87.9), Miroshnichenko 2009 (+85.8) and NIST's 74.9 (the Encyclopedia lists it as -11.90 kcal/mol), so it is an outlier to keep, not a root to average; DINA -324.1 against -311.0 and -306.8 is a 17 kJ/mol spread; nitroguanidine's two samples differ by 2.8 kJ/mol, which Koch's grain-size remark may refer to (his -100.00 attributed to Krien looks like Stegeman's sample 10, not Krien)"
+  },
+  {
+   "id": "G35",
+   "group": "G_medard_thomas_substitutes",
+   "compound": "pentaerythritol and PETN",
+   "property": "enthalpy_formation_and_sublimation",
+   "value": "Pentaerythritol (c): -dHc 660.12 +/- 0.66 kcal/mol (SB, 5 experiments; ref 54/12 = Medard and Thomas, Mem. Poudres 36, 97, 1954), dHf(c) -220.03 +/- 0.67 kcal/mol (-920.6 kJ/mol), sublimation 34.4 +/- 0.2 (ref 53/28 = Bradley and Cleasby, J. Chem. Soc. 1953, 1681; 143.9 kJ/mol), dHf(g) -185.63 +/- 0.72 (-776.7 kJ/mol). PETN (c): -dHc 614.2 +/- 0.6 (ref 39/17) and 614.8 +/- 0.3 (ref 66/29), dHf(c) -128.8 +/- 0.3 (-538.9 kJ/mol), sublimation 36.3 +/- 0.5 (ref 53/33 = Edwards 1953), dHf(g) -92.5 +/- 0.7 kcal/mol (-387.0 kJ/mol)",
+   "unit": "kcal/mol",
+   "value_kind": "derived_from_measured",
+   "phase_form": "solid (c)",
+   "temperature": "298.15 K",
+   "source": "Cox and Pilcher, Thermochemistry of Organic and Organometallic Compounds, Academic Press 1970 (SBN 12-194350-X), data tables, left page (columns 1-4, the combustion) and facing right page (columns 5-7, the formation enthalpies); scanned pages rendered and read; file cox_pilcher1970_thermochemistry_organic_organometallic_compounds.pdf; printed pp. 264-265 (pentaerythritol) and 360-361 (PETN)",
+   "locator": "Chapter 5 tables",
+   "lineage_root": "a critical compilation: its pentaerythritol -dHc is Medard and Thomas 1954, so the book is the same lineage but prints the primary reference by number; its PETN gas value is built from Edwards' sublimation",
+   "independent_of_inventory": "NO: same lineage; but a readable, authoritative page for the digits NIST and Pedley give",
+   "note": "the book's PETN gas-phase -387.0 kJ/mol (from 36.3 kcal sublimation of Edwards, whose printed 36.3 does not follow from his own equation, G15) sits next to the derived -388.1 already held; pentaerythritol's sublimation of 143.9 kJ/mol is Bradley and Cleasby's, and Barone 1990 quotes it as 144 (G11), against his own 161-163"
+  },
+  {
+   "id": "G36",
+   "group": "G_medard_thomas_substitutes",
+   "compound": "EDNA, DINA, nitroguanidine, trimethylolpropane trinitrate and two propanediol dinitrates",
+   "property": "enthalpy_formation_condensed",
+   "value": "kcal/mol (x 4.184 = kJ): EDNA -dHc 368.44 +/- 0.37 (ref 55/21), dHf(c) -24.61 +/- 0.38 (-103.0 kJ); DINA = bis(2-hydroxyethyl nitrate) nitramine, -dHc 575.09 +/- 0.58 (54/12) and 576.14 +/- 0.36 (55/22), dHf(c) selected -73.84 +/- 0.50 (-308.9 kJ); nitroguanidine -dHc 208.6 (51/19, remark 'N.B.S. measurement'), dHf(c) -22.1 (-92.5 kJ); 1,1,1-tris(hydroxymethyl)propane trinitrate -dHc 825.35 +/- 0.82 (53/15), dHf(c) -114.69 +/- 0.83 (-479.9 kJ); 2-nitro-2-methyl- and 2-nitro-2-ethyl-1,3-propanediol dinitrates -89.41 and (l) -87.8 (-374.1, -367.4 kJ)",
+   "unit": "kcal/mol",
+   "value_kind": "derived_from_measured",
+   "phase_form": "solid (c) except the ethyl dinitrate (l)",
+   "temperature": "298.15 K",
+   "source": "Cox and Pilcher, Thermochemistry of Organic and Organometallic Compounds, Academic Press 1970 (SBN 12-194350-X), data tables, left page (columns 1-4, the combustion) and facing right page (columns 5-7, the formation enthalpies); scanned pages rendered and read; file cox_pilcher1970_thermochemistry_organic_organometallic_compounds.pdf; printed pp. 352-353, 354-355, 356-357, 360-361",
+   "locator": "Chapter 5 tables",
+   "lineage_root": "Codes (decoded in G37): 55/21, 54/12, 53/15 are Medard and Thomas; 55/22 Tavernier and Lamouroux; 51/19 McEwan and Rigg. EDNA, DINA (first value), the methyl dinitrate and TMP trinitrate are Medard and Thomas; the second DINA value is Tavernier and Lamouroux; nitroguanidine is a US National Bureau of Standards measurement, not Medard and Thomas",
+   "independent_of_inventory": "partly: nitroguanidine (-22.1 kcal, from McEwan and Rigg 1951) and DINA's second root are not Medard and Thomas",
+   "note": "NIST's nitroguanidine -89.1 'Medard and Thomas 1949' is not what Cox and Pilcher or Pedley (-92.4) adopt: both use the NBS value, which agrees with Krien's printed -92.05. The two DINA roots differ by 1.05 kcal in -dHc (4.4 kJ/mol)"
+  },
+  {
+   "id": "G37",
+   "group": "G_medard_thomas_substitutes",
+   "compound": "nitrourea, nitroisobutylglycerol trinitrate, dipentaerythritol hexanitrate: not located in Cox and Pilcher",
+   "property": "searched_and_not_found",
+   "value": "In the pages read (CHON3 block printed pp. 348-353, CHON4 block 354-361, plus the pentaerythritol page) no nitrourea (CH3O3N3), no nitroisobutylglycerol trinitrate and no dipentaerythritol hexanitrate row was found; the N3 block's O3 compounds are absent from its first pages, and the N4 block lists O2, O4, O8, O10 and O12 rows without a C4H6O11N4 compound. The N6 block (dipentaerythritol hexanitrate, C10H16O19N6) was not read",
+   "unit": "",
+   "value_kind": "unlabelled",
+   "phase_form": "",
+   "temperature": "",
+   "source": "Cox and Pilcher, Thermochemistry of Organic and Organometallic Compounds, Academic Press 1970 (SBN 12-194350-X), data tables, left page (columns 1-4, the combustion) and facing right page (columns 5-7, the formation enthalpies); scanned pages rendered and read; file cox_pilcher1970_thermochemistry_organic_organometallic_compounds.pdf; OCR of printed pp. 348-361 and 264, header strips of others",
+   "locator": "searches",
+   "lineage_root": "n/a",
+   "independent_of_inventory": "n/a",
+   "note": "absence is UNVERIFIED (OCR can drop a row); the book's reference list (PDF pp. 612-624, printed 602-614) decodes its codes: 53/15 and 54/12 and 55/21 are Medard and Thomas, 55/22 Tavernier and Lamouroux, 51/19 McEwan and Rigg (DOI 10.1021/ja01154a072), 53/28 Bradley and Cleasby (DOI 10.1039/jr9530001681), 53/33 Edwards"
   }
  ]
 }
