@@ -1,0 +1,136 @@
+{
+ "paper": "mughal2018_flavonol_glycosides_cholinesterase",
+ "decision": "excluded",
+ "exclusion_reason": "route_not_explicit",
+ "exclusion_detail": "Aldehyde inferred from the product name, glycosylation conditions conflict between two sections, the NMR for the lead looks unreliable, lead co-named (second reader). (Reclassified 2026-10-24 after the verification pass.)",
+ "lead": {
+  "label": "27",
+  "why": "The abstract names no single best compound; rule 2: 27 is the most potent inhibitor in Table 1 (AChE IC50 2.05, BChE 5.42 uM) and the paper's docking highlight ('visualization of most potent compound 27', Figs. 5 and 6)."
+ },
+ "target": {
+  "name": "2-(4-Isobutylphenyl)-4H-chromen-4-one-3-O-2,3,4,6-O-tetraacetyl-β-d-glucopyranoside",
+  "smiles": "CC(=O)OC[C@@H]1[C@H]([C@@H]([C@H]([C@@H](O1)Oc2c(-c4ccc(CC(C)C)cc4)oc3ccccc3c2=O)OC(C)=O)OC(C)=O)OC(C)=O"
+ },
+ "reactions": [
+  {
+   "step": 1,
+   "product": {
+    "label": "chalcone intermediate",
+    "name": "",
+    "smiles": "CC(C)Cc1ccc(C=CC(=O)c2ccccc2O)cc1"
+   },
+   "reactants": [
+    {
+     "label": "2'-hydroxyacetophenone",
+     "name": "2-hydroxyacetophenone",
+     "smiles": "CC(=O)c1ccccc1O",
+     "origin": "commercial"
+    },
+    {
+     "label": "4-isobutylbenzaldehyde",
+     "name": "",
+     "smiles": "CC(C)Cc1ccc(C=O)cc1",
+     "origin": "commercial"
+    }
+   ],
+   "conditions": "2-Hydroxyacetophenone (10 mmol) in MeOH + 10 mL 30% NaOH, stirred 30 min; aldehyde (10 mmol) added dropwise, stirred 24 h (Claisen-Schmidt).",
+   "source": "Section 2.1 general procedure; Section 3.1 (2'-hydroxychalcones, Scheme 1)"
+  },
+  {
+   "step": 2,
+   "product": {
+    "label": "flavonol 3-hydroxy-2-(4-isobutylphenyl)chromen-4-one",
+    "name": "",
+    "smiles": "CC(C)Cc1ccc(cc1)-c1oc2ccccc2c(=O)c1O"
+   },
+   "reactants": [
+    {
+     "label": "chalcone intermediate",
+     "name": "",
+     "smiles": "CC(C)Cc1ccc(C=CC(=O)c2ccccc2O)cc1",
+     "origin": "made_here"
+    }
+   ],
+   "conditions": "35% H2O2 (1.5 mL) added to the same basic methanolic mixture, stirred 1 h (Algar-Flynn-Oyamada oxidative cyclisation); acidified with 10% HCl, precipitate filtered, washed, dried, crystallised from EtOH; used directly in the next step.",
+   "source": "Section 2.1; Section 3.1"
+  },
+  {
+   "step": 3,
+   "product": {
+    "label": "27",
+    "name": "2-(4-Isobutylphenyl)-4H-chromen-4-one-3-O-2,3,4,6-O-tetraacetyl-β-d-glucopyranoside",
+    "smiles": "CC(=O)OC[C@@H]1[C@H]([C@@H]([C@H]([C@@H](O1)Oc2c(-c4ccc(CC(C)C)cc4)oc3ccccc3c2=O)OC(C)=O)OC(C)=O)OC(C)=O"
+   },
+   "reactants": [
+    {
+     "label": "flavonol",
+     "name": "",
+     "smiles": "CC(C)Cc1ccc(cc1)-c1oc2ccccc2c(=O)c1O",
+     "origin": "made_here"
+    },
+    {
+     "label": "acetobromo-alpha-D-glucose",
+     "name": "acetobromo-α-d-glucose",
+     "smiles": "CC(=O)OC[C@@H]1[C@H]([C@@H]([C@H]([C@H](O1)Br)OC(C)=O)OC(C)=O)OC(C)=O",
+     "origin": "commercial"
+    }
+   ],
+   "conditions": "Flavonol (1.0 mmol), K2CO3 (3 equiv), TBAB (3 equiv) in CHCl3 (5 mL) + H2O (5 mL), 30 min; peracetylglycosyl bromide (1.5 equiv) added, rt 36 h (phase-transfer glycosylation); neutralised with 10% HCl, extracted with DCM, column chromatography (petroleum ether/EtOAc). Yield for 27: 83%.",
+   "source": "Section 2.1; Section 3.1; compound 27 data Section 3.1.7"
+  }
+ ],
+ "alt_variants": [
+  [
+   {
+    "step": 1,
+    "product": {
+     "label": "flavonol 3-hydroxy-2-(4-isobutylphenyl)chromen-4-one",
+     "name": "",
+     "smiles": "CC(C)Cc1ccc(cc1)-c1oc2ccccc2c(=O)c1O"
+    },
+    "reactants": [
+     {
+      "label": "2'-hydroxyacetophenone",
+      "name": "2-hydroxyacetophenone",
+      "smiles": "CC(=O)c1ccccc1O",
+      "origin": "commercial"
+     },
+     {
+      "label": "4-isobutylbenzaldehyde",
+      "name": "",
+      "smiles": "CC(C)Cc1ccc(C=O)cc1",
+      "origin": "commercial"
+     }
+    ],
+    "conditions": "One-pot reading of the general procedure: NaOH/MeOH aldol condensation 24 h, then H2O2 added to the same flask for 1 h (chalcone not isolated).",
+    "source": "Section 2.1"
+   },
+   {
+    "step": 2,
+    "product": {
+     "label": "27",
+     "name": "2-(4-Isobutylphenyl)-4H-chromen-4-one-3-O-2,3,4,6-O-tetraacetyl-β-d-glucopyranoside",
+     "smiles": "CC(=O)OC[C@@H]1[C@H]([C@@H]([C@H]([C@@H](O1)Oc2c(-c4ccc(CC(C)C)cc4)oc3ccccc3c2=O)OC(C)=O)OC(C)=O)OC(C)=O"
+    },
+    "reactants": [
+     {
+      "label": "flavonol",
+      "name": "",
+      "smiles": "CC(C)Cc1ccc(cc1)-c1oc2ccccc2c(=O)c1O",
+      "origin": "made_here"
+     },
+     {
+      "label": "acetobromo-alpha-D-glucose",
+      "name": "acetobromo-α-d-glucose",
+      "smiles": "CC(=O)OC[C@@H]1[C@H]([C@@H]([C@H]([C@H](O1)Br)OC(C)=O)OC(C)=O)OC(C)=O",
+      "origin": "commercial"
+     }
+    ],
+    "conditions": "K2CO3, TBAB, CHCl3/H2O, rt, 36 h.",
+    "source": "Section 2.1"
+   }
+  ]
+ ],
+ "other_qualifying_compounds": null,
+ "notes": "(1) The paper gives ONE general procedure for all of 21-30 and never names 4-isobutylbenzaldehyde for 27; the aldehyde is derived from the printed name of 27 (2-(4-isobutylphenyl)). Neither intermediate has a printed name. (2) Section 3.1 describes the glycosylation in K2CO3/DMF but Section 2.1 gives CHCl3/H2O with TBAB; I used the experimental one. (3) Section 3.1 calls chalcone formation + AFO a 'two steps sequence', while Section 2.1 runs them in one flask; main = 3 steps, alt = 2. (4) The sugar stereo SMILES (beta-D-glucoside from alpha-D-bromide, as the name states) was written by hand and not machine-checked. (5) The reported NMR/13C data for 27 look internally inconsistent (e.g. 13C 192.2 for the flavone C=O), but the structure follows the printed name. No usable SI text (NMR spectra only)."
+}

@@ -1,0 +1,91 @@
+{
+ "paper": "kaur2018_benzoxazole_cox2",
+ "decision": "route",
+ "exclusion_reason": null,
+ "exclusion_detail": "",
+ "lead": {
+  "label": "3d",
+  "why": "Abstract: 'Compounds 3d (84.09%), 3g, and 3a demonstrated significant anti-inflammatory activity'; results: 3d 'most potent inhibitor of the series' (COX-2 IC50 0.06 uM) and 'most promising analog'; conclusion: 'compound 3d as the most potent compound of the series'."
+ },
+ "target": {
+  "name": "2-Chloro-N-(2-(3,5-dimethoxyphenyl)benzoxazol-5-yl)benzamide",
+  "smiles": "COc1cc(OC)cc(c1)-c1nc2cc(NC(=O)c3ccccc3Cl)ccc2o1"
+ },
+ "reactions": [
+  {
+   "step": 1,
+   "product": {
+    "label": "1",
+    "name": "2-(3,5-Dimethoxyphenyl)benzoxazol-5-amine",
+    "smiles": "COc1cc(OC)cc(c1)-c1nc2cc(N)ccc2o1"
+   },
+   "reactants": [
+    {
+     "label": "2,4-diaminophenol dihydrochloride",
+     "name": "2,4-diaminophenol dihydrochloride",
+     "smiles": "Nc1ccc(O)c(N)c1",
+     "origin": "commercial"
+    },
+    {
+     "label": "3,5-dimethoxybenzoic acid",
+     "name": "3,5-dimethoxybenzoic acid",
+     "smiles": "COc1cc(OC)cc(c1)C(=O)O",
+     "origin": "commercial"
+    }
+   ],
+   "conditions": "Equimolar mixture heated in polyphosphoric acid (PPA, 24 g) at 80-95 C for 5-6 h; poured on ice water, neutralised with 10 N NaOH, extracted with toluene, recrystallised from EtOH; 84%.",
+   "source": "Section 4.1.2 (main text)"
+  },
+  {
+   "step": 2,
+   "product": {
+    "label": "2d",
+    "name": "2-Chlorobenzoic anhydride",
+    "smiles": "O=C(OC(=O)c1ccccc1Cl)c1ccccc1Cl"
+   },
+   "reactants": [
+    {
+     "label": "2-chlorobenzoic acid",
+     "name": "",
+     "smiles": "OC(=O)c1ccccc1Cl",
+     "origin": "commercial"
+    },
+    {
+     "label": "2-chlorobenzoic acid",
+     "name": "",
+     "smiles": "OC(=O)c1ccccc1Cl",
+     "origin": "commercial"
+    }
+   ],
+   "conditions": "General procedure 4.1.3: acid (0.02 mol), DCC (0.01 mol), CH2Cl2 (50 mL), rt 3-4 h; filter off dicyclohexylurea, evaporate to an oily product; 81%. DCC is only a dehydrating agent (no atoms in product).",
+   "source": "Section 4.1.3 and entry 2d (main text)"
+  },
+  {
+   "step": 3,
+   "product": {
+    "label": "3d",
+    "name": "2-Chloro-N-(2-(3,5-dimethoxyphenyl)benzoxazol-5-yl)benzamide",
+    "smiles": "COc1cc(OC)cc(c1)-c1nc2cc(NC(=O)c3ccccc3Cl)ccc2o1"
+   },
+   "reactants": [
+    {
+     "label": "1",
+     "name": "2-(3,5-Dimethoxyphenyl)benzoxazol-5-amine",
+     "smiles": "COc1cc(OC)cc(c1)-c1nc2cc(N)ccc2o1",
+     "origin": "made_here"
+    },
+    {
+     "label": "2d",
+     "name": "2-Chlorobenzoic anhydride",
+     "smiles": "O=C(OC(=O)c1ccccc1Cl)c1ccccc1Cl",
+     "origin": "made_here"
+    }
+   ],
+   "conditions": "General procedure 4.1.4: amine 1 (0.012 mol), anhydride (0.01 mol), Zn dust (0.010 g), glacial AcOH / CH2Cl2 (15 mL), reflux 4-5 h; poured into ice water, precipitate recrystallised from EtOH; 71%.",
+   "source": "Section 4.1.4 and entry 3d (main text)"
+  }
+ ],
+ "alt_variants": [],
+ "other_qualifying_compounds": null,
+ "notes": "3 steps. Acid used for 2d is not named explicitly in the experimental ('substituted acid derivative'); 2-chlorobenzoic acid is inferred from the anhydride name 2d. 2,4-Diaminophenol is written as the free base (the paper uses the dihydrochloride; HCl is not a skeleton atom supplier). The paper's text calls 3g '4-ethylphenyl' but Scheme 1 gives 3g = 2-methylphenyl and 3h = 4-ethylphenyl (irrelevant to 3d). Anhydride uses only one acyl half; the other equivalent of acid is lost as 2-chlorobenzoic acid."
+}

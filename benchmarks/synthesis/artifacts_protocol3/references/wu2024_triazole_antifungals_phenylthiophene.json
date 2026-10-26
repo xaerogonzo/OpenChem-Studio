@@ -1,0 +1,12 @@
+{
+ "paper": "wu2024_triazole_antifungals_phenylthiophene",
+ "decision": "excluded",
+ "exclusion_reason": "lead_route_over_4_steps",
+ "exclusion_detail": "Lead 19g needs 5 reactions: Corey-Chaykovsky epoxide (1 to 2), epoxide opening with MeNH2 (2 to 3), Suzuki coupling of 6 with boronic acid 16g (to 17g), ester hydrolysis (to 18g), and amide coupling of 18g with 3.",
+ "lead": {"label": "19g", "why": "Abstract: 'compound 19g is a triazole antifungal compound with 4-chloro-2-fluoro phenylthiophene backbone, which showed optimal antifungal activity ... MIC80 0.0625 ug/mL'."},
+ "target": {"name": "5-(4-chloro-2-fluorophenyl)-N-[2-(2,4-difluorophenyl)-2-hydroxy-3-(1H-1,2,4-triazol-1-yl)propyl]-N-methylthiophene-2-carboxamide", "smiles": "CN(CC(O)(Cn1cncn1)c1ccc(F)cc1F)C(=O)c1ccc(s1)-c1ccc(Cl)cc1F"},
+ "reactions": [],
+ "alt_variants": [],
+ "other_qualifying_compounds": ["5a (4-iodo-N-methylbenzamide analogue; about 4 steps if its acid 4a is made by the general ester hydrolysis, 3 if the acid is bought; not checked closely)"],
+ "notes": "Section 2.1 and 4.1.1-4.1.10 of the article (no SI in bundle). Step count of 5 is certain from Scheme 2 text; starting material 1 and 6 identities are not named in the text layer."
+}

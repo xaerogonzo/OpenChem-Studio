@@ -1,0 +1,12 @@
+{
+ "paper": "chi2021_aurora_myc",
+ "decision": "excluded",
+ "exclusion_reason": "lead_route_over_4_steps",
+ "exclusion_detail": "Lead compound 13 is made in 5 reactions from 4,6-dichloro-2-(methylsulfonyl)pyrimidine (31): SNAr with Boc-(S)-3-aminopyrrolidine -> 32; SNAr with 3-amino-5-methylpyrazole -> 33; SNAr with 1-ethylpiperazine -> 34; HCl removal of Boc (amine salt isolated by concentration); T3P coupling with 4-chloro-2-fluorobenzoic acid -> 13 (the paper itself says 'over two steps' for the last two). The optimised prodrug 25 (propionic anhydride acylation of 13, 56% beside regioisomer 26) would be 6 steps.",
+ "lead": {"label": "13", "why": "Through structure-based drug design ... lead compound 13 was identified (abstract); the abstract also features prodrug 25 (13 + propionic anhydride), which is longer still."},
+ "target": null,
+ "reactions": [],
+ "alt_variants": [],
+ "other_qualifying_compounds": ["1", "2", "3", "4", "5"],
+ "notes": "Borderline count: if the Boc removal and T3P coupling were read as one one-pot procedure, 13 would be 4 steps. I counted them separately because the experimental section isolates the crude amine salt by concentration before the coupling and the paper says 'over two steps'. If the reviewer reads it as one step, 13 route is: 31 + Boc-(S)-3-aminopyrrolidine -> 32 -> (3-amino-5-methylpyrazole, NaI, Et3N, DMSO 90 C) 33 -> (1-ethylpiperazine, 1-pentanol, 140 C) 34 -> (2 N HCl/ether; then 4-chloro-2-fluorobenzoic acid, T3P, Et3N, DMF/DCM) 13; SI-free, all in main text experimental. Compounds 1-5 (2,4,6-trichloropyrimidine -> 29 -> 30 -> 1 etc., 3 steps) assume (S)-(3-aminopyrrolidin-1-yl)(3-chloro-2-fluorophenyl)methanone is a purchased reagent ('all reagents commercially available unless otherwise stated'), not checked further."
+}

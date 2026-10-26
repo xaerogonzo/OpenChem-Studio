@@ -1,0 +1,15 @@
+{
+ "decision": "excluded",
+ "exclusion_reason": "no_lead_identifiable",
+ "exclusion_detail": "The abstract names no best compound; the follow-up Western blots were run on three compounds (4q, 4i, 4k), so no single compound is determined by the lead rule. Every library member would also need more than 4 reactions (4-step bromoresorcinol 8, two Suzuki couplings with triflation, hydrogenolysis, Mitsunobu, Boc removal, amide coupling).",
+ "lead": {
+  "label": "none",
+  "why": "Abstract states only that the chimeric compounds showed low micromolar antiproliferative activity; Western blot follow-up used 4q, 4i and 4k."
+ },
+ "target": null,
+ "reactions": [],
+ "alt_variants": [],
+ "other_qualifying_compounds": [],
+ "notes": "Even the shortest member (4a-x) route is about 10 steps.",
+ "paper": "davis2017_hsp90_c_terminal_library"
+}

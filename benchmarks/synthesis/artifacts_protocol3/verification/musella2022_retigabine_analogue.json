@@ -1,0 +1,14 @@
+{
+ "paper": "musella2022_retigabine_analogue",
+ "my_lead": "60 - abstract: 'Among all tested compounds, 60 emerged as a potent and photochemically stable neuronal Kv7 channel activator ... a promising lead compound'",
+ "lead_agrees": true,
+ "reactions": [
+  {"step": 1, "ok": true, "issue": "2,3-Difluoro-6-nitroaniline + 4-trifluoromethylbenzylamine (1.2 equiv), DIPEA, cat. I2, DMF, 170 C 4 h -> 58, 81%. Regiochemistry checked by hand: the F at C3 is para to the NO2 at C6, so SNAr there leaves F at C2 next to NH2, which matches both the printed name (2-fluoro-4-nitro-N1-benzyl-1,3-diamine) and the SMILES. The procedure says 'giving intermediate 65' but the heading and later text (59/60 'from intermediate 58') show it is 58 (65 is another styryl-derived intermediate)."},
+  {"step": 2, "ok": true, "issue": "General procedure H (one pot): Zn/NH4Cl in MeOH reduces the NO2, then acyl chloride (1.2 equiv) + DIPEA 45 min; 60 'by the reaction of intermediate 58 with 3,3-dimethylbutyryl chloride under general procedure H', 66%. Text: 'reduced using Zn and NH4Cl to the corresponding amine and coupled with the proper acyl chloride in a one-pot reaction'. SMILES of 60 places the amide on the former nitro N (ortho to the free NH2, which sits next to F) which matches the printed name N-(2-amino-3-fluoro-4-(benzylamino)phenyl)-3,3-dimethylbutanamide."}
+ ],
+ "leaf_issues": [],
+ "step_count_ok": true,
+ "smiles_issues": [],
+ "overall": "confirmed",
+ "notes": "Two steps in the paper's numbering (58, then 60), or three if one counts the Zn/NH4Cl reduction and the acylation of procedure H separately; either way <= 4. The intermediate triamine is not isolated or named, so it is correct not to list it. Commercial support: 'All reagents and solvents used were purchased from Sigma-Aldrich (Milan, Italy), unless otherwise noted.' None of the three leaves (difluoronitroaniline, benzylamine, acyl chloride) is made or cited elsewhere. Only the printed names fix the acylation regiochemistry; I could not see the scheme drawing. The Buchwald-Hartwig wording in the prose is loose for what are SNAr/I2 conditions but does not change the product. Stray caveat: HRMS formula for 58 given as C14H12F4N3O2 is [M+H]+ of C14H11F4N3O2 which matches the SMILES."
+}

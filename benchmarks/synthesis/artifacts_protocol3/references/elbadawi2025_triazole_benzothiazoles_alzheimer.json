@@ -1,0 +1,12 @@
+{
+ "paper": "elbadawi2025_triazole_benzothiazoles_alzheimer",
+ "decision": "excluded",
+ "exclusion_reason": "lead_route_over_4_steps",
+ "exclusion_detail": "Lead 10f (4-nitrocinnamate triazole-benzothiazole) needs 5 reactions: Knoevenagel to 4-nitrocinnamic acid (3f), O-propargylation to alkyne 4f, acylation of 2-aminobenzothiazole with chloroacetyl chloride (8a), azide displacement (9a), CuAAC click to 10f. Every procedure is given in section 4.1 of the paper, but the count is 5.",
+ "lead": {"label": "10f", "why": "Abstract: benzothiazoles 10f, 10l and 11c inhibit hAChE (IC50 100, 110, 140 nM); 10f and 10l are the most potent dual hAChE/Abeta42 inhibitors; 10f is named first and has the lowest IC50 and the docking highlight."},
+ "target": null,
+ "reactions": [],
+ "alt_variants": [],
+ "other_qualifying_compounds": [],
+ "notes": "All 10a-r and 11a-e share the same 5-step build (arylaldehyde + malonic acid -> cinnamic acid -> propargyl/butynyl ester; aminobenzothiazole -> chloroacetamide -> azide; click), so no other compound is 4 steps or fewer unless the cinnamic acid (reported previously, but a general procedure is given here) were treated as purchased. 10f assigned to azide 9a (unsubstituted benzothiazole) from its printed name."
+}

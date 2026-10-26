@@ -80,6 +80,7 @@ from openchem.domain.visualization_index import declared_visualizations
 from openchem.ui.result_summary import summary_of_merge
 from openchem.ui.widgets.fact_view import FactView
 from openchem.ui.widgets.help_tooltip import HelpTooltip, apply_help_tooltip
+from openchem.ui.widgets.stage_marker import StageMarker
 from openchem.ui.widgets.widget_disposal import discard_widget
 
 logger = logging.getLogger("openchem.ui")
@@ -343,6 +344,13 @@ class ResultsView(QWidget):
         self._focus_row_layout = row
         row.addWidget(QLabel("Showing:", focus_row))
         row.addWidget(self._focus_box, 1)
+        #: THE REPORT'S HEADER IS THIS BOX (the bold title line below is hidden), so the
+        #: focused calculator's support star sits beside it. Hidden unless the focused
+        #: result is a calculator somebody classified. Costs width, never height.
+        self._stage_marker = StageMarker(focus_row)
+        row.addWidget(self._stage_marker)
+        #: report id -> `SupportMarker` or None; injected like the structure resolver.
+        self._support_resolver = None
 
         # **THE RESULT-LEVEL ACTION, WHICH A FACT ROW CANNOT CARRY.** Measured
         # over the registry on aspirin: 60 entries reach the reader and 30 of
@@ -497,6 +505,30 @@ class ResultsView(QWidget):
         `domain/structure_resolution.py`.
         """
         self._view.set_structure_resolver(resolver)
+
+    def set_support_resolver(self, resolver) -> None:
+        """Say how a result maps to its calculator's support stage (a `SupportMarker` or None).
+
+        Injected for the reason the other resolver is: this window needs no registry.
+        The star shows beside "Showing" for a focused calculator, and on each row of
+        "All results" for the facts a classified calculator produced.
+        """
+        self._support_resolver = resolver
+        self._view.set_support_resolver(resolver)
+        self._render()
+
+    def stage_marker(self) -> StageMarker:
+        """The star beside "Showing", for a guard and a driven check to read."""
+        return self._stage_marker
+
+    def _marker_of(self, report_id: str):
+        if self._support_resolver is None or not report_id:
+            return None
+        try:
+            return self._support_resolver(report_id)
+        except Exception:  # noqa: BLE001 - a star that cannot be resolved must not cost the reader its result
+            logger.exception("Could not resolve the support stage for %s", report_id)
+            return None
 
     def molecule_uuid(self) -> str:
         return self._molecule_uuid
@@ -903,6 +935,7 @@ class ResultsView(QWidget):
             self._view.setVisible(False)
             self._empty.setVisible(True)
             self._view.clear()
+            self._stage_marker.set_marker(None)
             return
 
         self._empty.setVisible(False)
@@ -914,6 +947,7 @@ class ResultsView(QWidget):
                 title += STALE_MARK
             self._sync_open_button(report)
             self._sync_visualizations(report)
+            self._stage_marker.set_marker(self._marker_of(report.report_id))
             # **A FOCUSED REPORT OPENS OPEN, AND ALL RESULTS DOES NOT.**
             # `DEFAULT_EXPANDED` exists because "a hundred-odd facts
             # rendered flat is a wall" -- true of every producer at once,
@@ -931,10 +965,14 @@ class ResultsView(QWidget):
                 title,
                 self._summary_for(report),
                 expanded={fact.category for fact in report.facts},
+                # The star beside "Showing" says it once; repeating it on every row of one
+                # calculator's own result would be noise.
+                stage_on_rows=False,
             )
             return
         self._sync_open_button(None)
         self._sync_visualizations(None)
+        self._stage_marker.set_marker(None)
         self._view.set_report(
             summary_of_merge(self._merged, self._molecule_uuid),
             "All results",

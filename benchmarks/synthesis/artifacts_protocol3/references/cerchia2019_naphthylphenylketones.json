@@ -1,0 +1,12 @@
+{
+ "paper": "cerchia2019_naphthylphenylketones",
+ "decision": "excluded",
+ "exclusion_reason": "lead_route_over_4_steps",
+ "exclusion_detail": "Lead 4a (ethyl 3-(3-methoxy-1-naphthylamino)benzoate) needs 1-bromo-3-methoxynaphthalene (16a), which the paper prepares from 1-aminonaphthalene by bromination, diazotisation, NaBH4 reduction and O-methylation (Scheme 2 i-iv), then a Buchwald coupling: at least 5 reactions (6 if 1-aminonaphthalene 24 is counted as made by Procedure K from 1-nitronaphthalene).",
+ "lead": {"label": "4a", "why": "Abstract: 'Compound 4a potently inhibited cell proliferation and colony formation, causing an increase of the G2/M phase...'. It is the only compound the abstract singles out and the one chosen for all follow-up cell experiments (rule 2). Rule 1 is ambiguous here: the abstract also lists 7j, 7i, 6e, 7f and 3 as the most potent CDC25B inhibitors (the body calls 7j the most potent compound of the whole series)."},
+ "target": null,
+ "reactions": [],
+ "alt_variants": [],
+ "other_qualifying_compounds": ["7j", "7i", "3", "4", "7"],
+ "notes": "LEAD AMBIGUITY for the reviewer: if the lead were read as the most potent CDC25B inhibitor (7j), the route would be explicit and exactly 4 steps: (1) 1-amino-5-bromonaphthalene + Boc2O, EtOH, 30 C -> tert-butyl (5-bromonaphthalen-1-yl)carbamate (27, Procedure L); (2) 27 + ethyl 3-aminobenzoate, Pd(OAc)2/BINAP/Cs2CO3, toluene 80 C -> ethyl 3-(5-Boc-amino-1-naphthylamino)benzoate (4h, Procedure C1); (3) 4h, 1M NaOH, THF/EtOH reflux -> 7h (Procedure D); (4) 7h, 4M HCl in dioxane -> 7j hydrochloride (Procedure F1; product 3-(5-amino-1-naphthylamino)benzoic acid hydrochloride). 7i is the 4-amino regioisomer by the same sequence. Not transcribed because I applied the lead rule to the abstract and it points to 4a. 3 and 4 and 7 are 1-2 step Buchwald/hydrolysis products (4 = ethyl 3-(naphthalen-1-ylamino)benzoate is verified; 3 and 7 labels not individually checked)."
+}

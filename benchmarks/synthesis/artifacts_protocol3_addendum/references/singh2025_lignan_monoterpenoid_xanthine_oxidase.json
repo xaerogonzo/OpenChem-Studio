@@ -1,0 +1,45 @@
+{
+ "paper": "singh2025_lignan_monoterpenoid_xanthine_oxidase",
+ "decision": "route",
+ "exclusion_reason": null,
+ "exclusion_detail": "",
+ "lead": {"label": "MT7", "why": "Abstract: \"MT7 was most active (XO: IC50 = 0.263 +/- 0.06 uM)\" and \"MT7 as an effective lead molecule for further investigations\"; MT7 is the sesamol-isoeugenol hybrid with a propyl linker."},
+ "target": {"name": "(E)-1-(3-(Benzo[d][1,3]dioxol-5-yloxy)propyl)-4-((2-methoxy-4-(prop-1-en-1-yl)phenoxy)methyl)-1H-1,2,3-triazole", "smiles": "C/C=C/c1ccc(OCc2cn(CCCOc3ccc4OCOc4c3)nn2)c(OC)c1"},
+ "reactions": [
+  {"step": 1,
+   "product": {"label": "4b", "name": "5-(3-bromopropoxy)benzo[d][1,3]dioxole", "smiles": "BrCCCOc1ccc2OCOc2c1"},
+   "reactants": [
+    {"label": "3 (sesamol)", "name": "sesamol", "smiles": "Oc1ccc2OCOc2c1", "origin": "commercial"},
+    {"label": "1,3-dibromopropane", "name": "1,3-dibromopropane", "smiles": "BrCCCBr", "origin": "commercial"}
+   ],
+   "conditions": "K2CO3 (1.5 equiv), DMF, 15 min then dibromoalkane (2.0 equiv), rt, 2 h; poured onto ice, EtOAc extraction, column (General procedure for 4a-e, written for dibromoethane; 4b is the propyl member)",
+   "source": "Main text p. 3 (Scheme 1 discussion); SI p. S7 General procedure for 4a-e, 4b data p. S7"},
+  {"step": 2,
+   "product": {"label": "5b", "name": "", "smiles": "[N-]=[N+]=NCCCOc1ccc2OCOc2c1"},
+   "reactants": [
+    {"label": "4b", "name": "5-(3-bromopropoxy)benzo[d][1,3]dioxole", "smiles": "BrCCCOc1ccc2OCOc2c1", "origin": "made_here"},
+    {"label": "sodium azide", "name": "sodium azide", "smiles": "[N-]=[N+]=[N-]", "origin": "reagent"}
+   ],
+   "conditions": "NaN3 (1.2 equiv), DMF, rt until complete; ice, EtOAc extraction, Na2SO4, evaporated",
+   "source": "SI p. S7-S8 General procedure for 5a-e; main text p. 3 (calls 5a-e 'N-bromoalkyl sesamols', evidently a slip for azidoalkyl)"},
+  {"step": 3,
+   "product": {"label": "10", "name": "(E)-2-Methoxy-4-(prop-1-en-1-yl)-1-(prop-2-yn-1-yloxy)benzene", "smiles": "C/C=C/c1ccc(OCC#C)c(OC)c1"},
+   "reactants": [
+    {"label": "7 (isoeugenol)", "name": "Isoeugenol", "smiles": "C/C=C/c1ccc(O)c(OC)c1", "origin": "commercial"},
+    {"label": "propargyl bromide", "name": "propargyl bromide", "smiles": "BrCC#C", "origin": "reagent"}
+   ],
+   "conditions": "K2CO3 (1.2 equiv), DMF, rt 15 min; propargyl bromide (1.5 equiv) dropwise, 4 h, rt; water, EtOAc extraction, column",
+   "source": "SI p. S8 General procedure for 9, 10 and 11; compound 10 data p. S8"},
+  {"step": 4,
+   "product": {"label": "MT7", "name": "(E)-1-(3-(Benzo[d][1,3]dioxol-5-yloxy)propyl)-4-((2-methoxy-4-(prop-1-en-1-yl)phenoxy)methyl)-1H-1,2,3-triazole", "smiles": "C/C=C/c1ccc(OCc2cn(CCCOc3ccc4OCOc4c3)nn2)c(OC)c1"},
+   "reactants": [
+    {"label": "5b", "name": "", "smiles": "[N-]=[N+]=NCCCOc1ccc2OCOc2c1", "origin": "made_here"},
+    {"label": "10", "name": "(E)-2-Methoxy-4-(prop-1-en-1-yl)-1-(prop-2-yn-1-yloxy)benzene", "smiles": "C/C=C/c1ccc(OCC#C)c(OC)c1", "origin": "made_here"}
+   ],
+   "conditions": "Azide (1 equiv), alkyne (1 equiv), cat. CuSO4 and sodium ascorbate, DMF, rt; poured onto ice, refrigerated 2 h, solid collected (CuAAC)",
+   "source": "SI p. S9 General procedure for MT1-MT15; MT7 data p. S11-S12"}
+ ],
+ "alt_variants": [],
+ "other_qualifying_compounds": null,
+ "notes": "The main article alone did not state the route; the SI gives general procedures. 5b has no printed name (the SI prints data only for 4b), so its structure is derived from 4b plus NaN3 (propyl member of the 5a-e series; MT7 name fixes the three-carbon linker). Individual procedures for 4b, 5b, 10 and MT7 are 'general procedures' applied to the series, with no compound-specific quantities. The paper's text calls 5a-e 'N-bromoalkyl sesamols' (should be azidoalkyl). Isoeugenol (7) is treated as purchased (the paper says all reagents were purchased; it is not described as prepared); the E geometry is taken from the printed (E)- names of 10 and MT7. Total 4 reactions (two branches: sesamol branch 2 steps, isoeugenol branch 1 step, final click 1 step)."
+}

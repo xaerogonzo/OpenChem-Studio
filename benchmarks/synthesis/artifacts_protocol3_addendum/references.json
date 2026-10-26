@@ -1,0 +1,49 @@
+[
+ {
+  "id": 0,
+  "stem": "kral2024_purpurogallin_carboxamides_influenza",
+  "target": "O=C(NCc1cccc(-c2nnn[nH]2)c1)c1cc(O)c(=O)c2c(O)c(O)ccc2c1",
+  "depth": 4,
+  "steps": 4,
+  "leaves": [
+   "CC(=O)OC(C)=O",
+   "NCc1cccc(-c2nnn[nH]2)c1",
+   "O=C(O)c1cc(O)c(O)c(O)c1",
+   "Oc1ccccc1O"
+  ],
+  "intermediates": [
+   "CC(=O)Oc1ccc2cc(C(=O)NCc3cccc(-c4nnn[nH]4)c3)cc(OC(C)=O)c(=O)c2c1OC(C)=O",
+   "CC(=O)Oc1ccc2cc(C(=O)O)cc(OC(C)=O)c(=O)c2c1OC(C)=O",
+   "O=C(O)c1cc(O)c(=O)c2c(O)c(O)ccc2c1"
+  ],
+  "stratum": "3",
+  "year": 2024,
+  "period": "2023-2025",
+  "tier": "B",
+  "publisher": "Wiley"
+ },
+ {
+  "id": 1,
+  "stem": "singh2025_lignan_monoterpenoid_xanthine_oxidase",
+  "target": "C/C=C/c1ccc(OCc2cn(CCCOc3ccc4c(c3)OCO4)nn2)c(OC)c1",
+  "depth": 3,
+  "steps": 4,
+  "leaves": [
+   "BrCCCBr",
+   "C#CCBr",
+   "C/C=C/c1ccc(O)c(OC)c1",
+   "Oc1ccc2c(c1)OCO2",
+   "[N-]=[N+]=[N-]"
+  ],
+  "intermediates": [
+   "BrCCCOc1ccc2c(c1)OCO2",
+   "C#CCOc1ccc(/C=C/C)cc1OC",
+   "[N-]=[N+]=NCCCOc1ccc2c(c1)OCO2"
+  ],
+  "stratum": "3",
+  "year": 2025,
+  "period": "2023-2025",
+  "tier": "B",
+  "publisher": "ACS"
+ }
+]

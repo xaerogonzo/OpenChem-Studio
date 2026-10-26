@@ -1,0 +1,12 @@
+{
+ "paper": "vavrina2022_deazapurine_cdns",
+ "decision": "excluded",
+ "exclusion_reason": "no_lead_identifiable",
+ "exclusion_detail": "The abstract names no single compound ('Eight CDNs showed better activity than 2'3'-cGAMP'; 'the best activities were observed for CDNs bearing large aromatic substituents'), and the follow-up experiments (cytokine induction, four X-ray structures) are spread over several compounds (e.g. 5f, 5k, others), so rules 1 and 2 pick none. In addition the CDNs are made enzymatically from 7-deazapurine nucleoside triphosphates (mostly prepared in earlier work or by Suzuki couplings on nucleotides), so any route would be long or not explicit.",
+ "lead": {"label": "none", "why": "Abstract: 'The best activities were observed for CDNs bearing large aromatic substituents' (a class, not a compound)."},
+ "target": null,
+ "reactions": [],
+ "alt_variants": [],
+ "other_qualifying_compounds": null,
+ "notes": "Not looked for other qualifying compounds; the series is enzymatic CDN synthesis from NTPs (nucleotides), unlikely to suit the planner."
+}

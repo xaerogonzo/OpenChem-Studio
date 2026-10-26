@@ -545,6 +545,17 @@ class InterpreterSidecarTab(ToolTab):
 
 
 @dataclass(frozen=True, kw_only=True)
+class ExtraPath:
+    """A second path a tool needs beside its program: AiZynthFinder is a Python environment AND the configuration file its `download_public_data` wrote."""
+
+    setting_key: str
+    label: str
+    browse_title: str
+    finder: Callable[[Path], Any]
+    description: str
+
+
+@dataclass(frozen=True, kw_only=True)
 class ManagedExecutable(_ToolBase):
     """A native program the user points at, which this app may also fetch.
 
@@ -564,15 +575,18 @@ class ManagedExecutable(_ToolBase):
     setting_key: str
     browse_title: str
     finder: Callable[[Path], Any]
-    describe_status: Callable[[str], str]
+    describe_status: Callable[..., str]
     locate: Callable[[], Any]
     locate_hint: str
     test_label: str
     testing_status: str
-    describe_test: Callable[[str], str]
+    describe_test: Callable[..., str]
     test_errors: type[Exception] | tuple[type[Exception], ...]
     path_description: str
     form_label: str = "Executable:"
+    #: More path rows under the first. `describe_status` and `describe_test` then receive every path in row order (the first path, then these), and a Test that needs the settings as well asks for them with `test_with_settings`.
+    extra_paths: tuple[ExtraPath, ...] = ()
+    test_with_settings: bool = False
     obtainable: bool = True
     #: (label, url) pairs, shown when this app cannot fetch the tool.
     vendor_links: tuple[tuple[str, str], ...] = ()
@@ -600,6 +614,7 @@ class ManagedExecutableTab(ToolTab):
         remove_button_factory: Callable[[QWidget, str, str], QPushButton],
     ) -> None:
         super().__init__(descriptor, parent, remove_button_factory=remove_button_factory)
+        self._settings = settings
 
         self.path_row = PathRow(
             self,
@@ -611,6 +626,19 @@ class ManagedExecutableTab(ToolTab):
             on_changed=self._on_path_changed,
             descriptor=descriptor,
         )
+        self.extra_rows = [
+            PathRow(
+                self,
+                settings=settings,
+                setting_key=spec.setting_key,
+                browse_title=spec.browse_title,
+                finder=spec.finder,
+                description=spec.description,
+                on_changed=self._on_path_changed,
+                descriptor=descriptor,
+            )
+            for spec in descriptor.extra_paths
+        ]
 
         self.locate_button = QPushButton("Locate Installed", self)
         apply_help_tooltip(
@@ -623,6 +651,8 @@ class ManagedExecutableTab(ToolTab):
 
         form = QFormLayout()
         form.addRow(descriptor.form_label, self.path_row)
+        for spec, extra in zip(descriptor.extra_paths, self.extra_rows):
+            form.addRow(spec.label, extra)
         form.addRow("Status:", self.status_label)
 
         row = QHBoxLayout()
@@ -671,10 +701,16 @@ class ManagedExecutableTab(ToolTab):
 
     def refresh(self) -> None:
         self.path_row.reload()
+        for extra in self.extra_rows:
+            extra.reload()
         self._refresh_status()
 
+    def _paths(self) -> tuple[str, ...]:
+        """Every path the tool needs, in row order."""
+        return (self.path_row.text(), *(extra.text() for extra in self.extra_rows))
+
     def _refresh_status(self) -> None:
-        self.status_label.setText(self.descriptor.describe_status(self.path_row.text()))
+        self.status_label.setText(self.descriptor.describe_status(*self._paths()))
 
     def _on_path_changed(self) -> None:
         self._refresh_status()
@@ -733,9 +769,10 @@ class ManagedExecutableTab(ToolTab):
     def _on_test_clicked(self) -> None:
         self.test_button.setEnabled(False)
         self.status_label.setText(self.descriptor.testing_status)
-        path = self.path_row.text()
+        paths = self._paths()
+        settings = self._settings if self.descriptor.test_with_settings else None
         run_async(
-            lambda: self.descriptor.describe_test(path),
+            (lambda: self.descriptor.describe_test(*paths, settings=settings)) if self.descriptor.test_with_settings else (lambda: self.descriptor.describe_test(*paths)),
             self.descriptor.test_errors,
             self._on_test_finished,
             self._on_test_failed,

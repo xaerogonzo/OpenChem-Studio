@@ -48,11 +48,14 @@ from openchem.app.settings import (
     FUKUI_ANION_F_PLUS,
     FUKUI_CATION_SEARCH,
     MAX_REVISIONS_KEPT,
+    PSI4_MEMORY_GB,
+    PSI4_THREADS,
     RAIL_HIDES_PANELS,
     RECALC_MODE,
     RECALC_QUIET_MS,
     RECOVERY_DELAY_SECONDS,
     RECOVERY_ENABLED,
+    STRUCTURE_COVERAGE,
     Preference,
     Settings,
 )
@@ -196,6 +199,21 @@ _HELP = {
         topic="settings",
         help_anchor="settings",
     ),
+    "structure_coverage": HelpTooltip(
+        text=(
+            "On (the default): before you run anything, each calculator in Properties says whether the structure "
+            "on screen is one it takes -- Can run, With limits (it runs, and the tooltip says what the limit is), "
+            "or Not applicable (it will refuse, and the tooltip says why). Rows that open another panel show a "
+            "check, a triangle or a circle before their name. Rows with no check say nothing.\n\n"
+            "The check is the calculator's own refusal test, run once each time the structure settles (never while "
+            "you drag), about 5 ms for all calculators together. Off: nothing is checked and every row says Not run "
+            "until you run it."
+        ),
+        tier=2,
+        help_id="settings.structure_coverage",
+        topic="settings",
+        help_anchor="settings",
+    ),
     "recalc_delay": HelpTooltip(
         text=(
             "How long a pause counts as stopping: 0 to 5000 milliseconds, default 800. "
@@ -322,6 +340,31 @@ _HELP = {
         ),
         tier=2,
         help_id="settings.fukui_cation_search",
+        topic="settings",
+        help_anchor="settings",
+    ),
+    "psi4_memory": HelpTooltip(
+        text=(
+            "How much memory a Psi4 job is told to use, in GB (the `memory` line of its input). The default, 2 GB, is what the engine always wrote; "
+            "Psi4's own default of 500 MB is too small for a def2-TZVP job on a drug-sized molecule, and a failed allocation reads like a broken input.\n\n"
+            "Raise it for a large molecule or basis; keep it below what the machine has free, because Psi4 takes it at once. It is one job's total, shared "
+            "by the job's threads. ORCA's memory is a separate setting and is not changed by this one.\n\n"
+            "Applies to the next Psi4 job."
+        ),
+        tier=2,
+        help_id="settings.psi4_memory",
+        topic="settings",
+        help_anchor="settings",
+    ),
+    "psi4_threads": HelpTooltip(
+        text=(
+            "How many threads a Psi4 job runs on. Automatic (the default) uses the core count set for ORCA on the Quantum Chemistry panel when there "
+            "is one, and otherwise the machine's automatic choice: what Psi4 used before it had a setting of its own.\n\n"
+            "A number from 1 up is used as it stands, whatever ORCA's is. Asking for more threads than the machine has cores does not make a job faster.\n\n"
+            "Applies to the next Psi4 job."
+        ),
+        tier=2,
+        help_id="settings.psi4_threads",
         topic="settings",
         help_anchor="settings",
     ),
@@ -555,6 +598,9 @@ class SettingsDialog(QDialog):
         self._recovery_delay.setEnabled(checked)
         self._store(RECOVERY_ENABLED, checked)
 
+    def _on_structure_coverage_toggled(self, checked: bool) -> None:
+        self._store(STRUCTURE_COVERAGE, checked)
+
     def _on_recovery_delay_changed(self, seconds: int) -> None:
         self._store(RECOVERY_DELAY_SECONDS, seconds)
 
@@ -601,6 +647,11 @@ class SettingsDialog(QDialog):
         layout.addWidget(_heading("Recalculation", page))
         layout.addLayout(mode_row)
         layout.addLayout(delay_row)
+        self._structure_coverage = QCheckBox("Say whether each calculator takes the structure, before I run it", page)
+        self._structure_coverage.setObjectName("structureCoverage")
+        self._structure_coverage.setChecked(bool(self._settings.preference(STRUCTURE_COVERAGE)))
+        apply_help_tooltip(self._structure_coverage, _HELP["structure_coverage"])
+        self._structure_coverage.toggled.connect(self._on_structure_coverage_toggled)
         layout.addWidget(_note(
             "Results are marked Stale the moment you edit, whichever you choose; this decides "
             "when they are refreshed. Recomputing fifty results for every bond you draw made "
@@ -608,6 +659,8 @@ class SettingsDialog(QDialog):
             "Recalculate Now (F5) does it whenever you ask.",
             page,
         ))
+        layout.addSpacing(8)
+        layout.addWidget(self._structure_coverage)
         layout.addStretch(1)
         return page
 
@@ -795,8 +848,39 @@ class SettingsDialog(QDialog):
             "Applies to the next run.",
             page,
         ))
+
+        # Psi4, the second engine (`chem.psi4_engine`): its memory and threads. Spin boxes bounded by the preferences' own ranges, as the conformer one is.
+        self._psi4_memory = _spin_box(PSI4_MEMORY_GB, " GB", page)
+        self._psi4_memory.setObjectName("psi4MemoryGb")
+        self._psi4_memory.setValue(int(self._settings.preference(PSI4_MEMORY_GB)))
+        apply_help_tooltip(self._psi4_memory, _HELP["psi4_memory"])
+        self._psi4_memory.valueChanged.connect(self._on_psi4_memory_changed)
+        self._psi4_threads = _spin_box(PSI4_THREADS, "", page)
+        self._psi4_threads.setObjectName("psi4Threads")
+        self._psi4_threads.setSpecialValueText("Automatic")  # the minimum, 0
+        self._psi4_threads.setValue(int(self._settings.preference(PSI4_THREADS)))
+        apply_help_tooltip(self._psi4_threads, _HELP["psi4_threads"])
+        self._psi4_threads.valueChanged.connect(self._on_psi4_threads_changed)
+        layout.addWidget(_heading("Psi4", page))
+        for caption, box in (("Memory per job", self._psi4_memory), ("Threads", self._psi4_threads)):
+            row = QHBoxLayout()
+            row.addWidget(QLabel(caption, page))
+            row.addWidget(box)
+            row.addStretch(1)
+            layout.addLayout(row)
+        layout.addWidget(_note(
+            "These apply to Psi4 jobs only (ORCA keeps its own core count on the Quantum Chemistry panel). Memory is the one total the job asks for, "
+            "2 GB unless changed; Automatic threads follow ORCA's core count when it is set, otherwise the machine's. Applies to the next Psi4 job.",
+            page,
+        ))
         layout.addStretch(1)
         return page
+
+    def _on_psi4_memory_changed(self, value: int) -> None:
+        self._store(PSI4_MEMORY_GB, value)
+
+    def _on_psi4_threads_changed(self, value: int) -> None:
+        self._store(PSI4_THREADS, value)
 
     def _on_fukui_anion_f_plus_toggled(self, checked: bool) -> None:
         self._store(FUKUI_ANION_F_PLUS, checked)

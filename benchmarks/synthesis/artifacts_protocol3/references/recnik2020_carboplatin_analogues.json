@@ -1,0 +1,12 @@
+{
+ "paper": "recnik2020_carboplatin_analogues",
+ "decision": "excluded",
+ "exclusion_reason": "not_small_molecule_organic",
+ "exclusion_detail": "All final compounds (15-19, 23) are platinum(II) complexes of cyclobutane-dicarboxylate ligands (carboplatin analogues); metal complexes are out of scope. The abstract names no single best compound (iodocarboplatin 17 most active on SK-OV-3, ketocarboplatin 16 on HCT116/D3E2).",
+ "lead": {"label": "none single (15-19, 23 are Pt complexes)", "why": "Abstract: 'the tested compounds were up to six times more potent than carboplatin'; no one compound is named best."},
+ "target": null,
+ "reactions": [],
+ "alt_variants": [],
+ "other_qualifying_compounds": [],
+ "notes": "Organic ligand precursors (e.g. 3-substituted cyclobutane-1,1-dicarboxylates 9-11, 22) are intermediates only; every endpoint is a Pt complex."
+}

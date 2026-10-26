@@ -1,0 +1,12 @@
+{
+ "paper": "bragaemidio2021_tff3",
+ "decision": "excluded",
+ "exclusion_reason": "not_small_molecule_organic",
+ "exclusion_detail": "The paper reports the chemical synthesis (Fmoc solid-phase peptide synthesis, native chemical ligation, oxidative folding) of the 59-residue disulfide-rich peptide TFF3, its homodimer and truncated peptide fragments; peptides/proteins are out of scope.",
+ "lead": {"label": "TFF3 (and homodimer)", "why": "Abstract: 'we report the chemical synthesis of TFF3 and its homodimer via native chemical ligation followed by oxidative folding'"},
+ "target": null,
+ "reactions": [],
+ "alt_variants": [],
+ "other_qualifying_compounds": [],
+ "notes": "Read the title and abstract only; no small-molecule synthesis is the subject."
+}

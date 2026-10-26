@@ -272,7 +272,7 @@ bound, and those refusals are counted rather than quietly excluded.
 Pre-registered before any number was seen, and unchanged by them:
 
 - both models are reported; neither is selected as a winner;
-- no model is called "validated" for beating Marvin, or for anything else
+- no model is called "validated" for beating the reference editor, or for anything else
   this benchmark alone can show;
 - the feature ships as an informational/comparative predictor.
 

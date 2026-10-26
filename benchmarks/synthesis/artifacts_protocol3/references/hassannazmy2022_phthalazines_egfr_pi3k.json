@@ -1,0 +1,43 @@
+{
+ "paper": "hassannazmy2022_phthalazines_egfr_pi3k",
+ "decision": "excluded",
+ "exclusion_reason": "route_not_explicit",
+ "exclusion_detail": "Both reactants of lead 5b were inferred from the product name and a mechanism sentence, not read in the paper; the pyridazine reactant 1a is probably not purchasable. (Reclassified 2026-10-24 from the reader's route.)",
+ "lead": {
+  "label": "5b",
+  "why": "Only phthalazine (5b) showed broad spectrum anti-tumor activity ... (5b) exhibited the highest growth inhibitory activity against CNS-SNB-75 cell line ... Phthalazine (5b) may be an effective, convenient and safe anti-cancer agent"
+ },
+ "target": {
+  "name": "Ethyl 5-amino-6-cyano-4-oxo-3-phenyl-7-(thiophene-2-yl)-3,4-dihydro-phthalazine carboxylate",
+  "smiles": "CCOC(=O)c1nn(-c2ccccc2)c(=O)c2c(N)c(C#N)c(-c3cccs3)cc12"
+ },
+ "reactions": [
+  {
+   "step": 1,
+   "product": {
+    "label": "5b",
+    "name": "Ethyl 5-amino-6-cyano-4-oxo-3-phenyl-7-(thiophene-2-yl)-3,4-dihydro-phthalazine carboxylate",
+    "smiles": "CCOC(=O)c1nn(-c2ccccc2)c(=O)c2c(N)c(C#N)c(-c3cccs3)cc12"
+   },
+   "reactants": [
+    {
+     "label": "1a",
+     "name": "",
+     "smiles": "CCOC(=O)c1nn(-c2ccccc2)c(=O)c(C#N)c1C",
+     "origin": "commercial"
+    },
+    {
+     "label": "2b",
+     "name": "",
+     "smiles": "N#CC(C#N)=Cc1cccs1",
+     "origin": "commercial"
+    }
+   ],
+   "conditions": "General procedure 4.1.1: equimolar (0.01 mol) 1a and 2b in EtOH (30 mL) with catalytic piperidine (1.0 mL), microwave labStation, 70 C, 5 min; solid filtered and crystallised from dioxane; yield 85%",
+   "source": "Main article Section 2.1 (Scheme 1 text) and Section 4.1.1 (general procedure and 5b characterisation); no SI file"
+  }
+ ],
+ "alt_variants": [],
+ "other_qualifying_compounds": null,
+ "notes": "The text layer has no structures, so BOTH reactant structures are inferred, not read: 1a = ethyl 1-aryl-5-cyano-1,6-dihydro-4-methyl-6-oxo-3-pyridazinecarboxylate with aryl = phenyl (5a-c carry N3-phenyl; 5d,e use 1b with tolyl); 2b = 2-(thiophen-2-ylmethylene)malononitrile (the paper calls 2a-e 'arylidinemalononitriles' in Section 2 but 'cinnamonitrile derivatives' in the abstract/experimental). Support: the mechanism text says aromatisation 'by elimination of HCN', and atom balance 1a (C15H13N3O3) + 2b (C8H4N2S) = 5b (C22H16N4O3S) + HCN is exact; a 3-(thienyl)acrylonitrile would not balance without loss of H2. Neither reactant has a name, source or preparation in the paper (experimental says chemicals from Aldrich and Merck, but 1a is a bespoke pyridazine from the authors' earlier work, refs 50-55, and is probably not purchasable); I marked both 'commercial' only because the paper uses them without describing any preparation. The printed product name omits the locant '1-' of the carboxylate, so OPSIN may fail on it; the intended compound is the 1-carboxylate (C1 of the phthalazine, from the pyridazine C3 ester). Reviewer: decide whether a non-stock leaf 1a should downgrade this to route_not_explicit."
+}

@@ -1,0 +1,12 @@
+{
+ "paper": "zhai2019_dithiocarbamate_diphenylaminopyrimidines",
+ "decision": "excluded",
+ "exclusion_reason": "lead_route_over_4_steps",
+ "exclusion_detail": "Lead 30ab needs 8 reactions from commercial materials: (1) 4-nitroaniline + 2,4-dichloro-5-fluoropyrimidine -> 22; (2) 4-nitrophenol + 1-bromo-2-chloroethane -> 24a; (3) Fe/NH4Cl reduction -> 25a; (4) coupling of 22 with 25a (TFA) -> 26a; (5) Fe/NH4Cl nitro reduction -> 27a; (6) acryloyl chloride acylation -> 28a; (7) NaI halogen exchange -> 29a; (8) CS2 / 3-(aminomethyl)pyridine / TEA -> 30ab. Every route in the paper (compounds 30, 31, 32) is at least this long.",
+ "lead": {"label": "30ab", "why": "Abstract: 'Among all these compounds, 30ab (IC50 = 1.15 nM) displays similar or more potent inhibitory activity against BTK than spebrutinib and ibrutinib ... compound 30ab is a candidate for further study.'"},
+ "target": {"name": "2-(4-((4-((3-acrylamidophenyl)amino)-5-fluoropyrimidin-2-yl)amino)phenoxy)ethyl (pyridin-3-ylmethyl)carbamodithioate", "smiles": "C=CC(=O)Nc1cccc(Nc2nc(Nc3ccc(OCCSC(=S)NCc4cccnc4)cc3)ncc2F)c1"},
+ "reactions": [],
+ "alt_variants": [],
+ "other_qualifying_compounds": [],
+ "notes": "Route counted from Scheme 1 (n = 2 side chain, since 30ab is the 2-(...)ethyl ester) and Section 4.1/4.2 of the main text; the SI file holds only NMR spectra. The target SMILES is given for reference only and was not checked against an OPSIN round trip."
+}

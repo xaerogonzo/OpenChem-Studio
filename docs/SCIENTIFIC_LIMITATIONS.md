@@ -468,7 +468,7 @@ approximation** ([10.1016/j.addr.2007.05.008](https://doi.org/10.1016/j.addr.200
 solubility exceeds intrinsic by about **four orders of magnitude for a
 weak acid and three for a weak base**. It is asymmetric because a sodium
 and a chloride salt are not equally soluble. This replaced a symmetric
-+2 that had been inferred from a single ChemAxon screenshot and had no
++2 that had been inferred from a single the vendor screenshot and had no
 source; on propranolol at gastric pH it moves the prediction from 7 to
 70 mg/mL, against a real hydrochloride solubility near 50.
 
@@ -614,7 +614,7 @@ Sorbitan esters are the case most likely to be got wrong. Griffin's
 *formula* does not apply to them: sorbitan is a polyhydric alcohol, so
 polyoxyethylene is not the sole hydrophile.
 
-**It will not agree with Marvin**, whose default is a proprietary consensus
+**It will not agree with the reference editor**, whose default is a proprietary consensus
 method. That is documented rather than chased.
 
 **"HLB" names two incompatible quantities.** Davies' scale shares the name
@@ -755,9 +755,68 @@ different quantities for the same molecule — TNT is −74.0% against −24.7% 
 so a figure quoted as a bare "oxygen balance" is ambiguous between them. The
 source subscripts them for that reason and so does this.
 
-**CHNO only.** The closed form is stated for CₐH_bN_cO_d. A sulfur or a metal
-needs different accounting, so anything else is **refused rather than given a
-confident wrong number** by silently ignoring those atoms.
+**Beyond CHNO, only where a source says what an element burns to.** The
+closed form is stated for CₐH_bN_cO_d. Meyer's *Explosives* defines the
+balance to "CO2, H2O, SO2, Al2O3, etc." and states chlorine to HCl; Conkling
+& Mocella's *Chemistry of Pyrotechnics* (Table 2.5, the "pyro valences")
+states a product for each element, and a US patent states boron to B2O3. So
+sulfur, chlorine and fluorine (taken by a hydrogen as HCl/HF or by a metal as
+its halide, which gives the same number either way), iodine (left as I₂, taking
+no hydrogen), boron, silicon,
+phosphorus (to P₂O₅, also Shimizu's *Fireworks*) and
+twenty-one metals are accepted, each at the product a source states or the
+oxide its printed balances use; mercury and silver are left unoxidised
+because that is what Meyer does. Akhavan's *The Chemistry of
+Explosives* states the same definition and agrees on silver and lead, but
+burns mercury to HgO (mercury fulminate −16.86% against Meyer's −11.2%); the
+result follows Meyer and prints the HgO figure beside it. 35 of its printed balances are
+reproduced to its own printing, and so are Conkling's printed net valences,
+Klapötke's two borate esters and the patent's boron igniter. **Chlorine is the one place the sources split.** Meyer, Conkling, Jain and
+Klapötke's textbook take it to HCl; Klapötke's *Encyclopedia* leaves it as Cl₂
+for guanidinium and hydrazinium perchlorates and trinitrochlorobenzene (−10.0%,
++18.1%, −45.24%, against −5.0%, +24.1%, −42.0%), as does Meyer's picryl chloride
+entry. The result follows HCl and prints the Cl₂ figure beside it whenever a
+hydrogen took a chlorine. A metal chloride gives the same number either way.
+Iodine is the opposite case: He, Hooper & Shreeve's formula has no iodine term
+and seven of their printed balances reproduce with iodine untouched.
+
+**Iron and copper burn to the oxide of the charge they are drawn with**
+(Fe(II) to FeO, Fe(III) to Fe₂O₃, Cu(I) to Cu₂O, Cu(II) to CuO). No source
+states that as a rule: it is what Meyer's ferrocene and iron acetylacetonate
+values, Conkling's two copper oxides and Shancita's iodates all follow. A
+structure drawn with a different charge, or none (a neutral iron atom), is
+refused, and the other oxide's figure is printed beside the answer.
+
+Persson, Holmberg & Lee's *Rock Blasting and Explosives Engineering* (Eq. 4.43) states
+the same accounting as one closed form for Al, B, C, Ca, Cl, F, H, K, N, Na and O, halogens
+sparing half an oxygen each, and the tests run it beside the calculator. Its wording, "highest
+degree of oxidation", read literally would burn iron to Fe₂O₃ and mercury to HgO whatever
+the drawing; the calculator follows the printed values instead (Meyer's ferrocene is FeO)
+and prints the other oxide's figure beside the answer, which is that reading.
+
+**Bromine goes to HBr, as chlorine goes to HCl**, each sparing half an oxygen. The
+NBS report by Tsang & Domalski (1974) states it in its oxygen-balance formula and
+prints propargyl bromide at −94.1%, and Lease et al.'s (2023) three brominated PETN
+derivatives (−21.6, −32.0, −41.4%) agree to 0.3 points where Br₂ left over would be off
+by 2 to 6; Wang et al.'s (2024) bromo-trinitroanisoles (−35.3, −42.2) reproduce to the digit.
+(The same group's patent for the bromofluoro compound prints −40.0%, the halogens ignored.) It took a long search: Meyer, Conkling & Mocella, Persson, Cooper, Akhavan,
+Klapötke's textbook and Encyclopedia, a brominated-TNT preprint and all 68 Klapötke-group
+LMU dissertations print no bromine balance. Neither source prints a metal bromide, so a
+bromine a metal takes follows the chlorides and the result says so. Bromine beyond what
+hydrogen and metals can take (CBr₄, bromoform) is refused. Every other uncovered element
+is **refused rather than given a confident wrong number**: no source gives a product for
+it, including Persson's. Silicon, zirconium, phosphorus and tungsten are accepted on
+Conkling's statement and its grams-of-fuel-per-gram-of-oxygen column; no
+printed balance uses them. A phosphorus, molybdenum or tungsten halide is
+refused: no source says how many halogens it holds. Only the CO₂ basis is extended; the CO basis stays
+C/H/N/O.
+
+**Two of the book's own values disagree with it, and are recorded rather
+than fitted:** picryl chloride is printed as if its chlorine became Cl₂, two
+hydrates are printed for the anhydrous salt while two others include their
+water. A hydrate is balanced as drawn and the result says so. (Its two iron
+values, FeO for ferrocene and Fe₂O₃ for iron acetylacetonate, looked like a
+third disagreement and are the iron(II)/iron(III) rule above.)
 
 ### Detonation (Kamlet–Jacobs)
 
@@ -1193,24 +1252,37 @@ listed counter-ions and solvents removed, the rest re-neutralised. The
 **formula, full molecular weight, exact mass and net charge** describe the
 whole drawing, as ChEMBL's own FULL_MWT and FULL_MOLFORMULA do. Each result
 records which components it used (`components_used`, and `parent_smiles`
-when a parent was taken). What that leaves out, measured on the panel in
+when a parent was taken; `component_choice` and `components_left_out` when it
+had to choose, below). What that leaves out, measured on the panel in
 `tests/fixtures/multicomponent_panel.toml`:
 
-- **A salt with no single parent gets no compound properties.** ChEMBL strips
-  nothing when EVERY component is on its salt list, and nothing when NONE
-  is, so there is no one species to describe. On the panel that is sodium
-  acetate, potassium benzoate, lithium propanoate, calcium acetate,
-  magnesium succinate, trisodium citrate, sodium benzenesulfonate and NaCl
-  (every component listed) and choline salicylate (none listed). Those
-  properties refuse with `MULTICOMPONENT_UNSUPPORTED`; the formula and
-  weight still appear. For a metal cation beside a listed organic anion the
-  organic ion is almost certainly the species meant, and a rule for that
-  case -- or a way to name the component yourself -- is the open fix. Until
-  then, draw the species you mean (acetic acid, or acetate alone).
-- **A transition-metal structure drawn as ions has no parent either.**
-  ChEMBL's exclusion flag (a transition metal, or more than seven borons)
-  refuses it with `METAL_CONTAINING_UNSUPPORTED`; ferrocene drawn as
-  Fe2+ and two cyclopentadienides is the panel's case.
+- **A drawing with no single parent is computed on its largest component,
+  and the result says so.** ChEMBL strips nothing when EVERY component is on
+  its salt list, and nothing when NONE is, so its rule names no one species.
+  Until 2026-10-25 those compound properties were refused. They are now
+  computed on the component with the most heavy atoms, re-neutralised the way
+  ChEMBL's own parent is (sodium phenolate's is phenol), so sodium acetate
+  gets acetic acid's numbers. The result's first limitation, its `caveat` and
+  its record name the drawn ion, the neutral form computed and everything left
+  out; the formula and weight still describe the whole drawing. On the panel
+  that is sodium acetate, potassium benzoate, lithium propanoate, calcium
+  acetate, magnesium succinate, trisodium citrate, sodium benzenesulfonate and
+  choline salicylate. **It is a guess at the species meant.** It is right for
+  a metal cation beside an organic anion, and a coin toss when two organics are
+  close in size (choline salicylate: 7 and 10 heavy atoms), which the label
+  says in so many words whenever the runner-up has at least half the largest
+  one's heavy atoms. It never combines the components. It is neutralised
+  because the ion as drawn gave a wrong number: the citrate trianion's Crippen
+  logP is -5.25, citric acid's -1.25. Draw the one species you mean to compute
+  on it; naming the component inside the application is not built.
+- **Still refused: no larger component, and a transition-metal structure drawn
+  as ions.** NaCl, calcium chloride (two one-atom species) and two unlisted
+  organics of one size (naphthalene beside quinoline) have no larger
+  component, and refuse with `MULTICOMPONENT_UNSUPPORTED`. ChEMBL's exclusion
+  flag (a transition metal, or more than seven borons) refuses with
+  `METAL_CONTAINING_UNSUPPORTED`: ferrocene drawn as Fe2+ and two
+  cyclopentadienides is the panel's case, and the ligand ions' numbers would
+  describe a different compound from the complex that was drawn.
 - **Solubility, Joback and Hansen refuse anything with more than one
   component, hydrates included.** Their reason is about salts (a salt is a
   different substance from its parent, with its own solubility and boiling
@@ -1359,11 +1431,11 @@ specific than the structure. The name is shown with a note saying so,
 rather than withheld — the nomenclature engine is not wrong, it simply
 cannot express what the geometry added.
 
-**The generation controls emulate Marvin's, not its algorithms.** The
+**The generation controls emulate the reference editor's, not its algorithms.** The
 diversity threshold, optimisation level, time limit and refinement pass
-are modelled on ChemAxon's Generate3D options because those are the knobs
-people expect; none of them reproduces ChemAxon's implementation, and
-ChemAxon publishes no default values for any of them, so the defaults here
+are modelled on the vendor's conformer-generation options because those are the knobs
+people expect; none of them reproduces the vendor's implementation, and
+The vendor publishes no default values for any of them, so the defaults here
 are this application's own. In particular **"enhanced refinement" is not
 "hyperfine"** — that runs short molecular dynamics before a strict
 optimisation, and repeated minimisation is not an approximation of
@@ -2470,6 +2542,58 @@ decimals the cell need not still be neutral, and the source restores it by
 moving the first atoms by 0.001 e. Which atoms carry that therefore depends on
 the order the file writes them in. The count of atoms it moved is reported
 beside the charges rather than left silent.
+
+<!-- help:limits-synthesis -->
+## Synthesis route planning
+
+**A route is a hypothesis from a program, not a synthesis.** The Synthesis panel shows what an external planner (AiZynthFinder, which you install) proposes. Nobody has run these reactions.
+The planner supplies no conditions, reagents, solvents, temperatures, yields or selectivity, and the application invents none: a field the planner did not give is shown as "not provided",
+never as zero. Stereochemistry in a route is the planner's and is often incomplete or dropped.
+
+**What was measured, and what it does not show.** Two benchmarks were run, and the one to quote is the second.
+
+*Routes from papers after the model's training data (protocol 3, `benchmarks/synthesis/RESULT_3.md`, run 2026-10-24).* 51 routes were transcribed from journal papers published after the public models were trained (190 papers
+read from 21 medicinal-chemistry journals, 2017 to 2025; each paper's lead compound by a fixed rule, its own route of 4 reactions or fewer), and each was searched with the settings of the first two benchmarks on a stock
+holding the paper's own starting materials. **The paper's route was among the first 10 routes shown for 13 of 51 = 25.5% (95% interval 15.5% to 38.9%):** 5 of 15 where the paper's route has 1 step, 6 of 10 at 2, 2 of 14 at 3,
+0 of 12 at 4. For the 36 routes of 2 steps or more this is *lower* than the patent figure below predicts at the same depths (8 recovered against 14.0 expected; probability of so few 0.0073, fixed in advance as the test).
+Most misses are the model never proposing the paper's reaction (none of a route's reactions appears in any returned route for 18 of the 38 misses), not the order the routes are shown in. The stock decides a great deal: with the
+stock the application ships by default (ZINC, which sells some of the papers' own intermediates) the figure was 3 of 51, because a route that stops at a purchasable intermediate is a shorter valid route the exact rule cannot credit.
+**A route that differs from the paper's is the normal outcome, not a fault, and a missing paper route is not evidence that a plan is wrong:** a route made from the paper's own starting materials was among the first 10 for
+17 of the 51 targets, and for 10 of the 38 misses. What this cannot say: whether any route can be carried out (nothing was run); anything about long, hard or poorly documented routes (only 51 of the 190 papers qualified, and
+their chemistry is analogue-library chemistry of ordinary reaction types); other models. The 2017 papers are a few months after the training data and may hold similar chemistry, and the reference transcriptions were made by
+reader agents and re-read by a second, with 19 of the 51 resting on some inferred reactant. With 51 routes a subgroup (a journal, a year, a depth) supports a description and not a comparison.
+
+*Patent routes the model probably saw (protocols 1 and 2).* Before any of this was built, the planner was run on 300 seeded targets from PaRoutes' set-n1 (patent routes from US patents), with
+its own stock and a fixed search budget, twice: `benchmarks/synthesis/RESULT.md` (the planner's own order, at most 25 routes) and, after reading how the published figure is counted,
+`benchmarks/synthesis/RESULT_2.md` (every solved route, ranked as the application ranks them). It returned a route with every starting material in stock for 96.7% of them. It had the
+patent route among the **first 10 routes shown** for only **41.7%**: 81% where the patent route had 2 steps, 39% at 3, 4% at 4; it had it anywhere among all its solved routes for 54.7%,
+which is the most any ranking of them could reach. Counted the way PaRoutes publishes its top-10 (every route in the first ten score levels, a median of 37 routes here) the figure is 53.3%;
+that count is generous by construction and is not the one the application quotes. The first run's 37.3% was mostly this difference in counting (73% of the gap), then the number of
+routes asked for (21%), and only 6% the ranking. 51% of the first routes were *shorter* than the patent route, so the planner often finds routes the patent did not use; that is not the
+same as finding good ones. The public models were probably trained on these very reactions, so 41.7% is **not** a figure for how it does on a molecule it has not seen, and **it is never quoted alone**:
+the routes from papers after the training data (above) are the figure for that. What the
+application therefore says is "internally consistent, repeatable proposals that often differ from known routes", never "known routes". The sentence is shown under every plan.
+
+**The numbers on a route are the planner's.** A policy probability is the model's score for a template, not a yield and not the chance a step works. A route score ranks the planner's search
+states; its authors warn it is "rather indiscriminate with regard to the quality of the route". "In stock" is a match to a catalogue snapshot (the default stock is from April 2020), not
+availability, not price, and not whether the compound may be bought.
+
+**"No route found" is an answer about a search, not about chemistry.** The search stops at an iteration or time limit and says which; routes found are the ones found so far. The tree is not
+deterministic (the node count differed on all 20 repeated targets; whether a route was found, and whether the patent route was recovered, did not).
+
+**The checks beside a route are bookkeeping.** They say whether its molecules parse, whether each step's reaction is made of the molecules the step connects, whether atoms are conserved where
+the mapping allows it, and which stock flags the planner gave. Passing them says nothing about whether the chemistry is right.
+
+**Regulatory alerts are list matches, not legal determinations.** Every molecule of every route is screened against the shipped rulesets and yours, and what matched is listed with its rule, kind of
+listing and how sure the rule is. Ordinary solvents and reagents match workplace-exposure listings, so a route with an alert is common and the kind of listing is what to read; a molecule with no alert
+is not thereby free of obligations, and a molecule that could not be screened is said to be one. The only refusal is a target that matches the structural rules of the Chemical Weapons Convention's
+first schedule (`cwc-schedule-1`): nothing is planned for it, and a target the check could not be applied to is treated the same way. That ruleset's own known limits apply to the refusal, and
+a refusal is not an accusation.
+
+**A saved plan is as old as the day it was made.** A plan is written into the project file and read back with it. When it comes back, the regulatory check on its target is run again and the route checks are recomputed, but the regulatory alerts beside its molecules are the ones from the day it was planned (the plan says the date) and are not repeated on opening, so a ruleset added or changed since then is not reflected until the molecule is planned again. The planner's models and stock are likewise as they were; a plan is a record of one search, not a standing answer.
+
+**It runs on your machine, and what the assistant reads leaves it.** The planner is a program of its own in your Python environment (about 1.7 GB on disk, 3 to 5 GB of memory while it runs). If you
+let the AI Assistant read a plan, the plan is sent to its provider as part of the conversation; the assistant can ask for a search, which starts only if you approve it, and cannot start one itself.
 
 ## Where this is enforced
 

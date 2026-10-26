@@ -1,0 +1,11 @@
+{
+ "paper": "dobrikov2017_mdl860_analogues",
+ "my_lead": "14 (2-(3,4-difluorophenoxy)-5-nitrobenzonitrile): named first in abstract with SI 405 and highest in vivo PI 50%; 24 and 25 are co-named in the abstract",
+ "lead_agrees": "co-named",
+ "reactions": [{"step": 1, "ok": true, "issue": ""}],
+ "leaf_issues": [],
+ "step_count_ok": true,
+ "smiles_issues": [],
+ "overall": "confirmed",
+ "notes": "SNAr of 2-chloro-5-nitrobenzonitrile (1) with phenol 2 under NaOH/DMSO (GP1, SI p6). Phenol 2 identity (3,4-difluorophenol) is not printed (scheme not in text layer) but follows from the SI quantity (0.256 g = 1.97 mmol, MW 130) and the product name of 14; 84% yield checks (0.380 g / 276.2). Main text: 'All starting compounds (except phenols 7 and 8) are commercially available products' (7, 8 are not used for 14). NaOH/DMSO correctly omitted. SMILES positions (5-nitro, 3,4-difluoro) checked."
+}

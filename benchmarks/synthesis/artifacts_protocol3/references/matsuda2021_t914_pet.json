@@ -1,0 +1,12 @@
+{
+ "paper": "matsuda2021_t914_pet",
+ "decision": "excluded",
+ "exclusion_reason": "not_small_molecule_organic",
+ "exclusion_detail": "Radiolabelling paper: the featured compound is the 18F PET tracer [18F]T-914 (title, abstract), made from a nitro precursor 6 by [18F]fluoride displacement. The unlabelled T-914 (1g) is a plain small molecule made in 2 steps, but the Boc-protected aminocyclopropyl aniline 4 it is built from is neither purchased nor prepared anywhere in the article (no SI supplied), so even that route has an unexplained building block; I excluded rather than treat 4 as a leaf.",
+ "lead": {"label": "1g (T-914) / [18F]1g", "why": "By optimizing the profiles of brain penetrance and brain-penetrant metabolites, T-914 (1g) was identified as a suitable PET tracer candidate."},
+ "target": null,
+ "reactions": [],
+ "alt_variants": [],
+ "other_qualifying_compounds": ["1a", "1b", "1c", "1d", "1e"],
+ "notes": "If a reviewer wants the unlabelled lead anyway: 1g = N-(4-{(1S,2R) or (1R,2S)-2-[(cyclopropylmethyl)amino]cyclopropyl}phenyl)-6-fluoro-4-methylpyridine-3-carboxamide hydrochloride; step 1 amide coupling of 4 (tert-butyl (2-(4-aminophenyl)cyclopropyl)(cyclopropylmethyl)carbamate, trans, enantiomer relation given only as 'or'; not named in the paper) with 6-fluoro-4-methylnicotinic acid, HATU, TEA, DMF, rt 8 h, 81% -> 5b; step 2 4 M HCl/EtOAc, rt 1 h, 71%. Also 1a-1e are 2 steps each from the Boc acid 2 (4-[2-(Boc(cyclopropylmethyl)amino)cyclopropyl]benzoic acid) + an amine, with the same unexplained-building-block caveat; 1a-1e are listed under other_qualifying_compounds on that basis only."
+}

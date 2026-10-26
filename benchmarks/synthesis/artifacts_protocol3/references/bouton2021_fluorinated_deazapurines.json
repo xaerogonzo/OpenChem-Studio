@@ -1,0 +1,12 @@
+{
+ "paper": "bouton2021_fluorinated_deazapurines",
+ "decision": "excluded",
+ "exclusion_reason": "no_lead_identifiable",
+ "exclusion_detail": "The abstract says only that 'several analogs' were potent and names no compound; the paper has no in vivo, docking or mechanism follow-up on a single compound. The conclusion singles out three compounds (32, 33, 71), so the lead rule cannot pick one. Whichever were chosen, the routes (sugar prepared in about 6 steps, then glycosylation, azide installation and reduction, deprotection) are far over 4 reactions.",
+ "lead": {"label": "none", "why": "Abstract: 'Several analogs with potent activity against T. cruzi and T. brucei were discovered' (no compound named). Conclusion names 32 and 33 (anti-T. cruzi) and 71 (anti-T. brucei) as promising, which is three leads."},
+ "target": null,
+ "reactions": [],
+ "alt_variants": [],
+ "other_qualifying_compounds": [],
+ "notes": "Scheme 1 alone (sugar donor) has steps a-f plus further steps before glycosylation (Scheme 2/3 captions show glycosylation, NaOMe, azide, reduction, hydrogenation, Suzuki), so no nucleoside in the paper is within 4 reactions. Looked at scheme captions only, not every experimental procedure."
+}

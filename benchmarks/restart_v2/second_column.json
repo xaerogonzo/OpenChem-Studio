@@ -1,0 +1,499 @@
+{
+ "bonds": [
+  {
+   "name": "propane C-H (n-Propyl)",
+   "calc": 100.55,
+   "atct": 101.35,
+   "excluded": false,
+   "luo": {
+    "value": 100.9,
+    "unc": 0.5,
+    "pdf_page": 49,
+    "table": "3.1",
+    "kind": "recommended (boldface)"
+   },
+   "calc_minus_luo": -0.3500000000000085,
+   "calc_minus_atct": -0.7999999999999972,
+   "luo_minus_atct": -0.44999999999998863
+  },
+  {
+   "name": "ethanol C-H (2-Hydroxyethyl)",
+   "calc": 101.31,
+   "atct": 102.0,
+   "excluded": false,
+   "luo": {
+    "value": null,
+    "pdf_page": 99,
+    "table": "3.6.1.1",
+    "why": "three values (101.3, 98 +/- 2, 100.8 +/- 2) and none in boldface"
+   }
+  },
+  {
+   "name": "ethanol C-H (1-Hydroxyethyl)",
+   "calc": 93.23,
+   "atct": 94.83,
+   "excluded": false,
+   "luo": {
+    "value": 95.9,
+    "unc": 1.0,
+    "pdf_page": 99,
+    "table": "3.6.1.1",
+    "kind": "recommended (boldface)"
+   },
+   "calc_minus_luo": -2.6700000000000017,
+   "calc_minus_atct": -1.5999999999999943,
+   "luo_minus_atct": 1.0700000000000074
+  },
+  {
+   "name": "propene C-H (1-Methylethenyl)",
+   "calc": 105.75,
+   "atct": 107.68,
+   "excluded": false,
+   "luo": {
+    "value": null,
+    "pdf_page": 55,
+    "table": "3.2",
+    "why": "not listed: the handbook has the terminal vinylic C-H (111.1) and the allylic one, not the central one"
+   }
+  },
+  {
+   "name": "propyne C-H (Propargyl)",
+   "calc": 91.13,
+   "atct": 91.76,
+   "excluded": false,
+   "luo": {
+    "value": 88.9,
+    "unc": 1.0,
+    "pdf_page": 53,
+    "table": "3.2",
+    "kind": "recommended (boldface)"
+   },
+   "calc_minus_luo": 2.2299999999999898,
+   "calc_minus_atct": -0.6300000000000097,
+   "luo_minus_atct": -2.8599999999999994
+  },
+  {
+   "name": "propyne C-H (1-Propynyl)",
+   "calc": 131.8,
+   "atct": 133.56,
+   "excluded": false,
+   "luo": {
+    "value": null,
+    "pdf_page": 53,
+    "table": "3.2",
+    "why": "not listed (only the methyl C-H of propyne)"
+   }
+  },
+  {
+   "name": "methylamine N-H (Methylamidogen)",
+   "calc": 98.64,
+   "atct": 99.49,
+   "excluded": false,
+   "luo": {
+    "value": 101.6,
+    "unc": 2.0,
+    "pdf_page": 399,
+    "table": "7.1.1",
+    "kind": "recommended (boldface)"
+   },
+   "calc_minus_luo": -2.9599999999999937,
+   "calc_minus_atct": -0.8499999999999943,
+   "luo_minus_atct": 2.1099999999999994
+  },
+  {
+   "name": "methylamine C-H (Aminomethyl)",
+   "calc": 91.68,
+   "atct": 92.88,
+   "excluded": false,
+   "luo": {
+    "value": 93.9,
+    "unc": 2.0,
+    "pdf_page": 131,
+    "table": "3.6.2.1",
+    "kind": "recommended (boldface)"
+   },
+   "calc_minus_luo": -2.219999999999999,
+   "calc_minus_atct": -1.1999999999999886,
+   "luo_minus_atct": 1.0200000000000102
+  },
+  {
+   "name": "hydrazine N-H (Hydrazino)",
+   "calc": 80.94,
+   "atct": 82.38,
+   "excluded": false,
+   "luo": {
+    "value": null,
+    "pdf_page": 400,
+    "table": "7.1.1",
+    "why": "the recommended datum is 80.8 +/- 0.3 AT 0 K, not 298 K"
+   }
+  },
+  {
+   "name": "methyl hydroperoxide C-H (Hydroperoxymethyl)",
+   "calc": 97.24,
+   "atct": 98.37,
+   "excluded": false,
+   "luo": {
+    "value": 98.4,
+    "unc": null,
+    "pdf_page": 129,
+    "table": "3.6.1.5",
+    "kind": "single entry (derived, 2004JAN/ROS)"
+   },
+   "calc_minus_luo": -1.1600000000000108,
+   "calc_minus_atct": -1.1300000000000097,
+   "luo_minus_atct": 0.030000000000001137
+  },
+  {
+   "name": "n-butane C-H (n-Butyl)",
+   "calc": 99.98,
+   "atct": 101.37,
+   "excluded": false,
+   "luo": {
+    "value": 100.7,
+    "unc": null,
+    "pdf_page": 49,
+    "table": "3.1",
+    "kind": "recommended (boldface)"
+   },
+   "calc_minus_luo": -0.7199999999999989,
+   "calc_minus_atct": -1.3900000000000006,
+   "luo_minus_atct": -0.6700000000000017
+  },
+  {
+   "name": "1,3-butadiene C-H (1,3-Butadienyl)",
+   "calc": 110.2,
+   "atct": 112.3,
+   "excluded": false,
+   "luo": {
+    "value": 114.4,
+    "unc": null,
+    "pdf_page": 55,
+    "table": "3.2",
+    "kind": "single entry (derived, 2004JAN/ROS), assigned to the terminal CH2 by its radical enthalpy of formation (87.1 kcal/mol, against 86.5 from ATcT)"
+   },
+   "calc_minus_luo": -4.200000000000003,
+   "calc_minus_atct": -2.0999999999999943,
+   "luo_minus_atct": 2.1000000000000085
+  },
+  {
+   "name": "ethylamine N-H (Ethylamidogen)",
+   "calc": 98.63,
+   "atct": 99.98,
+   "excluded": false,
+   "luo": {
+    "value": null,
+    "pdf_page": null,
+    "table": "7.1.1",
+    "why": "not listed"
+   }
+  },
+  {
+   "name": "ethylamine C-H (1-Aminoethyl)",
+   "calc": 90.3,
+   "atct": 91.85,
+   "excluded": false,
+   "luo": {
+    "value": 90.1,
+    "unc": 2.0,
+    "pdf_page": 131,
+    "table": "3.6.2.1",
+    "kind": "recommended (boldface)"
+   },
+   "calc_minus_luo": 0.20000000000000284,
+   "calc_minus_atct": -1.5499999999999972,
+   "luo_minus_atct": -1.75
+  },
+  {
+   "name": "ethylamine C-H (2-Aminoethyl)",
+   "calc": 100.35,
+   "atct": 101.76,
+   "excluded": false,
+   "luo": {
+    "value": null,
+    "pdf_page": 131,
+    "table": "3.6.2.1",
+    "why": "not listed (only the CH2 next to the nitrogen)"
+   }
+  },
+  {
+   "name": "acetonitrile C-H (Cyanomethyl)",
+   "calc": 95.84,
+   "atct": 96.52,
+   "excluded": false,
+   "luo": {
+    "value": 97.0,
+    "unc": 1.0,
+    "pdf_page": 135,
+    "table": "3.6.2.2",
+    "kind": "recommended (boldface)"
+   },
+   "calc_minus_luo": -1.1599999999999966,
+   "calc_minus_atct": -0.6799999999999926,
+   "luo_minus_atct": 0.480000000000004
+  },
+  {
+   "name": "methoxymethane C-H (Methoxymethyl)",
+   "calc": 95.25,
+   "atct": 96.27,
+   "excluded": false,
+   "luo": {
+    "value": 96.1,
+    "unc": null,
+    "pdf_page": 102,
+    "table": "3.6.1.2",
+    "kind": "recommended (boldface)"
+   },
+   "calc_minus_luo": -0.8499999999999943,
+   "calc_minus_atct": -1.019999999999996,
+   "luo_minus_atct": -0.1700000000000017
+  },
+  {
+   "name": "propionaldehyde C-H (1-Oxopropyl)",
+   "calc": 88.58,
+   "atct": 89.37,
+   "excluded": false,
+   "luo": {
+    "value": 91.7,
+    "unc": null,
+    "pdf_page": 114,
+    "table": "3.6.1.3",
+    "kind": "single entry (GPA, 1977CUM/KEB)"
+   },
+   "calc_minus_luo": -3.1200000000000045,
+   "calc_minus_atct": -0.7900000000000063,
+   "luo_minus_atct": 2.3299999999999983
+  },
+  {
+   "name": "dimethyl sulfide C-H ((Methylthio)methyl)",
+   "calc": 93.43,
+   "atct": 93.82,
+   "excluded": false,
+   "luo": {
+    "value": 93.7,
+    "unc": 1.4,
+    "pdf_page": 155,
+    "table": "3.6.4",
+    "kind": "recommended (boldface)"
+   },
+   "calc_minus_luo": -0.269999999999996,
+   "calc_minus_atct": -0.38999999999998636,
+   "luo_minus_atct": -0.11999999999999034
+  },
+  {
+   "name": "hydroxylamine O-H (Aminooxy)",
+   "calc": 74.53,
+   "atct": 77.79,
+   "excluded": false,
+   "luo": {
+    "value": null,
+    "pdf_page": 290,
+    "table": "6.1.1",
+    "why": "a range, 75-77, from an electrochemical (solution) measurement"
+   }
+  },
+  {
+   "name": "hydroxylamine N-H (Hydroxyamidogen)",
+   "calc": 84.05,
+   "atct": 85.06,
+   "excluded": false,
+   "luo": {
+    "value": null,
+    "pdf_page": 402,
+    "table": "7.1.1",
+    "why": "a range, 81-82, from an electrochemical (solution) measurement"
+   }
+  },
+  {
+   "name": "acrolein C-H (Acryloyl)",
+   "calc": 89.79,
+   "atct": 90.72,
+   "excluded": false,
+   "luo": {
+    "value": null,
+    "pdf_page": null,
+    "table": "3.6.1",
+    "why": "not listed"
+   }
+  },
+  {
+   "name": "methanimine N-H (Methyleneamidogen)",
+   "calc": 87.29,
+   "atct": 87.96,
+   "excluded": false,
+   "luo": {
+    "value": 87.0,
+    "unc": 6.0,
+    "pdf_page": 399,
+    "table": "7.1.1",
+    "kind": "recommended (boldface)"
+   },
+   "calc_minus_luo": 0.29000000000000625,
+   "calc_minus_atct": -0.6699999999999875,
+   "luo_minus_atct": -0.9599999999999937
+  },
+  {
+   "name": "methanimine C-H (Iminomethyl)",
+   "calc": 95.03,
+   "atct": 96.03,
+   "excluded": false,
+   "luo": {
+    "value": null,
+    "pdf_page": null,
+    "table": "3.6.2",
+    "why": "not listed (only the N-H)"
+   }
+  },
+  {
+   "name": "ethanimine N-H (Ethylideneamidogen)",
+   "calc": 89.21,
+   "atct": 89.9,
+   "excluded": false,
+   "luo": {
+    "value": null,
+    "pdf_page": null,
+    "table": "7.1.1",
+    "why": "not listed"
+   }
+  },
+  {
+   "name": "ethanimine C-H (1-Iminoethyl)",
+   "calc": 94.53,
+   "atct": 95.56,
+   "excluded": false,
+   "luo": {
+    "value": null,
+    "pdf_page": null,
+    "table": "3.6.2",
+    "why": "not listed"
+   }
+  },
+  {
+   "name": "formaldoxime O-H (Formaldiminoxy)",
+   "calc": 81.58,
+   "atct": 84.13,
+   "excluded": false,
+   "luo": {
+    "value": null,
+    "pdf_page": null,
+    "table": "6.1.2",
+    "why": "not listed"
+   }
+  },
+  {
+   "name": "isocyanic acid N-H (Cyanooxidanyl)",
+   "calc": 110.63,
+   "atct": 110.98,
+   "excluded": true,
+   "luo": {
+    "value": 110.1,
+    "unc": 0.5,
+    "pdf_page": 399,
+    "table": "7.1.1",
+    "kind": "recommended (boldface)"
+   }
+  },
+  {
+   "name": "hydrazoic acid N-H (Azido radical)",
+   "calc": 89.89,
+   "atct": 89.89,
+   "excluded": true,
+   "luo": {
+    "value": null,
+    "pdf_page": 399,
+    "table": "7.1.1",
+    "why": "five values (92, <=93, 92.7, <=88.7, 93.7) and none in boldface"
+   }
+  },
+  {
+   "name": "ketene C-H (Ketenyl)",
+   "calc": 105.69,
+   "atct": 106.26,
+   "excluded": true,
+   "luo": {
+    "value": 105.9,
+    "unc": 2.1,
+    "pdf_page": 114,
+    "table": "3.6.1.3",
+    "kind": "recommended (boldface)"
+   }
+  }
+ ],
+ "used": 14,
+ "calc_vs_luo": {
+  "n": 14,
+  "mae": 1.6000000000000003,
+  "mse": -1.211428571428572
+ },
+ "calc_vs_atct_same_bonds": {
+  "n": 14,
+  "mae": 1.0571428571428538,
+  "mse": -1.0571428571428538
+ },
+ "luo_vs_atct": {
+  "n": 14,
+  "mae": 1.1514285714285717,
+  "mse": 0.1542857142857181
+ },
+ "listed_not_used": [
+  "ethanol C-H (2-Hydroxyethyl)",
+  "propene C-H (1-Methylethenyl)",
+  "propyne C-H (1-Propynyl)",
+  "hydrazine N-H (Hydrazino)",
+  "ethylamine C-H (2-Aminoethyl)",
+  "hydroxylamine O-H (Aminooxy)",
+  "hydroxylamine N-H (Hydroxyamidogen)"
+ ],
+ "not_listed": [
+  "ethylamine N-H (Ethylamidogen)",
+  "acrolein C-H (Acryloyl)",
+  "methanimine C-H (Iminomethyl)",
+  "ethanimine N-H (Ethylideneamidogen)",
+  "ethanimine C-H (1-Iminoethyl)",
+  "formaldoxime O-H (Formaldiminoxy)"
+ ],
+ "ruscic_vs_atct_1228": [
+  {
+   "bond": "methane C-H",
+   "where": "Table 1, CH3-H",
+   "ruscic_kcal": 104.89770554493307,
+   "atct_1228_kcal": 104.921,
+   "difference": -0.02329445506693162
+  },
+  {
+   "bond": "ethane C-H",
+   "where": "Table 2, CH3CH2-H",
+   "ruscic_kcal": 100.80544933078393,
+   "atct_1228_kcal": 101.044,
+   "difference": -0.2385506692160675
+  },
+  {
+   "bond": "ethene C-H",
+   "where": "Table 2, CH2=CH-H",
+   "ruscic_kcal": 110.5305927342256,
+   "atct_1228_kcal": 110.607,
+   "difference": -0.07640726577439239
+  },
+  {
+   "bond": "ethyne C-H",
+   "where": "Table 2, HC=C-H",
+   "ruscic_kcal": 133.29565009560227,
+   "atct_1228_kcal": 133.31,
+   "difference": -0.014349904397732871
+  },
+  {
+   "bond": "methanol C-H",
+   "where": "Table 3, HOCH2-H",
+   "ruscic_kcal": 96.11376673040152,
+   "atct_1228_kcal": 96.183,
+   "difference": -0.06923326959848453
+  },
+  {
+   "bond": "methanol O-H",
+   "where": "Table 3, CH3O-H",
+   "ruscic_kcal": 105.21988527724665,
+   "atct_1228_kcal": 105.27,
+   "difference": -0.05011472275334938
+  }
+ ]
+}

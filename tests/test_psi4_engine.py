@@ -56,7 +56,7 @@ def test_the_input_is_a_complete_psi4_job_with_nothing_left_to_a_default(provide
     assert "set basis def2-SVP" in text
     # Pople bases are cartesian in Psi4 and spherical in ORCA: always spherical (1.8 mEh on 6-31G(d) water)
     assert "set puream true" in text
-    assert "set scf_type df" in text and "set e_convergence 1e-8" in text
+    assert "set scf_type pk" in text and "scf_type df" not in text and "set e_convergence 1e-8" in text
     assert text.rstrip().endswith("energy('b3lyp5')")
 
 
@@ -130,7 +130,7 @@ def test_a_single_point_reads_the_total_energy_and_names_what_ran(provider):
     assert energy.descriptor_id == "psi4.scf_energy" and energy.units == "Hartree"
     assert energy.value == pytest.approx(-76.32100289408265, abs=1e-12)
     assert energy.provenance.parameters["psi4_version"] == "1.11"
-    assert energy.provenance.parameters["scf_type"] == "df" and energy.provenance.parameters["puream"] is True
+    assert energy.provenance.parameters["scf_type"] == "pk" and energy.provenance.parameters["puream"] is True
 
 
 def test_an_open_shell_output_reads_too(provider):
@@ -153,6 +153,22 @@ def test_an_optimization_returns_the_final_geometry_as_a_psi4_conformer_and_the_
     assert positions[0][2] == pytest.approx(0.127325399351, abs=1e-4)
     assert positions[1][1] == pytest.approx(0.756995261115, abs=1e-4)
     assert positions[2][2] == pytest.approx(-0.474212699675, abs=1e-4)
+
+
+def test_a_two_letter_element_is_printed_in_capitals_and_still_maps_to_its_atom(provider):
+    """Psi4 prints chlorine as `CL` in the final geometry. The agreement check's optimization arm lost chloromethane to a parser that accepted only `Cl` (a real output, exit 0)."""
+    mol = Chem.AddHs(Chem.MolFromSmiles("CCl"))
+    AllChem.EmbedMolecule(mol, randomSeed=7)
+    text = _fixture("chloromethane_b3lyp5_def2svp_opt.out")
+    assert "\n    CL " in text  # the fixture really has the capitalised spelling
+
+    _descriptors, conformer = provider.parse_output(text, mol, "u-1", "opt")
+
+    optimized = Chem.MolFromMolBlock(conformer.molblock, removeHs=False)
+    assert [a.GetSymbol() for a in optimized.GetAtoms()] == ["C", "Cl", "H", "H", "H"]
+    # the C-Cl distance of the converged geometry in the fixture: C (-0.1451, -0.0075, -0.0034), CL (1.6472, 0.0851, 0.0389) -> 1.795 A
+    positions = optimized.GetConformer().GetPositions()
+    assert float(((positions[0] - positions[1]) ** 2).sum() ** 0.5) == pytest.approx(1.795, abs=2e-3)
 
 
 def test_a_geometry_that_does_not_fit_the_input_atoms_is_never_applied(provider):

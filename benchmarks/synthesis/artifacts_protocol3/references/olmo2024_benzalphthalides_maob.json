@@ -1,0 +1,21 @@
+{
+ "paper": "olmo2024_benzalphthalides_maob",
+ "decision": "route",
+ "exclusion_reason": null,
+ "exclusion_detail": "",
+ "lead": {"label": "16", "why": "Abstract: 'The most potent compound with IC50 = 0.6 nM was the 3',4'-dichloro-BPH 16'."},
+ "target": {"name": "(Z)-3-(3,4-Dichlorobenzylidene)isobenzofuran-1(3H)-one", "smiles": "O=C1O/C(=C\\c2ccc(Cl)c(Cl)c2)c2ccccc12"},
+ "reactions": [
+  {"step": 1,
+   "product": {"label": "16", "name": "(Z)-3-(3,4-Dichlorobenzylidene)isobenzofuran-1(3H)-one", "smiles": "O=C1O/C(=C\\c2ccc(Cl)c(Cl)c2)c2ccccc12"},
+   "reactants": [
+    {"label": "phthalic anhydride", "name": "", "smiles": "O=C1OC(=O)c2ccccc12", "origin": "commercial"},
+    {"label": "3,4-dichlorophenylacetic acid", "name": "", "smiles": "OC(=O)Cc1ccc(Cl)c(Cl)c1", "origin": "commercial"}
+   ],
+   "conditions": "Method A: phthalic anhydride (2.2 mmol), the phenylacetic acid derivative (2.7 mmol), potassium acetate (0.26 mmol), toluene (5 mL), Dean-Stark, N2, 220-240 C, 4 h (for 16); yield 58 %. Z isomer.",
+   "source": "Section 2.1 and Section 4.1.2 (Method A; compound 16 entry), main article; Scheme 1"}
+ ],
+ "alt_variants": [],
+ "other_qualifying_compounds": null,
+ "notes": "Neither starting material is named in the experimental text; both are generic: the general procedure says 'phthalic anhydride and the corresponding 2-phenylacetic acid derivative' and 'All commercial chemicals ... used as purchased'. The 3,4-dichlorophenylacetic acid is inferred from the product name (no doubt). The Z configuration is stated in the paper (NOE/ROESY). Co-products are CO2 and H2O. No SI file in the bundle (not needed)."
+}

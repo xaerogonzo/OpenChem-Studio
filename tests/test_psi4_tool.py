@@ -272,6 +272,96 @@ def test_a_panel_over_a_service_with_no_engines_behaves_as_orca_alone(qapp):
         _dispose_panel(panel)
 
 
+# --- the ORCA-only controls say so while Psi4 is chosen -----------------------------------------------------------------------
+
+
+def _two_engine_panel(tmp_path, monkeypatch):
+    monkeypatch.setattr("shutil.which", lambda _name: None)
+    return _panel({"orca/executable_path": _a_file(tmp_path, "orca.exe"), "psi4/executable_path": _a_file(tmp_path, "psi4.exe")})
+
+
+def _orca_only(panel):
+    return [widget for widget, _key in panel._orca_only_controls()]
+
+
+def test_choosing_psi4_disables_what_would_start_an_orca_job_and_names_the_reason(tmp_path, monkeypatch, qapp):
+    """The tautomer, proton-affinity, bond-dissociation and calibration buttons always run ORCA. With Psi4 in the Engine box and its log tab, they must not be offered."""
+    panel, _engine, _service = _two_engine_panel(tmp_path, monkeypatch)
+    try:
+        before = {widget: widget.toolTip() for widget in _orca_only(panel)}
+        assert len(before) == 8 and all(widget.isEnabled() for widget in _orca_only(panel) if widget is not panel._tautomer_nmr_button)
+
+        panel._engine_combo.setCurrentIndex(panel._engine_combo.findData("psi4"))
+
+        for widget in _orca_only(panel):
+            assert not widget.isEnabled()
+            assert "ORCA only" in widget.toolTip() and "Psi4" in widget.toolTip()
+        assert panel._configure_button.text() == "Configure Psi4..." and "Psi4" in panel._configure_button.toolTip()
+
+        panel._engine_combo.setCurrentIndex(panel._engine_combo.findData("orca"))
+        for widget in _orca_only(panel):
+            assert widget.toolTip() == before[widget], "ORCA's help contract comes back word for word"
+        assert panel._tautomer_distribution_button.isEnabled() and panel._proton_affinity_button.isEnabled() and panel._bond_dissociation_button.isEnabled()
+        assert panel._calibrate_button.isEnabled() and panel._scaling_button.isEnabled()
+        assert panel._tautomer_full_check.isEnabled() and panel._tautomer_nmr_conformers_check.isEnabled()
+        assert panel._configure_button.text() == "Configure ORCA..."
+    finally:
+        conftest.dispose(panel)
+
+
+def test_a_job_finishing_while_psi4_is_chosen_cannot_switch_an_orca_button_back_on(tmp_path, monkeypatch, qapp):
+    """`_on_job_state_changed` and the calibration handlers enable these buttons when work ends. The choice of engine wins; what they wanted is kept for ORCA."""
+    panel, _engine, _service = _two_engine_panel(tmp_path, monkeypatch)
+    try:
+        panel._engine_combo.setCurrentIndex(panel._engine_combo.findData("psi4"))
+
+        panel._set_orca_only_enabled(panel._tautomer_distribution_button, True)
+        panel._set_orca_only_enabled(panel._calibrate_button, True)
+        panel._set_orca_only_enabled(panel._proton_affinity_button, False)  # busy: it wanted to be off
+
+        assert not panel._tautomer_distribution_button.isEnabled() and not panel._calibrate_button.isEnabled()
+        panel._engine_combo.setCurrentIndex(panel._engine_combo.findData("orca"))
+        assert panel._tautomer_distribution_button.isEnabled() and panel._calibrate_button.isEnabled()
+        assert not panel._proton_affinity_button.isEnabled(), "a button that was busy stays off when ORCA is chosen again"
+    finally:
+        conftest.dispose(panel)
+
+
+def test_configure_opens_the_tab_of_the_engine_chosen(tmp_path, monkeypatch, qapp):
+    from openchem.ui.panels import quantum_chemistry_panel as panel_module
+
+    opened = []
+
+    class _Dialog:
+        def __init__(self, _settings, _parent=None, **kwargs):
+            opened.append(kwargs)
+
+        def exec(self):
+            return 0
+
+    monkeypatch.setattr(panel_module, "SettingsDialog", _Dialog)
+    panel, _engine, _service = _two_engine_panel(tmp_path, monkeypatch)
+    try:
+        panel._on_configure_clicked()
+        panel._engine_combo.setCurrentIndex(panel._engine_combo.findData("psi4"))
+        panel._on_configure_clicked()
+
+        assert [kwargs["tool"] for kwargs in opened] == ["orca", "psi4"]
+    finally:
+        conftest.dispose(panel)
+
+
+def test_with_orca_alone_nothing_about_these_controls_changes(tmp_path, monkeypatch, qapp):
+    monkeypatch.setattr("shutil.which", lambda _name: None)
+    panel, _engine, _service = _panel({"orca/executable_path": _a_file(tmp_path, "orca.exe")})
+    try:
+        assert panel._configure_button.text() == "Configure ORCA..."
+        assert all("ORCA only" not in widget.toolTip() for widget in _orca_only(panel))
+        assert panel._tautomer_distribution_button.isEnabled() and panel._calibrate_button.isEnabled()
+    finally:
+        conftest.dispose(panel)
+
+
 # --- a Psi4 geometry is labelled as Psi4's wherever a conformer is named ------------------------------------------------
 
 

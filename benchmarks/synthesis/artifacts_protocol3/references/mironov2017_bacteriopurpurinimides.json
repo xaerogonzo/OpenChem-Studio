@@ -1,0 +1,12 @@
+{
+ "paper": "mironov2017_bacteriopurpurinimides",
+ "decision": "excluded",
+ "exclusion_reason": "route_not_explicit",
+ "exclusion_detail": "Lead disulfide-BPI (6) is made from compound 4, whose synthesis is 'carried out according to the previously described procedure [ref 20]' with no procedure here; 4 itself descends from bacteriopurpurin 1, obtained by allomerisation of bacteriochlorophyll-a produced by Rhodobacter capsulatus (a biological source, not a purchased material). Only the cysteamine/EEDQ coupling and air oxidation of 4 are described.",
+ "lead": {"label": "6 (disulfide-BPI)", "why": "Abstract: the dipropoxy-BPI was 'readily oxidized in oxygen atmosphere yielding the corresponding disulfide analogue (disulfide-BPI)'; it is the compound used for CC50, singlet oxygen and in vivo PDT studies."},
+ "target": null,
+ "reactions": [],
+ "alt_variants": [],
+ "other_qualifying_compounds": [],
+ "notes": "Macrocyclic tetrapyrrole derived from a natural bacteriochlorophyll source."
+}

@@ -1,0 +1,12 @@
+{
+ "paper": "hopper2021_p2x7_lu_af27139",
+ "decision": "excluded",
+ "exclusion_reason": "lead_route_over_4_steps",
+ "exclusion_detail": "Lead Lu AF27139 (1): 4-chlorobenzaldehyde + nitromethane gives nitroolefin 19, morpholine addition gives 20, Zn/HCl reduction gives racemic diamine 21, resolution with N-acetyl-L-leucine (then free-basing) gives 22, T3P coupling with thiazole acid 23 gives 1: at least 5 reactions, and acid 23's own preparation is in the SI (Scheme S1), not available here, adding more.",
+ "lead": {"label": "1 (Lu AF27139)", "why": "Title and abstract: 'the novel rodent-active and CNS-penetrant P2X7 receptor antagonist Lu AF27139'; the single compound the paper characterises."},
+ "target": {"name": "(S)-N-(2-(4-chlorophenyl)-2-morpholinoethyl)-2-(pyrimidin-2-yl)-4-(trifluoromethyl)thiazole-5-carboxamide", "smiles": null},
+ "reactions": [],
+ "alt_variants": [],
+ "other_qualifying_compounds": [],
+ "notes": "Only one compound is made in the synthesis section. No SI text file was in the bundle, so the route to acid 23 could not be checked; the 5-reaction minimum counts 23 as bought."
+}

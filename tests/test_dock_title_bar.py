@@ -14,7 +14,7 @@ from PySide6.QtCore import QEvent, QPoint, Qt
 from PySide6.QtGui import QMouseEvent
 from PySide6.QtWidgets import QDockWidget, QLabel, QMainWindow, QToolButton
 
-from openchem.app.main_window import HELP_TOPIC_BY_DOCK
+from openchem.app.main_window import HELP_TOPIC_BY_DOCK, HELP_TOPIC_BY_PLUGIN_DOCK
 from openchem.ui.widgets.dock_title_bar import DockTitleBar
 
 import conftest
@@ -215,3 +215,96 @@ def test_a_panel_control_sits_after_the_title_and_before_the_docks_own_buttons(d
     assert extra.parent() is bar
     assert extra.focusPolicy() == Qt.FocusPolicy.NoFocus
     assert len(_buttons(bar)) == 4
+
+
+class TestAPluginPanelsHelp:
+    """The Synthesis panel is a PLUGIN's dock, so a window built with no plugins never has it and the map the other tests read (`HELP_TOPIC_BY_DOCK`) cannot name it.
+
+    Its `?` and F1 are therefore tested in a window built with the real plugins, which is the only place the dock exists. A topic that only the map knew would give the panel a button that opened
+    the wrong section, or none.
+    """
+
+    @staticmethod
+    def _window(qapp, tmp_path, widgets):
+        from pathlib import Path
+
+        from openchem.app.main_window import MainWindow
+        from openchem.app.session import SessionManager
+        from openchem.app.settings import Settings
+        from openchem.bootstrap import build_service_container
+
+        services = build_service_container()
+        settings = Settings(services.event_bus)
+        settings.set("plugins/project_directory", str(Path(__file__).resolve().parent.parent / "plugins"))
+        settings.set("plugins/user_directory", str(tmp_path / "no_user"))
+        window = MainWindow(services, settings, SessionManager())
+        widgets.append(window)
+        window.show()
+        qapp.processEvents()
+        return window
+
+    @staticmethod
+    def _dock(window, name="Synthesis"):
+        return next(d for d in window.findChildren(QDockWidget) if d.objectName() == name)
+
+    @pytest.mark.parametrize("name", sorted(HELP_TOPIC_BY_PLUGIN_DOCK))
+    def test_a_plugin_dock_has_a_help_button_that_opens_its_section(self, qapp, tmp_path, widgets, name):
+        window = self._window(qapp, tmp_path, widgets)
+        dock = self._dock(window, name)
+        bar = dock.titleBarWidget()
+        assert isinstance(bar, DockTitleBar)
+        buttons = [b for b in bar.findChildren(QToolButton) if b.text() == "?"]
+        assert len(buttons) == 1
+        buttons[0].click()
+        qapp.processEvents()
+        dialog = window._help_dialog
+        assert dialog is not None and dialog._current_key == HELP_TOPIC_BY_PLUGIN_DOCK[name]
+        dialog.close()
+
+    @pytest.mark.parametrize("name", sorted(HELP_TOPIC_BY_PLUGIN_DOCK))
+    def test_f1_in_a_plugin_panel_selects_its_topic(self, qapp, tmp_path, widgets, name):
+        window = self._window(qapp, tmp_path, widgets)
+        expected = HELP_TOPIC_BY_PLUGIN_DOCK[name]
+        window.reveal_panel(name.replace("_", " "))
+        qapp.processEvents()
+        dock = self._dock(window, name)
+        dock.widget().setFocus()
+        qapp.processEvents()
+        assert window._help_topic_for_visible_panel() == expected, "focus inside the panel"
+        front, window._right_docks = window._right_docks, []  # so the front-panel fallback cannot be what answers: only the focus path can
+        assert window._help_topic_for_visible_panel() == expected, "the focus path alone"
+        window._right_docks = front
+        window._center_tabs.setFocus()  # focus in the editor beats a visible side panel, as `TestHelpRouting` pins; the panel's own topic needs focus in it
+        qapp.processEvents()
+        assert window._help_topic_for_visible_panel() == "centre-tabs"
+
+    @pytest.mark.parametrize("name", sorted(HELP_TOPIC_BY_PLUGIN_DOCK))
+    def test_with_no_focus_the_front_panel_is_the_one_whose_topic_is_opened(self, qapp, tmp_path, widgets, monkeypatch, name):
+        from PySide6.QtWidgets import QApplication
+
+        window = self._window(qapp, tmp_path, widgets)
+        window.reveal_panel(name.replace("_", " "))
+        qapp.processEvents()
+        monkeypatch.setattr(QApplication, "focusWidget", staticmethod(lambda: None))
+        assert window._help_topic_for_visible_panel() == HELP_TOPIC_BY_PLUGIN_DOCK[name]
+
+    def test_a_plugin_dock_without_a_topic_keeps_the_native_title_bar(self, qapp, tmp_path, widgets):
+        window = self._window(qapp, tmp_path, widgets)
+        from openchem.app.main_window import help_topic_of_dock
+
+        plain = [
+            d.objectName()
+            for d in window.findChildren(QDockWidget)
+            if help_topic_of_dock(d.objectName()) is None and isinstance(d.titleBarWidget(), DockTitleBar)
+        ]
+        assert not plain, f"a '?' on a panel nothing is written about: {plain}"
+
+    def test_every_topic_a_dock_opens_exists_and_is_named_for_it(self):
+        from openchem.app.main_window import HELP_TOPIC_BY_PLUGIN_DOCK
+        from openchem.help import topics
+
+        titles = {t.key: t.title for t in topics()}
+        for dock, key in HELP_TOPIC_BY_PLUGIN_DOCK.items():
+            assert key in titles, f"{dock} opens {key!r}, which is not a topic"
+            assert dock.replace("_", " ").lower() in titles[key].lower(), f"{dock} opens {titles[key]!r}"
+        assert not set(HELP_TOPIC_BY_PLUGIN_DOCK) & set(HELP_TOPIC_BY_DOCK), "a dock is in one map or the other"

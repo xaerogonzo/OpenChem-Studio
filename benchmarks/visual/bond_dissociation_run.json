@@ -1,0 +1,41 @@
+[
+  {"do": "smiles", "smiles": "C[N+](C)(C)C", "name": "Tetramethylammonium", "after_ms": 2500},
+  {"do": "select", "molecule": -1, "after_ms": 2500},
+  {"do": "bond_dissociation_run", "expect_refusal": "does not apply", "after_ms": 500},
+
+  {"do": "smiles", "smiles": "CO", "name": "Methanol", "after_ms": 2500},
+  {"do": "select", "molecule": -1, "after_ms": 2500},
+  {"do": "bond_dissociation_run", "cancel": true, "after_ms": 500},
+  {"do": "bond_dissociation_run", "bonds": [0, 1], "after_ms": 1000},
+  {"do": "qc_wait", "timeout_ms": 3600000},
+  {"do": "bond_dissociation_report", "tag": "methanol-reproduces-the-first-run",
+   "expect": {
+     "dh_kj": [397.3, 398.3], "bonds": {"CH3-H": [397.3, 398.3], "O-H": [429.3, 430.3]},
+     "run_calc_type": "bond_dissociation", "run_status": "completed", "stored_outputs": 1, "fingerprint_is_submitted": true,
+     "results_contains": ["Weakest X-H bond dissociation enthalpy (298.15 K): 397.", "Bonds (kJ/mol and kcal/mol", "49 X-H bonds", "run LOW"]
+   }},
+
+  {"do": "smiles", "smiles": "CS", "name": "Methanethiol", "after_ms": 2500},
+  {"do": "select", "molecule": -1, "after_ms": 2500},
+  {"do": "bond_dissociation_run", "bonds": [1], "after_ms": 1000},
+  {"do": "qc_wait", "timeout_ms": 3600000},
+  {"do": "bond_dissociation_report", "tag": "methanethiol-s-h-has-no-value-as-the-first-run-found",
+   "expect": {
+     "dh_kj": null, "bonds": {"S-H": null}, "reason_contains": ["after the one Calc_Hess re-run"],
+     "run_calc_type": "bond_dissociation", "run_status": "failed", "stored_outputs": 1,
+     "results_contains": ["Weakest X-H bond dissociation enthalpy (298.15 K): no value", "S-H, bonded to C: no value"]
+   }},
+
+  {"do": "smiles", "smiles": "OO", "name": "Hydrogen peroxide", "after_ms": 2500},
+  {"do": "select", "molecule": -1, "after_ms": 2500},
+  {"do": "bond_dissociation_run", "after_ms": 1000},
+  {"do": "qc_wait", "timeout_ms": 3600000},
+  {"do": "bond_dissociation_report", "tag": "hydrogen-peroxide-reproduces-the-first-run",
+   "expect": {
+     "dh_kj": [355.1, 356.1], "run_calc_type": "bond_dissociation", "run_status": "completed", "stored_outputs": 1, "fingerprint_is_submitted": true,
+     "results_contains": ["O-H next to O or N: 4 bonds, mean absolute error 3.30"]
+   }},
+
+  {"do": "expect_clean"},
+  {"do": "quit"}
+]

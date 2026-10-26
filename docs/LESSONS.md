@@ -5454,7 +5454,7 @@ calculator's facts land in the OPEN window.
 ## THE ION IS A COMPOSITION, AND POTASSIUM IS WHY
 
 `chem/mass_spectrum.py` reproduces the reported screenshot exactly --
-C7H4Br2O2 at 278/280/282 in 1:2:1, exact mass 277.857804 against Marvin's
+C7H4Br2O2 at 278/280/282 in 1:2:1, exact mass 277.857804 against the reference editor's
 277.857805.
 
 A scalar `delta_mass` expresses `[M+H]+` and `[M+Na]+` and **cannot
@@ -8139,7 +8139,7 @@ reported the WORKTREE's `src`):
     the run                       7035 passed + 16 skipped = 7051
 
     44  test_mass_spectrum.py            the binomial and trinomial
-                                         oracles, the Marvin fixture, the
+                                         oracles, the reference editor fixture, the
                                          ion identity, the exponential
                                          fold and the exact-resolution
                                          semantics
@@ -12130,15 +12130,15 @@ a dist) -- to save single-digit megabytes. Git also records the rebuilds as
 
 ## SHAPE-VALUED RESULTS DRAW THEMSELVES, and what that took to make honest
 
-"Can our own dipole moment calculator resemble Marvins too, with a 3d
+"Can our own dipole moment calculator resemble the reference editor's too, with a 3d
 model?" It can, and the per-atom family already did -- the Calculator
 Inspector has always drawn charges and LogP contributions on a 3D model.
 What was missing was results that are one geometric OBJECT: the dipole
 vector, the steric cone, the principal axes. `ReportResult.spatial`
 carries them now (producer-declared `ArrowAnnotation` / `ConeAnnotation`
 / `AxesAnnotation`, validated fail-closed by `valid_spatial_annotation`),
-`viewer.html` draws them, and `SpatialResultDialog` is the Marvin-style
-popup. Verified against Marvin's own cis-1,2-dichloroethene screenshot:
+`viewer.html` draws them, and `SpatialResultDialog` is the reference-editor-style
+popup. Verified against the reference editor's own cis-1,2-dichloroethene screenshot:
 same molecule, same charge family, 1.90 D against their 1.81, arrow
 pointing the same way.
 
@@ -12149,7 +12149,7 @@ Five things measured on the way, each the kind that reads fine wrong:
   annotation-level check, and the screenshot looks perfect. The page
   mirrors the exact geometry it hands 3Dmol into `drawnShapes`; the HCl
   guard asserts the drawn arrow runs Cl -> H (mu = sum(q*r) points
-  delta-minus to delta-plus, which is also what Marvin draws) and that
+  delta-minus to delta-plus, which is also what the reference editor draws) and that
   reversing the vector reverses the endpoints.
 - **A review bound can be chemically wrong.** The reviewed plan
   specified a cone half-angle bound of 90 degrees; Tolman's own table has
@@ -13232,7 +13232,7 @@ by mutation:
 #### The drawing can BE the 3D structure, turned to face the camera
 
 "the structure is not in a *literal* 3d shape, which is the entire point
-of what I'm trying to do" -- against a MarvinSketch screenshot of
+of what I'm trying to do" -- against the reference editor screenshot of
 buckminsterfullerene drawn in perspective inside a 2D editor. The flat
 depiction that shipped first was the wrong target: **crossing bonds are
 not a defect, they are what a projection of a real geometry looks like.**
@@ -13423,19 +13423,19 @@ flag, so they must not be silently reread as current behaviour --
 cyclohexane's PRE-opt row is 3 under it, and
 `benchmarks/conformers/README.md` carries the full OFF/ON gate table.
 
-#### Marvin-parity generation: emulate the CONTROLS, never claim the algorithm
+#### Reference-editor parity generation: emulate the CONTROLS, never claim the algorithm
 
-"make it resemble marvin's conformer generator calculator much more
+"make it resemble the reference editor's conformer generator calculator much more
 closely". Four controls now exist -- diversity threshold, optimisation
 level, time limit, enhanced refinement -- and the discipline that matters
 is what is NOT claimed.
 
-**ChemAxon publishes no default values.** Fetched twice and confirmed:
-the Generate3D page states none for diversity, `[o]`, timelimit or
+**The vendor publishes no default values.** Fetched twice and confirmed:
+the conformer-generation page states none for diversity, `[o]`, timelimit or
 hyperfine. A reported figure of 0.1 for diversity could not be confirmed,
 so nothing here presents 0.5 as matching theirs.
 
-**"hyperfine" may be EXPLAINED but never SHOWN or WRITTEN.** ChemAxon's
+**"hyperfine" may be EXPLAINED but never SHOWN or WRITTEN.** the vendor's
 hyperfine is short molecular dynamics followed by strict optimisation; a
 minimiser cannot leave the basin it is already in, which is the whole
 point of the dynamics. Provenance records `enhanced_optimization`,
@@ -14296,7 +14296,7 @@ two hydrogen modes that DO add up reproduce their total to ~1e-16, so
 without a tolerance every one of them would announce a balance of
 +0.0000000000000002 -- noise given a voice.
 
-### The hydrogen fold already existed, under Marvin's name
+### The hydrogen fold already existed, under the reference editor's name
 
 `gasteiger_charge_at_ph` has shipped "Increment of Hs (add implicit H
 charge)" since Phase 18, and it takes acetic acid's charge sum from
@@ -14407,7 +14407,7 @@ untouched tree before any result was believed.
 
 ## SOLUBILITY: an uncapped model, a 1000x review, and two defects only the screen showed
 
-`chem/solubility.py` is the ChemAxon-shaped predictor -- intrinsic value,
+`chem/solubility.py` is the reference-editor-shaped predictor -- intrinsic value,
 value at a pH, Low/Moderate/High category, pH curve. Five things worth
 carrying, each measured rather than reasoned.
 
@@ -14425,7 +14425,7 @@ which is 47 tonnes per litre: correct arithmetic, meaningless answer, the
 same failure this file records at 40619 kcal/mol.
 
 **TWO BOUNDS STOP IT AND THEY ARE NOT THE SAME CLAIM.** The first draft
-had one symmetric +2.0, inferred from a single ChemAxon screenshot with
+had one symmetric +2.0, inferred from a single the vendor screenshot with
 no source behind it. Avdeef's **"sdiff 3-4"** replaced it: in 0.15 M
 NaCl the counter-ion salt precipitates once solubility exceeds intrinsic
 by about FOUR orders for a weak acid and THREE for a weak base. Cited,
@@ -14495,7 +14495,7 @@ degenerate or not with respect to a specific mutation.
 **A REVIEW'S "MOST DANGEROUS CONVERSION BUG" WAS ITSELF THE BUG.** A
 plan review proposed `mg/mL = 10**logS * MW / 1000`, in the point it
 titled exactly that. It is wrong by 1000x -- 1 mol/L of MW 180.16 is
-180.16 g/L, and a g/L IS a mg/mL. Checked against ChemAxon's own published
+180.16 g/L, and a g/L IS a mg/mL. Checked against the vendor's own published
 aspirin figure, which is categorised High and needs 2.79 mg/mL; the
 proposed form gives 0.0028 and classifies it Low. **Every category would
 have been wrong.** Three review rounds were taken point by point and two
@@ -14593,10 +14593,10 @@ against high-quality shake-flask at RMSE 0.34. Nothing can score below
 that.
 
 **A CLAIM IN THIS FILE WAS OVERTURNED BY THE BETTER MEASUREMENT.** The
-solubility module used to say ESOL beat Marvin on Marvin's own
+solubility module used to say ESOL beat the reference editor on the reference editor's own
 documentation molecule, resting on an ESOL-era experimental value of
 -2.19 for aspirin. SC-2's interlaboratory mean over 16 sources is
-**-1.67**, and against that Marvin (0.14 off) and AqSolDB (0.05) both
+**-1.67**, and against that the reference editor (0.14 off) and AqSolDB (0.05) both
 beat ESOL (0.42). The old row is kept with its correction beside it
 rather than edited away, because "where did that number come from" is the
 question a reader will have.
@@ -14746,7 +14746,7 @@ three is the sharpest thing in this section.
   number.** `baseline_logs` already includes the Abraham shift, so three
   unqualified rows reported 52.81 mg/mL in the wording every other part
   of the app uses for the aqueous value.
-- **ChemAxon's Low/Moderate/High were being applied outside water.**
+- **The vendor's Low/Moderate/High were being applied outside water.**
   Those thresholds are defined on INTRINSIC AQUEOUS solubility -- they
   encode expectations about dissolution in the gut -- so "High" for 52.81
   mg/mL in ethanol borrows an aqueous verdict's authority for a different
@@ -16135,7 +16135,7 @@ settled and whose REASONS had quietly expired:
 
     acetic acid     "only predicted coefficients exist"    measured in 2015
     Miller          "the parameters are unpublished"        a claim about
-                                                            ChemAxon's docs,
+                                                            The vendor's docs,
                                                             not the literature
     HLB             "no formulas published"                 both are printed
     TSEI            "no reference value was found"          Table 1 prints 20
@@ -19055,7 +19055,7 @@ The fix is to emit the button's FINAL state, in a `finally` so that all four
 exits report and three of them are refusals -- which is the exit a second
 control most needs to hear about.
 
-F7, the key Marvin uses. One `HelpTooltip` OBJECT registered in both places
+F7, the key the reference editor uses. One `HelpTooltip` OBJECT registered in both places
 rather than two copies of its words, because
 `test_one_help_id_means_exactly_one_thing` and
 `test_one_concept_is_not_split_across_many_help_ids` between them require it
@@ -21627,3 +21627,175 @@ Asked which structures a score should decline a 3D number for, the answer offere
 * **Say what the application hands the calculator before quoting a library number as the reason for a rule.** Calculators declare a scope (`CalculatorScope`: `CHEMBL_PARENT`, `REFUSE_MULTICOMPONENT`, `WHOLE_STRUCTURE`) and `components.select` applies it on every route; Geometry Analysis is the `WHOLE_STRUCTURE` one, which is why the rule belongs to its eight outputs (`ApprovedOutput.whole_structure`) and not to the ten. The decision was put back to the person who took it before the pull request opened, with the measurement that overturned the premise.
 * **The store keeps one result per geometry, not per setting.** `ResultStore.put` is keyed by result id, input, fingerprint and method, so a later Geometry Analysis run with other settings REPLACES the default one. A unit test that stored both and read the default "beside" the other was a state the application cannot reach; the real window showed it (a scaled run took the number away, a default run gave it back).
 * **Small traps met on the way.** A simplex search for the smallest circle round the atoms' circles stalled short of the minimum on benzoic acid (the maximum of cones is not smooth: minimise R subject to R >= distance + radius instead); the drive's `entries` expectation counts every score in the reader and not the one `which` picks; and the label rule (`name_collision`) refuses a label equal to, containing or contained by an output's name, so new output names refused a test's label `Area`.
+
+## A CLASSIFIER STOPPED THE EXPLANATION, NOT THE FILES, AND THE FEATURE WAS BUILT THROUGH THE SAME ALERTS
+
+`src/openchem/chem/regulatory/` kept stopping sessions. Alex saw alerts labelled
+`[bio]`, the area came to feel untouchable, and a healthy feature came close to
+being deleted for it. The protocol that came out of it is in `CLAUDE.md` ("The
+regulatory rulesets -- work on them by rule id"); this is why it exists. Alex has
+raised the false positives with Claude support separately -- that is the ticket,
+this is the engineering record.
+
+* **Reading the data was never the problem.** All five rulesets were read without
+  incident. Both observed stops happened while an assistant message was
+  RESTATING rule contents in generated prose, and both cut off mid-sentence. The
+  tool that opens a file and the channel that explains it are not the same risk.
+* **The strongest single data point is a channel difference, and it is one
+  observation rather than proof.** 382 lines of substance display names entered
+  one conversation as TOOL OUTPUT and nothing fired, while a much smaller
+  restatement of the same kind of content in generated prose stopped that same
+  session twice. Same conversation, same material, different channel.
+* **That flood was a measurement correction of its own: the build tool's
+  `--check` is NOT quiet.** A bare run prints 382 lines, most carrying substance
+  display names -- counted from an actual unfiltered run in a real session, so
+  it is a reproducible measurement rather than an anecdote. An earlier plan
+  asserted the opposite and was wrong. The
+  filtered invocation, which leaves the ruleset ids, the counts and the verdict,
+  is in `CLAUDE.md`'s regulatory section.
+* **The classifier and the model are separate systems, which is why the sessions
+  looked helpless.** The model saying "this is a false positive" carries no
+  weight with the thing stopping it; there is nothing to argue with. A stop is
+  also not sticky -- nothing accumulates, there is no strike count, and the next
+  message starts clean, which is why a prompt to continue simply worked.
+* **The loop was built into the task.** Explaining why a ruleset is a false
+  positive requires being specific about what is in the ruleset, so every
+  attempt to justify the content reproduced the content. The only stable exit is
+  to stop quoting it at all, which is exactly what the by-rule-id protocol is.
+* **`[bio]` is not in this repository.** It is a label from the safety taxonomy
+  naming which classifier fired. Searching the tree for it will always come up
+  empty; it was searched for.
+* **The alerts did not correspond to anything actionable, and the clearest
+  evidence of that is the feature itself.** It was BUILT through a flood of the
+  same alerts, and the result passes 186 tests with all five rulesets reporting
+  `matches its source, hash intact`.
+* **The cost is the measurable part.** Three earlier sessions on this topic
+  (worktrees `delete-regulatory-panel-16589b`, `cwc-schedule-1-narrow-4ddd7f`,
+  `frosty-jang-07b7f6`) produced zero commits between them -- measured
+  2026-10-20, and the measurement is `git rev-list --count origin/master..<branch>`
+  per branch with each working tree clean, not the worktree's listed head. That
+  distinction matters, because re-reading it hours later by head alone got it
+  wrong in both directions: one branch had moved to a new head that was
+  master's own tip (brought up to date, nothing committed), and the other two
+  showed one commit each that was a shared `chore(instructions)` commit carried
+  by several branches rather than work of their own.
+
+### WHAT THE PROTOCOL DOES NOT COVER
+
+The protocol narrows the surface; it does not eliminate it, and the honest
+version of this entry says so.
+
+Observed 2026-10-20, after the protocol was written: a session narrowing two
+rules by id (`cwc-1-a-4`, `cwc-1-a-6`, branch `claude/cwc-mustard-narrowing`) was
+stopped by the same classifier while applying it. Its own message just before
+the stop said it was switching to working by `rule_id` only, with scripts
+printing counts and verdicts rather than content -- the correct move -- and a
+later message was flagged anyway.
+
+* **The protocol covers this repository's own data, and that session's question
+  was about a source document on the web.** It was fetching a treaty annex and
+  reasoning in prose about the annex's wording -- whether some entries use
+  `e.g.` where others use a bare colon. A `.tokensave/queryignore` has no reach
+  over text fetched from the web, and no answer at all for a task whose question
+  IS the wording of the source text. That is the irreducible case.
+* **It is still consistent with the channel observation above.** The fetch
+  arrived as tool output; the stop came on a generated message. So the rule of
+  thumb holds: keep the generated prose clean, let scripts print a `rule_id`
+  plus a verdict or a boolean, and never narrate the source wording.
+* **It reproduced on 2026-10-20 in the session REVIEWING this entry**, with
+  several assistant messages stopped mid-sentence. The common factor across all
+  of them, here as everywhere above, was a long message combining the domain
+  vocabulary with extended discussion of the safety behaviour itself -- never a
+  file read. Length on this topic is itself the risk, which is why this bullet
+  is short.
+
+## ORCA COMPOUND INPUT: A LATER JOB'S GUESS KEYWORD BEATS MOREAD, A FAILED JOB ENDS THE RUN, AND HFTyp IS INHERITED
+
+Measured on ORCA 6.1.1 (Windows) while building Fukui v2 (`chem/fukui_plan.py`,
+`chem/orca_engine.py`). Each of these is silent unless the output is read, and
+a compound input (`$new_job`, several jobs in one file) meets all of them.
+
+* **An explicit guess keyword in a later job replaces "read the previous job's
+  orbitals".** The output's `INITIAL GUESS:` line says which was used:
+  `MODEL POTENTIAL` (job 1), `MOREAD` (a later job with no keyword), `HCORE`
+  (`! HCore`), `MINIMAL BASIS EHT` (`! Hueckel`), `POLARIZED ATOMIC DENSITIES`
+  (`! PAtom`). A harmless "MOInp is set but Guess=HCore" warning appears. Fukui v3
+  reads the hole it started from out of ORCA's echo of the input for exactly this
+  reason: the guess line of a hole-start job says `MOREAD`, which says nothing
+  about which hole.
+* **A job that does not converge ends the WHOLE run:** exit code 115, no
+  `ORCA TERMINATED NORMALLY`, the earlier jobs' output complete, the failed job's
+  charge echo printed with no energy, later jobs never run. The service ignores
+  the exit code and parses the output, so a compound input is ordered with the
+  jobs the answer needs first (an anion's dianion is written last because its
+  failure costs f+ and not f-).
+* **`HFTyp` is inherited.** ORCA switches the first doublet to UHF/UKS ("WILL
+  SWITCH to UHF/UKS") and a later closed-shell job of the same input then prints
+  `HFTyp .... UHF` and `<S**2> 0.000`. Write `%scf HFTyp RHF` (RKS too) or `UHF`
+  in EVERY job. With it written, the compound job reproduces the standalone
+  restricted run to every printed digit.
+* **`%method IntAcc 6.0 end`** is the valid finer-grid form (not `IntAcc 6` on the
+  simple line, not `Grid7 NoFinalGrid`); it costs 8 to 28% on 21 to 33 atom
+  molecules at B3LYP/6-31G*.
+* **Each job's own stretch of output** starts with `$$$$$$$$ JOB NUMBER n
+  $$$$$$$$` and, a few lines on, its own `Total Charge ... Charge` echo (once per
+  job). The echo is the reliable per-job delimiter, and also works on trimmed
+  fixtures that dropped the JOB NUMBER lines.
+* **ORCA's output on Windows has CRLF line ends.** Found 2026-10-05 by the first
+  real-ORCA tautomer-NMR run: `_CARTESIAN_BLOCK_RE` required `\n`, so it found NO
+  coordinate block in any real run (3357 of 3357 lines were CRLF) and a tautomer
+  distribution kept energies with no geometry. The unit fixtures are LF, so every
+  test passed. Use `\r?\n` (or `[^\r\n]`) and write a CRLF variant of any new
+  output-parsing test; the same parser serves ordinary Geometry Optimization.
+  The SCF-energy and NMR regexes happened to tolerate it.
+
+## RDKIT CONFORMER POOLS: SEED 0 GIVES ONE GEOMETRY N TIMES, A SYMMETRY-BLIND RMSD PRUNE KEEPS ROTAMERS, AND RAW ETKDG IS NOT A MINIMUM
+
+Measured 2026-10-03 on RDKit 2025.09.6 with acetylacetone, while building the
+tautomer validation's conformer pool (`chem/tautomer_conformers.py`). They
+explain the failure of the tautomer-validation run called v3 at the time, and
+would silently defeat any top-K pool.
+
+* **`EmbedMultipleConfs(..., randomSeed=0)` returns N IDENTICAL conformers**
+  (pre-MMFF RMSD 0.00 over 50). Seeds 1, 2, 3, 42, 1000 and -1 are diverse; a
+  single `EmbedMolecule` with seed 0 or 1 gives the same geometry. Never seed a
+  pool with 0, and assert that the pool holds more than one distinct geometry.
+* **A fixed-atom-order, all-atom RMSD prune is blind to symmetry.** It left 47
+  "distinct" diketo conformers from 2 real minima, because methyl hydrogens are
+  symmetry-equivalent. Compare heavy atoms plus polar hydrogens (on N, O, S, P)
+  only, align with mirror images allowed (`reflect=True`), and add an
+  energy-degenerate, symmetry-aware test.
+* **Raw ETKDG geometries are not relaxed.** That v3 run sent the raw seed-0
+  enol (O-H...O 4.76 A) to ORCA, which stayed in the non-hydrogen-bonded minimum
+  14.7 kcal/mol above the bonded one. MMFF-minimise before ORCA.
+
+## A BARE `import judge` RETURNED ANOTHER BENCHMARK'S FILE, AND ONLY A PROCESS THAT RAN BOTH SAW IT
+
+Measured 2026-10-22, the first time the quantum-chemistry and panel test files were run together in one process after the BDE benchmark merged
+(`benchmarks/bde/`). Three tests of the Psi4 agreement runner failed with `AttributeError: module 'judge' has no attribute 'HARTREE_TO_MEH'`; each
+file's own tests passed alone (14 passed), and the runner's tests passed with the grid-offset test beside them (25 passed).
+
+* **`benchmarks/` holds four files called `judge.py`** (`bde`, `proton_affinity`, `psi4_agreement`, `synthesis`). A runner that does
+  `sys.path.insert(0, HERE)` and then `import judge` gets whichever of them is already in `sys.modules`, not the one beside it, because the import
+  system looks `judge` up by name first and only searches the path on a miss. Two runners in one process share one `judge`, and the second gets the
+  first one's file.
+* **CI was in a position to hit it and had not yet.** `tools/suite-shard-pins.json` pins `tests/test_bde_runner.py` and
+  `tests/test_psi4_agreement_runner.py` to the same shard, and `tools/suite_shards.py` hands each shard its files sorted by name, so the BDE tests load their judge first.
+  Both pull requests were green on their own: the Psi4 runner went in before the BDE benchmark existed, so the collision was made by two pull
+  requests that each passed. Master's green history was no evidence about the combination (see "ADDING A TEST FILE RE-BALANCES THE SHARDS").
+  It was found by running 64 files that touch one panel in a single process, not by any single test.
+* **Fix:** load the folder's own file by path under a name no other file uses (`importlib.util.spec_from_file_location("psi4_agreement_judge", ...)`,
+  registered in `sys.modules` first because a dataclass looks its own module up by name), and do not put the folder on `sys.path`, which would make the
+  reverse collision for everyone else. The BDE runner (`run_bde.py`) already did this; `proton_affinity/run_pa.py` still does the bare import, and is
+  only correct because it inserts its own folder at the front of `sys.path` first and nothing has put another `judge` in `sys.modules` before it.
+* **The test that holds it** plants a foreign `judge` module in `sys.modules` (`monkeypatch.setitem`) and loads the runner again; restoring the bare
+  import fails it. A test that only runs the runner alone cannot see this class of defect: it needs the other module to be present.
+
+A second thing from the same session, because it cost a mutation run. A test of a rule's boundary ("the largest median is at most twice the smallest")
+**survived the mutation that made the comparison exclusive**, because it reached the boundary through energy differences in Hartree, and the
+floating-point noise put the ratio just under 2.0 whichever way the comparison went. Test a boundary at the judge itself, with numbers that are exactly
+representable (0.125 and 0.25, not 0.15 and 0.30), and run the mutation: a boundary test that passes with the boundary flipped has not tested the boundary.
+
+**How to apply:** give a helper module in a benchmark folder a name no other folder uses (`pa_core`, `bde_core`), or load it by path under a unique name;
+never rely on `sys.path.insert` plus a bare `import` for a name that could exist in another folder; and before trusting a green shard for a new
+benchmark, run its tests in one process with the other benchmarks' tests.

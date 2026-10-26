@@ -802,9 +802,12 @@ def _name_heteroatom_fv_substituent(
         from openchem.vendor.iupac_namer.data_loader import lookup_retained_name
         frag_smiles = Chem.MolToSmiles(mol)
         retained = lookup_retained_name(frag_smiles)
+        # A nucleobase's substituent form states the ring nitrogen a sugar hangs on (`adenin-9-yl`); this fragment is joined through an exocyclic heteroatom (adenine's amino
+        # nitrogen on a ring nitrogen), and the retained form named another molecule: `1-(adenin-9-yl)-...` (naming round 81).
         if (retained is not None
                 and retained.get("substituent_form")
-                and bond_order == 1):
+                and bond_order == 1
+                and retained.get("name") not in _NUCLEOBASE_RETAINED_NAMES):
             sub_form = retained["substituent_form"]
             return LeafTree(
                 output_form=output_form,
@@ -941,6 +944,20 @@ def _name_heteroatom_fv_substituent(
                 frag_mol, att_idx_sub, _ = carve_substituent(
                     mol, comp, (attachment_idx, nb_idx),
                 )
+                if (
+                    element == 8 and len(sub_components) == 1 and mol.GetAtomWithIdx(nb_idx).GetAtomicNum() == 8
+                    and frag_mol.GetNumHeavyAtoms() == 2 and all(x.GetAtomicNum() == 8 for x in frag_mol.GetAtoms())
+                ):
+                    # R-O-O-OH, a hydrotrioxide: the carved `-O-OH` was named `hydroxyyl` and the whole `(hydroxyylperoxy)`, a name OPSIN cannot read. The
+                    # group is a hydroperoxy on an oxy, which OPSIN reads as written (naming round 76).
+                    return LeafTree(
+                        output_form=output_form,
+                        free_valence=free_valence,
+                        choices_made=(Choice(type="heteroatom_fv_substituent", detail="element=O, suffix=oxy, prefix=(hydroperoxy)oxy"),),
+                        decision_ctx=decision_ctx,
+                        validity_warnings=None,
+                        text="(hydroperoxy)oxy",
+                    )
                 sub_method = _select_substituent_method(frag_mol, att_idx_sub)
                 sub_fv = FreeValenceInfo(
                     bond_orders=(bo,),
@@ -4253,7 +4270,10 @@ def _name_biaryl_ring_assembly(
     # cyclohexyl).
     import re as _re
     def _split(sub: str) -> tuple[str, str] | None:
-        m = _re.match(r"^(.*?)-(\d+(?:[a-z])?)-(yl)$", sub)
+        # An added hydrogen after the locant (`hexahydropentalen-3a(1H)-yl`) is the attachment's
+        # own locant too; without it the name read as `...yl` and the locant defaulted to 1
+        # (`1,1'-bioctahydropentalene` for a 3a,3a' bond; naming round 82).
+        m = _re.match(r"^(.*?)-(\d+(?:[a-z])?)(?:\(\d+H\))?-(yl)$", sub)
         if m:
             stem, loc, _yl = m.group(1), m.group(2), m.group(3)
             return stem, loc
@@ -4330,6 +4350,27 @@ def _name_biaryl_ring_assembly(
 
     loc_a_str, loc_b_str = a_loc, b_loc
 
+    # An indicated-hydrogen component in fusion brackets runs into the `bi`: OPSIN reads
+    # `3,1'-bi5H-dibenz[b,f]azepine` as another molecule, `3,1'-bi(5H-dibenz[b,f]azepine)` as the
+    # right one (naming round 81). A plain `bi1H-indole` reads and keeps its spelling.
+    # Round 82: the same for a component OPSIN cannot read behind `bi` at all. A tricyclic or larger one
+    # (`3,4'-bidibenzothiophene` reads as other locants), a von Baeyer or hydro one (`1,1'-bioctahydropentalene`,
+    # `8,3'-bibicyclo[4.2.0]octa-3,5-diene`), and a retained one that needs its indicated hydrogen once it is a
+    # component (`3,1'-bi(9H-xanthene)`; `bixanthene` and `bi(xanthene)` do not read).
+    _bi_ih = {"xanthene": "9H-xanthene", "phenothiazine": "10H-phenothiazine", "phenoxazine": "10H-phenoxazine", "thioxanthene": "9H-thioxanthene"}
+    bi_stem = _bi_ih.get(bi_stem, bi_stem)
+    try:
+        _bi_rings = _Chem.GetSSSR(lookup_mol).__len__() if lookup_smi is not None else 0
+    except Exception:
+        _bi_rings = 0
+    if (
+        (re.match(r"^\d+[a-z]?H-", bi_stem) and "[" in bi_stem)
+        or bi_stem in _bi_ih.values()
+        or "hydro" in bi_stem
+        or (bi_stem.startswith(("bicyclo", "tricyclo")) and "ene" in bi_stem)
+        or (_bi_rings >= 3 and not bi_stem.startswith("(") and parent_hydride_name is not None)
+    ):
+        bi_stem = f"({bi_stem})"
     text = f"{loc_a_str},{loc_b_str}'-bi{bi_stem}"
 
     return LeafTree(
@@ -10175,6 +10216,11 @@ class _ImidoRetry(threading.local):
 _IMIDO_RETRY = _ImidoRetry()
 
 
+#: OPSIN reads `dihydroselenochromenylium` as `dihydroseleno` + `chromenylium` (a hydroselanyl prefix on another molecule), so a hydro prefix directly before a
+#: selenium or tellurium parent takes a hyphen: `3,4-dihydro-selenochromenylium` (naming round 78). Sulfur has no such prefix.
+_HYDRO_BEFORE_CHALCOGEN = re.compile(r"(hydro)(?=(?:seleno|telluro))")
+
+
 def _name_smiles_bound(smiles: str, strategy) -> str:
     """Name a molecule from SMILES, *strategy* already bound (never None); refuse a name that loses a nuclide or a charge.
 
@@ -10197,6 +10243,7 @@ def _name_smiles_bound(smiles: str, strategy) -> str:
         name = _restore_dropped_oximium(mol, name)
         name = _restore_dropped_oxidanium(mol, name)
         _check_charge_named(mol, name)
+        name = _HYDRO_BEFORE_CHALCOGEN.sub(r"\1-", name)
     return name
 
 
@@ -13004,6 +13051,10 @@ def _generate_retained_plans(perception, mol, output_form, free_valence, strateg
             yield (score, session.next_seq(), plan)
 
 
+#: The retained nucleobases whose substituent form fixes the ring nitrogen of the attachment.
+_NUCLEOBASE_RETAINED_NAMES = frozenset({"adenine", "guanine", "cytosine", "thymine", "uracil", "hypoxanthine", "xanthine"})
+
+
 _TAKES_MOL: dict[type, bool] = {}
 
 
@@ -13648,8 +13699,40 @@ def _heteroaryl_substituent_with_locant(
                         _ih_match
                         and "[nH]" in _frag_smiles
                         and not _re_ih.match(r"^\d+[a-z]?H-", _base)
+                        # Oxo prefixes come first in a substituent prefix
+                        # and the ring's own hydro/indicated hydrogens
+                        # follow them: "2H-2,4-dioxo-1H-..." is no name.
+                        and not _re_ih.match(r"^[\d,]+-(?:di|tri)?oxo-", _base)
                     ):
                         _base = _ih_match.group(1) + _base
+                        # The carved fragment puts its [nH] on the ATTACHMENT nitrogen
+                        # of an N-substituted ring, and that nitrogen is the ring's
+                        # indicated-hydrogen slot (`7H-purin-7-yl`, not `9H-purin-7-yl`,
+                        # which names a second hydrogen; naming round 81).
+                        _att = mol.GetAtomWithIdx(attachment_idx)
+                        if (
+                            _att.GetAtomicNum() == 7
+                            and _att.GetIsAromatic()
+                            and _att.GetTotalNumHs() >= 1
+                            and sum(1 for _a in mol.GetAtoms() if _a.GetAtomicNum() == 7 and _a.GetIsAromatic() and _a.GetTotalNumHs() >= 1) == 1
+                            and _re_ih.match(r"^\d+[a-z]?H-$", _ih_match.group(1))
+                            and _re_ih.fullmatch(r"\d+", _loc_str)
+                        ):
+                            _base = _loc_str + "H-" + _base[len(_ih_match.group(1)):]
+                    # An added hydrogen `(3H)` of a ring ketone follows the same nitrogen
+                    # when the ring is attached there (`4(1H)-on-1-yl`, round 81).
+                    _att2 = mol.GetAtomWithIdx(attachment_idx)
+                    _added = _re_ih.search(r"\((\d+)H\)", _base)
+                    if (
+                        _added
+                        and _added.group(1) != _loc_str
+                        and _re_ih.fullmatch(r"\d+", _loc_str)
+                        and _att2.GetAtomicNum() == 7
+                        and _att2.GetIsAromatic()
+                        and _att2.GetTotalNumHs() >= 1
+                        and sum(1 for _a in mol.GetAtoms() if _a.GetAtomicNum() == 7 and _a.GetIsAromatic() and _a.GetTotalNumHs() >= 1) == 1
+                    ):
+                        _base = _base[:_added.start()] + f"({_loc_str}H)" + _base[_added.end():]
                     return f"{_base}-{_loc_str}-{fv_suffix}"
     except Exception:
         pass  # fall through to generic path
@@ -17614,6 +17697,26 @@ class SubstitutivePath:
 
             _n_parent_positions: set[int] = set(_n_to_parent_pos.values())
             _n_needs_disambiguation = len(_n_parent_positions) > 1
+            if not _n_needs_disambiguation and _n_parent_positions:
+                # A PRIMARY amide has no N-substituent and is not in `_N_BEARING_FG_TYPES`, so a diamide with ONE substituted nitrogen counted one position
+                # and cited a bare `N-ethyl` wherever that nitrogen was: `CCNC(=O)CC(C)C(N)=O` came out `N-ethyl-2-methylbutanediamide`, which puts the ethyl on
+                # the amide at C1, the other molecule (naming round 76). A bare N is the first group's: the other groups cite their position (`N4-ethyl`).
+                _other_positions: set[int] = set()
+                for _fg in pcg_instances:
+                    if _fg.type not in ("amide", "thioamide") or not _fg_has_locant_on_parent(_fg, parent_atoms):
+                        continue
+                    _pos = _fg.anchor if _fg.anchor in parent_atoms else _find_parent_neighbor(_fg.anchor, parent_atoms, mol)
+                    if _pos is not None:
+                        _other_positions.add(_pos)
+                _every_position = _n_parent_positions | _other_positions
+                if len(_every_position) > 1:
+                    _values = {
+                        p: numbering.atom_to_locant[p]._numeric_value
+                        for p in _every_position
+                        if p in numbering.atom_to_locant and numbering.atom_to_locant[p]._numeric_value is not None
+                    }
+                    if len(_values) == len(_every_position) and any(_values[p] != min(_values.values()) for p in _n_parent_positions):
+                        _n_needs_disambiguation = True
 
             # P-16.3.3 / P-66.6.3: when multiple distinct N atoms attach to the
             # SAME parent position (e.g. ethene-1,1-diamine in ranitidine, or
@@ -19944,9 +20047,46 @@ class SubstitutivePath:
                 ),
             )
         _fv_added_h: tuple = ()
-        _p58 = _p58_apply(mol, _named_parent, plan.numbering, _suffix_groups, free_valence)
+        # a ring carbon whose `oxo` prefix is the only ketone the name can say, on a ring CATION (the suffix is -ylium)
+        _oxo_ring_atoms = ()
+        if plan.named_parent.candidate.ring_system is not None and any(
+            mol.GetAtomWithIdx(_i).GetFormalCharge() > 0 and (
+                mol.GetAtomWithIdx(_i).GetSymbol() in ("O", "S", "Se", "Te")
+                or (mol.GetAtomWithIdx(_i).GetSymbol() == "N" and mol.GetAtomWithIdx(_i).GetTotalNumHs() == 0)
+            )
+            for _i in plan.named_parent.candidate.atom_indices
+        ):
+            _ring_set = set(plan.named_parent.candidate.atom_indices)
+            _found = []
+            for _pe in prefixes:
+                for _ca in getattr(_pe, "claimed_atoms", ()):
+                    _oa = mol.GetAtomWithIdx(_ca)
+                    if _oa.GetAtomicNum() != 8 or _oa.GetDegree() != 1:
+                        continue
+                    _bond = _oa.GetBonds()[0]
+                    _nb = _bond.GetOtherAtomIdx(_ca)
+                    if _bond.GetBondTypeAsDouble() == 2.0 and _nb in _ring_set:
+                        _found.append(_nb)
+            _oxo_ring_atoms = tuple(_found)
+        _p58 = _p58_apply(mol, _named_parent, plan.numbering, _suffix_groups, free_valence, _oxo_ring_atoms)
         if _p58 is not None:
             _named_parent, _suffix_groups, _fv_added_h = _p58
+        elif _suffix_groups and "spiro" in str(getattr(plan.named_parent.candidate.ring_system, "type", "")):
+            # Naming round 84: the P-58 planner declines a spiro name, so a ring ketone on a pyridone-type component (`spiro[...quinoline-6,1'-cyclopropane]-4-one`)
+            # said nothing of the ring N-H, which OPSIN reads as another tautomer. The N-H is the added hydrogen: `-4(1H)-one`.
+            from dataclasses import replace as _dc_replace
+            _l2a = plan.numbering.locant_to_atom
+            _ring_atoms = set(plan.named_parent.candidate.atom_indices)
+            _nh = [a for a in sorted(_ring_atoms) if mol.GetAtomWithIdx(a).GetIsAromatic()
+                   and mol.GetAtomWithIdx(a).GetAtomicNum() == 7 and mol.GetAtomWithIdx(a).GetTotalNumHs() > 0]
+            _nh_loc = {a: l for l, a in _l2a.items() if a in _nh}
+            if len(_nh_loc) == 1 and all(
+                    sg.base_form == "one" and not sg.added_indicated_h and len(sg.locants) == 1
+                    and (lambda c: c is not None and mol.GetAtomWithIdx(c).GetIsAromatic())(_l2a.get(sg.locants[0]))
+                    for sg in _suffix_groups):
+                _suffix_groups = tuple(
+                    _dc_replace(sg, added_indicated_h=(next(iter(_nh_loc.values())),)) if i == 0 else sg
+                    for i, sg in enumerate(_suffix_groups))
 
         tree = SubstitutiveTree(
             output_form=output_form,

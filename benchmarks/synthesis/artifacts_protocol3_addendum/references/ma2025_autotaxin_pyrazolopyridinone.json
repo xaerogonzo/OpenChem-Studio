@@ -1,0 +1,12 @@
+{
+ "paper": "ma2025_autotaxin_pyrazolopyridinone",
+ "decision": "excluded",
+ "exclusion_reason": "lead_route_over_4_steps",
+ "exclusion_detail": "Lead 35 belongs to the 29-40 series made by the Scheme 2/4 sequence: PCl5 dichlorination of the piperidone, morpholine enamine formation, Japp-Klingemann hydrazone, [3+2] cycloaddition, TFA removal of morpholine, ester hydrolysis, EDCI/HOBt amide coupling, final saponification = about 8 reactions, before counting the piperidone M5 and aminopyrazole M1 which are only 'previously reported' with citations. The SI in the bundle holds no synthetic procedures either.",
+ "lead": {"label": "35", "why": "Abstract: 'The optimal 31 and 35 inhibited ATX with IC50 values of 2.8 and 0.7 nM' and 'Overall, 35 turned out to be a well-characterized potent and safe ATX inhibitor warranting further investigation' (35 is the more potent and the one carried through PK, hERG and safety)."},
+ "target": null,
+ "reactions": [],
+ "alt_variants": [],
+ "other_qualifying_compounds": [],
+ "notes": "Every compound in the pyrazolo[3,4-c]pyridin-7-one series (10-44) goes through the same 8-step sequence, and the indole series (1-9) is 5+ steps from M1 amines prepared 'according to previously reported methods'; 41-44 start from commercial anilines but still need the Japp-Klingemann, cycloaddition, TFA, hydrolysis, amide and saponification steps (6). Compound 35 itself is not one of 41-44 (its exact structure is only in a drawn scheme/table not in the text layer). Paper lacks experimental procedures in the supplied text (SI has analytical data only). Pyrazolo[4,3-c]pyridines 45-48 (Scheme 6) were not examined for step count."
+}

@@ -17,6 +17,7 @@ Heteroatom replacement (P-31.1.3):
 from __future__ import annotations
 
 import logging
+import math
 from collections import Counter
 from typing import TYPE_CHECKING
 
@@ -56,6 +57,9 @@ _REPLACEMENT_PRIORITY: dict[str, int] = {
     "Ge": 0,
 }
 
+
+#: The most bridge orderings tried for one pair of bridgeheads; a ring system past it has no von Baeyer numbering (naming round 84).
+_MAX_BRIDGE_ORDERINGS = 50_000
 
 def _find_simple_paths(
     start: int,
@@ -702,6 +706,15 @@ def compute_vb_numberings(
                             current_run_all = [p]
                     runs_all.append(current_run_all)
 
+                # Naming round 84: a polycycle with dozens of bridges (a spiro joint on a bridged, benzo-fused system: 36 bridges in 25 atoms) has runs of ten equal-length
+                # paths, and the cross product of their permutations is in the billions: the naming never returned. No von Baeyer name of such a system is a
+                # name anyone writes or OPSIN is asked to read, so it has no von Baeyer numbering.
+                _orderings = 1
+                for run in runs_all:
+                    _orderings *= math.factorial(len(run))
+                if _orderings > _MAX_BRIDGE_ORDERINGS:
+                    return ()
+
                 # Cross-product of permutations of each run
                 run_perms_list: list[list] = [[]]  # each element is a list of paths
                 for run in runs_all:
@@ -854,16 +867,13 @@ def _detect_vb_unsaturation(
 
     Uses the VB locant map (atom_idx -> integer_locant).
 
-    Aromatic rings are excluded (all-aromatic bridged systems are unusual, but
-    if encountered we return empty lists).  For mixed systems containing some
-    aromatic and some saturated rings (e.g., ansa-macrolides where a
-    macrocycle bridges a fused aromatic core), aromatic ring bonds must be
-    cited as enes after Kekulization so OPSIN reproduces the correct Kekulé
-    pattern; otherwise the VB skeleton is named as fully saturated.
+    Aromatic ring bonds are cited as enes after Kekulization, whether the system
+    is mixed (an ansa-macrolide's macrocycle bridging a fused aromatic core) or
+    wholly aromatic: OPSIN then reproduces the Kekulé pattern, where an early
+    return left the skeleton named as fully saturated, another molecule (naming
+    round 77: every peri-fused azaarene the fusion constructor declined, such as
+    an aza-coronene, was `2,5-diazaheptacyclo[...]tetracosane`).
     """
-    if ring_system.aromatic:
-        return [], []
-
     from rdkit.Chem import BondType
 
     ring_atom_set = ring_system.atom_indices

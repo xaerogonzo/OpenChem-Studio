@@ -1,0 +1,6 @@
+OFFICIAL-METRIC CHECK (secondary; decides nothing): recovered at 1 / 5 / 10, exact rule against PaRoutes' tree edit distance below 1e-6
+
+M1 the PaRoutes count              exact 0.193 / 0.500 / 0.533   official 0.193 / 0.497 / 0.533
+M2 first routes in rank order      exact 0.140 / 0.337 / 0.417   official 0.140 / 0.337 / 0.417
+M3 the planner's order             exact 0.170 / 0.343 / 0.407   official 0.170 / 0.343 / 0.407
+routes compared: 14129; matched by the official distance only: 3; by the exact rule only: 1

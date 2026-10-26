@@ -1,0 +1,12 @@
+{
+ "paper": "mthembu2025_s_tbutyl_cys_peptides_tfa",
+ "decision": "excluded",
+ "exclusion_reason": "not_small_molecule_organic",
+ "exclusion_detail": "Process study of TFA cleavage cocktails in solid-phase peptide synthesis (side reaction S-tert-butylation of Cys peptides); the products are peptides made by SPPS and there is no single lead compound.",
+ "lead": {"label": "none", "why": "The abstract names a cleavage-cocktail recommendation (TFA/TIS/H2O/thioanisole/DMS/1% DTT), not a compound."},
+ "target": null,
+ "reactions": [],
+ "alt_variants": [],
+ "other_qualifying_compounds": null,
+ "notes": "Peptide chemistry (SPPS)."
+}

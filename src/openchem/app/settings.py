@@ -129,13 +129,29 @@ FUKUI_ANION_F_PLUS = Preference("quantum_chemistry/fukui_anion_f_plus", bool, Tr
 #: job as Fukui v2 did, and the result says no search was run. Applies to the next run.
 FUKUI_CATION_SEARCH = Preference("quantum_chemistry/fukui_cation_search", bool, True)
 
+#: The memory a Psi4 job is told to use, in GB (the `memory` line of its input). The default is the 2 GB the engine always wrote, so a default input is byte-for-byte what it was
+#: (`chem.psi4_engine`); Psi4's own default (500 MB) is too small for a def2-TZVP job on a drug-sized molecule, and a failed allocation reads like a broken input. The floor is 1 GB for
+#: that reason, and the ceiling only keeps a typo from asking for more than a workstation has. Applies to the next Psi4 job; ORCA's memory is its own setting and is not changed.
+PSI4_MEMORY_GB = Preference("quantum_chemistry/psi4_memory_gb", int, 2, minimum=1, maximum=512)
+
+#: How many threads a Psi4 job runs on (`-n` on its command line). 0 is AUTOMATIC and the default: the core count set for ORCA (`orca/cores`) when there is one, else the machine's automatic
+#: choice, which is what Psi4 used before it had a setting of its own. A number from 1 up is used as it stands, whatever ORCA's is. Applies to the next Psi4 job.
+PSI4_THREADS = Preference("quantum_chemistry/psi4_threads", int, 0, minimum=0, maximum=256)
+
+#: Whether the rows of the Properties panel say, before any run, whether the drawn structure is something that calculator takes
+#: (`domain.structure_coverage`; "Can run", "With limits", "Not applicable"). ON by default. The check runs once each time the structure
+#: settles (never per drag keystroke) and measured a median 5 ms, a mean 9 ms and a worst 31 ms for every calculator that has a hook or a scope, together
+#: (`docs/STRUCTURE_COVERAGE_DESIGN.md`); OFF skips it entirely and the rows say "Not run" until a run, as they did before it existed.
+STRUCTURE_COVERAGE = Preference("compute/structure_coverage", bool, True)
+
 #: Every preference, in the order the Settings window groups them. Tests
 #: iterate this, so a preference added here is covered without a new test.
 PREFERENCES = (
     RAIL_HIDES_PANELS, RECOVERY_ENABLED, RECOVERY_DELAY_SECONDS, MAX_REVISIONS_KEPT,
     SHOW_HIDDEN_CALCULATORS, RECALC_MODE, RECALC_QUIET_MS, DRAWING_BOND_KEYS,
     CONFORMER_MAX_EMBEDDINGS, DRAWING_BOND_CLICK, CONFORMER_EARLY_STOP, CONFORMER_KEEP_OPTIMIZED,
-    CONFORMER_OPTIMIZE_LOWEST, FUKUI_ANION_F_PLUS, FUKUI_CATION_SEARCH,
+    CONFORMER_OPTIMIZE_LOWEST, FUKUI_ANION_F_PLUS, FUKUI_CATION_SEARCH, PSI4_MEMORY_GB, PSI4_THREADS,
+    STRUCTURE_COVERAGE,
 )
 
 #: Where one calculator's own visibility choice is stored: a plain

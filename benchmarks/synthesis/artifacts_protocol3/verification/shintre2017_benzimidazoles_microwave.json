@@ -1,0 +1,34 @@
+{
+ "paper": "shintre2017_benzimidazoles_microwave",
+ "my_lead": "5r (co-named with 5p in the abstract as best antibacterial/antioxidant; 5r is also one of the two docked compounds, called 'most potent')",
+ "lead_agrees": "co-named",
+ "reactions": [
+  {
+   "step": 1,
+   "ok": true,
+   "issue": "4-fluoro-3-nitrobenzoic acid + MeOH/H2SO4 (MW 80 C 10 min, 95%) -> methyl ester 2. Methanol supplies the OMe so listing it is justified (it is also the solvent)."
+  },
+  {
+   "step": 2,
+   "ok": true,
+   "issue": "SNAr of 2 with 4-fluoroaniline (written '4-fluorophenyl aniline' in the text) in DMF, MW 80 C 5 min, 90% -> 3. The volume/mmol given (0.36 mL, 2.34 mmol) does not quite fit 4-fluoroaniline's density, but the product name fixes the reagent."
+  },
+  {
+   "step": 3,
+   "ok": true,
+   "issue": "Zn/ammonium formate/MeOH rt 10 min, 92% -> amine 4 (reductant supplies no atoms, correctly not listed)."
+  },
+  {
+   "step": 4,
+   "ok": true,
+   "issue": "4 + 2,3,4-trihydroxybenzaldehyde 1:1 neat MW 110 C 8 min (Table 1), 85% -> 5r. Regiochemistry checked: ester para to the N-aryl carbon = 1-aryl-5-carboxylate; matches SMILES."
+  }
+ ],
+ "leaf_issues": [
+  "2,3,4-trihydroxybenzaldehyde and 4-fluoroaniline are not named in the text (Table 1 gives '2,3,4-(OH)3 Ph'); deduced from names. Support for all leaves: 'All chemicals were supplied by Sigma-Aldrich via Capital Lab, South Africa.' (general sentence only)."
+ ],
+ "step_count_ok": true,
+ "smiles_issues": [],
+ "overall": "confirmed",
+ "notes": "4 steps from commercial materials. Lead is co-named (5p/5r, and 5e for antifungal); 5r is an acceptable choice; 5p would use the same route with 2-hydroxy-4,6-dimethoxybenzaldehyde. The JSON's 'fluoroaniline' product names for 3 and 4 are the paper's own odd nomenclature."
+}

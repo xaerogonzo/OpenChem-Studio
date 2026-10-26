@@ -638,7 +638,7 @@ def test_suppressing_with_no_result_on_screen_does_nothing(panel, service):
 
 
 def test_structure_operations_live_in_their_own_menu(window):
-    """Following Marvin: Edit is for the document -- undo, clipboard, which
+    """Following the reference editor: Edit is for the document -- undo, clipboard, which
     molecule -- and Structure is for operating on the structure. These used
     to sit between "Redo" and "Copy Structure As", where neither group was
     easy to find."""

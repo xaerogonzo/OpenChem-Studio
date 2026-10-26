@@ -1,0 +1,18 @@
+{
+ "paper": "rajpandey2021_galloyl_flavanones",
+ "my_lead": "5e - abstract: 'compound 5e as the most potent bone anabolic agent'",
+ "lead_agrees": true,
+ "reactions": [
+  {"step": 1, "ok": true, "issue": "Claisen-Schmidt of 2'-hydroxy-5'-nitroacetophenone with 3-methoxybenzaldehyde, NaOH/EtOH, 80%. The aldehyde is not named in the general procedure ('the respective aldehyde') but is fixed by the product name of 2e (3-methoxyphenyl). SMILES: OH ortho, NO2 at C5', E enone, all correct."},
+  {"step": 2, "ok": true, "issue": "H2SO4/EtOH reflux cyclisation to the flavanone, 74%. SMILES is the 2,3-dihydro flavanone (correct per NMR H-2 5.86 dd, and consistent with the later 'chroman-4-one' names); the printed name '4H-chromen-4-one' is the paper's naming slip."},
+  {"step": 3, "ok": true, "issue": "Fe/CaCl2 reduction of NO2 to NH2, 89%; SMILES correct (6-amino). Printed name again says chromen-4-one; NMR shows the flavanone."},
+  {"step": 4, "ok": true, "issue": "Amide coupling with 3,4,5-trimethoxybenzoyl chloride, Et3N (base, correctly omitted), 84%. Target SMILES matches the name 3,4,5-trimethoxy-N-(2-(3-methoxyphenyl)-4-oxochroman-6-yl)benzamide."}
+ ],
+ "leaf_issues": [
+  "3-methoxybenzaldehyde and 3,4,5-trimethoxybenzoyl chloride are not individually named as purchased; only 'Reagents obtained from commercial sources were used without further purification' (General Chemistry). Acceptable. 2'-hydroxy-5'-nitroacetophenone (1e) is likewise only a starting material, nothing prepared."
+ ],
+ "step_count_ok": true,
+ "smiles_issues": [],
+ "overall": "confirmed",
+ "notes": "4 steps, at the limit. 5e is racemic (stereocentre C2 later resolved by HPLC), correct to leave unspecified. Printed names of 3e/4e use chromen-4-one but are flavanones; the 4e NMR line has a typo '2.78 (s, 3H)' for OMe. Supporting sentence: 'Reagents obtained from commercial sources were used without further purification.'"
+}

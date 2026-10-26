@@ -1,0 +1,15 @@
+{
+ "verdict": "PARTIAL",
+ "why": [
+  "HF: PASS; T = 0.010 mEh; 100.0% of 48 cells within T of their combination's median; systematic offsets (median above 0.5 mEh): none; beyond 5 T from the median: none",
+  "DFT: PARTIAL; T = 0.126 mEh; 73.4% of 192 cells within T of their combination's median; systematic offsets (median above 0.5 mEh): none; beyond 5 T from the median: none",
+  "relative energies: PARTIAL; 91.1% of 45 cells within T_rel; beyond 5 T_rel: none",
+  "optimizations: PARTIAL; T_E = 0.126 mEh, T_geom = 0.0021 A; outside: ['chloromethane', 'ethanol', 'dimethyl ether', 'acetic acid', 'methyl formate', 'acetone', 'propanal', 'benzene', 'pyridine', 'fluorobenzene', 'thiophene', 'dimethyl sulfoxide', 'acetate']; energy beyond 5 T: none; geometry beyond 5 T: none"
+ ],
+ "tolerances": {
+  "hf_meh": 0.01,
+  "dft_meh": 0.1257143701423047,
+  "opt_energy_meh": 0.1257143701423047,
+  "geometry_angstrom": 0.0021037414972672865
+ }
+}

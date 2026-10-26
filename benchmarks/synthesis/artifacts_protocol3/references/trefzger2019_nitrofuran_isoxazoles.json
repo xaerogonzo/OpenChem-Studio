@@ -1,0 +1,91 @@
+{
+ "paper": "trefzger2019_nitrofuran_isoxazoles",
+ "decision": "route",
+ "exclusion_reason": null,
+ "exclusion_detail": "",
+ "lead": {
+  "label": "14p",
+  "why": "Abstract: 'Alkylchlorinated compounds 14p-r were active on both the promastigote and amastigote forms, with emphasis on compound 14p, which showed strong activity against the amastigote form (IC50 = 0.6 uM ...)'; also 'Compound 14p was active against all the strains tested'. (14g and 14o are also highlighted in the abstract; 14p is the one named first and for the strongest potency.)"
+ },
+ "target": {
+  "name": "5-(Chloromethyl)-3-(5-nitrofuran-2-yl)isoxazole",
+  "smiles": "ClCc1cc(no1)-c1ccc(o1)[N+](=O)[O-]"
+ },
+ "reactions": [
+  {
+   "step": 1,
+   "product": {
+    "label": "oxime 16",
+    "name": "",
+    "smiles": "ON=Cc1ccc(o1)[N+](=O)[O-]"
+   },
+   "reactants": [
+    {
+     "label": "15",
+     "name": "5-nitrofuraldehyde",
+     "smiles": "O=Cc1ccc(o1)[N+](=O)[O-]",
+     "origin": "commercial"
+    },
+    {
+     "label": "hydroxylamine hydrochloride",
+     "name": "hydroxylamine hydrochloride",
+     "smiles": "NO",
+     "origin": "reagent"
+    }
+   ],
+   "conditions": "NH2OH.HCl, NaOH, H2O/EtOH (2:3), r.t., 3 h, 80%",
+   "source": "Scheme 1(a), main text p.4; no experimental procedure given, ref. 28 cited"
+  },
+  {
+   "step": 2,
+   "product": {
+    "label": "chloro-oxime 17",
+    "name": "",
+    "smiles": "ON=C(Cl)c1ccc(o1)[N+](=O)[O-]"
+   },
+   "reactants": [
+    {
+     "label": "oxime 16",
+     "name": "",
+     "smiles": "ON=Cc1ccc(o1)[N+](=O)[O-]",
+     "origin": "made_here"
+    },
+    {
+     "label": "NCS",
+     "name": "N-chlorosuccinimide",
+     "smiles": "ClN1C(=O)CCC1=O",
+     "origin": "reagent"
+    }
+   ],
+   "conditions": "NCS, DMF, 60 C, 2 h, 78%",
+   "source": "Scheme 1(b), main text p.4; called '5-nitrofuraldehyde chloro-oxime 17' in the text"
+  },
+  {
+   "step": 3,
+   "product": {
+    "label": "14p",
+    "name": "5-(Chloromethyl)-3-(5-nitrofuran-2-yl)isoxazole",
+    "smiles": "ClCc1cc(no1)-c1ccc(o1)[N+](=O)[O-]"
+   },
+   "reactants": [
+    {
+     "label": "chloro-oxime 17",
+     "name": "",
+     "smiles": "ON=C(Cl)c1ccc(o1)[N+](=O)[O-]",
+     "origin": "made_here"
+    },
+    {
+     "label": "22p",
+     "name": "propargyl chloride (3-chloroprop-1-yne)",
+     "smiles": "C#CCCl",
+     "origin": "commercial"
+    }
+   ],
+   "conditions": "Chloro-oxime 17 (2 mmol), acetylene (2.2 mmol), CuSO4.5H2O, sodium ascorbate, KHCO3, THF/CH2Cl2 1:1, r.t., 48 h; recrystallised from hot EtOH, 68%",
+   "source": "General procedure 4.1.2 and entry 14p in Experimental; Table 1 (R1 = CH2Cl); main text p.3"
+  }
+ ],
+ "alt_variants": [],
+ "other_qualifying_compounds": null,
+ "notes": "The two preparation steps for chloro-oxime 17 appear only as Scheme 1 (reagents, conditions, yields) with ref. 28; there is no experimental procedure for them in the article (no SI supplied). I treated Scheme 1 as explicit since conditions and yields are given; if the rule is read strictly (procedure text required) this is route_not_explicit. The intermediate oxime has no name or label in the paper (label 16 is mine; the intermediate is not drawn in the text layer, derived from 'NH2OH.HCl' and 'chloro-oxime'). The text calls the aldehyde '5-nitrofuraldehyde 15' without stating it is purchased; treated as commercial. The paper says alkyl/chloroalkyl acetylenes 22k-q are 'commercially available reagents'; 22p taken as propargyl chloride from Table 1 R1 = CH2Cl. Lead choice: the abstract also highlights 14g and 14o; 14p picked as the compound named with 'emphasis'. The nitrofuran is on C3 and R1 on C5 of the isoxazole, as in the SMILES (nitrile-oxide from the chloro-oxime adds to the terminal alkyne)."
+}

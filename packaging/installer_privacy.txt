@@ -1,0 +1,26 @@
+OpenChem Studio - privacy
+
+OpenChem Studio collects nothing about you. It has no accounts, no telemetry, no usage
+statistics, no crash reporting, and it does not check for updates to itself. Your
+structures, projects and settings stay on your computer.
+
+The program contacts other services only when you use a feature that needs one, and only
+the service that feature names. Nothing is sent in the background:
+
+  - PubChem and ChEMBL, when you look up or search compounds
+  - RCSB, when you fetch a protein structure by its PDB id
+  - IBM RXN, when you use reaction prediction, with your own API key
+  - Anthropic, OpenAI, a local Ollama, or the Claude Code program on your computer, when
+    you use the AI assistant, with your own API key or login
+  - Adoptium, GitHub, SourceForge, PyPI, PyTorch and PyG, when you ask the program to set
+    up Java, AutoDock Vina, the NMR database, or the pKa or ADMET predictors
+
+You can turn any plugin off from the Plugins menu. The AI assistant and reaction
+prediction do nothing until you give them a key.
+
+The full policy, including what is sent to each service and how releases are signed, is in
+docs\CODE_SIGNING_POLICY.md in the installed folder and at
+https://github.com/xaerogonzo/OpenChem-Studio/blob/master/docs/CODE_SIGNING_POLICY.md
+
+Releases are not code-signed yet, so Windows SmartScreen may say "unknown publisher":
+choose More info, then Run anyway.

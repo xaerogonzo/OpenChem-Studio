@@ -30,7 +30,7 @@ from openchem.domain.calculator import CalculationRefusal
 FIXTURE = Path(__file__).parent / "fixtures" / "bbb_descriptors_lines.json"
 
 #: Chosen for what each exercises: no ring, one ring, fused and non-fused aromatic systems, two molecules the two aromatic ring counts of this application disagree on (biphenylene and azulene), a drug with three aromatic
-#: rings and a basic amine (the pKa line and the microspecies option have something to say), a zwitterion, a salt the registry reduces to its parent, a salt and a metal complex it refuses, and a metal ion.
+#: rings and a basic amine (the pKa line and the microspecies option have something to say), a zwitterion, a salt the registry reduces to its parent, a salt it computes on its largest component (a refusal until group 3 of the refusal audit), a metal complex it refuses, and a metal ion.
 PANEL = {
     "water": "O",
     "butane": "CCCC",
@@ -173,7 +173,7 @@ def test_the_count_is_the_one_rdkit_gives_for_the_structure_the_registry_hands_o
 def test_the_values_a_person_can_check_by_hand(registry):
     expected = {"water": 0, "butane": 0, "cyclohexane": 0, "benzene": 1, "pyridine": 1, "naphthalene": 2, "aspirin": 1, "caffeine": 2, "propranolol": 2, "sildenafil": 3}
     assert {name: _typed(_completed(registry, name))[AROMATIC_RINGS] for name in expected} == expected
-    # The module's own worked example: ChemAxon's sildenafil has 3 aromatic rings, "exact".
+    # The module's own worked example: the vendor's sildenafil has 3 aromatic rings, "exact".
     assert expected["sildenafil"] == 3
 
 

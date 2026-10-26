@@ -1,0 +1,12 @@
+{
+ "paper": "yamashita2018_hdac_topoisomerase2_inhibitors",
+ "decision": "excluded",
+ "exclusion_reason": "lead_route_over_4_steps",
+ "exclusion_detail": "The abstract names 16b (beta-thymine nucleoside-SAHA hybrid, n = 6). Its route needs at least 9 reactions: dithiane 5 from 4-chlorobenzaldehyde, Michael addition to TBS-butenolide 6, Pd-catalysed carbamate coupling (8), DIBAL-H reduction and acetylation (9), silyl Hilbert-Johnson thymine introduction (10), Boc removal (11b), BOPCl amide coupling (14-type ester), hydroxylamine conversion to 16b; the butenolide 6 is itself made from D-mannitol.",
+ "lead": {"label": "16b", "why": "Among the synthesized hybrid compounds, compound 16b showed the potent HDAC inhibitory activity at a low nanomolar level and exhibited antiproliferative activity toward cancer cell lines."},
+ "target": null,
+ "reactions": [],
+ "alt_variants": [],
+ "other_qualifying_compounds": [],
+ "notes": "All final compounds 16-18 share the same long route (more than 4 steps), so no other compound in the paper qualifies."
+}

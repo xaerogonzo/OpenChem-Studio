@@ -1,0 +1,34 @@
+{
+ "paper": "wang2024_pyranochromene_antibacterials",
+ "my_lead": "5a: abstract 'Bioactivity screening identified a lead compound 5a'",
+ "lead_agrees": true,
+ "reactions": [
+  {
+   "step": 1,
+   "ok": true,
+   "issue": "Two citral dimethyl acetal listed (98.58 mmol = 2 x 49.29 mmol): correct, two pyran rings are built. Ketone 1 is never named in paper or SI; identity inferred (see leaf_issues)."
+  },
+  {
+   "step": 2,
+   "ok": true,
+   "issue": ""
+  },
+  {
+   "step": 3,
+   "ok": true,
+   "issue": ""
+  },
+  {
+   "step": 4,
+   "ok": true,
+   "issue": ""
+  }
+ ],
+ "leaf_issues": [
+  "Ketone 1 is never named anywhere (main text: 'ketone 1'; SI: 'compound 1 (7.50 g, 49.29 mmol)'). 2,4,6-trihydroxyacetophenone is inferred (product 2 needs three ring O + acetyl, no aromatic H, 14.01 ppm chelated OH, two pyran rings: all consistent), but 7.50 g / 49.29 mmol = MW 152.2 (2,4-dihydroxyacetophenone), not 168.15. Commercial status rests only on the SI blanket sentence 'All chemicals used in this study were of analytical grade and sourced from reputable commercial suppliers.' The amine for 5a is not named ('different amino compounds'); N,N-dimethylethylenediamine inferred from the 5a name (certain)."
+ ],
+ "step_count_ok": true,
+ "smiles_issues": [],
+ "overall": "minor_issues",
+ "notes": "I checked the angular pyrano[2,3-f]chromene SMILES atom by atom: ring order Ac-C, C(OH), C(vinyl A), C(O A), C(vinyl B), C(O B) matches 6-acetyl-5-hydroxy numbering and phloroacetophenone + 2 citral units; C2/C8 each carry Me and 4-methylpent-3-enyl; C2/C8 stereocentres unspecified (no stereo drawn, consistent). Steps 2-4 match the SI procedures (ethyl bromoacetate/K2CO3; NaOH hydrolysis; HATU/DIPEA with amine). The SI mass/mmol for step 1 is internally inconsistent (14.34 g, '50%' of 49.29 mmol computes for no MW), so the yield is unreliable; the structure is not affected. Flag in the case record that leaf 1 identity is inferred, not printed. 4 steps from commercial."
+}

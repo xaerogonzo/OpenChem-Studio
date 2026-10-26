@@ -211,16 +211,53 @@ def test_ordinary_chemicals_do_not_match(smiles, engine):
 
 
 def test_an_over_broad_rule_says_so_on_the_finding(engine):
-    """Chlorambucil is a licensed cytotoxic MEDICINE that shares the
-    nitrogen mustard motif. It matches, and it must arrive carrying the
-    limitation that says the rule is broader than the treaty's
-    enumeration -- a bare match here would read as an accusation."""
-    report = engine.screen(_mol("OC(=O)CCCc1ccc(cc1)N(CCCl)CCCl"))
+    """A rule whose pattern is broader than the entry it implements must
+    arrive carrying the limitation that says so -- a bare match from an
+    approximate rule would read as an accusation.
+
+    THE ANCHOR MOVED, AND THE PROPERTY DID NOT. This used to be asserted
+    through a licensed cytotoxic MEDICINE that the motif pattern behind
+    `cwc-1-a-6` matched. That entry is a closed listing and the rule is an
+    identity now, so the medicine is no longer matched at all -- which is
+    the improvement, pinned by its own test below. `cwc-1-a-5` is the
+    remaining Schedule 1 family rule whose entry enumerates, so it carries
+    the same caveat for the same reason and is the honest anchor.
+    """
+    report = engine.screen(_mol("ClC=C[As](Cl)Cl"))
     assert report.matched
 
     finding = report.findings[0]
+    assert finding.rule.rule_id == "cwc-1-a-5"
     assert finding.rule.interpretation.confidence is RuleConfidence.APPROXIMATE
     assert finding.rule.interpretation.limitations
+
+
+@pytest.mark.parametrize(
+    "smiles",
+    [
+        "OC(=O)CCCc1ccc(cc1)N(CCCl)CCCl",   # an aromatic alkylating medicine
+        "O=S(=O)(c1ccccc1)N(CCCl)CCCl",     # a sulfonyl analogue
+        "CSCCCl",                            # one arm, not two
+        "O=S(=O)(Cl)CCCl",                   # oxidised sulfur, not a thioether
+    ],
+)
+def test_a_structure_sharing_the_motif_but_not_listed_does_not_match(smiles, engine):
+    """The point of narrowing `cwc-1-a-4` and `cwc-1-a-6`.
+
+    Both entries are a heading followed by a closed list of named
+    sub-items; the generic entries in the same part introduce theirs with
+    "e.g." and these two do not. The former patterns matched the shared
+    motif instead, so they also matched molecules the entries do not list.
+    Measured over 23,432 real structures before the change, 12 matched on
+    those motifs and none was a listed sub-item; four of them are here.
+
+    A near miss is asserted absent too, not just a finding: the engine's
+    identity path produces neither, and a test checking only `matched`
+    would pass while the screen still reported these as nearly scheduled.
+    """
+    report = engine.screen(_mol(smiles))
+    assert not [f for f in report.findings if f.rule.rule_id in ("cwc-1-a-4", "cwc-1-a-6")]
+    assert not [n for n in report.near_misses if n.rule.rule_id in ("cwc-1-a-4", "cwc-1-a-6")]
 
 
 # --- The build ----------------------------------------------------------
@@ -915,6 +952,56 @@ def _exercised_rule_ids() -> set[str]:
         for case in corpus["positives"]
         for rule_id in case.get("expect", [])
     }
+
+
+@pytest.mark.parametrize("rule_id", ["cwc-1-a-4", "cwc-1-a-6"])
+def test_every_sub_item_of_an_enumerated_entry_is_REACHED(rule_id, engine):
+    """A RULE-LEVEL POSITIVE CASE IS NOT A SUB-ITEM-LEVEL ONE, and for a
+    rule that lists nine substances the difference is eight of them.
+
+    `test_every_rule_outside_table_z1_is_exercised_by_the_benchmark_corpus`
+    is satisfied by a single structure naming the rule, so a key that
+    matched nothing -- a transcription slip, or a resolver that returned a
+    different structure -- would ship behind a green suite. The failure
+    this guards against is the file's own worst case: a listed substance
+    silently dropped, which looks exactly like a substance that is not
+    listed.
+
+    Asserted in both directions, because each catches what the other
+    cannot: every key is reached by some corpus structure, and every one of
+    those structures is reached by an EXACT identity rather than under the
+    regulation's isomer wording, which is a weaker claim than the entry
+    makes about a substance it names outright.
+    """
+    rule = next(
+        r
+        for ruleset in load_all(include_user=False)[0]
+        for r in ruleset.rules
+        if r.rule_id == rule_id
+    )
+    listed = set(rule.interpretation.inchikeys)
+    assert listed, f"{rule_id} carries no keys, so this guard checks nothing"
+
+    corpus = json.loads(
+        (REPO / "benchmarks" / "regulatory" / "corpus.json").read_text(encoding="utf-8")
+    )
+    reached: set[str] = set()
+    for case in corpus["positives"]:
+        if rule_id not in case.get("expect", []):
+            continue
+        mol = _mol(case["smiles"])
+        findings = [f for f in engine.screen(mol).findings if f.rule.rule_id == rule_id]
+        assert findings, f"{case['name']} is listed as a positive for {rule_id} and did not match"
+        labels = [o.label for f in findings for o in f.outcomes]
+        assert any("exact identity" in label for label in labels), (
+            f"{case['name']} matched {rule_id} only as {labels}"
+        )
+        reached.add(Chem.MolToInchiKey(mol))
+
+    assert listed <= reached, (
+        f"{len(listed - reached)} of {rule_id}'s {len(listed)} listed sub-items "
+        f"have no corpus structure that reaches them"
+    )
 
 
 # --- Screening as of a date, against the rules that actually ship --------

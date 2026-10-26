@@ -1,0 +1,22 @@
+{
+ "paper": "kratky2017_fluorophenylalanines",
+ "decision": "route",
+ "exclusion_reason": null,
+ "exclusion_detail": "",
+ "lead": {"label": "3j", "why": "Abstract: 'Phenyl 2-acetamido-3-(4-fluorophenyl)propanoate was identified as the selective and most potent inhibitor of BChE.'"},
+ "target": {"name": "Phenyl 2-acetamido-3-(4-fluorophenyl)propanoate", "smiles": "CC(=O)NC(Cc1ccc(F)cc1)C(=O)Oc1ccccc1"},
+ "reactions": [
+  {"step": 1,
+   "product": {"label": "3j", "name": "Phenyl 2-acetamido-3-(4-fluorophenyl)propanoate", "smiles": "CC(=O)NC(Cc1ccc(F)cc1)C(=O)Oc1ccccc1"},
+   "reactants": [
+    {"label": "3", "name": "N-acetyl-4-fluorophenylalanine", "smiles": "CC(=O)NC(Cc1ccc(F)cc1)C(=O)O", "origin": "commercial"},
+    {"label": "phenol", "name": "phenol", "smiles": "Oc1ccccc1", "origin": "commercial"}
+   ],
+   "conditions": "Acid 1 equiv, phenol 1.1 equiv, Et3N 1 equiv, DMAP 0.1 equiv in DCM (7 mL), EDC 1.5 equiv added in one portion, rt overnight; wash, crystallise from n-hexane. Yield 98%.",
+   "source": "Section 4.1.2.2 (general ester procedure) and compound 3j data, main text pp. 18-22; 'commercially available N-acetyl-o/m/p-fluorophenylalanines 1-3' in section 2.1"
+  }
+ ],
+ "alt_variants": [],
+ "other_qualifying_compounds": null,
+ "notes": "Racemic (N-acetyl-DL-FPhe), so no stereochemistry drawn. The acid name is derived from the text 'N-acetyl-2/3/4-fluorophenylalanine (1, 2 or 3)' (3 = 4-fluoro); no systematic name printed for the acid."
+}

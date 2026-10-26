@@ -1,0 +1,34 @@
+{
+ "paper": "sabry2019_quinazolinones",
+ "decision": "route",
+ "exclusion_reason": null,
+ "exclusion_detail": "",
+ "lead": {"label": "21", "why": "Abstract: 'Compounds 21, 53 and 60 showed broad spectrum antitumor activity with average IC50 values of 6.7, 7.6 and 9.1 uM'; 21 has the lowest average IC50 and Conclusion lists it first as the most active (Fig. 10: 'most active antitumors 21 and 53')."},
+ "target": {"name": "6-Amino-3-(4-methoxy-phenyl)-2-(methyl-thio)quinazolin-4(3H)-one",
+            "smiles": "COc1ccc(cc1)n1c(SC)nc2ccc(N)cc2c1=O"},
+ "reactions": [
+  {"step": 1,
+   "product": {"label": "17", "name": "2-Mercapto-3-(4-methoxy-phenyl)-6-nitroquinazolin-4(3H)-one", "smiles": "COc1ccc(cc1)n1c(S)nc2ccc(cc2c1=O)[N+](=O)[O-]"},
+   "reactants": [
+     {"label": "13", "name": "5-nitroanthranilic acid", "smiles": "Nc1ccc(cc1C(=O)O)[N+](=O)[O-]", "origin": "commercial"},
+     {"label": "15", "name": "", "smiles": "COc1ccc(cc1)N=C=S", "origin": "commercial"}],
+   "conditions": "5-nitroanthranilic acid (0.005 mol), 4-methoxyphenyl isothiocyanate (0.005 mol), TEA (2 mL), EtOH (50 mL), reflux 4 h, then rt 12 h; 65%",
+   "source": "6.1.1 General procedure (16 and 17), 6.1.1.2; Scheme 1"},
+  {"step": 2,
+   "product": {"label": "19", "name": "3-(4-Methoxy-phenyl)-2-(methyl-thio)-6-nitroquinazolin-4(3H)-one", "smiles": "COc1ccc(cc1)n1c(SC)nc2ccc(cc2c1=O)[N+](=O)[O-]"},
+   "reactants": [
+     {"label": "17", "name": "2-Mercapto-3-(4-methoxy-phenyl)-6-nitroquinazolin-4(3H)-one", "smiles": "COc1ccc(cc1)n1c(S)nc2ccc(cc2c1=O)[N+](=O)[O-]", "origin": "made_here"},
+     {"label": "MeI", "name": "methyl iodide", "smiles": "CI", "origin": "reagent"}],
+   "conditions": "MeI (3 mL), anhydrous K2CO3 (1 g), acetone (50 mL), rt 8 h; 77%",
+   "source": "6.1.2 General procedure (18 and 19), 6.1.2.2; Scheme 1"},
+  {"step": 3,
+   "product": {"label": "21", "name": "6-Amino-3-(4-methoxy-phenyl)-2-(methyl-thio)quinazolin-4(3H)-one", "smiles": "COc1ccc(cc1)n1c(SC)nc2ccc(N)cc2c1=O"},
+   "reactants": [
+     {"label": "19", "name": "3-(4-Methoxy-phenyl)-2-(methyl-thio)-6-nitroquinazolin-4(3H)-one", "smiles": "COc1ccc(cc1)n1c(SC)nc2ccc(cc2c1=O)[N+](=O)[O-]", "origin": "made_here"}],
+   "conditions": "SnCl2.2H2O (5 equiv), acetone, reflux 2 h; pH 8 with 5% NaHCO3; 63%",
+   "source": "6.1.3 General procedure (20 and 21), 6.1.3.2; Scheme 1"}
+ ],
+ "alt_variants": [],
+ "other_qualifying_compounds": null,
+ "notes": "Lead choice: abstract also names 29/33 (best DHFR inhibitors) and 53 and 60, but 21 is listed first and has the lowest average antitumor IC50, so rule 1 was applied to 21. 4-Methoxyphenyl isothiocyanate (15) has no printed name (the paper says 'the appropriate substituted phenylisothiocyanate'); structure derived from the name of 17. 'Starting materials and reagents were purchased from [suppliers]' is the only commercial statement. The 2-mercapto compound is drawn as the thiol tautomer as named in the paper (thione tautomer likely in reality)."
+}

@@ -1,0 +1,12 @@
+{
+ "paper": "pavelyev2018_pyridoxine_alkenyl",
+ "decision": "excluded",
+ "exclusion_reason": "route_not_explicit",
+ "exclusion_detail": "Lead 5g is made by MnO2 oxidation of the cyclohexanone ketal 2g (procedure given) and Wittig with phosphonium salt 4, but 2g itself is only cited ('described in a patent', ref 21) with no preparation in this paper, and the preparation of salt 4 is given only as one sentence of prose (PPh3 + chloroacetone, CHCl3, reflux 24 h) without quantities.",
+ "lead": {"label": "5g", "why": "Abstract: 'The leading compound' ; text: 'The leading compound 5g appeared to be 1.5-3.7 times more active than 5b' and 5g is used for all mechanistic follow-up (cell cycle, migration, ROS, apoptosis)."},
+ "target": null,
+ "reactions": [],
+ "alt_variants": [],
+ "other_qualifying_compounds": [],
+ "notes": "The abstract says only 'the leading compound'; the body names it as 5g. If the ketal 2g (pyridoxine HCl + cyclohexanone, per patent) were accepted as a cited step, the route would be about 4 reactions: ketalisation, MnO2 oxidation to aldehyde 3g (5.4.6, MnO2, MeCN, 70 C, 20 min, 74%), Wittig with salt 4 (5.5.7, Et3N, CH2Cl2, 70 C, 88%), plus the salt 4 preparation. All other compounds likewise rest on literature/patent-cited acetals 2 or 6."
+}

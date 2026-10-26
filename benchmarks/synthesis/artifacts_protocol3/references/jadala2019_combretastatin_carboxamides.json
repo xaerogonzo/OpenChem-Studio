@@ -1,0 +1,91 @@
+{
+ "paper": "jadala2019_combretastatin_carboxamides",
+ "decision": "excluded",
+ "exclusion_reason": "route_not_explicit",
+ "exclusion_detail": "No experimental section or SI: the route is rebuilt from a name and a Chemistry paragraph, conditions unstated, leaves unstated, a 2,3,4 vs 3,4,5 typo (second reader). (Reclassified 2026-10-24 after the verification pass.)",
+ "lead": {
+  "label": "5ab",
+  "why": "Moreover, 5ab was found to be the most potent member of this series with IC50 0.36+/-0.02 uM (abstract)."
+ },
+ "target": {
+  "name": "(E)-3-(4-Chlorophenyl)-1-(4-((4-chlorophenyl)sulfonyl)piperazin-1-yl)-2-(3,4,5-trimethoxyphenyl)prop-2-en-1-one",
+  "smiles": "O=C(N1CCN(S(=O)(=O)c2ccc(Cl)cc2)CC1)/C(c1cc(OC)c(OC)c(OC)c1)=C/c1ccc(Cl)cc1"
+ },
+ "reactions": [
+  {
+   "step": 1,
+   "product": {
+    "label": "2 (4-Cl sulfonamide)",
+    "name": "",
+    "smiles": "O=S(=O)(c1ccc(Cl)cc1)N1CCNCC1"
+   },
+   "reactants": [
+    {
+     "label": "1 (4-chlorobenzenesulfonyl chloride)",
+     "name": "",
+     "smiles": "O=S(=O)(Cl)c1ccc(Cl)cc1",
+     "origin": "commercial"
+    },
+    {
+     "label": "piperazine",
+     "name": "piperazine",
+     "smiles": "C1CNCCN1",
+     "origin": "commercial"
+    }
+   ],
+   "conditions": "Piperazine reacted with the substituted benzenesulfonyl chloride in CH2Cl2 (text only; no quantities, base, temperature or time given).",
+   "source": "Results and Discussion, Chemistry, p.3 text and Scheme 1; no experimental section or SI in the supplied file"
+  },
+  {
+   "step": 2,
+   "product": {
+    "label": "4 (E-acrylic acid for 5ab)",
+    "name": "",
+    "smiles": "OC(=O)/C(c1cc(OC)c(OC)c(OC)c1)=C/c1ccc(Cl)cc1"
+   },
+   "reactants": [
+    {
+     "label": "3 (3,4,5-trimethoxyphenylacetic acid)",
+     "name": "",
+     "smiles": "OC(=O)Cc1cc(OC)c(OC)c(OC)c1",
+     "origin": "commercial"
+    },
+    {
+     "label": "4-chlorobenzaldehyde",
+     "name": "",
+     "smiles": "O=Cc1ccc(Cl)cc1",
+     "origin": "commercial"
+    }
+   ],
+   "conditions": "Phenylacetic acid treated with the substituted aldehyde (Perkin-type condensation); reagents and conditions are not stated in the text.",
+   "source": "Results and Discussion, Chemistry, p.3 text and Scheme 1"
+  },
+  {
+   "step": 3,
+   "product": {
+    "label": "5ab",
+    "name": "(E)-3-(4-Chlorophenyl)-1-(4-((4-chlorophenyl)sulfonyl)piperazin-1-yl)-2-(3,4,5-trimethoxyphenyl)prop-2-en-1-one",
+    "smiles": "O=C(N1CCN(S(=O)(=O)c2ccc(Cl)cc2)CC1)/C(c1cc(OC)c(OC)c(OC)c1)=C/c1ccc(Cl)cc1"
+   },
+   "reactants": [
+    {
+     "label": "2 (4-Cl sulfonamide)",
+     "name": "",
+     "smiles": "O=S(=O)(c1ccc(Cl)cc1)N1CCNCC1",
+     "origin": "made_here"
+    },
+    {
+     "label": "4 (E-acrylic acid for 5ab)",
+     "name": "",
+     "smiles": "OC(=O)/C(c1cc(OC)c(OC)c(OC)c1)=C/c1ccc(Cl)cc1",
+     "origin": "made_here"
+    }
+   ],
+   "conditions": "Acid-amine coupling with EDCI and HOBt in dry DMF; crude purified by column chromatography; 85-90% yields for the series.",
+   "source": "Results and Discussion, Chemistry, p.3 text and Scheme 1"
+  }
+ ],
+ "alt_variants": [],
+ "other_qualifying_compounds": null,
+ "notes": "The supplied text has NO experimental section and no SI (supporting information is only linked); the route is read from the Chemistry paragraph and the name of 5ab, the structure drawings are not in the text. The pairing of 5ab with the 4-chloro sulfonamide and the 4-chlorobenzaldehyde-derived acid follows from its printed name. The text's own description of acids 4a-f says '2,3,4-trimethoxyphenyl' while the compound names (including 5ab) say 3,4,5-trimethoxyphenyl; I used 3,4,5 (the combretastatin pattern, as in the name of 5ab). Starting materials are assumed commercial (the paper does not say so); no names are printed for the intermediates. E configuration (the two aryl groups cis, as expected of a Perkin product) follows the printed (E) in the name of 5ab. Reviewer should decide whether to accept a route with unstated conditions."
+}

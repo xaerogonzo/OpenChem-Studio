@@ -1,0 +1,12 @@
+{
+ "paper": "wurz2017_click_protacs",
+ "decision": "excluded",
+ "exclusion_reason": "lead_route_over_4_steps",
+ "exclusion_detail": "Lead 11e (JQ-1 azide 4 + IMiD alkyne 8e by CuAAC) needs at least 5 reactions: JQ-1 t-Bu ester TFA deprotection (1), amide coupling with 2-azidoethanamine to azide 4 (2), 4-hydroxythalidomide 7 from 4-hydroxyphthalic anhydride + 3-aminopiperidine-2,6-dione (3, text only, no procedure), alkylation of 7 with the tetraethylene-glycol propargyl tosylate to 8e (4, whose tosylate is not described), click ligation (5).",
+ "lead": {"label": "11e", "why": "The abstract names no lead compound. By rule 2, 11e is the PROTAC used for the main follow-up (control) experiments (Figure 7A: >90% BRD4 loss at 1 uM, blocked by JQ-1, thalidomide, MG132) and is the most active cereblon-series compound (DC50 0.20 uM)."},
+ "target": null,
+ "reactions": [],
+ "alt_variants": [],
+ "other_qualifying_compounds": [],
+ "notes": "No SI file. Alternative follow-up compound 12b (Figure 7B) would also be excluded: it needs VHL-amine 9, which is 'synthesized according to previously reported literature protocols' (route_not_explicit). 11a-d need the same 4-5 reactions as 11e (4 is 2 steps, 7 is 1, alkyne 8 is 1, click is 1). 12a-e need 9 (not explicit). So no compound in the paper has an explicit route of 4 steps or fewer."
+}

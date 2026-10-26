@@ -1,0 +1,15 @@
+{
+ "paper": "gholivand2021_phosphonic_acids_cholinesterase",
+ "decision": "excluded",
+ "exclusion_reason": "route_not_explicit",
+ "exclusion_detail": "The lead is compound 9, but the main text gives no name for any of compounds 1-12; their structures are only drawn in Scheme 1 and Table 1 and the text layer holds no usable structure. The amine for 9 therefore cannot be recovered from the text, and the compound-specific synthetic data are in the Supplementary Information, which is not supplied.",
+ "lead": {
+  "label": "9",
+  "why": "Rule 2 (the abstract names no compound): 'among bisphosphonic acids, compound 9 showed favorable insecticidal properties'; 9 was the compound used for the in vivo larval bioassay highlight and for the docking figure (Fig. 5)."
+ },
+ "target": null,
+ "reactions": [],
+ "alt_variants": [],
+ "other_qualifying_compounds": null,
+ "notes": "The generic route is a single Mannich-type step for all 12 compounds: the corresponding amine (1 mmol) + phosphorous acid (3 mmol), 37% HCl (5 mL), water (5 mL), reflux 1.5 h, then paraformaldehyde (4 mmol) added over 1 h and reflux a further 1 h. So 9 would be a 1-step route if its amine were known; the text says only that 9 is a bisphosphonic acid with an aromatic ring (docking section: aromatic ring in pi-pi contact with Tyr370 and Trp83). Re-attempt if someone can read the structure of 9 from the scheme image or the SI."
+}

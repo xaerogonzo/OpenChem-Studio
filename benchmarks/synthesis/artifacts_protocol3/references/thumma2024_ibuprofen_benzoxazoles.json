@@ -1,0 +1,45 @@
+{
+ "paper": "thumma2024_ibuprofen_benzoxazoles",
+ "decision": "route",
+ "exclusion_reason": null,
+ "exclusion_detail": "",
+ "lead": {"label": "7h", "why": "Abstract: 'Compounds 7h and 7j displayed outstanding activity against the MCF-7 cell line ... Compound 7h also exhibited outstanding activity against the MDA-MB-231 cell line'; 7h is the best compound and the one docked ('the best active compound 7h scored the ...')."},
+ "target": {"name": "1-(6-Hydroxy-2-((3-(trifluoromethyl)benzyl)thio)benzo[d]oxazol-5-yl)-2-(4-isobutylphenyl)propan-1-one", "smiles": "CC(C)Cc1ccc(cc1)C(C)C(=O)c1cc2nc(SCc3cccc(c3)C(F)(F)F)oc2cc1O"},
+ "reactions": [
+  {"step": 1,
+   "product": {"label": "3", "name": "1-(2,4-dihydroxyphenyl)-2-(4-isobutylphenyl)propan-1-one", "smiles": "CC(C)Cc1ccc(cc1)C(C)C(=O)c1ccc(O)cc1O"},
+   "reactants": [
+    {"label": "ibuprofen", "name": "ibuprofen", "smiles": "CC(C)Cc1ccc(cc1)C(C)C(=O)O", "origin": "commercial"},
+    {"label": "resorcinol", "name": "resorcinol", "smiles": "Oc1cccc(O)c1", "origin": "commercial"}
+   ],
+   "conditions": "Fused ZnCl2, ibuprofen, 130 C 20 min; resorcinol added, 140 C 20 min; poured into ice/dil. HCl, soaked overnight, filtered.",
+   "source": "main text, Experimental section, 'Synthesis of ... (3)'; Scheme 1"},
+  {"step": 2,
+   "product": {"label": "4", "name": "1-(2,4-dihydroxy-5-nitrophenyl)-2-(4-isobutylphenyl)propan-1-one", "smiles": "CC(C)Cc1ccc(cc1)C(C)C(=O)c1cc([N+](=O)[O-])c(O)cc1O"},
+   "reactants": [
+    {"label": "3", "name": "1-(2,4-dihydroxyphenyl)-2-(4-isobutylphenyl)propan-1-one", "smiles": "CC(C)Cc1ccc(cc1)C(C)C(=O)c1ccc(O)cc1O", "origin": "made_here"},
+    {"label": "nitric acid", "name": "nitric acid", "smiles": "O[N+](=O)[O-]", "origin": "reagent"}
+   ],
+   "conditions": "Glacial AcOH, then AcOH/conc. HNO3 (1:1) dropwise below 30 C, 7 h; ice water; 65%.",
+   "source": "main text, Experimental section, 'Synthesis of ... (4)'; Scheme 1"},
+  {"step": 3,
+   "product": {"label": "5", "name": "1-(6-hydroxy-2-mercaptobenzo[d]oxazol-5-yl)-2-(4-isobutylphenyl)propan-1-one", "smiles": "CC(C)Cc1ccc(cc1)C(C)C(=O)c1cc2nc(S)oc2cc1O"},
+   "reactants": [
+    {"label": "4", "name": "1-(2,4-dihydroxy-5-nitrophenyl)-2-(4-isobutylphenyl)propan-1-one", "smiles": "CC(C)Cc1ccc(cc1)C(C)C(=O)c1cc([N+](=O)[O-])c(O)cc1O", "origin": "made_here"},
+    {"label": "carbon disulfide", "name": "carbon disulphide", "smiles": "S=C=S", "origin": "reagent"}
+   ],
+   "conditions": "One-pot as described: Na2S2O4 (2 eq, then more), MeOH/water, reflux (nitro reduction, aminophenol not isolated); then KOH (1 eq) and CS2 (3 eq), reflux 65 C 6 h; acidify, extract; 75%.",
+   "source": "main text, Experimental section, 'Synthesis of ... (5)'; Scheme 1"},
+  {"step": 4,
+   "product": {"label": "7h", "name": "1-(6-Hydroxy-2-((3-(trifluoromethyl)benzyl)thio)benzo[d]oxazol-5-yl)-2-(4-isobutylphenyl)propan-1-one", "smiles": "CC(C)Cc1ccc(cc1)C(C)C(=O)c1cc2nc(SCc3cccc(c3)C(F)(F)F)oc2cc1O"},
+   "reactants": [
+    {"label": "5", "name": "1-(6-hydroxy-2-mercaptobenzo[d]oxazol-5-yl)-2-(4-isobutylphenyl)propan-1-one", "smiles": "CC(C)Cc1ccc(cc1)C(C)C(=O)c1cc2nc(S)oc2cc1O", "origin": "made_here"},
+    {"label": "6h", "name": "", "smiles": "BrCc1cccc(c1)C(F)(F)F", "origin": "commercial"}
+   ],
+   "conditions": "DMF, DIPEA, rt, 1 h; 81%.",
+   "source": "main text, Experimental section, general procedure for 7a-l and entry 7h; Scheme 1"}
+ ],
+ "alt_variants": [],
+ "other_qualifying_compounds": null,
+ "notes": "Count is 4 only because the Na2S2O4 reduction and the CS2/KOH cyclisation are written as ONE procedure for compound 5 (aminophenol not isolated); if a reviewer counts them as two the route is 5 steps. Benzyl bromide 6h is not named in the text (only the (3-trifluoromethyl)benzyl group is stated; derived from the product name). Ibuprofen racemic (no stereo stated). Thiol drawn as printed (2-mercapto); tautomer thione is not considered."
+}

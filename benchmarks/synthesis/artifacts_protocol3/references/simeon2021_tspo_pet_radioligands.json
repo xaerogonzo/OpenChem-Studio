@@ -1,0 +1,12 @@
+{
+ "paper": "simeon2021_tspo_pet_radioligands",
+ "decision": "excluded",
+ "exclusion_reason": "route_not_explicit",
+ "exclusion_detail": "The lead (3-fluoro analog 3b, also labelled as [11C]3b and [18F]3b) needs (R)-N-methylbutan-2-aminium chloride, which the paper says was 'prepared as previously reported' (ref 46) from (R)-2-aminobutane with no procedure in the article; it is not stated to be purchased. If that salt were accepted as a leaf, the cold 3b route is 2 steps (see notes). The radiolabelling of the lead is out of scope anyway.",
+ "lead": {"label": "3b ([11C]3b / [18F]3b)", "why": "Abstract: 'Overall, the 3-fluoro analog of [11C]ER176 ([11C]3b) displayed the most promising imaging properties ... a method was developed to label 3b with [18F]fluoride ion.'"},
+ "target": null,
+ "reactions": [],
+ "alt_variants": [],
+ "other_qualifying_compounds": [],
+ "notes": "Cold 3b would be: (1) ethyl 4-oxo-3,4-dihydroquinazoline-2-carboxylate (1, purchased reagent, MilliporeSigma) + (R)-N-methylbutan-2-aminium chloride, AlMe3, DCE, reflux 2 h -> (R)-N-sec-butyl-N-methyl-4-oxo-3,4-dihydroquinazoline-2-carboxamide (2) 88% (General method 1); (2) 2 + PyBroP, Et3N, dioxane rt 12 h, then 3-fluorophenylboronic acid, Na2CO3, Pd(PPh3)2Cl2, water, 100 C 4 h -> 3b (R)-N-(sec-butyl)-4-(3-fluorophenyl)-N-methylquinazoline-2-carboxamide, 66% (General method 2a). Only the amine salt is the problem. Sibling ligands 3a, 3c-3f share the same amine, so none qualifies under the strict rule; hence []. Whether a fluoro-quinazoline ligand 'lead' that is mainly a radiotracer belongs in the test set is a judgement for the reviewer."
+}

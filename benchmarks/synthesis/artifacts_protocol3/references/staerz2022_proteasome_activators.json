@@ -1,0 +1,49 @@
+{
+ "paper": "staerz2022_proteasome_activators",
+ "decision": "route",
+ "exclusion_reason": null,
+ "exclusion_detail": "",
+ "lead": {
+  "label": "19",
+  "why": "The abstract names no compound ('sub-microM 20S proteasome activators based on a phenothiazine scaffold'). The paper states 'Compound 19 is by far the most potent 20S proteasome activator, with an overall EC200 of 0.4 uM ... the first reported sub-uM 20S proteasome activator' and uses 19 for the alpha-synuclein degradation and A53T cell experiments (Figures 3 and 4). Rule 2."
+ },
+ "target": {
+  "name": "3-(2-Chloro-10H-phenothiazin-10-yl)-N,N-bis(4-fluorophenyl)propanamide",
+  "smiles": "O=C(CCN1c2ccccc2Sc2ccc(Cl)cc21)N(c1ccc(F)cc1)c1ccc(F)cc1"
+ },
+ "reactions": [
+  {
+   "step": 1,
+   "product": {"label": "S2", "name": "Bis(4-Fluorophenyl)amine", "smiles": "Fc1ccc(Nc2ccc(F)cc2)cc1"},
+   "reactants": [
+    {"label": "4-fluoroaniline", "name": "4-fluoroaniline", "smiles": "Nc1ccc(F)cc1", "origin": "commercial"},
+    {"label": "4-fluorophenylboronic acid", "name": "4-fluorophenyl boronic acid", "smiles": "OB(O)c1ccc(F)cc1", "origin": "commercial"}
+   ],
+   "conditions": "Chan-Lam-type coupling: aniline (3 mmol), boronic acid (6 mmol), Et3N (6 mmol), Cu(OAc)2 (3 mmol), 4 A molecular sieves, CH2Cl2, rt, under air, 16 h; 44%, yellow oil.",
+   "source": "Main article, Experimental Section (Bis(4-Fluorophenyl)amine (S2)); Scheme 4 step a (48% in the scheme, 44% in the experimental)"
+  },
+  {
+   "step": 2,
+   "product": {"label": "14", "name": "N,N-Bis(4-fluorophenyl)acrylamide", "smiles": "C=CC(=O)N(c1ccc(F)cc1)c1ccc(F)cc1"},
+   "reactants": [
+    {"label": "S2", "name": "Bis(4-Fluorophenyl)amine", "smiles": "Fc1ccc(Nc2ccc(F)cc2)cc1", "origin": "made_here"},
+    {"label": "acryloyl chloride", "name": "acryloyl chloride", "smiles": "C=CC(=O)Cl", "origin": "reagent"}
+   ],
+   "conditions": "General acylation procedure: amine (1 equiv), TEA (1.33 equiv), DCM, 0 C, acryloyl chloride (1.2 equiv) dropwise, then rt 12 h (the text and Scheme 4 say reflux 12 h); 90% (60% in the scheme).",
+   "source": "Main article, Experimental Section (General Acylation Procedure; compound 14); Scheme 4 step b"
+  },
+  {
+   "step": 3,
+   "product": {"label": "19", "name": "3-(2-Chloro-10H-phenothiazin-10-yl)-N,N-bis(4-fluorophenyl)propanamide", "smiles": "O=C(CCN1c2ccccc2Sc2ccc(Cl)cc21)N(c1ccc(F)cc1)c1ccc(F)cc1"},
+   "reactants": [
+    {"label": "2-chlorophenothiazine", "name": "2-chlorophenothiazine", "smiles": "Clc1ccc2Sc3ccccc3Nc2c1", "origin": "commercial"},
+    {"label": "14", "name": "N,N-Bis(4-fluorophenyl)acrylamide", "smiles": "C=CC(=O)N(c1ccc(F)cc1)c1ccc(F)cc1", "origin": "made_here"}
+   ],
+   "conditions": "General Michael addition procedure: 2-chlorophenothiazine (2 equiv), acrylamide (1 equiv), toluene, Triton B (0.5 equiv), reflux 24 h; 80% (light pink solid) in the experimental, 50% in Scheme 4.",
+   "source": "Main article, Experimental Section (General Michael Addition Procedure; compound 19); Scheme 4 step c"
+  }
+ ],
+ "alt_variants": [],
+ "other_qualifying_compounds": null,
+ "notes": "Three steps. The paper never says its starting materials were purchased (no supplier statement at all); 4-fluoroaniline, 4-fluorophenylboronic acid, acryloyl chloride and 2-chlorophenothiazine are used without preparation and treated as commercial. Yields differ between Scheme 4 (48%, 60%, 50%) and the Experimental (44%, 90%, 80%); the Scheme 4 footnote says the acylation was at reflux, the general procedure says rt. Triton B (benzyltrimethylammonium hydroxide) is a base catalyst and not listed. Names of the amine, boronic acid and 2-chlorophenothiazine are derived (printed only as 4-fluoroaniline, 4-fluorophenyl boronic acid and 2-chlorophenothiazine in the text)."
+}

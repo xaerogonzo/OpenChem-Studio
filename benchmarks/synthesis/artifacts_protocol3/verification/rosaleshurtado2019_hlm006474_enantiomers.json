@@ -1,0 +1,22 @@
+{
+ "paper": "rosaleshurtado2019_hlm006474_enantiomers",
+ "my_lead": "HLM006474 (racemate) and its (R)-(+)-enantiomer - title/abstract: improved synthesis of HLM006474; abstract says only the (+)-R enantiomer is biologically active",
+ "lead_agrees": "co-named",
+ "reactions": [
+  {
+   "step": 1,
+   "ok": true,
+   "issue": "Bromoethane is labelled origin 'reagent' but supplies the ethyl group; treat as commercial. K2CO3 base correctly omitted. SI: 8.8 g (64.63 mmol) aldehyde, K2CO3 25 min rt, bromoethane, DMF, 80 C 3 h, 77%, used crude."
+  },
+  {
+   "step": 2,
+   "ok": true,
+   "issue": "Solvent-free Betti reaction of 3, 2-aminopyridine, 2-methyl-8-quinolinol, 1:1:1 (1.2 eq aminopyridine in some MW variants). All three molecules incorporated once. Thermal 55 C, 24 h, 66% (1.61 g); MW 60 C 24 h 71% (Table 2 entries 8,9). One pot, one step."
+  }
+ ],
+ "leaf_issues": [],
+ "step_count_ok": true,
+ "smiles_issues": [],
+ "overall": "minor_issues",
+ "notes": "Leaves supported: SI 'Reagents were purchased from the Aldrich Chemical Co. or Fluka and used without any purification'; the article adds 'Although it is a commercially available compound, HLM006474 1 is rather expensive'. SMILES verified (4-ethoxy-3-methylphenyl; 2-methyl-8-hydroxyquinolin-7-yl; NH-2-pyridyl; formula C25H23N3O2 matches HRMS 398.1869). The one flag is the form of the target: the route makes the RACEMATE. The (+)-R / (-)-S enantiomers (190 mg of each) come only from semi-preparative chiral HPLC on Chiralpak ID, a separation not a reaction, and the abstract's finding is that (R) is the active one. If the test case means 'the lead in the form the paper isolates', the active form is the (R)-enantiomer, which this 2-step route cannot deliver; mark the target as racemic (no stereo) and note that the enantiomers need resolution. The first eluted enantiomer is (R) by VCD."
+}

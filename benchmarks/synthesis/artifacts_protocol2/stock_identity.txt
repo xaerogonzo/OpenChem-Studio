@@ -1,0 +1,7 @@
+STOCK IDENTITY, PROTOCOL 1 AGAINST PROTOCOL 2, FROM WHAT EACH SEARCH RECORDED (a diagnostic; decides nothing)
+distinct leaves recorded: protocol 1 1659, protocol 2 10504, both 1634
+leaves recorded by both with the SAME in_stock flag: 1634 of 1634 (in stock in both 1593, out of stock in both 41)
+leaves recorded by both with a DIFFERENT flag: 0
+protocol 1 leaves protocol 2 never looked up: 25 (1 in stock)
+leaves given two different flags inside one protocol: protocol 1 0, protocol 2 0
+make_stock.py run again on the source stock: MD5 7c0b260ab7204fd375cd898fa4590ce0 against the committed key file's 7c0b260ab7204fd375cd898fa4590ce0: IDENTICAL
