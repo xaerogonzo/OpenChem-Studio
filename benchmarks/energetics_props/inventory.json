@@ -1,0 +1,959 @@
+{
+ "schema_version": 1,
+ "counted_on": "2026-10-25",
+ "how_to_read": [
+  "A count is **entries or table rows that print a numeric value for a property, before any structure identification, value-kind classification, temperature or form check, or verification** (preregistration sections 3, 7 and 8). Every count is therefore an UPPER bound on usable distinct compounds, and a sum over sources is an upper bound with heavy double counting.",
+  "Counts were made by script over the PDF or EPUB text layer, or read off a named table by hand; the method is recorded beside each, with the hand-check error rate where one was measured. Where a figure is a range the range is stated.",
+  "Nothing here says a value is **right**. Several held books copy values from one another, and the printed errors in section 4 were found only by comparing sources or reading the rendered page.",
+  "A book that prints an enthalpy of formation without saying whether it is measured or calculated is `unlabelled` (preregistration 3.1) and is not a reference by itself."
+ ],
+ "sources": [
+  {
+   "id": "klapotke2021",
+   "title": "Klapoetke, Energetic Materials Encyclopedia, 2nd ed., De Gruyter 2021 (three volumes)",
+   "held": true,
+   "files": [
+    "Energetic Materials Encyclopedia ... V1 A-D ....epub",
+    "Energetic Materials Encyclopedia, Volume 2, E - N ....pdf",
+    "Energetic Materials Encyclopedia ... V3 O-Z ....epub"
+   ],
+   "structure": "413 alphabetical entries (vol 1: 186, vol 2: 98, vol 3: 129), each with a property block (melting point, decomposition temperature, density with items and qualifiers, heat of formation with items, a Calcd./Lit./Exptl. table) and a per-entry reference list. In the epubs the property table is mostly an image (a text table in only 43 of 186 entries of vol 1 and 23 of 129 of vol 3) and was read by OCR. COVERAGE: covered entries 329 of 413 (vol 1 161 of 186, vol 2 98 of 98, vol 3 70 of 129). The counts below are on covered entries only; scaling to all 413 at the covered rate is a factor of 1.26, an estimate and not a count. Entries that are not single organic compounds (a metal in the formula: 8, 6 and 11 in vols 1, 2 and 3 as a lower bound; a polymer or composition keyword in the title: 0, 2 and 4) are included in the counts.",
+   "counts": [
+    {
+     "property": "melting_point",
+     "what": "covered entries printing a numeric melting point",
+     "n": 249,
+     "locator": "vols 1 (A-D, epub), 2 (E-N, PDF) and 3 (O-Z, epub), entry property blocks",
+     "method": "script",
+     "error": "vols 1 and 3 partly OCR; their error rate is not established (see hand check)"
+    },
+    {
+     "property": "melting_point",
+     "what": "of those, with a decomposition or explosion marker (not a clean melt)",
+     "n": 80,
+     "locator": "vols 1 (A-D, epub), 2 (E-N, PDF) and 3 (O-Z, epub), entry property blocks",
+     "method": "script"
+    },
+    {
+     "property": "melting_point",
+     "what": "of those, printed as a range",
+     "n": 113,
+     "locator": "vols 1 (A-D, epub), 2 (E-N, PDF) and 3 (O-Z, epub), entry property blocks",
+     "method": "script"
+    },
+    {
+     "property": "decomposition_temperature",
+     "what": "covered entries printing a numeric decomposition temperature (kind and heating rate not parsed)",
+     "n": 257,
+     "locator": "vols 1 (A-D, epub), 2 (E-N, PDF) and 3 (O-Z, epub), entry property blocks",
+     "method": "script",
+     "error": "vols 1 and 3 partly OCR; their error rate is not established (see hand check)"
+    },
+    {
+     "property": "crystal_density",
+     "what": "covered entries with a density item labelled crystal, X-ray, single crystal or pycnometer",
+     "n": 149,
+     "locator": "vols 1 (A-D, epub), 2 (E-N, PDF) and 3 (O-Z, epub), entry property blocks",
+     "method": "script",
+     "error": "vols 1 and 3 partly OCR; their error rate is not established (see hand check)"
+    },
+    {
+     "property": "other_density",
+     "what": "covered entries with a density item labelled bulk, pressed, cast, loading, pellet, TMD or theoretical",
+     "n": 65,
+     "locator": "vols 1 (A-D, epub), 2 (E-N, PDF) and 3 (O-Z, epub), entry property blocks",
+     "method": "script"
+    },
+    {
+     "property": "other_density",
+     "what": "covered entries printing any numeric density",
+     "n": 307,
+     "locator": "vols 1 (A-D, epub), 2 (E-N, PDF) and 3 (O-Z, epub), entry property blocks",
+     "method": "script",
+     "error": "vols 1 and 3 partly OCR; their error rate is not established (see hand check)"
+    },
+    {
+     "property": "other_density",
+     "what": "of those, entries with some density item carrying no qualifier",
+     "n": 156,
+     "locator": "vols 1 (A-D, epub), 2 (E-N, PDF) and 3 (O-Z, epub), entry property blocks",
+     "method": "script"
+    },
+    {
+     "property": "other_density",
+     "what": "of those, entries giving a temperature for some density item",
+     "n": 198,
+     "locator": "vols 1 (A-D, epub), 2 (E-N, PDF) and 3 (O-Z, epub), entry property blocks",
+     "method": "script"
+    },
+    {
+     "property": "enthalpy_formation",
+     "what": "covered entries printing a numeric heat of formation",
+     "n": 251,
+     "locator": "vols 1 (A-D, epub), 2 (E-N, PDF) and 3 (O-Z, epub), entry property blocks",
+     "method": "script",
+     "error": "vols 1 and 3 partly OCR; their error rate is not established (see hand check)"
+    },
+    {
+     "property": "enthalpy_formation",
+     "what": "of those, entries whose label says experimental on some item",
+     "n": 79,
+     "locator": "vols 1 (A-D, epub), 2 (E-N, PDF) and 3 (O-Z, epub), entry property blocks",
+     "method": "script"
+    },
+    {
+     "property": "enthalpy_formation",
+     "what": "of those, entries whose label says calculated on some item (CBS-4M, EXPLO5, group additivity ...)",
+     "n": 106,
+     "locator": "vols 1 (A-D, epub), 2 (E-N, PDF) and 3 (O-Z, epub), entry property blocks",
+     "method": "script"
+    },
+    {
+     "property": "enthalpy_formation",
+     "what": "of those, entries with no calculated/experimental label on any item",
+     "n": 116,
+     "locator": "vols 1 (A-D, epub), 2 (E-N, PDF) and 3 (O-Z, epub), entry property blocks",
+     "method": "script"
+    },
+    {
+     "property": "enthalpy_formation",
+     "what": "of those, entries labelled solid, condensed or liquid on some item",
+     "n": 41,
+     "locator": "vols 1 (A-D, epub), 2 (E-N, PDF) and 3 (O-Z, epub), entry property blocks",
+     "method": "script"
+    },
+    {
+     "property": "enthalpy_formation",
+     "what": "of those, entries with no phase label on any item",
+     "n": 199,
+     "locator": "vols 1 (A-D, epub), 2 (E-N, PDF) and 3 (O-Z, epub), entry property blocks",
+     "method": "script"
+    }
+   ],
+   "labels": "heat-of-formation units, entries using each: kJ/mol 206, kcal/mol 110, kJ/kg 118, kcal/kg 41, cal/g 26, kJ/g 6, J/g 8, none 30. Calculated and experimental values sit side by side in one entry, and the same 'exptl., NIST' label can sit on values that differ by tens of kJ/mol.",
+   "provenance": "a reference marker per value into the entry's reference list. Entries with a marker against without: melting point 230 and 19, decomposition 217 and 40, density 266 and 41, heat of formation 222 and 29 (covered entries).",
+   "text_layer": "vol 2 has a clean text layer; vols 1 and 3 are image tables read by OCR (RapidOCR, 307 images) with rows rebuilt from coordinates, and are incomplete.",
+   "hand_check": "7 entries, 24 fields (12 entries were asked for): the 4 entries read from the vol 2 text layer (ethyl nitrate, mercury fulminate, hexanitrodiphenylaminoethyl nitrate, nitromethane) 4 of 4 fields each on the final script (the first script had two errors in nitromethane, fixed); 2 vol 3 OCR entries all checked fields correct; 1 vol 1 OCR entry (3-amino-5-nitro-1,2,4-triazole) with the melting point numerics correct but the range and qualifier flags polluted by the next row. So 1 of 24 fields was wrong, and the OCR error rate (3 of 7 entries) is not established; OCR garble was seen twice outside the sample.",
+   "printed_errors": [
+    {
+     "locator": "vol 2, nitromethane, printed pp. 1219-1220",
+     "what": "three heats of formation (-113, -113.1, -89.04 kJ/mol) carry the identical 'liquid, exptl., NIST' label; density printed 1.313 (298 K, TMD) against 1.131; a heat of combustion printed '-1,69.5'",
+     "checked": "text layer, final script re-checked on the entry"
+    },
+    {
+     "locator": "vol 2, mercury fulminate, printed p. 1083",
+     "what": "+941 kJ/kg (about +268 kJ/mol) beside -268 to -273 kJ/mol: a sign conflict; unit printed 'kg cal/mol'",
+     "checked": "text layer"
+    },
+    {
+     "locator": "vol 2, hexanitrodiphenylaminoethyl nitrate, printed p. 805",
+     "what": "formula C14H7N8O15 but the printed mass and nitrogen content need H8",
+     "checked": "text layer"
+    },
+    {
+     "locator": "vol 2, ethyl nitrate p. 695; erythritol tetranitrate p. 660",
+     "what": "unsigned values beside a signed one; non-formation quantities (cal/g at constant volume, kcal/kg) in the formation-enthalpy row",
+     "checked": "text layer"
+    },
+    {
+     "locator": "vol 3, pentanitroaniline; pentaerythritol trinitrate",
+     "what": "density printed '186 (obs.)' for 1.86; a freezing point of -28 beside a melting range 26-28",
+     "checked": "rendered figure"
+    }
+   ]
+  },
+  {
+   "id": "meyer2016",
+   "title": "Meyer, Koehler, Homburg, Explosives, 7th ed., Wiley-VCH 2016",
+   "held": true,
+   "files": [
+    "meyer2016_explosives_7th.pdf"
+   ],
+   "structure": "alphabetical encyclopedia, about 203 substance entries with a key:value property block (about 176 with an empirical formula, about 27 inorganic); mixtures and polymers with pseudo-formulae are not separated",
+   "counts": [
+    {
+     "property": "melting_point",
+     "what": "lines printing a numeric melting point (24 of them mention decomposition)",
+     "n": 121,
+     "locator": "printed pp. 7-376, entry property blocks",
+     "method": "regex_text_layer",
+     "error": "entry attribution wrong in 3 of 10 hand-checked entries; line counts about +-5%"
+    },
+    {
+     "property": "melting_point",
+     "what": "lines printing a numeric solidification point",
+     "n": 19,
+     "locator": "printed pp. 7-376",
+     "method": "regex_text_layer"
+    },
+    {
+     "property": "decomposition_temperature",
+     "what": "lines printing a numeric deflagration point",
+     "n": 80,
+     "locator": "printed pp. 7-376",
+     "method": "regex_text_layer",
+     "error": "a deflagration point is not a decomposition onset; recorded as its own kind"
+    },
+    {
+     "property": "crystal_density",
+     "what": "lines printing a density labelled 'crystals' (TNT only; a 'molten' line also exists)",
+     "n": 2,
+     "locator": "TNT entry, printed p. 347",
+     "method": "hand_count"
+    },
+    {
+     "property": "other_density",
+     "what": "lines printing a numeric density, including the 2 above (about 152 of 165 parsed entries carry no qualifier at all)",
+     "n": 189,
+     "locator": "printed pp. 7-376",
+     "method": "regex_text_layer",
+     "error": "unqualified, so not admitted as a crystal density without a second source"
+    },
+    {
+     "property": "enthalpy_formation",
+     "what": "lines printing a numeric enthalpy of formation",
+     "n": 153,
+     "locator": "printed pp. 7-376",
+     "method": "regex_text_layer",
+     "error": "none is labelled measured, calculated or phase"
+    },
+    {
+     "property": "enthalpy_formation",
+     "what": "lines printing a numeric energy of formation (a different quantity)",
+     "n": 150,
+     "locator": "printed pp. 7-376",
+     "method": "regex_text_layer"
+    },
+    {
+     "property": "enthalpy_fusion",
+     "what": "lines printing a numeric heat of fusion",
+     "n": 13,
+     "locator": "printed pp. 7-376",
+     "method": "regex_text_layer"
+    },
+    {
+     "property": "enthalpy_sublimation",
+     "what": "lines printing a numeric heat of sublimation",
+     "n": 0,
+     "locator": "whole book",
+     "method": "regex_text_layer"
+    }
+   ],
+   "labels": "no enthalpy of formation is labelled measured, calculated or by phase; only heat-of-explosion values carry (calculated)/(experimental). First-printed Hf unit per entry: kJ/kg with kcal/kg 114, kJ/kg with kJ/mol 24, kJ/kg alone 5, kJ/mol alone 3.",
+   "provenance": "no per-value citation for melting point, density or enthalpy; footnotes only for heat of explosion.",
+   "text_layer": "clean (U+2212 minus kept); spaces dropped in some prose, subscripts flattened, vapour-pressure tables scrambled; 22 duplicated PDF pages; printed page = PDF page minus 1 early, minus 23 by printed p. 244.",
+   "hand_check": "10 random entries: every value line identical to the text layer, entry or name attribution wrong in 3; two pages (PDF 267, PDF 240) rendered to confirm the errors below.",
+   "printed_errors": [
+    {
+     "locator": "printed p. 244 (PDF 267), octanitrocubane",
+     "what": "melting point printed as -275 C (sign), while the next entry on the facing page prints +275 C",
+     "checked": "yes, text layer and rendered page"
+    },
+    {
+     "locator": "printed p. 219, methylphenylurethane",
+     "what": "formation enthalpy printed -538.5 kcal/kg = 2253 kJ/kg (minus sign lost)",
+     "checked": "yes, rendered page"
+    },
+    {
+     "locator": "printed p. 355, trimethylamine nitrate",
+     "what": "-637.1 kcal/kg printed as -2816.2 kJ/kg (about -2666 by conversion)",
+     "checked": "text layer only"
+    },
+    {
+     "locator": "printed p. 103 and p. 264",
+     "what": "property block of a mixture (DNDA-57) under the heading of a single compound; property block of PolyGLYN under PolyNIMMO",
+     "checked": "text layer only"
+    },
+    {
+     "locator": "new-compound entries",
+     "what": "values identical to the digit to Klapoetke's text, so the two books are not independent for those compounds",
+     "checked": "text layer only"
+    }
+   ]
+  },
+  {
+   "id": "agrawal2010",
+   "title": "Agrawal, High Energy Materials, Wiley-VCH 2010",
+   "held": true,
+   "files": [
+    "high-energy-materials-propellants-explosives-and-pyrotechnics.pdf (a second file, explosives-propellants-and-pyrotechnics.pdf, has no text layer and was not read)"
+   ],
+   "structure": "prose and about 70 tables; few per-compound tables: T1.5 (24 rows), T2.2 (6), T2.4 (7), T2.15 (6, density estimated), T3.6 (12), T4.3 (5), T4.4 (ADN), T5.3 (about 15 inorganic oxidisers)",
+   "counts": [
+    {
+     "property": "enthalpy_formation",
+     "what": "rows of Table 1.5 printing kJ/kg and kJ/mol",
+     "n": 24,
+     "locator": "Table 1.5, printed p. 26 (PDF 60)",
+     "method": "table_read_by_hand",
+     "error": "all 24 rows compared with the rendered page: 0 errors"
+    },
+    {
+     "property": "melting_point",
+     "what": "rows of Table 3.6 with a melting point (9 with an ignition temperature, 10 with an exotherm temperature, as separate columns)",
+     "n": 11,
+     "locator": "Table 3.6, printed p. 189",
+     "method": "table_read_by_hand",
+     "error": "values compared on the text layer only"
+    },
+    {
+     "property": "melting_point",
+     "what": "prose hits for 'm.p.' (a ceiling on mentions, not entries)",
+     "n": 54,
+     "locator": "whole book",
+     "method": "regex_text_layer"
+    },
+    {
+     "property": "melting_point",
+     "what": "prose hits for 'melting point' (a ceiling on mentions, not entries)",
+     "n": 26,
+     "locator": "whole book",
+     "method": "regex_text_layer"
+    },
+    {
+     "property": "other_density",
+     "what": "rows of Table 2.15 with a density, marked estimated",
+     "n": 6,
+     "locator": "Table 2.15",
+     "method": "table_read_by_hand"
+    }
+   ],
+   "labels": "no measured/calculated label per value; Table 2.15 marked estimated and the velocity columns of Table 2.4 marked calculated.",
+   "provenance": "table-level only (Table 3.6 is 'Based on Ref. [46]', Yinon and Zitrin 1981, not held); Table 1.5 cites nothing.",
+   "text_layer": "minus printed as U+2212 followed by a space ('- 115'), exponents flattened, formulas split ('C 6 H 2').",
+   "printed_errors": [
+    {
+     "locator": "Table 1.5, printed p. 26",
+     "what": "CL-20 printed +1006 kJ/kg and +460 kJ/mol; 1006 kJ/kg at CL-20's molar mass is about 441 kJ/mol (4% apart); HMX's pair (+253, +75) is consistent",
+     "checked": "yes, text layer and rendered page"
+    },
+    {
+     "locator": "Table 1.5",
+     "what": "TNT -26 kJ/mol, against -62 to -67 elsewhere in the held books",
+     "checked": "text layer only"
+    },
+    {
+     "locator": "Table 1.5 and Table 4.4",
+     "what": "ADN formation enthalpy -148 in one and -150.6 in the other; melting point 91.5-93.5 (Table 3.6) against 92.0 (Table 4.4)",
+     "checked": "text layer only"
+    },
+    {
+     "locator": "Table 1.5",
+     "what": "ammonium nitrate, ammonium perchlorate and ADN kJ/kg equal Meyer's ENERGY of formation, not its enthalpy",
+     "checked": "text layer only"
+    },
+    {
+     "locator": "Table 1.5 and p. 25",
+     "what": "picric acid formula printed C6H2(NO)3OH; EDNA printed C2H6N6O6 with M 210",
+     "checked": "text layer only"
+    }
+   ]
+  },
+  {
+   "id": "klapotke2017",
+   "title": "Klapoetke, Chemistry of High-Energy Materials, 4th ed., De Gruyter 2017",
+   "held": true,
+   "files": [
+    "chemistry-of-high-energy-materials 4th.pdf"
+   ],
+   "structure": "a textbook, not a compendium; per-compound property data only in Tab. 1.1 (10 explosives, density), Tab. 4.10 (5 explosives, experimental against EXPLO5), Tab. 4.8 and 4.12 (CBS-4M calculated enthalpies)",
+   "counts": [
+    {
+     "property": "other_density",
+     "what": "explosives with a density in Tab. 1.1",
+     "n": 10,
+     "locator": "Tab. 1.1",
+     "method": "table_read_by_hand",
+     "error": "verified on the rendered page"
+    },
+    {
+     "property": "enthalpy_formation",
+     "what": "compounds with an experimental value in Tab. 4.10",
+     "n": 5,
+     "locator": "Tab. 4.10",
+     "method": "table_read_by_hand"
+    },
+    {
+     "property": "enthalpy_formation",
+     "what": "compounds with a CBS-4M calculated enthalpy in Tab. 4.8 and 4.12",
+     "n": 7,
+     "locator": "Tab. 4.8, 4.12",
+     "method": "table_read_by_hand",
+     "error": "computed, so never a reference label"
+    }
+   ],
+   "labels": "calculated values are flagged (CBS-4M, EXPLO5); experimental values flagged in Tab. 4.10.",
+   "text_layer": "minus is U+2013 or U+2212 (mixed); superscripts flattened.",
+   "printed_errors": []
+  },
+  {
+   "id": "boddu2010",
+   "title": "Boddu and Redner (eds.), Energetic Materials: Thermophysical Properties, Predictions, and Experimental Measurements, CRC Press 2010",
+   "held": true,
+   "files": [
+    "Energetic Materials _ Thermophysical Properties ... (CRC Press 2010).pdf"
+   ],
+   "structure": "edited chapters; compound data only in T10.5 (9 compounds, melting point in K with per-value letter references, plus enthalpy of fusion), T5.1 (7 compounds, EPI estimates with some experimental), T11.1 and T11.2 (RDX and HMX melting ranges)",
+   "counts": [
+    {
+     "property": "melting_point",
+     "what": "compounds with a melting point and a per-value reference",
+     "n": 9,
+     "locator": "Table 10.5",
+     "method": "table_read_by_hand"
+    },
+    {
+     "property": "enthalpy_fusion",
+     "what": "compounds with an enthalpy of fusion",
+     "n": 9,
+     "locator": "Table 10.5",
+     "method": "table_read_by_hand"
+    }
+   ],
+   "provenance": "per-value references in T10.5, T10.8 and T11.1.",
+   "printed_errors": [
+    {
+     "locator": "T11.1 and T11.2",
+     "what": "RDX melting range 272-278 C and HMX 198-205 C look swapped against T10.5 (RDX 478.5 K, HMX 553.15 K)",
+     "checked": "text layer only"
+    },
+    {
+     "locator": "T10.5",
+     "what": "an MNA safety data sheet cited as the reference for the MTNI melting point; DNAN 359.9 K in T10.5 against 94.5 C 'Exp.' in T5.1",
+     "checked": "text layer only"
+    }
+   ]
+  },
+  {
+   "id": "viswanath2018",
+   "title": "Viswanath, Ghosh, Boddu, Emerging Energetic Materials, Springer 2018",
+   "held": true,
+   "files": [
+    "viswanath2018.pdf"
+   ],
+   "structure": "ten single-compound chapters (CL-20, FOX-7, DNAN, NTO, HNS, MNA, ANAP, TATB, TATP, TNAZ), one property table each, conflicting literature values listed side by side with a bracketed reference per value; some are EPI or ACD predictions",
+   "counts": [
+    {
+     "property": "melting_point",
+     "what": "compounds with a numeric melting point",
+     "n": 9,
+     "locator": "chapter tables T2.3, 3.10/3.11, 4.3, 5.2, 6.2, 7.3, 8.2, 9.3, 10.2, 11.2",
+     "method": "table_read_by_hand"
+    },
+    {
+     "property": "other_density",
+     "what": "compounds with a density",
+     "n": 10,
+     "locator": "same tables",
+     "method": "table_read_by_hand"
+    },
+    {
+     "property": "enthalpy_formation",
+     "what": "compounds with an enthalpy of formation",
+     "n": 7,
+     "locator": "same tables",
+     "method": "table_read_by_hand"
+    }
+   ],
+   "provenance": "bracketed reference per value.",
+   "text_layer": "exponents lost ('3.86-3' for 3.86e-3), Delta read as D.",
+   "hand_check": "HNS Table 6.2 verified on the rendered page.",
+   "printed_errors": [
+    {
+     "locator": "HNS, printed p. 222",
+     "what": "solid enthalpy of formation printed -13.89 kcal/mol, against +58 kJ/mol (Agrawal) and +78 (Akhavan, Cooper)",
+     "checked": "rendered page"
+    },
+    {
+     "locator": "NTO and TNAZ tables",
+     "what": "NTO enthalpy -59.83, -117.21 and -100.7 kJ/mol in one cell; TNAZ 30.7, 8.7 and 2.81 kcal/mol",
+     "checked": "text layer only"
+    },
+    {
+     "locator": "DNAN table",
+     "what": "density 1.336 against 1.546 in Meyer",
+     "checked": "text layer only"
+    }
+   ]
+  },
+  {
+   "id": "akhavan2011",
+   "title": "Akhavan, The Chemistry of Explosives, 3rd ed., RSC 2011",
+   "held": true,
+   "files": [
+    "the-chemistry-of-explosives_V3.pdf"
+   ],
+   "structure": "24 per-compound property tables (T2.2-T2.27 without 2.11 and 2.20), plus T5.11 (19 rows, enthalpy in kJ/kg and kJ/mol) and T4.1",
+   "counts": [
+    {
+     "property": "melting_point",
+     "what": "compound tables printing a melting point",
+     "n": 22,
+     "locator": "T2.2-T2.27",
+     "method": "table_read_by_hand"
+    },
+    {
+     "property": "decomposition_temperature",
+     "what": "compound tables printing a decomposition temperature",
+     "n": 14,
+     "locator": "T2.2-T2.27",
+     "method": "table_read_by_hand"
+    },
+    {
+     "property": "decomposition_temperature",
+     "what": "compound tables printing an ignition temperature",
+     "n": 17,
+     "locator": "T2.2-T2.27",
+     "method": "table_read_by_hand",
+     "error": "ignition temperature is its own kind"
+    },
+    {
+     "property": "other_density",
+     "what": "compound tables printing a density (polymorph-labelled for lead azide, HMX, AN)",
+     "n": 24,
+     "locator": "T2.2-T2.27",
+     "method": "table_read_by_hand"
+    },
+    {
+     "property": "enthalpy_formation",
+     "what": "compound tables printing an enthalpy of formation in kJ/mol",
+     "n": 21,
+     "locator": "T2.2-T2.27",
+     "method": "table_read_by_hand"
+    },
+    {
+     "property": "enthalpy_formation",
+     "what": "rows of T5.11 in kJ/kg and kJ/mol",
+     "n": 19,
+     "locator": "Table 5.11",
+     "method": "table_read_by_hand",
+     "error": "minus signs absent from the text layer"
+    }
+   ],
+   "labels": "an asterisk marks ACD/Labs calculated values (flash point, molar volume, DNAN density 1.444); unasterisked values carry no label.",
+   "provenance": "no per-value citation.",
+   "text_layer": "degree sign lost ('1C'), exponents lost, 685 control characters; minus lost entirely in the negatives of T5.11 and T2.23 (FOX-12 printed -355 reads 355).",
+   "hand_check": "three pages (T2.17, T2.23, T5.11) compared with the rendered page: values correct apart from the lost minus signs.",
+   "printed_errors": [
+    {
+     "locator": "printed p. 51",
+     "what": "TATB melting point 448.5 C beside a decomposition above 350 C in the same entry",
+     "checked": "text layer only"
+    },
+    {
+     "locator": "printed p. 55",
+     "what": "CL-20 melting point 167 C against 'above 195 dec' in Meyer",
+     "checked": "text layer only"
+    }
+   ]
+  },
+  {
+   "id": "cooper1996",
+   "title": "Cooper, Explosives Engineering, Wiley-VCH 1996",
+   "held": true,
+   "files": [
+    "Explosives engineering -- Cooper, Paul W_, 1937- ... .pdf"
+   ],
+   "structure": "a scan with a noisy OCR layer; T3.2 aromatic (20 rows), T3.3 aliphatic (about 13), T3.4 inorganic (4), T9.2 enthalpies in kcal/mol (31 rows, about 16 legible)",
+   "counts": [
+    {
+     "property": "melting_point",
+     "what": "rows of T3.2 with a melting point",
+     "n": 18,
+     "locator": "Table 3.2",
+     "method": "table_read_by_hand",
+     "error": "OCR text: numbers misread ('1:93', '05.8', minus as a dash)"
+    },
+    {
+     "property": "enthalpy_formation",
+     "what": "legible rows of T9.2",
+     "n": 16,
+     "locator": "Table 9.2",
+     "method": "table_read_by_hand",
+     "error": "of 31 rows"
+    }
+   ],
+   "text_layer": "OCR of a scan; low yield.",
+   "printed_errors": []
+  },
+  {
+   "id": "acree2010",
+   "title": "Acree and Chickos, Phase Transition Enthalpy Measurements of Organic and Organometallic Compounds, J. Phys. Chem. Ref. Data 39 (2010) 043101",
+   "held": true,
+   "files": [
+    "acree2010.pdf"
+   ],
+   "structure": "tables of fusion, sublimation and vaporisation enthalpies with the fusion temperature, method and a reference code per value, by molecular formula and CAS number",
+   "counts": [
+    {
+     "property": "entries",
+     "what": "entries (formula, CAS number) in the tables",
+     "n": 11131,
+     "locator": "PDF pp. 9-880",
+     "method": "script",
+     "error": "entry boundaries by CAS-number pattern; not hand-checked in full"
+    },
+    {
+     "property": "entries",
+     "what": "entries whose name is polynitro, nitrate, nitramine, azide, azole or peroxide (an upper bound: the name keyword also matches a hydrazide)",
+     "n": 230,
+     "locator": "PDF pp. 14-822",
+     "method": "script",
+     "error": "name keyword, not structure"
+    },
+    {
+     "property": "melting_point",
+     "what": "of those, entries with a numeric fusion enthalpy and fusion temperature",
+     "n": 124,
+     "locator": "PDF pp. 14-822",
+     "method": "script",
+     "error": "TNT p. 269 (fusion at 352.2 K) and 2,4,6-trinitropyridine p. 138 read by hand"
+    },
+    {
+     "property": "enthalpy_sublimation",
+     "what": "of those, entries with a numeric sublimation enthalpy",
+     "n": 88,
+     "locator": "PDF pp. 14-822",
+     "method": "script"
+    },
+    {
+     "property": "enthalpy_sublimation",
+     "what": "of those, entries with both a fusion temperature and a sublimation enthalpy",
+     "n": 33,
+     "locator": "PDF pp. 14-822",
+     "method": "script"
+    }
+   ],
+   "labels": "all values are measurements with a method code and a reference code; a compilation of primary reports, so each is traceable.",
+   "provenance": "reference code per value (year, authors).",
+   "printed_errors": []
+  },
+  {
+   "id": "kim2008",
+   "title": "Kim et al. 2008, Table 1 and Table 3 (already transcribed in the repository)",
+   "held": true,
+   "files": [
+    "kim2008.pdf",
+    "benchmarks/thermophysical/kim2008_crystal_densities.py"
+   ],
+   "structure": "41 CSD crystal structures of energetic molecules with refcode, density, R factor and the temperature of the diffraction experiment",
+   "counts": [
+    {
+     "property": "crystal_density",
+     "what": "crystal densities, X-ray, with temperature (38 at 295 K, one each at 145, 153 and 200 K)",
+     "n": 41,
+     "locator": "Table 1, checked against Table 3",
+     "method": "hand_count",
+     "error": "the paper prints picric acid twice, 1.655 and 1.771"
+    }
+   ],
+   "printed_errors": [
+    {
+     "locator": "Table 1 against Table 3",
+     "what": "picric acid density 1.655 in Table 1 (the TNT row's value above it) and 1.771 in Table 3; one printed formula (SIQKAE) lacks its hydrogens",
+     "checked": "yes, by the module that records it"
+    }
+   ]
+  },
+  {
+   "id": "wang2024",
+   "title": "Wang et al., 3-Bromo-5-fluoro-2,4,6-trinitroanisole, Energetic Materials Frontiers 5 (2024) 131-140",
+   "held": true,
+   "files": [
+    "A high density and low sensitivity carrier explosive ... 3-Bromo-5-fluoro-2,4,6-trinitroanisole.pdf"
+   ],
+   "structure": "one new compound with its enthalpy of formation (calorimeter), DSC melting point and decomposition peak (20 C/min); Table 1 lists it with seven other carrier explosives",
+   "counts": [
+    {
+     "property": "melting_point",
+     "what": "compounds in Table 1 with a melting point (only the new compound is measured in this paper)",
+     "n": 8,
+     "locator": "Table 1, journal p. 133",
+     "method": "table_read_by_hand",
+     "error": "provenance of the other seven rows is not stated in the table"
+    },
+    {
+     "property": "decomposition_temperature",
+     "what": "compounds in Table 1 with a decomposition peak temperature (DSC, 20 C/min)",
+     "n": 8,
+     "locator": "Table 1, journal p. 133",
+     "method": "table_read_by_hand"
+    },
+    {
+     "property": "enthalpy_formation",
+     "what": "compounds in Table 1 with an enthalpy of formation (one measured here, DFTNAN's from its reference 19)",
+     "n": 8,
+     "locator": "Table 1, journal p. 133",
+     "method": "table_read_by_hand"
+    },
+    {
+     "property": "other_density",
+     "what": "compounds in Table 1 with a 'theoretical density' (the new compound's is a weighed cast column)",
+     "n": 8,
+     "locator": "Table 1 and text, journal p. 133",
+     "method": "table_read_by_hand",
+     "error": "not a crystal density"
+    }
+   ],
+   "labels": "'theoretical density' is not defined as crystal density or maximum density; the new compound's value is a cast column.",
+   "printed_errors": []
+  },
+  {
+   "id": "lease2023",
+   "title": "Lease et al., Halogenated PETN derivatives, Chem. Sci. 14 (2023) 7044-7056",
+   "held": true,
+   "files": [
+    "Lease2023.pdf"
+   ],
+   "structure": "14 PETN derivatives plus PETN: DSC melt and decomposition onsets (Table 2); crystal structures of four mono-substituted derivatives and PETN (Table 1); DFT enthalpies and oxygen balances (Table 3)",
+   "counts": [
+    {
+     "property": "melting_point",
+     "what": "rows of Table 2 (derivatives and PETN) with a DSC melting onset; three print N/A",
+     "n": 12,
+     "locator": "Table 2, journal p. 7050",
+     "method": "table_read_by_hand",
+     "error": "melt onset, a method class of its own"
+    },
+    {
+     "property": "decomposition_temperature",
+     "what": "rows of Table 2 with a DSC decomposition onset",
+     "n": 15,
+     "locator": "Table 2, journal p. 7050",
+     "method": "table_read_by_hand",
+     "error": "onset kind"
+    },
+    {
+     "property": "crystal_density",
+     "what": "structures in Table 1 (four derivatives and PETN) with a calculated crystal density",
+     "n": 5,
+     "locator": "Table 1, journal p. 7049",
+     "method": "table_read_by_hand",
+     "error": "the temperature column is not in the text layer"
+    },
+    {
+     "property": "enthalpy_formation",
+     "what": "rows of Table 3 with an enthalpy of formation: all DFT-computed, so zero measured",
+     "n": 0,
+     "locator": "Table 3",
+     "method": "table_read_by_hand",
+     "error": "computed"
+    }
+   ],
+   "labels": "enthalpies and oxygen balances are calculated (atom-equivalent DFT); the chlorine and iodine oxygen balances look swapped (docs/sources.toml).",
+   "printed_errors": []
+  },
+  {
+   "id": "tsang1974",
+   "title": "Tsang and Domalski, An Appraisal of Methods for Estimating Self-Reaction Hazards, NBSIR 74-551 (1974)",
+   "held": true,
+   "files": [
+    "An Appraisal of Methods for Estimating Self-Reaction Hazards_1974.pdf"
+   ],
+   "structure": "a hazard-estimation report; Table 1 lists 22 compounds with formation enthalpy and a computed decomposition reaction (about 8 are energetic); Table 9 gives test data for various materials",
+   "counts": [
+    {
+     "property": "enthalpy_formation",
+     "what": "compounds in Table 1 with a formation enthalpy and a reference number",
+     "n": 22,
+     "locator": "Table 1, report pp. 6-7 (PDF 16-17)",
+     "method": "table_read_by_hand",
+     "error": "phase and unit not printed in the extracted text; 3 to 4 are inorganic or metal azides"
+    }
+   ],
+   "labels": "values come from the CHETAH program's database with a bracketed reference per value; phase not stated.",
+   "printed_errors": []
+  }
+ ],
+ "cross_source": {
+  "note": "Spread of the values the held books print for one compound and property, from the inventory pass (text layer; only Agrawal's CL-20 pair was re-verified on the rendered page for this document). Only the spread is recorded, not the values: the books are copyrighted. It is the reason the preregistration scores a VERIFIED cohort (section 8) and the reason two books printing one digit-for-digit value are not two observations (section 8.3).",
+  "columns": [
+   "compound",
+   "property",
+   "books compared",
+   "spread",
+   "what the spread is"
+  ],
+  "rows": [
+   [
+    "TNT",
+    "enthalpy of formation (kJ/mol)",
+    "3 (Meyer, Akhavan, Agrawal)",
+    "41.1",
+    "the largest; Agrawal's table prints -26 against -62 to -67"
+   ],
+   [
+    "CL-20",
+    "enthalpy of formation (kJ/mol)",
+    "3 (Meyer, Akhavan, Agrawal)",
+    "88",
+    "the same book (Agrawal) prints +1006 kJ/kg and +460 kJ/mol, which disagree by 4% under conversion"
+   ],
+   [
+    "picric acid",
+    "enthalpy of formation (kJ/mol)",
+    "3 (Meyer, Akhavan, Agrawal)",
+    "34.2",
+    "three different values"
+   ],
+   [
+    "tetryl",
+    "enthalpy of formation (kJ/mol)",
+    "4 (Meyer, Akhavan, Agrawal, Cooper)",
+    "14.5",
+    "two clusters, about 20 and about 34"
+   ],
+   [
+    "TATB",
+    "enthalpy of formation (kJ/mol)",
+    "4",
+    "14.5",
+    "one value apart from three that agree to 0.2"
+   ],
+   [
+    "PETN",
+    "enthalpy of formation (kJ/mol)",
+    "3",
+    "8.4",
+    ""
+   ],
+   [
+    "RDX",
+    "enthalpy of formation (kJ/mol)",
+    "4",
+    "8.8",
+    "the repository's own survey has the same compound at +66.6 and +85.0 kJ/mol in one book"
+   ],
+   [
+    "HMX",
+    "enthalpy of formation (kJ/mol)",
+    "4",
+    "0.0",
+    "identical to the digit, which is what copying looks like"
+   ],
+   [
+    "TATB",
+    "melting point (C)",
+    "4",
+    "98.5",
+    "a melting point of 448.5 C beside a decomposition above 350 C; one book says 360 dec, one 350"
+   ],
+   [
+    "CL-20",
+    "melting point (C)",
+    "2",
+    "28 or more",
+    "'above 195 dec' against 167"
+   ],
+   [
+    "HMX",
+    "crystal density, beta form (g/cm3)",
+    "3",
+    "0.06",
+    "the alpha form is 0.06 lower again"
+   ],
+   [
+    "DNAN",
+    "density (g/cm3)",
+    "3 (Meyer, Akhavan, Viswanath)",
+    "0.21",
+    "Akhavan's value is marked calculated (ACD/Labs)"
+   ]
+  ]
+ },
+ "small_sources": [
+  {
+   "item": "Kim 2008 crystal densities",
+   "n": 41,
+   "holds": "X-ray crystal density, temperature, form, CSD refcode",
+   "locator": "Table 1 (already in benchmarks/thermophysical/kim2008_crystal_densities.py)",
+   "limit": "every row was already examined while the repository compared methods: forced out of the holdout"
+  },
+  {
+   "item": "Fit tables of held method papers (Keshavarz 2006/2009/2010, Nazari 2016, Jafari 2016, Cawkwell 2021, Byrd and Rice)",
+   "n": 222,
+   "holds": "experimental condensed- or gas-phase enthalpies for 100-222 compounds per paper (Nazari 222, Jafari 119, Cawkwell 103 training, Keshavarz 2009 26)",
+   "locator": "the papers' tables (compounds drawn as images in several)",
+   "limit": "they are also those methods' training sets: using them as labels makes the matching method non-blind; the largest single set is the ceiling used in section 7"
+  },
+  {
+   "item": "Lease 2023 Table 2",
+   "n": 15,
+   "holds": "DSC melt and decomposition onsets for PETN and 14 derivatives",
+   "locator": "Table 2, journal p. 7050",
+   "limit": "one protocol, one family; the only series in the library with melting and decomposition onsets side by side"
+  },
+  {
+   "item": "Wang 2024 Table 1",
+   "n": 8,
+   "holds": "density (not crystal), enthalpy, melting point, decomposition peak",
+   "locator": "Table 1, journal p. 133",
+   "limit": "one measured compound; the rest cited"
+  }
+ ],
+ "upper_bounds_note": "Each row adds the counts of section 3 that could in principle feed the property, scaling the uncovered Klapoetke entries at the covered rate. The sum double-counts every compound two books both print, which is most of the well-known ones, and none of it has passed identity, value-kind, temperature or form checks: it is a ceiling on entries, not an estimate of distinct compounds. The preregistration asks (11.2) whether 300 VERIFIED eligible entities exist per property; that is measurable only after identity resolution in the corpus build. What this table can show is where the ceiling is already below 300.",
+ "upper_bounds": [
+  {
+   "property": "crystal density, qualified as a crystal or diffraction measurement",
+   "n": 235,
+   "n_largest": 187,
+   "basis": "Encyclopedia 149 covered x 1.26 = 187, Kim 2008 41, Lease 2023 5, Meyer 2. BELOW 300 before any verification."
+  },
+  {
+   "property": "density, any (unqualified, bulk and 'theoretical' included)",
+   "n": 672,
+   "n_largest": 385,
+   "basis": "Encyclopedia 307 x 1.26 = 385, Meyer 189, Kim 41, Akhavan 24, Klapoetke 2017 10, Viswanath 10, Wang 8, Lease 5; most are unqualified and are not admitted as crystal density without a second source."
+  },
+  {
+   "property": "condensed-phase enthalpy of formation, labelled experimental",
+   "n": 112,
+   "n_largest": 99,
+   "basis": "Encyclopedia 'experimental' 79 x 1.26 = 99, Klapoetke 2017 5, Viswanath 7, Wang 1. BELOW 300; and an 'experimental' value may be gas phase (only 41 of 251 Encyclopedia heat-of-formation entries carry a solid or liquid label)."
+  },
+  {
+   "property": "enthalpy of formation, any label",
+   "n": 597,
+   "n_largest": 315,
+   "basis": "Encyclopedia 251 x 1.26 = 315, Meyer 153 (unlabelled), Akhavan 40, Agrawal 24, Tsang 22, Cooper 16, Klapoetke 2017 12, Wang 8, Viswanath 7; the fit tables of method papers add up to 222 and are those methods' training sets."
+  },
+  {
+   "property": "melting point, clean melting event",
+   "n": 541,
+   "n_largest": 212,
+   "basis": "Encyclopedia (249 - 80 with a decomposition marker) x 1.26 = 212, Acree 124 (fusion temperature; name-keyword upper bound), Meyer 140 - 24 = 116, Akhavan 22, Cooper 18, Lease 12, Agrawal 11, Boddu 9, Viswanath 9, Wang 8. Phase A's handbook corpus also holds 398 nitro-family melting points (385 nitro, 8 nitrate ester, 5 nitramine; CORPUS_REPORT.md), mostly not energetic."
+  },
+  {
+   "property": "decomposition temperature (evidence only, kinds differ)",
+   "n": 466,
+   "n_largest": 323,
+   "basis": "Encyclopedia 257 x 1.26 = 323, Meyer deflagration and decomposition lines about 89, Akhavan 31, Lease 15, Wang 8; kinds and heating rates are not parsed."
+  }
+ ],
+ "not_held": [
+  {
+   "what": "LMU Munich dissertations (the Klapoetke group)",
+   "why": "no file in the library contains the university's name or 'Dissertation' together with energetic content (full-text search of 1,120 indexed files, 74,824 pages); docs/sources.toml records them as read online (edoc.ub.uni-muenchen.de), not held. They are open access and could be fetched; none is counted."
+  },
+  {
+   "what": "Klapoetke, Chemistry of High-Energy Materials, other editions; Matyas and Pachman, Primary Explosives",
+   "why": "not held; the Encyclopedia cites the latter for primary explosives."
+  },
+  {
+   "what": "explosives-propellants-and-pyrotechnics.pdf (a second Agrawal-type scan)",
+   "why": "no text layer; unreadable by text search; OCR not attempted."
+  },
+  {
+   "what": "The Cambridge Structural Database",
+   "why": "not held and licence-restricted. It is the source of most diffraction densities and of the training sets of Ammon, Hofmann, Nguyen, Yang, Jin and Davis (section 10 of the preregistration)."
+  },
+  {
+   "what": "Supporting information of Davis 2024 and Nguyen 2021 (training lists)",
+   "why": "not held (docs/research/literature.toml)."
+  },
+  {
+   "what": "NIST WebBook, ATcT",
+   "why": "the ATcT page is in the library but covers small molecules, not energetic compounds; the WebBook is online and was used for individual rows in the repository's earlier survey, not counted here."
+  }
+ ]
+}
