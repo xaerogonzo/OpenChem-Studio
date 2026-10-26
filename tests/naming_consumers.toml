@@ -495,6 +495,12 @@ scope = "core"
 owner = "namer"
 
 [[consumer]]
+file = "tests/test_namer_round85_methanoazepinoquinoxaline_labels_every_atom_and_pairs_its_nitrogens.py"
+why = "the curated methano-bridged azepinoquinoxaline labels every atom and pairs its nitrogens with the carbons beside them (D-379), so a substituent on a spiro partner takes a primed locant OPSIN reads and the round 84 molecule that hung reads back"
+scope = "core"
+owner = "namer"
+
+[[consumer]]
 file = "tests/test_namer_round84_spiro_joints_of_lactam_rings_and_a_numbering_search_that_never_returned.py"
 why = "a polycycle with dozens of bridges has no von Baeyer numbering past 50,000 orderings (D-376, the call never returned), and a spiro ring ketone on a pyridone-type, bridgehead-nitrogen or sulfur component names its partner from the pyridine or the Kekule form (D-377, D-378), read back through OPSIN"
 scope = "core"

@@ -2525,6 +2525,14 @@ what can be verified.
   `tests/test_namer_known_defects.py`. Three earlier tests pinned refusals this round turned into names and now pin the cases still refused: a carboxylate beside two neutral acids
   (`test_namer_round43_*`, `test_namer_round45_*`) and a pyrazolone anion (`test_namer_round46_*`).
 
+## 2026-10-26 -- naming round 85: one curated ring that labelled 11 of its 16 atoms (D-379)
+
+Populations: three curated rings in a chain (400; clean apart from OPSIN's beta-lactam stereo, one name took 7 s), and the round 84 spiro joint with one or two substituents (500: 489 read back, 11 did not; 498 after the fix).
+
+* **D-379.** The curated `7,8,9,10-tetrahydro-6H-6,10-methanoazepino[4,5-g]quinoxaline` labelled 11 of its 16 atoms (none of 3, 4a, 5a, 10a, 11a) and had N1 and N4 the wrong way round beside their carbons (a single chlorine probe cannot tell: the pair is symmetric). A substituent on an unlabelled atom of a spiro name was numbered by the generic fallback (`...-16-carboxamide`), which OPSIN cannot read. Every atom is labelled from the adjacency now (`-2'-carboxamide`). Round 84's open item (a), the molecule that used to hang and then read back unreadably, is the same cause and reads back.
+* **Audit.** The other 370 curated entries: 144 have fewer labels than atoms, almost all monocycles, exocyclic oxo atoms and beta-lactams that need none; a single chlorine on every ring position of every entry with unlabelled ring atoms (helicenes, tetracenes, steroids, indolizino-, dibenzo-, pyrido[1,2,3-de]- and methano-bridged systems; 475 variants) read back in full.
+* New `tests/test_namer_round85_methanoazepinoquinoxaline_labels_every_atom_and_pairs_its_nitrogens.py`; mutation: 3 of 5 killed by script and the nitrogen swap killed by hand (the script replaced the first of four identical strings, which belonged to another entry); `benchmarks/naming/ring_sweep_population.json` was regenerated.
+
 ## 2026-10-25 -- naming round 84: spiro joints of two curated rings (D-376 .. D-378)
 
 `spiro.py` (scratch, `D:\_scratch6080`): two curated rings (16 atoms or fewer, no charge) joined at one sp3 carbon of each, 600 molecules: 566 read back, 30 NAMING ERROR, 3 unreadable, 1 wrong; after the fixes 593, 2, 4, 1. Before it, ring pairs joined by 12 functional linkers, richer substituents and charged rings (about 11,000 molecules in round 83) were clean.
