@@ -1612,11 +1612,11 @@
    "value_kind": "measured",
    "phase_form": "liquid",
    "temperature": "298 K",
-   "source": "Korsunskii, Pepekin, Lebedev, Apin, Izv. Akad. Nauk SSSR, Ser. Khim. (1967) 525-528, English Bull. Acad. Sci. USSR 16 (1967) 509-511, pp. 509 and 511 (text read; file korsunskii1967.pdf)",
+   "source": "Korsunskii, Pepekin, Lebedev, Apin, Izv. Akad. Nauk SSSR, Ser. Khim. (1967) 525-528, English Bull. Acad. Sci. USSR 16 (1967) 509-511, pp. 509 and 511 (text read; file korsunskii1967_dimethylnitrosoamine_thermochemistry.pdf)",
    "locator": "text, Table 1, conclusions",
    "lineage_root": "a nitrosamine paper; for the nitramine it cites its ref. [3]",
    "independent_of_inventory": "NO: not a primary for any nitramine; NIST's 'see Korsunsky' on the dimethylnitramine row points to a cited number",
-   "note": "the library file is kept under the name it was saved with; a rename was refused (permission denied on the Sci Downloads folder)"
+   "note": "the library file is renamed korsunskii1967_dimethylnitrosoamine_thermochemistry.pdf"
   },
   {
    "id": "G29",
@@ -1628,7 +1628,7 @@
    "value_kind": "measured",
    "phase_form": "solid (c) and liquid (l)",
    "temperature": "298 K",
-   "source": "Miroshnichenko, Kon'kova, Matyushin, Inozemtsev, Russ. Chem. Bull. 58 (2009) 2015-2019, Tables 1 and 2, printed pp. 2017-2018 (rendered pages read; file miroshnichenko2009.pdf; DOI 10.1007/s11172-009-0275-0)",
+   "source": "Miroshnichenko, Kon'kova, Matyushin, Inozemtsev, Russ. Chem. Bull. 58 (2009) 2015-2019, Tables 1 and 2, printed pp. 2017-2018 (rendered pages read; file miroshnichenko2009_bond_dissociation_energies_nitramines_rcb.pdf; DOI 10.1007/s11172-009-0275-0)",
    "locator": "Tables 1 and 2",
    "lineage_root": "the authors' own isoperibol combustion and Calvet vaporization data with the combustion energies listed, plus a recommended treatment with 'literature data'; same group as Matyushin 1971 and Pepekin 1974",
    "independent_of_inventory": "yes: a 2009 primary for 12 solids and liquids, 6 of them not otherwise in the NIST rows",
