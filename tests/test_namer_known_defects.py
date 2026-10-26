@@ -4782,6 +4782,10 @@ FIXED: list[tuple[str, str, str, str, str]] = [
     ("D-378", "O=c1ccnc2n1CCC1(CCCCC1)C2", "spiro[6,7,8,9-tetrahydro-4H-pyrido[1,2-a]pyrimidine-8,1'-cyclohexane]-4-one",
      "[NAMING ERROR: No valid naming plan found for O=c1ccnc2n1CCC1(CCCCC1)C2]",
      "the same with a bridgehead nitrogen or a ring sulfur and no N-H to drop: the partner is built from the Kekule form, the carbon that held the =O a CH2"),
+    # Naming round 85 (D-379).
+    ("D-379", "CON1CCCCC12C1CNCC2c2cc3nc(C(N)=O)cnc3cc21", "1-methoxyspiro[azinane-2,12'-7,8,9,10-tetrahydro-6H-6,10-methanoazepino[4,5-g]quinoxaline]-2'-carboxamide",
+     "1-methoxyspiro[azinane-2,12'-7,8,9,10-tetrahydro-6H-6,10-methanoazepino[4,5-g]quinoxaline]-16-carboxamide",
+     "the curated methano-bridged azepinoquinoxaline labelled 11 of its 16 atoms and had its nitrogens swapped, so a substituent on an unlabelled atom of a spiro partner took the generic number 16"),
     # D-162, recorded OPEN in naming round 14 and closed by the same change: the same group in an ester's alcohol part. Its target was derived then and is what the fixed engine writes.
     ("D-162", "CC(=O)OCC(=O)N(O)C", "2-[hydroxy(methyl)amino]-2-oxoethyl acetate",
      "[(hydroxycarbamoyl)methyl]methyl acetate",
