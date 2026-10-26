@@ -1639,7 +1639,7 @@
    "group": "G_nitramine_stratum",
    "compound": "the nitramine stratum after the 2009 paper and the corrections",
    "property": "stratum_recount",
-   "value": "Corrections: methyldinitramine is a liquid at 298 K (G29), so the solid-P2 pool is 7 non-development nitramines from NIST (4-nitromorpholine, EDNA, tetryl, nitroguanidine, nitrourea, both dinitroalkyl nitramines), not 8. The 2009 paper adds 6 more solids measured by its authors and printed on the page: 2,4-dinitro-2,4-diazapentane, 2,5-dinitro-2,5-diazahexane, 1,6-bis(methylnitramino)hexane, 1,3-dinitroimidazolidine, a bicyclic trinitro compound (identity not named, unresolved), CL-20. RDX and HMX now have a second, modern root (66.9, 85.8 kJ/mol) that agrees with Krien (71.1, 87.9); NIST's 75.0 and 74.9 for HMX are the outliers. Union of all sources about 37 names; verified solid, non-development: 10 named plus 1 unresolved of 13, tetryl `disagree`, nitrourea unread",
+   "value": "Corrections: methyldinitramine is a liquid at 298 K (G29), so the solid-P2 pool is 7 non-development nitramines from NIST (4-nitromorpholine, EDNA, tetryl, nitroguanidine, nitrourea, both dinitroalkyl nitramines), not 8. The 2009 paper adds 6 more solids measured by its authors and printed on the page: 2,4-dinitro-2,4-diazapentane, 2,5-dinitro-2,5-diazahexane, 1,6-bis(methylnitramino)hexane, 1,3-dinitroimidazolidine, a bicyclic trinitro compound (identity not named, unresolved), CL-20. RDX and HMX get a modern root (66.9, 85.8) agreeing with Krien (71.1, 87.9). About 37 names in all; verified solid non-development: 10 named plus 1 unresolved of 13, tetryl `disagree`, nitrourea unread",
    "unit": "count",
    "value_kind": "measured",
    "phase_form": "solid",
