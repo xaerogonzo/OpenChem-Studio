@@ -241,6 +241,26 @@ Direct links, with a distinct suggested filename each (the project convention). 
 | the pentaerythritol combustion behind B01 and the other Medard and Thomas rows (G02): Mem. Poudres 36 (1954) 97-127, a journal, no DOI; where it might be found is in row G17 | (library request; HathiTrust search-only, print at the University of Chicago) | `medard1954_chaleurs_combustion_24_explosives_mempoudres.pdf` |
 | nitric ester decomposition and heat of combustion series (the "heat of combustion of XPN" the Flinders thesis cites) | https://doi.org/10.1007/s10973-017-6706-5 | `dong2018_nitric_esters_jtac.pdf` |
 
+### 8.1 Primaries to fetch for the nitramine stratum (G19, G20)
+
+The nitramines' formation enthalpies are NIST's rows; each cites one primary that was not read on the page, and the preregistration's 8.2 needs a page read or two agreeing roots. DOIs below were matched through Crossref on 2026-10-26 by title, authors and year (the matching titles are the NIST citations' own, except where noted). In order of what each settles:
+
+| what it would settle | link | suggested filename |
+|---|---|---|
+| 4-nitromorpholine, a single-source solid nitramine (-213 kJ/mol) | https://doi.org/10.1007/bf00957051 | `golovanova1988_nitromorpholine_thermochemistry.pdf` |
+| four entities at once: EDNA (-101.0), tetryl (41.0), RDX (79.1), HMX (103.0), nitroguanidine (-86.6); settles the tetryl, RDX, HMX and nitroguanidine disagreements. Crossref's title is German ("Thermochemische Untersuchungen an Nitraminen") | https://doi.org/10.1016/0040-6031(73)85078-6 | `krien1973_nitramines_thermochimica_acta.pdf` |
+| bis(2,2-dinitropropyl)nitramine (single source, -232) and the second root of bis(trinitroethyl)nitramine (-27); **NIST gives this paper the title 'Thermochemistry of N-Nitrosoamines', so check that it holds the nitramines before relying on it** | https://doi.org/10.1007/bf00850979 | `pepekin1973_nitrosoamines_thermochemistry.pdf` |
+| bis(trinitroethyl)nitramine, the first root (-28.0) | https://doi.org/10.1007/bf00963402 | `kustova1981_nitro_compounds_enthalpies.pdf` |
+| tetryl, the second root (30.7) | https://doi.org/10.1021/ja01364a018 | `rinkenbach1930_aromatic_nitro_heats.pdf` |
+| EDNA and RDX heats of combustion that NIST lists without a formation enthalpy (EDNA -1552 kJ/mol): a third root for each | https://doi.org/10.1021/ie50560a040 | `young1956_organic_nitrogen_combustion.pdf` |
+| 1,4-dinitropiperazine (forced into development, but an N-nitro alicyclic series with the ring of RDX) | https://doi.org/10.1007/bf00923193 | `pepekin1974_alicyclic_nitramines.pdf` |
+| dimethylnitramine solid and 1-nitropiperidine liquid (both examined compounds; the piperidine paper's title is about the piperidyl radical) | https://doi.org/10.1007/bf00854305 | `matyushin1971_piperidyl_radical.pdf` |
+| the liquid-stratum rows: dimethylnitramine -71.1 and diethylnitramine -106 | https://doi.org/10.1039/jr9580000958 | `cass1958_nitroalkanes_nitric_esters_combustion.pdf` |
+| methyldinitramine liquid (1.7) | https://doi.org/10.1007/bf00953275 | `korsunskii1989_dinitroalkylamines_decomposition.pdf` |
+| HMX 75.0 (examined compound) | https://doi.org/10.1016/s0010-2180(74)80025-8 | `ornellas1974_detonation_calorimeter_cno.pdf` |
+
+**No DOI found, each a journal or report, not a book:** Medard and Thomas, Mem. Poudres 29 (1949) 173-195 (nitrourea -280.8, nitroguanidine -89.1) and 37 (1955) 129-138 (EDNA -102.8); Lobanov and Karmanova, Izv. Vyssh. Uchebn. Zaved., Khim. Khim. Tekhnol. 14 (1971) 865-867 (nitroguanidine -97.9; Crossref returned a 2023 article of that journal, which is not it); Miroshnichenko et al., Dokl. Akad. Nauk SSSR 295 (1987) 419-423 (methyldinitramine solid 1.5; Crossref's nearest hit is a different paper); Korsunsky et al., Izv. Akad. Nauk SSSR, Ser. Khim. (1967) 525-528 (the paper NIST's dimethylnitramine row says to see); Delepine and Badoche, C. R. Acad. Sci. Paris 214 (1942) 777-780 (RDX 66.5); Handrick 1956, Naval Ordnance Laboratory report C-58247 (RDX 61.5, HMX 74.9). The book NIST re-cites for several of them is Cox and Pilcher (G18).
+
 DOI not resolved: Medard and Thomas 1949, 1953, 1954, 1955 (a journal, see the row above and G17); Miroshnichenko et al. 1985 and 1988 (nitroglycerin); Baroody and Carpenter 1972; Tavernier 1956; Cox and Pilcher 1970 (the book); Fedoroff and Sheffield 1972 (the Encyclopedia of Explosives, the root of Oxley's literature heats of formation). The NIST WebBook is the only place most of these are held.
 
 **Open items downloaded and read** (kept outside the repository): Stark, Flinders University thesis 2022 (open repository, 2.7 MB); Manner et al., Chem. Sci. 2018 on PMC (open access, HTML); a short review of nitric esters on PMC (ACS Omega 2021, HTML); US 8,324,421 B2 (Google Patents HTML); Benz et al., Chem. Eur. J. 2023, LMU repository, CC BY 4.0 (14.4 MB PDF); Burcat, JPCRD 1999, from the NIST reprint server (1 MB PDF). The RSC pages were behind a bot challenge and were not fetched.
