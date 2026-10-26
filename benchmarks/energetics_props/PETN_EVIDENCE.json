@@ -1383,7 +1383,7 @@
    "group": "G_nitramine_stratum",
    "compound": "nitramines (N-NO2), distinct compounds with a measured value in sources I could read",
    "property": "stratum_count_for_R2",
-   "value": "about 30 names tried in the NIST WebBook: 12 nitramines with a condensed formation enthalpy (10 with a solid row: dimethylnitramine, 1,4-dinitropiperazine, 4-nitromorpholine, EDNA, RDX, HMX, tetryl, nitroguanidine, nitrourea, DINA; liquid only: diethylnitramine, 1-nitropiperidine). Cawkwell 2021 Table 1 (gas phase): 6, two new (N-nitrobis(2,2,2-trinitroethyl)amine, N-nitrobis(2,2-dinitropropyl)amine). Keshavarz and Sadeghi 2009 Table 2: 5 new. Union at least 19 names; identities not resolved",
+   "value": "about 30 names tried in the NIST WebBook: 12 nitramines with a condensed formation enthalpy (10 with a solid row: dimethylnitramine, 1,4-dinitropiperazine, 4-nitromorpholine, EDNA, RDX, HMX, tetryl, nitroguanidine, nitrourea, DINA; liquid only: diethylnitramine, 1-nitropiperidine). Cawkwell 2021 Table 1 (gas phase): 6, two new (N-nitrobis(2,2,2-trinitroethyl)amine, N-nitrobis(2,2-dinitropropyl)amine). Keshavarz and Sadeghi 2009 Table 2: 5 new. Union 19 names, SUPERSEDED by G19-G20: by the repository's family rule 14 are nitramines and 5 (DINA and four NENAs) nitrate esters, and the Keshavarz-Sadeghi values are NIST's",
    "unit": "count",
    "value_kind": "measured",
    "phase_form": "solid, liquid and gas (see value)",
@@ -1392,7 +1392,7 @@
    "locator": "searches",
    "lineage_root": "the three lists overlap and the Keshavarz table's experiment column is its ref [23], not traced",
    "independent_of_inventory": "partly",
-   "note": "RDX, HMX, 1,4-dinitropiperazine, dimethylnitramine and 1-nitropiperidine are already in the repository's route comparisons (preregistration section 10 forces them into development), so at most about 14 of the 19 could sit in a holdout, about 3 at a 20 percent share; the 30 paired verified holdout nitramines of R2 need about 150 verified entities"
+   "note": "superseded by G20: 14 nitramines, 12 with a solid row, 2 verified by agreement, 8 eligible for a holdout; the 30 paired verified holdout nitramines of R2 need about 150 verified entities"
   },
   {
    "id": "G15",
@@ -1457,6 +1457,54 @@
    "lineage_root": "n/a",
    "independent_of_inventory": "n/a",
    "note": "NIST cites Cox and Pilcher for re-analysing Delepine and Badoche 1942 (RDX, -66.5 from an original 70.3) and others; whether the library holds the book was not checked"
+  },
+  {
+   "id": "G19",
+   "group": "G_nitramine_stratum",
+   "compound": "Keshavarz and Sadeghi 2009, ref [23]",
+   "property": "source_trace",
+   "value": "ref [23] is the NIST Chemistry WebBook (NIST Standard Reference Database 69): the paper says 'the latest reported values of the NIST Chemistry Web Book [23] were taken to compare ... with the experimental data' and cites RDX's 61.5, 66.5 and 79.1 as NIST's. Keshavarz 2006 (footnote a: 'all experimental data taken from NIST chemistry web book [38]') and Nazari 2016 (ref [28], 'all experimental data ... except those were mentioned') say the same. Checked: NIST holds 2-(ethylnitroamino)ethyl nitrate liquid -164.03 and 2-(nitropropylamino)ethyl nitrate liquid -174.07 kJ/mol (Simmons 1994), the digits of K-S's -164.0 and -174.1",
+   "unit": "kJ/mol",
+   "value_kind": "unlabelled",
+   "phase_form": "liquid and solid",
+   "temperature": "298 K",
+   "source": "Keshavarz and Sadeghi, J. Hazard. Mater. 171 (2009) 140-146, printed p. 146 (text and reference [23], read); Keshavarz, J. Hazard. Mater. 2006, Table 2 footnote a; Nazari et al. 2016 p. 2; NIST WebBook CAS 85068-73-1 and 82486-83-7, 2026-10-26",
+   "locator": "reference [23]; NIST condensed-phase tables",
+   "lineage_root": "all three fit-table papers copy NIST, so they add no independent root for a nitramine",
+   "independent_of_inventory": "NO: not independent of the NIST rows",
+   "note": "a trap met on the way: NIST's formula search returned 'not found' for C4H9N3O5, C6H13N3O5 and even HMX's C4H8N8O8, so my first reading ('NIST holds no NENAs') was wrong; the CAS look-up shows it does. A formula search miss is not evidence that NIST lacks a compound. Simmons 1994 is Int. Annu. Conf. ICT 25th, 1-10; the Me-NENA solid row also lists Medard and Thomas 1957 (-186.1)"
+  },
+  {
+   "id": "G20",
+   "group": "G_nitramine_stratum",
+   "compound": "the 19 names of G14, resolved",
+   "property": "identity_resolution",
+   "value": "19 SMILES written, RDKit InChIKey equals NIST's InChIKey for all 15 compounds looked up by CAS (the 4 NENAs were not matched by key). The repository's own family rule (epb_families.family, preregistration 5) gives 14 nitramine and 5 nitrate_ester (DINA, Et-, Pr-, Bu-, pentyl-NENA): the nitrate-ester rule ranks first. Of the 14: 12 have a solid dfH row in NIST, 2 liquid only (diethylnitramine, 1-nitropiperidine). Two are verified by 8.2 (two NIST references within 10 kJ/mol, none farther): EDNA (-101.0 Krien 1973; -102.8 Medard and Thomas 1955), bis(trinitroethyl)nitramine (-28.0; -27.0). RDX, HMX, nitroguanidine and tetryl each have rows more than 10 apart; 6 are single-source",
+   "unit": "count",
+   "value_kind": "measured",
+   "phase_form": "solid",
+   "temperature": "298 K",
+   "source": "NIST WebBook condensed-phase tables by CAS, 2026-10-26; benchmarks/energetics_props/epb_families.py; preregistration sections 5 and 8.2",
+   "locator": "script and tables outside the repository",
+   "lineage_root": "all rows are NIST's, each carrying its own cited primary (Krien and Licht 1973, Handrick 1956, Medard and Thomas, Pepekin, Simmons ...), not read on the page",
+   "independent_of_inventory": "partly",
+   "note": "RDX, HMX, 1,4-dinitropiperazine and dimethylnitramine are examined compounds that the preregistration forces into development, which leaves 8 solid nitramines for any partition (4-nitromorpholine, EDNA, tetryl, nitroguanidine, nitrourea, bis(trinitroethyl)nitramine, bis(2,2-dinitropropyl)nitramine, methyldinitramine): about 2 in a 20 percent holdout, 1 or 2 of them verified"
+  },
+  {
+   "id": "G21",
+   "group": "G_nitramine_stratum",
+   "compound": "nitramines in Klapoetke's Encyclopedia (vols 1 and 3 by OCR of the table images, vol 2 by text layer)",
+   "property": "encyclopedia_nitramines",
+   "value": "17 further neutral N-nitro entries print a heat of formation (family nitramine by name; NIST overlap checked only for TNAZ, CL-20 and methylene dinitramine, which NIST holds without a condensed value): BCHMX 206.3 kJ/mol 'exptl.'; dinitrodimethyloxamide -305.3 'exptl.'; TNAZ 36.4 'exptl.' (beside 30.7, 8.7 and 2.81 kcal/mol); ethyltetryl 18.0 'exptl.' (beside 0 and -7.70 kcal/mol); CL-20 377.4 +/- 13 and 415.6 kJ/mol; keto-RDX -41.8 and -41.9 +/- 4.2; methylene dinitramine -13.84 kcal/mol. Others unlabelled: 3,5-dinitro-3,5-diazaheptane, 2,4-dinitro-2,4-diazapentane, TNGU, DNNC, TNHP, heptryl, dinitroglycolurile, PETNA, bis(trinitroethyl-N-nitro)ethylenediamine, tetranitrobicyclononanone",
+   "unit": "mixed",
+   "value_kind": "unlabelled",
+   "phase_form": "solid",
+   "temperature": "298 K",
+   "source": "Klapoetke, Energetic Materials Encyclopedia, 2nd ed. 2021, vol. 1 and vol. 3 entries (property-table images read with RapidOCR: digits and signs carry the inventory's OCR caveat) and vol. 2 pp. 26, 56, 127, 172, 325, 452, 471-475, 538, 618 (text layer)",
+   "locator": "Heat of formation cells of the entries named",
+   "lineage_root": "each cell carries the book's own reference markers [n], not traced here",
+   "independent_of_inventory": "unknown until traced",
+   "note": "four entries use 'exptl.' for a value; most others print several values several kJ/mol apart (CL-20 spans 54, TNGU about 83, TNAZ three conflicting kcal/mol values). Not captured: TEX (no heat-of-formation row read), bis(nitramino)triazinone (garbled), the vol. 3 bicyclononane entries, HMX and RDX as additional observations. Ceiling: 14 NIST nitramines + 17 = 31 names, of which at most a handful could be verified"
   }
  ]
 }
