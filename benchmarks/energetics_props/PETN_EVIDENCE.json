@@ -1719,7 +1719,7 @@
    "group": "G_medard_thomas_substitutes",
    "compound": "pentaerythritol and PETN",
    "property": "enthalpy_formation_and_sublimation",
-   "value": "Pentaerythritol (c): -dHc 660.12 +/- 0.66 kcal/mol (SB, 5 experiments; ref 54/12 = Medard and Thomas, Mem. Poudres 36, 97, 1954), dHf(c) -220.03 +/- 0.67 kcal/mol (-920.6 kJ/mol), sublimation 34.4 +/- 0.2 (ref 53/28 = Bradley and Cleasby 1953, whose pentaerythritol paper is Part II, p. 1684; 143.9 kJ/mol), dHf(g) -185.63 +/- 0.72 (-776.7 kJ/mol). PETN (c): -dHc 614.2 +/- 0.6 (ref 39/17) and 614.8 +/- 0.3 (ref 66/29), dHf(c) -128.8 +/- 0.3 (-538.9 kJ/mol), sublimation 36.3 +/- 0.5 (ref 53/33 = Edwards 1953), dHf(g) -92.5 +/- 0.7 kcal/mol (-387.0 kJ/mol)",
+   "value": "Pentaerythritol (c): -dHc 660.12 +/- 0.66 kcal/mol (SB, 5 experiments; ref 54/12 = Medard and Thomas, Mem. Poudres 36, 97, 1954), dHf(c) -220.03 +/- 0.67 kcal/mol (-920.6 kJ/mol), sublimation 34.4 +/- 0.2 (ref 53/28, printed as Bradley and Cleasby p. 1681 but the data are Bradley and Cotson 1953, p. 1684, G41; 143.9 kJ/mol), dHf(g) -185.63 +/- 0.72 (-776.7 kJ/mol). PETN (c): -dHc 614.2 +/- 0.6 (ref 39/17) and 614.8 +/- 0.3 (ref 66/29), dHf(c) -128.8 +/- 0.3 (-538.9 kJ/mol), sublimation 36.3 +/- 0.5 (ref 53/33 = Edwards 1953), dHf(g) -92.5 +/- 0.7 kcal/mol (-387.0 kJ/mol)",
    "unit": "kcal/mol",
    "value_kind": "derived_from_measured",
    "phase_form": "solid (c)",
@@ -1760,7 +1760,7 @@
    "locator": "searches",
    "lineage_root": "n/a",
    "independent_of_inventory": "n/a",
-   "note": "absence is UNVERIFIED (OCR can drop a row); the book's reference list (PDF pp. 612-624, printed 602-614) decodes its codes: 53/15 and 54/12 and 55/21 are Medard and Thomas, 55/22 Tavernier and Lamouroux, 51/19 McEwan and Rigg (DOI 10.1021/ja01154a072), 53/28 Bradley and Cleasby (the pentaerythritol paper is Part II, DOI 10.1039/jr9530001684; Part I, 1681, is about oxamide and does not contain it), 53/33 Edwards"
+   "note": "absence is UNVERIFIED (OCR can drop a row); the book's reference list (PDF pp. 612-624, printed 602-614) decodes its codes: 53/15 and 54/12 and 55/21 are Medard and Thomas, 55/22 Tavernier and Lamouroux, 51/19 McEwan and Rigg (DOI 10.1021/ja01154a072), 53/28 Bradley and Cleasby p. 1681 (oxamide; the pentaerythritol paper is Bradley and Cotson, p. 1684, DOI 10.1039/jr9530001684, read in G41), 53/33 Edwards"
   },
   {
    "id": "G38",
@@ -1799,7 +1799,7 @@
    "group": "G_medard_thomas_substitutes",
    "compound": "Bradley and Cleasby 1953, Part I (the file received)",
    "property": "bibliography_corrected",
-   "value": "The file received is Bradley and Cleasby, J. Chem. Soc. 1953, 1681-1684, 'The vapour pressure and lattice energy of hydrogen-bonded crystals. Part I. Oxamide, oxamic acid, and rubeanic acid' (effusion, 80-105 C). It does not mention pentaerythritol. The paper that does is Part II, 'alpha- and beta-anhydrous oxalic acid and tetragonal pentaerythritol', J. Chem. Soc. 1953, 1684-1688, DOI 10.1039/jr9530001684",
+   "value": "The file received is Bradley and Cleasby, J. Chem. Soc. 1953, 1681-1684, 'The vapour pressure and lattice energy of hydrogen-bonded crystals. Part I. Oxamide, oxamic acid, and rubeanic acid' (effusion, 80-105 C). It does not mention pentaerythritol. The paper that does is Part II, by Bradley and COTSON (not Cleasby), J. Chem. Soc. 1953, 1684-1688, DOI 10.1039/jr9530001684, read in G41",
    "unit": "",
    "value_kind": "unlabelled",
    "phase_form": "",
@@ -1808,7 +1808,23 @@
    "locator": "pp. 1681-1684",
    "lineage_root": "n/a",
    "independent_of_inventory": "n/a",
-   "note": "Cox and Pilcher's code 53/28 names p. 1681 (Part I), but the pentaerythritol sublimation 34.4 kcal/mol (143.9 kJ/mol) printed beside it can only come from Part II, which I have not seen; fetch https://doi.org/10.1039/jr9530001684"
+   "note": "Cox and Pilcher's code 53/28 names p. 1681 (Part I), but the pentaerythritol sublimation 34.4 kcal/mol (143.9 kJ/mol) printed beside it can only come from Part II, now read (G41); the book's code is off by one (53/29 is Bradley and Cotson in its list)"
+  },
+  {
+   "id": "G41",
+   "group": "G_medard_thomas_substitutes",
+   "compound": "pentaerythritol (tetragonal) sublimation",
+   "property": "enthalpy_sublimation",
+   "value": "Effusion, 106.4-135.1 C: log10 p(cm Hg) = 15.17 - 7528/T; 'the lattice energy is 34,400 cal/mole' (= 143.9 kJ/mol) and the entropy of sublimation 60.8 cal/deg/mol; vapour pressures from 2.12e-5 (106.4 C) to 52.4e-5 cm Hg (135.1 C). Nitta, Seki and Suzuki 1951 (124-137 C): log10 p = 13.525 - 6861/T, 31,400 cal/mol (131.4 kJ/mol), which the authors say differs considerably",
+   "unit": "cal/mol",
+   "value_kind": "measured",
+   "phase_form": "solid (tetragonal)",
+   "temperature": "mean of 379-408 K; not corrected to 298 K",
+   "source": "Bradley and Cotson, J. Chem. Soc. 1953, 1684-1688, DOI 10.1039/jr9530001684, Table 3 and the text on printed p. 1687 (rendered page read; file bradley_cotson1953_part2_oxalic_acid_pentaerythritol_jcs.pdf)",
+   "locator": "Table 3; equation after it",
+   "lineage_root": "the primary of Cox and Pilcher's 34.4 kcal, Pedley's -776.7 gas value and CRC's; 'ME' 143.9 and 131.4 in Acree's Table 6",
+   "independent_of_inventory": "yes: the first read page for the 143.9 and the 131.4",
+   "note": "each 'lattice energy' equals the slope x 2.303 R (7528 gives 34.4 kcal, 6861 gives 31.4): second-law values at the middle of each range. Three pentaerythritol sublimation values then rise with temperature: 131.4 (124-137 C), 143.9 (106-135 C) and Barone's 161.0 (145-182 C): a 30 kJ/mol spread that a plastic phase near 185 C and the ranges' different centres may explain, but which is unresolved; the authors are Bradley and Cotson, not Bradley and Cleasby"
   }
  ]
 }
