@@ -1697,6 +1697,22 @@
    "lineage_root": "n/a",
    "independent_of_inventory": "n/a",
    "note": "Fedoroff cites these papers in many entries (the entries were not checked one by one) and prints some heats of combustion; the PATR 2700 volumes are on archive.org in full (vols 1-10), e.g. https://archive.org/details/Encyclopedia_of_Explosives_and_Related_Items_Fedoroff_Vol_8_of_10_M_to_P; no entry for nitrourea was found in vol. 8 by text search"
+  },
+  {
+   "id": "G34",
+   "group": "G_medard_thomas_substitutes",
+   "compound": "nitroguanidine, HMX, DINA, tetryl, dipentaerythritol hexanitrate, MeNENA",
+   "property": "enthalpy_formation_solid",
+   "value": "Stegeman 1945, Table III(b), kcal/mol, heat of formation at 25 C as -dHf (x 4.184 = kJ/mol): nitroguanidine (two samples) -23.96 and -23.28 (-100.2 and -97.4); HMX +11.90 (+49.8); diethanolnitramine dinitrate (DINA) -77.46 (-324.1); tetryl +4.67 (+19.5); dipentaerythritol hexanitrate -236.32 (-988.8); N-methyl-N-nitroxyethylnitramine -48.68 (-203.7); 'Pentyl' -24.84; ethylenediamine dinitrate and dinitroethyleneurea also listed. Bomb-process heats of combustion are printed beside each",
+   "unit": "kcal/mol",
+   "value_kind": "measured",
+   "phase_form": "solid",
+   "temperature": "298.15 K",
+   "source": "Stegeman, Heat of Combustion of Explosive Substances, OSRD report 5306, National Defense Research Committee, University of Pittsburgh, 4 July 1945, Table III(b), printed p. 10 (OCR text of DTIC ADB279544 on archive.org: https://archive.org/details/DTIC_ADB279544; the digits were checked against the values the Encyclopedia and Koch quote from it)",
+   "locator": "Table III(b)",
+   "lineage_root": "a primary: the calorimeter, samples (from Bruceton) and bomb data are described in the report; Koch's ref. [8], and the 'Stegeman 1945' NIST names in a comment",
+   "independent_of_inventory": "yes: the first primary for nitroguanidine, HMX, DINA and tetryl read here",
+   "note": "HMX +49.8 kJ/mol is far below Krien (+87.9), Miroshnichenko 2009 (+85.8) and NIST's 74.9 (the Encyclopedia lists it as -11.90 kcal/mol), so it is an outlier to keep, not a root to average; DINA -324.1 against -311.0 and -306.8 is a 17 kJ/mol spread; nitroguanidine's two samples differ by 2.8 kJ/mol, which Koch's grain-size remark may refer to (his -100.00 attributed to Krien looks like Stegeman's sample 10, not Krien)"
   }
  ]
 }
