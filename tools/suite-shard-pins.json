@@ -1494,6 +1494,7 @@
   "tests/test_naming_ref_compare.py": 1,
   "tests/test_naming_retained_alternative.py": 2,
   "tests/test_naming_ring_locant_sweep.py": 3,
+  "tests/test_naming_ring_table_vs_opsin.py": 3,
   "tests/test_naming_variants_tool.py": 0,
   "tests/test_net.py": 3,
   "tests/test_nistor_sqe_instrument.py": 3,
