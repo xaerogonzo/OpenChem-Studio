@@ -1,10 +1,10 @@
 # PETN and the nitrate-ester family: an evidence hunt for Phase B
 
-An inventory, not a score. No corpus was built, no method was run, and no number of `PREREGISTRATION.md` was changed (that file is an unfrozen draft and is not edited here). Every item carries its source, page or table, the value as printed, its `value_kind` (preregistration 3.1), the temperature and form, and whether it is independent of what `INVENTORY.md` already holds. The rows are in `PETN_EVIDENCE.json` (one row per item, ids `A01`... below); the COD rows are in `cod_nitrate_extra.json`; the searches that found them are in section 9.
+An inventory, not a score. No corpus was built, no method was run, and no number of `PREREGISTRATION.md` was changed (that file is an unfrozen draft and is not edited here). Every item carries its source, page or table, the value as printed, its `value_kind` (preregistration 3.1), the temperature and form, and whether it is independent of what `INVENTORY.md` already holds. The rows are in `PETN_EVIDENCE.json` (69 rows, ids `A01`... below); the COD rows are in `cod_nitrate_extra.json`; the searches are in section 9. Seven primary papers the owner supplied were read on the page after the first pass (section 3.5, rows `F01`-`F14`).
 
 <!-- cod_nitrate_extra: total=73 outside_window=41 single=52 formulas=64 four_arm=32 -->
 
-**What is committed and what is not.** The preregistration (section 7) keeps per-compound values from copyrighted tables out of the repository. Rows from books, handbooks and journal articles therefore carry their locator, kind and lineage here and `"value": null`; the values themselves are in the maintainer's notes folder (`petn-evidence/petn_evidence_rows_full.json`). Values are printed in this file and in the JSON only where the source is public data (the NIST Chemistry WebBook, the Crystallography Open Database), a US Government document, an open-access text, or this inventory's own arithmetic.
+**Values.** Single measured values, short runs of values from one cell, spreads and locators are quoted as facts, with the page. No table is reproduced and no running text is copied. This is looser than `PREREGISTRATION.md` section 7, which keeps per-compound values from copyrighted tables out of the repository; the owner relaxed it for this file on 2026-10-26 ("they're numbers"), and the preregistration needs a one-line amendment to say so (section 10).
 
 ## 1. What would move the conditions
 
@@ -18,82 +18,102 @@ An inventory, not a score. No corpus was built, no method was run, and no number
 
 | # | finding | where |
 |---|---|---|
-| 1 | PETN has **no experimental gas-phase enthalpy of formation**; its gas value is a solid value plus an effusion sublimation value, **-388.1 +/- 1.5 kJ/mol** (`derived_from_measured`), and the one JPCRD reference table says none is known. | A01, A04, A07, A08 |
-| 2 | So PETN itself is a **well-pinned derived gas-phase point** (+/- 2 kJ/mol), not a gap. If the repository's combined route used Keshavarz's PETN sublimation value of 138.0 kJ/mol (the number `docs/research/literature.toml` records for the APC route; the ORCA route's leg must be checked), about **12 of the recorded 59.5 kJ/mol PETN miss is the sublimation leg**, whose measured value is 150.4 +/- 1.3. | section 3.4 |
-| 3 | **Pentaerythritol** is the only compound found that matches the R1 pattern with oxygen arms and a measured condensed enthalpy (-920.5 +/- 2.8, Medard and Thomas 1954) and sublimation enthalpies. Its gas value is `derived_from_measured` only, and the sublimation rows span 96 to 163 kJ/mol across polymorphs (about +/- 16 kJ/mol on the gas value). Under R1 as written it **does not qualify** (kind, not `measured` gas). | B01-B04 |
-| 4 | The **R1 pattern is matched by a hydrocarbon** (3,3-diethylpentane) as well as by PETN and pentaerythritol, so the owner's approval does all the selecting; the rule's text should name the arms or list the approved compounds. A test pins this. | B05 |
-| 5 | No measured formation enthalpy exists for any other C(CH2X)4 compound with X a heteroatom (tetrabromide, tetrachloride, tetraacetate: NIST has none; Acree 2010 has none). The only other four-arm quaternary carbons found are the **tetranitramine** (density only; COD 7105119 and a pycnometer value) and the **phosphorus-containing pentaerythrityl-type entries** in COD. | B06, D05, COD |
-| 6 | **Nitrate-ester family**: NIST holds measured (calorimetric) formation enthalpies for 12 nitrate esters (one gas-phase, nitroglycerin, derived from a liquid value and a measured vaporization enthalpy; one directly, methyl nitrate). Klapoetke's Encyclopedia reprints several of them digit for digit, so books do **not** verify them. | C01-C11 |
-| 7 | COD holds **73 nitrate-ester entries** (32 in the census window, **41 outside it**: low-temperature and no-temperature structures the census could not see), 52 of them single-component, in **64 distinct formulas**. PETN has **3** entries (100 K; and two cells with no temperature in the header, PETN-I 1947 and PETN-II 1975). | section 6 |
-| 8 | Several items are **label traps** worth a regression fixture: Lease 2023 Table 1 prints PETN's 1.845 g/cm3 with a blank temperature while COD says 100 K and its derivatives were at about 296 K; NIST's EGDN sublimation row is probably dithiooxamide's (Acree p. 44 prints one CAS number for both); TEGDN is a liquid that two books print as a "solid" enthalpy. | section 7 |
-| 9 | Everything above is **an order of magnitude short of 150 verified entities** for the nitrate-ester family, in every property. | section 10 |
+| 1 | PETN has **no experimental gas-phase enthalpy of formation**. Its derived gas value is a measured solid value (-538.5 +/- 0.8, two bomb-calorimeter runs, Ornellas 1966) plus a measured sublimation enthalpy (150.4 +/- 1.3): **-388.1 +/- 1.5 kJ/mol**, `derived_from_measured`. A W1-F12 calculation gives -395.5 (Muravyev 2021), 7.4 kJ/mol lower; another calculation gives -413.6 +/- 4. | A01, A07, F01, F08, F14 |
+| 2 | Five measured PETN sublimation enthalpies agree within 146.6-156.9 kJ/mol (four roots, plus Acree's compilation), so PETN is a **well-pinned derived gas-phase point**, not a gap. If the repository's route used the 138.0 kJ/mol Keshavarz value (the number `literature.toml` records for the APC route), about **12 of the recorded 59.5 kJ/mol PETN miss is the sublimation leg**; against the W1-F12 gas value the gas-phase miss is about 54. | F11, section 3.4 |
+| 3 | **Pentaerythritol** is the only compound found that matches the R1 pattern with oxygen arms and measured data (solid -920.5 +/- 2.8; sublimation 96-163 kJ/mol across polymorphs). Its gas value is `derived_from_measured` only (about +/- 16 kJ/mol), so it **does not meet R1 as written**. | B01-B04 |
+| 4 | The **R1 pattern is also matched by 3,3-diethylpentane**, so the owner's D8 approval does all the selecting; a test pins this. | B05 |
+| 5 | **Three printed values are one number or a contradiction.** The Encyclopedia's PETN (-538.48), EGDN (-243.01) and ETN (-474.8) enthalpies and the Chavez patent's DNTN (-371) are the **literature inputs of one Cheetah table** in Oxley 2012 (Table 8; the text says they are literature values), not measurements. And that -371 is contradicted by 171 kJ/mol by Muravyev 2021 (-542 for the same compound; another literature value -580). | F04, F10, C12, C14 |
+| 6 | ETN's two low-temperature structures disagree: **1.851 (140 K, Manner) against 1.827 (150 K, Matyas)**, 0.024 g/cm3 and 1.3 % in cell volume at 10 K apart, more than the 0.02 tolerance of preregistration 8.2. Volumetric expansion from 100 K to room temperature is about 2e-4 per K (PETN, ETN), so 0.04 g/cm3 is about 100 K. | F05-F07 |
+| 7 | **Nitrate-ester family**: NIST holds measured formation enthalpies for 12 nitrate esters; the Encyclopedia reprints several of them digit for digit. Two new sublimation measurements of ETN disagree by 22 kJ/mol (117.7 and 139.5). | C01-C11, F03, F09 |
+| 8 | COD holds **73 nitrate-ester entries** (32 in the census window, **41 outside it**), 52 single-component, in **64 distinct formulas**. PETN has 3 entries (100 K, and two cells with no temperature in the header; the paper for PETN-II gives 136 C). | section 6 |
+| 9 | Label traps worth fixtures: Lease 2023 Table 1 has a blank temperature column mixing 100 K and about 296 K; NIST's EGDN sublimation row is probably dithiooxamide's; TEGDN is a liquid that two sources print as a solid; the ETN "X-ray density" 1.553 / 1.55 in Oxley and the Encyclopedia is 0.22 below any X-ray density read. | section 7 |
+| 10 | Everything above is **an order of magnitude short of 150 verified entities** for the nitrate-ester family. | section 10 |
 
 ## 3. PETN itself
 
 ### 3.1 Crystal density, with temperature and form
 
-| id | value as printed | kind | T and form | source and locator | independent? |
+| id | value | kind | T and form | source and locator | independent? |
 |---|---|---|---|---|---|
-| A15 | **1.845** g/cm3 | measured (CIF) | 100(1) K, PETN-I, R = 0.0104 | COD 4111071, Zhurova et al., J. Am. Chem. Soc. 128 (2006) 14728 (author, journal, volume, page read from the public CIF) | yes; **the same observation is printed by Lease 2023 Table 1 (A18, T blank) and cited by Stark 2022 p. 66 (100 K)** |
-| A16 | 1.781 (computed here from the CIF's cell and Z) | derived | PETN-I, temperature not in the CIF | COD 5900023, Booth and Llewellyn, J. Chem. Soc. 1947, 837 | yes (not in the inventory) |
-| A17 | 1.7148 (computed here from the CIF's cell and Z) | derived | PETN-II, Pcnb, temperature not in the CIF | COD 5000154, Cady and Larson, Acta Cryst. B31 (1975) 1864 | yes; the Klapoetke table (A13) has a 136 C value for the orthorhombic form within 0.002 of this cell's, probably this cell |
-| A13 | a three-row table of crystal density against temperature: PETN-I at 22 C (calculated and experimental) and PETN-II at 136 C (calculated); values withheld | unlabelled | PETN-I / PETN-II | Klapoetke Encyclopedia vol 3, PETN entry, density cell (OCR) | no, same book family; the temperature table is new to the inventory |
-| A14 | four books and handbooks print one value each, 1.76 to 1.773 g/cm3, two of them stated at 20 C (values withheld) | unlabelled | form not stated | Meyer p. 251; Akhavan Table 2.14; CRC 97 PDF p. 574; Lange's Sec. 01 PDF p. 291 | no |
+| A15 | **1.845** g/cm3 | measured | 100.0(1) K, PETN-I, P-4 21 c, a = 9.2759(8), c = 6.6127(4) A, V = 568.97 A3, Z = 2, R(F) 0.0104 | Zhurova et al., J. Am. Chem. Soc. 128 (2006) 14728, Table 1, p. 14729 (**read**); COD 4111071; the SI CIF (ja0658620_si_001, **read**) carries the same cell, 1.845 and R | yes. **The same observation is printed by Lease 2023 Table 1 (A18, T blank) and cited by Manner 2014 and Stark 2022** |
+| A13 | 1.778 (X-ray calculation, 22 C); 1.716 (X-ray calculation, 136 C, orthorhombic); 1.778 (exptl., 22 C) | unlabelled | PETN-I / PETN-II | Klapoetke Encyclopedia vol 3, PETN entry, density cell (OCR); ref [21] | the 136 C value is Cady and Larson's cell (A17) |
+| A17 | **1.72** g/cm3 calculated; CIF cell gives 1.7148 | measured cell | PETN-II, Pcnb, a = 13.29, b = 13.49, c = 6.83 A, Z = 4, **136 C** | Cady and Larson, Acta Cryst. B31 (1975) 1864, abstract and p. 1864 (**read**); COD 5000154 | yes |
+| A16 | 1.781 (computed here from the cell and Z) | derived | PETN-I, temperature not in the CIF | COD 5900023, Booth and Llewellyn, J. Chem. Soc. 1947, 837 | yes |
+| A14 | 1.76 (Meyer p. 251); 1.76 at 20 C (Akhavan Table 2.14, p. 41); 1.773 at 20 C (CRC 97 PDF p. 574); 1.773 (Lange's Sec. 01, PDF p. 291, text layer reads '1.177320 4') | unlabelled | form not stated | as listed | no |
+| F02 | 1.7599 +/- 0.0006 g/cm3 (helium pycnometer); 'literature X-ray density' 1.778 | measured | solid, room temperature | Oxley et al. 2012, Table 6, p. 34 (**read**) | yes; the pycnometer value is 1 % below the X-ray density |
 
-The same Klapoetke density cell lists nine further values for PETN, labelled pycnometer, nominal, TMD, pressed and compressed: bulk, pressed and crystal numbers share one cell, as preregistration 3.2 warns. Two PETN polymorphs exist (PETN-I tetragonal, stable to 130 C; PETN-II orthorhombic, 130 C to the melt, mp 142.9 and 143.1 C, Klapoetke vol 3). **For P1 the primary-cohort PETN density is one room-temperature crystal observation family (PETN-I, about 1.76-1.78 g/cm3 across the sources) and one 100 K observation; a second independent root at 273-303 K with a read primary page is not yet in hand.** The room-temperature primary is Cady and Larson 1975 or earlier (the Klapoetke table's reference [21]), not read.
+The Klapoetke density cell also lists nine further values for PETN, labelled pycnometer, nominal, TMD (1.78), pressed (1.74) and compressed (1.60): bulk, pressed and crystal numbers share one cell, as preregistration 3.2 warns. Two polymorphs exist: PETN-I (tetragonal, stable to about 130 C; the I to II transition is about 410 K per Zhurova) and PETN-II (orthorhombic, up to the melt); **PETN II melts 0.2 C above PETN I** (142.9 C), and the heat of fusion of PETN I depends on crystal quality (32 to 38 cal/g), Cady and Larson. **For P1 the PETN density is one 100 K structure (1.845), one room-temperature family (1.76-1.78, PETN-I) and one 136 C PETN-II cell (1.72); the room-temperature X-ray primary is Trotter 1963 or Booth and Llewellyn 1947 (not read).**
 
 ### 3.2 Enthalpy of formation, solid
 
-| id | value as printed | kind | source | lineage |
+| id | value | kind | source | lineage |
 |---|---|---|---|---|
-| A01 | **-538.5 +/- 0.8** kJ/mol, solid, 298.15 K, method Ccb | measured | NIST WebBook, Ornellas, Carpenter et al. 1966 | primary root (paywalled; the Crossref title of the likely paper is *Detonation Calorimeter and Results Obtained with PETN*, Rev. Sci. Instrum. 10.1063/1.1720361, while NIST's method code is Ccb: which method made the row is **unverified**) |
-| A03 | -2569.8 +/- 2.5 kJ/mol (combustion), Burlot 1939 | measured | NIST WebBook | a second, older root; the original value was -2594.7 and was reanalysed by Cox and Pilcher 1970 |
-| A09 | CRC 97 and Lange's print one value each, within 0.1 kJ/mol of A01 (values withheld) | unlabelled | PDF pp. 897 and 39 | the same upstream as A01 (compilations) |
-| A10 | Klapoetke vol 3, one cell: six values spanning 77 kJ/mol after conversion to kJ/mol (values withheld) | unlabelled | PETN entry | two of them equal A01 to 0.1 kJ/mol; **the other numbers are not explained** |
-| A11, A12 | Meyer and Akhavan, in kJ/kg, convert to within 0.4 and 6.4 kJ/mol of A01 (values withheld) | unlabelled | printed pp. 251 and 41 | already in `INVENTORY.md` section 5 (spread 8.4 kJ/mol) |
+| A01, F01 | **-538.5 +/- 0.8** kJ/mol (= -128.7 +/- 0.2 kcal/mol), solid, 298 K, from two bomb-calorimeter determinations of the combustion energy (618.7 and 618.1 kcal/mol at constant volume, standard-state corrected) | measured | Ornellas, Carpenter and Gunn, Rev. Sci. Instrum. 37 (1966) 907, printed pp. 910-911 (**read**); NIST WebBook row, method Ccb | the primary root. NIST's Ccb is right (combustion, not detonation calorimetry) |
+| F01 | earlier combustion energies 620.5 (Burlot and Thomas 1939) and 620.0 (Schmidt 1934) kcal/mol at 290 K, not standard-state; NIST reanalyses Burlot at -2569.8 +/- 2.5 kJ/mol (original -2594.7) | measured | Ornellas p. 910; A03 | older roots; consistent after conversion by NIST's reanalysis |
+| A09 | CRC 97: -538.6 (second column -387.0); Lange's Sec. 06 Table 6.1: 538.6 (sign lost in the text layer) | unlabelled | CRC PDF p. 897; Lange's PDF p. 39 | the same upstream as A01; CRC's second column is a derived gas value |
+| A10 | Klapoetke vol 3, one cell: -538.48 kJ/mol [109,112]; -128.7 kcal/mol [20,91]; -128.8 kcal/mol (solid) [59]; -125.5 kcal/mol [77] (= -525.1 kJ/mol); -515.3 kJ/mol [72]; -110.34 kcal/mol at 25 C [20,21] (= -461.7 kJ/mol) | unlabelled | PETN entry (OCR) | the -538.5 cluster is A01; -538.48 is the **Cheetah input digit** of Oxley's Table 8 (F04); -461.7, -515.3 and -525.1 are other numbers, 77 kJ/mol across one cell |
+| A11 | Meyer: enthalpy of formation -407.4 kcal/kg = -1704.7 kJ/kg (= -538.9 kJ/mol); 'energy of formation' -385.0 kcal/kg = -1610.7 kJ/kg | unlabelled | printed p. 251 | spread already in `INVENTORY.md` section 5 |
+| A12 | Akhavan: enthalpy -1683 kJ/kg (= -532.1 kJ/mol); energy of formation -1509 kJ/kg | unlabelled | Table 2.14, printed p. 41 | same |
+| F04 | -538.48 kJ/mol | unlabelled | Oxley 2012, Table 8, p. 37: 'literature values for the heats of formation [3,9]' fed to Cheetah | **not a measurement of Oxley's** |
+| F08 | -543 (calculated gas minus measured sublimation; mean uncertainty 10); literature list -538.5 +/- 0.8 (the one flagged experimental), -525, -556.8 +/- 2.0, -544 | computed | Muravyev 2021, Table 1, p. 15528 (**read**) | the literature spread of PETN's solid enthalpy is 31.8 kJ/mol; one value is a combustion experiment |
 
-**Verification under preregistration 8.2:** the solid enthalpy is verified in the sense of "one observation carrying a primary-literature measurement with a locator read on the page" only after Ornellas 1966 is read (the owner's to fetch, section 8). Without it, A01 plus A09 and A11 are one lineage.
+**Verification under preregistration 8.2:** the primary page is now read, so A01 qualifies as a verified solid enthalpy (a primary-literature measurement with a locator read on the page); A09, A10 (two values), A11 and F04 are the same lineage, not four sources.
 
 ### 3.3 Sublimation and the derived gas-phase enthalpy
 
-| id | value | kind | source and lineage |
+| id | value | kind | source |
 |---|---|---|---|
-| A04 | **150.4 +/- 1.3** kJ/mol at 298 K (data 328-405 K, effusion) | measured | NIST WebBook and Acree and Chickos 2010 Table 6 p. 151 (rendered page read); Cundall, Palmer et al. 1978 |
-| A05 | 152 +/- 2 kJ/mol (method V) | measured | NIST; Edwards 1953 |
-| A06 | Acree prints six rows (one flagged U by the compilers); the five usable span 150.4-156.9 kJ/mol (values withheld except A04) | measured | Acree Table 6 p. 151; five roots |
-| A20 | Lange's Sec. 06 PDF p. 74 prints one value, within 1.5 kJ/mol of A04 (withheld) | unlabelled | a compilation of A06's last row |
-| A07 | **-388.1 +/- 1.5** kJ/mol gas, 298 K (A01 + A04) | derived_from_measured | this inventory |
-| A08 | Burcat 1999 uses the Cox and Pilcher gas value, within 1.1 kJ/mol of A07 (value withheld); its section 3.25 says no experimental value is known | unlabelled | Burcat, J. Phys. Chem. Ref. Data 28 (1999) 63, Table 52, printed p. 118 (rendered page read) |
+| A04 | **150.4 +/- 1.3** kJ/mol at 298 K (328-405 K, effusion) | measured | NIST WebBook; Acree and Chickos 2010, Table 6, p. 151; Cundall, Palmer et al. 1978 |
+| A05 | 152 +/- 2 (method V) | measured | NIST; Edwards 1953 |
+| A06 | 156.9 +/- 0.8 (369 K, TE); 152.3 (DSC); 146 +/- 12; U 121.3 (flagged); 151.9 +/- 2.1 (370-411 K) | measured | Acree 2010, Table 6, printed p. 043101-151 (rendered page read) |
+| F02 | 146.6 (isothermal TGA, extrapolated to 25 C); vapour pressure 5.21e-6 Pa at 25 C | measured | Oxley 2012, Table 6, p. 34 (**read**); cites 1.78e-5 Pa (Crimmins 1969) |
+| F08, F13 | 147.6 +/- 3.5 (modified low-pressure TG); literature in the SI: 150.8 [Ostmark review], 150.4 +/- 1.3, 150.6 +/- 1.8, 149.2 (Oxley recalculated) | measured | Muravyev 2021 (**read**), SI p. 14 |
+| A20 | 151.9 (Lange's Sec. 06, PDF p. 74) | unlabelled | a compilation of A06's last row |
+| A07 | **-388.1 +/- 1.5** kJ/mol, gas, 298 K (A01 + A04) | derived_from_measured | this inventory |
+| A08 | -92.5 kcal/mol (= -387.0 kJ/mol), Cox and Pilcher; Burcat's text, section 3.25: 'No experimental value is known for this explosive material'; Burcat's own calculations -89.89, -98.2, -95.3 kcal/mol | unlabelled | Burcat 1999, Table 52, p. 118 (rendered page read) |
+| F08, F14 | **-395.5** (W1-F12 atomization energy); another calculation -413.6 +/- 4 (Suntsova and Dorofeeva 2017) | computed | Muravyev 2021, Table 1 and SI p. 22 (**read**) |
 
-PETN has therefore a derived gas-phase enthalpy known to about 2 kJ/mol, and **no measured gas-phase enthalpy**. R1 requires `measured`, so it cannot be met by PETN or by any compound whose gas value is solid-plus-sublimation.
+PETN therefore has a derived gas-phase enthalpy known to about 2 kJ/mol (five sublimation measurements within 10), a W1-F12 value 7.4 kJ/mol below it, and **no measured gas-phase enthalpy**. R1 requires `measured`, so it cannot be met by PETN or by any compound whose gas value is solid-plus-sublimation.
 
 ### 3.4 What this does to the repository's recorded PETN miss
 
-`benchmarks/thermophysical/orca_atom_equivalents.py` records the 6-fit PETN solid value -479.5 against a measured -539.0 (59.5 kJ/mol), and `docs/research/literature.toml` records, for the APC route, gas -344.0 with Keshavarz's sublimation 138.0. **If** the ORCA route's sublimation leg for PETN was also 138.0, its implied gas value is -341.5, against the derived -388.1: a **gas-phase miss of about 47 kJ/mol**, and 12.4 kJ/mol of the recorded miss is the sublimation leg (138.0 against a measured 150.4 +/- 1.3). The gas-phase miss is the quantity R1 would test. This is arithmetic on recorded numbers; which sublimation value the ORCA route used is not confirmed here.
+`benchmarks/thermophysical/orca_atom_equivalents.py` records the 6-fit PETN solid value -479.5 against a measured -539.0 (59.5 kJ/mol), and `docs/research/literature.toml` records, for the APC route, gas -344.0 with Keshavarz's sublimation 138.0. **If** the ORCA route's sublimation leg for PETN was also 138.0, its implied gas value is -341.5, against the derived -388.1 (a gas-phase miss of about 47) and against the W1-F12 -395.5 (about 54); 12.4 kJ/mol of the recorded miss is the sublimation leg (138.0 against a measured 150.4 +/- 1.3, or 147.6 +/- 3.5). The gas-phase miss is the quantity R1 would test. This is arithmetic on recorded numbers; which sublimation value the ORCA route used is not confirmed here.
+
+### 3.5 What the seven papers add (all read on the page)
+
+| paper | what it settled |
+|---|---|
+| Ornellas 1966 | A01 is a bomb-calorimeter combustion value (618.7 and 618.1 kcal/mol, two runs); the heat of detonation is 1490 +/- 6 cal/g, H2O(l) |
+| Zhurova 2006 | PETN-I at 100.0(1) K: 1.845, cell and R factor; the I to II transition is about 410 K |
+| Cady and Larson 1975 | PETN-II: Pcnb, Z = 4, 1.72 g/cm3 at **136 C**; PETN II melts 0.2 C above PETN I |
+| Manner 2014 | ETN 1.851 at 140(1) K (Table 4); 1.773 at room temperature with its cell; CIF matches |
+| Matyas 2015 | ETN 1.827 at 150 K, a different crystal: it disagrees with Manner by 0.024 (F05-F07) |
+| Oxley 2012 | sublimation enthalpies and vapour pressures by TGA (PETN 146.6, ETN 117.7, DNTN 105.3); pycnometer densities; **its heats of formation are literature values fed to Cheetah** (F04) |
+| Muravyev 2021 and SI | a W1-F12 gas enthalpy and a modified-TG sublimation enthalpy for PETN, ETN and SMX (= DNTN); DSC melting data with purity (PETN 140.9 +/- 0.3 C, 48.1 +/- 1.1 kJ/mol; ETN 61.2 +/- 0.7, 36.9 +/- 3.3); the **-371 vs -542** contradiction for the Chavez compound |
 
 ## 4. R1: four-arm quaternary carbons
 
 | id | compound | what exists | kind |
 |---|---|---|---|
-| B01 | pentaerythritol | ΔfH(solid) -920.5 +/- 2.8 kJ/mol, Ccb, Medard and Thomas 1954 (NIST) | measured |
-| B02, B03 | pentaerythritol | sublimation: 163.0 kJ/mol (298 K, NIST, Barone 1990) and seven rows in Acree p. 177 spanning 96 to 163 kJ/mol over crystalline, plastic and tetragonal forms (values withheld except NIST's) | measured, polymorph-dependent |
-| B04 | pentaerythritol | the CRC gas column (derived: solid plus one sublimation row) and a range of about -757 to -789 kJ/mol by B01 + the usable B03 rows (this inventory's arithmetic) | derived_from_measured |
-| B05 | 3,3-diethylpentane | ΔfH(liquid) -275.4 (NIST, from ΔcH -6124.5 +/- 1.6, Johnson, Prosen et al. 1947) | derived_from_measured |
+| B01 | pentaerythritol | dfH(solid) -920.5 +/- 2.8 kJ/mol, Ccb, Medard and Thomas 1954 (NIST); CRC 97 and Lange's print -920.6 | measured |
+| B02, B03 | pentaerythritol | sublimation 163.0 (298 K, NIST, Barone 1990); Acree 2010 Table 6, printed p. 043101-177 (rendered page read): 134 +/- 7 (crystalline, 441-460 K); 96 +/- 9 (plastic, 465-477 K); 131.3 +/- 6.6 (403 K); 161 +/- 1.0 (418-455 K); 163.0 (298 K); 131.4 (tetragonal, 397-410 K); 143.9 +/- 0.8 (379-408 K) | measured, polymorph-dependent |
+| B04 | pentaerythritol | gas -776.7 (CRC 97 p. 897, = -920.6 + 143.9); about -757 to -789 by B01 + the usable B03 rows | derived_from_measured |
+| B05 | 3,3-diethylpentane | dfH(liquid) -275.4 (NIST, from dcH -6124.5 +/- 1.6, Johnson, Prosen et al. 1947) | derived_from_measured |
 | B06 | tetrabromide, tetrachloride, tetraacetate | none found | - |
-| B07 | pentaerythritol trinitrate | one condensed value in two units from two references that convert to within 0.2 kJ/mol (Klapoetke vol 3; values withheld) | unlabelled |
+| B07 | pentaerythritol trinitrate | -134 kcal/mol (25 C) [8] and -2,069 kJ/kg [7] (= -560.7 and -560.9 kJ/mol), Klapoetke vol 3 entry (OCR) | unlabelled |
 
-* **Pentaerythritol is the only candidate.** Its structure matches the R1 pattern with four identical hydroxyl arms. A gas value exists only as `derived_from_measured` (kind), with a polymorph spread of about +/- 16 kJ/mol on the sublimation leg. R1 as written needs `measured`, phase `gas`; it is **not met**, and it could be met only by an amendment that admits `derived_from_measured` for this compound or by a new measurement.
+* **Pentaerythritol is the only candidate.** Its structure matches the R1 pattern with four identical hydroxyl arms. A gas value exists only as `derived_from_measured`, with a polymorph spread of about +/- 16 kJ/mol on the sublimation leg. R1 as written needs `measured`, phase `gas`; it is **not met**, and could be met only by an amendment that admits `derived_from_measured` for this compound or by a new measurement.
 * The **R1 pattern is not selective.** `tests/test_energetics_props_petn_evidence.py` shows that 3,3-diethylpentane, with measured combustion data, matches it. The owner's D8 approval is the real selector; the rule's text should say "four identical heteroatom-bearing arms" or list the approved compounds.
-* The nearest nitrate-bearing neighbours are PETriN (three nitrate arms and one hydroxyl; condensed enthalpy only; B07) and the **metriol trinitrate** that the repository already predicts well; no gas-phase value of either exists. For three-arm nitrate esters the only gas-phase value is nitroglycerin's, derived: **-279.1 +/- 2.7 kJ/mol** (liquid enthalpy -371.1 +/- 1.7, Miroshnichenko 1988, plus a measured vaporization 92.0 +/- 2.1), and methyl nitrate's, **-122 +/- 1 kJ/mol** (NIST, method Cm, Ray and Ogg 1959). NIST's gas value for ethyl nitrate is **-155 +/- 3** (Eqk, Gray et al. 1956); the Encyclopedia prints -122 +/- 1.3 for ethyl nitrate's gas phase, the digits of methyl nitrate's value (a probable mix-up, section 7 item 10).
+* The nearest nitrate-bearing neighbours are PETriN (three nitrate arms and one hydroxyl; condensed enthalpy only; B07) and the **metriol trinitrate** that the repository already predicts well; no gas-phase value of either exists. For three-arm nitrate esters the gas-phase values are nitroglycerin's, derived: **-279.1 +/- 2.7 kJ/mol** (liquid -371.1 +/- 1.7, Miroshnichenko 1988, plus a measured vaporization 92.0 +/- 2.1), and methyl nitrate's, **-122 +/- 1 kJ/mol** (NIST, method Cm, Ray and Ogg 1959). NIST's gas value for ethyl nitrate is **-155 +/- 3** (Eqk, Gray et al. 1956); the Encyclopedia prints -122 +/- 1.3 for ethyl nitrate's gas phase, the digits of methyl nitrate's value (a probable mix-up, section 7 item 10).
 
 ## 5. The nitrate-ester family, measured thermochemistry
 
-NIST WebBook rows (public data; ids C01-C10, values in the JSON): nitroglycerin (five liquid rows from -353.9 to -375, one gas), diethylene glycol dinitrate (liquid and solid), metriol trinitrate (solid), 1,2,4-butanetriol trinitrate (liquid), propylene glycol dinitrate (solid, -296.9 +/- 9.3), triethylene glycol dinitrate (two solid rows, -656.9 and -603.8: 53 kJ/mol apart), methyl, ethyl, propyl and isopropyl nitrate, ethylene glycol dinitrate (liquid), and PETN. That is **12 compounds**, plus erythritol tetranitrate and mannitol hexanitrate, which NIST does not hold and whose measured basis is Oxley 2012 and unnamed references in the Encyclopedia (C12, C13).
+NIST WebBook rows (public data; ids C01-C10, values in the JSON): nitroglycerin (five liquid rows from -353.9 to -375, one gas), diethylene glycol dinitrate (liquid and solid), metriol trinitrate (solid), 1,2,4-butanetriol trinitrate (liquid), propylene glycol dinitrate (solid, -296.9 +/- 9.3), triethylene glycol dinitrate (two solid rows, -656.9 and -603.8: 53 kJ/mol apart), methyl, ethyl, propyl and isopropyl nitrate, ethylene glycol dinitrate (liquid), and PETN. That is **12 compounds**, plus erythritol tetranitrate and mannitol hexanitrate, which NIST does not hold.
 
-* **Lineage collapse (C11).** The Encyclopedia's printed enthalpies for TEGDN (-656.9 and -603.8), metriol trinitrate (-450.2), ethyl nitrate (-190.4 liquid), nitroglycerin (-371) are the NIST digits. They do not verify NIST, and two of them print "solid" for liquids.
-* **A label to watch:** Klapoetke's property tables also print "exptl." beside values that come from a fit table (the ethriol trinitrate, ethylene glycol dinitrate, glycerol dinitrate, mannitol hexanitrate, metriol trinitrate and methyl nitrate entries each carry an "exptl." and one or two "calcd." numbers from one reference), so "exptl." is not a `measured` tag by itself.
-* **Fit tables, not data.** Several nitrate-ester values in the entries are the training sets of the Keshavarz-type methods (preregistration 10.2) and are not independent of them.
-* **Open items found:** a measured solid enthalpy for a non-four-arm tetranitrate, -371 kJ/mol by bomb calorimetry, and a 1.917 g/cm3 X-ray density (US 8,324,421 B2; the paper, Angew. Chem. 47 (2008) 8307, is not read; C14, D07). Xylitol pentanitrate: density 1.852 at 150 K measured, enthalpy calculated (Stark thesis, D04, C15). Four PETN derivatives of Benz 2023 (CC BY): densities at 293, 123, 110 and 123 K, enthalpies calculated (D06).
+* **Lineage collapse (C11, F04).** The Encyclopedia's printed enthalpies for TEGDN (-656.9 and -603.8), metriol trinitrate (-450.2), ethyl nitrate (-190.4 liquid) and nitroglycerin (-371) are the NIST digits; its PETN (-538.48), EGDN (-243.01) and ETN (-474.8) are the Cheetah-input digits of Oxley's Table 8. They do not verify their sources, and two of them print "solid" for liquids.
+* **ETN's enthalpy has no measured basis in the sources read.** Oxley takes -474.80 from the literature (Fedoroff and Sheffield 1972); Muravyev's own value is -496 and the literature values he lists run -475 to -545, none flagged experimental. Mannitol hexanitrate (C13) has -706.7 +/- 4.2 (c), -169.42 +/- 0.68 kcal/mol and -708.8 kJ/mol (exptl.) in the Encyclopedia, on three references.
+* **A label to watch:** the Encyclopedia prints "exptl." beside values that come from a fit table (the ethriol trinitrate, ethylene glycol dinitrate, glycerol dinitrate, mannitol hexanitrate, metriol trinitrate and methyl nitrate entries each carry an "exptl." and one or two "calcd." numbers from one reference), so "exptl." is not a `measured` tag by itself.
+* **Open items found:** the Chavez/Oxley tetranitrate, whose -371 kJ/mol 'by bomb calorimetry' (US 8,324,421 B2) is contradicted by Muravyev 2021 (-542; literature -371 and -580; F10), and a 1.917 g/cm3 X-ray density for it (D07); xylitol pentanitrate, density 1.852 at 150 K measured, enthalpy calculated (Stark thesis, D04, C15); four PETN derivatives of Benz 2023 (CC BY), densities at 293, 123, 110 and 123 K, enthalpies calculated (D06).
 
 ## 6. The COD
 
@@ -164,45 +184,44 @@ The 41 nitrate-ester entries outside the census window (all have no stated press
 
 ## 7. Label traps found while reading (each a candidate regression fixture)
 
-1. **Lease 2023 Table 1** (journal p. 7049) prints "rho_calc (g cm-3) [temp. (K)]" with the temperatures **blank**, and one row mixes PETN's 1.845 (100 K, Zhurova) with derivative densities that COD records at 250-305 K (seven of ten at 293-296 K). For PETN itself the 100 K value is about 0.07 g/cm3 above its room-temperature crystal densities (A13, A14), more than the 0.04 criterion of preregistration 11.1; reading the column as one temperature is wrong.
+1. **Lease 2023 Table 1** (journal p. 7049) prints "rho_calc (g cm-3) [temp. (K)]" with the temperatures **blank**, and one row mixes PETN's 1.845 (100 K, Zhurova) with derivative densities (1.723, 1.957, 2.158, 1.525) that COD records at 250-305 K (seven of ten at 293-296 K). For PETN itself the 100 K value is about 0.07 g/cm3 above its room-temperature crystal densities, more than the 0.04 criterion of preregistration 11.1.
 2. **NIST's ethylene glycol dinitrate page** lists a sublimation enthalpy of 103.8 kJ/mol (Nunez, Barral 1988); Acree 2010 p. 44 prints CAS 628-96-6 for both ethylene glycol dinitrate and dithiooxamide, and the 103.8 row sits under dithiooxamide. EGDN freezes near -22 C. Inferred, not confirmed.
 3. **TEGDN, a liquid, has "solid" enthalpies** in NIST and, copied, in the Encyclopedia, 53 kJ/mol apart.
-4. **CRC 97's second thermochemistry column is the gas value** (for PETN and for pentaerythritol) and is derived from the first plus a sublimation enthalpy; a reader who takes it for a measurement is wrong.
-5. **Meyer's "energy of formation"** for PETN, printed next to its enthalpy, is a different quantity (about 5% smaller); the preregistration already forbids using the energy.
-6. **Klapoetke's PETN heat-of-formation cell** holds values spanning 77 kJ/mol; no label separates them.
-7. **NIST's PETN method code is Ccb** while the matching Crossref title says detonation calorimeter; which is true is unverified.
-8. **PETN density in one Klapoetke cell**: crystal, pycnometer, pressed, loading and TMD values together.
-9. **Formula is not identity in COD**: C3H7NO3 (37 header entries) and C4H9NO3 (31) are also the formulas of serine and threonine, not only of propyl and butyl nitrate; only the connectivity pass finds the ester group.
-10. **Klapoetke's ethyl nitrate gas value** (-122 +/- 1.3 kJ/mol) has the digits of methyl nitrate's NIST value (-122 +/- 1, Ray and Ogg 1959), while NIST's own ethyl nitrate gas value is -155 +/- 3 (Eqk): a probable mix-up in the Encyclopedia, not confirmed on the primary papers.
+4. **CRC 97's second thermochemistry column is the gas value** (PETN -387.0, pentaerythritol -776.7) and is derived from the first plus a sublimation enthalpy; a reader who takes it for a measurement is wrong.
+5. **Meyer's "energy of formation"** for PETN (-385.0 kcal/kg), printed next to its enthalpy (-407.4), is a different quantity; the preregistration already forbids using the energy.
+6. **Klapoetke's PETN heat-of-formation cell** holds values spanning 77 kJ/mol (-461.7 to -538.9 after conversion); no label separates them.
+7. **Oxley 2012 Table 8 prints heats of formation beside measured properties** with no marker that they are inputs; the text says literature values. Four sources print the same digits (-538.48, -243.01, -474.8, -371).
+8. **The Chavez DNTN enthalpy**: -371 (patent, "measured by combustion calorimetry"), -542 and -580 (Muravyev 2021's calculation and a literature value). One of the three is wrong by about 170 kJ/mol.
+9. **ETN's "X-ray density" of 1.553 / 1.55** (Oxley's Table 6 and the Encyclopedia) is 0.22 g/cm3 below every ETN X-ray density read (1.773 at room temperature, 1.827 at 150 K, 1.851 at 140 K); and ETN's helium-pycnometer density (1.7219) is 3 % below the room-temperature X-ray value.
+10. **The Encyclopedia's ethyl nitrate gas value** (-122 +/- 1.3 kJ/mol) has the digits of methyl nitrate's NIST value (-122 +/- 1, Ray and Ogg 1959), while NIST's own ethyl nitrate gas value is -155 +/- 3 (Eqk): a probable mix-up, not confirmed on the primary papers.
+11. **PETN density in one Encyclopedia cell**: crystal, pycnometer, pressed, loading and TMD values together.
+12. **Formula is not identity in COD**: C3H7NO3 (37 header entries) and C4H9NO3 (31) are also the formulas of serine and threonine, not only of propyl and butyl nitrate; only the connectivity pass finds the ester group.
+13. **PETN's melting range in the Encyclopedia**: the entry lists melting points from 138.0 to 150 C in one cell (150 is a nanocalorimetric single-crystal value at 2,500 C/s); DSC melts are 140.9 +/- 0.3 (Muravyev SI), 142.9 (Cady and Larson, PETN I), 143 (Oxley).
 
 ## 8. Not held: for the owner to fetch
 
-Direct links, with a distinct suggested filename each (the project convention). DOIs were resolved through Crossref on 2026-10-26 by title, author and year; each is a **match, not a read**.
+Direct links, with a distinct suggested filename each (the project convention). DOIs were resolved through Crossref on 2026-10-26 by title, author and year. The seven papers the owner supplied are now read and are not listed.
 
 | what it would settle | link | suggested filename |
 |---|---|---|
-| PETN solid enthalpy primary root (A01); whether the method was combustion or detonation calorimetry | https://doi.org/10.1063/1.1720361 | `ornellas1966_petn_detonation_calorimeter.pdf` |
-| PETN structure at 100 K (A15), the density Lease and Stark reuse | https://doi.org/10.1021/ja0658620 | `zhurova2006_petn_aim_jacs.pdf` |
-| PETN-II cell and its transformation (A17) | https://doi.org/10.1107/s0567740875006383 | `cady1975_petn_ii_actab.pdf` |
-| ETN room-temperature and 140 K structures (D01) | https://doi.org/10.1021/cg501362b | `manner2014_etn_structure_cgd.pdf` |
-| ETN properties and the 150 K density (D01) | https://doi.org/10.1002/prep.201400291 | `matyas2015_etn_physical_properties.pdf` |
-| ETN and other tetranitrate esters, the measured basis of the Encyclopedia's ETN enthalpy (C12) | https://doi.org/10.1002/prep.201100059 | `oxley2012_tetranitrate_esters.pdf` |
+| vapour pressure and sublimation enthalpy of the explosives, a critical review (PETN, ETN); the best next source for B and F13 | https://doi.org/10.1002/prep.201100083 | `ostmark2012_vapor_pressure_of_explosives_review.pdf` |
+| the Chavez tetranitrate's formation enthalpy, -371 or -542 (F10) | https://doi.org/10.1002/anie.200803648 | `chavez2008_energetic_nitrate_ester.pdf` |
+| calculated gas-phase enthalpies and sublimation of energetic compounds, including PETN -413.6 (F14) | https://doi.org/10.1016/j.jmgm.2017.01.013 | `suntsova2017_sublimation_enthalpy_politzer.pdf` |
 | MHN and SHN polymorphs (D03) | https://doi.org/10.1002/prep.202000197 | `mclennan2021_hexanitrates_pep.pdf` |
-| the tetranitrate of Chavez et al. (C14, D07) | https://doi.org/10.1002/anie.200803648 | `chavez2008_energetic_nitrate_ester.pdf` |
 | azido derivatives of PETN including the four-arm tetraazide (B06 search) | https://doi.org/10.1002/prep.202000265 | `lenz2021_azido_petn_derivatives.pdf` |
 | pentaerythritol at very low temperature (a structure of the R1 candidate) | https://doi.org/10.1107/s0108768106008329 | `zhurova2006_pentaerythritol_actab.pdf` |
 | pentaerythritol sublimation by polyol (B02, B03) | https://doi.org/10.1039/ft9908600075 | `barone1990_polyhydric_alcohols_sublimation.pdf` |
 | alkyl nitrate combustion enthalpies, the ethyl, propyl and isopropyl rows (C08, C09) | https://doi.org/10.1039/tf9575300779 | `fairbrother1957_alkyl_nitrates_heats_of_combustion.pdf` |
-| solid-state enthalpies of 63 CHNO energetic compounds from thermogravimetric sublimation (E03; the publisher page was not retrievable) | https://doi.org/10.1039/D1CP02201F | `muravyev2021_pccp_thermogravimetry_enthalpies.pdf` |
+| PETN vapour pressure and sublimation, the effusion study behind A04 (Cundall, Palmer, Wood, J. Chem. Soc. Faraday Trans. 1 74 (1978) 1339; DOI not resolved) | (library request) | `cundall1978_vapour_pressure_organic_high_explosives.pdf` |
 | nitric ester decomposition and heat of combustion series (the "heat of combustion of XPN" the Flinders thesis cites) | https://doi.org/10.1007/s10973-017-6706-5 | `dong2018_nitric_esters_jtac.pdf` |
 
-DOI not resolved: Cundall, Palmer et al. 1978 (the PETN effusion study behind A04); Medard and Thomas 1954 (pentaerythritol combustion, B01); Miroshnichenko et al. 1985 and 1988 (nitroglycerin); Baroody and Carpenter 1972; Tavernier 1956; Cox and Pilcher 1970 (the book). The NIST WebBook is the only place these are held.
+DOI not resolved: Medard and Thomas 1954 (pentaerythritol combustion, B01); Miroshnichenko et al. 1985 and 1988 (nitroglycerin); Baroody and Carpenter 1972; Tavernier 1956; Cox and Pilcher 1970 (the book); Fedoroff and Sheffield 1972 (the Encyclopedia of Explosives, the root of Oxley's literature heats of formation). The NIST WebBook is the only place most of these are held.
 
 **Open items downloaded and read** (kept outside the repository): Stark, Flinders University thesis 2022 (open repository, 2.7 MB); Manner et al., Chem. Sci. 2018 on PMC (open access, HTML); a short review of nitric esters on PMC (ACS Omega 2021, HTML); US 8,324,421 B2 (Google Patents HTML); Benz et al., Chem. Eur. J. 2023, LMU repository, CC BY 4.0 (14.4 MB PDF); Burcat, JPCRD 1999, from the NIST reprint server (1 MB PDF). The RSC pages were behind a bot challenge and were not fetched.
 
 ## 9. How it was searched
 
-* **Held library** (`tools/library_index.py`, 1,120 files indexed, 14 scans with no text layer, `explosives-propellants-and-pyrotechnics.pdf` among them and unreadable): PETN and its synonyms (441 pages in 42 files), nitroglycerin (486 pages, 52 files), ethylene glycol dinitrate, mannitol hexanitrate, "nitrate ester" (219 pages), pentaerythritol (115 pages) and the four-arm halides. The Encyclopedia's volume 2 is a text PDF; **volumes 1 and 3 are image tables**, read here by OCR for the PETN, PETriN, tetranitramine, TEGDN, XPN, TAP-Ac and tripentaerythritol octanitrate entries; the OCR text was read, the images were not all viewed, so those values carry the inventory's OCR caveat. Pages that carry a value were checked on the rendered page for Acree (pp. 151, 177), Lease (p. 7049) and Burcat (p. 118).
+* **Held library** (`tools/library_index.py`, 1,120 files indexed, 14 scans with no text layer, `explosives-propellants-and-pyrotechnics.pdf` among them and unreadable): PETN and its synonyms (441 pages in 42 files), nitroglycerin (486 pages, 52 files), ethylene glycol dinitrate, mannitol hexanitrate, "nitrate ester" (219 pages), pentaerythritol (115 pages) and the four-arm halides. The Encyclopedia's volume 2 is a text PDF; **volumes 1 and 3 are image tables**, read here by OCR for the PETN, PETriN, tetranitramine, TEGDN, XPN, TAP-Ac and tripentaerythritol octanitrate entries; the OCR text was read, the images were not all viewed, so those values carry the inventory's OCR caveat. Pages that carry a value were checked on the rendered page for Acree (pp. 151, 177), Lease (p. 7049), Burcat (p. 118) and Muravyev (p. 15528). The seven papers the owner added after the first pass were read from their text layers, with Muravyev Table 1 checked on the rendered page.
 * **Open web:** NIST WebBook thermochemistry, phase-change and gas-phase pages for 19 CAS numbers (one, erythritol tetranitrate, not in the WebBook); Crossref for DOIs; the COD site for four deposited entries' bibliographic fields; the open papers above. The fetch tool's page summariser declined some energetic-compound pages, so NIST pages were read as HTML tables directly.
 * **COD:** section 6.
 
@@ -210,18 +229,20 @@ DOI not resolved: Cundall, Palmer et al. 1978 (the PETN effusion study behind A0
 
 **R1: not met, and not meetable as written; but it can be made testable cheaply.**
 
-1. No `measured` gas-phase enthalpy exists for PETN or for any four-arm quaternary carbon. PETN's own gas value is `derived_from_measured`, -388.1 +/- 1.5 kJ/mol, and the JPCRD says none is known.
-2. The one compound that matches the pattern with oxygen arms, **pentaerythritol**, has a measured solid enthalpy (+/- 2.8) and a polymorph-dependent sublimation (about +/- 16 kJ/mol on the gas value), so its gas value is `derived_from_measured` and about a quarter the size of the 47-60 kJ/mol PETN miss it would be asked to detect. That is enough to see a gap of that size, and not enough to say what causes it (the quaternary centre or the nitrate arms): pentaerythritol has neither.
+1. No `measured` gas-phase enthalpy exists for PETN or for any four-arm quaternary carbon. PETN's own gas value is `derived_from_measured`, -388.1 +/- 1.5 kJ/mol, with a W1-F12 value 7.4 below it; the JPCRD says none is known.
+2. The one compound that matches the pattern with oxygen arms, **pentaerythritol**, has a measured solid enthalpy (+/- 2.8) and a polymorph-dependent sublimation (about +/- 16 kJ/mol on the gas value), so its gas value is `derived_from_measured` and about a third the size of the 47-54 kJ/mol PETN miss it would be asked to detect. That is enough to see a gap of that size, and not enough to say what causes it (the quaternary centre or the nitrate arms): pentaerythritol has neither.
 3. The **R1 pattern matches a hydrocarbon**, so approval (D8) is the selector.
 
-**R2 and any nitrate-ester family gate: unchanged, and unreachable.** The evidence found does not touch the nitramine stratum (not searched). For nitrate esters every count is far under 150 verified entities: about 14 compounds with measured condensed enthalpies (NIST 12 + ETN + MHN), about 40 entries in the Encyclopedia by heading (an upper bound: the filter keeps a few non-esters and misses PETN's own heading), 73 COD entries in 64 formulas across all temperatures and states, and several of the same series (Lease: 7, Benz: 13) counted as entries. Adding temperatures does not change that conclusion; the literature simply holds few nitrate esters.
+**R2 and any nitrate-ester family gate: unchanged, and unreachable.** The evidence found does not touch the nitramine stratum (not searched). For nitrate esters every count is far under 150 verified entities: about 14 compounds with measured condensed enthalpies (NIST 12 + ETN + MHN, the last two with no measured basis in the papers read), about 40 entries in the Encyclopedia by heading, 73 COD entries in 64 formulas across all temperatures and states, and several of the same series (Lease: 10, Benz: 13) counted as entries.
 
-**What the new evidence does change:** (a) PETN is not "a compound with no calibrant": it is a derived gas-phase point known to 2 kJ/mol, and the repository's recorded miss mixes a gas-phase error with a 12 kJ/mol sublimation-leg error if the ORCA route used 138.0 (to be checked); (b) the census window hid 14 further nitrate-ester entries and both non-100 K PETN cells, so the nitrate-ester COD stratum is larger than the census said but still small; (c) three label traps (section 7, items 1, 2 and 4) are new fixtures.
+**What the new evidence changes:** (a) PETN is not "a compound with no calibrant": it is a derived gas-phase point known to 2 kJ/mol, confirmed against a W1-F12 value, and the repository's recorded miss mixes a gas-phase error of about 47-54 kJ/mol with a 12 kJ/mol sublimation-leg error if the ORCA route used 138.0 (to be checked); (b) four printed enthalpies that look like separate sources are one Cheetah input table, and one of them (-371) is contradicted by 171 kJ/mol; (c) ETN's two structures disagree beyond the 8.2 tolerance, so a verified crystal density for ETN does not exist yet; (d) the census window hid 41 further nitrate-ester entries and both non-100 K PETN cells; (e) the label traps in section 7 are new fixtures.
 
 **The smallest further evidence that would change the R1 position**, in order of cost:
 
 1. **An amendment, not data.** Admit `derived_from_measured` for R1 and name pentaerythritol as the candidate calibrant (or list the approved compounds), with its +/- 16 kJ/mol stated. This costs a decision (D8) and one ORCA run of a 17-atom molecule, which would say whether the route misses pentaerythritol by tens of kJ/mol (a quaternary-carbon problem) or not (a nitrate-arm problem).
-2. **One read page:** Ornellas 1966 (A01) and the pentaerythritol rows behind B01/B03 (Medard and Thomas 1954; Barone 1990), to give the two anchors a read primary locator under 8.2.
+2. **One more read page:** the pentaerythritol rows behind B01/B03 (Medard and Thomas 1954; Barone 1990) and Ostmark 2012, to give the R1 anchor a read primary locator under 8.2.
 3. **A measurement** of the gas-phase or sublimation enthalpy of pentaerythritol tetra-acetate or the tetrahalides, which would give a heteroatom-armed four-arm compound with a measured value; none was found, and none of the held or open sources reports one.
 
-Not searched: the nitramine stratum (R2's own condition), polymorph-resolved PETN thermal expansion (it needs the CSD and is the D10 expansion coefficient), and the LMU dissertations (D14).
+**A one-line amendment the preregistration needs, for the owner:** section 7's "no per-compound values from a copyrighted table" becomes "single measured values, short runs of values and spreads are quoted as facts with their locators; no table or running text is reproduced". This file already follows the second wording.
+
+Not searched: the nitramine stratum (R2's own condition), polymorph-resolved PETN thermal expansion (it needs the CSD and is the D10 expansion coefficient; F07 gives two derived pairs), and the LMU dissertations (D14).

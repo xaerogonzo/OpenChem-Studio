@@ -1,5 +1,5 @@
 {
- "about": "Rows of PETN_EVIDENCE.md. value_kind follows PREREGISTRATION.md 3.1. public=false rows keep their locator, kind and lineage; their values are in the maintainer's notes folder, not in the repository.",
+ "about": "Rows of PETN_EVIDENCE.md. value_kind follows PREREGISTRATION.md 3.1. Values are quoted as facts with their locators; no table or running text is reproduced.",
  "retrieved": "2026-10-26",
  "rows": [
   {
@@ -14,11 +14,9 @@
    "temperature": "298.15 K",
    "source": "NIST Chemistry WebBook (public data), thermochemistry page, retrieved 2026-10-26; CAS 78-11-5",
    "locator": "condensed-phase thermochemistry, row dfH solid, method Ccb",
-   "lineage_root": "Ornellas, Carpenter et al. 1966 (NIST's reference; the Crossref title match is 10.1063/1.1720361, 'Detonation Calorimeter and Results Obtained with Pentaerythritol Tetranitrate', Rev. Sci. Instrum.; NIST labels the row Ccb while that title says detonation calorimeter, so which method produced it is unverified)",
+   "lineage_root": "Ornellas, Carpenter and Gunn, Rev. Sci. Instrum. 37 (1966) 907, DOI 10.1063/1.1720361, read: printed pp. 910-911 (two bomb-calorimeter combustion determinations, so NIST's Ccb is right)",
    "independent_of_inventory": "yes: a primary root that none of the inventoried books cites per value",
-   "public": true,
-   "note": "value as printed by NIST; the paper is paywalled and was not read",
-   "value_withheld": false
+   "note": "value as printed by NIST and confirmed on the paper page (row A21)"
   },
   {
    "id": "A02",
@@ -34,9 +32,7 @@
    "locator": "row dcH solid, Ccb, Ornellas et al. 1966",
    "lineage_root": "same as A01",
    "independent_of_inventory": "same lineage as A01",
-   "public": true,
-   "note": "",
-   "value_withheld": false
+   "note": ""
   },
   {
    "id": "A03",
@@ -52,9 +48,7 @@
    "locator": "row dcH solid, Ccb, Burlot 1939",
    "lineage_root": "Burlot 1939; NIST comment: 'Reanalyzed by Cox and Pilcher, 1970, Original value = -2594.7 kJ/mol'",
    "independent_of_inventory": "yes (a second, older combustion root, reanalysed)",
-   "public": true,
-   "note": "the original and the reanalysed value differ by 24.9 kJ/mol",
-   "value_withheld": false
+   "note": "the original and the reanalysed value differ by 24.9 kJ/mol"
   },
   {
    "id": "A04",
@@ -70,9 +64,7 @@
    "locator": "phase-change data, dsubH",
    "lineage_root": "Cundall, Palmer et al. 1978",
    "independent_of_inventory": "yes (Acree 2010 is inventoried but its PETN rows were never read)",
-   "public": true,
-   "note": "",
-   "value_withheld": false
+   "note": ""
   },
   {
    "id": "A05",
@@ -88,16 +80,14 @@
    "locator": "phase-change data, dsubH",
    "lineage_root": "Edwards 1953",
    "independent_of_inventory": "yes",
-   "public": true,
-   "note": "",
-   "value_withheld": false
+   "note": ""
   },
   {
    "id": "A06",
    "group": "A_petn_sub",
    "compound": "PETN",
    "property": "enthalpy_sublimation",
-   "value": null,
+   "value": "156.9 +/- 0.8 (369 K, TE); 152.3 (DSC); 146 +/- 12; U 121.3; 151.9 +/- 2.1 (370-411 K)",
    "unit": "kJ/mol",
    "value_kind": "measured",
    "phase_form": "solid to gas",
@@ -106,9 +96,7 @@
    "locator": "six rows under C5H8N4O12",
    "lineage_root": "2004LAU/HIL; 1990HWA/YOS; 1978CUN/PAL,1971DIN/STA; 1969CRI; 1953EDW,1960JON,1970COX/PIL",
    "independent_of_inventory": "yes",
-   "public": false,
-   "note": "Value and details held locally (copyrighted source; preregistration section 7); the conclusions drawn from this row are in PETN_EVIDENCE.md.",
-   "value_withheld": true
+   "note": "the 121.3 row is flagged U by the compilers; the spread of the usable rows is 150.4-156.9"
   },
   {
    "id": "A07",
@@ -124,16 +112,14 @@
    "locator": "n/a",
    "lineage_root": "Ornellas 1966 + Cundall 1978",
    "independent_of_inventory": "derived here",
-   "public": true,
-   "note": "NOT a measured gas-phase enthalpy: a solid value plus an effusion sublimation value. Burcat 1999 says no experimental gas value is known and uses the Cox and Pilcher value, within 1.1 kJ/mol of this one; the handbook gas column agrees to 1 kJ/mol",
-   "value_withheld": false
+   "note": "NOT a measured gas-phase enthalpy: a solid value plus an effusion sublimation value. Burcat 1999 says no experimental gas value is known and uses the Cox and Pilcher value, within 1.1 kJ/mol of this one; the handbook gas column agrees to 1 kJ/mol"
   },
   {
    "id": "A08",
    "group": "A_petn_gas_derived",
    "compound": "PETN",
    "property": "enthalpy_formation_gas",
-   "value": null,
+   "value": "-92.5",
    "unit": "kcal/mol",
    "value_kind": "unlabelled",
    "phase_form": "gas",
@@ -142,16 +128,14 @@
    "locator": "Table 52, row 'Cox and Pilcher'",
    "lineage_root": "Cox and Pilcher 1970 (book, not held)",
    "independent_of_inventory": "no (same arithmetic as A07)",
-   "public": false,
-   "note": "Value and details held locally (copyrighted source; preregistration section 7); the conclusions drawn from this row are in PETN_EVIDENCE.md.",
-   "value_withheld": true
+   "note": "Burcat's own calculated values on the same table: Melius -89.89, PM3 -98.2, AM1 -95.3 kcal/mol"
   },
   {
    "id": "A09",
    "group": "A_petn_hf_solid",
    "compound": "PETN",
    "property": "enthalpy_formation_solid",
-   "value": null,
+   "value": "-538.6 (CRC); 538.6, sign lost in the text layer (Lange's)",
    "unit": "kJ/mol",
    "value_kind": "unlabelled",
    "phase_form": "c",
@@ -160,16 +144,14 @@
    "locator": "one row each",
    "lineage_root": "Cox/Pedley compilations (not cited per value)",
    "independent_of_inventory": "no: handbooks are compilations of the same upstream",
-   "public": false,
-   "note": "Value and details held locally (copyrighted source; preregistration section 7); the conclusions drawn from this row are in PETN_EVIDENCE.md.",
-   "value_withheld": true
+   "note": "CRC's second column for PETN, -387.0, equals the gas value of A07; for pentaerythritol its -920.6 and -776.7 differ by 143.9, the sublimation value of Lange's Section 06 PDF p. 74"
   },
   {
    "id": "A10",
    "group": "A_petn_hf_solid",
    "compound": "PETN",
    "property": "enthalpy_formation_solid",
-   "value": null,
+   "value": "-538.48 kJ/mol [109,112]; -128.7 kcal/mol [20,91]; -515.3 kJ/mol [72]; -125.5 kcal/mol [77]; -128.8 kcal/mol (solid) [59]; -110.34 kcal/mol (25 C) [20,21]; further per-kg and per-gram forms",
    "unit": "mixed",
    "value_kind": "unlabelled",
    "phase_form": "solid on one item",
@@ -178,16 +160,14 @@
    "locator": "PETN entry, heat-of-formation cell",
    "lineage_root": "bracketed references per value; roots not traced",
    "independent_of_inventory": "partly: two values equal NIST/Ornellas; the others are different numbers",
-   "public": false,
-   "note": "Value and details held locally (copyrighted source; preregistration section 7); the conclusions drawn from this row are in PETN_EVIDENCE.md.",
-   "value_withheld": true
+   "note": "spread after conversion to kJ/mol: -461.7 to -538.9, i.e. 77 kJ/mol, in one cell"
   },
   {
    "id": "A11",
    "group": "A_petn_hf_solid",
    "compound": "PETN",
    "property": "enthalpy_formation_solid",
-   "value": null,
+   "value": "-407.4 kcal/kg = -1704.7 kJ/kg (enthalpy of formation); -385.0 kcal/kg = -1610.7 kJ/kg (energy of formation)",
    "unit": "per kg",
    "value_kind": "unlabelled",
    "phase_form": "(unstated)",
@@ -196,16 +176,14 @@
    "locator": "PETN entry",
    "lineage_root": "none printed",
    "independent_of_inventory": "no: inventory section 5 already records the PETN enthalpy spread over 3 books",
-   "public": false,
-   "note": "Value and details held locally (copyrighted source; preregistration section 7); the conclusions drawn from this row are in PETN_EVIDENCE.md.",
-   "value_withheld": true
+   "note": "converts to -538.9 kJ/mol; the 'energy of formation' is a different quantity and is never an enthalpy"
   },
   {
    "id": "A12",
    "group": "A_petn_hf_solid",
    "compound": "PETN",
    "property": "enthalpy_formation_solid",
-   "value": null,
+   "value": "-1683 kJ/kg (enthalpy of formation); -1509 kJ/kg (energy of formation)",
    "unit": "per kg",
    "value_kind": "unlabelled",
    "phase_form": "(unstated)",
@@ -214,16 +192,14 @@
    "locator": "Table 2.14",
    "lineage_root": "none printed",
    "independent_of_inventory": "no (already in the inventory's spread)",
-   "public": false,
-   "note": "Value and details held locally (copyrighted source; preregistration section 7); the conclusions drawn from this row are in PETN_EVIDENCE.md.",
-   "value_withheld": true
+   "note": "converts to -532.1 kJ/mol, 6.4 kJ/mol from the NIST value"
   },
   {
    "id": "A13",
    "group": "A_petn_density",
    "compound": "PETN",
    "property": "crystal_density",
-   "value": null,
+   "value": "1.778 (X-ray calc. 22 C; exptl. 22 C, tetragonal); 1.716 (X-ray calc. 136 C, orthorhombic)",
    "unit": "g/cm3",
    "value_kind": "unlabelled",
    "phase_form": "PETN-I tetragonal / PETN-II orthorhombic",
@@ -232,16 +208,14 @@
    "locator": "PETN entry density cell",
    "lineage_root": "ref [21] in that entry",
    "independent_of_inventory": "no (the same book family is in the inventory; the table with temperatures is new to it)",
-   "public": false,
-   "note": "Value and details held locally (copyrighted source; preregistration section 7); the conclusions drawn from this row are in PETN_EVIDENCE.md.",
-   "value_withheld": true
+   "note": "the same cell also lists 1.772, 1.77, 1.773 (single crystal), 1.7599 (pycnometer), 1.76 (nominal), 1.78 (TMD), 1.765, 1.74 (pressed), 1.60 (compressed): bulk, pressed and crystal values in one cell"
   },
   {
    "id": "A14",
    "group": "A_petn_density",
    "compound": "PETN",
    "property": "crystal_density",
-   "value": null,
+   "value": "1.76 (Meyer, 'density'); 1.76 at 20 C (Akhavan Table 2.14); 1.773 at 20 C (CRC 97, entry 8575); 1.773 (Lange's Section 01, text layer reads '1.177320 4')",
    "unit": "g/cm3",
    "value_kind": "unlabelled",
    "phase_form": "(unstated)",
@@ -250,9 +224,7 @@
    "locator": "one row each",
    "lineage_root": "none printed",
    "independent_of_inventory": "no",
-   "public": false,
-   "note": "Value and details held locally (copyrighted source; preregistration section 7); the conclusions drawn from this row are in PETN_EVIDENCE.md.",
-   "value_withheld": true
+   "note": "CRC prints 140.9(0.8) C as the melting point of the same entry"
   },
   {
    "id": "A15",
@@ -267,10 +239,8 @@
    "source": "COD entry 4111071 (Zhurova et al., J. Am. Chem. Soc. 128 (2006) 14728, DOI 10.1021/ja0658620, as deposited; header density_diffrn)",
    "locator": "header fields of the CIF",
    "lineage_root": "Zhurova 2006",
-   "independent_of_inventory": "YES: not in the inventory; Lease 2023 Table 1 prints the same 1.845 for its PETN column with no temperature, and Stark 2022 p. 66 cites 1.845 at 100 K to this paper",
-   "public": true,
-   "note": "R 0.0104; one observation seen in three places",
-   "value_withheld": false
+   "independent_of_inventory": "YES: not in the inventory; Lease 2023 Table 1 prints the same 1.845 for its PETN column with no temperature, Stark 2022 p. 66 and Manner 2014 cite 1.845 at 100 K to this paper",
+   "note": "read on the paper (Table 1, JACS 128 (2006) 14729): T 100.0(1) K, P-4 21 c, a = 9.2759(8), c = 6.6127(4) A, V = 568.97 A3, Z = 2, Dcalc 1.845, R(F) 0.0104 aspherical; the supporting-information CIF (ja0658620_si_001.cif, read) carries the same cell, Z, 100(1) K, 1.845 and R 0.0104; one observation seen in five places"
   },
   {
    "id": "A16",
@@ -286,16 +256,14 @@
    "locator": "density computed here from _cell_* and Z",
    "lineage_root": "Booth and Llewellyn 1947",
    "independent_of_inventory": "YES: a 1947 cell; temperature unstated",
-   "public": true,
-   "note": "no density or temperature in the header; no room-temperature assumption is made here",
-   "value_withheld": false
+   "note": "no density or temperature in the header; no room-temperature assumption is made here"
   },
   {
    "id": "A17",
    "group": "A_petn_density",
    "compound": "PETN-II",
    "property": "crystal_density",
-   "value": "1.7148 (computed here from the cell and Z of the CIF)",
+   "value": "1.7148 (computed here from the CIF cell; the paper prints 1.72 at 136 C)",
    "unit": "g/cm3",
    "value_kind": "derived_from_measured",
    "phase_form": "PETN-II, orthorhombic Pcnb, Z=4",
@@ -304,16 +272,14 @@
    "locator": "density computed here from the CIF cell",
    "lineage_root": "Cady and Larson 1975",
    "independent_of_inventory": "YES: the only PETN-II cell found; Klapoetke vol 3 prints 1.716 for the orthorhombic form at 136 C",
-   "public": true,
-   "note": "1.7148 against 1.716: the paper's cell is probably the 136 C one; unverified",
-   "value_withheld": false
+   "note": "read on the paper (Acta Cryst. B31 (1975) 1864, abstract and p. 1864-1865): Pcnb, a = 13.29, b = 13.49, c = 6.83 A, Z = 4, calculated density 1.72 g/cm3 at 136 C; PETN I mp 142.9 C and PETN II melts 0.2 C higher; heat of fusion of PETN I 32-38 cal/g depending on crystal quality. The CIF cell gives 1.7148, so the cell is the 136 C one"
   },
   {
    "id": "A18",
    "group": "A_petn_density",
    "compound": "PETN-I",
    "property": "crystal_density_calculated",
-   "value": null,
+   "value": "1.845",
    "unit": "g/cm3",
    "value_kind": "computed",
    "phase_form": "P-4 21 c",
@@ -322,16 +288,14 @@
    "locator": "Table 1 row 'rho calc'",
    "lineage_root": "same value as A15 to the digit",
    "independent_of_inventory": "no (same observation as A15)",
-   "public": false,
-   "note": "Value and details held locally (copyrighted source; preregistration section 7); the conclusions drawn from this row are in PETN_EVIDENCE.md.",
-   "value_withheld": true
+   "note": "the four mono-substituted derivatives print 1.723, 1.957, 2.158 and 1.525; COD records those structures at 293-296 K, so the one row mixes 100 K (PETN) with about 296 K (derivatives)"
   },
   {
    "id": "A19",
    "group": "A_petn_melt",
    "compound": "PETN",
    "property": "melting_point",
-   "value": null,
+   "value": "142.9, 141, 141.3, 143, 142 (crystals), 140-141 (technical) ... 140.82 (DSC onset, 10 C/min), 142.10 (peak); PETN-I mp 142.9 and PETN-II 143.1, 'form II melts 0.2 C higher'",
    "unit": "C",
    "value_kind": "unlabelled",
    "phase_form": "PETN-I / PETN-II",
@@ -340,16 +304,14 @@
    "locator": "PETN entry",
    "lineage_root": "[11,21],[13,54,86,...],[61] (DSC),[134]",
    "independent_of_inventory": "no (melting points are not the question here)",
-   "public": false,
-   "note": "Value and details held locally (copyrighted source; preregistration section 7); the conclusions drawn from this row are in PETN_EVIDENCE.md.",
-   "value_withheld": true
+   "note": "CRC 97 prints 140.9(0.8) C; Meyer 141.3 C; Lange's Section 01 140 C"
   },
   {
    "id": "A20",
    "group": "A_petn_sub",
    "compound": "PETN",
    "property": "enthalpy_sublimation",
-   "value": null,
+   "value": "151.9",
    "unit": "kJ/mol",
    "value_kind": "unlabelled",
    "phase_form": "solid to gas",
@@ -358,9 +320,7 @@
    "locator": "PETN row",
    "lineage_root": "unstated",
    "independent_of_inventory": "no (same compilation family as A09)",
-   "public": false,
-   "note": "Value and details held locally (copyrighted source; preregistration section 7); the conclusions drawn from this row are in PETN_EVIDENCE.md.",
-   "value_withheld": true
+   "note": ""
   },
   {
    "id": "B01",
@@ -376,9 +336,7 @@
    "locator": "row dfH solid, method Ccb",
    "lineage_root": "Medard and Thomas 1954 (NIST's reference)",
    "independent_of_inventory": "yes: the inventory holds no pentaerythritol row",
-   "public": true,
-   "note": "the only measured condensed value NIST holds; handbooks print -920.6 (CRC 97 PDF p. 897, Lange's Section 06 PDF p. 39): same upstream",
-   "value_withheld": false
+   "note": "the only measured condensed value NIST holds; handbooks print -920.6 (CRC 97 PDF p. 897, Lange's Section 06 PDF p. 39): same upstream"
   },
   {
    "id": "B02",
@@ -394,16 +352,14 @@
    "locator": "phase-change data",
    "lineage_root": "Barone, Gatta et al. 1990",
    "independent_of_inventory": "yes",
-   "public": true,
-   "note": "",
-   "value_withheld": false
+   "note": ""
   },
   {
    "id": "B03",
    "group": "B_four_arm",
    "compound": "pentaerythritol",
    "property": "enthalpy_sublimation",
-   "value": null,
+   "value": "134 +/- 7 (cryst, 441-460 K); 96 +/- 9 (plastic, 465-477 K); 131.3 +/- 6.6 (403 K, C); 161 +/- 1.0 (418-455 K, 437 K, TE); 163.0 (298 K); 131.4 (tetragonal, 397-410 K, ME); 143.9 +/- 0.8 (379-408 K, ME)",
    "unit": "kJ/mol",
    "value_kind": "measured",
    "phase_form": "several solid forms (crystalline, plastic, tetragonal)",
@@ -412,16 +368,14 @@
    "locator": "C5H12O4 entry, seven rows",
    "lineage_root": "1995FON/MUN; 1994FON/MUN; 1990BAR/DEL; 1951NIT/SEK2,1960JON; 1953BRA/COT,1960JON",
    "independent_of_inventory": "yes",
-   "public": false,
-   "note": "Value and details held locally (copyrighted source; preregistration section 7); the conclusions drawn from this row are in PETN_EVIDENCE.md.",
-   "value_withheld": true
+   "note": "a 67 kJ/mol spread across the rows; the compilers keep the polymorph label; CRC's gas column (-776.7) uses 143.9"
   },
   {
    "id": "B04",
    "group": "B_four_arm",
    "compound": "pentaerythritol",
    "property": "enthalpy_formation_gas",
-   "value": null,
+   "value": "-776.7 (CRC); about -757 to -789 from B01 with the usable B03 rows",
    "unit": "kJ/mol",
    "value_kind": "derived_from_measured",
    "phase_form": "gas",
@@ -430,9 +384,7 @@
    "locator": "n/a",
    "lineage_root": "Medard and Thomas 1954 + a sublimation row",
    "independent_of_inventory": "derived",
-   "public": false,
-   "note": "Value and details held locally (copyrighted source; preregistration section 7); the conclusions drawn from this row are in PETN_EVIDENCE.md.",
-   "value_withheld": true
+   "note": "under R1 as drafted this is `derived_from_measured`, not a `measured` gas-phase value, so it would not meet R1 as written; the polymorph spread is +/- 16 kJ/mol, about a quarter of the PETN miss"
   },
   {
    "id": "B05",
@@ -448,9 +400,7 @@
    "locator": "condensed-phase thermochemistry",
    "lineage_root": "Johnson, Prosen et al. 1947",
    "independent_of_inventory": "yes",
-   "public": true,
-   "note": "this hydrocarbon satisfies the R1 SMARTS of PREREGISTRATION.md 12.1 (four identical CH2-X arms on a quaternary carbon, X = carbon): the SMARTS alone does not select a nitrate-ester-like calibrant",
-   "value_withheld": false
+   "note": "this hydrocarbon satisfies the R1 SMARTS of PREREGISTRATION.md 12.1 (four identical CH2-X arms on a quaternary carbon, X = carbon): the SMARTS alone does not select a nitrate-ester-like calibrant"
   },
   {
    "id": "B06",
@@ -466,16 +416,14 @@
    "locator": "searched",
    "lineage_root": "",
    "independent_of_inventory": "n/a",
-   "public": true,
-   "note": "no measured formation enthalpy of any other C(CH2X)4 compound with X a heteroatom was found",
-   "value_withheld": false
+   "note": "no measured formation enthalpy of any other C(CH2X)4 compound with X a heteroatom was found"
   },
   {
    "id": "B07",
    "group": "B_four_arm",
    "compound": "pentaerythritol trinitrate (PETriN)",
    "property": "enthalpy_formation",
-   "value": null,
+   "value": "-134 kcal/mol (delta Hf at 25 C) [8]; -2,069 kJ/kg [7]",
    "unit": "mixed",
    "value_kind": "unlabelled",
    "phase_form": "(unstated; mp 26-30 C)",
@@ -484,9 +432,7 @@
    "locator": "property table, heat of formation",
    "lineage_root": "refs [8], [7]; the two values convert to within 0.2 kJ/mol, so probably one root",
    "independent_of_inventory": "yes (not in the inventory)",
-   "public": false,
-   "note": "Value and details held locally (copyrighted source; preregistration section 7); the conclusions drawn from this row are in PETN_EVIDENCE.md.",
-   "value_withheld": true
+   "note": "a quaternary carbon with three nitrate arms and one hydroxyl: the neighbour of PETN between the metriol trinitrate (three arms, one methyl) and PETN"
   },
   {
    "id": "C01",
@@ -502,9 +448,7 @@
    "locator": "condensed or gas thermochemistry rows",
    "lineage_root": "as named in the value",
    "independent_of_inventory": "yes (not inventoried; Klapoetke's entries reprint several of these digit for digit, see C11)",
-   "public": true,
-   "note": "",
-   "value_withheld": false
+   "note": ""
   },
   {
    "id": "C02",
@@ -520,9 +464,7 @@
    "locator": "condensed or gas thermochemistry rows",
    "lineage_root": "as named in the value",
    "independent_of_inventory": "yes (not inventoried; Klapoetke's entries reprint several of these digit for digit, see C11)",
-   "public": true,
-   "note": "",
-   "value_withheld": false
+   "note": ""
   },
   {
    "id": "C03",
@@ -538,9 +480,7 @@
    "locator": "condensed or gas thermochemistry rows",
    "lineage_root": "as named in the value",
    "independent_of_inventory": "yes (not inventoried; Klapoetke's entries reprint several of these digit for digit, see C11)",
-   "public": true,
-   "note": "",
-   "value_withheld": false
+   "note": ""
   },
   {
    "id": "C04",
@@ -556,9 +496,7 @@
    "locator": "condensed or gas thermochemistry rows",
    "lineage_root": "as named in the value",
    "independent_of_inventory": "yes (not inventoried; Klapoetke's entries reprint several of these digit for digit, see C11)",
-   "public": true,
-   "note": "",
-   "value_withheld": false
+   "note": ""
   },
   {
    "id": "C05",
@@ -574,9 +512,7 @@
    "locator": "condensed or gas thermochemistry rows",
    "lineage_root": "as named in the value",
    "independent_of_inventory": "yes (not inventoried; Klapoetke's entries reprint several of these digit for digit, see C11)",
-   "public": true,
-   "note": "",
-   "value_withheld": false
+   "note": ""
   },
   {
    "id": "C06",
@@ -592,9 +528,7 @@
    "locator": "condensed or gas thermochemistry rows",
    "lineage_root": "as named in the value",
    "independent_of_inventory": "yes (not inventoried; Klapoetke's entries reprint several of these digit for digit, see C11)",
-   "public": true,
-   "note": "",
-   "value_withheld": false
+   "note": ""
   },
   {
    "id": "C07",
@@ -610,9 +544,7 @@
    "locator": "condensed or gas thermochemistry rows",
    "lineage_root": "as named in the value",
    "independent_of_inventory": "yes (not inventoried; Klapoetke's entries reprint several of these digit for digit, see C11)",
-   "public": true,
-   "note": "",
-   "value_withheld": false
+   "note": ""
   },
   {
    "id": "C08",
@@ -628,9 +560,7 @@
    "locator": "condensed or gas thermochemistry rows",
    "lineage_root": "as named in the value",
    "independent_of_inventory": "yes (not inventoried; Klapoetke's entries reprint several of these digit for digit, see C11)",
-   "public": true,
-   "note": "",
-   "value_withheld": false
+   "note": ""
   },
   {
    "id": "C09",
@@ -646,9 +576,7 @@
    "locator": "condensed or gas thermochemistry rows",
    "lineage_root": "as named in the value",
    "independent_of_inventory": "yes (not inventoried; Klapoetke's entries reprint several of these digit for digit, see C11)",
-   "public": true,
-   "note": "",
-   "value_withheld": false
+   "note": ""
   },
   {
    "id": "C10",
@@ -664,16 +592,14 @@
    "locator": "condensed or gas thermochemistry rows",
    "lineage_root": "as named in the value",
    "independent_of_inventory": "yes (not inventoried; Klapoetke's entries reprint several of these digit for digit, see C11)",
-   "public": true,
-   "note": "",
-   "value_withheld": false
+   "note": ""
   },
   {
    "id": "C11",
    "group": "C_nitrate_family_hf",
    "compound": "TEGDN; metriol trinitrate; ethyl nitrate; nitroglycerin",
    "property": "enthalpy_formation",
-   "value": null,
+   "value": "TEGDN -656.9 and -603.8 (solid); metriol trinitrate -450.2; ethyl nitrate -190.4 (liquid), -122 (gas); nitroglycerin -371",
    "unit": "kJ/mol",
    "value_kind": "unlabelled",
    "phase_form": "(printed with phase for TEGDN and ethyl nitrate)",
@@ -682,16 +608,14 @@
    "locator": "property tables",
    "lineage_root": "the same digits as the NIST rows C01, C03, C06, C08",
    "independent_of_inventory": "NO: lineage collapse - these book values are the NIST/Pedley numbers, so they do not verify them",
-   "public": false,
-   "note": "Value and details held locally (copyrighted source; preregistration section 7); the conclusions drawn from this row are in PETN_EVIDENCE.md.",
-   "value_withheld": true
+   "note": "TEGDN is a liquid at room temperature and both sources print a 'solid' value"
   },
   {
    "id": "C12",
    "group": "C_nitrate_family_hf",
    "compound": "erythritol tetranitrate",
    "property": "enthalpy_formation",
-   "value": null,
+   "value": "-474.8 kJ/mol (dfH) [2,16]; -114.76 kcal/mol [23]; 376 cal/g [5]",
    "unit": "mixed",
    "value_kind": "unlabelled",
    "phase_form": "(unstated)",
@@ -700,16 +624,14 @@
    "locator": "Heat of formation cell",
    "lineage_root": "[2] = Oxley, Smith, Brady, Brown, Propellants Explos. Pyrotech. 37 (2012) 24, DOI 10.1002/prep.201100059 (paywalled); [16] a Springer chapter",
    "independent_of_inventory": "yes (not inventoried)",
-   "public": false,
-   "note": "Value and details held locally (copyrighted source; preregistration section 7); the conclusions drawn from this row are in PETN_EVIDENCE.md.",
-   "value_withheld": true
+   "note": "NIST holds no ETN page. Oxley 2012 (read) does NOT measure it: its Table 8 takes -474.80 as a literature value for Cheetah (refs [3] Fedoroff and Sheffield 1972 and [9]); see F04. Muravyev 2021 (read) gives -496 (this work) and lists -500, -502.5, -545, -475, -480 from the literature, none flagged experimental"
   },
   {
    "id": "C13",
    "group": "C_nitrate_family_hf",
    "compound": "mannitol hexanitrate",
    "property": "enthalpy_formation",
-   "value": null,
+   "value": "-706.7 +/- 4.2 (c) [13]; -169.42 +/- 0.68 kcal/mol [8]; -708.8 kJ/mol exptl. and -662.6 calcd. [23]",
    "unit": "mixed",
    "value_kind": "unlabelled",
    "phase_form": "(c = crystal on one item)",
@@ -718,9 +640,7 @@
    "locator": "Heat of formation cell",
    "lineage_root": "[13],[8],[23]",
    "independent_of_inventory": "yes",
-   "public": false,
-   "note": "Value and details held locally (copyrighted source; preregistration section 7); the conclusions drawn from this row are in PETN_EVIDENCE.md.",
-   "value_withheld": true
+   "note": ""
   },
   {
    "id": "C14",
@@ -736,9 +656,7 @@
    "locator": "patent description, paragraph on thermal characterisation",
    "lineage_root": "Chavez et al. 2008",
    "independent_of_inventory": "yes",
-   "public": true,
-   "note": "the compound has a central C-C bond between two nitro-substituted carbons, not a four-arm quaternary carbon; patent text only, the paper not read",
-   "value_withheld": false
+   "note": "the compound (DNTN in Oxley 2012, SMX in Muravyev 2021) has a central C-C bond between two nitro-substituted carbons, not a four-arm quaternary carbon; Muravyev 2021 gives -542 for it and lists -371 and -580 from the literature, so this -371 is contradicted by 171 kJ/mol (F10)"
   },
   {
    "id": "C15",
@@ -754,9 +672,7 @@
    "locator": "thesis text",
    "lineage_root": "Stark 2022",
    "independent_of_inventory": "yes",
-   "public": true,
-   "note": "never a label",
-   "value_withheld": false
+   "note": "never a label"
   },
   {
    "id": "C16",
@@ -772,16 +688,14 @@
    "locator": "Table 1",
    "lineage_root": "ref [8] in the report",
    "independent_of_inventory": "already inventoried as a source",
-   "public": true,
-   "note": "US Government report; compare C01 gas -279.1 kJ/mol = -66.7 kcal/mol",
-   "value_withheld": false
+   "note": "US Government report; compare C01 gas -279.1 kJ/mol = -66.7 kcal/mol"
   },
   {
    "id": "D01",
    "group": "D_nitrate_density",
    "compound": "erythritol tetranitrate",
    "property": "crystal_density",
-   "value": null,
+   "value": "1.773 (RT); 1.851 (140 K); 1.827 (-123 C)",
    "unit": "g/cm3",
    "value_kind": "measured",
    "phase_form": "P21/c",
@@ -790,16 +704,14 @@
    "locator": "table of cell data",
    "lineage_root": "Manner 2014 and Matyas 2015 (two independent determinations)",
    "independent_of_inventory": "YES for the pair; not in the inventory",
-   "public": false,
-   "note": "Value and details held locally (copyrighted source; preregistration section 7); the conclusions drawn from this row are in PETN_EVIDENCE.md.",
-   "value_withheld": true
+   "note": "COD holds only 4512178 (140 K, 1.851); the room-temperature and 150 K cells are not in COD. Both papers read: Manner 2014 Table 4 and text, Matyas 2015 crystallographic paragraph (F05, F06)"
   },
   {
    "id": "D02",
    "group": "D_nitrate_density",
    "compound": "erythritol tetranitrate",
    "property": "crystal_density",
-   "value": null,
+   "value": "1.840 (100 K); 1.759 (291 K); 1.774 (298 K, gas pycnometer); 1.851 (140 K)",
    "unit": "g/cm3",
    "value_kind": "unlabelled",
    "phase_form": "",
@@ -808,16 +720,14 @@
    "locator": "density cell",
    "lineage_root": "[7]",
    "independent_of_inventory": "partly",
-   "public": false,
-   "note": "Value and details held locally (copyrighted source; preregistration section 7); the conclusions drawn from this row are in PETN_EVIDENCE.md.",
-   "value_withheld": true
+   "note": "the 100 K and 291 K values are not in Manner 2014 or Matyas 2015 (both read: 140 K, 150 K and room temperature only); unverified"
   },
   {
    "id": "D03",
    "group": "D_nitrate_density",
    "compound": "D-mannitol hexanitrate",
    "property": "crystal_density",
-   "value": null,
+   "value": "1.894 (173 K); 1.784 (gas pycnometer, 298 K)",
    "unit": "g/cm3",
    "value_kind": "unlabelled",
    "phase_form": "",
@@ -826,9 +736,7 @@
    "locator": "density cell",
    "lineage_root": "unstated",
    "independent_of_inventory": "yes",
-   "public": false,
-   "note": "Value and details held locally (copyrighted source; preregistration section 7); the conclusions drawn from this row are in PETN_EVIDENCE.md.",
-   "value_withheld": true
+   "note": "McLennan et al., Propellants Explos. Pyrotech. 46 (2021), DOI 10.1002/prep.202000197 reports new MHN and SHN polymorphs; paywalled"
   },
   {
    "id": "D04",
@@ -844,16 +752,14 @@
    "locator": "thesis text",
    "lineage_root": "Stark 2022",
    "independent_of_inventory": "yes",
-   "public": true,
-   "note": "the structure is the thesis author's own",
-   "value_withheld": false
+   "note": "the structure is the thesis author's own"
   },
   {
    "id": "D05",
    "group": "D_nitrate_density",
    "compound": "pentaerythrityl tetranitramine (a four-arm NITRAMINE)",
    "property": "density",
-   "value": null,
+   "value": "1.778 (gas pycnometry, 25 C); 1.758 (calculated, crystal)",
    "unit": "g/cm3",
    "value_kind": "unlabelled",
    "phase_form": "",
@@ -862,9 +768,7 @@
    "locator": "property table",
    "lineage_root": "refs [1,2]",
    "independent_of_inventory": "yes",
-   "public": false,
-   "note": "Value and details held locally (copyrighted source; preregistration section 7); the conclusions drawn from this row are in PETN_EVIDENCE.md.",
-   "value_withheld": true
+   "note": "the other four-arm quaternary carbon with identical heteroatom arms; its heat of formation is printed as -0.193 kJ/g"
   },
   {
    "id": "D06",
@@ -880,9 +784,7 @@
    "locator": "text on crystal structures",
    "lineage_root": "Benz 2023",
    "independent_of_inventory": "yes",
-   "public": true,
-   "note": "none has four identical arms; the paper's Table 1 recalculates its densities 'to 298 K' by an unstated method and prints enthalpies calculated by CBS-4M",
-   "value_withheld": false
+   "note": "none has four identical arms; the paper's Table 1 recalculates its densities 'to 298 K' by an unstated method and prints enthalpies calculated by CBS-4M"
   },
   {
    "id": "D07",
@@ -898,9 +800,7 @@
    "locator": "paragraph on X-ray crystallography",
    "lineage_root": "Chavez 2008 (Angew)",
    "independent_of_inventory": "yes",
-   "public": true,
-   "note": "called 'the most dense nitrate ester to date' by the patent",
-   "value_withheld": false
+   "note": "called 'the most dense nitrate ester to date' by the patent"
   },
   {
    "id": "D08",
@@ -916,9 +816,7 @@
    "locator": "header",
    "lineage_root": "Lease 2023",
    "independent_of_inventory": "partly (Lease 2023 is inventoried; its temperatures are not)",
-   "public": true,
-   "note": "COD supplies the temperatures Table 1 omits",
-   "value_withheld": false
+   "note": "COD supplies the temperatures Table 1 omits"
   },
   {
    "id": "D09",
@@ -934,9 +832,7 @@
    "locator": "text and ESI note",
    "lineage_root": "Manner 2018",
    "independent_of_inventory": "yes",
-   "public": true,
-   "note": "none has four identical arms",
-   "value_withheld": false
+   "note": "none has four identical arms"
   },
   {
    "id": "E01",
@@ -952,9 +848,7 @@
    "locator": "formula C3H5N3O9, zero header hits",
    "lineage_root": "n/a",
    "independent_of_inventory": "n/a",
-   "public": true,
-   "note": "",
-   "value_withheld": false
+   "note": ""
   },
   {
    "id": "E02",
@@ -970,9 +864,7 @@
    "locator": "section 3.25 and the WebBook gas-phase page",
    "lineage_root": "n/a",
    "independent_of_inventory": "n/a",
-   "public": true,
-   "note": "",
-   "value_withheld": false
+   "note": ""
   },
   {
    "id": "E03",
@@ -988,9 +880,231 @@
    "locator": "Crossref record for the DOI",
    "lineage_root": "n/a",
    "independent_of_inventory": "n/a",
-   "public": true,
-   "note": "for the owner to fetch",
-   "value_withheld": false
+   "note": "for the owner to fetch"
+  },
+  {
+   "id": "F01",
+   "group": "F_papers_read",
+   "compound": "PETN",
+   "property": "enthalpy_formation_solid_and_combustion",
+   "value": "dcU(298 K, constant volume, standard-state corrected) 618.7 and 618.1 kcal/mol (two determinations); dfH = -128.7 +/- 0.2 kcal/mol (= -538.5 +/- 0.8 kJ/mol); earlier work at 290 K: 620.5 (Burlot and Thomas 1939) and 620.0 (Schmidt 1934) kcal/mol; heat of detonation 1490 +/- 6 cal/g, H2O(l)",
+   "unit": "kcal/mol",
+   "value_kind": "measured",
+   "phase_form": "solid",
+   "temperature": "298 K",
+   "source": "Ornellas, Carpenter and Gunn, Rev. Sci. Instrum. 37 (1966) 907, DOI 10.1063/1.1720361, printed pp. 910-911 (read)",
+   "locator": "two bomb-calorimeter runs, paragraph after the detonation-products analysis",
+   "lineage_root": "Ornellas 1966 (the root of NIST's -538.5 and of the value in most books)",
+   "independent_of_inventory": "yes (the primary page)",
+   "note": "two determinations only; the paper calls the earlier values in good agreement but cannot compare them without converting to a standard state"
+  },
+  {
+   "id": "F02",
+   "group": "F_papers_read",
+   "compound": "PETN",
+   "property": "sublimation_enthalpy_vapour_pressure_density",
+   "value": "dHsub 146.6 kJ/mol (isothermal TGA, pseudo-Antoine calibration on benzoic acid, extrapolated to 25 C); vapour pressure 5.21e-6 Pa at 25 C; pycnometer density 1.7599 +/- 0.0006 g/cm3; 'literature X-ray density' 1.778; melting point 143 C; Ea 136.5 kJ/mol; cites 1.78e-5 Pa (Crimmins 1969) and 150.4 kJ/mol (Cundall 1978) for PETN",
+   "unit": "mixed",
+   "value_kind": "measured",
+   "phase_form": "solid",
+   "temperature": "298 K extrapolated",
+   "source": "Oxley, Smith, Brady, Brown, Propellants Explos. Pyrotech. 37 (2012) 24, DOI 10.1002/prep.201100059, Table 6 (printed p. 34) and sections 3.4-3.5 (read)",
+   "locator": "Table 6, PETN column",
+   "lineage_root": "Oxley 2012 (own TGA and helium pycnometry)",
+   "independent_of_inventory": "yes",
+   "note": ""
+  },
+  {
+   "id": "F03",
+   "group": "F_papers_read",
+   "compound": "ETN and DNTN (the Chavez tetranitrate)",
+   "property": "sublimation_enthalpy_vapour_pressure_density",
+   "value": "ETN: dHsub 117.7 kJ/mol; 3.19e-3 Pa at 25 C; pycnometer 1.7219 +/- 0.0025; 'literature X-ray density' 1.553; mp 60-61 C. DNTN: dHsub 105.3; 4.10e-3 Pa; pycnometer 1.8238 +/- 0.0016; literature 1.917; mp 85-86 C",
+   "unit": "mixed",
+   "value_kind": "measured",
+   "phase_form": "solid",
+   "temperature": "298 K extrapolated",
+   "source": "Oxley et al. 2012, Table 6 (printed p. 34) (read)",
+   "locator": "Table 6",
+   "lineage_root": "Oxley 2012",
+   "independent_of_inventory": "yes",
+   "note": "the ETN 'literature X-ray density' 1.553 is far below every X-ray density read in Manner 2014 and Matyas 2015 (1.773 at room temperature); the Encyclopedia's ETN entry prints 1.55 as X-ray, which is this number"
+  },
+  {
+   "id": "F04",
+   "group": "F_papers_read",
+   "compound": "EGDN, DNTN, ETN, PETN, RDX",
+   "property": "enthalpy_formation",
+   "value": "-243.01, -371.00, -474.80, -538.48, 70.00 (signs of the first four read on the table)",
+   "unit": "kJ/mol",
+   "value_kind": "unlabelled",
+   "phase_form": "(unstated)",
+   "temperature": "(unstated)",
+   "source": "Oxley et al. 2012, Table 8 (printed p. 37), row heat of formation; text of section 3.7: Cheetah 6.0 'using literature values for the heats of formation [3,9]'",
+   "locator": "Table 8",
+   "lineage_root": "NOT a measurement of Oxley's: refs [3] Fedoroff and Sheffield, Encyclopedia of Explosives vol. 5 (1972) and [9] Chavez et al. 2008",
+   "independent_of_inventory": "NO: these are the digits that the Encyclopedia prints for PETN (-538.48), EGDN (-243.01) and ETN (-474.8) and that the Chavez patent prints for DNTN (-371): one lineage, a Cheetah input table",
+   "note": "the sentence in the text says the values are taken from the literature; the table does not repeat that"
+  },
+  {
+   "id": "F05",
+   "group": "F_papers_read",
+   "compound": "ETN",
+   "property": "crystal_density",
+   "value": "1.827 g/cm3 (Dcalcd., 150 K = -123 C); P21/c, a = 15.9681(10), b = 5.1940(4), c = 14.7609(12) A, beta = 116.238(6) deg, V = 1098.10(15) A3, Z = 4, R1 = 0.0503; purified ETN mp 59-60 C (literature 61 C)",
+   "unit": "g/cm3",
+   "value_kind": "measured",
+   "phase_form": "P21/c",
+   "temperature": "150 K (Oxford Cryostream; the text layer prints -123 C as '1238C')",
+   "source": "Matyas, Kunzel, Ruzicka, Knotek, Vodochodsky, Propellants Explos. Pyrotech. 40 (2015) 185, DOI 10.1002/prep.201400291, experimental section (read)",
+   "locator": "crystallographic data paragraph",
+   "lineage_root": "Matyas 2015 (own structure)",
+   "independent_of_inventory": "yes",
+   "note": ""
+  },
+  {
+   "id": "F06",
+   "group": "F_papers_read",
+   "compound": "ETN",
+   "property": "crystal_density",
+   "value": "1.851 g/cm3 at 140(1) K: a = 15.893(6), b = 5.1595(19), c = 14.731(5) A, beta = 116.161(3), V = 1084.2(7) A3, Z = 4, R = 0.0357 (Table 4); room temperature 1.773 g/cm3 with a = 16.132(6), b = 5.314(2), c = 14.789(6), beta = 116.78(4), V = 1132(1) (text, measured at room temperature); PETN 1.845 at 100 K cited to Zhurova 2006",
+   "unit": "g/cm3",
+   "value_kind": "measured",
+   "phase_form": "P21/c",
+   "temperature": "140(1) K and room temperature",
+   "source": "Manner, Tappan, Scott, Preston, Brown, Cryst. Growth Des. 14 (2014) 6154, DOI 10.1021/cg501362b, Table 4 and the paragraph before it (read); CIF in the SI folder (COD 4512178)",
+   "locator": "Table 4; paragraph on crystal polymorphism",
+   "lineage_root": "Manner 2014 (own structures; the room-temperature cell is quoted, its R factor is not)",
+   "independent_of_inventory": "yes",
+   "note": "the SI CIF header carries 1.851, 140(1) K, V = 1084.2(7), Z = 4, matching Table 4"
+  },
+  {
+   "id": "F07",
+   "group": "F_papers_read",
+   "compound": "ETN and PETN",
+   "property": "thermal_expansion_and_agreement",
+   "value": "ETN: 1.851 (140 K, Manner) and 1.827 (150 K, Matyas) differ by 0.024 g/cm3 (cell volumes differ by 1.3%) at 10 K apart; volumetric expansion 100 K to room temperature: PETN 1.9e-4 per K (1.845 to 1.778, taking 295 K), ETN 2.1e-4 (150 K to room temperature) to 2.8e-4 (140 K)",
+   "unit": "per K",
+   "value_kind": "derived_from_measured",
+   "phase_form": "",
+   "temperature": "100-295 K",
+   "source": "this inventory's arithmetic on A15, A13/A14, F05, F06",
+   "locator": "n/a",
+   "lineage_root": "Manner 2014; Matyas 2015; Zhurova 2006",
+   "independent_of_inventory": "derived here",
+   "note": "two good structures of one compound 10 K apart disagree by more than the 0.02 g/cm3 agreement tolerance of preregistration 8.2; at 2e-4 per K a 0.04 g/cm3 shift is about 100 K, so low-temperature rows are not interchangeable with room-temperature ones"
+  },
+  {
+   "id": "F08",
+   "group": "F_papers_read",
+   "compound": "PETN",
+   "property": "enthalpy_formation_gas_and_sublimation",
+   "value": "dsubH 147.6 +/- 3.5 kJ/mol (modified low-pressure TG, 298 K standard); dfH(g) -395.5 kJ/mol (W1-F12 atomization energy, calculated); dfH(s) this work -543 (mean uncertainty 10); literature dfH(s): -538.5 +/- 0.8 [179, experimental, bold], -525 [153], -556.8 +/- 2.0 [180], -544 [149]",
+   "unit": "kJ/mol",
+   "value_kind": "computed",
+   "phase_form": "gas (calculated); solid (calculated gas minus measured sublimation)",
+   "temperature": "298 K",
+   "source": "Muravyev, Monogarov, Melnikov, Pivkina, Kiselev, Phys. Chem. Chem. Phys. 23 (2021) 15522, DOI 10.1039/D1CP02201F, Table 1, printed p. 15528 (rendered page read; footnotes b, c and d)",
+   "locator": "Table 1, row PETN",
+   "lineage_root": "Muravyev 2021 (sublimation measured here; gas value calculated)",
+   "independent_of_inventory": "yes",
+   "note": "the only high-level calculated gas-phase enthalpy of PETN found: 7.4 kJ/mol from the derived experimental -388.1 (A07)"
+  },
+  {
+   "id": "F09",
+   "group": "F_papers_read",
+   "compound": "ETN",
+   "property": "enthalpy_formation_gas_and_sublimation",
+   "value": "dsubH 139.5 +/- 3.0 kJ/mol; dfH(g) -356.7 (W1-F12); dfH(s) this work -496; literature dfH(s): -500 [149], -502.5 [149], -545 [149], -475 [65], -480 [178] (none flagged experimental)",
+   "unit": "kJ/mol",
+   "value_kind": "computed",
+   "phase_form": "gas (calculated); solid derived",
+   "temperature": "298 K",
+   "source": "Muravyev et al. 2021, Table 1, printed p. 15528 (read)",
+   "locator": "Table 1, row ETN",
+   "lineage_root": "Muravyev 2021",
+   "independent_of_inventory": "yes",
+   "note": "Oxley 2012 measured 117.7 for the same sublimation enthalpy: 21.8 kJ/mol lower"
+  },
+  {
+   "id": "F10",
+   "group": "F_papers_read",
+   "compound": "SMX (= DNTN, the Chavez tetranitrate)",
+   "property": "enthalpy_formation_gas_and_sublimation",
+   "value": "dsubH 166.3 +/- 3.5 kJ/mol; dfH(g) -375.3 (W1-F12 atomization energies of the reactants with a DLPNO-CCSD(T) isodesmic step); dfH(s) this work -542; literature dfH(s): -371 [118], -580 [119]",
+   "unit": "kJ/mol",
+   "value_kind": "computed",
+   "phase_form": "gas (calculated); solid derived",
+   "temperature": "298 K",
+   "source": "Muravyev et al. 2021, Table 1, printed p. 15528 and footnote l (read)",
+   "locator": "Table 1, row SMX",
+   "lineage_root": "Muravyev 2021",
+   "independent_of_inventory": "yes",
+   "note": "the calorimetric -371 of the Chavez patent (C14) and Oxley's Table 8 is 171 kJ/mol above this work and 209 above the other literature value; Oxley measured 105.3 for the sublimation, 61 kJ/mol below this work"
+  },
+  {
+   "id": "F11",
+   "group": "F_papers_read",
+   "compound": "PETN",
+   "property": "sublimation_enthalpy_agreement",
+   "value": "five measured values: 150.4 +/- 1.3 (Cundall 1978), 152 +/- 2 (Edwards 1953), 147.6 +/- 3.5 (Muravyev 2021), 146.6 (Oxley 2012), 156.9 +/- 0.8 (Acree, 369 K); all within 146.6-156.9 kJ/mol",
+   "unit": "kJ/mol",
+   "value_kind": "measured",
+   "phase_form": "solid to gas",
+   "temperature": "298 K to 369 K",
+   "source": "A04, A05, A06, F02, F08",
+   "locator": "n/a",
+   "lineage_root": "Cundall; Edwards; Oxley; Muravyev; Acree's compilation",
+   "independent_of_inventory": "yes",
+   "note": "five roots agree to 10 kJ/mol, so the PETN gas value is as sure as a derived value gets; ETN's two measurements (117.7 and 139.5) do not agree"
+  },
+  {
+   "id": "F12",
+   "group": "F_papers_read",
+   "compound": "PETN, ETN, SMX (DNTN)",
+   "property": "melting_point_and_fusion_enthalpy",
+   "value": "melting point / fusion enthalpy (DSC, this work): PETN 140.9 +/- 0.3 C, 48.1 +/- 1.1 kJ/mol (literature 141.0 +/- 0.2 and 142 +/- 2 C; 40 +/- 7 and 53.8 +/- 3.9 kJ/mol); ETN 61.2 +/- 0.7 C, 36.9 +/- 3.3 kJ/mol (literature 60 +/- 2 C, 32 +/- 3); SMX 86.6 +/- 0.7 C, 43.7 +/- 3.0 kJ/mol; sample purities 99.9, 99.6 and 99.4 %",
+   "unit": "mixed",
+   "value_kind": "measured",
+   "phase_form": "solid",
+   "temperature": "",
+   "source": "Muravyev et al. 2021, supporting information (muravyev2021_SI.pdf), table of melting data, SI page 5 (read)",
+   "locator": "SI Table, rows 29-31",
+   "lineage_root": "Muravyev 2021 (DSC on 99.4-99.9 % samples); literature refs [48] and [51] (= Oxley 2012)",
+   "independent_of_inventory": "yes",
+   "note": "clean melts: PETN and ETN are given with purity and the method class is DSC; these three are the only energetic nitrate esters in the held sources with a melting enthalpy measured and purity stated"
+  },
+  {
+   "id": "F13",
+   "group": "F_papers_read",
+   "compound": "PETN, ETN, SMX",
+   "property": "sublimation_enthalpy_comparison_table",
+   "value": "this work (modified TG, vacuum): PETN 147.6 +/- 3.5, ETN 139.5 +/- 3.0, SMX 166.3 +/- 3.5 kJ/mol; literature: PETN 150.8 [115, a review], 150.4 +/- 1.3 [120, Cundall], 150.6 +/- 1.8 [134], 149.2 [51, Oxley recalculated]; ETN 118.5 [51]; SMX 106 [51] and 164 +/- 20 [135, a thesis]",
+   "unit": "kJ/mol",
+   "value_kind": "measured",
+   "phase_form": "solid to gas",
+   "temperature": "298 K standard",
+   "source": "Muravyev et al. 2021, SI page 14 (table of sublimation enthalpies by method and temperature) (read)",
+   "locator": "SI table, rows 29-31",
+   "lineage_root": "Muravyev 2021; Ostmark, Wallin, Ang, Propellants Explos. Pyrotech. 37 (2012) 12 (a critical review of explosive vapour pressures, DOI 10.1002/prep.201100083, not held); Cundall 1978; Oxley 2012",
+   "independent_of_inventory": "yes",
+   "note": "the Ostmark review is the best next source for PETN vapour pressure and sublimation enthalpy"
+  },
+  {
+   "id": "F14",
+   "group": "F_papers_read",
+   "compound": "PETN, ETN, SMX",
+   "property": "enthalpy_formation_gas_calculated_comparison",
+   "value": "this work (W1-F12): PETN -395.5, ETN -356.7, SMX -375.3 (isodesmic); another calculation for PETN: -413.6 +/- 4 [141, Suntsova and Dorofeeva 2017]; for SMX: -469, -674 [160] and -415.7 +/- 15 [135]",
+   "unit": "kJ/mol",
+   "value_kind": "computed",
+   "phase_form": "gas",
+   "temperature": "298 K",
+   "source": "Muravyev et al. 2021, SI page 22 (table of gas-phase formation enthalpies) (read)",
+   "locator": "SI table, rows PETN, ETN, SMX",
+   "lineage_root": "Muravyev 2021; Suntsova and Dorofeeva, J. Mol. Graph. Model. 72 (2017) 220",
+   "independent_of_inventory": "yes",
+   "note": "two calculated gas-phase values for PETN differ by 18.1 kJ/mol; the derived experimental value of A07 (-388.1 +/- 1.5) is nearer the W1-F12 one"
   }
  ]
 }

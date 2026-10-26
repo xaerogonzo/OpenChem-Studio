@@ -1,8 +1,7 @@
 """The PETN / nitrate-ester evidence hunt for Phase B (`benchmarks/energetics_props/PETN_EVIDENCE.md`).
 
-Held: the rows are well formed (a closed `value_kind`, a source and a locator on every row), a row from a copyrighted book
-or handbook carries no value in the repository (the values stay in the maintainer's notes: preregistration section 7),
-the committed markdown quotes the same COD counts as the JSON the scripts wrote, the pass that looked for nitrate esters
+Held: the rows are well formed (a closed `value_kind`, a source and a locator on every row), every row quotes its value as a
+short cell and no row reproduces a table, the committed markdown quotes the same COD counts as the JSON the scripts wrote, the pass that looked for nitrate esters
 outside the census window finds the PETN topology and ignores the neopentyl look-alikes, and the draft R1 rule of
 preregistration 12.1 is matched by a hydrocarbon (which is why that file says the owner's approval does all the work).
 The archive and the books are not here; the logic is.
@@ -48,14 +47,24 @@ def test_every_row_has_a_source_a_locator_and_a_closed_value_kind():
     for r in EVIDENCE["rows"]:
         assert r["value_kind"] in VALUE_KINDS, r["id"]
         assert r["source"].strip() and r["locator"].strip(), r["id"]
-        assert r["group"].startswith(("A_", "B_", "C_", "D_", "E_")), r["id"]
+        assert r["group"].startswith(("A_", "B_", "C_", "D_", "E_", "F_")), r["id"]
 
 
-def test_a_row_from_a_copyrighted_book_or_handbook_carries_no_value():
-    withheld = [r for r in EVIDENCE["rows"] if not r["public"]]
-    assert withheld, "the split between public and withheld rows has vanished"
-    assert all(r["value"] is None and r["value_withheld"] for r in withheld)
-    assert all(r["value"] for r in EVIDENCE["rows"] if r["public"] and r["group"] != "E_not_found")
+def test_every_row_quotes_a_value_but_none_reproduces_a_table():
+    """The owner relaxed preregistration section 7 for this file (single measured values, short runs and spreads are quoted
+    as facts with their locators); what stays out is a table or running text, so a row's value is a short cell."""
+    for r in EVIDENCE["rows"]:
+        assert "public" not in r and "value_withheld" not in r, r["id"]
+        if r["group"] != "E_not_found":
+            assert r["value"] and r["value"].strip(), r["id"]
+        assert len(r["value"]) <= 700, f"{r['id']} is longer than a cell of numbers"
+        assert len(r["note"]) <= 700, r["id"]
+
+
+def test_the_seven_papers_were_read_and_say_so():
+    read = [r for r in EVIDENCE["rows"] if r["group"] == "F_papers_read"]
+    assert len(read) >= 10
+    assert sum("read" in r["source"].lower() for r in read) >= 10
 
 
 def test_the_markdown_quotes_the_cod_counts_the_json_holds():
