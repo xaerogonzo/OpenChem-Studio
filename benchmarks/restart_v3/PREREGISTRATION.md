@@ -1,0 +1,85 @@
+# Numerical frequencies for the radicals an analytic Hessian cannot be trusted on (protocol v3), and a halogen arm: preregistration
+
+**Status: DRAFT, written 2026-10-26. NOT FROZEN. Arms C and D have not been computed, and nothing in this file changes a verdict that was already given.** Section 10 lists what must happen before it is frozen. A calibration that was run on spent data is reported in section 5.
+
+## 1. What this is, and what it is not
+
+The bond-dissociation benchmarks (`benchmarks/bde/PREREGISTRATION.md`, PARTIAL; `benchmarks/restart_v2/PREREGISTRATION.md`, held-out arm PASS, stress arm DO NOT ADOPT) both lost the S-H bond of the thiyl radicals to an imaginary mode that no restart removed. **Their verdicts stand and nothing here re-judges them.** This asks a narrower question that the probe in `benchmarks/thiyl_probe/` opened: is the imaginary mode real, and if it is not, can the calculator get a value for those bonds without a new kind of risk?
+
+It is **not** a way to improve a score: Arm C is a set of bonds nobody has computed, Arm D is reported and decides nothing, Arms A and B are made on bonds whose results are spent and are labelled so.
+
+## 2. What was seen first (disclosure)
+
+Everything in this section was observed BEFORE this file was written, in this order, and it is why the rule below looks as it does.
+
+1. The first run lost methanethiol's S-H (radical lowest mode -1328 cm-1 after the one `Calc_Hess` re-run); the stress set lost both ethanethiyl radicals (-332, -370); the displaced restart made the methyl radical's mode worse (-1743, -1553) and left its energy where it was (`benchmarks/restart_diagnosis/`).
+2. **The probe** (`benchmarks/thiyl_probe/README.md`, 2026-10-25) reran the benchmark's own frequency job at the recorded final geometry of the three thiyl radicals and changed one thing at a time. The analytic Hessian reproduces the imaginary mode; **a numerical Hessian does not have it** (CH3S's lowest mode is +601 cm-1) and agrees with the analytic one on every other mode to about 10 cm-1; B3LYP's analytic Hessian does not have it; the wavefunction is stable but its softest orbital-rotation direction (0.0005 to 0.0015 Eh) is 100 times softer than the next; four starting guesses reach energies that agree to 10 microhartree. **The mode is spurious and the analytic radical enthalpy is wrong by 0.85 to 1.03 kcal/mol for these radicals.**
+3. **Three radicals that passed** were run the same way. Methoxy (CH3O, methanol's O-H) has a quiet analytic error: one mode 208 cm-1 from the numerical value and an enthalpy 0.27 kcal/mol different, with no imaginary mode to flag it (smallest stability eigenvalue 0.0049). HOO (0.036) and CH2SH (0.128) agree to 3 and 46 cm-1 and 0.01 and 0.03 kcal/mol.
+4. **The calibration** (section 5) was then run on every radical the two benchmarks accepted. Its table is the only thing the trigger rule in section 3 (R2) is allowed to read, by the procedure written there.
+5. **The references for Arm C** (`benchmarks/bde_heldout/extract_atct_halogen.py`) were chosen from the saved ATcT 1.228 table's names and formulas alone and their enthalpies read afterwards; the six DH298 values are in section 6. **No Arm C bond has been computed.**
+6. **S-H cannot be a held-out arm** (section 7): the table holds no ordinary thiyl radical, and Luo's handbook (Table 8.1, PDF pages 454 to 459) has a recommended value for only hydrogen sulfide and methanethiol, both already in the first run.
+
+## 3. The v3 rule (everything here is fixed once frozen)
+
+v3 is v2 (which is v1 plus the displaced restart) **plus one additional stage for a RADICAL (a doublet) at its accepted or final geometry**. Nothing changes for a closed-shell structure.
+
+* **R1, the imaginary-mode trigger (fixed now).** A radical whose lowest analytic frequency is still below -20 cm-1 after v1's `Calc_Hess` re-run, and whose skeleton is intact, gets ONE numerical frequency job at **the geometry of that re-run**: `! M062X def2-TZVPD TightSCF DefGrid3 NumFreq` (same functional, basis and grid; `%pal nprocs 4`, `%maxcore 3000`; charge 0, multiplicity 2, unrestricted). v2's displaced restart is **not** applied to it first: the probe shows there is no saddle to leave.
+  * **Accepted** when the numerical lowest frequency is >= -20 cm-1. Its enthalpy is that job's own `Total enthalpy` (298.15 K, 1 atm), at the same electronic energy.
+  * **Not accepted** when it is below -20 cm-1: the mode is real, v2's displaced restart is then applied exactly as written in `benchmarks/restart_v2/PREREGISTRATION.md` section 3, and the species is a missing cell if that fails too.
+* **R2, the stability trigger (decided mechanically after section 5, never by eye).** Every radical gets a stability analysis (`%scf StabPerform true end`, a single point at its final geometry, 15 seconds to 4 minutes) and the smallest eigenvalue `e` is recorded. If section 5's rule (below) found a threshold `T`, a radical with `e < T` gets the same numerical job as R1 whether or not an imaginary mode appeared, and its enthalpy is the numerical one. **If section 5 did not find a clean threshold, R2 is not part of v3, and a radical with `e` below the lowest eigenvalue seen in a radical that agreed with its numerical Hessian is reported with the warning "the analytic frequencies of this radical were not verified" and its value is kept.** The step is a trigger and an arbiter, never a way to drop a value.
+* **The cost cap (a decision for Alex, section 9, D1).** A numerical Hessian is 6N gradients, which is hours for a radical of more than about 12 atoms. v3 as preregistered applies R1 and R2 to radicals of **at most 12 atoms**; a larger one is not given the numerical job and is reported "analytic frequencies not verified". The calibration measured radicals of at most 9 atoms only (section 5), so **v3 makes no claim about radicals of 10 to 12 atoms beyond what the 9-atom ones suggest.**
+* **Units, records.** Each job writes the v2 record fields plus `stage` (`stability`, `numerical`), the smallest `stability_eigenvalue`, and `analytic_enthalpy` beside `enthalpy` for a radical the numerical job replaced, so the effect of the replacement is always readable. A report is refused (NOT EVALUABLE) for records from more than one commit or made with a dirty `src/`, `benchmarks/restart_v3`, `benchmarks/thiyl_probe`, `benchmarks/bde`, `benchmarks/bde_heldout` or `benchmarks/restart_v2` (their `artifacts/` excluded).
+
+## 4. Arms
+
+* **Arm A, the calibration (done, section 5):** radicals the first run and the held-out arm accepted, at their recorded final geometries; analytic against numerical frequencies. Spent data; decides only the threshold `T`, by the procedure in section 5.
+* **Arm B, the regression arm (descriptive, no verdict):** the first run's and the held-out arm's accepted radicals of at most 9 atoms, re-scored with their numerical enthalpy wherever v3 would have used one. It reports how much each bond's error moved and whether any verdict's number crossed its limit; **the old verdicts stand whatever it shows**, because these bonds are not held out. Computed from Arm A's jobs: no new ORCA run.
+* **Arm C, the halogen arm (held out, deciding):** the six C-H bonds of section 6, never computed. Read by the held-out arm's own rule (section 8).
+* **Arm D, the thiol S-H bonds (reported only, deciding nothing):** methanethiol's S-H (the first run's lost bond; spent) and ethanethiol's S-H (no recommended value, section 7), computed with v3, so the effect of R1 on a thiyl radical is on record.
+
+## 5. Arm A: the calibration (run 2026-10-26 on the radicals both benchmarks accepted)
+
+*(to be filled from `benchmarks/thiyl_probe/calibration/`: the table of the smallest stability eigenvalue against the enthalpy shift and the largest mode difference for every radical of at most 9 atoms the selection rule picked.)*
+
+**The rule that reads the table, fixed now.**
+1. A radical is **material** when the absolute analytic-to-numerical enthalpy shift is at least **0.25 kcal/mol** (the standard error of the mean error of the held-out arm; a shift below it cannot be told from noise in a verdict) **or** its largest mode difference is at least **100 cm-1**.
+2. If every material radical has a smaller `e` than every non-material one, `T` is the **geometric mean** of the largest material `e` and the smallest non-material `e`, rounded to one significant figure. R2 is in v3 with that `T`.
+3. If the two groups overlap, **R2 is not in v3** (section 3).
+4. The table, `T` or the statement that none exists, and how many radicals of each kind there were are written into this section before the freeze, with the sample sizes. **A threshold from fewer than three material radicals is stated as resting on that few.**
+
+## 6. Arm C: the references
+
+The six bonds, from `benchmarks/bde_heldout/candidates_halogen.json` (ATcT 1.228, kcal/mol, with the table's uncertainty): chloromethane C-H to chloromethyl **99.41 +- 0.21**; dichloromethane C-H to dichloromethyl **96.20 +- 0.23**; chloroform C-H to trichloromethyl **93.31 +- 0.22**; fluoroform C-H to trifluoromethyl **106.67 +- 0.14**; formyl fluoride C-H to fluoroformyl **101.38 +- 0.12**; formyl chloride C-H to chloroformyl **90.95 +- 0.20**. The rule that chose them is in `extract_atct_halogen.py`; `tests/test_bde_heldout_halogen.py` fails if a seventh bond appears, if one overlaps the first run or the first held-out arm, or if one is not a C-H bond of H, C, O, F and Cl.
+
+**What the table does not hold, and so what Arm C cannot test:** no fluoromethyl, difluoromethyl, bromomethyl or tribromomethyl radical, and no chloroethyl, halovinyl or halophenyl radical; **bromine is therefore not tested at all**, and nothing here supports a claim about a C-H bond outside a halomethane or a formyl halide.
+
+## 7. Why there is no S-H arm
+
+* ATcT 1.228 has no CH3S or CH3CH2S: the thiyl radicals it holds are SH (hydrogen sulfide's, the first run's) and the inorganic HSO and HOS from HSOH and H2SO.
+* Luo's handbook (Table 8.1) names a recommended value only for H-SH (91.2) and CH3S-H (87.4 +- 0.5), both in the first run. Ethanethiol's values are 88.6 +- 2, 87.3 and 87.5 (the last two derived or correlated, with no uncertainty given); benzenethiol's range from 79.4 to 83.5 and none is recommended.
+* So the S-H class after v3 rests on **two spent bonds and a reported-only third**, and the calculator's S-H value, when it is given, **carries the statement that this class has no held-out validation**. That is a limit of the references that exist, not of the method.
+
+## 8. The reading rule for Arm C (unchanged from the held-out arm; `benchmarks/bde/judge.py` is not edited)
+
+On the six deciding bonds: mean absolute error, mean signed error, largest absolute error, each with the standard error of the mean.
+* **PASS:** MAE <= 2.5 kcal/mol, no error above 5.0, |MSE| <= 1.5. **PARTIAL:** not PASS and MAE <= 3.5. **FAIL:** otherwise. **NOT EVALUABLE:** more than one of the six has no computed value.
+* **At n = 6 the standard error of the mean error is about 0.25 kcal/mol if the spread resembles the held-out arm's measured one (its standard error was 0.12 at n = 27, a standard deviation near 0.6), and about 0.5 if it is as wide as that arm's preregistration assumed; a result within 0.5 of a limit cannot tell the two sides apart and the report says so.** A PASS here is a statement about these six bonds.
+* The bias test of v2 (section 7 there) is **not** applied: six bonds cannot reproduce or refute a mean of -1.5.
+
+## 9. What each outcome does, and the decisions this needs from Alex
+
+* **Arm C PASS or PARTIAL:** the calculator's stated scope may add C-H bonds next to F and Cl (a separate change: the scope check, the sentence and a driven run), with Arm C's error stated beside the first two arms'. **FAIL:** the scope is not extended; the calculator keeps computing such a molecule with the existing warning. **NOT EVALUABLE:** nothing is claimed.
+* **R1/R2 and the calculator:** adopting the numerical step in `chem/bond_dissociation.py` is a separate change after this is frozen and run, with its own driven run on real ORCA; until then the calculator is unchanged and S-H still gets no value.
+
+**Decisions:**
+* **D1 (the cap, section 3):** at most 12 atoms for the numerical job, or no cap and an hours-long job for a large thiyl. Recommended: 12, with the warning above it.
+* **D2 (R2):** include the stability trigger if section 5 finds a clean `T`, or keep to R1. Recommended: whatever section 5's rule gives, as written; the rule was fixed before the table was read.
+* **D3 (Arm C's size):** six bonds is a small arm. Accept it as deciding with the larger standard error stated, or hold it as reported-only too. Recommended: deciding, because it is the only fresh data that can exist from these references.
+* **D4 (S-H):** accept that S-H stays unvalidated and is labelled so. Recommended: yes; the alternative is a measurement nobody has published.
+
+## 10. Before this is frozen
+
+1. Section 5 filled from the finished calibration, and `T` (or its absence) decided by the written rule.
+2. Alex's answers to D1 to D4.
+3. The runner: `run_restart.py` extended with the stability and numerical stages, `restart_core.py` with the trigger and the acceptance rule (pure, tested against the probe's real ORCA outputs), and an independent read against this text, as v2's was.
+4. Not done and not planned here: phosphorus (no usable species in the table), silicon (three bonds, one an O-H, outside the calculator's elements), bromine (no radical), and any molecule of more than nine heavy atoms (the first held-out arm's largest parent has four heavy atoms, and the experimental references for larger molecules that Luo's handbook prints are scattered and mostly not recommended).
