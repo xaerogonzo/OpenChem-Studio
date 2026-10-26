@@ -1600,7 +1600,55 @@
    "locator": "counts",
    "lineage_root": "NIST rows re-evaluated by 'ALS' differ from the papers' printed figures by up to 15 kJ/mol",
    "independent_of_inventory": "partly",
-   "note": "5 verified of 8 eligible against about 150 verified needed for R2 and a holdout share of about 2: the stratum is still short by a factor of about thirty, but the route legs (measured sublimation) now exist for 4-nitromorpholine, both dinitroalkyl nitramines, 1,4-dinitropiperazine, RDX, HMX, tetryl, and nitroguanidine"
+   "note": "(updated by G30) 5 verified of 8 eligible against about 150 verified needed for R2 and a holdout share of about 2: the stratum is still short by a factor of about thirty, but the route legs (measured sublimation) now exist for 4-nitromorpholine, both dinitroalkyl nitramines, 1,4-dinitropiperazine, RDX, HMX, tetryl, and nitroguanidine"
+  },
+  {
+   "id": "G28",
+   "group": "G_nitramine_primaries_read",
+   "compound": "N,N-dimethylnitrosoamine (a nitrosamine) and dimethylnitramine",
+   "property": "enthalpy_formation",
+   "value": "N,N-dimethylnitrosoamine: heat of combustion 382.3 +/- 1.5 kcal/mol, dfH(standard state) -10.7 +/- 1.5 kcal/mol, vaporization 9.9 +/- 0.5, dfH(gas) -0.8 +/- 2 kcal/mol (its own measurement). Dimethylnitramine appears only as a cited input: 'the heat of formation of DMNA in the gas phase is equal to -0.3 kcal per mole [3]', with NO2 8 +/- 1.2 and NO 21.6 +/- 1 kcal/mol",
+   "unit": "kcal/mol",
+   "value_kind": "measured",
+   "phase_form": "liquid",
+   "temperature": "298 K",
+   "source": "Korsunskii, Pepekin, Lebedev, Apin, Izv. Akad. Nauk SSSR, Ser. Khim. (1967) 525-528, English Bull. Acad. Sci. USSR 16 (1967) 509-511, pp. 509 and 511 (text read; file korsunskii1967.pdf)",
+   "locator": "text, Table 1, conclusions",
+   "lineage_root": "a nitrosamine paper; for the nitramine it cites its ref. [3]",
+   "independent_of_inventory": "NO: not a primary for any nitramine; NIST's 'see Korsunsky' on the dimethylnitramine row points to a cited number",
+   "note": "the library file is kept under the name it was saved with; a rename was refused (permission denied on the Sci Downloads folder)"
+  },
+  {
+   "id": "G29",
+   "group": "G_nitramine_primaries_read",
+   "compound": "13 nitramines in a 2009 recommended set (and n-butyldinitramine)",
+   "property": "enthalpy_formation_and_sublimation",
+   "value": "Table 2, kcal/mol (x 4.184 = kJ/mol), dfH(standard state) / sublimation or vaporization / dfH(gas), purity-checked samples: Me2NNO2 (c) -17.9 / 16.1 +/- 0.3 / -1.8 +/- 0.5; Et2NNO2 (l) -25.6; Pr2NNO2 (l) -39.0; 2,4-dinitro-2,4-diazapentane (c) -12.3 (-51.5 kJ); 2,5-dinitro-2,5-diazahexane (c) -22.5; MeNNO2(CH2)6NNO2Me (c) -47.7; 1-nitropiperidine (l) -22.2; 1,4-dinitropiperazine (c) -12.7 / 24.6 +/- 0.3 / 11.9 +/- 0.5; 1,3-dinitro-1,3-diazacyclopentane (c) -0.4; RDX (c) +16.0 (66.9 kJ) / 30.6 +/- 0.3 / 46.6 +/- 0.4; HMX (c) +20.5 (85.8 kJ) / 42.1 +/- 0.4 / 62.6 +/- 0.6; a bicyclic trinitro compound drawn as a structure (c) +7.1; CL-20 (c) +89.6 (374.9 kJ) / 54.2 +/- 1.1 / 143.8 +/- 1.1",
+   "unit": "kcal/mol",
+   "value_kind": "measured",
+   "phase_form": "solid (c) and liquid (l)",
+   "temperature": "298 K",
+   "source": "Miroshnichenko, Kon'kova, Matyushin, Inozemtsev, Russ. Chem. Bull. 58 (2009) 2015-2019, Tables 1 and 2, printed pp. 2017-2018 (rendered pages read; file miroshnichenko2009.pdf; DOI 10.1007/s11172-009-0275-0)",
+   "locator": "Tables 1 and 2",
+   "lineage_root": "the authors' own isoperibol combustion and Calvet vaporization data with the combustion energies listed, plus a recommended treatment with 'literature data'; same group as Matyushin 1971 and Pepekin 1974",
+   "independent_of_inventory": "yes: a 2009 primary for 12 solids and liquids, 6 of them not otherwise in the NIST rows",
+   "note": "Table 1 (liquid state): methyldinitramine dfH 0.4 +/- 0.2 kcal/mol (= 1.7 kJ/mol, the Miroshnichenko 1987 value) and n-butyldinitramine -19.2 +/- 0.6, so methyldinitramine is a LIQUID at 298 K and not a solid P2 entity; 1,4-dinitropiperazine's sublimation here is 24.6 against Pepekin 1974's 26.6, which moves its gas value from 13.9 to 11.9 kcal/mol"
+  },
+  {
+   "id": "G30",
+   "group": "G_nitramine_stratum",
+   "compound": "the nitramine stratum after the 2009 paper and the corrections",
+   "property": "stratum_recount",
+   "value": "Corrections: methyldinitramine is a liquid at 298 K (G29), so the solid-P2 pool is 7 non-development nitramines from NIST (4-nitromorpholine, EDNA, tetryl, nitroguanidine, nitrourea, both dinitroalkyl nitramines), not 8. The 2009 paper adds 6 more solids measured by its authors and printed on the page: 2,4-dinitro-2,4-diazapentane, 2,5-dinitro-2,5-diazahexane, 1,6-bis(methylnitramino)hexane, 1,3-dinitroimidazolidine, a bicyclic trinitro compound (identity not named, unresolved), CL-20. RDX and HMX now have a second, modern root (66.9, 85.8 kJ/mol) that agrees with Krien (71.1, 87.9); NIST's 75.0 and 74.9 for HMX are the outliers. Union of all sources about 37 names; verified solid, non-development: 10 named plus 1 unresolved of 13, tetryl `disagree`, nitrourea unread",
+   "unit": "count",
+   "value_kind": "measured",
+   "phase_form": "solid",
+   "temperature": "298 K",
+   "source": "G22-G29, preregistration 8.2",
+   "locator": "counts",
+   "lineage_root": "the pool is the NIST nitramines plus one 2009 recommended set and one encyclopedia",
+   "independent_of_inventory": "partly",
+   "note": "10 verified of about 13 eligible against about 150 needed; about 2 in a 20 percent holdout. Delepine and Badoche's RDX is 70.3 kJ/mol as the paper printed it (NIST's 66.5 is Cox and Pilcher's reanalysis of it), so RDX's roots are 70.3, 71.1, 66.9 and 61.5: spread 9.6, one cluster"
   }
  ]
 }
