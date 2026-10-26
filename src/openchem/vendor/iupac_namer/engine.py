@@ -6864,7 +6864,16 @@ def _collect_stereo_descriptors(
                     and loc.is_numeric
                     and getattr(loc, "suffix", "") == ""
                 ) or isinstance(loc, int)
-                if not _is_plain_int_locant:
+                # Naming round 88 (D-385): a spiro name with a polycyclic partner cites the second partner's atoms with PRIMED locants
+                # (`6'-ethylidenespiro[bicyclo[2.2.1]heptane-2,1'-cyclohexane]`), and the E/Z of an exocyclic double bond there was dropped: both
+                # geometries named one molecule. OPSIN reads `(6'Z)-` and `(6'E)-` there; the post-assembly validation still strips it if it cannot.
+                _is_primed_spiro_locant = (
+                    allow_spiro_tetrahedral_any_locant
+                    and hasattr(loc, "is_numeric")
+                    and loc.is_numeric
+                    and getattr(loc, "suffix", "") == "'"
+                )
+                if not (_is_plain_int_locant or _is_primed_spiro_locant):
                     continue
             descriptors.append(
                 StereoDescriptor(locant=loc, descriptor=desc, stereo_center=sc)

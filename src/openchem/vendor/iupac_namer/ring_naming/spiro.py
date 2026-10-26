@@ -1100,6 +1100,24 @@ def _build_partner_submol(
     return sub_mol, sub_to_full
 
 
+def _spiro_atom_as_carbon(sub_mol: Chem.Mol, sub_to_full: dict[int, int], art_atom: int):
+    """The partner sub-mol with its spiro atom made a neutral carbon, or None when it will not sanitize."""
+    rw = Chem.RWMol(sub_mol)
+    for sub_idx, full_idx in sub_to_full.items():
+        if full_idx == art_atom:
+            atom = rw.GetAtomWithIdx(sub_idx)
+            atom.SetAtomicNum(6)
+            atom.SetFormalCharge(0)
+            atom.SetNumExplicitHs(0)
+            atom.SetNoImplicit(False)
+    out = rw.GetMol()
+    try:
+        Chem.SanitizeMol(out)
+    except Exception:
+        return None
+    return out
+
+
 def _name_partner(sub_mol: Chem.Mol):
     """Run the ring-naming dispatcher on a partner sub-mol.
 
@@ -1357,7 +1375,16 @@ def _try_articulation_split_spiro(
     art = mol.GetAtomWithIdx(art_atom)
     # Spiro atom must be carbon — heteroatom spiro atoms would need
     # a-replacement which we don't express here.
-    if art.GetAtomicNum() != 6 or art.GetFormalCharge() != 0:
+    # Naming round 88 (D-384): a neutral silicon spiro atom is a heteroatom of BOTH partners (`spiro[silolane-1,2'-2-silabicyclo[2.2.1]heptane]`), so each
+    # partner is named with it. A quaternary N+ / P+ spiro atom cannot be: a partner sub-mol would be a protonated amine. It is built as the carbon it
+    # replaces, and the name carries the `<locant>-azonia` / `<locant>-phosphonia` replacement the polycyclic-partner path above already writes.
+    spiro_repl: str | None = None
+    atomic_num = art.GetAtomicNum()
+    if art.GetFormalCharge() == 0 and atomic_num in (6, 14):
+        pass
+    elif art.GetFormalCharge() == 1 and atomic_num in (7, 15):
+        spiro_repl = "azonia" if atomic_num == 7 else "phosphonia"
+    else:
         return []
 
     components = _split_ring_atoms_at(
@@ -1378,6 +1405,11 @@ def _try_articulation_split_spiro(
         return []
     sub_a, map_a = pa
     sub_b, map_b = pb
+    if spiro_repl is not None:
+        sub_a = _spiro_atom_as_carbon(sub_a, map_a, art_atom)
+        sub_b = _spiro_atom_as_carbon(sub_b, map_b, art_atom)
+        if sub_a is None or sub_b is None:
+            return []
 
     named_a = _name_partner(sub_a)
     named_b = _name_partner(sub_b)
@@ -1423,7 +1455,13 @@ def _try_articulation_split_spiro(
                     )
                 if fallback_locs is not None:
                     loc = fallback_locs.get(sub_art_idx)
-            elif loc is None and rs.type == "bridged":
+            elif loc is None and (rs.type == "bridged" or np.naming_method == "von_baeyer"):
+                # Naming round 88 (D-381): an ortho-fused partner with no fusion name (norcarane, bicyclo[3.2.0]heptane) is named by the von Baeyer
+                # fallback, so its ring system is typed "fused" while its NAME is a von Baeyer descriptor. Only the bridged branch computed a spiro
+                # locant, and no locant dropped the whole split ("No valid naming plan"). The numbering is the von Baeyer one, from the system the
+                # fallback built for the name.
+                if rs.type != "bridged":
+                    rs = np.candidate.ring_system
                 # Phase 11 spiro-oxathiolane: ``name_bridged`` only pins
                 # numbering_options when the system has secondary bridges
                 # (tricyclic+).  Bicyclic VB partners (e.g.
@@ -1532,6 +1570,8 @@ def _try_articulation_split_spiro(
 
     # Compose the spiro descriptor.  Form: spiro[<first>-N,N'-<second>]
     name_str = f"spiro[{first_name}-{first_loc},{second_loc}'-{second_name}]"
+    if spiro_repl is not None:
+        name_str = f"{first_loc}-{spiro_repl}{name_str}"
     stem = name_str[:-1] if name_str.endswith("e") else name_str
 
     # Build a numbering for the combined system: unprimed locants from the
@@ -1805,7 +1845,7 @@ def name_polycyclic_spiro(
             art_atom_obj = mol.GetAtomWithIdx(art)
             # Spiro atom must be a neutral carbon — articulation-split
             # spiro does not handle azonia / heteroatom spiro atoms.
-            if art_atom_obj.GetAtomicNum() != 6 or art_atom_obj.GetFormalCharge() != 0:
+            if art_atom_obj.GetAtomicNum() not in (6, 14) or art_atom_obj.GetFormalCharge() != 0:
                 continue
             split_result = _try_articulation_split_spiro(
                 ring_system, candidate, art, mol
@@ -1821,6 +1861,8 @@ def name_polycyclic_spiro(
             spiro_repl: str | None = None  # pure carbocycle spiro atom
         elif atom.GetAtomicNum() == 7 and atom.GetFormalCharge() == 1:
             spiro_repl = "azonia"
+        elif atom.GetAtomicNum() == 15 and atom.GetFormalCharge() == 1:
+            spiro_repl = "phosphonia"
         else:
             continue
 
@@ -1833,6 +1875,11 @@ def name_polycyclic_spiro(
         # otherwise we'd drop them silently (no replacement expressed).
         other_hetero = [hp for hp in heteroatoms if hp.atom_idx != art]
         if other_hetero:
+            # Naming round 88 (D-384): the general split names each partner with its own heteroatoms, so a quaternary N+ / P+ spiro atom beside an
+            # aza / oxa ring atom is expressed there (`2-azoniaspiro[7-azabicyclo[2.2.1]heptane-...]`). It refuses, as this path does, if it cannot.
+            split = _try_articulation_split_spiro(ring_system, candidate, art, mol)
+            if split:
+                return split
             return []  # refuse — don't drop ring heteroatoms
 
         # Classify each partner sub-system
@@ -1849,8 +1896,16 @@ def name_polycyclic_spiro(
         elif rs_b.type == "bridged" and rs_a.type == "monocyclic":
             poly_rs, poly_map, poly_sub = rs_b, map_b, sub_b
             mono_rs, mono_map = rs_a, map_a
+        elif rs_a.type != "monocyclic" and rs_b.type != "monocyclic":
+            # Naming round 88 (D-383): two polycyclic partners (two bridged, or a bridged one and a fused one: adamantane + norbornane,
+            # indane + bicyclo[2.2.2]octane) were skipped here and the system fell to a von Baeyer descriptor of the whole, which was a
+            # NAMING ERROR or an `octacyclo[...]` that nothing reads. The general split names each partner through the dispatcher.
+            split = _try_articulation_split_spiro(ring_system, candidate, art, mol)
+            if split:
+                return split
+            continue
         else:
-            continue  # both poly or both mono — not handled here
+            continue  # both mono — not handled here
 
         # Name the polycyclic partner (bridged).  Recurse into bridged naming
         # using a synthesized candidate on the partner sub-mol.
@@ -1882,7 +1937,12 @@ def name_polycyclic_spiro(
         # Compute the polycyclic partner's VB numbering so we can find the
         # locant of the articulation atom (the spiro atom) within the
         # polycyclic partner's numbering.
-        vb_nbs = compute_vb_numberings(poly_rs, poly_rs.bridge_sizes or (), poly_sub)
+        # Naming round 88 (D-382): a tricyclic+ partner's name pins the numberings that agree with its secondary-bridge descriptor
+        # (`tricyclo[3.2.1.0^{3,6}]octane`); `compute_vb_numberings` also yields numberings that do not, and the lowest spiro locant was
+        # taken from one of those ("-2," for an atom the descriptor numbers 4), so the name read back as another molecule.
+        vb_nbs = poly_named[0].numbering_options or compute_vb_numberings(
+            poly_rs, poly_rs.bridge_sizes or (), poly_sub
+        )
         if not vb_nbs:
             continue
         # The art atom maps to a specific sub-mol index; find its locant.

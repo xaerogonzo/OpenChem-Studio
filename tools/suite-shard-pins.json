@@ -1468,6 +1468,7 @@
   "tests/test_namer_round84_spiro_joints_of_lactam_rings_and_a_numbering_search_that_never_returned.py": 3,
   "tests/test_namer_round85_methanoazepinoquinoxaline_labels_every_atom_and_pairs_its_nitrogens.py": 2,
   "tests/test_namer_round86_curated_ring_labels_follow_the_rings_bonds.py": 0,
+  "tests/test_namer_round88_spiro_joints_to_bridged_partners_and_hetero_spiro_atoms.py": 1,
   "tests/test_namer_salt_multiplier.py": 1,
   "tests/test_namer_stereo_cache_identity.py": 3,
   "tests/test_namer_stereo_locant_tie.py": 3,
