@@ -1649,6 +1649,54 @@
    "lineage_root": "the pool is the NIST nitramines plus one 2009 recommended set and one encyclopedia",
    "independent_of_inventory": "partly",
    "note": "10 verified of about 13 eligible against about 150 needed; about 2 in a 20 percent holdout. Delepine and Badoche's RDX is 70.3 kJ/mol as the paper printed it (NIST's 66.5 is Cox and Pilcher's reanalysis of it), so RDX's roots are 70.3, 71.1, 66.9 and 61.5: spread 9.6, one cluster"
+  },
+  {
+   "id": "G31",
+   "group": "G_medard_thomas_substitutes",
+   "compound": "pentaerythritol, EDNA, DINA, nitroguanidine, trimethylolpropane trinitrate, dipentaerythritol hexanitrate",
+   "property": "enthalpy_formation_condensed_evaluated",
+   "value": "Pedley, Naylor and Kirby (1986), kJ/mol, condensed (c), the digits NIST gives to Medard and Thomas: pentaerythritol -920.6 +/- 2.8 (gas -776.7 +/- 2.9; printed p. 147); N,N'-dinitro-ethanediamine -103.0 +/- 1.5 and 1,4-dinitropiperazine -53.0 +/- 2.1 (gas 58.3 +/- 2.3) (p. 194); nitroguanidine -92.4 +/- 4.2 and trimethylolpropane trinitrate -479.9 +/- 3.4 (p. 193); N-nitrobis(2-hydroxyethyl)amine dinitrate (DINA) -308.0 +/- 2.0 (p. 196); dipentaerythritol hexanitrate -979.6 +/- 5.4 (p. 198); bis(trinitroethyl)nitramine -27.9 +/- 2.0, gas 89.6 +/- 2.2 (p. 199)",
+   "unit": "kJ/mol",
+   "value_kind": "derived_from_measured",
+   "phase_form": "solid (c)",
+   "temperature": "298.15 K",
+   "source": "Pedley, Naylor, Kirby, Thermochemical Data of Organic Compounds, 2nd ed., Chapman and Hall 1986 (DOI 10.1007/978-94-009-4099-4), the pages named (printed numbers; PDF page = printed + 9; OCR text read; file pedley1986_thermochemical_data_of_organic_compounds.pdf)",
+   "locator": "tables by formula; reference list pp. 623-627",
+   "lineage_root": "a re-evaluation of the Medard-Thomas rows: the book's own reference list cites Mem. Poudres 34 (1952) 421, 35 (1953) 155, 36 (1954) 97, 37 (1955) 129, 38 (1956) 45 and 39 (1957) 195",
+   "independent_of_inventory": "NO: same lineage as the Medard-Thomas papers, but a readable page that confirms the digits and adds uncertainties",
+   "note": "Pedley prints the gas value for pentaerythritol, -776.7, which equals the one CRC prints (-920.6 + 143.9), so CRC's gas value is probably Pedley's. Nitrourea and nitroisobutylglycerol trinitrate were NOT found in the book's OCR text by name (UNVERIFIED absence). The ethanediamine entry's printed CAS is 26958-29-2, not EDNA's 505-71-5, and its OCR name reads 1,1-: identity unresolved, value within 0.2 kJ/mol of NIST's EDNA"
+  },
+  {
+   "id": "G32",
+   "group": "G_medard_thomas_substitutes",
+   "compound": "nitroguanidine",
+   "property": "enthalpy_formation_solid_compiled",
+   "value": "Table 2, kJ/mol, solid, calorimetry: -75.30 (Schmidt 1934, ref 7); -97.40 (Stegeman 1945, OSRD report 5306, ref 8); -93.72 +/- 1.67 (1-3 mm grain; ref 9, Lobanov and Karmanova 1971); -100.00 +/- 2.51 (0.2-0.8 mm grain; ref 10, Krien 1973); -92.05 +/- 2.47 (ref 11, Dorofeeva and Tolmach 1994); -98.74 (ref 14, LLNL Explosives Handbook). Gas: +44.77 (ab initio, ref 12). The text: scatter -92 to -100 kJ/mol, one study attributes some of it to grain size; -97.93 = 44.77 minus the 142.7 sublimation of Cundall (ref 13)",
+   "unit": "kJ/mol",
+   "value_kind": "unlabelled",
+   "phase_form": "solid",
+   "temperature": "298.15 K",
+   "source": "Koch, Insensitive high explosives: IV. Nitroguanidine, Initiation and detonation, Defence Technology 15 (2019), DOI 10.1016/j.dt.2019.05.009, accepted manuscript p. 4 (text and Table 2 read; file koch2019_nitroguanidine_initiation_detonation_dt.pdf)",
+   "locator": "Table 2",
+   "lineage_root": "a compilation of six solid values with their sources, plus Cundall's sublimation; not a new measurement",
+   "independent_of_inventory": "partly: it prints a Lobanov and Karmanova value, which the library did not have",
+   "note": "the attributions disagree with the papers: Krien's own Table 2 prints -22 +/- 0.59 kcal/mol (-92.05 kJ/mol, G22), not -100.00, and NIST gives Lobanov and Karmanova -97.9 +/- 4.2 against Koch's -93.72 +/- 1.67; Koch's grain-size labels were not found in the Krien pages read. Treat Koch's ref attributions as UNVERIFIED until the 1971 paper is read. Koch calls the 142.7 'vaporisation' but it is Cundall's sublimation enthalpy"
+  },
+  {
+   "id": "G33",
+   "group": "G_bibliography",
+   "compound": "Medard and Thomas: the six Memorial des poudres papers, and Medard's other outlets",
+   "property": "bibliography_resolved",
+   "value": "Pedley's reference list gives Mem. Poudres 34 (1952) 421; 35 (1953) 155; 36 (1954) 97; 37 (1955) 129; 38 (1956) 45 (NIST says 38 (1955) 46-63); 39 (1957) 195. NIST's 1957 paper: 'Chaleur de combustion de onze substances explosives ou apparentees a des explosifs', Mem. Poudres 39 (1957) 195-208 (Me-NENA solid -186.1). Medard, J. Chim. Phys. 52 (1955) 467-472, DOI 10.1051/jcp/1955520467: 'La chaleur de combustion de la diphenylamine et l'energie de la liaison N-N' (cited by Pedley; not a target compound). Fedoroff and Sheffield's Encyclopedia of Explosives (PATR 2700) cites the papers",
+   "unit": "",
+   "value_kind": "unlabelled",
+   "phase_form": "",
+   "temperature": "",
+   "source": "Pedley 1986 reference list, PDF pp. 632-636; NIST WebBook reference list for CAS 17096-47-8; Crossref 2026-10-26; archive.org full texts of Fedoroff vols 3-6, 8, 9 searched for Medard",
+   "locator": "reference lists",
+   "lineage_root": "n/a",
+   "independent_of_inventory": "n/a",
+   "note": "Fedoroff cites these papers in many entries (the entries were not checked one by one) and prints some heats of combustion; the PATR 2700 volumes are on archive.org in full (vols 1-10), e.g. https://archive.org/details/Encyclopedia_of_Explosives_and_Related_Items_Fedoroff_Vol_8_of_10_M_to_P; no entry for nitrourea was found in vol. 8 by text search"
   }
  ]
 }
