@@ -851,7 +851,9 @@ _RING_CURATED_SMILES: dict[str, dict] = {
         "name": "4a,5a,6,12a-tetrahydrotetracene-1,3,11(2H,4H,5H)-trione",
         "substituent_form": "1,2,3,4,4a,5,5a,6,11,12a-decahydrotetracene-1,3,11-trion-yl",
         "alkyl_stem_ok": False,
-        "atom_locants": {1: 1, 2: 2, 3: 3, 5: "12a", 6: 12, 7: "11a", 8: 11,
+        # Naming round 86: C1 is the carbon beside C12a (idx3), C3 the one beside C4 (idx1); the table had them the other way round (the two carbonyls are
+        # symmetric, so no probe could tell, and the names read back either way).
+        "atom_locants": {3: 1, 2: 2, 1: 3, 5: "12a", 6: 12, 7: "11a", 8: 11,
                          10: "10a", 11: 10, 12: 9, 13: 8, 14: 7, 15: "6a",
                          16: 6, 17: "5a", 18: 5, 19: "4a", 20: 4}},
     # tetralin (1,2,3,4-tetrahydronaphthalene): benzo ring fused with saturated 6-ring.

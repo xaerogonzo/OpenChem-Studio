@@ -2525,6 +2525,13 @@ what can be verified.
   `tests/test_namer_known_defects.py`. Three earlier tests pinned refusals this round turned into names and now pin the cases still refused: a carboxylate beside two neutral acids
   (`test_namer_round43_*`, `test_namer_round45_*`) and a pyrazolone anion (`test_namer_round46_*`).
 
+## 2026-10-27 -- naming round 86: the curated ring table's labels follow the ring's bonds (D-380)
+
+No new population this round (rounds 83 to 85 showed the generated ones are nearly spent); the check is structural and needs no OPSIN. In a ring numbering two consecutive locants (`n` and `n+1`, or `n` and `na`) are bonded atoms or are joined through one atom between them. 3,104 consecutive pairs over the 371 curated entries: 17 do not satisfy it and are the book's own numbering (anthracene, acridine, xanthene and thioxanthene's `4a` then `5`, perylene's interior atoms, morphinan, adamantane's two CH2 bridges, corrin's nitrogens, the methano bridges and four large bridged systems), and one is a mislabel.
+
+* **D-380.** The curated `4a,5a,6,12a-tetrahydrotetracene-1,3,11(2H,4H,5H)-trione` had its C1 and C3 carbonyls the other way round against C12a (C12a is bonded to the carbon labelled 3, not 1). The two carbonyls are symmetric, so a chlorine probe could not tell and the names read back either way; the labels now follow the bonds. No name changes.
+* New `tests/test_namer_round86_curated_ring_labels_follow_the_rings_bonds.py`, which fails for any other pair and for an exception that is no longer needed. Its limit: it does not see a swap of two atoms that both touch the same labelled atom (round 85's nitrogens did); a stricter rule flags the steroid skeleton's 10 and 11, which is the book's numbering.
+
 ## 2026-10-26 -- naming round 85: one curated ring that labelled 11 of its 16 atoms (D-379)
 
 Populations: three curated rings in a chain (400; clean apart from OPSIN's beta-lactam stereo, one name took 7 s), and the round 84 spiro joint with one or two substituents (500: 489 read back, 11 did not; 498 after the fix).

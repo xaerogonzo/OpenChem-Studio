@@ -495,6 +495,12 @@ scope = "core"
 owner = "namer"
 
 [[consumer]]
+file = "tests/test_namer_round86_curated_ring_labels_follow_the_rings_bonds.py"
+why = "every curated ring's consecutive locants are bonded or joined by one atom, with the 17 numbering conventions listed (D-380: the tetracenetrione's C1 and C3 were swapped against C12a)"
+scope = "core"
+owner = "namer"
+
+[[consumer]]
 file = "tests/test_namer_round85_methanoazepinoquinoxaline_labels_every_atom_and_pairs_its_nitrogens.py"
 why = "the curated methano-bridged azepinoquinoxaline labels every atom and pairs its nitrogens with the carbons beside them (D-379), so a substituent on a spiro partner takes a primed locant OPSIN reads and the round 84 molecule that hung reads back"
 scope = "core"
