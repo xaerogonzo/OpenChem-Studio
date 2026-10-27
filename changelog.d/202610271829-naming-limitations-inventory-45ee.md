@@ -1,0 +1,4 @@
+### Naming limitations: one inventory of what the engine still gets wrong
+- Added `docs/NAMING_LIMITATIONS_PLAN.md`: 60 canonical rows (class, priority, confidence, workstream, next action, closure criterion) mapping the 13 strict-xfail `OPEN` regression rows, the round 80 to 89 "left open" bullets and the older "Open after round N" sections. Documentation only; no engine, test or `KNOWN_LIMITATIONS.md` change.
+- Records the baseline it was read against (application `4c0696b1`, fork `58058f0`, both files' blob hashes) and that the printed round dates in `KNOWN_LIMITATIONS.md` disagree with the merge history (round 89 printed before rounds 87 and 88).
+- Six rows are read-back mismatches nobody has adjudicated, so "no confirmed wrong molecule" is stated as that and no more. Four cluster rows stand for older entries that still need re-measuring.
