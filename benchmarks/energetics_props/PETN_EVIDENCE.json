@@ -1856,7 +1856,7 @@
    "locator": "Table 1, printed pp. 15527-15528",
    "lineage_root": "sublimation: the paper's own modified-TG measurement; gas phase: a calculation; so a hybrid, not a calorimetric root",
    "independent_of_inventory": "yes: a different method from every combustion value",
-   "note": "Against the nearest printed literature value this work is within 1.1 (RDX), 3.7 (HMX), 7.1 (DNPP) and 2.4 (DNDAP) kJ/mol, all inside section 8.2's 10. The preregistration does not say whether a calculated-gas-plus-measured-sublimation value is a separate observation under 8.2 (owner question). The literature columns mix calorimetry and calculation without saying which"
+   "note": "The paper prints its experimental literature values in bold: RDX +66.9, +71.1, +79.1; HMX +85.8, +87.9, +77.3, +102.5; DNPP -53.1; DNDAP -51.6, -29.8, -36.6 (the rest are not experimental). Nearest experimental value: 1.1 (RDX), 3.7 (HMX), 7.1 (DNPP), 2.4 (DNDAP) kJ/mol. The paper puts its method's inaccuracy at up to 25 kJ/mol (G50), so within 10 is not a replication. Whether this counts as an observation under 8.2 is an owner question"
   },
   {
    "id": "G44",
@@ -1872,14 +1872,14 @@
    "locator": "Table 1, printed pp. 15527-15528",
    "lineage_root": "same method as G43",
    "independent_of_inventory": "yes",
-   "note": "Within 10 kJ/mol of the nearest printed literature value: tetryl (1.3), nitroguanidine (2.0), TEX (7.0, from -538), CL-20 (0.4, from 377.4 +/- 13). Outside it: BC-HMX (22 from 206.3; the five printed values run 84 to 236.5) and DATN (52 from 670; 66 from 684). The paper types CL-20, nitroguanidine and DATN 'E': they decompose even under low pressure, so their sublimation legs carry that risk"
+   "note": "Experimental (bold) literature values only: tetryl +29.3, +19.6, +43.9; nitroguanidine all three; CL-20 +374.9, +377.4; BC-HMX +206.3, +236.5; TEX only -446 (the -540.9, -538 and -432 are not marked experimental); DATN only +684. Nearest experimental: tetryl 1.3, nitroguanidine 2.0, CL-20 0.4; BC-HMX 22, DATN 66, TEX 85 kJ/mol, so those three do NOT agree. CL-20, nitroguanidine and DATN are type E: they decompose even under low pressure"
   },
   {
    "id": "G45",
    "group": "G_medard_thomas_substitutes",
    "compound": "the sublimation-enthalpy rule behind Rzhevskiy 2023 (G42)",
    "property": "estimation_rule",
-   "value": "Muravyev 2021 eqn (6), fitted to the paper's own measured sublimation enthalpies: sublimation enthalpy (kJ/mol) = 0.15 Tm (K) + 3.27 [H] + 5.30 [N] + 3.30 [O], with the atom counts; predictions 'within 30 kJ/mol' of the experimental values (Fig. 6). The original Trouton-Williams rule is biased low: average deviation 35 kJ/mol over 63 species",
+   "value": "Muravyev 2021 eqn (6), fitted to the paper's own measured sublimation enthalpies: sublimation enthalpy (kJ/mol) = 0.15 Tm (K) + 3.27 [H] + 5.30 [N] + 3.30 [O], with the atom counts; predictions 'within 30 kJ/mol' (Fig. 6); the SI S4 fit (no intercept, 48 points) gives 3.268 [H], 5.295 [N], 3.298 [O], 0.15113 Tm, residual standard error 12.86 kJ/mol, R2 0.9895. The original Trouton-Williams rule is biased low (average deviation 35 kJ/mol, 63 species)",
    "unit": "kJ/mol",
    "value_kind": "computed",
    "phase_form": "n/a",
@@ -1889,6 +1889,102 @@
    "lineage_root": "an empirical fit, not a measurement",
    "independent_of_inventory": "yes",
    "note": "My arithmetic on Rzhevskiy's inputs: NIBTN Tg -58.1 C gives Tm = 1.5 x 215.05 = 322.6 K, and the rule gives 125.5; less the average fusion enthalpy the SI uses (110 J/g = 31.5 kJ/mol) is 94.0, which is the 94 in the SI; NPN gives 82.3 against its 83. So the -402 for NIBTN (G42) rests on an estimate good to about 30 kJ/mol plus a W1-F12 gas value: far less than the 176 kJ/mol gap to NIST's -226"
+  },
+  {
+   "id": "G46",
+   "group": "G_medard_thomas_substitutes",
+   "compound": "melting and fusion of nitramines, TNT, DNAN (DSC)",
+   "property": "melting_point_and_fusion",
+   "value": "SI Table S1 (onset, deg C; fusion kJ/mol; literature after): RDX 204.2 +/- 0.3 with decomposition (204.0 +/- 0.1), 27.5 +/- 0.9 (33.9 +/- 1.0); DNDAP 54.8 +/- 0.4 (54, 54.4), 22.3 +/- 1.1 (16.4); DNPP 216.2 +/- 0.3, high-pressure DSC (214, 215), 35.2 +/- 1.1 (33.8); tetryl 129.0 +/- 0.6 (127.4 to 129.5), 25.3 +/- 1.5 (22.9, 25.9); HMX no melt seen, solid transition 189.9 +/- 2.0 with 8.3 +/- 0.9 (9.8 +/- 0.8); DATN 177.4 +/- 0.5 with decomposition; CL-20 transition 164.3 +/- 0.5 with 6.9 +/- 0.9 (7.2, 7.9 +/- 0.4); TNT 80.4 +/- 0.3, 22.5 +/- 0.5; DNAN 86.2 +/- 0.6, 21.1 +/- 0.8",
+   "unit": "deg C and kJ/mol",
+   "value_kind": "measured",
+   "phase_form": "solid, melt onset",
+   "temperature": "onset (extrapolated)",
+   "source": "Muravyev, Monogarov, Melnikov, Pivkina and Kiselev, Phys. Chem. Chem. Phys. 23 (2021) 15522-15542, DOI 10.1039/d1cp02201f (rendered pages read, signs checked on the page image; files muravyev2021.pdf and its SI)",
+   "locator": "SI pp. S4-S7, Table S1 and notes a-h",
+   "lineage_root": "the authors' DSC; where marked, Tm of the pure sample from the Van't Hoff plot; purity by DSC 99.8-99.9 mol% (tetryl, DNDAP, DNPP), none stated for RDX, HMX, DATN, CL-20, nitroguanidine ('P': NMR, MS and elemental analysis only)",
+   "independent_of_inventory": "yes: a DSC root for nitramine melting points",
+   "note": "Melting upon decomposition (RDX, DATN) is not a melting point in the sense of the preregistration's section 3.5; PETN (140.9 +/- 0.3, 48.1 +/- 1.1), ETN (61.2 +/- 0.7, 36.9 +/- 3.3) and SMX (86.6 +/- 0.7, 43.7 +/- 3.0) are in the earlier F rows or in G42's neighbours; no melting seen for HMX, CL-20, TEX, BC-HMX, nitroguanidine"
+  },
+  {
+   "id": "G47",
+   "group": "G_medard_thomas_substitutes",
+   "compound": "sublimation enthalpy at 298 K: tetryl, RDX, HMX, nitroguanidine",
+   "property": "enthalpy_sublimation",
+   "value": "SI Table S4 (kJ/mol; mean run temperature; literature with the SI's method code): tetryl 136.0 +/- 3.1 (188 C; 133.1, 133.8 +/- 1.6 effusion); RDX 130.4 +/- 2.3 (99 C; 128.0 +/- 1.3 calorimetric, 127.1 recommended, 150 from burning tests); HMX 179.1 +/- 7.0 (165 C, data before the phase transition; 161.0 +/- 0.3 effusion, 164.4 +/- 1.7 and 176.1 +/- 1.7 calorimetric, 174.7, 180 burning tests); nitroguanidine 141.6 +/- 2.4 (145 C; 142.7, 139.7). Equation (4), the unmodified Trouton-Williams rule, gives 76, 90, 104 and 83",
+   "unit": "kJ/mol",
+   "value_kind": "measured",
+   "phase_form": "solid to gas",
+   "temperature": "298 K (corrected from the run temperature)",
+   "source": "Muravyev, Monogarov, Melnikov, Pivkina and Kiselev, Phys. Chem. Chem. Phys. 23 (2021) 15522-15542, DOI 10.1039/d1cp02201f (rendered pages read, signs checked on the page image; files muravyev2021.pdf and its SI); SI",
+   "locator": "SI pp. S13-S14, Table S4, footnotes and legend on p. S18",
+   "lineage_root": "modified TG at low pressure; the HMX range is a 7 kJ/mol uncertainty because of the solid transition near 190 C",
+   "independent_of_inventory": "yes: a TG root; the literature rows are mostly effusion and calorimetry from earlier papers",
+   "note": "RDX 130.4 sits 2.4 above Miroshnichenko's 128.0 (held, G29); HMX 179.1 is 3 above his 176.1 but 18 above Cundall's effusion value 161.0 (held, G15); tetryl and nitroguanidine agree with Cundall within 3. The burning-test values (RDX 150, HMX 180, CL-20 168) are corrected pressure-time data, not sublimation measurements"
+  },
+  {
+   "id": "G48",
+   "group": "G_medard_thomas_substitutes",
+   "compound": "sublimation enthalpy at 298 K: DNPP, DNDAP, CL-20, DATN, TEX and the nitrate esters",
+   "property": "enthalpy_sublimation",
+   "value": "SI Table S4 (kJ/mol; mean run temperature): DNPP 111.1 +/- 1.0 (177 C; 112.7 +/- 0.8 and 102.9 +/- 1.2 effusion; evaporation 78.6 +/- 1.3 plus melting 113.7 +/- 2.4); DNDAP 95.6 +/- 3.8 (122 C; 102.5); CL-20 171.9 +/- 3.2 (173 C; 157 +/- 20 and 168 calculated, 226.8 +/- 4.6 'ph'); DATN 230.8 +/- 8.0 (156 C; 195 'ri'); TEX 130.9 +/- 2.4 (240 C; about 130); ETN 139.5 +/- 3.0 (50 C; 118.5; evaporation 92.7 +/- 2.4 plus melting 127.6 +/- 5.7); PETN 147.6 +/- 3.5 (97 C); SMX 166.3 +/- 3.5 (71 C; 106, 164 +/- 20 'po')",
+   "unit": "kJ/mol",
+   "value_kind": "measured",
+   "phase_form": "solid to gas",
+   "temperature": "298 K (corrected from the run temperature)",
+   "source": "Muravyev, Monogarov, Melnikov, Pivkina and Kiselev, Phys. Chem. Chem. Phys. 23 (2021) 15522-15542, DOI 10.1039/d1cp02201f (rendered pages read, signs checked on the page image; files muravyev2021.pdf and its SI); SI",
+   "locator": "SI pp. S13-S14, Table S4 and legend on p. S18",
+   "lineage_root": "modified TG at low pressure",
+   "independent_of_inventory": "yes",
+   "note": "'ph' is 'supposed to be equal to the experimental value of the activation energy of the phase transition', 'ri' and 'po' are the Rice and Politzer calculations: none of the 226.8, 195, 157 or 164 is a measured sublimation enthalpy. ETN's 139.5 sits 11.9 above its own evaporation-plus-melting figure (127.6 +/- 5.7)"
+  },
+  {
+   "id": "G49",
+   "group": "G_medard_thomas_substitutes",
+   "compound": "gas-phase formation enthalpy: calculated against 'experiment' for nitramines and PETN",
+   "property": "enthalpy_formation_gas_comparison",
+   "value": "SI Table S5 (kJ/mol, this study W1-F12/W2-F12 against literature): RDX +197.9 against +195.0 +/- 1.7 'experiment' and +196.2 G4; HMX +259.9 against +261.9 +/- 2.5 and +253.9 G4; DNDAP +41.3 against +51.0 +/- 0.8 'experiment' and +37.8 +/- 7; DNPP +84.7 here (Table 1 prints +64.7) against +58 +/- 3 and +49.8 +/- 2.1 'experiment' and +68.3 G4; CL-20 +548.5 against +601.7 +/- 4.6 'experiment' and +523.1 G4; tetryl +164.2 against +165.7 +/- 4; nitroguanidine +51.3 against +48.7 +/- 4; PETN -395.5 against -413.6 +/- 4; TNT +48.8 against +24.1 +/- 3.5 'experiment' and +50.1 +/- 4",
+   "unit": "kJ/mol",
+   "value_kind": "computed",
+   "phase_form": "gas",
+   "temperature": "298.15 K",
+   "source": "Muravyev, Monogarov, Melnikov, Pivkina and Kiselev, Phys. Chem. Chem. Phys. 23 (2021) 15522-15542, DOI 10.1039/d1cp02201f (rendered pages read, signs checked on the page image; files muravyev2021.pdf and its SI); SI",
+   "locator": "SI pp. S20-S21, Table S5",
+   "lineage_root": "a calculation set against literature; the 'experiment' gas values are a solid enthalpy plus a sublimation enthalpy",
+   "independent_of_inventory": "yes",
+   "note": "Two internal points. DNPP: Table S5 prints +84.7 but Table 1 prints +64.7, and Table 1's solid -46 follows only from 64.7 (64.7 - 111.1); the main text calls DNPP 'a remarkable outlier'. CL-20: the 'experiment' +601.7 is 374.9 + 226.8, and 226.8 is the 'ph' activation-energy proxy, not a sublimation measurement; this paper's 171.9 gives 548.5 to within the 4 kJ/mol the W1-F12 value is quoted for"
+  },
+  {
+   "id": "G50",
+   "group": "G_medard_thomas_substitutes",
+   "compound": "the paper's own accuracy statements",
+   "property": "method_accuracy",
+   "value": "Sublimation: benchmarked on 37 literature values, average absolute deviation 0.8 kJ/mol (L-valine and benzotrifuroxan excluded), largest 11.4 (dibenzo-18-crown-6); estimated accuracy about 5, up to 12 for heavy low-volatility compounds. Solid enthalpy against literature: mean deviation 1, mean absolute 9, maximum 66 kJ/mol (SMX excluded); also excluding MTNP, Ph-Azs, 4-Tol-Azs, 34-CNF and DATN the maximum is 25, 'proposed as an estimate of the inaccuracy'. Nitramines: 'uncertainties grow approximately additively'; the isodesmic 4 RDX to 3 HMX gives 11.9 (W1-F12) against 20.4 kJ/mol (DLPNO-CCSD(T)), so 'chemical accuracy' is 'a tricky issue'",
+   "unit": "kJ/mol",
+   "value_kind": "unlabelled",
+   "phase_form": "n/a",
+   "temperature": "n/a",
+   "source": "Muravyev, Monogarov, Melnikov, Pivkina and Kiselev, Phys. Chem. Chem. Phys. 23 (2021) 15522-15542, DOI 10.1039/d1cp02201f (rendered pages read, signs checked on the page image; files muravyev2021.pdf and its SI)",
+   "locator": "sections 3.2, 3.4 and 3.5, printed pp. 15530-15533",
+   "lineage_root": "the authors' statements, not an independent assessment",
+   "independent_of_inventory": "yes",
+   "note": "So a value from this paper that sits within 10 kJ/mol of a literature value is not thereby verified: the method can be 25 kJ/mol off (the paper says so). The correct reading for section 8.2 is a second, weak, independent-method observation, not a replication"
+  },
+  {
+   "id": "G51",
+   "group": "G_medard_thomas_substitutes",
+   "compound": "C-nitro azoles, tetrazoles and furazans in Table 1",
+   "property": "enthalpy_formation_solid_hybrid",
+   "value": "Table 1, this work against experimental (bold) literature values, kJ/mol: 24-DNI +25 against +7.9 +/- 0.8; 45-DNI +42 against +36.4; 34-DNP +97 against +120.1 +/- 0.8 and +185.2; 35-DNP +83 against +93.7; 5-ADP +73.8 against +60.2; TNP +132 against +146 and +92.9 +/- 2.1; MTNP +128 against +83.3 +/- 2.9; DNPPy +280 against +272; LLM-105 -18 against -54.22 +/- 0.99; ANTA +73 against +61 +/- 4 and +88 +/- 10; NTO -127 against -129.4 +/- 1.1; 5-ATZ +213 against +207.8 +/- 2.3; DAT +315 against +310.4 +/- 1.0; BTZ +532 against +531.7 +/- 1.0",
+   "unit": "kJ/mol",
+   "value_kind": "computed",
+   "phase_form": "solid",
+   "temperature": "298.15 K",
+   "source": "Muravyev, Monogarov, Melnikov, Pivkina and Kiselev, Phys. Chem. Chem. Phys. 23 (2021) 15522-15542, DOI 10.1039/d1cp02201f (rendered pages read, signs checked on the page image; files muravyev2021.pdf and its SI)",
+   "locator": "Table 1, printed pp. 15527-15529; bold marking read on the rendered page",
+   "lineage_root": "same method as G43",
+   "independent_of_inventory": "yes",
+   "note": "Not nitramines or nitrate esters, so outside R2: they matter for the energetic-materials population generally. Several literature values disagree by 30 to 50 kJ/mol with each other (34-DNP +120 and +185; TNP +146 and +93; MTNP +83 and +51), which the paper reads as calorimetry problems. Table 1 also lists furoxans, FOX-7, TNAA, FEFO, BTF, DAAF and others; not copied"
   }
  ]
 }
