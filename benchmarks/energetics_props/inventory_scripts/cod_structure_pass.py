@@ -105,7 +105,11 @@ def entity_key(mol) -> str:
     from rdkit import Chem
     from rdkit.Chem import rdMolHash
 
-    work = Chem.Mol(mol)
+    rw = Chem.RWMol(mol)
+    # HEAVY-atom connectivity only: a CIF that places its hydrogens and one that does not must give one key.
+    for idx in sorted((a.GetIdx() for a in rw.GetAtoms() if a.GetAtomicNum() == 1), reverse=True):
+        rw.RemoveAtom(idx)
+    work = rw.GetMol()
     for atom in work.GetAtoms():
         atom.SetNoImplicit(True)
     work.UpdatePropertyCache(strict=False)

@@ -1,0 +1,69 @@
+{
+ "builder_version": "epb-cod-corpus-1",
+ "components": {
+  "ionic": 2237,
+  "multi": 27449,
+  "single": 66752,
+  "single_by_geometry": 19561,
+  "unknown": 17171
+ },
+ "dispositions": {
+  "accepted": 2970,
+  "no_explosophore_group": 64276,
+  "no_whole_molecule": 14499,
+  "not_single_component": 46857,
+  "r_factor_above_cut": 450,
+  "r_factor_missing": 179,
+  "temperature_outside_window": 3939,
+  "unreadable_entry": 0
+ },
+ "entities_by_label_status": {
+  "resolved": 2797,
+  "unresolved_forms": 43,
+  "unresolved_spread": 8
+ },
+ "entities_with_an_accepted_determination": 2848,
+ "extract_errors": 0,
+ "forced_entities": 2,
+ "manifest_checksum": "c4352b5322b7c50c1d7642c1b8b459500451e5e01dc90164fa766bbe0e3e985b",
+ "manifest_entities": 2797,
+ "pairs": {
+  "dropped_no_cell_volume": 0,
+  "dropped_volume_ratio_outside": 0,
+  "matched_before_volume_cut": 49,
+  "pairs": 49
+ },
+ "perception_of_accepted_determinations": {
+  "hydrogens_missing": 16,
+  "perceived": 2926,
+  "perception_failed: ValueError": 28
+ },
+ "previously_examined_forced_to_development": [
+  "NC(N)C(N(O)O)N(O)O",
+  "ON(O)N1CN(N(O)O)CN(N(O)O)C1"
+ ],
+ "records": 133170,
+ "resolved_entities_by_connectivity_family": {
+  "azide": 123,
+  "c_nitro": 2620,
+  "nitramine": 41,
+  "nitrate_ester": 13
+ },
+ "resolved_entities_by_partition": {
+  "development": 1687,
+  "holdout": 519,
+  "selection": 591
+ },
+ "resolved_entities_by_section5_family": {
+  "azide": 86,
+  "halogenated": 4,
+  "n_rich_heterocycle": 11,
+  "nitramine": 40,
+  "nitrate_ester": 13,
+  "nitroaliphatic": 470,
+  "nitroaromatic": 2118,
+  "not_perceived": 35,
+  "other_organic": 20
+ },
+ "resolved_entities_with_agreeing_determinations": 48
+}
