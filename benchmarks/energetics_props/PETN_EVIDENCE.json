@@ -2110,9 +2110,9 @@
    "temperature": "18 C or room temperature, not stated",
    "source": "Kaye (ed.), Encyclopedia of Explosives and Related Items, PATR 2700, U.S. Army 1983 (file Federoff CD 2 / PDF / VOLUME8.PDF; text layer and rendered page read): vol. 8, entry NIBGTN, printed pp. N 112-N 113 (PDF pp. 296-297)",
    "locator": "printed pp. N 112-N 113; the heat of combustion is on N 113",
-   "lineage_root": "a bomb measurement of unstated source: the entry's references are Hofwimmer 1912 (Z. ges. Schiess- Sprengstoffwes. 7, 43), Naoum 1928, Aubry 1932-33, Aaronson 1941 and others; comparing with nitroglycerin 'in the same bomb' suggests a study such as Hofwimmer's, but I cannot tell which; none seen",
+   "lineage_root": "a bomb measurement of unstated source. Hofwimmer 1912 (the entry's ref 2) was READ in full on 2026-10-27 from the archive.org scan of the journal volume and prints NO heat of combustion: it gives the preparation, the specific gravity 1.680, the detonation equation and the words that the compound 'is not inferior to glycerol trinitrate in either gas or heat development'. The remaining candidates are the entry's other references, of which Aaronson 1941 (cited as '1+, 6 & Table I') is the likeliest; none seen",
    "independent_of_inventory": "YES: not the Medard and Thomas lineage",
-   "note": "The unit 'kcal/mole' cannot be right for both numbers: 1595 is nitroglycerin's heat of combustion per kg (the modern value is about 1617 kcal/kg), so both are kcal/kg. That reading is mine; I checked the printed page and it does say kcal/mole. The source is not stated; Hofwimmer 1912 (which Rzhevskiy 2023 also cites for NIBTN) is the likeliest primary, then Aaronson 1941"
+   "note": "The unit 'kcal/mole' cannot be right for both numbers: 1595 is nitroglycerin's heat of combustion per kg (the modern value is about 1617 kcal/kg), so both are kcal/kg. That reading is mine; I checked the printed page and it does say kcal/mole. The source is not stated and Hofwimmer 1912 is now ruled out by reading it (above); the likeliest remaining primary is Aaronson's 1941 Picatinny report, whose 'Table I' the entry cites. Rzhevskiy 2023 cites Hofwimmer for the compound, not for a thermochemical value"
   },
   {
    "id": "G60",
