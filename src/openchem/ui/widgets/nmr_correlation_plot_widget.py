@@ -6,6 +6,7 @@ from PySide6.QtCore import QLineF, QPointF, QRectF, Qt, Signal
 from PySide6.QtGui import QColor, QMouseEvent, QPainter, QPen, QWheelEvent
 from PySide6.QtWidgets import QWidget
 
+from openchem.ui import theme
 from openchem.ui.picture_export import show_picture_menu
 
 from openchem.ui import contours
@@ -93,6 +94,7 @@ class NmrCorrelationPlotWidget(QWidget):
         show_contours: bool = True,
     ) -> None:
         super().__init__(parent)
+        theme.repaint_on_change(self)
         self._peaks: list[Peak] = list(peaks or [])
         self._x_label = x_label
         self._y_label = y_label
@@ -225,7 +227,7 @@ class NmrCorrelationPlotWidget(QWidget):
 
         plot_rect = self._plot_rect()
 
-        painter.setPen(QPen(QColor(120, 120, 120)))
+        painter.setPen(QPen(theme.ink(QColor(120, 120, 120))))
         painter.drawRect(plot_rect)
 
         # In the plot's OWN header, not just a caption or a hover tooltip
@@ -235,7 +237,7 @@ class NmrCorrelationPlotWidget(QWidget):
         # exactly the presentation where that distinction most needs
         # saying where it is being read, not somewhere it has to be
         # sought out.
-        painter.setPen(QPen(QColor(120, 120, 120)))
+        painter.setPen(QPen(theme.ink(QColor(120, 120, 120))))
         painter.drawText(
             QRectF(plot_rect.left(), plot_rect.top() - self._MARGIN / 2, plot_rect.width() - 100, self._MARGIN / 2),
             Qt.AlignmentFlag.AlignLeft,
@@ -254,7 +256,7 @@ class NmrCorrelationPlotWidget(QWidget):
         # it entirely, and is the better drawing anyway -- the message
         # lands where the peaks would be.
         if not self._peaks:
-            painter.setPen(QPen(QColor(120, 120, 120)))
+            painter.setPen(QPen(theme.ink(QColor(120, 120, 120))))
             painter.drawText(
                 plot_rect,
                 Qt.AlignmentFlag.AlignCenter,
@@ -299,7 +301,7 @@ class NmrCorrelationPlotWidget(QWidget):
                 and peak.atom_a is not None
                 and (peak.atom_a, peak.atom_b) == self._highlighted_pair
             )
-            colour = _HIGHLIGHT_COLOUR if highlighted else self._CONTOUR_COLOUR
+            colour = theme.ink(_HIGHLIGHT_COLOUR if highlighted else self._CONTOUR_COLOUR)
             painter.setPen(QPen(colour))
             painter.setBrush(colour)
             px, py = self._to_widget_coords(peak.x, peak.y, plot_rect, x_range, y_range)
@@ -316,7 +318,7 @@ class NmrCorrelationPlotWidget(QWidget):
         painter.restore()
 
         if self.is_zoomed():
-            painter.setPen(QPen(QColor(120, 120, 120)))
+            painter.setPen(QPen(theme.ink(QColor(120, 120, 120))))
             painter.drawText(
                 QRectF(plot_rect.right() - 90, plot_rect.top() - self._MARGIN / 2, 90, self._MARGIN / 2),
                 Qt.AlignmentFlag.AlignRight,
@@ -430,7 +432,7 @@ class NmrCorrelationPlotWidget(QWidget):
         which at least labelled its two endpoints. Reads the current
         VIEW range so a zoomed-in plot's ticks are the zoomed numbers,
         not the full data's."""
-        painter.setPen(QPen(QColor(120, 120, 120)))
+        painter.setPen(QPen(theme.ink(QColor(120, 120, 120))))
         for value in nice_ticks(*x_range):
             px, _ = self._to_widget_coords(value, y_range[0], plot_rect, x_range, y_range)
             painter.drawLine(QPointF(px, plot_rect.bottom()), QPointF(px, plot_rect.bottom() + 4))
@@ -463,7 +465,7 @@ class NmrCorrelationPlotWidget(QWidget):
         painter.setBrush(Qt.BrushStyle.NoBrush)
         for index, level in enumerate(levels):
             fade = 90 + int(165 * index / max(len(levels) - 1, 1))
-            colour = QColor(self._CONTOUR_COLOUR)
+            colour = theme.ink(self._CONTOUR_COLOUR)
             colour.setAlpha(fade)
             painter.setPen(QPen(colour, 1.0))
             for x0, y0, x1, y1 in contours.trace(grid, level):

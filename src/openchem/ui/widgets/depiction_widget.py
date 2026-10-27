@@ -29,6 +29,7 @@ from PySide6.QtSvgWidgets import QSvgWidget
 from PySide6.QtWidgets import QLabel, QVBoxLayout, QWidget
 
 from openchem.domain.report import DepictionAnnotation, valid_chart_annotation
+from openchem.ui import theme
 
 logger = logging.getLogger("openchem.ui")
 
@@ -72,6 +73,7 @@ class DepictionWidget(QWidget):
         # card into 37 px of clipped prose that way. A refusal is a
         # `QLabel`; only a picture goes in the SVG.
         self._view = QSvgWidget(self)
+        theme.paper(self._view)
         self._message = QLabel(NO_STRUCTURE, self)
         self._message.setWordWrap(True)
         #: The producer's caption under the picture -- for a depiction this
@@ -82,7 +84,7 @@ class DepictionWidget(QWidget):
         #: chart widgets have painted theirs from the start.
         self._caption = QLabel("", self)
         self._caption.setWordWrap(True)
-        self._caption.setStyleSheet("color: #6e6e6e;")
+        theme.style(self._caption, "color: #6e6e6e;")
         layout.addWidget(self._view)
         layout.addWidget(self._caption)
         layout.addWidget(self._message)

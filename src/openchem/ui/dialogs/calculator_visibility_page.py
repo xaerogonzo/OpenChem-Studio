@@ -48,6 +48,7 @@ from openchem.domain.calculator_support import (
     is_visible,
     support_of,
 )
+from openchem.ui import theme
 from openchem.ui.widgets.help_tooltip import HelpTooltip, apply_help_tooltip
 
 #: Qt property naming which calculator a row's control belongs to. It travels on
@@ -170,7 +171,7 @@ class CalculatorVisibilityPage(QWidget):
             self,
         )
         note.setWordWrap(True)
-        note.setStyleSheet("color: #666666;")
+        theme.style(note, "color: #666666;")
         empty = QLabel("No calculator has a declared support level yet.", self)
         empty.setVisible(not self._definitions)
 

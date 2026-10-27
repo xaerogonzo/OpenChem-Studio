@@ -21,6 +21,7 @@ the same number.
 
 from __future__ import annotations
 
+import shiboken6
 from PySide6.QtWidgets import (
     QCheckBox,
     QComboBox,
@@ -39,6 +40,7 @@ from PySide6.QtWidgets import (
 )
 
 from openchem.app.settings import (
+    APPEARANCE,
     CONFORMER_EARLY_STOP,
     CONFORMER_KEEP_OPTIMIZED,
     CONFORMER_OPTIMIZE_LOWEST,
@@ -59,11 +61,17 @@ from openchem.app.settings import (
     Preference,
     Settings,
 )
+from openchem.domain.appearance import Appearance, appearance_from_stored
 from openchem.domain.recalc_policy import RecalcMode
+from openchem.events.events import SettingsChanged
+from openchem.ui import theme
 from openchem.ui.dialogs.calculator_visibility_page import CalculatorVisibilityPage
 from openchem.ui.dialogs.external_tools_pages import ExternalToolsPages
 from openchem.ui.dialogs.keyboard_shortcuts_page import KeyboardShortcutsPage
 from openchem.ui.widgets.help_tooltip import HelpTooltip, apply_help_tooltip
+
+#: Section id of the colour scheme: light, dark, or follow the system.
+APPEARANCE_SECTION = "appearance"
 
 #: Section id of how the rail treats panels. Callers open the window at a
 #: section by id, never by its label, which is display text.
@@ -101,6 +109,7 @@ EXTERNAL_TOOLS = "external_tools"
 
 #: Every section, in the order the list shows them, with its label.
 SECTIONS = (
+    (APPEARANCE_SECTION, "Appearance"),
     (PANELS, "Panels"),
     (RECOVERY, "Recovery"),
     (RECALCULATION, "Recalculation"),
@@ -131,6 +140,20 @@ _DIRECTORY_KIND_PROPERTY = "openchem_directory_kind"
 #: The contracts, one per concept. The three Forget buttons share one: which
 #: folder they forget is what `instance_path` already says.
 _HELP = {
+    "appearance": HelpTooltip(
+        text=(
+            "The colour scheme of the window.\n\n"
+            "Follow the system (the default): light or dark as Windows is, and it changes when "
+            "Windows does. Light and Dark keep that scheme whatever Windows is set to.\n\n"
+            "The same choice is in the View menu, under Theme. It changes how the window looks "
+            "and nothing about your structures or results. The 2D editor's drawing area stays "
+            "light, so atom colours and selection feedback are never altered."
+        ),
+        tier=2,
+        help_id="settings.appearance",
+        topic="settings",
+        help_anchor="settings",
+    ),
     "rail": HelpTooltip(
         text=(
             "On (the default): choosing a panel from the rail shows it and hides the "
@@ -402,7 +425,7 @@ def _note(text: str, parent: QWidget) -> QLabel:
     label = QLabel(text, parent)
     label.setWordWrap(True)
     # The External Tools tabs' own note colour, so the sections match.
-    label.setStyleSheet("color: #666666;")
+    theme.style(label, "color: #666666;")
     return label
 
 
@@ -457,6 +480,7 @@ class SettingsDialog(QDialog):
         self._pages = QStackedWidget(self)
 
         builders = {
+            APPEARANCE_SECTION: self._build_appearance_page,
             PANELS: self._build_panels_page,
             RECOVERY: self._build_recovery_page,
             RECALCULATION: self._build_recalculation_page,
@@ -501,6 +525,9 @@ class SettingsDialog(QDialog):
         layout.addLayout(body, 1)
         layout.addWidget(buttons)
 
+        # A change made elsewhere (the View menu) shows here too, without writing it back.
+        settings.on_change(self._on_setting_changed)
+
         self.show_section(section)
 
     # --- navigation ----------------------------------------------------------
@@ -530,6 +557,61 @@ class SettingsDialog(QDialog):
         """
         self._commit_revisions()
         super().done(result)
+
+    # --- Appearance --------------------------------------------------------------
+
+    #: The combo's entries, in the order shown: the stored integer and its words.
+    _APPEARANCE_CHOICES = (
+        (Appearance.SYSTEM, "Follow the system"),
+        (Appearance.LIGHT, "Light"),
+        (Appearance.DARK, "Dark"),
+    )
+
+    def _build_appearance_page(self) -> QWidget:
+        page = QWidget(self)
+        self._appearance = QComboBox(page)
+        self._appearance.setObjectName("appearanceChoice")
+        for mode, words in self._APPEARANCE_CHOICES:
+            # The integer is what is stored and read back; the row number and the words are neither.
+            self._appearance.addItem(words, int(mode))
+        self._show_appearance()
+        apply_help_tooltip(self._appearance, _HELP["appearance"])
+        self._appearance.currentIndexChanged.connect(self._on_appearance_changed)
+
+        row = QHBoxLayout()
+        row.addWidget(QLabel("Colour scheme", page))
+        row.addWidget(self._appearance)
+        row.addStretch(1)
+
+        layout = QVBoxLayout(page)
+        layout.addWidget(_heading("Appearance", page))
+        layout.addLayout(row)
+        layout.addWidget(_note(
+            "Follow the system changes when Windows does. The same choice is in the View menu, "
+            "under Theme. The 2D editor's drawing area stays light, so atom colours and "
+            "selection feedback are never altered; the macromolecule viewer keeps its own light "
+            "side panels.",
+            page,
+        ))
+        layout.addStretch(1)
+        return page
+
+    def _show_appearance(self) -> None:
+        """Put the combo on the stored choice, without writing it back."""
+        mode = appearance_from_stored(self._settings.preference(APPEARANCE))
+        blocked = self._appearance.blockSignals(True)
+        try:
+            self._appearance.setCurrentIndex(max(0, self._appearance.findData(int(mode))))
+        finally:
+            self._appearance.blockSignals(blocked)
+
+    def _on_appearance_changed(self, _index: int) -> None:
+        self._store(APPEARANCE, int(self._appearance.currentData()))
+
+    def _on_setting_changed(self, event: SettingsChanged) -> None:
+        # The bus holds this window weakly but can outlive its widgets; a closed window has nothing to update.
+        if event.key == APPEARANCE.key and shiboken6.isValid(self._appearance):
+            self._show_appearance()
 
     # --- Panels ----------------------------------------------------------------
 

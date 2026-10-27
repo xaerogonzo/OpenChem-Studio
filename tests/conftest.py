@@ -1436,3 +1436,19 @@ def spec_ships(relative: str, spec_text: str | None = None) -> bool:
         if covered and (wanted == covered or wanted.startswith(covered + "/")):
             return True
     return False
+
+
+@pytest.fixture
+def cheap_repolish(monkeypatch):
+    """Leave the process-wide stylesheet pass out of a test that switches the colour scheme.
+
+    `theme.set_effective` sets every styled widget's stylesheet again, about 20 ms per live window, and
+    a shard process still holds the windows earlier tests leaked. Measured: 60 of them made one theme
+    test file take 214 s instead of 4.7 s, and a CI shard timed out inside it. A test that is about a
+    page, a follower or the service does not need that pass; the one test about the pass itself calls
+    the real function, which it takes from `openchem.ui.theme` before this runs.
+    """
+    from openchem.ui import theme
+
+    monkeypatch.setattr(theme, "repolish_styled_widgets", lambda: None)
+

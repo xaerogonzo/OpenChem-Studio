@@ -43,6 +43,7 @@ from openchem.domain.scientific_result import (
     StructureSetResult,
     TrajectoryResult,
 )
+from openchem.ui import theme
 from openchem.ui.result_clipboard import result_to_text
 from openchem.ui.widgets.compare_menu_button import CompareMenuButton
 from openchem.ui.widgets.fact_view import FactView
@@ -268,6 +269,7 @@ class _CalculatorResultView(QWidget):
         layer_3d = with_labels_on(layer, label_policy_atoms(self._rows, LABEL_HEAVY_ATOMS) if self._rows else None)
 
         self._svg_widget = QSvgWidget(self)
+        theme.paper(self._svg_widget)
         self._emphasised: int | None = None
         self._render_2d()
         self._svg_widget.setMinimumSize(320, 280)

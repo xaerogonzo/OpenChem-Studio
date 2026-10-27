@@ -23,6 +23,7 @@ from PySide6.QtWidgets import (
 from openchem.domain.calculator import CalculatorDefinition, CalculatorParameter, active_parameters
 from openchem.domain.calculator_support import Visibility, help_anchor_for, is_classified, support_of
 from openchem.domain.refusal_kinds import InputProblem, MissingInput
+from openchem.ui import theme
 from openchem.ui.widgets.help_tooltip import HelpTooltip, apply_help_tooltip
 
 #: What is wrong with each kind of named input, in the words a person reads.
@@ -333,7 +334,7 @@ class CalculatorSettingsDialog(QDialog):
                 )
                 banner.setObjectName("calculatorSupportBanner")
                 banner.setWordWrap(True)
-                banner.setStyleSheet("color: #7a5c00;")
+                theme.style(banner, "color: #7a5c00;")
                 layout.addWidget(banner)
 
         phrases = needed_input_phrases(definition, needed)
@@ -341,7 +342,7 @@ class CalculatorSettingsDialog(QDialog):
             notice = QLabel("<b>Needs:</b> " + "; ".join(html.escape(p) for p in phrases) + ".", self)
             notice.setObjectName("calculatorNeededInputs")
             notice.setWordWrap(True)
-            notice.setStyleSheet("color: #7a5c00;")
+            theme.style(notice, "color: #7a5c00;")
             layout.addWidget(notice)
 
         form = QFormLayout()
