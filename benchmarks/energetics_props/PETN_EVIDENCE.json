@@ -2033,6 +2033,54 @@
    "lineage_root": "the book itself; Muravyev 2021's ref 149 is the 2004 edition of the ICT Database (Kempa et al.)",
    "independent_of_inventory": "n/a",
    "note": "So the 2016 date is the compilation's, not the values': they trace to Medard 1954 and the ICT database, and agree with NIST where NIST also traces to Medard. The book's own statements conflict (25 C against 18 C, graphite against diamond: up to 1.9 kJ/mol per carbon atom). Muravyev's ref 166, Lobanov and Karmanova 1971, is the source of the two experimental nitroguanidine values -93.7 +/- 1.7 and -100 +/- 2.5 in his Table 1 (G44), so that paper is the one to fetch for nitroguanidine"
+  },
+  {
+   "id": "G55",
+   "group": "G_medard_thomas_substitutes",
+   "compound": "Meyer 2016: what the whole book holds",
+   "property": "corpus_inventory",
+   "value": "214 compound entries with a property block were parsed from the alphabetical entries: 148 print an enthalpy of formation (151 lines in all), 145 an energy of formation, 169 a density, 114 a melting point, 96 an impact sensitivity, 55 a friction sensitivity, 65 a detonation velocity. Entries for mixtures and compositions have no molar mass and were not parsed. Footnotes say 'Computed by the ICT-Thermodynamic-Code' 7 times and 'quoted from' (Dobratz) 8 times, and 9 values are tagged '(calculated)' and 4 '(experimental)': all on heats of explosion or detonation; the formation-enthalpy lines carry no label",
+   "unit": "counts",
+   "value_kind": "unlabelled",
+   "phase_form": "",
+   "temperature": "",
+   "source": "Meyer, Koehler and Homburg, Explosives, 7th ed., Wiley-VCH 2016 (text layer read; file 'Explosives 7th Edition (Rudolf Meyer, Josef Koehler, Axel Homburg).pdf', 450 PDF pages, printed page = PDF page - 14)",
+   "locator": "whole book; the parsed corpus (JSON and CSV with each entry's raw property block) is kept in the maintainer's private notes, not in this repository",
+   "lineage_root": "n/a",
+   "independent_of_inventory": "n/a",
+   "note": "Field parsing is approximate: names are guesses from the lines before the formula (a few are wrong), a melting-point field can capture a neighbouring line, and Greek-letter polymorph labels need the raw block. The raw block of every entry is kept so a value can be re-read. A bulk corpus stays out of git under the project rule on copyrighted tables"
+  },
+  {
+   "id": "G56",
+   "group": "G_medard_thomas_substitutes",
+   "compound": "nitramines and nitrate esters present in Meyer 2016",
+   "property": "stratum_presence",
+   "value": "Nitramines with a printed enthalpy of formation (kJ/mol, converted by me from kJ/kg unless printed as kJ/mol; printed page): hexogen +66.9 (178), octogen +75.0 (244), CL-20 +403.4 (176), tetryl +20.0 (317), ethyltetryl -18.0 (130), ethylenedinitramine -103.8 (127), 2,4-dinitro-2,4-diazapentane -51.59 (103), the diazahexane -79.5 (103), the diazaheptane -135.1 (104), TEX -541 (109), trinitroazetidine +36.4 (358), bis(trinitroethyl)nitramine -27.6 (33), bis(nitramino)triazinone -111 (32): 13. Nitrate esters with one, counting DINA and the three nitroxyethyl nitramines: 21, from methyl nitrate -155.8 to dipentaerythritol hexanitrate -978.7",
+   "unit": "kJ/mol (converted)",
+   "value_kind": "unlabelled",
+   "phase_form": "solid or liquid per entry",
+   "temperature": "25 C as stated",
+   "source": "Meyer, Koehler and Homburg, Explosives, 7th ed., Wiley-VCH 2016 (text layer read; file 'Explosives 7th Edition (Rudolf Meyer, Josef Koehler, Axel Homburg).pdf', 450 PDF pages, printed page = PDF page - 14)",
+   "locator": "entries on the printed pages given",
+   "lineage_root": "a compilation (G54)",
+   "independent_of_inventory": "NO: probably the Medard and ICT lineage",
+   "note": "The classes are my reading of the names, not epb_families.family (which needs structures). Every value is printed without method or uncertainty, so by section 3.1 it is 'unlabelled' and at most a second source for compounds other books already hold; RDX, HMX and tetryl are forced into development by the examined-compound rule. This does not move R2 toward 150. Erythritol tetranitrate has no enthalpy in the book"
+  },
+  {
+   "id": "G57",
+   "group": "G_medard_thomas_substitutes",
+   "compound": "Meyer 2016 melting points and densities against DSC",
+   "property": "melting_point_and_density_check",
+   "value": "Meyer against Muravyev's DSC (SI Table S1, onset, C): PETN 141.3 (140.9 +/- 0.3); ETN 61.5 (61.2 +/- 0.7); tetryl 129.5 (129.0 +/- 0.6); RDX 204 (204.2 +/- 0.3, with decomposition); TNT solidification point 80.8 (80.4 +/- 0.3); DNAN 94.5 (86.2 +/- 0.6, literature 87.5 beta and 96.7 alpha); HMX 275 (no melt seen, transition 189.9 +/- 2.0, literature 280.8 +/- 1.1). Printed densities (g/cm3): PETN 1.76, RDX 1.82, tetryl 1.73, ethylenedinitramine 1.71, nitroguanidine 1.71, TNT crystals 1.654, TEX 2.008, CL-20 2.04 (epsilon), HMX 1.84, 1.90, 1.82, 1.58 for alpha, beta, gamma, delta",
+   "unit": "C and g/cm3",
+   "value_kind": "unlabelled",
+   "phase_form": "as printed",
+   "temperature": "not stated",
+   "source": "Meyer, Koehler and Homburg, Explosives, 7th ed., Wiley-VCH 2016 (text layer read; file 'Explosives 7th Edition (Rudolf Meyer, Josef Koehler, Axel Homburg).pdf', 450 PDF pages, printed page = PDF page - 14); SI of Muravyev 2021 for the DSC values",
+   "locator": "entries on printed pp. 112-127, 176-178, 236, 244, 251, 317, 347",
+   "lineage_root": "a compilation; the DSC values are Muravyev's own",
+   "independent_of_inventory": "partly: the DSC onsets are independent",
+   "note": "Within 1 K of the DSC onsets for PETN, ETN, tetryl, RDX and TNT, so the book's melting points are usable to about 1 K there. DNAN's 94.5 sits between the two polymorphs' literature values and matches neither; the book does not say which form. Densities carry no temperature or method (PETN 1.76 against CRC's 1.773 and an X-ray 1.778 elsewhere in this file, rows A14 and G09), so section 8.2's 0.02 g/cm3 agreement cannot be applied to them without the form and temperature"
   }
  ]
 }
