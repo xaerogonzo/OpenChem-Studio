@@ -217,3 +217,14 @@ def test_the_key_does_not_depend_on_how_the_atoms_are_numbered():
     a = _key("Cc1c([N+](=O)[O-])cc([N+](=O)[O-])cc1[N+](=O)[O-]")
     b = _key("[O-][N+](=O)c1cc([N+](=O)[O-])c(C)c([N+](=O)[O-])c1")
     assert a == b
+
+
+def test_the_entity_key_is_the_heavy_atom_graph_so_explicit_hydrogens_do_not_change_it():
+    from openbabel import pybel
+
+    bare = sp.graph_from_obmol(pybel.readstring("smi", "Cc1c([N+](=O)[O-])cc([N+](=O)[O-])cc1[N+](=O)[O-]").OBMol)[0]
+    mol = pybel.readstring("smi", "Cc1c([N+](=O)[O-])cc([N+](=O)[O-])cc1[N+](=O)[O-]")
+    mol.addh()
+    with_h = sp.graph_from_obmol(mol.OBMol)[0]
+    assert with_h.GetNumAtoms() > bare.GetNumAtoms()                              # the hydrogens really are in the second graph
+    assert sp.entity_key(with_h) == sp.entity_key(bare)
