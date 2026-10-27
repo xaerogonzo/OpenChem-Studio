@@ -1985,6 +1985,54 @@
    "lineage_root": "same method as G43",
    "independent_of_inventory": "yes",
    "note": "Not nitramines or nitrate esters, so outside R2: they matter for the energetic-materials population generally. Several literature values disagree by 30 to 50 kJ/mol with each other (34-DNP +120 and +185; TNP +146 and +93; MTNP +83 and +51), which the paper reads as calorimetry problems. Table 1 also lists furoxans, FOX-7, TNAA, FEFO, BTF, DAAF and others; not copied"
+  },
+  {
+   "id": "G52",
+   "group": "G_medard_thomas_substitutes",
+   "compound": "nitroisobutylglycerol trinitrate (NIBTN) and nitrourea",
+   "property": "enthalpy_formation_compiled",
+   "value": "NIBTN (printed with the formula C4N6N4O11, 286.1 g/mol): enthalpy of formation -190.8 kcal/kg = -797.5 kJ/kg, energy of formation -169.1 kcal/kg = -707.5 kJ/kg; 'yellow viscous oil', solidification point -35 C. Nitrourea (CH3N3O3, 105.1 g/mol): enthalpy of formation -642.5 kcal/kg = -2688.4 kJ/kg, energy of formation -617.2 kcal/kg = -2582.4 kJ/kg; melting 159 C with decomposition. By my conversion with the printed molar masses the enthalpies are -228.2 and -282.5 kJ/mol",
+   "unit": "kcal/kg and kJ/kg",
+   "value_kind": "unlabelled",
+   "phase_form": "NIBTN liquid; nitrourea crystals (per the entries)",
+   "temperature": "25 C and 1 bar as the book states (see G54)",
+   "source": "Meyer, Koehler and Homburg, Explosives, 7th ed., Wiley-VCH 2016 (text layer read; file 'Explosives 7th Edition (Rudolf Meyer, Josef Koehler, Axel Homburg).pdf', 450 PDF pages, printed page = PDF page - 14)",
+   "locator": "entries 'Nitroisobutylglycerol Trinitrate' (printed pp. 237-238) and 'Nitrourea' (printed p. 242)",
+   "lineage_root": "unstated: a compilation; the book cites Medard's Tables Thermochimiques (1954) and the ICT database for such values (G54)",
+   "independent_of_inventory": "NO: same probable lineage as NIST's -226 and -280.8",
+   "note": "Agrees with the NIST values (Medard and Thomas 1949, G02) within 2 kJ/mol for both (-228.2 against -226; -282.5 against -280.8), so it confirms the digits and shows two NIST rows are not transcription slips, but it is not a second root. It contradicts Rzhevskiy 2023's computed -402 for NIBTN (G42) by 174 kJ/mol. The book prints no method or uncertainty and has a formula typo for NIBTN"
+  },
+  {
+   "id": "G53",
+   "group": "G_medard_thomas_substitutes",
+   "compound": "other Meyer 2016 entries set beside NIST and Cox and Pilcher",
+   "property": "enthalpy_formation_compiled",
+   "value": "Printed enthalpies of formation, converted by me to kJ/mol with the printed molar masses: dipentaerythritol hexanitrate -446 kcal/kg = -978.7; ethriol (trimethylolpropane) trinitrate -426 = -480.3; nitroguanidine -213.3 = -93.0; EDNA -165.3 = -103.8; nitroglycerine -390.2 = -370.7; nitroglycol -381.6 = -242.8; DINA -274.4 = -275.7; metriol trinitrate -398.2 = -425.0; mannitol hexanitrate -357.2 = -675.8; tetryl +16.7 = +20.0; hexogen +301.4 kJ/kg = +66.9; octogen +60.5 kcal/kg = +75.0; CL-20 +220.0 = +403.4; TEX -541 kJ/mol; DNDA-5 -51.59 kJ/mol",
+   "unit": "kJ/mol (converted)",
+   "value_kind": "unlabelled",
+   "phase_form": "solid or liquid per entry",
+   "temperature": "25 C as stated",
+   "source": "Meyer, Koehler and Homburg, Explosives, 7th ed., Wiley-VCH 2016 (text layer read; file 'Explosives 7th Edition (Rudolf Meyer, Josef Koehler, Axel Homburg).pdf', 450 PDF pages, printed page = PDF page - 14)",
+   "locator": "printed pp. 103 (DNDA-5), 109 (TEX), 112 (dipentaerythritol hexanitrate, DINA), 126-127 (ethriol trinitrate, EDNA), 176 (CL-20), 178 (hexogen), 213 (mannitol hexanitrate), 220 (metriol trinitrate), 231 (nitroglycerine), 234 (nitroglycol), 236 (nitroguanidine), 244 (octogen), 317 (tetryl): the pages carrying each 'enthalpy of formation' line",
+   "lineage_root": "a compilation (G54)",
+   "independent_of_inventory": "NO: probably the same lineage as the Medard-based rows",
+   "note": "Within 3 kJ/mol of NIST or Cox and Pilcher for dipentaerythritol hexanitrate (-979.6), trimethylolpropane trinitrate (-479.9), nitroguanidine (-92.4), EDNA (-103.0), nitroglycerine and nitroglycol. It DIFFERS for DINA (-275.7 against -308.0 and -308.9, 32 kJ/mol), metriol trinitrate (-425.0 against -450.2, 25) and mannitol hexanitrate (-675.8 against -706.7 and -708.8, 31 to 33): three unresolved disagreements inside the Medard-era lineage. CL-20 +403 and HMX +75.0 equal numbers Muravyev 2021 lists from the ICT database and the LLNL handbook, not marked experimental"
+  },
+  {
+   "id": "G54",
+   "group": "G_medard_thomas_substitutes",
+   "compound": "what Meyer's compilation rests on",
+   "property": "lineage_note",
+   "value": "The book's entry 'Energy of Formation; Enthalpy of Formation' says the data are tabulated at 25 C and 1 bar with release of energy counted negative, that Table 28 lists selected components, and that the Fraunhofer ICT tabulated energies and enthalpies of formation 'including source references' in 1972, later the ICT Database of Thermochemical Values (more than 14 000 substances). Its reference list gives Medard, Tables Thermochimiques, Memorial de l'Artillerie Francaise, 415-492 (1954) as 'Vol. 23' in that entry and as '28' in its section 9, with the remark 'valid at 18 C and for carbon as diamond'",
+   "unit": "",
+   "value_kind": "unlabelled",
+   "phase_form": "",
+   "temperature": "",
+   "source": "Meyer, Koehler and Homburg, Explosives, 7th ed., Wiley-VCH 2016 (text layer read; file 'Explosives 7th Edition (Rudolf Meyer, Josef Koehler, Axel Homburg).pdf', 450 PDF pages, printed page = PDF page - 14)",
+   "locator": "entry 'Energy of Formation; Enthalpy of Formation' and its references, printed p. 120 (PDF 134); the section 9 list, printed p. 387; Table 28, printed p. 324",
+   "lineage_root": "the book itself; Muravyev 2021's ref 149 is the 2004 edition of the ICT Database (Kempa et al.)",
+   "independent_of_inventory": "n/a",
+   "note": "So the 2016 date is the compilation's, not the values': they trace to Medard 1954 and the ICT database, and agree with NIST where NIST also traces to Medard. The book's own statements conflict (25 C against 18 C, graphite against diamond: up to 1.9 kJ/mol per carbon atom). Muravyev's ref 166, Lobanov and Karmanova 1971, is the source of the two experimental nitroguanidine values -93.7 +/- 1.7 and -100 +/- 2.5 in his Table 1 (G44), so that paper is the one to fetch for nitroguanidine"
   }
  ]
 }
