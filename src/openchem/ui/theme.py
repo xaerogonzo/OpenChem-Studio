@@ -144,8 +144,16 @@ def repolish_styled_widgets() -> None:
 
 
 def set_effective(look: EffectiveAppearance) -> None:
-    """Record the look that is on screen and tell everything that follows it."""
+    """Record the look that is on screen and tell everything that follows it.
+
+    A call that names the look already in force does nothing: every stylesheet in the process is set
+    again on a real switch (see `repolish_styled_widgets`), which costs about 20 ms per live window, so
+    a repeat that changed nothing must not pay it. Measured: 60 leftover windows made one test file
+    that resets the look around every test take 214 s instead of 4.7 s, and a CI shard timed out on it.
+    """
     global _effective
+    if look is _effective:
+        return
     _effective = look
     repolish_styled_widgets()
     for key, (ref, apply) in list(_registry.items()):

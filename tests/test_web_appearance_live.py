@@ -25,7 +25,7 @@ _TIMEOUT = 60
 
 
 @pytest.fixture(autouse=True)
-def _back_to_light():
+def _back_to_light(cheap_repolish):
     theme.set_effective(LIGHT)
     yield
     theme.set_effective(LIGHT)

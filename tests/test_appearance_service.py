@@ -49,7 +49,7 @@ def _palette(dark: bool) -> QPalette:
 
 
 @pytest.fixture
-def service(qapp):
+def service(qapp, cheap_repolish):
     bus = EventBus()
     settings = Settings(bus)
     svc = AppearanceService(qapp, settings, bus)
@@ -60,7 +60,32 @@ def service(qapp):
     original = qapp.palette()
     yield svc
     qapp.styleHints().unsetColorScheme()
-    qapp.setPalette(original)
+    if qapp.palette() != original:
+        # Only when a test installed one: every live widget in the process is handed the palette, which
+        # costs seconds once earlier tests have left windows behind.
+        qapp.setPalette(original)
+        _settle(svc)
+
+
+@pytest.fixture
+def fake_look(service):
+    """The service reading a look the test sets, so no palette is installed on the whole application.
+
+    `QApplication.setPalette` reaches every live widget, about 4 s a call with the windows a long shard has
+    left behind. A test about the settle period and change detection does not need the real palette; the
+    ones about the real palette ask for it (`qapp`) and keep their `setPalette`.
+    """
+    state = {"dark": False}
+    service._read_effective = lambda: EffectiveAppearance.DARK if state["dark"] else EffectiveAppearance.LIGHT
+    service._effective = service._read_effective()
+    service.heard.clear()
+    return state
+
+
+def _look_becomes(svc, state, dark: bool) -> None:
+    """The look changing, then the settle period passing: what a palette event leads to."""
+    state["dark"] = dark
+    svc._schedule()
     _settle(svc)
 
 
@@ -166,32 +191,27 @@ def test_the_announcement_comes_after_the_palette_not_before(qapp, service):
     assert seen == [True]
 
 
-def test_a_burst_of_palette_changes_settles_on_the_last_one(qapp, service):
-    _platform_sets(qapp, service, dark=False)
-    service.heard.clear()
-
+def test_a_burst_of_palette_changes_settles_on_the_last_one(service, fake_look):
     for dark in (True, False, True, False, True):
-        qapp.setPalette(_palette(dark))
+        fake_look["dark"] = dark
+        service._schedule()
     _settle(service)
 
     assert service.heard == [EffectiveAppearance.DARK]
 
 
-def test_a_palette_change_that_keeps_the_look_says_nothing(qapp, service):
-    _platform_sets(qapp, service, dark=True)
+def test_a_palette_change_that_keeps_the_look_says_nothing(service, fake_look):
+    _look_becomes(service, fake_look, dark=True)
     service.heard.clear()
 
-    _platform_sets(qapp, service, dark=True)
+    _look_becomes(service, fake_look, dark=True)
 
     assert service.heard == []
 
 
-def test_dark_light_dark_light_announces_each_real_change(qapp, service):
-    _platform_sets(qapp, service, dark=False)
-    service.heard.clear()
-
+def test_dark_light_dark_light_announces_each_real_change(service, fake_look):
     for dark in (True, False, True, False):
-        _platform_sets(qapp, service, dark=dark)
+        _look_becomes(service, fake_look, dark=dark)
 
     assert service.heard == [
         EffectiveAppearance.DARK,

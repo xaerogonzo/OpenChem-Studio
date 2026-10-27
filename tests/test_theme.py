@@ -17,6 +17,8 @@ from PySide6.QtWidgets import QLabel
 from openchem.domain.appearance import EffectiveAppearance
 from openchem.ui import theme
 
+#: The real stylesheet pass, taken before `cheap_repolish` replaces it for a test.
+_REAL_REPOLISH = theme.repolish_styled_widgets
 LIGHT = EffectiveAppearance.LIGHT
 DARK = EffectiveAppearance.DARK
 
@@ -24,7 +26,7 @@ _ROOT = Path(__file__).resolve().parent.parent
 
 
 @pytest.fixture(autouse=True)
-def _back_to_light():
+def _back_to_light(cheap_repolish):
     """The look is module state, so no test may leave the suite dark."""
     theme.set_effective(LIGHT)
     yield
@@ -105,6 +107,19 @@ def test_a_widget_built_in_the_dark_starts_dark(qapp):
     theme.style(label, "color: #666666;")
 
     assert label.styleSheet() == f"color: {theme.dark_values()['#666666']};"
+
+
+def test_naming_the_look_already_in_force_does_nothing(qapp):
+    """Resetting to the look on screen is the common case in a test fixture, and it must not pay for a switch."""
+    heard = []
+    label = QLabel("x")
+    theme.follow(label, lambda _w: heard.append(theme.effective()), immediately=False, slot="repeat")
+
+    theme.set_effective(LIGHT)
+    theme.set_effective(DARK)
+    theme.set_effective(DARK)
+
+    assert heard == [DARK]
 
 
 def test_a_follower_whose_object_is_gone_does_not_stop_the_switch(qapp):
@@ -373,7 +388,7 @@ def test_widgets_with_a_stylesheet_are_set_again_and_the_rest_are_left(qapp):
     styled.setStyleSheet("QToolButton { border: none; }")
     Counting.sets = 0
 
-    theme.repolish_styled_widgets()
+    _REAL_REPOLISH()
 
     assert Counting.sets == 1
     assert styled.styleSheet() == "QToolButton { border: none; }"
