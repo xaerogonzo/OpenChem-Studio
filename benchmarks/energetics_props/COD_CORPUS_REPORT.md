@@ -74,10 +74,11 @@ Bond-order perception for the accepted determinations (a structure that cannot b
 
 | step | count |
 |---|---|
-| matched on key, form, 80-160 K and 273-303 K | 49 |
+| matched on key, form, 80-160 K and 273-303 K | 392 |
 | dropped: no cell volume | 0 |
-| dropped: volume ratio outside [1.00, 1.08] | 0 |
-| pairs kept | 49 |
+| dropped: volume ratio outside [1.00, 1.08] | 23 |
+| pairs kept (every organic nitrogen-containing crystal) | 369 |
+| of which both determinations carry one of the four groups | 49 |
 
 ## What this does not say
 

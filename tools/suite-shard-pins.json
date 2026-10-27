@@ -1244,6 +1244,7 @@
   "tests/test_energetics_props_cod_census.py": 2,
   "tests/test_energetics_props_cod_corpus.py": 2,
   "tests/test_energetics_props_cod_structures.py": 2,
+  "tests/test_energetics_props_density_correction.py": 0,
   "tests/test_energetics_props_families.py": 0,
   "tests/test_energetics_props_inventory.py": 1,
   "tests/test_energetics_props_petn_evidence.py": 0,

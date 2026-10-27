@@ -254,11 +254,14 @@ def test_pairs_are_one_entity_one_form_one_low_and_one_room_temperature_determin
         _rec("lo5", "ke", 1.80, t=100.0, volume=1000.0, sg="P 1"), _rec("rt5", "ke", 1.75, t=293.0, volume=1030.0, sg="P -1"),   # forms differ
         _rec("lo6", "kf", 1.80, t=100.0, volume=1000.0, r=0.09), _rec("rt6", "kf", 1.75, t=293.0, volume=1030.0),   # poor fit
         _rec("lo7", "kg", 1.80, t=100.0, volume=1000.0, family="other_organic"), _rec("rt7", "kg", 1.75, t=293.0, volume=1030.0, family="other_organic"),
+        _rec("lo8", "kh", 1.80, t=100.0, volume=1000.0), _rec("rt8", "kh", 1.75, t=293.0, volume=1030.0, family="other_organic"),   # one side only: not flagged
     ]
     pairs = corpus.pairs_for_study(records)
-    assert [(p["low_code"], p["rt_code"]) for p in pairs["rows"]] == [("lo", "rt")]
+    # a pair is not limited to the four explosophore groups: thermal expansion of the lattice does not depend on the group (owner, 2026-10-27)
+    assert [(p["low_code"], p["rt_code"], p["explosophore"]) for p in pairs["rows"]] == [("lo", "rt", True), ("lo7", "rt7", False), ("lo8", "rt8", False)]
     assert pairs["rows"][0]["volume_ratio"] == pytest.approx(1.03)
-    assert (pairs["matched_before_volume_cut"], pairs["dropped_no_cell_volume"], pairs["dropped_volume_ratio_outside"], pairs["pairs"]) == (3, 1, 1, 1)
+    assert (pairs["matched_before_volume_cut"], pairs["dropped_no_cell_volume"], pairs["dropped_volume_ratio_outside"], pairs["pairs"]) == (5, 1, 1, 3)
+    assert pairs["explosophore_pairs"] == 1
 
 
 def test_the_report_is_generated_from_the_summary_and_says_what_it_is_not():
