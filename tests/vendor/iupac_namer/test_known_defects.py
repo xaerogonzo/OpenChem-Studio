@@ -65,6 +65,21 @@ def _key(smiles: str | None) -> str | None:
         return None
 
 
+def _same_structure(a: str | None, b: str | None) -> bool:
+    """Same canonical SMILES, or the same InChIKey.
+
+    The second arm exists for bridged bicycles: OPSIN reads a name that gives
+    only the substituent centres and leaves the ring-forced bridgeheads
+    unspecified, while the input SMILES (from RDKit) writes them. They are one
+    stereoisomer, because those bridgeheads cannot invert independently, and
+    InChI knows it where a SMILES string does not.
+    """
+    if _canon(a) == _canon(b):
+        return True
+    ka = _key(a)
+    return ka is not None and ka == _key(b)
+
+
 def _opsin(name: str) -> str | None:
     import os
     import shutil
@@ -108,7 +123,7 @@ def test_target_name_denotes_the_input_structure(
         return
     parsed = _opsin(expected)
     assert parsed, f"{defect}: OPSIN cannot parse target name {expected!r}"
-    assert _canon(parsed) == _canon(smiles), (
+    assert _same_structure(parsed, smiles), (
         f"{defect}: target name {expected!r} denotes {_canon(parsed)}, "
         f"not the input {_canon(smiles)}"
     )
@@ -142,6 +157,6 @@ def test_fixed_defect_round_trips_end_to_end(
         return
     parsed = _opsin(str(name))
     assert parsed, f"{defect}: engine emitted unparsable name {name!r}"
-    assert _canon(parsed) == _canon(smiles), (
+    assert _same_structure(parsed, smiles), (
         f"{defect}: {smiles} -> {name!r} -> {_canon(parsed)}"
     )
