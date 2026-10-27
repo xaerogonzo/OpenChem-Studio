@@ -1,0 +1,24 @@
+[
+  {"do": "smiles", "smiles": "[NH3+]C[C@H](O)C(=O)OCCl", "name": "Grouped menus", "after_ms": 800},
+  {"do": "select", "molecule": -1, "after_ms": 3500},
+  {"do": "menu", "text": "Show Carbon Labels", "in": "View > 2D Structure Display", "after_ms": 800},
+  {"do": "menu", "text": "Show Carbon Labels", "in": "View > 2D Structure Display", "after_ms": 800},
+  {"do": "menu", "text": "Derived Scores...", "in": "Tools > Calculators", "after_ms": 1500},
+  {"do": "shot", "path": "artifacts/visual/menus_grouped_scores_window.png", "widget": "scores", "after_ms": 500},
+
+  {"do": "dialog", "name": "SettingsDialog", "real": true, "section": "keyboard", "width": 820, "height": 700, "after_ms": 1000},
+  {"do": "shot", "path": "artifacts/visual/menus_grouped_keyboard_closed.png", "widget": "dialog", "after_ms": 500},
+  {"do": "control", "name": "shortcutSearch", "value": "derived", "after_ms": 800},
+  {"do": "shot", "path": "artifacts/visual/menus_grouped_keyboard_search.png", "widget": "dialog", "after_ms": 500},
+  {"do": "control", "name": "shortcutSearch", "value": "", "after_ms": 800},
+  {"do": "close_dialog", "after_ms": 500},
+
+  {"do": "appearance", "choice": "dark", "via": "menu", "after_ms": 2500},
+  {"do": "shot", "path": "artifacts/visual/menus_grouped_dark_canvas.png", "after_ms": 500},
+  {"do": "dialog", "name": "SettingsDialog", "real": true, "section": "keyboard", "width": 820, "height": 700, "after_ms": 1000},
+  {"do": "shot", "path": "artifacts/visual/menus_grouped_keyboard_dark.png", "widget": "dialog", "after_ms": 500},
+  {"do": "close_dialog", "after_ms": 500},
+  {"do": "appearance", "choice": "system", "via": "menu", "after_ms": 1500},
+  {"do": "expect_clean"},
+  {"do": "quit"}
+]

@@ -186,6 +186,7 @@ from typing import Any
 from PySide6.QtCore import QObject, Qt, QTimer
 from PySide6.QtWidgets import QDialog, QVBoxLayout, QWidget
 
+from openchem.app import menu_layout
 from openchem.app.drive_ledger import ErrorLedger, RunIdentity, log_file_size, write_report
 
 logger = logging.getLogger("openchem.ui")
@@ -5889,21 +5890,22 @@ class _Driver(QObject):
         # `QUndoStack.createUndoAction` reads "Undo <last command>", so the
         # exact text of Edit > Undo is not known before the run.
         prefix = bool(step.get("prefix"))
-        for menu_action in self._window.menuBar().actions():
-            menu = menu_action.menu()
-            if menu is None:
+        # `"in": "Tools > Calculators"` names the menu path the entry must sit in: the menus are grouped now,
+        # so a text alone can match two entries (the CIP toggle is in Structure and in View).
+        path = step.get("in")
+        for home, action in menu_layout.walk(self._window.menuBar()):
+            text = action.text().replace("&", "")
+            if not (text.startswith(wanted) if prefix else text == wanted):
                 continue
-            for action in _walk_actions(menu):
-                text = action.text().replace("&", "")
-                if not (text.startswith(wanted) if prefix else text == wanted):
-                    continue
-                action.trigger()
-                logger.warning(
-                    "OPENCHEM_DRIVE: menu %r triggered -- enabled=%s checkable=%s checked=%s",
-                    wanted, action.isEnabled(), action.isCheckable(), action.isChecked(),
-                )
-                return
-        logger.error("OPENCHEM_DRIVE: no menu entry named %r", wanted)
+            if path is not None and home != str(path):
+                continue
+            action.trigger()
+            logger.warning(
+                "OPENCHEM_DRIVE: menu %r triggered in %r -- enabled=%s checkable=%s checked=%s",
+                wanted, home, action.isEnabled(), action.isCheckable(), action.isChecked(),
+            )
+            return
+        logger.error("OPENCHEM_DRIVE: no menu entry named %r%s", wanted, f" in {path!r}" if path else "")
 
     def _do_rotate_report(self, step: dict[str, Any]) -> None:
         """`{"do": "rotate_report"}` -- the tick, the button AND the page.
@@ -6055,7 +6057,7 @@ class _Driver(QObject):
         control then reads is logged beside what was asked, so a control
         that refused the value -- a bound, a question answered No -- says so.
         """
-        from PySide6.QtWidgets import QAbstractButton, QCheckBox, QSpinBox, QWidget
+        from PySide6.QtWidgets import QAbstractButton, QCheckBox, QLineEdit, QSpinBox, QWidget
 
         dialog = getattr(self, "_dialog", None)
         name = str(step.get("name", ""))
@@ -6073,6 +6075,10 @@ class _Driver(QObject):
         elif isinstance(widget, QAbstractButton):
             widget.click()
             now = "clicked"
+        elif isinstance(widget, QLineEdit):
+            # A search box: the text is set, which is what typing it leaves behind (`textChanged` fires).
+            widget.setText(str(step["value"]))
+            now = widget.text()
         else:
             logger.error(
                 "OPENCHEM_DRIVE: control %s -- %s", name,
@@ -7434,7 +7440,18 @@ class _Driver(QObject):
             ),
         )
         try:
-            dialog = fixture.build(context)
+            if step.get("real") and wanted == "SettingsDialog":
+                # THE WINDOW'S OWN COMMANDS, not the inventory's one stand-in, so a shot of the Keyboard page
+                # shows the real groups. It reads and writes nothing until a control is pressed.
+                from openchem.ui.dialogs.settings_dialog import SettingsDialog
+
+                dialog = SettingsDialog(
+                    window._settings,
+                    shortcut_registry=window._shortcuts,
+                    result_store_service=window._services.result_store_service,
+                )
+            else:
+                dialog = fixture.build(context)
         except DialogUnavailable as exc:
             logger.error(
                 "OPENCHEM_DRIVE: %s needs %s -- %s", wanted, fixture.needs or "?", exc

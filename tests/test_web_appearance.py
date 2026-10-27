@@ -17,6 +17,7 @@ from openchem.ui import theme
 from openchem.ui.widgets import web_appearance
 from openchem.ui.widgets.web_appearance import (
     KETCHER_CHROME_SELECTORS,
+    KETCHER_CANVAS,
     KETCHER_DARK_CSS,
     PageLook,
     call_script,
@@ -72,11 +73,8 @@ def test_the_editor_script_is_a_stylesheet_that_light_empties():
     assert '""' in light.split("})(")[-1]
 
 
-def test_the_drawing_area_is_never_named_by_the_dark_stylesheet():
-    """Atom colours, bonds, selection and hover are the editor's own, in the colours chemists read.
-
-    Only the four toolbars are filtered; nothing that contains or is contained by the canvas is.
-    """
+def test_only_the_toolbars_are_filtered_and_the_drawing_is_never_filtered():
+    """Nothing that contains or is contained by the canvas is filtered, whatever colour the ink is."""
     assert len(KETCHER_CHROME_SELECTORS) == 4
     for selector in KETCHER_CHROME_SELECTORS:
         assert "canvas" not in selector.lower()
@@ -85,6 +83,20 @@ def test_the_drawing_area_is_never_named_by_the_dark_stylesheet():
     filtered = [rule for rule in css_rules if "filter" in rule]
     assert len(filtered) == 1
     assert all(selector in filtered[0] for selector in KETCHER_CHROME_SELECTORS)
+
+
+def test_the_drawing_is_recoloured_by_black_ink_rules_and_by_nothing_else():
+    """Atom colours, selection and hover are the editor's own: the only values the stylesheet names inside
+    the canvas are black ones, so an element colour (a nitrogen's blue) cannot match a rule."""
+    import re
+
+    rules = [rule for rule in KETCHER_DARK_CSS.split("}") if KETCHER_CANVAS in rule]
+    assert len(rules) == 2  # one for stroke, one for fill
+    named = set(re.findall(r'\[(?:stroke|fill)="([^"]+)"\]', "}".join(rules)))
+    assert named == {"#000000", "#000", "black"}
+    assert all("!important" in rule and "filter" not in rule for rule in rules)
+    for element_colour in ("#304ff7", "#ff0d0d", "#1fd01f", "#0097a8"):
+        assert element_colour not in KETCHER_DARK_CSS.lower()
 
 
 def test_only_the_toolbars_are_filtered_and_the_editor_surround_is_a_plain_background():
