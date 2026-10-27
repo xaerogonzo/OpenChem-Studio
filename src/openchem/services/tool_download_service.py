@@ -236,6 +236,95 @@ def verify_psi4(configured_path: str) -> str:
     return f"{named} ran a test calculation correctly (H2 at HF/STO-3G, {value:.6f} Eh)."
 
 
+#: Where a person gets xtb (the project's releases page, which carries the Windows build). The app does not fetch it: locate-only, as Psi4 is.
+XTB_DOWNLOAD_PAGE = "https://github.com/grimme-lab/xtb/releases"
+#: The xtb project's home.
+XTB_DOCS_PAGE = "https://github.com/grimme-lab/xtb"
+
+#: What xtb's `--version` prints, among other banner lines, with exit code 0 (measured with xtb 6.7.1pre on Windows): `* xtb version 6.7.1pre (5071a88) compiled by ...`.
+_XTB_VERSION_RE = r"\*\s+xtb version (\S+)"
+
+#: GFN2-xTB's energy for H2 at 0.74 A, measured with xtb 6.7.1pre through the provider's own input and command (a build that computes another number is not giving the right answer).
+_XTB_TEST_ENERGY = -0.981984
+
+
+def describe_xtb_status(configured_path: str) -> str:
+    """One-line status for the xtb tab. It does not run the program (that is the Test button's job), so a visit to the tab starts nothing."""
+    if not configured_path:
+        return "Not configured"
+    path = Path(configured_path)
+    if not path.is_file():
+        return f"Configured, but no file at {path}"
+    return f"Configured: {path.name} in {path.parent}"
+
+
+def responds_as_xtb(path: Path | str) -> bool:
+    """Whether this really is xtb, asked by running `xtb --version`: it prints a banner with `xtb version N` (exit 0).
+
+    **A NAME MATCH IS NOT ENOUGH**, for the reason `responds_as_orca` records. The output is decoded as UTF-8 (the banner is, and Windows' default code page is not).
+    """
+    import re
+    import subprocess
+
+    try:
+        completed = subprocess.run([str(path), "--version"], capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=30)
+    except (OSError, subprocess.SubprocessError):
+        return False
+    return completed.returncode == 0 and re.search(_XTB_VERSION_RE, completed.stdout or "") is not None
+
+
+def verify_xtb(configured_path: str) -> str:
+    """Run a real two-atom calculation through the engine's OWN input and command, and report the version, or raise.
+
+    Going through `XtbQuantumEngineProvider` rather than a hand-written command means the Test exercises what a run uses: the `job.inp` name, the Turbomole block, the header the command is read back from.
+    Checked against the known energy, because a build that runs and computes the wrong answer is the failure a file check cannot see.
+    """
+    import re
+    import subprocess
+    import tempfile
+
+    from rdkit import Chem
+    from rdkit.Geometry import Point3D
+
+    from openchem.chem.xtb_engine import XtbOutputError, XtbQuantumEngineProvider
+
+    path = Path(configured_path or "")
+    if not path.is_file():
+        raise ToolVerificationError(f"No xtb executable at {path}")
+    h2 = Chem.AddHs(Chem.MolFromSmiles("[H][H]"))
+    conformer = Chem.Conformer(2)
+    conformer.SetAtomPosition(0, Point3D(0.0, 0.0, 0.0))
+    conformer.SetAtomPosition(1, Point3D(0.0, 0.0, 0.74))
+    h2.RemoveAllConformers()
+    h2.AddConformer(conformer)
+    provider = XtbQuantumEngineProvider(threads=lambda: 1)
+    with tempfile.TemporaryDirectory(prefix="openchem-xtb-test-") as scratch:
+        job = Path(scratch) / "job.inp"
+        job.write_text(provider.build_input(h2, 0, 1, "GFN2-xTB", "sp"), encoding="utf-8")
+        try:
+            completed = subprocess.run(
+                provider.command_args(str(path), job), cwd=scratch, capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=120,
+            )
+        except OSError as exc:
+            raise ToolVerificationError(f"Could not run {path}: {exc}") from exc
+        except subprocess.TimeoutExpired as exc:
+            raise ToolVerificationError("xtb did not finish a two-atom test job within 2 minutes.") from exc
+    output = completed.stdout or ""
+    try:
+        descriptors, _conformer = provider.parse_output(output, h2, "xtb-test", "sp")
+    except XtbOutputError as exc:
+        tail = "\n".join(output.strip().splitlines()[-8:])
+        raise ToolVerificationError(f"xtb ran but did not give a result: {exc}\nIts last words were:\n{tail}") from exc
+    value = descriptors[0].value
+    if abs(value - _XTB_TEST_ENERGY) > _ORCA_TEST_TOLERANCE:
+        raise ToolVerificationError(
+            f"xtb ran but computed {value:.6f} Eh for H2 with GFN2-xTB, where {_XTB_TEST_ENERGY:.6f} is expected. The executable works but is not giving the right answer."
+        )
+    version = re.search(_XTB_VERSION_RE, output)
+    named = f"xtb {version.group(1)}" if version else "xtb"
+    return f"{named} ran a test calculation correctly (H2 with GFN2-xTB, {value:.6f} Eh)."
+
+
 class ToolVerificationError(RuntimeError):
     """A configured tool is present but did not work when asked to."""
 

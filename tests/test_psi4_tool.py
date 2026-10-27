@@ -70,7 +70,7 @@ def test_each_engine_resolves_its_own_executable_and_orca_keeps_its_setting(tmp_
     assert [p.provider_id for p in service.available_engines()] == ["psi4"]
     settings.set("orca/executable_path", _a_file(tmp_path, "orca.exe"))
     assert [p.provider_id for p in service.available_engines()] == ["orca", "psi4"]
-    assert [p.provider_id for p in service.engines()] == ["orca", "psi4"]
+    assert [p.provider_id for p in service.engines()] == ["orca", "psi4", "xtb"]
     # the public ORCA accessor is unchanged
     assert service.orca_executable() == str(tmp_path / "orca.exe")
 

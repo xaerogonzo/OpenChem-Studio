@@ -67,14 +67,16 @@ Suggested order: a plausibility flag together with the wording audit; then measu
 
 The Windows zip (`6.7.1pre`, 37,550,920 bytes) matched its published sha256. Run on ethanol with GFN2: a single point (-11.3819 Eh), an optimization (-11.3943 Eh, gradient 3.6e-4) and an optimization with frequencies (27 values, 0 imaginary) each took well under a second; implicit solvation, a radical and an Au-H molecule ran. The licence was not on the release page and the zip carries only a licence for one bundled library: still to confirm.
 
-`chem/xtb_engine.py` is a provider for `sp`, `opt` and `opt_freq` at GFN2-xTB or GFN1-xTB, tested against real outputs (`tests/test_xtb_engine.py`). It is NOT registered with the service, has no External Tools entry, and its numbers have not been compared with ORCA or Psi4. Four things the spike found that decided its shape:
+`chem/xtb_engine.py` is a provider for `sp`, `opt` and `opt_freq` at GFN2-xTB or GFN1-xTB, tested against real outputs (`tests/test_xtb_engine.py`). It is registered with the service (an engine only when its executable is configured), has a locate-only External Tools tab whose Test runs H2 through the provider's own input and command, and the panel's method box offers `GFN2-xTB` and `GFN1-xTB` when it is chosen. Its numbers have not been compared with ORCA or Psi4. Four things the spike found that decided its shape:
 
 - `command_args` is not handed the charge, spin or job, so the input file carries them in a header comment and the command is built by reading it back.
 - The service writes `job.inp`, and xtb chooses its geometry reader by file name (a `.inp` name is refused) but reads a Turbomole `$coord` block by content, so that is the format, in Bohr; the final structure comes back in Bohr too.
 - xtb accepted a methyl radical at `--uhf 0` and exited 0 with a different energy, so the provider refuses an impossible electron count itself.
 - `normal termination of xtb` is on stderr, which the service does not read; a run is judged from stdout (`[ERROR]`, `finished run on`). IR intensities are only in a file in the working folder, so the modes carry none.
 
-Next, in order: register it (settings key, External Tools tab with a real two-atom test, the Engine box), then the preregistered comparison with ORCA and Psi4 before any claim that it improves their inputs.
+xtb's stdout is UTF-8 (its frequency heading contains `cm⁻¹`), so anything that reads it as text on Windows must say `encoding="utf-8"`: the default code page raised a decode error in the first draft of the Test button.
+
+Next: the preregistered comparison with ORCA and Psi4 before any claim that it improves their inputs.
 
 ## Not done
 
