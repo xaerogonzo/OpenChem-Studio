@@ -297,6 +297,8 @@ class ResultsView(QWidget):
     #: application around it -- the same split `AtomInspectorPanel` already
     #: makes with `link_activated`.
     link_activated = Signal(object)
+    #: Whether the reader holds a report that Copy report and Export report can act on; emitted when that CHANGES.
+    report_available_changed = Signal(bool)
 
     def __init__(
         self,
@@ -390,6 +392,7 @@ class ResultsView(QWidget):
         # this is defence rather than a live fix; it is asserted on the
         # WIRING for that reason.
         self._view.link_activated.connect(self.link_activated)
+        self._view.report_available_changed.connect(self.report_available_changed)
         self._empty = QLabel(EMPTY_MESSAGES[NOTHING_COMPUTED], self)
         self._empty.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self._empty.setWordWrap(True)
@@ -873,6 +876,16 @@ class ResultsView(QWidget):
         decide what a report's viewer is.
         """
         return str(getattr(report, "rich_view", "") or "")
+
+    def report_available(self) -> bool:
+        """Whether the report on screen can be copied or exported now."""
+        return self._view.has_report()
+
+    def copy_report(self) -> None:
+        self._view.copy_report()
+
+    def export_report(self) -> None:
+        self._view.export_report()
 
     def _on_open_clicked(self) -> None:
         """Ask for the whole result behind the focused summary.

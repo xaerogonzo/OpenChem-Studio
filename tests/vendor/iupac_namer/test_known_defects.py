@@ -53,16 +53,34 @@ def _canon(smiles: str | None) -> str | None:
     return Chem.MolToSmiles(mol) if mol is not None else None
 
 
-def _key(smiles: str | None) -> str | None:
-    if not smiles:
-        return None
-    mol = Chem.MolFromSmiles(smiles)
-    if mol is None:
-        return None
-    try:
-        return Chem.MolToInchiKey(mol) or None
-    except Exception:
-        return None
+def _same_structure(a: str | None, b: str | None) -> bool:
+    """Same canonical SMILES, or ``a`` pins exactly the stereoisomer ``b`` is.
+
+    The second arm exists for bridged bicycles: OPSIN reads a name that gives
+    only the substituent centres and leaves the ring-forced bridgeheads
+    unspecified, while the input SMILES (from RDKit) writes them. The two
+    strings have different InChIKeys, so the test is the engine's own: ``a``
+    has exactly one embeddable stereoisomer, and it is ``b``.
+    """
+    if _canon(a) == _canon(b):
+        return True
+    if not a or not b:
+        return False
+    from rdkit.Chem.EnumerateStereoisomers import (
+        EnumerateStereoisomers,
+        StereoEnumerationOptions,
+    )
+
+    ma, mb = Chem.MolFromSmiles(a), Chem.MolFromSmiles(b)
+    if ma is None or mb is None:
+        return False
+    options = StereoEnumerationOptions(
+        tryEmbedding=True, unique=True, onlyUnassigned=True, maxIsomers=8
+    )
+    isomers = list(EnumerateStereoisomers(ma, options=options))
+    if len(isomers) != 1:
+        return False
+    return Chem.MolToInchiKey(isomers[0]) == Chem.MolToInchiKey(Chem.RemoveHs(mb))
 
 
 def _opsin(name: str) -> str | None:
@@ -108,15 +126,10 @@ def test_target_name_denotes_the_input_structure(
         return
     parsed = _opsin(expected)
     assert parsed, f"{defect}: OPSIN cannot parse target name {expected!r}"
-    assert _canon(parsed) == _canon(smiles), (
+    assert _same_structure(parsed, smiles), (
         f"{defect}: target name {expected!r} denotes {_canon(parsed)}, "
         f"not the input {_canon(smiles)}"
     )
-    got_key, want_key = _key(parsed), _key(smiles)
-    if got_key is not None and want_key is not None:
-        assert got_key == want_key, (
-            f"{defect}: InChIKey gate disagrees for {expected!r}"
-        )
 
 
 @pytest.mark.parametrize(
@@ -142,6 +155,6 @@ def test_fixed_defect_round_trips_end_to_end(
         return
     parsed = _opsin(str(name))
     assert parsed, f"{defect}: engine emitted unparsable name {name!r}"
-    assert _canon(parsed) == _canon(smiles), (
+    assert _same_structure(parsed, smiles), (
         f"{defect}: {smiles} -> {name!r} -> {_canon(parsed)}"
     )

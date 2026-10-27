@@ -753,6 +753,47 @@ Results below Properties and start calculations while you read them.
 Placements are saved with the window layout. **View ▸ Reset Panel Layout**
 puts every panel back where it started and hands them all back to the rail.
 
+### The **…** menu on every panel
+
+Dragging works, but nothing on screen says so. Every panel's title bar has a
+**…** button that does the same things from a menu:
+
+- **Move to** Left, Right, Top or Bottom. Where you put a panel is remembered,
+  and the rail stops hiding it when you pick another panel, exactly as for a
+  drag. The side it is already on is greyed.
+- **Expand panel** grows the panel along the side it sits on as far as the
+  window allows. The editor keeps its minimum size and the other panels shrink
+  to theirs, so on a small window there may be little room (the status bar says
+  so, and nothing changes); on a wide screen the gain is large. **Restore size**
+  puts every panel back, not only this one. The panel stays expanded when you
+  resize the window. Moving, floating or hiding any panel, picking another one
+  in the rail, or closing the program ends it first, so an expanded arrangement
+  is never saved as your layout. It is not a full-window mode: nothing is hidden.
+- **Show alongside** lists the other panels and opens the one you pick without
+  hiding this one. It does not arrange the two side by side; they share the
+  window the way any two panels you have opened do.
+- **Lock open** / **Unlock** is the rail's own lock (the same one its right-click
+  menu has): a locked panel stays on screen when you pick another. It does not
+  move the panel.
+- **Float panel** / **Dock panel back** detaches the panel into a window of its
+  own, or puts it back. A floating panel can always be docked again. (The
+  Results panel's own **↗** button is different: it moves the reader into a
+  window, and leaves the panel where it is.)
+- **Return to default side** puts the panel back on the side it started on.
+  That is all it restores: not its size, and not its place among other
+  panels. Panels next to it are left alone.
+
+Some panels add buttons of their own beside the menu. **Results** has
+**Report**, which copies the report on screen or exports it to a file in the
+format the reader's format box names (greyed when no report is showing, and on
+the project table). **Structure Check** has **Check again**, which used to sit
+at the bottom of the panel. **Jobs** has **Cancel all**: it asks every running
+job that can be cancelled to cancel, and says it *requested* that, because a
+job stops when its service stops it and the list shows each one leaving.
+Cancelling discards the work in progress; a job that can keep what it has so
+far has its own **Finish now** button, which this does not use. It asks first
+when more than one job is running, and is greyed when none can be cancelled.
+
 ("Compute" rather than "Quantum" because the group holds docking and
 alignment too, and neither is quantum chemistry.)
 

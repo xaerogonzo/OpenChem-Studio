@@ -496,6 +496,10 @@ it).
   `BUILTIN_PANELS` is the one table that files every built-in panel and
   sets its place; plugins are listed after them, A to Z, whatever order they
   loaded in. A test compares that table with the docks the window builds.
+  Every dock has the same title bar (`ui/widgets/dock_title_bar.py`) with a
+  layout menu (move, expand, show alongside, lock, float, return to default
+  side) and room for a panel's own buttons; the measurements behind Expand and
+  the reasons for the rest are `docs/DOCK_LAYOUT_DESIGN.md`.
 
 - **Goals are task groups, and a goal run is a value.** `src/openchem/domain/calculator_goals.py` holds
   the curated sets (a goal's id is its task group's id, so a heading's "Run recommended"

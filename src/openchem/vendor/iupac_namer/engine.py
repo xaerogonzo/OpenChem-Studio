@@ -9539,6 +9539,21 @@ def _strip_tetrahedral_stereo(tree, *, mode: str):
                 _node_is_bridged_or_spiro_parent(parent_node)
                 and _stereo_descriptor_is_tetrahedral_rs(d)
             )
+        if mode.startswith("locants:"):
+            # Naming round 89: only the centres OPSIN named as unanchorable, on a bridged or spiro parent.
+            return (
+                _node_is_bridged_or_spiro_parent(parent_node)
+                and _stereo_descriptor_is_tetrahedral_rs(d)
+                and str(getattr(d, "locant", "")) in mode[len("locants:"):].split(",")
+            )
+        if mode.startswith("atoms:"):
+            sc = getattr(d, "stereo_center", None)
+            return (
+                _node_is_bridged_or_spiro_parent(parent_node)
+                and _stereo_descriptor_is_tetrahedral_rs(d)
+                and sc is not None
+                and str(getattr(sc, "atom_idx", "")) in mode[len("atoms:"):].split(",")
+            )
         raise ValueError(f"unknown strip mode: {mode!r}")
 
     def _filter(descs, parent_node):
@@ -9681,6 +9696,106 @@ def _opsin_can_parse(name: str) -> bool:
     return True
 
 
+_OPSIN_UNANCHORED_RE = re.compile(r'Could not find atom that: <stereoChemistry locant="([^"]+)"')
+
+
+def _opsin_probe(name: str) -> "tuple[bool, list[str]]":
+    """Parse ``name`` with OPSIN: (parsed, the locants of the stereo descriptors OPSIN could not anchor).
+
+    Same private input file as :func:`_opsin_can_parse`; the locants come from OPSIN's own error text
+    ('Could not find atom that: <stereoChemistry locant="1" ...'), which py2opsin re-raises as a warning.
+    """
+    try:
+        from py2opsin import py2opsin
+    except ImportError:
+        return True, []
+    handle, scratch = tempfile.mkstemp(prefix="opsin-", suffix=".txt")
+    os.close(handle)
+    try:
+        import warnings as _warnings
+        with _warnings.catch_warnings(record=True) as caught:
+            _warnings.simplefilter("always")
+            result = py2opsin(name, tmp_fpath=scratch)
+    except Exception:
+        return False, []
+    finally:
+        try:
+            os.unlink(scratch)
+        except OSError:
+            pass
+    if result and (not isinstance(result, str) or result.strip()):
+        return True, []
+    locants: list[str] = []
+    for w in caught:
+        for loc in _OPSIN_UNANCHORED_RE.findall(str(w.message)):
+            if loc not in locants:
+                locants.append(loc)
+    return False, locants
+
+
+def _name_pins_structure(name: str, mol) -> bool:
+    """True iff OPSIN reads ``name`` to exactly one stereoisomer (embeddable ones only) and that one is ``mol``.
+
+    A name with fewer descriptors is only better than none if it still says which molecule it is; the ring forces some centres (the bridgeheads of
+    a bicyclo[2.2.2]octane carrying substituents on one bridge) and not others.
+    """
+    try:
+        from py2opsin import py2opsin
+        from rdkit import Chem
+        from rdkit.Chem import inchi as _inchi
+        from rdkit.Chem.EnumerateStereoisomers import EnumerateStereoisomers, StereoEnumerationOptions
+        import warnings as _warnings
+        with _warnings.catch_warnings():
+            _warnings.simplefilter("ignore")
+            back = py2opsin(name)
+        m2 = Chem.MolFromSmiles(back) if back else None
+        if m2 is None:
+            return False
+        opts = StereoEnumerationOptions(tryEmbedding=True, unique=True, onlyUnassigned=True, maxIsomers=8)
+        isomers = list(EnumerateStereoisomers(m2, options=opts))
+        if len(isomers) != 1:
+            return False
+        return _inchi.MolToInchiKey(isomers[0]) == _inchi.MolToInchiKey(Chem.RemoveHs(mol))
+    except Exception:
+        return False
+
+
+def _drop_unanchored_stereo(tree, mol=None):
+    """Drop only the bridged/spiro R/S descriptors OPSIN cannot take, keeping a name that still pins the structure (naming round 89).
+
+    Returns (tree, name, parsed). A bicyclo[2.2.2]octane with substituents on one bridge has bridgeheads whose two other bridges are equivalent:
+    RDKit's CIP labeller still gives them R/S, OPSIN does not see a centre there and rejects the whole name, and stripping EVERY bridged
+    descriptor then named all four stereoisomers of 3-methylbicyclo[2.2.2]octan-2-ol alike. The 2,3 descriptors alone read back as the one right
+    molecule (the ring forces the bridgeheads). Two steps: the locants OPSIN names in its own error, one verdict at a time; then, when it only says
+    it could not assign the CIP, the ring atoms in two or more rings. A candidate counts only if :func:`_name_pins_structure` says so.
+    """
+    def _accept(cand_tree, cand_name):
+        return mol is None or _name_pins_structure(cand_name, mol)
+
+    cur = tree
+    for _ in range(8):
+        name = assemble(cur)
+        parsed, locants = _opsin_probe(name)
+        if parsed:
+            return (cur, name, True) if (cur is not tree and _accept(cur, name)) else (tree, assemble(tree), False)
+        if not locants:
+            break
+        new = _strip_tetrahedral_stereo(cur, mode="locants:" + ",".join(locants))
+        if new is cur:
+            break
+        cur = new
+    if mol is not None:
+        ring_info = mol.GetRingInfo()
+        bridgeheads = [str(a.GetIdx()) for a in mol.GetAtoms() if ring_info.NumAtomRings(a.GetIdx()) >= 2]
+        if bridgeheads:
+            new = _strip_tetrahedral_stereo(tree, mode="atoms:" + ",".join(bridgeheads))
+            if new is not tree:
+                name = assemble(new)
+                if _opsin_probe(name)[0] and _accept(new, name):
+                    return new, name, True
+    return tree, assemble(tree), False
+
+
 # Process-level cache of the stereo-validation verdict. Keeps the OPSIN pass's
 # amortised cost low across a batch.
 #
@@ -9698,7 +9813,7 @@ def _opsin_can_parse(name: str) -> bool:
 _STEREO_OPSIN_VALIDATION_CACHE: dict[tuple[str, tuple[str, ...]], str] = {}
 
 
-def _validate_stereo_via_opsin(tree, name: str, *, strip_modes: tuple[str, ...]) -> str:
+def _validate_stereo_via_opsin(tree, name: str, *, strip_modes: tuple[str, ...], mol=None) -> str:
     """Return ``name`` if OPSIN parses it; else the stripped re-assembly.
 
     Called from the top-level entry points (:func:`name_smiles`) when a
@@ -9731,6 +9846,12 @@ def _validate_stereo_via_opsin(tree, name: str, *, strip_modes: tuple[str, ...])
     cur_tree = tree
     cur_name = name
     for mode in strip_modes:
+        if mode == "unanchored":
+            fine_tree, fine_name, parsed = _drop_unanchored_stereo(cur_tree, mol)
+            if parsed and fine_name != name:
+                _STEREO_OPSIN_VALIDATION_CACHE[key] = fine_name
+                return fine_name
+            continue
         cur_tree = _strip_tetrahedral_stereo(cur_tree, mode=mode)
         cur_name = assemble(cur_tree)
         if cur_name == name:
@@ -10773,9 +10894,10 @@ def _name_smiles_unchecked(smiles: str, strategy) -> str:
         if needs_letter_suffix_check:
             modes.append("letter_suffix")
         if needs_bridged_check:
+            modes.append("unanchored")
             modes.append("bridged_or_spiro")
         final_name = _validate_stereo_via_opsin(
-            tree, final_name, strip_modes=tuple(modes),
+            tree, final_name, strip_modes=tuple(modes), mol=mol,
         )
     return final_name
 
