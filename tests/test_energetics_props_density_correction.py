@@ -33,17 +33,17 @@ corpus = _load("epb_cod_corpus", DIR / "epb_cod_corpus.py")
 vr = _load("validation_rows", ROOT / "tools" / "validation_rows.py")
 
 
-def pair(key="K", t_low=100.0, t_rt=293.0, alpha=1.5e-4, rho_rt=1.700, noise=0.0, b=0.0, sg="P 1", z=4.0, code="1"):
+def pair(key="K", t_low=100.0, t_rt=293.0, alpha=1.5e-4, rho_rt=1.700, noise=0.0, b=0.0, sg="P 1", z=4.0, code="1", explosophore=False):
     """A pair whose room-temperature density is exact for `alpha + b (t_low - 120)`, then moved by `noise`."""
     a = alpha + b * (t_low - dc.T_CENTRE_K)
     rho_low = rho_rt * (1.0 + a * (t_rt - t_low))
     ratio = rho_low / rho_rt
-    return dc.Pair(key, sg, z, code, code + "r", t_low, t_rt, rho_low, rho_rt + noise, ratio)
+    return dc.Pair(key, sg, z, code, code + "r", t_low, t_rt, rho_low, rho_rt + noise, ratio, explosophore)
 
 
 def as_row(p: dc.Pair) -> dict:
     return {"key": p.key, "space_group": p.space_group, "z": p.z, "low_code": p.low_code, "rt_code": p.rt_code, "t_low": p.t_low, "t_rt": p.t_rt,
-            "rho_low": p.rho_low, "rho_rt": p.rho_rt, "volume_ratio": p.volume_ratio}
+            "rho_low": p.rho_low, "rho_rt": p.rho_rt, "volume_ratio": p.volume_ratio, "explosophore": p.explosophore}
 
 
 def spread(n, *, alpha=1.5e-4, b=0.0, noise=0.0, prefix="K"):
@@ -93,13 +93,14 @@ def test_a_correction_error_is_added_in_quadrature():
 
 
 # ------------------------------------------------------------------------------------------------------ the pairs
-GOOD = {"key": "K", "space_group": "P 1", "z": 4, "low_code": "1", "rt_code": "2", "t_low": 100.0, "t_rt": 293.0, "rho_low": 1.75, "rho_rt": 1.7, "volume_ratio": 1.03}
+GOOD = {"key": "K", "space_group": "P 1", "z": 4, "low_code": "1", "rt_code": "2", "t_low": 100.0, "t_rt": 293.0, "rho_low": 1.75, "rho_rt": 1.7, "volume_ratio": 1.03, "explosophore": False}
 
 
 @pytest.mark.parametrize("change,fragment", [
     ({"t_low": 170.0}, "low temperature"), ({"t_low": 79.9}, "low temperature"), ({"t_rt": 250.0}, "room temperature"), ({"t_rt": 310.0}, "room temperature"),
     ({"volume_ratio": 0.99}, "volume ratio"), ({"volume_ratio": 1.09}, "volume ratio"), ({"rho_low": 0.0}, "finite positive"),
     ({"rho_rt": float("nan")}, "finite positive"), ({"space_group": None}, "space group"), ({"key": ""}, "entity key"), ({"z": None}, "space group"),
+    ({"explosophore": None}, "explosophore flag"), ({"explosophore": 1}, "explosophore flag"),
 ])
 def test_a_row_outside_the_rules_of_15_8_is_named_not_filtered(change, fragment):
     assert dc.pair_problem(GOOD) is None
@@ -147,6 +148,25 @@ def test_counts_state_the_entities_needed_and_whether_the_study_can_be_evaluated
     enough = dc.counts({"development": [], "selection": [], "holdout": spread(dc.MIN_HELD_OUT_ENTITIES, prefix="H")})
     assert enough["evaluable"] is True
     assert enough["entities_in_all_partitions_needed_at_20_percent"] == math.ceil(dc.MIN_HELD_OUT_ENTITIES / 0.2)
+
+
+def test_counts_report_the_explosophore_entities_beside_the_whole():
+    data = [pair(f"H{i}", code=str(i), explosophore=i < 3) for i in range(10)]
+    c = dc.counts({"development": [], "selection": [], "holdout": data})
+    assert (c["holdout"]["entities"], c["holdout"]["explosophore_entities"]) == (10, 3)
+
+
+def test_the_explosophore_subset_is_descriptive_and_never_moves_the_verdict():
+    fit = dc.fit_constant(spread(20))
+    plain = spread(dc.MIN_HELD_OUT_ENTITIES, noise=0.01, prefix="H")
+    flagged = [dc.Pair(*(*[getattr(q, f) for f in ("key", "space_group", "z", "low_code", "rt_code", "t_low", "t_rt", "rho_low", "rho_rt", "volume_ratio")], i < 4))
+               for i, q in enumerate(plain)]
+    a, b = dc.judge(fit, plain), dc.judge(fit, flagged)
+    assert {k: v for k, v in a.items() if k != "explosophore_subset"} == {k: v for k, v in b.items() if k != "explosophore_subset"}
+    assert a["explosophore_subset"]["entities"] == 0 and a["explosophore_subset"]["mae"] is None
+    sub = b["explosophore_subset"]
+    assert (sub["pairs"], sub["entities"]) == (4, 4)
+    assert sub["mae"] == pytest.approx(dc.mae(dc.errors(flagged[:4], fit))) and sub["uncorrected_mae"] == pytest.approx(dc.mae(dc.errors(flagged[:4], None)))
 
 
 def test_the_minimum_follows_the_derivation_in_section_13():
@@ -332,5 +352,7 @@ def test_the_committed_pairs_obey_the_rules_and_the_real_counts_are_what_the_stu
             if p.key in manifest:  # an entity with a resolved label is in the manifest; its partition must agree
                 assert manifest[p.key] == name
     c = dc.counts(parts)
+    summary = json.loads((DIR / "cod_corpus_summary.json").read_text(encoding="utf-8"))["pairs"]
+    assert sum(1 for p in data if p.explosophore) == summary["explosophore_pairs"] < len(data)  # the whole population is wider than the four groups
     assert c["development"]["pairs"] + c["selection"]["pairs"] + c["holdout"]["pairs"] == len(data)
     assert c["evaluable"] is (c["holdout"]["entities"] >= dc.MIN_HELD_OUT_ENTITIES)

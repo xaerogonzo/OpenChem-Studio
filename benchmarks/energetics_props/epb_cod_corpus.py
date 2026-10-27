@@ -462,12 +462,16 @@ def build(records: list[dict], forced: dict[str, str]) -> dict:
 
 def pairs_for_study(records: list[dict]) -> dict:
     """The matched low/room-temperature determinations the correction study (15.8) will use: one entity key, one form, one determination at
-    80-160 K and one at 273-303 K, both single whole explosophore molecules at R of 0.07 or better, with a cell-volume ratio in the stated range."""
+    80-160 K and one at 273-303 K, both single whole molecules at R of 0.07 or better, with a cell-volume ratio in the stated range.
+
+    The population is every organic, nitrogen-containing crystal in the corpus, not only the four explosophore groups: thermal expansion of the
+    lattice does not depend on the group, and the explosophore pairs alone hold too few held-out entities (owner, 2026-10-27). Each row says
+    whether its family is an explosophore one (`explosophore`), so that subset can be reported beside the whole."""
     groups: dict[tuple, dict[str, list[dict]]] = defaultdict(lambda: {"low": [], "rt": []})
     for rec in records:
         if rec.get("error") or not rec.get("whole_molecule") or rec.get("components") not in SINGLE_KINDS:
             continue
-        if rec.get("family") not in EXPLOSOPHORE or rec.get("density") is None or rec.get("temperature_k") is None:
+        if rec.get("density") is None or rec.get("temperature_k") is None:
             continue
         r = _r(rec)
         if r is None or r > R_MAX:
@@ -493,10 +497,11 @@ def pairs_for_study(records: list[dict]) -> dict:
             out_of_range += 1
             continue
         rows.append({"key": key, "space_group": sg, "z": z, "low_code": low["code"], "rt_code": rt["code"], "t_low": low["temperature_k"],
-                     "t_rt": rt["temperature_k"], "rho_low": low["density"], "rho_rt": rt["density"], "volume_ratio": ratio})
+                     "t_rt": rt["temperature_k"], "rho_low": low["density"], "rho_rt": rt["density"], "volume_ratio": ratio,
+                     "explosophore": low.get("family") in EXPLOSOPHORE and rt.get("family") in EXPLOSOPHORE})
     n_matched = no_volume + out_of_range + len(rows)
     return {"matched_before_volume_cut": n_matched, "dropped_no_cell_volume": no_volume, "dropped_volume_ratio_outside": out_of_range,
-            "pairs": len(rows), "rows": rows}
+            "pairs": len(rows), "explosophore_pairs": sum(1 for r in rows if r["explosophore"]), "rows": rows}
 
 
 def render_report(summary: dict) -> str:
@@ -552,7 +557,8 @@ def render_report(summary: dict) -> str:
         table(["step", "count"], [("matched on key, form, 80-160 K and 273-303 K", s["pairs"]["matched_before_volume_cut"]),
                                   ("dropped: no cell volume", s["pairs"]["dropped_no_cell_volume"]),
                                   ("dropped: volume ratio outside [1.00, 1.08]", s["pairs"]["dropped_volume_ratio_outside"]),
-                                  ("pairs kept", s["pairs"]["pairs"])]),
+                                  ("pairs kept (every organic nitrogen-containing crystal)", s["pairs"]["pairs"]),
+                                  ("of which both determinations carry one of the four groups", s["pairs"]["explosophore_pairs"])]),
         "",
         "## What this does not say",
         "",

@@ -6,7 +6,9 @@
 
 The question: given a crystal density measured at 80-160 K, how well does a one-parameter thermal-expansion model predict the density of the same
 form at 273-303 K? A *pair* is two determinations of one entity key, one space group and one Z, one at each temperature, with a cell-volume ratio
-V(RT)/V(low) in [1.00, 1.08] (`cod_correction_pairs.json`, built by `epb_cod_corpus.py`). Because the formula is the same, the density ratio is the
+V(RT)/V(low) in [1.00, 1.08] (`cod_correction_pairs.json`, built by `epb_cod_corpus.py`). The population is every organic, nitrogen-containing
+crystal (owner, 2026-10-27: the four explosophore groups alone hold too few held-out entities); the pairs whose two determinations carry one of the four
+groups are flagged and reported beside the whole as a descriptive subset, never as the gate. Because the formula is the same, the density ratio is the
 volume ratio, so both forms are fitted to it by ordinary least squares, in closed form, with nothing to tune:
 
     constant:  rho_low / rho_rt - 1 = alpha * (T_rt - T_low)
@@ -87,6 +89,7 @@ class Pair:
     rho_low: float
     rho_rt: float
     volume_ratio: float
+    explosophore: bool = False  # both determinations carry one of the four groups: reported beside the whole, never the gate
 
     @property
     def dt(self) -> float:
@@ -124,6 +127,8 @@ def pair_problem(row: dict) -> str | None:
         return f"the volume ratio {ratio:.4f} is outside {c.PAIR_VOLUME_RATIO}"
     if not row.get("key") or row.get("space_group") is None or row.get("z") is None:
         return "no entity key, space group or Z"
+    if not isinstance(row.get("explosophore"), bool):
+        return "no explosophore flag"
     return None
 
 
@@ -135,7 +140,7 @@ def read_pairs(path: Path = PAIRS_PATH) -> list[Pair]:
         if why:
             raise ValueError(f"{row.get('low_code')}/{row.get('rt_code')}: {why}")
         out.append(Pair(row["key"], row["space_group"], float(row["z"]), str(row["low_code"]), str(row["rt_code"]), float(row["t_low"]),
-                        float(row["t_rt"]), float(row["rho_low"]), float(row["rho_rt"]), float(row["volume_ratio"])))
+                        float(row["t_rt"]), float(row["rho_low"]), float(row["rho_rt"]), float(row["volume_ratio"]), row["explosophore"]))
     if len({(p.key, p.space_group, p.z) for p in out}) != len(out):
         raise ValueError("two pairs share one entity key, space group and Z: one form is one pair")
     return out
@@ -151,7 +156,8 @@ def split_pairs(pairs: list[Pair], forced: dict[str, str]) -> dict[str, list[Pai
 
 def counts(parts: dict[str, list[Pair]]) -> dict:
     """Pairs and entities per partition: a count, never a score."""
-    out = {name: {"pairs": len(ps), "entities": len({p.key for p in ps})} for name, ps in parts.items()}
+    out = {name: {"pairs": len(ps), "entities": len({p.key for p in ps}),
+                  "explosophore_entities": len({p.key for p in ps if p.explosophore})} for name, ps in parts.items()}
     held = out["holdout"]["entities"]
     out["min_held_out_entities"] = MIN_HELD_OUT_ENTITIES
     out["evaluable"] = held >= MIN_HELD_OUT_ENTITIES
@@ -246,6 +252,14 @@ def develop(development: list[Pair], selection: list[Pair]) -> dict:
     }
 
 
+def _explosophore_subset(holdout: list[Pair], fit: Fit) -> dict:
+    """The held-out pairs whose two determinations both carry one of the four groups: descriptive, with no bar and no verdict."""
+    sub = [p for p in holdout if p.explosophore]
+    if not sub:
+        return {"pairs": 0, "entities": 0, "mae": None, "uncorrected_mae": None}
+    return {"pairs": len(sub), "entities": len({p.key for p in sub}), "mae": mae(errors(sub, fit)), "uncorrected_mae": mae(errors(sub, None))}
+
+
 def judge(fit: Fit, holdout: list[Pair]) -> dict:
     """The one held-out evaluation of the chosen fit: numbers, the bar, and the outcome."""
     entities = len({p.key for p in holdout})
@@ -259,6 +273,7 @@ def judge(fit: Fit, holdout: list[Pair]) -> dict:
     point = mae(errs)
     out.update(mae=point, interval=[lo, hi], uncorrected_mae=mae(raw), uncorrected_interval=list(entity_bootstrap(holdout, raw)),
                signed_bias=sum(correct_density(fit, p.rho_low, p.t_low, p.t_rt) - p.rho_rt for p in holdout) / len(holdout))
+    out["explosophore_subset"] = _explosophore_subset(holdout, fit)
     if entities < MIN_HELD_OUT_ENTITIES:
         out.update(status="NOT_EVALUABLE", reason=f"{entities} held-out entities, {MIN_HELD_OUT_ENTITIES} needed; the bar is not relaxed")
     elif point <= MAE_CEILING and hi <= UPPER_CEILING:

@@ -29,9 +29,10 @@
  "manifest_entities": 2797,
  "pairs": {
   "dropped_no_cell_volume": 0,
-  "dropped_volume_ratio_outside": 0,
-  "matched_before_volume_cut": 49,
-  "pairs": 49
+  "dropped_volume_ratio_outside": 23,
+  "explosophore_pairs": 49,
+  "matched_before_volume_cut": 392,
+  "pairs": 369
  },
  "perception_of_accepted_determinations": {
   "hydrogens_missing": 16,
