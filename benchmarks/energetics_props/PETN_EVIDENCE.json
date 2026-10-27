@@ -1825,6 +1825,22 @@
    "lineage_root": "the primary of Cox and Pilcher's 34.4 kcal, Pedley's -776.7 gas value and CRC's; 'ME' 143.9 and 131.4 in Acree's Table 6",
    "independent_of_inventory": "yes: the first read page for the 143.9 and the 131.4",
    "note": "each 'lattice energy' equals the slope x 2.303 R (7528 gives 34.4 kcal, 6861 gives 31.4): second-law values at the middle of each range. Three pentaerythritol sublimation values then rise with temperature: 131.4 (124-137 C), 143.9 (106-135 C) and Barone's 161.0 (145-182 C): a 30 kJ/mol spread that a plastic phase near 185 C and the ranges' different centres may explain, but which is unresolved; the authors are Bradley and Cotson, not Bradley and Cleasby"
+  },
+  {
+   "id": "G42",
+   "group": "G_medard_thomas_substitutes",
+   "compound": "nitroisobutylglycerol trinitrate (NIBTN) and five relatives",
+   "property": "enthalpy_formation_solid_computed",
+   "value": "Rzhevskiy et al. 2023, Table 1 and SI Table S1 (kJ/mol, gas + estimate = standard state): NIBTN C4H6N4O11 gas -308 (W1-F12), vaporization estimate 94, giving -402; NPN -197 and 83, -280; 2-nitro-1,3-dinitrooxypropane -227 and 121, -348; AMDNNM +100 and 95, +5; ANDP +922 and 106, +816; SMX -542 taken from ref 32. NIBTN has a glass transition at -58.1 C and no melting was seen, so its sublimation rule used a melting point estimated from Tg/Tm = 2/3",
+   "unit": "kJ/mol",
+   "value_kind": "computed",
+   "phase_form": "standard state (liquid or solid, estimated)",
+   "temperature": "298.15 K",
+   "source": "Rzhevskiy, Minaeva, Topchiy, Melnikov, Kiselev, Pivkina, Fomenkov and Asachenko, Int. J. Mol. Sci. 24 (2023) 8541, DOI 10.3390/ijms24108541 (open access; text and Supporting Information read; files Rzhevskiy2023.pdf, Rzhevskiy2023_SI.pdf)",
+   "locator": "main text Table 1 (p. 6) and Methods (p. 11); SI p. S4, Table S1",
+   "lineage_root": "gas phase by W1-F12 atomization energies (an isodesmic route for AMDNNM); sublimation or vaporization by the modified Trouton rule of Muravyev et al., Phys. Chem. Chem. Phys. 23 (2021) 15522: a calculation, not a measurement",
+   "independent_of_inventory": "yes: a different root from Medard and Thomas, but computed",
+   "note": "NIBTN -402 differs by 176 kJ/mol from the -226 NIST prints for the same compound (Medard and Thomas 1949, G02). Putting -226 beside the paper's 94 vaporization estimate would need a gas value near -132, against its W1-F12 -308: a gap far larger than a W1-type calculation usually leaves, so the calculation casts doubt on the 1949 value but does not replace it. The paper cites no enthalpy measurement for NIBTN (refs 18-21: a patent, a 1912 journal, a 1962 handbook, a Wiley book). Primary still unseen"
   }
  ]
 }
