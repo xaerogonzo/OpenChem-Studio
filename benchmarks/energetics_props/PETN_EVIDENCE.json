@@ -2145,6 +2145,54 @@
    "lineage_root": "n/a",
    "independent_of_inventory": "n/a",
    "note": "This settles a printing inconsistency in Meyer 2016, which gives the Tables thermochimiques as 'Vol. 23' in one entry and '28' in another (G54): it is volume 28 (1954), number 2, from page 415 (Meyer's page range 415-492 is not in this index). The index confirms the citation; it holds no thermochemical data, so Medard's 1954 tables themselves are still not in the library"
+  },
+  {
+   "id": "G62",
+   "group": "G_medard_thomas_substitutes",
+   "compound": "nitroisobutylglycerol trinitrate: Medard and Thomas's own combustion value",
+   "property": "enthalpy_combustion_measured",
+   "value": "A SECOND Encyclopedia entry, in vol. 2, prints 'Qc(v) 530.5 kcal/mol & Qf(v) 50.0 kcal/mol (Ref 12)', Ref 12 being L. Medard and M. Thomas, MP 31, 196 (1949) & CA 46, 11684 (1952). Read on the rendered page, superscript v on both Q. 530.5 kcal/mol is 1854 kcal/kg. The same entry gives detonation rate 7860 m/s at 1.60, volatility 0.127e-3 g/cm2/24 h at 25 C, and its sources as Stettbacher, Blatt, two Picatinny reports and Medard",
+   "unit": "kcal/mol",
+   "value_kind": "measured",
+   "phase_form": "liquid",
+   "temperature": "constant volume; temperature not printed",
+   "source": "Kaye/Fedoroff (eds), Encyclopedia of Explosives and Related Items, PATR 2700, vol. 2, entry 'Nitro-iso-butanetriol Trinitrate (NIBTN)', printed pp. B 371-B 372 (file Federoff CD 1 / PDF / VOLUME02.PDF, PDF p. 388; text layer and rendered page both read)",
+   "locator": "printed p. B 372, the Q line; references 8-16 on the same page",
+   "lineage_root": "Medard and Thomas, Mem. Poudres 31 (1949) 196",
+   "independent_of_inventory": "NO: this IS the root of NIST's value, now seen in its own units",
+   "note": "My arithmetic: 530.5 kcal/mol as a constant-volume combustion energy gives dcU -2219.6, dcH -2204.7 and dfH -226.8 kJ/mol -- NIST's -226 to within 1 kJ/mol. So the -226 is NOT a transcription slip: it is Medard and Thomas's own measurement, converted correctly. The printed Qf 50.0 kcal/mol does not reconcile with it (-209.2 read as an energy, -235.2 as an enthalpy), so the entry's own pair disagrees by 8 to 18 kJ/mol"
+  },
+  {
+   "id": "G63",
+   "group": "G_medard_thomas_substitutes",
+   "compound": "two combustion measurements of NIBTN that disagree by 8 percent",
+   "property": "measurement_conflict",
+   "value": "Medard and Thomas (G62): 530.5 kcal/mol at constant volume = 1854 kcal/kg, giving dfH -226.8 kJ/mol. The Encyclopedia's vol. 8 entry (G59): 1707 kcal/kg (printed 'kcal/mole'), giving dfH -402.9 kJ/mol. The two differ by 8.0 percent in the combustion value and by 176 kJ/mol in the formation enthalpy. Rzhevskiy 2023's W1-F12 plus Trouton value is -402 (G42); -402 corresponds to a combustion value of 1707.5 kcal/kg, which is the vol. 8 figure to four digits",
+   "unit": "kcal/kg",
+   "value_kind": "measured",
+   "phase_form": "liquid",
+   "temperature": "298.15 K assumed",
+   "source": "G59 and G62 of this file; Kaye/Fedoroff (eds), Encyclopedia of Explosives and Related Items, PATR 2700, vol. 2, entry 'Nitro-iso-butanetriol Trinitrate (NIBTN)', printed pp. B 371-B 372 (file Federoff CD 1 / PDF / VOLUME02.PDF, PDF p. 388; text layer and rendered page both read)",
+   "locator": "the two Encyclopedia entries",
+   "lineage_root": "two different primaries: Medard and Thomas 1949 for one, an unidentified Picatinny-era source for the other",
+   "independent_of_inventory": "YES: the conflict is between two roots, not two copies",
+   "note": "The modern calculation lands on the vol. 8 value, not Medard's, and the nitroglycerin figure printed beside it (1595 kcal/kg against about 1604 by modern data) shows that bomb was reading correctly. That is a reason to doubt Medard and Thomas's NIBTN combustion by about 8 percent, not proof: the calculation's own route carries a sublimation-rule estimate good to about 30 kJ/mol, and the vol. 8 unit is printed wrongly. The entity is `disagree` under 8.2 and must not be scored until a third measurement settles it"
+  },
+  {
+   "id": "G64",
+   "group": "G_medard_thomas_substitutes",
+   "compound": "the Memoiral des poudres citations the Encyclopedia gives, and PATR 1125",
+   "property": "bibliography_corrected",
+   "value": "Vol. 2's reference list for NIBTN: 8) H.A. Aaronson, 'Study of Explosives Derived from Nitroparaffins', PATR 1125 (1941); 9) Blatt, OSRD 2014 (1944); 10) Stettbacher (1948) 69; 11) L. Medard, MP 31, 143 (1949) & CA 46, 11685 (1952); 12) L. Medard and M. Thomas, MP 31, 196 (1949) & CA 46, 11684 (1952); 13) J. Tranchant, MP 32, 313-18 (1950); 14) J. Boileau and M. Thomas, MP 33, 155-7 (1951); 15) Stettbacher (1952) 94; 16) PATR 1740, Revision 1 (1958), pp. 223-5",
+   "unit": "",
+   "value_kind": "unlabelled",
+   "phase_form": "",
+   "temperature": "",
+   "source": "Kaye/Fedoroff (eds), Encyclopedia of Explosives and Related Items, PATR 2700, vol. 2, entry 'Nitro-iso-butanetriol Trinitrate (NIBTN)', printed pp. B 371-B 372 (file Federoff CD 1 / PDF / VOLUME02.PDF, PDF p. 388; text layer and rendered page both read)",
+   "locator": "printed p. B 372, references 8-16",
+   "lineage_root": "n/a",
+   "independent_of_inventory": "n/a",
+   "note": "This corrects the citation this file has carried: the Medard-Thomas paper behind NIBTN is Mem. Poudres 31 (1949) 196, not 29 (1949) 173-195 (which may belong to nitrourea; unchecked). Each carries a Chemical Abstracts number, so CA 46, 11684 and 11685 are a route to the values without the journal. H.A. Aaronson is one of this Encyclopedia's own authors, which is why his 1941 report is cited throughout; PATR 1125 is not on DTIC, NTIS, archive.org or Google Books as of 2026-10-27"
   }
  ]
 }
