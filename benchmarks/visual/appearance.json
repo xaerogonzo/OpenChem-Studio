@@ -1,0 +1,54 @@
+[
+  {"do": "smiles", "smiles": "CC(=O)Nc1ccc(O)cc1", "name": "Paracetamol", "after_ms": 800},
+  {"do": "select", "molecule": -1, "after_ms": 3000},
+  {"do": "panel", "id": "Properties", "after_ms": 800},
+  {"do": "appearance_report", "tag": "start", "expect": {"choice": "system"}, "after_ms": 300},
+
+  {"do": "appearance", "choice": "light", "via": "menu", "after_ms": 1500},
+  {"do": "appearance_report", "tag": "light-by-menu", "expect": {"effective": "light", "choice": "light", "editor_style": false, "viewer3d": "light"}, "after_ms": 1500},
+  {"do": "shot", "path": "artifacts/visual/appearance_main_light.png", "after_ms": 500},
+
+  {"do": "appearance", "choice": "dark", "via": "menu", "after_ms": 1500},
+  {"do": "appearance_report", "tag": "dark-by-menu", "expect": {"effective": "dark", "choice": "dark", "editor_style": true, "viewer3d": "dark"}, "after_ms": 1500},
+  {"do": "shot", "path": "artifacts/visual/appearance_main_dark.png", "after_ms": 500},
+
+  {"do": "dialog", "name": "SettingsDialog", "section": "appearance", "width": 820, "height": 560, "after_ms": 800},
+  {"do": "appearance_report", "tag": "settings-opened-on-dark", "expect": {"effective": "dark", "choice": "dark"}, "after_ms": 300},
+  {"do": "shot", "path": "artifacts/visual/appearance_settings_dark.png", "widget": "dialog", "after_ms": 500},
+
+  {"do": "appearance", "choice": "light", "via": "settings", "after_ms": 1500},
+  {"do": "appearance_report", "tag": "light-by-settings", "expect": {"effective": "light", "choice": "light", "editor_style": false, "viewer3d": "light"}, "after_ms": 1500},
+  {"do": "appearance", "choice": "dark", "via": "settings", "after_ms": 1500},
+  {"do": "appearance_report", "tag": "dark-by-settings", "expect": {"effective": "dark", "choice": "dark", "editor_style": true, "viewer3d": "dark"}, "after_ms": 1500},
+
+  {"do": "dialog", "name": "SettingsDialog", "section": "calculators", "width": 820, "height": 560, "after_ms": 800},
+  {"do": "shot", "path": "artifacts/visual/appearance_calculators_dark.png", "widget": "dialog", "after_ms": 500},
+  {"do": "dialog", "name": "SettingsDialog", "section": "external_tools", "width": 820, "height": 560, "after_ms": 800},
+  {"do": "shot", "path": "artifacts/visual/appearance_external_tools_dark.png", "widget": "dialog", "after_ms": 500},
+  {"do": "close_dialog", "after_ms": 500},
+
+  {"do": "expand", "section": "admet", "after_ms": 500},
+  {"do": "shot", "path": "artifacts/visual/appearance_properties_dark.png", "after_ms": 500},
+
+  {"do": "calculator", "id": "polar_surface_area", "reveal": false, "after_ms": 4000},
+  {"do": "calculator", "id": "topology_analysis", "reveal": false, "after_ms": 4000},
+  {"do": "panel", "id": "Results", "after_ms": 800},
+  {"do": "shot", "path": "artifacts/visual/appearance_results_dark.png", "after_ms": 500},
+  {"do": "panel", "id": "Structure_Check", "after_ms": 1500},
+  {"do": "shot", "path": "artifacts/visual/appearance_structure_check_dark.png", "after_ms": 500},
+  {"do": "lewis", "details": true, "after_ms": 4000},
+  {"do": "shot", "path": "artifacts/visual/appearance_lewis_dark.png", "widget": "lewis", "after_ms": 500},
+  {"do": "dialog", "name": "PeriodicTableDialog", "after_ms": 1200},
+  {"do": "shot", "path": "artifacts/visual/appearance_periodic_dark.png", "widget": "dialog", "after_ms": 500},
+  {"do": "close_dialog", "after_ms": 500},
+
+  {"do": "appearance", "choice": "light", "via": "menu", "after_ms": 1200},
+  {"do": "appearance", "choice": "dark", "via": "menu", "after_ms": 1200},
+  {"do": "appearance", "choice": "light", "via": "menu", "after_ms": 1200},
+  {"do": "appearance_report", "tag": "after-repeated-switches", "expect": {"effective": "light", "choice": "light", "editor_style": false, "viewer3d": "light"}, "after_ms": 1500},
+
+  {"do": "appearance", "choice": "system", "via": "menu", "after_ms": 1500},
+  {"do": "appearance_report", "tag": "back-to-system", "expect": {"choice": "system"}, "after_ms": 1500},
+  {"do": "expect_clean"},
+  {"do": "quit"}
+]

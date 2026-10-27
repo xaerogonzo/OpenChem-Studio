@@ -16,6 +16,7 @@ from PySide6.QtCore import Signal
 from PySide6.QtWidgets import QLabel
 
 from openchem.domain.structure_issue import CheckerResult
+from openchem.ui import theme
 
 #: state -> (symbol, colour, tooltip stem). Okabe-Ito vermillion and blue
 #: rather than pure red/green, which is this project's existing palette
@@ -73,7 +74,7 @@ class CheckerStatusIndicator(QLabel):
         symbol, colour, _ = _STATES[state]
         self._state = state
         self.setText(f"{symbol}  Structure: {detail}")
-        self.setStyleSheet(f"color: {colour}; padding: 0 8px;")
+        theme.style(self, f"color: {colour}; padding: 0 8px;")
         self.setToolTip(f"{detail}. Click to open the Structure Checker.")
 
     # --- interaction --------------------------------------------------------

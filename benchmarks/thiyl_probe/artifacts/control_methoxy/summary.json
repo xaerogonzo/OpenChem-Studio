@@ -1,0 +1,73 @@
+[
+ {
+  "variant": "freq_analytic",
+  "route": "! M062X def2-TZVPD TightSCF DefGrid3 Freq",
+  "extra": "",
+  "seconds": 236.6,
+  "energy": -115.042610436157,
+  "s2": 0.754222,
+  "frequencies": [
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   706.63,
+   971.2,
+   1137.83,
+   1385.19,
+   1387.81,
+   1518.61,
+   2969.39,
+   3045.65,
+   3087.6
+  ],
+  "lowest_frequency": 0.0,
+  "scf_iterations": 96,
+  "terminated_normally": true,
+  "stability_excerpt": "uer       : wr2SCAN, Native XTB                           \n  Gianluca Regni         : ADLD/ADEX                                     \n  Tobias Risthaus        : pre 6.0 range-separated hybrid DFT and stability analysis\n  Lukas Wittmann         : regularized MP2, r2SCAN double-hybrids, wr2SCAN        \n                                                                         \nWe gratefully acknowledge several colleagues who have allowed us to      \ninterface, adapt or use parts of their codes:                            \n  Ed Valeev, F. Pavosevic, A. Kumar             : LibInt (2-el integral package), F12 methods \n  Garnet Chan, S. Sharma, J. Yang, R. Olivares  : DMRG                   \n  Ulf Ekstrom                                   : XCFun DFT Library      \n  Mihaly Kallay                                 : mrcc  (arbitrary order and MRCC methods)\n  Frank Weinhold                                : gennbo (NPA and NBO analysis)           \n  Simon Mueller                                 : openCOSMO-RS                            \n  Christopher J. Cramer and Donald G. Truhlar   : smd solvation model                     \n  S Lehtola, MJT Oliveira, MAL Marques          : LibXC Library                           \n  Liviu Ungur et al                             : ANISO software                          \n\n\n Your calculation uses the libint2 library for the computation of 2-el integrals\n For citations please refer to: http://libint.valeyev.net\n\n Your ORCA version has been built with support for libXC version: 7.0.0\n For citations please refer to: https://libxc.gitlab.io\n\n This ORCA versions uses:\n   CBLAS   interface :  Fast vector & matrix operations\n   LAPACKE interface :  Fast linear algebra routines\n   Shared memory     :  Shared parallel matrices\n\n\n  ***********************************\n  * Starting time: Sun Oct 25 21:09:51 2026\n  * Host name:     XAERO\n  * Process ID:    33636\n  * Working dir.:  C:\\Users\\pmpd\\AppData\\Local\\Temp\\claude\\D--Random-Projects-OpenChem-Studio--clau"
+ },
+ {
+  "variant": "freq_numerical",
+  "route": "! M062X def2-TZVPD TightSCF DefGrid3 NumFreq",
+  "extra": "",
+  "seconds": 449.7,
+  "energy": -115.042610436157,
+  "s2": 0.754222,
+  "frequencies": [
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   914.99,
+   976.76,
+   1136.76,
+   1384.1,
+   1403.19,
+   1530.48,
+   2970.83,
+   3041.51,
+   3068.34
+  ],
+  "lowest_frequency": 0.0,
+  "scf_iterations": 96,
+  "terminated_normally": true,
+  "stability_excerpt": "uer       : wr2SCAN, Native XTB                           \n  Gianluca Regni         : ADLD/ADEX                                     \n  Tobias Risthaus        : pre 6.0 range-separated hybrid DFT and stability analysis\n  Lukas Wittmann         : regularized MP2, r2SCAN double-hybrids, wr2SCAN        \n                                                                         \nWe gratefully acknowledge several colleagues who have allowed us to      \ninterface, adapt or use parts of their codes:                            \n  Ed Valeev, F. Pavosevic, A. Kumar             : LibInt (2-el integral package), F12 methods \n  Garnet Chan, S. Sharma, J. Yang, R. Olivares  : DMRG                   \n  Ulf Ekstrom                                   : XCFun DFT Library      \n  Mihaly Kallay                                 : mrcc  (arbitrary order and MRCC methods)\n  Frank Weinhold                                : gennbo (NPA and NBO analysis)           \n  Simon Mueller                                 : openCOSMO-RS                            \n  Christopher J. Cramer and Donald G. Truhlar   : smd solvation model                     \n  S Lehtola, MJT Oliveira, MAL Marques          : LibXC Library                           \n  Liviu Ungur et al                             : ANISO software                          \n\n\n Your calculation uses the libint2 library for the computation of 2-el integrals\n For citations please refer to: http://libint.valeyev.net\n\n Your ORCA version has been built with support for libXC version: 7.0.0\n For citations please refer to: https://libxc.gitlab.io\n\n This ORCA versions uses:\n   CBLAS   interface :  Fast vector & matrix operations\n   LAPACKE interface :  Fast linear algebra routines\n   Shared memory     :  Shared parallel matrices\n\n\n  ***********************************\n  * Starting time: Sun Oct 25 21:09:51 2026\n  * Host name:     XAERO\n  * Process ID:    38900\n  * Working dir.:  C:\\Users\\pmpd\\AppData\\Local\\Temp\\claude\\D--Random-Projects-OpenChem-Studio--clau"
+ },
+ {
+  "variant": "sp_stability",
+  "route": "! M062X def2-TZVPD TightSCF DefGrid3",
+  "extra": "%scf StabPerform true end",
+  "seconds": 47.3,
+  "energy": -115.042610436157,
+  "s2": 0.754222,
+  "frequencies": [],
+  "lowest_frequency": null,
+  "scf_iterations": 51,
+  "terminated_normally": true,
+  "stability_excerpt": "uer       : wr2SCAN, Native XTB                           \n  Gianluca Regni         : ADLD/ADEX                                     \n  Tobias Risthaus        : pre 6.0 range-separated hybrid DFT and stability analysis\n  Lukas Wittmann         : regularized MP2, r2SCAN double-hybrids, wr2SCAN        \n                                                                         \nWe gratefully acknowledge several colleagues who have allowed us to      \ninterface, adapt or use parts of their codes:                            \n  Ed Valeev, F. Pavosevic, A. Kumar             : LibInt (2-el integral package), F12 methods \n  Garnet Chan, S. Sharma, J. Yang, R. Olivares  : DMRG                   \n  Ulf Ekstrom                                   : XCFun DFT Library      \n  Mihaly Kallay                                 : mrcc  (arbitrary order and MRCC methods)\n  Frank Weinhold                                : gennbo (NPA and NBO analysis)           \n  Simon Mueller                                 : openCOSMO-RS                            \n  Christopher J. Cramer and Donald G. Truhlar   : smd solvation model                     \n  S Lehtola, MJT Oliveira, MAL Marques          : LibXC Library                           \n  Liviu Ungur et al                             : ANISO software                          \n\n\n Your calculation uses the libint2 library for the computation of 2-el integrals\n For citations please refer to: http://libint.valeyev.net\n\n Your ORCA version has been built with support for libXC version: 7.0.0\n For citations please refer to: https://libxc.gitlab.io\n\n This ORCA versions uses:\n   CBLAS   interface :  Fast vector & matrix operations\n   LAPACKE interface :  Fast linear algebra routines\n   Shared memory     :  Shared parallel matrices\n\n\n  ***********************************\n  * Starting time: Sun Oct 25 21:09:51 2026\n  * Host name:     XAERO\n  * Process ID:    24544\n  * Working dir.:  C:\\Users\\pmpd\\AppData\\Local\\Temp\\claude\\D--Random-Projects-OpenChem-Studio--clau"
+ }
+]

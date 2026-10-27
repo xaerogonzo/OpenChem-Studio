@@ -184,3 +184,47 @@ def test_the_committed_counts_are_consistent_and_say_what_they_are_not():
     assert c["errors"] <= c["candidates_classified"]
     text = " ".join(c["caveats"])
     assert "not an energetic material" in text and "COD overlaps the CSD" in text and "Open Babel" in text
+
+
+# ------------------------------------------------------------------------------------- the entity key (PREREGISTRATION 15.3)
+def _key(smiles: str) -> str:
+    return sp.entity_key(Chem.MolFromSmiles(smiles, sanitize=False))
+
+
+def test_the_entity_key_is_the_same_for_every_way_of_writing_one_molecules_bonds():
+    pentavalent = _key("Cc1c(N(=O)=O)cc(N(=O)=O)cc1N(=O)=O")
+    separated = _key("Cc1c([N+](=O)[O-])cc([N+](=O)[O-])cc1[N+](=O)[O-]")
+    kekule = _key("CC1=C(N(=O)=O)C=C(N(=O)=O)C=C1N(=O)=O")
+    assert pentavalent == separated == kekule
+
+
+def test_the_entity_key_tells_different_molecules_apart():
+    assert _key("Cc1c([N+](=O)[O-])cc([N+](=O)[O-])cc1[N+](=O)[O-]") != _key("C1N(N(=O)=O)CN(N(=O)=O)CN1N(=O)=O")   # TNT, RDX
+    assert _key("c1ccc2ccccc2c1") != _key("c1ccc2cccc2c1")                                                          # ring size matters
+    assert _key("CCO") != _key("COC")                                                                               # connectivity matters
+
+
+def test_stereoisomers_and_tautomers_share_a_key_and_an_open_babel_graph_carries_no_stereo():
+    from openbabel import pybel
+
+    r = sp.graph_from_obmol(pybel.readstring("smi", "C[C@H](N)C(=O)O").OBMol)[0]
+    s = sp.graph_from_obmol(pybel.readstring("smi", "C[C@@H](N)C(=O)O").OBMol)[0]
+    assert sp.entity_key(r) == sp.entity_key(s)                                                     # a COD graph has no chirality tags
+    assert _key("CC(=O)C") == _key("CC(O)=C")                                                       # keto and enol: one heavy-atom graph
+
+
+def test_the_key_does_not_depend_on_how_the_atoms_are_numbered():
+    a = _key("Cc1c([N+](=O)[O-])cc([N+](=O)[O-])cc1[N+](=O)[O-]")
+    b = _key("[O-][N+](=O)c1cc([N+](=O)[O-])c(C)c([N+](=O)[O-])c1")
+    assert a == b
+
+
+def test_the_entity_key_is_the_heavy_atom_graph_so_explicit_hydrogens_do_not_change_it():
+    from openbabel import pybel
+
+    bare = sp.graph_from_obmol(pybel.readstring("smi", "Cc1c([N+](=O)[O-])cc([N+](=O)[O-])cc1[N+](=O)[O-]").OBMol)[0]
+    mol = pybel.readstring("smi", "Cc1c([N+](=O)[O-])cc([N+](=O)[O-])cc1[N+](=O)[O-]")
+    mol.addh()
+    with_h = sp.graph_from_obmol(mol.OBMol)[0]
+    assert with_h.GetNumAtoms() > bare.GetNumAtoms()                              # the hydrogens really are in the second graph
+    assert sp.entity_key(with_h) == sp.entity_key(bare)

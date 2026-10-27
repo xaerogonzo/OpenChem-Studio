@@ -31,6 +31,7 @@ from PySide6.QtWidgets import (
 )
 
 from openchem.app.shortcut_registry import PORTABLE, ShortcutRegistry, portable
+from openchem.ui import theme
 from openchem.ui.widgets.help_tooltip import HelpTooltip, apply_help_tooltip
 
 #: Qt property naming which command a row's control belongs to. It travels on the control and
@@ -137,7 +138,7 @@ class KeyboardShortcutsPage(QWidget):
             self,
         )
         note.setWordWrap(True)
-        note.setStyleSheet("color: #666666;")
+        theme.style(note, "color: #666666;")
         empty = QLabel("No commands are available in this window.", self)
         empty.setVisible(not entries)
 

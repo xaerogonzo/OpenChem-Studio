@@ -31,6 +31,7 @@ from PySide6.QtCore import QPointF, QRectF, QSize, Qt, Signal
 from PySide6.QtGui import QColor, QPainter, QPen
 from PySide6.QtWidgets import QWidget
 
+from openchem.ui import theme
 from openchem.ui.picture_export import show_picture_menu
 
 from openchem.domain.report import StickChartAnnotation, valid_chart_annotation
@@ -136,6 +137,7 @@ class StickChartWidget(XZoomable, QWidget):
         show_title: bool = True,
     ) -> None:
         super().__init__(parent)
+        theme.repaint_on_change(self)
         #: **OFF WHERE SOMETHING ELSE ALREADY SHOWS THE TITLE.** Inside a
         #: `FactView` the collapsible section's own header IS the chart's
         #: title, so painting it again put the same words twice on screen
@@ -333,7 +335,7 @@ class StickChartWidget(XZoomable, QWidget):
         annotation = self._annotation
         rect = self._plot_rect()
 
-        painter.setPen(QPen(_AXIS_COLOR))
+        painter.setPen(QPen(theme.ink(_AXIS_COLOR)))
         painter.drawLine(rect.bottomLeft(), rect.bottomRight())
         if annotation is None:
             # An axis and nothing on it. A refused annotation and no
@@ -388,7 +390,7 @@ class StickChartWidget(XZoomable, QWidget):
         )
 
         available = rect.height() - LABEL_HEIGHT
-        painter.setPen(QPen(_STICK_COLOR))
+        painter.setPen(QPen(theme.ink(_STICK_COLOR)))
         placed: list[tuple[float, float, str]] = []
         for stick in annotation.sticks:
             if not self.in_view(stick.x):
@@ -428,7 +430,7 @@ class StickChartWidget(XZoomable, QWidget):
             )
 
         if annotation.caption:
-            painter.setPen(QPen(_CAPTION_COLOR))
+            painter.setPen(QPen(theme.ink(_CAPTION_COLOR)))
             box = QRectF(
                 MARGIN / 2,
                 rect.bottom() + MARGIN * 0.75,
