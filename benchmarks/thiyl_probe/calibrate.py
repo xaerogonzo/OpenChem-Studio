@@ -8,6 +8,7 @@ dissociation benchmarks already computed (the first run's and the held-out arm's
     stability  OUT_DIR              UKS stability analysis at the recorded final geometry of every accepted radical (about a minute each)
     select     OUT_DIR              which radicals then get a numerical-frequency job, by a rule fixed in `select_for_numfreq` before the jobs run
     numfreq    OUT_DIR              analytic and numerical frequencies for the selected ones (the analytic job reruns on the SAME geometry: nothing is compared across geometries)
+    collect    OUT_DIR              read the finished jobs (starts nothing) and list any radical a job of which did not finish
     report     OUT_DIR              the table: smallest stability eigenvalue against the analytic-to-numerical enthalpy shift and the largest mode difference
 """
 from __future__ import annotations
@@ -67,7 +68,7 @@ def slug(item: dict) -> str:
     return re.sub(r"[^A-Za-z0-9]+", "_", f'{item["source"]}__{item["bond"]}').strip("_")[:90]
 
 
-def run_job(item: dict, out: Path, kind: str) -> dict:
+def run_job(item: dict, out: Path, kind: str, read_only: bool = False) -> dict | None:
     route, extra = probe.VARIANTS[{"stability": "sp_stability", "analytic": "freq_analytic", "numerical": "freq_numerical"}[kind]]
     workdir = out / kind / slug(item)
     workdir.mkdir(parents=True, exist_ok=True)
@@ -77,6 +78,8 @@ def run_job(item: dict, out: Path, kind: str) -> dict:
     finished = workdir / "job.out"
     if finished.exists() and "ORCA TERMINATED NORMALLY" in finished.read_text(encoding="utf-8", errors="replace"):
         text = finished.read_text(encoding="utf-8", errors="replace")  # resumable: a job that already ended normally is read, never rerun
+    elif read_only:
+        return None
     else:
         done = subprocess.run([probe.rb.ORCA, "job.inp"], cwd=workdir, capture_output=True, text=True, timeout=12 * 3600)
         text = done.stdout
@@ -136,6 +139,21 @@ def main() -> None:
         results = run_many(picked, out, "analytic", workers=6) + run_many(picked, out, "numerical", workers=6)
         (out / "numfreq.json").write_text(json.dumps({f'{r["kind"]}:{r["key"]}': r for r in results}, indent=1), encoding="utf-8")
         print("done", len(results))
+    elif phase == "collect":
+        # Reads the jobs that finished and starts nothing. `numfreq` writes its file only when EVERY job has returned, so one radical whose ORCA run crashed or
+        # hung (methyl hydroperoxide's C-H did both, twice, in the analytic CPSCF step) would lose the other eighty; a radical either job of which is missing is
+        # listed in unmeasured.json with that fact and is not in numfreq.json at all.
+        wanted = set(json.loads((out / "selected.json").read_text(encoding="utf-8")))
+        results, unmeasured = [], []
+        for it in (i for i in items if slug(i) in wanted):
+            pair = [run_job(it, out, kind, read_only=True) for kind in ("analytic", "numerical")]
+            if all(pair):
+                results += pair
+            else:
+                unmeasured.append({"key": slug(it), "atoms": it["atoms"], "analytic_finished": bool(pair[0]), "numerical_finished": bool(pair[1])})
+        (out / "numfreq.json").write_text(json.dumps({f'{r["kind"]}:{r["key"]}': r for r in results}, indent=1), encoding="utf-8")
+        (out / "unmeasured.json").write_text(json.dumps(unmeasured, indent=1), encoding="utf-8")
+        print("collected", len(results) // 2, "radicals; unmeasured:", [u["key"] for u in unmeasured])
     elif phase == "report":
         stability, nf = load(out / "stability.json"), load(out / "numfreq.json") or {}
         rows = []

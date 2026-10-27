@@ -39,9 +39,28 @@ v3 is v2 (which is v1 plus the displaced restart) **plus one additional stage fo
 
 ## 5. Arm A: the calibration (run 2026-10-26 on the radicals both benchmarks accepted)
 
-*(to be filled from `benchmarks/thiyl_probe/calibration/`: the table of the smallest stability eigenvalue against the enthalpy shift and the largest mode difference for every radical of at most 9 atoms the selection rule picked.)*
+**What was run.** `benchmarks/thiyl_probe/calibrate.py` (stability analysis of all **65** accepted radicals of the first run and the held-out arm; analytic and numerical frequencies for the **41** its selection rule picked, which excludes the **15** radicals of 10 to 14 atoms: the secondary and tertiary alkyl, n-propyl and n-butyl, the propoxyls and tert-butoxyl, phenyl, benzyl, phenoxyl, benzoyloxyl and tert-butylperoxyl radicals). The full table is `benchmarks/thiyl_probe/calibration/calibration_table.json`, with `stability.json`, `numfreq.json`, `selected.json`, `radicals.json` and the ORCA output of the radicals named below.
 
-**The rule that reads the table, fixed now.**
+**One selected radical produced no measurement and is not in the table.** Methyl hydroperoxide's C-H radical (`heldout_methyl_hydroperoxide_C_H_Hydroperoxymethyl`) crashed in ORCA's coupled-perturbed SCF step (`orca_scfresp_mpi`, exit code 0xc0000409, "Failed to write HEADER of job.cpscfvec"), and was rerun once, with the same result. Its numerical job started and stalled after its first displaced SCF (no file written for 8 hours until it was killed). It is listed in `unmeasured.json` and counted below as unmeasured, not as non-material. So the table has **40** radicals, not 41.
+
+**The table, read by the rule below (2026-10-27).** Of the 40 measured radicals, **4 are material and 36 are not.** The material four:
+
+| radical | atoms | smallest stability eigenvalue `e` (Eh) | enthalpy shift (kcal/mol, numerical minus analytic) | largest mode difference (cm-1) | why material |
+|---|---|---|---|---|---|
+| methoxy (methanol O-H) | 5 | 0.00487 | +0.272 | 208.4 | both |
+| ethoxyl (stress set) | 8 | 0.00611 | +0.175 | 101.6 | mode |
+| acetyloxyl (acetic acid O-H) | 7 | 0.02587 | -0.638 | 113.1 | both |
+| acetyl (acetaldehyde formyl C-H) | 6 | 0.08728 | -0.658 | 136.4 | both |
+
+* The largest material `e` is **0.0873** (acetyl). The smallest non-material `e` is **-0.00149** (the SH radical of hydrogen sulfide), and **18 of the 36** non-material radicals have `e` at or below 0.0873. Four non-material radicals have a smaller `e` than any material one (the SH radical -0.00149, the OH radical of water 0.00018, azide 0.00130 and the cyanooxidanyl radical 0.00211).
+* **The two groups overlap, so by step 3 of the rule `T` does not exist and R2 is not in v3.** The smallest stability eigenvalue does not predict which radicals carry an analytic error. The material four are not even among the lowest `e`: the largest error in the table (acetyl, -0.66 kcal/mol) belongs to a radical whose `e` is 0.087, higher than that of half the radicals with none.
+* Under section 3's fallback sentence (a radical with `e` below the lowest `e` of a radical that AGREED with its numerical Hessian is flagged "not verified"), the lowest such `e` is -0.00149, which is the lowest in the table, so **the fallback flags nothing**: R2 contributes neither a trigger nor a warning, and the answer to "when are the analytic frequencies not trustworthy" rests on R1 alone.
+* **The methanethiyl and ethanethiyl radicals are not rows of this table**, because the benchmarks that produced it refused them (the imaginary mode). Their `e` (0.0005 and 0.0015, `benchmarks/thiyl_probe/artifacts/`) are within the range of non-material rows (water, azide), so adding them as material rows would change nothing about the overlap.
+* **What R1 alone misses**: the material four are radicals with no imaginary mode after the re-run, so R1 would not have given any of them a numerical job. That is 4 of 40 (10%) measured radicals with an analytic enthalpy off by 0.17 to 0.66 kcal/mol; the held-out arm's standard error was 0.25. This is the cost of keeping R1 and no R2, stated here so it is not discovered later.
+* **A caveat on R1's acceptance threshold (-20 cm-1)**: for the acetyloxyl and acetyl radicals the *numerical* lowest frequency is itself below it (-95.2 and -29.7 cm-1, against +17.9 and +106.7 analytic). Both are floppy radicals, and a numerical Hessian on a soft torsion is not obviously the better answer. Under R1 as written such a result would be "not accepted" and sent to v2's displaced restart. This is a property of the rule as drafted, not something the calibration decided, and it is part of what Alex is asked in D2 (section 9).
+* **Sample sizes**: 40 radicals (4 material, 36 not), of at most 9 atoms; none of 10 to 14 atoms was measured (15 radicals), so nothing here speaks to them.
+
+**The rule that reads the table, fixed before the table was read.**
 1. A radical is **material** when the absolute analytic-to-numerical enthalpy shift is at least **0.25 kcal/mol** (the standard error of the mean error of the held-out arm; a shift below it cannot be told from noise in a verdict) **or** its largest mode difference is at least **100 cm-1**.
 2. If every material radical has a smaller `e` than every non-material one, `T` is the **geometric mean** of the largest material `e` and the smallest non-material `e`, rounded to one significant figure. R2 is in v3 with that `T`.
 3. If the two groups overlap, **R2 is not in v3** (section 3).
@@ -73,13 +92,13 @@ On the six deciding bonds: mean absolute error, mean signed error, largest absol
 
 **Decisions:**
 * **D1 (the cap, section 3):** at most 12 atoms for the numerical job, or no cap and an hours-long job for a large thiyl. Recommended: 12, with the warning above it.
-* **D2 (R2):** include the stability trigger if section 5 finds a clean `T`, or keep to R1. Recommended: whatever section 5's rule gives, as written; the rule was fixed before the table was read.
+* **D2 (R2, and what R1 should do about quiet errors):** section 5's rule found NO threshold, so R2 is out as written. That leaves R1 alone, which would have missed 4 of 40 measured radicals (an analytic enthalpy off by 0.17 to 0.66 kcal/mol, no imaginary mode). Options: (a) accept R1 alone and state the 10% as a known limit (recommended: it is what the rule gave, and the calculator's stated error already includes these radicals' analytic values); (b) run the numerical job for every radical of at most 9 atoms (a numerical job costs 2 to 2.7 times the analytic one, 25 minutes at 4 cores for an 8-atom radical, so this is heavy for a calculator and acceptable for a benchmark arm); (c) a trigger that is not the stability eigenvalue, which would be a new rule needing its own calibration on data other than these four. Separately: R1 accepts a numerical result only at -20 cm-1 or above, and two floppy radicals' numerical results fall below it (section 5), so decide whether a numerical result below -20 cm-1 on a soft mode sends the radical to the displaced restart (as drafted) or is reported as unverified.
 * **D3 (Arm C's size):** six bonds is a small arm. Accept it as deciding with the larger standard error stated, or hold it as reported-only too. Recommended: deciding, because it is the only fresh data that can exist from these references.
 * **D4 (S-H):** accept that S-H stays unvalidated and is labelled so. Recommended: yes; the alternative is a measurement nobody has published.
 
 ## 10. Before this is frozen
 
-1. Section 5 filled from the finished calibration, and `T` (or its absence) decided by the written rule.
+1. ~~Section 5 filled from the finished calibration, and `T` (or its absence) decided by the written rule.~~ **Done 2026-10-27: no `T`; R2 is out.**
 2. Alex's answers to D1 to D4.
 3. The runner: `run_restart.py` extended with the stability and numerical stages, `restart_core.py` with the trigger and the acceptance rule (pure, tested against the probe's real ORCA outputs), and an independent read against this text, as v2's was.
 4. Not done and not planned here: phosphorus (no usable species in the table), silicon (three bonds, one an O-H, outside the calculator's elements), bromine (no radical), and any molecule of more than nine heavy atoms (the first held-out arm's largest parent has four heavy atoms, and the experimental references for larger molecules that Luo's handbook prints are scattered and mostly not recommended).

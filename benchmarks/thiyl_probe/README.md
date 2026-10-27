@@ -50,3 +50,12 @@ Methoxy shows a **quiet analytic error**: one mode 208 cm-1 off and 0.27 kcal/mo
 ## `calibrate.py`
 
 Measures how the smallest stability eigenvalue relates to the analytic-numerical enthalpy shift, on the radicals the first run and the held-out arm ALREADY computed (their results are spent: nothing here is held out and nothing can change a verdict). Phase one runs the stability analysis on every accepted radical at its recorded final geometry; phase two runs analytic and numerical frequencies on a selection fixed in `select_for_numfreq` before the jobs run (all with eigenvalue below 0.05 Eh, all of at most 6 atoms, and 6 of the rest by a seeded draw), **capped at 9 atoms** because a numerical Hessian of a 14-atom radical is hours; radicals of 11 to 15 atoms (the propoxyls, tert-butoxyl, phenoxyl, benzoyloxyl) are therefore NOT measured, and whatever it says is about radicals of 9 atoms or fewer. The result is in `calibration/` and read in `benchmarks/restart_v3/PREREGISTRATION.md`.
+
+## What the calibration found (2026-10-27)
+
+`calibration/` holds the parsed records (`stability.json`, `numfreq.json`, `calibration_table.json`, `selected.json`, `radicals.json`, `unmeasured.json`) and the ORCA input and output of the four radicals that turned out material, and of the one that could not be measured. The other 36 radicals' job outputs (about 11 MB with the stability jobs) are not committed; `calibrate.py` regenerates them.
+
+* 65 accepted radicals had a stability analysis; 41 were selected for analytic and numerical frequencies; **40** were measured. The 41st, methyl hydroperoxide's C-H radical, crashed in ORCA's coupled-perturbed SCF step twice (exit code 0xc0000409) and its numerical job stalled; it is in `unmeasured.json`. Fifteen radicals of 10 to 14 atoms were not selected.
+* Four of the 40 are material by the preregistration's rule (a shift of at least 0.25 kcal/mol or a mode 100 cm-1 off): methoxy, ethoxyl, acetyloxyl and acetyl. Their stability eigenvalues are 0.005, 0.006, 0.026 and 0.087 Eh, and 18 of the 36 others have an eigenvalue at or below 0.087. **The stability eigenvalue does not separate them, so there is no threshold** (`benchmarks/restart_v3/PREREGISTRATION.md` section 5).
+* `calibrate.py collect` reads the finished jobs and starts nothing; it exists because `numfreq` writes its result file only when every job has returned, and one hung job would lose the rest.
+
