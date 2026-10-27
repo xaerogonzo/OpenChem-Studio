@@ -1705,6 +1705,149 @@ class _Driver(QObject):
         report = self._window.dock_layout_report()
         logger.warning("OPENCHEM_DRIVE: dock_report %s %s", step.get("tag", ""), json.dumps(report))
 
+    def _title_bar(self, panel_id: str):
+        dock = self._dock(panel_id)
+        bar = dock.titleBarWidget() if dock is not None else None
+        if bar is None or not hasattr(bar, "layout_menu"):
+            logger.error("OPENCHEM_DRIVE: dock %r has no layout title bar", panel_id)
+            return None
+        return bar
+
+    def _do_dock_menu(self, step: dict[str, Any]) -> None:
+        """Open a panel's title-bar layout menu the way a click does, and press one entry of it.
+
+        `{"do": "dock_menu", "panel": "Results", "press": "move_bottom",
+          "expect": {"present": ["move_left", "expand"], "disabled": ["move_bottom"], "text": {"lock": "Unlock"}}}`
+
+        The menu is filled by its own `aboutToShow` (emitted here, so the same code runs as for a click), and an
+        entry is found by its objectName without the `dockMenu_` (`move_left`, `expand`, `restore`, `float`,
+        `dock_back`, `lock`, `return`, `alongside_Results`). A disabled entry is logged, not pressed, as for any
+        other drive step. What the press DID is read by `dock_state`, after the layout has settled.
+        """
+        from PySide6.QtGui import QAction
+
+        bar = self._title_bar(str(step["panel"]))
+        if bar is None:
+            return
+        menu = bar.layout_menu()
+        menu.aboutToShow.emit()
+        by_name = {
+            a.objectName().removeprefix("dockMenu_"): a
+            for a in menu.findChildren(QAction)
+            if a.objectName().startswith("dockMenu_")
+        }
+        tag = f"{step['panel']}"
+        problems: list[str] = []
+        expect = step.get("expect", {})
+        for name in expect.get("present", []):
+            if name not in by_name:
+                problems.append(f"no entry {name!r} (have {sorted(by_name)})")
+        for name in expect.get("absent", []):
+            if name in by_name:
+                problems.append(f"entry {name!r} is offered")
+        for name in expect.get("disabled", []):
+            if name in by_name and by_name[name].isEnabled():
+                problems.append(f"{name!r} is enabled")
+        for name in expect.get("enabled", []):
+            if name in by_name and not by_name[name].isEnabled():
+                problems.append(f"{name!r} is disabled")
+        for name, text in expect.get("text", {}).items():
+            if name not in by_name or by_name[name].text() != text:
+                problems.append(f"{name!r} reads {by_name[name].text() if name in by_name else None!r}, wanted {text!r}")
+        if problems:
+            logger.error("OPENCHEM_DRIVE: EXPECT dock_menu FAILED[%s] -- %s", tag, "; ".join(problems))
+        else:
+            logger.warning("OPENCHEM_DRIVE: EXPECT dock_menu ok[%s] entries=%s", tag, sorted(by_name))
+        pressed = step.get("press")
+        if pressed:
+            action = by_name.get(str(pressed))
+            if action is None:
+                logger.error("OPENCHEM_DRIVE: dock_menu[%s] has no entry %r to press", tag, pressed)
+            elif not action.isEnabled():
+                logger.warning("OPENCHEM_DRIVE: dock_menu[%s] entry %r is disabled; not pressed", tag, pressed)
+            else:
+                action.trigger()
+                logger.warning("OPENCHEM_DRIVE: dock_menu[%s] pressed %r", tag, pressed)
+
+    def _do_dock_state(self, step: dict[str, Any]) -> None:
+        """Assert where one dock is and how big, read off the window's own layout report.
+
+        `{"do": "dock_state", "panel": "Results", "tag": "after-move",
+          "expect": {"area": "bottom", "hidden": false, "floating": false, "user_placed": true,
+                     "expanded": null, "min_width": 500, "max_width": 400, "grew_beyond": "Properties"}}`
+
+        `expanded` is the dock the window believes is expanded (or null); `min_width` / `max_width` are on the dock
+        itself; `no_overlaps` asserts the visible docked panels do not overlap.
+        """
+        report = self._window.dock_layout_report()
+        entry = next((d for d in report["docks"] if d["id"] == str(step["panel"])), None)
+        tag = f"{step['panel']}:{step.get('tag', '')}"
+        if entry is None:
+            logger.error("OPENCHEM_DRIVE: EXPECT dock_state FAILED[%s] -- no such dock", tag)
+            return
+        expect = step.get("expect", {})
+        problems: list[str] = []
+        for key in ("area", "hidden", "floating", "user_placed"):
+            if key in expect and entry[key] != expect[key]:
+                problems.append(f"{key} is {entry[key]!r}, wanted {expect[key]!r}")
+        if "expanded" in expect and report.get("expanded") != expect["expanded"]:
+            problems.append(f"expanded is {report.get('expanded')!r}, wanted {expect['expanded']!r}")
+        width = entry["rect"][2]
+        if "min_width" in expect and width < int(expect["min_width"]):
+            problems.append(f"width {width} < {expect['min_width']}")
+        if "max_width" in expect and width > int(expect["max_width"]):
+            problems.append(f"width {width} > {expect['max_width']}")
+        if expect.get("no_overlaps") and report["overlaps"]:
+            problems.append(f"overlaps {report['overlaps']}")
+        if problems:
+            logger.error("OPENCHEM_DRIVE: EXPECT dock_state FAILED[%s] -- %s", tag, "; ".join(problems))
+        else:
+            logger.warning(
+                "OPENCHEM_DRIVE: EXPECT dock_state ok[%s] area=%s width=%s expanded=%s",
+                tag, entry["area"], width, report.get("expanded"),
+            )
+
+    def _do_dock_button(self, step: dict[str, Any]) -> None:
+        """Press a panel's own title-bar button (or one entry of its menu), or assert its state.
+
+        `{"do": "dock_button", "panel": "Jobs", "button": "cancel_all", "expect": {"enabled": false}}`
+        `{"do": "dock_button", "panel": "Results", "button": "report", "item": "copy", "press": true}`
+        """
+        from PySide6.QtGui import QAction
+        from PySide6.QtWidgets import QToolButton
+
+        bar = self._title_bar(str(step["panel"]))
+        if bar is None:
+            return
+        name = f"dockAction_{step['button']}"
+        button = bar.findChild(QToolButton, name)
+        tag = f"{step['panel']}:{step['button']}"
+        if button is None:
+            logger.error("OPENCHEM_DRIVE: EXPECT dock_button FAILED[%s] -- no button %s", tag, name)
+            return
+        expect = step.get("expect", {})
+        if "enabled" in expect and button.isEnabled() != bool(expect["enabled"]):
+            logger.error("OPENCHEM_DRIVE: EXPECT dock_button FAILED[%s] -- enabled is %s", tag, button.isEnabled())
+        else:
+            logger.warning("OPENCHEM_DRIVE: EXPECT dock_button ok[%s] enabled=%s", tag, button.isEnabled())
+        if not step.get("press"):
+            return
+        if not button.isEnabled():
+            logger.warning("OPENCHEM_DRIVE: dock_button[%s] is disabled; not pressed", tag)
+            return
+        if "item" in step:
+            item = next(
+                (a for a in button.menu().findChildren(QAction) if a.objectName() == f"dockActionItem_{step['button']}_{step['item']}"),
+                None,
+            )
+            if item is None:
+                logger.error("OPENCHEM_DRIVE: dock_button[%s] has no entry %r", tag, step["item"])
+                return
+            item.trigger()
+        else:
+            button.click()
+        logger.warning("OPENCHEM_DRIVE: dock_button[%s] pressed", tag)
+
     def _do_reader_layout_report(self, step: dict[str, Any]) -> None:
         """`{"do": "reader_layout_report", "tag": "beside"}` -- how much of the
         Results reader is FACTS, in rows a person can read.
