@@ -26,7 +26,8 @@ from openchem.ui.widgets.help_tooltip import HelpTooltip, apply_help_tooltip
 #: The four sides, in the order the Move menu lists them.
 SIDES: tuple[str, ...] = ("left", "right", "top", "bottom")
 
-SIDE_LABELS: dict[str, str] = {"left": "Left", "right": "Right", "top": "Top", "bottom": "Bottom"}
+#: What each side is called in the Move to menu.
+SIDE_LABELS: dict[str, str] ={"left": "Left", "right": "Right", "top": "Top", "bottom": "Bottom"}
 
 #: Qt's own area for each side, for the window that has to hand one to `addDockWidget`.
 SIDE_AREAS: dict[str, Qt.DockWidgetArea] = {

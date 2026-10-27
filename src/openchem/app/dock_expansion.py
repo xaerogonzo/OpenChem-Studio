@@ -35,9 +35,13 @@ from PySide6.QtWidgets import QDockWidget, QMainWindow
 #: A growth smaller than this is no growth: the panel was already as large as the layout lets it be.
 MIN_GAIN = 24
 
+#: The axis a left or right dock grows along: its width.
 _HORIZONTAL = Qt.Orientation.Horizontal
+#: The axis a top or bottom dock grows along: its height.
 _VERTICAL = Qt.Orientation.Vertical
+#: The areas whose docks grow by width.
 _SIDES = (Qt.DockWidgetArea.LeftDockWidgetArea, Qt.DockWidgetArea.RightDockWidgetArea)
+#: The areas whose docks grow by height.
 _ENDS = (Qt.DockWidgetArea.TopDockWidgetArea, Qt.DockWidgetArea.BottomDockWidgetArea)
 
 

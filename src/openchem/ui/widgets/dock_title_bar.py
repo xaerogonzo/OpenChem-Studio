@@ -166,11 +166,13 @@ class DockTitleBar(QWidget):
         self._controls_end = 1
 
         style = self.style()
+        # A TEXT ellipsis, not a standard icon. `SP_TitleBarMenuButton` is the WINDOW's own icon on Windows -- in the
+        # real window it drew the Qt logo, which no offscreen test could have shown -- and text follows the palette
+        # in a light or a dark window without painting anything.
         self._layout_button = self._make_button(
-            "",
+            "…",
             _HELP["layout"],
             None,
-            icon=style.standardIcon(QStyle.StandardPixmap.SP_TitleBarMenuButton),
             name="dockLayoutButton",
             accessible="Panel layout",
         )

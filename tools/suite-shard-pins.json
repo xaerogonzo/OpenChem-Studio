@@ -1212,6 +1212,8 @@
   "tests/test_disc_union.py": 0,
   "tests/test_disposal_score.py": 0,
   "tests/test_dispose_helper.py": 0,
+  "tests/test_dock_layout_menu.py": 0,
+  "tests/test_dock_panel_buttons.py": 3,
   "tests/test_dock_placement.py": 2,
   "tests/test_dock_title_bar.py": 2,
   "tests/test_docking_commands.py": 3,

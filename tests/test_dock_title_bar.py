@@ -227,6 +227,14 @@ def test_a_long_title_is_shortened_on_purpose_and_kept_whole(dock, qapp):
     assert label.testAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents)
 
 
+def test_the_layout_button_is_text_not_a_platform_icon(dock):
+    """`SP_TitleBarMenuButton` is the WINDOW's icon on Windows and drew the Qt logo in the real window; offscreen
+    draws something else, so only the absence of an icon can be asserted here."""
+    _dock, bar = dock
+    button = _named(bar, "dockLayoutButton")
+    assert button.icon().isNull() and button.text() == "…"
+
+
 def test_every_control_has_a_stable_name_and_an_accessible_name(dock):
     _dock, bar = dock
     for button in _buttons(bar):
