@@ -63,6 +63,19 @@ Two separate problems with different prior evidence. Read `ROADMAP.md` "Ranking 
 
 Suggested order: a plausibility flag together with the wording audit; then measure prep and box failure rates on the catalogued receptors, adopting Meeko only for failures it demonstrably fixes; then gnina feasibility followed by a docking-power benchmark in the existing harness.
 
+## xtb: the spike and the first provider (2026-10-27)
+
+The Windows zip (`6.7.1pre`, 37,550,920 bytes) matched its published sha256. Run on ethanol with GFN2: a single point (-11.3819 Eh), an optimization (-11.3943 Eh, gradient 3.6e-4) and an optimization with frequencies (27 values, 0 imaginary) each took well under a second; implicit solvation, a radical and an Au-H molecule ran. The licence was not on the release page and the zip carries only a licence for one bundled library: still to confirm.
+
+`chem/xtb_engine.py` is a provider for `sp`, `opt` and `opt_freq` at GFN2-xTB or GFN1-xTB, tested against real outputs (`tests/test_xtb_engine.py`). It is NOT registered with the service, has no External Tools entry, and its numbers have not been compared with ORCA or Psi4. Four things the spike found that decided its shape:
+
+- `command_args` is not handed the charge, spin or job, so the input file carries them in a header comment and the command is built by reading it back.
+- The service writes `job.inp`, and xtb chooses its geometry reader by file name (a `.inp` name is refused) but reads a Turbomole `$coord` block by content, so that is the format, in Bohr; the final structure comes back in Bohr too.
+- xtb accepted a methyl radical at `--uhf 0` and exited 0 with a different energy, so the provider refuses an impossible electron count itself.
+- `normal termination of xtb` is on stderr, which the service does not read; a run is judged from stdout (`[ERROR]`, `finished run on`). IR intensities are only in a file in the working folder, so the modes carry none.
+
+Next, in order: register it (settings key, External Tools tab with a real two-atom test, the Engine box), then the preregistered comparison with ORCA and Psi4 before any claim that it improves their inputs.
+
 ## Not done
 
 No licence matrix beyond the table above, no version or commit pinning, no maintenance cadence, no installs. Those are the first step of each promoted tool's spike. The design document for a chosen tool would follow `PSI4_ENGINE_DESIGN.md` and carry a preregistered gate.
