@@ -140,6 +140,8 @@ from openchem.ui.panels.quantum_chemistry_panel import QuantumChemistryPanel
 from openchem.ui.visualization import build_interaction_layers
 from openchem.ui.panels.structure_check_panel import StructureCheckPanel
 from openchem.ui.widgets.checker_status_indicator import CheckerStatusIndicator
+from openchem.app import dock_expansion
+from openchem.app.dock_expansion import ExpandState
 from openchem.ui.widgets.dock_layout_menu import SIDE_AREAS, DockMenuState, populate_layout_menu, side_of
 from openchem.ui.widgets.dock_title_bar import DockTitleBar
 from openchem.ui.panels.comparison_panel import ComparisonPanel
@@ -427,6 +429,14 @@ class MainWindow(QMainWindow):
         self._classify_timer.setSingleShot(True)
         self._classify_timer.setInterval(0)
         self._classify_timer.timeout.connect(self._classify_moved_docks)
+        #: The one Expand panel in force, if any (see `app/dock_expansion.py`), and a flag that keeps the window's own
+        #: resizing from being taken for the user's change of layout. A window resize re-applies it after a pause.
+        self._expand_state: ExpandState | None = None
+        self._expand_busy = False
+        self._expand_timer = QTimer(self)
+        self._expand_timer.setSingleShot(True)
+        self._expand_timer.setInterval(80)
+        self._expand_timer.timeout.connect(self._reapply_expansion)
         self._plugin_panels: dict[str, QDockWidget] = {}
         self._plugin_menu_actions: dict[str, list[QAction]] = {}
         #: Whether a docked pose is currently drawn into the
@@ -1026,6 +1036,11 @@ class MainWindow(QMainWindow):
         title_bar.layout_menu_requested.connect(self._on_dock_layout_menu_requested)
         title_bar.layout_menu().triggered.connect(self._on_dock_menu_triggered)
         dock.setTitleBarWidget(title_bar)
+        # A dock shown, hidden or moved by anything else (the View menu, a drag, a plugin) ends an expansion, so a
+        # saved snapshot never describes a layout that has since changed under it.
+        dock.visibilityChanged.connect(self._on_layout_changed_while_expanded)
+        dock.dockLocationChanged.connect(self._on_layout_changed_while_expanded)
+        dock.topLevelChanged.connect(self._on_layout_changed_while_expanded)
         return dock
 
     # --- the layout menu on every panel's title bar ---------------------------
@@ -1058,7 +1073,16 @@ class MainWindow(QMainWindow):
             if panel_id != name and self._dock_by_panel_id(panel_id) is not None
         )
         needs_nothing = (not floating) and side == default_side and not placed and not companions
+        expand, expand_enabled, expand_reason = "", True, ""
+        if self._expand_state is not None and self._expand_state.dock == name:
+            expand = "restore"
+        elif not floating and side != "none":
+            expand = "expand"
+            expand_enabled, expand_reason = dock_expansion.can_expand(self, dock)
         return DockMenuState(
+            expand=expand,
+            expand_enabled=expand_enabled,
+            expand_reason=expand_reason,
             dock=name,
             floating=floating,
             side=side,
@@ -1088,9 +1112,15 @@ class MainWindow(QMainWindow):
         if kind == "move":
             self.move_dock_to(dock, SIDE_AREAS[argument])
         elif kind == "float":
+            self._resolve_expansion()
             dock.setFloating(True)
         elif kind == "dock_back":
+            self._resolve_expansion()
             dock.setFloating(False)
+        elif kind == "expand":
+            self.expand_dock(dock)
+        elif kind == "restore":
+            self._resolve_expansion()
         elif kind == "alongside":
             self._on_panel_chosen_alongside(argument)
         elif kind == "lock":
@@ -1106,6 +1136,7 @@ class MainWindow(QMainWindow):
         window sees it as the user's own move, and queues the classification itself rather than counting on the
         signals `addDockWidget` happens to emit.
         """
+        self._resolve_expansion()
         shown = not dock.isHidden()
         if dock.isFloating():
             dock.setFloating(False)
@@ -1139,6 +1170,63 @@ class MainWindow(QMainWindow):
         self._user_placed_docks.discard(name)
         self._redock(dock, area)
         self._sync_rail_locks()
+
+    # --- Expand panel / Restore size (the mechanics are in `app/dock_expansion.py`) ---------
+
+    def expand_dock(self, dock: QDockWidget) -> None:
+        """Layout menu > Expand panel. One expansion at a time: a second restores the first before it begins."""
+        self._resolve_expansion()
+        self._expand_busy = True
+        try:
+            state = dock_expansion.expand(self, dock)
+        finally:
+            self._expand_busy = False
+        if state is None:
+            self.statusBar().showMessage(
+                "Nothing to expand into: the editor and the other panels are already at their smallest at this "
+                "window size.",
+                8000,
+            )
+            return
+        self._expand_state = state
+
+    def _resolve_expansion(self) -> None:
+        """End any expansion, putting every dock back first. Safe to call at any time; a no-op with none."""
+        state = self._expand_state
+        if state is None:
+            return
+        self._expand_state = None
+        self._expand_timer.stop()
+        self._expand_busy = True
+        try:
+            dock_expansion.restore(self, state)
+        finally:
+            self._expand_busy = False
+
+    def _reapply_expansion(self) -> None:
+        """After the window changed size Qt has let the panel shrink back; expand it again, so the menu, the
+        state and what is on screen keep agreeing."""
+        state = self._expand_state
+        if state is None:
+            return
+        self._expand_busy = True
+        try:
+            still = dock_expansion.reapply(self, state)
+        finally:
+            self._expand_busy = False
+        if not still:
+            self._expand_state = None
+
+    def _on_layout_changed_while_expanded(self, *_args) -> None:
+        """Any dock shown, hidden, floated or moved by something other than the expansion ends it."""
+        if self._expand_state is None or self._expand_busy or self._arranging or self.isMinimized():
+            return
+        self._resolve_expansion()
+
+    def resizeEvent(self, event) -> None:  # noqa: N802 - Qt override
+        super().resizeEvent(event)
+        if self._expand_state is not None and not self._expand_busy:
+            self._expand_timer.start()
 
     # --- which right-hand panel is in front ----------------------------------
 
@@ -1285,6 +1373,10 @@ class MainWindow(QMainWindow):
         # that was just put back as placed again; drop it first, so nothing older can undo the reset.
         self._classify_timer.stop()
         self._docks_to_classify.clear()
+        # An expansion is dropped, not restored: the reset rebuilds the whole layout and restoring first would only
+        # resize docks that are about to be taken out and put back.
+        self._expand_timer.stop()
+        self._expand_state = None
         self._arranging = True
         try:
             for dock in self.findChildren(QDockWidget):
@@ -1348,6 +1440,7 @@ class MainWindow(QMainWindow):
             "docks": docks,
             "overlaps": overlaps,
             "window_minimum": [self.minimumSizeHint().width(), self.minimumSizeHint().height()],
+            "expanded": self._expand_state.dock if self._expand_state is not None else None,
         }
 
     def _active_docking_panel(self):
@@ -1409,6 +1502,7 @@ class MainWindow(QMainWindow):
         return self._plugin_panels.get(panel_id)
 
     def _on_panel_chosen(self, panel_id: str) -> None:
+        self._resolve_expansion()
         if self._reveal_if_in_properties(panel_id):
             return
         dock = self._dock_by_panel_id(panel_id)
@@ -1430,6 +1524,7 @@ class MainWindow(QMainWindow):
         A left click replaces the panel showing; this is the other half of the gesture. It does not lock anything, so
         the next left click elsewhere still replaces the unlocked ones -- lock the ones to keep.
         """
+        self._resolve_expansion()
         if self._reveal_if_in_properties(panel_id):
             return
         dock = self._dock_by_panel_id(panel_id)
@@ -2200,6 +2295,9 @@ class MainWindow(QMainWindow):
         if self.isVisible() and not self._confirm_discarding_unsaved_changes():
             event.ignore()
             return
+        # An expansion is a temporary arrangement; saving the window state while one is in force would make it the
+        # layout of the next launch, with nothing to say it is one.
+        self._resolve_expansion()
         self._settings.set_window_geometry(self.saveGeometry())
         self._settings.set_window_state(self.saveState())
         self._settings.set(_LAYOUT_VERSION_KEY, _LAYOUT_VERSION)

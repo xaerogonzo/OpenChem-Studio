@@ -335,3 +335,188 @@ def test_the_return_entry_is_off_for_a_dock_that_needs_nothing(window, qapp):
     window.move_dock_to(_dock(window, "Properties"), LEFT)
     _settle(qapp)
     assert window._dock_menu_state(_dock(window, "Properties")).return_enabled
+
+
+# --- Expand panel / Restore size ----------------------------------------------------------------
+
+
+def _sizes(window) -> dict[str, tuple[int, int]]:
+    return {
+        d.objectName(): (d.width(), d.height())
+        for d in window.findChildren(QDockWidget)
+        if d.parent() is window and not d.isHidden() and not d.isFloating()
+    }
+
+
+@pytest.fixture
+def roomy(window, qapp):
+    """A window wide enough that the right dock has somewhere to grow, as the default one on a laptop screen is not."""
+    window.resize(1700, 900)
+    _settle(qapp)
+    return window
+
+
+def test_expanding_a_panel_grows_it_and_restoring_puts_every_dock_back_exactly(roomy, qapp):
+    props = _dock(roomy, "Properties")
+    before = _sizes(roomy)
+
+    roomy.expand_dock(props)
+    _settle(qapp)
+    during = _sizes(roomy)
+    assert roomy._expand_state is not None and roomy._expand_state.dock == "Properties"
+    assert during["Properties"][0] > before["Properties"][0] + 24
+    assert during["Project_Explorer"][0] < before["Project_Explorer"][0], "Qt gives the room up from the others"
+
+    roomy._resolve_expansion()
+    _settle(qapp)
+    assert _sizes(roomy) == before, "a restore of the one dock would have left the explorer shrunk"
+    assert roomy._expand_state is None
+
+
+def test_one_expansion_at_a_time_and_the_second_restores_the_first(roomy, qapp):
+    props, explorer = _dock(roomy, "Properties"), _dock(roomy, "Project_Explorer")
+    base = _sizes(roomy)
+
+    roomy.expand_dock(props)
+    _settle(qapp)
+    roomy.expand_dock(explorer)
+    _settle(qapp)
+
+    assert roomy._expand_state.dock == "Project_Explorer"
+    assert _sizes(roomy)["Properties"][0] <= base["Properties"][0] + 1, "the first expansion was undone first"
+    roomy._resolve_expansion()
+    _settle(qapp)
+    assert _sizes(roomy) == base
+
+
+def test_an_expansion_with_nothing_to_gain_is_undone_and_says_so(roomy, qapp, monkeypatch):
+    from openchem.app import dock_expansion
+
+    props = _dock(roomy, "Properties")
+    before = _sizes(roomy)
+    monkeypatch.setattr(dock_expansion, "MIN_GAIN", 100000)
+
+    roomy.expand_dock(props)
+    _settle(qapp)
+
+    assert roomy._expand_state is None
+    assert _sizes(roomy) == before
+    assert "Nothing to expand" in roomy.statusBar().currentMessage()
+
+
+@pytest.mark.parametrize("operation", ["move", "float", "return", "alongside", "rail", "hide", "reset"])
+def test_any_other_change_to_the_layout_ends_the_expansion(roomy, qapp, operation):
+    props, results = _dock(roomy, "Properties"), _dock(roomy, "Results")
+    base = _sizes(roomy)
+    roomy.expand_dock(props)
+    _settle(qapp)
+    assert roomy._expand_state is not None
+
+    if operation == "move":
+        roomy.move_dock_to(results, BOTTOM)
+    elif operation == "float":
+        results.setFloating(True)
+    elif operation == "return":
+        roomy.return_dock_to_default_side(props)
+    elif operation == "alongside":
+        roomy._on_panel_chosen_alongside("Results")
+    elif operation == "rail":
+        roomy._on_panel_chosen("Jobs")
+    elif operation == "hide":
+        _dock(roomy, "Project_Explorer").hide()
+    elif operation == "reset":
+        roomy.reset_panel_layout()
+    _settle(qapp)
+
+    assert roomy._expand_state is None
+    assert not roomy._expand_timer.isActive()
+    if operation == "reset":
+        assert _sizes(roomy)["Properties"][0] <= base["Properties"][0] + 24
+
+
+def test_resizing_the_window_keeps_the_panel_expanded_and_the_state_agrees(roomy, qapp):
+    """Qt lets an expanded panel shrink back when the window is resized and does not grow it again; the window does,
+    so the menu, the state and the geometry never disagree (regression: an expansion with no usable Restore size)."""
+    props = _dock(roomy, "Properties")
+    roomy.expand_dock(props)
+    _settle(qapp)
+    expanded = props.width()
+    assert expanded > 0
+
+    roomy.resize(1500, 800)
+    QTest.qWait(250)
+    _settle(qapp)
+    narrow = props.width()
+    roomy.resize(1700, 900)
+    QTest.qWait(250)
+    _settle(qapp)
+
+    state = roomy._dock_menu_state(props)
+    assert roomy._expand_state is not None and state.expand == "restore", "the menu still offers Restore size"
+    assert props.width() >= expanded - 8, f"expanded {expanded}, after the round trip {props.width()}, narrow {narrow}"
+    assert roomy.dock_layout_report()["expanded"] == "Properties"
+
+
+def test_the_report_says_which_panel_is_expanded(roomy, qapp):
+    assert roomy.dock_layout_report()["expanded"] is None
+    roomy.expand_dock(_dock(roomy, "Properties"))
+    assert roomy.dock_layout_report()["expanded"] == "Properties"
+
+
+def test_closing_while_expanded_saves_the_normal_layout_not_the_expanded_one(roomy, qapp, monkeypatch):
+    props = _dock(roomy, "Properties")
+    base = props.width()
+    roomy.expand_dock(props)
+    _settle(qapp)
+    assert props.width() > base + 24
+
+    seen = {}
+    real = roomy.saveState
+
+    def spy(*args):
+        seen["width"] = props.width()
+        return real(*args)
+
+    monkeypatch.setattr(roomy, "saveState", spy)
+    monkeypatch.setattr(roomy, "_confirm_discarding_unsaved_changes", lambda: True)
+    roomy.close()
+
+    assert roomy._expand_state is None
+    assert abs(seen["width"] - base) <= 2, f"saved at {seen['width']}, the normal width was {base}"
+
+
+def test_the_menu_offers_expand_then_restore_and_never_for_a_floating_panel(roomy, qapp):
+    props = _dock(roomy, "Properties")
+    assert roomy._dock_menu_state(props).expand == "expand"
+    roomy.expand_dock(props)
+    assert roomy._dock_menu_state(props).expand == "restore"
+    assert roomy._dock_menu_state(_dock(roomy, "Project_Explorer")).expand == "expand"
+    roomy._resolve_expansion()
+    props.setFloating(True)
+    _settle(qapp)
+    assert roomy._dock_menu_state(props).expand == ""
+
+
+def test_a_panel_sharing_a_tab_group_is_refused_with_its_reason(roomy, qapp):
+    props, results = _dock(roomy, "Properties"), _dock(roomy, "Results")
+    results.show()
+    roomy.tabifyDockWidget(props, results)
+    _settle(qapp)
+
+    state = roomy._dock_menu_state(props)
+    assert state.expand == "expand" and not state.expand_enabled and "tab group" in state.expand_reason
+    roomy.expand_dock(props)
+    assert roomy._expand_state is None
+
+
+def test_the_expand_entry_works_from_the_real_menu(roomy, qapp):
+    props = _dock(roomy, "Properties")
+    bar = props.titleBarWidget()
+    bar._fill_menu()
+    _action(bar.layout_menu(), "dockMenu_expand").trigger()
+    _settle(qapp)
+    assert roomy._expand_state is not None
+    bar._fill_menu()
+    _action(bar.layout_menu(), "dockMenu_restore").trigger()
+    _settle(qapp)
+    assert roomy._expand_state is None
