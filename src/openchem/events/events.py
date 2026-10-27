@@ -3,6 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 from openchem.domain.alignment import EnsembleEntry
+from openchem.domain.appearance import EffectiveAppearance
 from openchem.domain.common import CacheState
 from openchem.domain.conformer import ConformerModel
 from openchem.domain.descriptor import DescriptorValue
@@ -312,6 +313,17 @@ class PluginLoadFailed(Event):
 @dataclass(frozen=True)
 class SettingsChanged(Event):
     key: str
+
+
+@dataclass(frozen=True)
+class AppearanceChanged(Event):
+    """The look of the window settled on `effective` (light or dark), after Qt applied the palette.
+
+    Not the stored choice: with "follow the system" chosen this fires when Windows changes, and
+    never for a change of choice that leaves the look as it was.
+    """
+
+    effective: EffectiveAppearance
 
 
 @dataclass(frozen=True)

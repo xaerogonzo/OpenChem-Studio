@@ -29,6 +29,7 @@ from PySide6.QtCore import QPointF, QRectF, Qt, Signal
 from PySide6.QtGui import QColor, QPainter, QPen
 from PySide6.QtWidgets import QWidget
 
+from openchem.ui import theme
 from openchem.ui.picture_export import show_picture_menu
 from openchem.ui.widgets.x_zoomable import XZoomable
 
@@ -101,6 +102,7 @@ class LineChartWidget(XZoomable, QWidget):
         parent: QWidget | None = None,
     ) -> None:
         super().__init__(parent)
+        theme.repaint_on_change(self)
         self._annotation: LineChartAnnotation | None = None
         self._hover_x: float | None = None
         #: A reading KEPT by a click, shown when the pointer is elsewhere.
@@ -320,7 +322,7 @@ class LineChartWidget(XZoomable, QWidget):
         painter.setRenderHint(QPainter.RenderHint.Antialiasing)
         rect = self._plot_rect()
 
-        painter.setPen(QPen(QColor(120, 120, 120)))
+        painter.setPen(QPen(theme.ink(QColor(120, 120, 120))))
         painter.drawRect(rect)
 
         if not self._has_data():
@@ -339,7 +341,7 @@ class LineChartWidget(XZoomable, QWidget):
         x_min, x_max = self._x_range()
         low, high = self._value_range()
 
-        painter.setPen(QPen(QColor(205, 205, 205)))
+        painter.setPen(QPen(theme.faint(QColor(205, 205, 205))))
         # Six gridlines each way: enough to read against, few enough not to
         # compete with the curves themselves.
         for step in range(7):
@@ -349,7 +351,7 @@ class LineChartWidget(XZoomable, QWidget):
             painter.drawLine(QPointF(x, rect.top()), QPointF(x, rect.bottom()))
             painter.drawLine(QPointF(rect.left(), y), QPointF(rect.right(), y))
 
-        painter.setPen(QPen(QColor(90, 90, 90)))
+        painter.setPen(QPen(theme.ink(QColor(90, 90, 90))))
         for step in range(7):
             fraction = step / 6.0
             x = rect.left() + fraction * rect.width()
@@ -373,10 +375,10 @@ class LineChartWidget(XZoomable, QWidget):
         # be visible rather than inferred from the tick labels.
         if low < 0.0 < high:
             zero_y = self._to_widget(x_min, 0.0, rect).y()
-            painter.setPen(QPen(QColor(70, 70, 70), 1, Qt.PenStyle.DashLine))
+            painter.setPen(QPen(theme.ink(QColor(70, 70, 70)), 1, Qt.PenStyle.DashLine))
             painter.drawLine(QPointF(rect.left(), zero_y), QPointF(rect.right(), zero_y))
 
-        painter.setPen(QPen(QColor(60, 60, 60)))
+        painter.setPen(QPen(theme.ink(QColor(60, 60, 60))))
         painter.drawText(
             QRectF(0, self.height() - 20, self.width(), 18),
             Qt.AlignmentFlag.AlignCenter,
@@ -399,7 +401,7 @@ class LineChartWidget(XZoomable, QWidget):
         # axis labels and the legend.
         painter.setClipRect(rect)
         for index, series in enumerate(self._series()):
-            color = SERIES_COLORS[index % len(SERIES_COLORS)]
+            color = theme.ink(SERIES_COLORS[index % len(SERIES_COLORS)])
             painter.setPen(QPen(color, 2))
             points = [self._to_widget(x, y, rect) for x, y in series.points]
             for start, end in zip(points, points[1:]):
@@ -408,13 +410,13 @@ class LineChartWidget(XZoomable, QWidget):
 
     def _draw_legend(self, painter: QPainter) -> None:
         for index, series in enumerate(self._series()):
-            color = SERIES_COLORS[index % len(SERIES_COLORS)]
+            color = theme.ink(SERIES_COLORS[index % len(SERIES_COLORS)])
             y = self._MARGIN_TOP + index * self._LEGEND_ROW_HEIGHT
             painter.setPen(QPen(color, 2))
             painter.drawLine(
                 QPointF(self._MARGIN_LEFT, y + 8), QPointF(self._MARGIN_LEFT + 18, y + 8)
             )
-            painter.setPen(QPen(QColor(60, 60, 60)))
+            painter.setPen(QPen(theme.ink(QColor(60, 60, 60))))
             painter.drawText(
                 QRectF(
                     self._MARGIN_LEFT + 24,
@@ -447,7 +449,7 @@ class LineChartWidget(XZoomable, QWidget):
         # SOLID for a kept reading, dashed for a passing one, so the two
         # states differ in more than the caption.
         style = Qt.PenStyle.SolidLine if kept else Qt.PenStyle.DashLine
-        painter.setPen(QPen(QColor(120, 120, 120), 1, style))
+        painter.setPen(QPen(theme.ink(QColor(120, 120, 120)), 1, style))
         painter.drawLine(QPointF(x, rect.top()), QPointF(x, rect.bottom()))
 
         lines = self.readout_lines(shown)
@@ -461,8 +463,8 @@ class LineChartWidget(XZoomable, QWidget):
         bounds = painter.fontMetrics().boundingRect(
             area.toRect(), int(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignTop), text
         )
-        painter.fillRect(QRectF(bounds).adjusted(-3, -2, 3, 2), QColor(255, 255, 255, 225))
-        painter.setPen(QPen(QColor(40, 40, 40)))
+        painter.fillRect(QRectF(bounds).adjusted(-3, -2, 3, 2), theme.panel_fill(225))
+        painter.setPen(QPen(theme.ink(QColor(40, 40, 40))))
         painter.drawText(area, Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignTop, text)
 
 

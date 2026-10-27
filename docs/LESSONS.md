@@ -21799,3 +21799,77 @@ representable (0.125 and 0.25, not 0.15 and 0.30), and run the mutation: a bound
 **How to apply:** give a helper module in a benchmark folder a name no other folder uses (`pa_core`, `bde_core`), or load it by path under a unique name;
 never rely on `sys.path.insert` plus a bare `import` for a name that could exist in another folder; and before trusting a green shard for a new
 benchmark, run its tests in one process with the other benchmarks' tests.
+
+## THE SAME ENTHALPY IN FIVE BOOKS WAS ONE 1949 MEASUREMENT, AND THE NEWEST BOOK HELD THE OLDEST DATA
+
+The PETN and nitrate-ester evidence inventory (`benchmarks/energetics_props/PETN_EVIDENCE.md`)
+set out to find, for eight compounds, a value with a primary behind it. For
+nitroisobutylglycerol trinitrate four sources agreed: NIST prints -226 kJ/mol,
+Meyer, Koehler and Homburg's *Explosives* 7th ed. (2016) prints -190.8 kcal/kg
+(-228.2 kJ/mol by conversion), and Pedley and Cox and Pilcher carry the same digits.
+**Four sources, one root.** Meyer's own entry on formation enthalpies names its
+sources: Medard's *Tables thermochimiques* (1954) and the Fraunhofer ICT database.
+So a book with a 2016 ISBN was reprinting a 1954 compilation of 1949 measurements,
+and agreement to the last digit was a copy, not a replication.
+
+**What broke the tie was not another book.** A 2023 paper computed -402 kJ/mol
+(W1-F12 gas phase plus a Trouton-type sublimation estimate), 176 kJ/mol away. Then
+volume 8 of the U.S. Army *Encyclopedia of Explosives* turned out to print a
+*different* bomb measurement, 1707 kcal/kg, which converts to -402.9: the
+calculation and the older measurement agree to 1 kJ/mol. And volume 2 of the same
+work prints Medard and Thomas's own number, Qc(v) 530.5 kcal/mol, which converts to
+-226.8 and so shows that NIST's -226 is their measurement correctly converted, not a
+transcription slip. The disagreement is between **two combustion measurements 8 per
+cent apart**, which is a different and much more tractable problem than the four
+agreeing books suggested.
+
+Three smaller traps from the same sweep, each of which cost a wrong claim first:
+
+* **Two entries in one work disagreed by 176 kJ/mol** and neither cross-referenced
+  the other. A ten-volume reference is not one source.
+* **An earlier pass recorded "the Encyclopedia does not hold these compounds".** It
+  holds both, in volumes 2, 8 and 10. A negative from a text search over OCR'd
+  scans is not an absence; the OCR had mangled the headwords.
+* **The citation itself was wrong.** The file carried Medard and Thomas,
+  *Mem. Poudres* 29 (1949) 173-195. The Encyclopedia's own reference list gives
+  31 (1949) 196, with a Chemical Abstracts number beside it, and a *Memorial de
+  l'artillerie francaise* index settled a second misprint (Medard's tables are
+  volume 28, not the volume 23 one Meyer entry prints).
+
+A printed unit was wrong too, and only arithmetic caught it: volume 8 prints
+"1707 kcal/mole" against "1595 kcal/mole for NG in the same bomb". Per mole is
+impossible for both; nitroglycerin's heat of combustion is about 1604 kcal/**kg**,
+so both are per kg, and the nitroglycerin figure being within 0.6 per cent of the
+modern value is what shows that bomb was reading correctly.
+
+**How to apply:** count roots, not sources, and make every row carry a
+`lineage_root`. A compilation's publication date is the compilation's, not the
+data's, so read its own statement of where its numbers came from before treating it
+as recent. When several sources agree to the last digit, suspect one root rather
+than a replication. And check a printed value's unit by recomputing a neighbour you
+already know.
+
+## A GUARD THAT SWEEPS EVERY TRACKED FILE LIVES IN A TEST FILE YOU DID NOT TOUCH
+
+Adding rows to `benchmarks/energetics_props/PETN_EVIDENCE.json` and `.md`, I ran the
+tests named after the thing I touched -- `tests/test_energetics_props_*.py`, 59 tests,
+green in under a second -- and pushed. **Shard 4 was red, and stayed red across five
+pushes**, because each push cancelled the previous run before anyone read it.
+
+The failing test was in a file the change never touched:
+`tests/test_sources_are_current.py::test_every_doi_cited_in_the_tree_is_in_the_registry`.
+It sweeps **every tracked `.py`, `.json`, `.md`, `.toml`, `.cff`, `.yml` and `.yaml`**
+for a DOI-shaped string and fails on any that is not an entry in `docs/sources.toml`.
+The evidence rows cited 41. The test's own docstring says it is a backstop and
+explicitly **not** a licence to auto-create registry rows, so the fix was to move the
+DOIs out of the committed files into the maintainer's own notes, which is what the
+project already does for the synthesis protocol's references.
+
+Measured: the subset I had been running takes about 1 second; the repo-wide guards
+(`test_sources_are_current.py` plus `test_docs_are_current.py`) take about 45 seconds
+and are the ones that can fail on a pure data edit.
+
+**How to apply:** a change to any tracked `.md` or `.json` is a change to the whole
+tree as far as the sweeping guards are concerned, so run those two files' tests as
+well as the ones named after your feature. And when a run you have not read is still
+in flight, read its result before the next push: a cancelled run hides a red shard.

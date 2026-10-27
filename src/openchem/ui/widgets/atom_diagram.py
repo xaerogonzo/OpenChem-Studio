@@ -44,6 +44,7 @@ from openchem.chem.electron_shells import (
     nucleus,
 )
 from openchem.chem.nuclides import format_half_life
+from openchem.ui import theme
 from openchem.ui.widgets.help_tooltip import HelpTooltip, apply_help_tooltip
 
 logger = logging.getLogger(__name__)
@@ -143,6 +144,7 @@ class ShellDiagram(QWidget):
 
     def __init__(self, parent: QWidget | None = None) -> None:
         super().__init__(parent)
+        theme.repaint_on_change(self)
         self._shells: dict[int, int] = {}
         self._nucleus: Nucleus | None = None
         # **A FLOOR, NOT A PREFERRED SIZE.** 220 was comfortable and it
@@ -210,7 +212,7 @@ class ShellDiagram(QWidget):
         for index, (shell, electrons) in enumerate(sorted(self._shells.items()), start=1):
             radius = span * index / count
             painter.setFont(painter.font())
-            painter.setPen(QPen(_RING_COLOUR, 1))
+            painter.setPen(QPen(theme.ink(_RING_COLOUR), 1))
             painter.setBrush(Qt.BrushStyle.NoBrush)
             painter.drawEllipse(centre, radius, radius)
 
@@ -239,7 +241,7 @@ class ShellDiagram(QWidget):
             # across the left side now, which buys separation from the
             # ANGLE where there is none in the radius.
             painter.setFont(label_font)
-            painter.setPen(QPen(_RING_LABEL_COLOUR))
+            painter.setPen(QPen(theme.ink(_RING_LABEL_COLOUR)))
             self._draw_ring_count(painter, centre, span, count, index, electrons)
             del shell
 
@@ -321,6 +323,7 @@ class OrbitalBoxes(QWidget):
 
     def __init__(self, parent: QWidget | None = None) -> None:
         super().__init__(parent)
+        theme.repaint_on_change(self)
         self._configuration: Configuration | None = None
         self.setMinimumHeight(_MESSAGE_HEIGHT)
         # Wide enough for the widest single subshell (7 f orbitals), so a
@@ -401,7 +404,7 @@ class OrbitalBoxes(QWidget):
         second one is the point". A placeholder saying only "nothing here"
         has told the reader what they could already see.
         """
-        painter.setPen(QPen(QColor("#666666")))
+        painter.setPen(QPen(theme.ink(QColor("#666666"))))
         text = f"{headline}\n{action}" if action else headline
         painter.drawText(
             self.rect().adjusted(12, 12, -12, -12),
@@ -415,10 +418,10 @@ class OrbitalBoxes(QWidget):
         for placed in rows:
             for index, (up, down) in enumerate(placed.subshell.spins()):
                 left = placed.x + index * (_BOX + _BOX_GAP)
-                painter.setPen(QPen(_BOX_COLOUR, 1))
+                painter.setPen(QPen(theme.ink(_BOX_COLOUR), 1))
                 painter.setBrush(Qt.BrushStyle.NoBrush)
                 painter.drawRect(QRectF(left, placed.y, _BOX, _BOX))
-                painter.setPen(QPen(_BOX_COLOUR, 1.4))
+                painter.setPen(QPen(theme.ink(_BOX_COLOUR), 1.4))
                 if up:
                     painter.drawText(
                         QRectF(left, placed.y, _BOX / 2, _BOX),
@@ -432,7 +435,7 @@ class OrbitalBoxes(QWidget):
                         "\u2193",
                     )
 
-            painter.setPen(QPen(_BOX_COLOUR))
+            painter.setPen(QPen(theme.ink(_BOX_COLOUR)))
             painter.drawText(
                 QRectF(placed.x, placed.y + _BOX + 1, placed.width, _LABEL_HEIGHT),
                 Qt.AlignmentFlag.AlignCenter,
@@ -528,7 +531,7 @@ class AtomDiagram(QWidget):
         self.nucleus_label = QLabel("", self)
         self.nucleus_label.setWordWrap(True)
         self.provenance_label = QLabel("", self)
-        self.provenance_label.setStyleSheet(_MUTED)
+        theme.style(self.provenance_label, _MUTED)
         self.provenance_label.setWordWrap(True)
 
         self.remove_button = QPushButton("− electron", self)

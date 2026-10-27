@@ -47,6 +47,7 @@ from openchem.plugins.async_task import run_async
 from openchem.plugins.context import PluginContext
 from openchem.services.synthesis_planner_setup import PlannerOptions
 from openchem.services.synthesis_planning_service import BoundResult, RequestOutcome
+from openchem.ui import theme
 from openchem.ui.widgets.help_tooltip import HelpTooltip, apply_help_tooltip
 
 from . import route_text
@@ -147,7 +148,7 @@ class SynthesisPanel(QWidget):
             apply_help_tooltip(combo, tooltip)
             combo.activated.connect(lambda _index, s=section: self._on_choice(s))
         self._version_label = QLabel("", self)
-        self._version_label.setStyleSheet("color: #6e6e6e;")
+        theme.style(self._version_label, "color: #6e6e6e;")
 
         choices = QFormLayout()
         choices.addRow("Expansion policy:", self._expansion)
@@ -171,7 +172,7 @@ class SynthesisPanel(QWidget):
         #: Set only when the plan shown is for an earlier structure of the molecule.
         self._warning = QLabel(self)
         self._warning.setWordWrap(True)
-        self._warning.setStyleSheet("color: #b45309; font-weight: bold;")
+        theme.style(self._warning, "color: #b45309; font-weight: bold;")
         self._warning.setHidden(True)
 
         self._routes = _list(self, _ROUTES_HELP, 90, 140)
@@ -192,7 +193,7 @@ class SynthesisPanel(QWidget):
 
         self._limitations = QLabel(self)
         self._limitations.setWordWrap(True)
-        self._limitations.setStyleSheet("color: #6e6e6e;")
+        theme.style(self._limitations, "color: #6e6e6e;")
 
         # Everything about routes is one block that is shown only when there are routes: two empty lists under a refusal are a screenful of nothing between the
         # reason and the limitations.

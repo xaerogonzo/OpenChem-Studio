@@ -1,0 +1,487 @@
+[
+ {
+  "key": "first_hydrogen_sulfide_S_H",
+  "min_eigenvalue": -0.0014856,
+  "stable": false,
+  "enthalpy_shift_kcal": 0.007,
+  "analytic_lowest": 2731.1,
+  "numerical_lowest": 2736.1,
+  "max_mode_difference": 5.0
+ },
+ {
+  "key": "first_water_O_H",
+  "min_eigenvalue": 0.00018317,
+  "stable": true,
+  "enthalpy_shift_kcal": -0.003,
+  "analytic_lowest": 3762.57,
+  "numerical_lowest": 3760.7,
+  "max_mode_difference": 1.9
+ },
+ {
+  "key": "heldout_hydrazoic_acid_N_H_Azido_radical",
+  "min_eigenvalue": 0.00130427,
+  "stable": true,
+  "enthalpy_shift_kcal": -0.034,
+  "analytic_lowest": 542.07,
+  "numerical_lowest": 537.66,
+  "max_mode_difference": 18.6
+ },
+ {
+  "key": "heldout_isocyanic_acid_N_H_Cyanooxidanyl",
+  "min_eigenvalue": 0.00211072,
+  "stable": true,
+  "enthalpy_shift_kcal": -0.017,
+  "analytic_lowest": 550.18,
+  "numerical_lowest": 546.81,
+  "max_mode_difference": 6.7
+ },
+ {
+  "key": "first_methanol_O_H",
+  "min_eigenvalue": 0.00486715,
+  "stable": true,
+  "enthalpy_shift_kcal": 0.272,
+  "analytic_lowest": 706.63,
+  "numerical_lowest": 914.99,
+  "max_mode_difference": 208.4
+ },
+ {
+  "key": "first_2_propanol_O_H",
+  "min_eigenvalue": 0.00586712,
+  "stable": true
+ },
+ {
+  "key": "stress_2_propoxyl",
+  "min_eigenvalue": 0.00586712,
+  "stable": true
+ },
+ {
+  "key": "stress_1_propoxyl",
+  "min_eigenvalue": 0.00588323,
+  "stable": true
+ },
+ {
+  "key": "stress_ethoxyl",
+  "min_eigenvalue": 0.00611133,
+  "stable": true,
+  "enthalpy_shift_kcal": 0.175,
+  "analytic_lowest": 195.02,
+  "numerical_lowest": 234.07,
+  "max_mode_difference": 101.6
+ },
+ {
+  "key": "first_tert_butanol_O_H",
+  "min_eigenvalue": 0.00613015,
+  "stable": true
+ },
+ {
+  "key": "stress_tert_butoxyl",
+  "min_eigenvalue": 0.00613015,
+  "stable": true
+ },
+ {
+  "key": "heldout_ketene_C_H_Ketenyl",
+  "min_eigenvalue": 0.00924446,
+  "stable": true,
+  "enthalpy_shift_kcal": -0.012,
+  "analytic_lowest": 384.88,
+  "numerical_lowest": 369.56,
+  "max_mode_difference": 15.3
+ },
+ {
+  "key": "first_benzoic_acid_O_H",
+  "min_eigenvalue": 0.01928654,
+  "stable": true
+ },
+ {
+  "key": "first_formic_acid_O_H",
+  "min_eigenvalue": 0.02372017,
+  "stable": true,
+  "enthalpy_shift_kcal": -0.028,
+  "analytic_lowest": 392.49,
+  "numerical_lowest": 376.63,
+  "max_mode_difference": 15.9
+ },
+ {
+  "key": "heldout_propyne_C_H_1_Propynyl",
+  "min_eigenvalue": 0.02483058,
+  "stable": true,
+  "enthalpy_shift_kcal": -0.047,
+  "analytic_lowest": 286.44,
+  "numerical_lowest": 255.14,
+  "max_mode_difference": 31.3
+ },
+ {
+  "key": "first_ethyne_C_H",
+  "min_eigenvalue": 0.0248809,
+  "stable": true,
+  "enthalpy_shift_kcal": 0.021,
+  "analytic_lowest": 532.04,
+  "numerical_lowest": 560.36,
+  "max_mode_difference": 28.3
+ },
+ {
+  "key": "first_acetic_acid_O_H",
+  "min_eigenvalue": 0.02587141,
+  "stable": true,
+  "enthalpy_shift_kcal": -0.638,
+  "analytic_lowest": 17.88,
+  "numerical_lowest": -95.19,
+  "max_mode_difference": 113.1
+ },
+ {
+  "key": "first_hydrogen_peroxide_O_H",
+  "min_eigenvalue": 0.03581432,
+  "stable": true,
+  "enthalpy_shift_kcal": 0.006,
+  "analytic_lowest": 1260.05,
+  "numerical_lowest": 1262.81,
+  "max_mode_difference": 2.8
+ },
+ {
+  "key": "first_ethyl_hydroperoxide_O_H",
+  "min_eigenvalue": 0.03876894,
+  "stable": true,
+  "enthalpy_shift_kcal": -0.028,
+  "analytic_lowest": 94.21,
+  "numerical_lowest": 118.27,
+  "max_mode_difference": 24.1
+ },
+ {
+  "key": "first_methyl_hydroperoxide_O_H",
+  "min_eigenvalue": 0.03904253,
+  "stable": true,
+  "enthalpy_shift_kcal": -0.024,
+  "analytic_lowest": 137.86,
+  "numerical_lowest": 100.44,
+  "max_mode_difference": 37.4
+ },
+ {
+  "key": "first_tert_butyl_hydroperoxide_O_H",
+  "min_eigenvalue": 0.03999793,
+  "stable": true
+ },
+ {
+  "key": "first_hydrogen_cyanide_C_H",
+  "min_eigenvalue": 0.04551102,
+  "stable": true,
+  "enthalpy_shift_kcal": -0.001,
+  "analytic_lowest": 2247.39,
+  "numerical_lowest": 2246.38,
+  "max_mode_difference": 1.0
+ },
+ {
+  "key": "first_phenol_O_H",
+  "min_eigenvalue": 0.04750772,
+  "stable": true
+ },
+ {
+  "key": "first_acetaldehyde_methyl_C_H",
+  "min_eigenvalue": 0.06084267,
+  "stable": true,
+  "enthalpy_shift_kcal": 0.035,
+  "analytic_lowest": 446.48,
+  "numerical_lowest": 455.81,
+  "max_mode_difference": 9.3
+ },
+ {
+  "key": "heldout_acrolein_C_H_Acryloyl",
+  "min_eigenvalue": 0.06430966,
+  "stable": true,
+  "enthalpy_shift_kcal": -0.001,
+  "analytic_lowest": 141.71,
+  "numerical_lowest": 134.43,
+  "max_mode_difference": 24.8
+ },
+ {
+  "key": "heldout_formaldoxime_O_H_Formaldiminoxy",
+  "min_eigenvalue": 0.06796119,
+  "stable": true,
+  "enthalpy_shift_kcal": 0.006,
+  "analytic_lowest": 457.51,
+  "numerical_lowest": 458.17,
+  "max_mode_difference": 10.6
+ },
+ {
+  "key": "first_ammonia_N_H",
+  "min_eigenvalue": 0.07472503,
+  "stable": true,
+  "enthalpy_shift_kcal": -0.003,
+  "analytic_lowest": 1534.67,
+  "numerical_lowest": 1535.01,
+  "max_mode_difference": 2.8
+ },
+ {
+  "key": "heldout_methylamine_N_H_Methylamidogen",
+  "min_eigenvalue": 0.07475295,
+  "stable": true,
+  "enthalpy_shift_kcal": -0.002,
+  "analytic_lowest": 287.07,
+  "numerical_lowest": 320.21,
+  "max_mode_difference": 33.1
+ },
+ {
+  "key": "heldout_ethylamine_N_H_Ethylamidogen",
+  "min_eigenvalue": 0.07555777,
+  "stable": true
+ },
+ {
+  "key": "first_formaldehyde_C_H",
+  "min_eigenvalue": 0.08092922,
+  "stable": true,
+  "enthalpy_shift_kcal": -0.002,
+  "analytic_lowest": 1105.1,
+  "numerical_lowest": 1104.44,
+  "max_mode_difference": 4.3
+ },
+ {
+  "key": "first_acetaldehyde_formyl_C_H",
+  "min_eigenvalue": 0.08728496,
+  "stable": true,
+  "enthalpy_shift_kcal": -0.658,
+  "analytic_lowest": 106.69,
+  "numerical_lowest": -29.68,
+  "max_mode_difference": 136.4
+ },
+ {
+  "key": "heldout_propionaldehyde_C_H_1_Oxopropyl",
+  "min_eigenvalue": 0.08807308,
+  "stable": true
+ },
+ {
+  "key": "heldout_1_3_butadiene_C_H_1_3_Butadienyl",
+  "min_eigenvalue": 0.0920868,
+  "stable": true,
+  "enthalpy_shift_kcal": -0.023,
+  "analytic_lowest": 177.98,
+  "numerical_lowest": 177.71,
+  "max_mode_difference": 8.9
+ },
+ {
+  "key": "heldout_hydroxylamine_O_H_Aminooxy",
+  "min_eigenvalue": 0.09448109,
+  "stable": true,
+  "enthalpy_shift_kcal": -0.008,
+  "analytic_lowest": 218.18,
+  "numerical_lowest": 231.27,
+  "max_mode_difference": 13.1
+ },
+ {
+  "key": "first_propene_allylic_C_H",
+  "min_eigenvalue": 0.0955191,
+  "stable": true,
+  "enthalpy_shift_kcal": -0.076,
+  "analytic_lowest": 434.3,
+  "numerical_lowest": 428.27,
+  "max_mode_difference": 7.8
+ },
+ {
+  "key": "first_toluene_benzylic_C_H",
+  "min_eigenvalue": 0.09733137,
+  "stable": true
+ },
+ {
+  "key": "first_benzene_C_H",
+  "min_eigenvalue": 0.10841026,
+  "stable": true
+ },
+ {
+  "key": "heldout_methanimine_C_H_Iminomethyl",
+  "min_eigenvalue": 0.10858946,
+  "stable": true,
+  "enthalpy_shift_kcal": -0.021,
+  "analytic_lowest": 886.67,
+  "numerical_lowest": 885.38,
+  "max_mode_difference": 5.7
+ },
+ {
+  "key": "first_ethene_C_H",
+  "min_eigenvalue": 0.11307492,
+  "stable": true,
+  "enthalpy_shift_kcal": 0.004,
+  "analytic_lowest": 730.33,
+  "numerical_lowest": 735.87,
+  "max_mode_difference": 7.8
+ },
+ {
+  "key": "heldout_ethanimine_C_H_1_Iminoethyl",
+  "min_eigenvalue": 0.11417733,
+  "stable": true
+ },
+ {
+  "key": "heldout_propene_C_H_1_Methylethenyl",
+  "min_eigenvalue": 0.11422543,
+  "stable": true
+ },
+ {
+  "key": "heldout_propyne_C_H_Propargyl",
+  "min_eigenvalue": 0.11666153,
+  "stable": true,
+  "enthalpy_shift_kcal": -0.023,
+  "analytic_lowest": 363.19,
+  "numerical_lowest": 365.42,
+  "max_mode_difference": 5.5
+ },
+ {
+  "key": "heldout_hydroxylamine_N_H_Hydroxyamidogen",
+  "min_eigenvalue": 0.11955911,
+  "stable": true,
+  "enthalpy_shift_kcal": -0.008,
+  "analytic_lowest": 742.5,
+  "numerical_lowest": 737.64,
+  "max_mode_difference": 4.9
+ },
+ {
+  "key": "heldout_ethylamine_C_H_1_Aminoethyl",
+  "min_eigenvalue": 0.12514617,
+  "stable": true
+ },
+ {
+  "key": "heldout_ethanimine_N_H_Ethylideneamidogen",
+  "min_eigenvalue": 0.12582155,
+  "stable": true
+ },
+ {
+  "key": "heldout_methylamine_C_H_Aminomethyl",
+  "min_eigenvalue": 0.12680467,
+  "stable": true,
+  "enthalpy_shift_kcal": -0.023,
+  "analytic_lowest": 438.26,
+  "numerical_lowest": 429.54,
+  "max_mode_difference": 8.7
+ },
+ {
+  "key": "first_methanethiol_C_H",
+  "min_eigenvalue": 0.12763886,
+  "stable": true,
+  "enthalpy_shift_kcal": 0.026,
+  "analytic_lowest": 122.49,
+  "numerical_lowest": 168.16,
+  "max_mode_difference": 45.7
+ },
+ {
+  "key": "heldout_methanimine_N_H_Methyleneamidogen",
+  "min_eigenvalue": 0.13365769,
+  "stable": true,
+  "enthalpy_shift_kcal": -0.016,
+  "analytic_lowest": 942.5,
+  "numerical_lowest": 938.13,
+  "max_mode_difference": 5.5
+ },
+ {
+  "key": "heldout_dimethyl_sulfide_C_H_Methylthio_methyl",
+  "min_eigenvalue": 0.1360966,
+  "stable": true
+ },
+ {
+  "key": "heldout_ethanol_C_H_1_Hydroxyethyl",
+  "min_eigenvalue": 0.13660476,
+  "stable": true,
+  "enthalpy_shift_kcal": -0.043,
+  "analytic_lowest": 175.33,
+  "numerical_lowest": 171.27,
+  "max_mode_difference": 8.8
+ },
+ {
+  "key": "heldout_methyl_hydroperoxide_C_H_Hydroperoxymethyl",
+  "min_eigenvalue": 0.1367579,
+  "stable": true
+ },
+ {
+  "key": "heldout_acetonitrile_C_H_Cyanomethyl",
+  "min_eigenvalue": 0.14387462,
+  "stable": true,
+  "enthalpy_shift_kcal": -0.01,
+  "analytic_lowest": 392.24,
+  "numerical_lowest": 387.03,
+  "max_mode_difference": 5.5
+ },
+ {
+  "key": "first_methanol_C_H",
+  "min_eigenvalue": 0.14463996,
+  "stable": true,
+  "enthalpy_shift_kcal": 0.018,
+  "analytic_lowest": 420.74,
+  "numerical_lowest": 422.08,
+  "max_mode_difference": 8.1
+ },
+ {
+  "key": "heldout_hydrazine_N_H_Hydrazino",
+  "min_eigenvalue": 0.14685892,
+  "stable": true,
+  "enthalpy_shift_kcal": -0.0,
+  "analytic_lowest": 522.74,
+  "numerical_lowest": 530.9,
+  "max_mode_difference": 8.2
+ },
+ {
+  "key": "first_isobutane_tertiary_C_H",
+  "min_eigenvalue": 0.16474919,
+  "stable": true
+ },
+ {
+  "key": "heldout_methoxymethane_C_H_Methoxymethyl",
+  "min_eigenvalue": 0.16540309,
+  "stable": true,
+  "enthalpy_shift_kcal": -0.003,
+  "analytic_lowest": 176.08,
+  "numerical_lowest": 176.36,
+  "max_mode_difference": 7.4
+ },
+ {
+  "key": "heldout_ethylamine_C_H_2_Aminoethyl",
+  "min_eigenvalue": 0.16795101,
+  "stable": true,
+  "enthalpy_shift_kcal": -0.027,
+  "analytic_lowest": 204.51,
+  "numerical_lowest": 219.12,
+  "max_mode_difference": 14.6
+ },
+ {
+  "key": "first_propane_secondary_C_H",
+  "min_eigenvalue": 0.17377096,
+  "stable": true
+ },
+ {
+  "key": "first_butane_secondary_C_H",
+  "min_eigenvalue": 0.1763106,
+  "stable": true
+ },
+ {
+  "key": "first_silane_Si_H",
+  "min_eigenvalue": 0.18734163,
+  "stable": true,
+  "enthalpy_shift_kcal": -0.015,
+  "analytic_lowest": 772.4,
+  "numerical_lowest": 770.6,
+  "max_mode_difference": 2.7
+ },
+ {
+  "key": "first_ethane_C_H",
+  "min_eigenvalue": 0.18844998,
+  "stable": true
+ },
+ {
+  "key": "heldout_propane_C_H_n_Propyl",
+  "min_eigenvalue": 0.19149293,
+  "stable": true
+ },
+ {
+  "key": "heldout_n_butane_C_H_n_Butyl",
+  "min_eigenvalue": 0.19205514,
+  "stable": true
+ },
+ {
+  "key": "heldout_ethanol_C_H_2_Hydroxyethyl",
+  "min_eigenvalue": 0.1924062,
+  "stable": true
+ },
+ {
+  "key": "first_methane_C_H",
+  "min_eigenvalue": 0.21105614,
+  "stable": true,
+  "enthalpy_shift_kcal": -0.001,
+  "analytic_lowest": 409.53,
+  "numerical_lowest": 405.44,
+  "max_mode_difference": 4.1
+ }
+]
