@@ -501,6 +501,12 @@ scope = "core"
 owner = "namer"
 
 [[consumer]]
+file = "tests/test_namer_round89_forced_bridgehead_descriptors_are_dropped_alone.py"
+why = "the stereoisomers of a substituted bicyclo[2.2.2]octane or norbornane have distinct names (D-386): OPSIN's own error names the bridgehead descriptors it cannot anchor, only those are dropped, and a shorter name is kept only if OPSIN reads it to exactly the input"
+scope = "core"
+owner = "namer"
+
+[[consumer]]
 file = "tests/test_namer_round88_spiro_joints_to_bridged_partners_and_hetero_spiro_atoms.py"
 why = "spiro joints to bridged and von Baeyer-named fused partners (norcarane, bicyclo[3.2.0], tricyclo[3.2.1.0^{3,6}]octane, two polycyclic partners) and a silicon, N+ or P+ spiro atom (D-381 to D-384): the spiro locant, the pinned tricyclic numbering, the rank of the articulation-split name, and the `<loc>-azonia` / `<loc>-phosphonia` prefix, each read back by OPSIN"
 scope = "core"
