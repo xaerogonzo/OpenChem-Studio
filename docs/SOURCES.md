@@ -1,5 +1,5 @@
 <!-- GENERATED FROM docs/sources.toml -- do not edit -->
-<!-- SOURCE SHA256: 1091f101de37b843104a8c26805d13fa16029696feaa24931d98a133f30677c9 -->
+<!-- SOURCE SHA256: dc2c7ccc9a9abfaa94367733cbcefb236d3a26949e3521210789c8fc19c2e850 -->
 
 # Sources
 
@@ -323,6 +323,9 @@ next run of `tools/build_lewis_parameters.py`.
 | [`schindler2021_correction`](#schindler2021_correction) | literature | reference only | citation |
 | [`schott1989`](#schott1989) | literature | shipped | citation + claim |
 | [`sci_downloads_note`](#sci_downloads_note) | reference_table | reference only | citation |
+| [`seetula2000`](#seetula2000) | literature | reference only | citation |
+| [`seetula2003`](#seetula2003) | literature | reference only | citation + claim |
+| [`seetula2008`](#seetula2008) | literature | reference only | citation + claim |
 | [`sefcik2002`](#sefcik2002) | literature | reference only | citation + claim |
 | [`shancita2020`](#shancita2020) | literature | shipped | citation |
 | [`shannon1976`](#shannon1976) | literature | shipped | citation + claim |
@@ -7652,6 +7655,57 @@ outputs); the paper itself was NOT read, so this entry makes no claim about a nu
 | Used by | `benchmarks/restart_v2/PREREGISTRATION.md`, `benchmarks/restart_v2/second_column.py` |
 
 **Why it is reference only.** THE ATcT BOND ENTHALPIES OF THE METHANE, ETHANE AND METHANOL SYSTEMS, in print: the second reference column the held-out arm's preregistration asks for where the first run's bonds overlap, and a check on how a bond enthalpy is formed from enthalpies of formation. Read by table for the six first-run bonds of the methane, ethane and methanol systems (`benchmarks/restart_v2/second_column.py`): they agree with the ATcT 1.228 values the held-out references come from to within 0.24 kcal/mol, the ethane C-H (version 1.122 lower by 0.24) the largest.
+
+### seetula2003
+
+<a id="seetula2003"></a>
+
+> J. A. Seetula, 'Kinetics of the R + HBr = RH + Br (R = CH2Br, CHBrCl or CCl3) equilibrium. Thermochemistry of the CH2Br and CHBrCl radicals', Phys. Chem. Chem. Phys. 5, 849-855 (2003).
+
+| | |
+| --- | --- |
+| Identifier | [10.1039/b210787m](https://doi.org/10.1039/b210787m) |
+| Status | reference only |
+| Verification | citation + claim |
+| Verified | 2026-10-27 |
+| Local copy | `seetula2003_CH2Br_CHBrCl.pdf` (not checked) |
+| Used by | `benchmarks/restart_v3/PREREGISTRATION.md` |
+
+**Why it is reference only.** A CANDIDATE BROMINE REFERENCE, NOT ADOPTED (decision D5 of the draft restart-v3 preregistration): the paper reports the C-H bond energies of bromomethane (427.2 +- 2.4 kJ/mol) and bromochloromethane (406.0 +- 2.4) and the formation enthalpies of CH2Br (171.1 +- 2.7) and CHBrCl (143 +- 6), all from one laboratory's second-law kinetics, not an evaluated value. The four numbers were read from the PDF's text; the extraction drops minus signs, so no signed enthalpy is taken from it.
+
+### seetula2008
+
+<a id="seetula2008"></a>
+
+> J. A. Seetula & A. J. Eskola, 'Kinetics of the R + HBr = RH + Br (CH3CHBr, CHBr2 or CDBr2) equilibrium. Thermochemistry of the CH3CHBr and CHBr2 radicals', Chemical Physics 351, 141-146 (2008).
+
+| | |
+| --- | --- |
+| Identifier | [10.1016/j.chemphys.2008.04.008](https://doi.org/10.1016/j.chemphys.2008.04.008) |
+| Status | reference only |
+| Verification | citation + claim |
+| Verified | 2026-10-27 |
+| Local copy | `seetula2008_CHBr2_CH3CHBr.pdf` (not checked) |
+| Used by | `benchmarks/restart_v3/PREREGISTRATION.md` |
+
+**Why it is reference only.** A CANDIDATE BROMINE REFERENCE, NOT ADOPTED (decision D5 of the draft restart-v3 preregistration): the paper reports the alpha C-H bond energies of bromoethane (415.0 +- 2.7 kJ/mol) and dibromomethane (412.6 +- 2.7) and the formation enthalpies of CH3CHBr (133.4 +- 3.4) and CHBr2 (199.1 +- 2.7), and compares the CHBr2 value with three theoretical studies (196.9 to 201.3) and a fourth that is lower (191.7). It supersedes the same author's 2000 ab initio estimate for CHBr2. One laboratory's second-law kinetics, not an evaluated value.
+
+### seetula2000
+
+<a id="seetula2000"></a>
+
+> J. A. Seetula, 'Ab initio study of the transition states for determining the enthalpies of formation of alkyl and halogenated alkyl free radicals', Phys. Chem. Chem. Phys. 2, 3807-3812 (2000).
+
+| | |
+| --- | --- |
+| Identifier | [10.1039/b001350l](https://doi.org/10.1039/b001350l) |
+| Status | reference only |
+| Verification | citation |
+| Verified | 2026-10-27 |
+| Local copy | `seetula2000_abinitio_TS.pdf` (not checked) |
+| Used by | `benchmarks/restart_v3/PREREGISTRATION.md` |
+
+**Why it is reference only.** WHY TRIBROMOMETHYL HAS NO USABLE REFERENCE VALUE: this is the only source found for a CBr3 formation enthalpy, an ab initio estimate (195 +- 5 kJ/mol, plus 2.4 for the method) whose uncertainty fails the 1.0 kcal/mol rule for a deciding bond, and the paper itself warns that values for radicals with several bromine atoms are of low accuracy. Its CHBr2 estimate (180 +- 5) was superseded by the 2008 paper.
 
 ## Datasets
 
