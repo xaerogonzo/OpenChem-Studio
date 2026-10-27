@@ -1,0 +1,56 @@
+[
+  {"do": "smiles", "smiles": "CC(=O)Nc1ccc(O)cc1", "name": "Paracetamol", "after_ms": 800},
+  {"do": "select", "molecule": -1, "after_ms": 3000},
+  {"do": "panel", "id": "Properties", "after_ms": 800},
+  {"do": "calculator", "id": "polar_surface_area", "reveal": false, "after_ms": 4000},
+  {"do": "reset_layout", "after_ms": 800},
+  {"do": "dock_state", "panel": "Properties", "tag": "start", "expect": {"area": "right", "hidden": false, "floating": false, "expanded": null, "no_overlaps": true}, "after_ms": 300},
+
+  {"do": "dock_menu", "panel": "Properties", "expect": {
+      "present": ["move_left", "move_right", "move_top", "move_bottom", "expand", "float", "return", "lock"],
+      "disabled": ["move_right", "return"], "enabled": ["move_left", "expand"], "absent": ["restore", "dock_back"],
+      "text": {"lock": "Lock open", "expand": "Expand panel"}}, "after_ms": 300},
+  {"do": "shot", "path": "artifacts/visual/dock_layout_start.png", "after_ms": 500},
+
+  {"do": "dock_menu", "panel": "Properties", "press": "expand", "after_ms": 1200},
+  {"do": "dock_state", "panel": "Properties", "tag": "expanded", "expect": {"expanded": "Properties", "min_width": 420, "no_overlaps": true}, "after_ms": 300},
+  {"do": "shot", "path": "artifacts/visual/dock_layout_expanded.png", "after_ms": 500},
+  {"do": "dock_menu", "panel": "Properties", "expect": {"present": ["restore"], "absent": ["expand"], "text": {"restore": "Restore size"}}, "after_ms": 300},
+  {"do": "dock_menu", "panel": "Properties", "press": "restore", "after_ms": 1200},
+  {"do": "dock_state", "panel": "Properties", "tag": "restored", "expect": {"expanded": null, "max_width": 440, "no_overlaps": true}, "after_ms": 300},
+
+  {"do": "dock_menu", "panel": "Properties", "press": "move_left", "after_ms": 1200},
+  {"do": "dock_state", "panel": "Properties", "tag": "moved-left", "expect": {"area": "left", "hidden": false, "floating": false, "user_placed": true}, "after_ms": 300},
+  {"do": "dock_menu", "panel": "Properties", "expect": {"disabled": ["move_left"], "enabled": ["move_right", "return"]}, "after_ms": 300},
+  {"do": "shot", "path": "artifacts/visual/dock_layout_moved_left.png", "after_ms": 500},
+  {"do": "dock_menu", "panel": "Properties", "press": "return", "after_ms": 1200},
+  {"do": "dock_state", "panel": "Properties", "tag": "returned", "expect": {"area": "right", "hidden": false, "user_placed": false, "no_overlaps": true}, "after_ms": 300},
+
+  {"do": "dock_menu", "panel": "Properties", "press": "alongside_Results", "after_ms": 1200},
+  {"do": "dock_state", "panel": "Results", "tag": "alongside", "expect": {"hidden": false, "area": "right"}, "after_ms": 300},
+  {"do": "dock_state", "panel": "Properties", "tag": "still-showing", "expect": {"hidden": false, "area": "right", "no_overlaps": true}, "after_ms": 300},
+
+  {"do": "dock_menu", "panel": "Results", "expect": {"text": {"lock": "Lock open"}}, "after_ms": 300},
+  {"do": "dock_menu", "panel": "Results", "press": "lock", "after_ms": 600},
+  {"do": "dock_menu", "panel": "Results", "expect": {"text": {"lock": "Unlock"}}, "after_ms": 300},
+  {"do": "dock_menu", "panel": "Results", "press": "lock", "after_ms": 600},
+
+  {"do": "dock_button", "panel": "Results", "button": "report", "expect": {"enabled": true}, "after_ms": 300},
+  {"do": "dock_button", "panel": "Structure_Check", "button": "recheck", "expect": {"enabled": true}, "after_ms": 300},
+  {"do": "dock_button", "panel": "Jobs", "button": "cancel_all", "expect": {"enabled": false}, "after_ms": 300},
+  {"do": "shot", "path": "artifacts/visual/dock_layout_buttons.png", "after_ms": 500},
+
+  {"do": "dock_menu", "panel": "Results", "press": "float", "after_ms": 1200},
+  {"do": "dock_state", "panel": "Results", "tag": "floating", "expect": {"floating": true}, "after_ms": 300},
+  {"do": "dock_menu", "panel": "Results", "expect": {"present": ["dock_back"], "absent": ["float", "expand"]}, "after_ms": 300},
+  {"do": "dock_menu", "panel": "Results", "press": "dock_back", "after_ms": 1200},
+  {"do": "dock_state", "panel": "Results", "tag": "docked-back", "expect": {"floating": false, "hidden": false}, "after_ms": 300},
+
+  {"do": "dock_menu", "panel": "Properties", "press": "expand", "after_ms": 1200},
+  {"do": "dock_state", "panel": "Properties", "tag": "expanded-before-reset", "expect": {"expanded": "Properties"}, "after_ms": 300},
+  {"do": "reset_layout", "after_ms": 1200},
+  {"do": "dock_state", "panel": "Properties", "tag": "reset-ends-it", "expect": {"expanded": null, "area": "right", "user_placed": false, "no_overlaps": true}, "after_ms": 300},
+
+  {"do": "expect_clean"},
+  {"do": "quit"}
+]
