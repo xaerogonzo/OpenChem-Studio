@@ -5702,6 +5702,9 @@ def _name_single_fg_substituent(
                 and n_imino is not None
                 and not n_imino.IsInRing()
                 and not n_amino.IsInRing()
+                # `C(=[N+]=[N-])N` is a diazo carbon beside an amine, not an imidamide: the imino nitrogen of a carbamimidoyl is neutral (naming round 90, D-387)
+                and n_imino.GetFormalCharge() == 0
+                and n_amino.GetFormalCharge() == 0
             ):
                 from openchem.vendor.iupac_namer.assembly import assemble
                 from openchem.vendor.iupac_namer.data_loader import get_multiplier

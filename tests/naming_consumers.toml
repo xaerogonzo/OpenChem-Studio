@@ -501,6 +501,12 @@ scope = "core"
 owner = "namer"
 
 [[consumer]]
+file = "tests/test_namer_round90_a_diazo_carbon_is_not_an_imine.py"
+why = "a diazo compound drawn C=[N+]=[N-] is named with the diazo prefix (D-387, P-61.4) and not as an iminoazanium: the diazo functional group subsumes the imine it overlaps, the carbamimidoyl special case refuses a charged imino nitrogen, and the other Lewis form, a diazonium and an azide are unchanged"
+scope = "core"
+owner = "namer"
+
+[[consumer]]
 file = "tests/test_namer_round89_forced_bridgehead_descriptors_are_dropped_alone.py"
 why = "the stereoisomers of a substituted bicyclo[2.2.2]octane or norbornane have distinct names (D-386): OPSIN's own error names the bridgehead descriptors it cannot anchor, only those are dropped, and a shorter name is kept only if OPSIN reads it to exactly the input"
 scope = "core"

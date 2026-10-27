@@ -24,19 +24,18 @@ inventory.
 
 **Counts** (from the audit run for this PR). Canonical rows: 93, of which 4 are retired cluster redirects, plus the 13 `OPEN`
 regression rows, each mapped to exactly one canonical row (`NL-030` to `NL-042`). By class: W 1, M 8, I 6, B 43, V 5, S 12, U 10, N 4,
-C 4 (the redirects). By priority: P0 1, P1 15, P2 20, P3 57. By status: open 59, carried 27, blocked 2, closed 5.
+C 4 (the redirects). By priority: P0 1, P1 15, P2 20, P3 57 (the P0 and the W are `NL-070`, closed). By status: open 58, carried 27, blocked 2, closed 6.
 
-**Plainly: one row is a *confirmed* wrong molecule, and eight more may be.** `NL-070`: a diazo compound drawn `C=[N+]=[N-]` is named
-as an iminoazanium that OPSIN reads back as a different formula. It was found by re-measuring the benchmark section, not by a
-population run, and it is not the same case as D-019. Eight rows (class M) record a name that OPSIN reads back as a different
+**Plainly: one row was a *confirmed* wrong molecule, now fixed, and eight more may be.** `NL-070`: a diazo compound drawn
+`C=[N+]=[N-]` was named as an iminoazanium that OPSIN reads back as a different formula. It was found by re-measuring the benchmark
+section, not by a population run, and fixed in naming round 90 (#488). Eight rows (class M) record a name that OPSIN reads back as a different
 molecule, never adjudicated as an engine fault or a validator fault. Six rows (class I) are cases where the validator cannot say
 whether the name pins the intended stereoisomer. None of these groups has been shown harmless.
 
-**Highest-priority next action.** `NL-070`, because it is confirmed and reproducible on six inputs, and diazo compounds are drawn
-this way by default. After it, `NL-003` (whether a bridged parent inside a larger molecule gets the right stereo descriptors): cheap,
-a pure scope question, and round 89's fallback was never run on it.
+**Highest-priority next action.** `NL-003` (whether a bridged parent inside a larger molecule gets the right stereo descriptors): cheap,
+a pure scope question, and round 89's fallback was never run on it. `NL-070`, the one confirmed wrong molecule, is closed.
 
-**Workstreams.** WS0 confirmed defects: *active*, `NL-070`. WS1 stereo audit: *active*, not started. WS2 coverage probes: *active*, not started. WS3 source lookups: *active*,
+**Workstreams.** WS0 confirmed defects: *empty* (`NL-070` closed in round 90). WS1 stereo audit: *active*, not started. WS2 coverage probes: *active*, not started. WS3 source lookups: *active*,
 not started. WS4 missing constructions: *deferred* (they round-trip today as von Baeyer names). WS5 older non-preferred names:
 *deferred*. WS6 historical clusters: split on 2026-10-27; the rows they left `carried` remain.
 
@@ -167,7 +166,7 @@ decision fields.
 | NL-064 | R26 (stereo cache) | Prefixes that tie on their letters alone are cited in atom order (P-14.5.4). **Probably closed** by the P-45.2.3 / P-45.5 work of rounds 26 and 27; not re-measured. | B | L | P3 | WS5 | carried |
 | NL-065 | R6 | Cyanamide as a prefix (`3-(cyanoamino)propanoic acid`): the Blue Book prints no name for it, so none is targeted. | N | H | P3 | WS3 | closed |
 | NL-066 | R3, Bench | 274 retained-name registry entries have no audited status (round 3); the benchmark section counts it differently: 74 of 292 `retained_pins` carry no cited rule, two were wrong, 72 unexamined. The two counts were taken at different times and not reconciled; `tools/retained_name_audit.py` reports the backlog. | S | M | P2 | WS3 | carried |
-| NL-070 | Diazo | **Confirmed wrong molecule.** A diazo compound drawn `C=[N+]=[N-]` is named as an iminoazanium: diazomethane `imino(methylidene)azanium`, which OPSIN reads as `N=[N+]=C` (CH3N2+, not CH2N2). Five of five further diazo shapes measured the same way (diazoethane, diazoacetone, phenyldiazomethane, methyl 2-diazopropanoate, 2-diazopropane). The other Lewis form `[CH2-][N+]#N` is right (`methanidyldiazonium`, D-019); an organic azide is right. Found by re-measuring the benchmark section; D-019 fixed only the one drawing. | W | H | P0 | WS0 | open |
+| NL-070 | Diazo | **Confirmed wrong molecule.** A diazo compound drawn `C=[N+]=[N-]` is named as an iminoazanium: diazomethane `imino(methylidene)azanium`, which OPSIN reads as `N=[N+]=C` (CH3N2+, not CH2N2). Five of five further diazo shapes measured the same way (diazoethane, diazoacetone, phenyldiazomethane, methyl 2-diazopropanoate, 2-diazopropane). The other Lewis form `[CH2-][N+]#N` is right (`methanidyldiazonium`, D-019); an organic azide is right. Found by re-measuring the benchmark section; D-019 fixed only the one drawing. **Fixed in naming round 90 (D-387, #488):** the diazo group now subsumes the imine it overlaps; 147 to 150 of 150 diazo molecules read back on each of five seeds (before: 26 and 27 of 150), the five unseen failures stereo only. | W | H | P0 | WS0 | closed |
 | NL-071 | Diazo | `C=[N+]=C` (a 2-azaallenium) is refused with `No name found that keeps the positive charge`; a refusal, not a wrong name. | B | H | P3 | WS5 | open |
 | NL-072 | R8 row 805 | N-alkoxy thioamide, N,N-dialkoxy amide and O-alkylhydroxylamine keep prefix forms (`N-methoxy-N-methyl-1-thioxoethan-1-amine`, `1-(dimethoxyamino)-1-oxoethane`, `(aminooxy)methane`); all read back. | B | H | P3 | WS5 | open |
 | NL-073 | R8 row 806 | A polynitrate ester is named `1,2,3-tris(nitrooxy)propane`, not `propane-1,2,3-triyl trinitrate`; reads back. | B | H | P3 | WS5 | open |
@@ -242,7 +241,7 @@ An item is `closed` only when its closure criterion holds, with the evidence rec
 | NL-058 | Ask whether the two rows can be examined without reading a frozen row | Explained, or recorded `N` |
 | NL-065 | None | Closed (no target exists) |
 | NL-066 | Run `tools/retained_name_audit.py` | Backlog count recorded |
-| NL-070 | Fix as its own round: find why the `C=[N+]=[N-]` drawing is not canonicalised to the form D-019 handles (or name it directly), add rows for all six shapes plus an azide converse | All six shapes read back to the input on InChIKey; `[CH2-][N+]#N` and an organic azide unchanged |
+| NL-070 | None (fixed in round 90, #488) | Met: all six shapes read back on InChIKey; `[CH2-][N+]#N` and an organic azide unchanged (pinned in `tests/test_namer_round90_a_diazo_carbon_is_not_an_imine.py`) |
 | NL-071 | None until a name exists that OPSIN reads and the book supports | Stays a refusal, or a verified name |
 | NL-072 to NL-076, NL-078, NL-079, NL-082 to NL-084, NL-086, NL-087, NL-091 to NL-094, NL-105 | Batch round (WS5, WS4): each keeps a converse row; the `adjudication.toml` rows with `fix_status` OPEN move when produced | The emitted name equals the adjudicated target and reads back |
 | NL-077, NL-081, NL-090, NL-095, NL-097 | Probe the shape (WS2 coverage matrix) or re-measure | Classed, or a defect row |
@@ -326,7 +325,7 @@ is in the last column. These are closed in the sense of "the stated defect is go
 
 Priority order. The detail of method is in the programme's plan; the short form:
 
-0. **WS0, confirmed defects:** one round each, before the rest. Currently `NL-070`.
+0. **WS0, confirmed defects:** one round each, before the rest. Currently none open (`NL-070` closed in round 90).
 
 1. **WS1, validator-limited stereo: an evidence-only audit first.** For one representative per mechanism, write the chain: the
    intended atom-level stereo; the descriptors the engine assigns *before* OPSIN validation; what OPSIN can parse or distinguish;

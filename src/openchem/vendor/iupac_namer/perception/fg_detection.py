@@ -219,6 +219,12 @@ SUBSUMPTION_TABLE: dict[tuple[str, str], bool] = {
     ("hydrazide", "amide"): True,
     ("hydrazide", "amine"): True,
     ("hydrazide", "secondary_amine"): True,
+    # A diazo group (=N2 on a carbon, P-61.4) is perceived as a charge-separated C=[N+]=[N-]; its C=N is not an imine
+    ("diazo", "substituted_imine"): True,
+    ("diazo", "imine"): True,
+    ("diazo", "imidamide"): True,
+    ("diazo", "carboximidic_acid"): True,
+    ("diazo", "carboximidothioic_acid"): True,
     # Acid subsumes simpler patterns
     ("carboxylic_acid", "alcohol"): True,
     ("carboxylic_acid", "ketone"): True,
