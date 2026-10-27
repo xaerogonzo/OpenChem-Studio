@@ -1,0 +1,147 @@
+{
+ "about": "The inputs behind the S-H arm (Arm D) and the bromine arm (Arm C-Br) of benchmarks/restart_v3/PREREGISTRATION.md, as the papers print them, so tests/test_restart_v3_references.py can recompute every derived number instead of restating it. Nothing here has been computed by the application. Written 2026-10-27.",
+ "constants": {
+  "ionization_energy_of_hydrogen_ev": 13.598434599702,
+  "kj_per_mol_per_ev": 96.48533212,
+  "kj_per_kcal": 4.184,
+  "d0_to_d298_ethanethiol_kj": 5.2,
+  "d0_to_d298_ethanethiol_source": "ervin2015: D0(C2H5S-H) = 359.5 kJ/mol and D298 = 364.7 kJ/mol with thermal enthalpy corrections computed there for the ethyl radical only",
+  "borrowed_thermal_uncertainty_kj": 1.0,
+  "borrowed_thermal_note": "MY estimate, not published: the same +5.2 kJ/mol is added to the propyl and tert-butyl radicals, and 1.0 kJ/mol is added in quadrature for borrowing it. To be replaced by a computed or published correction before the freeze (section 10)."
+ },
+ "sh_bonds": [
+  {
+   "name": "ethanethiol S-H",
+   "parent_smiles": "CCS",
+   "role": "Arm D deciding",
+   "acidity_dH0_kj": 1483.6,
+   "acidity_dH0_uncertainty_kj": 1.7,
+   "acidity_source": "ervin2015 Table 3 (95% level)",
+   "electron_affinity_ev": 1.947,
+   "electron_affinity_uncertainty_ev": 0.013,
+   "electron_affinity_source": "moran1988 (the value Ervin used); janousek1980 gives 1.953 +- 0.006",
+   "published_d0_kj": 359.5,
+   "published_d0_uncertainty_kj": 2.1,
+   "published_d298_kj": 364.7,
+   "published_d298_uncertainty_kj": 2.2,
+   "published_d298_kcal": 87.16,
+   "published_d298_uncertainty_kcal": 0.53,
+   "d298_status": "published (ervin2015 abstract and Ethanethiol section)"
+  },
+  {
+   "name": "1-propanethiol S-H",
+   "parent_smiles": "CCCS",
+   "role": "Arm D deciding",
+   "acidity_dH0_kj": 1481.0,
+   "acidity_dH0_uncertainty_kj": 1.6,
+   "acidity_source": "ervin2015 Table 3 (95% level)",
+   "electron_affinity_ev": 2.00,
+   "electron_affinity_uncertainty_ev": 0.02,
+   "electron_affinity_source": "janousek1980 (EA of n-C3H7S)",
+   "d298_status": "DERIVED here from the two printed inputs plus a borrowed thermal correction; not a published number",
+   "stated_d0_kj": 361.92,
+   "stated_d298_kcal": 87.74,
+   "stated_d298_uncertainty_kcal": 0.65
+  },
+  {
+   "name": "2-propanethiol S-H",
+   "parent_smiles": "CC(C)S",
+   "role": "Arm D deciding",
+   "acidity_dH0_kj": 1476.5,
+   "acidity_dH0_uncertainty_kj": 1.7,
+   "acidity_source": "ervin2015 Table 3 (95% level)",
+   "electron_affinity_ev": 2.02,
+   "electron_affinity_uncertainty_ev": 0.02,
+   "electron_affinity_source": "janousek1980 (EA of i-C3H7S)",
+   "d298_status": "DERIVED here from the two printed inputs plus a borrowed thermal correction; not a published number",
+   "stated_d0_kj": 359.35,
+   "stated_d298_kcal": 87.13,
+   "stated_d298_uncertainty_kcal": 0.66
+  },
+  {
+   "name": "2-methyl-2-propanethiol S-H",
+   "parent_smiles": "CC(C)(C)S",
+   "role": "excluded: the radical has 14 atoms, over the 12-atom cap of decision D1",
+   "acidity_dH0_kj": 1472.7,
+   "acidity_dH0_uncertainty_kj": 1.7,
+   "acidity_source": "ervin2015 Table 3 (95% level)",
+   "electron_affinity_ev": 2.07,
+   "electron_affinity_uncertainty_ev": 0.02,
+   "electron_affinity_source": "janousek1980 (EA of t-C4H9S)",
+   "d298_status": "DERIVED here from the two printed inputs plus a borrowed thermal correction; not a published number",
+   "stated_d0_kj": 360.38,
+   "stated_d298_kcal": 87.37,
+   "stated_d298_uncertainty_kcal": 0.66
+  }
+ ],
+ "sh_context": {
+  "note": "Not part of Arm D. Methanethiol's S-H is the first run's lost bond (spent): nicovich1992 Table IX gives 87.35 +- 0.58 kcal/mol at 298 K (85.96 +- 0.68 at 0 K, 2 sigma), ervin2015 uses D0 = 359.7 +- 1.5 kJ/mol as an anchor of the same acidity network, so every Arm D reference shares that anchor with it. Thiophenol is NOT in the arm: borgesdossantos2002 gives 349.4 +- 4.5 kJ/mol (83.5 +- 1.1 kcal/mol, gas phase derived from solution calorimetry) and lim2007 gives D0 = 76.8 +- 0.3 kcal/mol at 0 K; they disagree by about 5 kcal/mol and neither is a 1.0 kcal/mol reference."
+ },
+ "bromine_bonds": [
+  {
+   "name": "bromomethane C-H",
+   "arm": "C-Br, reported only",
+   "kinetics_kj": 427.2,
+   "kinetics_uncertainty_kj": 2.4,
+   "kinetics_source": "seetula2003",
+   "other_determinations_kj": [
+    {"value": 425.1, "uncertainty": 4.2, "method": "bromination (Luo Table 3.5, key 1987TSC/PAD)"},
+    {"value": 426.8, "uncertainty": 8.4, "method": "TCT, 1958 (Luo Table 3.5)"},
+    {"value": 421.7, "uncertainty": 8.4, "method": "electron ionization (Luo Table 3.5)"}
+   ],
+   "theory_fpd_kj": 420.5,
+   "theory_g3mp2_kj": 420.8,
+   "theory_source": "andress2026 Table 2 (no uncertainty stated)"
+  },
+  {
+   "name": "dibromomethane C-H",
+   "arm": "C-Br, reported only",
+   "kinetics_kj": 412.6,
+   "kinetics_uncertainty_kj": 2.7,
+   "kinetics_source": "seetula2008",
+   "other_determinations_kj": [
+    {"value": 417.1, "uncertainty": 7.5, "method": "bromination (Luo Table 3.5)"},
+    {"value": 409.6, "uncertainty": 8.4, "method": "electron ionization (Luo Table 3.5)"},
+    {"value": 411.0, "uncertainty": null, "method": "review, key 2000BOR/ING (Luo Table 3.5)"},
+    {"value": 433.9, "uncertainty": 8.4, "method": "TCT, 1958 (Luo Table 3.5)"}
+   ],
+   "theory_fpd_kj": 407.4,
+   "theory_g3mp2_kj": 406.5,
+   "theory_source": "andress2026 Table 2 (no uncertainty stated)"
+  },
+  {
+   "name": "bromochloromethane C-H",
+   "arm": "C-Br, reported only",
+   "kinetics_kj": 406.0,
+   "kinetics_uncertainty_kj": 2.4,
+   "kinetics_source": "seetula2003",
+   "other_determinations_kj": [
+    {"value": 393.0, "uncertainty": null, "method": "FT-ICR review, key 2000BOR/ING (Luo Table 3.5; no uncertainty printed)"}
+   ],
+   "theory_fpd_kj": 403.8,
+   "theory_g3mp2_kj": 404.4,
+   "theory_source": "andress2026 Table 2 (no uncertainty stated)"
+  },
+  {
+   "name": "bromoethane alpha C-H",
+   "arm": "C-Br, reported only",
+   "kinetics_kj": 415.0,
+   "kinetics_uncertainty_kj": 2.7,
+   "kinetics_source": "seetula2008",
+   "other_determinations_kj": [
+    {"value": 403.3, "uncertainty": null, "method": "bromination (Luo Table 3.5; no uncertainty printed)"},
+    {"value": 394.1, "uncertainty": 8.6, "method": "electron ionization (Luo Table 3.5)"},
+    {"value": 406.7, "uncertainty": 4.2, "method": "photobromination (Luo Table 3.5)"}
+   ],
+   "theory_fpd_kj": null,
+   "theory_g3mp2_kj": null,
+   "theory_source": "none: andress2026 holds halomethanes only"
+  }
+ ],
+ "bromine_excluded": [
+  {
+   "name": "tribromomethane C-H",
+   "reason": "no reference passes the 1.0 kcal/mol rule: Luo Table 3.5 gives 401.7 +- 6.7 kJ/mol (96.0 +- 1.6 kcal/mol) and 399.2 +- 8.4; seetula2000's CBr3 formation enthalpy is an ab initio estimate with +-5 kJ/mol; andress2026 calculates 392.4 (FPD) with no uncertainty."
+  }
+ ]
+}
