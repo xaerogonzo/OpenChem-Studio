@@ -16,7 +16,7 @@ Why do the thiyl radicals keep an imaginary vibration? The bond-dissociation ben
 | `sp_guess_hcore`, `_hueckel`, `_patom`, `sp_default` | other starting orbitals: do they reach another SCF solution |
 | `freq_b3lyp` | B3LYP for the analytic Freq, at the same geometry: is it the functional |
 
-`artifacts/<case>/summary.json` holds each case's numbers and `<variant>/job.inp` and `job.out` the ORCA input and output.
+`artifacts/<case>/summary.json` holds each case's numbers and `<variant>/job.inp` the ORCA input (force-added: `artifacts/` is gitignored). ORCA's own output files (`job.out`) are NOT in the repository: their start-up banner names contributors by first name and `tests/test_no_competitor_names.py` matches one of them. The parsed numbers are in the JSON files here, the inputs are committed, and the full outputs are kept outside Git in the maintainer's records (`D:/_scratch/thiyl_probe_records/`, with the committed subset and every calibration job).
 
 ## What it found
 
@@ -53,7 +53,7 @@ Measures how the smallest stability eigenvalue relates to the analytic-numerical
 
 ## What the calibration found (2026-10-27)
 
-`calibration/` holds the parsed records (`stability.json`, `numfreq.json`, `calibration_table.json`, `selected.json`, `radicals.json`, `unmeasured.json`) and the ORCA input and output of the four radicals that turned out material, and of the one that could not be measured. The other 36 radicals' job outputs (about 11 MB with the stability jobs) are not committed; `calibrate.py` regenerates them.
+`calibration/` holds the parsed records (`stability.json`, `numfreq.json`, `calibration_table.json`, `selected.json`, `radicals.json`, `unmeasured.json`) and the ORCA inputs of the four radicals that turned out material and of the one that could not be measured (`inputs/`). The job outputs (about 14 MB) are not committed (see above); `calibrate.py` regenerates them.
 
 * 65 accepted radicals had a stability analysis; 41 were selected for analytic and numerical frequencies; **40** were measured. The 41st, methyl hydroperoxide's C-H radical, crashed in ORCA's coupled-perturbed SCF step twice (exit code 0xc0000409) and its numerical job stalled; it is in `unmeasured.json`. Fifteen radicals of 10 to 14 atoms were not selected.
 * Four of the 40 are material by the preregistration's rule (a shift of at least 0.25 kcal/mol or a mode 100 cm-1 off): methoxy, ethoxyl, acetyloxyl and acetyl. Their stability eigenvalues are 0.005, 0.006, 0.026 and 0.087 Eh, and 18 of the 36 others have an eigenvalue at or below 0.087. **The stability eigenvalue does not separate them, so there is no threshold** (`benchmarks/restart_v3/PREREGISTRATION.md` section 5).
