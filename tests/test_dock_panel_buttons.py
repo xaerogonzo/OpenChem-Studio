@@ -16,16 +16,7 @@ from openchem.ui.widgets.help_tooltip import help_tooltip_for
 from openchem.ui.report_format import format_report
 
 
-@pytest.fixture
-def widgets():
-    built = []
-    yield built
-    for widget in built:
-        conftest.dispose(widget)
-
-
-@pytest.fixture
-def window(qapp, tmp_path, widgets):
+def _build_window(tmp_path):
     from openchem.app.main_window import MainWindow
     from openchem.app.session import SessionManager
     from openchem.app.settings import Settings
@@ -36,10 +27,47 @@ def window(qapp, tmp_path, widgets):
     settings.set("plugins/project_directory", str(tmp_path / "no_plugins"))
     settings.set("plugins/user_directory", str(tmp_path / "no_user"))
     win = MainWindow(services, settings, SessionManager())
-    widgets.append(win)
     win.show()
-    qapp.processEvents()
     return win
+
+
+@pytest.fixture(scope="module")
+def _shared_window(qapp, tmp_path_factory):
+    """ONE real window for the module. Building a `MainWindow` per test is what made the sibling file push a CI shard
+    over its 30-minute limit, so the tests share it and `window` puts back what they can change."""
+    win = _build_window(tmp_path_factory.mktemp("dock_panel_buttons"))
+    qapp.processEvents()
+    real_recheck = win._structure_check_panel._on_recheck
+    yield win, real_recheck
+    conftest.dispose(win)
+
+
+@pytest.fixture
+def window(_shared_window, qapp):
+    win, real_recheck = _shared_window
+
+    def reset():
+        manager = win._jobs_panel._job_manager
+        for job in list(manager.active_jobs()):
+            manager.finish(job.kind, job.key)
+        win._jobs_panel.refresh()
+        win._results_view._view.clear()
+        win._results_workspace.show_molecule_reader()
+        win._structure_check_panel._on_recheck = real_recheck
+        for dock in win.findChildren(QDockWidget):
+            if dock.parent() is win:
+                dock.setFloating(False)
+        win._classify_timer.stop()
+        win._docks_to_classify.clear()
+        win._user_placed_docks.clear()
+        win.reset_panel_layout()
+        win.statusBar().clearMessage()
+        QApplication.clipboard().clear()
+        qapp.processEvents()
+
+    reset()
+    yield win
+    reset()
 
 
 def _bar(window, name):

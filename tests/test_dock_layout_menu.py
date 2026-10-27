@@ -123,16 +123,7 @@ def test_side_of_maps_qts_areas_and_names_none(qapp):
 # --- the real window ----------------------------------------------------------------------------
 
 
-@pytest.fixture
-def widgets():
-    built = []
-    yield built
-    for widget in built:
-        conftest.dispose(widget)
-
-
-@pytest.fixture
-def window(qapp, tmp_path, widgets):
+def _build_window(tmp_path):
     from openchem.app.main_window import MainWindow
     from openchem.app.session import SessionManager
     from openchem.app.settings import Settings
@@ -143,10 +134,66 @@ def window(qapp, tmp_path, widgets):
     settings.set("plugins/project_directory", str(tmp_path / "no_plugins"))
     settings.set("plugins/user_directory", str(tmp_path / "no_user"))
     win = MainWindow(services, settings, SessionManager())
-    widgets.append(win)
     win.show()
-    qapp.processEvents()
     return win
+
+
+@pytest.fixture(scope="module")
+def _shared_window(qapp, tmp_path_factory):
+    """ONE real window for the module, with each dock's starting features recorded.
+
+    Building a `MainWindow` is the expensive part of every test here, and in a shard process that has been running
+    for twenty minutes it costs several times what it does alone: with a window per test this file added about two
+    minutes to the tightest shard and pushed it over its 30-minute limit. The tests share the window and `window`
+    puts it back before and after each one.
+    """
+    win = _build_window(tmp_path_factory.mktemp("dock_layout_menu"))
+    qapp.processEvents()
+    defaults = {
+        d.objectName(): (d.features(), d.allowedAreas())
+        for d in win.findChildren(QDockWidget)
+        if d.parent() is win
+    }
+    yield win, defaults
+    conftest.dispose(win)
+
+
+def _reset(win, defaults, qapp) -> None:
+    """Everything a test here can change, put back: expansion, pending classification, features, placement, size."""
+    win._expand_timer.stop()
+    win._expand_state = None
+    win._classify_timer.stop()
+    win._docks_to_classify.clear()
+    for dock in win.findChildren(QDockWidget):
+        if dock.parent() is not win or dock.objectName() not in defaults:
+            continue
+        features, allowed = defaults[dock.objectName()]
+        dock.setFloating(False)
+        dock.setFeatures(features)
+        dock.setAllowedAreas(allowed)
+    win._user_placed_docks.clear()
+    win.resize(1700, 900)
+    win.reset_panel_layout()
+    win.statusBar().clearMessage()
+    for _ in range(3):
+        qapp.processEvents()
+
+
+@pytest.fixture
+def window(_shared_window, qapp):
+    win, defaults = _shared_window
+    _reset(win, defaults, qapp)
+    yield win
+    _reset(win, defaults, qapp)
+
+
+@pytest.fixture
+def fresh_window(qapp, tmp_path):
+    """A window of its own, for the one test that closes it."""
+    win = _build_window(tmp_path)
+    qapp.processEvents()
+    yield win
+    conftest.dispose(win)
 
 
 def _dock(window, name) -> QDockWidget:
@@ -350,8 +397,8 @@ def _sizes(window) -> dict[str, tuple[int, int]]:
 
 @pytest.fixture
 def roomy(window, qapp):
-    """A window wide enough that the right dock has somewhere to grow, as the default one on a laptop screen is not."""
-    window.resize(1700, 900)
+    """The shared window is already 1700 px wide, so the right dock has somewhere to grow, as the default one on a
+    laptop screen has not."""
     _settle(qapp)
     return window
 
@@ -463,7 +510,10 @@ def test_the_report_says_which_panel_is_expanded(roomy, qapp):
     assert roomy.dock_layout_report()["expanded"] == "Properties"
 
 
-def test_closing_while_expanded_saves_the_normal_layout_not_the_expanded_one(roomy, qapp, monkeypatch):
+def test_closing_while_expanded_saves_the_normal_layout_not_the_expanded_one(fresh_window, qapp, monkeypatch):
+    roomy = fresh_window
+    roomy.resize(1700, 900)
+    _settle(qapp)
     props = _dock(roomy, "Properties")
     base = props.width()
     roomy.expand_dock(props)
