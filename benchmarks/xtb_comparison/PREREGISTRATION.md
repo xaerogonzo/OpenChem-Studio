@@ -1,6 +1,6 @@
 # xtb against ORCA (and Psi4): what is the tight-binding engine good for? Preregistration
 
-**Status: DRAFT, 2026-10-27, NOT FROZEN. Nothing in it has been run, and no job of any arm exists.** Section 12 lists the decisions that are Alex's to make before this is frozen; until they are made and recorded in section 13, the numbers below are proposals with reasons, not a rule. When frozen, the runner (`run_comparison.py`) and the judge (`judge.py`, tested by `tests/test_xtb_comparison_judge.py`) are committed with it before the first job, the judge being the rule in section 8 as code. Where this text and that code disagree, the disagreement is a defect in one of them and is fixed before any run, never after.
+**Status: FROZEN 2026-10-27 (section 13 records how), before any job of any arm.** The runner (`run_comparison.py`, tested by `tests/test_xtb_comparison_runner.py`) and the judge (`judge.py`, tested by `tests/test_xtb_comparison_judge.py`, the rule of section 8 as code) are committed with this file. It changes only by an amendment section that says what and why, and an amendment made after any job has run needs a new plan. Where this text and that code disagree, the disagreement is a defect in one of them and is fixed before any run, never after.
 
 ## 1. The question, and what it is not
 
@@ -23,8 +23,8 @@ Each is a claim the application could end up making in its words (a tooltip, a n
 
 * **Set S (small, 16): the Psi4 agreement set**, so that the engines are compared on molecules already characterized there: water `O`, methane `C`, chloromethane `CCl`, ethanol `CCO`, dimethyl ether `COC`, acetic acid `CC(=O)O`, methyl formate `COC=O`, acetone `CC(C)=O`, propanal `CCC=O`, benzene `c1ccccc1`, pyridine `c1ccncc1`, fluorobenzene `Fc1ccccc1`, thiophene `c1ccsc1`, dimethyl sulfoxide `CS(C)=O`, acetate `CC(=O)[O-]` (charge -1), hydroxyl radical `[OH]` (multiplicity 2). **Judged: the 14 neutral closed-shell molecules.** The anion and the radical are **reported, not judged** (one each cannot support a rule; they are where a tight-binding method is least trusted, so they are shown). Isomer pairs for C2: ethanol / dimethyl ether, acetone / propanal, acetic acid / methyl formate.
 * **Set M (medium, 6): molecules a user draws**, within what an ORCA B3LYP/def2-SVP optimization finishes in about an hour: aspirin `CC(=O)Oc1ccccc1C(=O)O`, paracetamol `CC(=O)Nc1ccc(O)cc1`, nicotinamide `NC(=O)c1cccnc1`, caffeine `Cn1cnc2c1c(=O)n(C)c(=O)n2C`, 2-phenylethanol `OCCc1ccccc1`, ethyl acetate `CCOC(C)=O`. All judged (closed-shell neutrals).
-* **Set F (flexible, 5), for conformer energies:** 1,2-ethanediol `OCCO`, glycine `NCC(=O)O`, 1,2-dimethoxyethane `COCCOC`, ethyl acetate `CCOC(C)=O`, N-methylacetamide `CC(=O)NC`. **Conformers by rule:** 50 ETKDG embeddings (seed 7), MMFF-optimized, pruned at 0.5 A heavy-atom RMSD, the lowest 6 by MMFF energy kept (fewer if fewer survive). Each is an independent start.
-* A molecule on which an engine does not finish (30 minutes per job at most, as in the Psi4 plan) or whose output does not parse is a **missing cell**, never a pass and never dropped silently.
+* **Set F (flexible, 5), for conformer energies:** 1,2-ethanediol `OCCO`, glycine `NCC(=O)O`, 1,2-dimethoxyethane `COCCOC`, ethyl acetate `CCOC(C)=O`, N-methylacetamide `CC(=O)NC`. **Conformers by rule:** 300 ETKDG embeddings (seed 7), MMFF-optimized, taken in MMFF-energy order and pruned at 0.3 A RMSD over ALL atoms (a hydroxyl or carboxylic hydrogen turned the other way is a conformer), the lowest 6 kept (fewer if fewer survive). Each is an independent start.
+* A molecule on which an engine does not finish (one hour per job at most, in the runner as `TIMEOUT_SECONDS`) or whose output does not parse is a **missing cell**, never a pass and never dropped silently.
 
 ## 4. The arms
 
@@ -80,6 +80,14 @@ A tolerance fixed by guess is a tolerance fitted to nothing. Two floors, on a fl
 
 Each claim has its own verdict. Nothing is pooled and there is no overall pass.
 
+**Details the code fixes, stated here so the text and the code say the same (decided at the freeze, before any job):**
+* A molecule missing either structure is a row with no value and counts as a missing cell for C1 and C3; the share is over the judged molecules (20).
+* C1's bond-length deviation is, per molecule, the mean absolute difference of its own bond lengths between the two structures; the rule reads the median of those over molecules. RMSD is over heavy atoms in the molecules' shared atom order (no symmetry permutation: both structures come from one start).
+* C2 pairs are the three isomer pairs and all pairs among the conformers of one molecule that are mapped. A conformer whose xtb or ORCA job is missing keeps its pairs as MISSING cells (never dropped); one that is present in both but on a different minimum is listed as unmapped and its pairs are not formed. Energies are electronic, without zero-point or thermal terms. The difference is E_first - E_second in the order the pair is written.
+* C2's ordering test needs at least one pair whose reference difference exceeds 1 kcal/mol. With none, the test cannot be applied, the MAE tier stands, and the report says so.
+* C3's p-value is `scipy.stats.wilcoxon(differences, alternative="less", zero_method="wilcox")` on cycles(xtb start) - cycles(MMFF start): zero differences are dropped, and all-zero differences give p = 1. Cycles are the highest `GEOMETRY OPTIMIZATION CYCLE n` ORCA printed.
+* C3's faster-in-total test compares ORCA's seconds from the MMFF start with ORCA's seconds from the xtb start plus the xtb optimization's seconds, per molecule.
+
 ## 9. What each verdict does (decided now)
 
 * **C1 PASS:** the user guide and the xtb tab's note may say that the xtb structure agrees with the application's ORCA B3LYP/def2-SVP structure to within the measured numbers, on these molecules. **PARTIAL / FAIL:** the xtb geometry is offered as a quick, rough structure only, and the note says so with the measured median.
@@ -106,9 +114,17 @@ Each claim has its own verdict. Nothing is pooled and there is no overall pass.
 * **D2, the energy reference.** B3LYP-D3BJ def2-TZVP single points on the ORCA structures, against which the C2 tier is read, because the preset has no dispersion and GFN2 does. Alternative: judge against the plain preset as well, which would tend to mark xtb down for a difference that is dispersion.
 * **D3, the thresholds** of section 8 (C1: 0.05 / 0.15 / 0.30 A median-and-maximum bounds and 0.015 A for bonds; C2: tiers at 1 and 3 kcal/mol and 0.90 ranking; C3: 0.80 cycle ratio, p 0.05, 90% same minimum). Each is a proposal with no source behind it; they are chosen so that a PASS means a difference a person would not see (C1), a tier a person can act on (C2) and a real saving (C3). Change any before the freeze, never after the first job.
 * **D4, the molecule sets.** Set M and set F are proposals; the Psi4 set S is inherited. Add or remove any before the freeze.
-* **D5, ORCA time.** Arm P and arm G run about 60 ORCA optimizations at an hour at most each, plus 30-odd single points. Say if that is acceptable on the machine, or whether set M should be shorter.
+* **D5, ORCA time.** The drafted estimate ("about 60 optimizations") was too low: the lists in the runner give 79 ORCA optimizations (12 floor, 22 arm G, 23 conformers, 22 arm P), 29 ORCA single points, 16 Psi4 optimizations and 118 xtb jobs, an hour at most each for ORCA. Say if that is acceptable on the machine, or whether set M should be shorter.
 * **D6, the Psi4 role.** Only a reference-robustness cross-check on set S. Say if Psi4 should also be run on set M.
 
 ## 13. Record of the freeze
 
-Not yet frozen. When it is: the date, the decisions D1 to D6 as answered, the commit of the runner and the judge, the xtb build hash, and the ORCA and Psi4 versions go here.
+**Frozen 2026-10-27**, by the commit that adds this section together with `run_comparison.py`, `judge.py` and their tests; no job had been run, and the runner's `list` command (which runs nothing) was the only execution of it. The commit is recorded in every job record (`commit`, `dirty`), and a report is refused for mixed or dirty records.
+
+**Decisions of Alex, 2026-10-27: D1 to D6 accepted as proposed** (structures against ORCA B3LYP def2-SVP; energies against B3LYP-D3BJ def2-TZVP single points on the ORCA structures; the thresholds of section 8; sets S, M and F as listed; ORCA time as in D5 with its corrected count; Psi4 only as a cross-check on set S). At the freeze the following were made consistent with the code and are the only edits since the draft: the per-job time limit became one hour (the draft said 30 minutes in one place and an hour in another), the details block under section 8 was added (nothing in it changes a threshold), the conformer rule of set F was changed (see the next paragraph), and D5's job count was corrected from the drafted estimate to the runner's lists.
+
+**The conformer rule was changed at the freeze, after counting what it produced, and this is disclosed rather than hidden.** The drafted rule (50 embeddings, 0.5 A heavy-atom RMSD) kept 3, 1, 12, 3 and 1 conformers for the five molecules (3, 1, 6, 3 and 1 after the cap of 6: 21 possible pairs, 15 of them from one molecule, and none from glycine or N-methylacetamide), too few to support the 12-pair requirement of C2 with any margin. Four rules were counted on the five molecules and nothing else (no engine was run, no energy or structure was looked at): the drafted one, 300 embeddings with 0.3 A all-atom pruning, 300 with 0.5 A all-atom and 300 with 0.3 A heavy-atom. The second was chosen because it is the only one that keeps both ethanediol and glycine (a carboxylic or hydroxyl hydrogen turned over is a conformer a DFT optimization separates) while the cap of 6 per molecule bounds the cost. It keeps 6, 6, 6, 3 and 2 conformers: 23 conformers and at most 49 pairs. Ethyl acetate and N-methylacetamide stay small because they have few distinct conformers under MMFF, which is a property of the molecules and not changed.
+
+**Pinned inputs:** xtb 6.7.1pre, sha256 `043e578da4a7e114a4d584972959a875e3ffb9f2767a86723b95aa6719d28d9c`; ORCA and Psi4 are whatever is installed at `D:\ORCA\orca.exe` and the Psi4 spike, their versions recorded in each job's `engine_version`; RDKit and the xtb provider as in the committed tree.
+
+**Run order, so nothing is decided by what is seen:** `floor`, `geometry`, `conformers`, `reference`, `preopt`, `gfn1`, then `report`. The report is run once, after every stage; a stage may be resumed but its jobs are never edited or re-planned.
