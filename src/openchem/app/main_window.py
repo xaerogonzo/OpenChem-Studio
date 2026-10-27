@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from functools import partial
 
 import logging
@@ -133,12 +133,12 @@ from openchem.ui.dialogs.goal_wizard_dialog import GoalWizardDialog
 from openchem.ui.dialogs.lewis_pairing_dialog import LewisPairingDialog, PairingContext, PairingHost
 from openchem.ui.dialogs.score_dialog import ScoreDialog, ScoreHost
 from openchem.ui.panels.docking_panel import DockingPanel
-from openchem.ui.panels.jobs_panel import JobsPanel
+from openchem.ui.panels.jobs_panel import CANCEL_ALL_BUTTON, JobsPanel
 from openchem.ui.panels.project_explorer_panel import ProjectExplorerPanel
 from openchem.ui.panels.property_panel import PropertyPanel
 from openchem.ui.panels.quantum_chemistry_panel import QuantumChemistryPanel
 from openchem.ui.visualization import build_interaction_layers
-from openchem.ui.panels.structure_check_panel import StructureCheckPanel
+from openchem.ui.panels.structure_check_panel import RECHECK_BUTTON, StructureCheckPanel
 from openchem.ui.widgets.checker_status_indicator import CheckerStatusIndicator
 from openchem.app import dock_expansion
 from openchem.app.dock_expansion import ExpandState
@@ -155,7 +155,7 @@ from openchem.ui.widgets.panel_rail import (
 from openchem.ui.widgets.pop_out_host import PopOutHost
 from openchem.ui.widgets.workflow_body import HOME_PROPERTIES, HOME_TAB, WorkflowPlaceholder
 from openchem.ui.widgets.results_view import ResultsView
-from openchem.ui.widgets.results_workspace import ResultsWorkspace
+from openchem.ui.widgets.results_workspace import REPORT_MENU, ResultsWorkspace
 from openchem.ui.widgets.molecule_editor_widget import MoleculeEditorWidget
 from openchem.ui.widgets.molecule_viewer3d_widget import MoleculeViewer3DWidget
 from openchem.ui.widgets.molstar_viewer_backend import MolStarViewerBackend
@@ -859,6 +859,7 @@ class MainWindow(QMainWindow):
         if not isinstance(title_bar, DockTitleBar):
             raise RuntimeError("The Results dock has no title bar to hold its pop-out button")
         title_bar.add_control(self._results_host.pop_out_button())
+        self._register_panel_buttons()
         # The panel owns the results and the reading position; the reader
         # renders them. Attached rather than constructed there, because the
         # dock belongs to the window and the panel must work without one --
@@ -1044,6 +1045,38 @@ class MainWindow(QMainWindow):
         return dock
 
     # --- the layout menu on every panel's title bar ---------------------------
+
+    def _register_panel_buttons(self) -> None:
+        """Each panel's own buttons, in its dock's title bar (see `ui/widgets/dock_panel_actions.py`).
+
+        Done here, once every dock exists, because the dock's widget is usually a scroll area around the panel and
+        the panel cannot reach its own title bar. Each button starts in the panel's CURRENT state and is then kept
+        current by a signal; every slot is a bound method of a QObject, never a lambda over this window.
+        """
+        workspace = self._results_workspace
+        results_bar = self._results_dock.titleBarWidget()
+        report = results_bar.add_menu_button(
+            replace(REPORT_MENU, enabled=workspace.report_actions_available()),
+            {"copy": workspace.copy_report, "export": workspace.export_report},
+        )
+        workspace.report_actions_available_changed.connect(report.set_enabled)
+
+        check_bar = self._structure_check_dock.titleBarWidget()
+        check_bar.add_button(RECHECK_BUTTON, self._structure_check_panel.recheck)
+
+        jobs_bar = self._dock_named("Jobs").titleBarWidget()
+        self._cancel_all_handle = jobs_bar.add_button(
+            replace(CANCEL_ALL_BUTTON, enabled=self._jobs_panel.cancellable_count() > 0),
+            self._jobs_panel.cancel_all_jobs,
+        )
+        self._jobs_panel.cancellable_count_changed.connect(self._on_cancellable_jobs_changed)
+        self._jobs_panel.status_message.connect(self._on_jobs_status_message)
+
+    def _on_cancellable_jobs_changed(self, count: int) -> None:
+        self._cancel_all_handle.set_enabled(count > 0)
+
+    def _on_jobs_status_message(self, message: str) -> None:
+        self.statusBar().showMessage(message, 12000)
 
     def _dock_named(self, name: str) -> QDockWidget | None:
         for dock in self.findChildren(QDockWidget):

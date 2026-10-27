@@ -39,6 +39,12 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from openchem.ui.widgets.dock_panel_actions import (
+    PanelActionHandle,
+    PanelButton,
+    PanelMenuButton,
+    Slots,
+)
 from openchem.ui.widgets.help_tooltip import HelpTooltip, apply_help_tooltip
 
 
@@ -218,6 +224,35 @@ class DockTitleBar(QWidget):
         widget.setFocusPolicy(Qt.FocusPolicy.NoFocus)
         self._layout.insertWidget(self._controls_end, widget)
         self._controls_end += 1
+
+    def add_button(self, spec: PanelButton, slot) -> PanelActionHandle:
+        """Put a panel's button in the bar (see `dock_panel_actions`). `slot` is a bound method of a QObject."""
+        button = self._make_button(
+            spec.text, spec.tooltip, slot, name=f"dockAction_{spec.name}", accessible=spec.accessible,
+            icon=self.style().standardIcon(spec.icon) if spec.icon is not None else None,
+        )
+        button.setEnabled(spec.enabled)
+        self.add_control(button)
+        return PanelActionHandle(button, self)
+
+    def add_menu_button(self, spec: PanelMenuButton, slots: Slots) -> PanelActionHandle:
+        """Put a panel's menu button in the bar; each entry has its own contract and its own slot."""
+        button = self._make_button(
+            spec.text, spec.tooltip, None, name=f"dockAction_{spec.name}", accessible=spec.accessible,
+            icon=self.style().standardIcon(spec.icon) if spec.icon is not None else None,
+        )
+        menu = QMenu(button)
+        menu.setObjectName(f"dockActionMenu_{spec.name}")
+        for item in spec.items:
+            action = menu.addAction(item.text)
+            action.setObjectName(f"dockActionItem_{spec.name}_{item.key}")
+            apply_help_tooltip(action, item.tooltip)
+            action.triggered.connect(slots[item.key])
+        button.setMenu(menu)
+        button.setPopupMode(QToolButton.ToolButtonPopupMode.InstantPopup)
+        button.setEnabled(spec.enabled)
+        self.add_control(button)
+        return PanelActionHandle(button, self)
 
     def layout_menu(self) -> QMenu:
         """The menu behind the layout button, for the window that connects to its `triggered`."""
