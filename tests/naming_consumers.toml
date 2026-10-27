@@ -501,6 +501,12 @@ scope = "core"
 owner = "namer"
 
 [[consumer]]
+file = "tests/test_namer_round88_spiro_joints_to_bridged_partners_and_hetero_spiro_atoms.py"
+why = "spiro joints to bridged and von Baeyer-named fused partners (norcarane, bicyclo[3.2.0], tricyclo[3.2.1.0^{3,6}]octane, two polycyclic partners) and a silicon, N+ or P+ spiro atom (D-381 to D-384): the spiro locant, the pinned tricyclic numbering, the rank of the articulation-split name, and the `<loc>-azonia` / `<loc>-phosphonia` prefix, each read back by OPSIN"
+scope = "core"
+owner = "namer"
+
+[[consumer]]
 file = "tests/test_namer_round86_curated_ring_labels_follow_the_rings_bonds.py"
 why = "every curated ring's consecutive locants are bonded or joined by one atom, with the 17 numbering conventions listed (D-380: the tetracenetrione's C1 and C3 were swapped against C12a)"
 scope = "core"
