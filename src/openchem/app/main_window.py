@@ -140,6 +140,7 @@ from openchem.ui.panels.quantum_chemistry_panel import QuantumChemistryPanel
 from openchem.ui.visualization import build_interaction_layers
 from openchem.ui.panels.structure_check_panel import StructureCheckPanel
 from openchem.ui.widgets.checker_status_indicator import CheckerStatusIndicator
+from openchem.ui.widgets.dock_layout_menu import SIDE_AREAS, DockMenuState, populate_layout_menu, side_of
 from openchem.ui.widgets.dock_title_bar import DockTitleBar
 from openchem.ui.panels.comparison_panel import ComparisonPanel
 from openchem.ui.fact_link_router import FactLinkRouter
@@ -1008,18 +1009,136 @@ class MainWindow(QMainWindow):
         #
         # Only for docks WITH a topic: a "?" that opened the wrong section
         # would be worse than none, and Console and Jobs have nothing
-        # written about them.
+        # written about them. EVERY dock gets the title bar, though, because
+        # the layout menu is for all of them; a dock with no topic just has
+        # no "?".
         topic = help_topic_of_dock(dock.objectName())
+        # The topic travels on the title bar and comes back through the
+        # signal. A `lambda topic=topic: self._show_help(topic)` here
+        # leaked this window permanently -- PySide6 holds a connected
+        # plain callable strongly, so the closure's captured `self`
+        # survives refcounting AND the cyclic collector. The layout menu
+        # follows the same rule: one bound method for the whole menu, the
+        # action carrying which dock and what to do.
+        title_bar = DockTitleBar(dock, show_help=topic is not None, help_topic=topic or "")
         if topic is not None:
-            # The topic travels on the title bar and comes back through the
-            # signal. A `lambda topic=topic: self._show_help(topic)` here
-            # leaked this window permanently -- PySide6 holds a connected
-            # plain callable strongly, so the closure's captured `self`
-            # survives refcounting AND the cyclic collector.
-            title_bar = DockTitleBar(dock, help_topic=topic)
             title_bar.help_requested.connect(self._show_help)
-            dock.setTitleBarWidget(title_bar)
+        title_bar.layout_menu_requested.connect(self._on_dock_layout_menu_requested)
+        title_bar.layout_menu().triggered.connect(self._on_dock_menu_triggered)
+        dock.setTitleBarWidget(title_bar)
         return dock
+
+    # --- the layout menu on every panel's title bar ---------------------------
+
+    def _dock_named(self, name: str) -> QDockWidget | None:
+        for dock in self.findChildren(QDockWidget):
+            if dock.parent() is self and dock.objectName() == name:
+                return dock
+        return None
+
+    def _dock_menu_state(self, dock: QDockWidget) -> DockMenuState:
+        """What the layout menu needs to know about `dock`, read at the moment the menu opens."""
+        name = dock.objectName()
+        allowed = tuple(side for side, area in SIDE_AREAS.items() if dock.allowedAreas() & area)
+        features = dock.features()
+        floating = dock.isFloating()
+        side = "none" if floating else side_of(self.dockWidgetArea(dock))
+        default_side = side_of(self._default_dock_areas.get(name, Qt.DockWidgetArea.RightDockWidgetArea))
+        placed = name in self._user_placed_docks
+        companions = [
+            other for other in self.findChildren(QDockWidget)
+            if other is not dock and other.parent() is self
+            and not other.isHidden() and not other.isFloating()
+            and self.dockWidgetArea(other) == self.dockWidgetArea(dock)
+        ] if not floating else []
+        in_rail = name in self._panel_rail.panel_ids()
+        targets = tuple(
+            (panel_id, self._panel_rail.title_of(panel_id))
+            for panel_id in self._panel_rail.panel_ids()
+            if panel_id != name and self._dock_by_panel_id(panel_id) is not None
+        )
+        needs_nothing = (not floating) and side == default_side and not placed and not companions
+        return DockMenuState(
+            dock=name,
+            floating=floating,
+            side=side,
+            movable=bool(features & QDockWidget.DockWidgetFeature.DockWidgetMovable),
+            floatable=bool(features & QDockWidget.DockWidgetFeature.DockWidgetFloatable),
+            allowed=allowed,
+            targets=targets,
+            locked=(placed if in_rail else None),
+            default_side=default_side,
+            default_side_legal=default_side in allowed,
+            return_enabled=not needs_nothing,
+            return_reason="It is already on its starting side, alone and unlocked." if needs_nothing else "",
+        )
+
+    def _on_dock_layout_menu_requested(self, dock: QDockWidget, menu) -> None:
+        populate_layout_menu(menu, self._dock_menu_state(dock))
+
+    def _on_dock_menu_triggered(self, action) -> None:
+        """Every entry of every panel's layout menu comes here; the action says which dock and what to do."""
+        data = action.data()
+        if not (isinstance(data, tuple) and len(data) == 3):
+            return
+        kind, name, argument = data
+        dock = self._dock_named(name)
+        if dock is None:
+            return
+        if kind == "move":
+            self.move_dock_to(dock, SIDE_AREAS[argument])
+        elif kind == "float":
+            dock.setFloating(True)
+        elif kind == "dock_back":
+            dock.setFloating(False)
+        elif kind == "alongside":
+            self._on_panel_chosen_alongside(argument)
+        elif kind == "lock":
+            self._on_panel_lock_toggled(name)
+        elif kind == "return":
+            self.return_dock_to_default_side(dock)
+
+    def _redock(self, dock: QDockWidget, area: Qt.DockWidgetArea) -> None:
+        """Put `dock` in `area`, keeping it shown or hidden exactly as it was.
+
+        `removeDockWidget` HIDES the dock (Qt documents it), so a visible one has to be shown again on purpose,
+        and a floating one -- which `addDockWidget` docks -- counts as visible. Runs outside `_arranging`, so the
+        window sees it as the user's own move, and queues the classification itself rather than counting on the
+        signals `addDockWidget` happens to emit.
+        """
+        shown = not dock.isHidden()
+        if dock.isFloating():
+            dock.setFloating(False)
+        self.removeDockWidget(dock)
+        self.addDockWidget(area, dock)
+        dock.setVisible(shown)
+        self._docks_to_classify.add(dock)
+        self._classify_timer.start()
+
+    def move_dock_to(self, dock: QDockWidget, area: Qt.DockWidgetArea) -> None:
+        """Layout menu > Move to: dock `dock` on the side `area`, if it may go there."""
+        if not (dock.features() & QDockWidget.DockWidgetFeature.DockWidgetMovable):
+            return
+        if not (dock.allowedAreas() & area):
+            return
+        self._redock(dock, area)
+
+    def return_dock_to_default_side(self, dock: QDockWidget) -> None:
+        """Layout menu > Return to default side: re-dock on the side it started on, and nothing more.
+
+        `_default_dock_areas` records a side only -- not a split, a size or the panels beside it -- so this does
+        not claim to restore the original arrangement. The panel's placed flag is cleared and the classifier
+        decides it again, exactly as for a drag: alone on its side it is rail-managed once more, beside another
+        visible panel it is placed. No other panel's flag is touched.
+        """
+        name = dock.objectName()
+        area = self._default_dock_areas.get(name)
+        if area is None or not (dock.allowedAreas() & area):
+            return
+        self._docks_to_classify.discard(dock)
+        self._user_placed_docks.discard(name)
+        self._redock(dock, area)
+        self._sync_rail_locks()
 
     # --- which right-hand panel is in front ----------------------------------
 
@@ -1162,6 +1281,10 @@ class MainWindow(QMainWindow):
         rail is put back on Properties -- the same arrangement construction
         produces.
         """
+        # A classification queued by an earlier move would otherwise fire AFTER this reset and mark a dock
+        # that was just put back as placed again; drop it first, so nothing older can undo the reset.
+        self._classify_timer.stop()
+        self._docks_to_classify.clear()
         self._arranging = True
         try:
             for dock in self.findChildren(QDockWidget):

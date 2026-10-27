@@ -48,6 +48,13 @@ def _buttons(bar: DockTitleBar) -> list[QToolButton]:
     return bar.findChildren(QToolButton)
 
 
+def _named(bar: DockTitleBar, name: str) -> QToolButton:
+    """A control by its stable objectName: the children's order changes whenever a panel adds a button."""
+    found = bar.findChild(QToolButton, name)
+    assert found is not None, name
+    return found
+
+
 def test_the_help_button_is_there_and_emits(dock, qapp):
     _dock, bar = dock
     fired = []
@@ -58,28 +65,35 @@ def test_the_help_button_is_there_and_emits(dock, qapp):
     assert fired == [True]
 
 
-def test_the_float_and_close_buttons_are_put_back(dock):
-    """setTitleBarWidget removes them; a panel that cannot be closed or
-    floated any more is a straight regression against the native bar."""
+def test_the_layout_and_close_buttons_are_put_back(dock):
+    """setTitleBarWidget removes the native buttons; a panel that cannot be closed or floated any more is a
+    straight regression against the native bar. Float now lives in the layout menu, so the bar still has three
+    fixed buttons: the layout menu, help, close."""
     _dock, bar = dock
-    assert len(_buttons(bar)) == 3  # help, float, close
+    assert sorted(b.objectName() for b in _buttons(bar)) == ["dockCloseButton", "dockHelpButton", "dockLayoutButton"]
 
 
-def test_the_float_button_floats_and_redocks(dock, qapp):
+def test_the_layout_menu_floats_and_redocks_a_panel_on_its_own(dock, qapp):
+    """With no window listening, the menu still offers the one thing a dock on its own can do."""
     widget, bar = dock
-    float_button = _buttons(bar)[1]
     assert not widget.isFloating()
-    float_button.click()
+    bar._fill_menu()
+    [float_action] = [a for a in bar.layout_menu().actions() if a.objectName() == "dockMenu_float"]
+    assert float_action.text() == "Float panel"
+    float_action.trigger()
     qapp.processEvents()
     assert widget.isFloating()
-    float_button.click()
+    bar._fill_menu()
+    [back] = [a for a in bar.layout_menu().actions() if a.objectName() == "dockMenu_float"]
+    assert back.text() == "Dock panel back"
+    back.trigger()
     qapp.processEvents()
     assert not widget.isFloating()
 
 
 def test_the_close_button_closes(dock, qapp):
     widget, bar = dock
-    _buttons(bar)[2].click()
+    _named(bar, "dockCloseButton").click()
     qapp.processEvents()
     assert not widget.isVisible()
 
@@ -126,13 +140,13 @@ def test_buttons_follow_the_docks_features(dock, qapp):
     widget, bar = dock
     widget.setFeatures(QDockWidget.DockWidgetFeature.DockWidgetMovable)
     qapp.processEvents()
-    visible = [b for b in _buttons(bar) if b.isVisibleTo(bar)]
-    assert len(visible) == 1  # help only; not floatable, not closable
+    visible = sorted(b.objectName() for b in _buttons(bar) if b.isVisibleTo(bar))
+    assert visible == ["dockHelpButton", "dockLayoutButton"]  # not closable
 
 
 def test_the_title_bar_shows_the_dock_title(dock):
     _dock, bar = dock
-    assert any(label.text() == "Docking" for label in bar.findChildren(QLabel))
+    assert bar.findChild(QLabel, "dockTitleLabel").fullText() == "Docking"
 
 
 class TestInTheRealWindow:
@@ -165,18 +179,18 @@ class TestInTheRealWindow:
                 without.append(dock.objectName())
         assert not without, f"Panels with a help topic but no help button: {without}"
 
-    def test_panels_without_a_topic_keep_the_native_title_bar(self, qapp, tmp_path, widgets):
-        """A "?" that opened the wrong section would be worse than none,
-        so Console and Jobs -- which nothing is written about -- are left
-        alone rather than pointed at a vaguely related topic."""
+    def test_panels_without_a_topic_have_the_bar_but_no_question_mark(self, qapp, tmp_path, widgets):
+        """A "?" that opened the wrong section would be worse than none, so Console and Jobs -- which nothing is
+        written about -- get the layout menu and close but are not pointed at a vaguely related topic."""
         window = self._window(qapp, tmp_path, widgets)
-        wrongly_customised = [
-            dock.objectName()
-            for dock in window.findChildren(QDockWidget)
-            if dock.objectName() not in HELP_TOPIC_BY_DOCK
-            and isinstance(dock.titleBarWidget(), DockTitleBar)
+        docks = [d for d in window.findChildren(QDockWidget) if d.parent() is window]
+        assert all(isinstance(d.titleBarWidget(), DockTitleBar) for d in docks)
+        wrongly_helped = [
+            d.objectName()
+            for d in docks
+            if d.objectName() not in HELP_TOPIC_BY_DOCK and d.titleBarWidget().help_button() is not None
         ]
-        assert not wrongly_customised
+        assert not wrongly_helped
 
     def test_the_help_button_opens_that_panels_topic(self, qapp, tmp_path, widgets):
         window = self._window(qapp, tmp_path, widgets)
@@ -197,6 +211,27 @@ class TestInTheRealWindow:
         # window. Tracking it too means the fixture reaches a C++ object
         # its parent already freed -- a double-free dressed up as a
         # teardown error.
+
+
+def test_a_long_title_is_shortened_on_purpose_and_kept_whole(dock, qapp):
+    """A QLabel clips; the bar elides, and the whole title stays for a hover and a screen reader."""
+    widget, bar = dock
+    widget.setWindowTitle("A panel with a very long and descriptive title indeed")
+    bar.setWindowTitle(widget.windowTitle())
+    bar.resize(120, bar.height())
+    qapp.processEvents()
+    label = bar.findChild(QLabel, "dockTitleLabel")
+    assert label.text().endswith("…") and len(label.text()) < len(label.fullText())
+    assert label.fullText() == "A panel with a very long and descriptive title indeed"
+    assert bar.toolTip() == label.fullText() and bar.accessibleName() == label.fullText()
+    assert label.testAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents)
+
+
+def test_every_control_has_a_stable_name_and_an_accessible_name(dock):
+    _dock, bar = dock
+    for button in _buttons(bar):
+        assert button.objectName().startswith("dock")
+        assert button.accessibleName(), button.objectName()
 
 
 def test_a_panel_control_sits_after_the_title_and_before_the_docks_own_buttons(dock):
@@ -288,16 +323,20 @@ class TestAPluginPanelsHelp:
         monkeypatch.setattr(QApplication, "focusWidget", staticmethod(lambda: None))
         assert window._help_topic_for_visible_panel() == HELP_TOPIC_BY_PLUGIN_DOCK[name]
 
-    def test_a_plugin_dock_without_a_topic_keeps_the_native_title_bar(self, qapp, tmp_path, widgets):
+    def test_a_plugin_dock_without_a_topic_has_the_bar_and_no_question_mark(self, qapp, tmp_path, widgets):
         window = self._window(qapp, tmp_path, widgets)
         from openchem.app.main_window import help_topic_of_dock
 
-        plain = [
+        docks = [d for d in window.findChildren(QDockWidget) if d.parent() is window]
+        assert docks
+        no_bar = [d.objectName() for d in docks if not isinstance(d.titleBarWidget(), DockTitleBar)]
+        assert not no_bar, f"panels with no layout menu: {no_bar}"
+        wrongly_helped = [
             d.objectName()
-            for d in window.findChildren(QDockWidget)
-            if help_topic_of_dock(d.objectName()) is None and isinstance(d.titleBarWidget(), DockTitleBar)
+            for d in docks
+            if help_topic_of_dock(d.objectName()) is None and d.titleBarWidget().help_button() is not None
         ]
-        assert not plain, f"a '?' on a panel nothing is written about: {plain}"
+        assert not wrongly_helped, f"a '?' on a panel nothing is written about: {wrongly_helped}"
 
     def test_every_topic_a_dock_opens_exists_and_is_named_for_it(self):
         from openchem.app.main_window import HELP_TOPIC_BY_PLUGIN_DOCK

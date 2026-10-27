@@ -372,6 +372,11 @@ class PanelRail(QWidget):
     def panel_ids(self) -> list[str]:
         return list(self._panels)
 
+    def title_of(self, panel_id: str) -> str:
+        """The name the rail lists a panel under, or the id itself for one it does not know."""
+        entry = self._panels.get(panel_id)
+        return entry[0] if entry is not None else panel_id
+
     def current_group(self) -> str:
         return self._group
 
