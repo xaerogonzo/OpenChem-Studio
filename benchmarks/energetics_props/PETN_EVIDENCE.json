@@ -1841,6 +1841,54 @@
    "lineage_root": "gas phase by W1-F12 atomization energies (an isodesmic route for AMDNNM); sublimation or vaporization by the modified Trouton rule of Muravyev et al., Phys. Chem. Chem. Phys. 23 (2021) 15522: a calculation, not a measurement",
    "independent_of_inventory": "yes: a different root from Medard and Thomas, but computed",
    "note": "NIBTN -402 differs by 176 kJ/mol from the -226 NIST prints for the same compound (Medard and Thomas 1949, G02). Putting -226 beside the paper's 94 vaporization estimate would need a gas value near -132, against its W1-F12 -308: a gap far larger than a W1-type calculation usually leaves, so the calculation casts doubt on the 1949 value but does not replace it. The paper cites no enthalpy measurement for NIBTN (refs 18-21: a patent, a 1912 journal, a 1962 handbook, a Wiley book). Primary still unseen"
+  },
+  {
+   "id": "G43",
+   "group": "G_medard_thomas_substitutes",
+   "compound": "RDX, HMX, 1,4-dinitropiperazine (DNPP), 2,4-dinitro-2,4-diazapentane (DNDAP)",
+   "property": "enthalpy_formation_solid_hybrid",
+   "value": "Table 1 (kJ/mol): sublimation measured by modified low-pressure TG, gas phase W1-F12 or W2-F12, solid = gas - sublimation. RDX 130.4 +/- 2.3, gas +197.9, solid +68 (printed literature +66.9 +/- 1.3, +61.5, +71.1 +/- 5.0, +70.3, +79.1 +/- 5.0); HMX 179.1 +/- 7.0, +259.9, +81 (+85.8 +/- 1.7, +87.9 +/- 2.8, +75.0, +77.3, +102.5 +/- 2.8); DNPP 111.1 +/- 1.0, +64.7, -46 (-53.1 +/- 1.7, -55.2, -74.9); DNDAP 95.6 +/- 3.8, +41.3, -54 (-51.6 +/- 0.4, -29.8, -36.6, -21.7, -34.3)",
+   "unit": "kJ/mol",
+   "value_kind": "computed",
+   "phase_form": "solid",
+   "temperature": "298.15 K",
+   "source": "Muravyev, Monogarov, Melnikov, Pivkina and Kiselev, Phys. Chem. Chem. Phys. 23 (2021) 15522-15542, DOI 10.1039/d1cp02201f (rendered pages read, signs checked on the page image; files muravyev2021.pdf and its SI)",
+   "locator": "Table 1, printed pp. 15527-15528",
+   "lineage_root": "sublimation: the paper's own modified-TG measurement; gas phase: a calculation; so a hybrid, not a calorimetric root",
+   "independent_of_inventory": "yes: a different method from every combustion value",
+   "note": "Against the nearest printed literature value this work is within 1.1 (RDX), 3.7 (HMX), 7.1 (DNPP) and 2.4 (DNDAP) kJ/mol, all inside section 8.2's 10. The preregistration does not say whether a calculated-gas-plus-measured-sublimation value is a separate observation under 8.2 (owner question). The literature columns mix calorimetry and calculation without saying which"
+  },
+  {
+   "id": "G44",
+   "group": "G_medard_thomas_substitutes",
+   "compound": "tetryl, nitroguanidine, TEX, CL-20, BC-HMX, DATN",
+   "property": "enthalpy_formation_solid_hybrid",
+   "value": "Table 1 (kJ/mol), same method: tetryl 136.0 +/- 3.1, gas +164.2, solid +28 (literature +29.3 +/- 4.6, +19.6, +43.9, +26.3, +16.7, +20.1, +33.9); nitroguanidine 141.6 +/- 2.4, +51.3, -90 (-92.0 +/- 2.5, -93.7 +/- 1.7, -100 +/- 2.5); TEX 130.9 +/- 2.4, -400, -531 (-540.9, -446, -538, -432); CL-20 171.9 +/- 3.2, +548.5, +377 (+374.9 +/- 0.8, +377.4 +/- 13, +372, +403, +415, +299); BC-HMX 134.6 +/- 2.5, +318.7, +184 (+206.3 +/- 1.7, +125, +84, +104, +236.5); DATN 231 +/- 8, +848.6, +618 (+684, +670)",
+   "unit": "kJ/mol",
+   "value_kind": "computed",
+   "phase_form": "solid",
+   "temperature": "298.15 K",
+   "source": "Muravyev, Monogarov, Melnikov, Pivkina and Kiselev, Phys. Chem. Chem. Phys. 23 (2021) 15522-15542, DOI 10.1039/d1cp02201f (rendered pages read, signs checked on the page image; files muravyev2021.pdf and its SI)",
+   "locator": "Table 1, printed pp. 15527-15528",
+   "lineage_root": "same method as G43",
+   "independent_of_inventory": "yes",
+   "note": "Within 10 kJ/mol of the nearest printed literature value: tetryl (1.3), nitroguanidine (2.0), TEX (7.0, from -538), CL-20 (0.4, from 377.4 +/- 13). Outside it: BC-HMX (22 from 206.3; the five printed values run 84 to 236.5) and DATN (52 from 670; 66 from 684). The paper types CL-20, nitroguanidine and DATN 'E': they decompose even under low pressure, so their sublimation legs carry that risk"
+  },
+  {
+   "id": "G45",
+   "group": "G_medard_thomas_substitutes",
+   "compound": "the sublimation-enthalpy rule behind Rzhevskiy 2023 (G42)",
+   "property": "estimation_rule",
+   "value": "Muravyev 2021 eqn (6), fitted to the paper's own measured sublimation enthalpies: sublimation enthalpy (kJ/mol) = 0.15 Tm (K) + 3.27 [H] + 5.30 [N] + 3.30 [O], with the atom counts; predictions 'within 30 kJ/mol' of the experimental values (Fig. 6). The original Trouton-Williams rule is biased low: average deviation 35 kJ/mol over 63 species",
+   "unit": "kJ/mol",
+   "value_kind": "computed",
+   "phase_form": "n/a",
+   "temperature": "n/a",
+   "source": "Muravyev, Monogarov, Melnikov, Pivkina and Kiselev, Phys. Chem. Chem. Phys. 23 (2021) 15522-15542, DOI 10.1039/d1cp02201f (rendered pages read, signs checked on the page image; files muravyev2021.pdf and its SI)",
+   "locator": "section 3.3, eqn (6), printed p. 15531, Fig. 6",
+   "lineage_root": "an empirical fit, not a measurement",
+   "independent_of_inventory": "yes",
+   "note": "My arithmetic on Rzhevskiy's inputs: NIBTN Tg -58.1 C gives Tm = 1.5 x 215.05 = 322.6 K, and the rule gives 125.5; less the average fusion enthalpy the SI uses (110 J/g = 31.5 kJ/mol) is 94.0, which is the 94 in the SI; NPN gives 82.3 against its 83. So the -402 for NIBTN (G42) rests on an estimate good to about 30 kJ/mol plus a W1-F12 gas value: far less than the 176 kJ/mol gap to NIST's -226"
   }
  ]
 }
