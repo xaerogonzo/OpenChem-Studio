@@ -97,6 +97,21 @@ def families_from_graph(mol) -> dict:
     return {"groups": sorted(present), "family": "other_organic"}
 
 
+def entity_key(mol) -> str:
+    """The entity key of a heavy-atom graph (`PREREGISTRATION.md` 15.3): RDKit's element-graph hash.
+
+    It ignores bond orders, charges and stereochemistry, so every way Open Babel or RDKit may write one molecule's bonds gives one
+    key, and tautomers and stereoisomers share a key (conservative, in the direction of Phase A's first-InChIKey-block key)."""
+    from rdkit import Chem
+    from rdkit.Chem import rdMolHash
+
+    work = Chem.Mol(mol)
+    for atom in work.GetAtoms():
+        atom.SetNoImplicit(True)
+    work.UpdatePropertyCache(strict=False)
+    return rdMolHash.MolHash(work, rdMolHash.HashFunction.ElementGraph)
+
+
 def graph_from_obmol(obmol):
     """An RDKit graph (atoms and single bonds, nothing sanitised) from an Open Babel molecule, one per fragment."""
     from openbabel import openbabel as ob
