@@ -108,19 +108,23 @@ FILE_DIALOGS = "file_dialogs"
 EXTERNAL_TOOLS = "external_tools"
 
 #: Every section, in the order the list shows them, with its label.
+#:
+#: Two runs, each A-Z: how the WINDOW looks and behaves (Appearance first, a test holds it there), then
+#: how CALCULATIONS run. It used to be the order the pages were written in, which put Keyboard between
+#: Calculators and Drawing.
 SECTIONS = (
     (APPEARANCE_SECTION, "Appearance"),
+    (DRAWING, "Drawing"),
+    (FILE_DIALOGS, "File dialogs"),
+    (KEYBOARD, "Keyboard"),
     (PANELS, "Panels"),
     (RECOVERY, "Recovery"),
+    (CALCULATORS, "Calculators"),
+    (CONFORMERS, "Conformers"),
+    (EXTERNAL_TOOLS, "External tools"),
+    (QUANTUM_CHEMISTRY, "Quantum chemistry"),
     (RECALCULATION, "Recalculation"),
     (RESULTS, "Results"),
-    (CALCULATORS, "Calculators"),
-    (KEYBOARD, "Keyboard"),
-    (DRAWING, "Drawing"),
-    (CONFORMERS, "Conformers"),
-    (QUANTUM_CHEMISTRY, "Quantum chemistry"),
-    (FILE_DIALOGS, "File dialogs"),
-    (EXTERNAL_TOOLS, "External tools"),
 )
 
 #: What each remembered folder is FOR, named by the dialogs that use it. The

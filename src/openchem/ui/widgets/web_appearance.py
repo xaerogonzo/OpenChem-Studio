@@ -55,13 +55,13 @@ def call_script(api: str, look: EffectiveAppearance) -> str:
 #: The editor page has no script of ours, so the look is a stylesheet it is given. LIGHT is no stylesheet at
 #: all: the editor the application has always shown.
 #:
-#: DARK darkens the editor's CHROME (the four toolbars) and leaves the DRAWING AREA UNTOUCHED, white, with
-#: nothing between it and the page. That is the whole point: atom colours (nitrogen blue, oxygen red), bond
-#: styles, selection and hover feedback are drawn by the editor in the colours chemists read, and must not be
-#: recoloured by a theme. Each chrome container is inverted on its own (`invert(0.88)` takes the editor's
-#: white to the application's dark surface, #1f1f1f; `hue-rotate(180deg)` brings the coloured element
-#: buttons back to their own hues, approximately, which is acceptable for a button's label and was NOT for a
-#: drawing).
+#: DARK darkens the editor's CHROME (the four toolbars) and its DRAWING AREA, but recolours the drawing by
+#: ONE rule only: ink the editor draws in black becomes the dark surface's light ink. Atom colours (nitrogen
+#: blue, oxygen red), selection and hover feedback are drawn by the editor in the colours chemists read and
+#: are never touched, because no rule names them and nothing is filtered. Each chrome container is inverted
+#: on its own (`invert(0.88)` takes the editor's white to the application's dark surface, #1f1f1f;
+#: `hue-rotate(180deg)` brings the coloured element buttons back to their own hues, approximately, which is
+#: acceptable for a button's label and was NOT for a drawing -- hence the drawing is not filtered).
 #:
 #: **THE WHOLE-PAGE INVERSION WAS TRIED AND FAILED, MEASURED.** Inverting `#root` and inverting the drawing
 #: back leaves the canvas colours changed: nitrogen (48, 139, 249) came back as (97, 120, 249) and oxygen
@@ -75,11 +75,31 @@ KETCHER_CHROME_SELECTORS = (
     '[class*="RightToolbar-module_root"]',
     '[class*="BottomToolbar-module_root"]',
 )
-#: The dark stylesheet: the page background, then the four toolbars inverted. Light is the empty string.
+#: The drawing's own container: the one element whose subtree is the structure's SVG.
+KETCHER_CANVAS = '[class*="StructEditor-module_canvas"]'
+#: What the drawing's INK is, as the editor writes it: bonds, carbon and hydrogen labels, charges and
+#: stereo marks carry the attribute value black (measured on the live page: `#000000` on 27 elements of a
+#: six-atom drawing, never `#333` or a toolbar colour), while every element colour is its own value
+#: (nitrogen `#304ff7`, oxygen `#ff0d0d`, chlorine `#1fd01f`). So a rule on the BLACK values alone turns the
+#: ink light and cannot reach an atom colour, a selection or a hover, which is the thing the rejected
+#: filter could not do.
+_KETCHER_BLACKS = ("#000000", "#000", "black")
+#: The ink as the dark surface shows it: the editor's own near-white.
+_KETCHER_LIGHT_INK = "#e8e8e8"
+#: The two rules that turn the drawing's black ink light, inside the canvas container and nowhere else.
+KETCHER_INK_CSS = (
+    ", ".join(f'{KETCHER_CANVAS} svg [stroke="{black}"]' for black in _KETCHER_BLACKS)
+    + f" {{ stroke: {_KETCHER_LIGHT_INK} !important; }}"
+    + ", ".join(f'{KETCHER_CANVAS} svg [fill="{black}"]' for black in _KETCHER_BLACKS)
+    + f" {{ fill: {_KETCHER_LIGHT_INK} !important; }}"
+)
+#: The dark stylesheet: the page and the editor's own surface dark, the four toolbars inverted, and the
+#: drawing's black ink light. Light is the empty string.
 KETCHER_DARK_CSS = (
-    "html, body, #root { background: #1f1f1f; }"
+    "html, body, #root, .Ketcher-root { background: #1f1f1f; }"
     + ", ".join(KETCHER_CHROME_SELECTORS)
     + " { filter: invert(0.88) hue-rotate(180deg); }"
+    + KETCHER_INK_CSS
 )
 
 #: The one `<style>` element the editor page is given; created on the first dark, emptied on light.

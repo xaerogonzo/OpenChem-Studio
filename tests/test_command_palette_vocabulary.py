@@ -167,12 +167,24 @@ _EXPECTED_FIRST = {
 }
 
 
+#: Queries whose keyword two menu entries share, so either may come first.
+_TIED_FOR_FIRST = {
+    "sdf": ("Import Molecule...", "Export Molecule..."),
+    "xyz": ("Import Molecule...", "Export Molecule..."),
+    "mmcif": ("Import Macromolecule...", "Import Crystal Structure..."),
+}
+
+
 @pytest.mark.parametrize("query,expected", sorted(_EXPECTED_FIRST.items()))
 def test_a_real_word_finds_the_right_thing_first(qapp, main_window, query, expected):
     ordered = rank(query, main_window._collect_commands())
 
     assert ordered, f"{query!r} finds nothing at all"
-    assert ordered[0].label == expected, (
+    # **A TIE IS RANKED BY MENU ORDER, which is A-Z now**: "sdf" is a keyword of both Import and Export Molecule and
+    # "mmcif" of both Import Macromolecule and Import Crystal Structure, so the other one may come first. The answer
+    # must be among the commands that tie for the top score, never behind a worse match.
+    ties = _TIED_FOR_FIRST.get(query, (expected,))
+    assert ordered[0].label in ties and expected in [c.label for c in ordered[: len(ties)]], (
         f"{query!r} -> {[c.label for c in ordered[:3]]}"
     )
 

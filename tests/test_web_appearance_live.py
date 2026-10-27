@@ -110,6 +110,71 @@ def test_dark_filters_the_toolbars_and_nothing_that_holds_the_drawing(qapp):
     )
 
 
+_CANVAS_PAINT = (
+    # `desc` and `defs` draw nothing but report the initial fill, black, so they are left out of the tally.
+    "(function () { var t = {}; document.querySelectorAll('[class*=\"StructEditor-module_canvas\"] svg *:not(desc):not(defs)').forEach(function (e) {"
+    " var cs = getComputedStyle(e); [cs.fill, cs.stroke].forEach(function (v) { t[v] = (t[v] || 0) + 1; }); });"
+    " return JSON.stringify(t); })()"
+)
+
+
+def _canvas_paint(qapp, backend) -> dict[str, int]:
+    import json
+
+    return json.loads(_page_value(qapp, backend._page, _CANVAS_PAINT))
+
+
+def _draw_methylamine(qapp, backend) -> None:
+    from rdkit import Chem
+    from rdkit.Chem import AllChem
+
+    mol = Chem.MolFromSmiles("NCC(=O)Cl")
+    AllChem.Compute2DCoords(mol)
+    backend.load_molblock(Chem.MolToMolBlock(mol))
+    assert _wait_until(qapp, lambda: backend._loading_token is None, timeout_seconds=20)
+    assert _wait_until(qapp, lambda: "rgb(48, 79, 247)" in _canvas_paint(qapp, backend), timeout_seconds=20)
+
+
+def test_dark_turns_the_drawings_black_ink_light_and_leaves_every_atom_colour_alone(qapp):
+    """The editor's own nitrogen, oxygen and chlorine are the same values dark and light; only black moved."""
+    backend = KetcherEditorBackend()
+    assert _wait_until(qapp, lambda: backend._ketcher_ready)
+    _draw_methylamine(qapp, backend)
+    light = _canvas_paint(qapp, backend)
+    assert light.get("rgb(0, 0, 0)", 0) > 0
+
+    theme.set_effective(DARK)
+    assert _eventually(qapp, backend._page, _KETCHER_CSS, KETCHER_DARK_CSS)
+    assert _wait_until(qapp, lambda: "rgb(0, 0, 0)" not in _canvas_paint(qapp, backend), timeout_seconds=15)
+    dark = _canvas_paint(qapp, backend)
+    assert dark.get("rgb(232, 232, 232)", 0) >= light["rgb(0, 0, 0)"] - 1  # every black became the light ink
+    for colour in ("rgb(48, 79, 247)", "rgb(255, 13, 13)", "rgb(31, 208, 31)"):  # nitrogen, oxygen, chlorine
+        assert dark.get(colour, 0) == light.get(colour, 0) > 0, colour
+
+    theme.set_effective(LIGHT)
+    assert _wait_until(qapp, lambda: _canvas_paint(qapp, backend).get("rgb(0, 0, 0)", 0) > 0, timeout_seconds=15)
+
+
+def test_an_exported_picture_is_the_same_dark_and_light(qapp):
+    """The theme is a stylesheet on the page; the editor's own image export is drawn from the structure."""
+    backend = KetcherEditorBackend()
+    assert _wait_until(qapp, lambda: backend._ketcher_ready)
+    _draw_methylamine(qapp, backend)
+    start = (
+        "window.__image = null; window.ketcher.generateImage('NCC(=O)Cl', {outputFormat: 'svg'})"
+        ".then(function (b) { return b.text(); }).then(function (t) { window.__image = t; }); 'started'"
+    )
+    pictures = {}
+    for look in (LIGHT, DARK):
+        theme.set_effective(look)
+        assert _eventually(qapp, backend._page, _KETCHER_CSS, KETCHER_DARK_CSS if look is DARK else "")
+        _page_value(qapp, backend._page, start)
+        assert _wait_until(qapp, lambda: bool(_page_value(qapp, backend._page, "window.__image")), timeout_seconds=30)
+        pictures[look] = _page_value(qapp, backend._page, "window.__image")
+    assert "e8e8e8" not in pictures[DARK].lower()
+    assert pictures[DARK] == pictures[LIGHT]
+
+
 def _molblock_of(qapp, backend) -> str | None:
     got: list[str | None] = []
     backend.get_molblock(got.append)
