@@ -1,0 +1,40 @@
+EXCERPT (the lines a reader needs) of a real ORCA 6.1.1 NumFreq job: methylthiyl radical, M062X def2-TZVPD TightSCF DefGrid3 NumFreq, the benchmark's final geometry; benchmarks/thiyl_probe/artifacts/methylthiyl/freq_numerical
+                         Program Version 6.1.1  -  RELEASE   -
+CARTESIAN COORDINATES (ANGSTROEM)
+---------------------------------
+  C     -0.494988    0.032390   -0.038142
+  S      1.151739    0.722476   -0.120694
+  H     -0.621538   -0.787020   -0.742522
+  H     -1.256173    0.795170   -0.187961
+  H     -0.612379   -0.368402    0.972747
+
+Expectation value of <S**2>     :     0.753892
+FINAL SINGLE POINT ENERGY      -438.041431474243
+VIBRATIONAL FREQUENCIES
+-----------------------
+
+Scaling factor for frequencies =  1.000000000  (already applied!)
+
+     0:       0.00 cm**-1
+     1:       0.00 cm**-1
+     2:       0.00 cm**-1
+     3:       0.00 cm**-1
+     4:       0.00 cm**-1
+     5:       0.00 cm**-1
+     6:     600.75 cm**-1
+     7:     741.20 cm**-1
+     8:     859.95 cm**-1
+     9:    1334.23 cm**-1
+    10:    1336.13 cm**-1
+    11:    1476.37 cm**-1
+    12:    3051.90 cm**-1
+    13:    3131.39 cm**-1
+    14:    3164.57 cm**-1
+
+Temperature         ...   298.15 K
+Pressure            ...     1.00 atm
+Point Group:  C1, Symmetry Number:   1  
+Electronic energy                ...   -438.04143147 Eh
+Zero point energy                ...      0.03575921 Eh      22.44 kcal/mol
+Total enthalpy                    ...   -438.00155118 Eh 
+                             ****ORCA TERMINATED NORMALLY****

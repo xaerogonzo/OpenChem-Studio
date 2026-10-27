@@ -5,8 +5,10 @@ ALSO publishes (ethanethiol's S-H) is held to the published figure, which is the
 """
 from __future__ import annotations
 
+import importlib.util
 import json
 import math
+import sys
 from pathlib import Path
 
 import pytest
@@ -50,15 +52,62 @@ def test_ethanethiol_is_the_published_value_and_the_cycle_reproduces_it():
     assert ethyl["published_d298_kj"] - ethyl["published_d0_kj"] == pytest.approx(C["d0_to_d298_ethanethiol_kj"], abs=0.05)
 
 
+def _step_kj(bond: dict) -> tuple[float, float]:
+    """The 0 K to 298 K step and its uncertainty a derived bond carries: the one COMPUTED in `thermal_step.py` where the bond has one, the borrowed ethyl step (excluded bond only) otherwise."""
+    if "thermal_step_kj" in bond:
+        return bond["thermal_step_kj"], bond["thermal_step_uncertainty_kj"]
+    return C["d0_to_d298_ethanethiol_kj"], C["borrowed_thermal_uncertainty_kj"]
+
+
 @pytest.mark.parametrize("bond", SH[1:], ids=lambda b: b["name"])
 def test_each_derived_sh_reference_is_its_inputs_combined_as_the_definition_says(bond):
     d0 = _d0_kj(bond)
     assert d0 == pytest.approx(bond["stated_d0_kj"], abs=0.01)
-    d298_kcal = (d0 + C["d0_to_d298_ethanethiol_kj"]) / C["kj_per_kcal"]
-    assert d298_kcal == pytest.approx(bond["stated_d298_kcal"], abs=0.01)
-    unc_kj = math.hypot(_d0_unc_kj(bond), C["borrowed_thermal_uncertainty_kj"])
-    assert unc_kj / C["kj_per_kcal"] == pytest.approx(bond["stated_d298_uncertainty_kcal"], abs=0.01)
+    step, step_unc = _step_kj(bond)
+    assert (d0 + step) / C["kj_per_kcal"] == pytest.approx(bond["stated_d298_kcal"], abs=0.01)
+    assert math.hypot(_d0_unc_kj(bond), step_unc) / C["kj_per_kcal"] == pytest.approx(bond["stated_d298_uncertainty_kcal"], abs=0.01)
     assert "not a published number" in bond["d298_status"], "a derived value must say that it is"
+
+
+def _thermal_records() -> dict:
+    """The committed ORCA records of `thermal_step.py`, summarised by the script's own rule."""
+    spec = importlib.util.spec_from_file_location("thermal_step_for_references", Path(__file__).parent.parent / "benchmarks" / "restart_v3" / "thermal_step.py")
+    module = importlib.util.module_from_spec(spec)
+    sys.modules["thermal_step_for_references"] = module
+    spec.loader.exec_module(module)
+    records = [json.loads(line) for line in (Path(__file__).parent.parent / "benchmarks" / "restart_v3" / "artifacts" / "thermal_step" / "records.jsonl").read_text(encoding="utf-8").splitlines() if line.strip()]
+    assert all("error" not in r for r in records)
+    out = {}
+    for name in {r["name"] for r in records}:
+        species = []
+        for k in sorted({r["conformer"] for r in records if r["name"] == name}):
+            pair = {r["role"]: r for r in records if r["name"] == name and r["conformer"] == k}
+            species.append({"parent": pair["parent"], "radical": pair["radical"]})
+        out[name] = module.summarise(species)
+    return out
+
+
+def test_the_computed_thermal_steps_are_the_committed_records_summarised():
+    """`references.json` states the step; the records are the evidence. A step edited by hand, or a record replaced, fails here."""
+    steps = _thermal_records()
+    by_name = {b["name"]: b for b in SH}
+    for thiol, key in (("1-propanethiol", "1-propanethiol S-H"), ("2-propanethiol", "2-propanethiol S-H")):
+        assert by_name[key]["thermal_step_kj"] == pytest.approx(steps[thiol]["step_kj"], abs=0.006)
+        assert by_name[key]["thermal_step_uncertainty_kj"] == pytest.approx(max(0.5, steps[thiol]["spread_kj"]), abs=0.006)
+    assert by_name["ethanethiol S-H"]["thermal_step_computed_kj"] == pytest.approx(steps["ethanethiol"]["step_kj"], abs=0.006)
+
+
+def test_the_method_reproduces_the_one_step_a_paper_publishes():
+    """Ervin 2015 computed D298 - D0 for ethanethiol: 364.7 - 359.5 = 5.2 kJ/mol. The same method on the propyl cases is only trusted because it gets this one."""
+    ethyl = SH[0]
+    computed = _thermal_records()["ethanethiol"]["step_kj"]
+    assert computed == pytest.approx(ethyl["published_d298_kj"] - ethyl["published_d0_kj"], abs=0.2)
+
+
+def test_a_species_rejected_from_the_step_is_a_saddle_point_the_report_names():
+    """2-propanethiyl: two of three radical conformers came out with a frequency of -233 cm-1 and a LOWER enthalpy than the third. They are not minima and the step is taken from the one that is; the preregistration says so."""
+    rejected = _thermal_records()["2-propanethiol"]["rejected"]
+    assert len(rejected) == 2 and all(r["role"] == "radical" and r["lowest_frequency"] < -200 for r in rejected)
 
 
 def test_every_sh_reference_that_is_deciding_passes_the_one_kcal_rule_and_fits_the_atom_cap():
