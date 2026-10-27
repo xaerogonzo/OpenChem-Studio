@@ -18,6 +18,8 @@ Everything in this section was observed BEFORE this file was written, in this or
 4. **The calibration** (section 5) was then run on every radical the two benchmarks accepted. Its table is the only thing the trigger rule in section 3 (R2) is allowed to read, by the procedure written there.
 5. **The references for Arm C** (`benchmarks/bde_heldout/extract_atct_halogen.py`) were chosen from the saved ATcT 1.228 table's names and formulas alone and their enthalpies read afterwards; the six DH298 values are in section 6. **No Arm C bond has been computed.**
 6. **S-H cannot be a held-out arm** (section 7): the table holds no ordinary thiyl radical, and Luo's handbook (Table 8.1, PDF pages 454 to 459) has a recommended value for only hydrogen sulfide and methanethiol, both already in the first run.
+7. **The integration grid was tested as a cause (2026-10-27, after the calibration) and is not the cause.** `probe.py` variants `freq_intacc6`, `freq_defgrid2` and `sp_stability_intacc6` on methylthiyl and one ethanethiyl conformer, at the benchmark's geometry. A FINER grid (`IntAcc 6.0`, Lebedev-590 at the final grid) leaves the imaginary mode (CH3S -1293 against -1332 cm-1; C2H5S -323 against -332) and the stability eigenvalues (0.00048 and 0.00155 Eh). A COARSER grid (`DefGrid2`) removes the imaginary SIGN but not the error: CH3S's six modes come out 742, 875, 1169, 1337, 1477, 1601 against the numerical 601, 741, 860, 1334, 1336, 1476, and ethanethiyl's 478 and 911 against 526 and 974. **So a loud error became a quiet one, which is the case R1 cannot see.** The cause inside ORCA's analytic Hessian is still not isolated; nothing here says which grid is "right". Records: `benchmarks/thiyl_probe/artifacts/*/summary.json`.
+8. **The bromine literature was read (2026-10-27)**: Seetula 2003 (CH2Br, CHBrCl), Seetula and Eskola 2008 (CHBr2, CH3CHBr) and Seetula 2000 (ab initio, 19 radicals). Section 6 and decision D5 record what they offer. Nothing has been computed.
 
 ## 3. The v3 rule (everything here is fixed once frozen)
 
@@ -72,6 +74,22 @@ The six bonds, from `benchmarks/bde_heldout/candidates_halogen.json` (ATcT 1.228
 
 **What the table does not hold, and so what Arm C cannot test:** no fluoromethyl, difluoromethyl, bromomethyl or tribromomethyl radical, and no chloroethyl, halovinyl or halophenyl radical; **bromine is therefore not tested at all**, and nothing here supports a claim about a C-H bond outside a halomethane or a formyl halide.
 
+
+**Candidate bromine bonds, from the literature and NOT from ATcT (read 2026-10-27; NOT adopted, see D5).** The saved ATcT table holds 44 gas-phase species with carbon and bromine and no bromo radical of the kind needed, which is why the six bonds above have none. Three papers by one laboratory measured the C-H bond energy directly, from the forward and reverse kinetics of R + HBr = RH + Br in a photoionization mass-spectrometer reactor (second-law; the reverse-reaction kinetics were taken from earlier work):
+
+| bond | C-H bond energy (kJ/mol) | in kcal/mol | source |
+|---|---|---|---|
+| bromomethane to bromomethyl | 427.2 +- 2.4 | 102.10 +- 0.57 | Seetula 2003 (`10.1039/b210787m`) |
+| bromochloromethane to bromochloromethyl | 406.0 +- 2.4 | 97.04 +- 0.57 | Seetula 2003 |
+| dibromomethane to dibromomethyl | 412.6 +- 2.7 | 98.61 +- 0.65 | Seetula and Eskola 2008 (`10.1016/j.chemphys.2008.04.008`) |
+| bromoethane (alpha C-H) to 1-bromoethyl | 415.0 +- 2.7 | 99.19 +- 0.65 | Seetula and Eskola 2008 |
+
+All four are inside the 1.0 kcal/mol rule for a deciding bond. What reading them showed, and what it does not show:
+* **They are one laboratory's kinetic measurements, not an evaluated value.** ATcT combines many determinations; these four rest on one method and one apparatus. The bond energy is the measured reaction enthalpy plus the H-Br bond energy, so it does not depend on the parent molecule's formation enthalpy (the radical's formation enthalpy does).
+* **The 2008 value for the dibromomethyl radical (199.1 +- 2.7 kJ/mol) agrees with the calculations of three theoretical studies** quoted in that paper (196.9 to 201.3) and with a recalculation of an earlier experiment (198.9), and it supersedes the same author's 2000 ab initio value (180 +- 5), which the 2000 paper itself warns is low-accuracy for radicals with several bromine atoms. A fourth theoretical study (191.7 +- 3.0) is lower.
+* **Tribromomethyl has no usable value**: only the 2000 ab initio estimate (195 +- 5, plus 2.4 for the method), which fails the 1.0 kcal/mol rule on its own uncertainty, so it is excluded.
+* **The calculator's scope does not include bromine**, and nothing here tests heavy-atom effects (spin-orbit coupling, scalar relativity) that M06-2X/def2-TZVPD ignores or treats approximately. A pass would show the unmodified protocol gives an acceptable error on four bromo C-H bonds against these references; it would not show the references are right.
+
 ## 7. Why there is no S-H arm
 
 * ATcT 1.228 has no CH3S or CH3CH2S: the thiyl radicals it holds are SH (hydrogen sulfide's, the first run's) and the inorganic HSO and HOS from HSOH and H2SO.
@@ -95,6 +113,7 @@ On the six deciding bonds: mean absolute error, mean signed error, largest absol
 * **D2 (R2, and what R1 should do about quiet errors):** section 5's rule found NO threshold, so R2 is out as written. That leaves R1 alone, which would have missed 4 of 40 measured radicals (an analytic enthalpy off by 0.17 to 0.66 kcal/mol, no imaginary mode). Options: (a) accept R1 alone and state the 10% as a known limit (recommended: it is what the rule gave, and the calculator's stated error already includes these radicals' analytic values); (b) run the numerical job for every radical of at most 9 atoms (a numerical job costs 2 to 2.7 times the analytic one, 25 minutes at 4 cores for an 8-atom radical, so this is heavy for a calculator and acceptable for a benchmark arm); (c) a trigger that is not the stability eigenvalue, which would be a new rule needing its own calibration on data other than these four. Separately: R1 accepts a numerical result only at -20 cm-1 or above, and two floppy radicals' numerical results fall below it (section 5), so decide whether a numerical result below -20 cm-1 on a soft mode sends the radical to the displaced restart (as drafted) or is reported as unverified.
 * **D3 (Arm C's size):** six bonds is a small arm. Accept it as deciding with the larger standard error stated, or hold it as reported-only too. Recommended: deciding, because it is the only fresh data that can exist from these references.
 * **D4 (S-H):** accept that S-H stays unvalidated and is labelled so. Recommended: yes; the alternative is a measurement nobody has published.
+* **D5 (bromine, new 2026-10-27):** the four candidate bonds in section 6. Options: (a) leave bromine out, as drafted (the calculator stays without bromine in scope); (b) add them as a SEPARATE sub-arm, Arm C-Br, reported with the sources stated and deciding only the bromine claim, so a failure there cannot touch the fluorine and chlorine result; (c) add them to Arm C as deciding. Recommended: (b). They are the only fresh bromine references that exist, but they are not evaluated, so they should not share a verdict with the ATcT bonds. Needs your decision before the freeze, and the bond list is fixed by this section.
 
 ## 10. Before this is frozen
 

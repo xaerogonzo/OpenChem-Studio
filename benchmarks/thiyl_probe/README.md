@@ -59,3 +59,18 @@ Measures how the smallest stability eigenvalue relates to the analytic-numerical
 * Four of the 40 are material by the preregistration's rule (a shift of at least 0.25 kcal/mol or a mode 100 cm-1 off): methoxy, ethoxyl, acetyloxyl and acetyl. Their stability eigenvalues are 0.005, 0.006, 0.026 and 0.087 Eh, and 18 of the 36 others have an eigenvalue at or below 0.087. **The stability eigenvalue does not separate them, so there is no threshold** (`benchmarks/restart_v3/PREREGISTRATION.md` section 5).
 * `calibrate.py collect` reads the finished jobs and starts nothing; it exists because `numfreq` writes its result file only when every job has returned, and one hung job would lose the rest.
 
+## Is it the integration grid? (2026-10-27, after the calibration)
+
+Variants `freq_intacc6`, `freq_defgrid2` and `sp_stability_intacc6`, on methylthiyl and ethanethiyl conformer 0, same geometry as the benchmark:
+
+| variant | CH3S six modes (cm-1) | C2H5S (conformer 0) lowest three |
+|---|---|---|
+| numerical, DefGrid3 | 601, 741, 860, 1334, 1336, 1476 | 248, 336, 526 |
+| analytic, DefGrid3 (the benchmark) | **-1332**, 743, 870, 1335, 1338, 1477 | **-332**, 255, 336 |
+| analytic, `IntAcc 6.0` (finer) | **-1293**, 746, 871, 1336, 1339, 1477 | **-323**, 255, 336 |
+| analytic, DefGrid2 (coarser) | 742, 875, **1169**, 1337, 1477, **1601** | 236, 334, **478** |
+
+* **A finer grid does not cure it**, and the smallest stability eigenvalue does not move (0.00048 and 0.00155 Eh). The grid is not the cause in the simple sense that a tighter grid fixes it.
+* **A coarser grid removes the imaginary sign but not the error**: CH3S's spectrum is then six real modes, none of them the numerical ones (the 601 is gone, 1169 and 1601 appear), and ethanethiyl's 478 sits 48 cm-1 from its numerical 526. A loud analytic error became a quiet one, which is the case an imaginary-mode trigger cannot see.
+* ORCA's own tutorial says tightening to DEFGRID3 can sometimes remove an imaginary mode, so this is the first thing a reader would try; it is recorded here so it is not tried again as if new. The cause inside the analytic Hessian is still not isolated.
+

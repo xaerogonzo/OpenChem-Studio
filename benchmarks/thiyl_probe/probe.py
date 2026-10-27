@@ -39,6 +39,11 @@ VARIANTS: dict[str, tuple[str, str]] = {
     "sp_guess_patom": (f"{BASE} PAtom", ""),
     "sp_default": (f"{BASE}", ""),
     "freq_b3lyp": ("! B3LYP def2-TZVPD TightSCF DefGrid3 Freq", ""),   # is it the functional? (not a stationary point for B3LYP: only the SPURIOUS size matters)
+    # Added 2026-10-27, after the three findings above: is it the INTEGRATION GRID (the textbook cause of a spurious imaginary mode with M06-2X) rather than the stability of the orbitals?
+    # `IntAcc 6.0` is the setting the Fukui work uses (orca_engine._FUKUI_GRID); DefGrid2 is the next coarser default, so the direction of the grid dependence is visible too.
+    "freq_intacc6": (f"{BASE} Freq", "%method IntAcc 6.0 end"),
+    "freq_defgrid2": ("! M062X def2-TZVPD TightSCF DefGrid2 Freq", ""),
+    "sp_stability_intacc6": (f"{BASE}", "%method IntAcc 6.0 end\n%scf StabPerform true end"),
 }
 
 
