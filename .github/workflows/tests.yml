@@ -120,7 +120,7 @@ jobs:
       # problem is local, are destroyed.
       fail-fast: false
       matrix:
-        shard: [1, 2, 3, 4]
+        shard: [1, 2, 3, 4, 5]
     # 30 WAS NOT A CEILING, IT WAS A COIN FLIP -- measured across five
     # consecutive runs, four of them on unmodified master:
     #
@@ -191,6 +191,11 @@ jobs:
     # (69% of this 30), about 80% on a runner 1.15x slower, against 91% to over 100% of the step for three (1638 s and
     # 1792 s of 1800 were measured). The required checks are matched by exact job name, so this matrix and the master
     # ruleset (`test suite 1/4` ... `4/4`) change together; see the pull request.
+    #
+    # **FIVE SHARDS SINCE 2026-10-27, THE SAME SENTENCE FOLLOWED A THIRD TIME.** Shard 1 of four took 27 minutes on one run of master and 32 on the
+    # next, over identical code, and timed out (30 minutes, no test failed) on master's own push and on pull requests; the other shards sat at
+    # 27 to 30. Four shards were at capacity on a runner that varies by 15%, so the fifth carries the same files at about 80% of the step. The
+    # required checks are matched by exact job name: `test suite 1/4` ... `4/4` become `1/5` ... `5/5` in the master ruleset when this merges.
     #
     # THE SPLIT WAS BALANCED ON WALL TIME, NOT ON THE TIME TESTS REPORT. A shard's wall time is its tests + the
     # `gc.collect()` after each Qt test + ~30 s, to the second in both shards of both runs read; the weights modelled
