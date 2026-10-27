@@ -20,7 +20,7 @@ density used as the prediction, is reported beside every number.
 **The bar** (15.8): held-out MAE <= 0.015 g/cm3 and the upper end of the 95% bootstrap interval <= 0.02. The interval resamples *entity keys* (a key
 with several forms moves as one), not pairs, 10,000 times with a fixed seed, and the bar is applied to the interval's upper end (the 97.5th percentile),
 the stricter of the two readings of "upper 95% bound". **The minimum held-out entities, `MIN_HELD_OUT_ENTITIES`, is NOT in the preregistration.** It is
-proposed here and awaits the owner: the derivation of section 13 (an interval half-width of P/3 at P = 0.015 and a standard deviation as large as the
+set here, and the owner confirmed 35 on 2026-10-27: the derivation of section 13 (an interval half-width of P/3 at P = 0.015 and a standard deviation as large as the
 mean) gives n >= (3 x 1.96)^2 = 34.6, so 35, with no allowance added. Fewer held-out entities is `NOT_EVALUABLE`, never a relaxed bar.
 
 Outcomes, machine-readable: `NOT_RUN` (this file's default state without a freeze), `NOT_EVALUABLE`, `FAIL`, `PASS`.
@@ -45,7 +45,7 @@ JUDGE_VERSION = "epb-density-correction-1"
 
 MAE_CEILING = 0.015  # g/cm3, the owner's bar (15.8)
 UPPER_CEILING = 0.02  # g/cm3, 4/3 of the bar, as in 11.2
-MIN_HELD_OUT_ENTITIES = 35  # PROPOSED, not preregistered: ceil((3 * 1.96) ** 2), see the module docstring
+MIN_HELD_OUT_ENTITIES = 35  # ceil((3 * 1.96) ** 2), see the module docstring; the owner confirmed it 2026-10-27, the preregistration text does not say it yet
 BOOTSTRAP_RESAMPLES = 10_000
 BOOTSTRAP_SEED = 20261027
 T_CENTRE_K = 120.0

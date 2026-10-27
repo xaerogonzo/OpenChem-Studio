@@ -149,7 +149,7 @@ def test_counts_state_the_entities_needed_and_whether_the_study_can_be_evaluated
     assert enough["entities_in_all_partitions_needed_at_20_percent"] == math.ceil(dc.MIN_HELD_OUT_ENTITIES / 0.2)
 
 
-def test_the_proposed_minimum_follows_the_derivation_in_section_13():
+def test_the_minimum_follows_the_derivation_in_section_13():
     assert dc.MIN_HELD_OUT_ENTITIES == math.ceil((3 * 1.96) ** 2)
     assert dc.UPPER_CEILING == pytest.approx(dc.MAE_CEILING * 4 / 3, abs=1e-12)
 
