@@ -1983,6 +1983,7 @@
   "tests/test_energetics_props_cod_census.py": 3,
   "tests/test_energetics_props_cod_corpus.py": 2,
   "tests/test_energetics_props_cod_structures.py": 0,
+  "tests/test_energetics_props_density_candidates.py": 0,
   "tests/test_energetics_props_density_correction.py": 0,
   "tests/test_energetics_props_families.py": 2,
   "tests/test_energetics_props_inventory.py": 0,
