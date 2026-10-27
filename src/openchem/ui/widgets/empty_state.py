@@ -54,6 +54,8 @@ from html import escape
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import QLabel, QWidget
 
+from openchem.ui import theme
+
 #: Marks a label as a placeholder rather than content.
 EMPTY_STATE_PROPERTY = "openchem_empty_state"
 #: The plain text behind the rendered rich text, for tests and copying --
@@ -87,10 +89,15 @@ def set_empty_state_message(label: QLabel, headline: str, action: str = "") -> N
     chemical name can legitimately contain `<` or `&` -- (E)-but-2-ene
     reaching a `<` would silently swallow the rest of the sentence.
     """
-    parts = [f'<b style="color:#555555">{escape(headline)}</b>']
-    if action:
-        parts.append(f'<span style="color:#777777">{escape(action)}</span>')
-    label.setText("<br><br>".join(parts))
+
+    def render(target: QLabel) -> None:
+        parts = [f'<b style="color:{theme.colour("#555555")}">{escape(headline)}</b>']
+        if action:
+            parts.append(f'<span style="color:{theme.colour("#777777")}">{escape(action)}</span>')
+        target.setText("<br><br>".join(parts))
+
+    # The colours are inside the text, so the text is what has to be written again when the look changes.
+    theme.follow(label, render, slot="empty_state")
     label.setProperty(EMPTY_STATE_TEXT_PROPERTY, f"{headline}\n{action}".strip())
 
 

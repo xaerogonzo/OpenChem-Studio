@@ -102,6 +102,7 @@ from openchem.domain.structure_coverage import (
 )
 from openchem.domain.structure_resolution import resolve_structure_for_report
 from openchem.ui import visual_check
+from openchem.ui import theme
 from openchem.ui.result_adapters import summarise
 from openchem.ui.widgets.help_tooltip import HelpTooltip, apply_help_tooltip
 from openchem.chem.report_adapter import report_from_alert
@@ -2034,7 +2035,7 @@ class PropertyPanel(QWidget):
         self._batch_status = _StatusLabel("", self)
         self._batch_status.setWordWrap(False)
         self._batch_status.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
-        self._batch_status.setStyleSheet(_INFORMATION_STYLE)
+        theme.style(self._batch_status, _INFORMATION_STYLE)
 
         batch_row = QHBoxLayout()
         batch_row.addWidget(self._run_selected_button)
@@ -2058,7 +2059,7 @@ class PropertyPanel(QWidget):
         apply_help_tooltip(self._find_box, _FIND_CALCULATOR_HELP)
         self._find_box.textChanged.connect(self._on_find_changed)
         self._find_empty = QLabel("No calculator matches.", self)
-        self._find_empty.setStyleSheet(_INFORMATION_STYLE)
+        theme.style(self._find_empty, _INFORMATION_STYLE)
         self._find_empty.setVisible(False)
 
         # RUN ON: this molecule, every molecule, or a chosen few. Hidden when the
@@ -2584,7 +2585,7 @@ class PropertyPanel(QWidget):
         if not self._calculator_registry.by_category(other):
             return
         hint = _ExplicitHeightLabel(message, section.content)
-        hint.setStyleSheet("color: #666666; font-style: italic;")
+        theme.style(hint, "color: #666666; font-style: italic;")
         section.add_calculator_widget(hint)
 
     def _add_service_execution_hint(self, section: _CollapsibleSection, category: str) -> None:
@@ -2626,7 +2627,7 @@ class PropertyPanel(QWidget):
             f"calculation, use the {panel_name}.",
             section.content,
         )
-        hint.setStyleSheet("color: #666666; font-style: italic;")
+        theme.style(hint, "color: #666666; font-style: italic;")
         section.add_calculator_widget(hint)
 
     def _reorder_sections(self) -> None:
@@ -3523,7 +3524,7 @@ class PropertyPanel(QWidget):
         coverage = self._coverage.get(calculator_id) if status == NOT_RUN else None
         text, style = _COVERAGE_APPEARANCE[coverage.kind] if coverage else _STATUS_APPEARANCE[status]
         chip.setText(text)
-        chip.setStyleSheet(style)
+        theme.style(chip, style)
         # DISABLED rather than hidden where there is nothing to open: the
         # question "what would enable this" has an obvious answer here --
         # run it -- which is the case the hidden-not-disabled rule

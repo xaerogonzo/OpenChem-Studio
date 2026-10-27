@@ -40,6 +40,7 @@ from openchem.app.menu_help import MENU_HELP
 from openchem.app.shortcut_registry import ShortcutRegistry
 from openchem.app.settings import (
     CONFORMER_KEEP_OPTIMIZED,
+    APPEARANCE,
     DRAWING_BOND_CLICK,
     DRAWING_BOND_KEYS,
     RAIL_HIDES_PANELS,
@@ -78,6 +79,7 @@ from openchem.commands.molecule_commands import (
     RenameMoleculeCommand,
 )
 from openchem.commands.project_commands import OpenProjectCommand, SaveProjectCommand
+from openchem.domain.appearance import Appearance, appearance_from_stored
 from openchem.domain.crystal import CrystalModel
 from openchem.domain.macromolecule import MacromoleculeModel
 from openchem.domain.molecule import MoleculeModel
@@ -2647,6 +2649,8 @@ class MainWindow(QMainWindow):
         reset_layout.triggered.connect(self.reset_panel_layout)
         self._view_menu.addAction(reset_layout)
         self._view_menu.addSeparator()
+        self._add_theme_menu(self._view_menu)
+        self._view_menu.addSeparator()
         structure_display_menu = self._view_menu.addMenu("2D Structure Display")
         self._add_structure_display_toggle(
             structure_display_menu,
@@ -2711,6 +2715,51 @@ class MainWindow(QMainWindow):
         structure_display_menu.addAction(oxidation_action)
         self._oxidation_states_action = oxidation_action
 
+
+    #: The Theme submenu's entries, in the order shown: the stored choice and its words.
+    _THEME_CHOICES = (
+        (Appearance.SYSTEM, "Follow the System"),
+        (Appearance.LIGHT, "Light"),
+        (Appearance.DARK, "Dark"),
+    )
+
+    def _add_theme_menu(self, menu: QMenu) -> None:
+        """View > Theme: the colour scheme, the SAME stored choice as Settings > Appearance.
+
+        The checked entry is the CHOICE, not the look: with "Follow the System" chosen it stays checked
+        whether Windows is light or dark. It follows the stored value (`_show_theme_choice`), so a change
+        made in Settings moves it, and choosing here moves Settings' combo through the same write.
+        """
+        # Created WITH its parent and then added, not `menu.addMenu(title)`: that wrapper is Python-owned, so
+        # when this returns the submenu's C++ object goes and a caller reading the menu meets "already deleted".
+        theme_menu = QMenu("Theme", menu)
+        menu.addMenu(theme_menu)
+        group = QActionGroup(self)
+        group.setExclusive(True)
+        self._theme_actions: dict[int, QAction] = {}
+        for mode, words in self._THEME_CHOICES:
+            action = QAction(words, self)
+            action.setCheckable(True)
+            action.setData(int(mode))
+            group.addAction(action)
+            self._document(action, "theme_choice", label=f"Theme: {words}")
+            # `triggered`, not `toggled`: only a person's choice writes. Setting the check from the stored
+            # value (below) fires `toggled` and would write the value straight back.
+            action.triggered.connect(self._on_theme_chosen)
+            theme_menu.addAction(action)
+            self._theme_actions[int(mode)] = action
+        self._show_theme_choice()
+
+    def _show_theme_choice(self) -> None:
+        """Check the entry for the stored choice, writing nothing."""
+        mode = appearance_from_stored(self._settings.preference(APPEARANCE))
+        self._theme_actions[int(mode)].setChecked(True)
+
+    def _on_theme_chosen(self, _checked: bool = False) -> None:
+        action = self.sender()
+        if action is None:
+            return
+        self._settings.set_preference(APPEARANCE, int(action.data()))
 
     def _build_tools_menu(self) -> None:
         """The Tools menu."""
@@ -4952,7 +5001,9 @@ class MainWindow(QMainWindow):
         return menu
 
     def _on_drawing_setting_changed(self, event: SettingsChanged) -> None:
-        if event.key == DRAWING_BOND_KEYS.key:
+        if event.key == APPEARANCE.key:
+            self._show_theme_choice()
+        elif event.key == DRAWING_BOND_KEYS.key:
             self._editor.set_bond_keys_enabled(bool(self._settings.preference(DRAWING_BOND_KEYS)))
         elif event.key == DRAWING_BOND_CLICK.key:
             self._editor.set_bond_click_enabled(bool(self._settings.preference(DRAWING_BOND_CLICK)))

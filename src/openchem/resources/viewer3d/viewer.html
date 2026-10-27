@@ -30,6 +30,10 @@
       .cell-frame { position: absolute; pointer-events: none;
                     border: 2px solid transparent; box-sizing: border-box; }
       .cell-frame.selected { border-color: #1976d2; }
+      /* The look the application is in (`setAppearance`). The page's own surfaces follow it; the
+         molecule's colours are chemistry and do not. */
+      html[data-look="dark"] .cell-overlay { color: #dddddd; }
+      html[data-look="dark"] .cell-overlay label { background: rgba(30,30,30,0.82); }
     </style>
     <script src="3Dmol-min.js"></script>
   </head>
@@ -49,8 +53,13 @@
       // is not a valid bare identifier (can't start with a digit) -- alias
       // it through window[] the way 3Dmol.js's own examples do.
       var $3Dmol = window['3Dmol'];
+      // The look the application is in, 'light' or 'dark', and the background that goes with it. Set by
+      // `setAppearance` (Python sends the latest value when the page is ready and on every change); a page
+      // that has not been told yet is light, as it always was.
+      var appearance = 'light';
+      var backgroundColour = 'white';
       var viewer = $3Dmol.createViewer(document.getElementById('viewer-container'), {
-        backgroundColor: 'white',
+        backgroundColor: backgroundColour,
       });
       var currentStyle = 'stick';
       var bridge = null;
@@ -299,7 +308,7 @@
             // clutter they were meant to cut through (2026-09-17).
             fontSize: 13,
             font: 'Arial',
-            fontColor: '#111111',
+            fontColor: appearance === 'dark' ? '#eeeeee' : '#111111',
             showBackground: false,
             inFront: true,
           });
@@ -623,6 +632,23 @@
       // value round-tripped back to Python, unlike Ketcher's getMolfile(),
       // so no QWebChannel request/response dance is needed here.
       window.openchemViewer = {
+        // Light or dark, never "system": Python resolves that. Changes the page's own surfaces only, so
+        // the structure, its camera and its layers are left exactly as they were.
+        setAppearance: function (look) {
+          appearance = look === 'dark' ? 'dark' : 'light';
+          backgroundColour = appearance === 'dark' ? '#1e1e1e' : 'white';
+          document.documentElement.setAttribute('data-look', appearance);
+          document.documentElement.style.colorScheme = appearance;
+          document.body.style.background = backgroundColour;
+          viewer.setBackgroundColor(backgroundColour);
+          applyLabels();  // atom-value labels have no backing box, so their ink follows the background
+          viewer.render();
+          gridCells.forEach(function (cell) {
+            cell.setBackgroundColor(backgroundColour);
+            cell.render();
+          });
+        },
+
         // `keepCamera` is what makes conformers comparable. Stepping from
         // one conformer to the next re-fitted the camera every time, so
         // the molecule appeared to jump and the only thing a reader could
@@ -1191,7 +1217,7 @@
         var grid = $3Dmol.createViewerGrid(
           gridContainer,
           { rows: rows, cols: cols, control_all: false },
-          { backgroundColor: 'white' }
+          { backgroundColor: backgroundColour }
         );
         for (var r = 0; r < grid.length; r++) {
           for (var c = 0; c < grid[r].length; c++) {

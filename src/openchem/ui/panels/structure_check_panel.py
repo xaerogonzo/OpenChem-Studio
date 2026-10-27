@@ -51,6 +51,7 @@ from openchem.domain.structure_issue import (
 from openchem.events.base import EventBus
 from openchem.events.events import StructureChecked
 from openchem.services.structure_check_service import StructureCheckService
+from openchem.ui import theme
 from openchem.ui.widgets.dock_panel_actions import PanelButton
 from openchem.ui.widgets.help_tooltip import HelpTooltip, apply_help_tooltip
 from openchem.ui.widgets.pop_out_host import PopOutHost
@@ -176,11 +177,14 @@ class StructureCheckPanel(QWidget):
         self._tree.setColumnWidth(0, 360)
 
         self._depiction = QSvgWidget(self)
+        theme.paper(self._depiction)
         self._depiction.setMinimumHeight(200)
 
         self._detail = QLabel("", self)
         self._detail.setWordWrap(True)
         self._detail.setTextFormat(Qt.TextFormat.RichText)
+        # The severity colour is inside the detail's text, so a change of look writes it again.
+        theme.follow(self, lambda panel: panel._on_selection_changed(), immediately=False)
 
         # The oxidation-state overlay lives here rather than in the drawing
         # canvas because the canvas is Ketcher and cannot be annotated. It
@@ -262,7 +266,6 @@ class StructureCheckPanel(QWidget):
             parent.setExpanded(True)
             for issue in issues:
                 child = QTreeWidgetItem(parent, [issue.message, _SEVERITY[issue.severity][0]])
-                child.setForeground(1, Qt.GlobalColor.black)
                 child.setData(0, Qt.ItemDataRole.UserRole, issue)
 
         if result.skipped:
@@ -318,7 +321,7 @@ class StructureCheckPanel(QWidget):
 
         label, colour = _SEVERITY[issue.severity]
         lines = [
-            f"<b style='color:{colour}'>{label}</b> &nbsp; <i>{issue.checker_id}</i>",
+            f"<b style='color:{theme.colour(colour)}'>{label}</b> &nbsp; <i>{issue.checker_id}</i>",
             issue.message,
             f"<small>{_BASIS_WORDS[issue.basis]}</small>",
         ]

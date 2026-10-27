@@ -3392,6 +3392,15 @@ list of sections down its left side. Changes apply as you make them, so
 there is no OK button. The one exception is lowering the number of versions
 kept, which asks first.
 
+- **Appearance.** The colour scheme: **Follow the system** (the default), **Light**
+  or **Dark**. Follow the system is light or dark as Windows is and changes when
+  Windows does; Light and Dark keep that scheme whatever Windows is set to, the
+  window's title bar included. The same choice is in **View ▸ Theme**, and the
+  checked entry there is the choice you made, so Follow the system stays checked
+  while the window happens to be dark. It applies at once. The 3D viewer follows;
+  in the 2D editor the toolbars go dark and the drawing area stays white, so atom
+  colours, bonds and selection look exactly as they always did; the macromolecule
+  viewer's canvas goes dark but its side panels keep their light styling.
 - **Panels.** By default, choosing a panel from the rail hides the other
   right-hand panels in its area, so the one you chose gets the whole column.
   A panel you have dragged somewhere else, or floated, is never hidden. Turn

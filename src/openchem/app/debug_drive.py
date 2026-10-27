@@ -9874,6 +9874,144 @@ class _Driver(QObject):
         QGuiApplication.styleHints().setColorScheme(scheme)
         logger.warning("OPENCHEM_DRIVE: colour scheme set to %s", scheme.name)
 
+    def _do_appearance(self, step: dict[str, Any]) -> None:
+        """`{"do": "appearance", "choice": "dark", "via": "menu"}` -- choose the colour scheme through a REAL control.
+
+        `choice` is `system`, `light` or `dark`. `via` is `menu` (View > Theme, the real checkable action) or
+        `settings` (the combo of the open Settings dialog, so a `dialog` step with `"section": "appearance"` comes
+        first). Nothing is applied here beyond what the control does: the stored choice is written, and the service
+        reacts, exactly as for a person. Read what it did in a LATER step (`appearance_report`), because the look
+        settles a few milliseconds after the write.
+        """
+        from PySide6.QtWidgets import QComboBox
+
+        from openchem.domain.appearance import Appearance
+
+        choice = str(step.get("choice", ""))
+        try:
+            mode = Appearance[choice.upper()]
+        except KeyError:
+            logger.error("OPENCHEM_DRIVE: appearance -- %r is not system, light or dark", choice)
+            return
+        via = str(step.get("via", "menu"))
+        if via == "menu":
+            action = self._window._theme_actions.get(int(mode))
+            if action is None:
+                logger.error("OPENCHEM_DRIVE: appearance -- the View > Theme menu has no %s entry", choice)
+                return
+            action.trigger()
+        elif via == "settings":
+            dialog = getattr(self, "_dialog", None)
+            combo = None if dialog is None else dialog.findChild(QComboBox, "appearanceChoice")
+            if combo is None:
+                logger.error("OPENCHEM_DRIVE: appearance -- no open Settings dialog with an appearance combo")
+                return
+            combo.setCurrentIndex(combo.findData(int(mode)))
+        else:
+            logger.error("OPENCHEM_DRIVE: appearance -- via must be menu or settings, not %r", via)
+            return
+        logger.warning("OPENCHEM_DRIVE: appearance %s chosen via %s", choice, via)
+
+    def _do_appearance_report(self, step: dict[str, Any]) -> None:
+        """`{"do": "appearance_report", "tag": "x", "expect": {...}}` -- the look on screen, and in each page.
+
+        Reads the application's palette (what is DRAWN), the service's settled look, the stored choice, the checked
+        View > Theme entry and, if one is open, the Settings combo, and then asks each embedded page for its own
+        state. `expect` takes
+
+            "effective"     "light" | "dark" -- the settled look, which must agree with the window colour
+            "choice"        "system" | "light" | "dark" -- the stored choice, the menu's checked entry and the combo
+            "editor_style"  true | false -- the editor page holds the dark stylesheet
+            "viewer3d"      "light" | "dark" -- the 3D page's own idea of the look
+            "macromolecule" "light" | "dark" -- the Mol* page's colour scheme (only if its view is built)
+
+        The page reads are asynchronous and are judged when they arrive, so give this step an `after_ms`.
+        """
+        from PySide6.QtGui import QPalette
+        from PySide6.QtWidgets import QApplication, QComboBox
+
+        from openchem.app.settings import APPEARANCE
+        from openchem.domain.appearance import Appearance, appearance_from_stored
+        from openchem.ui import theme
+
+        tag = str(step.get("tag", ""))
+        expect = dict(step.get("expect") or {})
+        window = self._window
+        problems: list[str] = []
+
+        lightness = QApplication.palette().color(QPalette.ColorRole.Window).lightnessF()
+        drawn = "dark" if lightness < 0.5 else "light"
+        service = getattr(QApplication.instance(), "_appearance", None)
+        settled = None if service is None else service.effective().name.lower()
+        stored = appearance_from_stored(window._settings.preference(APPEARANCE)).name.lower()
+        checked = [Appearance(m).name.lower() for m, action in window._theme_actions.items() if action.isChecked()]
+        dialog = getattr(self, "_dialog", None)
+        combo = None if dialog is None else dialog.findChild(QComboBox, "appearanceChoice")
+        combo_choice = None if combo is None else Appearance(int(combo.currentData())).name.lower()
+        logger.warning(
+            "OPENCHEM_DRIVE: appearance_report[%s]: window colour %.2f (%s), settled=%s, theme=%s, stored=%s, "
+            "menu checked=%s, combo=%s",
+            tag, lightness, drawn, settled, theme.effective().name.lower(), stored, checked, combo_choice,
+        )
+        if "effective" in expect:
+            wanted = str(expect["effective"])
+            for name, value in (("palette", drawn), ("service", settled), ("theme", theme.effective().name.lower())):
+                if value != wanted:
+                    problems.append(f"{name} says {value!r}, wanted {wanted!r}")
+        if "choice" in expect:
+            wanted = str(expect["choice"])
+            if stored != wanted:
+                problems.append(f"stored choice {stored!r}, wanted {wanted!r}")
+            if checked != [wanted]:
+                problems.append(f"menu checked {checked!r}, wanted {[wanted]!r}")
+            if combo_choice not in (None, wanted):
+                problems.append(f"settings combo {combo_choice!r}, wanted {wanted!r}")
+
+        pages: list[tuple[str, str, object, object]] = []
+        if "editor_style" in expect:
+            pages.append((
+                "editor_style", "(document.getElementById('openchem-appearance') || {textContent: ''}).textContent.length > 0",
+                window._editor._backend._page, bool(expect["editor_style"]),
+            ))
+        if "viewer3d" in expect:
+            pages.append((
+                "viewer3d", "document.documentElement.getAttribute('data-look')",
+                window._viewer3d._backend._page, str(expect["viewer3d"]),
+            ))
+        if "macromolecule" in expect:
+            backend = window._macromolecule_viewer
+            if backend.is_built:
+                pages.append((
+                    "macromolecule", "document.documentElement.style.colorScheme", backend._page, str(expect["macromolecule"]),
+                ))
+            else:
+                problems.append("the macromolecule view is not built, so it cannot be asked")
+
+        def finish() -> None:
+            if self._record_assertion("appearance_report", tag, not problems, "; ".join(problems) or "as expected"):
+                logger.warning("OPENCHEM_DRIVE: EXPECT appearance ok[%s]", tag)
+            else:
+                logger.error("OPENCHEM_DRIVE: EXPECT appearance FAILED[%s] -- %s", tag, "; ".join(problems)[:900])
+
+        if not pages:
+            finish()
+            return
+        waiting = {"left": len(pages)}
+
+        def reader(name: str, wanted: object):
+            def got(value: object) -> None:
+                logger.warning("OPENCHEM_DRIVE: appearance_report[%s]: page %s reads %r", tag, name, value)
+                if value != wanted:
+                    problems.append(f"page {name} reads {value!r}, wanted {wanted!r}")
+                waiting["left"] -= 1
+                if waiting["left"] == 0:
+                    finish()
+
+            return got
+
+        for name, script, page, wanted in pages:
+            page.runJavaScript(script, reader(name, wanted))
+
     def _do_reader_filter(self, step: dict[str, Any]) -> None:
         """`{"do": "reader_filter", "text": "Donors"}` -- type into the docked reader's fact filter.
 

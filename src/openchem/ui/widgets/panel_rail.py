@@ -38,9 +38,11 @@ owns the navigation, and the two meet at a string.
 from __future__ import annotations
 
 from PySide6.QtCore import QSize, Qt, Signal
-from PySide6.QtGui import QColor, QIcon, QPainter, QPen, QPixmap
+from PySide6.QtGui import QColor, QIcon, QPainter, QPalette, QPen, QPixmap
+from openchem.ui import theme
 from openchem.ui.widgets.help_tooltip import HelpTooltip, apply_help_tooltip
 from PySide6.QtWidgets import (
+    QApplication,
     QButtonGroup,
     QLabel,
     QListWidget,
@@ -183,7 +185,7 @@ def _group_icon(group: str) -> QIcon:
     pixmap.fill(Qt.GlobalColor.transparent)
     painter = QPainter(pixmap)
     painter.setRenderHint(QPainter.RenderHint.Antialiasing)
-    painter.setPen(QPen(QColor(70, 70, 70), 1.6))
+    painter.setPen(QPen(QApplication.palette().color(QPalette.ColorRole.ButtonText), 1.6))
     m, s = 3, _ICON_SIZE - 6
     if group == "analyze":
         # A magnifier: looking closely at one thing.
@@ -252,7 +254,8 @@ class PanelRail(QWidget):
         self._button_group.setExclusive(True)
         for group, label in GROUP_LABELS.items():
             button = QPushButton(self._buttons)
-            button.setIcon(_group_icon(group))
+            # Drawn in the palette's text colour, so it is drawn again when the look changes.
+            theme.follow(button, lambda b, g=group: b.setIcon(_group_icon(g)), slot="icon")
             button.setIconSize(QSize(_ICON_SIZE, _ICON_SIZE))
             button.setText(label)
             apply_help_tooltip(button, _GROUP_HELP)

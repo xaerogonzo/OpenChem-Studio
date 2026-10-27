@@ -13,6 +13,7 @@ from PySide6.QtWebEngineCore import QWebEnginePage, QWebEngineSettings
 from PySide6.QtWebEngineWidgets import QWebEngineView
 
 from openchem.ui.editor_backend import EditorBackend
+from openchem.ui.widgets.web_appearance import PageLook, ketcher_script
 
 logger = logging.getLogger("openchem.ui")
 
@@ -301,7 +302,17 @@ class KetcherEditorBackend(EditorBackend):
         self._loading_token: str | None = None
         self._pending_requests: dict[str, Callable[[str | None], None]] = {}
 
+        # The page has no script of ours, so the look is a stylesheet it is given (`web_appearance`). Told as
+        # soon as the document exists rather than when Ketcher's own boot finishes, so it never flashes light.
+        self._look = PageLook(self._view, self._page, ketcher_script)
+        self._page.loadFinished.connect(self._on_page_loaded)
         self._page.load(QUrl.fromLocalFile(str(_DIST_INDEX)))
+
+    def _on_page_loaded(self, ok: bool) -> None:
+        if ok:
+            self._look.ready()
+        else:
+            self._look.not_ready()
 
     def _on_atom_context_menu_from_page(self, atom_index: int, x: int, y: int) -> None:
         """Forward a right-click that landed on an atom.
