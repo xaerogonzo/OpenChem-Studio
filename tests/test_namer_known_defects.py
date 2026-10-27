@@ -4802,6 +4802,9 @@ FIXED: list[tuple[str, str, str, str, str]] = [
     ("D-385", "C/C=C1/CCCCC12CC3CCC2C3", "(6'Z)-6'-ethylidenespiro[bicyclo[2.2.1]heptane-2,1'-cyclohexane]",
      "6'-ethylidenespiro[bicyclo[2.2.1]heptane-2,1'-cyclohexane]",
      "the E/Z of an exocyclic double bond at a primed locant of a spiro name was dropped (the gate admitted plain integers only), so the Z and E isomers had one name"),
+    ("D-386", "C[C@@H]1[C@H]2CC[C@H](CC2)[C@@H]1O", "(2S,3R)-3-methylbicyclo[2.2.2]octan-2-ol",
+     "3-methylbicyclo[2.2.2]octan-2-ol",
+     "OPSIN cannot take the descriptors of a bicyclo[2.2.2]octane's bridgeheads when two bridges are equivalent, and the validator stripped every bridged descriptor with them: four stereoisomers, one name"),
     # D-162, recorded OPEN in naming round 14 and closed by the same change: the same group in an ester's alcohol part. Its target was derived then and is what the fixed engine writes.
     ("D-162", "CC(=O)OCC(=O)N(O)C", "2-[hydroxy(methyl)amino]-2-oxoethyl acetate",
      "[(hydroxycarbamoyl)methyl]methyl acetate",
