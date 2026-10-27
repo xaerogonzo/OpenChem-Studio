@@ -1,0 +1,1122 @@
+[
+ {
+  "source": "first",
+  "bond": "methane C-H",
+  "structure": "radical|methane C-H|0",
+  "atoms": 4,
+  "symbols": [
+   "C",
+   "H",
+   "H",
+   "H"
+  ],
+  "recorded_enthalpy": -39.79047115,
+  "recorded_lowest_frequency": 0.0
+ },
+ {
+  "source": "first",
+  "bond": "ethane C-H",
+  "structure": "radical|ethane C-H|0",
+  "atoms": 7,
+  "symbols": [
+   "C",
+   "C",
+   "H",
+   "H",
+   "H",
+   "H",
+   "H"
+  ],
+  "recorded_enthalpy": -79.0703726,
+  "recorded_lowest_frequency": 0.0
+ },
+ {
+  "source": "first",
+  "bond": "propane secondary C-H",
+  "structure": "radical|propane secondary C-H|0",
+  "atoms": 10,
+  "symbols": [
+   "C",
+   "C",
+   "C",
+   "H",
+   "H",
+   "H",
+   "H",
+   "H",
+   "H",
+   "H"
+  ],
+  "recorded_enthalpy": -118.35250458,
+  "recorded_lowest_frequency": 0.0
+ },
+ {
+  "source": "first",
+  "bond": "butane secondary C-H",
+  "structure": "radical|butane secondary C-H|0",
+  "atoms": 13,
+  "symbols": [
+   "C",
+   "C",
+   "C",
+   "C",
+   "H",
+   "H",
+   "H",
+   "H",
+   "H",
+   "H",
+   "H",
+   "H",
+   "H"
+  ],
+  "recorded_enthalpy": -157.62950497,
+  "recorded_lowest_frequency": 0.0
+ },
+ {
+  "source": "first",
+  "bond": "ethene C-H",
+  "structure": "radical|ethene C-H|0",
+  "atoms": 5,
+  "symbols": [
+   "C",
+   "C",
+   "H",
+   "H",
+   "H"
+  ],
+  "recorded_enthalpy": -77.84764498,
+  "recorded_lowest_frequency": 0.0
+ },
+ {
+  "source": "first",
+  "bond": "ethyne C-H",
+  "structure": "radical|ethyne C-H|0",
+  "atoms": 3,
+  "symbols": [
+   "C",
+   "C",
+   "H"
+  ],
+  "recorded_enthalpy": -76.5886532,
+  "recorded_lowest_frequency": 0.0
+ },
+ {
+  "source": "first",
+  "bond": "isobutane tertiary C-H",
+  "structure": "radical|isobutane tertiary C-H|0",
+  "atoms": 13,
+  "symbols": [
+   "C",
+   "C",
+   "C",
+   "C",
+   "H",
+   "H",
+   "H",
+   "H",
+   "H",
+   "H",
+   "H",
+   "H",
+   "H"
+  ],
+  "recorded_enthalpy": -157.63551899,
+  "recorded_lowest_frequency": 0.0
+ },
+ {
+  "source": "first",
+  "bond": "benzene C-H",
+  "structure": "radical|benzene C-H|0",
+  "atoms": 11,
+  "symbols": [
+   "C",
+   "C",
+   "C",
+   "C",
+   "C",
+   "C",
+   "H",
+   "H",
+   "H",
+   "H",
+   "H"
+  ],
+  "recorded_enthalpy": -231.44620464,
+  "recorded_lowest_frequency": 0.0
+ },
+ {
+  "source": "first",
+  "bond": "propene allylic C-H",
+  "structure": "radical|propene allylic C-H|0",
+  "atoms": 8,
+  "symbols": [
+   "C",
+   "C",
+   "C",
+   "H",
+   "H",
+   "H",
+   "H",
+   "H"
+  ],
+  "recorded_enthalpy": -117.16449387,
+  "recorded_lowest_frequency": 0.0
+ },
+ {
+  "source": "first",
+  "bond": "methanol C-H",
+  "structure": "radical|methanol C-H|0",
+  "atoms": 5,
+  "symbols": [
+   "C",
+   "O",
+   "H",
+   "H",
+   "H"
+  ],
+  "recorded_enthalpy": -115.01392277,
+  "recorded_lowest_frequency": 0.0
+ },
+ {
+  "source": "first",
+  "bond": "methanol O-H",
+  "structure": "radical|methanol O-H|0",
+  "atoms": 5,
+  "symbols": [
+   "C",
+   "O",
+   "H",
+   "H",
+   "H"
+  ],
+  "recorded_enthalpy": -115.00171113,
+  "recorded_lowest_frequency": 0.0
+ },
+ {
+  "source": "first",
+  "bond": "2-propanol O-H",
+  "structure": "radical|2-propanol O-H|0",
+  "atoms": 11,
+  "symbols": [
+   "C",
+   "C",
+   "C",
+   "O",
+   "H",
+   "H",
+   "H",
+   "H",
+   "H",
+   "H",
+   "H"
+  ],
+  "recorded_enthalpy": -193.56490095,
+  "recorded_lowest_frequency": 0.0
+ },
+ {
+  "source": "first",
+  "bond": "toluene benzylic C-H",
+  "structure": "radical|toluene benzylic C-H|0",
+  "atoms": 14,
+  "symbols": [
+   "C",
+   "C",
+   "C",
+   "C",
+   "C",
+   "C",
+   "C",
+   "H",
+   "H",
+   "H",
+   "H",
+   "H",
+   "H",
+   "H"
+  ],
+  "recorded_enthalpy": -270.76119584,
+  "recorded_lowest_frequency": 0.0
+ },
+ {
+  "source": "first",
+  "bond": "hydrogen sulfide S-H",
+  "structure": "radical|hydrogen sulfide S-H|0",
+  "atoms": 2,
+  "symbols": [
+   "S",
+   "H"
+  ],
+  "recorded_enthalpy": -398.722506,
+  "recorded_lowest_frequency": 0.0
+ },
+ {
+  "source": "first",
+  "bond": "ammonia N-H",
+  "structure": "radical|ammonia N-H|0",
+  "atoms": 3,
+  "symbols": [
+   "N",
+   "H",
+   "H"
+  ],
+  "recorded_enthalpy": -55.84774681,
+  "recorded_lowest_frequency": 0.0
+ },
+ {
+  "source": "first",
+  "bond": "water O-H",
+  "structure": "radical|water O-H|0",
+  "atoms": 2,
+  "symbols": [
+   "O",
+   "H"
+  ],
+  "recorded_enthalpy": -75.72192672,
+  "recorded_lowest_frequency": 0.0
+ },
+ {
+  "source": "first",
+  "bond": "tert-butanol O-H",
+  "structure": "radical|tert-butanol O-H|0",
+  "atoms": 14,
+  "symbols": [
+   "C",
+   "C",
+   "C",
+   "C",
+   "O",
+   "H",
+   "H",
+   "H",
+   "H",
+   "H",
+   "H",
+   "H",
+   "H",
+   "H"
+  ],
+  "recorded_enthalpy": -232.84796621,
+  "recorded_lowest_frequency": 0.0
+ },
+ {
+  "source": "first",
+  "bond": "hydrogen peroxide O-H",
+  "structure": "radical|hydrogen peroxide O-H|0",
+  "atoms": 3,
+  "symbols": [
+   "O",
+   "O",
+   "H"
+  ],
+  "recorded_enthalpy": -150.891479,
+  "recorded_lowest_frequency": 0.0
+ },
+ {
+  "source": "first",
+  "bond": "formaldehyde C-H",
+  "structure": "radical|formaldehyde C-H|0",
+  "atoms": 3,
+  "symbols": [
+   "C",
+   "O",
+   "H"
+  ],
+  "recorded_enthalpy": -113.8338887,
+  "recorded_lowest_frequency": 0.0
+ },
+ {
+  "source": "first",
+  "bond": "methyl hydroperoxide O-H",
+  "structure": "radical|methyl hydroperoxide O-H|0",
+  "atoms": 6,
+  "symbols": [
+   "C",
+   "O",
+   "O",
+   "H",
+   "H",
+   "H"
+  ],
+  "recorded_enthalpy": -190.16313388,
+  "recorded_lowest_frequency": 0.0
+ },
+ {
+  "source": "first",
+  "bond": "hydrogen cyanide C-H",
+  "structure": "radical|hydrogen cyanide C-H|0",
+  "atoms": 2,
+  "symbols": [
+   "C",
+   "N"
+  ],
+  "recorded_enthalpy": -92.70350765,
+  "recorded_lowest_frequency": 0.0
+ },
+ {
+  "source": "first",
+  "bond": "silane Si-H",
+  "structure": "radical|silane Si-H|0",
+  "atoms": 4,
+  "symbols": [
+   "Si",
+   "H",
+   "H",
+   "H"
+  ],
+  "recorded_enthalpy": -291.18073518,
+  "recorded_lowest_frequency": 0.0
+ },
+ {
+  "source": "first",
+  "bond": "acetaldehyde formyl C-H",
+  "structure": "radical|acetaldehyde formyl C-H|0",
+  "atoms": 6,
+  "symbols": [
+   "C",
+   "C",
+   "O",
+   "H",
+   "H",
+   "H"
+  ],
+  "recorded_enthalpy": -153.12395251,
+  "recorded_lowest_frequency": 0.0
+ },
+ {
+  "source": "first",
+  "bond": "acetaldehyde methyl C-H",
+  "structure": "radical|acetaldehyde methyl C-H|0",
+  "atoms": 6,
+  "symbols": [
+   "C",
+   "C",
+   "O",
+   "H",
+   "H",
+   "H"
+  ],
+  "recorded_enthalpy": -153.11511878,
+  "recorded_lowest_frequency": 0.0
+ },
+ {
+  "source": "first",
+  "bond": "ethyl hydroperoxide O-H",
+  "structure": "radical|ethyl hydroperoxide O-H|0",
+  "atoms": 9,
+  "symbols": [
+   "C",
+   "C",
+   "O",
+   "O",
+   "H",
+   "H",
+   "H",
+   "H",
+   "H"
+  ],
+  "recorded_enthalpy": -229.44556198,
+  "recorded_lowest_frequency": 0.0
+ },
+ {
+  "source": "first",
+  "bond": "phenol O-H",
+  "structure": "radical|phenol O-H|0",
+  "atoms": 12,
+  "symbols": [
+   "O",
+   "C",
+   "C",
+   "C",
+   "C",
+   "C",
+   "C",
+   "H",
+   "H",
+   "H",
+   "H",
+   "H"
+  ],
+  "recorded_enthalpy": -306.7094354,
+  "recorded_lowest_frequency": 0.0
+ },
+ {
+  "source": "first",
+  "bond": "formic acid O-H",
+  "structure": "radical|formic acid O-H|0",
+  "atoms": 4,
+  "symbols": [
+   "O",
+   "C",
+   "O",
+   "H"
+  ],
+  "recorded_enthalpy": -189.05576933,
+  "recorded_lowest_frequency": 0.0
+ },
+ {
+  "source": "first",
+  "bond": "tert-butyl hydroperoxide O-H",
+  "structure": "radical|tert-butyl hydroperoxide O-H|0",
+  "atoms": 15,
+  "symbols": [
+   "C",
+   "C",
+   "C",
+   "C",
+   "O",
+   "O",
+   "H",
+   "H",
+   "H",
+   "H",
+   "H",
+   "H",
+   "H",
+   "H",
+   "H"
+  ],
+  "recorded_enthalpy": -308.01412191,
+  "recorded_lowest_frequency": 0.0
+ },
+ {
+  "source": "first",
+  "bond": "acetic acid O-H",
+  "structure": "radical|acetic acid O-H|0",
+  "atoms": 7,
+  "symbols": [
+   "C",
+   "C",
+   "O",
+   "O",
+   "H",
+   "H",
+   "H"
+  ],
+  "recorded_enthalpy": -228.34746428,
+  "recorded_lowest_frequency": 0.0
+ },
+ {
+  "source": "first",
+  "bond": "methanethiol C-H",
+  "structure": "radical|methanethiol C-H|0",
+  "atoms": 5,
+  "symbols": [
+   "C",
+   "S",
+   "H",
+   "H",
+   "H"
+  ],
+  "recorded_enthalpy": -437.98605866,
+  "recorded_lowest_frequency": 0.0
+ },
+ {
+  "source": "first",
+  "bond": "benzoic acid O-H",
+  "structure": "radical|benzoic acid O-H|0",
+  "atoms": 14,
+  "symbols": [
+   "O",
+   "C",
+   "O",
+   "C",
+   "C",
+   "C",
+   "C",
+   "C",
+   "C",
+   "H",
+   "H",
+   "H",
+   "H",
+   "H"
+  ],
+  "recorded_enthalpy": -420.02083296,
+  "recorded_lowest_frequency": 0.0
+ },
+ {
+  "source": "heldout",
+  "bond": "propane C-H (n-Propyl)",
+  "structure": "radical|propane C-H (n-Propyl)|0",
+  "atoms": 10,
+  "symbols": [
+   "C",
+   "C",
+   "C",
+   "H",
+   "H",
+   "H",
+   "H",
+   "H",
+   "H",
+   "H"
+  ],
+  "recorded_enthalpy": -118.34662758,
+  "recorded_lowest_frequency": 0.0
+ },
+ {
+  "source": "heldout",
+  "bond": "ethanol C-H (1-Hydroxyethyl)",
+  "structure": "radical|ethanol C-H (1-Hydroxyethyl)|0",
+  "atoms": 8,
+  "symbols": [
+   "C",
+   "C",
+   "O",
+   "H",
+   "H",
+   "H",
+   "H",
+   "H"
+  ],
+  "recorded_enthalpy": -154.29897519,
+  "recorded_lowest_frequency": 0.0
+ },
+ {
+  "source": "heldout",
+  "bond": "propene C-H (1-Methylethenyl)",
+  "structure": "radical|propene C-H (1-Methylethenyl)|0",
+  "atoms": 8,
+  "symbols": [
+   "C",
+   "C",
+   "C",
+   "H",
+   "H",
+   "H",
+   "H",
+   "H"
+  ],
+  "recorded_enthalpy": -117.1349093,
+  "recorded_lowest_frequency": 0.0
+ },
+ {
+  "source": "heldout",
+  "bond": "ethanol C-H (2-Hydroxyethyl)",
+  "structure": "radical|ethanol C-H (2-Hydroxyethyl)|0",
+  "atoms": 8,
+  "symbols": [
+   "C",
+   "C",
+   "O",
+   "H",
+   "H",
+   "H",
+   "H",
+   "H"
+  ],
+  "recorded_enthalpy": -154.28609624,
+  "recorded_lowest_frequency": 0.0
+ },
+ {
+  "source": "heldout",
+  "bond": "propyne C-H (1-Propynyl)",
+  "structure": "radical|propyne C-H (1-Propynyl)|0",
+  "atoms": 6,
+  "symbols": [
+   "C",
+   "C",
+   "C",
+   "H",
+   "H",
+   "H"
+  ],
+  "recorded_enthalpy": -115.87600138,
+  "recorded_lowest_frequency": 0.0
+ },
+ {
+  "source": "heldout",
+  "bond": "propyne C-H (Propargyl)",
+  "structure": "radical|propyne C-H (Propargyl)|0",
+  "atoms": 6,
+  "symbols": [
+   "C",
+   "C",
+   "C",
+   "H",
+   "H",
+   "H"
+  ],
+  "recorded_enthalpy": -115.94080585,
+  "recorded_lowest_frequency": 0.0
+ },
+ {
+  "source": "heldout",
+  "bond": "methylamine C-H (Aminomethyl)",
+  "structure": "radical|methylamine C-H (Aminomethyl)|0",
+  "atoms": 6,
+  "symbols": [
+   "C",
+   "N",
+   "H",
+   "H",
+   "H",
+   "H"
+  ],
+  "recorded_enthalpy": -95.13351372,
+  "recorded_lowest_frequency": 0.0
+ },
+ {
+  "source": "heldout",
+  "bond": "methylamine N-H (Methylamidogen)",
+  "structure": "radical|methylamine N-H (Methylamidogen)|0",
+  "atoms": 6,
+  "symbols": [
+   "C",
+   "N",
+   "H",
+   "H",
+   "H",
+   "H"
+  ],
+  "recorded_enthalpy": -95.12240925,
+  "recorded_lowest_frequency": 0.0
+ },
+ {
+  "source": "heldout",
+  "bond": "hydrazine N-H (Hydrazino)",
+  "structure": "radical|hydrazine N-H (Hydrazino)|1",
+  "atoms": 5,
+  "symbols": [
+   "N",
+   "N",
+   "H",
+   "H",
+   "H"
+  ],
+  "recorded_enthalpy": -111.17919589,
+  "recorded_lowest_frequency": 0.0
+ },
+ {
+  "source": "heldout",
+  "bond": "methyl hydroperoxide C-H (Hydroperoxymethyl)",
+  "structure": "radical|methyl hydroperoxide C-H (Hydroperoxymethyl)|0",
+  "atoms": 6,
+  "symbols": [
+   "C",
+   "O",
+   "O",
+   "H",
+   "H",
+   "H"
+  ],
+  "recorded_enthalpy": -190.14112317,
+  "recorded_lowest_frequency": 0.0
+ },
+ {
+  "source": "heldout",
+  "bond": "n-butane C-H (n-Butyl)",
+  "structure": "radical|n-butane C-H (n-Butyl)|1",
+  "atoms": 13,
+  "symbols": [
+   "C",
+   "C",
+   "C",
+   "C",
+   "H",
+   "H",
+   "H",
+   "H",
+   "H",
+   "H",
+   "H",
+   "H",
+   "H"
+  ],
+  "recorded_enthalpy": -157.62490284,
+  "recorded_lowest_frequency": 0.0
+ },
+ {
+  "source": "heldout",
+  "bond": "1,3-butadiene C-H (1,3-Butadienyl)",
+  "structure": "radical|1,3-butadiene C-H (1,3-Butadienyl)|0",
+  "atoms": 9,
+  "symbols": [
+   "C",
+   "C",
+   "C",
+   "C",
+   "H",
+   "H",
+   "H",
+   "H",
+   "H"
+  ],
+  "recorded_enthalpy": -155.20614989,
+  "recorded_lowest_frequency": 0.0
+ },
+ {
+  "source": "heldout",
+  "bond": "ethylamine N-H (Ethylamidogen)",
+  "structure": "radical|ethylamine N-H (Ethylamidogen)|0",
+  "atoms": 9,
+  "symbols": [
+   "C",
+   "C",
+   "N",
+   "H",
+   "H",
+   "H",
+   "H",
+   "H",
+   "H"
+  ],
+  "recorded_enthalpy": -134.40266089,
+  "recorded_lowest_frequency": 0.0
+ },
+ {
+  "source": "heldout",
+  "bond": "acetonitrile C-H (Cyanomethyl)",
+  "structure": "radical|acetonitrile C-H (Cyanomethyl)|0",
+  "atoms": 5,
+  "symbols": [
+   "C",
+   "C",
+   "N",
+   "H",
+   "H"
+  ],
+  "recorded_enthalpy": -132.04854607,
+  "recorded_lowest_frequency": 0.0
+ },
+ {
+  "source": "heldout",
+  "bond": "ethylamine C-H (2-Aminoethyl)",
+  "structure": "radical|ethylamine C-H (2-Aminoethyl)|0",
+  "atoms": 9,
+  "symbols": [
+   "C",
+   "C",
+   "N",
+   "H",
+   "H",
+   "H",
+   "H",
+   "H",
+   "H"
+  ],
+  "recorded_enthalpy": -134.3999197,
+  "recorded_lowest_frequency": 0.0
+ },
+ {
+  "source": "heldout",
+  "bond": "ethylamine C-H (1-Aminoethyl)",
+  "structure": "radical|ethylamine C-H (1-Aminoethyl)|0",
+  "atoms": 9,
+  "symbols": [
+   "C",
+   "C",
+   "N",
+   "H",
+   "H",
+   "H",
+   "H",
+   "H",
+   "H"
+  ],
+  "recorded_enthalpy": -134.41593374,
+  "recorded_lowest_frequency": 0.0
+ },
+ {
+  "source": "heldout",
+  "bond": "methoxymethane C-H (Methoxymethyl)",
+  "structure": "radical|methoxymethane C-H (Methoxymethyl)|0",
+  "atoms": 8,
+  "symbols": [
+   "C",
+   "O",
+   "C",
+   "H",
+   "H",
+   "H",
+   "H",
+   "H"
+  ],
+  "recorded_enthalpy": -154.27920436,
+  "recorded_lowest_frequency": 0.0
+ },
+ {
+  "source": "heldout",
+  "bond": "propionaldehyde C-H (1-Oxopropyl)",
+  "structure": "radical|propionaldehyde C-H (1-Oxopropyl)|0",
+  "atoms": 9,
+  "symbols": [
+   "C",
+   "C",
+   "C",
+   "O",
+   "H",
+   "H",
+   "H",
+   "H",
+   "H"
+  ],
+  "recorded_enthalpy": -192.40179211,
+  "recorded_lowest_frequency": 0.0
+ },
+ {
+  "source": "heldout",
+  "bond": "hydroxylamine O-H (Aminooxy)",
+  "structure": "radical|hydroxylamine O-H (Aminooxy)|0",
+  "atoms": 4,
+  "symbols": [
+   "N",
+   "O",
+   "H",
+   "H"
+  ],
+  "recorded_enthalpy": -131.0586244,
+  "recorded_lowest_frequency": 0.0
+ },
+ {
+  "source": "heldout",
+  "bond": "hydroxylamine N-H (Hydroxyamidogen)",
+  "structure": "radical|hydroxylamine N-H (Hydroxyamidogen)|0",
+  "atoms": 4,
+  "symbols": [
+   "N",
+   "O",
+   "H",
+   "H"
+  ],
+  "recorded_enthalpy": -131.04344849,
+  "recorded_lowest_frequency": 0.0
+ },
+ {
+  "source": "heldout",
+  "bond": "dimethyl sulfide C-H ((Methylthio)methyl)",
+  "structure": "radical|dimethyl sulfide C-H ((Methylthio)methyl)|0",
+  "atoms": 8,
+  "symbols": [
+   "C",
+   "S",
+   "C",
+   "H",
+   "H",
+   "H",
+   "H",
+   "H"
+  ],
+  "recorded_enthalpy": -477.26400714,
+  "recorded_lowest_frequency": 0.0
+ },
+ {
+  "source": "heldout",
+  "bond": "acrolein C-H (Acryloyl)",
+  "structure": "radical|acrolein C-H (Acryloyl)|0",
+  "atoms": 7,
+  "symbols": [
+   "C",
+   "C",
+   "C",
+   "O",
+   "H",
+   "H",
+   "H"
+  ],
+  "recorded_enthalpy": -191.19648819,
+  "recorded_lowest_frequency": 0.0
+ },
+ {
+  "source": "heldout",
+  "bond": "methanimine N-H (Methyleneamidogen)",
+  "structure": "radical|methanimine N-H (Methyleneamidogen)|0",
+  "atoms": 4,
+  "symbols": [
+   "C",
+   "N",
+   "H",
+   "H"
+  ],
+  "recorded_enthalpy": -93.94182847,
+  "recorded_lowest_frequency": 0.0
+ },
+ {
+  "source": "heldout",
+  "bond": "methanimine C-H (Iminomethyl)",
+  "structure": "radical|methanimine C-H (Iminomethyl)|0",
+  "atoms": 4,
+  "symbols": [
+   "C",
+   "N",
+   "H",
+   "H"
+  ],
+  "recorded_enthalpy": -93.92950466,
+  "recorded_lowest_frequency": 0.0
+ },
+ {
+  "source": "heldout",
+  "bond": "ethanimine N-H (Ethylideneamidogen)",
+  "structure": "radical|ethanimine N-H (Ethylideneamidogen)|0",
+  "atoms": 7,
+  "symbols": [
+   "C",
+   "C",
+   "N",
+   "H",
+   "H",
+   "H",
+   "H"
+  ],
+  "recorded_enthalpy": -133.226652,
+  "recorded_lowest_frequency": 0.0
+ },
+ {
+  "source": "heldout",
+  "bond": "ethanimine C-H (1-Iminoethyl)",
+  "structure": "radical|ethanimine C-H (1-Iminoethyl)|0",
+  "atoms": 7,
+  "symbols": [
+   "C",
+   "C",
+   "N",
+   "H",
+   "H",
+   "H",
+   "H"
+  ],
+  "recorded_enthalpy": -133.21817818,
+  "recorded_lowest_frequency": 0.0
+ },
+ {
+  "source": "heldout",
+  "bond": "formaldoxime O-H (Formaldiminoxy)",
+  "structure": "radical|formaldoxime O-H (Formaldiminoxy)|0",
+  "atoms": 5,
+  "symbols": [
+   "C",
+   "N",
+   "O",
+   "H",
+   "H"
+  ],
+  "recorded_enthalpy": -169.13718279,
+  "recorded_lowest_frequency": 0.0
+ },
+ {
+  "source": "heldout",
+  "bond": "isocyanic acid N-H (Cyanooxidanyl)",
+  "structure": "radical|isocyanic acid N-H (Cyanooxidanyl)|0",
+  "atoms": 3,
+  "symbols": [
+   "N",
+   "C",
+   "O"
+  ],
+  "recorded_enthalpy": -167.99113208,
+  "recorded_lowest_frequency": 0.0
+ },
+ {
+  "source": "heldout",
+  "bond": "hydrazoic acid N-H (Azido radical)",
+  "structure": "radical|hydrazoic acid N-H (Azido radical)|0",
+  "atoms": 3,
+  "symbols": [
+   "N",
+   "N",
+   "N"
+  ],
+  "recorded_enthalpy": -164.12260819,
+  "recorded_lowest_frequency": 0.0
+ },
+ {
+  "source": "heldout",
+  "bond": "ketene C-H (Ketenyl)",
+  "structure": "radical|ketene C-H (Ketenyl)|0",
+  "atoms": 4,
+  "symbols": [
+   "C",
+   "C",
+   "O",
+   "H"
+  ],
+  "recorded_enthalpy": -151.89944116,
+  "recorded_lowest_frequency": 0.0
+ },
+ {
+  "source": "stress",
+  "bond": "ethoxyl",
+  "structure": "radical|ethoxyl|0#restart+",
+  "atoms": 8,
+  "symbols": [
+   "C",
+   "C",
+   "O",
+   "H",
+   "H",
+   "H",
+   "H",
+   "H"
+  ],
+  "recorded_enthalpy": -154.28373255,
+  "recorded_lowest_frequency": 0.0
+ },
+ {
+  "source": "stress",
+  "bond": "1-propoxyl",
+  "structure": "radical|1-propoxyl|1",
+  "atoms": 11,
+  "symbols": [
+   "C",
+   "C",
+   "C",
+   "O",
+   "H",
+   "H",
+   "H",
+   "H",
+   "H",
+   "H",
+   "H"
+  ],
+  "recorded_enthalpy": -193.56138334,
+  "recorded_lowest_frequency": 0.0
+ },
+ {
+  "source": "stress",
+  "bond": "2-propoxyl",
+  "structure": "radical|2-propoxyl|0",
+  "atoms": 11,
+  "symbols": [
+   "C",
+   "C",
+   "C",
+   "O",
+   "H",
+   "H",
+   "H",
+   "H",
+   "H",
+   "H",
+   "H"
+  ],
+  "recorded_enthalpy": -193.56490095,
+  "recorded_lowest_frequency": 0.0
+ },
+ {
+  "source": "stress",
+  "bond": "tert-butoxyl",
+  "structure": "radical|tert-butoxyl|0",
+  "atoms": 14,
+  "symbols": [
+   "C",
+   "C",
+   "C",
+   "C",
+   "O",
+   "H",
+   "H",
+   "H",
+   "H",
+   "H",
+   "H",
+   "H",
+   "H",
+   "H"
+  ],
+  "recorded_enthalpy": -232.84796621,
+  "recorded_lowest_frequency": 0.0
+ }
+]

@@ -9206,3 +9206,54 @@ verified_date = 2026-10-22
 reason = """
 THE EXPERIMENTAL SPREAD BEHIND TWO EXCLUDED BONDS: Table 7.1.1 lists five experimental H-NCO values (109.6 to 111.5 kcal/mol) and five H-N3 values (88.7 to 93.7), which is part of why those bonds are excluded from the deciding set and what a v2 scope would have to reconcile. It is also the second reference column of the held-out arm, read after the result by page and by boldface (`benchmarks/restart_v2/second_column.py`): the handbook gives one usable gas-phase number for 14 of the 27 deciding bonds, scatters about the ATcT values by 1.5 kcal/mol (mean +0.15), and is therefore a check on direction and not on size.
 """
+
+[[source]]
+key = "seetula2003"
+kind = "literature"
+citation = "J. A. Seetula, 'Kinetics of the R + HBr = RH + Br (R = CH2Br, CHBrCl or CCl3) equilibrium. Thermochemistry of the CH2Br and CHBrCl radicals', Phys. Chem. Chem. Phys. 5, 849-855 (2003)."
+identifier_type = "doi"
+identifier = "10.1039/b210787m"
+status = "reference_only"
+used_by = [
+    "benchmarks/restart_v3/PREREGISTRATION.md",
+]
+local = "seetula2003_CH2Br_CHBrCl.pdf"
+verification = "citation_and_claim"
+verified_date = 2026-10-27
+reason = """
+A CANDIDATE BROMINE REFERENCE, NOT ADOPTED (decision D5 of the draft restart-v3 preregistration): the paper reports the C-H bond energies of bromomethane (427.2 +- 2.4 kJ/mol) and bromochloromethane (406.0 +- 2.4) and the formation enthalpies of CH2Br (171.1 +- 2.7) and CHBrCl (143 +- 6), all from one laboratory's second-law kinetics, not an evaluated value. The four numbers were read from the PDF's text; the extraction drops minus signs, so no signed enthalpy is taken from it.
+"""
+
+[[source]]
+key = "seetula2008"
+kind = "literature"
+citation = "J. A. Seetula & A. J. Eskola, 'Kinetics of the R + HBr = RH + Br (CH3CHBr, CHBr2 or CDBr2) equilibrium. Thermochemistry of the CH3CHBr and CHBr2 radicals', Chemical Physics 351, 141-146 (2008)."
+identifier_type = "doi"
+identifier = "10.1016/j.chemphys.2008.04.008"
+status = "reference_only"
+used_by = [
+    "benchmarks/restart_v3/PREREGISTRATION.md",
+]
+local = "seetula2008_CHBr2_CH3CHBr.pdf"
+verification = "citation_and_claim"
+verified_date = 2026-10-27
+reason = """
+A CANDIDATE BROMINE REFERENCE, NOT ADOPTED (decision D5 of the draft restart-v3 preregistration): the paper reports the alpha C-H bond energies of bromoethane (415.0 +- 2.7 kJ/mol) and dibromomethane (412.6 +- 2.7) and the formation enthalpies of CH3CHBr (133.4 +- 3.4) and CHBr2 (199.1 +- 2.7), and compares the CHBr2 value with three theoretical studies (196.9 to 201.3) and a fourth that is lower (191.7). It supersedes the same author's 2000 ab initio estimate for CHBr2. One laboratory's second-law kinetics, not an evaluated value.
+"""
+
+[[source]]
+key = "seetula2000"
+kind = "literature"
+citation = "J. A. Seetula, 'Ab initio study of the transition states for determining the enthalpies of formation of alkyl and halogenated alkyl free radicals', Phys. Chem. Chem. Phys. 2, 3807-3812 (2000)."
+identifier_type = "doi"
+identifier = "10.1039/b001350l"
+status = "reference_only"
+used_by = [
+    "benchmarks/restart_v3/PREREGISTRATION.md",
+]
+local = "seetula2000_abinitio_TS.pdf"
+verification = "citation"
+verified_date = 2026-10-27
+reason = """
+WHY TRIBROMOMETHYL HAS NO USABLE REFERENCE VALUE: this is the only source found for a CBr3 formation enthalpy, an ab initio estimate (195 +- 5 kJ/mol, plus 2.4 for the method) whose uncertainty fails the 1.0 kcal/mol rule for a deciding bond, and the paper itself warns that values for radicals with several bromine atoms are of low accuracy. Its CHBr2 estimate (180 +- 5) was superseded by the 2008 paper.
+"""
