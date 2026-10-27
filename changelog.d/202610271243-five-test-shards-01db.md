@@ -1,0 +1,2 @@
+### The test suite runs in five CI shards instead of four
+- Shard 1 of four took 27 minutes on one run of master and 32 on the next over identical code and hit the 30-minute step limit with no test failing, so four shards were at capacity on a variable runner. Five shards carry the same files at about 970 s of modelled cost each instead of 1215 s. The step limit is unchanged. The master ruleset's required checks must change from `test suite 1/4`...`4/4` to `1/5`...`5/5` when this merges.

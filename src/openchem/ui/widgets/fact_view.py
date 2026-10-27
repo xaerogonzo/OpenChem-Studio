@@ -340,6 +340,9 @@ class FactView(QWidget):
     #: a host that recorded its own restore would write the position it just
     #: read back over the one it came from.
     filter_changed = Signal()
+    #: Whether there is a report to copy or export now. Emitted only when the answer CHANGES, so a title-bar menu
+    #: that follows it is not rebuilt for every redraw; read the current answer with `has_report`.
+    report_available_changed = Signal(bool)
 
     def __init__(
         self,
@@ -349,6 +352,7 @@ class FactView(QWidget):
     ) -> None:
         super().__init__(parent)
         self._report = None
+        self._report_was_available = False
         #: How to resolve `molecule_uuid` to a molblock, set by a host that
         #: has a project. None until one does; see `set_structure_resolver`.
         self._structure_resolver = None
@@ -610,6 +614,7 @@ class FactView(QWidget):
         self._rendering_box.blockSignals(blocked)
         self._rendering_widget.setVisible(state == COMPLETE_RENDERINGS)
         self._report = self._in_chosen_rendering(report, state)
+        self._note_report_availability()
         self._arrange_controls(stacked=self._controls_need_two_rows(self.width()))
 
     def _in_chosen_rendering(self, report, state: str):
@@ -630,12 +635,14 @@ class FactView(QWidget):
         if isinstance(key, str):
             self._rendering_choice[getattr(report, "report_id", "")] = key
         self._report = self._in_chosen_rendering(report, rendering_state(report)[0])
+        self._note_report_availability()
         self._rebuild_charts()
         self._render()
         self.filter_changed.emit()
 
     def clear(self, title: str = "", status: str = "") -> None:
         self._report = None
+        self._note_report_availability()
         self._source_report = None
         self._rendering_widget.setVisible(False)
         self._title.setText(title)
@@ -1246,7 +1253,19 @@ class FactView(QWidget):
 
     # --- export --------------------------------------------------------------
 
-    def _on_copy_clicked(self, _checked: bool = False) -> None:
+    def has_report(self) -> bool:
+        """Whether Copy report and Export report have anything to act on."""
+        return self._report is not None
+
+    def _note_report_availability(self) -> None:
+        available = self._report is not None
+        if available != self._report_was_available:
+            self._report_was_available = available
+            self.report_available_changed.emit(available)
+
+    def copy_report(self) -> None:
+        """Copy the report on screen, in the format the format box names. The Copy report button and every menu
+        entry that says the same thing call this, so there is one way a report reaches the clipboard."""
         if self._report is None:
             self._status.setText("Nothing selected.")
             return
@@ -1259,7 +1278,14 @@ class FactView(QWidget):
             f"Copied {len(self._report.facts)} facts as {self._copy_format.currentText()}."
         )
 
+    def _on_copy_clicked(self, _checked: bool = False) -> None:
+        self.copy_report()
+
     def _on_export_clicked(self, _checked: bool = False) -> None:
+        self.export_report()
+
+    def export_report(self) -> None:
+        """Save the report on screen to a file, in the format the format box names."""
         from PySide6.QtWidgets import QFileDialog
 
         from openchem.ui.report_format import format_report
