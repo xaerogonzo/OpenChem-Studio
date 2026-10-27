@@ -1116,6 +1116,7 @@
   "tests/test_bbb_stereo.py": 2,
   "tests/test_bde_benchmark.py": 1,
   "tests/test_bde_heldout_data.py": 2,
+  "tests/test_bde_heldout_halogen.py": 2,
   "tests/test_bde_runner.py": 2,
   "tests/test_binarycif.py": 1,
   "tests/test_binding_site.py": 3,
