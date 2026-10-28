@@ -40,7 +40,7 @@ T = 298.15
 #: the hydrogen atom's thermal enthalpy (translation, 3/2 RT, plus the PV = RT of an ideal gas): no electronic, rotational or vibrational part
 H_ATOM_KJ = 2.5 * R_KJ * T
 DEFAULT_ROUTE = "! B3LYP def2-TZVPD TightSCF Opt Freq"
-BONDS = [("ethanethiol", "CCS", 2), ("1-propanethiol", "CCCS", 3), ("2-propanethiol", "CC(C)S", 3)]
+BONDS = [("ethanethiol", "CCS", 2), ("1-propanethiol", "CCCS", 3), ("2-propanethiol", "CC(C)S", 3), ("thiophenol", "Sc1ccccc1", 0)]
 
 
 def thermal_from_output(text: str) -> dict:

@@ -49,6 +49,14 @@
      "skeleton_kept": true
     }
    ]
+  },
+  "thiophenol": {
+   "step_kj": 4.300757889069416,
+   "spread_kj": 0.0,
+   "pairs_kj": [
+    4.300757889069416
+   ],
+   "rejected": []
   }
  }
 }

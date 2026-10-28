@@ -40,7 +40,7 @@ rr = _load("restart_v2_runner_for_v3", REPO / "benchmarks" / "restart_v2" / "run
 v3 = _load("restart_v3_core", HERE / "restart_v3_core.py")
 bde, pa, judge, v2core = rr.bde, rr.pa, rr.judge, rr.core
 
-ARMS = {"halogen": v3.halogen_bonds, "sh": v3.sh_bonds, "bromine": v3.bromine_bonds}
+ARMS = {"halogen": v3.halogen_bonds, "sh": v3.sh_bonds, "bromine": v3.bromine_bonds, "thiophenol": v3.thiophenol_bonds}
 #: Folders whose uncommitted change makes a record unreproducible (artifacts excluded).
 WATCHED = ["src", "benchmarks/restart_v3", "benchmarks/thiyl_probe", "benchmarks/restart_v2", "benchmarks/bde", "benchmarks/bde_heldout", "benchmarks/proton_affinity"]
 
@@ -309,6 +309,30 @@ def bromine_report(records: list[dict], bonds: list[dict], structures: list[dict
     return "\n".join(lines), {"arm": "bromine", "verdict": None, "problem": problem, "readings": readings, "rows": rows}
 
 
+def thiophenol_report(records: list[dict], bonds: list[dict], structures: list[dict] | None) -> tuple[str, dict]:
+    """Arm D-Ph: no verdict. The computed value against every determination, the span they cover, Devine's upper limit, and a claim only for a gross failure."""
+    problem = problem_of(records, structures)
+    rows = judge_rows(records, bonds)
+    lines = ["ARM D-Ph (thiophenol S-H; REPORTED ONLY, deciding nothing)" + (f"; REFUSED: {problem}" if problem else ""),
+             "No determination is a reference (they span about 5 kcal/mol and the newest is an upper limit). A claim is made only when the computed value is more than 5.0 kcal/mol outside the whole span of the determinations; anything else is numbers.", ""]
+    readings = []
+    for row, bond in zip(rows, bonds):
+        reading = span_reading_for(row, bond, problem)
+        readings.append(dict(reading, name=bond["name"]))
+        if row["dh_kcal"] is None:
+            lines.append(f"{bond['name']} no computed value{_flags(row)}")
+            continue
+        lines.append(f"{bond['name']}: computed {row['dh_kcal']:.2f} kcal/mol at 298 K; span of the determinations {reading['span'][0]:.2f} to {reading['span'][1]:.2f}; {reading['claim']}{_flags(row)}")
+        lines += [f"    {label:46s} {value:7.2f}  error {reading['errors'][label]:+.2f}" for label, value in bond["points"].items()]
+        lines.append(f"    {'Devine 2008, UPPER LIMIT (0 K value plus the step)':46s} {bond['upper_limit']:7.2f}  computed minus limit {reading['above_upper_limit']:+.2f}")
+    return "\n".join(lines), {"arm": "thiophenol", "verdict": None, "problem": problem, "readings": readings, "rows": rows}
+
+
+def span_reading_for(row: dict, bond: dict, problem: str | None) -> dict:
+    reading = v3.span_reading(row["dh_kcal"], bond)
+    return dict(reading, gross=False, claim="no claim: the report is refused") if problem and row["dh_kcal"] is not None else reading
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
     parser.add_argument("command", choices=["structures", "run", "report", "status"])
@@ -334,7 +358,8 @@ def main() -> None:
     else:
         structures = json.loads(structures_path.read_text(encoding="utf-8"))
         records = pa.records_of(runs_path)
-        text, verdict = bromine_report(records, bonds, structures) if args.arm == "bromine" else deciding_report(args.arm, records, bonds, structures)
+        report = {"bromine": bromine_report, "thiophenol": thiophenol_report}.get(args.arm)
+        text, verdict = report(records, bonds, structures) if report else deciding_report(args.arm, records, bonds, structures)
         print(text)
         (out / args.arm / "report.txt").write_text(text, encoding="utf-8")
         (out / args.arm / "verdict.json").write_text(json.dumps(verdict, indent=1, default=str), encoding="utf-8")

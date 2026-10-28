@@ -215,3 +215,17 @@ def test_the_thiophenol_determinations_are_the_papers_arithmetic_and_still_leave
     anchor = DATA["methanethiol_anchor"]
     assert anchor["nicovich1992_d0_cm1"] * cm == pytest.approx(359.7, abs=0.1)                       # 30 065 cm-1 is the 85.96 kcal/mol that Ervin's anchor rests on
     assert (anchor["wilson1994_d0_cm1"] - anchor["nicovich1992_d0_cm1"]) < (anchor["wilson1994_d0_uncertainty_cm1"] ** 2 + anchor["nicovich1992_d0_uncertainty_cm1"] ** 2) ** 0.5   # Wilson's own 'good agreement': 185 cm-1 against 260
+
+
+def test_the_thiophenol_thermal_step_is_the_committed_records_summarised_and_converts_the_two_zero_kelvin_values():
+    steps = _thermal_records()["thiophenol"]
+    t = DATA["thiophenol_context"]
+    assert t["thermal_step_kj"] == pytest.approx(steps["step_kj"], abs=0.006)
+    assert t["thermal_step_uncertainty_kj"] == pytest.approx(max(0.5, steps["spread_kj"]), abs=0.006)
+    assert steps["rejected"] == []                                                          # one conformer, no imaginary mode
+    step_kcal = t["thermal_step_kj"] / C["kj_per_kcal"]
+    assert t["lim2007_d0_kcal"] + step_kcal == pytest.approx(77.83, abs=0.01)             # Lim 2007 at 298 K, as the preregistration prints it
+    devine_kcal = t["devine2008_d0_cm1"] * DATA["methanethiol_anchor"]["cm1_to_kj_per_mol"] / C["kj_per_kcal"]
+    assert devine_kcal + step_kcal == pytest.approx(81.17, abs=0.01)                      # Devine 2008's upper limit at 298 K
+    assert 83.5 - (devine_kcal + step_kcal) == pytest.approx(2.33, abs=0.02)             # it lies this far below the calorimetric value
+    assert t["luo2007_range_298_kcal"] == [79.4, 83.5]

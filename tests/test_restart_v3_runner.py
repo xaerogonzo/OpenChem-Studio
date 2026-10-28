@@ -415,3 +415,65 @@ def test_the_report_prints_the_lowest_vibration_not_the_zeros_of_translation_and
             r["frequencies"] = [0.0] * 6 + [r["lowest_frequency"], 900.0]
     row = runner.judge_rows(records, [bond])[0]
     assert "lowest frequency parent 50, radical 600 cm-1" in runner._flags(row)             # the stand-in records' own lowest modes, not 0
+
+
+# --- Arm D-Ph: thiophenol S-H, reported only ----------------------------------------------------------------------------------------------
+
+
+def test_arm_d_ph_is_one_reported_only_bond_with_every_determination_at_298_kelvin():
+    from rdkit import Chem
+    (bond,) = v3.thiophenol_bonds()
+    assert bond["name"] == "thiophenol S-H" and bond["excluded"] is True                       # nothing decides
+    mol = Chem.MolFromSmiles(bond["smiles"])
+    assert mol.GetAtomWithIdx(bond["atom"]).GetSymbol() == "S"
+    assert Chem.AddHs(mol).GetNumAtoms() - 1 == 12 and v3.within_cap(12)                       # the radical is exactly at the cap: it gets the numerical job
+    refs = v3._refs()["thiophenol_context"]
+    step = refs["thermal_step_kj"] / 4.184
+    pts = bond["points"]
+    assert pts["Lim 2007 (0 K value plus the computed step)"] == pytest.approx(76.8 + step)
+    assert pts["Borges dos Santos 2002"] == pytest.approx(83.5)                               # a 298 K value as printed
+    assert 79.4 in pts.values() and list(pts.values()).count(83.5) == 2                      # Luo's range as printed: its low end, and its high end beside Borges dos Santos's 83.5
+    assert bond["upper_limit"] == pytest.approx(28030 * 0.011962656 / 4.184 + step)
+    assert bond["upper_limit"] < pts["Borges dos Santos 2002"]                                 # the upper limit lies BELOW the calorimetric value
+    assert bond["dh298"] == pytest.approx((min(pts.values()) + max(pts.values())) / 2)        # the table column's middle of the span, nothing is read against it
+
+
+def test_a_thiophenol_claim_needs_more_than_five_kcal_outside_the_whole_span_on_either_side():
+    (bond,) = v3.thiophenol_bonds()
+    low, high = min(bond["points"].values()), max(bond["points"].values())
+    assert v3.span_reading(None, bond)["claim"] == "no computed value"
+    for inside in (low, (low + high) / 2, high):
+        assert v3.span_reading(inside, bond)["gross"] is False and v3.span_reading(inside, bond)["outside_span"] == 0.0
+    assert v3.span_reading(low - 5.0, bond)["gross"] is False                               # exactly 5.0 outside: not MORE than 5.0
+    assert v3.span_reading(low - 5.1, bond)["gross"] is True
+    assert v3.span_reading(high + 5.0, bond)["gross"] is False
+    assert v3.span_reading(high + 5.1, bond)["gross"] is True
+    reading = v3.span_reading(high - 0.5, bond)
+    assert reading["above_upper_limit"] == pytest.approx(high - 0.5 - bond["upper_limit"])    # printed, never a claim
+    assert reading["gross"] is False and reading["claim"] == "no claim (numbers only)"
+
+
+def test_the_thiophenol_arm_builds_its_structures_and_is_wired_to_its_own_report(monkeypatch):
+    assert "thiophenol" in runner.ARMS and runner.ARMS["thiophenol"].__name__ == "thiophenol_bonds"   # the runner loads its own copy of the core module
+    structures = runner.build_structures(v3.thiophenol_bonds())
+    radicals = [s for s in structures if s["role"] == "radical"]
+    assert radicals and all(len(s["symbols"]) == 12 and s["mult"] == 2 for s in radicals)
+    assert sum(1 for s in radicals[0]["symbols"] if s == "S") == 1
+    assert any(s["role"] == "atom" for s in structures)
+
+
+def test_the_thiophenol_report_prints_every_determination_and_the_limit_and_makes_no_claim_when_refused(monkeypatch):
+    (bond,) = v3.thiophenol_bonds()
+    records = _closed_atom()
+    records.append({"structure": "parent|Sc1ccccc1|0", "role": "parent", "smiles": bond["smiles"], "completed": True, "skeleton_kept": True, "enthalpy": -100.0, "lowest_frequency": 50.0, "commit": "abc", "dirty": False})
+    records.append({"structure": f"radical|{bond['name']}|0", "role": "radical", "bond": bond["name"], "smiles": bond["smiles"], "completed": True, "skeleton_kept": True, "enthalpy": -99.0, "lowest_frequency": 50.0,
+                    "commit": "abc", "dirty": False})
+    monkeypatch.setattr(runner, "drift_problem", lambda r: None)
+    text, verdict = runner.thiophenol_report(records, [bond], None)                         # invented enthalpies: hundreds of kcal/mol away
+    assert verdict["verdict"] is None and verdict["readings"][0]["gross"] is True and "a gross failure" in text
+    for label in bond["points"]:
+        assert label in text
+    assert "UPPER LIMIT" in text and "computed minus limit" in text and "REPORTED ONLY" in text
+    monkeypatch.setattr(runner, "drift_problem", lambda r: "files changed since the records' commit")
+    text, verdict = runner.thiophenol_report(records, [bond], None)
+    assert verdict["readings"][0]["gross"] is False and "no claim: the report is refused" in text and "REFUSED" in text

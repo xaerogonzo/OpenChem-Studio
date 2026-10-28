@@ -32,7 +32,13 @@
   "lim2007_d0_kcal": 76.8,
   "lim2007_d0_uncertainty_kcal": 0.3,
   "borgesdossantos2002_d298_kcal": 83.5,
-  "borgesdossantos2002_d298_uncertainty_kcal": 1.1
+  "borgesdossantos2002_d298_uncertainty_kcal": 1.1,
+  "luo2007_range_298_kcal": [79.4, 83.5],
+  "luo2007_note": "Luo Table 8.1 prints a range for benzenethiol S-H and recommends none (read 2026-10-27, PDF pages 454 to 459)",
+  "thermal_step_kj": 4.3,
+  "thermal_step_uncertainty_kj": 0.5,
+  "thermal_step_source": "computed by benchmarks/restart_v3/thermal_step.py (B3LYP/def2-TZVPD harmonic frequencies, records in benchmarks/restart_v3/artifacts/thermal_step/): the radical's and the hydrogen atom's thermal enthalpies minus the parent's, zero-point energy excluded; converts the two 0 K determinations to 298 K",
+  "note_arm": "Arm D-Ph, REPORTED ONLY (decision D6, 2026-10-28)"
  },
  "sh_bonds": [
   {

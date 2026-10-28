@@ -188,6 +188,34 @@ def bromine_bonds() -> list[dict]:
     return out
 
 
+def thiophenol_bonds() -> list[dict]:
+    """Arm D-Ph's one bond (REPORTED ONLY, decision D6): thiophenol S-H, with every determination converted to 298 K and the one-sided limit.
+
+    There is no reference. The 0 K values (Lim 2007, 76.8 +- 0.3 kcal/mol; Devine 2008, an UPPER LIMIT of 80.15) become 298 K by adding the thermal step COMPUTED for thiophenol in `thermal_step.py`; Borges dos Santos 2002 (83.5 +- 1.1) and Luo's Table 8.1 range (79.4 to 83.5) are
+    printed as 298 K values. `points` are the determinations that are values; `upper_limit` is Devine's; `dh298` is the middle of the span of the points, for the table column only (nothing is read against it)."""
+    refs = _refs()
+    t = refs["thiophenol_context"]
+    step = t["thermal_step_kj"] / KJ_PER_KCAL
+    cm = refs["methanethiol_anchor"]["cm1_to_kj_per_mol"]
+    points = {"Lim 2007 (0 K value plus the computed step)": t["lim2007_d0_kcal"] + step, "Borges dos Santos 2002": t["borgesdossantos2002_d298_kcal"],
+              "Luo Table 8.1, low end of the range": t["luo2007_range_298_kcal"][0], "Luo Table 8.1, high end of the range": t["luo2007_range_298_kcal"][1]}
+    upper = t["devine2008_d0_cm1"] * cm / KJ_PER_KCAL + step
+    low, high = min(points.values()), max(points.values())
+    return [{"name": "thiophenol S-H", "smiles": "Sc1ccccc1", "atom": 0, "dh298": (low + high) / 2, "uncertainty": (high - low) / 2, "element": "S", "excluded": True, "points": points, "upper_limit": upper}]
+
+
+def span_reading(computed_kcal: float | None, bond: dict) -> dict:
+    """Arm D-Ph: the computed value against each determination, the span of the determinations that are values, and Devine's upper limit; and the one claim section 8 allows. `gross` is True only when the computed value is MORE THAN 5.0 kcal/mol outside the whole span, on whichever side:
+    the determinations disagree by about 5 kcal/mol among themselves, so anything smaller is numbers and nothing is claimed. A value above the upper limit is reported as such, never as a claim (the limit is one-sided and its own uncertainty is 0.3)."""
+    if computed_kcal is None:
+        return {"computed": None, "gross": False, "claim": "no computed value"}
+    low, high = min(bond["points"].values()), max(bond["points"].values())
+    outside = max(low - computed_kcal, computed_kcal - high, 0.0)
+    return {"computed": computed_kcal, "errors": {k: computed_kcal - v for k, v in bond["points"].items()}, "span": (low, high), "outside_span": outside,
+            "above_upper_limit": computed_kcal - bond["upper_limit"], "gross": outside > GROSS_ERROR,
+            "claim": f"a gross failure: {outside:.2f} kcal/mol outside the whole span of the determinations" if outside > GROSS_ERROR else "no claim (numbers only)"}
+
+
 # --- the reading rules (section 8) ------------------------------------------------------------------------------------------------------
 
 
