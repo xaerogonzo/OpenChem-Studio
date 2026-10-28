@@ -1,4 +1,4 @@
-"""Run: python saddle_follow.py OUT_DIR  (ORCA at D:\ORCA\orca.exe; about 20 minutes). Its numbers are summarised by the committed artifacts/saddle_follow/summary.json.
+"""Run: python saddle_follow.py OUT_DIR  (ORCA is the ORCA constant below; about 20 minutes). Its numbers are summarised by the committed artifacts/saddle_follow/summary.json.
 
 Follow the -233 cm-1 mode of the B3LYP 2-propanethiyl saddle point (conformer 1) down, at the SAME level as benchmarks/restart_v3/thermal_step.py. B3LYP only: the benchmark's own protocol (M06-2X) is NOT run on any Arm D bond here, so the held-out arm is not looked at."""
 import importlib.util, json, shutil, subprocess, sys, tempfile
