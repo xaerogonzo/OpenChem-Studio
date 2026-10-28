@@ -127,8 +127,12 @@ def run_job(structure: dict, route: str, cores: int, orca: str, bde=None) -> dic
     began = time.time()
     try:
         (scratch / "job.inp").write_text("\n".join(lines), encoding="utf-8")
-        done = subprocess.run([orca, "job.inp"], cwd=scratch, capture_output=True, text=True, timeout=6 * 3600, check=False)
-        record = {k: structure[k] for k in ("name", "conformer", "role")} | {"route": route, "seconds": round(time.time() - began, 1)}
+        record = {k: structure[k] for k in ("name", "conformer", "role")} | {"route": route}
+        try:
+            done = subprocess.run([orca, "job.inp"], cwd=scratch, capture_output=True, text=True, timeout=6 * 3600, check=False)
+        except subprocess.TimeoutExpired:
+            return record | {"error": "timeout after 21600 s", "seconds": round(time.time() - began, 1)}
+        record["seconds"] = round(time.time() - began, 1)
         try:
             parsed = thermal_from_output(done.stdout)
             record.update({k: v for k, v in parsed.items()})

@@ -144,6 +144,8 @@ def run_stage(arm: str, out: Path, cores: int, workers: int, run=rr.run_orca) ->
     print(f"{len(structures) - len(todo)} closed, {len(todo)} to run", flush=True)
 
     def append(record: dict) -> None:
+        # the tree is asked again for EVERY record: an edit made during a run of hours marks the records written after it, not just those written at the start
+        record["commit"], record["dirty"] = git_state()
         with rr.LOCK, path.open("a", encoding="utf-8") as handle:
             handle.write(json.dumps(record) + "\n")
 
@@ -158,8 +160,33 @@ def run_stage(arm: str, out: Path, cores: int, workers: int, run=rr.run_orca) ->
 # --- the reports -------------------------------------------------------------------------------------------------------------------
 
 
+def _selected(done: list[dict], bond: dict, labels: dict) -> dict:
+    """WHICH structures the bond's value was taken from (the lowest-enthalpy accepted parent and radical, the first run's rule) and how each was obtained: the report flags and prints from this, never from the other conformers."""
+    out = {}
+    for role, key, match in (("parent", "smiles", bond["smiles"]), ("radical", "bond", bond["name"])):
+        pool = [r for r in done if r["role"] == role and r.get(key) == match]
+        if not pool:
+            out[role] = None
+            continue
+        r = min(pool, key=lambda x: x["enthalpy"])
+        entry = {"structure": r["structure"], "lowest_frequency": r["lowest_frequency"], "method": "numerical" if r.get("numerical") else "analytic"}
+        if r.get("numerical"):
+            entry.update(verified=r["verified"], shift_kcal=labels[r["parent_structure"]]["shift_kcal"])
+        out[role] = entry
+    return out
+
+
+def _numerical_outcomes(records: list[dict], bond: dict) -> list[dict]:
+    """The numerical jobs of a bond's radicals that gave NO result (failed, timed out, or over the atom cap), with the reason, so a bond decided by the other conformers says so."""
+    out = []
+    for r in records:
+        if r.get("stage") == "numerical" and not r.get("completed") and str(r.get("structure", "")).startswith(f"radical|{bond['name']}|"):
+            out.append({"structure": r["structure"], "reason": r.get("label") or r.get("error") or "no result"})
+    return out
+
+
 def judge_rows(records: list[dict], bonds: list[dict]) -> list[dict]:
-    """The first run's judge over this protocol's accepted records (a numerical record is accepted at any frequency), one row per bond with its reference, computed value and, for a radical that took the numerical job, how far it moved the answer."""
+    """The first run's judge over this protocol's accepted records (a numerical record is accepted at any frequency), one row per bond with its reference, computed value, the structures the value came from and how, and the numerical jobs that gave no result."""
     done = v3.accepted(records)
     labels = v3.numerical_labels(records)
     rows = []
@@ -167,22 +194,52 @@ def judge_rows(records: list[dict], bonds: list[dict]) -> list[dict]:
         picked = bde.select(done, bond)
         row = {"name": bond["name"], "dh_ref": bond["dh298"], "uncertainty": bond["uncertainty"], "dh_kcal": picked["value_eh"] * bde.core.HARTREE_TO_KCAL if picked else None, "s2": picked["s2"] if picked else None,
                "element": bond["element"], "excluded": bond["excluded"]}
-        row["numerical"] = [dict(label, structure=sid) for sid, label in labels.items() if sid.startswith(f"radical|{bond['name']}|")]
+        row["selected"] = _selected(done, bond, labels) if picked else None
+        row["numerical_no_result"] = _numerical_outcomes(records, bond)
         rows.append(row)
     return rows
 
 
+#: The folders whose change since the records were made makes a report unreproducible (the same list `git_state` watches; artifacts are data, not code).
+_DRIFT_SPEC = [*WATCHED, ":(exclude)benchmarks/restart_v3/artifacts", ":(exclude)benchmarks/restart_v2/artifacts"]
+
+
+def drift_problem(records: list[dict]) -> str | None:
+    """Whether anything the records depend on changed between the commit they were made at and HEAD: the runner, the references, the shared code. A report built from references edited after the run is not a report of that run. An empty or unknown commit is a problem."""
+    commits = {r.get("commit") for r in records}
+    if not commits:
+        return None
+    if "" in commits or None in commits:
+        return "a record carries no commit"
+    for commit in commits:
+        done = subprocess.run(["git", "diff", "--name-only", commit, "HEAD", "--", *_DRIFT_SPEC], capture_output=True, text=True, cwd=REPO, check=False)
+        if done.returncode != 0:
+            return f"commit {commit[:8]} cannot be compared with HEAD"
+        if done.stdout.strip():
+            return f"files changed since the records' commit {commit[:8]}: {', '.join(done.stdout.split()[:5])}"
+    return None
+
+
 def problem_of(records: list[dict], structures: list[dict] | None) -> str | None:
-    problem = bde.provenance_problem(records)
+    problem = bde.provenance_problem(records) or drift_problem(records)
     if structures is not None and (open_chains := rr.pending(structures, records)) and not problem:
         problem = f"{len(open_chains)} structure chain(s) are not closed"
     return problem
 
 
 def _flags(row: dict) -> str:
+    """What to know about THE STRUCTURES THE VALUE CAME FROM: their lowest frequencies, whether the radical's came from the numerical job and what it moved, and the numerical jobs that gave no result."""
     notes = []
-    for n in row["numerical"]:
-        notes.append(f"numerical {n['shift_kcal']:+.2f} kcal/mol vs analytic" + ("" if n["verified"] else "; FREQUENCIES NOT VERIFIED"))
+    sel = row.get("selected")
+    if sel:
+        parent, radical = sel["parent"], sel["radical"]
+        notes.append(f"lowest frequency parent {parent['lowest_frequency']:.0f}, radical {radical['lowest_frequency']:.0f} cm-1")
+        if radical["method"] == "numerical":
+            notes.append(f"radical from the NUMERICAL job, {radical['shift_kcal']:+.2f} kcal/mol vs analytic" + ("" if radical["verified"] else "; FREQUENCIES NOT VERIFIED"))
+        else:
+            notes.append("radical analytic")
+    for n in row.get("numerical_no_result", []):
+        notes.append(f"numerical job gave no result for {n['structure']}: {n['reason']}")
     return ("  [" + "; ".join(notes) + "]") if notes else ""
 
 
@@ -208,11 +265,17 @@ def deciding_report(arm: str, records: list[dict], bonds: list[dict], structures
              "standard error of the mean error: " + (f"{se:.2f} kcal/mol" if se is not None else "n/a")]
     close = v3.near_limits(stats, band)
     lines.append(f"within {band} kcal/mol of a limit, so the two sides cannot be told apart: " + ("; ".join(close) if close else "none"))
+    if stats.missing == 1:
+        lines.append(f"ONE of the {len(deciding)} deciding bonds has no computed value: the verdict rests on the other {stats.count}.")
     if arm == "sh":
+        lines.append("Reference status: ethanethiol's is PUBLISHED (Ervin 2015); 1-propanethiol's and 2-propanethiol's are DERIVED here from published acidities and electron affinities with a thermal step COMPUTED in thermal_step.py, not published numbers.")
         lines.append("Methanethiol's S-H (the first run's lost bond; Nicovich 1992) is printed beside the three bonds and does not enter the mean.")
-    unverified = [n for r in rows for n in r["numerical"] if not n["verified"]]
+    unverified = [r["name"] for r in rows if r.get("selected") and r["selected"]["radical"]["method"] == "numerical" and not r["selected"]["radical"]["verified"]]
     if unverified:
-        lines.append(f"{len(unverified)} radical structure(s) took the numerical job and kept a mode below -20 cm-1 (their enthalpy is used and labelled)")
+        lines.append(f"{len(unverified)} bond(s) took their radical value from a numerical job that kept a mode below -20 cm-1 (enthalpy used and labelled): {', '.join(unverified)}")
+    no_result = [(r["name"], n["reason"]) for r in rows for n in r["numerical_no_result"]]
+    if no_result:
+        lines.append(f"{len(no_result)} numerical job(s) gave no result (failed, timed out, or over the {v3.MAX_NUMERICAL_ATOMS}-atom cap): " + "; ".join(f"{a}: {b}" for a, b in no_result))
     lines += ["", f"{'bond':44s} {'calc':>8s} {'ref':>8s} {'error':>7s}"]
     for r in deciding + beside:
         calc = "-" if r["dh_kcal"] is None else f"{r['dh_kcal']:.2f}"
@@ -230,13 +293,19 @@ def bromine_report(records: list[dict], bonds: list[dict], structures: list[dict
     readings = []
     for row, bond in zip(rows, bonds):
         reading = v3.bromine_reading(row["dh_kcal"], bond)
+        if problem:
+            # a refused report makes no claim about anything
+            reading = dict(reading, gross=False, claim="no claim: the report is refused")
         readings.append(dict(reading, name=bond["name"]))
         if row["dh_kcal"] is None:
-            lines.append(f"{bond['name']:26s} no computed value")
+            lines.append(f"{bond['name']:26s} no computed value{_flags(row)}")
             continue
         low, high = min(bond["others"]), max(bond["others"])
         calc = ", ".join(f"{c:.2f}" for c in bond["calculated"]) or "none"
-        lines.append(f"{bond['name']:26s} computed {row['dh_kcal']:.2f}; kinetics {bond['dh298']:.2f} (error {reading['vs_kinetics']:+.2f}); other determinations {low:.2f} to {high:.2f}; calculated {calc}; {reading['claim']}{_flags(row)}")
+        vs_range = reading["vs_others_high_low"]
+        vs_calc = ", ".join(f"{e:+.2f}" for e in reading["vs_calculated"]) or "n/a"
+        lines.append(f"{bond['name']:26s} computed {row['dh_kcal']:.2f}; kinetics {bond['dh298']:.2f} (error {reading['vs_kinetics']:+.2f}); other determinations {low:.2f} to {high:.2f} "
+                     f"(error {vs_range[1]:+.2f} to {vs_range[0]:+.2f}); calculated {calc} (error {vs_calc}); {reading['claim']}{_flags(row)}")
     return "\n".join(lines), {"arm": "bromine", "verdict": None, "problem": problem, "readings": readings, "rows": rows}
 
 

@@ -169,3 +169,16 @@ def test_bromomethane_has_an_independent_determination_that_agrees_with_the_kine
     bromination = next(d for d in methyl_bromide["other_determinations_kj"] if d["method"].startswith("bromination"))
     combined = math.hypot(bromination["uncertainty"], methyl_bromide["kinetics_uncertainty_kj"])
     assert abs(bromination["value"] - methyl_bromide["kinetics_kj"]) < combined
+
+
+def test_following_the_isopropyl_thiyl_saddle_point_found_a_flat_double_well_not_a_deeper_state():
+    """The -233 cm-1 mode of two 2-propanethiyl structures (preregistration section 7): displaced and re-optimised, both ends are minima of the same electronic energy as the one already used, and the saddle lies a few hundredths of a kcal/mol above."""
+    s = json.loads((Path(__file__).parent.parent / "benchmarks" / "restart_v3" / "artifacts" / "saddle_follow" / "summary.json").read_text(encoding="utf-8"))
+    eh = 627.5094740631
+    assert s["saddle"]["lowest_frequencies_cm1"][0] == pytest.approx(-233.5, abs=0.1)
+    for end in ("followed_plus", "followed_minus"):
+        assert s[end]["lowest_frequencies_cm1"][0] > 200.0                                           # a minimum
+        assert abs(s[end]["electronic_eh"] - s["conformer0_minimum"]["electronic_eh"]) * eh < 0.02   # the minimum already used
+        assert 0.0 < (s["saddle"]["electronic_eh"] - s[end]["electronic_eh"]) * eh < 0.1             # the saddle is barely above
+    # the harmonic enthalpy at the saddle is LOWER than at the minimum, by about half a kcal/mol: the artefact the preregistration warns of
+    assert -0.7 < s["derived_kcal"]["saddle_enthalpy_minus_conformer0_enthalpy"] < -0.4

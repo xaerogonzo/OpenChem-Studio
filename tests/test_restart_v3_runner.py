@@ -271,7 +271,8 @@ def test_the_input_of_the_numerical_job_is_the_preregistered_one():
     assert "Opt" not in text[0] and "Freq" in text[0]
 
 
-def test_the_arm_report_flags_a_replaced_enthalpy_and_refuses_mixed_commits():
+def test_the_arm_report_flags_a_replaced_enthalpy_and_refuses_mixed_commits(monkeypatch):
+    monkeypatch.setattr(runner, "drift_problem", lambda records: None)   # the commit "abc" of these stand-in records is not a real one; the drift check has its own tests below
     bond = {"name": "methanethiol S-H", "smiles": "CS", "atom": 1, "dh298": 87.35, "uncertainty": 0.58, "element": "S", "excluded": False}
     structures = runner.build_structures([bond])
     records = []
@@ -289,3 +290,110 @@ def test_the_arm_report_flags_a_replaced_enthalpy_and_refuses_mixed_commits():
     dirty = [dict(r, dirty=True) for r in records]
     assert runner.deciding_report("halogen", dirty, [bond], structures)[1]["problem"] == "some records were made with a dirty src/"
     assert json.dumps(verdict["rows"], default=str)
+
+
+# --- what the report says about WHICH structures decided a bond ------------------------------------------------------------------------
+
+
+def _sh_bond(name="methanethiol S-H", smiles="CS", atom=1, ref=87.35):
+    return {"name": name, "smiles": smiles, "atom": atom, "dh298": ref, "uncertainty": 0.58, "element": "S", "excluded": False}
+
+
+def _closed_atom():
+    return [{"structure": runner.bde.ATOM_ID, "role": "atom", "completed": True, "energy": -0.5, "commit": "abc", "dirty": False},
+            {"structure": runner.bde.ATOM_ID, "role": "atom", "stage": "closed", "completed": False, "final": True, "commit": "abc", "dirty": False}]
+
+
+def _records_with_two_radical_conformers(numerical_enthalpy, kept_verified=True):
+    """Two parent/radical conformers of one bond. Conformer 0's radical needs the numerical job; conformer 1's is accepted analytically. Which of them is LOWER decides which one the bond's value comes from."""
+    bond = _sh_bond()
+    base = {"commit": "abc", "dirty": False, "completed": True, "skeleton_kept": True}
+    records = _closed_atom()
+    records.append(dict(base, structure="parent|CS|0", role="parent", smiles="CS", enthalpy=-100.0, lowest_frequency=50.0, stage="opt"))
+    records.append(dict(base, structure="radical|methanethiol S-H|0", role="radical", bond=bond["name"], smiles="CS", enthalpy=-99.0, lowest_frequency=-1300.0, stage="retry"))
+    records.append(dict(base, structure="radical|methanethiol S-H|0#numerical", parent_structure="radical|methanethiol S-H|0", role="radical", bond=bond["name"], smiles="CS", stage="numerical",
+                        numerical=True, verified=kept_verified, enthalpy=numerical_enthalpy, analytic_enthalpy=-99.0, analytic_lowest_frequency=-1300.0, lowest_frequency=600.0 if kept_verified else -40.0))
+    records.append(dict(base, structure="radical|methanethiol S-H|1", role="radical", bond=bond["name"], smiles="CS", enthalpy=-99.5, lowest_frequency=100.0, stage="opt"))
+    return bond, records
+
+
+def test_the_flag_follows_the_conformer_the_value_came_from_not_the_other_ones():
+    # the numerical conformer is HIGHER (-99.3) than the analytic one (-99.5): the bond's radical is the analytic conformer and nothing should say 'numerical'
+    bond, records = _records_with_two_radical_conformers(-99.3, kept_verified=False)
+    row = runner.judge_rows(records, [bond])[0]
+    assert row["selected"]["radical"]["method"] == "analytic"
+    text = runner._flags(row)
+    assert "NUMERICAL" not in text and "NOT VERIFIED" not in text and "radical analytic" in text
+
+
+def test_a_bond_whose_value_is_an_unverified_numerical_enthalpy_says_so():
+    # now the numerical conformer is the lowest (-99.8) and its own mode is still below -20
+    bond, records = _records_with_two_radical_conformers(-99.8, kept_verified=False)
+    row = runner.judge_rows(records, [bond])[0]
+    assert row["selected"]["radical"]["method"] == "numerical" and row["selected"]["radical"]["verified"] is False
+    assert "NUMERICAL" in runner._flags(row) and "FREQUENCIES NOT VERIFIED" in runner._flags(row)
+    assert row["selected"]["radical"]["shift_kcal"] == pytest.approx((-99.8 + 99.0) * 627.5094740631)
+    assert "lowest frequency parent 50, radical -40 cm-1" in runner._flags(row)
+
+
+def test_a_numerical_job_with_no_result_is_named_in_the_report(monkeypatch):
+    monkeypatch.setattr(runner, "drift_problem", lambda records: None)
+    bond, records = _records_with_two_radical_conformers(-99.3)
+    records.append({"structure": "radical|methanethiol S-H|2#numerical", "role": "radical", "stage": "numerical", "completed": False, "error": "timeout after 14400 s", "commit": "abc", "dirty": False})
+    records.append({"structure": "radical|methanethiol S-H|3#numerical", "role": "radical", "stage": "numerical", "completed": False, "capped": True, "label": v3.OVER_CAP, "commit": "abc", "dirty": False})
+    text, verdict = runner.deciding_report("halogen", records, [bond], None)
+    assert "2 numerical job(s) gave no result" in text and "timeout after 14400 s" in text and "over the 12-atom cap" in text
+    assert [n["structure"] for n in verdict["rows"][0]["numerical_no_result"]] == ["radical|methanethiol S-H|2#numerical", "radical|methanethiol S-H|3#numerical"]
+
+
+def test_one_missing_deciding_bond_is_stated(monkeypatch):
+    monkeypatch.setattr(runner, "drift_problem", lambda records: None)
+    bond, records = _records_with_two_radical_conformers(-99.8)
+    absent = _sh_bond("ethanethiol S-H", "CCS", 2, 87.16)
+    text, _ = runner.deciding_report("sh", records, [bond, absent], None)
+    assert "ONE of the 2 deciding bonds has no computed value: the verdict rests on the other 1." in text
+    assert "DERIVED here" in text and "PUBLISHED" in text    # Arm D says which references are published and which are derived
+
+
+def test_a_refused_bromine_report_makes_no_claim(monkeypatch):
+    bromine = v3.bromine_bonds()[0]
+    records = _closed_atom()
+    records.append({"structure": "parent|CBr|0", "role": "parent", "smiles": "CBr", "completed": True, "skeleton_kept": True, "enthalpy": -100.0, "lowest_frequency": 50.0, "commit": "abc", "dirty": False})
+    records.append({"structure": f"radical|{bromine['name']}|0", "role": "radical", "bond": bromine["name"], "smiles": "CBr", "completed": True, "skeleton_kept": True, "enthalpy": -99.0, "lowest_frequency": 50.0,
+                    "commit": "abc", "dirty": False})
+    monkeypatch.setattr(runner, "drift_problem", lambda r: None)
+    # the invented enthalpies make the computed value hundreds of kcal/mol from every reference
+    text, verdict = runner.bromine_report(records, [bromine], None)
+    assert verdict["readings"][0]["gross"] is True and "a gross failure" in text
+    monkeypatch.setattr(runner, "drift_problem", lambda r: "files changed since the records' commit")
+    text, verdict = runner.bromine_report(records, [bromine], None)
+    assert verdict["readings"][0]["gross"] is False and "no claim: the report is refused" in text and "REFUSED" in text
+    assert "(error" in text and "calculated" in text      # the errors against the range and the calculated values are printed, not only held in the JSON
+
+
+# --- provenance --------------------------------------------------------------------------------------------------------------------------
+
+
+def test_every_record_is_stamped_with_the_tree_as_it_is_when_it_is_written(tmp_path, monkeypatch):
+    structures = [s for s in runner.build_structures([_sh_bond()]) if s["role"] == "atom"]
+    (tmp_path / "sh").mkdir()
+    (tmp_path / "sh" / "structures.json").write_text(json.dumps(structures), encoding="utf-8")
+    states = iter([("c0", False)] + [("c1", False)] + [("c1", True)] * 20)   # the first call is the run's start; the tree is edited before the next record
+    monkeypatch.setattr(runner, "git_state", lambda: next(states))
+
+    def run(text, want_hessian=False):
+        return "FINAL SINGLE POINT ENERGY      -0.500000000000\nORCA TERMINATED NORMALLY", None
+
+    runner.run_stage("sh", tmp_path, 4, 1, run)
+    records = [json.loads(line) for line in (tmp_path / "sh" / "runs.jsonl").read_text(encoding="utf-8").splitlines()]
+    assert [(r["commit"], r["dirty"]) for r in records] == [("c1", False), ("c1", True)]    # the later record carries the edit; one stamp for the whole run would hide it
+
+
+def test_a_report_is_refused_when_what_the_records_depend_on_changed_since_their_commit():
+    import subprocess
+    head = subprocess.run(["git", "rev-parse", "HEAD"], capture_output=True, text=True, cwd=runner.REPO, check=False).stdout.strip()
+    assert head, "this test needs a git checkout"
+    assert runner.drift_problem([{"commit": head}]) is None                         # nothing changed since HEAD
+    assert "no commit" in runner.drift_problem([{"commit": ""}])                    # an unstamped record
+    assert runner.drift_problem([{"commit": "0" * 40}])                             # a commit git does not know cannot be compared
+    assert runner.drift_problem([]) is None
