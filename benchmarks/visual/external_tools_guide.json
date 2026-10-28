@@ -1,0 +1,6 @@
+[
+  {"do": "dialog", "name": "SettingsDialog", "section": "external_tools", "after_ms": 2500},
+  {"do": "shot", "path": "benchmarks/visual/artifacts/external_tools_guide.png", "widget": "dialog"},
+  {"do": "close_dialog"},
+  {"do": "quit"}
+]
