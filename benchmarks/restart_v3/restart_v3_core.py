@@ -215,14 +215,16 @@ def near_limits(deciding: "judge.Stats", band: float) -> list[str]:
 
 def bromine_reading(computed_kcal: float | None, bond: dict) -> dict:
     """Arm C-Br: the computed value's error against (i) the kinetics value, (ii) the range of the other determinations, (iii) each calculated value; and the one claim section 8 allows. `gross` is True only when the error exceeds 5.0 kcal/mol against the kinetics
-    value AND against every calculated value (for a bond with none, against the highest other determination): a smaller disagreement is reported as numbers and nothing is claimed."""
+    value AND against every calculated value (for a bond with none, MORE THAN 5.0 OUTSIDE THE WHOLE RANGE of the other determinations, on whichever side the computed value lies): a smaller disagreement is reported as numbers and nothing is claimed."""
     if computed_kcal is None:
         return {"computed": None, "gross": False, "claim": "no computed value"}
     vs_kinetics = computed_kcal - bond["dh298"]
     others = bond["others"]
     vs_range = None if not others else (computed_kcal - max(others), computed_kcal - min(others))
     vs_calculated = [computed_kcal - c for c in bond["calculated"]]
-    against = vs_calculated if bond["calculated"] else [computed_kcal - max(others)]
+    # no calculated value: the distance from the nearest end of the range of the other determinations (zero inside it), so the high and the low side are treated alike
+    outside = max(min(others) - computed_kcal, computed_kcal - max(others), 0.0) if others else 0.0
+    against = vs_calculated if bond["calculated"] else [outside]
     gross = abs(vs_kinetics) > GROSS_ERROR and all(abs(e) > GROSS_ERROR for e in against)
     return {"computed": computed_kcal, "vs_kinetics": vs_kinetics, "vs_others_high_low": vs_range, "vs_calculated": vs_calculated, "gross": gross,
             "claim": "a gross failure: more than 5.0 kcal/mol from the kinetics value and from the calculated value" if gross else "no claim (numbers only)"}

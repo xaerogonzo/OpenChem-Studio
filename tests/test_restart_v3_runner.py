@@ -130,8 +130,13 @@ def test_a_bromine_claim_needs_both_the_kinetics_value_and_the_calculation_to_be
     assert v3.bromine_reading(100.0 - 5.5, _bond())["gross"] is False       # 5.5 from the kinetics value but only 2.5 from the calculation
     assert v3.bromine_reading(90.0, _bond())["gross"] is True                # 10 from the kinetics, 7 from the calculation
     no_calc = _bond(calculated=[])
-    assert v3.bromine_reading(93.0, no_calc)["gross"] is True                # bromoethane: against the highest other determination (99.0)
-    assert v3.bromine_reading(95.0, no_calc)["gross"] is False               # 4 from the highest other determination
+    assert v3.bromine_reading(92.0, no_calc)["gross"] is True                # bromoethane: 6 below the lowest other determination (98.0) and 8 from the kinetics value
+    assert v3.bromine_reading(93.0, no_calc)["gross"] is False               # exactly 5 outside the range: not MORE than 5
+    assert v3.bromine_reading(106.0, no_calc)["gross"] is True               # 7 above the highest (99.0), 6 from the kinetics value
+    assert v3.bromine_reading(104.5, no_calc)["gross"] is False              # 5.5 above the highest, but only 4.5 from the kinetics value
+    wide = _bond(dh298=105.0, others=[95.0, 99.0], calculated=[])
+    assert v3.bromine_reading(91.0, wide)["gross"] is False                  # 8 from the highest, but only 4 below the LOWEST: the old rule called this gross
+    assert v3.bromine_reading(97.0, wide)["gross"] is False                  # inside the range of the others
     two_calcs = _bond(calculated=[97.0, 90.0])
     assert v3.bromine_reading(91.0, two_calcs)["gross"] is False             # within 5 of one of the two calculated values: no claim
 

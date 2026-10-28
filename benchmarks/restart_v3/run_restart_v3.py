@@ -289,7 +289,7 @@ def bromine_report(records: list[dict], bonds: list[dict], structures: list[dict
     problem = problem_of(records, structures)
     rows = judge_rows(records, bonds)
     lines = ["ARM C-Br (four bromine C-H bonds; REPORTED ONLY, deciding nothing)" + (f"; REFUSED: {problem}" if problem else ""),
-             "A claim is made only when the error exceeds 5.0 kcal/mol against the kinetics value AND the calculated value (bromoethane: the highest other determination); anything else is numbers.", ""]
+             "A claim is made only when the error exceeds 5.0 kcal/mol against the kinetics value AND every calculated value (bromoethane, which has none: more than 5.0 outside the whole range of the other determinations); anything else is numbers.", ""]
     readings = []
     for row, bond in zip(rows, bonds):
         reading = v3.bromine_reading(row["dh_kcal"], bond)
