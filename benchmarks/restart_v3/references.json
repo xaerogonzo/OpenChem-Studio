@@ -17,9 +17,22 @@
   "ervin2015_routes": "two, combined: the Br + CH3SH kinetics of nicovich1992 (359.7 +- 2.8 kJ/mol) and a photofragment route through D0(CH3-S) = 3.045 +- 0.015 eV with enthalpies of formation (359.7 +- 1.7 kJ/mol)",
   "wilson1994_d0_cm1": 30250,
   "wilson1994_d0_uncertainty_cm1": 100,
-  "wilson1994_source": "H-atom photofragment translational spectroscopy of CH3SH, S. H. S. Wilson, M. N. R. Ashfold and R. N. Dixon, J. Chem. Phys. 101, 7538 (1994), reference 33 of wu2025 (which quotes it twice as 'D0(H3CS-H) = 30 250 +- 100 cm-1'). The paper itself has NOT been read.",
+  "wilson1994_source": "H-atom photofragment translational spectroscopy of CH3SH, S. H. S. Wilson, M. N. R. Ashfold and R. N. Dixon, J. Chem. Phys. 101, 7538 (1994), reference 33 of wu2025 (which quotes it twice as 'D0(H3CS-H) = 30 250 +- 100 cm-1'). READ 2026-10-28 (wilson1994): D0 = 30 250 +- 100 cm-1 is the dissociation threshold for forming the lower 2E3/2 spin-orbit state of CH3S(X), from a line-shape simulation of the resolved v = 0 spin-orbit doublet in the 274.0 nm H-atom spectrum (50 cm-1 resolution), cross-checked against the vibronic structure of the CH3S A-X dispersed emission. The authors themselves call it 'in good agreement with the most recent literature value (85.96 +- 0.68 kcal/mol, 30 065 +- 240 cm-1)', which is Nicovich 1992.",
+  "nicovich1992_d0_cm1": 30065,
+  "nicovich1992_d0_uncertainty_cm1": 240,
   "cm1_to_kj_per_mol": 0.011962656,
   "sensitivity_note": "An upper bound on how far the three Arm D references could move: the thiols' acidities are measured relative to CH3SH, so a shift of the anchor passes into them at most one for one; the least-squares network with H2S and pyrrole passes less. Not a correction."
+ },
+ "thiophenol_context": {
+  "note": "Thiophenol is NOT in Arm D. Its two newest 0 K determinations disagree by 3.3 kcal/mol, and the one that is explicitly an upper limit lies above the other. Read 2026-10-28.",
+  "devine2008_d0_cm1": 28030,
+  "devine2008_d0_uncertainty_cm1": 100,
+  "devine2008_kind": "UPPER LIMIT: the authors say so (the peak is assigned to H + C6H5S(X, v = 0), but the possibility that all of the products carry an additional unrecognized quantum of vibration cannot be excluded). H(D) Rydberg-atom photofragment translational spectroscopy, 290.00 nm and neighbouring wavelengths, mean parent internal energy about 100 cm-1 assumed.",
+  "devine2008_printed_kj": 335.3,
+  "lim2007_d0_kcal": 76.8,
+  "lim2007_d0_uncertainty_kcal": 0.3,
+  "borgesdossantos2002_d298_kcal": 83.5,
+  "borgesdossantos2002_d298_uncertainty_kcal": 1.1
  },
  "sh_bonds": [
   {

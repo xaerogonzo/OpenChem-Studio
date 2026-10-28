@@ -199,3 +199,19 @@ def test_the_methanethiol_anchor_block_is_the_two_papers_arithmetic():
     assert mean == pytest.approx(361.03, abs=0.01) and (w1 + w2) ** -0.5 == pytest.approx(0.94, abs=0.01)
     assert (mean - a["ervin2015_combined_kj"]) / C["kj_per_kcal"] == pytest.approx(0.317, abs=0.002)    # the most the combined anchor could move an Arm D reference
     assert a["ervin2015_combined_kj"] == pytest.approx(359.7)                                           # the figure Ervin prints, as the preregistration quotes it
+
+
+def test_the_thiophenol_determinations_are_the_papers_arithmetic_and_still_leave_it_out():
+    """Devine, Nix, Dixon and Ashfold 2008 print D0(C6H5S-H) <= 28 030 +- 100 cm-1 (335.3 +- 1.2 kJ/mol) and call it an upper limit; Lim 2007 prints 76.8 +- 0.3 kcal/mol; they differ by 3.3 kcal/mol at 0 K, so no thiophenol reference passes the 1.0 kcal/mol rule."""
+    t = DATA["thiophenol_context"]
+    cm = DATA["methanethiol_anchor"]["cm1_to_kj_per_mol"]
+    kj = t["devine2008_d0_cm1"] * cm
+    assert kj == pytest.approx(t["devine2008_printed_kj"], abs=0.05)                           # the paper's own conversion
+    kcal = kj / C["kj_per_kcal"]
+    assert kcal == pytest.approx(80.15, abs=0.01)
+    assert kcal - t["lim2007_d0_kcal"] == pytest.approx(3.35, abs=0.02)
+    assert "UPPER LIMIT" in t["devine2008_kind"]
+    assert t["devine2008_d0_uncertainty_cm1"] * cm / C["kj_per_kcal"] < 1.0 < kcal - t["lim2007_d0_kcal"]   # each is precise on its own; together they are not usable
+    anchor = DATA["methanethiol_anchor"]
+    assert anchor["nicovich1992_d0_cm1"] * cm == pytest.approx(359.7, abs=0.1)                       # 30 065 cm-1 is the 85.96 kcal/mol that Ervin's anchor rests on
+    assert (anchor["wilson1994_d0_cm1"] - anchor["nicovich1992_d0_cm1"]) < (anchor["wilson1994_d0_uncertainty_cm1"] ** 2 + anchor["nicovich1992_d0_uncertainty_cm1"] ** 2) ** 0.5   # Wilson's own 'good agreement': 185 cm-1 against 260

@@ -1,5 +1,5 @@
 <!-- GENERATED FROM docs/sources.toml -- do not edit -->
-<!-- SOURCE SHA256: 66b1534fa0af83fed67628f9fd08af4ec158abc23941ab12270c9f006d112f15 -->
+<!-- SOURCE SHA256: 6b925062579c9d810db1c11994c6c179f48da967928e159fb19f5d57bd440150 -->
 
 # Sources
 
@@ -157,6 +157,7 @@ next run of `tools/build_lewis_parameters.py`.
 | [`dea_listed_chemicals`](#dea_listed_chemicals) | legal | shipped | citation |
 | [`delaney2004`](#delaney2004) | literature | shipped | citation + claim |
 | [`deproft2002`](#deproft2002) | literature | shipped | citation + claim |
+| [`devine2008`](#devine2008) | literature | reference only | citation + claim |
 | [`dimorphite_dl`](#dimorphite_dl) | software | shipped | citation |
 | [`dittwald2014`](#dittwald2014) | literature | reference only | citation |
 | [`drago1965`](#drago1965) | literature | shipped | citation + claim |
@@ -385,6 +386,7 @@ next run of `tools/build_lewis_parameters.py`.
 | [`wilmer2011`](#wilmer2011) | literature | reference only | citation |
 | [`wilmer2012`](#wilmer2012) | literature | shipped | citation + claim |
 | [`wilmer2012_correction`](#wilmer2012_correction) | literature | reference only | citation |
+| [`wilson1994`](#wilson1994) | literature | reference only | citation + claim |
 | [`wu2025`](#wu2025) | literature | reference only | citation + claim |
 | [`yalkowsky_banerjee1992`](#yalkowsky_banerjee1992) | dataset | shipped | citation |
 | [`zenodo7341155`](#zenodo7341155) | dataset | reference only | citation + claim |
@@ -7922,6 +7924,40 @@ outputs); the paper itself was NOT read, so this entry makes no claim about a nu
 | Used by | `benchmarks/restart_v3/PREREGISTRATION.md`, `benchmarks/restart_v3/references.json`, `benchmarks/restart_v3/LITERATURE_LOG.md`, `tests/test_restart_v3_references.py` |
 
 **Why it is reference only.** THE THIRD METHANETHIOL ANCHOR: the paper quotes D0(H3CS-H) = 30 250 +- 100 cm-1 (361.87 +- 1.20 kJ/mol) from Wilson, Ashfold and Dixon, J. Chem. Phys. 101, 7538 (1994), 2.17 kJ/mol above the 359.7 +- 1.5 that Ervin 2015 anchors the acidity scale on, which is the anchor all three Arm D S-H references share. Read for that quotation and its citation only; it measures nothing about the S-H bond. The value is a sensitivity of Arm D, not a correction (restart-v3 preregistration section 7, references.json methanethiol_anchor).
+
+### wilson1994
+
+<a id="wilson1994"></a>
+
+> S. H. S. Wilson, M. N. R. Ashfold & R. N. Dixon, 'Near ultraviolet photolysis of methanethiol studied by H atom photofragment translational spectroscopy', J. Chem. Phys. 101, 7538-7547 (1994).
+
+| | |
+| --- | --- |
+| Identifier | [10.1063/1.468248](https://doi.org/10.1063/1.468248) |
+| Status | reference only |
+| Verification | citation + claim |
+| Verified | 2026-10-28 |
+| Local copy | `wilson1994_ch3sh_h_atom_pts.pdf` (not checked) |
+| Used by | `benchmarks/restart_v3/PREREGISTRATION.md`, `benchmarks/restart_v3/references.json`, `benchmarks/restart_v3/LITERATURE_LOG.md`, `tests/test_restart_v3_references.py` |
+
+**Why it is reference only.** THE THIRD METHANETHIOL ANCHOR AT ITS SOURCE: D0(CH3S-H) = 30 250 +- 100 cm-1 (361.87 kJ/mol) as the dissociation threshold for the lower 2E3/2 spin-orbit state of CH3S, from a fit of the resolved v = 0 doublet in the 274.0 nm H-atom time-of-flight spectrum; the authors call it in good agreement with Nicovich's 85.96 +- 0.68 kcal/mol (30 065 +- 240 cm-1). Ervin 2015 did not use it. Used for the sensitivity of Arm D's three S-H references to their shared anchor (restart-v3 preregistration section 7, references.json methanethiol_anchor).
+
+### devine2008
+
+<a id="devine2008"></a>
+
+> A. L. Devine, M. G. D. Nix, R. N. Dixon & M. N. R. Ashfold, 'Near-Ultraviolet Photodissociation of Thiophenol', J. Phys. Chem. A 112, 9563-9574 (2008).
+
+| | |
+| --- | --- |
+| Identifier | [10.1021/jp802019v](https://doi.org/10.1021/jp802019v) |
+| Status | reference only |
+| Verification | citation + claim |
+| Verified | 2026-10-28 |
+| Local copy | `devine2008_thiophenol_photodissociation.pdf` (not checked) |
+| Used by | `benchmarks/restart_v3/PREREGISTRATION.md`, `benchmarks/restart_v3/references.json`, `benchmarks/restart_v3/LITERATURE_LOG.md`, `tests/test_restart_v3_references.py` |
+
+**Why it is reference only.** WHY THIOPHENOL STAYS OUT OF ARM D: D0(C6H5S-H) <= 28 030 +- 100 cm-1 (335.3 +- 1.2 kJ/mol, 80.15 kcal/mol at 0 K), which the authors call an upper limit; it lies 3.3 kcal/mol above Lim 2007's 76.8 +- 0.3 kcal/mol, so no thiophenol reference passes the 1.0 kcal/mol rule (restart-v3 preregistration section 7, references.json thiophenol_context).
 
 ## Datasets
 
