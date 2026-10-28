@@ -114,7 +114,11 @@ printed.title = "Density Estimations for Explosives and Related Compounds Using 
 printed.venue = "J. Chem. Eng. Data, Vol. 24, No. 2, 1979, p. 136"
 assigned.property = "density"
 assigned.role = "candidate_method"
-note = "page 1 of the file opens on the tail of the preceding article; the paper's own title is on it"
+note = """page 1 of the file opens on the tail of the preceding article; the paper's own title is on it.
+Transcribed 2026-10-27 for the Phase B density arm (Tables I, III and V: 188 compounds; group volumes: 26 + 47
+configurations), from rotated scans; the rows stay in the maintainer's private notes and only counts, hashes and
+findings are committed (benchmarks/energetics_props/PREREGISTRATION.md section 17). Printed errors found: the
+volume of furan is half its group sum (35.78 against 71.56), and 12 other rows disagree with their own arithmetic."""
 
 [[source]]
 id = "ammon1998"
@@ -187,7 +191,11 @@ printed.title = "A reliable simple method to estimate density of nitroaliphatics
 printed.venue = "J. Hazard. Mater. 169 (2009) 158-169"
 assigned.property = "density"
 assigned.role = "candidate_method"
-note = "nitramine-specific"
+note = """nitramine-specific. Transcribed 2026-10-27 for the Phase B density arm (Table 1: 72 compounds, the data of its
+correlation; Table 2: 41, the comparison set); the rows stay in the maintainer's private notes and only counts, hashes
+and findings are committed (benchmarks/energetics_props/PREREGISTRATION.md section 17). It reports a root-mean-square
+deviation in percent, not a mean absolute error, so the 1.5x replication criterion is not applied to it. 84 compounds
+are shared with Tarver 1979, and 80 of them agree with this paper's copy of Tarver's column to the printed digit."""
 
 [[source]]
 id = "keshavarz2009_arene"
@@ -196,11 +204,18 @@ sha256 = "e0da886d735ada66b0eeee68d969704f615cca3bb224995bd0af2b392b70824c"
 pages = 10
 access = "held"
 printed.doi = "10.1016/j.jhazmat.2008.10.019"
-printed.title = "doi:10.1016/j.jhazmat.2008.10.019"
+printed.title = "Novel method for predicting densities of polynitro arene and polynitro heteroarene explosives in order to evaluate their detonation performance"
 printed.venue = "J. Hazard. Mater. 165 (2009) 579-588"
 assigned.property = "density"
 assigned.role = "candidate_method"
-note = "polynitro arenes and heteroarenes"
+note = """polynitro arenes and heteroarenes. The title above replaces a placeholder that held only the DOI; it is read from
+the file's own first page (2026-10-28). Transcribed 2026-10-27 for the Phase B density arm (Tables 1-3: 21 + 9 + 16 =
+46 compounds, the data of its correlation; Table 4: 13, a reliability check); the rows stay in the maintainer's
+private notes and only counts, hashes and findings are committed (PREREGISTRATION.md section 17). Printed errors
+found: Eq. (5) prints the CNG coefficient as -0.751 while every row of its own tables is reproduced only with -0.0751;
+Table 1's caption says 25 compounds and the text 21, and the table holds 21. Five drawn structures (an aza analogue
+of TACOT, an azo-bis(furoxan) and three benzobisfuroxan amines) are drawn in the tables and could not be read to a
+connectivity at the print's size; the papers that first report those compounds are the way to resolve them."""
 
 [[source]]
 id = "rice2007"
@@ -1708,3 +1723,32 @@ note = """recorded 2026-10-06 from the library index (page 1 and the printed DOI
 tautomer program, 2026-10-02/03) was in a session that has since been archived, so why it was wanted is not written down.
 What page 1 says: DFT structure, energy and NMR parameters of uracil and the 5-halouracils in vacuum and water (PCM and others). The property and the role are provisional; re-assign the role (candidate_method, benchmark_reference,
 ...) once someone reads it for what it is used for."""
+
+[[source]]
+id = "keshavarz2007_nitramine_density"
+access = "not_held"
+printed.doi = "10.1016/j.jhazmat.2006.09.054"
+printed.title = "Prediction of densities of acyclic and cyclic nitramines, nitrate esters and nitroaliphatic compounds for evaluation of their detonation performance"
+printed.venue = "J. Hazard. Mater. 143 (2007) 437-442"
+assigned.property = "density"
+assigned.role = "candidate_method"
+note = "named from the reference list of keshavarz2009_arene (its reference [28]), checked through Crossref 2026-10-28, not read. Same author and the same compound classes as keshavarz2009_nitro, two years earlier; wanted to see whether the 2009 paper replaces or extends it, which decides whether it is a separate candidate with its own leakage status."
+
+[[source]]
+id = "keshavarz2007_nitroaromatic_density"
+access = "not_held"
+printed.doi = "10.1016/j.jhazmat.2006.11.023"
+printed.title = "New method for calculating densities of nitroaromatic explosive compounds"
+printed.venue = "J. Hazard. Mater. 145 (2007) 263-269"
+assigned.property = "density"
+assigned.role = "candidate_method"
+note = "named from the reference list of keshavarz2009_arene (its reference [8]), checked through Crossref 2026-10-28, not read. The nitroaromatic predecessor of keshavarz2009_arene; its leakage status is not recorded in the preregistration yet."
+
+[[source]]
+id = "nielsen1973"
+access = "not_held"
+printed.doi = ""
+printed.venue = "A. T. Nielsen, Calculation of densities of fuel and explosives from molar volume additive increments, Naval Weapons Center report NWC TP 5452, February 1973 (no DOI)"
+assigned.property = "density"
+assigned.role = "candidate_method"
+note = "named from the reference list of keshavarz2009_arene (its reference [15]), not read. An earlier molar-volume additive-increment method for explosive densities, cited beside Tarver 1979 in that paper; a DTIC copy may exist. Wanted only if a Tarver group volume needs checking against an earlier table."
