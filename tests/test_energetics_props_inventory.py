@@ -118,4 +118,4 @@ def test_the_preregistration_is_a_draft_with_every_section():
     text = (BENCH / "PREREGISTRATION.md").read_text(encoding="utf-8")
     assert "Status: DRAFT" in text.splitlines()[2]
     headings = re.findall(r"^## (\d+)\. ", text, flags=re.MULTILINE)
-    assert headings == [str(i) for i in range(1, 18)]    # 15 is Amendment 1, 16 is Amendment 2, 17 is Amendment 3 (2026-10-27)
+    assert headings == [str(i) for i in range(1, 19)]    # 15 is Amendment 1, 16 is Amendment 2, 17 is Amendment 3 (2026-10-27), 18 is Amendment 4 (2026-10-28)
