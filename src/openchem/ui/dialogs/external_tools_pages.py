@@ -218,6 +218,7 @@ class ExternalToolsPages(QWidget):
         self._add_executable_tab(catalog.vina(), _VinaTab)
         self._add_executable_tab(catalog.orca(), ManagedExecutableTab)
         self._add_executable_tab(catalog.psi4(), ManagedExecutableTab)
+        self._add_executable_tab(catalog.xtb(), ManagedExecutableTab)
         self._add_executable_tab(catalog.aizynthfinder(), ManagedExecutableTab)
         self._add_sidecar_tab(catalog.pkasolver(), InterpreterSidecarTab)
         # Grouped with pkasolver rather than with the executables above:
@@ -297,6 +298,7 @@ class ExternalToolsPages(QWidget):
         "vina": "_vina",
         "orca": "_orca",
         "psi4": "_psi4",
+        "xtb": "_xtb",
         "aizynthfinder": "_aizynthfinder",
         "knowledge_vista": "_knowledge_vista",
     }

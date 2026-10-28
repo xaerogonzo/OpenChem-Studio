@@ -17,13 +17,16 @@ ORCA_OPTIMIZED = "orca_opt"
 #: because a geometry says which program and level made it.
 PSI4_OPTIMIZED = "psi4_opt"
 
+#: The same, from xtb (`chem/xtb_engine.py`): the final geometry of an `--opt`/`--ohess` job, at GFN1/GFN2-xTB. A tight-binding geometry, which is not a DFT one, so it keeps its own label.
+XTB_OPTIMIZED = "xtb_opt"
+
 #: Every `method` that marks a quantum-optimized geometry. A set because a second engine adds its own
 #: label here and nothing else changes: the canonical-conformer rule, the keep-on-regenerate rule and the scores'
 #: geometry rule all read this set.
-QUANTUM_OPTIMIZED_METHODS = frozenset({ORCA_OPTIMIZED, PSI4_OPTIMIZED})
+QUANTUM_OPTIMIZED_METHODS = frozenset({ORCA_OPTIMIZED, PSI4_OPTIMIZED, XTB_OPTIMIZED})
 
 #: How a person names the engine behind each quantum-optimized `method`, for labels ("4 - Psi4 optimized (...)").
-QUANTUM_ENGINE_NAMES = {ORCA_OPTIMIZED: "ORCA", PSI4_OPTIMIZED: "Psi4"}
+QUANTUM_ENGINE_NAMES = {ORCA_OPTIMIZED: "ORCA", PSI4_OPTIMIZED: "Psi4", XTB_OPTIMIZED: "xtb"}
 
 #: Provenance parameter naming the `conformer_id` of the conformer a quantum optimization started from. The id
 #: is the identity; the slot below is for a reader who counts conformers 1..N.

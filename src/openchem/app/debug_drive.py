@@ -612,7 +612,7 @@ class _Driver(QObject):
         logger.warning("OPENCHEM_DRIVE: dock_receptor -> %r", combo.currentText())
 
     #: The tool settings a script may set for its own run, and no others.
-    _TOOL_PATH_KEYS = {"psi4": "psi4/executable_path"}
+    _TOOL_PATH_KEYS = {"psi4": "psi4/executable_path", "xtb": "xtb/executable_path"}
 
     def _do_tool_path(self, step: dict[str, Any]) -> None:
         """Point a tool at an executable for THIS run: `{"do": "tool_path", "tool": "psi4", "path": "D:/.../psi4.exe"}`.

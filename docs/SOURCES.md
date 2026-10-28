@@ -1,5 +1,5 @@
 <!-- GENERATED FROM docs/sources.toml -- do not edit -->
-<!-- SOURCE SHA256: 71112ceed70fdead93c34f7ecdcf31fbddea4d5b8214c3bdc39a72a2328d8752 -->
+<!-- SOURCE SHA256: 3c77bf7a0f9d50f84d9d1744fb08fa10a2d168f91c820fbf93364b309dbe1c6d -->
 
 # Sources
 
@@ -111,6 +111,7 @@ next run of `tools/build_lewis_parameters.py`.
 | [`bakowies1996`](#bakowies1996) | literature | **not shipped** | citation + claim |
 | [`balabin2009`](#balabin2009) | literature | reference only | citation + claim |
 | [`ballester2010`](#ballester2010) | literature | **not shipped** | citation |
+| [`bannwarth2021xtb`](#bannwarth2021xtb) | literature | shipped | citation |
 | [`barone2023`](#barone2023) | literature | reference only | citation |
 | [`batsanov2001`](#batsanov2001) | literature | reference only | citation |
 | [`belova2014`](#belova2014) | literature | shipped | citation + claim |
@@ -7278,6 +7279,24 @@ WHAT IS CITED, from the supplementary workbook (`ranasinghe2019_si/`, Table S4):
 THE ENGINE THE PSI4 PROVIDER RUNS: a program this app calls, not a method it reimplements. The reference is the one Psi4 1.11 prints in the banner of every output (checked against the fixtures in `tests/fixtures/psi4/`, which are real
 outputs); the paper itself was NOT read, so this entry makes no claim about a number. The functional definitions the engine relies on (B3LYP with VWN5 as `b3lyp5`, and so on) were checked against ORCA by running both, not taken from this paper
 (`docs/PSI4_ENGINE_DESIGN.md`, `chem/psi4_engine.py`).
+
+### bannwarth2021xtb
+
+<a id="bannwarth2021xtb"></a>
+
+> C. Bannwarth, E. Caldeweyher, S. Ehlert, A. Hansen, P. Pracht, J. Seibert, S. Spicher & S. Grimme, WIREs Comput. Mol. Sci. 2020, 11, e01493 (the reference xtb prints in its banner).
+
+| | |
+| --- | --- |
+| Identifier | [10.1002/wcms.1493](https://doi.org/10.1002/wcms.1493) |
+| Status | shipped |
+| Verification | citation |
+| Verified | 2026-10-27 |
+| Used by | `src/openchem/chem/xtb_engine.py` |
+
+THE ENGINE THE XTB PROVIDER RUNS: a program this app calls, not a method it reimplements. The reference is the one xtb 6.7.1pre prints in the banner of every output (checked against the fixtures in `tests/fixtures/xtb/`, which are real outputs), so the entry
+records only what the banner says (authors, journal, volume, year, DOI); the paper itself was NOT read, and this entry makes no claim about a number. The banner also names the GFN2-xTB and GFN1-xTB method papers, which are not registered because no method is reimplemented here.
+Nothing about xtb's accuracy against ORCA or Psi4 has been measured (`docs/EXTERNAL_TOOL_CANDIDATES.md`).
 
 ### hunter1998
 
