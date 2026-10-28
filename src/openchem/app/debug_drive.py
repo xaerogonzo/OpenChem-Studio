@@ -186,6 +186,7 @@ from typing import Any
 from PySide6.QtCore import QObject, Qt, QTimer
 from PySide6.QtWidgets import QDialog, QVBoxLayout, QWidget
 
+from openchem.app import menu_layout
 from openchem.app.drive_ledger import ErrorLedger, RunIdentity, log_file_size, write_report
 
 logger = logging.getLogger("openchem.ui")
@@ -1704,6 +1705,149 @@ class _Driver(QObject):
         """
         report = self._window.dock_layout_report()
         logger.warning("OPENCHEM_DRIVE: dock_report %s %s", step.get("tag", ""), json.dumps(report))
+
+    def _title_bar(self, panel_id: str):
+        dock = self._dock(panel_id)
+        bar = dock.titleBarWidget() if dock is not None else None
+        if bar is None or not hasattr(bar, "layout_menu"):
+            logger.error("OPENCHEM_DRIVE: dock %r has no layout title bar", panel_id)
+            return None
+        return bar
+
+    def _do_dock_menu(self, step: dict[str, Any]) -> None:
+        """Open a panel's title-bar layout menu the way a click does, and press one entry of it.
+
+        `{"do": "dock_menu", "panel": "Results", "press": "move_bottom",
+          "expect": {"present": ["move_left", "expand"], "disabled": ["move_bottom"], "text": {"lock": "Unlock"}}}`
+
+        The menu is filled by its own `aboutToShow` (emitted here, so the same code runs as for a click), and an
+        entry is found by its objectName without the `dockMenu_` (`move_left`, `expand`, `restore`, `float`,
+        `dock_back`, `lock`, `return`, `alongside_Results`). A disabled entry is logged, not pressed, as for any
+        other drive step. What the press DID is read by `dock_state`, after the layout has settled.
+        """
+        from PySide6.QtGui import QAction
+
+        bar = self._title_bar(str(step["panel"]))
+        if bar is None:
+            return
+        menu = bar.layout_menu()
+        menu.aboutToShow.emit()
+        by_name = {
+            a.objectName().removeprefix("dockMenu_"): a
+            for a in menu.findChildren(QAction)
+            if a.objectName().startswith("dockMenu_")
+        }
+        tag = f"{step['panel']}"
+        problems: list[str] = []
+        expect = step.get("expect", {})
+        for name in expect.get("present", []):
+            if name not in by_name:
+                problems.append(f"no entry {name!r} (have {sorted(by_name)})")
+        for name in expect.get("absent", []):
+            if name in by_name:
+                problems.append(f"entry {name!r} is offered")
+        for name in expect.get("disabled", []):
+            if name in by_name and by_name[name].isEnabled():
+                problems.append(f"{name!r} is enabled")
+        for name in expect.get("enabled", []):
+            if name in by_name and not by_name[name].isEnabled():
+                problems.append(f"{name!r} is disabled")
+        for name, text in expect.get("text", {}).items():
+            if name not in by_name or by_name[name].text() != text:
+                problems.append(f"{name!r} reads {by_name[name].text() if name in by_name else None!r}, wanted {text!r}")
+        if problems:
+            logger.error("OPENCHEM_DRIVE: EXPECT dock_menu FAILED[%s] -- %s", tag, "; ".join(problems))
+        else:
+            logger.warning("OPENCHEM_DRIVE: EXPECT dock_menu ok[%s] entries=%s", tag, sorted(by_name))
+        pressed = step.get("press")
+        if pressed:
+            action = by_name.get(str(pressed))
+            if action is None:
+                logger.error("OPENCHEM_DRIVE: dock_menu[%s] has no entry %r to press", tag, pressed)
+            elif not action.isEnabled():
+                logger.warning("OPENCHEM_DRIVE: dock_menu[%s] entry %r is disabled; not pressed", tag, pressed)
+            else:
+                action.trigger()
+                logger.warning("OPENCHEM_DRIVE: dock_menu[%s] pressed %r", tag, pressed)
+
+    def _do_dock_state(self, step: dict[str, Any]) -> None:
+        """Assert where one dock is and how big, read off the window's own layout report.
+
+        `{"do": "dock_state", "panel": "Results", "tag": "after-move",
+          "expect": {"area": "bottom", "hidden": false, "floating": false, "user_placed": true,
+                     "expanded": null, "min_width": 500, "max_width": 400, "grew_beyond": "Properties"}}`
+
+        `expanded` is the dock the window believes is expanded (or null); `min_width` / `max_width` are on the dock
+        itself; `no_overlaps` asserts the visible docked panels do not overlap.
+        """
+        report = self._window.dock_layout_report()
+        entry = next((d for d in report["docks"] if d["id"] == str(step["panel"])), None)
+        tag = f"{step['panel']}:{step.get('tag', '')}"
+        if entry is None:
+            logger.error("OPENCHEM_DRIVE: EXPECT dock_state FAILED[%s] -- no such dock", tag)
+            return
+        expect = step.get("expect", {})
+        problems: list[str] = []
+        for key in ("area", "hidden", "floating", "user_placed"):
+            if key in expect and entry[key] != expect[key]:
+                problems.append(f"{key} is {entry[key]!r}, wanted {expect[key]!r}")
+        if "expanded" in expect and report.get("expanded") != expect["expanded"]:
+            problems.append(f"expanded is {report.get('expanded')!r}, wanted {expect['expanded']!r}")
+        width = entry["rect"][2]
+        if "min_width" in expect and width < int(expect["min_width"]):
+            problems.append(f"width {width} < {expect['min_width']}")
+        if "max_width" in expect and width > int(expect["max_width"]):
+            problems.append(f"width {width} > {expect['max_width']}")
+        if expect.get("no_overlaps") and report["overlaps"]:
+            problems.append(f"overlaps {report['overlaps']}")
+        if problems:
+            logger.error("OPENCHEM_DRIVE: EXPECT dock_state FAILED[%s] -- %s", tag, "; ".join(problems))
+        else:
+            logger.warning(
+                "OPENCHEM_DRIVE: EXPECT dock_state ok[%s] area=%s width=%s expanded=%s",
+                tag, entry["area"], width, report.get("expanded"),
+            )
+
+    def _do_dock_button(self, step: dict[str, Any]) -> None:
+        """Press a panel's own title-bar button (or one entry of its menu), or assert its state.
+
+        `{"do": "dock_button", "panel": "Jobs", "button": "cancel_all", "expect": {"enabled": false}}`
+        `{"do": "dock_button", "panel": "Results", "button": "report", "item": "copy", "press": true}`
+        """
+        from PySide6.QtGui import QAction
+        from PySide6.QtWidgets import QToolButton
+
+        bar = self._title_bar(str(step["panel"]))
+        if bar is None:
+            return
+        name = f"dockAction_{step['button']}"
+        button = bar.findChild(QToolButton, name)
+        tag = f"{step['panel']}:{step['button']}"
+        if button is None:
+            logger.error("OPENCHEM_DRIVE: EXPECT dock_button FAILED[%s] -- no button %s", tag, name)
+            return
+        expect = step.get("expect", {})
+        if "enabled" in expect and button.isEnabled() != bool(expect["enabled"]):
+            logger.error("OPENCHEM_DRIVE: EXPECT dock_button FAILED[%s] -- enabled is %s", tag, button.isEnabled())
+        else:
+            logger.warning("OPENCHEM_DRIVE: EXPECT dock_button ok[%s] enabled=%s", tag, button.isEnabled())
+        if not step.get("press"):
+            return
+        if not button.isEnabled():
+            logger.warning("OPENCHEM_DRIVE: dock_button[%s] is disabled; not pressed", tag)
+            return
+        if "item" in step:
+            item = next(
+                (a for a in button.menu().findChildren(QAction) if a.objectName() == f"dockActionItem_{step['button']}_{step['item']}"),
+                None,
+            )
+            if item is None:
+                logger.error("OPENCHEM_DRIVE: dock_button[%s] has no entry %r", tag, step["item"])
+                return
+            item.trigger()
+        else:
+            button.click()
+        logger.warning("OPENCHEM_DRIVE: dock_button[%s] pressed", tag)
 
     def _do_reader_layout_report(self, step: dict[str, Any]) -> None:
         """`{"do": "reader_layout_report", "tag": "beside"}` -- how much of the
@@ -5746,21 +5890,22 @@ class _Driver(QObject):
         # `QUndoStack.createUndoAction` reads "Undo <last command>", so the
         # exact text of Edit > Undo is not known before the run.
         prefix = bool(step.get("prefix"))
-        for menu_action in self._window.menuBar().actions():
-            menu = menu_action.menu()
-            if menu is None:
+        # `"in": "Tools > Calculators"` names the menu path the entry must sit in: the menus are grouped now,
+        # so a text alone can match two entries (the CIP toggle is in Structure and in View).
+        path = step.get("in")
+        for home, action in menu_layout.walk(self._window.menuBar()):
+            text = action.text().replace("&", "")
+            if not (text.startswith(wanted) if prefix else text == wanted):
                 continue
-            for action in _walk_actions(menu):
-                text = action.text().replace("&", "")
-                if not (text.startswith(wanted) if prefix else text == wanted):
-                    continue
-                action.trigger()
-                logger.warning(
-                    "OPENCHEM_DRIVE: menu %r triggered -- enabled=%s checkable=%s checked=%s",
-                    wanted, action.isEnabled(), action.isCheckable(), action.isChecked(),
-                )
-                return
-        logger.error("OPENCHEM_DRIVE: no menu entry named %r", wanted)
+            if path is not None and home != str(path):
+                continue
+            action.trigger()
+            logger.warning(
+                "OPENCHEM_DRIVE: menu %r triggered in %r -- enabled=%s checkable=%s checked=%s",
+                wanted, home, action.isEnabled(), action.isCheckable(), action.isChecked(),
+            )
+            return
+        logger.error("OPENCHEM_DRIVE: no menu entry named %r%s", wanted, f" in {path!r}" if path else "")
 
     def _do_rotate_report(self, step: dict[str, Any]) -> None:
         """`{"do": "rotate_report"}` -- the tick, the button AND the page.
@@ -5912,7 +6057,7 @@ class _Driver(QObject):
         control then reads is logged beside what was asked, so a control
         that refused the value -- a bound, a question answered No -- says so.
         """
-        from PySide6.QtWidgets import QAbstractButton, QCheckBox, QSpinBox, QWidget
+        from PySide6.QtWidgets import QAbstractButton, QCheckBox, QLineEdit, QSpinBox, QWidget
 
         dialog = getattr(self, "_dialog", None)
         name = str(step.get("name", ""))
@@ -5930,6 +6075,10 @@ class _Driver(QObject):
         elif isinstance(widget, QAbstractButton):
             widget.click()
             now = "clicked"
+        elif isinstance(widget, QLineEdit):
+            # A search box: the text is set, which is what typing it leaves behind (`textChanged` fires).
+            widget.setText(str(step["value"]))
+            now = widget.text()
         else:
             logger.error(
                 "OPENCHEM_DRIVE: control %s -- %s", name,
@@ -7291,7 +7440,18 @@ class _Driver(QObject):
             ),
         )
         try:
-            dialog = fixture.build(context)
+            if step.get("real") and wanted == "SettingsDialog":
+                # THE WINDOW'S OWN COMMANDS, not the inventory's one stand-in, so a shot of the Keyboard page
+                # shows the real groups. It reads and writes nothing until a control is pressed.
+                from openchem.ui.dialogs.settings_dialog import SettingsDialog
+
+                dialog = SettingsDialog(
+                    window._settings,
+                    shortcut_registry=window._shortcuts,
+                    result_store_service=window._services.result_store_service,
+                )
+            else:
+                dialog = fixture.build(context)
         except DialogUnavailable as exc:
             logger.error(
                 "OPENCHEM_DRIVE: %s needs %s -- %s", wanted, fixture.needs or "?", exc
@@ -9730,6 +9890,144 @@ class _Driver(QObject):
         )
         QGuiApplication.styleHints().setColorScheme(scheme)
         logger.warning("OPENCHEM_DRIVE: colour scheme set to %s", scheme.name)
+
+    def _do_appearance(self, step: dict[str, Any]) -> None:
+        """`{"do": "appearance", "choice": "dark", "via": "menu"}` -- choose the colour scheme through a REAL control.
+
+        `choice` is `system`, `light` or `dark`. `via` is `menu` (View > Theme, the real checkable action) or
+        `settings` (the combo of the open Settings dialog, so a `dialog` step with `"section": "appearance"` comes
+        first). Nothing is applied here beyond what the control does: the stored choice is written, and the service
+        reacts, exactly as for a person. Read what it did in a LATER step (`appearance_report`), because the look
+        settles a few milliseconds after the write.
+        """
+        from PySide6.QtWidgets import QComboBox
+
+        from openchem.domain.appearance import Appearance
+
+        choice = str(step.get("choice", ""))
+        try:
+            mode = Appearance[choice.upper()]
+        except KeyError:
+            logger.error("OPENCHEM_DRIVE: appearance -- %r is not system, light or dark", choice)
+            return
+        via = str(step.get("via", "menu"))
+        if via == "menu":
+            action = self._window._theme_actions.get(int(mode))
+            if action is None:
+                logger.error("OPENCHEM_DRIVE: appearance -- the View > Theme menu has no %s entry", choice)
+                return
+            action.trigger()
+        elif via == "settings":
+            dialog = getattr(self, "_dialog", None)
+            combo = None if dialog is None else dialog.findChild(QComboBox, "appearanceChoice")
+            if combo is None:
+                logger.error("OPENCHEM_DRIVE: appearance -- no open Settings dialog with an appearance combo")
+                return
+            combo.setCurrentIndex(combo.findData(int(mode)))
+        else:
+            logger.error("OPENCHEM_DRIVE: appearance -- via must be menu or settings, not %r", via)
+            return
+        logger.warning("OPENCHEM_DRIVE: appearance %s chosen via %s", choice, via)
+
+    def _do_appearance_report(self, step: dict[str, Any]) -> None:
+        """`{"do": "appearance_report", "tag": "x", "expect": {...}}` -- the look on screen, and in each page.
+
+        Reads the application's palette (what is DRAWN), the service's settled look, the stored choice, the checked
+        View > Theme entry and, if one is open, the Settings combo, and then asks each embedded page for its own
+        state. `expect` takes
+
+            "effective"     "light" | "dark" -- the settled look, which must agree with the window colour
+            "choice"        "system" | "light" | "dark" -- the stored choice, the menu's checked entry and the combo
+            "editor_style"  true | false -- the editor page holds the dark stylesheet
+            "viewer3d"      "light" | "dark" -- the 3D page's own idea of the look
+            "macromolecule" "light" | "dark" -- the Mol* page's colour scheme (only if its view is built)
+
+        The page reads are asynchronous and are judged when they arrive, so give this step an `after_ms`.
+        """
+        from PySide6.QtGui import QPalette
+        from PySide6.QtWidgets import QApplication, QComboBox
+
+        from openchem.app.settings import APPEARANCE
+        from openchem.domain.appearance import Appearance, appearance_from_stored
+        from openchem.ui import theme
+
+        tag = str(step.get("tag", ""))
+        expect = dict(step.get("expect") or {})
+        window = self._window
+        problems: list[str] = []
+
+        lightness = QApplication.palette().color(QPalette.ColorRole.Window).lightnessF()
+        drawn = "dark" if lightness < 0.5 else "light"
+        service = getattr(QApplication.instance(), "_appearance", None)
+        settled = None if service is None else service.effective().name.lower()
+        stored = appearance_from_stored(window._settings.preference(APPEARANCE)).name.lower()
+        checked = [Appearance(m).name.lower() for m, action in window._theme_actions.items() if action.isChecked()]
+        dialog = getattr(self, "_dialog", None)
+        combo = None if dialog is None else dialog.findChild(QComboBox, "appearanceChoice")
+        combo_choice = None if combo is None else Appearance(int(combo.currentData())).name.lower()
+        logger.warning(
+            "OPENCHEM_DRIVE: appearance_report[%s]: window colour %.2f (%s), settled=%s, theme=%s, stored=%s, "
+            "menu checked=%s, combo=%s",
+            tag, lightness, drawn, settled, theme.effective().name.lower(), stored, checked, combo_choice,
+        )
+        if "effective" in expect:
+            wanted = str(expect["effective"])
+            for name, value in (("palette", drawn), ("service", settled), ("theme", theme.effective().name.lower())):
+                if value != wanted:
+                    problems.append(f"{name} says {value!r}, wanted {wanted!r}")
+        if "choice" in expect:
+            wanted = str(expect["choice"])
+            if stored != wanted:
+                problems.append(f"stored choice {stored!r}, wanted {wanted!r}")
+            if checked != [wanted]:
+                problems.append(f"menu checked {checked!r}, wanted {[wanted]!r}")
+            if combo_choice not in (None, wanted):
+                problems.append(f"settings combo {combo_choice!r}, wanted {wanted!r}")
+
+        pages: list[tuple[str, str, object, object]] = []
+        if "editor_style" in expect:
+            pages.append((
+                "editor_style", "(document.getElementById('openchem-appearance') || {textContent: ''}).textContent.length > 0",
+                window._editor._backend._page, bool(expect["editor_style"]),
+            ))
+        if "viewer3d" in expect:
+            pages.append((
+                "viewer3d", "document.documentElement.getAttribute('data-look')",
+                window._viewer3d._backend._page, str(expect["viewer3d"]),
+            ))
+        if "macromolecule" in expect:
+            backend = window._macromolecule_viewer
+            if backend.is_built:
+                pages.append((
+                    "macromolecule", "document.documentElement.style.colorScheme", backend._page, str(expect["macromolecule"]),
+                ))
+            else:
+                problems.append("the macromolecule view is not built, so it cannot be asked")
+
+        def finish() -> None:
+            if self._record_assertion("appearance_report", tag, not problems, "; ".join(problems) or "as expected"):
+                logger.warning("OPENCHEM_DRIVE: EXPECT appearance ok[%s]", tag)
+            else:
+                logger.error("OPENCHEM_DRIVE: EXPECT appearance FAILED[%s] -- %s", tag, "; ".join(problems)[:900])
+
+        if not pages:
+            finish()
+            return
+        waiting = {"left": len(pages)}
+
+        def reader(name: str, wanted: object):
+            def got(value: object) -> None:
+                logger.warning("OPENCHEM_DRIVE: appearance_report[%s]: page %s reads %r", tag, name, value)
+                if value != wanted:
+                    problems.append(f"page {name} reads {value!r}, wanted {wanted!r}")
+                waiting["left"] -= 1
+                if waiting["left"] == 0:
+                    finish()
+
+            return got
+
+        for name, script, page, wanted in pages:
+            page.runJavaScript(script, reader(name, wanted))
 
     def _do_reader_filter(self, step: dict[str, Any]) -> None:
         """`{"do": "reader_filter", "text": "Donors"}` -- type into the docked reader's fact filter.

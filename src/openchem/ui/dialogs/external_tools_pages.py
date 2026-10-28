@@ -29,6 +29,7 @@ from PySide6.QtWidgets import (
 
 from openchem.app.settings import Settings
 from openchem.plugins.async_task import run_async
+from openchem.ui import theme
 from openchem.ui.widgets.help_tooltip import apply_help_tooltip
 from openchem.services.tool_download_service import (
     VinaReleaseAsset,
@@ -458,7 +459,7 @@ class ExternalToolsPages(QWidget):
             tab,
         )
         caveat_note.setWordWrap(True)
-        caveat_note.setStyleSheet("color: #666666;")
+        theme.style(caveat_note, "color: #666666;")
 
         row = QHBoxLayout()
         row.addWidget(self._storage_move_button)

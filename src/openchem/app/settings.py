@@ -7,6 +7,7 @@ from typing import Any
 
 from PySide6.QtCore import QSettings, QStandardPaths
 
+from openchem.domain.appearance import Appearance
 from openchem.domain.calculator_support import Visibility, is_visible
 from openchem.domain.recalc_policy import (
     DEFAULT_QUIET_MS,
@@ -144,6 +145,14 @@ PSI4_THREADS = Preference("quantum_chemistry/psi4_threads", int, 0, minimum=0, m
 #: (`docs/STRUCTURE_COVERAGE_DESIGN.md`); OFF skips it entirely and the rows say "Not run" until a run, as they did before it existed.
 STRUCTURE_COVERAGE = Preference("compute/structure_coverage", bool, True)
 
+#: Which colour scheme the window uses: an `Appearance`, stored as its integer (0 follow the system, 1 light,
+#: 2 dark) and never as a label. System is the default and is what the program did before this existed, since
+#: Qt followed Windows on its own. A stored value that does not parse falls back to it.
+APPEARANCE = Preference(
+    "ui/appearance", int, int(Appearance.SYSTEM),
+    minimum=int(min(Appearance)), maximum=int(max(Appearance)),
+)
+
 #: Every preference, in the order the Settings window groups them. Tests
 #: iterate this, so a preference added here is covered without a new test.
 PREFERENCES = (
@@ -151,7 +160,7 @@ PREFERENCES = (
     SHOW_HIDDEN_CALCULATORS, RECALC_MODE, RECALC_QUIET_MS, DRAWING_BOND_KEYS,
     CONFORMER_MAX_EMBEDDINGS, DRAWING_BOND_CLICK, CONFORMER_EARLY_STOP, CONFORMER_KEEP_OPTIMIZED,
     CONFORMER_OPTIMIZE_LOWEST, FUKUI_ANION_F_PLUS, FUKUI_CATION_SEARCH, PSI4_MEMORY_GB, PSI4_THREADS,
-    STRUCTURE_COVERAGE,
+    STRUCTURE_COVERAGE, APPEARANCE,
 )
 
 #: Where one calculator's own visibility choice is stored: a plain
@@ -200,6 +209,14 @@ class Settings:
     def set(self, key: str, value: Any) -> None:
         self._qsettings.setValue(key, value)
         self._event_bus.publish(SettingsChanged(key=key))
+
+    def on_change(self, handler) -> None:
+        """Call `handler(SettingsChanged)` after every write, so a control can follow a change made elsewhere.
+
+        A bound method is held weakly by the bus (`events.base._Subscription`), so a window that subscribes
+        needs no matching unsubscribe.
+        """
+        self._event_bus.subscribe(SettingsChanged, handler)
 
     def remove(self, key: str) -> None:
         """Forget a stored value, so the key reads as absent (its default) again."""

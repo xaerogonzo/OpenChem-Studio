@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from functools import partial
 
 import logging
@@ -37,9 +37,11 @@ from PySide6.QtWidgets import (
 
 from openchem.app.session import SessionManager
 from openchem.app.menu_help import MENU_HELP
+from openchem.app import menu_layout
 from openchem.app.shortcut_registry import ShortcutRegistry
 from openchem.app.settings import (
     CONFORMER_KEEP_OPTIMIZED,
+    APPEARANCE,
     DRAWING_BOND_CLICK,
     DRAWING_BOND_KEYS,
     RAIL_HIDES_PANELS,
@@ -78,6 +80,7 @@ from openchem.commands.molecule_commands import (
     RenameMoleculeCommand,
 )
 from openchem.commands.project_commands import OpenProjectCommand, SaveProjectCommand
+from openchem.domain.appearance import Appearance, appearance_from_stored
 from openchem.domain.crystal import CrystalModel
 from openchem.domain.macromolecule import MacromoleculeModel
 from openchem.domain.molecule import MoleculeModel
@@ -133,13 +136,16 @@ from openchem.ui.dialogs.goal_wizard_dialog import GoalWizardDialog
 from openchem.ui.dialogs.lewis_pairing_dialog import LewisPairingDialog, PairingContext, PairingHost
 from openchem.ui.dialogs.score_dialog import ScoreDialog, ScoreHost
 from openchem.ui.panels.docking_panel import DockingPanel
-from openchem.ui.panels.jobs_panel import JobsPanel
+from openchem.ui.panels.jobs_panel import CANCEL_ALL_BUTTON, JobsPanel
 from openchem.ui.panels.project_explorer_panel import ProjectExplorerPanel
 from openchem.ui.panels.property_panel import PropertyPanel
 from openchem.ui.panels.quantum_chemistry_panel import QuantumChemistryPanel
 from openchem.ui.visualization import build_interaction_layers
-from openchem.ui.panels.structure_check_panel import StructureCheckPanel
+from openchem.ui.panels.structure_check_panel import RECHECK_BUTTON, StructureCheckPanel
 from openchem.ui.widgets.checker_status_indicator import CheckerStatusIndicator
+from openchem.app import dock_expansion
+from openchem.app.dock_expansion import ExpandState
+from openchem.ui.widgets.dock_layout_menu import SIDE_AREAS, DockMenuState, populate_layout_menu, side_of
 from openchem.ui.widgets.dock_title_bar import DockTitleBar
 from openchem.ui.panels.comparison_panel import ComparisonPanel
 from openchem.ui.fact_link_router import FactLinkRouter
@@ -152,7 +158,7 @@ from openchem.ui.widgets.panel_rail import (
 from openchem.ui.widgets.pop_out_host import PopOutHost
 from openchem.ui.widgets.workflow_body import HOME_PROPERTIES, HOME_TAB, WorkflowPlaceholder
 from openchem.ui.widgets.results_view import ResultsView
-from openchem.ui.widgets.results_workspace import ResultsWorkspace
+from openchem.ui.widgets.results_workspace import REPORT_MENU, ResultsWorkspace
 from openchem.ui.widgets.molecule_editor_widget import MoleculeEditorWidget
 from openchem.ui.widgets.molecule_viewer3d_widget import MoleculeViewer3DWidget
 from openchem.ui.widgets.molstar_viewer_backend import MolStarViewerBackend
@@ -426,6 +432,14 @@ class MainWindow(QMainWindow):
         self._classify_timer.setSingleShot(True)
         self._classify_timer.setInterval(0)
         self._classify_timer.timeout.connect(self._classify_moved_docks)
+        #: The one Expand panel in force, if any (see `app/dock_expansion.py`), and a flag that keeps the window's own
+        #: resizing from being taken for the user's change of layout. A window resize re-applies it after a pause.
+        self._expand_state: ExpandState | None = None
+        self._expand_busy = False
+        self._expand_timer = QTimer(self)
+        self._expand_timer.setSingleShot(True)
+        self._expand_timer.setInterval(80)
+        self._expand_timer.timeout.connect(self._reapply_expansion)
         self._plugin_panels: dict[str, QDockWidget] = {}
         self._plugin_menu_actions: dict[str, list[QAction]] = {}
         #: Whether a docked pose is currently drawn into the
@@ -848,6 +862,7 @@ class MainWindow(QMainWindow):
         if not isinstance(title_bar, DockTitleBar):
             raise RuntimeError("The Results dock has no title bar to hold its pop-out button")
         title_bar.add_control(self._results_host.pop_out_button())
+        self._register_panel_buttons()
         # The panel owns the results and the reading position; the reader
         # renders them. Attached rather than constructed there, because the
         # dock belongs to the window and the panel must work without one --
@@ -1008,18 +1023,246 @@ class MainWindow(QMainWindow):
         #
         # Only for docks WITH a topic: a "?" that opened the wrong section
         # would be worse than none, and Console and Jobs have nothing
-        # written about them.
+        # written about them. EVERY dock gets the title bar, though, because
+        # the layout menu is for all of them; a dock with no topic just has
+        # no "?".
         topic = help_topic_of_dock(dock.objectName())
+        # The topic travels on the title bar and comes back through the
+        # signal. A `lambda topic=topic: self._show_help(topic)` here
+        # leaked this window permanently -- PySide6 holds a connected
+        # plain callable strongly, so the closure's captured `self`
+        # survives refcounting AND the cyclic collector. The layout menu
+        # follows the same rule: one bound method for the whole menu, the
+        # action carrying which dock and what to do.
+        title_bar = DockTitleBar(dock, show_help=topic is not None, help_topic=topic or "")
         if topic is not None:
-            # The topic travels on the title bar and comes back through the
-            # signal. A `lambda topic=topic: self._show_help(topic)` here
-            # leaked this window permanently -- PySide6 holds a connected
-            # plain callable strongly, so the closure's captured `self`
-            # survives refcounting AND the cyclic collector.
-            title_bar = DockTitleBar(dock, help_topic=topic)
             title_bar.help_requested.connect(self._show_help)
-            dock.setTitleBarWidget(title_bar)
+        title_bar.layout_menu_requested.connect(self._on_dock_layout_menu_requested)
+        title_bar.layout_menu().triggered.connect(self._on_dock_menu_triggered)
+        dock.setTitleBarWidget(title_bar)
+        # A dock shown, hidden or moved by anything else (the View menu, a drag, a plugin) ends an expansion, so a
+        # saved snapshot never describes a layout that has since changed under it.
+        dock.visibilityChanged.connect(self._on_layout_changed_while_expanded)
+        dock.dockLocationChanged.connect(self._on_layout_changed_while_expanded)
+        dock.topLevelChanged.connect(self._on_layout_changed_while_expanded)
         return dock
+
+    # --- the layout menu on every panel's title bar ---------------------------
+
+    def _register_panel_buttons(self) -> None:
+        """Each panel's own buttons, in its dock's title bar (see `ui/widgets/dock_panel_actions.py`).
+
+        Done here, once every dock exists, because the dock's widget is usually a scroll area around the panel and
+        the panel cannot reach its own title bar. Each button starts in the panel's CURRENT state and is then kept
+        current by a signal; every slot is a bound method of a QObject, never a lambda over this window.
+        """
+        workspace = self._results_workspace
+        results_bar = self._results_dock.titleBarWidget()
+        report = results_bar.add_menu_button(
+            replace(REPORT_MENU, enabled=workspace.report_actions_available()),
+            {"copy": workspace.copy_report, "export": workspace.export_report},
+        )
+        workspace.report_actions_available_changed.connect(report.set_enabled)
+
+        check_bar = self._structure_check_dock.titleBarWidget()
+        check_bar.add_button(RECHECK_BUTTON, self._structure_check_panel.recheck)
+
+        jobs_bar = self._dock_named("Jobs").titleBarWidget()
+        self._cancel_all_handle = jobs_bar.add_button(
+            replace(CANCEL_ALL_BUTTON, enabled=self._jobs_panel.cancellable_count() > 0),
+            self._jobs_panel.cancel_all_jobs,
+        )
+        self._jobs_panel.cancellable_count_changed.connect(self._on_cancellable_jobs_changed)
+        self._jobs_panel.status_message.connect(self._on_jobs_status_message)
+
+    def _on_cancellable_jobs_changed(self, count: int) -> None:
+        self._cancel_all_handle.set_enabled(count > 0)
+
+    def _on_jobs_status_message(self, message: str) -> None:
+        self.statusBar().showMessage(message, 12000)
+
+    def _dock_named(self, name: str) -> QDockWidget | None:
+        for dock in self.findChildren(QDockWidget):
+            if dock.parent() is self and dock.objectName() == name:
+                return dock
+        return None
+
+    def _dock_menu_state(self, dock: QDockWidget) -> DockMenuState:
+        """What the layout menu needs to know about `dock`, read at the moment the menu opens."""
+        name = dock.objectName()
+        allowed = tuple(side for side, area in SIDE_AREAS.items() if dock.allowedAreas() & area)
+        features = dock.features()
+        floating = dock.isFloating()
+        side = "none" if floating else side_of(self.dockWidgetArea(dock))
+        default_side = side_of(self._default_dock_areas.get(name, Qt.DockWidgetArea.RightDockWidgetArea))
+        placed = name in self._user_placed_docks
+        companions = [
+            other for other in self.findChildren(QDockWidget)
+            if other is not dock and other.parent() is self
+            and not other.isHidden() and not other.isFloating()
+            and self.dockWidgetArea(other) == self.dockWidgetArea(dock)
+        ] if not floating else []
+        in_rail = name in self._panel_rail.panel_ids()
+        targets = tuple(
+            (panel_id, self._panel_rail.title_of(panel_id))
+            for panel_id in self._panel_rail.panel_ids()
+            if panel_id != name and self._dock_by_panel_id(panel_id) is not None
+        )
+        needs_nothing = (not floating) and side == default_side and not placed and not companions
+        expand, expand_enabled, expand_reason = "", True, ""
+        if self._expand_state is not None and self._expand_state.dock == name:
+            expand = "restore"
+        elif not floating and side != "none":
+            expand = "expand"
+            expand_enabled, expand_reason = dock_expansion.can_expand(self, dock)
+        return DockMenuState(
+            expand=expand,
+            expand_enabled=expand_enabled,
+            expand_reason=expand_reason,
+            dock=name,
+            floating=floating,
+            side=side,
+            movable=bool(features & QDockWidget.DockWidgetFeature.DockWidgetMovable),
+            floatable=bool(features & QDockWidget.DockWidgetFeature.DockWidgetFloatable),
+            allowed=allowed,
+            targets=targets,
+            locked=(placed if in_rail else None),
+            default_side=default_side,
+            default_side_legal=default_side in allowed,
+            return_enabled=not needs_nothing,
+            return_reason="It is already on its starting side, alone and unlocked." if needs_nothing else "",
+        )
+
+    def _on_dock_layout_menu_requested(self, dock: QDockWidget, menu) -> None:
+        populate_layout_menu(menu, self._dock_menu_state(dock))
+
+    def _on_dock_menu_triggered(self, action) -> None:
+        """Every entry of every panel's layout menu comes here; the action says which dock and what to do."""
+        data = action.data()
+        if not (isinstance(data, tuple) and len(data) == 3):
+            return
+        kind, name, argument = data
+        dock = self._dock_named(name)
+        if dock is None:
+            return
+        if kind == "move":
+            self.move_dock_to(dock, SIDE_AREAS[argument])
+        elif kind == "float":
+            self._resolve_expansion()
+            dock.setFloating(True)
+        elif kind == "dock_back":
+            self._resolve_expansion()
+            dock.setFloating(False)
+        elif kind == "expand":
+            self.expand_dock(dock)
+        elif kind == "restore":
+            self._resolve_expansion()
+        elif kind == "alongside":
+            self._on_panel_chosen_alongside(argument)
+        elif kind == "lock":
+            self._on_panel_lock_toggled(name)
+        elif kind == "return":
+            self.return_dock_to_default_side(dock)
+
+    def _redock(self, dock: QDockWidget, area: Qt.DockWidgetArea) -> None:
+        """Put `dock` in `area`, keeping it shown or hidden exactly as it was.
+
+        `removeDockWidget` HIDES the dock (Qt documents it), so a visible one has to be shown again on purpose,
+        and a floating one -- which `addDockWidget` docks -- counts as visible. Runs outside `_arranging`, so the
+        window sees it as the user's own move, and queues the classification itself rather than counting on the
+        signals `addDockWidget` happens to emit.
+        """
+        self._resolve_expansion()
+        shown = not dock.isHidden()
+        if dock.isFloating():
+            dock.setFloating(False)
+        self.removeDockWidget(dock)
+        self.addDockWidget(area, dock)
+        dock.setVisible(shown)
+        self._docks_to_classify.add(dock)
+        self._classify_timer.start()
+
+    def move_dock_to(self, dock: QDockWidget, area: Qt.DockWidgetArea) -> None:
+        """Layout menu > Move to: dock `dock` on the side `area`, if it may go there."""
+        if not (dock.features() & QDockWidget.DockWidgetFeature.DockWidgetMovable):
+            return
+        if not (dock.allowedAreas() & area):
+            return
+        self._redock(dock, area)
+
+    def return_dock_to_default_side(self, dock: QDockWidget) -> None:
+        """Layout menu > Return to default side: re-dock on the side it started on, and nothing more.
+
+        `_default_dock_areas` records a side only -- not a split, a size or the panels beside it -- so this does
+        not claim to restore the original arrangement. The panel's placed flag is cleared and the classifier
+        decides it again, exactly as for a drag: alone on its side it is rail-managed once more, beside another
+        visible panel it is placed. No other panel's flag is touched.
+        """
+        name = dock.objectName()
+        area = self._default_dock_areas.get(name)
+        if area is None or not (dock.allowedAreas() & area):
+            return
+        self._docks_to_classify.discard(dock)
+        self._user_placed_docks.discard(name)
+        self._redock(dock, area)
+        self._sync_rail_locks()
+
+    # --- Expand panel / Restore size (the mechanics are in `app/dock_expansion.py`) ---------
+
+    def expand_dock(self, dock: QDockWidget) -> None:
+        """Layout menu > Expand panel. One expansion at a time: a second restores the first before it begins."""
+        self._resolve_expansion()
+        self._expand_busy = True
+        try:
+            state = dock_expansion.expand(self, dock)
+        finally:
+            self._expand_busy = False
+        if state is None:
+            self.statusBar().showMessage(
+                "Nothing to expand into: the editor and the other panels are already at their smallest at this "
+                "window size.",
+                8000,
+            )
+            return
+        self._expand_state = state
+
+    def _resolve_expansion(self) -> None:
+        """End any expansion, putting every dock back first. Safe to call at any time; a no-op with none."""
+        state = self._expand_state
+        if state is None:
+            return
+        self._expand_state = None
+        self._expand_timer.stop()
+        self._expand_busy = True
+        try:
+            dock_expansion.restore(self, state)
+        finally:
+            self._expand_busy = False
+
+    def _reapply_expansion(self) -> None:
+        """After the window changed size Qt has let the panel shrink back; expand it again, so the menu, the
+        state and what is on screen keep agreeing."""
+        state = self._expand_state
+        if state is None:
+            return
+        self._expand_busy = True
+        try:
+            still = dock_expansion.reapply(self, state)
+        finally:
+            self._expand_busy = False
+        if not still:
+            self._expand_state = None
+
+    def _on_layout_changed_while_expanded(self, *_args) -> None:
+        """Any dock shown, hidden, floated or moved by something other than the expansion ends it."""
+        if self._expand_state is None or self._expand_busy or self._arranging or self.isMinimized():
+            return
+        self._resolve_expansion()
+
+    def resizeEvent(self, event) -> None:  # noqa: N802 - Qt override
+        super().resizeEvent(event)
+        if self._expand_state is not None and not self._expand_busy:
+            self._expand_timer.start()
 
     # --- which right-hand panel is in front ----------------------------------
 
@@ -1162,6 +1405,14 @@ class MainWindow(QMainWindow):
         rail is put back on Properties -- the same arrangement construction
         produces.
         """
+        # A classification queued by an earlier move would otherwise fire AFTER this reset and mark a dock
+        # that was just put back as placed again; drop it first, so nothing older can undo the reset.
+        self._classify_timer.stop()
+        self._docks_to_classify.clear()
+        # An expansion is dropped, not restored: the reset rebuilds the whole layout and restoring first would only
+        # resize docks that are about to be taken out and put back.
+        self._expand_timer.stop()
+        self._expand_state = None
         self._arranging = True
         try:
             for dock in self.findChildren(QDockWidget):
@@ -1225,6 +1476,7 @@ class MainWindow(QMainWindow):
             "docks": docks,
             "overlaps": overlaps,
             "window_minimum": [self.minimumSizeHint().width(), self.minimumSizeHint().height()],
+            "expanded": self._expand_state.dock if self._expand_state is not None else None,
         }
 
     def _active_docking_panel(self):
@@ -1286,6 +1538,7 @@ class MainWindow(QMainWindow):
         return self._plugin_panels.get(panel_id)
 
     def _on_panel_chosen(self, panel_id: str) -> None:
+        self._resolve_expansion()
         if self._reveal_if_in_properties(panel_id):
             return
         dock = self._dock_by_panel_id(panel_id)
@@ -1307,6 +1560,7 @@ class MainWindow(QMainWindow):
         A left click replaces the panel showing; this is the other half of the gesture. It does not lock anything, so
         the next left click elsewhere still replaces the unlocked ones -- lock the ones to keep.
         """
+        self._resolve_expansion()
         if self._reveal_if_in_properties(panel_id):
             return
         dock = self._dock_by_panel_id(panel_id)
@@ -2077,6 +2331,9 @@ class MainWindow(QMainWindow):
         if self.isVisible() and not self._confirm_discarding_unsaved_changes():
             event.ignore()
             return
+        # An expansion is a temporary arrangement; saving the window state while one is in force would make it the
+        # layout of the next launch, with nothing to say it is one.
+        self._resolve_expansion()
         self._settings.set_window_geometry(self.saveGeometry())
         self._settings.set_window_state(self.saveState())
         self._settings.set(_LAYOUT_VERSION_KEY, _LAYOUT_VERSION)
@@ -2128,10 +2385,49 @@ class MainWindow(QMainWindow):
         self._build_tools_menu()
         self._build_plugins_menu()
         self._build_help_menu()
+        self._arrange_menus()
+
+    def _add_top_menu(self, title: str) -> QMenu:
+        """A menu-bar menu the window OWNS.
+
+        `menuBar().addMenu(title)` returns a Python-owned wrapper, so a builder that did not keep it (File,
+        Edit, Tools, Help) left its menu, and every action created on it, to be destroyed whenever the
+        wrapper was collected. Measured with the layout pass off: the File menu read "already deleted" after
+        construction. Created WITH its parent and then added, as `_add_theme_menu` does for the same reason.
+        """
+        menu = QMenu(title, self.menuBar())
+        self.menuBar().addMenu(menu)
+        return menu
+
+    def _arrange_menus(self) -> None:
+        """Put every menu in the order `app/menu_layout.MENU_SPECS` states, then tell the shortcut registry.
+
+        After all seven builders, not inside them: an action offered from two menus (the CIP toggle) exists
+        once both are built, and the Keyboard page's groups are read from the finished bar.
+        """
+        self._panels_menu: QMenu | None = None
+        panels = [dock.toggleViewAction() for dock in self.findChildren(QDockWidget)]
+        for top in self.menuBar().actions():
+            title = menu_layout.label_of(top)
+            spec = menu_layout.MENU_SPECS.get(title)
+            if spec is None:
+                continue
+            made = menu_layout.arrange(
+                top.menu(), spec, {"Panels": panels} if title == "View" else None
+            )
+            if title == "View":
+                #: Where a plugin panel's toggle is added later, in its place A-Z.
+                self._panels_menu = made.get("Panels")
+        self._shortcuts.set_menu_order(menu_layout.walk(self.menuBar()))
+        #: Every menu of the bar, held by the window. `QMenu(title, parent)` and `addMenu` hand back wrappers the
+        #: builders drop, and a submenu whose wrapper is collected takes its entries with it (measured: after one
+        #: garbage collection every grouped submenu, Theme and 2D Structure Display were gone from the bar).
+        self._menu_wrappers = menu_layout.menus_of(self.menuBar())
+        self._show_tooltips_in_menus()
 
     def _build_file_menu(self) -> None:
         """The File menu."""
-        file_menu = self.menuBar().addMenu("&File")
+        file_menu = self._add_top_menu("&File")
         self._document(file_menu.addAction("New Project", self._new_project), "new_project")
         self._document(
             file_menu.addAction("Open Project...", self._open_project), "open_project"
@@ -2187,7 +2483,7 @@ class MainWindow(QMainWindow):
 
     def _build_edit_menu(self) -> None:
         """The Edit menu."""
-        edit_menu = self.menuBar().addMenu("&Edit")
+        edit_menu = self._add_top_menu("&Edit")
         undo_action = self._undo_stack.createUndoAction(self, "Undo")
         undo_action.setShortcut("Ctrl+Z")
         redo_action = self._undo_stack.createRedoAction(self, "Redo")
@@ -2265,7 +2561,7 @@ class MainWindow(QMainWindow):
 
     def _build_structure_menu(self) -> None:
         """The Structure menu."""
-        self._structure_menu = self.menuBar().addMenu("&Structure")
+        self._structure_menu = self._add_top_menu("&Structure")
         for label, test_id, help_key in (
             ("Aromatize", "Aromatize button", "aromatize"),
             ("Dearomatize", "Dearomatize button", "dearomatize"),
@@ -2380,7 +2676,7 @@ class MainWindow(QMainWindow):
 
     def _build_view_menu(self) -> None:
         """The View menu."""
-        self._view_menu = self.menuBar().addMenu("&View")
+        self._view_menu = self._add_top_menu("&View")
         for dock in self.findChildren(QDockWidget):
             # ONE contract across every dock: "show or hide this panel" is
             # one concept and WHICH panel differs, so `instance_path` is
@@ -2392,6 +2688,8 @@ class MainWindow(QMainWindow):
         reset_layout = self._document(QAction("Reset Panel Layout", self), "reset_panel_layout")
         reset_layout.triggered.connect(self.reset_panel_layout)
         self._view_menu.addAction(reset_layout)
+        self._view_menu.addSeparator()
+        self._add_theme_menu(self._view_menu)
         self._view_menu.addSeparator()
         structure_display_menu = self._view_menu.addMenu("2D Structure Display")
         self._add_structure_display_toggle(
@@ -2458,9 +2756,54 @@ class MainWindow(QMainWindow):
         self._oxidation_states_action = oxidation_action
 
 
+    #: The Theme submenu's entries, in the order shown: the stored choice and its words.
+    _THEME_CHOICES = (
+        (Appearance.SYSTEM, "Follow the System"),
+        (Appearance.LIGHT, "Light"),
+        (Appearance.DARK, "Dark"),
+    )
+
+    def _add_theme_menu(self, menu: QMenu) -> None:
+        """View > Theme: the colour scheme, the SAME stored choice as Settings > Appearance.
+
+        The checked entry is the CHOICE, not the look: with "Follow the System" chosen it stays checked
+        whether Windows is light or dark. It follows the stored value (`_show_theme_choice`), so a change
+        made in Settings moves it, and choosing here moves Settings' combo through the same write.
+        """
+        # Created WITH its parent and then added, not `menu.addMenu(title)`: that wrapper is Python-owned, so
+        # when this returns the submenu's C++ object goes and a caller reading the menu meets "already deleted".
+        theme_menu = QMenu("Theme", menu)
+        menu.addMenu(theme_menu)
+        group = QActionGroup(self)
+        group.setExclusive(True)
+        self._theme_actions: dict[int, QAction] = {}
+        for mode, words in self._THEME_CHOICES:
+            action = QAction(words, self)
+            action.setCheckable(True)
+            action.setData(int(mode))
+            group.addAction(action)
+            self._document(action, "theme_choice", label=f"Theme: {words}")
+            # `triggered`, not `toggled`: only a person's choice writes. Setting the check from the stored
+            # value (below) fires `toggled` and would write the value straight back.
+            action.triggered.connect(self._on_theme_chosen)
+            theme_menu.addAction(action)
+            self._theme_actions[int(mode)] = action
+        self._show_theme_choice()
+
+    def _show_theme_choice(self) -> None:
+        """Check the entry for the stored choice, writing nothing."""
+        mode = appearance_from_stored(self._settings.preference(APPEARANCE))
+        self._theme_actions[int(mode)].setChecked(True)
+
+    def _on_theme_chosen(self, _checked: bool = False) -> None:
+        action = self.sender()
+        if action is None:
+            return
+        self._settings.set_preference(APPEARANCE, int(action.data()))
+
     def _build_tools_menu(self) -> None:
         """The Tools menu."""
-        tools_menu = self.menuBar().addMenu("&Tools")
+        tools_menu = self._add_top_menu("&Tools")
         # The way to ask, in any mode, and the only way in "only when I ask". Enabled
         # while an edit is waiting to be recalculated (`RecalcScheduler.pending_changed`).
         self._recalculate_action = tools_menu.addAction("Recalculate Now", self._on_recalculate_now)
@@ -2531,7 +2874,7 @@ class MainWindow(QMainWindow):
 
     def _build_plugins_menu(self) -> None:
         """The Plugins menu."""
-        self._plugins_menu = self.menuBar().addMenu("&Plugins")
+        self._plugins_menu = self._add_top_menu("&Plugins")
         self._document(
             self._plugins_menu.addAction("Reload Plugins", self._reload_plugins),
             "reload_plugins",
@@ -2557,7 +2900,7 @@ class MainWindow(QMainWindow):
 
     def _build_help_menu(self) -> None:
         """The Help menu."""
-        help_menu = self.menuBar().addMenu("&Help")
+        help_menu = self._add_top_menu("&Help")
         # F1 is the conventional key, and it opens help for whichever panel
         # is in front rather than a table of contents -- the question being
         # asked is almost always about the thing currently on screen.
@@ -4698,7 +5041,9 @@ class MainWindow(QMainWindow):
         return menu
 
     def _on_drawing_setting_changed(self, event: SettingsChanged) -> None:
-        if event.key == DRAWING_BOND_KEYS.key:
+        if event.key == APPEARANCE.key:
+            self._show_theme_choice()
+        elif event.key == DRAWING_BOND_KEYS.key:
             self._editor.set_bond_keys_enabled(bool(self._settings.preference(DRAWING_BOND_KEYS)))
         elif event.key == DRAWING_BOND_CLICK.key:
             self._editor.set_bond_click_enabled(bool(self._settings.preference(DRAWING_BOND_CLICK)))
@@ -5392,7 +5737,7 @@ class MainWindow(QMainWindow):
         # a plugin that knows nothing about groups is still reachable the
         # moment it loads.
         self._panel_rail.register(panel_id, panel_id, group)
-        self._view_menu.addAction(dock.toggleViewAction())
+        menu_layout.insert_sorted(self._panels_menu or self._view_menu, dock.toggleViewAction())
         dock.setVisible(False)
 
     def _on_plugin_dock_visibility_changed(self, visible: bool) -> None:

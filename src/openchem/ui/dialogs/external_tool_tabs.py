@@ -49,6 +49,7 @@ from PySide6.QtWidgets import (
 )
 
 from openchem.plugins.async_task import run_async
+from openchem.ui import theme
 from openchem.ui.dialogs import external_tools_help as help_text
 from openchem.ui.widgets.help_tooltip import apply_help_tooltip
 
@@ -135,7 +136,7 @@ def _add_notes(layout: QVBoxLayout, parent: QWidget, notes: tuple[Note, ...]) ->
         label = QLabel(note.text, parent)
         label.setWordWrap(True)
         if note.style:
-            label.setStyleSheet(note.style)
+            theme.style(label, note.style)
         layout.addWidget(label)
 
 
@@ -475,7 +476,7 @@ class InterpreterSidecarTab(ToolTab):
 
         prerequisites = QLabel(descriptor.prerequisites(), self)
         prerequisites.setWordWrap(True)
-        prerequisites.setStyleSheet(MUTED)
+        theme.style(prerequisites, MUTED)
         self.prerequisites_label = prerequisites
 
         form = QFormLayout()

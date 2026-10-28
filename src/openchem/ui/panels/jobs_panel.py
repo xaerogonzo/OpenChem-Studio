@@ -1,8 +1,11 @@
 from __future__ import annotations
 
-from PySide6.QtCore import QTimer
+import logging
+
+from PySide6.QtCore import QTimer, Signal
 from PySide6.QtWidgets import (
     QHeaderView,
+    QMessageBox,
     QPushButton,
     QTableWidget,
     QTableWidgetItem,
@@ -11,7 +14,10 @@ from PySide6.QtWidgets import (
 )
 
 from openchem.services.job_manager import JobHandle, JobManager
+from openchem.ui.widgets.dock_panel_actions import PanelButton
 from openchem.ui.widgets.help_tooltip import HelpTooltip, apply_help_tooltip
+
+logger = logging.getLogger(__name__)
 
 _COLUMNS = ("Kind", "Key", "Status", "", "Finish early")
 
@@ -84,6 +90,28 @@ _COLUMN_HELP = {
 }
 _POLL_INTERVAL_MS = 500
 
+#: The Cancel all button in the Jobs dock's title bar (see `DockTitleBar.add_button`). It asks every job that CAN be
+#: cancelled to cancel, which discards each one's work in progress; a job that can keep a partial result has its own
+#: Finish now button for that, and this does not touch it.
+CANCEL_ALL_BUTTON = PanelButton(
+    name="cancel_all",
+    accessible="Cancel all running jobs",
+    text="Cancel all",
+    enabled=False,
+    tooltip=HelpTooltip(
+        text=(
+            "Asks every running job that can be cancelled to cancel, and throws away the work each had done so "
+            "far. It is a request: a job stops when its service stops it, and the list shows each one leaving."
+            "\n\n"
+            "Greyed when nothing running can be cancelled. A job that can keep a partial result has its own "
+            "Finish now button, and this does not use it."
+        ),
+        tier=1,
+        help_id="jobs.cancel_all",
+        topic="jobs",
+    ),
+)
+
 #: WHICH JOB A CANCEL BUTTON MEANS TRAVELS ON THE BUTTON, never in a closure.
 #: See `_on_cancel_clicked` for the measurement that forced this.
 _JOB_KIND_PROPERTY = "_openchem_job_kind"
@@ -103,9 +131,16 @@ class JobsPanel(QWidget):
     correctness-sensitive one that needs push notification.
     """
 
+    #: How many running jobs can be cancelled, emitted when the number CHANGES (see `cancellable_count`).
+    cancellable_count_changed = Signal(int)
+    #: A sentence for the window's status bar, after Cancel all.
+    status_message = Signal(str)
+
     def __init__(self, job_manager: JobManager, parent: QWidget | None = None) -> None:
         super().__init__(parent)
         self._job_manager = job_manager
+        #: What was last announced, so `refresh` says it once per change and a late listener reads `cancellable_count`.
+        self._announced_cancellable = -1
 
         self._table = QTableWidget(0, len(_COLUMNS), self)
         self._table.setHorizontalHeaderLabels(_COLUMNS)
@@ -201,8 +236,69 @@ class JobsPanel(QWidget):
             job.finish_callback is not None,
         )
 
+    def cancellable_count(self) -> int:
+        """How many running jobs have a way to be cancelled, read now from the manager.
+
+        Read live rather than from the last refresh: a title-bar button registered after the panel last polled
+        must start in the right state, and a signal that fired before it connected is gone.
+        """
+        return self._count_cancellable(self._job_manager.active_jobs())
+
+    @staticmethod
+    def _count_cancellable(jobs) -> int:
+        """The ONE rule for "can be cancelled": the service that started the job gave it a way to stop."""
+        return sum(1 for job in jobs if job.cancel_callback is not None)
+
+    def cancel_all_jobs(self) -> None:
+        """Ask every running job that can be cancelled to cancel.
+
+        The candidates are taken once; each is asked through `JobManager.cancel`, which re-checks that the job is
+        still running and still cancellable, so one that finished or lost its callback in between is counted as
+        skipped rather than as asked. **It reports REQUESTS, never completions:** a cancel callback asks a
+        service to stop and the job may still be running when it returns. A callback that raises is logged and
+        the rest still run. More than one job asks first, because cancelling discards their work.
+        """
+        candidates = [
+            (job.kind, job.key) for job in self._job_manager.active_jobs() if job.cancel_callback is not None
+        ]
+        if not candidates:
+            return
+        if len(candidates) > 1:
+            answer = QMessageBox.question(
+                self,
+                "Cancel all jobs",
+                f"Ask {len(candidates)} running jobs to cancel?\n\n"
+                "Cancelling discards the work each one has done so far. A job that can keep what it has "
+                "has its own Finish now button instead.",
+                QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+                QMessageBox.StandardButton.No,
+            )
+            if answer != QMessageBox.StandardButton.Yes:
+                return
+        asked, skipped, failed = 0, 0, 0
+        for kind, key in candidates:
+            try:
+                if self._job_manager.cancel(kind, key):
+                    asked += 1
+                else:
+                    skipped += 1
+            except Exception:  # noqa: BLE001 - one job's callback must not stop the others
+                logger.exception("Cancelling %s/%s raised", kind, key)
+                failed += 1
+        message = f"Cancellation requested for {asked} of {len(candidates)} jobs; each leaves the list when it stops."
+        if skipped:
+            message += f" {skipped} had already finished or could not be cancelled."
+        if failed:
+            message += f" {failed} raised an error (see the log)."
+        self.status_message.emit(message)
+        self.refresh()
+
     def refresh(self) -> None:
         jobs = self._job_manager.active_jobs()
+        cancellable = self._count_cancellable(jobs)
+        if cancellable != self._announced_cancellable:
+            self._announced_cancellable = cancellable
+            self.cancellable_count_changed.emit(cancellable)
 
         # A POLL THAT CHANGES NOTHING MUST TOUCH NOTHING. `setItem` and
         # `setCellWidget` DELETE whatever was in the cell, so rebuilding an

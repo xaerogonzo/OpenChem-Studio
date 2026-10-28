@@ -255,9 +255,15 @@ def test_pending_visualization_is_replayed_after_the_molblock_not_before(qapp):
     backend.apply_visualization(VisualizationLayer(name="t", atom_colors={0: "#ff0000"}))
     assert fired == []  # nothing escaped to a page that isn't ready
 
-    assert _wait_until(qapp, lambda: len(fired) >= 2)
-    assert "loadMolblock" in fired[0]
-    assert "applyVisualization" in fired[1]
+    # The page is told the look the moment it is ready, ahead of any payload, so the structure is drawn on the
+    # right background. That call is not part of the order this test is about.
+    def payloads() -> list[str]:
+        return [js for js in fired if "setAppearance" not in js]
+
+    assert _wait_until(qapp, lambda: len(payloads()) >= 2)
+    assert "setAppearance" in fired[0]
+    assert "loadMolblock" in payloads()[0]
+    assert "applyVisualization" in payloads()[1]
 
 
 _SURFACE_STATE_JS = "JSON.stringify(currentSurface)"

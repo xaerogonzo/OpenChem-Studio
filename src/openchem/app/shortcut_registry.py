@@ -60,6 +60,8 @@ class ShortcutEntry:
     default: str
     #: The shortcut in force now ("" for none).
     current: str
+    #: The menu the command lives in ("Tools > Calculators"), or "Window" for a command no menu offers.
+    group: str = ""
 
     @property
     def is_default(self) -> bool:
@@ -116,6 +118,9 @@ class ShortcutRegistry:
         self._labels: dict[str, str] = {}
         #: command id -> the shortcut the code gave it, captured by `apply`.
         self._defaults: dict[str, str] = {}
+        #: Each action's menu path and its place in the finished menu bar, from `set_menu_order`.
+        self._paths: dict[int, str] = {}
+        self._menu_position: dict[int, int] = {}
         self._sealed = False
 
     # --- registration ------------------------------------------------------------------
@@ -132,6 +137,15 @@ class ShortcutRegistry:
         """
         if not self._sealed:
             self._pending.append((key, action, label or _label_of(action)))
+
+    def set_menu_order(self, found: list[tuple[str, QAction]]) -> None:
+        """Tell the registry where the menu bar put each command: `(menu path, action)` in the order met.
+
+        The Keyboard page groups by that path and lists in that order, so it reads as the menus do. Called
+        once the menus are arranged and before `apply`; a command no menu holds is grouped "Window".
+        """
+        self._paths = {id(action): path for path, action in found}
+        self._menu_position = {id(action): number for number, (_path, action) in enumerate(found)}
 
     def apply(self) -> None:
         """Name every tracked action, capture its default and put the person's overrides in force.
@@ -153,6 +167,13 @@ class ShortcutRegistry:
             self._labels[command_id] = label
             self._defaults[command_id] = portable(action.shortcut())
         self._pending = []
+        # Menu order, so the Keyboard page reads as the menus do; a command no menu holds goes last.
+        # `sorted` is stable, so ties (all such commands) keep their registration order.
+        ordered = sorted(
+            self._actions.items(),
+            key=lambda item: self._menu_position.get(id(item[1]), len(self._menu_position)),
+        )
+        self._actions = dict(ordered)
         for command_id, sequence in self._intended().items():
             self._actions[command_id].setShortcut(QKeySequence.fromString(sequence, PORTABLE))
 
@@ -212,6 +233,7 @@ class ShortcutRegistry:
                 label=self._labels[command_id],
                 default=self._defaults[command_id],
                 current=portable(action.shortcut()),
+                group=self._paths.get(id(action), "Window"),
             )
             for command_id, action in self._actions.items()
         ]

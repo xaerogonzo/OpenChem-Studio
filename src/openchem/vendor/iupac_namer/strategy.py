@@ -1423,6 +1423,10 @@ class IUPACCanonical(NamingStrategy):
                 # we only emit name_polycyclic_spiro when the split is
                 # architecturally valid.
                 "spiro_polycyclic": 40.0,
+                # Naming round 88 (D-383): the articulation-split spiro name of two polycyclic partners has the same standing. It was left out
+                # of this table (0.5), so the von Baeyer descriptor of the whole system (`octacyclo[8.8.7.7.7.7.4.3.3]pentadecane` for
+                # bicyclo[4.1.0]heptane spiro-joined to bicyclo[3.3.1]nonane, unreadable) outranked a spiro name that was correct.
+                "polyspiro_articulation": 40.0,
                 # Stage 5: methylenedioxy-bridge on retained polycyclic base
                 # (e.g. 16,17-methylenedioxy-hexadecahydro-1H-cyclopenta[a]
                 # phenanthrene).  Ranked above spiro_polycyclic (40) so a

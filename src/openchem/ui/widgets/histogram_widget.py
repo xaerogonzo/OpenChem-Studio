@@ -12,6 +12,7 @@ from PySide6.QtCore import QPointF, QRectF, Qt, Signal
 from PySide6.QtGui import QColor, QPainter, QPen
 from PySide6.QtWidgets import QWidget
 
+from openchem.ui import theme
 from openchem.ui.picture_export import show_picture_menu
 
 from openchem.chem.analytics import Distribution
@@ -52,6 +53,7 @@ class HistogramWidget(XZoomable, QWidget):
         parent: QWidget | None = None,
     ) -> None:
         super().__init__(parent)
+        theme.repaint_on_change(self)
         self._distribution = distribution
         self._label = label
         self._empty_message = "No data"
@@ -113,7 +115,7 @@ class HistogramWidget(XZoomable, QWidget):
         painter = QPainter(self)
         painter.setRenderHint(QPainter.RenderHint.Antialiasing)
         rect = self._plot_rect()
-        painter.setPen(QPen(QColor(120, 120, 120)))
+        painter.setPen(QPen(theme.ink(QColor(120, 120, 120))))
         painter.drawRect(rect)
         if not self._has_data():
             painter.drawText(rect, Qt.AlignmentFlag.AlignCenter, self._empty_message)
@@ -124,7 +126,7 @@ class HistogramWidget(XZoomable, QWidget):
         self._draw_bars(painter, rect, tallest)
         self._draw_axes(painter, rect, tallest)
         self._draw_median(painter, rect)
-        painter.setPen(QPen(QColor(40, 40, 40)))
+        painter.setPen(QPen(theme.ink(QColor(40, 40, 40))))
         painter.drawText(
             QRectF(rect.left(), 4, rect.width(), self._MARGIN_TOP - 6),
             Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter,
@@ -140,8 +142,8 @@ class HistogramWidget(XZoomable, QWidget):
     def _draw_bars(self, painter: QPainter, rect: QRectF, tallest: int) -> None:
         counts = self._distribution.counts
         low, high = self._x_range()
-        painter.setPen(QPen(QColor(255, 255, 255)))
-        painter.setBrush(_BAR_COLOR)
+        painter.setPen(QPen(theme.faint(QColor(255, 255, 255))))
+        painter.setBrush(theme.ink(_BAR_COLOR))
         for index, left, right in self._visible_bins():
             count = counts[index]
             if count == 0:
@@ -155,7 +157,7 @@ class HistogramWidget(XZoomable, QWidget):
 
     def _draw_axes(self, painter: QPainter, rect: QRectF, tallest: int) -> None:
         low, high = self._x_range()
-        painter.setPen(QPen(QColor(90, 90, 90)))
+        painter.setPen(QPen(theme.ink(QColor(90, 90, 90))))
         # Five x labels regardless of bin count: one per bin edge is
         # unreadable at 30 bins and pointless at 5.
         for step in range(5):
@@ -182,5 +184,5 @@ class HistogramWidget(XZoomable, QWidget):
         if edges[-1] - edges[0] <= 0 or not self.in_view(self._distribution.median):
             return
         x = self._x_of(rect, self._distribution.median)
-        painter.setPen(QPen(_MEDIAN_COLOR, 1.5, Qt.PenStyle.DashLine))
+        painter.setPen(QPen(theme.ink(_MEDIAN_COLOR), 1.5, Qt.PenStyle.DashLine))
         painter.drawLine(QPointF(x, rect.top()), QPointF(x, rect.bottom()))

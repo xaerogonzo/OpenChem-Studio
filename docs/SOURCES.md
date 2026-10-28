@@ -1,5 +1,5 @@
 <!-- GENERATED FROM docs/sources.toml -- do not edit -->
-<!-- SOURCE SHA256: d67f2bfad7dc6c843b5fbf0eb51534ad3b252f8933fbdc70fe2d8f85cdcb016d -->
+<!-- SOURCE SHA256: 3c77bf7a0f9d50f84d9d1744fb08fa10a2d168f91c820fbf93364b309dbe1c6d -->
 
 # Sources
 
@@ -99,6 +99,7 @@ next run of `tools/build_lewis_parameters.py`.
 | [`alves2014`](#alves2014) | literature | reference only | citation |
 | [`amcp706187`](#amcp706187) | standard | shipped | citation |
 | [`andersen1999`](#andersen1999) | literature | shipped | citation + claim |
+| [`andress2026`](#andress2026) | literature | reference only | citation + claim |
 | [`aqsoldb`](#aqsoldb) | dataset | shipped | citation |
 | [`armstrong2026synthex`](#armstrong2026synthex) | literature | reference only | citation + claim |
 | [`atct1228`](#atct1228) | dataset | reference only | citation |
@@ -122,6 +123,7 @@ next run of `tools/build_lewis_parameters.py`.
 | [`blanksby2003`](#blanksby2003) | literature | shipped | citation + claim |
 | [`bolovinos1984`](#bolovinos1984) | literature | shipped | citation + claim |
 | [`bondi1964`](#bondi1964) | literature | shipped | citation + claim |
+| [`borgesdossantos2002`](#borgesdossantos2002) | literature | reference only | citation + claim |
 | [`bradley2014`](#bradley2014) | dataset | shipped | citation + claim |
 | [`bradley2015`](#bradley2015) | literature | shipped | citation + claim |
 | [`bravetti2023`](#bravetti2023) | literature | shipped | citation |
@@ -141,6 +143,7 @@ next run of `tools/build_lewis_parameters.py`.
 | [`chen2008erratum`](#chen2008erratum) | literature | reference only | citation + claim |
 | [`chen2008framework`](#chen2008framework) | literature | reference only | citation |
 | [`chernyshov2020`](#chernyshov2020) | literature | reference only | citation |
+| [`chiang2004`](#chiang2004) | literature | reference only | citation + claim |
 | [`cioslowski1989`](#cioslowski1989) | literature | reference only | citation |
 | [`cioslowski1989prl`](#cioslowski1989prl) | literature | reference only | citation + claim |
 | [`claesen2023`](#claesen2023) | literature | reference only | citation |
@@ -167,6 +170,9 @@ next run of `tools/build_lewis_parameters.py`.
 | [`ertl2008`](#ertl2008) | literature | shipped | citation |
 | [`ertl2009`](#ertl2009) | literature | shipped | citation |
 | [`ertl2017`](#ertl2017) | literature | reference only | citation |
+| [`ervin2015`](#ervin2015) | literature | reference only | citation + claim |
+| [`espinosagarcia1999`](#espinosagarcia1999) | literature | reference only | citation + claim |
+| [`eyet2009`](#eyet2009) | literature | reference only | citation + claim |
 | [`feinstein2015`](#feinstein2015) | literature | shipped | citation + claim |
 | [`ferro2018`](#ferro2018) | literature | reference only | citation + claim |
 | [`fogarasi2010`](#fogarasi2010) | literature | shipped | citation + claim |
@@ -214,6 +220,7 @@ next run of `tools/build_lewis_parameters.py`.
 | [`iupac_goldbook`](#iupac_goldbook) | standard | shipped | citation + claim |
 | [`iupac_namer`](#iupac_namer) | software | shipped | citation |
 | [`jain1987`](#jain1987) | literature | shipped | citation + claim |
+| [`janousek1980`](#janousek1980) | literature | reference only | citation + claim |
 | [`jenkins1999`](#jenkins1999) | literature | shipped | citation + claim |
 | [`joback1987`](#joback1987) | literature | shipped | citation + claim |
 | [`kamlet1968`](#kamlet1968) | literature | shipped | citation + claim |
@@ -237,7 +244,9 @@ next run of `tools/build_lewis_parameters.py`.
 | [`kwon2023`](#kwon2023) | dataset | shipped | citation + claim |
 | [`langes15`](#langes15) | reference_table | shipped | citation + claim |
 | [`lease2023`](#lease2023) | literature | shipped | citation + claim |
+| [`leplat2013`](#leplat2013) | literature | reference only | citation + claim |
 | [`li2024retrobleu`](#li2024retrobleu) | literature | reference only | citation |
+| [`lim2007`](#lim2007) | literature | reference only | citation + claim |
 | [`llinas2008`](#llinas2008) | dataset | shipped | citation |
 | [`llinas2019`](#llinas2019) | dataset | reference only | citation |
 | [`llinas2020`](#llinas2020) | dataset | shipped | citation + claim |
@@ -260,6 +269,7 @@ next run of `tools/build_lewis_parameters.py`.
 | [`miller_polarizability`](#miller_polarizability) | reference_table | reference only | citation |
 | [`molstar`](#molstar) | software | shipped | citation |
 | [`moore1970`](#moore1970) | literature | shipped | citation + claim |
+| [`moran1988`](#moran1988) | literature | reference only | citation + claim |
 | [`moreland1974`](#moreland1974) | literature | shipped | citation |
 | [`morgunov2025retrocast`](#morgunov2025retrocast) | literature | reference only | citation + claim |
 | [`mortier1986`](#mortier1986) | literature | reference only | citation |
@@ -270,6 +280,7 @@ next run of `tools/build_lewis_parameters.py`.
 | [`naserifar2017`](#naserifar2017) | literature | reference only | citation + claim |
 | [`neudert2011`](#neudert2011) | literature | **not shipped** | citation |
 | [`nguyen2020`](#nguyen2020) | literature | shipped | citation + claim |
+| [`nicovich1992`](#nicovich1992) | literature | reference only | citation + claim |
 | [`nistor2006`](#nistor2006) | literature | reference only | citation + claim |
 | [`nmrshiftdb2`](#nmrshiftdb2) | dataset | shipped | citation |
 | [`npscorer2015`](#npscorer2015) | software | shipped | citation |
@@ -324,6 +335,9 @@ next run of `tools/build_lewis_parameters.py`.
 | [`schindler2021_correction`](#schindler2021_correction) | literature | reference only | citation |
 | [`schott1989`](#schott1989) | literature | shipped | citation + claim |
 | [`sci_downloads_note`](#sci_downloads_note) | reference_table | reference only | citation |
+| [`seetula2000`](#seetula2000) | literature | reference only | citation |
+| [`seetula2003`](#seetula2003) | literature | reference only | citation + claim |
+| [`seetula2008`](#seetula2008) | literature | reference only | citation + claim |
 | [`sefcik2002`](#sefcik2002) | literature | reference only | citation + claim |
 | [`shancita2020`](#shancita2020) | literature | shipped | citation |
 | [`shannon1976`](#shannon1976) | literature | shipped | citation + claim |
@@ -7671,6 +7685,244 @@ Nothing about xtb's accuracy against ORCA or Psi4 has been measured (`docs/EXTER
 | Used by | `benchmarks/restart_v2/PREREGISTRATION.md`, `benchmarks/restart_v2/second_column.py` |
 
 **Why it is reference only.** THE ATcT BOND ENTHALPIES OF THE METHANE, ETHANE AND METHANOL SYSTEMS, in print: the second reference column the held-out arm's preregistration asks for where the first run's bonds overlap, and a check on how a bond enthalpy is formed from enthalpies of formation. Read by table for the six first-run bonds of the methane, ethane and methanol systems (`benchmarks/restart_v2/second_column.py`): they agree with the ATcT 1.228 values the held-out references come from to within 0.24 kcal/mol, the ethane C-H (version 1.122 lower by 0.24) the largest.
+
+### seetula2003
+
+<a id="seetula2003"></a>
+
+> J. A. Seetula, 'Kinetics of the R + HBr = RH + Br (R = CH2Br, CHBrCl or CCl3) equilibrium. Thermochemistry of the CH2Br and CHBrCl radicals', Phys. Chem. Chem. Phys. 5, 849-855 (2003).
+
+| | |
+| --- | --- |
+| Identifier | [10.1039/b210787m](https://doi.org/10.1039/b210787m) |
+| Status | reference only |
+| Verification | citation + claim |
+| Verified | 2026-10-27 |
+| Local copy | `seetula2003_CH2Br_CHBrCl.pdf` (not checked) |
+| Used by | `benchmarks/restart_v3/PREREGISTRATION.md` |
+
+**Why it is reference only.** A BROMINE REFERENCE FOR THE REPORTED-ONLY ARM C-Br (decision D5 of the restart-v3 preregistration, taken 2026-10-27; it decides nothing, because the R + HBr kinetics method is disputed, see leplat2013, and a coupled-cluster calculation, andress2026, puts these bonds 2 to 7 kJ/mol lower): the paper reports the C-H bond energies of bromomethane (427.2 +- 2.4 kJ/mol) and bromochloromethane (406.0 +- 2.4) and the formation enthalpies of CH2Br (171.1 +- 2.7) and CHBrCl (143 +- 6), all from one laboratory's second-law kinetics, not an evaluated value. The four numbers were read from the PDF's text; the extraction drops minus signs, so no signed enthalpy is taken from it.
+
+### seetula2008
+
+<a id="seetula2008"></a>
+
+> J. A. Seetula & A. J. Eskola, 'Kinetics of the R + HBr = RH + Br (CH3CHBr, CHBr2 or CDBr2) equilibrium. Thermochemistry of the CH3CHBr and CHBr2 radicals', Chemical Physics 351, 141-146 (2008).
+
+| | |
+| --- | --- |
+| Identifier | [10.1016/j.chemphys.2008.04.008](https://doi.org/10.1016/j.chemphys.2008.04.008) |
+| Status | reference only |
+| Verification | citation + claim |
+| Verified | 2026-10-27 |
+| Local copy | `seetula2008_CHBr2_CH3CHBr.pdf` (not checked) |
+| Used by | `benchmarks/restart_v3/PREREGISTRATION.md` |
+
+**Why it is reference only.** A BROMINE REFERENCE FOR THE REPORTED-ONLY ARM C-Br (decision D5 of the restart-v3 preregistration, taken 2026-10-27; it decides nothing: the bromoethane value sits about 2 kcal/mol above the other determinations in Luo's Table 3.5, and the R + HBr method is disputed, see leplat2013): the paper reports the alpha C-H bond energies of bromoethane (415.0 +- 2.7 kJ/mol) and dibromomethane (412.6 +- 2.7) and the formation enthalpies of CH3CHBr (133.4 +- 3.4) and CHBr2 (199.1 +- 2.7), and compares the CHBr2 value with three theoretical studies (196.9 to 201.3) and a fourth that is lower (191.7). It supersedes the same author's 2000 ab initio estimate for CHBr2. One laboratory's second-law kinetics, not an evaluated value.
+
+### seetula2000
+
+<a id="seetula2000"></a>
+
+> J. A. Seetula, 'Ab initio study of the transition states for determining the enthalpies of formation of alkyl and halogenated alkyl free radicals', Phys. Chem. Chem. Phys. 2, 3807-3812 (2000).
+
+| | |
+| --- | --- |
+| Identifier | [10.1039/b001350l](https://doi.org/10.1039/b001350l) |
+| Status | reference only |
+| Verification | citation |
+| Verified | 2026-10-27 |
+| Local copy | `seetula2000_abinitio_TS.pdf` (not checked) |
+| Used by | `benchmarks/restart_v3/PREREGISTRATION.md` |
+
+**Why it is reference only.** WHY TRIBROMOMETHYL HAS NO USABLE REFERENCE VALUE: this is the only source found for a CBr3 formation enthalpy, an ab initio estimate (195 +- 5 kJ/mol, plus 2.4 for the method) whose uncertainty fails the 1.0 kcal/mol rule for a deciding bond, and the paper itself warns that values for radicals with several bromine atoms are of low accuracy. Its CHBr2 estimate (180 +- 5) was superseded by the 2008 paper.
+
+### nicovich1992
+
+<a id="nicovich1992"></a>
+
+> J. M. Nicovich, K. D. Kreutter, C. A. van Dijk & P. H. Wine, 'Temperature-dependent kinetics studies of the reactions Br(2P3/2) + H2S = SH + HBr and Br(2P3/2) + CH3SH = CH3S + HBr. Heats of formation of SH and CH3S radicals', J. Phys. Chem. 96, 2518-2528 (1992).
+
+| | |
+| --- | --- |
+| Identifier | [10.1021/j100185a025](https://doi.org/10.1021/j100185a025) |
+| Status | reference only |
+| Verification | citation + claim |
+| Verified | 2026-10-27 |
+| Local copy | `nicovich1992.pdf` (not checked) |
+| Used by | `benchmarks/restart_v3/PREREGISTRATION.md`, `benchmarks/restart_v3/references.json`, `benchmarks/restart_v3/LITERATURE_LOG.md` |
+
+**Why it is reference only.** THE METHANETHIOL S-H VALUE THE FIRST RUN USED, AND THE ANCHOR THE S-H ARM SHARES WITH IT: Table IX gives D(CH3S-H) = 87.35 +- 0.58 kcal/mol at 298 K (85.96 +- 0.68 at 0 K; 2 sigma), from second- and third-law analyses of the Br + CH3SH equilibrium, and the CH3S formation enthalpy 29.78 +- 0.44 kcal/mol. Ervin 2015 takes the same kinetics value as one of two routes to the CH3SH anchor of its acidity network, so the ethanethiol and propanethiol S-H references of Arm D are not independent of it.
+
+### chiang2004
+
+<a id="chiang2004"></a>
+
+> S.-Y. Chiang, Y.-S. Fang, K. Sankaran & Y.-P. Lee, 'Experimental and quantum-chemical studies on photoionization and dissociative photoionization of CH2Br2', J. Chem. Phys. 120, 3270-3276 (2004).
+
+| | |
+| --- | --- |
+| Identifier | [10.1063/1.1641010](https://doi.org/10.1063/1.1641010) |
+| Status | reference only |
+| Verification | citation + claim |
+| Verified | 2026-10-27 |
+| Local copy | `chiang2004.pdf` (not checked) |
+| Used by | `benchmarks/restart_v3/PREREGISTRATION.md`, `benchmarks/restart_v3/LITERATURE_LOG.md` |
+
+**Why it is reference only.** WHY IT IS NOT A REFERENCE: it measures the CH2Br+ appearance energy from CH2Br2 (11.22 eV) and the adiabatic ionization energy of CH2Br2 (10.25 eV), which give ion enthalpies, not a bond energy of a neutral radical. Its Table IV does list the radicals' formation enthalpies it compares with (CH2Br 40.4 +- 1.0 and CHBr2 45.0 +- 2.2 kcal/mol, taken from an earlier reference), which are context for the bromine arm and not new data.
+
+### leplat2013
+
+<a id="leplat2013"></a>
+
+> N. Leplat, A. Wokaun & M. J. Rossi, 'Reinvestigation of the elementary chemical kinetics of the reaction C2H5 + HBr (HI) = C2H6 + Br (I) in the range 293-623 K and its implication on the thermochemical parameters of C2H5 free radical', J. Phys. Chem. A 117, 11383-11402 (2013).
+
+| | |
+| --- | --- |
+| Identifier | [10.1021/jp403761r](https://doi.org/10.1021/jp403761r) |
+| Status | reference only |
+| Verification | citation + claim |
+| Verified | 2026-10-27 |
+| Local copy | `leplat2013.pdf` (not checked) |
+| Used by | `benchmarks/restart_v3/PREREGISTRATION.md`, `benchmarks/restart_v3/LITERATURE_LOG.md` |
+
+**Why it is reference only.** WHY THE BROMINE ARM IS REPORTED ONLY: the paper shows that the R + HBr equilibrium method behind the bromine C-H values is itself disputed. Two sets of kinetics disagree (high rates with a negative activation energy, which include Seetula's, against low rates with a positive one, which include this paper's), giving C2H5 formation enthalpies of 120.7 (Seetula) against 117.3 +- 3.1 kJ/mol (third law, this paper); its own second-law treatment gives an entropy 19.9 J/K/mol below the accepted value, so the authors distrust second-law results here. It tests ethyl only, not a bromoalkyl radical.
+
+### ervin2015
+
+<a id="ervin2015"></a>
+
+> K. M. Ervin, A. A. Nickel, J. G. Lanorio & S. B. Ghale, 'Anchoring the gas-phase acidity scale from hydrogen sulfide to pyrrole. Experimental bond dissociation energies of nitromethane, ethanethiol, and cyclopentadiene', J. Phys. Chem. A (Just Accepted manuscript, 29 December 2014).
+
+| | |
+| --- | --- |
+| Identifier | [10.1021/jp510137g](https://doi.org/10.1021/jp510137g) |
+| Status | reference only |
+| Verification | citation + claim |
+| Verified | 2026-10-27 |
+| Local copy | `ervin2015.pdf` (not checked) |
+| Used by | `benchmarks/restart_v3/PREREGISTRATION.md`, `benchmarks/restart_v3/references.json`, `benchmarks/restart_v3/LITERATURE_LOG.md`, `tests/test_restart_v3_references.py` |
+
+**Why it is reference only.** THE S-H REFERENCE OF ARM D: D298(C2H5S-H) = 364.7 +- 2.2 kJ/mol (87.16 +- 0.53 kcal/mol, about the 95% level), from the paper's re-anchored gas-phase acidity network (anchors H2S, CH3SH and pyrrole) and the C2H5S electron affinity of Moran and Ellison; its Table 3 also holds the absolute acidities of 1- and 2-propanethiol and tert-butanethiol, which with Janousek's electron affinities give three more S-H references (derived in benchmarks/restart_v3/references.json and recomputed by tests/test_restart_v3_references.py; the thermal correction for them is borrowed from ethanethiol, which the paper does not publish for them). The copy held is the Just Accepted manuscript, whose abstract numbers are the ones the published article carries; the SI (ervin2015_SI.pdf) holds the DFT thermal-correction details for the paper's own species only.
+
+### eyet2009
+
+<a id="eyet2009"></a>
+
+> N. Eyet, S. M. Villano & V. M. Bierbaum, 'Anchoring the gas-phase acidity scale: From formic acid to methanethiol', Int. J. Mass Spectrom. 283, 26-29 (2009).
+
+| | |
+| --- | --- |
+| Identifier | [10.1016/j.ijms.2009.01.001](https://doi.org/10.1016/j.ijms.2009.01.001) |
+| Status | reference only |
+| Verification | citation + claim |
+| Verified | 2026-10-27 |
+| Local copy | `eyet2009.pdf` (not checked) |
+| Used by | `benchmarks/restart_v3/LITERATURE_LOG.md` |
+
+**Why it is reference only.** A CHECK ON THE THIOL ACIDITIES, SUPERSEDED BY ERVIN 2015: Table 1 gives gas-phase acidities of methane-, ethane-, 1- and 2-propane- and tert-butanethiol to +-0.5 kcal/mol (ethanethiol acidH298 356.0), which agree with Ervin's re-anchored values within error (1489.5 against 1487.6 +- 1.8 kJ/mol). Its supplementary data (Appendix A of the article) could not be fetched.
+
+### janousek1980
+
+<a id="janousek1980"></a>
+
+> B. K. Janousek, K. J. Reed & J. I. Brauman, 'Electron photodetachment from mercaptyl anions (RS-). Electron affinities of mercaptyl radicals and the S-H bond strength in mercaptans', J. Am. Chem. Soc. 102, 3125-3129 (1980).
+
+| | |
+| --- | --- |
+| Identifier | [10.1021/ja00529a040](https://doi.org/10.1021/ja00529a040) |
+| Status | reference only |
+| Verification | citation + claim |
+| Verified | 2026-10-27 |
+| Local copy | `janousek1980.pdf` (not checked) |
+| Used by | `benchmarks/restart_v3/PREREGISTRATION.md`, `benchmarks/restart_v3/references.json`, `benchmarks/restart_v3/LITERATURE_LOG.md`, `tests/test_restart_v3_references.py` |
+
+**Why it is reference only.** THE ELECTRON AFFINITIES BEHIND THE PROPANETHIOL S-H REFERENCES: EA(C2H5S) = 1.953 +- 0.006, EA(n-C3H7S) = 2.00 +- 0.02, EA(i-C3H7S) = 2.02 +- 0.02 and EA(t-C4H9S) = 2.07 +- 0.02 eV by laser photodetachment of the mercaptyl anions. Its own S-H bond strengths (88.6, 88.7 and 88.4 +- 2 kcal/mol) rest on older bracketed acidities and are superseded by the re-anchored ones of Ervin 2015.
+
+### moran1988
+
+<a id="moran1988"></a>
+
+> S. Moran & G. B. Ellison, 'Photoelectron spectroscopy of sulfur ions', J. Phys. Chem. 92, 1794-1803 (1988).
+
+| | |
+| --- | --- |
+| Identifier | [10.1021/j100318a021](https://doi.org/10.1021/j100318a021) |
+| Status | reference only |
+| Verification | citation + claim |
+| Verified | 2026-10-27 |
+| Local copy | `moran1988.pdf` (not checked) |
+| Used by | `benchmarks/restart_v3/references.json`, `benchmarks/restart_v3/LITERATURE_LOG.md` |
+
+**Why it is reference only.** THE ETHANETHIOL ELECTRON AFFINITY ERVIN USED: EA(CH3CH2S) = 1.947 +- 0.013 eV (final value, Table VIII), also EA(CH3S) 1.873 +- 0.011. The paper has no propylthiyl radical, so the propanethiol references take their electron affinities from Janousek 1980. Its own S-H value for ethanethiol (88.9 +- 2 kcal/mol) rests on a bracketed acidity and is superseded.
+
+### borgesdossantos2002
+
+<a id="borgesdossantos2002"></a>
+
+> R. M. Borges dos Santos, V. S. F. Muralha, C. F. Correia, R. C. Guedes, B. J. Costa Cabral & J. A. Martinho Simoes, 'S-H bond dissociation enthalpies in thiophenols: A time-resolved photoacoustic calorimetry and quantum chemistry study', J. Phys. Chem. A 106, 9883-9889 (2002).
+
+| | |
+| --- | --- |
+| Identifier | [10.1021/jp025677i](https://doi.org/10.1021/jp025677i) |
+| Status | reference only |
+| Verification | citation + claim |
+| Verified | 2026-10-27 |
+| Local copy | `borgesdossantos2002.pdf` (not checked) |
+| Used by | `benchmarks/restart_v3/references.json`, `benchmarks/restart_v3/LITERATURE_LOG.md` |
+
+**Why it is reference only.** WHY THIOPHENOL IS NOT IN ARM D: gas-phase DH(PhS-H) = 349.4 +- 4.5 kJ/mol (83.5 +- 1.1 kcal/mol), derived from a solution measurement with solvation corrections, so it fails the 1.0 kcal/mol rule, and it disagrees with the gas-phase imaging value of Lim 2007 (D0 76.8 +- 0.3 at 0 K) by about 5 kcal/mol. The paper itself says the literature values range from 331 to 349 kJ/mol.
+
+### lim2007
+
+<a id="lim2007"></a>
+
+> I. S. Lim, J. S. Lim, Y. S. Lee & S. K. Kim, 'Experimental and theoretical study of the photodissociation reaction of thiophenol at 243 nm: Intramolecular orbital alignment of the phenylthiyl radical', J. Chem. Phys. 126, 034306 (2007).
+
+| | |
+| --- | --- |
+| Identifier | [10.1063/1.2424939](https://doi.org/10.1063/1.2424939) |
+| Status | reference only |
+| Verification | citation + claim |
+| Verified | 2026-10-27 |
+| Local copy | `lim2007.pdf` (not checked) |
+| Used by | `benchmarks/restart_v3/references.json`, `benchmarks/restart_v3/LITERATURE_LOG.md` |
+
+**Why it is reference only.** WHY THIOPHENOL IS NOT IN ARM D: D0(S-H) = 76.8 +- 0.3 kcal/mol (Table II) is a 0 K value from H-atom velocity-map imaging, the authors say it is at least 2 kcal/mol below earlier values, and a 298 K conversion would still leave it about 5 kcal/mol under the solution-derived value of Borges dos Santos 2002. The uncertainty convention of the +-0.3 is not stated in the text read.
+
+### andress2026
+
+<a id="andress2026"></a>
+
+> T. D. Andress, C. Seely, M. Miele, L. Castoldi, V. Pace & D. A. Dixon, 'Correlated molecular orbital theory predictions of hydrogen-containing halomethane thermochemistry: Heats of formation, C-H bond dissociation energies, and pKa values', J. Phys. Chem. A 130, 1790-1803 (2026).
+
+| | |
+| --- | --- |
+| Identifier | [10.1021/acs.jpca.5c08066](https://doi.org/10.1021/acs.jpca.5c08066) |
+| Status | reference only |
+| Verification | citation + claim |
+| Verified | 2026-10-27 |
+| Local copy | `andress2026.pdf` (not checked) |
+| Used by | `benchmarks/restart_v3/PREREGISTRATION.md`, `benchmarks/restart_v3/references.json`, `benchmarks/restart_v3/LITERATURE_LOG.md` |
+
+**Why it is reference only.** A CALCULATED CHECK ON THE BROMINE KINETICS VALUES, NEVER A REFERENCE: Table 2 gives 298 K C-H bond dissociation energies from Feller-Peterson-Dixon and G3(MP2) calculations, with no uncertainty stated: CH3Br 420.5 / 420.8, CH2Br2 407.4 / 406.5, CH2BrCl 403.8 / 404.4 and CHBr3 392.4 / 391.0 kJ/mol, against the experimental column (Luo's compilation, ATcT where marked) 427.2, 417.1, 406.0 and 401.7. On the three bonds whose reference is ATcT (CH4, CHF3, CH2Cl2) the calculation runs 1.0 to 2.7 kJ/mol low, so the roughly 4 kJ/mol it sits below the bromine kinetics values is beyond that offset. The SI (andress2026_SI.pdf) was not used.
+
+### espinosagarcia1999
+
+<a id="espinosagarcia1999"></a>
+
+> J. Espinosa-Garcia & S. Dobe, 'Theoretical C-H bond dissociation enthalpies for CH3Br and CH2ClBr', J. Phys. Chem. A 103, 6387-6393 (1999).
+
+| | |
+| --- | --- |
+| Identifier | [10.1021/jp9834614](https://doi.org/10.1021/jp9834614) |
+| Status | reference only |
+| Verification | citation + claim |
+| Verified | 2026-10-27 |
+| Local copy | `espinosagarcia1999.pdf` (not checked) |
+| Used by | `benchmarks/restart_v3/LITERATURE_LOG.md` |
+
+**Why it is reference only.** A CALCULATED COMPARISON, NOT A REFERENCE: ab initio isodesmic estimates give DH298(BrH2C-H) = 101.7 +- 1.4 and DH298(BrClHC-H) = 98.7 +- 1.9 kcal/mol, in agreement with the kinetics value for bromomethane and 1.7 kcal/mol above the kinetics value for bromochloromethane. Both uncertainties exceed the 1.0 kcal/mol rule and they are calculated.
 
 ## Datasets
 
