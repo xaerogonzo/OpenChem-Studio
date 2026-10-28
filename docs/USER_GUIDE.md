@@ -3398,8 +3398,9 @@ kept, which asks first.
   window's title bar included. The same choice is in **View ▸ Theme**, and the
   checked entry there is the choice you made, so Follow the system stays checked
   while the window happens to be dark. It applies at once. The 3D viewer follows;
-  in the 2D editor the toolbars go dark and the drawing area stays white, so atom
-  colours, bonds and selection look exactly as they always did; the macromolecule
+  in the 2D editor the toolbars and the drawing area go dark, bonds and carbon
+  labels turn white, and atom colours (nitrogen blue, oxygen red), selection and
+  hover stay exactly as they were, as does a picture you export; the macromolecule
   viewer's canvas goes dark but its side panels keep their light styling.
 - **Panels.** By default, choosing a panel from the rail hides the other
   right-hand panels in its area, so the one you chose gets the whole column.
@@ -3448,7 +3449,9 @@ kept, which asks first.
   default; see the drawing section above). Off hands the keys back to the
   editor, which does nothing with them over a bond.
 - **Keyboard.** Every menu command with the shortcut it holds (Search facts and the
-  Command Palette too). Click a box and press the combination you want; it applies
+  Command Palette too), in one collapsible section per menu, in the order the menus
+  show them (File, Edit, ..., then Tools > Calculators and so on). Click a heading to
+  open or close it; searching opens the sections that match and hides the rest. Click a box and press the combination you want; it applies
   at once and is remembered. The ✕ in the box clears a command's shortcut, **Reset**
   puts one back to the shortcut it shipped with, and **Reset all to defaults** puts
   every one back. A combination another command already uses is refused, and the page

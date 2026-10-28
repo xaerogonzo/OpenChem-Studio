@@ -1983,6 +1983,7 @@
   "tests/test_energetics_props_cod_census.py": 3,
   "tests/test_energetics_props_cod_corpus.py": 2,
   "tests/test_energetics_props_cod_structures.py": 0,
+  "tests/test_energetics_props_density_candidates.py": 0,
   "tests/test_energetics_props_density_correction.py": 0,
   "tests/test_energetics_props_families.py": 2,
   "tests/test_energetics_props_inventory.py": 0,
@@ -2073,6 +2074,7 @@
   "tests/test_ketcher_notices_workflow.py": 1,
   "tests/test_ketcher_overrule.py": 0,
   "tests/test_ketcher_viewport_transform.py": 0,
+  "tests/test_keyboard_groups.py": 0,
   "tests/test_keyboard_shortcuts.py": 3,
   "tests/test_kim2008_crystal_densities.py": 1,
   "tests/test_knowledge_vista.py": 1,
@@ -2124,6 +2126,7 @@
   "tests/test_mass_spectrum_calculators.py": 4,
   "tests/test_mathieu2018_apc.py": 4,
   "tests/test_mathieu_sqe_instrument.py": 4,
+  "tests/test_menu_layout.py": 3,
   "tests/test_merged_results.py": 1,
   "tests/test_mmff94_charges.py": 0,
   "tests/test_mode_animation.py": 2,
@@ -2216,6 +2219,7 @@
   "tests/test_namer_round86_curated_ring_labels_follow_the_rings_bonds.py": 3,
   "tests/test_namer_round88_spiro_joints_to_bridged_partners_and_hetero_spiro_atoms.py": 3,
   "tests/test_namer_round89_forced_bridgehead_descriptors_are_dropped_alone.py": 0,
+  "tests/test_namer_round90_a_diazo_carbon_is_not_an_imine.py": 0,
   "tests/test_namer_salt_multiplier.py": 2,
   "tests/test_namer_stereo_cache_identity.py": 3,
   "tests/test_namer_stereo_locant_tie.py": 2,
@@ -2554,6 +2558,10 @@
   "tests/test_workflow_move.py": 4,
   "tests/test_workflow_safety.py": 4,
   "tests/test_workflow_sections.py": 1,
-  "tests/test_x_zoomable_charts.py": 4
+  "tests/test_x_zoomable_charts.py": 4,
+  "tests/test_xtb_comparison_judge.py": 4,
+  "tests/test_xtb_comparison_runner.py": 2,
+  "tests/test_xtb_engine.py": 1,
+  "tests/test_xtb_tool.py": 3
  }
 }

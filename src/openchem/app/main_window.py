@@ -37,6 +37,7 @@ from PySide6.QtWidgets import (
 
 from openchem.app.session import SessionManager
 from openchem.app.menu_help import MENU_HELP
+from openchem.app import menu_layout
 from openchem.app.shortcut_registry import ShortcutRegistry
 from openchem.app.settings import (
     CONFORMER_KEEP_OPTIMIZED,
@@ -2384,10 +2385,49 @@ class MainWindow(QMainWindow):
         self._build_tools_menu()
         self._build_plugins_menu()
         self._build_help_menu()
+        self._arrange_menus()
+
+    def _add_top_menu(self, title: str) -> QMenu:
+        """A menu-bar menu the window OWNS.
+
+        `menuBar().addMenu(title)` returns a Python-owned wrapper, so a builder that did not keep it (File,
+        Edit, Tools, Help) left its menu, and every action created on it, to be destroyed whenever the
+        wrapper was collected. Measured with the layout pass off: the File menu read "already deleted" after
+        construction. Created WITH its parent and then added, as `_add_theme_menu` does for the same reason.
+        """
+        menu = QMenu(title, self.menuBar())
+        self.menuBar().addMenu(menu)
+        return menu
+
+    def _arrange_menus(self) -> None:
+        """Put every menu in the order `app/menu_layout.MENU_SPECS` states, then tell the shortcut registry.
+
+        After all seven builders, not inside them: an action offered from two menus (the CIP toggle) exists
+        once both are built, and the Keyboard page's groups are read from the finished bar.
+        """
+        self._panels_menu: QMenu | None = None
+        panels = [dock.toggleViewAction() for dock in self.findChildren(QDockWidget)]
+        for top in self.menuBar().actions():
+            title = menu_layout.label_of(top)
+            spec = menu_layout.MENU_SPECS.get(title)
+            if spec is None:
+                continue
+            made = menu_layout.arrange(
+                top.menu(), spec, {"Panels": panels} if title == "View" else None
+            )
+            if title == "View":
+                #: Where a plugin panel's toggle is added later, in its place A-Z.
+                self._panels_menu = made.get("Panels")
+        self._shortcuts.set_menu_order(menu_layout.walk(self.menuBar()))
+        #: Every menu of the bar, held by the window. `QMenu(title, parent)` and `addMenu` hand back wrappers the
+        #: builders drop, and a submenu whose wrapper is collected takes its entries with it (measured: after one
+        #: garbage collection every grouped submenu, Theme and 2D Structure Display were gone from the bar).
+        self._menu_wrappers = menu_layout.menus_of(self.menuBar())
+        self._show_tooltips_in_menus()
 
     def _build_file_menu(self) -> None:
         """The File menu."""
-        file_menu = self.menuBar().addMenu("&File")
+        file_menu = self._add_top_menu("&File")
         self._document(file_menu.addAction("New Project", self._new_project), "new_project")
         self._document(
             file_menu.addAction("Open Project...", self._open_project), "open_project"
@@ -2443,7 +2483,7 @@ class MainWindow(QMainWindow):
 
     def _build_edit_menu(self) -> None:
         """The Edit menu."""
-        edit_menu = self.menuBar().addMenu("&Edit")
+        edit_menu = self._add_top_menu("&Edit")
         undo_action = self._undo_stack.createUndoAction(self, "Undo")
         undo_action.setShortcut("Ctrl+Z")
         redo_action = self._undo_stack.createRedoAction(self, "Redo")
@@ -2521,7 +2561,7 @@ class MainWindow(QMainWindow):
 
     def _build_structure_menu(self) -> None:
         """The Structure menu."""
-        self._structure_menu = self.menuBar().addMenu("&Structure")
+        self._structure_menu = self._add_top_menu("&Structure")
         for label, test_id, help_key in (
             ("Aromatize", "Aromatize button", "aromatize"),
             ("Dearomatize", "Dearomatize button", "dearomatize"),
@@ -2636,7 +2676,7 @@ class MainWindow(QMainWindow):
 
     def _build_view_menu(self) -> None:
         """The View menu."""
-        self._view_menu = self.menuBar().addMenu("&View")
+        self._view_menu = self._add_top_menu("&View")
         for dock in self.findChildren(QDockWidget):
             # ONE contract across every dock: "show or hide this panel" is
             # one concept and WHICH panel differs, so `instance_path` is
@@ -2763,7 +2803,7 @@ class MainWindow(QMainWindow):
 
     def _build_tools_menu(self) -> None:
         """The Tools menu."""
-        tools_menu = self.menuBar().addMenu("&Tools")
+        tools_menu = self._add_top_menu("&Tools")
         # The way to ask, in any mode, and the only way in "only when I ask". Enabled
         # while an edit is waiting to be recalculated (`RecalcScheduler.pending_changed`).
         self._recalculate_action = tools_menu.addAction("Recalculate Now", self._on_recalculate_now)
@@ -2834,7 +2874,7 @@ class MainWindow(QMainWindow):
 
     def _build_plugins_menu(self) -> None:
         """The Plugins menu."""
-        self._plugins_menu = self.menuBar().addMenu("&Plugins")
+        self._plugins_menu = self._add_top_menu("&Plugins")
         self._document(
             self._plugins_menu.addAction("Reload Plugins", self._reload_plugins),
             "reload_plugins",
@@ -2860,7 +2900,7 @@ class MainWindow(QMainWindow):
 
     def _build_help_menu(self) -> None:
         """The Help menu."""
-        help_menu = self.menuBar().addMenu("&Help")
+        help_menu = self._add_top_menu("&Help")
         # F1 is the conventional key, and it opens help for whichever panel
         # is in front rather than a table of contents -- the question being
         # asked is almost always about the thing currently on screen.
@@ -5697,7 +5737,7 @@ class MainWindow(QMainWindow):
         # a plugin that knows nothing about groups is still reachable the
         # moment it loads.
         self._panel_rail.register(panel_id, panel_id, group)
-        self._view_menu.addAction(dock.toggleViewAction())
+        menu_layout.insert_sorted(self._panels_menu or self._view_menu, dock.toggleViewAction())
         dock.setVisible(False)
 
     def _on_plugin_dock_visibility_changed(self, visible: bool) -> None:

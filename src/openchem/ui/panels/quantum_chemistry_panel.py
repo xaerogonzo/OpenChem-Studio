@@ -93,6 +93,7 @@ from openchem.events.events import (
     TautomerDistributionResultReady,
     TautomerNmrResultReady,
 )
+from openchem.plugins.interfaces import QuantumEngineProvider
 from openchem.services.quantum_chemistry_service import QuantumChemistryService
 from openchem.services.table_export_service import write_rows_csv
 from openchem.ui.dialogs.compare_results_dialog import CompareResultsDialog
@@ -2976,6 +2977,7 @@ class QuantumChemistryPanel(QWidget):
             provider = next(p for p in self._quantum_chemistry_service.engines() if p.provider_id == provider_id)
         except (AttributeError, StopIteration):
             provider = None
+        self._apply_engine_method_presets(provider)
         model = self._calc_type_combo.model()
         first_enabled = -1
         for row in range(self._calc_type_combo.count()):
@@ -3000,6 +3002,28 @@ class QuantumChemistryPanel(QWidget):
         if log_index >= 0:
             self._correlation_tabs.setTabText(log_index, f"{name} Log")
         self._apply_engine_to_orca_only_controls(orca_like, name)
+
+    def _apply_engine_method_presets(self, provider: QuantumEngineProvider | None) -> None:
+        """Make the method box offer the chosen engine's own choices (xtb: `GFN2-xTB`, which is a method with no basis), and ORCA's again for the others.
+
+        Only the LIST is swapped, and only when it differs. What is typed is kept when the new engine offers it too (B3LYP def2-SVP means the same on ORCA and Psi4), and is replaced by
+        the engine's first choice when it does not, because `build_input` refuses a method the engine does not know and a run that can only fail is not offered.
+        """
+        wanted = list(provider.method_basis_presets) if provider is not None and provider.method_basis_presets else list(METHOD_BASIS_PRESETS)
+        current = [self._method_combo.itemText(i) for i in range(self._method_combo.count())]
+        if current == wanted:
+            return
+        typed = self._method_combo.currentText().strip()
+        self._method_combo.blockSignals(True)
+        self._method_combo.clear()
+        self._method_combo.addItems(wanted)
+        self._method_combo.blockSignals(False)
+        own = provider is not None and bool(provider.method_basis_presets)
+        if own:
+            self._method_combo.setCurrentText(typed if typed in wanted else wanted[0])
+        else:
+            # Back to a general-purpose engine: a choice from the list just replaced means nothing to it, anything else the person typed is theirs.
+            self._method_combo.setCurrentText(wanted[0] if typed in current or not typed else typed)
 
     def _orca_only_controls(self) -> tuple[tuple[QWidget, str], ...]:
         """Every control that starts one of ORCA's own workflows, each with the help contract its tooltip goes back to when ORCA is chosen again."""

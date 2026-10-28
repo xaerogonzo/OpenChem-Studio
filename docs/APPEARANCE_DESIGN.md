@@ -82,15 +82,25 @@ page's background colour so a dark window never flashes white. The QtWebEngine b
   and right controls) are the one light skin this build ships, and **stay light**.
 * **2D editor** (Ketcher): see below.
 
-### Ketcher: dark toolbars, an untouched drawing area
+### Ketcher: dark toolbars, a dark drawing area, ink recoloured and nothing else
 
 The four toolbars (top, left, right, bottom; `KETCHER_CHROME_SELECTORS`) are filtered with `invert(0.88) hue-rotate(180deg)`, which takes
-the editor's white to the application's dark surface. **Nothing that holds or is held by the drawing area is filtered**, so atom
-colours, bond styles, selection and hover feedback are the editor's own. Measured: the drawing region of a light screenshot and a dark
-one are pixel-identical (maximum channel difference 0), and `tests/test_web_appearance_live.py` asserts in the live page that the
-canvas and every ancestor have `filter: none` while each toolbar has one, and that each selector matches exactly one element, so a
-rebuilt editor that renames a CSS module fails a test instead of leaving a toolbar light without a sound. The editor's own dialogs
-(periodic table, atom properties and so on) keep their light styling.
+the editor's white to the application's dark surface. **Nothing that holds or is held by the drawing area is filtered**, and
+`tests/test_web_appearance_live.py` asserts in the live page that the canvas and every ancestor have `filter: none` while each toolbar
+has one, and that each selector matches exactly one element, so a rebuilt editor that renames a CSS module fails a test instead of
+leaving a toolbar light without a sound. The editor's own dialogs (periodic table, atom properties and so on) keep their light styling.
+
+**The drawing area itself used to stay white (decided 2026-10-26, "an untouched drawing area") and went dark on 2026-10-27**, once
+the DOM was read instead of filtered. Measured on the live page for a six-atom drawing: the editor writes its ink as the attribute
+value black (`#000000`, on 11 `rect` and 5 `path` bonds, 3 `circle`s and a `text`) and every element colour as its own value
+(nitrogen `#304ff7`, oxygen `#ff0d0d`, chlorine `#1fd01f`; selection and hover `#0097A8`). `KETCHER_INK_CSS` is two rules inside the
+canvas container: `stroke` and `fill` set to the light ink where the attribute is `#000000`, `#000` or `black`. No rule names any other
+value, so an atom colour cannot match, and nothing is filtered, which is why it has none of the clamping that sank the inversion below.
+`tests/test_web_appearance.py` holds the stylesheet to that shape; the live test draws a molecule with N, O and Cl and compares the
+computed colours dark against light (each element colour the same count, every black become the light ink, nothing painted black left;
+`desc` and `defs` report the initial fill and draw nothing). **The editor's own image export is drawn from the structure, not the DOM:**
+`generateImage` returned the same SVG dark and light, and a test holds that, so a picture saved or copied from a dark window is not
+white-on-white. Stereo wedges, charges and hydrogen labels were checked in a magnified shot.
 
 **Whole-page inversion was tried first and rejected, with numbers.** Inverting `#root` and inverting the drawing back looked right in a
 screenshot, but the colours did not return: nitrogen `(48, 139, 249)` came back `(97, 120, 249)` and oxygen `(255, 13, 13)` as
@@ -108,6 +118,8 @@ no default shortcut.
 ## What this does not do
 
 * The macromolecule viewer's side panels and the 2D editor's dialogs are light in a dark window.
+* An ink the editor draws in a value other than black (a custom atom colour, a `#333` annotation) is left as it is, and reads on the
+  dark surface only as well as its own colour does.
 * Colours that carry the data (element colours, the colour-blind-safe series, periodic-table categories, the structure checker's
   atom highlights, which are drawn on a white depiction) are not changed.
 * A table cell's brush is chosen when the row is built, so a project table cell in a non-scalar colour reads correctly after the next

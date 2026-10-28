@@ -9,6 +9,7 @@ from __future__ import annotations
 import pytest
 from PySide6.QtCore import QThreadPool, Qt
 
+from openchem.app import menu_layout
 from openchem.app.main_window import MainWindow
 from openchem.app.session import SessionManager
 from openchem.app.settings import Settings
@@ -264,11 +265,9 @@ _KEEP_ALIVE: list = []
 
 
 def _tools_actions(window) -> dict[str, object]:
-    [tools] = [a for a in window.menuBar().actions() if a.text().replace("&", "") == "Tools"]
-    # PySide deletes the menu when the wrapper of the menu-bar action that owns it is collected, and a temporary menu takes its actions' wrappers with it.
-    menu = tools.menu()
-    _KEEP_ALIVE.extend([tools, menu])
-    found = {a.text().replace("&", ""): a for a in menu.actions() if not a.isSeparator()}
+    # Tools commands are in submenus (Tools > Calculators), so the bar is walked rather than one menu read.
+    found = {a.text().replace("&", ""): a for path, a in menu_layout.walk(window.menuBar()) if path.split(" > ")[0] == "Tools"}
+    # PySide deletes an action when its last wrapper is collected.
     _KEEP_ALIVE.extend(found.values())
     return found
 

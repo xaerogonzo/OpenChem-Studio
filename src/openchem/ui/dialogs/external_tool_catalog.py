@@ -551,6 +551,76 @@ def psi4() -> ManagedExecutable:
     )
 
 
+#: Why the xtb tab has no Set Up button (locate-only, as Psi4's is). Stated once so the refusal, the dialog title and the failure status cannot drift apart.
+_XTB_NO_AUTOMATION = (
+    "OpenChem Studio does not download xtb. Get the Windows build from the xtb project's releases page, "
+    "then use Locate Installed or Browse to point at it."
+)
+
+
+def xtb() -> ManagedExecutable:
+    """xtb: a third quantum-chemistry engine, the fast tight-binding one, which the user installs and points at (`docs/EXTERNAL_TOOL_CANDIDATES.md`).
+
+    **Locate-only, deliberately**, as Psi4's is: a pinned download is a commitment this version does not make, and the Windows build is labelled a pre-release by its own project.
+    Everything else is the ORCA tab's: a status line, Locate, Browse and a Test that runs a real two-atom calculation through the engine's own input and command.
+    Locate RUNS each candidate (`xtb --version`) before accepting it, so another program of that name is not picked.
+    """
+    import openchem.services.tool_download_service as tools
+
+    return ManagedExecutable(
+        key="xtb",
+        title="xtb",
+        setting_key="xtb/executable_path",
+        browse_title="Select the folder xtb is installed in",
+        finder=lambda root: _find(root, ("xtb",)),
+        path_description="xtb executable",
+        describe_status=tools.describe_xtb_status,
+        locate=lambda: tools.locate_executable(("xtb",), validate=tools.responds_as_xtb),
+        locate_hint=(
+            "Search the usual install locations. Each candidate is RUN with --version before being accepted -- "
+            "a program that merely shares the name would otherwise be picked."
+        ),
+        test_label="Test (runs a 2-atom calculation)...",
+        testing_status="Running a test calculation...",
+        describe_test=tools.verify_xtb,
+        test_errors=tools.ToolVerificationError,
+        obtainable=False,
+        removable=False,
+        vendor_links=(
+            ("Get xtb...", tools.XTB_DOWNLOAD_PAGE),
+            ("xtb Project Page...", tools.XTB_DOCS_PAGE),
+        ),
+        # Unused by a tab that cannot obtain, but `_ToolBase` requires them (the ORCA tab's reason).
+        action_label="Set Up Automatically...",
+        remove_label="xtb",
+        confirm_title="xtb is not downloaded by this app",
+        confirm_body=lambda: _XTB_NO_AUTOMATION,
+        run=lambda _on_progress: (_ for _ in ()).throw(RuntimeError(_XTB_NO_AUTOMATION)),
+        errors=RuntimeError,
+        finished_status=lambda _result: "",
+        success_title="",
+        success_message=lambda _result: "",
+        failure_title="xtb is not downloaded by this app",
+        failure_status_prefix="Not available",
+        notes=(
+            Note(
+                "xtb is an open-source semi-empirical (tight-binding) quantum-chemistry program that runs single-point energies, geometry "
+                "optimizations and frequency analyses here with GFN2-xTB or GFN1-xTB, as a third engine beside ORCA and Psi4; choose it with the "
+                "Engine box on the Quantum Chemistry panel. It is far faster than DFT and less accurate. Measured against ORCA B3LYP/def2-SVP on "
+                "20 molecules (2026-10-27): its structures are close (median heavy-atom deviation 0.014 A, worst 0.26 A, aspirin), so treat one as a "
+                "quick, rough structure; its energy differences are not for ranking isomers or conformers (about 0.8 kcal/mol off over conformer "
+                "pairs, about 4 over isomer pairs, and 82% of clearly separated pairs in the right order); and starting an ORCA optimization from "
+                "an xtb structure did not reduce its cycles."
+            ),
+            Note(
+                "After downloading the Windows build from the releases page and unzipping it, use Locate Installed or Browse to point at the "
+                'folder; the app finds "xtb.exe" inside it (in its bin folder, beside the DLL it needs). A path with spaces is fine.',
+                MUTED,
+            ),
+        ),
+    )
+
+
 #: Why the AiZynthFinder tab has no Set Up button (locate-only: Alex, 2026-10-19). Stated once so the refusal, the dialog title and the failure status cannot drift apart.
 _AIZYNTH_NO_AUTOMATION = (
     "OpenChem Studio does not download or install the synthesis planner. Install AiZynthFinder in an environment of your own, "

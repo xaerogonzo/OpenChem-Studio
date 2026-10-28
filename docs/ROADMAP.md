@@ -1772,6 +1772,11 @@ Structure-to-name went through three answers in one day. Recorded because
 each one was overturned by measurement, and the record is what makes the
 next reassessment cheap.
 
+**What the naming engine still gets wrong, and the order to work on it,** is
+[`NAMING_LIMITATIONS_PLAN.md`](NAMING_LIMITATIONS_PLAN.md): one inventory of
+every open item from rounds 3 to 89 with a class, a priority and a closure
+criterion, so that a naming round starts from a justified target.
+
 **STOUT is dead, and has now been REMOVED from the codebase.** The address
 compiled into `STOUT-pypi` 2.0.5 returns 404, the whole storage bucket 404s
 on a listing, and the upstream repository no longer exists on GitHub. Not

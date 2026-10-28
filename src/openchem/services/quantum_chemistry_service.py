@@ -40,6 +40,7 @@ from openchem.chem.proton_affinity import OutOfScope
 from openchem.chem.proton_affinity import Sequence as ProtonSequence
 from openchem.chem.proton_affinity import descriptors as proton_descriptors
 from openchem.chem.psi4_engine import Psi4QuantumEngineProvider
+from openchem.chem.xtb_engine import XtbQuantumEngineProvider
 from openchem.chem.tautomer_distribution import (
     FAILURE_ENERGY_UNPARSEABLE,
     FAILURE_OPTIMIZATION_NOT_CONVERGED,
@@ -556,14 +557,16 @@ class QuantumChemistryService(QObject):
             anion_f_plus=lambda: bool(settings.preference(FUKUI_ANION_F_PLUS)),
             cation_search=lambda: bool(settings.preference(FUKUI_CATION_SEARCH)),
         )
-        # ORCA first (it is the default engine everywhere), then Psi4: registered always, USED only when its executable is configured
-        # (`available_engines`), so a machine without Psi4 sees no change.
+        # ORCA first (it is the default engine everywhere), then Psi4 and xtb: registered always, USED only when their executable is configured
+        # (`available_engines`), so a machine without them sees no change.
         psi4_provider = Psi4QuantumEngineProvider(
             threads=self._psi4_threads, memory_gb=lambda: int(settings.preference(PSI4_MEMORY_GB)),
         )
+        # xtb takes its threads as `-P` on the command line, the same count Psi4 falls back to when its own setting is automatic (`orca/cores`, else the machine's).
+        xtb_provider = XtbQuantumEngineProvider(threads=self._effective_cores_or_default)
         self._providers: dict[str, QuantumEngineProvider] = (
             providers if providers is not None
-            else {default_provider.provider_id: default_provider, psi4_provider.provider_id: psi4_provider}
+            else {p.provider_id: p for p in (default_provider, psi4_provider, xtb_provider)}
         )
         self._active_jobs: dict[str, _ActiveJob] = {}
         # Keyed by molecule_uuid, same as _active_jobs: a Boltzmann run owns

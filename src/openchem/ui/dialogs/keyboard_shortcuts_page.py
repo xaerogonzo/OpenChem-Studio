@@ -32,6 +32,7 @@ from PySide6.QtWidgets import (
 
 from openchem.app.shortcut_registry import PORTABLE, ShortcutRegistry, portable
 from openchem.ui import theme
+from openchem.ui.widgets.collapsible_section import CollapsibleSection
 from openchem.ui.widgets.help_tooltip import HelpTooltip, apply_help_tooltip
 
 #: Qt property naming which command a row's control belongs to. It travels on the control and
@@ -119,12 +120,31 @@ class KeyboardShortcutsPage(QWidget):
         self.status.setWordWrap(True)
 
         rows = QWidget(self)
-        grid = QGridLayout(rows)
-        grid.setContentsMargins(0, 0, 0, 0)
+        column = QVBoxLayout(rows)
+        column.setContentsMargins(0, 0, 0, 0)
         entries = registry.entries() if registry is not None else []
-        for number, entry in enumerate(entries):
-            grid.addWidget(self._build_row(entry, rows), number, 0)
-        grid.setRowStretch(len(entries), 1)
+        #: menu path -> its section, and the command ids in it, both in the menus' own order.
+        self._sections: dict[str, CollapsibleSection] = {}
+        self._section_commands: dict[str, list[str]] = {}
+        #: Whether the person left each section open; a search opens sections without changing it.
+        self._wanted_open: dict[str, bool] = {}
+        self._searching = False
+        for entry in entries:
+            group = entry.group or "Window"
+            section = self._sections.get(group)
+            if section is None:
+                section = CollapsibleSection(group, not self._sections, rows)
+                section.setObjectName(f"shortcutGroup:{group}")
+                section.expansion_changed.connect(self._on_section_toggled)
+                self._sections[group] = section
+                self._section_commands[group] = []
+                self._wanted_open[group] = section.is_expanded()
+                column.addWidget(section)
+            self._section_commands[group].append(entry.command_id)
+            section.content_layout().addRow(self._build_row(entry, section))
+        for group, section in self._sections.items():
+            self._retitle(group)
+        column.addStretch(1)
         scroll = QScrollArea(self)
         scroll.setWidgetResizable(True)
         scroll.setFrameShape(QFrame.Shape.NoFrame)
@@ -243,10 +263,50 @@ class KeyboardShortcutsPage(QWidget):
         self._apply_filter(self._search.text())
 
     def _apply_filter(self, text: str) -> None:
-        """Show the rows whose command name, id or shortcut contains `text`."""
+        """Show the rows whose command name, id or shortcut contains `text`.
+
+        A section with a match opens and one with none disappears, so a search never lands on a closed
+        heading; clearing the search puts every section back as the person left it.
+        """
         if self._registry is None:
             return
         wanted = text.strip().lower()
+        matches: dict[str, int] = {group: 0 for group in self._sections}
         for entry in self._registry.entries():
             haystack = f"{entry.label} {entry.command_id} {entry.current}".lower()
-            self._rows[entry.command_id][0].setVisible(not wanted or wanted in haystack)
+            shown = not wanted or wanted in haystack
+            self._rows[entry.command_id][0].setVisible(shown)
+            if shown:
+                matches[entry.group or "Window"] += 1
+        self._searching = True
+        try:
+            for group, section in self._sections.items():
+                section.setVisible(matches[group] > 0 or not wanted)
+                section.set_expanded(True if wanted and matches[group] else self._wanted_open[group])
+                self._retitle(group, matches[group] if wanted else None)
+        finally:
+            self._searching = False
+
+    def _on_section_toggled(self, expanded: bool) -> None:
+        """Remember what the person opened or closed (not what a search did)."""
+        if self._searching:
+            return
+        section = self.sender()
+        for group, own in self._sections.items():
+            if own is section:
+                self._wanted_open[group] = expanded
+                return
+
+    def _retitle(self, group: str, shown: int | None = None) -> None:
+        """The heading with its count: all the commands in it, or how many a search left."""
+        total = len(self._section_commands[group])
+        count = total if shown is None else f"{shown} of {total}"
+        self._sections[group]._toggle_button.setText(f"{group} ({count})")
+
+    def group_titles(self) -> list[str]:
+        """The sections' menu paths in the order shown, for a test."""
+        return list(self._sections)
+
+    def section_of(self, group: str) -> CollapsibleSection:
+        """One section, for a test to open or read."""
+        return self._sections[group]
