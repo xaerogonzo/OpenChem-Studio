@@ -402,3 +402,16 @@ def test_a_report_is_refused_when_what_the_records_depend_on_changed_since_their
     assert "no commit" in runner.drift_problem([{"commit": ""}])                    # an unstamped record
     assert runner.drift_problem([{"commit": "0" * 40}])                             # a commit git does not know cannot be compared
     assert runner.drift_problem([]) is None
+
+
+def test_the_report_prints_the_lowest_vibration_not_the_zeros_of_translation_and_rotation():
+    real = v3.parse_numerical(NUMFREQ)["frequencies"]          # a real NumFreq job: six zeros, then 600.75 ...
+    assert v3.lowest_vibration(real) == pytest.approx(600.75)
+    assert v3.lowest_vibration([0.0] * 6 + [-1328.21, 742.5]) == pytest.approx(-1328.21)   # an imaginary mode is kept
+    assert v3.lowest_vibration([0.0, 0.0]) is None
+    bond, records = _records_with_two_radical_conformers(-99.8)
+    for r in records:
+        if r.get("role") != "atom":
+            r["frequencies"] = [0.0] * 6 + [r["lowest_frequency"], 900.0]
+    row = runner.judge_rows(records, [bond])[0]
+    assert "lowest frequency parent 50, radical 600 cm-1" in runner._flags(row)             # the stand-in records' own lowest modes, not 0

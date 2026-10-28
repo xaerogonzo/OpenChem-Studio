@@ -98,6 +98,13 @@ def parse_numerical(text: str) -> dict:
             "s2": float(s2) if s2 else None, "orca_version": last(r"Program Version\s+(\S+)")}
 
 
+def lowest_vibration(frequencies: list[float]) -> float | None:
+    """The lowest frequency that is a vibration, for the report. `lowest_frequency` (the first run's field, the minimum of ALL printed values) is 0.0 for every good structure because the six translations and rotations are printed as zero, so it says nothing about the softest real mode;
+    this drops the values within 1 cm-1 of zero. An imaginary mode is negative and is kept."""
+    modes = [f for f in frequencies if abs(f) > 1.0]
+    return min(modes) if modes else None
+
+
 def numerical_fields(retry: dict, parsed: dict) -> dict:
     """What the numerical record adds to the parsed job: it is flagged `numerical`, it carries the analytic enthalpy and lowest frequency it replaced (so the effect of the replacement is always readable), whether its own frequencies pass,
     and the label when they do not."""

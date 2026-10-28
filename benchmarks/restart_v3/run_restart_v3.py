@@ -169,7 +169,7 @@ def _selected(done: list[dict], bond: dict, labels: dict) -> dict:
             out[role] = None
             continue
         r = min(pool, key=lambda x: x["enthalpy"])
-        entry = {"structure": r["structure"], "lowest_frequency": r["lowest_frequency"], "method": "numerical" if r.get("numerical") else "analytic"}
+        entry = {"structure": r["structure"], "lowest_frequency": v3.lowest_vibration(r.get("frequencies") or []) if r.get("frequencies") else r["lowest_frequency"], "method": "numerical" if r.get("numerical") else "analytic"}
         if r.get("numerical"):
             entry.update(verified=r["verified"], shift_kcal=labels[r["parent_structure"]]["shift_kcal"])
         out[role] = entry
