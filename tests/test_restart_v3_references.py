@@ -208,7 +208,7 @@ def test_the_thiophenol_determinations_are_the_papers_arithmetic_and_still_leave
     kj = t["devine2008_d0_cm1"] * cm
     assert kj == pytest.approx(t["devine2008_printed_kj"], abs=0.05)                           # the paper's own conversion
     kcal = kj / C["kj_per_kcal"]
-    assert kcal == pytest.approx(80.15, abs=0.01)
+    assert kcal == pytest.approx(80.14, abs=0.005)
     assert kcal - t["lim2007_d0_kcal"] == pytest.approx(3.35, abs=0.02)
     assert "UPPER LIMIT" in t["devine2008_kind"]
     assert t["devine2008_d0_uncertainty_cm1"] * cm / C["kj_per_kcal"] < 1.0 < kcal - t["lim2007_d0_kcal"]   # each is precise on its own; together they are not usable

@@ -283,4 +283,4 @@ def bromine_reading(computed_kcal: float | None, bond: dict) -> dict:
     against = vs_calculated if bond["calculated"] else [outside]
     gross = abs(vs_kinetics) > GROSS_ERROR and all(abs(e) > GROSS_ERROR for e in against)
     return {"computed": computed_kcal, "vs_kinetics": vs_kinetics, "vs_others_high_low": vs_range, "vs_calculated": vs_calculated, "gross": gross,
-            "claim": "a gross failure: more than 5.0 kcal/mol from the kinetics value and from the calculated value" if gross else "no claim (numbers only)"}
+            "claim": ("a gross failure: more than 5.0 kcal/mol from the kinetics value and from " + ("every calculated value" if bond["calculated"] else "the whole range of the other determinations")) if gross else "no claim (numbers only)"}

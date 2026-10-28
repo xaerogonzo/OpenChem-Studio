@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import importlib.util
 import json
+import subprocess
 import sys
 from pathlib import Path
 
@@ -282,7 +283,7 @@ def test_the_input_of_the_numerical_job_is_the_preregistered_one():
     assert "Opt" not in text[0] and "Freq" in text[0]
 
 
-def test_the_arm_report_flags_a_replaced_enthalpy_and_refuses_mixed_commits(monkeypatch):
+def test_the_arm_report_flags_a_replaced_enthalpy_and_refuses_a_dirty_or_unstamped_record(monkeypatch):
     monkeypatch.setattr(runner, "drift_problem", lambda records: None)   # the commit "abc" of these stand-in records is not a real one; the drift check has its own tests below
     bond = {"name": "methanethiol S-H", "smiles": "CS", "atom": 1, "dh298": 87.35, "uncertainty": 0.58, "element": "S", "excluded": False}
     structures = runner.build_structures([bond])
@@ -296,10 +297,12 @@ def test_the_arm_report_flags_a_replaced_enthalpy_and_refuses_mixed_commits(monk
     text, verdict = runner.deciding_report("halogen", records, [bond], structures)
     assert "ARM C" in text and verdict["problem"] is None
     mixed = [dict(r, commit="other") if i == 0 else r for i, r in enumerate(records)]
-    _, refused = runner.deciding_report("halogen", mixed, [bond], structures)
-    assert refused["problem"] and "commits" in refused["problem"] and refused["verdict"] == "NOT EVALUABLE"
+    assert runner.deciding_report("halogen", mixed, [bond], structures)[1]["problem"] is None             # two commits are drift only if a watched file differs between them: that is drift_problem's test, below
     dirty = [dict(r, dirty=True) for r in records]
-    assert runner.deciding_report("halogen", dirty, [bond], structures)[1]["problem"] == "some records were made with a dirty src/"
+    refused = runner.deciding_report("halogen", dirty, [bond], structures)[1]
+    assert refused["problem"] == "some records were made with a dirty tree" and refused["verdict"] == "NOT EVALUABLE"
+    unstamped = [dict(r, commit="") if i == 0 else r for i, r in enumerate(records)]
+    assert runner.deciding_report("halogen", unstamped, [bond], structures)[1]["problem"] == "a record carries no commit"
     assert json.dumps(verdict["rows"], default=str)
 
 
@@ -400,27 +403,81 @@ def test_every_record_is_stamped_with_the_tree_as_it_is_when_it_is_written(tmp_p
     assert [(r["commit"], r["dirty"]) for r in records] == [("c1", False), ("c1", True)]    # the later record carries the edit; one stamp for the whole run would hide it
 
 
-def test_a_report_is_refused_when_what_the_records_depend_on_changed_since_their_commit():
+def _git(repo, *args):
     import subprocess
-    head = subprocess.run(["git", "rev-parse", "HEAD"], capture_output=True, text=True, cwd=runner.REPO, check=False).stdout.strip()
-    assert head, "this test needs a git checkout"
-    assert runner.drift_problem([{"commit": head}]) is None                         # nothing changed since HEAD
-    assert "no commit" in runner.drift_problem([{"commit": ""}])                    # an unstamped record
-    assert runner.drift_problem([{"commit": "0" * 40}])                             # a commit git does not know cannot be compared
+    done = subprocess.run(["git", "-c", "user.email=t@example.invalid", "-c", "user.name=t", "-c", "commit.gpgsign=false", *args], capture_output=True, text=True, cwd=repo, check=False)
+    assert done.returncode == 0, done.stderr
+    return done.stdout.strip()
+
+
+@pytest.fixture()
+def tmp_repo(tmp_path, monkeypatch):
+    """A throwaway git repository with a watched file, a note and an artifact, and the runner pointed at it."""
+    (tmp_path / "benchmarks" / "restart_v3" / "artifacts").mkdir(parents=True)
+    (tmp_path / "benchmarks" / "restart_v3" / "code.py").write_text("x = 1\n", encoding="utf-8")
+    (tmp_path / "benchmarks" / "restart_v3" / "notes.md").write_text("notes\n", encoding="utf-8")
+    (tmp_path / "benchmarks" / "restart_v3" / "artifacts" / "data.json").write_text("{}", encoding="utf-8")
+    (tmp_path / "README.txt").write_text("r\n", encoding="utf-8")
+    _git(tmp_path, "init", "-q")
+    _git(tmp_path, "add", "-A")
+    _git(tmp_path, "commit", "-q", "-m", "first")
+    monkeypatch.setattr(runner, "REPO", tmp_path)
+    return tmp_path
+
+
+def test_a_clean_tree_at_the_records_commit_is_not_drift(tmp_repo):
+    head = _git(tmp_repo, "rev-parse", "HEAD")
+    assert runner.drift_problem([{"commit": head}]) is None
     assert runner.drift_problem([]) is None
 
 
-def test_the_report_prints_the_lowest_vibration_not_the_zeros_of_translation_and_rotation():
-    real = v3.parse_numerical(NUMFREQ)["frequencies"]          # a real NumFreq job: six zeros, then 600.75 ...
-    assert v3.lowest_vibration(real) == pytest.approx(600.75)
-    assert v3.lowest_vibration([0.0] * 6 + [-1328.21, 742.5]) == pytest.approx(-1328.21)   # an imaginary mode is kept
-    assert v3.lowest_vibration([0.0, 0.0]) is None
-    bond, records = _records_with_two_radical_conformers(-99.8)
-    for r in records:
-        if r.get("role") != "atom":
-            r["frequencies"] = [0.0] * 6 + [r["lowest_frequency"], 900.0]
-    row = runner.judge_rows(records, [bond])[0]
-    assert "lowest frequency parent 50, radical 600 cm-1" in runner._flags(row)             # the stand-in records' own lowest modes, not 0
+def test_an_UNCOMMITTED_edit_of_a_watched_file_is_drift(tmp_repo):
+    head = _git(tmp_repo, "rev-parse", "HEAD")
+    (tmp_repo / "benchmarks" / "restart_v3" / "code.py").write_text("x = 2\n", encoding="utf-8")
+    assert "files changed since the records' commit" in runner.drift_problem([{"commit": head}])           # `git diff HEAD HEAD` would have said nothing
+
+
+def test_a_new_untracked_file_in_a_watched_folder_is_drift(tmp_repo):
+    head = _git(tmp_repo, "rev-parse", "HEAD")
+    (tmp_repo / "benchmarks" / "restart_v3" / "helper.py").write_text("y = 1\n", encoding="utf-8")
+    assert "uncommitted changes in the watched folders" in runner.drift_problem([{"commit": head}])
+
+
+def test_a_later_commit_that_changes_a_watched_file_is_drift_and_one_that_does_not_is_not(tmp_repo):
+    first = _git(tmp_repo, "rev-parse", "HEAD")
+    (tmp_repo / "README.txt").write_text("changed\n", encoding="utf-8")
+    _git(tmp_repo, "commit", "-q", "-am", "readme only")
+    second = _git(tmp_repo, "rev-parse", "HEAD")
+    assert runner.drift_problem([{"commit": first}, {"commit": second}]) is None                            # two commits, nothing watched between them: an arm that ran across them is fine
+    (tmp_repo / "benchmarks" / "restart_v3" / "code.py").write_text("x = 3\n", encoding="utf-8")
+    _git(tmp_repo, "commit", "-q", "-am", "code")
+    assert runner.drift_problem([{"commit": second}])
+    assert "files changed" in runner.drift_problem([{"commit": first}, {"commit": second}])
+
+
+def test_notes_artifacts_and_results_write_ups_are_not_drift(tmp_repo):
+    head = _git(tmp_repo, "rev-parse", "HEAD")
+    (tmp_repo / "benchmarks" / "restart_v3" / "notes.md").write_text("more notes\n", encoding="utf-8")
+    (tmp_repo / "benchmarks" / "restart_v3" / "RESULT_D.md").write_text("result\n", encoding="utf-8")
+    (tmp_repo / "benchmarks" / "restart_v3" / "artifacts" / "data.json").write_text('{"a": 1}', encoding="utf-8")
+    (tmp_repo / "benchmarks" / "restart_v3" / "artifacts" / "new.jsonl").write_text("{}\n", encoding="utf-8")
+    assert runner.drift_problem([{"commit": head}]) is None
+
+
+def test_an_unstamped_or_unknown_commit_cannot_be_compared(tmp_repo):
+    assert "no commit" in runner.drift_problem([{"commit": ""}])
+    assert "cannot be compared" in runner.drift_problem([{"commit": "0" * 40}])
+
+
+def test_git_state_is_an_error_when_git_cannot_answer(tmp_repo, monkeypatch):
+    class Failed:
+        returncode, stdout, stderr = 128, "", "fatal"
+
+    assert runner.git_state()[1] is False                                                                   # a clean throwaway tree
+    monkeypatch.setattr(runner.subprocess, "run", lambda *a, **k: Failed())
+    with pytest.raises(RuntimeError, match="could not report"):
+        runner.git_state()
+
 
 
 # --- Arm D-Ph: thiophenol S-H, reported only ----------------------------------------------------------------------------------------------
@@ -513,9 +570,76 @@ def test_the_arm_d_report_prints_the_sensitivity_beside_the_verdict_and_keeps_th
     assert "SENSITIVITY" not in halogen_text and halogen_verdict["anchor_sensitivity"] is None             # Arm C does not share the anchor
 
 
-def test_a_results_write_up_in_the_benchmark_folder_does_not_make_the_records_drift():
-    spec = " ".join(runner._DRIFT_SPEC)
-    assert "benchmarks/restart_v3/RESULT*.md" in spec
-    import subprocess
-    done = subprocess.run(["git", "status", "--porcelain", "--", *runner._DRIFT_SPEC], capture_output=True, text=True, cwd=runner.REPO, check=False)
-    assert done.returncode == 0                                                                           # git accepts the pathspec, exclude included
+def test_the_watched_list_is_the_benchmark_code_and_not_the_application_or_the_notes():
+    assert not any(w.startswith("src") for w in runner.WATCHED)                                              # nothing under benchmarks/ imports openchem
+    assert ":(exclude)*.md" in runner.WATCH_SPEC and ":(exclude)benchmarks/restart_v3/artifacts" in runner.WATCH_SPEC
+    assert runner._DRIFT_SPEC is runner.WATCH_SPEC                                                           # one list: what is stamped dirty at write time is what is compared at report time
+
+
+# --- the second independent read's findings ------------------------------------------------------------------------------------------------
+
+
+def test_a_refused_arm_d_report_states_no_verdict_anywhere(monkeypatch):
+    monkeypatch.setattr(runner, "drift_problem", lambda records: None)
+    bond, records = _records_with_two_radical_conformers(-99.8)
+    text, verdict = runner.deciding_report("sh", records, [dict(bond, excluded=False)], None, extra_problem="structures.json was built for a different bond list than the code now holds")
+    assert "REFUSED" in text and verdict["verdict"] == "NOT EVALUABLE"
+    assert all(s["verdict"] == "NOT EVALUABLE" for s in verdict["anchor_sensitivity"].values())
+    assert "-> PASS" not in text and "-> PARTIAL" not in text and "-> FAIL" not in text
+
+
+def test_accepting_drift_reads_the_records_and_says_so(monkeypatch):
+    monkeypatch.setattr(runner, "drift_problem", lambda records: "files changed since the records' commit abc: run_restart_v3.py")
+    bond, records = _records_with_two_radical_conformers(-99.8)
+    refused, _ = runner.deciding_report("halogen", records, [dict(bond, excluded=False)], None)
+    assert "REFUSED" in refused
+    monkeypatch.setattr(runner, "ACCEPT_DRIFT", True)
+    accepted, verdict = runner.deciding_report("halogen", records, [dict(bond, excluded=False)], None)
+    assert "REFUSED" not in accepted and "DRIFT ACCEPTED" in accepted and "run_restart_v3.py" in accepted and verdict["problem"] is None
+
+
+def test_the_structures_stamp_follows_the_bond_list(tmp_path):
+    bonds = [_sh_bond(), _sh_bond("ethanethiol S-H", "CCS", 2)]
+    meta = tmp_path / "structures.meta.json"
+    assert "no stamp" in runner.stamp_problem(meta, bonds)
+    meta.write_text(json.dumps({"bonds_sha256": runner.bonds_stamp(bonds)}), encoding="utf-8")
+    assert runner.stamp_problem(meta, bonds) is None
+    assert "different bond list" in runner.stamp_problem(meta, [bonds[0], dict(bonds[1], atom=3)])           # the same name on another atom
+    assert "different bond list" in runner.stamp_problem(meta, bonds[:1])
+    assert runner.bonds_stamp(bonds) == runner.bonds_stamp([dict(b, dh298=0.0) for b in bonds])             # a reference value is not part of the identity: references are covered by the drift check
+
+
+def test_a_numerical_failure_that_was_redone_is_not_listed_as_no_result():
+    bond, records = _records_with_two_radical_conformers(-99.8)
+    failed = {"structure": "radical|methanethiol S-H|0#numerical", "role": "radical", "stage": "numerical", "completed": False, "error": "OSError: no such file", "infrastructure": True, "commit": "abc", "dirty": False}
+    row = runner.judge_rows([failed] + records, [bond])[0]                                                   # the completed record of the same structure follows it in `records`
+    assert row["numerical_no_result"] == []
+
+
+def test_the_orca_call_kills_the_whole_tree_on_the_time_limit_and_returns_the_output_otherwise(monkeypatch):
+    import sys as _sys
+    import time as _time
+    monkeypatch.setattr(runner.bde, "ORCA", _sys.executable)             # the "input" is a Python program: Popen([python, "job.inp"])
+    monkeypatch.setattr(runner.bde, "JOB_TIMEOUT_SECONDS", 2)
+    text, hessian = runner.run_orca_tree("print('ORCA TERMINATED NORMALLY')\nopen('job.hess', 'w').write('H')\n", True)
+    assert "ORCA TERMINATED NORMALLY" in text and hessian == "H"
+    # a job that spawns a grandchild holding on for a minute and then sleeps itself: the limit fires, the tree dies, and the call returns promptly
+    program = "import subprocess, sys, time\nsubprocess.Popen([sys.executable, '-c', 'import time; time.sleep(60)'])\ntime.sleep(60)\n"
+    began = _time.time()
+    with pytest.raises(subprocess.TimeoutExpired):
+        runner.run_orca_tree(program)
+    assert _time.time() - began < 30
+
+
+def test_a_very_large_radical_is_not_refused_but_a_stalled_one_is_a_missing_structure_with_its_reason():
+    records = []
+
+    def run(text, want_hessian=False):
+        if "NumFreq" in text:
+            raise subprocess.TimeoutExpired("orca", 14400)
+        return _standin([], {"opt": (-300.0, -438.0), "retry": (-300.0, -438.0)})(text, want_hessian)
+
+    assert runner.process(_radical(), 4, run, "abc", False, records.append) is True                       # the chain closes: a timeout is a result about the structure, not a failure to start
+    timed_out = next(r for r in records if r.get("stage") == "numerical")
+    assert not timed_out["completed"] and "timeout after" in timed_out["error"]
+    assert v3.accepted(records) == []

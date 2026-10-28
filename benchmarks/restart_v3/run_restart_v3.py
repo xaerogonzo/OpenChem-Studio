@@ -1,25 +1,29 @@
-"""Runs the three arms of protocol v3 (`PREREGISTRATION.md` of this folder) and writes their reports. NOTHING IN THIS FILE HAS BEEN RUN AGAINST A FROZEN PREREGISTRATION: the arms are not computed until the preregistration is frozen.
+"""Runs the four arms of protocol v3 (`PREREGISTRATION.md` of this folder) and writes their reports. NOTHING IN THIS FILE HAS BEEN RUN AGAINST A FROZEN PREREGISTRATION: the arms are not computed until the preregistration is frozen.
 
-    python run_restart_v3.py structures --arm halogen|sh|bromine     build every starting structure (RDKit; no ORCA): artifacts/<arm>/structures.json
-    python run_restart_v3.py run --arm ... [--workers 3] [--cores 4]  the ORCA jobs (resumes: a structure whose chain is closed is never repeated)
+    python run_restart_v3.py structures --arm halogen|sh|bromine|thiophenol   build every starting structure (RDKit; no ORCA): artifacts/<arm>/structures.json and its stamp structures.meta.json
+    python run_restart_v3.py run --arm ... [--workers 3] [--cores 4] [--allow-dirty]  the ORCA jobs (resumes: a structure whose chain is closed is never repeated; refuses a dirty tree and a stale structures stamp)
     python run_restart_v3.py status --arm ...                          how many structures, how many closed
-    python run_restart_v3.py report --arm ...                          report.txt and verdict.json
+    python run_restart_v3.py report --arm ... [--accept-drift]         report.txt and verdict.json (--accept-drift prints, in the report, the files that changed since the records and reads them anyway)
 
     halogen  Arm C   (6 C-H bonds next to F or Cl, ATcT 1.228)           deciding
-    sh       Arm D   (3 thiol S-H bonds, acidity route; methanethiol beside, outside the verdict)   deciding for S-H only
+    sh       Arm D   (thiol S-H bonds, acidity route; methanethiol beside, outside the verdict)   deciding for S-H only
     bromine  Arm C-Br (4 bromine C-H bonds, kinetics values)               REPORTED ONLY, no verdict
+    thiophenol  Arm D-Ph (thiophenol S-H against every determination there is)   REPORTED ONLY, no verdict
 
 THE CHAIN OF ONE STRUCTURE is v2's (`benchmarks/restart_v2/run_restart.py`, loaded by path and reused unchanged): the preregistered optimization and frequencies; if a frequency is below -20 cm-1, the same job again from its final geometry with `Calc_Hess`.
 Then, if it is STILL imaginary and the skeleton is intact: a RADICAL gets ONE numerical frequency job at that geometry (`restart_v3_core.py`; v2's displaced restart is not applied to it), a closed-shell structure gets v2's displaced restart. A closing record
-(`"final": true`) ends every chain. A report is refused (NOT EVALUABLE) for records from more than one commit or made with a dirty `src/` or benchmark folder. ORCA is `D:\\ORCA\\orca.exe`.
+(`"final": true`) ends every chain. A report is refused (NOT EVALUABLE) for a record made with a dirty tree or with no commit, for a watched file that differs from the working tree at ANY commit a record was made at (committed or not), and for a structures file built for another bond list. ORCA is `D:\\ORCA\\orca.exe`.
 """
 from __future__ import annotations
 
 import argparse
+import hashlib
 import importlib.util
 import json
+import shutil
 import subprocess
 import sys
+import tempfile
 import time
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
@@ -41,8 +45,11 @@ v3 = _load("restart_v3_core", HERE / "restart_v3_core.py")
 bde, pa, judge, v2core = rr.bde, rr.pa, rr.judge, rr.core
 
 ARMS = {"halogen": v3.halogen_bonds, "sh": v3.sh_bonds, "bromine": v3.bromine_bonds, "thiophenol": v3.thiophenol_bonds}
-#: Folders whose uncommitted change makes a record unreproducible (artifacts excluded).
-WATCHED = ["src", "benchmarks/restart_v3", "benchmarks/thiyl_probe", "benchmarks/restart_v2", "benchmarks/bde", "benchmarks/bde_heldout", "benchmarks/proton_affinity"]
+#: Folders whose change makes a record unreproducible. NOT `src`: no file under `benchmarks/` imports the application (checked 2026-10-28), so merging master must not refuse a report. Artifacts (data) and every `.md` (notes, results, the preregistration's words: rules reach the code through the code) are excluded.
+WATCHED = ["benchmarks/restart_v3", "benchmarks/thiyl_probe", "benchmarks/restart_v2", "benchmarks/bde", "benchmarks/bde_heldout", "benchmarks/proton_affinity"]
+WATCH_SPEC = [*WATCHED, ":(exclude)benchmarks/restart_v3/artifacts", ":(exclude)benchmarks/restart_v2/artifacts", ":(exclude)*.md"]
+#: Set by `report --accept-drift`: a report that would be refused for drift is read anyway and says so.
+ACCEPT_DRIFT = False
 
 
 def build_structures(bonds: list[dict]) -> list[dict]:
@@ -126,12 +133,64 @@ def process(structure: dict, cores: int, run, commit: str, dirty: bool, append) 
 
 
 def git_state() -> tuple[str, bool]:
-    commit = subprocess.run(["git", "rev-parse", "HEAD"], capture_output=True, text=True, cwd=REPO, check=False).stdout.strip()
-    spec = ["status", "--porcelain", "--", *WATCHED, ":(exclude)benchmarks/restart_v3/artifacts", ":(exclude)benchmarks/restart_v2/artifacts", ":(exclude)benchmarks/restart_v3/RESULT*.md"]
-    return commit, bool(subprocess.run(["git", *spec], capture_output=True, text=True, cwd=REPO, check=False).stdout.strip())
+    """(HEAD, whether a watched folder has uncommitted changes). A git that cannot answer is an error, never a clean tree."""
+    head = subprocess.run(["git", "rev-parse", "HEAD"], capture_output=True, text=True, cwd=REPO, check=False)
+    status = subprocess.run(["git", "status", "--porcelain", "--", *WATCH_SPEC], capture_output=True, text=True, cwd=REPO, check=False)
+    if head.returncode != 0 or status.returncode != 0 or not head.stdout.strip():
+        raise RuntimeError("git could not report the state of the tree: refusing to stamp records")
+    return head.stdout.strip(), bool(status.stdout.strip())
 
 
-def run_stage(arm: str, out: Path, cores: int, workers: int, run=rr.run_orca) -> None:
+# --- structures stamp and the ORCA call --------------------------------------------------------------------------------------------
+
+
+def bonds_stamp(bonds: list[dict]) -> str:
+    """A hash of what identifies each bond to the runner (name, parent, atom, element, whether it is outside the verdict): a structures file built for one list is not read against another."""
+    keep = [{k: b[k] for k in ("name", "smiles", "atom", "element", "excluded")} for b in bonds]
+    return hashlib.sha256(json.dumps(keep, sort_keys=True).encode()).hexdigest()
+
+
+def stamp_problem(meta_path: Path, bonds: list[dict]) -> str | None:
+    if not meta_path.exists():
+        return "structures.json has no stamp: build it with the `structures` command"
+    if json.loads(meta_path.read_text(encoding="utf-8")).get("bonds_sha256") != bonds_stamp(bonds):
+        return "structures.json was built for a different bond list than the code now holds"
+    return None
+
+
+def _kill_tree(proc: subprocess.Popen) -> None:
+    """Kill ORCA AND the MPI processes it started: on Windows a plain kill leaves them holding the job's files for as long as they like."""
+    if sys.platform == "win32":
+        subprocess.run(["taskkill", "/PID", str(proc.pid), "/T", "/F"], capture_output=True, check=False)
+    else:
+        proc.kill()
+    try:
+        proc.wait(timeout=60)
+    except subprocess.TimeoutExpired:
+        pass
+
+
+def run_orca_tree(input_text: str, want_hessian: bool = False) -> tuple[str, str | None]:
+    """One ORCA job in its own scratch folder, output to a FILE (not a pipe a surviving grandchild could keep open), the whole process tree killed on the first run's time limit, which raises `subprocess.TimeoutExpired` as `restart_v2`'s runner does.
+    The first run's own `run_orca` captures through pipes: a 4-hour limit that never fires because `communicate()` waits for processes `kill()` did not reach is a hang, and with no atom cap the long jobs are exactly where it would bite."""
+    scratch = Path(tempfile.mkdtemp(prefix="restart_v3_"))
+    try:
+        (scratch / "job.inp").write_text(input_text, encoding="utf-8")
+        with open(scratch / "job.out", "w", encoding="utf-8", errors="replace") as out:
+            proc = subprocess.Popen([bde.ORCA, "job.inp"], cwd=scratch, stdout=out, stderr=subprocess.STDOUT)
+            try:
+                proc.wait(timeout=bde.JOB_TIMEOUT_SECONDS)
+            except subprocess.TimeoutExpired:
+                _kill_tree(proc)
+                raise
+        text = (scratch / "job.out").read_text(encoding="utf-8", errors="replace")
+        hessian = (scratch / "job.hess").read_text(encoding="utf-8") if want_hessian and (scratch / "job.hess").exists() else None
+        return text, hessian
+    finally:
+        shutil.rmtree(scratch, ignore_errors=True)
+
+
+def run_stage(arm: str, out: Path, cores: int, workers: int, run=run_orca_tree) -> None:
     structures = json.loads((out / arm / "structures.json").read_text(encoding="utf-8"))
     path = out / arm / "runs.jsonl"
     path.parent.mkdir(parents=True, exist_ok=True)
@@ -165,7 +224,7 @@ def _selected(done: list[dict], bond: dict, labels: dict) -> dict:
             out[role] = None
             continue
         r = min(pool, key=lambda x: x["enthalpy"])
-        entry = {"structure": r["structure"], "lowest_frequency": v3.lowest_vibration(r.get("frequencies") or []) if r.get("frequencies") else r["lowest_frequency"], "method": "numerical" if r.get("numerical") else "analytic"}
+        entry = {"structure": r["structure"], "lowest_frequency": (v3.lowest_vibration(r.get("frequencies") or []) if r.get("frequencies") else None) or r["lowest_frequency"], "method": "numerical" if r.get("numerical") else "analytic"}
         if r.get("numerical"):
             entry.update(verified=r["verified"], shift_kcal=labels[r["parent_structure"]]["shift_kcal"], size_note=r.get("size_note"))
         out[role] = entry
@@ -175,8 +234,9 @@ def _selected(done: list[dict], bond: dict, labels: dict) -> dict:
 def _numerical_outcomes(records: list[dict], bond: dict) -> list[dict]:
     """The numerical jobs of a bond's radicals that gave NO result (failed or timed out), with the reason, so a bond decided by the other conformers says so."""
     out = []
+    redone = {r["structure"] for r in records if r.get("stage") == "numerical" and r.get("completed")}      # a failure a later run redid successfully is not "no result"
     for r in records:
-        if r.get("stage") == "numerical" and not r.get("completed") and str(r.get("structure", "")).startswith(f"radical|{bond['name']}|"):
+        if r.get("stage") == "numerical" and not r.get("completed") and r["structure"] not in redone and str(r.get("structure", "")).startswith(f"radical|{bond['name']}|"):
             out.append({"structure": r["structure"], "reason": r.get("label") or r.get("error") or "no result"})
     return out
 
@@ -196,31 +256,56 @@ def judge_rows(records: list[dict], bonds: list[dict]) -> list[dict]:
     return rows
 
 
-#: The folders whose change since the records were made makes a report unreproducible (the same list `git_state` watches; artifacts are data, not code).
-_DRIFT_SPEC = [*WATCHED, ":(exclude)benchmarks/restart_v3/artifacts", ":(exclude)benchmarks/restart_v2/artifacts", ":(exclude)benchmarks/restart_v3/RESULT*.md"]
+_DRIFT_SPEC = WATCH_SPEC          # one list for both checks: what is stamped as dirty at write time is what is compared at report time
 
 
 def drift_problem(records: list[dict]) -> str | None:
-    """Whether anything the records depend on changed between the commit they were made at and HEAD: the runner, the references, the shared code. A report built from references edited after the run is not a report of that run. An empty or unknown commit is a problem."""
+    """Whether anything the records depend on differs between the commit each was made at and the tree the report is built from: the runner, the references, the shared code, committed OR NOT. A report built from references edited after the run is not a report of that run.
+    `git diff <commit>` compares that commit with the WORKING TREE, so a later commit and an uncommitted edit are both seen; `git status` adds files git does not track yet. An empty or unknown commit is a problem. Every distinct commit is checked, which replaces the old
+    'more than one commit' rule: a commit that touched nothing watched (a note, a merge of master) is not drift."""
     commits = {r.get("commit") for r in records}
     if not commits:
         return None
     if "" in commits or None in commits:
         return "a record carries no commit"
-    for commit in commits:
-        done = subprocess.run(["git", "diff", "--name-only", commit, "HEAD", "--", *_DRIFT_SPEC], capture_output=True, text=True, cwd=REPO, check=False)
+    for commit in sorted(commits):
+        done = subprocess.run(["git", "diff", "--name-only", commit, "--", *WATCH_SPEC], capture_output=True, text=True, cwd=REPO, check=False)
         if done.returncode != 0:
-            return f"commit {commit[:8]} cannot be compared with HEAD"
+            return f"commit {commit[:8]} cannot be compared with the working tree"
         if done.stdout.strip():
             return f"files changed since the records' commit {commit[:8]}: {', '.join(done.stdout.split()[:5])}"
+    status = subprocess.run(["git", "status", "--porcelain", "--", *WATCH_SPEC], capture_output=True, text=True, cwd=REPO, check=False)
+    if status.returncode != 0:
+        return "git could not report the state of the tree"
+    if status.stdout.strip():
+        return f"uncommitted changes in the watched folders: {', '.join(l[3:] for l in status.stdout.splitlines()[:5])}"
     return None
 
 
-def problem_of(records: list[dict], structures: list[dict] | None) -> str | None:
-    problem = bde.provenance_problem(records) or drift_problem(records)
+def provenance_problem(records: list[dict]) -> str | None:
+    """A record made with a dirty tree or with no commit. (The first run's 'records from more than one commit' rule is not used: with a commit stamped on every record, any commit during an hours-long run would refuse the arm, and `drift_problem` already checks every commit.)"""
+    if any(not r.get("commit") for r in records):
+        return "a record carries no commit"
+    if any(r.get("dirty") for r in records):
+        return "some records were made with a dirty tree"
+    return None
+
+
+def problem_of(records: list[dict], structures: list[dict] | None, extra_problem: str | None = None) -> str | None:
+    problem = extra_problem or provenance_problem(records)
+    if not problem and not ACCEPT_DRIFT:
+        problem = drift_problem(records)
     if structures is not None and (open_chains := rr.pending(structures, records)) and not problem:
         problem = f"{len(open_chains)} structure chain(s) are not closed"
     return problem
+
+
+def drift_note(records: list[dict]) -> str | None:
+    """With `--accept-drift`: the line every report prints saying that what changed was read anyway."""
+    if not ACCEPT_DRIFT:
+        return None
+    drift = drift_problem(records)
+    return f"DRIFT ACCEPTED (`--accept-drift`): {drift}. The records were made by the code of their commit; this report was built from the working tree." if drift else None
 
 
 def _flags(row: dict) -> str:
@@ -245,9 +330,9 @@ def _fmt(s) -> str:
     return f"n={s.count:2d} missing={s.missing} MAE={s.mae:.2f} MSE={s.mse:+.2f} max={s.max_abs:.2f}"
 
 
-def deciding_report(arm: str, records: list[dict], bonds: list[dict], structures: list[dict] | None) -> tuple[str, dict]:
+def deciding_report(arm: str, records: list[dict], bonds: list[dict], structures: list[dict] | None, extra_problem: str | None = None) -> tuple[str, dict]:
     """Arms C and D: the first run's limits on the deciding bonds, the standard error, the limits the result is too close to call, and every bond with its flags. Arm D prints methanethiol beside, outside the verdict."""
-    problem = problem_of(records, structures)
+    problem = problem_of(records, structures, extra_problem)
     rows = judge_rows(records, bonds)
     deciding = [r for r in rows if not r["excluded"]]
     beside = [r for r in rows if r["excluded"]]
@@ -256,15 +341,21 @@ def deciding_report(arm: str, records: list[dict], bonds: list[dict], structures
     errors = [r["dh_kcal"] - r["dh_ref"] for r in deciding if r["dh_kcal"] is not None]
     se = v3.standard_error(errors)
     band = 0.7 if arm == "sh" else 0.5
-    title = {"halogen": "ARM C (six C-H bonds next to F and Cl; ATcT 1.228)", "sh": "ARM D (three thiol S-H bonds; gas-phase acidity references that share an anchor, n = 3 with correlated errors)"}[arm]
+    n_deciding = len(deciding)
+    title = {"halogen": "ARM C (six C-H bonds next to F and Cl; ATcT 1.228)", "sh": f"ARM D ({n_deciding} thiol S-H bonds; gas-phase acidity references that share an anchor, n = {n_deciding} with correlated errors)"}[arm]
     lines = [title + (f"; REFUSED: {problem}" if problem else ""), f"deciding {_fmt(stats)}", f"VERDICT {verdict}",
              "standard error of the mean error: " + (f"{se:.2f} kcal/mol" if se is not None else "n/a")]
+    if drift_note(records):
+        lines.insert(1, drift_note(records))
     close = v3.near_limits(stats, band)
     lines.append(f"within {band} kcal/mol of a limit, so the two sides cannot be told apart: " + ("; ".join(close) if close else "none"))
     sensitivity = None
     if arm == "sh":
         shifts = v3.anchor_shifts_kcal()
         sensitivity = {name: v3.reference_sensitivity(deciding, shift) for name, shift in shifts.items()}
+        if problem:
+            # a refused report states no verdict anywhere, this one included
+            sensitivity = {name: dict(s, verdict=judge.NOT_EVALUABLE) for name, s in sensitivity.items()}
         lines.append("SENSITIVITY TO THE SHARED METHANETHIOL ANCHOR (not a correction; the verdict above is read on Ervin's references as they stand): every reference raised by the most the anchor could move it:")
         for name, label in (("combined", "the anchor averaged with Wilson, Ashfold and Dixon 1994"), ("wilson_alone", "that measurement alone")):
             s = sensitivity[name]
@@ -274,8 +365,8 @@ def deciding_report(arm: str, records: list[dict], bonds: list[dict], structures
     if stats.missing == 1:
         lines.append(f"ONE of the {len(deciding)} deciding bonds has no computed value: the verdict rests on the other {stats.count}.")
     if arm == "sh":
-        lines.append("Reference status: ethanethiol's is PUBLISHED (Ervin 2015); 1-propanethiol's and 2-propanethiol's are DERIVED here from published acidities and electron affinities with a thermal step COMPUTED in thermal_step.py, not published numbers.")
-        lines.append("Methanethiol's S-H (the first run's lost bond; Nicovich 1992) is printed beside the three bonds and does not enter the mean.")
+        lines.append("Reference status: ethanethiol's is PUBLISHED (Ervin 2015); the others are DERIVED here from published acidities and electron affinities with a thermal step COMPUTED in thermal_step.py, not published numbers.")
+        lines.append(f"Methanethiol's S-H (the first run's lost bond; Nicovich 1992) is printed beside the {n_deciding} bonds and does not enter the mean.")
     unverified = [r["name"] for r in rows if r.get("selected") and r["selected"]["radical"]["method"] == "numerical" and not r["selected"]["radical"]["verified"]]
     if unverified:
         lines.append(f"{len(unverified)} bond(s) took their radical value from a numerical job that kept a mode below -20 cm-1 (enthalpy used and labelled): {', '.join(unverified)}")
@@ -290,9 +381,9 @@ def deciding_report(arm: str, records: list[dict], bonds: list[dict], structures
     return "\n".join(lines), {"arm": arm, "verdict": verdict, "problem": problem, "deciding": stats.__dict__, "standard_error": se, "within_band_of": close, "anchor_sensitivity": sensitivity, "rows": rows}
 
 
-def bromine_report(records: list[dict], bonds: list[dict], structures: list[dict] | None) -> tuple[str, dict]:
+def bromine_report(records: list[dict], bonds: list[dict], structures: list[dict] | None, extra_problem: str | None = None) -> tuple[str, dict]:
     """Arm C-Br: no verdict. Each bond's computed value against the kinetics value, the other determinations and the calculated values, and a claim only for a gross failure."""
-    problem = problem_of(records, structures)
+    problem = problem_of(records, structures, extra_problem)
     rows = judge_rows(records, bonds)
     lines = ["ARM C-Br (four bromine C-H bonds; REPORTED ONLY, deciding nothing)" + (f"; REFUSED: {problem}" if problem else ""),
              "A claim is made only when the error exceeds 5.0 kcal/mol against the kinetics value AND every calculated value (bromoethane, which has none: more than 5.0 outside the whole range of the other determinations); anything else is numbers.", ""]
@@ -315,9 +406,9 @@ def bromine_report(records: list[dict], bonds: list[dict], structures: list[dict
     return "\n".join(lines), {"arm": "bromine", "verdict": None, "problem": problem, "readings": readings, "rows": rows}
 
 
-def thiophenol_report(records: list[dict], bonds: list[dict], structures: list[dict] | None) -> tuple[str, dict]:
+def thiophenol_report(records: list[dict], bonds: list[dict], structures: list[dict] | None, extra_problem: str | None = None) -> tuple[str, dict]:
     """Arm D-Ph: no verdict. The computed value against every determination, the span they cover, Devine's upper limit, and a claim only for a gross failure."""
-    problem = problem_of(records, structures)
+    problem = problem_of(records, structures, extra_problem)
     rows = judge_rows(records, bonds)
     lines = ["ARM D-Ph (thiophenol S-H; REPORTED ONLY, deciding nothing)" + (f"; REFUSED: {problem}" if problem else ""),
              "No determination is a reference (they span about 5 kcal/mol and the newest is an upper limit). A claim is made only when the computed value is more than 5.0 kcal/mol outside the whole span of the determinations; anything else is numbers.", ""]
@@ -331,6 +422,8 @@ def thiophenol_report(records: list[dict], bonds: list[dict], structures: list[d
         lines.append(f"{bond['name']}: computed {row['dh_kcal']:.2f} kcal/mol at 298 K; span of the determinations {reading['span'][0]:.2f} to {reading['span'][1]:.2f}; {reading['claim']}{_flags(row)}")
         lines += [f"    {label:46s} {value:7.2f}  error {reading['errors'][label]:+.2f}" for label, value in bond["points"].items()]
         lines.append(f"    {'Devine 2008, UPPER LIMIT (0 K value plus the step)':46s} {bond['upper_limit']:7.2f}  computed minus limit {reading['above_upper_limit']:+.2f}")
+    # the table column's "reference" for this bond is the middle of the span of the determinations; it is not one, and the stored rows say so
+    rows = [dict(r, dh_ref=None, uncertainty=None, dh_ref_note="no reference: the determinations are in `readings`") for r in rows]
     return "\n".join(lines), {"arm": "thiophenol", "verdict": None, "problem": problem, "readings": readings, "rows": rows}
 
 
@@ -346,17 +439,28 @@ def main() -> None:
     parser.add_argument("--workers", type=int, default=3)
     parser.add_argument("--cores", type=int, default=4)
     parser.add_argument("--out", default=str(HERE / "artifacts"))
+    parser.add_argument("--allow-dirty", action="store_true", help="run on a tree with uncommitted changes in the watched folders (its records will be refused at report time)")
+    parser.add_argument("--accept-drift", action="store_true", help="report: read records even if watched files changed since they were made, and say so in the report")
     args = parser.parse_args()
+    global ACCEPT_DRIFT
+    ACCEPT_DRIFT = args.accept_drift
     out = Path(args.out)
     (out / args.arm).mkdir(parents=True, exist_ok=True)
     structures_path, runs_path = out / args.arm / "structures.json", out / args.arm / "runs.jsonl"
+    meta_path = out / args.arm / "structures.meta.json"
     bonds = ARMS[args.arm]()
     if args.command == "structures":
         structures = build_structures(bonds)
         structures_path.write_text(json.dumps(structures), encoding="utf-8")
+        meta_path.write_text(json.dumps({"bonds_sha256": bonds_stamp(bonds), "commit": git_state()[0]}), encoding="utf-8")
         roles = [s["role"] for s in structures]
         print(f"{len(structures)} structures ({', '.join(f'{roles.count(r)} {r}' for r in sorted(set(roles)))})")
     elif args.command == "run":
+        stale = stamp_problem(meta_path, bonds)
+        if stale:
+            sys.exit(f"REFUSED: {stale}")
+        if git_state()[1] and not args.allow_dirty:
+            sys.exit("REFUSED: the watched folders have uncommitted changes, so every record of this run would be refused at report time (commit them, or pass --allow-dirty)")
         run_stage(args.arm, out, args.cores, args.workers)
     elif args.command == "status":
         structures = json.loads(structures_path.read_text(encoding="utf-8"))
@@ -365,7 +469,8 @@ def main() -> None:
         structures = json.loads(structures_path.read_text(encoding="utf-8"))
         records = pa.records_of(runs_path)
         report = {"bromine": bromine_report, "thiophenol": thiophenol_report}.get(args.arm)
-        text, verdict = report(records, bonds, structures) if report else deciding_report(args.arm, records, bonds, structures)
+        stale = stamp_problem(meta_path, bonds)
+        text, verdict = report(records, bonds, structures, stale) if report else deciding_report(args.arm, records, bonds, structures, stale)
         print(text)
         (out / args.arm / "report.txt").write_text(text, encoding="utf-8")
         (out / args.arm / "verdict.json").write_text(json.dumps(verdict, indent=1, default=str), encoding="utf-8")
