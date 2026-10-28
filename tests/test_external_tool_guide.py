@@ -4,6 +4,7 @@ links and Help topics that exist, so it cannot point somewhere dead."""
 from __future__ import annotations
 
 import re
+from html import escape
 
 import pytest
 
@@ -61,8 +62,8 @@ def test_a_row_shows_the_tool_tabs_own_status_not_a_recomputed_one(pages):
         title, status = statuses[tab.descriptor.key]
         assert title == tab.descriptor.title
         assert status == " ".join(tab.status_label.text().split())
-        # The row is rendered from it.
-        assert status in pages._guide._rows[tab.descriptor.key].text() or "&" in status or "<" in status
+        # The row is rendered from it, escaped (an apostrophe or ampersand in a status is data, not markup).
+        assert escape(status) in pages._guide._rows[tab.descriptor.key].text()
 
 
 def test_the_task_filter_shows_only_the_tools_that_task_needs(pages):
