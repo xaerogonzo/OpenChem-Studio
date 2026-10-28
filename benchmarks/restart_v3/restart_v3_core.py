@@ -227,6 +227,24 @@ def arm_verdict(deciding: "judge.Stats") -> str:
     return judge.verdict(judge.Stats(deciding.count, 0, deciding.mae, deciding.mse, deciding.max_abs), "primary")
 
 
+def anchor_shifts_kcal() -> dict[str, float]:
+    """How far Arm D's three references could rise if the methanethiol anchor they share moved to the other measurement (`references.json` `methanethiol_anchor`): `combined` (the inverse-variance mean of Ervin's anchor and Wilson, Ashfold and Dixon 1994) and `wilson_alone`.
+    UPPER BOUNDS, one for one: the least-squares network with the H2S and pyrrole anchors passes less. Not corrections."""
+    a = _refs()["methanethiol_anchor"]
+    wilson = a["wilson1994_d0_cm1"] * a["cm1_to_kj_per_mol"]
+    wu = a["wilson1994_d0_uncertainty_cm1"] * a["cm1_to_kj_per_mol"]
+    w1, w2 = 1 / a["ervin2015_combined_uncertainty_kj"] ** 2, 1 / wu ** 2
+    mean = (a["ervin2015_combined_kj"] * w1 + wilson * w2) / (w1 + w2)
+    return {"combined": (mean - a["ervin2015_combined_kj"]) / KJ_PER_KCAL, "wilson_alone": (wilson - a["ervin2015_combined_kj"]) / KJ_PER_KCAL}
+
+
+def reference_sensitivity(rows: list[dict], shift: float) -> dict:
+    """The deciding bonds re-read with every reference raised by `shift` kcal/mol: the statistics and the verdict the first run's limits would give. A bond with no computed value stays missing."""
+    shifted = [{"dh_kcal": r["dh_kcal"], "dh_ref": r["dh_ref"] + shift} for r in rows]
+    stats = judge.stats(shifted)
+    return {"shift": shift, "stats": stats.__dict__, "verdict": arm_verdict(stats)}
+
+
 def standard_error(errors: list[float]) -> float | None:
     """The standard error of the mean error (sample standard deviation over the square root of n); None for fewer than two errors."""
     n = len(errors)

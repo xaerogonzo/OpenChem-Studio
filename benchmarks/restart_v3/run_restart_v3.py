@@ -131,7 +131,7 @@ def process(structure: dict, cores: int, run, commit: str, dirty: bool, append) 
 
 def git_state() -> tuple[str, bool]:
     commit = subprocess.run(["git", "rev-parse", "HEAD"], capture_output=True, text=True, cwd=REPO, check=False).stdout.strip()
-    spec = ["status", "--porcelain", "--", *WATCHED, ":(exclude)benchmarks/restart_v3/artifacts", ":(exclude)benchmarks/restart_v2/artifacts"]
+    spec = ["status", "--porcelain", "--", *WATCHED, ":(exclude)benchmarks/restart_v3/artifacts", ":(exclude)benchmarks/restart_v2/artifacts", ":(exclude)benchmarks/restart_v3/RESULT*.md"]
     return commit, bool(subprocess.run(["git", *spec], capture_output=True, text=True, cwd=REPO, check=False).stdout.strip())
 
 
@@ -201,7 +201,7 @@ def judge_rows(records: list[dict], bonds: list[dict]) -> list[dict]:
 
 
 #: The folders whose change since the records were made makes a report unreproducible (the same list `git_state` watches; artifacts are data, not code).
-_DRIFT_SPEC = [*WATCHED, ":(exclude)benchmarks/restart_v3/artifacts", ":(exclude)benchmarks/restart_v2/artifacts"]
+_DRIFT_SPEC = [*WATCHED, ":(exclude)benchmarks/restart_v3/artifacts", ":(exclude)benchmarks/restart_v2/artifacts", ":(exclude)benchmarks/restart_v3/RESULT*.md"]
 
 
 def drift_problem(records: list[dict]) -> str | None:
@@ -265,6 +265,16 @@ def deciding_report(arm: str, records: list[dict], bonds: list[dict], structures
              "standard error of the mean error: " + (f"{se:.2f} kcal/mol" if se is not None else "n/a")]
     close = v3.near_limits(stats, band)
     lines.append(f"within {band} kcal/mol of a limit, so the two sides cannot be told apart: " + ("; ".join(close) if close else "none"))
+    sensitivity = None
+    if arm == "sh":
+        shifts = v3.anchor_shifts_kcal()
+        sensitivity = {name: v3.reference_sensitivity(deciding, shift) for name, shift in shifts.items()}
+        lines.append("SENSITIVITY TO THE SHARED METHANETHIOL ANCHOR (not a correction; the verdict above is read on Ervin's references as they stand): every reference raised by the most the anchor could move it:")
+        for name, label in (("combined", "the anchor averaged with Wilson, Ashfold and Dixon 1994"), ("wilson_alone", "that measurement alone")):
+            s = sensitivity[name]
+            st = s["stats"]
+            body = "n/a" if not st["count"] else f"MAE {st['mae']:.2f}, MSE {st['mse']:+.2f}, max {st['max_abs']:.2f}"
+            lines.append(f"    +{s['shift']:.2f} kcal/mol ({label}): {body} -> {s['verdict']}")
     if stats.missing == 1:
         lines.append(f"ONE of the {len(deciding)} deciding bonds has no computed value: the verdict rests on the other {stats.count}.")
     if arm == "sh":
@@ -281,7 +291,7 @@ def deciding_report(arm: str, records: list[dict], bonds: list[dict], structures
         calc = "-" if r["dh_kcal"] is None else f"{r['dh_kcal']:.2f}"
         error = "missing" if r["dh_kcal"] is None else f"{r['dh_kcal'] - r['dh_ref']:+.2f}"
         lines.append(f"{r['name'][:44]:44s} {calc:>8s} {r['dh_ref']:8.2f} {error:>7s}{'  (beside, outside the verdict)' if r['excluded'] else ''}{_flags(r)}")
-    return "\n".join(lines), {"arm": arm, "verdict": verdict, "problem": problem, "deciding": stats.__dict__, "standard_error": se, "within_band_of": close, "rows": rows}
+    return "\n".join(lines), {"arm": arm, "verdict": verdict, "problem": problem, "deciding": stats.__dict__, "standard_error": se, "within_band_of": close, "anchor_sensitivity": sensitivity, "rows": rows}
 
 
 def bromine_report(records: list[dict], bonds: list[dict], structures: list[dict] | None) -> tuple[str, dict]:

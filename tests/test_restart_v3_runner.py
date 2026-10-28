@@ -477,3 +477,39 @@ def test_the_thiophenol_report_prints_every_determination_and_the_limit_and_make
     monkeypatch.setattr(runner, "drift_problem", lambda r: "files changed since the records' commit")
     text, verdict = runner.thiophenol_report(records, [bond], None)
     assert verdict["readings"][0]["gross"] is False and "no claim: the report is refused" in text and "REFUSED" in text
+
+
+# --- Arm D: the sensitivity to the shared methanethiol anchor, and where results are written ------------------------------------------------
+
+
+def test_the_anchor_shifts_are_the_two_upper_bounds_the_preregistration_prints():
+    shifts = v3.anchor_shifts_kcal()
+    assert shifts["combined"] == pytest.approx(0.317, abs=0.002) and shifts["wilson_alone"] == pytest.approx(0.519, abs=0.002)
+
+
+def test_the_sensitivity_can_move_a_verdict_and_never_moves_the_one_that_is_read():
+    # three bonds each 1.4 below their reference: MSE -1.4 is inside the 1.5 limit, so PASS; raise every reference by 0.32 and MSE is -1.72, so PARTIAL
+    rows = [{"dh_kcal": 80.0, "dh_ref": 81.4}] * 3
+    base = v3.arm_verdict(v3.judge.stats(rows))
+    assert base == "PASS"
+    shifted = v3.reference_sensitivity(rows, 0.32)
+    assert shifted["verdict"] == "PARTIAL" and shifted["stats"]["mse"] == pytest.approx(-1.72)
+    assert v3.reference_sensitivity([{"dh_kcal": None, "dh_ref": 81.4}] * 3, 0.32)["verdict"] == "NOT EVALUABLE"   # missing stays missing
+
+
+def test_the_arm_d_report_prints_the_sensitivity_beside_the_verdict_and_keeps_the_verdict_on_the_references_as_they_stand(monkeypatch):
+    monkeypatch.setattr(runner, "drift_problem", lambda records: None)
+    bond, records = _records_with_two_radical_conformers(-99.8)
+    text, verdict = runner.deciding_report("sh", records, [dict(bond, excluded=False)], None)
+    assert "SENSITIVITY TO THE SHARED METHANETHIOL ANCHOR" in text and "+0.32 kcal/mol" in text and "+0.52 kcal/mol" in text
+    assert set(verdict["anchor_sensitivity"]) == {"combined", "wilson_alone"}
+    halogen_text, halogen_verdict = runner.deciding_report("halogen", records, [dict(bond, excluded=False)], None)
+    assert "SENSITIVITY" not in halogen_text and halogen_verdict["anchor_sensitivity"] is None             # Arm C does not share the anchor
+
+
+def test_a_results_write_up_in_the_benchmark_folder_does_not_make_the_records_drift():
+    spec = " ".join(runner._DRIFT_SPEC)
+    assert "benchmarks/restart_v3/RESULT*.md" in spec
+    import subprocess
+    done = subprocess.run(["git", "status", "--porcelain", "--", *runner._DRIFT_SPEC], capture_output=True, text=True, cwd=runner.REPO, check=False)
+    assert done.returncode == 0                                                                           # git accepts the pathspec, exclude included
