@@ -76,7 +76,7 @@ The Windows zip (`6.7.1pre`, 37,550,920 bytes) matched its published sha256. Run
 
 xtb's stdout is UTF-8 (its frequency heading contains `cm⁻¹`), so anything that reads it as text on Windows must say `encoding="utf-8"`: the default code page raised a decode error in the first draft of the Test button.
 
-Next: the preregistered comparison with ORCA and Psi4 before any claim that it improves their inputs.
+**The preregistered comparison was run on 2026-10-27** (`benchmarks/xtb_comparison/PREREGISTRATION.md`, section 14): geometry PARTIAL (median 0.014 A from the ORCA structure, worst 0.26 A), relative energies TIER C (about 0.8 kcal/mol over conformer pairs but about 4 over isomer pairs, and 82% of clearly separated pairs in the right order), and as a pre-optimizer for ORCA PARTIAL (it reaches the same minimum in 19 of 20 molecules but does not reduce ORCA's cycles). So xtb is a quick, rough structure generator here, not an energy ranker, and it is not offered as an ORCA starting structure.
 
 ## Not done
 

@@ -606,8 +606,11 @@ def xtb() -> ManagedExecutable:
             Note(
                 "xtb is an open-source semi-empirical (tight-binding) quantum-chemistry program that runs single-point energies, geometry "
                 "optimizations and frequency analyses here with GFN2-xTB or GFN1-xTB, as a third engine beside ORCA and Psi4; choose it with the "
-                "Engine box on the Quantum Chemistry panel. It is far faster than DFT and far less accurate: its numbers have not yet been "
-                "compared with ORCA's or Psi4's in this application."
+                "Engine box on the Quantum Chemistry panel. It is far faster than DFT and less accurate. Measured against ORCA B3LYP/def2-SVP on "
+                "20 molecules (2026-10-27): its structures are close (median heavy-atom deviation 0.014 A, worst 0.26 A, aspirin), so treat one as a "
+                "quick, rough structure; its energy differences are not for ranking isomers or conformers (about 0.8 kcal/mol off over conformer "
+                "pairs, about 4 over isomer pairs, and 82% of clearly separated pairs in the right order); and starting an ORCA optimization from "
+                "an xtb structure did not reduce its cycles."
             ),
             Note(
                 "After downloading the Windows build from the releases page and unzipping it, use Locate Installed or Browse to point at the "
