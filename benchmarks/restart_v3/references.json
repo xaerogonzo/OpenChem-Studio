@@ -10,6 +10,17 @@
   "borrowed_thermal_note": "Used only for the excluded tert-butanethiol bond: Ervin 2015's ethyl step of +5.2 kJ/mol, with 1.0 kJ/mol added in quadrature for borrowing it. The two propanethiols of Arm D use a step computed in thermal_step.py instead.",
   "thermal_step_uncertainty_rule": "the larger of 0.5 kJ/mol and the spread of the step over the usable parent/radical conformer pairs"
  },
+ "methanethiol_anchor": {
+  "note": "The D0(CH3S-H) that every Arm D reference leans on, and a third measurement that Ervin 2015 did not use. Read 2026-10-28 in the PDFs (wu2025 and ervin2015). Recomputed by tests/test_restart_v3_references.py.",
+  "ervin2015_combined_kj": 359.7,
+  "ervin2015_combined_uncertainty_kj": 1.5,
+  "ervin2015_routes": "two, combined: the Br + CH3SH kinetics of nicovich1992 (359.7 +- 2.8 kJ/mol) and a photofragment route through D0(CH3-S) = 3.045 +- 0.015 eV with enthalpies of formation (359.7 +- 1.7 kJ/mol)",
+  "wilson1994_d0_cm1": 30250,
+  "wilson1994_d0_uncertainty_cm1": 100,
+  "wilson1994_source": "H-atom photofragment translational spectroscopy of CH3SH, S. H. S. Wilson, M. N. R. Ashfold and R. N. Dixon, J. Chem. Phys. 101, 7538 (1994), reference 33 of wu2025 (which quotes it twice as 'D0(H3CS-H) = 30 250 +- 100 cm-1'). The paper itself has NOT been read.",
+  "cm1_to_kj_per_mol": 0.011962656,
+  "sensitivity_note": "An upper bound on how far the three Arm D references could move: the thiols' acidities are measured relative to CH3SH, so a shift of the anchor passes into them at most one for one; the least-squares network with H2S and pyrrole passes less. Not a correction."
+ },
  "sh_bonds": [
   {
    "name": "ethanethiol S-H",

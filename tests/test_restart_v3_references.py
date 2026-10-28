@@ -182,3 +182,20 @@ def test_following_the_isopropyl_thiyl_saddle_point_found_a_flat_double_well_not
         assert 0.0 < (s["saddle"]["electronic_eh"] - s[end]["electronic_eh"]) * eh < 0.1             # the saddle is barely above
     # the harmonic enthalpy at the saddle is LOWER than at the minimum, by about half a kcal/mol: the artefact the preregistration warns of
     assert -0.7 < s["derived_kcal"]["saddle_enthalpy_minus_conformer0_enthalpy"] < -0.4
+
+
+def test_the_methanethiol_anchor_block_is_the_two_papers_arithmetic():
+    """Ervin 2015 anchors the acidity scale on D0(CH3S-H) = 359.7 +- 1.5 kJ/mol; wu2025 quotes (from Wilson, Ashfold and Dixon 1994) 30 250 +- 100 cm-1 for the same bond. Nothing here says which is right: it is the size of the difference."""
+    a = DATA["methanethiol_anchor"]
+    wilson = a["wilson1994_d0_cm1"] * a["cm1_to_kj_per_mol"]
+    unc = a["wilson1994_d0_uncertainty_cm1"] * a["cm1_to_kj_per_mol"]
+    assert wilson == pytest.approx(361.87, abs=0.01) and unc == pytest.approx(1.196, abs=0.001)
+    assert wilson - a["ervin2015_combined_kj"] == pytest.approx(2.17, abs=0.01)                      # 0.52 kcal/mol above Ervin's anchor
+    combined = math.hypot(a["ervin2015_combined_uncertainty_kj"], unc)                                   # 1.92
+    ratio = (wilson - a["ervin2015_combined_kj"]) / combined
+    assert 1.0 < ratio < 2.0, ratio                                                                      # 1.13 times the combined uncertainty: OUTSIDE one of them, inside two
+    w1, w2 = 1 / a["ervin2015_combined_uncertainty_kj"] ** 2, 1 / unc ** 2
+    mean = (a["ervin2015_combined_kj"] * w1 + wilson * w2) / (w1 + w2)
+    assert mean == pytest.approx(361.03, abs=0.01) and (w1 + w2) ** -0.5 == pytest.approx(0.94, abs=0.01)
+    assert (mean - a["ervin2015_combined_kj"]) / C["kj_per_kcal"] == pytest.approx(0.317, abs=0.002)    # the most the combined anchor could move an Arm D reference
+    assert a["ervin2015_combined_kj"] == pytest.approx(359.7)                                           # the figure Ervin prints, as the preregistration quotes it

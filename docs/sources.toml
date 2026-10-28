@@ -9459,3 +9459,24 @@ verified_date = 2026-10-27
 reason = """
 A CALCULATED COMPARISON, NOT A REFERENCE: ab initio isodesmic estimates give DH298(BrH2C-H) = 101.7 +- 1.4 and DH298(BrClHC-H) = 98.7 +- 1.9 kcal/mol, in agreement with the kinetics value for bromomethane and 1.7 kcal/mol above the kinetics value for bromochloromethane. Both uncertainties exceed the 1.0 kcal/mol rule and they are calculated.
 """
+
+
+[[source]]
+key = "wu2025"
+kind = "literature"
+citation = "Y. Wu, S. Zhou, Z. Luo, S. Yang, Z. Li, Y. Dong, W. Hua, Q. Shuai, D. Dai, M. N. R. Ashfold, K. Yuan & X. Yang, 'Ultraviolet photodissociation of methanethiol (CH3SH): revealing an S(1D) atom elimination channel', Chem. Sci. 16, 17165-17175 (2025)."
+identifier_type = "doi"
+identifier = "10.1039/D5SC04716A"
+status = "reference_only"
+used_by = [
+    "benchmarks/restart_v3/PREREGISTRATION.md",
+    "benchmarks/restart_v3/references.json",
+    "benchmarks/restart_v3/LITERATURE_LOG.md",
+    "tests/test_restart_v3_references.py",
+]
+local = "wu2025_ch3sh_s1d_photodissociation.pdf"
+verification = "citation_and_claim"
+verified_date = 2026-10-28
+reason = """
+THE THIRD METHANETHIOL ANCHOR: the paper quotes D0(H3CS-H) = 30 250 +- 100 cm-1 (361.87 +- 1.20 kJ/mol) from Wilson, Ashfold and Dixon, J. Chem. Phys. 101, 7538 (1994), 2.17 kJ/mol above the 359.7 +- 1.5 that Ervin 2015 anchors the acidity scale on, which is the anchor all three Arm D S-H references share. Read for that quotation and its citation only; it measures nothing about the S-H bond. The value is a sensitivity of Arm D, not a correction (restart-v3 preregistration section 7, references.json methanethiol_anchor).
+"""
