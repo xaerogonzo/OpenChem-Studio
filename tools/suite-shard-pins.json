@@ -1997,6 +1997,7 @@
   "tests/test_export_uses_conformer.py": 0,
   "tests/test_external_tool_catalog.py": 1,
   "tests/test_external_tool_executables.py": 3,
+  "tests/test_external_tool_guide.py": 4,
   "tests/test_external_tools_dialog.py": 2,
   "tests/test_fact_help.py": 3,
   "tests/test_fact_link_router.py": 0,

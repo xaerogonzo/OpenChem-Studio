@@ -3482,11 +3482,19 @@ kept, which asks first.
 <!-- help:external-tools -->
 ## External tools
 
-**Edit ▸ Settings… ▸ External tools** has ten tabs: AutoDock Vina, ORCA, Psi4,
-AiZynthFinder, pkasolver, ADMET, Java (Temurin), NMR Database, Knowledge Vista,
-and Storage. **Tools ▸
-External Tools…**, and the Configure buttons on the Docking and Quantum
+**Edit ▸ Settings… ▸ External tools** opens on a **Setup guide** and has twelve
+tabs in all: the guide, AutoDock Vina, ORCA, Psi4, xtb, AiZynthFinder,
+pkasolver, ADMET, Java (Temurin), NMR Database, Knowledge Vista, and Storage.
+**Tools ▸ External Tools…**, and the Configure buttons on the Docking and Quantum
 Chemistry panels, open the same window at the right tab.
+
+**The Setup guide answers "which of these do I need?"** Each tool has a row that
+says what it is, what stops working without it, whether it is Recommended,
+Optional or Advanced, the one next thing to do, a link to get it, and its status
+right now (read from that tool's own tab). **I want to** narrows the list to the
+tools one task needs, such as docking or quantum chemistry. Nothing here is
+required: the application works without any of them, and each adds a group of
+features.
 
 Each tab tells you what is currently detected, installs or configures the
 tool, and has a **Test** button that runs the tool for real rather than

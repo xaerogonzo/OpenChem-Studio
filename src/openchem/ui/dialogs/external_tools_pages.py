@@ -37,6 +37,7 @@ from openchem.services.tool_download_service import (
     fetch_latest_vina_release,
 )
 from openchem.ui.dialogs import external_tool_catalog as catalog
+from openchem.ui.dialogs.external_tool_guide import GUIDE_KEY, GuideTab
 from openchem.ui.dialogs import external_tools_help as help_text
 from openchem.ui.dialogs.external_tool_tabs import (
     InterpreterSidecarTab,
@@ -202,7 +203,7 @@ class ExternalToolsPages(QWidget):
     """
 
     def __init__(
-        self, settings: Settings, parent: QWidget | None = None, focus: str = "vina"
+        self, settings: Settings, parent: QWidget | None = None, focus: str = GUIDE_KEY
     ) -> None:
         super().__init__(parent)
         self._settings = settings
@@ -211,6 +212,7 @@ class ExternalToolsPages(QWidget):
         self._tool_tabs: list[ToolTab] = []
 
         self._tabs = QTabWidget(self)
+        # Registered last (it reads the tool tabs) but placed first, so a person opening External Tools lands on it.
         # Vina and ORCA were the first two external tools and predate
         # the descriptor system, so they were hand-built and lacked
         # Locate, Test and Remove -- and ORCA lacked a status line.
@@ -230,6 +232,14 @@ class ExternalToolsPages(QWidget):
         # Optional, and the only tab here that nothing depends on: after every tool some feature needs, before Storage (not a tool).
         self._add_executable_tab(catalog.knowledge_vista(), ManagedExecutableTab)
         self._tabs.addTab(self._build_storage_tab(), "Storage")
+        self._guide = GuideTab(
+            self,
+            statuses=self._guide_statuses,
+            open_tab=self.show_tool,
+            open_help=self._open_help_topic,
+            open_url=self._open_url,
+        )
+        self._tabs.insertTab(0, self._guide, "Setup guide")
         self._tabs.currentChanged.connect(self._on_tab_changed)
 
         self.show_tool(focus)
@@ -246,6 +256,10 @@ class ExternalToolsPages(QWidget):
         wrong tab the day one was added in front of them. An unknown key
         leaves the tabs where they are.
         """
+        if key == GUIDE_KEY:
+            self._guide.refresh()
+            self._tabs.setCurrentWidget(self._guide)
+            return
         for tab in self._tool_tabs:
             if tab.descriptor.key == key:
                 self._tabs.setCurrentWidget(tab)
@@ -495,7 +509,29 @@ class ExternalToolsPages(QWidget):
         self._refresh_storage_labels()
         return tab
 
+    def _guide_statuses(self) -> dict[str, tuple[str, str]]:
+        """Each tool tab's own title and status line, for the Setup guide's rows."""
+        return {
+            tab.descriptor.key: (tab.descriptor.title, " ".join(tab.status_label.text().split()))
+            for tab in self._tool_tabs
+        }
+
+    def _open_help_topic(self, topic_key: str) -> None:
+        from openchem.ui.dialogs.help_dialog import HelpDialog
+
+        self._help_window = HelpDialog(self, topic_key)
+        self._help_window.show()
+
+    @staticmethod
+    def _open_url(url: str) -> None:
+        from PySide6.QtCore import QUrl
+        from PySide6.QtGui import QDesktopServices
+
+        QDesktopServices.openUrl(QUrl(url))
+
     def _on_tab_changed(self, index: int) -> None:
+        if self._tabs.widget(index) is self._guide:
+            self._guide.refresh()
         if self._tabs.tabText(index) == "Storage" and not self._storage_measured:
             self._measure_storage()
 

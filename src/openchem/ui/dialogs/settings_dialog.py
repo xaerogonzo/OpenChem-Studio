@@ -446,7 +446,7 @@ class SettingsDialog(QDialog):
         parent: QWidget | None = None,
         *,
         section: str = PANELS,
-        tool: str = "vina",
+        tool: str = "guide",
         result_store_service=None,
         calculator_definitions=None,
         shortcut_registry=None,
