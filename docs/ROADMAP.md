@@ -2361,7 +2361,7 @@ and three were checked again recently rather than taken on trust.
      Henderson-Hasselbalch puts a zwitterion's minimum in the wrong place. A species-weighted model (each microspecies' own intrinsic solubility) would lift it.
      Solubility as a whole also still carries its measured base bias, reported and not corrected.
   6. **Benchmarks that would widen a LIMITED scope**: proton affinity beyond ten heavy atoms (a held-out set of 11 to 20), bond dissociation beyond nine
-     and for S-H (thiyl radicals keep an imaginary mode; a v3 protocol, preregistered in `benchmarks/restart_v3/`, arms not yet run), Si-H and P-H classes. Until then those run with the warning.
+     and for S-H (thiyl radicals keep an imaginary mode; a v3 protocol, preregistered and FROZEN 2026-10-28 in `benchmarks/restart_v3/`, arms not yet run), Si-H and P-H classes. Until then those run with the warning.
   7. **Numerical-versus-analytic calibration of radicals of 10 to 14 atoms** (recorded 2026-10-28; an overnight run, roughly a day of compute with three jobs at a time). Protocol v3 gives the
      numerical frequency job to a radical of any size and labels it above 12 atoms, but its calibration (`benchmarks/restart_v3/PREREGISTRATION.md` section 5) measured radicals of at most 9
      atoms. The **15 radicals of 10 to 14 atoms** the calibration's selection rule left out (the secondary and tertiary alkyl, n-propyl and n-butyl, the propoxyls and tert-butoxyl, phenyl, benzyl,

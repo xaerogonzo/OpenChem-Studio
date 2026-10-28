@@ -1,0 +1,24 @@
+{
+ "frozen": "2026-10-28",
+ "note": "see benchmarks/restart_v3/freeze.py and PREREGISTRATION.md section 11",
+ "files": {
+  "benchmarks/restart_v3/restart_v3_core.py": "18b703acb59336df04088f51c1c84e49bea5068056fe12facb366cbae57d4b19",
+  "benchmarks/restart_v3/run_restart_v3.py": "393cfd33d70c58102fe00a89176bd783817498d8268b698d2aa12b7c3b98d434",
+  "benchmarks/restart_v3/thermal_step.py": "010ec531e8773f625dcca080164855728f633a399d0bc2df93fad83011988be7",
+  "benchmarks/restart_v3/freeze.py": "cb8577bcaa984452db0fadaa149c99148e51feb947e469cdc0b8003c55a95e14",
+  "benchmarks/restart_v3/references.json": "8ef9b3b68b23df679b169efd30d7e2ff4a83a6b72a099fb93b538af86890264f",
+  "benchmarks/restart_v2/run_restart.py": "b1967fed04d31919e8b6863091ca7962a7499096c9c87b5e8ba149e74273fb0d",
+  "benchmarks/restart_v2/restart_core.py": "1134632a2c357585d233c12a92435fc95aae0aa7010661361b17c1b2a48b4fcd",
+  "benchmarks/bde/run_bde.py": "aef0c62516a5b95c812d4f90677e6559d4e97378fb5b066d75ec7d7029c3b93d",
+  "benchmarks/bde/bde_core.py": "b95937a9dd09284b1636c3106c4ef00d9d1763ceb04b351b95b1386deb695ba4",
+  "benchmarks/bde/judge.py": "6f1619205fb111c230ce7d71a04994ce3e1a7c85e9363f398340af6f15b535f7",
+  "benchmarks/proton_affinity/run_pa.py": "4a5d3f2cd70d48bef173ae4380774b6d5982fcdf53b9901c626b011f731b71c0",
+  "benchmarks/proton_affinity/pa_core.py": "19cb72b25cbd62b3e4b07b803ef7c2792fd5ad36a779d28756f35f1a5db0578e",
+  "benchmarks/bde_heldout/candidates_halogen.json": "8b1d4c78d9db24643e55e23c8ce2dd30f0221272dc438b7207dafa68854f85a3"
+ },
+ "preregistration": {
+  "bytes": 58648,
+  "sha256": "56fbd9e428aefc77845ca669f7294383920b00093160fbc23ca6349b26f0c8bb"
+ },
+ "amendments": []
+}

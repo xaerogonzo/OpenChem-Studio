@@ -2393,6 +2393,7 @@
   "tests/test_rescued_science_end_to_end.py": 0,
   "tests/test_resonance_gate.py": 0,
   "tests/test_restart_v2_runner.py": 3,
+  "tests/test_restart_v3_freeze.py": 4,
   "tests/test_restart_v3_references.py": 1,
   "tests/test_restart_v3_runner.py": 0,
   "tests/test_restart_v3_thermal_step.py": 3,
