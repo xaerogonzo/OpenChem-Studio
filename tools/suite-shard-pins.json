@@ -2555,6 +2555,10 @@
   "tests/test_workflow_move.py": 4,
   "tests/test_workflow_safety.py": 4,
   "tests/test_workflow_sections.py": 1,
-  "tests/test_x_zoomable_charts.py": 4
+  "tests/test_x_zoomable_charts.py": 4,
+  "tests/test_xtb_comparison_judge.py": 4,
+  "tests/test_xtb_comparison_runner.py": 2,
+  "tests/test_xtb_engine.py": 1,
+  "tests/test_xtb_tool.py": 3
  }
 }
