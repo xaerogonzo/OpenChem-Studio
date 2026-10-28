@@ -31,9 +31,9 @@ judge = _load("bde_judge_for_restart_v3", REPO / "benchmarks" / "bde" / "judge.p
 
 #: The numerical frequency job: the first run's functional, basis and grid, no `Opt`, finite differences of gradients (no coupled-perturbed SCF). Unrestricted, charge 0 and multiplicity 2 are the input block's.
 NUMERICAL_HEADER = "! M062X def2-TZVPD TightSCF DefGrid3 NumFreq"
-#: Decision D1 (revised 2026-10-28): the numerical job is run on a radical of ANY size. This is the largest radical any arm contains (the thiophenol radical); beyond it the result carries `SIZE_NOTE`. The calibration measured radicals of at most 9 atoms.
+#: Decision D1 (revised 2026-10-28): the numerical job is run on a radical of ANY size. This is the largest radical any arm contains (Arm D's tert-butylthiyl radical, 14 atoms; decision D7); beyond it the result carries `SIZE_NOTE`. The calibration measured radicals of at most 9 atoms.
 #: The cost grows steeply (6N gradients: about 6 minutes for 5 atoms and 1 to 2 hours for 12 to 14), and a job that outlasts the first run's 4-hour limit is a missing structure with its reason.
-VALIDATED_ATOMS = 12
+VALIDATED_ATOMS = 14
 #: A vibrational frequency below this (cm-1) is not accepted (the first run's rule, unchanged).
 IMAGINARY_CM = -20.0
 NOT_VERIFIED = "frequencies not verified: a soft mode below -20 cm-1 remains"
@@ -154,7 +154,8 @@ def sh_d298_kcal(bond: dict, constants: dict) -> tuple[float, float]:
 
 
 #: (name in references.json, name of the bond row, SMILES of the parent, atom that loses the hydrogen)
-SH_BONDS = [("ethanethiol S-H", "ethanethiol S-H", "CCS", 2), ("1-propanethiol S-H", "1-propanethiol S-H", "CCCS", 3), ("2-propanethiol S-H", "2-propanethiol S-H", "CC(C)S", 3)]
+SH_BONDS = [("ethanethiol S-H", "ethanethiol S-H", "CCS", 2), ("1-propanethiol S-H", "1-propanethiol S-H", "CCCS", 3), ("2-propanethiol S-H", "2-propanethiol S-H", "CC(C)S", 3),
+           ("2-methyl-2-propanethiol S-H", "2-methyl-2-propanethiol S-H", "CC(C)(C)S", 4)]
 #: Methanethiol's S-H is the first run's lost bond (spent): computed and reported beside Arm D, outside its verdict (Nicovich 1992, 298 K).
 METHANETHIOL = {"name": "methanethiol S-H", "smiles": "CS", "atom": 1, "dh298": 87.35, "uncertainty": 0.58, "element": "S", "excluded": True}
 

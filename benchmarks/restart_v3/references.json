@@ -6,8 +6,6 @@
   "kj_per_kcal": 4.184,
   "d0_to_d298_ethanethiol_kj": 5.2,
   "d0_to_d298_ethanethiol_source": "ervin2015: D0(C2H5S-H) = 359.5 kJ/mol and D298 = 364.7 kJ/mol with thermal enthalpy corrections computed there for the ethyl radical only",
-  "borrowed_thermal_uncertainty_kj": 1.0,
-  "borrowed_thermal_note": "Used only for the excluded tert-butanethiol bond: Ervin 2015's ethyl step of +5.2 kJ/mol, with 1.0 kJ/mol added in quadrature for borrowing it. The two propanethiols of Arm D use a step computed in thermal_step.py instead.",
   "thermal_step_uncertainty_rule": "the larger of 0.5 kJ/mol and the spread of the step over the usable parent/radical conformer pairs"
  },
  "methanethiol_anchor": {
@@ -100,17 +98,20 @@
   {
    "name": "2-methyl-2-propanethiol S-H",
    "parent_smiles": "CC(C)(C)S",
-   "role": "excluded: its radical has 14 atoms, beyond the 12 atoms of the largest radical in any arm (decision D1, revised 2026-10-28); its reference is as good as the others",
+   "role": "Arm D deciding",
    "acidity_dH0_kj": 1472.7,
    "acidity_dH0_uncertainty_kj": 1.7,
    "acidity_source": "ervin2015 Table 3 (95% level)",
    "electron_affinity_ev": 2.07,
    "electron_affinity_uncertainty_ev": 0.02,
    "electron_affinity_source": "janousek1980 (EA of t-C4H9S)",
-   "d298_status": "DERIVED here with the BORROWED +5.2 kJ/mol step; not a published number, and excluded from the arm so never replaced",
+   "d298_status": "DERIVED here from the two printed inputs plus a thermal step COMPUTED here (thermal_step.py); not a published number",
+   "thermal_step_kj": 5.14,
+   "thermal_step_uncertainty_kj": 0.5,
+   "thermal_step_source": "computed by benchmarks/restart_v3/thermal_step.py (B3LYP/def2-TZVPD harmonic frequencies of the lowest-enthalpy usable conformers; records in benchmarks/restart_v3/artifacts/thermal_step/): the radical's and the hydrogen atom's thermal enthalpies minus the parent's, zero-point energy excluded. A property of the reference, not of the calculation under test.",
    "stated_d0_kj": 360.38,
-   "stated_d298_kcal": 87.37,
-   "stated_d298_uncertainty_kcal": 0.66
+   "stated_d298_kcal": 87.36,
+   "stated_d298_uncertainty_kcal": 0.63
   }
  ],
  "sh_context": {

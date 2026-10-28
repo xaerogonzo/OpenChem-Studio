@@ -21,7 +21,7 @@ SH = DATA["sh_bonds"]
 BR = DATA["bromine_bonds"]
 
 #: Decision D1 of the preregistration: the numerical frequency job is run on radicals of at most this many atoms.
-VALIDATED_ATOMS = 12
+VALIDATED_ATOMS = 14
 
 
 def _d0_kj(bond: dict) -> float:
@@ -53,10 +53,8 @@ def test_ethanethiol_is_the_published_value_and_the_cycle_reproduces_it():
 
 
 def _step_kj(bond: dict) -> tuple[float, float]:
-    """The 0 K to 298 K step and its uncertainty a derived bond carries: the one COMPUTED in `thermal_step.py` where the bond has one, the borrowed ethyl step (excluded bond only) otherwise."""
-    if "thermal_step_kj" in bond:
-        return bond["thermal_step_kj"], bond["thermal_step_uncertainty_kj"]
-    return C["d0_to_d298_ethanethiol_kj"], C["borrowed_thermal_uncertainty_kj"]
+    """The 0 K to 298 K step and its uncertainty a derived bond carries: always the one COMPUTED in `thermal_step.py` (no bond borrows a step)."""
+    return bond["thermal_step_kj"], bond["thermal_step_uncertainty_kj"]
 
 
 @pytest.mark.parametrize("bond", SH[1:], ids=lambda b: b["name"])
@@ -91,7 +89,7 @@ def test_the_computed_thermal_steps_are_the_committed_records_summarised():
     """`references.json` states the step; the records are the evidence. A step edited by hand, or a record replaced, fails here."""
     steps = _thermal_records()
     by_name = {b["name"]: b for b in SH}
-    for thiol, key in (("1-propanethiol", "1-propanethiol S-H"), ("2-propanethiol", "2-propanethiol S-H")):
+    for thiol, key in (("1-propanethiol", "1-propanethiol S-H"), ("2-propanethiol", "2-propanethiol S-H"), ("2-methyl-2-propanethiol", "2-methyl-2-propanethiol S-H")):
         assert by_name[key]["thermal_step_kj"] == pytest.approx(steps[thiol]["step_kj"], abs=0.006)
         assert by_name[key]["thermal_step_uncertainty_kj"] == pytest.approx(max(0.5, steps[thiol]["spread_kj"]), abs=0.006)
     assert by_name["ethanethiol S-H"]["thermal_step_computed_kj"] == pytest.approx(steps["ethanethiol"]["step_kj"], abs=0.006)
@@ -112,18 +110,19 @@ def test_a_species_rejected_from_the_step_is_a_saddle_point_the_report_names():
 
 def test_every_sh_reference_that_is_deciding_passes_the_one_kcal_rule_and_is_within_the_validated_size():
     deciding = [b for b in SH if b["role"] == "Arm D deciding"]
-    assert [b["name"] for b in deciding] == ["ethanethiol S-H", "1-propanethiol S-H", "2-propanethiol S-H"]
+    assert [b["name"] for b in deciding] == ["ethanethiol S-H", "1-propanethiol S-H", "2-propanethiol S-H", "2-methyl-2-propanethiol S-H"]
     for bond in deciding:
         unc_kcal = bond.get("published_d298_uncertainty_kcal", bond.get("stated_d298_uncertainty_kcal"))
         assert unc_kcal <= 1.0, bond["name"]
         assert _radical_atoms(bond["parent_smiles"]) <= VALIDATED_ATOMS, bond["name"]
 
 
-def test_tert_butanethiol_is_left_out_of_arm_d_by_size_and_for_no_other_reason():
+def test_tert_butanethiol_is_arm_ds_fourth_bond_and_its_14_atom_radical_is_the_largest_in_any_arm():
     tert = next(b for b in SH if b["parent_smiles"] == "CC(C)(C)S")
-    assert _radical_atoms(tert["parent_smiles"]) == 14 > VALIDATED_ATOMS
-    assert tert["role"].startswith("excluded")
-    assert tert["stated_d298_uncertainty_kcal"] <= 1.0, "its reference is as good as the others: only its size excludes it"
+    assert tert["role"] == "Arm D deciding"
+    assert _radical_atoms(tert["parent_smiles"]) == 14 == VALIDATED_ATOMS
+    assert max(_radical_atoms(b["parent_smiles"]) for b in SH) == 14
+    assert "COMPUTED" in tert["d298_status"] and "BORROWED" not in tert["d298_status"]                        # no step is borrowed any more
 
 
 def test_atom_counts_quoted_in_the_preregistration():

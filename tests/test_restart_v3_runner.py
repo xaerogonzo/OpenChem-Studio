@@ -69,8 +69,8 @@ def test_only_a_radical_that_is_still_imaginary_with_its_skeleton_intact_gets_th
     assert not v3.needs_numerical(_record(completed=False))
 
 
-def test_the_largest_radical_the_benchmark_covers_has_twelve_atoms_and_nothing_larger_is_refused():
-    assert not v3.beyond_validated(12) and v3.beyond_validated(13)      # a note, not a refusal: see the chain test below
+def test_the_largest_radical_the_benchmark_covers_has_fourteen_atoms_and_nothing_larger_is_refused():
+    assert not v3.beyond_validated(14) and v3.beyond_validated(15)      # a note, not a refusal: see the chain test below
 
 
 def test_a_numerical_record_is_accepted_at_any_frequency_and_an_analytic_one_is_not():
@@ -235,7 +235,7 @@ def test_a_radical_the_first_stage_accepts_never_gets_the_numerical_job():
 
 def test_a_radical_beyond_the_validated_size_still_gets_the_numerical_job_with_a_note():
     calls, records = [], []
-    structure = _radical("CC(C)(C)S", 4, "tert-butanethiol S-H")      # the radical has 14 atoms
+    structure = _radical("CC(C)(C)CS", 5, "neopentyl mercaptan S-H")    # the radical has 17 atoms, more than any arm's
     runner.process(structure, 4, _standin(calls, {"opt": (-300.0, -438.0), "retry": (-300.0, -438.0), "numerical": (550.0, -438.0010)}), "abc", False, records.append)
     assert calls == ["opt", "retry", "numerical"]                      # no refusal for size
     numerical = next(r for r in records if r.get("stage") == "numerical")
@@ -489,7 +489,7 @@ def test_arm_d_ph_is_one_reported_only_bond_with_every_determination_at_298_kelv
     assert bond["name"] == "thiophenol S-H" and bond["excluded"] is True                       # nothing decides
     mol = Chem.MolFromSmiles(bond["smiles"])
     assert mol.GetAtomWithIdx(bond["atom"]).GetSymbol() == "S"
-    assert Chem.AddHs(mol).GetNumAtoms() - 1 == 12 and not v3.beyond_validated(12)             # the radical has exactly the largest size the benchmark covers: no size note
+    assert Chem.AddHs(mol).GetNumAtoms() - 1 == 12 and not v3.beyond_validated(12)             # 12 atoms: inside what the benchmark covers, no size note
     refs = v3._refs()["thiophenol_context"]
     step = refs["thermal_step_kj"] / 4.184
     pts = bond["points"]
