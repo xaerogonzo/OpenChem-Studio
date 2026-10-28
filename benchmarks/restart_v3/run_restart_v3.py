@@ -79,15 +79,11 @@ def numerical_input(structure: dict, cores: int) -> str:
 
 def numerical_stage(structure: dict, retry: dict, cores: int, run, commit: str, dirty: bool, append) -> None:
     """The v3 stage for a radical the first run's two stages left imaginary: ONE numerical frequency job at the re-run's geometry. Its own id (`<id>#numerical`), so the first run's 'latest record of a structure' never mistakes it for the structure's analytic result;
-    the record is a completed species whose enthalpy REPLACES the analytic one (the analytic enthalpy and frequency are kept in it). A radical over the atom cap gets no job and a record saying why; a job that fails is a missing structure."""
+    the record is a completed species whose enthalpy REPLACES the analytic one (the analytic enthalpy and frequency are kept in it). A radical of any size gets the job (larger than `VALIDATED_ATOMS` atoms, its record carries a size note); a job that fails or times out is a missing structure with its reason."""
     record = {"structure": f"{structure['id']}#numerical", "role": structure["role"], "stage": "numerical", "commit": commit, "dirty": dirty, "completed": False, "parent_structure": structure["id"]}
     for key in rr.CARRIED:
         if key in structure:
             record[key] = structure[key]
-    if not v3.within_cap(len(retry["symbols"])):
-        record.update(capped=True, label=v3.OVER_CAP)
-        append(record)
-        return
     at = dict(structure, symbols=retry["symbols"], coordinates=retry["coordinates"])
     began = time.time()
     try:
@@ -171,13 +167,13 @@ def _selected(done: list[dict], bond: dict, labels: dict) -> dict:
         r = min(pool, key=lambda x: x["enthalpy"])
         entry = {"structure": r["structure"], "lowest_frequency": v3.lowest_vibration(r.get("frequencies") or []) if r.get("frequencies") else r["lowest_frequency"], "method": "numerical" if r.get("numerical") else "analytic"}
         if r.get("numerical"):
-            entry.update(verified=r["verified"], shift_kcal=labels[r["parent_structure"]]["shift_kcal"])
+            entry.update(verified=r["verified"], shift_kcal=labels[r["parent_structure"]]["shift_kcal"], size_note=r.get("size_note"))
         out[role] = entry
     return out
 
 
 def _numerical_outcomes(records: list[dict], bond: dict) -> list[dict]:
-    """The numerical jobs of a bond's radicals that gave NO result (failed, timed out, or over the atom cap), with the reason, so a bond decided by the other conformers says so."""
+    """The numerical jobs of a bond's radicals that gave NO result (failed or timed out), with the reason, so a bond decided by the other conformers says so."""
     out = []
     for r in records:
         if r.get("stage") == "numerical" and not r.get("completed") and str(r.get("structure", "")).startswith(f"radical|{bond['name']}|"):
@@ -235,7 +231,7 @@ def _flags(row: dict) -> str:
         parent, radical = sel["parent"], sel["radical"]
         notes.append(f"lowest frequency parent {parent['lowest_frequency']:.0f}, radical {radical['lowest_frequency']:.0f} cm-1")
         if radical["method"] == "numerical":
-            notes.append(f"radical from the NUMERICAL job, {radical['shift_kcal']:+.2f} kcal/mol vs analytic" + ("" if radical["verified"] else "; FREQUENCIES NOT VERIFIED"))
+            notes.append(f"radical from the NUMERICAL job, {radical['shift_kcal']:+.2f} kcal/mol vs analytic" + ("" if radical["verified"] else "; FREQUENCIES NOT VERIFIED") + (f"; {v3.SIZE_NOTE.upper()}" if radical.get("size_note") else ""))
         else:
             notes.append("radical analytic")
     for n in row.get("numerical_no_result", []):
@@ -285,7 +281,7 @@ def deciding_report(arm: str, records: list[dict], bonds: list[dict], structures
         lines.append(f"{len(unverified)} bond(s) took their radical value from a numerical job that kept a mode below -20 cm-1 (enthalpy used and labelled): {', '.join(unverified)}")
     no_result = [(r["name"], n["reason"]) for r in rows for n in r["numerical_no_result"]]
     if no_result:
-        lines.append(f"{len(no_result)} numerical job(s) gave no result (failed, timed out, or over the {v3.MAX_NUMERICAL_ATOMS}-atom cap): " + "; ".join(f"{a}: {b}" for a, b in no_result))
+        lines.append(f"{len(no_result)} numerical job(s) gave no result (failed or timed out): " + "; ".join(f"{a}: {b}" for a, b in no_result))
     lines += ["", f"{'bond':44s} {'calc':>8s} {'ref':>8s} {'error':>7s}"]
     for r in deciding + beside:
         calc = "-" if r["dh_kcal"] is None else f"{r['dh_kcal']:.2f}"

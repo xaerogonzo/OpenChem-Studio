@@ -3,7 +3,7 @@ Pure functions with no engine; the only files read are the committed reference f
 
 THE RULE (section 3). v3 is v2 plus ONE stage for a RADICAL: when the first run's two stages (the optimization with frequencies, and the `Calc_Hess` re-run) leave a frequency below -20 cm-1 and the skeleton is intact, ONE numerical frequency job is run at the
 geometry of that re-run (`NUMERICAL_HEADER`). Its enthalpy replaces the analytic one. v2's displaced restart is NOT applied to a radical, and nothing changes for a closed-shell structure. A numerical result below -20 cm-1 keeps its enthalpy and is labelled
-`NOT_VERIFIED` (decision D2). A radical of more than `MAX_NUMERICAL_ATOMS` atoms is not given the job (decision D1).
+`NOT_VERIFIED` (decision D2). A radical of ANY size is given the job; above `VALIDATED_ATOMS` atoms its record carries `SIZE_NOTE`, because the benchmark covers no larger radical (decision D1, revised 2026-10-28: a calculator refuses only what it cannot compute and labels the rest).
 """
 from __future__ import annotations
 
@@ -31,12 +31,13 @@ judge = _load("bde_judge_for_restart_v3", REPO / "benchmarks" / "bde" / "judge.p
 
 #: The numerical frequency job: the first run's functional, basis and grid, no `Opt`, finite differences of gradients (no coupled-perturbed SCF). Unrestricted, charge 0 and multiplicity 2 are the input block's.
 NUMERICAL_HEADER = "! M062X def2-TZVPD TightSCF DefGrid3 NumFreq"
-#: Decision D1: a radical of more than this many atoms is not given the numerical job (6N gradients is hours beyond it).
-MAX_NUMERICAL_ATOMS = 12
+#: Decision D1 (revised 2026-10-28): the numerical job is run on a radical of ANY size. This is the largest radical any arm contains (the thiophenol radical); beyond it the result carries `SIZE_NOTE`. The calibration measured radicals of at most 9 atoms.
+#: The cost grows steeply (6N gradients: about 6 minutes for 5 atoms and 1 to 2 hours for 12 to 14), and a job that outlasts the first run's 4-hour limit is a missing structure with its reason.
+VALIDATED_ATOMS = 12
 #: A vibrational frequency below this (cm-1) is not accepted (the first run's rule, unchanged).
 IMAGINARY_CM = -20.0
 NOT_VERIFIED = "frequencies not verified: a soft mode below -20 cm-1 remains"
-OVER_CAP = f"analytic frequencies not verified: the radical has more than {MAX_NUMERICAL_ATOMS} atoms, over the cap for the numerical job"
+SIZE_NOTE = f"numerical frequencies at a size the benchmark does not cover: the radical has more than {VALIDATED_ATOMS} atoms"
 #: Arms C and D: NOT EVALUABLE when this many deciding bonds (or more) have no computed value (section 8).
 NOT_EVALUABLE_AT_MISSING = 2
 #: Arm C-Br's gross-failure limit (kcal/mol), the held-out arm's single-error limit.
@@ -47,8 +48,9 @@ KJ_PER_KCAL = 4.184
 # --- the rule ---------------------------------------------------------------------------------------------------------------------
 
 
-def within_cap(atom_count: int) -> bool:
-    return atom_count <= MAX_NUMERICAL_ATOMS
+def beyond_validated(atom_count: int) -> bool:
+    """Whether a radical is larger than any the benchmark contains: it still gets the numerical job, and its result carries the note."""
+    return atom_count > VALIDATED_ATOMS
 
 
 def needs_numerical(record: dict) -> bool:
@@ -109,7 +111,8 @@ def numerical_fields(retry: dict, parsed: dict) -> dict:
     """What the numerical record adds to the parsed job: it is flagged `numerical`, it carries the analytic enthalpy and lowest frequency it replaced (so the effect of the replacement is always readable), whether its own frequencies pass,
     and the label when they do not."""
     verified = parsed["lowest_frequency"] >= IMAGINARY_CM
-    return {"numerical": True, "verified": verified, "label": None if verified else NOT_VERIFIED, "analytic_enthalpy": retry["enthalpy"], "analytic_lowest_frequency": retry["lowest_frequency"]}
+    return {"numerical": True, "verified": verified, "label": None if verified else NOT_VERIFIED, "analytic_enthalpy": retry["enthalpy"], "analytic_lowest_frequency": retry["lowest_frequency"],
+            "size_note": SIZE_NOTE if "symbols" in parsed and beyond_validated(len(parsed["symbols"])) else None}
 
 
 def accepted(records: list[dict]) -> list[dict]:

@@ -100,7 +100,7 @@
   {
    "name": "2-methyl-2-propanethiol S-H",
    "parent_smiles": "CC(C)(C)S",
-   "role": "excluded: the radical has 14 atoms, over the 12-atom cap of decision D1",
+   "role": "excluded: its radical has 14 atoms, beyond the 12 atoms of the largest radical in any arm (decision D1, revised 2026-10-28); its reference is as good as the others",
    "acidity_dH0_kj": 1472.7,
    "acidity_dH0_uncertainty_kj": 1.7,
    "acidity_source": "ervin2015 Table 3 (95% level)",

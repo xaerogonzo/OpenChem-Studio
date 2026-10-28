@@ -2361,7 +2361,13 @@ and three were checked again recently rather than taken on trust.
      Henderson-Hasselbalch puts a zwitterion's minimum in the wrong place. A species-weighted model (each microspecies' own intrinsic solubility) would lift it.
      Solubility as a whole also still carries its measured base bias, reported and not corrected.
   6. **Benchmarks that would widen a LIMITED scope**: proton affinity beyond ten heavy atoms (a held-out set of 11 to 20), bond dissociation beyond nine
-     and for S-H (thiyl radicals keep an imaginary mode; a v3 protocol), Si-H and P-H classes. Until then those run with the warning.
+     and for S-H (thiyl radicals keep an imaginary mode; a v3 protocol, preregistered in `benchmarks/restart_v3/`, arms not yet run), Si-H and P-H classes. Until then those run with the warning.
+  7. **Numerical-versus-analytic calibration of radicals of 10 to 14 atoms** (recorded 2026-10-28; an overnight run, roughly a day of compute with three jobs at a time). Protocol v3 gives the
+     numerical frequency job to a radical of any size and labels it above 12 atoms, but its calibration (`benchmarks/restart_v3/PREREGISTRATION.md` section 5) measured radicals of at most 9
+     atoms. The **15 radicals of 10 to 14 atoms** the calibration's selection rule left out (the secondary and tertiary alkyl, n-propyl and n-butyl, the propoxyls and tert-butoxyl, phenyl, benzyl,
+     phenoxyl, benzoyloxyl and tert-butylperoxyl radicals) get the same pair of jobs, analytic and numerical, at their recorded final geometries (`benchmarks/thiyl_probe/calibrate.py` extended; a
+     numerical job is 1 to 2 hours at 12 to 14 atoms). It decides nothing and is spent data like Arm A; its answer is how often the analytic enthalpy is wrong at those sizes (and so whether the
+     label above 12 atoms can be dropped or must stay), and it would put a first measured claim behind the S-H of larger thiols. Independent of every arm and of the freeze.
 
   **Refused by definition, and staying refused**: Griffin's HLB without a polyoxyethylene chain, the aromaticity indices with no ring, Hueckel with no pi
   system, the isoelectric point and microspecies with no ionisable centre, the steric (ligand) measures with no donor atom. There is nothing to compute.

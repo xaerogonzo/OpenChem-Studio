@@ -21,7 +21,7 @@ SH = DATA["sh_bonds"]
 BR = DATA["bromine_bonds"]
 
 #: Decision D1 of the preregistration: the numerical frequency job is run on radicals of at most this many atoms.
-ATOM_CAP = 12
+VALIDATED_ATOMS = 12
 
 
 def _d0_kj(bond: dict) -> float:
@@ -110,18 +110,18 @@ def test_a_species_rejected_from_the_step_is_a_saddle_point_the_report_names():
     assert len(rejected) == 2 and all(r["role"] == "radical" and r["lowest_frequency"] < -200 for r in rejected)
 
 
-def test_every_sh_reference_that_is_deciding_passes_the_one_kcal_rule_and_fits_the_atom_cap():
+def test_every_sh_reference_that_is_deciding_passes_the_one_kcal_rule_and_is_within_the_validated_size():
     deciding = [b for b in SH if b["role"] == "Arm D deciding"]
     assert [b["name"] for b in deciding] == ["ethanethiol S-H", "1-propanethiol S-H", "2-propanethiol S-H"]
     for bond in deciding:
         unc_kcal = bond.get("published_d298_uncertainty_kcal", bond.get("stated_d298_uncertainty_kcal"))
         assert unc_kcal <= 1.0, bond["name"]
-        assert _radical_atoms(bond["parent_smiles"]) <= ATOM_CAP, bond["name"]
+        assert _radical_atoms(bond["parent_smiles"]) <= VALIDATED_ATOMS, bond["name"]
 
 
-def test_tert_butanethiol_is_left_out_by_the_atom_cap_and_for_no_other_reason():
+def test_tert_butanethiol_is_left_out_of_arm_d_by_size_and_for_no_other_reason():
     tert = next(b for b in SH if b["parent_smiles"] == "CC(C)(C)S")
-    assert _radical_atoms(tert["parent_smiles"]) == 14 > ATOM_CAP
+    assert _radical_atoms(tert["parent_smiles"]) == 14 > VALIDATED_ATOMS
     assert tert["role"].startswith("excluded")
     assert tert["stated_d298_uncertainty_kcal"] <= 1.0, "its reference is as good as the others: only its size excludes it"
 

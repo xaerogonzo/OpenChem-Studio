@@ -52,7 +52,7 @@ def test_an_unfinished_or_wrong_condition_job_is_never_a_number():
         v3.parse_numerical(NUMFREQ.replace("Total enthalpy", "Total nothing"))
 
 
-# --- the trigger, the cap, the acceptance -----------------------------------------------------------------------------------------------
+# --- the trigger, the size note, the acceptance -----------------------------------------------------------------------------------------------
 
 
 def _record(**kw) -> dict:
@@ -68,8 +68,8 @@ def test_only_a_radical_that_is_still_imaginary_with_its_skeleton_intact_gets_th
     assert not v3.needs_numerical(_record(completed=False))
 
 
-def test_the_cap_is_twelve_atoms():
-    assert v3.within_cap(12) and not v3.within_cap(13)
+def test_the_largest_radical_the_benchmark_covers_has_twelve_atoms_and_nothing_larger_is_refused():
+    assert not v3.beyond_validated(12) and v3.beyond_validated(13)      # a note, not a refusal: see the chain test below
 
 
 def test_a_numerical_record_is_accepted_at_any_frequency_and_an_analytic_one_is_not():
@@ -232,15 +232,21 @@ def test_a_radical_the_first_stage_accepts_never_gets_the_numerical_job():
     assert not any(r.get("stage") == "numerical" for r in records)
 
 
-def test_a_radical_over_the_cap_gets_no_job_and_a_record_saying_why():
+def test_a_radical_beyond_the_validated_size_still_gets_the_numerical_job_with_a_note():
     calls, records = [], []
     structure = _radical("CC(C)(C)S", 4, "tert-butanethiol S-H")      # the radical has 14 atoms
-    runner.process(structure, 4, _standin(calls, {"opt": (-300.0, -438.0), "retry": (-300.0, -438.0)}), "abc", False, records.append)
-    assert calls == ["opt", "retry"]
-    capped = next(r for r in records if r.get("stage") == "numerical")
-    assert capped["capped"] and capped["label"] == v3.OVER_CAP and not capped["completed"]
-    assert v3.accepted(records) == []                                  # it is a missing bond, as the first run's rule makes it
+    runner.process(structure, 4, _standin(calls, {"opt": (-300.0, -438.0), "retry": (-300.0, -438.0), "numerical": (550.0, -438.0010)}), "abc", False, records.append)
+    assert calls == ["opt", "retry", "numerical"]                      # no refusal for size
+    numerical = next(r for r in records if r.get("stage") == "numerical")
+    assert numerical["completed"] and numerical["verified"] and numerical["size_note"] == v3.SIZE_NOTE
+    assert [r["structure"] for r in v3.accepted(records)] == [numerical["structure"]]
     assert records[-1].get("final") is True
+
+
+def test_a_radical_at_or_below_the_validated_size_carries_no_size_note():
+    calls, records = [], []
+    runner.process(_radical(), 4, _standin(calls, {"opt": (-300.0, -438.0), "retry": (-300.0, -438.0), "numerical": (600.0, -438.0010)}), "abc", False, records.append)
+    assert next(r for r in records if r.get("stage") == "numerical")["size_note"] is None
 
 
 def test_a_failed_numerical_job_is_a_missing_structure_with_its_reason():
@@ -345,9 +351,9 @@ def test_a_numerical_job_with_no_result_is_named_in_the_report(monkeypatch):
     monkeypatch.setattr(runner, "drift_problem", lambda records: None)
     bond, records = _records_with_two_radical_conformers(-99.3)
     records.append({"structure": "radical|methanethiol S-H|2#numerical", "role": "radical", "stage": "numerical", "completed": False, "error": "timeout after 14400 s", "commit": "abc", "dirty": False})
-    records.append({"structure": "radical|methanethiol S-H|3#numerical", "role": "radical", "stage": "numerical", "completed": False, "capped": True, "label": v3.OVER_CAP, "commit": "abc", "dirty": False})
+    records.append({"structure": "radical|methanethiol S-H|3#numerical", "role": "radical", "stage": "numerical", "completed": False, "error": "ValueError: the numerical job did not terminate normally", "commit": "abc", "dirty": False})
     text, verdict = runner.deciding_report("halogen", records, [bond], None)
-    assert "2 numerical job(s) gave no result" in text and "timeout after 14400 s" in text and "over the 12-atom cap" in text
+    assert "2 numerical job(s) gave no result" in text and "timeout after 14400 s" in text and "did not terminate normally" in text
     assert [n["structure"] for n in verdict["rows"][0]["numerical_no_result"]] == ["radical|methanethiol S-H|2#numerical", "radical|methanethiol S-H|3#numerical"]
 
 
@@ -426,7 +432,7 @@ def test_arm_d_ph_is_one_reported_only_bond_with_every_determination_at_298_kelv
     assert bond["name"] == "thiophenol S-H" and bond["excluded"] is True                       # nothing decides
     mol = Chem.MolFromSmiles(bond["smiles"])
     assert mol.GetAtomWithIdx(bond["atom"]).GetSymbol() == "S"
-    assert Chem.AddHs(mol).GetNumAtoms() - 1 == 12 and v3.within_cap(12)                       # the radical is exactly at the cap: it gets the numerical job
+    assert Chem.AddHs(mol).GetNumAtoms() - 1 == 12 and not v3.beyond_validated(12)             # the radical has exactly the largest size the benchmark covers: no size note
     refs = v3._refs()["thiophenol_context"]
     step = refs["thermal_step_kj"] / 4.184
     pts = bond["points"]
