@@ -507,6 +507,12 @@ scope = "core"
 owner = "namer"
 
 [[consumer]]
+file = "tests/test_namer_round91_stereo_is_dropped_by_atom_not_by_locant_number.py"
+why = "a bridged parent's stereo is dropped by atom, fewest first, and a name is kept only if OPSIN reads it to exactly the input (D-388): 2,4-difluoroadamantane and a norbornyl group on a bicyclo[2.2.2]octane keep the descriptors OPSIN can read, and a validator limit still leaves the flat name"
+scope = "core"
+owner = "namer"
+
+[[consumer]]
 file = "tests/test_namer_round89_forced_bridgehead_descriptors_are_dropped_alone.py"
 why = "the stereoisomers of a substituted bicyclo[2.2.2]octane or norbornane have distinct names (D-386): OPSIN's own error names the bridgehead descriptors it cannot anchor, only those are dropped, and a shorter name is kept only if OPSIN reads it to exactly the input"
 scope = "core"
