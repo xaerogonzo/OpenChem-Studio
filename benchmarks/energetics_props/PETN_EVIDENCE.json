@@ -2193,6 +2193,54 @@
    "lineage_root": "n/a",
    "independent_of_inventory": "n/a",
    "note": "This corrects the citation this file has carried: the Medard-Thomas paper behind NIBTN is Mem. Poudres 31 (1949) 196, not 29 (1949) 173-195 (which may belong to nitrourea; unchecked). Each carries a Chemical Abstracts number, so CA 46, 11684 and 11685 are a route to the values without the journal. H.A. Aaronson is one of this Encyclopedia's own authors, which is why his 1941 report is cited throughout; PATR 1125 is not on DTIC, NTIS, archive.org or Google Books as of 2026-10-27"
+  },
+  {
+   "id": "B08",
+   "group": "B_four_arm",
+   "compound": "pentaerythritol",
+   "property": "enthalpy_combustion_solid_constant_pressure",
+   "value": "661.4 kcal/mol = -2767.3 kJ/mol at constant pressure (660.8 kcal/mol at constant volume); four runs 659.2, 661.9, 660.6, 661.6 kcal/mol",
+   "unit": "kcal/mol (as printed)",
+   "value_kind": "measured",
+   "phase_form": "solid (crystalline, a sample from Prof. Tollens)",
+   "temperature": "not stated; calorimeter water about 13 to 19 degC in the same authors' tables",
+   "source": "Stohmann and Langbein, J. prakt. Chem. [2] 45 (1892) 305-356, pp. 328-329 (the four runs and the result) and p. 338 (summary table); free scan on archive.org, page images read 2026-10-27",
+   "locator": "item 4, 'Pentaerythrit', determination table and mean",
+   "lineage_root": "Stohmann and Langbein 1892 (own measurement, bomb calorimeter; independent of Medard and Thomas 1954)",
+   "independent_of_inventory": "yes: a second root for the solid, independent of B01, B10 and every book that prints Medard and Thomas",
+   "note": "Flag historical (PREREGISTRATION 18.3): no Washburn correction, calorie not defined (the two earlier papers and the method paper were read on 2026-10-28 and define none). Compared on the combustion enthalpy: 5.4 kJ/mol from Medard and Thomas (660.1 kcal/mol = -2761.9). Solid only; says nothing about sublimation."
+  },
+  {
+   "id": "B09",
+   "group": "B_four_arm",
+   "compound": "pentaerythritol",
+   "property": "enthalpy_formation_solid",
+   "value": "-915.2 kJ/mol by this study's fixed step (5 dfH(CO2,g) + 6 dfH(H2O,l) - dcH, CODATA -393.51 and -285.830); the paper's own printed 222.6 kcal/mol (= -931.4 kJ/mol) is not used",
+   "unit": "kJ/mol",
+   "value_kind": "derived_from_measured",
+   "phase_form": "solid",
+   "temperature": "298.15 K by convention of the step",
+   "source": "computed here from B08 under PREREGISTRATION 18.2 (Amendment 4)",
+   "locator": "n/a (arithmetic on B08)",
+   "lineage_root": "Stohmann and Langbein 1892, through this study's own step",
+   "independent_of_inventory": "derived",
+   "note": "5.5 kJ/mol from the same step applied to Medard and Thomas (-2761.9 kJ/mol). The printed 222.6 kcal/mol rests on auxiliary values the authors do not state (their two printed formation heats imply CO2 94.0 and H2O(l) 69.0 kcal/mol) and sits 10.7 kJ/mol from NIST, which is why the study's step is used instead."
+  },
+  {
+   "id": "B10",
+   "group": "B_four_arm",
+   "compound": "pentaerythritol",
+   "property": "enthalpy_formation_solid",
+   "value": "-220.0 kcal/mol (Domalski 1972, Table 6.6, printed p. 231); -920.60 kJ/mol solid and -776.70 gas (Domalski and Hearing 1993, Table 15, printed p. 919, reference code 54MED/THO)",
+   "unit": "as printed",
+   "value_kind": "measured",
+   "phase_form": "solid; the 1993 gas value is the solid plus 143.9",
+   "temperature": "298.15 K",
+   "source": "Domalski, J. Phys. Chem. Ref. Data 1 (1972) 221; Domalski and Hearing, J. Phys. Chem. Ref. Data 22 (1993) 805 (both held, read 2026-10-27)",
+   "locator": "1972 Table 6.6 p. 231; 1993 Table 15 p. 919",
+   "lineage_root": "Medard and Thomas 1954 (the 1972 paper names Stohmann and Langbein as the alternative it did not prefer)",
+   "independent_of_inventory": "no: same root as B01, so one lineage_root however many books print it",
+   "note": "The 1993 gas value -776.70 is -920.60 + 143.9 exactly: the same solid plus one sublimation row, so it adds no root. Domalski 1972 p. 230, pyrocatechol entry, says Stohmann and Langbein used an oxygen bomb calorimeter."
   }
  ]
 }
