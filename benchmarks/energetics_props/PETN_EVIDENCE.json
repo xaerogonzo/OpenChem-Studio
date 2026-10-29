@@ -368,7 +368,7 @@
    "locator": "C5H12O4 entry, seven rows",
    "lineage_root": "1995FON/MUN; 1994FON/MUN; 1990BAR/DEL; 1951NIT/SEK2,1960JON; 1953BRA/COT,1960JON",
    "independent_of_inventory": "yes",
-   "note": "a 67 kJ/mol spread across the rows; the compilers keep the polymorph label; CRC's gas column (-776.7) uses 143.9; the 131.3 (403 K) row is Nitta's value re-reported by Font and Muntasell 1994 (G68), and the 131.4 and 143.9 rows are the two older papers Jones 1960 compiles (G69), so the seven rows rest on five measurements at most"
+   "note": "a 67 kJ/mol spread across the rows; the compilers keep the polymorph label; CRC's gas column (-776.7) uses 143.9; the 131.3 (403 K) row is Nitta's value re-reported by Font and Muntasell 1994 (G68), and the 131.4 and 143.9 rows are the two older papers Jones 1960 compiles (G69), and the 134 and 96 rows are one paper's two phases (Font and Muntasell 1995, G70 and G71), so the seven rows rest on four studies (Nitta, Bradley and Cotson, Barone, Font and Muntasell 1995)"
   },
   {
    "id": "B04",
@@ -2304,7 +2304,7 @@
    "locator": "Table 3, row PE**; reference 2",
    "lineage_root": "Nitta, Seki and Suzuki, Bull. Chem. Soc. Jpn 24 (1951) 63 (reference 2 of the paper): the 131.4 of G41, rounded differently",
    "independent_of_inventory": "NO: Nitta's value re-reported",
-   "note": "NIST and Acree's Table 6 (B03) list this as a Font and Muntasell row (method C, 131.3 +/- 6.6): a third appearance of Nitta's value, not a separate measurement. B03's other two rows from these authors, coded 1995FON/MUN (134 +/- 7 crystalline, 441-460 K; 96 +/- 9 plastic, 465-477 K), are from a paper NOT read."
+   "note": "NIST and Acree's Table 6 (B03) list this as a Font and Muntasell row (method C, 131.3 +/- 6.6): a third appearance of Nitta's value, not a separate measurement. B03's other two rows from these authors, coded 1995FON/MUN (134 +/- 7 crystalline, 441-460 K; 96 +/- 9 plastic, 465-477 K), are from the 1995 paper, now read: their own measurements, not copies (G70, G71)."
   },
   {
    "id": "G69",
@@ -2321,6 +2321,38 @@
    "lineage_root": "the first row is Nitta, Seki and Suzuki 1951, the second Bradley and Cotson 1953 (G41): the constants match theirs",
    "independent_of_inventory": "NO: a compilation of two measurements already held",
    "note": "Neither row carries the footnote mark for the data Jones judged most acceptable. Acree's Table 6 (B03) cites him as 1960JON beside both. Counting Jones, Font (G68) and the second 163.0 (Barone's own 298 K figure, G11), the four values 131.4, 143.9, 161.0 and 163.0 come from three measurements: Nitta 1951, Bradley and Cotson 1953, Barone 1990."
+  },
+  {
+   "id": "G70",
+   "group": "G_medard_thomas_substitutes",
+   "compound": "pentaerythritol",
+   "property": "enthalpy_sublimation",
+   "value": "Table 2, solid crystalline phase: ln P = -16120/T + 39.1 (P in Pa), delta H = 134 +/- 7 kJ/mol from the slope (16120 x 8.314 = 134.0), fitted to the nine Table 1 points between 440.8 and 460.6 K (12.1 to 60.3 Pa; a 5 % uncertainty in the pressures assumed). Table 3: delta H(298) = 142 kJ/mol and P(298) = 0.3 x 10^-6 Pa, extrapolated from the fit with a heat-capacity correction taken from the literature",
+   "unit": "kJ/mol",
+   "value_kind": "measured",
+   "phase_form": "crystalline phase, below the crystalline-to-plastic transition (the paper does not name the polymorph)",
+   "temperature": "440.8-460.6 K; the enthalpy belongs to the middle of the fit interval, 450.7 K by my arithmetic; the 298 K value is an extrapolation",
+   "source": "Font and Muntasell, J. Mater. Chem. 5 (1995) 1137-1140, [DOI in the maintainer's library], Tables 1, 2 and 3, the Experimental section and the reference list (file font1995.pdf; the tables were read on the rendered pages, since the text layer scrambles them)",
+   "locator": "Table 1 (PE block), Table 2 (row PE), Table 3 (row PE); PDF pp. 2-3",
+   "lineage_root": "Font and Muntasell 1995, their own Knudsen effusion runs (calibrated on benzoic acid and anthraquinone); coded 1995FON/MUN in Acree's Table 6 (B03)",
+   "independent_of_inventory": "yes: a measurement of its own (the paper cites Nitta as the only earlier pentaerythritol data, and does not cite Barone or Bradley and Cotson)",
+   "note": "Their 1994 paper (G68) said pentaerythritol could not be measured below 373 K; here it was measured at 441 to 461 K, inside anthraquinone's calibration range (393-478 K). Against Barone's 161.0 (418-455 K, G11): the same temperatures and 27 kJ/mol apart, about four times the stated 7; 142 against Barone's 163.0 at 298 K. So the leg stays a spread, now of four studies (131.4, 143.9, 161.0 and 134), and no entity state changes."
+  },
+  {
+   "id": "G71",
+   "group": "G_medard_thomas_substitutes",
+   "compound": "pentaerythritol",
+   "property": "enthalpy_sublimation",
+   "value": "Table 2, plastic phase: ln P = -11550/T + 29.3 (P in Pa), delta H = 96 +/- 9 kJ/mol from the slope (11550 x 8.314 = 96.0), fitted to the seven Table 1 points between 465.3 and 477.2 K (82.2 to 154 Pa)",
+   "unit": "kJ/mol",
+   "value_kind": "measured",
+   "phase_form": "plastic (orientationally disordered) phase, above the crystalline-to-plastic transition",
+   "temperature": "465.3-477.2 K; the middle of the fit interval is 471.3 K by my arithmetic",
+   "source": "Font and Muntasell, J. Mater. Chem. 5 (1995) 1137-1140, [DOI in the maintainer's library], Tables 1, 2 and 3, the Experimental section and the reference list (file font1995.pdf; the tables were read on the rendered pages, since the text layer scrambles them)",
+   "locator": "Table 1 (PE block), Table 2 (row PE); PDF p. 2",
+   "lineage_root": "Font and Muntasell 1995, their own Knudsen effusion runs (calibrated on benzoic acid and anthraquinone); coded 1995FON/MUN in Acree's Table 6 (B03)",
+   "independent_of_inventory": "yes: a measurement of its own (the paper cites Nitta as the only earlier pentaerythritol data, and does not cite Barone or Bradley and Cotson)",
+   "note": "A sublimation from the plastic phase, which is a different solid from the crystal: not a competing value for the crystalline leg and not to be pooled with G70, G11, G41 or the Bradley and Cotson row. It is the other 1995FON/MUN row of B03 (96 +/- 9). Recorded so the two B03 rows from this paper each have a place."
   }
  ]
 }
