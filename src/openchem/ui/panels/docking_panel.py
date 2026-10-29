@@ -27,6 +27,8 @@ import logging
 from openchem.chem.calculation_input import canonical_conformer
 from openchem.app.settings import Settings
 from openchem.chem.engine import ChemistryEngine
+from openchem.chem.pose_plausibility import pose_tooltip as pose_check_tooltip
+from openchem.chem.pose_plausibility import summarize as summarize_checks
 from openchem.domain.common import describe_failure
 from openchem.domain.docking import DockingBox, pose_score_of
 from openchem.domain.project import ProjectModel
@@ -60,7 +62,7 @@ _NESTED_INDENT = 4
 
 _POSE_COLUMNS = (
     "Pose",
-    "Binding Affinity (kcal/mol)",
+    "Vina score (kcal/mol)",
     "RMSD l.b.",
     "RMSD u.b.",
     "Rescore",
@@ -137,7 +139,7 @@ def coordinate_spin_width(spin: QDoubleSpinBox) -> int:
 #: NAMED RATHER THAN INDEXED, so reordering `_POSE_COLUMNS` cannot silently
 #: stretch a different column -- an index would still be a valid column and
 #: nothing would look wrong until somebody magnified the header.
-_AFFINITY_COLUMN = "Binding Affinity (kcal/mol)"
+_AFFINITY_COLUMN = "Vina score (kcal/mol)"
 
 #: What each column MEANS, which the headers alone do not say -- reported
 #: as confusing by a user who read the RMSD columns as accuracy against an
@@ -166,7 +168,7 @@ _POSE_COLUMN_HELP = {
         topic="docking",
         help_anchor="docking",
     ),
-    "Binding Affinity (kcal/mol)": HelpTooltip(
+    "Vina score (kcal/mol)": HelpTooltip(
         text="",
         tier=3,
         help_id="docking.binding_affinity",
@@ -382,10 +384,12 @@ _CONTROL_HELP = {
 _POSE_COLUMN_TOOLTIPS = {
     "Pose": "Rank within this run, best score first. Not an identity: pose 1 of one "
     "run is unrelated to pose 1 of another.",
-    "Binding Affinity (kcal/mol)": (
+    "Vina score (kcal/mol)": (
         "AutoDock Vina's empirical score, in kcal/mol. Always negative; more negative "
-        "is predicted-tighter binding.\n\n"
-        "It is NOT a measured binding free energy, and scores are generally not "
+        "is a better fit to Vina's scoring function.\n\n"
+        "It is a POSE score, not a binding affinity: it is not a measured binding free "
+        "energy and not a Kd. Use it to order the poses of one ligand in one receptor, "
+        "or to compare a series of similar ligands docked the same way. Scores are not "
         "directly comparable across different receptors, targets or docking protocols "
         "-- the search box, receptor preparation and protonation pH all move the scale.\n\n"
         "For scale: Trott & Olson (2010), who wrote the scoring function, report a "
@@ -781,6 +785,12 @@ class DockingPanel(QWidget):
         apply_help_tooltip(self._rescore_label, SEARCH_CONTROL_HELP["rescore_with"])
         self._rescore_label.setVisible(False)
 
+        #: The physical-checks sentence under the table (`chem/pose_plausibility`). Its own
+        #: label, hidden until a result carries checks, for the reason the spread label is.
+        self._checks_label = QLabel("", self)
+        self._checks_label.setWordWrap(True)
+        self._checks_label.setVisible(False)
+
         self._limitation_label = QLabel(_LIMITATION_NOTE, self)
         self._limitation_label.setWordWrap(True)
 
@@ -802,7 +812,7 @@ class DockingPanel(QWidget):
                 )
         # THE AFFINITY COLUMN TAKES THE SLACK; THE OTHER THREE SIZE TO THEIR
         # OWN TEXT. Stretch on all four divided the table's 440 px into four
-        # equal 110 px sections, and "Binding Affinity (kcal/mol)" needs 141 --
+        # equal 110 px sections, and "Vina score (kcal/mol)" needs 141 --
         # so it rendered clipped at BOTH ends as "ling Affinity (kcal/r", which
         # is the identical defect `virtual_screening_dialog.py` records fixing
         # in its own table ("est score (kcal/mo").
@@ -921,6 +931,7 @@ class DockingPanel(QWidget):
         layout.addWidget(self._spread_label)
         layout.addWidget(self._rescore_label)
         layout.addWidget(self._table)
+        layout.addWidget(self._checks_label)
         layout.addWidget(self._limitation_label)
         # Capped, not stretched: both homes are scroll areas, where an unbounded table
         # would take whatever height it was offered.
@@ -1507,6 +1518,7 @@ class DockingPanel(QWidget):
         # range for a run the project no longer contains -- the same defect
         # this method exists to fix for the table.
         self._set_spread_text("")
+        self._set_checks_text("")
         result = self._latest_result_for_selection(project)
         if result is not None:
             self._show_result(result)
@@ -1537,6 +1549,11 @@ class DockingPanel(QWidget):
         self._spread_label.setText(text)
         self._spread_label.setVisible(bool(text))
 
+    def _set_checks_text(self, text: str) -> None:
+        """Hidden when empty, for the reason `_set_spread_text` is."""
+        self._checks_label.setText(text)
+        self._checks_label.setVisible(bool(text))
+
     def _show_result(self, result) -> None:
         self._displayed_result_uuid = result.uuid
         # Kept so a diagnostic can read the STORED PoseScore rather than the
@@ -1545,6 +1562,7 @@ class DockingPanel(QWidget):
         # states apart. The project owns this object either way.
         self._displayed_result = result
         self._set_spread_text(describe_replicate_spread(result.replicates))
+        self._set_checks_text(summarize_checks(pose.metadata for pose in result.poses))
         self._table.setRowCount(len(result.poses))
         scores = [pose_score_of(pose) for pose in result.poses]
         self._apply_rescore_column(scores)
@@ -1557,6 +1575,11 @@ class DockingPanel(QWidget):
             )
             for col, value in enumerate(values):
                 self._table.setItem(row, col, QTableWidgetItem(value))
+            # The pose number carries the checks, as hover text on every cell of the row.
+            tip = pose_check_tooltip(pose.metadata)
+            if tip:
+                for col in range(len(values)):
+                    self._table.item(row, col).setToolTip(tip)
             self._set_rescore_cell(row, scores[row])
         self._refresh_table_visibility()
 

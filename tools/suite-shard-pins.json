@@ -2325,6 +2325,7 @@
   "tests/test_pose_analysis.py": 0,
   "tests/test_pose_analysis_metals.py": 1,
   "tests/test_pose_charge_sites.py": 1,
+  "tests/test_pose_plausibility.py": 2,
   "tests/test_powder_xrd.py": 1,
   "tests/test_project_and_plugin_inverses.py": 2,
   "tests/test_project_details.py": 0,

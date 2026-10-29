@@ -12,6 +12,8 @@ from rdkit import Chem
 from openchem.app.settings import Settings
 from openchem.chem.docking_providers import VinaDockingProvider
 from openchem.chem.pose_analysis import analyze_pose, receptor_atoms_from_structure
+from openchem.chem.pose_plausibility import METADATA_KEY as PLAUSIBILITY_KEY
+from openchem.chem.pose_plausibility import check_pose
 from openchem.chem.structure_assembly import PRIMARY_ASSEMBLY_ID
 from openchem.domain.common import CacheState, Provenance
 from openchem.domain.docking import (
@@ -571,6 +573,14 @@ class _DockingTask(QRunnable):
             )
             for pose in poses:
                 pose.metadata.update(analyze_pose(pose.pose_molblock, receptor_atoms))
+                # Own try below the analysis: a pose the checks cannot read must not
+                # take the interactions down with it, and the reverse.
+                try:
+                    pose.metadata[PLAUSIBILITY_KEY] = check_pose(
+                        pose.pose_molblock, receptor_atoms, self._box
+                    )
+                except Exception:  # noqa: BLE001 - a flag, never a reason to fail the job
+                    logger.exception("Pose plausibility checks failed for ligand %s", self._ligand_molecule_uuid)
         except Exception:  # noqa: BLE001 - enhancement only, must never fail the job
             logger.exception(
                 "Pose interaction analysis failed for ligand %s -- poses still returned without it",
