@@ -5,8 +5,10 @@ ALSO publishes (ethanethiol's S-H) is held to the published figure, which is the
 """
 from __future__ import annotations
 
+import importlib.util
 import json
 import math
+import sys
 from pathlib import Path
 
 import pytest
@@ -19,7 +21,7 @@ SH = DATA["sh_bonds"]
 BR = DATA["bromine_bonds"]
 
 #: Decision D1 of the preregistration: the numerical frequency job is run on radicals of at most this many atoms.
-ATOM_CAP = 12
+VALIDATED_ATOMS = 14
 
 
 def _d0_kj(bond: dict) -> float:
@@ -50,31 +52,77 @@ def test_ethanethiol_is_the_published_value_and_the_cycle_reproduces_it():
     assert ethyl["published_d298_kj"] - ethyl["published_d0_kj"] == pytest.approx(C["d0_to_d298_ethanethiol_kj"], abs=0.05)
 
 
+def _step_kj(bond: dict) -> tuple[float, float]:
+    """The 0 K to 298 K step and its uncertainty a derived bond carries: always the one COMPUTED in `thermal_step.py` (no bond borrows a step)."""
+    return bond["thermal_step_kj"], bond["thermal_step_uncertainty_kj"]
+
+
 @pytest.mark.parametrize("bond", SH[1:], ids=lambda b: b["name"])
 def test_each_derived_sh_reference_is_its_inputs_combined_as_the_definition_says(bond):
     d0 = _d0_kj(bond)
     assert d0 == pytest.approx(bond["stated_d0_kj"], abs=0.01)
-    d298_kcal = (d0 + C["d0_to_d298_ethanethiol_kj"]) / C["kj_per_kcal"]
-    assert d298_kcal == pytest.approx(bond["stated_d298_kcal"], abs=0.01)
-    unc_kj = math.hypot(_d0_unc_kj(bond), C["borrowed_thermal_uncertainty_kj"])
-    assert unc_kj / C["kj_per_kcal"] == pytest.approx(bond["stated_d298_uncertainty_kcal"], abs=0.01)
+    step, step_unc = _step_kj(bond)
+    assert (d0 + step) / C["kj_per_kcal"] == pytest.approx(bond["stated_d298_kcal"], abs=0.01)
+    assert math.hypot(_d0_unc_kj(bond), step_unc) / C["kj_per_kcal"] == pytest.approx(bond["stated_d298_uncertainty_kcal"], abs=0.01)
     assert "not a published number" in bond["d298_status"], "a derived value must say that it is"
 
 
-def test_every_sh_reference_that_is_deciding_passes_the_one_kcal_rule_and_fits_the_atom_cap():
+def _thermal_records() -> dict:
+    """The committed ORCA records of `thermal_step.py`, summarised by the script's own rule."""
+    spec = importlib.util.spec_from_file_location("thermal_step_for_references", Path(__file__).parent.parent / "benchmarks" / "restart_v3" / "thermal_step.py")
+    module = importlib.util.module_from_spec(spec)
+    sys.modules["thermal_step_for_references"] = module
+    spec.loader.exec_module(module)
+    records = [json.loads(line) for line in (Path(__file__).parent.parent / "benchmarks" / "restart_v3" / "artifacts" / "thermal_step" / "records.jsonl").read_text(encoding="utf-8").splitlines() if line.strip()]
+    assert all("error" not in r for r in records)
+    out = {}
+    for name in {r["name"] for r in records}:
+        species = []
+        for k in sorted({r["conformer"] for r in records if r["name"] == name}):
+            pair = {r["role"]: r for r in records if r["name"] == name and r["conformer"] == k}
+            species.append({"parent": pair["parent"], "radical": pair["radical"]})
+        out[name] = module.summarise(species)
+    return out
+
+
+def test_the_computed_thermal_steps_are_the_committed_records_summarised():
+    """`references.json` states the step; the records are the evidence. A step edited by hand, or a record replaced, fails here."""
+    steps = _thermal_records()
+    by_name = {b["name"]: b for b in SH}
+    for thiol, key in (("1-propanethiol", "1-propanethiol S-H"), ("2-propanethiol", "2-propanethiol S-H"), ("2-methyl-2-propanethiol", "2-methyl-2-propanethiol S-H")):
+        assert by_name[key]["thermal_step_kj"] == pytest.approx(steps[thiol]["step_kj"], abs=0.006)
+        assert by_name[key]["thermal_step_uncertainty_kj"] == pytest.approx(max(0.5, steps[thiol]["spread_kj"]), abs=0.006)
+    assert by_name["ethanethiol S-H"]["thermal_step_computed_kj"] == pytest.approx(steps["ethanethiol"]["step_kj"], abs=0.006)
+
+
+def test_the_method_reproduces_the_one_step_a_paper_publishes():
+    """Ervin 2015 computed D298 - D0 for ethanethiol: 364.7 - 359.5 = 5.2 kJ/mol. The same method on the propyl cases is only trusted because it gets this one."""
+    ethyl = SH[0]
+    computed = _thermal_records()["ethanethiol"]["step_kj"]
+    assert computed == pytest.approx(ethyl["published_d298_kj"] - ethyl["published_d0_kj"], abs=0.2)
+
+
+def test_a_species_rejected_from_the_step_is_a_saddle_point_the_report_names():
+    """2-propanethiyl: two of three radical conformers came out with a frequency of -233 cm-1 and a LOWER enthalpy than the third. They are not minima and the step is taken from the one that is; the preregistration says so."""
+    rejected = _thermal_records()["2-propanethiol"]["rejected"]
+    assert len(rejected) == 2 and all(r["role"] == "radical" and r["lowest_frequency"] < -200 for r in rejected)
+
+
+def test_every_sh_reference_that_is_deciding_passes_the_one_kcal_rule_and_is_within_the_validated_size():
     deciding = [b for b in SH if b["role"] == "Arm D deciding"]
-    assert [b["name"] for b in deciding] == ["ethanethiol S-H", "1-propanethiol S-H", "2-propanethiol S-H"]
+    assert [b["name"] for b in deciding] == ["ethanethiol S-H", "1-propanethiol S-H", "2-propanethiol S-H", "2-methyl-2-propanethiol S-H"]
     for bond in deciding:
         unc_kcal = bond.get("published_d298_uncertainty_kcal", bond.get("stated_d298_uncertainty_kcal"))
         assert unc_kcal <= 1.0, bond["name"]
-        assert _radical_atoms(bond["parent_smiles"]) <= ATOM_CAP, bond["name"]
+        assert _radical_atoms(bond["parent_smiles"]) <= VALIDATED_ATOMS, bond["name"]
 
 
-def test_tert_butanethiol_is_left_out_by_the_atom_cap_and_for_no_other_reason():
+def test_tert_butanethiol_is_arm_ds_fourth_bond_and_its_14_atom_radical_is_the_largest_in_any_arm():
     tert = next(b for b in SH if b["parent_smiles"] == "CC(C)(C)S")
-    assert _radical_atoms(tert["parent_smiles"]) == 14 > ATOM_CAP
-    assert tert["role"].startswith("excluded")
-    assert tert["stated_d298_uncertainty_kcal"] <= 1.0, "its reference is as good as the others: only its size excludes it"
+    assert tert["role"] == "Arm D deciding"
+    assert _radical_atoms(tert["parent_smiles"]) == 14 == VALIDATED_ATOMS
+    assert max(_radical_atoms(b["parent_smiles"]) for b in SH) == 14
+    assert "COMPUTED" in tert["d298_status"] and "BORROWED" not in tert["d298_status"]                        # no step is borrowed any more
 
 
 def test_atom_counts_quoted_in_the_preregistration():
@@ -120,3 +168,63 @@ def test_bromomethane_has_an_independent_determination_that_agrees_with_the_kine
     bromination = next(d for d in methyl_bromide["other_determinations_kj"] if d["method"].startswith("bromination"))
     combined = math.hypot(bromination["uncertainty"], methyl_bromide["kinetics_uncertainty_kj"])
     assert abs(bromination["value"] - methyl_bromide["kinetics_kj"]) < combined
+
+
+def test_following_the_isopropyl_thiyl_saddle_point_found_a_flat_double_well_not_a_deeper_state():
+    """The -233 cm-1 mode of two 2-propanethiyl structures (preregistration section 7): displaced and re-optimised, both ends are minima of the same electronic energy as the one already used, and the saddle lies a few hundredths of a kcal/mol above."""
+    s = json.loads((Path(__file__).parent.parent / "benchmarks" / "restart_v3" / "artifacts" / "saddle_follow" / "summary.json").read_text(encoding="utf-8"))
+    eh = 627.5094740631
+    assert s["saddle"]["lowest_frequencies_cm1"][0] == pytest.approx(-233.5, abs=0.1)
+    for end in ("followed_plus", "followed_minus"):
+        assert s[end]["lowest_frequencies_cm1"][0] > 200.0                                           # a minimum
+        assert abs(s[end]["electronic_eh"] - s["conformer0_minimum"]["electronic_eh"]) * eh < 0.02   # the minimum already used
+        assert 0.0 < (s["saddle"]["electronic_eh"] - s[end]["electronic_eh"]) * eh < 0.1             # the saddle is barely above
+    # the harmonic enthalpy at the saddle is LOWER than at the minimum, by about half a kcal/mol: the artefact the preregistration warns of
+    assert -0.7 < s["derived_kcal"]["saddle_enthalpy_minus_conformer0_enthalpy"] < -0.4
+
+
+def test_the_methanethiol_anchor_block_is_the_two_papers_arithmetic():
+    """Ervin 2015 anchors the acidity scale on D0(CH3S-H) = 359.7 +- 1.5 kJ/mol; wu2025 quotes (from Wilson, Ashfold and Dixon 1994) 30 250 +- 100 cm-1 for the same bond. Nothing here says which is right: it is the size of the difference."""
+    a = DATA["methanethiol_anchor"]
+    wilson = a["wilson1994_d0_cm1"] * a["cm1_to_kj_per_mol"]
+    unc = a["wilson1994_d0_uncertainty_cm1"] * a["cm1_to_kj_per_mol"]
+    assert wilson == pytest.approx(361.87, abs=0.01) and unc == pytest.approx(1.196, abs=0.001)
+    assert wilson - a["ervin2015_combined_kj"] == pytest.approx(2.17, abs=0.01)                      # 0.52 kcal/mol above Ervin's anchor
+    combined = math.hypot(a["ervin2015_combined_uncertainty_kj"], unc)                                   # 1.92
+    ratio = (wilson - a["ervin2015_combined_kj"]) / combined
+    assert 1.0 < ratio < 2.0, ratio                                                                      # 1.13 times the combined uncertainty: OUTSIDE one of them, inside two
+    w1, w2 = 1 / a["ervin2015_combined_uncertainty_kj"] ** 2, 1 / unc ** 2
+    mean = (a["ervin2015_combined_kj"] * w1 + wilson * w2) / (w1 + w2)
+    assert mean == pytest.approx(361.03, abs=0.01) and (w1 + w2) ** -0.5 == pytest.approx(0.94, abs=0.01)
+    assert (mean - a["ervin2015_combined_kj"]) / C["kj_per_kcal"] == pytest.approx(0.317, abs=0.002)    # the most the combined anchor could move an Arm D reference
+    assert a["ervin2015_combined_kj"] == pytest.approx(359.7)                                           # the figure Ervin prints, as the preregistration quotes it
+
+
+def test_the_thiophenol_determinations_are_the_papers_arithmetic_and_still_leave_it_out():
+    """Devine, Nix, Dixon and Ashfold 2008 print D0(C6H5S-H) <= 28 030 +- 100 cm-1 (335.3 +- 1.2 kJ/mol) and call it an upper limit; Lim 2007 prints 76.8 +- 0.3 kcal/mol; they differ by 3.3 kcal/mol at 0 K, so no thiophenol reference passes the 1.0 kcal/mol rule."""
+    t = DATA["thiophenol_context"]
+    cm = DATA["methanethiol_anchor"]["cm1_to_kj_per_mol"]
+    kj = t["devine2008_d0_cm1"] * cm
+    assert kj == pytest.approx(t["devine2008_printed_kj"], abs=0.05)                           # the paper's own conversion
+    kcal = kj / C["kj_per_kcal"]
+    assert kcal == pytest.approx(80.14, abs=0.005)
+    assert kcal - t["lim2007_d0_kcal"] == pytest.approx(3.35, abs=0.02)
+    assert "UPPER LIMIT" in t["devine2008_kind"]
+    assert t["devine2008_d0_uncertainty_cm1"] * cm / C["kj_per_kcal"] < 1.0 < kcal - t["lim2007_d0_kcal"]   # each is precise on its own; together they are not usable
+    anchor = DATA["methanethiol_anchor"]
+    assert anchor["nicovich1992_d0_cm1"] * cm == pytest.approx(359.7, abs=0.1)                       # 30 065 cm-1 is the 85.96 kcal/mol that Ervin's anchor rests on
+    assert (anchor["wilson1994_d0_cm1"] - anchor["nicovich1992_d0_cm1"]) < (anchor["wilson1994_d0_uncertainty_cm1"] ** 2 + anchor["nicovich1992_d0_uncertainty_cm1"] ** 2) ** 0.5   # Wilson's own 'good agreement': 185 cm-1 against 260
+
+
+def test_the_thiophenol_thermal_step_is_the_committed_records_summarised_and_converts_the_two_zero_kelvin_values():
+    steps = _thermal_records()["thiophenol"]
+    t = DATA["thiophenol_context"]
+    assert t["thermal_step_kj"] == pytest.approx(steps["step_kj"], abs=0.006)
+    assert t["thermal_step_uncertainty_kj"] == pytest.approx(max(0.5, steps["spread_kj"]), abs=0.006)
+    assert steps["rejected"] == []                                                          # one conformer, no imaginary mode
+    step_kcal = t["thermal_step_kj"] / C["kj_per_kcal"]
+    assert t["lim2007_d0_kcal"] + step_kcal == pytest.approx(77.83, abs=0.01)             # Lim 2007 at 298 K, as the preregistration prints it
+    devine_kcal = t["devine2008_d0_cm1"] * DATA["methanethiol_anchor"]["cm1_to_kj_per_mol"] / C["kj_per_kcal"]
+    assert devine_kcal + step_kcal == pytest.approx(81.17, abs=0.01)                      # Devine 2008's upper limit at 298 K
+    assert 83.5 - (devine_kcal + step_kcal) == pytest.approx(2.33, abs=0.02)             # it lies this far below the calorimetric value
+    assert t["luo2007_range_298_kcal"] == [79.4, 83.5]

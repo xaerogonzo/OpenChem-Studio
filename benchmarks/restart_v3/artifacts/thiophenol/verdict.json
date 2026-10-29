@@ -1,0 +1,50 @@
+{
+ "arm": "thiophenol",
+ "verdict": null,
+ "problem": null,
+ "readings": [
+  {
+   "computed": 79.77158582535938,
+   "errors": {
+    "Lim 2007 (0 K value plus the computed step)": 1.9438611599674118,
+    "Borges dos Santos 2002": -3.728414174640619,
+    "Luo Table 8.1, low end of the range": 0.3715858253593751,
+    "Luo Table 8.1, high end of the range": -3.728414174640619
+   },
+   "span": [
+    77.82772466539197,
+    83.5
+   ],
+   "outside_span": 0.0,
+   "above_upper_limit": -1.3979284385029587,
+   "gross": false,
+   "claim": "no claim (numbers only)",
+   "name": "thiophenol S-H"
+  }
+ ],
+ "rows": [
+  {
+   "name": "thiophenol S-H",
+   "dh_ref": null,
+   "uncertainty": null,
+   "dh_kcal": 79.77158582535938,
+   "s2": 0.766648,
+   "element": "S",
+   "excluded": true,
+   "selected": {
+    "parent": {
+     "structure": "parent|Sc1ccccc1|0",
+     "lowest_frequency": 79.67,
+     "method": "analytic"
+    },
+    "radical": {
+     "structure": "radical|thiophenol S-H|0",
+     "lowest_frequency": 164.32,
+     "method": "analytic"
+    }
+   },
+   "numerical_no_result": [],
+   "dh_ref_note": "no reference: the determinations are in `readings`"
+  }
+ ]
+}

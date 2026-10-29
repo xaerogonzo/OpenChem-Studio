@@ -1,0 +1,154 @@
+{
+ "arm": "bromine",
+ "verdict": null,
+ "problem": null,
+ "readings": [
+  {
+   "computed": 100.10669549253979,
+   "vs_kinetics": -1.9965549854716755,
+   "vs_others_high_low": [
+    -1.900952691016613,
+    -0.6820234367145162
+   ],
+   "vs_calculated": [
+    -0.3952165533493144,
+    -0.4669182741906184
+   ],
+   "gross": false,
+   "claim": "no claim (numbers only)",
+   "name": "bromomethane C-H"
+  },
+  {
+   "computed": 96.57170244638863,
+   "vs_kinetics": -2.042064284012909,
+   "vs_others_high_low": [
+    -7.1328864637452085,
+    -1.3250470755998975
+   ],
+   "vs_calculated": [
+    -0.7992344560970253,
+    -0.5841292935731275
+   ],
+   "gross": false,
+   "claim": "no claim (numbers only)",
+   "name": "dibromomethane C-H"
+  },
+  {
+   "computed": 95.85008537655374,
+   "vs_kinetics": -1.186243495339184,
+   "vs_others_high_low": [
+    1.92083107445049,
+    1.92083107445049
+   ],
+   "vs_calculated": [
+    -0.660430875836326,
+    -0.8038343175189198
+   ],
+   "gross": false,
+   "claim": "no claim (numbers only)",
+   "name": "bromochloromethane C-H"
+  },
+  {
+   "computed": 97.56531349800755,
+   "vs_kinetics": -1.622066999124371,
+   "vs_others_high_low": [
+    0.36168061081826863,
+    3.373152886152866
+   ],
+   "vs_calculated": [],
+   "gross": false,
+   "claim": "no claim (numbers only)",
+   "name": "bromoethane alpha C-H"
+  }
+ ],
+ "rows": [
+  {
+   "name": "bromomethane C-H",
+   "dh_ref": 102.10325047801146,
+   "uncertainty": 0.5736137667304014,
+   "dh_kcal": 100.10669549253979,
+   "s2": 0.756979,
+   "element": "C",
+   "excluded": true,
+   "selected": {
+    "parent": {
+     "structure": "parent|CBr|0",
+     "lowest_frequency": 633.5,
+     "method": "analytic"
+    },
+    "radical": {
+     "structure": "radical|bromomethane C-H|0",
+     "lowest_frequency": 228.02,
+     "method": "analytic"
+    }
+   },
+   "numerical_no_result": []
+  },
+  {
+   "name": "dibromomethane C-H",
+   "dh_ref": 98.61376673040154,
+   "uncertainty": 0.6453154875717018,
+   "dh_kcal": 96.57170244638863,
+   "s2": 0.756879,
+   "element": "C",
+   "excluded": true,
+   "selected": {
+    "parent": {
+     "structure": "parent|BrCBr|0",
+     "lowest_frequency": 174.83,
+     "method": "analytic"
+    },
+    "radical": {
+     "structure": "radical|dibromomethane C-H|0",
+     "lowest_frequency": 188.14,
+     "method": "analytic"
+    }
+   },
+   "numerical_no_result": []
+  },
+  {
+   "name": "bromochloromethane C-H",
+   "dh_ref": 97.03632887189292,
+   "uncertainty": 0.5736137667304014,
+   "dh_kcal": 95.85008537655374,
+   "s2": 0.756516,
+   "element": "C",
+   "excluded": true,
+   "selected": {
+    "parent": {
+     "structure": "parent|ClCBr|0",
+     "lowest_frequency": 230.21,
+     "method": "analytic"
+    },
+    "radical": {
+     "structure": "radical|bromochloromethane C-H|0",
+     "lowest_frequency": 246.91,
+     "method": "analytic"
+    }
+   },
+   "numerical_no_result": []
+  },
+  {
+   "name": "bromoethane alpha C-H",
+   "dh_ref": 99.18738049713193,
+   "uncertainty": 0.6453154875717018,
+   "dh_kcal": 97.56531349800755,
+   "s2": 0.756579,
+   "element": "C",
+   "excluded": true,
+   "selected": {
+    "parent": {
+     "structure": "parent|CCBr|0",
+     "lowest_frequency": 262.63,
+     "method": "analytic"
+    },
+    "radical": {
+     "structure": "radical|bromoethane alpha C-H|0",
+     "lowest_frequency": 154.62,
+     "method": "analytic"
+    }
+   },
+   "numerical_no_result": []
+  }
+ ]
+}
