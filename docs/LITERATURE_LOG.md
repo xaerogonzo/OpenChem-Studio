@@ -128,6 +128,23 @@ transcribed. Registry keys are authoritative for the citations; DOIs are in `doc
 | the patent for the same compound (CN 117447330 A) | Chinese patent application | its OB | full (6 pages) | prints -40.00, the halogens ignored; disagrees with the paper above and is not followed | none beyond the one compound's melting point |
 | *Blue-Colored Pyrotechnics using Copper(I) Bromide as Emitter* (inside the 564-page 42nd IPS Seminar proceedings, 2016) | Juknelevicius et al., a chapter in the proceedings | bromates and a bromide in compositions | the chapter's two tables | gives the compositions at a design target of "about -10%", not a balance per mixture; my arithmetic with HBr/KBr gives -5 to -13 across its eight, consistent but too loose to test | the proceedings are a 564-page pyrotechnics volume (this chapter alone gives burn rates, sensitivities and colour data for eight compositions); its other papers are not catalogued; `bis-isoxazole dinitrate` there prints OB on both bases |
 
+## Crystal-density candidates for the Phase B density arm (2026-10-27)
+
+The three published density methods that the preregistration (`benchmarks/energetics_props/PREREGISTRATION.md`
+section 17) names as candidates D1, D4a and D4b. The tables are drawings or rotated scans, so each was rendered at
+200 dpi and read by eye, then checked three ways (a row against its own arithmetic, a row against the printed
+correlation, the two authors against each other). **The full transcriptions are not in the repository** (about 360
+rows; the owner's instruction on bulk tables); the committed manifest holds counts, hashes and the findings by id.
+
+| file or key | what it is | read for | depth | outcome | also holds (for later) |
+|---|---|---|---|---|---|
+| `tarver1979` | Tarver, J. Chem. Eng. Data 24 (1979) 136, group additivity for explosive densities | candidate D1 | Tables I, III, V (188 compounds) and the group volumes (26 + 47) in full | parameters transcribed and every group volume checked cell by cell; **the volume printed for furan is half its group sum** and 12 other rows disagree with their own arithmetic or formula | a measured-density column for 188 compounds, with the author's own error for each |
+| `keshavarz2009_nitro` | Keshavarz and Pouretedal, J. Hazard. Mater. 169 (2009) 158, nitroaliphatics, nitrate esters and nitramines | candidate D4a | Tables 1 (72) and 2 (41) in full | every row reproduced by its printed correlation; reports an rms deviation in percent, so the 1.5x replication criterion is not applied; 80 of the 84 compounds shared with Tarver agree with its copy of Tarver's column to the printed digit | the ED/EI rules the author applies row by row |
+| `keshavarz2009_arene` | Keshavarz, J. Hazard. Mater. 165 (2009) 579, polynitro arenes and heteroarenes | candidate D4b | Tables 1-4 (46 + 13) in full | **the CNG coefficient is printed -0.751 and only -0.0751 reproduces its tables**; Table 1's caption says 25 compounds and the table holds 21; five drawn structures could not be resolved to a connectivity | its reference list: two 2007 density papers by the same author and Nielsen's 1973 report are not held (recorded in `literature.toml`) |
+
+Of the 256 distinct compounds the three papers print, 6 are in the COD corpus's manifest (1 in development, 5 held out),
+so they are removed from these models' evaluation and counted. Nothing in these papers was compared with a COD label.
+
 ## How to use this
 
 Before searching for a reference for a tautomer system, look here. A paper listed as "not an energy
