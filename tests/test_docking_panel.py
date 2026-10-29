@@ -1394,3 +1394,37 @@ def test_a_shown_rescore_header_is_still_checked(qapp):
     # being measured rather than skipped.
     assert _header_shortfalls(panel) == []
     assert checked == set()
+
+
+def test_the_score_column_is_called_a_score_not_an_affinity(qapp):
+    panel, _engine, _service = _make_panel()
+    headers = [panel._table.horizontalHeaderItem(c).text() for c in range(panel._table.columnCount())]
+    assert "Vina score (kcal/mol)" in headers
+    assert not any("affinity" in header.lower() for header in headers)
+    tooltip = panel._table.horizontalHeaderItem(1).toolTip()
+    assert "POSE score, not a binding affinity" in tooltip
+
+
+def test_failed_physical_checks_are_stated_under_the_table_and_on_the_row(qapp):
+    from openchem.chem.pose_plausibility import METADATA_KEY
+
+    panel, _engine, _service = _make_panel()
+    result = _result_with(_replicate_set(-8.79), affinities=(-8.79, -8.1))
+    result.poses[1].metadata[METADATA_KEY] = {
+        "checks": {"receptor_clash": {"passed": False, "detail": "3 atom pair(s) too close"}},
+        "failed": ["receptor_clash"],
+    }
+    result.poses[0].metadata[METADATA_KEY] = {"checks": {}, "failed": []}
+    panel._show_result(result)
+
+    assert panel._checks_label.isHidden() is False
+    assert "1 of 2 pose(s) failed" in panel._checks_label.text()
+    assert "pose 2 clashes with the receptor" in panel._checks_label.text()
+    assert "3 atom pair(s) too close" in panel._table.item(1, 1).toolTip()
+    assert panel._table.item(0, 1).toolTip() == ""
+
+
+def test_a_result_with_no_checks_shows_no_checks_line(qapp):
+    panel, _engine, _service = _make_panel()
+    panel._show_result(_result_with(_replicate_set(-8.79)))
+    assert panel._checks_label.isHidden() is True

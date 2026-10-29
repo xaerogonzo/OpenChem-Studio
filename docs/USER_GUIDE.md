@@ -1570,10 +1570,13 @@ In the **Docking** panel:
    The columns carry their definitions as tooltips, because two of them
    are routinely misread:
 
-   - **Binding Affinity (kcal/mol)** — Vina's empirical score. Always
-     negative; more negative is predicted-tighter. It is *not* a measured
-     binding free energy, and scores are generally not comparable across
-     different receptors, targets or docking protocols. For scale, Trott &
+   - **Vina score (kcal/mol)** — Vina's empirical score. Always negative;
+     more negative is a better fit to Vina's scoring function. It is a
+     *pose score, not a binding affinity*: not a measured binding free
+     energy and not a Kd. Use it to order the poses of one ligand in one
+     receptor, or to compare a series of similar ligands docked the same
+     way; scores are generally not comparable across different receptors,
+     targets or docking protocols. For scale, Trott &
      Olson (2010) report a standard error of 2.85 kcal/mol against
      experimental binding free energies on their own 190-complex set
      ([source:trott_olson2010]), so a gap smaller than that is not a
@@ -1585,6 +1588,20 @@ In the **Docking** panel:
      allows symmetry-equivalent atoms, so l.b. ≤ u.b. always. A large value
      means a geometrically different pose from pose 1 — it says nothing
      about whether either is correct.
+
+   Under the table the panel also states the result of four **physical
+   checks** on every pose, with each row's detail in its tooltip: a ligand
+   atom closer to a receptor atom than 0.75 of their van der Waals sum, the
+   ligand folded through itself (atoms five or more bonds apart that close),
+   an atom outside the search box (1 Å of slack), and a pose that touches no
+   receptor atom within 4.5 Å. They catch *impossible* poses, not *wrong*
+   ones: a pose that passes all four can still be in the wrong place. Bond
+   lengths, angles and ring planarity are not checked, because Vina keeps
+   every bond rigid and moves only torsions, and the pose reaches the
+   application through a PDBQT file that does not carry them faithfully. This
+   is the application's own implementation of the idea in PoseBusters, not
+   that package. If the search-box check fails on a pose, the box was too
+   small or misplaced.
 5. **Optionally, rescore.** *Rescore with* scores every pose a second time
    with a different function after the search, and is **off by default**.
    Vina is documented as strong at finding the right pose and weaker at
@@ -1599,10 +1616,10 @@ In the **Docking** panel:
    leaving it in a tooltip.
 
    Two things that surprise people: choosing **Vina** here does *not*
-   reproduce the affinity column for any pose but the first, because a
+   reproduce the score column for any pose but the first, because a
    docking run uses one shared unbound reference for all its poses while a
    rescore uses each pose's own; and **nothing re-ranks on the second
-   column**. The poses stay ordered by the affinity, because whether
+   column**. The poses stay ordered by the Vina score, because whether
    Vinardo ranks better on your receptor is not something this application
    has measured. Driven on 5C1M the two disagreed outright — Vina's best
    pose was the worst of the first three by Vinardo.

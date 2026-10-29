@@ -225,6 +225,32 @@ def test_docking_result_poses_are_annotated_with_interactions(qapp):
     assert metadata["clashes"] == []
 
 
+def test_docking_result_poses_carry_the_physical_checks_with_the_search_box(qapp):
+    """The checks run in the service, where the box is known: this pose is 3 A from a receptor
+    oxygen (no clash, touching) but 16 A from a box centred at the origin."""
+    bus = EventBus()
+    provider = _AnalyzablePoseDockingProvider()
+    service = DockingService(bus, _make_settings(bus), providers={provider.provider_id: provider})
+    results = []
+    bus.subscribe(DockingResultReady, lambda e: results.append(e.result))
+
+    service.request_docking(
+        ligand_molecule_uuid="lig-1",
+        ligand_mol=Chem.MolFromSmiles("CCO"),
+        receptor_macromolecule_uuid="rec-1",
+        receptor_structure_text=_RECEPTOR_PDB_FOR_ANALYSIS,
+        receptor_source_format="pdb",
+        box=DockingBox(center=(0, 0, 0), size=(20, 20, 20)),
+        provider_id="analyzable",
+    )
+    _drain(qapp)
+
+    plausibility = results[0].poses[0].metadata["plausibility"]
+    assert plausibility["failed"] == ["in_search_box"]
+    assert plausibility["checks"]["receptor_clash"]["passed"] is True
+    assert plausibility["checks"]["touches_receptor"]["passed"] is True
+
+
 def test_docking_request_rejected_while_one_already_running(qapp):
     bus = EventBus()
     provider = FakeDockingProvider()
