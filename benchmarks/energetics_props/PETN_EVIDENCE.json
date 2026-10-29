@@ -368,7 +368,7 @@
    "locator": "C5H12O4 entry, seven rows",
    "lineage_root": "1995FON/MUN; 1994FON/MUN; 1990BAR/DEL; 1951NIT/SEK2,1960JON; 1953BRA/COT,1960JON",
    "independent_of_inventory": "yes",
-   "note": "a 67 kJ/mol spread across the rows; the compilers keep the polymorph label; CRC's gas column (-776.7) uses 143.9"
+   "note": "a 67 kJ/mol spread across the rows; the compilers keep the polymorph label; CRC's gas column (-776.7) uses 143.9; the 131.3 (403 K) row is Nitta's value re-reported by Font and Muntasell 1994 (G68), and the 131.4 and 143.9 rows are the two older papers Jones 1960 compiles (G69), so the seven rows rest on five measurements at most"
   },
   {
    "id": "B04",
@@ -2241,6 +2241,86 @@
    "lineage_root": "Medard and Thomas 1954 (the 1972 paper names Stohmann and Langbein as the alternative it did not prefer)",
    "independent_of_inventory": "no: same root as B01, so one lineage_root however many books print it",
    "note": "The 1993 gas value -776.70 is -920.60 + 143.9 exactly: the same solid plus one sublimation row, so it adds no root. Domalski 1972 p. 230, pyrocatechol entry, says Stohmann and Langbein used an oxygen bomb calorimeter."
+  },
+  {
+   "id": "G65",
+   "group": "G_medard_thomas_substitutes",
+   "compound": "nitroisobutylglycerol trinitrate (NIBGT): the 2017 thermal-analysis paper's table",
+   "property": "enthalpy_combustion_copied",
+   "value": "Table 3: heat of combustion 2205.2 kJ/mol for NIBGT, footnote b 'taken from the literature [38]' (Zeman, Thermochim. Acta 261 (1995) 195-207); the same footnote marks DiPEHN 5250.0, TMPTN 2175.5 and TMETN 2811.0. The paper's own DSC decomposition heat for NIBGT is 153.4 kJ/mol",
+   "unit": "kJ/mol",
+   "value_kind": "measured",
+   "phase_form": "not stated by the paper (NIST prints the same figure for the solid)",
+   "temperature": "not stated (298 K assumed)",
+   "source": "Dong, Yan, Liu, He, Qi and Zeman, J. Therm. Anal. Calorim. 131 (2018) 1391-1403, [DOI in the maintainer's library], Table 3 with its footnotes, the Experimental paragraph and the reference list (file dong2017.pdf, text layer read)",
+   "locator": "Table 3, PDF p. 8, footnote b; references 38-39; Experimental paragraph, PDF p. 3",
+   "lineage_root": "Medard and Thomas, Mem. Poudres 31 (1949) 196: 2205.2 is the figure NIST prints for it (G02), reached here through Zeman 1995",
+   "independent_of_inventory": "NO: a copy, although the Experimental paragraph says the heats of combustion of the ten esters were tested by bomb calorimetry (ASTM D2015 and D4809, benzoic acid calibrated)",
+   "note": "It reads like a new measurement and is not one for this compound: the table's own footnote gives the value to the literature. It does not support either side of the 176 kJ/mol gap (G63). The DSC decomposition heat is decomposition evidence only, not a formation value."
+  },
+  {
+   "id": "G66",
+   "group": "G_medard_thomas_substitutes",
+   "compound": "nitroisobutylglycerol trinitrate (NIBGTN): a patent's background sentence",
+   "property": "enthalpy_formation_stated",
+   "value": "dH = -54 kcal/mol (= -225.9 kJ/mol), printed in the opening paragraph of the description beside a density of 1.634 g/cm3 and a crystallisation point of -35 C; no method, phase, temperature or source is given",
+   "unit": "kcal/mol",
+   "value_kind": "unlabelled",
+   "phase_form": "not stated",
+   "temperature": "not stated",
+   "source": "Russian Federation patent RU 2316538 C1 (FGUP 'Kristall'; filed 2006-07-17, published 2008-02-10), description, PDF p. 3 (file RU2316538C1.pdf, read; the text layer is cp1251 read as latin-1 and was re-decoded)",
+   "locator": "opening paragraph of the description",
+   "lineage_root": "unstated; equals NIST's -226.0 and G62's -226.8 to within 1 kJ/mol, so presumably the Medard and Thomas root",
+   "independent_of_inventory": "NO: an unsourced statement of the same number",
+   "note": "A preparation-method patent (nitration, wash and stabilisation steps), not a measurement. It cites Hofwimmer 1912 and Stettbacher 1934 for the compound's discovery and preparation and no thermochemical source. RU2318789C1, a propellant-composition patent in the same download, holds no enthalpy for the compound."
+  },
+  {
+   "id": "G67",
+   "group": "G_medard_thomas_substitutes",
+   "compound": "nitroisobutylglycerol trinitrate (NIBTN) in the 1971 handbook AMCP 706-177",
+   "property": "searched_and_not_found",
+   "value": "The entry (liquid; PDF pp. 251-253) holds no enthalpy of combustion, formation or explosion. It prints: molecular weight 286, oxygen balance to CO2 0.0 %, density 1.64 g/cm3 (20 C), freezing point -39 C, explosion temperature 185 C (5 s), impact 25 cm (Bureau of Mines, 20 mg), sand test 28 g, detonation rate 7360 m/s at 1.64 g/cm3",
+   "unit": "",
+   "value_kind": "unlabelled",
+   "phase_form": "liquid",
+   "temperature": "20 C for the density",
+   "source": "Engineering Design Handbook, Explosives Series, Properties of Explosives of Military Interest, AMCP 706-177, US Army Materiel Command, January 1971, printed pp. 243-245 (a scan with no text layer: OCR located the entry and the data sheet was read on the rendered page)",
+   "locator": "PDF pp. 251-253; reference list on PDF p. 253",
+   "lineage_root": "n/a",
+   "independent_of_inventory": "n/a",
+   "note": "Its references: Aaronson PATR 1125 (1941), Aubry Mem. Poudres 25 (1932-33), Stettbacher 1934 and 1942, Hofwimmer 1912, and Hibshman, Pierson and Haas, Ind. Eng. Chem. 32 (1940) 427, read in full ('Nitration of ethane': a preparation paper, no calorimetry). Mine: with a zero oxygen balance a heat of explosion to CO2, H2O and N2 is the bomb reaction, so the 'explosion or combustion' label question of G59 changes only the water phase, which G59 gives as liquid."
+  },
+  {
+   "id": "G68",
+   "group": "G_medard_thomas_substitutes",
+   "compound": "pentaerythritol",
+   "property": "enthalpy_sublimation",
+   "value": "131.3 kJ/mol at 403 K, vapour pressure 0.42 Pa: Table 3 row 'PE**', 'Experimental values of PE** are determined by Nitta et al. (2)'. The text: 'We can't measure PE since its effusion rate is too low for our working temperatures (the upper limit is 373 K)' and, for its Table 3, the sublimation enthalpy and vapour pressure 'from the literature (2)'",
+   "unit": "kJ/mol",
+   "value_kind": "measured",
+   "phase_form": "crystalline, tetragonal (Nitta's sample)",
+   "temperature": "403 K, the middle of Nitta's 397-410 K",
+   "source": "Font and Muntasell, Mater. Res. Bull. 29 (1994) 1091-1100, [DOI in the maintainer's library], Table 3, its heading and the paragraph before it (file font1994.pdf, text layer read)",
+   "locator": "Table 3, row PE**; reference 2",
+   "lineage_root": "Nitta, Seki and Suzuki, Bull. Chem. Soc. Jpn 24 (1951) 63 (reference 2 of the paper): the 131.4 of G41, rounded differently",
+   "independent_of_inventory": "NO: Nitta's value re-reported",
+   "note": "NIST and Acree's Table 6 (B03) list this as a Font and Muntasell row (method C, 131.3 +/- 6.6): a third appearance of Nitta's value, not a separate measurement. B03's other two rows from these authors, coded 1995FON/MUN (134 +/- 7 crystalline, 441-460 K; 96 +/- 9 plastic, 465-477 K), are from a paper NOT read."
+  },
+  {
+   "id": "G69",
+   "group": "G_medard_thomas_substitutes",
+   "compound": "pentaerythritol (tetragonal)",
+   "property": "enthalpy_sublimation",
+   "value": "Table I, two rows 'Tetragonal pentaerythritol'. 124-137 C: 31.4 kcal/mol, 53.3 cal/deg/mol, log10 p(mm Hg) = 14.525 - 6861/T, method E. 106-135 C: 34.4 kcal/mol, 60.8 cal/deg/mol, 16.17 - 7528/T, method E",
+   "unit": "kcal/mol",
+   "value_kind": "measured",
+   "phase_form": "tetragonal",
+   "temperature": "the middle of each range; not corrected to 298 K",
+   "source": "Jones, J. Chem. Eng. Data 5 (1960) 196-200, [DOI in the maintainer's library], Table I, printed p. 199 (rendered rows read; file jones1960.pdf)",
+   "locator": "Table I, the two rows",
+   "lineage_root": "the first row is Nitta, Seki and Suzuki 1951, the second Bradley and Cotson 1953 (G41): the constants match theirs",
+   "independent_of_inventory": "NO: a compilation of two measurements already held",
+   "note": "Neither row carries the footnote mark for the data Jones judged most acceptable. Acree's Table 6 (B03) cites him as 1960JON beside both. Counting Jones, Font (G68) and the second 163.0 (Barone's own 298 K figure, G11), the four values 131.4, 143.9, 161.0 and 163.0 come from three measurements: Nitta 1951, Bradley and Cotson 1953, Barone 1990."
   }
  ]
 }
