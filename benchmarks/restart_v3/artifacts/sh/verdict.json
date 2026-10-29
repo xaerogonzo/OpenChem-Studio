@@ -1,0 +1,164 @@
+{
+ "arm": "sh",
+ "verdict": "PARTIAL",
+ "problem": null,
+ "deciding": {
+  "count": 4,
+  "missing": 0,
+  "mae": 1.7759480901051,
+  "mse": -1.7759480901051,
+  "max_abs": 2.897897860345495
+ },
+ "standard_error": 0.41663676172750064,
+ "within_band_of": [
+  "mean signed error 1.78 is within 0.7 of its limit 1.5"
+ ],
+ "anchor_sensitivity": {
+  "combined": {
+   "shift": 0.3170644402444887,
+   "stats": {
+    "count": 4,
+    "missing": 0,
+    "mae": 2.0930125303495934,
+    "mse": -2.0930125303495934,
+    "max_abs": 3.2149623005899883
+   },
+   "verdict": "PARTIAL"
+  },
+  "wilson_alone": {
+   "shift": 0.5187246653919694,
+   "stats": {
+    "count": 4,
+    "missing": 0,
+    "mae": 2.2946727554970714,
+    "mse": -2.2946727554970714,
+    "max_abs": 3.4166225257374663
+   },
+   "verdict": "PARTIAL"
+  }
+ },
+ "rows": [
+  {
+   "name": "ethanethiol S-H",
+   "dh_ref": 87.16,
+   "uncertainty": 0.53,
+   "dh_kcal": 85.31416365649895,
+   "s2": 0.75393,
+   "element": "S",
+   "excluded": false,
+   "selected": {
+    "parent": {
+     "structure": "parent|CCS|1",
+     "lowest_frequency": 208.18,
+     "method": "analytic"
+    },
+    "radical": {
+     "structure": "radical|ethanethiol S-H|1#numerical",
+     "lowest_frequency": 229.77,
+     "method": "numerical",
+     "verified": true,
+     "shift_kcal": 0.8509404974197389,
+     "size_note": null
+    }
+   },
+   "numerical_no_result": []
+  },
+  {
+   "name": "1-propanethiol S-H",
+   "dh_ref": 87.71777857926702,
+   "uncertainty": 0.6246865508669118,
+   "dh_kcal": 84.81988071892152,
+   "s2": 0.753921,
+   "element": "S",
+   "excluded": false,
+   "selected": {
+    "parent": {
+     "structure": "parent|CCCS|0",
+     "lowest_frequency": 115.24,
+     "method": "analytic"
+    },
+    "radical": {
+     "structure": "radical|1-propanethiol S-H|2",
+     "lowest_frequency": 130.26,
+     "method": "analytic"
+    }
+   },
+   "numerical_no_result": []
+  },
+  {
+   "name": "2-propanethiol S-H",
+   "dh_ref": 87.07717309226896,
+   "uncertainty": 0.6261661888602548,
+   "dh_kcal": 85.66354210637485,
+   "s2": 0.75394,
+   "element": "S",
+   "excluded": false,
+   "selected": {
+    "parent": {
+     "structure": "parent|CC(C)S|0",
+     "lowest_frequency": 188.97,
+     "method": "analytic"
+    },
+    "radical": {
+     "structure": "radical|2-propanethiol S-H|1#numerical",
+     "lowest_frequency": -201.71,
+     "method": "numerical",
+     "verified": false,
+     "shift_kcal": 0.48731130735463246,
+     "size_note": null
+    }
+   },
+   "numerical_no_result": []
+  },
+  {
+   "name": "2-methyl-2-propanethiol S-H",
+   "dh_ref": 87.36021960421927,
+   "uncertainty": 0.6261661888602548,
+   "dh_kcal": 86.41379243353953,
+   "s2": 0.753902,
+   "element": "S",
+   "excluded": false,
+   "selected": {
+    "parent": {
+     "structure": "parent|CC(C)(C)S|0",
+     "lowest_frequency": 190.11,
+     "method": "analytic"
+    },
+    "radical": {
+     "structure": "radical|2-methyl-2-propanethiol S-H|0#numerical",
+     "lowest_frequency": 203.17,
+     "method": "numerical",
+     "verified": true,
+     "shift_kcal": 1.3946649065142955,
+     "size_note": null
+    }
+   },
+   "numerical_no_result": []
+  },
+  {
+   "name": "methanethiol S-H",
+   "dh_ref": 87.35,
+   "uncertainty": 0.58,
+   "dh_kcal": 84.96943505184053,
+   "s2": 0.753892,
+   "element": "S",
+   "excluded": true,
+   "selected": {
+    "parent": {
+     "structure": "parent|CS|0",
+     "lowest_frequency": 223.29,
+     "method": "analytic"
+    },
+    "radical": {
+     "structure": "radical|methanethiol S-H|0#numerical",
+     "lowest_frequency": 600.75,
+     "method": "numerical",
+     "verified": true,
+     "shift_kcal": 0.990755883315894,
+     "size_note": null
+    }
+   },
+   "numerical_no_result": []
+  }
+ ]
+}

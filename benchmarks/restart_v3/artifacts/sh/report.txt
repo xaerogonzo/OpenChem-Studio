@@ -1,0 +1,18 @@
+ARM D (4 thiol S-H bonds; gas-phase acidity references that share an anchor, n = 4 with correlated errors)
+deciding n= 4 missing=0 MAE=1.78 MSE=-1.78 max=2.90
+VERDICT PARTIAL
+standard error of the mean error: 0.42 kcal/mol
+within 0.7 kcal/mol of a limit, so the two sides cannot be told apart: mean signed error 1.78 is within 0.7 of its limit 1.5
+SENSITIVITY TO THE SHARED METHANETHIOL ANCHOR (not a correction; the verdict above is read on Ervin's references as they stand): every reference raised by the most the anchor could move it:
+    +0.32 kcal/mol (the anchor averaged with Wilson, Ashfold and Dixon 1994): MAE 2.09, MSE -2.09, max 3.21 -> PARTIAL
+    +0.52 kcal/mol (that measurement alone): MAE 2.29, MSE -2.29, max 3.42 -> PARTIAL
+Reference status: ethanethiol's is PUBLISHED (Ervin 2015); the others are DERIVED here from published acidities and electron affinities with a thermal step COMPUTED in thermal_step.py, not published numbers.
+Methanethiol's S-H (the first run's lost bond; Nicovich 1992) is printed beside the 4 bonds and does not enter the mean.
+1 bond(s) took their radical value from a numerical job that kept a mode below -20 cm-1 (enthalpy used and labelled): 2-propanethiol S-H
+
+bond                                             calc      ref   error
+ethanethiol S-H                                 85.31    87.16   -1.85  [lowest frequency parent 208, radical 230 cm-1; radical from the NUMERICAL job, +0.85 kcal/mol vs analytic]
+1-propanethiol S-H                              84.82    87.72   -2.90  [lowest frequency parent 115, radical 130 cm-1; radical analytic]
+2-propanethiol S-H                              85.66    87.08   -1.41  [lowest frequency parent 189, radical -202 cm-1; radical from the NUMERICAL job, +0.49 kcal/mol vs analytic; FREQUENCIES NOT VERIFIED]
+2-methyl-2-propanethiol S-H                     86.41    87.36   -0.95  [lowest frequency parent 190, radical 203 cm-1; radical from the NUMERICAL job, +1.39 kcal/mol vs analytic]
+methanethiol S-H                                84.97    87.35   -2.38  (beside, outside the verdict)  [lowest frequency parent 223, radical 601 cm-1; radical from the NUMERICAL job, +0.99 kcal/mol vs analytic]
