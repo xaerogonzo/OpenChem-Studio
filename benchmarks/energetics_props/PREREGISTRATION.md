@@ -492,4 +492,4 @@ R1 (12.1, D8) needs a gas-phase value whose two legs are each verified under 8.2
 
 ### 18.5 Status
 
-The pages read and the arithmetic above are the evidence; adding them as rows of `PETN_EVIDENCE.md` and its JSON is left to the pass that next edits that file, and **no row of any corpus is written by this amendment**. Nothing here changes a number of section 11, the sealed holdout, or any other section's rule beyond the wording of 3.1's row, the one paragraph added to 8.2 and the one sentence added to 12.1.
+The pages read and the arithmetic above are the evidence; they are recorded as rows B08 to B10 of `PETN_EVIDENCE.md` and its JSON, and **no row of any corpus is written by this amendment**. Nothing here changes a number of section 11, the sealed holdout, or any other section's rule beyond the wording of 3.1's row, the one paragraph added to 8.2 and the one sentence added to 12.1.
