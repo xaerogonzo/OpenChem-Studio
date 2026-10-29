@@ -6371,6 +6371,139 @@ transcribed. Journal, volume, pages and DOI are printed on the file's first page
 """
 
 
+[[source]]
+key = "holland2016"
+kind = "literature"
+citation = "D. Holland et al., 'A study of the valence shell electronic states of s-triazine by photoabsorption spectroscopy and ab initio calculations', Chemical Physics 477, 96-104 (2016)."
+identifier_type = "doi"
+identifier = "10.1016/j.chemphys.2016.07.019"
+status = "reference_only"
+used_by = ["docs/QUANTUM_PROGRAM_NOTES.md"]
+verification = "citation"
+verified_date = 2026-10-29
+note = "Checked against the Crossref record on 2026-10-29: authors, title, journal, volume, pages and year are the record's, and match how the assistant notes cite it."
+reason = """
+Listed among the cation-state literature leads in docs/QUANTUM_PROGRAM_NOTES.md (valence-shell electronic states of s-triazine, Chem. Phys. 477, 96 (2016)). Backs nothing shipped; recorded because that page cites it.
+"""
+
+[[source]]
+key = "dewar1969"
+kind = "literature"
+citation = "M. J. S. Dewar & S. D. Worley, 'Photoelectron Spectra of Molecules. II. The Ionization Potentials of Azabenzenes and Azanaphthalenes', The Journal of Chemical Physics 51, 263-267 (1969)."
+identifier_type = "doi"
+identifier = "10.1063/1.1671718"
+status = "reference_only"
+used_by = ["docs/QUANTUM_PROGRAM_NOTES.md"]
+verification = "citation"
+verified_date = 2026-10-29
+note = "Checked against the Crossref record on 2026-10-29: authors, title, journal, volume, pages and year are the record's, and match how the assistant notes cite it."
+reason = """
+Listed among the cation-state literature leads in docs/QUANTUM_PROGRAM_NOTES.md (Dewar and Worley, J. Chem. Phys. 51, 263 (1969), ionization potentials of azabenzenes). Backs nothing shipped; recorded because that page cites it.
+"""
+
+[[source]]
+key = "deleuze2001"
+kind = "literature"
+citation = "M. S. Deleuze, A. B. Trofimov & L. S. Cederbaum, 'Valence one-electron and shake-up ionization bands of polycyclic aromatic hydrocarbons. I. Benzene, naphthalene, anthracene, naphthacene, and pentacene', The Journal of Chemical Physics 115, 5859-5882 (2001)."
+identifier_type = "doi"
+identifier = "10.1063/1.1386414"
+status = "reference_only"
+used_by = ["docs/QUANTUM_PROGRAM_NOTES.md"]
+verification = "citation"
+verified_date = 2026-10-29
+note = "Checked against the Crossref record on 2026-10-29: authors, title, journal, volume, pages and year are the record's, and match how the assistant notes cite it."
+reason = """
+Listed among the cation-state literature leads in docs/QUANTUM_PROGRAM_NOTES.md (polycyclic aromatic hydrocarbons, part I, J. Chem. Phys. 115, 5859 (2001)). Backs nothing shipped; recorded because that page cites it.
+"""
+
+[[source]]
+key = "deleuze2002"
+kind = "literature"
+citation = "M. S. Deleuze, 'Valence one-electron and shake-up ionization bands of polycyclic aromatic hydrocarbons. II. Azulene, phenanthrene, pyrene, chrysene, triphenylene, and perylene', The Journal of Chemical Physics 116, 7012-7026 (2002)."
+identifier_type = "doi"
+identifier = "10.1063/1.1462615"
+status = "reference_only"
+used_by = ["docs/QUANTUM_PROGRAM_NOTES.md"]
+verification = "citation"
+verified_date = 2026-10-29
+note = "Checked against the Crossref record on 2026-10-29: authors, title, journal, volume, pages and year are the record's, and match how the assistant notes cite it."
+reason = """
+Listed among the cation-state literature leads in docs/QUANTUM_PROGRAM_NOTES.md (polycyclic aromatic hydrocarbons, part II, J. Chem. Phys. 116, 7012 (2002)). Backs nothing shipped; recorded because that page cites it.
+"""
+
+[[source]]
+key = "ayers2007"
+kind = "literature"
+citation = "P. W. Ayers, F. De Proft, A. Borgoo & P. Geerlings, 'Computing Fukui functions without differentiating with respect to electron number. I. Fundamentals', The Journal of Chemical Physics 126, 224107 (2007)."
+identifier_type = "doi"
+identifier = "10.1063/1.2736697"
+status = "reference_only"
+used_by = ["docs/QUANTUM_PROGRAM_NOTES.md"]
+verification = "citation"
+verified_date = 2026-10-29
+note = "Checked against the Crossref record on 2026-10-29: authors, title, journal, volume, pages and year are the record's, and match how the assistant notes cite it."
+reason = """
+Cited in docs/QUANTUM_PROGRAM_NOTES.md among the sources on computing Fukui functions without differentiating with respect to electron number (Part I of the series, J. Chem. Phys. 126, 224107 (2007)). Backs nothing shipped.
+"""
+
+[[source]]
+key = "fievez2008"
+kind = "literature"
+citation = "T. Fievez et al., 'Calculation of Fukui Functions Without Differentiating to the Number of Electrons. 3. Local Fukui Function and Dual Descriptor', Journal of Chemical Theory and Computation 4, 1065-1072 (2008)."
+identifier_type = "doi"
+identifier = "10.1021/ct800027e"
+status = "reference_only"
+used_by = ["docs/QUANTUM_PROGRAM_NOTES.md"]
+verification = "citation"
+verified_date = 2026-10-29
+note = "Checked against the Crossref record on 2026-10-29: authors, title, journal, volume, pages and year are the record's, and match how the assistant notes cite it."
+reason = """
+Cited in docs/QUANTUM_PROGRAM_NOTES.md among the sources on computing Fukui functions without differentiating with respect to electron number (Part III of the series, J. Chem. Theory Comput. 4, 1065 (2008)). Backs nothing shipped.
+"""
+
+[[source]]
+key = "bhaskarapillai2024"
+kind = "literature"
+citation = "A. Bhaskarapillai et al., 'Exploring the structural and electronic characteristics of phenethylamine derivatives: a density functional theory approach', Journal of Engineering and Applied Science 71, 136 (2024)."
+identifier_type = "doi"
+identifier = "10.1186/s44147-024-00461-3"
+status = "reference_only"
+used_by = ["docs/QUANTUM_PROGRAM_NOTES.md"]
+verification = "citation"
+verified_date = 2026-10-29
+note = "Checked against the Crossref record on 2026-10-29: authors, title, journal, volume, pages and year are the record's, and match how the assistant notes cite it."
+reason = """
+Cited in docs/QUANTUM_PROGRAM_NOTES.md as a paper that applies Fukui functions to large flexible molecules and was looked at for a usable table of Hirshfeld condensed values (the note's verdict: applied, large flexible molecules, not a reference table). Backs nothing shipped.
+"""
+
+[[source]]
+key = "li2024_prmt5"
+kind = "literature"
+citation = "Q. Q. Li et al., 'Design, Synthesis, and Biological Evaluation of 3,4-Dihydroisoquinolin-1(2H)-one Derivatives as Protein Arginine Methyltransferase 5 Inhibitors for the Treatment of Non-Hodgkin’s Lymphoma', Journal of Medicinal Chemistry 68, 108-134 (2025; Crossref gives 2024 as the online date)."
+identifier_type = "doi"
+identifier = "10.1021/acs.jmedchem.4c01548"
+status = "reference_only"
+used_by = ["docs/PRODUCT_PLANNING_NOTES.md"]
+verification = "citation"
+verified_date = 2026-10-29
+note = "Checked against the Crossref record on 2026-10-29: authors, title, journal, volume, pages and year are the record's; the title names protein arginine methyltransferase 5, which is the PRMT5 paper the assistant notes describe."
+reason = """
+Cited in docs/PRODUCT_PLANNING_NOTES.md as paper ID 1 of the synthesis planner benchmark's protocol 2 wider-frame sample, matched to its reference by the PDF text layer when the paper was obtained (2026-10-24). The benchmark results are under benchmarks/synthesis/; this paper backs nothing shipped.
+"""
+
+[[source]]
+key = "deshpande2024"
+kind = "literature"
+citation = "S. R. Deshpande, M. T. Mandalamari, P. V. Malagi & C. V. M., 'Synthesis, In Silico Analysis, Antibacterial, Radical Scavenging and Antidiabetic Activities of Certain Bis-Azetidinones and Bis-Thiazolidinones', Pharmaceutical Chemistry Journal 58, 62-73 (2024)."
+identifier_type = "doi"
+identifier = "10.1007/s11094-024-03119-9"
+status = "reference_only"
+used_by = ["docs/PRODUCT_PLANNING_NOTES.md"]
+verification = "unverified"
+reason = """
+Cited in docs/PRODUCT_PLANNING_NOTES.md as the DOI of spare 2 in the synthesis planner benchmark's protocol 2 wider-frame sample, a spare whose PDF was not obtained. The DOI resolves in Crossref to the paper recorded here; whether it is the paper the draw meant was not checked. Backs nothing shipped.
+"""
+
 # =============================================================================
 # Datasets
 # =============================================================================

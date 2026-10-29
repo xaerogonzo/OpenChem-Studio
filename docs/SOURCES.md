@@ -1,5 +1,5 @@
 <!-- GENERATED FROM docs/sources.toml -- do not edit -->
-<!-- SOURCE SHA256: 64e589635b692d37c37379ff3d989793cddbfc2a76d4cc8ed90e62d438ce517c -->
+<!-- SOURCE SHA256: 57f4cef7c66db290d890c413766140f546e2e15e4bd607f9ba7a13c881d6a0b4 -->
 
 # Sources
 
@@ -106,6 +106,7 @@ next run of `tools/build_lewis_parameters.py`.
 | [`autodock_vina`](#autodock_vina) | software | shipped | citation + claim |
 | [`avdeef2007`](#avdeef2007) | literature | shipped | citation + claim |
 | [`avdeef2020`](#avdeef2020) | literature | shipped | citation + claim |
+| [`ayers2007`](#ayers2007) | literature | reference only | citation |
 | [`baell2010`](#baell2010) | literature | shipped | citation |
 | [`bakewell2016`](#bakewell2016) | literature | reference only | citation |
 | [`bakowies1996`](#bakowies1996) | literature | **not shipped** | citation + claim |
@@ -117,6 +118,7 @@ next run of `tools/build_lewis_parameters.py`.
 | [`belova2014`](#belova2014) | literature | shipped | citation + claim |
 | [`bento2020`](#bento2020) | literature | shipped | citation + claim |
 | [`bertz1981`](#bertz1981) | literature | shipped | citation |
+| [`bhaskarapillai2024`](#bhaskarapillai2024) | literature | reference only | citation |
 | [`bickerton2012`](#bickerton2012) | literature | shipped | citation |
 | [`bilbrey2013`](#bilbrey2013) | literature | shipped | citation |
 | [`bird1985`](#bird1985) | literature | shipped | citation |
@@ -157,8 +159,12 @@ next run of `tools/build_lewis_parameters.py`.
 | [`cwc_annex_on_chemicals`](#cwc_annex_on_chemicals) | legal | shipped | citation + claim |
 | [`dea_listed_chemicals`](#dea_listed_chemicals) | legal | shipped | citation |
 | [`delaney2004`](#delaney2004) | literature | shipped | citation + claim |
+| [`deleuze2001`](#deleuze2001) | literature | reference only | citation |
+| [`deleuze2002`](#deleuze2002) | literature | reference only | citation |
 | [`deproft2002`](#deproft2002) | literature | shipped | citation + claim |
+| [`deshpande2024`](#deshpande2024) | literature | reference only | unverified |
 | [`devine2008`](#devine2008) | literature | reference only | citation + claim |
+| [`dewar1969`](#dewar1969) | literature | reference only | citation |
 | [`dimorphite_dl`](#dimorphite_dl) | software | shipped | citation |
 | [`dittwald2014`](#dittwald2014) | literature | reference only | citation |
 | [`drago1965`](#drago1965) | literature | shipped | citation + claim |
@@ -176,6 +182,7 @@ next run of `tools/build_lewis_parameters.py`.
 | [`eyet2009`](#eyet2009) | literature | reference only | citation + claim |
 | [`feinstein2015`](#feinstein2015) | literature | shipped | citation + claim |
 | [`ferro2018`](#ferro2018) | literature | reference only | citation + claim |
+| [`fievez2008`](#fievez2008) | literature | reference only | citation |
 | [`fogarasi2010`](#fogarasi2010) | literature | shipped | citation + claim |
 | [`ganyecz2019`](#ganyecz2019) | literature | reference only | citation |
 | [`gasteiger1980`](#gasteiger1980) | literature | shipped | citation + claim |
@@ -209,6 +216,7 @@ next run of `tools/build_lewis_parameters.py`.
 | [`hejazi2016`](#hejazi2016) | literature | reference only | citation |
 | [`hlb`](#hlb) | reference_table | reference only | citation |
 | [`holland2013`](#holland2013) | literature | shipped | citation + claim |
+| [`holland2016`](#holland2016) | literature | reference only | citation |
 | [`holland2017`](#holland2017) | literature | shipped | citation + claim |
 | [`hopfinger2009`](#hopfinger2009) | dataset | shipped | citation |
 | [`huber1979`](#huber1979) | literature | reference only | citation + claim |
@@ -246,6 +254,7 @@ next run of `tools/build_lewis_parameters.py`.
 | [`langes15`](#langes15) | reference_table | shipped | citation + claim |
 | [`lease2023`](#lease2023) | literature | shipped | citation + claim |
 | [`leplat2013`](#leplat2013) | literature | reference only | citation + claim |
+| [`li2024_prmt5`](#li2024_prmt5) | literature | reference only | citation |
 | [`li2024retrobleu`](#li2024retrobleu) | literature | reference only | citation |
 | [`lim2007`](#lim2007) | literature | reference only | citation + claim |
 | [`llinas2008`](#llinas2008) | dataset | shipped | citation |
@@ -6352,6 +6361,165 @@ volume, pages and DOI are printed on the file's first page.
 **Why it is reference only.** CYTOSINE CORROBORATION, NOT A ROW. CCSD(T)-F12/cc-pVTZ-F12 composite results for cytosine
 tautomers and rotamers, relative electronic energies tabulated in cm-1. No number was
 transcribed. Journal, volume, pages and DOI are printed on the file's first page.
+
+### holland2016
+
+<a id="holland2016"></a>
+
+> D. Holland et al., 'A study of the valence shell electronic states of s-triazine by photoabsorption spectroscopy and ab initio calculations', Chemical Physics 477, 96-104 (2016).
+
+| | |
+| --- | --- |
+| Identifier | [10.1016/j.chemphys.2016.07.019](https://doi.org/10.1016/j.chemphys.2016.07.019) |
+| Status | reference only |
+| Verification | citation |
+| Verified | 2026-10-29 |
+| Used by | `docs/QUANTUM_PROGRAM_NOTES.md` |
+
+**Why it is reference only.** Listed among the cation-state literature leads in docs/QUANTUM_PROGRAM_NOTES.md (valence-shell electronic states of s-triazine, Chem. Phys. 477, 96 (2016)). Backs nothing shipped; recorded because that page cites it.
+
+Checked against the Crossref record on 2026-10-29: authors, title, journal, volume, pages and year are the record's, and match how the assistant notes cite it.
+
+### dewar1969
+
+<a id="dewar1969"></a>
+
+> M. J. S. Dewar & S. D. Worley, 'Photoelectron Spectra of Molecules. II. The Ionization Potentials of Azabenzenes and Azanaphthalenes', The Journal of Chemical Physics 51, 263-267 (1969).
+
+| | |
+| --- | --- |
+| Identifier | [10.1063/1.1671718](https://doi.org/10.1063/1.1671718) |
+| Status | reference only |
+| Verification | citation |
+| Verified | 2026-10-29 |
+| Used by | `docs/QUANTUM_PROGRAM_NOTES.md` |
+
+**Why it is reference only.** Listed among the cation-state literature leads in docs/QUANTUM_PROGRAM_NOTES.md (Dewar and Worley, J. Chem. Phys. 51, 263 (1969), ionization potentials of azabenzenes). Backs nothing shipped; recorded because that page cites it.
+
+Checked against the Crossref record on 2026-10-29: authors, title, journal, volume, pages and year are the record's, and match how the assistant notes cite it.
+
+### deleuze2001
+
+<a id="deleuze2001"></a>
+
+> M. S. Deleuze, A. B. Trofimov & L. S. Cederbaum, 'Valence one-electron and shake-up ionization bands of polycyclic aromatic hydrocarbons. I. Benzene, naphthalene, anthracene, naphthacene, and pentacene', The Journal of Chemical Physics 115, 5859-5882 (2001).
+
+| | |
+| --- | --- |
+| Identifier | [10.1063/1.1386414](https://doi.org/10.1063/1.1386414) |
+| Status | reference only |
+| Verification | citation |
+| Verified | 2026-10-29 |
+| Used by | `docs/QUANTUM_PROGRAM_NOTES.md` |
+
+**Why it is reference only.** Listed among the cation-state literature leads in docs/QUANTUM_PROGRAM_NOTES.md (polycyclic aromatic hydrocarbons, part I, J. Chem. Phys. 115, 5859 (2001)). Backs nothing shipped; recorded because that page cites it.
+
+Checked against the Crossref record on 2026-10-29: authors, title, journal, volume, pages and year are the record's, and match how the assistant notes cite it.
+
+### deleuze2002
+
+<a id="deleuze2002"></a>
+
+> M. S. Deleuze, 'Valence one-electron and shake-up ionization bands of polycyclic aromatic hydrocarbons. II. Azulene, phenanthrene, pyrene, chrysene, triphenylene, and perylene', The Journal of Chemical Physics 116, 7012-7026 (2002).
+
+| | |
+| --- | --- |
+| Identifier | [10.1063/1.1462615](https://doi.org/10.1063/1.1462615) |
+| Status | reference only |
+| Verification | citation |
+| Verified | 2026-10-29 |
+| Used by | `docs/QUANTUM_PROGRAM_NOTES.md` |
+
+**Why it is reference only.** Listed among the cation-state literature leads in docs/QUANTUM_PROGRAM_NOTES.md (polycyclic aromatic hydrocarbons, part II, J. Chem. Phys. 116, 7012 (2002)). Backs nothing shipped; recorded because that page cites it.
+
+Checked against the Crossref record on 2026-10-29: authors, title, journal, volume, pages and year are the record's, and match how the assistant notes cite it.
+
+### ayers2007
+
+<a id="ayers2007"></a>
+
+> P. W. Ayers, F. De Proft, A. Borgoo & P. Geerlings, 'Computing Fukui functions without differentiating with respect to electron number. I. Fundamentals', The Journal of Chemical Physics 126, 224107 (2007).
+
+| | |
+| --- | --- |
+| Identifier | [10.1063/1.2736697](https://doi.org/10.1063/1.2736697) |
+| Status | reference only |
+| Verification | citation |
+| Verified | 2026-10-29 |
+| Used by | `docs/QUANTUM_PROGRAM_NOTES.md` |
+
+**Why it is reference only.** Cited in docs/QUANTUM_PROGRAM_NOTES.md among the sources on computing Fukui functions without differentiating with respect to electron number (Part I of the series, J. Chem. Phys. 126, 224107 (2007)). Backs nothing shipped.
+
+Checked against the Crossref record on 2026-10-29: authors, title, journal, volume, pages and year are the record's, and match how the assistant notes cite it.
+
+### fievez2008
+
+<a id="fievez2008"></a>
+
+> T. Fievez et al., 'Calculation of Fukui Functions Without Differentiating to the Number of Electrons. 3. Local Fukui Function and Dual Descriptor', Journal of Chemical Theory and Computation 4, 1065-1072 (2008).
+
+| | |
+| --- | --- |
+| Identifier | [10.1021/ct800027e](https://doi.org/10.1021/ct800027e) |
+| Status | reference only |
+| Verification | citation |
+| Verified | 2026-10-29 |
+| Used by | `docs/QUANTUM_PROGRAM_NOTES.md` |
+
+**Why it is reference only.** Cited in docs/QUANTUM_PROGRAM_NOTES.md among the sources on computing Fukui functions without differentiating with respect to electron number (Part III of the series, J. Chem. Theory Comput. 4, 1065 (2008)). Backs nothing shipped.
+
+Checked against the Crossref record on 2026-10-29: authors, title, journal, volume, pages and year are the record's, and match how the assistant notes cite it.
+
+### bhaskarapillai2024
+
+<a id="bhaskarapillai2024"></a>
+
+> A. Bhaskarapillai et al., 'Exploring the structural and electronic characteristics of phenethylamine derivatives: a density functional theory approach', Journal of Engineering and Applied Science 71, 136 (2024).
+
+| | |
+| --- | --- |
+| Identifier | [10.1186/s44147-024-00461-3](https://doi.org/10.1186/s44147-024-00461-3) |
+| Status | reference only |
+| Verification | citation |
+| Verified | 2026-10-29 |
+| Used by | `docs/QUANTUM_PROGRAM_NOTES.md` |
+
+**Why it is reference only.** Cited in docs/QUANTUM_PROGRAM_NOTES.md as a paper that applies Fukui functions to large flexible molecules and was looked at for a usable table of Hirshfeld condensed values (the note's verdict: applied, large flexible molecules, not a reference table). Backs nothing shipped.
+
+Checked against the Crossref record on 2026-10-29: authors, title, journal, volume, pages and year are the record's, and match how the assistant notes cite it.
+
+### li2024_prmt5
+
+<a id="li2024_prmt5"></a>
+
+> Q. Q. Li et al., 'Design, Synthesis, and Biological Evaluation of 3,4-Dihydroisoquinolin-1(2H)-one Derivatives as Protein Arginine Methyltransferase 5 Inhibitors for the Treatment of Non-Hodgkin’s Lymphoma', Journal of Medicinal Chemistry 68, 108-134 (2025; Crossref gives 2024 as the online date).
+
+| | |
+| --- | --- |
+| Identifier | [10.1021/acs.jmedchem.4c01548](https://doi.org/10.1021/acs.jmedchem.4c01548) |
+| Status | reference only |
+| Verification | citation |
+| Verified | 2026-10-29 |
+| Used by | `docs/PRODUCT_PLANNING_NOTES.md` |
+
+**Why it is reference only.** Cited in docs/PRODUCT_PLANNING_NOTES.md as paper ID 1 of the synthesis planner benchmark's protocol 2 wider-frame sample, matched to its reference by the PDF text layer when the paper was obtained (2026-10-24). The benchmark results are under benchmarks/synthesis/; this paper backs nothing shipped.
+
+Checked against the Crossref record on 2026-10-29: authors, title, journal, volume, pages and year are the record's; the title names protein arginine methyltransferase 5, which is the PRMT5 paper the assistant notes describe.
+
+### deshpande2024
+
+<a id="deshpande2024"></a>
+
+> S. R. Deshpande, M. T. Mandalamari, P. V. Malagi & C. V. M., 'Synthesis, In Silico Analysis, Antibacterial, Radical Scavenging and Antidiabetic Activities of Certain Bis-Azetidinones and Bis-Thiazolidinones', Pharmaceutical Chemistry Journal 58, 62-73 (2024).
+
+| | |
+| --- | --- |
+| Identifier | [10.1007/s11094-024-03119-9](https://doi.org/10.1007/s11094-024-03119-9) |
+| Status | reference only |
+| Verification | unverified |
+| Used by | `docs/PRODUCT_PLANNING_NOTES.md` |
+
+**Why it is reference only.** Cited in docs/PRODUCT_PLANNING_NOTES.md as the DOI of spare 2 in the synthesis planner benchmark's protocol 2 wider-frame sample, a spare whose PDF was not obtained. The DOI resolves in Crossref to the paper recorded here; whether it is the paper the draw meant was not checked. Backs nothing shipped.
 
 ### glasser1995
 

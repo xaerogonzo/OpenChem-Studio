@@ -1450,6 +1450,17 @@ CALCULATOR_COUNTS_ARE_HISTORY = {
         "not edited afterwards"
     ),
     "docs/ROADMAP.md": "its batch paragraph is ONE measurement, dated in place",
+    "docs/PRODUCT_PLANNING_NOTES.md": (
+        "working notes moved verbatim from the assistant's memory: each count "
+        "is a dated measurement of the registry as it was when that note was "
+        "written (the roadmap's 72 explainer blocks, for one), not a claim "
+        "about today"
+    ),
+    "docs/WORKTREE_AND_TOOLING_NOTES.md": (
+        "working notes moved verbatim from the assistant's memory: its 49 is "
+        "the number of calculators a study of that day covered, not a claim "
+        "about the registry today"
+    ),
     "docs/ARCHITECTURE.md": (
         "its counts are findings from specific investigations -- the panel "
         "discarding 50 of 126 facts, and the drawing-vs-conformer study run "

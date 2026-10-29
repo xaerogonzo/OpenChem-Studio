@@ -2,7 +2,7 @@
 
 Charge models, NMR, solubility, docking ranking, radii, interaction rules, melting/boiling and energetic-materials benchmarks, derived scores, structure-file formats and the source-reading traps found along the way.
 
-These sections were moved here on 2026-10-29 from the assistant's private memory, so they are readable, searchable and versioned with the code. The text is kept as it was written (headings demoted one level, memory links written as plain names); dates and PR numbers are those of the time. Treat a measurement as true of the commit it was made on, and check a file or function named here still exists before relying on it.
+These sections were moved here on 2026-10-29 from the assistant's private memory, so they are readable, searchable and versioned with the code. The text is kept as it was written (headings demoted one level, memory links written as plain names); dates and PR numbers are those of the time. Treat a measurement as true of the commit it was made on, and check a file or function named here still exists before relying on it. Where the original text named a commercial product or its vendor, the generic wording the repository uses ("the reference editor", "the vendor") stands in its place, as `tests/test_no_competitor_names.py` requires.
 
 ## Contents
 
@@ -41,6 +41,10 @@ These sections were moved here on 2026-10-29 from the assistant's private memory
 - [reference-caller-atom-maps-break-dimorphite](#reference-caller-atom-maps-break-dimorphite) — A drawing's atom-map numbers reaching Dimorphite-DL change its answer (mapped imidazole: no state); strip before any library call, restore per atom after
 - [reference-py2opsin-cwd-collision](#reference-py2opsin-cwd-collision) — py2opsin uses a fixed temp filename in the CWD, so two OPSIN callers in the same directory crash each other
 - [project-sources-registry](#project-sources-registry) — OpenChem Studio has a guarded provenance registry at docs/sources.toml; how to add to it and what its guards can and cannot prove
+- [reference-ionescu2013-si](#reference-ionescu2013-si) — Ionescu 2013's SI: the one EEM source whose population is exactly recoverable, plus the four traps in reading it
+- [reference-wilmer2012-si-structures](#reference-wilmer2012-si-structures) — Wilmer 2012's EQeq supporting information: what the ACS package holds, and why its .mol files are not molfiles
+- [project-nmr-validation-sources](#project-nmr-validation-sources) — NMR ground truth must be independent of nmrshiftdb2; quinine is scored and shows the hybrid's calibration gate refusing a real gain
+- [reference-belova2014-table1-vs-si](#reference-belova2014-table1-vs-si) — Belova 2014 (acetylacetone) main-text Table 1 and its own SI disagree on which B3LYP basis gave which dE; use the SI energies, MP2/cc-pVTZ is consistent
 
 ## project-qeq-shipped-a8
 
@@ -236,7 +240,7 @@ Related: `reference-py2opsin-cwd-collision`, `feedback-verify-real-backends`
 Solubility panel section. **PR #28 merged to master (`f9a4627`); PR #29 open
 on `solubility-base-bias`.**
 
-Aqueous: ESOL baseline in three units, ChemAxon's Low/Moderate/High from the
+Aqueous: ESOL baseline in three units, the vendor's Low/Moderate/High from the
 INTRINSIC value, value at a chosen pH, pH curve, and a **bounded** ICH M9
 screen (verdict comes from S ≥ S₀ and uncapped HH, so no arbitrary constant
 decides a regulatory-shaped answer).
@@ -971,3 +975,111 @@ State at 0.10.0: **60 sources — 20 `citation_and_claim`, 37 `citation`, 3 `unv
 **What the guards cannot prove:** that a citation points at the right paper, that a table number is right, that a source still supports the claim, or licence compatibility. Completeness rests on the reconstruction sweep, not on a test — see `feedback_the_fields_nobody_can_check`.
 
 Related: `reference_alex_has_paywalled_papers`, `reference_reading_pdfs_in_this_project`.
+
+## reference-ionescu2013-si
+
+*From the assistant's notes (`reference_ionescu2013_si.md`, type: n/a).*  
+*Ionescu 2013's SI: the one EEM source whose population is exactly recoverable, plus the four traps in reading it*
+
+`D:\Xaero Stuff\Documents\Sci Downloads\ionescu2013_si\` (doi 10.1021/ci400448n) is the only EEM source held whose population is **exact**: 41 protein fragments as PDB MODELs plus insulin and ubiquitin, per-atom QM charges for 12 schemes, per-atom EEM charges for all 24 published models, and Table S1's parameters. Table S1 and S2 are frozen as fixtures under `tests/fixtures/charges/ionescu2013/`.
+
+The model reproduces: **ubiquitin 998/998 atoms** and the **training set 39,061/39,061** within the registered tolerance (TRIAGE check 2.8).
+
+Four things measured while reading it, each of which would have produced a wrong answer if assumed:
+
+- **The two CSV layouts differ.** The training set is 12 stacked blocks (one per QM scheme, three value columns); the two test proteins are one wide table with 12 QM columns and all 24 model columns.
+- **Three scheme blocks are short** (40, 40 and 38 of 41 fragments), so the source population is scheme-dependent, and aligning blocks by position pairs one molecule's charges with another's structure. Key on the NSC id.
+- **The PDB files have no element column** (lines stop at 54 chars). The rule that reproduces the paper's Table 1 counts exactly: a HETATM whose *residue* is CA is calcium (" CA " in an ATOM record is an alpha carbon), otherwise the atom name's first letter after any leading digit.
+- **Distances are in ångström and R_avg is the SQUARED Pearson coefficient.** Neither is stated unambiguously — the paper's prose says squared, its own eq 7 prints the unsquared form — so both were identified by reproduction, not assumed. The bohr reading fails outright (34/998).
+
+Calcium *is* parameterised in Table S1 (`Ca` in E, `Ca0` in EX), which settled an open question in the plan. The EX models need bond-order perception from a PDB and are recorded BLOCKED on typing; the E models need only the element.
+
+Related: `project_charge_round3_six_tracks`, `reference_reading_pdfs_in_this_project`, `reference_openbabel_charge_models`.
+
+## reference-wilmer2012-si-structures
+
+*From the assistant's notes (`reference_wilmer2012_si_structures.md`, type: n/a).*  
+*Wilmer 2012's EQeq supporting information: what the ACS package holds, and why its .mol files are not molfiles*
+
+`D:\Xaero Stuff\Documents\Sci Downloads\wilmer2012_si\` (doi 10.1021/jz3008485), fetched 2026-09-15:
+
+- `jz3008485_si_001.pdf` — the 24-page SI (derivation, run inputs, the EQeq source listing's *pointer*).
+- `jz3008485_si_002/CrystalStructuresWithCharges/` — **48 structure files**: 12 MOFs × 4 charge sets (EQeq, REPEAT, ChelpG, AMSQeq).
+- `jz3008485_si_002/…AllIsothermsData….xlsx` — per-MOF CO₂ isotherms, one column per charge scheme plus experiment, excess mg/g.
+
+**The `.mol` files are NOT MDL molfiles.** They are the RASPA-style listing EQeq emits, and reading them as molfiles gets nothing:
+
+```
+ Molecule_name: hypotheticalMOF
+   Coord_Info: Listed Cartesian None
+       424                                   <- atom count
+    1  7.5791 5.3369 5.3369  Mof_Zn  1.211 0 0   <- index x y z label CHARGE
+    ...
+       90.0 90.0 90.0                        <- cell ANGLES, at the END of the file
+       0.0  0.0  0.0                         <- origin
+       25.8320 25.8320 25.8320               <- cell LENGTHS
+```
+
+So each file carries the unit cell *and* the per-atom charges — everything a periodic charge result's identity needs.
+
+**Two checksums that identify the corpus** (measured 2026-09-15): all 12 atom counts match the paper's Table 1 exactly (624, 252, 424, 472, 162 ×4, 276, 72, 354, 330), and every EQeq set sums to zero.
+
+**Still missing from the ACS package:** `ionizationData.dat` (the ionisation/electron-affinity table the method runs on) and `EQeq_v1_00.cpp`. SI page 1 lists them as accompanying files; S8 points at the source rather than printing it. A substitute table can be rebuilt from the two references S2 cites (Andersen & Haugen 1999; Moore 1970) — but it is an independent reconstruction and has to be labelled one, or a per-atom mismatch has two candidate causes at once.
+
+This moved Track 6 from BLOCKED to FEASIBLE; see `benchmarks/charges/periodic/FEASIBILITY.md` section 8 and `project_charge_round3_six_tracks`.
+
+Related: `reference_alex_has_paywalled_papers`, `reference_reading_pdfs_in_this_project`.
+
+## project-nmr-validation-sources
+
+*From the assistant's notes (`project_nmr_validation_sources.md`, type: n/a).*  
+*NMR ground truth must be independent of nmrshiftdb2; quinine is scored and shows the hybrid's calibration gate refusing a real gain*
+
+Established 2026-08-03 validating the lookup+ORCA hybrid
+(`chem/nmr_hybrid.py`); quinine scored the same day (commit 69aa56b).
+
+**Never score the HOSE lookup against nmrshiftdb2-derived data.** That
+database IS the lookup's index, so agreement would be circular. Truth
+must be independent, and in **CDCl3** to match everything else here.
+Assigned literature tables now live in
+`benchmarks/nmr/literature_shifts.py` (quinine from Moreland 1974
+doi:10.1021/jo00930a020, caffeine).
+
+**The open design question, measured not guessed.** The hybrid's
+scale-agreement gate refused quinine at +3.00 ppm against a 2.62 limit,
+and the merge it blocked would have taken MAE from 7.96 to 3.44 (12
+`rough` carbons: 12.50 -> 4.09). The gate measures its offset on `good`
+atoms, which are exactly the atoms the lookup then wins — so
+conformational error around quinine's flexible carbinol hinge vetoed the
+merge everywhere else. Across five molecules the gate has prevented no
+measured harm and cost one real gain. Left unchanged pending Alex's
+call; a discriminator exists (a true scale error has |mean| near the
+RMS, quinine's was 3.00 vs 5.36) but rests on two data points.
+
+**Two structure traps, both hit for real:**
+- The obvious quinine SMILES was **9-epiquinine** — a different column of
+  the same table, differing by only 1.5-3.5 ppm, so it would have read as
+  a plausible bias rather than as nonsense. Confirm any stereoisomer
+  against PubChem (quinine = CID 3034034,
+  InChIKey LOUPRKONTZGTKE-WZBLMQSHSA-N) before scoring with it.
+- A quinuclidine **bridgehead nitrogen must carry no stereo tag** —
+  `EmbedMolecule` fails outright with one, even with `useRandomCoords`.
+
+**How to apply:** validate any new atom-index mapping against the
+lookup's own `good` atoms first — that caught the ring-fusion ambiguity
+in Moreland's 9'/10' numbering (0.47 ppm right vs ~18 ppm wrong).
+
+Related: `project-nmr-ml-not-shipped`, `feedback-verify-real-backends`
+
+## reference-belova2014-table1-vs-si
+
+*From the assistant's notes (`reference_belova2014_table1_vs_si.md`, type: n/a).*  
+*Belova 2014 (acetylacetone) main-text Table 1 and its own SI disagree on which B3LYP basis gave which dE; use the SI energies, MP2/cc-pVTZ is consistent*
+
+Belova et al., J. Org. Chem. 79 (2014), doi:10.1021/jo402814c; both `belova2014.pdf` and `belova2014_si.pdf` are in Sci Downloads.
+
+The SI lists electronic energies (Hartree) per labelled calculation. Electronic dE (diketo minus enol, kcal/mol) from them: B3LYP/6-31G(d,p) 6.256, B3LYP/aug-cc-pVTZ 6.481, MP2/6-31G(d,p) 1.466, MP2/cc-pVTZ 4.849.
+Main-text Table 1 prints 6.48 under 6-31G(d,p) and 6.24 under aug-cc-pVTZ, the reverse of the SI; only MP2/cc-pVTZ (4.85) agrees in both places.
+
+**Why:** I first told Alex the SI held no energies (I had read 250 characters of its description), then found it did; reading the SI itself then exposed the Table 1 mismatch. Both were found only by recomputing from the primary numbers.
+**How to apply:** for the tautomer validation row use the SI energies and prefer MP2/cc-pVTZ; never lift the B3LYP rows from Table 1. See `feedback_a_source_can_contradict_itself`.
