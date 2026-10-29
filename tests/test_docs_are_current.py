@@ -1461,6 +1461,11 @@ CALCULATOR_COUNTS_ARE_HISTORY = {
         "the number of calculators a study of that day covered, not a claim "
         "about the registry today"
     ),
+    "docs/WORKING_AGREEMENTS.md": (
+        "feedback notes moved verbatim from the assistant's memory: the counts "
+        "in it (51, 50) are the calculators a study of that day covered, kept "
+        "as the evidence for a rule, not claims about the registry today"
+    ),
     "docs/ARCHITECTURE.md": (
         "its counts are findings from specific investigations -- the panel "
         "discarding 50 of 126 facts, and the drawing-vs-conformer study run "
