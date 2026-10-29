@@ -1,0 +1,24 @@
+=== sh started 2026-10-28T15:35:24
+0 closed, 21 to run
+parent|CCS|0 closed
+parent|CCS|1 closed
+radical|ethanethiol S-H|0 closed
+radical|ethanethiol S-H|1 closed
+parent|CCCS|0 closed
+parent|CCCS|1 closed
+parent|CCCS|2 closed
+radical|1-propanethiol S-H|0 closed
+radical|1-propanethiol S-H|1 closed
+radical|1-propanethiol S-H|2 closed
+parent|CC(C)S|0 closed
+parent|CC(C)S|1 closed
+parent|CC(C)S|2 closed
+radical|2-propanethiol S-H|0 closed
+radical|2-propanethiol S-H|1 closed
+radical|2-propanethiol S-H|2 closed
+parent|CC(C)(C)S|0 closed
+radical|2-methyl-2-propanethiol S-H|0 closed
+parent|CS|0 closed
+radical|methanethiol S-H|0 closed
+atom|H closed
+=== sh finished 2026-10-29T05:56:00 exit 0
