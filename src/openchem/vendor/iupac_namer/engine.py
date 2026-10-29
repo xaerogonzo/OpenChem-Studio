@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import dataclasses
 import logging
+import itertools
 import os
 import collections
 import re
@@ -9744,13 +9745,21 @@ def _name_pins_structure(name: str, mol) -> bool:
     """
     try:
         from py2opsin import py2opsin
-        from rdkit import Chem
-        from rdkit.Chem import inchi as _inchi
-        from rdkit.Chem.EnumerateStereoisomers import EnumerateStereoisomers, StereoEnumerationOptions
         import warnings as _warnings
         with _warnings.catch_warnings():
             _warnings.simplefilter("ignore")
             back = py2opsin(name)
+        return _smiles_pins_structure(back, mol)
+    except Exception:
+        return False
+
+
+def _smiles_pins_structure(back, mol) -> bool:
+    """:func:`_name_pins_structure` for a name OPSIN has already read: ``back`` is OPSIN's SMILES (empty when it could not)."""
+    try:
+        from rdkit import Chem
+        from rdkit.Chem import inchi as _inchi
+        from rdkit.Chem.EnumerateStereoisomers import EnumerateStereoisomers, StereoEnumerationOptions
         m2 = Chem.MolFromSmiles(back) if back else None
         if m2 is None:
             return False
@@ -9761,6 +9770,94 @@ def _name_pins_structure(name: str, mol) -> bool:
         return _inchi.MolToInchiKey(isomers[0]) == _inchi.MolToInchiKey(Chem.RemoveHs(mol))
     except Exception:
         return False
+
+
+def _bridged_descriptor_atoms(tree) -> "list[str]":
+    """The atom indices of every tetrahedral R/S on a bridged or spiro parent, in the tree's own order (naming round 91)."""
+    found: list[str] = []
+
+    def _walk(t):
+        if t is None or isinstance(t, (LeafTree, ErrorTree)):
+            return
+        if isinstance(t, SaltTree):
+            for i in t.ion_trees:
+                _walk(i)
+            return
+        if isinstance(t, FunctionalClassTree):
+            for _role, sub in t.pieces:
+                _walk(sub)
+            return
+        if _node_is_bridged_or_spiro_parent(t):
+            for d in getattr(t, "stereo_descriptors", None) or ():
+                sc = getattr(d, "stereo_center", None)
+                if sc is not None and _stereo_descriptor_is_tetrahedral_rs(d):
+                    idx = str(getattr(sc, "atom_idx", ""))
+                    if idx and idx not in found:
+                        found.append(idx)
+        for pe in getattr(t, "prefixes", ()) or ():
+            _walk(getattr(pe, "tree", None))
+        from openchem.vendor.iupac_namer.types import (
+            MultiplicativeTree as _MT, RingAssemblyTree as _RAT, AdditiveTree as _AT,
+        )
+        if isinstance(t, _MT):
+            _walk(t.subunit)
+        elif isinstance(t, _RAT):
+            _walk(t.ring_unit)
+        elif isinstance(t, _AT):
+            _walk(t.parent_tree)
+
+    _walk(tree)
+    return found
+
+
+_SUBSET_SEARCH_CANDIDATES = 48
+
+
+def _pinning_subset_of_descriptors(tree, mol):
+    """The name that keeps the most bridged/spiro R/S descriptors while OPSIN still reads it to exactly ``mol`` (naming round 91), or None.
+
+    Dropping a descriptor by LOCANT NUMBER strips it from every component that has that number: a norbornyl group lost its three centres
+    because the bicyclo[2.2.2]octane it hangs on has a 1 and a 4 OPSIN cannot anchor, and 2,4-difluoroadamantane lost the centres OPSIN reads
+    along with the two it cannot. So this drops by ATOM, the fewest first (one, then two ...), up to a fixed number of candidates, all read in
+    one OPSIN launch. The first candidate that reads to exactly the input wins; ties go to the tree's own descriptor order.
+    """
+    atoms = _bridged_descriptor_atoms(tree)
+    if not atoms:
+        return None
+    candidates: list[tuple] = []
+    for size in range(1, len(atoms) + 1):
+        for drop in itertools.combinations(atoms, size):
+            candidates.append(drop)
+            if len(candidates) >= _SUBSET_SEARCH_CANDIDATES:
+                break
+        if len(candidates) >= _SUBSET_SEARCH_CANDIDATES:
+            break
+    trees = [_strip_tetrahedral_stereo(tree, mode="atoms:" + ",".join(drop)) for drop in candidates]
+    names = [assemble(t) for t in trees]
+    try:
+        from py2opsin import py2opsin
+    except ImportError:
+        return None
+    handle, scratch = tempfile.mkstemp(prefix="opsin-", suffix=".txt")
+    os.close(handle)
+    try:
+        import warnings as _warnings
+        with _warnings.catch_warnings():
+            _warnings.simplefilter("ignore")
+            backs = py2opsin(names, output_format="SMILES", tmp_fpath=scratch)
+    except Exception:
+        return None
+    finally:
+        try:
+            os.unlink(scratch)
+        except OSError:
+            pass
+    if not isinstance(backs, list) or len(backs) != len(names):
+        return None
+    for t, n, back in zip(trees, names, backs):
+        if _smiles_pins_structure(back, mol):
+            return t, n
+    return None
 
 
 def _drop_unanchored_stereo(tree, mol=None):
@@ -9780,13 +9877,21 @@ def _drop_unanchored_stereo(tree, mol=None):
         name = assemble(cur)
         parsed, locants = _opsin_probe(name)
         if parsed:
-            return (cur, name, True) if (cur is not tree and _accept(cur, name)) else (tree, assemble(tree), False)
+            if cur is tree:
+                return tree, assemble(tree), False
+            if _accept(cur, name):
+                return cur, name, True
+            break  # parsed but no longer says which molecule: the locant strip took a centre from another component too
         if not locants:
             break
         new = _strip_tetrahedral_stereo(cur, mode="locants:" + ",".join(locants))
         if new is cur:
             break
         cur = new
+    if mol is not None:
+        found = _pinning_subset_of_descriptors(tree, mol)
+        if found is not None:
+            return found[0], found[1], True
     if mol is not None:
         ring_info = mol.GetRingInfo()
         bridgeheads = [str(a.GetIdx()) for a in mol.GetAtoms() if ring_info.NumAtomRings(a.GetIdx()) >= 2]
