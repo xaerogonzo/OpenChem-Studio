@@ -2507,9 +2507,9 @@ and three were checked again recently rather than taken on trust.
   `tests/test_tautomer_validation_record.py`). The per-tautomer NMR job, the
   fast-exchange average and the overlay on the NMR spectrum shipped too
   (docs/TAUTOMER_NMR_DESIGN.md). What remains: a new model gets its own
-  preregistered run, never a re-tuned tolerance; the held-out set is narrow; and
-  zoom for the histogram and stick charts (line and scatter charts zoom since
-  #185, these two do not).
+  preregistered run, never a re-tuned tolerance; and the held-out set is narrow.
+  (Zoom for the histogram and stick charts, listed here until 2026-10-30, shipped
+  in #206 and #212 through the shared `XZoomable`; `tests/test_x_zoomable_charts.py`.)
 - ~~**Boltzmann-run descriptors beyond the lowest-energy conformer.**~~
   **DECIDED AND SHIPPED (2026-10-05).** A Boltzmann-averaged QC run publishes
   the lowest-energy conformer's descriptors, as before, PLUS the SCF energy
