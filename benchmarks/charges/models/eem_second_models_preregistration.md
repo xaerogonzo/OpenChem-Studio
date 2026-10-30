@@ -224,3 +224,36 @@ in bohr, net charge ignored, triple bonds capped at 2, zinc allowed, the other-m
 the builder reading the HF column) were each caught by at least one test.
 
 Not done: nothing here is reachable from a calculator or the interface, and checks C5 to C9 have not run.
+
+## 5-L. Literature read on the nitro / carboxylate finding (2026-10-30)
+
+Read, not decided. Nothing below changes a check or a threshold.
+
+**Held in the library, read:**
+- **Halgren 1996, MMFF94 part I** (`halgren1996_I.pdf`): its atom-type table gives the carboxylate oxygen ONE type with a
+  fractional formal charge (-1/2 on each oxygen) and the nitro-group oxygen one type, so a resonance-equivalent pair is typed
+  alike by design. This is the precedent for typing the pair symmetrically (option b); it is a force-field convention, not an
+  EEM one.
+- **Geidl 2015** (`geidl2015.pdf`): defines the type as "element type and maximal bond order", notes that an aromatic atom X is
+  therefore X2, and says nothing about nitro, carboxylate or resonance. It also states that EEM parameters fitted to
+  **MK and CHELPG charges are "very low quality"** on its drug-like test set (657 approved drugs), "in agreement with
+  published data", while MPA, NPA and AIM are very high. **That bears on Model J, which is MK-fitted**, and is unresolved:
+  Jiroušková reports a mean molecular R of 0.94 against its own MK reference. Read before J is wired to anything.
+- **Jiroušková 2009**: its own discussion says some nitrogens labelled order 1 "are in fact conjugated", the one place the
+  papers admit the typing is crude.
+- **Bultinck 2004 and Ouyang 2009**: both note aromatic and conjugated atoms are not well described by one spherical
+  parameter per atom; Ouyang separates only benzene carbons from other sp2 carbon.
+
+**Software:** ChargeFW2's documentation (the group's own EEM code behind the Atomic Charge Calculator) labels its types
+`C hbo 1`, `N hbo 2` (highest bond order), accepts SDF V2000/V3000, PDB, Mol2 and mmCIF, and says nothing about perceiving or
+standardising bond orders. NEEMP's solver reads the SDF bond block as given. So in the group's own tools the type is whatever
+the input drew.
+
+**A crude look at the published numbers** (Geidl 2015's per-atom file for DrugBank molecules, held in `geidl2015_si/`;
+identification by charge only, with no connectivity, so accidental pairs are included and this is an indication, not a
+measurement): oxygens typed O1 and O2 whose REFERENCE charges agree within 0.01 e differ in their EEM charges by a median
+of about 0.05 e and up to about 0.2 e, in the Cheminf NPA set (118 pairs), Bultinck NPA (93) and Jiroušková's own DFT set
+(113). The effect is in the authors' own published figures, not introduced here.
+
+**Not found:** any paper saying how EEM should type a resonance-equivalent pair. Searches turned up none, and the ChargeFW2
+documentation's Python tutorial was not read.
