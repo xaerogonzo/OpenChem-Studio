@@ -70,6 +70,10 @@ centroid of every copy and reported estradiol as 47 Å wrong when it was
 0.49 Å right — the script's bug, not the code's, and a good illustration
 of why the multi-copy handling needed its own tests.
 
+## `run_plec_test.py` — does PLECscore order Vina's poses better?
+
+A preregistered test (`PREREGISTRATION_PLEC.md`, rules in `plec_core.py`) of re-ranking the nine Vina poses of each catalogued receptor by ODDT's shipped PLECscore. Three stages: `dock` (the survey's app arm, saving poses and the prepared receptor), `rescore` (ODDT in its own environment) and `report`. Eight receptors are in the model's training set and are reported apart. Not run in full yet.
+
 ## `prep_box_survey.py` — is a bad default pose a setup defect?
 
 Redocks all 49 catalogued receptors in two preparation arms (cofactors kept, as the panel
