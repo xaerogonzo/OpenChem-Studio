@@ -1,0 +1,2 @@
+### Naming limitations plan: Blue Book oracle for NL-001 and the 23 ylidene molecules triaged
+- The Blue Book's `r`/`s` worked examples agree with the engine's pre-validation descriptors on three bridged constructions (`NL-001` stays a validator limit); `NL-002` has no book oracle and is blocked; 18 of the 23 ylidene inputs are not embeddable by RDKit so the pin test cannot judge them; two new rows (`NL-107` tetraspiro numbering, `NL-108` ylidene stereo on a one-atom bridge). Documentation only.
