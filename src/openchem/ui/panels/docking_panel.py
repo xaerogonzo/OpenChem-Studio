@@ -27,6 +27,9 @@ import logging
 from openchem.chem.calculation_input import canonical_conformer
 from openchem.app.settings import Settings
 from openchem.chem.engine import ChemistryEngine
+from openchem.chem.pose_choice import assess as assess_poses
+from openchem.chem.pose_choice import row_hint as pose_choice_hint
+from openchem.chem.pose_choice import summarize as summarize_choice
 from openchem.chem.pose_plausibility import pose_tooltip as pose_check_tooltip
 from openchem.chem.pose_plausibility import summarize as summarize_checks
 from openchem.domain.common import describe_failure
@@ -791,6 +794,12 @@ class DockingPanel(QWidget):
         self._checks_label.setWordWrap(True)
         self._checks_label.setVisible(False)
 
+        #: Which poses the score cannot separate from pose 1 (`chem/pose_choice`). Its own
+        #: label and hidden when empty, like the two above.
+        self._choice_label = QLabel("", self)
+        self._choice_label.setWordWrap(True)
+        self._choice_label.setVisible(False)
+
         self._limitation_label = QLabel(_LIMITATION_NOTE, self)
         self._limitation_label.setWordWrap(True)
 
@@ -931,6 +940,7 @@ class DockingPanel(QWidget):
         layout.addWidget(self._spread_label)
         layout.addWidget(self._rescore_label)
         layout.addWidget(self._table)
+        layout.addWidget(self._choice_label)
         layout.addWidget(self._checks_label)
         layout.addWidget(self._limitation_label)
         # Capped, not stretched: both homes are scroll areas, where an unbounded table
@@ -1519,6 +1529,7 @@ class DockingPanel(QWidget):
         # this method exists to fix for the table.
         self._set_spread_text("")
         self._set_checks_text("")
+        self._set_choice_text("")
         result = self._latest_result_for_selection(project)
         if result is not None:
             self._show_result(result)
@@ -1549,6 +1560,11 @@ class DockingPanel(QWidget):
         self._spread_label.setText(text)
         self._spread_label.setVisible(bool(text))
 
+    def _set_choice_text(self, text: str) -> None:
+        """Hidden when empty, for the reason `_set_spread_text` is."""
+        self._choice_label.setText(text)
+        self._choice_label.setVisible(bool(text))
+
     def _set_checks_text(self, text: str) -> None:
         """Hidden when empty, for the reason `_set_spread_text` is."""
         self._checks_label.setText(text)
@@ -1563,6 +1579,10 @@ class DockingPanel(QWidget):
         self._displayed_result = result
         self._set_spread_text(describe_replicate_spread(result.replicates))
         self._set_checks_text(summarize_checks(pose.metadata for pose in result.poses))
+        affinities = [pose.binding_affinity_kcal_mol for pose in result.poses]
+        rmsds = [pose.rmsd_lb for pose in result.poses]
+        choice = assess_poses(affinities, rmsds)
+        self._set_choice_text(summarize_choice(affinities, rmsds))
         self._table.setRowCount(len(result.poses))
         scores = [pose_score_of(pose) for pose in result.poses]
         self._apply_rescore_column(scores)
@@ -1575,8 +1595,16 @@ class DockingPanel(QWidget):
             )
             for col, value in enumerate(values):
                 self._table.setItem(row, col, QTableWidgetItem(value))
-            # The pose number carries the checks, as hover text on every cell of the row.
-            tip = pose_check_tooltip(pose.metadata)
+            # The pose number carries the checks, as hover text on every cell of the row,
+            # and for a pose the score cannot separate from pose 1, where it sits.
+            tip = "\n\n".join(
+                part
+                for part in (
+                    pose_check_tooltip(pose.metadata),
+                    pose_choice_hint(choice, row + 1, pose.rmsd_lb),
+                )
+                if part
+            )
             if tip:
                 for col in range(len(values)):
                     self._table.item(row, col).setToolTip(tip)
