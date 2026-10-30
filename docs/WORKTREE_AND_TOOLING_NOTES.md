@@ -130,6 +130,14 @@ since everything in the worktree is then either in master or regenerable
 
 - [Removing a worktree on Windows](reference_removing_a_worktree_on_windows.md) — half-fails only for a worktree a live session holds; from the main checkout a plain remove works
 
+#### 2026-10-29: the same half-failure, three more times (empty folder, branch still deletable)
+
+Removing nine finished worktrees in one background script, three ended `error: failed to delete '...': Permission denied`. State afterwards was the one described above: git had
+**unregistered** the worktree and emptied it, and a live process (a session's cwd, an editor) held the now EMPTY folder. Consequences worth knowing: the branch can be deleted
+as soon as the worktree is unregistered, so do not wait for the folder; the empty folder is harmless and deletes once the holder exits; and a stray folder that is no longer a
+registered worktree (`git worktree list --porcelain` does not show it) can simply be `Remove-Item`d once nothing holds it. `Remove-Item -Recurse` on a worktree holding a `.venv` is
+slow (minutes), so run removals in the background and read the script's own output file: the task notification said "failed, exit 255" although most steps had printed OK. Judge each step from its own line, then re-run `git worktree list --porcelain`.
+
 ## reference-worktree-isolation-guard
 
 *From the assistant's notes (`reference_worktree_isolation_guard.md`, type: n/a).*  
@@ -775,6 +783,12 @@ Moved verbatim out of MEMORY.md on 2026-10-06 to keep the always-loaded index sm
 - [A guard matches its own prose](feedback_a_guard_matches_its_own_prose.md) — a source scan for a forbidden word keeps hitting the docstring explaining the ban; seven instances, three in one branch
 - [Run every tree-sweeping guard](feedback_run_every_tree_sweeping_guard.md) — PR #148 went red on the sources guard I did not run; run all test_*_are_current.py before pushing docs/data
 - [Mutation runner discipline](feedback_mutation_runner_discipline.md) — count only pytest exit 1 as a kill, baseline each selection first, `-k` deselects across files, a survivor can be the wrong test selection (Settings dialog vs main-window tooltip walk)
+
+**Stage a new page BEFORE running the guards (2026-10-29, moving 238 notes into docs).** The sweeping guards (`test_competitor_names`, `test_docs_are_current`,
+`test_sources_are_current`) read `git ls-files`, so an untracked page passes every one of them and the same page fails once committed. Run `git add` on the new files first, then
+the three tests. What they caught on those pages: lines naming other products (reword to "the reference editor" / "the vendor"; a vendor URL cannot go in the repo), stale
+calculator counts (add the page to `CALCULATOR_COUNTS_ARE_HISTORY` with a reason), and any DOI-shaped string, including a truncated one, which needs a `docs/sources.toml` row built
+from the Crossref record and `tools/build_sources_doc.py` re-run.
 
 #### Index line before it was shortened (2026-10-18, MEMORY.md has a size limit)
 

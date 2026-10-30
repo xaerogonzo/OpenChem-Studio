@@ -1,5 +1,5 @@
 <!-- GENERATED FROM docs/sources.toml -- do not edit -->
-<!-- SOURCE SHA256: 57f4cef7c66db290d890c413766140f546e2e15e4bd607f9ba7a13c881d6a0b4 -->
+<!-- SOURCE SHA256: b6dde2e0aef2e39206c1d2e46d72fcb64aa17999da35eaf8302b757a632d397a -->
 
 # Sources
 
@@ -6504,13 +6504,13 @@ Checked against the Crossref record on 2026-10-29: authors, title, journal, volu
 
 **Why it is reference only.** Cited in docs/PRODUCT_PLANNING_NOTES.md as paper ID 1 of the synthesis planner benchmark's protocol 2 wider-frame sample, matched to its reference by the PDF text layer when the paper was obtained (2026-10-24). The benchmark results are under benchmarks/synthesis/; this paper backs nothing shipped.
 
-Checked against the Crossref record on 2026-10-29: authors, title, journal, volume, pages and year are the record's; the title names protein arginine methyltransferase 5, which is the PRMT5 paper the assistant notes describe.
+Checked against the Crossref record on 2026-10-29 and again on 2026-10-30: authors, title, journal, volume (68), issue (1) and pages (108-134) are the record's; the record dates it online 2024-12-26 and in print 2025-01-09, so 2025 (the issue year) in the citation and 2024 for the online date are both right; the title names protein arginine methyltransferase 5, which is the PRMT5 paper the assistant notes describe.
 
 ### deshpande2024
 
 <a id="deshpande2024"></a>
 
-> S. R. Deshpande, M. T. Mandalamari, P. V. Malagi & C. V. M., 'Synthesis, In Silico Analysis, Antibacterial, Radical Scavenging and Antidiabetic Activities of Certain Bis-Azetidinones and Bis-Thiazolidinones', Pharmaceutical Chemistry Journal 58, 62-73 (2024).
+> S. R. Deshpande, M. T. Mandalamari, P. V. Malagi & Chandrashekhar V. M., 'Synthesis, In Silico Analysis, Antibacterial, Radical Scavenging and Antidiabetic Activities of Certain Bis-Azetidinones and Bis-Thiazolidinones', Pharmaceutical Chemistry Journal 58, 62-73 (2024).
 
 | | |
 | --- | --- |
@@ -6520,6 +6520,8 @@ Checked against the Crossref record on 2026-10-29: authors, title, journal, volu
 | Used by | `docs/PRODUCT_PLANNING_NOTES.md` |
 
 **Why it is reference only.** Cited in docs/PRODUCT_PLANNING_NOTES.md as the DOI of spare 2 in the synthesis planner benchmark's protocol 2 wider-frame sample, a spare whose PDF was not obtained. The DOI resolves in Crossref to the paper recorded here; whether it is the paper the draw meant was not checked. Backs nothing shipped.
+
+Crossref on 2026-10-30: the DOI resolves to this journal article (Pharmaceutical Chemistry Journal 58(1), 62-73; online 2024-05-15, print 2024-04; four authors, the last recorded as Chandrashekhar, family name V. M.). It meets the draw's own criteria (title contains 'synthes', year inside 2017 and 2023-2025, a journal on stratum 3's list in benchmarks/synthesis/artifacts_protocol3/frame.json), so it is a possible member of the frame. That it is spare 2 specifically cannot be checked from the repository, because the frame lists are kept outside it; that is why this stays unverified.
 
 ### glasser1995
 
