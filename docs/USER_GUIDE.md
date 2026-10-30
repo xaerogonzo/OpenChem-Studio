@@ -3587,7 +3587,7 @@ run the quick calculators itself, recorded in your project like ones you ran. An
 slow, any molecule above 41 heavy atoms and anything unclassified shows a preview with
 **Approve** and **Cancel** first, and nothing starts until you press one. A calculator
 that runs from its own panel (ORCA, Vina) is described, with what it needs and whether
-this machine is ready, and you start it from that panel. What it asked for, and what
+this machine is ready, and you start it from that panel. It can also read the ORCA jobs you have already run for the selected molecule: which calculation, the method and basis, whether the job finished, failed or was cancelled, what it warned about, and, for a job it is asked about, the numbers it produced (an infrared analysis as its modes). It cannot start, stop or approve a job, and it is never sent the structure that went to ORCA. What it asked for, and what
 became of it, is listed under the conversation. It can also read the goal wizard's table (which calculators the
 application pairs with a question such as "where is the charge"), as a suggestion rather than a protocol. It can also read the **derived scores** you
 defined (their names, formulas and values for the selected molecule; never the owner or the note), and says so when one cannot be worked out. It cannot save or change one, but it can propose a new one: a card shows the formula, what each

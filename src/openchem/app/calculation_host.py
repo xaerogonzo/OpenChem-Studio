@@ -89,6 +89,7 @@ from openchem.domain.score_proposal import (
     check_request,
 )
 from openchem.domain.score_value import evaluate_score
+from openchem.domain.quantum_run_snapshot import classify_runs
 from openchem.domain.turn_snapshot import DEFAULT_READ_LIMIT, ResultsView, TurnContext, build_turn_context, read_results
 from openchem.events.events import CalculationFinished, ResultRecorded
 from openchem.services.container import ServiceContainer
@@ -180,6 +181,7 @@ class CalculationHost(QObject):
         fingerprints: dict[str, str] = {}
         records: list[StoredResult] = []
         fresh: list[StoredResult] = []
+        runs: tuple = ()
         results = self._services.result_store_service
         if results is not None and has_structure:
             try:
@@ -188,6 +190,10 @@ class CalculationHost(QObject):
                 logger.debug("No fingerprints for %s", model.uuid, exc_info=True)
             records = results.store.all_results(model.uuid)
             fresh = results.store.fresh_results(model.uuid, fingerprints)
+        if results is not None:
+            # The ORCA runs are frozen with the results, and classified against the same fingerprints: a run on an earlier structure is historical. They are read even when nothing is drawn, since a run
+            # outlives the structure it was made for and a person may ask what happened to it.
+            runs = classify_runs(results.qc_runs.runs_for(model.uuid), fingerprints)
         return build_turn_context(
             project_uuid=project.uuid,
             molecule_uuid=model.uuid,
@@ -200,6 +206,7 @@ class CalculationHost(QObject):
             records=records,
             fresh=fresh,
             scores=self._score_definitions(project),
+            runs=runs,
         )
 
     def _score_definitions(self, project) -> tuple:
