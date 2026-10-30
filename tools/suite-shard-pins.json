@@ -2369,6 +2369,8 @@
   "tests/test_quantum_chemistry_run.py": 2,
   "tests/test_quantum_chemistry_run_recording.py": 3,
   "tests/test_quantum_chemistry_service.py": 1,
+  "tests/test_quantum_run_button.py": 4,
+  "tests/test_quantum_run_request.py": 2,
   "tests/test_quantum_run_snapshot.py": 3,
   "tests/test_quick_fixes.py": 4,
   "tests/test_rank_power_console.py": 1,
