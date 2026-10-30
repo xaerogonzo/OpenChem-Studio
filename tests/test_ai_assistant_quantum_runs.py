@@ -70,6 +70,9 @@ def test_only_the_selected_molecules_runs_are_read(rig):
     record(rig, other, run_id="ethanol-run")
     record(rig, run_id="aspirin-run")
     assert [r["run_id"] for r in read(rig)["runs"]] == ["aspirin-run"]
+    # Not only the default list: another molecule's run reads as historical against this one's fingerprints, so the default hides it. The turn itself must never hold it.
+    assert [e.run_id for e in rig.world.host.begin_turn().runs] == ["aspirin-run"]
+    assert [r["run_id"] for r in read(rig, include_not_current=True)["runs"]] == ["aspirin-run"]
 
 
 def test_a_run_survives_the_structure_being_drawn_again_as_a_historical_one(rig):
@@ -160,6 +163,27 @@ def test_an_infrared_analysis_is_read_as_its_modes(rig):
     record(rig, run_id="freq", vibrational=shared.real_vibrational())
     spectrum = read(rig, run_ids=["freq"])["runs"][0]["outputs"]["vibrational_spectrum"]["results"][0]["data"]
     assert spectrum["count"] == 3 and "peaks" not in spectrum and spectrum["imaginary_modes"] == 0
+
+
+def test_a_reply_that_is_too_big_at_full_detail_is_shortened_and_says_so(rig):
+    """Forty caveated results in one run are far past the budget at full detail; the reply steps down and keeps the run's header."""
+    from openchem.domain.common import CacheState, Provenance
+    from openchem.domain.descriptor import DescriptorValue
+
+    many = [
+        DescriptorValue(
+            descriptor_id=f"orca.value_{i}", name=f"Value {i}", units="eV", category="quantum_chemistry", provider="orca", molecule_uuid="m", value=float(i), cache_state=CacheState.COMPLETED,
+            provenance=Provenance(created_by="core", method="orca", parameters={"caveat": "a limitation worth reading " * 20}),
+        )
+        for i in range(40)
+    ]
+    run = record(rig, run_id="wide", descriptors=False)
+    run.results["descriptors"] = many
+    run.output_status["descriptors"] = OutputStatus.AVAILABLE
+    text = rig.bridge().read_quantum_runs(["wide"])
+    data = json.loads(text)
+    assert len(text) <= REPLY_BUDGET and data["shortened_for_length"] is True
+    assert data["runs"][0]["run_id"] == "wide" and data["runs"][0]["calculation"]["method_basis"] == "B3LYP def2-SVP"
 
 
 def long_history(rig, count=10):

@@ -158,6 +158,14 @@ def test_each_way_a_run_can_end_is_its_own_outcome_and_only_a_finished_one_is_us
 # --- frozen ----------------------------------------------------------------------------------------------------------------------------------
 
 
+def test_a_run_that_added_a_geometry_says_so_and_one_that_did_not_does_not():
+    with_geometry = computed_run("geo", output_conformer_id="conf-1")
+    assert entry_of(with_geometry, FINGERPRINTS).produced_geometry is True
+    assert run_envelope(entry_of(with_geometry, FINGERPRINTS), FULL)["produced_geometry"] is True
+    assert entry_of(computed_run("none"), FINGERPRINTS).produced_geometry is False
+    assert run_envelope(entry_of(computed_run("none"), FINGERPRINTS), FULL)["produced_geometry"] is False
+
+
 def test_a_run_changing_after_the_turn_began_changes_nothing_the_turn_holds():
     source = computed_run()
     entry = entry_of(source, FINGERPRINTS)
