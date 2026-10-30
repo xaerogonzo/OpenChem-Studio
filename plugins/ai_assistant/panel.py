@@ -23,8 +23,9 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from openchem.domain.quantum_dispatch import calc_type_of
 from openchem.domain.result_envelope import outcome_envelope
-from openchem.domain.run_lifecycle import RunOutcome, RunState
+from openchem.domain.run_lifecycle import CANCELLED_BEFORE_START, RunOutcome, RunState
 from openchem.domain.score_proposal import ProposalOutcome, ProposalState
 from openchem.domain.synthesis_route import RouteStatus
 from openchem.events.events import SynthesisRouteReady
@@ -75,7 +76,7 @@ SYSTEM_PROMPT_PREFIX = (
     "list_goals says which calculators the application itself pairs with a common question (identity, charge, "
     "solubility, shape ...) and why, and is editorial rather than a validated protocol; "
     "read_results returns what has already been computed; read_quantum_runs lists the ORCA jobs a person has run, including ones that failed or were cancelled "
-    "(you cannot start, stop or approve one: the person starts ORCA from the Quantum Chemistry panel); read_scores returns the user's own score formulas worked out for "
+    "(you cannot stop or approve one; you can ask for a new one with run_calculator, which leaves a card that starts ORCA only if the person approves it); read_scores returns the user's own score formulas worked out for "
     "this molecule (formulas a person wrote, not predictions); list_score_outputs and propose_score let you suggest a new one, which exists only if the person approves a card "
     "that you cannot approve for them; run_calculator runs one. plan_synthesis asks the user to let an external program search for synthesis routes to the selected molecule "
     "(you cannot start it, and the application's regulatory check can decline it), and read_synthesis_plan reads the plan that is stored: a route is a hypothesis, the program gives "
@@ -101,6 +102,16 @@ _STATE_LABELS = {
     "invalidated": "withdrawn",
     "rejected": "not started",
     "timed_out": "still running",
+}
+
+
+#: What the ledger says about an ORCA job a person approved for the assistant, by how it ended. A cancelled one was already running, unlike a cancelled preview.
+_QUANTUM_LABELS = {
+    "running": "running in the Quantum Chemistry panel",
+    "completed": "ORCA finished it",
+    "refused": "not started: the panel's rules declined it",
+    "failed": "failed",
+    "cancelled": "cancelled while running",
 }
 
 
@@ -981,7 +992,8 @@ class AIAssistantPanel(QWidget):
         state = self._context.calculation_approvals.approve(run_id)
         calculator, molecule = self._runs.get(run_id, ("calculation", ""))
         if state is RunState.RUNNING:
-            self._set_ledger(run_id, self._ledger_text(calculator, molecule, _STATE_LABELS["running"]))
+            labels = _QUANTUM_LABELS if calc_type_of(calculator) is not None else _STATE_LABELS
+            self._set_ledger(run_id, self._ledger_text(calculator, molecule, labels["running"]))
 
     def _on_cancel(self, run_id: str) -> None:
         self._remove_card(run_id)
@@ -991,17 +1003,18 @@ class AIAssistantPanel(QWidget):
         """A run reached a final state (the host announces it once). GUI thread."""
         calculator, molecule = self._runs.get(outcome.run_id, (outcome.calculator_id, ""))
         state = outcome.state.value
+        # An ORCA job is told by how it ended; one declined on its card never started, so it reads like any other declined preview.
+        quantum = calc_type_of(outcome.calculator_id) is not None and outcome.message != CANCELLED_BEFORE_START
+        label = (_QUANTUM_LABELS if quantum else _STATE_LABELS).get(state, state)
         self._set_ledger(
             outcome.run_id,
-            self._ledger_text(
-                calculator, molecule, _STATE_LABELS.get(state, state), outcome.message if state != "completed" else ""
-            ),
+            self._ledger_text(calculator, molecule, label, outcome.message if state != "completed" else ""),
         )
         self._remove_card(outcome.run_id)
         if outcome.run_id not in self._awaiting:
             return  # an automatic run: the model already has its outcome from the tool call
         self._awaiting.discard(outcome.run_id)
-        self._append_transcript("Application", f"{calculator} on {molecule}: {_STATE_LABELS.get(state, state)}.")
+        self._append_transcript("Application", f"{calculator} on {molecule}: {label}.")
         self._notes.append(self._note_for(outcome, calculator, molecule))
 
     def _note_for(self, outcome: RunOutcome, calculator: str, molecule: str) -> str:
@@ -1009,7 +1022,15 @@ class AIAssistantPanel(QWidget):
 
         The application's own record, not a paraphrase: the outcome carries the result's envelope with its
         method, units and freshness, and a refusal carries the calculator's reason.
+
+        **AN ORCA JOB IS TOLD BY HOW IT ENDED AND WHERE TO READ IT**, never by a number: its result is a run record (`read_quantum_runs` gives its freshness, warnings and outputs), and the outcome
+        here holds none.
         """
+        if calc_type_of(outcome.calculator_id) is not None:
+            return (
+                f"[Application note] The ORCA job you asked for, {calculator} on {molecule} (run {outcome.run_id}), ended '{outcome.state.value}'. {outcome.message} "
+                "State no value you have not read."
+            )
         head = (
             f"[Application note] The preview you prepared for {calculator} on {molecule} (run {outcome.run_id}) "
             f"ended '{outcome.state.value}'."

@@ -55,7 +55,7 @@ from openchem.chem.orca_engine import (
 )
 from openchem.chem.proton_affinity import OutOfScope as ProtonAffinityOutOfScope
 from openchem.chem.proton_affinity import Sequence as ProtonAffinitySequence
-from openchem.chem.quantum_run_request import PreparedRun, RunChoice, RunRefusal, prepare_run
+from openchem.chem.quantum_run_request import PreparedRun, RunChoice, RunRefusal, prepare_run, review_cost, review_led
 from openchem.chem.quantum_run_request import start as start_run
 from openchem.chem.tautomer_distribution import (
     CONFIRMATION_THRESHOLD,
@@ -2135,6 +2135,35 @@ class QuantumChemistryPanel(QWidget):
         self._begin_pending(molecule, prepared)
         start_run(self._quantum_chemistry_service, prepared)
 
+    def start_assistant_run(self, molecule_uuid: str, choice: RunChoice, input_fingerprint: str) -> str:
+        """Start the job an assistant's card described, after a person approved it. "" when it was handed to the service, otherwise the sentence that says why not (nothing started, nothing changed).
+
+        **THE SAME RULES AS THE RUN BUTTON, ON THE MOLECULE AS IT IS NOW** (`prepare_run`), and the same bookkeeping (`_begin_pending`), so the job shows in this panel, is cancelled by its Cancel button and
+        lands in Results exactly as one a person started. What is different is who has already answered the cost: the card showed it and Approve accepted it, so only the structure's own refusals
+        (`review_cost`: two partners, not interpenetrating) remain. `input_fingerprint` is the conformer the card was prepared against: if the conformer every calculation uses is another one now, the
+        person approved something else and nothing starts.
+        """
+        molecule = self._project.find_molecule(molecule_uuid) if self._project is not None else None
+        if molecule is None:
+            return "The molecule is no longer in the open project, so nothing was started."
+        if self._pending_molecule_uuid is not None and not self._run_button.isEnabled():
+            return "This panel is busy with another calculation. Nothing was started; wait for it to finish (or cancel it) and ask again."
+        if self._quantum_chemistry_service.has_active_job(molecule.uuid):
+            return "A calculation is already running for this molecule. Nothing was started."
+        prepared = prepare_run(self._chemistry_engine, molecule, choice)
+        if isinstance(prepared, RunRefusal):
+            return prepared.message
+        if prepared.fingerprint != input_fingerprint:
+            return "The conformer every calculation uses is not the one this was prepared for, so nothing was started; prepare it again."
+        review = review_cost(prepared)
+        if review.refuses:
+            return review.message
+        # The panel follows the job it is showing, as it follows a selection.
+        select(self._molecule_combo, molecule.uuid)
+        self._begin_pending(molecule, prepared)
+        start_run(self._quantum_chemistry_service, prepared)
+        return ""
+
     def _begin_pending(self, molecule, prepared: PreparedRun) -> None:
         """What the panel commits to when a run is handed to the service, and only then: which molecule it waits for, what was submitted, and a clean slate for the results that will arrive.
 
@@ -2757,39 +2786,20 @@ class QuantumChemistryPanel(QWidget):
         module importing RDKit, and caught the first version of this doing
         exactly that.
         """
-        from openchem.chem.orca_led import estimate_led_cost_for
-
-        estimate = estimate_led_cost_for(mol)
-        if estimate.fragment_count != 2:
-            QMessageBox.information(
-                parent,
-                "Two partners needed",
-                "An interaction breakdown needs exactly two separate species — "
-                "they are the fragments it decomposes the interaction between.\n\n"
-                "Draw the two partners as separate molecules (a Lewis acid and "
-                "its base, a hydrogen-bonded pair) rather than joined by a bond.",
-            )
+        # The rules and the words are `chem.quantum_run_request.review_led`, shared with an assistant's card; only the dialogs are this panel's.
+        review = review_led(mol)
+        if review.kind == "two_partners":
+            QMessageBox.information(parent, review.title, review.message)
             return False
-        if estimate.geometry_problem:
-            # Refused, not warned. A live run of an overlapping pair produced
-            # +40619 kcal/mol -- arithmetically correct, physically
-            # meaningless, and indistinguishable from a real result once it
-            # is just a number on the panel.
-            QMessageBox.warning(
-                parent, "This geometry cannot be decomposed", estimate.geometry_problem
-            )
+        if review.kind == "geometry":
+            QMessageBox.warning(parent, review.title, review.message)
             return False
-
-        if not estimate.should_warn:
+        if review.kind != "expensive":
             return True
         answer = QMessageBox.question(
             parent,
-            "This calculation is expensive",
-            f"{estimate.advice}\n\n"
-            f"{estimate.atoms} atoms, {estimate.basis_functions} basis functions, "
-            f"DLPNO-CCSD(T).\n\n"
-            "The estimate is scaled from two measured jobs and is a guide to the "
-            "order of the cost, not a prediction.\n\nStart it anyway?",
+            review.title,
+            f"{review.message}\n\nStart it anyway?",
             QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
             QMessageBox.StandardButton.No,
         )

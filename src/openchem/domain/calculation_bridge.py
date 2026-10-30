@@ -29,7 +29,7 @@ same calculation and cannot be told apart in the store.
 from __future__ import annotations
 
 import math
-from collections.abc import Callable, Mapping, Sequence
+from collections.abc import Callable, Collection, Mapping, Sequence
 from dataclasses import dataclass, field
 from enum import Enum
 from typing import Any
@@ -67,6 +67,8 @@ class ProblemCode(str, Enum):
     INVALID_STRUCTURE = "invalid_structure"
     NO_SUCH_RUN = "no_such_run"
     WRONG_TURN = "wrong_turn"
+    #: Something this computer lacks that the calculator needs (the ORCA program, a 3D conformer). Not a fault of the request: it says what to set up, and a person does that.
+    NOT_READY = "not_ready"
 
 
 @dataclass(frozen=True)
@@ -234,10 +236,19 @@ class ServicePreview:
         }
 
 
-def route_of(definition: CalculatorDefinition) -> tuple[Route, str]:
-    """Which `Route` a definition is on, and the sentence that says why."""
+def route_of(definition: CalculatorDefinition, startable: Collection[str] = ()) -> tuple[Route, str]:
+    """Which `Route` a definition is on, and the sentence that says why.
+
+    `startable` is the service-run calculators THIS host can start once a person approves (`quantum_dispatch.STARTABLE`, when the window has given the host the means to start one). It is an argument
+    and not a fact about the definition because it is a fact about the host: a card must never promise an approval path that is not wired.
+    """
     if MOLECULE not in definition.applies_to:
         return Route.BLOCKED, "it applies to structures other than a molecule, which this route does not offer"
+    if not isinstance(definition.execution, RegistryExecution) and definition.calculator_id in startable:
+        return Route.NEEDS_APPROVAL, (
+            f"{policy_of(definition).why_confirm} run_calculator leaves a card with the settings for the user to approve; "
+            f"it starts the {definition.execution.panel_name}'s job only if they do, and by the same rules as that panel's Run button"
+        )
     if not isinstance(definition.execution, RegistryExecution):
         return (
             Route.PREVIEW_ONLY,
@@ -265,9 +276,9 @@ def parameter_card(parameter: CalculatorParameter) -> ParameterCard:
     )
 
 
-def build_card(definition: CalculatorDefinition) -> CalculatorCard:
+def build_card(definition: CalculatorDefinition, startable: Collection[str] = ()) -> CalculatorCard:
     support = support_of(definition)
-    route, reason = route_of(definition)
+    route, reason = route_of(definition, startable)
     policy = policy_of(definition)
     return CalculatorCard(
         calculator_id=definition.calculator_id,

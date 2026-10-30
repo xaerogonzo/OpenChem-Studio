@@ -996,6 +996,8 @@ class MainWindow(QMainWindow):
         # The calculator bridge a plugin (the AI assistant) reaches through `context.calculations`.
         # Held here: the bus keeps only weak references to its handlers.
         self._calculation_host = CalculationHost(services, session)
+        # What a person's Approve on the assistant's card for an ORCA job starts: the Quantum Chemistry panel, by the Run button's own rules.
+        self._calculation_host.set_quantum_starter(self._quantum_chemistry_panel)
         # The same for the synthesis planner (`context.synthesis`): the selected molecule, the planning service and the planner's setting.
         self._synthesis_host = SynthesisHost(services, session, settings)
         self._plugin_manager = PluginManager(services, self, settings, self._calculation_host, self._synthesis_host)

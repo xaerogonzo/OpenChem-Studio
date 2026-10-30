@@ -102,9 +102,9 @@ def test_the_tool_is_offered_with_a_handler_a_schema_and_a_sentence_in_the_syste
     assert validate_arguments(READ_QUANTUM_RUNS.input_schema, {}) == []
     assert validate_arguments(READ_QUANTUM_RUNS.input_schema, {"run_ids": ["a"], "include_not_current": True}) == []
     assert validate_arguments(READ_QUANTUM_RUNS.input_schema, {"run_ids": "a"}) != []
-    assert "read_quantum_runs" in SYSTEM_PROMPT_PREFIX and "cannot start, stop or approve" in SYSTEM_PROMPT_PREFIX
+    assert "read_quantum_runs" in SYSTEM_PROMPT_PREFIX and "cannot stop or approve" in SYSTEM_PROMPT_PREFIX
     description = READ_QUANTUM_RUNS.description
-    assert "never be reported as the answer" in description and "never treat it as zero" in description and "cannot start, stop or approve" in description
+    assert "never be reported as the answer" in description and "never treat it as zero" in description and "cannot stop or approve" in description
 
 
 def test_a_bridge_with_no_molecule_says_unavailable():

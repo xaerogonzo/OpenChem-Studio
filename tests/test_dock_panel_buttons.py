@@ -306,3 +306,13 @@ def test_a_job_that_finished_before_its_turn_is_counted_as_skipped_not_asked(win
 
     message = window.statusBar().currentMessage()
     assert "requested for 1 of 2" in message and "1 had already finished" in message
+
+
+def test_the_window_gives_the_assistants_host_the_quantum_chemistry_panel_to_start_an_approved_job(window):
+    """Not a dock button: it lives here only because this file already builds the one real window it needs, and a window per file is what pushed a shard over its limit.
+
+    Without this wiring the assistant's card for an ORCA job would be prepared and its Approve would fail (the host has nothing to hand it to), and no other unit test builds the window to notice.
+    """
+    host = window._calculation_host
+    assert host._quantum_starter is window._quantum_chemistry_panel
+    assert host.describe("orca.sp").route.value == "needs_approval" and host.describe("orca.fukui").route.value == "preview_only"

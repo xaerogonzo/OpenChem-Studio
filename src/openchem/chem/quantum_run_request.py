@@ -99,6 +99,82 @@ class PreparedRun:
         return self.choice.calc_type in COSTLY_CALC_TYPES
 
 
+#: Said for an interaction breakdown of a structure that is not two separate species: they are the fragments it decomposes the interaction between.
+TWO_PARTNERS_TITLE = "Two partners needed"
+#: The sentence that goes with it: what an interaction breakdown needs and how to draw it.
+TWO_PARTNERS_MESSAGE = (
+    "An interaction breakdown needs exactly two separate species — "
+    "they are the fragments it decomposes the interaction between.\n\n"
+    "Draw the two partners as separate molecules (a Lewis acid and "
+    "its base, a hydrogen-bonded pair) rather than joined by a bond."
+)
+
+#: What the estimate is, said wherever the cost is shown, so nobody takes a guide to the order of the cost for a prediction.
+COST_ESTIMATE_CAVEAT = "The estimate is scaled from two measured jobs and is a guide to the order of the cost, not a prediction."
+
+
+@dataclass(frozen=True)
+class CostReview:
+    """What `review_cost` found: nothing in the way (`ok`), a structure the job cannot be run on (`two_partners`, `geometry`), or a cost to be accepted (`expensive`)."""
+
+    kind: str
+    title: str = ""
+    message: str = ""
+
+    @property
+    def refuses(self) -> bool:
+        """The job cannot be run on this structure, whoever is asked."""
+        return self.kind in ("two_partners", "geometry")
+
+
+def led_cost_message(estimate) -> str:
+    """The cost of an interaction breakdown in words: the advice, the size of the job and the caveat. One text for the panel's dialog and for an assistant's card."""
+    return f"{estimate.advice}\n\n{estimate.atoms} atoms, {estimate.basis_functions} basis functions, DLPNO-CCSD(T).\n\n{COST_ESTIMATE_CAVEAT}"
+
+
+def review_cost(prepared: PreparedRun) -> CostReview:
+    """What a job that costs enough to ask first (`PreparedRun.asks_cost`) would be run on, and what it would cost, from the molecule that WOULD be handed to ORCA.
+
+    The refusals are the structure's (two species, not interpenetrating) and apply however the question is put; `expensive` is the cost a person accepts. The panel asks it in a dialog; an assistant's
+    card shows `led_cost_message` and its Approve is the acceptance.
+    """
+    return review_led(prepared.mol) if prepared.asks_cost else CostReview("ok")
+
+
+def review_led(mol) -> CostReview:
+    """`review_cost` for an interaction breakdown of `mol`, a 3D molecule."""
+    from openchem.chem.orca_led import estimate_led_cost_for
+
+    estimate = estimate_led_cost_for(mol)
+    if estimate.fragment_count != 2:
+        return CostReview("two_partners", TWO_PARTNERS_TITLE, TWO_PARTNERS_MESSAGE)
+    if estimate.geometry_problem:
+        # Refused, not warned. A live run of an overlapping pair produced +40619 kcal/mol -- arithmetically correct, physically meaningless, and indistinguishable from a real result once it is just a number.
+        return CostReview("geometry", "This geometry cannot be decomposed", estimate.geometry_problem)
+    if estimate.should_warn:
+        return CostReview("expensive", "This calculation is expensive", led_cost_message(estimate))
+    return CostReview("ok")
+
+
+def led_cost_of_smiles(smiles: str) -> tuple[str, str]:
+    """`(refusal, cost text)` of an interaction breakdown of a structure given as SMILES, before any conformer exists: what a card shows so that Approve is an informed acceptance.
+
+    The refusal is "" when the structure is two species. The size is counted with explicit hydrogens, as ORCA is handed them, and the geometry is not judged (there is none yet): `review_cost` does
+    that on the molecule that would really be run.
+    """
+    from rdkit import Chem
+
+    from openchem.chem.orca_led import estimate_led_cost_for
+
+    mol = Chem.MolFromSmiles(smiles) if smiles else None
+    if mol is None:
+        return "The drawn structure could not be read, so its cost cannot be estimated.", ""
+    estimate = estimate_led_cost_for(Chem.AddHs(mol))
+    if estimate.fragment_count != 2:
+        return TWO_PARTNERS_MESSAGE, ""
+    return "", led_cost_message(estimate)
+
+
 def slot_of(molecule: MoleculeModel, fingerprint: str) -> int:
     """The one-based slot of the conformer `fingerprint` names, or 0 when it is none of the stored ones."""
     located = find_source_conformer(molecule.conformers, fingerprint)
