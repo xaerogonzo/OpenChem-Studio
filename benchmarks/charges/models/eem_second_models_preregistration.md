@@ -280,3 +280,55 @@ Geidl cites two held papers for it; both were read.
 the two do not contradict each other and neither tests the other. Model J's own deviation from Merz-Kollman charges has not
 been measured by anyone I found. It is what check C5 can start to measure, if a Merz-Kollman reference is computed (ORCA gives
 CHELPG, which Bultinck found behaves like MK).
+
+### 5-L.3. A second search (ChatGPT's list), checked against the documents themselves (2026-10-30)
+
+Every claim below was checked in the file named, not taken from the search's summary.
+
+**A published EEM that handles this.** Gilson, Gilson and Potter 2003 (`gilson2003.pdf`, J. Chem. Inf. Comput. Sci. 43,
+1982) and the patent application behind it (`Patents/`, paragraphs 0046, 0055 and 0056): their quotes are accurate. The
+method is fitted to ab initio electrostatic potentials, finds alternate resonance forms by a donor/acceptor algorithm,
+keeps only the lowest-energy forms ("both forms of a carboxylate, but only the form of an amide that has no formal
+charges"), and **averages the electronegativities and hardnesses over those forms**, so the two carboxylate oxygens end up
+with equal parameters; it also says charges could instead be computed per form and then averaged. It states that only
+resonance changes that move formal charge need explicit handling, "because the second type [ring Kekule changes] does not
+affect atom typing", which is what C3 measured here. It says many charging algorithms special-case carboxylate. It does NOT
+mention nitro groups (searched). This is the precedent for averaging the PARAMETERS of the equivalent atoms.
+
+**How the training structures drew nitro.** wwPDB's ligand procedures (`web page downloads/wwPDB_ Processing Procedures
+and Policies.htm`): "Nitro groups (R-NO2) are represented in a charge separated state (R-[N+](=O)[O-])", so the CCD
+sets (NEEMP's Ccd2016, Model N) were trained on charge-separated nitro. The NCI DTP page (checked 2026-10-30) says its
+old SMILES had nitro groups "lacking formal charges", edited by N(=O)O -> [N+](=O)[O-], which means the original NCI
+structures drew nitro PENTAVALENT (N(=O)=O, both oxygens O2) and the page does not say what the current SD file uses; so
+the DTP-trained sets (Geidl 2015's Cheminf sets; Jiroušková's set was trained on CSD structures instead) may have typed both
+nitro oxygens alike. CORINA's manual (`Manuals/`) documents `-o gold` (GOLD bond-type conventions for groups with more than
+one canonical form, guanidinium given) and `-o fcharges`; it does not say what nitro or carboxylate output it writes, and
+nothing shows the Geidl pipeline used `-o gold`. Jiroušková's CSD structures: nothing stated.
+
+**What RDKit does here (run 2026-10-30).** It normalises pentavalent `CN(=O)=O` to `C[N+](=O)[O-]`, and which oxygen then
+carries the double bond follows the atom order of the INPUT: `CN(=O)=O` and `C[N+](=O)[O-]` give the double bond to
+different oxygens of the same molecule. Likewise `CC(=O)[O-]` and `CC([O-])=O`. So in this application the same
+structure written two ways gets mirror-image oxygen types and charges.
+
+**Quality by atom type.** NEEMP (`Raček2016.pdf`): the Figure 4 caption's C3 and S2 problems are for the CHEMINF2015
+sets (mpa and npa); the text names Ccd2016_mpa and Cheminf2015_npa for slight C3 or S2 issues; Ccd2016_npa, Model N, is not
+named. Svobodová Vařeková 2013: "most of the outliers contain one or more nitro groups. This may be related to reported
+lower accuracy of EEM for these groups", citing Bultinck 2002 part I, which says nitrogen outliers "are mainly associated
+with nitro compounds" while that calibration does give them the right (positive) sign. No paper gives per-oxygen errors
+for nitro or carboxylate.
+
+**Independent test of Model J (Geidl 2015, Table 6, R2 of EEM against QM charges on its test set of approved drugs, with
+the share of molecules each set covers).** Jir2008_mk (Model J's set) **0.7022** at about 71% to 80% coverage; Jir2008_hf
+0.6872; Bult2002_mk 0.7844; Bult2002_che 0.7803; Bult2002_npa 0.8131; against Bult2002_mpa 0.9658 and Ouy2009 0.9655, at
+about 48% to 55% coverage. Different molecules and a different statistic from Jiroušková's own mean per-molecule
+correlation (0.94), so not a contradiction, but it is the only independent number for Model J and it is the lowest in the
+table. Geidl's own sets exceed R2 0.93 on the same kind of test set (its abstract).
+
+**E versus EX** (`ionescu2012.pdf`): "chemical elements only (denoted 'E')" against elements and maximum bond order
+("EX", for example O1); the PLoS paper, not the 2013 one, is where the terms are defined in the text read.
+
+**Not found by that search:** a general resonance-averaging rule in conventional EEM, QEq, SQE, PEOE or ACKS2; an atom-by-atom
+error table for nitro or carboxylate oxygens; Ouyang 2009's full text (the library holds it).
+
+**The DOI-named copy of Jiroušková 2009** added to the library (`10.1002@jcc.21142.pdf`) is byte-identical to the file
+the registry already names (`Jiroušková 2009.pdf`), SHA-256 09716d51...cdac.
