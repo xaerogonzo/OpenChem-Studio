@@ -1490,16 +1490,18 @@ blocked by anything:
   result there is a much weaker statement than the same result on a
   form-shaped panel, and this defect class needs a guard of its own kind.
 
-### Recipes, derived scores and the assistant's bridge (2026-10-12, updated 2026-10-16)
+### Recipes, derived scores and the assistant's bridge (2026-10-12, updated 2026-10-30)
 
 Phase 1 (the assistant reads and runs calculators, and asks before anything heavy) is merged: `docs/AI_CALCULATION_BRIDGE.md`. **Phase 2 is
 built** (on 2026-10-12 it was designed and not built; the slices merged between 2026-10-13 and 2026-10-16): the recipe model, the run record, the
 Lewis pairing, its window and the kept answer in Results, and the preregistered BH3/CO gate, PASSED on 2026-10-13 (`docs/RECIPES_DESIGN.md`); and derived
-scores, slices 1 to 4 and their follow-ups (`docs/DERIVED_SCORES_DESIGN.md`). Still not built: a dispatch adapter for service-run (ORCA) calculators,
-so the assistant describes an ORCA job and a person starts it from its panel, and the assistant's frozen turn holds no quantum-chemistry runs
-(`domain/turn_snapshot.py` names none, checked 2026-10-16); scores over 3D numbers (decided on 2026-10-16, in the derived scores record); Phase 3 beyond its first calculator (Fukui functions were built on 2026-10-18 and
-failed two preregistered gates, the first by 0.0014 on one quantity and the second, on De Proft et al.'s tables, with 33 of 47 numbers within 0.02, so they are offered as experimental and not validated, `benchmarks/fukui_gate/PREREGISTRATION.md` and `benchmarks/fukui_gate_2/PREREGISTRATION.md`;
-proton affinity was benchmarked and its primary arm passed, #398; bond dissociation energy is preregistered and not yet reported) and the last of Phase 4 (the synthesis helper's Stage 1 is built, `docs/SYNTHESIS_HELPER_DESIGN.md`, plans are saved in the project file; what remains is the second quality protocol, which is Alex's to run). The live provider run for Phase 1 is still not done. `docs/WHATS_NEW.md` is a tour of all of it.
+scores, slices 1 to 4 and their follow-ups, including scores over 3D numbers (`docs/DERIVED_SCORES_DESIGN.md`).
+
+**Phase 3** (ORCA calculators, each behind a preregistered benchmark): proton affinity and gas basicity passed their benchmark (#398) and the calculator is LIMITED and shown by default since 2026-10-23 (`docs/PROTON_AFFINITY_DESIGN.md`); X-H bond dissociation enthalpy's benchmark was PARTIAL on 2026-10-21, its held-out arm PASSED on 2026-10-23, and the calculator is LIMITED and shown since 2026-10-25, with the restart protocols and what they found in `benchmarks/restart_v2/` and `benchmarks/restart_v3/`; Fukui functions (built 2026-10-18) failed two preregistered gates, the first by 0.0014 on one quantity and the second, on De Proft et al.'s tables, with 33 of 47 numbers within 0.02, so they are offered as experimental and not validated (`benchmarks/fukui_gate/PREREGISTRATION.md` and `benchmarks/fukui_gate_2/PREREGISTRATION.md`).
+
+**Phase 4** (the synthesis helper, `docs/SYNTHESIS_HELPER_DESIGN.md`): Stage 1 is built, plans are saved in the project file, and the planner's quality was measured three times. Protocol 2 (2026-10-22) put the patent route among the first 10 shown for 41.7% of 300 patent targets, and slice 3 ranks and caps the routes as it measured; protocol 3 (2026-10-24), on 51 routes from journal papers newer than the model's training data, read lower, 13 of 51 (0.255), and that figure is quoted beside the patent one in every plan.
+
+**Still not built:** a dispatch adapter for service-run (ORCA) calculators, so the assistant describes an ORCA job and a person starts it from its panel, and the assistant's frozen turn holds no quantum-chemistry runs (`domain/turn_snapshot.py` names none, checked 2026-10-16); and the live provider run for Phase 1, which needs an API key. `docs/WHATS_NEW.md` is a tour of all of it.
 
 ### Visualization
 
