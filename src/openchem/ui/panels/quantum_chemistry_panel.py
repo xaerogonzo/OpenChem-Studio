@@ -35,17 +35,10 @@ from openchem.chem import bond_dissociation
 from openchem.chem.bond_dissociation import Sequence as BondDissociationSequence
 from openchem.chem.calculation_input import (
     canonical_conformer,
-    find_source_conformer,
     input_fingerprint,
-    resolve_conformer_input,
-    resolve_ensemble,
 )
 from openchem.chem.engine import ChemistryEngine
-from openchem.chem.fukui import (
-    conformer_average_message,
-    open_shell_message,
-    summary_lines,
-)
+from openchem.chem.fukui import summary_lines
 from openchem.chem.isotopes import same_structure
 from openchem.chem.nmr_correlation import (
     compute_cosy_pairs,
@@ -62,6 +55,8 @@ from openchem.chem.orca_engine import (
 )
 from openchem.chem.proton_affinity import OutOfScope as ProtonAffinityOutOfScope
 from openchem.chem.proton_affinity import Sequence as ProtonAffinitySequence
+from openchem.chem.quantum_run_request import PreparedRun, RunChoice, RunRefusal, prepare_run
+from openchem.chem.quantum_run_request import start as start_run
 from openchem.chem.tautomer_distribution import (
     CONFIRMATION_THRESHOLD,
     generate_tautomer_candidates,
@@ -69,7 +64,7 @@ from openchem.chem.tautomer_distribution import (
     tautomer_distribution_table,
 )
 from openchem.chem.tautomer_nmr import targets_from_distribution
-from openchem.domain.calculator import DRAWING, ENSEMBLE, GEOMETRY
+from openchem.domain.calculator import DRAWING
 from openchem.domain.compare import ComparedResult, CompareRefusal, compare
 from openchem.domain.conformer import conformer_choice_text
 from openchem.domain.project import ProjectModel
@@ -1654,36 +1649,6 @@ class QuantumChemistryPanel(QWidget):
             # The contract text again: setToolTip above would have replaced it.
             apply_help_tooltip(self._conformer_combo, _HELP["conformer"])
 
-    @staticmethod
-    def _chosen_conformer_note(molecule, chosen, calc_type: str) -> str:
-        """What a result must say when it was computed on a conformer that is NOT the one every calculation uses.
-
-        **A MEASURED FACT, NOT A WARNING FOR ITS OWN SAKE.** Properties shows the results for the conformer every
-        calculation uses (a stored result is replayed only while its input is still that conformer's), so a single
-        point or an NMR run on another conformer shows here and in the run history, and is not replayed in Properties
-        when the molecule is selected again. Said at the moment it matters. An optimization is not noted: its result
-        is a geometry that REPLACES the conformer it came from, and the 3D viewer shows it.
-        """
-        if chosen is None or calc_type in ("opt", "opt_freq"):
-            return ""
-        automatic = canonical_conformer(molecule)
-        if chosen is automatic:
-            return ""
-        slot = next(i for i, c in enumerate(molecule.conformers) if c is chosen) + 1
-        automatic_slot = next(i for i, c in enumerate(molecule.conformers) if c is automatic) + 1
-        return (
-            f"Computed on conformer {slot}, not the one every calculation uses (conformer {automatic_slot}). It is "
-            "kept in this panel's run history; Properties shows results for the other one, so it does not come back "
-            "there when the molecule is selected again."
-        )
-
-    def _chosen_conformer(self, molecule):
-        """The conformer the Conformer box names, or None for Automatic (and for a pick that is not there)."""
-        conformer_id = self._conformer_combo.currentData() or ""
-        if not conformer_id or not self._conformer_choosable():
-            return None
-        return next((c for c in molecule.conformers if c.conformer_id == conformer_id), None)
-
     def choose_conformer(self, molecule_uuid: str, conformer_id: str) -> bool:
         """Point the panel at one conformer of one molecule. True when it was there to choose AND a choice applies.
 
@@ -2146,85 +2111,40 @@ class QuantumChemistryPanel(QWidget):
         self._help_window.raise_()
         self._help_window.activateWindow()
 
+    def _run_choice(self) -> RunChoice:
+        """What the controls ask for, read as data: the one place the widgets become a `RunChoice`. The rules are `chem/quantum_run_request.prepare_run`, shared with an assistant's card."""
+        return RunChoice(
+            calc_type=CALC_TYPE_LABELS[self._calc_type_combo.currentText()],
+            method_basis=self._effective_method_basis(),
+            charge=self._charge_spin.value(),
+            multiplicity=self._multiplicity_spin.value(),
+            provider_id=self._selected_engine_id(),
+            average_conformers=self._boltzmann_check.isChecked(),
+            conformer_id=self._conformer_combo.currentData() or "",
+        )
+
     def _on_run_clicked(self) -> None:
         molecule = self._current_molecule()
-        if molecule is None or not molecule.molblock:
-            self._status_label.setText("Select a molecule with a structure first.")
+        prepared = prepare_run(self._chemistry_engine, molecule, self._run_choice())
+        if isinstance(prepared, RunRefusal):
+            self._status_label.setText(prepared.message)
             return
-        if not molecule.conformers:
-            # Confirmed live against a real ORCA install: molecule.molblock
-            # alone (from SMILES import or the 2D editor) carries only
-            # heavy atoms -- hydrogens stay implicit, same as virtually
-            # every MOL/SDF representation -- so building an ORCA input
-            # straight from it silently sends an incomplete structure (a
-            # bare oxygen atom for water, not H2O) rather than failing
-            # loudly. RDKitConformerProvider._embed_one already calls
-            # Chem.AddHs() before embedding, so requiring a real conformer
-            # here guarantees explicit hydrogens with real 3D positions,
-            # not just a flatter/lower-quality geometry.
-            self._status_label.setText(
-                "Generate one with Structure ▸ Generate Conformers... first -- "
-                "quantum chemistry needs explicit hydrogens with real 3D positions, which "
-                "the 2D editor's structure alone doesn't have."
-            )
+        # Said here as well as by the engine, so the person is shown the cost before a job is queued and not by one that fills the disk.
+        if prepared.asks_cost and not self._confirm_led_cost(self, prepared.mol):
             return
+        self._begin_pending(molecule, prepared)
+        start_run(self._quantum_chemistry_service, prepared)
 
-        # THROUGH THE RESOLVER, so the molecule ORCA is handed and the identity
-        # stamped on its spectra come from one resolution (the canonical
-        # conformer, not `conformers[0]`, which agrees only while the list
-        # happens to be energy-sorted).
-        chosen = self._chosen_conformer(molecule)
-        target = chosen if chosen is not None else canonical_conformer(molecule)
-        resolved = resolve_conformer_input(self._chemistry_engine, molecule, target)
-        if resolved.used != GEOMETRY:
-            # The resolver fell back to the DRAWING -- the conformer would not
-            # parse or is flat. Refused, never run: the drawing carries no
-            # hydrogens, and ORCA would compute a plausible-looking answer for
-            # a different molecule (see the conformer check above).
-            self._status_label.setText(
-                "The selected molecule's conformer has no usable 3D coordinates. Regenerate "
-                "it with Structure ▸ Generate Conformers... first."
-            )
-            return
-        mol = resolved.mol
-        molblock = target.molblock
+    def _begin_pending(self, molecule, prepared: PreparedRun) -> None:
+        """What the panel commits to when a run is handed to the service, and only then: which molecule it waits for, what was submitted, and a clean slate for the results that will arrive.
 
-        calc_type = CALC_TYPE_LABELS[self._calc_type_combo.currentText()]
-        method_basis = self._effective_method_basis()
-        if not method_basis:
-            self._status_label.setText("Enter a method/basis (e.g. 'B3LYP def2-SVP').")
-            return
-
-        # Said here as well as by the engine and the service, so the person is told before a job is queued and
-        # not by a failed one: an open-shell species has no Fukui function until a spin state is chosen, and
-        # the per-atom values do not survive the conformer-averaging path.
-        if calc_type == "fukui":
-            if self._multiplicity_spin.value() != 1:
-                self._status_label.setText(open_shell_message(self._multiplicity_spin.value()))
-                return
-            if self._boltzmann_check.isChecked() and len(molecule.conformers) > 1:
-                self._status_label.setText(conformer_average_message())
-                return
-
-        boltzmann = self._boltzmann_check.isChecked() and len(molecule.conformers) > 1
-        ensemble = None
-        if boltzmann:
-            # Resolved BEFORE the panel commits to a run, so a refusal leaves
-            # the controls as they were rather than disabled with no job.
-            try:
-                ensemble = resolve_ensemble(self._chemistry_engine, molecule)
-            except ValueError as exc:
-                self._status_label.setText(f"Cannot average over the conformers: {exc}")
-                return
-
-        if calc_type == "led" and not self._confirm_led_cost(self, mol):
-            return
-
+        A refusal never gets here, so it leaves the controls as they were rather than disabled with no job.
+        """
         self._pending_molecule_uuid = molecule.uuid
-        self._pending_conformer_note = self._chosen_conformer_note(molecule, chosen, calc_type)
-        self._pending_mol = mol
+        self._pending_conformer_note = prepared.conformer_note
+        self._pending_mol = prepared.mol
         self._pending_molblock = molecule.molblock
-        self._pending_conformer_molblock = molblock
+        self._pending_conformer_molblock = prepared.conformer_molblock
         self._optimized_conformer_molblock = ""
         self._run_button.setEnabled(False)
         self._cancel_button.setEnabled(True)
@@ -2234,44 +2154,9 @@ class QuantumChemistryPanel(QWidget):
         self._spectrum_table.setVisible(False)
         self._spectrum_note_label.setVisible(False)
         self._correlation_tabs.setVisible(False)
-        # Back to placeholders. A second job of a different type must not
-        # leave the first job's tables sitting under the new job's heading,
-        # which would be worse than a blank tab -- it would be wrong.
+        # Back to placeholders. A second job of a different type must not leave the first job's tables sitting under the new job's heading, which would be worse than a blank tab -- it would be wrong.
         self._reset_empty_states()
         self._status_label.setText("queued")
-
-        if ensemble is not None:
-            self._quantum_chemistry_service.request_boltzmann_nmr(
-                mols=list(ensemble.mols),
-                molecule_uuid=molecule.uuid,
-                calc_type=calc_type,
-                charge=self._charge_spin.value(),
-                multiplicity=self._multiplicity_spin.value(),
-                method_basis=method_basis,
-                provider_id=self._selected_engine_id(),
-                input_fingerprint=ensemble.fingerprint,
-                calculation_input=ENSEMBLE,
-                structure_identity=molecule.canonical_smiles or "",
-            )
-            return
-
-        self._quantum_chemistry_service.request_calculation(
-            mol=mol,
-            molecule_uuid=molecule.uuid,
-            calc_type=calc_type,
-            charge=self._charge_spin.value(),
-            multiplicity=self._multiplicity_spin.value(),
-            method_basis=method_basis,
-            provider_id=self._selected_engine_id(),
-            input_fingerprint=resolved.fingerprint,
-            calculation_input=GEOMETRY,
-            # What the molecule IS now: the window compares it with what it is when the job lands, because
-            # an edit while ORCA runs must not hand the old structure's geometry to the new one.
-            structure_identity=molecule.canonical_smiles or "",
-            # Which conformer this is, as it stands NOW (one-based): the geometry that comes back records it as
-            # what it was optimized from, even if a regeneration moves that conformer while the job runs.
-            source_slot=self._slot_of(molecule, resolved.fingerprint),
-        )
 
     def _on_cancel_clicked(self) -> None:
         if self._pending_molecule_uuid is not None:
@@ -3159,12 +3044,6 @@ class QuantumChemistryPanel(QWidget):
                 self._correlation_tabs.setCurrentWidget(self._output_log)
             # Failed keeps it OPEN: the log is where the reason is, and
             # collapsing it would hide the one thing worth reading.
-
-    @staticmethod
-    def _slot_of(molecule, fingerprint: str) -> int:
-        """The one-based slot of the conformer `fingerprint` names, or 0 when it is none of the stored ones."""
-        located = find_source_conformer(molecule.conformers, fingerprint)
-        return located[0] + 1 if located is not None else 0
 
     def _structure_still_matches(self, event: QuantumChemistryResultReady) -> bool:
         """Is the pending molecule still the structure this job was submitted on? Fails closed."""
