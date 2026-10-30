@@ -1424,6 +1424,29 @@ def test_failed_physical_checks_are_stated_under_the_table_and_on_the_row(qapp):
     assert panel._table.item(0, 1).toolTip() == ""
 
 
+def test_a_close_pose_in_another_place_is_named_under_the_table_and_on_its_row(qapp):
+    panel, _engine, _service = _make_panel()
+    result = _result_with(_replicate_set(-8.79), affinities=(-8.8, -8.1, -4.0))
+    for pose, shift in zip(result.poses, (0.0, 5.5, 6.0)):
+        pose.rmsd_lb = shift
+    panel._show_result(result)
+
+    assert panel._choice_label.isHidden() is False
+    text = panel._choice_label.text()
+    assert "Pose 1 scores best, which is not the same as being right" in text
+    assert "pose 2 scores within 2.85 kcal/mol" in text
+    assert "5.5 A" in panel._table.item(1, 1).toolTip()
+    # Pose 3 is 4.8 kcal/mol worse: the score does separate it, so it gets no hint.
+    assert panel._table.item(2, 1).toolTip() == ""
+    assert panel._table.item(0, 1).toolTip() == ""
+
+
+def test_one_pose_has_nothing_to_choose_between_and_undo_clears_the_line(qapp):
+    panel, _engine, _service = _make_panel()
+    panel._show_result(_result_with(_replicate_set(-8.79)))
+    assert panel._choice_label.isHidden() is True
+
+
 def test_a_result_with_no_checks_shows_no_checks_line(qapp):
     panel, _engine, _service = _make_panel()
     panel._show_result(_result_with(_replicate_set(-8.79)))
