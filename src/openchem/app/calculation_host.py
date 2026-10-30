@@ -40,14 +40,16 @@ from __future__ import annotations
 
 import logging
 import threading
+import uuid
 from collections import OrderedDict
 from concurrent.futures import Future
 from concurrent.futures import TimeoutError as FutureTimeout
-from typing import Any
+from typing import Any, Protocol
 
 from PySide6.QtCore import QObject, Qt, QThread, Signal
 
 from openchem.app.session import SessionManager
+from openchem.chem.quantum_run_request import TWO_PARTNERS_MESSAGE, RunChoice, led_cost_of_smiles
 from openchem.domain import calculator_search
 from openchem.domain import result_status as rs
 from openchem.domain.calculation_bridge import (
@@ -63,7 +65,7 @@ from openchem.domain.calculation_bridge import (
     route_of,
     validate_parameters,
 )
-from openchem.domain.calculator import CalculationRequest
+from openchem.domain.calculator import DRAWING, GEOMETRY, CalculationRequest
 from openchem.domain.calculator_goals import GOALS
 from openchem.domain.execution_plan import build_execution_plan
 from openchem.domain.execution_policy import AiRun, ResourceClass, decide, policy_of
@@ -89,9 +91,12 @@ from openchem.domain.score_proposal import (
     check_request,
 )
 from openchem.domain.score_value import evaluate_score
+from openchem.domain.quantum_dispatch import STARTABLE, calc_type_of
+from openchem.domain.quantum_chemistry_run import QuantumChemistryRun, RunStatus
 from openchem.domain.quantum_run_snapshot import classify_runs
 from openchem.domain.turn_snapshot import DEFAULT_READ_LIMIT, ResultsView, TurnContext, build_turn_context, read_results
-from openchem.events.events import CalculationFinished, ResultRecorded
+from openchem.domain.common import CacheState
+from openchem.events.events import CalculationFinished, QuantumChemistryJobStateChanged, QuantumChemistryRunCompleted, ResultRecorded
 from openchem.services.container import ServiceContainer
 from openchem.services.result_cache import parameters_key
 
@@ -105,6 +110,18 @@ WAIT_SECONDS: dict[ResourceClass, float] = {
     ResourceClass.SHORT: 60.0,
     ResourceClass.LONG: 120.0,
 }
+
+
+class QuantumStarter(Protocol):
+    """What the window gives the host so that a person's Approve can start an ORCA job: the Quantum Chemistry panel's own entry point.
+
+    **THE HOST DECIDES NOTHING ABOUT AN ORCA JOB.** It hands the choice the card showed to the panel, which applies the Run button's rules to the molecule as it is now and keeps the bookkeeping its result
+    handlers read (`QuantumChemistryPanel.start_assistant_run`). GUI thread.
+    """
+
+    def start_assistant_run(self, molecule_uuid: str, choice: RunChoice, input_fingerprint: str) -> str:
+        """"" when the job was handed to the service, otherwise the sentence that says why nothing started."""
+        ...
 
 
 class _TurnMolecule:
@@ -144,9 +161,26 @@ class CalculationHost(QObject):
         self._recorded: dict[str, StoredResult] = {}
         #: The scores the assistant proposed that wait for a person. Nothing in it is stored: only `approve_score` makes a score, on the GUI thread, for a button.
         self._proposals = ProposalBook()
+        #: The panel that starts an approved ORCA job; None until the window gives one (a headless run, a test), when those calculators stay "run it from its panel".
+        self._quantum_starter: QuantumStarter | None = None
+        #: molecule uuid -> (run id, conformer fingerprint, calculation type) of the approved ORCA job now running for it. One job per molecule, as the service allows.
+        self._quantum_inflight: dict[str, tuple[str, str, str]] = {}
+        #: While the starter is called: the molecule it is starting, and what the service said (a failed state is published from inside the call, before it returns).
+        self._starting: str = ""
+        self._start_failure: str = ""
         self._dispatch_requested.connect(self._on_dispatch_requested, Qt.ConnectionType.QueuedConnection)
         services.event_bus.subscribe(ResultRecorded, self._on_result_recorded)
         services.event_bus.subscribe(CalculationFinished, self._on_calculation_finished)
+        services.event_bus.subscribe(QuantumChemistryJobStateChanged, self._on_quantum_state)
+        services.event_bus.subscribe(QuantumChemistryRunCompleted, self._on_quantum_run_completed)
+
+    def set_quantum_starter(self, starter: QuantumStarter | None) -> None:
+        """Give the host the means to start an approved ORCA job. Until it has one, those calculators are described and not startable."""
+        self._quantum_starter = starter
+
+    def _startable(self) -> frozenset[str]:
+        """The service-run calculators a person's Approve can start from here: all of `STARTABLE` once there is a panel to start them, none before."""
+        return frozenset(STARTABLE) if self._quantum_starter is not None else frozenset()
 
     # --- the turn -------------------------------------------------------------------------------
 
@@ -291,11 +325,12 @@ class CalculationHost(QObject):
 
     def catalog(self, query: str = "", limit: int = 20) -> tuple[CalculatorCard, ...]:
         found = calculator_search.search(self._services.calculator_registry.definitions(), query, limit)
-        return tuple(build_card(definition) for definition in found)
+        startable = self._startable()
+        return tuple(build_card(definition, startable) for definition in found)
 
     def describe(self, calculator_id: str) -> CalculatorCard | None:
         definition = self._services.calculator_registry.get(calculator_id)
-        return build_card(definition) if definition is not None else None
+        return build_card(definition, self._startable()) if definition is not None else None
 
     def goals(self) -> tuple[GoalCard, ...]:
         """The wizard's questions and the calculators that answer them, each entry's route read live.
@@ -337,9 +372,11 @@ class CalculationHost(QObject):
                 ProblemCode.UNKNOWN_CALCULATOR,
                 f"there is no calculator {calculator_id!r}; use the catalog to find one",
             ),))
-        route, why = route_of(definition)
+        route, why = route_of(definition, self._startable())
         if route is Route.BLOCKED:
             return PrepareResult(problems=(Problem(ProblemCode.NOT_FOR_MOLECULES, why),))
+        if calc_type_of(calculator_id) is not None and self._quantum_starter is not None:
+            return self._prepare_quantum(definition, turn, parameters)
         if route is Route.PREVIEW_ONLY:
             return self._service_preview_result(definition, turn, parameters, why)
         if not turn.has_structure:
@@ -388,6 +425,66 @@ class CalculationHost(QObject):
             adjustments=validation.adjustments,
             resource=policy.resource.value,
             external_tools=tuple(sorted(policy.external_tools)),
+        )
+        self._ledger.register(preparation)
+        return PrepareResult(preparation=preparation)
+
+    def _prepare_quantum(self, definition, turn: TurnContext, parameters) -> PrepareResult:
+        """An ORCA job a person can approve: validated like any request, checked against what this computer has, and held as a preview. Starts nothing.
+
+        **THE CARD IS DRAWN FROM THE TURN, THE RULES RUN AT APPROVE.** This runs on a worker, where the live molecule is not the thread's to read, so what is checked here is what the frozen turn and the
+        registry can say (a structure, a conformer, the ORCA program, the settings, the cost of an interaction breakdown). The rules that need the molecule itself are the Run button's, and the panel
+        applies them to the molecule as it is when Approve is pressed (`QuantumStarter`): a structure edited in between is `INVALIDATED`, never run.
+        """
+        if not turn.has_structure:
+            return PrepareResult(problems=(Problem(
+                ProblemCode.NO_STRUCTURE, f"{turn.display_name} has no drawn structure yet, so there is nothing to calculate"
+            ),))
+        validation = validate_parameters(definition, parameters, smiles_ok=self._smiles_ok)
+        if not validation.ok:
+            return PrepareResult(problems=validation.problems)
+        missing = [r for r in self._service_requirements(definition, turn) if not r.ok]
+        if missing:
+            return PrepareResult(problems=tuple(
+                Problem(ProblemCode.NOT_READY, f"{r.what} is missing" + (f": {r.how_to_fix}" if r.how_to_fix else "")) for r in missing
+            ))
+        fingerprint = turn.fingerprints.get(GEOMETRY)
+        if not fingerprint:
+            return PrepareResult(problems=(Problem(ProblemCode.NO_STRUCTURE, f"{turn.display_name} has no 3D conformer to fingerprint"),))
+        calc_type = calc_type_of(definition.calculator_id)
+        extra: list[str] = []
+        if calc_type == "led":
+            refusal, cost = led_cost_of_smiles(turn.canonical_smiles)
+            if refusal:
+                return PrepareResult(problems=(Problem(ProblemCode.INVALID_STRUCTURE, refusal),))
+            extra.append("What it would cost (approving accepts it): " + cost.replace("\n\n", " "))
+        policy = policy_of(definition)
+        decision = decide(policy, validation.parameters, heavy_atoms=turn.heavy_atoms)
+        lines = list(_preview_lines(definition.display_name, turn, validation.parameters, policy, decision.reason))
+        # Before the closing sentence: what the job will do, in the panel's terms, and what the person can still do about it.
+        lines[-1:] = [
+            "It runs on the conformer every calculation uses, by the same rules as the Quantum Chemistry panel's Run button, and shows in that panel while it runs, where it can be cancelled.",
+            *extra,
+            lines[-1],
+        ]
+        preparation = Preparation(
+            run_id=uuid.uuid4().hex,
+            turn_id=turn.turn_id,
+            calculator_id=definition.calculator_id,
+            display_name=definition.display_name,
+            molecule_uuid=turn.molecule_uuid,
+            molecule_name=turn.display_name,
+            project_uuid=turn.project_uuid,
+            calculation_input=GEOMETRY,
+            input_fingerprint=fingerprint,
+            parameters=dict(validation.parameters),
+            route=Route.NEEDS_APPROVAL,
+            decision=decision,
+            preview=tuple(lines),
+            adjustments=validation.adjustments,
+            resource=policy.resource.value,
+            external_tools=tuple(sorted(policy.external_tools)),
+            drawing_fingerprint=turn.fingerprints.get(DRAWING, ""),
         )
         self._ledger.register(preparation)
         return PrepareResult(preparation=preparation)
@@ -556,11 +653,13 @@ class CalculationHost(QObject):
         if results is None:
             return ""
         try:
-            now = results.fingerprints_for(model).get(preparation.calculation_input)
+            now = results.fingerprints_for(model)
         except Exception:  # noqa: BLE001 - an input that cannot be fingerprinted cannot be vouched for
-            now = None
-        if now != preparation.input_fingerprint:
+            now = {}
+        if now.get(preparation.calculation_input) != preparation.input_fingerprint:
             return "the structure changed after this was prepared, so the plan was withdrawn; prepare it again"
+        if preparation.drawing_fingerprint and now.get(DRAWING) != preparation.drawing_fingerprint:
+            return "the structure was edited after this was prepared, so the plan was withdrawn; prepare it again"
         return ""
 
     def _start(self, run_id: str) -> None:
@@ -575,6 +674,9 @@ class CalculationHost(QObject):
                 self._settle(run_id, self._ledger.outcome_of(run_id))
             return
         if not self._ledger.claim_dispatch(run_id):
+            return
+        if calc_type_of(preparation.calculator_id) is not None:
+            self._start_quantum(preparation)
             return
         key = (preparation.calculator_id, preparation.molecule_uuid)
         with self._lock:
@@ -594,7 +696,59 @@ class CalculationHost(QObject):
                 self._forget_inflight(key, run_id)
             self._finish(run_id, RunState.FAILED, f"it could not be started: {error}")
 
+    def _start_quantum(self, preparation: Preparation) -> None:
+        """Hand an approved ORCA job to the Quantum Chemistry panel, which applies the Run button's rules to the molecule as it is now. The run is already claimed (RUNNING).
+
+        A refusal (the panel's sentence) or a failure the service publishes from inside the call ends the run here. Otherwise it ends when ORCA's run record arrives (`_on_quantum_run_completed`),
+        which can be minutes or hours later: nothing waits for it, and the person is told with the next message.
+        """
+        run_id, molecule_uuid = preparation.run_id, preparation.molecule_uuid
+        starter = self._quantum_starter
+        if starter is None:
+            self._finish(run_id, RunState.FAILED, "the Quantum Chemistry panel is not available to start it")
+            return
+        parameters = preparation.parameters
+        choice = RunChoice(
+            calc_type=calc_type_of(preparation.calculator_id) or "",
+            method_basis=str(parameters.get("method_basis", "")),
+            charge=int(parameters.get("charge", 0)),
+            multiplicity=int(parameters.get("multiplicity", 1)),
+        )
+        calc_type = choice.calc_type
+        with self._lock:
+            self._quantum_inflight[molecule_uuid] = (run_id, preparation.input_fingerprint, calc_type)
+            self._starting, self._start_failure = molecule_uuid, ""
+        try:
+            refusal = starter.start_assistant_run(molecule_uuid, choice, preparation.input_fingerprint)
+        except Exception as error:  # noqa: BLE001 - a panel that cannot start the work is a failed run
+            logger.exception("Could not start %s", preparation.calculator_id)
+            refusal = f"it could not be started: {error}"
+        finally:
+            with self._lock:
+                failure, self._starting, self._start_failure = self._start_failure, "", ""
+        if refusal or failure:
+            with self._lock:
+                self._quantum_inflight.pop(molecule_uuid, None)
+            # A refusal is the panel's rule speaking (nothing was queued); a failure is the service's, said from inside the call.
+            self._finish(run_id, RunState.REFUSED if refusal else RunState.FAILED, refusal or failure)
+
     # --- completion (the GUI thread, from the bus) ------------------------------------------------------
+
+    def _on_quantum_state(self, event: QuantumChemistryJobStateChanged) -> None:
+        """A job's state, read for one thing only: a failure said while the job was being handed over (no executable, a second job for the molecule), which has no run record to say it."""
+        if event.state is CacheState.FAILED and event.molecule_uuid == self._starting:
+            self._start_failure = event.message or "the job could not be started"
+
+    def _on_quantum_run_completed(self, event: QuantumChemistryRunCompleted) -> None:
+        """An ORCA run reached its final state: if it is the one a person approved for the assistant, the approval's run ends with it."""
+        run = event.run
+        with self._lock:
+            held = self._quantum_inflight.get(run.molecule_uuid)
+            if held is None or held[2] != run.calc_type or held[1] != run.input_fingerprint:
+                return
+            self._quantum_inflight.pop(run.molecule_uuid)
+        state, message = _quantum_outcome(run)
+        self._finish(held[0], state, message)
 
     def _forget_inflight(self, key: tuple[str, str], run_id: str) -> None:
         """Drop one run from the in-flight list (the caller holds the lock)."""
@@ -667,6 +821,21 @@ class CalculationHost(QObject):
 
 def _rejected(run_id: str, code: ProblemCode, message: str, calculator_id: str = "") -> RunOutcome:
     return RunOutcome(run_id, calculator_id, RunState.REJECTED, message, problems=(Problem(code, message),))
+
+
+def _quantum_outcome(run: QuantumChemistryRun) -> tuple[RunState, str]:
+    """How an approved ORCA job ended, in the words the model is told: the application's own, naming the run record that holds the rest (`read_quantum_runs`).
+
+    Numbers are never in it: they are in the run, read with the tool that gives a run's freshness and caveats.
+    """
+    where = f"It is stored as ORCA run {run.run_id}; read how it ended, its warnings and its outputs with read_quantum_runs."
+    if run.status is RunStatus.COMPLETED:
+        return RunState.COMPLETED, f"ORCA finished the job. {where}"
+    if run.status is RunStatus.COMPLETED_WITH_WARNINGS:
+        return RunState.COMPLETED, f"ORCA finished the job and reported {len(run.warnings)} warning(s). {where}"
+    if run.status is RunStatus.CANCELLED:
+        return RunState.CANCELLED, f"The job was cancelled before it finished (in the Quantum Chemistry panel). It has no numbers. {where}"
+    return RunState.FAILED, f"ORCA did not produce a result. It has no numbers. {where}"
 
 
 def _failure_text(stored: StoredResult) -> str:

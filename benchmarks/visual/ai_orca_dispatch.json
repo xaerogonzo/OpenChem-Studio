@@ -1,0 +1,60 @@
+[
+  {"do": "smiles", "smiles": "O", "name": "Water", "after_ms": 1500},
+  {"do": "select", "molecule": -1, "after_ms": 3000},
+  {"do": "conformers", "count": 1, "after_ms": 8000},
+  {"do": "conformer_report", "tag": "a-conformer-to-run-on", "expect": {"conformers": 1}},
+  {"do": "panel", "id": "Quantum_Chemistry", "after_ms": 1000},
+
+  {"do": "ai_send", "text": "Run a single point on this molecule.",
+   "script": [
+     {"tool": "run_calculator", "input": {"calculator_id": "orca.sp", "parameters": {"method_basis": "B3LYP def2-SVP"}}},
+     {"text": "It is waiting for your approval."}
+   ], "after_ms": 3000},
+  {"do": "ai_expect", "tag": "asking-leaves-a-card-and-starts-nothing",
+   "expect": {"tools_offered": ["run_calculator"], "pending": 1, "service_previews": 0, "notes": 0,
+              "tool_results_contain": ["\"state\": \"awaiting_approval\"", "\"started\": false"],
+              "ledger_contains": ["waiting for your approval"], "send_enabled": true}},
+  {"do": "qc_panel_report", "tag": "the-panel-has-no-job-yet", "expect": {"status_contains": []}},
+  {"do": "shot", "path": "benchmarks/visual/artifacts/ai_orca_dispatch_card.png", "after_ms": 500},
+
+  {"do": "ai_card", "action": "approve", "after_ms": 500},
+  {"do": "ai_expect", "tag": "approving-starts-it-and-the-model-is-not-told-yet",
+   "expect": {"pending": 0, "notes": 0, "ledger_contains": ["running in the Quantum Chemistry panel"]}},
+  {"do": "qc_wait", "timeout_ms": 300000, "after_ms": 1500},
+  {"do": "qc_panel_report", "tag": "the-panel-ran-it-as-its-own", "expect": {"run_calc_type": "sp", "run_status": "completed"}},
+  {"do": "ai_expect", "tag": "when-it-ends-the-ledger-and-the-note-say-so",
+   "expect": {"notes": 1, "ledger_contains": ["ORCA finished it"],
+              "notes_contain": ["The ORCA job you asked for, orca.sp on Water", "ended 'completed'", "read_quantum_runs", "State no value you have not read."],
+              "notes_exclude": ["-76."]}},
+
+  {"do": "ai_send", "text": "What did it give?",
+   "script": [
+     {"tool": "read_quantum_runs", "input": {}},
+     {"text": "A single point at B3LYP def2-SVP."}
+   ], "after_ms": 3000},
+  {"do": "ai_expect", "tag": "the-run-is-read-back-as-current-and-the-note-went-with-the-message",
+   "expect": {"notes": 0, "sent_contains": ["[Application note] The ORCA job you asked for"],
+              "tool_results_contain": ["\"calc_type\": \"sp\"", "\"outcome\": \"computed\"", "\"freshness\": \"current\"", "\"method_basis\": \"B3LYP def2-SVP\""],
+              "tool_results_exclude": ["M  END", "surface_cache_key"]}},
+
+  {"do": "ai_send", "text": "Run it again at another level.",
+   "script": [
+     {"tool": "run_calculator", "input": {"calculator_id": "orca.sp", "parameters": {"method_basis": "PBE0 def2-TZVP"}}},
+     {"text": "Waiting for your approval."}
+   ], "after_ms": 3000},
+  {"do": "ai_card", "action": "cancel", "after_ms": 500},
+  {"do": "ai_expect", "tag": "declining-the-card-starts-nothing",
+   "expect": {"pending": 0, "notes": 1, "ledger_contains": ["cancelled; nothing was started"], "notes_contain": ["cancelled"]}},
+  {"do": "qc_panel_report", "tag": "the-panel-still-shows-the-first-run", "expect": {"run_calc_type": "sp", "run_status": "completed"}},
+
+  {"do": "ai_send", "text": "Ask for something that is not one ORCA job.",
+   "script": [
+     {"tool": "run_calculator", "input": {"calculator_id": "orca.proton_affinity"}},
+     {"text": "That one runs from its own button."}
+   ], "after_ms": 3000},
+  {"do": "ai_expect", "tag": "a-calculator-with-its-own-dialog-is-still-only-described",
+   "expect": {"pending": 0, "service_previews": 1, "tool_results_contain": ["\"state\": \"preview_only\""]}},
+
+  {"do": "expect_clean"},
+  {"do": "quit"}
+]

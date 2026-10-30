@@ -3070,6 +3070,11 @@ class QuantumChemistryService(QObject):
             cores = 0
         return cores if cores >= 1 else default_cores()
 
+    def has_active_job(self, molecule_uuid: str) -> bool:
+        """A calculation for this molecule is queued or running. Public and read-only, so a caller that must not start a second one (which would be refused with a failed state and could
+        be mistaken for the first one's) can ask first."""
+        return self._job_manager.is_active(_JOB_KIND, molecule_uuid)
+
     def orca_executable(self) -> str | None:
         """The ORCA executable a run would use, or None when none is configured or found.
 

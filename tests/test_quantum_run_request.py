@@ -17,14 +17,20 @@ from openchem.chem.engine import ChemistryEngine
 from openchem.chem.fukui import conformer_average_message, open_shell_message
 from openchem.chem.quantum_run_request import (
     COSTLY_CALC_TYPES,
+    COST_ESTIMATE_CAVEAT,
     NO_CONFORMER,
     NO_USABLE_CONFORMER,
+    TWO_PARTNERS_MESSAGE,
     PreparedRun,
     RunChoice,
     RunRefusal,
     chosen_conformer,
     chosen_conformer_note,
+    led_cost_message,
+    led_cost_of_smiles,
     prepare_run,
+    review_cost,
+    review_led,
     slot_of,
     start,
 )
@@ -203,3 +209,54 @@ def test_preparing_starts_nothing_and_changes_nothing():
     before = ([c.conformer_id for c in molecule.conformers], molecule.molblock, molecule.canonical_smiles)
     prepare_run(ENGINE, molecule, choice(average_conformers=True))
     assert before == ([c.conformer_id for c in molecule.conformers], molecule.molblock, molecule.canonical_smiles)
+
+
+# --- the cost of a job that asks first: one set of rules and words for the panel's dialog and an assistant's card ---------------------------------
+
+
+def _pair_molecule(z_shift: float = 0.0) -> MoleculeModel:
+    from test_orca_led import _pair
+
+    molecule = MoleculeModel(display_name="Ammonia borane")
+    ENGINE.set_structure_from_smiles(molecule, "N.B")
+    molecule.conformers.append(ConformerModel(molblock=Chem.MolToMolBlock(_pair(z_shift)), method="rdkit_etkdg"))
+    return molecule
+
+
+def test_only_a_job_that_asks_first_is_reviewed():
+    prepared = prepare_run(ENGINE, butane(2), choice(calc_type="sp"))
+    assert review_cost(prepared).kind == "ok"
+
+
+def test_one_species_is_refused_as_not_two_partners_whoever_asks():
+    prepared = prepare_run(ENGINE, butane(2), choice(calc_type="led"))
+    review = review_cost(prepared)
+    assert (review.kind, review.title, review.message) == ("two_partners", "Two partners needed", TWO_PARTNERS_MESSAGE) and review.refuses
+
+
+def test_two_partners_that_overlap_are_refused_with_the_geometrys_reason():
+    prepared = prepare_run(ENGINE, _pair_molecule(1.5), choice(calc_type="led"))
+    review = review_cost(prepared)
+    assert review.kind == "geometry" and review.refuses and "overlap" in review.message and review.title == "This geometry cannot be decomposed"
+
+
+def test_a_sensible_pair_is_ok_and_a_costly_one_is_a_cost_to_accept():
+    assert review_cost(prepare_run(ENGINE, _pair_molecule(0.0), choice(calc_type="led"))).kind == "ok"
+    big = Chem.AddHs(Chem.MolFromSmiles("c1ccc2ccccc2c1.c1ccc2ccccc2c1"))
+    review = review_led(big)
+    assert review.kind == "expensive" and not review.refuses and COST_ESTIMATE_CAVEAT in review.message and "basis functions, DLPNO-CCSD(T)" in review.message
+
+
+def test_a_card_is_told_the_cost_of_a_structure_before_any_conformer_exists():
+    refusal, text = led_cost_of_smiles("N.B")
+    assert refusal == "" and "basis functions, DLPNO-CCSD(T)" in text and COST_ESTIMATE_CAVEAT in text
+    assert led_cost_of_smiles("CCCC") == (TWO_PARTNERS_MESSAGE, "")
+    assert led_cost_of_smiles("")[0] and led_cost_of_smiles("not a smiles")[0]
+
+
+def test_the_cost_text_counts_the_hydrogens_orca_is_handed():
+    from openchem.chem.orca_led import estimate_led_cost_for
+
+    _refusal, text = led_cost_of_smiles("N.B")
+    bare = estimate_led_cost_for(Chem.MolFromSmiles("N.B"))
+    assert led_cost_message(estimate_led_cost_for(Chem.AddHs(Chem.MolFromSmiles("N.B")))) == text and bare.atoms < 8
