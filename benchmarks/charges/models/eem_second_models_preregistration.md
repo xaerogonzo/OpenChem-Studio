@@ -257,3 +257,26 @@ of about 0.05 e and up to about 0.2 e, in the Cheminf NPA set (118 pairs), Bulti
 
 **Not found:** any paper saying how EEM should type a resonance-equivalent pair. Searches turned up none, and the ChargeFW2
 documentation's Python tutorial was not read.
+
+### 5-L.2. What Geidl 2015's "MK is very low quality" rests on (read 2026-10-30)
+
+Geidl cites two held papers for it; both were read.
+
+- **Bultinck et al. 2002, part II** (`bultinck2002_II.pdf`; B3LYP/6-31G* geometries, H C N O F, EEM calibrated per charge scheme).
+  Its abstract: EEM-derived Mulliken and NPA charges "are in good agreement with the ab initio values", while "electrostatic
+  potential derived, and Hirshfeld charges show no good agreement". Its Table 3 gives the average absolute deviation of the EEM
+  charge from the DFT charge over all atoms: Mulliken 0.03, NPA 0.05, Hirshfeld 0.02, **CHELPG 0.08 and MK 0.08 e**; for
+  nitrogen MK is 0.20 e against 0.06 e for Mulliken, and the relative deviation on hydrogen is 76% (MK) and 93% (CHELPG).
+  Its explanation: ESP-fitted charges are statistically under-determined and give "quite a lot of negatively charged hydrogen
+  atoms" that are not chemical, and since the calibration cannot tell which are meaningful "we expect problematic behavior".
+  It concludes "the ESP derived charges do not yield useful EEM parameters." This is Bultinck's OWN MK set, not Jiroušková's.
+- **Svobodová Vařeková et al. 2013** (`varekova2013.pdf`): in its pKa study "MK and CHELPG provide weak QM models", and the
+  EEM models "confirm previous observations that the EEM approach is not able to faithfully mimic MK charges", citing the
+  Bultinck paper above. But its Table 2 also shows MK-based EEM sets (Jir2008 dft, Bult2002 mk) giving pKa models of R2 about
+  0.86 to 0.91, comparable to the others: so MK-based EEM is a poor copy of MK charges and not necessarily a poor descriptor.
+
+**What this means for Model J:** the claim is about how closely EEM reproduces MK charges (a mean absolute deviation of
+0.08 e for Bultinck's set, 0.20 e on nitrogen), a different metric from Jiroušková's mean per-molecule correlation of 0.94, so
+the two do not contradict each other and neither tests the other. Model J's own deviation from Merz-Kollman charges has not
+been measured by anyone I found. It is what check C5 can start to measure, if a Merz-Kollman reference is computed (ORCA gives
+CHELPG, which Bultinck found behaves like MK).
