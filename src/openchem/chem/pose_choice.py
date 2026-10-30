@@ -29,10 +29,13 @@ DIFFERENT_PLACEMENT = 2.0
 #: How many pose numbers a sentence lists before it says "and N more".
 _LISTED = 4
 
-#: The redocking figures the sentence quotes, held to `PREP_BOX_RESULT.md` by
-#: `tests/test_pose_choice.py` so a re-run that moves them cannot leave the panel stale.
+#: Receptors with a measurable distance in the redocking survey. The three redocking figures
+#: are held to `PREP_BOX_RESULT.md` by `tests/test_pose_choice.py`, so a re-run that moves
+#: them cannot leave the panel stale.
 REDOCK_RECEPTORS = 47
+#: Of those, how many had the top-ranked pose within 2 A of the crystal pose.
 REDOCK_TOP_CORRECT = 35
+#: Of those, how many had a pose within 2 A among the nine but not ranked first.
 REDOCK_RANKED_LOWER = 9
 
 
