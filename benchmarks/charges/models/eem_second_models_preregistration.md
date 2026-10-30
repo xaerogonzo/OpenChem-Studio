@@ -149,3 +149,23 @@ the per-atom spread between the four, reported, not judged. It is what a user wi
 `chem/data/` (one JSON per model, built by a tool as `eem_ionescu2013.json` is), the sources registry,
 `docs/explainers/` for the prose, and a `docs/CALCULATOR_MATURITY.md` stage (EXPERIMENTAL until a
 person decides otherwise, as every new charge model here).
+
+## 8. Amendment 1 (2026-10-30, same day, before any check ran): what the refusals do
+
+Decided after asking what could be done about each refusal in §3. Nothing below changes a parameter,
+a check or a threshold.
+
+1. **A refusal names the other model when that model would accept the structure.** J's refusal of
+   S2, C3, N3 and P2 says "model N has parameters for this type"; N's refusal of Zn says nothing. The
+   message states the type and the other model's name and scheme, and never substitutes its charges.
+2. **N stays on `CCD_gen_DE_RMSD_B3LYP_6311G_NPA`.** `DTP_large` has I1 and P1 as well and the same
+   other types (κ 0.5548), but the paper prefers CCD_gen on quality and its quality tables were not
+   readable (images), so the citable choice stays. Iodine and P(III) are refused by N, by name.
+3. **Boron stays refused by both**, with a message saying no published parameters exist. A fit of our
+   own (Jiroušková's procedure, about 50 boron compounds, reference charges from ORCA) is recorded in
+   `docs/ROADMAP.md` as a research item, not part of this work: its reference scheme would be CHELPG,
+   not the Merz-Kollman charges J was fitted to, and it would be an unpublished model.
+4. **Zinc stays refused by J** (52 atoms in the paper; a metal's bonds do not fit the highest-bond-order
+   typing). Salts and mixtures are handled by choosing a component with the existing component picker;
+   neither model solves more than one component. Ions are accepted and flagged; unpaired electrons are
+   refused.
