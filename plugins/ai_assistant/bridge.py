@@ -30,6 +30,7 @@ from openchem.domain.result_envelope import (
     Caps,
     outcome_envelope,
     results_view_envelope,
+    runs_view_envelope,
     score_outputs_envelope,
     score_proposal_envelope,
     score_refusal_envelope,
@@ -196,6 +197,15 @@ class ToolBridge:
             self._turn, list(calculators) if calculators else None, include_not_current=bool(include_not_current)
         )
         return bounded_json(lambda caps: results_view_envelope(view, caps))
+
+    def read_quantum_runs(self, run_ids: list[str] | None = None, include_not_current: bool = False) -> str:
+        """The ORCA jobs a person ran for the selected molecule, as they were when the turn began: headers for a list, numbers for a run named by id. Read-only; it starts nothing and has no way to."""
+        if not self.available:
+            return self._unavailable()
+        view = self._calculations.read_quantum_runs(
+            self._turn, list(run_ids) if run_ids else None, include_not_current=bool(include_not_current)
+        )
+        return bounded_json(lambda caps: runs_view_envelope(view, caps))
 
     def read_scores(self, scores: list[str] | None = None) -> str:
         """The user-defined scores of the selected molecule, worked out from what was stored and defined when the turn began. Read-only: a score cannot be made here."""

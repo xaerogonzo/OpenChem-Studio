@@ -312,6 +312,8 @@ provider a tool protocol is a separate, optional item with its own tests.
    `benchmarks/visual/ai_assistant_tools.json` against the real window (14 assertions), which found two
    defects no unit test could (`docs/LESSONS.md`, the plugin-panel entry). **Not done:** the live provider run.
 
+4. **Built (2026-10-30): reading the ORCA runs** (`read_quantum_runs`, section 15). The dispatch adapter that lets a person's Approve start an ORCA job is the slice after it and is not built.
+
 ## 13. Decisions most worth challenging
 
 1. **Approval-gated work ends the turn** instead of the worker waiting. It makes ORCA safe and
@@ -328,6 +330,24 @@ provider a tool protocol is a separate, optional item with its own tests.
 5. **The capability reaches plugins through `PluginManager`, not the `UIRegistry` protocol.** It
    keeps the protocol's test doubles working; it also means a second front end would pass a host
    explicitly.
+
+## 15. Reading the quantum-chemistry runs (2026-10-30; `domain/quantum_run_snapshot.py`, `result_envelope.run_envelope`, the `read_quantum_runs` tool)
+
+**What was missing, measured by reading the code and not assumed.** An ORCA job leaves its numbers in TWO places. Its descriptors and per-atom datasets are filed in the general result store (`QuantumChemistryService._record_descriptors`), so `read_results` already offers an SCF energy with its method and basis. Everything else is only in the run history (`QuantumChemistryRunStore`): a job that FAILED or was CANCELLED (there is no result to file), the warnings a finished job came back with, a spectrum, a vibrational analysis, and which of several runs at different methods a number came from. The assistant could see none of that, so "did my NMR job finish?" and "why is there no IR?" had no answer. The first sketch of this slice said the assistant could not see any ORCA result; that was wrong, and the paragraph above is what is true.
+
+**Decisions.**
+* **A run is frozen with the turn** like a result: `begin_turn` classifies the molecule's runs against the same fingerprints (`TurnContext.runs`), and a job that ends while the reply streams changes nothing it was told. `RunEntry` copies the scalar fields and holds the frozen result objects, because `QuantumChemistryRun` itself is mutable.
+* **Freshness is the result's axis.** `current` when the input fingerprint equals the turn's for the same kind of input, `historical` when it differs, `unverifiable` when there is nothing to compare it with. The turn holds fingerprints for the drawing and the stored conformer only, so an ENSEMBLE run is `unverifiable` and says so, never current by guess.
+* **Two levels, because a header is never dropped and numbers are large.** With no arguments the tool lists the CURRENT runs as headers (calculation, method and basis, charge and multiplicity, how it ended, warnings, and each output with its status and names), no numbers, at most 10, newest first; the others are counted. With `run_ids` it returns those runs with their numbers, through the serialisers a stored result of that kind uses (`result_envelope.data_of`, factored out of `envelope_of` so there is one), **at most three at a time**: measured against the 12,000-character reply budget, ten long analyses asked for by id came to 14,193 characters at the smallest detail step, because every run carries a header. The reply says how many it left out.
+* **A failed or cancelled run has no numbers even if asked for,** and an output the run records as not produced, inapplicable or failed says that and holds no value.
+* **An infrared analysis is its modes.** A vibrational spectrum is a `SpectrumResult` whose per-atom `values` are empty on purpose, so the serialiser that tells a per-atom spectrum told it as "0 peaks". It now has its own branch (`wavenumber_cm1`, `ir_intensity_km_mol`, `character`, the count of imaginary modes and the warning), for a stored result as well as for a run.
+* **What is never sent:** the structure ORCA was given (`input_molblock`), the wavefunction cache key, ORCA's own output. A run's warnings are the application's own sentences, bounded by the caps.
+* **A kind with no serialiser** (the tautomer bundles, a Boltzmann ensemble's extra outputs) is named `unsupported` and its numbers are not offered, as for a stored result.
+* **The tool starts nothing and cannot:** `ToolBridge.read_quantum_runs` reads the turn and needs no host; the system prompt and the tool description say a person starts ORCA from the Quantum Chemistry panel.
+
+**Not here: dispatch.** Letting a person's Approve start a job needs the panel's request-building (conformer resolution, the open-shell Fukui refusal, ensemble averaging, the LED cost question and the panel's own pending state) in one place that both the Run button and the assistant call. That extraction is the next slice and is decided (2026-10-30): it is done first, as a refactor with the button's behaviour pinned, and only then does a card's Approve use it.
+
+Tested by `tests/test_quantum_run_snapshot.py` (freshness, outcome, frozen, reading, the envelope, with the real provider's reading of a real single-point and a real frequency output) and `tests/test_ai_assistant_quantum_runs.py` (the real host, the real plugin and tool loop, the budget), driven by `benchmarks/visual/ai_quantum_runs.json`.
 
 ## 14. Goals: the wizard's table, as knowledge and never as a way to run
 
