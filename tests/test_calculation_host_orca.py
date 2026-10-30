@@ -170,6 +170,12 @@ def test_approving_hands_the_panel_exactly_the_settings_the_card_showed(world):
     assert world.outcomes == [], "handing it over is not the job ending"
 
 
+def test_an_open_shell_spin_state_is_handed_over_as_chosen(world):
+    preparation = prepare(world, "orca.sp", {"charge": 1, "multiplicity": 2}).preparation
+    approve(world, preparation.run_id)
+    assert (world.starter.calls[0][1].charge, world.starter.calls[0][1].multiplicity) == (1, 2)
+
+
 def test_each_startable_calculator_hands_over_its_own_calculation_type(world):
     seen = {}
     for calculator_id in ("orca.sp", "orca.opt", "orca.opt_freq", "orca.nmr", "orca.nmr_coupling", "orca.delta_scf"):
@@ -198,6 +204,7 @@ def test_the_run_ends_when_orcas_run_record_arrives_and_not_before(world):
     assert outcome.run_id == preparation.run_id and outcome.state is RunState.COMPLETED and outcome.stored is None and not outcome.has_number
     assert "orca-run-1" in outcome.message and "read_quantum_runs" in outcome.message
     assert world.host.state_of(preparation.run_id) is RunState.COMPLETED
+    assert world.host._quantum_inflight == {}, "a finished job is no longer waited for"
 
 
 @pytest.mark.parametrize("status, state, fragments", [
@@ -247,6 +254,7 @@ def test_the_panels_refusal_is_the_runs_outcome_in_its_own_words(world):
     [outcome] = world.outcomes
     assert outcome.state is RunState.REFUSED and outcome.message == world.starter.answer
     # The job is not in flight, so a run record that arrives later for the same molecule is nobody's.
+    assert world.host._quantum_inflight == {}
     completed(world, preparation)
     assert len(world.outcomes) == 1
 
