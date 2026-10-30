@@ -12302,17 +12302,26 @@ def _stereo_locant_key(carrier) -> tuple | None:
         rank = _STEREO_LOCANT_PREFERENCE.get(sd.descriptor)
         if rank is None or sd.locant is None or sd.stereo_center is None:
             return None
-        # Naming round 92 (NL-107): when every descriptor ranks alike, a chirality centre (R, S) still comes before a pseudoasymmetric one (r, s) at the lowest
-        # locant. The book states no rule for it; its one worked case, `(3R,4r,7S,10s)-1,5,8,11-tetraoxatetraspiro[2.0.2^4.0.2^7.0.2^10.0^3]dodecane`
-        # (P-93.5.3 example 5), is this order, and `(3r,4R,7s,10S)` was the other reading of the same cyclobutane. Without it the choice fell to atom order.
-        # The cases come after ALL the ranks, so they decide only what the ranks leave tied.
-        rows.append((sd.locant, rank, (sd.stereo_center.atom_idx, sd.stereo_center.type), 0 if sd.descriptor.isupper() else 1))
+        rows.append((sd.locant, rank, (sd.stereo_center.atom_idx, sd.stereo_center.type)))
     rows.sort(key=lambda row: row[0])
     return (
         frozenset(row[2] for row in rows),
         tuple(row[0] for row in rows),
-        tuple(row[1] for row in rows) + tuple(row[3] for row in rows),
+        tuple(row[1] for row in rows),
     )
+
+
+def _stereo_case_order(carrier) -> tuple:
+    """Whether each descriptor, in locant order, is a pseudoasymmetric (lowercase) one: `(0, 1, 0, 1)` for `(3R,4r,7S,10s)`.
+
+    Naming round 92 (NL-107). The LAST thing a tie between numberings is decided on, after every rank of `_stereo_locant_key` ties: a chirality
+    centre (R, S) comes before a pseudoasymmetric one (r, s) at the lowest locant. The book states no rule for it; its one worked case,
+    `(3R,4r,7S,10s)-1,5,8,11-tetraoxatetraspiro[2.0.2^4.0.2^7.0.2^10.0^3]dodecane` (P-93.5.3 example 5), is this order, and `(3r,4R,7s,10S)` was the
+    other reading of the same cyclobutane. Kept apart from `_stereo_locant_key` so two choices that tie on every rank still COUNT as one choice.
+    """
+    descriptors = [sd for sd in (getattr(carrier, "stereo_descriptors", None) or ()) if sd.locant is not None]
+    descriptors.sort(key=lambda sd: sd.locant)
+    return tuple(0 if sd.descriptor.isupper() else 1 for sd in descriptors)
 
 
 def _comparable_stereo(keys: list) -> list | None:
@@ -12394,11 +12403,11 @@ def _break_alphanumerical_tie(
             if not (stereo_decides and isinstance(tree, SubstitutiveTree) and not tree.prefixes):
                 return None
             locant_key = ()
-        candidates.append(((locant_key, stereo_of.get(seq, ())), -seq, tree))
+        candidates.append(((locant_key, stereo_of.get(seq, ())), _stereo_case_order(plan) if stereo_of else (), -seq, tree))
     if not candidates:
         return None
-    candidates.sort(key=lambda c: (c[0], c[1]))
-    return candidates[0][2]
+    candidates.sort(key=lambda c: (c[0], c[1], c[2]))
+    return candidates[0][3]
 
 
 #: The most DISTINCT parent hypotheses `_break_parent_tie` will name side by side. Each is a full execution of its plan (about 15 ms for
@@ -12766,6 +12775,12 @@ def _plan_identity(mol, plan) -> tuple | None:
         for atom_idx, locant in plan.numbering.atom_to_locant.items():
             marked.GetAtomWithIdx(atom_idx).SetAtomMapNum(1 + locants.index(locant))
         for atom in marked.GetAtoms():
+            # Naming round 92: the non-legacy perception keeps the tag of a quaternary carbon whose two arms are the same by CIP (the book's
+            # P-92.5.2.2 example 5 has two such centres), which the legacy perception cleaned and the CIP labeller never labels. Written into the
+            # SMILES it takes a parity that follows which arm was numbered, so two plans that name the molecule the same way read as different.
+            if (atom.GetChiralTag() != Chem.ChiralType.CHI_UNSPECIFIED and not atom.HasProp("_CIPCode")
+                    and not atom.HasProp("_ParentCIPCode")):
+                atom.SetChiralTag(Chem.ChiralType.CHI_UNSPECIFIED)
             if atom.HasProp("_ParentCIPCode"):
                 atom.SetIsotope(atom.GetIsotope() + 1000 * ord(atom.GetProp("_ParentCIPCode")[0]))
         return (plan.pcg_type, getattr(plan.named_parent, "naming_method", None), Chem.MolToSmiles(marked))
