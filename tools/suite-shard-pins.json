@@ -2310,6 +2310,7 @@
   "tests/test_pka_providers.py": 2,
   "tests/test_pka_worker.py": 2,
   "tests/test_pkasolver_setup.py": 3,
+  "tests/test_plec_core.py": 4,
   "tests/test_plot_axis.py": 2,
   "tests/test_plot_zoom.py": 4,
   "tests/test_plugin_async_task.py": 0,
