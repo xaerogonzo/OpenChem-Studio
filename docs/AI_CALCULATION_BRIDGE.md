@@ -345,9 +345,19 @@ provider a tool protocol is a separate, optional item with its own tests.
 * **A kind with no serialiser** (the tautomer bundles, a Boltzmann ensemble's extra outputs) is named `unsupported` and its numbers are not offered, as for a stored result.
 * **The tool starts nothing and cannot:** `ToolBridge.read_quantum_runs` reads the turn and needs no host; the system prompt and the tool description say a person starts ORCA from the Quantum Chemistry panel.
 
-**Not here: dispatch.** Letting a person's Approve start a job needs the panel's request-building (conformer resolution, the open-shell Fukui refusal, ensemble averaging, the LED cost question and the panel's own pending state) in one place that both the Run button and the assistant call. That extraction is the next slice and is decided (2026-10-30): it is done first, as a refactor with the button's behaviour pinned, and only then does a card's Approve use it.
+**Not here: dispatch.** Letting a person's Approve start a job needs the panel's request-building (conformer resolution, the open-shell Fukui refusal, ensemble averaging, the LED cost question and the panel's own pending state) in one place that both the Run button and the assistant call. **That extraction is built (2026-10-30, `chem/quantum_run_request.py`, section 16)**; the card and its Approve, which use it, are the slice after.
 
 Tested by `tests/test_quantum_run_snapshot.py` (freshness, outcome, frozen, reading, the envelope, with the real provider's reading of a real single-point and a real frequency output) and `tests/test_ai_assistant_quantum_runs.py` (the real host, the real plugin and tool loop, the budget), driven by `benchmarks/visual/ai_quantum_runs.json`.
+
+## 16. One place for "may this be run, and with what" (2026-10-30; `chem/quantum_run_request.py`)
+
+**Why it came before any card.** An approved ORCA job has to be checked by exactly the rules the Run button is: the same refusals in the same order, the same conformer, the same fingerprint, the same arguments to the service. A host that called `QuantumChemistryService.request_calculation` itself would be a second set of rules, and the first time they disagreed an approved job would run on a structure the button would have refused. The button's rules lived in one 125-line handler (`_on_run_clicked`) that read widgets, so nothing else could ask the question.
+
+**What moved.** `RunChoice` is what was asked for as data; `prepare_run(engine, molecule, choice)` applies every rule and returns a `PreparedRun` or a `RunRefusal` carrying the sentence a person is shown; `start(service, prepared)` hands it to the service. The refusals are in the order the handler made them (a molecule, a conformer, a usable one, a method, a Fukui restriction, an average that resolves). The helpers only the handler used (`_chosen_conformer_note`, `_chosen_conformer`, `_slot_of`) moved with it. The panel keeps what is its own: reading its widgets (`_run_choice`), the cost dialog (the one decision that is a person's and not a rule's), and the bookkeeping its result handlers read (`_begin_pending`: which molecule it waits for, what was submitted, a clean slate).
+
+**How it was held to behaviour.** Before the move, the handler's branches were pinned through the real panel with a service double that records what it is handed (`tests/test_quantum_run_button.py`, 16 tests: no molecule, no conformer, a flat conformer, no method, an open-shell Fukui run, a Fukui average, an average with an unusable member, a declined and an accepted cost, the exact arguments of a single run and of an average, the solvent in the header, the panel waiting afterwards, the conformer note). Most of those branches had no test. They pass on the handler as it was and on the shared function that replaced it. The function itself is tested directly (`tests/test_quantum_run_request.py`).
+
+**Not changed:** a single line of what the button does. **Not here:** the card, the approval, and what the assistant is told afterwards (the next slice).
 
 ## 14. Goals: the wizard's table, as knowledge and never as a way to run
 
