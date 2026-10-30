@@ -332,3 +332,23 @@ error table for nitro or carboxylate oxygens; Ouyang 2009's full text (the libra
 
 **The DOI-named copy of Jiroušková 2009** added to the library (`10.1002@jcc.21142.pdf`) is byte-identical to the file
 the registry already names (`Jiroušková 2009.pdf`), SHA-256 09716d51...cdac.
+
+## 9. Amendment 2 (2026-10-30): Model J is paused; Model N goes on
+
+Decided (Alex, 2026-10-30) after the second literature search (5-L.3).
+
+1. **Model J stays in the repository and is not wired to anything.** Its fixtures, data, solver support and tests (C1 to C4)
+   stay and keep passing. It will not be offered by a calculator, a setting or the interface until a comparison with
+   Merz-Kollman charges exists. Why: the only independent test found (Geidl 2015, Table 6) gives its set the lowest R2 of
+   the sets listed (0.7022, against 0.9658 for Bultinck's MPA set and 0.9655 for Ouyang's), at a different statistic and on
+   different molecules from the paper's own 0.94, so it is neither confirmed nor refuted; and Model N covers every type
+   Model J has except zinc, so J adds the Merz-Kollman scheme and nothing else.
+2. **What would unpause it:** a measured mean absolute deviation of Model J's EEM charges from Merz-Kollman charges on a stated
+   panel (check C5 starts this, but needs a Merz-Kollman reference that ORCA does not write), or a published one.
+3. **Model N is the model that continues,** with its own checks (C5 to C9 apply to it; the Merz-Kollman comparison of C5 does
+   not, since N is fitted to NPA charges, which cannot be computed here).
+4. **Nitro and carboxylate, direction not yet decided:** a setting (a settings page, not a hard refusal) that chooses how a
+   resonance-equivalent pair is typed, with a warning when it is off. The options are those of 5-R, plus the one the
+   literature adds: Gilson et al. 2003 average the PARAMETERS of the equivalent atoms over the low-energy resonance forms, which
+   for this model means giving both oxygens the mean of the O1 and O2 parameters. Which is the default, and whether the
+   unaveraged drawing stays available, is open.
