@@ -1501,7 +1501,7 @@ scores, slices 1 to 4 and their follow-ups, including scores over 3D numbers (`d
 
 **Phase 4** (the synthesis helper, `docs/SYNTHESIS_HELPER_DESIGN.md`): Stage 1 is built, plans are saved in the project file, and the planner's quality was measured three times. Protocol 2 (2026-10-22) put the patent route among the first 10 shown for 41.7% of 300 patent targets, and slice 3 ranks and caps the routes as it measured; protocol 3 (2026-10-24), on 51 routes from journal papers newer than the model's training data, read lower, 13 of 51 (0.255), and that figure is quoted beside the patent one in every plan.
 
-**Still not built:** a dispatch adapter for service-run (ORCA) calculators, so the assistant describes an ORCA job and a person starts it from its panel, and the assistant's frozen turn holds no quantum-chemistry runs (`domain/turn_snapshot.py` names none, checked 2026-10-16); and the live provider run for Phase 1, which needs an API key. `docs/WHATS_NEW.md` is a tour of all of it.
+**Still not built:** a dispatch adapter for service-run (ORCA) calculators, so that a person's Approve on a card starts an ORCA job (the assistant describes one today and can read the runs a person made, `read_quantum_runs`, 2026-10-30; the adapter needs the Quantum Chemistry panel's request-building moved to one place first); and the live provider run for Phase 1, which needs an API key. `docs/WHATS_NEW.md` is a tour of all of it.
 
 ### Visualization
 
