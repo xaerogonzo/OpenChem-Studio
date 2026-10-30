@@ -2328,6 +2328,7 @@
   "tests/test_pose_charge_sites.py": 1,
   "tests/test_pose_plausibility.py": 2,
   "tests/test_powder_xrd.py": 1,
+  "tests/test_prep_box_core.py": 2,
   "tests/test_project_and_plugin_inverses.py": 2,
   "tests/test_project_details.py": 0,
   "tests/test_project_explorer_panel.py": 1,
