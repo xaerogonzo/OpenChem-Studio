@@ -87,3 +87,53 @@ def embedded(smiles: str, seed: int = 20261030) -> Chem.Mol | None:
     except Exception:  # noqa: BLE001 - an element MMFF has no type for keeps its embedded coordinates
         pass
     return mol
+
+
+def oracle_charges_resonance(mol: Chem.Mol, model: str, resonance: str) -> tuple[list[str], np.ndarray | None]:
+    """The same solve for the resonance option of `eem_resonance_typing_design.md`, written again from the design and not from `chem/resonance_forms.py`.
+
+    `as_drawn`: the kekulised drawing's own types. `averaged`: the forms RDKit enumerates from the kekulised molecule (its defaults), the ones with the smallest sum of
+    |formal charge| kept, and for every atom whose type is not the same in the drawing and in all kept forms, the mean of the table's (A, B) over the kept forms. Returns
+    (types of the drawing, charges) or (types, None) when a needed type is missing from the model."""
+    kappa, table = parameters_from_fixtures()[model]
+    work = Chem.Mol(mol)
+    Chem.Kekulize(work, clearAromaticFlags=True)
+
+    def types_of(m: Chem.Mol) -> list[str]:
+        return [a.GetSymbol() + str(max([int(b.GetBondTypeAsDouble()) for b in a.GetBonds()] or [0])) for a in m.GetAtoms()]
+
+    drawn = types_of(work)
+    forms = [work]
+    if resonance == "averaged":
+        supplier = Chem.ResonanceMolSupplier(work, maxStructs=1000)
+        found = [supplier[k] for k in range(len(supplier))]
+        found = [f for f in found if f is not None]
+        if found:
+            fewest = min(sum(abs(a.GetFormalCharge()) for a in f.GetAtoms()) for f in found)
+            forms = [f for f in found if sum(abs(a.GetFormalCharge()) for a in f.GetAtoms()) == fewest]
+    form_types = [types_of(f) for f in forms]
+    n = len(drawn)
+    params = []
+    for i in range(n):
+        same = len({drawn[i], *[ft[i] for ft in form_types]}) == 1
+        if resonance == "averaged" and not same:
+            wanted = [ft[i] for ft in form_types]
+        else:
+            wanted = [drawn[i]]
+        if any(t not in table or t in OUT_OF_SCOPE[model] for t in wanted):
+            return drawn, None
+        rows = np.array([table[t] for t in wanted], dtype=float)
+        params.append((float(rows[:, 0].mean()), float(rows[:, 1].mean())) if len(wanted) > 1 else (float(rows[0, 0]), float(rows[0, 1])))
+    xyz = mol.GetConformer().GetPositions()
+    a = np.array([p[0] for p in params])
+    m = np.zeros((n, n))
+    for i in range(n):
+        m[i, i] = params[i][1]
+        for j in range(n):
+            if i != j:
+                m[i, j] = kappa / float(np.sqrt(((xyz[i] - xyz[j]) ** 2).sum()))
+    charge = sum(atom.GetFormalCharge() for atom in mol.GetAtoms())
+    ones = np.ones(n)
+    x_a, x_1 = np.linalg.solve(m, a), np.linalg.solve(m, ones)
+    chi = (charge + ones @ x_a) / (ones @ x_1)
+    return drawn, chi * x_1 - x_a

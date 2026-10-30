@@ -1,6 +1,6 @@
-# How Model N types a nitro group or a carboxylate — design (PROPOSED, 2026-10-30)
+# How Model N types a nitro group or a carboxylate — design (APPROVED 2026-10-30, BUILT; result in section 8)
 
-**Status: a proposal. Nothing here is built and no check below has run.** It continues
+**Status: approved by Alex on 2026-10-30 as proposed (D1 to D7) and built; the checks R1 to R7 were registered before the code and their result is section 8.** Not yet reachable from a calculator or a setting. It continues
 `eem_second_models_preregistration.md` (section 5-R found the problem, 5-L.3 collected the literature, section 9 item 4 left
 the direction open). Model J is paused and is not touched here.
 
@@ -103,3 +103,33 @@ groups other than nitro and carboxylate; or that 0.1 e is large for the applicat
 `resonance` code; the solver stays pure and averages parameters over the forms it is given. The RDKit part (enumerate, select by
 formal-charge sum, apply the cap) is one new function in `chem/` that returns the forms or a refusal. Neither is reachable
 from a calculator until the option, its setting and its evidence lines exist, which is the later wiring step for Model N.
+
+## 8. RESULT (2026-10-30, run after commit c5f20f79)
+
+Code: `chem/typed_eem.py` (the `resonance` argument), `chem/resonance_forms.py` (the forms, the cap, `typed_eem_for_molecule`, default `averaged`);
+independent solve `eem_second_models_oracle.oracle_charges_resonance`; tests `tests/test_eem_resonance_typing.py` (16). The panel is the 77 molecules of C2;
+Model N accepts 72 and 12 have a variable atom.
+
+- **R1 PASS.** Under `averaged`, every drawing (each of RDKit's resonance forms drawn as the structure) and 6 random SMILES spellings with atom orders per molecule
+  give the same charges: **worst difference 2.2e-13 e** against the registered 1e-8. Under `as_drawn` the same drawings DO differ: on the 12 molecules the largest
+  change of any atom's charge between drawings is a median 0.048 e and up to 0.377 e, and the test asserts the failure. **Two corrections to the registration:**
+  (i) it said "random SMILES spellings" were the different drawings, but a SMILES keeps the bond orders it is given, so respelling does not move the double bond (the
+  spelling test checks the atom bookkeeping; the drawings that matter are the resonance forms); (ii) the 0.377 e is on an atom OUTSIDE a group (the guanidine and amine
+  nitrogens of nitroguanidine and of the triamino-trinitrobenzene), in drawings that put charge separation somewhere other than the lowest-charge forms; the atoms
+  of the nitro groups and carboxylates themselves move by at most 0.079 e between drawings. `averaged` is not affected by either, because the kept forms are chosen
+  by their formal charge and not by the drawing.
+- **R2 PASS, after one finding.** The two atoms of a group first differed in the last bit (0.9493500000000001 against 0.94935): a plain mean of the same numbers
+  taken in a different order is not bit-identical. The mean now uses `math.fsum`, which is exactly rounded in any order, and the parameters are exactly equal.
+- **R3 PASS.** For all 30 groups (pairs of oxygens of one nitro, nitrate or carboxylate group) on the panel the averaged difference between the two atoms is not larger than the worst drawn one.
+- **R4 PASS.** The molecules with no variable atom (51 for Model J, 60 for Model N) give bit-identical charges under all three values. The largest change on an atom
+  outside a group when averaging is reported and finite (0.013 e in the exploration).
+- **R5 PASS.** A mirror-symmetric acetate gives the two oxygens equal charges to 1e-9 e when averaged and a difference over 0.01 e as drawn.
+- **R6 PASS.** With the cap set to 5, a molecule with 8 forms is refused by `averaged` (the message names `as_drawn`) and solved by `as_drawn`.
+- **R7 PASS.** The independent solve (its own forms, its own selection, its own averaging) accepts the same molecules and agrees to **1.9e-13 e** for both
+  `averaged` and `as_drawn`.
+
+Mutation check: eight one-line breaks (averaging over the first form only, all forms kept instead of the lowest-charge ones, the cap check, `refuse` never refusing,
+the default changed to `as_drawn`, the `as_drawn` warning dropped, the claim line dropped, variable atoms ignoring the drawing) were each caught.
+
+Not done: no calculator, setting, evidence line or help text uses this yet (the later wiring step); groups other than nitro and carboxylate are covered by the
+generic detection and not checked; checks C5 to C9 of the plan have not run.
