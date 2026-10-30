@@ -38,6 +38,25 @@ def ligand_from_block(block: str):
     return oddt.toolkits.rdk.Molecule(mol)
 
 
+def protein_from_pdb(path: pathlib.Path):
+    """The prepared receptor as ODDT's RDKit protein, WITHOUT RDKit's valence check.
+
+    The receptor reaches here through Open Babel's PDBQT and back to a PDB, whose proximity
+    bonding gives some carbons five bonds, so RDKit's default read refuses 43 of 49 receptors
+    (found on the first full pass). Same relaxation as the ligand: everything but the property
+    check still runs.
+    """
+    import oddt
+    from rdkit import Chem
+
+    mol = Chem.MolFromPDBFile(str(path), sanitize=False, removeHs=False)
+    mol.UpdatePropertyCache(strict=False)
+    Chem.SanitizeMol(mol, Chem.SANITIZE_ALL ^ Chem.SANITIZE_PROPERTIES, catchErrors=True)
+    protein = oddt.toolkits.rdk.Molecule(mol)
+    protein.protein = True
+    return protein
+
+
 def shim_scipy() -> None:
     """ODDT 0.7 (2019) hands scipy a lazy `map` where current scipy wants a list.
 
@@ -58,12 +77,12 @@ def main(root: pathlib.Path) -> None:
     shim_scipy()
     scorer = PLECscore.load(version="linear")
     scores: dict = {"oddt": oddt.__version__, "model": "PLECscore linear P5 L1 pdbbind2016"}
-    for folder in sorted(p for p in root.iterdir() if p.is_dir()):
+    # A folder with no poses is a receptor whose docking never ran (its ligand could not be
+    # built); it has nothing to rescore and the report already counts it as unmeasured.
+    for folder in sorted(p for p in root.iterdir() if p.is_dir() and (p / "poses.json").exists()):
         poses = json.loads((folder / "poses.json").read_text(encoding="utf-8"))
         try:
-            protein = next(oddt.toolkit.readfile("pdb", str(folder / "receptor.pdb")))
-            protein.protein = True
-            scorer.set_protein(protein)
+            scorer.set_protein(protein_from_pdb(folder / "receptor.pdb"))
             ligands = [ligand_from_block(block) for block in poses["molblocks"]]
             predicted = [float(v) for v in scorer.predict(ligands)]
             scores[folder.name] = {"predicted": predicted}

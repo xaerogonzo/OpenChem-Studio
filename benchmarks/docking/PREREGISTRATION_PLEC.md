@@ -95,4 +95,10 @@ same proteins as some of the 39, which could help the model. Stated as a limit, 
 
 ## Amendments
 
-None.
+**Amendment 1 (2026-10-30, input handling only; no outcome had been looked at).** The first
+full rescoring pass failed to load 43 of the 49 prepared receptors: ODDT's RDKit reader refuses
+a PDB whose proximity bonding gives some carbons five bonds (the receptor is rebuilt from Open
+Babel's PDBQT). The protein is now read with the same relaxation as the ligand (RDKit's property
+check skipped, everything else kept), and a receptor whose docking never ran (6LQA) is skipped
+by the runner instead of ending it. The four receptors that did score under the old read (1HSG,
+4IAR, 5HK1, 5HK2) were not examined and are rescored. No rule, cutoff or population changes.
