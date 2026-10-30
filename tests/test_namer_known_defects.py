@@ -4821,6 +4821,10 @@ FIXED: list[tuple[str, str, str, str, str]] = [
      "(2R,3R)-3-[(1R,2R)-bicyclo[2.2.1]heptan-2-yl]bicyclo[2.2.2]octan-2-ol",
      "3-(bicyclo[2.2.1]heptan-2-yl)bicyclo[2.2.2]octan-2-ol",
      "the locant strip is by number across the whole name, so a norbornyl group lost its centres because the octane it hangs on has a 1 and a 4 OPSIN cannot anchor: 10 of 10 sampled isomers were named flat"),
+    # Naming round 92 (D-389).
+    ("D-389", "C1O[C@]12[C@@]1(CO1)[C@]1(CO1)[C@]21CO1", "1,5,8,11-tetraoxatetraspiro[2.0.2^{4}.0.2^{7}.0.2^{10}.0^{3}]dodecane",
+     "1,6,9,12-tetraoxatetraspiro[2.0.2^{4}.0.2^{7}.0.2^{10}.0^{3}]dodecane",
+     "a terminal ring of a polyspiro system was numbered in the one direction RDKit walked it, so the oxygens took 1,6,9,12 or 1,5,9,12 by atom order and never the lowest set 1,5,8,11 the book prints (P-93.5.3 example 5)"),
     # D-162, recorded OPEN in naming round 14 and closed by the same change: the same group in an ester's alcohol part. Its target was derived then and is what the fixed engine writes.
     ("D-162", "CC(=O)OCC(=O)N(O)C", "2-[hydroxy(methyl)amino]-2-oxoethyl acetate",
      "[(hydroxycarbamoyl)methyl]methyl acetate",

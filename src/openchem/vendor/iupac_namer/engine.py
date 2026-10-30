@@ -1,6 +1,7 @@
 """IUPAC naming engine."""
 from __future__ import annotations
 
+import contextlib
 import dataclasses
 import logging
 import itertools
@@ -10071,11 +10072,44 @@ def _canonical_amidinium_form(mol):
     return mol
 
 
+_PERCEPTION_LOCK = threading.Lock()
+_PERCEPTION_DEPTH = 0
+_PERCEPTION_SAVED = True
+
+
+@contextlib.contextmanager
+def _modern_stereo_perception():
+    """RDKit's non-legacy stereo perception for the span of one naming call (naming round 92, NL-109).
+
+    The legacy perception cleans the chiral tag off a ring atom whose two ring branches differ only by the configuration of ANOTHER centre, and the
+    stereo of a double bond between two rings, at PARSE time, so the engine never saw them: the central ring of `4-methyl-1,1-bis(4-methylcyclohexyl)
+    cyclohexane` lost its `1r,4r`, a cyclohexylidene lost `E` and `s`, and a carbinol between two such rings lost its `R`. The suite of Hanson et al.
+    (2018) lists all of them, and the non-legacy perception reproduces its labels on those entries. The flag is process-wide, so it is counted and
+    restored when the last concurrent naming call leaves; names change only where a ring pseudoasymmetric centre or such a double bond exists.
+    """
+    global _PERCEPTION_DEPTH, _PERCEPTION_SAVED
+    if not (hasattr(Chem, "GetUseLegacyStereoPerception") and hasattr(Chem, "SetUseLegacyStereoPerception")):
+        yield
+        return
+    with _PERCEPTION_LOCK:
+        if _PERCEPTION_DEPTH == 0:
+            _PERCEPTION_SAVED = Chem.GetUseLegacyStereoPerception()
+            Chem.SetUseLegacyStereoPerception(False)
+        _PERCEPTION_DEPTH += 1
+    try:
+        yield
+    finally:
+        with _PERCEPTION_LOCK:
+            _PERCEPTION_DEPTH -= 1
+            if _PERCEPTION_DEPTH == 0:
+                Chem.SetUseLegacyStereoPerception(_PERCEPTION_SAVED)
+
+
 def name_smiles(smiles: str, strategy=None) -> str:
     """Name a molecule from SMILES, with *strategy* bound for the whole call
     (every helper reads it through ``active_strategy()``)."""
     from openchem.vendor.iupac_namer.strategy import using_strategy
-    with using_strategy(strategy) as bound:
+    with _modern_stereo_perception(), using_strategy(strategy) as bound:
         return _name_smiles_bound(smiles, bound)
 
 
@@ -12268,12 +12302,16 @@ def _stereo_locant_key(carrier) -> tuple | None:
         rank = _STEREO_LOCANT_PREFERENCE.get(sd.descriptor)
         if rank is None or sd.locant is None or sd.stereo_center is None:
             return None
-        rows.append((sd.locant, rank, (sd.stereo_center.atom_idx, sd.stereo_center.type)))
+        # Naming round 92 (NL-107): when every descriptor ranks alike, a chirality centre (R, S) still comes before a pseudoasymmetric one (r, s) at the lowest
+        # locant. The book states no rule for it; its one worked case, `(3R,4r,7S,10s)-1,5,8,11-tetraoxatetraspiro[2.0.2^4.0.2^7.0.2^10.0^3]dodecane`
+        # (P-93.5.3 example 5), is this order, and `(3r,4R,7s,10S)` was the other reading of the same cyclobutane. Without it the choice fell to atom order.
+        # The cases come after ALL the ranks, so they decide only what the ranks leave tied.
+        rows.append((sd.locant, rank, (sd.stereo_center.atom_idx, sd.stereo_center.type), 0 if sd.descriptor.isupper() else 1))
     rows.sort(key=lambda row: row[0])
     return (
         frozenset(row[2] for row in rows),
         tuple(row[0] for row in rows),
-        tuple(row[1] for row in rows),
+        tuple(row[1] for row in rows) + tuple(row[3] for row in rows),
     )
 
 
