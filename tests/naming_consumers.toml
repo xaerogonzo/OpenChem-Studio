@@ -507,6 +507,12 @@ scope = "core"
 owner = "namer"
 
 [[consumer]]
+file = "tests/test_namer_round92_ring_stereo_and_terminal_ring_orientation.py"
+why = "ring and ylidene stereo that RDKit's legacy perception cleaned off at parse time is named (NL-109), and a polyspiro system's terminal rings are numbered both ways so the book's tetraoxatetraspiro gets its own name in every atom order (NL-107, D-389)"
+scope = "core"
+owner = "namer"
+
+[[consumer]]
 file = "tests/test_namer_round91_stereo_is_dropped_by_atom_not_by_locant_number.py"
 why = "a bridged parent's stereo is dropped by atom, fewest first, and a name is kept only if OPSIN reads it to exactly the input (D-388): 2,4-difluoroadamantane and a norbornyl group on a bicyclo[2.2.2]octane keep the descriptors OPSIN can read, and a validator limit still leaves the flat name"
 scope = "core"

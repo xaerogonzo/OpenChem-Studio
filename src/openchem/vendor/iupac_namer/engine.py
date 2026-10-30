@@ -1,6 +1,7 @@
 """IUPAC naming engine."""
 from __future__ import annotations
 
+import contextlib
 import dataclasses
 import logging
 import itertools
@@ -10071,11 +10072,44 @@ def _canonical_amidinium_form(mol):
     return mol
 
 
+_PERCEPTION_LOCK = threading.Lock()
+_PERCEPTION_DEPTH = 0
+_PERCEPTION_SAVED = True
+
+
+@contextlib.contextmanager
+def _modern_stereo_perception():
+    """RDKit's non-legacy stereo perception for the span of one naming call (naming round 92, NL-109).
+
+    The legacy perception cleans the chiral tag off a ring atom whose two ring branches differ only by the configuration of ANOTHER centre, and the
+    stereo of a double bond between two rings, at PARSE time, so the engine never saw them: the central ring of `4-methyl-1,1-bis(4-methylcyclohexyl)
+    cyclohexane` lost its `1r,4r`, a cyclohexylidene lost `E` and `s`, and a carbinol between two such rings lost its `R`. The suite of Hanson et al.
+    (2018) lists all of them, and the non-legacy perception reproduces its labels on those entries. The flag is process-wide, so it is counted and
+    restored when the last concurrent naming call leaves; names change only where a ring pseudoasymmetric centre or such a double bond exists.
+    """
+    global _PERCEPTION_DEPTH, _PERCEPTION_SAVED
+    if not (hasattr(Chem, "GetUseLegacyStereoPerception") and hasattr(Chem, "SetUseLegacyStereoPerception")):
+        yield
+        return
+    with _PERCEPTION_LOCK:
+        if _PERCEPTION_DEPTH == 0:
+            _PERCEPTION_SAVED = Chem.GetUseLegacyStereoPerception()
+            Chem.SetUseLegacyStereoPerception(False)
+        _PERCEPTION_DEPTH += 1
+    try:
+        yield
+    finally:
+        with _PERCEPTION_LOCK:
+            _PERCEPTION_DEPTH -= 1
+            if _PERCEPTION_DEPTH == 0:
+                Chem.SetUseLegacyStereoPerception(_PERCEPTION_SAVED)
+
+
 def name_smiles(smiles: str, strategy=None) -> str:
     """Name a molecule from SMILES, with *strategy* bound for the whole call
     (every helper reads it through ``active_strategy()``)."""
     from openchem.vendor.iupac_namer.strategy import using_strategy
-    with using_strategy(strategy) as bound:
+    with _modern_stereo_perception(), using_strategy(strategy) as bound:
         return _name_smiles_bound(smiles, bound)
 
 
@@ -12277,6 +12311,19 @@ def _stereo_locant_key(carrier) -> tuple | None:
     )
 
 
+def _stereo_case_order(carrier) -> tuple:
+    """Whether each descriptor, in locant order, is a pseudoasymmetric (lowercase) one: `(0, 1, 0, 1)` for `(3R,4r,7S,10s)`.
+
+    Naming round 92 (NL-107). The LAST thing a tie between numberings is decided on, after every rank of `_stereo_locant_key` ties: a chirality
+    centre (R, S) comes before a pseudoasymmetric one (r, s) at the lowest locant. The book states no rule for it; its one worked case,
+    `(3R,4r,7S,10s)-1,5,8,11-tetraoxatetraspiro[2.0.2^4.0.2^7.0.2^10.0^3]dodecane` (P-93.5.3 example 5), is this order, and `(3r,4R,7s,10S)` was the
+    other reading of the same cyclobutane. Kept apart from `_stereo_locant_key` so two choices that tie on every rank still COUNT as one choice.
+    """
+    descriptors = [sd for sd in (getattr(carrier, "stereo_descriptors", None) or ()) if sd.locant is not None]
+    descriptors.sort(key=lambda sd: sd.locant)
+    return tuple(0 if sd.descriptor.isupper() else 1 for sd in descriptors)
+
+
 def _comparable_stereo(keys: list) -> list | None:
     """Each key's `(locants, ranks)`, when every candidate describes the same stereogenic units; otherwise None.
 
@@ -12356,11 +12403,11 @@ def _break_alphanumerical_tie(
             if not (stereo_decides and isinstance(tree, SubstitutiveTree) and not tree.prefixes):
                 return None
             locant_key = ()
-        candidates.append(((locant_key, stereo_of.get(seq, ())), -seq, tree))
+        candidates.append(((locant_key, stereo_of.get(seq, ())), _stereo_case_order(plan) if stereo_of else (), -seq, tree))
     if not candidates:
         return None
-    candidates.sort(key=lambda c: (c[0], c[1]))
-    return candidates[0][2]
+    candidates.sort(key=lambda c: (c[0], c[1], c[2]))
+    return candidates[0][3]
 
 
 #: The most DISTINCT parent hypotheses `_break_parent_tie` will name side by side. Each is a full execution of its plan (about 15 ms for
@@ -12728,6 +12775,12 @@ def _plan_identity(mol, plan) -> tuple | None:
         for atom_idx, locant in plan.numbering.atom_to_locant.items():
             marked.GetAtomWithIdx(atom_idx).SetAtomMapNum(1 + locants.index(locant))
         for atom in marked.GetAtoms():
+            # Naming round 92: the non-legacy perception keeps the tag of a quaternary carbon whose two arms are the same by CIP (the book's
+            # P-92.5.2.2 example 5 has two such centres), which the legacy perception cleaned and the CIP labeller never labels. Written into the
+            # SMILES it takes a parity that follows which arm was numbered, so two plans that name the molecule the same way read as different.
+            if (atom.GetChiralTag() != Chem.ChiralType.CHI_UNSPECIFIED and not atom.HasProp("_CIPCode")
+                    and not atom.HasProp("_ParentCIPCode")):
+                atom.SetChiralTag(Chem.ChiralType.CHI_UNSPECIFIED)
             if atom.HasProp("_ParentCIPCode"):
                 atom.SetIsotope(atom.GetIsotope() + 1000 * ord(atom.GetProp("_ParentCIPCode")[0]))
         return (plan.pcg_type, getattr(plan.named_parent, "naming_method", None), Chem.MolToSmiles(marked))
