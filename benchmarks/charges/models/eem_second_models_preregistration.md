@@ -169,3 +169,21 @@ a check or a threshold.
    typing). Salts and mixtures are handled by choosing a component with the existing component picker;
    neither model solves more than one component. Ions are accepted and flagged; unpaired electrons are
    refused.
+
+## 5-R. C1 — RESULT (2026-10-30, run after commit 5c24ca40)
+
+**PASS.** Model J's Table 2 was read twice: the PDF's text layer (`jirouskova_extract.py`, 12 rows) and the page
+rendered at 300 dpi and typed by hand (`table2.csv`). Over 12 atom types x 2 columns x 5 printed numbers (A, its
+interval, B, its interval, s) = 120 numbers, plus both κ (0.302, 0.227) and both R_avg_mol (0.941, 0.940),
+**there are 0 differences**. The second reading was NOT blind (the text-layer numbers had been printed first), so
+this rules out a transcription slip and not a misreading shared by both; the rendered page is the arbiter and
+was read at 300 dpi. Model N's file is the machine's own: its SHA-256 and the archive's are held, its 15 atom
+types are read as a table, and `.gitattributes` marks it `-text` so a Windows checkout cannot change its bytes
+(the repository already does this for Geidl 2015's file `geidl2015/B3LYP_6-311G_NPA.par`, which is the
+Cheminf2015 set the NEEMP paper compares against in C9).
+
+The test (`tests/test_jirouskova_eem_table.py`, 11 tests) was mutated four ways and killed all four: one typed
+digit, one text-layer digit, one digit of the NEEMP file, and a negative B.
+
+What C1 does NOT show: that the numbers are right in the paper (a printed error would pass), nor anything about
+the units; C5 is that.
