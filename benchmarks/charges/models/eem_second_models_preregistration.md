@@ -187,3 +187,40 @@ digit, one text-layer digit, one digit of the NEEMP file, and a negative B.
 
 What C1 does NOT show: that the numbers are right in the paper (a printed error would pass), nor anything about
 the units; C5 is that.
+
+## 5-R. C2, C3 and C4 — RESULT (2026-10-30, run after commit 5568396f)
+
+Code: `src/openchem/chem/typed_eem.py` and `data/eem_second_models.json` (built by `tools/build_eem_second_models.py`);
+independent solve: `eem_second_models_oracle.py`; tests: `tests/test_eem_second_models.py` (23 tests). Panel: the
+census panel's single-component molecules plus a hand-built list, 77 molecules, every type of both models met at least
+once (a test fails otherwise, so the pass cannot be vacuous).
+
+**C2 — PASS.** Model J accepts 63 of the 77 molecules and Model N 72; the shipped solver and the independent one accept
+**the same molecules** and agree to **1.4e-13 e** (J) and **1.9e-13 e** (N), against the registered 1e-6. Also checked in
+closed form: hydrogen chloride from the two-atom system's own algebra, which pins r in angstrom (bohr would move the charge
+by more than 0.005 e).
+
+**C3 — PASS for the question registered, with one FINDING it did not foresee.**
+- Atom order: charges identical to 1e-8 e under random renumbering of the first 40 molecules, both models.
+- Kekulé form of an aromatic ring: all 16 aromatic molecules (benzene to quinoline and a pyridone), every form RDKit
+  enumerates, **no atom's type changes and the charges agree to 1e-8 e**. Aromatic rings are NOT refused.
+- **Finding: the type of a charge-separated group depends on how it is drawn.** `[N+](=O)[O-]` and `C(=O)[O-]` are the same
+  molecule with the double bond on either oxygen, and the model types the double-bonded oxygen O2 and the other O1, so the
+  two chemically equivalent oxygens get different charges depending on which one the drawing chose. On the panel this is
+  **12 of 77 molecules, every one a nitro group or a carboxylate**, and no molecule without such a group varies (a test pins
+  both halves). It is a property of the published models read as their solver reads them (the type is whatever the SDF
+  bond block says), not a bug in the code, and it is the adapter's choice of bond list, not the solver's, that decides what
+  the application does. **Not decided here; it needs a decision before the models are wired to a calculator.** The options:
+  (a) refuse any molecule whose types vary over its resonance forms (loses nitro and carboxylate, the energetic-materials
+  panel included); (b) give the equivalent atoms one type by a stated rule and say the charges are symmetrised, a choice
+  neither paper made; (c) average the charges over all resonance forms; (d) accept the drawing as it comes and flag the
+  molecule. Neither paper says how its own training set's nitro and carboxylate groups were drawn.
+
+**C4 — PASS.** Every shipped B is positive in both models (so the stationary point is a minimum), and for every accepted
+molecule, ions included, the charges sum to the net charge to 1e-10.
+
+Mutation check: ten one-line breaks (off-diagonal kappa doubled, right-hand side sign, A for B on the diagonal, distance
+in bohr, net charge ignored, triple bonds capped at 2, zinc allowed, the other-model name dropped, the overlap check removed,
+the builder reading the HF column) were each caught by at least one test.
+
+Not done: nothing here is reachable from a calculator or the interface, and checks C5 to C9 have not run.

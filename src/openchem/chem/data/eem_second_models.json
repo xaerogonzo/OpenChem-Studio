@@ -1,0 +1,138 @@
+{
+ "_source_key": "jirouskova2009",
+ "_supplementary_source_keys": [
+  "neemp2016"
+ ],
+ "_note": "Two EEM parameter sets that are NOT extensions of each other or of Bultinck's: each has its own kappa and charge scheme (benchmarks/charges/models/eem_second_models_preregistration.md). An atom's type is its element plus the highest bond order of any bond to it in a Kekule structure. A and B are in the papers' units (Pauling units, per the first paper), r_ij is in angstrom (the reading of NEEMP's solver and of Ionescu's equations; checked against reference charges in check C5).",
+ "_built_by": "tools/build_eem_second_models.py",
+ "models": {
+  "jirouskova2009_b3lyp_mk": {
+   "label": "Jiroušková 2009, B3LYP/6-31G* Merz-Kollman",
+   "scheme": "B3LYP/6-31G* Merz-Kollman",
+   "source_key": "jirouskova2009",
+   "kappa": 0.302,
+   "types": {
+    "Br1": [
+     2.659,
+     1.802
+    ],
+    "C1": [
+     2.482,
+     0.464
+    ],
+    "Cl1": [
+     2.519,
+     1.45
+    ],
+    "F1": [
+     3.577,
+     3.419
+    ],
+    "H1": [
+     2.385,
+     0.737
+    ],
+    "N1": [
+     2.595,
+     0.468
+    ],
+    "O1": [
+     2.825,
+     0.844
+    ],
+    "S1": [
+     2.452,
+     0.362
+    ],
+    "Zn1": [
+     2.298,
+     0.42
+    ],
+    "C2": [
+     2.464,
+     0.392
+    ],
+    "N2": [
+     2.556,
+     0.377
+    ],
+    "O2": [
+     2.789,
+     0.834
+    ]
+   },
+   "fixture": "tests/fixtures/charges/jirouskova2009/table2.csv",
+   "fixture_sha256": "209ab9ca407913357b187d31c23706bb04efdfb7574c7ea2580ea254d286866b"
+  },
+  "neemp2016_ccd_gen_npa": {
+   "label": "NEEMP 2016, Ccd2016 B3LYP/6-311G NPA",
+   "scheme": "B3LYP/6-311G NPA",
+   "source_key": "neemp2016",
+   "kappa": 0.5125,
+   "types": {
+    "C2": [
+     2.7667,
+     0.6513
+    ],
+    "C1": [
+     2.7221,
+     0.6403
+    ],
+    "C3": [
+     2.6944,
+     0.6776
+    ],
+    "O2": [
+     3.0486,
+     0.841
+    ],
+    "O1": [
+     3.1503,
+     1.0577
+    ],
+    "H1": [
+     2.5473,
+     1.1641
+    ],
+    "N1": [
+     2.975,
+     0.9083
+    ],
+    "N2": [
+     2.8895,
+     0.6647
+    ],
+    "N3": [
+     3.024,
+     1.424
+    ],
+    "F1": [
+     2.9976,
+     0.9983
+    ],
+    "S2": [
+     2.6471,
+     0.4512
+    ],
+    "S1": [
+     2.6511,
+     0.4897
+    ],
+    "Cl1": [
+     2.7026,
+     1.1537
+    ],
+    "P2": [
+     2.2933,
+     0.5759
+    ],
+    "Br1": [
+     2.6263,
+     1.1105
+    ]
+   },
+   "fixture": "tests/fixtures/charges/neemp2016/CCD_gen_DE_RMSD_B3LYP_6311G_NPA.par",
+   "fixture_sha256": "a0f20738dca189c7b89e4015e40a708b7353697afe1a9d5998ead23fd3b12e47"
+  }
+ }
+}
