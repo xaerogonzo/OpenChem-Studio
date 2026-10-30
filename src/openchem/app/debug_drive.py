@@ -4736,6 +4736,54 @@ class _Driver(QObject):
         else:
             logger.warning("OPENCHEM_DRIVE: EXPECT synthesis ok[%s]", tag)
 
+    def _do_qc_fixture_run(self, step: dict[str, Any]) -> None:
+        """Give the selected molecule an ORCA run in the project's own run store without starting ORCA, so a script can read what the assistant is told about runs.
+
+        `{"do": "qc_fixture_run", "run_id": "fixture-optfreq", "fixture": "pa_water_optfreq", "status": "completed", "age_s": 600, "warnings": ["..."]}`
+
+        A `completed` run is the REAL provider's reading (`parse_output`, `parse_vibrational_spectrum`) of a committed real ORCA output in `tests/fixtures/orca/`, recorded the way the service records a finished job
+        (`ResultStoreService.record_quantum_chemistry_run`), on the molecule's drawing as it stands now; `failed` and `cancelled` runs hold no outputs, as the service writes them. The fixture's molecule must be the
+        selected one (the water of `pa_water_optfreq`): the provider reads the geometry into the molecule it is given.
+        """
+        import time
+        from pathlib import Path as _Path
+
+        from openchem.chem.orca_engine import OrcaQuantumEngineProvider
+        from openchem.domain.quantum_chemistry_run import OutputStatus, QuantumChemistryRun, RunStatus, new_run_id
+
+        window = self._window
+        molecule = window._session.project.find_molecule(window._property_panel._selected_molecule_uuid)
+        store_service = window._services.result_store_service
+        if molecule is None or store_service is None:
+            logger.error("OPENCHEM_DRIVE: qc_fixture_run -- no molecule selected, or no result store")
+            return
+        status = RunStatus(str(step.get("status", "completed")))
+        calc_type = str(step.get("calc_type", "opt_freq"))
+        kind = str(step.get("input", "drawing"))
+        started = time.time() - float(step.get("age_s", 60.0))
+        run = QuantumChemistryRun(
+            run_id=str(step.get("run_id") or new_run_id()), molecule_uuid=molecule.uuid, calc_type=calc_type, method_basis=str(step.get("method_basis", "B3LYP def2-SVP")),
+            charge=int(step.get("charge", 0)), multiplicity=int(step.get("multiplicity", 1)), calculation_input=kind,
+            input_fingerprint=store_service.fingerprints_for(molecule)[kind], input_molblock=molecule.molblock, started_at=started, completed_at=started + 7.0,
+            status=status, warnings=[str(w) for w in step.get("warnings", [])],
+        )
+        if status in (RunStatus.COMPLETED, RunStatus.COMPLETED_WITH_WARNINGS):
+            engine = window._services.chemistry_engine
+            mol = engine.mol_from_molblock(engine.molblock_with_explicit_hydrogens(molecule.molblock))
+            text = (_Path("tests") / "fixtures" / "orca" / f"{step.get('fixture', 'pa_water_optfreq')}.out").read_text(encoding="utf-8", errors="replace")
+            provider = OrcaQuantumEngineProvider()
+            descriptors, _conformer = provider.parse_output(text, mol, molecule.uuid, calc_type)
+            run.results["descriptors"] = list(descriptors)
+            run.output_status["descriptors"] = OutputStatus.AVAILABLE
+            vibrational = provider.parse_vibrational_spectrum(text, mol, molecule.uuid, calc_type)
+            if vibrational is not None:
+                run.results["vibrational_spectrum"] = vibrational
+                run.output_status["vibrational_spectrum"] = OutputStatus.AVAILABLE
+            else:
+                run.output_status["vibrational_spectrum"] = OutputStatus.NOT_PRODUCED
+        store_service.record_quantum_chemistry_run(run)
+        logger.warning("OPENCHEM_DRIVE: qc_fixture_run -- %s stored for %s (%s, %s)", run.run_id, molecule.display_name, calc_type, status.value)
+
     def _do_synthesis_fixture_plan(self, step: dict[str, Any]) -> None:
         """Give the selected molecule a plan a real planner once made, so a script can save, reopen and read a plan without the planner.
 
