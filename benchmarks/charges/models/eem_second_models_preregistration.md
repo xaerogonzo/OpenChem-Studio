@@ -365,3 +365,33 @@ Alex asked on 2026-10-30 to stop running ORCA while his own long job is using th
   - C5 (12 molecules, as in section 5): water, methanol, ethanol, acetic acid, acetamide, dimethyl ether, methylamine, fluoromethane, chloromethane, methanethiol, dimethyl sulfide, formamide; geometry = the MMFF conformer the EEM models are given (single points, no optimisation); the unit rule is as in section 5.
   - C7, sulfur (10): dimethyl sulfone, dimethyl sulfoxide, methanesulfonamide, benzenesulfonamide, methanesulfonic acid, methyl methanesulfonate, sulfolane, thiourea, thioacetamide, dimethyl sulfate; phosphorus (4): trimethyl phosphate, dimethyl methylphosphonate, phosphoric acid, trimethylphosphine oxide.
 - **C6, C8 and C9 need no ORCA** (they are RDKit and the solvers only) and are the part that can run without disturbing the machine; C6 has no stored ORCA-optimised geometries to use, so it compares the raw embedding with the MMFF-optimised one.
+
+## 11. C6, C8 and C9 — RESULT (2026-10-30, run after commit 0dbf8a7e; C5 and C7 still deferred)
+
+Runner `eem_second_models_c6_c8_c9.py` (one core, below-normal priority, 100 s), result `eem_second_models_results/c6_c8_c9.json`, held by
+`tests/test_eem_second_models_c6_c8_c9.py`. Resonance option `averaged` throughout. The census panel has 24 single-component molecules; the Blue Book 1,108.
+
+**C6, geometry source: reported, no threshold.** Raw ETKDG embedding against the same molecule MMFF-optimised (no ORCA-optimised geometry is stored, so there is no third).
+- Model N, 23 molecules, 642 atoms: mean |dq| **0.017 e**, largest **0.098 e**. Model J, 22 molecules, 632 atoms: mean 0.012 e, largest 0.089 e.
+- By atom type (N): the nitro nitrogens move most (N2: mean 0.056 e, largest 0.095 e), then O1 and O2 (mean 0.025 e, largest 0.077 and 0.098), C1 (0.021 e), H (0.011 e),
+  N1 (0.018 e); the single Cl, F and S2 atoms move 0.0005 to 0.016 e. The molecules that move most are the energetic ones and a large peptide-like one. So the model is
+  sensitive to the geometry source by about 0.02 e on average and up to 0.1 e, which is the stated sensitivity and not a defect: N was fitted on unoptimised CORINA structures.
+
+**C8, charge bound: Model N ships no bound, only the maximum.** The paper's own population is unknown, so by the registered rule nothing is shipped and the maximum is
+reported. Model N covers 919 of the Blue Book and census molecules whose elements it knows (33 refused for a type, 10 for an unpaired electron); Model J covers 737 (215 refused
+for a type: S2, C3, N3, P).
+- Model N: 22,168 atoms, **largest |q| 2.654 e** (the sulfonyl sulfur of `O=C=NS(=O)(=O)F`), 99th percentile 0.89 e, 99.9th percentile 2.10 e.
+- **The tail is exactly the types C7 is about.** Of the 129 atoms above 1.0 e, 56 are S2 and 43 are P2; of the 78 above 1.5 e, **all are S2 (47) or P2 (31)**, and all 43
+  above 2.0 e are S2 (27) or P2 (16). The rest of the model tops out below 1.5 e. NPA does give large positive charges to oxidised sulfur and phosphorus, so a value near 2 e is
+  not by itself an error; but it is the population where the Ionescu work found a model silently off by 1.75 e, and C7 has not run.
+- Model J: 18,684 atoms, largest 1.050 e (a peroxy carbonate carbon), nothing above 1.5 e.
+
+**C9, the models side by side (not judged).** 572 CHNO molecules (15,158 atoms) that all four models accept, on one MMFF geometry each. The four use different charge schemes
+(J Merz-Kollman, N NPA, Bultinck and Ionescu E Mulliken), so a spread is partly a difference of definition and not an error.
+- Mean spread (largest charge minus smallest, per atom): C 0.118 e, H 0.083 e, **N 0.294 e**, O 0.207 e; the largest for a single atom is 0.98 e (a nitrogen).
+- Mean charge by element (J / N / Bultinck / Ionescu E): C -0.050 / -0.125 / -0.070 / -0.096; H +0.150 / +0.215 / +0.158 / +0.226; N -0.451 / -0.428 / -0.411 / **-0.678**;
+  O -0.523 / -0.582 / -0.493 / **-0.684**. Ionescu's E model, fitted to protein fragments, puts markedly more negative charge on N and O than the other three.
+- Mean absolute difference between pairs: J-Bultinck 0.024 e (closest), N-Ionescu 0.049, N-Bultinck 0.061, J-N 0.074, Bultinck-Ionescu 0.086, J-Ionescu 0.095 e.
+
+**Still not run:** C5 (the distance unit against reference charges) and C7 (the oxidised sulfur and phosphorus survey), which need ORCA and wait for Alex's job to finish. C8's
+result is the reason C7 matters most: it is the one population where Model N's largest charges live.
