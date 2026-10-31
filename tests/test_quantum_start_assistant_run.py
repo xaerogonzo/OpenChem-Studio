@@ -459,3 +459,18 @@ def test_the_panel_shows_the_molecule_a_bond_dissociation_card_is_for(bde_panel)
     assert panel._molecule_combo.currentData() == other.uuid
     assert panel.start_assistant_run(ethanol.uuid, BDE, drawing_fingerprint(panel, ethanol)) == ""
     assert panel._molecule_combo.currentData() == ethanol.uuid and requests[0]["molecule_uuid"] == ethanol.uuid
+
+
+def test_the_buttons_threshold_is_the_shared_one_unless_a_test_lowers_it(bde_panel):
+    from openchem.chem.quantum_run_request import BOND_DISSOCIATION_CONFIRM_ABOVE
+
+    panel, _molecule, _service, _requests = bde_panel("CCO")
+    assert panel._BOND_DISSOCIATION_CONFIRM_ABOVE == BOND_DISSOCIATION_CONFIRM_ABOVE == 6
+
+
+def test_a_refusal_after_the_dialog_stops_the_button(bde_panel, monkeypatch):
+    panel, _molecule, _service, requests = bde_panel("CCO")
+    monkeypatch.setattr(panel_module._BondChoiceDialog, "exec", lambda self: panel_module.QDialog.DialogCode.Accepted)
+    monkeypatch.setattr(panel_module, "prepare_bond_dissociation", lambda smiles, atoms=None: panel_module.RunRefusal("Bond dissociation does not apply: nope"))
+    panel._on_bond_dissociation_clicked()
+    assert panel._status_label.text() == "Bond dissociation does not apply: nope" and requests == [] and panel._pending_molecule_uuid is None

@@ -363,3 +363,24 @@ def test_the_bond_choices_are_the_dialogs_list_or_the_sentence_that_says_why_not
 def test_bond_dissociation_for_a_molecule_needs_a_structure():
     assert prepare_bond_dissociation_for(None).message == "Select a molecule with a structure first."
     assert isinstance(prepare_bond_dissociation_for(MoleculeModel(display_name="blank")), RunRefusal)
+
+
+def test_a_failure_that_is_not_a_scope_refusal_is_refused_with_its_message(monkeypatch):
+    def boom(*args, **kwargs):
+        raise RuntimeError("boom")
+
+    monkeypatch.setattr(bd, "Sequence", boom)
+    refusal = prepare_bond_dissociation("CCO")
+    assert isinstance(refusal, RunRefusal) and refusal.message == "Bond dissociation could not start: boom"
+
+
+def test_a_molecule_with_a_smiles_but_no_structure_is_not_prepared():
+    refusal = prepare_bond_dissociation_for(MoleculeModel(display_name="no structure", canonical_smiles="CCO"))
+    assert isinstance(refusal, RunRefusal) and refusal.message == "Select a molecule with a structure first."
+
+
+def test_the_question_is_asked_above_six_jobs_and_not_at_six():
+    from openchem.chem.quantum_run_request import BOND_DISSOCIATION_CONFIRM_ABOVE
+
+    assert prepare_bond_dissociation("Cc1ccccc1").jobs == 6 and prepare_bond_dissociation("CCCCO").jobs == 7
+    assert 6 <= BOND_DISSOCIATION_CONFIRM_ABOVE < 7

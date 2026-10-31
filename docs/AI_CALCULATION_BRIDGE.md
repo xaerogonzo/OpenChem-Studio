@@ -387,9 +387,25 @@ Tested by `tests/test_quantum_dispatch.py`, `tests/test_calculation_host_orca.py
 
 **A correction made on the way.** The preview of a service-run calculator listed "a 3D conformer" as a requirement for proton affinity, bond dissociation and the tautomer runs, though each says it needs none; those three no longer list it.
 
-**Still not here:** bond dissociation (which bonds is a choice a card cannot state yet), the tautomer runs (they enumerate their own jobs) and Fukui (experimental, hidden by default).
+**Still not here:** the tautomer runs (they enumerate their own jobs) and Fukui (experimental, hidden by default). Bond dissociation followed, in section 19.
 
 Tested by `tests/test_calculation_host_orca.py`, `tests/test_quantum_start_assistant_run.py` and `tests/test_ai_assistant_orca_dispatch.py`, driven on real ORCA (ammonia) by `benchmarks/visual/ai_proton_affinity_dispatch.json`.
+
+## 19. Bond dissociation: a card for a fixed protocol with one choice (2026-10-31; `chem/quantum_run_request.prepare_bond_dissociation`)
+
+**What differs from section 18.** `orca.bond_dissociation_enthalpy` is a fixed protocol like proton affinity (the benchmarked method is the only one, it runs on the drawing, every structure is embedded fresh, no stored conformer), but it has ONE choice: which X-H bonds to compute, each costing a radical optimization per conformer. The button asks it in a dialog. A card cannot ask, so it states a default: the dialog's own, every bond class up to the most one run takes (`bond_dissociation.MAX_BONDS`, six), in the order the dialog shows them.
+
+**Why not "the weakest bond".** That was the first proposal, and it cannot be done: which bond is the weakest is what the calculation finds, so there is nothing to pre-select before it runs. The default is every class instead, which is what finds it. The result still states the weakest bond computed and every bond's own value.
+
+**What the card says.** The bonds it would compute, in the dialog's wording; the number of ORCA jobs (the hydrogen atom, the molecule and a radical per bond); whether the molecule is outside what the benchmark measured; and, when there are more than six classes, the ones it LEAVES OUT and that the Quantum Chemistry panel's Bond dissociation button is where to choose them (a seven-class molecule such as hexanol leaves out its O-H, since the dialog ticks the first six; the card says so and does not hide it). `PreparedBondDissociation.card_text` is the card's text, `question` the dialog's, and the dialog's own wording is unchanged.
+
+**The button's rules moved first, as in sections 16 and 18.** `bond_choices`, `prepare_bond_dissociation(smiles, atoms=None)`, `prepare_bond_dissociation_for` and `start_bond_dissociation` hold the structure check, the scope refusal, the job count and the question; the button keeps its dialog, its threshold (`_BOND_DISSOCIATION_CONFIRM_ABOVE`, which a test lowers for one panel) and its bookkeeping (`_begin_bond_dissociation`), and the 16 tests of `tests/test_bond_dissociation_panel.py` pass unchanged.
+
+**What is bound to what.** As for proton affinity: the card is bound to the drawing fingerprint (`calculation_input` is `drawing`), and the bonds follow from the drawing, so they cannot differ at Approve while the fingerprint is the same. The run ends on its run record, matched by calculation type `bond_dissociation`.
+
+**Still not here:** a choice of bonds on the card (a model cannot ask for a particular bond; a person who wants one starts it from the panel), the tautomer runs and Fukui.
+
+Tested by `tests/test_quantum_run_request.py`, `tests/test_calculation_host_orca.py`, `tests/test_quantum_start_assistant_run.py` and `tests/test_ai_assistant_orca_dispatch.py`, driven on real ORCA (water) by `benchmarks/visual/ai_bond_dissociation_dispatch.json`.
 
 ## 14. Goals: the wizard's table, as knowledge and never as a way to run
 
