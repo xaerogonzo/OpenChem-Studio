@@ -382,5 +382,5 @@ def test_a_molecule_with_a_smiles_but_no_structure_is_not_prepared():
 def test_the_question_is_asked_above_six_jobs_and_not_at_six():
     from openchem.chem.quantum_run_request import BOND_DISSOCIATION_CONFIRM_ABOVE
 
-    assert prepare_bond_dissociation("Cc1ccccc1").jobs == 6 and prepare_bond_dissociation("CCCCO").jobs == 7
+    assert prepare_bond_dissociation("Cc1ccccc1").jobs == 6 and prepare_bond_dissociation("C1CCOC1").jobs == 7
     assert 6 <= BOND_DISSOCIATION_CONFIRM_ABOVE < 7
