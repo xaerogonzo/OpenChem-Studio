@@ -1,0 +1,49 @@
+{
+ "what": "B3LYP/def2-TZVPD, the thermal_step.py level. 2-propanethiyl conformer 1 (a stationary point with a frequency of -232.76 cm-1) was displaced +-0.15 Angstrom along its imaginary mode (restart_core.displaced, largest Cartesian component 1) and each end optimised with frequencies. B3LYP only: the benchmark's M06-2X protocol was NOT run on any Arm D bond.",
+ "saddle": {
+  "electronic_eh": -516.613942226297,
+  "zpe_eh": 0.09241669,
+  "lowest_frequencies_cm1": [
+   -233.53,
+   229.92,
+   255.45
+  ],
+  "enthalpy_eh": -516.51560529
+ },
+ "followed_plus": {
+  "electronic_eh": -516.614009059132,
+  "zpe_eh": 0.09296697,
+  "lowest_frequencies_cm1": [
+   216.68,
+   246.41,
+   263.37
+  ],
+  "enthalpy_eh": -516.51458535
+ },
+ "followed_minus": {
+  "electronic_eh": -516.614006582998,
+  "zpe_eh": 0.0929582,
+  "lowest_frequencies_cm1": [
+   216.1,
+   245.64,
+   262.95
+  ],
+  "enthalpy_eh": -516.51458793
+ },
+ "conformer0_minimum": {
+  "electronic_eh": -516.61401503,
+  "zpe_eh": 0.09286597,
+  "enthalpy_eh": -516.51474191,
+  "lowest_frequencies_cm1": [
+   211.26
+  ]
+ },
+ "derived_kcal": {
+  "saddle_above_followed_minima_electronic": [
+   0.042,
+   0.04
+  ],
+  "saddle_above_conformer0_electronic": 0.046,
+  "saddle_enthalpy_minus_conformer0_enthalpy": -0.542
+ }
+}

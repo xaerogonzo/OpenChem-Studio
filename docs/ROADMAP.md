@@ -1490,16 +1490,18 @@ blocked by anything:
   result there is a much weaker statement than the same result on a
   form-shaped panel, and this defect class needs a guard of its own kind.
 
-### Recipes, derived scores and the assistant's bridge (2026-10-12, updated 2026-10-16)
+### Recipes, derived scores and the assistant's bridge (2026-10-12, updated 2026-10-30)
 
 Phase 1 (the assistant reads and runs calculators, and asks before anything heavy) is merged: `docs/AI_CALCULATION_BRIDGE.md`. **Phase 2 is
 built** (on 2026-10-12 it was designed and not built; the slices merged between 2026-10-13 and 2026-10-16): the recipe model, the run record, the
 Lewis pairing, its window and the kept answer in Results, and the preregistered BH3/CO gate, PASSED on 2026-10-13 (`docs/RECIPES_DESIGN.md`); and derived
-scores, slices 1 to 4 and their follow-ups (`docs/DERIVED_SCORES_DESIGN.md`). Still not built: a dispatch adapter for service-run (ORCA) calculators,
-so the assistant describes an ORCA job and a person starts it from its panel, and the assistant's frozen turn holds no quantum-chemistry runs
-(`domain/turn_snapshot.py` names none, checked 2026-10-16); scores over 3D numbers (decided on 2026-10-16, in the derived scores record); Phase 3 beyond its first calculator (Fukui functions were built on 2026-10-18 and
-failed two preregistered gates, the first by 0.0014 on one quantity and the second, on De Proft et al.'s tables, with 33 of 47 numbers within 0.02, so they are offered as experimental and not validated, `benchmarks/fukui_gate/PREREGISTRATION.md` and `benchmarks/fukui_gate_2/PREREGISTRATION.md`;
-proton affinity was benchmarked and its primary arm passed, #398; bond dissociation energy is preregistered and not yet reported) and the last of Phase 4 (the synthesis helper's Stage 1 is built, `docs/SYNTHESIS_HELPER_DESIGN.md`, plans are saved in the project file; what remains is the second quality protocol, which is Alex's to run). The live provider run for Phase 1 is still not done. `docs/WHATS_NEW.md` is a tour of all of it.
+scores, slices 1 to 4 and their follow-ups, including scores over 3D numbers (`docs/DERIVED_SCORES_DESIGN.md`).
+
+**Phase 3** (ORCA calculators, each behind a preregistered benchmark): proton affinity and gas basicity passed their benchmark (#398) and the calculator is LIMITED and shown by default since 2026-10-23 (`docs/PROTON_AFFINITY_DESIGN.md`); X-H bond dissociation enthalpy's benchmark was PARTIAL on 2026-10-21, its held-out arm PASSED on 2026-10-23, and the calculator is LIMITED and shown since 2026-10-25, with the restart protocols and what they found in `benchmarks/restart_v2/` and `benchmarks/restart_v3/`; Fukui functions (built 2026-10-18) failed two preregistered gates, the first by 0.0014 on one quantity and the second, on De Proft et al.'s tables, with 33 of 47 numbers within 0.02, so they are offered as experimental and not validated (`benchmarks/fukui_gate/PREREGISTRATION.md` and `benchmarks/fukui_gate_2/PREREGISTRATION.md`).
+
+**Phase 4** (the synthesis helper, `docs/SYNTHESIS_HELPER_DESIGN.md`): Stage 1 is built, plans are saved in the project file, and the planner's quality was measured three times. Protocol 2 (2026-10-22) put the patent route among the first 10 shown for 41.7% of 300 patent targets, and slice 3 ranks and caps the routes as it measured; protocol 3 (2026-10-24), on 51 routes from journal papers newer than the model's training data, read lower, 13 of 51 (0.255), and that figure is quoted beside the patent one in every plan.
+
+**Built 2026-10-30:** the assistant can read the ORCA runs a person made (`read_quantum_runs`), and can ASK for a single ORCA job (`run_calculator` on `orca.sp`, `opt`, `opt_freq`, `nmr`, `nmr_coupling`, `delta_scf` or `led`): a card with the settings and the cost, and ORCA starts only if the person approves it, by the Quantum Chemistry panel's own Run rules (`docs/AI_CALCULATION_BRIDGE.md`, sections 15 to 17). Proton affinity followed the same day (a fixed protocol: the card states the base, the job count and whether it was measured; section 18), then bond dissociation (the same, with the bonds it would compute listed and the ones it leaves out named; section 19). **Still not built:** a card for the tautomer runs (they enumerate their own jobs), for particular bonds chosen on the card, and for the experimental Fukui; and the live provider run for Phase 1, which needs an API key. `docs/WHATS_NEW.md` is a tour of all of it.
 
 ### Visualization
 
@@ -1771,6 +1773,11 @@ first process kept running for 15 minutes after I thought it was stopped: stop a
 Structure-to-name went through three answers in one day. Recorded because
 each one was overturned by measurement, and the record is what makes the
 next reassessment cheap.
+
+**What the naming engine still gets wrong, and the order to work on it,** is
+[`NAMING_LIMITATIONS_PLAN.md`](NAMING_LIMITATIONS_PLAN.md): one inventory of
+every open item from rounds 3 to 89 with a class, a priority and a closure
+criterion, so that a naming round starts from a justified target.
 
 **STOUT is dead, and has now been REMOVED from the codebase.** The address
 compiled into `STOUT-pypi` 2.0.5 returns 404, the whole storage bucket 404s
@@ -2361,7 +2368,19 @@ and three were checked again recently rather than taken on trust.
      Henderson-Hasselbalch puts a zwitterion's minimum in the wrong place. A species-weighted model (each microspecies' own intrinsic solubility) would lift it.
      Solubility as a whole also still carries its measured base bias, reported and not corrected.
   6. **Benchmarks that would widen a LIMITED scope**: proton affinity beyond ten heavy atoms (a held-out set of 11 to 20), bond dissociation beyond nine
-     and for S-H (thiyl radicals keep an imaginary mode; a v3 protocol), Si-H and P-H classes. Until then those run with the warning.
+     and for S-H (thiyl radicals keep an imaginary mode), Si-H and P-H classes. Until then those run with the warning. **Restart protocol v3** (preregistered and FROZEN 2026-10-28 in
+     `benchmarks/restart_v3/`) has now been run, and none of it widened a scope: Arm C (six F/Cl C-H bonds) PASSED (mean absolute 0.94 kcal/mol), and Arm D (four S-H bonds, the one
+     that decides S-H) was PARTIAL (mean absolute 1.78 and mean signed -1.78 against a limit of 1.5, largest 2.90; `RESULT_D.md`). Arms D-Ph and C-Br were reported only and claim nothing.
+     The numerical-frequency step fired for the first time in Arm D. Open from it: the largest error (1-propanethiol, -2.90) is the one bond whose radical stayed analytic, but a
+     follow-up numerical job on that radical moved it only +0.34, to -2.56 (the arm is still PARTIAL, 1.69), so about 1.2 kcal/mol of it is unexplained (the reference's +-0.62, the
+     conformers or the method). Extending the numerical job to radicals with no imaginary mode would be a separate preregistered amendment with its own held-out check, and is not done;
+     the calculator is unchanged and S-H keeps its warning.
+  7. **Numerical-versus-analytic calibration of radicals of 10 to 14 atoms** (recorded 2026-10-28; an overnight run, roughly a day of compute with three jobs at a time). Protocol v3 gives the
+     numerical frequency job to a radical of any size and labels it above 12 atoms, but its calibration (`benchmarks/restart_v3/PREREGISTRATION.md` section 5) measured radicals of at most 9
+     atoms. The **15 radicals of 10 to 14 atoms** the calibration's selection rule left out (the secondary and tertiary alkyl, n-propyl and n-butyl, the propoxyls and tert-butoxyl, phenyl, benzyl,
+     phenoxyl, benzoyloxyl and tert-butylperoxyl radicals) get the same pair of jobs, analytic and numerical, at their recorded final geometries (`benchmarks/thiyl_probe/calibrate.py` extended; a
+     numerical job is 1 to 2 hours at 12 to 14 atoms). It decides nothing and is spent data like Arm A; its answer is how often the analytic enthalpy is wrong at those sizes (and so whether the
+     label above 12 atoms can be dropped or must stay), and it would put a first measured claim behind the S-H of larger thiols. Independent of every arm and of the freeze.
 
   **Refused by definition, and staying refused**: Griffin's HLB without a polyoxyethylene chain, the aromaticity indices with no ring, Hueckel with no pi
   system, the isoelectric point and microspecies with no ionisable centre, the steric (ligand) measures with no donor atom. There is nothing to compute.

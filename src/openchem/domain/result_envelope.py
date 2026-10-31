@@ -68,6 +68,8 @@ from openchem.domain.score_outputs import ENDPOINTS, READ_FROM, ApprovedOutput, 
 from openchem.domain.score_proposal import ASSISTANT_OWNER, ProposalRefusal, Registered
 from openchem.domain.score_reading import ScoresView
 from openchem.domain.score_value import InputEvidence, InputState, ScoreStatus, ScoreValue
+from openchem.domain.quantum_chemistry_run import OutputStatus
+from openchem.domain.quantum_run_snapshot import RunEntry, RunsView
 from openchem.domain.scientific_result import (
     AlertResult,
     PerAtomDataset,
@@ -75,6 +77,7 @@ from openchem.domain.scientific_result import (
     SpectrumResult,
     StructureSetResult,
     TrajectoryResult,
+    VibrationalSpectrumResult,
 )
 from openchem.domain.turn_snapshot import Freshness, Outcome, ResultEntry, ResultsView
 
@@ -351,7 +354,27 @@ def _alert_data(result: AlertResult, caps: Caps) -> dict[str, Any]:
     }
 
 
+def _vibrational_data(result: VibrationalSpectrumResult, caps: Caps) -> dict[str, Any]:
+    """The modes of a harmonic analysis. NOT `_spectrum_data`: a vibrational spectrum keeps its numbers in `modes` and leaves `values` empty on purpose, so reading it as per-atom peaks would tell a model it has none."""
+    modes = sorted(result.modes, key=lambda mode: mode.wavenumber_cm1)
+    shown = modes[: caps.atoms]
+    data: dict[str, Any] = {
+        "spectrum_type": result.spectrum_type, "units": "wavenumber in cm^-1, IR intensity in km/mol", "count": len(modes),
+        "modes": [[_n(m.wavenumber_cm1), _n(m.ir_intensity_km_mol), m.character or ""] for m in shown],
+        "mode_columns": ["wavenumber_cm1", "ir_intensity_km_mol", "character"],
+        "imaginary_modes": len(result.imaginary_modes),
+        "scaling_factor_applied_here": _n(result.scaling_factor),
+    }
+    if len(modes) > len(shown):
+        data["truncated"] = len(modes) - len(shown)
+    if result.imaginary_warning:
+        data["imaginary_warning"] = _t(result.imaginary_warning, caps.text)
+    return data
+
+
 def _spectrum_data(result: SpectrumResult, caps: Caps) -> dict[str, Any]:
+    if isinstance(result, VibrationalSpectrumResult):
+        return _vibrational_data(result, caps)
     items = sorted(result.values.items())
     data: dict[str, Any] = {
         "spectrum_type": result.spectrum_type, "units": result.units, "count": len(items),
@@ -413,6 +436,13 @@ def _caveats(result: object, entry: ResultEntry, caps: Caps) -> list[str]:
     caveats: list[str] = []
     if entry.note:
         caveats.append(entry.note)
+    caveats.extend(_result_caveats(result, caps))
+    return caveats
+
+
+def _result_caveats(result: object, caps: Caps) -> list[str]:
+    """What the result itself says about its limits (assumptions, limitations, a producer's recorded caveat), without the freshness note."""
+    caveats: list[str] = []
     for attribute in ("assumptions", "limitations"):
         caveats.extend(_t(item, caps.text) for item in (getattr(result, attribute, ()) or ()))
     # A caveat a PRODUCER recorded in its provenance (`caveat`): the Koopmans hardness that inverts ammonia and
@@ -458,28 +488,42 @@ def envelope_of(entry: ResultEntry, caps: Caps = FULL) -> dict[str, Any]:
     if entry.outcome is not Outcome.COMPUTED:
         envelope["refusal"] = _refusal_block(result, caps)
         return envelope
-    if kind == "descriptor":
-        envelope["data"] = _descriptor_data(result, caps)
-    elif kind == "report":
-        envelope["data"] = _report_data(result, caps)
-    elif kind == "alert":
-        envelope["data"] = {k: v for k, v in _alert_data(result, caps).items() if v is not None}
-    elif kind == "per_atom":
-        envelope["data"] = _per_atom_data(result, parameters, caps)
-    elif kind == "spectrum":
-        envelope["data"] = _spectrum_data(result, caps)
-    elif kind == "structure_set":
-        envelope["data"] = _structure_set_data(result, caps)
-    elif kind == "ph_curve":
-        envelope["data"] = _ph_curve_data(result, caps)
-    elif kind == "trajectory":
-        envelope["data"] = _trajectory_data(result, caps)
+    data = data_of(result, caps)
+    if data is not None:
+        envelope["data"] = data
     else:
-        envelope["unsupported"] = (
-            f"{type(result).__name__} has no serialiser here, so its values are not offered; "
-            "its identity above says what it is and where it came from"
-        )
+        envelope["unsupported"] = _unsupported(result)
     return envelope
+
+
+def _unsupported(result: object) -> str:
+    return (
+        f"{type(result).__name__} has no serialiser here, so its values are not offered; "
+        "its identity above says what it is and where it came from"
+    )
+
+
+def data_of(result: object, caps: Caps = FULL) -> dict[str, Any] | None:
+    """The numbers of one result as a plain dict, by its kind, or None for a kind with no safe serialiser. The one dispatch behind a stored result and an output of an ORCA run."""
+    kind = kind_of(result)
+    parameters = _provenance_parameters(result)
+    if kind == "descriptor":
+        return _descriptor_data(result, caps)
+    if kind == "report":
+        return _report_data(result, caps)
+    if kind == "alert":
+        return {k: v for k, v in _alert_data(result, caps).items() if v is not None}
+    if kind == "per_atom":
+        return _per_atom_data(result, parameters, caps)
+    if kind == "spectrum":
+        return _spectrum_data(result, caps)
+    if kind == "structure_set":
+        return _structure_set_data(result, caps)
+    if kind == "ph_curve":
+        return _ph_curve_data(result, caps)
+    if kind == "trajectory":
+        return _trajectory_data(result, caps)
+    return None
 
 
 def results_view_envelope(view: ResultsView, caps: Caps = FULL) -> dict[str, Any]:
@@ -495,6 +539,108 @@ def results_view_envelope(view: ResultsView, caps: Caps = FULL) -> dict[str, Any
             "A result is current only if its freshness says so. Anything not run is absent, never zero. "
             "Do not state a value that is not in a result here."
         ),
+    }
+
+
+# --- the ORCA runs a person ran (`read_quantum_runs`) -----------------------------------------------------------------------------------------------------------------
+
+#: What a model is told with every read of the ORCA runs: what a run is, what freshness means, that a failed or cancelled job has no numbers, and that no value may be stated that is not in a run read here.
+READ_RUNS_NOTE = (
+    "A run is one ORCA job a person ran for this molecule. Its freshness says whether it was run on the structure now drawn; a run that is not current is listed only when asked for and must never be reported as the "
+    "answer for this structure. 'failed' and 'cancelled' runs have no numbers: say how they ended and quote the warnings. A listed output with status 'available' holds numbers, which are returned only when you "
+    "ask for that run by run_id. Never state a value that is not in a run read here, and never treat an output that was not produced as zero."
+)
+
+
+def _iso(timestamp: float | None) -> str | None:
+    if timestamp is None:
+        return None
+    from datetime import datetime, timezone
+
+    return datetime.fromtimestamp(timestamp, tz=timezone.utc).isoformat(timespec="seconds")
+
+
+def _output_summary(key: str, status: OutputStatus | None, results: tuple[Any, ...], caps: Caps) -> dict[str, Any]:
+    """One output of a run, named and counted, with no numbers: the header a list carries."""
+    item: dict[str, Any] = {"status": status.value if status is not None else ("available" if results else "not_recorded")}
+    if not results:
+        return item
+    kinds = {"number" if isinstance(r, (int, float)) and not isinstance(r, bool) else kind_of(r) for r in results}
+    item["kind"] = kinds.pop() if len(kinds) == 1 else "mixed"
+    item["count"] = len(results)
+    names = [_t(_name_of(r, ""), caps.text) for r in results[: caps.items]]
+    if any(names):
+        item["names"] = names
+    return item
+
+
+def _output_detail(key: str, status: OutputStatus | None, results: tuple[Any, ...], caps: Caps) -> dict[str, Any]:
+    """One output of a run with its numbers, each result through the serialiser a stored result of that kind uses."""
+    item = _output_summary(key, status, results, caps)
+    if not results:
+        return item
+    shown: list[dict[str, Any]] = []
+    for result in results[: caps.items]:
+        if isinstance(result, (int, float)) and not isinstance(result, bool):
+            shown.append({"name": key, "value": _n(result)})
+            continue
+        entry: dict[str, Any] = {"name": _t(_name_of(result, key), caps.text), "kind": kind_of(result)}
+        data = data_of(result, caps)
+        if data is not None:
+            entry["data"] = data
+        else:
+            entry["unsupported"] = _unsupported(result)
+        caveats = _result_caveats(result, caps)
+        if caveats:
+            entry["caveats"] = caveats
+        shown.append(entry)
+    item["results"] = shown
+    if len(results) > len(shown):
+        item["truncated"] = len(results) - len(shown)
+    return item
+
+
+def run_envelope(entry: RunEntry, caps: Caps = FULL, *, detailed: bool = False) -> dict[str, Any]:
+    """One stored ORCA run as a plain dict. A header always; numbers only when `detailed` and only for a run that computed something."""
+    keys = list(dict.fromkeys([*entry.output_status, *entry.outputs]))
+    outputs: dict[str, Any] = {}
+    for key in keys:
+        status = entry.output_status.get(key)
+        results = entry.outputs.get(key, ())
+        outputs[key] = (
+            _output_detail(key, status, results, caps) if detailed and entry.usable else _output_summary(key, status, results, caps)
+        )
+    duration = None if entry.completed_at is None else round(max(0.0, entry.completed_at - entry.started_at), 1)
+    return {
+        "run_id": entry.run_id,
+        "calculation": {
+            "calc_type": entry.calc_type, "method_basis": entry.method_basis, "charge": entry.charge,
+            "multiplicity": entry.multiplicity, "solvent": entry.solvent, "provider": entry.provider,
+        },
+        "input": {"kind": entry.calculation_input, "fingerprint": entry.input_fingerprint},
+        "freshness": entry.freshness.value,
+        "freshness_note": entry.note,
+        "outcome": entry.outcome.value,
+        "status": entry.status.value,
+        "started_at": _iso(entry.started_at),
+        "finished_at": _iso(entry.completed_at),
+        "duration_seconds": duration,
+        "warnings": [_t(w, caps.text) for w in entry.warnings],
+        "produced_geometry": entry.produced_geometry,
+        "outputs": outputs,
+    }
+
+
+def runs_view_envelope(view: RunsView, caps: Caps = FULL) -> dict[str, Any]:
+    """A `RunsView` as the dict `read_quantum_runs` returns."""
+    return {
+        "envelope_version": MODEL_ENVELOPE_VERSION,
+        "molecule_uuid": view.molecule_uuid,
+        "runs": [run_envelope(entry, caps, detailed=view.detailed) for entry in view.entries],
+        "not_found": list(view.not_found),
+        "not_current_left_out": view.not_current_left_out,
+        "left_out_for_length": view.truncated,
+        "note": READ_RUNS_NOTE,
     }
 
 

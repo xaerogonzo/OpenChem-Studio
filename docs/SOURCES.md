@@ -1,5 +1,5 @@
 <!-- GENERATED FROM docs/sources.toml -- do not edit -->
-<!-- SOURCE SHA256: 71112ceed70fdead93c34f7ecdcf31fbddea4d5b8214c3bdc39a72a2328d8752 -->
+<!-- SOURCE SHA256: b6dde2e0aef2e39206c1d2e46d72fcb64aa17999da35eaf8302b757a632d397a -->
 
 # Sources
 
@@ -106,16 +106,19 @@ next run of `tools/build_lewis_parameters.py`.
 | [`autodock_vina`](#autodock_vina) | software | shipped | citation + claim |
 | [`avdeef2007`](#avdeef2007) | literature | shipped | citation + claim |
 | [`avdeef2020`](#avdeef2020) | literature | shipped | citation + claim |
+| [`ayers2007`](#ayers2007) | literature | reference only | citation |
 | [`baell2010`](#baell2010) | literature | shipped | citation |
 | [`bakewell2016`](#bakewell2016) | literature | reference only | citation |
 | [`bakowies1996`](#bakowies1996) | literature | **not shipped** | citation + claim |
 | [`balabin2009`](#balabin2009) | literature | reference only | citation + claim |
 | [`ballester2010`](#ballester2010) | literature | **not shipped** | citation |
+| [`bannwarth2021xtb`](#bannwarth2021xtb) | literature | shipped | citation |
 | [`barone2023`](#barone2023) | literature | reference only | citation |
 | [`batsanov2001`](#batsanov2001) | literature | reference only | citation |
 | [`belova2014`](#belova2014) | literature | shipped | citation + claim |
 | [`bento2020`](#bento2020) | literature | shipped | citation + claim |
 | [`bertz1981`](#bertz1981) | literature | shipped | citation |
+| [`bhaskarapillai2024`](#bhaskarapillai2024) | literature | reference only | citation |
 | [`bickerton2012`](#bickerton2012) | literature | shipped | citation |
 | [`bilbrey2013`](#bilbrey2013) | literature | shipped | citation |
 | [`bird1985`](#bird1985) | literature | shipped | citation |
@@ -156,7 +159,12 @@ next run of `tools/build_lewis_parameters.py`.
 | [`cwc_annex_on_chemicals`](#cwc_annex_on_chemicals) | legal | shipped | citation + claim |
 | [`dea_listed_chemicals`](#dea_listed_chemicals) | legal | shipped | citation |
 | [`delaney2004`](#delaney2004) | literature | shipped | citation + claim |
+| [`deleuze2001`](#deleuze2001) | literature | reference only | citation |
+| [`deleuze2002`](#deleuze2002) | literature | reference only | citation |
 | [`deproft2002`](#deproft2002) | literature | shipped | citation + claim |
+| [`deshpande2024`](#deshpande2024) | literature | reference only | unverified |
+| [`devine2008`](#devine2008) | literature | reference only | citation + claim |
+| [`dewar1969`](#dewar1969) | literature | reference only | citation |
 | [`dimorphite_dl`](#dimorphite_dl) | software | shipped | citation |
 | [`dittwald2014`](#dittwald2014) | literature | reference only | citation |
 | [`drago1965`](#drago1965) | literature | shipped | citation + claim |
@@ -174,6 +182,7 @@ next run of `tools/build_lewis_parameters.py`.
 | [`eyet2009`](#eyet2009) | literature | reference only | citation + claim |
 | [`feinstein2015`](#feinstein2015) | literature | shipped | citation + claim |
 | [`ferro2018`](#ferro2018) | literature | reference only | citation + claim |
+| [`fievez2008`](#fievez2008) | literature | reference only | citation |
 | [`fogarasi2010`](#fogarasi2010) | literature | shipped | citation + claim |
 | [`ganyecz2019`](#ganyecz2019) | literature | reference only | citation |
 | [`gasteiger1980`](#gasteiger1980) | literature | shipped | citation + claim |
@@ -207,6 +216,7 @@ next run of `tools/build_lewis_parameters.py`.
 | [`hejazi2016`](#hejazi2016) | literature | reference only | citation |
 | [`hlb`](#hlb) | reference_table | reference only | citation |
 | [`holland2013`](#holland2013) | literature | shipped | citation + claim |
+| [`holland2016`](#holland2016) | literature | reference only | citation |
 | [`holland2017`](#holland2017) | literature | shipped | citation + claim |
 | [`hopfinger2009`](#hopfinger2009) | dataset | shipped | citation |
 | [`huber1979`](#huber1979) | literature | reference only | citation + claim |
@@ -244,6 +254,7 @@ next run of `tools/build_lewis_parameters.py`.
 | [`langes15`](#langes15) | reference_table | shipped | citation + claim |
 | [`lease2023`](#lease2023) | literature | shipped | citation + claim |
 | [`leplat2013`](#leplat2013) | literature | reference only | citation + claim |
+| [`li2024_prmt5`](#li2024_prmt5) | literature | reference only | citation |
 | [`li2024retrobleu`](#li2024retrobleu) | literature | reference only | citation |
 | [`lim2007`](#lim2007) | literature | reference only | citation + claim |
 | [`llinas2008`](#llinas2008) | dataset | shipped | citation |
@@ -385,6 +396,8 @@ next run of `tools/build_lewis_parameters.py`.
 | [`wilmer2011`](#wilmer2011) | literature | reference only | citation |
 | [`wilmer2012`](#wilmer2012) | literature | shipped | citation + claim |
 | [`wilmer2012_correction`](#wilmer2012_correction) | literature | reference only | citation |
+| [`wilson1994`](#wilson1994) | literature | reference only | citation + claim |
+| [`wu2025`](#wu2025) | literature | reference only | citation + claim |
 | [`yalkowsky_banerjee1992`](#yalkowsky_banerjee1992) | dataset | shipped | citation |
 | [`zenodo7341155`](#zenodo7341155) | dataset | reference only | citation + claim |
 | [`zenodo7797465`](#zenodo7797465) | dataset | reference only | citation + claim |
@@ -6349,6 +6362,167 @@ volume, pages and DOI are printed on the file's first page.
 tautomers and rotamers, relative electronic energies tabulated in cm-1. No number was
 transcribed. Journal, volume, pages and DOI are printed on the file's first page.
 
+### holland2016
+
+<a id="holland2016"></a>
+
+> D. Holland et al., 'A study of the valence shell electronic states of s-triazine by photoabsorption spectroscopy and ab initio calculations', Chemical Physics 477, 96-104 (2016).
+
+| | |
+| --- | --- |
+| Identifier | [10.1016/j.chemphys.2016.07.019](https://doi.org/10.1016/j.chemphys.2016.07.019) |
+| Status | reference only |
+| Verification | citation |
+| Verified | 2026-10-29 |
+| Used by | `docs/QUANTUM_PROGRAM_NOTES.md` |
+
+**Why it is reference only.** Listed among the cation-state literature leads in docs/QUANTUM_PROGRAM_NOTES.md (valence-shell electronic states of s-triazine, Chem. Phys. 477, 96 (2016)). Backs nothing shipped; recorded because that page cites it.
+
+Checked against the Crossref record on 2026-10-29: authors, title, journal, volume, pages and year are the record's, and match how the assistant notes cite it.
+
+### dewar1969
+
+<a id="dewar1969"></a>
+
+> M. J. S. Dewar & S. D. Worley, 'Photoelectron Spectra of Molecules. II. The Ionization Potentials of Azabenzenes and Azanaphthalenes', The Journal of Chemical Physics 51, 263-267 (1969).
+
+| | |
+| --- | --- |
+| Identifier | [10.1063/1.1671718](https://doi.org/10.1063/1.1671718) |
+| Status | reference only |
+| Verification | citation |
+| Verified | 2026-10-29 |
+| Used by | `docs/QUANTUM_PROGRAM_NOTES.md` |
+
+**Why it is reference only.** Listed among the cation-state literature leads in docs/QUANTUM_PROGRAM_NOTES.md (Dewar and Worley, J. Chem. Phys. 51, 263 (1969), ionization potentials of azabenzenes). Backs nothing shipped; recorded because that page cites it.
+
+Checked against the Crossref record on 2026-10-29: authors, title, journal, volume, pages and year are the record's, and match how the assistant notes cite it.
+
+### deleuze2001
+
+<a id="deleuze2001"></a>
+
+> M. S. Deleuze, A. B. Trofimov & L. S. Cederbaum, 'Valence one-electron and shake-up ionization bands of polycyclic aromatic hydrocarbons. I. Benzene, naphthalene, anthracene, naphthacene, and pentacene', The Journal of Chemical Physics 115, 5859-5882 (2001).
+
+| | |
+| --- | --- |
+| Identifier | [10.1063/1.1386414](https://doi.org/10.1063/1.1386414) |
+| Status | reference only |
+| Verification | citation |
+| Verified | 2026-10-29 |
+| Used by | `docs/QUANTUM_PROGRAM_NOTES.md` |
+
+**Why it is reference only.** Listed among the cation-state literature leads in docs/QUANTUM_PROGRAM_NOTES.md (polycyclic aromatic hydrocarbons, part I, J. Chem. Phys. 115, 5859 (2001)). Backs nothing shipped; recorded because that page cites it.
+
+Checked against the Crossref record on 2026-10-29: authors, title, journal, volume, pages and year are the record's, and match how the assistant notes cite it.
+
+### deleuze2002
+
+<a id="deleuze2002"></a>
+
+> M. S. Deleuze, 'Valence one-electron and shake-up ionization bands of polycyclic aromatic hydrocarbons. II. Azulene, phenanthrene, pyrene, chrysene, triphenylene, and perylene', The Journal of Chemical Physics 116, 7012-7026 (2002).
+
+| | |
+| --- | --- |
+| Identifier | [10.1063/1.1462615](https://doi.org/10.1063/1.1462615) |
+| Status | reference only |
+| Verification | citation |
+| Verified | 2026-10-29 |
+| Used by | `docs/QUANTUM_PROGRAM_NOTES.md` |
+
+**Why it is reference only.** Listed among the cation-state literature leads in docs/QUANTUM_PROGRAM_NOTES.md (polycyclic aromatic hydrocarbons, part II, J. Chem. Phys. 116, 7012 (2002)). Backs nothing shipped; recorded because that page cites it.
+
+Checked against the Crossref record on 2026-10-29: authors, title, journal, volume, pages and year are the record's, and match how the assistant notes cite it.
+
+### ayers2007
+
+<a id="ayers2007"></a>
+
+> P. W. Ayers, F. De Proft, A. Borgoo & P. Geerlings, 'Computing Fukui functions without differentiating with respect to electron number. I. Fundamentals', The Journal of Chemical Physics 126, 224107 (2007).
+
+| | |
+| --- | --- |
+| Identifier | [10.1063/1.2736697](https://doi.org/10.1063/1.2736697) |
+| Status | reference only |
+| Verification | citation |
+| Verified | 2026-10-29 |
+| Used by | `docs/QUANTUM_PROGRAM_NOTES.md` |
+
+**Why it is reference only.** Cited in docs/QUANTUM_PROGRAM_NOTES.md among the sources on computing Fukui functions without differentiating with respect to electron number (Part I of the series, J. Chem. Phys. 126, 224107 (2007)). Backs nothing shipped.
+
+Checked against the Crossref record on 2026-10-29: authors, title, journal, volume, pages and year are the record's, and match how the assistant notes cite it.
+
+### fievez2008
+
+<a id="fievez2008"></a>
+
+> T. Fievez et al., 'Calculation of Fukui Functions Without Differentiating to the Number of Electrons. 3. Local Fukui Function and Dual Descriptor', Journal of Chemical Theory and Computation 4, 1065-1072 (2008).
+
+| | |
+| --- | --- |
+| Identifier | [10.1021/ct800027e](https://doi.org/10.1021/ct800027e) |
+| Status | reference only |
+| Verification | citation |
+| Verified | 2026-10-29 |
+| Used by | `docs/QUANTUM_PROGRAM_NOTES.md` |
+
+**Why it is reference only.** Cited in docs/QUANTUM_PROGRAM_NOTES.md among the sources on computing Fukui functions without differentiating with respect to electron number (Part III of the series, J. Chem. Theory Comput. 4, 1065 (2008)). Backs nothing shipped.
+
+Checked against the Crossref record on 2026-10-29: authors, title, journal, volume, pages and year are the record's, and match how the assistant notes cite it.
+
+### bhaskarapillai2024
+
+<a id="bhaskarapillai2024"></a>
+
+> A. Bhaskarapillai et al., 'Exploring the structural and electronic characteristics of phenethylamine derivatives: a density functional theory approach', Journal of Engineering and Applied Science 71, 136 (2024).
+
+| | |
+| --- | --- |
+| Identifier | [10.1186/s44147-024-00461-3](https://doi.org/10.1186/s44147-024-00461-3) |
+| Status | reference only |
+| Verification | citation |
+| Verified | 2026-10-29 |
+| Used by | `docs/QUANTUM_PROGRAM_NOTES.md` |
+
+**Why it is reference only.** Cited in docs/QUANTUM_PROGRAM_NOTES.md as a paper that applies Fukui functions to large flexible molecules and was looked at for a usable table of Hirshfeld condensed values (the note's verdict: applied, large flexible molecules, not a reference table). Backs nothing shipped.
+
+Checked against the Crossref record on 2026-10-29: authors, title, journal, volume, pages and year are the record's, and match how the assistant notes cite it.
+
+### li2024_prmt5
+
+<a id="li2024_prmt5"></a>
+
+> Q. Q. Li et al., 'Design, Synthesis, and Biological Evaluation of 3,4-Dihydroisoquinolin-1(2H)-one Derivatives as Protein Arginine Methyltransferase 5 Inhibitors for the Treatment of Non-Hodgkin’s Lymphoma', Journal of Medicinal Chemistry 68, 108-134 (2025; Crossref gives 2024 as the online date).
+
+| | |
+| --- | --- |
+| Identifier | [10.1021/acs.jmedchem.4c01548](https://doi.org/10.1021/acs.jmedchem.4c01548) |
+| Status | reference only |
+| Verification | citation |
+| Verified | 2026-10-29 |
+| Used by | `docs/PRODUCT_PLANNING_NOTES.md` |
+
+**Why it is reference only.** Cited in docs/PRODUCT_PLANNING_NOTES.md as paper ID 1 of the synthesis planner benchmark's protocol 2 wider-frame sample, matched to its reference by the PDF text layer when the paper was obtained (2026-10-24). The benchmark results are under benchmarks/synthesis/; this paper backs nothing shipped.
+
+Checked against the Crossref record on 2026-10-29 and again on 2026-10-30: authors, title, journal, volume (68), issue (1) and pages (108-134) are the record's; the record dates it online 2024-12-26 and in print 2025-01-09, so 2025 (the issue year) in the citation and 2024 for the online date are both right; the title names protein arginine methyltransferase 5, which is the PRMT5 paper the assistant notes describe.
+
+### deshpande2024
+
+<a id="deshpande2024"></a>
+
+> S. R. Deshpande, M. T. Mandalamari, P. V. Malagi & Chandrashekhar V. M., 'Synthesis, In Silico Analysis, Antibacterial, Radical Scavenging and Antidiabetic Activities of Certain Bis-Azetidinones and Bis-Thiazolidinones', Pharmaceutical Chemistry Journal 58, 62-73 (2024).
+
+| | |
+| --- | --- |
+| Identifier | [10.1007/s11094-024-03119-9](https://doi.org/10.1007/s11094-024-03119-9) |
+| Status | reference only |
+| Verification | unverified |
+| Used by | `docs/PRODUCT_PLANNING_NOTES.md` |
+
+**Why it is reference only.** Cited in docs/PRODUCT_PLANNING_NOTES.md as the DOI of spare 2 in the synthesis planner benchmark's protocol 2 wider-frame sample, a spare whose PDF was not obtained. The DOI resolves in Crossref to the paper recorded here; whether it is the paper the draw meant was not checked. Backs nothing shipped.
+
+Crossref on 2026-10-30: the DOI resolves to this journal article (Pharmaceutical Chemistry Journal 58(1), 62-73; online 2024-05-15, print 2024-04; four authors, the last recorded as Chandrashekhar, family name V. M.). It meets the draw's own criteria (title contains 'synthes', year inside 2017 and 2023-2025, a journal on stratum 3's list in benchmarks/synthesis/artifacts_protocol3/frame.json), so it is a possible member of the frame. That it is spare 2 specifically cannot be checked from the repository, because the frame lists are kept outside it; that is why this stays unverified.
+
 ### glasser1995
 
 <a id="glasser1995"></a>
@@ -7279,6 +7453,24 @@ THE ENGINE THE PSI4 PROVIDER RUNS: a program this app calls, not a method it rei
 outputs); the paper itself was NOT read, so this entry makes no claim about a number. The functional definitions the engine relies on (B3LYP with VWN5 as `b3lyp5`, and so on) were checked against ORCA by running both, not taken from this paper
 (`docs/PSI4_ENGINE_DESIGN.md`, `chem/psi4_engine.py`).
 
+### bannwarth2021xtb
+
+<a id="bannwarth2021xtb"></a>
+
+> C. Bannwarth, E. Caldeweyher, S. Ehlert, A. Hansen, P. Pracht, J. Seibert, S. Spicher & S. Grimme, WIREs Comput. Mol. Sci. 2020, 11, e01493 (the reference xtb prints in its banner).
+
+| | |
+| --- | --- |
+| Identifier | [10.1002/wcms.1493](https://doi.org/10.1002/wcms.1493) |
+| Status | shipped |
+| Verification | citation |
+| Verified | 2026-10-27 |
+| Used by | `src/openchem/chem/xtb_engine.py` |
+
+THE ENGINE THE XTB PROVIDER RUNS: a program this app calls, not a method it reimplements. The reference is the one xtb 6.7.1pre prints in the banner of every output (checked against the fixtures in `tests/fixtures/xtb/`, which are real outputs), so the entry
+records only what the banner says (authors, journal, volume, year, DOI); the paper itself was NOT read, and this entry makes no claim about a number. The banner also names the GFN2-xTB and GFN1-xTB method papers, which are not registered because no method is reimplemented here.
+Nothing about xtb's accuracy against ORCA or Psi4 has been measured (`docs/EXTERNAL_TOOL_CANDIDATES.md`).
+
 ### hunter1998
 
 <a id="hunter1998"></a>
@@ -7904,6 +8096,57 @@ outputs); the paper itself was NOT read, so this entry makes no claim about a nu
 | Used by | `benchmarks/restart_v3/LITERATURE_LOG.md` |
 
 **Why it is reference only.** A CALCULATED COMPARISON, NOT A REFERENCE: ab initio isodesmic estimates give DH298(BrH2C-H) = 101.7 +- 1.4 and DH298(BrClHC-H) = 98.7 +- 1.9 kcal/mol, in agreement with the kinetics value for bromomethane and 1.7 kcal/mol above the kinetics value for bromochloromethane. Both uncertainties exceed the 1.0 kcal/mol rule and they are calculated.
+
+### wu2025
+
+<a id="wu2025"></a>
+
+> Y. Wu, S. Zhou, Z. Luo, S. Yang, Z. Li, Y. Dong, W. Hua, Q. Shuai, D. Dai, M. N. R. Ashfold, K. Yuan & X. Yang, 'Ultraviolet photodissociation of methanethiol (CH3SH): revealing an S(1D) atom elimination channel', Chem. Sci. 16, 17165-17175 (2025).
+
+| | |
+| --- | --- |
+| Identifier | [10.1039/D5SC04716A](https://doi.org/10.1039/D5SC04716A) |
+| Status | reference only |
+| Verification | citation + claim |
+| Verified | 2026-10-28 |
+| Local copy | `wu2025_ch3sh_s1d_photodissociation.pdf` (not checked) |
+| Used by | `benchmarks/restart_v3/PREREGISTRATION.md`, `benchmarks/restart_v3/references.json`, `benchmarks/restart_v3/LITERATURE_LOG.md`, `tests/test_restart_v3_references.py` |
+
+**Why it is reference only.** THE THIRD METHANETHIOL ANCHOR: the paper quotes D0(H3CS-H) = 30 250 +- 100 cm-1 (361.87 +- 1.20 kJ/mol) from Wilson, Ashfold and Dixon, J. Chem. Phys. 101, 7538 (1994), 2.17 kJ/mol above the 359.7 +- 1.5 that Ervin 2015 anchors the acidity scale on, which is the anchor all three Arm D S-H references share. Read for that quotation and its citation only; it measures nothing about the S-H bond. The value is a sensitivity of Arm D, not a correction (restart-v3 preregistration section 7, references.json methanethiol_anchor).
+
+### wilson1994
+
+<a id="wilson1994"></a>
+
+> S. H. S. Wilson, M. N. R. Ashfold & R. N. Dixon, 'Near ultraviolet photolysis of methanethiol studied by H atom photofragment translational spectroscopy', J. Chem. Phys. 101, 7538-7547 (1994).
+
+| | |
+| --- | --- |
+| Identifier | [10.1063/1.468248](https://doi.org/10.1063/1.468248) |
+| Status | reference only |
+| Verification | citation + claim |
+| Verified | 2026-10-28 |
+| Local copy | `wilson1994_ch3sh_h_atom_pts.pdf` (not checked) |
+| Used by | `benchmarks/restart_v3/PREREGISTRATION.md`, `benchmarks/restart_v3/references.json`, `benchmarks/restart_v3/LITERATURE_LOG.md`, `tests/test_restart_v3_references.py` |
+
+**Why it is reference only.** THE THIRD METHANETHIOL ANCHOR AT ITS SOURCE: D0(CH3S-H) = 30 250 +- 100 cm-1 (361.87 kJ/mol) as the dissociation threshold for the lower 2E3/2 spin-orbit state of CH3S, from a fit of the resolved v = 0 doublet in the 274.0 nm H-atom time-of-flight spectrum; the authors call it in good agreement with Nicovich's 85.96 +- 0.68 kcal/mol (30 065 +- 240 cm-1). Ervin 2015 did not use it. Used for the sensitivity of Arm D's three S-H references to their shared anchor (restart-v3 preregistration section 7, references.json methanethiol_anchor).
+
+### devine2008
+
+<a id="devine2008"></a>
+
+> A. L. Devine, M. G. D. Nix, R. N. Dixon & M. N. R. Ashfold, 'Near-Ultraviolet Photodissociation of Thiophenol', J. Phys. Chem. A 112, 9563-9574 (2008).
+
+| | |
+| --- | --- |
+| Identifier | [10.1021/jp802019v](https://doi.org/10.1021/jp802019v) |
+| Status | reference only |
+| Verification | citation + claim |
+| Verified | 2026-10-28 |
+| Local copy | `devine2008_thiophenol_photodissociation.pdf` (not checked) |
+| Used by | `benchmarks/restart_v3/PREREGISTRATION.md`, `benchmarks/restart_v3/references.json`, `benchmarks/restart_v3/LITERATURE_LOG.md`, `tests/test_restart_v3_references.py` |
+
+**Why it is reference only.** WHY THIOPHENOL STAYS OUT OF ARM D: D0(C6H5S-H) <= 28 030 +- 100 cm-1 (335.3 +- 1.2 kJ/mol, 80.15 kcal/mol at 0 K), which the authors call an upper limit; it lies 3.3 kcal/mol above Lim 2007's 76.8 +- 0.3 kcal/mol, so no thiophenol reference passes the 1.0 kcal/mol rule (restart-v3 preregistration section 7, references.json thiophenol_context).
 
 ## Datasets
 

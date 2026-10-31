@@ -1,4 +1,4 @@
-"""The eight tools that let the assistant read and run the application's calculators, read the user's own scores, and PROPOSE a score for the user to approve.
+"""The nine tools that let the assistant read and run the application's calculators, read the ORCA jobs a person ran, read the user's own scores, and PROPOSE a score for the user to approve.
 
 Each takes the turn's `ToolBridge` as its first argument, unlike the two older tools in `tools.py`, which
 take only what the model sent. The descriptions below are the model's whole understanding of what each
@@ -96,6 +96,25 @@ READ_RESULTS = ToolDefinition(
     },
 )
 
+READ_QUANTUM_RUNS = ToolDefinition(
+    name="read_quantum_runs",
+    description=(
+        "Read the ORCA jobs (quantum-chemistry runs) a person has ALREADY run for the molecule the user had selected when they sent their message: which calculation, method and basis, charge and multiplicity, "
+        "how it ended ('computed', 'computed_with_warnings', 'failed' or 'cancelled'), what it warned about, and which outputs it produced. This is the history, so it covers what read_results cannot: a job that "
+        "failed or was cancelled, the warnings a finished job came back with, and spectra and vibrational analyses. With no arguments it lists the current runs as headers only, newest first, with no numbers; call it "
+        "again with run_ids to read the numbers of at most three runs at a time. Each run has a 'freshness': 'current' means it was run on the structure now drawn; 'historical' or 'unverifiable' do not describe it, are listed only "
+        "when include_not_current is true, and must never be reported as the answer for this molecule. A 'failed' or 'cancelled' run has no numbers: say how it ended and quote its warnings. An output with status "
+        "'not_produced' or 'inapplicable' means that job could not give it: say so, never treat it as zero. You cannot stop or approve a job. You can ask for a new one with run_calculator (an orca.* calculator): that leaves a card with its settings, and the job starts only if the user approves it."
+    ),
+    input_schema={
+        "type": "object",
+        "properties": {
+            "run_ids": {"type": "array", "items": {"type": "string"}, "description": "Run ids from an earlier list, to read those runs in full; omit to list the runs."},
+            "include_not_current": {"type": "boolean", "description": "Also list runs made on an earlier structure of this molecule."},
+        },
+    },
+)
+
 READ_SCORES = ToolDefinition(
     name="read_scores",
     description=(
@@ -168,7 +187,9 @@ RUN_CALCULATOR = ToolDefinition(
         "'awaiting_approval' (a preview is on the user's screen and nothing has started: tell the user it needs "
         "their approval, do not call this again for it, and state no result), or 'timed_out' (still running; its "
         "result will appear in Results, do not ask again). You cannot approve a preview and must never imply "
-        "that you did."
+        "that you did. An ORCA calculator (orca.sp, orca.opt, orca.opt_freq, orca.nmr, orca.nmr_coupling, orca.delta_scf, orca.led, orca.proton_affinity, orca.bond_dissociation_enthalpy) is always "
+        "'awaiting_approval': the card shows its settings, ORCA starts only if the user approves it, and a job can run for minutes to hours. When it ends you are told with the "
+        "user's next message; then read it with read_quantum_runs, never from memory."
     ),
     input_schema={
         "type": "object",
@@ -184,7 +205,7 @@ RUN_CALCULATOR = ToolDefinition(
 )
 
 #: The definitions offered to a provider when a molecule is selected and the calculators are reachable.
-CALCULATION_TOOLS: list[ToolDefinition] = [FIND_CALCULATORS, LIST_GOALS, DESCRIBE_CALCULATOR, READ_RESULTS, READ_SCORES, LIST_SCORE_OUTPUTS, PROPOSE_SCORE, RUN_CALCULATOR]
+CALCULATION_TOOLS: list[ToolDefinition] = [FIND_CALCULATORS, LIST_GOALS, DESCRIBE_CALCULATOR, READ_RESULTS, READ_QUANTUM_RUNS, READ_SCORES, LIST_SCORE_OUTPUTS, PROPOSE_SCORE, RUN_CALCULATOR]
 
 
 def _find(bridge: ToolBridge, query: str = "", limit: int = 10) -> str:
@@ -201,6 +222,10 @@ def _describe(bridge: ToolBridge, calculator_id: str) -> str:
 
 def _read(bridge: ToolBridge, calculators: list[str] | None = None, include_not_current: bool = False) -> str:
     return bridge.read_results(calculators, include_not_current)
+
+
+def _runs(bridge: ToolBridge, run_ids: list[str] | None = None, include_not_current: bool = False) -> str:
+    return bridge.read_quantum_runs(run_ids, include_not_current)
 
 
 def _scores(bridge: ToolBridge, scores: list[str] | None = None) -> str:
@@ -225,6 +250,7 @@ CALCULATION_HANDLERS: dict[str, Callable[..., str]] = {
     "list_goals": _goals,
     "describe_calculator": _describe,
     "read_results": _read,
+    "read_quantum_runs": _runs,
     "read_scores": _scores,
     "list_score_outputs": _score_outputs,
     "propose_score": _propose,

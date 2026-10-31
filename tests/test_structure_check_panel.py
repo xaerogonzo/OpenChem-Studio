@@ -642,7 +642,11 @@ def test_structure_operations_live_in_their_own_menu(window):
     molecule -- and Structure is for operating on the structure. These used
     to sit between "Redo" and "Copy Structure As", where neither group was
     easy to find."""
-    labels = {action.text() for action in window._structure_menu.actions()}
+    from openchem.app import menu_layout
+
+    labels = {
+        action.text() for path, action in menu_layout.walk(window.menuBar()) if path.startswith("Structure")
+    }
 
     assert {"Aromatize", "Clean Up", "Check Structure...", "Add/Remove Explicit Hydrogens"} <= labels
 

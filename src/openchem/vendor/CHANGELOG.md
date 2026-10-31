@@ -2525,6 +2525,15 @@ what can be verified.
   `tests/test_namer_known_defects.py`. Three earlier tests pinned refusals this round turned into names and now pin the cases still refused: a carboxylate beside two neutral acids
   (`test_namer_round43_*`, `test_namer_round45_*`) and a pyrazolone anion (`test_namer_round46_*`).
 
+## 2026-10-27 -- naming round 90: a diazo compound drawn C=[N+]=[N-] was named as an iminoazanium (D-387)
+
+Alex asked for the confirmed wrong molecule found by the limitations inventory (NL-070) to be fixed as its own round. Measured first: of 150 generated diazo compounds (a census molecule with one CH2 turned into `C=N2`), 124 read back as another molecule; diazomethane drawn `C=[N+]=[N-]` was `imino(methylidene)azanium`, which OPSIN reads as CH3N2+.
+
+* **D-387 the diazo group lost to the imine it overlaps.** A `diazo` functional group exists (P-61.4: "Compounds containing a group =N2 attached to a single carbon atom are named by adding the prefix 'diazo'", `diazomethane (PIN)`, `ethyl diazoacetate (PIN)`, `1-diazo-1-(trimethylsilyl)propan-2-one (PIN)`, pdf pp. 511-512), but its SMARTS `[NX2+](=[NX1-])=[#6]` shares the C=[N+] atoms with `substituted_imine`, and an overlap with no subsumption entry is kept as an ambiguity. The imine won, the `[N-]` was neutralised away by the plan search and the charge guard (which only refuses a name that drops a charge it can see) had nothing to refuse. The other Lewis form, `[CH2-][N+]#N`, had its own classifier (D-019), so diazomethane was right in one drawing and wrong in the other.
+* `SUBSUMPTION_TABLE` gains `diazo` over `substituted_imine`, `imine`, `imidamide`, `carboximidic_acid` and `carboximidothioic_acid` (the last three are what a diazo carbon beside N, O or S matches). A second path, the `carbamimidoyl` special case in `engine.py`, matched `C(=[N+]=[N-])N` as an amidine and wrote `(N'-azanidylcarbamimidoyl)benzene`; it now requires both nitrogens to be neutral.
+* Measured on four diazo populations of 150 (seeds 1 and 2 drove the fix; seeds 3, 4 and 5 were not looked at until it was done): exact read-back 26 and 27 of 150 before, 150 and 150 after on seeds 1 and 2; 148, 150 and 149 on the unseen three. The five failures there are stereo only (formula and connectivity agree): a retained morphinan name and a bis([1,3]dioxolo)pyran fusion name that OPSIN reads with the stereo it implies, the same class as rounds 43 to 45. Unchanged and pinned: `[CH2-][N+]#N`, a diazonium, an azide in both drawings, an amidine and a substituted carbamimidoyl.
+* New `tests/test_namer_round90_a_diazo_carbon_is_not_an_imine.py` and four rows (D-387, D-387b to d) in `tests/test_namer_known_defects.py`.
+
 ## 2026-10-26 -- naming round 89: the stereoisomers of a substituted bridged bicycle shared one name (D-386)
 
 Alex asked for the stereo layer's collapse on adamantane and bicyclo[2.2.2]octane parents, left open by round 88, to be measured and fixed. Measured first: 3-methylbicyclo[2.2.2]octan-2-ol has four embeddable stereoisomers and got ONE flat name; 3,7-dimethylbicyclo[3.3.1]nonan-3-ol, eight isomers and two names; 2,6-dimethylnorbornane, four and two.

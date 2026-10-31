@@ -186,6 +186,7 @@ from typing import Any
 from PySide6.QtCore import QObject, Qt, QTimer
 from PySide6.QtWidgets import QDialog, QVBoxLayout, QWidget
 
+from openchem.app import menu_layout
 from openchem.app.drive_ledger import ErrorLedger, RunIdentity, log_file_size, write_report
 
 logger = logging.getLogger("openchem.ui")
@@ -611,7 +612,7 @@ class _Driver(QObject):
         logger.warning("OPENCHEM_DRIVE: dock_receptor -> %r", combo.currentText())
 
     #: The tool settings a script may set for its own run, and no others.
-    _TOOL_PATH_KEYS = {"psi4": "psi4/executable_path"}
+    _TOOL_PATH_KEYS = {"psi4": "psi4/executable_path", "xtb": "xtb/executable_path"}
 
     def _do_tool_path(self, step: dict[str, Any]) -> None:
         """Point a tool at an executable for THIS run: `{"do": "tool_path", "tool": "psi4", "path": "D:/.../psi4.exe"}`.
@@ -4735,6 +4736,54 @@ class _Driver(QObject):
         else:
             logger.warning("OPENCHEM_DRIVE: EXPECT synthesis ok[%s]", tag)
 
+    def _do_qc_fixture_run(self, step: dict[str, Any]) -> None:
+        """Give the selected molecule an ORCA run in the project's own run store without starting ORCA, so a script can read what the assistant is told about runs.
+
+        `{"do": "qc_fixture_run", "run_id": "fixture-optfreq", "fixture": "pa_water_optfreq", "status": "completed", "age_s": 600, "warnings": ["..."]}`
+
+        A `completed` run is the REAL provider's reading (`parse_output`, `parse_vibrational_spectrum`) of a committed real ORCA output in `tests/fixtures/orca/`, recorded the way the service records a finished job
+        (`ResultStoreService.record_quantum_chemistry_run`), on the molecule's drawing as it stands now; `failed` and `cancelled` runs hold no outputs, as the service writes them. The fixture's molecule must be the
+        selected one (the water of `pa_water_optfreq`): the provider reads the geometry into the molecule it is given.
+        """
+        import time
+        from pathlib import Path as _Path
+
+        from openchem.chem.orca_engine import OrcaQuantumEngineProvider
+        from openchem.domain.quantum_chemistry_run import OutputStatus, QuantumChemistryRun, RunStatus, new_run_id
+
+        window = self._window
+        molecule = window._session.project.find_molecule(window._property_panel._selected_molecule_uuid)
+        store_service = window._services.result_store_service
+        if molecule is None or store_service is None:
+            logger.error("OPENCHEM_DRIVE: qc_fixture_run -- no molecule selected, or no result store")
+            return
+        status = RunStatus(str(step.get("status", "completed")))
+        calc_type = str(step.get("calc_type", "opt_freq"))
+        kind = str(step.get("input", "drawing"))
+        started = time.time() - float(step.get("age_s", 60.0))
+        run = QuantumChemistryRun(
+            run_id=str(step.get("run_id") or new_run_id()), molecule_uuid=molecule.uuid, calc_type=calc_type, method_basis=str(step.get("method_basis", "B3LYP def2-SVP")),
+            charge=int(step.get("charge", 0)), multiplicity=int(step.get("multiplicity", 1)), calculation_input=kind,
+            input_fingerprint=store_service.fingerprints_for(molecule)[kind], input_molblock=molecule.molblock, started_at=started, completed_at=started + 7.0,
+            status=status, warnings=[str(w) for w in step.get("warnings", [])],
+        )
+        if status in (RunStatus.COMPLETED, RunStatus.COMPLETED_WITH_WARNINGS):
+            engine = window._services.chemistry_engine
+            mol = engine.mol_from_molblock(engine.molblock_with_explicit_hydrogens(molecule.molblock))
+            text = (_Path("tests") / "fixtures" / "orca" / f"{step.get('fixture', 'pa_water_optfreq')}.out").read_text(encoding="utf-8", errors="replace")
+            provider = OrcaQuantumEngineProvider()
+            descriptors, _conformer = provider.parse_output(text, mol, molecule.uuid, calc_type)
+            run.results["descriptors"] = list(descriptors)
+            run.output_status["descriptors"] = OutputStatus.AVAILABLE
+            vibrational = provider.parse_vibrational_spectrum(text, mol, molecule.uuid, calc_type)
+            if vibrational is not None:
+                run.results["vibrational_spectrum"] = vibrational
+                run.output_status["vibrational_spectrum"] = OutputStatus.AVAILABLE
+            else:
+                run.output_status["vibrational_spectrum"] = OutputStatus.NOT_PRODUCED
+        store_service.record_quantum_chemistry_run(run)
+        logger.warning("OPENCHEM_DRIVE: qc_fixture_run -- %s stored for %s (%s, %s)", run.run_id, molecule.display_name, calc_type, status.value)
+
     def _do_synthesis_fixture_plan(self, step: dict[str, Any]) -> None:
         """Give the selected molecule a plan a real planner once made, so a script can save, reopen and read a plan without the planner.
 
@@ -5889,21 +5938,22 @@ class _Driver(QObject):
         # `QUndoStack.createUndoAction` reads "Undo <last command>", so the
         # exact text of Edit > Undo is not known before the run.
         prefix = bool(step.get("prefix"))
-        for menu_action in self._window.menuBar().actions():
-            menu = menu_action.menu()
-            if menu is None:
+        # `"in": "Tools > Calculators"` names the menu path the entry must sit in: the menus are grouped now,
+        # so a text alone can match two entries (the CIP toggle is in Structure and in View).
+        path = step.get("in")
+        for home, action in menu_layout.walk(self._window.menuBar()):
+            text = action.text().replace("&", "")
+            if not (text.startswith(wanted) if prefix else text == wanted):
                 continue
-            for action in _walk_actions(menu):
-                text = action.text().replace("&", "")
-                if not (text.startswith(wanted) if prefix else text == wanted):
-                    continue
-                action.trigger()
-                logger.warning(
-                    "OPENCHEM_DRIVE: menu %r triggered -- enabled=%s checkable=%s checked=%s",
-                    wanted, action.isEnabled(), action.isCheckable(), action.isChecked(),
-                )
-                return
-        logger.error("OPENCHEM_DRIVE: no menu entry named %r", wanted)
+            if path is not None and home != str(path):
+                continue
+            action.trigger()
+            logger.warning(
+                "OPENCHEM_DRIVE: menu %r triggered in %r -- enabled=%s checkable=%s checked=%s",
+                wanted, home, action.isEnabled(), action.isCheckable(), action.isChecked(),
+            )
+            return
+        logger.error("OPENCHEM_DRIVE: no menu entry named %r%s", wanted, f" in {path!r}" if path else "")
 
     def _do_rotate_report(self, step: dict[str, Any]) -> None:
         """`{"do": "rotate_report"}` -- the tick, the button AND the page.
@@ -6055,7 +6105,7 @@ class _Driver(QObject):
         control then reads is logged beside what was asked, so a control
         that refused the value -- a bound, a question answered No -- says so.
         """
-        from PySide6.QtWidgets import QAbstractButton, QCheckBox, QSpinBox, QWidget
+        from PySide6.QtWidgets import QAbstractButton, QCheckBox, QLineEdit, QSpinBox, QWidget
 
         dialog = getattr(self, "_dialog", None)
         name = str(step.get("name", ""))
@@ -6073,6 +6123,10 @@ class _Driver(QObject):
         elif isinstance(widget, QAbstractButton):
             widget.click()
             now = "clicked"
+        elif isinstance(widget, QLineEdit):
+            # A search box: the text is set, which is what typing it leaves behind (`textChanged` fires).
+            widget.setText(str(step["value"]))
+            now = widget.text()
         else:
             logger.error(
                 "OPENCHEM_DRIVE: control %s -- %s", name,
@@ -7434,7 +7488,24 @@ class _Driver(QObject):
             ),
         )
         try:
-            dialog = fixture.build(context)
+            if step.get("real") and wanted == "SettingsDialog":
+                # THE WINDOW'S OWN COMMANDS, not the inventory's one stand-in, so a shot of the Keyboard page
+                # shows the real groups. It reads and writes nothing until a control is pressed.
+                from openchem.ui.dialogs.settings_dialog import SettingsDialog
+
+                dialog = SettingsDialog(
+                    window._settings,
+                    shortcut_registry=window._shortcuts,
+                    result_store_service=window._services.result_store_service,
+                )
+            elif step.get("real") and wanted == "CommandPalette":
+                # THE WINDOW'S OWN COMMANDS (the inventory's stand-in has none), so a shot shows the real rows and the
+                # menu path each one carries; `"query"` is typed into its search box below.
+                from openchem.ui.dialogs.command_palette import CommandPalette
+
+                dialog = CommandPalette(window._collect_commands(), window)
+            else:
+                dialog = fixture.build(context)
         except DialogUnavailable as exc:
             logger.error(
                 "OPENCHEM_DRIVE: %s needs %s -- %s", wanted, fixture.needs or "?", exc
@@ -7479,6 +7550,13 @@ class _Driver(QObject):
                     "OPENCHEM_DRIVE: %s has no tab %r (have %s)",
                     wanted, wanted_tab, titles,
                 )
+        # `"query": "derived"` is typed into the command palette's own search box (the real filter).
+        query = str(step.get("query", ""))
+        if query:
+            if wanted != "CommandPalette":
+                logger.error("OPENCHEM_DRIVE: %s has no query box", wanted)
+            else:
+                dialog._search.setText(query)
         # `"search": "SD-POE"` types into the Help window's own search box, the real filter
         # (so what is shown is what a person typing it gets), and `"topic": "calc-dipole-moment"`
         # then opens that topic. Both are HelpDialog's; any other dialog LOGS that it has no

@@ -72,6 +72,18 @@ def _build_window(tmp_path):
     return _track(MainWindow(services, settings, session))
 
 
+def _structure_action(window, text: str):
+    """A Structure-menu command by its text: they sit in submenus now (Structure > Check, and so on)."""
+    from openchem.app import menu_layout
+
+    [action] = [a for path, a in menu_layout.walk(window.menuBar()) if path.split(" > ")[0] == "Structure" and a.text() == text]
+    _WINDOWS_ACTIONS.append(action)  # an action is destroyed when its last wrapper is collected
+    return action
+
+
+_WINDOWS_ACTIONS: list = []
+
+
 def _structure_display_menu(window):
     return next(
         m for m in window._view_menu.findChildren(type(window._view_menu)) if m.title() == "2D Structure Display"
@@ -133,7 +145,6 @@ def test_structure_menu_actions_proxy_to_the_real_ketcher_buttons(qapp, tmp_path
     calls: list[str] = []
     window._editor.trigger_toolbar_action = lambda action_id: calls.append(action_id)
 
-    edit_menu = window._structure_menu
     expected = {
         "Aromatize": "Aromatize button",
         "Dearomatize": "Dearomatize button",
@@ -149,7 +160,7 @@ def test_structure_menu_actions_proxy_to_the_real_ketcher_buttons(qapp, tmp_path
     # made the labels impossible to keep fresh. See
     # `test_the_cip_toggle_is_display_state_not_a_toolbar_action`.
     for label, test_id in expected.items():
-        action = next(a for a in edit_menu.actions() if a.text() == label)
+        action = _structure_action(window, label)
         action.trigger()
         assert calls[-1] == test_id
 
@@ -170,7 +181,7 @@ def test_the_two_structure_checkers_are_distinct_menu_entries(qapp, tmp_path):
     calls: list[str] = []
     window._editor.trigger_toolbar_action = lambda action_id: calls.append(action_id)
 
-    ours = next(a for a in window._structure_menu.actions() if a.text() == "Check Structure...")
+    ours = _structure_action(window, "Check Structure...")
     ours.trigger()
 
     assert calls == [], "the app's own checker must not proxy to Ketcher's"

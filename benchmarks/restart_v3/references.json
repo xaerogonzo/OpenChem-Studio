@@ -6,8 +6,37 @@
   "kj_per_kcal": 4.184,
   "d0_to_d298_ethanethiol_kj": 5.2,
   "d0_to_d298_ethanethiol_source": "ervin2015: D0(C2H5S-H) = 359.5 kJ/mol and D298 = 364.7 kJ/mol with thermal enthalpy corrections computed there for the ethyl radical only",
-  "borrowed_thermal_uncertainty_kj": 1.0,
-  "borrowed_thermal_note": "MY estimate, not published: the same +5.2 kJ/mol is added to the propyl and tert-butyl radicals, and 1.0 kJ/mol is added in quadrature for borrowing it. To be replaced by a computed or published correction before the freeze (section 10)."
+  "thermal_step_uncertainty_rule": "the larger of 0.5 kJ/mol and the spread of the step over the usable parent/radical conformer pairs"
+ },
+ "methanethiol_anchor": {
+  "note": "The D0(CH3S-H) that every Arm D reference leans on, and a third measurement that Ervin 2015 did not use. Read 2026-10-28 in the PDFs (wu2025 and ervin2015). Recomputed by tests/test_restart_v3_references.py.",
+  "ervin2015_combined_kj": 359.7,
+  "ervin2015_combined_uncertainty_kj": 1.5,
+  "ervin2015_routes": "two, combined: the Br + CH3SH kinetics of nicovich1992 (359.7 +- 2.8 kJ/mol) and a photofragment route through D0(CH3-S) = 3.045 +- 0.015 eV with enthalpies of formation (359.7 +- 1.7 kJ/mol)",
+  "wilson1994_d0_cm1": 30250,
+  "wilson1994_d0_uncertainty_cm1": 100,
+  "wilson1994_source": "H-atom photofragment translational spectroscopy of CH3SH, S. H. S. Wilson, M. N. R. Ashfold and R. N. Dixon, J. Chem. Phys. 101, 7538 (1994), reference 33 of wu2025 (which quotes it twice as 'D0(H3CS-H) = 30 250 +- 100 cm-1'). READ 2026-10-28 (wilson1994): D0 = 30 250 +- 100 cm-1 is the dissociation threshold for forming the lower 2E3/2 spin-orbit state of CH3S(X), from a line-shape simulation of the resolved v = 0 spin-orbit doublet in the 274.0 nm H-atom spectrum (50 cm-1 resolution), cross-checked against the vibronic structure of the CH3S A-X dispersed emission. The authors themselves call it 'in good agreement with the most recent literature value (85.96 +- 0.68 kcal/mol, 30 065 +- 240 cm-1)', which is Nicovich 1992.",
+  "nicovich1992_d0_cm1": 30065,
+  "nicovich1992_d0_uncertainty_cm1": 240,
+  "cm1_to_kj_per_mol": 0.011962656,
+  "sensitivity_note": "An upper bound on how far the three Arm D references could move: the thiols' acidities are measured relative to CH3SH, so a shift of the anchor passes into them at most one for one; the least-squares network with H2S and pyrrole passes less. Not a correction."
+ },
+ "thiophenol_context": {
+  "note": "Thiophenol is NOT in Arm D. Its two newest 0 K determinations disagree by 3.3 kcal/mol, and the one that is explicitly an upper limit lies above the other. Read 2026-10-28.",
+  "devine2008_d0_cm1": 28030,
+  "devine2008_d0_uncertainty_cm1": 100,
+  "devine2008_kind": "UPPER LIMIT: the authors say so (the peak is assigned to H + C6H5S(X, v = 0), but the possibility that all of the products carry an additional unrecognized quantum of vibration cannot be excluded). H(D) Rydberg-atom photofragment translational spectroscopy, 290.00 nm and neighbouring wavelengths, mean parent internal energy about 100 cm-1 assumed.",
+  "devine2008_printed_kj": 335.3,
+  "lim2007_d0_kcal": 76.8,
+  "lim2007_d0_uncertainty_kcal": 0.3,
+  "borgesdossantos2002_d298_kcal": 83.5,
+  "borgesdossantos2002_d298_uncertainty_kcal": 1.1,
+  "luo2007_range_298_kcal": [79.4, 83.5],
+  "luo2007_note": "Luo Table 8.1 prints a range for benzenethiol S-H and recommends none (read 2026-10-27, PDF pages 454 to 459)",
+  "thermal_step_kj": 4.3,
+  "thermal_step_uncertainty_kj": 0.5,
+  "thermal_step_source": "computed by benchmarks/restart_v3/thermal_step.py (B3LYP/def2-TZVPD harmonic frequencies, records in benchmarks/restart_v3/artifacts/thermal_step/): the radical's and the hydrogen atom's thermal enthalpies minus the parent's, zero-point energy excluded; converts the two 0 K determinations to 298 K",
+  "note_arm": "Arm D-Ph, REPORTED ONLY (decision D6, 2026-10-28)"
  },
  "sh_bonds": [
   {
@@ -26,7 +55,9 @@
    "published_d298_uncertainty_kj": 2.2,
    "published_d298_kcal": 87.16,
    "published_d298_uncertainty_kcal": 0.53,
-   "d298_status": "published (ervin2015 abstract and Ethanethiol section)"
+   "d298_status": "published (ervin2015 abstract and Ethanethiol section)",
+   "thermal_step_computed_kj": 5.16,
+   "thermal_step_check": "the method of thermal_step.py applied to ethanethiol, held to Ervin 2015's published D298 - D0 = 5.2 kJ/mol by tests/test_restart_v3_references.py"
   },
   {
    "name": "1-propanethiol S-H",
@@ -38,10 +69,13 @@
    "electron_affinity_ev": 2.00,
    "electron_affinity_uncertainty_ev": 0.02,
    "electron_affinity_source": "janousek1980 (EA of n-C3H7S)",
-   "d298_status": "DERIVED here from the two printed inputs plus a borrowed thermal correction; not a published number",
+   "d298_status": "DERIVED here from the two printed inputs plus a thermal step COMPUTED here (thermal_step.py); not a published number",
+   "thermal_step_kj": 5.09,
+   "thermal_step_uncertainty_kj": 0.74,
+   "thermal_step_source": "computed by benchmarks/restart_v3/thermal_step.py (B3LYP/def2-TZVPD harmonic frequencies of the lowest-enthalpy usable conformers; records in benchmarks/restart_v3/artifacts/thermal_step/): the radical's and the hydrogen atom's thermal enthalpies minus the parent's, zero-point energy excluded. A property of the reference, not of the calculation under test.",
    "stated_d0_kj": 361.92,
-   "stated_d298_kcal": 87.74,
-   "stated_d298_uncertainty_kcal": 0.65
+   "stated_d298_kcal": 87.72,
+   "stated_d298_uncertainty_kcal": 0.62
   },
   {
    "name": "2-propanethiol S-H",
@@ -53,25 +87,31 @@
    "electron_affinity_ev": 2.02,
    "electron_affinity_uncertainty_ev": 0.02,
    "electron_affinity_source": "janousek1980 (EA of i-C3H7S)",
-   "d298_status": "DERIVED here from the two printed inputs plus a borrowed thermal correction; not a published number",
+   "d298_status": "DERIVED here from the two printed inputs plus a thermal step COMPUTED here (thermal_step.py); not a published number",
+   "thermal_step_kj": 4.98,
+   "thermal_step_uncertainty_kj": 0.5,
+   "thermal_step_source": "computed by benchmarks/restart_v3/thermal_step.py (B3LYP/def2-TZVPD harmonic frequencies of the lowest-enthalpy usable conformers; records in benchmarks/restart_v3/artifacts/thermal_step/): the radical's and the hydrogen atom's thermal enthalpies minus the parent's, zero-point energy excluded. A property of the reference, not of the calculation under test.",
    "stated_d0_kj": 359.35,
-   "stated_d298_kcal": 87.13,
-   "stated_d298_uncertainty_kcal": 0.66
+   "stated_d298_kcal": 87.08,
+   "stated_d298_uncertainty_kcal": 0.63
   },
   {
    "name": "2-methyl-2-propanethiol S-H",
    "parent_smiles": "CC(C)(C)S",
-   "role": "excluded: the radical has 14 atoms, over the 12-atom cap of decision D1",
+   "role": "Arm D deciding",
    "acidity_dH0_kj": 1472.7,
    "acidity_dH0_uncertainty_kj": 1.7,
    "acidity_source": "ervin2015 Table 3 (95% level)",
    "electron_affinity_ev": 2.07,
    "electron_affinity_uncertainty_ev": 0.02,
    "electron_affinity_source": "janousek1980 (EA of t-C4H9S)",
-   "d298_status": "DERIVED here from the two printed inputs plus a borrowed thermal correction; not a published number",
+   "d298_status": "DERIVED here from the two printed inputs plus a thermal step COMPUTED here (thermal_step.py); not a published number",
+   "thermal_step_kj": 5.14,
+   "thermal_step_uncertainty_kj": 0.5,
+   "thermal_step_source": "computed by benchmarks/restart_v3/thermal_step.py (B3LYP/def2-TZVPD harmonic frequencies of the lowest-enthalpy usable conformers; records in benchmarks/restart_v3/artifacts/thermal_step/): the radical's and the hydrogen atom's thermal enthalpies minus the parent's, zero-point energy excluded. A property of the reference, not of the calculation under test.",
    "stated_d0_kj": 360.38,
-   "stated_d298_kcal": 87.37,
-   "stated_d298_uncertainty_kcal": 0.66
+   "stated_d298_kcal": 87.36,
+   "stated_d298_uncertainty_kcal": 0.63
   }
  ],
  "sh_context": {

@@ -501,6 +501,24 @@ scope = "core"
 owner = "namer"
 
 [[consumer]]
+file = "tests/test_namer_round90_a_diazo_carbon_is_not_an_imine.py"
+why = "a diazo compound drawn C=[N+]=[N-] is named with the diazo prefix (D-387, P-61.4) and not as an iminoazanium: the diazo functional group subsumes the imine it overlaps, the carbamimidoyl special case refuses a charged imino nitrogen, and the other Lewis form, a diazonium and an azide are unchanged"
+scope = "core"
+owner = "namer"
+
+[[consumer]]
+file = "tests/test_namer_round92_ring_stereo_and_terminal_ring_orientation.py"
+why = "ring and ylidene stereo that RDKit's legacy perception cleaned off at parse time is named (NL-109), and a polyspiro system's terminal rings are numbered both ways so the book's tetraoxatetraspiro gets its own name in every atom order (NL-107, D-389)"
+scope = "core"
+owner = "namer"
+
+[[consumer]]
+file = "tests/test_namer_round91_stereo_is_dropped_by_atom_not_by_locant_number.py"
+why = "a bridged parent's stereo is dropped by atom, fewest first, and a name is kept only if OPSIN reads it to exactly the input (D-388): 2,4-difluoroadamantane and a norbornyl group on a bicyclo[2.2.2]octane keep the descriptors OPSIN can read, and a validator limit still leaves the flat name"
+scope = "core"
+owner = "namer"
+
+[[consumer]]
 file = "tests/test_namer_round89_forced_bridgehead_descriptors_are_dropped_alone.py"
 why = "the stereoisomers of a substituted bicyclo[2.2.2]octane or norbornane have distinct names (D-386): OPSIN's own error names the bridgehead descriptors it cannot anchor, only those are dropped, and a shorter name is kept only if OPSIN reads it to exactly the input"
 scope = "core"

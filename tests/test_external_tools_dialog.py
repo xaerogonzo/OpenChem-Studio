@@ -15,10 +15,14 @@ def test_dialog_has_every_tool_tab_and_focuses_the_requested_one(qapp):
     dialog = ExternalToolsPages(settings, focus="orca")
 
     assert [dialog._tabs.tabText(i) for i in range(dialog._tabs.count())] == [
+        # The first-time reader's page: what each tool is for and which to get.
+        "Setup guide",
         "AutoDock Vina",
         "ORCA",
         # A second quantum-chemistry engine, right after the first: the user locates it, the app does not fetch it.
         "Psi4",
+        # A third, the fast tight-binding one: locate-only too.
+        "xtb",
         # The synthesis planner, in an environment of the user's own: locate-only, with the Python and the configuration file as two paths.
         "AiZynthFinder",
         "pkasolver (pKa)",
@@ -36,7 +40,7 @@ def test_dialog_has_every_tool_tab_and_focuses_the_requested_one(qapp):
         # installs are kept, and how to move them off the system drive.
         "Storage",
     ]
-    assert dialog._tabs.currentIndex() == 1
+    assert dialog._tabs.currentIndex() == 2
 
 
 def test_dialog_can_focus_the_pkasolver_tab(qapp):
@@ -45,7 +49,7 @@ def test_dialog_can_focus_the_pkasolver_tab(qapp):
 
     dialog = ExternalToolsPages(settings, focus="pkasolver")
 
-    assert dialog._tabs.currentIndex() == 4
+    assert dialog._tabs.currentIndex() == 6
 
 
 def test_editing_pkasolver_path_saves_immediately_to_settings(qapp):
@@ -61,13 +65,14 @@ def test_editing_pkasolver_path_saves_immediately_to_settings(qapp):
     assert settings.get(PKASOLVER_PYTHON_SETTING, "") == r"C:\some\env\python.exe"
 
 
-def test_dialog_defaults_to_vina_tab(qapp):
+def test_dialog_defaults_to_the_setup_guide(qapp):
     bus = EventBus()
     settings = Settings(bus)
 
     dialog = ExternalToolsPages(settings)
 
     assert dialog._tabs.currentIndex() == 0
+    assert dialog.current_tool() is None
 
 
 def test_editing_vina_path_saves_immediately_to_settings(qapp):

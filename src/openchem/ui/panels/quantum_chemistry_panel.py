@@ -32,20 +32,12 @@ from PySide6.QtWidgets import (
 
 from openchem.app.settings import Settings
 from openchem.chem import bond_dissociation
-from openchem.chem.bond_dissociation import Sequence as BondDissociationSequence
 from openchem.chem.calculation_input import (
     canonical_conformer,
-    find_source_conformer,
     input_fingerprint,
-    resolve_conformer_input,
-    resolve_ensemble,
 )
 from openchem.chem.engine import ChemistryEngine
-from openchem.chem.fukui import (
-    conformer_average_message,
-    open_shell_message,
-    summary_lines,
-)
+from openchem.chem.fukui import summary_lines
 from openchem.chem.isotopes import same_structure
 from openchem.chem.nmr_correlation import (
     compute_cosy_pairs,
@@ -60,8 +52,24 @@ from openchem.chem.orca_engine import (
     default_cores,
     find_mpi_bin,
 )
-from openchem.chem.proton_affinity import OutOfScope as ProtonAffinityOutOfScope
-from openchem.chem.proton_affinity import Sequence as ProtonAffinitySequence
+from openchem.chem.quantum_run_request import (
+    BOND_DISSOCIATION,
+    BOND_DISSOCIATION_CONFIRM_ABOVE,
+    PROTON_AFFINITY,
+    PreparedRun,
+    RunChoice,
+    RunRefusal,
+    bond_choices,
+    prepare_bond_dissociation,
+    prepare_bond_dissociation_for,
+    prepare_proton_affinity_for,
+    prepare_run,
+    review_cost,
+    review_led,
+    start_bond_dissociation,
+    start_proton_affinity,
+)
+from openchem.chem.quantum_run_request import start as start_run
 from openchem.chem.tautomer_distribution import (
     CONFIRMATION_THRESHOLD,
     generate_tautomer_candidates,
@@ -69,7 +77,7 @@ from openchem.chem.tautomer_distribution import (
     tautomer_distribution_table,
 )
 from openchem.chem.tautomer_nmr import targets_from_distribution
-from openchem.domain.calculator import DRAWING, ENSEMBLE, GEOMETRY
+from openchem.domain.calculator import DRAWING
 from openchem.domain.compare import ComparedResult, CompareRefusal, compare
 from openchem.domain.conformer import conformer_choice_text
 from openchem.domain.project import ProjectModel
@@ -93,6 +101,7 @@ from openchem.events.events import (
     TautomerDistributionResultReady,
     TautomerNmrResultReady,
 )
+from openchem.plugins.interfaces import QuantumEngineProvider
 from openchem.services.quantum_chemistry_service import QuantumChemistryService
 from openchem.services.table_export_service import write_rows_csv
 from openchem.ui.dialogs.compare_results_dialog import CompareResultsDialog
@@ -790,14 +799,6 @@ def _document_header(table: QTableWidget, keys: tuple[str, ...]) -> None:
         if item is not None:
             apply_help_tooltip(item, _HELP[key])
 
-
-
-def _outside_scope_text(warnings: list[str]) -> str:
-    """The paragraph a run's question opens with when the molecule is outside what the benchmark measured (empty inside it): computed anyway, and said so."""
-    if not warnings:
-        return ""
-    return ("This molecule is outside what the benchmark measured: " + "; ".join(warnings) + ". It can still be computed, but the measured error does not apply to it, "
-            "so read the result as an estimate.\n\n")
 
 
 def _outside_scope_lines(parameters: dict) -> list[str]:
@@ -1653,36 +1654,6 @@ class QuantumChemistryPanel(QWidget):
             # The contract text again: setToolTip above would have replaced it.
             apply_help_tooltip(self._conformer_combo, _HELP["conformer"])
 
-    @staticmethod
-    def _chosen_conformer_note(molecule, chosen, calc_type: str) -> str:
-        """What a result must say when it was computed on a conformer that is NOT the one every calculation uses.
-
-        **A MEASURED FACT, NOT A WARNING FOR ITS OWN SAKE.** Properties shows the results for the conformer every
-        calculation uses (a stored result is replayed only while its input is still that conformer's), so a single
-        point or an NMR run on another conformer shows here and in the run history, and is not replayed in Properties
-        when the molecule is selected again. Said at the moment it matters. An optimization is not noted: its result
-        is a geometry that REPLACES the conformer it came from, and the 3D viewer shows it.
-        """
-        if chosen is None or calc_type in ("opt", "opt_freq"):
-            return ""
-        automatic = canonical_conformer(molecule)
-        if chosen is automatic:
-            return ""
-        slot = next(i for i, c in enumerate(molecule.conformers) if c is chosen) + 1
-        automatic_slot = next(i for i, c in enumerate(molecule.conformers) if c is automatic) + 1
-        return (
-            f"Computed on conformer {slot}, not the one every calculation uses (conformer {automatic_slot}). It is "
-            "kept in this panel's run history; Properties shows results for the other one, so it does not come back "
-            "there when the molecule is selected again."
-        )
-
-    def _chosen_conformer(self, molecule):
-        """The conformer the Conformer box names, or None for Automatic (and for a pick that is not there)."""
-        conformer_id = self._conformer_combo.currentData() or ""
-        if not conformer_id or not self._conformer_choosable():
-            return None
-        return next((c for c in molecule.conformers if c.conformer_id == conformer_id), None)
-
     def choose_conformer(self, molecule_uuid: str, conformer_id: str) -> bool:
         """Point the panel at one conformer of one molecule. True when it was there to choose AND a choice applies.
 
@@ -2145,85 +2116,99 @@ class QuantumChemistryPanel(QWidget):
         self._help_window.raise_()
         self._help_window.activateWindow()
 
+    def _run_choice(self) -> RunChoice:
+        """What the controls ask for, read as data: the one place the widgets become a `RunChoice`. The rules are `chem/quantum_run_request.prepare_run`, shared with an assistant's card."""
+        return RunChoice(
+            calc_type=CALC_TYPE_LABELS[self._calc_type_combo.currentText()],
+            method_basis=self._effective_method_basis(),
+            charge=self._charge_spin.value(),
+            multiplicity=self._multiplicity_spin.value(),
+            provider_id=self._selected_engine_id(),
+            average_conformers=self._boltzmann_check.isChecked(),
+            conformer_id=self._conformer_combo.currentData() or "",
+        )
+
     def _on_run_clicked(self) -> None:
         molecule = self._current_molecule()
-        if molecule is None or not molecule.molblock:
-            self._status_label.setText("Select a molecule with a structure first.")
+        prepared = prepare_run(self._chemistry_engine, molecule, self._run_choice())
+        if isinstance(prepared, RunRefusal):
+            self._status_label.setText(prepared.message)
             return
-        if not molecule.conformers:
-            # Confirmed live against a real ORCA install: molecule.molblock
-            # alone (from SMILES import or the 2D editor) carries only
-            # heavy atoms -- hydrogens stay implicit, same as virtually
-            # every MOL/SDF representation -- so building an ORCA input
-            # straight from it silently sends an incomplete structure (a
-            # bare oxygen atom for water, not H2O) rather than failing
-            # loudly. RDKitConformerProvider._embed_one already calls
-            # Chem.AddHs() before embedding, so requiring a real conformer
-            # here guarantees explicit hydrogens with real 3D positions,
-            # not just a flatter/lower-quality geometry.
-            self._status_label.setText(
-                "Generate one with Structure ▸ Generate Conformers... first -- "
-                "quantum chemistry needs explicit hydrogens with real 3D positions, which "
-                "the 2D editor's structure alone doesn't have."
-            )
+        # Said here as well as by the engine, so the person is shown the cost before a job is queued and not by one that fills the disk.
+        if prepared.asks_cost and not self._confirm_led_cost(self, prepared.mol):
             return
+        self._begin_pending(molecule, prepared)
+        start_run(self._quantum_chemistry_service, prepared)
 
-        # THROUGH THE RESOLVER, so the molecule ORCA is handed and the identity
-        # stamped on its spectra come from one resolution (the canonical
-        # conformer, not `conformers[0]`, which agrees only while the list
-        # happens to be energy-sorted).
-        chosen = self._chosen_conformer(molecule)
-        target = chosen if chosen is not None else canonical_conformer(molecule)
-        resolved = resolve_conformer_input(self._chemistry_engine, molecule, target)
-        if resolved.used != GEOMETRY:
-            # The resolver fell back to the DRAWING -- the conformer would not
-            # parse or is flat. Refused, never run: the drawing carries no
-            # hydrogens, and ORCA would compute a plausible-looking answer for
-            # a different molecule (see the conformer check above).
-            self._status_label.setText(
-                "The selected molecule's conformer has no usable 3D coordinates. Regenerate "
-                "it with Structure ▸ Generate Conformers... first."
-            )
-            return
-        mol = resolved.mol
-        molblock = target.molblock
+    def start_assistant_run(self, molecule_uuid: str, choice: RunChoice, input_fingerprint: str) -> str:
+        """Start the job an assistant's card described, after a person approved it. "" when it was handed to the service, otherwise the sentence that says why not (nothing started, nothing changed).
 
-        calc_type = CALC_TYPE_LABELS[self._calc_type_combo.currentText()]
-        method_basis = self._effective_method_basis()
-        if not method_basis:
-            self._status_label.setText("Enter a method/basis (e.g. 'B3LYP def2-SVP').")
-            return
+        **THE SAME RULES AS THE RUN BUTTON, ON THE MOLECULE AS IT IS NOW** (`prepare_run`), and the same bookkeeping (`_begin_pending`), so the job shows in this panel, is cancelled by its Cancel button and
+        lands in Results exactly as one a person started. What is different is who has already answered the cost: the card showed it and Approve accepted it, so only the structure's own refusals
+        (`review_cost`: two partners, not interpenetrating) remain. `input_fingerprint` is the conformer the card was prepared against: if the conformer every calculation uses is another one now, the
+        person approved something else and nothing starts.
+        """
+        molecule = self._project.find_molecule(molecule_uuid) if self._project is not None else None
+        if molecule is None:
+            return "The molecule is no longer in the open project, so nothing was started."
+        if self._pending_molecule_uuid is not None and not self._run_button.isEnabled():
+            return "This panel is busy with another calculation. Nothing was started; wait for it to finish (or cancel it) and ask again."
+        if self._quantum_chemistry_service.has_active_job(molecule.uuid):
+            return "A calculation is already running for this molecule. Nothing was started."
+        if choice.calc_type == PROTON_AFFINITY:
+            return self._start_assistant_proton_affinity(molecule, input_fingerprint)
+        if choice.calc_type == BOND_DISSOCIATION:
+            return self._start_assistant_bond_dissociation(molecule, input_fingerprint)
+        prepared = prepare_run(self._chemistry_engine, molecule, choice)
+        if isinstance(prepared, RunRefusal):
+            return prepared.message
+        if prepared.fingerprint != input_fingerprint:
+            return "The conformer every calculation uses is not the one this was prepared for, so nothing was started; prepare it again."
+        review = review_cost(prepared)
+        if review.refuses:
+            return review.message
+        # The panel follows the job it is showing, as it follows a selection.
+        select(self._molecule_combo, molecule.uuid)
+        self._begin_pending(molecule, prepared)
+        start_run(self._quantum_chemistry_service, prepared)
+        return ""
 
-        # Said here as well as by the engine and the service, so the person is told before a job is queued and
-        # not by a failed one: an open-shell species has no Fukui function until a spin state is chosen, and
-        # the per-atom values do not survive the conformer-averaging path.
-        if calc_type == "fukui":
-            if self._multiplicity_spin.value() != 1:
-                self._status_label.setText(open_shell_message(self._multiplicity_spin.value()))
-                return
-            if self._boltzmann_check.isChecked() and len(molecule.conformers) > 1:
-                self._status_label.setText(conformer_average_message())
-                return
+    def _start_assistant_proton_affinity(self, molecule, expected_fingerprint: str) -> str:
+        """The proton-affinity half of `start_assistant_run`: a fixed protocol with nothing to choose, run on the DRAWING, so what a card is bound to is the drawing it was prepared for. The base is judged by
+        the button's own rules (`prepare_proton_affinity_for`); the cost question was the card."""
+        prepared = prepare_proton_affinity_for(molecule)
+        if isinstance(prepared, RunRefusal):
+            return prepared.message
+        if input_fingerprint(self._chemistry_engine, molecule, DRAWING) != expected_fingerprint:
+            return "The structure was edited after this was prepared, so nothing was started; prepare it again."
+        select(self._molecule_combo, molecule.uuid)
+        self._begin_proton_affinity(molecule, prepared.jobs)
+        start_proton_affinity(self._quantum_chemistry_service, self._chemistry_engine, molecule)
+        return ""
 
-        boltzmann = self._boltzmann_check.isChecked() and len(molecule.conformers) > 1
-        ensemble = None
-        if boltzmann:
-            # Resolved BEFORE the panel commits to a run, so a refusal leaves
-            # the controls as they were rather than disabled with no job.
-            try:
-                ensemble = resolve_ensemble(self._chemistry_engine, molecule)
-            except ValueError as exc:
-                self._status_label.setText(f"Cannot average over the conformers: {exc}")
-                return
+    def _start_assistant_bond_dissociation(self, molecule, expected_fingerprint: str) -> str:
+        """The bond-dissociation half of `start_assistant_run`: a fixed protocol run on the DRAWING, computing the bonds the dialog would tick by default (`prepare_bond_dissociation_for`), which is what
+        the card listed. The drawing is the card's binding, so the bonds cannot have changed while the fingerprint is the same; the cost question was the card."""
+        prepared = prepare_bond_dissociation_for(molecule)
+        if isinstance(prepared, RunRefusal):
+            return prepared.message
+        if input_fingerprint(self._chemistry_engine, molecule, DRAWING) != expected_fingerprint:
+            return "The structure was edited after this was prepared, so nothing was started; prepare it again."
+        select(self._molecule_combo, molecule.uuid)
+        self._begin_bond_dissociation(molecule, prepared.jobs)
+        start_bond_dissociation(self._quantum_chemistry_service, self._chemistry_engine, molecule, list(prepared.atoms))
+        return ""
 
-        if calc_type == "led" and not self._confirm_led_cost(self, mol):
-            return
+    def _begin_pending(self, molecule, prepared: PreparedRun) -> None:
+        """What the panel commits to when a run is handed to the service, and only then: which molecule it waits for, what was submitted, and a clean slate for the results that will arrive.
 
+        A refusal never gets here, so it leaves the controls as they were rather than disabled with no job.
+        """
         self._pending_molecule_uuid = molecule.uuid
-        self._pending_conformer_note = self._chosen_conformer_note(molecule, chosen, calc_type)
-        self._pending_mol = mol
+        self._pending_conformer_note = prepared.conformer_note
+        self._pending_mol = prepared.mol
         self._pending_molblock = molecule.molblock
-        self._pending_conformer_molblock = molblock
+        self._pending_conformer_molblock = prepared.conformer_molblock
         self._optimized_conformer_molblock = ""
         self._run_button.setEnabled(False)
         self._cancel_button.setEnabled(True)
@@ -2233,44 +2218,9 @@ class QuantumChemistryPanel(QWidget):
         self._spectrum_table.setVisible(False)
         self._spectrum_note_label.setVisible(False)
         self._correlation_tabs.setVisible(False)
-        # Back to placeholders. A second job of a different type must not
-        # leave the first job's tables sitting under the new job's heading,
-        # which would be worse than a blank tab -- it would be wrong.
+        # Back to placeholders. A second job of a different type must not leave the first job's tables sitting under the new job's heading, which would be worse than a blank tab -- it would be wrong.
         self._reset_empty_states()
         self._status_label.setText("queued")
-
-        if ensemble is not None:
-            self._quantum_chemistry_service.request_boltzmann_nmr(
-                mols=list(ensemble.mols),
-                molecule_uuid=molecule.uuid,
-                calc_type=calc_type,
-                charge=self._charge_spin.value(),
-                multiplicity=self._multiplicity_spin.value(),
-                method_basis=method_basis,
-                provider_id=self._selected_engine_id(),
-                input_fingerprint=ensemble.fingerprint,
-                calculation_input=ENSEMBLE,
-                structure_identity=molecule.canonical_smiles or "",
-            )
-            return
-
-        self._quantum_chemistry_service.request_calculation(
-            mol=mol,
-            molecule_uuid=molecule.uuid,
-            calc_type=calc_type,
-            charge=self._charge_spin.value(),
-            multiplicity=self._multiplicity_spin.value(),
-            method_basis=method_basis,
-            provider_id=self._selected_engine_id(),
-            input_fingerprint=resolved.fingerprint,
-            calculation_input=GEOMETRY,
-            # What the molecule IS now: the window compares it with what it is when the job lands, because
-            # an edit while ORCA runs must not hand the old structure's geometry to the new one.
-            structure_identity=molecule.canonical_smiles or "",
-            # Which conformer this is, as it stands NOW (one-based): the geometry that comes back records it as
-            # what it was optimized from, even if a regeneration moves that conformer while the job runs.
-            source_slot=self._slot_of(molecule, resolved.fingerprint),
-        )
 
     def _on_cancel_clicked(self) -> None:
         if self._pending_molecule_uuid is not None:
@@ -2401,9 +2351,6 @@ class QuantumChemistryPanel(QWidget):
             policy=policy,
         )
 
-    #: Above this many ORCA jobs the button asks before starting (a base with three conformers and three sites is a dozen).
-    _PROTON_AFFINITY_CONFIRM_ABOVE = 4
-
     def _on_proton_affinity_clicked(self) -> None:
         """Runs the benchmarked proton-affinity protocol on the current structure (`QuantumChemistryService.request_proton_affinity`).
 
@@ -2412,30 +2359,27 @@ class QuantumChemistryPanel(QWidget):
         compute but the benchmark did not measure is named in the question before it runs (computed anyway, labelled an estimate), as is the number of ORCA jobs of a long run.
         """
         molecule = self._current_molecule()
-        if molecule is None or not molecule.molblock or not molecule.canonical_smiles:
-            self._status_label.setText("Select a molecule with a structure first.")
+        # The rules and the words of the question are `chem.quantum_run_request.prepare_proton_affinity`, shared with an assistant's card; only the dialog and the bookkeeping are this panel's.
+        prepared = prepare_proton_affinity_for(molecule)
+        if isinstance(prepared, RunRefusal):
+            self._status_label.setText(prepared.message)
             return
-        try:
-            sequence = ProtonAffinitySequence(molecule.canonical_smiles)
-        except ProtonAffinityOutOfScope as refusal:
-            self._status_label.setText(f"Proton affinity does not apply: {refusal}")
-            return
-        except Exception as error:  # noqa: BLE001 - a structure that cannot be embedded is refused with its reason, not crashed on
-            self._status_label.setText(f"Proton affinity could not start: {error}")
-            return
-        jobs = sequence.total
-        if jobs > self._PROTON_AFFINITY_CONFIRM_ABOVE or sequence.scope_warnings:
+        if prepared.asks_cost:
             answer = QMessageBox.question(
                 self,
                 "Run proton affinity?",
-                _outside_scope_text(sequence.scope_warnings)
-                + f"This will run {jobs} ORCA geometry optimizations with frequencies (M062X/def2-TZVPD) for the base and its conjugate acids, "
-                "one after another, and a structure that keeps an imaginary vibration is run once more. It can take minutes to hours. Continue?",
+                prepared.question() + " Continue?",
                 QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
                 QMessageBox.StandardButton.No,
             )
             if answer != QMessageBox.StandardButton.Yes:
                 return
+        self._begin_proton_affinity(molecule, prepared.jobs)
+        start_proton_affinity(self._quantum_chemistry_service, self._chemistry_engine, molecule)
+
+    def _begin_proton_affinity(self, molecule, jobs: int) -> None:
+        """What the panel commits to when a proton-affinity run is handed to the service, and only then (the counterpart of `_begin_pending`): which molecule it waits for, no conformer (every
+        structure is embedded fresh), the other whole-molecule buttons off, and a clean slate for the results that will arrive."""
         self._pending_molecule_uuid = molecule.uuid
         self._pending_mol = self._chemistry_engine.mol_from_molblock(molecule.molblock)
         self._pending_molblock = molecule.molblock
@@ -2455,16 +2399,9 @@ class QuantumChemistryPanel(QWidget):
         self._correlation_tabs.setVisible(False)
         self._reset_empty_states()
         self._status_label.setText(f"queued -- {jobs} optimization(s) for the proton affinity")
-        self._quantum_chemistry_service.request_proton_affinity(
-            smiles=molecule.canonical_smiles,
-            molecule_uuid=molecule.uuid,
-            calculation_input=DRAWING,
-            input_fingerprint=input_fingerprint(self._chemistry_engine, molecule, DRAWING),
-            structure_identity=molecule.canonical_smiles,
-        )
 
-    #: Above this many ORCA jobs the button asks again before starting (a molecule with three conformers and three bonds is a dozen).
-    _BOND_DISSOCIATION_CONFIRM_ABOVE = 6
+    #: Above this many ORCA jobs the button asks again before starting (`chem.quantum_run_request`'s constant, held here so a test can lower it for one panel).
+    _BOND_DISSOCIATION_CONFIRM_ABOVE = BOND_DISSOCIATION_CONFIRM_ABOVE
 
     def _on_bond_dissociation_clicked(self) -> None:
         """Runs the benchmarked bond-dissociation protocol on the current structure for the bonds the person chooses (`QuantumChemistryService.request_bond_dissociation`).
@@ -2473,42 +2410,36 @@ class QuantumChemistryPanel(QWidget):
         anything is asked or queued; the choice of bonds is a real dialog (each bond costs radical optimizations, so the person says which), and the number of ORCA jobs is named before a long run starts.
         """
         molecule = self._current_molecule()
-        if molecule is None or not molecule.molblock or not molecule.canonical_smiles:
-            self._status_label.setText("Select a molecule with a structure first.")
-            return
-        try:
-            bonds = bond_dissociation.describe_bonds(molecule.canonical_smiles)
-        except ProtonAffinityOutOfScope as refusal:
-            self._status_label.setText(f"Bond dissociation does not apply: {refusal}")
-            return
-        except Exception as error:  # noqa: BLE001 - a structure that cannot be read is refused with its reason, not crashed on
-            self._status_label.setText(f"Bond dissociation could not start: {error}")
+        # The rules and the words of the question are `chem.quantum_run_request.prepare_bond_dissociation`, shared with an assistant's card; the choice of bonds, the dialog and the bookkeeping are this panel's.
+        has_structure = molecule is not None and bool(molecule.molblock)
+        bonds = bond_choices(molecule.canonical_smiles if has_structure else "")
+        if isinstance(bonds, RunRefusal):
+            self._status_label.setText(bonds.message)
             return
         dialog = _BondChoiceDialog(bonds, self)
         if dialog.exec() != QDialog.DialogCode.Accepted:
             return
         atoms = dialog.chosen_atoms()
-        try:
-            sequence = BondDissociationSequence(molecule.canonical_smiles, atoms)
-        except ProtonAffinityOutOfScope as refusal:
-            self._status_label.setText(f"Bond dissociation does not apply: {refusal}")
+        prepared = prepare_bond_dissociation(molecule.canonical_smiles, atoms)
+        if isinstance(prepared, RunRefusal):
+            self._status_label.setText(prepared.message)
             return
-        except Exception as error:  # noqa: BLE001
-            self._status_label.setText(f"Bond dissociation could not start: {error}")
-            return
-        jobs = sequence.total
-        if jobs > self._BOND_DISSOCIATION_CONFIRM_ABOVE or sequence.scope_warnings:
+        if prepared.jobs > self._BOND_DISSOCIATION_CONFIRM_ABOVE or prepared.scope_warnings:
             answer = QMessageBox.question(
                 self,
                 "Run bond dissociation?",
-                _outside_scope_text(sequence.scope_warnings)
-                + f"This will run {jobs} ORCA jobs (M062X/def2-TZVPD: the hydrogen atom, then optimizations with frequencies of the molecule and of each radical), one after another, "
-                "and a structure that keeps an imaginary vibration is run once more. It can take minutes to hours. Continue?",
+                prepared.question() + " Continue?",
                 QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
                 QMessageBox.StandardButton.No,
             )
             if answer != QMessageBox.StandardButton.Yes:
                 return
+        self._begin_bond_dissociation(molecule, prepared.jobs)
+        start_bond_dissociation(self._quantum_chemistry_service, self._chemistry_engine, molecule, atoms)
+
+    def _begin_bond_dissociation(self, molecule, jobs: int) -> None:
+        """What the panel commits to when a bond-dissociation run is handed to the service, and only then (the counterpart of `_begin_proton_affinity`): which molecule it waits for, no conformer
+        (every structure is embedded fresh), the other whole-molecule buttons off, and a clean slate for the results that will arrive."""
         self._pending_molecule_uuid = molecule.uuid
         self._pending_mol = self._chemistry_engine.mol_from_molblock(molecule.molblock)
         self._pending_molblock = molecule.molblock
@@ -2528,14 +2459,6 @@ class QuantumChemistryPanel(QWidget):
         self._correlation_tabs.setVisible(False)
         self._reset_empty_states()
         self._status_label.setText(f"queued -- {jobs} job(s) for the bond dissociation enthalpy")
-        self._quantum_chemistry_service.request_bond_dissociation(
-            smiles=molecule.canonical_smiles,
-            atoms=atoms,
-            molecule_uuid=molecule.uuid,
-            calculation_input=DRAWING,
-            input_fingerprint=input_fingerprint(self._chemistry_engine, molecule, DRAWING),
-            structure_identity=molecule.canonical_smiles,
-        )
 
     def _on_tautomer_nmr_conformers_toggled(self, checked: bool) -> None:
         self._settings.set(_TAUTOMER_NMR_CONFORMERS_KEY, bool(checked))
@@ -2871,39 +2794,20 @@ class QuantumChemistryPanel(QWidget):
         module importing RDKit, and caught the first version of this doing
         exactly that.
         """
-        from openchem.chem.orca_led import estimate_led_cost_for
-
-        estimate = estimate_led_cost_for(mol)
-        if estimate.fragment_count != 2:
-            QMessageBox.information(
-                parent,
-                "Two partners needed",
-                "An interaction breakdown needs exactly two separate species — "
-                "they are the fragments it decomposes the interaction between.\n\n"
-                "Draw the two partners as separate molecules (a Lewis acid and "
-                "its base, a hydrogen-bonded pair) rather than joined by a bond.",
-            )
+        # The rules and the words are `chem.quantum_run_request.review_led`, shared with an assistant's card; only the dialogs are this panel's.
+        review = review_led(mol)
+        if review.kind == "two_partners":
+            QMessageBox.information(parent, review.title, review.message)
             return False
-        if estimate.geometry_problem:
-            # Refused, not warned. A live run of an overlapping pair produced
-            # +40619 kcal/mol -- arithmetically correct, physically
-            # meaningless, and indistinguishable from a real result once it
-            # is just a number on the panel.
-            QMessageBox.warning(
-                parent, "This geometry cannot be decomposed", estimate.geometry_problem
-            )
+        if review.kind == "geometry":
+            QMessageBox.warning(parent, review.title, review.message)
             return False
-
-        if not estimate.should_warn:
+        if review.kind != "expensive":
             return True
         answer = QMessageBox.question(
             parent,
-            "This calculation is expensive",
-            f"{estimate.advice}\n\n"
-            f"{estimate.atoms} atoms, {estimate.basis_functions} basis functions, "
-            f"DLPNO-CCSD(T).\n\n"
-            "The estimate is scaled from two measured jobs and is a guide to the "
-            "order of the cost, not a prediction.\n\nStart it anyway?",
+            review.title,
+            f"{review.message}\n\nStart it anyway?",
             QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
             QMessageBox.StandardButton.No,
         )
@@ -2976,6 +2880,7 @@ class QuantumChemistryPanel(QWidget):
             provider = next(p for p in self._quantum_chemistry_service.engines() if p.provider_id == provider_id)
         except (AttributeError, StopIteration):
             provider = None
+        self._apply_engine_method_presets(provider)
         model = self._calc_type_combo.model()
         first_enabled = -1
         for row in range(self._calc_type_combo.count()):
@@ -3000,6 +2905,28 @@ class QuantumChemistryPanel(QWidget):
         if log_index >= 0:
             self._correlation_tabs.setTabText(log_index, f"{name} Log")
         self._apply_engine_to_orca_only_controls(orca_like, name)
+
+    def _apply_engine_method_presets(self, provider: QuantumEngineProvider | None) -> None:
+        """Make the method box offer the chosen engine's own choices (xtb: `GFN2-xTB`, which is a method with no basis), and ORCA's again for the others.
+
+        Only the LIST is swapped, and only when it differs. What is typed is kept when the new engine offers it too (B3LYP def2-SVP means the same on ORCA and Psi4), and is replaced by
+        the engine's first choice when it does not, because `build_input` refuses a method the engine does not know and a run that can only fail is not offered.
+        """
+        wanted = list(provider.method_basis_presets) if provider is not None and provider.method_basis_presets else list(METHOD_BASIS_PRESETS)
+        current = [self._method_combo.itemText(i) for i in range(self._method_combo.count())]
+        if current == wanted:
+            return
+        typed = self._method_combo.currentText().strip()
+        self._method_combo.blockSignals(True)
+        self._method_combo.clear()
+        self._method_combo.addItems(wanted)
+        self._method_combo.blockSignals(False)
+        own = provider is not None and bool(provider.method_basis_presets)
+        if own:
+            self._method_combo.setCurrentText(typed if typed in wanted else wanted[0])
+        else:
+            # Back to a general-purpose engine: a choice from the list just replaced means nothing to it, anything else the person typed is theirs.
+            self._method_combo.setCurrentText(wanted[0] if typed in current or not typed else typed)
 
     def _orca_only_controls(self) -> tuple[tuple[QWidget, str], ...]:
         """Every control that starts one of ORCA's own workflows, each with the help contract its tooltip goes back to when ORCA is chosen again."""
@@ -3135,12 +3062,6 @@ class QuantumChemistryPanel(QWidget):
                 self._correlation_tabs.setCurrentWidget(self._output_log)
             # Failed keeps it OPEN: the log is where the reason is, and
             # collapsing it would hide the one thing worth reading.
-
-    @staticmethod
-    def _slot_of(molecule, fingerprint: str) -> int:
-        """The one-based slot of the conformer `fingerprint` names, or 0 when it is none of the stored ones."""
-        located = find_source_conformer(molecule.conformers, fingerprint)
-        return located[0] + 1 if located is not None else 0
 
     def _structure_still_matches(self, event: QuantumChemistryResultReady) -> bool:
         """Is the pending molecule still the structure this job was submitted on? Fails closed."""

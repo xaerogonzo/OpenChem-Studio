@@ -1,0 +1,447 @@
+[
+ {
+  "id": "about",
+  "label": "About OpenChem Studio",
+  "default": ""
+ },
+ {
+  "id": "aromatize",
+  "label": "Aromatize",
+  "default": ""
+ },
+ {
+  "id": "atom_numbers_index",
+  "label": "Drawing atom numbers",
+  "default": ""
+ },
+ {
+  "id": "atom_numbers_locants",
+  "label": "IUPAC locants",
+  "default": ""
+ },
+ {
+  "id": "atom_numbers_off",
+  "label": "Off",
+  "default": ""
+ },
+ {
+  "id": "check_structure",
+  "label": "Check Structure",
+  "default": "Ctrl+Shift+K"
+ },
+ {
+  "id": "check_structure_indigo",
+  "label": "Check Structure in the Editor (Indigo)",
+  "default": ""
+ },
+ {
+  "id": "cip_labels",
+  "label": "Show CIP Stereo Descriptors (R/S, E/Z)",
+  "default": ""
+ },
+ {
+  "id": "clean_up",
+  "label": "Clean Up",
+  "default": ""
+ },
+ {
+  "id": "command_palette",
+  "label": "Command Palette",
+  "default": "Ctrl+Shift+P"
+ },
+ {
+  "id": "copy_inchi",
+  "label": "InChI",
+  "default": ""
+ },
+ {
+  "id": "copy_inchikey",
+  "label": "InChIKey",
+  "default": ""
+ },
+ {
+  "id": "copy_molfile",
+  "label": "Molfile (MDL molblock)",
+  "default": ""
+ },
+ {
+  "id": "copy_smiles",
+  "label": "SMILES",
+  "default": ""
+ },
+ {
+  "id": "dearomatize",
+  "label": "Dearomatize",
+  "default": ""
+ },
+ {
+  "id": "derived_scores",
+  "label": "Derived Scores",
+  "default": ""
+ },
+ {
+  "id": "duplicate_molecule",
+  "label": "Duplicate Molecule",
+  "default": ""
+ },
+ {
+  "id": "electron_display_lone_pairs",
+  "label": "Lone pairs",
+  "default": ""
+ },
+ {
+  "id": "electron_display_off",
+  "label": "Off",
+  "default": ""
+ },
+ {
+  "id": "exit",
+  "label": "Exit",
+  "default": ""
+ },
+ {
+  "id": "explicit_hydrogens:Add/Remove Explicit Hydrogens",
+  "label": "Add/Remove Explicit Hydrogens",
+  "default": ""
+ },
+ {
+  "id": "explicit_hydrogens:Toggle Explicit Hydrogens",
+  "label": "Toggle Explicit Hydrogens",
+  "default": ""
+ },
+ {
+  "id": "export_molecule",
+  "label": "Export Molecule",
+  "default": ""
+ },
+ {
+  "id": "external_tools",
+  "label": "External Tools",
+  "default": ""
+ },
+ {
+  "id": "full_lewis",
+  "label": "Full Lewis Structure",
+  "default": ""
+ },
+ {
+  "id": "generate_conformers",
+  "label": "Generate Conformers",
+  "default": ""
+ },
+ {
+  "id": "goal_wizard",
+  "label": "Run Calculators by Goal",
+  "default": ""
+ },
+ {
+  "id": "help_current_panel",
+  "label": "Help for the Current Panel",
+  "default": "F1"
+ },
+ {
+  "id": "help_topic:Getting Started",
+  "label": "Getting Started",
+  "default": ""
+ },
+ {
+  "id": "help_topic:Scientific Limitations",
+  "label": "Scientific Limitations",
+  "default": ""
+ },
+ {
+  "id": "help_topic:User Guide",
+  "label": "User Guide",
+  "default": ""
+ },
+ {
+  "id": "identify_structure",
+  "label": "Identify Structure Online",
+  "default": ""
+ },
+ {
+  "id": "import_crystal",
+  "label": "Import Crystal Structure",
+  "default": ""
+ },
+ {
+  "id": "import_macromolecule",
+  "label": "Import Macromolecule",
+  "default": ""
+ },
+ {
+  "id": "import_molecule",
+  "label": "Import Molecule",
+  "default": ""
+ },
+ {
+  "id": "isotopes",
+  "label": "Isotopes",
+  "default": ""
+ },
+ {
+  "id": "layout",
+  "label": "Layout (Recalculate Coordinates)",
+  "default": ""
+ },
+ {
+  "id": "lewis_pairing",
+  "label": "Lewis Acid-Base Pairing",
+  "default": ""
+ },
+ {
+  "id": "new_formulation",
+  "label": "Energetic Formulation",
+  "default": ""
+ },
+ {
+  "id": "new_molecule",
+  "label": "New Molecule",
+  "default": ""
+ },
+ {
+  "id": "new_project",
+  "label": "New Project",
+  "default": ""
+ },
+ {
+  "id": "open_3d_viewer_miew",
+  "label": "Open 3D Viewer (Miew)",
+  "default": ""
+ },
+ {
+  "id": "open_log_folder",
+  "label": "Open Log Folder",
+  "default": ""
+ },
+ {
+  "id": "open_project",
+  "label": "Open Project",
+  "default": ""
+ },
+ {
+  "id": "open_project_plugins_folder",
+  "label": "Open Project Plugins Folder",
+  "default": ""
+ },
+ {
+  "id": "open_user_plugins_folder",
+  "label": "Open User Plugins Folder",
+  "default": ""
+ },
+ {
+  "id": "orca_optimize",
+  "label": "ORCA Geometry Optimization",
+  "default": ""
+ },
+ {
+  "id": "panel_rail_visibility",
+  "label": "Panel rail (show or hide)",
+  "default": ""
+ },
+ {
+  "id": "panel_visibility:3D Alignment",
+  "label": "3D Alignment",
+  "default": ""
+ },
+ {
+  "id": "panel_visibility:Atom Inspector",
+  "label": "Atom Inspector",
+  "default": ""
+ },
+ {
+  "id": "panel_visibility:Batch",
+  "label": "Batch",
+  "default": ""
+ },
+ {
+  "id": "panel_visibility:Compare",
+  "label": "Compare",
+  "default": ""
+ },
+ {
+  "id": "panel_visibility:Console",
+  "label": "Console",
+  "default": ""
+ },
+ {
+  "id": "panel_visibility:Docking",
+  "label": "Docking",
+  "default": ""
+ },
+ {
+  "id": "panel_visibility:Interactions",
+  "label": "Interactions",
+  "default": ""
+ },
+ {
+  "id": "panel_visibility:Jobs",
+  "label": "Jobs",
+  "default": ""
+ },
+ {
+  "id": "panel_visibility:Project Explorer",
+  "label": "Project Explorer",
+  "default": ""
+ },
+ {
+  "id": "panel_visibility:Properties",
+  "label": "Properties",
+  "default": ""
+ },
+ {
+  "id": "panel_visibility:Quantum Chemistry",
+  "label": "Quantum Chemistry",
+  "default": ""
+ },
+ {
+  "id": "panel_visibility:Results",
+  "label": "Results",
+  "default": ""
+ },
+ {
+  "id": "panel_visibility:Structure Check",
+  "label": "Structure Check",
+  "default": ""
+ },
+ {
+  "id": "particle_editor",
+  "label": "Quarks and Hadrons",
+  "default": ""
+ },
+ {
+  "id": "paste_structure",
+  "label": "Paste Structure",
+  "default": "Ctrl+Shift+V"
+ },
+ {
+  "id": "periodic_table",
+  "label": "Periodic Table",
+  "default": ""
+ },
+ {
+  "id": "recalculate_now",
+  "label": "Recalculate Now",
+  "default": "F5"
+ },
+ {
+  "id": "receptor_library",
+  "label": "Receptor Library",
+  "default": ""
+ },
+ {
+  "id": "redo",
+  "label": "Redo",
+  "default": "Ctrl+Y"
+ },
+ {
+  "id": "redraw_flat",
+  "label": "Redraw in 2D",
+  "default": ""
+ },
+ {
+  "id": "reload_plugins",
+  "label": "Reload Plugins",
+  "default": ""
+ },
+ {
+  "id": "rename_molecule",
+  "label": "Rename Molecule",
+  "default": ""
+ },
+ {
+  "id": "reset_panel_layout",
+  "label": "Reset Panel Layout",
+  "default": ""
+ },
+ {
+  "id": "rotate_in_3d",
+  "label": "Rotate 3D",
+  "default": "F7"
+ },
+ {
+  "id": "save_project",
+  "label": "Save Project",
+  "default": ""
+ },
+ {
+  "id": "search_facts",
+  "label": "Search facts",
+  "default": "Ctrl+Shift+F"
+ },
+ {
+  "id": "send_to_3d_viewer_tab",
+  "label": "Send to 3D Viewer Tab",
+  "default": ""
+ },
+ {
+  "id": "settings",
+  "label": "Settings",
+  "default": "Ctrl+,"
+ },
+ {
+  "id": "show_carbon_labels",
+  "label": "Show Carbon Labels",
+  "default": ""
+ },
+ {
+  "id": "show_oxidation_states",
+  "label": "Show Oxidation States",
+  "default": ""
+ },
+ {
+  "id": "show_stereo_flags",
+  "label": "Show Stereo Flags (ABS / AND / Mixed)",
+  "default": ""
+ },
+ {
+  "id": "show_valence",
+  "label": "Show Valence (abnormal valence only)",
+  "default": ""
+ },
+ {
+  "id": "stereo_label_style_classic",
+  "label": "Classic \u2014 hidden when the molecule has one group",
+  "default": ""
+ },
+ {
+  "id": "stereo_label_style_iupac",
+  "label": "IUPAC style \u2014 only when it adds information",
+  "default": ""
+ },
+ {
+  "id": "stereo_label_style_off",
+  "label": "Off \u2014 never",
+  "default": ""
+ },
+ {
+  "id": "stereo_label_style_on",
+  "label": "On \u2014 always",
+  "default": ""
+ },
+ {
+  "id": "theme_choice:Theme: Dark",
+  "label": "Theme: Dark",
+  "default": ""
+ },
+ {
+  "id": "theme_choice:Theme: Follow the System",
+  "label": "Theme: Follow the System",
+  "default": ""
+ },
+ {
+  "id": "theme_choice:Theme: Light",
+  "label": "Theme: Light",
+  "default": ""
+ },
+ {
+  "id": "undo",
+  "label": "Undo",
+  "default": "Ctrl+Z"
+ },
+ {
+  "id": "virtual_screening",
+  "label": "Virtual Screening",
+  "default": ""
+ }
+]

@@ -109,7 +109,7 @@ def test_reading_scores_needs_no_host_and_there_is_no_call_that_writes_one(world
 
 
 def test_the_tool_is_offered_with_the_others_and_has_a_handler_that_takes_the_bridge():
-    assert READ_SCORES in CALCULATION_TOOLS and "read_scores" in CALCULATION_HANDLERS and len(CALCULATION_TOOLS) == len(CALCULATION_HANDLERS) == 8
+    assert READ_SCORES in CALCULATION_TOOLS and "read_scores" in CALCULATION_HANDLERS and len(CALCULATION_TOOLS) == len(CALCULATION_HANDLERS) == 9
     assert validate_arguments(READ_SCORES.input_schema, {}) == []
     assert validate_arguments(READ_SCORES.input_schema, {"scores": ["user.window", "Another"]}) == []
     assert validate_arguments(READ_SCORES.input_schema, {"scores": "user.window"}) and validate_arguments(READ_SCORES.input_schema, {"scores": [1]})

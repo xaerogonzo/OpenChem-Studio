@@ -30,6 +30,7 @@ from openchem.domain.run_lifecycle import Preparation, PrepareResult, RunOutcome
 from openchem.domain.score_outputs import APPROVED, ApprovedOutput
 from openchem.domain.score_proposal import ProposalOutcome, ProposalProblem, ProposalRefusal, ProposalState, Registered, ScoreProposal
 from openchem.domain.score_reading import ScoresView, read_scores
+from openchem.domain.quantum_run_snapshot import DEFAULT_RUN_LIMIT, RunsView, read_runs
 from openchem.domain.turn_snapshot import DEFAULT_READ_LIMIT, ResultsView, TurnContext, read_results
 
 
@@ -94,6 +95,17 @@ class PluginCalculations:
     ) -> ResultsView:
         """What was stored when `turn` began, never what is stored now. Needs no host."""
         return read_results(turn, calculator_ids, include_not_current=include_not_current, limit=limit)
+
+    def read_quantum_runs(
+        self,
+        turn: TurnContext,
+        run_ids: list[str] | None = None,
+        *,
+        include_not_current: bool = False,
+        limit: int = DEFAULT_RUN_LIMIT,
+    ) -> RunsView:
+        """The ORCA runs stored for the turn's molecule when `turn` began: a list of headers, or the runs named by id with their numbers. Needs no host, and starts nothing."""
+        return read_runs(turn, run_ids, include_not_current=include_not_current, limit=limit)
 
     def read_scores(self, turn: TurnContext, names: list[str] | None = None) -> ScoresView:
         """The user-defined scores of the turn's molecule, worked out from what was stored and defined when `turn` began. Needs no host, and can only READ: there is no

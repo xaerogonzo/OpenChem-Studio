@@ -22,12 +22,16 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Callable
 
-from PySide6.QtCore import Qt
+from PySide6.QtCore import QRect, Qt
+from PySide6.QtGui import QPalette
 from PySide6.QtWidgets import (
+    QApplication,
     QDialog,
     QLineEdit,
     QListWidget,
     QListWidgetItem,
+    QStyle,
+    QStyledItemDelegate,
     QVBoxLayout,
     QWidget,
 )
@@ -174,6 +178,65 @@ _HELP: dict[str, HelpTooltip] = {
 }
 
 
+#: What separates a result's name from where it lives in the row's text, so the row can be drawn in two voices and
+#: `visible_labels` still reads as one string.
+_SOURCE_SEPARATOR = "    ("
+
+
+class _ResultDelegate(QStyledItemDelegate):
+    """Draws a result as its name, then WHERE IT LIVES dimmed and right-aligned.
+
+    For a menu command the source is its whole menu path ("Tools > Calculators"), so two commands with one name are
+    told apart at a glance. The name is never displaced: the path is elided on its own, on the left, and gives way
+    first when the row is narrow. The text stays one string, `label    (source)`, for everything that reads it.
+    """
+
+    _GAP = 12
+
+    def sizeHint(self, option, index):  # noqa: N802 - Qt override
+        """As tall as the style makes a row, and no wider than it is shown: a long path elides, it never scrolls."""
+        hint = super().sizeHint(option, index)
+        hint.setWidth(10)
+        return hint
+
+    def paint(self, painter, option, index) -> None:  # noqa: N802 - Qt override
+        text = str(index.data(Qt.ItemDataRole.DisplayRole) or "")
+        label, separator, rest = text.rpartition(_SOURCE_SEPARATOR)
+        if not separator:
+            super().paint(painter, option, index)
+            return
+        source = f"({rest}"
+        styled = type(option)(option)
+        self.initStyleOption(styled, index)
+        widget = option.widget
+        style = widget.style() if widget is not None else QApplication.style()
+        area = style.subElementRect(QStyle.SubElement.SE_ItemViewItemText, styled, widget).adjusted(2, 0, -2, 0)
+        metrics = option.fontMetrics
+        label_width = min(metrics.horizontalAdvance(label), area.width())
+        room = area.width() - label_width - self._GAP
+        # THE STYLE DRAWS THE NAME, so its text colour in a selected row is the style's own: the Windows 11 style
+        # paints a selected row LIGHT with dark text, where HighlightedText (white) would vanish into it.
+        styled.text = metrics.elidedText(label, Qt.TextElideMode.ElideRight, label_width)
+        style.drawControl(QStyle.ControlElement.CE_ItemViewItem, styled, painter, widget)
+
+        selected = bool(option.state & QStyle.StateFlag.State_Selected)
+        # Only the styles that paint a selection in the Highlight colour put HighlightedText on it.
+        inverts = selected and style.objectName().lower() in ("fusion", "windows")
+        dim = option.palette.color(QPalette.ColorRole.HighlightedText if inverts else QPalette.ColorRole.Text)
+        if not inverts:
+            dim.setAlpha(150)
+        painter.save()
+        painter.setFont(option.font)
+        if room > metrics.horizontalAdvance("(…"):
+            painter.setPen(dim)
+            painter.drawText(
+                QRect(area.right() - room, area.top(), room, area.height()),
+                int(Qt.AlignmentFlag.AlignVCenter | Qt.AlignmentFlag.AlignRight),
+                metrics.elidedText(source, Qt.TextElideMode.ElideLeft, room),
+            )
+        painter.restore()
+
+
 class CommandPalette(QDialog):
     """A search box over everything the app can already do."""
 
@@ -193,6 +256,8 @@ class CommandPalette(QDialog):
         apply_help_tooltip(self._search, _HELP["query"])
 
         self._list = QListWidget(self)
+        self._list.setItemDelegate(_ResultDelegate(self._list))
+        self._list.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
         self._list.itemActivated.connect(self._on_item_activated)
 
         layout = QVBoxLayout(self)
@@ -229,7 +294,7 @@ class CommandPalette(QDialog):
     def _render(self) -> None:
         self._list.clear()
         for command in rank(self._search.text(), self._commands):
-            item = QListWidgetItem(f"{command.label}    ({command.source})", self._list)
+            item = QListWidgetItem(f"{command.label}{_SOURCE_SEPARATOR}{command.source})", self._list)
             item.setData(Qt.ItemDataRole.UserRole, command)
         if self._list.count():
             self._list.setCurrentRow(0)

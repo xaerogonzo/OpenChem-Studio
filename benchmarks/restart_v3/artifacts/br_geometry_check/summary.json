@@ -1,0 +1,33 @@
+{
+ "perception_cutoff_BrBr_angstrom": 3.12,
+ "results": [
+  {
+   "id": "parent|BrCBr|0",
+   "completed": true,
+   "error": null,
+   "lowest_frequency": 0.0,
+   "perception_keeps_skeleton": true,
+   "heavy_distances": {
+    "Br0-C1": 1.927,
+    "Br0-Br2": 3.222,
+    "C1-Br2": 1.927
+   },
+   "BrBr": 3.222,
+   "BrCBr_angle": 113.5
+  },
+  {
+   "id": "radical|dibromomethane C-H|0",
+   "completed": true,
+   "error": null,
+   "lowest_frequency": 0.0,
+   "perception_keeps_skeleton": true,
+   "heavy_distances": {
+    "Br0-C1": 1.854,
+    "Br0-Br2": 3.215,
+    "C1-Br2": 1.854
+   },
+   "BrBr": 3.215,
+   "BrCBr_angle": 120.2
+  }
+ ]
+}

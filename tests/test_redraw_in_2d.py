@@ -45,19 +45,28 @@ def window(qapp, tmp_path):
     built.close()
 
 
+def _all_actions(menu):
+    """Every entry under `menu`, submenus included: the Structure menu groups its entries now."""
+    found = []
+    for action in menu.actions():
+        if action.menu() is not None:
+            found.extend(_all_actions(action.menu()))
+        elif not action.isSeparator():
+            found.append(action)
+    return found
+
+
 def _entry(window, text):
     """The action as the MENU holds it -- walked, not read off an attribute.
 
     "the attribute exists" and "the entry is in the menu" are different
     claims, and only the second is one a user can act on.
     """
-    for action in window._structure_menu.actions():
+    actions = _all_actions(window._structure_menu)
+    for action in actions:
         if action.text() == text:
             return action
-    raise AssertionError(
-        f"the Structure menu has no {text!r}: "
-        f"{[a.text() for a in window._structure_menu.actions() if a.text()]}"
-    )
+    raise AssertionError(f"the Structure menu has no {text!r}: {[a.text() for a in actions if a.text()]}")
 
 
 def test_the_structure_menu_offers_it(window):
@@ -67,9 +76,14 @@ def test_the_structure_menu_offers_it(window):
 def test_it_sits_with_the_other_drawing_actions(window):
     """Beside Layout and Clean Up, because those are what a user reaches for
     first -- and did. An entry filed anywhere else is one more thing to not
-    find."""
-    labels = [a.text() for a in window._structure_menu.actions() if a.text()]
-    assert abs(labels.index("Redraw in 2D") - labels.index("Clean Up")) == 1
+    find. They share one group submenu now, A-Z: Clean Up, Layout, Redraw."""
+    [group] = [
+        a.menu() for a in window._structure_menu.actions()
+        if a.menu() is not None and a.text() == "Layout and Clean-up"
+    ]
+    labels = [a.text() for a in group.actions() if a.text()]
+    assert "Redraw in 2D" in labels and "Clean Up" in labels
+    assert abs(labels.index("Redraw in 2D") - labels.index("Clean Up")) <= 2
 
 
 def test_the_right_click_menu_offers_the_SAME_action(window):

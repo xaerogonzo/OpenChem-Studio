@@ -1570,10 +1570,13 @@ In the **Docking** panel:
    The columns carry their definitions as tooltips, because two of them
    are routinely misread:
 
-   - **Binding Affinity (kcal/mol)** — Vina's empirical score. Always
-     negative; more negative is predicted-tighter. It is *not* a measured
-     binding free energy, and scores are generally not comparable across
-     different receptors, targets or docking protocols. For scale, Trott &
+   - **Vina score (kcal/mol)** — Vina's empirical score. Always negative;
+     more negative is a better fit to Vina's scoring function. It is a
+     *pose score, not a binding affinity*: not a measured binding free
+     energy and not a Kd. Use it to order the poses of one ligand in one
+     receptor, or to compare a series of similar ligands docked the same
+     way; scores are generally not comparable across different receptors,
+     targets or docking protocols. For scale, Trott &
      Olson (2010) report a standard error of 2.85 kcal/mol against
      experimental binding free energies on their own 190-complex set
      ([source:trott_olson2010]), so a gap smaller than that is not a
@@ -1585,6 +1588,20 @@ In the **Docking** panel:
      allows symmetry-equivalent atoms, so l.b. ≤ u.b. always. A large value
      means a geometrically different pose from pose 1 — it says nothing
      about whether either is correct.
+
+   Under the table the panel also states the result of four **physical
+   checks** on every pose, with each row's detail in its tooltip: a ligand
+   atom closer to a receptor atom than 0.75 of their van der Waals sum, the
+   ligand folded through itself (atoms five or more bonds apart that close),
+   an atom outside the search box (1 Å of slack), and a pose that touches no
+   receptor atom within 4.5 Å. They catch *impossible* poses, not *wrong*
+   ones: a pose that passes all four can still be in the wrong place. Bond
+   lengths, angles and ring planarity are not checked, because Vina keeps
+   every bond rigid and moves only torsions, and the pose reaches the
+   application through a PDBQT file that does not carry them faithfully. This
+   is the application's own implementation of the idea in PoseBusters, not
+   that package. If the search-box check fails on a pose, the box was too
+   small or misplaced.
 5. **Optionally, rescore.** *Rescore with* scores every pose a second time
    with a different function after the search, and is **off by default**.
    Vina is documented as strong at finding the right pose and weaker at
@@ -1599,10 +1616,10 @@ In the **Docking** panel:
    leaving it in a tooltip.
 
    Two things that surprise people: choosing **Vina** here does *not*
-   reproduce the affinity column for any pose but the first, because a
+   reproduce the score column for any pose but the first, because a
    docking run uses one shared unbound reference for all its poses while a
    rescore uses each pose's own; and **nothing re-ranks on the second
-   column**. The poses stay ordered by the affinity, because whether
+   column**. The poses stay ordered by the Vina score, because whether
    Vinardo ranks better on your receptor is not something this application
    has measured. Driven on 5C1M the two disagreed outright — Vina's best
    pose was the worst of the first three by Vinardo.
@@ -3388,7 +3405,8 @@ the detail pane and in every cell's tooltip.
 ## Settings
 
 **Edit ▸ Settings…** (Ctrl+,) holds every preference in one window, with a
-list of sections down its left side. Changes apply as you make them, so
+list of sections down its left side, under two headings (**Window** and
+**Calculations**; a heading is not a page, and the arrow keys step over it). Changes apply as you make them, so
 there is no OK button. The one exception is lowering the number of versions
 kept, which asks first.
 
@@ -3398,9 +3416,11 @@ kept, which asks first.
   window's title bar included. The same choice is in **View ▸ Theme**, and the
   checked entry there is the choice you made, so Follow the system stays checked
   while the window happens to be dark. It applies at once. The 3D viewer follows;
-  in the 2D editor the toolbars go dark and the drawing area stays white, so atom
-  colours, bonds and selection look exactly as they always did; the macromolecule
-  viewer's canvas goes dark but its side panels keep their light styling.
+  in the 2D editor the toolbars, the editor's own dialogs and the drawing area go
+  dark, bonds and carbon labels turn white, and atom colours (nitrogen blue,
+  oxygen red), selection and hover stay exactly as they were, as does a picture
+  you export; the macromolecule viewer's canvas and its side panels go dark too,
+  and the structure keeps its own colours.
 - **Panels.** By default, choosing a panel from the rail hides the other
   right-hand panels in its area, so the one you chose gets the whole column.
   A panel you have dragged somewhere else, or floated, is never hidden. Turn
@@ -3448,7 +3468,12 @@ kept, which asks first.
   default; see the drawing section above). Off hands the keys back to the
   editor, which does nothing with them over a bond.
 - **Keyboard.** Every menu command with the shortcut it holds (Search facts and the
-  Command Palette too). Click a box and press the combination you want; it applies
+  Command Palette too), in one collapsible section per menu, in the order the menus
+  show them (File, Edit, ..., then Tools > Calculators and so on). Click a heading to
+  open or close it, or use **Expand all** and **Collapse all**; which groups you left open
+  is remembered, and **Reset layout** goes back to only the first being open. Searching
+  opens the sections that match and hides the rest, and is only a temporary view: clearing
+  it puts the groups back as you had them. Click a box and press the combination you want; it applies
   at once and is remembered. The ✕ in the box clears a command's shortcut, **Reset**
   puts one back to the shortcut it shipped with, and **Reset all to defaults** puts
   every one back. A combination another command already uses is refused, and the page
@@ -3479,11 +3504,19 @@ kept, which asks first.
 <!-- help:external-tools -->
 ## External tools
 
-**Edit ▸ Settings… ▸ External tools** has ten tabs: AutoDock Vina, ORCA, Psi4,
-AiZynthFinder, pkasolver, ADMET, Java (Temurin), NMR Database, Knowledge Vista,
-and Storage. **Tools ▸
-External Tools…**, and the Configure buttons on the Docking and Quantum
+**Edit ▸ Settings… ▸ External tools** opens on a **Setup guide** and has twelve
+tabs in all: the guide, AutoDock Vina, ORCA, Psi4, xtb, AiZynthFinder,
+pkasolver, ADMET, Java (Temurin), NMR Database, Knowledge Vista, and Storage.
+**Tools ▸ External Tools…**, and the Configure buttons on the Docking and Quantum
 Chemistry panels, open the same window at the right tab.
+
+**The Setup guide answers "which of these do I need?"** Each tool has a row that
+says what it is, what stops working without it, whether it is Recommended,
+Optional or Advanced, the one next thing to do, a link to get it, and its status
+right now (read from that tool's own tab). **I want to** narrows the list to the
+tools one task needs, such as docking or quantum chemistry. Nothing here is
+required: the application works without any of them, and each adds a group of
+features.
 
 Each tab tells you what is currently detected, installs or configures the
 tool, and has a **Test** button that runs the tool for real rather than
@@ -3558,8 +3591,8 @@ CLI cannot) the assistant reads the results stored for the selected molecule and
 run the quick calculators itself, recorded in your project like ones you ran. Anything
 slow, any molecule above 41 heavy atoms and anything unclassified shows a preview with
 **Approve** and **Cancel** first, and nothing starts until you press one. A calculator
-that runs from its own panel (ORCA, Vina) is described, with what it needs and whether
-this machine is ready, and you start it from that panel. What it asked for, and what
+that runs from its own panel and is not one ORCA job (Vina, bond dissociation, tautomers) is described, with what it needs and whether
+this machine is ready, and you start it from that panel. A single ORCA job (single point, optimization, optimization with frequencies, NMR, NMR with coupling, hardness and softness from energy differences, interaction breakdown) or a proton affinity or a bond dissociation enthalpy (which have a fixed protocol, and whose cards say how many ORCA jobs they are and whether the molecule is one the benchmark measured; a bond dissociation card also lists the X-H bonds it would compute, the first six when there are more, and says which it leaves out, since choosing particular bonds is done with the Bond dissociation button) it can ASK for: a card appears with the molecule, the method and basis, the charge and multiplicity and what the job costs, and ORCA starts only if you press **Approve**. It then runs in the Quantum Chemistry panel by that panel's own rules, where you can follow and cancel it, and the assistant is told how it ended with your next message. It can also read the ORCA jobs you have already run for the selected molecule: which calculation, the method and basis, whether the job finished, failed or was cancelled, what it warned about, and, for a job it is asked about, the numbers it produced (an infrared analysis as its modes). It cannot approve or stop a job, and it is never sent the structure that went to ORCA. What it asked for, and what
 became of it, is listed under the conversation. It can also read the goal wizard's table (which calculators the
 application pairs with a question such as "where is the charge"), as a suggestion rather than a protocol. It can also read the **derived scores** you
 defined (their names, formulas and values for the selected molecule; never the owner or the note), and says so when one cannot be worked out. It cannot save or change one, but it can propose a new one: a card shows the formula, what each

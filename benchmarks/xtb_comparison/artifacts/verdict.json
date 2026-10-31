@@ -1,0 +1,46 @@
+{
+ "commit": "98948d97b68ad8484a5dde05cff0420c72af10bf",
+ "verdicts": {
+  "C1": {
+   "verdict": "PARTIAL",
+   "reason": "median 0.014 A, maximum 0.259 A, median bond deviation 0.0115 A",
+   "numbers": {
+    "judged": 20,
+    "missing": 0,
+    "cells": 20,
+    "median_heavy_rmsd": 0.013960212647194027,
+    "max_heavy_rmsd": 0.2585007827985293,
+    "median_bond_mad": 0.01150421169282374
+   }
+  },
+  "C2": {
+   "verdict": "TIER C",
+   "reason": "MAE 1.01 kcal/mol over 52 pairs (mean signed error +0.45); only 82% of the 22 separated pairs are ordered as the reference orders them, so the tier is lowered",
+   "numbers": {
+    "pairs": 52,
+    "conformer_pairs": 49,
+    "missing": 0,
+    "cells": 52,
+    "mae_kcal": 1.0073995342926445,
+    "mean_signed_error_kcal": 0.44560153954064996,
+    "max_abs_error_kcal": 6.472590397037079,
+    "ranking_share": 0.8181818181818182,
+    "ranking_pairs": 22
+   }
+  },
+  "C3": {
+   "verdict": "PARTIAL",
+   "reason": "median cycle ratio 1.00, one-sided p 0.402, total time lower from the xtb start in 55% of molecules; 95% reach the same minimum (same minimum, but no demonstrated saving)",
+   "numbers": {
+    "pairs": 20,
+    "missing": 0,
+    "cells": 20,
+    "same_minimum_share": 0.95,
+    "same_minimum_tolerance_meh": 0.02830712003287772,
+    "median_cycle_ratio": 1.0,
+    "wilcoxon_p": 0.4024073586066256,
+    "faster_share": 0.55
+   }
+  }
+ }
+}
