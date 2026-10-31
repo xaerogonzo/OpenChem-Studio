@@ -23,12 +23,15 @@ from openchem.chem.calculation_input import (
     ResolvedEnsemble,
     canonical_conformer,
     find_source_conformer,
+    input_fingerprint,
     resolve_conformer_input,
     resolve_ensemble,
 )
 from openchem.chem.engine import ChemistryEngine
 from openchem.chem.fukui import conformer_average_message, open_shell_message
-from openchem.domain.calculator import ENSEMBLE, GEOMETRY
+from openchem.chem.proton_affinity import OutOfScope as ProtonAffinityOutOfScope
+from openchem.chem.proton_affinity import Sequence as ProtonAffinitySequence
+from openchem.domain.calculator import DRAWING, ENSEMBLE, GEOMETRY
 from openchem.domain.conformer import ConformerModel
 from openchem.domain.molecule import MoleculeModel
 
@@ -173,6 +176,80 @@ def led_cost_of_smiles(smiles: str) -> tuple[str, str]:
     if estimate.fragment_count != 2:
         return TWO_PARTNERS_MESSAGE, ""
     return "", led_cost_message(estimate)
+
+
+# --- proton affinity: a fixed protocol, so the whole of its request is the structure -------------------------------------------------------------------------
+
+#: The calculation type a proton-affinity run is recorded under (`QuantumChemistryService._new_proton_affinity_run`), and so what its run record is matched by.
+PROTON_AFFINITY = "proton_affinity"
+
+#: Above this many ORCA jobs a proton-affinity run asks before it starts (a base with one site is two jobs; pyridine's four sites make five).
+PROTON_AFFINITY_CONFIRM_ABOVE = 4
+
+
+def outside_scope_text(warnings: list[str]) -> str:
+    """The paragraph a run's question opens with when the molecule is outside what the benchmark measured (empty inside it): computed anyway, and said so."""
+    if not warnings:
+        return ""
+    return ("This molecule is outside what the benchmark measured: " + "; ".join(warnings) + ". It can still be computed, but the measured error does not apply to it, "
+            "so read the result as an estimate.\n\n")
+
+
+@dataclass(frozen=True)
+class PreparedProtonAffinity:
+    """A base the proton-affinity protocol can run on: the structure, how many ORCA jobs it is and what the benchmark did not measure about it."""
+
+    smiles: str
+    jobs: int
+    scope_warnings: tuple[str, ...]
+
+    @property
+    def asks_cost(self) -> bool:
+        """A person must accept this before it starts: a long run, or a base outside what was measured."""
+        return self.jobs > PROTON_AFFINITY_CONFIRM_ABOVE or bool(self.scope_warnings)
+
+    def question(self) -> str:
+        """The cost in words: the scope paragraph, the job count and that it can take hours. One text for the panel's dialog and for an assistant's card."""
+        return (
+            outside_scope_text(list(self.scope_warnings))
+            + f"This will run {self.jobs} ORCA geometry optimizations with frequencies (M062X/def2-TZVPD) for the base and its conjugate acids, "
+            "one after another, and a structure that keeps an imaginary vibration is run once more. It can take minutes to hours."
+        )
+
+
+def prepare_proton_affinity(smiles: str) -> PreparedProtonAffinity | RunRefusal:
+    """Whether the protocol can run on `smiles`, and what it would take. Starts nothing.
+
+    Needs no conformer and no method: every structure is embedded fresh from the 2D structure and the protocol is exactly the one that was measured. A base it cannot compute is refused with its
+    reason; one it can compute but the benchmark did not measure comes back with its warnings (computed anyway, the result labelled an estimate).
+    """
+    if not smiles:
+        return RunRefusal("Select a molecule with a structure first.")
+    try:
+        sequence = ProtonAffinitySequence(smiles)
+    except ProtonAffinityOutOfScope as refusal:
+        return RunRefusal(f"Proton affinity does not apply: {refusal}")
+    except Exception as error:  # noqa: BLE001 - a structure that cannot be embedded is refused with its reason, not crashed on
+        return RunRefusal(f"Proton affinity could not start: {error}")
+    return PreparedProtonAffinity(smiles, sequence.total, tuple(sequence.scope_warnings))
+
+
+def prepare_proton_affinity_for(molecule: MoleculeModel | None) -> PreparedProtonAffinity | RunRefusal:
+    """`prepare_proton_affinity` for a molecule in the project: the structure it would run on is the drawing's canonical SMILES."""
+    if molecule is None or not molecule.molblock or not molecule.canonical_smiles:
+        return RunRefusal("Select a molecule with a structure first.")
+    return prepare_proton_affinity(molecule.canonical_smiles)
+
+
+def start_proton_affinity(service: Any, engine: ChemistryEngine, molecule: MoleculeModel) -> None:
+    """Hand the proton-affinity run to the service with the identity of the drawing as it is NOW, the arguments the panel's button always sent."""
+    service.request_proton_affinity(
+        smiles=molecule.canonical_smiles,
+        molecule_uuid=molecule.uuid,
+        calculation_input=DRAWING,
+        input_fingerprint=input_fingerprint(engine, molecule, DRAWING),
+        structure_identity=molecule.canonical_smiles,
+    )
 
 
 def slot_of(molecule: MoleculeModel, fingerprint: str) -> int:

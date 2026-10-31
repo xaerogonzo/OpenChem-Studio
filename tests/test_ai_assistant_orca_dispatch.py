@@ -68,12 +68,12 @@ def test_the_model_is_told_which_orca_calculators_it_can_ask_for_and_which_it_ca
     thread, _ = rig.loop(provider, rig.bridge())
     rig.settle(thread)
     routes = {c["calculator_id"]: c["route"] for c in json.loads(_tool_message(provider)[0].content)["calculators"]}
-    assert routes["orca.sp"] == routes["orca.led"] == "needs_approval"
-    assert routes["orca.fukui"] == routes["orca.proton_affinity"] == routes["orca.tautomer_distribution"] == "preview_only"
+    assert routes["orca.sp"] == routes["orca.led"] == routes["orca.proton_affinity"] == "needs_approval"
+    assert routes["orca.fukui"] == routes["orca.bond_dissociation_enthalpy"] == routes["orca.tautomer_distribution"] == "preview_only"
 
 
 def test_a_job_that_cannot_be_started_here_is_still_only_described(rig):
-    reply = ask(rig, "orca.proton_affinity")
+    reply = ask(rig, "orca.bond_dissociation_enthalpy")
     assert reply["state"] == "preview_only" and rig.panel.pending_run_ids() == [] and len(rig.panel.service_preview_keys()) == 1
 
 
@@ -174,6 +174,33 @@ def test_approving_after_the_drawing_was_edited_hands_nothing_over(rig):
     rig.panel._cards[run_id].approve_button.click()
     assert rig.starter.calls == [] and rig.world.host.state_of(run_id) is RunState.INVALIDATED
     assert any("withdrawn" in line for line in rig.panel.ledger_lines()) and "invalidated" in rig.panel._notes[0]
+
+
+# --- proton affinity: a card for a fixed protocol -----------------------------------------------------------------------------------------------
+
+
+def test_proton_affinity_is_a_card_for_a_molecule_with_no_conformer_and_the_model_is_told_how_it_ended(rig):
+    ammonia = rig.world.add("N", "Ammonia")
+    assert ammonia.conformers == []
+    reply = ask(rig, "orca.proton_affinity")
+    assert reply["state"] == "awaiting_approval" and rig.starter.calls == []
+    run_id = reply["run_id"]
+    assert "2 ORCA geometry optimizations" in " ".join(preparation_of(rig, run_id).preview)
+
+    rig.panel._cards[run_id].approve_button.click()
+    [(molecule_uuid, choice, _fingerprint)] = rig.starter.calls
+    assert molecule_uuid == ammonia.uuid and choice.calc_type == "proton_affinity"
+    assert any("running in the Quantum Chemistry panel" in line for line in rig.panel.ledger_lines()) and rig.panel._notes == []
+
+    completed(rig.world, preparation_of(rig, run_id), calc_type="proton_affinity", calculation_input="drawing")
+    assert any("ORCA finished it" in line for line in rig.panel.ledger_lines())
+    assert "orca.proton_affinity on Ammonia" in rig.panel._notes[0] and "read_quantum_runs" in rig.panel._notes[0]
+
+
+def test_a_charged_base_gets_the_reason_and_no_card(rig):
+    rig.world.add("C[N+](C)(C)C", "Tetramethylammonium")
+    reply = ask(rig, "orca.proton_affinity")
+    assert reply["problems"][0]["code"] == "invalid_structure" and "does not apply" in reply["problems"][0]["message"] and rig.panel.pending_run_ids() == []
 
 
 # --- the tools cannot do what only the button can ----------------------------------------------------------------------------------------------

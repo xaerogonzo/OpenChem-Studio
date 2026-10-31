@@ -54,8 +54,18 @@ from openchem.chem.orca_engine import (
     find_mpi_bin,
 )
 from openchem.chem.proton_affinity import OutOfScope as ProtonAffinityOutOfScope
-from openchem.chem.proton_affinity import Sequence as ProtonAffinitySequence
-from openchem.chem.quantum_run_request import PreparedRun, RunChoice, RunRefusal, prepare_run, review_cost, review_led
+from openchem.chem.quantum_run_request import (
+    PROTON_AFFINITY,
+    PreparedRun,
+    RunChoice,
+    RunRefusal,
+    prepare_proton_affinity_for,
+    prepare_run,
+    review_cost,
+    review_led,
+    start_proton_affinity,
+)
+from openchem.chem.quantum_run_request import outside_scope_text as _outside_scope_text
 from openchem.chem.quantum_run_request import start as start_run
 from openchem.chem.tautomer_distribution import (
     CONFIRMATION_THRESHOLD,
@@ -786,14 +796,6 @@ def _document_header(table: QTableWidget, keys: tuple[str, ...]) -> None:
         if item is not None:
             apply_help_tooltip(item, _HELP[key])
 
-
-
-def _outside_scope_text(warnings: list[str]) -> str:
-    """The paragraph a run's question opens with when the molecule is outside what the benchmark measured (empty inside it): computed anyway, and said so."""
-    if not warnings:
-        return ""
-    return ("This molecule is outside what the benchmark measured: " + "; ".join(warnings) + ". It can still be computed, but the measured error does not apply to it, "
-            "so read the result as an estimate.\n\n")
 
 
 def _outside_scope_lines(parameters: dict) -> list[str]:
@@ -2150,6 +2152,8 @@ class QuantumChemistryPanel(QWidget):
             return "This panel is busy with another calculation. Nothing was started; wait for it to finish (or cancel it) and ask again."
         if self._quantum_chemistry_service.has_active_job(molecule.uuid):
             return "A calculation is already running for this molecule. Nothing was started."
+        if choice.calc_type == PROTON_AFFINITY:
+            return self._start_assistant_proton_affinity(molecule, input_fingerprint)
         prepared = prepare_run(self._chemistry_engine, molecule, choice)
         if isinstance(prepared, RunRefusal):
             return prepared.message
@@ -2162,6 +2166,19 @@ class QuantumChemistryPanel(QWidget):
         select(self._molecule_combo, molecule.uuid)
         self._begin_pending(molecule, prepared)
         start_run(self._quantum_chemistry_service, prepared)
+        return ""
+
+    def _start_assistant_proton_affinity(self, molecule, expected_fingerprint: str) -> str:
+        """The proton-affinity half of `start_assistant_run`: a fixed protocol with nothing to choose, run on the DRAWING, so what a card is bound to is the drawing it was prepared for. The base is judged by
+        the button's own rules (`prepare_proton_affinity_for`); the cost question was the card."""
+        prepared = prepare_proton_affinity_for(molecule)
+        if isinstance(prepared, RunRefusal):
+            return prepared.message
+        if input_fingerprint(self._chemistry_engine, molecule, DRAWING) != expected_fingerprint:
+            return "The structure was edited after this was prepared, so nothing was started; prepare it again."
+        select(self._molecule_combo, molecule.uuid)
+        self._begin_proton_affinity(molecule, prepared.jobs)
+        start_proton_affinity(self._quantum_chemistry_service, self._chemistry_engine, molecule)
         return ""
 
     def _begin_pending(self, molecule, prepared: PreparedRun) -> None:
@@ -2317,7 +2334,6 @@ class QuantumChemistryPanel(QWidget):
         )
 
     #: Above this many ORCA jobs the button asks before starting (a base with three conformers and three sites is a dozen).
-    _PROTON_AFFINITY_CONFIRM_ABOVE = 4
 
     def _on_proton_affinity_clicked(self) -> None:
         """Runs the benchmarked proton-affinity protocol on the current structure (`QuantumChemistryService.request_proton_affinity`).
@@ -2327,30 +2343,27 @@ class QuantumChemistryPanel(QWidget):
         compute but the benchmark did not measure is named in the question before it runs (computed anyway, labelled an estimate), as is the number of ORCA jobs of a long run.
         """
         molecule = self._current_molecule()
-        if molecule is None or not molecule.molblock or not molecule.canonical_smiles:
-            self._status_label.setText("Select a molecule with a structure first.")
+        # The rules and the words of the question are `chem.quantum_run_request.prepare_proton_affinity`, shared with an assistant's card; only the dialog and the bookkeeping are this panel's.
+        prepared = prepare_proton_affinity_for(molecule)
+        if isinstance(prepared, RunRefusal):
+            self._status_label.setText(prepared.message)
             return
-        try:
-            sequence = ProtonAffinitySequence(molecule.canonical_smiles)
-        except ProtonAffinityOutOfScope as refusal:
-            self._status_label.setText(f"Proton affinity does not apply: {refusal}")
-            return
-        except Exception as error:  # noqa: BLE001 - a structure that cannot be embedded is refused with its reason, not crashed on
-            self._status_label.setText(f"Proton affinity could not start: {error}")
-            return
-        jobs = sequence.total
-        if jobs > self._PROTON_AFFINITY_CONFIRM_ABOVE or sequence.scope_warnings:
+        if prepared.asks_cost:
             answer = QMessageBox.question(
                 self,
                 "Run proton affinity?",
-                _outside_scope_text(sequence.scope_warnings)
-                + f"This will run {jobs} ORCA geometry optimizations with frequencies (M062X/def2-TZVPD) for the base and its conjugate acids, "
-                "one after another, and a structure that keeps an imaginary vibration is run once more. It can take minutes to hours. Continue?",
+                prepared.question() + " Continue?",
                 QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
                 QMessageBox.StandardButton.No,
             )
             if answer != QMessageBox.StandardButton.Yes:
                 return
+        self._begin_proton_affinity(molecule, prepared.jobs)
+        start_proton_affinity(self._quantum_chemistry_service, self._chemistry_engine, molecule)
+
+    def _begin_proton_affinity(self, molecule, jobs: int) -> None:
+        """What the panel commits to when a proton-affinity run is handed to the service, and only then (the counterpart of `_begin_pending`): which molecule it waits for, no conformer (every
+        structure is embedded fresh), the other whole-molecule buttons off, and a clean slate for the results that will arrive."""
         self._pending_molecule_uuid = molecule.uuid
         self._pending_mol = self._chemistry_engine.mol_from_molblock(molecule.molblock)
         self._pending_molblock = molecule.molblock
@@ -2370,13 +2383,6 @@ class QuantumChemistryPanel(QWidget):
         self._correlation_tabs.setVisible(False)
         self._reset_empty_states()
         self._status_label.setText(f"queued -- {jobs} optimization(s) for the proton affinity")
-        self._quantum_chemistry_service.request_proton_affinity(
-            smiles=molecule.canonical_smiles,
-            molecule_uuid=molecule.uuid,
-            calculation_input=DRAWING,
-            input_fingerprint=input_fingerprint(self._chemistry_engine, molecule, DRAWING),
-            structure_identity=molecule.canonical_smiles,
-        )
 
     #: Above this many ORCA jobs the button asks again before starting (a molecule with three conformers and three bonds is a dozen).
     _BOND_DISSOCIATION_CONFIRM_ABOVE = 6
