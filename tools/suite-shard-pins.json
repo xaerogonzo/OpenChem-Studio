@@ -1980,6 +1980,7 @@
   "tests/test_empty_states.py": 4,
   "tests/test_energetics.py": 0,
   "tests/test_energetics_groups.py": 3,
+  "tests/test_energetics_props_arbiter.py": 1,
   "tests/test_energetics_props_cod_census.py": 3,
   "tests/test_energetics_props_cod_corpus.py": 2,
   "tests/test_energetics_props_cod_structures.py": 0,
