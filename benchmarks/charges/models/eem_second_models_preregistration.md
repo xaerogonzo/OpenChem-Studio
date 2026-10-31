@@ -352,3 +352,16 @@ Decided (Alex, 2026-10-30) after the second literature search (5-L.3).
    literature adds: Gilson et al. 2003 average the PARAMETERS of the equivalent atoms over the low-energy resonance forms, which
    for this model means giving both oxygens the mean of the O1 and O2 parameters. Which is the default, and whether the
    unaveraged drawing stays available, is open.
+
+## 10. Status of C5 to C9 (2026-10-30): DEFERRED, nothing scored
+
+Alex asked on 2026-10-30 to stop running ORCA while his own long job is using the machine, so **C5 to C9 have not run.** What was done and learned first:
+
+- **Two throwaway ORCA 6.1.1 jobs on water** (B3LYP/6-311G with the NPA keyword, 38 s; B3LYP/6-31G* with CHELPG, 7 s; one core, below-normal priority), their scratch removed.
+  - **ORCA cannot give NPA charges here:** its output says `Environment variable NBOEXE for nbo6.exe or nbo5.exe not set! Skipping NBO-Analysis`. So Model N's own charge scheme (NPA) cannot be computed with what is installed, which confirms the statement made at registration. A free NPA program that reads ORCA's output (JANPA, from memory, not checked) would change that; it would be a download and is not assumed.
+  - **CHELPG works** (`! B3LYP 6-31G* CHELPG` writes a `CHELPG Charges` block beside the Mulliken and Loewdin ones), so C5 and C7 can be run against CHELPG and Loewdin charges.
+- **A confound to carry into C5 and C7 when they run:** Model N was fitted to NPA charges and Model J to Merz-Kollman ones; CHELPG is close to Merz-Kollman and is NOT NPA. So a large difference between N's sulfur or phosphorus charge and CHELPG can be the scheme and not an error, and C7's 0.5 e criterion as registered cannot tell the two apart. It is reported as registered; a refusal of S2 or P2 on that evidence alone would be a decision to take with this stated, not an automatic result.
+- **The panels, registered now before any run:**
+  - C5 (12 molecules, as in section 5): water, methanol, ethanol, acetic acid, acetamide, dimethyl ether, methylamine, fluoromethane, chloromethane, methanethiol, dimethyl sulfide, formamide; geometry = the MMFF conformer the EEM models are given (single points, no optimisation); the unit rule is as in section 5.
+  - C7, sulfur (10): dimethyl sulfone, dimethyl sulfoxide, methanesulfonamide, benzenesulfonamide, methanesulfonic acid, methyl methanesulfonate, sulfolane, thiourea, thioacetamide, dimethyl sulfate; phosphorus (4): trimethyl phosphate, dimethyl methylphosphonate, phosphoric acid, trimethylphosphine oxide.
+- **C6, C8 and C9 need no ORCA** (they are RDKit and the solvers only) and are the part that can run without disturbing the machine; C6 has no stored ORCA-optimised geometries to use, so it compares the raw embedding with the MMFF-optimised one.
