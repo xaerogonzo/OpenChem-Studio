@@ -260,3 +260,40 @@ def test_the_cost_text_counts_the_hydrogens_orca_is_handed():
     _refusal, text = led_cost_of_smiles("N.B")
     bare = estimate_led_cost_for(Chem.MolFromSmiles("N.B"))
     assert led_cost_message(estimate_led_cost_for(Chem.AddHs(Chem.MolFromSmiles("N.B")))) == text and bare.atoms < 8
+
+
+# --- proton affinity: the button's rules, shared with an assistant's card -------------------------------------------------------------------------
+
+
+def test_proton_affinity_needs_a_structure_to_run_on():
+    from openchem.chem.quantum_run_request import PreparedProtonAffinity, prepare_proton_affinity, prepare_proton_affinity_for
+
+    assert prepare_proton_affinity("") == RunRefusal("Select a molecule with a structure first.")
+    assert prepare_proton_affinity_for(None) == RunRefusal("Select a molecule with a structure first.")
+    assert prepare_proton_affinity_for(MoleculeModel(display_name="empty")) == RunRefusal("Select a molecule with a structure first.")
+    drawn = MoleculeModel(display_name="Ammonia")
+    ENGINE.set_structure_from_smiles(drawn, "N")
+    prepared = prepare_proton_affinity_for(drawn)
+    assert isinstance(prepared, PreparedProtonAffinity) and prepared.smiles == drawn.canonical_smiles and prepared.jobs == 2 and not prepared.asks_cost
+
+
+def test_proton_affinity_says_why_a_base_is_refused_and_what_it_could_not_do(monkeypatch):
+    from openchem.chem import quantum_run_request as module
+
+    assert module.prepare_proton_affinity("C[N+](C)(C)C").message.startswith("Proton affinity does not apply:")
+
+    def broken(smiles):
+        raise RuntimeError("no embedding")
+
+    monkeypatch.setattr(module, "ProtonAffinitySequence", broken)
+    assert module.prepare_proton_affinity("N") == RunRefusal("Proton affinity could not start: no embedding")
+
+
+def test_a_long_run_or_an_unmeasured_base_asks_and_a_small_measured_one_does_not():
+    from openchem.chem.quantum_run_request import prepare_proton_affinity
+
+    assert not prepare_proton_affinity("N").asks_cost
+    long_run = prepare_proton_affinity("c1ccncc1")
+    assert long_run.jobs == 5 and long_run.asks_cost and "5 ORCA geometry optimizations" in long_run.question()
+    unmeasured = prepare_proton_affinity("CCl")
+    assert unmeasured.asks_cost and unmeasured.question().startswith("This molecule is outside what the benchmark measured")

@@ -335,3 +335,15 @@ def test_proton_affinity_is_not_started_again_for_a_molecule_the_service_is_runn
     panel, molecule, service, requests = pa_panel("N")
     assert service._job_manager.try_start("quantum_chemistry", molecule.uuid)
     assert "already running for this molecule" in panel.start_assistant_run(molecule.uuid, PA, drawing_fingerprint(panel, molecule)) and requests == []
+
+
+def test_the_panel_shows_the_molecule_a_proton_affinity_card_is_for(pa_panel):
+    panel, ammonia, _service, requests = pa_panel("N")
+    other = MoleculeModel(display_name="Other")
+    panel._chemistry_engine.set_structure_from_smiles(other, "CCO")
+    panel._project.molecules.insert(0, other)
+    panel.set_project(panel._project)
+    panel._molecule_combo.setCurrentIndex(0)
+    assert panel._molecule_combo.currentData() == other.uuid
+    assert panel.start_assistant_run(ammonia.uuid, PA, drawing_fingerprint(panel, ammonia)) == ""
+    assert panel._molecule_combo.currentData() == ammonia.uuid and requests[0]["molecule_uuid"] == ammonia.uuid

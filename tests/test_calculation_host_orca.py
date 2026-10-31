@@ -386,3 +386,12 @@ def test_the_prepared_run_is_a_frozen_record(world):
     preparation = prepare(world).preparation
     with pytest.raises(dataclasses.FrozenInstanceError):
         preparation.input_fingerprint = "other"  # type: ignore[misc]
+
+
+def test_a_calculator_that_says_it_needs_no_conformer_is_not_told_it_does(world):
+    """The preview a host without a starter gives lists what a calculator needs; these three say they embed every structure fresh."""
+    world.host.set_quantum_starter(None)
+    for calculator_id in ("orca.proton_affinity", "orca.bond_dissociation_enthalpy", "orca.tautomer_distribution"):
+        preview = prepare(world, calculator_id).service_preview
+        assert not any(r.what.startswith("a 3D conformer") for r in preview.requirements), calculator_id
+    assert any(r.what.startswith("a 3D conformer") for r in prepare(world, "orca.sp").service_preview.requirements)
