@@ -13,7 +13,7 @@ from rdkit import Chem
 from rdkit.Chem import AllChem
 
 from openchem.chem import bond_dissociation as bd
-from openchem.chem.calculation_input import canonical_conformer, geometry_fingerprint
+from openchem.chem.calculation_input import canonical_conformer, geometry_fingerprint, input_fingerprint
 from openchem.chem.engine import ChemistryEngine
 from openchem.chem.fukui import conformer_average_message, open_shell_message
 from openchem.chem.quantum_run_request import (
@@ -24,6 +24,7 @@ from openchem.chem.quantum_run_request import (
     TWO_PARTNERS_MESSAGE,
     PreparedBondDissociation,
     PreparedRun,
+    PreparedTautomers,
     RunChoice,
     RunRefusal,
     bond_choices,
@@ -34,10 +35,21 @@ from openchem.chem.quantum_run_request import (
     prepare_bond_dissociation,
     prepare_bond_dissociation_for,
     prepare_run,
+    prepare_tautomers,
+    prepare_tautomers_for,
     review_cost,
     review_led,
     slot_of,
     start,
+    start_tautomer_distribution,
+    tautomers_prepared,
+)
+from openchem.chem.tautomer_distribution import (
+    CONFIRMATION_THRESHOLD,
+    MODEL_POLICY_FULL,
+    MODEL_POLICY_SINGLE,
+    generate_tautomer_candidates,
+    policy_for_mode,
 )
 from openchem.domain.calculator import ENSEMBLE, GEOMETRY
 from openchem.domain.conformer import ConformerModel
@@ -384,3 +396,102 @@ def test_the_question_is_asked_above_six_jobs_and_not_at_six():
 
     assert prepare_bond_dissociation("Cc1ccccc1").jobs == 6 and prepare_bond_dissociation("C1CCOC1").jobs == 7
     assert 6 <= BOND_DISSOCIATION_CONFIRM_ABOVE < 7
+
+
+# --- tautomer distribution: the jobs enumeration gives, stated before they start ------------------------------------------------------------------
+
+
+def test_a_tautomer_distribution_is_prepared_from_a_smiles_and_counts_its_jobs():
+    prepared = prepare_tautomers("CC(C)=O")
+    assert isinstance(prepared, PreparedTautomers) and prepared.jobs == 3 and prepared.tautomers == 2 and prepared.stereo_classes == 2
+    assert prepared.policy.conformer_search == "mmff_topk" and prepared.truncated == 0 and prepared.conformer_truncated == 0 and prepared.embedding_failures == 0
+    assert not prepared.asks_cost()
+    assert prepared.queued_text() == "queued -- 3 optimization(s) for 2 tautomer(s)"
+
+
+def test_the_card_and_the_button_count_the_same_jobs():
+    """The card is made from the SMILES and the button from the molblock; Approve must start the jobs the card named."""
+    for smiles in ("CC(C)=O", "O=c1cccc[nH]1", "CCOC(=O)CC(C)=O"):
+        molecule = MoleculeModel(display_name=smiles)
+        ENGINE.set_structure_from_smiles(molecule, smiles)
+        by_button, _failures = generate_tautomer_candidates(ENGINE.mol_from_molblock(molecule.molblock), policy=policy_for_mode(False))
+        prepared = prepare_tautomers_for(molecule)
+        assert prepared.jobs == len(by_button) and prepared.tautomers == len({c.tautomer_fingerprint for c in by_button}), smiles
+        assert prepare_tautomers_for(molecule).jobs == prepared.jobs, "the same structure is the same jobs every time"
+
+
+def test_the_question_names_the_jobs_tautomers_and_conformer_search():
+    text = prepare_tautomers("CC(C)=O").question()
+    assert text.startswith("This will run 3 real ORCA geometry optimizations for 2 tautomer(s) and 2 stereoisomer(s) (the lowest distinct conformers of each; conformer search mmff_topk). ")
+    assert text.endswith("This can take a long time.")
+    card = prepare_tautomers("CC(C)=O").card_text()
+    assert "default conformer search" in card and "Full ORCA conformers box" in card and card.endswith(text)
+
+
+def test_the_full_conformer_search_is_the_other_wording():
+    prepared = prepare_tautomers("CC(C)=O", full=True)
+    assert prepared.policy.conformer_search == "full_orca" and "every retained sampled conformer of each; conformer search full_orca" in prepared.question()
+
+
+def test_a_long_run_asks_and_a_short_one_does_not_at_the_panels_threshold():
+    prepared = prepare_tautomers("CC(C)=O")
+    assert prepared.jobs == 3 and not prepared.asks_cost(3) and prepared.asks_cost(2)
+    assert prepared.asks_cost(CONFIRMATION_THRESHOLD) is (prepared.jobs > CONFIRMATION_THRESHOLD)
+
+
+def test_a_result_that_will_be_incomplete_asks_whatever_the_job_count():
+    truncated, _failures = generate_tautomer_candidates(ENGINE.mol_from_smiles("CC(O)C(C)O"), stereo_cap=1, policy=MODEL_POLICY_SINGLE)
+    prepared = tautomers_prepared(truncated, 0, MODEL_POLICY_SINGLE)
+    assert prepared.truncated >= 1 and prepared.asks_cost(1000) and "exceed the stereoisomer cap" in prepared.question() and "no population percentages" in prepared.question()
+    capped = dataclasses.replace(MODEL_POLICY_FULL, conformer_cap=1)
+    candidates, _failures = generate_tautomer_candidates(ENGINE.mol_from_smiles("CCCCCC=O"), policy=capped)
+    flexible = tautomers_prepared(candidates, 0, capped)
+    assert flexible.conformer_truncated >= 1 and flexible.asks_cost(1000) and "more distinct conformers than the cap (1)" in flexible.question()
+
+
+def test_no_candidates_is_a_refusal_that_counts_the_failed_embeddings():
+    assert tautomers_prepared([], 0, MODEL_POLICY_SINGLE).message == "No tautomer candidates could be generated for this molecule."
+    assert tautomers_prepared([], 2, MODEL_POLICY_SINGLE).message.endswith("(2 failed to embed in 3D.)")
+
+
+def test_embedding_failures_are_named_on_the_queued_line():
+    candidates, _failures = generate_tautomer_candidates(ENGINE.mol_from_smiles("CC(C)=O"), policy=MODEL_POLICY_SINGLE)
+    assert tautomers_prepared(candidates, 1, MODEL_POLICY_SINGLE).queued_text().endswith(", 1 embedding failure(s) excluded")
+
+
+@pytest.mark.parametrize(("smiles", "message"), [("", "Select a molecule with a structure first."), ("C(", "Tautomer distribution could not start: the structure could not be read.")])
+def test_a_structure_that_cannot_be_enumerated_is_refused_in_words(smiles, message):
+    refusal = prepare_tautomers(smiles)
+    assert isinstance(refusal, RunRefusal) and refusal.message == message
+
+
+def test_a_failure_while_enumerating_is_refused_with_its_message(monkeypatch):
+    import openchem.chem.quantum_run_request as request_module
+
+    def boom(*args, **kwargs):
+        raise RuntimeError("boom")
+
+    monkeypatch.setattr(request_module, "generate_tautomer_candidates", boom)
+    assert prepare_tautomers("CC(C)=O").message == "Tautomer distribution could not start: boom"
+
+
+def test_a_molecule_with_a_smiles_but_no_structure_is_not_enumerated():
+    refusal = prepare_tautomers_for(MoleculeModel(display_name="no structure", canonical_smiles="CC(C)=O"))
+    assert isinstance(refusal, RunRefusal) and refusal.message == "Select a molecule with a structure first." and prepare_tautomers_for(None).message == refusal.message
+
+
+def test_starting_hands_the_service_the_candidates_the_settings_and_the_drawings_identity():
+    molecule = MoleculeModel(display_name="Acetone")
+    ENGINE.set_structure_from_smiles(molecule, "CC(C)=O")
+    prepared = prepare_tautomers_for(molecule)
+    seen: list[dict] = []
+
+    class Service:
+        def request_tautomer_distribution(self, **kwargs):
+            seen.append(kwargs)
+
+    start_tautomer_distribution(Service(), ENGINE, molecule, prepared, 1, 2, "B3LYP def2-SVP")
+    (request,) = seen
+    assert request["candidates"] == list(prepared.candidates) and request["molecule_uuid"] == molecule.uuid and request["policy"] is prepared.policy
+    assert (request["charge"], request["multiplicity"], request["method_basis"]) == (1, 2, "B3LYP def2-SVP")
+    assert request["calculation_input"] == "drawing" and request["input_fingerprint"] == input_fingerprint(ENGINE, molecule, "drawing")

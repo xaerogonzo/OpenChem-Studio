@@ -474,3 +474,122 @@ def test_a_refusal_after_the_dialog_stops_the_button(bde_panel, monkeypatch):
     monkeypatch.setattr(panel_module, "prepare_bond_dissociation", lambda smiles, atoms=None: panel_module.RunRefusal("Bond dissociation does not apply: nope"))
     panel._on_bond_dissociation_clicked()
     assert panel._status_label.text() == "Bond dissociation does not apply: nope" and requests == [] and panel._pending_molecule_uuid is None
+
+
+# --- tautomer distribution: the three settings of a card, run on the drawing with the default conformer search ------------------------------------------
+
+
+def _taut_panel(smiles="CC(C)=O"):
+    """A panel whose service double records tautomer-distribution requests."""
+    panel, engine, service = _make_panel()
+    molecule = MoleculeModel(display_name=smiles)
+    engine.set_structure_from_smiles(molecule, smiles)
+    project = ProjectModel(name="t")
+    project.molecules.append(molecule)
+    panel.set_project(project)
+    panel._molecule_combo.setCurrentIndex(0)
+    return panel, molecule, service, service.tautomer_distribution_requests
+
+
+@pytest.fixture
+def taut_panel(qapp):
+    made = []
+
+    def build(*args, **kw):
+        built = _taut_panel(*args, **kw)
+        made.append(built[0])
+        return built
+
+    yield build
+    for panel in made:
+        _dispose_panel(panel)
+
+
+TAUT = choice(calc_type="tautomer_distribution", method_basis="PBE0 def2-TZVP", charge=0, multiplicity=1)
+
+
+def test_a_card_starts_tautomers_with_what_the_button_hands_the_service_but_the_cards_settings(taut_panel):
+    button_panel, _molecule, _service, by_button = taut_panel("CC(C)=O")
+    button_panel._method_combo.setCurrentText("HF STO-3G")
+    button_panel._on_tautomer_distribution_clicked()
+    panel, molecule, _service, by_card = taut_panel("CC(C)=O")
+    panel._method_combo.setCurrentText("HF STO-3G")
+    assert panel.start_assistant_run(molecule.uuid, TAUT, drawing_fingerprint(panel, molecule)) == ""
+    assert len(by_button) == len(by_card) == 1
+    for key in ("calculation_input", "input_fingerprint", "policy"):
+        assert by_card[0][key] == by_button[0][key], key
+    assert len(by_card[0]["candidates"]) == len(by_button[0]["candidates"]) == 3
+    assert by_card[0]["molecule_uuid"] == molecule.uuid and by_card[0]["calculation_input"] == "drawing"
+    # The settings are the card's, not the panel's boxes.
+    assert (by_card[0]["method_basis"], by_card[0]["charge"], by_card[0]["multiplicity"]) == ("PBE0 def2-TZVP", 0, 1)
+    assert by_button[0]["method_basis"] == "HF STO-3G"
+
+
+def test_a_card_uses_the_default_conformer_search_whatever_the_full_box_says(taut_panel):
+    panel, molecule, _service, requests = taut_panel("CC(C)=O")
+    panel._tautomer_full_check.setChecked(True)
+    assert panel.start_assistant_run(molecule.uuid, TAUT, drawing_fingerprint(panel, molecule)) == ""
+    assert requests[0]["policy"].conformer_search == "mmff_topk"
+
+
+def test_a_tautomer_card_needs_no_conformer_and_the_panel_waits_as_it_does_for_its_own(taut_panel):
+    panel, molecule, _service, requests = taut_panel("CC(C)=O")
+    assert molecule.conformers == []
+    assert panel.start_assistant_run(molecule.uuid, TAUT, drawing_fingerprint(panel, molecule)) == ""
+    assert panel._pending_molecule_uuid == molecule.uuid and panel._status_label.text() == "queued -- 3 optimization(s) for 2 tautomer(s)"
+    assert not panel._run_button.isEnabled() and not panel._tautomer_distribution_button.isEnabled() and panel._cancel_button.isEnabled()
+    assert panel._pending_conformer_molblock == "" and panel._pending_mol is not None and len(requests) == 1
+
+
+def test_no_dialog_is_shown_for_a_tautomer_card_that_is_long_or_incomplete(taut_panel, monkeypatch):
+    from PySide6.QtWidgets import QMessageBox
+
+    monkeypatch.setattr(QMessageBox, "question", staticmethod(lambda *a, **k: pytest.fail("the card showed the cost")))
+    monkeypatch.setattr(panel_module, "CONFIRMATION_THRESHOLD", 1)
+    panel, molecule, _service, requests = taut_panel("CCOC(=O)CC(C)=O")
+    assert panel.start_assistant_run(molecule.uuid, TAUT, drawing_fingerprint(panel, molecule)) == "" and len(requests) == 1
+
+
+def test_a_blank_method_is_refused_in_the_buttons_words(taut_panel):
+    panel, molecule, _service, requests = taut_panel("CC(C)=O")
+    reason = panel.start_assistant_run(molecule.uuid, choice(calc_type="tautomer_distribution", method_basis="  "), drawing_fingerprint(panel, molecule))
+    assert reason == "Enter a method/basis (e.g. 'B3LYP def2-SVP')." and requests == [] and panel._pending_molecule_uuid is None
+
+
+def test_a_molecule_with_no_candidates_is_refused_in_words(taut_panel, monkeypatch):
+    monkeypatch.setattr("openchem.chem.quantum_run_request.generate_tautomer_candidates", lambda mol, policy=None: ([], 2))
+    panel, molecule, _service, requests = taut_panel("CC(C)=O")
+    reason = panel.start_assistant_run(molecule.uuid, TAUT, drawing_fingerprint(panel, molecule))
+    assert reason == "No tautomer candidates could be generated for this molecule. (2 failed to embed in 3D.)" and requests == [] and panel._pending_molecule_uuid is None
+
+
+def test_a_drawing_edited_after_the_tautomer_card_is_not_run(taut_panel):
+    panel, molecule, _service, requests = taut_panel("CC(C)=O")
+    before = drawing_fingerprint(panel, molecule)
+    panel._chemistry_engine.set_structure_from_smiles(molecule, "CCC(C)=O")
+    assert "edited after this was prepared" in panel.start_assistant_run(molecule.uuid, TAUT, before)
+    assert requests == [] and panel._pending_molecule_uuid is None
+
+
+def test_tautomers_wait_behind_a_job_the_panel_is_already_running(taut_panel):
+    panel, molecule, _service, requests = taut_panel("CC(C)=O")
+    assert panel.start_assistant_run(molecule.uuid, TAUT, drawing_fingerprint(panel, molecule)) == ""
+    assert "busy with another calculation" in panel.start_assistant_run(molecule.uuid, TAUT, drawing_fingerprint(panel, molecule)) and len(requests) == 1
+
+
+def test_tautomers_are_not_started_again_for_a_molecule_the_service_is_running(taut_panel):
+    panel, molecule, service, requests = taut_panel("CC(C)=O")
+    assert service._job_manager.try_start("quantum_chemistry", molecule.uuid)
+    assert "already running for this molecule" in panel.start_assistant_run(molecule.uuid, TAUT, drawing_fingerprint(panel, molecule)) and requests == []
+
+
+def test_the_panel_shows_the_molecule_a_tautomer_card_is_for(taut_panel):
+    panel, acetone, _service, requests = taut_panel("CC(C)=O")
+    other = MoleculeModel(display_name="Other")
+    panel._chemistry_engine.set_structure_from_smiles(other, "CCC")
+    panel._project.molecules.insert(0, other)
+    panel.set_project(panel._project)
+    panel._molecule_combo.setCurrentIndex(0)
+    assert panel._molecule_combo.currentData() == other.uuid
+    assert panel.start_assistant_run(acetone.uuid, TAUT, drawing_fingerprint(panel, acetone)) == ""
+    assert panel._molecule_combo.currentData() == acetone.uuid and requests[0]["molecule_uuid"] == acetone.uuid
