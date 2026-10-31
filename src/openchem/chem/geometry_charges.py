@@ -31,12 +31,15 @@ datasets assume heavy atoms come first" in Known TODOs.
 
 from __future__ import annotations
 
+from types import SimpleNamespace
 from typing import Any
 
 import numpy as np
 from rdkit import Chem
 
 from openchem.chem import charge_equilibration as ce
+from openchem.chem import resonance_forms as rf
+from openchem.chem import typed_eem as te
 from openchem.chem.calculator_options import decimals
 from openchem.chem.geometry_analysis import NoConformerError, _require_conformer
 from openchem.chem.protonation_geometry import (
@@ -71,6 +74,10 @@ QEQ_RG1991_LAMBDA_HALF_H_EXPERIMENTAL = "qeq_rg1991_lambda_half_h_experimental"
 EEM_IONESCU2013_E_MPA_631GS_GAS = "eem_ionescu2013_e_mpa_631gs_gas"
 #: The same at 6-31G**. See `EEM_IONESCU2013_E_MPA_631GS_GAS`.
 EEM_IONESCU2013_E_MPA_631GSS_GAS = "eem_ionescu2013_e_mpa_631gss_gas"
+#: NEEMP 2016's Ccd2016 model (the CCD_gen, DE-MIN with RMSD, B3LYP/6-311G NPA file of that paper's Additional file 6): an EEM typed by element and highest bond order, fitted to
+#: the NPA charges of wwPDB ligands. Its plan, checks and result are `benchmarks/charges/models/eem_second_models_preregistration.md`; the nitro and carboxylate option is
+#: `benchmarks/charges/models/eem_resonance_typing_design.md`. Jiroušková's Merz-Kollman model is PAUSED and is NOT offered.
+EEM_NEEMP2016_CCD_GEN_NPA = "eem_neemp2016_ccd_gen_npa"
 #: Each Ionescu code's scheme name in the paper and in `data/eem_ionescu2013.json`.
 IONESCU_SCHEMES = {
     EEM_IONESCU2013_E_MPA_631GS_GAS: "E-MPA/6-31G*/gas",
@@ -82,6 +89,7 @@ IONESCU_SCHEMES = {
 GEOMETRY_CHARGE_METHODS = (
     EEM_BULTINCK2002_PART1, QEQ_RG1991_LAMBDA_HALF_H_EXPERIMENTAL,
     EEM_IONESCU2013_E_MPA_631GS_GAS, EEM_IONESCU2013_E_MPA_631GSS_GAS,
+    EEM_NEEMP2016_CCD_GEN_NPA,
 )
 #: What each stored code is called on screen.
 GEOMETRY_CHARGE_METHOD_LABELS = {
@@ -89,6 +97,7 @@ GEOMETRY_CHARGE_METHOD_LABELS = {
     QEQ_RG1991_LAMBDA_HALF_H_EXPERIMENTAL: "QEq, Rappé–Goddard 1991",
     EEM_IONESCU2013_E_MPA_631GS_GAS: "EEM, Ionescu 2013, Mulliken 6-31G*",
     EEM_IONESCU2013_E_MPA_631GSS_GAS: "EEM, Ionescu 2013, Mulliken 6-31G**",
+    EEM_NEEMP2016_CCD_GEN_NPA: "EEM, NEEMP 2016, NPA 6-311G",
 }
 #: The short name each refusal message speaks of.
 _METHOD_SHORT = {
@@ -96,6 +105,7 @@ _METHOD_SHORT = {
     QEQ_RG1991_LAMBDA_HALF_H_EXPERIMENTAL: "QEq",
     EEM_IONESCU2013_E_MPA_631GS_GAS: "Ionescu EEM",
     EEM_IONESCU2013_E_MPA_631GSS_GAS: "Ionescu EEM",
+    EEM_NEEMP2016_CCD_GEN_NPA: "NEEMP EEM",
 }
 
 #: A stable identifier for how an Ionescu result was validated, persisted with every result and
@@ -121,6 +131,25 @@ IONESCU_EXTRAPOLATION_NOTE = (
 )
 #: Added when an element with a negative effective hardness is present (preregistration §4).
 IONESCU_SADDLE_NOTE = "These charges are the model's stationary point, not an energy minimum."
+
+#: A stable identifier for how a NEEMP result was checked, persisted with every result and resolved to wording by the help layer.
+NEEMP_SCOPE_ID = "neemp2016_ccd_gen_npa_checks_v1"
+#: What `NEEMP_SCOPE_ID` means, for the help layer and the user guide. Every sentence is a measured or a stated limit, none a claim of accuracy.
+NEEMP_VALIDATION_SCOPE = (
+    "NEEMP 2016's Ccd2016 EEM, typed by element and highest bond order (H, C with 1 to 3, N with 1 to 3, O, F, S with 1 or 2, Cl, Br, P with 2), fitted by its authors to the B3LYP/6-311G "
+    "NPA charges of wwPDB ligands whose structures were generated and not optimised. These charges are NPA-like: they are not Mulliken and not Merz-Kollman charges, and are not the "
+    "charges of this application's other EEM methods. Checked here: the published parameters are reproduced exactly and the solver agrees with an independent one to 1e-12 e; "
+    "the charges move by about 0.02 e on average (up to 0.1 e) between the raw and the force-field-optimised conformer; the largest charges, up to 2.7 e, are all on sulfur "
+    "bonded to two oxygens or phosphorus, which have not yet been compared with a reference. Not checked: that the charges agree with NPA charges of this molecule (NPA could not be "
+    "computed here). Boron, iodine, metals and trivalent phosphorus are refused."
+)
+#: Above this charge on an S2 or P2 atom a result carries a warning (check C7, `eem_second_models_preregistration.md` section 12).
+NEEMP_OXIDISED_WARN_E = 1.5
+#: What the reader shows beside every computed NEEMP result.
+NEEMP_NOTE = (
+    "NEEMP 2016's EEM, fitted to NPA charges of PDB ligands. NPA-like charges, not Mulliken or Merz-Kollman ones; not checked against NPA charges of this molecule; moves by about 0.02 e "
+    "with the geometry; sulfur bonded to two oxygens and phosphorus can carry charges above 2 e that have not been checked."
+)
 
 #: A8's validation scope, verbatim. Recorded beside a QEq result as how the
 #: method was validated; it is not part of what was computed.
@@ -209,6 +238,13 @@ _SHORT = {
     REFUSE_PROTONATION_FAILED: "Protonation state unavailable",
     REFUSE_OXIDISED_SULFUR: "Sulfur bonded to oxygen",
     ce.REFUSE_CHARGE_BOUND_EXCEEDED: "Runaway charge",
+    te.REFUSE_TYPE_NOT_PARAMETERISED: "Atom type not parameterised",
+    te.REFUSE_BAD_BONDS: "Bonds not usable",
+    te.REFUSE_RESONANCE_DEPENDENT: "Depends on how it is drawn",
+    rf.REFUSE_MULTIPLE_COMPONENTS: "Several components",
+    rf.REFUSE_UNPAIRED_ELECTRON: "Unpaired electron",
+    rf.REFUSE_TOO_MANY_RESONANCE_FORMS: "Too many resonance forms",
+    rf.REFUSE_NOT_KEKULISABLE: "Cannot be kekulised",
 }
 
 #: Sigma q must equal the net charge to this. A necessary check, never evidence
@@ -292,6 +328,10 @@ def compute_geometry_charges(mol: Chem.Mol, molecule_uuid: str, parameters: dict
     if method not in GEOMETRY_CHARGE_METHODS:
         raise ValueError(f"Unknown geometry charge method {method!r}; expected one of {GEOMETRY_CHARGE_METHODS}")
     include_hydrogens = bool(parameters.get("include_hydrogens", False))
+    # Only the NEEMP method has an atom whose type can depend on how the structure is drawn; the others ignore this and do not record it. Checked always: a wrong code is a bug, not a default.
+    resonance = str(parameters.get("resonance", te.RESONANCE_AVERAGED))
+    if resonance not in te.RESONANCE_VALUES:
+        raise ValueError(f"Unknown resonance option {resonance!r}; expected one of {te.RESONANCE_VALUES}")
     # `ph_dependent` is the registered, user-facing switch; `protonation` is the internal mode it
     # selects, still accepted so a caller can name the mode directly.
     mode = str(parameters.get("protonation", AT_PH_MODE if parameters.get("ph_dependent") else AS_DRAWN_MODE))
@@ -390,6 +430,12 @@ def compute_geometry_charges(mol: Chem.Mol, molecule_uuid: str, parameters: dict
         result = ce.ionescu_charges(elements, positions, IONESCU_SCHEMES[method], net_charge)
         if result.status != "converged":
             return refuse(result.status, result.message)
+    elif method == EEM_NEEMP2016_CCD_GEN_NPA:
+        # The conformer is handed over whole: the typed solver reads its bonds (kekulised), finds the resonance forms and refuses what it cannot type, each by name.
+        typed = rf.typed_eem_for_molecule(mol, te.NEEMP2016_CCD_GEN_NPA, resonance=resonance)
+        if typed.status != "converged":
+            return refuse(typed.status, typed.message, {"resonance": resonance, "atom_types": list(typed.atom_types), "variable_atoms": list(typed.variable_atoms), "alternative": typed.alternative})
+        result = SimpleNamespace(charges=typed.charges, solver_to_source=list(range(len(elements))), status="converged")
     else:
         result = ce.eem_charges(elements, positions, net_charge)
         if result.status != "converged":
@@ -465,6 +511,35 @@ def compute_geometry_charges(mol: Chem.Mol, molecule_uuid: str, parameters: dict
             "summary": IONESCU_EXTRAPOLATION_NOTE + (f" {IONESCU_SADDLE_NOTE}" if stationary == "saddle" else ""),
             "validation": {"preregistration": "benchmarks/charges/models/ionescu_src_preregistration.md",
                            "scope_id": IONESCU_SCOPE_ID},
+        }
+    elif method == EEM_NEEMP2016_CCD_GEN_NPA:
+        entry = te.parameters()[te.NEEMP2016_CCD_GEN_NPA]
+        notes = [NEEMP_NOTE]
+        if typed.claim:
+            notes.append(typed.claim)
+        notes.extend(typed.warnings)
+        # C7 (run 2026-10-31): against CHELPG and Loewdin charges at B3LYP/6-31G*, the S2 and P2 charges of this model were over 0.5 e too high in 9 of 10 and 4 of 4
+        # molecules. The references are not NPA, so this is a warning on the atom and not a refusal.
+        big = [i for i, t in enumerate(typed.atom_types) if t in ("S2", "P2") and abs(typed.charges[i]) > NEEMP_OXIDISED_WARN_E]
+        if big:
+            notes.append(f"Atom(s) {', '.join(str(i) for i in big)} (sulfur bonded to two oxygens, or phosphorus) carry more than {NEEMP_OXIDISED_WARN_E} e; "
+                         "in the check against CHELPG and Loewdin charges this model ran about 1 e higher on such atoms. Treat them as unreliable.")
+        computed = {
+            "parameter_set": "neemp_2016_ccd2016_ccd_gen_de_rmsd_b3lyp_6311g_npa",
+            "scheme": entry["scheme"],
+            "source": "neemp2016 (J. Cheminform. 2016, 8, 57; doi:10.1186/s13321-016-0171-1)",
+            "equation_convention": "neemp_eem_B_diagonal_kappa_over_r_angstrom_A_B_pauling_units",
+            "kappa": entry["kappa"],
+            "units": "the paper's own (A and B in Pauling units); r in angstrom",
+            "parameter_fixture_sha256": entry["fixture_sha256"],
+            "atom_types": list(typed.atom_types),
+            "resonance": typed.resonance,
+            "resonance_variable_atoms": list(typed.variable_atoms),
+            "resonance_forms_averaged": typed.forms_used,
+            "equalized_electronegativity_paper_units": typed.equalized_electronegativity,
+            "applicability": "extrapolation",
+            "summary": " ".join(notes),
+            "validation": {"preregistration": "benchmarks/charges/models/eem_second_models_preregistration.md", "scope_id": NEEMP_SCOPE_ID},
         }
     else:
         computed = {

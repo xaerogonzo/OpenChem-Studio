@@ -77,6 +77,21 @@ Charges that reproduce Hartree-Fock Mulliken charges on proteins. The paper repo
 #### Sources
 - [source:ionescu2013] -- the models, their reference charges, their validation numbers and the negative-hardness behaviour
 
+### Method: eem_neemp2016_ccd_gen_npa
+
+#### How it works
+An EEM like Bultinck's, with one parameter pair per atom type, where the type is the element and its highest bond order (a carbon in a double bond is C2, in a nitrile C3). The parameters are the Ccd2016 set of the NEEMP paper, fitted by its authors to B3LYP/6-311G natural population analysis charges of PDB ligands whose structures were generated and not optimised [source:neemp2016]. The distance is read in angstrom, as the authors' program reads it; a check against Hartree-Fock-level references could not tell angstrom from bohr for this set (ratio 1.1), so that rests on the program.
+
+Because the type depends on the bond orders, the two oxygens of a nitro group or a carboxylate get different parameters depending on which way the structure is drawn. The option "Nitro and carboxylate typing" decides: **average** (the default) uses for each such atom the mean of its parameters over the resonance forms, so the answer depends on the structure and not on the drawing (an extension of the paper's model); **as drawn** types the bonds as given and warns that the result can change by about 0.1 e with the drawing; **refuse** declines such a structure.
+
+Shipped: H, C (1 to 3), N (1 to 3), O (1, 2), F, S (1, 2), Cl, Br and P (2). Boron, iodine, metals, trivalent phosphorus, several components and unpaired electrons are refused, each with its reason.
+
+#### What the result means
+NPA-like charges, not Mulliken and not Merz-Kollman, so they are not comparable with the other three methods. Measured here: the charges move by about 0.02 e on average (up to 0.1 e) between a raw and an optimised conformer. Sulfur bonded to two oxygens and phosphorus can come out above 2 e; against CHELPG and Loewdin charges at B3LYP/6-31G* the model was over 0.5 e higher on 9 of 10 sulfur and 4 of 4 phosphorus molecules. Those references are not NPA, so the result carries a warning and is not refused. It has not been checked against NPA charges of the molecule drawn.
+
+#### Sources
+- [source:neemp2016] -- the model, its parameter file and its equation
+
 ## gasteiger_charge_at_ph
 
 ### What it does

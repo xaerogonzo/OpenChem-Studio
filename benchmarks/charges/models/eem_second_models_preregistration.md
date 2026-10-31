@@ -395,3 +395,13 @@ for a type: S2, C3, N3, P).
 
 **Still not run:** C5 (the distance unit against reference charges) and C7 (the oxidised sulfur and phosphorus survey), which need ORCA and wait for Alex's job to finish. C8's
 result is the reason C7 matters most: it is the one population where Model N's largest charges live.
+
+## 12. C5 and C7 — RESULT (2026-10-31, ORCA 6.1.1, B3LYP/6-31G*, run by `eem_second_models_c5_c7.py`; result `eem_second_models_results/c5_c7.json`, judge held by `tests/test_eem_second_models_c5_c7.py`)
+
+References are CHELPG, Loewdin and Mulliken charges on the MMFF conformer. **NPA could not be computed here (no NBO program), so every comparison for Model N is across schemes**: a difference over 0.5 e cannot tell a scheme difference from an error.
+
+**C5, distance unit (12 small molecules, 31 heavy atoms).** Model J: angstrom, mean error 0.141 against 0.241 for bohr, ratio 1.71, discriminated. Model N: 0.226 against 0.248, ratio 1.10, **not discriminated** (the rule stays angstrom, as the authors' code reads it). Model J is paused; N's unit rests on the code, not on this check.
+
+**C7, oxidised sulfur and phosphorus (10 S2 molecules, 4 P2 molecules).** By the registered rule (refuse a type if the model differs from the reference by more than 0.5 e on 3 or more molecules) **the rule says refuse both**: S2 differs from CHELPG on 9 of 10 and from Loewdin on 7 of 10; P2 on 4 of 4 for both. Mean charge on S2: model 1.53 e, CHELPG 0.65, Loewdin 0.91, Mulliken 0.85; on P2: model 2.19 e, CHELPG 1.07, Loewdin 0.98, Mulliken 1.08. The largest are 2.39 e (S2) and 2.40 e (P2).
+
+**What was shipped, and the decision left open.** Because the references are not NPA (NPA is known to give larger charges on hypervalent atoms than CHELPG), the rule's verdict is not applied as a refusal. The method is wired with a **warning** on any S2 or P2 atom above 1.5 e, saying the model ran about 1 e higher against other schemes. Whether to refuse these types instead is the owner's call; the single change is to add them to `OUT_OF_SCOPE_TYPES` in `chem/typed_eem.py`. An NPA reference (an NBO install) would settle it.
