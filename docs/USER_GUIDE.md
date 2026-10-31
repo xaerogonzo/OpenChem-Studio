@@ -3415,10 +3415,11 @@ kept, which asks first.
   window's title bar included. The same choice is in **View ▸ Theme**, and the
   checked entry there is the choice you made, so Follow the system stays checked
   while the window happens to be dark. It applies at once. The 3D viewer follows;
-  in the 2D editor the toolbars and the drawing area go dark, bonds and carbon
-  labels turn white, and atom colours (nitrogen blue, oxygen red), selection and
-  hover stay exactly as they were, as does a picture you export; the macromolecule
-  viewer's canvas goes dark but its side panels keep their light styling.
+  in the 2D editor the toolbars, the editor's own dialogs and the drawing area go
+  dark, bonds and carbon labels turn white, and atom colours (nitrogen blue,
+  oxygen red), selection and hover stay exactly as they were, as does a picture
+  you export; the macromolecule viewer's canvas and its side panels go dark too,
+  and the structure keeps its own colours.
 - **Panels.** By default, choosing a panel from the rail hides the other
   right-hand panels in its area, so the one you chose gets the whole column.
   A panel you have dragged somewhere else, or floated, is never hidden. Turn

@@ -78,8 +78,12 @@ page's background colour so a dark window never flashes white. The QtWebEngine b
 
 * **3D viewer** (`resources/viewer3d/viewer.html`): `setAppearance` sets the background, the gallery cells' backgrounds, the label ink
   and the overlay chrome.
-* **Macromolecule viewer** (`resources/molstar/viewer.html`): the canvas background and the page. Mol*'s own panels (sequence, left
-  and right controls) are the one light skin this build ships, and **stay light**.
+* **Macromolecule viewer** (`resources/molstar/viewer.html`): the canvas background, the page, and (since 2026-10-31) Mol*'s own
+  panels. Mol*'s skin is one light stylesheet with literal colours and no variables, so it cannot be re-themed by a variable; but its
+  layout regions are stable `msp-layout-*` classes and the 3D canvas lives in `.msp-layout-main`. `setChromeLook` therefore filters
+  `.msp-layout-top`, `-left`, `-right` and `-bottom` with the same `invert(0.88) hue-rotate(180deg)` the editor's toolbars use, in one
+  `<style id="openchem-appearance">`, and light is no stylesheet. The structure's colours never pass through a filter:
+  `tests/test_web_appearance_live.py` asserts every ancestor of `.msp-viewport` has `filter: none` while the three panels have one.
 * **2D editor** (Ketcher): see below.
 
 ### Ketcher: dark toolbars, a dark drawing area, ink recoloured and nothing else
@@ -88,7 +92,11 @@ The four toolbars (top, left, right, bottom; `KETCHER_CHROME_SELECTORS`) are fil
 the editor's white to the application's dark surface. **Nothing that holds or is held by the drawing area is filtered**, and
 `tests/test_web_appearance_live.py` asserts in the live page that the canvas and every ancestor have `filter: none` while each toolbar
 has one, and that each selector matches exactly one element, so a rebuilt editor that renames a CSS module fails a test instead of
-leaving a toolbar light without a sound. The editor's own dialogs (periodic table, atom properties and so on) keep their light styling.
+leaving a toolbar light without a sound. **The editor's own dialogs** (atom and bond properties, settings, the periodic table and the
+rest) used to stay a white box in a dark window; each is one `<dialog class="Dialog-module_dialog…">` that exists only while it is open,
+inside `Modal-module_modalOverlay` and not inside the editor, so `KETCHER_DIALOG_SELECTORS` adds it to the same filter rule (it cannot
+be counted at rest, so a live test opens a real Atom Properties dialog and asserts the filter, and that the canvas chain is still clean).
+A hue rotation approximates the dialog's coloured buttons, as it does the toolbars'; a structure thumbnail inside a dialog is chrome too.
 
 **The drawing area itself used to stay white (decided 2026-10-26, "an untouched drawing area") and went dark on 2026-10-27**, once
 the DOM was read instead of filtered. Measured on the live page for a six-atom drawing: the editor writes its ink as the attribute
@@ -107,6 +115,47 @@ screenshot, but the colours did not return: nitrogen `(48, 139, 249)` came back 
 `(255, 103, 103)`, and 91,392 of 702,000 pixels in the drawing region differed by more than 24. A hue rotation is clamped per channel
 and does not undo. A drawing in which oxygen is pink is chemically misleading, so the approach is not in the code.
 
+## The colour sweep (2026-10-31)
+
+A second pass, after the first dark mode shipped, asked what the first one had missed. Method: every hex literal in the UI's own Python
+and the plugins (about 190 sites, 81 distinct values) was classified, every panel and 19 dialogs were shot in dark, and the
+literals' contrast was measured against the dark field `#2d2d2d` (the lighter of the two dark surfaces) and the base `#1e1e1e`.
+Of the 81 values, 16 have a dark value, 39 already read at 4.5:1 or better on the field, and 26 do not and were each reviewed
+(the 26 are the list in `tests/test_colour_literals.py`). The painted `QColor` constants traced to their draw sites (the atom diagram, the IR and stick spectra, the
+histogram, the project table, the periodic table) go through `theme.ink`; the survey shots showed no painted widget unreadable. The vendored Ketcher bundle (1,000-odd literals) is third-party and was excluded by design.
+
+| Class | Count | Example | What decides it |
+|---|---|---|---|
+| Theme-managed text | 16 literals | `#666666` muted, `#c62828` fault | a `_DARK_FOR_LIGHT` value held to 4.5:1 by `tests/test_theme.py` |
+| Painted through `theme.ink` | most painters | histogram, spectra, atom diagram, project-table brushes | lifted only as far as 4.5:1 requires; measured 4.5 to 4.7 after lifting |
+| Data colours, intentionally fixed | 8 literals | Okabe-Ito series, contact-kind layers, heat-map ramps | the colour is the data; the 3D viewer paints them on its own background |
+| Surfaces | 3 literals | `#1e1e1e`, `#1f1f1f`, `#2d2d2d` | they are the dark, not ink on it |
+| **Leak: found and fixed** | **3** | see below | |
+
+The leaks the sweep found:
+
+* The 2D editor's modal dialogs were white boxes (fixed above, `KETCHER_DIALOG_SELECTORS`).
+* The macromolecule viewer's three panels were cream in a dark window (fixed above, `setChromeLook`).
+* `ir_view_widget` set an imaginary mode's row in `Qt.GlobalColor.red`: pure red is 3.4:1 on the dark field. It goes through `theme.ink`
+  now (identical in light; the brush is chosen when the row is built, like the project table's).
+
+**Not changed, on purpose.** Every colour that carries the data kept its value. The only ones that read below 4.5:1 on the dark field are
+`#009e73` (4.0:1 on the field, 4.9:1 on the base) and a status chip's `#ef6c00` (4.5:1 on the field, 5.4:1 on the base), listed with their
+reasons in `tests/test_colour_literals.py`. **That test is the guard:** it fails on a new hex literal that is neither mapped, readable
+(4.5:1 on the field) nor listed with a reason, and on a listed entry that nothing writes any more, so the list only shrinks.
+
+### Rendering systems
+
+| System | How it follows the look | Known exceptions |
+|---|---|---|
+| Qt widgets | the application palette plus `theme.style` for a colour that means something | a table brush is chosen when the row is built |
+| Painted widgets (charts, spectra, atom diagram) | `theme.ink`, `faint`, `panel_fill`, `repaint_on_change` | data series colours (kept, lifted only to 4.5:1) |
+| 2D editor (Ketcher) | a stylesheet: toolbars and dialogs filtered, drawing ink recoloured by value | a custom ink colour the editor writes, which reads as well as it did |
+| 3D viewer | `setAppearance`: background, overlay chrome, label ink | the structure's own colours |
+| Macromolecule viewer (Mol*) | `setAppearance`: canvas, page, and the four layout regions filtered | the structure's own colours; the canvas overlay's own buttons |
+| Help | a `QTextBrowser` on the palette | none found |
+| Chemical depictions (Lewis, density heat map) | `theme.paper`: white paper in a dark window | by design: ink chosen for white |
+
 ## Where the two controls meet
 
 Settings' combo and the View menu both read `Settings.preference(APPEARANCE)`, both write through `Settings.set_preference`, and both
@@ -117,7 +166,8 @@ no default shortcut.
 
 ## What this does not do
 
-* The macromolecule viewer's side panels and the 2D editor's dialogs are light in a dark window.
+* A hue rotation approximates the coloured buttons inside a filtered web region (the editor's toolbars and dialogs, Mol*'s panels); a
+  button's label reads, but its hue is not exactly the original. Nothing a person reads a result from is filtered.
 * An ink the editor draws in a value other than black (a custom atom colour, a `#333` annotation) is left as it is, and reads on the
   dark surface only as well as its own colour does.
 * Colours that carry the data (element colours, the colour-blind-safe series, periodic-table categories, the structure checker's

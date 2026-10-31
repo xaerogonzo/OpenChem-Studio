@@ -17,7 +17,11 @@ from openchem.ui import theme
 from openchem.ui.widgets.ketcher_editor_backend import KetcherEditorBackend
 from openchem.ui.widgets.mol3d_viewer_backend import Mol3DViewerBackend
 from openchem.ui.widgets.molstar_viewer_backend import MolStarViewerBackend
-from openchem.ui.widgets.web_appearance import KETCHER_CHROME_SELECTORS, KETCHER_DARK_CSS
+from openchem.ui.widgets.web_appearance import (
+    KETCHER_CHROME_SELECTORS,
+    KETCHER_DARK_CSS,
+    KETCHER_DIALOG_SELECTORS,
+)
 
 LIGHT = EffectiveAppearance.LIGHT
 DARK = EffectiveAppearance.DARK
@@ -108,6 +112,35 @@ def test_dark_filters_the_toolbars_and_nothing_that_holds_the_drawing(qapp):
     assert _eventually(
         qapp, backend._page, f"getComputedStyle(document.querySelector('{KETCHER_CHROME_SELECTORS[1]}')).filter", "none"
     )
+
+
+_DIALOG = KETCHER_DIALOG_SELECTORS[0]
+
+
+def test_the_editors_own_dialog_is_dark_while_it_is_open_and_the_drawing_is_still_unfiltered(qapp):
+    """A real Atom Properties dialog, opened through the backend: it was a white box in a dark window."""
+    backend = KetcherEditorBackend()
+    assert _wait_until(qapp, lambda: backend._ketcher_ready)
+    _draw_methylamine(qapp, backend)
+    theme.set_effective(DARK)
+    assert _eventually(qapp, backend._page, _KETCHER_CSS, KETCHER_DARK_CSS)
+
+    backend.open_atom_editor(1)
+    filter_of_dialog = f"(document.querySelector('{_DIALOG}') ? getComputedStyle(document.querySelector('{_DIALOG}')).filter : 'no dialog')"
+    assert _wait_until(
+        qapp, lambda: "invert" in str(_page_value(qapp, backend._page, filter_of_dialog)), timeout_seconds=20
+    ), "the editor's dialog is not filtered (a renamed CSS module?)"
+
+    canvas_chain = (
+        "(function () { var e = document.querySelector('[class*=\"StructEditor-module_canvas\"]'); var bad = [];"
+        " while (e && e !== document.documentElement) {"
+        "   if (getComputedStyle(e).filter !== 'none') bad.push(e.className.toString()); e = e.parentElement; }"
+        " return JSON.stringify(bad); })()"
+    )
+    assert _page_value(qapp, backend._page, canvas_chain) == "[]"
+
+    theme.set_effective(LIGHT)
+    assert _eventually(qapp, backend._page, filter_of_dialog, "none")
 
 
 _CANVAS_PAINT = (
@@ -224,6 +257,48 @@ def test_the_macromolecule_page_is_told_and_is_told_again(qapp):
 
     theme.set_effective(LIGHT)
     assert _eventually(qapp, backend._page, "document.documentElement.style.colorScheme", "light")
+
+
+_MOLSTAR_PANELS = (".msp-layout-top", ".msp-layout-left", ".msp-layout-right")
+_MOLSTAR_CANVAS_CHAIN = (
+    "(function () { var e = document.querySelector('.msp-viewport'); var bad = [];"
+    " while (e && e !== document.documentElement) {"
+    "   if (getComputedStyle(e).filter !== 'none') bad.push(e.className.toString()); e = e.parentElement; }"
+    " return e === null ? 'no canvas' : JSON.stringify(bad); })()"
+)
+
+
+def _molstar_filters(qapp, backend) -> dict[str, str]:
+    script = (
+        "(function () { var out = {}; %s.forEach(function (s) { var e = document.querySelector(s);"
+        " out[s] = e ? getComputedStyle(e).filter : 'missing'; }); return JSON.stringify(out); })()"
+    ) % list(_MOLSTAR_PANELS)
+    import json
+
+    return json.loads(_page_value(qapp, backend._page, script))
+
+
+def test_the_macromolecule_panels_are_dark_and_the_canvas_is_never_filtered(qapp):
+    """Mol*'s panels were one light skin in a dark window; they are filtered, and nothing above the 3D canvas is."""
+    backend = MolStarViewerBackend()
+    backend.ensure_built()
+    assert _wait_until(qapp, lambda: backend._viewer_ready)
+
+    theme.set_effective(DARK)
+    assert _wait_until(
+        qapp, lambda: all("invert" in value for value in _molstar_filters(qapp, backend).values()), timeout_seconds=20
+    ), _molstar_filters(qapp, backend)
+    # The viewport is built after the viewer reports ready, and later still when the machine is busy
+    # (the whole suite lost the GPU context mid-run and read "no canvas" once); wait for it, then assert.
+    assert _wait_until(
+        qapp, lambda: _page_value(qapp, backend._page, _MOLSTAR_CANVAS_CHAIN) != "no canvas", timeout_seconds=20
+    )
+    assert _page_value(qapp, backend._page, _MOLSTAR_CANVAS_CHAIN) == "[]"
+
+    theme.set_effective(LIGHT)
+    assert _wait_until(
+        qapp, lambda: set(_molstar_filters(qapp, backend).values()) == {"none"}, timeout_seconds=20
+    ), _molstar_filters(qapp, backend)
 
 
 def test_the_3d_page_follows_the_look_and_keeps_its_structure(qapp):

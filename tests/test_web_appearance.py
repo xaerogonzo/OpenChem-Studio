@@ -19,6 +19,7 @@ from openchem.ui.widgets.web_appearance import (
     KETCHER_CHROME_SELECTORS,
     KETCHER_CANVAS,
     KETCHER_DARK_CSS,
+    KETCHER_DIALOG_SELECTORS,
     PageLook,
     call_script,
     ketcher_script,
@@ -83,6 +84,11 @@ def test_only_the_toolbars_are_filtered_and_the_drawing_is_never_filtered():
     filtered = [rule for rule in css_rules if "filter" in rule]
     assert len(filtered) == 1
     assert all(selector in filtered[0] for selector in KETCHER_CHROME_SELECTORS)
+    # The editor's modal dialogs are chrome too and share that one rule; none can be, or hold, the drawing.
+    assert KETCHER_DIALOG_SELECTORS
+    for selector in KETCHER_DIALOG_SELECTORS:
+        assert selector in filtered[0]
+        assert "canvas" not in selector.lower() and "StructEditor" not in selector
 
 
 def test_the_drawing_is_recoloured_by_black_ink_rules_and_by_nothing_else():

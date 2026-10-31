@@ -1,0 +1,4 @@
+### The 2D editor's dialogs and the macromolecule viewer's panels are dark in a dark window
+- The 2D editor's own dialogs (Atom Properties, Bond Properties, Settings, the periodic table and the rest) used to open as a white box in a dark window; they are dark now, and so are the macromolecule viewer's side panels (Home, Structure Tools, the sequence panel). The structure keeps its own colours in both: nothing above the 3D canvas or the drawing is filtered. Light mode is unchanged.
+- An imaginary vibrational mode's row in the IR view is a lighter red in a dark window (pure red was 3.4:1 on the dark table).
+- A colour sweep of the interface's own code: every hex literal is now either given a dark value, readable on dark (4.5:1), or listed with the reason it is neither; a new unreviewed one fails a test. The result and a table of how each part of the interface follows the look are in `docs/APPEARANCE_DESIGN.md`.

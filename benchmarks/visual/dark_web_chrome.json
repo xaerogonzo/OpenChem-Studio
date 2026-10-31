@@ -1,0 +1,22 @@
+[
+  {"do": "smiles", "smiles": "CCNCCO", "name": "Amine", "after_ms": 800},
+  {"do": "select", "molecule": -1, "after_ms": 3000},
+  {"do": "appearance", "choice": "dark", "via": "menu", "after_ms": 2500},
+  {"do": "appearance_report", "tag": "dark", "expect": {"effective": "dark", "choice": "dark", "editor_style": true}, "after_ms": 1500},
+
+  {"do": "atom_editor", "atom": 2, "set": {"charge": "0"}, "apply": false, "expect": {"dialog": true}, "after_ms": 2500},
+  {"do": "ketcher_eval", "tag": "dialog-filter", "script": "getComputedStyle(document.querySelector('dialog[class*=\"Dialog-module_dialog\"]')).filter", "after_ms": 800},
+  {"do": "shot", "path": "artifacts/visual/dark_web_ketcher_dialog.png", "after_ms": 500},
+
+  {"do": "receptor", "pdb_id": "1HSG", "plain": true, "after_ms": 1500},
+  {"do": "tab", "name": "Macromolecule Viewer", "after_ms": 9000},
+  {"do": "shot", "path": "artifacts/visual/dark_web_molstar_panels.png", "after_ms": 500},
+
+  {"do": "appearance", "choice": "light", "via": "menu", "after_ms": 2500},
+  {"do": "shot", "path": "artifacts/visual/light_web_molstar_panels.png", "after_ms": 500},
+
+  {"do": "appearance", "choice": "system", "via": "menu", "after_ms": 1500},
+  {"do": "appearance_report", "tag": "back-to-system", "expect": {"choice": "system"}, "after_ms": 1500},
+  {"do": "expect_clean"},
+  {"do": "quit"}
+]
