@@ -21,6 +21,7 @@ import concurrent.futures as cf
 import importlib.util
 import json
 import re
+import shutil
 import subprocess
 import sys
 from pathlib import Path
@@ -103,12 +104,31 @@ def conformers(name: str, keep: int = 30, window_kj: float = 40.0, rmsd: float =
     return paths
 
 
+FAST_SCRATCH: Path | None = None     # set by --fast-scratch: where ORCA writes its temporary files
+
+
 def _run_orca(inp: Path) -> tuple[bool, str]:
     out = inp.with_suffix(".out")
     if out.exists() and "ORCA TERMINATED NORMALLY" in out.read_text(errors="replace")[-3000:]:
         return True, "cached"
-    with out.open("w") as fh:
-        subprocess.run([str(ORCA), inp.name], cwd=inp.parent, stdout=fh, stderr=subprocess.STDOUT, check=False)
+    if FAST_SCRATCH is None:
+        with out.open("w") as fh:
+            subprocess.run([str(ORCA), inp.name], cwd=inp.parent, stdout=fh, stderr=subprocess.STDOUT, check=False)
+    else:
+        # A DLPNO-CCSD(T) job writes tens of GB of integrals and amplitudes beside its input; on a spinning disk the iterations
+        # waited on that disk (queue length 5 to 24 measured), so the job runs in a folder on the fast drive and only the
+        # (small) output comes back beside the input, where every later stage reads it.
+        work = FAST_SCRATCH / inp.parent.parent.name / inp.stem
+        shutil.rmtree(work, ignore_errors=True)
+        work.mkdir(parents=True)
+        shutil.copy2(inp, work / inp.name)
+        for xyz in re.findall(r"xyzfile\s+\S+\s+\S+\s+(\S+)", inp.read_text()):
+            shutil.copy2(inp.parent / xyz, work / xyz)
+        try:
+            with out.open("w") as fh:
+                subprocess.run([str(ORCA), inp.name], cwd=work, stdout=fh, stderr=subprocess.STDOUT, check=False)
+        finally:
+            shutil.rmtree(work, ignore_errors=True)
     return ("ORCA TERMINATED NORMALLY" in out.read_text(errors="replace")[-3000:]), "ran"
 
 
@@ -308,7 +328,11 @@ def main() -> None:
     ap.add_argument("--basis", default="TZ", choices=["TZ", "QZ"])
     ap.add_argument("--lowest-only", action="store_true")
     ap.add_argument("--targets", action="store_true", help="also print schemes whose target is a question (after validation)")
+    ap.add_argument("--fast-scratch", type=Path, default=None,
+                    help="folder on a fast drive for ORCA's temporary files (removed after each job)")
     a = ap.parse_args()
+    global FAST_SCRATCH
+    FAST_SCRATCH = a.fast_scratch
     if a.stage == "conformers":
         for n in a.names:
             conformers(n, keep=a.keep)

@@ -1,0 +1,116 @@
+{
+ "basis": "TZ",
+ "species": {
+  "methane": {
+   "h": -106044.64174994176,
+   "n_conformers": 1,
+   "n_cc": 1,
+   "lowest": "c00"
+  },
+  "ethane": {
+   "h": -208980.93012755795,
+   "n_conformers": 1,
+   "n_cc": 1,
+   "lowest": "c00"
+  },
+  "methanol": {
+   "h": -303244.80630302476,
+   "n_conformers": 1,
+   "n_cc": 1,
+   "lowest": "c00"
+  },
+  "ethanol": {
+   "h": -406204.1495946741,
+   "n_conformers": 1,
+   "n_cc": 1,
+   "lowest": "c01"
+  },
+  "neopentane": {
+   "h": -517842.3871767209,
+   "n_conformers": 1,
+   "n_cc": 1,
+   "lowest": "c00"
+  },
+  "nitromethane": {
+   "h": -642233.3792588561,
+   "n_conformers": 1,
+   "n_cc": 1,
+   "lowest": "c00"
+  },
+  "nitroethane": {
+   "h": -745189.2683569156,
+   "n_conformers": 1,
+   "n_cc": 1,
+   "lowest": "c03"
+  },
+  "ethylene_glycol": {
+   "h": -603432.5511270643,
+   "n_conformers": 3,
+   "n_cc": 2,
+   "lowest": "c00"
+  },
+  "methyl_nitrate": {
+   "h": -839357.5494028789,
+   "n_conformers": 1,
+   "n_cc": 1,
+   "lowest": "c00"
+  },
+  "ethyl_nitrate": {
+   "h": -942317.0723541813,
+   "n_conformers": 1,
+   "n_cc": 1,
+   "lowest": "c22"
+  },
+  "tert_butyl_nitro": {
+   "h": -951112.4017563931,
+   "n_conformers": 2,
+   "n_cc": 2,
+   "lowest": "c14"
+  },
+  "pentaerythritol": {
+   "h": -1306753.0425424578,
+   "n_conformers": 8,
+   "n_cc": 8,
+   "lowest": "c38"
+  },
+  "nibtn": {
+   "h": -3151062.740615568,
+   "n_conformers": 3,
+   "n_cc": 3,
+   "lowest": "c01"
+  },
+  "petn": {
+   "h": -3451151.241859868,
+   "n_conformers": 4,
+   "n_cc": 4,
+   "lowest": "c36"
+  }
+ },
+ "schemes": {
+  "ethanol/V": {
+   "reaction_enthalpy": -23.05491403315682,
+   "dfH": -233.42491403315682,
+   "u_ref": 0.18293168123646597
+  },
+  "ethylene_glycol/V": {
+   "reaction_enthalpy": -51.291893340297975,
+   "dfH": -388.01189334029795,
+   "u_ref": 0.31233955881380127
+  },
+  "nitroethane/V": {
+   "reaction_enthalpy": -19.600720443297178,
+   "dfH": -103.57072044329718,
+   "u_ref": 0.4169700229033258
+  },
+  "ethyl_nitrate/V": {
+   "reaction_enthalpy": -23.234573686262593,
+   "dfH": -154.75457368626257,
+   "u_ref": 1.0069081388090972
+  },
+  "tert_butyl_nitro/V": {
+   "reaction_enthalpy": -17.5654483740218,
+   "dfH": -175.07544837402185,
+   "u_ref": 0.5625833271614081
+  }
+ }
+}
