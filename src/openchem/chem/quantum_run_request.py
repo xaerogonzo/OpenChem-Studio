@@ -19,6 +19,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any
 
+from openchem.chem import bond_dissociation
 from openchem.chem.calculation_input import (
     ResolvedEnsemble,
     canonical_conformer,
@@ -216,6 +217,10 @@ class PreparedProtonAffinity:
             "one after another, and a structure that keeps an imaginary vibration is run once more. It can take minutes to hours."
         )
 
+    def card_text(self) -> str:
+        """What a card says: nothing beyond the cost, since the base is the whole of the request."""
+        return self.question()
+
 
 def prepare_proton_affinity(smiles: str) -> PreparedProtonAffinity | RunRefusal:
     """Whether the protocol can run on `smiles`, and what it would take. Starts nothing.
@@ -245,6 +250,99 @@ def start_proton_affinity(service: Any, engine: ChemistryEngine, molecule: Molec
     """Hand the proton-affinity run to the service with the identity of the drawing as it is NOW, the arguments the panel's button always sent."""
     service.request_proton_affinity(
         smiles=molecule.canonical_smiles,
+        molecule_uuid=molecule.uuid,
+        calculation_input=DRAWING,
+        input_fingerprint=input_fingerprint(engine, molecule, DRAWING),
+        structure_identity=molecule.canonical_smiles,
+    )
+
+
+# --- bond dissociation: a fixed protocol whose one choice, which bonds, is stated on the card --------------------------------------------------------------------
+
+#: The calculation type a bond-dissociation run is recorded under (`QuantumChemistryService._new_bond_dissociation_run`), and so what its run record is matched by.
+BOND_DISSOCIATION = "bond_dissociation"
+
+#: Above this many ORCA jobs the button asks before it starts (a molecule with three conformers and three bonds is a dozen).
+BOND_DISSOCIATION_CONFIRM_ABOVE = 6
+
+
+@dataclass(frozen=True)
+class PreparedBondDissociation:
+    """The bonds a bond-dissociation run would compute on a structure, how many ORCA jobs that is, and what the benchmark did not measure about it."""
+
+    smiles: str
+    #: the heavy atom of each bond class that will be computed, in the order the choice dialog shows them
+    atoms: tuple[int, ...]
+    labels: tuple[str, ...]
+    #: the bond classes the run does NOT compute because one run takes at most `MAX_BONDS` (the dialog ticks the first ones, so does a card)
+    left_out: tuple[str, ...]
+    jobs: int
+    scope_warnings: tuple[str, ...]
+
+    def question(self) -> str:
+        """The cost in words: the scope paragraph, the job count and that it can take hours. One text for the panel's dialog and for an assistant's card."""
+        return (
+            outside_scope_text(list(self.scope_warnings))
+            + f"This will run {self.jobs} ORCA jobs (M062X/def2-TZVPD: the hydrogen atom, then optimizations with frequencies of the molecule and of each radical), one after another, "
+            "and a structure that keeps an imaginary vibration is run once more. It can take minutes to hours."
+        )
+
+    def card_text(self) -> str:
+        """What a card says: which bonds, which are left out and why, then the cost. A person who wants other bonds starts the run from the panel, where they are chosen."""
+        text = "The bonds it would compute: " + "; ".join(self.labels) + "."
+        if self.left_out:
+            text += (
+                f" One run computes at most {bond_dissociation.MAX_BONDS}, so it leaves out: " + "; ".join(self.left_out)
+                + ". To compute those, use the Quantum Chemistry panel's Bond dissociation button, where the bonds are chosen."
+            )
+        return text + " The result states the weakest bond computed and every bond's own value. " + self.question()
+
+
+def bond_choices(smiles: str) -> list[dict] | RunRefusal:
+    """The X-H bonds a person can choose from on `smiles`, or the sentence that says the calculation does not apply. Starts nothing."""
+    if not smiles:
+        return RunRefusal("Select a molecule with a structure first.")
+    try:
+        return bond_dissociation.describe_bonds(smiles)
+    except ProtonAffinityOutOfScope as refusal:
+        return RunRefusal(f"Bond dissociation does not apply: {refusal}")
+    except Exception as error:  # noqa: BLE001 - a structure that cannot be read is refused with its reason, not crashed on
+        return RunRefusal(f"Bond dissociation could not start: {error}")
+
+
+def prepare_bond_dissociation(smiles: str, atoms: list[int] | None = None) -> PreparedBondDissociation | RunRefusal:
+    """Whether the protocol can run on `smiles` for `atoms`, and what it would take. Starts nothing.
+
+    `atoms` None is the choice dialog's own default: the first `MAX_BONDS` bond classes, all of them when there are no more. Which bond is the WEAKEST is what the run finds, so there is nothing to
+    pre-select. A molecule it cannot compute is refused with its reason; one it can compute but the benchmark did not measure comes back with its warnings (computed anyway, an estimate).
+    """
+    classes = bond_choices(smiles)
+    if isinstance(classes, RunRefusal):
+        return classes
+    chosen = [b["atom"] for b in classes[: bond_dissociation.MAX_BONDS]] if atoms is None else list(atoms)
+    try:
+        sequence = bond_dissociation.Sequence(smiles, chosen)
+    except ProtonAffinityOutOfScope as refusal:
+        return RunRefusal(f"Bond dissociation does not apply: {refusal}")
+    except Exception as error:  # noqa: BLE001
+        return RunRefusal(f"Bond dissociation could not start: {error}")
+    by_atom = {b["atom"]: b["label"] for b in classes}
+    left_out = tuple(b["label"] for b in classes if b["atom"] not in chosen)
+    return PreparedBondDissociation(smiles, tuple(chosen), tuple(by_atom[a] for a in chosen), left_out, sequence.total, tuple(sequence.scope_warnings))
+
+
+def prepare_bond_dissociation_for(molecule: MoleculeModel | None, atoms: list[int] | None = None) -> PreparedBondDissociation | RunRefusal:
+    """`prepare_bond_dissociation` for a molecule in the project: the structure it would run on is the drawing's canonical SMILES."""
+    if molecule is None or not molecule.molblock or not molecule.canonical_smiles:
+        return RunRefusal("Select a molecule with a structure first.")
+    return prepare_bond_dissociation(molecule.canonical_smiles, atoms)
+
+
+def start_bond_dissociation(service: Any, engine: ChemistryEngine, molecule: MoleculeModel, atoms: list[int]) -> None:
+    """Hand the bond-dissociation run to the service with the identity of the drawing as it is NOW, the arguments the panel's button always sent."""
+    service.request_bond_dissociation(
+        smiles=molecule.canonical_smiles,
+        atoms=atoms,
         molecule_uuid=molecule.uuid,
         calculation_input=DRAWING,
         input_fingerprint=input_fingerprint(engine, molecule, DRAWING),

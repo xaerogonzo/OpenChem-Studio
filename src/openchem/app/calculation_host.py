@@ -49,7 +49,17 @@ from typing import Any, Protocol
 from PySide6.QtCore import QObject, Qt, QThread, Signal
 
 from openchem.app.session import SessionManager
-from openchem.chem.quantum_run_request import TWO_PARTNERS_MESSAGE, PreparedProtonAffinity, RunChoice, RunRefusal, led_cost_of_smiles, prepare_proton_affinity
+from openchem.chem.quantum_run_request import (
+    BOND_DISSOCIATION,
+    TWO_PARTNERS_MESSAGE,
+    PreparedBondDissociation,
+    PreparedProtonAffinity,
+    RunChoice,
+    RunRefusal,
+    led_cost_of_smiles,
+    prepare_bond_dissociation,
+    prepare_proton_affinity,
+)
 from openchem.domain import calculator_search
 from openchem.domain import result_status as rs
 from openchem.domain.calculation_bridge import (
@@ -457,7 +467,8 @@ class CalculationHost(QObject):
         calc_type = calc_type_of(definition.calculator_id)
         extra: list[str] = []
         if fixed:
-            protocol = prepare_proton_affinity(turn.canonical_smiles)
+            prepare_protocol = prepare_bond_dissociation if calc_type == BOND_DISSOCIATION else prepare_proton_affinity
+            protocol = prepare_protocol(turn.canonical_smiles)
             if isinstance(protocol, RunRefusal):
                 return PrepareResult(problems=(Problem(ProblemCode.INVALID_STRUCTURE, protocol.message),))
             extra.append("What it would cost (approving accepts it): " + _protocol_cost(protocol))
@@ -471,7 +482,7 @@ class CalculationHost(QObject):
         lines = list(_preview_lines(definition.display_name, turn, validation.parameters, policy, decision.reason))
         # Before the closing sentence: what the job will do, in the panel's terms, and what the person can still do about it.
         where = (
-            "It runs on the drawing (every structure is embedded fresh), by the same rules as the Quantum Chemistry panel's Proton affinity button"
+            "It runs on the drawing (every structure is embedded fresh), by the same rules as the Quantum Chemistry panel's " + ("Bond dissociation" if calc_type == BOND_DISSOCIATION else "Proton affinity") + " button"
             if fixed else "It runs on the conformer every calculation uses, by the same rules as the Quantum Chemistry panel's Run button"
         )
         lines[-1:] = [
@@ -840,8 +851,8 @@ def _rejected(run_id: str, code: ProblemCode, message: str, calculator_id: str =
 _NO_CONFORMER_NEEDED = frozenset({"lewis_hsab", "orca.proton_affinity", "orca.bond_dissociation_enthalpy", "orca.tautomer_distribution"})
 
 
-def _protocol_cost(protocol: PreparedProtonAffinity) -> str:
-    return protocol.question().replace("\n\n", " ")
+def _protocol_cost(protocol: PreparedProtonAffinity | PreparedBondDissociation) -> str:
+    return protocol.card_text().replace("\n\n", " ")
 
 
 def _quantum_outcome(run: QuantumChemistryRun) -> tuple[RunState, str]:

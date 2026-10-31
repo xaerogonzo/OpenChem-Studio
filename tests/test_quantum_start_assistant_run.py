@@ -13,11 +13,13 @@ from test_quantum_chemistry_panel import _dispose_panel, _make_panel, _panel_wit
 
 from rdkit import Chem
 
+from openchem.chem import bond_dissociation as bd
 from openchem.chem.calculation_input import canonical_conformer, geometry_fingerprint
 from openchem.chem.quantum_run_request import NO_CONFORMER, NO_USABLE_CONFORMER, TWO_PARTNERS_MESSAGE, RunChoice
 from openchem.domain.conformer import ConformerModel
 from openchem.domain.molecule import MoleculeModel
 from openchem.domain.project import ProjectModel
+from openchem.ui.panels import quantum_chemistry_panel as panel_module
 
 
 @pytest.fixture
@@ -347,3 +349,113 @@ def test_the_panel_shows_the_molecule_a_proton_affinity_card_is_for(pa_panel):
     assert panel._molecule_combo.currentData() == other.uuid
     assert panel.start_assistant_run(ammonia.uuid, PA, drawing_fingerprint(panel, ammonia)) == ""
     assert panel._molecule_combo.currentData() == ammonia.uuid and requests[0]["molecule_uuid"] == ammonia.uuid
+
+
+# --- bond dissociation: a fixed protocol run on the drawing, for the bonds the dialog ticks by default -------------------------------------------------
+
+
+def _bde_panel(smiles="CCO"):
+    """A panel whose service records bond-dissociation requests (the base double records only the other kinds)."""
+    panel, engine, service = _make_panel()
+    requests: list[dict] = []
+    service.request_bond_dissociation = lambda **kw: requests.append(kw)  # type: ignore[method-assign]
+    molecule = MoleculeModel(display_name=smiles)
+    engine.set_structure_from_smiles(molecule, smiles)
+    project = ProjectModel(name="t")
+    project.molecules.append(molecule)
+    panel.set_project(project)
+    panel._molecule_combo.setCurrentIndex(0)
+    return panel, molecule, service, requests
+
+
+@pytest.fixture
+def bde_panel(qapp):
+    made = []
+
+    def build(*args, **kw):
+        built = _bde_panel(*args, **kw)
+        made.append(built[0])
+        return built
+
+    yield build
+    for panel in made:
+        _dispose_panel(panel)
+
+
+BDE = choice(calc_type="bond_dissociation", method_basis="M062X def2-TZVPD")
+
+
+def test_a_card_starts_bond_dissociation_with_exactly_what_the_buttons_default_hands_the_service(bde_panel, monkeypatch):
+    button_panel, _molecule, _service, by_button = bde_panel("CCO")
+    # The button asks which bonds in a modal dialog; a person who accepts its defaults is the card's case.
+    monkeypatch.setattr(panel_module._BondChoiceDialog, "exec", lambda self: panel_module.QDialog.DialogCode.Accepted)
+    button_panel._on_bond_dissociation_clicked()
+    panel, molecule, _service, by_card = bde_panel("CCO")
+    assert panel.start_assistant_run(molecule.uuid, BDE, drawing_fingerprint(panel, molecule)) == ""
+    assert len(by_button) == len(by_card) == 1
+    for key in ("smiles", "atoms", "calculation_input", "input_fingerprint", "structure_identity"):
+        assert by_card[0][key] == by_button[0][key], key
+    assert by_card[0]["molecule_uuid"] == molecule.uuid and by_card[0]["calculation_input"] == "drawing" and by_card[0]["atoms"] == [0, 1, 2]
+
+
+def test_a_card_for_a_molecule_with_many_bond_classes_computes_the_first_six_as_the_dialog_ticks_them(bde_panel):
+    panel, molecule, _service, requests = bde_panel("CCCCCCO")
+    assert panel.start_assistant_run(molecule.uuid, BDE, drawing_fingerprint(panel, molecule)) == ""
+    assert len(requests[0]["atoms"]) == bd.MAX_BONDS and requests[0]["atoms"] == [b["atom"] for b in bd.describe_bonds("CCCCCCO")[: bd.MAX_BONDS]]
+
+
+def test_a_bond_card_needs_no_conformer_and_the_panel_waits_as_it_does_for_its_own(bde_panel):
+    panel, molecule, _service, requests = bde_panel("CCO")
+    assert molecule.conformers == []
+    assert panel.start_assistant_run(molecule.uuid, BDE, drawing_fingerprint(panel, molecule)) == ""
+    assert panel._pending_molecule_uuid == molecule.uuid and panel._status_label.text() == "queued -- 5 job(s) for the bond dissociation enthalpy"
+    assert not panel._run_button.isEnabled() and not panel._bond_dissociation_button.isEnabled() and not panel._proton_affinity_button.isEnabled() and panel._cancel_button.isEnabled()
+    assert panel._pending_conformer_molblock == "" and panel._pending_mol is not None
+
+
+def test_no_dialog_is_shown_for_a_bond_card_whose_molecule_is_outside_what_was_measured(bde_panel, monkeypatch):
+    from PySide6.QtWidgets import QMessageBox
+
+    monkeypatch.setattr(QMessageBox, "question", staticmethod(lambda *a, **k: pytest.fail("the card showed the cost")))
+    monkeypatch.setattr(panel_module._BondChoiceDialog, "exec", lambda self: pytest.fail("the card asked which bonds"))
+    panel, molecule, _service, requests = bde_panel("CCl")
+    assert panel.start_assistant_run(molecule.uuid, BDE, drawing_fingerprint(panel, molecule)) == ""
+    assert len(requests) == 1
+
+
+def test_a_molecule_the_bond_protocol_cannot_compute_is_refused_in_the_buttons_words(bde_panel):
+    panel, molecule, _service, requests = bde_panel("C[N+](C)(C)C")
+    reason = panel.start_assistant_run(molecule.uuid, BDE, drawing_fingerprint(panel, molecule))
+    assert reason.startswith("Bond dissociation does not apply:") and requests == [] and panel._pending_molecule_uuid is None
+
+
+def test_a_drawing_edited_after_the_bond_card_is_not_run(bde_panel):
+    panel, molecule, _service, requests = bde_panel("CCO")
+    before = drawing_fingerprint(panel, molecule)
+    panel._chemistry_engine.set_structure_from_smiles(molecule, "CCCO")
+    assert "edited after this was prepared" in panel.start_assistant_run(molecule.uuid, BDE, before)
+    assert requests == [] and panel._pending_molecule_uuid is None
+
+
+def test_bond_dissociation_waits_behind_a_job_the_panel_is_already_running(bde_panel):
+    panel, molecule, _service, requests = bde_panel("CCO")
+    assert panel.start_assistant_run(molecule.uuid, BDE, drawing_fingerprint(panel, molecule)) == ""
+    assert "busy with another calculation" in panel.start_assistant_run(molecule.uuid, BDE, drawing_fingerprint(panel, molecule)) and len(requests) == 1
+
+
+def test_bond_dissociation_is_not_started_again_for_a_molecule_the_service_is_running(bde_panel):
+    panel, molecule, service, requests = bde_panel("CCO")
+    assert service._job_manager.try_start("quantum_chemistry", molecule.uuid)
+    assert "already running for this molecule" in panel.start_assistant_run(molecule.uuid, BDE, drawing_fingerprint(panel, molecule)) and requests == []
+
+
+def test_the_panel_shows_the_molecule_a_bond_dissociation_card_is_for(bde_panel):
+    panel, ethanol, _service, requests = bde_panel("CCO")
+    other = MoleculeModel(display_name="Other")
+    panel._chemistry_engine.set_structure_from_smiles(other, "CCC")
+    panel._project.molecules.insert(0, other)
+    panel.set_project(panel._project)
+    panel._molecule_combo.setCurrentIndex(0)
+    assert panel._molecule_combo.currentData() == other.uuid
+    assert panel.start_assistant_run(ethanol.uuid, BDE, drawing_fingerprint(panel, ethanol)) == ""
+    assert panel._molecule_combo.currentData() == ethanol.uuid and requests[0]["molecule_uuid"] == ethanol.uuid

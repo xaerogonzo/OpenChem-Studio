@@ -12,6 +12,7 @@ import pytest
 from rdkit import Chem
 from rdkit.Chem import AllChem
 
+from openchem.chem import bond_dissociation as bd
 from openchem.chem.calculation_input import canonical_conformer, geometry_fingerprint
 from openchem.chem.engine import ChemistryEngine
 from openchem.chem.fukui import conformer_average_message, open_shell_message
@@ -21,13 +22,17 @@ from openchem.chem.quantum_run_request import (
     NO_CONFORMER,
     NO_USABLE_CONFORMER,
     TWO_PARTNERS_MESSAGE,
+    PreparedBondDissociation,
     PreparedRun,
     RunChoice,
     RunRefusal,
+    bond_choices,
     chosen_conformer,
     chosen_conformer_note,
     led_cost_message,
     led_cost_of_smiles,
+    prepare_bond_dissociation,
+    prepare_bond_dissociation_for,
     prepare_run,
     review_cost,
     review_led,
@@ -297,3 +302,64 @@ def test_a_long_run_or_an_unmeasured_base_asks_and_a_small_measured_one_does_not
     assert long_run.jobs == 5 and long_run.asks_cost and "5 ORCA geometry optimizations" in long_run.question()
     unmeasured = prepare_proton_affinity("CCl")
     assert unmeasured.asks_cost and unmeasured.question().startswith("This molecule is outside what the benchmark measured")
+
+
+# --- bond dissociation: the bonds a run computes, stated before it starts --------------------------------------------------------------------------
+
+
+def test_bond_dissociation_defaults_to_every_bond_class_up_to_the_most_one_run_takes():
+    prepared = prepare_bond_dissociation("CCO")
+    assert isinstance(prepared, PreparedBondDissociation) and prepared.atoms == (0, 1, 2) and prepared.left_out == () and prepared.jobs == 5
+    assert prepared.labels == ("CH3-H, bonded to C", "CH2-H, bonded to C, O", "O-H, bonded to C") and prepared.scope_warnings == ()
+    # Which bond is the WEAKEST is what the run finds, so the default is the dialog's own: the first MAX_BONDS classes, in the order it shows them.
+    many = prepare_bond_dissociation("CCCCCCO")
+    assert len(many.atoms) == bd.MAX_BONDS and many.left_out == ("O-H, bonded to C",)
+    assert many.atoms == tuple(b["atom"] for b in bd.describe_bonds("CCCCCCO")[: bd.MAX_BONDS])
+
+
+def test_a_card_says_which_bonds_are_left_out_and_where_to_choose_them():
+    text = prepare_bond_dissociation("CCCCCCO").card_text()
+    assert "The bonds it would compute: CH3-H, bonded to C;" in text and "at most 6" in text and "it leaves out: O-H, bonded to C" in text
+    assert "Bond dissociation button, where the bonds are chosen" in text and "weakest bond computed" in text
+    assert "22 ORCA jobs" in text and "minutes to hours" in text
+    # Nothing is left out of a molecule one run can take whole, so nothing is said about it.
+    assert "leaves out" not in prepare_bond_dissociation("CCO").card_text()
+
+
+def test_explicit_bonds_are_the_ones_computed_and_the_rest_are_left_out():
+    prepared = prepare_bond_dissociation("CCO", [2])
+    assert prepared.atoms == (2,) and prepared.labels == ("O-H, bonded to C",) and prepared.left_out == ("CH3-H, bonded to C", "CH2-H, bonded to C, O")
+    assert prepared.jobs == 3
+
+
+def test_a_molecule_outside_what_was_measured_comes_back_with_its_warning_and_the_question_says_so():
+    prepared = prepare_bond_dissociation("CCl")
+    assert prepared.scope_warnings and "outside what the benchmark measured" in prepared.question() and "Cl:" in prepared.question()
+
+
+@pytest.mark.parametrize(
+    ("smiles", "message"),
+    [
+        ("", "Select a molecule with a structure first."),
+        ("C[N+](C)(C)C", "Bond dissociation does not apply: a charged or zwitterionic structure"),
+        ("O=C=O", "Bond dissociation does not apply: no bond between a heavy atom and a hydrogen"),
+    ],
+)
+def test_a_molecule_the_protocol_cannot_compute_is_refused_with_its_reason(smiles, message):
+    refusal = prepare_bond_dissociation(smiles)
+    assert isinstance(refusal, RunRefusal) and refusal.message.startswith(message)
+
+
+def test_more_bonds_than_one_run_takes_is_refused_when_asked_for_explicitly():
+    refusal = prepare_bond_dissociation("CCCCCCO", list(range(7)))
+    assert isinstance(refusal, RunRefusal) and "at most 6" in refusal.message
+
+
+def test_the_bond_choices_are_the_dialogs_list_or_the_sentence_that_says_why_not():
+    assert [b["atom"] for b in bond_choices("CCO")] == [0, 1, 2]
+    assert isinstance(bond_choices(""), RunRefusal) and bond_choices("C[N+](C)(C)C").message.startswith("Bond dissociation does not apply")
+
+
+def test_bond_dissociation_for_a_molecule_needs_a_structure():
+    assert prepare_bond_dissociation_for(None).message == "Select a molecule with a structure first."
+    assert isinstance(prepare_bond_dissociation_for(MoleculeModel(display_name="blank")), RunRefusal)
