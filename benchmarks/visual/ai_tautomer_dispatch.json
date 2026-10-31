@@ -27,12 +27,12 @@
 
   {"do": "ai_send", "text": "What did it give?",
    "script": [
-     {"tool": "read_quantum_runs", "input": {}},
+     {"tool": "read_quantum_runs", "input": {"include_not_current": true}},
      {"text": "A tautomer distribution run."}
    ], "after_ms": 3000},
-  {"do": "ai_expect", "tag": "the-run-is-read-back-as-current",
+  {"do": "ai_expect", "tag": "the-run-is-read-back-and-says-it-cannot-be-compared-with-the-drawing",
    "expect": {"notes": 0, "sent_contains": ["[Application note] The ORCA job you asked for"],
-              "tool_results_contain": ["\"calc_type\": \"tautomer_distribution\"", "\"freshness\": \"current\""],
+              "tool_results_contain": ["\"calc_type\": \"tautomer_distribution\"", "\"freshness\": \"unverifiable\"", "the run carries no input fingerprint"],
               "tool_results_exclude": ["M  END", "surface_cache_key"]}},
 
   {"do": "ai_send", "text": "Ask for something that is not startable.",

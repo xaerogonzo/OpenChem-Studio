@@ -417,7 +417,7 @@ Tested by `tests/test_quantum_run_request.py`, `tests/test_calculation_host_orca
 
 **The button's rules moved first, as before.** `PreparedTautomers` (jobs, what they stand for, `asks_cost`, `question`, `queued_text`), `tautomers_prepared`, `start_tautomer_distribution` and `_begin_tautomer_distribution` are the button's own, and its 16 tests pass unchanged. They patch `generate_tautomer_candidates` and `CONFIRMATION_THRESHOLD` on the panel module, so the button keeps calling those names itself and the shared object is built from what it generated.
 
-**What is bound to what.** The drawing fingerprint, as for proton affinity; the run ends on its run record, calculation type `tautomer_distribution`.
+**What is bound to what.** The drawing fingerprint, as for proton affinity, binds the card. **The run record is different:** the service writes a tautomer-distribution record with a BLANK input fingerprint and input kind (its input is the whole set of candidates, and the outcome carries its own), so the host matches its completion by molecule and calculation type alone (`_on_quantum_run_completed`; the service runs one job per molecule), and `read_quantum_runs` reports the run's freshness as `unverifiable`, listed only with `include_not_current` or by its run id, which the note to the model names. The first drive on real ORCA found this: the job ran and nothing told the assistant, because a unit test's run record had been given a fingerprint the real service never writes.
 
 **Still not here:** Fukui (experimental, hidden by default); the tautomer NMR step, which needs a finished distribution to start from.
 

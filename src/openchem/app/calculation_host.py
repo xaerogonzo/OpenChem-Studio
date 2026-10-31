@@ -766,11 +766,16 @@ class CalculationHost(QObject):
             self._start_failure = event.message or "the job could not be started"
 
     def _on_quantum_run_completed(self, event: QuantumChemistryRunCompleted) -> None:
-        """An ORCA run reached its final state: if it is the one a person approved for the assistant, the approval's run ends with it."""
+        """An ORCA run reached its final state: if it is the one a person approved for the assistant, the approval's run ends with it.
+
+        It is matched by molecule, calculation type and the fingerprint of the structure it ran on. **A tautomer-distribution record carries no fingerprint** (its input is the whole set of candidates, so the
+        service writes it blank, and its freshness reads `unverifiable`), which a match on the fingerprint can never satisfy: it is matched by molecule and type alone, safe because the service runs one job
+        per molecule and the approval was handed over successfully.
+        """
         run = event.run
         with self._lock:
             held = self._quantum_inflight.get(run.molecule_uuid)
-            if held is None or held[2] != run.calc_type or held[1] != run.input_fingerprint:
+            if held is None or held[2] != run.calc_type or (run.input_fingerprint and held[1] != run.input_fingerprint):
                 return
             self._quantum_inflight.pop(run.molecule_uuid)
         state, message = _quantum_outcome(run)

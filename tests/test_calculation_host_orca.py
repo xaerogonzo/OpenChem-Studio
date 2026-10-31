@@ -496,7 +496,8 @@ def test_approving_tautomers_hands_over_the_settings_and_the_drawings_fingerprin
     [(molecule_uuid, choice, fingerprint)] = world.starter.calls
     assert molecule_uuid == acetone.uuid and choice.calc_type == "tautomer_distribution" and fingerprint == preparation.input_fingerprint
     assert (choice.method_basis, choice.charge, choice.multiplicity) == ("PBE0 def2-TZVP", 0, 1)
-    completed(world, preparation, calc_type="tautomer_distribution", calculation_input="drawing", status=RunStatus.COMPLETED)
+    # The run record the service really writes for this calculation carries no fingerprint (its input is the whole candidate set), so it is matched by molecule and type.
+    completed(world, preparation, calc_type="tautomer_distribution", calculation_input="", input_fingerprint="", status=RunStatus.COMPLETED)
     assert [o.state for o in world.outcomes] == [RunState.COMPLETED] and world.host._quantum_inflight == {}
 
 
@@ -505,3 +506,13 @@ def test_editing_the_drawing_after_a_tautomer_card_withdraws_it(world):
     preparation = prepare(world, "orca.tautomer_distribution").preparation
     world.engine.set_structure_from_smiles(acetone, "CCC(C)=O")
     assert approve(world, preparation.run_id) is RunState.INVALIDATED and world.starter.calls == []
+
+
+def test_a_run_record_with_no_fingerprint_ends_only_a_job_of_its_own_type(world):
+    """The tautomer record is written blank; that must not let a blank record of ANOTHER type, or a fingerprint that names another structure, end an approved job."""
+    base(world, "CC(C)=O", "Acetone")
+    preparation = prepare(world, "orca.tautomer_distribution").preparation
+    assert approve(world, preparation.run_id) is RunState.RUNNING
+    completed(world, preparation, calc_type="sp", calculation_input="", input_fingerprint="", status=RunStatus.COMPLETED)
+    completed(world, preparation, calc_type="tautomer_distribution", calculation_input="drawing", input_fingerprint="another-structure", status=RunStatus.COMPLETED)
+    assert world.outcomes == [] and world.host.state_of(preparation.run_id) is RunState.RUNNING
