@@ -48,7 +48,7 @@
   {"do": "ai_card", "action": "cancel", "after_ms": 500},
   {"do": "ai_expect", "tag": "declining-the-card-starts-nothing",
    "expect": {"pending": 0, "notes": 1, "ledger_contains": ["cancelled; nothing was started"], "notes_contain": ["cancelled"]}},
-  {"do": "qc_panel_report", "tag": "the-panel-still-shows-the-water-run", "expect": {"run_calc_type": "bond_dissociation", "run_status": "completed"}},
+  {"do": "qc_panel_report", "tag": "nothing-was-started-for-hexanol", "expect": {"run_calc_type": null, "run_status": null}},
 
   {"do": "expect_clean"},
   {"do": "quit"}
