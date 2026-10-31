@@ -469,7 +469,7 @@ def test_a_tautomer_card_needs_no_conformer_and_states_the_settings_and_the_jobs
     assert preparation.calculation_input == "drawing" and preparation.input_fingerprint == turn.fingerprints["drawing"] and preparation.drawing_fingerprint == ""
     assert set(preparation.parameters) == {"charge", "multiplicity", "method_basis"}
     text = "\n".join(preparation.preview)
-    assert "embedded fresh" in text and "Tautomers button" in text and "What it would cost (approving accepts it)" in text
+    assert "embedded fresh" in text and "same rules as the Quantum Chemistry panel's Tautomers button" in text and "What it would cost (approving accepts it)" in text
     assert f"method_basis='{preparation.parameters['method_basis']}'" in text and "charge=0" in text and "multiplicity=1" in text
     assert "3 real ORCA geometry optimizations for 2 tautomer(s)" in text and "default conformer search" in text and "Full ORCA conformers box" in text
     assert "conformer" not in text.replace("conformer search", "").replace("Full ORCA conformers box", "").replace("distinct conformers", "").replace("sampled conformer", "")

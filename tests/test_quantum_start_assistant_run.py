@@ -593,3 +593,20 @@ def test_the_panel_shows_the_molecule_a_tautomer_card_is_for(taut_panel):
     assert panel._molecule_combo.currentData() == other.uuid
     assert panel.start_assistant_run(acetone.uuid, TAUT, drawing_fingerprint(panel, acetone)) == ""
     assert panel._molecule_combo.currentData() == acetone.uuid and requests[0]["molecule_uuid"] == acetone.uuid
+
+
+def test_a_refusal_in_the_tautomers_button_stops_it(taut_panel, monkeypatch):
+    monkeypatch.setattr(panel_module, "generate_tautomer_candidates", lambda mol, policy=None: ([], 1))
+    panel, _molecule, _service, requests = taut_panel("CC(C)=O")
+    panel._method_combo.setCurrentText("B3LYP def2-SVP")
+    panel._on_tautomer_distribution_clicked()
+    assert panel._status_label.text() == "No tautomer candidates could be generated for this molecule. (1 failed to embed in 3D.)" and requests == [] and panel._pending_molecule_uuid is None
+
+
+def test_the_tautomers_button_hands_the_service_the_charge_and_spin_it_shows(taut_panel):
+    panel, _molecule, _service, requests = taut_panel("CC(C)=O")
+    panel._method_combo.setCurrentText("B3LYP def2-SVP")
+    panel._charge_spin.setValue(1)
+    panel._multiplicity_spin.setValue(2)
+    panel._on_tautomer_distribution_clicked()
+    assert (requests[0]["charge"], requests[0]["multiplicity"], requests[0]["method_basis"]) == (1, 2, "B3LYP def2-SVP")

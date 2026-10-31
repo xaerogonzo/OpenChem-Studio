@@ -495,3 +495,9 @@ def test_starting_hands_the_service_the_candidates_the_settings_and_the_drawings
     assert request["candidates"] == list(prepared.candidates) and request["molecule_uuid"] == molecule.uuid and request["policy"] is prepared.policy
     assert (request["charge"], request["multiplicity"], request["method_basis"]) == (1, 2, "B3LYP def2-SVP")
     assert request["calculation_input"] == "drawing" and request["input_fingerprint"] == input_fingerprint(ENGINE, molecule, "drawing")
+
+
+def test_the_question_counts_stereoisomers_apart_from_tautomers():
+    prepared = prepare_tautomers("CC(O)C(C)O")
+    assert (prepared.jobs, prepared.tautomers, prepared.stereo_classes) == (6, 1, 2)
+    assert "for 1 tautomer(s) and 2 stereoisomer(s)" in prepared.question()

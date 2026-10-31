@@ -403,9 +403,25 @@ Tested by `tests/test_calculation_host_orca.py`, `tests/test_quantum_start_assis
 
 **What is bound to what.** As for proton affinity: the card is bound to the drawing fingerprint (`calculation_input` is `drawing`), and the bonds follow from the drawing, so they cannot differ at Approve while the fingerprint is the same. The run ends on its run record, matched by calculation type `bond_dissociation`.
 
-**Still not here:** a choice of bonds on the card (a model cannot ask for a particular bond; a person who wants one starts it from the panel), the tautomer runs and Fukui.
+**Still not here:** a choice of bonds on the card (a model cannot ask for a particular bond; a person who wants one starts it from the panel) and Fukui. The tautomer distribution followed, in section 20.
 
 Tested by `tests/test_quantum_run_request.py`, `tests/test_calculation_host_orca.py`, `tests/test_quantum_start_assistant_run.py` and `tests/test_ai_assistant_orca_dispatch.py`, driven on real ORCA (water) by `benchmarks/visual/ai_bond_dissociation_dispatch.json`.
+
+## 20. Tautomer distribution: the three settings, run on the drawing, with the jobs its enumeration gives (2026-10-31; `chem/quantum_run_request.prepare_tautomers`)
+
+**What differs from sections 17 and 18.** `orca.tautomer_distribution` takes the three settings of an ordinary job (charge, multiplicity, method and basis), so a card states them as the single-job cards do, but it runs on the DRAWING, needs no stored conformer, and how many ORCA jobs it is depends on an enumeration: every tautomer RDKit reaches, each tautomer's stereoisomers, and the lowest distinct conformers of each (`generate_tautomer_candidates`). `RUNS_ON_DRAWING` in `domain/quantum_dispatch.py` is the set that run on the drawing (the two fixed protocols and this), and `FIXED_PROTOCOL` stays the settings-free ones.
+
+**The card states the count, and the count is the run's.** The candidates are enumerated and embedded from the drawing's canonical SMILES with every seed fixed, at the card (on the worker thread, seconds) and again at Approve, so the same SMILES is the same jobs; `tests/test_quantum_run_request.py` holds it equal to what the button's molblock gives on three molecules. The text is `PreparedTautomers.question` (the job count, the tautomers and stereoisomers, the conformer search, and, when it applies, that a tautomer over the stereoisomer cap or a stereoisomer over the conformer cap makes the result incomplete with no population percentages), and the card adds that the conformer search is the default one.
+
+**One choice left to the panel: the conformer search.** The button has a "Full ORCA conformers" box (every retained sampled conformer instead of the lowest distinct ones). It is a different scientific model, a setting read from a widget, and a card cannot state a widget; so a card uses the default search whatever the box says and names the box as where to choose the other. `tests/test_quantum_start_assistant_run.py` holds that.
+
+**The button's rules moved first, as before.** `PreparedTautomers` (jobs, what they stand for, `asks_cost`, `question`, `queued_text`), `tautomers_prepared`, `start_tautomer_distribution` and `_begin_tautomer_distribution` are the button's own, and its 16 tests pass unchanged. They patch `generate_tautomer_candidates` and `CONFIRMATION_THRESHOLD` on the panel module, so the button keeps calling those names itself and the shared object is built from what it generated.
+
+**What is bound to what.** The drawing fingerprint, as for proton affinity; the run ends on its run record, calculation type `tautomer_distribution`.
+
+**Still not here:** Fukui (experimental, hidden by default); the tautomer NMR step, which needs a finished distribution to start from.
+
+Tested by `tests/test_quantum_run_request.py`, `tests/test_calculation_host_orca.py`, `tests/test_quantum_start_assistant_run.py` and `tests/test_ai_assistant_orca_dispatch.py`, driven on real ORCA (acetone) by `benchmarks/visual/ai_tautomer_dispatch.json`.
 
 ## 14. Goals: the wizard's table, as knowledge and never as a way to run
 

@@ -1,0 +1,48 @@
+[
+  {"do": "smiles", "smiles": "CC(C)=O", "name": "Acetone", "after_ms": 1500},
+  {"do": "select", "molecule": -1, "after_ms": 3000},
+  {"do": "panel", "id": "Quantum_Chemistry", "after_ms": 1000},
+  {"do": "conformer_report", "tag": "no-conformer-is-needed", "expect": {"conformers": 0}},
+
+  {"do": "ai_send", "text": "What tautomers can this molecule form, and which is lowest in energy?",
+   "script": [
+     {"tool": "run_calculator", "input": {"calculator_id": "orca.tautomer_distribution"}},
+     {"text": "It is waiting for your approval."}
+   ], "after_ms": 5000},
+  {"do": "ai_expect", "tag": "asking-leaves-a-card-with-the-jobs-and-the-cost-and-starts-nothing",
+   "expect": {"pending": 1, "service_previews": 0, "notes": 0,
+              "tool_results_contain": ["\"state\": \"awaiting_approval\"", "\"started\": false"],
+              "ledger_contains": ["waiting for your approval"], "send_enabled": true}},
+  {"do": "qc_panel_report", "tag": "the-panel-has-no-job-yet", "expect": {"status_contains": []}},
+  {"do": "shot", "path": "benchmarks/visual/artifacts/ai_tautomer_card.png", "after_ms": 500},
+
+  {"do": "ai_card", "action": "approve", "after_ms": 1000},
+  {"do": "ai_expect", "tag": "approving-starts-it-and-the-model-is-not-told-yet",
+   "expect": {"pending": 0, "notes": 0, "ledger_contains": ["running in the Quantum Chemistry panel"]}},
+  {"do": "qc_wait", "timeout_ms": 1500000, "after_ms": 2000},
+  {"do": "qc_panel_report", "tag": "the-panel-ran-it-as-its-own", "expect": {"run_calc_type": "tautomer_distribution", "run_status": "completed"}},
+  {"do": "ai_expect", "tag": "when-it-ends-the-ledger-and-the-note-say-so",
+   "expect": {"notes": 1, "ledger_contains": ["ORCA finished it"],
+              "notes_contain": ["The ORCA job you asked for, orca.tautomer_distribution on Acetone", "ended 'completed'", "read_quantum_runs"]}},
+
+  {"do": "ai_send", "text": "What did it give?",
+   "script": [
+     {"tool": "read_quantum_runs", "input": {}},
+     {"text": "A tautomer distribution run."}
+   ], "after_ms": 3000},
+  {"do": "ai_expect", "tag": "the-run-is-read-back-as-current",
+   "expect": {"notes": 0, "sent_contains": ["[Application note] The ORCA job you asked for"],
+              "tool_results_contain": ["\"calc_type\": \"tautomer_distribution\"", "\"freshness\": \"current\""],
+              "tool_results_exclude": ["M  END", "surface_cache_key"]}},
+
+  {"do": "ai_send", "text": "Ask for something that is not startable.",
+   "script": [
+     {"tool": "run_calculator", "input": {"calculator_id": "orca.fukui"}},
+     {"text": "That one runs from its own button."}
+   ], "after_ms": 3000},
+  {"do": "ai_expect", "tag": "a-calculator-that-is-not-startable-is-still-only-described",
+   "expect": {"pending": 0, "service_previews": 1, "tool_results_contain": ["\"state\": \"preview_only\""]}},
+
+  {"do": "expect_clean"},
+  {"do": "quit"}
+]
