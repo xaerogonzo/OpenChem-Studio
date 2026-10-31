@@ -288,12 +288,13 @@ def test_the_macromolecule_panels_are_dark_and_the_canvas_is_never_filtered(qapp
     assert _wait_until(
         qapp, lambda: all("invert" in value for value in _molstar_filters(qapp, backend).values()), timeout_seconds=20
     ), _molstar_filters(qapp, backend)
-    # The viewport is built after the viewer reports ready, and later still when the machine is busy
-    # (the whole suite lost the GPU context mid-run and read "no canvas" once); wait for it, then assert.
-    assert _wait_until(
-        qapp, lambda: _page_value(qapp, backend._page, _MOLSTAR_CANVAS_CHAIN) != "no canvas", timeout_seconds=20
-    )
-    assert _page_value(qapp, backend._page, _MOLSTAR_CANVAS_CHAIN) == "[]"
+    # Mol* builds its viewport only with WebGL: on a runner without it (CI shard 3, or a GPU lost
+    # mid-suite) there is no canvas to check, and the panels above are the whole claim there.
+    if not conftest.webgl_skip_reason(qapp):
+        assert _wait_until(
+            qapp, lambda: _page_value(qapp, backend._page, _MOLSTAR_CANVAS_CHAIN) != "no canvas", timeout_seconds=20
+        )
+        assert _page_value(qapp, backend._page, _MOLSTAR_CANVAS_CHAIN) == "[]"
 
     theme.set_effective(LIGHT)
     assert _wait_until(
