@@ -78,7 +78,7 @@ def completed(world, preparation, *, status=RunStatus.COMPLETED, run_id="orca-ru
 def test_with_a_starter_the_single_job_orca_calculators_need_approval_and_the_others_stay_where_they_were(world):
     for calculator_id in STARTABLE:
         assert world.host.describe(calculator_id).route is Route.NEEDS_APPROVAL, calculator_id
-    for calculator_id in ("orca.fukui", "orca.tautomer_distribution", "docking.vina", "lewis_hsab"):
+    for calculator_id in ("orca.fukui", "docking.vina", "lewis_hsab"):
         assert world.host.describe(calculator_id).route is Route.PREVIEW_ONLY, calculator_id
 
 

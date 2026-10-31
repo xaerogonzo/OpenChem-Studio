@@ -51,14 +51,18 @@ from PySide6.QtCore import QObject, Qt, QThread, Signal
 from openchem.app.session import SessionManager
 from openchem.chem.quantum_run_request import (
     BOND_DISSOCIATION,
+    PROTON_AFFINITY,
+    TAUTOMER_DISTRIBUTION,
     TWO_PARTNERS_MESSAGE,
     PreparedBondDissociation,
     PreparedProtonAffinity,
+    PreparedTautomers,
     RunChoice,
     RunRefusal,
     led_cost_of_smiles,
     prepare_bond_dissociation,
     prepare_proton_affinity,
+    prepare_tautomers,
 )
 from openchem.domain import calculator_search
 from openchem.domain import result_status as rs
@@ -101,7 +105,7 @@ from openchem.domain.score_proposal import (
     check_request,
 )
 from openchem.domain.score_value import evaluate_score
-from openchem.domain.quantum_dispatch import FIXED_PROTOCOL, STARTABLE, calc_type_of
+from openchem.domain.quantum_dispatch import RUNS_ON_DRAWING, STARTABLE, calc_type_of
 from openchem.domain.quantum_chemistry_run import QuantumChemistryRun, RunStatus
 from openchem.domain.quantum_run_snapshot import classify_runs
 from openchem.domain.turn_snapshot import DEFAULT_READ_LIMIT, ResultsView, TurnContext, build_turn_context, read_results
@@ -458,17 +462,16 @@ class CalculationHost(QObject):
             return PrepareResult(problems=tuple(
                 Problem(ProblemCode.NOT_READY, f"{r.what} is missing" + (f": {r.how_to_fix}" if r.how_to_fix else "")) for r in missing
             ))
-        # A fixed protocol runs on the drawing, every structure embedded fresh; the others on the conformer every calculation uses.
-        fixed = definition.calculator_id in FIXED_PROTOCOL
-        calculation_input = DRAWING if fixed else GEOMETRY
+        # A fixed protocol and the tautomer distribution run on the drawing, every structure embedded fresh; the others on the conformer every calculation uses.
+        on_drawing = definition.calculator_id in RUNS_ON_DRAWING
+        calculation_input = DRAWING if on_drawing else GEOMETRY
         fingerprint = turn.fingerprints.get(calculation_input)
         if not fingerprint:
             return PrepareResult(problems=(Problem(ProblemCode.NO_STRUCTURE, f"{turn.display_name} has no {calculation_input} to fingerprint"),))
         calc_type = calc_type_of(definition.calculator_id)
         extra: list[str] = []
-        if fixed:
-            prepare_protocol = prepare_bond_dissociation if calc_type == BOND_DISSOCIATION else prepare_proton_affinity
-            protocol = prepare_protocol(turn.canonical_smiles)
+        if on_drawing:
+            protocol = _PROTOCOLS[calc_type][0](turn.canonical_smiles)
             if isinstance(protocol, RunRefusal):
                 return PrepareResult(problems=(Problem(ProblemCode.INVALID_STRUCTURE, protocol.message),))
             extra.append("What it would cost (approving accepts it): " + _protocol_cost(protocol))
@@ -482,8 +485,8 @@ class CalculationHost(QObject):
         lines = list(_preview_lines(definition.display_name, turn, validation.parameters, policy, decision.reason))
         # Before the closing sentence: what the job will do, in the panel's terms, and what the person can still do about it.
         where = (
-            "It runs on the drawing (every structure is embedded fresh), by the same rules as the Quantum Chemistry panel's " + ("Bond dissociation" if calc_type == BOND_DISSOCIATION else "Proton affinity") + " button"
-            if fixed else "It runs on the conformer every calculation uses, by the same rules as the Quantum Chemistry panel's Run button"
+            "It runs on the drawing (every structure is embedded fresh), by the same rules as the Quantum Chemistry panel's " + (_PROTOCOLS[calc_type][1] if on_drawing else "") + " button"
+            if on_drawing else "It runs on the conformer every calculation uses, by the same rules as the Quantum Chemistry panel's Run button"
         )
         lines[-1:] = [
             f"{where}, and shows in that panel while it runs, where it can be cancelled.",
@@ -507,7 +510,7 @@ class CalculationHost(QObject):
             adjustments=validation.adjustments,
             resource=policy.resource.value,
             external_tools=tuple(sorted(policy.external_tools)),
-            drawing_fingerprint="" if fixed else turn.fingerprints.get(DRAWING, ""),
+            drawing_fingerprint="" if on_drawing else turn.fingerprints.get(DRAWING, ""),
         )
         self._ledger.register(preparation)
         return PrepareResult(preparation=preparation)
@@ -851,7 +854,15 @@ def _rejected(run_id: str, code: ProblemCode, message: str, calculator_id: str =
 _NO_CONFORMER_NEEDED = frozenset({"lewis_hsab", "orca.proton_affinity", "orca.bond_dissociation_enthalpy", "orca.tautomer_distribution"})
 
 
-def _protocol_cost(protocol: PreparedProtonAffinity | PreparedBondDissociation) -> str:
+#: The calculators that run on the drawing, by calculation type: what prepares their card's cost from the structure, and the Quantum Chemistry panel's button whose rules they follow.
+_PROTOCOLS = {
+    PROTON_AFFINITY: (prepare_proton_affinity, "Proton affinity"),
+    BOND_DISSOCIATION: (prepare_bond_dissociation, "Bond dissociation"),
+    TAUTOMER_DISTRIBUTION: (prepare_tautomers, "Tautomers"),
+}
+
+
+def _protocol_cost(protocol: PreparedProtonAffinity | PreparedBondDissociation | PreparedTautomers) -> str:
     return protocol.card_text().replace("\n\n", " ")
 
 
