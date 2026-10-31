@@ -49,7 +49,7 @@ from typing import Any, Protocol
 from PySide6.QtCore import QObject, Qt, QThread, Signal
 
 from openchem.app.session import SessionManager
-from openchem.chem.quantum_run_request import TWO_PARTNERS_MESSAGE, RunChoice, led_cost_of_smiles
+from openchem.chem.quantum_run_request import TWO_PARTNERS_MESSAGE, PreparedProtonAffinity, RunChoice, RunRefusal, led_cost_of_smiles, prepare_proton_affinity
 from openchem.domain import calculator_search
 from openchem.domain import result_status as rs
 from openchem.domain.calculation_bridge import (
@@ -91,7 +91,7 @@ from openchem.domain.score_proposal import (
     check_request,
 )
 from openchem.domain.score_value import evaluate_score
-from openchem.domain.quantum_dispatch import STARTABLE, calc_type_of
+from openchem.domain.quantum_dispatch import FIXED_PROTOCOL, STARTABLE, calc_type_of
 from openchem.domain.quantum_chemistry_run import QuantumChemistryRun, RunStatus
 from openchem.domain.quantum_run_snapshot import classify_runs
 from openchem.domain.turn_snapshot import DEFAULT_READ_LIMIT, ResultsView, TurnContext, build_turn_context, read_results
@@ -448,11 +448,19 @@ class CalculationHost(QObject):
             return PrepareResult(problems=tuple(
                 Problem(ProblemCode.NOT_READY, f"{r.what} is missing" + (f": {r.how_to_fix}" if r.how_to_fix else "")) for r in missing
             ))
-        fingerprint = turn.fingerprints.get(GEOMETRY)
+        # A fixed protocol runs on the drawing, every structure embedded fresh; the others on the conformer every calculation uses.
+        fixed = definition.calculator_id in FIXED_PROTOCOL
+        calculation_input = DRAWING if fixed else GEOMETRY
+        fingerprint = turn.fingerprints.get(calculation_input)
         if not fingerprint:
-            return PrepareResult(problems=(Problem(ProblemCode.NO_STRUCTURE, f"{turn.display_name} has no 3D conformer to fingerprint"),))
+            return PrepareResult(problems=(Problem(ProblemCode.NO_STRUCTURE, f"{turn.display_name} has no {calculation_input} to fingerprint"),))
         calc_type = calc_type_of(definition.calculator_id)
         extra: list[str] = []
+        if fixed:
+            protocol = prepare_proton_affinity(turn.canonical_smiles)
+            if isinstance(protocol, RunRefusal):
+                return PrepareResult(problems=(Problem(ProblemCode.INVALID_STRUCTURE, protocol.message),))
+            extra.append("What it would cost (approving accepts it): " + _protocol_cost(protocol))
         if calc_type == "led":
             refusal, cost = led_cost_of_smiles(turn.canonical_smiles)
             if refusal:
@@ -462,8 +470,12 @@ class CalculationHost(QObject):
         decision = decide(policy, validation.parameters, heavy_atoms=turn.heavy_atoms)
         lines = list(_preview_lines(definition.display_name, turn, validation.parameters, policy, decision.reason))
         # Before the closing sentence: what the job will do, in the panel's terms, and what the person can still do about it.
+        where = (
+            "It runs on the drawing (every structure is embedded fresh), by the same rules as the Quantum Chemistry panel's Proton affinity button"
+            if fixed else "It runs on the conformer every calculation uses, by the same rules as the Quantum Chemistry panel's Run button"
+        )
         lines[-1:] = [
-            "It runs on the conformer every calculation uses, by the same rules as the Quantum Chemistry panel's Run button, and shows in that panel while it runs, where it can be cancelled.",
+            f"{where}, and shows in that panel while it runs, where it can be cancelled.",
             *extra,
             lines[-1],
         ]
@@ -475,7 +487,7 @@ class CalculationHost(QObject):
             molecule_uuid=turn.molecule_uuid,
             molecule_name=turn.display_name,
             project_uuid=turn.project_uuid,
-            calculation_input=GEOMETRY,
+            calculation_input=calculation_input,
             input_fingerprint=fingerprint,
             parameters=dict(validation.parameters),
             route=Route.NEEDS_APPROVAL,
@@ -484,7 +496,7 @@ class CalculationHost(QObject):
             adjustments=validation.adjustments,
             resource=policy.resource.value,
             external_tools=tuple(sorted(policy.external_tools)),
-            drawing_fingerprint=turn.fingerprints.get(DRAWING, ""),
+            drawing_fingerprint="" if fixed else turn.fingerprints.get(DRAWING, ""),
         )
         self._ledger.register(preparation)
         return PrepareResult(preparation=preparation)
@@ -532,7 +544,7 @@ class CalculationHost(QObject):
 
         service = definition.execution.service_name
         requirements = [need(f"a drawn structure for {turn.display_name}", turn.has_structure, "draw or import one")]
-        if definition.calculator_id != "lewis_hsab":
+        if definition.calculator_id not in _NO_CONFORMER_NEEDED:
             requirements.append(need(
                 f"a 3D conformer for {turn.display_name}", turn.conformer_count > 0,
                 "generate conformers first, from the Conformers tools",
@@ -821,6 +833,15 @@ class CalculationHost(QObject):
 
 def _rejected(run_id: str, code: ProblemCode, message: str, calculator_id: str = "") -> RunOutcome:
     return RunOutcome(run_id, calculator_id, RunState.REJECTED, message, problems=(Problem(code, message),))
+
+
+#: Startable calculators that need no stored conformer: a fixed protocol embeds every structure fresh from the drawing, and these others say so of themselves ("no 3D conformer needed"),
+#: as does the Lewis HSAB score, which is read from the drawing.
+_NO_CONFORMER_NEEDED = frozenset({"lewis_hsab", "orca.proton_affinity", "orca.bond_dissociation_enthalpy", "orca.tautomer_distribution"})
+
+
+def _protocol_cost(protocol: PreparedProtonAffinity) -> str:
+    return protocol.question().replace("\n\n", " ")
 
 
 def _quantum_outcome(run: QuantumChemistryRun) -> tuple[RunState, str]:

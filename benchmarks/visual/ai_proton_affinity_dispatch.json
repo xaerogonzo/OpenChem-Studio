@@ -1,0 +1,40 @@
+[
+  {"do": "smiles", "smiles": "N", "name": "Ammonia", "after_ms": 1500},
+  {"do": "select", "molecule": -1, "after_ms": 3000},
+  {"do": "panel", "id": "Quantum_Chemistry", "after_ms": 1000},
+  {"do": "conformer_report", "tag": "no-conformer-is-needed", "expect": {"conformers": 0}},
+
+  {"do": "ai_send", "text": "What is the proton affinity of this molecule?",
+   "script": [
+     {"tool": "run_calculator", "input": {"calculator_id": "orca.proton_affinity"}},
+     {"text": "It is waiting for your approval."}
+   ], "after_ms": 4000},
+  {"do": "ai_expect", "tag": "asking-leaves-a-card-with-the-cost-and-starts-nothing",
+   "expect": {"pending": 1, "service_previews": 0, "notes": 0,
+              "tool_results_contain": ["\"state\": \"awaiting_approval\"", "\"started\": false"],
+              "ledger_contains": ["waiting for your approval"], "send_enabled": true}},
+  {"do": "qc_panel_report", "tag": "the-panel-has-no-job-yet", "expect": {"status_contains": []}},
+  {"do": "shot", "path": "benchmarks/visual/artifacts/ai_proton_affinity_card.png", "after_ms": 500},
+
+  {"do": "ai_card", "action": "approve", "after_ms": 1000},
+  {"do": "ai_expect", "tag": "approving-starts-it-and-the-model-is-not-told-yet",
+   "expect": {"pending": 0, "notes": 0, "ledger_contains": ["running in the Quantum Chemistry panel"]}},
+  {"do": "qc_wait", "timeout_ms": 1500000, "after_ms": 2000},
+  {"do": "qc_panel_report", "tag": "the-panel-ran-it-as-its-own", "expect": {"run_calc_type": "proton_affinity", "run_status": "completed"}},
+  {"do": "ai_expect", "tag": "when-it-ends-the-ledger-and-the-note-say-so",
+   "expect": {"notes": 1, "ledger_contains": ["ORCA finished it"],
+              "notes_contain": ["The ORCA job you asked for, orca.proton_affinity on Ammonia", "ended 'completed'", "read_quantum_runs"]}},
+
+  {"do": "ai_send", "text": "What did it give?",
+   "script": [
+     {"tool": "read_quantum_runs", "input": {}},
+     {"text": "A proton affinity run."}
+   ], "after_ms": 3000},
+  {"do": "ai_expect", "tag": "the-run-is-read-back-as-current",
+   "expect": {"notes": 0, "sent_contains": ["[Application note] The ORCA job you asked for"],
+              "tool_results_contain": ["\"calc_type\": \"proton_affinity\"", "\"freshness\": \"current\""],
+              "tool_results_exclude": ["M  END", "surface_cache_key"]}},
+
+  {"do": "expect_clean"},
+  {"do": "quit"}
+]
