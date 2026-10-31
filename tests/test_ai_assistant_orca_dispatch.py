@@ -68,12 +68,12 @@ def test_the_model_is_told_which_orca_calculators_it_can_ask_for_and_which_it_ca
     thread, _ = rig.loop(provider, rig.bridge())
     rig.settle(thread)
     routes = {c["calculator_id"]: c["route"] for c in json.loads(_tool_message(provider)[0].content)["calculators"]}
-    assert routes["orca.sp"] == routes["orca.led"] == routes["orca.proton_affinity"] == "needs_approval"
-    assert routes["orca.fukui"] == routes["orca.bond_dissociation_enthalpy"] == routes["orca.tautomer_distribution"] == "preview_only"
+    assert routes["orca.sp"] == routes["orca.led"] == routes["orca.proton_affinity"] == routes["orca.bond_dissociation_enthalpy"] == "needs_approval"
+    assert routes["orca.fukui"] == routes["orca.tautomer_distribution"] == "preview_only"
 
 
 def test_a_job_that_cannot_be_started_here_is_still_only_described(rig):
-    reply = ask(rig, "orca.bond_dissociation_enthalpy")
+    reply = ask(rig, "orca.tautomer_distribution")
     assert reply["state"] == "preview_only" and rig.panel.pending_run_ids() == [] and len(rig.panel.service_preview_keys()) == 1
 
 

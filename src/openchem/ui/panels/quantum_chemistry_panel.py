@@ -32,7 +32,6 @@ from PySide6.QtWidgets import (
 
 from openchem.app.settings import Settings
 from openchem.chem import bond_dissociation
-from openchem.chem.bond_dissociation import Sequence as BondDissociationSequence
 from openchem.chem.calculation_input import (
     canonical_conformer,
     input_fingerprint,
@@ -53,19 +52,23 @@ from openchem.chem.orca_engine import (
     default_cores,
     find_mpi_bin,
 )
-from openchem.chem.proton_affinity import OutOfScope as ProtonAffinityOutOfScope
 from openchem.chem.quantum_run_request import (
+    BOND_DISSOCIATION,
+    BOND_DISSOCIATION_CONFIRM_ABOVE,
     PROTON_AFFINITY,
     PreparedRun,
     RunChoice,
     RunRefusal,
+    bond_choices,
+    prepare_bond_dissociation,
+    prepare_bond_dissociation_for,
     prepare_proton_affinity_for,
     prepare_run,
     review_cost,
     review_led,
+    start_bond_dissociation,
     start_proton_affinity,
 )
-from openchem.chem.quantum_run_request import outside_scope_text as _outside_scope_text
 from openchem.chem.quantum_run_request import start as start_run
 from openchem.chem.tautomer_distribution import (
     CONFIRMATION_THRESHOLD,
@@ -2154,6 +2157,8 @@ class QuantumChemistryPanel(QWidget):
             return "A calculation is already running for this molecule. Nothing was started."
         if choice.calc_type == PROTON_AFFINITY:
             return self._start_assistant_proton_affinity(molecule, input_fingerprint)
+        if choice.calc_type == BOND_DISSOCIATION:
+            return self._start_assistant_bond_dissociation(molecule, input_fingerprint)
         prepared = prepare_run(self._chemistry_engine, molecule, choice)
         if isinstance(prepared, RunRefusal):
             return prepared.message
@@ -2179,6 +2184,19 @@ class QuantumChemistryPanel(QWidget):
         select(self._molecule_combo, molecule.uuid)
         self._begin_proton_affinity(molecule, prepared.jobs)
         start_proton_affinity(self._quantum_chemistry_service, self._chemistry_engine, molecule)
+        return ""
+
+    def _start_assistant_bond_dissociation(self, molecule, expected_fingerprint: str) -> str:
+        """The bond-dissociation half of `start_assistant_run`: a fixed protocol run on the DRAWING, computing the bonds the dialog would tick by default (`prepare_bond_dissociation_for`), which is what
+        the card listed. The drawing is the card's binding, so the bonds cannot have changed while the fingerprint is the same; the cost question was the card."""
+        prepared = prepare_bond_dissociation_for(molecule)
+        if isinstance(prepared, RunRefusal):
+            return prepared.message
+        if input_fingerprint(self._chemistry_engine, molecule, DRAWING) != expected_fingerprint:
+            return "The structure was edited after this was prepared, so nothing was started; prepare it again."
+        select(self._molecule_combo, molecule.uuid)
+        self._begin_bond_dissociation(molecule, prepared.jobs)
+        start_bond_dissociation(self._quantum_chemistry_service, self._chemistry_engine, molecule, list(prepared.atoms))
         return ""
 
     def _begin_pending(self, molecule, prepared: PreparedRun) -> None:
@@ -2333,8 +2351,6 @@ class QuantumChemistryPanel(QWidget):
             policy=policy,
         )
 
-    #: Above this many ORCA jobs the button asks before starting (a base with three conformers and three sites is a dozen).
-
     def _on_proton_affinity_clicked(self) -> None:
         """Runs the benchmarked proton-affinity protocol on the current structure (`QuantumChemistryService.request_proton_affinity`).
 
@@ -2384,8 +2400,8 @@ class QuantumChemistryPanel(QWidget):
         self._reset_empty_states()
         self._status_label.setText(f"queued -- {jobs} optimization(s) for the proton affinity")
 
-    #: Above this many ORCA jobs the button asks again before starting (a molecule with three conformers and three bonds is a dozen).
-    _BOND_DISSOCIATION_CONFIRM_ABOVE = 6
+    #: Above this many ORCA jobs the button asks again before starting (`chem.quantum_run_request`'s constant, held here so a test can lower it for one panel).
+    _BOND_DISSOCIATION_CONFIRM_ABOVE = BOND_DISSOCIATION_CONFIRM_ABOVE
 
     def _on_bond_dissociation_clicked(self) -> None:
         """Runs the benchmarked bond-dissociation protocol on the current structure for the bonds the person chooses (`QuantumChemistryService.request_bond_dissociation`).
@@ -2394,42 +2410,36 @@ class QuantumChemistryPanel(QWidget):
         anything is asked or queued; the choice of bonds is a real dialog (each bond costs radical optimizations, so the person says which), and the number of ORCA jobs is named before a long run starts.
         """
         molecule = self._current_molecule()
-        if molecule is None or not molecule.molblock or not molecule.canonical_smiles:
-            self._status_label.setText("Select a molecule with a structure first.")
-            return
-        try:
-            bonds = bond_dissociation.describe_bonds(molecule.canonical_smiles)
-        except ProtonAffinityOutOfScope as refusal:
-            self._status_label.setText(f"Bond dissociation does not apply: {refusal}")
-            return
-        except Exception as error:  # noqa: BLE001 - a structure that cannot be read is refused with its reason, not crashed on
-            self._status_label.setText(f"Bond dissociation could not start: {error}")
+        # The rules and the words of the question are `chem.quantum_run_request.prepare_bond_dissociation`, shared with an assistant's card; the choice of bonds, the dialog and the bookkeeping are this panel's.
+        has_structure = molecule is not None and bool(molecule.molblock)
+        bonds = bond_choices(molecule.canonical_smiles if has_structure else "")
+        if isinstance(bonds, RunRefusal):
+            self._status_label.setText(bonds.message)
             return
         dialog = _BondChoiceDialog(bonds, self)
         if dialog.exec() != QDialog.DialogCode.Accepted:
             return
         atoms = dialog.chosen_atoms()
-        try:
-            sequence = BondDissociationSequence(molecule.canonical_smiles, atoms)
-        except ProtonAffinityOutOfScope as refusal:
-            self._status_label.setText(f"Bond dissociation does not apply: {refusal}")
+        prepared = prepare_bond_dissociation(molecule.canonical_smiles, atoms)
+        if isinstance(prepared, RunRefusal):
+            self._status_label.setText(prepared.message)
             return
-        except Exception as error:  # noqa: BLE001
-            self._status_label.setText(f"Bond dissociation could not start: {error}")
-            return
-        jobs = sequence.total
-        if jobs > self._BOND_DISSOCIATION_CONFIRM_ABOVE or sequence.scope_warnings:
+        if prepared.jobs > self._BOND_DISSOCIATION_CONFIRM_ABOVE or prepared.scope_warnings:
             answer = QMessageBox.question(
                 self,
                 "Run bond dissociation?",
-                _outside_scope_text(sequence.scope_warnings)
-                + f"This will run {jobs} ORCA jobs (M062X/def2-TZVPD: the hydrogen atom, then optimizations with frequencies of the molecule and of each radical), one after another, "
-                "and a structure that keeps an imaginary vibration is run once more. It can take minutes to hours. Continue?",
+                prepared.question() + " Continue?",
                 QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
                 QMessageBox.StandardButton.No,
             )
             if answer != QMessageBox.StandardButton.Yes:
                 return
+        self._begin_bond_dissociation(molecule, prepared.jobs)
+        start_bond_dissociation(self._quantum_chemistry_service, self._chemistry_engine, molecule, atoms)
+
+    def _begin_bond_dissociation(self, molecule, jobs: int) -> None:
+        """What the panel commits to when a bond-dissociation run is handed to the service, and only then (the counterpart of `_begin_proton_affinity`): which molecule it waits for, no conformer
+        (every structure is embedded fresh), the other whole-molecule buttons off, and a clean slate for the results that will arrive."""
         self._pending_molecule_uuid = molecule.uuid
         self._pending_mol = self._chemistry_engine.mol_from_molblock(molecule.molblock)
         self._pending_molblock = molecule.molblock
@@ -2449,14 +2459,6 @@ class QuantumChemistryPanel(QWidget):
         self._correlation_tabs.setVisible(False)
         self._reset_empty_states()
         self._status_label.setText(f"queued -- {jobs} job(s) for the bond dissociation enthalpy")
-        self._quantum_chemistry_service.request_bond_dissociation(
-            smiles=molecule.canonical_smiles,
-            atoms=atoms,
-            molecule_uuid=molecule.uuid,
-            calculation_input=DRAWING,
-            input_fingerprint=input_fingerprint(self._chemistry_engine, molecule, DRAWING),
-            structure_identity=molecule.canonical_smiles,
-        )
 
     def _on_tautomer_nmr_conformers_toggled(self, checked: bool) -> None:
         self._settings.set(_TAUTOMER_NMR_CONFORMERS_KEY, bool(checked))

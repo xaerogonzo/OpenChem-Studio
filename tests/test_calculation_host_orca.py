@@ -78,7 +78,7 @@ def completed(world, preparation, *, status=RunStatus.COMPLETED, run_id="orca-ru
 def test_with_a_starter_the_single_job_orca_calculators_need_approval_and_the_others_stay_where_they_were(world):
     for calculator_id in STARTABLE:
         assert world.host.describe(calculator_id).route is Route.NEEDS_APPROVAL, calculator_id
-    for calculator_id in ("orca.fukui", "orca.bond_dissociation_enthalpy", "orca.tautomer_distribution", "docking.vina", "lewis_hsab"):
+    for calculator_id in ("orca.fukui", "orca.tautomer_distribution", "docking.vina", "lewis_hsab"):
         assert world.host.describe(calculator_id).route is Route.PREVIEW_ONLY, calculator_id
 
 
@@ -395,3 +395,63 @@ def test_a_calculator_that_says_it_needs_no_conformer_is_not_told_it_does(world)
         preview = prepare(world, calculator_id).service_preview
         assert not any(r.what.startswith("a 3D conformer") for r in preview.requirements), calculator_id
     assert any(r.what.startswith("a 3D conformer") for r in prepare(world, "orca.sp").service_preview.requirements)
+
+
+# --- bond dissociation: a fixed protocol whose one choice, which bonds, is on the card ----------------------------------------------------------
+
+
+def test_bond_dissociation_needs_no_conformer_and_the_card_names_the_bonds_and_the_cost(world):
+    base(world, "CCO", "Ethanol")
+    turn = world.host.begin_turn()
+    result = prepare(world, "orca.bond_dissociation_enthalpy", turn=turn)
+    assert result.ok, result.problems
+    preparation = result.preparation
+    assert preparation.calculation_input == "drawing" and preparation.input_fingerprint == turn.fingerprints["drawing"] and preparation.drawing_fingerprint == ""
+    text = "\n".join(preparation.preview)
+    assert "embedded fresh" in text and "Bond dissociation button" in text and "What it would cost (approving accepts it)" in text
+    assert "The bonds it would compute: CH3-H, bonded to C; CH2-H, bonded to C, O; O-H, bonded to C." in text and "5 ORCA jobs" in text and "minutes to hours" in text
+    assert "leaves out" not in text and "conformer" not in text.replace("no conformer", "")
+    assert world.starter.calls == [] and world.host.state_of(preparation.run_id) is RunState.PREVIEWED
+
+
+def test_a_molecule_with_more_bond_classes_than_one_run_takes_says_which_are_left_out(world):
+    base(world, "CCCCCCO", "Hexanol")
+    text = "\n".join(prepare(world, "orca.bond_dissociation_enthalpy").preparation.preview)
+    assert "it leaves out: O-H, bonded to C" in text and "the Quantum Chemistry panel's Bond dissociation button, where the bonds are chosen" in text and "22 ORCA jobs" in text
+
+
+def test_a_molecule_outside_what_was_measured_says_so_on_the_bond_card(world):
+    base(world, "CCl", "Chloromethane")
+    text = "\n".join(prepare(world, "orca.bond_dissociation_enthalpy").preparation.preview)
+    assert "outside what the benchmark measured" in text and "Cl:" in text
+
+
+@pytest.mark.parametrize(("smiles", "fragment"), [("C[N+](C)(C)C", "charged"), ("O=C=O", "no bond between a heavy atom and a hydrogen")])
+def test_a_molecule_the_bond_protocol_cannot_compute_is_refused_before_a_card(world, smiles, fragment):
+    base(world, smiles, "Refused")
+    result = prepare(world, "orca.bond_dissociation_enthalpy")
+    assert [p.code for p in result.problems] == [ProblemCode.INVALID_STRUCTURE] and "does not apply" in result.problems[0].message and fragment in result.problems[0].message
+    assert world.host.pending() == ()
+
+
+def test_bond_dissociation_without_orca_is_not_ready(world):
+    base(world, "CCO", "Ethanol")
+    world.services.quantum_chemistry_service._settings.set("orca/executable_path", "")
+    assert [p.code for p in prepare(world, "orca.bond_dissociation_enthalpy").problems] == [ProblemCode.NOT_READY]
+
+
+def test_approving_bond_dissociation_hands_over_the_protocol_and_the_drawings_fingerprint(world):
+    ethanol = base(world, "CCO", "Ethanol")
+    preparation = prepare(world, "orca.bond_dissociation_enthalpy").preparation
+    assert approve(world, preparation.run_id) is RunState.RUNNING
+    [(molecule_uuid, choice, fingerprint)] = world.starter.calls
+    assert molecule_uuid == ethanol.uuid and choice.calc_type == "bond_dissociation" and fingerprint == preparation.input_fingerprint
+    completed(world, preparation, calc_type="bond_dissociation", calculation_input="drawing", status=RunStatus.COMPLETED)
+    assert [o.state for o in world.outcomes] == [RunState.COMPLETED] and world.host._quantum_inflight == {}
+
+
+def test_editing_the_drawing_after_a_bond_dissociation_card_withdraws_it(world):
+    ethanol = base(world, "CCO", "Ethanol")
+    preparation = prepare(world, "orca.bond_dissociation_enthalpy").preparation
+    world.engine.set_structure_from_smiles(ethanol, "CCCO")
+    assert approve(world, preparation.run_id) is RunState.INVALIDATED and world.starter.calls == []
