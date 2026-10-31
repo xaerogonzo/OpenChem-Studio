@@ -78,7 +78,7 @@ def completed(world, preparation, *, status=RunStatus.COMPLETED, run_id="orca-ru
 def test_with_a_starter_the_single_job_orca_calculators_need_approval_and_the_others_stay_where_they_were(world):
     for calculator_id in STARTABLE:
         assert world.host.describe(calculator_id).route is Route.NEEDS_APPROVAL, calculator_id
-    for calculator_id in ("orca.fukui", "orca.proton_affinity", "orca.bond_dissociation_enthalpy", "orca.tautomer_distribution", "docking.vina", "lewis_hsab"):
+    for calculator_id in ("orca.fukui", "orca.bond_dissociation_enthalpy", "orca.tautomer_distribution", "docking.vina", "lewis_hsab"):
         assert world.host.describe(calculator_id).route is Route.PREVIEW_ONLY, calculator_id
 
 
@@ -156,6 +156,62 @@ def test_an_interaction_breakdown_of_one_species_is_refused_before_a_card_and_of
     assert result.ok
     text = "\n".join(result.preparation.preview)
     assert "What it would cost (approving accepts it)" in text and "basis functions, DLPNO-CCSD(T)" in text
+
+
+# --- proton affinity: a fixed protocol, run on the drawing ------------------------------------------------------------------------------------
+
+
+def base(world, smiles="N", name="Ammonia"):
+    """A molecule with a structure and NO conformer: the protocol embeds every structure fresh."""
+    return world.add(smiles, name)
+
+
+def test_proton_affinity_needs_no_conformer_and_is_a_card_with_the_cost(world):
+    base(world)
+    turn = world.host.begin_turn()
+    result = prepare(world, "orca.proton_affinity", turn=turn)
+    assert result.ok, result.problems
+    preparation = result.preparation
+    assert preparation.calculation_input == "drawing" and preparation.input_fingerprint == turn.fingerprints["drawing"] and preparation.drawing_fingerprint == ""
+    text = "\n".join(preparation.preview)
+    assert "embedded fresh" in text and "Proton affinity button" in text and "What it would cost (approving accepts it)" in text
+    assert "2 ORCA geometry optimizations" in text and "minutes to hours" in text and "conformer" not in text.replace("no conformer", "")
+    assert world.starter.calls == [] and world.host.state_of(preparation.run_id) is RunState.PREVIEWED
+
+
+def test_a_base_outside_what_was_measured_says_so_on_the_card(world):
+    base(world, "CCl", "Chloroethane")
+    text = "\n".join(prepare(world, "orca.proton_affinity").preparation.preview)
+    assert "outside what the benchmark measured" in text and "Cl:" in text
+
+
+def test_a_base_the_protocol_cannot_compute_is_refused_before_a_card(world):
+    base(world, "C[N+](C)(C)C", "Tetramethylammonium")
+    result = prepare(world, "orca.proton_affinity")
+    assert [p.code for p in result.problems] == [ProblemCode.INVALID_STRUCTURE] and "does not apply" in result.problems[0].message and world.host.pending() == ()
+
+
+def test_proton_affinity_without_orca_is_not_ready(world):
+    base(world)
+    world.services.quantum_chemistry_service._settings.set("orca/executable_path", "")
+    assert [p.code for p in prepare(world, "orca.proton_affinity").problems] == [ProblemCode.NOT_READY]
+
+
+def test_approving_proton_affinity_hands_over_the_protocol_and_the_drawings_fingerprint(world):
+    ammonia = base(world)
+    preparation = prepare(world, "orca.proton_affinity").preparation
+    assert approve(world, preparation.run_id) is RunState.RUNNING
+    [(molecule_uuid, choice, fingerprint)] = world.starter.calls
+    assert molecule_uuid == ammonia.uuid and choice.calc_type == "proton_affinity" and fingerprint == preparation.input_fingerprint
+    completed(world, preparation, calc_type="proton_affinity", calculation_input="drawing", status=RunStatus.COMPLETED)
+    assert [o.state for o in world.outcomes] == [RunState.COMPLETED] and world.host._quantum_inflight == {}
+
+
+def test_editing_the_drawing_after_a_proton_affinity_card_withdraws_it(world):
+    ammonia = base(world)
+    preparation = prepare(world, "orca.proton_affinity").preparation
+    world.engine.set_structure_from_smiles(ammonia, "CN")
+    assert approve(world, preparation.run_id) is RunState.INVALIDATED and world.starter.calls == []
 
 
 # --- Approve starts it, by the panel's rules, and nothing else does ---------------------------------------------------------------------------------

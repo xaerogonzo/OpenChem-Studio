@@ -49,7 +49,7 @@
 
   {"do": "ai_send", "text": "Ask for something that is not one ORCA job.",
    "script": [
-     {"tool": "run_calculator", "input": {"calculator_id": "orca.proton_affinity"}},
+     {"tool": "run_calculator", "input": {"calculator_id": "orca.bond_dissociation_enthalpy"}},
      {"text": "That one runs from its own button."}
    ], "after_ms": 3000},
   {"do": "ai_expect", "tag": "a-calculator-with-its-own-dialog-is-still-only-described",
