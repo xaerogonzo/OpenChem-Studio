@@ -3405,7 +3405,8 @@ the detail pane and in every cell's tooltip.
 ## Settings
 
 **Edit ▸ Settings…** (Ctrl+,) holds every preference in one window, with a
-list of sections down its left side. Changes apply as you make them, so
+list of sections down its left side, under two headings (**Window** and
+**Calculations**; a heading is not a page, and the arrow keys step over it). Changes apply as you make them, so
 there is no OK button. The one exception is lowering the number of versions
 kept, which asks first.
 
@@ -3468,7 +3469,10 @@ kept, which asks first.
 - **Keyboard.** Every menu command with the shortcut it holds (Search facts and the
   Command Palette too), in one collapsible section per menu, in the order the menus
   show them (File, Edit, ..., then Tools > Calculators and so on). Click a heading to
-  open or close it; searching opens the sections that match and hides the rest. Click a box and press the combination you want; it applies
+  open or close it, or use **Expand all** and **Collapse all**; which groups you left open
+  is remembered, and **Reset layout** goes back to only the first being open. Searching
+  opens the sections that match and hides the rest, and is only a temporary view: clearing
+  it puts the groups back as you had them. Click a box and press the combination you want; it applies
   at once and is remembered. The ✕ in the box clears a command's shortcut, **Reset**
   puts one back to the shortcut it shipped with, and **Reset all to defaults** puts
   every one back. A combination another command already uses is refused, and the page
