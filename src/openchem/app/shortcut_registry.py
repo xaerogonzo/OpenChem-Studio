@@ -67,6 +67,21 @@ class ShortcutEntry:
     def is_default(self) -> bool:
         return self.current == self.default
 
+    @property
+    def group_id(self) -> str:
+        """The group as a machine id ("tools-calculators"): what a remembered open/closed state is keyed by."""
+        return group_id(self.group or "Window")
+
+
+def group_id(group: str) -> str:
+    """A group's menu path as a stable id: lower case, words joined by hyphens, the ">" between menus dropped.
+
+    The page remembers WHICH GROUPS ARE CLOSED under these, never under the heading shown, so rewording a heading
+    (or adding a count to it) cannot orphan a saved choice.
+    """
+    words = "".join(c.lower() if c.isalnum() else " " for c in group).split()
+    return "-".join(words) or "window"
+
 
 def portable(sequence: QKeySequence | str) -> str:
     """A sequence as portable text ("Ctrl+Shift+P"), or "" for none or unparseable."""

@@ -7498,6 +7498,12 @@ class _Driver(QObject):
                     shortcut_registry=window._shortcuts,
                     result_store_service=window._services.result_store_service,
                 )
+            elif step.get("real") and wanted == "CommandPalette":
+                # THE WINDOW'S OWN COMMANDS (the inventory's stand-in has none), so a shot shows the real rows and the
+                # menu path each one carries; `"query"` is typed into its search box below.
+                from openchem.ui.dialogs.command_palette import CommandPalette
+
+                dialog = CommandPalette(window._collect_commands(), window)
             else:
                 dialog = fixture.build(context)
         except DialogUnavailable as exc:
@@ -7544,6 +7550,13 @@ class _Driver(QObject):
                     "OPENCHEM_DRIVE: %s has no tab %r (have %s)",
                     wanted, wanted_tab, titles,
                 )
+        # `"query": "derived"` is typed into the command palette's own search box (the real filter).
+        query = str(step.get("query", ""))
+        if query:
+            if wanted != "CommandPalette":
+                logger.error("OPENCHEM_DRIVE: %s has no query box", wanted)
+            else:
+                dialog._search.setText(query)
         # `"search": "SD-POE"` types into the Help window's own search box, the real filter
         # (so what is shown is what a person typing it gets), and `"topic": "calc-dipole-moment"`
         # then opens that topic. Both are HelpDialog's; any other dialog LOGS that it has no

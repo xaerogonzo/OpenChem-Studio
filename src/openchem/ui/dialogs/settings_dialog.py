@@ -22,6 +22,7 @@ the same number.
 from __future__ import annotations
 
 import shiboken6
+from PySide6.QtCore import Qt
 from PySide6.QtWidgets import (
     QCheckBox,
     QComboBox,
@@ -31,6 +32,7 @@ from PySide6.QtWidgets import (
     QHBoxLayout,
     QLabel,
     QListWidget,
+    QListWidgetItem,
     QMessageBox,
     QPushButton,
     QSpinBox,
@@ -127,6 +129,30 @@ SECTIONS = (
     (RESULTS, "Results"),
 )
 
+#: How the list is PRESENTED: a heading over each run of sections. `SECTIONS` stays the one list of pages and
+#: ids; this only says which heading each id sits under, and `tests/test_settings_section_headings.py` holds
+#: the two together (every id once, none invented, none left out).
+SECTION_GROUPS = (
+    ("Window", (APPEARANCE_SECTION, DRAWING, FILE_DIALOGS, KEYBOARD, PANELS, RECOVERY)),
+    ("Calculations", (CALCULATORS, CONFORMERS, EXTERNAL_TOOLS, QUANTUM_CHEMISTRY, RECALCULATION, RESULTS)),
+)
+
+class _SectionList(QListWidget):
+    """The section list, with Home going to the first SECTION: row 0 is a heading, which cannot be current."""
+
+    def keyPressEvent(self, event) -> None:  # noqa: N802 - Qt override
+        if event.key() == Qt.Key.Key_Home and not event.modifiers():
+            for row in range(self.count()):
+                if self.item(row).flags() & Qt.ItemFlag.ItemIsSelectable:
+                    self.setCurrentRow(row)
+                    return
+        super().keyPressEvent(event)
+
+
+#: The item data that makes a list row a SECTION. A heading carries none, and nothing resolves a page from a
+#: row number: with headings in the list the row of a section is no longer its place in `SECTIONS`.
+SECTION_ID_ROLE = Qt.ItemDataRole.UserRole
+
 #: What each remembered folder is FOR, named by the dialogs that use it. The
 #: keys must be exactly `DIRECTORY_KINDS`; a test holds them to that set, so a
 #: new kind cannot arrive without a row here to forget it from.
@@ -150,8 +176,8 @@ _HELP = {
             "Follow the system (the default): light or dark as Windows is, and it changes when "
             "Windows does. Light and Dark keep that scheme whatever Windows is set to.\n\n"
             "The same choice is in the View menu, under Theme. It changes how the window looks "
-            "and nothing about your structures or results. The 2D editor's drawing area stays "
-            "light, so atom colours and selection feedback are never altered."
+            "and nothing about your structures or results. In dark, the 2D editor's drawing area "
+            "is dark with white bonds; atom colours and selection feedback are never altered."
         ),
         tier=2,
         help_id="settings.appearance",
@@ -479,7 +505,7 @@ class SettingsDialog(QDialog):
         # finishes the edit a second time.
         self._committing_revisions = False
 
-        self._sections = QListWidget(self)
+        self._sections = _SectionList(self)
         self._sections.setObjectName("settingsSections")
         self._pages = QStackedWidget(self)
 
@@ -496,7 +522,7 @@ class SettingsDialog(QDialog):
             QUANTUM_CHEMISTRY: self._build_quantum_chemistry_page,
             FILE_DIALOGS: self._build_file_dialogs_page,
         }
-        for section_id, label in SECTIONS:
+        for section_id, _label in SECTIONS:
             if section_id == EXTERNAL_TOOLS:
                 #: The seven tabs, moved in whole. Public so a caller or a
                 #: test can ask which tool is in front.
@@ -505,9 +531,9 @@ class SettingsDialog(QDialog):
             else:
                 page = builders[section_id]()
             self._section_ids.append(section_id)
-            self._sections.addItem(label)
             self._pages.addWidget(page)
-        self._sections.currentRowChanged.connect(self._pages.setCurrentIndex)
+        self._fill_section_list()
+        self._sections.currentItemChanged.connect(self._on_section_item_changed)
         self._sections.setFixedWidth(self._sections.sizeHintForColumn(0) + 32)
 
         buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Close, self)
@@ -547,10 +573,43 @@ class SettingsDialog(QDialog):
             raise ValueError(
                 f"unknown settings section {section!r}; expected one of {self._section_ids}"
             )
-        self._sections.setCurrentRow(self._section_ids.index(section))
+        self._sections.setCurrentItem(self._item_of[section])
 
     def current_section(self) -> str:
-        return self._section_ids[self._sections.currentRow()]
+        section = self._section_of(self._sections.currentItem())
+        assert section is not None, "a heading can never be the current section"
+        return section
+
+    def _fill_section_list(self) -> None:
+        """One non-selectable heading per group, then its sections; each section row remembers its id."""
+        labels = dict(SECTIONS)
+        self._item_of: dict[str, QListWidgetItem] = {}
+        heading_font = self._sections.font()
+        heading_font.setBold(True)
+        for heading, ids in SECTION_GROUPS:
+            header = QListWidgetItem(heading)
+            header.setFlags(Qt.ItemFlag.NoItemFlags)  # not selectable, not enabled: the arrow keys step over it
+            header.setFont(heading_font)
+            self._sections.addItem(header)
+            for section_id in ids:
+                item = QListWidgetItem(labels[section_id])
+                item.setData(SECTION_ID_ROLE, section_id)
+                self._sections.addItem(item)
+                self._item_of[section_id] = item
+
+    @staticmethod
+    def _section_of(item: QListWidgetItem | None) -> str | None:
+        """The section id a row stands for, or None for a heading (or nothing): the one place a row becomes a page."""
+        return None if item is None else item.data(SECTION_ID_ROLE)
+
+    def _on_section_item_changed(self, current: QListWidgetItem | None, previous: QListWidgetItem | None) -> None:
+        section = self._section_of(current)
+        if section is None:
+            # A heading was made current by code; the list stays on the section it was on.
+            if self._section_of(previous) is not None:
+                self._sections.setCurrentItem(previous)
+            return
+        self._pages.setCurrentIndex(self._section_ids.index(section))
 
     def done(self, result: int) -> None:
         """Close, committing a revisions value that was never committed.
@@ -592,9 +651,9 @@ class SettingsDialog(QDialog):
         layout.addLayout(row)
         layout.addWidget(_note(
             "Follow the system changes when Windows does. The same choice is in the View menu, "
-            "under Theme. The 2D editor's drawing area stays light, so atom colours and "
-            "selection feedback are never altered; the macromolecule viewer keeps its own light "
-            "side panels.",
+            "under Theme. In dark, the 2D editor's drawing area is dark with white bonds; atom "
+            "colours and selection feedback are never altered. The macromolecule viewer keeps its "
+            "own light side panels.",
             page,
         ))
         layout.addStretch(1)
@@ -771,7 +830,7 @@ class SettingsDialog(QDialog):
 
     def _build_keyboard_page(self) -> QWidget:
         #: Public so a caller or a test can drive a rebinding.
-        self.keyboard_page = KeyboardShortcutsPage(self._shortcut_registry, self)
+        self.keyboard_page = KeyboardShortcutsPage(self._shortcut_registry, self, settings=self._settings)
         return self.keyboard_page
 
     # --- Drawing -------------------------------------------------------------------
