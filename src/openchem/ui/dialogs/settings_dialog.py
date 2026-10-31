@@ -652,8 +652,8 @@ class SettingsDialog(QDialog):
         layout.addWidget(_note(
             "Follow the system changes when Windows does. The same choice is in the View menu, "
             "under Theme. In dark, the 2D editor's drawing area is dark with white bonds; atom "
-            "colours and selection feedback are never altered. The macromolecule viewer keeps its "
-            "own light side panels.",
+            "colours and selection feedback are never altered. The 2D editor's dialogs and the "
+            "macromolecule viewer's side panels follow the look too; its 3D canvas does not.",
             page,
         ))
         layout.addStretch(1)

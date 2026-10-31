@@ -75,6 +75,12 @@ KETCHER_CHROME_SELECTORS = (
     '[class*="RightToolbar-module_root"]',
     '[class*="BottomToolbar-module_root"]',
 )
+#: The editor's modal dialogs (Atom Properties, Bond Properties, Settings, the periodic table and the rest), which
+#: are one `<dialog>` element each and exist only while one is open, so unlike a toolbar they are not counted on a
+#: page at rest. They are filtered exactly as a toolbar is: a dialog is chrome (forms, buttons, labels), it was a
+#: white box in a dark window, and it never contains the drawing. Measured on the live page: every one carries
+#: `Dialog-module_dialog` and sits in `Modal-module_modalOverlay`, a sibling of the editor, not inside it.
+KETCHER_DIALOG_SELECTORS = ('dialog[class*="Dialog-module_dialog"]',)
 #: The drawing's own container: the one element whose subtree is the structure's SVG.
 KETCHER_CANVAS = '[class*="StructEditor-module_canvas"]'
 #: What the drawing's INK is, as the editor writes it: bonds, carbon and hydrogen labels, charges and
@@ -97,7 +103,7 @@ KETCHER_INK_CSS = (
 #: drawing's black ink light. Light is the empty string.
 KETCHER_DARK_CSS = (
     "html, body, #root, .Ketcher-root { background: #1f1f1f; }"
-    + ", ".join(KETCHER_CHROME_SELECTORS)
+    + ", ".join(KETCHER_CHROME_SELECTORS + KETCHER_DIALOG_SELECTORS)
     + " { filter: invert(0.88) hue-rotate(180deg); }"
     + KETCHER_INK_CSS
 )

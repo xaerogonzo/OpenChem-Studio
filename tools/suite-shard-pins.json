@@ -1908,6 +1908,7 @@
   "tests/test_ci_deselections.py": 4,
   "tests/test_cli.py": 0,
   "tests/test_code_signing_policy.py": 4,
+  "tests/test_colour_literals.py": 0,
   "tests/test_command_palette.py": 2,
   "tests/test_command_palette_paths.py": 0,
   "tests/test_command_palette_vocabulary.py": 4,

@@ -3,7 +3,7 @@ from __future__ import annotations
 from pathlib import Path
 
 from PySide6.QtCore import Qt, QTimer
-from PySide6.QtGui import QCursor
+from PySide6.QtGui import QColor, QCursor
 from PySide6.QtWidgets import (
     QFileDialog,
     QHBoxLayout,
@@ -332,7 +332,8 @@ class IrViewWidget(QWidget):
             )
             for column, item in enumerate(items):
                 if mode.is_imaginary:
-                    item.setForeground(Qt.GlobalColor.red)
+                    # Pure red is 3.4:1 on a dark table's field; `ink` lifts it only as far as it must (nothing in light).
+                    item.setForeground(theme.ink(QColor(Qt.GlobalColor.red)))
                 self._table.setItem(row, column, item)
         # See the identical comment in `NmrViewWidget._populate_table`:
         # a fresh `QHeaderView`'s own default sort indicator is (section

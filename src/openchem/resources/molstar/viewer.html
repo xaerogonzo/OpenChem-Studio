@@ -114,14 +114,33 @@
         return '(and ' + terms + ')';
       }
 
+      // MOL*'S OWN PANELS ARE ONE LIGHT SKIN COMPILED INTO molstar.css WITH LITERAL COLOURS (no variables), so
+      // the look is a filter on each panel REGION, exactly as the 2D editor's toolbars are done (see
+      // ui/widgets/web_appearance.py): `invert(0.88)` takes the cream surface to the application's dark one and
+      // `hue-rotate(180deg)` brings coloured controls back to roughly their own hues. The regions are Mol*'s
+      // own layout classes (the Home / Download panel and its icon strip on the left, Structure Tools on the
+      // right, the sequence panel on top, the log below), and the 3D canvas is in `.msp-layout-main`, which is
+      // never filtered: the structure keeps the colours it was given. Light is no stylesheet at all.
+      var CHROME_REGIONS = '.msp-layout-top, .msp-layout-left, .msp-layout-right, .msp-layout-bottom';
+      var APPEARANCE_STYLE_ID = 'openchem-appearance';
+      function setChromeLook(dark) {
+        var style = document.getElementById(APPEARANCE_STYLE_ID);
+        if (!style) {
+          style = document.createElement('style');
+          style.id = APPEARANCE_STYLE_ID;
+          document.head.appendChild(style);
+        }
+        style.textContent = dark ? CHROME_REGIONS + ' { filter: invert(0.88) hue-rotate(180deg); }' : '';
+      }
+
       window.openchemMolstarViewer = {
-        // Light or dark, never "system": Python resolves that. Only the 3D canvas and the page behind it
-        // change. Mol*'s own panels (sequence, the left and right controls) are the one light skin this
-        // build ships, and stay light: documented in docs/APPEARANCE_DESIGN.md rather than hidden.
+        // Light or dark, never "system": Python resolves that. The 3D canvas's background, the page behind it
+        // and Mol*'s panels (through `setChromeLook`) follow the look; the structure's own colours never do.
         setAppearance: function (look) {
           var dark = look === 'dark';
           document.documentElement.style.colorScheme = dark ? 'dark' : 'light';
           document.body.style.background = dark ? '#1e1e1e' : '#ffffff';
+          setChromeLook(dark);
           whenReady(function () {
             var canvas = viewer.plugin.canvas3d;
             if (canvas) {
