@@ -6105,7 +6105,7 @@ class _Driver(QObject):
         control then reads is logged beside what was asked, so a control
         that refused the value -- a bound, a question answered No -- says so.
         """
-        from PySide6.QtWidgets import QAbstractButton, QCheckBox, QLineEdit, QSpinBox, QWidget
+        from PySide6.QtWidgets import QAbstractButton, QCheckBox, QLineEdit, QListWidget, QSpinBox, QWidget
 
         dialog = getattr(self, "_dialog", None)
         name = str(step.get("name", ""))
@@ -6127,6 +6127,13 @@ class _Driver(QObject):
             # A search box: the text is set, which is what typing it leaves behind (`textChanged` fires).
             widget.setText(str(step["value"]))
             now = widget.text()
+        elif isinstance(widget, QListWidget):
+            # A list of pages (External Tools): the row whose TEXT is asked for is made current, by code, as a click does.
+            rows = [widget.item(i) for i in range(widget.count())]
+            wanted = [row for row in rows if row.text() == str(step["value"])]
+            if wanted:
+                widget.setCurrentItem(wanted[0])
+            now = widget.currentItem().text() if widget.currentItem() else None
         else:
             logger.error(
                 "OPENCHEM_DRIVE: control %s -- %s", name,

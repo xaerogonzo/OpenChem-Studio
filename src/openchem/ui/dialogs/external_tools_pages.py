@@ -18,11 +18,13 @@ from PySide6.QtWidgets import (
     QHBoxLayout,
     QHeaderView,
     QLabel,
+    QListWidget,
+    QListWidgetItem,
     QMessageBox,
     QPushButton,
     QTableWidget,
     QTableWidgetItem,
-    QTabWidget,
+    QStackedWidget,
     QVBoxLayout,
     QWidget,
 )
@@ -49,6 +51,36 @@ from openchem.ui.dialogs.external_tool_tabs import (
 )
 
 logger = logging.getLogger("openchem.ui")
+
+
+#: How the tool list is PRESENTED: a heading over each run of tools. The pages themselves are registered in
+#: `ExternalToolsPages.__init__`; this only says which heading each catalogue key sits under, and
+#: `tests/test_external_tools_dialog.py` holds the two together (every tool once, none invented, none left out).
+#: Twelve tabs needed about 1040 px of tab strip and the page is about 600 px wide in the Settings window, so
+#: the strip scrolled sideways and hid the last third of the tools.
+TOOL_GROUPS = (
+    ("Programs", ("vina", "orca", "psi4", "xtb", "aizynthfinder", "knowledge_vista")),
+    ("Python environments", ("pkasolver", "admet")),
+    ("Downloads", ("java", "nmr_index")),
+)
+
+#: Item data that makes a list row a PAGE (a tool key, the guide's key or Storage's). A heading carries none,
+#: and nothing resolves a page from a row number.
+_PAGE_KEY_ROLE = Qt.ItemDataRole.UserRole
+#: Storage's page key. It is a page of the list but not a catalogue tool, so no `TOOL_GROUPS` entry names it.
+_STORAGE_KEY = "storage"
+
+
+class _ToolList(QListWidget):
+    """The tool list, with Home going to the first PAGE: row 0 may be a heading, which cannot be current."""
+
+    def keyPressEvent(self, event) -> None:  # noqa: N802 - Qt override
+        if event.key() == Qt.Key.Key_Home and not event.modifiers():
+            for row in range(self.count()):
+                if self.item(row).flags() & Qt.ItemFlag.ItemIsSelectable:
+                    self.setCurrentRow(row)
+                    return
+        super().keyPressEvent(event)
 
 
 #: Qt property carrying which sidecar a "Remove from Disk" button removes.
@@ -211,7 +243,7 @@ class ExternalToolsPages(QWidget):
         self._storage_measured = False
         self._tool_tabs: list[ToolTab] = []
 
-        self._tabs = QTabWidget(self)
+        self._pages = QStackedWidget(self)
         # Registered last (it reads the tool tabs) but placed first, so a person opening External Tools lands on it.
         # Vina and ORCA were the first two external tools and predate
         # the descriptor system, so they were hand-built and lacked
@@ -231,7 +263,8 @@ class ExternalToolsPages(QWidget):
         self._add_managed_asset_tab(catalog.nmr_database())
         # Optional, and the only tab here that nothing depends on: after every tool some feature needs, before Storage (not a tool).
         self._add_executable_tab(catalog.knowledge_vista(), ManagedExecutableTab)
-        self._tabs.addTab(self._build_storage_tab(), "Storage")
+        self._storage_page = self._build_storage_tab()
+        self._pages.addWidget(self._storage_page)
         self._guide = GuideTab(
             self,
             statuses=self._guide_statuses,
@@ -239,14 +272,79 @@ class ExternalToolsPages(QWidget):
             open_help=self._open_help_topic,
             open_url=self._open_url,
         )
-        self._tabs.insertTab(0, self._guide, "Setup guide")
-        self._tabs.currentChanged.connect(self._on_tab_changed)
+        self._pages.insertWidget(0, self._guide)
+        self._nav = _ToolList(self)
+        self._nav.setObjectName("externalToolsList")
+        self._nav.setFixedWidth(170)
+        self._fill_tool_list()
+        self._nav.currentItemChanged.connect(self._on_nav_item_changed)
+        self._pages.currentChanged.connect(self._on_page_changed)
 
         self.show_tool(focus)
 
-        layout = QVBoxLayout(self)
+        layout = QHBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
-        layout.addWidget(self._tabs)
+        layout.addWidget(self._nav)
+        layout.addWidget(self._pages, 1)
+
+    # --- navigation ------------------------------------------------------------
+
+    def _page_for(self, key: str) -> QWidget | None:
+        if key == GUIDE_KEY:
+            return self._guide
+        if key == _STORAGE_KEY:
+            return self._storage_page
+        for tab in self._tool_tabs:
+            if tab.descriptor.key == key:
+                return tab
+        return None
+
+    def _fill_tool_list(self) -> None:
+        """The guide, then one non-selectable heading per group with its tools, then Storage.
+
+        Every row remembers the key of its page; the stack's order is the registration order and the list's is
+        this one, so nothing may map a row number to a page.
+        """
+        titles = {tab.descriptor.key: tab.descriptor.title for tab in self._tool_tabs}
+        heading_font = self._nav.font()
+        heading_font.setBold(True)
+        self._item_of: dict[str, QListWidgetItem] = {}
+
+        def add_page(key: str, title: str) -> None:
+            item = QListWidgetItem(title)
+            item.setData(_PAGE_KEY_ROLE, key)
+            self._nav.addItem(item)
+            self._item_of[key] = item
+
+        def add_heading(title: str) -> None:
+            header = QListWidgetItem(title)
+            header.setFlags(Qt.ItemFlag.NoItemFlags)  # not selectable, not enabled: the arrow keys step over it
+            header.setFont(heading_font)
+            self._nav.addItem(header)
+
+        add_page(GUIDE_KEY, "Setup guide")
+        for heading, keys in TOOL_GROUPS:
+            add_heading(heading)
+            for key in keys:
+                add_page(key, titles[key])
+        add_heading("Disk")
+        add_page(_STORAGE_KEY, "Storage")
+
+    @staticmethod
+    def _key_of(item: QListWidgetItem | None) -> str | None:
+        """The page key a row stands for, or None for a heading (or nothing)."""
+        return None if item is None else item.data(_PAGE_KEY_ROLE)
+
+    def _on_nav_item_changed(self, current: QListWidgetItem | None, previous: QListWidgetItem | None) -> None:
+        key = self._key_of(current)
+        if key is None:
+            # A heading was made current by code; the list stays on the page it was on.
+            if self._key_of(previous) is not None:
+                self._nav.setCurrentItem(previous)
+            return
+        page = self._page_for(key)
+        if page is not None:
+            self._pages.setCurrentWidget(page)
 
     def show_tool(self, key: str) -> None:
         """Bring one tool's tab to the front, by its catalogue key.
@@ -256,18 +354,16 @@ class ExternalToolsPages(QWidget):
         wrong tab the day one was added in front of them. An unknown key
         leaves the tabs where they are.
         """
+        item = self._item_of.get(key)
+        if item is None:
+            return
         if key == GUIDE_KEY:
             self._guide.refresh()
-            self._tabs.setCurrentWidget(self._guide)
-            return
-        for tab in self._tool_tabs:
-            if tab.descriptor.key == key:
-                self._tabs.setCurrentWidget(tab)
-                return
+        self._nav.setCurrentItem(item)
 
     def current_tool(self) -> str | None:
         """The catalogue key of the tab in front, or None on Storage."""
-        widget = self._tabs.currentWidget()
+        widget = self._pages.currentWidget()
         return widget.descriptor.key if widget in self._tool_tabs else None
 
     # --- Descriptor-driven tabs ---------------------------------------------
@@ -296,7 +392,7 @@ class ExternalToolsPages(QWidget):
 
     def _register_tab(self, descriptor, tab: ToolTab) -> None:
         self._tool_tabs.append(tab)
-        self._tabs.addTab(tab, descriptor.title)
+        self._pages.addWidget(tab)
         self._alias_widgets(descriptor.key, tab)
 
     # These aliases exist ONLY so `tests/test_external_tools_dialog.py`
@@ -529,10 +625,10 @@ class ExternalToolsPages(QWidget):
 
         QDesktopServices.openUrl(QUrl(url))
 
-    def _on_tab_changed(self, index: int) -> None:
-        if self._tabs.widget(index) is self._guide:
+    def _on_page_changed(self, index: int) -> None:
+        if self._pages.widget(index) is self._guide:
             self._guide.refresh()
-        if self._tabs.tabText(index) == "Storage" and not self._storage_measured:
+        if self._pages.widget(index) is self._storage_page and not self._storage_measured:
             self._measure_storage()
 
     def _refresh_storage_labels(self) -> None:
