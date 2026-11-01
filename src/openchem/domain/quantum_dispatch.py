@@ -4,7 +4,8 @@
 basis, charge and multiplicity), so a card can state them all and the person approving it is approving exactly what the button would have started (`chem/quantum_run_request.prepare_run` applies
 the button's own rules to it). Proton affinity is the second kind, a FIXED PROTOCOL: it has no setting to choose (the benchmarked method is the only one), it runs on the drawing and not on a stored
 conformer, and what a card has to say is the base, how many ORCA jobs that is and whether the benchmark measured it (`prepare_proton_affinity`). Bond dissociation is a fixed protocol too, and the one choice it has, which bonds, is a default a card states (the dialog's own: the first six bond classes) and a person who wants
-others starts it from the panel. The others stay where they were: the tautomer runs enumerate their own jobs, and the experimental Fukui calculation is hidden by default. A model is told of those as "run from its own panel".
+others starts it from the panel. The tautomer distribution is the third kind: the three settings of an ordinary job, run on the drawing, with the job count its enumeration gives (`prepare_tautomers`) stated on the card. The experimental Fukui
+calculation stays where it was, hidden by default. A model is told of those as "run from its own panel".
 
 Pure: no Qt, no RDKit.
 """
@@ -25,10 +26,15 @@ STARTABLE: Mapping[str, str] = MappingProxyType({
     "orca.led": "led",
     "orca.proton_affinity": "proton_affinity",
     "orca.bond_dissociation_enthalpy": "bond_dissociation",
+    "orca.tautomer_distribution": "tautomer_distribution",
 })
 
 #: The startable calculators that are a fixed protocol: no setting to choose (bond dissociation's one choice, which bonds, is stated on the card), run on the DRAWING (every structure is embedded fresh) and needing no stored conformer.
 FIXED_PROTOCOL = frozenset({"orca.proton_affinity", "orca.bond_dissociation_enthalpy"})
+
+#: The startable calculators that run on the DRAWING and need no stored conformer: the fixed protocols, and the tautomer distribution, which has the three settings of an ordinary job but
+#: embeds every candidate fresh and whose job count is what its enumeration gives, stated on the card.
+RUNS_ON_DRAWING = FIXED_PROTOCOL | {"orca.tautomer_distribution"}
 
 
 def calc_type_of(calculator_id: str) -> str | None:

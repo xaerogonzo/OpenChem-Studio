@@ -187,7 +187,7 @@ RUN_CALCULATOR = ToolDefinition(
         "'awaiting_approval' (a preview is on the user's screen and nothing has started: tell the user it needs "
         "their approval, do not call this again for it, and state no result), or 'timed_out' (still running; its "
         "result will appear in Results, do not ask again). You cannot approve a preview and must never imply "
-        "that you did. An ORCA calculator (orca.sp, orca.opt, orca.opt_freq, orca.nmr, orca.nmr_coupling, orca.delta_scf, orca.led, orca.proton_affinity, orca.bond_dissociation_enthalpy) is always "
+        "that you did. An ORCA calculator (orca.sp, orca.opt, orca.opt_freq, orca.nmr, orca.nmr_coupling, orca.delta_scf, orca.led, orca.proton_affinity, orca.bond_dissociation_enthalpy, orca.tautomer_distribution) is always "
         "'awaiting_approval': the card shows its settings, ORCA starts only if the user approves it, and a job can run for minutes to hours. When it ends you are told with the "
         "user's next message; then read it with read_quantum_runs, never from memory."
     ),

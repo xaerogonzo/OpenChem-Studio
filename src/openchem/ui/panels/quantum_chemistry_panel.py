@@ -56,6 +56,7 @@ from openchem.chem.quantum_run_request import (
     BOND_DISSOCIATION,
     BOND_DISSOCIATION_CONFIRM_ABOVE,
     PROTON_AFFINITY,
+    TAUTOMER_DISTRIBUTION,
     PreparedRun,
     RunChoice,
     RunRefusal,
@@ -64,10 +65,13 @@ from openchem.chem.quantum_run_request import (
     prepare_bond_dissociation_for,
     prepare_proton_affinity_for,
     prepare_run,
+    prepare_tautomers_for,
     review_cost,
     review_led,
     start_bond_dissociation,
     start_proton_affinity,
+    start_tautomer_distribution,
+    tautomers_prepared,
 )
 from openchem.chem.quantum_run_request import start as start_run
 from openchem.chem.tautomer_distribution import (
@@ -2159,6 +2163,8 @@ class QuantumChemistryPanel(QWidget):
             return self._start_assistant_proton_affinity(molecule, input_fingerprint)
         if choice.calc_type == BOND_DISSOCIATION:
             return self._start_assistant_bond_dissociation(molecule, input_fingerprint)
+        if choice.calc_type == TAUTOMER_DISTRIBUTION:
+            return self._start_assistant_tautomers(molecule, choice, input_fingerprint)
         prepared = prepare_run(self._chemistry_engine, molecule, choice)
         if isinstance(prepared, RunRefusal):
             return prepared.message
@@ -2197,6 +2203,21 @@ class QuantumChemistryPanel(QWidget):
         select(self._molecule_combo, molecule.uuid)
         self._begin_bond_dissociation(molecule, prepared.jobs)
         start_bond_dissociation(self._quantum_chemistry_service, self._chemistry_engine, molecule, list(prepared.atoms))
+        return ""
+
+    def _start_assistant_tautomers(self, molecule, choice: RunChoice, expected_fingerprint: str) -> str:
+        """The tautomer half of `start_assistant_run`: the three settings of an ordinary job, run on the DRAWING with the default conformer search (`prepare_tautomers_for`), which is what the card
+        counted. The candidates are enumerated from the drawing's SMILES with fixed seeds, so the jobs started are the jobs the card named; the cost question was the card."""
+        if not choice.method_basis.strip():
+            return "Enter a method/basis (e.g. 'B3LYP def2-SVP')."
+        prepared = prepare_tautomers_for(molecule)
+        if isinstance(prepared, RunRefusal):
+            return prepared.message
+        if input_fingerprint(self._chemistry_engine, molecule, DRAWING) != expected_fingerprint:
+            return "The structure was edited after this was prepared, so nothing was started; prepare it again."
+        select(self._molecule_combo, molecule.uuid)
+        self._begin_tautomer_distribution(molecule, self._chemistry_engine.mol_from_molblock(molecule.molblock), prepared)
+        start_tautomer_distribution(self._quantum_chemistry_service, self._chemistry_engine, molecule, prepared, choice.charge, choice.multiplicity, choice.method_basis)
         return ""
 
     def _begin_pending(self, molecule, prepared: PreparedRun) -> None:
@@ -2265,58 +2286,32 @@ class QuantumChemistryPanel(QWidget):
 
         mol = self._chemistry_engine.mol_from_molblock(molecule.molblock)
         policy = policy_for_mode(self._tautomer_full_check.isChecked())
+        # The count of jobs, what it stands for and the words of the question are `chem.quantum_run_request.PreparedTautomers`, shared with an assistant's card. The generation call and the
+        # threshold stay named here, which is where this panel's tests patch them.
         candidates, embedding_failures = generate_tautomer_candidates(mol, policy=policy)
-        if not candidates:
-            message = "No tautomer candidates could be generated for this molecule."
-            if embedding_failures:
-                message += f" ({embedding_failures} failed to embed in 3D.)"
-            self._status_label.setText(message)
+        prepared = tautomers_prepared(candidates, embedding_failures, policy)
+        if isinstance(prepared, RunRefusal):
+            self._status_label.setText(prepared.message)
             return
-
-        tautomers = len({c.tautomer_fingerprint or c.fingerprint for c in candidates})
-        truncated = len({c.tautomer_fingerprint for c in candidates if c.stereo.truncated})
-        # A job is one stereo candidate, so the count that matters for cost is
-        # the number of jobs, named beside the number of tautomers. A tautomer
-        # over the stereo cap costs less than it would, but yields an
-        # INCOMPLETE result, which the user must hear before confirming.
-        conformer_truncated = len(
-            {c.conformer.stereo_fingerprint for c in candidates if c.conformer.truncated}
-        )
-        if len(candidates) > CONFIRMATION_THRESHOLD or truncated or conformer_truncated:
-            stereo_classes = len({c.conformer.stereo_fingerprint or c.fingerprint for c in candidates})
-            which = (
-                "every retained sampled conformer"
-                if policy.conformer_search == "full_orca"
-                else "the lowest distinct conformers"
-            )
-            text = (
-                f"This will run {len(candidates)} real ORCA geometry optimizations "
-                f"for {tautomers} tautomer(s) and {stereo_classes} stereoisomer(s) "
-                f"({which} of each; conformer search {policy.conformer_search}). "
-            )
-            if conformer_truncated:
-                text += (
-                    f"{conformer_truncated} stereoisomer(s) have more distinct conformers than the cap "
-                    f"({policy.conformer_cap}); the lowest ones are used and the result will be marked "
-                    f"incomplete, with no population percentages. "
-                )
-            if truncated:
-                text += (
-                    f"{truncated} tautomer(s) exceed the stereoisomer cap and will use a single "
-                    f"fallback configuration, so the result will be marked incomplete and show no "
-                    f"population percentages. "
-                )
-            text += "This can take a long time. Continue?"
+        if prepared.asks_cost(CONFIRMATION_THRESHOLD):
             answer = QMessageBox.question(
                 self,
                 "Run tautomer distribution?",
-                text,
+                prepared.question() + " Continue?",
                 QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
                 QMessageBox.StandardButton.No,
             )
             if answer != QMessageBox.StandardButton.Yes:
                 return
 
+        self._begin_tautomer_distribution(molecule, mol, prepared)
+        start_tautomer_distribution(
+            self._quantum_chemistry_service, self._chemistry_engine, molecule, prepared, self._charge_spin.value(), self._multiplicity_spin.value(), method_basis
+        )
+
+    def _begin_tautomer_distribution(self, molecule, mol, prepared) -> None:
+        """What the panel commits to when a tautomer-distribution run is handed to the service, and only then (the counterpart of `_begin_proton_affinity`): which molecule it waits for, no conformer
+        (every candidate is embedded fresh), the other whole-molecule buttons off, and a clean slate for the results that will arrive."""
         self._pending_molecule_uuid = molecule.uuid
         self._pending_mol = mol
         self._pending_molblock = molecule.molblock
@@ -2335,21 +2330,7 @@ class QuantumChemistryPanel(QWidget):
         self._spectrum_note_label.setVisible(False)
         self._correlation_tabs.setVisible(False)
         self._reset_empty_states()
-        self._status_label.setText(
-            f"queued -- {len(candidates)} optimization(s) for {tautomers} tautomer(s)"
-            + (f", {embedding_failures} embedding failure(s) excluded" if embedding_failures else "")
-        )
-
-        self._quantum_chemistry_service.request_tautomer_distribution(
-            candidates=candidates,
-            molecule_uuid=molecule.uuid,
-            charge=self._charge_spin.value(),
-            multiplicity=self._multiplicity_spin.value(),
-            method_basis=method_basis,
-            calculation_input=DRAWING,
-            input_fingerprint=input_fingerprint(self._chemistry_engine, molecule, DRAWING),
-            policy=policy,
-        )
+        self._status_label.setText(prepared.queued_text())
 
     def _on_proton_affinity_clicked(self) -> None:
         """Runs the benchmarked proton-affinity protocol on the current structure (`QuantumChemistryService.request_proton_affinity`).

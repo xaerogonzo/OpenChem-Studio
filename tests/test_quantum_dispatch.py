@@ -13,8 +13,8 @@ from openchem.chem.orca_engine import CALC_TYPE_LABELS
 from openchem.domain.calculation_bridge import Route, build_card, route_of
 from openchem.domain.calculator import MOLECULE, ServiceExecution
 from openchem.domain.execution_policy import AiRun, policy_of
-from openchem.chem.quantum_run_request import BOND_DISSOCIATION, PROTON_AFFINITY
-from openchem.domain.quantum_dispatch import FIXED_PROTOCOL, STARTABLE, calc_type_of
+from openchem.chem.quantum_run_request import BOND_DISSOCIATION, PROTON_AFFINITY, TAUTOMER_DISTRIBUTION
+from openchem.domain.quantum_dispatch import FIXED_PROTOCOL, RUNS_ON_DRAWING, STARTABLE, calc_type_of
 
 
 @pytest.fixture(scope="module")
@@ -33,8 +33,9 @@ def test_every_startable_calculator_is_a_registered_orca_job_run_by_the_quantum_
 
 
 def test_each_code_is_a_calculation_type_the_panel_offers_or_the_fixed_protocol_it_is_recorded_under(registry):
-    assert {STARTABLE[c] for c in STARTABLE if c not in FIXED_PROTOCOL} <= set(CALC_TYPE_LABELS.values())
+    assert {STARTABLE[c] for c in STARTABLE if c not in RUNS_ON_DRAWING} <= set(CALC_TYPE_LABELS.values())
     assert {STARTABLE[c] for c in FIXED_PROTOCOL} == {PROTON_AFFINITY, BOND_DISSOCIATION}
+    assert {STARTABLE[c] for c in RUNS_ON_DRAWING - FIXED_PROTOCOL} == {TAUTOMER_DISTRIBUTION}
 
 
 def test_a_startable_calculator_takes_exactly_the_three_settings_a_card_hands_over(registry):
@@ -57,7 +58,7 @@ def test_every_startable_calculator_asks_a_person_and_says_what_it_starts(regist
 
 
 def test_what_is_not_one_job_with_those_settings_is_not_startable(registry):
-    left_out = {"orca.fukui", "orca.tautomer_distribution", "docking.vina", "lewis_hsab"}
+    left_out = {"orca.fukui", "docking.vina", "lewis_hsab"}
     assert not left_out & set(STARTABLE)
     assert all(calc_type_of(calculator_id) is None for calculator_id in left_out)
     # Every other ORCA calculation type the panel offers is one a card can ask for, so a new type has to be decided about, not forgotten.
@@ -82,3 +83,9 @@ def test_a_card_promises_an_approval_only_where_the_host_can_start_one(registry)
 def test_a_registry_calculator_is_unaffected_by_what_a_host_can_start(registry):
     definition = registry.get("polar_surface_area")
     assert route_of(definition) == route_of(definition, STARTABLE)
+
+
+def test_the_tautomer_distribution_takes_the_three_settings_but_runs_on_the_drawing(registry):
+    assert "orca.tautomer_distribution" in STARTABLE and "orca.tautomer_distribution" not in FIXED_PROTOCOL
+    assert FIXED_PROTOCOL < RUNS_ON_DRAWING and RUNS_ON_DRAWING <= set(STARTABLE)
+    assert [p.name for p in registry.get("orca.tautomer_distribution").parameters] == ["charge", "multiplicity", "method_basis"]

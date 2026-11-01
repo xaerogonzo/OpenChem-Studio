@@ -19,6 +19,8 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any
 
+from rdkit import Chem
+
 from openchem.chem import bond_dissociation
 from openchem.chem.calculation_input import (
     ResolvedEnsemble,
@@ -32,6 +34,13 @@ from openchem.chem.engine import ChemistryEngine
 from openchem.chem.fukui import conformer_average_message, open_shell_message
 from openchem.chem.proton_affinity import OutOfScope as ProtonAffinityOutOfScope
 from openchem.chem.proton_affinity import Sequence as ProtonAffinitySequence
+from openchem.chem.tautomer_distribution import (
+    CONFIRMATION_THRESHOLD,
+    ModelPolicy,
+    TautomerCandidate,
+    generate_tautomer_candidates,
+    policy_for_mode,
+)
 from openchem.domain.calculator import DRAWING, ENSEMBLE, GEOMETRY
 from openchem.domain.conformer import ConformerModel
 from openchem.domain.molecule import MoleculeModel
@@ -347,6 +356,141 @@ def start_bond_dissociation(service: Any, engine: ChemistryEngine, molecule: Mol
         calculation_input=DRAWING,
         input_fingerprint=input_fingerprint(engine, molecule, DRAWING),
         structure_identity=molecule.canonical_smiles,
+    )
+
+
+# --- tautomer distribution: the three settings, run on the drawing, and a job count that enumeration decides -----------------------------------------------
+
+#: The calculation type a tautomer-distribution run is recorded under (`QuantumChemistryService._new_tautomer_distribution_run`), and so what its run record is matched by.
+TAUTOMER_DISTRIBUTION = "tautomer_distribution"
+
+
+def no_tautomers_message(embedding_failures: int) -> str:
+    """Why a molecule has no candidates to run: none could be generated, and how many of them failed to embed in 3D."""
+    message = "No tautomer candidates could be generated for this molecule."
+    if embedding_failures:
+        message += f" ({embedding_failures} failed to embed in 3D.)"
+    return message
+
+
+@dataclass(frozen=True)
+class PreparedTautomers:
+    """The candidates a tautomer-distribution run would optimize on ORCA, and what that costs: the jobs, the tautomers and stereoisomers they stand for, and what is incomplete.
+
+    **A candidate is one ORCA job**, so the number that matters for cost is `jobs`, named beside the tautomers. A tautomer over the stereo cap costs less than it would but yields an INCOMPLETE
+    result, which the person must hear before confirming (`question`).
+    """
+
+    candidates: tuple[TautomerCandidate, ...]
+    embedding_failures: int
+    policy: ModelPolicy
+
+    @property
+    def jobs(self) -> int:
+        return len(self.candidates)
+
+    @property
+    def tautomers(self) -> int:
+        return len({c.tautomer_fingerprint or c.fingerprint for c in self.candidates})
+
+    @property
+    def stereo_classes(self) -> int:
+        return len({c.conformer.stereo_fingerprint or c.fingerprint for c in self.candidates})
+
+    @property
+    def truncated(self) -> int:
+        """Tautomers over the stereoisomer cap, which use a single fallback configuration."""
+        return len({c.tautomer_fingerprint for c in self.candidates if c.stereo.truncated})
+
+    @property
+    def conformer_truncated(self) -> int:
+        """Stereoisomers with more distinct conformers than the cap, of which the lowest are used."""
+        return len({c.conformer.stereo_fingerprint for c in self.candidates if c.conformer.truncated})
+
+    def asks_cost(self, threshold: int = CONFIRMATION_THRESHOLD) -> bool:
+        """A person must accept this before it starts: more jobs than `threshold`, or a result that will be incomplete. The panel passes its own name for the threshold, which its tests lower."""
+        return self.jobs > threshold or bool(self.truncated) or bool(self.conformer_truncated)
+
+    def question(self) -> str:
+        """The cost in words: the jobs, the tautomers and stereoisomers, the conformer search and what will be marked incomplete. One text for the panel's dialog and for an assistant's card."""
+        which = "every retained sampled conformer" if self.policy.conformer_search == "full_orca" else "the lowest distinct conformers"
+        text = (
+            f"This will run {self.jobs} real ORCA geometry optimizations "
+            f"for {self.tautomers} tautomer(s) and {self.stereo_classes} stereoisomer(s) "
+            f"({which} of each; conformer search {self.policy.conformer_search}). "
+        )
+        if self.conformer_truncated:
+            text += (
+                f"{self.conformer_truncated} stereoisomer(s) have more distinct conformers than the cap "
+                f"({self.policy.conformer_cap}); the lowest ones are used and the result will be marked "
+                f"incomplete, with no population percentages. "
+            )
+        if self.truncated:
+            text += (
+                f"{self.truncated} tautomer(s) exceed the stereoisomer cap and will use a single "
+                f"fallback configuration, so the result will be marked incomplete and show no "
+                f"population percentages. "
+            )
+        return text + "This can take a long time."
+
+    def card_text(self) -> str:
+        """What a card says: the cost, and that the conformer search is the default one (the panel's Full ORCA conformers box, on the Tautomers button, chooses the other)."""
+        return (
+            "It uses the default conformer search; the Quantum Chemistry panel's Full ORCA conformers box, on its Tautomers button, runs every retained sampled conformer instead. "
+            + self.question()
+        )
+
+    def queued_text(self) -> str:
+        """The panel's status line once the run is handed to the service."""
+        return f"queued -- {self.jobs} optimization(s) for {self.tautomers} tautomer(s)" + (
+            f", {self.embedding_failures} embedding failure(s) excluded" if self.embedding_failures else ""
+        )
+
+
+def tautomers_prepared(candidates: list[TautomerCandidate], embedding_failures: int, policy: ModelPolicy) -> PreparedTautomers | RunRefusal:
+    """The candidates `generate_tautomer_candidates` returned as a run, or the sentence that says there is none."""
+    if not candidates:
+        return RunRefusal(no_tautomers_message(embedding_failures))
+    return PreparedTautomers(tuple(candidates), embedding_failures, policy)
+
+
+def prepare_tautomers(smiles: str, full: bool = False) -> PreparedTautomers | RunRefusal:
+    """Whether a tautomer distribution can run on `smiles`, and what it would take. Starts nothing.
+
+    The candidates are enumerated and embedded from the SMILES, every seed fixed, so the same SMILES gives the same jobs: the card and the run that follows it are the same count by construction. `full`
+    is the conformer search the panel's "Full ORCA conformers" box selects; a card uses the default.
+    """
+    if not smiles:
+        return RunRefusal("Select a molecule with a structure first.")
+    mol = Chem.MolFromSmiles(smiles)
+    if mol is None:
+        return RunRefusal("Tautomer distribution could not start: the structure could not be read.")
+    policy = policy_for_mode(full)
+    try:
+        candidates, embedding_failures = generate_tautomer_candidates(mol, policy=policy)
+    except Exception as error:  # noqa: BLE001 - a structure that cannot be enumerated is refused with its reason, not crashed on
+        return RunRefusal(f"Tautomer distribution could not start: {error}")
+    return tautomers_prepared(candidates, embedding_failures, policy)
+
+
+def prepare_tautomers_for(molecule: MoleculeModel | None, full: bool = False) -> PreparedTautomers | RunRefusal:
+    """`prepare_tautomers` for a molecule in the project: the structure it runs on is the drawing's canonical SMILES."""
+    if molecule is None or not molecule.molblock or not molecule.canonical_smiles:
+        return RunRefusal("Select a molecule with a structure first.")
+    return prepare_tautomers(molecule.canonical_smiles, full)
+
+
+def start_tautomer_distribution(service: Any, engine: ChemistryEngine, molecule: MoleculeModel, prepared: PreparedTautomers, charge: int, multiplicity: int, method_basis: str) -> None:
+    """Hand the tautomer-distribution run to the service with the identity of the drawing as it is NOW, the arguments the panel's button always sent."""
+    service.request_tautomer_distribution(
+        candidates=list(prepared.candidates),
+        molecule_uuid=molecule.uuid,
+        charge=charge,
+        multiplicity=multiplicity,
+        method_basis=method_basis,
+        calculation_input=DRAWING,
+        input_fingerprint=input_fingerprint(engine, molecule, DRAWING),
+        policy=prepared.policy,
     )
 
 

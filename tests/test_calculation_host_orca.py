@@ -78,7 +78,7 @@ def completed(world, preparation, *, status=RunStatus.COMPLETED, run_id="orca-ru
 def test_with_a_starter_the_single_job_orca_calculators_need_approval_and_the_others_stay_where_they_were(world):
     for calculator_id in STARTABLE:
         assert world.host.describe(calculator_id).route is Route.NEEDS_APPROVAL, calculator_id
-    for calculator_id in ("orca.fukui", "orca.tautomer_distribution", "docking.vina", "lewis_hsab"):
+    for calculator_id in ("orca.fukui", "docking.vina", "lewis_hsab"):
         assert world.host.describe(calculator_id).route is Route.PREVIEW_ONLY, calculator_id
 
 
@@ -455,3 +455,64 @@ def test_editing_the_drawing_after_a_bond_dissociation_card_withdraws_it(world):
     preparation = prepare(world, "orca.bond_dissociation_enthalpy").preparation
     world.engine.set_structure_from_smiles(ethanol, "CCCO")
     assert approve(world, preparation.run_id) is RunState.INVALIDATED and world.starter.calls == []
+
+
+# --- tautomer distribution: the three settings, run on the drawing, with the jobs its enumeration gives ----------------------------------------------
+
+
+def test_a_tautomer_card_needs_no_conformer_and_states_the_settings_and_the_jobs(world):
+    base(world, "CC(C)=O", "Acetone")
+    turn = world.host.begin_turn()
+    result = prepare(world, "orca.tautomer_distribution", turn=turn)
+    assert result.ok, result.problems
+    preparation = result.preparation
+    assert preparation.calculation_input == "drawing" and preparation.input_fingerprint == turn.fingerprints["drawing"] and preparation.drawing_fingerprint == ""
+    assert set(preparation.parameters) == {"charge", "multiplicity", "method_basis"}
+    text = "\n".join(preparation.preview)
+    assert "embedded fresh" in text and "same rules as the Quantum Chemistry panel's Tautomers button" in text and "What it would cost (approving accepts it)" in text
+    assert f"method_basis='{preparation.parameters['method_basis']}'" in text and "charge=0" in text and "multiplicity=1" in text
+    assert "3 real ORCA geometry optimizations for 2 tautomer(s)" in text and "default conformer search" in text and "Full ORCA conformers box" in text
+    assert "conformer" not in text.replace("conformer search", "").replace("Full ORCA conformers box", "").replace("distinct conformers", "").replace("sampled conformer", "")
+    assert world.starter.calls == [] and world.host.state_of(preparation.run_id) is RunState.PREVIEWED
+
+
+def test_the_settings_a_person_gave_are_the_settings_on_the_tautomer_card(world):
+    base(world, "CC(C)=O", "Acetone")
+    parameters = {"charge": 0, "multiplicity": 1, "method_basis": "PBE0 def2-TZVP"}
+    text = "\n".join(prepare(world, "orca.tautomer_distribution", parameters).preparation.preview)
+    assert "PBE0 def2-TZVP" in text
+
+
+def test_tautomers_without_orca_are_not_ready(world):
+    base(world, "CC(C)=O", "Acetone")
+    world.services.quantum_chemistry_service._settings.set("orca/executable_path", "")
+    assert [p.code for p in prepare(world, "orca.tautomer_distribution").problems] == [ProblemCode.NOT_READY]
+
+
+def test_approving_tautomers_hands_over_the_settings_and_the_drawings_fingerprint(world):
+    acetone = base(world, "CC(C)=O", "Acetone")
+    preparation = prepare(world, "orca.tautomer_distribution", {"charge": 0, "multiplicity": 1, "method_basis": "PBE0 def2-TZVP"}).preparation
+    assert approve(world, preparation.run_id) is RunState.RUNNING
+    [(molecule_uuid, choice, fingerprint)] = world.starter.calls
+    assert molecule_uuid == acetone.uuid and choice.calc_type == "tautomer_distribution" and fingerprint == preparation.input_fingerprint
+    assert (choice.method_basis, choice.charge, choice.multiplicity) == ("PBE0 def2-TZVP", 0, 1)
+    # The run record the service really writes for this calculation carries no fingerprint (its input is the whole candidate set), so it is matched by molecule and type.
+    completed(world, preparation, calc_type="tautomer_distribution", calculation_input="", input_fingerprint="", status=RunStatus.COMPLETED)
+    assert [o.state for o in world.outcomes] == [RunState.COMPLETED] and world.host._quantum_inflight == {}
+
+
+def test_editing_the_drawing_after_a_tautomer_card_withdraws_it(world):
+    acetone = base(world, "CC(C)=O", "Acetone")
+    preparation = prepare(world, "orca.tautomer_distribution").preparation
+    world.engine.set_structure_from_smiles(acetone, "CCC(C)=O")
+    assert approve(world, preparation.run_id) is RunState.INVALIDATED and world.starter.calls == []
+
+
+def test_a_run_record_with_no_fingerprint_ends_only_a_job_of_its_own_type(world):
+    """The tautomer record is written blank; that must not let a blank record of ANOTHER type, or a fingerprint that names another structure, end an approved job."""
+    base(world, "CC(C)=O", "Acetone")
+    preparation = prepare(world, "orca.tautomer_distribution").preparation
+    assert approve(world, preparation.run_id) is RunState.RUNNING
+    completed(world, preparation, calc_type="sp", calculation_input="", input_fingerprint="", status=RunStatus.COMPLETED)
+    completed(world, preparation, calc_type="tautomer_distribution", calculation_input="drawing", input_fingerprint="another-structure", status=RunStatus.COMPLETED)
+    assert world.outcomes == [] and world.host.state_of(preparation.run_id) is RunState.RUNNING
