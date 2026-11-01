@@ -78,6 +78,13 @@ class SynthesisHost:
             return RequestOutcome.REJECTED
         return service.request_plan(molecule, requested_by=requested_by)
 
+    def request_rescreen(self, molecule_uuid: str, requested_by: str) -> RequestOutcome:
+        service = self._services.synthesis_planning_service
+        molecule = self._molecule(molecule_uuid)
+        if service is None or molecule is None:
+            return RequestOutcome.REJECTED
+        return service.request_rescreen(molecule, requested_by=requested_by)
+
     def cancel(self, molecule_uuid: str) -> bool:
         service = self._services.synthesis_planning_service
         return service is not None and service.cancel(molecule_uuid)
