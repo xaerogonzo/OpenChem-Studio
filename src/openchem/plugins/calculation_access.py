@@ -151,6 +151,8 @@ class ApprovalHost(Protocol):
 
     def cancel(self, run_id: str) -> bool: ...
 
+    def stop(self, run_id: str) -> bool: ...
+
     def state_of(self, run_id: str) -> RunState | None: ...
 
     def outcome_of(self, run_id: str) -> RunOutcome | None: ...
@@ -193,6 +195,10 @@ class PluginCalculationApprovals:
     def cancel(self, run_id: str) -> bool:
         """Drop a pending preview. Nothing is started."""
         return self._host.cancel(run_id) if self._host is not None else False
+
+    def stop(self, run_id: str) -> bool:
+        """Stop an approved ORCA job that is running, as the Quantum Chemistry panel's Cancel button does. The run ends when ORCA's record arrives, not here."""
+        return self._host.stop(run_id) if self._host is not None else False
 
     def state_of(self, run_id: str) -> RunState | None:
         return self._host.state_of(run_id) if self._host is not None else None

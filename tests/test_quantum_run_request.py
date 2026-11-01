@@ -323,15 +323,15 @@ def test_bond_dissociation_defaults_to_every_bond_class_up_to_the_most_one_run_t
     prepared = prepare_bond_dissociation("CCO")
     assert isinstance(prepared, PreparedBondDissociation) and prepared.atoms == (0, 1, 2) and prepared.left_out == () and prepared.jobs == 5
     assert prepared.labels == ("CH3-H, bonded to C", "CH2-H, bonded to C, O", "O-H, bonded to C") and prepared.scope_warnings == ()
-    # Which bond is the WEAKEST is what the run finds, so the default is the dialog's own: the first MAX_BONDS classes, in the order it shows them.
+    # Which bond is the WEAKEST is what the run finds, so the default is the dialog's own: MAX_BONDS classes, a heteroatom X-H before a C-H, in the order the dialog shows them.
     many = prepare_bond_dissociation("CCCCCCO")
-    assert len(many.atoms) == bd.MAX_BONDS and many.left_out == ("O-H, bonded to C",)
-    assert many.atoms == tuple(b["atom"] for b in bd.describe_bonds("CCCCCCO")[: bd.MAX_BONDS])
+    assert len(many.atoms) == bd.MAX_BONDS and many.left_out == ("CH2-H, bonded to C, O",)
+    assert many.atoms == tuple(bd.default_bond_atoms(bd.describe_bonds("CCCCCCO"))) and 6 in many.atoms
 
 
 def test_a_card_says_which_bonds_are_left_out_and_where_to_choose_them():
     text = prepare_bond_dissociation("CCCCCCO").card_text()
-    assert "The bonds it would compute: CH3-H, bonded to C;" in text and "at most 6" in text and "it leaves out: O-H, bonded to C" in text
+    assert "The bonds it would compute: CH3-H, bonded to C;" in text and "at most 6" in text and "it leaves out: CH2-H, bonded to C, O" in text
     assert "Bond dissociation button, where the bonds are chosen" in text and "weakest bond computed" in text
     assert "22 ORCA jobs" in text and "minutes to hours" in text
     # Nothing is left out of a molecule one run can take whole, so nothing is said about it.

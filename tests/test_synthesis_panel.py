@@ -105,6 +105,10 @@ class FakeHost:
         self.calls.append(("request_plan", molecule_uuid, requested_by))
         return self.outcome
 
+    def request_rescreen(self, molecule_uuid, requested_by):
+        self.calls.append(("request_rescreen", molecule_uuid, requested_by))
+        return self.outcome
+
     def cancel(self, molecule_uuid):
         self.calls.append(("cancel", molecule_uuid))
         return True
@@ -576,3 +580,44 @@ def test_a_routes_own_consistency_checks_are_shown_when_it_has_them(loaded):
     text = loaded(host).panel._details.toPlainText()
     assert "Internal consistency (the route's own bookkeeping, not the chemistry):" in text and "atom mapping: complete" in text and "atoms conserved: passed" in text
     assert "Internal consistency: not checked." not in text
+
+
+# --- screening a stored plan again ---------------------------------------------------------------------------------------------------------------
+
+
+def test_re_screen_is_enabled_only_for_a_plan_with_routes_for_the_structure_drawn(loaded):
+    host = FakeHost()
+    panel = shown(loaded(host))
+    assert panel._rescreen_button.isEnabled() is False, "nothing to screen yet"
+    host.results[UUID] = BoundResult(route_set=route_set(), is_current=True)
+    panel.refresh()
+    assert panel._rescreen_button.isEnabled() is True
+    host.planning.add(UUID)
+    panel.refresh()
+    assert panel._rescreen_button.isEnabled() is False, "not while this molecule's slot is busy"
+    host.planning.clear()
+    host.results[UUID] = BoundResult(route_set=route_set(RouteStatus.NO_ROUTE), is_current=True)
+    panel.refresh()
+    assert panel._rescreen_button.isEnabled() is False, "a search that found nothing has no molecules to screen"
+    host.results[UUID] = BoundResult(route_set=route_set(smiles="CCO"), is_current=False, note="earlier")
+    panel.refresh()
+    assert panel._rescreen_button.isEnabled() is False, "the plan for an earlier structure is not the plan for this one"
+
+
+def test_re_screen_asks_through_the_requests_handle_in_the_users_name_and_not_for_a_plan(loaded):
+    host = FakeHost()
+    host.results[UUID] = BoundResult(route_set=route_set(), is_current=True)
+    panel = shown(loaded(host))
+    panel._rescreen_button.click()
+    assert ("request_rescreen", UUID, "the user") in host.calls
+    assert not any(call[0] == "request_plan" for call in host.calls)
+
+
+@pytest.mark.parametrize("outcome,text", [(RequestOutcome.ALREADY_RUNNING, "already being planned or screened"), (RequestOutcome.REJECTED, "no plan with routes")])
+def test_a_re_screen_that_started_nothing_says_so(loaded, outcome, text):
+    host = FakeHost()
+    host.results[UUID] = BoundResult(route_set=route_set(), is_current=True)
+    host.outcome = outcome
+    panel = shown(loaded(host))
+    panel._rescreen_button.click()
+    assert text in panel._status.text()

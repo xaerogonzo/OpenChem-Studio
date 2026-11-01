@@ -107,10 +107,12 @@ def test_a_target_the_setup_cannot_serve_is_unavailable_after_the_gate_allowed_i
 
 def test_an_unknown_molecule_or_a_container_without_a_service_is_rejected(world):
     assert world.host.request_plan("nobody", "the user") is RequestOutcome.REJECTED
+    assert world.host.request_rescreen("nobody", "the user") is RequestOutcome.REJECTED
     assert world.host.result_for("nobody") is None
     model = world.add(ASPIRIN)
     world.services.synthesis_planning_service = None
     assert world.host.request_plan(model.uuid, "the user") is RequestOutcome.REJECTED
+    assert world.host.request_rescreen(model.uuid, "the user") is RequestOutcome.REJECTED
     assert world.host.result_for(model.uuid) is None and world.host.is_planning(model.uuid) is False and world.host.cancel(model.uuid) is False
 
 
@@ -233,7 +235,7 @@ def test_a_handle_without_a_host_answers_nothing_and_starts_nothing():
     assert reading.options().ok is False and "did not provide" in reading.options().problem
     with pytest.raises(LookupError):
         reading.depict(RouteStep(product="CCO", reactants=("CC",)))
-    assert requests.request_plan("u") is RequestOutcome.REJECTED and requests.cancel("u") is False
+    assert requests.request_plan("u") is RequestOutcome.REJECTED and requests.request_rescreen("u") is RequestOutcome.REJECTED and requests.cancel("u") is False
     requests.choose("expansion", "uspto")  # nothing to write to, and not an error
 
 
@@ -242,7 +244,7 @@ def test_the_reading_handle_has_no_way_to_start_stop_or_configure_a_plan():
     reading = {name for name in dir(PluginSynthesis) if not name.startswith("_")}
     acting = {name for name in dir(PluginSynthesisRequests) if not name.startswith("_")}
     assert reading == {"available", "depict", "is_planning", "options", "result_for", "setup_is_warm", "structure_of", "target"}
-    assert acting == {"cancel", "choose", "request_plan"}
+    assert acting == {"cancel", "choose", "request_plan", "request_rescreen"}
     assert reading.isdisjoint(acting)
 
 
@@ -283,3 +285,12 @@ def test_the_manager_gives_every_plugin_both_handles_over_one_host(tmp_path, qap
     bare = PluginManager(services, FakeUIRegistry(), settings)
     bare.load_all()
     assert bare._loaded["capture"].context.synthesis.available is False
+
+
+def test_a_re_screen_asked_for_through_the_host_goes_to_the_service_in_the_callers_name(world):
+    seen = []
+    service = world.services.synthesis_planning_service
+    service.request_rescreen = lambda molecule, requested_by="x": seen.append((molecule.uuid, requested_by)) or RequestOutcome.STARTED
+    model = world.add(ASPIRIN)
+    assert world.host.request_rescreen(model.uuid, "the user") is RequestOutcome.STARTED
+    assert seen == [(model.uuid, "the user")]

@@ -398,10 +398,10 @@ def test_a_card_starts_bond_dissociation_with_exactly_what_the_buttons_default_h
     assert by_card[0]["molecule_uuid"] == molecule.uuid and by_card[0]["calculation_input"] == "drawing" and by_card[0]["atoms"] == [0, 1, 2]
 
 
-def test_a_card_for_a_molecule_with_many_bond_classes_computes_the_first_six_as_the_dialog_ticks_them(bde_panel):
+def test_a_card_for_a_molecule_with_many_bond_classes_computes_the_six_the_dialog_ticks_with_the_hydroxyl_kept(bde_panel):
     panel, molecule, _service, requests = bde_panel("CCCCCCO")
     assert panel.start_assistant_run(molecule.uuid, BDE, drawing_fingerprint(panel, molecule)) == ""
-    assert len(requests[0]["atoms"]) == bd.MAX_BONDS and requests[0]["atoms"] == [b["atom"] for b in bd.describe_bonds("CCCCCCO")[: bd.MAX_BONDS]]
+    assert len(requests[0]["atoms"]) == bd.MAX_BONDS and requests[0]["atoms"] == bd.default_bond_atoms(bd.describe_bonds("CCCCCCO")) and 6 in requests[0]["atoms"]
 
 
 def test_a_bond_card_needs_no_conformer_and_the_panel_waits_as_it_does_for_its_own(bde_panel):
@@ -610,3 +610,28 @@ def test_the_tautomers_button_hands_the_service_the_charge_and_spin_it_shows(tau
     panel._multiplicity_spin.setValue(2)
     panel._on_tautomer_distribution_clicked()
     assert (requests[0]["charge"], requests[0]["multiplicity"], requests[0]["method_basis"]) == (1, 2, "B3LYP def2-SVP")
+
+
+# --- stopping the job from the assistant's card ----------------------------------------------------------------------------------------------------
+
+
+def test_stopping_a_running_job_makes_the_service_call_the_cancel_button_makes(panel_of, monkeypatch):
+    panel, service, molecule = panel_of(1)
+    cancelled = []
+    monkeypatch.setattr(service, "has_active_job", lambda uuid: uuid == molecule.uuid)
+    monkeypatch.setattr(service, "cancel", cancelled.append)
+    panel._pending_molecule_uuid = molecule.uuid
+    assert panel.cancel_assistant_run(molecule.uuid) is True
+    assert cancelled == [molecule.uuid]
+    # The Cancel button is the other way to the same call.
+    cancelled.clear()
+    panel._on_cancel_clicked()
+    assert cancelled == [molecule.uuid]
+
+
+def test_stopping_when_no_job_is_running_for_the_molecule_cancels_nothing(panel_of, monkeypatch):
+    panel, service, molecule = panel_of(1)
+    cancelled = []
+    monkeypatch.setattr(service, "has_active_job", lambda uuid: False)
+    monkeypatch.setattr(service, "cancel", cancelled.append)
+    assert panel.cancel_assistant_run(molecule.uuid) is False and cancelled == []

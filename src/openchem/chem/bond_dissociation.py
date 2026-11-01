@@ -173,6 +173,15 @@ def describe_bonds(smiles: str) -> list[dict]:
     return [dict(bond, class_key=class_key(bond)) for bond in bond_classes(mol)]
 
 
+def default_bond_atoms(bonds: list[dict]) -> list[int]:
+    """The bonds a run computes when nobody chose: all of them, or when there are more than `MAX_BONDS` the ones that carry the most information, in the order `bonds` lists them.
+
+    A heteroatom X-H bond (O-H, N-H, S-H) is kept before a C-H bond, because the first six by atom order left a hexanol's O-H out while computing five of its six C-H classes, and the O-H is the bond a
+    person asking about that molecule means. Within each group the order is the list's. The dialog ticks these and an assistant's card states them, so the two defaults are one."""
+    ranked = sorted(range(len(bonds)), key=lambda number: (bonds[number]["element"] == "C", number))
+    return [bonds[number]["atom"] for number in sorted(ranked[:MAX_BONDS])]
+
+
 def class_key(bond: dict) -> str:
     """Which measured class a bond belongs to, for the error `BENCHMARK` states beside it."""
     if bond["next_to_heteroatom"]:

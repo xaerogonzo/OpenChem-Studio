@@ -2530,6 +2530,7 @@
   "tests/test_synthesis_protocol2.py": 0,
   "tests/test_synthesis_protocol3.py": 1,
   "tests/test_synthesis_protocol3_addendum.py": 0,
+  "tests/test_synthesis_rescreen.py": 2,
   "tests/test_synthesis_route.py": 0,
   "tests/test_synthesis_route_codec.py": 4,
   "tests/test_synthesis_route_ranking.py": 1,

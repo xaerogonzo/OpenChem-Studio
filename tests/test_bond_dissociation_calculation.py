@@ -378,3 +378,14 @@ def test_the_typed_output_is_one_enthalpy_in_kilojoules_with_its_table_and_the_m
     assert parameters["method"] == "M062X/def2-TZVPD" and parameters["temperature_k"] == 298.15 and parameters["lowest_structure_only"] is True and parameters["run_id"] == "r1"
     assert parameters["bonds"][0]["weakest"] is True and parameters["bonds"][0]["element"] == "C" and "49 X-H bonds" in parameters["validation"]
     assert parameters["hydrogen_atom_translation_kcal"] == pytest.approx(1.4812, abs=1e-3)
+
+
+def test_the_default_bonds_keep_a_heteroatom_x_h_before_a_c_h_and_list_them_in_the_molecules_order():
+    # Hexanol has seven classes and a run takes six: the first six by atom order dropped the O-H and kept five C-H classes.
+    bonds = bd.describe_bonds("CCCCCCO")
+    assert bd.default_bond_atoms(bonds) == [0, 1, 2, 3, 4, 6]
+    # Three or fewer, or up to the limit, are all of them in the order given; a heteroatom does not reorder what is kept.
+    assert bd.default_bond_atoms(bd.describe_bonds("CCO")) == [0, 1, 2]
+    # Several heteroatom bonds beyond the limit: the first ones, in order, and no C-H at all.
+    fake = [{"atom": n, "element": "O"} for n in range(8)] + [{"atom": 9, "element": "C"}]
+    assert bd.default_bond_atoms(fake) == [0, 1, 2, 3, 4, 5]

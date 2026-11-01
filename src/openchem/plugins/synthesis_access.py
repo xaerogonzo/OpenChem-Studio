@@ -1,7 +1,7 @@
 """`context.synthesis` and `context.synthesis_requests`: what a plugin may do with the synthesis planner (`docs/SYNTHESIS_HELPER_DESIGN.md`, Stage 1 slice 8), and nothing else.
 
 A plugin never receives the planning service, the setting provider or the window (`PluginContext` hides all of them on purpose). The synthesis panel needs to read the selected molecule, ask what the
-planner's configuration offers, start and stop a plan and read its result; this is exactly that, as calls that take and return plain values.
+planner's configuration offers, start and stop a plan, screen a stored one again and read its result; this is exactly that, as calls that take and return plain values.
 
 **THE READING HANDLE CANNOT START ANYTHING.** `PluginSynthesis` reads and draws; starting a plan, stopping one and choosing the policy, stock or filter are on `PluginSynthesisRequests`, a different object, which
 a plugin's PANEL is given for its buttons and a plugin's TOOLS are not (the split `context.calculations` / `context.calculation_approvals` already makes). That a model's tool cannot start a search is
@@ -10,7 +10,7 @@ therefore a fact about which object it was handed. THE REGULATORY GATE DOES NOT 
 **A CONTEXT BUILT WITHOUT A HOST IS NOT AN ERROR.** A headless run or a test has none; every read then answers "nothing" and every request is `REJECTED`, the behaviour a plugin gets for any capability the
 host did not provide.
 
-THREADS: `target`, `structure_of`, `request_plan`, `cancel`, `choose` and `result_for` are GUI-thread calls (they read the live project, or start a job that must be announced there). `options` can start the planner's
+THREADS: `target`, `structure_of`, `request_plan`, `request_rescreen`, `cancel`, `choose` and `result_for` are GUI-thread calls (they read the live project, or start a job that must be announced there). `options` can start the planner's
 Python (about 1.6 s the first time) and is for a worker; `setup_is_warm` says whether that wait is over. `depict` is pure drawing and may be called from any thread.
 """
 
@@ -57,6 +57,8 @@ class SynthesisHost(Protocol):
     def depict(self, step: RouteStep) -> str: ...
 
     def request_plan(self, molecule_uuid: str, requested_by: str) -> RequestOutcome: ...
+
+    def request_rescreen(self, molecule_uuid: str, requested_by: str) -> RequestOutcome: ...
 
     def cancel(self, molecule_uuid: str) -> bool: ...
 
@@ -115,6 +117,12 @@ class PluginSynthesisRequests:
         if self._host is None:
             return RequestOutcome.REJECTED
         return self._host.request_plan(molecule_uuid, requested_by)
+
+    def request_rescreen(self, molecule_uuid: str, requested_by: str = "the user") -> RequestOutcome:
+        """Screen that molecule's stored plan against the wider rulesets again (the gate speaks first, inside the service). Starts no planner. GUI thread."""
+        if self._host is None:
+            return RequestOutcome.REJECTED
+        return self._host.request_rescreen(molecule_uuid, requested_by)
 
     def cancel(self, molecule_uuid: str) -> bool:
         """Stop that molecule's search, or take it out of the queue. False when none is running."""
