@@ -1,0 +1,2 @@
+### Settings > Appearance has an Interface size: Default, Larger or Large
+- Every panel, dialog and table scales its text from the system's own size (x1.15 or x1.3), and a change applies at once with no restart. The pixel-sized notes and the element cells scale with it, and the Settings list refits. The 2D editor and the 3D viewers are web pages and keep their own zoom. A 1.5 step was measured and left out: it elided two Properties controls at the default panel width. See `docs/INTERFACE_SIZE_DESIGN.md`.

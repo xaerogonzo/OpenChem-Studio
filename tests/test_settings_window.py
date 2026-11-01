@@ -120,6 +120,7 @@ def test_the_stored_keys_are_stable_names():
         "quantum_chemistry/psi4_threads",
         "compute/structure_coverage",
         "ui/appearance",
+        "ui/interface_size",
     }
 
 
