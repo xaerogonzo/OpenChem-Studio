@@ -610,3 +610,28 @@ def test_the_tautomers_button_hands_the_service_the_charge_and_spin_it_shows(tau
     panel._multiplicity_spin.setValue(2)
     panel._on_tautomer_distribution_clicked()
     assert (requests[0]["charge"], requests[0]["multiplicity"], requests[0]["method_basis"]) == (1, 2, "B3LYP def2-SVP")
+
+
+# --- stopping the job from the assistant's card ----------------------------------------------------------------------------------------------------
+
+
+def test_stopping_a_running_job_makes_the_service_call_the_cancel_button_makes(panel_of, monkeypatch):
+    panel, service, molecule = panel_of(1)
+    cancelled = []
+    monkeypatch.setattr(service, "has_active_job", lambda uuid: uuid == molecule.uuid)
+    monkeypatch.setattr(service, "cancel", cancelled.append)
+    panel._pending_molecule_uuid = molecule.uuid
+    assert panel.cancel_assistant_run(molecule.uuid) is True
+    assert cancelled == [molecule.uuid]
+    # The Cancel button is the other way to the same call.
+    cancelled.clear()
+    panel._on_cancel_clicked()
+    assert cancelled == [molecule.uuid]
+
+
+def test_stopping_when_no_job_is_running_for_the_molecule_cancels_nothing(panel_of, monkeypatch):
+    panel, service, molecule = panel_of(1)
+    cancelled = []
+    monkeypatch.setattr(service, "has_active_job", lambda uuid: False)
+    monkeypatch.setattr(service, "cancel", cancelled.append)
+    assert panel.cancel_assistant_run(molecule.uuid) is False and cancelled == []

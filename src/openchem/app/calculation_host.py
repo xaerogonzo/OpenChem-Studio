@@ -137,6 +137,10 @@ class QuantumStarter(Protocol):
         """"" when the job was handed to the service, otherwise the sentence that says why nothing started."""
         ...
 
+    def cancel_assistant_run(self, molecule_uuid: str) -> bool:
+        """Stop the job running for `molecule_uuid` exactly as the panel's own Cancel button does. False when none is running for it."""
+        ...
+
 
 class _TurnMolecule:
     """The three attributes `build_execution_plan` reads, from a turn rather than a live model."""
@@ -654,6 +658,27 @@ class CalculationHost(QObject):
             self._settle(run_id, outcome)
         return True
 
+    def stop(self, run_id: str) -> bool:
+        """A person stopped an approved ORCA job that is running (the assistant's card, GUI thread). True when the stop was handed to the job.
+
+        **Not `cancel`**, which declines a preview that has not started and refuses a running run. This does not end the run either: the job is stopped as the Quantum Chemistry panel's Cancel button
+        stops it, and the run ends when ORCA's run record arrives with its CANCELLED status (`_on_quantum_run_completed`), so the ledger, the note to the model and the stored run all say one thing.
+        A registry calculator cannot be stopped midway, and a run that is not running, or whose job has already ended, is not stoppable.
+        """
+        self._require_gui_thread("stop")
+        starter = self._quantum_starter
+        if starter is None or self._ledger.state_of(run_id) is not RunState.RUNNING:
+            return False
+        with self._lock:
+            molecule_uuid = next((uuid for uuid, held in self._quantum_inflight.items() if held[0] == run_id), None)
+        if molecule_uuid is None:
+            return False
+        try:
+            return bool(starter.cancel_assistant_run(molecule_uuid))
+        except Exception:  # noqa: BLE001 - a stop that cannot be made leaves the job running and says so
+            logger.exception("Could not stop %s", run_id)
+            return False
+
     def state_of(self, run_id: str) -> RunState | None:
         return self._ledger.state_of(run_id)
 
@@ -882,7 +907,7 @@ def _quantum_outcome(run: QuantumChemistryRun) -> tuple[RunState, str]:
     if run.status is RunStatus.COMPLETED_WITH_WARNINGS:
         return RunState.COMPLETED, f"ORCA finished the job and reported {len(run.warnings)} warning(s). {where}"
     if run.status is RunStatus.CANCELLED:
-        return RunState.CANCELLED, f"The job was cancelled before it finished (in the Quantum Chemistry panel). It has no numbers. {where}"
+        return RunState.CANCELLED, f"The job was cancelled before it finished (a person stopped it, from the assistant's card or the Quantum Chemistry panel). It has no numbers. {where}"
     return RunState.FAILED, f"ORCA did not produce a result. It has no numbers. {where}"
 
 

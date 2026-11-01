@@ -31,12 +31,20 @@ class _Starter:
         self.calls: list[tuple[str, RunChoice, str]] = []
         self.answer = answer
         self.during = None
+        self.stopped: list[str] = []
+        self.stop_answer = True
 
     def start_assistant_run(self, molecule_uuid, choice, input_fingerprint):
         self.calls.append((molecule_uuid, choice, input_fingerprint))
         if self.during is not None:
             self.during()
         return self.answer
+
+    def cancel_assistant_run(self, molecule_uuid):
+        self.stopped.append(molecule_uuid)
+        if isinstance(self.stop_answer, Exception):
+            raise self.stop_answer
+        return self.stop_answer
 
 
 @pytest.fixture
@@ -516,3 +524,65 @@ def test_a_run_record_with_no_fingerprint_ends_only_a_job_of_its_own_type(world)
     completed(world, preparation, calc_type="sp", calculation_input="", input_fingerprint="", status=RunStatus.COMPLETED)
     completed(world, preparation, calc_type="tautomer_distribution", calculation_input="drawing", input_fingerprint="another-structure", status=RunStatus.COMPLETED)
     assert world.outcomes == [] and world.host.state_of(preparation.run_id) is RunState.RUNNING
+
+
+# --- stopping a running job from its card -----------------------------------------------------------------------------------------------------
+
+def test_stopping_a_running_job_hands_the_stop_to_the_panel_and_leaves_the_run_to_ORCAs_record(world):
+    preparation = prepare(world).preparation
+    approve(world, preparation.run_id)
+    assert world.host.stop(preparation.run_id) is True
+    assert world.starter.stopped == [preparation.molecule_uuid]
+    # The stop is a request: the run is still running, and ends only when the job's record says how it ended.
+    assert world.host.state_of(preparation.run_id) is RunState.RUNNING and world.outcomes == []
+    completed(world, preparation, status=RunStatus.CANCELLED)
+    [outcome] = world.outcomes
+    assert outcome.state is RunState.CANCELLED and "stopped it" in outcome.message and "no numbers" in outcome.message
+
+
+def test_a_preview_nobody_approved_cannot_be_stopped_and_the_panel_is_not_asked(world):
+    preparation = prepare(world).preparation
+    assert world.host.stop(preparation.run_id) is False
+    assert world.starter.stopped == []
+    assert world.host.state_of(preparation.run_id) is RunState.PREVIEWED
+
+
+def test_a_job_that_has_ended_cannot_be_stopped(world):
+    preparation = prepare(world).preparation
+    approve(world, preparation.run_id)
+    completed(world, preparation)
+    assert world.host.stop(preparation.run_id) is False and world.starter.stopped == []
+
+
+def test_a_run_that_is_not_known_cannot_be_stopped(world):
+    assert world.host.stop("no-such-run") is False and world.starter.stopped == []
+
+
+def test_a_panel_with_nothing_to_stop_leaves_the_run_running_and_says_false(world):
+    preparation = prepare(world).preparation
+    approve(world, preparation.run_id)
+    world.starter.stop_answer = False
+    assert world.host.stop(preparation.run_id) is False
+    assert world.host.state_of(preparation.run_id) is RunState.RUNNING
+
+
+def test_a_stop_that_raises_is_false_and_not_a_crash(world):
+    preparation = prepare(world).preparation
+    approve(world, preparation.run_id)
+    world.starter.stop_answer = RuntimeError("boom")
+    assert world.host.stop(preparation.run_id) is False
+    assert world.host.state_of(preparation.run_id) is RunState.RUNNING
+
+
+def test_a_stop_without_a_starter_is_false(world):
+    preparation = prepare(world).preparation
+    approve(world, preparation.run_id)
+    world.host.set_quantum_starter(None)
+    assert world.host.stop(preparation.run_id) is False
+
+
+
+def test_a_preview_is_not_stoppable_even_if_a_job_is_recorded_for_its_molecule(world):
+    preparation = prepare(world).preparation
+    world.host._quantum_inflight[preparation.molecule_uuid] = (preparation.run_id, preparation.input_fingerprint, "sp")
+    assert world.host.stop(preparation.run_id) is False and world.starter.stopped == []

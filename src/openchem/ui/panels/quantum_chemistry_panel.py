@@ -2145,6 +2145,13 @@ class QuantumChemistryPanel(QWidget):
         self._begin_pending(molecule, prepared)
         start_run(self._quantum_chemistry_service, prepared)
 
+    def cancel_assistant_run(self, molecule_uuid: str) -> bool:
+        """Stop the job running for `molecule_uuid`, by the service call this panel's Cancel button makes. False when none is running for it; the run record that follows says it was cancelled."""
+        if not self._quantum_chemistry_service.has_active_job(molecule_uuid):
+            return False
+        self._quantum_chemistry_service.cancel(molecule_uuid)
+        return True
+
     def start_assistant_run(self, molecule_uuid: str, choice: RunChoice, input_fingerprint: str) -> str:
         """Start the job an assistant's card described, after a person approved it. "" when it was handed to the service, otherwise the sentence that says why not (nothing started, nothing changed).
 

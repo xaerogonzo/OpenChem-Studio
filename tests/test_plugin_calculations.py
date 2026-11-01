@@ -207,7 +207,7 @@ class _FakeApprovalHost(QObject):
 def test_the_approvals_face_offers_exactly_these_calls():
     public = {name for name in dir(PluginCalculationApprovals) if not name.startswith("_")}
     assert public == {
-        "available", "pending", "approve", "cancel", "state_of", "outcome_of", "on_finished",
+        "available", "pending", "approve", "cancel", "stop", "state_of", "outcome_of", "on_finished",
         "pending_scores", "approve_score", "cancel_score", "score_state_of", "score_outcome_of", "on_score_finished",
     }
 
