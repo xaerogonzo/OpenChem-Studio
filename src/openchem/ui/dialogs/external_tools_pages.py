@@ -67,6 +67,7 @@ TOOL_GROUPS = (
 #: Item data that makes a list row a PAGE (a tool key, the guide's key or Storage's). A heading carries none,
 #: and nothing resolves a page from a row number.
 _PAGE_KEY_ROLE = Qt.ItemDataRole.UserRole
+#: Storage's page key. It is a page of the list but not a catalogue tool, so no `TOOL_GROUPS` entry names it.
 _STORAGE_KEY = "storage"
 
 
