@@ -647,7 +647,7 @@ class SettingsDialog(QDialog):
         super().changeEvent(event)
         if event.type() == QEvent.Type.FontChange and hasattr(self, "_sections"):
             # Qt gives the list its new font from the same event loop; fit after it has.
-            QTimer.singleShot(0, self._refit_if_alive)
+            QTimer.singleShot(0, self, self._refit_if_alive)
 
     def _refit_if_alive(self) -> None:
         if shiboken6.isValid(self):

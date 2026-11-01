@@ -58,7 +58,7 @@ class InterfaceSizeService:
         # `QToolButton { font-weight: bold; }` stayed at the old size after a live change (the same trap as
         # the palette's, `theme.repolish_styled_widgets`). Qt hands the new font to widgets from the event loop,
         # so the sheets are set again after it has.
-        QTimer.singleShot(0, theme.repolish_styled_widgets)
+        QTimer.singleShot(0, self._app, theme.repolish_styled_widgets)
         logger.info("Interface size %s (x%.2f)", size.name.lower(), factor)
 
     def _on_setting_changed(self, event: SettingsChanged) -> None:
