@@ -417,7 +417,7 @@ def test_bond_dissociation_needs_no_conformer_and_the_card_names_the_bonds_and_t
 def test_a_molecule_with_more_bond_classes_than_one_run_takes_says_which_are_left_out(world):
     base(world, "CCCCCCO", "Hexanol")
     text = "\n".join(prepare(world, "orca.bond_dissociation_enthalpy").preparation.preview)
-    assert "it leaves out: O-H, bonded to C" in text and "the Quantum Chemistry panel's Bond dissociation button, where the bonds are chosen" in text and "22 ORCA jobs" in text
+    assert "it leaves out: CH2-H, bonded to C, O" in text and "the Quantum Chemistry panel's Bond dissociation button, where the bonds are chosen" in text and "22 ORCA jobs" in text
 
 
 def test_a_molecule_outside_what_was_measured_says_so_on_the_bond_card(world):

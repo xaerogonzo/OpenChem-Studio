@@ -398,10 +398,10 @@ def test_a_card_starts_bond_dissociation_with_exactly_what_the_buttons_default_h
     assert by_card[0]["molecule_uuid"] == molecule.uuid and by_card[0]["calculation_input"] == "drawing" and by_card[0]["atoms"] == [0, 1, 2]
 
 
-def test_a_card_for_a_molecule_with_many_bond_classes_computes_the_first_six_as_the_dialog_ticks_them(bde_panel):
+def test_a_card_for_a_molecule_with_many_bond_classes_computes_the_six_the_dialog_ticks_with_the_hydroxyl_kept(bde_panel):
     panel, molecule, _service, requests = bde_panel("CCCCCCO")
     assert panel.start_assistant_run(molecule.uuid, BDE, drawing_fingerprint(panel, molecule)) == ""
-    assert len(requests[0]["atoms"]) == bd.MAX_BONDS and requests[0]["atoms"] == [b["atom"] for b in bd.describe_bonds("CCCCCCO")[: bd.MAX_BONDS]]
+    assert len(requests[0]["atoms"]) == bd.MAX_BONDS and requests[0]["atoms"] == bd.default_bond_atoms(bd.describe_bonds("CCCCCCO")) and 6 in requests[0]["atoms"]
 
 
 def test_a_bond_card_needs_no_conformer_and_the_panel_waits_as_it_does_for_its_own(bde_panel):

@@ -832,6 +832,7 @@ class _BondChoiceDialog(QDialog):
         intro.setWordWrap(True)
         layout.addWidget(intro)
         self._boxes: list[QCheckBox] = []
+        ticked = set(bond_dissociation.default_bond_atoms(bonds))
         for number, bond in enumerate(bonds):
             note = ""
             if bond["next_to_heteroatom"]:
@@ -842,7 +843,7 @@ class _BondChoiceDialog(QDialog):
                 note = " -- no bond of this kind was measured"
             box = QCheckBox(f"{bond['label']}{note}", self)
             box.setObjectName(f"bondChoice{number}")
-            box.setChecked(number < bond_dissociation.MAX_BONDS)
+            box.setChecked(bond["atom"] in ticked)
             box.toggled.connect(self._update_run_button)
             layout.addWidget(box)
             self._boxes.append(box)
