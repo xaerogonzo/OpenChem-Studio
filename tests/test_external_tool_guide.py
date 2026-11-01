@@ -107,6 +107,6 @@ def test_the_guide_can_be_reached_by_key_and_by_a_tool_link(pages):
     pages.show_tool("orca")
     assert pages.current_tool() == "orca"
     pages.show_tool(guide.GUIDE_KEY)
-    assert pages._tabs.currentWidget() is pages._guide
+    assert pages._pages.currentWidget() is pages._guide
     pages._guide._on_link("tab:xtb")
     assert pages.current_tool() == "xtb"

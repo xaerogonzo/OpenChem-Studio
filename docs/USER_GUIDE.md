@@ -3497,18 +3497,20 @@ kept, which asks first.
 - **File dialogs.** Each kind of file dialog opens where it was last used:
   projects, molecules, and macromolecules with crystal structures. **Forget**
   sends one back to your Documents folder.
-- **External tools.** The eight tabs described [below](#external-tools).
+- **External tools.** The twelve pages described [below](#external-tools).
 
 ---
 
 <!-- help:external-tools -->
 ## External tools
 
-**Edit ▸ Settings… ▸ External tools** opens on a **Setup guide** and has twelve
-tabs in all: the guide, AutoDock Vina, ORCA, Psi4, xtb, AiZynthFinder,
-pkasolver, ADMET, Java (Temurin), NMR Database, Knowledge Vista, and Storage.
+**Edit ▸ Settings… ▸ External tools** opens on a **Setup guide** and lists twelve
+pages down the left, under headings so that all of them show at once: the guide;
+**Programs** (AutoDock Vina, ORCA, Psi4, xtb, AiZynthFinder, Knowledge Vista);
+**Python environments** (pkasolver, ADMET); **Downloads** (Java (Temurin), NMR
+Database); and **Disk** (Storage). The arrow keys step over a heading.
 **Tools ▸ External Tools…**, and the Configure buttons on the Docking and Quantum
-Chemistry panels, open the same window at the right tab.
+Chemistry panels, open the same window at the right page.
 
 **The Setup guide answers "which of these do I need?"** Each tool has a row that
 says what it is, what stops working without it, whether it is Recommended,
