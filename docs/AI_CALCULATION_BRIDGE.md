@@ -25,7 +25,7 @@ worth challenging are collected at the end.
 | `CalculatorRegistry.compute` raises for a `ServiceExecution` calculator; ten of the 72 registered are service-run (Docking, eight ORCA types, `lewis_hsab`). | `services/calculator_registry.py`, `bootstrap._EXTERNAL_CALCULATOR_DEFINITIONS` | Two execution classes (section 4). |
 | The command-line twin of the task deliberately leaves out `_bind_settings`, so the pKa and ADMET sidecars refuse as `needs_setup` there. | `cli/calculation.py` module docstring | The bridge cannot use the CLI path; it must use the application's, which binds the configured interpreters. |
 | Results are frozen dataclasses. | `domain/scientific_result.py`, `domain/report.py` | Holding references to the results in a snapshot is a value snapshot; no deep copy is needed. |
-| `ClaudeCLIProvider.supports_tools` is `False`; the Anthropic and OpenAI-compatible providers are `True`, and the panel offers tools only when it is. | `plugins/ai_assistant/providers.py` | The live acceptance test needs a tool-capable provider (section 11). |
+| `ClaudeCLIProvider.supports_tools` was `False` (it took no tools) until section 25; the Anthropic, OpenAI-compatible and Claude CLI providers are now `True`, and the panel offers tools only when it is. | `plugins/ai_assistant/providers.py` | The live acceptance test needs a tool-capable provider (sections 11, 24 and 25). |
 | A calculator does not validate a choice parameter: `geometry_analysis` accepted `conformer_policy="lowest_energy"`, which is not one of its choices, and ran. | measured 2026-10-12, `benchmarks/calculator_cost` | The bridge validates parameters itself (section 8); a provider's tool schema is not the boundary. |
 
 ## 2. The capability
@@ -285,11 +285,11 @@ provenance.
 
 The live run (a tool-capable provider, with the sequence **tool call received, preview prepared, no
 job started, confirmation awaited** captured) is **not done**: the service preview adapter it waited on is
-built, but it needs a provider key, and `ClaudeCLIProvider` is excluded because it takes no tools. Every
+built, but it needs a provider key (done since on a local model and on the Claude CLI, sections 24 and 25). Every
 check so far, including `benchmarks/visual/ai_assistant_tools.json`, used a scripted provider, which proves
 everything around a model (the turn freeze, the loop on its worker thread, the host, the cards and their
 real buttons, the notes) and nothing about whether a real model calls the tools well. Giving the CLI
-provider a tool protocol is a separate, optional item with its own tests.
+provider a tool protocol followed in section 25.
 
 ## 12. Slices
 
@@ -466,7 +466,19 @@ Tested by `tests/test_tautomer_nmr_card.py` (the rules, the host and the panel),
 
 **What changed.** The system prompt says to reply in the language the user writes in, and the Ollama provider asks for a temperature of 0.2 (`OpenAICompatibleProvider(temperature=...)`; the OpenAI provider sends none). With both, the same run: the model answered in English, was refused three times (unknown settings, then a lower-case method string, then it corrected), reached `awaiting_approval`, and told the user the calculation was waiting for their approval. VERDICT PASS, 3 of 3 assertions.
 
-**What this does and does not establish.** One live model, one prompt, three runs. It shows the loop, the validation messages and the card work with a real model, and that a local 14B model can use them after refusals. It does NOT show which of the two changes fixed the drift (they were made together), how reliably a model of this size does it, or anything about a larger or a cloud model. A weak model cannot do harm here, since a card does nothing until a person approves it, but it can be slow (the first reply took 2 minutes 46 seconds when it wrote seventy settings) and it needed several tries. The Claude CLI and the Cursor CLI are not tried: the Claude CLI provider still takes no tools (section 11).
+**What this does and does not establish.** One live model, one prompt, three runs. It shows the loop, the validation messages and the card work with a real model, and that a local 14B model can use them after refusals. It does NOT show which of the two changes fixed the drift (they were made together), how reliably a model of this size does it, or anything about a larger or a cloud model. A weak model cannot do harm here, since a card does nothing until a person approves it, but it can be slow (the first reply took 2 minutes 46 seconds when it wrote seventy settings) and it needed several tries. The Claude CLI took no tools at that point and followed in section 25; the Cursor CLI is not tried.
+
+## 25. The Claude CLI takes the tools too (2026-11-02; `ClaudeCLIProvider`, `plugins/ai_assistant/providers.py`)
+
+**What it is.** `claude_cli` now has `supports_tools = True`, so the assistant can run its real tool loop on a Claude subscription login, with no API key and no API credits (each call counts against the plan's limits instead). The CLI has no tool-calling API for the application's tools, so they are offered through a written protocol: the system prompt says how to ask for a tool (one fenced `tool_calls` block holding a JSON list of `{"name", "input"}`, then stop) and lists each tool with its schema; `_parse_cli_reply` reads the FIRST block into the same `ToolCall`s every provider returns; the panel's loop runs them exactly as it runs any provider's, so the turn freeze, the approval cards and the regulatory gate are where they were. The transcript shows the model its own earlier blocks and each 'Tool result'. The CLI's own tools stay off (`--tools ""`) and it runs from a scratch directory.
+
+**Two things measured first.**
+- **Context.** A one-word prompt through `claude -p` created **60,075** prompt tokens (the person's own CLAUDE.md files, skills and MCP lists, none of it ours and all of it counted against their plan). `--setting-sources ""`, `--disable-slash-commands`, `--strict-mcp-config` and `--no-chrome` bring it to **1,090** with the login still working. They are on both modes now, so the plain-text path also stopped sending the person's Claude Code context to the model. `--bare` would shrink it further but never reads the subscription login, so it is not used.
+- **Which protocol.** Three designs were tried against the real panel prompt before one held. `--json-schema` structured output made the model call the panel's tools as native functions first (the prompt says "use find_calculators ..."), get "No such tool available" and answer in prose: **a tool call in 1 of 3 calls**, even with an example. Reading the CLI's event stream for the model's own tool-use turn found none (the tool is not defined there): the model wrote text pseudo-calls, and once a result it invented. **A plain-text reply with one fenced block gave a block in 5 of 5 calls**, one turn each (about 5 seconds), nothing after the block; the parser takes only the first block, so an invented result after it is discarded.
+
+**Failure behaviour.** A reply with no block is an answer. A block that is not valid JSON, not a list, or names only tools that are not offered is shown to the user as written, never dropped; a call to a tool that is not offered is not run and the others in the block are. A non-zero exit is the provider's error, as before.
+
+**What was run.** `benchmarks/visual/ai_live_claude_cli.json`: the same acceptance sequence as the Ollama run (section 24), through the real panel with the real tools. The model described `orca.sp`, requested it with valid settings on its first try, got `awaiting_approval` and told the user the calculation was waiting for approval; nothing started. VERDICT PASS, 3 of 3, three model steps in about 15 seconds. **One model, one prompt**: it does not show how reliable the protocol is over many questions, or with a long conversation. The Cursor CLI is not done (its print mode has all tools including write and shell, a read-only `--mode ask` and a sandbox exist, and its output was not tried).
 
 ## 14. Goals: the wizard's table, as knowledge and never as a way to run
 

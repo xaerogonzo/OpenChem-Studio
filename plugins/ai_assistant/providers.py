@@ -1,9 +1,11 @@
 from __future__ import annotations
 
 import json
+import re
 import shutil
 import subprocess
 import tempfile
+import uuid
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -405,10 +407,88 @@ def _render_transcript_prompt(request: AIRequest) -> str:
     """The Claude Code CLI's `--print` mode is single-shot (one prompt in,
     one reply out) with no separate "conversation history" argument like
     the Anthropic/OpenAI SDKs -- render the whole exchange as a plain-text
-    transcript fed over stdin instead."""
-    lines = [f"User: {m.content}" if m.role == "user" else f"Assistant: {m.content}" for m in request.messages]
+    transcript fed over stdin instead.
+
+    A turn of a tool loop is rendered too, in the same form the model is asked to write it in
+    (the assistant's request for a tool as its fenced block, the tool's answer as a 'Tool result'
+    line), so a provider that is offered tools sees what it already asked and what it was told:
+    without them it would ask for the same thing again."""
+    names = {call.id: call.name for message in request.messages for call in message.tool_calls}
+    lines = []
+    for message in request.messages:
+        if message.role == "user":
+            lines.append(f"User: {message.content}")
+        elif message.role == "tool":
+            lines.append(f"Tool result ({names.get(message.tool_call_id or '', message.tool_call_id or 'tool')}): {message.content}")
+        else:
+            text = f"Assistant: {message.content}" if message.content else "Assistant:"
+            if message.tool_calls:
+                block = json.dumps([{"name": call.name, "input": call.input} for call in message.tool_calls])
+                text += f"\n{_CLI_FENCE}\n{block}\n```"
+            lines.append(text)
     lines.append("Assistant:")
     return "\n\n".join(lines)
+
+
+#: The flags every `claude` call here carries, so the call is a chat completion and not a Claude Code session. Measured on a one-word prompt: without the last four
+#: the call created 60,075 prompt tokens (the person's own CLAUDE.md files, skills and MCP lists, none of it ours and all of it counted against their plan);
+#: with them 1,090. `--bare` would shrink it more but never reads the subscription login, which is the point of this provider, so it is not used.
+_CLI_ISOLATION_FLAGS = ("--no-session-persistence", "--setting-sources", "", "--disable-slash-commands", "--strict-mcp-config", "--no-chrome")
+
+#: How a tool call is written in a reply: one fenced block, first line the tag below, then a JSON list of `{"name", "input"}`. A reply with a block is a request for tools; one without is an answer.
+_CLI_FENCE = "```tool_calls"
+_CLI_BLOCK = re.compile(r"```tool_calls[ \t]*\r?\n(.*?)```", re.DOTALL | re.IGNORECASE)
+
+
+def _cli_system_prompt(request: AIRequest, tools: list[ToolDefinition]) -> str:
+    """The protocol, then the panel's own system prompt, then the tools written out: the CLI has no tool-calling API of its own to offer them through.
+
+    **WHY A FENCED BLOCK IN PLAIN TEXT, AFTER TWO WAYS THAT FAILED.** `--json-schema` made the model try the panel's tools as native functions first (the prompt says "use find_calculators ..."),
+    get "No such tool available" from a CLI whose own tools are off, and answer in prose: 1 in 3 calls produced a tool call even with an example. Reading the CLI's event stream for the model's
+    own tool-use turn found none (the tool is not defined there), only text pseudo-calls, once followed by a result the model invented. A plain-text reply with one fenced block gave a block in 5 of 5
+    calls, in one turn (about 5 s), and `_parse_cli_reply` takes only the first block, so anything written after it is discarded.
+    """
+    catalog = "\n".join(f"- {tool.name}: {tool.description}\n  input schema: {json.dumps(tool.input_schema)}" for tool in tools)
+    return (
+        "HOW TO USE THE TOOLS IN THIS CHAT. You have no function-calling interface here. To use a tool, write ONE block in exactly this form and then STOP, ending your message right after the closing fence:\n"
+        f"{_CLI_FENCE}\n"
+        '[{"name": "<tool name>", "input": {<arguments matching the tool\'s input schema>}}]\n'
+        "```\n"
+        "You may put one or more calls in the list; use only the settings the schema names. Text before the block is shown to the user. The application runs the tools and its next message gives you "
+        "their results, each beginning 'Tool result'. Never write a tool result yourself, never claim a tool ran unless a 'Tool result' line says so, and never write anything after the block. "
+        "When you need no tool, just answer in plain text.\n\n"
+        f"{request.system_context}\n\n"
+        f"The tools you may call (through the tool_calls block only):\n{catalog}"
+    )
+
+
+def _parse_cli_reply(output: str, tools: list[ToolDefinition]) -> AIResponse:
+    """The text a `claude -p` call printed, as an `AIResponse`: its first `tool_calls` block as the tool calls and the text before it as the reply.
+
+    **Only the first block counts and nothing after it does**: a model that goes on to write a result for the tool it just asked for has that invention discarded. **A block that does not hold
+    to the protocol is not a tool call and is never silently dropped**: invalid JSON, or no call naming an offered tool, returns the whole output as the reply, so the user sees what the model
+    wrote and not a turn that vanished. A call to a tool that is not offered is not run; the others in the block are.
+    """
+    text = output.strip()
+    match = _CLI_BLOCK.search(text)
+    if match is None:
+        return AIResponse(text=text)
+    try:
+        items = json.loads(match.group(1))
+    except json.JSONDecodeError:
+        return AIResponse(text=text)
+    if not isinstance(items, list):
+        return AIResponse(text=text)
+    offered = {tool.name for tool in tools}
+    calls = []
+    for item in items:
+        if not isinstance(item, dict) or item.get("name") not in offered:
+            continue
+        arguments = item.get("input")
+        calls.append(ToolCall(id=f"cli-{uuid.uuid4().hex[:12]}", name=str(item["name"]), input=arguments if isinstance(arguments, dict) else {}))
+    if not calls:
+        return AIResponse(text=text)
+    return AIResponse(text=text[: match.start()].strip(), tool_calls=calls, stop_reason="tool_use")
 
 
 class ClaudeCLIProvider(AIProvider):
@@ -427,11 +507,17 @@ class ClaudeCLIProvider(AIProvider):
     access for this call -- this provider is a plain text-completion
     backend, not a second agent loop, and must not be able to read or
     write the user's files just because a chat reply was requested.
+
+    **IT TAKES THIS APPLICATION'S TOOLS THROUGH A WRITTEN PROTOCOL, NOT THE CLI'S.** When the panel offers tools, the system prompt lists them and says how to ask for one (a fenced `tool_calls`
+    block, `_cli_system_prompt`); `_parse_cli_reply` reads it into the same `ToolCall`s every provider returns, which the panel's loop runs as it runs any provider's (so the turn freeze, the
+    approval cards and the regulatory gate are all where they were), and the next call shows the model what each returned. The CLI's own tools stay off in both modes. It uses the person's plan,
+    not API credits, so each call counts against the plan's limits and spawns a process (about 5 seconds per step).
     """
 
     provider_id = "claude_cli"
     default_model = ""  # blank = whatever `claude` itself is configured to default to
     requires_api_key = False
+    supports_tools = True
 
     def __init__(self, cli_path_resolver: Callable[[], str] | None = None) -> None:
         self._cli_path_resolver = cli_path_resolver
@@ -443,11 +529,6 @@ class ClaudeCLIProvider(AIProvider):
         return shutil.which("claude") or shutil.which("claude.cmd") or shutil.which("claude.exe")
 
     def complete(self, request: AIRequest, tools: list[ToolDefinition] | None = None) -> AIResponse:
-        # `tools` is accepted for interface consistency but always ignored
-        # -- `supports_tools = False` (inherited from AIProvider) means
-        # AIAssistantPanel never actually passes any, and this single-shot
-        # `--tools ""` text-completion mode has no tool-use protocol to
-        # honor them with anyway.
         executable = self._resolve_executable()
         if executable is None:
             raise AIProviderError(
@@ -457,29 +538,35 @@ class ClaudeCLIProvider(AIProvider):
                 "not found automatically."
             )
 
-        args = [executable, "-p", "--output-format", "text", "--tools", "", "--no-session-persistence"]
-        if request.system_context:
-            args += ["--system-prompt", request.system_context]
-        if request.model:
-            args += ["--model", request.model]
+        # The system prompt goes in a FILE in the tool mode: the panel's prompt and the tool list together are tens of thousands of characters, and a Windows command line holds 32,768.
+        with tempfile.TemporaryDirectory(prefix="openchem-claude-cli-") as scratch:
+            args = [executable, "-p", "--output-format", "text", "--tools", "", *_CLI_ISOLATION_FLAGS]
+            if tools:
+                prompt_file = Path(scratch) / "system.txt"
+                prompt_file.write_text(_cli_system_prompt(request, tools), encoding="utf-8")
+                args += ["--system-prompt-file", str(prompt_file)]
+            elif request.system_context:
+                args += ["--system-prompt", request.system_context]
+            if request.model:
+                args += ["--model", request.model]
 
-        try:
-            result = subprocess.run(
-                args,
-                input=_render_transcript_prompt(request),
-                capture_output=True,
-                text=True,
-                encoding="utf-8",
-                errors="replace",
-                # Run from a throwaway directory, not the user's project --
-                # tools are disabled above anyway, but this is a second,
-                # independent guard against this "chat completion" call
-                # touching real files if that ever changed.
-                cwd=tempfile.gettempdir(),
-                timeout=180,
-            )
-        except (OSError, subprocess.SubprocessError) as exc:
-            raise AIProviderError(f"Failed to run Claude Code CLI: {exc}") from exc
+            try:
+                result = subprocess.run(
+                    args,
+                    input=_render_transcript_prompt(request),
+                    capture_output=True,
+                    text=True,
+                    encoding="utf-8",
+                    errors="replace",
+                    # Run from a throwaway directory, not the user's project --
+                    # tools are disabled above anyway, but this is a second,
+                    # independent guard against this "chat completion" call
+                    # touching real files if that ever changed.
+                    cwd=scratch,
+                    timeout=180,
+                )
+            except (OSError, subprocess.SubprocessError) as exc:
+                raise AIProviderError(f"Failed to run Claude Code CLI: {exc}") from exc
 
         if result.returncode != 0:
             raise AIProviderError(
@@ -487,6 +574,8 @@ class ClaudeCLIProvider(AIProvider):
                 f"{result.stderr.strip() or result.stdout.strip() or f'exit code {result.returncode}'}"
             )
 
+        if tools:
+            return _parse_cli_reply(result.stdout, tools)
         return AIResponse(text=result.stdout.strip())
 
 
