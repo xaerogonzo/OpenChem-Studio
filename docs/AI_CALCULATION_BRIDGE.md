@@ -25,7 +25,7 @@ worth challenging are collected at the end.
 | `CalculatorRegistry.compute` raises for a `ServiceExecution` calculator; ten of the 72 registered are service-run (Docking, eight ORCA types, `lewis_hsab`). | `services/calculator_registry.py`, `bootstrap._EXTERNAL_CALCULATOR_DEFINITIONS` | Two execution classes (section 4). |
 | The command-line twin of the task deliberately leaves out `_bind_settings`, so the pKa and ADMET sidecars refuse as `needs_setup` there. | `cli/calculation.py` module docstring | The bridge cannot use the CLI path; it must use the application's, which binds the configured interpreters. |
 | Results are frozen dataclasses. | `domain/scientific_result.py`, `domain/report.py` | Holding references to the results in a snapshot is a value snapshot; no deep copy is needed. |
-| `ClaudeCLIProvider.supports_tools` is `False`; the Anthropic and OpenAI-compatible providers are `True`, and the panel offers tools only when it is. | `plugins/ai_assistant/providers.py` | The live acceptance test needs a tool-capable provider (section 11). |
+| `ClaudeCLIProvider.supports_tools` was `False` (it took no tools) until section 25; the Anthropic, OpenAI-compatible and Claude CLI providers are now `True`, and the panel offers tools only when it is. | `plugins/ai_assistant/providers.py` | The live acceptance test needs a tool-capable provider (sections 11, 24 and 25). |
 | A calculator does not validate a choice parameter: `geometry_analysis` accepted `conformer_policy="lowest_energy"`, which is not one of its choices, and ran. | measured 2026-10-12, `benchmarks/calculator_cost` | The bridge validates parameters itself (section 8); a provider's tool schema is not the boundary. |
 
 ## 2. The capability
@@ -285,11 +285,11 @@ provenance.
 
 The live run (a tool-capable provider, with the sequence **tool call received, preview prepared, no
 job started, confirmation awaited** captured) is **not done**: the service preview adapter it waited on is
-built, but it needs a provider key, and `ClaudeCLIProvider` is excluded because it takes no tools. Every
+built, but it needs a provider key (done since on a local model and on the Claude CLI, sections 24 and 25). Every
 check so far, including `benchmarks/visual/ai_assistant_tools.json`, used a scripted provider, which proves
 everything around a model (the turn freeze, the loop on its worker thread, the host, the cards and their
 real buttons, the notes) and nothing about whether a real model calls the tools well. Giving the CLI
-provider a tool protocol is a separate, optional item with its own tests.
+provider a tool protocol followed in section 25.
 
 ## 12. Slices
 
@@ -310,7 +310,7 @@ provider a tool protocol is a separate, optional item with its own tests.
    that owns it) and nothing is started; the "Explain Stored Results" menu entry; and `list_goals`, the goal
    wizard's question-to-calculators table as read-only knowledge (section 14). Verified by
    `benchmarks/visual/ai_assistant_tools.json` against the real window (14 assertions), which found two
-   defects no unit test could (`docs/LESSONS.md`, the plugin-panel entry). **Not done:** the live provider run.
+   defects no unit test could (`docs/LESSONS.md`, the plugin-panel entry). **Not done at that time:** the live provider run (done on a local model, section 24).
 
 4. **Built (2026-10-30): reading the ORCA runs** (`read_quantum_runs`, section 15). The dispatch adapter that lets a person's Approve start an ORCA job is the slice after it and is not built.
 
@@ -419,7 +419,7 @@ Tested by `tests/test_quantum_run_request.py`, `tests/test_calculation_host_orca
 
 **What is bound to what.** The drawing fingerprint, as for proton affinity, binds the card. **The run record is different:** the service writes a tautomer-distribution record with a BLANK input fingerprint and input kind (its input is the whole set of candidates, and the outcome carries its own), so the host matches its completion by molecule and calculation type alone (`_on_quantum_run_completed`; the service runs one job per molecule), and `read_quantum_runs` reports the run's freshness as `unverifiable`, listed only with `include_not_current` or by its run id, which the note to the model names. The first drive on real ORCA found this: the job ran and nothing told the assistant, because a unit test's run record had been given a fingerprint the real service never writes.
 
-**Still not here:** Fukui (experimental, hidden by default); the tautomer NMR step, which needs a finished distribution to start from.
+**Still not here:** Fukui (experimental, hidden by default). The tautomer NMR step, which starts from a finished distribution, followed in section 22, and Fukui in section 23.
 
 Tested by `tests/test_quantum_run_request.py`, `tests/test_calculation_host_orca.py`, `tests/test_quantum_start_assistant_run.py` and `tests/test_ai_assistant_orca_dispatch.py`, driven on real ORCA (acetone) by `benchmarks/visual/ai_tautomer_dispatch.json`.
 
@@ -432,6 +432,65 @@ Tested by `tests/test_quantum_run_request.py`, `tests/test_calculation_host_orca
 **Who may press it.** `stop` is on the approvals handle (`context.calculation_approvals`), which a tool is never given, as `approve` and `cancel` are; `tests/test_ai_assistant_orca_dispatch.py` holds that the tools' handle and the bridge have no `stop` and no `cancel_assistant_run`, and `tests/test_plugin_calculations.py` holds the approvals face to exactly its calls.
 
 Tested by `tests/test_calculation_host_orca.py`, `tests/test_ai_assistant_orca_dispatch.py` and `tests/test_quantum_start_assistant_run.py`.
+
+## 22. Tautomer NMR: a card bound to a stored run (2026-11-01; `chem/quantum_run_request.prepare_tautomer_nmr`)
+
+**What differs.** `orca.tautomer_nmr` does not start from a structure. It runs NMR on the geometries a FINISHED tautomer distribution optimized, one ORCA job per tautomer (the representative conformer), so its card is bound to a stored run and the jobs are the tautomers that run holds. It is a registered calculator (EXPERIMENTAL and hidden by default, like its parent, with an explainer in `docs/explainers/nmr_tautomers.md`) so that `run_calculator` can name it; its parameters are the three settings and `distribution_run_id` (blank: the newest finished distribution). `quantum_dispatch.FROM_A_STORED_RUN` is the set, and it is also in `RUNS_ON_DRAWING`: it needs no conformer and a drawing edited after the card withdraws it.
+
+**The card is drawn from the frozen turn.** The turn already carries the molecule's runs with their outputs (`TurnContext.runs`), so `CalculationHost._tautomer_nmr_of` reads the distribution from there on the worker thread: the newest run of type `tautomer_distribution` that finished and holds a result, or the one named. A run that failed, was cancelled or holds no result is not one; a named run that is not one of the molecule's finished distributions is refused by name; with none, the problem says to run `orca.tautomer_distribution` first (`NEEDS_INPUT`). The card states the run, the tautomers and the job count (`PreparedTautomerNmr.card_text`), that it takes the representative conformer of each tautomer (the Tautomer NMR button's averaging box chooses every conformer), what it leaves out and why, and, as the button's own question does, that a missing cached reference for the method stops the run at its first result. The run id it resolved is written into the preparation's parameters, so Approve hands over exactly what the card showed.
+
+**Approving.** `RunChoice.source_run_id` carries the run to the panel, whose `_start_assistant_tautomer_nmr` looks it up again in the project's history (a distribution that has gone, or holds nothing, starts nothing), checks the drawing, and runs the same rules and bookkeeping as the button (`_begin_tautomer_nmr`, shared). The NMR run record carries no fingerprint, like the distribution's, so the host ends the run by molecule and calculation type (`tautomer_nmr`).
+
+**What it does not do.** It never takes every conformer (a setting read from a widget, stated on the card), and it does not check that a reference is cached before the card: the button does not either, and the card says so.
+
+Tested by `tests/test_tautomer_nmr_card.py` (the rules, the host and the panel), `tests/test_quantum_dispatch.py`, and the button's own `tests/test_tautomer_nmr_panel.py` unchanged; driven on real ORCA (acetaldehyde) by `benchmarks/visual/ai_tautomer_nmr_dispatch.json`.
+
+## 23. Fukui functions: an experimental calculation a card states as one (2026-11-02; `chem/quantum_run_request.prepare_fukui`)
+
+**What differs.** `orca.fukui` is one calculation type of the Run button, so it joined `STARTABLE` with the same three settings and the same hand-over; what it needed was a card that tells the truth about a job that is not one single point. It is one compound ORCA input of up to a dozen jobs (the neutral, the cation and the anion, extra starts of an anionic state at a basis with diffuse functions, and three more cation jobs that look for other states of the cation), so `prepare_fukui` counts them with the functions the engine writes its input from (`plan_fukui`, `searchable_holes`) under the two settings the run will read (`QuantumChemistryService.fukui_options`, read-only: `FUKUI_ANION_F_PLUS` and `FUKUI_CATION_SEARCH`). The card and the run agree on the jobs by construction, and a person who changes a setting between the card and Approve has changed the run, which the card says it follows.
+
+**What the card says.** The job count and the method; that the states are vertical (at the geometry supplied); the cation search and its cost (about 2.5 times a run without it, measured in the explainer), or why it was not run for this species; for an anion, that its f+ comes from a dianion no basis set binds in the gas phase and what happens if that gives nothing; and the STAGE, in the registry's own words: experimental, not validated, with the two preregistered checks it failed. A person approving it is approving a calculation that did not pass its checks, and the card is where that is said. The calculator stays EXPERIMENTAL and hidden by default; being askable by the assistant does not change either.
+
+**What it refuses before a card exists.** An open-shell request (`chem.fukui.open_shell_message`, the panel's own words) and an electron count that cannot be paired, which ORCA would otherwise reject after the job was queued. Conformer averaging is not a card setting (a card never averages), so its refusal stays the button's alone.
+
+**Not changed:** a line of what the Run button does for Fukui, or of the per-atom results the run files. Tested by `tests/test_fukui_card.py` (the job counts, the card text, the settings it follows, the refusals, the hand-over) and, for the panel, `tests/test_quantum_start_assistant_run.py`; driven on real ORCA (water) by `benchmarks/visual/ai_fukui_dispatch.json`. The two drive scripts that used `orca.fukui` as their example of a calculator that is only described now use `docking.vina`.
+
+## 24. The first live run, on a local model (2026-11-02; `benchmarks/visual/ai_live_ollama.json`)
+
+**What was run.** The real assistant panel's Send, the real tool loop and the real host, with Ollama's `qwen2.5:14b` instead of a scripted provider (the drive step `ai_send` takes `"live": {"provider": "ollama", "model": "qwen2.5:14b"}`; nothing is written to the plugin's settings, every request and reply is recorded and logged). The prompt was "Run a single-point energy calculation on this molecule with ORCA at B3LYP def2-SVP." on water. No API key and no API cost; ORCA was not started, because the acceptance sequence ends at the card (**tool call received, preview prepared, no job started, confirmation awaited**).
+
+**What it found.** At first, nothing worked, for three reasons that no scripted provider could have shown:
+- **The model drifted into Thai** in the middle of the reply (and again after the first refusal). Ollama gave the model an 8,192-token context and truncated nothing (the server log says so), but the first request is already about 4,200 tokens (the system prompt and the tool schemas), and nothing in it said which language to answer in.
+- **The model invented settings.** Called with the server's default temperature (0.8 on Ollama), it sent `run_calculator` for `orca.sp` with about seventy made-up parameters (IRC options and so on) in the first run and two or four in the later ones.
+- **The bridge held.** Every one of those calls was refused with the settings `orca.sp` takes (`unknown_parameter`, then `not_a_choice` naming the six allowed method and basis strings), nothing was started, and the refusal text is what let a model recover.
+
+**What changed.** The system prompt says to reply in the language the user writes in, and the Ollama provider asks for a temperature of 0.2 (`OpenAICompatibleProvider(temperature=...)`; the OpenAI provider sends none). With both, the same run: the model answered in English, was refused three times (unknown settings, then a lower-case method string, then it corrected), reached `awaiting_approval`, and told the user the calculation was waiting for their approval. VERDICT PASS, 3 of 3 assertions.
+
+**What this does and does not establish.** One live model, one prompt, three runs. It shows the loop, the validation messages and the card work with a real model, and that a local 14B model can use them after refusals. It does NOT show which of the two changes fixed the drift (they were made together), how reliably a model of this size does it, or anything about a larger or a cloud model. A weak model cannot do harm here, since a card does nothing until a person approves it, but it can be slow (the first reply took 2 minutes 46 seconds when it wrote seventy settings) and it needed several tries. The Claude CLI took no tools at that point and followed in section 25; the Cursor CLI is not tried.
+
+## 25. The Claude CLI takes the tools too (2026-11-02; `ClaudeCLIProvider`, `plugins/ai_assistant/providers.py`)
+
+**What it is.** `claude_cli` now has `supports_tools = True`, so the assistant can run its real tool loop on a Claude subscription login, with no API key and no API credits (each call counts against the plan's limits instead). The CLI has no tool-calling API for the application's tools, so they are offered through a written protocol: the system prompt says how to ask for a tool (one fenced `tool_calls` block holding a JSON list of `{"name", "input"}`, then stop) and lists each tool with its schema; `_parse_cli_reply` reads the FIRST block into the same `ToolCall`s every provider returns; the panel's loop runs them exactly as it runs any provider's, so the turn freeze, the approval cards and the regulatory gate are where they were. The transcript shows the model its own earlier blocks and each 'Tool result'. The CLI's own tools stay off (`--tools ""`) and it runs from a scratch directory.
+
+**Two things measured first.**
+- **Context.** A one-word prompt through `claude -p` created **60,075** prompt tokens (the person's own CLAUDE.md files, skills and MCP lists, none of it ours and all of it counted against their plan). `--setting-sources ""`, `--disable-slash-commands`, `--strict-mcp-config` and `--no-chrome` bring it to **1,090** with the login still working. They are on both modes now, so the plain-text path also stopped sending the person's Claude Code context to the model. `--bare` would shrink it further but never reads the subscription login, so it is not used.
+- **Which protocol.** Three designs were tried against the real panel prompt before one held. `--json-schema` structured output made the model call the panel's tools as native functions first (the prompt says "use find_calculators ..."), get "No such tool available" and answer in prose: **a tool call in 1 of 3 calls**, even with an example. Reading the CLI's event stream for the model's own tool-use turn found none (the tool is not defined there): the model wrote text pseudo-calls, and once a result it invented. **A plain-text reply with one fenced block gave a block in 5 of 5 calls**, one turn each (about 5 seconds), nothing after the block; the parser takes only the first block, so an invented result after it is discarded.
+
+**Failure behaviour.** A reply with no block is an answer. A block that is not valid JSON, not a list, or names only tools that are not offered is shown to the user as written, never dropped; a call to a tool that is not offered is not run and the others in the block are. A non-zero exit is the provider's error, as before.
+
+**What was run.** `benchmarks/visual/ai_live_claude_cli.json`: the same acceptance sequence as the Ollama run (section 24), through the real panel with the real tools. The model described `orca.sp`, requested it with valid settings on its first try, got `awaiting_approval` and told the user the calculation was waiting for approval; nothing started. VERDICT PASS, 3 of 3, three model steps in about 15 seconds. **One model, one prompt**: it does not show how reliable the protocol is over many questions, or with a long conversation. The Cursor CLI followed in section 26.
+
+## 26. The Cursor CLI, a coding agent used as a chat backend (2026-11-02; `CursorCLIProvider`, `tools/check_cursor_cli_isolation.py`)
+
+**What it is.** `cursor_cli` runs the assistant on the person's Cursor login (`cursor-agent`, no API key; calls count against the Cursor plan, and a model's cost differs, which is why the default is whatever Cursor is configured to use). It takes this application's tools through the SAME written protocol as the Claude CLI (section 25): the same system prompt, the same transcript, the same parser, the first fenced block wins. What differs is the command: `-p --output-format text --mode ask --trust`, no system-prompt option (so the system prompt and the conversation travel together on stdin, after a line saying its own tools are disabled), and a throwaway working directory.
+
+**The difference that matters: its own tools cannot be switched off.** The Claude CLI has `--tools ""`; Cursor's print mode "has access to all tools, including write and shell", and the Windows sandbox flag fails ("requires macOS or Linux"). So before building on it, the question was whether the agent, in its read-only `--mode ask`, could reach the person's files. **It could**: asked to read a file OUTSIDE its working directory it quoted it. A permissions file in the scratch directory (`.cursor/cli.json`, `_CURSOR_DENY`: Read, Write, Shell, WebFetch and Mcp) made the same request refused. A **control run** without the file (`tools/check_cursor_cli_isolation.py --without-permissions`) reads the file and the run with it does not, so the check can detect a leak and the file is what stops this one.
+
+**What was NOT shown.** A shell command and a write were refused with or without the file: read-only `ask` mode refuses them, and on the machine this was measured on a user `preToolUse` hook also sits on Shell. An earlier note of mine read that block as the file working; the control said otherwise. So the Write, Shell, WebFetch and Mcp rules are defence in depth that was not shown to do anything here. And the whole mechanism is Cursor's to change: **run `tools/check_cursor_cli_isolation.py` when Cursor updates**, and treat a `GOT THROUGH` on read as a reason to stop using the provider.
+
+**Two things about the person's own Cursor setup.** Their user-level hooks run on every call (here: a `beforeSubmitPrompt`, a `stop` and a `sessionEnd` hook); and their configured model is the default, unless the Configure dialog names one.
+
+**What was run.** `benchmarks/visual/ai_live_cursor_cli.json`, the acceptance sequence of sections 24 and 25 through the real panel: the model asked for a search and a description in one turn, then requested `orca.sp` with valid settings, got `awaiting_approval` and told the user it was waiting for approval; nothing started. VERDICT PASS, 3 of 3. One model, one prompt, no number of runs behind it.
 
 ## 14. Goals: the wizard's table, as knowledge and never as a way to run
 

@@ -1,0 +1,18 @@
+[
+  {"do": "smiles", "smiles": "O", "name": "Water", "after_ms": 1500},
+  {"do": "select", "molecule": -1, "after_ms": 3000},
+  {"do": "conformers", "count": 1, "after_ms": 8000},
+  {"do": "conformer_report", "tag": "a-conformer-to-run-on", "expect": {"conformers": 1}},
+  {"do": "panel", "id": "Quantum_Chemistry", "after_ms": 1000},
+
+  {"do": "ai_send", "text": "Run a single-point energy calculation on this molecule with ORCA at B3LYP def2-SVP.",
+   "live": {"provider": "cursor_cli", "model": ""}, "after_ms": 150000},
+  {"do": "ai_expect", "tag": "cursor-cli-asks-and-nothing-starts",
+   "expect": {"tools_offered": ["run_calculator"], "pending": 1,
+              "tool_results_contain": ["\"state\": \"awaiting_approval\"", "\"started\": false"], "send_enabled": true}},
+  {"do": "qc_panel_report", "tag": "the-panel-has-no-job-yet", "expect": {"status_contains": []}},
+  {"do": "shot", "path": "benchmarks/visual/artifacts/ai_live_cursor_cli_card.png", "after_ms": 500},
+
+  {"do": "expect_clean"},
+  {"do": "quit"}
+]

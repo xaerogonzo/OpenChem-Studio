@@ -57,6 +57,7 @@ from openchem.chem.quantum_run_request import (
     BOND_DISSOCIATION_CONFIRM_ABOVE,
     PROTON_AFFINITY,
     TAUTOMER_DISTRIBUTION,
+    TAUTOMER_NMR,
     PreparedRun,
     RunChoice,
     RunRefusal,
@@ -65,11 +66,13 @@ from openchem.chem.quantum_run_request import (
     prepare_bond_dissociation_for,
     prepare_proton_affinity_for,
     prepare_run,
+    prepare_tautomer_nmr,
     prepare_tautomers_for,
     review_cost,
     review_led,
     start_bond_dissociation,
     start_proton_affinity,
+    start_tautomer_nmr,
     start_tautomer_distribution,
     tautomers_prepared,
 )
@@ -2173,6 +2176,8 @@ class QuantumChemistryPanel(QWidget):
             return self._start_assistant_bond_dissociation(molecule, input_fingerprint)
         if choice.calc_type == TAUTOMER_DISTRIBUTION:
             return self._start_assistant_tautomers(molecule, choice, input_fingerprint)
+        if choice.calc_type == TAUTOMER_NMR:
+            return self._start_assistant_tautomer_nmr(molecule, choice, input_fingerprint)
         prepared = prepare_run(self._chemistry_engine, molecule, choice)
         if isinstance(prepared, RunRefusal):
             return prepared.message
@@ -2487,32 +2492,22 @@ class QuantumChemistryPanel(QWidget):
         if molecule is None or distribution is None:
             self._status_label.setText("Select a tautomer distribution run first.")
             return
-        method_basis = self._effective_method_basis()
-        if not method_basis:
-            self._status_label.setText("Enter a method/basis (e.g. 'B3LYP def2-SVP').")
+        prepared = prepare_tautomer_nmr(distribution, run.run_id, self._effective_method_basis(), self._tautomer_nmr_conformers_check.isChecked())
+        if isinstance(prepared, RunRefusal):
+            self._status_label.setText(prepared.message)
             return
-        per_conformer = self._tautomer_nmr_conformers_check.isChecked()
-        targets, problems = targets_from_distribution(distribution, per_conformer=per_conformer)
-        if not targets:
-            self._status_label.setText("No tautomer can be run: " + "; ".join(problems))
-            return
-        jobs = sum(len(t.jobs) for t in targets)
-        text = (
-            f"This will run {jobs} real ORCA NMR calculation(s) for {len(targets)} tautomer(s) at {method_basis}, "
-            f"each on the geometry the tautomer distribution optimized"
-            + (" (every conformer of each tautomer's representative stereoisomer)" if per_conformer else "")
-            + ". Shifts use the cached reference for this method; if none is cached the run stops at its "
-            "first result and tells you."
-        )
-        if problems:
-            text += "\n\nLeft out: " + "; ".join(problems)
-        text += "\n\nContinue?"
         answer = QMessageBox.question(
-            self, "Run tautomer NMR?", text,
+            self, "Run tautomer NMR?", prepared.question() + "\n\nContinue?",
             QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No, QMessageBox.StandardButton.No,
         )
         if answer != QMessageBox.StandardButton.Yes:
             return
+        self._begin_tautomer_nmr(molecule, distribution, prepared)
+        start_tautomer_nmr(self._quantum_chemistry_service, molecule, prepared, self._charge_spin.value(), self._multiplicity_spin.value())
+
+    def _begin_tautomer_nmr(self, molecule, distribution, prepared) -> None:
+        """What the panel commits to when a tautomer NMR run is handed to the service, and only then: which molecule it waits for, the distribution its peaks will be drawn against, the other
+        whole-molecule buttons off and the status line. One body for the button and for an assistant's card."""
         self._pending_molecule_uuid = molecule.uuid
         self._tautomer_nmr_distribution = distribution
         self._run_button.setEnabled(False)
@@ -2522,17 +2517,24 @@ class QuantumChemistryPanel(QWidget):
         self._set_orca_only_enabled(self._tautomer_nmr_button, False)
         self._cancel_button.setEnabled(True)
         self._output_log.clear()
-        self._status_label.setText(f"queued -- {jobs} NMR calculation(s) for {len(targets)} tautomer(s)")
-        self._quantum_chemistry_service.request_tautomer_nmr(
-            targets=targets,
-            molecule_uuid=molecule.uuid,
-            charge=self._charge_spin.value(),
-            multiplicity=self._multiplicity_spin.value(),
-            method_basis=method_basis,
-            per_conformer=per_conformer,
-            parent_run_id=run.run_id,
-            skipped=tuple(problems),
-        )
+        self._status_label.setText(prepared.queued_text())
+
+    def _start_assistant_tautomer_nmr(self, molecule, choice: RunChoice, expected_fingerprint: str) -> str:
+        """The tautomer NMR half of `start_assistant_run`: NMR on the stored geometries of the distribution run the card named (`choice.source_run_id`), the representative conformer of each tautomer.
+
+        The drawing is checked as for the other drawing runs (an edit after the card withdraws it), and the run is looked up again in the project's history, so a distribution that has gone, or is not
+        a finished one, starts nothing. The jobs are the tautomers that run holds, which is what the card counted; the cost question was the card."""
+        run = next((r for r in self._result_store_service.qc_runs.runs_for(molecule.uuid) if r.run_id == choice.source_run_id), None) if self._result_store_service is not None else None
+        distribution = run.results.get("tautomer_distribution") if run is not None else None
+        prepared = prepare_tautomer_nmr(distribution, choice.source_run_id, choice.method_basis.strip())
+        if isinstance(prepared, RunRefusal):
+            return prepared.message
+        if input_fingerprint(self._chemistry_engine, molecule, DRAWING) != expected_fingerprint:
+            return "The structure was edited after this was prepared, so nothing was started; prepare it again."
+        select(self._molecule_combo, molecule.uuid)
+        self._begin_tautomer_nmr(molecule, distribution, prepared)
+        start_tautomer_nmr(self._quantum_chemistry_service, molecule, prepared, choice.charge, choice.multiplicity)
+        return ""
 
     def _on_tautomer_nmr_ready(self, event: TautomerNmrResultReady) -> None:
         if event.molecule_uuid != self._pending_molecule_uuid:

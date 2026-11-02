@@ -60,16 +60,34 @@ _MODEL_PRESETS: dict[str, list[str]] = {
     # future/renamed model can always be typed in directly.
     "anthropic": ["claude-sonnet-5", "claude-opus-5", "claude-fable-5", "claude-haiku-4-5-20251001"],
     "openai": ["gpt-4o-mini", "gpt-4o"],
-    "ollama": ["llama3.1", "qwen2.5-coder:14b", "mistral", "phi3"],
+    "ollama": ["llama3.1", "qwen2.5:14b", "qwen2.5-coder:14b", "mistral", "phi3"],
     # Blank means "let the claude CLI use its own configured default" --
     # ClaudeCLIProvider.default_model is "" for exactly this reason.
     "claude_cli": ["", "sonnet", "opus", "fable", "haiku"],
+    # Blank means "whatever cursor-agent is configured to use". Names are what `cursor-agent --list-models` prints; the list depends on the account, so type any other.
+    "cursor_cli": ["", "auto", "composer-2.5", "claude-sonnet-5-thinking-high", "gemini-3.7-flash-high"],
+}
+
+#: What the Configure dialog says under the CLI path of each provider that runs through a local command-line login.
+_CLI_NOTES = {
+    "claude_cli": (
+        "Uses your local Claude Code CLI login -- run 'claude' once in a "
+        "terminal to sign in with your claude.ai subscription (Pro/Max), no "
+        "separate Anthropic API key or billing needed. Leave the path blank "
+        "to auto-detect 'claude' on PATH."
+    ),
+    "cursor_cli": (
+        "Uses your local Cursor CLI login -- run 'cursor-agent login' once in a terminal; no API key needed, "
+        "and calls count against your Cursor plan. Leave the path blank to auto-detect 'cursor-agent' on PATH. "
+        "Cursor's agent cannot have its own tools switched off, so each call runs in a throwaway folder in "
+        "read-only mode with every file, shell and web permission denied."
+    ),
 }
 
 SYSTEM_PROMPT_PREFIX = (
     "You are a chemistry assistant embedded in OpenChem Studio, a molecular editor. Explain results, suggest "
     "workflows, and generate SMARTS queries or Python snippets as plain text for the user to review and apply "
-    "themselves.\n\n"
+    "themselves. Reply in the language the user writes in (English if they write English).\n\n"
     "When tools are offered, they read this application's own results and run its calculators. Use them instead of "
     "answering from memory whenever a question is about a number, a property or a method for the selected molecule: "
     "find_calculators and describe_calculator say what exists, what each needs and whether you may run it; "
@@ -418,13 +436,7 @@ class _ProviderSettingsDialog(QDialog):
             path_row.addWidget(self._cli_path_edit)
             path_row.addWidget(browse_button)
             form.addRow("CLI path (optional):", path_row)
-            note = QLabel(
-                "Uses your local Claude Code CLI login -- run 'claude' once in a "
-                "terminal to sign in with your claude.ai subscription (Pro/Max), no "
-                "separate Anthropic API key or billing needed. Leave the path blank "
-                "to auto-detect 'claude' on PATH.",
-                self,
-            )
+            note = QLabel(_CLI_NOTES.get(provider_id, _CLI_NOTES["claude_cli"]), self)
             note.setWordWrap(True)
 
         self._model_combo = QComboBox(self)
@@ -446,7 +458,7 @@ class _ProviderSettingsDialog(QDialog):
         layout.addWidget(buttons)
 
     def _on_browse_clicked(self) -> None:
-        path_str, _ = QFileDialog.getOpenFileName(self, "Select claude executable")
+        path_str, _ = QFileDialog.getOpenFileName(self, "Select cursor-agent executable" if self._provider_id == "cursor_cli" else "Select claude executable")
         if path_str:
             self._cli_path_edit.setText(path_str)
 

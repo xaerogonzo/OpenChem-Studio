@@ -2563,10 +2563,41 @@ which is not a claim either way.
 Tick two or more molecules and see their values side by side — one row per
 property, one column per molecule.
 
-**It never calculates anything.** The values are the ones other panels have
-already computed, so opening Compare is free and a blank cell means *that
-calculator has not run for that molecule* — not that it has no value. Run
-what you want in Properties first; the columns fill in as results arrive.
+**Opening Compare never calculates anything.** The values are the ones other
+panels have already computed, so a blank cell means *that calculator has not
+run for that molecule* — not that it has no value. To fill the table in, press
+**Calculate basic properties**: it works out the everyday properties (mass,
+LogP, polar surface area, ring and bond counts) for the ticked molecules only,
+reusing anything already held, and the columns fill in as results arrive. Run
+anything else in Properties first.
+
+**Double-click a value to read it in full.** Double-clicking a value (or
+pressing Enter on it, or **Show in Results**) selects that molecule and opens
+the value in the Results panel, narrowed to that one fact, with its evidence
+and limits. Double-clicking the Property column opens the first molecule that
+has a value. Your ticks in Compare do not change.
+
+**Open side by side** reads the ticked molecules in the Results reader, one pane
+each, in a window of their own: side by side for two molecules, as tabs for
+more (a button switches). They are the same reader the Results panel uses, so a
+value shows with its evidence and limits. The panes are **linked**: choosing a
+report, or typing in the fact filter, in one does the same in all, so the
+molecules stay on the same value. Double-clicking a value in Compare takes every
+pane to it, linked or not. A molecule that has not had that result calculated
+says so above its pane rather than silently showing something else. Nothing is
+calculated, and the panes follow the ticks and refresh as results arrive.
+
+**Plain English.** Selecting a row says what the property means, in everyday
+words, under the table. The highest value in a row carries a small triangle
+(▲): it only says which number is highest — a higher number is not better or
+worse by itself. For ratio-style properties such as mass the tooltip also says
+roughly how many times larger it is; for log-scale properties such as LogP it
+does not, because a ratio of logarithms means nothing. With exactly two
+molecules ticked, a short summary of the well-understood properties appears
+above the table, always worded as *calculated* or *estimated*. If you do not
+need any of this, turn off **Explain things in plain English** in
+Settings → Appearance and Compare is just the table; Results, Help and anything
+you copy are the same either way.
 
 **Differences only** is the reason to open it. Two related structures agree
 on most of a long table, so hiding the rows where they match leaves the
@@ -3173,6 +3204,13 @@ the structure:
 The structure operations used to sit under Edit, between "Redo" and "Copy
 Structure As", where neither group was easy to find.
 
+**A few commands carry a small icon.** New, Open and Save Project, Undo, Redo,
+Recalculate Now, Settings, Exit and Help for the Current Panel have one beside
+their name; every other entry is text only on purpose. The icons are drawn in
+the colour of the menu text, so they follow Light and Dark and grey out with a
+disabled command. They are decoration: the name and the shortcut are what
+identify a command, and nothing about them can be changed.
+
 **Several things are deliberately reachable more than one way.** Check
 Structure is on the Structure menu, on the Project Explorer's right-click menu,
 and by clicking the status-bar indicator. Copy SMILES is on the Edit menu and
@@ -3600,7 +3638,7 @@ run the quick calculators itself, recorded in your project like ones you ran. An
 slow, any molecule above 41 heavy atoms and anything unclassified shows a preview with
 **Approve** and **Cancel** first, and nothing starts until you press one. A calculator
 that runs from its own panel and is not one ORCA job (Vina, bond dissociation, tautomers) is described, with what it needs and whether
-this machine is ready, and you start it from that panel. A single ORCA job (single point, optimization, optimization with frequencies, NMR, NMR with coupling, hardness and softness from energy differences, interaction breakdown) or a tautomer distribution (the card says how many ORCA jobs the enumeration gives, uses the default conformer search, and leaves the Full ORCA conformers choice to the Tautomers button) or a proton affinity or a bond dissociation enthalpy (which have a fixed protocol, and whose cards say how many ORCA jobs they are and whether the molecule is one the benchmark measured; a bond dissociation card also lists the X-H bonds it would compute, six when there are more (an O-H, N-H or S-H before a C-H), and says which it leaves out, since choosing particular bonds is done with the Bond dissociation button) it can ASK for: a card appears with the molecule, the method and basis, the charge and multiplicity and what the job costs, and ORCA starts only if you press **Approve**. It then runs in the Quantum Chemistry panel by that panel's own rules, where you can follow and cancel it, or press **Stop job** on a card in the assistant's panel, which cancels it the same way; the assistant is told how it ended with your next message. It can also read the ORCA jobs you have already run for the selected molecule: which calculation, the method and basis, whether the job finished, failed or was cancelled, what it warned about, and, for a job it is asked about, the numbers it produced (an infrared analysis as its modes). It cannot approve or stop a job (the Stop job button is yours too), and it is never sent the structure that went to ORCA. What it asked for, and what
+this machine is ready, and you start it from that panel. A single ORCA job (single point, optimization, optimization with frequencies, NMR, NMR with coupling, hardness and softness from energy differences, interaction breakdown) or a tautomer distribution (the card says how many ORCA jobs the enumeration gives, uses the default conformer search, and leaves the Full ORCA conformers choice to the Tautomers button) or Fukui functions (an experimental calculation: the card says how many ORCA jobs it is and that it did not pass its own checks; closed-shell species only) or NMR on the tautomers of a tautomer distribution you have already run (the card names that run, the tautomers and the number of NMR jobs, takes the representative conformer of each tautomer, and needs a finished distribution and an ORCA program) or a proton affinity or a bond dissociation enthalpy (which have a fixed protocol, and whose cards say how many ORCA jobs they are and whether the molecule is one the benchmark measured; a bond dissociation card also lists the X-H bonds it would compute, six when there are more (an O-H, N-H or S-H before a C-H), and says which it leaves out, since choosing particular bonds is done with the Bond dissociation button) it can ASK for: a card appears with the molecule, the method and basis, the charge and multiplicity and what the job costs, and ORCA starts only if you press **Approve**. It then runs in the Quantum Chemistry panel by that panel's own rules, where you can follow and cancel it, or press **Stop job** on a card in the assistant's panel, which cancels it the same way; the assistant is told how it ended with your next message. It can also read the ORCA jobs you have already run for the selected molecule: which calculation, the method and basis, whether the job finished, failed or was cancelled, what it warned about, and, for a job it is asked about, the numbers it produced (an infrared analysis as its modes). It cannot approve or stop a job (the Stop job button is yours too), and it is never sent the structure that went to ORCA. What it asked for, and what
 became of it, is listed under the conversation. It can also read the goal wizard's table (which calculators the
 application pairs with a question such as "where is the charge"), as a suggestion rather than a protocol. It can also read the **derived scores** you
 defined (their names, formulas and values for the selected molecule; never the owner or the note), and says so when one cannot be worked out. It cannot save or change one, but it can propose a new one: a card shows the formula, what each

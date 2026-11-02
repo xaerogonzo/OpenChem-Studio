@@ -562,11 +562,11 @@ def test_the_panel_says_where_calculator_results_go_for_each_provider(rig):
     assert "leave this machine" in notes["anthropic"] and "anthropic" in notes["anthropic"]
     assert "leave this machine" in notes["openai"]
     assert "localhost:11434" in notes["ollama"] and "leave this machine" not in notes["ollama"]
-    assert "cannot use this application's tools" in notes["claude_cli"]
+    assert "leave this machine" in notes["claude_cli"] and "claude_cli" in notes["claude_cli"]
+    assert "leave this machine" in notes["cursor_cli"] and "cursor_cli" in notes["cursor_cli"]
     assert all(notes.values())
-    for provider_id in ("anthropic", "openai", "ollama"):
+    for provider_id in ("anthropic", "openai", "ollama", "claude_cli", "cursor_cli"):
         assert "names and formulas of your scores" in notes[provider_id], provider_id
-    assert "nor read your scores" in notes["claude_cli"]
 
 
 def test_a_panel_with_no_host_still_works_and_offers_no_calculator_tools(qapp, tmp_path):
@@ -585,3 +585,8 @@ def test_a_panel_with_no_host_still_works_and_offers_no_calculator_tools(qapp, t
     bridge = ToolBridge(panel._context.calculations, panel._context.calculations.begin_turn())
     panel._run_completion(Recorder([]), "s", [AIMessage(role="user", content="hi")], "m", "k", lambda c: None, bridge)
     assert seen == [[t.name for t in AVAILABLE_TOOLS]]
+
+
+def test_the_system_prompt_tells_the_model_which_language_to_answer_in():
+    """A live local model answered an English question in Thai when nothing said which language to use."""
+    assert "Reply in the language the user writes in (English if they write English)." in SYSTEM_PROMPT_PREFIX

@@ -40,6 +40,9 @@ def test_calculator_registry_includes_docking_and_quantum_chemistry_categories(q
         # tautomer) rather than being a single ORCA calc_type itself; see
         # bootstrap.py's own comment on why it is registered standalone.
         "orca.tautomer_distribution",
+        # Standalone too: NMR on the tautomers of a FINISHED distribution run, one
+        # job per tautomer; EXPERIMENTAL and hidden like its parent.
+        "orca.tautomer_nmr",
         # Likewise standalone: an Opt Freq per structure of the base and of every
         # conjugate acid. Its benchmark passed; EXPERIMENTAL and hidden until it
         # has been driven through the application on real ORCA.

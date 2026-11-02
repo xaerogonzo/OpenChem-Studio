@@ -43,6 +43,7 @@ from PySide6.QtWidgets import (
 
 from openchem.app.settings import (
     APPEARANCE,
+    PLAIN_ENGLISH,
     CONFORMER_EARLY_STOP,
     CONFORMER_KEEP_OPTIMIZED,
     CONFORMER_OPTIMIZE_LOWEST,
@@ -265,6 +266,19 @@ _HELP = {
         ),
         tier=2,
         help_id="settings.recalc_mode",
+        topic="settings",
+        help_anchor="settings",
+    ),
+    "plain_english": HelpTooltip(
+        text=(
+            "On (the default): Compare explains itself in everyday words. Selecting a row says what that "
+            "property means, marks which molecule has the highest value (a plain marker, not a verdict: a higher "
+            "number is not better or worse by itself), and two molecules get a one-sentence summary.\n\n"
+            "Off: Compare is just the table. Nothing else changes: Results, Help and anything you copy or "
+            "export read the same either way."
+        ),
+        tier=2,
+        help_id="settings.plain_english",
         topic="settings",
         help_anchor="settings",
     ),
@@ -673,6 +687,12 @@ class SettingsDialog(QDialog):
         apply_help_tooltip(self._appearance, _HELP["appearance"])
         self._appearance.currentIndexChanged.connect(self._on_appearance_changed)
 
+        self._plain_english = QCheckBox("Explain things in plain English (in Compare)", page)
+        self._plain_english.setObjectName("plainEnglish")
+        self._plain_english.setChecked(bool(self._settings.preference(PLAIN_ENGLISH)))
+        apply_help_tooltip(self._plain_english, _HELP["plain_english"])
+        self._plain_english.toggled.connect(self._on_plain_english_toggled)
+
         row = QHBoxLayout()
         row.addWidget(QLabel("Colour scheme", page))
         row.addWidget(self._appearance)
@@ -695,6 +715,7 @@ class SettingsDialog(QDialog):
         layout.addWidget(_heading("Appearance", page))
         layout.addLayout(row)
         layout.addLayout(size_row)
+        layout.addWidget(self._plain_english)
         layout.addWidget(_note(
             "Follow the system changes when Windows does. The same choice is in the View menu, "
             "under Theme. In dark, the 2D editor's drawing area is dark with white bonds; atom "
@@ -809,6 +830,9 @@ class SettingsDialog(QDialog):
     def _on_recovery_enabled_toggled(self, checked: bool) -> None:
         self._recovery_delay.setEnabled(checked)
         self._store(RECOVERY_ENABLED, checked)
+
+    def _on_plain_english_toggled(self, checked: bool) -> None:
+        self._store(PLAIN_ENGLISH, checked)
 
     def _on_structure_coverage_toggled(self, checked: bool) -> None:
         self._store(STRUCTURE_COVERAGE, checked)
