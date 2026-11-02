@@ -562,11 +562,10 @@ def test_the_panel_says_where_calculator_results_go_for_each_provider(rig):
     assert "leave this machine" in notes["anthropic"] and "anthropic" in notes["anthropic"]
     assert "leave this machine" in notes["openai"]
     assert "localhost:11434" in notes["ollama"] and "leave this machine" not in notes["ollama"]
-    assert "cannot use this application's tools" in notes["claude_cli"]
+    assert "leave this machine" in notes["claude_cli"] and "claude_cli" in notes["claude_cli"]
     assert all(notes.values())
-    for provider_id in ("anthropic", "openai", "ollama"):
+    for provider_id in ("anthropic", "openai", "ollama", "claude_cli"):
         assert "names and formulas of your scores" in notes[provider_id], provider_id
-    assert "nor read your scores" in notes["claude_cli"]
 
 
 def test_a_panel_with_no_host_still_works_and_offers_no_calculator_tools(qapp, tmp_path):
