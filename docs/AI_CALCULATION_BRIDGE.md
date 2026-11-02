@@ -310,7 +310,7 @@ provider a tool protocol is a separate, optional item with its own tests.
    that owns it) and nothing is started; the "Explain Stored Results" menu entry; and `list_goals`, the goal
    wizard's question-to-calculators table as read-only knowledge (section 14). Verified by
    `benchmarks/visual/ai_assistant_tools.json` against the real window (14 assertions), which found two
-   defects no unit test could (`docs/LESSONS.md`, the plugin-panel entry). **Not done:** the live provider run.
+   defects no unit test could (`docs/LESSONS.md`, the plugin-panel entry). **Not done at that time:** the live provider run (done on a local model, section 24).
 
 4. **Built (2026-10-30): reading the ORCA runs** (`read_quantum_runs`, section 15). The dispatch adapter that lets a person's Approve start an ORCA job is the slice after it and is not built.
 
@@ -454,6 +454,19 @@ Tested by `tests/test_tautomer_nmr_card.py` (the rules, the host and the panel),
 **What it refuses before a card exists.** An open-shell request (`chem.fukui.open_shell_message`, the panel's own words) and an electron count that cannot be paired, which ORCA would otherwise reject after the job was queued. Conformer averaging is not a card setting (a card never averages), so its refusal stays the button's alone.
 
 **Not changed:** a line of what the Run button does for Fukui, or of the per-atom results the run files. Tested by `tests/test_fukui_card.py` (the job counts, the card text, the settings it follows, the refusals, the hand-over) and, for the panel, `tests/test_quantum_start_assistant_run.py`; driven on real ORCA (water) by `benchmarks/visual/ai_fukui_dispatch.json`. The two drive scripts that used `orca.fukui` as their example of a calculator that is only described now use `docking.vina`.
+
+## 24. The first live run, on a local model (2026-11-02; `benchmarks/visual/ai_live_ollama.json`)
+
+**What was run.** The real assistant panel's Send, the real tool loop and the real host, with Ollama's `qwen2.5:14b` instead of a scripted provider (the drive step `ai_send` takes `"live": {"provider": "ollama", "model": "qwen2.5:14b"}`; nothing is written to the plugin's settings, every request and reply is recorded and logged). The prompt was "Run a single-point energy calculation on this molecule with ORCA at B3LYP def2-SVP." on water. No API key and no API cost; ORCA was not started, because the acceptance sequence ends at the card (**tool call received, preview prepared, no job started, confirmation awaited**).
+
+**What it found.** At first, nothing worked, for three reasons that no scripted provider could have shown:
+- **The model drifted into Thai** in the middle of the reply (and again after the first refusal). Ollama gave the model an 8,192-token context and truncated nothing (the server log says so), but the first request is already about 4,200 tokens (the system prompt and the tool schemas), and nothing in it said which language to answer in.
+- **The model invented settings.** Called with the server's default temperature (0.8 on Ollama), it sent `run_calculator` for `orca.sp` with about seventy made-up parameters (IRC options and so on) in the first run and two or four in the later ones.
+- **The bridge held.** Every one of those calls was refused with the settings `orca.sp` takes (`unknown_parameter`, then `not_a_choice` naming the six allowed method and basis strings), nothing was started, and the refusal text is what let a model recover.
+
+**What changed.** The system prompt says to reply in the language the user writes in, and the Ollama provider asks for a temperature of 0.2 (`OpenAICompatibleProvider(temperature=...)`; the OpenAI provider sends none). With both, the same run: the model answered in English, was refused three times (unknown settings, then a lower-case method string, then it corrected), reached `awaiting_approval`, and told the user the calculation was waiting for their approval. VERDICT PASS, 3 of 3 assertions.
+
+**What this does and does not establish.** One live model, one prompt, three runs. It shows the loop, the validation messages and the card work with a real model, and that a local 14B model can use them after refusals. It does NOT show which of the two changes fixed the drift (they were made together), how reliably a model of this size does it, or anything about a larger or a cloud model. A weak model cannot do harm here, since a card does nothing until a person approves it, but it can be slow (the first reply took 2 minutes 46 seconds when it wrote seventy settings) and it needed several tries. The Claude CLI and the Cursor CLI are not tried: the Claude CLI provider still takes no tools (section 11).
 
 ## 14. Goals: the wizard's table, as knowledge and never as a way to run
 

@@ -9777,11 +9777,19 @@ class _Driver(QObject):
         Each `{"tool": name, "input": {...}}` entry is one tool call the model makes; each `{"text": "..."}`
         is a reply that ends the turn. What the tools answered is kept for `ai_expect`. Give it `after_ms`:
         the loop runs on a worker thread.
+
+        **`"live": {"provider": "ollama", "model": "qwen2.5:14b"}` REPLACES THE SCRIPT WITH A REAL MODEL** (no `script`): the panel's own provider of that name
+        answers, with the model named here and not the one in the plugin's stored settings (so nothing is written), and every request and reply is recorded the way
+        the scripted provider's are, so `ai_expect` reads what the tools returned to it. What the model did, which tools it called and what it said, is logged for the
+        run's report. A live model is not deterministic: a script that asserts on one is reporting what THAT model did, which is the point of it.
         """
         import sys
 
         panel = self._ai_panel()
         if panel is None:
+            return
+        if step.get("live"):
+            self._do_ai_send_live(panel, step)
             return
         module = sys.modules[type(panel).__module__]
         responses = []
@@ -9824,6 +9832,45 @@ class _Driver(QObject):
         panel._provider_combo.setCurrentText("scripted")
         self._window.reveal_panel("AI Assistant")
         self._ai_provider = provider
+        panel._input.setPlainText(str(step["text"]))
+        panel._send_button.click()
+
+    def _do_ai_send_live(self, panel, step: dict[str, Any]) -> None:
+        """The `live` half of `ai_send`: the panel's real provider, recorded, with the model the step names."""
+        from types import SimpleNamespace
+
+        live = dict(step["live"])
+        name = str(live["provider"])
+        model = str(live.get("model") or "")
+        provider = panel._providers.get(name)
+        if provider is None:
+            logger.error("OPENCHEM_DRIVE: ai_send live -- the assistant has no provider %r (it has %s)", name, sorted(panel._providers))
+            return
+        recorded: list = []
+        original = getattr(provider, "_drive_original_stream", None) or provider.stream
+        provider._drive_original_stream = original
+
+        def recording(request, on_chunk, tools=None):
+            if model:
+                request.model = model
+            recorded.append((request, [tool.name for tool in tools] if tools else []))
+            # What the tools just told the model (the messages after its last turn), so a report shows how it was answered, not only what it asked.
+            for message in request.messages[-3:]:
+                if message.role == "tool":
+                    logger.warning("OPENCHEM_DRIVE: live tool result to the model: %s", message.content[:700])
+            response = original(request, on_chunk, tools)
+            logger.warning(
+                "OPENCHEM_DRIVE: live %s/%s reply: tools=%s stop=%s text=%r",
+                name, request.model, [call.name for call in response.tool_calls], response.stop_reason, (response.text or "")[:300],
+            )
+            for call in response.tool_calls:
+                logger.warning("OPENCHEM_DRIVE: live tool call %s %s", call.name, call.input)
+            return response
+
+        provider.stream = recording
+        panel._provider_combo.setCurrentText(name)
+        self._window.reveal_panel("AI Assistant")
+        self._ai_provider = SimpleNamespace(requests=recorded)
         panel._input.setPlainText(str(step["text"]))
         panel._send_button.click()
 
