@@ -103,7 +103,7 @@ Read more: [`DERIVED_SCORES_DESIGN.md`](DERIVED_SCORES_DESIGN.md) (pull requests
   short; the run is recorded in your project like one you started) or one that shows a preview with **Approve** and **Cancel**
   first. A molecule above 41 heavy atoms always asks. The assistant has no call that could approve a preview.
 - **What it does not do.** It does not start ORCA or Vina: it describes the job, what it needs and whether this machine is
-  ready, and you start it from its panel. Every provider can use them, including the Claude CLI (through a written protocol, on your subscription login).
+  ready, and you start it from its panel. Every provider can use them, including the Claude CLI and the Cursor CLI (through a written protocol, on your subscription login).
 - **Privacy.** Results, and a score's name and formula, are sent to the provider as part of the conversation, and a note
   under the box says so.
 - **How far it is checked.** Every check so far used a scripted provider in the real window. **The live run on a real

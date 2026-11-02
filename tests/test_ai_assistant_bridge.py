@@ -563,8 +563,9 @@ def test_the_panel_says_where_calculator_results_go_for_each_provider(rig):
     assert "leave this machine" in notes["openai"]
     assert "localhost:11434" in notes["ollama"] and "leave this machine" not in notes["ollama"]
     assert "leave this machine" in notes["claude_cli"] and "claude_cli" in notes["claude_cli"]
+    assert "leave this machine" in notes["cursor_cli"] and "cursor_cli" in notes["cursor_cli"]
     assert all(notes.values())
-    for provider_id in ("anthropic", "openai", "ollama", "claude_cli"):
+    for provider_id in ("anthropic", "openai", "ollama", "claude_cli", "cursor_cli"):
         assert "names and formulas of your scores" in notes[provider_id], provider_id
 
 
