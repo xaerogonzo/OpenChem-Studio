@@ -12,7 +12,6 @@ Edit menu the same for Undo/Redo with the stack empty (both disabled).
 
 from __future__ import annotations
 
-import gc
 import os
 import sys
 import tempfile
@@ -32,9 +31,6 @@ from openchem.ui import theme
 
 
 def main() -> int:
-    # The window's menu actions are held only by Python wrappers some builders drop (see `menu_layout._keep_alive`);
-    # the test suite keeps them alive in a module list. A collection here would end the run before it drew anything.
-    gc.disable()
     out = Path(sys.argv[1]) if len(sys.argv) > 1 else Path(tempfile.mkdtemp(prefix="menu_icons_"))
     out.mkdir(parents=True, exist_ok=True)
     if len(sys.argv) > 2:

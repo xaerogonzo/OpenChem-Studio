@@ -38,7 +38,6 @@ from PySide6.QtWidgets import (
 from openchem.app.session import SessionManager
 from openchem.app.menu_help import MENU_HELP
 from openchem.app import menu_layout
-from openchem.ui import menu_icons
 from openchem.app.shortcut_registry import ShortcutRegistry
 from openchem.app.settings import (
     CONFORMER_KEEP_OPTIMIZED,
@@ -2421,16 +2420,26 @@ class MainWindow(QMainWindow):
             if title == "View":
                 #: Where a plugin panel's toggle is added later, in its place A-Z.
                 self._panels_menu = made.get("Panels")
-        walked = menu_layout.walk(self.menuBar())
-        self._shortcuts.set_menu_order(walked)
-        #: Held by the window: a wrapper that is the last reference to a removed action destroys it when collected.
-        self._walked_actions = [action for _path, action in walked]
-        menu_icons.apply_to_actions((menu_layout.label_of(action), action) for action in self._walked_actions)
+        self._shortcuts.set_menu_order(menu_layout.walk(self.menuBar()))
         #: Every menu of the bar, held by the window. `QMenu(title, parent)` and `addMenu` hand back wrappers the
         #: builders drop, and a submenu whose wrapper is collected takes its entries with it (measured: after one
         #: garbage collection every grouped submenu, Theme and 2D Structure Display were gone from the bar).
         self._menu_wrappers = menu_layout.menus_of(self.menuBar())
+        self._apply_menu_icons()
         self._show_tooltips_in_menus()
+
+    def _apply_menu_icons(self) -> None:
+        """Give the listed commands their drawn icons (`ui/menu_icons.py`). Decoration only.
+
+        Imported here and not at the top of the module: with the import at the top, a collection during the
+        window's construction destroyed a menu entry and `ShortcutRegistry.apply` raised "QAction already
+        deleted", deterministically (three of three runs; none without the import), and CI shard 3 hit it.
+        The cause of the import's reach was not found; this placement was measured instead.
+        """
+        from openchem.ui import menu_icons
+
+        walked = menu_layout.walk(self.menuBar())
+        menu_icons.apply_to_actions((menu_layout.label_of(action), action) for _path, action in walked)
 
     def _build_file_menu(self) -> None:
         """The File menu."""
