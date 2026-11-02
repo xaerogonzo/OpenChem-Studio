@@ -66,3 +66,21 @@ def test_the_real_windows_listed_entries_have_icons_and_the_rest_do_not(window):
     assert not any(label.startswith(("Duplicate", "Paste", "Rename")) for label in iconed)
     # Decoration only: no entry's text, id or shortcut moved (the snapshot test in test_menu_layout holds those).
     assert len(iconed) == 9
+
+
+def test_builder_made_submenus_are_held_by_the_window_so_a_collection_cannot_destroy_their_commands(window):  # noqa: F811
+    """`edit_menu.addMenu(title)` returns a Python-owned wrapper; kept only as a local it was collected, and its four
+    commands with it, before `ShortcutRegistry.apply` ran ("QAction already deleted", a flake in whichever test
+    constructed the window on a collection boundary; it surfaced as a deterministic failure once unrelated code
+    changed the allocation pattern)."""
+    import gc
+
+    gc.collect()
+    for held in (window._copy_structure_menu, window._structure_display_menu):
+        assert held.actions(), held.title()
+    assert sorted(a.text() for a in window._copy_structure_menu.actions()) == [
+        "InChI",
+        "InChIKey",
+        "Molfile (MDL molblock)",
+        "SMILES",
+    ]
