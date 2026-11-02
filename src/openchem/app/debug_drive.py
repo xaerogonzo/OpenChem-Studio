@@ -6111,7 +6111,9 @@ class _Driver(QObject):
         control then reads is logged beside what was asked, so a control
         that refused the value -- a bound, a question answered No -- says so.
         """
-        from PySide6.QtWidgets import QAbstractButton, QCheckBox, QLineEdit, QListWidget, QSpinBox, QWidget
+        from PySide6.QtWidgets import (
+            QAbstractButton, QCheckBox, QComboBox, QLineEdit, QListWidget, QSpinBox, QWidget,
+        )
 
         dialog = getattr(self, "_dialog", None)
         name = str(step.get("name", ""))
@@ -6119,7 +6121,13 @@ class _Driver(QObject):
             logger.error("OPENCHEM_DRIVE: control %s -- no dialog is open", name)
             return
         widget = dialog.findChild(QWidget, name)
-        if isinstance(widget, QCheckBox):
+        if isinstance(widget, QComboBox):
+            # A choice box (Interface size): the entry whose TEXT is asked for is made current, which fires `currentIndexChanged`.
+            index = widget.findText(str(step["value"]))
+            if index >= 0:
+                widget.setCurrentIndex(index)
+            now = widget.currentText()
+        elif isinstance(widget, QCheckBox):
             widget.setChecked(bool(step["value"]))
             now = widget.isChecked()
         elif isinstance(widget, QSpinBox):
