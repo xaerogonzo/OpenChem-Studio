@@ -492,6 +492,30 @@ Tested by `tests/test_tautomer_nmr_card.py` (the rules, the host and the panel),
 
 **What was run.** `benchmarks/visual/ai_live_cursor_cli.json`, the acceptance sequence of sections 24 and 25 through the real panel: the model asked for a search and a description in one turn, then requested `orca.sp` with valid settings, got `awaiting_approval` and told the user it was waiting for approval; nothing started. VERDICT PASS, 3 of 3. One model, one prompt, no number of runs behind it.
 
+## 27. How reliable a local 14B model is at this, and the approval path run live (2026-11-02; `benchmarks/visual/ai_live_ollama_approval.json`, `ai_live_ollama_reliability.json`)
+
+**What was asked.** Two things section 24 left open: does the whole path work with a live model (card, Approve, ORCA, the ledger and the note, the model reading the run back), and how often does a model of this size get there. Both on `qwen2.5:14b` (Ollama, 41% CPU / 59% GPU on an 8 GB card, about 5.6 tokens per second), through the real panel and real ORCA (water).
+
+**The approval path, once, end to end.** A live model's card appeared after 74 s (three refusals first); Approve started ORCA in the Quantum Chemistry panel; the run completed; the ledger said "ORCA finished it" and the note for the model named `orca.sp on Water`, `ended 'completed'` and `read_quantum_runs` and held no number. Four of the script's five checks passed. **The fifth did not**: asked what the run gave, the model reported "key results" **without calling `read_quantum_runs`**. Its reply was cut off in the log at 300 characters, so whether it stated a number it never read is NOT established (the log now keeps 2,000). The other three attempts at the script never reached Approve (a 15-minute runaway, then an empty first turn twice, below), so this path has been run end to end once, not repeatedly.
+
+**A runaway, found and bounded.** On the first attempt the model generated one reply for over 15 minutes. Replaying the captured request against Ollama (`OPENCHEM_DRIVE_CAPTURE`) six times with the settings of section 24: **4 ran away for 624 to 1,228 s** before emitting anything (Ollama sends a tool call only when it is finished, and the model was writing an endless list of invented settings), 1 was a clean call in 13 s and 1 was an empty reply. With a cap of 1,024 tokens and a frequency penalty of 0.5: 3 of 5 clean (about 12 s), 1 empty, 1 runaway bounded at 170 s. A repeat penalty instead did worse (1 of 5). The local provider now sends both (`max_tokens=1024`, `frequency_penalty=0.5`). Five to six trials per setting on one model: this shows the direction, not the numbers.
+
+**Empty replies, retried once.** Across the runs 5 of about 25 completed turns came back with no text and no tool call (the server dropped a call it could not parse), in 11 to 16 s. The local provider asks again once, and the panel now says "(the model returned an empty reply)" or "(the reply was cut off at the provider's length limit)" instead of leaving a blank line. The retry did not remove them: after it was added, the first turn of the approval script was still empty (two answers in a row).
+
+**Six questions in one conversation** (single point, optimize, proton affinity, NMR, the first question again, then a read-only one), run twice, ten action prompts in all:
+
+| Outcome | Count | What it looked like |
+|---|---|---|
+| A card, nothing started | 4 of 10 | proton affinity both times; the single point at the first prompt both times; usually after two or three refusals that named the settings the calculator takes |
+| "Let's try again", then no tool call | 3 | the model narrated a retry and stopped |
+| An empty reply | 2 (the first run, before the retry) | |
+| **"A preview is on your screen" with no card** | 2 | the NMR question both times: the model said a job was prepared and waiting for approval when it had called nothing |
+| The read-only question | 2 of 2 answered | **"already computed and stored, 18.01528 g/mol" with no tool call**: the value is right, the claim that it was read is not |
+
+**What held.** In every turn of every run nothing started without a person's Approve, and the refusals named what the calculator takes. A weak model cannot do harm here, which is the design. **What did not hold is the model's honesty about it**: it reports a card that does not exist, and a result it did not read, and nothing in the application checks either. A person looking at the screen sees there is no card; the sentence they were told is wrong.
+
+**What this does not establish.** One model, one machine, one molecule, about 25 turns; the numbers move run to run. It is NOT a measure of the Claude CLI, the Cursor CLI or the hosted providers, which were tried once each at the card (sections 24 to 26) and never repeated. **Open, not built:** a check that sets the model's words against the application's own state (a sentence about a preview waiting, when no card is), which the application could make without trusting the model; and the same repeated run for the CLIs.
+
 ## 14. Goals: the wizard's table, as knowledge and never as a way to run
 
 `domain/calculator_goals.py` holds the goal wizard's table: a question a person brings ("Where is the
