@@ -161,6 +161,12 @@ INTERFACE_SIZE = Preference(
     minimum=int(min(InterfaceSize)), maximum=int(max(InterfaceSize)),
 )
 
+#: Whether Compare explains itself in everyday words: what the selected row means, which molecule has the higher
+#: number, and a one-sentence summary of two molecules. ON by default (the program is also for people who do not
+#: know what LogP is); OFF gives the plain table and nothing else, for someone who does. It only changes what Compare
+#: SHOWS: the Results reader, Help and every exported table are the same either way.
+PLAIN_ENGLISH = Preference("ui/plain_english", bool, True)
+
 #: Every preference, in the order the Settings window groups them. Tests
 #: iterate this, so a preference added here is covered without a new test.
 PREFERENCES = (
@@ -168,7 +174,7 @@ PREFERENCES = (
     SHOW_HIDDEN_CALCULATORS, RECALC_MODE, RECALC_QUIET_MS, DRAWING_BOND_KEYS,
     CONFORMER_MAX_EMBEDDINGS, DRAWING_BOND_CLICK, CONFORMER_EARLY_STOP, CONFORMER_KEEP_OPTIMIZED,
     CONFORMER_OPTIMIZE_LOWEST, FUKUI_ANION_F_PLUS, FUKUI_CATION_SEARCH, PSI4_MEMORY_GB, PSI4_THREADS,
-    STRUCTURE_COVERAGE, APPEARANCE, INTERFACE_SIZE,
+    STRUCTURE_COVERAGE, APPEARANCE, INTERFACE_SIZE, PLAIN_ENGLISH,
 )
 
 #: Where one calculator's own visibility choice is stored: a plain

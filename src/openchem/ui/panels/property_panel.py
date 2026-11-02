@@ -5006,6 +5006,27 @@ class PropertyPanel(QWidget):
             DESCRIPTOR_AGGREGATE_ID, descriptor.name
         )
 
+    def reveal_report_fact(self, report_id: str, label: str) -> str:
+        """Put one fact of one report in front of the reader, for the SELECTED molecule.
+
+        What `reveal_descriptor` does for the descriptor aggregate, for any report -- the route
+        Compare's double-click takes. Returns "" when the fact is on screen, otherwise why not,
+        as a short code the caller words: `no_molecule`, `no_reader`, `no_report` (this molecule
+        has no such report, e.g. not calculated for it) or `no_fact` (the report is there and
+        does not hold that label). Nothing is computed.
+        """
+        if self._selected_molecule_uuid is None:
+            return "no_molecule"
+        if self._attached_reader is None:
+            return "no_reader"
+        # Fed before it is looked at, as `reveal_descriptor` does: the reader has to hold the
+        # report before it can be focused on it.
+        self._show_in_reader()
+        if self._attached_reader.merged().report_for(report_id) is None:
+            return "no_report"
+        self._attached_reader.set_focus(report_id)
+        return "" if self._attached_reader.reveal_fact(report_id, label) else "no_fact"
+
     def open_retained_result(self, report_id: str) -> bool:
         """Open the whole result the reader is showing a summary of.
 

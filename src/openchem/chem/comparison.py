@@ -17,6 +17,7 @@ carry some of the most interesting differences.
 from __future__ import annotations
 
 import logging
+import math
 
 from rdkit import Chem
 from rdkit.Chem import rdFMCS
@@ -317,6 +318,38 @@ def _summary_note(result: PerAtomDataset) -> str:
 
 
 @dataclass(frozen=True)
+class CompareCell:
+    """One molecule's value for one property, WITH where it came from.
+
+    **A CELL THAT FORGETS ITS SOURCE CANNOT BE CLICKED THROUGH.** The table used to keep only
+    `(display, units)`, so a double-click had no report to open and the numbers had no help text.
+    `numeric_value` is the producer's own number (`DescriptorValue.value` / `Fact.value`), never
+    parsed back out of `display`, which is rounded and may carry units or text.
+    """
+
+    display: str
+    units: str = ""
+    numeric_value: float | None = None
+    #: Which property this is, independent of its wording: two reports that both call a fact
+    #: "Energy" are two rows, and the user-facing label is never the key.
+    row_key: str = ""
+    #: The reader report this value sits in (`reveal_fact`'s first argument); "" when unknown.
+    report_id: str = ""
+    #: The fact's label inside that report (`reveal_fact`'s second argument).
+    fact_label: str = ""
+    help_id: str = ""
+    link: object | None = None
+
+
+def finite_number(value: object) -> float | None:
+    """`value` as a float when it is a real, finite number (not a bool), else None."""
+    if isinstance(value, bool) or not isinstance(value, (int, float)):
+        return None
+    number = float(value)
+    return number if math.isfinite(number) else None
+
+
+@dataclass(frozen=True)
 class ValueRow:
     """One property across every molecule being compared.
 
@@ -334,6 +367,10 @@ class ValueRow:
     #: hiding that row under "differences only" would be the more
     #: misleading of the two choices.
     differs: bool
+    #: What the row IS (see `CompareCell.row_key`); the dict key it was built from.
+    row_key: str = ""
+    #: Positional like `values`; None where a molecule has no value, or the input was a bare tuple.
+    cells: tuple[CompareCell | None, ...] = ()
 
     def numeric_values(self) -> tuple[float | None, ...]:
         """The values as numbers where they are numbers.
@@ -350,15 +387,44 @@ class ValueRow:
                 out.append(None)
         return tuple(out)
 
+    def numbers(self) -> tuple[float | None, ...]:
+        """The producers' own numbers, where each cell has one (never parsed from the text)."""
+        return tuple(cell.numeric_value if cell is not None else None for cell in self.cells)
+
+    def source_cell(self) -> tuple[int, CompareCell] | None:
+        """The first molecule (in column order) that HAS a value, with its cell.
+
+        The Property column opens this one: opening the first column's cell when it is blank
+        would send somebody to a fact that molecule does not have.
+        """
+        for index, cell in enumerate(self.cells):
+            if cell is not None and cell.display:
+                return index, cell
+        return None
+
+
+def _as_cell(key: str, entry: object) -> CompareCell:
+    """A bare `(display, units)` pair, or a cell, as a cell."""
+    if isinstance(entry, CompareCell):
+        return entry
+    display, units = entry  # type: ignore[misc]
+    return CompareCell(display=display, units=units, row_key=key, fact_label=key)
+
 
 def compare_values(
-    columns: list[tuple[str, dict[str, tuple[str, str]]]],
+    columns: list[tuple[str, dict[str, object]]],
 ) -> list[ValueRow]:
     """Molecules side by side, one row per property.
 
-    `columns` is ordered `(molecule_name, {label: (display_value, units)})`.
+    `columns` is ordered `(molecule_name, {row_key: CompareCell | (display_value, units)})`.
     Ordered rather than a mapping because the caller chose the column
-    order and a dict would silently reorder it.
+    order and a dict would silently reorder it. A bare pair is its own key
+    and label, which is what every caller did before cells existed.
+
+    **Rows are keyed by `row_key`, not by wording.** Two reports that both
+    emit "Energy" are two properties; when their labels collide the row
+    label gains the report it came from, so the table never shows two
+    indistinguishable rows.
 
     **Rows come out in first-seen order, not sorted.** A calculator emits
     its facts in a deliberate order -- formula before mass before
@@ -367,24 +433,38 @@ def compare_values(
     which is also the order somebody added them.
     """
     order: list[str] = []
-    units_by_label: dict[str, str] = {}
+    units_by_key: dict[str, str] = {}
+    label_by_key: dict[str, str] = {}
+    report_by_key: dict[str, str] = {}
     for _name, values in columns:
-        for label, (_display, units) in values.items():
-            if label not in units_by_label:
-                order.append(label)
-                units_by_label[label] = units
-            elif not units_by_label[label]:
-                units_by_label[label] = units
+        for key, entry in values.items():
+            cell = _as_cell(key, entry)
+            if key not in units_by_key:
+                order.append(key)
+                units_by_key[key] = cell.units
+                label_by_key[key] = cell.fact_label or key
+                report_by_key[key] = cell.report_id
+            elif not units_by_key[key]:
+                units_by_key[key] = cell.units
 
+    wording = [label_by_key[key] for key in order]
     rows: list[ValueRow] = []
-    for label in order:
-        cells = tuple(values.get(label, ("", ""))[0] for _name, values in columns)
+    for key in order:
+        cells = tuple(
+            _as_cell(key, values[key]) if key in values else None for _name, values in columns
+        )
+        shown = tuple(cell.display if cell is not None else "" for cell in cells)
+        label = label_by_key[key]
+        if wording.count(label) > 1 and report_by_key[key]:
+            label = f"{label} [{report_by_key[key]}]"
         rows.append(
             ValueRow(
                 label=label,
-                units=units_by_label[label],
-                values=cells,
-                differs=len(set(cells)) > 1,
+                units=units_by_key[key],
+                values=shown,
+                differs=len(set(shown)) > 1,
+                row_key=key,
+                cells=cells,
             )
         )
     return rows
@@ -399,3 +479,122 @@ def differing_rows(rows: list[ValueRow]) -> list[ValueRow]:
     was supposed to save.
     """
     return [row for row in rows if row.differs]
+
+
+# --- which molecule is higher, and what that may be said to mean ------------------
+#
+# A bigger number is not a better one, and for a quantity on a log scale or one that can be
+# negative "twice as much" is meaningless. So direction is only offered for properties someone
+# has decided it is meaningful for, and says no more than the policy allows. Anything not listed
+# gets no marker at all: silence, not an invented interpretation.
+
+#: Ordering is meaningful: one is higher than the other. No factor is offered.
+ORDER = "order"
+#: A ratio scale (a mass, an area, a count of atoms): "about 2.5 times" is meaningful too.
+RATIO = "ratio"
+
+#: `help_id` -> what may be said about a difference. Deliberately small and reviewed; a row not in
+#: it is never marked. LogP and logS are log scales, so they are ORDER only.
+COMPARISON_POLICY: dict[str, str] = {
+    "descriptor.mol_wt": RATIO,
+    "descriptor.exact_mass": RATIO,
+    "descriptor.heavy_atom_count": RATIO,
+    "descriptor.tpsa": RATIO,
+    "descriptor.mol_logp": ORDER,
+    "descriptor.esol_logs": ORDER,
+    "descriptor.num_rotatable_bonds": ORDER,
+    "descriptor.num_hbd": ORDER,
+    "descriptor.num_hba": ORDER,
+    "descriptor.ring_count": ORDER,
+}
+
+
+@dataclass(frozen=True)
+class Direction:
+    """Which molecules have the highest and lowest value of one row.
+
+    Indices are positions in the row (molecule order). `factor` is highest / lowest, only for a
+    ratio-scale row whose values are all positive; `difference` is highest - lowest.
+    """
+
+    highest: tuple[int, ...]
+    lowest: tuple[int, ...]
+    difference: float
+    factor: float | None = None
+
+
+def direction(row: ValueRow) -> Direction | None:
+    """Which molecule(s) are highest and lowest on `row`, or None when that should not be said.
+
+    None when: the row's property has no comparison policy; fewer than two molecules have a real
+    finite number (a missing value is never read as zero); the present values do not share one
+    unit (the numbers would not be comparable); or they are all equal.
+    """
+    cells = [(i, c) for i, c in enumerate(row.cells) if c is not None and c.numeric_value is not None]
+    if len(cells) < 2:
+        return None
+    policy = next((COMPARISON_POLICY[c.help_id] for _i, c in cells if c.help_id in COMPARISON_POLICY), None)
+    if policy is None:
+        return None
+    if len({c.units for _i, c in cells}) != 1:
+        return None
+    numbers = [c.numeric_value for _i, c in cells]
+    high, low = max(numbers), min(numbers)
+    if high == low:
+        return None
+    factor = high / low if policy == RATIO and low > 0 else None
+    return Direction(
+        highest=tuple(i for i, c in cells if c.numeric_value == high),
+        lowest=tuple(i for i, c in cells if c.numeric_value == low),
+        difference=high - low,
+        factor=factor,
+    )
+
+
+#: One clause per reviewed property, in the order a summary tells them. `{hi}`/`{lo}` are the
+#: molecules' names and `{a}`/`{b}` their values (the higher's first). Worded as "calculated" /
+#: "estimated" because that is what these are, and never as better or worse.
+_SUMMARY_CLAUSES: tuple[tuple[str, str], ...] = (
+    ("descriptor.mol_wt", "{hi} is heavier ({a} against {b} g/mol)."),
+    (
+        "descriptor.mol_logp",
+        "{hi} has the higher estimated LogP ({a} against {b}), which means it is estimated to lean "
+        "more toward oily surroundings, and less toward watery ones, than {lo} does.",
+    ),
+    (
+        "descriptor.tpsa",
+        "{hi} has more water-attracting surface (polar surface area {a} against {b} A^2).",
+    ),
+    (
+        "descriptor.esol_logs",
+        "{hi} is estimated to dissolve more readily in water ({a} against {b} on a log scale).",
+    ),
+)
+
+
+def summary_sentence(names: list[str], rows: list[ValueRow]) -> str:
+    """A few plain sentences about exactly two molecules, or "" when there is nothing sound to say.
+
+    Only properties with a written clause are told, only when both molecules have a real number in
+    the same unit and the numbers differ. It never infers anything from an unreviewed row.
+    """
+    if len(names) != 2:
+        return ""
+    by_help = {}
+    for row in rows:
+        helps = [c.help_id for c in row.cells if c is not None and c.help_id]
+        if helps:
+            by_help.setdefault(helps[0], row)
+    told: list[str] = []
+    for help_id, template in _SUMMARY_CLAUSES:
+        row = by_help.get(help_id)
+        found = direction(row) if row is not None else None
+        if found is None or len(found.highest) != 1 or len(found.lowest) != 1:
+            continue
+        hi, lo = found.highest[0], found.lowest[0]
+        told.append(
+            template.format(
+                hi=names[hi], lo=names[lo], a=row.values[hi], b=row.values[lo]
+            )
+        )
+    return ("By these calculated numbers: " + " ".join(told)) if told else ""

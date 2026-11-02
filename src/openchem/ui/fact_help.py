@@ -380,6 +380,65 @@ CONTRACTS: dict[str, HelpTooltip] = dict(
 )
 
 
+#: `help_id` -> the same concept in everyday words, for someone who has never met the term.
+#:
+#: **A SECOND REGISTER FOR THE SAME CONCEPTS, NOT A SECOND SOURCE.** `CONTRACTS` above is the exact
+#: statement (what is computed, from what, with which limit); this is the sentence for a person who
+#: does not know what LogP is, used by Compare's plain-English layer. It is kept in this module so
+#: the two cannot drift apart unnoticed (`tests/test_fact_help.py`). Each says "calculated" or
+#: "estimated" where that is what the number is, and none says a value is good or bad.
+PLAIN: dict[str, str] = {
+    help_id_for("mol_wt"): (
+        "How heavy one molecule is: the weights of all its atoms added up (grams per mole)."
+    ),
+    help_id_for("exact_mass"): (
+        "The weight of the molecule counting only the most common kind of each atom. It is the "
+        "number a mass spectrometer reports."
+    ),
+    help_id_for("formula"): (
+        "Which atoms the molecule contains and how many of each (C carbon, H hydrogen, O oxygen...)."
+    ),
+    help_id_for("heavy_atom_count"): (
+        "How many atoms there are that are not hydrogen: a quick measure of how big the molecule is."
+    ),
+    help_id_for("formal_charge"): (
+        "The overall electric charge written on the drawing. 0 means the molecule is neutral."
+    ),
+    help_id_for("mol_logp"): (
+        "An estimate of whether the molecule prefers oily surroundings or watery ones. Higher leans "
+        "toward oily, lower toward watery. Calculated from the drawing, not measured."
+    ),
+    help_id_for("tpsa"): (
+        "How much of the molecule's surface is oxygen and nitrogen atoms (and the hydrogens on them), "
+        "which attract water. A larger number means more of that surface. Calculated, not measured."
+    ),
+    help_id_for("esol_logs"): (
+        "An estimate of how well the molecule dissolves in water, on a log scale. Higher means "
+        "estimated to dissolve more readily. Not a measurement."
+    ),
+    help_id_for("num_rotatable_bonds"): (
+        "How many bonds the molecule can twist around: a rough measure of how floppy it is."
+    ),
+    help_id_for("num_hbd"): (
+        "How many hydrogen atoms it could offer to make 'hydrogen bonds', the weak attractions that "
+        "hold water molecules to each other."
+    ),
+    help_id_for("num_hba"): (
+        "How many places on it could accept a hydrogen bond from another molecule."
+    ),
+    help_id_for("ring_count"): "How many rings of atoms the structure contains.",
+}
+
+
+def plain_for(help_id: str) -> str:
+    """The everyday-words sentence for this fact, or "" when none has been written.
+
+    "" is the ordinary case, as it is for `contract_for`: most facts have nothing written yet and
+    the plain-English layer then simply shows nothing for them.
+    """
+    return PLAIN.get(help_id, "") if help_id else ""
+
+
 def contract_for(help_id: str) -> HelpTooltip | None:
     """What this fact means, or None if nothing has been written for it.
 

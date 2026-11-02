@@ -783,6 +783,9 @@ class MainWindow(QMainWindow):
             "Batch", self._wrap_scrollable(self._batch_panel), Qt.DockWidgetArea.RightDockWidgetArea
         )
         self._comparison_panel = ComparisonPanel(services.event_bus, self)
+        self._comparison_panel.attach_settings(settings)
+        self._comparison_panel.fact_activated.connect(self._on_compare_fact_activated)
+        self._comparison_panel.calculate_requested.connect(self._on_compare_calculate_requested)
         compare_dock = self._add_dock(
             "Compare",
             self._wrap_scrollable(self._comparison_panel),
@@ -1963,6 +1966,57 @@ class MainWindow(QMainWindow):
         """A project run was submitted: the workspace adopts its table, and it is shown."""
         self._results_workspace.begin_project_run(plan)
         self.reveal_results()
+
+    #: What Compare says when a value it was asked to open cannot be shown, by the code
+    #: `PropertyPanel.reveal_report_fact` returns.
+    _COMPARE_REVEAL_PROBLEMS = {
+        "no_molecule": "Select a molecule to see its results.",
+        "no_reader": "Open the Results panel to read it.",
+        "no_report": "That molecule has no stored result for it any more. Run the calculator again to see it.",
+        "no_fact": "The result is there, but that value is not in it.",
+    }
+
+    def _on_compare_calculate_requested(self, uuids: list) -> None:
+        """Compare's "Calculate basic properties": the always-on properties of each ticked molecule.
+
+        The same replay-or-compute a selection does (`_restore_or_compute`), so what is already
+        held is reused and only the rest is calculated, through the descriptor service's own
+        worker. One molecule that cannot be started does not stop the others.
+        """
+        project = self._session.project
+        skipped: list[str] = []
+        for uuid in uuids:
+            molecule = project.find_molecule(uuid) if project is not None else None
+            if molecule is None or not (molecule.molblock or molecule.conformers):
+                skipped.append(uuid)
+                continue
+            try:
+                self._restore_or_compute(molecule)
+            except Exception:  # noqa: BLE001 - one molecule must not stop the others
+                logger.exception("Could not calculate basic properties for %s", uuid)
+                skipped.append(uuid)
+        if skipped:
+            self._comparison_panel.calculation_skipped(skipped)
+
+    def _on_compare_fact_activated(self, molecule_uuid: str, report_id: str, label: str) -> None:
+        """A Compare cell was double-clicked: open that value, for that molecule, in Results.
+
+        The same route the command palette takes for a descriptor (`_reveal_descriptor`): select
+        the molecule, let the panel feed and reveal the reader, narrow it to the fact. Nothing is
+        computed, and Compare's own ticks do not move with the selection.
+        """
+        panel = self._comparison_panel
+        project = self._session.project
+        molecule = project.find_molecule(molecule_uuid) if project is not None else None
+        if molecule is None:
+            panel.set_notice("That molecule is no longer in the project.")
+            return
+        self._services.event_bus.publish(MoleculeSelected(molecule_uuid=molecule_uuid))
+        problem = self._property_panel.reveal_report_fact(report_id, label)
+        if problem:
+            panel.set_notice(self._COMPARE_REVEAL_PROBLEMS.get(problem, "Could not show that value."))
+        else:
+            panel.set_notice(f"Showing {label} for {molecule.display_name} in Results.")
 
     def reveal_results(self) -> None:
         """Put the results reader somewhere it can be read.
