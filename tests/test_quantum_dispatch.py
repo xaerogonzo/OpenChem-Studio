@@ -65,16 +65,16 @@ def test_every_startable_calculator_asks_a_person_and_says_what_it_starts(regist
 
 
 def test_what_is_not_one_job_with_those_settings_is_not_startable(registry):
-    left_out = {"orca.fukui", "docking.vina", "lewis_hsab"}
+    left_out = {"docking.vina", "lewis_hsab"}
     assert not left_out & set(STARTABLE)
     assert all(calc_type_of(calculator_id) is None for calculator_id in left_out)
     # Every other ORCA calculation type the panel offers is one a card can ask for, so a new type has to be decided about, not forgotten.
-    assert {f"orca.{code}" for code in CALC_TYPE_LABELS.values()} - set(STARTABLE) == {"orca.fukui"}
+    assert {f"orca.{code}" for code in CALC_TYPE_LABELS.values()} - set(STARTABLE) == set()
 
 
 def test_the_table_cannot_be_changed_from_outside():
     with pytest.raises(TypeError):
-        STARTABLE["orca.fukui"] = "fukui"  # type: ignore[index]
+        STARTABLE["orca.sp"] = "fukui"  # type: ignore[index]
 
 
 def test_a_card_promises_an_approval_only_where_the_host_can_start_one(registry):

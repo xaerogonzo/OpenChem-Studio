@@ -51,6 +51,7 @@ from PySide6.QtCore import QObject, Qt, QThread, Signal
 from openchem.app.session import SessionManager
 from openchem.chem.quantum_run_request import (
     BOND_DISSOCIATION,
+    FUKUI,
     PROTON_AFFINITY,
     TAUTOMER_DISTRIBUTION,
     TAUTOMER_NMR,
@@ -63,6 +64,7 @@ from openchem.chem.quantum_run_request import (
     RunRefusal,
     led_cost_of_smiles,
     prepare_bond_dissociation,
+    prepare_fukui,
     prepare_proton_affinity,
     prepare_tautomer_nmr,
     prepare_tautomers,
@@ -490,6 +492,20 @@ class CalculationHost(QObject):
             if isinstance(protocol, RunRefusal):
                 return PrepareResult(problems=(Problem(ProblemCode.INVALID_STRUCTURE, protocol.message),))
             extra.append("What it would cost (approving accepts it): " + _protocol_cost(protocol))
+        if calc_type == FUKUI:
+            anion_f_plus, cation_search = self._services.quantum_chemistry_service.fukui_options()
+            parameters_given = validation.parameters
+            fukui = prepare_fukui(
+                turn.canonical_smiles, int(parameters_given.get("charge", 0)), int(parameters_given.get("multiplicity", 1)), str(parameters_given.get("method_basis", "")),
+                cation_search=cation_search, anion_f_plus=anion_f_plus,
+            )
+            if isinstance(fukui, RunRefusal):
+                return PrepareResult(problems=(Problem(ProblemCode.INVALID_STRUCTURE, fukui.message),))
+            extra.append("What it would cost (approving accepts it): " + fukui.card_text())
+            # The stage is said on the card, in the registry's own words: a person approving this is approving a calculation that did not pass its checks.
+            support = definition.support
+            if support is not None and support.support_reason:
+                extra.append(f"Stage: {support.stage.value}. {support.support_reason}")
         if calc_type == "led":
             refusal, cost = led_cost_of_smiles(turn.canonical_smiles)
             if refusal:

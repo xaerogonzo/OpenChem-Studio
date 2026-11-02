@@ -2024,6 +2024,7 @@
   "tests/test_frozen_smoke.py": 1,
   "tests/test_fukui.py": 3,
   "tests/test_fukui_anions_and_starts.py": 3,
+  "tests/test_fukui_card.py": 1,
   "tests/test_fukui_cation_sentences.py": 0,
   "tests/test_fukui_gate.py": 0,
   "tests/test_fukui_gate_2.py": 4,

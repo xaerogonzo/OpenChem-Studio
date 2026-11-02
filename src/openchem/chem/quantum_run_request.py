@@ -32,6 +32,7 @@ from openchem.chem.calculation_input import (
 )
 from openchem.chem.engine import ChemistryEngine
 from openchem.chem.fukui import conformer_average_message, open_shell_message
+from openchem.chem.fukui_plan import has_diffuse_functions, plan_fukui, searchable_holes
 from openchem.chem.proton_affinity import OutOfScope as ProtonAffinityOutOfScope
 from openchem.chem.proton_affinity import Sequence as ProtonAffinitySequence
 from openchem.chem.tautomer_nmr import TautomerNmrTarget, targets_from_distribution
@@ -688,4 +689,71 @@ def start_tautomer_nmr(service: Any, molecule: MoleculeModel, prepared: Prepared
         per_conformer=prepared.per_conformer,
         parent_run_id=prepared.parent_run_id,
         skipped=prepared.problems,
+    )
+
+
+# --- Fukui functions: one calc type of the panel's Run button, a compound job whose size a card has to state --------------------------------------------------------------
+
+#: The calculation type a Fukui run is recorded under, and so what its run record is matched by.
+FUKUI = "fukui"
+
+
+@dataclass(frozen=True)
+class PreparedFukui:
+    """What a Fukui run for one structure would be: its jobs, counted the way the engine will write them, and what the person is told before accepting it.
+
+    **THE COUNT IS THE ENGINE'S PLAN, NOT AN ESTIMATE.** `plan_fukui` and `searchable_holes` are the functions `OrcaQuantumEngineProvider` calls when it writes the input, with the same two settings, so the
+    card and the run that follows it agree on the jobs by construction (the settings are read again at approval: a person who changes one in between has changed the run, and the card says it follows them).
+    """
+
+    jobs: int
+    #: The jobs that start from the neutral's orbitals with a hole in the HOMO-1, -2 or -3 (`chem.fukui_states`): the part Settings > Quantum chemistry can switch off.
+    cation_search_jobs: int
+    #: Why the search was not part of the run although it is on, or "" (a heavy element, no valence orbital below the HOMO).
+    search_not_run: str
+    anion_f_plus: bool
+    charge: int
+    method_basis: str
+
+    def card_text(self) -> str:
+        """The cost and the scope in words: one text for the card, and the reason it is not a plain three-job run."""
+        text = (
+            f"This will run {self.jobs} real ORCA single point(s) in one job at {self.method_basis}, all at the geometry as supplied (vertical): the neutral, the cation and the anion"
+            + (f", and {self.cation_search_jobs} more cation start(s) that look for other states of the cation (about 2.5 times the time of a run without them; Settings > Quantum chemistry can switch them off)" if self.cation_search_jobs else "")
+            + "."
+        )
+        if self.search_not_run:
+            text += f" The search for other cation states was not run: {self.search_not_run}."
+        if self.charge < 0:
+            text += (
+                " This species is itself an anion, so its f+ would come from a dianion, which no basis set binds in the gas phase"
+                + ("; it is run last, and if it gives nothing usable the result is f- alone and says why." if self.anion_f_plus else "; Settings > Quantum chemistry has it left out, so the result is f- alone.")
+            )
+        return text
+
+
+def prepare_fukui(smiles: str, charge: int, multiplicity: int, method_basis: str, *, cation_search: bool = True, anion_f_plus: bool = True) -> PreparedFukui | RunRefusal:
+    """Whether a Fukui run can be asked for on `smiles` with these settings, and how many jobs it would be. Starts nothing, reads no widget.
+
+    The refusals are the ones a person would meet, in the order they fix them and in the words `chem.fukui` already uses: a species with unpaired electrons, then an electron count that is not a closed shell's
+    (which ORCA would only reject after the job was queued).
+    """
+    if multiplicity != 1:
+        return RunRefusal(open_shell_message(multiplicity))
+    mol = Chem.MolFromSmiles(smiles or "")
+    if mol is None:
+        return RunRefusal("Fukui functions could not start: the structure could not be read.")
+    atomic_numbers = [atom.GetAtomicNum() for atom in Chem.AddHs(mol).GetAtoms()]
+    electrons = sum(atomic_numbers) - charge
+    if electrons % 2 or electrons < 2:
+        return RunRefusal(f"Fukui functions need a closed-shell species: this structure at charge {charge:+d} has {electrons} electrons, which cannot all be paired.")
+    search = searchable_holes(atomic_numbers, charge) if cation_search else None
+    plan = plan_fukui(charge, multiplicity, diffuse=has_diffuse_functions(method_basis), anion_f_plus=anion_f_plus, holes=search.offsets if search else ())
+    return PreparedFukui(
+        jobs=len(plan.jobs),
+        cation_search_jobs=len(search.offsets) if search else 0,
+        search_not_run=search.reason if search and not search.offsets else "",
+        anion_f_plus=anion_f_plus,
+        charge=charge,
+        method_basis=method_basis,
     )

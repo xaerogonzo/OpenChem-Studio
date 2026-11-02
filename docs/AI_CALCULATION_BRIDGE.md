@@ -419,7 +419,7 @@ Tested by `tests/test_quantum_run_request.py`, `tests/test_calculation_host_orca
 
 **What is bound to what.** The drawing fingerprint, as for proton affinity, binds the card. **The run record is different:** the service writes a tautomer-distribution record with a BLANK input fingerprint and input kind (its input is the whole set of candidates, and the outcome carries its own), so the host matches its completion by molecule and calculation type alone (`_on_quantum_run_completed`; the service runs one job per molecule), and `read_quantum_runs` reports the run's freshness as `unverifiable`, listed only with `include_not_current` or by its run id, which the note to the model names. The first drive on real ORCA found this: the job ran and nothing told the assistant, because a unit test's run record had been given a fingerprint the real service never writes.
 
-**Still not here:** Fukui (experimental, hidden by default). The tautomer NMR step, which starts from a finished distribution, followed in section 22.
+**Still not here:** Fukui (experimental, hidden by default). The tautomer NMR step, which starts from a finished distribution, followed in section 22, and Fukui in section 23.
 
 Tested by `tests/test_quantum_run_request.py`, `tests/test_calculation_host_orca.py`, `tests/test_quantum_start_assistant_run.py` and `tests/test_ai_assistant_orca_dispatch.py`, driven on real ORCA (acetone) by `benchmarks/visual/ai_tautomer_dispatch.json`.
 
@@ -444,6 +444,16 @@ Tested by `tests/test_calculation_host_orca.py`, `tests/test_ai_assistant_orca_d
 **What it does not do.** It never takes every conformer (a setting read from a widget, stated on the card), and it does not check that a reference is cached before the card: the button does not either, and the card says so.
 
 Tested by `tests/test_tautomer_nmr_card.py` (the rules, the host and the panel), `tests/test_quantum_dispatch.py`, and the button's own `tests/test_tautomer_nmr_panel.py` unchanged; driven on real ORCA (acetaldehyde) by `benchmarks/visual/ai_tautomer_nmr_dispatch.json`.
+
+## 23. Fukui functions: an experimental calculation a card states as one (2026-11-02; `chem/quantum_run_request.prepare_fukui`)
+
+**What differs.** `orca.fukui` is one calculation type of the Run button, so it joined `STARTABLE` with the same three settings and the same hand-over; what it needed was a card that tells the truth about a job that is not one single point. It is one compound ORCA input of up to a dozen jobs (the neutral, the cation and the anion, extra starts of an anionic state at a basis with diffuse functions, and three more cation jobs that look for other states of the cation), so `prepare_fukui` counts them with the functions the engine writes its input from (`plan_fukui`, `searchable_holes`) under the two settings the run will read (`QuantumChemistryService.fukui_options`, read-only: `FUKUI_ANION_F_PLUS` and `FUKUI_CATION_SEARCH`). The card and the run agree on the jobs by construction, and a person who changes a setting between the card and Approve has changed the run, which the card says it follows.
+
+**What the card says.** The job count and the method; that the states are vertical (at the geometry supplied); the cation search and its cost (about 2.5 times a run without it, measured in the explainer), or why it was not run for this species; for an anion, that its f+ comes from a dianion no basis set binds in the gas phase and what happens if that gives nothing; and the STAGE, in the registry's own words: experimental, not validated, with the two preregistered checks it failed. A person approving it is approving a calculation that did not pass its checks, and the card is where that is said. The calculator stays EXPERIMENTAL and hidden by default; being askable by the assistant does not change either.
+
+**What it refuses before a card exists.** An open-shell request (`chem.fukui.open_shell_message`, the panel's own words) and an electron count that cannot be paired, which ORCA would otherwise reject after the job was queued. Conformer averaging is not a card setting (a card never averages), so its refusal stays the button's alone.
+
+**Not changed:** a line of what the Run button does for Fukui, or of the per-atom results the run files. Tested by `tests/test_fukui_card.py` (the job counts, the card text, the settings it follows, the refusals, the hand-over) and, for the panel, `tests/test_quantum_start_assistant_run.py`; driven on real ORCA (water) by `benchmarks/visual/ai_fukui_dispatch.json`. The two drive scripts that used `orca.fukui` as their example of a calculator that is only described now use `docking.vina`.
 
 ## 14. Goals: the wizard's table, as knowledge and never as a way to run
 
