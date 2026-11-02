@@ -44,8 +44,12 @@ One-sided sign test for the harmful direction, 10 lost of 11 changed: p = 0.006.
   than on broken inputs.
 - Separately, **ODDT 0.7's PLECscore returns noise on Python 3.8 and later unless its hash is
   restored**, because its bit positions were made with the pre-3.8 tuple hash and `hash32` calls
-  Python's own. That is a real defect for anyone using it, not only this project. It is not
-  reported upstream by this work.
+  Python's own. That is a real defect for anyone using the released 0.7, not only this project.
+  It is already fixed on ODDT's `master` (checked 2026-11-02: `hash32` there calls
+  `hash_fnv1a_python`, a port of the same pre-3.8 algorithm, "to preserve fingerprint values
+  independently of Python's tuple hash", with Python 3.12 as the new minimum), but no release has
+  followed 0.7 (2019), so nothing was reported upstream. `master` still stores atom ids and residue
+  numbers as `int16`, which is the overflow that stopped four large receptors here.
 - Option 3 (another native Windows docking executable) is the remaining scoring-function route.
   The product-side answer stays the pose-choice sentence of PR 508.
 

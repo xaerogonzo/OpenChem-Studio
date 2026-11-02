@@ -947,3 +947,7 @@ declared with its evidence.
 
 And the rule this file already carries stands: while the run is in flight,
 **report the completion count, never the rho.**
+
+## `pose_agreement.py` — does agreement among the nine poses say whether pose 1 is right?
+
+An exploratory count on the PLECscore tests' docking output: for each receptor, how many of the other poses sit within 2 A of pose 1, against whether pose 1 is within 2 A of the crystal pose. Pose 1 is right for 70% of receptors where nothing agrees with it and 82% to 88% where two or more poses do, but on 46 receptors that is not distinguishable from chance (p = 0.26 at best), so no agreement cue was added to the Docking panel (`RESULT_AGREEMENT.md`).
