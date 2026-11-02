@@ -419,7 +419,7 @@ Tested by `tests/test_quantum_run_request.py`, `tests/test_calculation_host_orca
 
 **What is bound to what.** The drawing fingerprint, as for proton affinity, binds the card. **The run record is different:** the service writes a tautomer-distribution record with a BLANK input fingerprint and input kind (its input is the whole set of candidates, and the outcome carries its own), so the host matches its completion by molecule and calculation type alone (`_on_quantum_run_completed`; the service runs one job per molecule), and `read_quantum_runs` reports the run's freshness as `unverifiable`, listed only with `include_not_current` or by its run id, which the note to the model names. The first drive on real ORCA found this: the job ran and nothing told the assistant, because a unit test's run record had been given a fingerprint the real service never writes.
 
-**Still not here:** Fukui (experimental, hidden by default); the tautomer NMR step, which needs a finished distribution to start from.
+**Still not here:** Fukui (experimental, hidden by default). The tautomer NMR step, which starts from a finished distribution, followed in section 22.
 
 Tested by `tests/test_quantum_run_request.py`, `tests/test_calculation_host_orca.py`, `tests/test_quantum_start_assistant_run.py` and `tests/test_ai_assistant_orca_dispatch.py`, driven on real ORCA (acetone) by `benchmarks/visual/ai_tautomer_dispatch.json`.
 
@@ -432,6 +432,18 @@ Tested by `tests/test_quantum_run_request.py`, `tests/test_calculation_host_orca
 **Who may press it.** `stop` is on the approvals handle (`context.calculation_approvals`), which a tool is never given, as `approve` and `cancel` are; `tests/test_ai_assistant_orca_dispatch.py` holds that the tools' handle and the bridge have no `stop` and no `cancel_assistant_run`, and `tests/test_plugin_calculations.py` holds the approvals face to exactly its calls.
 
 Tested by `tests/test_calculation_host_orca.py`, `tests/test_ai_assistant_orca_dispatch.py` and `tests/test_quantum_start_assistant_run.py`.
+
+## 22. Tautomer NMR: a card bound to a stored run (2026-11-01; `chem/quantum_run_request.prepare_tautomer_nmr`)
+
+**What differs.** `orca.tautomer_nmr` does not start from a structure. It runs NMR on the geometries a FINISHED tautomer distribution optimized, one ORCA job per tautomer (the representative conformer), so its card is bound to a stored run and the jobs are the tautomers that run holds. It is a registered calculator (EXPERIMENTAL and hidden by default, like its parent, with an explainer in `docs/explainers/nmr_tautomers.md`) so that `run_calculator` can name it; its parameters are the three settings and `distribution_run_id` (blank: the newest finished distribution). `quantum_dispatch.FROM_A_STORED_RUN` is the set, and it is also in `RUNS_ON_DRAWING`: it needs no conformer and a drawing edited after the card withdraws it.
+
+**The card is drawn from the frozen turn.** The turn already carries the molecule's runs with their outputs (`TurnContext.runs`), so `CalculationHost._tautomer_nmr_of` reads the distribution from there on the worker thread: the newest run of type `tautomer_distribution` that finished and holds a result, or the one named. A run that failed, was cancelled or holds no result is not one; a named run that is not one of the molecule's finished distributions is refused by name; with none, the problem says to run `orca.tautomer_distribution` first (`NEEDS_INPUT`). The card states the run, the tautomers and the job count (`PreparedTautomerNmr.card_text`), that it takes the representative conformer of each tautomer (the Tautomer NMR button's averaging box chooses every conformer), what it leaves out and why, and, as the button's own question does, that a missing cached reference for the method stops the run at its first result. The run id it resolved is written into the preparation's parameters, so Approve hands over exactly what the card showed.
+
+**Approving.** `RunChoice.source_run_id` carries the run to the panel, whose `_start_assistant_tautomer_nmr` looks it up again in the project's history (a distribution that has gone, or holds nothing, starts nothing), checks the drawing, and runs the same rules and bookkeeping as the button (`_begin_tautomer_nmr`, shared). The NMR run record carries no fingerprint, like the distribution's, so the host ends the run by molecule and calculation type (`tautomer_nmr`).
+
+**What it does not do.** It never takes every conformer (a setting read from a widget, stated on the card), and it does not check that a reference is cached before the card: the button does not either, and the card says so.
+
+Tested by `tests/test_tautomer_nmr_card.py` (the rules, the host and the panel), `tests/test_quantum_dispatch.py`, and the button's own `tests/test_tautomer_nmr_panel.py` unchanged; driven on real ORCA (acetaldehyde) by `benchmarks/visual/ai_tautomer_nmr_dispatch.json`.
 
 ## 14. Goals: the wizard's table, as knowledge and never as a way to run
 

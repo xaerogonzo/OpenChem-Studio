@@ -2547,6 +2547,7 @@
   "tests/test_tautomer_heldout_manifest.py": 2,
   "tests/test_tautomer_nmr.py": 1,
   "tests/test_tautomer_nmr_average.py": 2,
+  "tests/test_tautomer_nmr_card.py": 4,
   "tests/test_tautomer_nmr_panel.py": 3,
   "tests/test_tautomer_ranking.py": 0,
   "tests/test_tautomer_validation.py": 0,

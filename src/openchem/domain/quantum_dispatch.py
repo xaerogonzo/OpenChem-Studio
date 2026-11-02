@@ -27,6 +27,7 @@ STARTABLE: Mapping[str, str] = MappingProxyType({
     "orca.proton_affinity": "proton_affinity",
     "orca.bond_dissociation_enthalpy": "bond_dissociation",
     "orca.tautomer_distribution": "tautomer_distribution",
+    "orca.tautomer_nmr": "tautomer_nmr",
 })
 
 #: The startable calculators that are a fixed protocol: no setting to choose (bond dissociation's one choice, which bonds, is stated on the card), run on the DRAWING (every structure is embedded fresh) and needing no stored conformer.
@@ -34,7 +35,11 @@ FIXED_PROTOCOL = frozenset({"orca.proton_affinity", "orca.bond_dissociation_enth
 
 #: The startable calculators that run on the DRAWING and need no stored conformer: the fixed protocols, and the tautomer distribution, which has the three settings of an ordinary job but
 #: embeds every candidate fresh and whose job count is what its enumeration gives, stated on the card.
-RUNS_ON_DRAWING = FIXED_PROTOCOL | {"orca.tautomer_distribution"}
+RUNS_ON_DRAWING = FIXED_PROTOCOL | {"orca.tautomer_distribution", "orca.tautomer_nmr"}
+
+#: The startable calculators that start from a STORED run rather than from a structure: the tautomer NMR runs on the geometries a finished tautomer distribution optimized, so a card names that run and its
+#: jobs are the tautomers that run holds. It is also in `RUNS_ON_DRAWING` (it needs no conformer, and a drawing edited after the card withdraws it).
+FROM_A_STORED_RUN = frozenset({"orca.tautomer_nmr"})
 
 
 def calc_type_of(calculator_id: str) -> str | None:
