@@ -174,5 +174,9 @@ no default shortcut.
   atom highlights, which are drawn on a white depiction) are not changed.
 * A table cell's brush is chosen when the row is built, so a project table cell in a non-scalar colour reads correctly after the next
   refresh, not at the instant of a live switch.
+* There is no "increased contrast" option. It was measured and not built: Qt's own palette already clears the text bar, and the
+  `windows11` style draws control borders from fixed colours that ignore the palette, so a palette-only option cannot lift them
+  (`docs/CONTRAST_SPIKE.md`, with the two scripts that reproduce it). The same page records four light-look text colours under 4.5:1.
+* The menu icons (`ui/menu_icons.py`) are painted in the palette's ink when drawn, so they need no rule here and no rebuild on a switch.
 * `benchmarks/visual/appearance.json` writes the real stored preference through the real controls and ends by choosing Follow the system.
   A run killed half-way leaves the choice it had reached; Settings ▸ Appearance puts it back.
