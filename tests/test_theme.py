@@ -255,14 +255,11 @@ _DIRECT_ALLOWED = {
     ("ui/widgets/panel_rail.py", '"font-weight: bold; padding: 4px 6px 0 6px;"'),
     ("ui/widgets/panel_rail.py", '"padding: 0 6px 4px 6px; color: palette(mid);"'),
     ("ui/widgets/results_view.py", '"font-weight: bold;"'),
-    ("ui/widgets/substance_card.py", '"font-size: 13px; font-weight: bold;"'),
     ("ui/widgets/tautomer_overlay_controls.py", '"font-weight: bold;"'),
 }
 
 #: Calls whose argument is a computed or multi-part string, listed by file and a distinctive fragment.
 _DIRECT_ALLOWED_FRAGMENTS = {
-    # An element cell's fill is the periodic-table category colour with fixed dark text on it: data, on a pastel.
-    ("ui/dialogs/periodic_table_dialog.py", "QToolButton {{ background: {fill}"),
     # The rail's own buttons: layout only (the icon follows the palette through `theme.follow`).
     ("ui/widgets/panel_rail.py", "QPushButton { text-align: left"),
 }

@@ -3410,6 +3410,12 @@ list of sections down its left side, under two headings (**Window** and
 there is no OK button. The one exception is lowering the number of versions
 kept, which asks first.
 
+- **Interface size.** Beside the colour scheme: **Default** (your system's own text
+  size), **Larger** or **Large**. It applies at once, to every panel, dialog and table;
+  the 2D editor and the 3D viewers keep their own zoom, and printed or exported
+  documents are not changed. It is separate from Windows' display scaling and adds to it.
+  At Large the one-line status beside **Run selected** can be cut off; hover it for
+  the whole text, or widen the Properties panel.
 - **Appearance.** The colour scheme: **Follow the system** (the default), **Light**
   or **Dark**. Follow the system is light or dark as Windows is and changes when
   Windows does; Light and Dark keep that scheme whatever Windows is set to, the
