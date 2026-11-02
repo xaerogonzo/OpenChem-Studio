@@ -149,6 +149,8 @@ from openchem.app.dock_expansion import ExpandState
 from openchem.ui.widgets.dock_layout_menu import SIDE_AREAS, DockMenuState, populate_layout_menu, side_of
 from openchem.ui.widgets.dock_title_bar import DockTitleBar
 from openchem.ui.panels.comparison_panel import ComparisonPanel
+from openchem.ui.reader_entries import entries_for_molecule
+from openchem.ui.widgets.compare_readers import CompareReaders
 from openchem.ui.fact_link_router import FactLinkRouter
 from openchem.ui.widgets.panel_rail import (
     DEFAULT_GROUP,
@@ -784,6 +786,10 @@ class MainWindow(QMainWindow):
         )
         self._comparison_panel = ComparisonPanel(services.event_bus, self)
         self._comparison_panel.attach_settings(settings)
+        self._compare_readers: CompareReaders | None = None
+        self._comparison_panel.readers_requested.connect(self._open_compare_readers)
+        self._comparison_panel.chosen_changed.connect(self._on_compare_chosen_changed)
+        services.event_bus.subscribe(ResultRecorded, self._on_result_recorded_for_readers)
         self._comparison_panel.fact_activated.connect(self._on_compare_fact_activated)
         self._comparison_panel.calculate_requested.connect(self._on_compare_calculate_requested)
         compare_dock = self._add_dock(
@@ -1976,6 +1982,79 @@ class MainWindow(QMainWindow):
         "no_fact": "The result is there, but that value is not in it.",
     }
 
+    def reader_entries_for(self, molecule_uuid: str) -> tuple[list, int]:
+        """What a Results reader pinned to ANY molecule of the project should show, and its version.
+
+        Built from the molecule's stored results without selecting it and without publishing
+        anything (`ui.reader_entries`), plus the recipe and score answers the panel is handed.
+        Empty for a molecule that is gone or a window with no result store.
+        """
+        project = self._session.project
+        molecule = project.find_molecule(molecule_uuid) if project is not None else None
+        services = self._services
+        store_service = services.result_store_service
+        if molecule is None or store_service is None:
+            return [], 0
+        registry = services.calculator_registry
+
+        def category_of(calculator_id: str) -> str:
+            definition = registry.get(calculator_id)
+            return definition.category if definition is not None else "other"
+
+        projections = [
+            service.answers_for
+            for service in (services.recipe_service, services.score_service)
+            if service is not None
+        ]
+        return entries_for_molecule(
+            molecule_uuid,
+            fresh_results=lambda: store_service.store.fresh_results(
+                molecule_uuid, store_service.fingerprints_for(molecule)
+            ),
+            structure_version=services.structure_check_service.current_version(molecule_uuid),
+            category_of=category_of,
+            projections=projections,
+        )
+
+    def _open_compare_readers(self, uuids: list) -> None:
+        """Compare's "Open side by side": one linked Results reader per ticked molecule, in a window of
+        their own. One window at a time: pressing it again re-points the open one at the new group."""
+        project = self._session.project
+        if project is None:
+            return
+        if self._compare_readers is None:
+            readers = CompareReaders(
+                feed=self.reader_entries_for,
+                names=self._compare_name_of,
+                display_order_of=self._services.calculator_registry.display_order,
+                parent=self,
+            )
+            readers.closed.connect(self._on_compare_readers_closed)
+            self._compare_readers = readers
+        self._compare_readers.set_molecules(list(uuids))
+        self._compare_readers.show()
+        self._compare_readers.raise_()
+
+    def _compare_name_of(self, molecule_uuid: str) -> str:
+        project = self._session.project
+        molecule = project.find_molecule(molecule_uuid) if project is not None else None
+        return molecule.display_name if molecule is not None else molecule_uuid
+
+    def _on_compare_readers_closed(self) -> None:
+        readers, self._compare_readers = self._compare_readers, None
+        if readers is not None:
+            readers.deleteLater()
+
+    def _on_compare_chosen_changed(self, uuids: list) -> None:
+        """The ticks in Compare moved: an open set of readers follows them (fewer than two closes none)."""
+        if self._compare_readers is not None and len(uuids) >= 2:
+            self._compare_readers.set_molecules(list(uuids))
+
+    def _on_result_recorded_for_readers(self, event) -> None:
+        readers = self._compare_readers
+        if readers is not None and event.stored.identity.molecule_uuid in readers.uuids():
+            readers.request_refresh()
+
     def _on_compare_calculate_requested(self, uuids: list) -> None:
         """Compare's "Calculate basic properties": the always-on properties of each ticked molecule.
 
@@ -2011,6 +2090,9 @@ class MainWindow(QMainWindow):
         if molecule is None:
             panel.set_notice("That molecule is no longer in the project.")
             return
+        if self._compare_readers is not None:
+            # A request for the whole comparison: every pane goes to the value, whatever Link says.
+            self._compare_readers.show_target(report_id, label)
         self._services.event_bus.publish(MoleculeSelected(molecule_uuid=molecule_uuid))
         problem = self._property_panel.reveal_report_fact(report_id, label)
         if problem:

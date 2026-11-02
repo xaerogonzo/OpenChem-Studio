@@ -87,6 +87,8 @@ _DIFFERENCES_ONLY_HELP = HelpTooltip(
     topic="compare",
 )
 
+#: TIER 2: what the button works out, for whom, and that it reuses what is held (it is the one
+#: thing in this panel that starts work, so it says exactly what).
 _CALCULATE_HELP = HelpTooltip(
     text=(
         "Work out the everyday properties (mass, LogP, polar surface area, ring and bond counts...) "
@@ -99,6 +101,21 @@ _CALCULATE_HELP = HelpTooltip(
     topic="compare",
 )
 
+#: TIER 2: what the side-by-side window is, and that the panes are linked and nothing is calculated.
+_OPEN_READERS_HELP = HelpTooltip(
+    text=(
+        "Read the ticked molecules in the Results reader, one pane each, side by side (or as tabs) in "
+        "their own window. The panes are linked: choosing a report or typing in the fact filter in one "
+        "does the same in all, and double-clicking a value here takes them all to it.\n\n"
+        "Needs two or more molecules ticked. Nothing is calculated: a molecule without that result "
+        "says so in its pane."
+    ),
+    tier=2,
+    help_id="compare.open_readers",
+    topic="compare",
+)
+
+#: TIER 2: what opening a value does, which molecule it is for, and that the ticks stay put.
 _SHOW_IN_RESULTS_HELP = HelpTooltip(
     text=(
         "Open the selected value in the Results panel, for the molecule whose column it is in. "
@@ -153,6 +170,10 @@ class ComparisonPanel(QWidget):
     #: window answers it with the same replay-or-compute a selection does, so Compare itself
     #: still never starts anything.
     calculate_requested = Signal(list)
+    #: "Open side by side" was pressed: the ticked molecules, each to be read in its own Results reader.
+    readers_requested = Signal(list)
+    #: The ticked molecules changed (by ticking, or by `compare_with`), so an open set of readers can follow.
+    chosen_changed = Signal(list)
 
     def __init__(self, event_bus: EventBus, parent: QWidget | None = None) -> None:
         super().__init__(parent)
@@ -190,6 +211,10 @@ class ComparisonPanel(QWidget):
         self._calculating_total = 0
         self._progress = ""
         self._base_status = ""
+
+        self._readers_button = QPushButton("Open side by side", self)
+        apply_help_tooltip(self._readers_button, _OPEN_READERS_HELP)
+        self._readers_button.clicked.connect(self._on_readers_clicked)
 
         self._show_button = QPushButton("Show in Results", self)
         apply_help_tooltip(self._show_button, _SHOW_IN_RESULTS_HELP)
@@ -237,6 +262,7 @@ class ComparisonPanel(QWidget):
         controls.addWidget(self._differences_only)
         controls.addStretch(1)
         controls.addWidget(self._calculate_button)
+        controls.addWidget(self._readers_button)
         controls.addWidget(self._show_button)
         controls.addWidget(self._copy_button)
 
@@ -367,6 +393,7 @@ class ComparisonPanel(QWidget):
             if self._molecules.item(row).checkState() == Qt.CheckState.Checked
         ]
         self._render()
+        self.chosen_changed.emit(list(self._chosen))
 
     def compare_with(self, uuids: list[str]) -> None:
         """Tick exactly these molecules.
@@ -378,6 +405,7 @@ class ComparisonPanel(QWidget):
         self._chosen = [u for u in uuids if u]
         self._rebuild_molecule_list()
         self._render()
+        self.chosen_changed.emit(list(self._chosen))
 
     def rows(self) -> list[ValueRow]:
         """What the table is showing, derived rather than stored.
@@ -397,6 +425,7 @@ class ComparisonPanel(QWidget):
         self._shown_rows = rows
         enough_chosen = len(self._chosen) >= 2
         self._calculate_button.setEnabled(enough_chosen)
+        self._readers_button.setEnabled(enough_chosen)
         enough = len(self._chosen) >= 2
         self._empty.setVisible(not enough or not rows)
         self._table.setVisible(enough and bool(rows))
@@ -516,6 +545,9 @@ class ComparisonPanel(QWidget):
 
     def _on_show_clicked(self, _checked: bool = False) -> None:
         self._activate_current()
+
+    def _on_readers_clicked(self, _checked: bool = False) -> None:
+        self.readers_requested.emit(list(self._chosen))
 
     def _on_calculate_clicked(self, _checked: bool = False) -> None:
         self._progress = ""

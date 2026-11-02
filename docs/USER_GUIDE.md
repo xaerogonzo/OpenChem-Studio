@@ -2577,6 +2577,16 @@ the value in the Results panel, narrowed to that one fact, with its evidence
 and limits. Double-clicking the Property column opens the first molecule that
 has a value. Your ticks in Compare do not change.
 
+**Open side by side** reads the ticked molecules in the Results reader, one pane
+each, in a window of their own: side by side for two molecules, as tabs for
+more (a button switches). They are the same reader the Results panel uses, so a
+value shows with its evidence and limits. The panes are **linked**: choosing a
+report, or typing in the fact filter, in one does the same in all, so the
+molecules stay on the same value. Double-clicking a value in Compare takes every
+pane to it, linked or not. A molecule that has not had that result calculated
+says so above its pane rather than silently showing something else. Nothing is
+calculated, and the panes follow the ticks and refresh as results arrive.
+
 **Plain English.** Selecting a row says what the property means, in everyday
 words, under the table. The highest value in a row carries a small triangle
 (▲): it only says which number is highest — a higher number is not better or
