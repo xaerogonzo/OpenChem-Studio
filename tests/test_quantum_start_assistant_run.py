@@ -635,3 +635,22 @@ def test_stopping_when_no_job_is_running_for_the_molecule_cancels_nothing(panel_
     monkeypatch.setattr(service, "has_active_job", lambda uuid: False)
     monkeypatch.setattr(service, "cancel", cancelled.append)
     assert panel.cancel_assistant_run(molecule.uuid) is False and cancelled == []
+
+
+# --- Fukui functions: an ordinary calc type of the Run button, so the same hand-over, and its own refusals in the button's words -----------------------------------------
+
+
+def test_a_fukui_card_starts_a_fukui_job_by_the_run_buttons_rules(panel_of):
+    panel, service, molecule = panel_of(3)
+    assert panel.start_assistant_run(molecule.uuid, choice(calc_type="fukui", method_basis="B3LYP def2-SVP"), fingerprint_of(molecule)) == ""
+    [request] = service.requests
+    assert request["calc_type"] == "fukui" and request["multiplicity"] == 1 and request["method_basis"] == "B3LYP def2-SVP"
+    assert request["calculation_input"] == "geometry" and panel._pending_molecule_uuid == molecule.uuid
+
+
+def test_a_fukui_card_for_an_open_shell_species_is_refused_in_the_buttons_words_and_starts_nothing(panel_of):
+    from openchem.chem.fukui import open_shell_message
+
+    panel, service, molecule = panel_of(3)
+    assert panel.start_assistant_run(molecule.uuid, choice(calc_type="fukui", multiplicity=2), fingerprint_of(molecule)) == open_shell_message(2)
+    untouched(panel, service)
