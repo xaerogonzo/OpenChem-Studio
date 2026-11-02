@@ -2563,10 +2563,41 @@ which is not a claim either way.
 Tick two or more molecules and see their values side by side — one row per
 property, one column per molecule.
 
-**It never calculates anything.** The values are the ones other panels have
-already computed, so opening Compare is free and a blank cell means *that
-calculator has not run for that molecule* — not that it has no value. Run
-what you want in Properties first; the columns fill in as results arrive.
+**Opening Compare never calculates anything.** The values are the ones other
+panels have already computed, so a blank cell means *that calculator has not
+run for that molecule* — not that it has no value. To fill the table in, press
+**Calculate basic properties**: it works out the everyday properties (mass,
+LogP, polar surface area, ring and bond counts) for the ticked molecules only,
+reusing anything already held, and the columns fill in as results arrive. Run
+anything else in Properties first.
+
+**Double-click a value to read it in full.** Double-clicking a value (or
+pressing Enter on it, or **Show in Results**) selects that molecule and opens
+the value in the Results panel, narrowed to that one fact, with its evidence
+and limits. Double-clicking the Property column opens the first molecule that
+has a value. Your ticks in Compare do not change.
+
+**Open side by side** reads the ticked molecules in the Results reader, one pane
+each, in a window of their own: side by side for two molecules, as tabs for
+more (a button switches). They are the same reader the Results panel uses, so a
+value shows with its evidence and limits. The panes are **linked**: choosing a
+report, or typing in the fact filter, in one does the same in all, so the
+molecules stay on the same value. Double-clicking a value in Compare takes every
+pane to it, linked or not. A molecule that has not had that result calculated
+says so above its pane rather than silently showing something else. Nothing is
+calculated, and the panes follow the ticks and refresh as results arrive.
+
+**Plain English.** Selecting a row says what the property means, in everyday
+words, under the table. The highest value in a row carries a small triangle
+(▲): it only says which number is highest — a higher number is not better or
+worse by itself. For ratio-style properties such as mass the tooltip also says
+roughly how many times larger it is; for log-scale properties such as LogP it
+does not, because a ratio of logarithms means nothing. With exactly two
+molecules ticked, a short summary of the well-understood properties appears
+above the table, always worded as *calculated* or *estimated*. If you do not
+need any of this, turn off **Explain things in plain English** in
+Settings → Appearance and Compare is just the table; Results, Help and anything
+you copy are the same either way.
 
 **Differences only** is the reason to open it. Two related structures agree
 on most of a long table, so hiding the rows where they match leaves the
