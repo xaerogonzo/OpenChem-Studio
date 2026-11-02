@@ -389,3 +389,44 @@ def test_claude_cli_provider_does_not_support_tools():
     assert providers_mod.ClaudeCLIProvider().supports_tools is False
     assert providers_mod.AnthropicProvider().supports_tools is True
     assert providers_mod.OpenAICompatibleProvider("openai", default_model="gpt-test").supports_tools is True
+
+
+# --- a local model is called cooler than the server's default, and nothing else changes ------------------------------------------------------------------------
+
+
+def test_a_temperature_is_sent_only_where_a_provider_sets_one():
+    request = providers_mod.AIRequest(system_context="ctx", messages=[], model="", api_key="k")
+    assert "temperature" not in providers_mod._openai_create_kwargs(request, "m", None)
+    assert providers_mod._openai_create_kwargs(request, "m", None, 0.2)["temperature"] == 0.2
+    assert providers_mod._openai_create_kwargs(request, "m", None, 0.0)["temperature"] == 0.0, "zero is a temperature, not 'unset'"
+
+
+def test_only_the_local_server_provider_asks_for_a_lower_temperature():
+    """A live qwen2.5:14b run at the server's default (0.8 on Ollama) invented about seventy settings for one calculator and answered in Thai; the real OpenAI provider is left as it was."""
+    built = providers_mod.build_default_providers()
+    assert built["ollama"]._temperature == 0.2 and built["openai"]._temperature is None
+
+
+def test_the_request_the_local_provider_streams_carries_its_temperature():
+    provider = providers_mod.build_default_providers()["ollama"]
+    request = providers_mod.AIRequest(system_context="ctx", messages=[], model="qwen2.5:14b", api_key="")
+    fake_client = MagicMock()
+    fake_client.chat.completions.create.return_value = iter([])
+    with patch("openai.OpenAI", return_value=fake_client):
+        provider.stream(request, lambda _text: None)
+    assert fake_client.chat.completions.create.call_args.kwargs["temperature"] == 0.2
+
+
+def test_the_non_streaming_request_carries_the_temperature_too():
+    provider = providers_mod.build_default_providers()["ollama"]
+    request = providers_mod.AIRequest(system_context="ctx", messages=[], model="qwen2.5:14b", api_key="")
+    fake_choice = MagicMock()
+    fake_choice.message.content = "ok"
+    fake_choice.message.tool_calls = None
+    fake_response = MagicMock()
+    fake_response.choices = [fake_choice]
+    fake_client = MagicMock()
+    fake_client.chat.completions.create.return_value = fake_response
+    with patch("openai.OpenAI", return_value=fake_client):
+        provider.complete(request)
+    assert fake_client.chat.completions.create.call_args.kwargs["temperature"] == 0.2

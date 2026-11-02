@@ -585,3 +585,8 @@ def test_a_panel_with_no_host_still_works_and_offers_no_calculator_tools(qapp, t
     bridge = ToolBridge(panel._context.calculations, panel._context.calculations.begin_turn())
     panel._run_completion(Recorder([]), "s", [AIMessage(role="user", content="hi")], "m", "k", lambda c: None, bridge)
     assert seen == [[t.name for t in AVAILABLE_TOOLS]]
+
+
+def test_the_system_prompt_tells_the_model_which_language_to_answer_in():
+    """A live local model answered an English question in Thai when nothing said which language to use."""
+    assert "Reply in the language the user writes in (English if they write English)." in SYSTEM_PROMPT_PREFIX

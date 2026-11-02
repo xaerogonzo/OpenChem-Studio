@@ -457,6 +457,8 @@ OPENCHEM_DRIVE=/path/to/script.json uv run --no-sync python -m openchem.main
     {"do": "ai_send", "text": "...", "script": [{"tool": "run_calculator", "input": {...}}, {"text": "..."}]}
                                           the assistant PANEL with a SCRIPTED provider: its real Send, the
                                           tool loop on its worker thread, the real host (give it `after_ms`)
+    {"do": "ai_send", "text": "...", "live": {"provider": "ollama", "model": "qwen2.5:14b"}}   the same, with a REAL provider and no script: the model named here answers (nothing is
+                                          written to the plugin settings) and what it asked and was told is logged; benchmarks/visual/ai_live_ollama.json
     {"do": "ai_card", "action": "approve"}   press a REAL button on the preview card showing
                                           ("approve" | "cancel" | "open" | "dismiss"; add "card": "score" for a score
                                           the assistant PROPOSED, whose Approve is the only way it is saved)
