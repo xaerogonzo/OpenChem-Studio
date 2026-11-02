@@ -366,6 +366,8 @@ def start_bond_dissociation(service: Any, engine: ChemistryEngine, molecule: Mol
 
 #: The calculation type a tautomer-distribution run is recorded under (`QuantumChemistryService._new_tautomer_distribution_run`), and so what its run record is matched by.
 TAUTOMER_DISTRIBUTION = "tautomer_distribution"
+
+#: The calculation type a tautomer-NMR run is recorded under (`QuantumChemistryService`'s per-tautomer NMR run), and so what its run record is matched by.
 TAUTOMER_NMR = "tautomer_nmr"
 
 
