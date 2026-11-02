@@ -38,6 +38,7 @@ from PySide6.QtWidgets import (
 from openchem.app.session import SessionManager
 from openchem.app.menu_help import MENU_HELP
 from openchem.app import menu_layout
+from openchem.ui import menu_icons
 from openchem.app.shortcut_registry import ShortcutRegistry
 from openchem.app.settings import (
     CONFORMER_KEEP_OPTIMIZED,
@@ -2420,7 +2421,11 @@ class MainWindow(QMainWindow):
             if title == "View":
                 #: Where a plugin panel's toggle is added later, in its place A-Z.
                 self._panels_menu = made.get("Panels")
-        self._shortcuts.set_menu_order(menu_layout.walk(self.menuBar()))
+        walked = menu_layout.walk(self.menuBar())
+        self._shortcuts.set_menu_order(walked)
+        #: Held by the window: a wrapper that is the last reference to a removed action destroys it when collected.
+        self._walked_actions = [action for _path, action in walked]
+        menu_icons.apply_to_actions((menu_layout.label_of(action), action) for action in self._walked_actions)
         #: Every menu of the bar, held by the window. `QMenu(title, parent)` and `addMenu` hand back wrappers the
         #: builders drop, and a submenu whose wrapper is collected takes its entries with it (measured: after one
         #: garbage collection every grouped submenu, Theme and 2D Structure Display were gone from the bar).
