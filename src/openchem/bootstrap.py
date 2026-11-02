@@ -264,6 +264,59 @@ _EXTERNAL_CALCULATOR_DEFINITIONS.append(
     )
 )
 
+# NMR on the tautomers of a FINISHED tautomer distribution (QuantumChemistryService.request_tautomer_nmr). Like the distribution it is not one ORCA calc type
+# (one `nmr` job per tautomer, or per conformer of its representative), so it is a standalone entry, and it is registered so that the assistant's card can name it:
+# the Quantum Chemistry panel's 'Tautomer NMR...' button is where a person starts it. It starts from a STORED run, so it has no structure input of its own.
+_EXTERNAL_CALCULATOR_DEFINITIONS.append(
+    CalculatorDefinition(
+        calculator_id="orca.tautomer_nmr",
+        display_name="Tautomer NMR",
+        category="quantum_chemistry",
+        description=(
+            "NMR chemical shifts for every tautomer of a finished tautomer distribution, each from one real ORCA NMR calculation on the geometry that "
+            "distribution optimized for it, referenced like an ordinary NMR calculation (the cached TMS reference for the method, or the empirical scaling), "
+            "and a population-weighted fast-exchange average of the carbon shifts and of the hydrogens on carbon where the distribution gave percentages. "
+            "Needs a finished tautomer distribution for the molecule (run that first) and an ORCA executable; run from the Quantum Chemistry panel's "
+            "'Tautomer NMR...' button on that distribution's run. One job per tautomer, so the cost is the number of tautomers the distribution holds."
+        ),
+        execution=ServiceExecution(
+            service_name="quantum_chemistry_service",
+            panel_name="Quantum Chemistry panel",
+            panel_id="Quantum_Chemistry",
+        ),
+        prediction_basis="ab_initio",
+        parameters=[
+            CalculatorParameter(name="charge", label="Charge", kind="int", default=0, minimum=-10, maximum=10),
+            CalculatorParameter(
+                name="multiplicity", label="Multiplicity", kind="int", default=1, minimum=1, maximum=10
+            ),
+            CalculatorParameter(
+                name="method_basis",
+                label="Method/basis",
+                kind="choice",
+                default=METHOD_BASIS_PRESETS[0],
+                choices=METHOD_BASIS_PRESETS,
+            ),
+            CalculatorParameter(
+                name="distribution_run_id",
+                label="Tautomer distribution run (blank: the newest finished one)",
+                kind="text",
+                default="",
+            ),
+        ],
+        # EXPERIMENTAL for the reason its parent is: the distribution it starts from has no validated populations, and the average it makes inherits that.
+        support=CalculatorSupport(
+            stage=SupportStage.EXPERIMENTAL,
+            default_visibility=Visibility.HIDDEN,
+            support_reason=(
+                "Not yet validated: it starts from a tautomer distribution whose populations have not been checked against published reference data, "
+                "and the shifts have not been compared with measured spectra of tautomer mixtures."
+            ),
+            scope_note="Needs a finished tautomer distribution for the molecule and a configured ORCA executable",
+        ),
+    )
+)
+
 # Like the tautomer distribution, NOT in CALC_TYPE_LABELS: proton affinity is not one ORCA calc type, it dispatches an `Opt Freq` per structure
 # of the base and of every conjugate acid (QuantumChemistryService.request_proton_affinity), so it is a standalone entry. It has no method or
 # free method or charge parameters on purpose: the protocol is exactly the one that was benchmarked, and a different functional or basis is a different

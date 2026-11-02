@@ -315,4 +315,4 @@ def test_the_window_gives_the_assistants_host_the_quantum_chemistry_panel_to_sta
     """
     host = window._calculation_host
     assert host._quantum_starter is window._quantum_chemistry_panel
-    assert host.describe("orca.sp").route.value == "needs_approval" and host.describe("orca.fukui").route.value == "preview_only"
+    assert host.describe("orca.sp").route.value == "needs_approval" and host.describe("orca.fukui").route.value == "needs_approval" and host.describe("docking.vina").route.value == "preview_only"

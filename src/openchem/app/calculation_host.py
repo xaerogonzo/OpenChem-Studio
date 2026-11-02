@@ -51,17 +51,22 @@ from PySide6.QtCore import QObject, Qt, QThread, Signal
 from openchem.app.session import SessionManager
 from openchem.chem.quantum_run_request import (
     BOND_DISSOCIATION,
+    FUKUI,
     PROTON_AFFINITY,
     TAUTOMER_DISTRIBUTION,
+    TAUTOMER_NMR,
     TWO_PARTNERS_MESSAGE,
     PreparedBondDissociation,
     PreparedProtonAffinity,
+    PreparedTautomerNmr,
     PreparedTautomers,
     RunChoice,
     RunRefusal,
     led_cost_of_smiles,
     prepare_bond_dissociation,
+    prepare_fukui,
     prepare_proton_affinity,
+    prepare_tautomer_nmr,
     prepare_tautomers,
 )
 from openchem.domain import calculator_search
@@ -474,11 +479,33 @@ class CalculationHost(QObject):
             return PrepareResult(problems=(Problem(ProblemCode.NO_STRUCTURE, f"{turn.display_name} has no {calculation_input} to fingerprint"),))
         calc_type = calc_type_of(definition.calculator_id)
         extra: list[str] = []
-        if on_drawing:
+        parameters_now = dict(validation.parameters)
+        if calc_type == TAUTOMER_NMR:
+            # It starts from a stored distribution, so the card names the run: the newest finished one, or the one asked for, resolved NOW into the parameters Approve hands over.
+            started = self._tautomer_nmr_of(turn, validation.parameters)
+            if isinstance(started, Problem):
+                return PrepareResult(problems=(started,))
+            prepared_nmr, parameters_now["distribution_run_id"] = started
+            extra.append("What it would cost (approving accepts it): " + prepared_nmr.card_text().replace("\n\n", " "))
+        elif on_drawing:
             protocol = _PROTOCOLS[calc_type][0](turn.canonical_smiles)
             if isinstance(protocol, RunRefusal):
                 return PrepareResult(problems=(Problem(ProblemCode.INVALID_STRUCTURE, protocol.message),))
             extra.append("What it would cost (approving accepts it): " + _protocol_cost(protocol))
+        if calc_type == FUKUI:
+            anion_f_plus, cation_search = self._services.quantum_chemistry_service.fukui_options()
+            parameters_given = validation.parameters
+            fukui = prepare_fukui(
+                turn.canonical_smiles, int(parameters_given.get("charge", 0)), int(parameters_given.get("multiplicity", 1)), str(parameters_given.get("method_basis", "")),
+                cation_search=cation_search, anion_f_plus=anion_f_plus,
+            )
+            if isinstance(fukui, RunRefusal):
+                return PrepareResult(problems=(Problem(ProblemCode.INVALID_STRUCTURE, fukui.message),))
+            extra.append("What it would cost (approving accepts it): " + fukui.card_text())
+            # The stage is said on the card, in the registry's own words: a person approving this is approving a calculation that did not pass its checks.
+            support = definition.support
+            if support is not None and support.support_reason:
+                extra.append(f"Stage: {support.stage.value}. {support.support_reason}")
         if calc_type == "led":
             refusal, cost = led_cost_of_smiles(turn.canonical_smiles)
             if refusal:
@@ -486,10 +513,12 @@ class CalculationHost(QObject):
             extra.append("What it would cost (approving accepts it): " + cost.replace("\n\n", " "))
         policy = policy_of(definition)
         decision = decide(policy, validation.parameters, heavy_atoms=turn.heavy_atoms)
-        lines = list(_preview_lines(definition.display_name, turn, validation.parameters, policy, decision.reason))
+        lines = list(_preview_lines(definition.display_name, turn, parameters_now, policy, decision.reason))
         # Before the closing sentence: what the job will do, in the panel's terms, and what the person can still do about it.
         where = (
-            "It runs on the drawing (every structure is embedded fresh), by the same rules as the Quantum Chemistry panel's " + (_PROTOCOLS[calc_type][1] if on_drawing else "") + " button"
+            "It starts from the stored tautomer distribution, by the same rules as the Quantum Chemistry panel's Tautomer NMR button"
+            if calc_type == TAUTOMER_NMR
+            else "It runs on the drawing (every structure is embedded fresh), by the same rules as the Quantum Chemistry panel's " + (_PROTOCOLS[calc_type][1] if on_drawing else "") + " button"
             if on_drawing else "It runs on the conformer every calculation uses, by the same rules as the Quantum Chemistry panel's Run button"
         )
         lines[-1:] = [
@@ -507,7 +536,7 @@ class CalculationHost(QObject):
             project_uuid=turn.project_uuid,
             calculation_input=calculation_input,
             input_fingerprint=fingerprint,
-            parameters=dict(validation.parameters),
+            parameters=parameters_now,
             route=Route.NEEDS_APPROVAL,
             decision=decision,
             preview=tuple(lines),
@@ -518,6 +547,29 @@ class CalculationHost(QObject):
         )
         self._ledger.register(preparation)
         return PrepareResult(preparation=preparation)
+
+    @staticmethod
+    def _tautomer_nmr_of(turn: TurnContext, parameters) -> tuple[PreparedTautomerNmr, str] | Problem:
+        """The finished tautomer distribution a tautomer NMR card starts from, read from the frozen turn, and what NMR on its tautomers would take: or the problem that says what to supply.
+
+        The newest finished distribution of the molecule, or the one named by `distribution_run_id`. A run that failed, was cancelled or holds no result is not one, and a named run that is not one of
+        the molecule's finished distributions is refused by name rather than replaced by another."""
+        finished = [
+            e for e in turn.runs
+            if e.calc_type == TAUTOMER_DISTRIBUTION and e.status in (RunStatus.COMPLETED, RunStatus.COMPLETED_WITH_WARNINGS) and e.outputs.get("tautomer_distribution")
+        ]
+        wanted = str(parameters.get("distribution_run_id", "") or "").strip()
+        if wanted:
+            finished = [e for e in finished if e.run_id == wanted]
+            if not finished:
+                return Problem(ProblemCode.NEEDS_INPUT, f"{wanted!r} is not a finished tautomer distribution of {turn.display_name}; leave the run blank for the newest one", "distribution_run_id")
+        if not finished:
+            return Problem(ProblemCode.NEEDS_INPUT, f"{turn.display_name} has no finished tautomer distribution to run NMR on; run orca.tautomer_distribution first", "distribution_run_id")
+        newest = max(finished, key=lambda e: e.started_at)
+        prepared = prepare_tautomer_nmr(newest.outputs["tautomer_distribution"][0], newest.run_id, str(parameters.get("method_basis", "")))
+        if isinstance(prepared, RunRefusal):
+            return Problem(ProblemCode.NEEDS_INPUT, prepared.message, "distribution_run_id")
+        return prepared, newest.run_id
 
     def _service_preview_result(self, definition, turn: TurnContext, parameters, why: str) -> PrepareResult:
         """What a service-run calculator would take, with nothing prepared and nothing started.
@@ -764,6 +816,7 @@ class CalculationHost(QObject):
             method_basis=str(parameters.get("method_basis", "")),
             charge=int(parameters.get("charge", 0)),
             multiplicity=int(parameters.get("multiplicity", 1)),
+            source_run_id=str(parameters.get("distribution_run_id", "")),
         )
         calc_type = choice.calc_type
         with self._lock:
@@ -881,7 +934,7 @@ def _rejected(run_id: str, code: ProblemCode, message: str, calculator_id: str =
 
 #: Startable calculators that need no stored conformer: a fixed protocol embeds every structure fresh from the drawing, and these others say so of themselves ("no 3D conformer needed"),
 #: as does the Lewis HSAB score, which is read from the drawing.
-_NO_CONFORMER_NEEDED = frozenset({"lewis_hsab", "orca.proton_affinity", "orca.bond_dissociation_enthalpy", "orca.tautomer_distribution"})
+_NO_CONFORMER_NEEDED = frozenset({"lewis_hsab", "orca.proton_affinity", "orca.bond_dissociation_enthalpy", "orca.tautomer_distribution", "orca.tautomer_nmr"})
 
 
 #: The calculators that run on the drawing, by calculation type: what prepares their card's cost from the structure, and the Quantum Chemistry panel's button whose rules they follow.
