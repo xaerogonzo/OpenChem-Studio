@@ -109,3 +109,26 @@ footing, and leaves the pose-choice sentence of PR 508 as the product answer.
 ## Amendments
 
 (none)
+
+**Amendment 1 (2026-11-02, input handling only; no deciding receptor had been rescored).** The
+first full `inputs` pass built the ligands for only about half of the receptors: `on_template`
+reset every atom's explicit hydrogen count, which removes the hydrogen of an aromatic `[nH]`
+and makes the ring impossible to kekulize (and left some poses unmappable). The reset is
+removed; the radical and implicit-hydrogen clearing stays. A pyrrole case is added to
+`tests/test_plec2.py`. Every receptor's inputs are rebuilt from scratch with the corrected
+function, so none carries the earlier build. No rule, gate, cutoff or population changes.
+
+**Amendment 1, continued (same day, still before any deciding receptor was rescored).** Removing
+the reset let the pose's own leftovers through (the extra proton Vina put on an amine, a
+radical flag from the unchecked read), so no pose mapped onto its template. The rule is now the
+one this test meant from the start: the template decides the protonation, so the pose's explicit
+hydrogen counts, formal charges and radical flags are cleared before the match (`heavy_pose`), and
+the `[nH]` of an aromatic ring comes from the template. The tests now start from a pose that
+disagrees with its template in exactly those ways. Inputs are rebuilt from scratch again.
+
+**Amendment 1, last part (same day, still before any deciding receptor was rescored).** With
+those two fixes 38 receptors built and 10 did not: the ligand of an aromatic `[nH]` could not be
+kekulized because `AssignBondOrdersFromTemplate` did not carry the template's explicit hydrogen
+onto the result in the RDKit used here. `on_template` now matches the template back onto the
+result and copies each atom's formal charge and explicit hydrogen count from it. Inputs for all
+receptors are rebuilt once more with the final function.

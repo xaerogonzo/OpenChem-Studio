@@ -53,10 +53,19 @@ def on_template(template_heavy, heavy_pose):
     flags that the template match leaves behind are cleared before the hydrogens are added.
     """
     mol = AllChem.AssignBondOrdersFromTemplate(template_heavy, heavy_pose)
+    # The call is documented to carry the template's charges and explicit hydrogens over, and on
+    # the RDKit used here it does not carry the `[nH]` of an aromatic ring, which then cannot be
+    # kekulized. The template is matched back onto the result and its atoms copied across.
+    match = mol.GetSubstructMatch(template_heavy)
+    if len(match) != template_heavy.GetNumAtoms():
+        raise ValueError("the template does not map back onto the rebuilt pose")
+    for template_atom, index in zip(template_heavy.GetAtoms(), match):
+        atom = mol.GetAtomWithIdx(index)
+        atom.SetFormalCharge(template_atom.GetFormalCharge())
+        atom.SetNumExplicitHs(template_atom.GetNumExplicitHs())
     for atom in mol.GetAtoms():
         atom.SetNoImplicit(False)
         atom.SetNumRadicalElectrons(0)
-        atom.SetNumExplicitHs(0)
     mol.UpdatePropertyCache(strict=False)
     Chem.SanitizeMol(mol)
     return Chem.AddHs(mol, addCoords=True)
@@ -67,6 +76,13 @@ def heavy_pose(block: str):
     mol = Chem.RemoveHs(mol, sanitize=False)
     mol.UpdatePropertyCache(strict=False)
     Chem.SanitizeMol(mol, Chem.SANITIZE_ALL ^ Chem.SANITIZE_PROPERTIES, catchErrors=True)
+    # Removing the polar hydrogens left their count on the heavy atoms; the template decides the
+    # protonation, so what the PDBQT said (an amine's extra proton) must not reach the rebuild.
+    for atom in mol.GetAtoms():
+        atom.SetNumExplicitHs(0)
+        atom.SetNoImplicit(False)
+        atom.SetFormalCharge(0)
+        atom.SetNumRadicalElectrons(0)
     return mol
 
 

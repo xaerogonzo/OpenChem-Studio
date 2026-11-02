@@ -60,7 +60,7 @@ def test_the_restored_hash_handles_nested_tuples_and_negative_ints():
 
 @pytest.mark.parametrize(
     ("smiles", "formula"),
-    [("OC(=O)c1ccccc1", "C7H6O2"), ("CC[NH3+]", "C2H8N+"), ("CC(=O)[O-]", "C2H3O2-")],
+    [("OC(=O)c1ccccc1", "C7H6O2"), ("CC[NH3+]", "C2H8N+"), ("CC(=O)[O-]", "C2H3O2-"), ("c1cc[nH]c1", "C4H5N"), ("c1ccc2[nH]c3ccccc3c2c1", "C12H9N")],
 )
 def test_a_pose_rebuilt_on_its_template_has_every_hydrogen_and_no_radicals(smiles, formula):
     pytest.importorskip("rdkit")
@@ -74,15 +74,16 @@ def test_a_pose_rebuilt_on_its_template_has_every_hydrogen_and_no_radicals(smile
     template = Chem.MolFromSmiles(smiles)
     embedded = Chem.AddHs(template)
     AllChem.EmbedMolecule(embedded, randomSeed=7)
-    # a pose as the PDBQT hands it back: heavy atoms and coordinates, every bond single
-    pose = Chem.RWMol(Chem.RemoveHs(embedded))
+    # a pose as the PDBQT hands it back: coordinates, every bond single, no charges, and the
+    # hydrogens Vina kept (here all of them, so the amine and the acid disagree with the template)
+    pose = Chem.RWMol(embedded)
     for bond in pose.GetBonds():
         bond.SetBondType(Chem.BondType.SINGLE)
         bond.SetIsAromatic(False)
     for atom in pose.GetAtoms():
         atom.SetIsAromatic(False)
         atom.SetFormalCharge(0)
-        atom.SetNoImplicit(True)  # what a radical-prone, valence-unchecked read leaves behind
-    rebuilt = second.on_template(Chem.RemoveHs(template), pose.GetMol())
+    block = Chem.MolToMolBlock(pose.GetMol(), kekulize=False)
+    rebuilt = second.on_template(Chem.RemoveHs(template), second.heavy_pose(block))
     assert descriptors.CalcMolFormula(rebuilt) == formula
     assert all(atom.GetNumRadicalElectrons() == 0 for atom in rebuilt.GetAtoms())
