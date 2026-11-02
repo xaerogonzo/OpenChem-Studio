@@ -231,10 +231,11 @@ def test_the_real_registry_page_names_joback_and_detonation(qapp):
     # hydrogen-bond site table, the Fukui functions, which did not pass their own preregistered check, the proton affinity and the bond dissociation enthalpy, each LIMITED and shown since its driven run).
     assert sorted(page._row_ticks) == [
         "detonation", "hbond_sites", "ionisable_sites", "joback_properties",
-        "orca.bond_dissociation_enthalpy", "orca.fukui", "orca.proton_affinity", "orca.tautomer_distribution", "torsion_table",
+        "orca.bond_dissociation_enthalpy", "orca.fukui", "orca.proton_affinity", "orca.tautomer_distribution", "orca.tautomer_nmr", "torsion_table",
     ]
     assert page.offered("joback_properties") is False and page.offered("detonation") is False
     assert page.offered("orca.tautomer_distribution") is False
+    assert page.offered("orca.tautomer_nmr") is False
     assert page.offered("orca.fukui") is False
     assert page.offered("orca.proton_affinity") is True
     assert page.offered("orca.bond_dissociation_enthalpy") is True
