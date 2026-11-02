@@ -262,11 +262,13 @@ def _openai_messages(messages: list[AIMessage]) -> list[dict]:
 
 
 def _openai_create_kwargs(
-    request: AIRequest, default_model: str, tools: list[ToolDefinition] | None
+    request: AIRequest, default_model: str, tools: list[ToolDefinition] | None, temperature: float | None = None
 ) -> dict:
     messages = [{"role": "system", "content": request.system_context}]
     messages.extend(_openai_messages(request.messages))
     kwargs = dict(model=request.model or default_model, messages=messages)
+    if temperature is not None:
+        kwargs["temperature"] = temperature
     if tools:
         kwargs["tools"] = [
             {
@@ -304,10 +306,13 @@ class OpenAICompatibleProvider(AIProvider):
 
     supports_tools = True
 
-    def __init__(self, provider_id: str, default_model: str, base_url: str | None = None) -> None:
+    def __init__(self, provider_id: str, default_model: str, base_url: str | None = None, temperature: float | None = None) -> None:
         self.provider_id = provider_id
         self.default_model = default_model
         self._base_url = base_url
+        # None leaves the server's own default. A local model's default (Ollama's is 0.8) is loose for tool calling: a live qwen2.5:14b run
+        # invented about seventy settings for one calculator and drifted into Thai mid-reply.
+        self._temperature = temperature
 
     def _resolve_api_key(self, request: AIRequest) -> str:
         # Ollama's OpenAI-compatible endpoint doesn't check the key, but the
@@ -329,7 +334,7 @@ class OpenAICompatibleProvider(AIProvider):
         try:
             client = openai.OpenAI(api_key=api_key, base_url=self._base_url)
             response = client.chat.completions.create(
-                **_openai_create_kwargs(request, self.default_model, tools)
+                **_openai_create_kwargs(request, self.default_model, tools, self._temperature)
             )
         except Exception as exc:  # noqa: BLE001
             raise AIProviderError(f"{self.provider_id} request failed: {exc}") from exc
@@ -350,7 +355,7 @@ class OpenAICompatibleProvider(AIProvider):
             ) from exc
 
         api_key = self._resolve_api_key(request)
-        create_kwargs = _openai_create_kwargs(request, self.default_model, tools)
+        create_kwargs = _openai_create_kwargs(request, self.default_model, tools, self._temperature)
         create_kwargs["stream"] = True
 
         text_parts: list[str] = []
@@ -496,7 +501,7 @@ def build_default_providers(cli_path_resolver: Callable[[], str] | None = None) 
         "anthropic": AnthropicProvider(),
         "openai": OpenAICompatibleProvider("openai", default_model="gpt-4o-mini"),
         "ollama": OpenAICompatibleProvider(
-            "ollama", default_model="llama3.1", base_url="http://localhost:11434/v1"
+            "ollama", default_model="llama3.1", base_url="http://localhost:11434/v1", temperature=0.2
         ),
         "claude_cli": ClaudeCLIProvider(cli_path_resolver=cli_path_resolver),
     }
