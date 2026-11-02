@@ -197,6 +197,42 @@ class _PreviewCard(QFrame):
         self.cancel_clicked.emit(self.run_id)
 
 
+class _RunningCard(QFrame):
+    """An ORCA job a person approved and that is running now. Stop is the only control: it asks the Quantum Chemistry panel to cancel the job, as that panel's Cancel button does.
+
+    It replaces the preview card at Approve and goes when the run ends, whichever way. It starts nothing and a model has no call that presses it.
+    """
+
+    stop_clicked = Signal(str)
+
+    def __init__(self, run_id: str, description: str, parent: QWidget | None = None) -> None:
+        super().__init__(parent)
+        self.run_id = run_id
+        self.setObjectName("AIRunningCard")
+        self.setFrameShape(QFrame.Shape.StyledPanel)
+        self.body = QLabel(f"Running in the Quantum Chemistry panel: {description}", self)
+        self.body.setObjectName("AIRunningCardBody")
+        self.body.setTextFormat(Qt.TextFormat.PlainText)
+        self.body.setWordWrap(True)
+        self.stop_button = QPushButton("Stop job", self)
+        self.stop_button.setObjectName("AIRunningStop")
+        self.stop_button.clicked.connect(self._on_stop)
+        layout = QHBoxLayout(self)
+        layout.addWidget(self.body, 1)
+        layout.addWidget(self.stop_button)
+
+    def _on_stop(self, _checked: bool = False) -> None:
+        self.stop_button.setEnabled(False)
+        self.stop_button.setText("Stopping...")
+        self.stop_clicked.emit(self.run_id)
+
+    def stop_refused(self) -> None:
+        """The job could not be stopped from here (it had already ended, or the panel could not): the button comes back and the card says so."""
+        self.stop_button.setEnabled(True)
+        self.stop_button.setText("Stop job")
+        self.body.setText(self.body.text() + "\nIt could not be stopped from here; use the panel's Cancel button.")
+
+
 class _ScoreCard(QFrame):
     """A score the assistant proposed. Approve and Cancel are the ONLY way it is ever saved, and a model has no call that presses either.
 
@@ -459,6 +495,8 @@ class AIAssistantPanel(QWidget):
         #: molecule uuid -> its name, for each search the user approved and that has not ended: only these are told to the model afterwards.
         self._synthesis_awaiting: dict[str, str] = {}
         self._cards: dict[str, _PreviewCard] = {}
+        #: run id -> the card with a Stop button for an ORCA job a person approved and that has not ended.
+        self._running_cards: dict[str, _RunningCard] = {}
         self._service_cards: dict[str, _ServiceCard] = {}
         self._service_count = 0
         self._ledger_rows: dict[str, QListWidgetItem] = {}
@@ -823,7 +861,7 @@ class AIAssistantPanel(QWidget):
 
     def _sync_cards_host(self) -> None:
         """The strip of cards is there while any card is: a run's preview, a service-run description, a proposed score or a requested search."""
-        self._cards_host.setVisible(bool(self._cards or self._service_cards or self._score_cards or self._synthesis_cards))
+        self._cards_host.setVisible(bool(self._cards or self._running_cards or self._service_cards or self._score_cards or self._synthesis_cards))
 
     def service_preview_keys(self) -> list[str]:
         """Service-run previews on screen."""
@@ -992,12 +1030,44 @@ class AIAssistantPanel(QWidget):
         state = self._context.calculation_approvals.approve(run_id)
         calculator, molecule = self._runs.get(run_id, ("calculation", ""))
         if state is RunState.RUNNING:
-            labels = _QUANTUM_LABELS if calc_type_of(calculator) is not None else _STATE_LABELS
+            quantum = calc_type_of(calculator) is not None
+            labels = _QUANTUM_LABELS if quantum else _STATE_LABELS
             self._set_ledger(run_id, self._ledger_text(calculator, molecule, labels["running"]))
+            if quantum:
+                self._add_running_card(run_id, f"{calculator} on {molecule}")
 
     def _on_cancel(self, run_id: str) -> None:
         self._remove_card(run_id)
         self._context.calculation_approvals.cancel(run_id)
+
+    def _add_running_card(self, run_id: str, description: str) -> None:
+        """The Stop control for an approved ORCA job, until its run ends (`_on_run_finished`). A job that already ended by the time this is reached (a refusal said from inside the call) has no card."""
+        if self._context.calculation_approvals.state_of(run_id) is not RunState.RUNNING:
+            return
+        card = _RunningCard(run_id, description, self._cards_host)
+        card.stop_clicked.connect(self._on_stop)
+        self._running_cards[run_id] = card
+        self._cards_layout.addWidget(card)
+        self._cards_host.setVisible(True)
+
+    def _remove_running_card(self, run_id: str) -> None:
+        card = self._running_cards.pop(run_id, None)
+        if card is not None:
+            self._cards_layout.removeWidget(card)
+            card.setParent(None)
+            card.deleteLater()
+        self._sync_cards_host()
+
+    def running_run_ids(self) -> list[str]:
+        """Approved ORCA jobs on screen with a Stop button."""
+        return list(self._running_cards)
+
+    def _on_stop(self, run_id: str) -> None:
+        """The user pressed Stop on a running job. It stops the job; the run ends, and the model is told, when ORCA's record says it was cancelled."""
+        if not self._context.calculation_approvals.stop(run_id):
+            card = self._running_cards.get(run_id)
+            if card is not None:
+                card.stop_refused()
 
     def _on_run_finished(self, outcome: RunOutcome) -> None:
         """A run reached a final state (the host announces it once). GUI thread."""
@@ -1011,6 +1081,7 @@ class AIAssistantPanel(QWidget):
             self._ledger_text(calculator, molecule, label, outcome.message if state != "completed" else ""),
         )
         self._remove_card(outcome.run_id)
+        self._remove_running_card(outcome.run_id)
         if outcome.run_id not in self._awaiting:
             return  # an automatic run: the model already has its outcome from the tool call
         self._awaiting.discard(outcome.run_id)

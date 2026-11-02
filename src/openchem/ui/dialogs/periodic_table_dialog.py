@@ -1158,10 +1158,12 @@ class PeriodicTableDialog(QDialog):
             button.setToolTip(
                 f"{facts.name} — {note}" + "\n\n" + _HELP["element_cell"].text
             )
-            button.setStyleSheet(
+            # Through the theme so its 9 px follows the interface size; none of these colours is in the dark table.
+            theme.style(
+                button,
                 f"QToolButton {{ background: {fill}; border: 1px solid #999; "
                 f"font-size: 9px; color: #111; }}"
-                f"QToolButton:checked {{ border: 2px solid #000; font-weight: bold; }}"
+                f"QToolButton:checked {{ border: 2px solid #000; font-weight: bold; }}",
             )
 
     def _on_palette_changed(self, index: int) -> None:

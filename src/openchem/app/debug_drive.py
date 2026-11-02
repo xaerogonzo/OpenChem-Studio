@@ -4665,11 +4665,11 @@ class _Driver(QObject):
 
         `{"do": "synthesis_panel", "tag": "after", "press": "plan", "route": 1, "step": 0, "expect": {...}}`
 
-        `press` is `plan` or `cancel`: the button's own `click()`, so the path a person's press takes (the configuration read off the GUI
+        `press` is `plan`, `cancel` or `rescreen`: the button's own `click()`, so the path a person's press takes (the configuration read off the GUI
         thread, then `request_plan` through the one service path, where the regulatory gate runs first) is the path driven. `route` and
         `step` select a row of the real lists, and `scroll` ("end", or a pixel offset) scrolls the panel inside its dock, and `details_scroll` does the same for the text box of what the planner said. `expect` keys: `status_contains`, `target_contains`, `routes`, `routes_at_least`, `steps`,
         `picture` (a picture is on screen), `picture_message_contains`, `warning` (the earlier-structure line is showing),
-        `plan_enabled`, `cancel_enabled`, `limitations_contain`, `details_contain`, `expansion`, `stock`, `filter` (the list's current text).
+        `plan_enabled`, `cancel_enabled`, `rescreen_enabled`, `limitations_contain`, `limitations_exclude`, `details_contain`, `expansion`, `stock`, `filter` (the list's current text).
         """
         window = self._window
         window._on_panel_chosen("Synthesis")
@@ -4682,6 +4682,8 @@ class _Driver(QObject):
             panel._plan_button.click()
         elif press == "cancel":
             panel._cancel_button.click()
+        elif press == "rescreen":
+            panel._rescreen_button.click()
         elif press:
             logger.error("OPENCHEM_DRIVE: synthesis_panel -- unknown press %r", press)
         if "route" in step:
@@ -4708,6 +4710,7 @@ class _Driver(QObject):
             "picture_message": "" if panel._picture_message.isHidden() else panel._picture_message.text(),
             "plan_enabled": panel._plan_button.isEnabled(),
             "cancel_enabled": panel._cancel_button.isEnabled(),
+            "rescreen_enabled": panel._rescreen_button.isEnabled(),
             "expansion": panel._expansion.currentText(),
             "stock": panel._stock.currentText(),
             "filter": panel._filter.currentText(),
@@ -4716,7 +4719,7 @@ class _Driver(QObject):
         logger.warning("OPENCHEM_DRIVE: synthesis_panel %s | %s", tag, report)
         expect = step.get("expect") or {}
         problems: list[str] = []
-        for key in ("routes", "steps", "picture", "plan_enabled", "cancel_enabled", "expansion", "stock", "filter"):
+        for key in ("routes", "steps", "picture", "plan_enabled", "cancel_enabled", "rescreen_enabled", "expansion", "stock", "filter"):
             if key in expect and report[key] != expect[key]:
                 problems.append(f"{key} is {report[key]!r}, wanted {expect[key]!r}")
         if "routes_at_least" in expect and report["routes"] < int(expect["routes_at_least"]):
@@ -4731,6 +4734,9 @@ class _Driver(QObject):
             for wanted in ([expect[key]] if isinstance(expect.get(key), str) else expect.get(key, [])):
                 if wanted not in text:
                     problems.append(f"{key}: {wanted!r} is not in {text[:200]!r}")
+        for unwanted in ([expect["limitations_exclude"]] if isinstance(expect.get("limitations_exclude"), str) else expect.get("limitations_exclude", [])):
+            if unwanted in panel._limitations.text():
+                problems.append(f"limitations_exclude: {unwanted!r} is in the limitations")
         if problems:
             logger.error("OPENCHEM_DRIVE: EXPECT synthesis FAILED[%s] -- %s", tag, "; ".join(problems)[:800])
         else:
@@ -6105,7 +6111,9 @@ class _Driver(QObject):
         control then reads is logged beside what was asked, so a control
         that refused the value -- a bound, a question answered No -- says so.
         """
-        from PySide6.QtWidgets import QAbstractButton, QCheckBox, QLineEdit, QListWidget, QSpinBox, QWidget
+        from PySide6.QtWidgets import (
+            QAbstractButton, QCheckBox, QComboBox, QLineEdit, QListWidget, QSpinBox, QWidget,
+        )
 
         dialog = getattr(self, "_dialog", None)
         name = str(step.get("name", ""))
@@ -6113,7 +6121,13 @@ class _Driver(QObject):
             logger.error("OPENCHEM_DRIVE: control %s -- no dialog is open", name)
             return
         widget = dialog.findChild(QWidget, name)
-        if isinstance(widget, QCheckBox):
+        if isinstance(widget, QComboBox):
+            # A choice box (Interface size): the entry whose TEXT is asked for is made current, which fires `currentIndexChanged`.
+            index = widget.findText(str(step["value"]))
+            if index >= 0:
+                widget.setCurrentIndex(index)
+            now = widget.currentText()
+        elif isinstance(widget, QCheckBox):
             widget.setChecked(bool(step["value"]))
             now = widget.isChecked()
         elif isinstance(widget, QSpinBox):
@@ -9816,11 +9830,19 @@ class _Driver(QObject):
     def _do_ai_card(self, step: dict[str, Any]) -> None:
         """`{"do": "ai_card", "action": "approve" | "cancel" | "open" | "dismiss", "card": "score"}` -- press a REAL button on the
         first preview card the assistant is showing; `"card": "score"` means a score the assistant PROPOSED, whose Approve is the only way it is saved, and
-        `"card": "synthesis"` a search for synthesis routes it asked for, whose Approve is the only way the planner is asked (the regulatory gate speaks first)."""
+        `"card": "synthesis"` a search for synthesis routes it asked for, whose Approve is the only way the planner is asked (the regulatory gate speaks first),
+        and `"card": "running"` with `"action": "stop"` the Stop job button of an ORCA job a person approved and that is running."""
         panel = self._ai_panel()
         if panel is None:
             return
         action = str(step["action"])
+        if step.get("card") == "running":
+            cards = list(panel._running_cards.values())
+            if not cards or action != "stop":
+                logger.error("OPENCHEM_DRIVE: ai_card running %s -- no such card is showing", action)
+                return
+            cards[0].stop_button.click()
+            return
         if step.get("card") == "synthesis":
             cards = list(panel._synthesis_cards.values())
             button = None
@@ -9860,7 +9882,7 @@ class _Driver(QObject):
         """`{"do": "ai_expect", "tag": "x", "expect": {...}}` -- what the assistant panel shows, asserted.
 
         Keys: `ledger_contains` (substrings, each in some ledger row), `ledger_rows` (exact count),
-        `pending` (preview cards waiting), `service_previews` (service cards showing), `tool_results_contain`
+        `pending` (preview cards waiting), `running_cards` (Stop job cards showing), `service_previews` (service cards showing), `tool_results_contain`
         (substrings of what the tools returned to the model), `tool_results_exclude` (substrings that
         must NOT be in anything a tool returned: a person's free text that was never to leave), `tools_offered` (names the provider was
         given on its first request), `transcript_contains`, `notes` (how many previews' outcomes wait for
@@ -9882,6 +9904,8 @@ class _Driver(QObject):
                     problems.append(f"no ledger row contains {needle!r} (rows: {ledger})")
             if "ledger_rows" in expect and len(ledger) != expect["ledger_rows"]:
                 problems.append(f"{len(ledger)} ledger rows, wanted {expect['ledger_rows']}")
+            if "running_cards" in expect and len(panel.running_run_ids()) != expect["running_cards"]:
+                problems.append(f"{len(panel.running_run_ids())} running card(s), wanted {expect['running_cards']}")
             if "pending" in expect and len(panel.pending_run_ids()) != expect["pending"]:
                 problems.append(f"{len(panel.pending_run_ids())} previews waiting, wanted {expect['pending']}")
             if "service_previews" in expect and len(panel.service_preview_keys()) != expect["service_previews"]:

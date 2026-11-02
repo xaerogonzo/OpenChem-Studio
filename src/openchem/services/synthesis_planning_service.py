@@ -31,6 +31,10 @@ plans of this project's molecules, in the project's order) and `set_project(proj
   from the date it was made and was not repeated, because a screening takes about a tenth of a second a molecule (measured, 2026-10-21, 1 to 4 s a plan) and a project of a few plans must open at once;
 * **a plan for a molecule that is not in the project is dropped**, and so is one for a molecule the file no longer has.
 
+A RESTORED PLAN CAN BE SCREENED AGAIN, ON REQUEST (`request_rescreen`): the gate is asked first, as for any request, and then the plan's molecules are screened against the wider rulesets on the service's own
+thread (the one slot the molecule's search uses, so a plan and its re-screen are never both writing), the fresh screening replaces the old one and the sentence saying it was not repeated goes. A screening that
+cannot be made leaves the plan, and the sentence, as they were. It starts no planner process.
+
 A plan for a structure that was edited after it was made comes back as the EARLIER plan (`result_for`'s `is_current`), exactly as it does within a session: the stored target SMILES is compared with the drawing, not any session counter.
 """
 
@@ -77,6 +81,9 @@ SetupProvider = Callable[[], PlannerSetup | None]
 Gate = Callable[[str], GateDecision]
 Runner = Callable[..., RouteSet]
 Annotator = Callable[[RouteSet], RouteSet]
+
+#: How the sentence on a restored plan begins: it says the regulatory screen is from the date it was made and was not repeated. A re-screen removes it by this start.
+RESTORED_SCREEN_NOTE = "The regulatory screen of these routes was made on"
 
 
 class RequestOutcome(StrEnum):
@@ -173,6 +180,33 @@ class SynthesisPlanningService:
         self._pool.start(_PlanTask(self, target, setup, cancel, molecule.display_name))
         return RequestOutcome.STARTED
 
+    def request_rescreen(self, molecule: MoleculeModel, *, requested_by: str = "the user") -> RequestOutcome:
+        """Screen the stored plan of `molecule` against the wider rulesets again, off the GUI thread. Call from the GUI thread.
+
+        REJECTED when there is no plan with routes to screen. The gate is asked first, for the plan's own target, exactly as for a new search: a target the gate no longer permits replaces the plan with the
+        refusal (or `unscreened`), so a ruleset that has grown since the plan was made cannot leave routes on screen. Otherwise the molecule's slot is taken (`ALREADY_RUNNING` when it is busy) and the screening
+        runs on the service's thread; the result arrives as `SynthesisRouteReady`, as a search's does. No planner process is started.
+        """
+        uuid = molecule.uuid
+        with self._lock:
+            plan = self._results.get(uuid)
+        if plan is None or plan.target.molecule_uuid != uuid or plan.status is not RouteStatus.FOUND:
+            return RequestOutcome.REJECTED
+        if self._job_manager.is_active(JOB_KIND, uuid):
+            return RequestOutcome.ALREADY_RUNNING
+        decision = self._decide(plan.target.canonical_smiles)
+        if not decision.permits_planning:
+            status = RouteStatus.REFUSED if decision.outcome is GateOutcome.REFUSED else RouteStatus.UNSCREENED
+            return self._finish_now(RouteSet(status=status, target=plan.target, planner=plan.planner, reason=decision.refusal_text()))
+        cancel = threading.Event()
+        if not self._job_manager.try_start(JOB_KIND, uuid, cancel_callback=cancel.set):
+            return RequestOutcome.ALREADY_RUNNING
+        with self._lock:
+            self._cancels[uuid] = cancel
+        self._event_bus.publish(SynthesisJobStateChanged(molecule_uuid=uuid, state=CacheState.QUEUED, message=f"Waiting to screen the routes for {molecule.display_name} again (requested by {requested_by})"))
+        self._pool.start(_RescreenTask(self, plan, cancel, molecule.display_name))
+        return RequestOutcome.STARTED
+
     def cancel(self, molecule_uuid: str) -> bool:
         """Stop this molecule's search (or take it out of the queue). False when none is running."""
         return self._job_manager.cancel(JOB_KIND, molecule_uuid)
@@ -256,7 +290,7 @@ class SynthesisPlanningService:
         measured = (BENCHMARK_FINDING,) if plan.planner.planner == PLANNER_NAME else ()
         dates = sorted({s.screened_on for s in plan.node_screenings if s.screened})
         screen_note = (
-            (f"The regulatory screen of these routes was made on {', '.join(dates)} and was not repeated when this plan was read from the project file, so a ruleset changed since then is not reflected here.",)
+            (f"{RESTORED_SCREEN_NOTE} {', '.join(dates)} and was not repeated when this plan was read from the project file, so a ruleset changed since then is not reflected here.",)
             if dates
             else ()
         )
@@ -296,6 +330,17 @@ class SynthesisPlanningService:
         except Exception as exc:  # noqa: BLE001 - an alert is an annotation; losing the plan over one would be worse
             logger.warning("Annotating a plan failed: %s", exc)
             return route_set
+
+    def _rescreened(self, plan: RouteSet) -> RouteSet:
+        """`plan` screened again, without the sentence that said its screening was not repeated: or `plan` exactly as it was when the annotator itself failed, which keeps its old screening AND the sentence."""
+        try:
+            fresh = self._annotator(plan)
+        except Exception as exc:  # noqa: BLE001 - a screening that cannot be made leaves the plan as it was, and says so by still carrying its old date
+            logger.warning("Screening a stored plan again failed: %s", exc)
+            return plan
+        if fresh.node_screenings is plan.node_screenings:
+            return plan
+        return replace(fresh, limitations=tuple(s for s in fresh.limitations if not s.startswith(RESTORED_SCREEN_NOTE)))
 
     def _finish_now(self, route_set: RouteSet) -> RequestOutcome:
         """Store and announce a result that needed no process."""
@@ -339,3 +384,26 @@ class _PlanTask(QRunnable):
             route_set = RouteSet(status=RouteStatus.FAILED, target=target, planner=_not_started(self._setup), termination=SearchTermination.FAILED, reason=f"The planner run failed unexpectedly ({type(exc).__name__}).")
         route_set = service._annotated(route_set)
         service._store_and_announce(route_set)
+
+
+class _RescreenTask(QRunnable):
+    """One re-screening of a stored plan, on the service's own thread: nothing is read but the plan it was handed."""
+
+    def __init__(self, service: SynthesisPlanningService, plan: RouteSet, cancel: threading.Event, name: str) -> None:
+        super().__init__()
+        self._service = service
+        self._plan = plan
+        self._cancel = cancel
+        self._name = name
+
+    def run(self) -> None:
+        service, plan = self._service, self._plan
+        uuid = plan.target.molecule_uuid
+        if self._cancel.is_set():
+            # Cancelled while waiting its turn: the plan stays exactly as it was.
+            service._store_and_announce(plan)
+            return
+        message = f"Screening the routes for {self._name} again"
+        service._job_manager.update_message(JOB_KIND, uuid, message)
+        service._event_bus.publish(SynthesisJobStateChanged(molecule_uuid=uuid, state=CacheState.RUNNING, message=message))
+        service._store_and_announce(service._rescreened(plan))

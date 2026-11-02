@@ -1,0 +1,29 @@
+[
+  {"do": "smiles", "smiles": "O", "name": "Water", "after_ms": 1500},
+  {"do": "select", "molecule": -1, "after_ms": 3000},
+  {"do": "conformers", "count": 1, "after_ms": 8000},
+  {"do": "conformer_report", "tag": "a-conformer-to-run-on", "expect": {"conformers": 1}},
+  {"do": "panel", "id": "Quantum_Chemistry", "after_ms": 1000},
+
+  {"do": "ai_send", "text": "Optimize this molecule.",
+   "script": [
+     {"tool": "run_calculator", "input": {"calculator_id": "orca.opt_freq", "parameters": {"method_basis": "PBE0 def2-TZVP"}}},
+     {"text": "It is waiting for your approval."}
+   ], "after_ms": 3000},
+  {"do": "ai_expect", "tag": "a-card-and-no-stop-button-yet", "expect": {"pending": 1, "running_cards": 0}},
+
+  {"do": "ai_card", "action": "approve", "after_ms": 3000},
+  {"do": "ai_expect", "tag": "approving-leaves-a-running-card-with-a-stop-button",
+   "expect": {"pending": 0, "running_cards": 1, "notes": 0, "ledger_contains": ["running in the Quantum Chemistry panel"]}},
+  {"do": "shot", "path": "benchmarks/visual/artifacts/ai_orca_stop_running.png", "after_ms": 300},
+
+  {"do": "ai_card", "card": "running", "action": "stop", "after_ms": 1000},
+  {"do": "qc_wait", "timeout_ms": 120000, "after_ms": 2000},
+  {"do": "qc_panel_report", "tag": "the-panel-recorded-it-as-cancelled", "expect": {"run_status": "cancelled"}},
+  {"do": "ai_expect", "tag": "the-run-ended-cancelled-and-the-model-is-told",
+   "expect": {"running_cards": 0, "notes": 1, "ledger_contains": ["cancelled while running"],
+              "notes_contain": ["ended 'cancelled'", "a person stopped it", "State no value you have not read."]}},
+
+  {"do": "expect_clean"},
+  {"do": "quit"}
+]

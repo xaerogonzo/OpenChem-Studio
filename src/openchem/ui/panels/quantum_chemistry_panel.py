@@ -832,6 +832,7 @@ class _BondChoiceDialog(QDialog):
         intro.setWordWrap(True)
         layout.addWidget(intro)
         self._boxes: list[QCheckBox] = []
+        ticked = set(bond_dissociation.default_bond_atoms(bonds))
         for number, bond in enumerate(bonds):
             note = ""
             if bond["next_to_heteroatom"]:
@@ -842,7 +843,7 @@ class _BondChoiceDialog(QDialog):
                 note = " -- no bond of this kind was measured"
             box = QCheckBox(f"{bond['label']}{note}", self)
             box.setObjectName(f"bondChoice{number}")
-            box.setChecked(number < bond_dissociation.MAX_BONDS)
+            box.setChecked(bond["atom"] in ticked)
             box.toggled.connect(self._update_run_button)
             layout.addWidget(box)
             self._boxes.append(box)
@@ -2143,6 +2144,13 @@ class QuantumChemistryPanel(QWidget):
             return
         self._begin_pending(molecule, prepared)
         start_run(self._quantum_chemistry_service, prepared)
+
+    def cancel_assistant_run(self, molecule_uuid: str) -> bool:
+        """Stop the job running for `molecule_uuid`, by the service call this panel's Cancel button makes. False when none is running for it; the run record that follows says it was cancelled."""
+        if not self._quantum_chemistry_service.has_active_job(molecule_uuid):
+            return False
+        self._quantum_chemistry_service.cancel(molecule_uuid)
+        return True
 
     def start_assistant_run(self, molecule_uuid: str, choice: RunChoice, input_fingerprint: str) -> str:
         """Start the job an assistant's card described, after a person approved it. "" when it was handed to the service, otherwise the sentence that says why not (nothing started, nothing changed).

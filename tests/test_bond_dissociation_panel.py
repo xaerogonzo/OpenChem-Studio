@@ -115,9 +115,10 @@ def test_the_dialog_lists_every_bond_ticked_and_marks_the_classes_measured_to_ru
 
 def test_the_dialog_will_not_run_with_nothing_ticked_or_more_than_the_limit(qapp):
     dialog = panel_module._BondChoiceDialog(bd.describe_bonds("CC(O)C(N)CS"), None)
-    assert len(dialog._boxes) > bd.MAX_BONDS and dialog.chosen_atoms() == [b["atom"] for b in bd.describe_bonds("CC(O)C(N)CS")[: bd.MAX_BONDS]]
+    bonds = bd.describe_bonds("CC(O)C(N)CS")
+    assert len(dialog._boxes) > bd.MAX_BONDS and dialog.chosen_atoms() == bd.default_bond_atoms(bonds)
     assert dialog._run.isEnabled()
-    dialog._boxes[bd.MAX_BONDS].setChecked(True)
+    next(box for box in dialog._boxes if not box.isChecked()).setChecked(True)
     assert not dialog._run.isEnabled() and "between 1 and" in dialog._run.toolTip()
     for box in dialog._boxes:
         box.setChecked(False)

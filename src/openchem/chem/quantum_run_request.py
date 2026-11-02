@@ -283,7 +283,7 @@ class PreparedBondDissociation:
     #: the heavy atom of each bond class that will be computed, in the order the choice dialog shows them
     atoms: tuple[int, ...]
     labels: tuple[str, ...]
-    #: the bond classes the run does NOT compute because one run takes at most `MAX_BONDS` (the dialog ticks the first ones, so does a card)
+    #: the bond classes the run does NOT compute because one run takes at most `MAX_BONDS` (the dialog ticks `default_bond_atoms`, so does a card)
     left_out: tuple[str, ...]
     jobs: int
     scope_warnings: tuple[str, ...]
@@ -322,13 +322,13 @@ def bond_choices(smiles: str) -> list[dict] | RunRefusal:
 def prepare_bond_dissociation(smiles: str, atoms: list[int] | None = None) -> PreparedBondDissociation | RunRefusal:
     """Whether the protocol can run on `smiles` for `atoms`, and what it would take. Starts nothing.
 
-    `atoms` None is the choice dialog's own default: the first `MAX_BONDS` bond classes, all of them when there are no more. Which bond is the WEAKEST is what the run finds, so there is nothing to
+    `atoms` None is the choice dialog's own default (`default_bond_atoms`): all the bond classes, or when there are more than `MAX_BONDS` a heteroatom X-H before a C-H. Which bond is the WEAKEST is what the run finds, so there is nothing to
     pre-select. A molecule it cannot compute is refused with its reason; one it can compute but the benchmark did not measure comes back with its warnings (computed anyway, an estimate).
     """
     classes = bond_choices(smiles)
     if isinstance(classes, RunRefusal):
         return classes
-    chosen = [b["atom"] for b in classes[: bond_dissociation.MAX_BONDS]] if atoms is None else list(atoms)
+    chosen = bond_dissociation.default_bond_atoms(classes) if atoms is None else list(atoms)
     try:
         sequence = bond_dissociation.Sequence(smiles, chosen)
     except ProtonAffinityOutOfScope as refusal:

@@ -93,9 +93,29 @@ def colour(light_literal: str, look: EffectiveAppearance | None = None) -> str:
     return _DARK_FOR_LIGHT.get(_normal(light_literal), light_literal)
 
 
+#: A pixel font size inside a stylesheet. The only place a size is written as a number, and the application font does not
+#: reach it, so it is scaled here with the interface size (`set_scale`).
+_FONT_PX = re.compile(r"(font-size:\s*)(\d+(?:\.\d+)?)px")
+
+#: The factor the interface size asks for; 1.0 is the platform's size and leaves every stylesheet byte for byte as written.
+_scale = 1.0
+
+
+def scale() -> float:
+    return _scale
+
+
+def _scaled(stylesheet: str) -> str:
+    if _scale == 1.0:
+        return stylesheet
+    return _FONT_PX.sub(lambda m: f"{m.group(1)}{max(1, round(float(m.group(2)) * _scale))}px", stylesheet)
+
+
 def resolve(stylesheet: str, look: EffectiveAppearance | None = None) -> str:
-    """`stylesheet`, written for a light window, as it should read in `look` (default: the one on screen)."""
+    """`stylesheet`, written for a light window at the default size, as it should read in `look` (default: the one on
+    screen) and at the interface size on screen."""
     look = _effective if look is None else look
+    stylesheet = _scaled(stylesheet)
     if look is EffectiveAppearance.LIGHT:
         return stylesheet
     return _HEX.sub(lambda match: _DARK_FOR_LIGHT.get(_normal(match.group(0)), match.group(0)), stylesheet)
@@ -166,6 +186,28 @@ def set_effective(look: EffectiveAppearance) -> None:
         except RuntimeError:
             # Its C++ object went before the Python wrapper did. One dead follower must not stop the
             # switch for every follower after it.
+            _registry.pop(key, None)
+
+
+def set_scale(factor: float) -> None:
+    """Record the interface size's factor and rewrite every stylesheet that carries a pixel font size.
+
+    Only widgets given their sheet through `style()` follow; a repeat that changes nothing does nothing.
+    """
+    global _scale
+    if factor == _scale:
+        return
+    _scale = factor
+    for key, (ref, apply) in list(_registry.items()):
+        if key[1] != "style":
+            continue
+        widget = ref()
+        if widget is None:
+            _registry.pop(key, None)
+            continue
+        try:
+            apply(widget)
+        except RuntimeError:
             _registry.pop(key, None)
 
 

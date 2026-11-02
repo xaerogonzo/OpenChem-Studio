@@ -393,11 +393,11 @@ Tested by `tests/test_calculation_host_orca.py`, `tests/test_quantum_start_assis
 
 ## 19. Bond dissociation: a card for a fixed protocol with one choice (2026-10-31; `chem/quantum_run_request.prepare_bond_dissociation`)
 
-**What differs from section 18.** `orca.bond_dissociation_enthalpy` is a fixed protocol like proton affinity (the benchmarked method is the only one, it runs on the drawing, every structure is embedded fresh, no stored conformer), but it has ONE choice: which X-H bonds to compute, each costing a radical optimization per conformer. The button asks it in a dialog. A card cannot ask, so it states a default: the dialog's own, every bond class up to the most one run takes (`bond_dissociation.MAX_BONDS`, six), in the order the dialog shows them.
+**What differs from section 18.** `orca.bond_dissociation_enthalpy` is a fixed protocol like proton affinity (the benchmarked method is the only one, it runs on the drawing, every structure is embedded fresh, no stored conformer), but it has ONE choice: which X-H bonds to compute, each costing a radical optimization per conformer. The button asks it in a dialog. A card cannot ask, so it states a default: the dialog's own, every bond class up to the most one run takes (`bond_dissociation.MAX_BONDS`, six); past six, a heteroatom X-H (O-H, N-H, S-H) is kept before a C-H (`bond_dissociation.default_bond_atoms`, which the dialog ticks and the card states), in the order the dialog shows them.
 
 **Why not "the weakest bond".** That was the first proposal, and it cannot be done: which bond is the weakest is what the calculation finds, so there is nothing to pre-select before it runs. The default is every class instead, which is what finds it. The result still states the weakest bond computed and every bond's own value.
 
-**What the card says.** The bonds it would compute, in the dialog's wording; the number of ORCA jobs (the hydrogen atom, the molecule and a radical per bond); whether the molecule is outside what the benchmark measured; and, when there are more than six classes, the ones it LEAVES OUT and that the Quantum Chemistry panel's Bond dissociation button is where to choose them (a seven-class molecule such as hexanol leaves out its O-H, since the dialog ticks the first six; the card says so and does not hide it). `PreparedBondDissociation.card_text` is the card's text, `question` the dialog's, and the dialog's own wording is unchanged.
+**What the card says.** The bonds it would compute, in the dialog's wording; the number of ORCA jobs (the hydrogen atom, the molecule and a radical per bond); whether the molecule is outside what the benchmark measured; and, when there are more than six classes, the ones it LEAVES OUT and that the Quantum Chemistry panel's Bond dissociation button is where to choose them (a seven-class molecule such as hexanol leaves out one C-H class; the card says so and does not hide it). `PreparedBondDissociation.card_text` is the card's text, `question` the dialog's, and the dialog's own wording is unchanged.
 
 **The button's rules moved first, as in sections 16 and 18.** `bond_choices`, `prepare_bond_dissociation(smiles, atoms=None)`, `prepare_bond_dissociation_for` and `start_bond_dissociation` hold the structure check, the scope refusal, the job count and the question; the button keeps its dialog, its threshold (`_BOND_DISSOCIATION_CONFIRM_ABOVE`, which a test lowers for one panel) and its bookkeeping (`_begin_bond_dissociation`), and the 16 tests of `tests/test_bond_dissociation_panel.py` pass unchanged.
 
@@ -422,6 +422,16 @@ Tested by `tests/test_quantum_run_request.py`, `tests/test_calculation_host_orca
 **Still not here:** Fukui (experimental, hidden by default); the tautomer NMR step, which needs a finished distribution to start from.
 
 Tested by `tests/test_quantum_run_request.py`, `tests/test_calculation_host_orca.py`, `tests/test_quantum_start_assistant_run.py` and `tests/test_ai_assistant_orca_dispatch.py`, driven on real ORCA (acetone) by `benchmarks/visual/ai_tautomer_dispatch.json`.
+
+## 21. Stopping a running job from the assistant's panel (2026-11-01; `CalculationHost.stop`, `PluginCalculationApprovals.stop`)
+
+**What it is.** An ORCA job a person approved ran for minutes or hours with no control in the assistant's panel: the card went at Approve, and the only way to stop the job was the Quantum Chemistry panel's Cancel button. Approving an ORCA job now replaces the card with a **running card** (`_RunningCard`: what is running and a **Stop job** button) that stays until the run ends, whichever way. It starts nothing and decides nothing.
+
+**It is a request to stop, and the run ends as every other run does.** `CalculationHost.stop(run_id)` is a GUI-thread call that finds the molecule the run holds, and asks the panel (`QuantumStarter.cancel_assistant_run`, which makes the service call the panel's own Cancel button makes). It does not end the run: ORCA's run record arrives with its CANCELLED status and `_on_quantum_run_completed` settles it, so the ledger, the note to the model (`ended 'cancelled'`, "a person stopped it", no numbers) and the stored run all say one thing and cannot disagree. `stop` is not `cancel`: `cancel` declines a preview that has not started and still refuses a running run. A run that is not running, whose job has ended, that holds no ORCA job (a registry calculator cannot be stopped midway), or whose panel has nothing active for the molecule is not stoppable: `stop` answers False and the card says so and gives the button back.
+
+**Who may press it.** `stop` is on the approvals handle (`context.calculation_approvals`), which a tool is never given, as `approve` and `cancel` are; `tests/test_ai_assistant_orca_dispatch.py` holds that the tools' handle and the bridge have no `stop` and no `cancel_assistant_run`, and `tests/test_plugin_calculations.py` holds the approvals face to exactly its calls.
+
+Tested by `tests/test_calculation_host_orca.py`, `tests/test_ai_assistant_orca_dispatch.py` and `tests/test_quantum_start_assistant_run.py`.
 
 ## 14. Goals: the wizard's table, as knowledge and never as a way to run
 

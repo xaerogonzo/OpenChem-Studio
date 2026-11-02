@@ -152,7 +152,7 @@ class SubstanceCard(QFrame):
         layout.setSpacing(2)
 
         self._name = QLabel(NOTHING_SELECTED, self)
-        self._name.setStyleSheet("font-size: 13px; font-weight: bold;")
+        theme.style(self._name, "font-size: 13px; font-weight: bold;")
         self._name.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
         layout.addWidget(self._name)
 

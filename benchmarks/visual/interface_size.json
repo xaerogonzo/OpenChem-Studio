@@ -1,0 +1,27 @@
+[
+  {"do": "smiles", "smiles": "CCO", "name": "Interface size", "after_ms": 800},
+  {"do": "select", "molecule": -1, "after_ms": 2000},
+  {"do": "panel", "id": "Properties", "after_ms": 800},
+  {"do": "shot", "path": "artifacts/visual/interface_size_default_light.png", "after_ms": 500},
+
+  {"do": "dialog", "name": "SettingsDialog", "real": true, "section": "appearance", "width": 780, "height": 520, "after_ms": 1000},
+  {"do": "control", "name": "interfaceSizeChoice", "value": "Large", "after_ms": 1500},
+  {"do": "shot", "path": "artifacts/visual/interface_size_settings_large.png", "widget": "dialog", "after_ms": 500},
+  {"do": "close_dialog", "after_ms": 500},
+  {"do": "shot", "path": "artifacts/visual/interface_size_large_light.png", "after_ms": 800},
+
+  {"do": "dialog", "name": "PeriodicTableDialog", "after_ms": 1200},
+  {"do": "shot", "path": "artifacts/visual/interface_size_periodic_large.png", "widget": "dialog", "after_ms": 500},
+  {"do": "close_dialog", "after_ms": 500},
+
+  {"do": "appearance", "choice": "dark", "via": "menu", "after_ms": 2500},
+  {"do": "shot", "path": "artifacts/visual/interface_size_large_dark.png", "after_ms": 800},
+  {"do": "appearance", "choice": "system", "via": "menu", "after_ms": 1500},
+
+  {"do": "dialog", "name": "SettingsDialog", "real": true, "section": "appearance", "width": 780, "height": 520, "after_ms": 1000},
+  {"do": "control", "name": "interfaceSizeChoice", "value": "Default", "after_ms": 1500},
+  {"do": "close_dialog", "after_ms": 500},
+  {"do": "shot", "path": "artifacts/visual/interface_size_back_to_default.png", "after_ms": 800},
+  {"do": "expect_clean"},
+  {"do": "quit"}
+]
