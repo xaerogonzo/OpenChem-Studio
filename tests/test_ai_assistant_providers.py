@@ -105,7 +105,7 @@ def test_openai_provider_with_no_key_and_no_base_url_raises():
 
 def test_build_default_providers_has_four_backends():
     provider_map = providers_mod.build_default_providers()
-    assert set(provider_map) == {"anthropic", "openai", "ollama", "claude_cli"}
+    assert set(provider_map) == {"anthropic", "openai", "ollama", "claude_cli", "cursor_cli"}
 
 
 def test_claude_cli_provider_does_not_require_an_api_key():
@@ -559,3 +559,84 @@ def test_with_no_tools_the_cli_is_still_a_plain_text_completion_with_the_same_is
     assert args[args.index("--output-format") + 1] == "text" and args[args.index("--system-prompt") + 1] == "PANEL PROMPT"
     assert "--system-prompt-file" not in args and "--disable-slash-commands" in args and args[args.index("--tools") + 1] == ""
     assert response.text == "plain reply" and response.tool_calls == [] and seen["kwargs"]["input"].endswith("\n\nAssistant:")
+
+
+# --- the Cursor CLI: the same protocol, on a coding agent whose own tools cannot be switched off ---------------------------------------------------------------
+
+
+def _cursor_request(**kw):
+    return providers_mod.AIRequest(system_context="PANEL PROMPT", messages=[providers_mod.AIMessage("user", "hi")], model=kw.get("model", ""), api_key="")
+
+
+def _run_cursor(provider, request, tools, stdout="ok", returncode=0, stderr=""):
+    """Call `complete` with `subprocess.run` replaced; returns the response and what the call was given, including the permissions file as it stood while the process ran."""
+    seen = {}
+
+    def fake_run(args, **kwargs):
+        seen["args"], seen["kwargs"] = args, kwargs
+        permissions = Path(kwargs["cwd"]) / ".cursor" / "cli.json"
+        seen["permissions"] = _json.loads(permissions.read_text(encoding="utf-8")) if permissions.is_file() else None
+        return MagicMock(returncode=returncode, stdout=stdout, stderr=stderr)
+
+    with patch.object(providers_mod.CursorCLIProvider, "_resolve_executable", return_value="cursor-agent"), patch("subprocess.run", side_effect=fake_run):
+        response = provider.complete(request, tools)
+    return response, seen
+
+
+def test_the_cursor_cli_is_a_provider_that_takes_tools_and_no_api_key():
+    provider = providers_mod.build_default_providers()["cursor_cli"]
+    assert isinstance(provider, providers_mod.CursorCLIProvider)
+    assert (provider.provider_id, provider.requires_api_key, provider.supports_tools, provider.default_model) == ("cursor_cli", False, True, "")
+
+
+def test_the_cursor_cli_says_how_to_install_it_when_it_is_not_found():
+    provider = providers_mod.CursorCLIProvider(cli_path_resolver=lambda: "")
+    with patch("shutil.which", return_value=None), pytest.raises(providers_mod.AIProviderError, match="cursor-agent"):
+        provider.complete(_cursor_request(), None)
+
+
+def test_a_configured_cursor_path_beats_the_path_lookup(tmp_path):
+    configured = tmp_path / "cursor-agent.cmd"
+    configured.write_text("x")
+    provider = providers_mod.CursorCLIProvider(cli_path_resolver=lambda: str(configured))
+    with patch("shutil.which", return_value="/elsewhere/cursor-agent"):
+        assert provider._resolve_executable() == str(configured)
+
+
+def test_a_cursor_call_is_read_only_in_a_scratch_folder_that_denies_every_permission_that_matters():
+    """Measured 2026-11-02: without the permissions file the agent read a file outside its folder in read-only mode, and with it the read was refused (shell and write were refused either way)."""
+    provider = providers_mod.CursorCLIProvider(cli_path_resolver=lambda: "")
+    response, seen = _run_cursor(provider, _cursor_request(model="composer-2.5"), None, stdout="plain reply\n")
+    args = seen["args"]
+    assert args == ["cursor-agent", "-p", "--output-format", "text", "--mode", "ask", "--trust", "--model", "composer-2.5"]
+    assert "--force" not in args and "--yolo" not in args and "--sandbox" not in args, "force would allow commands; the sandbox flag fails on Windows"
+    deny = seen["permissions"]["permissions"]["deny"]
+    assert seen["permissions"]["permissions"]["allow"] == [] and deny == providers_mod._CURSOR_DENY
+    for needle in ("Read(", "Write(", "Shell(", "WebFetch(", "Mcp("):
+        assert any(rule.startswith(needle) for rule in deny), needle
+    cwd = Path(seen["kwargs"]["cwd"])
+    assert cwd.name.startswith("openchem-cursor-cli-") and not cwd.exists(), "a scratch directory, removed afterwards"
+    assert response.text == "plain reply"
+
+
+def test_the_cursor_prompt_carries_the_system_prompt_and_the_conversation_on_stdin_because_it_has_no_system_prompt_option():
+    provider = providers_mod.CursorCLIProvider(cli_path_resolver=lambda: "")
+    _response, seen = _run_cursor(provider, _cursor_request(), None)
+    stdin = seen["kwargs"]["input"]
+    assert "--system-prompt" not in seen["args"] and "--system-prompt-file" not in seen["args"]
+    assert stdin.startswith("You are being used as a chat backend. Your own tools") and "PANEL PROMPT" in stdin
+    assert stdin.index("PANEL PROMPT") < stdin.index("=== CONVERSATION ===") < stdin.index("User: hi") and stdin.endswith("\n\nAssistant:")
+
+
+def test_a_cursor_reply_with_a_tool_block_becomes_tool_calls_by_the_same_parser():
+    provider = providers_mod.CursorCLIProvider(cli_path_resolver=lambda: "")
+    reply = "On it.\n" + _block([{"name": "run_calculator", "input": {"calculator_id": "orca.sp"}}]) + "\n"
+    response, seen = _run_cursor(provider, _cursor_request(), _CLI_TOOLS, stdout=reply)
+    assert response.text == "On it." and [(c.name, c.input) for c in response.tool_calls] == [("run_calculator", {"calculator_id": "orca.sp"})]
+    assert "HOW TO USE THE TOOLS IN THIS CHAT" in seen["kwargs"]["input"] and "run_calculator" in seen["kwargs"]["input"]
+
+
+def test_a_cursor_error_is_an_error_with_its_own_words():
+    provider = providers_mod.CursorCLIProvider(cli_path_resolver=lambda: "")
+    with pytest.raises(providers_mod.AIProviderError, match="Cursor CLI exited with an error: Not logged in"):
+        _run_cursor(provider, _cursor_request(), None, stdout="", returncode=1, stderr="Not logged in\n")

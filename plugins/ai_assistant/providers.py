@@ -579,8 +579,89 @@ class ClaudeCLIProvider(AIProvider):
         return AIResponse(text=result.stdout.strip())
 
 
-def build_default_providers(cli_path_resolver: Callable[[], str] | None = None) -> dict[str, AIProvider]:
-    """The four backends confirmed for V1. `cli_path_resolver` lets the
+#: What Cursor's agent is denied, in the permissions file written into each call's scratch directory (`.cursor/cli.json`). Its print mode cannot turn its own tools off (the Claude CLI's
+#: `--tools ""` has no counterpart). **WHAT WAS MEASURED, 2026-11-02, Cursor CLI 2026.10.22 (`tools/check_cursor_cli_isolation.py`, with a control run that has no file):** the Read rule is what stops a
+#: read, since in read-only `--mode ask` the agent read a file OUTSIDE its working directory and quoted it without the file, and was refused with it. A shell command and a write were
+#: refused WITH OR WITHOUT the file (ask mode refuses them, and on the machine it was measured on a user hook also sits on Shell), so the Write, Shell, WebFetch and Mcp rules are defence in
+#: depth that was not shown to do anything here. It guards a chat backend that is handed molecule names and tool results, text a person did not write. The permission syntax is Cursor's to change:
+#: run the check when Cursor updates.
+_CURSOR_DENY = ["Read(**)", "Write(**)", "Shell(*)", "WebFetch(*)", "Mcp(*:*)"]
+
+#: The arguments of every call, before `--model`: print mode, plain text, read-only, trusting the scratch folder it runs in. Shared with `tools/check_cursor_cli_isolation.py` so the check runs exactly what a call runs.
+_CURSOR_ARGS = ("-p", "--output-format", "text", "--mode", "ask", "--trust")
+
+
+class CursorCLIProvider(AIProvider):
+    """Runs prompts through a locally-installed Cursor CLI (`cursor-agent`) on the person's Cursor login, with no API key: a second subscription-backed route beside `ClaudeCLIProvider`,
+    and the one that reaches Cursor's other models. It takes this application's tools through the same written protocol (`_cli_system_prompt`, `_parse_cli_reply`).
+
+    **IT IS A CODING AGENT USED AS A CHAT BACKEND, AND ITS TOOLS CANNOT BE SWITCHED OFF.** What this provider does about that: print mode, read-only `--mode ask`, a throwaway working directory that
+    holds a permissions file denying read, write, shell, web and MCP (`_CURSOR_DENY`, measured to be needed), and a line in the prompt saying its own tools are disabled. The Windows sandbox flag is
+    not available. It has no system-prompt option, so the system prompt and the conversation travel together on stdin. It uses the person's Cursor plan (a model's cost differs; the default is
+    whatever Cursor is configured to use).
+    """
+
+    provider_id = "cursor_cli"
+    default_model = ""  # blank = whatever `cursor-agent` itself is configured to use
+    requires_api_key = False
+    supports_tools = True
+
+    def __init__(self, cli_path_resolver: Callable[[], str] | None = None) -> None:
+        self._cli_path_resolver = cli_path_resolver
+
+    def _resolve_executable(self) -> str | None:
+        configured = self._cli_path_resolver() if self._cli_path_resolver else ""
+        if configured and Path(configured).is_file():
+            return configured
+        return shutil.which("cursor-agent") or shutil.which("cursor-agent.cmd") or shutil.which("cursor-agent.exe")
+
+    def complete(self, request: AIRequest, tools: list[ToolDefinition] | None = None) -> AIResponse:
+        executable = self._resolve_executable()
+        if executable is None:
+            raise AIProviderError(
+                "Cursor CLI ('cursor-agent') was not found on PATH. Install it from "
+                "https://cursor.com/cli, run 'cursor-agent login' once to sign in, then set its path "
+                "in Configure... if it's still not found automatically."
+            )
+
+        system = _cli_system_prompt(request, tools) if tools else request.system_context
+        prompt = (
+            "You are being used as a chat backend. Your own tools (file, shell, search, web) are disabled in this session: do not try to use them, and answer only from the conversation below.\n\n"
+            f"{system}\n\n=== CONVERSATION ===\n\n{_render_transcript_prompt(request)}"
+        )
+        with tempfile.TemporaryDirectory(prefix="openchem-cursor-cli-") as scratch:
+            settings_dir = Path(scratch) / ".cursor"
+            settings_dir.mkdir()
+            (settings_dir / "cli.json").write_text(json.dumps({"permissions": {"allow": [], "deny": _CURSOR_DENY}}), encoding="utf-8")
+            args = [executable, *_CURSOR_ARGS]
+            if request.model:
+                args += ["--model", request.model]
+            try:
+                result = subprocess.run(
+                    args,
+                    input=prompt,
+                    capture_output=True,
+                    text=True,
+                    encoding="utf-8",
+                    errors="replace",
+                    cwd=scratch,
+                    timeout=180,
+                )
+            except (OSError, subprocess.SubprocessError) as exc:
+                raise AIProviderError(f"Failed to run Cursor CLI: {exc}") from exc
+
+        if result.returncode != 0:
+            raise AIProviderError(
+                "Cursor CLI exited with an error: "
+                f"{result.stderr.strip() or result.stdout.strip() or f'exit code {result.returncode}'}"
+            )
+        if tools:
+            return _parse_cli_reply(result.stdout, tools)
+        return AIResponse(text=result.stdout.strip())
+
+
+def build_default_providers(cli_path_resolver: Callable[[], str] | None = None, cursor_path_resolver: Callable[[], str] | None = None) -> dict[str, AIProvider]:
+    """The five backends. `cli_path_resolver` lets the
     caller (plugin.py) supply a live Settings-backed lookup for a
     manually-configured `claude` executable path, same pattern as
     VinaDockingProvider's `executable_path_resolver` in core -- optional
@@ -593,4 +674,5 @@ def build_default_providers(cli_path_resolver: Callable[[], str] | None = None) 
             "ollama", default_model="llama3.1", base_url="http://localhost:11434/v1", temperature=0.2
         ),
         "claude_cli": ClaudeCLIProvider(cli_path_resolver=cli_path_resolver),
+        "cursor_cli": CursorCLIProvider(cli_path_resolver=cursor_path_resolver),
     }
