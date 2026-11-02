@@ -131,8 +131,10 @@ def test_the_descriptor_says_what_this_tool_is_and_is_not():
 
 
 def test_the_tab_is_registered_after_the_tools_something_needs_and_before_storage(dialog):
-    labels = [dialog._tabs.tabText(i) for i in range(dialog._tabs.count())]
-    assert labels.index("Knowledge Vista") == labels.index("NMR Database") + 1 == labels.index("Storage") - 1
+    # The registration order, which the page stack keeps; the list beside it groups the tools under headings.
+    pages = [dialog._pages.widget(i) for i in range(dialog._pages.count())]
+    assert pages.index(dialog._tab_for("knowledge_vista")) == pages.index(dialog._tab_for("nmr_index")) + 1
+    assert pages.index(dialog._storage_page) == len(pages) - 1
     assert "knowledge_vista" in [tab.descriptor.key for tab in dialog._tool_tabs]
 
 

@@ -1,0 +1,2 @@
+### Settings > External tools lists its tools under headings instead of a scrolling tab strip
+- The twelve tool pages needed about 1040 px of tabs in a window about 600 px wide, so the strip scrolled sideways and hid the last third of the tools. They are now a list down the left (Programs, Python environments, Downloads, Disk) and every tool shows at once. The pages' button rows wrap so a page no longer sets the window's width.

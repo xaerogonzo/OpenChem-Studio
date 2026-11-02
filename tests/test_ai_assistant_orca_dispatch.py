@@ -68,12 +68,12 @@ def test_the_model_is_told_which_orca_calculators_it_can_ask_for_and_which_it_ca
     thread, _ = rig.loop(provider, rig.bridge())
     rig.settle(thread)
     routes = {c["calculator_id"]: c["route"] for c in json.loads(_tool_message(provider)[0].content)["calculators"]}
-    assert routes["orca.sp"] == routes["orca.led"] == routes["orca.proton_affinity"] == routes["orca.bond_dissociation_enthalpy"] == "needs_approval"
-    assert routes["orca.fukui"] == routes["orca.tautomer_distribution"] == "preview_only"
+    assert routes["orca.sp"] == routes["orca.led"] == routes["orca.proton_affinity"] == routes["orca.bond_dissociation_enthalpy"] == routes["orca.tautomer_distribution"] == "needs_approval"
+    assert routes["orca.fukui"] == "preview_only"
 
 
 def test_a_job_that_cannot_be_started_here_is_still_only_described(rig):
-    reply = ask(rig, "orca.tautomer_distribution")
+    reply = ask(rig, "orca.fukui")
     assert reply["state"] == "preview_only" and rig.panel.pending_run_ids() == [] and len(rig.panel.service_preview_keys()) == 1
 
 
@@ -209,6 +209,56 @@ def test_a_charged_base_gets_the_reason_and_no_card(rig):
 def test_the_tools_hold_no_way_to_approve_or_start(rig):
     bridge = rig.bridge()
     calculations = bridge._calculations
-    for name in ("approve", "cancel", "pending", "set_quantum_starter", "start_assistant_run"):
+    for name in ("approve", "cancel", "stop", "pending", "set_quantum_starter", "start_assistant_run", "cancel_assistant_run"):
         assert not hasattr(calculations, name) and not hasattr(bridge, name), name
     assert not hasattr(rig.world.host, "start_assistant_run"), "the host hands over; only the panel starts"
+
+
+# --- stopping a running job from the panel -----------------------------------------------------------------------------------------------------
+
+
+def test_an_approved_job_shows_a_stop_button_until_it_ends(rig):
+    run_id = ask(rig)["run_id"]
+    assert rig.panel.running_run_ids() == [], "a card waiting for a decision is not a running job"
+    rig.panel._cards[run_id].approve_button.click()
+    assert rig.panel.running_run_ids() == [run_id] and rig.panel.pending_run_ids() == []
+    completed(rig.world, preparation_of(rig, run_id))
+    assert rig.panel.running_run_ids() == [], "the control goes when the run ends, whichever way"
+
+
+def test_pressing_stop_asks_the_panel_to_cancel_and_the_run_ends_cancelled_when_the_record_says_so(rig):
+    run_id = ask(rig)["run_id"]
+    rig.panel._cards[run_id].approve_button.click()
+    card = rig.panel._running_cards[run_id]
+    card.stop_button.click()
+    assert rig.starter.stopped == [rig.world.molecule.uuid]
+    assert not card.stop_button.isEnabled() and card.stop_button.text() == "Stopping..."
+    assert rig.world.host.state_of(run_id) is RunState.RUNNING and rig.panel._notes == [], "a request to stop is not the end of the run"
+    completed(rig.world, preparation_of(rig, run_id), status=RunStatus.CANCELLED)
+    assert any("cancelled while running" in line for line in rig.panel.ledger_lines())
+    (note,) = rig.panel._notes
+    assert "ended 'cancelled'" in note and "a person stopped it" in note and "State no value you have not read." in note
+    assert rig.panel.running_run_ids() == []
+
+
+def test_a_stop_the_panel_could_not_make_brings_the_button_back_and_says_so(rig):
+    run_id = ask(rig)["run_id"]
+    rig.panel._cards[run_id].approve_button.click()
+    rig.starter.stop_answer = False
+    card = rig.panel._running_cards[run_id]
+    card.stop_button.click()
+    assert card.stop_button.isEnabled() and card.stop_button.text() == "Stop job" and "could not be stopped from here" in card.body.text()
+    assert rig.world.host.state_of(run_id) is RunState.RUNNING
+
+
+def test_a_job_the_panel_refused_leaves_no_stop_button(rig):
+    rig.starter.answer = "This panel is busy with another calculation."
+    run_id = ask(rig)["run_id"]
+    rig.panel._cards[run_id].approve_button.click()
+    assert rig.panel.running_run_ids() == [] and rig.world.host.state_of(run_id) is RunState.REFUSED
+
+
+def test_no_running_card_is_made_for_a_run_that_is_not_running(rig):
+    run_id = ask(rig)["run_id"]
+    rig.panel._add_running_card(run_id, "orca.sp on Aspirin")
+    assert rig.panel.running_run_ids() == [], "the run is still a preview"

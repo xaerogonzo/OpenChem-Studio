@@ -38,6 +38,7 @@ from PySide6.QtWidgets import (
 from openchem.app.session import SessionManager
 from openchem.app.menu_help import MENU_HELP
 from openchem.app import menu_layout
+from openchem.ui import menu_icons
 from openchem.app.shortcut_registry import ShortcutRegistry
 from openchem.app.settings import (
     CONFORMER_KEEP_OPTIMIZED,
@@ -2409,6 +2410,11 @@ class MainWindow(QMainWindow):
         """
         self._panels_menu: QMenu | None = None
         panels = [dock.toggleViewAction() for dock in self.findChildren(QDockWidget)]
+        #: Held from the moment each is made: `arrange` returns the group submenus it built and the loop below used
+        #: to drop all but View's, so every other menu's submenus were unheld until `_menu_wrappers` was assigned
+        #: after the loop, and a collection in that gap destroyed their entries ("QAction already deleted" in
+        #: `ShortcutRegistry.apply`; seen as a once-in-a-shard flake in test_right_dock_width and others).
+        self._arranged_submenus: list[QMenu] = []
         for top in self.menuBar().actions():
             title = menu_layout.label_of(top)
             spec = menu_layout.MENU_SPECS.get(title)
@@ -2417,6 +2423,7 @@ class MainWindow(QMainWindow):
             made = menu_layout.arrange(
                 top.menu(), spec, {"Panels": panels} if title == "View" else None
             )
+            self._arranged_submenus.extend(made.values())
             if title == "View":
                 #: Where a plugin panel's toggle is added later, in its place A-Z.
                 self._panels_menu = made.get("Panels")
@@ -2425,7 +2432,13 @@ class MainWindow(QMainWindow):
         #: builders drop, and a submenu whose wrapper is collected takes its entries with it (measured: after one
         #: garbage collection every grouped submenu, Theme and 2D Structure Display were gone from the bar).
         self._menu_wrappers = menu_layout.menus_of(self.menuBar())
+        self._apply_menu_icons()
         self._show_tooltips_in_menus()
+
+    def _apply_menu_icons(self) -> None:
+        """Give the listed commands their drawn icons (`ui/menu_icons.py`). Decoration only."""
+        walked = menu_layout.walk(self.menuBar())
+        menu_icons.apply_to_actions((menu_layout.label_of(action), action) for _path, action in walked)
 
     def _build_file_menu(self) -> None:
         """The File menu."""
@@ -2501,7 +2514,10 @@ class MainWindow(QMainWindow):
         # route once you know it exists, and the menu bar is how you find
         # out it does.
         edit_menu.addSeparator()
-        structure_menu = edit_menu.addMenu("Copy Structure As")
+        #: Held on the window at once: `addMenu(title)` returns a Python-owned wrapper, and with only a local the
+        #: submenu and its four commands were destroyed by any collection before `_menu_wrappers` existed (found by
+        #: naming the dead entries when `ShortcutRegistry.apply` raised "QAction already deleted").
+        structure_menu = self._copy_structure_menu = edit_menu.addMenu("Copy Structure As")
         for label, kind, help_key in (
             ("SMILES", "smiles", "copy_smiles"),
             ("InChI", "inchi", "copy_inchi"),
@@ -2693,7 +2709,7 @@ class MainWindow(QMainWindow):
         self._view_menu.addSeparator()
         self._add_theme_menu(self._view_menu)
         self._view_menu.addSeparator()
-        structure_display_menu = self._view_menu.addMenu("2D Structure Display")
+        structure_display_menu = self._structure_display_menu = self._view_menu.addMenu("2D Structure Display")
         self._add_structure_display_toggle(
             structure_display_menu,
             "Show Carbon Labels",

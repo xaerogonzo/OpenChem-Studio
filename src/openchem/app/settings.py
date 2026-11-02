@@ -8,6 +8,7 @@ from typing import Any
 from PySide6.QtCore import QSettings, QStandardPaths
 
 from openchem.domain.appearance import Appearance
+from openchem.domain.interface_size import InterfaceSize
 from openchem.domain.calculator_support import Visibility, is_visible
 from openchem.domain.recalc_policy import (
     DEFAULT_QUIET_MS,
@@ -153,6 +154,13 @@ APPEARANCE = Preference(
     minimum=int(min(Appearance)), maximum=int(max(Appearance)),
 )
 
+#: How large the interface's text is: an `InterfaceSize`, stored as its integer (0 the platform's own size, 1 to 3 larger steps)
+#: and never as a label or a percentage. Default is the platform's size, which is what the program did before this existed.
+INTERFACE_SIZE = Preference(
+    "ui/interface_size", int, int(InterfaceSize.DEFAULT),
+    minimum=int(min(InterfaceSize)), maximum=int(max(InterfaceSize)),
+)
+
 #: Every preference, in the order the Settings window groups them. Tests
 #: iterate this, so a preference added here is covered without a new test.
 PREFERENCES = (
@@ -160,7 +168,7 @@ PREFERENCES = (
     SHOW_HIDDEN_CALCULATORS, RECALC_MODE, RECALC_QUIET_MS, DRAWING_BOND_KEYS,
     CONFORMER_MAX_EMBEDDINGS, DRAWING_BOND_CLICK, CONFORMER_EARLY_STOP, CONFORMER_KEEP_OPTIMIZED,
     CONFORMER_OPTIMIZE_LOWEST, FUKUI_ANION_F_PLUS, FUKUI_CATION_SEARCH, PSI4_MEMORY_GB, PSI4_THREADS,
-    STRUCTURE_COVERAGE, APPEARANCE,
+    STRUCTURE_COVERAGE, APPEARANCE, INTERFACE_SIZE,
 )
 
 #: Where one calculator's own visibility choice is stored: a plain

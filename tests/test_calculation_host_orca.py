@@ -31,12 +31,20 @@ class _Starter:
         self.calls: list[tuple[str, RunChoice, str]] = []
         self.answer = answer
         self.during = None
+        self.stopped: list[str] = []
+        self.stop_answer = True
 
     def start_assistant_run(self, molecule_uuid, choice, input_fingerprint):
         self.calls.append((molecule_uuid, choice, input_fingerprint))
         if self.during is not None:
             self.during()
         return self.answer
+
+    def cancel_assistant_run(self, molecule_uuid):
+        self.stopped.append(molecule_uuid)
+        if isinstance(self.stop_answer, Exception):
+            raise self.stop_answer
+        return self.stop_answer
 
 
 @pytest.fixture
@@ -78,7 +86,7 @@ def completed(world, preparation, *, status=RunStatus.COMPLETED, run_id="orca-ru
 def test_with_a_starter_the_single_job_orca_calculators_need_approval_and_the_others_stay_where_they_were(world):
     for calculator_id in STARTABLE:
         assert world.host.describe(calculator_id).route is Route.NEEDS_APPROVAL, calculator_id
-    for calculator_id in ("orca.fukui", "orca.tautomer_distribution", "docking.vina", "lewis_hsab"):
+    for calculator_id in ("orca.fukui", "docking.vina", "lewis_hsab"):
         assert world.host.describe(calculator_id).route is Route.PREVIEW_ONLY, calculator_id
 
 
@@ -417,7 +425,7 @@ def test_bond_dissociation_needs_no_conformer_and_the_card_names_the_bonds_and_t
 def test_a_molecule_with_more_bond_classes_than_one_run_takes_says_which_are_left_out(world):
     base(world, "CCCCCCO", "Hexanol")
     text = "\n".join(prepare(world, "orca.bond_dissociation_enthalpy").preparation.preview)
-    assert "it leaves out: O-H, bonded to C" in text and "the Quantum Chemistry panel's Bond dissociation button, where the bonds are chosen" in text and "22 ORCA jobs" in text
+    assert "it leaves out: CH2-H, bonded to C, O" in text and "the Quantum Chemistry panel's Bond dissociation button, where the bonds are chosen" in text and "22 ORCA jobs" in text
 
 
 def test_a_molecule_outside_what_was_measured_says_so_on_the_bond_card(world):
@@ -455,3 +463,126 @@ def test_editing_the_drawing_after_a_bond_dissociation_card_withdraws_it(world):
     preparation = prepare(world, "orca.bond_dissociation_enthalpy").preparation
     world.engine.set_structure_from_smiles(ethanol, "CCCO")
     assert approve(world, preparation.run_id) is RunState.INVALIDATED and world.starter.calls == []
+
+
+# --- tautomer distribution: the three settings, run on the drawing, with the jobs its enumeration gives ----------------------------------------------
+
+
+def test_a_tautomer_card_needs_no_conformer_and_states_the_settings_and_the_jobs(world):
+    base(world, "CC(C)=O", "Acetone")
+    turn = world.host.begin_turn()
+    result = prepare(world, "orca.tautomer_distribution", turn=turn)
+    assert result.ok, result.problems
+    preparation = result.preparation
+    assert preparation.calculation_input == "drawing" and preparation.input_fingerprint == turn.fingerprints["drawing"] and preparation.drawing_fingerprint == ""
+    assert set(preparation.parameters) == {"charge", "multiplicity", "method_basis"}
+    text = "\n".join(preparation.preview)
+    assert "embedded fresh" in text and "same rules as the Quantum Chemistry panel's Tautomers button" in text and "What it would cost (approving accepts it)" in text
+    assert f"method_basis='{preparation.parameters['method_basis']}'" in text and "charge=0" in text and "multiplicity=1" in text
+    assert "3 real ORCA geometry optimizations for 2 tautomer(s)" in text and "default conformer search" in text and "Full ORCA conformers box" in text
+    assert "conformer" not in text.replace("conformer search", "").replace("Full ORCA conformers box", "").replace("distinct conformers", "").replace("sampled conformer", "")
+    assert world.starter.calls == [] and world.host.state_of(preparation.run_id) is RunState.PREVIEWED
+
+
+def test_the_settings_a_person_gave_are_the_settings_on_the_tautomer_card(world):
+    base(world, "CC(C)=O", "Acetone")
+    parameters = {"charge": 0, "multiplicity": 1, "method_basis": "PBE0 def2-TZVP"}
+    text = "\n".join(prepare(world, "orca.tautomer_distribution", parameters).preparation.preview)
+    assert "PBE0 def2-TZVP" in text
+
+
+def test_tautomers_without_orca_are_not_ready(world):
+    base(world, "CC(C)=O", "Acetone")
+    world.services.quantum_chemistry_service._settings.set("orca/executable_path", "")
+    assert [p.code for p in prepare(world, "orca.tautomer_distribution").problems] == [ProblemCode.NOT_READY]
+
+
+def test_approving_tautomers_hands_over_the_settings_and_the_drawings_fingerprint(world):
+    acetone = base(world, "CC(C)=O", "Acetone")
+    preparation = prepare(world, "orca.tautomer_distribution", {"charge": 0, "multiplicity": 1, "method_basis": "PBE0 def2-TZVP"}).preparation
+    assert approve(world, preparation.run_id) is RunState.RUNNING
+    [(molecule_uuid, choice, fingerprint)] = world.starter.calls
+    assert molecule_uuid == acetone.uuid and choice.calc_type == "tautomer_distribution" and fingerprint == preparation.input_fingerprint
+    assert (choice.method_basis, choice.charge, choice.multiplicity) == ("PBE0 def2-TZVP", 0, 1)
+    # The run record the service really writes for this calculation carries no fingerprint (its input is the whole candidate set), so it is matched by molecule and type.
+    completed(world, preparation, calc_type="tautomer_distribution", calculation_input="", input_fingerprint="", status=RunStatus.COMPLETED)
+    assert [o.state for o in world.outcomes] == [RunState.COMPLETED] and world.host._quantum_inflight == {}
+
+
+def test_editing_the_drawing_after_a_tautomer_card_withdraws_it(world):
+    acetone = base(world, "CC(C)=O", "Acetone")
+    preparation = prepare(world, "orca.tautomer_distribution").preparation
+    world.engine.set_structure_from_smiles(acetone, "CCC(C)=O")
+    assert approve(world, preparation.run_id) is RunState.INVALIDATED and world.starter.calls == []
+
+
+def test_a_run_record_with_no_fingerprint_ends_only_a_job_of_its_own_type(world):
+    """The tautomer record is written blank; that must not let a blank record of ANOTHER type, or a fingerprint that names another structure, end an approved job."""
+    base(world, "CC(C)=O", "Acetone")
+    preparation = prepare(world, "orca.tautomer_distribution").preparation
+    assert approve(world, preparation.run_id) is RunState.RUNNING
+    completed(world, preparation, calc_type="sp", calculation_input="", input_fingerprint="", status=RunStatus.COMPLETED)
+    completed(world, preparation, calc_type="tautomer_distribution", calculation_input="drawing", input_fingerprint="another-structure", status=RunStatus.COMPLETED)
+    assert world.outcomes == [] and world.host.state_of(preparation.run_id) is RunState.RUNNING
+
+
+# --- stopping a running job from its card -----------------------------------------------------------------------------------------------------
+
+def test_stopping_a_running_job_hands_the_stop_to_the_panel_and_leaves_the_run_to_ORCAs_record(world):
+    preparation = prepare(world).preparation
+    approve(world, preparation.run_id)
+    assert world.host.stop(preparation.run_id) is True
+    assert world.starter.stopped == [preparation.molecule_uuid]
+    # The stop is a request: the run is still running, and ends only when the job's record says how it ended.
+    assert world.host.state_of(preparation.run_id) is RunState.RUNNING and world.outcomes == []
+    completed(world, preparation, status=RunStatus.CANCELLED)
+    [outcome] = world.outcomes
+    assert outcome.state is RunState.CANCELLED and "stopped it" in outcome.message and "no numbers" in outcome.message
+
+
+def test_a_preview_nobody_approved_cannot_be_stopped_and_the_panel_is_not_asked(world):
+    preparation = prepare(world).preparation
+    assert world.host.stop(preparation.run_id) is False
+    assert world.starter.stopped == []
+    assert world.host.state_of(preparation.run_id) is RunState.PREVIEWED
+
+
+def test_a_job_that_has_ended_cannot_be_stopped(world):
+    preparation = prepare(world).preparation
+    approve(world, preparation.run_id)
+    completed(world, preparation)
+    assert world.host.stop(preparation.run_id) is False and world.starter.stopped == []
+
+
+def test_a_run_that_is_not_known_cannot_be_stopped(world):
+    assert world.host.stop("no-such-run") is False and world.starter.stopped == []
+
+
+def test_a_panel_with_nothing_to_stop_leaves_the_run_running_and_says_false(world):
+    preparation = prepare(world).preparation
+    approve(world, preparation.run_id)
+    world.starter.stop_answer = False
+    assert world.host.stop(preparation.run_id) is False
+    assert world.host.state_of(preparation.run_id) is RunState.RUNNING
+
+
+def test_a_stop_that_raises_is_false_and_not_a_crash(world):
+    preparation = prepare(world).preparation
+    approve(world, preparation.run_id)
+    world.starter.stop_answer = RuntimeError("boom")
+    assert world.host.stop(preparation.run_id) is False
+    assert world.host.state_of(preparation.run_id) is RunState.RUNNING
+
+
+def test_a_stop_without_a_starter_is_false(world):
+    preparation = prepare(world).preparation
+    approve(world, preparation.run_id)
+    world.host.set_quantum_starter(None)
+    assert world.host.stop(preparation.run_id) is False
+
+
+
+def test_a_preview_is_not_stoppable_even_if_a_job_is_recorded_for_its_molecule(world):
+    preparation = prepare(world).preparation
+    world.host._quantum_inflight[preparation.molecule_uuid] = (preparation.run_id, preparation.input_fingerprint, "sp")
+    assert world.host.stop(preparation.run_id) is False and world.starter.stopped == []

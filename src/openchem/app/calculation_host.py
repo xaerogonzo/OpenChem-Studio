@@ -51,14 +51,18 @@ from PySide6.QtCore import QObject, Qt, QThread, Signal
 from openchem.app.session import SessionManager
 from openchem.chem.quantum_run_request import (
     BOND_DISSOCIATION,
+    PROTON_AFFINITY,
+    TAUTOMER_DISTRIBUTION,
     TWO_PARTNERS_MESSAGE,
     PreparedBondDissociation,
     PreparedProtonAffinity,
+    PreparedTautomers,
     RunChoice,
     RunRefusal,
     led_cost_of_smiles,
     prepare_bond_dissociation,
     prepare_proton_affinity,
+    prepare_tautomers,
 )
 from openchem.domain import calculator_search
 from openchem.domain import result_status as rs
@@ -101,7 +105,7 @@ from openchem.domain.score_proposal import (
     check_request,
 )
 from openchem.domain.score_value import evaluate_score
-from openchem.domain.quantum_dispatch import FIXED_PROTOCOL, STARTABLE, calc_type_of
+from openchem.domain.quantum_dispatch import RUNS_ON_DRAWING, STARTABLE, calc_type_of
 from openchem.domain.quantum_chemistry_run import QuantumChemistryRun, RunStatus
 from openchem.domain.quantum_run_snapshot import classify_runs
 from openchem.domain.turn_snapshot import DEFAULT_READ_LIMIT, ResultsView, TurnContext, build_turn_context, read_results
@@ -131,6 +135,10 @@ class QuantumStarter(Protocol):
 
     def start_assistant_run(self, molecule_uuid: str, choice: RunChoice, input_fingerprint: str) -> str:
         """"" when the job was handed to the service, otherwise the sentence that says why nothing started."""
+        ...
+
+    def cancel_assistant_run(self, molecule_uuid: str) -> bool:
+        """Stop the job running for `molecule_uuid` exactly as the panel's own Cancel button does. False when none is running for it."""
         ...
 
 
@@ -458,17 +466,16 @@ class CalculationHost(QObject):
             return PrepareResult(problems=tuple(
                 Problem(ProblemCode.NOT_READY, f"{r.what} is missing" + (f": {r.how_to_fix}" if r.how_to_fix else "")) for r in missing
             ))
-        # A fixed protocol runs on the drawing, every structure embedded fresh; the others on the conformer every calculation uses.
-        fixed = definition.calculator_id in FIXED_PROTOCOL
-        calculation_input = DRAWING if fixed else GEOMETRY
+        # A fixed protocol and the tautomer distribution run on the drawing, every structure embedded fresh; the others on the conformer every calculation uses.
+        on_drawing = definition.calculator_id in RUNS_ON_DRAWING
+        calculation_input = DRAWING if on_drawing else GEOMETRY
         fingerprint = turn.fingerprints.get(calculation_input)
         if not fingerprint:
             return PrepareResult(problems=(Problem(ProblemCode.NO_STRUCTURE, f"{turn.display_name} has no {calculation_input} to fingerprint"),))
         calc_type = calc_type_of(definition.calculator_id)
         extra: list[str] = []
-        if fixed:
-            prepare_protocol = prepare_bond_dissociation if calc_type == BOND_DISSOCIATION else prepare_proton_affinity
-            protocol = prepare_protocol(turn.canonical_smiles)
+        if on_drawing:
+            protocol = _PROTOCOLS[calc_type][0](turn.canonical_smiles)
             if isinstance(protocol, RunRefusal):
                 return PrepareResult(problems=(Problem(ProblemCode.INVALID_STRUCTURE, protocol.message),))
             extra.append("What it would cost (approving accepts it): " + _protocol_cost(protocol))
@@ -482,8 +489,8 @@ class CalculationHost(QObject):
         lines = list(_preview_lines(definition.display_name, turn, validation.parameters, policy, decision.reason))
         # Before the closing sentence: what the job will do, in the panel's terms, and what the person can still do about it.
         where = (
-            "It runs on the drawing (every structure is embedded fresh), by the same rules as the Quantum Chemistry panel's " + ("Bond dissociation" if calc_type == BOND_DISSOCIATION else "Proton affinity") + " button"
-            if fixed else "It runs on the conformer every calculation uses, by the same rules as the Quantum Chemistry panel's Run button"
+            "It runs on the drawing (every structure is embedded fresh), by the same rules as the Quantum Chemistry panel's " + (_PROTOCOLS[calc_type][1] if on_drawing else "") + " button"
+            if on_drawing else "It runs on the conformer every calculation uses, by the same rules as the Quantum Chemistry panel's Run button"
         )
         lines[-1:] = [
             f"{where}, and shows in that panel while it runs, where it can be cancelled.",
@@ -507,7 +514,7 @@ class CalculationHost(QObject):
             adjustments=validation.adjustments,
             resource=policy.resource.value,
             external_tools=tuple(sorted(policy.external_tools)),
-            drawing_fingerprint="" if fixed else turn.fingerprints.get(DRAWING, ""),
+            drawing_fingerprint="" if on_drawing else turn.fingerprints.get(DRAWING, ""),
         )
         self._ledger.register(preparation)
         return PrepareResult(preparation=preparation)
@@ -651,6 +658,27 @@ class CalculationHost(QObject):
             self._settle(run_id, outcome)
         return True
 
+    def stop(self, run_id: str) -> bool:
+        """A person stopped an approved ORCA job that is running (the assistant's card, GUI thread). True when the stop was handed to the job.
+
+        **Not `cancel`**, which declines a preview that has not started and refuses a running run. This does not end the run either: the job is stopped as the Quantum Chemistry panel's Cancel button
+        stops it, and the run ends when ORCA's run record arrives with its CANCELLED status (`_on_quantum_run_completed`), so the ledger, the note to the model and the stored run all say one thing.
+        A registry calculator cannot be stopped midway, and a run that is not running, or whose job has already ended, is not stoppable.
+        """
+        self._require_gui_thread("stop")
+        starter = self._quantum_starter
+        if starter is None or self._ledger.state_of(run_id) is not RunState.RUNNING:
+            return False
+        with self._lock:
+            molecule_uuid = next((uuid for uuid, held in self._quantum_inflight.items() if held[0] == run_id), None)
+        if molecule_uuid is None:
+            return False
+        try:
+            return bool(starter.cancel_assistant_run(molecule_uuid))
+        except Exception:  # noqa: BLE001 - a stop that cannot be made leaves the job running and says so
+            logger.exception("Could not stop %s", run_id)
+            return False
+
     def state_of(self, run_id: str) -> RunState | None:
         return self._ledger.state_of(run_id)
 
@@ -763,11 +791,16 @@ class CalculationHost(QObject):
             self._start_failure = event.message or "the job could not be started"
 
     def _on_quantum_run_completed(self, event: QuantumChemistryRunCompleted) -> None:
-        """An ORCA run reached its final state: if it is the one a person approved for the assistant, the approval's run ends with it."""
+        """An ORCA run reached its final state: if it is the one a person approved for the assistant, the approval's run ends with it.
+
+        It is matched by molecule, calculation type and the fingerprint of the structure it ran on. **A tautomer-distribution record carries no fingerprint** (its input is the whole set of candidates, so the
+        service writes it blank, and its freshness reads `unverifiable`), which a match on the fingerprint can never satisfy: it is matched by molecule and type alone, safe because the service runs one job
+        per molecule and the approval was handed over successfully.
+        """
         run = event.run
         with self._lock:
             held = self._quantum_inflight.get(run.molecule_uuid)
-            if held is None or held[2] != run.calc_type or held[1] != run.input_fingerprint:
+            if held is None or held[2] != run.calc_type or (run.input_fingerprint and held[1] != run.input_fingerprint):
                 return
             self._quantum_inflight.pop(run.molecule_uuid)
         state, message = _quantum_outcome(run)
@@ -851,7 +884,15 @@ def _rejected(run_id: str, code: ProblemCode, message: str, calculator_id: str =
 _NO_CONFORMER_NEEDED = frozenset({"lewis_hsab", "orca.proton_affinity", "orca.bond_dissociation_enthalpy", "orca.tautomer_distribution"})
 
 
-def _protocol_cost(protocol: PreparedProtonAffinity | PreparedBondDissociation) -> str:
+#: The calculators that run on the drawing, by calculation type: what prepares their card's cost from the structure, and the Quantum Chemistry panel's button whose rules they follow.
+_PROTOCOLS = {
+    PROTON_AFFINITY: (prepare_proton_affinity, "Proton affinity"),
+    BOND_DISSOCIATION: (prepare_bond_dissociation, "Bond dissociation"),
+    TAUTOMER_DISTRIBUTION: (prepare_tautomers, "Tautomers"),
+}
+
+
+def _protocol_cost(protocol: PreparedProtonAffinity | PreparedBondDissociation | PreparedTautomers) -> str:
     return protocol.card_text().replace("\n\n", " ")
 
 
@@ -866,7 +907,7 @@ def _quantum_outcome(run: QuantumChemistryRun) -> tuple[RunState, str]:
     if run.status is RunStatus.COMPLETED_WITH_WARNINGS:
         return RunState.COMPLETED, f"ORCA finished the job and reported {len(run.warnings)} warning(s). {where}"
     if run.status is RunStatus.CANCELLED:
-        return RunState.CANCELLED, f"The job was cancelled before it finished (in the Quantum Chemistry panel). It has no numbers. {where}"
+        return RunState.CANCELLED, f"The job was cancelled before it finished (a person stopped it, from the assistant's card or the Quantum Chemistry panel). It has no numbers. {where}"
     return RunState.FAILED, f"ORCA did not produce a result. It has no numbers. {where}"
 
 
