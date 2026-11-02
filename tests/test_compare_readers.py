@@ -231,7 +231,11 @@ def main_window(qapp, tmp_path_factory):
     settings = Settings(services.event_bus)
     settings.set("plugins/project_directory", str(directory / "none"))
     settings.set("plugins/user_directory", str(directory / "none2"))
-    return MainWindow(services, settings, SessionManager())
+    window = MainWindow(services, settings, SessionManager())
+    yield window
+    # Revealing Results from Compare pops it out into a top-level window; leaving this window alive
+    # would leave that window behind for whichever test next counts the process's windows.
+    conftest.dispose(window)
 
 
 def _wait_for(qapp, condition, seconds=60):
