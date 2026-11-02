@@ -3173,6 +3173,13 @@ the structure:
 The structure operations used to sit under Edit, between "Redo" and "Copy
 Structure As", where neither group was easy to find.
 
+**A few commands carry a small icon.** New, Open and Save Project, Undo, Redo,
+Recalculate Now, Settings, Exit and Help for the Current Panel have one beside
+their name; every other entry is text only on purpose. The icons are drawn in
+the colour of the menu text, so they follow Light and Dark and grey out with a
+disabled command. They are decoration: the name and the shortcut are what
+identify a command, and nothing about them can be changed.
+
 **Several things are deliberately reachable more than one way.** Check
 Structure is on the Structure menu, on the Project Explorer's right-click menu,
 and by clicking the status-bar indicator. Copy SMILES is on the Edit menu and
