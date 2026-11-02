@@ -1,0 +1,33 @@
+{
+ "deciding": {
+  "measured": 39,
+  "unscored": 5,
+  "gained": 1,
+  "lost": 10,
+  "before_correct": 23,
+  "after_correct": 14
+ },
+ "trained": {
+  "measured": 8,
+  "unscored": 0,
+  "gained": 0,
+  "lost": 2,
+  "before_correct": 7,
+  "after_correct": 5
+ },
+ "plausible": true,
+ "fidelity": {
+  "1HSG": 0.6629793510324484,
+  "3EML": 0.8393285371702638,
+  "3HS4": 0.6835016835016835,
+  "4DJH": 0.5139664804469274,
+  "4EA3": 0.5587002096436059,
+  "4M48": 0.41601049868766404,
+  "4N6H": 0.6229314420803782,
+  "5C1M": 0.3900462962962963
+ },
+ "reproduces_training": true,
+ "crystal_median": 6.3327662982949064,
+ "verdict": "HARMFUL",
+ "sign_p": 0.99951171875
+}
