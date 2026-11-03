@@ -4939,6 +4939,14 @@ OPEN: list[tuple[str, str, str, str, str]] = [
      "dispiro[1-azabicyclo[2.2.2]octane-3,6'-8-oxabicyclo[3.2.1]octane-2',2''-adamantane]",
      "spiro[spiro[8-oxabicyclo[3.2.1]octane-6,3'-1-azabicyclo[2.2.2]octane]-2,2'-adamantane]",
      "a chain of three polycyclic components is classed bridged, so the flat dispiro name is never offered and the nested name, which OPSIN cannot parse, is what is emitted"),
+    # NL-081, 2026-11-03. The enclosure test in _render_azanide looks for a
+    # locant, a comma, a parenthesis or a space. chloroacetyl has none of
+    # those, so the name is written solid. OPSIN reads the enclosed spelling
+    # as this anion.
+    ("D-391", "ClCC(=O)[NH-]",
+     "(chloroacetyl)azanide",
+     "chloroacetylazanide",
+     "a compound acyl name with no locant character is written solid on azanide"),
 ]
 
 # Observed but NOT tracked here, because this table requires a verified

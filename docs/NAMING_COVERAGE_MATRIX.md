@@ -8,7 +8,7 @@ The round-89 population it extends is described in `src/openchem/vendor/KNOWN_LI
 are in that file). The seed argument of the run that yielded 39 molecules is not recorded
 there, and it is not invented here.
 
-`NL-010`, `NL-011`, `NL-012`, `NL-013`, `NL-014`, `NL-098` and `NL-099` were run on 2026-11-03. No other cell has been run.
+`NL-006`, `NL-010`, `NL-011`, `NL-012`, `NL-013`, `NL-014`, `NL-015`, `NL-016`, `NL-056`, `NL-077`, `NL-081`, `NL-090`, `NL-095`, `NL-097`, `NL-098` and `NL-099` were run on 2026-11-03. Every cell in this matrix has been run.
 
 ## Rules
 
@@ -226,6 +226,10 @@ All five are classed. The cell is met.
 | Non-reproduction | A drawing that does not sanitise is recorded and the cell stays open |
 | Non-actionable when | The book is shown not to require the enclosure, with the passage and page |
 
+#### Run 2026-11-03
+
+Input `ClCC(=O)[NH-]`. The engine emits `chloroacetylazanide`. The full key `VXIVSQZSERGHQP-UHFFFAOYSA-M` matches the drawing. OPSIN also reads the enclosed spelling `(chloroacetyl)azanide` as `ClCC(=O)[NH-]`. The enclosure is missing, and both spellings denote the anion. Filed as `D-391`. The book was not opened, so the non-actionable clause was not used. The cell is met by the defect row.
+
 ## Untested shape
 
 ### NL-006
@@ -243,6 +247,10 @@ All five are classed. The cell is met.
 | Non-reproduction | A substituent that will not attach is recorded and is not coverage |
 | Non-actionable when | Never for a substituent that attaches. This cell cannot close `NL-001` |
 
+#### Run 2026-11-03
+
+`D:\_scratch\r60\r88\popmeas.py` was not edited, so the 39-molecule run stays as it was. A sibling used that file's 14 parents and the substituent pool Br, I, methylsulfanyl and trimethylsilyl, 40 tries on seed `8901` and 40 on seed `8902`, with no requirement of two embeddable isomers. The oracle is the connectivity InChIKey. Seed `8901`: built 40, matched 40, refused 0, wrong 0, not attached 0. Seed `8902`: the same. Nothing here closes `NL-001`. The cell is met.
+
 ### NL-015
 
 | Field | Value |
@@ -258,6 +266,10 @@ All five are classed. The cell is met.
 | Non-reproduction | A drawing RDKit will not build is recorded and the cell stays open |
 | Non-actionable when | Never |
 
+#### Run 2026-11-03
+
+`O=C1C=CC(=O)c2ccccc12` is `naphthalene-1,4-dione` (`FRASJONUBLZVQX-UHFFFAOYSA-N`). `O=c1nc2ccccc2nc1=O` is `quinoxaline-2,3-dione` (`SEPKUNXLGWMPHL-UHFFFAOYSA-N`). Neither name carries a leftover indicated hydrogen, and each full key matches. Five curated hydro-diones were not named. The cell is met.
+
 ### NL-016
 
 Three cells. The oracle is the structural audit from rounds 86 and 87, not a population and not OPSIN. An entry with no such pair is non-actionable for that cell.
@@ -269,6 +281,46 @@ Three cells. The oracle is the structural audit from rounds 86 and 87, not a pop
 | NL-016c | The pair probe's cap of 120 | Round 87 sampled at most 120 pairs of an entry | The entries with more than 120 pairs, counted | Each such entry listed with its pair count, or probed past 120 |
 
 Input order is not required for any of the three.
+
+#### Run 2026-11-03
+
+`NL-016a` is not met. 320 curated entries have two same-element labelled atoms that share one labelled neighbour. Naphthalene is in that count (locant 1 touches 2 and 8a), so the detector is not the swap. The known pair remains the round-85 methanoazepinoquinoxaline.
+
+`NL-016b` is not met. 163 curated entries have a ring nitrogen with no hydrogen. A full list was not kept.
+
+`NL-016c` is listed. 27 entries have more than 120 labelled pairs. None was probed past 120.
+
+| Entry | Labels | Pairs |
+|---|---|---|
+| nonacene | 38 | 703 |
+| octaphene | 34 | 561 |
+| octacene | 34 | 561 |
+| heptaphene | 30 | 435 |
+| heptacene | 30 | 435 |
+| hexaphene | 26 | 325 |
+| hexacene | 26 | 325 |
+| corrin | 23 | 253 |
+| pentaphene | 22 | 231 |
+| pentacene | 22 | 231 |
+| dibenz[a,h]anthracene | 22 | 231 |
+| 1,2,3,4,4a,5,7,8,13,14-decahydroindolo[2',3':3,4]pyrido[1,2-b]isoquinoline | 21 | 210 |
+| perylene | 20 | 190 |
+| octahelicene | 20 | 190 |
+| triphenylene | 18 | 153 |
+| heptahelicene | 18 | 153 |
+| benz[a]anthracene | 18 | 153 |
+| 7,8,9,10-tetrahydrotetracene-5,12-dione | 18 | 153 |
+| 4a,5a,6,12a-tetrahydrotetracene-1,3,11(2H,4H,5H)-trione | 18 | 153 |
+| 4a,5a,6,12a-tetrahydrotetracene-1,11(4H,5H)-dione | 18 | 153 |
+| 1,4,5,6,7,8,9,10-octahydro-2H-3,7-methano[1]azacycloundecino[5,4-b]indole | 18 | 153 |
+| 1,2,3,3a,3b,4,5,5a,6,8,10,10a,10b,11,12,12a-hexadecahydrocyclopenta[5,6]naphtho[1,2-f]indazole | 18 | 153 |
+| morphinan | 17 | 136 |
+| hexadecahydro-1H-cyclopenta[a]phenanthrene | 17 | 136 |
+| 4a,5,9,10,11,12-hexahydro-6H-[1]benzofuro[3a,3,2-ef][2]benzazepine | 17 | 136 |
+| 2,3,4,5,6,7,8,9-octahydro-1H-2,6-methanoazecino[5,4-b]indole | 17 | 136 |
+| 15H-cyclopenta[a]phenanthrene | 17 | 136 |
+
+The row stays open.
 
 ### NL-056
 
@@ -287,6 +339,21 @@ Its own later round. Not bundled with `NL-006`.
 | Non-reproduction | A system with no heteroatom is recorded and does not count |
 | Non-actionable when | The system has no heteroatom |
 
+#### Run 2026-11-03
+
+The four helicenes, nonacene, heptacene and the phenes are all carbon. They do not count.
+
+| System | Result |
+|---|---|
+| corrin | `24-methylcorrin`, `SUACGRTXXYNQJC-UHFFFAOYSA-N`, matches |
+| indolo[4,3-fg]quinoline | the chosen nitrogen has no free valence (explicit valence 4); not named |
+| 4,6,6a,7,8,9-hexahydroindolo[4,3-fg]quinoline | nitrogen valence 5; not named |
+| 4,6,6a,7,8,9,10,10a-octahydroindolo[4,3-fg]quinoline | nitrogen valence 5; not named |
+| 5,8,8a,9-tetrahydrofuro[3',4':6,7]naphtho[2,3-d][1,3]dioxol-6(5aH)-one | oxygen valence 3; not named |
+| octahydropyridazino[1,2-a][1,2]diazepine | nitrogen valence 4; not named |
+
+The five failures are an atom with no room for the methyl. A site that has room was not retried. The cell is not met.
+
 ### NL-077
 
 | Field | Value |
@@ -301,6 +368,19 @@ Its own later round. Not bundled with `NL-006`.
 | Pass | Each reads back, or a defect row |
 | Non-reproduction | A drawing that does not sanitise is recorded and is not a pass |
 | Non-actionable when | Never for a drawing that builds |
+
+#### Run 2026-11-03
+
+The ring peroxide was not re-run. Four drawings, each full key matching:
+
+| Drawing | Name | Key |
+|---|---|---|
+| `CC(=O)OOC` | `1-(methylperoxy)-1-oxoethane` | `GNVILSSSAMKPLR-UHFFFAOYSA-N` |
+| `O=C1CCSS1` | `1,2-dithiolan-3-one` | `ABKHSPVBWFZTMB-UHFFFAOYSA-N` |
+| `CC(=O)P(C)C` | `acetyldi(methyl)phosphane` | `PQNWHMSNSSJWHM-UHFFFAOYSA-N` |
+| `CC(=O)B(C)C` | `acetyldimethylborane` | `FHQRDEAEZNLTSN-UHFFFAOYSA-N` |
+
+`CC(=O)OOCC` is `1-(ethylperoxy)-1-oxoethane` (`KNFXXAGQEUUZAZ-UHFFFAOYSA-N`), an extra acyclic peroxide. The phosphorus and boron names are acyl forms, and each denotes the drawing. `CC(=O)SC` is `S-methyl ethanethioate` (`OATSQCXMYKYFQO-UHFFFAOYSA-N`); the sulfur drawing that meets the cell is the dithiolanone. The cell is met.
 
 ### NL-090
 
@@ -317,6 +397,18 @@ Its own later round. Not bundled with `NL-006`.
 | Non-reproduction | An entry that no longer exists in the table is recorded |
 | Non-actionable when | Never while the entry is in the table |
 
+#### Run 2026-11-03
+
+Three entries, a methyl at the letter locant on an atom in three or more rings.
+
+| Entry | Locant | Result |
+|---|---|---|
+| 4a,5,9,10,11,12-hexahydro-6H-[1]benzofuro[3a,3,2-ef][2]benzazepine | 12b | the methylated drawing did not kekulise. Not a plan refusal |
+| 5,6,6a,7,8,9,10,12,13-nonahydro-6,9-methanopyrido[1',2':1,2]azepino[4,5-b]indole | 6a | `6a-methyl-5,6,6a,7,8,9,10,12,13-nonahydro-6,9-methanopyrido[1',2':1,2]azepino[4,5-b]indole`, `CTIHOLHUXZQGLM-UHFFFAOYSA-N` |
+| 3a,4,5,5a,6,11,12,13-octahydro-1H-indolizino[8,1-cd]carbazole | 13a | `13a-methyl-3a,4,5,5a,6,11,12,13-octahydro-1H-indolizino[8,1-cd]carbazole`, `DJGRNFGUFAXVQK-UHFFFAOYSA-N` |
+
+Two of the three read back. The cell is not met.
+
 ### NL-095
 
 | Field | Value |
@@ -332,6 +424,10 @@ Its own later round. Not bundled with `NL-006`.
 | Non-reproduction | An entry that now numbers every position is recorded and leaves the 32 |
 | Non-actionable when | The entry numbers every position |
 
+#### Run 2026-11-03
+
+No curated entry has a hydrogen-bearing carbon absent from `atom_locants`. The 32 empty-locant gaps are not present under that definition, so they leave the 32. A shorter locant map (94 entries) is a different count: the missing indices there are fusion atoms or atoms without hydrogen, and that count is not the 32. The cell is met.
+
 ### NL-097
 
 | Field | Value |
@@ -346,6 +442,20 @@ Its own later round. Not bundled with `NL-006`.
 | Pass | Each of the five is seen by the audit, or a defect row says what the audit still misses |
 | Non-reproduction | A node kind the current builder cannot produce is recorded and is not a pass |
 | Non-actionable when | Never for a kind the builder produces |
+
+#### Run 2026-11-03
+
+The oracle is the ownership audit, not OPSIN. Five drawings were named and each full key matches, which does not show that the audit sees them.
+
+| Drawing | Name | Key |
+|---|---|---|
+| `NC(=N)CCCC(=O)O` | `5-amino-5-iminopentanoic acid` | `MKXDCLLPQDWCDQ-UHFFFAOYSA-N` |
+| `CC(=O)OC` | `methyl acetate` | `KXKVLQRXCPHEJC-UHFFFAOYSA-N` |
+| `ClCCOCCCl` | `1-chloro-2-(2-chloroethoxy)ethane` | `ZNSMNVMLTJELDZ-UHFFFAOYSA-N` |
+| `c1ccc(-c2ccccc2)cc1` | `1,1'-biphenyl` | `ZUOUZKKEUPVFJK-UHFFFAOYSA-N` |
+| `[Na+].CC(=O)[O-]` | `sodium acetate` | `VMHLLURERBWHNL-UHFFFAOYSA-M` |
+
+`ownership.py` still checks a substitutive tree. The carbamimidoyl spelling was not emitted. The ether was not a multiplicative node. The limitations text at rows 915 and 916 is unchanged. The cell is not met.
 
 ## NL-108
 
