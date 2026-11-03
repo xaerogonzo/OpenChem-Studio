@@ -32,8 +32,10 @@ from openchem.chem.calculation_input import (
 )
 from openchem.chem.engine import ChemistryEngine
 from openchem.chem.fukui import conformer_average_message, open_shell_message
+from openchem.chem.fukui_plan import has_diffuse_functions, plan_fukui, searchable_holes
 from openchem.chem.proton_affinity import OutOfScope as ProtonAffinityOutOfScope
 from openchem.chem.proton_affinity import Sequence as ProtonAffinitySequence
+from openchem.chem.tautomer_nmr import TautomerNmrTarget, targets_from_distribution
 from openchem.chem.tautomer_distribution import (
     CONFIRMATION_THRESHOLD,
     ModelPolicy,
@@ -77,6 +79,8 @@ class RunChoice:
     average_conformers: bool = False
     #: The conformer to run on, or "" for the one every calculation uses. Ignored while averaging, as the panel's box is greyed then.
     conformer_id: str = ""
+    #: For a run that starts from a stored one (the tautomer NMR): the id of the run it starts from, or "" for the newest suitable one.
+    source_run_id: str = ""
 
 
 @dataclass(frozen=True)
@@ -364,6 +368,9 @@ def start_bond_dissociation(service: Any, engine: ChemistryEngine, molecule: Mol
 #: The calculation type a tautomer-distribution run is recorded under (`QuantumChemistryService._new_tautomer_distribution_run`), and so what its run record is matched by.
 TAUTOMER_DISTRIBUTION = "tautomer_distribution"
 
+#: The calculation type a tautomer-NMR run is recorded under (`QuantumChemistryService`'s per-tautomer NMR run), and so what its run record is matched by.
+TAUTOMER_NMR = "tautomer_nmr"
+
 
 def no_tautomers_message(embedding_failures: int) -> str:
     """Why a molecule has no candidates to run: none could be generated, and how many of them failed to embed in 3D."""
@@ -608,4 +615,145 @@ def start(service: Any, prepared: PreparedRun) -> None:
         calculation_input=GEOMETRY,
         structure_identity=prepared.structure_identity,
         source_slot=prepared.source_slot,
+    )
+
+
+# --- the tautomer NMR run: NMR on the stored geometries of a finished distribution -----------------------------------------------------------------------
+
+
+@dataclass(frozen=True)
+class PreparedTautomerNmr:
+    """The NMR calculations one finished tautomer distribution would be run through, and what they cost: the tautomers, the jobs (one per tautomer, or one per conformer of its representative), and what is left out.
+
+    **IT STARTS FROM A STORED RUN, NOT THE DRAWING.** Each job runs on the geometry the distribution optimized for that tautomer, so the shifts describe the structures whose energies weighted them; nothing is
+    embedded or optimized again. `parent_run_id` names the run, and `targets` come from `chem.tautomer_nmr.targets_from_distribution`, the one function the button and a card both call.
+    """
+
+    parent_run_id: str
+    method_basis: str
+    per_conformer: bool
+    targets: tuple[TautomerNmrTarget, ...]
+    #: Why a tautomer cannot be run (no candidate succeeded, geometry not stored): shown, never silently dropped.
+    problems: tuple[str, ...]
+
+    @property
+    def jobs(self) -> int:
+        return sum(len(target.jobs) for target in self.targets)
+
+    def question(self) -> str:
+        """The cost in words, one text for the panel's dialog and for an assistant's card."""
+        text = (
+            f"This will run {self.jobs} real ORCA NMR calculation(s) for {len(self.targets)} tautomer(s) at {self.method_basis}, "
+            f"each on the geometry the tautomer distribution optimized"
+            + (" (every conformer of each tautomer's representative stereoisomer)" if self.per_conformer else "")
+            + ". Shifts use the cached reference for this method; if none is cached the run stops at its "
+            "first result and tells you."
+        )
+        if self.problems:
+            text += "\n\nLeft out: " + "; ".join(self.problems)
+        return text
+
+    def card_text(self) -> str:
+        """What a card says: the cost, which stored run it starts from, and that it takes the lowest conformer of each tautomer (the Tautomer NMR button's averaging box chooses every conformer)."""
+        return (
+            f"It starts from the stored tautomer distribution (run {self.parent_run_id}), so no structure is embedded or optimized again. "
+            "It takes the representative conformer of each tautomer; the Quantum Chemistry panel's Tautomer NMR button, with its Average NMR over conformers box, runs every conformer instead. "
+            + self.question().replace("\n\n", " ")
+        )
+
+    def queued_text(self) -> str:
+        """The panel's status line once the run is handed to the service."""
+        return f"queued -- {self.jobs} NMR calculation(s) for {len(self.targets)} tautomer(s)"
+
+
+def prepare_tautomer_nmr(distribution: Any, parent_run_id: str, method_basis: str, per_conformer: bool = False) -> PreparedTautomerNmr | RunRefusal:
+    """Whether NMR can be run on the tautomers of `distribution` (a finished run's `StructureSetResult`), and what it would take. Starts nothing."""
+    if distribution is None:
+        return RunRefusal("Select a tautomer distribution run first.")
+    if not method_basis:
+        return RunRefusal("Enter a method/basis (e.g. 'B3LYP def2-SVP').")
+    targets, problems = targets_from_distribution(distribution, per_conformer=per_conformer)
+    if not targets:
+        return RunRefusal("No tautomer can be run: " + "; ".join(problems))
+    return PreparedTautomerNmr(parent_run_id, method_basis, per_conformer, tuple(targets), tuple(problems))
+
+
+def start_tautomer_nmr(service: Any, molecule: MoleculeModel, prepared: PreparedTautomerNmr, charge: int, multiplicity: int) -> None:
+    """Hand the tautomer NMR run to the service with the arguments the panel's button always sent."""
+    service.request_tautomer_nmr(
+        targets=list(prepared.targets),
+        molecule_uuid=molecule.uuid,
+        charge=charge,
+        multiplicity=multiplicity,
+        method_basis=prepared.method_basis,
+        per_conformer=prepared.per_conformer,
+        parent_run_id=prepared.parent_run_id,
+        skipped=prepared.problems,
+    )
+
+
+# --- Fukui functions: one calc type of the panel's Run button, a compound job whose size a card has to state --------------------------------------------------------------
+
+#: The calculation type a Fukui run is recorded under, and so what its run record is matched by.
+FUKUI = "fukui"
+
+
+@dataclass(frozen=True)
+class PreparedFukui:
+    """What a Fukui run for one structure would be: its jobs, counted the way the engine will write them, and what the person is told before accepting it.
+
+    **THE COUNT IS THE ENGINE'S PLAN, NOT AN ESTIMATE.** `plan_fukui` and `searchable_holes` are the functions `OrcaQuantumEngineProvider` calls when it writes the input, with the same two settings, so the
+    card and the run that follows it agree on the jobs by construction (the settings are read again at approval: a person who changes one in between has changed the run, and the card says it follows them).
+    """
+
+    jobs: int
+    #: The jobs that start from the neutral's orbitals with a hole in the HOMO-1, -2 or -3 (`chem.fukui_states`): the part Settings > Quantum chemistry can switch off.
+    cation_search_jobs: int
+    #: Why the search was not part of the run although it is on, or "" (a heavy element, no valence orbital below the HOMO).
+    search_not_run: str
+    anion_f_plus: bool
+    charge: int
+    method_basis: str
+
+    def card_text(self) -> str:
+        """The cost and the scope in words: one text for the card, and the reason it is not a plain three-job run."""
+        text = (
+            f"This will run {self.jobs} real ORCA single point(s) in one job at {self.method_basis}, all at the geometry as supplied (vertical): the neutral, the cation and the anion"
+            + (f", and {self.cation_search_jobs} more cation start(s) that look for other states of the cation (about 2.5 times the time of a run without them; Settings > Quantum chemistry can switch them off)" if self.cation_search_jobs else "")
+            + "."
+        )
+        if self.search_not_run:
+            text += f" The search for other cation states was not run: {self.search_not_run}."
+        if self.charge < 0:
+            text += (
+                " This species is itself an anion, so its f+ would come from a dianion, which no basis set binds in the gas phase"
+                + ("; it is run last, and if it gives nothing usable the result is f- alone and says why." if self.anion_f_plus else "; Settings > Quantum chemistry has it left out, so the result is f- alone.")
+            )
+        return text
+
+
+def prepare_fukui(smiles: str, charge: int, multiplicity: int, method_basis: str, *, cation_search: bool = True, anion_f_plus: bool = True) -> PreparedFukui | RunRefusal:
+    """Whether a Fukui run can be asked for on `smiles` with these settings, and how many jobs it would be. Starts nothing, reads no widget.
+
+    The refusals are the ones a person would meet, in the order they fix them and in the words `chem.fukui` already uses: a species with unpaired electrons, then an electron count that is not a closed shell's
+    (which ORCA would only reject after the job was queued).
+    """
+    if multiplicity != 1:
+        return RunRefusal(open_shell_message(multiplicity))
+    mol = Chem.MolFromSmiles(smiles or "")
+    if mol is None:
+        return RunRefusal("Fukui functions could not start: the structure could not be read.")
+    atomic_numbers = [atom.GetAtomicNum() for atom in Chem.AddHs(mol).GetAtoms()]
+    electrons = sum(atomic_numbers) - charge
+    if electrons % 2 or electrons < 2:
+        return RunRefusal(f"Fukui functions need a closed-shell species: this structure at charge {charge:+d} has {electrons} electrons, which cannot all be paired.")
+    search = searchable_holes(atomic_numbers, charge) if cation_search else None
+    plan = plan_fukui(charge, multiplicity, diffuse=has_diffuse_functions(method_basis), anion_f_plus=anion_f_plus, holes=search.offsets if search else ())
+    return PreparedFukui(
+        jobs=len(plan.jobs),
+        cation_search_jobs=len(search.offsets) if search else 0,
+        search_not_run=search.reason if search and not search.offsets else "",
+        anion_f_plus=anion_f_plus,
+        charge=charge,
+        method_basis=method_basis,
     )

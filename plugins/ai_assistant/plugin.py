@@ -98,7 +98,8 @@ class AIAssistantPlugin(Plugin):
         context.events.subscribe(DescriptorComputed, cache.on_descriptor_computed)
 
         provider_map = providers_module.build_default_providers(
-            cli_path_resolver=lambda: context.settings.get("claude_cli_cli_path", "")
+            cli_path_resolver=lambda: context.settings.get("claude_cli_cli_path", ""),
+            cursor_path_resolver=lambda: context.settings.get("cursor_cli_cli_path", ""),
         )
 
         panel_provider = AIAssistantPanelProvider(context, provider_map, cache)

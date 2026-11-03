@@ -37,7 +37,7 @@
 
   {"do": "ai_send", "text": "Ask for something that is not startable.",
    "script": [
-     {"tool": "run_calculator", "input": {"calculator_id": "orca.fukui"}},
+     {"tool": "run_calculator", "input": {"calculator_id": "docking.vina"}},
      {"text": "That one runs from its own button."}
    ], "after_ms": 3000},
   {"do": "ai_expect", "tag": "a-calculator-that-is-not-startable-is-still-only-described",

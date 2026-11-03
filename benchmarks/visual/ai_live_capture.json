@@ -1,0 +1,9 @@
+[
+  {"do": "smiles", "smiles": "O", "name": "Water", "after_ms": 1500},
+  {"do": "select", "molecule": -1, "after_ms": 3000},
+  {"do": "conformers", "count": 1, "after_ms": 8000},
+  {"do": "panel", "id": "Quantum_Chemistry", "after_ms": 1000},
+  {"do": "ai_send", "text": "Run a single-point energy calculation on this molecule with ORCA at B3LYP def2-SVP.",
+   "live": {"provider": "ollama", "model": "qwen2.5:14b"}, "after_ms": 4000},
+  {"do": "quit", "tolerate_errors": true}
+]

@@ -1,0 +1,29 @@
+[
+  {"do": "smiles", "smiles": "O", "name": "Water", "after_ms": 1500},
+  {"do": "select", "molecule": -1, "after_ms": 3000},
+  {"do": "conformers", "count": 1, "after_ms": 8000},
+  {"do": "conformer_report", "tag": "a-conformer-to-run-on", "expect": {"conformers": 1}},
+  {"do": "panel", "id": "Quantum_Chemistry", "after_ms": 1000},
+
+  {"do": "ai_send", "text": "Run a single-point energy calculation on this molecule with ORCA at B3LYP def2-SVP.",
+   "live": {"provider": "ollama", "model": "qwen2.5:14b"}},
+  {"do": "ai_wait", "timeout_ms": 400000},
+  {"do": "ai_expect", "tag": "a-live-model-leaves-a-card", "expect": {"pending": 1, "send_enabled": true}},
+
+  {"do": "ai_card", "action": "approve", "after_ms": 1000},
+  {"do": "ai_expect", "tag": "approving-starts-it-and-the-model-is-not-told-yet", "expect": {"pending": 0, "notes": 0, "ledger_contains": ["running in the Quantum Chemistry panel"]}},
+  {"do": "qc_wait", "timeout_ms": 600000, "after_ms": 2000},
+  {"do": "qc_panel_report", "tag": "the-panel-ran-it-as-its-own", "expect": {"run_calc_type": "sp", "run_status": "completed"}},
+  {"do": "ai_expect", "tag": "when-it-ends-the-ledger-and-the-note-say-so",
+   "expect": {"notes": 1, "ledger_contains": ["ORCA finished it"], "notes_contain": ["orca.sp on Water", "ended 'completed'", "read_quantum_runs"]}},
+
+  {"do": "ai_send", "text": "What did it give? Tell me what the calculation computed.",
+   "live": {"provider": "ollama", "model": "qwen2.5:14b"}},
+  {"do": "ai_wait", "timeout_ms": 400000},
+  {"do": "ai_expect", "tag": "the-note-went-with-the-message-and-the-model-read-the-run",
+   "expect": {"notes": 0, "send_enabled": true, "sent_contains": ["[Application note] The ORCA job you asked for"],
+              "tool_results_contain": ["\"calc_type\": \"sp\""], "tool_results_exclude": ["M  END", "surface_cache_key"]}},
+
+  {"do": "expect_clean"},
+  {"do": "quit"}
+]

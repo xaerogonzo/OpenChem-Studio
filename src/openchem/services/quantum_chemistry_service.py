@@ -3075,6 +3075,13 @@ class QuantumChemistryService(QObject):
         be mistaken for the first one's) can ask first."""
         return self._job_manager.is_active(_JOB_KIND, molecule_uuid)
 
+    def fukui_options(self) -> tuple[bool, bool]:
+        """`(anion_f_plus, cation_search)` as Settings has them NOW: the two choices the next Fukui input will be written with.
+
+        Public and read-only, so an assistant's card can state the jobs a run would have from the same settings the run will read.
+        """
+        return bool(self._settings.preference(FUKUI_ANION_F_PLUS)), bool(self._settings.preference(FUKUI_CATION_SEARCH))
+
     def orca_executable(self) -> str | None:
         """The ORCA executable a run would use, or None when none is configured or found.
 
