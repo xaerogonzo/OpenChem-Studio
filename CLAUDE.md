@@ -461,6 +461,8 @@ OPENCHEM_DRIVE=/path/to/script.json uv run --no-sync python -m openchem.main
                                           tool loop on its worker thread, the real host (give it `after_ms`)
     {"do": "ai_send", "text": "...", "live": {"provider": "ollama", "model": "qwen2.5:14b"}}   the same, with a REAL provider and no script: the model named here answers (nothing is
                                           written to the plugin settings) and what it asked and was told is logged; benchmarks/visual/ai_live_ollama.json
+    {"do": "ai_expect", "expect": {"findings": ["waiting_approval"]}}   the kinds the application's reply check has said under the assistant's replies so far, in order (`plugins/ai_assistant/reply_check.py`);
+                                          `ai_wait` logs them too. benchmarks/visual/ai_reply_check.json
     {"do": "ai_wait", "timeout_ms": 400000}   hold the script until the assistant has finished its turn (its Send button enabled again, steadily); a LIVE model takes
                                           10 s to several minutes, so this replaces a guessed `after_ms`; giving up is an ERROR. `OPENCHEM_DRIVE_CAPTURE=<file>` writes the first live
                                           request (system prompt, messages, tools) as JSON, to replay against a server outside the app

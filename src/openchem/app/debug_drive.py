@@ -9913,7 +9913,10 @@ class _Driver(QObject):
             wait["quiet_since"] = now
         timed_out = now >= wait["deadline"]
         if timed_out or (wait["quiet_since"] is not None and now - wait["quiet_since"] >= wait["quiet"]):
-            logger.warning("OPENCHEM_DRIVE: ai_wait idle after %.1f s", now - wait["started"])
+            logger.warning(
+                "OPENCHEM_DRIVE: ai_wait idle after %.1f s; the application checked the reply and found %s (approval cards showing: %d)",
+                now - wait["started"], list(getattr(wait["panel"], "reply_findings", [])), wait["panel"].approvals_waiting(),
+            )
             if timed_out and busy:
                 logger.error("OPENCHEM_DRIVE: ai_wait gave up after %.0f s with the assistant still working", now - wait["started"])
             QTimer.singleShot(wait["after_ms"], self._window, self._run_next)
@@ -9981,7 +9984,7 @@ class _Driver(QObject):
         given on its first request), `transcript_contains`, `notes` (how many previews' outcomes wait for
         the next message), `send_enabled`, `panel_visible` (a dock's objectName that must be showing), `score_proposals` (proposed-score cards waiting),
         `scores_stored` (scores in the project), `scores_owner` (the owners stored, in order), `sent_contains` (substrings of everything sent to the
-        provider, notes included), `synthesis_requests` (synthesis-search cards waiting) and `notes_contain` / `notes_exclude` (substrings of the
+        provider, notes included), `synthesis_requests` (synthesis-search cards waiting), `findings` (the kinds the reply check has said so far, in order) and `notes_contain` / `notes_exclude` (substrings of the
         notes held for the model's next message).
         """
         panel = self._ai_panel()
@@ -10027,6 +10030,8 @@ class _Driver(QObject):
                 missing = [name for name in expect["tools_offered"] if name not in offered]
                 if missing:
                     problems.append(f"tools not offered: {missing} (offered {offered})")
+            if "findings" in expect and list(panel.reply_findings) != list(expect["findings"]):
+                problems.append(f"the reply check found {panel.reply_findings}, wanted {list(expect['findings'])}")
             if "score_proposals" in expect and len(panel.pending_score_ids()) != expect["score_proposals"]:
                 problems.append(f"{len(panel.pending_score_ids())} proposed scores waiting, wanted {expect['score_proposals']}")
             stored_scores = self._window._services.score_service.store.definitions()
