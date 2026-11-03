@@ -4947,6 +4947,28 @@ OPEN: list[tuple[str, str, str, str, str]] = [
      "(chloroacetyl)azanide",
      "chloroacetylazanide",
      "a compound acyl name with no locant character is written solid on azanide"),
+    # NL-010, 2026-11-03. P-72.4 (BlueBookV2.pdf p. 812): method (1) is the
+    # PIN, formed on the skeletal-replacement parent with the suffix uide.
+    # The printed analogue is 2,2-dimethyl-2-boraspiro[4.5]decan-2-uide.
+    # OPSIN reads 4-boraspiro[3.4]octan-4-uide as this anion. name_smiles
+    # raises rather than emitting it; the nearest name in the error is the
+    # neutral lambda4 spelling. Method (2), 4-boranuidaspiro[3.4]octane,
+    # also denotes the anion and is not the PIN.
+    ("D-392", "C1CC[B-]12CCCC2",
+     "4-boraspiro[3.4]octan-4-uide",
+     "4lambda4-boraspiro[3.4]octane",
+     "a tetracoordinate boron anion as the spiro atom is refused; the PIN keeps the charge"),
+    # NL-011, 2026-11-03. Two further chains of the seed-8901 set whose
+    # flat dispiro names, from _try_multicomponent_spiro, read back. The
+    # emitted names are still nested. D-390 is the first chain.
+    ("D-393", "C1CCC2CC3(CCC2C1)C1CC2CC3OC3(CC4CCN3CC4)C(C2)C1",
+     "dispiro[decahydronaphthalene-2,2'-4-oxatricyclo[4.3.1.1^{3,8}]undecane-5',2''-1-azabicyclo[2.2.2]octane]",
+     "spiro[spiro[1-azabicyclo[2.2.2]octane-2,5'-4-oxatricyclo[4.3.1.1^{3,8}]undecane]-11,2'-decahydronaphthalene]",
+     "a chain of three polycyclic components is classed bridged, so the flat dispiro name is never offered"),
+    ("D-394", "C1NC2CC3CC1CC(C21C2CC4CC(C2)CC1C4)C31C2CC3CC1C3C2",
+     "dispiro[tricyclo[3.2.1.0^{3,6}]octane-2,9'-4-azatricyclo[4.3.1.1^{3,8}]undecane-2',2''-adamantane]",
+     "spiro[spiro[4-azatricyclo[4.3.1.1^{3,8}]undecane-9,2'-tricyclo[3.2.1.0^{3,6}]octane]-2,2'-adamantane]",
+     "a chain of three polycyclic components is classed bridged, so the flat dispiro name is never offered"),
 ]
 
 # Observed but NOT tracked here, because this table requires a verified
@@ -4990,7 +5012,12 @@ def test_open_defect_still_open(defect, smiles, expected, former, note):
     A strict xfail turning green means the engine improved and this file
     is now lying about it. Move the row from OPEN to FIXED.
     """
-    assert name_smiles(smiles) == expected
+    try:
+        got = name_smiles(smiles)
+    except ValueError:
+        # D-392: the engine refuses rather than emitting the PIN.
+        got = None
+    assert got == expected
 
 
 def test_a_symmetric_carbodiimide_is_no_longer_a_wrong_molecule():

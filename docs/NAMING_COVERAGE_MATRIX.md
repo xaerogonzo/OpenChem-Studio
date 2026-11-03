@@ -57,7 +57,9 @@ One closed-shell spiro per class, named with `name_smiles`, read back through OP
 | S, valence 6 | `O=S12(CCCC1)CCCC2` | `5-oxo-5lambda6-thiaspiro[4.4]nonane`. Full key `LLYOONMDOWDYFS-UHFFFAOYSA-N` matches |
 | Se, valence 6 | `O=[Se]12(CCCC1)CCCC2` | `5-oxo-5lambda6-selenaspiro[4.4]nonane`. Full key `HXMKOEPENTVVGI-UHFFFAOYSA-N` matches |
 
-As, Sb+, S and Se read back. B− builds and is refused. The cell is not met until that refusal is classed by a source check or a defect row with a verified target.
+As, Sb+, S and Se read back. B− builds and is refused.
+
+P-72.4 (BlueBookV2.pdf p. 812) prefers method (1): the skeletal-replacement parent with the suffix `uide`. The printed analogue is `2,2-dimethyl-2-boraspiro[4.5]decan-2-uide` (PIN); method (2) is `2,2-dimethyl-2-boranuidaspiro[4.5]decane`. For this drawing the PIN is `4-boraspiro[3.4]octan-4-uide`. OPSIN 2.9.0 reads that spelling as `C1CC[B-]12CCCC2` (key `TYFPZQQHOKXWDN-UHFFFAOYSA-N`). It also reads `4-boranuidaspiro[3.4]octane` as the same anion; that is method (2), not the PIN. `4lambda4-boraspiro[3.4]octane` reads back as the neutral compound. Filed as `D-392`. The cell is met.
 
 ### NL-011
 
@@ -80,6 +82,8 @@ Twenty chains, seed `8901`. The joiner is round 88's (`D:\_scratch\r60\r88\bspir
 All twenty names are nested `spiro[spiro[...]]`. OPSIN 2.9.0 returns an empty SMILES for every one, so none read back. The cell is not met.
 
 The ring system is classed `bridged`, and `name_spiro` returns before the flat dispiro composer because `spiro_sizes` is empty. `name_polycyclic_spiro` then emits the nested name (`polyspiro_articulation`). On the first chain the composer, called on that same ring system, returns `dispiro[1-azabicyclo[2.2.2]octane-3,6'-8-oxabicyclo[3.2.1]octane-2',2''-adamantane]`, and OPSIN reads it as the input (the same canonical SMILES). That pair is `D-390`. Of the next four chains, the composer returned no name for one, and OPSIN read none of the other three flat names. Those nineteen stay without a target.
+
+The same twenty chains, seed `8901`, were handed to `_try_multicomponent_spiro` again. Three flat names read back on the connectivity key (`D-390`, `D-393`, `D-394`). Fourteen flat names OPSIN does not parse. Three chains have no flat name. The nested names are still what is emitted. The cell is not met.
 
 ### NL-012
 
@@ -134,6 +138,8 @@ The drawing `O=c1[nH]cnc2[nH]c(-n3cncc4ncnc3-4)nc12` is a 6-one. The carbonyl an
 The three stored siblings now do the same. Each old name put the oxo on C8 and a `9H-purin-3-yl` on C2, and OPSIN could not read it. Each current name is the 6-one with the purine at C8, and the full key matches: amino `ZHGCIIMKROKULF-UHFFFAOYSA-N`, oxy `RMMZGRIUEGQQEG-UHFFFAOYSA-N`, methyl `OUNNRQQFZHSNAG-UHFFFAOYSA-N`.
 
 The cell is not met. The `1H-purin-1-yl` pair was not recovered.
+
+Every `pair*.json` under `D:\_scratch\r60\r80` was scanned again. No row names a purinone carrying `1H-purin-1-yl`. The `1H-purin-1-yl` strings that are there hang the purine on a different partner (dibenzazepine, pyrazolopyridine, naphthyridine, benzisothiazole, pyridazinodiazepine). Those are not this cell.
 
 ### NL-014
 
@@ -284,9 +290,9 @@ Input order is not required for any of the three.
 
 #### Run 2026-11-03
 
-`NL-016a` is not met. 320 curated entries have two same-element labelled atoms that share one labelled neighbour. Naphthalene is in that count (locant 1 touches 2 and 8a), so the detector is not the swap. The known pair remains the round-85 methanoazepinoquinoxaline.
+`NL-016a`. The round-86 adjacency test still cannot see a swap of two same-element labelled heteroatoms: swapping their labels leaves the consecutive-locant check unchanged. That is 72 entries, including the round-85 methanoazepinoquinoxaline (`1`/`4`). Naphthalene is not in this list. Each pair is listed below.
 
-`NL-016b` is not met. 163 curated entries have a ring nitrogen with no hydrogen. A full list was not kept.
+`NL-016b`. 163 curated entries have a ring nitrogen with no hydrogen. They are listed below.
 
 `NL-016c` is listed. 27 entries have more than 120 labelled pairs. None was probed past 120.
 
@@ -320,7 +326,86 @@ Input order is not required for any of the three.
 | 2,3,4,5,6,7,8,9-octahydro-1H-2,6-methanoazecino[5,4-b]indole | 17 | 136 |
 | 15H-cyclopenta[a]phenanthrene | 17 | 136 |
 
-The row stays open.
+`NL-016a` pairs (locants whose labels can be swapped without the adjacency test failing):
+
+| Entry | Pair |
+|---|---|
+| 1,2,3,4-benzotetrazine | 1/2 |
+| 1,2,3-benzotriazine | 1/2 |
+| 1,2-benzodithiete | 1/2 |
+| 1,2-dihydro-4H-pyrazolo[3,4-d]pyrimidin-4-one | 1/2 |
+| 1,3,2-benzodioxaborole | 1/3 |
+| 1,3,4-oxadiazole | 3/4 |
+| 1,3,4-thiadiazole | 3/4 |
+| 1,3-benzodioxole | 1/3 |
+| 1,4,5,6-tetrahydro-7H-pyrazolo[3,4-c]pyridin-7-one | 2/1 |
+| 1,4,5,6-tetrahydropyridazine | 1/2 |
+| 1,5-dihydroimidazo[2,1-b]quinazolin-2(3H)-one | 1/3a |
+| 1,6-dihydro-7H-pyrazolo[4,3-d]pyrimidin-7-one | 2/1 |
+| 1H-1,2,4-triazole | 4/1 |
+| 1H-[1,2,3]triazolo[4,5-b]pyridine | 1/2 |
+| 1H-benzimidazole | 1/3 |
+| 1H-benzotriazole | 1/2 |
+| 1H-imidazo[4,5-b]pyridine | 1/3 |
+| 1H-imidazo[4,5-c]pyridine | 1/3 |
+| 1H-imidazo[4,5-c]quinoline | 3/1 |
+| 1H-indazole | 1/2 |
+| 2,1,3-benzoxadiazole | 1/3 |
+| 2,3-dihydro-1,4-benzodioxine | 1/4 |
+| 2,3-dihydro-1,4-benzodithiine | 1/4 |
+| 2,3-dihydro-1H-pyrazole | 1/2 |
+| 2,4-dihydro-7H-pyrazolo[4,3-d]pyrimidin-7-one | 2/1 |
+| 2H-[1,3]dithiolo[4,5-b]quinoxalin-2-one | 3/1 |
+| 2H-benzotriazole | 1/2 |
+| 2H-indazole | 1/2 |
+| 3,4,5,6-tetrahydroimidazo[4,5-d][1]benzazepine | 3/1 |
+| 3,6,7,8-tetrahydroimidazo[4,5-d][1,3]diazepine | 3/1 |
+| 3H-[1,2,3]triazolo[4,5-b]pyridine | 1/2 |
+| 3H-[1,2,3]triazolo[4,5-d]pyrimidine | 1/2 |
+| 3H-imidazo[4,5-b]pyridine | 1/3 |
+| 3H-imidazo[4,5-c]pyridine | 3/1 |
+| 4,5-dihydro-1H-imidazole | 3/1 |
+| 4,5-dihydro-1H-pyrazole | 1/2 |
+| 4H-1,2,4-triazole | 1/2 |
+| 4H-[1,2,4]triazolo[4,3-a][1,4]benzodiazepine | 2/3 |
+| 5,6,7,8-tetrahydro-[1,2,4]triazolo[4,3-a]pyrazine | 1/2 |
+| 5,6,7,8-tetrahydro-[1,2,4]triazolo[4,3-a]pyridine | 1/2 |
+| 5,6,7,8-tetrahydropteridin-4(1H)-one | 5/8 |
+| 5,6,7,8-tetrahydropteridin-4(3H)-one | 5/8 |
+| 5,7-dihydrofuro[3,4-b]pyrazine | 1/4 |
+| 5,7-dihydrothieno[3,4-b]pyrazine | 1/4 |
+| 5,8,8a,9-tetrahydrofuro[3',4':6,7]naphtho[2,3-d][1,3]dioxol-6(5aH)-one | 3/1 |
+| 5H-2,3-benzodiazepine | 2/3 |
+| 6,7,8,9-tetrahydro-5H-tetrazolo[1,5-a]azepine | 1/2 |
+| 6,7-dihydro-5H-pyrrolo[3,4-b]pyrazin-5-one | 1/4 |
+| 7,8,9,10-tetrahydro-6H-6,10-methanoazepino[4,5-g]quinoxaline | 1/4 |
+| 7,8-dihydropteridin-4(3H)-one | 5/8 |
+| [1,2,4]triazolo[3,4-b][1,3]benzothiazole | 1/2 |
+| [1,2,4]triazolo[4,3-a]pyridine | 1/2 |
+| [1,3]dioxolo[4,5-g]cinnoline | 1/2 |
+| benzo[g]pteridine | 10/5 |
+| benzo[g]quinoxaline | 1/4 |
+| cinnoline | 1/2 |
+| corrin | 21/22 |
+| hexahydrothieno[3,4-d]imidazole | 1/3 |
+| imidazo[1,2-b]pyridazine | 4/5 |
+| imidazo[5,1-f][1,2,4]triazin-4(1H)-one | 3/8a |
+| imidazo[5,1-f][1,2,4]triazin-4(3H)-one | 3/8a |
+| octahydropyridazino[1,2-a][1,2]diazepine | 5/11 |
+| phthalazine | 2/3 |
+| pteridin-4(1H)-one | 8/5 |
+| pteridin-4(3H)-one | 8/5 |
+| pteridine | 8/5 |
+| pyrazine | 1/4 |
+| pyrazolo[1,5-a]pyridine | 1/8 |
+| pyrazolo[1,5-a]pyrimidine | 1/8 |
+| pyridazine | 1/2 |
+| quinoxaline | 1/4 |
+| tetrazolo[1,5-a]pyridine | 1/2 |
+
+`NL-016b` names: 1,12-dihydro-14H-pyrano[3',4':6,7]indolizino[1,2-b]quinoline-3,14(4H)-dione; 1,2,3,3a,3b,4,5,5a,6,8,10,10a,10b,11,12,12a-hexadecahydrocyclopenta[5,6]naphtho[1,2-f]indazole; 1,2,3,4,4a,5,7,8,13,14-decahydroindolo[2',3':3,4]pyrido[1,2-b]isoquinoline; 1,2,3,4-benzotetrazine; 1,2,3,4-tetrazine; 1,2,3,6,7,11b-hexahydro-4H-pyrazino[2,1-a]isoquinolin-4-one; 1,2,3-benzotriazine; 1,2,3-triazine; 1,2,4-oxadiazole; 1,2,4-thiadiazole; 1,2,4-triazine; 1,2,5-oxadiazole; 1,2,5-thiadiazole; 1,2-dihydro-4H-pyrazolo[3,4-d]pyrimidin-4-one; 1,2-oxazole; 1,2-thiazole; 1,3,4,6,7,11b-hexahydro-2H-pyrido[2,1-a]isoquinolin-2-one; 1,3,4,6,7,11b-hexahydro-2H-pyrido[2,1-a]isoquinoline; 1,3,4-oxadiazole; 1,3,4-thiadiazole; 1,3,5-triazine; 1,3-benzothiazole; 1,3-benzoxazole; 1,3-dihydro-2H-1,4-benzodiazepin-2-one; 1,3-dihydro-2H-thieno[2,3-e][1,4]diazepin-2-one; 1,3-dihydrofuro[3,4-c]pyridine; 1,3-dihydrothieno[3,4-c]pyridine; 1,3-oxazole; 1,3-thiazole; 1,4,5,6,7,8,9,10-octahydro-2H-3,7-methano[1]azacycloundecino[5,4-b]indole; 1,4,5,6-tetrahydro-7H-pyrazolo[3,4-c]pyridin-7-one; 1,4,5,6-tetrahydropyridazine; 1,4,5,6-tetrahydropyrimidine; 1,5-dihydroimidazo[2,1-b]quinazolin-2(3H)-one; 1,5-naphthyridine; 1,6-dihydro-7H-pyrazolo[4,3-d]pyrimidin-7-one; 1,6-naphthyridine; 1,7-naphthyridine; 1,8-naphthyridine; 1-azabicyclo[4.2.0]oct-2-en-8-one; 1H-1,2,3-triazole; 1H-1,2,4-triazole; 1H-[1,2,3]triazolo[4,5-b]pyridine; 1H-benzimidazole; 1H-benzotriazole; 1H-imidazo[4,5-b]pyridine; 1H-imidazo[4,5-c]pyridine; 1H-imidazo[4,5-c]quinoline; 1H-imidazole; 1H-indazole; 1H-pyrazole; 1H-pyrrolo[2,3-b]pyridine; 1H-pyrrolo[2,3-c]pyridine; 1H-pyrrolo[2,3-d]pyrimidine; 1H-pyrrolo[3,2-b]pyridine; 1H-pyrrolo[3,2-c]pyridine; 1H-tetrazole; 2,1,3-benzoxadiazole; 2,3,5,6-tetrahydroimidazo[2,1-b][1,3]thiazole; 2,3,5,7a-tetrahydro-1H-pyrrolizine; 2,3-dihydro-1H-1,4-benzodiazepine; 2,3-dihydro-1H-pyrrolizine; 2,3-dihydropyrido[1,2,3-de][1,4]benzoxazin-7(4H)-one; 2,4-dihydro-7H-pyrazolo[4,3-d]pyrimidin-7-one; 2,6-naphthyridine; 2,7-naphthyridine; 2H-1,2,3-triazole; 2H-1,2,4-benzothiadiazine; 2H-[1,3]dithiolo[4,5-b]quinoxalin-2-one; 2H-benzotriazole; 2H-indazole; 2H-tetrazole; 3,4,5,6-tetrahydroimidazo[4,5-d][1]benzazepine; 3,4,5,6-tetrahydropyridine; 3,4-dihydro-2H-pyrrole; 3,6,7,8-tetrahydroimidazo[4,5-d][1,3]diazepine; 3H-[1,2,3]triazolo[4,5-b]pyridine; 3H-[1,2,3]triazolo[4,5-d]pyrimidine; 3H-imidazo[4,5-b]pyridine; 3H-imidazo[4,5-c]pyridine; 3H-pyrrolo[2,3-d]pyrimidine; 3a,4,5,5a,6,11,12,13-octahydro-1H-indolizino[8,1-cd]carbazole; 4,5,6,7-tetrahydro-1,3-benzothiazole; 4,5-dihydro-1H-imidazole; 4,5-dihydro-1H-pyrazole; 4H-1,2,4-benzothiadiazine; 4H-1,2,4-triazole; 4H-[1,2,4]triazolo[4,3-a][1,4]benzodiazepine; 4H-pyrido[1,2-a]pyrimidin-4-one; 5,11-dihydro-6H-dipyrido[3,2-b:2',3'-e][1,4]diazepin-6-one; 5,6,6a,7,8,9,10,12,13-nonahydro-6,9-methanopyrido[1',2':1,2]azepino[4,5-b]indole; 5,6,7,8-tetrahydro-[1,2,4]triazolo[4,3-a]pyrazine; 5,6,7,8-tetrahydro-[1,2,4]triazolo[4,3-a]pyridine; 5,6,7,8-tetrahydropteridin-4(1H)-one; 5,6,7,8-tetrahydropteridin-4(3H)-one; 5,7-dihydrofuro[3,4-b]pyrazine; 5,7-dihydrofuro[3,4-d]pyrimidine; 5,7-dihydrothieno[3,4-b]pyrazine; 5,7-dihydrothieno[3,4-d]pyrimidine; 5,8-dihydropyrido[2,3-d]pyrimidin-7(6H)-one; 5-oxa-1-azabicyclo[4.2.0]oct-2-en-8-one; 5H-2,3-benzodiazepine; 5H-chromeno[2,3-b]pyridin-5-one; 6,11-dihydro-5H-benzo[5,6]cyclohepta[1,2-b]pyridine; 6,7,8,9-tetrahydro-4H-pyrido[1,2-a]pyrimidin-4-one; 6,7,8,9-tetrahydro-5H-tetrazolo[1,5-a]azepine; 6,7-dihydro-5H-pyrrolo[3,4-b]pyrazin-5-one; 7,8,9,10-tetrahydro-6H-6,10-methanoazepino[4,5-g]quinoxaline; 7,8-dihydropteridin-4(3H)-one; 7H-pyrrolo[2,3-d]pyrimidine; 9,13b-dihydro-1H-dibenzo[c,f]imidazo[1,5-a]azepine; 9H-beta-carboline; 9H-purine; [1,2,4]triazolo[3,4-b][1,3]benzothiazole; [1,2,4]triazolo[4,3-a]pyridine; [1,3]dioxolo[4,5-g]cinnoline; acridine; adenine; benzisothiazole; benzisoxazole; benzo[g]pteridine; benzo[g]quinoxaline; carbapenem; cepham; cephem; cinnoline; corrin; guanine; hexahydro-1H-pyrrolizine; hypoxanthine; imidazo[1,2-a]pyridine; imidazo[1,2-b]pyridazine; imidazo[1,5-a]pyridine; imidazo[5,1-d][1,2,3,5]tetrazine; imidazo[5,1-f][1,2,4]triazin-4(1H)-one; imidazo[5,1-f][1,2,4]triazin-4(3H)-one; indolo[4,3-fg]quinoline; isoquinoline; octahydro-8H-oxazolo[3,2-a]pyrrolo[2,1-c]pyrazine; octahydropyridazino[1,2-a][1,2]diazepine; penam; phenanthridine; phenazine; phthalazine; pteridin-4(1H)-one; pteridin-4(3H)-one; pteridine; pyrazine; pyrazolo[1,5-a]pyridine; pyrazolo[1,5-a]pyrimidine; pyridazine; pyridine; pyridinium; pyrimidine; pyrimido[5,4-d]pyrimidine; quinazoline; quinoline; quinolizidine; quinoxaline; tetrahydroazeto[2,1-b][1,3]oxazole; tetrazolo[1,5-a]pyridine; thiazolo[5,4-d]pyrimidine; xanthine.
+
+The three cells are listed. The row is met.
 
 ### NL-056
 
@@ -353,6 +438,19 @@ The four helicenes, nonacene, heptacene and the phenes are all carbon. They do n
 | octahydropyridazino[1,2-a][1,2]diazepine | nitrogen valence 4; not named |
 
 The five failures are an atom with no room for the methyl. A site that has room was not retried. The cell is not met.
+
+A second attachment, after clearing explicit hydrogen on the heteroatom, or a methyl cation where there is no hydrogen, names and reads back. One site per system that has a heteroatom:
+
+| System | Name | Key |
+|---|---|---|
+| corrin | `24-methylcorrin` | `SUACGRTXXYNQJC-UHFFFAOYSA-N` |
+| indolo[4,3-fg]quinoline | `4-methylindolo[4,3-fg]quinolin-4-ium` | `BFVFKWHNVOIVDV-UHFFFAOYSA-N` |
+| 4,6,6a,7,8,9-hexahydroindolo[4,3-fg]quinoline | `4-methyl-4,6,6a,7,8,9-hexahydroindolo[4,3-fg]quinoline` | `HRBWMHKFZDDCBT-UHFFFAOYSA-N` |
+| 4,6,6a,7,8,9,10,10a-octahydroindolo[4,3-fg]quinoline | `4-methyl-4,6,6a,7,8,9,10,10a-octahydroindolo[4,3-fg]quinoline` | `MMPAXOWEGCYXDZ-UHFFFAOYSA-N` |
+| 5,8,8a,9-tetrahydrofuro[3',4':6,7]naphtho[2,3-d][1,3]dioxol-6(5aH)-one | `methyl[4,6,13-trioxatetracyclo[7.7.0.0^{3,7}.0^{11,15}]hexadeca-1,3(7),8-trien-12-ylidene]oxidanium` | `XDUAJKHPNPGVKD-UHFFFAOYSA-N` |
+| octahydropyridazino[1,2-a][1,2]diazepine | `5-methyloctahydropyridazino[1,2-a][1,2]diazepin-5-ium` | `UKESCUCXRKBCDP-UHFFFAOYSA-N` |
+
+The all-carbon systems still do not count. The cell is met.
 
 ### NL-077
 
@@ -409,6 +507,8 @@ Three entries, a methyl at the letter locant on an atom in three or more rings.
 
 Two of the three read back. The cell is not met.
 
+Atom 12 of that benzofuro-benzazepine is carbon, degree 3, three rings, no hydrogen. A methyl there does not sanitise (kekulise fails on atoms 7–11; sanitising without kekulise yields a SMILES RDKit will not parse). The unsubstituted entry still names. That is not a plan refusal. The cell is not met.
+
 ### NL-095
 
 | Field | Value |
@@ -456,6 +556,8 @@ The oracle is the ownership audit, not OPSIN. Five drawings were named and each 
 | `[Na+].CC(=O)[O-]` | `sodium acetate` | `VMHLLURERBWHNL-UHFFFAOYSA-M` |
 
 `ownership.py` still checks a substitutive tree. The carbamimidoyl spelling was not emitted. The ether was not a multiplicative node. The limitations text at rows 915 and 916 is unchanged. The cell is not met.
+
+`OPENCHEM_NAMER_OWNERSHIP=record` was set and each of the five was named again. `ownership.RECORDED` stayed empty. The audit did not see them. A defect row whose target is a name would not state what the audit misses. The cell is not met.
 
 ## NL-108
 
