@@ -8,7 +8,7 @@ The round-89 population it extends is described in `src/openchem/vendor/KNOWN_LI
 are in that file). The seed argument of the run that yielded 39 molecules is not recorded
 there, and it is not invented here.
 
-`NL-010`, `NL-011` and `NL-012` were run on 2026-11-03. No other cell has been run.
+`NL-010`, `NL-011`, `NL-012`, `NL-013` and `NL-014` were run on 2026-11-03. No other cell has been run.
 
 ## Rules
 
@@ -125,7 +125,15 @@ The named input is the whole probe. No new generator.
 | Non-reproduction | A pair whose SMILES is not in the round-81 output stays open |
 | Non-actionable when | Never. Class M |
 
-The pair SMILES were not in `D:\_scratch\r60` on 2026-11-03. The same search as `NL-012`.
+#### Run 2026-11-03
+
+The round-81 logs under `D:\_scratch\r60\r80` (`pair_bond_2.json`, `pair2_bond2.txt`, and the NH, O and CH2 siblings) hold one purinone joined to a purine. Its rings are `hypoxanthine + 9H-purine`, and the direct-bond name was judged `wrong`. No stored name is a purinone carrying `1H-purin-1-yl`. That pair stays open: its SMILES is not in the round-81 output.
+
+The drawing `O=c1[nH]cnc2[nH]c(-n3cncc4ncnc3-4)nc12` is a 6-one. The carbonyl and the two ring N–H sites are the tautomer, and the purine hangs on the carbon the current name calls C8. Round 81 named it `2-(3H-purin-3-yl)-3,7-dihydro-8H-purin-8-one` (oxo on C8, substituent on C2). The current name is `8-(3H-purin-3-yl)-1,9-dihydro-6H-purin-6-one`. OPSIN's full InChIKey is `ATROGWFAUZSSNI-UHFFFAOYSA-N`, the same key as the drawing. The old mismatch does not reproduce.
+
+The three stored siblings now do the same. Each old name put the oxo on C8 and a `9H-purin-3-yl` on C2, and OPSIN could not read it. Each current name is the 6-one with the purine at C8, and the full key matches: amino `ZHGCIIMKROKULF-UHFFFAOYSA-N`, oxy `RMMZGRIUEGQQEG-UHFFFAOYSA-N`, methyl `OUNNRQQFZHSNAG-UHFFFAOYSA-N`.
+
+The cell is not met. The `1H-purin-1-yl` pair was not recovered.
 
 ### NL-014
 
@@ -142,7 +150,11 @@ The pair SMILES were not in `D:\_scratch\r60` on 2026-11-03. The same search as 
 | Non-reproduction | If the SMILES is not recovered, the cell stays open |
 | Non-actionable when | Never. Class M |
 
-SMILES not in `D:\_scratch\r60` on 2026-11-03. Same search as `NL-012`.
+#### Run 2026-11-03
+
+The assembly is in `D:\_scratch\r60\r80\assm1.txt` and `assm_1.json`: `O=c1[nH]cnc2c1NCC(N1CCNc3c1ncn(O)c3=O)N2`. The first pass named it `1-hydroxy-5-(5,6,7,8-tetrahydropteridin-4(3H)-on-7-yl)-5,6,7,8-tetrahydropteridin-4(3H)-one`, which OPSIN still reads as another molecule (key `QDYGLQHMVZCXHQ-UHFFFAOYSA-N`). The stored JSON already holds a later name, `3-hydroxy-8-(5,6,7,8-tetrahydropteridin-4(3H)-on-7-yl)-5,6,7,8-tetrahydropteridin-4(3H)-one`, judged `ok`.
+
+That later name is what the current engine emits. OPSIN's full key is `SSBQXUWCCPZKGY-UHFFFAOYSA-N`, the same key as the drawing. The first-pass mismatch does not reproduce. The cell is met.
 
 ### NL-098
 
