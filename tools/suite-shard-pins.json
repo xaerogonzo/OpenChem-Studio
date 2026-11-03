@@ -2338,6 +2338,7 @@
   "tests/test_polarizability_miller.py": 4,
   "tests/test_polarizability_typed.py": 1,
   "tests/test_pop_out_host.py": 4,
+  "tests/test_pose_agreement.py": 3,
   "tests/test_pose_analysis.py": 0,
   "tests/test_pose_analysis_metals.py": 1,
   "tests/test_pose_charge_sites.py": 1,
