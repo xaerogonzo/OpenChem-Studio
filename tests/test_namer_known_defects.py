@@ -4930,6 +4930,15 @@ OPEN: list[tuple[str, str, str, str, str]] = [
      "-- the WRONG MOLECULE this item was admitted for is fixed, the PIN is "
      "a separate, still-open gap (imine FG perception is empty for this "
      "structure in every context, not only the multiplicative one)"),
+    # NL-011, 2026-11-03. Not a naming round: the coverage cell. The flat name
+    # is what _try_multicomponent_spiro returns for this ring system, and OPSIN
+    # reads it as the input. name_spiro never offers it, because the system is
+    # classed bridged (spiro_sizes is None, so name_spiro returns before the
+    # flat composer). name_polycyclic_spiro then emits the nested name.
+    ("D-390", "C1C2CC3CC1CC(C2)C31CCC2OC1CC21CN2CCC1CC2",
+     "dispiro[1-azabicyclo[2.2.2]octane-3,6'-8-oxabicyclo[3.2.1]octane-2',2''-adamantane]",
+     "spiro[spiro[8-oxabicyclo[3.2.1]octane-6,3'-1-azabicyclo[2.2.2]octane]-2,2'-adamantane]",
+     "a chain of three polycyclic components is classed bridged, so the flat dispiro name is never offered and the nested name, which OPSIN cannot parse, is what is emitted"),
 ]
 
 # Observed but NOT tracked here, because this table requires a verified

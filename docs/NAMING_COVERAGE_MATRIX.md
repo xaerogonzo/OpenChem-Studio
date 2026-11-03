@@ -8,7 +8,7 @@ The round-89 population it extends is described in `src/openchem/vendor/KNOWN_LI
 are in that file). The seed argument of the run that yielded 39 molecules is not recorded
 there, and it is not invented here.
 
-`NL-010` was run on 2026-11-03. No other cell has been run.
+`NL-010`, `NL-011` and `NL-012` were run on 2026-11-03. No other cell has been run.
 
 ## Rules
 
@@ -73,6 +73,14 @@ As, Sb+, S and Se read back. B− builds and is refused. The cell is not met unt
 | Non-reproduction | A chain that does not sanitise is recorded and does not count toward 20 |
 | Non-actionable when | Never. A name slower than 5 seconds is a defect row (round 84), not a covered identity |
 
+#### Run 2026-11-03
+
+Twenty chains, seed `8901`. The joiner is round 88's (`D:\_scratch\r60\r88\bspiro.py`, `join`), extended by one joint. Each component is polycyclic: 225 curated rings with two or more rings, and the 14 bridged partners that file lists. A chain is kept only when it sanitises as one fragment with exactly two quaternary ring carbons. Thirty tries gave the twenty; ten were rejected and are not in the count. Each name took under 2 seconds (the slowest was 1.83).
+
+All twenty names are nested `spiro[spiro[...]]`. OPSIN 2.9.0 returns an empty SMILES for every one, so none read back. The cell is not met.
+
+The ring system is classed `bridged`, and `name_spiro` returns before the flat dispiro composer because `spiro_sizes` is empty. `name_polycyclic_spiro` then emits the nested name (`polyspiro_articulation`). On the first chain the composer, called on that same ring system, returns `dispiro[1-azabicyclo[2.2.2]octane-3,6'-8-oxabicyclo[3.2.1]octane-2',2''-adamantane]`, and OPSIN reads it as the input (the same canonical SMILES). That pair is `D-390`. Of the next four chains, the composer returned no name for one, and OPSIN read none of the other three flat names. Those nineteen stay without a target.
+
 ### NL-012
 
 | Field | Value |
@@ -87,7 +95,16 @@ As, Sb+, S and Se read back. B− builds and is refused. The cell is not met unt
 | Non-reproduction | A shape whose SMILES cannot be recovered stays open. It is not classed "not reproduced" |
 | Non-actionable when | Never. Class M |
 
-SMILES recovery, 2026-11-03: searched `D:\_scratch\r60` for `imidazoquinazolinone`, `methano-benzazocine` and `pteridinone`. The hits are the round notes in `fork_kl.md` and the vendor limitation bullets. No SMILES for these four shapes is in that tree. Search stopped there.
+SMILES recovered from `D:\_scratch\r60\r80\r83` (the first search of `D:\_scratch\r60` had stopped at the round notes). Re-measured with `name_smiles` and OPSIN 2.9.0. The oracle is the connectivity InChIKey, except shape 3, whose oracle is the OPSIN failure.
+
+| Shape | Recovered input | Result |
+|---|---|---|
+| (1) tricyclic partner with a substituent, the one `naming_error` of round 85's 500 | `O=C(O)C12CCC3(CC1CCc1ccccc12)C1CC2C3C2(S)C1` (`1,2,3,4,4a,9,10,10a-octahydrophenanthrene` + `tricyclo[2.2.1.0^{2,6}]heptane`) | Not reproduced. The name is `6'-sulfanylspiro[1,2,3,4,4a,9,10,10a-octahydrophenanthrene-2,3'-tricyclo[2.2.1.0^{2,6}]heptane]-4a-carboxylic acid`. Connectivity key `YFQRPIUDSSIMOP` matches |
+| (2) tetrahydropteridinone spiro-joined to an imidazoquinazolinone | `NC1Nc2c(nc[nH]c2=O)N(O)C12C(=O)NC1=Nc3ccccc3CN12` | Validator. The emitted name is the round-85 name, `6-amino-8-hydroxyspiro[5,6,7,8-tetrahydropteridine-7,3'-1,2,3,5-tetrahydroimidazo[2,1-b]quinazoline]-2',4-dione`, and OPSIN still returns an empty SMILES. No read-back, so it is not classed as a different molecule |
+| (3) pteridinone spiro-joined to a benzodiazepinone | `O=C1Nc2ccccc2C=NC12CNc1c(nc[nH]c1=O)N2` | Validator. The emitted name is still `spiro[5,6,7,8-tetrahydropteridine-7,3'-2,3-dihydro-1H-1,4-benzodiazepine]-2',4-dione`, and OPSIN still returns empty. That failure is the oracle for this shape |
+| (4) two methano-benzazocines | `c1ccc2c(c1)CC1CC2CC2(N1)c1ccccc1C1CCNC2C1` | Engine. The same name is emitted, `spiro[1,2,3,4,5,6-hexahydro-2,6-methano-3-benzazocine-4,1'-1,2,3,4,5,6-hexahydro-2,6-methano-3-benzazocine]`. Input key `XAHRNCDNVDFLOF`, read-back key `WJAIBNJUWNBGBQ`. No correct target is filed: the name that would denote this input is not known |
+
+All four shapes are classed. The cell is met.
 
 ## Remeasure
 
