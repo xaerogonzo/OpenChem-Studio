@@ -1,0 +1,48 @@
+[
+  {"do": "smiles", "smiles": "CC=O", "name": "Acetaldehyde", "after_ms": 1500},
+  {"do": "select", "molecule": -1, "after_ms": 3000},
+  {"do": "conformers", "count": 1, "after_ms": 20000},
+  {"do": "panel", "id": "Quantum_Chemistry", "after_ms": 1500},
+  {"do": "qc_run", "calc_type": "NMR (raw shielding)", "method": "B3LYP def2-SVP"},
+  {"do": "qc_wait", "timeout_ms": 600000, "after_ms": 2000},
+
+  {"do": "ai_send", "text": "Run NMR on the tautomers of this molecule.",
+   "script": [
+     {"tool": "run_calculator", "input": {"calculator_id": "orca.tautomer_nmr"}},
+     {"text": "That needs a finished tautomer distribution first."}
+   ], "after_ms": 3000},
+  {"do": "ai_expect", "tag": "without-a-distribution-the-model-is-told-what-to-run-first",
+   "expect": {"pending": 0, "tool_results_contain": ["run orca.tautomer_distribution first"]}},
+
+  {"do": "ai_send", "text": "Find the tautomers first.",
+   "script": [
+     {"tool": "run_calculator", "input": {"calculator_id": "orca.tautomer_distribution"}},
+     {"text": "It is waiting for your approval."}
+   ], "after_ms": 5000},
+  {"do": "ai_card", "action": "approve", "after_ms": 1000},
+  {"do": "qc_wait", "timeout_ms": 1500000, "after_ms": 2000},
+  {"do": "qc_panel_report", "tag": "the-distribution-finished", "expect": {"run_calc_type": "tautomer_distribution", "run_status": "completed"}},
+
+  {"do": "ai_send", "text": "Now run NMR on those tautomers.",
+   "script": [
+     {"tool": "run_calculator", "input": {"calculator_id": "orca.tautomer_nmr"}},
+     {"text": "It is waiting for your approval."}
+   ], "after_ms": 5000},
+  {"do": "ai_expect", "tag": "asking-leaves-a-card-naming-the-run-and-starts-nothing",
+   "expect": {"pending": 1, "notes": 0,
+              "tool_results_contain": ["\"state\": \"awaiting_approval\"", "\"started\": false"],
+              "ledger_contains": ["waiting for your approval"]}},
+  {"do": "shot", "path": "benchmarks/visual/artifacts/ai_tautomer_nmr_card.png", "after_ms": 500},
+
+  {"do": "ai_card", "action": "approve", "after_ms": 1000},
+  {"do": "ai_expect", "tag": "approving-starts-it-and-leaves-a-stop-button",
+   "expect": {"pending": 0, "running_cards": 1, "ledger_contains": ["running in the Quantum Chemistry panel"]}},
+  {"do": "qc_wait", "timeout_ms": 1500000, "after_ms": 3000},
+  {"do": "qc_panel_report", "tag": "the-panel-ran-it-as-its-own", "expect": {"run_calc_type": "tautomer_nmr", "run_status": "completed"}},
+  {"do": "ai_expect", "tag": "when-it-ends-the-ledger-and-the-note-say-so",
+   "expect": {"running_cards": 0, "ledger_contains": ["ORCA finished it"],
+              "notes_contain": ["The ORCA job you asked for, orca.tautomer_nmr on Acetaldehyde", "ended 'completed'", "read_quantum_runs"]}},
+
+  {"do": "expect_clean"},
+  {"do": "quit"}
+]

@@ -124,6 +124,33 @@ def inputs_are_plausible(receptors: Sequence[Receptor]) -> bool:
     return median >= SANITY_MIN_MEDIAN_PKD
 
 
+#: Fidelity gate of the second test (`PREREGISTRATION_PLEC2.md`). The model's training
+#: fingerprints are stored in ODDT's descriptor file, so for a catalogued receptor that IS a
+#: training complex the share of those stored bits that this pipeline reproduces from the
+#: crystal ligand measures how close its inputs are to the model's own. Fixed BEFORE the full
+#: run, after one training receptor (1HSG, 66%) had been looked at: the median over the
+#: training-set receptors that could be measured must reach this share, else the verdict is
+#: INCONCLUSIVE whatever the gains and losses are.
+FIDELITY_MIN_MEDIAN = 0.5
+#: Fewest training-set receptors that must be measured for the gate to mean anything.
+FIDELITY_MIN_MEASURED = 4
+
+
+def median(values: Sequence[float]) -> float | None:
+    ordered = sorted(values)
+    if not ordered:
+        return None
+    mid = len(ordered) // 2
+    return ordered[mid] if len(ordered) % 2 else (ordered[mid - 1] + ordered[mid]) / 2
+
+
+def inputs_reproduce_training(shares: Sequence[float]) -> bool:
+    """Whether the stored-fingerprint shares clear the gate (never true on too few)."""
+    if len(shares) < FIDELITY_MIN_MEASURED:
+        return False
+    return median(shares) >= FIDELITY_MIN_MEDIAN
+
+
 def verdict(t: Tally, plausible: bool = True) -> str:
     """PASS, HARMFUL, NULL or INCONCLUSIVE for the deciding receptors."""
     if t.unscored > MAX_UNSCORED or not plausible:

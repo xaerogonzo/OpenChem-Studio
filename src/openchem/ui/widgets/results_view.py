@@ -299,6 +299,11 @@ class ResultsView(QWidget):
     link_activated = Signal(object)
     #: Whether the reader holds a report that Copy report and Export report can act on; emitted when that CHANGES.
     report_available_changed = Signal(bool)
+    #: The reader's position (`ReaderView`) changed because somebody moved it: the report picker, its
+    #: search box, or the fact filter. NOT emitted by `apply_view`, which is a host putting the reader
+    #: somewhere on purpose -- that silence is what lets several readers follow one another without
+    #: each answering the others' moves forever.
+    view_changed = Signal(object)
 
     def __init__(
         self,
@@ -611,6 +616,7 @@ class ResultsView(QWidget):
     def _remember(self) -> None:
         if self._memory is not None:
             self._memory.remember(self._molecule_uuid, self.view())
+        self.view_changed.emit(self.view())
 
     def set_reports(self, reports, structure_version: int = 0) -> None:
         """Replace what this window shows.

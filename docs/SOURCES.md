@@ -84,334 +84,336 @@ next run of `tools/build_lewis_parameters.py`.
 
 ## Index
 
-| key | kind | status | verification |
-| --- | --- | --- | --- |
-| [`abraham_predicted_solvents`](#abraham_predicted_solvents) | reference_table | **not shipped** | citation + claim |
-| [`adoptium_temurin`](#adoptium_temurin) | software | shipped | citation |
-| [`agarwal2022`](#agarwal2022) | literature | shipped | citation + claim |
-| [`agboola2026`](#agboola2026) | literature | shipped | citation + claim |
-| [`akhavan2011`](#akhavan2011) | literature | shipped | citation + claim |
-| [`allen2014`](#allen2014) | literature | reference only | citation |
-| [`allen2016`](#allen2016) | literature | reference only | citation |
-| [`allred1961`](#allred1961) | reference_table | shipped | citation |
-| [`almenningen1963`](#almenningen1963) | literature | **not shipped** | citation + claim |
-| [`alvarez2013`](#alvarez2013) | literature | reference only | citation |
-| [`alves2014`](#alves2014) | literature | reference only | citation |
-| [`amcp706187`](#amcp706187) | standard | shipped | citation |
-| [`andersen1999`](#andersen1999) | literature | shipped | citation + claim |
-| [`andress2026`](#andress2026) | literature | reference only | citation + claim |
-| [`aqsoldb`](#aqsoldb) | dataset | shipped | citation |
-| [`armstrong2026synthex`](#armstrong2026synthex) | literature | reference only | citation + claim |
-| [`atct1228`](#atct1228) | dataset | reference only | citation |
-| [`autodock_vina`](#autodock_vina) | software | shipped | citation + claim |
-| [`avdeef2007`](#avdeef2007) | literature | shipped | citation + claim |
-| [`avdeef2020`](#avdeef2020) | literature | shipped | citation + claim |
-| [`ayers2007`](#ayers2007) | literature | reference only | citation |
-| [`baell2010`](#baell2010) | literature | shipped | citation |
-| [`bakewell2016`](#bakewell2016) | literature | reference only | citation |
-| [`bakowies1996`](#bakowies1996) | literature | **not shipped** | citation + claim |
-| [`balabin2009`](#balabin2009) | literature | reference only | citation + claim |
-| [`ballester2010`](#ballester2010) | literature | **not shipped** | citation |
-| [`bannwarth2021xtb`](#bannwarth2021xtb) | literature | shipped | citation |
-| [`barone2023`](#barone2023) | literature | reference only | citation |
-| [`batsanov2001`](#batsanov2001) | literature | reference only | citation |
-| [`belova2014`](#belova2014) | literature | shipped | citation + claim |
-| [`bento2020`](#bento2020) | literature | shipped | citation + claim |
-| [`bertz1981`](#bertz1981) | literature | shipped | citation |
-| [`bhaskarapillai2024`](#bhaskarapillai2024) | literature | reference only | citation |
-| [`bickerton2012`](#bickerton2012) | literature | shipped | citation |
-| [`bilbrey2013`](#bilbrey2013) | literature | shipped | citation |
-| [`bird1985`](#bird1985) | literature | shipped | citation |
-| [`blanksby2003`](#blanksby2003) | literature | shipped | citation + claim |
-| [`bolovinos1984`](#bolovinos1984) | literature | shipped | citation + claim |
-| [`bondi1964`](#bondi1964) | literature | shipped | citation + claim |
-| [`borgesdossantos2002`](#borgesdossantos2002) | literature | reference only | citation + claim |
-| [`bradley2014`](#bradley2014) | dataset | shipped | citation + claim |
-| [`bradley2015`](#bradley2015) | literature | shipped | citation + claim |
-| [`bravetti2023`](#bravetti2023) | literature | shipped | citation |
-| [`bremer2022`](#bremer2022) | literature | reference only | citation |
-| [`brenk2008`](#brenk2008) | literature | shipped | citation |
-| [`brovarets2013`](#brovarets2013) | literature | reference only | citation |
-| [`brown2006`](#brown2006) | literature | **not shipped** | citation |
-| [`bultinck2002a`](#bultinck2002a) | literature | shipped | citation + claim |
-| [`bultinck2002b`](#bultinck2002b) | literature | reference only | citation + claim |
-| [`bultinck2007`](#bultinck2007) | literature | shipped | citation + claim |
-| [`cao2004`](#cao2004) | literature | shipped | citation + claim |
-| [`catalan1996`](#catalan1996) | literature | reference only | citation + claim |
-| [`chelli1999`](#chelli1999) | literature | reference only | citation |
-| [`chembl_schema`](#chembl_schema) | dataset | shipped | citation + claim |
-| [`chembl_structure_pipeline`](#chembl_structure_pipeline) | software | shipped | citation |
-| [`chen2007`](#chen2007) | literature | reference only | citation + claim |
-| [`chen2008erratum`](#chen2008erratum) | literature | reference only | citation + claim |
-| [`chen2008framework`](#chen2008framework) | literature | reference only | citation |
-| [`chernyshov2020`](#chernyshov2020) | literature | reference only | citation |
-| [`chiang2004`](#chiang2004) | literature | reference only | citation + claim |
-| [`cioslowski1989`](#cioslowski1989) | literature | reference only | citation |
-| [`cioslowski1989prl`](#cioslowski1989prl) | literature | reference only | citation + claim |
-| [`claesen2023`](#claesen2023) | literature | reference only | citation |
-| [`clavier2010`](#clavier2010) | literature | shipped | citation |
-| [`cod`](#cod) | dataset | shipped | citation |
-| [`conkling2019`](#conkling2019) | literature | shipped | citation + claim |
-| [`coppens2006`](#coppens2006) | literature | **not shipped** | citation |
-| [`cradock1973`](#cradock1973) | literature | shipped | citation + claim |
-| [`crc_handbook`](#crc_handbook) | reference_table | shipped | citation + claim |
-| [`curtiss2005`](#curtiss2005) | literature | reference only | citation + claim |
-| [`cwc_annex_on_chemicals`](#cwc_annex_on_chemicals) | legal | shipped | citation + claim |
-| [`dea_listed_chemicals`](#dea_listed_chemicals) | legal | shipped | citation |
-| [`delaney2004`](#delaney2004) | literature | shipped | citation + claim |
-| [`deleuze2001`](#deleuze2001) | literature | reference only | citation |
-| [`deleuze2002`](#deleuze2002) | literature | reference only | citation |
-| [`deproft2002`](#deproft2002) | literature | shipped | citation + claim |
-| [`deshpande2024`](#deshpande2024) | literature | reference only | unverified |
-| [`devine2008`](#devine2008) | literature | reference only | citation + claim |
-| [`dewar1969`](#dewar1969) | literature | reference only | citation |
-| [`dimorphite_dl`](#dimorphite_dl) | software | shipped | citation |
-| [`dittwald2014`](#dittwald2014) | literature | reference only | citation |
-| [`drago1965`](#drago1965) | literature | shipped | citation + claim |
-| [`drago1990`](#drago1990) | literature | shipped | citation |
-| [`drago1993`](#drago1993) | literature | shipped | citation |
-| [`dufter2026`](#dufter2026) | literature | shipped | citation + claim |
-| [`dunitz1997`](#dunitz1997) | literature | shipped | citation + claim |
-| [`dunitz2004`](#dunitz2004) | literature | shipped | citation + claim |
-| [`ertl2000`](#ertl2000) | literature | shipped | citation |
-| [`ertl2008`](#ertl2008) | literature | shipped | citation |
-| [`ertl2009`](#ertl2009) | literature | shipped | citation |
-| [`ertl2017`](#ertl2017) | literature | reference only | citation |
-| [`ervin2015`](#ervin2015) | literature | reference only | citation + claim |
-| [`espinosagarcia1999`](#espinosagarcia1999) | literature | reference only | citation + claim |
-| [`eyet2009`](#eyet2009) | literature | reference only | citation + claim |
-| [`feinstein2015`](#feinstein2015) | literature | shipped | citation + claim |
-| [`ferro2018`](#ferro2018) | literature | reference only | citation + claim |
-| [`fievez2008`](#fievez2008) | literature | reference only | citation |
-| [`fogarasi2010`](#fogarasi2010) | literature | shipped | citation + claim |
-| [`ganyecz2019`](#ganyecz2019) | literature | reference only | citation |
-| [`gasteiger1980`](#gasteiger1980) | literature | shipped | citation + claim |
-| [`gasteiger1985`](#gasteiger1985) | literature | **not shipped** | citation |
-| [`gavezzotti1983`](#gavezzotti1983) | literature | reference only | citation + claim |
-| [`geidl2015`](#geidl2015) | literature | reference only | citation |
-| [`genheden2020aizynthfinder`](#genheden2020aizynthfinder) | literature | reference only | citation + claim |
-| [`genheden2021ted`](#genheden2021ted) | literature | reference only | citation |
-| [`genheden2022paroutes`](#genheden2022paroutes) | literature | reference only | citation + claim |
-| [`glasser1995`](#glasser1995) | literature | shipped | citation |
-| [`gleiter1972`](#gleiter1972) | literature | shipped | citation + claim |
-| [`goerigk2017`](#goerigk2017) | literature | reference only | citation + claim |
-| [`goller2022`](#goller2022) | literature | shipped | citation + claim |
-| [`guo2006`](#guo2006) | literature | reference only | citation + claim |
-| [`guo2026routeevaluation`](#guo2026routeevaluation) | literature | reference only | citation |
-| [`gutmann1976`](#gutmann1976) | literature | shipped | citation + claim |
-| [`gutmann_frontiers2022`](#gutmann_frontiers2022) | literature | **not shipped** | citation |
-| [`halgren1996_mmff1`](#halgren1996_mmff1) | literature | shipped | citation |
-| [`halgren1996_mmff2`](#halgren1996_mmff2) | literature | shipped | citation + claim |
-| [`hall1981`](#hall1981) | literature | shipped | citation |
-| [`hancock1996`](#hancock1996) | literature | reference only | citation |
-| [`hanus2004`](#hanus2004) | literature | reference only | citation + claim |
-| [`harding1999`](#harding1999) | literature | shipped | citation + claim |
-| [`harding2000`](#harding2000) | literature | reference only | citation |
-| [`harding2001`](#harding2001) | literature | shipped | citation + claim |
-| [`harding2002`](#harding2002) | literature | shipped | citation + claim |
-| [`harding2006`](#harding2006) | literature | shipped | citation + claim |
-| [`harding2013`](#harding2013) | literature | reference only | citation + claim |
-| [`harmony1979`](#harmony1979) | literature | reference only | citation + claim |
-| [`he2016`](#he2016) | literature | shipped | citation + claim |
-| [`hejazi2016`](#hejazi2016) | literature | reference only | citation |
-| [`hlb`](#hlb) | reference_table | reference only | citation |
-| [`holland2013`](#holland2013) | literature | shipped | citation + claim |
-| [`holland2016`](#holland2016) | literature | reference only | citation |
-| [`holland2017`](#holland2017) | literature | shipped | citation + claim |
-| [`hopfinger2009`](#hopfinger2009) | dataset | shipped | citation |
-| [`huber1979`](#huber1979) | literature | reference only | citation + claim |
-| [`hunter1998`](#hunter1998) | literature | reference only | citation + claim |
-| [`ich_m9`](#ich_m9) | standard | shipped | citation + claim |
-| [`ielo2019`](#ielo2019) | literature | reference only | citation + claim |
-| [`ionescu2013`](#ionescu2013) | literature | shipped | citation + claim |
-| [`ipsen2014`](#ipsen2014) | literature | reference only | citation |
-| [`iupac2013`](#iupac2013) | standard | shipped | citation + claim |
-| [`iupac_goldbook`](#iupac_goldbook) | standard | shipped | citation + claim |
-| [`iupac_namer`](#iupac_namer) | software | shipped | citation |
-| [`jain1987`](#jain1987) | literature | shipped | citation + claim |
-| [`janousek1980`](#janousek1980) | literature | reference only | citation + claim |
-| [`jenkins1999`](#jenkins1999) | literature | shipped | citation + claim |
-| [`joback1987`](#joback1987) | literature | shipped | citation + claim |
-| [`kamlet1968`](#kamlet1968) | literature | shipped | citation + claim |
-| [`kamlet1968_ii`](#kamlet1968_ii) | literature | reference only | citation |
-| [`kamlet1968_iii`](#kamlet1968_iii) | literature | shipped | citation |
-| [`kamlet1968_iv`](#kamlet1968_iv) | literature | shipped | citation |
-| [`katritzky1990`](#katritzky1990) | literature | shipped | citation + claim |
-| [`kaya2022`](#kaya2022) | literature | shipped | citation + claim |
-| [`kendall2008`](#kendall2008) | literature | shipped | citation |
-| [`ketcher`](#ketcher) | software | shipped | citation |
-| [`klapotke2017`](#klapotke2017) | literature | shipped | citation + claim |
-| [`klapotke2021`](#klapotke2021) | literature | shipped | citation + claim |
-| [`kobayashi1982`](#kobayashi1982) | literature | shipped | citation + claim |
-| [`koes2013`](#koes2013) | literature | **not shipped** | citation |
-| [`kruszewski1972`](#kruszewski1972) | literature | shipped | citation |
-| [`krygowski1993`](#krygowski1993) | literature | shipped | citation + claim |
-| [`krykunov2017`](#krykunov2017) | literature | reference only | citation + claim |
-| [`kuchitsu1998`](#kuchitsu1998) | literature | reference only | citation + claim |
-| [`kulawiec1990`](#kulawiec1990) | literature | reference only | citation + claim |
-| [`kwon2018`](#kwon2018) | literature | reference only | citation |
-| [`kwon2023`](#kwon2023) | dataset | shipped | citation + claim |
-| [`langes15`](#langes15) | reference_table | shipped | citation + claim |
-| [`lease2023`](#lease2023) | literature | shipped | citation + claim |
-| [`leplat2013`](#leplat2013) | literature | reference only | citation + claim |
-| [`li2024_prmt5`](#li2024_prmt5) | literature | reference only | citation |
-| [`li2024retrobleu`](#li2024retrobleu) | literature | reference only | citation |
-| [`lim2007`](#lim2007) | literature | reference only | citation + claim |
-| [`llinas2008`](#llinas2008) | dataset | shipped | citation |
-| [`llinas2019`](#llinas2019) | dataset | reference only | citation |
-| [`llinas2020`](#llinas2020) | dataset | shipped | citation + claim |
-| [`lorentzon1995`](#lorentzon1995) | literature | reference only | citation + claim |
-| [`lovering2009`](#lovering2009) | literature | shipped | citation |
-| [`luo2007`](#luo2007) | reference_table | reference only | citation |
-| [`mann1947`](#mann1947) | literature | shipped | citation + claim |
-| [`mantina2009`](#mantina2009) | literature | shipped | citation + claim |
-| [`mardirossian2017`](#mardirossian2017) | literature | reference only | citation + claim |
-| [`marsili1980`](#marsili1980) | literature | shipped | citation + claim |
-| [`mathieu2007`](#mathieu2007) | literature | reference only | citation + claim |
-| [`maverick2002`](#maverick2002) | literature | reference only | citation + claim |
-| [`mayer1975`](#mayer1975) | literature | reference only | citation |
-| [`mayo1990`](#mayo1990) | literature | shipped | citation + claim |
-| [`maziarz2025syntheseus`](#maziarz2025syntheseus) | literature | reference only | citation |
-| [`mcnutt2021`](#mcnutt2021) | literature | **not shipped** | citation |
-| [`meyer2016`](#meyer2016) | literature | shipped | citation + claim |
-| [`miller1979`](#miller1979) | literature | shipped | citation + claim |
-| [`miller1990`](#miller1990) | literature | shipped | citation + claim |
-| [`miller_polarizability`](#miller_polarizability) | reference_table | reference only | citation |
-| [`molstar`](#molstar) | software | shipped | citation |
-| [`moore1970`](#moore1970) | literature | shipped | citation + claim |
-| [`moran1988`](#moran1988) | literature | reference only | citation + claim |
-| [`moreland1974`](#moreland1974) | literature | shipped | citation |
-| [`morgunov2025retrocast`](#morgunov2025retrocast) | literature | reference only | citation + claim |
-| [`mortier1986`](#mortier1986) | literature | reference only | citation |
-| [`moser2010`](#moser2010) | literature | shipped | citation + claim |
-| [`moss1995`](#moss1995) | literature | reference only | citation |
-| [`murrayrust1983`](#murrayrust1983) | literature | shipped | citation + claim |
-| [`muser2012`](#muser2012) | literature | reference only | citation + claim |
-| [`naserifar2017`](#naserifar2017) | literature | reference only | citation + claim |
-| [`neudert2011`](#neudert2011) | literature | **not shipped** | citation |
-| [`nguyen2020`](#nguyen2020) | literature | shipped | citation + claim |
-| [`nicovich1992`](#nicovich1992) | literature | reference only | citation + claim |
-| [`nistor2006`](#nistor2006) | literature | reference only | citation + claim |
-| [`nmrshiftdb2`](#nmrshiftdb2) | dataset | shipped | citation |
-| [`npscorer2015`](#npscorer2015) | software | shipped | citation |
-| [`nubase2020`](#nubase2020) | dataset | shipped | citation + claim |
-| [`oda2003`](#oda2003) | literature | reference only | citation |
-| [`olah2002`](#olah2002) | literature | shipped | citation + claim |
-| [`ongari2018`](#ongari2018) | literature | reference only | citation + claim |
-| [`ons_solubility`](#ons_solubility) | dataset | shipped | citation |
-| [`openbabel`](#openbabel) | software | shipped | citation |
-| [`oppenheim2018`](#oppenheim2018) | literature | reference only | citation |
-| [`opsin`](#opsin) | software | shipped | citation |
-| [`orca`](#orca) | software | shipped | citation |
-| [`osha_1910_1000`](#osha_1910_1000) | legal | shipped | citation + claim |
-| [`parr_pearson1983`](#parr_pearson1983) | literature | shipped | citation |
-| [`patanen2021`](#patanen2021) | literature | shipped | citation + claim |
-| [`pdg2024`](#pdg2024) | literature | shipped | citation + claim |
-| [`pearson1963`](#pearson1963) | literature | reference only | citation |
-| [`pearson1968`](#pearson1968) | literature | reference only | citation |
-| [`pearson1988`](#pearson1988) | literature | shipped | citation + claim |
-| [`perry2025`](#perry2025) | literature | reference only | citation |
-| [`persson1994`](#persson1994) | literature | shipped | citation + claim |
-| [`piancastelli1983`](#piancastelli1983) | literature | shipped | citation + claim |
-| [`pkasolver`](#pkasolver) | software | shipped | citation |
-| [`platts1999`](#platts1999) | literature | **not shipped** | citation + claim |
-| [`plenio1997`](#plenio1997) | literature | shipped | citation + claim |
-| [`plenio2004`](#plenio2004) | literature | shipped | citation + claim |
-| [`plip2015`](#plip2015) | literature | reference only | citation |
-| [`poater2009`](#poater2009) | literature | shipped | citation |
-| [`psi42020`](#psi42020) | literature | shipped | citation |
-| [`pyside6`](#pyside6) | software | shipped | citation |
-| [`quiroga2016`](#quiroga2016) | literature | shipped | citation + claim |
-| [`ramachandran1996`](#ramachandran1996) | literature | **not shipped** | citation + claim |
-| [`ran2002`](#ran2002) | literature | reference only | citation |
-| [`ranasinghe2019`](#ranasinghe2019) | literature | shipped | citation + claim |
-| [`rappe1991`](#rappe1991) | literature | shipped | citation + claim |
-| [`rappe1992`](#rappe1992) | literature | **not shipped** | citation |
-| [`rcsb_pdb`](#rcsb_pdb) | dataset | shipped | citation |
-| [`rdkit`](#rdkit) | software | shipped | citation |
-| [`rdkit_bertz`](#rdkit_bertz) | software | shipped | citation + claim |
-| [`rendell1993`](#rendell1993) | literature | reference only | unverified |
-| [`riplinger2013dlpno`](#riplinger2013dlpno) | literature | reference only | citation + claim |
-| [`riplinger2013triples`](#riplinger2013triples) | literature | reference only | citation + claim |
-| [`rowland1996`](#rowland1996) | literature | shipped | citation + claim |
-| [`roy1999`](#roy1999) | literature | shipped | citation + claim |
-| [`ruscic2004`](#ruscic2004) | literature | reference only | citation |
-| [`ruscic2015`](#ruscic2015) | literature | reference only | citation |
-| [`ruttkies2016`](#ruttkies2016) | literature | reference only | citation |
-| [`sablon2007`](#sablon2007) | literature | shipped | citation + claim |
-| [`saigiridharan2024aizynthfinder4`](#saigiridharan2024aizynthfinder4) | literature | reference only | citation |
-| [`schafer1973`](#schafer1973) | literature | shipped | citation + claim |
-| [`schindler2021`](#schindler2021) | literature | reference only | citation |
-| [`schindler2021_correction`](#schindler2021_correction) | literature | reference only | citation |
-| [`schott1989`](#schott1989) | literature | shipped | citation + claim |
-| [`sci_downloads_note`](#sci_downloads_note) | reference_table | reference only | citation |
-| [`seetula2000`](#seetula2000) | literature | reference only | citation |
-| [`seetula2003`](#seetula2003) | literature | reference only | citation + claim |
-| [`seetula2008`](#seetula2008) | literature | reference only | citation + claim |
-| [`sefcik2002`](#sefcik2002) | literature | reference only | citation + claim |
-| [`shancita2020`](#shancita2020) | literature | shipped | citation |
-| [`shannon1976`](#shannon1976) | literature | shipped | citation + claim |
-| [`shimizu1996`](#shimizu1996) | literature | shipped | citation |
-| [`shojaei2010`](#shojaei2010) | literature | shipped | citation + claim |
-| [`shrake1973`](#shrake1973) | literature | shipped | citation |
-| [`snider2007`](#snider2007) | literature | reference only | citation |
-| [`souvignier2016`](#souvignier2016) | literature | shipped | citation |
-| [`stefanis2008`](#stefanis2008) | literature | shipped | citation + claim |
-| [`stener2011`](#stener2011) | literature | shipped | citation + claim |
-| [`stjohn2020`](#stjohn2020) | literature | reference only | citation + claim |
-| [`stovall2015`](#stovall2015) | literature | shipped | citation + claim |
-| [`su2019`](#su2019) | literature | shipped | citation + claim |
-| [`swope1982`](#swope1982) | literature | shipped | citation + claim |
-| [`tdc_admet`](#tdc_admet) | dataset | reference only | citation |
-| [`tenbrink2009`](#tenbrink2009) | literature | shipped | citation + claim |
-| [`thanikaivelan2002`](#thanikaivelan2002) | literature | shipped | citation + claim |
-| [`thompson2002`](#thompson2002) | literature | reference only | citation |
-| [`threedmol`](#threedmol) | software | shipped | citation |
-| [`tolman1977`](#tolman1977) | literature | shipped | citation |
-| [`torrenperaire2024`](#torrenperaire2024) | literature | reference only | citation + claim |
-| [`tosco2011`](#tosco2011) | literature | shipped | citation + claim |
-| [`tosco2014`](#tosco2014) | literature | reference only | citation |
-| [`trofimov2008`](#trofimov2008) | literature | shipped | citation + claim |
-| [`trofimov2017`](#trofimov2017) | literature | shipped | citation + claim |
-| [`trott_olson2010`](#trott_olson2010) | literature | shipped | citation + claim |
-| [`trygubenko2002`](#trygubenko2002) | literature | shipped | citation + claim |
-| [`tsang1974`](#tsang1974) | literature | shipped | citation + claim |
-| [`tsei`](#tsei) | reference_table | reference only | citation |
-| [`verlet1967`](#verlet1967) | literature | shipped | citation + claim |
-| [`verstraelen2009`](#verstraelen2009) | literature | reference only | citation + claim |
-| [`verstraelen2011`](#verstraelen2011) | literature | reference only | citation + claim |
-| [`verstraelen2013`](#verstraelen2013) | literature | reference only | citation + claim |
-| [`vo2022`](#vo2022) | literature | reference only | citation + claim |
-| [`vogel_drago1996`](#vogel_drago1996) | literature | shipped | citation + claim |
-| [`vogt2019`](#vogt2019) | literature | **not shipped** | citation |
-| [`waasmaier1995`](#waasmaier1995) | literature | shipped | citation + claim |
-| [`wang2019`](#wang2019) | literature | shipped | citation + claim |
-| [`wang2021`](#wang2021) | literature | reference only | citation |
-| [`wang2022`](#wang2022) | literature | reference only | citation |
-| [`wang2024`](#wang2024) | literature | shipped | citation + claim |
-| [`wells2014`](#wells2014) | literature | reference only | citation |
-| [`westwell1995`](#westwell1995) | literature | **not shipped** | citation |
-| [`wildman1999`](#wildman1999) | literature | shipped | citation |
-| [`willrett2025`](#willrett2025) | literature | reference only | citation + claim |
-| [`wilmer2011`](#wilmer2011) | literature | reference only | citation |
-| [`wilmer2012`](#wilmer2012) | literature | shipped | citation + claim |
-| [`wilmer2012_correction`](#wilmer2012_correction) | literature | reference only | citation |
-| [`wilson1994`](#wilson1994) | literature | reference only | citation + claim |
-| [`wu2025`](#wu2025) | literature | reference only | citation + claim |
-| [`yalkowsky_banerjee1992`](#yalkowsky_banerjee1992) | dataset | shipped | citation |
-| [`zenodo7341155`](#zenodo7341155) | dataset | reference only | citation + claim |
-| [`zenodo7797465`](#zenodo7797465) | dataset | reference only | citation + claim |
-| [`zeuner2003`](#zeuner2003) | literature | shipped | citation + claim |
-| [`zhang2009`](#zhang2009) | literature | reference only | citation |
-| [`zhao2003`](#zhao2003) | literature | reference only | citation + claim |
-| [`zhao2008`](#zhao2008) | literature | reference only | citation + claim |
-| [`zheng2017`](#zheng2017) | literature | shipped | citation + claim |
-| [`zhu2023`](#zhu2023) | literature | reference only | citation |
-| [`zhuang2022`](#zhuang2022) | literature | shipped | citation + claim |
+Title and DOI first; the `key` is what prose and code cite (`[source:key]`) and links to the entry.
+
+| title | DOI / identifier | key | kind | status | verification |
+| --- | --- | --- | --- | --- | --- |
+| The predicted (non-measured) solvent coefficients of Bradley, Abraham, Acree & Lang 2015 -- 202 solvents, of… | [10.1186/s13065-015-0085-4](https://doi.org/10.1186/s13065-015-0085-4) | [`abraham_predicted_solvents`](#abraham_predicted_solvents) | reference_table | **not shipped** | citation + claim |
+| Eclipse Temurin JRE, fetched from the Adoptium API on demand. | <https://api.adoptium.net/> | [`adoptium_temurin`](#adoptium_temurin) | software | shipped | citation |
+| Speed vs accuracy: Effect on ligand pose accuracy of varying box size and exhaustiveness in AutoDock Vina | [10.1002/minf.202200188](https://doi.org/10.1002/minf.202200188) | [`agarwal2022`](#agarwal2022) | literature | shipped | citation + claim |
+| Ranking metrics conceal pose errors in blind docking with AutoDock Vina, a cross-target benchmark | [10.1016/j.rineng.2026.112651](https://doi.org/10.1016/j.rineng.2026.112651) | [`agboola2026`](#agboola2026) | literature | shipped | citation + claim |
+| The Chemistry of Explosives | 978-1-84973-330-4 | [`akhavan2011`](#akhavan2011) | literature | shipped | citation + claim |
+| CFM-ID: a web server for annotation, spectrum prediction and metabolite identification from tandem mass spectra | [10.1093/nar/gku436](https://doi.org/10.1093/nar/gku436) | [`allen2014`](#allen2014) | literature | reference only | citation |
+| Computational prediction of electron ionization mass spectra to assist in GC-MS compound identification | [10.1021/acs.analchem.6b01622](https://doi.org/10.1021/acs.analchem.6b01622) | [`allen2016`](#allen2016) | literature | reference only | citation |
+| Electronegativity values from thermochemical data |  | [`allred1961`](#allred1961) | reference_table | shipped | citation |
+| The Molecular Structure of Disiloxane, (SiH3)2O | [10.3891/acta.chem.scand.17-2455](https://doi.org/10.3891/acta.chem.scand.17-2455) | [`almenningen1963`](#almenningen1963) | literature | **not shipped** | citation + claim |
+| A cartography of the van der Waals territories | [10.1039/C3DT50599E](https://doi.org/10.1039/C3DT50599E) | [`alvarez2013`](#alvarez2013) | literature | reference only | citation |
+| Molecular Isotopic Distribution Analysis (MIDAs) with Adjustable Mass Accuracy | [10.1007/s13361-013-0733-7](https://doi.org/10.1007/s13361-013-0733-7) | [`alves2014`](#alves2014) | literature | reference only | citation |
+| Engineering Design Handbook: Military Pyrotechnics Series, Part Three: Properties of Materials Used in Pyrotechnic Compositions |  | [`amcp706187`](#amcp706187) | standard | shipped | citation |
+| Binding Energies in Atomic Negative Ions: III | [10.1063/1.556047](https://doi.org/10.1063/1.556047) | [`andersen1999`](#andersen1999) | literature | shipped | citation + claim |
+| Correlated molecular orbital theory predictions of hydrogen-containing halomethane thermochemistry: Heats of formation, C-H bond dissociation energies, and pKa values | [10.1021/acs.jpca.5c08066](https://doi.org/10.1021/acs.jpca.5c08066) | [`andress2026`](#andress2026) | literature | reference only | citation + claim |
+| AqSolDB, a curated reference set of aqueous solubility and 2D descriptors for a diverse set of compounds | [10.1038/s41597-019-0151-1](https://doi.org/10.1038/s41597-019-0151-1) | [`aqsoldb`](#aqsoldb) | dataset | shipped | citation |
+| Strategy-first synthesis planning for complex natural products | [10.48550/arXiv.2608.07454](https://doi.org/10.48550/arXiv.2608.07454) | [`armstrong2026synthex`](#armstrong2026synthex) | literature | reference only | citation + claim |
+| Active Thermochemical Tables (ATcT), Thermochemical Network version 1.228: enthalpies of formation of 3,455… | <https://atct.anl.gov/Thermochemical%20Data/version%201.228/index.php> | [`atct1228`](#atct1228) | dataset | reference only | citation |
+| AutoDock Vina 1.2.0: New Docking Methods, Expanded Force Field, and Python Bindings | <https://github.com/ccsb-scripps/AutoDock-Vina> | [`autodock_vina`](#autodock_vina) | software | shipped | citation + claim |
+| Solubility of sparingly-soluble ionizable drugs | [10.1016/j.addr.2007.05.008](https://doi.org/10.1016/j.addr.2007.05.008) | [`avdeef2007`](#avdeef2007) | literature | shipped | citation + claim |
+| Prediction of aqueous intrinsic solubility of druglike molecules using Random Forest regression trained with Wiki-pS0 database | [10.5599/admet.766](https://doi.org/10.5599/admet.766) | [`avdeef2020`](#avdeef2020) | literature | shipped | citation + claim |
+| Computing Fukui functions without differentiating with respect to electron number. I. Fundamentals | [10.1063/1.2736697](https://doi.org/10.1063/1.2736697) | [`ayers2007`](#ayers2007) | literature | reference only | citation |
+| New Substructure Filters for Removal of Pan Assay Interference Compounds (PAINS) from Screening Libraries and for Their Exclusion in Bioassays | [10.1021/jm901137j](https://doi.org/10.1021/jm901137j) | [`baell2010`](#baell2010) | literature | shipped | citation |
+| Addition of Carbon-Fluorine Bonds to a Mg(I)-Mg(I) Bond: An Equivalent of Grignard Formation in Solution | [10.1021/jacs.6b08104](https://doi.org/10.1021/jacs.6b08104) | [`bakewell2016`](#bakewell2016) | literature | reference only | citation |
+| Semiempirical Treatment of Electrostatic Potentials and Partial Charges in Combined Quantum Mechanical and Molecular Mechanical Approaches | [10.1002/(SICI)1096-987X(19960115)17:1<87::AID-JCC8>3.0.CO;2-X](https://doi.org/10.1002/(SICI)1096-987X(19960115)17:1<87::AID-JCC8>3.0.CO;2-X) | [`bakowies1996`](#bakowies1996) | literature | **not shipped** | citation + claim |
+| Tautomeric equilibrium and hydrogen shifts in tetrazole and triazoles: Focal-point analysis and ab initio limit | [10.1063/1.3249968](https://doi.org/10.1063/1.3249968) | [`balabin2009`](#balabin2009) | literature | reference only | citation + claim |
+| A machine learning approach to predicting protein-ligand binding affinity with applications to molecular docking | [10.1093/bioinformatics/btq112](https://doi.org/10.1093/bioinformatics/btq112) | [`ballester2010`](#ballester2010) | literature | **not shipped** | citation |
+| C. Bannwarth, E. Caldeweyher, S. Ehlert, A. Hansen, P. Pracht, J. Seibert, S. Spicher & S. Grimme, WIREs… | [10.1002/wcms.1493](https://doi.org/10.1002/wcms.1493) | [`bannwarth2021xtb`](#bannwarth2021xtb) | literature | shipped | citation |
+| DFT Meets Wave-Function Composite Methods for Characterizing Cytosine Tautomers in the Gas Phase | [10.1021/acs.jctc.3c00465](https://doi.org/10.1021/acs.jctc.3c00465) | [`barone2023`](#barone2023) | literature | reference only | citation |
+| Van der Waals Radii of Elements | [10.1023/a:1011625728803](https://doi.org/10.1023/a:1011625728803) | [`batsanov2001`](#batsanov2001) | literature | reference only | citation |
+| Tautomeric Properties and Gas-Phase Structure of Acetylacetone | [10.1021/jo402814c](https://doi.org/10.1021/jo402814c) | [`belova2014`](#belova2014) | literature | shipped | citation + claim |
+| An open source chemical structure curation pipeline using RDKit | [10.1186/s13321-020-00456-1](https://doi.org/10.1186/s13321-020-00456-1) | [`bento2020`](#bento2020) | literature | shipped | citation + claim |
+| The First General Index of Molecular Complexity | [10.1021/ja00402a071](https://doi.org/10.1021/ja00402a071) | [`bertz1981`](#bertz1981) | literature | shipped | citation |
+| Exploring the structural and electronic characteristics of phenethylamine derivatives: a density functional theory approach | [10.1186/s44147-024-00461-3](https://doi.org/10.1186/s44147-024-00461-3) | [`bhaskarapillai2024`](#bhaskarapillai2024) | literature | reference only | citation |
+| Quantifying the chemical beauty of drugs | [10.1038/nchem.1243](https://doi.org/10.1038/nchem.1243) | [`bickerton2012`](#bickerton2012) | literature | shipped | citation |
+| Exact ligand cone angles | [10.1002/jcc.23217](https://doi.org/10.1002/jcc.23217) | [`bilbrey2013`](#bilbrey2013) | literature | shipped | citation |
+| A new aromaticity index and its application to five-membered ring heterocycles | [10.1016/S0040-4020(01)96543-3](https://doi.org/10.1016/S0040-4020(01)96543-3) | [`bird1985`](#bird1985) | literature | shipped | citation |
+| Bond Dissociation Energies of Organic Molecules | [10.1021/ar020230d](https://doi.org/10.1021/ar020230d) | [`blanksby2003`](#blanksby2003) | literature | shipped | citation + claim |
+| Absolute vacuum ultraviolet absorption spectra of some gaseous azabenzenes | [10.1016/0022-2852(84)90051-1](https://doi.org/10.1016/0022-2852(84)90051-1) | [`bolovinos1984`](#bolovinos1984) | literature | shipped | citation + claim |
+| van der Waals Volumes and Radii | [10.1021/j100785a001](https://doi.org/10.1021/j100785a001) | [`bondi1964`](#bondi1964) | literature | shipped | citation + claim |
+| S-H bond dissociation enthalpies in thiophenols: A time-resolved photoacoustic calorimetry and quantum chemistry study | [10.1021/jp025677i](https://doi.org/10.1021/jp025677i) | [`borgesdossantos2002`](#borgesdossantos2002) | literature | reference only | citation + claim |
+| Compounds with known Abraham descriptors | [10.6084/m9.figshare.1176994](https://doi.org/10.6084/m9.figshare.1176994) | [`bradley2014`](#bradley2014) | dataset | shipped | citation + claim |
+| Predicting Abraham model solvent coefficients | [10.1186/s13065-015-0085-4](https://doi.org/10.1186/s13065-015-0085-4) | [`bradley2015`](#bradley2015) | literature | shipped | citation + claim |
+| Leucopterin, the white pigment in butterfly wings: structural analysis by PDF fit, FIDEL fit, Rietveld refinement, solid-state NMR and DFT-D | [10.1107/S2052252523004281](https://doi.org/10.1107/S2052252523004281) | [`bravetti2023`](#bravetti2023) | literature | shipped | citation |
+| How Well Can We Predict Mass Spectra from Structures? Benchmarking Competitive Fragmentation Modeling for Metabolite Identification on Untrained Tandem Mass Spectra | [10.1021/acs.jcim.2c00936](https://doi.org/10.1021/acs.jcim.2c00936) | [`bremer2022`](#bremer2022) | literature | reference only | citation |
+| Lessons Learnt from Assembling Screening Libraries for Drug Discovery for Neglected Diseases | [10.1002/cmdc.200700139](https://doi.org/10.1002/cmdc.200700139) | [`brenk2008`](#brenk2008) | literature | shipped | citation |
+| Prototropic tautomerism and basic molecular principles of hypoxanthine mutagenicity: an exhaustive quantum-chemical analysis | [10.1080/07391102.2012.715041](https://doi.org/10.1080/07391102.2012.715041) | [`brovarets2013`](#brovarets2013) | literature | reference only | citation |
+| Intensity of diffracted intensities |  | [`brown2006`](#brown2006) | literature | **not shipped** | citation |
+| The Electronegativity Equalization Method I: Parametrization and Validation for Atomic Charge Calculations | [10.1021/jp0205463](https://doi.org/10.1021/jp0205463) | [`bultinck2002a`](#bultinck2002a) | literature | shipped | citation + claim |
+| The Electronegativity Equalization Method II: Applicability of Different Atomic Charge Schemes | [10.1021/jp020547v](https://doi.org/10.1021/jp020547v) | [`bultinck2002b`](#bultinck2002b) | literature | reference only | citation + claim |
+| Critical thoughts on computing atom condensed Fukui functions | [10.1063/1.2749518](https://doi.org/10.1063/1.2749518) | [`bultinck2007`](#bultinck2007) | literature | shipped | citation + claim |
+| Topological Steric Effect Index and Its Application | [10.1021/ci034266b](https://doi.org/10.1021/ci034266b) | [`cao2004`](#cao2004) | literature | shipped | citation + claim |
+| Importance of aromaticity on the relative stabilities of indazole annular tautomers: an ab initio study | [10.1039/P29960000057](https://doi.org/10.1039/P29960000057) | [`catalan1996`](#catalan1996) | literature | reference only | citation + claim |
+| Electrical response in chemical potential equalization schemes | [10.1063/1.480198](https://doi.org/10.1063/1.480198) | [`chelli1999`](#chelli1999) | literature | reference only | citation |
+| ChEMBL 37 schema documentation, table COMPOUND_PROPERTIES (EMBL-EBI). | <https://ftp.ebi.ac.uk/pub/databases/chembl/ChEMBLdb/latest/schema_documentation.txt> | [`chembl_schema`](#chembl_schema) | dataset | shipped | citation + claim |
+| ChEMBL Structure Pipeline, vendored in part under `src/openchem/vendor/chembl_structure_pipeline/` -- the… | <https://github.com/chembl/ChEMBL_Structure_Pipeline> | [`chembl_structure_pipeline`](#chembl_structure_pipeline) | software | shipped | citation |
+| QTPIE: Charge transfer with polarization current equalization. A fluctuating charge model with correct asymptotics | [10.1016/j.cplett.2007.02.065](https://doi.org/10.1016/j.cplett.2007.02.065) | [`chen2007`](#chen2007) | literature | reference only | citation + claim |
+| Erratum to QTPIE: Charge transfer with polarization current equalization. A fluctuating charge model with correct asymptotics | [10.1016/j.cplett.2008.08.060](https://doi.org/10.1016/j.cplett.2008.08.060) | [`chen2008erratum`](#chen2008erratum) | literature | reference only | citation + claim |
+| A unified theoretical framework for fluctuating-charge models in atom-space and in bond-space | [10.1063/1.3021400](https://doi.org/10.1063/1.3021400) | [`chen2008framework`](#chen2008framework) | literature | reference only | citation |
+| Revisiting van der Waals radii: from comprehensive structural analysis to knowledge-based classification of interatomic contacts | [10.1002/cphc.201901083](https://doi.org/10.1002/cphc.201901083) | [`chernyshov2020`](#chernyshov2020) | literature | reference only | citation |
+| Experimental and quantum-chemical studies on photoionization and dissociative photoionization of CH2Br2 | [10.1063/1.1641010](https://doi.org/10.1063/1.1641010) | [`chiang2004`](#chiang2004) | literature | reference only | citation + claim |
+| A New Population Analysis Based on Atomic Polar Tensors | [10.1021/ja00204a001](https://doi.org/10.1021/ja00204a001) | [`cioslowski1989`](#cioslowski1989) | literature | reference only | citation |
+| General and Unique Partitioning of Molecular Electronic Properties into Atomic Contributions | [10.1103/PhysRevLett.62.1469](https://doi.org/10.1103/PhysRevLett.62.1469) | [`cioslowski1989prl`](#cioslowski1989prl) | literature | reference only | citation + claim |
+| The isotope distribution: A rose with thorns | [10.1002/mas.21820](https://doi.org/10.1002/mas.21820) | [`claesen2023`](#claesen2023) | literature | reference only | citation |
+| Percent buried volume for phosphine and N-heterocyclic carbene ligands: steric properties in organometallic chemistry | [10.1039/b922984a](https://doi.org/10.1039/b922984a) | [`clavier2010`](#clavier2010) | literature | shipped | citation |
+| Crystallography Open Database (COD). | <https://www.crystallography.net/cod/> | [`cod`](#cod) | dataset | shipped | citation |
+| Chemistry of Pyrotechnics: Basic Principles and Theory | [10.1201/9780429262135](https://doi.org/10.1201/9780429262135) | [`conkling2019`](#conkling2019) | literature | shipped | citation + claim |
+| The structure factor |  | [`coppens2006`](#coppens2006) | literature | **not shipped** | citation |
+| The molecular energy levels of the azoles: a study by photoelectron spectroscopy and ab initio molecular orbital calculations | [10.1016/0040-4020(73)80161-9](https://doi.org/10.1016/0040-4020(73)80161-9) | [`cradock1973`](#cradock1973) | literature | shipped | citation + claim |
+| CRC Handbook of Chemistry and Physics, 97th edition. | CRC Handbook of Chemistry and Physics, 97th edition | [`crc_handbook`](#crc_handbook) | reference_table | shipped | citation + claim |
+| Assessment of Gaussian-3 and density-functional theories on the G3/05 test set of experimental energies | [10.1063/1.2039080](https://doi.org/10.1063/1.2039080) | [`curtiss2005`](#curtiss2005) | literature | reference only | citation + claim |
+| Convention on the Prohibition of the Development, Production, Stockpiling and Use of Chemical Weapons and on… | CWC Annex on Chemicals (entered into force 1997-04-29) | [`cwc_annex_on_chemicals`](#cwc_annex_on_chemicals) | legal | shipped | citation + claim |
+| US Drug Enforcement Administration, List I and List II chemicals (21 CFR 1310.02). | 21 CFR 1310.02 | [`dea_listed_chemicals`](#dea_listed_chemicals) | legal | shipped | citation |
+| ESOL: Estimating Aqueous Solubility Directly from Molecular Structure | [10.1021/ci034243x](https://doi.org/10.1021/ci034243x) | [`delaney2004`](#delaney2004) | literature | shipped | citation + claim |
+| Valence one-electron and shake-up ionization bands of polycyclic aromatic hydrocarbons. I. Benzene, naphthalene, anthracene, naphthacene, and pentacene | [10.1063/1.1386414](https://doi.org/10.1063/1.1386414) | [`deleuze2001`](#deleuze2001) | literature | reference only | citation |
+| Valence one-electron and shake-up ionization bands of polycyclic aromatic hydrocarbons. II. Azulene, phenanthrene, pyrene, chrysene, triphenylene, and perylene | [10.1063/1.1462615](https://doi.org/10.1063/1.1462615) | [`deleuze2002`](#deleuze2002) | literature | reference only | citation |
+| Atomic Charges, Dipole Moments, and Fukui Functions Using the Hirshfeld Partitioning of the Electron Density | [10.1002/jcc.10067](https://doi.org/10.1002/jcc.10067) | [`deproft2002`](#deproft2002) | literature | shipped | citation + claim |
+| Synthesis, In Silico Analysis, Antibacterial, Radical Scavenging and Antidiabetic Activities of Certain Bis-Azetidinones and Bis-Thiazolidinones | [10.1007/s11094-024-03119-9](https://doi.org/10.1007/s11094-024-03119-9) | [`deshpande2024`](#deshpande2024) | literature | reference only | unverified |
+| Near-Ultraviolet Photodissociation of Thiophenol | [10.1021/jp802019v](https://doi.org/10.1021/jp802019v) | [`devine2008`](#devine2008) | literature | reference only | citation + claim |
+| Photoelectron Spectra of Molecules. II. The Ionization Potentials of Azabenzenes and Azanaphthalenes | [10.1063/1.1671718](https://doi.org/10.1063/1.1671718) | [`dewar1969`](#dewar1969) | literature | reference only | citation |
+| Dimorphite-DL: An open-source program for enumerating the ionization states of drug-like small molecules | <https://github.com/durrantlab/dimorphite_dl> | [`dimorphite_dl`](#dimorphite_dl) | software | shipped | citation |
+| BRAIN 2.0: Time and Memory Complexity Improvements in the Algorithm for Calculating the Isotope Distribution | [10.1007/s13361-013-0796-5](https://doi.org/10.1007/s13361-013-0796-5) | [`dittwald2014`](#dittwald2014) | literature | reference only | citation |
+| A Double-Scale Equation for Correlating Enthalpies of Lewis Acid-Base Interactions | [10.1021/ja01094a008](https://doi.org/10.1021/ja01094a008) | [`drago1965`](#drago1965) | literature | shipped | citation + claim |
+| A method for the analysis and prediction of gas-phase ion-molecule enthalpies | [10.1021/ja00180a047](https://doi.org/10.1021/ja00180a047) | [`drago1990`](#drago1990) | literature | shipped | citation |
+| Addition of new donors to the E and C model | [10.1021/ic00063a045](https://doi.org/10.1021/ic00063a045) | [`drago1993`](#drago1993) | literature | shipped | citation |
+| Investigation of Next-Generation Visible Light-Producing Pyrotechnics | <https://edoc.ub.uni-muenchen.de/37604/> | [`dufter2026`](#dufter2026) | literature | shipped | citation + claim |
+| Organic Fluorine Hardly Ever Accepts Hydrogen Bonds | [10.1002/chem.19970030115](https://doi.org/10.1002/chem.19970030115) | [`dunitz1997`](#dunitz1997) | literature | shipped | citation + claim |
+| Organic Fluorine: Odd Man Out | [10.1002/cbic.200300801](https://doi.org/10.1002/cbic.200300801) | [`dunitz2004`](#dunitz2004) | literature | shipped | citation + claim |
+| Fast Calculation of Molecular Polar Surface Area as a Sum of Fragment-Based Contributions and Its Application to the Prediction of Drug Transport Properties | [10.1021/jm000942e](https://doi.org/10.1021/jm000942e) | [`ertl2000`](#ertl2000) | literature | shipped | citation |
+| Natural Product-likeness Score and Its Application for Prioritization of Compound Libraries | [10.1021/ci700286x](https://doi.org/10.1021/ci700286x) | [`ertl2008`](#ertl2008) | literature | shipped | citation |
+| Estimation of synthetic accessibility score of drug-like molecules based on molecular complexity and fragment contributions | [10.1186/1758-2946-1-8](https://doi.org/10.1186/1758-2946-1-8) | [`ertl2009`](#ertl2009) | literature | shipped | citation |
+| An algorithm to identify functional groups in organic molecules | [10.1186/s13321-017-0225-z](https://doi.org/10.1186/s13321-017-0225-z) | [`ertl2017`](#ertl2017) | literature | reference only | citation |
+| Anchoring the gas-phase acidity scale from hydrogen sulfide to pyrrole. Experimental bond dissociation energies of nitromethane, ethanethiol, and cyclopentadiene | [10.1021/jp510137g](https://doi.org/10.1021/jp510137g) | [`ervin2015`](#ervin2015) | literature | reference only | citation + claim |
+| Theoretical C-H bond dissociation enthalpies for CH3Br and CH2ClBr | [10.1021/jp9834614](https://doi.org/10.1021/jp9834614) | [`espinosagarcia1999`](#espinosagarcia1999) | literature | reference only | citation + claim |
+| Anchoring the gas-phase acidity scale: From formic acid to methanethiol | [10.1016/j.ijms.2009.01.001](https://doi.org/10.1016/j.ijms.2009.01.001) | [`eyet2009`](#eyet2009) | literature | reference only | citation + claim |
+| Calculating an optimal box size for ligand docking and virtual screening against experimental and predicted binding pockets | [10.1186/s13321-015-0067-5](https://doi.org/10.1186/s13321-015-0067-5) | [`feinstein2015`](#feinstein2015) | literature | shipped | citation + claim |
+| Targeting Tyrosinase: Development and Structural Insights of Novel Inhibitors Bearing Arylpiperidine and Arylpiperazine Fragments | [10.1021/acs.jmedchem.7b01745](https://doi.org/10.1021/acs.jmedchem.7b01745) | [`ferro2018`](#ferro2018) | literature | reference only | citation + claim |
+| Calculation of Fukui Functions Without Differentiating to the Number of Electrons. 3. Local Fukui Function and Dual Descriptor | [10.1021/ct800027e](https://doi.org/10.1021/ct800027e) | [`fievez2008`](#fievez2008) | literature | reference only | citation |
+| Studies on tautomerism: Benchmark quantum chemical calculations on formamide and formamidine | [10.1016/j.molstruc.2010.02.065](https://doi.org/10.1016/j.molstruc.2010.02.065) | [`fogarasi2010`](#fogarasi2010) | literature | shipped | citation + claim |
+| Thermochemistry of Uracil, Thymine, Cytosine, and Adenine | [10.1021/acs.jpca.9b02061](https://doi.org/10.1021/acs.jpca.9b02061) | [`ganyecz2019`](#ganyecz2019) | literature | reference only | citation |
+| Iterative Partial Equalization of Orbital Electronegativity -- A Rapid Access to Atomic Charges | [10.1016/0040-4020(80)80168-2](https://doi.org/10.1016/0040-4020(80)80168-2) | [`gasteiger1980`](#gasteiger1980) | literature | shipped | citation + claim |
+| Calculation of the Charge Distribution in Conjugated Systems by a Quantification of the Resonance Concept | [10.1002/anie.198506871](https://doi.org/10.1002/anie.198506871) | [`gasteiger1985`](#gasteiger1985) | literature | **not shipped** | citation |
+| The calculation of molecular volumes and the use of volume analysis in the investigation of structured media and of solid-state organic reactivity | [10.1021/ja00354a007](https://doi.org/10.1021/ja00354a007) | [`gavezzotti1983`](#gavezzotti1983) | literature | reference only | citation + claim |
+| High-quality and universal empirical atomic charges for chemoinformatics applications | [10.1186/s13321-015-0107-1](https://doi.org/10.1186/s13321-015-0107-1) | [`geidl2015`](#geidl2015) | literature | reference only | citation |
+| AiZynthFinder: a fast, robust and flexible open-source software for retrosynthetic planning | [10.1186/s13321-020-00472-1](https://doi.org/10.1186/s13321-020-00472-1) | [`genheden2020aizynthfinder`](#genheden2020aizynthfinder) | literature | reference only | citation + claim |
+| Clustering of synthetic routes using tree edit distance | [10.1021/acs.jcim.1c00232](https://doi.org/10.1021/acs.jcim.1c00232) | [`genheden2021ted`](#genheden2021ted) | literature | reference only | citation |
+| PaRoutes: towards a framework for benchmarking retrosynthesis route predictions | [10.1039/D2DD00015F](https://doi.org/10.1039/D2DD00015F) | [`genheden2022paroutes`](#genheden2022paroutes) | literature | reference only | citation + claim |
+| Lattice Energies of Crystals with Multiple Ions: A Generalized Kapustinskii Equation |  | [`glasser1995`](#glasser1995) | literature | shipped | citation |
+| Photoelectron Spectra of Azabenzenes and Azanaphthalenes: I. Pyridine, diazines, s-triazine and s-tetrazine | [10.1002/hlca.19720550130](https://doi.org/10.1002/hlca.19720550130) | [`gleiter1972`](#gleiter1972) | literature | shipped | citation + claim |
+| A look at the density functional theory zoo with the advanced GMTKN55 database for general main group thermochemistry, kinetics and noncovalent interactions | [10.1039/c7cp04913g](https://doi.org/10.1039/c7cp04913g) | [`goerigk2017`](#goerigk2017) | literature | reference only | citation + claim |
+| Reliable gas-phase tautomer equilibria of drug-like molecule scaffolds and the issue of continuum solvation | [10.1007/s10822-022-00480-3](https://doi.org/10.1007/s10822-022-00480-3) | [`goller2022`](#goller2022) | literature | shipped | citation + claim |
+| Calculation of hydrophile-lipophile balance for polyethoxylated surfactants by group contribution method | [10.1016/j.jcis.2005.12.009](https://doi.org/10.1016/j.jcis.2005.12.009) | [`guo2006`](#guo2006) | literature | reference only | citation + claim |
+| Bridging Chemists and AI: An Expert-Augmented Framework for Interpretable Route Evaluation | [10.48550/arXiv.2605.29108](https://doi.org/10.48550/arXiv.2605.29108) | [`guo2026routeevaluation`](#guo2026routeevaluation) | literature | reference only | citation |
+| Solvent effects on the reactivities of organometallic compounds | [10.1016/S0010-8545(00)82045-7](https://doi.org/10.1016/S0010-8545(00)82045-7) | [`gutmann1976`](#gutmann1976) | literature | shipped | citation + claim |
+| Gutmann's Donor and Acceptor Numbers for Ionic Liquids and Deep Eutectic Solvents | [10.3389/fchem.2022.861379](https://doi.org/10.3389/fchem.2022.861379) | [`gutmann_frontiers2022`](#gutmann_frontiers2022) | literature | **not shipped** | citation |
+| Merck Molecular Force Field. I. Basis, Form, Scope, Parameterization, and Performance of MMFF94 |  | [`halgren1996_mmff1`](#halgren1996_mmff1) | literature | shipped | citation |
+| Merck Molecular Force Field. II. MMFF94 van der Waals and Electrostatic Parameters for Intermolecular Interactions |  | [`halgren1996_mmff2`](#halgren1996_mmff2) | literature | shipped | citation + claim |
+| Space-Group Notation with an Explicit Origin | [10.1107/S0567739481001228](https://doi.org/10.1107/S0567739481001228) | [`hall1981`](#hall1981) | literature | shipped | citation |
+| Hard and Soft Acid-Base Behavior in Aqueous Solution: Steric Effects Make Some Metal Ions Hard; A Quantitative Scale of Hardness-Softness for Acids and Bases | [10.1021/ed073p654](https://doi.org/10.1021/ed073p654) | [`hancock1996`](#hancock1996) | literature | reference only | citation |
+| Correlated ab Initio Study of Nucleic Acid Bases and Their Tautomers in the Gas Phase, in a Microhydrated Environment, and in Aqueous Solution. Part 3. Adenine | [10.1021/jp036090m](https://doi.org/10.1021/jp036090m) | [`hanus2004`](#hanus2004) | literature | reference only | citation + claim |
+| The geometry of metal-ligand interactions relevant to proteins | [10.1107/S0907444999007374](https://doi.org/10.1107/S0907444999007374) | [`harding1999`](#harding1999) | literature | shipped | citation + claim |
+| The geometry of metal-ligand interactions relevant to proteins. II. Angles at the metal atom, additional weak metal-donor interactions | [10.1107/S0907444900005849](https://doi.org/10.1107/S0907444900005849) | [`harding2000`](#harding2000) | literature | reference only | citation |
+| Geometry of metal-ligand interactions in proteins | [10.1107/S0907444900019168](https://doi.org/10.1107/S0907444900019168) | [`harding2001`](#harding2001) | literature | shipped | citation + claim |
+| Metal-ligand geometry relevant to proteins and in proteins: sodium and potassium | [10.1107/S0907444902003712](https://doi.org/10.1107/S0907444902003712) | [`harding2002`](#harding2002) | literature | shipped | citation + claim |
+| Small revisions to predicted distances around metal sites in proteins | [10.1107/S0907444906014594](https://doi.org/10.1107/S0907444906014594) | [`harding2006`](#harding2006) | literature | shipped | citation + claim |
+| Metal-ligand geometry relevant to proteins and in proteins: sodium and potassium. Corrigendum | [10.1107/S0907444913019859](https://doi.org/10.1107/S0907444913019859) | [`harding2013`](#harding2013) | literature | reference only | citation + claim |
+| Molecular Structures of Gas-Phase Polyatomic Molecules Determined by Spectroscopic Methods | [10.1063/1.555605](https://doi.org/10.1063/1.555605) | [`harmony1979`](#harmony1979) | literature | reference only | citation + claim |
+| Iodine-Rich Imidazolium Iodate and Periodate Salts: En Route to Single-Based Biocidal Agents | [10.1021/acs.inorgchem.6b02195](https://doi.org/10.1021/acs.inorgchem.6b02195) | [`he2016`](#he2016) | literature | shipped | citation + claim |
+| The Thermodynamic and Kinetic Properties of 2-Hydroxypyridine/2-Pyridone Tautomerization: A Theoretical and Computational Revisit | [10.3390/ijms17111893](https://doi.org/10.3390/ijms17111893) | [`hejazi2016`](#hejazi2016) | literature | reference only | citation |
+| The deferral of HLB -- OVERTURNED. See [source:schott1989]. |  | [`hlb`](#hlb) | reference_table | reference only | citation |
+| A study of the valence shell electronic states of pyridazine by photoabsorption spectroscopy and time-dependent density functional theory calculations | [10.1088/0953-4075/46/17/175103](https://doi.org/10.1088/0953-4075/46/17/175103) | [`holland2013`](#holland2013) | literature | shipped | citation + claim |
+| A study of the valence shell electronic states of s-triazine by photoabsorption spectroscopy and ab initio calculations | [10.1016/j.chemphys.2016.07.019](https://doi.org/10.1016/j.chemphys.2016.07.019) | [`holland2016`](#holland2016) | literature | reference only | citation |
+| An experimental and theoretical study of the valence shell photoelectron spectra of 2-chloropyridine and 3-chloropyridine | [10.1063/1.4999433](https://doi.org/10.1063/1.4999433) | [`holland2017`](#holland2017) | literature | shipped | citation + claim |
+| Findings of the challenge to predict aqueous solubility |  | [`hopfinger2009`](#hopfinger2009) | dataset | shipped | citation |
+| Molecular Spectra and Molecular Structure IV. Constants of Diatomic Molecules |  | [`huber1979`](#huber1979) | literature | reference only | citation + claim |
+| Evaluated Gas Phase Basicities and Proton Affinities of Molecules: An Update | [10.1063/1.556018](https://doi.org/10.1063/1.556018) | [`hunter1998`](#hunter1998) | literature | reference only | citation + claim |
+| Biopharmaceutics Classification System-Based Biowaivers M9 | ICH M9 (Step 4, 20 November 2019) | [`ich_m9`](#ich_m9) | standard | shipped | citation + claim |
+| Exploiting the 1-(4-fluorobenzyl)piperazine fragment for the development of novel tyrosinase inhibitors as anti-melanogenic agents: Design, synthesis, structural insights and biological profile | [10.1016/j.ejmech.2019.06.019](https://doi.org/10.1016/j.ejmech.2019.06.019) | [`ielo2019`](#ielo2019) | literature | reference only | citation + claim |
+| Rapid Calculation of Accurate Atomic Charges for Proteins via the Electronegativity Equalization Method | [10.1021/ci400448n](https://doi.org/10.1021/ci400448n) | [`ionescu2013`](#ionescu2013) | literature | shipped | citation + claim |
+| Efficient Calculation of Exact Fine Structure Isotope Patterns via the Multidimensional Fourier Transform | [10.1021/ac500108n](https://doi.org/10.1021/ac500108n) | [`ipsen2014`](#ipsen2014) | literature | reference only | citation |
+| IUPAC, Nomenclature of Organic Chemistry: Recommendations and Preferred Names 2013 (the Blue Book). | IUPAC Recommendations and Preferred Names 2013 | [`iupac2013`](#iupac2013) | standard | shipped | citation + claim |
+| IUPAC, Compendium of Chemical Terminology (the Gold Book), version 2.3.1, 2012-03-23. | IUPAC Compendium of Chemical Terminology, version 2.3.1 | [`iupac_goldbook`](#iupac_goldbook) | standard | shipped | citation + claim |
+| open-iupac-namer, vendored under `src/openchem/vendor/iupac_namer/` -- the offline deterministic… | <https://github.com/leehiufung911/open-iupac-namer> | [`iupac_namer`](#iupac_namer) | software | shipped | citation |
+| Energetics of Propellants, Fuels and Explosives; a Chemical Valence Approach | [10.1002/prep.19870120603](https://doi.org/10.1002/prep.19870120603) | [`jain1987`](#jain1987) | literature | shipped | citation + claim |
+| Electron photodetachment from mercaptyl anions (RS-). Electron affinities of mercaptyl radicals and the S-H bond strength in mercaptans | [10.1021/ja00529a040](https://doi.org/10.1021/ja00529a040) | [`janousek1980`](#janousek1980) | literature | reference only | citation + claim |
+| Relationships among Ionic Lattice Energies, Molecular (Formula Unit) Volumes, and Thermochemical Radii |  | [`jenkins1999`](#jenkins1999) | literature | shipped | citation + claim |
+| Estimation of Pure-Component Properties from Group-Contributions | [10.1080/00986448708960487](https://doi.org/10.1080/00986448708960487) | [`joback1987`](#joback1987) | literature | shipped | citation + claim |
+| Chemistry of Detonations. I. A Simple Method for Calculating Detonation Properties of C-H-N-O Explosives | [10.1063/1.1667908](https://doi.org/10.1063/1.1667908) | [`kamlet1968`](#kamlet1968) | literature | shipped | citation + claim |
+| Chemistry of Detonations. II. Buffered Equilibria | [10.1063/1.1667930](https://doi.org/10.1063/1.1667930) | [`kamlet1968_ii`](#kamlet1968_ii) | literature | reference only | citation |
+| Chemistry of Detonations. III. Evaluation of the Simplified Calculational Method for Chapman-Jouguet Detonation Pressures on the Basis of Available Experimental Information | [10.1063/1.1667939](https://doi.org/10.1063/1.1667939) | [`kamlet1968_iii`](#kamlet1968_iii) | literature | shipped | citation |
+| Chemistry of Detonations. IV. Evaluation of a Simple Predictional Method for Detonation Velocities of C-H-N-O Explosives | [10.1063/1.1669671](https://doi.org/10.1063/1.1669671) | [`kamlet1968_iv`](#kamlet1968_iv) | literature | shipped | citation |
+| Aromaticity as a Quantitative Concept. Part V: A Comparison of Semi-empirical Methods for the Calculation of Molecular Geometries of Heteroaromatic Compounds | [10.1016/0898-5529(90)90102-E](https://doi.org/10.1016/0898-5529(90)90102-E) | [`katritzky1990`](#katritzky1990) | literature | shipped | citation + claim |
+| On the Prediction of Lattice Energy with the Fukui Potential: Some Supports on Hardness Maximization in Inorganic Solids | [10.1021/acs.jpca.1c09898](https://doi.org/10.1021/acs.jpca.1c09898) | [`kaya2022`](#kaya2022) | literature | shipped | citation + claim |
+| J. Kendall, R. McDonald, M. J. Ferguson & R. R. Tykwinski, Org. Lett. 2008, 10, 2163. | [10.1021/ol800583r](https://doi.org/10.1021/ol800583r) | [`kendall2008`](#kendall2008) | literature | shipped | citation |
+| Ketcher, EPAM Systems -- the 2D structure editor bundled as `resources/ketcher/dist`. | <https://github.com/epam/ketcher> | [`ketcher`](#ketcher) | software | shipped | citation |
+| Chemistry of High-Energy Materials | [10.1515/9783110536515](https://doi.org/10.1515/9783110536515) | [`klapotke2017`](#klapotke2017) | literature | shipped | citation + claim |
+| Energetic Materials Encyclopedia |  | [`klapotke2021`](#klapotke2021) | literature | shipped | citation + claim |
+| Photoelectron Angular Distribution Study of Some Isoxazoles Combined with Perturbation Theoretic Approach | [10.1246/bcsj.55.3915](https://doi.org/10.1246/bcsj.55.3915) | [`kobayashi1982`](#kobayashi1982) | literature | shipped | citation + claim |
+| Lessons Learned in Empirical Scoring with smina from the CSAR 2011 Benchmarking Exercise | [10.1021/ci300604z](https://doi.org/10.1021/ci300604z) | [`koes2013`](#koes2013) | literature | **not shipped** | citation |
+| Definition of aromaticity basing on the harmonic oscillator model | [10.1016/S0040-4039(01)94175-9](https://doi.org/10.1016/S0040-4039(01)94175-9) | [`kruszewski1972`](#kruszewski1972) | literature | shipped | citation |
+| Crystallographic Studies of Inter- and Intramolecular Interactions Reflected in Aromatic Character of pi-Electron Systems | [10.1021/ci00011a011](https://doi.org/10.1021/ci00011a011) | [`krygowski1993`](#krygowski1993) | literature | shipped | citation + claim |
+| A New Split Charge Equilibration Model and REPEAT Electrostatic Potential Fitted Charges for Periodic Frameworks with a Net Charge | [10.1021/acs.jctc.6b00998](https://doi.org/10.1021/acs.jctc.6b00998) | [`krykunov2017`](#krykunov2017) | literature | reference only | citation + claim |
+| Structure of Free Polyatomic Molecules: Basic Data | [10.1007/978-3-642-45748-7](https://doi.org/10.1007/978-3-642-45748-7) | [`kuchitsu1998`](#kuchitsu1998) | literature | reference only | citation + claim |
+| Coordination chemistry of halocarbons | [10.1016/0010-8545(90)80061-W](https://doi.org/10.1016/0010-8545(90)80061-W) | [`kulawiec1990`](#kulawiec1990) | literature | reference only | citation + claim |
+| Polarizable Charge Equilibration Model for Transition-Metal Elements | [10.1021/acs.jpca.8b07290](https://doi.org/10.1021/acs.jpca.8b07290) | [`kwon2018`](#kwon2018) | literature | reference only | citation |
+| DELTA50: A Highly Accurate Database of Experimental 1H and 13C NMR Chemical Shifts Applied to DFT Benchmarking | [10.3390/molecules28062449](https://doi.org/10.3390/molecules28062449) | [`kwon2023`](#kwon2023) | dataset | shipped | citation + claim |
+| J. A. Dean (ed.), Lange's Handbook of Chemistry, 15th ed.; McGraw-Hill: New York, 1999; p 4.35 (covalent… | 978-0070163843 | [`langes15`](#langes15) | reference_table | shipped | citation + claim |
+| Halogenated PETN derivatives: interplay between physical and chemical factors in explosive sensitivity | [10.1039/D3SC01627G](https://doi.org/10.1039/D3SC01627G) | [`lease2023`](#lease2023) | literature | shipped | citation + claim |
+| Reinvestigation of the elementary chemical kinetics of the reaction C2H5 + HBr (HI) = C2H6 + Br (I) in the range 293-623 K and its implication on the thermochemical parameters of C2H5 free radical | [10.1021/jp403761r](https://doi.org/10.1021/jp403761r) | [`leplat2013`](#leplat2013) | literature | reference only | citation + claim |
+| Design, Synthesis, and Biological Evaluation of 3,4-Dihydroisoquinolin-1(2H)-one Derivatives as Protein Arginine Methyltransferase 5 Inhibitors for the Treatment of Non-Hodgkin’s Lymphoma | [10.1021/acs.jmedchem.4c01548](https://doi.org/10.1021/acs.jmedchem.4c01548) | [`li2024_prmt5`](#li2024_prmt5) | literature | reference only | citation |
+| Retro-BLEU: quantifying chemical plausibility of retrosynthesis routes through reaction template sequence analysis | [10.1039/D3DD00219E](https://doi.org/10.1039/D3DD00219E) | [`li2024retrobleu`](#li2024retrobleu) | literature | reference only | citation |
+| Experimental and theoretical study of the photodissociation reaction of thiophenol at 243 nm: Intramolecular orbital alignment of the phenylthiyl radical | [10.1063/1.2424939](https://doi.org/10.1063/1.2424939) | [`lim2007`](#lim2007) | literature | reference only | citation + claim |
+| Solubility Challenge: Can You Predict Solubilities of 32 Molecules Using a Database of 100 Reliable Measurements? |  | [`llinas2008`](#llinas2008) | dataset | shipped | citation |
+| Solubility Challenge Revisited after Ten Years, with Multilab Shake-Flask Data, Using Tight (SD ~0.17 log) and Loose (SD ~0.62 log) Test Sets | [10.1021/acs.jcim.9b00345](https://doi.org/10.1021/acs.jcim.9b00345) | [`llinas2019`](#llinas2019) | dataset | reference only | citation |
+| Findings of the Second Challenge to Predict Aqueous Solubility | [10.1021/acs.jcim.0c00701](https://doi.org/10.1021/acs.jcim.0c00701) | [`llinas2020`](#llinas2020) | dataset | shipped | citation + claim |
+| A CASPT2 study of the valence and lowest Rydberg electronic states of benzene and phenol | [10.1007/BF01113865](https://doi.org/10.1007/BF01113865) | [`lorentzon1995`](#lorentzon1995) | literature | reference only | citation + claim |
+| Escape from Flatland: Increasing Saturation as an Approach to Improving Clinical Success | [10.1021/jm901241e](https://doi.org/10.1021/jm901241e) | [`lovering2009`](#lovering2009) | literature | shipped | citation |
+| Comprehensive Handbook of Chemical Bond Energies |  | [`luo2007`](#luo2007) | reference_table | reference only | citation |
+| On a Test of Whether one of Two Random Variables is Stochastically Larger than the Other |  | [`mann1947`](#mann1947) | literature | shipped | citation + claim |
+| Consistent van der Waals Radii for the Whole Main Group | [10.1021/jp8111556](https://doi.org/10.1021/jp8111556) | [`mantina2009`](#mantina2009) | literature | shipped | citation + claim |
+| Thirty years of density functional theory in computational chemistry: an overview and extensive assessment of 200 density functionals | [10.1080/00268976.2017.1333644](https://doi.org/10.1080/00268976.2017.1333644) | [`mardirossian2017`](#mardirossian2017) | literature | reference only | citation + claim |
+| pi-Charge Distribution from Molecular Topology and pi-Orbital Electronegativity |  | [`marsili1980`](#marsili1980) | literature | shipped | citation + claim |
+| Split charge equilibration method with correct dissociation limits | [10.1063/1.2803060](https://doi.org/10.1063/1.2803060) | [`mathieu2007`](#mathieu2007) | literature | reference only | citation + claim |
+| Structures of Anhydrous and Hydrated Copper(II) Hexafluoroacetylacetonate | [10.1021/ic020448w](https://doi.org/10.1021/ic020448w) | [`maverick2002`](#maverick2002) | literature | reference only | citation + claim |
+| The acceptor number - a quantitative empirical parameter for the electrophilic properties of solvents | [10.1007/BF00913599](https://doi.org/10.1007/BF00913599) | [`mayer1975`](#mayer1975) | literature | reference only | citation |
+| DREIDING: A Generic Force Field for Molecular Simulations |  | [`mayo1990`](#mayo1990) | literature | shipped | citation + claim |
+| Re-evaluating retrosynthesis algorithms with Syntheseus | [10.1039/D4FD00093E](https://doi.org/10.1039/D4FD00093E) | [`maziarz2025syntheseus`](#maziarz2025syntheseus) | literature | reference only | citation |
+| GNINA 1.0: molecular docking with deep learning | [10.1186/s13321-021-00522-2](https://doi.org/10.1186/s13321-021-00522-2) | [`mcnutt2021`](#mcnutt2021) | literature | **not shipped** | citation |
+| Explosives | [10.1002/9783527689583](https://doi.org/10.1002/9783527689583) | [`meyer2016`](#meyer2016) | literature | shipped | citation + claim |
+| A new empirical method to calculate average molecular polarizabilities | [10.1021/ja00518a014](https://doi.org/10.1021/ja00518a014) | [`miller1979`](#miller1979) | literature | shipped | citation + claim |
+| Additivity methods in molecular polarizability | [10.1021/ja00179a044](https://doi.org/10.1021/ja00179a044) | [`miller1990`](#miller1990) | literature | shipped | citation + claim |
+| The deferral of Miller polarizability -- OVERTURNED. See [source:miller1990]. |  | [`miller_polarizability`](#miller_polarizability) | reference_table | reference only | citation |
+| Mol* (molstar), the macromolecular structure viewer bundled as `resources/molstar/`. | <https://molstar.org/> | [`molstar`](#molstar) | software | shipped | citation |
+| Ionization Potentials and Ionization Limits Derived from the Analyses of Optical Spectra | [10.6028/NBS.NSRDS.34](https://doi.org/10.6028/NBS.NSRDS.34) | [`moore1970`](#moore1970) | literature | shipped | citation + claim |
+| Photoelectron spectroscopy of sulfur ions | [10.1021/j100318a021](https://doi.org/10.1021/j100318a021) | [`moran1988`](#moran1988) | literature | reference only | citation + claim |
+| 13C Nuclear Magnetic Resonance Spectra of Cinchona Alkaloids | [10.1021/jo00930a020](https://doi.org/10.1021/jo00930a020) | [`moreland1974`](#moreland1974) | literature | shipped | citation |
+| Procrustean Bed for AI-Driven Retrosynthesis: A Unified Framework for Reproducible Evaluation | [10.48550/arXiv.2512.07079](https://doi.org/10.48550/arXiv.2512.07079) | [`morgunov2025retrocast`](#morgunov2025retrocast) | literature | reference only | citation + claim |
+| Electronegativity Equalization Method for the Calculation of Atomic Charges in Molecules | [10.1021/ja00275a013](https://doi.org/10.1021/ja00275a013) | [`mortier1986`](#mortier1986) | literature | reference only | citation |
+| Accurate Proton Affinity and Gas-Phase Basicity Values for Molecules Important in Biocatalysis | [10.1021/jp107450n](https://doi.org/10.1021/jp107450n) | [`moser2010`](#moser2010) | literature | shipped | citation + claim |
+| Glossary of class names of organic compounds and reactive intermediates based on structure (IUPAC Recommendations 1995) | [10.1351/pac199567081307](https://doi.org/10.1351/pac199567081307) | [`moss1995`](#moss1995) | literature | reference only | citation |
+| Intermolecular interactions of the carbon-fluorine bond: the crystallographic environment of fluorinated carboxylic acids and related structures | [10.1021/ja00348a041](https://doi.org/10.1021/ja00348a041) | [`murrayrust1983`](#murrayrust1983) | literature | shipped | citation + claim |
+| The chemical hardness of molecules and the band gap of solids within charge equilibration formalisms. Toward force field-based simulations of redox reactions | [10.1140/epjb/e2012-21081-8](https://doi.org/10.1140/epjb/e2012-21081-8) | [`muser2012`](#muser2012) | literature | reference only | citation + claim |
+| Polarizable Charge Equilibration Model for Predicting Accurate Electrostatic Interactions in Molecules and Solids | [10.1063/1.4978891](https://doi.org/10.1063/1.4978891) | [`naserifar2017`](#naserifar2017) | literature | reference only | citation + claim |
+| DSX: A Knowledge-Based Scoring Function for the Assessment of Protein-Ligand Complexes | [10.1021/ci200274q](https://doi.org/10.1021/ci200274q) | [`neudert2011`](#neudert2011) | literature | **not shipped** | citation |
+| Autodock Vina Adopts More Accurate Binding Poses but Autodock4 Forms Better Binding Affinity | [10.1021/acs.jcim.9b00778](https://doi.org/10.1021/acs.jcim.9b00778) | [`nguyen2020`](#nguyen2020) | literature | shipped | citation + claim |
+| Temperature-dependent kinetics studies of the reactions Br(2P3/2) + H2S = SH + HBr and Br(2P3/2) + CH3SH = CH3S + HBr. Heats of formation of SH and CH3S radicals | [10.1021/j100185a025](https://doi.org/10.1021/j100185a025) | [`nicovich1992`](#nicovich1992) | literature | reference only | citation + claim |
+| A generalization of the charge equilibration method for nonmetallic materials | [10.1063/1.2346671](https://doi.org/10.1063/1.2346671) | [`nistor2006`](#nistor2006) | literature | reference only | citation + claim |
+| Facilitating quality control for spectra assignments of small organic molecules: nmrshiftdb2 - a free in-house NMR database with integrated LIMS for academic service laboratories | [10.1002/mrc.4263](https://doi.org/10.1002/mrc.4263) | [`nmrshiftdb2`](#nmrshiftdb2) | dataset | shipped | citation |
+| npscorer.py | <https://github.com/rdkit/rdkit/tree/master/Contrib/NP_Score> | [`npscorer2015`](#npscorer2015) | software | shipped | citation |
+| The NUBASE2020 evaluation of nuclear physics properties | [10.1088/1674-1137/abddae](https://doi.org/10.1088/1674-1137/abddae) | [`nubase2020`](#nubase2020) | dataset | shipped | citation + claim |
+| Geometry-dependent atomic charge calculations using charge equilibration method with empirical two-center Coulombic terms | [10.1016/S0166-1280(03)00338-5](https://doi.org/10.1016/S0166-1280(03)00338-5) | [`oda2003`](#oda2003) | literature | reference only | citation |
+| Condensed Fukui Functions Derived from Stockholder Charges: Assessment of Their Performance as Local Reactivity Descriptors | [10.1021/jp014039h](https://doi.org/10.1021/jp014039h) | [`olah2002`](#olah2002) | literature | shipped | citation + claim |
+| Evaluating Charge Equilibration Methods To Generate Electrostatic Fields in Nanoporous Materials | [10.1021/acs.jctc.8b00669](https://doi.org/10.1021/acs.jctc.8b00669) | [`ongari2018`](#ongari2018) | literature | reference only | citation + claim |
+| Open Notebook Science Challenge Solubility Dataset | [10.6084/m9.figshare.1514952](https://doi.org/10.6084/m9.figshare.1514952) | [`ons_solubility`](#ons_solubility) | dataset | shipped | citation |
+| Open Babel: An open chemical toolbox. | <https://openbabel.org/> | [`openbabel`](#openbabel) | software | shipped | citation |
+| Extension of the Polarizable Charge Equilibration Model to Higher Oxidation States with Applications to Ge, As, Se, Br, Sn, Sb, Te, I, Pb, Bi, Po, and At Elements | [10.1021/acs.jpca.7b06612](https://doi.org/10.1021/acs.jpca.7b06612) | [`oppenheim2018`](#oppenheim2018) | literature | reference only | citation |
+| OPSIN: Open Parser for Systematic IUPAC Nomenclature, reached through the `py2opsin` wrapper, which bundles… | <https://github.com/dan2097/opsin> | [`opsin`](#opsin) | software | shipped | citation |
+| Software Update: The ORCA Program System - Version 6.0 | [10.1002/wcms.70019](https://doi.org/10.1002/wcms.70019) | [`orca`](#orca) | software | shipped | citation |
+| United States Code of Federal Regulations, Title 29, Part 1910, Section 1910.1000, Table Z-1 (Limits for Air… | 29 CFR 1910.1000 | [`osha_1910_1000`](#osha_1910_1000) | legal | shipped | citation + claim |
+| Absolute Hardness: Companion Parameter to Absolute Electronegativity |  | [`parr_pearson1983`](#parr_pearson1983) | literature | shipped | citation |
+| Valence shell photoelectron angular distributions and vibrationally resolved spectra of imidazole: A combined experimental-theoretical study | [10.1063/5.0058983](https://doi.org/10.1063/5.0058983) | [`patanen2021`](#patanen2021) | literature | shipped | citation + claim |
+| Review of Particle Physics | [10.1103/PhysRevD.110.030001](https://doi.org/10.1103/PhysRevD.110.030001) | [`pdg2024`](#pdg2024) | literature | shipped | citation + claim |
+| Hard and Soft Acids and Bases | [10.1021/ja00905a001](https://doi.org/10.1021/ja00905a001) | [`pearson1963`](#pearson1963) | literature | reference only | citation |
+| Hard and soft acids and bases, HSAB, part 1: Fundamental principles | [10.1021/ed045p581](https://doi.org/10.1021/ed045p581) | [`pearson1968`](#pearson1968) | literature | reference only | citation |
+| Absolute Electronegativity and Hardness: Application to Inorganic Chemistry | [10.1021/ic00277a030](https://doi.org/10.1021/ic00277a030) | [`pearson1988`](#pearson1988) | literature | shipped | citation + claim |
+| Taming Tautomerism in Organic Crystal Structure Prediction | [10.1021/jacs.5c08442](https://doi.org/10.1021/jacs.5c08442) | [`perry2025`](#perry2025) | literature | reference only | citation |
+| Rock Blasting and Explosives Engineering | [10.1201/9780203740514](https://doi.org/10.1201/9780203740514) | [`persson1994`](#persson1994) | literature | shipped | citation + claim |
+| Angular distribution parameter as a function of photon energy for some mono- and diazabenzenes and its use for orbital assignment | [10.1021/ja00351a019](https://doi.org/10.1021/ja00351a019) | [`piancastelli1983`](#piancastelli1983) | literature | shipped | citation + claim |
+| Improving Small Molecule pKa Prediction Using Transfer Learning with Graph Neural Networks | <https://github.com/mayrf/pkasolver> | [`pkasolver`](#pkasolver) | software | shipped | citation |
+| Estimation of molecular linear free energy relation descriptors using a group contribution approach | [10.1021/ci980339t](https://doi.org/10.1021/ci980339t) | [`platts1999`](#platts1999) | literature | **not shipped** | citation + claim |
+| The Coordination Chemistry of the CF Unit in Fluorocarbons | [10.1021/cr970465g](https://doi.org/10.1021/cr970465g) | [`plenio1997`](#plenio1997) | literature | shipped | citation + claim |
+| The Coordination Chemistry of Fluorine in Fluorocarbons | [10.1002/cbic.200300752](https://doi.org/10.1002/cbic.200300752) | [`plenio2004`](#plenio2004) | literature | shipped | citation + claim |
+| PLIP: fully automated protein-ligand interaction profiler | [10.1093/nar/gkv315](https://doi.org/10.1093/nar/gkv315) | [`plip2015`](#plip2015) | literature | reference only | citation |
+| SambVca: A Web Application for the Calculation of the Buried Volume of N-Heterocyclic Carbene Ligands | [10.1002/ejic.200801160](https://doi.org/10.1002/ejic.200801160) | [`poater2009`](#poater2009) | literature | shipped | citation |
+| PSI4 1.4: Open-source software for high-throughput quantum chemistry | [10.1063/5.0006002](https://doi.org/10.1063/5.0006002) | [`psi42020`](#psi42020) | literature | shipped | citation |
+| Qt for Python (PySide6). | <https://doc.qt.io/qtforpython/> | [`pyside6`](#pyside6) | software | shipped | citation |
+| Vinardo: A Scoring Function Based on Autodock Vina Improves Scoring, Docking, and Virtual Screening | [10.1371/journal.pone.0155183](https://doi.org/10.1371/journal.pone.0155183) | [`quiroga2016`](#quiroga2016) | literature | shipped | citation + claim |
+| Toward an Understanding of Zeolite Y as a Cracking Catalyst with the Use of Periodic Charge Equilibration | [10.1021/jp952864q](https://doi.org/10.1021/jp952864q) | [`ramachandran1996`](#ramachandran1996) | literature | **not shipped** | citation + claim |
+| Estimation of aqueous solubility of organic compounds by using the general solubility equation | [10.1016/S0045-6535(02)00118-2](https://doi.org/10.1016/S0045-6535(02)00118-2) | [`ran2002`](#ran2002) | literature | reference only | citation |
+| Vertical valence ionization potential benchmarks from equation-of-motion coupled cluster theory and QTP functionals | [10.1063/1.5084728](https://doi.org/10.1063/1.5084728) | [`ranasinghe2019`](#ranasinghe2019) | literature | shipped | citation + claim |
+| Charge Equilibration for Molecular Dynamics Simulations | [10.1021/j100161a070](https://doi.org/10.1021/j100161a070) | [`rappe1991`](#rappe1991) | literature | shipped | citation + claim |
+| UFF, a Full Periodic Table Force Field for Molecular Mechanics and Molecular Dynamics Simulations | [10.1021/ja00051a040](https://doi.org/10.1021/ja00051a040) | [`rappe1992`](#rappe1992) | literature | **not shipped** | citation |
+| RCSB Protein Data Bank. | <https://www.rcsb.org/> | [`rcsb_pdb`](#rcsb_pdb) | dataset | shipped | citation |
+| RDKit: Open-source cheminformatics. | <https://www.rdkit.org/> | [`rdkit`](#rdkit) | software | shipped | citation |
+| RDKit, `rdkit.Chem.GraphDescriptors.BertzCT` -- an implementation of Bertz's index that deliberately changes… | <https://github.com/rdkit/rdkit/blob/master/rdkit/Chem/GraphDescriptors.py> | [`rdkit_bertz`](#rdkit_bertz) | software | shipped | citation + claim |
+| Distributed data parallel coupled-cluster algorithm: Application to the 2-hydroxypyridine/2-pyridone tautomerism | [10.1002/jcc.540141204](https://doi.org/10.1002/jcc.540141204) | [`rendell1993`](#rendell1993) | literature | reference only | unverified |
+| An efficient and near linear scaling pair natural orbital based local coupled cluster method | [10.1063/1.4773581](https://doi.org/10.1063/1.4773581) | [`riplinger2013dlpno`](#riplinger2013dlpno) | literature | reference only | citation + claim |
+| Natural triple excitations in local coupled cluster calculations with pair natural orbitals | [10.1063/1.4821834](https://doi.org/10.1063/1.4821834) | [`riplinger2013triples`](#riplinger2013triples) | literature | reference only | citation + claim |
+| Intermolecular Nonbonded Contact Distances in Organic Crystal Structures: Comparison with Distances Expected from van der Waals Radii |  | [`rowland1996`](#rowland1996) | literature | shipped | citation + claim |
+| On non-negativity of Fukui function indices | [10.1063/1.478792](https://doi.org/10.1063/1.478792) | [`roy1999`](#roy1999) | literature | shipped | citation + claim |
+| Introduction to Active Thermochemical Tables: Several 'Key' Enthalpies of Formation Revisited | [10.1021/jp047912y](https://doi.org/10.1021/jp047912y) | [`ruscic2004`](#ruscic2004) | literature | reference only | citation |
+| Active Thermochemical Tables: Sequential Bond Dissociation Enthalpies of Methane, Ethane, and Methanol and the Related Thermochemistry | [10.1021/acs.jpca.5b01346](https://doi.org/10.1021/acs.jpca.5b01346) | [`ruscic2015`](#ruscic2015) | literature | reference only | citation |
+| MetFrag relaunched: incorporating strategies beyond in silico fragmentation | [10.1186/s13321-016-0115-9](https://doi.org/10.1186/s13321-016-0115-9) | [`ruttkies2016`](#ruttkies2016) | literature | reference only | citation |
+| Computing Fukui functions without differentiating with respect to electron number. II. Calculation of condensed molecular Fukui functions | [10.1063/1.2736698](https://doi.org/10.1063/1.2736698) | [`sablon2007`](#sablon2007) | literature | shipped | citation + claim |
+| AiZynthFinder 4.0: developments based on learnings from 3 years of industrial application | [10.1186/s13321-024-00860-x](https://doi.org/10.1186/s13321-024-00860-x) | [`saigiridharan2024aizynthfinder4`](#saigiridharan2024aizynthfinder4) | literature | reference only | citation |
+| Reversal in the Sequence of Two Highest Occupied Molecular Orbitals in the Series Thiophen, Selenophen, and Tellurophen | [10.1039/c39730000541](https://doi.org/10.1039/c39730000541) | [`schafer1973`](#schafer1973) | literature | shipped | citation + claim |
+| Optimized SQE atomic charges for peptides accessible via a web application | [10.1186/s13321-021-00528-w](https://doi.org/10.1186/s13321-021-00528-w) | [`schindler2021`](#schindler2021) | literature | reference only | citation |
+| Correction to: Optimized SQE atomic charges for peptides accessible via a web application | [10.1186/s13321-021-00531-1](https://doi.org/10.1186/s13321-021-00531-1) | [`schindler2021_correction`](#schindler2021_correction) | literature | reference only | citation |
+| Comments on Hydrophile-Lipophile Balance Systems |  | [`schott1989`](#schott1989) | literature | shipped | citation + claim |
+| Alex's local paper archive, `D:\Xaero Stuff\Documents\Sci Downloads\`. |  | [`sci_downloads_note`](#sci_downloads_note) | reference_table | reference only | citation |
+| Ab initio study of the transition states for determining the enthalpies of formation of alkyl and halogenated alkyl free radicals | [10.1039/b001350l](https://doi.org/10.1039/b001350l) | [`seetula2000`](#seetula2000) | literature | reference only | citation |
+| Kinetics of the R + HBr = RH + Br (R = CH2Br, CHBrCl or CCl3) equilibrium. Thermochemistry of the CH2Br and CHBrCl radicals | [10.1039/b210787m](https://doi.org/10.1039/b210787m) | [`seetula2003`](#seetula2003) | literature | reference only | citation + claim |
+| Kinetics of the R + HBr = RH + Br (CH3CHBr, CHBr2 or CDBr2) equilibrium. Thermochemistry of the CH3CHBr and CHBr2 radicals | [10.1016/j.chemphys.2008.04.008](https://doi.org/10.1016/j.chemphys.2008.04.008) | [`seetula2008`](#seetula2008) | literature | reference only | citation + claim |
+| Dynamic Charge Equilibration-Morse Stretch Force Field: Application to Energetics of Pure Silica Zeolites | [10.1002/jcc.10130](https://doi.org/10.1002/jcc.10130) | [`sefcik2002`](#sefcik2002) | literature | reference only | citation + claim |
+| Synthesis of metal iodates from an energetic salt | [10.1039/d0ra02250k](https://doi.org/10.1039/d0ra02250k) | [`shancita2020`](#shancita2020) | literature | shipped | citation |
+| Revised effective ionic radii and systematic studies of interatomic distances in halides and chalcogenides |  | [`shannon1976`](#shannon1976) | literature | shipped | citation + claim |
+| Fireworks: The Art, Science and Technique | 0-929388-05-4 | [`shimizu1996`](#shimizu1996) | literature | shipped | citation |
+| Electron Momentum Spectroscopy of pyrimidine at the benchmark ADC(3) level | [10.1016/j.cplett.2010.08.055](https://doi.org/10.1016/j.cplett.2010.08.055) | [`shojaei2010`](#shojaei2010) | literature | shipped | citation + claim |
+| Environment and exposure to solvent of protein atoms. Lysozyme and insulin | [10.1016/0022-2836(73)90011-9](https://doi.org/10.1016/0022-2836(73)90011-9) | [`shrake1973`](#shrake1973) | literature | shipped | citation |
+| Efficient Calculation of Exact Mass Isotopic Distributions | [10.1016/j.jasms.2007.05.016](https://doi.org/10.1016/j.jasms.2007.05.016) | [`snider2007`](#snider2007) | literature | reference only | citation |
+| Space groups and their descriptions | [10.1107/97809553602060000922](https://doi.org/10.1107/97809553602060000922) | [`souvignier2016`](#souvignier2016) | literature | shipped | citation |
+| Prediction of Hansen Solubility Parameters with a New Group-Contribution Method | [10.1007/s10765-008-0415-z](https://doi.org/10.1007/s10765-008-0415-z) | [`stefanis2008`](#stefanis2008) | literature | shipped | citation + claim |
+| A study of the valence shell electronic states of pyrimidine and pyrazine by photoabsorption spectroscopy and time-dependent density functional theory calculations | [10.1088/0953-4075/44/7/075203](https://doi.org/10.1088/0953-4075/44/7/075203) | [`stener2011`](#stener2011) | literature | shipped | citation + claim |
+| Prediction of organic homolytic bond dissociation enthalpies at near chemical accuracy with sub-second computational cost | [10.1038/s41467-020-16201-z](https://doi.org/10.1038/s41467-020-16201-z) | [`stjohn2020`](#stjohn2020) | literature | reference only | citation + claim |
+| Abraham model correlations for estimating solute transfer of neutral molecules into anhydrous acetic acid from water and from the gas phase | [10.1016/j.molliq.2015.08.042](https://doi.org/10.1016/j.molliq.2015.08.042) | [`stovall2015`](#stovall2015) | literature | shipped | citation + claim |
+| Comparative Assessment of Scoring Functions: The CASF-2016 Update | [10.1021/acs.jcim.8b00545](https://doi.org/10.1021/acs.jcim.8b00545) | [`su2019`](#su2019) | literature | shipped | citation + claim |
+| A computer simulation method for the calculation of equilibrium constants for the formation of physical clusters of molecules: Application to small water clusters | [10.1063/1.442716](https://doi.org/10.1063/1.442716) | [`swope1982`](#swope1982) | literature | shipped | citation + claim |
+| Therapeutics Data Commons: Machine Learning Datasets and Tasks for Drug Discovery and Development | <https://tdcommons.ai/> | [`tdc_admet`](#tdc_admet) | dataset | reference only | citation |
+| Influence of Protonation, Tautomeric, and Stereoisomeric States on Protein-Ligand Docking Results | [10.1021/ci800420z](https://doi.org/10.1021/ci800420z) | [`tenbrink2009`](#tenbrink2009) | literature | shipped | citation + claim |
+| Chemical reactivity and selectivity using Fukui functions: basis set and population scheme dependence in the framework of B3LYP theory | [10.1007/s00214-002-0352-z](https://doi.org/10.1007/s00214-002-0352-z) | [`thanikaivelan2002`](#thanikaivelan2002) | literature | shipped | citation + claim |
+| More reliable partial atomic charges when using diffuse basis sets | [10.1039/B206369G](https://doi.org/10.1039/B206369G) | [`thompson2002`](#thompson2002) | literature | reference only | citation |
+| 3Dmol.js, the WebGL molecular viewer bundled as `resources/viewer3d/3Dmol-min.js`. | <https://3dmol.csb.pitt.edu/> | [`threedmol`](#threedmol) | software | shipped | citation |
+| Steric effects of phosphorus ligands in organometallic chemistry and homogeneous catalysis | [10.1021/cr60307a002](https://doi.org/10.1021/cr60307a002) | [`tolman1977`](#tolman1977) | literature | shipped | citation |
+| Models Matter: the impact of single-step retrosynthesis on synthesis planning | [10.1039/D3DD00252G](https://doi.org/10.1039/D3DD00252G) | [`torrenperaire2024`](#torrenperaire2024) | literature | reference only | citation + claim |
+| Open3DALIGN: an open-source software aimed at unsupervised ligand alignment | [10.1007/s10822-011-9462-9](https://doi.org/10.1007/s10822-011-9462-9) | [`tosco2011`](#tosco2011) | literature | shipped | citation + claim |
+| Bringing the MMFF force field to the RDKit: implementation and validation | [10.1186/s13321-014-0037-3](https://doi.org/10.1186/s13321-014-0037-3) | [`tosco2014`](#tosco2014) | literature | reference only | citation |
+| Theoretical investigation of photoelectron spectra of furan, pyrrole, thiophene, and selenole [sic] | [10.1007/s10593-008-0159-5](https://doi.org/10.1007/s10593-008-0159-5) | [`trofimov2008`](#trofimov2008) | literature | shipped | citation + claim |
+| Ionization of pyridine: Interplay of orbital relaxation and electron correlation | [10.1063/1.4986405](https://doi.org/10.1063/1.4986405) | [`trofimov2017`](#trofimov2017) | literature | shipped | citation + claim |
+| AutoDock Vina: Improving the Speed and Accuracy of Docking with a New Scoring Function, Efficient Optimization, and Multithreading | [10.1002/jcc.21334](https://doi.org/10.1002/jcc.21334) | [`trott_olson2010`](#trott_olson2010) | literature | shipped | citation + claim |
+| Correlated ab initio study of nucleic acid bases and their tautomers in the gas phase, in a microhydrated environment and in aqueous solution. Part 1. Cytosine | [10.1039/b202156k](https://doi.org/10.1039/b202156k) | [`trygubenko2002`](#trygubenko2002) | literature | shipped | citation + claim |
+| An Appraisal of Methods for Estimating Self-Reaction Hazards |  | [`tsang1974`](#tsang1974) | literature | shipped | citation + claim |
+| The deferral of a bare "steric index" -- PARTLY OVERTURNED. See [source:cao2004]. |  | [`tsei`](#tsei) | reference_table | reference only | citation |
+| Computer "Experiments" on Classical Fluids. I. Thermodynamical Properties of Lennard-Jones Molecules | [10.1103/PhysRev.159.98](https://doi.org/10.1103/PhysRev.159.98) | [`verlet1967`](#verlet1967) | literature | shipped | citation + claim |
+| The electronegativity equalization method and the split charge equilibration applied to organic systems: Parametrization, validation, and comparison | [10.1063/1.3187034](https://doi.org/10.1063/1.3187034) | [`verstraelen2009`](#verstraelen2009) | literature | reference only | citation + claim |
+| The Significance of Parameters in Charge Equilibration Models | [10.1021/ct200006e](https://doi.org/10.1021/ct200006e) | [`verstraelen2011`](#verstraelen2011) | literature | reference only | citation + claim |
+| ACKS2: Atom-condensed Kohn-Sham DFT approximated to second order | [10.1063/1.4791569](https://doi.org/10.1063/1.4791569) | [`verstraelen2013`](#verstraelen2013) | literature | reference only | citation + claim |
+| Calculating bond dissociation energies of X-H (X = C, N, O, S) bonds of aromatic systems via density functional theory: a detailed comparison of methods | [10.1098/rsos.220177](https://doi.org/10.1098/rsos.220177) | [`vo2022`](#vo2022) | literature | reference only | citation + claim |
+| The ECW Model |  | [`vogel_drago1996`](#vogel_drago1996) | literature | shipped | citation + claim |
+| Structure Data of Free Polyatomic Molecules | [10.1007/978-3-030-29430-4](https://doi.org/10.1007/978-3-030-29430-4) | [`vogt2019`](#vogt2019) | literature | **not shipped** | citation |
+| New Analytical Scattering-Factor Functions for Free Atoms and Ions | [10.1107/S0108767394013292](https://doi.org/10.1107/S0108767394013292) | [`waasmaier1995`](#waasmaier1995) | literature | shipped | citation + claim |
+| A comparative study to predict regioselectivity, electrophilicity and nucleophilicity with Fukui function and Hirshfeld charge | [10.1007/s00214-019-2515-1](https://doi.org/10.1007/s00214-019-2515-1) | [`wang2019`](#wang2019) | literature | shipped | citation + claim |
+| CFM-ID 4.0: More Accurate ESI-MS/MS Spectral Prediction and Compound Identification | [10.1021/acs.analchem.1c01465](https://doi.org/10.1021/acs.analchem.1c01465) | [`wang2021`](#wang2021) | literature | reference only | citation |
+| Beyond the Ground State: Predicting Electron Ionization Mass Spectra Using Excited-State Molecular Dynamics | [10.1021/acs.jcim.2c00597](https://doi.org/10.1021/acs.jcim.2c00597) | [`wang2022`](#wang2022) | literature | reference only | citation |
+| A high density and low sensitivity carrier explosive promising to replace TNT: 3-Bromo-5-fluoro-2,4,6-trinitroanisole | [10.1016/j.enmf.2024.06.003](https://doi.org/10.1016/j.enmf.2024.06.003) | [`wang2024`](#wang2024) | literature | shipped | citation + claim |
+| Charge Equilibration Based on Atomic Ionization in Metal-Organic Frameworks | [10.1021/jp510415h](https://doi.org/10.1021/jp510415h) | [`wells2014`](#wells2014) | literature | reference only | citation |
+| Empirical Correlations between Thermodynamic Properties and Intermolecular Forces | [10.1021/ja00123a001](https://doi.org/10.1021/ja00123a001) | [`westwell1995`](#westwell1995) | literature | **not shipped** | citation |
+| Prediction of Physicochemical Parameters by Atomic Contributions | [10.1021/ci990307l](https://doi.org/10.1021/ci990307l) | [`wildman1999`](#wildman1999) | literature | shipped | citation |
+| Synthesis and Electrochemistry of Copper(I) Complexes with Weakly Basic, Fluorinated, and Multicyclic Arenes | [10.1002/chem.202501134](https://doi.org/10.1002/chem.202501134) | [`willrett2025`](#willrett2025) | literature | reference only | citation + claim |
+| Towards rapid computational screening of metal-organic frameworks for carbon dioxide capture: Calculation of framework charges via charge equilibration | [10.1016/j.cej.2010.10.035](https://doi.org/10.1016/j.cej.2010.10.035) | [`wilmer2011`](#wilmer2011) | literature | reference only | citation |
+| An Extended Charge Equilibration Method | [10.1021/jz3008485](https://doi.org/10.1021/jz3008485) | [`wilmer2012`](#wilmer2012) | literature | shipped | citation + claim |
+| Correction to 'An Extended Charge Equilibration Method' | [10.1021/jz301439a](https://doi.org/10.1021/jz301439a) | [`wilmer2012_correction`](#wilmer2012_correction) | literature | reference only | citation |
+| Near ultraviolet photolysis of methanethiol studied by H atom photofragment translational spectroscopy | [10.1063/1.468248](https://doi.org/10.1063/1.468248) | [`wilson1994`](#wilson1994) | literature | reference only | citation + claim |
+| Ultraviolet photodissociation of methanethiol (CH3SH): revealing an S(1D) atom elimination channel | [10.1039/D5SC04716A](https://doi.org/10.1039/D5SC04716A) | [`wu2025`](#wu2025) | literature | reference only | citation + claim |
+| Aqueous Solubility: Methods of Estimation for Organic Compounds | 978-0-8247-8615-1 | [`yalkowsky_banerjee1992`](#yalkowsky_banerjee1992) | dataset | shipped | citation |
+| PaRoutes 2.0 and USPTO-based models | [10.5281/zenodo.7341155](https://doi.org/10.5281/zenodo.7341155) | [`zenodo7341155`](#zenodo7341155) | dataset | reference only | citation + claim |
+| USPTO-based ONNX models | [10.5281/zenodo.7797465](https://doi.org/10.5281/zenodo.7797465) | [`zenodo7797465`](#zenodo7797465) | dataset | reference only | citation + claim |
+| Guanidine-thermite igniter composition for use in gas generators | <https://patents.google.com/patent/US6599380B2/en> | [`zeuner2003`](#zeuner2003) | literature | shipped | citation + claim |
+| Self-Consistent Charge Equilibration Method and Its Application to Au13Nan (n = 1, 10) Clusters | [10.1021/jp8063273](https://doi.org/10.1021/jp8063273) | [`zhang2009`](#zhang2009) | literature | reference only | citation |
+| Fast calculation of van der Waals volume as a sum of atomic and bond contributions and its application to drug compounds | [10.1021/jo034808o](https://doi.org/10.1021/jo034808o) | [`zhao2003`](#zhao2003) | literature | reference only | citation + claim |
+| The M06 suite of density functionals for main group thermochemistry, thermochemical kinetics, noncovalent interactions, excited states, and transition elements: two new functionals and systematic testing of four M06-class functionals and 12 other functionals | [10.1007/s00214-007-0310-x](https://doi.org/10.1007/s00214-007-0310-x) | [`zhao2008`](#zhao2008) | literature | reference only | citation + claim |
+| CheckMyMetal: a macromolecular metal-binding validation tool | [10.1107/S2059798317001061](https://doi.org/10.1107/S2059798317001061) | [`zheng2017`](#zheng2017) | literature | shipped | citation + claim |
+| Rapid Approximate Subset-Based Spectra Prediction for Electron Ionization-Mass Spectrometry | [10.1021/acs.analchem.2c02093](https://doi.org/10.1021/acs.analchem.2c02093) | [`zhu2023`](#zhu2023) | literature | reference only | citation |
+| Molecular recognition of morphine and fentanyl by the human mu-opioid receptor | [10.1016/j.cell.2022.09.041](https://doi.org/10.1016/j.cell.2022.09.041) | [`zhuang2022`](#zhuang2022) | literature | shipped | citation + claim |
 
 ## Primary literature
 
-### allen2016
+### allen2016 — Computational prediction of electron ionization mass spectra to assist in GC-MS compound identification
 
 <a id="allen2016"></a>
 
@@ -445,7 +447,7 @@ in the tree with no registry row as a citation that bypassed the registry.
 
 Every field is off the PDF's own first page.
 
-### wang2022
+### wang2022 — Beyond the Ground State: Predicting Electron Ionization Mass Spectra Using Excited-State Molecular Dynamics
 
 <a id="wang2022"></a>
 
@@ -480,7 +482,7 @@ in the tree with no registry row as a citation that bypassed the registry.
 
 Every field is off the PDF's own first page.
 
-### zhu2023
+### zhu2023 — Rapid Approximate Subset-Based Spectra Prediction for Electron Ionization-Mass Spectrometry
 
 <a id="zhu2023"></a>
 
@@ -516,7 +518,7 @@ in the tree with no registry row as a citation that bypassed the registry.
 
 Every field is off the PDF's own first page.
 
-### allen2014
+### allen2014 — CFM-ID: a web server for annotation, spectrum prediction and metabolite identification from tandem mass spectra
 
 <a id="allen2014"></a>
 
@@ -546,7 +548,7 @@ in the tree with no registry row as a citation that bypassed the registry.
 
 Every field is off the PDF's own first page.
 
-### wang2021
+### wang2021 — CFM-ID 4.0: More Accurate ESI-MS/MS Spectral Prediction and Compound Identification
 
 <a id="wang2021"></a>
 
@@ -574,7 +576,7 @@ in the tree with no registry row as a citation that bypassed the registry.
 
 Every field is off the PDF's own first page.
 
-### ruttkies2016
+### ruttkies2016 — MetFrag relaunched: incorporating strategies beyond in silico fragmentation
 
 <a id="ruttkies2016"></a>
 
@@ -605,7 +607,7 @@ in the tree with no registry row as a citation that bypassed the registry.
 
 Every field is off the PDF's own first page.
 
-### bremer2022
+### bremer2022 — How Well Can We Predict Mass Spectra from Structures? Benchmarking Competitive Fragmentation Modeling for Metabolite Identification on Untrained Tandem Mass Spectra
 
 <a id="bremer2022"></a>
 
@@ -639,7 +641,7 @@ in the tree with no registry row as a citation that bypassed the registry.
 
 Every field is off the PDF's own first page.
 
-### dittwald2014
+### dittwald2014 — BRAIN 2.0: Time and Memory Complexity Improvements in the Algorithm for Calculating the Isotope Distribution
 
 <a id="dittwald2014"></a>
 
@@ -673,7 +675,7 @@ rather than re-deriving it.
 Every field above is off the PDF's own first page. The journal line reads
 2014 while the DOI carries 2013, which is the ordinary online-first split.
 
-### alves2014
+### alves2014 — Molecular Isotopic Distribution Analysis (MIDAs) with Adjustable Mass Accuracy
 
 <a id="alves2014"></a>
 
@@ -704,7 +706,7 @@ distributions. This engine has one accuracy knob -- the pruning threshold
 -- and if that ever stops being enough, this paper is the survey of what
 the alternatives cost.
 
-### snider2007
+### snider2007 — Efficient Calculation of Exact Mass Isotopic Distributions
 
 <a id="snider2007"></a>
 
@@ -740,7 +742,7 @@ and therefore CANNOT say whether a peak is 81Br or 13C + 79Br -- see the
 roadmap's fine-structure entry, where this paper and `ipsen2014` are the
 references.
 
-### ipsen2014
+### ipsen2014 — Efficient Calculation of Exact Fine Structure Isotope Patterns via the Multidimensional Fourier Transform
 
 <a id="ipsen2014"></a>
 
@@ -766,7 +768,7 @@ Recorded now rather than when that work starts, because the roadmap entry
 naming the gap is written now and a gap with no route out of it reads as
 an oversight rather than a decision.
 
-### claesen2023
+### claesen2023 — The isotope distribution: A rose with thorns
 
 <a id="claesen2023"></a>
 
@@ -800,7 +802,7 @@ written down rather than resolved from memory.
 
 METHOD CONTEXT, like the other four: no number here comes from it.
 
-### waasmaier1995
+### waasmaier1995 — New Analytical Scattering-Factor Functions for Free Atoms and Ions
 
 <a id="waasmaier1995"></a>
 
@@ -815,7 +817,7 @@ METHOD CONTEXT, like the other four: no number here comes from it.
 | Local copy | `waasmaier1995.pdf` (not checked) |
 | Used by | `src/openchem/chem/data/atomic_scattering_factors.json`, `src/openchem/chem/powder_xrd.py`, `tools/build_scattering_factors.py` |
 
-### coppens2006
+### coppens2006 — The structure factor
 
 <a id="coppens2006"></a>
 
@@ -845,7 +847,7 @@ material, not Vol. B.
 
 Citation read off the file's own header line on page 1.
 
-### brown2006
+### brown2006 — Intensity of diffracted intensities
 
 <a id="brown2006"></a>
 
@@ -871,7 +873,7 @@ punctuation -- so the citation, the section number and the author list
 were read from a 350 dpi RENDER of the page rather than from the text.
 No DOI is printed in the file.
 
-### pdg2024
+### pdg2024 — Review of Particle Physics
 
 <a id="pdg2024"></a>
 
@@ -927,7 +929,7 @@ the summary tables print their quark content unambiguously beside the
 name. Nothing here should be read as a claim about states that are
 absent.
 
-### souvignier2016
+### souvignier2016 — Space groups and their descriptions
 
 <a id="souvignier2016"></a>
 
@@ -958,7 +960,7 @@ The operations themselves come from Open Babel's `space-groups.txt`, which
 is a data DEPENDENCY rather than the scientific authority -- the same
 distinction the TSEI radii were held to.
 
-### hall1981
+### hall1981 — Space-Group Notation with an Explicit Origin
 
 <a id="hall1981"></a>
 
@@ -984,7 +986,7 @@ is NOT present anywhere in the file, which is ordinary for a paper typeset
 long before DOIs existed -- so the volume/page line is what identifies it,
 and the DOI recorded here comes from the publisher rather than the file.
 
-### mayo1990
+### mayo1990 — DREIDING: A Generic Force Field for Molecular Simulations
 
 <a id="mayo1990"></a>
 
@@ -1008,7 +1010,7 @@ This project asserted for months that DREIDING was simply unavailable.
 That was the absence of a finding rather than one -- see
 [source:sci_downloads_note].
 
-### shannon1976
+### shannon1976 — Revised effective ionic radii and systematic studies of interatomic distances in halides and chalcogenides
 
 <a id="shannon1976"></a>
 
@@ -1033,7 +1035,7 @@ rather than a simplification of the table.
 The PDF's text layer is OCR and mangles the ion labels (`AC?3`, `AG?I`),
 so values were read from a rendered image and cross-checked.
 
-### drago1965
+### drago1965 — A Double-Scale Equation for Correlating Enthalpies of Lewis Acid-Base Interactions
 
 <a id="drago1965"></a>
 
@@ -1066,7 +1068,7 @@ F-strain measurements in it are the model's best test because they are one
 it must FAIL: an E/C equation has no steric term, so it necessarily
 over-predicts trimethylborane's adducts with the two bulkiest amines.
 
-### vogel_drago1996
+### vogel_drago1996 — The ECW Model
 
 <a id="vogel_drago1996"></a>
 
@@ -1109,7 +1111,7 @@ parameters "should not be mixed with those parameters found in the
 literature prior to 1991". Equation 1 also confirms the sign this project
 once had wrong -- `-dH = E_A E_B + C_A C_B + W`, with W ADDED.
 
-### drago1993
+### drago1993 — Addition of new donors to the E and C model
 
 <a id="drago1993"></a>
 
@@ -1146,7 +1148,7 @@ source of it.
 merely imprecise**, and an internally inconsistent volume/year pair is the
 cheapest kind to detect -- had anyone checked that volume 32 is 1993.
 
-### drago1990
+### drago1990 — A method for the analysis and prediction of gas-phase ion-molecule enthalpies
 
 <a id="drago1990"></a>
 
@@ -1182,7 +1184,7 @@ created ours, nor that mixing them is explicitly forbidden by the authors.
 Registered although nothing in the repository cites it by name: it is the
 provenance of a number every Drago adduct calculation uses.
 
-### parr_pearson1983
+### parr_pearson1983 — Absolute Hardness: Companion Parameter to Absolute Electronegativity
 
 <a id="parr_pearson1983"></a>
 
@@ -1197,7 +1199,7 @@ provenance of a number every Drago adduct calculation uses.
 | Local copy | `Parr & Pearson absolute hardness 1983.pdf` (not checked) |
 | Used by | `src/openchem/chem/conceptual_dft.py` |
 
-### pearson1988
+### pearson1988 — Absolute Electronegativity and Hardness: Application to Inorganic Chemistry
 
 <a id="pearson1988"></a>
 
@@ -1218,7 +1220,7 @@ claims resting on it are checked rather than described. Its rows round to
 +-0.1 -- H2S's (I-A)/2 gives 6.3 against a printed eta of 6.2 -- so a
 transcription self-check needs a tolerance of 0.15, not 0.05.
 
-### olah2002
+### olah2002 — Condensed Fukui Functions Derived from Stockholder Charges: Assessment of Their Performance as Local Reactivity Descriptors
 
 <a id="olah2002"></a>
 
@@ -1258,7 +1260,7 @@ Agreement with two independent sources was measured: formaldehyde at HF/6-31G**
 against `bultinck2007` (largest difference 0.0041 over six values) and at
 B3LYP/6-31G** against `thanikaivelan2002` (BLYP/dnd; largest 0.0080).
 
-### deproft2002
+### deproft2002 — Atomic Charges, Dipole Moments, and Fukui Functions Using the Hirshfeld Partitioning of the Electron Density
 
 <a id="deproft2002"></a>
 
@@ -1303,7 +1305,7 @@ with its carbons in formula order, which is a reading; thiophene's published
 values put the largest ring value on position 3 where experiment says 2, and the
 gate's statement is about the published ordering only.
 
-### gleiter1972
+### gleiter1972 — Photoelectron Spectra of Azabenzenes and Azanaphthalenes: I. Pyridine, diazines, s-triazine and s-tetrazine
 
 <a id="gleiter1972"></a>
 
@@ -1324,7 +1326,7 @@ sigma n-), 10.41 (b1, pi), 11.23 (a1, sigma n+), 11.39 (a2, pi), 13.9; pyrazine 
 uses the first two of each. THE NUMBERS WERE READ OFF THE PAGE IMAGE, not the text layer, whose columns run into the calculated orbital energies. The file's first page opens on the
 tail of the preceding article (its bibliography), as the repository's research README warns can happen; the paper begins on the same page.
 
-### piancastelli1983
+### piancastelli1983 — Angular distribution parameter as a function of photon energy for some mono- and diazabenzenes and its use for orbital assignment
 
 <a id="piancastelli1983"></a>
 
@@ -1344,7 +1346,7 @@ dependence of the angular distribution parameter beta: flat for the n bands, ris
 energies are the ones Gleiter 1972 printed, so this paper confirms the CHARACTER of the states and is not a second measurement of their energies. The gate uses it for the
 characters only.
 
-### shojaei2010
+### shojaei2010 — Electron Momentum Spectroscopy of pyrimidine at the benchmark ADC(3) level
 
 <a id="shojaei2010"></a>
 
@@ -1363,7 +1365,7 @@ PYRIMIDINE'S IONIZATION SPECTRUM AT THE BENCHMARK LEVEL. Table 1 (page 47): ADC(
 9.880, 10.482, 11.282, 11.406; the photoelectron spectrum 9.8, 10.5, 11.2, 11.5 and the electron-momentum spectrum 9.8, 10.5, 11.3 (a column of the table). The gate takes the
 gap between the first two bands from the largest basis of each method (0.48 and 0.60 eV) and from the PES column (0.70 eV). Read off the page image.
 
-### holland2013
+### holland2013 — A study of the valence shell electronic states of pyridazine by photoabsorption spectroscopy and time-dependent density functional theory calculations
 
 <a id="holland2013"></a>
 
@@ -1382,7 +1384,7 @@ PYRIDAZINE'S OUTER-VALENCE VERTICAL IONIZATION ENERGIES, CAS-SCF and NEVPT2 at c
 experiment 9.27; 1a2 (pi) 9.692, 10.683, 10.659, 10.61; 2b1 (pi) 10.059, 11.092, 11.079, 11.2; 10a1 (nN) 10.512, 11.264, 11.232, 11.3. The sequence is n, pi, pi, n. The gate takes the
 gap between the first two states from the experiment (1.34 eV) and the two NEVPT2 columns (1.50 and 1.52 eV), never from the CAS-SCF column, which has no dynamic correlation.
 
-### stener2011
+### stener2011 — A study of the valence shell electronic states of pyrimidine and pyrazine by photoabsorption spectroscopy and time-dependent density functional theory calculations
 
 <a id="stener2011"></a>
 
@@ -1401,7 +1403,7 @@ THE SECOND EXPERIMENTAL TABLE OF THE DIAZINES' LOWEST BANDS, taken from Asbrink 
 Theory column is LB94 orbital eigenvalues and is not used. The gap between the first two bands is 0.8 eV in both, where Gleiter's is 0.68 and 0.55: the spread between sources
 of one gap that the gate's tolerance has to cover. The two Asbrink et al. papers themselves are held (`asbrink1972_pyrimidine.pdf`, `asbrink1972_pyridazine.pdf`) but were not read for the gate.
 
-### patanen2021
+### patanen2021 — Valence shell photoelectron angular distributions and vibrationally resolved spectra of imidazole: A combined experimental-theoretical study
 
 <a id="patanen2021"></a>
 
@@ -1421,7 +1423,7 @@ theoretical estimate 9.02, experiment 9.1; A 2A' (15a', n sigma) 11.85, 10.27, 1
 lowest state is the pi hole and the lowest sigma state lies 1.2 to 1.7 eV above it. The Koopmans (HF) column is not used. Read off the page image. The licence is exclusive
 (AIP Publishing), so only the numbers the gate uses are transcribed.
 
-### cradock1973
+### cradock1973 — The molecular energy levels of the azoles: a study by photoelectron spectroscopy and ab initio molecular orbital calculations
 
 <a id="cradock1973"></a>
 
@@ -1440,7 +1442,7 @@ THE ONLY SOURCE IN HAND FOR PYRAZOLE'S ASSIGNED BANDS. Table 1 (page 2177), vert
 assignment supported by ab initio eigenvalues, with a single value per band: the gate uses the gap from the lowest pi state to the lowest sigma state (1.55 eV) and is therefore
 only as good as one old table. Read off the page image (the text layer is a poor OCR).
 
-### kobayashi1982
+### kobayashi1982 — Photoelectron Angular Distribution Study of Some Isoxazoles Combined with Perturbation Theoretic Approach
 
 <a id="kobayashi1982"></a>
 
@@ -1459,7 +1461,7 @@ OXAZOLE'S FIRST THREE BANDS, SECOND-HAND. Table 1 (page 3917) gives oxazole's ob
 held). The paper's own contribution is the ASSIGNMENT: a perturbation-theoretic reading against furan agrees with Palmer's ab initio assignment of the first and third bands to pi and the second to n sigma, and the band shapes agree. The gate
 uses the order and the gap from the first band to the second (1.36 eV). The file is a scan with no text layer; the table was read from the page image.
 
-### trofimov2008
+### trofimov2008 — Theoretical investigation of photoelectron spectra of furan, pyrrole, thiophene, and selenole [sic]
 
 <a id="trofimov2008"></a>
 
@@ -1478,7 +1480,7 @@ THE FIVE-MEMBERED RINGS' OUTER PI BANDS AT THE ADC(3) LEVEL, with the experiment
 pyrrole 8.1 and 8.8, 8.3 and 9.3; thiophene 8.7 and 9.0, 9.0 and 9.5; selenophene 2b1 8.7 and 1a2 8.7 (OVGF 8.7 and 8.6), experiment 9.0 and 9.1. THE TITLE IS PRINTED "SELENOLE" and the abstract says selenophene.
 Table 1 gives each orbital's population on each atom: 1a2 has none on the heteroatom (selenophene's 0.01) and 2b1 much (0.56). Used for the gate's calibration (thiophene, pyrrole, furan) and for selenophene's reference.
 
-### trofimov2017
+### trofimov2017 — Ionization of pyridine: Interplay of orbital relaxation and electron correlation
 
 <a id="trofimov2017"></a>
 
@@ -1498,7 +1500,7 @@ ADC(3) 10.06, 9.65, 10.39, 13.06; EOM-IP-CCSD 9.69, 9.72, 10.43, 12.87; EOM-IP-C
 the sigma state, by 0.15 eV at the highest level, so the gate does not decide pyridine's order and uses its ladder only to check the reading. The supplement (`trofimov2017_si.pdf`) is figures only (the relaxation, correlation and
 combined effect of each state on the density).
 
-### holland2017
+### holland2017 — An experimental and theoretical study of the valence shell photoelectron spectra of 2-chloropyridine and 3-chloropyridine
 
 <a id="holland2017"></a>
 
@@ -1517,7 +1519,7 @@ THE STATEMENT THE DOCUMENTATION CITES, not a number: on page 164307-8, explainin
 delta-SCF, the paper says that only the lowest state of each symmetry can be treated within the delta-SCF framework. It is the literature's statement of the limit the fourth Fukui gate found (a hole start cannot hold two
 states of one symmetry). The paper also gives EOM-IP-CCSD and CC3 vertical ionization energies of 2- and 3-chloropyridine with symmetry labels, not used here; the supplement is `holland2017_si.pdf`.
 
-### schafer1973
+### schafer1973 — Reversal in the Sequence of Two Highest Occupied Molecular Orbitals in the Series Thiophen, Selenophen, and Tellurophen
 
 <a id="schafer1973"></a>
 
@@ -1536,7 +1538,7 @@ THE QUALITATIVE REFERENCE FOR SELENOPHENE: the two highest pi orbitals reverse f
 is little affected by it; the 2b1 orbital is about 80 % on sulphur in thiophene (a CNDO/2 value) and its band is narrow. The gate takes from it the CHARACTER of the two selenophene states (a2: no spin on the heteroatom; b1: much) and that they are
 near-degenerate; the numbers are Trofimov 2008's. It prints no energies.
 
-### sablon2007
+### sablon2007 — Computing Fukui functions without differentiating with respect to electron number. II. Calculation of condensed molecular Fukui functions
 
 <a id="sablon2007"></a>
 
@@ -1570,7 +1572,7 @@ practical basis set, which is an independent statement of what the first gate's
 follow-up measured (the unbound anion's SCF solutions, and f+ that does not
 reproduce at a diffuse basis).
 
-### bultinck2007
+### bultinck2007 — Critical thoughts on computing atom condensed Fukui functions
 
 <a id="bultinck2007"></a>
 
@@ -1598,7 +1600,7 @@ of the Hirshfeld-I RMF values negative against about 2% for FMR. Its conclusion
 that the choices behind an atom-condensed value are arbitrary is quoted in the
 help, not argued with.
 
-### thanikaivelan2002
+### thanikaivelan2002 — Chemical reactivity and selectivity using Fukui functions: basis set and population scheme dependence in the framework of B3LYP theory
 
 <a id="thanikaivelan2002"></a>
 
@@ -1625,7 +1627,7 @@ sums to 0.971, and Table 9 gives the two equivalent methyl carbons of acetone
 different values (0.068 and 0.236); neither can be a target. The paper itself
 says its Hirshfeld values fail to pick the carbonyl carbon there.
 
-### roy1999
+### roy1999 — On non-negativity of Fukui function indices
 
 <a id="roy1999"></a>
 
@@ -1648,7 +1650,7 @@ target: the tables report local softness s+ and s- in atomic units for the
 protonation-site atoms of anilines only, which need the global softness to
 become f.
 
-### wang2019
+### wang2019 — A comparative study to predict regioselectivity, electrophilicity and nucleophilicity with Fukui function and Hirshfeld charge
 
 <a id="wang2019"></a>
 
@@ -1684,7 +1686,7 @@ It does not test intramolecular ranking of atoms as the small-molecule tables of
 `olah2002` do; it tests whether the largest value is the experimental site and
 whether the value tracks an experimental scale between molecules.
 
-### avdeef2007
+### avdeef2007 — Solubility of sparingly-soluble ionizable drugs
 
 <a id="avdeef2007"></a>
 
@@ -1714,7 +1716,7 @@ codebase had carried for years: ionization sites MULTIPLY,
 sum(log10(1 + term)), not log10(1 + sum of terms). Monoprotic answers are
 identical under both, which is why it survived so long.
 
-### avdeef2020
+### avdeef2020 — Prediction of aqueous intrinsic solubility of druglike molecules using Random Forest regression trained with Wiki-pS0 database
 
 <a id="avdeef2020"></a>
 
@@ -1748,7 +1750,7 @@ were right throughout, because those came from the repository rather than
 from memory. Its abstract's "6355 entries ... for 3014 different molecules"
 matches what `benchmarks/solubility/README.md` says about Wiki-pS0.
 
-### miller1990
+### miller1990 — Additivity methods in molecular polarizability
 
 <a id="miller1990"></a>
 
@@ -1790,7 +1792,7 @@ WITH THE ROW ASSIGNED CORRECTLY, benzene lands at 10.45 (+0.6%) and CCl4
 at 10.53 (+0.2%) -- the two the earlier attempt failed. Naphthalene
 assigns exactly two CBR carbons and lands at +1.7%.
 
-### miller1979
+### miller1979 — A new empirical method to calculate average molecular polarizabilities
 
 <a id="miller1979"></a>
 
@@ -1821,7 +1823,7 @@ against alpha(exp) 10.39, naphthalene 16.59 against 17.48. And page 6
 carries the sentence that explains the CBR row -- see
 [source:miller1990].
 
-### gutmann1976
+### gutmann1976 — Solvent effects on the reactivities of organometallic compounds
 
 <a id="gutmann1976"></a>
 
@@ -1875,7 +1877,7 @@ cross-scale agreement a correctness criterion would let a transcription
 error hide behind a legitimate difference. The oracle is the published
 values.
 
-### mayer1975
+### mayer1975 — The acceptor number - a quantitative empirical parameter for the electrophilic properties of solvents
 
 <a id="mayer1975"></a>
 
@@ -1901,7 +1903,7 @@ Consulted and confirmed to be the paper it claims: 34 solvents'
 acceptor numbers from 31P NMR of triethylphosphine oxide, which is the
 measurement [source:gutmann1976]'s Table 2 reports.
 
-### cao2004
+### cao2004 — Topological Steric Effect Index and Its Application
 
 <a id="cao2004"></a>
 
@@ -1975,7 +1977,7 @@ TSEI value this paper prints, and the two routes agree to the last digit
 this paper writes. `tools/build_tsei_radii.py` records which per element,
 and `tests/test_tsei.py` keeps the inversion as a live cross-check.
 
-### schott1989
+### schott1989 — Comments on Hydrophile-Lipophile Balance Systems
 
 <a id="schott1989"></a>
 
@@ -2019,7 +2021,7 @@ HLB "for nonionic surfactants with polyoxyethylene as the sole
 hydrophilic moiety". That is a structural condition, and `hlb.py` answers
 it per molecule instead of carrying it as prose.
 
-### guo2006
+### guo2006 — Calculation of hydrophile-lipophile balance for polyethoxylated surfactants by group contribution method
 
 <a id="guo2006"></a>
 
@@ -2058,7 +2060,7 @@ What it is cited FOR: that the scales are not interchangeable (its Table
 2 gives Davies-vs-ECL error), its group-number tables, and as the source
 a Davies implementation would start from if one is ever wanted.
 
-### stovall2015
+### stovall2015 — Abraham model correlations for estimating solute transfer of neutral molecules into anhydrous acetic acid from water and from the gas phase
 
 <a id="stovall2015"></a>
 
@@ -2107,7 +2109,7 @@ refused in acetic acid -- and in ethanol, toluene, hexane and chloroform
 too, because its descriptors come from two literature sources that
 disagree. That refusal is about caffeine and predates this entry.
 
-### bradley2015
+### bradley2015 — Predicting Abraham model solvent coefficients
 
 <a id="bradley2015"></a>
 
@@ -2132,7 +2134,7 @@ article tabulates 118 of them. '293 further solvents' appeared in four
 documents here and was wrong in all four: it was written from memory of the
 abstract rather than from the sentence.
 
-### delaney2004
+### delaney2004 — ESOL: Estimating Aqueous Solubility Directly from Molecular Structure
 
 <a id="delaney2004"></a>
 
@@ -2161,7 +2163,7 @@ domain limit rather than a fixable defect.
 Its fitting set is `dataset-G` inside AqSolDB ([source:aqsoldb]), which is
 what makes the de-leaking in `benchmarks/solubility/` necessary.
 
-### jenkins1999
+### jenkins1999 — Relationships among Ionic Lattice Energies, Molecular (Formula Unit) Volumes, and Thermochemical Radii
 
 <a id="jenkins1999"></a>
 
@@ -2186,7 +2188,7 @@ estimate: 26 salts, mean deviation 3.3%, worst 7.7%.
 The MX2 and M2X coefficient sets CROSS near V^(1/3) = 0.34, so a test point
 chosen there proves nothing -- pick from where the data lives.
 
-### bolovinos1984
+### bolovinos1984 — Absolute vacuum ultraviolet absorption spectra of some gaseous azabenzenes
 
 <a id="bolovinos1984"></a>
 
@@ -2203,7 +2205,7 @@ chosen there proves nothing -- pick from where the data lives.
 
 Direct absolute measurements, used as the UV-Vis reference where they exist.
 
-### lorentzon1995
+### lorentzon1995 — A CASPT2 study of the valence and lowest Rydberg electronic states of benzene and phenol
 
 <a id="lorentzon1995"></a>
 
@@ -2234,7 +2236,7 @@ because it stops looking like a question. The benzene entry in
 `tests/test_docs_are_current.py` has a predicate that fails if that ever
 silently changes.
 
-### moreland1974
+### moreland1974 — 13C Nuclear Magnetic Resonance Spectra of Cinchona Alkaloids
 
 <a id="moreland1974"></a>
 
@@ -2251,7 +2253,7 @@ silently changes.
 
 The assigned CDCl3 quinine table, which is the stress case for the NMR hybrid predictor.
 
-### kendall2008
+### kendall2008 — J. Kendall, R. McDonald, M. J. Ferguson & R. R. Tykwinski, Org. Lett. 2008, 10, 2163.
 
 <a id="kendall2008"></a>
 
@@ -2267,7 +2269,7 @@ The assigned CDCl3 quinine table, which is the stress case for the NMR hybrid pr
 
 The publication behind COD 1504676, one of the six CIF fixtures. See [source:cod].
 
-### bravetti2023
+### bravetti2023 — Leucopterin, the white pigment in butterfly wings: structural analysis by PDF fit, FIDEL fit, Rietveld refinement, solid-state NMR and DFT-D
 
 <a id="bravetti2023"></a>
 
@@ -2291,7 +2293,7 @@ It is registered here deliberately: the DOI sweep excludes
 `tests/fixtures/cif/*.cif`, because those DOIs belong to the depositors
 rather than to us, and this is the one that carries an obligation anyway.
 
-### kaya2022
+### kaya2022 — On the Prediction of Lattice Energy with the Fukui Potential: Some Supports on Hardness Maximization in Inorganic Solids
 
 <a id="kaya2022"></a>
 
@@ -2324,7 +2326,7 @@ already thought of. That is the real limit of the non-DOI half of the
 coverage story, and the reason this entry exists is that the CRC Handbook's
 provenance was being chased for an unrelated reason.
 
-### ran2002
+### ran2002 — Estimation of aqueous solubility of organic compounds by using the general solubility equation
 
 <a id="ran2002"></a>
 
@@ -2360,7 +2362,7 @@ Note the GSE needs a MEASURED MELTING POINT, which this project does not
 have and cannot supply -- which is why the baseline is reported rather than
 reproduced.
 
-### trott_olson2010
+### trott_olson2010 — AutoDock Vina: Improving the Speed and Accuracy of Docking with a New Scoring Function, Efficient Optimization, and Multithreading
 
 <a id="trott_olson2010"></a>
 
@@ -2403,7 +2405,7 @@ authority. Being correct by luck is not a method. See
 `[source:autodock_vina]` is the software; this is the paper that carries
 the claim.
 
-### gasteiger1980
+### gasteiger1980 — Iterative Partial Equalization of Orbital Electronegativity -- A Rapid Access to Atomic Charges
 
 <a id="gasteiger1980"></a>
 
@@ -2457,7 +2459,7 @@ of surnames and Gasteiger was never in it -- that check finds only authors
 somebody already thought of. Wildman, Ertl, Baell and Brenk were missing for
 the same reason; all five landed together.
 
-### halgren1996_mmff2
+### halgren1996_mmff2 — Merck Molecular Force Field. II. MMFF94 van der Waals and Electrostatic Parameters for Intermolecular Interactions
 
 <a id="halgren1996_mmff2"></a>
 
@@ -2498,7 +2500,7 @@ for any QEq this application might add.
 
 The PDF carries no DOI (typeset 1996); the identifier is what page 1 prints.
 
-### halgren1996_mmff1
+### halgren1996_mmff1 — Merck Molecular Force Field. I. Basis, Form, Scope, Parameterization, and Performance of MMFF94
 
 <a id="halgren1996_mmff1"></a>
 
@@ -2526,7 +2528,7 @@ charge paper, [source:halgren1996_mmff2], whose numbers were checked against its
 
 The PDF carries no DOI (typeset 1996); the identifier is what page 1 prints.
 
-### bondi1964
+### bondi1964 — van der Waals Volumes and Radii
 
 <a id="bondi1964"></a>
 
@@ -2563,7 +2565,7 @@ the numbers are close but the label is not exact. This row records what the pape
 NOT CHECKED: Bondi's group increments for volume and area (the paper's later tables), which this application does
 not use.
 
-### shrake1973
+### shrake1973 — Environment and exposure to solvent of protein atoms. Lysozyme and insulin
 
 <a id="shrake1973"></a>
 
@@ -2593,7 +2595,7 @@ NOT CHECKED: any of the paper's results for lysozyme and insulin. The applicatio
 Fibonacci spiral of 2000 points per atom, measured to about 0.3% from a 200,000-point reference) and a different
 radius table; what it shares with the paper is the idea.
 
-### tolman1977
+### tolman1977 — Steric effects of phosphorus ligands in organometallic chemistry and homogeneous catalysis
 
 <a id="tolman1977"></a>
 
@@ -2620,7 +2622,7 @@ same ordering and correlate with these at r = 0.977 (measured 2026-10-11).
 NOT CHECKED: the paper's electronic parameter and its equilibrium data. The application computes the EXACT cone angle
 ([source:bilbrey2013]), not Tolman's, and uses Tolman only as the ranking reference.
 
-### bilbrey2013
+### bilbrey2013 — Exact ligand cone angles
 
 <a id="bilbrey2013"></a>
 
@@ -2645,7 +2647,7 @@ Tolman's 145, i.e. about 170, which is the 'published' value the application's o
 NOT CHECKED: the paper's tables of computed angles beyond PPh3 and P(i-Bu)3, and the optimisation algorithm's
 details; the application's solver is its own and is checked by its tests.
 
-### poater2009
+### poater2009 — SambVca: A Web Application for the Calculation of the Buried Volume of N-Heterocyclic Carbene Ligands
 
 <a id="poater2009"></a>
 
@@ -2671,7 +2673,7 @@ NOT CHECKED: the web application itself, or the paper's correlation study. This 
 conventions but is its own grid calculation, and uses RDKit's radii times 1.17 (see [source:bondi1964] for how
 RDKit's table differs from Bondi's).
 
-### clavier2010
+### clavier2010 — Percent buried volume for phosphine and N-heterocyclic carbene ligands: steric properties in organometallic chemistry
 
 <a id="clavier2010"></a>
 
@@ -2695,7 +2697,7 @@ angle and the buried volume are linearly related for phosphines (R2 = 0.96 at 2.
 NOT CHECKED: the review's tables for individual ligands. The application's own correlation with Tolman's angles is
 measured separately (see [source:tolman1977]).
 
-### batsanov2001
+### batsanov2001 — Van der Waals Radii of Elements
 
 <a id="batsanov2001"></a>
 
@@ -2724,7 +2726,7 @@ NOT CHECKED: the paper's argument and the other nine tables; hydrogen is not in 
 afterwards (`batsanov2001.pdf`, 15 pages) and matches the public copy read first. That RDKit's table IS Batsanov's is
 an identification by exact agreement, not something RDKit or the Blue Obelisk Data Repository says.
 
-### mantina2009
+### mantina2009 — Consistent van der Waals Radii for the Whole Main Group
 
 <a id="mantina2009"></a>
 
@@ -2751,7 +2753,7 @@ favored using the higher value as a standard", and that it adopts Rowland and Ta
 NOT CHECKED: the quantum-chemical method; the application uses only the sixteen results. Two of Table 9's "Bondi radius"
 entries disagree with Bondi's paper (bromine 1.83, lithium 1.81; see [source:bondi1964]) and were not used.
 
-### rowland1996
+### rowland1996 — Intermolecular Nonbonded Contact Distances in Organic Crystal Structures: Comparison with Distances Expected from van der Waals Radii
 
 <a id="rowland1996"></a>
 
@@ -2784,7 +2786,7 @@ surface, volume and projection calculators keep hydrogen at 1.20 and only the co
 
 NOT CHECKED: the paper's Tables 2 and 4 in detail.
 
-### plip2015
+### plip2015 — PLIP: fully automated protein-ligand interaction profiler
 
 <a id="plip2015"></a>
 
@@ -2810,7 +2812,7 @@ NOT CHECKED, AND NOT USED: any distance or angle. The paper's text gives none; t
 was not read. The cutoffs of `interaction_analysis` are therefore NOT claimed to come from PLIP, and the explainer says
 that no source is recorded for any individual number.
 
-### tosco2011
+### tosco2011 — Open3DALIGN: an open-source software aimed at unsupervised ligand alignment
 
 <a id="tosco2011"></a>
 
@@ -2843,7 +2845,7 @@ different quantities. The Crippen-contribution variant the application falls bac
 RDKit's own addition and is not in this paper. The mixed (pharmacophore) scheme, which gave the paper's best figures, is
 not what the application calls.
 
-### verlet1967
+### verlet1967 — Computer "Experiments" on Classical Fluids. I. Thermodynamical Properties of Lennard-Jones Molecules
 
 <a id="verlet1967"></a>
 
@@ -2868,7 +2870,7 @@ the total energy was used as a check on the procedure.
 
 NOT CHECKED: the thermodynamic results (the paper's subject), which the explainer does not use.
 
-### swope1982
+### swope1982 — A computer simulation method for the calculation of equilibrium constants for the formation of physical clusters of molecules: Application to small water clusters
 
 <a id="swope1982"></a>
 
@@ -2892,7 +2894,7 @@ Verlet's equations and "retain the superior numerical precision of the summed fo
 NOT CHECKED: the paper's own subject (cluster equilibrium constants for water), which the explainer does not use. The paper
 does not say the scheme is symplectic or name its error; the explainer claims neither on its authority.
 
-### alvarez2013
+### alvarez2013 — A cartography of the van der Waals territories
 
 <a id="alvarez2013"></a>
 
@@ -2925,7 +2927,7 @@ modifying it as proposed by Rowland and Taylor".
 NOT CHECKED: the fitting equations, the supplementary data, the f-block discussion and the comparison with ionic radii. The
 file is not in the maintainer's library until it is added there under the name above.
 
-### harding1999
+### harding1999 — The geometry of metal-ligand interactions relevant to proteins
 
 <a id="harding1999"></a>
 
@@ -2956,7 +2958,7 @@ tables say. The paper covers Ca, Mg, Mn, Fe, Cu and Zn with N, O and S donors on
 on fluorine as a donor, so those are not supported by it. Magnesium's imidazole-nitrogen distance is not in this paper (Table
 6a lists none); the Mg tests use its water oxygen distance.
 
-### harding2000
+### harding2000 — The geometry of metal-ligand interactions relevant to proteins. II. Angles at the metal atom, additional weak metal-donor interactions
 
 <a id="harding2000"></a>
 
@@ -2982,7 +2984,7 @@ range 2.4-3.0 angstrom for Zn and 2.6-3.0 angstrom for Cu".
 NOT CHECKED: the tables of those weak interactions, the angle analysis, and the Ca discussion; nothing here was used beyond
 the abstract's statement.
 
-### harding2001
+### harding2001 — Geometry of metal-ligand interactions in proteins
 
 <a id="harding2001"></a>
 
@@ -3014,7 +3016,7 @@ THE APPLICATION: the primary-sphere rule (target + 0.5 A) and the Mg and Ca nitr
 (parenthesised there) are used by `pose_analysis.metal_bond_window`; every other distance of this table is superseded by
 [source:harding2006].
 
-### gavezzotti1983
+### gavezzotti1983 — The calculation of molecular volumes and the use of volume analysis in the investigation of structured media and of solid-state organic reactivity
 
 <a id="gavezzotti1983"></a>
 
@@ -3041,7 +3043,7 @@ methane 28.01 against 28.42, benzene 85.39 against 80.28, acetone 62.86 against 
 
 NOT CHECKED: the volume-analysis applications (cage compounds, inclusion compounds, solid-state reactivity).
 
-### zhao2003
+### zhao2003 — Fast calculation of van der Waals volume as a sum of atomic and bond contributions and its application to drug compounds
 
 <a id="zhao2003"></a>
 
@@ -3070,7 +3072,7 @@ NOT CHECKED: the paper's own formula, V = sum of atomic volumes - 5.92 N_B - 14.
 compounds, beyond noting that it was fitted to Bondi's group volumes and to TSAR's values (slope 0.80 against TSAR), so it is not
 used as an oracle; and the aromatic-ring correction, which a single radius per element cannot reproduce.
 
-### harding2002
+### harding2002 — Metal-ligand geometry relevant to proteins and in proteins: sodium and potassium
 
 <a id="harding2002"></a>
 
@@ -3103,7 +3105,7 @@ NOT CHECKED: the PDB survey in Table 2(b) and the coordination-number counts.
 THE APPLICATION: the sodium and potassium margins (+ 0.75 A bond, + 0.95 A secondary sphere, - 0.5 A floor) and their N and S
 estimates are used by `pose_analysis.metal_bond_window` and `is_metal_contact`.
 
-### harding2013
+### harding2013 — Metal-ligand geometry relevant to proteins and in proteins: sodium and potassium. Corrigendum
 
 <a id="harding2013"></a>
 
@@ -3124,7 +3126,7 @@ CHECKED: read in full (one paragraph; the DOI is printed on page 1). The first s
 should begin "Target distances for K+...O and Na+...O can be set (usually 2.84 and 2.42 A, respectively; see Table 2a)". The
 author thanks Peter Artymiuk for pointing it out.
 
-### harding2006
+### harding2006 — Small revisions to predicted distances around metal sites in proteins
 
 <a id="harding2006"></a>
 
@@ -3156,7 +3158,7 @@ NOT CHECKED: the supporting tables 1 to 3 (observation counts and the coordinati
 THE APPLICATION: `pose_analysis.METAL_DONOR_TARGETS` is this table (the longest of the three oxygen columns, then N and S);
 `tests/test_pose_analysis_metals.py` holds it transcribed a second time and fails on any difference.
 
-### zheng2017
+### zheng2017 — CheckMyMetal: a macromolecular metal-binding validation tool
 
 <a id="zheng2017"></a>
 
@@ -3183,7 +3185,7 @@ NOT CHECKED: the other metals' sections, the validation server itself, and Table
 THE APPLICATION: nickel's entries in `pose_analysis.METAL_DONOR_TARGETS` (O 2.08, N 2.09, S 2.46, the larger where two values are
 printed) are this table's.
 
-### plenio1997
+### plenio1997 — The Coordination Chemistry of the CF Unit in Fluorocarbons
 
 <a id="plenio1997"></a>
 
@@ -3218,7 +3220,7 @@ discussion of Hay and Rustad behind Table 1's other columns, the NMR sections, a
 THE APPLICATION: `pose_analysis._ORGANIC_FLUORINE_DONOR_METALS` (sodium, potassium, calcium) and the absence of a window for a
 carbon-bound fluorine to zinc, iron, cobalt, manganese, copper, nickel and magnesium; this paper has no magnesium distance.
 
-### plenio2004
+### plenio2004 — The Coordination Chemistry of Fluorine in Fluorocarbons
 
 <a id="plenio2004"></a>
 
@@ -3247,7 +3249,7 @@ NOT CHECKED: the references and the individual stability constants beyond Table 
 THE APPLICATION: the claim that the interaction is weaker than oxygen's (about 64% of Li...O) in the comment on
 `pose_analysis._ORGANIC_FLUORINE_DONOR_METALS`.
 
-### dunitz1997
+### dunitz1997 — Organic Fluorine Hardly Ever Accepts Hydrogen Bonds
 
 <a id="dunitz1997"></a>
 
@@ -3280,7 +3282,7 @@ for its conclusion that the evidence agrees), and the water-octanol and basicity
 THE APPLICATION: `pose_analysis.is_weak_acceptor_fluorine`, which both analysers use to leave a C-F fluorine out of the
 hydrogen-bond acceptors.
 
-### bakewell2016
+### bakewell2016 — Addition of Carbon-Fluorine Bonds to a Mg(I)-Mg(I) Bond: An Equivalent of Grignard Formation in Solution
 
 <a id="bakewell2016"></a>
 
@@ -3308,7 +3310,7 @@ NOT CHECKED: the chemistry (the C-F bond addition), the NMR and DFT, and the sup
 fluorines here are 3 bonds from the magnesium (Mg-C-C-C-F), under Plenio's four-bond rule for intramolecular contacts
 ([source:plenio1997]).
 
-### dunitz2004
+### dunitz2004 — Organic Fluorine: Odd Man Out
 
 <a id="dunitz2004"></a>
 
@@ -3336,7 +3338,7 @@ NOT CHECKED: the remaining pages (fluorocarbon properties, packing, and the rest
 
 THE APPLICATION: the boron half of `pose_analysis.is_weak_acceptor_fluorine`.
 
-### maverick2002
+### maverick2002 — Structures of Anhydrous and Hydrated Copper(II) Hexafluoroacetylacetonate
 
 <a id="maverick2002"></a>
 
@@ -3363,7 +3365,7 @@ and next 3.463 (monohydrate), and no Cu...F under 3.5 in the trihydrate, which a
 NOT CHECKED: the discussion of volatility and chemical vapour deposition, the other M(hfac)2(H2O)2 structures from a CSD search, and
 the packing figures of the supporting information.
 
-### ferro2018
+### ferro2018 — Targeting Tyrosinase: Development and Structural Insights of Novel Inhibitors Bearing Arylpiperidine and Arylpiperazine Fragments
 
 <a id="ferro2018"></a>
 
@@ -3389,7 +3391,7 @@ the fluorine a ligand of the copper. The supporting information shows mFo-DFc po
 
 NOT CHECKED: the synthesis, the enzyme kinetics, the docking, and the crystallographic tables beyond the resolutions.
 
-### ielo2019
+### ielo2019 — Exploiting the 1-(4-fluorobenzyl)piperazine fragment for the development of novel tyrosinase inhibitors as anti-melanogenic agents: Design, synthesis, structural insights and biological profile
 
 <a id="ielo2019"></a>
 
@@ -3413,7 +3415,7 @@ not called a copper ligand. The PDB's validation gives JKB a real-space correlat
 
 NOT CHECKED: the synthesis, the kinetics and the docking.
 
-### kulawiec1990
+### kulawiec1990 — Coordination chemistry of halocarbons
 
 <a id="kulawiec1990"></a>
 
@@ -3438,7 +3440,7 @@ complexes with short Cu...Cl distances (2.85 to 3.07 angstrom). It reports no co
 
 NOT CHECKED: the sections on silver, mercury, the platinum metals and the spectroscopy.
 
-### willrett2025
+### willrett2025 — Synthesis and Electrochemistry of Copper(I) Complexes with Weakly Basic, Fluorinated, and Multicyclic Arenes
 
 <a id="willrett2025"></a>
 
@@ -3462,7 +3464,7 @@ acts as an auxiliary ligand in a contact ion pair. The arene binds through the p
 
 NOT CHECKED: the supporting information's crystallographic tables (59 pages) and the quantum-chemical energies.
 
-### murrayrust1983
+### murrayrust1983 — Intermolecular interactions of the carbon-fluorine bond: the crystallographic environment of fluorinated carboxylic acids and related structures
 
 <a id="murrayrust1983"></a>
 
@@ -3502,7 +3504,7 @@ NOT CHECKED: the structure determinations beyond what the text states, Tables I 
 THE APPLICATION: the sodium and potassium fluorine distances (2.470 and 2.80 A) and the absence of transition-metal evidence behind
 `pose_analysis._ORGANIC_FLUORINE_DONOR_METALS`.
 
-### chernyshov2020
+### chernyshov2020 — Revisiting van der Waals radii: from comprehensive structural analysis to knowledge-based classification of interatomic contacts
 
 <a id="chernyshov2020"></a>
 
@@ -3530,7 +3532,7 @@ and those Alvarez treats), whose effective size is increased by steric effects.
 NOT CHECKED: the Line-of-Sight method itself, the density functional validation, the radii table and the supporting
 information. The cover profile with a similar title (10.1002/cphc.202000089, page 359) is a different record.
 
-### tosco2014
+### tosco2014 — Bringing the MMFF force field to the RDKit: implementation and validation
 
 <a id="tosco2014"></a>
 
@@ -3552,7 +3554,7 @@ Cited for that, not for a number: the numbers were checked directly against
 
 DOI and title read off the PDF.
 
-### bultinck2002a
+### bultinck2002a — The Electronegativity Equalization Method I: Parametrization and Validation for Atomic Charge Calculations
 
 <a id="bultinck2002a"></a>
 
@@ -3589,7 +3591,7 @@ geometries; this application computes them on force-field conformers.
 
 DOI and title read off the PDF.
 
-### rappe1991
+### rappe1991 — Charge Equilibration for Molecular Dynamics Simulations
 
 <a id="rappe1991"></a>
 
@@ -3632,7 +3634,7 @@ different hydrogen procedures; and the text contradicts Table IV twice. See
 The paper's polyatomic geometries come from Harmony et al. 1979 (J. Phys.
 Chem. Ref. Data 8, 619), which is not held.
 
-### harmony1979
+### harmony1979 — Molecular Structures of Gas-Phase Polyatomic Molecules Determined by Spectroscopic Methods
 
 <a id="harmony1979"></a>
 
@@ -3661,7 +3663,7 @@ ETHANE IS NOT IN IT: the C2H6 formulas run from C2H5P to C2H6BN. The PDF prints
 no DOI; the identifier was confirmed against Crossref's record for this
 volume and page.
 
-### kuchitsu1998
+### kuchitsu1998 — Structure of Free Polyatomic Molecules: Basic Data
 
 <a id="kuchitsu1998"></a>
 
@@ -3689,7 +3691,7 @@ transcribed from a 220 dpi render into
 
 DOI read off the PDF.
 
-### vogt2019
+### vogt2019 — Structure Data of Free Polyatomic Molecules
 
 <a id="vogt2019"></a>
 
@@ -3713,7 +3715,7 @@ compilation held, should a later check need modern reference geometries.
 
 DOI read off the PDF.
 
-### rappe1992
+### rappe1992 — UFF, a Full Periodic Table Force Field for Molecular Mechanics and Molecular Dynamics Simulations
 
 <a id="rappe1992"></a>
 
@@ -3741,7 +3743,7 @@ Amendment A6 of benchmarks/charges/rappe_goddard/preregistration.md says so.
 DOI and page range from Crossref's record (10024-10035); the PDF's first page
 carries a banner for the preceding article.
 
-### ramachandran1996
+### ramachandran1996 — Toward an Understanding of Zeolite Y as a Cracking Catalyst with the Use of Periodic Charge Equilibration
 
 <a id="ramachandran1996"></a>
 
@@ -3772,7 +3774,7 @@ tests/fixtures/charges/ramachandran1996_tables.csv; amendment A7.
 
 DOI and pages confirmed against Crossref.
 
-### almenningen1963
+### almenningen1963 — The Molecular Structure of Disiloxane, (SiH3)2O
 
 <a id="almenningen1963"></a>
 
@@ -3799,7 +3801,7 @@ pre-registered test failed); at the other C2v conformation it reproduces all
 four printed charges within 0.002 e, a post-hoc finding recorded as such.
 Checksum: a C3v silyl with O-Si-H 109.9 implies H-Si-H 109.04; 109.1 printed.
 
-### bakowies1996
+### bakowies1996 — Semiempirical Treatment of Electrostatic Potentials and Partial Charges in Combined Quantum Mechanical and Molecular Mechanical Approaches
 
 <a id="bakowies1996"></a>
 
@@ -3826,7 +3828,7 @@ bakowies1996_table10_charges.csv; amendment A7.
 
 DOI and pages confirmed against Crossref.
 
-### cioslowski1989prl
+### cioslowski1989prl — General and Unique Partitioning of Molecular Electronic Properties into Atomic Contributions
 
 <a id="cioslowski1989prl"></a>
 
@@ -3852,7 +3854,7 @@ has none. The text also gives LiH's APT charge in two smaller basis sets
 
 DOI and pages confirmed against Crossref.
 
-### cioslowski1989
+### cioslowski1989 — A New Population Analysis Based on Atomic Polar Tensors
 
 <a id="cioslowski1989"></a>
 
@@ -3877,7 +3879,7 @@ prints, which is consistent with that value being the PRL's 6-31++G** result.
 
 DOI and pages confirmed against Crossref.
 
-### ongari2018
+### ongari2018 — Evaluating Charge Equilibration Methods To Generate Electrostatic Fields in Nanoporous Materials
 
 <a id="ongari2018"></a>
 
@@ -3903,7 +3905,7 @@ so it is not an oracle for anything here.
 
 Online 2018; the volume is 2019. DOI and pages confirmed against Crossref.
 
-### naserifar2017
+### naserifar2017 — Polarizable Charge Equilibration Model for Predicting Accurate Electrostatic Interactions in Molecules and Solids
 
 <a id="naserifar2017"></a>
 
@@ -3938,7 +3940,7 @@ no numeric oracle was found. See benchmarks/charges/models/TRIAGE.md.
 
 DOI and pages confirmed against Crossref.
 
-### chen2007
+### chen2007 — QTPIE: Charge transfer with polarization current equalization. A fluctuating charge model with correct asymptotics
 
 <a id="chen2007"></a>
 
@@ -3961,7 +3963,7 @@ only in figures, so no charge-level numeric oracle was found.
 
 DOI and pages confirmed against Crossref.
 
-### chen2008erratum
+### chen2008erratum — Erratum to QTPIE: Charge transfer with polarization current equalization. A fluctuating charge model with correct asymptotics
 
 <a id="chen2008erratum"></a>
 
@@ -3982,7 +3984,7 @@ charge distributions are unaffected.
 
 DOI and page confirmed against Crossref.
 
-### chen2008framework
+### chen2008framework — A unified theoretical framework for fluctuating-charge models in atom-space and in bond-space
 
 <a id="chen2008framework"></a>
 
@@ -4002,7 +4004,7 @@ hardness matrix.
 
 DOI and article number confirmed against Crossref.
 
-### verstraelen2013
+### verstraelen2013 — ACKS2: Atom-condensed Kohn-Sham DFT approximated to second order
 
 <a id="verstraelen2013"></a>
 
@@ -4022,7 +4024,7 @@ are neither transferable parameters nor a numeric oracle.
 
 DOI and article number confirmed against Crossref.
 
-### nistor2006
+### nistor2006 — A generalization of the charge equilibration method for nonmetallic materials
 
 <a id="nistor2006"></a>
 
@@ -4058,7 +4060,7 @@ known route to the missing hydrogen coordinates is exhausted.
 
 DOI and article number confirmed against Crossref.
 
-### mathieu2007
+### mathieu2007 — Split charge equilibration method with correct dissociation limits
 
 <a id="mathieu2007"></a>
 
@@ -4093,7 +4095,7 @@ builds its system from eq 8 and keeps the literal eq 13 as a diagnostic.
 
 DOI and article number confirmed against Crossref.
 
-### verstraelen2011
+### verstraelen2011 — The Significance of Parameters in Charge Equilibration Models
 
 <a id="verstraelen2011"></a>
 
@@ -4119,7 +4121,7 @@ Nistor et al., not Mathieu's, and its supplement is not held.
 
 DOI, pages and authors confirmed against Crossref.
 
-### verstraelen2009
+### verstraelen2009 — The electronegativity equalization method and the split charge equilibration applied to organic systems: Parametrization, validation, and comparison
 
 <a id="verstraelen2009"></a>
 
@@ -4141,7 +4143,7 @@ molecules of its applications, so it gives no geometry set to reproduce.
 
 DOI and article number confirmed against Crossref.
 
-### muser2012
+### muser2012 — The chemical hardness of molecules and the band gap of solids within charge equilibration formalisms. Toward force field-based simulations of redox reactions
 
 <a id="muser2012"></a>
 
@@ -4164,7 +4166,7 @@ the deferred renaming list.
 
 DOI and article number confirmed against Crossref.
 
-### krykunov2017
+### krykunov2017 — A New Split Charge Equilibration Model and REPEAT Electrostatic Potential Fitted Charges for Periodic Frameworks with a Net Charge
 
 <a id="krykunov2017"></a>
 
@@ -4186,7 +4188,7 @@ journal pagination); the citation's pages come from Crossref, not the file.
 
 DOI, pages and authors confirmed against Crossref.
 
-### chelli1999
+### chelli1999 — Electrical response in chemical potential equalization schemes
 
 <a id="chelli1999"></a>
 
@@ -4206,7 +4208,7 @@ title page has been read, so no claim is recorded; it bears on Mathieu's eq
 
 DOI, pages and authors confirmed against Crossref.
 
-### sefcik2002
+### sefcik2002 — Dynamic Charge Equilibration-Morse Stretch Force Field: Application to Energetics of Pure Silica Zeolites
 
 <a id="sefcik2002"></a>
 
@@ -4229,7 +4231,7 @@ Slater parameters from it.
 
 DOI and pages confirmed against Crossref.
 
-### oda2003
+### oda2003 — Geometry-dependent atomic charge calculations using charge equilibration method with empirical two-center Coulombic terms
 
 <a id="oda2003"></a>
 
@@ -4251,7 +4253,7 @@ literal QEq takes 13-202 s; that is measured to be its numerical quadrature.
 
 DOI and pages confirmed against Crossref.
 
-### zhang2009
+### zhang2009 — Self-Consistent Charge Equilibration Method and Its Application to Au13Nan (n = 1, 10) Clusters
 
 <a id="zhang2009"></a>
 
@@ -4273,7 +4275,7 @@ repeated.
 
 DOI and pages confirmed against Crossref.
 
-### thompson2002
+### thompson2002 — More reliable partial atomic charges when using diffuse basis sets
 
 <a id="thompson2002"></a>
 
@@ -4295,7 +4297,7 @@ number.
 
 DOI read off the PDF; Crossref's record carries the first page only.
 
-### wells2014
+### wells2014 — Charge Equilibration Based on Atomic Ionization in Metal-Organic Frameworks
 
 <a id="wells2014"></a>
 
@@ -4317,7 +4319,7 @@ not match their Table I, so it is not relied on for the 1991 details.
 The PDF held is the December 2014 ASAP manuscript; the issue is 2015.
 DOI and pages confirmed against Crossref.
 
-### wilmer2012
+### wilmer2012 — An Extended Charge Equilibration Method
 
 <a id="wilmer2012"></a>
 
@@ -4331,7 +4333,7 @@ DOI and pages confirmed against Crossref.
 | Verified | 2026-09-16 |
 | Local copy | `wilmer2012.pdf` (not checked) |
 
-### ionescu2013
+### ionescu2013 — Rapid Calculation of Accurate Atomic Charges for Proteins via the Electronegativity Equalization Method
 
 <a id="ionescu2013"></a>
 
@@ -4346,7 +4348,7 @@ DOI and pages confirmed against Crossref.
 | Local copy | `ionescu2013.pdf` (not checked) |
 | Used by | `src/openchem/chem/charge_equilibration.py`, `src/openchem/chem/geometry_charges.py`, `src/openchem/chem/data/eem_ionescu2013.json` |
 
-### andersen1999
+### andersen1999 — Binding Energies in Atomic Negative Ions: III
 
 <a id="andersen1999"></a>
 
@@ -4360,7 +4362,7 @@ DOI and pages confirmed against Crossref.
 | Verified | 2026-09-16 |
 | Local copy | `andersen1999.pdf` (not checked) |
 
-### moore1970
+### moore1970 — Ionization Potentials and Ionization Limits Derived from the Analyses of Optical Spectra
 
 <a id="moore1970"></a>
 
@@ -4374,7 +4376,7 @@ DOI and pages confirmed against Crossref.
 | Verified | 2026-09-16 |
 | Local copy | `Moore1970.pdf` (not checked) |
 
-### wilmer2011
+### wilmer2011 — Towards rapid computational screening of metal-organic frameworks for carbon dioxide capture: Calculation of framework charges via charge equilibration
 
 <a id="wilmer2011"></a>
 
@@ -4402,7 +4404,7 @@ note in this session gave 10.1016/j.cej.2011.02.023, which is Mariz, Leiza and
 de la Cal on latex particle growth, Chem. Eng. J. 168, 938 -- a different
 paper entirely. The identifier here resolves to the title above.
 
-### wilmer2012_correction
+### wilmer2012_correction — Correction to 'An Extended Charge Equilibration Method'
 
 <a id="wilmer2012_correction"></a>
 
@@ -4433,7 +4435,7 @@ neutrality. Section 3.9 records the reproduction those four made possible.
 The code is read, never vendored: it carries the publisher's SI terms, and
 this repository is GPL-3.0-or-later.
 
-### mortier1986
+### mortier1986 — Electronegativity Equalization Method for the Calculation of Atomic Charges in Molecules
 
 <a id="mortier1986"></a>
 
@@ -4458,7 +4460,7 @@ per-molecule charges with the geometries they were computed on, so no
 number here can be checked against it. The PDF prints no DOI; the identifier
 was confirmed against Crossref.
 
-### huber1979
+### huber1979 — Molecular Spectra and Molecular Structure IV. Constants of Diatomic Molecules
 
 <a id="huber1979"></a>
 
@@ -4486,7 +4488,7 @@ that digit.
 The held PDF's title page names Springer Science+Business Media; the citation
 above is the edition the paper cites.
 
-### marsili1980
+### marsili1980 — pi-Charge Distribution from Molecular Topology and pi-Orbital Electronegativity
 
 <a id="marsili1980"></a>
 
@@ -4522,7 +4524,7 @@ and measured against the dipole table of [source:gasteiger1985] and came out
 WORSE than no pi term at all -- 0.834 D against 0.794 D. See
 docs/VALIDATION.md; the shipped values are the starting POE and say so.
 
-### gasteiger1985
+### gasteiger1985 — Calculation of the Charge Distribution in Conjugated Systems by a Quantification of the Resonance Concept
 
 <a id="gasteiger1985"></a>
 
@@ -4558,7 +4560,7 @@ oligonucleotide paper's reference list, and the Gasteiger-Saller article
 begins partway down it. Same trap as the Drago & Wayland 1965 scan; confirmed
 present by full-text search rather than by reading page 1.
 
-### wildman1999
+### wildman1999 — Prediction of Physicochemical Parameters by Atomic Contributions
 
 <a id="wildman1999"></a>
 
@@ -4581,7 +4583,7 @@ CNS MPO and the alignment overlay's colouring.
 68 atomic contributions to log P fitted on 9920 molecules (r2 = 0.918), and a
 separate 3412-molecule set for MR (r2 = 0.997).
 
-### ertl2000
+### ertl2000 — Fast Calculation of Molecular Polar Surface Area as a Sum of Fragment-Based Contributions and Its Application to the Prediction of Drug Transport Properties
 
 <a id="ertl2000"></a>
 
@@ -4605,7 +4607,7 @@ molecules, giving practically identical results 2-3 orders of magnitude
 faster. So it needs no conformer, which is why the calculator is a DRAWING
 one.
 
-### baell2010
+### baell2010 — New Substructure Filters for Removal of Pan Assay Interference Compounds (PAINS) from Screening Libraries and for Their Exclusion in Bioassays
 
 <a id="baell2010"></a>
 
@@ -4629,7 +4631,7 @@ A PAINS HIT IS NOT A VERDICT ON A COMPOUND. The paper's filters identify
 substructures that appear as frequent hitters across unrelated assays; that
 is a statement about assay interference, not about toxicity or activity.
 
-### brenk2008
+### brenk2008 — Lessons Learnt from Assembling Screening Libraries for Drug Discovery for Neglected Diseases
 
 <a id="brenk2008"></a>
 
@@ -4653,7 +4655,7 @@ interference.
 Volume and pages read from the PDF's own running footer,
 ChemMedChem 2008, 3, 435 - 444, since page 1 carries only the DOI.
 
-### bickerton2012
+### bickerton2012 — Quantifying the chemical beauty of drugs
 
 <a id="bickerton2012"></a>
 
@@ -4679,7 +4681,7 @@ RDKit's implementation carries no stated deviation from the paper, unlike
 [source:ertl2009] -- which is why this one may be validated against the
 paper's printed values and that one may not.
 
-### ertl2009
+### ertl2009 — Estimation of synthetic accessibility score of drug-like molecules based on molecular complexity and fragment contributions
 
 <a id="ertl2009"></a>
 
@@ -4715,7 +4717,7 @@ table on one normalisation must not be cited to a paper on another.
 `citation_and_claim` against this paper, because the number this project
 ships is not this paper's number.
 
-### joback1987
+### joback1987 — Estimation of Pure-Component Properties from Group-Contributions
 
 <a id="joback1987"></a>
 
@@ -4775,7 +4777,7 @@ dHvap 1.27 kJ/mol, dHfus 2.0 kJ/mol. The paper says outright that Tb and
 especially Tf "are not accurate and should be considered as only very
 approximate".
 
-### klapotke2017
+### klapotke2017 — Chemistry of High-Energy Materials
 
 <a id="klapotke2017"></a>
 
@@ -4831,7 +4833,7 @@ The book also carries the Springall-Roberts rules and a worked TNT
 decomposition (Table 4.2), which is the fixture the detonation work will
 need.
 
-### akhavan2011
+### akhavan2011 — The Chemistry of Explosives
 
 <a id="akhavan2011"></a>
 
@@ -4864,7 +4866,7 @@ layer drops minus signs (Table 5.2 reads "73.96" for TNT); the signs are
 the book's, read from its Eq. 5.1. Its Eq. 5.2 and the TNT example are the
 C/H/N/O form [source:klapotke2017] already supplies.
 
-### tsang1974
+### tsang1974 — An Appraisal of Methods for Estimating Self-Reaction Hazards
 
 <a id="tsang1974"></a>
 
@@ -4906,7 +4908,7 @@ every other element here. It prints no metal bromide, no balance for a bromine
 compound that also holds oxygen or nitrogen, and no Br2 figure, so none of
 those is given; a bromine a metal takes follows the chlorides.
 
-### wang2024
+### wang2024 — A high density and low sensitivity carrier explosive promising to replace TNT: 3-Bromo-5-fluoro-2,4,6-trinitroanisole
 
 <a id="wang2024"></a>
 
@@ -4939,7 +4941,7 @@ paper of the same group prints -35.3. The paper is used; the patent is
 recorded as the disagreement. Its Table 5 mixtures (-31 and -44%) are
 formulations and are not used.
 
-### lease2023
+### lease2023 — Halogenated PETN derivatives: interplay between physical and chemical factors in explosive sensitivity
 
 <a id="lease2023"></a>
 
@@ -4970,7 +4972,7 @@ compounds with HCl. A heavier halogen cannot make the balance more negative at
 the same oxygen deficit, so the labels, not the numbers, look wrong. The bromine
 rows do not depend on it.
 
-### dufter2026
+### dufter2026 — Investigation of Next-Generation Visible Light-Producing Pyrotechnics
 
 <a id="dufter2026"></a>
 
@@ -5000,7 +5002,7 @@ not used as evidence, and none of its table values is a test.
 Open-access thesis, found while searching the Klapoetke group's LMU
 dissertations for a bromine balance: eighteen were read and none prints one.
 
-### persson1994
+### persson1994 — Rock Blasting and Explosives Engineering
 
 <a id="persson1994"></a>
 
@@ -5047,7 +5049,7 @@ the answer, which is the "highest" reading in every case where the two
 differ. Persson prints no bromine, iodine, sulfur, phosphorus, magnesium or
 transition-metal term, and no balance for any compound containing them.
 
-### he2016
+### he2016 — Iodine-Rich Imidazolium Iodate and Periodate Salts: En Route to Single-Based Biocidal Agents
 
 <a id="he2016"></a>
 
@@ -5080,7 +5082,7 @@ which is why iodine takes no hydrogen here although chlorine does. The paper
 prints no balance for its two bromide salts, so it settles nothing for
 bromine.
 
-### shancita2020
+### shancita2020 — Synthesis of metal iodates from an energetic salt
 
 <a id="shancita2020"></a>
 
@@ -5107,7 +5109,7 @@ compounds that name CuO and Fe2O3, which is what the charge-matched rule for
 iron and copper gives (see [source:meyer2016]): the oxide of the state the
 metal is drawn in.
 
-### klapotke2021
+### klapotke2021 — Energetic Materials Encyclopedia
 
 <a id="klapotke2021"></a>
 
@@ -5144,7 +5146,7 @@ styphnate -22.2 reproduces only with lead to PbO2 (Meyer and Akhavan: PbO,
 -18.8), and mercury fulminate -16.86 burns mercury to HgO (Meyer: the metal,
 -11.2).
 
-### jain1987
+### jain1987 — Energetics of Propellants, Fuels and Explosives; a Chemical Valence Approach
 
 <a id="jain1987"></a>
 
@@ -5172,7 +5174,7 @@ with one passing mention of aluminised AP. The paper was read in full for a
 per-element table covering bromine, iodine, copper or iron, as the likeliest
 place for one; there is none. Its signs are the opposite of Conkling's.
 
-### shimizu1996
+### shimizu1996 — Fireworks: The Art, Science and Technique
 
 <a id="shimizu1996"></a>
 
@@ -5198,7 +5200,7 @@ searched for bromine, iodine, copper and iron products without result, so
 `verification` is the citation only: nothing here is a balance computed from
 it. The file is a text copy of the third edition's contents.
 
-### conkling2019
+### conkling2019 — Chemistry of Pyrotechnics: Basic Principles and Theory
 
 <a id="conkling2019"></a>
 
@@ -5263,7 +5265,7 @@ gives 79.1% and 20.9%. The products are not in question.
 The DOI resolves to the publisher's page for the e-book (ISBN
 9781351626569); the file is the hardback's text, ISBN 978-1-138-07992-2.
 
-### zeuner2003
+### zeuner2003 — Guanidine-thermite igniter composition for use in gas generators
 
 <a id="zeuner2003"></a>
 
@@ -5286,7 +5288,7 @@ Table 2.5 says B2O3 too, and [source:klapotke2017]'s two borate esters
 (-59.70%, +13.07%) are reproduced by it (-59.79, +13.07; leaving the boron
 out gives -51.2).
 
-### meyer2016
+### meyer2016 — Explosives
 
 <a id="meyer2016"></a>
 
@@ -5358,7 +5360,7 @@ Table 21's element rows were computed with whole atomic masses (sulfur
 **Its Kamlet-Jacobs entry extends nothing beyond C/H/N/O** and prints
 K = 15.88, the textbook value that [source:kamlet1968] contradicts.
 
-### westwell1995
+### westwell1995 — Empirical Correlations between Thermodynamic Properties and Intermolecular Forces
 
 <a id="westwell1995"></a>
 
@@ -5415,7 +5417,7 @@ project needs the measurement rather than a second run at it.
 Its domain test is computable: more than two internal rotations, an H-bond
 donor, or crystal-rotation symmetry puts a substance outside.
 
-### kamlet1968
+### kamlet1968 — Chemistry of Detonations. I. A Simple Method for Calculating Detonation Properties of C-H-N-O Explosives
 
 <a id="kamlet1968"></a>
 
@@ -5482,7 +5484,7 @@ square, and the condensed-phase enthalpy of formation -- see
 [source:westwell1995] for why the published bridge from an ideal-gas value
 cannot be used for this compound class.
 
-### kamlet1968_ii
+### kamlet1968_ii — Chemistry of Detonations. II. Buffered Equilibria
 
 <a id="kamlet1968_ii"></a>
 
@@ -5512,7 +5514,7 @@ The H2O-CO2 arbitrary and its low-density caution both come from
 [source:kamlet1968]'s own text and footnote 19, not from here, so no
 limitation in `chem/energetics.py` rests on this paper.
 
-### kamlet1968_iii
+### kamlet1968_iii — Chemistry of Detonations. III. Evaluation of the Simplified Calculational Method for Chapman-Jouguet Detonation Pressures on the Basis of Available Experimental Information
 
 <a id="kamlet1968_iii"></a>
 
@@ -5551,7 +5553,7 @@ treatment CLAUDE.md requires, since its text layer is visibly OCR-damaged
 ("4S" for 45, "1. 632k" for 1.632k). Anyone wanting to gate a number on
 this paper starts there.
 
-### kamlet1968_iv
+### kamlet1968_iv — Chemistry of Detonations. IV. Evaluation of a Simple Predictional Method for Detonation Velocities of C-H-N-O Explosives
 
 <a id="kamlet1968_iv"></a>
 
@@ -5587,7 +5589,7 @@ field this project has recorded getting wrong when only one route existed.
 `citation` rather than `citation_and_claim`: no number this project
 computes has been gated against this paper's tables.
 
-### ertl2008
+### ertl2008 — Natural Product-likeness Score and Its Application for Prioritization of Compound Libraries
 
 <a id="ertl2008"></a>
 
@@ -5619,7 +5621,7 @@ describing what actually runs. The paper defines the method; the model decides
 what the number means, and for a Bayesian score those are different claims. Do
 not gate the shipped value on anything printed here.
 
-### bertz1981
+### bertz1981 — The First General Index of Molecular Complexity
 
 <a id="bertz1981"></a>
 
@@ -5650,7 +5652,7 @@ oracle only for a NON-AROMATIC structure, and an aromatic one would be testing
 the wrong thing. That scoping is the whole reason the implementation has an
 entry of its own.
 
-### lovering2009
+### lovering2009 — Escape from Flatland: Increasing Saturation as an Approach to Improving Clinical Success
 
 <a id="lovering2009"></a>
 
@@ -5680,7 +5682,7 @@ number this project reproduces. **A carbon-free molecule is 0.0 rather than
 undefined**, RDKit's own convention for the zero denominator, recorded because
 it returns rather than raising.
 
-### stefanis2008
+### stefanis2008 — Prediction of Hansen Solubility Parameters with a New Group-Contribution Method
 
 <a id="stefanis2008"></a>
 
@@ -5762,7 +5764,7 @@ from the paper itself. Table 10 additionally gives experimental values with
 the Hoy method as a baseline, which is worth using when the calculator lands:
 a number without a baseline says nothing.
 
-### krygowski1993
+### krygowski1993 — Crystallographic Studies of Inter- and Intramolecular Interactions Reflected in Aromatic Character of pi-Electron Systems
 
 <a id="krygowski1993"></a>
 
@@ -5817,7 +5819,7 @@ HOMA NEEDS REAL BOND LENGTHS and this project already records what a 2D
 depiction's are worth: aspirin's 2D C=O reads 1.5 "units" against a real
 1.264 A. A molecule without a 3D conformer is refused.
 
-### kruszewski1972
+### kruszewski1972 — Definition of aromaticity basing on the harmonic oscillator model
 
 <a id="kruszewski1972"></a>
 
@@ -5848,7 +5850,7 @@ at the publisher, which is a weaker provenance than the three DOIs read off
 their own first pages elsewhere in this registry -- and is why this entry is
 `citation` rather than `citation_and_claim`.
 
-### bird1985
+### bird1985 — A new aromaticity index and its application to five-membered ring heterocycles
 
 <a id="bird1985"></a>
 
@@ -5909,7 +5911,7 @@ deliberately not written down anywhere in the tree, so the DOI backstop does
 not demand entries for them. Named here so a later reader knows they exist
 and why they were left out.
 
-### katritzky1990
+### katritzky1990 — Aromaticity as a Quantitative Concept. Part V: A Comparison of Semi-empirical Methods for the Calculation of Molecular Geometries of Heteroaromatic Compounds
 
 <a id="katritzky1990"></a>
 
@@ -5976,7 +5978,7 @@ task, not a prerequisite. This paper also states the problem that made it
 necessary: "Only for a limited number of compounds has a precisely defined
 experimental geometry been measured."
 
-### geidl2015
+### geidl2015 — High-quality and universal empirical atomic charges for chemoinformatics applications
 
 <a id="geidl2015"></a>
 
@@ -6005,7 +6007,7 @@ The record is `benchmarks/charges/models/unblock_inventory.csv` and TRIAGE §5.
 The PDF is in Sci Downloads; additional files 1, 2, 3 and 6 are in
 `geidl2015_si/`.
 
-### schindler2021
+### schindler2021 — Optimized SQE atomic charges for peptides accessible via a web application
 
 <a id="schindler2021"></a>
 
@@ -6033,7 +6035,7 @@ from the PDF's own DOI line and Crossref.
 See also `schindler2021_correction`, TRIAGE §5 and the unblock inventory.
 Additional files 2, 3, 4 and 7 are in Sci Downloads under `schindler2021_si/`.
 
-### schindler2021_correction
+### schindler2021_correction — Correction to: Optimized SQE atomic charges for peptides accessible via a web application
 
 <a id="schindler2021_correction"></a>
 
@@ -6052,7 +6054,7 @@ a table of fit metrics (R², RMSD, RMSDat, parameterisation time), NOT a
 parameter table. So it does not bear on the published parameter values,
 including CCD_gen's chlorine row, which the parameter file prints as it is.
 
-### bultinck2002b
+### bultinck2002b — The Electronegativity Equalization Method II: Applicability of Different Atomic Charge Schemes
 
 <a id="bultinck2002b"></a>
 
@@ -6079,7 +6081,7 @@ charges by at most 0.0017 e on six drug-like molecules. The shipped Part I
 value stays, since it is the one Mathieu's published correlations were
 reproduced with. TRIAGE §5.1.
 
-### oppenheim2018
+### oppenheim2018 — Extension of the Polarizable Charge Equilibration Model to Higher Oxidation States with Applications to Ge, As, Se, Br, Sn, Sb, Te, I, Pb, Bi, Po, and At Elements
 
 <a id="oppenheim2018"></a>
 
@@ -6096,7 +6098,7 @@ reproduced with. TRIAGE §5.1.
 A PQEq parameter extension found by the bounded search recorded in the charge
 unblock inventory. Context for PQEq's G2 feasibility, not read.
 
-### kwon2018
+### kwon2018 — Polarizable Charge Equilibration Model for Transition-Metal Elements
 
 <a id="kwon2018"></a>
 
@@ -6112,7 +6114,7 @@ unblock inventory. Context for PQEq's G2 feasibility, not read.
 **Why it is reference only.** NOT HELD; checked on Crossref only. A PQEq parameter extension found by the
 same bounded search. Context for PQEq's G2 feasibility, not read.
 
-### trygubenko2002
+### trygubenko2002 — Correlated ab initio study of nucleic acid bases and their tautomers in the gas phase, in a microhydrated environment and in aqueous solution. Part 1. Cytosine
 
 <a id="trygubenko2002"></a>
 
@@ -6127,7 +6129,7 @@ same bounded search. Context for PQEq's G2 feasibility, not read.
 | Local copy | `trygubenko2002.pdf` (not checked) |
 | Used by | `src/openchem/chem/data/tautomer_validation.json`, `src/openchem/chem/data/tautomer_validation_v2.json`, `src/openchem/chem/tautomer_validation.py`, `tools/tautomer_validation.py` |
 
-### belova2014
+### belova2014 — Tautomeric Properties and Gas-Phase Structure of Acetylacetone
 
 <a id="belova2014"></a>
 
@@ -6142,7 +6144,7 @@ same bounded search. Context for PQEq's G2 feasibility, not read.
 | Local copy | `belova2014.pdf` (not checked) |
 | Used by | `src/openchem/chem/data/tautomer_validation.json`, `src/openchem/chem/data/tautomer_validation_v2.json`, `src/openchem/chem/tautomer_validation.py`, `tools/tautomer_validation.py` |
 
-### fogarasi2010
+### fogarasi2010 — Studies on tautomerism: Benchmark quantum chemical calculations on formamide and formamidine
 
 <a id="fogarasi2010"></a>
 
@@ -6157,7 +6159,7 @@ same bounded search. Context for PQEq's G2 feasibility, not read.
 | Local copy | `fogarasi2010.pdf` (not checked) |
 | Used by | `src/openchem/chem/data/tautomer_validation.json`, `src/openchem/chem/data/tautomer_validation_v2.json`, `src/openchem/chem/tautomer_validation.py`, `tools/tautomer_validation.py` |
 
-### goller2022
+### goller2022 — Reliable gas-phase tautomer equilibria of drug-like molecule scaffolds and the issue of continuum solvation
 
 <a id="goller2022"></a>
 
@@ -6172,7 +6174,7 @@ same bounded search. Context for PQEq's G2 feasibility, not read.
 | Local copy | `goller2022.pdf` (not checked) |
 | Used by | `src/openchem/chem/data/tautomer_validation.json`, `src/openchem/chem/data/tautomer_validation_v2.json`, `src/openchem/chem/tautomer_validation.py`, `tools/tautomer_validation.py` |
 
-### rendell1993
+### rendell1993 — Distributed data parallel coupled-cluster algorithm: Application to the 2-hydroxypyridine/2-pyridone tautomerism
 
 <a id="rendell1993"></a>
 
@@ -6194,7 +6196,7 @@ volume, issue and pages (J. Comput. Chem. 14(12), 1429-1439) were read off the f
 printed in it and came from a review, so this entry stays `unverified` until the DOI is checked
 against Crossref.
 
-### hejazi2016
+### hejazi2016 — The Thermodynamic and Kinetic Properties of 2-Hydroxypyridine/2-Pyridone Tautomerization: A Theoretical and Computational Revisit
 
 <a id="hejazi2016"></a>
 
@@ -6215,7 +6217,7 @@ aug-cc-pVDZ put 2-hydroxypyridine 5-9 kJ/mol below 2-pyridone), so they are not 
 declared electronic quantity. DOI, title, authors, journal, volume and article number
 were read off the file's own first pages.
 
-### balabin2009
+### balabin2009 — Tautomeric equilibrium and hydrogen shifts in tetrazole and triazoles: Focal-point analysis and ab initio limit
 
 <a id="balabin2009"></a>
 
@@ -6238,7 +6240,7 @@ bracketed CBS finals, 3.98 kcal/mol for 1H-1,2,3-triazole above 2H and 6.25 kcal
 4H-1,2,4-triazole above 1H. The 3.98 also equals Goller 2022's implied gas value for
 the same pair (2.93 + 1.05), which is what identifies Goller's printed 4.36 as the typo.
 
-### hanus2004
+### hanus2004 — Correlated ab Initio Study of Nucleic Acid Bases and Their Tautomers in the Gas Phase, in a Microhydrated Environment, and in Aqueous Solution. Part 3. Adenine
 
 <a id="hanus2004"></a>
 
@@ -6260,7 +6262,7 @@ coupled-cluster one, so it fails the frozen selection rule's first criterion and
 recorded only as corroboration. Title, authors, journal, volume and pages were read off
 the file's first page.
 
-### catalan1996
+### catalan1996 — Importance of aromaticity on the relative stabilities of indazole annular tautomers: an ab initio study
 
 <a id="catalan1996"></a>
 
@@ -6280,7 +6282,7 @@ the file's first page.
 used, since it includes thermal terms. The DOI is printed on the file; the last page of
 the article was not read off the file.
 
-### brovarets2013
+### brovarets2013 — Prototropic tautomerism and basic molecular principles of hypoxanthine mutagenicity: an exhaustive quantum-chemical analysis
 
 <a id="brovarets2013"></a>
 
@@ -6301,7 +6303,7 @@ minimum, below keto-N1H,N9H, which agrees with Goller's pair. No number was tran
 The volume and page range are not printed in the file's text, so the citation gives the
 online-first date and the DOI (printed in the file) instead of guessing them.
 
-### perry2025
+### perry2025 — Taming Tautomerism in Organic Crystal Structure Prediction
 
 <a id="perry2025"></a>
 
@@ -6323,7 +6325,7 @@ revDSD-PBEP86-D4 as the best approximate methods (rms about 3 kJ/mol, up to 7-8)
 is an author manuscript: the title, authors and DOI are printed in it, but the volume and
 pages are not, so the citation does not give them. The paper does not mention M06-2X.
 
-### ganyecz2019
+### ganyecz2019 — Thermochemistry of Uracil, Thymine, Cytosine, and Adenine
 
 <a id="ganyecz2019"></a>
 
@@ -6343,7 +6345,7 @@ the tautomer study is cytosine only. Adenine appears only as its canonical form,
 paper does NOT supply the adenine reference that the held-out manifest lacks. Journal,
 volume, pages and DOI are printed on the file's first page.
 
-### barone2023
+### barone2023 — DFT Meets Wave-Function Composite Methods for Characterizing Cytosine Tautomers in the Gas Phase
 
 <a id="barone2023"></a>
 
@@ -6362,7 +6364,7 @@ volume, pages and DOI are printed on the file's first page.
 tautomers and rotamers, relative electronic energies tabulated in cm-1. No number was
 transcribed. Journal, volume, pages and DOI are printed on the file's first page.
 
-### holland2016
+### holland2016 — A study of the valence shell electronic states of s-triazine by photoabsorption spectroscopy and ab initio calculations
 
 <a id="holland2016"></a>
 
@@ -6380,7 +6382,7 @@ transcribed. Journal, volume, pages and DOI are printed on the file's first page
 
 Checked against the Crossref record on 2026-10-29: authors, title, journal, volume, pages and year are the record's, and match how the assistant notes cite it.
 
-### dewar1969
+### dewar1969 — Photoelectron Spectra of Molecules. II. The Ionization Potentials of Azabenzenes and Azanaphthalenes
 
 <a id="dewar1969"></a>
 
@@ -6398,7 +6400,7 @@ Checked against the Crossref record on 2026-10-29: authors, title, journal, volu
 
 Checked against the Crossref record on 2026-10-29: authors, title, journal, volume, pages and year are the record's, and match how the assistant notes cite it.
 
-### deleuze2001
+### deleuze2001 — Valence one-electron and shake-up ionization bands of polycyclic aromatic hydrocarbons. I. Benzene, naphthalene, anthracene, naphthacene, and pentacene
 
 <a id="deleuze2001"></a>
 
@@ -6416,7 +6418,7 @@ Checked against the Crossref record on 2026-10-29: authors, title, journal, volu
 
 Checked against the Crossref record on 2026-10-29: authors, title, journal, volume, pages and year are the record's, and match how the assistant notes cite it.
 
-### deleuze2002
+### deleuze2002 — Valence one-electron and shake-up ionization bands of polycyclic aromatic hydrocarbons. II. Azulene, phenanthrene, pyrene, chrysene, triphenylene, and perylene
 
 <a id="deleuze2002"></a>
 
@@ -6434,7 +6436,7 @@ Checked against the Crossref record on 2026-10-29: authors, title, journal, volu
 
 Checked against the Crossref record on 2026-10-29: authors, title, journal, volume, pages and year are the record's, and match how the assistant notes cite it.
 
-### ayers2007
+### ayers2007 — Computing Fukui functions without differentiating with respect to electron number. I. Fundamentals
 
 <a id="ayers2007"></a>
 
@@ -6452,7 +6454,7 @@ Checked against the Crossref record on 2026-10-29: authors, title, journal, volu
 
 Checked against the Crossref record on 2026-10-29: authors, title, journal, volume, pages and year are the record's, and match how the assistant notes cite it.
 
-### fievez2008
+### fievez2008 — Calculation of Fukui Functions Without Differentiating to the Number of Electrons. 3. Local Fukui Function and Dual Descriptor
 
 <a id="fievez2008"></a>
 
@@ -6470,7 +6472,7 @@ Checked against the Crossref record on 2026-10-29: authors, title, journal, volu
 
 Checked against the Crossref record on 2026-10-29: authors, title, journal, volume, pages and year are the record's, and match how the assistant notes cite it.
 
-### bhaskarapillai2024
+### bhaskarapillai2024 — Exploring the structural and electronic characteristics of phenethylamine derivatives: a density functional theory approach
 
 <a id="bhaskarapillai2024"></a>
 
@@ -6488,7 +6490,7 @@ Checked against the Crossref record on 2026-10-29: authors, title, journal, volu
 
 Checked against the Crossref record on 2026-10-29: authors, title, journal, volume, pages and year are the record's, and match how the assistant notes cite it.
 
-### li2024_prmt5
+### li2024_prmt5 — Design, Synthesis, and Biological Evaluation of 3,4-Dihydroisoquinolin-1(2H)-one Derivatives as Protein Arginine Methyltransferase 5 Inhibitors for the Treatment of Non-Hodgkin’s Lymphoma
 
 <a id="li2024_prmt5"></a>
 
@@ -6506,7 +6508,7 @@ Checked against the Crossref record on 2026-10-29: authors, title, journal, volu
 
 Checked against the Crossref record on 2026-10-29 and again on 2026-10-30: authors, title, journal, volume (68), issue (1) and pages (108-134) are the record's; the record dates it online 2024-12-26 and in print 2025-01-09, so 2025 (the issue year) in the citation and 2024 for the online date are both right; the title names protein arginine methyltransferase 5, which is the PRMT5 paper the assistant notes describe.
 
-### deshpande2024
+### deshpande2024 — Synthesis, In Silico Analysis, Antibacterial, Radical Scavenging and Antidiabetic Activities of Certain Bis-Azetidinones and Bis-Thiazolidinones
 
 <a id="deshpande2024"></a>
 
@@ -6523,7 +6525,7 @@ Checked against the Crossref record on 2026-10-29 and again on 2026-10-30: autho
 
 Crossref on 2026-10-30: the DOI resolves to this journal article (Pharmaceutical Chemistry Journal 58(1), 62-73; online 2024-05-15, print 2024-04; four authors, the last recorded as Chandrashekhar, family name V. M.). It meets the draw's own criteria (title contains 'synthes', year inside 2017 and 2023-2025, a journal on stratum 3's list in benchmarks/synthesis/artifacts_protocol3/frame.json), so it is a possible member of the frame. That it is spare 2 specifically cannot be checked from the repository, because the frame lists are kept outside it; that is why this stays unverified.
 
-### glasser1995
+### glasser1995 — Lattice Energies of Crystals with Multiple Ions: A Generalized Kapustinskii Equation
 
 <a id="glasser1995"></a>
 
@@ -6549,7 +6551,7 @@ MISSED BY THE ORIGINAL SWEEP because it carries no DOI and is named only in
 prose. See [source:hopfinger2009] and [source:yalkowsky_banerjee1992], found
 the same way.
 
-### moss1995
+### moss1995 — Glossary of class names of organic compounds and reactive intermediates based on structure (IUPAC Recommendations 1995)
 
 <a id="moss1995"></a>
 
@@ -6574,7 +6576,7 @@ layer misreads on its first page ("App/. Chem.", "DMSION"). Volume, pages and
 year are off its first page; the DOI is not printed on a 1995 paper and is
 the publisher's.
 
-### ertl2017
+### ertl2017 — An algorithm to identify functional groups in organic molecules
 
 <a id="ertl2017"></a>
 
@@ -6602,7 +6604,7 @@ says "followed by the ester group (37.8%)"; the additional file gives 37.75%
 to [R]O[R], an ether, and 7.45% to the ester [R]OC([R])=O. The table is
 followed.
 
-### bento2020
+### bento2020 — An open source chemical structure curation pipeline using RDKit
 
 <a id="bento2020"></a>
 
@@ -6636,7 +6638,7 @@ each checked in the text:
 The paper does NOT say which properties are computed on the parent; that is
 [source:chembl_schema] below.
 
-### platts1999
+### platts1999 — Estimation of molecular linear free energy relation descriptors using a group contribution approach
 
 <a id="platts1999"></a>
 
@@ -6669,7 +6671,7 @@ because it is miscible with water' -- false, Abraham's coefficients come
 from solubility ratios, so neat ethanol is in the measured table. Only this
 one was real. A deferral's reasons rot independently of its verdict.
 
-### gutmann_frontiers2022
+### gutmann_frontiers2022 — Gutmann's Donor and Acceptor Numbers for Ionic Liquids and Deep Eutectic Solvents
 
 <a id="gutmann_frontiers2022"></a>
 
@@ -6705,7 +6707,7 @@ Partly available by another route anyway: the donor number is DEFINED as
 -dH against SbCl5, which is already in the Drago table
 ([source:vogel_drago1996]).
 
-### agarwal2022
+### agarwal2022 — Speed vs accuracy: Effect on ligand pose accuracy of varying box size and exhaustiveness in AutoDock Vina
 
 <a id="agarwal2022"></a>
 
@@ -6751,7 +6753,7 @@ ligand-extent warning in `binding_site` are documented together.
 on its own first page: "may be different to this Accepted Article as a result
 of editing". Recorded rather than glossed.
 
-### su2019
+### su2019 — Comparative Assessment of Scoring Functions: The CASF-2016 Update
 
 <a id="su2019"></a>
 
@@ -6786,7 +6788,7 @@ Note the filename says 2018 (the online year) and the issue is 2019 -- the
 same online-versus-issue split as [source:trott_olson2010], and not a
 discrepancy.
 
-### quiroga2016
+### quiroga2016 — Vinardo: A Scoring Function Based on Autodock Vina Improves Scoring, Docking, and Virtual Screening
 
 <a id="quiroga2016"></a>
 
@@ -6874,7 +6876,7 @@ paper's implementation by up to 2.1 kcal/mol on one pose.
 function". The roadmap named X-Score as the rescoring candidate partly for
 being non-ML; this paper is what says it is also Vina's own ancestor.
 
-### feinstein2015
+### feinstein2015 — Calculating an optimal box size for ligand docking and virtual screening against experimental and predicted binding pockets
 
 <a id="feinstein2015"></a>
 
@@ -6913,7 +6915,7 @@ this project uses the number.
 **THIS COPY IS A PROVISIONAL PDF** -- "corresponds to the article as it
 appeared upon acceptance" -- recorded rather than presented as final.
 
-### zhuang2022
+### zhuang2022 — Molecular recognition of morphine and fentanyl by the human mu-opioid receptor
 
 <a id="zhuang2022"></a>
 
@@ -6955,7 +6957,7 @@ it from the structure -- this project already has a chain-qualified
 residue-key bug class on record, and 8EF5's chain R is a good adversarial
 case for it.
 
-### tenbrink2009
+### tenbrink2009 — Influence of Protonation, Tautomeric, and Stereoisomeric States on Protein-Ligand Docking Results
 
 <a id="tenbrink2009"></a>
 
@@ -6987,7 +6989,7 @@ It is also why stereochemistry is guarded alongside protonation in
 one of the same family of docking-input variables, and a PDBQT conversion can
 preserve coordinates while losing a stereochemical assignment.
 
-### agboola2026
+### agboola2026 — Ranking metrics conceal pose errors in blind docking with AutoDock Vina, a cross-target benchmark
 
 <a id="agboola2026"></a>
 
@@ -7034,7 +7036,7 @@ attempts to retrieve this DOI returned unrelated papers from the same journal
 from those two failures that the citation was fabricated. It was not. Two
 failed downloads are evidence about the downloads, not about the paper.
 
-### mann1947
+### mann1947 — On a Test of Whether one of Two Random Variables is Stochastically Larger than the Other
 
 <a id="mann1947"></a>
 
@@ -7081,7 +7083,7 @@ filename and the general record say, and it was NOT verified here, so it is
 absent from the citation rather than stated as read. There is no DOI: the paper
 predates them.
 
-### nguyen2020
+### nguyen2020 — Autodock Vina Adopts More Accurate Binding Poses but Autodock4 Forms Better Binding Affinity
 
 <a id="nguyen2020"></a>
 
@@ -7119,7 +7121,7 @@ registry key is therefore `nguyen2020` while the local file is `nguyen2019.pdf`
 -- the same online-versus-issue split [source:su2019] already records, and not
 a discrepancy. The DOI was read from the file rather than reconstructed.
 
-### koes2013
+### koes2013 — Lessons Learned in Empirical Scoring with smina from the CSAR 2011 Benchmarking Exercise
 
 <a id="koes2013"></a>
 
@@ -7200,7 +7202,7 @@ both sets as training data. The sources disagree and this entry records both.
 spike -- it tests the abstraction and is not an independent second opinion.
 Promote to `shipped` with a `used_by` if an engine ever lands.
 
-### neudert2011
+### neudert2011 — DSX: A Knowledge-Based Scoring Function for the Assessment of Protein-Ligand Complexes
 
 <a id="neudert2011"></a>
 
@@ -7267,7 +7269,7 @@ useless without high docking power".
 
 `assessed_not_shipped`: nothing in `src/` uses DSX.
 
-### mcnutt2021
+### mcnutt2021 — GNINA 1.0: molecular docking with deep learning
 
 <a id="mcnutt2021"></a>
 
@@ -7303,7 +7305,7 @@ set against whatever it is evaluated on.
 `assessed_not_shipped`. It is CC BY 4.0 and open access, and the software is
 CUDA/Linux-oriented, which is a heavier dependency story than Vinardo's zero.
 
-### ballester2010
+### ballester2010 — A machine learning approach to predicting protein-ligand binding affinity with applications to molecular docking
 
 <a id="ballester2010"></a>
 
@@ -7332,7 +7334,7 @@ by identifier and reported before any score is quoted, never assumed absent.
 
 `assessed_not_shipped`: nothing in `src/` uses RF-Score.
 
-### pearson1963
+### pearson1963 — Hard and Soft Acids and Bases
 
 <a id="pearson1963"></a>
 
@@ -7360,7 +7362,7 @@ not a citation promoted to `citation_and_claim`.
 
 Title, author and volume/issue/date read off p1.
 
-### pearson1968
+### pearson1968 — Hard and soft acids and bases, HSAB, part 1: Fundamental principles
 
 <a id="pearson1968"></a>
 
@@ -7381,7 +7383,7 @@ scope: vocabulary, not a number.
 
 Title, author and affiliation read off p1.
 
-### hancock1996
+### hancock1996 — Hard and Soft Acid-Base Behavior in Aqueous Solution: Steric Effects Make Some Metal Ions Hard; A Quantitative Scale of Hardness-Softness for Acids and Bases
 
 <a id="hancock1996"></a>
 
@@ -7418,7 +7420,7 @@ and that attempts at a general hardness-softness measure "have so far not
 been successful". A citation saying the field is qualitative cannot back a
 quantitative claim.
 
-### ranasinghe2019
+### ranasinghe2019 — Vertical valence ionization potential benchmarks from equation-of-motion coupled cluster theory and QTP functionals
 
 <a id="ranasinghe2019"></a>
 
@@ -7435,7 +7437,7 @@ quantitative claim.
 
 WHAT IS CITED, from the supplementary workbook (`ranasinghe2019_si/`, Table S4): IP-EOM-CCSD/cc-pVTZ vertical ionization energies of pyrimidine (9.724, 10.530, 11.174, 11.372 eV) and pyrazine (9.709, 10.185, 11.443, 11.757, 13.730 eV) at MP2/def2-TZVP geometries, and Table S3's pyridine at the CGB set's geometry (9.627, 9.887, 10.311, 12.862 eV). It is NOT a CCSDT reference for the diazines: IP-EOM-CCSDT/cc-pVTZ was run for 41 molecules, mostly of the CGB set (Table S3), and neither diazine is in Table S3; the diazines are in the NIST set (Table S4), which has IP-EOM-CCSD only.
 
-### psi42020
+### psi42020 — PSI4 1.4: Open-source software for high-throughput quantum chemistry
 
 <a id="psi42020"></a>
 
@@ -7453,7 +7455,7 @@ THE ENGINE THE PSI4 PROVIDER RUNS: a program this app calls, not a method it rei
 outputs); the paper itself was NOT read, so this entry makes no claim about a number. The functional definitions the engine relies on (B3LYP with VWN5 as `b3lyp5`, and so on) were checked against ORCA by running both, not taken from this paper
 (`docs/PSI4_ENGINE_DESIGN.md`, `chem/psi4_engine.py`).
 
-### bannwarth2021xtb
+### bannwarth2021xtb — C. Bannwarth, E. Caldeweyher, S. Ehlert, A. Hansen, P. Pracht, J. Seibert, S. Spicher & S. Grimme, WIREs…
 
 <a id="bannwarth2021xtb"></a>
 
@@ -7471,7 +7473,7 @@ THE ENGINE THE XTB PROVIDER RUNS: a program this app calls, not a method it reim
 records only what the banner says (authors, journal, volume, year, DOI); the paper itself was NOT read, and this entry makes no claim about a number. The banner also names the GFN2-xTB and GFN1-xTB method papers, which are not registered because no method is reimplemented here.
 Nothing about xtb's accuracy against ORCA or Psi4 has been measured (`docs/EXTERNAL_TOOL_CANDIDATES.md`).
 
-### hunter1998
+### hunter1998 — Evaluated Gas Phase Basicities and Proton Affinities of Molecules: An Update
 
 <a id="hunter1998"></a>
 
@@ -7488,7 +7490,7 @@ Nothing about xtb's accuracy against ORCA or Psi4 has been measured (`docs/EXTER
 
 **Why it is reference only.** THE REFERENCE VALUES OF THE PROTON-AFFINITY BENCHMARK: the evaluation behind every NIST WebBook 'Proton affinity (review)' and 'Gas basicity' value. Read for three statements the benchmark's rule rests on: the uncertainty assigned to most molecules is about 8 kJ/mol (their Sec. 5.4), the scale is 'not yet well established' below propene (PA 751.6 kJ/mol; Sec. 5.5), and several protonation sites are tabulated separately (CO at C and at O). The DOI is the Crossref match; the PDF carries no printed DOI.
 
-### moser2010
+### moser2010 — Accurate Proton Affinity and Gas-Phase Basicity Values for Molecules Important in Biocatalysis
 
 <a id="moser2010"></a>
 
@@ -7502,7 +7504,7 @@ Nothing about xtb's accuracy against ORCA or Psi4 has been measured (`docs/EXTER
 | Verified | 2026-10-19 |
 | Used by | `src/openchem/chem/proton_affinity.py`, `docs/PROTON_AFFINITY_DESIGN.md`, `benchmarks/proton_affinity/PREREGISTRATION.md` |
 
-### riplinger2013dlpno
+### riplinger2013dlpno — An efficient and near linear scaling pair natural orbital based local coupled cluster method
 
 <a id="riplinger2013dlpno"></a>
 
@@ -7519,7 +7521,7 @@ Nothing about xtb's accuracy against ORCA or Psi4 has been measured (`docs/EXTER
 
 **Why it is reference only.** THE DLPNO-CCSD METHOD of the benchmark's secondary arm: default thresholds (TCutPNO 3.33e-7, TCutPairs 1e-4, TCutMKN 1e-3), more than 99.9% of the correlation energy recovered, and a mean absolute deviation of about 0.5 kcal/mol from canonical on a test set of medium-sized organic molecules.
 
-### riplinger2013triples
+### riplinger2013triples — Natural triple excitations in local coupled cluster calculations with pair natural orbitals
 
 <a id="riplinger2013triples"></a>
 
@@ -7536,7 +7538,7 @@ Nothing about xtb's accuracy against ORCA or Psi4 has been measured (`docs/EXTER
 
 **Why it is reference only.** THE DLPNO-(T) TRIPLES of the secondary arm: the default TCutTNO 1e-7, the statement that the triples correction can reach 4 kcal/mol, and the accuracy of the approximation against canonical (about 0.5 kcal/mol).
 
-### goerigk2017
+### goerigk2017 — A look at the density functional theory zoo with the advanced GMTKN55 database for general main group thermochemistry, kinetics and noncovalent interactions
 
 <a id="goerigk2017"></a>
 
@@ -7553,7 +7555,7 @@ Nothing about xtb's accuracy against ORCA or Psi4 has been measured (`docs/EXTER
 
 **Why it is reference only.** THE PA26 SET AND THE PER-FUNCTIONAL ERRORS FOR PROTON AFFINITIES (the SI, held as goerigk2017_si.pdf): 26 adiabatic proton affinities against W2-F12, W1-F12 and CCSD(T)/CBS references, zero-point-exclusive, def2-QZVP. M06-2X(-D3(0)) MAD 1.23 kcal/mol (checked against the page image of Table S89), B3LYP 2.28, PBE0 2.56, the double hybrids about 1. The SI's plain text layer interleaves neighbouring rows; the values used were read by word coordinates.
 
-### zhao2008
+### zhao2008 — The M06 suite of density functionals for main group thermochemistry, thermochemical kinetics, noncovalent interactions, excited states, and transition elements: two new functionals and systematic testing of four M06-class functionals and 12 other functionals
 
 <a id="zhao2008"></a>
 
@@ -7570,7 +7572,7 @@ Nothing about xtb's accuracy against ORCA or Psi4 has been measured (`docs/EXTER
 
 **Why it is reference only.** THE PA8 DATABASE ERRORS AGAINST EXPERIMENT (Table 4, read from the page image): eight small-molecule proton affinities, zero-point-exclusive; M06-2X MSE -0.19 and MUE 1.75 kcal/mol, B3LYP 0.18 and 1.02, PBE 0.04 and 1.35, HF 2.75 and 3.19. ALSO TABLE 5, THE ABDE4 DATABASE (read from the page image): four alkyl bond energies (R-CH3, R-OCH3; R = methyl, isopropyl), De not an enthalpy, 6-311+G(3df,2p) on B3LYP/6-31G(d) geometries; M06-2X MSE +0.27 and MUE 0.74 kcal/mol, M05-2X -0.18 and 0.61, B3LYP -8.62 and 8.62.
 
-### curtiss2005
+### curtiss2005 — Assessment of Gaussian-3 and density-functional theories on the G3/05 test set of experimental energies
 
 <a id="curtiss2005"></a>
 
@@ -7587,7 +7589,7 @@ Nothing about xtb's accuracy against ORCA or Psi4 has been measured (`docs/EXTER
 
 **Why it is reference only.** THE G3/05 PROTON-AFFINITY ERRORS AGAINST EXPERIMENT (Table IV, read from the page image): ten proton affinities, mean absolute deviation G3 1.14, G3X 1.04 and B3LYP 1.39 kcal/mol (B3LYP single points 6-311+G(3df,2p) at MP2/6-31G* geometries with scaled HF zero-point energies).
 
-### blanksby2003
+### blanksby2003 — Bond Dissociation Energies of Organic Molecules
 
 <a id="blanksby2003"></a>
 
@@ -7602,7 +7604,7 @@ Nothing about xtb's accuracy against ORCA or Psi4 has been measured (`docs/EXTER
 | Local copy | `blanksby2003.pdf` (not checked) |
 | Used by | `src/openchem/chem/bond_dissociation.py`, `docs/explainers/thermochemistry.md`, `docs/BDE_DESIGN.md`, `benchmarks/bde/PREREGISTRATION.md` |
 
-### vo2022
+### vo2022 — Calculating bond dissociation energies of X-H (X = C, N, O, S) bonds of aromatic systems via density functional theory: a detailed comparison of methods
 
 <a id="vo2022"></a>
 
@@ -7619,7 +7621,7 @@ Nothing about xtb's accuracy against ORCA or Psi4 has been measured (`docs/EXTER
 
 **Why it is reference only.** M06-2X'S ERROR ON X-H BOND DISSOCIATION ENTHALPIES AGAINST EXPERIMENT (text of Sec. 3 and Table 5): aromatic X-H, 6-311+G(3df,2p) on B3LYP/6-31G(d) geometries; M06-2X MUE 1.3 (C-H, max 3.2), 1.2 (N-H, max 2.9), 1.2 to 1.4 (O-H, max 3.2 to 3.4), 1.1 (S-H, max 5.4); average MUE 1.2 and MaxAE 3.7 kcal/mol.
 
-### stjohn2020
+### stjohn2020 — Prediction of organic homolytic bond dissociation enthalpies at near chemical accuracy with sub-second computational cost
 
 <a id="stjohn2020"></a>
 
@@ -7636,7 +7638,7 @@ Nothing about xtb's accuracy against ORCA or Psi4 has been measured (`docs/EXTER
 
 **Why it is reference only.** THE CLOSEST PUBLISHED MATCH TO THE BDE BENCHMARK'S PROTOCOL: gas-phase enthalpies at 298 K and 1 atm with unscaled ZPE and thermal corrections after a conformer search; against 368 experimental iBond bond enthalpies M06-2X/def2-TZVP has an MAE of about 2.1 kcal/mol (Fig. 1a, text layer), equal to DLPNO-CCSD(T)/cc-pVTZ and better than B3LYP-D3 and wB97X-D; about 2.5 kcal/mol for large molecules outside the training set.
 
-### mardirossian2017
+### mardirossian2017 — Thirty years of density functional theory in computational chemistry: an overview and extensive assessment of 200 density functionals
 
 <a id="mardirossian2017"></a>
 
@@ -7653,7 +7655,7 @@ Nothing about xtb's accuracy against ORCA or Psi4 has been measured (`docs/EXTER
 
 **Why it is reference only.** PER-SET ERRORS OF 200 FUNCTIONALS (the SI file MADValues.csv, against CCSD(T)/CBS-type references): M06-2X MAD 1.83 kcal/mol on BDE99nonMR and 2.50 on HAT707nonMR, 6.32 and 5.08 on the multireference sets BDE99MR and HAT707MR; B3LYP 3.19 and 3.08 on the non-multireference sets.
 
-### genheden2022paroutes
+### genheden2022paroutes — PaRoutes: towards a framework for benchmarking retrosynthesis route predictions
 
 <a id="genheden2022paroutes"></a>
 
@@ -7670,7 +7672,7 @@ Nothing about xtb's accuracy against ORCA or Psi4 has been measured (`docs/EXTER
 
 **Why it is reference only.** THE ROUTE-PREDICTION BENCHMARK THE SYNTHESIS SPIKE'S QUALITY PROTOCOL IS BUILT ON: two sets of 10,000 USPTO reference routes (set-n1, set-n5; at most 10 reactions; no route's leaf is another's intermediate) with the reference routes' leaves as the stock; AiZynthFinder MCTS with the benchmark's own one-step model (reference reactions excluded), 500 iterations, no time limit: set-n1 9,714 of 10,000 targets solved, top-1 / top-5 / top-10 route accuracy 0.20 / 0.55 / 0.61 by tree edit distance, set-n5 9,676 solved and 0.09 / 0.34 / 0.42; about 45% of targets have a shorter top-1 route than the reference and the leaf overlap is 0.63 to 0.68. States that a one-step model trained on the whole USPTO set, reference reactions included, is biased ("literature-lookup"). Numbers read from the text layer of Tables 1 and 2; the page images were not checked.
 
-### genheden2020aizynthfinder
+### genheden2020aizynthfinder — AiZynthFinder: a fast, robust and flexible open-source software for retrosynthetic planning
 
 <a id="genheden2020aizynthfinder"></a>
 
@@ -7686,7 +7688,7 @@ Nothing about xtb's accuracy against ORCA or Psi4 has been measured (`docs/EXTER
 
 **Why it is reference only.** THE PLANNER'S OWN PUBLISHED RESULT AND ITS WARNINGS (read from the open-access full text, PMC7672904): on 100 random ChEMBL compounds with the ZINC-subset stock and the then USPTO policy, AiZynthFinder found a route for 55 and ASKCOS for 62 (47 in common, 30 neither), average search 38.7 s and first solution 7.1 s; the stock, the template library and the target's complexity decide whether a route is found; the route score 'was designed to support the tree search and is rather indiscriminate with regard to the quality of the route'. No reference-route comparison, no feasibility check of the 55 routes and no random seed are reported. The training data it cites is Lowe's USPTO extraction. Author list from the PMC record.
 
-### torrenperaire2024
+### torrenperaire2024 — Models Matter: the impact of single-step retrosynthesis on synthesis planning
 
 <a id="torrenperaire2024"></a>
 
@@ -7704,7 +7706,7 @@ Nothing about xtb's accuracy against ORCA or Psi4 has been measured (`docs/EXTER
 
 **Why it is reference only.** THE ONLY PUBLISHED NUMBER FOR AiZynthFinder ON PaRoutes SET-N1 WITH A MODEL THAT EXCLUDES THE REFERENCE ROUTES: AiZynthFinder (template model trained on USPTO-PaRoutes-1M) recovers the gold-standard route for 23.7% of targets at top-1 and 60.7% at top-10 (61.8% at top-50), checked in the main text and in the supporting information Table S7 (top-3 48.5, top-5 56.5), with 200 iterations, the top 50 reactions added at every iteration and an 8-hour limit; the same paper reports success rates of at least 91% for every model and no relationship between success rate and route accuracy. The supporting information (torrenperaire2024_models_matter_si.pdf) was read for Table S7 only. The authors, journal, volume, pages and DOI were checked against the paper's own first page and Crossref. Only the open-access full text and its supporting information were read; the paper's own definition of 'route accuracy' is the PaRoutes one (the reference found among the first n routes), not restated.
 
-### maziarz2025syntheseus
+### maziarz2025syntheseus — Re-evaluating retrosynthesis algorithms with Syntheseus
 
 <a id="maziarz2025syntheseus"></a>
 
@@ -7721,7 +7723,7 @@ Nothing about xtb's accuracy against ORCA or Psi4 has been measured (`docs/EXTER
 
 **Why it is reference only.** THE NEXT CANDIDATE PLANNER AND EVALUATION FRAMEWORK, NOT USED: a benchmarking library for single-step models and multi-step planners that argues inconsistent comparisons have hidden weaknesses. Read for its best-practice list (the leakage pitfall S5 on atom mapping and the dataset-selection pitfall S6, which warns against unrealistic assumptions on pre-training data) and its abstract; the experiments were not read in full. The arXiv version (2310.19796) is the same text with the supporting information inside.
 
-### saigiridharan2024aizynthfinder4
+### saigiridharan2024aizynthfinder4 — AiZynthFinder 4.0: developments based on learnings from 3 years of industrial application
 
 <a id="saigiridharan2024aizynthfinder4"></a>
 
@@ -7739,7 +7741,7 @@ Nothing about xtb's accuracy against ORCA or Psi4 has been measured (`docs/EXTER
 
 **Why it is reference only.** THE VERSION OF THE PLANNER THE SPIKE INSTALLED (4.4.1 is the later release): the paper describes the filter policy, support for any one-step model, the scoring framework (the default scorer rests on tree depth and the fraction of starting material in stock; Badowski's route cost is one alternative) and a large-scale analysis in which the number of routes found is above 100 for every target set while solved routes are fewer than 100. The authors, journal, volume and article number were checked against the paper's own first page. The run-time defaults the benchmark depends on (routes returned: at least 5 and at most 25 unless all solved routes are requested) were read from the installed package's source, not from this paper. The supporting information (saigiridharan2024_aizynthfinder4_si.docx) was not opened.
 
-### li2024retrobleu
+### li2024retrobleu — Retro-BLEU: quantifying chemical plausibility of retrosynthesis routes through reaction template sequence analysis
 
 <a id="li2024retrobleu"></a>
 
@@ -7757,7 +7759,7 @@ Nothing about xtb's accuracy against ORCA or Psi4 has been measured (`docs/EXTER
 
 **Why it is reference only.** A POSSIBLE SOFTER ROUTE-AGREEMENT MEASURE, NOT USED: adapts BLEU to a route's sequence of reaction templates, evaluated on routes from PaRoutes made with AiZynthFinder and Retro*. Only the abstract and the evaluation set-up were read. The authors, journal, volume and pages were checked against the paper's own first page; the DOI is the one the publisher's page carries.
 
-### genheden2021ted
+### genheden2021ted — Clustering of synthetic routes using tree edit distance
 
 <a id="genheden2021ted"></a>
 
@@ -7774,7 +7776,7 @@ Nothing about xtb's accuracy against ORCA or Psi4 has been measured (`docs/EXTER
 
 **Why it is reference only.** THE ROUTE-SIMILARITY MEASURE PaRoutes SCORES WITH: a tree edit distance between two routes using molecule and reaction fingerprint similarity. The DOI was confirmed through the registered supporting-information record (10.1021/acs.jcim.1c00232.s002) and the ChemRxiv preprint; the authors, volume and pages were checked against the paper's own first page. That the PaRoutes top-n scripts count a reference as found only when this distance is below 1e-6 is from the PaRoutes repository's analysis/route_quality.py (read 2026-10-20), not from this paper.
 
-### morgunov2025retrocast
+### morgunov2025retrocast — Procrustean Bed for AI-Driven Retrosynthesis: A Unified Framework for Reproducible Evaluation
 
 <a id="morgunov2025retrocast"></a>
 
@@ -7791,7 +7793,7 @@ Nothing about xtb's accuracy against ORCA or Psi4 has been measured (`docs/EXTER
 
 **Why it is reference only.** A PREPRINT (not peer reviewed). Two statements were checked against its text: that PaRoutes showed models with over 97% stock-termination rate reproducing the ground-truth route with only 35 to 50% top-10 accuracy (the range our measured 0.373 falls in, though the figure is the authors' summary of other work and its sources were not traced), and that rank-dependent metrics such as top-K depend on which population of outputs is ranked (they filter for structure and stock before ranking). It also proposes that the whole PaRoutes n1 and n5 sets be excluded from any training corpus. The 'complexity cliff' claim was read in the abstract only.
 
-### guo2026routeevaluation
+### guo2026routeevaluation — Bridging Chemists and AI: An Expert-Augmented Framework for Interpretable Route Evaluation
 
 <a id="guo2026routeevaluation"></a>
 
@@ -7808,7 +7810,7 @@ Nothing about xtb's accuracy against ORCA or Psi4 has been measured (`docs/EXTER
 
 **Why it is reference only.** A PREPRINT (not peer reviewed). Argues data-driven route evaluators lean on patent routes as proxies for expert-validated routes, and trains a route scorer on tree edit distances fine-tuned with expert chemists' ratings. Only the abstract and introduction were read; its numbers were not checked.
 
-### armstrong2026synthex
+### armstrong2026synthex — Strategy-first synthesis planning for complex natural products
 
 <a id="armstrong2026synthex"></a>
 
@@ -7825,7 +7827,7 @@ Nothing about xtb's accuracy against ORCA or Psi4 has been measured (`docs/EXTER
 
 **Why it is reference only.** A PREPRINT (not peer reviewed). Its own statement about AiZynthFinder as a baseline was checked in the text: on 1,098 natural products from the authors' NP set, with a depth limit of 25 and 30 minutes per target, AiZynthFinder solved 13.8% (151 of 1,098), and 80% of structurally undemanding targets. It also says that patent-derived benchmarks (USPTO-190, PaRoutes, Pistachio-Hard) are close to saturated. These are the authors' claims about their own comparison and were not reproduced; the rest was not read in full. Relevant to the limits of what a USPTO-trained planner can say about complex targets, not to the PaRoutes result.
 
-### ruscic2004
+### ruscic2004 — Introduction to Active Thermochemical Tables: Several 'Key' Enthalpies of Formation Revisited
 
 <a id="ruscic2004"></a>
 
@@ -7842,7 +7844,7 @@ Nothing about xtb's accuracy against ORCA or Psi4 has been measured (`docs/EXTER
 
 **Why it is reference only.** THE METHOD BEHIND THE HELD-OUT REFERENCES: the thermochemical-network approach by which ATcT enthalpies of formation, and so the held-out bond enthalpies, are obtained, and the statement of its uncertainties. Cited for what the numbers are; the arm uses the tables, not this paper's values.
 
-### ruscic2015
+### ruscic2015 — Active Thermochemical Tables: Sequential Bond Dissociation Enthalpies of Methane, Ethane, and Methanol and the Related Thermochemistry
 
 <a id="ruscic2015"></a>
 
@@ -7859,7 +7861,7 @@ Nothing about xtb's accuracy against ORCA or Psi4 has been measured (`docs/EXTER
 
 **Why it is reference only.** THE ATcT BOND ENTHALPIES OF THE METHANE, ETHANE AND METHANOL SYSTEMS, in print: the second reference column the held-out arm's preregistration asks for where the first run's bonds overlap, and a check on how a bond enthalpy is formed from enthalpies of formation. Read by table for the six first-run bonds of the methane, ethane and methanol systems (`benchmarks/restart_v2/second_column.py`): they agree with the ATcT 1.228 values the held-out references come from to within 0.24 kcal/mol, the ethane C-H (version 1.122 lower by 0.24) the largest.
 
-### seetula2003
+### seetula2003 — Kinetics of the R + HBr = RH + Br (R = CH2Br, CHBrCl or CCl3) equilibrium. Thermochemistry of the CH2Br and CHBrCl radicals
 
 <a id="seetula2003"></a>
 
@@ -7876,7 +7878,7 @@ Nothing about xtb's accuracy against ORCA or Psi4 has been measured (`docs/EXTER
 
 **Why it is reference only.** A BROMINE REFERENCE FOR THE REPORTED-ONLY ARM C-Br (decision D5 of the restart-v3 preregistration, taken 2026-10-27; it decides nothing, because the R + HBr kinetics method is disputed, see leplat2013, and a coupled-cluster calculation, andress2026, puts these bonds 2 to 7 kJ/mol lower): the paper reports the C-H bond energies of bromomethane (427.2 +- 2.4 kJ/mol) and bromochloromethane (406.0 +- 2.4) and the formation enthalpies of CH2Br (171.1 +- 2.7) and CHBrCl (143 +- 6), all from one laboratory's second-law kinetics, not an evaluated value. The four numbers were read from the PDF's text; the extraction drops minus signs, so no signed enthalpy is taken from it.
 
-### seetula2008
+### seetula2008 — Kinetics of the R + HBr = RH + Br (CH3CHBr, CHBr2 or CDBr2) equilibrium. Thermochemistry of the CH3CHBr and CHBr2 radicals
 
 <a id="seetula2008"></a>
 
@@ -7893,7 +7895,7 @@ Nothing about xtb's accuracy against ORCA or Psi4 has been measured (`docs/EXTER
 
 **Why it is reference only.** A BROMINE REFERENCE FOR THE REPORTED-ONLY ARM C-Br (decision D5 of the restart-v3 preregistration, taken 2026-10-27; it decides nothing: the bromoethane value sits about 2 kcal/mol above the other determinations in Luo's Table 3.5, and the R + HBr method is disputed, see leplat2013): the paper reports the alpha C-H bond energies of bromoethane (415.0 +- 2.7 kJ/mol) and dibromomethane (412.6 +- 2.7) and the formation enthalpies of CH3CHBr (133.4 +- 3.4) and CHBr2 (199.1 +- 2.7), and compares the CHBr2 value with three theoretical studies (196.9 to 201.3) and a fourth that is lower (191.7). It supersedes the same author's 2000 ab initio estimate for CHBr2. One laboratory's second-law kinetics, not an evaluated value.
 
-### seetula2000
+### seetula2000 — Ab initio study of the transition states for determining the enthalpies of formation of alkyl and halogenated alkyl free radicals
 
 <a id="seetula2000"></a>
 
@@ -7910,7 +7912,7 @@ Nothing about xtb's accuracy against ORCA or Psi4 has been measured (`docs/EXTER
 
 **Why it is reference only.** WHY TRIBROMOMETHYL HAS NO USABLE REFERENCE VALUE: this is the only source found for a CBr3 formation enthalpy, an ab initio estimate (195 +- 5 kJ/mol, plus 2.4 for the method) whose uncertainty fails the 1.0 kcal/mol rule for a deciding bond, and the paper itself warns that values for radicals with several bromine atoms are of low accuracy. Its CHBr2 estimate (180 +- 5) was superseded by the 2008 paper.
 
-### nicovich1992
+### nicovich1992 — Temperature-dependent kinetics studies of the reactions Br(2P3/2) + H2S = SH + HBr and Br(2P3/2) + CH3SH = CH3S + HBr. Heats of formation of SH and CH3S radicals
 
 <a id="nicovich1992"></a>
 
@@ -7927,7 +7929,7 @@ Nothing about xtb's accuracy against ORCA or Psi4 has been measured (`docs/EXTER
 
 **Why it is reference only.** THE METHANETHIOL S-H VALUE THE FIRST RUN USED, AND THE ANCHOR THE S-H ARM SHARES WITH IT: Table IX gives D(CH3S-H) = 87.35 +- 0.58 kcal/mol at 298 K (85.96 +- 0.68 at 0 K; 2 sigma), from second- and third-law analyses of the Br + CH3SH equilibrium, and the CH3S formation enthalpy 29.78 +- 0.44 kcal/mol. Ervin 2015 takes the same kinetics value as one of two routes to the CH3SH anchor of its acidity network, so the ethanethiol and propanethiol S-H references of Arm D are not independent of it.
 
-### chiang2004
+### chiang2004 — Experimental and quantum-chemical studies on photoionization and dissociative photoionization of CH2Br2
 
 <a id="chiang2004"></a>
 
@@ -7944,7 +7946,7 @@ Nothing about xtb's accuracy against ORCA or Psi4 has been measured (`docs/EXTER
 
 **Why it is reference only.** WHY IT IS NOT A REFERENCE: it measures the CH2Br+ appearance energy from CH2Br2 (11.22 eV) and the adiabatic ionization energy of CH2Br2 (10.25 eV), which give ion enthalpies, not a bond energy of a neutral radical. Its Table IV does list the radicals' formation enthalpies it compares with (CH2Br 40.4 +- 1.0 and CHBr2 45.0 +- 2.2 kcal/mol, taken from an earlier reference), which are context for the bromine arm and not new data.
 
-### leplat2013
+### leplat2013 — Reinvestigation of the elementary chemical kinetics of the reaction C2H5 + HBr (HI) = C2H6 + Br (I) in the range 293-623 K and its implication on the thermochemical parameters of C2H5 free radical
 
 <a id="leplat2013"></a>
 
@@ -7961,7 +7963,7 @@ Nothing about xtb's accuracy against ORCA or Psi4 has been measured (`docs/EXTER
 
 **Why it is reference only.** WHY THE BROMINE ARM IS REPORTED ONLY: the paper shows that the R + HBr equilibrium method behind the bromine C-H values is itself disputed. Two sets of kinetics disagree (high rates with a negative activation energy, which include Seetula's, against low rates with a positive one, which include this paper's), giving C2H5 formation enthalpies of 120.7 (Seetula) against 117.3 +- 3.1 kJ/mol (third law, this paper); its own second-law treatment gives an entropy 19.9 J/K/mol below the accepted value, so the authors distrust second-law results here. It tests ethyl only, not a bromoalkyl radical.
 
-### ervin2015
+### ervin2015 — Anchoring the gas-phase acidity scale from hydrogen sulfide to pyrrole. Experimental bond dissociation energies of nitromethane, ethanethiol, and cyclopentadiene
 
 <a id="ervin2015"></a>
 
@@ -7978,7 +7980,7 @@ Nothing about xtb's accuracy against ORCA or Psi4 has been measured (`docs/EXTER
 
 **Why it is reference only.** THE S-H REFERENCE OF ARM D: D298(C2H5S-H) = 364.7 +- 2.2 kJ/mol (87.16 +- 0.53 kcal/mol, about the 95% level), from the paper's re-anchored gas-phase acidity network (anchors H2S, CH3SH and pyrrole) and the C2H5S electron affinity of Moran and Ellison; its Table 3 also holds the absolute acidities of 1- and 2-propanethiol and tert-butanethiol, which with Janousek's electron affinities give three more S-H references (derived in benchmarks/restart_v3/references.json and recomputed by tests/test_restart_v3_references.py; the thermal correction for them is borrowed from ethanethiol, which the paper does not publish for them). The copy held is the Just Accepted manuscript, whose abstract numbers are the ones the published article carries; the SI (ervin2015_SI.pdf) holds the DFT thermal-correction details for the paper's own species only.
 
-### eyet2009
+### eyet2009 — Anchoring the gas-phase acidity scale: From formic acid to methanethiol
 
 <a id="eyet2009"></a>
 
@@ -7995,7 +7997,7 @@ Nothing about xtb's accuracy against ORCA or Psi4 has been measured (`docs/EXTER
 
 **Why it is reference only.** A CHECK ON THE THIOL ACIDITIES, SUPERSEDED BY ERVIN 2015: Table 1 gives gas-phase acidities of methane-, ethane-, 1- and 2-propane- and tert-butanethiol to +-0.5 kcal/mol (ethanethiol acidH298 356.0), which agree with Ervin's re-anchored values within error (1489.5 against 1487.6 +- 1.8 kJ/mol). Its supplementary data (Appendix A of the article) could not be fetched.
 
-### janousek1980
+### janousek1980 — Electron photodetachment from mercaptyl anions (RS-). Electron affinities of mercaptyl radicals and the S-H bond strength in mercaptans
 
 <a id="janousek1980"></a>
 
@@ -8012,7 +8014,7 @@ Nothing about xtb's accuracy against ORCA or Psi4 has been measured (`docs/EXTER
 
 **Why it is reference only.** THE ELECTRON AFFINITIES BEHIND THE PROPANETHIOL S-H REFERENCES: EA(C2H5S) = 1.953 +- 0.006, EA(n-C3H7S) = 2.00 +- 0.02, EA(i-C3H7S) = 2.02 +- 0.02 and EA(t-C4H9S) = 2.07 +- 0.02 eV by laser photodetachment of the mercaptyl anions. Its own S-H bond strengths (88.6, 88.7 and 88.4 +- 2 kcal/mol) rest on older bracketed acidities and are superseded by the re-anchored ones of Ervin 2015.
 
-### moran1988
+### moran1988 — Photoelectron spectroscopy of sulfur ions
 
 <a id="moran1988"></a>
 
@@ -8029,7 +8031,7 @@ Nothing about xtb's accuracy against ORCA or Psi4 has been measured (`docs/EXTER
 
 **Why it is reference only.** THE ETHANETHIOL ELECTRON AFFINITY ERVIN USED: EA(CH3CH2S) = 1.947 +- 0.013 eV (final value, Table VIII), also EA(CH3S) 1.873 +- 0.011. The paper has no propylthiyl radical, so the propanethiol references take their electron affinities from Janousek 1980. Its own S-H value for ethanethiol (88.9 +- 2 kcal/mol) rests on a bracketed acidity and is superseded.
 
-### borgesdossantos2002
+### borgesdossantos2002 — S-H bond dissociation enthalpies in thiophenols: A time-resolved photoacoustic calorimetry and quantum chemistry study
 
 <a id="borgesdossantos2002"></a>
 
@@ -8046,7 +8048,7 @@ Nothing about xtb's accuracy against ORCA or Psi4 has been measured (`docs/EXTER
 
 **Why it is reference only.** WHY THIOPHENOL IS NOT IN ARM D: gas-phase DH(PhS-H) = 349.4 +- 4.5 kJ/mol (83.5 +- 1.1 kcal/mol), derived from a solution measurement with solvation corrections, so it fails the 1.0 kcal/mol rule, and it disagrees with the gas-phase imaging value of Lim 2007 (D0 76.8 +- 0.3 at 0 K) by about 5 kcal/mol. The paper itself says the literature values range from 331 to 349 kJ/mol.
 
-### lim2007
+### lim2007 — Experimental and theoretical study of the photodissociation reaction of thiophenol at 243 nm: Intramolecular orbital alignment of the phenylthiyl radical
 
 <a id="lim2007"></a>
 
@@ -8063,7 +8065,7 @@ Nothing about xtb's accuracy against ORCA or Psi4 has been measured (`docs/EXTER
 
 **Why it is reference only.** WHY THIOPHENOL IS NOT IN ARM D: D0(S-H) = 76.8 +- 0.3 kcal/mol (Table II) is a 0 K value from H-atom velocity-map imaging, the authors say it is at least 2 kcal/mol below earlier values, and a 298 K conversion would still leave it about 5 kcal/mol under the solution-derived value of Borges dos Santos 2002. The uncertainty convention of the +-0.3 is not stated in the text read.
 
-### andress2026
+### andress2026 — Correlated molecular orbital theory predictions of hydrogen-containing halomethane thermochemistry: Heats of formation, C-H bond dissociation energies, and pKa values
 
 <a id="andress2026"></a>
 
@@ -8080,7 +8082,7 @@ Nothing about xtb's accuracy against ORCA or Psi4 has been measured (`docs/EXTER
 
 **Why it is reference only.** A CALCULATED CHECK ON THE BROMINE KINETICS VALUES, NEVER A REFERENCE: Table 2 gives 298 K C-H bond dissociation energies from Feller-Peterson-Dixon and G3(MP2) calculations, with no uncertainty stated: CH3Br 420.5 / 420.8, CH2Br2 407.4 / 406.5, CH2BrCl 403.8 / 404.4 and CHBr3 392.4 / 391.0 kJ/mol, against the experimental column (Luo's compilation, ATcT where marked) 427.2, 417.1, 406.0 and 401.7. On the three bonds whose reference is ATcT (CH4, CHF3, CH2Cl2) the calculation runs 1.0 to 2.7 kJ/mol low, so the roughly 4 kJ/mol it sits below the bromine kinetics values is beyond that offset. The SI (andress2026_SI.pdf) was not used.
 
-### espinosagarcia1999
+### espinosagarcia1999 — Theoretical C-H bond dissociation enthalpies for CH3Br and CH2ClBr
 
 <a id="espinosagarcia1999"></a>
 
@@ -8097,7 +8099,7 @@ Nothing about xtb's accuracy against ORCA or Psi4 has been measured (`docs/EXTER
 
 **Why it is reference only.** A CALCULATED COMPARISON, NOT A REFERENCE: ab initio isodesmic estimates give DH298(BrH2C-H) = 101.7 +- 1.4 and DH298(BrClHC-H) = 98.7 +- 1.9 kcal/mol, in agreement with the kinetics value for bromomethane and 1.7 kcal/mol above the kinetics value for bromochloromethane. Both uncertainties exceed the 1.0 kcal/mol rule and they are calculated.
 
-### wu2025
+### wu2025 — Ultraviolet photodissociation of methanethiol (CH3SH): revealing an S(1D) atom elimination channel
 
 <a id="wu2025"></a>
 
@@ -8114,7 +8116,7 @@ Nothing about xtb's accuracy against ORCA or Psi4 has been measured (`docs/EXTER
 
 **Why it is reference only.** THE THIRD METHANETHIOL ANCHOR: the paper quotes D0(H3CS-H) = 30 250 +- 100 cm-1 (361.87 +- 1.20 kJ/mol) from Wilson, Ashfold and Dixon, J. Chem. Phys. 101, 7538 (1994), 2.17 kJ/mol above the 359.7 +- 1.5 that Ervin 2015 anchors the acidity scale on, which is the anchor all three Arm D S-H references share. Read for that quotation and its citation only; it measures nothing about the S-H bond. The value is a sensitivity of Arm D, not a correction (restart-v3 preregistration section 7, references.json methanethiol_anchor).
 
-### wilson1994
+### wilson1994 — Near ultraviolet photolysis of methanethiol studied by H atom photofragment translational spectroscopy
 
 <a id="wilson1994"></a>
 
@@ -8131,7 +8133,7 @@ Nothing about xtb's accuracy against ORCA or Psi4 has been measured (`docs/EXTER
 
 **Why it is reference only.** THE THIRD METHANETHIOL ANCHOR AT ITS SOURCE: D0(CH3S-H) = 30 250 +- 100 cm-1 (361.87 kJ/mol) as the dissociation threshold for the lower 2E3/2 spin-orbit state of CH3S, from a fit of the resolved v = 0 doublet in the 274.0 nm H-atom time-of-flight spectrum; the authors call it in good agreement with Nicovich's 85.96 +- 0.68 kcal/mol (30 065 +- 240 cm-1). Ervin 2015 did not use it. Used for the sensitivity of Arm D's three S-H references to their shared anchor (restart-v3 preregistration section 7, references.json methanethiol_anchor).
 
-### devine2008
+### devine2008 — Near-Ultraviolet Photodissociation of Thiophenol
 
 <a id="devine2008"></a>
 
@@ -8150,7 +8152,7 @@ Nothing about xtb's accuracy against ORCA or Psi4 has been measured (`docs/EXTER
 
 ## Datasets
 
-### bradley2014
+### bradley2014 — Compounds with known Abraham descriptors
 
 <a id="bradley2014"></a>
 
@@ -8177,7 +8179,7 @@ propagated into a stated uncertainty. Acetanilide settles the design --
 three rows give S = 3.61, 1.54, 1.37 and the FIRST is the outlier, so 'take
 the first row' would have shipped it.
 
-### llinas2008
+### llinas2008 — Solubility Challenge: Can You Predict Solubilities of 32 Molecules Using a Database of 100 Reliable Measurements?
 
 <a id="llinas2008"></a>
 
@@ -8205,7 +8207,7 @@ form II, -6.75 and -5.87), and both were being scored -- counting them
 twice AND charging the polymorph gap, up to 0.88 log, to the model as
 prediction error. Refusing them moved every published figure.
 
-### llinas2020
+### llinas2020 — Findings of the Second Challenge to Predict Aqueous Solubility
 
 <a id="llinas2020"></a>
 
@@ -8242,7 +8244,7 @@ have. So 'the endpoint is hard' rather than 'our model is poor'.
 Its interlaboratory mean for aspirin (-1.67 over 16 sources) OVERTURNED a
 claim this project had shipped, which rested on an ESOL-era value of -2.19.
 
-### kwon2023
+### kwon2023 — DELTA50: A Highly Accurate Database of Experimental 1H and 13C NMR Chemical Shifts Applied to DFT Benchmarking
 
 <a id="kwon2023"></a>
 
@@ -8266,7 +8268,7 @@ CHOSEN BECAUSE IT IS NOT CIRCULAR. nmrshiftdb2 ([source:nmrshiftdb2]) IS
 the lookup's index, so scoring the lookup against it would measure
 memorisation.
 
-### nubase2020
+### nubase2020 — The NUBASE2020 evaluation of nuclear physics properties
 
 <a id="nubase2020"></a>
 
@@ -8356,7 +8358,7 @@ from the state index -- a table mapping 1 to `m` would be a second
 implementation of somebody else's notation. Measured across all 2,127,
 the two are one-to-one: 1 m, 2 n, 3 p, 4 q, 5 r, 6 x, 8 i, 9 j.
 
-### aqsoldb
+### aqsoldb — AqSolDB, a curated reference set of aqueous solubility and 2D descriptors for a diverse set of compounds
 
 <a id="aqsoldb"></a>
 
@@ -8397,7 +8399,7 @@ from other people's datasets inherits ALL of their provenance.
 
 `dataset-I` is the Solubility Challenge ([source:llinas2008]).
 
-### ons_solubility
+### ons_solubility — Open Notebook Science Challenge Solubility Dataset
 
 <a id="ons_solubility"></a>
 
@@ -8423,7 +8425,7 @@ de-leaking is measured in both directions: `--keep-leaked` improves the
 shift arm from 0.29 to 0.21 MAE, which is the coefficients looking 28%
 better on data they were fitted to.
 
-### nmrshiftdb2
+### nmrshiftdb2 — Facilitating quality control for spectra assignments of small organic molecules: nmrshiftdb2 - a free in-house NMR database with integrated LIMS for academic service laboratories
 
 <a id="nmrshiftdb2"></a>
 
@@ -8469,7 +8471,7 @@ read:
 THE LICENCE IS STILL ONLY "OPEN CONTENT" and is not pinned to a named
 licence by anything read so far.
 
-### tdc_admet
+### tdc_admet — Therapeutics Data Commons: Machine Learning Datasets and Tasks for Drug Discovery and Development
 
 <a id="tdc_admet"></a>
 
@@ -8500,7 +8502,7 @@ misleading: TDC's Harvard Dataverse returned 403, and PyTDC then cached the
 0-byte failure as a 'local copy', so every retry reported 'Found local
 copy...' before failing -- which reads as a code bug rather than an outage.
 
-### cod
+### cod — Crystallography Open Database (COD).
 
 <a id="cod"></a>
 
@@ -8525,7 +8527,7 @@ AGAINST A VALUE THIS PROJECT DID NOT PRODUCE.
 Five are public domain. 1569411 is NOT and requires attribution to
 [source:bravetti2023].
 
-### rcsb_pdb
+### rcsb_pdb — RCSB Protein Data Bank.
 
 <a id="rcsb_pdb"></a>
 
@@ -8545,7 +8547,7 @@ RCSB's own pre-generated assemblies are the oracle the assembly builder is
 scored against -- every buildable entry matches on every atom to the written
 digit.
 
-### llinas2019
+### llinas2019 — Solubility Challenge Revisited after Ten Years, with Multilab Shake-Flask Data, Using Tight (SD ~0.17 log) and Loose (SD ~0.62 log) Test Sets
 
 <a id="llinas2019"></a>
 
@@ -8576,7 +8578,7 @@ the SD 0.17 figure looks like it originates in the 2020 paper.
 Title, authors and DOI read from the PDF, and corroborated by reference (1)
 of [source:llinas2020], which supplies the volume and page.
 
-### hopfinger2009
+### hopfinger2009 — Findings of the challenge to predict aqueous solubility
 
 <a id="hopfinger2009"></a>
 
@@ -8599,7 +8601,7 @@ why more data did not rescue the base-bias experiment.
 Citation confirmed from reference (3) of [source:llinas2020]. Independent of
 Delaney's fit as far as the source states.
 
-### yalkowsky_banerjee1992
+### yalkowsky_banerjee1992 — Aqueous Solubility: Methods of Estimation for Organic Compounds
 
 <a id="yalkowsky_banerjee1992"></a>
 
@@ -8650,7 +8652,7 @@ The A1 finding that rests on this book -- "74% inside ESOL's own training
 set" -- remains a claim about its CONTENTS that nothing here has checked,
 which is why `verification` stops at `citation`.
 
-### chembl_schema
+### chembl_schema — ChEMBL 37 schema documentation, table COMPOUND_PROPERTIES (EMBL-EBI).
 
 <a id="chembl_schema"></a>
 
@@ -8672,7 +8674,7 @@ atoms, QED and NP-likeness on the parent, and FULL_MWT and FULL_MOLFORMULA on
 the full salt. That is the split `RDKitDescriptorProvider.compute` makes, and
 the one rule every calculator's `CalculatorScope` follows.
 
-### zenodo7797465
+### zenodo7797465 — USPTO-based ONNX models
 
 <a id="zenodo7797465"></a>
 
@@ -8689,7 +8691,7 @@ the one rule every calculator's `CalculatorScope` follows.
 
 **Why it is reference only.** THE ONNX POLICY AND FILTER MODELS aizynthfinder's download_public_data installs (uspto_model.onnx 91,518,243 bytes, uspto_filter_model.onnx 16,788,859, uspto_ringbreaker_model.onnx 15,036,094; sizes confirmed by the download). The record's licence field is CC-BY-4.0; its description is only 'the USPTO models converted as ONNX', so what they were trained on, and whether the PaRoutes reference reactions were excluded, is NOT stated.
 
-### zenodo7341155
+### zenodo7341155 — PaRoutes 2.0 and USPTO-based models
 
 <a id="zenodo7341155"></a>
 
@@ -8706,7 +8708,7 @@ the one rule every calculator's `CalculatorScope` follows.
 
 **Why it is reference only.** THE PaRoutes ROUTE SETS, STOCKS, TEMPLATE LIBRARIES AND A KERAS MODEL: ref_routes_n1.json (64 MB), ref_routes_n5.json (82 MB), targets_n1.txt and targets_n5.txt, stock_n1.txt and stock_n5.txt, uspto_unique_templates.csv.gz (3.3 MB, confirmed by the download), uspto_keras_model.hdf5 (275 MB). Licence field CC-BY-4.0 as the record states; the licence of the underlying USPTO extraction is not restated on this record.
 
-### atct1228
+### atct1228 — Active Thermochemical Tables (ATcT), Thermochemical Network version 1.228: enthalpies of formation of 3,455…
 
 <a id="atct1228"></a>
 
@@ -8725,7 +8727,7 @@ the one rule every calculator's `CalculatorScope` follows.
 
 ## Legal texts
 
-### cwc_annex_on_chemicals
+### cwc_annex_on_chemicals — Convention on the Prohibition of the Development, Production, Stockpiling and Use of Chemical Weapons and on…
 
 <a id="cwc_annex_on_chemicals"></a>
 
@@ -8753,7 +8755,7 @@ successful if you only ask whether the name resolved -- 'sulphur
 monochloride' and 'dimethyl phosphite' both resolve to the wrong molecular
 formula, in two different ways.
 
-### dea_listed_chemicals
+### dea_listed_chemicals — US Drug Enforcement Administration, List I and List II chemicals (21 CFR 1310.02).
 
 <a id="dea_listed_chemicals"></a>
 
@@ -8773,7 +8775,7 @@ load-bearing: treating an absent date as 'never applicable' would silently
 empty a majority of the screen while looking exactly like a substance that
 is not listed.
 
-### osha_1910_1000
+### osha_1910_1000 — United States Code of Federal Regulations, Title 29, Part 1910, Section 1910.1000, Table Z-1 (Limits for Air…
 
 <a id="osha_1910_1000"></a>
 
@@ -8816,7 +8818,7 @@ is the only reason that was cheap to find.
 
 ## Standards
 
-### amcp706187
+### amcp706187 — Engineering Design Handbook: Military Pyrotechnics Series, Part Three: Properties of Materials Used in Pyrotechnic Compositions
 
 <a id="amcp706187"></a>
 
@@ -8842,7 +8844,7 @@ and its "Oxygen Balance" lines are for organic explosives. Its tungsten
 section carries a WO2 sheet beside tungsten, which settles nothing about
 what tungsten burns to; WO3 rests on [source:conkling2019]'s Table 3.4.
 
-### ich_m9
+### ich_m9 — Biopharmaceutics Classification System-Based Biowaivers M9
 
 <a id="ich_m9"></a>
 
@@ -8870,7 +8872,7 @@ the guideline's, not an assumption of ours: the screen, the pH curve and the
 Henderson-Hasselbalch adjustment are all aqueous, and a non-aqueous solvent
 gets `NON_AQUEOUS_SOLVENT` rather than an authoritative-looking number.
 
-### iupac2013
+### iupac2013 — IUPAC, Nomenclature of Organic Chemistry: Recommendations and Preferred Names 2013 (the Blue Book).
 
 <a id="iupac2013"></a>
 
@@ -8913,7 +8915,7 @@ for: the vendored registry cited P-31.1.3 for retaining `caffeine`, and a
 vendored test cited P-66.6.3 for retaining `camphor`. P-31.1.3 is about
 indicated hydrogen and P-66.6.3 about chalcogen analogues of aldehydes.
 
-### iupac_goldbook
+### iupac_goldbook — IUPAC, Compendium of Chemical Terminology (the Gold Book), version 2.3.1, 2012-03-23.
 
 <a id="iupac_goldbook"></a>
 
@@ -8948,7 +8950,7 @@ interactive bot check that a script cannot pass; Alex saved the pdf.
 
 ## Reference tables
 
-### langes15
+### langes15 — J. A. Dean (ed.), Lange's Handbook of Chemistry, 15th ed.; McGraw-Hill: New York, 1999; p 4.35 (covalent…
 
 <a id="langes15"></a>
 
@@ -9007,7 +9009,7 @@ columns exist and are unused: [source:cao2004] takes one radius per
 element -- its chlorine example uses 0.99 whatever the bond order -- and
 eq 8a is stated per atom X with covalent radius R_X.
 
-### allred1961
+### allred1961 — Electronegativity values from thermochemical data
 
 <a id="allred1961"></a>
 
@@ -9038,7 +9040,7 @@ measured is the ALGORITHM consuming them, in `tests/test_oxidation_states.py`.
 He, Ne and Ar have no accepted Pauling value and are ABSENT. An absent
 element is a refusal, never a guess.
 
-### crc_handbook
+### crc_handbook — CRC Handbook of Chemistry and Physics, 97th edition.
 
 <a id="crc_handbook"></a>
 
@@ -9127,7 +9129,7 @@ CONSERVATIVE presentation of the same question -- not that it was taken
 from it. A full element-by-element reconciliation of all 118 is not done;
 the halogens and the noble gases are.
 
-### abraham_predicted_solvents
+### abraham_predicted_solvents — The predicted (non-measured) solvent coefficients of Bradley, Abraham, Acree & Lang 2015 -- 202 solvents, of…
 
 <a id="abraham_predicted_solvents"></a>
 
@@ -9165,7 +9167,7 @@ for the one case it exists for -- it lived in `solvent_shift` while
 `resolve_solvent` refuses an unknown solvent several layers earlier -- so
 `predicted_only_reason()` is one function called from both.
 
-### miller_polarizability
+### miller_polarizability — The deferral of Miller polarizability -- OVERTURNED. See [source:miller1990].
 
 <a id="miller_polarizability"></a>
 
@@ -9197,7 +9199,7 @@ three entries that proved it in the same sweep -- see [source:hlb] and
 [source:tsei]. Re-read the REASON, not the verdict, and ask what would have
 to be true today.
 
-### hlb
+### hlb — The deferral of HLB -- OVERTURNED. See [source:schott1989].
 
 <a id="hlb"></a>
 
@@ -9230,7 +9232,7 @@ ONE NAME, TWO QUANTITIES. Registered alongside [source:miller_polarizability]
 and [source:tsei] as the three deferrals whose reasons expired without anyone
 re-reading them.
 
-### tsei
+### tsei — The deferral of a bare "steric index" -- PARTLY OVERTURNED. See [source:cao2004].
 
 <a id="tsei"></a>
 
@@ -9264,7 +9266,7 @@ The radii the shipped projection needs came later still, from
 value [source:cao2004] prints. Two routes sharing no step, agreeing seven
 times for seven.
 
-### sci_downloads_note
+### sci_downloads_note — Alex's local paper archive, `D:\Xaero Stuff\Documents\Sci Downloads\`.
 
 <a id="sci_downloads_note"></a>
 
@@ -9290,7 +9292,7 @@ Read these with `pymupdf` (`uv pip install --system pymupdf`, then `fitz`);
 there is no PDF text extractor in the project venv and `pdftoppm` is not
 installed, so `Read` on a PDF fails.
 
-### luo2007
+### luo2007 — Comprehensive Handbook of Chemical Bond Energies
 
 <a id="luo2007"></a>
 
@@ -9309,7 +9311,7 @@ installed, so `Read` on a PDF fails.
 
 ## Bundled and depended-on software
 
-### chembl_structure_pipeline
+### chembl_structure_pipeline — ChEMBL Structure Pipeline, vendored in part under `src/openchem/vendor/chembl_structure_pipeline/` -- the…
 
 <a id="chembl_structure_pipeline"></a>
 
@@ -9334,7 +9336,7 @@ Licence verified from the repository's own LICENSE at the pinned commit
 functions extracted verbatim with three marked edits; VENDORING.md lists
 them. Implements [source:bento2020].
 
-### ketcher
+### ketcher — Ketcher, EPAM Systems -- the 2D structure editor bundled as `resources/ketcher/dist`.
 
 <a id="ketcher"></a>
 
@@ -9405,7 +9407,7 @@ Note `ketcher-core` resolves to 3.17.1 while `ketcher-react` and
 `ketcher-standalone` are 3.17.0 -- which is why `package_name` is declared
 explicitly and never inferred from this entry's key.
 
-### molstar
+### molstar — Mol* (molstar), the macromolecular structure viewer bundled as `resources/molstar/`.
 
 <a id="molstar"></a>
 
@@ -9433,7 +9435,7 @@ that number would look authoritative and come from the wrong library.
 `viewer.html` here is ours, adapted from the upstream package's
 `build/viewer/embedded.html`.
 
-### threedmol
+### threedmol — 3Dmol.js, the WebGL molecular viewer bundled as `resources/viewer3d/3Dmol-min.js`.
 
 <a id="threedmol"></a>
 
@@ -9466,7 +9468,7 @@ overlay, `createViewerGrid` handling and `drawnGridShapes` diagnostics.
 No version is recoverable: the minified header carries only a licence
 pointer.
 
-### iupac_namer
+### iupac_namer — open-iupac-namer, vendored under `src/openchem/vendor/iupac_namer/` -- the offline deterministic…
 
 <a id="iupac_namer"></a>
 
@@ -9498,7 +9500,7 @@ Implements [source:iupac2013]. Carries its own ~3,200-test suite under
 `3209 passed` -- which needs JAVA_HOME set, not merely java on PATH.
 Scored by the naming benchmark at 181/181.
 
-### rdkit
+### rdkit — RDKit: Open-source cheminformatics.
 
 <a id="rdkit"></a>
 
@@ -9528,7 +9530,7 @@ a SOLVENT-ACCESSIBLE volume unless told otherwise (wrong by 700% on
 helium), and `Conformer.Is3D()` follows the molblock HEADER rather than the
 coordinates.
 
-### openbabel
+### openbabel — Open Babel: An open chemical toolbox.
 
 <a id="openbabel"></a>
 
@@ -9555,7 +9557,7 @@ than mistyped; `_single_copy` picked a different ligand copy per format;
 and it leaves every implicit hydrogen count at zero from mmCIF. The parity
 sweep went 0 of 48 receptors to 38 of 48.
 
-### pyside6
+### pyside6 — Qt for Python (PySide6).
 
 <a id="pyside6"></a>
 
@@ -9578,7 +9580,7 @@ until the installed metadata was read: PySide6 declares
 the distributor makes, so flattening it loses the fact that there is a
 choice. The version is still a constraint -- see [source:rdkit].
 
-### opsin
+### opsin — OPSIN: Open Parser for Systematic IUPAC Nomenclature, reached through the `py2opsin` wrapper, which bundles…
 
 <a id="opsin"></a>
 
@@ -9600,7 +9602,7 @@ scored by OPSIN ROUND TRIP rather than string equality. It shells out to a
 bare `java`, so the JRE is the real requirement ([source:adoptium_temurin])
 and the import stays guarded regardless.
 
-### adoptium_temurin
+### adoptium_temurin — Eclipse Temurin JRE, fetched from the Adoptium API on demand.
 
 <a id="adoptium_temurin"></a>
 
@@ -9621,7 +9623,7 @@ with Classpath Exception (and Assembly Exception), while Adoptium's own
 build scripts and infrastructure are Apache-2.0. **It is the runtime that
 ships**, so the Classpath Exception is the operative term.
 
-### autodock_vina
+### autodock_vina — AutoDock Vina 1.2.0: New Docking Methods, Expanded Force Field, and Python Bindings
 
 <a id="autodock_vina"></a>
 
@@ -9664,7 +9666,7 @@ is unchanged: an A/B still needs the same-seed repeatability and the
 different-seed spread measured separately, and neither is a "noise floor" on
 its own.
 
-### orca
+### orca — Software Update: The ORCA Program System - Version 6.0
 
 <a id="orca"></a>
 
@@ -9703,7 +9705,7 @@ not be installed under a path containing spaces. A working probe does not
 clear the path -- a TD-DFT single point ran fine through a forward-slash
 path minutes before `Opt` died on it.
 
-### pkasolver
+### pkasolver — Improving Small Molecule pKa Prediction Using Transfer Learning with Graph Neural Networks
 
 <a id="pkasolver"></a>
 
@@ -9731,7 +9733,7 @@ Optional sidecar. It predicts PER-SITE values, which are closer to
 microscopic than to macroscopic constants -- the distinction that decides
 which ionization formula is right, and that a tolerance would have buried.
 
-### dimorphite_dl
+### dimorphite_dl — Dimorphite-DL: An open-source program for enumerating the ionization states of drug-like small molecules
 
 <a id="dimorphite_dl"></a>
 
@@ -9775,7 +9777,7 @@ DEET, N,N-dimethylacetamide, N-methylpyrrolidone, fentanyl). Acetanilide and
 lidocaine are right because they HAVE an N-H. `chem/pka_providers.py` removes
 that one protonation and reports the atoms it touched; it never adds one.
 
-### npscorer2015
+### npscorer2015 — npscorer.py
 
 <a id="npscorer2015"></a>
 
@@ -9828,7 +9830,7 @@ PRINTED value gates the score: this model has no published table to check
 against, which is exactly what distinguishes it from the paper. Upgrading this
 row would need an oracle that does not exist.
 
-### rdkit_bertz
+### rdkit_bertz — RDKit, `rdkit.Chem.GraphDescriptors.BertzCT` -- an implementation of Bertz's index that deliberately changes…
 
 <a id="rdkit_bertz"></a>
 

@@ -72,7 +72,11 @@ of why the multi-copy handling needed its own tests.
 
 ## `run_plec_test.py` — does PLECscore order Vina's poses better?
 
-A preregistered test (`PREREGISTRATION_PLEC.md`, rules in `plec_core.py`) of re-ranking the nine Vina poses of each catalogued receptor by ODDT's shipped PLECscore. Three stages: `dock` (the survey's app arm, saving poses and the prepared receptor), `rescore` (ODDT in its own environment) and `report`. Eight receptors are in the model's training set and are reported apart. Not run in full yet.
+A preregistered test (`PREREGISTRATION_PLEC.md`, rules in `plec_core.py`) of re-ranking the nine Vina poses of each catalogued receptor by ODDT's shipped PLECscore. Three stages: `dock` (the survey's app arm, saving poses and the prepared receptor), `rescore` (ODDT in its own environment) and `report`. Eight receptors are in the model's training set and are reported apart. Run 2026-10-30, INCONCLUSIVE (`RESULT_PLEC.md`): its inputs were wrong.
+
+## `run_plec_test_2.py` — the same test, on inputs built the way the model was trained
+
+The first run never measured PLECscore: ODDT 0.7's fingerprint hash is Python's tuple `hash()`, which changed in 3.8, so the model's bits were read through the wrong function, and the poses and receptor reached it without bond orders, charges or non-polar hydrogens. `PREREGISTRATION_PLEC2.md` fixes the same question on the same poses with the old hash restored (`plec_rescore_runner_2.py`), ligands rebuilt on their chemical-component template and a receptor written out before the PDBQT step, behind a fidelity gate (the share of a training complex's stored fingerprint that the pipeline reproduces, median 0.5) and the original sanity rule. Three stages: `inputs`, `rescore`, `report`. Run 2026-11-02: both gates passed (fidelity 59%, crystal-ligand median pKd 6.3) and the verdict is **HARMFUL** (1 gained, 10 lost among 34 rescored deciding receptors; `RESULT_PLEC2.md`, `artifacts_plec2/`).
 
 ## `prep_box_survey.py` — is a bad default pose a setup defect?
 
@@ -943,3 +947,7 @@ declared with its evidence.
 
 And the rule this file already carries stands: while the run is in flight,
 **report the completion count, never the rho.**
+
+## `pose_agreement.py` — does agreement among the nine poses say whether pose 1 is right?
+
+An exploratory count on the PLECscore tests' docking output: for each receptor, how many of the other poses sit within 2 A of pose 1, against whether pose 1 is within 2 A of the crystal pose. Pose 1 is right for 70% of receptors where nothing agrees with it and 82% to 88% where two or more poses do, but on 46 receptors that is not distinguishable from chance (p = 0.26 at best), so no agreement cue was added to the Docking panel (`RESULT_AGREEMENT.md`).

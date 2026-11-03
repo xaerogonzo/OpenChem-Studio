@@ -121,6 +121,7 @@ def test_the_stored_keys_are_stable_names():
         "compute/structure_coverage",
         "ui/appearance",
         "ui/interface_size",
+        "ui/plain_english",
     }
 
 

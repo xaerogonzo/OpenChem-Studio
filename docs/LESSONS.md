@@ -477,6 +477,23 @@ read `w.menuBar().actions()` and then asked each action for its menu --
 that list is a TEMPORARY, so every `QMenu` wrapper it handed out was dead
 by the next line (`Internal C++ object already deleted`). Hold the list.
 
+### A MENU ENTRY'S OWNER WAS A LOCAL VARIABLE, AND FOUR WRONG FIXES CAME BEFORE ANYONE NAMED THE DEAD ACTION
+
+Adding icons to nine menu entries made `ShortcutRegistry.apply` raise "QAction already deleted" in CI shards while every touched
+test file passed. The cause was older than the icons: `edit_menu.addMenu("Copy Structure As")` returns a **Python-owned wrapper**, the
+builder kept it only as a local, and any garbage collection before the window held its menus destroyed the submenu and its four commands.
+On master it was a once-in-a-while flake (`test_right_dock_width` had failed once and passed on rerun, and was dismissed as unrelated);
+the icons only moved the allocation pattern enough to make it reliable.
+
+**FOUR FIXES WERE WRONG BECAUSE THEY WERE GUESSES ABOUT THE SYMPTOM'S NEIGHBOURHOOD:** keep the walked actions on the window, move the
+icon call after `_menu_wrappers`, a lazy import, and a guard test pinning the lazy import. The one measurement that settled it was
+looping `ShortcutRegistry._pending` and calling `action.text()` to print WHICH entries were dead (the four copy commands). **A probe
+that failed 3 of 3 with a top-level import and 0 of 3 without it was real evidence of a timing effect and none of a cause.**
+
+The fix holds the submenu on the window the moment it is made (`_copy_structure_menu`, `_structure_display_menu`, and every group
+submenu `menu_layout.arrange` returns). `tests/test_menu_icons.py` checks they survive `gc.collect()`. A render probe that must not be
+run with `gc.disable()` is one that hides this class of bug.
+
 ### A menu TITLE is explained by its menu
 
 `QMenu.menuAction()` is a `QAction` and lands in the same walk, so `&File`,

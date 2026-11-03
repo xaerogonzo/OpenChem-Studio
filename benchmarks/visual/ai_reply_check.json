@@ -1,0 +1,30 @@
+[
+  {"do": "smiles", "smiles": "O", "name": "Water", "after_ms": 1500},
+  {"do": "select", "molecule": -1, "after_ms": 3000},
+  {"do": "conformers", "count": 1, "after_ms": 8000},
+  {"do": "panel", "id": "Quantum_Chemistry", "after_ms": 1000},
+
+  {"do": "ai_send", "text": "Run a single point on this molecule.",
+   "script": [{"text": "The calculation has been prepared. A preview is on your screen, waiting for your approval."}], "after_ms": 3500},
+  {"do": "ai_expect", "tag": "a-claim-of-a-waiting-preview-with-no-card-is-said-so",
+   "expect": {"pending": 0, "notes": 1, "send_enabled": true,
+              "transcript_contains": ["Application check: the reply says something is waiting for your approval, but no approval card is showing"],
+              "notes_contain": ["no approval card exists: nothing was requested"]}},
+  {"do": "shot", "path": "benchmarks/visual/artifacts/ai_reply_check_no_card.png", "after_ms": 300},
+
+  {"do": "ai_send", "text": "Then ask for it properly.",
+   "script": [{"tool": "run_calculator", "input": {"calculator_id": "orca.sp"}}, {"text": "It is waiting for your approval."}], "after_ms": 3500},
+  {"do": "ai_expect", "tag": "the-same-claim-with-a-real-card-is-left-alone-and-the-held-note-went-with-the-message",
+   "expect": {"pending": 1, "notes": 0, "sent_contains": ["[Application note] Your last reply said a preview was waiting"], "send_enabled": true}},
+  {"do": "ai_card", "action": "cancel", "after_ms": 800},
+
+  {"do": "ai_send", "text": "What is its molecular weight?",
+   "script": [{"text": "The molecular weight of water is 18.01528 g/mol."}], "after_ms": 3500},
+  {"do": "ai_expect", "tag": "a-number-from-nowhere-is-said-so",
+   "expect": {"notes": 1, "transcript_contains": ["18.01528 appears nowhere in what the application showed the model"],
+              "notes_contain": ["State a value only if a tool result contains it"]}},
+  {"do": "shot", "path": "benchmarks/visual/artifacts/ai_reply_check_number.png", "after_ms": 300},
+
+  {"do": "expect_clean"},
+  {"do": "quit"}
+]

@@ -105,7 +105,7 @@ def test_openai_provider_with_no_key_and_no_base_url_raises():
 
 def test_build_default_providers_has_four_backends():
     provider_map = providers_mod.build_default_providers()
-    assert set(provider_map) == {"anthropic", "openai", "ollama", "claude_cli"}
+    assert set(provider_map) == {"anthropic", "openai", "ollama", "claude_cli", "cursor_cli"}
 
 
 def test_claude_cli_provider_does_not_require_an_api_key():
@@ -385,7 +385,329 @@ def test_claude_cli_provider_stream_falls_back_to_a_single_chunk():
     assert response.text == "Benzene is C6H6."
 
 
-def test_claude_cli_provider_does_not_support_tools():
-    assert providers_mod.ClaudeCLIProvider().supports_tools is False
+def test_every_provider_takes_the_applications_tools():
+    assert providers_mod.ClaudeCLIProvider().supports_tools is True
     assert providers_mod.AnthropicProvider().supports_tools is True
     assert providers_mod.OpenAICompatibleProvider("openai", default_model="gpt-test").supports_tools is True
+
+
+# --- a local model is called cooler than the server's default, and nothing else changes ------------------------------------------------------------------------
+
+
+def test_a_temperature_is_sent_only_where_a_provider_sets_one():
+    request = providers_mod.AIRequest(system_context="ctx", messages=[], model="", api_key="k")
+    assert "temperature" not in providers_mod._openai_create_kwargs(request, "m", None)
+    assert providers_mod._openai_create_kwargs(request, "m", None, 0.2)["temperature"] == 0.2
+    assert providers_mod._openai_create_kwargs(request, "m", None, 0.0)["temperature"] == 0.0, "zero is a temperature, not 'unset'"
+
+
+def test_only_the_local_server_provider_asks_for_a_lower_temperature_a_bound_and_a_repeat_penalty():
+    """A live qwen2.5:14b run at the server's default (0.8 on Ollama) invented about seventy settings for one calculator and answered in Thai, and at 0.2 alone 4 of 6 first turns ran away for 10 to 20
+    minutes; the real OpenAI provider is left as it was."""
+    built = providers_mod.build_default_providers()
+    local, hosted = built["ollama"], built["openai"]
+    assert (local._temperature, local._max_tokens, local._frequency_penalty) == (0.2, 1024, 0.5)
+    assert (hosted._temperature, hosted._max_tokens, hosted._frequency_penalty) == (None, None, None)
+
+
+def test_a_bound_and_a_penalty_are_sent_only_where_a_provider_sets_them():
+    request = providers_mod.AIRequest(system_context="ctx", messages=[], model="", api_key="k")
+    plain = providers_mod._openai_create_kwargs(request, "m", None)
+    assert "max_tokens" not in plain and "frequency_penalty" not in plain
+    set_ = providers_mod._openai_create_kwargs(request, "m", None, None, 1024, 0.5)
+    assert set_["max_tokens"] == 1024 and set_["frequency_penalty"] == 0.5 and "temperature" not in set_
+    assert providers_mod._openai_create_kwargs(request, "m", None, None, None, 0.0)["frequency_penalty"] == 0.0, "zero is a penalty, not 'unset'"
+
+
+def test_the_request_the_local_provider_streams_carries_its_temperature():
+    provider = providers_mod.build_default_providers()["ollama"]
+    request = providers_mod.AIRequest(system_context="ctx", messages=[], model="qwen2.5:14b", api_key="")
+    fake_client = MagicMock()
+    fake_client.chat.completions.create.return_value = iter([])
+    with patch("openai.OpenAI", return_value=fake_client):
+        provider.stream(request, lambda _text: None)
+    kwargs = fake_client.chat.completions.create.call_args.kwargs
+    assert (kwargs["temperature"], kwargs["max_tokens"], kwargs["frequency_penalty"]) == (0.2, 1024, 0.5)
+
+
+def test_the_non_streaming_request_carries_the_temperature_too():
+    provider = providers_mod.build_default_providers()["ollama"]
+    request = providers_mod.AIRequest(system_context="ctx", messages=[], model="qwen2.5:14b", api_key="")
+    fake_choice = MagicMock()
+    fake_choice.message.content = "ok"
+    fake_choice.message.tool_calls = None
+    fake_response = MagicMock()
+    fake_response.choices = [fake_choice]
+    fake_client = MagicMock()
+    fake_client.chat.completions.create.return_value = fake_response
+    with patch("openai.OpenAI", return_value=fake_client):
+        provider.complete(request)
+    kwargs = fake_client.chat.completions.create.call_args.kwargs
+    assert (kwargs["temperature"], kwargs["max_tokens"], kwargs["frequency_penalty"]) == (0.2, 1024, 0.5)
+
+
+# --- the Claude CLI takes this application's tools through a written protocol ---------------------------------------------------------------------------------
+
+
+import json as _json  # noqa: E402
+from pathlib import Path  # noqa: E402
+
+from ai_assistant.tools import ToolDefinition  # noqa: E402
+
+_CLI_TOOLS = [
+    ToolDefinition("run_calculator", "Ask for a calculator to be run.", {"type": "object", "properties": {"calculator_id": {"type": "string"}}, "required": ["calculator_id"]}),
+    ToolDefinition("read_results", "Read what is computed.", {"type": "object", "properties": {}}),
+]
+
+
+def _block(calls) -> str:
+    return "```tool_calls\n" + _json.dumps(calls) + "\n```"
+
+
+def test_the_system_prompt_gives_the_protocol_first_then_the_panels_prompt_then_each_tool_with_its_schema():
+    request = providers_mod.AIRequest(system_context="PANEL PROMPT", messages=[], model="", api_key="")
+    text = providers_mod._cli_system_prompt(request, _CLI_TOOLS)
+    assert text.startswith("HOW TO USE THE TOOLS IN THIS CHAT") and "```tool_calls" in text and "Never write a tool result yourself" in text
+    assert "never write anything after the block" in text
+    assert text.index("HOW TO USE THE TOOLS") < text.index("PANEL PROMPT") < text.index("The tools you may call")
+    for tool in _CLI_TOOLS:
+        assert f"- {tool.name}: {tool.description}" in text and _json.dumps(tool.input_schema) in text
+
+
+def test_the_transcript_shows_what_the_assistant_asked_for_in_the_form_it_is_asked_to_write_it_and_what_it_was_told():
+    call = providers_mod.ToolCall(id="cli-1", name="run_calculator", input={"calculator_id": "orca.sp"})
+    request = providers_mod.AIRequest(
+        system_context="",
+        messages=[
+            providers_mod.AIMessage("user", "Run it."),
+            providers_mod.AIMessage("assistant", "Asking.", tool_calls=[call]),
+            providers_mod.AIMessage("tool", '{"ok": false}', tool_call_id="cli-1"),
+        ],
+        model="",
+        api_key="",
+    )
+    text = providers_mod._render_transcript_prompt(request)
+    assert "User: Run it." in text and "Assistant: Asking." in text
+    assert _block([{"name": "run_calculator", "input": {"calculator_id": "orca.sp"}}]) in text
+    assert 'Tool result (run_calculator): {"ok": false}' in text and text.endswith("\n\nAssistant:")
+
+
+def test_the_first_block_becomes_the_tool_calls_and_the_text_before_it_the_reply():
+    reply = "Looking that up.\n" + _block([{"name": "run_calculator", "input": {"calculator_id": "orca.sp"}}, {"name": "read_results", "input": {}}])
+    response = providers_mod._parse_cli_reply(reply, _CLI_TOOLS)
+    assert response.text == "Looking that up." and response.stop_reason == "tool_use"
+    assert [(c.name, c.input) for c in response.tool_calls] == [("run_calculator", {"calculator_id": "orca.sp"}), ("read_results", {})]
+    assert len({c.id for c in response.tool_calls}) == 2 and all(c.id.startswith("cli-") for c in response.tool_calls)
+
+
+def test_nothing_after_the_block_counts_not_even_a_result_the_model_invented():
+    reply = _block([{"name": "read_results", "input": {}}]) + '\n\nTool result (read_results): {"ok": true, "value": 42}\n' + _block([{"name": "run_calculator", "input": {"calculator_id": "orca.sp"}}])
+    response = providers_mod._parse_cli_reply(reply, _CLI_TOOLS)
+    assert [c.name for c in response.tool_calls] == ["read_results"] and "42" not in response.text and response.text == ""
+
+
+def test_a_reply_with_no_block_is_a_final_answer():
+    response = providers_mod._parse_cli_reply("  Water is H2O.\n", _CLI_TOOLS)
+    assert (response.text, response.tool_calls, response.stop_reason) == ("Water is H2O.", [], "end_turn")
+
+
+def test_a_call_to_a_tool_that_is_not_offered_is_not_run_and_the_others_are():
+    reply = _block([{"name": "delete_everything", "input": {}}, {"name": "read_results", "input": "not an object"}, "junk"])
+    response = providers_mod._parse_cli_reply(reply, _CLI_TOOLS)
+    assert [(c.name, c.input) for c in response.tool_calls] == [("read_results", {})]
+
+
+def test_a_block_that_does_not_hold_to_the_protocol_is_shown_to_the_user_and_never_lost():
+    for reply in (
+        "Sure.\n```tool_calls\nnot json\n```",
+        "Sure.\n" + _block({"name": "read_results"}),  # an object, not a list
+        "Sure.\n" + _block([{"name": "delete_everything", "input": {}}]),  # only tools that are not offered
+    ):
+        response = providers_mod._parse_cli_reply(reply, _CLI_TOOLS)
+        assert response.tool_calls == [] and response.text == reply.strip() and response.stop_reason == "end_turn", reply
+
+
+def test_the_tag_is_read_whatever_its_case_and_line_endings():
+    reply = "Go.\r\n```Tool_Calls  \r\n[{\"name\": \"read_results\", \"input\": {}}]\r\n```\r\n"
+    response = providers_mod._parse_cli_reply(reply, _CLI_TOOLS)
+    assert [c.name for c in response.tool_calls] == ["read_results"] and response.text == "Go."
+
+
+def _run_cli(provider, request, tools, stdout):
+    """Call `complete` with `subprocess.run` replaced, returning what was run and what the system-prompt file held while it ran."""
+    seen = {}
+
+    def fake_run(args, **kwargs):
+        seen["args"], seen["kwargs"] = args, kwargs
+        if "--system-prompt-file" in args:
+            seen["prompt_file_text"] = Path(args[args.index("--system-prompt-file") + 1]).read_text(encoding="utf-8")
+        return MagicMock(returncode=0, stdout=stdout, stderr="")
+
+    with patch.object(providers_mod.ClaudeCLIProvider, "_resolve_executable", return_value="claude"), patch("subprocess.run", side_effect=fake_run):
+        response = provider.complete(request, tools)
+    return response, seen
+
+
+def test_a_tool_call_runs_the_cli_with_its_own_tools_off_a_prompt_file_and_a_scratch_directory():
+    provider = providers_mod.ClaudeCLIProvider(cli_path_resolver=lambda: "")
+    request = providers_mod.AIRequest(system_context="PANEL PROMPT", messages=[providers_mod.AIMessage("user", "hi")], model="sonnet", api_key="")
+    response, seen = _run_cli(provider, request, _CLI_TOOLS, "Ok.\n" + _block([{"name": "read_results", "input": {}}]))
+    args = seen["args"]
+    assert args[:2] == ["claude", "-p"] and args[args.index("--tools") + 1] == "" and args[args.index("--output-format") + 1] == "text"
+    assert args[args.index("--model") + 1] == "sonnet" and "--json-schema" not in args
+    for flag in ("--no-session-persistence", "--disable-slash-commands", "--strict-mcp-config", "--no-chrome"):
+        assert flag in args, flag
+    assert args[args.index("--setting-sources") + 1] == ""
+    assert "--system-prompt" not in args, "the prompt is in a file: a Windows command line holds 32,768 characters"
+    assert "PANEL PROMPT" in seen["prompt_file_text"] and "run_calculator" in seen["prompt_file_text"]
+    assert seen["kwargs"]["input"].endswith("\n\nAssistant:")
+    assert Path(seen["kwargs"]["cwd"]).name.startswith("openchem-claude-cli-") and not Path(seen["kwargs"]["cwd"]).exists(), "a scratch directory, removed afterwards"
+    assert response.text == "Ok." and [c.name for c in response.tool_calls] == ["read_results"]
+
+
+def test_with_no_tools_the_cli_is_still_a_plain_text_completion_with_the_same_isolation():
+    provider = providers_mod.ClaudeCLIProvider(cli_path_resolver=lambda: "")
+    request = providers_mod.AIRequest(system_context="PANEL PROMPT", messages=[providers_mod.AIMessage("user", "hi")], model="", api_key="")
+    response, seen = _run_cli(provider, request, None, "plain reply\n")
+    args = seen["args"]
+    assert args[args.index("--output-format") + 1] == "text" and args[args.index("--system-prompt") + 1] == "PANEL PROMPT"
+    assert "--system-prompt-file" not in args and "--disable-slash-commands" in args and args[args.index("--tools") + 1] == ""
+    assert response.text == "plain reply" and response.tool_calls == [] and seen["kwargs"]["input"].endswith("\n\nAssistant:")
+
+
+# --- the Cursor CLI: the same protocol, on a coding agent whose own tools cannot be switched off ---------------------------------------------------------------
+
+
+def _cursor_request(**kw):
+    return providers_mod.AIRequest(system_context="PANEL PROMPT", messages=[providers_mod.AIMessage("user", "hi")], model=kw.get("model", ""), api_key="")
+
+
+def _run_cursor(provider, request, tools, stdout="ok", returncode=0, stderr=""):
+    """Call `complete` with `subprocess.run` replaced; returns the response and what the call was given, including the permissions file as it stood while the process ran."""
+    seen = {}
+
+    def fake_run(args, **kwargs):
+        seen["args"], seen["kwargs"] = args, kwargs
+        permissions = Path(kwargs["cwd"]) / ".cursor" / "cli.json"
+        seen["permissions"] = _json.loads(permissions.read_text(encoding="utf-8")) if permissions.is_file() else None
+        return MagicMock(returncode=returncode, stdout=stdout, stderr=stderr)
+
+    with patch.object(providers_mod.CursorCLIProvider, "_resolve_executable", return_value="cursor-agent"), patch("subprocess.run", side_effect=fake_run):
+        response = provider.complete(request, tools)
+    return response, seen
+
+
+def test_the_cursor_cli_is_a_provider_that_takes_tools_and_no_api_key():
+    provider = providers_mod.build_default_providers()["cursor_cli"]
+    assert isinstance(provider, providers_mod.CursorCLIProvider)
+    assert (provider.provider_id, provider.requires_api_key, provider.supports_tools, provider.default_model) == ("cursor_cli", False, True, "")
+
+
+def test_the_cursor_cli_says_how_to_install_it_when_it_is_not_found():
+    provider = providers_mod.CursorCLIProvider(cli_path_resolver=lambda: "")
+    with patch("shutil.which", return_value=None), pytest.raises(providers_mod.AIProviderError, match="cursor-agent"):
+        provider.complete(_cursor_request(), None)
+
+
+def test_a_configured_cursor_path_beats_the_path_lookup(tmp_path):
+    configured = tmp_path / "cursor-agent.cmd"
+    configured.write_text("x")
+    provider = providers_mod.CursorCLIProvider(cli_path_resolver=lambda: str(configured))
+    with patch("shutil.which", return_value="/elsewhere/cursor-agent"):
+        assert provider._resolve_executable() == str(configured)
+
+
+def test_a_cursor_call_is_read_only_in_a_scratch_folder_that_denies_every_permission_that_matters():
+    """Measured 2026-11-02: without the permissions file the agent read a file outside its folder in read-only mode, and with it the read was refused (shell and write were refused either way)."""
+    provider = providers_mod.CursorCLIProvider(cli_path_resolver=lambda: "")
+    response, seen = _run_cursor(provider, _cursor_request(model="composer-2.5"), None, stdout="plain reply\n")
+    args = seen["args"]
+    assert args == ["cursor-agent", "-p", "--output-format", "text", "--mode", "ask", "--trust", "--model", "composer-2.5"]
+    assert "--force" not in args and "--yolo" not in args and "--sandbox" not in args, "force would allow commands; the sandbox flag fails on Windows"
+    deny = seen["permissions"]["permissions"]["deny"]
+    assert seen["permissions"]["permissions"]["allow"] == [] and deny == providers_mod._CURSOR_DENY
+    for needle in ("Read(", "Write(", "Shell(", "WebFetch(", "Mcp("):
+        assert any(rule.startswith(needle) for rule in deny), needle
+    cwd = Path(seen["kwargs"]["cwd"])
+    assert cwd.name.startswith("openchem-cursor-cli-") and not cwd.exists(), "a scratch directory, removed afterwards"
+    assert response.text == "plain reply"
+
+
+def test_the_cursor_prompt_carries_the_system_prompt_and_the_conversation_on_stdin_because_it_has_no_system_prompt_option():
+    provider = providers_mod.CursorCLIProvider(cli_path_resolver=lambda: "")
+    _response, seen = _run_cursor(provider, _cursor_request(), None)
+    stdin = seen["kwargs"]["input"]
+    assert "--system-prompt" not in seen["args"] and "--system-prompt-file" not in seen["args"]
+    assert stdin.startswith("You are being used as a chat backend. Your own tools") and "PANEL PROMPT" in stdin
+    assert stdin.index("PANEL PROMPT") < stdin.index("=== CONVERSATION ===") < stdin.index("User: hi") and stdin.endswith("\n\nAssistant:")
+
+
+def test_a_cursor_reply_with_a_tool_block_becomes_tool_calls_by_the_same_parser():
+    provider = providers_mod.CursorCLIProvider(cli_path_resolver=lambda: "")
+    reply = "On it.\n" + _block([{"name": "run_calculator", "input": {"calculator_id": "orca.sp"}}]) + "\n"
+    response, seen = _run_cursor(provider, _cursor_request(), _CLI_TOOLS, stdout=reply)
+    assert response.text == "On it." and [(c.name, c.input) for c in response.tool_calls] == [("run_calculator", {"calculator_id": "orca.sp"})]
+    assert "HOW TO USE THE TOOLS IN THIS CHAT" in seen["kwargs"]["input"] and "run_calculator" in seen["kwargs"]["input"]
+
+
+def test_a_cursor_error_is_an_error_with_its_own_words():
+    provider = providers_mod.CursorCLIProvider(cli_path_resolver=lambda: "")
+    with pytest.raises(providers_mod.AIProviderError, match="Cursor CLI exited with an error: Not logged in"):
+        _run_cursor(provider, _cursor_request(), None, stdout="", returncode=1, stderr="Not logged in\n")
+
+
+# --- an empty reply from a local server is asked for again, once ---------------------------------------------------------------------------------------------
+
+
+def _stream_chunk(content=None, finish=None, tool_calls=None):
+    chunk = MagicMock()
+    chunk.choices = [MagicMock()]
+    chunk.choices[0].delta.content = content
+    chunk.choices[0].delta.tool_calls = tool_calls
+    chunk.choices[0].finish_reason = finish
+    return chunk
+
+
+def _stream_provider(retry, *replies):
+    """A provider whose server answers each call with the next of `replies` (a list of chunks); returns it and the client so calls can be counted."""
+    provider = providers_mod.OpenAICompatibleProvider("ollama", default_model="m", base_url="http://localhost:11434/v1", retry_empty=retry)
+    client = MagicMock()
+    client.chat.completions.create.side_effect = [iter(chunks) for chunks in replies]
+    return provider, client
+
+
+def _stream(provider, client):
+    request = providers_mod.AIRequest(system_context="ctx", messages=[], model="", api_key="")
+    received = []
+    with patch("openai.OpenAI", return_value=client):
+        response = provider.stream(request, received.append)
+    return response, received, client.chat.completions.create.call_count
+
+
+def test_an_empty_reply_is_asked_for_again_once_and_the_second_answer_is_used():
+    empty = [_stream_chunk(None, "stop")]
+    answer = [_stream_chunk("Water is H2O.", None), _stream_chunk(None, "stop")]
+    response, received, calls = _stream(*_stream_provider(1, empty, answer))
+    assert calls == 2 and response.text == "Water is H2O." and received == ["Water is H2O."]
+
+
+def test_an_empty_reply_twice_is_returned_empty_after_exactly_one_retry():
+    empty = [_stream_chunk(None, "stop")]
+    response, _received, calls = _stream(*_stream_provider(1, empty, empty, empty))
+    assert calls == 2 and response.text == "" and response.tool_calls == []
+
+
+def test_a_reply_that_is_only_a_tool_call_is_not_empty_and_is_not_asked_for_again():
+    fragment = MagicMock()
+    fragment.index, fragment.id = 0, "call-1"
+    fragment.function.name, fragment.function.arguments = "run_calculator", "{}"
+    response, _received, calls = _stream(*_stream_provider(1, [_stream_chunk(None, "tool_calls", [fragment])]))
+    assert calls == 1 and [c.name for c in response.tool_calls] == ["run_calculator"]
+
+
+def test_a_hosted_provider_does_not_retry_and_only_the_local_one_is_set_to():
+    empty = [_stream_chunk(None, "stop")]
+    _response, _received, calls = _stream(*_stream_provider(0, empty))
+    assert calls == 1
+    built = providers_mod.build_default_providers()
+    assert built["ollama"]._retry_empty == 1 and built["openai"]._retry_empty == 0

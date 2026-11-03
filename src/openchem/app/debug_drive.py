@@ -9777,11 +9777,19 @@ class _Driver(QObject):
         Each `{"tool": name, "input": {...}}` entry is one tool call the model makes; each `{"text": "..."}`
         is a reply that ends the turn. What the tools answered is kept for `ai_expect`. Give it `after_ms`:
         the loop runs on a worker thread.
+
+        **`"live": {"provider": "ollama", "model": "qwen2.5:14b"}` REPLACES THE SCRIPT WITH A REAL MODEL** (no `script`): the panel's own provider of that name
+        answers, with the model named here and not the one in the plugin's stored settings (so nothing is written), and every request and reply is recorded the way
+        the scripted provider's are, so `ai_expect` reads what the tools returned to it. What the model did, which tools it called and what it said, is logged for the
+        run's report. A live model is not deterministic: a script that asserts on one is reporting what THAT model did, which is the point of it.
         """
         import sys
 
         panel = self._ai_panel()
         if panel is None:
+            return
+        if step.get("live"):
+            self._do_ai_send_live(panel, step)
             return
         module = sys.modules[type(panel).__module__]
         responses = []
@@ -9826,6 +9834,94 @@ class _Driver(QObject):
         self._ai_provider = provider
         panel._input.setPlainText(str(step["text"]))
         panel._send_button.click()
+
+    def _do_ai_send_live(self, panel, step: dict[str, Any]) -> None:
+        """The `live` half of `ai_send`: the panel's real provider, recorded, with the model the step names."""
+        from types import SimpleNamespace
+
+        live = dict(step["live"])
+        name = str(live["provider"])
+        model = str(live.get("model") or "")
+        provider = panel._providers.get(name)
+        if provider is None:
+            logger.error("OPENCHEM_DRIVE: ai_send live -- the assistant has no provider %r (it has %s)", name, sorted(panel._providers))
+            return
+        recorded: list = []
+        original = getattr(provider, "_drive_original_stream", None) or provider.stream
+        provider._drive_original_stream = original
+
+        def recording(request, on_chunk, tools=None):
+            if model:
+                request.model = model
+            recorded.append((request, [tool.name for tool in tools] if tools else []))
+            capture = os.environ.get("OPENCHEM_DRIVE_CAPTURE")
+            if capture and len(recorded) == 1:
+                # The first request exactly as the provider is handed it, so a slow or runaway reply can be replayed against the server outside the application, under other settings.
+                Path(capture).write_text(json.dumps({
+                    "model": request.model, "system_context": request.system_context,
+                    "messages": [{"role": m.role, "content": m.content} for m in request.messages],
+                    "tools": [{"name": tool.name, "description": tool.description, "input_schema": tool.input_schema} for tool in (tools or [])],
+                }), encoding="utf-8")
+            # What the tools just told the model (the messages after its last turn), so a report shows how it was answered, not only what it asked.
+            for message in request.messages[-3:]:
+                if message.role == "tool":
+                    logger.warning("OPENCHEM_DRIVE: live tool result to the model: %s", message.content[:700])
+            response = original(request, on_chunk, tools)
+            logger.warning(
+                "OPENCHEM_DRIVE: live %s/%s reply: tools=%s stop=%s text=%r",
+                name, request.model, [call.name for call in response.tool_calls], response.stop_reason, (response.text or "")[:2000],
+            )
+            for call in response.tool_calls:
+                logger.warning("OPENCHEM_DRIVE: live tool call %s %s", call.name, call.input)
+            return response
+
+        provider.stream = recording
+        panel._provider_combo.setCurrentText(name)
+        self._window.reveal_panel("AI Assistant")
+        self._ai_provider = SimpleNamespace(requests=recorded)
+        panel._input.setPlainText(str(step["text"]))
+        panel._send_button.click()
+
+    def _do_ai_wait(self, step: dict[str, Any]) -> None:
+        """`{"do": "ai_wait", "timeout_ms": 400000, "quiet_ms": 1500, "after_ms": 500}` -- hold the script until the assistant has finished its turn: its Send button
+        is enabled again, steadily for `quiet_ms`.
+
+        **REPLACES A GUESSED `after_ms` AFTER A LIVE `ai_send`.** A real model's reply takes anywhere from seconds to minutes (a 14B local model: 10 s to 3 min), and the
+        next `ai_send` pressed while the loop is still running meets a disabled Send button and is lost. Giving up is an ERROR, which fails the run, never a silent move on.
+        """
+        import time
+
+        panel = self._ai_panel()
+        if panel is None:
+            return
+        self._ai_wait = {
+            "panel": panel, "started": time.monotonic(), "deadline": time.monotonic() + int(step.get("timeout_ms", 400000)) / 1000.0,
+            "quiet": int(step.get("quiet_ms", 1500)) / 1000.0, "quiet_since": None, "after_ms": int(step.get("after_ms", 500)),
+        }
+        self._hold_chain = True
+        self._poll_ai_wait()
+
+    def _poll_ai_wait(self) -> None:
+        import time
+
+        wait = self._ai_wait
+        busy = not wait["panel"]._send_button.isEnabled()
+        now = time.monotonic()
+        if busy:
+            wait["quiet_since"] = None
+        elif wait["quiet_since"] is None:
+            wait["quiet_since"] = now
+        timed_out = now >= wait["deadline"]
+        if timed_out or (wait["quiet_since"] is not None and now - wait["quiet_since"] >= wait["quiet"]):
+            logger.warning(
+                "OPENCHEM_DRIVE: ai_wait idle after %.1f s; the application checked the reply and found %s (approval cards showing: %d)",
+                now - wait["started"], list(getattr(wait["panel"], "reply_findings", [])), wait["panel"].approvals_waiting(),
+            )
+            if timed_out and busy:
+                logger.error("OPENCHEM_DRIVE: ai_wait gave up after %.0f s with the assistant still working", now - wait["started"])
+            QTimer.singleShot(wait["after_ms"], self._window, self._run_next)
+            return
+        QTimer.singleShot(500, self._window, self._poll_ai_wait)
 
     def _do_ai_card(self, step: dict[str, Any]) -> None:
         """`{"do": "ai_card", "action": "approve" | "cancel" | "open" | "dismiss", "card": "score"}` -- press a REAL button on the
@@ -9888,7 +9984,7 @@ class _Driver(QObject):
         given on its first request), `transcript_contains`, `notes` (how many previews' outcomes wait for
         the next message), `send_enabled`, `panel_visible` (a dock's objectName that must be showing), `score_proposals` (proposed-score cards waiting),
         `scores_stored` (scores in the project), `scores_owner` (the owners stored, in order), `sent_contains` (substrings of everything sent to the
-        provider, notes included), `synthesis_requests` (synthesis-search cards waiting) and `notes_contain` / `notes_exclude` (substrings of the
+        provider, notes included), `synthesis_requests` (synthesis-search cards waiting), `findings` (the kinds the reply check has said so far, in order) and `notes_contain` / `notes_exclude` (substrings of the
         notes held for the model's next message).
         """
         panel = self._ai_panel()
@@ -9934,6 +10030,8 @@ class _Driver(QObject):
                 missing = [name for name in expect["tools_offered"] if name not in offered]
                 if missing:
                     problems.append(f"tools not offered: {missing} (offered {offered})")
+            if "findings" in expect and list(panel.reply_findings) != list(expect["findings"]):
+                problems.append(f"the reply check found {panel.reply_findings}, wanted {list(expect['findings'])}")
             if "score_proposals" in expect and len(panel.pending_score_ids()) != expect["score_proposals"]:
                 problems.append(f"{len(panel.pending_score_ids())} proposed scores waiting, wanted {expect['score_proposals']}")
             stored_scores = self._window._services.score_service.store.definitions()
