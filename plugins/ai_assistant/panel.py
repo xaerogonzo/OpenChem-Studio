@@ -3,7 +3,7 @@ from __future__ import annotations
 import html
 from typing import Callable
 
-from PySide6.QtCore import QObject, Qt, Signal
+from PySide6.QtCore import QObject, Qt, QTimer, Signal
 from PySide6.QtWidgets import (
     QComboBox,
     QDialog,
@@ -37,6 +37,7 @@ from .bridge import BridgeEvent, ToolBridge, bounded_json
 from .calculation_tools import CALCULATION_HANDLERS, CALCULATION_TOOLS
 from .context_builder import MoleculeContextCache
 from .providers import AIMessage, AIProvider, AIProviderError, AIRequest, AIResponse, ToolCall
+from .reply_check import check_reply
 from .synthesis_tools import (
     GATE_DECLINED,
     REQUEST_NAME,
@@ -67,6 +68,9 @@ _MODEL_PRESETS: dict[str, list[str]] = {
     # Blank means "whatever cursor-agent is configured to use". Names are what `cursor-agent --list-models` prints; the list depends on the account, so type any other.
     "cursor_cli": ["", "auto", "composer-2.5", "claude-sonnet-5-thinking-high", "gemini-3.7-flash-high"],
 }
+
+#: How long after a reply the panel reads which approval cards are showing (`reply_check`): a card is built from queued events and can arrive just after the reply does.
+REPLY_CHECK_DELAY_MS = 400
 
 #: What the Configure dialog says under the CLI path of each provider that runs through a local command-line login.
 _CLI_NOTES = {
@@ -486,6 +490,13 @@ class AIAssistantPanel(QWidget):
         self._providers = providers
         self._cache = cache
         self._history: list[AIMessage] = []
+        #: Everything the model was shown that is not its own words, kept for `reply_check`: every tool result of this conversation (the loop's messages are not kept in `_history`, so a number read
+        #: in one turn and repeated in the next would otherwise look invented), and the system prompt of the send in flight. Appended from the worker thread, read on the GUI thread.
+        self._shown_tool_results: list[str] = []
+        self._shown_system_context = ""
+        self._shown_calculation_tools = False
+        #: The kinds of finding `reply_check` has made, in order (what the panel said under a reply), for tests and the drive.
+        self.reply_findings: list[str] = []
         self._stream_active = False
         # Keeps the current send's chunk-signal QObject alive for the
         # worker thread's lifetime -- same reasoning `async_task.py`'s
@@ -657,6 +668,7 @@ class AIAssistantPanel(QWidget):
         api_key = self._context.secrets.get(f"{provider_id}_api_key") or ""
         model = self._context.settings.get(f"{provider_id}_model", provider.default_model)
         system_context = SYSTEM_PROMPT_PREFIX + self._cache.build_context_text()
+        self._shown_system_context = system_context
         history_snapshot = list(self._history)
         # THE TURN IS FROZEN HERE, ON THE GUI THREAD, AT THE MOMENT OF SEND. Every calculator tool the model
         # calls in this reply reads that and nothing else, so selecting another molecule while it streams
@@ -669,6 +681,7 @@ class AIAssistantPanel(QWidget):
             )
             # The synthesis tools get the READING handle only; the object that starts a search stays here, behind the card's Approve.
             synthesis = SynthesisBridge(self._context.synthesis, begin_synthesis_turn(self._context.synthesis), self._bridge_signal.event.emit)
+        self._shown_calculation_tools = bridge is not None and bridge.available
 
         self._stream_active = False
         signal = _ChunkSignal()
@@ -728,9 +741,9 @@ class AIAssistantPanel(QWidget):
                 return response
             messages.append(AIMessage(role="assistant", content=response.text, tool_calls=response.tool_calls))
             for tool_call in response.tool_calls:
-                messages.append(
-                    AIMessage(role="tool", content=self._execute_tool(tool_call, bridge, synthesis), tool_call_id=tool_call.id)
-                )
+                result = self._execute_tool(tool_call, bridge, synthesis)
+                self._shown_tool_results.append(result)
+                messages.append(AIMessage(role="tool", content=result, tool_call_id=tool_call.id))
         return response
 
     def _execute_tool(self, tool_call: ToolCall, bridge: ToolBridge | None = None, synthesis: SynthesisBridge | None = None) -> str:
@@ -1149,6 +1162,25 @@ class AIAssistantPanel(QWidget):
             self._transcript.append(f"<i>{html.escape(note)}</i>")
         self._stream_active = False
         self._current_stream_signal = None
+        # What the reply is set against is fixed NOW (the next send may start before the check runs); the approval cards are read LATER, because a card is built from queued events and can
+        # arrive just after the reply does: checking in the same instant would call a card that is about to appear a card that does not exist.
+        shown = "\n".join([self._shown_system_context, *(m.content for m in self._history if m.role == "user"), *self._shown_tool_results])
+        calculation_tools = self._shown_calculation_tools
+        QTimer.singleShot(REPLY_CHECK_DELAY_MS, self, lambda: self._check_reply(response.text, shown, calculation_tools))
+
+    def approvals_waiting(self) -> int:
+        """How many approval cards are showing: a job, a proposed score, a synthesis search. A described-only calculator and a running job are not waiting for anyone."""
+        return len(self._cards) + len(self._score_cards) + len(self._synthesis_cards)
+
+    def _check_reply(self, reply: str, shown_text: str, calculation_tools: bool) -> None:
+        """Say under the reply what the application's own state does not support (`reply_check`), and tell the model with the next message so it can correct itself."""
+        for finding in check_reply(reply, approvals_waiting=self.approvals_waiting(), shown_text=shown_text, tools_offered=calculation_tools):
+            self.reply_findings.append(finding.kind)
+            self._transcript.append(f"<i>{html.escape(finding.message)}</i>")
+            self._notes.append(f"[Application note] {finding.note}")
+        # A line added a moment after the reply sits below the visible part of a long transcript (measured in the real window: the check was in the transcript and off screen).
+        bar = self._transcript.verticalScrollBar()
+        bar.setValue(bar.maximum())
 
     def _on_error(self, message: str) -> None:
         self._send_button.setEnabled(True)
