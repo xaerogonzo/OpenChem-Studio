@@ -22,9 +22,9 @@ inventory.
 | Relationship of the two files | The ten "What round N left open" bullets for rounds 80 to 89 are **byte-identical** in both. The files differ elsewhere: the application copy carries about 300 more lines of older prose and a different title line. They are two documents that share the recent bullets, not one document in two places. |
 | Fork changes not yet landed here | None known: fork PR #89 is the latest and is vendored as application PR #477. |
 
-**Counts** (from the audit run for this PR, with the `NL-108` move and the `NL-012`, `NL-014` and `NL-098` closes of 2026-11-03 applied on top: class I 8 to 7, V 5 to 6, open 57 to 54, closed 9 to 13). Canonical rows: 96, of which 4 are retired cluster redirects, plus the 13 `OPEN`
+**Counts** (from the audit run for this PR, with the `NL-108` move and the `NL-012`, `NL-014`, `NL-098` and `NL-099` closes of 2026-11-03 applied on top: class I 8 to 7, V 5 to 6, open 57 to 54, closed 9 to 14). Canonical rows: 96, of which 4 are retired cluster redirects, plus the 13 `OPEN`
 regression rows, each mapped to exactly one canonical row (`NL-030` to `NL-042`). By class: W 1, M 8, I 7, B 44, V 6, S 12, U 10, N 4,
-C 4 (the redirects). By priority: P0 1, P1 15, P2 22, P3 58 (the P0 and the W are `NL-070`, closed). By status: open 54, carried 26, blocked 3, closed 13 (`NL-003` and `NL-004` closed in round 91, `NL-107` in round 92, `NL-108`, `NL-012`, `NL-014` and `NL-098` on 2026-11-03).
+C 4 (the redirects). By priority: P0 1, P1 15, P2 22, P3 58 (the P0 and the W are `NL-070`, closed). By status: open 54, carried 25, blocked 3, closed 14 (`NL-003` and `NL-004` closed in round 91, `NL-107` in round 92, `NL-108`, `NL-012`, `NL-014`, `NL-098` and `NL-099` on 2026-11-03).
 
 **Plainly: one row was a *confirmed* wrong molecule, now fixed, and eight more may be.** `NL-070`: a diazo compound drawn
 `C=[N+]=[N-]` was named as an iminoazanium that OPSIN reads back as a different formula. It was found by re-measuring the benchmark
@@ -32,7 +32,7 @@ section, not by a population run, and fixed in naming round 90 (#488). Eight row
 molecule, never adjudicated as an engine fault or a validator fault. Five rows (class I) are cases where the validator cannot say
 whether the name pins the intended stereoisomer. None of these groups has been shown harmless.
 
-**Highest-priority next action.** `NL-010` and `NL-011` were run on 2026-11-03 and stay open. The B− spiro is still refused. `NL-011`'s twenty chains are each named as a nested `spiro[spiro[...]]` that OPSIN cannot read; the one flat name that round-trips is `D-390`. `NL-012`, `NL-014` and `NL-098` were re-measured the same day and closed. `NL-013` was re-measured the same day and stays open: the stored `3H-purin-3-yl` drawing now reads back, and the `1H-purin-1-yl` pair was not in the round-81 output. The matrix is [NAMING_COVERAGE_MATRIX.md](NAMING_COVERAGE_MATRIX.md). Next unrun matrix cell is `NL-099`. `NL-108` is classified. `NL-109` remains the cumulene axis. `NL-107` was fixed in round 92 (D-389). `NL-003` and `NL-004` were fixed in round 91 (D-388). `NL-070` is closed.
+**Highest-priority next action.** `NL-010` and `NL-011` were run on 2026-11-03 and stay open. The B− spiro is still refused. `NL-011`'s twenty chains are each named as a nested `spiro[spiro[...]]` that OPSIN cannot read; the one flat name that round-trips is `D-390`. `NL-012`, `NL-014`, `NL-098` and `NL-099` were re-measured the same day and closed. `NL-013` was re-measured the same day and stays open: the stored `3H-purin-3-yl` drawing now reads back, and the `1H-purin-1-yl` pair was not in the round-81 output. The matrix is [NAMING_COVERAGE_MATRIX.md](NAMING_COVERAGE_MATRIX.md). Next unrun matrix cell is `NL-081`. `NL-108` is classified. `NL-109` remains the cumulene axis. `NL-107` was fixed in round 92 (D-389). `NL-003` and `NL-004` were fixed in round 91 (D-388). `NL-070` is closed.
 
 **Workstreams.** WS0 confirmed defects: *empty* (`NL-070` closed in round 90). WS1 stereo audit: *active*, first pass done 2026-10-29 (`NL-003` and `NL-004` are needless flattening, `NL-001`, `NL-002` and the `NL-005` spiro case are validator limits with identity unresolved; `NL-003` and `NL-004` fixed in round 91). WS2 coverage probes: *active*, matrix written 2026-11-03, `NL-010` and `NL-011` run the same day and neither met; [NAMING_COVERAGE_MATRIX.md](NAMING_COVERAGE_MATRIX.md). WS3 source lookups: *active*,
 not started. WS4 missing constructions: *deferred* (they round-trip today as von Baeyer names). WS5 older non-preferred names:
@@ -194,7 +194,7 @@ decision fields.
 | NL-096 | R5 row 924 | OPSIN's ring vocabulary (`rings_from_opsin.json`, 705 names; `fusion_components.json`, 821) is read as ring parent names, unaudited. | S | M | P2 | WS3 | carried |
 | NL-097 | R5 rows 915, 916 | The ownership audit does not see a prefix whose name denotes an atom it does not claim (`carbamimidoyl` on a chain), nor the insides of functional-class, multiplicative, ring-assembly and additive nodes (66 of 267 tuning molecules had no substitutive level). | U | M | P2 | WS2 | carried |
 | NL-098 | R14 | Bridged methano-benzocyclooctenes: the skeleton is named as the wrong ring system (2 rows, the same shape twice, not measured further). **Run 2026-11-03** ([NAMING_COVERAGE_MATRIX.md](NAMING_COVERAGE_MATRIX.md)): `census1027625` and `census1746625` are now the oxa/aza tricyclic names, and each full key matches. The old methanobenzocyclooctene names still denote other molecules. | M | L | P1 | WS2 | closed |
-| NL-099 | R14 | Six single-row structural misnames: an N-hydroxy-N-alkyl amide in an ester losing its N-substituent (D-162, closed in round 38), an acylamidine, an oxime ether of a thioamidine, a purine hydro-prefix, an N versus N' hydrazide locant, a steroid oxime ether. **Not re-measured except D-162.** | M | L | P1 | WS2 | carried |
+| NL-099 | R14 | Six single-row structural misnames: an N-hydroxy-N-alkyl amide in an ester losing its N-substituent (D-162, closed in round 38), an acylamidine, an oxime ether of a thioamidine, a purine hydro-prefix, an N versus N' hydrazide locant, a steroid oxime ether. **Run 2026-11-03** ([NAMING_COVERAGE_MATRIX.md](NAMING_COVERAGE_MATRIX.md)): the five were re-measured and each full key matches. `D-162` was not reopened. | M | L | P1 | WS2 | closed |
 | NL-104 | R14 | Other round-14 residue, not re-measured: tricyclic and amidinium ring cations (4; the neutral copy is verified for bicyclic systems only), neutral fused or spiro polycycles with "no valid plan" (4 shapes), sulfonamide N- anions (4: two are OPSIN reading an anion as the neutral sulfonamide, one drops the charge inside a `sulfamoyl` prefix, one is a refusal), seven unparsable shapes, one double-bond stereo omitted. | B | L | P2 | WS5 | carried |
 | NL-105 | adjudication | Six rows of `benchmarks/naming/adjudication.toml` with `fix_status` OPEN or PARTLY_FIXED and a verdict that the engine's name is not the PIN: a phosphocholine whose cation is the principal characteristic group (platelet-activating factor, `2-({[2-(acetyloxy)-3-(hexadecyloxy)propoxy](hydroxy)(oxo)phosphanyl}oxy)-N,N,N-trimethylethanaminium`); an alkanesulfonyl prefix (`propan-2-ylsulfonyl` for `propane-2-sulfonyl`); a nitrone (`methyl(oxido)(propan-2-ylidene)azanium` for `N-methylpropan-2-imine N-oxide`, the book's own example); dimethyl diselenide (`1,2-dimethyldiselane`, PIN `(methyldiselanyl)methane`); Boc-glycine (`({[(2-methylpropan-2-yl)oxy](oxo)methyl}amino)acetic acid`, PIN `[(tert-butoxycarbonyl)amino]acetic acid`); the round 7 thiourea, whose structure now reads back and whose PIN differs. All six re-measured and read back. | B | H | P3 | WS5 | open |
 | NL-106 | adjudication | Five rows of `adjudication.toml` with verdict UNDECIDED and `fix_status` OPEN: trans-decalin (`trans-decalin` versus `decahydronaphthalene`: decalin is not in the book); diazepam (hydro prefixes versus added hydrogen, P-58.2); an indolocarbazole-type fusion (every ring has five or more members, P-52.2.4.1); a veratrum-type alkaloid and a dinucleotide (two von Baeyer names with different main-ring divisions). The sources here do not resolve them; UNDECIDED is a legal outcome. All five re-measured and read back. | S | H | P3 | WS3 | open |
@@ -252,7 +252,7 @@ An item is `closed` only when its closure criterion holds, with the evidence rec
 | NL-080, NL-096 | Source lookup (WS3) | Passage, page, rule written down, or source-unverified |
 | NL-085, NL-088, NL-089 | None | Stay as recorded |
 | NL-098 | None. Both rows read back (2026-11-03) | Each classed engine, validator or not reproduced |
-| NL-099 | Re-measure from `benchmarks/naming/` round-14 artifacts and the named shapes | Each classed engine, validator or not reproduced |
+| NL-099 | None. The five read back (2026-11-03). `D-162` was not reopened | Each classed engine, validator or not reproduced |
 | NL-104 | Re-measure, then split | Each sub-item classed |
 | NL-105 | Include in the WS5 batch round; each is an `OPEN` row in `adjudication.toml` | The emitted name equals the adjudicated target; `fix_status` moves to FIXED |
 | NL-106 | Source lookup (WS3) or a recorded decision that the book allows both | Verdict changes from UNDECIDED, or the row is kept as such with the reason |
@@ -301,8 +301,8 @@ Every `##` or `###` section of the application's `KNOWN_LIMITATIONS.md`, and whe
 
 The four cluster rows are split (see *Closed by re-measurement* for the entries that turned out to be closed). Two areas stay
 incomplete and are named so that a later round can pick them up: `NL-052` (the round 46 to 48 lists are cut off in the source at a
-line break), and rows `NL-051` to `NL-064`, which carry no structures in the text and were not re-measured. Eight rows of the split
-(`NL-081`, `NL-090`, `NL-095`, `NL-097`, `NL-099`, `NL-104`, `NL-077`, `NL-096`) say "not re-measured" for the same reason.
+line break), and rows `NL-051` to `NL-064`, which carry no structures in the text and were not re-measured. Seven rows of the split
+(`NL-081`, `NL-090`, `NL-095`, `NL-097`, `NL-104`, `NL-077`, `NL-096`) say "not re-measured" for the same reason.
 
 ## Closed by re-measurement (2026-10-27)
 
@@ -343,7 +343,7 @@ Priority order. The detail of method is in the programme's plan; the short form:
    **correct but underspecified** (a contract decision). Order: `NL-003`, `NL-002`, `NL-001`, then the spiro cases `NL-005`.
    `_name_pins_structure` stays strict. An RDKit labeller is not independent ground truth against another RDKit labeller.
 2. **WS2, coverage probes.** The matrix is [NAMING_COVERAGE_MATRIX.md](NAMING_COVERAGE_MATRIX.md), written 2026-11-03 before anything is generated (structural feature, stereo class, prior
-   coverage, planned variants, oracle, pass and fail criteria). `NL-010` and `NL-011` were run the same day, and neither cell is met. `NL-012`, `NL-014` and `NL-098` were re-measured and closed. `NL-013` was re-measured and is not met. Unusual-spiro-atom probes stay separate from probes that challenge
+   coverage, planned variants, oracle, pass and fail criteria). `NL-010` and `NL-011` were run the same day, and neither cell is met. `NL-012`, `NL-014`, `NL-098` and `NL-099` were re-measured and closed. `NL-013` was re-measured and is not met. Unusual-spiro-atom probes stay separate from probes that challenge
    stereo assignment. Reuse `tools/naming_variants.py` (frozen structures refused; use `--orderings` where atom order matters) and
    `tools/naming_ion_populations.py`. The seeds are `8901` and `8902`, recorded in the matrix.
 3. **WS3, source lookups before code.** Record the exact passage, page, rule and applicability. If the book does not settle it,

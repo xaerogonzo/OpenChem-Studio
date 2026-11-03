@@ -8,7 +8,7 @@ The round-89 population it extends is described in `src/openchem/vendor/KNOWN_LI
 are in that file). The seed argument of the run that yielded 39 molecules is not recorded
 there, and it is not invented here.
 
-`NL-010`, `NL-011`, `NL-012`, `NL-013`, `NL-014` and `NL-098` were run on 2026-11-03. No other cell has been run.
+`NL-010`, `NL-011`, `NL-012`, `NL-013`, `NL-014`, `NL-098` and `NL-099` were run on 2026-11-03. No other cell has been run.
 
 ## Rules
 
@@ -196,6 +196,20 @@ Both rows are classed. The cell is met.
 | Pass | Each of the five classed engine, validator, or not reproduced |
 | Non-reproduction | A missing structure stays `carried` |
 | Non-actionable when | Never. Class M |
+
+#### Run 2026-11-03
+
+`D-162` (`census322625`) was not reopened. The other five are in `benchmarks/naming/census_sample.json`, with the round-12 names in `benchmarks/naming/stages/census_scan_r12-engine.json` (cluster `C8`). Each current name's full InChIKey matches the drawing. The old mismatch does not reproduce.
+
+| Shape | Row | Current name | Key |
+|---|---|---|---|
+| Acylamidine | `census325625` | `N'-benzoyl-3,5-dimethyl-1H-pyrazole-1-carboximidamide` | `KDTSAMCTLHBETH-UHFFFAOYSA-N` |
+| Oxime ether of a thioamidine | `census356625` | `({[amino(sulfanyl)methylidene]amino}(phenylmethoxyimino)methyl)benzene` | `ODZWLRITOMQYFN-UHFFFAOYSA-N` |
+| Purine hydro prefix | `census409625` | `8-(methylsulfanyl)-5,9-dihydro-6H-purin-6-one` | `GJAACIINANYMRT-UHFFFAOYSA-N` |
+| Hydrazide locant | `census923625` | `3-(4-fluorophenyl)-N'-(phenylacetyl)prop-2-enehydrazide` | `ZNDHTIZGJSUYPO-UHFFFAOYSA-N` |
+| Steroid oxime ether | `census1786625` | `N-[2-(4-hydroxyphenyl)ethyl]-2-[([(1R,3aR,3bS,9aS,9bR,11aS)-1-hydroxy-1,9a,11a-trimethyl-2,3,3a,3b,4,5,9,9a,9b,10,11,11a-dodecahydro-1H-cyclopenta[a]phenanthren-7-yl]amino)oxy]acetamide` | `NCMNHNBNTYHKNY-WWYGSXJJSA-N` |
+
+All five are classed. The cell is met.
 
 ### NL-081
 
