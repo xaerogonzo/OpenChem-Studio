@@ -8,7 +8,7 @@ The round-89 population it extends is described in `src/openchem/vendor/KNOWN_LI
 are in that file). The seed argument of the run that yielded 39 molecules is not recorded
 there, and it is not invented here.
 
-`NL-010`, `NL-011`, `NL-012`, `NL-013` and `NL-014` were run on 2026-11-03. No other cell has been run.
+`NL-010`, `NL-011`, `NL-012`, `NL-013`, `NL-014` and `NL-098` were run on 2026-11-03. No other cell has been run.
 
 ## Rules
 
@@ -170,6 +170,17 @@ That later name is what the current engine emits. OPSIN's full key is `SSBQXUWCC
 | Pass | Each classed engine, validator, or not reproduced |
 | Non-reproduction | A missing artifact stays `carried` |
 | Non-actionable when | Never. Class M |
+
+#### Run 2026-11-03
+
+Both rows are in `benchmarks/naming/census_sample.json`, and the round-12 scan names are in `benchmarks/naming/stages/census_scan_r12-engine.json`. The cluster is `C6` in `benchmarks/naming/stages/r14-w0-cluster-map.json`.
+
+| Row | Drawing | Result |
+|---|---|---|
+| `census1027625` | `CCOC(=O)[C@@H]1[C@H]2NC(=S)N[C@]1(C)Oc1ccc(Br)cc12` | Not reproduced. The old name is the methanobenzocyclooctene, and OPSIN still reads it as another molecule (`AHQHGQHFJYLSEA-YQQAZPJKSA-N`). The current name is `ethyl (1R,9R,13R)-4-bromo-9-methyl-11-thioxo-8-oxa-10,12-diazatricyclo[7.3.1.0^{2,7}]trideca-2,4,6-triene-13-carboxylate`. Full key `IOVGLDIRFHJORF-COPLHBTASA-N` matches |
+| `census1746625` | `CC(=O)[C@@H]1C(=O)N[C@@]2(C)C[C@@H]1c1cc([N+](=O)[O-])ccc1O2` | Not reproduced. The old methanobenzocyclooctene name still reads as another molecule (`QDACKECXJMSFAI-KBMXLJTQSA-N`). The current name is `(1S,9R,12R)-12-acetyl-9-methyl-4-nitro-8-oxa-10-azatricyclo[7.3.1.0^{2,7}]trideca-2,4,6-trien-11-one`. Full key `VMAPULLZNHEYCO-SCDSUCTJSA-N` matches |
+
+Both rows are classed. The cell is met.
 
 ### NL-099
 
