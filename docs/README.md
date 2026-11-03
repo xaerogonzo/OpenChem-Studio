@@ -49,6 +49,7 @@ how this project's own documentation has gone stale before.
 | [GEOMETRY_DEFINITIONS_CHECKLIST.md](GEOMETRY_DEFINITIONS_CHECKLIST.md) | The reference editor's Geometrical Descriptors, definition by definition, written before the geometry calculators were merged |
 | [PANEL_FEATURE_INVENTORY.md](PANEL_FEATURE_INVENTORY.md) | The inventory behind "no feature may be lost" for the Batch, Docking, Quantum Chemistry and 3D Alignment panels |
 | [LESSONS.md](LESSONS.md) | The lessons moved out of `CLAUDE.md` so they are not loaded on every message |
+| [DRIVE_STEPS.md](DRIVE_STEPS.md) | The `OPENCHEM_DRIVE` step catalogue, moved out of `CLAUDE.md` for the same reason |
 | [LITERATURE_LOG.md](LITERATURE_LOG.md) | Every paper opened for a question and what came of it, so a later search is not repeated |
 | [KETCHER_SPIKE.md](KETCHER_SPIKE.md) | Research note (2026-09-24): what was measured about driving the embedded Ketcher page |
 | [PERFORMANCE_CENSUS.md](PERFORMANCE_CENSUS.md) | **Dated 2026-10-07**: a survey of the running application's performance and memory (nothing was fixed) |
