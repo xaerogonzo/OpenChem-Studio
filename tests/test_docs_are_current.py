@@ -54,6 +54,10 @@ DOCS = [
     # names out of the guard's reach without anything going red,
     # which is this list being hand-kept.
     "docs/LESSONS.md",
+    # The drive-step catalogue, split out of CLAUDE.md the same way the
+    # lesson log was: the citations moved with it, and a hand-kept list
+    # that is not updated is how 17,870 lines once left this guard.
+    "docs/DRIVE_STEPS.md",
     "README.md",
     "CONTRIBUTING.md",
     "CHANGELOG.md",

@@ -23,7 +23,8 @@ dialog. The window can sit behind whatever the user is working in.
 
     OPENCHEM_DRIVE=<script.json>  uv run python -m openchem.main
 
-The script is a JSON list of steps, run in order:
+The full step catalogue, including the traps measured on individual steps,
+is `docs/DRIVE_STEPS.md`. The script is a JSON list of steps, run in order:
 
     [
       {"do": "import",     "path": "C:/tmp/ethylmorphine.mol"},
