@@ -361,6 +361,7 @@ def classify_charges(
         # Substituted form runs first because it covers the multi-heavy-atom
         # case; the bare [BH4-] classifier requires NumHeavyAtoms == 1 so
         # the two are mutually exclusive on the gate.
+        _classify_boron_spiro_anion,
         _classify_substituted_boranuide,
         _classify_borohydride,
         # ---- Phase 4 carbamate anion: R-NH-C(=O)-O⁻ (before acidic-anion) ----
@@ -2502,6 +2503,82 @@ def neutral_view(mol, site_indices):
     return rw.GetMol()
 
 
+_LAMBDA4_BORASPIRO_PARENT = re.compile(
+    r"^(\d+)lambda4-boraspiro\[([^\]]+)\](.+)$"
+)
+
+
+def _boraspiro_lambda4_parent_to_uide_pin(neutral_name: str) -> str | None:
+    """P-72.4 method (1): ``4lambda4-boraspiro[3.4]octane`` -> ``4-boraspiro[3.4]octan-4-uide``."""
+    match = _LAMBDA4_BORASPIRO_PARENT.match(neutral_name)
+    if match is None or not match.group(3).endswith("ane"):
+        return None
+    locant, bridge, hydride = match.group(1), match.group(2), match.group(3)
+    stem = hydride[:-1]  # ``octane`` -> ``octan``
+    return f"{locant}-boraspiro[{bridge}]{stem}-{locant}-uide"
+
+
+def _boron_spiro_neutral_parent_mol(mol, b_idx):
+    """Hypervalent spiro boron parent for naming (charge zero, valence check skipped)."""
+    from rdkit import Chem
+
+    rw = Chem.RWMol(mol)
+    atom = rw.GetAtomWithIdx(b_idx)
+    atom.SetFormalCharge(0)
+    atom.SetNumExplicitHs(0)
+    atom.SetNoImplicit(True)
+    ops = Chem.SanitizeFlags.SANITIZE_ALL ^ Chem.SanitizeFlags.SANITIZE_PROPERTIES
+    try:
+        Chem.SanitizeMol(rw, sanitizeOps=ops)
+    except Exception:
+        return None
+    return rw.GetMol()
+
+
+def _classify_boron_spiro_anion(mol) -> Iterable[ChargeClassification]:
+    """Detect a ring spiro-centred boron anion (NL-010 / D-392).
+
+    P-72.4 method (1) keeps the charge on the skeletal-replacement parent:
+    ``4-boraspiro[3.4]octan-4-uide``.  The plan search neutralises to
+    ``4lambda4-boraspiro[3.4]octane`` and the charge guard refuses it;
+    ``_classify_substituted_boranuide`` deliberately skips ring boron.
+
+    Narrow gate (mirrors ``_classify_phosphide_anion``): one B at -1, ring
+    spiro atom (two rings), four carbon neighbours, all single bonds.
+    """
+    from rdkit import Chem
+
+    charged = [a for a in mol.GetAtoms() if a.GetFormalCharge() != 0]
+    if len(charged) != 1:
+        return
+    b = charged[0]
+    if b.GetAtomicNum() != 5 or b.GetFormalCharge() != -1:
+        return
+    if b.GetNumRadicalElectrons() != 0 or b.GetIsAromatic():
+        return
+    if not b.IsInRing():
+        return
+    if mol.GetRingInfo().NumAtomRings(b.GetIdx()) < 2:
+        return
+    heavy_nbs = [nb for nb in b.GetNeighbors() if nb.GetAtomicNum() != 1]
+    if len(heavy_nbs) != 4:
+        return
+    for nb in heavy_nbs:
+        if nb.GetAtomicNum() != 6:
+            return
+        bond = mol.GetBondBetweenAtoms(b.GetIdx(), nb.GetIdx())
+        if bond is None or bond.GetBondTypeAsDouble() != 1.0:
+            return
+    yield ChargeClassification(
+        site_atom_indices=(b.GetIdx(),),
+        charge_sign="-",
+        suffix_hint="boron_spiro_anion",
+        locant=None,
+        parent_smiles=None,
+        surface_name=None,
+    )
+
+
 def _classify_substituted_boranuide(mol) -> Iterable[ChargeClassification]:
     """Detect ``R-[BH(3-n)-]`` - substituted boranuide.
 
@@ -3566,6 +3643,8 @@ def _render(
         return _render_carbamate_anion(cls, mol, strategy, session, depth)
     if cls.suffix_hint == "phosphide_anion":
         return _render_phosphide_anion(cls, mol, strategy, session, depth)
+    if cls.suffix_hint == "boron_spiro_anion":
+        return _render_boron_spiro_anion(cls, mol, strategy, session, depth)
     if cls.suffix_hint == "imine_anion":
         return _render_imine_anion(cls, mol, strategy, session, depth)
     if cls.suffix_hint == "amine_anion":
@@ -3909,12 +3988,20 @@ def _render_amide_anion(
         return None
     # A COMPOUND acyl name (one carrying locants or enclosing marks) is enclosed, as any compound
     # prefix is; a plain one ("acetyl", "benzoyl") is written solid, as the book prints it.
-    if any(ch in acyl_name for ch in "-,( "):
+    if _azanide_single_prefix_needs_enclosure(acyl_name):
         return f"({acyl_name})azanide"
     return f"{acyl_name}azanide"
 
 
 _COMPOUND_PREFIX = re.compile(r"[-,\s()\[\]{}']|\d|[a-z](?:carbamoyl|sulfamoyl|amino|oxy|sulfanyl|carbonyl|amido)")
+# Inline substituent fused to an acyl stem without a separator (`chloroacetyl`).
+_INLINE_ACYL_SUBSTITUENT = re.compile(
+    r"^(?:di|tri|tetra|bis\()?(?:chloro|bromo|fluoro|iodo|nitro|hydroxy|amino|methyl|ethyl|propyl|butyl|phenyl|cyclo|oxo|formyl|dimethyl|trimethyl)"
+)
+
+
+def _azanide_single_prefix_needs_enclosure(prefix: str) -> bool:
+    return bool(_COMPOUND_PREFIX.search(prefix) or _INLINE_ACYL_SUBSTITUENT.search(prefix))
 
 
 def _alphabetical_key(prefix: str) -> str:
@@ -4061,7 +4148,7 @@ def _azanide_text(mol, n_idx: int, strategy, session, depth: int, ending: str, s
 
     if len(prefixes) == 1:
         (only,) = prefixes
-        return f"{enclose(only) if _COMPOUND_PREFIX.search(only) else only}{ending}"
+        return f"{enclose(only) if _azanide_single_prefix_needs_enclosure(only) else only}{ending}"
     prefixes.sort(key=_alphabetical_key)
     a, b = prefixes
     if a == b:
@@ -4492,6 +4579,40 @@ def _render_phosphide_anion(
         # refuse rather than guess.
         return None
     return f"{group_stem}uide"
+
+
+def _render_boron_spiro_anion(
+    cls: ChargeClassification,
+    mol,
+    strategy,
+    session,
+    depth: int,
+) -> str | None:
+    """Render ``4-boraspiro[3.4]octan-4-uide`` (P-72.4 method 1, NL-010 / D-392)."""
+    from openchem.vendor.iupac_namer.assembly import assemble
+    from openchem.vendor.iupac_namer.engine import name as _recursive_name
+    from openchem.vendor.iupac_namer.types import OutputForm
+
+    b_idx = cls.site_atom_indices[0]
+    parent_mol = _boron_spiro_neutral_parent_mol(mol, b_idx)
+    if parent_mol is None:
+        return None
+    try:
+        tree = _recursive_name(
+            parent_mol,
+            strategy,
+            OutputForm.STANDALONE,
+            free_valence=None,
+            decision_ctx=None,
+            _session=session,
+            _depth=depth + 1,
+        )
+    except Exception:
+        return None
+    parent_name = assemble(tree)
+    if parent_name is None or "NAMING ERROR" in parent_name:
+        return None
+    return _boraspiro_lambda4_parent_to_uide_pin(parent_name)
 
 
 def _render_guanidinium(

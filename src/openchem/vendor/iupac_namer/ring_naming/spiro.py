@@ -1824,6 +1824,14 @@ def name_polycyclic_spiro(
     if ring_system.type != "bridged":
         return []
 
+    # P-24.6 before P-24.5: a bridged classification on a chain of >=3
+    # polycyclic components must not fall through to nested spiro[spiro[...]]
+    # articulation names (NL-011, D-390 .. D-394).  name_spiro is not called
+    # for type ``bridged``, so this is the entry point for flat dispiro.
+    mc = _try_multicomponent_spiro(ring_system, candidate, mol)
+    if mc:
+        return mc
+
     arts = _ring_graph_articulation_atoms(ring_system.atom_indices, mol)
     if not arts:
         return []
