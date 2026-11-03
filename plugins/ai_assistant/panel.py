@@ -1140,6 +1140,13 @@ class AIAssistantPanel(QWidget):
             # on_chunk (e.g. an empty final reply) -- render it now so a
             # blank turn isn't silently dropped from the transcript.
             self._append_transcript(self._provider_combo.currentText(), response.text)
+        # Said in the transcript, not left as a blank line after a wait: a local model can return nothing at all (2 of 11 measured turns), or hit the length limit.
+        note = (
+            "(the model returned an empty reply)" if not response.text.strip()
+            else "(the reply was cut off at the provider's length limit)" if response.stop_reason == "length" else ""
+        )
+        if note:
+            self._transcript.append(f"<i>{html.escape(note)}</i>")
         self._stream_active = False
         self._current_stream_signal = None
 

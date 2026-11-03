@@ -264,13 +264,22 @@ def _openai_messages(messages: list[AIMessage]) -> list[dict]:
 
 
 def _openai_create_kwargs(
-    request: AIRequest, default_model: str, tools: list[ToolDefinition] | None, temperature: float | None = None
+    request: AIRequest,
+    default_model: str,
+    tools: list[ToolDefinition] | None,
+    temperature: float | None = None,
+    max_tokens: int | None = None,
+    frequency_penalty: float | None = None,
 ) -> dict:
     messages = [{"role": "system", "content": request.system_context}]
     messages.extend(_openai_messages(request.messages))
     kwargs = dict(model=request.model or default_model, messages=messages)
     if temperature is not None:
         kwargs["temperature"] = temperature
+    if max_tokens is not None:
+        kwargs["max_tokens"] = max_tokens
+    if frequency_penalty is not None:
+        kwargs["frequency_penalty"] = frequency_penalty
     if tools:
         kwargs["tools"] = [
             {
@@ -308,13 +317,31 @@ class OpenAICompatibleProvider(AIProvider):
 
     supports_tools = True
 
-    def __init__(self, provider_id: str, default_model: str, base_url: str | None = None, temperature: float | None = None) -> None:
+    def __init__(
+        self,
+        provider_id: str,
+        default_model: str,
+        base_url: str | None = None,
+        temperature: float | None = None,
+        max_tokens: int | None = None,
+        frequency_penalty: float | None = None,
+        retry_empty: int = 0,
+    ) -> None:
         self.provider_id = provider_id
         self.default_model = default_model
         self._base_url = base_url
         # None leaves the server's own default. A local model's default (Ollama's is 0.8) is loose for tool calling: a live qwen2.5:14b run
         # invented about seventy settings for one calculator and drifted into Thai mid-reply.
         self._temperature = temperature
+        # A bound on one reply, and a penalty on repeating itself. **MEASURED 2026-11-02 on a local qwen2.5:14b, 5 to 6 trials each, the same captured request:** with only the temperature, 4 of 6 first
+        # turns RAN AWAY (10 to 20 minutes before a single chunk, because Ollama emits a tool call only when it is finished, and the model was writing an endless list of invented settings); with a
+        # cap of 1024 tokens and a frequency penalty of 0.5, 3 of 5 were a clean tool call in about 12 s and the one runaway was bounded at about 170 s. A repeat penalty instead of the frequency
+        # penalty did worse (1 of 5). One model: another local model may want other numbers, and None leaves the server's own.
+        self._max_tokens = max_tokens
+        self._frequency_penalty = frequency_penalty
+        # How many times to ask again when a reply comes back with NO text and NO tool call. Measured 2026-11-02 on a local qwen2.5:14b: 5 of about 25 completed turns, each back in 11 to 16 s (the
+        # server dropped a tool call it could not parse), so one retry is cheap and a hosted provider, which does not do this, is left at 0.
+        self._retry_empty = retry_empty
 
     def _resolve_api_key(self, request: AIRequest) -> str:
         # Ollama's OpenAI-compatible endpoint doesn't check the key, but the
@@ -336,7 +363,7 @@ class OpenAICompatibleProvider(AIProvider):
         try:
             client = openai.OpenAI(api_key=api_key, base_url=self._base_url)
             response = client.chat.completions.create(
-                **_openai_create_kwargs(request, self.default_model, tools, self._temperature)
+                **_openai_create_kwargs(request, self.default_model, tools, self._temperature, self._max_tokens, self._frequency_penalty)
             )
         except Exception as exc:  # noqa: BLE001
             raise AIProviderError(f"{self.provider_id} request failed: {exc}") from exc
@@ -349,6 +376,19 @@ class OpenAICompatibleProvider(AIProvider):
         on_chunk: Callable[[str], None],
         tools: list[ToolDefinition] | None = None,
     ) -> AIResponse:
+        response = self._stream_once(request, on_chunk, tools)
+        for _ in range(self._retry_empty):
+            if response.text or response.tool_calls:
+                break
+            response = self._stream_once(request, on_chunk, tools)
+        return response
+
+    def _stream_once(
+        self,
+        request: AIRequest,
+        on_chunk: Callable[[str], None],
+        tools: list[ToolDefinition] | None,
+    ) -> AIResponse:
         try:
             import openai
         except ImportError as exc:
@@ -357,7 +397,7 @@ class OpenAICompatibleProvider(AIProvider):
             ) from exc
 
         api_key = self._resolve_api_key(request)
-        create_kwargs = _openai_create_kwargs(request, self.default_model, tools, self._temperature)
+        create_kwargs = _openai_create_kwargs(request, self.default_model, tools, self._temperature, self._max_tokens, self._frequency_penalty)
         create_kwargs["stream"] = True
 
         text_parts: list[str] = []
@@ -671,7 +711,7 @@ def build_default_providers(cli_path_resolver: Callable[[], str] | None = None, 
         "anthropic": AnthropicProvider(),
         "openai": OpenAICompatibleProvider("openai", default_model="gpt-4o-mini"),
         "ollama": OpenAICompatibleProvider(
-            "ollama", default_model="llama3.1", base_url="http://localhost:11434/v1", temperature=0.2
+            "ollama", default_model="llama3.1", base_url="http://localhost:11434/v1", temperature=0.2, max_tokens=1024, frequency_penalty=0.5, retry_empty=1
         ),
         "claude_cli": ClaudeCLIProvider(cli_path_resolver=cli_path_resolver),
         "cursor_cli": CursorCLIProvider(cli_path_resolver=cursor_path_resolver),

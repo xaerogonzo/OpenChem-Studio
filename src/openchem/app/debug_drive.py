@@ -9854,6 +9854,14 @@ class _Driver(QObject):
             if model:
                 request.model = model
             recorded.append((request, [tool.name for tool in tools] if tools else []))
+            capture = os.environ.get("OPENCHEM_DRIVE_CAPTURE")
+            if capture and len(recorded) == 1:
+                # The first request exactly as the provider is handed it, so a slow or runaway reply can be replayed against the server outside the application, under other settings.
+                Path(capture).write_text(json.dumps({
+                    "model": request.model, "system_context": request.system_context,
+                    "messages": [{"role": m.role, "content": m.content} for m in request.messages],
+                    "tools": [{"name": tool.name, "description": tool.description, "input_schema": tool.input_schema} for tool in (tools or [])],
+                }), encoding="utf-8")
             # What the tools just told the model (the messages after its last turn), so a report shows how it was answered, not only what it asked.
             for message in request.messages[-3:]:
                 if message.role == "tool":
@@ -9861,7 +9869,7 @@ class _Driver(QObject):
             response = original(request, on_chunk, tools)
             logger.warning(
                 "OPENCHEM_DRIVE: live %s/%s reply: tools=%s stop=%s text=%r",
-                name, request.model, [call.name for call in response.tool_calls], response.stop_reason, (response.text or "")[:300],
+                name, request.model, [call.name for call in response.tool_calls], response.stop_reason, (response.text or "")[:2000],
             )
             for call in response.tool_calls:
                 logger.warning("OPENCHEM_DRIVE: live tool call %s %s", call.name, call.input)
@@ -9873,6 +9881,44 @@ class _Driver(QObject):
         self._ai_provider = SimpleNamespace(requests=recorded)
         panel._input.setPlainText(str(step["text"]))
         panel._send_button.click()
+
+    def _do_ai_wait(self, step: dict[str, Any]) -> None:
+        """`{"do": "ai_wait", "timeout_ms": 400000, "quiet_ms": 1500, "after_ms": 500}` -- hold the script until the assistant has finished its turn: its Send button
+        is enabled again, steadily for `quiet_ms`.
+
+        **REPLACES A GUESSED `after_ms` AFTER A LIVE `ai_send`.** A real model's reply takes anywhere from seconds to minutes (a 14B local model: 10 s to 3 min), and the
+        next `ai_send` pressed while the loop is still running meets a disabled Send button and is lost. Giving up is an ERROR, which fails the run, never a silent move on.
+        """
+        import time
+
+        panel = self._ai_panel()
+        if panel is None:
+            return
+        self._ai_wait = {
+            "panel": panel, "started": time.monotonic(), "deadline": time.monotonic() + int(step.get("timeout_ms", 400000)) / 1000.0,
+            "quiet": int(step.get("quiet_ms", 1500)) / 1000.0, "quiet_since": None, "after_ms": int(step.get("after_ms", 500)),
+        }
+        self._hold_chain = True
+        self._poll_ai_wait()
+
+    def _poll_ai_wait(self) -> None:
+        import time
+
+        wait = self._ai_wait
+        busy = not wait["panel"]._send_button.isEnabled()
+        now = time.monotonic()
+        if busy:
+            wait["quiet_since"] = None
+        elif wait["quiet_since"] is None:
+            wait["quiet_since"] = now
+        timed_out = now >= wait["deadline"]
+        if timed_out or (wait["quiet_since"] is not None and now - wait["quiet_since"] >= wait["quiet"]):
+            logger.warning("OPENCHEM_DRIVE: ai_wait idle after %.1f s", now - wait["started"])
+            if timed_out and busy:
+                logger.error("OPENCHEM_DRIVE: ai_wait gave up after %.0f s with the assistant still working", now - wait["started"])
+            QTimer.singleShot(wait["after_ms"], self._window, self._run_next)
+            return
+        QTimer.singleShot(500, self._window, self._poll_ai_wait)
 
     def _do_ai_card(self, step: dict[str, Any]) -> None:
         """`{"do": "ai_card", "action": "approve" | "cancel" | "open" | "dismiss", "card": "score"}` -- press a REAL button on the

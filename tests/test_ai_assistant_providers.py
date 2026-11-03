@@ -401,10 +401,22 @@ def test_a_temperature_is_sent_only_where_a_provider_sets_one():
     assert providers_mod._openai_create_kwargs(request, "m", None, 0.0)["temperature"] == 0.0, "zero is a temperature, not 'unset'"
 
 
-def test_only_the_local_server_provider_asks_for_a_lower_temperature():
-    """A live qwen2.5:14b run at the server's default (0.8 on Ollama) invented about seventy settings for one calculator and answered in Thai; the real OpenAI provider is left as it was."""
+def test_only_the_local_server_provider_asks_for_a_lower_temperature_a_bound_and_a_repeat_penalty():
+    """A live qwen2.5:14b run at the server's default (0.8 on Ollama) invented about seventy settings for one calculator and answered in Thai, and at 0.2 alone 4 of 6 first turns ran away for 10 to 20
+    minutes; the real OpenAI provider is left as it was."""
     built = providers_mod.build_default_providers()
-    assert built["ollama"]._temperature == 0.2 and built["openai"]._temperature is None
+    local, hosted = built["ollama"], built["openai"]
+    assert (local._temperature, local._max_tokens, local._frequency_penalty) == (0.2, 1024, 0.5)
+    assert (hosted._temperature, hosted._max_tokens, hosted._frequency_penalty) == (None, None, None)
+
+
+def test_a_bound_and_a_penalty_are_sent_only_where_a_provider_sets_them():
+    request = providers_mod.AIRequest(system_context="ctx", messages=[], model="", api_key="k")
+    plain = providers_mod._openai_create_kwargs(request, "m", None)
+    assert "max_tokens" not in plain and "frequency_penalty" not in plain
+    set_ = providers_mod._openai_create_kwargs(request, "m", None, None, 1024, 0.5)
+    assert set_["max_tokens"] == 1024 and set_["frequency_penalty"] == 0.5 and "temperature" not in set_
+    assert providers_mod._openai_create_kwargs(request, "m", None, None, None, 0.0)["frequency_penalty"] == 0.0, "zero is a penalty, not 'unset'"
 
 
 def test_the_request_the_local_provider_streams_carries_its_temperature():
@@ -414,7 +426,8 @@ def test_the_request_the_local_provider_streams_carries_its_temperature():
     fake_client.chat.completions.create.return_value = iter([])
     with patch("openai.OpenAI", return_value=fake_client):
         provider.stream(request, lambda _text: None)
-    assert fake_client.chat.completions.create.call_args.kwargs["temperature"] == 0.2
+    kwargs = fake_client.chat.completions.create.call_args.kwargs
+    assert (kwargs["temperature"], kwargs["max_tokens"], kwargs["frequency_penalty"]) == (0.2, 1024, 0.5)
 
 
 def test_the_non_streaming_request_carries_the_temperature_too():
@@ -429,7 +442,8 @@ def test_the_non_streaming_request_carries_the_temperature_too():
     fake_client.chat.completions.create.return_value = fake_response
     with patch("openai.OpenAI", return_value=fake_client):
         provider.complete(request)
-    assert fake_client.chat.completions.create.call_args.kwargs["temperature"] == 0.2
+    kwargs = fake_client.chat.completions.create.call_args.kwargs
+    assert (kwargs["temperature"], kwargs["max_tokens"], kwargs["frequency_penalty"]) == (0.2, 1024, 0.5)
 
 
 # --- the Claude CLI takes this application's tools through a written protocol ---------------------------------------------------------------------------------
@@ -640,3 +654,60 @@ def test_a_cursor_error_is_an_error_with_its_own_words():
     provider = providers_mod.CursorCLIProvider(cli_path_resolver=lambda: "")
     with pytest.raises(providers_mod.AIProviderError, match="Cursor CLI exited with an error: Not logged in"):
         _run_cursor(provider, _cursor_request(), None, stdout="", returncode=1, stderr="Not logged in\n")
+
+
+# --- an empty reply from a local server is asked for again, once ---------------------------------------------------------------------------------------------
+
+
+def _stream_chunk(content=None, finish=None, tool_calls=None):
+    chunk = MagicMock()
+    chunk.choices = [MagicMock()]
+    chunk.choices[0].delta.content = content
+    chunk.choices[0].delta.tool_calls = tool_calls
+    chunk.choices[0].finish_reason = finish
+    return chunk
+
+
+def _stream_provider(retry, *replies):
+    """A provider whose server answers each call with the next of `replies` (a list of chunks); returns it and the client so calls can be counted."""
+    provider = providers_mod.OpenAICompatibleProvider("ollama", default_model="m", base_url="http://localhost:11434/v1", retry_empty=retry)
+    client = MagicMock()
+    client.chat.completions.create.side_effect = [iter(chunks) for chunks in replies]
+    return provider, client
+
+
+def _stream(provider, client):
+    request = providers_mod.AIRequest(system_context="ctx", messages=[], model="", api_key="")
+    received = []
+    with patch("openai.OpenAI", return_value=client):
+        response = provider.stream(request, received.append)
+    return response, received, client.chat.completions.create.call_count
+
+
+def test_an_empty_reply_is_asked_for_again_once_and_the_second_answer_is_used():
+    empty = [_stream_chunk(None, "stop")]
+    answer = [_stream_chunk("Water is H2O.", None), _stream_chunk(None, "stop")]
+    response, received, calls = _stream(*_stream_provider(1, empty, answer))
+    assert calls == 2 and response.text == "Water is H2O." and received == ["Water is H2O."]
+
+
+def test_an_empty_reply_twice_is_returned_empty_after_exactly_one_retry():
+    empty = [_stream_chunk(None, "stop")]
+    response, _received, calls = _stream(*_stream_provider(1, empty, empty, empty))
+    assert calls == 2 and response.text == "" and response.tool_calls == []
+
+
+def test_a_reply_that_is_only_a_tool_call_is_not_empty_and_is_not_asked_for_again():
+    fragment = MagicMock()
+    fragment.index, fragment.id = 0, "call-1"
+    fragment.function.name, fragment.function.arguments = "run_calculator", "{}"
+    response, _received, calls = _stream(*_stream_provider(1, [_stream_chunk(None, "tool_calls", [fragment])]))
+    assert calls == 1 and [c.name for c in response.tool_calls] == ["run_calculator"]
+
+
+def test_a_hosted_provider_does_not_retry_and_only_the_local_one_is_set_to():
+    empty = [_stream_chunk(None, "stop")]
+    _response, _received, calls = _stream(*_stream_provider(0, empty))
+    assert calls == 1
+    built = providers_mod.build_default_providers()
+    assert built["ollama"]._retry_empty == 1 and built["openai"]._retry_empty == 0
