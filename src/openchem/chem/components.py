@@ -17,11 +17,19 @@ sources. Two decisions here are ours, and both follow the paper's text:
   isotopic; run on one component the function also neutralises it, which
   would silently turn glycine drawn as a zwitterion into NCC(=O)O.
 - when ChEMBL's rule keeps more than one component -- every component listed
-  (sodium acetate, NaCl) or none (choline salicylate) -- the calculator is
-  REFUSED rather than handed the mixture, and when its exclusion flag is set
-  (a transition metal, or more than seven borons) it is refused too. ChEMBL
-  itself registers such a parent as the mixture; a property model has
-  nothing honest to say about one.
+  (sodium acetate) or none (choline salicylate) -- the calculator is handed
+  the LARGEST component, re-neutralised, and the answer says so (`Selection.note`,
+  recorded as the result's `caveat` and its first limitation). ChEMBL itself
+  registers such a parent as the mixture, and a property model has nothing
+  honest to say about a mixture, so the mixture is never what is computed;
+  but refusing left a person with nothing for sodium acetate, where the
+  organic ion is plainly the species meant (Alex, 2026-10-25: a calculator
+  refuses what it cannot compute, and labels the rest). Two cases STILL
+  refuse, because there is no species to hand over: components of equal size
+  that are different species (NaCl, a mixture of two small organics), and
+  ChEMBL's exclusion flag (a transition metal, or more than seven borons),
+  where the ligand ions' properties would describe a different compound from
+  the complex that was drawn.
 """
 
 from __future__ import annotations
@@ -47,6 +55,11 @@ from openchem.domain.calculator import (
 #: it, through `drawing_label`, so the number it prints is the one on the user's drawing.
 DRAWING_INDEX_PROP = "ocs_drawing_index"
 
+#: How close the second-largest species must come to the largest (in heavy atoms, as a fraction of the largest)
+#: for the label to say the choice is close and so a guess. Choline salicylate (7 and 10) is the case that
+#: sets it; sodium acetate (1 and 4) is not. It changes a sentence, never which component is taken.
+COMPARABLE_SIZE = 0.5
+
 
 @dataclass(frozen=True)
 class Selection:
@@ -60,6 +73,11 @@ class Selection:
     components: tuple[int, ...]
     #: Canonical SMILES of the ChEMBL parent, when one was taken.
     parent_smiles: str = ""
+    #: What the reader must be told about how the components were chosen, when it was a choice and not ChEMBL's
+    #: rule (the largest component of a drawing with no single parent). Empty otherwise.
+    note: str = ""
+    #: Canonical SMILES of the drawing's components that were left out, when `note` is set.
+    left_out: tuple[str, ...] = ()
 
 
 def drawing_index(atom: Chem.Atom) -> int:
@@ -112,14 +130,7 @@ def _chembl_parent(mol: Chem.Mol, name: str) -> Selection:
         )
     parent_fragments = Chem.GetMolFrags(parent)
     if len(parent_fragments) > 1:
-        raise _refuse(
-            MULTICOMPONENT_UNSUPPORTED,
-            "Mixture: no single parent",
-            f"{name} is computed on the parent compound, and ChEMBL's rule leaves "
-            f"{len(parent_fragments)} components here: either every component is a listed salt "
-            "(as in sodium acetate or NaCl) or none is (as in choline salicylate). Draw the one "
-            "species you mean.",
-        )
+        return _largest_component(mol, fragments, parent)
     # WHICH drawing component the parent is. The vendored function returns a
     # copy of one input fragment, neutralised; neutralising moves hydrogens
     # and charges but never heavy atoms, so the component whose heavy-atom
@@ -137,6 +148,83 @@ def _chembl_parent(mol: Chem.Mol, name: str) -> Selection:
         drawing_atoms=drawing_atoms,
         components=(component,),
         parent_smiles=Chem.MolToSmiles(parent),
+    )
+
+
+def _largest_component(mol: Chem.Mol, fragments: tuple[tuple[int, ...], ...], parent: Chem.Mol) -> Selection:
+    """The drawing's largest component, when ChEMBL's rule leaves several; else the refusal.
+
+    **RE-NEUTRALISED, AND SAID SO.** ChEMBL's rule re-neutralises the one component left once the counter-ions
+    are gone (sodium phenolate's parent is phenol), and the panel's controls for these salts are the neutral
+    acids. Computed on the trianion as drawn, citrate's Crippen logP was -5.25: a model fitted on neutral
+    molecules has nothing to say about the ion, and the number would have been the lie. The label names the
+    drawn species and the one computed. A permanent charge (choline) stays, as `uncharge_mol` leaves it.
+
+    **EXCEPT WHEN THE STRUCTURE HAS 3D COORDINATES**: neutralising adds a hydrogen with no position, and the 3D
+    calculators (partial charges from the conformer) rightly refuse a hydrogen that is not an atom -- the census
+    found `geometry_partial_charge` refusing sodium acetate that way. A conformer's component is kept as drawn,
+    which is also what those calculators describe, and the label says so. **"3D" MATTERS**: the application's own
+    molecule comes from a molblock and so carries the drawing's 2D coordinates, and the first version of this check
+    ("has a conformer") fired on every drawing and computed sodium acetate as the ion (logP -1.24, not acetic
+    acid's 0.09); only the real window showed it.
+
+    Candidates are the components ChEMBL kept (a listed solvent it removed stays removed), matched back to the
+    drawing by element sequence exactly as the single-parent path does. Size is heavy atoms. Two identical
+    components (calcium acetate's anions) are one species; two different species of the largest size have no
+    larger one, and that refuses.
+    """
+    from openchem.vendor.chembl_structure_pipeline.getparent import uncharge_mol
+
+    kept = [[a.GetAtomicNum() for a in f.GetAtoms()] for f in Chem.GetMolFrags(parent, asMols=True, sanitizeFrags=False)]
+    pieces = Chem.GetMolFrags(mol, asMols=True)
+    candidates: list[tuple[int, int, str]] = []  # (component, heavy atoms, canonical SMILES as drawn)
+    taken: set[int] = set()
+    for sequence in kept:
+        for component, atoms in enumerate(fragments):
+            if component not in taken and [mol.GetAtomWithIdx(i).GetAtomicNum() for i in atoms] == sequence:
+                taken.add(component)
+                candidates.append((component, pieces[component].GetNumHeavyAtoms(), Chem.MolToSmiles(pieces[component])))
+                break
+    candidates.sort(key=lambda c: -c[1])
+    component, size, smiles = candidates[0]
+    rivals = sorted({s for _c, n, s in candidates if n == size and s != smiles})
+    if rivals:
+        raise _refuse(
+            MULTICOMPONENT_UNSUPPORTED,
+            "Mixture: no single parent",
+            f"This drawing has {len(fragments)} components and ChEMBL's parent rule leaves "
+            f"{len(candidates)}, and the largest are different species of the same size "
+            f"({', '.join([smiles, *rivals])}), so none of them is the one meant. Draw the one species you mean.",
+        )
+    neutral = uncharge_mol(Chem.Mol(pieces[component]))
+    Chem.SanitizeMol(neutral)  # `uncharge_mol` only updates the property cache; see `_chembl_parent`
+    would_change = Chem.MolToSmiles(neutral) != smiles
+    keep_as_drawn = would_change and any(conformer.Is3D() for conformer in pieces[component].GetConformers())
+    chosen = Chem.Mol(pieces[component]) if keep_as_drawn else neutral
+    computed = Chem.MolToSmiles(chosen)
+    left_out = tuple(sorted(Chem.MolToSmiles(p) for i, p in enumerate(pieces) if i != component))
+    others = ", ".join(sorted(set(left_out) - {smiles})) or "only further copies of the same species"
+    close = [n for _c, n, s in candidates if s != smiles and n >= COMPARABLE_SIZE * size and n > 1]
+    note = (
+        f"Computed on {computed}"
+        + (f" (the drawn {smiles}, neutralised)" if would_change and not keep_as_drawn else "")
+        + (" (as drawn in the 3D structure, not neutralised, since a hydrogen cannot be added without a position)" if keep_as_drawn else "")
+        + f", the largest of this drawing's {len(fragments)} components ({size} heavy atoms). "
+        f"ChEMBL's parent rule leaves no single parent here, so the components were not combined; not included: {others}. "
+        + (
+            f"The next largest has {max(close)} heavy atoms, close in size, so this is a guess at the species meant. "
+            if close
+            else ""
+        )
+        + "Draw the one species you mean to compute on it."
+    )
+    return Selection(
+        mol=_stamp(chosen, tuple(fragments[component])),
+        drawing_atoms=tuple(fragments[component]),
+        components=(component,),
+        parent_smiles=computed,
+        note=note,
+        left_out=left_out,
     )
 
 
@@ -178,6 +266,9 @@ def scope_parameters(scope: CalculatorScope, selection: Selection) -> dict[str, 
     }
     if selection.parent_smiles:
         recorded["parent_smiles"] = selection.parent_smiles
+    if selection.note:
+        recorded["component_choice"] = "largest"
+        recorded["components_left_out"] = list(selection.left_out)
     return recorded
 
 
@@ -210,9 +301,15 @@ def read_back(result: Any, scope: CalculatorScope, selection: Selection) -> Any:
         changes["values"] = {selection.drawing_atoms[i]: v for i, v in result.values.items()}
     provenance = getattr(result, "provenance", None)
     if provenance is not None:
-        changes["provenance"] = replace(
-            provenance, parameters={**provenance.parameters, **scope_parameters(scope, selection)}
-        )
+        parameters = {**provenance.parameters, **scope_parameters(scope, selection)}
+        if selection.note:
+            # The producer's own caveat, if it recorded one, follows ours: this is the one that says WHAT was computed.
+            earlier = parameters.get("caveat")
+            parameters["caveat"] = f"{selection.note} {earlier}" if isinstance(earlier, str) and earlier.strip() else selection.note
+        changes["provenance"] = replace(provenance, parameters=parameters)
+    limitations = getattr(result, "limitations", None)
+    if selection.note and isinstance(limitations, tuple):
+        changes["limitations"] = (selection.note, *limitations)
     return replace(result, **changes) if changes else result
 
 

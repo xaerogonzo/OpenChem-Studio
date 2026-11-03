@@ -58,6 +58,7 @@ from openchem.domain.score_editor import (
 )
 from openchem.domain.score_formula import MAX_CHARACTERS, MAX_INPUTS, FormulaError
 from openchem.domain.score_value import ScoreStatus, ScoreValue
+from openchem.ui import theme
 from openchem.ui.widgets.help_tooltip import HelpTooltip, apply_help_tooltip
 
 #: The help topic and anchor every control of this window points at (`docs/USER_GUIDE.md`).
@@ -391,7 +392,7 @@ class ScoreDialog(QDialog):
         apply_help_tooltip(self._formula, _FORMULA_HELP)
         self._pointer = QLabel("", self)
         self._pointer.setFont(QFontDatabase.systemFont(QFontDatabase.SystemFont.FixedFont))
-        self._pointer.setStyleSheet(f"color: {_BAD_COLOUR};")
+        theme.style(self._pointer, f"color: {_BAD_COLOUR};")
         self._unit = QLineEdit("1", self)
         self._unit.setObjectName("scoreUnit")
         self._unit.setMaximumWidth(160)
@@ -611,11 +612,11 @@ class ScoreDialog(QDialog):
         self._shown_as.setText(f"{SHOWN_AS} {draft.label.strip() or '(no name yet)'} {DISPLAY_SUFFIX}")
         if result.ok:
             self._message.setText(result.message)
-            self._message.setStyleSheet(f"color: {_OK_COLOUR};")
+            theme.style(self._message, f"color: {_OK_COLOUR};")
         else:
             where = _FIELD_NAMES.get(result.where, "")
             self._message.setText(f"{where}: {result.message}" if where else result.message)
-            self._message.setStyleSheet(f"color: {_BAD_COLOUR};" if result.problem else "")
+            theme.style(self._message, f"color: {_BAD_COLOUR};" if result.problem else "")
         pointing = result.position is not None and result.where == "formula"
         self._pointer.setText(pointer_lines(draft.formula, result.position) if pointing else "")
         self._caret = len(self._pointer.text().rpartition("\n")[2]) - 1 if pointing else None
@@ -629,9 +630,9 @@ class ScoreDialog(QDialog):
     def _mark_fields(self, result: DraftCheck) -> None:
         marked = {"label": self._label, "formula": self._formula, "unit": self._unit, "owner": self._owner}
         for where, edit in marked.items():
-            edit.setStyleSheet(f"border: 1px solid {_BAD_COLOUR};" if result.where == where and not result.ok else "")
-        self._inputs_host.setStyleSheet(f"QFrame#scoreInputs {{ border: 1px solid {_BAD_COLOUR}; }}" if result.where == "inputs" else "")
-        self._constants_host.setStyleSheet(f"QFrame#scoreConstants {{ border: 1px solid {_BAD_COLOUR}; }}" if result.where == "constants" else "")
+            theme.style(edit, f"border: 1px solid {_BAD_COLOUR};" if result.where == where and not result.ok else "")
+        theme.style(self._inputs_host, f"QFrame#scoreInputs {{ border: 1px solid {_BAD_COLOUR}; }}" if result.where == "inputs" else "")
+        theme.style(self._constants_host, f"QFrame#scoreConstants {{ border: 1px solid {_BAD_COLOUR}; }}" if result.where == "constants" else "")
 
     def _show_preview(self, result: DraftCheck, draft: Draft) -> None:
         self._preview.setText("")
@@ -823,7 +824,7 @@ class ScoreDialog(QDialog):
         except (FormulaError, ValueError, KeyError) as exc:
             text = exc.message if isinstance(exc, FormulaError) else str(exc)
             self._message.setText(text)
-            self._message.setStyleSheet(f"color: {_BAD_COLOUR};")
+            theme.style(self._message, f"color: {_BAD_COLOUR};")
             return None
         self._current_id = made.score_id
         self.refresh()

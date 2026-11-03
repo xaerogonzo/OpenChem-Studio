@@ -20,6 +20,7 @@ from PySide6.QtCore import QPointF, QRectF, Qt, Signal
 from PySide6.QtGui import QColor, QPainter, QPen
 from PySide6.QtWidgets import QWidget
 
+from openchem.ui import theme
 from openchem.ui.picture_export import show_picture_menu
 from openchem.ui.widgets.plot_zoom import is_full_span, zoomed_window
 
@@ -76,6 +77,7 @@ class ScatterPlotWidget(QWidget):
         parent: QWidget | None = None,
     ) -> None:
         super().__init__(parent)
+        theme.repaint_on_change(self)
         self._points: list[ScatterPoint] = list(points or [])
         self._x_label = x_label
         self._y_label = y_label
@@ -249,7 +251,7 @@ class ScatterPlotWidget(QWidget):
         painter = QPainter(self)
         painter.setRenderHint(QPainter.RenderHint.Antialiasing)
         rect = self._plot_rect()
-        painter.setPen(QPen(QColor(120, 120, 120)))
+        painter.setPen(QPen(theme.ink(QColor(120, 120, 120))))
         painter.drawRect(rect)
         if not self._points:
             painter.drawText(rect, Qt.AlignmentFlag.AlignCenter, self._empty_message)
@@ -270,14 +272,14 @@ class ScatterPlotWidget(QWidget):
 
     def _draw_axes(self, painter: QPainter, rect: QRectF, ranges) -> None:
         x_min, x_max, y_min, y_max = ranges
-        painter.setPen(QPen(QColor(226, 226, 226)))
+        painter.setPen(QPen(theme.faint(QColor(226, 226, 226))))
         for step in range(6):
             fraction = step / 5.0
             x = rect.left() + fraction * rect.width()
             y = rect.bottom() - fraction * rect.height()
             painter.drawLine(QPointF(x, rect.top()), QPointF(x, rect.bottom()))
             painter.drawLine(QPointF(rect.left(), y), QPointF(rect.right(), y))
-        painter.setPen(QPen(QColor(90, 90, 90)))
+        painter.setPen(QPen(theme.ink(QColor(90, 90, 90))))
         for step in range(6):
             fraction = step / 5.0
             x = rect.left() + fraction * rect.width()
@@ -292,7 +294,7 @@ class ScatterPlotWidget(QWidget):
                 Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter,
                 _tick(y_min + fraction * (y_max - y_min)),
             )
-        painter.setPen(QPen(QColor(55, 55, 55)))
+        painter.setPen(QPen(theme.ink(QColor(55, 55, 55))))
         painter.drawText(
             QRectF(0, self.height() - 21, self.width(), 18),
             Qt.AlignmentFlag.AlignCenter,
@@ -314,7 +316,7 @@ class ScatterPlotWidget(QWidget):
             return
         slope, intercept = self._fit
         x_min, x_max, _y_min, _y_max = ranges
-        painter.setPen(QPen(QColor(200, 60, 60), 1.5, Qt.PenStyle.DashLine))
+        painter.setPen(QPen(theme.ink(QColor(200, 60, 60)), 1.5, Qt.PenStyle.DashLine))
         painter.drawLine(
             self._to_widget(x_min, slope * x_min + intercept, rect, ranges),
             self._to_widget(x_max, slope * x_max + intercept, rect, ranges),
@@ -324,7 +326,7 @@ class ScatterPlotWidget(QWidget):
         painter.setPen(Qt.PenStyle.NoPen)
         for point in self._points:
             colour = (
-                _UNGROUPED if point.group is None else _GROUP_COLORS[point.group % len(_GROUP_COLORS)]
+                theme.ink(_UNGROUPED if point.group is None else _GROUP_COLORS[point.group % len(_GROUP_COLORS)])
             )
             painter.setBrush(colour)
             painter.drawEllipse(
@@ -335,7 +337,7 @@ class ScatterPlotWidget(QWidget):
     def _draw_caption(self, painter: QPainter, rect: QRectF) -> None:
         if not self._caption:
             return
-        painter.setPen(QPen(QColor(40, 40, 40)))
+        painter.setPen(QPen(theme.ink(QColor(40, 40, 40))))
         painter.drawText(
             QRectF(rect.left(), 4, rect.width(), self._MARGIN_TOP - 6),
             Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter,
@@ -347,7 +349,7 @@ class ScatterPlotWidget(QWidget):
             return
         point = self._points[self._hover_index]
         centre = self._to_widget(point.x, point.y, rect, ranges)
-        painter.setPen(QPen(QColor(30, 30, 30), 1.5))
+        painter.setPen(QPen(theme.ink(QColor(30, 30, 30)), 1.5))
         painter.setBrush(Qt.BrushStyle.NoBrush)
         painter.drawEllipse(centre, self._POINT_RADIUS + 3, self._POINT_RADIUS + 3)
         text = point.label or f"({point.x:.4g}, {point.y:.4g})"
@@ -355,7 +357,7 @@ class ScatterPlotWidget(QWidget):
         # on the last molecule is not clipped off the plot.
         width = 200.0
         left = centre.x() + 10 if centre.x() + 10 + width < rect.right() else centre.x() - 10 - width
-        painter.setPen(QPen(QColor(20, 20, 20)))
+        painter.setPen(QPen(theme.ink(QColor(20, 20, 20))))
         painter.drawText(
             QRectF(left, centre.y() - 9, width, 18),
             Qt.AlignmentFlag.AlignVCenter

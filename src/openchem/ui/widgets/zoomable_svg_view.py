@@ -28,6 +28,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from openchem.ui import theme
 from openchem.ui.widgets.help_tooltip import HelpTooltip, apply_help_tooltip
 
 #: FOUR CONTROLS, TWO RENDERINGS EACH -- the decay chart and the Lewis
@@ -107,6 +108,7 @@ class ZoomableSvgView(QWidget):
         self._fallback = QSize(*fallback_size)
 
         self._view = QSvgWidget(self)
+        theme.paper(self._view)
         self._scroll = QScrollArea(self)
         # **NOT resizable**, which is the whole point: the child keeps the
         # size the zoom gives it and the area scrolls, instead of the

@@ -224,8 +224,8 @@ def test_the_committed_pins_are_what_the_split_uses():
     assert all(placed[name] == shard for name, shard in pins.items() if name in placed)
 
 
-@pytest.mark.parametrize("table", [2, 3, 4])
-@pytest.mark.parametrize("splits", [1, 2, 3, 4, 5])
+@pytest.mark.parametrize("table", [2, 3, 4, 5])
+@pytest.mark.parametrize("splits", [1, 2, 3, 4, 5, 6])
 def test_pinned_assignment_is_still_an_exact_partition(splits, table):
     """Pins made for one shard count must never drop a file when asked for another: an out-of-range pin is
     ignored, not obeyed. Every committed table is checked (the 2-way one is kept for the crash-rate workflow,

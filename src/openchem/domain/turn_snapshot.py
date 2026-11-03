@@ -37,10 +37,14 @@ from collections.abc import Iterable, Mapping
 from dataclasses import dataclass
 from enum import Enum
 from types import MappingProxyType
+from typing import TYPE_CHECKING
 
 from openchem.domain import result_status as rs
 from openchem.domain.result_store import StoredResult
 from openchem.domain.score_definition import ScoreDefinition
+
+if TYPE_CHECKING:
+    from openchem.domain.quantum_run_snapshot import RunEntry
 
 
 class Freshness(str, Enum):
@@ -149,6 +153,8 @@ class TurnContext:
     entries: tuple[ResultEntry, ...] = ()
     #: The project's score definitions as they were when the turn began, in the order they were made.
     scores: tuple[ScoreDefinition, ...] = ()
+    #: The molecule's stored ORCA runs as they were when the turn began (`domain/quantum_run_snapshot.py`), classified like results: current first, then newest first. Held beside the results because a run is not one.
+    runs: tuple[RunEntry, ...] = ()
 
     def entries_for(self, key: str) -> tuple[ResultEntry, ...]:
         """Records made by calculator `key`, or carrying result id `key` (the always-on set)."""
@@ -168,6 +174,7 @@ def build_turn_context(
     records: Iterable[StoredResult],
     fresh: Iterable[StoredResult],
     scores: Iterable[ScoreDefinition] = (),
+    runs: Iterable[RunEntry] = (),
 ) -> TurnContext:
     frozen = dict(fingerprints)
     return TurnContext(
@@ -182,6 +189,7 @@ def build_turn_context(
         fingerprints=MappingProxyType(frozen),
         entries=classify_results(records, fresh, frozen),
         scores=tuple(scores),
+        runs=tuple(runs),
     )
 
 

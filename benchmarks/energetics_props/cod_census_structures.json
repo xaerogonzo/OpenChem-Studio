@@ -1,0 +1,137 @@
+{
+ "by_components": {
+  "ionic": 1161,
+  "multi": 9176,
+  "single": 29088,
+  "single_by_geometry": 9819,
+  "unknown": 6430
+ },
+ "candidates_classified": 55674,
+ "caveats": [
+  "entries, not compounds: repeat determinations are counted; the distinct-formula figure is a floor",
+  "a group present is not an energetic material; C-nitro is one count (nitroaromatic vs nitroaliphatic needs bond orders)",
+  "n_rich_heterocycle (a ring with two or more nitrogens) is dominated by ordinary heterocycles and is NOT counted as explosophoric",
+  "connectivity from Open Babel only: its bond orders were measured unusable, so no pattern depends on them",
+  "single_component = the CIF's moiety formula lists one uncharged component (single) or, with no moiety, a whole molecule with exactly the header formula exists in the cell (single_by_geometry)",
+  "candidates require nitrogen: organic peroxides without nitrogen are not looked for",
+  "no disorder, polymorph, hydrate or fit-quality review has been applied; COD overlaps the CSD"
+ ],
+ "errors": 0,
+ "explosophore_families": [
+  "nitrate_ester",
+  "nitramine",
+  "c_nitro",
+  "azide"
+ ],
+ "families": {
+  "all_candidates": {
+   "ANY explosophore group (nitrate ester, nitramine, C-nitro or azide)": {
+    "distinct_formulas": 4315,
+    "distinct_formulas_with_R_at_most_0.07": 3563,
+    "entries": 5573,
+    "entries_with_R_at_most_0.07": 4514
+   },
+   "azide": {
+    "distinct_formulas": 207,
+    "distinct_formulas_with_R_at_most_0.07": 164,
+    "entries": 228,
+    "entries_with_R_at_most_0.07": 175
+   },
+   "c_nitro": {
+    "distinct_formulas": 3949,
+    "distinct_formulas_with_R_at_most_0.07": 3257,
+    "entries": 5138,
+    "entries_with_R_at_most_0.07": 4161
+   },
+   "halogenated": {
+    "distinct_formulas": 9413,
+    "distinct_formulas_with_R_at_most_0.07": 7657,
+    "entries": 11773,
+    "entries_with_R_at_most_0.07": 9509
+   },
+   "n_rich_heterocycle": {
+    "distinct_formulas": 11782,
+    "distinct_formulas_with_R_at_most_0.07": 9466,
+    "entries": 15083,
+    "entries_with_R_at_most_0.07": 11991
+   },
+   "nitramine": {
+    "distinct_formulas": 158,
+    "distinct_formulas_with_R_at_most_0.07": 140,
+    "entries": 175,
+    "entries_with_R_at_most_0.07": 153
+   },
+   "nitrate_ester": {
+    "distinct_formulas": 28,
+    "distinct_formulas_with_R_at_most_0.07": 21,
+    "entries": 32,
+    "entries_with_R_at_most_0.07": 25
+   },
+   "other_organic": {
+    "distinct_formulas": 12718,
+    "distinct_formulas_with_R_at_most_0.07": 10273,
+    "entries": 23245,
+    "entries_with_R_at_most_0.07": 18293
+   }
+  },
+  "single_component": {
+   "ANY explosophore group (nitrate ester, nitramine, C-nitro or azide)": {
+    "distinct_formulas": 3005,
+    "distinct_formulas_with_R_at_most_0.07": 2518,
+    "entries": 3973,
+    "entries_with_R_at_most_0.07": 3251
+   },
+   "azide": {
+    "distinct_formulas": 180,
+    "distinct_formulas_with_R_at_most_0.07": 142,
+    "entries": 198,
+    "entries_with_R_at_most_0.07": 153
+   },
+   "c_nitro": {
+    "distinct_formulas": 2752,
+    "distinct_formulas_with_R_at_most_0.07": 2316,
+    "entries": 3668,
+    "entries_with_R_at_most_0.07": 3012
+   },
+   "halogenated": {
+    "distinct_formulas": 5909,
+    "distinct_formulas_with_R_at_most_0.07": 5037,
+    "entries": 7709,
+    "entries_with_R_at_most_0.07": 6479
+   },
+   "n_rich_heterocycle": {
+    "distinct_formulas": 7553,
+    "distinct_formulas_with_R_at_most_0.07": 6357,
+    "entries": 10113,
+    "entries_with_R_at_most_0.07": 8324
+   },
+   "nitramine": {
+    "distinct_formulas": 69,
+    "distinct_formulas_with_R_at_most_0.07": 56,
+    "entries": 79,
+    "entries_with_R_at_most_0.07": 64
+   },
+   "nitrate_ester": {
+    "distinct_formulas": 24,
+    "distinct_formulas_with_R_at_most_0.07": 18,
+    "entries": 28,
+    "entries_with_R_at_most_0.07": 22
+   },
+   "other_organic": {
+    "distinct_formulas": 8692,
+    "distinct_formulas_with_R_at_most_0.07": 7230,
+    "entries": 17112,
+    "entries_with_R_at_most_0.07": 13757
+   }
+  }
+ },
+ "family_order": [
+  "nitrate_ester",
+  "nitramine",
+  "c_nitro",
+  "azide",
+  "n_rich_heterocycle",
+  "halogenated",
+  "other_organic"
+ ]
+}

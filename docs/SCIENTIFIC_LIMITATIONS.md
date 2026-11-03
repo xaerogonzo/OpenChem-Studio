@@ -1252,24 +1252,37 @@ listed counter-ions and solvents removed, the rest re-neutralised. The
 **formula, full molecular weight, exact mass and net charge** describe the
 whole drawing, as ChEMBL's own FULL_MWT and FULL_MOLFORMULA do. Each result
 records which components it used (`components_used`, and `parent_smiles`
-when a parent was taken). What that leaves out, measured on the panel in
+when a parent was taken; `component_choice` and `components_left_out` when it
+had to choose, below). What that leaves out, measured on the panel in
 `tests/fixtures/multicomponent_panel.toml`:
 
-- **A salt with no single parent gets no compound properties.** ChEMBL strips
-  nothing when EVERY component is on its salt list, and nothing when NONE
-  is, so there is no one species to describe. On the panel that is sodium
-  acetate, potassium benzoate, lithium propanoate, calcium acetate,
-  magnesium succinate, trisodium citrate, sodium benzenesulfonate and NaCl
-  (every component listed) and choline salicylate (none listed). Those
-  properties refuse with `MULTICOMPONENT_UNSUPPORTED`; the formula and
-  weight still appear. For a metal cation beside a listed organic anion the
-  organic ion is almost certainly the species meant, and a rule for that
-  case -- or a way to name the component yourself -- is the open fix. Until
-  then, draw the species you mean (acetic acid, or acetate alone).
-- **A transition-metal structure drawn as ions has no parent either.**
-  ChEMBL's exclusion flag (a transition metal, or more than seven borons)
-  refuses it with `METAL_CONTAINING_UNSUPPORTED`; ferrocene drawn as
-  Fe2+ and two cyclopentadienides is the panel's case.
+- **A drawing with no single parent is computed on its largest component,
+  and the result says so.** ChEMBL strips nothing when EVERY component is on
+  its salt list, and nothing when NONE is, so its rule names no one species.
+  Until 2026-10-25 those compound properties were refused. They are now
+  computed on the component with the most heavy atoms, re-neutralised the way
+  ChEMBL's own parent is (sodium phenolate's is phenol), so sodium acetate
+  gets acetic acid's numbers. The result's first limitation, its `caveat` and
+  its record name the drawn ion, the neutral form computed and everything left
+  out; the formula and weight still describe the whole drawing. On the panel
+  that is sodium acetate, potassium benzoate, lithium propanoate, calcium
+  acetate, magnesium succinate, trisodium citrate, sodium benzenesulfonate and
+  choline salicylate. **It is a guess at the species meant.** It is right for
+  a metal cation beside an organic anion, and a coin toss when two organics are
+  close in size (choline salicylate: 7 and 10 heavy atoms), which the label
+  says in so many words whenever the runner-up has at least half the largest
+  one's heavy atoms. It never combines the components. It is neutralised
+  because the ion as drawn gave a wrong number: the citrate trianion's Crippen
+  logP is -5.25, citric acid's -1.25. Draw the one species you mean to compute
+  on it; naming the component inside the application is not built.
+- **Still refused: no larger component, and a transition-metal structure drawn
+  as ions.** NaCl, calcium chloride (two one-atom species) and two unlisted
+  organics of one size (naphthalene beside quinoline) have no larger
+  component, and refuse with `MULTICOMPONENT_UNSUPPORTED`. ChEMBL's exclusion
+  flag (a transition metal, or more than seven borons) refuses with
+  `METAL_CONTAINING_UNSUPPORTED`: ferrocene drawn as Fe2+ and two
+  cyclopentadienides is the panel's case, and the ligand ions' numbers would
+  describe a different compound from the complex that was drawn.
 - **Solubility, Joback and Hansen refuse anything with more than one
   component, hydrates included.** Their reason is about salts (a salt is a
   different substance from its parent, with its own solubility and boiling

@@ -21,6 +21,8 @@ the same number.
 
 from __future__ import annotations
 
+import shiboken6
+from PySide6.QtCore import QEvent, Qt, QTimer
 from PySide6.QtWidgets import (
     QCheckBox,
     QComboBox,
@@ -30,6 +32,7 @@ from PySide6.QtWidgets import (
     QHBoxLayout,
     QLabel,
     QListWidget,
+    QListWidgetItem,
     QMessageBox,
     QPushButton,
     QSpinBox,
@@ -39,6 +42,8 @@ from PySide6.QtWidgets import (
 )
 
 from openchem.app.settings import (
+    APPEARANCE,
+    PLAIN_ENGLISH,
     CONFORMER_EARLY_STOP,
     CONFORMER_KEEP_OPTIMIZED,
     CONFORMER_OPTIMIZE_LOWEST,
@@ -47,6 +52,7 @@ from openchem.app.settings import (
     DRAWING_BOND_KEYS,
     FUKUI_ANION_F_PLUS,
     FUKUI_CATION_SEARCH,
+    INTERFACE_SIZE,
     MAX_REVISIONS_KEPT,
     PSI4_MEMORY_GB,
     PSI4_THREADS,
@@ -59,11 +65,18 @@ from openchem.app.settings import (
     Preference,
     Settings,
 )
+from openchem.domain.appearance import Appearance, appearance_from_stored
+from openchem.domain.interface_size import InterfaceSize, interface_size_from_stored
 from openchem.domain.recalc_policy import RecalcMode
+from openchem.events.events import SettingsChanged
+from openchem.ui import theme
 from openchem.ui.dialogs.calculator_visibility_page import CalculatorVisibilityPage
 from openchem.ui.dialogs.external_tools_pages import ExternalToolsPages
 from openchem.ui.dialogs.keyboard_shortcuts_page import KeyboardShortcutsPage
 from openchem.ui.widgets.help_tooltip import HelpTooltip, apply_help_tooltip
+
+#: Section id of the colour scheme: light, dark, or follow the system.
+APPEARANCE_SECTION = "appearance"
 
 #: Section id of how the rail treats panels. Callers open the window at a
 #: section by id, never by its label, which is display text.
@@ -100,19 +113,48 @@ FILE_DIALOGS = "file_dialogs"
 EXTERNAL_TOOLS = "external_tools"
 
 #: Every section, in the order the list shows them, with its label.
+#:
+#: Two runs, each A-Z: how the WINDOW looks and behaves (Appearance first, a test holds it there), then
+#: how CALCULATIONS run. It used to be the order the pages were written in, which put Keyboard between
+#: Calculators and Drawing.
 SECTIONS = (
+    (APPEARANCE_SECTION, "Appearance"),
+    (DRAWING, "Drawing"),
+    (FILE_DIALOGS, "File dialogs"),
+    (KEYBOARD, "Keyboard"),
     (PANELS, "Panels"),
     (RECOVERY, "Recovery"),
+    (CALCULATORS, "Calculators"),
+    (CONFORMERS, "Conformers"),
+    (EXTERNAL_TOOLS, "External tools"),
+    (QUANTUM_CHEMISTRY, "Quantum chemistry"),
     (RECALCULATION, "Recalculation"),
     (RESULTS, "Results"),
-    (CALCULATORS, "Calculators"),
-    (KEYBOARD, "Keyboard"),
-    (DRAWING, "Drawing"),
-    (CONFORMERS, "Conformers"),
-    (QUANTUM_CHEMISTRY, "Quantum chemistry"),
-    (FILE_DIALOGS, "File dialogs"),
-    (EXTERNAL_TOOLS, "External tools"),
 )
+
+#: How the list is PRESENTED: a heading over each run of sections. `SECTIONS` stays the one list of pages and
+#: ids; this only says which heading each id sits under, and `tests/test_settings_section_headings.py` holds
+#: the two together (every id once, none invented, none left out).
+SECTION_GROUPS = (
+    ("Window", (APPEARANCE_SECTION, DRAWING, FILE_DIALOGS, KEYBOARD, PANELS, RECOVERY)),
+    ("Calculations", (CALCULATORS, CONFORMERS, EXTERNAL_TOOLS, QUANTUM_CHEMISTRY, RECALCULATION, RESULTS)),
+)
+
+class _SectionList(QListWidget):
+    """The section list, with Home going to the first SECTION: row 0 is a heading, which cannot be current."""
+
+    def keyPressEvent(self, event) -> None:  # noqa: N802 - Qt override
+        if event.key() == Qt.Key.Key_Home and not event.modifiers():
+            for row in range(self.count()):
+                if self.item(row).flags() & Qt.ItemFlag.ItemIsSelectable:
+                    self.setCurrentRow(row)
+                    return
+        super().keyPressEvent(event)
+
+
+#: The item data that makes a list row a SECTION. A heading carries none, and nothing resolves a page from a
+#: row number: with headings in the list the row of a section is no longer its place in `SECTIONS`.
+SECTION_ID_ROLE = Qt.ItemDataRole.UserRole
 
 #: What each remembered folder is FOR, named by the dialogs that use it. The
 #: keys must be exactly `DIRECTORY_KINDS`; a test holds them to that set, so a
@@ -131,6 +173,34 @@ _DIRECTORY_KIND_PROPERTY = "openchem_directory_kind"
 #: The contracts, one per concept. The three Forget buttons share one: which
 #: folder they forget is what `instance_path` already says.
 _HELP = {
+    "appearance": HelpTooltip(
+        text=(
+            "The colour scheme of the window.\n\n"
+            "Follow the system (the default): light or dark as Windows is, and it changes when "
+            "Windows does. Light and Dark keep that scheme whatever Windows is set to.\n\n"
+            "The same choice is in the View menu, under Theme. It changes how the window looks "
+            "and nothing about your structures or results. In dark, the 2D editor's drawing area "
+            "is dark with white bonds; atom colours and selection feedback are never altered."
+        ),
+        tier=2,
+        help_id="settings.appearance",
+        topic="settings",
+        help_anchor="settings",
+    ),
+    "interface_size": HelpTooltip(
+        text=(
+            "How large the text of the interface is.\n\n"
+            "Default is your system's own size. The larger steps scale every panel, dialog and table, "
+            "and take effect at once, with no restart. This is separate from Windows' display scaling "
+            "and adds to it.\n\n"
+            "The 2D editor and the 3D viewers are web pages with their own scale and are not changed; "
+            "use their zoom. Printed and exported documents are not changed."
+        ),
+        tier=2,
+        help_id="settings.interface_size",
+        topic="settings",
+        help_anchor="settings",
+    ),
     "rail": HelpTooltip(
         text=(
             "On (the default): choosing a panel from the rail shows it and hides the "
@@ -196,6 +266,19 @@ _HELP = {
         ),
         tier=2,
         help_id="settings.recalc_mode",
+        topic="settings",
+        help_anchor="settings",
+    ),
+    "plain_english": HelpTooltip(
+        text=(
+            "On (the default): Compare explains itself in everyday words. Selecting a row says what that "
+            "property means, marks which molecule has the highest value (a plain marker, not a verdict: a higher "
+            "number is not better or worse by itself), and two molecules get a one-sentence summary.\n\n"
+            "Off: Compare is just the table. Nothing else changes: Results, Help and anything you copy or "
+            "export read the same either way."
+        ),
+        tier=2,
+        help_id="settings.plain_english",
         topic="settings",
         help_anchor="settings",
     ),
@@ -402,7 +485,7 @@ def _note(text: str, parent: QWidget) -> QLabel:
     label = QLabel(text, parent)
     label.setWordWrap(True)
     # The External Tools tabs' own note colour, so the sections match.
-    label.setStyleSheet("color: #666666;")
+    theme.style(label, "color: #666666;")
     return label
 
 
@@ -419,7 +502,7 @@ class SettingsDialog(QDialog):
         parent: QWidget | None = None,
         *,
         section: str = PANELS,
-        tool: str = "vina",
+        tool: str = "guide",
         result_store_service=None,
         calculator_definitions=None,
         shortcut_registry=None,
@@ -452,11 +535,12 @@ class SettingsDialog(QDialog):
         # finishes the edit a second time.
         self._committing_revisions = False
 
-        self._sections = QListWidget(self)
+        self._sections = _SectionList(self)
         self._sections.setObjectName("settingsSections")
         self._pages = QStackedWidget(self)
 
         builders = {
+            APPEARANCE_SECTION: self._build_appearance_page,
             PANELS: self._build_panels_page,
             RECOVERY: self._build_recovery_page,
             RECALCULATION: self._build_recalculation_page,
@@ -468,7 +552,7 @@ class SettingsDialog(QDialog):
             QUANTUM_CHEMISTRY: self._build_quantum_chemistry_page,
             FILE_DIALOGS: self._build_file_dialogs_page,
         }
-        for section_id, label in SECTIONS:
+        for section_id, _label in SECTIONS:
             if section_id == EXTERNAL_TOOLS:
                 #: The seven tabs, moved in whole. Public so a caller or a
                 #: test can ask which tool is in front.
@@ -477,10 +561,10 @@ class SettingsDialog(QDialog):
             else:
                 page = builders[section_id]()
             self._section_ids.append(section_id)
-            self._sections.addItem(label)
             self._pages.addWidget(page)
-        self._sections.currentRowChanged.connect(self._pages.setCurrentIndex)
-        self._sections.setFixedWidth(self._sections.sizeHintForColumn(0) + 32)
+        self._fill_section_list()
+        self._sections.currentItemChanged.connect(self._on_section_item_changed)
+        self._fit_section_list()
 
         buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Close, self)
         buttons.rejected.connect(self.reject)
@@ -501,6 +585,9 @@ class SettingsDialog(QDialog):
         layout.addLayout(body, 1)
         layout.addWidget(buttons)
 
+        # A change made elsewhere (the View menu) shows here too, without writing it back.
+        settings.on_change(self._on_setting_changed)
+
         self.show_section(section)
 
     # --- navigation ----------------------------------------------------------
@@ -516,10 +603,43 @@ class SettingsDialog(QDialog):
             raise ValueError(
                 f"unknown settings section {section!r}; expected one of {self._section_ids}"
             )
-        self._sections.setCurrentRow(self._section_ids.index(section))
+        self._sections.setCurrentItem(self._item_of[section])
 
     def current_section(self) -> str:
-        return self._section_ids[self._sections.currentRow()]
+        section = self._section_of(self._sections.currentItem())
+        assert section is not None, "a heading can never be the current section"
+        return section
+
+    def _fill_section_list(self) -> None:
+        """One non-selectable heading per group, then its sections; each section row remembers its id."""
+        labels = dict(SECTIONS)
+        self._item_of: dict[str, QListWidgetItem] = {}
+        heading_font = self._sections.font()
+        heading_font.setBold(True)
+        for heading, ids in SECTION_GROUPS:
+            header = QListWidgetItem(heading)
+            header.setFlags(Qt.ItemFlag.NoItemFlags)  # not selectable, not enabled: the arrow keys step over it
+            header.setFont(heading_font)
+            self._sections.addItem(header)
+            for section_id in ids:
+                item = QListWidgetItem(labels[section_id])
+                item.setData(SECTION_ID_ROLE, section_id)
+                self._sections.addItem(item)
+                self._item_of[section_id] = item
+
+    @staticmethod
+    def _section_of(item: QListWidgetItem | None) -> str | None:
+        """The section id a row stands for, or None for a heading (or nothing): the one place a row becomes a page."""
+        return None if item is None else item.data(SECTION_ID_ROLE)
+
+    def _on_section_item_changed(self, current: QListWidgetItem | None, previous: QListWidgetItem | None) -> None:
+        section = self._section_of(current)
+        if section is None:
+            # A heading was made current by code; the list stays on the section it was on.
+            if self._section_of(previous) is not None:
+                self._sections.setCurrentItem(previous)
+            return
+        self._pages.setCurrentIndex(self._section_ids.index(section))
 
     def done(self, result: int) -> None:
         """Close, committing a revisions value that was never committed.
@@ -530,6 +650,119 @@ class SettingsDialog(QDialog):
         """
         self._commit_revisions()
         super().done(result)
+
+    def _fit_section_list(self) -> None:
+        """Size the section list to its longest entry. The margin is two line heights (32 px at the default size), so it
+        grows with the interface size instead of shrinking against the text: a fixed 32 left "Quantum chemistry"
+        touching the list's edge at 1.3, and the width was set once, so a dialog open when the size changed kept it."""
+        self._sections.setFixedWidth(self._sections.sizeHintForColumn(0) + 2 * self.fontMetrics().height())
+
+    def changeEvent(self, event) -> None:
+        super().changeEvent(event)
+        if event.type() == QEvent.Type.FontChange and hasattr(self, "_sections"):
+            # Qt gives the list its new font from the same event loop; fit after it has.
+            QTimer.singleShot(0, self, self._refit_if_alive)
+
+    def _refit_if_alive(self) -> None:
+        if shiboken6.isValid(self):
+            self._fit_section_list()
+
+    # --- Appearance --------------------------------------------------------------
+
+    #: The combo's entries, in the order shown: the stored integer and its words.
+    _APPEARANCE_CHOICES = (
+        (Appearance.SYSTEM, "Follow the system"),
+        (Appearance.LIGHT, "Light"),
+        (Appearance.DARK, "Dark"),
+    )
+
+    def _build_appearance_page(self) -> QWidget:
+        page = QWidget(self)
+        self._appearance = QComboBox(page)
+        self._appearance.setObjectName("appearanceChoice")
+        for mode, words in self._APPEARANCE_CHOICES:
+            # The integer is what is stored and read back; the row number and the words are neither.
+            self._appearance.addItem(words, int(mode))
+        self._show_appearance()
+        apply_help_tooltip(self._appearance, _HELP["appearance"])
+        self._appearance.currentIndexChanged.connect(self._on_appearance_changed)
+
+        self._plain_english = QCheckBox("Explain things in plain English (in Compare)", page)
+        self._plain_english.setObjectName("plainEnglish")
+        self._plain_english.setChecked(bool(self._settings.preference(PLAIN_ENGLISH)))
+        apply_help_tooltip(self._plain_english, _HELP["plain_english"])
+        self._plain_english.toggled.connect(self._on_plain_english_toggled)
+
+        row = QHBoxLayout()
+        row.addWidget(QLabel("Colour scheme", page))
+        row.addWidget(self._appearance)
+        row.addStretch(1)
+
+        self._interface_size = QComboBox(page)
+        self._interface_size.setObjectName("interfaceSizeChoice")
+        for size, words in self._INTERFACE_SIZE_CHOICES:
+            self._interface_size.addItem(words, int(size))
+        self._show_interface_size()
+        apply_help_tooltip(self._interface_size, _HELP["interface_size"])
+        self._interface_size.currentIndexChanged.connect(self._on_interface_size_changed)
+
+        size_row = QHBoxLayout()
+        size_row.addWidget(QLabel("Interface size", page))
+        size_row.addWidget(self._interface_size)
+        size_row.addStretch(1)
+
+        layout = QVBoxLayout(page)
+        layout.addWidget(_heading("Appearance", page))
+        layout.addLayout(row)
+        layout.addLayout(size_row)
+        layout.addWidget(self._plain_english)
+        layout.addWidget(_note(
+            "Follow the system changes when Windows does. The same choice is in the View menu, "
+            "under Theme. In dark, the 2D editor's drawing area is dark with white bonds; atom "
+            "colours and selection feedback are never altered. The 2D editor's dialogs and the "
+            "macromolecule viewer's side panels follow the look too; its 3D canvas does not.",
+            page,
+        ))
+        layout.addStretch(1)
+        return page
+
+    def _show_appearance(self) -> None:
+        """Put the combo on the stored choice, without writing it back."""
+        mode = appearance_from_stored(self._settings.preference(APPEARANCE))
+        blocked = self._appearance.blockSignals(True)
+        try:
+            self._appearance.setCurrentIndex(max(0, self._appearance.findData(int(mode))))
+        finally:
+            self._appearance.blockSignals(blocked)
+
+    def _on_appearance_changed(self, _index: int) -> None:
+        self._store(APPEARANCE, int(self._appearance.currentData()))
+
+    #: The interface-size combo's entries: the stored integer and its words.
+    _INTERFACE_SIZE_CHOICES = (
+        (InterfaceSize.DEFAULT, "Default"),
+        (InterfaceSize.LARGER, "Larger"),
+        (InterfaceSize.LARGE, "Large"),
+    )
+
+    def _show_interface_size(self) -> None:
+        """Put the combo on the stored step, without writing it back."""
+        size = interface_size_from_stored(self._settings.preference(INTERFACE_SIZE))
+        blocked = self._interface_size.blockSignals(True)
+        try:
+            self._interface_size.setCurrentIndex(max(0, self._interface_size.findData(int(size))))
+        finally:
+            self._interface_size.blockSignals(blocked)
+
+    def _on_interface_size_changed(self, _index: int) -> None:
+        self._store(INTERFACE_SIZE, int(self._interface_size.currentData()))
+
+    def _on_setting_changed(self, event: SettingsChanged) -> None:
+        # The bus holds this window weakly but can outlive its widgets; a closed window has nothing to update.
+        if event.key == APPEARANCE.key and shiboken6.isValid(self._appearance):
+            self._show_appearance()
+        if event.key == INTERFACE_SIZE.key and shiboken6.isValid(self._interface_size):
+            self._show_interface_size()
 
     # --- Panels ----------------------------------------------------------------
 
@@ -597,6 +830,9 @@ class SettingsDialog(QDialog):
     def _on_recovery_enabled_toggled(self, checked: bool) -> None:
         self._recovery_delay.setEnabled(checked)
         self._store(RECOVERY_ENABLED, checked)
+
+    def _on_plain_english_toggled(self, checked: bool) -> None:
+        self._store(PLAIN_ENGLISH, checked)
 
     def _on_structure_coverage_toggled(self, checked: bool) -> None:
         self._store(STRUCTURE_COVERAGE, checked)
@@ -685,7 +921,7 @@ class SettingsDialog(QDialog):
 
     def _build_keyboard_page(self) -> QWidget:
         #: Public so a caller or a test can drive a rebinding.
-        self.keyboard_page = KeyboardShortcutsPage(self._shortcut_registry, self)
+        self.keyboard_page = KeyboardShortcutsPage(self._shortcut_registry, self, settings=self._settings)
         return self.keyboard_page
 
     # --- Drawing -------------------------------------------------------------------

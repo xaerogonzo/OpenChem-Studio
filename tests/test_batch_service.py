@@ -165,11 +165,15 @@ def test_one_failing_calculator_does_not_end_the_run(services):
 def test_a_salt_in_a_batch_says_which_refusal_and_keeps_its_parents_numbers(services):
     """Round 5: a batch cell carries the same refusal CODE Properties records,
     and a calculator scoped to the ChEMBL parent answers for metformin HCl
-    with metformin's number."""
+    with metformin's number. Group 3 of the refusal audit: sodium acetate, which
+    refused, is computed on its largest component (acetic acid, with the label in
+    the cell's provenance) and NaCl, which has no larger one, still refuses."""
     molecules = _molecules(services, [
-        ("sodium acetate", "CC(=O)[O-].[Na+]"),
+        ("sodium chloride", "[Na+].[Cl-]"),
         ("metformin HCl", "CN(C)C(=N)N=C(N)N.Cl"),
         ("metformin", "CN(C)C(=N)N=C(N)N"),
+        ("sodium acetate", "CC(=O)[O-].[Na+]"),
+        ("acetic acid", "CC(=O)O"),
     ])
     events = _run(
         services,
@@ -183,6 +187,11 @@ def test_a_salt_in_a_batch_says_which_refusal_and_keeps_its_parents_numbers(serv
     assert table.cell(molecules[1].uuid, "descriptor:mol_logp").value == pytest.approx(
         table.cell(molecules[2].uuid, "descriptor:mol_logp").value
     )
+    psa = "calculator:polar_surface_area:Polar surface area"
+    chosen = table.cell(molecules[3].uuid, psa)
+    assert chosen.value == pytest.approx(table.cell(molecules[4].uuid, psa).value)
+    assert chosen.provenance.parameters["component_choice"] == "largest"
+    assert "Computed on CC(=O)O" in chosen.provenance.parameters["caveat"]
 
 
 def test_alert_catalogs_are_selectable_alongside_descriptors(services):

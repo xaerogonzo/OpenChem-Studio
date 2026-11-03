@@ -299,7 +299,7 @@ def test_proposing_never_changes_the_projects_scores_whatever_the_model_asks(rig
 
 def test_the_tools_are_offered_with_the_others_and_have_handlers():
     names = [tool.name for tool in CALCULATION_TOOLS]
-    assert PROPOSE_SCORE in CALCULATION_TOOLS and LIST_SCORE_OUTPUTS in CALCULATION_TOOLS and len(names) == len(set(names)) == len(CALCULATION_HANDLERS) == 8
+    assert PROPOSE_SCORE in CALCULATION_TOOLS and LIST_SCORE_OUTPUTS in CALCULATION_TOOLS and len(names) == len(set(names)) == len(CALCULATION_HANDLERS) == 9
     assert "propose_score" in CALCULATION_HANDLERS and "list_score_outputs" in CALCULATION_HANDLERS
     assert validate_arguments(LIST_SCORE_OUTPUTS.input_schema, {}) == [] and validate_arguments(LIST_SCORE_OUTPUTS.input_schema, {"x": 1})
     assert validate_arguments(PROPOSE_SCORE.input_schema, _request()) == []

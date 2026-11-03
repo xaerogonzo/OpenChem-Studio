@@ -3,7 +3,7 @@ from __future__ import annotations
 import html
 from typing import Callable
 
-from PySide6.QtCore import QObject, Qt, Signal
+from PySide6.QtCore import QObject, Qt, QTimer, Signal
 from PySide6.QtWidgets import (
     QComboBox,
     QDialog,
@@ -23,8 +23,9 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from openchem.domain.quantum_dispatch import calc_type_of
 from openchem.domain.result_envelope import outcome_envelope
-from openchem.domain.run_lifecycle import RunOutcome, RunState
+from openchem.domain.run_lifecycle import CANCELLED_BEFORE_START, RunOutcome, RunState
 from openchem.domain.score_proposal import ProposalOutcome, ProposalState
 from openchem.domain.synthesis_route import RouteStatus
 from openchem.events.events import SynthesisRouteReady
@@ -36,6 +37,7 @@ from .bridge import BridgeEvent, ToolBridge, bounded_json
 from .calculation_tools import CALCULATION_HANDLERS, CALCULATION_TOOLS
 from .context_builder import MoleculeContextCache
 from .providers import AIMessage, AIProvider, AIProviderError, AIRequest, AIResponse, ToolCall
+from .reply_check import check_reply
 from .synthesis_tools import (
     GATE_DECLINED,
     REQUEST_NAME,
@@ -59,22 +61,44 @@ _MODEL_PRESETS: dict[str, list[str]] = {
     # future/renamed model can always be typed in directly.
     "anthropic": ["claude-sonnet-5", "claude-opus-5", "claude-fable-5", "claude-haiku-4-5-20251001"],
     "openai": ["gpt-4o-mini", "gpt-4o"],
-    "ollama": ["llama3.1", "qwen2.5-coder:14b", "mistral", "phi3"],
+    "ollama": ["llama3.1", "qwen2.5:14b", "qwen2.5-coder:14b", "mistral", "phi3"],
     # Blank means "let the claude CLI use its own configured default" --
     # ClaudeCLIProvider.default_model is "" for exactly this reason.
     "claude_cli": ["", "sonnet", "opus", "fable", "haiku"],
+    # Blank means "whatever cursor-agent is configured to use". Names are what `cursor-agent --list-models` prints; the list depends on the account, so type any other.
+    "cursor_cli": ["", "auto", "composer-2.5", "claude-sonnet-5-thinking-high", "gemini-3.7-flash-high"],
+}
+
+#: How long after a reply the panel reads which approval cards are showing (`reply_check`): a card is built from queued events and can arrive just after the reply does.
+REPLY_CHECK_DELAY_MS = 400
+
+#: What the Configure dialog says under the CLI path of each provider that runs through a local command-line login.
+_CLI_NOTES = {
+    "claude_cli": (
+        "Uses your local Claude Code CLI login -- run 'claude' once in a "
+        "terminal to sign in with your claude.ai subscription (Pro/Max), no "
+        "separate Anthropic API key or billing needed. Leave the path blank "
+        "to auto-detect 'claude' on PATH."
+    ),
+    "cursor_cli": (
+        "Uses your local Cursor CLI login -- run 'cursor-agent login' once in a terminal; no API key needed, "
+        "and calls count against your Cursor plan. Leave the path blank to auto-detect 'cursor-agent' on PATH. "
+        "Cursor's agent cannot have its own tools switched off, so each call runs in a throwaway folder in "
+        "read-only mode with every file, shell and web permission denied."
+    ),
 }
 
 SYSTEM_PROMPT_PREFIX = (
     "You are a chemistry assistant embedded in OpenChem Studio, a molecular editor. Explain results, suggest "
     "workflows, and generate SMARTS queries or Python snippets as plain text for the user to review and apply "
-    "themselves.\n\n"
+    "themselves. Reply in the language the user writes in (English if they write English).\n\n"
     "When tools are offered, they read this application's own results and run its calculators. Use them instead of "
     "answering from memory whenever a question is about a number, a property or a method for the selected molecule: "
     "find_calculators and describe_calculator say what exists, what each needs and whether you may run it; "
     "list_goals says which calculators the application itself pairs with a common question (identity, charge, "
     "solubility, shape ...) and why, and is editorial rather than a validated protocol; "
-    "read_results returns what has already been computed; read_scores returns the user's own score formulas worked out for "
+    "read_results returns what has already been computed; read_quantum_runs lists the ORCA jobs a person has run, including ones that failed or were cancelled "
+    "(you cannot stop or approve one; you can ask for a new one with run_calculator, which leaves a card that starts ORCA only if the person approves it); read_scores returns the user's own score formulas worked out for "
     "this molecule (formulas a person wrote, not predictions); list_score_outputs and propose_score let you suggest a new one, which exists only if the person approves a card "
     "that you cannot approve for them; run_calculator runs one. plan_synthesis asks the user to let an external program search for synthesis routes to the selected molecule "
     "(you cannot start it, and the application's regulatory check can decline it), and read_synthesis_plan reads the plan that is stored: a route is a hypothesis, the program gives "
@@ -100,6 +124,16 @@ _STATE_LABELS = {
     "invalidated": "withdrawn",
     "rejected": "not started",
     "timed_out": "still running",
+}
+
+
+#: What the ledger says about an ORCA job a person approved for the assistant, by how it ended. A cancelled one was already running, unlike a cancelled preview.
+_QUANTUM_LABELS = {
+    "running": "running in the Quantum Chemistry panel",
+    "completed": "ORCA finished it",
+    "refused": "not started: the panel's rules declined it",
+    "failed": "failed",
+    "cancelled": "cancelled while running",
 }
 
 
@@ -183,6 +217,42 @@ class _PreviewCard(QFrame):
 
     def _on_cancel(self, _checked: bool = False) -> None:
         self.cancel_clicked.emit(self.run_id)
+
+
+class _RunningCard(QFrame):
+    """An ORCA job a person approved and that is running now. Stop is the only control: it asks the Quantum Chemistry panel to cancel the job, as that panel's Cancel button does.
+
+    It replaces the preview card at Approve and goes when the run ends, whichever way. It starts nothing and a model has no call that presses it.
+    """
+
+    stop_clicked = Signal(str)
+
+    def __init__(self, run_id: str, description: str, parent: QWidget | None = None) -> None:
+        super().__init__(parent)
+        self.run_id = run_id
+        self.setObjectName("AIRunningCard")
+        self.setFrameShape(QFrame.Shape.StyledPanel)
+        self.body = QLabel(f"Running in the Quantum Chemistry panel: {description}", self)
+        self.body.setObjectName("AIRunningCardBody")
+        self.body.setTextFormat(Qt.TextFormat.PlainText)
+        self.body.setWordWrap(True)
+        self.stop_button = QPushButton("Stop job", self)
+        self.stop_button.setObjectName("AIRunningStop")
+        self.stop_button.clicked.connect(self._on_stop)
+        layout = QHBoxLayout(self)
+        layout.addWidget(self.body, 1)
+        layout.addWidget(self.stop_button)
+
+    def _on_stop(self, _checked: bool = False) -> None:
+        self.stop_button.setEnabled(False)
+        self.stop_button.setText("Stopping...")
+        self.stop_clicked.emit(self.run_id)
+
+    def stop_refused(self) -> None:
+        """The job could not be stopped from here (it had already ended, or the panel could not): the button comes back and the card says so."""
+        self.stop_button.setEnabled(True)
+        self.stop_button.setText("Stop job")
+        self.body.setText(self.body.text() + "\nIt could not be stopped from here; use the panel's Cancel button.")
 
 
 class _ScoreCard(QFrame):
@@ -370,13 +440,7 @@ class _ProviderSettingsDialog(QDialog):
             path_row.addWidget(self._cli_path_edit)
             path_row.addWidget(browse_button)
             form.addRow("CLI path (optional):", path_row)
-            note = QLabel(
-                "Uses your local Claude Code CLI login -- run 'claude' once in a "
-                "terminal to sign in with your claude.ai subscription (Pro/Max), no "
-                "separate Anthropic API key or billing needed. Leave the path blank "
-                "to auto-detect 'claude' on PATH.",
-                self,
-            )
+            note = QLabel(_CLI_NOTES.get(provider_id, _CLI_NOTES["claude_cli"]), self)
             note.setWordWrap(True)
 
         self._model_combo = QComboBox(self)
@@ -398,7 +462,7 @@ class _ProviderSettingsDialog(QDialog):
         layout.addWidget(buttons)
 
     def _on_browse_clicked(self) -> None:
-        path_str, _ = QFileDialog.getOpenFileName(self, "Select claude executable")
+        path_str, _ = QFileDialog.getOpenFileName(self, "Select cursor-agent executable" if self._provider_id == "cursor_cli" else "Select claude executable")
         if path_str:
             self._cli_path_edit.setText(path_str)
 
@@ -426,6 +490,13 @@ class AIAssistantPanel(QWidget):
         self._providers = providers
         self._cache = cache
         self._history: list[AIMessage] = []
+        #: Everything the model was shown that is not its own words, kept for `reply_check`: every tool result of this conversation (the loop's messages are not kept in `_history`, so a number read
+        #: in one turn and repeated in the next would otherwise look invented), and the system prompt of the send in flight. Appended from the worker thread, read on the GUI thread.
+        self._shown_tool_results: list[str] = []
+        self._shown_system_context = ""
+        self._shown_calculation_tools = False
+        #: The kinds of finding `reply_check` has made, in order (what the panel said under a reply), for tests and the drive.
+        self.reply_findings: list[str] = []
         self._stream_active = False
         # Keeps the current send's chunk-signal QObject alive for the
         # worker thread's lifetime -- same reasoning `async_task.py`'s
@@ -447,6 +518,8 @@ class AIAssistantPanel(QWidget):
         #: molecule uuid -> its name, for each search the user approved and that has not ended: only these are told to the model afterwards.
         self._synthesis_awaiting: dict[str, str] = {}
         self._cards: dict[str, _PreviewCard] = {}
+        #: run id -> the card with a Stop button for an ORCA job a person approved and that has not ended.
+        self._running_cards: dict[str, _RunningCard] = {}
         self._service_cards: dict[str, _ServiceCard] = {}
         self._service_count = 0
         self._ledger_rows: dict[str, QListWidgetItem] = {}
@@ -595,6 +668,7 @@ class AIAssistantPanel(QWidget):
         api_key = self._context.secrets.get(f"{provider_id}_api_key") or ""
         model = self._context.settings.get(f"{provider_id}_model", provider.default_model)
         system_context = SYSTEM_PROMPT_PREFIX + self._cache.build_context_text()
+        self._shown_system_context = system_context
         history_snapshot = list(self._history)
         # THE TURN IS FROZEN HERE, ON THE GUI THREAD, AT THE MOMENT OF SEND. Every calculator tool the model
         # calls in this reply reads that and nothing else, so selecting another molecule while it streams
@@ -607,6 +681,7 @@ class AIAssistantPanel(QWidget):
             )
             # The synthesis tools get the READING handle only; the object that starts a search stays here, behind the card's Approve.
             synthesis = SynthesisBridge(self._context.synthesis, begin_synthesis_turn(self._context.synthesis), self._bridge_signal.event.emit)
+        self._shown_calculation_tools = bridge is not None and bridge.available
 
         self._stream_active = False
         signal = _ChunkSignal()
@@ -666,9 +741,9 @@ class AIAssistantPanel(QWidget):
                 return response
             messages.append(AIMessage(role="assistant", content=response.text, tool_calls=response.tool_calls))
             for tool_call in response.tool_calls:
-                messages.append(
-                    AIMessage(role="tool", content=self._execute_tool(tool_call, bridge, synthesis), tool_call_id=tool_call.id)
-                )
+                result = self._execute_tool(tool_call, bridge, synthesis)
+                self._shown_tool_results.append(result)
+                messages.append(AIMessage(role="tool", content=result, tool_call_id=tool_call.id))
         return response
 
     def _execute_tool(self, tool_call: ToolCall, bridge: ToolBridge | None = None, synthesis: SynthesisBridge | None = None) -> str:
@@ -811,7 +886,7 @@ class AIAssistantPanel(QWidget):
 
     def _sync_cards_host(self) -> None:
         """The strip of cards is there while any card is: a run's preview, a service-run description, a proposed score or a requested search."""
-        self._cards_host.setVisible(bool(self._cards or self._service_cards or self._score_cards or self._synthesis_cards))
+        self._cards_host.setVisible(bool(self._cards or self._running_cards or self._service_cards or self._score_cards or self._synthesis_cards))
 
     def service_preview_keys(self) -> list[str]:
         """Service-run previews on screen."""
@@ -980,27 +1055,62 @@ class AIAssistantPanel(QWidget):
         state = self._context.calculation_approvals.approve(run_id)
         calculator, molecule = self._runs.get(run_id, ("calculation", ""))
         if state is RunState.RUNNING:
-            self._set_ledger(run_id, self._ledger_text(calculator, molecule, _STATE_LABELS["running"]))
+            quantum = calc_type_of(calculator) is not None
+            labels = _QUANTUM_LABELS if quantum else _STATE_LABELS
+            self._set_ledger(run_id, self._ledger_text(calculator, molecule, labels["running"]))
+            if quantum:
+                self._add_running_card(run_id, f"{calculator} on {molecule}")
 
     def _on_cancel(self, run_id: str) -> None:
         self._remove_card(run_id)
         self._context.calculation_approvals.cancel(run_id)
 
+    def _add_running_card(self, run_id: str, description: str) -> None:
+        """The Stop control for an approved ORCA job, until its run ends (`_on_run_finished`). A job that already ended by the time this is reached (a refusal said from inside the call) has no card."""
+        if self._context.calculation_approvals.state_of(run_id) is not RunState.RUNNING:
+            return
+        card = _RunningCard(run_id, description, self._cards_host)
+        card.stop_clicked.connect(self._on_stop)
+        self._running_cards[run_id] = card
+        self._cards_layout.addWidget(card)
+        self._cards_host.setVisible(True)
+
+    def _remove_running_card(self, run_id: str) -> None:
+        card = self._running_cards.pop(run_id, None)
+        if card is not None:
+            self._cards_layout.removeWidget(card)
+            card.setParent(None)
+            card.deleteLater()
+        self._sync_cards_host()
+
+    def running_run_ids(self) -> list[str]:
+        """Approved ORCA jobs on screen with a Stop button."""
+        return list(self._running_cards)
+
+    def _on_stop(self, run_id: str) -> None:
+        """The user pressed Stop on a running job. It stops the job; the run ends, and the model is told, when ORCA's record says it was cancelled."""
+        if not self._context.calculation_approvals.stop(run_id):
+            card = self._running_cards.get(run_id)
+            if card is not None:
+                card.stop_refused()
+
     def _on_run_finished(self, outcome: RunOutcome) -> None:
         """A run reached a final state (the host announces it once). GUI thread."""
         calculator, molecule = self._runs.get(outcome.run_id, (outcome.calculator_id, ""))
         state = outcome.state.value
+        # An ORCA job is told by how it ended; one declined on its card never started, so it reads like any other declined preview.
+        quantum = calc_type_of(outcome.calculator_id) is not None and outcome.message != CANCELLED_BEFORE_START
+        label = (_QUANTUM_LABELS if quantum else _STATE_LABELS).get(state, state)
         self._set_ledger(
             outcome.run_id,
-            self._ledger_text(
-                calculator, molecule, _STATE_LABELS.get(state, state), outcome.message if state != "completed" else ""
-            ),
+            self._ledger_text(calculator, molecule, label, outcome.message if state != "completed" else ""),
         )
         self._remove_card(outcome.run_id)
+        self._remove_running_card(outcome.run_id)
         if outcome.run_id not in self._awaiting:
             return  # an automatic run: the model already has its outcome from the tool call
         self._awaiting.discard(outcome.run_id)
-        self._append_transcript("Application", f"{calculator} on {molecule}: {_STATE_LABELS.get(state, state)}.")
+        self._append_transcript("Application", f"{calculator} on {molecule}: {label}.")
         self._notes.append(self._note_for(outcome, calculator, molecule))
 
     def _note_for(self, outcome: RunOutcome, calculator: str, molecule: str) -> str:
@@ -1008,7 +1118,15 @@ class AIAssistantPanel(QWidget):
 
         The application's own record, not a paraphrase: the outcome carries the result's envelope with its
         method, units and freshness, and a refusal carries the calculator's reason.
+
+        **AN ORCA JOB IS TOLD BY HOW IT ENDED AND WHERE TO READ IT**, never by a number: its result is a run record (`read_quantum_runs` gives its freshness, warnings and outputs), and the outcome
+        here holds none.
         """
+        if calc_type_of(outcome.calculator_id) is not None:
+            return (
+                f"[Application note] The ORCA job you asked for, {calculator} on {molecule} (run {outcome.run_id}), ended '{outcome.state.value}'. {outcome.message} "
+                "State no value you have not read."
+            )
         head = (
             f"[Application note] The preview you prepared for {calculator} on {molecule} (run {outcome.run_id}) "
             f"ended '{outcome.state.value}'."
@@ -1035,8 +1153,34 @@ class AIAssistantPanel(QWidget):
             # on_chunk (e.g. an empty final reply) -- render it now so a
             # blank turn isn't silently dropped from the transcript.
             self._append_transcript(self._provider_combo.currentText(), response.text)
+        # Said in the transcript, not left as a blank line after a wait: a local model can return nothing at all (2 of 11 measured turns), or hit the length limit.
+        note = (
+            "(the model returned an empty reply)" if not response.text.strip()
+            else "(the reply was cut off at the provider's length limit)" if response.stop_reason == "length" else ""
+        )
+        if note:
+            self._transcript.append(f"<i>{html.escape(note)}</i>")
         self._stream_active = False
         self._current_stream_signal = None
+        # What the reply is set against is fixed NOW (the next send may start before the check runs); the approval cards are read LATER, because a card is built from queued events and can
+        # arrive just after the reply does: checking in the same instant would call a card that is about to appear a card that does not exist.
+        shown = "\n".join([self._shown_system_context, *(m.content for m in self._history if m.role == "user"), *self._shown_tool_results])
+        calculation_tools = self._shown_calculation_tools
+        QTimer.singleShot(REPLY_CHECK_DELAY_MS, self, lambda: self._check_reply(response.text, shown, calculation_tools))
+
+    def approvals_waiting(self) -> int:
+        """How many approval cards are showing: a job, a proposed score, a synthesis search. A described-only calculator and a running job are not waiting for anyone."""
+        return len(self._cards) + len(self._score_cards) + len(self._synthesis_cards)
+
+    def _check_reply(self, reply: str, shown_text: str, calculation_tools: bool) -> None:
+        """Say under the reply what the application's own state does not support (`reply_check`), and tell the model with the next message so it can correct itself."""
+        for finding in check_reply(reply, approvals_waiting=self.approvals_waiting(), shown_text=shown_text, tools_offered=calculation_tools):
+            self.reply_findings.append(finding.kind)
+            self._transcript.append(f"<i>{html.escape(finding.message)}</i>")
+            self._notes.append(f"[Application note] {finding.note}")
+        # A line added a moment after the reply sits below the visible part of a long transcript (measured in the real window: the check was in the transcript and off screen).
+        bar = self._transcript.verticalScrollBar()
+        bar.setValue(bar.maximum())
 
     def _on_error(self, message: str) -> None:
         self._send_button.setEnabled(True)

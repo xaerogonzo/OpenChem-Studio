@@ -1,0 +1,4 @@
+=== started 2026-10-29T09:05:10
+analytic opt record: enthalpy -516.5580249, lowest real mode 130.26, 11 atoms
+{"completed": true, "enthalpy": -516.5574816, "analytic_enthalpy": -516.5580249, "shift_kcal": 0.34092589726093586, "lowest_vibration": 143.05, "verified": true, "skeleton_kept": true, "seconds": 3277.8, "error": null}
+=== finished 2026-10-29T09:59:50 exit 0

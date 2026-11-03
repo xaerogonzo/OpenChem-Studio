@@ -70,6 +70,9 @@ _SPIRO_MULT: dict[int, str] = {
 # circuits safely (keeps the engine responsive — see perf note in the brief).
 _MAX_ARCS = 14
 
+# Numberings that tie and give one name are all offered to the stereodescriptor tie-break, up to this many (naming round 92).
+_MAX_NUMBERING_OPTIONS = 32
+
 
 # ---------------------------------------------------------------------------
 # Arc-multigraph construction
@@ -255,14 +258,22 @@ def _enumerate_numberings(
     start_arcs = [i for i in self_loops if arcs[i].size == min_loop_size]
 
     results: list[_Numbering] = []
+
+    def orientations(arc: "_Arc") -> tuple[bool, ...]:
+        # Naming round 92 (NL-107): a terminal ring leaves its spiro atom by EITHER neighbour, so the linking atoms of a self-loop arc can be
+        # numbered in both directions (P-24.2.2). Only one was tried, the one the ring was walked in, which depends on RDKit's atom order, so
+        # the oxygens of a tetraoxatetraspiro came out 1,6,9,12 or 1,5,9,12 for one structure and never the lowest set 1,5,8,11. The
+        # unflipped direction comes first, so numberings that tie keep the one chosen before.
+        return (False, True) if arc.a == arc.b and arc.size >= 2 else (False,)
+
     # DFS over Eulerian circuits.  total_arcs <= _MAX_ARCS keeps this bounded.
     for start_aid in start_arcs:
         start_arc = arcs[start_aid]
         start_node = start_arc.a
-        # The walk: list of (arc_index, traversed_from_node).
+        # The walk: list of (arc_index, traversed_from_node, flipped).
         used = [False] * total_arcs
 
-        def dfs(current_node: int, path: list[tuple[int, int]]):
+        def dfs(current_node: int, path: list[tuple[int, int, bool]]):
             if len(path) == total_arcs:
                 if current_node == start_node:
                     nb = _build_from_path(path, arcs, spiro_atoms, start_node)
@@ -276,21 +287,23 @@ def _enumerate_numberings(
                     continue
                 arc = arcs[ai]
                 nxt = arc.other(current_node)
-                used[ai] = True
-                path.append((ai, current_node))
-                dfs(nxt, path)
-                path.pop()
-                used[ai] = False
+                for flipped in orientations(arc):
+                    used[ai] = True
+                    path.append((ai, current_node, flipped))
+                    dfs(nxt, path)
+                    path.pop()
+                    used[ai] = False
 
         used[start_aid] = True
-        dfs(start_node, [(start_aid, start_node)])
+        for flipped in orientations(start_arc):
+            dfs(start_node, [(start_aid, start_node, flipped)])
         used[start_aid] = False
 
     return results
 
 
 def _build_from_path(
-    path: list[tuple[int, int]],
+    path: list[tuple[int, int, bool]],
     arcs: list[_Arc],
     spiro_atoms: set[int],
     start_node: int,
@@ -310,9 +323,11 @@ def _build_from_path(
     # The start node's locant is assigned the first time it is *reached as a
     # spiro atom*, which (per the examples) happens after the first terminal
     # arc's linking atoms are numbered.
-    for step, (ai, from_node) in enumerate(path):
+    for step, (ai, from_node, flipped) in enumerate(path):
         arc = arcs[ai]
         interior = arc.interior_from(from_node)
+        if flipped:
+            interior = tuple(reversed(interior))
         for atom in interior:
             atom_to_loc[atom] = next_loc
             next_loc += 1
@@ -485,55 +500,51 @@ def name_polyspiro_vb(
     numberings.sort(key=full_score)
     best = numberings[0]
 
-    # Lambda convention (P-14.1.1 / P-31.1.4.3): cite "<loc>lambda<val>" inline
-    # for any skeletal heteroatom (including a hypervalent spiro centre, e.g.
-    # P(VII)) whose actual valence differs from the element standard, so OPSIN
-    # can reconstruct the exact valence.
-    from openchem.vendor.iupac_namer.ring_naming.monocyclic import compute_lambda_value_map
-    lambda_map = compute_lambda_value_map(
-        [
-            (best.atom_to_loc[hp.atom_idx], hp.element, hp.atom_idx)
-            for hp in heteroatoms
-            if hp.atom_idx in best.atom_to_loc
-        ],
-        mol,
-    )
-
-    # Build the replacement prefix from the chosen numbering.
-    hetero_prefix = _build_replacement_prefix(
-        heteroatoms, best.atom_to_loc, lambda_map=lambda_map
-    )
-    if hetero_prefix is None:
-        return []  # refuse rather than drop heteroatoms
-
-    spiro_count = len(spiro_atoms)
-    spiro_word = _SPIRO_MULT.get(spiro_count)
-    if spiro_word is None:
-        return []
-    descriptor_str = _format_descriptor(best.descriptor)
-
-    # Endocyclic unsaturation (C=C / C#C within the spiro rings) -> -ene / -yne
-    # suffix on the parent stem, with locants from the chosen numbering
-    # (mirrors the monospiro path in spiro.py).
     from openchem.vendor.iupac_namer.ring_naming.monocyclic import (
+        compute_lambda_value_map,
         get_ring_bond_pairs,
         compute_ring_unsaturation_locants_from_numbering,
         _build_ring_unsaturation_suffix,
     )
 
+    spiro_count = len(spiro_atoms)
+    spiro_word = _SPIRO_MULT.get(spiro_count)
+    if spiro_word is None:
+        return []
     ring_bond_pairs = get_ring_bond_pairs(ring_system, mol)
-    unsat_suffix = ""
-    if ring_bond_pairs:
-        atom_to_locant = {
-            idx: Locant.numeric(loc) for idx, loc in best.atom_to_loc.items()
-        }
-        dbl, tri = compute_ring_unsaturation_locants_from_numbering(
-            ring_bond_pairs, atom_to_locant
+
+    def name_parts(nb: "_Numbering"):
+        """The (hetero prefix, descriptor, unsaturation suffix) a numbering gives, or None when a heteroatom cannot be cited."""
+        # Lambda convention (P-14.1.1 / P-31.1.4.3): cite "<loc>lambda<val>" inline
+        # for any skeletal heteroatom (including a hypervalent spiro centre, e.g.
+        # P(VII)) whose actual valence differs from the element standard, so OPSIN
+        # can reconstruct the exact valence.
+        lambda_map = compute_lambda_value_map(
+            [
+                (nb.atom_to_loc[hp.atom_idx], hp.element, hp.atom_idx)
+                for hp in heteroatoms
+                if hp.atom_idx in nb.atom_to_loc
+            ],
+            mol,
         )
-        if dbl or tri:
-            unsat_suffix = _build_ring_unsaturation_suffix(
-                dbl, total_atoms, tri
-            )
+        prefix = _build_replacement_prefix(heteroatoms, nb.atom_to_loc, lambda_map=lambda_map)
+        if prefix is None:
+            return None  # refuse rather than drop heteroatoms
+        # Endocyclic unsaturation (C=C / C#C within the spiro rings) -> -ene / -yne
+        # suffix on the parent stem, with locants from the chosen numbering
+        # (mirrors the monospiro path in spiro.py).
+        unsat = ""
+        if ring_bond_pairs:
+            atom_to_locant = {idx: Locant.numeric(loc) for idx, loc in nb.atom_to_loc.items()}
+            dbl, tri = compute_ring_unsaturation_locants_from_numbering(ring_bond_pairs, atom_to_locant)
+            if dbl or tri:
+                unsat = _build_ring_unsaturation_suffix(dbl, total_atoms, tri)
+        return prefix, _format_descriptor(nb.descriptor), unsat
+
+    best_parts = name_parts(best)
+    if best_parts is None:
+        return []
+    hetero_prefix, descriptor_str, unsat_suffix = best_parts
 
     if unsat_suffix:
         name_str = (
@@ -545,15 +556,29 @@ def name_polyspiro_vb(
         name_str = f"{hetero_prefix}{spiro_word}[{descriptor_str}]{stem_base}ane"
         stem = f"{hetero_prefix}{spiro_word}[{descriptor_str}]{stem_base}an"
 
-    # Expose the chosen numbering for substituent placement.
-    assignments = tuple(
-        (atom_idx, Locant.numeric(loc_val))
-        for atom_idx, loc_val in sorted(best.atom_to_loc.items())
-    )
-    locant_set = tuple(Locant.numeric(i + 1) for i in range(total_atoms))
-    numbering_options = (
-        Numbering(_assignments=assignments, locant_set=locant_set),
-    )
+    # Expose the chosen numbering for substituent placement, and every numbering that gives the SAME name (naming round 92, NL-107): a symmetric
+    # system has several, and which one cites the stereodescriptors in the preferred order (lowest locants to R before S, r before s) is decided later, from
+    # the options, not here, where it was left to the order the circuits were found in.
+    numbering_options = []
+    seen_assignments = set()
+    best_key = full_score(best)
+    for nb in numberings:
+        if full_score(nb) != best_key:
+            break  # sorted: nothing later ties
+        if nb is not best and name_parts(nb) != best_parts:
+            continue
+        assignments = tuple(
+            (atom_idx, Locant.numeric(loc_val))
+            for atom_idx, loc_val in sorted(nb.atom_to_loc.items())
+        )
+        if assignments in seen_assignments:
+            continue
+        seen_assignments.add(assignments)
+        locant_set = tuple(Locant.numeric(i + 1) for i in range(total_atoms))
+        numbering_options.append(Numbering(_assignments=assignments, locant_set=locant_set))
+        if len(numbering_options) >= _MAX_NUMBERING_OPTIONS:
+            break
+    numbering_options = tuple(numbering_options)
 
     return [NamedParent(
         candidate=candidate,

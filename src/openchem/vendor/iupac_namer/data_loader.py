@@ -851,7 +851,9 @@ _RING_CURATED_SMILES: dict[str, dict] = {
         "name": "4a,5a,6,12a-tetrahydrotetracene-1,3,11(2H,4H,5H)-trione",
         "substituent_form": "1,2,3,4,4a,5,5a,6,11,12a-decahydrotetracene-1,3,11-trion-yl",
         "alkyl_stem_ok": False,
-        "atom_locants": {1: 1, 2: 2, 3: 3, 5: "12a", 6: 12, 7: "11a", 8: 11,
+        # Naming round 86: C1 is the carbon beside C12a (idx3), C3 the one beside C4 (idx1); the table had them the other way round (the two carbonyls are
+        # symmetric, so no probe could tell, and the names read back either way).
+        "atom_locants": {3: 1, 2: 2, 1: 3, 5: "12a", 6: 12, 7: "11a", 8: 11,
                          10: "10a", 11: 10, 12: 9, 13: 8, 14: 7, 15: "6a",
                          16: 6, 17: "5a", 18: 5, 19: "4a", 20: 4}},
     # tetralin (1,2,3,4-tetrahydronaphthalene): benzo ring fused with saturated 6-ring.
@@ -3008,8 +3010,12 @@ _RING_CURATED_SMILES: dict[str, dict] = {
         "name": "7,8,9,10-tetrahydro-6H-6,10-methanoazepino[4,5-g]quinoxaline",
         "substituent_form": "7,8,9,10-tetrahydro-6H-6,10-methanoazepino[4,5-g]quinoxalinyl",
         "alkyl_stem_ok": False,
-        "atom_locants": {0: 2, 2: 1, 4: 5, 7: 11, 9: 4, 10: 10, 11: 9,
-                         12: 8, 13: 7, 14: 6, 15: 12}},
+        # Naming round 85: the table labelled 11 of the 16 atoms (none of 3, 4a, 5a, 10a, 11a) and had the two nitrogens the wrong way round relative to the carbons
+        # beside them (N1 is on the C11a side, N4 on the C4a side; a single probe cannot tell, the pair is symmetric). A substituent on an unlabelled atom was numbered
+        # by the generic fallback (`16-carboxamide` after a spiro name), which OPSIN cannot read. Every atom, from the adjacency: N1=idx9, C2=idx0, C3=idx1, N4=idx2,
+        # C4a=idx3, C5=idx4, C5a=idx5, C6=idx14, C7=idx13, N8=idx12, C9=idx11, C10=idx10, C10a=idx6, C11=idx7, C11a=idx8, C12 (the methano bridge)=idx15.
+        "atom_locants": {9: 1, 0: 2, 1: 3, 2: 4, 3: "4a", 4: 5, 5: "5a", 14: 6, 13: 7,
+                         12: 8, 11: 9, 10: 10, 6: "10a", 7: 11, 8: "11a", 15: 12}},
 
     # -----------------------------------------------------------------------
     # 1,12-dihydro-14H-pyrano[3',4':6,7]indolizino[1,2-b]quinoline-3,14(4H)-dione

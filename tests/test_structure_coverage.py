@@ -160,6 +160,26 @@ def test_a_scope_that_lets_the_structure_through_never_claims_covered():
     assert registry.coverage("probe", _mol("[Na+].[Cl-]")).kind is CoverageKind.REFUSES
 
 
+def test_a_chosen_component_reads_as_a_limit_and_never_as_can_run():
+    """A hook that accepts the component the run would be handed is accepting a CHOSEN one (the largest of a drawing
+    with no single parent), so the row says so; a hook that refuses still refuses; ChEMBL's own parent is no choice."""
+    scope = CalculatorScope(ComponentSelection.CHEMBL_PARENT, Aggregation.SCALAR)
+    salt, parent = _mol("CC(=O)[O-].[Na+]"), _mol("CN(C)C(=N)N=C(N)N.Cl")
+
+    covered = _registry_with(scope=scope, preflight=lambda _m: Coverage.covered())
+    answer = covered.coverage("probe", salt)
+    assert answer.kind is CoverageKind.CAVEAT and "Computed on CC(=O)O" in answer.reason
+    assert covered.coverage("probe", parent).kind is CoverageKind.COVERED
+
+    limited = _registry_with(scope=scope, preflight=lambda _m: Coverage.caveat("its own limit"))
+    assert limited.coverage("probe", salt).reason.startswith("its own limit Computed on CC(=O)O")
+
+    refusing = _registry_with(scope=scope, preflight=lambda _m: "it refuses")
+    assert refusing.coverage("probe", salt) == Coverage.refuses("it refuses")
+
+    assert _registry_with(scope=scope).coverage("probe", salt) is None  # no hook, no claim
+
+
 def test_a_shared_pass_gives_each_calculator_the_sentence_a_direct_run_would(container, registry):
     """The pass shares the scope step between calculators; the reworded refusal must equal the one raised for each."""
     ids = [d.calculator_id for d in registry.definitions() if d.scope is not None]
@@ -208,7 +228,9 @@ def test_every_scope_refusal_is_one_the_real_run_makes(registry):
             checked += 1
             refused = _ran_and_refused(registry, definition.calculator_id, smiles)
             assert refused is not False, (definition.calculator_id, name, coverage.reason[:80])
-    assert checked > 50, f"only {checked} refusals were compared, so the panel or the scopes changed under this test"
+    # Was 50 until group 3 of the refusal audit: sodium acetate stopped refusing the sixteen parent-scoped calculators
+    # (the largest component is computed on instead), which took that many comparisons away and nothing else.
+    assert checked > 30, f"only {checked} refusals were compared, so the panel or the scopes changed under this test"
 
 
 @pytest.mark.parametrize("name", sorted(PANEL))

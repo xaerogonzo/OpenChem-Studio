@@ -1580,13 +1580,56 @@ Gas-phase electronic-energy Boltzmann population ESTIMATE over every tautomer RD
   - `multiplicity` -- Multiplicity default `1` range 1 to 10
   - `method_basis` -- Method/basis (B3LYP def2-SVP, PBE0 def2-TZVP, M062X def2-TZVP, B3LYP 6-31G(d), B3LYP pcSseg-1, B3LYP pcSseg-2) default `B3LYP def2-SVP`
 
+<!-- help:calc-orca-tautomer-nmr -->
+### Tautomer NMR
+
+NMR chemical shifts for every tautomer of a finished tautomer distribution, each from one real ORCA NMR calculation on the geometry that distribution optimized for it, referenced like an ordinary NMR calculation (the cached TMS reference for the method, or the empirical scaling), and a population-weighted fast-exchange average of the carbon shifts and of the hydrogens on carbon where the distribution gave percentages. Needs a finished tautomer distribution for the molecule (run that first) and an ORCA executable; run from the Quantum Chemistry panel's 'Tautomer NMR...' button on that distribution's run. One job per tautomer, so the cost is the number of tautomers the distribution holds.
+
+- Support level: **Experimental**. Hidden by default; enable it under Settings > Calculators.
+- Why: Not yet validated: it starts from a tautomer distribution whose populations have not been checked against published reference data, and the shifts have not been compared with measured spectra of tautomer mixtures.
+- Covers: Needs a finished tautomer distribution for the molecule and a configured ORCA executable.
+- Runs from the **Quantum Chemistry panel** panel rather than from a Properties button.
+- Runs on the 2D drawing, so no conformer is needed.
+- Basis: ab initio (computed from theory rather than fitted).
+- Options:
+  - `charge` -- Charge default `0` range -10 to 10
+  - `multiplicity` -- Multiplicity default `1` range 1 to 10
+  - `method_basis` -- Method/basis (B3LYP def2-SVP, PBE0 def2-TZVP, M062X def2-TZVP, B3LYP 6-31G(d), B3LYP pcSseg-1, B3LYP pcSseg-2) default `B3LYP def2-SVP`
+  - `distribution_run_id` -- Tautomer distribution run (blank: the newest finished one)
+
+#### What it does
+
+Calculates NMR chemical shifts for each tautomer of a molecule, starting from a tautomer distribution you have already run, and lays the peaks of the tautomers side by side. Where that distribution gave population percentages it also averages the carbon shifts and the shifts of hydrogens on carbon, weighted by those percentages. It answers "what would each form show in the spectrum, and where would a fast-exchanging mixture of them sit".
+
+#### How it works
+
+Shipped: it takes the tautomers of a finished distribution in order of their energy and runs one real ORCA NMR calculation on the geometry that distribution optimized for each, so the shifts describe the same structures whose energies set the weights and nothing is embedded or optimized again. With a conformer average chosen, it runs every conformer of each tautomer's representative stereoisomer and Boltzmann-averages them atom by atom, and a tautomer with one failed conformer is failed rather than averaged over the rest. The shielding values become shifts the way an ordinary NMR calculation's do, with the cached reference for the method (or the empirical scaling); with none cached the run stops at its first result and says so, rather than printing raw shieldings as shifts.
+
+The average is a fast-exchange average of carbons and of hydrogens bonded to carbon only. Hydrogens on nitrogen, oxygen or sulfur exchange with the solvent and with each other, so a gas-phase value for them would mislead and they are listed as not averaged. The weights are the distribution's gas-phase electronic-energy populations, with no vibrational, thermal or solvent correction, and they are used only where that distribution reported percentages.
+
+#### What the result means
+
+Per tautomer, the peaks are what a calculation of that structure alone would give. The average is what a mixture would show if the tautomers exchanged faster than the instrument can resolve; slow exchange shows separate sets of peaks, and for that the per-tautomer peaks are the thing to read. **It is not validated.** The distribution it starts from has no validated populations, and the shifts of tautomer mixtures have not been compared with measured spectra here. A published database of experimental 1H and 13C shifts used to benchmark density-functional shifts exists [1], and this calculation has not been run against it.
+
+#### When to use it, when not
+
+Use it to see how far apart the tautomers of one molecule would sit in a spectrum, or which shifts a mixture would move. Do not read the averaged numbers as measured shifts: the populations are an estimate in the gas phase and the calculation is experimental. It needs a finished tautomer distribution (run that first), an ORCA program, and the cached reference for the method (an ordinary NMR calculation at that method makes one). It costs one ORCA NMR job per tautomer, or per conformer with the conformer average.
+
+#### Search for
+
+tautomer NMR, tautomer chemical shifts, averaged shifts
+
+#### Sources
+
+- [1] Y. Kwon et al., 'DELTA50: A Highly Accurate Database of Experimental 1H and 13C NMR Chemical Shifts Applied to DFT Benchmarking', Molecules 2023, 28, 2449. DOI 10.3390/molecules28062449. Supports: a database of experimental 1H and 13C shifts for benchmarking calculated shifts, which this calculation has not been compared with
+
 <!-- help:calc-orca-bond-dissociation-enthalpy -->
 ### X-H Bond Dissociation Enthalpy
 
 The homolytic bond dissociation enthalpy at 298.15 K of the C-H, N-H, O-H or S-H bonds you choose in a neutral closed-shell molecule, DH298 = H(radical) + H(H atom) - H(molecule), from ORCA M062X/def2-TZVPD optimizations and frequencies of the molecule, of the doublet radical each bond leaves and a single point of the hydrogen atom, the lowest structure of each. Reports kJ/mol: the weakest bond computed in the headline and every bond's own value or the reason it has none. Benchmarked on 49 bonds (22 against experiment, 27 held out against the Active Thermochemical Tables): mean absolute error 1.48 kcal/mol, and the calculation runs LOW by 1.38 kcal/mol on average, in every class (an O-H next to another oxygen or a nitrogen: 3.3, up to 4.6). Measured for molecules of at most nine heavy atoms of H, C, N, O and S; outside that it computes after a warning, the result labelled an estimate. A radical that keeps an imaginary vibration after one re-run gives that bond no value (thiyl radicals do). Many ORCA jobs (minutes to hours): needs an ORCA executable; run from the Quantum Chemistry panel's 'Bond dissociation...' button -- no 3D conformer needed.
 
-- Support level: **Experimental**. Hidden by default; enable it under Settings > Calculators.
-- Why: The protocol was measured on 49 bonds (22 against experiment, PARTIAL by 0.03 kcal/mol on the bias; 27 held out against the Active Thermochemical Tables, PASS): mean absolute error 1.48 kcal/mol, values run about 1.4 kcal/mol low, and an O-H next to O or N runs 3.3 low. This implementation has not yet been driven through the application on real ORCA, and it needs many ORCA jobs. Every result states the measured error and its limits.
+- Support level: **Limited**.
+- Why: Limited to neutral closed-shell molecules of at most nine heavy atoms of H, C, N, O and S (larger or other: computed after a warning, an estimate). The protocol was measured on 49 bonds (22 against experiment, PARTIAL by 0.03 kcal/mol on the bias; 27 held out against the Active Thermochemical Tables, PASS): mean absolute error 1.48 kcal/mol, values run about 1.4 kcal/mol low, an O-H next to O or N runs 3.3 low, and an S-H gets no value because its thiyl radical keeps an imaginary vibration. This implementation reproduces the benchmark's numbers when driven through the application on real ORCA. It needs many ORCA jobs. Every result states the measured error and its limits.
 - Covers: Measured for neutral closed-shell molecules of at most nine heavy atoms of H, C, N, O and S and their C-H, N-H, O-H, S-H and Si-H bonds (outside that: computed after a warning, an estimate); charged, radical and multi-component structures are refused; the lowest structure only; needs a configured ORCA executable.
 - Runs from the **Quantum Chemistry panel** panel rather than from a Properties button.
 - Runs on the 2D drawing, so no conformer is needed.

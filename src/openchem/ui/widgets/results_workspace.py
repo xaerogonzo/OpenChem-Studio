@@ -27,7 +27,7 @@ from __future__ import annotations
 
 from collections.abc import Callable
 
-from PySide6.QtCore import QTimer
+from PySide6.QtCore import QTimer, Signal
 from PySide6.QtWidgets import (
     QButtonGroup,
     QHBoxLayout,
@@ -44,6 +44,7 @@ from openchem.events.events import ScoreDefinitionsChanged
 from openchem.services.batch_service import BatchProgress
 from openchem.services.calculator_registry import CalculatorRegistry
 from openchem.services.table_export_service import TableExportService
+from openchem.ui.widgets.dock_panel_actions import PanelMenuButton, PanelMenuItem
 from openchem.ui.widgets.help_tooltip import HelpTooltip, apply_help_tooltip
 from openchem.ui.widgets.project_table import ProjectTableView
 
@@ -75,7 +76,52 @@ _TABLE_PAGE_HELP = HelpTooltip(
 )
 
 
+#: The Report menu in the Results dock's title bar (see `DockTitleBar.add_menu_button`): the two things the reader
+#: does with the report on screen, which used to be reachable only from its control row and its right-click menu.
+REPORT_MENU = PanelMenuButton(
+    name="report",
+    accessible="Report actions",
+    text="Report",
+    enabled=False,
+    tooltip=HelpTooltip(
+        text=(
+            "Copy the report on screen, or save it to a file, in the format the reader's format box names. "
+            "Greyed when no report is showing, and on the project table, which has no report of its own."
+        ),
+        tier=1,
+        help_id="results.report_menu",
+        topic="facts",
+    ),
+    items=(
+        PanelMenuItem(
+            "copy",
+            "Copy report",
+            HelpTooltip(
+                text="Copies the report on screen to the clipboard in the chosen format.",
+                tier=1,
+                help_id="results.report_copy",
+                topic="facts",
+            ),
+        ),
+        PanelMenuItem(
+            "export",
+            "Export report...",
+            HelpTooltip(
+                text="Saves the report on screen to a file, in the chosen format. It asks where.",
+                tier=1,
+                help_id="results.report_export",
+                topic="facts",
+            ),
+        ),
+    ),
+)
+
+
 class ResultsWorkspace(QWidget):
+    #: Whether the title bar's Report menu has anything to act on: the reader is the page showing AND it holds a
+    #: report. Emitted when that changes, from either cause; read the current answer with `report_actions_available`.
+    report_actions_available_changed = Signal(bool)
+
     def __init__(
         self,
         results_view: QWidget,
@@ -148,6 +194,36 @@ class ResultsWorkspace(QWidget):
 
         event_bus.subscribe(BatchProgress, self._on_progress)
         event_bus.subscribe(ScoreDefinitionsChanged, self._on_score_definitions_changed)
+
+        self._report_actions_were_available = False
+        if hasattr(results_view, "report_available_changed"):
+            results_view.report_available_changed.connect(self._note_report_actions)
+        self._stack.currentChanged.connect(self._note_report_actions)
+        self._note_report_actions()
+
+    # -- the reader's report, for the title bar's Report menu ----------------
+
+    def report_actions_available(self) -> bool:
+        """The reader's report can be copied or exported: it is on screen and there is one. Never on the project
+        table, whose page has no report of its own for the menu to mean."""
+        return (
+            self._stack.currentWidget() is self._reader
+            and bool(getattr(self._reader, "report_available", lambda: False)())
+        )
+
+    def _note_report_actions(self, *_args) -> None:
+        available = self.report_actions_available()
+        if available != self._report_actions_were_available:
+            self._report_actions_were_available = available
+            self.report_actions_available_changed.emit(available)
+
+    def copy_report(self) -> None:
+        if self.report_actions_available():
+            self._reader.copy_report()
+
+    def export_report(self) -> None:
+        if self.report_actions_available():
+            self._reader.export_report()
 
     def _on_score_definitions_changed(self, _event) -> None:
         """A score was defined, edited or removed: the table's score columns follow, without a second run."""

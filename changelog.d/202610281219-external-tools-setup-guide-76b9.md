@@ -1,0 +1,2 @@
+### External Tools opens on a Setup guide
+- Settings > External tools now opens on a Setup guide: for each tool, what it is for, what stops working without it, whether it is Recommended, Optional or Advanced, the one next step, links to get it and to the Help, and its live status; an "I want to" box narrows it to the tools one task needs. A test holds the guide to the tool tabs, the Help topics and the links, so a new tool cannot ship without a row.

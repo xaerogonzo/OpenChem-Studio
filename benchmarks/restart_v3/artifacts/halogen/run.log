@@ -1,0 +1,14 @@
+0 closed, 13 to run
+parent|CCl|0 closed
+radical|chloromethane C-H (Chloromethyl)|0 closed
+parent|ClCCl|0 closed
+radical|dichloromethane C-H (Dichloromethyl)|0 closed
+parent|ClC(Cl)Cl|0 closed
+radical|chloroform C-H (Trichloromethyl)|0 closed
+parent|FC(F)F|0 closed
+radical|fluoroform C-H (Trifluoromethyl)|0 closed
+parent|O=CF|0 closed
+radical|formyl fluoride C-H (Fluoroformyl)|0 closed
+parent|O=CCl|0 closed
+radical|formyl chloride C-H (Chloroformyl)|0 closed
+atom|H closed

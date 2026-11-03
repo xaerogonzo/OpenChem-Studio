@@ -1,0 +1,38 @@
+[
+  {"do": "smiles", "smiles": "O", "name": "Water", "after_ms": 1500},
+  {"do": "select", "molecule": -1, "after_ms": 4000},
+
+  {"do": "qc_fixture_run", "run_id": "fixture-optfreq", "fixture": "pa_water_optfreq", "calc_type": "opt_freq", "age_s": 900, "after_ms": 500},
+  {"do": "qc_fixture_run", "run_id": "fixture-cancelled", "status": "cancelled", "calc_type": "sp", "age_s": 300,
+   "warnings": ["Stopped by the person before it finished"], "after_ms": 500},
+
+  {"do": "ai_send", "text": "Which ORCA jobs have been run on this molecule?",
+   "script": [
+     {"tool": "read_quantum_runs", "input": {}},
+     {"text": "Two: a finished optimization with frequencies, and one that was cancelled."}
+   ], "after_ms": 3000},
+  {"do": "ai_expect", "tag": "a-list-of-runs-is-headers-only",
+   "expect": {"tools_offered": ["read_quantum_runs"],
+              "tool_results_contain": ["\"run_id\": \"fixture-optfreq\"", "\"outcome\": \"computed\"", "\"freshness\": \"current\"", "\"calc_type\": \"opt_freq\"",
+                                       "\"run_id\": \"fixture-cancelled\"", "\"outcome\": \"cancelled\"", "Stopped by the person before it finished",
+                                       "\"vibrational_spectrum\": {\"status\": \"available\"", "Never state a value that is not in a run read here"],
+              "tool_results_exclude": ["M  END", "-76.4293", "\"modes\"", "surface_cache_key"],
+              "ledger_rows": 0, "pending": 0, "notes": 0, "send_enabled": true,
+              "transcript_contains": ["a finished optimization"]}},
+
+  {"do": "ai_send", "text": "What did the optimization find?",
+   "script": [
+     {"tool": "read_quantum_runs", "input": {"run_ids": ["fixture-optfreq"]}},
+     {"text": "The energy and the three vibrational modes."}
+   ], "after_ms": 3000},
+  {"do": "ai_expect", "tag": "a-named-run-carries-its-numbers-and-an-ir-analysis-is-its-modes",
+   "expect": {"tools_offered": ["read_quantum_runs"],
+              "tool_results_contain": ["\"descriptor_id\": \"orca.scf_energy\"", "-76.4293", "\"units\": \"Hartree\"", "\"mode_columns\"", "\"count\": 3", "\"imaginary_modes\": 0"],
+              "tool_results_exclude": ["M  END", "\"peaks\"", "surface_cache_key"],
+              "ledger_rows": 0, "pending": 0, "notes": 0, "send_enabled": true}},
+  {"do": "expect_results", "tag": "reading-a-run-started-no-calculation", "expect": {"orca.scf_energy": "not_run"}},
+  {"do": "shot", "path": "artifacts/visual/ai_quantum_runs.png", "after_ms": 500},
+
+  {"do": "expect_clean"},
+  {"do": "quit"}
+]

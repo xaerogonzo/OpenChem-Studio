@@ -543,6 +543,15 @@ MENU_HELP: dict[str, HelpTooltip] = {
         tier=2, help_id="view.send_to_3d_viewer_tab", topic=_M,
         help_anchor="centre-tabs",
     ),
+    "theme_choice": HelpTooltip(
+        text=(
+            "The colour scheme of the window: light, dark, or follow Windows.\n\n"
+            "The checked entry is the choice you made, which for Follow the System stays checked "
+            "whether Windows is light or dark. It is the same setting as Settings > Appearance, "
+            "and it changes only how the window looks."
+        ),
+        tier=2, help_id="view.theme_choice", topic="settings", help_anchor="settings",
+    ),
     "show_oxidation_states": HelpTooltip(
         text=(
             "Overlays per-atom oxidation states on this application's own "

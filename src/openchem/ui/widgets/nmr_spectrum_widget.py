@@ -4,6 +4,7 @@ from PySide6.QtCore import QEvent, QPointF, QRectF, Qt, Signal
 from PySide6.QtGui import QColor, QMouseEvent, QPainter, QPainterPath, QPen, QWheelEvent
 from PySide6.QtWidgets import QToolTip, QWidget
 
+from openchem.ui import theme
 from openchem.ui.picture_export import show_picture_menu
 
 from openchem.chem.nmr_measured import NmrReference, reference_peaks
@@ -117,6 +118,7 @@ class NmrSpectrumWidget(QWidget):
         parent: QWidget | None = None,
     ) -> None:
         super().__init__(parent)
+        theme.repaint_on_change(self)
         self._signals: list[NMRSignal] = list(signals or [])
         self._x_label = x_label
         self._shielding = False
@@ -299,7 +301,7 @@ class NmrSpectrumWidget(QWidget):
         return self._palette_name
 
     def _color(self, mark: str) -> QColor:
-        return QColor(*NMR_PALETTES[self._palette_name][mark])
+        return theme.ink(QColor(*NMR_PALETTES[self._palette_name][mark]))
 
     def set_show_legend(self, show: bool) -> None:
         self._show_legend = bool(show)
@@ -762,7 +764,7 @@ class NmrSpectrumWidget(QWidget):
         the old two-endpoint-only labels -- spacing is view-range-
         dependent (`nice_ticks`), so a deep zoom still reads sane ticks
         instead of two numbers 0.02 ppm apart."""
-        painter.setPen(QPen(_AXIS_COLOR))
+        painter.setPen(QPen(theme.ink(_AXIS_COLOR)))
         for value in nice_ticks(*x_range):
             x = self._to_widget_x(value, plot_rect, x_range)
             painter.drawLine(QPointF(x, plot_rect.bottom()), QPointF(x, plot_rect.bottom() + 4))
@@ -787,7 +789,7 @@ class NmrSpectrumWidget(QWidget):
         low, high = min(x_range), max(x_range)
         usable = plot_rect.height() - label_height
         for trace in traces:
-            colour = QColor(self.tautomer_trace_colour(trace))
+            colour = theme.ink(self.tautomer_trace_colour(trace))
             for peak in trace.peaks[self._trace_element]:
                 if not low <= peak.shift_ppm <= high:
                     continue
@@ -849,7 +851,7 @@ class NmrSpectrumWidget(QWidget):
         # A tautomer trace's entry carries its own `#rrggbb` instead of a palette mark.
         for _kind, _text, colour in self.legend_entries():
             if colour.startswith("#"):
-                colours[colour] = QColor(colour)
+                colours[colour] = theme.ink(colour)
         row, swatch, pad = 15.0, 22.0, 6.0
         entries = self.legend_entries()
         metrics = painter.fontMetrics()
@@ -865,8 +867,8 @@ class NmrSpectrumWidget(QWidget):
         # Weighted by integration: a tall peak is the one worth not hiding.
         covered = lambda rect: sum(w for x, w in marks if rect.left() <= x <= rect.right())  # noqa: E731
         box = left if covered(left) < covered(right) else right
-        painter.setPen(QPen(_AXIS_COLOR, 1))
-        painter.setBrush(QColor(255, 255, 255, 220))
+        painter.setPen(QPen(theme.ink(_AXIS_COLOR), 1))
+        painter.setBrush(theme.panel_fill(220))
         painter.drawRect(box)
         for index, (kind, text, colour) in enumerate(entries):
             y = box.top() + pad + row * index + row / 2
@@ -875,7 +877,7 @@ class NmrSpectrumWidget(QWidget):
                 pen.setStyle(Qt.PenStyle.DashLine)
             painter.setPen(pen)
             painter.drawLine(QPointF(box.left() + pad, y), QPointF(box.left() + pad + swatch, y))
-            painter.setPen(QPen(_AXIS_COLOR))
+            painter.setPen(QPen(theme.ink(_AXIS_COLOR)))
             painter.drawText(
                 QRectF(box.left() + pad * 2 + swatch, y - row / 2, text_width + pad, row),
                 Qt.AlignmentFlag.AlignVCenter | Qt.AlignmentFlag.AlignLeft,
@@ -888,7 +890,7 @@ class NmrSpectrumWidget(QWidget):
             return
         unit_label = "Hz" if self._effective_unit() == "hz" else "ppm"
         value = self._to_hz(self._hover_ppm) if self._effective_unit() == "hz" else self._hover_ppm
-        painter.setPen(QPen(_AXIS_COLOR))
+        painter.setPen(QPen(theme.ink(_AXIS_COLOR)))
         painter.drawText(
             QRectF(plot_rect.left(), plot_rect.top() - self._MARGIN / 2, 160, self._MARGIN / 2),
             Qt.AlignmentFlag.AlignLeft,
@@ -905,7 +907,7 @@ class NmrSpectrumWidget(QWidget):
         painter.setRenderHint(QPainter.RenderHint.Antialiasing)
 
         plot_rect = self._plot_rect()
-        painter.setPen(QPen(_AXIS_COLOR))
+        painter.setPen(QPen(theme.ink(_AXIS_COLOR)))
         painter.drawLine(plot_rect.bottomLeft(), plot_rect.bottomRight())
         painter.drawText(
             QRectF(0, self.height() - self._MARGIN / 2, self.width(), self._MARGIN / 2),
@@ -921,7 +923,7 @@ class NmrSpectrumWidget(QWidget):
         self._draw_ticks(painter, plot_rect, x_range)
         self._draw_hover_readout(painter, plot_rect)
         if self.is_zoomed():
-            painter.setPen(QPen(_AXIS_COLOR))
+            painter.setPen(QPen(theme.ink(_AXIS_COLOR)))
             painter.drawText(
                 QRectF(plot_rect.right() - 160, plot_rect.top() - self._MARGIN / 2, 160, self._MARGIN / 2),
                 Qt.AlignmentFlag.AlignRight,
@@ -1052,7 +1054,7 @@ class NmrSpectrumWidget(QWidget):
         already uses -- never to whichever resolved component happens to
         be tallest, since the label describes the signal's assignment, not
         a peak-pick of the convolved curve."""
-        painter.setPen(QPen(_AXIS_COLOR))
+        painter.setPen(QPen(theme.ink(_AXIS_COLOR)))
         for signal in self._signals:
             label = self._peak_label_text(signal)
             if label is None:

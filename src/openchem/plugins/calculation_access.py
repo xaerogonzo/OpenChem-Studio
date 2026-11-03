@@ -30,6 +30,7 @@ from openchem.domain.run_lifecycle import Preparation, PrepareResult, RunOutcome
 from openchem.domain.score_outputs import APPROVED, ApprovedOutput
 from openchem.domain.score_proposal import ProposalOutcome, ProposalProblem, ProposalRefusal, ProposalState, Registered, ScoreProposal
 from openchem.domain.score_reading import ScoresView, read_scores
+from openchem.domain.quantum_run_snapshot import DEFAULT_RUN_LIMIT, RunsView, read_runs
 from openchem.domain.turn_snapshot import DEFAULT_READ_LIMIT, ResultsView, TurnContext, read_results
 
 
@@ -95,6 +96,17 @@ class PluginCalculations:
         """What was stored when `turn` began, never what is stored now. Needs no host."""
         return read_results(turn, calculator_ids, include_not_current=include_not_current, limit=limit)
 
+    def read_quantum_runs(
+        self,
+        turn: TurnContext,
+        run_ids: list[str] | None = None,
+        *,
+        include_not_current: bool = False,
+        limit: int = DEFAULT_RUN_LIMIT,
+    ) -> RunsView:
+        """The ORCA runs stored for the turn's molecule when `turn` began: a list of headers, or the runs named by id with their numbers. Needs no host, and starts nothing."""
+        return read_runs(turn, run_ids, include_not_current=include_not_current, limit=limit)
+
     def read_scores(self, turn: TurnContext, names: list[str] | None = None) -> ScoresView:
         """The user-defined scores of the turn's molecule, worked out from what was stored and defined when `turn` began. Needs no host, and can only READ: there is no
         call here that makes, changes or removes a score."""
@@ -139,6 +151,8 @@ class ApprovalHost(Protocol):
 
     def cancel(self, run_id: str) -> bool: ...
 
+    def stop(self, run_id: str) -> bool: ...
+
     def state_of(self, run_id: str) -> RunState | None: ...
 
     def outcome_of(self, run_id: str) -> RunOutcome | None: ...
@@ -181,6 +195,10 @@ class PluginCalculationApprovals:
     def cancel(self, run_id: str) -> bool:
         """Drop a pending preview. Nothing is started."""
         return self._host.cancel(run_id) if self._host is not None else False
+
+    def stop(self, run_id: str) -> bool:
+        """Stop an approved ORCA job that is running, as the Quantum Chemistry panel's Cancel button does. The run ends when ORCA's record arrives, not here."""
+        return self._host.stop(run_id) if self._host is not None else False
 
     def state_of(self, run_id: str) -> RunState | None:
         return self._host.state_of(run_id) if self._host is not None else None

@@ -4775,6 +4775,56 @@ FIXED: list[tuple[str, str, str, str, str]] = [
     ("D-375", "O=C1N=CN=C2N=C(C(=O)OC)N=C12", "methyl 6-oxo-6H-purine-8-carboxylate",
      "methyl 6-oxo-9H-purine-8-carboxylate",
      "a hypoxanthine drawn with no ring N-H kept the curated 9H, a hydrogen on N9 the drawing lacks (another tautomer); the indicated hydrogen is the oxo carbon's"),
+    # Naming round 84 (D-377, D-378; D-376 is a hang, tested in the round file).
+    ("D-377", "O=c1cc[nH]c2c1CC1(CC1)CC2", "spiro[5,6,7,8-tetrahydroquinoline-6,1'-cyclopropane]-4(1H)-one",
+     "[NAMING ERROR: No valid naming plan found for O=c1cc[nH]c2c1CC1(CC2)CC1]",
+     "a ring ketone on a pyridone-type component of a spiro system: the partner rebuilt without its =O could not be kekulized with the N-H on"),
+    ("D-378", "O=c1ccnc2n1CCC1(CCCCC1)C2", "spiro[6,7,8,9-tetrahydro-4H-pyrido[1,2-a]pyrimidine-8,1'-cyclohexane]-4-one",
+     "[NAMING ERROR: No valid naming plan found for O=c1ccnc2n1CCC1(CCCCC1)C2]",
+     "the same with a bridgehead nitrogen or a ring sulfur and no N-H to drop: the partner is built from the Kekule form, the carbon that held the =O a CH2"),
+    # Naming round 85 (D-379).
+    ("D-379", "CON1CCCCC12C1CNCC2c2cc3nc(C(N)=O)cnc3cc21", "1-methoxyspiro[azinane-2,12'-7,8,9,10-tetrahydro-6H-6,10-methanoazepino[4,5-g]quinoxaline]-2'-carboxamide",
+     "1-methoxyspiro[azinane-2,12'-7,8,9,10-tetrahydro-6H-6,10-methanoazepino[4,5-g]quinoxaline]-16-carboxamide",
+     "the curated methano-bridged azepinoquinoxaline labelled 11 of its 16 atoms and had its nitrogens swapped, so a substituent on an unlabelled atom of a spiro partner took the generic number 16"),
+    # Naming round 88 (D-381 to D-384).
+    ("D-381", "C1CCC2(CC1)CCCC1CC12", "spiro[cyclohexane-1,2'-bicyclo[4.1.0]heptane]",
+     "[NAMING ERROR: No valid naming plan found for C1CCC2(CC1)CCCC1CC12]",
+     "a spiro joint to an ortho-fused partner that has no fusion name (norcarane, bicyclo[3.2.0]heptane): the partner is named by the von Baeyer fallback, so its ring system is 'fused' while its name is von Baeyer, and the spiro atom got no locant"),
+    ("D-382", "C1CCC2(CC1)C1CC3CC1C2C3", "spiro[tricyclo[3.2.1.0^{3,6}]octane-4,1'-cyclohexane]",
+     "spiro[tricyclo[3.2.1.0^{3,6}]octane-2,1'-cyclohexane]",
+     "the lowest spiro locant of a tricyclic partner was taken from von Baeyer numberings that disagree with its 0^{3,6} descriptor, so the name read back as another molecule"),
+    ("D-383", "C1CC2CC1CC21CC2CC1C2", "spiro[bicyclo[2.2.1]heptane-2,2'-bicyclo[2.1.1]hexane]",
+     "[NAMING ERROR: No valid naming plan found for C1CC2CC1CC21CC2CC1C2]",
+     "a spiro joint of two polycyclic partners (two bridged, or bridged and fused) was skipped, and where a von Baeyer descriptor of the whole existed it outranked the spiro name (octacyclo[...], unreadable)"),
+    ("D-384", "C1CC2CC1C[Si]23CCCC3", "spiro[silolane-1,2'-2-silabicyclo[2.2.1]heptane]",
+     "[NAMING ERROR: No valid naming plan found for C1CC2CC1C[Si]23CCCC3]",
+     "a silicon spiro atom (and a quaternary N+ or P+ one, written `<loc>-azonia` / `<loc>-phosphonia`) with a polycyclic partner: 161 of 200 such molecules were a NAMING ERROR"),
+    ("D-385", "C/C=C1/CCCCC12CC3CCC2C3", "(6'Z)-6'-ethylidenespiro[bicyclo[2.2.1]heptane-2,1'-cyclohexane]",
+     "6'-ethylidenespiro[bicyclo[2.2.1]heptane-2,1'-cyclohexane]",
+     "the E/Z of an exocyclic double bond at a primed locant of a spiro name was dropped (the gate admitted plain integers only), so the Z and E isomers had one name"),
+    ("D-386", "C[C@@H]1[C@H]2CC[C@H](CC2)[C@@H]1O", "(2S,3R)-3-methylbicyclo[2.2.2]octan-2-ol",
+     "3-methylbicyclo[2.2.2]octan-2-ol",
+     "OPSIN cannot take the descriptors of a bicyclo[2.2.2]octane's bridgeheads when two bridges are equivalent, and the validator stripped every bridged descriptor with them: four stereoisomers, one name"),
+    ("D-387", "C=[N+]=[N-]", "diazomethane", "imino(methylidene)azanium",
+     "a diazo compound drawn C=[N+]=[N-] was named as an iminoazanium, which OPSIN reads as CH3N2+: the diazo group (P-61.4) overlapped substituted_imine with no subsumption entry, the imine won and the [N-] was neutralised away; 123 of 150 generated diazo compounds read back as another molecule"),
+    ("D-387b", "CC(=O)C=[N+]=[N-]", "1-diazopropan-2-one", "1-(iminoazaniumylidene)propan-2-one",
+     "the same overlap on a diazo ketone"),
+    ("D-387c", "c1ccccc1C=[N+]=[N-]", "(diazomethyl)benzene", "[(iminoazaniumylidene)methyl]benzene",
+     "the same overlap on a diazo carbon beside a ring"),
+    ("D-387d", "[N-]=[N+]=C(N)c1ccccc1", "[amino(diazo)methyl]benzene", "(N'-azanidylcarbamimidoyl)benzene",
+     "a diazo carbon beside an amine was read as a carbamimidoyl group (C(=N)N matched the diazo N+), the imino nitrogen's charge was dropped and the molecule changed"),
+    # Naming round 91 (D-388).
+    ("D-388", "F[C@@H]1[C@@H]2C[C@H]3C[C@@H](C2)[C@@H](F)[C@@H]1C3", "(1R,2R,4R,5S)-2,4-difluoroadamantane",
+     "2,4-difluoroadamantane",
+     "OPSIN cannot anchor some of an adamantane's descriptors, and the validator dropped every one it named by locant number, the centres it reads with them: 2 of 4 stereoisomers had the flat name"),
+    ("D-388b", "O[C@@H]1[C@H]2CC[C@H](CC2)[C@@H]1[C@@H]1C[C@H]2CC[C@@H]1C2",
+     "(2R,3R)-3-[(1R,2R)-bicyclo[2.2.1]heptan-2-yl]bicyclo[2.2.2]octan-2-ol",
+     "3-(bicyclo[2.2.1]heptan-2-yl)bicyclo[2.2.2]octan-2-ol",
+     "the locant strip is by number across the whole name, so a norbornyl group lost its centres because the octane it hangs on has a 1 and a 4 OPSIN cannot anchor: 10 of 10 sampled isomers were named flat"),
+    # Naming round 92 (D-389).
+    ("D-389", "C1OC12C1(CO1)C1(CO1)C21CO1", "1,5,8,11-tetraoxatetraspiro[2.0.2^{4}.0.2^{7}.0.2^{10}.0^{3}]dodecane",
+     "1,6,9,12-tetraoxatetraspiro[2.0.2^{4}.0.2^{7}.0.2^{10}.0^{3}]dodecane",
+     "a terminal ring of a polyspiro system was numbered in the one direction RDKit walked it, so the oxygens took 1,6,9,12 or 1,5,9,12 by atom order and never the lowest set 1,5,8,11 the book prints (P-93.5.3 example 5)"),
     # D-162, recorded OPEN in naming round 14 and closed by the same change: the same group in an ester's alcohol part. Its target was derived then and is what the fixed engine writes.
     ("D-162", "CC(=O)OCC(=O)N(O)C", "2-[hydroxy(methyl)amino]-2-oxoethyl acetate",
      "[(hydroxycarbamoyl)methyl]methyl acetate",
@@ -4880,6 +4930,45 @@ OPEN: list[tuple[str, str, str, str, str]] = [
      "-- the WRONG MOLECULE this item was admitted for is fixed, the PIN is "
      "a separate, still-open gap (imine FG perception is empty for this "
      "structure in every context, not only the multiplicative one)"),
+    # NL-011, 2026-11-03. Not a naming round: the coverage cell. The flat name
+    # is what _try_multicomponent_spiro returns for this ring system, and OPSIN
+    # reads it as the input. name_spiro never offers it, because the system is
+    # classed bridged (spiro_sizes is None, so name_spiro returns before the
+    # flat composer). name_polycyclic_spiro then emits the nested name.
+    ("D-390", "C1C2CC3CC1CC(C2)C31CCC2OC1CC21CN2CCC1CC2",
+     "dispiro[1-azabicyclo[2.2.2]octane-3,6'-8-oxabicyclo[3.2.1]octane-2',2''-adamantane]",
+     "spiro[spiro[8-oxabicyclo[3.2.1]octane-6,3'-1-azabicyclo[2.2.2]octane]-2,2'-adamantane]",
+     "a chain of three polycyclic components is classed bridged, so the flat dispiro name is never offered and the nested name, which OPSIN cannot parse, is what is emitted"),
+    # NL-081, 2026-11-03. The enclosure test in _render_azanide looks for a
+    # locant, a comma, a parenthesis or a space. chloroacetyl has none of
+    # those, so the name is written solid. OPSIN reads the enclosed spelling
+    # as this anion.
+    ("D-391", "ClCC(=O)[NH-]",
+     "(chloroacetyl)azanide",
+     "chloroacetylazanide",
+     "a compound acyl name with no locant character is written solid on azanide"),
+    # NL-010, 2026-11-03. P-72.4 (BlueBookV2.pdf p. 812): method (1) is the
+    # PIN, formed on the skeletal-replacement parent with the suffix uide.
+    # The printed analogue is 2,2-dimethyl-2-boraspiro[4.5]decan-2-uide.
+    # OPSIN reads 4-boraspiro[3.4]octan-4-uide as this anion. name_smiles
+    # raises rather than emitting it; the nearest name in the error is the
+    # neutral lambda4 spelling. Method (2), 4-boranuidaspiro[3.4]octane,
+    # also denotes the anion and is not the PIN.
+    ("D-392", "C1CC[B-]12CCCC2",
+     "4-boraspiro[3.4]octan-4-uide",
+     "4lambda4-boraspiro[3.4]octane",
+     "a tetracoordinate boron anion as the spiro atom is refused; the PIN keeps the charge"),
+    # NL-011, 2026-11-03. Two further chains of the seed-8901 set whose
+    # flat dispiro names, from _try_multicomponent_spiro, read back. The
+    # emitted names are still nested. D-390 is the first chain.
+    ("D-393", "C1CCC2CC3(CCC2C1)C1CC2CC3OC3(CC4CCN3CC4)C(C2)C1",
+     "dispiro[decahydronaphthalene-2,2'-4-oxatricyclo[4.3.1.1^{3,8}]undecane-5',2''-1-azabicyclo[2.2.2]octane]",
+     "spiro[spiro[1-azabicyclo[2.2.2]octane-2,5'-4-oxatricyclo[4.3.1.1^{3,8}]undecane]-11,2'-decahydronaphthalene]",
+     "a chain of three polycyclic components is classed bridged, so the flat dispiro name is never offered"),
+    ("D-394", "C1NC2CC3CC1CC(C21C2CC4CC(C2)CC1C4)C31C2CC3CC1C3C2",
+     "dispiro[tricyclo[3.2.1.0^{3,6}]octane-2,9'-4-azatricyclo[4.3.1.1^{3,8}]undecane-2',2''-adamantane]",
+     "spiro[spiro[4-azatricyclo[4.3.1.1^{3,8}]undecane-9,2'-tricyclo[3.2.1.0^{3,6}]octane]-2,2'-adamantane]",
+     "a chain of three polycyclic components is classed bridged, so the flat dispiro name is never offered"),
 ]
 
 # Observed but NOT tracked here, because this table requires a verified
@@ -4923,7 +5012,12 @@ def test_open_defect_still_open(defect, smiles, expected, former, note):
     A strict xfail turning green means the engine improved and this file
     is now lying about it. Move the row from OPEN to FIXED.
     """
-    assert name_smiles(smiles) == expected
+    try:
+        got = name_smiles(smiles)
+    except ValueError:
+        # D-392: the engine refuses rather than emitting the PIN.
+        got = None
+    assert got == expected
 
 
 def test_a_symmetric_carbodiimide_is_no_longer_a_wrong_molecule():

@@ -1,0 +1,7 @@
+ARM C-Br (four bromine C-H bonds; REPORTED ONLY, deciding nothing)
+A claim is made only when the error exceeds 5.0 kcal/mol against the kinetics value AND every calculated value (bromoethane, which has none: more than 5.0 outside the whole range of the other determinations); anything else is numbers.
+
+bromomethane C-H           computed 100.11; kinetics 102.10 (error -2.00); other determinations 100.79 to 102.01 (error -0.68 to -1.90); calculated 100.50, 100.57 (error -0.40, -0.47); no claim (numbers only)  [lowest frequency parent 634, radical 228 cm-1; radical analytic]
+dibromomethane C-H         computed 96.57; kinetics 98.61 (error -2.04); other determinations 97.90 to 103.70 (error -1.33 to -7.13); calculated 97.37, 97.16 (error -0.80, -0.58); no claim (numbers only)  [lowest frequency parent 175, radical 188 cm-1; radical analytic]
+bromochloromethane C-H     computed 95.85; kinetics 97.04 (error -1.19); other determinations 93.93 to 93.93 (error +1.92 to +1.92); calculated 96.51, 96.65 (error -0.66, -0.80); no claim (numbers only)  [lowest frequency parent 230, radical 247 cm-1; radical analytic]
+bromoethane alpha C-H      computed 97.57; kinetics 99.19 (error -1.62); other determinations 94.19 to 97.20 (error +3.37 to +0.36); calculated none (error n/a); no claim (numbers only)  [lowest frequency parent 263, radical 155 cm-1; radical analytic]

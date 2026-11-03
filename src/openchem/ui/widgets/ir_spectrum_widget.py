@@ -6,6 +6,7 @@ from PySide6.QtWidgets import QWidget
 
 from openchem.chem.spectrum_overlay import OverlaySeries, common_range, prepare_computed
 from openchem.domain.scientific_result import VibrationalMode
+from openchem.ui import theme
 from openchem.ui.picture_export import show_picture_menu
 from openchem.ui.widgets.plot_zoom import drift, is_full_span, panned_window, zoomed_window
 
@@ -104,6 +105,7 @@ class IrSpectrumWidget(QWidget):
         parent: QWidget | None = None,
     ) -> None:
         super().__init__(parent)
+        theme.repaint_on_change(self)
         self._modes: list[VibrationalMode] = list(modes or [])
         self._imaginary_warning = imaginary_warning
         self._highlighted: set[int] = set()
@@ -373,7 +375,7 @@ class IrSpectrumWidget(QWidget):
     def _draw_imaginary_banner(self, painter: QPainter) -> None:
         if not self._imaginary_warning:
             return
-        painter.setPen(QPen(_WARNING_COLOR))
+        painter.setPen(QPen(theme.ink(_WARNING_COLOR)))
         painter.drawText(
             QRectF(0, 0, self.width(), self._MARGIN),
             int(Qt.AlignmentFlag.AlignCenter | Qt.TextFlag.TextWordWrap),
@@ -402,7 +404,7 @@ class IrSpectrumWidget(QWidget):
             return
 
         usable = plot_rect.height() - 14.0
-        painter.setPen(QPen(_MEASURED_COLOR, 1.2))
+        painter.setPen(QPen(theme.ink(_MEASURED_COLOR), 1.2))
         previous = None
         for wavenumber, value in zip(series.wavenumbers, series.relative_absorbance):
             x = self._to_widget_x(wavenumber, plot_rect, x_range)
@@ -416,7 +418,7 @@ class IrSpectrumWidget(QWidget):
             label += " (%T → absorbance)"
         elif "TRANS" in (series.source_units or "").upper():
             label += " (T → absorbance)"
-        painter.setPen(QPen(_MEASURED_COLOR))
+        painter.setPen(QPen(theme.ink(_MEASURED_COLOR)))
         painter.drawText(
             QRectF(plot_rect.left(), plot_rect.top() - 14.0, plot_rect.width(), 14.0),
             Qt.AlignmentFlag.AlignRight,
@@ -428,7 +430,7 @@ class IrSpectrumWidget(QWidget):
         painter.setRenderHint(QPainter.RenderHint.Antialiasing)
 
         plot_rect = self._plot_rect()
-        painter.setPen(QPen(_AXIS_COLOR))
+        painter.setPen(QPen(theme.ink(_AXIS_COLOR)))
         painter.drawLine(plot_rect.bottomLeft(), plot_rect.bottomRight())
         painter.drawText(
             QRectF(0, self.height() - self._MARGIN / 2, self.width(), self._MARGIN / 2),
@@ -458,7 +460,7 @@ class IrSpectrumWidget(QWidget):
 
         readout = self.readout_text()
         if readout:
-            painter.setPen(QPen(_AXIS_COLOR))
+            painter.setPen(QPen(theme.ink(_AXIS_COLOR)))
             painter.drawText(
                 QRectF(plot_rect.right() - 130, plot_rect.top() + 2, 128, 14),
                 Qt.AlignmentFlag.AlignRight,
@@ -468,7 +470,7 @@ class IrSpectrumWidget(QWidget):
         if not real:
             painter.end()
             return
-        painter.setPen(QPen(_AXIS_COLOR))
+        painter.setPen(QPen(theme.ink(_AXIS_COLOR)))
         # Left label is the HIGH wavenumber, right the low -- the axis runs
         # backwards, and printing them the other way round would silently
         # mirror the reader's interpretation of every band.
@@ -495,7 +497,7 @@ class IrSpectrumWidget(QWidget):
         # honest picture: modes exist, none of them absorb.
         scale = strongest if strongest > 0.0 else 0.0
 
-        painter.setPen(QPen(_AXIS_COLOR))
+        painter.setPen(QPen(theme.ink(_AXIS_COLOR)))
         painter.drawText(
             QRectF(plot_rect.left(), plot_rect.top() - label_height, 200, label_height),
             Qt.AlignmentFlag.AlignLeft,
@@ -511,11 +513,11 @@ class IrSpectrumWidget(QWidget):
             else:
                 height = _SILENT_STUB_HEIGHT
             if highlighted:
-                colour, width = _HIGHLIGHT_COLOR, 3
+                colour, width = theme.ink(_HIGHLIGHT_COLOR), 3
             elif silent:
-                colour, width = _SILENT_COLOR, 1
+                colour, width = theme.ink(_SILENT_COLOR), 1
             else:
-                colour, width = _PEAK_COLOR, 1
+                colour, width = theme.ink(_PEAK_COLOR), 1
             painter.setPen(QPen(colour, width))
             x = self._to_widget_x(mode.wavenumber_cm1, plot_rect, x_range)
             painter.drawLine(

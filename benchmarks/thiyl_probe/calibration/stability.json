@@ -1,0 +1,977 @@
+{
+ "first_methane_C_H": {
+  "key": "first_methane_C_H",
+  "kind": "stability",
+  "seconds": 20.2,
+  "terminated_normally": true,
+  "energy": -39.824266130502,
+  "frequencies": [],
+  "enthalpy": null,
+  "stability_eigenvalues": [
+   0.21105614,
+   0.24619254,
+   0.24849761
+  ],
+  "stable": true
+ },
+ "first_ethane_C_H": {
+  "key": "first_ethane_C_H",
+  "kind": "stability",
+  "seconds": 45.1,
+  "terminated_normally": true,
+  "energy": -79.134992140683,
+  "frequencies": [],
+  "enthalpy": null,
+  "stability_eigenvalues": [
+   0.18844998,
+   0.21656546,
+   0.23209693
+  ],
+  "stable": true
+ },
+ "first_propane_secondary_C_H": {
+  "key": "first_propane_secondary_C_H",
+  "kind": "stability",
+  "seconds": 76.4,
+  "terminated_normally": true,
+  "energy": -118.447245022368,
+  "frequencies": [],
+  "enthalpy": null,
+  "stability_eigenvalues": [
+   0.17377096,
+   0.20028351,
+   0.20288606
+  ],
+  "stable": true
+ },
+ "first_butane_secondary_C_H": {
+  "key": "first_butane_secondary_C_H",
+  "kind": "stability",
+  "seconds": 130.4,
+  "terminated_normally": true,
+  "energy": -157.754262286403,
+  "frequencies": [],
+  "enthalpy": null,
+  "stability_eigenvalues": [
+   0.1763106,
+   0.19805655,
+   0.19981625
+  ],
+  "stable": true
+ },
+ "first_ethene_C_H": {
+  "key": "first_ethene_C_H",
+  "kind": "stability",
+  "seconds": 34.9,
+  "terminated_normally": true,
+  "energy": -77.888690916364,
+  "frequencies": [],
+  "enthalpy": null,
+  "stability_eigenvalues": [
+   0.11307492,
+   0.14201068,
+   0.17390601
+  ],
+  "stable": true
+ },
+ "first_ethyne_C_H": {
+  "key": "first_ethyne_C_H",
+  "kind": "stability",
+  "seconds": 25.8,
+  "terminated_normally": true,
+  "energy": -76.607609449216,
+  "frequencies": [],
+  "enthalpy": null,
+  "stability_eigenvalues": [
+   0.0248809,
+   0.03115669,
+   0.30468361
+  ],
+  "stable": true
+ },
+ "first_isobutane_tertiary_C_H": {
+  "key": "first_isobutane_tertiary_C_H",
+  "kind": "stability",
+  "seconds": 133.6,
+  "terminated_normally": true,
+  "energy": -157.760178188182,
+  "frequencies": [],
+  "enthalpy": null,
+  "stability_eigenvalues": [
+   0.16474919,
+   0.19773062,
+   0.19776123
+  ],
+  "stable": true
+ },
+ "first_benzene_C_H": {
+  "key": "first_benzene_C_H",
+  "kind": "stability",
+  "seconds": 207.4,
+  "terminated_normally": true,
+  "energy": -231.539664439422,
+  "frequencies": [],
+  "enthalpy": null,
+  "stability_eigenvalues": [
+   0.10841026,
+   0.14915032,
+   0.1849814
+  ],
+  "stable": true
+ },
+ "first_propene_allylic_C_H": {
+  "key": "first_propene_allylic_C_H",
+  "kind": "stability",
+  "seconds": 64.4,
+  "terminated_normally": true,
+  "energy": -117.23561690934,
+  "frequencies": [],
+  "enthalpy": null,
+  "stability_eigenvalues": [
+   0.0955191,
+   0.18967568,
+   0.20810685
+  ],
+  "stable": true
+ },
+ "first_methanol_C_H": {
+  "key": "first_methanol_C_H",
+  "kind": "stability",
+  "seconds": 30.9,
+  "terminated_normally": true,
+  "energy": -115.055883890146,
+  "frequencies": [],
+  "enthalpy": null,
+  "stability_eigenvalues": [
+   0.14463996,
+   0.18701775,
+   0.20971806
+  ],
+  "stable": true
+ },
+ "first_methanol_O_H": {
+  "key": "first_methanol_O_H",
+  "kind": "stability",
+  "seconds": 29.6,
+  "terminated_normally": true,
+  "energy": -115.042610436157,
+  "frequencies": [],
+  "enthalpy": null,
+  "stability_eigenvalues": [
+   0.00486715,
+   0.15597698,
+   0.26832105
+  ],
+  "stable": true
+ },
+ "first_2_propanol_O_H": {
+  "key": "first_2_propanol_O_H",
+  "kind": "stability",
+  "seconds": 177.8,
+  "terminated_normally": true,
+  "energy": -193.666232904448,
+  "frequencies": [],
+  "enthalpy": null,
+  "stability_eigenvalues": [
+   0.00586712,
+   0.1418772,
+   0.19808055
+  ],
+  "stable": true
+ },
+ "first_toluene_benzylic_C_H": {
+  "key": "first_toluene_benzylic_C_H",
+  "kind": "stability",
+  "seconds": 469.7,
+  "terminated_normally": true,
+  "energy": -270.883199137583,
+  "frequencies": [],
+  "enthalpy": null,
+  "stability_eigenvalues": [
+   0.09733137,
+   0.11570565,
+   0.14594454
+  ],
+  "stable": true
+ },
+ "first_hydrogen_sulfide_S_H": {
+  "key": "first_hydrogen_sulfide_S_H",
+  "kind": "stability",
+  "seconds": 52.6,
+  "terminated_normally": false,
+  "energy": null,
+  "frequencies": [],
+  "enthalpy": null,
+  "stability_eigenvalues": [
+   -0.0014856,
+   0.13689275,
+   0.20270219
+  ],
+  "stable": false
+ },
+ "first_ammonia_N_H": {
+  "key": "first_ammonia_N_H",
+  "kind": "stability",
+  "seconds": 14.0,
+  "terminated_normally": true,
+  "energy": -55.87074186383,
+  "frequencies": [],
+  "enthalpy": null,
+  "stability_eigenvalues": [
+   0.07472503,
+   0.23256836,
+   0.28340054
+  ],
+  "stable": true
+ },
+ "first_water_O_H": {
+  "key": "first_water_O_H",
+  "kind": "stability",
+  "seconds": 12.9,
+  "terminated_normally": true,
+  "energy": -75.733802380058,
+  "frequencies": [],
+  "enthalpy": null,
+  "stability_eigenvalues": [
+   0.00018317,
+   0.14360151,
+   0.2820832
+  ],
+  "stable": true
+ },
+ "first_tert_butanol_O_H": {
+  "key": "first_tert_butanol_O_H",
+  "kind": "stability",
+  "seconds": 250.4,
+  "terminated_normally": true,
+  "energy": -232.97857666988,
+  "frequencies": [],
+  "enthalpy": null,
+  "stability_eigenvalues": [
+   0.00613015,
+   0.13728761,
+   0.18786269
+  ],
+  "stable": true
+ },
+ "first_hydrogen_peroxide_O_H": {
+  "key": "first_hydrogen_peroxide_O_H",
+  "kind": "stability",
+  "seconds": 28.3,
+  "terminated_normally": true,
+  "energy": -150.909840227634,
+  "frequencies": [],
+  "enthalpy": null,
+  "stability_eigenvalues": [
+   0.03581432,
+   0.19668542,
+   0.24404241
+  ],
+  "stable": true
+ },
+ "first_formaldehyde_C_H": {
+  "key": "first_formaldehyde_C_H",
+  "kind": "stability",
+  "seconds": 26.8,
+  "terminated_normally": true,
+  "energy": -113.850979346309,
+  "frequencies": [],
+  "enthalpy": null,
+  "stability_eigenvalues": [
+   0.08092922,
+   0.17599635,
+   0.21018854
+  ],
+  "stable": true
+ },
+ "first_methyl_hydroperoxide_O_H": {
+  "key": "first_methyl_hydroperoxide_O_H",
+  "kind": "stability",
+  "seconds": 60.8,
+  "terminated_normally": true,
+  "energy": -190.211591188786,
+  "frequencies": [],
+  "enthalpy": null,
+  "stability_eigenvalues": [
+   0.03904253,
+   0.17930096,
+   0.22239868
+  ],
+  "stable": true
+ },
+ "first_hydrogen_cyanide_C_H": {
+  "key": "first_hydrogen_cyanide_C_H",
+  "kind": "stability",
+  "seconds": 24.0,
+  "terminated_normally": true,
+  "energy": -92.711934170619,
+  "frequencies": [],
+  "enthalpy": null,
+  "stability_eigenvalues": [
+   0.04551102,
+   0.04609506,
+   0.12254313
+  ],
+  "stable": true
+ },
+ "first_silane_Si_H": {
+  "key": "first_silane_Si_H",
+  "kind": "stability",
+  "seconds": 16.7,
+  "terminated_normally": true,
+  "energy": -291.206326573021,
+  "frequencies": [],
+  "enthalpy": null,
+  "stability_eigenvalues": [
+   0.18734163,
+   0.18785903,
+   0.20083997
+  ],
+  "stable": true
+ },
+ "first_acetaldehyde_formyl_C_H": {
+  "key": "first_acetaldehyde_formyl_C_H",
+  "kind": "stability",
+  "seconds": 58.4,
+  "terminated_normally": true,
+  "energy": -153.17238905863,
+  "frequencies": [],
+  "enthalpy": null,
+  "stability_eigenvalues": [
+   0.08728496,
+   0.17444844,
+   0.19640769
+  ],
+  "stable": true
+ },
+ "first_acetaldehyde_methyl_C_H": {
+  "key": "first_acetaldehyde_methyl_C_H",
+  "kind": "stability",
+  "seconds": 56.6,
+  "terminated_normally": true,
+  "energy": -153.16255579482,
+  "frequencies": [],
+  "enthalpy": null,
+  "stability_eigenvalues": [
+   0.06084267,
+   0.14380529,
+   0.19821812
+  ],
+  "stable": true
+ },
+ "first_ethyl_hydroperoxide_O_H": {
+  "key": "first_ethyl_hydroperoxide_O_H",
+  "kind": "stability",
+  "seconds": 110.3,
+  "terminated_normally": true,
+  "energy": -229.523891844441,
+  "frequencies": [],
+  "enthalpy": null,
+  "stability_eigenvalues": [
+   0.03876894,
+   0.17807689,
+   0.27173071
+  ],
+  "stable": true
+ },
+ "first_phenol_O_H": {
+  "key": "first_phenol_O_H",
+  "kind": "stability",
+  "seconds": 344.4,
+  "terminated_normally": true,
+  "energy": -306.807832461151,
+  "frequencies": [],
+  "enthalpy": null,
+  "stability_eigenvalues": [
+   0.04750772,
+   0.07921156,
+   0.10484957
+  ],
+  "stable": true
+ },
+ "first_formic_acid_O_H": {
+  "key": "first_formic_acid_O_H",
+  "kind": "stability",
+  "seconds": 59.6,
+  "terminated_normally": true,
+  "energy": -189.079396908963,
+  "frequencies": [],
+  "enthalpy": null,
+  "stability_eigenvalues": [
+   0.02372017,
+   0.06719113,
+   0.189122
+  ],
+  "stable": true
+ },
+ "first_tert_butyl_hydroperoxide_O_H": {
+  "key": "first_tert_butyl_hydroperoxide_O_H",
+  "kind": "stability",
+  "seconds": 327.4,
+  "terminated_normally": true,
+  "energy": -308.150765758151,
+  "frequencies": [],
+  "enthalpy": null,
+  "stability_eigenvalues": [
+   0.03999793,
+   0.1795996,
+   0.2167308
+  ],
+  "stable": true
+ },
+ "first_acetic_acid_O_H": {
+  "key": "first_acetic_acid_O_H",
+  "kind": "stability",
+  "seconds": 104.2,
+  "terminated_normally": true,
+  "energy": -228.401122438666,
+  "frequencies": [],
+  "enthalpy": null,
+  "stability_eigenvalues": [
+   0.02587141,
+   0.06396944,
+   0.18784214
+  ],
+  "stable": true
+ },
+ "first_methanethiol_C_H": {
+  "key": "first_methanethiol_C_H",
+  "kind": "stability",
+  "seconds": 37.1,
+  "terminated_normally": true,
+  "energy": -438.022713287517,
+  "frequencies": [],
+  "enthalpy": null,
+  "stability_eigenvalues": [
+   0.12763886,
+   0.156616,
+   0.16018614
+  ],
+  "stable": true
+ },
+ "first_benzoic_acid_O_H": {
+  "key": "first_benzoic_acid_O_H",
+  "kind": "stability",
+  "seconds": 1218.6,
+  "terminated_normally": true,
+  "energy": -420.131527571109,
+  "frequencies": [],
+  "enthalpy": null,
+  "stability_eigenvalues": [
+   0.01928654,
+   0.05492483,
+   0.10923722
+  ],
+  "stable": true
+ },
+ "heldout_propane_C_H_n_Propyl": {
+  "key": "heldout_propane_C_H_n_Propyl",
+  "kind": "stability",
+  "seconds": 83.3,
+  "terminated_normally": true,
+  "energy": -118.441540492345,
+  "frequencies": [],
+  "enthalpy": null,
+  "stability_eigenvalues": [
+   0.19149293,
+   0.22177881,
+   0.23144234
+  ],
+  "stable": true
+ },
+ "heldout_ethanol_C_H_1_Hydroxyethyl": {
+  "key": "heldout_ethanol_C_H_1_Hydroxyethyl",
+  "kind": "stability",
+  "seconds": 71.6,
+  "terminated_normally": true,
+  "energy": -154.370877471845,
+  "frequencies": [],
+  "enthalpy": null,
+  "stability_eigenvalues": [
+   0.13660476,
+   0.17810386,
+   0.19071183
+  ],
+  "stable": true
+ },
+ "heldout_propene_C_H_1_Methylethenyl": {
+  "key": "heldout_propene_C_H_1_Methylethenyl",
+  "kind": "stability",
+  "seconds": 83.3,
+  "terminated_normally": true,
+  "energy": -117.206230910013,
+  "frequencies": [],
+  "enthalpy": null,
+  "stability_eigenvalues": [
+   0.11422543,
+   0.14513419,
+   0.16873566
+  ],
+  "stable": true
+ },
+ "heldout_ethanol_C_H_2_Hydroxyethyl": {
+  "key": "heldout_ethanol_C_H_2_Hydroxyethyl",
+  "kind": "stability",
+  "seconds": 71.1,
+  "terminated_normally": true,
+  "energy": -154.356888146771,
+  "frequencies": [],
+  "enthalpy": null,
+  "stability_eigenvalues": [
+   0.1924062,
+   0.21086955,
+   0.21728036
+  ],
+  "stable": true
+ },
+ "heldout_propyne_C_H_1_Propynyl": {
+  "key": "heldout_propyne_C_H_1_Propynyl",
+  "kind": "stability",
+  "seconds": 52.6,
+  "terminated_normally": true,
+  "energy": -115.925527407366,
+  "frequencies": [],
+  "enthalpy": null,
+  "stability_eigenvalues": [
+   0.02483058,
+   0.02849589,
+   0.24192731
+  ],
+  "stable": true
+ },
+ "heldout_propyne_C_H_Propargyl": {
+  "key": "heldout_propyne_C_H_Propargyl",
+  "kind": "stability",
+  "seconds": 58.0,
+  "terminated_normally": true,
+  "energy": -115.987293405985,
+  "frequencies": [],
+  "enthalpy": null,
+  "stability_eigenvalues": [
+   0.11666153,
+   0.12220767,
+   0.18325668
+  ],
+  "stable": true
+ },
+ "heldout_methylamine_C_H_Aminomethyl": {
+  "key": "heldout_methylamine_C_H_Aminomethyl",
+  "kind": "stability",
+  "seconds": 33.7,
+  "terminated_normally": true,
+  "energy": -95.188208871212,
+  "frequencies": [],
+  "enthalpy": null,
+  "stability_eigenvalues": [
+   0.12680467,
+   0.16557153,
+   0.17709707
+  ],
+  "stable": true
+ },
+ "heldout_methylamine_N_H_Methylamidogen": {
+  "key": "heldout_methylamine_N_H_Methylamidogen",
+  "kind": "stability",
+  "seconds": 36.1,
+  "terminated_normally": true,
+  "energy": -95.17613629258,
+  "frequencies": [],
+  "enthalpy": null,
+  "stability_eigenvalues": [
+   0.07475295,
+   0.22776837,
+   0.24946844
+  ],
+  "stable": true
+ },
+ "heldout_hydrazine_N_H_Hydrazino": {
+  "key": "heldout_hydrazine_N_H_Hydrazino",
+  "kind": "stability",
+  "seconds": 27.7,
+  "terminated_normally": true,
+  "energy": -111.223119748332,
+  "frequencies": [],
+  "enthalpy": null,
+  "stability_eigenvalues": [
+   0.14685892,
+   0.15893116,
+   0.19922113
+  ],
+  "stable": true
+ },
+ "heldout_methyl_hydroperoxide_C_H_Hydroperoxymethyl": {
+  "key": "heldout_methyl_hydroperoxide_C_H_Hydroperoxymethyl",
+  "kind": "stability",
+  "seconds": 61.4,
+  "terminated_normally": true,
+  "energy": -190.187627087309,
+  "frequencies": [],
+  "enthalpy": null,
+  "stability_eigenvalues": [
+   0.1367579,
+   0.17553404,
+   0.19033127
+  ],
+  "stable": true
+ },
+ "heldout_n_butane_C_H_n_Butyl": {
+  "key": "heldout_n_butane_C_H_n_Butyl",
+  "kind": "stability",
+  "seconds": 136.2,
+  "terminated_normally": true,
+  "energy": -157.749638867115,
+  "frequencies": [],
+  "enthalpy": null,
+  "stability_eigenvalues": [
+   0.19205514,
+   0.2165886,
+   0.22406385
+  ],
+  "stable": true
+ },
+ "heldout_1_3_butadiene_C_H_1_3_Butadienyl": {
+  "key": "heldout_1_3_butadiene_C_H_1_3_Butadienyl",
+  "kind": "stability",
+  "seconds": 101.2,
+  "terminated_normally": true,
+  "energy": -155.283649467499,
+  "frequencies": [],
+  "enthalpy": null,
+  "stability_eigenvalues": [
+   0.0920868,
+   0.09457449,
+   0.16272921
+  ],
+  "stable": true
+ },
+ "heldout_ethylamine_N_H_Ethylamidogen": {
+  "key": "heldout_ethylamine_N_H_Ethylamidogen",
+  "kind": "stability",
+  "seconds": 78.4,
+  "terminated_normally": true,
+  "energy": -134.486265503025,
+  "frequencies": [],
+  "enthalpy": null,
+  "stability_eigenvalues": [
+   0.07555777,
+   0.21510858,
+   0.24419496
+  ],
+  "stable": true
+ },
+ "heldout_acetonitrile_C_H_Cyanomethyl": {
+  "key": "heldout_acetonitrile_C_H_Cyanomethyl",
+  "kind": "stability",
+  "seconds": 51.7,
+  "terminated_normally": true,
+  "energy": -132.08443467667,
+  "frequencies": [],
+  "enthalpy": null,
+  "stability_eigenvalues": [
+   0.14387462,
+   0.15086403,
+   0.19845788
+  ],
+  "stable": true
+ },
+ "heldout_ethylamine_C_H_2_Aminoethyl": {
+  "key": "heldout_ethylamine_C_H_2_Aminoethyl",
+  "kind": "stability",
+  "seconds": 77.1,
+  "terminated_normally": true,
+  "energy": -134.48377640342,
+  "frequencies": [],
+  "enthalpy": null,
+  "stability_eigenvalues": [
+   0.16795101,
+   0.19427831,
+   0.2180106
+  ],
+  "stable": true
+ },
+ "heldout_ethylamine_C_H_1_Aminoethyl": {
+  "key": "heldout_ethylamine_C_H_1_Aminoethyl",
+  "kind": "stability",
+  "seconds": 79.1,
+  "terminated_normally": true,
+  "energy": -134.500570782809,
+  "frequencies": [],
+  "enthalpy": null,
+  "stability_eigenvalues": [
+   0.12514617,
+   0.15774128,
+   0.16087199
+  ],
+  "stable": true
+ },
+ "heldout_methoxymethane_C_H_Methoxymethyl": {
+  "key": "heldout_methoxymethane_C_H_Methoxymethyl",
+  "kind": "stability",
+  "seconds": 68.7,
+  "terminated_normally": true,
+  "energy": -154.351036798649,
+  "frequencies": [],
+  "enthalpy": null,
+  "stability_eigenvalues": [
+   0.16540309,
+   0.19406646,
+   0.19808626
+  ],
+  "stable": true
+ },
+ "heldout_propionaldehyde_C_H_1_Oxopropyl": {
+  "key": "heldout_propionaldehyde_C_H_1_Oxopropyl",
+  "kind": "stability",
+  "seconds": 132.3,
+  "terminated_normally": true,
+  "energy": -192.480456809003,
+  "frequencies": [],
+  "enthalpy": null,
+  "stability_eigenvalues": [
+   0.08807308,
+   0.17591381,
+   0.18615885
+  ],
+  "stable": true
+ },
+ "heldout_hydroxylamine_O_H_Aminooxy": {
+  "key": "heldout_hydroxylamine_O_H_Aminooxy",
+  "kind": "stability",
+  "seconds": 28.2,
+  "terminated_normally": true,
+  "energy": -131.089570283101,
+  "frequencies": [],
+  "enthalpy": null,
+  "stability_eigenvalues": [
+   0.09448109,
+   0.1966226,
+   0.2469683
+  ],
+  "stable": true
+ },
+ "heldout_hydroxylamine_N_H_Hydroxyamidogen": {
+  "key": "heldout_hydroxylamine_N_H_Hydroxyamidogen",
+  "kind": "stability",
+  "seconds": 27.2,
+  "terminated_normally": true,
+  "energy": -131.074770093122,
+  "frequencies": [],
+  "enthalpy": null,
+  "stability_eigenvalues": [
+   0.11955911,
+   0.20938084,
+   0.2373559
+  ],
+  "stable": true
+ },
+ "heldout_dimethyl_sulfide_C_H_Methylthio_methyl": {
+  "key": "heldout_dimethyl_sulfide_C_H_Methylthio_methyl",
+  "kind": "stability",
+  "seconds": 86.2,
+  "terminated_normally": true,
+  "energy": -477.33190177094,
+  "frequencies": [],
+  "enthalpy": null,
+  "stability_eigenvalues": [
+   0.1360966,
+   0.13913224,
+   0.15792603
+  ],
+  "stable": true
+ },
+ "heldout_acrolein_C_H_Acryloyl": {
+  "key": "heldout_acrolein_C_H_Acryloyl",
+  "kind": "stability",
+  "seconds": 94.1,
+  "terminated_normally": true,
+  "energy": -191.251297458277,
+  "frequencies": [],
+  "enthalpy": null,
+  "stability_eigenvalues": [
+   0.06430966,
+   0.18635504,
+   0.19523514
+  ],
+  "stable": true
+ },
+ "heldout_methanimine_N_H_Methyleneamidogen": {
+  "key": "heldout_methanimine_N_H_Methyleneamidogen",
+  "kind": "stability",
+  "seconds": 29.4,
+  "terminated_normally": true,
+  "energy": -93.971184784223,
+  "frequencies": [],
+  "enthalpy": null,
+  "stability_eigenvalues": [
+   0.13365769,
+   0.15695593,
+   0.16931538
+  ],
+  "stable": true
+ },
+ "heldout_methanimine_C_H_Iminomethyl": {
+  "key": "heldout_methanimine_C_H_Iminomethyl",
+  "kind": "stability",
+  "seconds": 34.5,
+  "terminated_normally": true,
+  "energy": -93.959380311944,
+  "frequencies": [],
+  "enthalpy": null,
+  "stability_eigenvalues": [
+   0.10858946,
+   0.14640837,
+   0.1790809
+  ],
+  "stable": true
+ },
+ "heldout_ethanimine_N_H_Ethylideneamidogen": {
+  "key": "heldout_ethanimine_N_H_Ethylideneamidogen",
+  "kind": "stability",
+  "seconds": 69.0,
+  "terminated_normally": true,
+  "energy": -133.286709174038,
+  "frequencies": [],
+  "enthalpy": null,
+  "stability_eigenvalues": [
+   0.12582155,
+   0.15385561,
+   0.17522238
+  ],
+  "stable": true
+ },
+ "heldout_ethanimine_C_H_1_Iminoethyl": {
+  "key": "heldout_ethanimine_C_H_1_Iminoethyl",
+  "kind": "stability",
+  "seconds": 73.9,
+  "terminated_normally": true,
+  "energy": -133.278636333121,
+  "frequencies": [],
+  "enthalpy": null,
+  "stability_eigenvalues": [
+   0.11417733,
+   0.14917763,
+   0.17441795
+  ],
+  "stable": true
+ },
+ "heldout_formaldoxime_O_H_Formaldiminoxy": {
+  "key": "heldout_formaldoxime_O_H_Formaldiminoxy",
+  "kind": "stability",
+  "seconds": 50.1,
+  "terminated_normally": true,
+  "energy": -169.173764062656,
+  "frequencies": [],
+  "enthalpy": null,
+  "stability_eigenvalues": [
+   0.06796119,
+   0.1069355,
+   0.16655029
+  ],
+  "stable": true
+ },
+ "heldout_isocyanic_acid_N_H_Cyanooxidanyl": {
+  "key": "heldout_isocyanic_acid_N_H_Cyanooxidanyl",
+  "kind": "stability",
+  "seconds": 33.3,
+  "terminated_normally": true,
+  "energy": -168.004148154674,
+  "frequencies": [],
+  "enthalpy": null,
+  "stability_eigenvalues": [
+   0.00211072,
+   0.10474976,
+   0.19871354
+  ],
+  "stable": true
+ },
+ "heldout_hydrazoic_acid_N_H_Azido_radical": {
+  "key": "heldout_hydrazoic_acid_N_H_Azido_radical",
+  "kind": "stability",
+  "seconds": 30.0,
+  "terminated_normally": true,
+  "energy": -164.134685431469,
+  "frequencies": [],
+  "enthalpy": null,
+  "stability_eigenvalues": [
+   0.00130427,
+   0.16543763,
+   0.17926136
+  ],
+  "stable": true
+ },
+ "heldout_ketene_C_H_Ketenyl": {
+  "key": "heldout_ketene_C_H_Ketenyl",
+  "kind": "stability",
+  "seconds": 53.7,
+  "terminated_normally": true,
+  "energy": -151.922854480468,
+  "frequencies": [],
+  "enthalpy": null,
+  "stability_eigenvalues": [
+   0.00924446,
+   0.13799518,
+   0.18859618
+  ],
+  "stable": true
+ },
+ "stress_ethoxyl": {
+  "key": "stress_ethoxyl",
+  "kind": "stability",
+  "seconds": 94.6,
+  "terminated_normally": true,
+  "energy": -154.354324284532,
+  "frequencies": [],
+  "enthalpy": null,
+  "stability_eigenvalues": [
+   0.00611133,
+   0.1484338,
+   0.20892958
+  ],
+  "stable": true
+ },
+ "stress_1_propoxyl": {
+  "key": "stress_1_propoxyl",
+  "kind": "stability",
+  "seconds": 199.3,
+  "terminated_normally": true,
+  "energy": -193.662079430323,
+  "frequencies": [],
+  "enthalpy": null,
+  "stability_eigenvalues": [
+   0.00588323,
+   0.14611979,
+   0.20468445
+  ],
+  "stable": true
+ },
+ "stress_2_propoxyl": {
+  "key": "stress_2_propoxyl",
+  "kind": "stability",
+  "seconds": 241.9,
+  "terminated_normally": true,
+  "energy": -193.666232904448,
+  "frequencies": [],
+  "enthalpy": null,
+  "stability_eigenvalues": [
+   0.00586712,
+   0.1418772,
+   0.19808055
+  ],
+  "stable": true
+ },
+ "stress_tert_butoxyl": {
+  "key": "stress_tert_butoxyl",
+  "kind": "stability",
+  "seconds": 319.6,
+  "terminated_normally": true,
+  "energy": -232.97857666988,
+  "frequencies": [],
+  "enthalpy": null,
+  "stability_eigenvalues": [
+   0.00613015,
+   0.13728761,
+   0.18786269
+  ],
+  "stable": true
+ }
+}

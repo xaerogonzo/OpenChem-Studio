@@ -1,0 +1,26 @@
+[
+  {"do": "tool_path", "tool": "xtb", "path": "D:/_scratch/xtb-6.7.1/bin/xtb.exe"},
+  {"do": "smiles", "smiles": "CCO", "name": "Ethanol", "after_ms": 3000},
+  {"do": "select", "molecule": -1, "after_ms": 3000},
+  {"do": "view_3d", "after_ms": 2000},
+  {"do": "conformers", "count": 3, "after_ms": 20000},
+  {"do": "conformer_report", "tag": "before-optimization",
+   "expect": {"conformers": 2, "orca_conformers": 0, "viewer_label_excludes": "optimized"}},
+
+  {"do": "panel", "id": "Quantum_Chemistry", "after_ms": 1500},
+  {"do": "shot", "path": "benchmarks/visual/artifacts/xtb_engine_box.png", "widget": "Quantum_Chemistry"},
+  {"do": "qc_run", "engine": "xtb", "calc_type": "Geometry Optimization", "method": "GFN2-xTB"},
+  {"do": "qc_wait", "timeout_ms": 120000},
+  {"do": "conformer_report", "tag": "after-xtb-optimization",
+   "expect": {"conformers": 2, "orca_conformers": 1, "canonical_method": "xtb_opt", "canonical_mapped": true,
+              "viewer_on_canonical": true, "viewer_label_contains": "xtb optimized (GFN2-xTB)", "origin_slot": 1}},
+  {"do": "shot", "path": "benchmarks/visual/artifacts/xtb_engine_after.png"},
+
+  {"do": "qc_run", "engine": "xtb", "calc_type": "Optimization + Frequency", "method": "GFN2-xTB"},
+  {"do": "qc_wait", "timeout_ms": 120000},
+  {"do": "qc_panel_report", "tag": "after-xtb-frequencies", "expect": {"run_status": "completed"}},
+  {"do": "conformer_report", "tag": "after-xtb-opt-freq", "expect": {"canonical_method": "xtb_opt"}},
+
+  {"do": "expect_clean"},
+  {"do": "quit"}
+]

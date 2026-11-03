@@ -495,6 +495,60 @@ scope = "core"
 owner = "namer"
 
 [[consumer]]
+file = "tests/test_naming_ring_table_vs_opsin.py"
+why = "tools/naming_ring_table_vs_opsin.py: the pairs it probes, what it skips, and that a swapped pair of curated labels is what it sees (read by OPSIN, with the namer not involved)"
+scope = "core"
+owner = "namer"
+
+[[consumer]]
+file = "tests/test_namer_round90_a_diazo_carbon_is_not_an_imine.py"
+why = "a diazo compound drawn C=[N+]=[N-] is named with the diazo prefix (D-387, P-61.4) and not as an iminoazanium: the diazo functional group subsumes the imine it overlaps, the carbamimidoyl special case refuses a charged imino nitrogen, and the other Lewis form, a diazonium and an azide are unchanged"
+scope = "core"
+owner = "namer"
+
+[[consumer]]
+file = "tests/test_namer_round92_ring_stereo_and_terminal_ring_orientation.py"
+why = "ring and ylidene stereo that RDKit's legacy perception cleaned off at parse time is named (NL-109), and a polyspiro system's terminal rings are numbered both ways so the book's tetraoxatetraspiro gets its own name in every atom order (NL-107, D-389)"
+scope = "core"
+owner = "namer"
+
+[[consumer]]
+file = "tests/test_namer_round91_stereo_is_dropped_by_atom_not_by_locant_number.py"
+why = "a bridged parent's stereo is dropped by atom, fewest first, and a name is kept only if OPSIN reads it to exactly the input (D-388): 2,4-difluoroadamantane and a norbornyl group on a bicyclo[2.2.2]octane keep the descriptors OPSIN can read, and a validator limit still leaves the flat name"
+scope = "core"
+owner = "namer"
+
+[[consumer]]
+file = "tests/test_namer_round89_forced_bridgehead_descriptors_are_dropped_alone.py"
+why = "the stereoisomers of a substituted bicyclo[2.2.2]octane or norbornane have distinct names (D-386): OPSIN's own error names the bridgehead descriptors it cannot anchor, only those are dropped, and a shorter name is kept only if OPSIN reads it to exactly the input"
+scope = "core"
+owner = "namer"
+
+[[consumer]]
+file = "tests/test_namer_round88_spiro_joints_to_bridged_partners_and_hetero_spiro_atoms.py"
+why = "spiro joints to bridged and von Baeyer-named fused partners (norcarane, bicyclo[3.2.0], tricyclo[3.2.1.0^{3,6}]octane, two polycyclic partners) and a silicon, N+ or P+ spiro atom (D-381 to D-384): the spiro locant, the pinned tricyclic numbering, the rank of the articulation-split name, and the `<loc>-azonia` / `<loc>-phosphonia` prefix, each read back by OPSIN"
+scope = "core"
+owner = "namer"
+
+[[consumer]]
+file = "tests/test_namer_round86_curated_ring_labels_follow_the_rings_bonds.py"
+why = "every curated ring's consecutive locants are bonded or joined by one atom, with the 17 numbering conventions listed (D-380: the tetracenetrione's C1 and C3 were swapped against C12a)"
+scope = "core"
+owner = "namer"
+
+[[consumer]]
+file = "tests/test_namer_round85_methanoazepinoquinoxaline_labels_every_atom_and_pairs_its_nitrogens.py"
+why = "the curated methano-bridged azepinoquinoxaline labels every atom and pairs its nitrogens with the carbons beside them (D-379), so a substituent on a spiro partner takes a primed locant OPSIN reads and the round 84 molecule that hung reads back"
+scope = "core"
+owner = "namer"
+
+[[consumer]]
+file = "tests/test_namer_round84_spiro_joints_of_lactam_rings_and_a_numbering_search_that_never_returned.py"
+why = "a polycycle with dozens of bridges has no von Baeyer numbering past 50,000 orderings (D-376, the call never returned), and a spiro ring ketone on a pyridone-type, bridgehead-nitrogen or sulfur component names its partner from the pyridine or the Kekule form (D-377, D-378), read back through OPSIN"
+scope = "core"
+owner = "namer"
+
+[[consumer]]
 file = "tests/test_namer_round83_hypoxanthine_with_no_ring_nh_takes_the_oxo_carbons_indicated_hydrogen.py"
 why = "a ring with an oxo and no ring N-H takes the oxo carbon's indicated hydrogen, not the curated 9H (D-375: methyl 6-oxo-6H-purine-8-carboxylate), read back through OPSIN"
 scope = "core"

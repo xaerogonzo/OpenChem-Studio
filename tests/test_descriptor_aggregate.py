@@ -73,6 +73,24 @@ def _mixed() -> DescriptorAggregate:
 # --- the lifecycle survives ----------------------------------------------
 
 
+def test_a_producers_caveat_is_said_once_in_the_aggregates_limitations():
+    """Group 3 of the refusal audit: a salt's values are computed on its largest component, and that sentence is on
+    every value's provenance. The reader shows an aggregate's limitations, so it is said there, once, and only for a
+    value that was computed."""
+    from openchem.domain.common import Provenance
+
+    note = "Computed on CC(=O)O (the drawn CC(=O)[O-], neutralised), the largest of this drawing's 2 components."
+    noted = Provenance(created_by="core", method="rdkit", parameters={"caveat": note})
+    aggregate = aggregate_descriptors("u", [
+        _descriptor("mol_logp", value=0.09, provenance=noted),
+        _descriptor("tpsa", value=37.3, provenance=noted),
+        _descriptor("qed", cache_state=CacheState.FAILED, error="x", provenance=Provenance(created_by="core", method="rdkit", parameters={"caveat": "of a failed value"})),
+        _descriptor("mol_wt", value=82.03),
+    ])
+    assert aggregate.limitations == (note,)
+    assert _mixed().limitations == ()
+
+
 def test_each_descriptor_keeps_its_own_state():
     """The whole reason this is a container. One `cache_state` between forty-one
     descriptors cannot say that three failed and thirty-eight did not."""

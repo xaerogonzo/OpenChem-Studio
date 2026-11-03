@@ -1,0 +1,149 @@
+{
+ "arm": "halogen",
+ "verdict": "PASS",
+ "problem": null,
+ "deciding": {
+  "count": 6,
+  "missing": 0,
+  "mae": 0.9362642260770689,
+  "mse": -0.9362642260770689,
+  "max_abs": 1.861835855605122
+ },
+ "standard_error": 0.23790702362213526,
+ "within_band_of": [],
+ "anchor_sensitivity": null,
+ "rows": [
+  {
+   "name": "chloromethane C-H (Chloromethyl)",
+   "dh_ref": 99.412,
+   "uncertainty": 0.212,
+   "dh_kcal": 98.6609199392318,
+   "s2": 0.756401,
+   "element": "C",
+   "excluded": false,
+   "selected": {
+    "parent": {
+     "structure": "parent|CCl|0",
+     "lowest_frequency": 755.83,
+     "method": "analytic"
+    },
+    "radical": {
+     "structure": "radical|chloromethane C-H (Chloromethyl)|0",
+     "lowest_frequency": 147.46,
+     "method": "analytic"
+    }
+   },
+   "numerical_no_result": []
+  },
+  {
+   "name": "dichloromethane C-H (Dichloromethyl)",
+   "dh_ref": 96.202,
+   "uncertainty": 0.225,
+   "dh_kcal": 95.10394523642309,
+   "s2": 0.756133,
+   "element": "C",
+   "excluded": false,
+   "selected": {
+    "parent": {
+     "structure": "parent|ClCCl|0",
+     "lowest_frequency": 285.71,
+     "method": "analytic"
+    },
+    "radical": {
+     "structure": "radical|dichloromethane C-H (Dichloromethyl)|0",
+     "lowest_frequency": 304.24,
+     "method": "analytic"
+    }
+   },
+   "numerical_no_result": []
+  },
+  {
+   "name": "chloroform C-H (Trichloromethyl)",
+   "dh_ref": 93.307,
+   "uncertainty": 0.219,
+   "dh_kcal": 92.17103498080635,
+   "s2": 0.755716,
+   "element": "C",
+   "excluded": false,
+   "selected": {
+    "parent": {
+     "structure": "parent|ClC(Cl)Cl|0",
+     "lowest_frequency": 262.17,
+     "method": "analytic"
+    },
+    "radical": {
+     "structure": "radical|chloroform C-H (Trichloromethyl)|0",
+     "lowest_frequency": 274.35,
+     "method": "analytic"
+    }
+   },
+   "numerical_no_result": []
+  },
+  {
+   "name": "fluoroform C-H (Trifluoromethyl)",
+   "dh_ref": 106.668,
+   "uncertainty": 0.139,
+   "dh_kcal": 104.80616414439488,
+   "s2": 0.752842,
+   "element": "C",
+   "excluded": false,
+   "selected": {
+    "parent": {
+     "structure": "parent|FC(F)F|0",
+     "lowest_frequency": 514.78,
+     "method": "analytic"
+    },
+    "radical": {
+     "structure": "radical|fluoroform C-H (Trifluoromethyl)|0",
+     "lowest_frequency": 517.9,
+     "method": "analytic"
+    }
+   },
+   "numerical_no_result": []
+  },
+  {
+   "name": "formyl fluoride C-H (Fluoroformyl)",
+   "dh_ref": 101.383,
+   "uncertainty": 0.115,
+   "dh_kcal": 100.73893638786996,
+   "s2": 0.755173,
+   "element": "C",
+   "excluded": false,
+   "selected": {
+    "parent": {
+     "structure": "parent|O=CF|0",
+     "lowest_frequency": 683.96,
+     "method": "analytic"
+    },
+    "radical": {
+     "structure": "radical|formyl fluoride C-H (Fluoroformyl)|0",
+     "lowest_frequency": 653.62,
+     "method": "analytic"
+    }
+   },
+   "numerical_no_result": []
+  },
+  {
+   "name": "formyl chloride C-H (Chloroformyl)",
+   "dh_ref": 90.953,
+   "uncertainty": 0.198,
+   "dh_kcal": 90.82641395481151,
+   "s2": 0.755734,
+   "element": "C",
+   "excluded": false,
+   "selected": {
+    "parent": {
+     "structure": "parent|O=CCl|0",
+     "lowest_frequency": 468.41,
+     "method": "analytic"
+    },
+    "radical": {
+     "structure": "radical|formyl chloride C-H (Chloroformyl)|0",
+     "lowest_frequency": 358.35,
+     "method": "analytic"
+    }
+   },
+   "numerical_no_result": []
+  }
+ ]
+}

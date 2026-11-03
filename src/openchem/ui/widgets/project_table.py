@@ -53,6 +53,7 @@ from openchem.domain.score_table import table_with_scores
 from openchem.services.batch_service import BatchProgress
 from openchem.services.calculator_registry import CalculatorRegistry
 from openchem.services.table_export_service import TableExportService
+from openchem.ui import theme
 from openchem.ui.widgets.flow_layout import flow_row
 from openchem.ui.widgets.help_tooltip import HelpTooltip, apply_help_tooltip
 from openchem.ui.widgets.sortable_item import SORT_ROLE, SortableItem
@@ -612,7 +613,7 @@ def _cell_item(table: BatchTable, molecule_uuid: str, column) -> QTableWidgetIte
         # opposite of what happened. The text names what it is; the style
         # and the tooltip say the real thing is one double-click away.
         item = _SortableItem(cell.text)
-        item.setForeground(_NON_SCALAR_BRUSH)
+        item.setForeground(QBrush(theme.ink(_NON_SCALAR_BRUSH.color())))
         font = item.font()
         font.setItalic(True)
         item.setFont(font)

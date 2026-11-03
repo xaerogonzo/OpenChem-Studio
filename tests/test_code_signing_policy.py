@@ -68,6 +68,7 @@ LINKS_ONLY = {
     "psicode.org": "Psi4",
     "www.faccts.de": "ORCA",
     "claude.com": "Claude Code",
+    "cursor.com": "Cursor",
 }
 
 #: Hosts that are this project's own, or specifications, not services the program sends data to.

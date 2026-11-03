@@ -24,6 +24,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from openchem.ui import theme
 from openchem.ui.widgets.help_tooltip import HelpTooltip, apply_help_tooltip
 
 
@@ -477,7 +478,7 @@ class _SummaryLabel(QLabel):
         super().__init__("", parent)
         self._full_text = ""
         self.setSizePolicy(QSizePolicy.Policy.Ignored, QSizePolicy.Policy.Fixed)
-        self.setStyleSheet("color: #666666;")
+        theme.style(self, "color: #666666;")
 
     def set_full_text(self, text: str) -> None:
         self._full_text = text

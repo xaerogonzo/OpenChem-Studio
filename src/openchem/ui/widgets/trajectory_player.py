@@ -39,6 +39,7 @@ from PySide6.QtWidgets import (
 )
 
 from openchem.domain.scientific_result import TrajectoryResult
+from openchem.ui import theme
 from openchem.ui.viewer_backend import ViewerBackend
 
 #: Milliseconds between frames while playing. 80 ms is ~12 fps, which is
@@ -70,6 +71,7 @@ class EnergyTrace(QWidget):
 
     def __init__(self, parent: QWidget | None = None) -> None:
         super().__init__(parent)
+        theme.repaint_on_change(self)
         self._energies: list[float] = []
         self._frame = 0
         self.setMinimumHeight(64)
@@ -92,7 +94,7 @@ class EnergyTrace(QWidget):
         painter.fillRect(self.rect(), self.palette().base())
 
         rect = self._plot_rect()
-        painter.setPen(QPen(_AXIS_COLOUR, 1))
+        painter.setPen(QPen(theme.ink(_AXIS_COLOUR), 1))
         painter.drawRect(rect)
 
         if len(self._energies) < 2:
@@ -112,7 +114,7 @@ class EnergyTrace(QWidget):
             y = rect.bottom() - rect.height() * (value - low) / span
             return x, y
 
-        painter.setPen(QPen(_TRACE_COLOUR, 1.5))
+        painter.setPen(QPen(theme.ink(_TRACE_COLOUR), 1.5))
         previous = point(0, self._energies[0])
         for index in range(1, count):
             current = point(index, self._energies[index])
@@ -121,7 +123,7 @@ class EnergyTrace(QWidget):
 
         if 0 <= self._frame < count:
             x, _y = point(self._frame, self._energies[self._frame])
-            painter.setPen(QPen(_MARKER_COLOUR, 1.5))
+            painter.setPen(QPen(theme.ink(_MARKER_COLOUR), 1.5))
             painter.drawLine(x, rect.top(), x, rect.bottom())
         painter.end()
 
@@ -170,7 +172,7 @@ class TrajectoryPlayerWidget(QWidget):
                 "Run Molecular Dynamics again with more steps to fill this in.",
                 self,
             )
-            message.setStyleSheet(_MUTED)
+            theme.style(message, _MUTED)
             message.setWordWrap(True)
             layout.addWidget(message)
             self._slider = None
@@ -203,7 +205,7 @@ class TrajectoryPlayerWidget(QWidget):
         layout.addLayout(controls)
 
         self._readout = QLabel(self)
-        self._readout.setStyleSheet(_MUTED)
+        theme.style(self._readout, _MUTED)
         layout.addWidget(self._readout)
 
         # PARENTED TO self, so Qt stops it when this widget is destroyed.

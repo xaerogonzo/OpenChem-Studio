@@ -1,0 +1,21 @@
+[
+  {"do": "smiles", "smiles": "CCO", "name": "External tools list", "after_ms": 800},
+  {"do": "select", "molecule": -1, "after_ms": 2000},
+
+  {"do": "dialog", "name": "SettingsDialog", "real": true, "section": "external_tools", "width": 780, "height": 520, "after_ms": 1200},
+  {"do": "shot", "path": "artifacts/visual/external_tools_guide_light.png", "widget": "dialog", "after_ms": 500},
+  {"do": "control", "name": "externalToolsList", "value": "AutoDock Vina", "after_ms": 600},
+  {"do": "shot", "path": "artifacts/visual/external_tools_vina_light.png", "widget": "dialog", "after_ms": 500},
+  {"do": "control", "name": "externalToolsList", "value": "ADMET (hERG/CYP)", "after_ms": 600},
+  {"do": "shot", "path": "artifacts/visual/external_tools_admet_light.png", "widget": "dialog", "after_ms": 500},
+  {"do": "close_dialog", "after_ms": 500},
+
+  {"do": "appearance", "choice": "dark", "via": "menu", "after_ms": 2500},
+  {"do": "dialog", "name": "SettingsDialog", "real": true, "section": "external_tools", "width": 780, "height": 520, "after_ms": 1200},
+  {"do": "control", "name": "externalToolsList", "value": "ORCA", "after_ms": 600},
+  {"do": "shot", "path": "artifacts/visual/external_tools_orca_dark.png", "widget": "dialog", "after_ms": 500},
+  {"do": "close_dialog", "after_ms": 500},
+  {"do": "appearance", "choice": "system", "via": "menu", "after_ms": 1500},
+  {"do": "expect_clean"},
+  {"do": "quit"}
+]

@@ -145,3 +145,10 @@ STORAGE_HEADERS = (
          "is yours rather than installed by this app).",
          "external_tools.storage_col_status"),
 )
+
+GUIDE_TASK = _tip(
+    "Pick what you want to do and the guide shows only the tools that need. Choose "
+    "Show everything to see them all again. It only filters this list and changes "
+    "no setting.",
+    "external_tools.guide_task",
+)

@@ -31,7 +31,7 @@ from openchem.domain.calculator import CalculationRefusal
 FIXTURE = Path(__file__).parent / "fixtures" / "topology_analysis_lines.json"
 
 #: Chosen for what each exercises: a one-atom molecule (every index is zero), a chain whose Szeged index must equal its Wiener index and a ring and a cage it must exceed it on, a fused system, a molecule
-#: whose two stereogenic centres are not asymmetric atoms (the module's own example), a ring of 18, a zwitterion, a salt the registry reduces to its parent, a salt and a metal complex it refuses, and a metal ion.
+#: whose two stereogenic centres are not asymmetric atoms (the module's own example), a ring of 18, a zwitterion, a salt the registry reduces to its parent, a salt it computes on its largest component (a refusal until group 3 of the refusal audit), a metal complex it refuses, and a metal ion.
 PANEL = {
     "water": "O",
     "methane": "C",
@@ -219,12 +219,15 @@ def test_a_single_atom_has_every_index_zero_and_is_still_a_number(registry):
         assert typed["Chain atom count"] == 1 and typed["Ring atom count"] == 0 and typed["Bond count"] == 0, "the one atom is in no ring"
 
 
-def test_a_salt_reads_as_its_parent_and_a_salt_with_no_parent_is_refused(registry):
+def test_a_salt_reads_as_its_parent_and_a_salt_with_no_parent_reads_as_its_largest_component(registry):
     """The registry hands this calculator the ChEMBL parent (it used to print RDKit's unreachable-pair sentinel as a Wiener index of 400000009), so a counter-ion adds nothing."""
     with_chloride = _typed(_completed(registry, "metformin hydrochloride"))
     assert with_chloride == _typed(_compute(registry, "CN(C)C(=N)NC(N)=N")), "the hydrochloride's indices are the free base's"
     assert max(with_chloride.values()) < 1e6
-    assert _completed(registry, "sodium acetate") is None and _completed(registry, "ionic ferrocene") is None
+    # Group 3 of the refusal audit: a salt with no single parent is computed on its largest component (acetic acid, whose
+    # indices these are), and the metal complex, whose ligand ions are not it, is still refused.
+    assert _typed(_completed(registry, "sodium acetate")) == _typed(_compute(registry, "CC(=O)O"))
+    assert _completed(registry, "ionic ferrocene") is None
 
 
 def test_an_index_is_of_the_graph_without_hydrogens_so_a_conformer_is_a_different_number(registry):

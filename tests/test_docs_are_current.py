@@ -54,6 +54,10 @@ DOCS = [
     # names out of the guard's reach without anything going red,
     # which is this list being hand-kept.
     "docs/LESSONS.md",
+    # The drive-step catalogue, split out of CLAUDE.md the same way the
+    # lesson log was: the citations moved with it, and a hand-kept list
+    # that is not updated is how 17,870 lines once left this guard.
+    "docs/DRIVE_STEPS.md",
     "README.md",
     "CONTRIBUTING.md",
     "CHANGELOG.md",
@@ -550,11 +554,6 @@ DEFERRALS: list[Deferral] = [
             "the reason is the same edit-burst measurement as the coordinate-only entry; it goes stale when "
             "an automatic provider becomes slow, which no source-level count can see"
         ),
-    ),
-    Deferral(
-        claim="a salt with no single ChEMBL parent has no compound",
-        # Unbuilt while the parent rule still refuses sodium acetate.
-        unbuilt=lambda: _parent_refuses("CC(=O)[O-].[Na+]", "chembl_parent"),
     ),
     Deferral(
         claim="a hydrate is refused by the pure-component methods",
@@ -1455,6 +1454,22 @@ CALCULATOR_COUNTS_ARE_HISTORY = {
         "not edited afterwards"
     ),
     "docs/ROADMAP.md": "its batch paragraph is ONE measurement, dated in place",
+    "docs/PRODUCT_PLANNING_NOTES.md": (
+        "working notes moved verbatim from the assistant's memory: each count "
+        "is a dated measurement of the registry as it was when that note was "
+        "written (the roadmap's 72 explainer blocks, for one), not a claim "
+        "about today"
+    ),
+    "docs/WORKTREE_AND_TOOLING_NOTES.md": (
+        "working notes moved verbatim from the assistant's memory: its 49 is "
+        "the number of calculators a study of that day covered, not a claim "
+        "about the registry today"
+    ),
+    "docs/WORKING_AGREEMENTS.md": (
+        "feedback notes moved verbatim from the assistant's memory: the counts "
+        "in it (51, 50) are the calculators a study of that day covered, kept "
+        "as the evidence for a rule, not claims about the registry today"
+    ),
     "docs/ARCHITECTURE.md": (
         "its counts are findings from specific investigations -- the panel "
         "discarding 50 of 126 facts, and the drawing-vs-conformer study run "

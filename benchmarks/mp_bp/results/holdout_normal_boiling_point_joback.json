@@ -1,0 +1,173 @@
+{
+ "counts": {
+  "all_method_common_cohort": 834,
+  "entities_considered": 8878,
+  "entities_predicted": 884,
+  "entities_with_eligible_target": 976,
+  "paired_with_baseline": 884
+ },
+ "coverage": 0.9057377049180327,
+ "gate": {
+  "criteria": {
+   "coverage_at_least_70pct": true,
+   "improvement_at_least_20pct": true,
+   "improvement_lower_at_least_10pct": true,
+   "leakage_not_unknown": false,
+   "paired_at_least_300": true,
+   "point_mae_within_1.5x": false,
+   "upper_mae_within_2.0x": false
+  },
+  "evaluation_status": "NOT_EVALUABLE",
+  "numeric_criteria_all_met": false,
+  "reason": "leakage for this (model, property) is unknown: no independent-holdout claim",
+  "reference_error_k": 12.9
+ },
+ "gate_eligible": true,
+ "label_quality_subset": {
+  "cross_source_agree_mae": 21.815245901639344,
+  "cross_source_agree_n": 183
+ },
+ "leakage": {
+  "evidence": "the paper does not list its fit population",
+  "may_claim_independent_holdout": false,
+  "status": "unknown"
+ },
+ "limitations": [
+  "reference values cannot be regenerated from the public repository (copyrighted handbook tables)",
+  "handbook values contain printed errors; see CORPUS_REPORT.md"
+ ],
+ "metrics": {
+  "baseline_mae_on_same_entities": 61.0369403639032,
+  "bias": 11.845452488687782,
+  "improvement_ci95": [
+   0.5171944392180647,
+   0.5926893416100064
+  ],
+  "improvement_over_baseline": 0.5561103653486204,
+  "mae": 27.093665158371035,
+  "mae_ci95": [
+   24.91845673076923,
+   29.416340214932124
+  ],
+  "median_ae": 15.600000000000023,
+  "rmse": 43.21866893042458
+ },
+ "model": "joback",
+ "model_output": "tb",
+ "partition": "holdout",
+ "partitions_examined": [
+  {
+   "partition": "development",
+   "purpose": "fit Candidate C, build the baseline"
+  },
+  {
+   "partition": "selection",
+   "purpose": "choose Candidate C's ridge penalty"
+  },
+  {
+   "partition": "holdout",
+   "purpose": "the single preregistered evaluation"
+  }
+ ],
+ "provenance": {
+  "bootstrap_resamples": 10000,
+  "bootstrap_seed": 20261025,
+  "corpus_builder": "mp_bp-corpus-1",
+  "frozen_at_commit": "46f536301a1589d1d4b613570f6d278181890981",
+  "full_corpus_evaluated": true,
+  "judge_version": "mp_bp-judge-1",
+  "source_file_hashes": {
+   "crc97": "60a59278683215474bc827ae67876ce8ac7e51702acac3f4f52fc7a0f920597f",
+   "lange15": "b9ecec4d2e428621737492a46145668743282bc6f5cce83c9f6d564680588dd1"
+  },
+  "split_manifest_hash": "705c8a859e21121ae0348447576b5510cab12574499b7de1b585a6a579a3fd29"
+ },
+ "refusals": {
+  "UNCOVERED_ATOM": 92
+ },
+ "sensitivity": {
+  "mae_range_over_alternative_observations": [
+   27.093665158371035,
+   27.25213800904977
+  ]
+ },
+ "strata": {
+  "alcohol_phenol": {
+   "claim_supported": true,
+   "mae": 31.217578947368413,
+   "n": 95
+  },
+  "aliphatic_hydrocarbon": {
+   "claim_supported": true,
+   "mae": 19.212727272727264,
+   "n": 88
+  },
+  "amide": {
+   "claim_supported": false,
+   "mae": 72.02058823529414,
+   "n": 17
+  },
+  "amine": {
+   "claim_supported": true,
+   "mae": 18.36727272727273,
+   "n": 77
+  },
+  "aromatic_hydrocarbon": {
+   "claim_supported": true,
+   "mae": 22.257083333333327,
+   "n": 48
+  },
+  "carboxylic_acid": {
+   "claim_supported": false,
+   "mae": 61.94045454545453,
+   "n": 22
+  },
+  "ester": {
+   "claim_supported": true,
+   "mae": 36.50275229357798,
+   "n": 109
+  },
+  "ether": {
+   "claim_supported": true,
+   "mae": 15.393653846153843,
+   "n": 52
+  },
+  "halogenated": {
+   "claim_supported": true,
+   "mae": 20.073551401869157,
+   "n": 214
+  },
+  "ketone_aldehyde": {
+   "claim_supported": true,
+   "mae": 27.005921052631578,
+   "n": 76
+  },
+  "nitrate_ester": {
+   "claim_supported": false,
+   "mae": 58.6833333333333,
+   "n": 3
+  },
+  "nitrile": {
+   "claim_supported": false,
+   "mae": 36.96090909090906,
+   "n": 11
+  },
+  "nitro": {
+   "claim_supported": false,
+   "mae": 65.41,
+   "n": 19
+  },
+  "other": {
+   "claim_supported": false,
+   "mae": 30.51793103448275,
+   "n": 29
+  },
+  "sulfur": {
+   "claim_supported": false,
+   "mae": 16.119166666666665,
+   "n": 24
+  }
+ },
+ "target": "normal_boiling_point",
+ "target_matched": true
+}

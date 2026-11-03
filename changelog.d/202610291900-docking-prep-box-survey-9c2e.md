@@ -1,0 +1,2 @@
+### Docking: a survey of whether bad default poses come from setup
+- `benchmarks/docking/prep_box_survey.py` redocks all 49 catalogued receptors in two preparation arms and classes each result. On real Vina, 35 of 47 top poses were within 2 A of the crystal ligand and 44 of 47 had a correct pose among the nine; no setup step failed, so the gap is pose ranking and not receptor or box preparation. Benchmark only; the application is unchanged. Details and limits are in `benchmarks/docking/PREP_BOX_RESULT.md`.

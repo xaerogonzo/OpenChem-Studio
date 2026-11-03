@@ -283,6 +283,25 @@ class DescriptorAggregate:
         return tuple(d for d in self.descriptors if getattr(d, "inapplicable", False))
 
 
+def _recorded_caveats(descriptors) -> tuple[str, ...]:
+    """Each caveat a producer recorded on a COMPUTED value (`provenance.parameters["caveat"]`), once.
+
+    **THE SENTENCE THAT SAYS WHAT WAS ACTUALLY COMPUTED ON.** A salt with no single parent is computed on its
+    largest component (`chem/components.py`), and every one of the 41 values carries that choice in its
+    provenance, where a person reading Properties would never see it. It is the same sentence on all of them, so
+    it is said ONCE, here, where the reader's status line and every export already read the aggregate's
+    limitations, and not repeated on 41 rows. A failed value carries none: it has no number to qualify.
+    """
+    found: dict[str, None] = {}
+    for descriptor in descriptors:
+        if descriptor.cache_state is not CacheState.COMPLETED:
+            continue
+        caveat = (getattr(getattr(descriptor, "provenance", None), "parameters", None) or {}).get("caveat")
+        if isinstance(caveat, str) and caveat.strip():
+            found[caveat.strip()] = None
+    return tuple(found)
+
+
 def aggregate_descriptors(
     molecule_uuid: str, descriptors, structure_version: int = 0
 ) -> DescriptorAggregate:
@@ -305,4 +324,5 @@ def aggregate_descriptors(
         descriptors=kept,
         facts=tuple(fact_for(d) for d in kept),
         structure_version=structure_version,
+        limitations=_recorded_caveats(kept),
     )

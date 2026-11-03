@@ -35,6 +35,7 @@ from __future__ import annotations
 
 import argparse
 import hashlib
+import re
 import sys
 import tomllib
 from pathlib import Path
@@ -200,6 +201,38 @@ def _identifier_link(entry: dict) -> str:
     return _cell(ident)
 
 
+def _title(entry: dict) -> str:
+    """What a person recognises a source by: the article or book title.
+
+    The registry keys (`allen2016`) are a locator for prose and code, not a
+    name a reader can search for. By convention `citation` carries the title
+    in single quotes. The opening quote must follow whitespace and the closing
+    one precede punctuation or the end, so an apostrophe in an author
+    ("O'Keefe", "Brovarets'") or inside the title ("Hund's rule", a nested
+    quoted word) does not cut it short. Entries with
+    no quoted title (books, software, legal texts) fall back to the start of
+    the citation, cut at a word boundary.
+    """
+    citation = " ".join(str(entry["citation"]).split())
+    match = _QUOTED_TITLE.search(citation)
+    if match:
+        return match.group(1).strip()
+    if len(citation) <= _TITLE_FALLBACK_CHARS:
+        return citation
+    return citation[:_TITLE_FALLBACK_CHARS].rsplit(" ", 1)[0] + "…"
+
+
+_TITLE_FALLBACK_CHARS = 110
+_QUOTED_TITLE = re.compile(r"(?:^|\s)'(\S.*)'(?=[,.;]|\s|$)")
+
+
+def _doi_cell(entry: dict) -> str:
+    """The identifier for the index: a DOI as a link, anything else as given."""
+    if entry["identifier_type"] == "doi":
+        return _identifier_link(entry)
+    return "" if entry["identifier_type"] == "bibliographic" else _identifier_link(entry)
+
+
 def _render_entry_detail(entry: dict) -> list[str]:
     """The prose block under an entry: only what the table cannot carry."""
     out: list[str] = []
@@ -223,11 +256,15 @@ def render() -> str:
     if unknown:
         raise SystemExit(f"unknown kind(s) in {REGISTRY.name}: {unknown}")
 
-    lines += ["## Index", "", "| key | kind | status | verification |",
-              "| --- | --- | --- | --- |"]
+    lines += ["## Index", "",
+              "Title and DOI first; the `key` is what prose and code cite "
+              "(`[source:key]`) and links to the entry.", "",
+              "| title | DOI / identifier | key | kind | status | verification |",
+              "| --- | --- | --- | --- | --- | --- |"]
     for entry in sorted(entries, key=lambda e: e["key"]):
         lines.append(
-            f"| [`{entry['key']}`](#{entry['key']}) | {entry['kind']} | "
+            f"| {_cell(_title(entry))} | {_doi_cell(entry)} | "
+            f"[`{entry['key']}`](#{entry['key']}) | {entry['kind']} | "
             f"{STATUS_LABEL[entry['status']]} | "
             f"{VERIFICATION_LABEL[entry['verification']]} |"
         )
@@ -239,7 +276,7 @@ def render() -> str:
             continue
         lines += [f"## {heading}", ""]
         for entry in group:
-            lines += [f"### {entry['key']}", "", f"<a id=\"{entry['key']}\"></a>", ""]
+            lines += [f"### {entry['key']} — {_cell(_title(entry))}", "", f"<a id=\"{entry['key']}\"></a>", ""]
             lines.append(f"> {_cell(entry['citation'])}")
             lines.append("")
 

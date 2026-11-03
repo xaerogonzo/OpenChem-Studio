@@ -1,6 +1,6 @@
 {
  "n_rings": 371,
- "population_sha256": "6d5da04954ccfa7b2209e5de2651d9879f093a0c3d7619fe5f997d318657a2cd",
+ "population_sha256": "fe2b9e171a95b8266ad673b6ef902e03c55190a1db6008cca6ab33e97bd3fc4c",
  "purpose": "the frozen ring denominator for tools/naming_ring_locant_sweep.py (naming round 13)",
  "rings": [
   {
@@ -11921,9 +11921,14 @@
    "has_atom_locants": true,
    "locant_atoms": [
     0,
+    1,
     2,
+    3,
     4,
+    5,
+    6,
     7,
+    8,
     9,
     10,
     11,

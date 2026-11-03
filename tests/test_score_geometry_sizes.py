@@ -474,7 +474,14 @@ def test_a_salts_shape_descriptor_is_the_producers_to_decide_and_a_size_of_the_s
     service_two, _ = _scored(services, mixture, dict(label="Spread", formula="2 * rg", result_unit="Å", inputs=[("rg", "descriptor:radius_of_gyration")]))
     services.descriptor_service.request_descriptors(mixture, GEOMETRY)
     _drain(qapp)
-    (refused,) = service_two.values_for(mixture)
+    (read,) = service_two.values_for(mixture)
+    assert read.status is ScoreStatus.VALUE, "sodium acetate is computed on its acetate (group 3 of the refusal audit), whose coordinates are the conformer's own"
+
+    brine = _model(services, "[Na+].[Cl-]", relax=False, name="Sodium chloride")
+    service_three, _ = _scored(services, brine, dict(label="Spread", formula="2 * rg", result_unit="Å", inputs=[("rg", "descriptor:radius_of_gyration")]))
+    services.descriptor_service.request_descriptors(brine, GEOMETRY)
+    _drain(qapp)
+    (refused,) = service_three.values_for(brine)
     assert refused.status is ScoreStatus.REFUSED and "Mixture: no single parent" in refused.reason, "the producer's own refusal, which is not this rule's"
 
 

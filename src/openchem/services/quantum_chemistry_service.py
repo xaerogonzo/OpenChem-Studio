@@ -40,6 +40,7 @@ from openchem.chem.proton_affinity import OutOfScope
 from openchem.chem.proton_affinity import Sequence as ProtonSequence
 from openchem.chem.proton_affinity import descriptors as proton_descriptors
 from openchem.chem.psi4_engine import Psi4QuantumEngineProvider
+from openchem.chem.xtb_engine import XtbQuantumEngineProvider
 from openchem.chem.tautomer_distribution import (
     FAILURE_ENERGY_UNPARSEABLE,
     FAILURE_OPTIMIZATION_NOT_CONVERGED,
@@ -556,14 +557,16 @@ class QuantumChemistryService(QObject):
             anion_f_plus=lambda: bool(settings.preference(FUKUI_ANION_F_PLUS)),
             cation_search=lambda: bool(settings.preference(FUKUI_CATION_SEARCH)),
         )
-        # ORCA first (it is the default engine everywhere), then Psi4: registered always, USED only when its executable is configured
-        # (`available_engines`), so a machine without Psi4 sees no change.
+        # ORCA first (it is the default engine everywhere), then Psi4 and xtb: registered always, USED only when their executable is configured
+        # (`available_engines`), so a machine without them sees no change.
         psi4_provider = Psi4QuantumEngineProvider(
             threads=self._psi4_threads, memory_gb=lambda: int(settings.preference(PSI4_MEMORY_GB)),
         )
+        # xtb takes its threads as `-P` on the command line, the same count Psi4 falls back to when its own setting is automatic (`orca/cores`, else the machine's).
+        xtb_provider = XtbQuantumEngineProvider(threads=self._effective_cores_or_default)
         self._providers: dict[str, QuantumEngineProvider] = (
             providers if providers is not None
-            else {default_provider.provider_id: default_provider, psi4_provider.provider_id: psi4_provider}
+            else {p.provider_id: p for p in (default_provider, psi4_provider, xtb_provider)}
         )
         self._active_jobs: dict[str, _ActiveJob] = {}
         # Keyed by molecule_uuid, same as _active_jobs: a Boltzmann run owns
@@ -3066,6 +3069,18 @@ class QuantumChemistryService(QObject):
         except (TypeError, ValueError):
             cores = 0
         return cores if cores >= 1 else default_cores()
+
+    def has_active_job(self, molecule_uuid: str) -> bool:
+        """A calculation for this molecule is queued or running. Public and read-only, so a caller that must not start a second one (which would be refused with a failed state and could
+        be mistaken for the first one's) can ask first."""
+        return self._job_manager.is_active(_JOB_KIND, molecule_uuid)
+
+    def fukui_options(self) -> tuple[bool, bool]:
+        """`(anion_f_plus, cation_search)` as Settings has them NOW: the two choices the next Fukui input will be written with.
+
+        Public and read-only, so an assistant's card can state the jobs a run would have from the same settings the run will read.
+        """
+        return bool(self._settings.preference(FUKUI_ANION_F_PLUS)), bool(self._settings.preference(FUKUI_CATION_SEARCH))
 
     def orca_executable(self) -> str | None:
         """The ORCA executable a run would use, or None when none is configured or found.

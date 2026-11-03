@@ -17,10 +17,13 @@ what the drawing spike measured (`docs/KETCHER_SPIKE.md`), and this page does no
 
 from __future__ import annotations
 
+import logging
+
 from PySide6.QtGui import QKeySequence
 from PySide6.QtWidgets import (
     QFrame,
     QGridLayout,
+    QHBoxLayout,
     QKeySequenceEdit,
     QLabel,
     QLineEdit,
@@ -30,8 +33,18 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-from openchem.app.shortcut_registry import PORTABLE, ShortcutRegistry, portable
+from openchem.app.settings import Settings
+from openchem.app.shortcut_registry import PORTABLE, ShortcutRegistry, group_id, portable
+from openchem.ui import theme
+from openchem.ui.widgets.collapsible_section import CollapsibleSection
 from openchem.ui.widgets.help_tooltip import HelpTooltip, apply_help_tooltip
+
+logger = logging.getLogger("openchem.ui")
+
+#: The settings key holding the groups the person closed, as their group ids joined by commas ("" = every group
+#: open, absent = the default arrangement). A string, not a list: QSettings hands an empty list back as nothing.
+#: A convenience, never required: an unreadable value is the default arrangement, and an unknown id is ignored.
+CLOSED_GROUPS_KEY = "keyboard/closed_groups"
 
 #: Qt property naming which command a row's control belongs to. It travels on the control and
 #: comes back through `sender()`, because a lambda capturing `self` in `connect()` roots the dialog
@@ -75,6 +88,27 @@ _HELP = {
         topic="settings",
         help_anchor="settings",
     ),
+    "expand_all": HelpTooltip(
+        text="Opens every group of commands. Remembered for next time.",
+        tier=1,
+        help_id="settings.shortcut_expand_all",
+        topic="settings",
+        help_anchor="settings",
+    ),
+    "collapse_all": HelpTooltip(
+        text="Closes every group of commands. Remembered for next time.",
+        tier=1,
+        help_id="settings.shortcut_collapse_all",
+        topic="settings",
+        help_anchor="settings",
+    ),
+    "reset_layout": HelpTooltip(
+        text="Goes back to how the groups were first shown (only the first open) and forgets which you left open or closed.",
+        tier=1,
+        help_id="settings.shortcut_reset_layout",
+        topic="settings",
+        help_anchor="settings",
+    ),
     "reset_all": HelpTooltip(
         text=(
             "Puts every command back to the shortcut it shipped with and forgets every "
@@ -91,11 +125,20 @@ _HELP = {
 class KeyboardShortcutsPage(QWidget):
     """See the module docstring."""
 
-    def __init__(self, registry: ShortcutRegistry | None, parent: QWidget | None = None) -> None:
+    def __init__(
+        self,
+        registry: ShortcutRegistry | None,
+        parent: QWidget | None = None,
+        settings: Settings | None = None,
+    ) -> None:
         """`registry` is the main window's; None (a Settings window opened without one) gives an
-        empty page that says so, rather than a page that pretends."""
+        empty page that says so, rather than a page that pretends. `settings`, if given, is where
+        the groups the person closed are remembered."""
         super().__init__(parent)
         self._registry = registry
+        self._settings = settings
+        #: group id -> closed, as stored; None when nothing is stored (the default arrangement).
+        self._stored_closed = self._read_closed()
         #: command id -> (row frame, the recorder, its Reset button)
         self._rows: dict[str, tuple[QFrame, QKeySequenceEdit, QPushButton]] = {}
 
@@ -112,18 +155,45 @@ class KeyboardShortcutsPage(QWidget):
         apply_help_tooltip(self._reset_all, _HELP["reset_all"])
         self._reset_all.clicked.connect(self._on_reset_all_clicked)
 
+        self._expand_all = self._layout_button("Expand all", "keyboardExpandAll", "expand_all", self._on_expand_all)
+        self._collapse_all = self._layout_button(
+            "Collapse all", "keyboardCollapseAll", "collapse_all", self._on_collapse_all
+        )
+        self._reset_layout = self._layout_button(
+            "Reset layout", "keyboardResetLayout", "reset_layout", self._on_reset_layout
+        )
+
         #: What the last change did, or why it was refused. Public so a test can read it.
         self.status = QLabel("", self)
         self.status.setObjectName("shortcutStatus")
         self.status.setWordWrap(True)
 
         rows = QWidget(self)
-        grid = QGridLayout(rows)
-        grid.setContentsMargins(0, 0, 0, 0)
+        column = QVBoxLayout(rows)
+        column.setContentsMargins(0, 0, 0, 0)
         entries = registry.entries() if registry is not None else []
-        for number, entry in enumerate(entries):
-            grid.addWidget(self._build_row(entry, rows), number, 0)
-        grid.setRowStretch(len(entries), 1)
+        #: menu path -> its section, and the command ids in it, both in the menus' own order.
+        self._sections: dict[str, CollapsibleSection] = {}
+        self._section_commands: dict[str, list[str]] = {}
+        #: Whether the person left each section open; a search opens sections without changing it.
+        self._wanted_open: dict[str, bool] = {}
+        self._searching = False
+        for entry in entries:
+            group = entry.group or "Window"
+            section = self._sections.get(group)
+            if section is None:
+                section = CollapsibleSection(group, self._opens_by_default(group, first=not self._sections), rows)
+                section.setObjectName(f"shortcutGroup:{group}")
+                section.expansion_changed.connect(self._on_section_toggled)
+                self._sections[group] = section
+                self._section_commands[group] = []
+                self._wanted_open[group] = section.is_expanded()
+                column.addWidget(section)
+            self._section_commands[group].append(entry.command_id)
+            section.content_layout().addRow(self._build_row(entry, section))
+        for group, section in self._sections.items():
+            self._retitle(group)
+        column.addStretch(1)
         scroll = QScrollArea(self)
         scroll.setWidgetResizable(True)
         scroll.setFrameShape(QFrame.Shape.NoFrame)
@@ -137,7 +207,7 @@ class KeyboardShortcutsPage(QWidget):
             self,
         )
         note.setWordWrap(True)
-        note.setStyleSheet("color: #666666;")
+        theme.style(note, "color: #666666;")
         empty = QLabel("No commands are available in this window.", self)
         empty.setVisible(not entries)
 
@@ -145,6 +215,11 @@ class KeyboardShortcutsPage(QWidget):
         layout.addWidget(heading)
         layout.addWidget(note)
         layout.addWidget(self._search)
+        buttons = QHBoxLayout()
+        for button in (self._expand_all, self._collapse_all, self._reset_layout):
+            buttons.addWidget(button)
+        buttons.addStretch(1)
+        layout.addLayout(buttons)
         layout.addWidget(empty)
         layout.addWidget(scroll, 1)
         layout.addWidget(self.status)
@@ -242,10 +317,120 @@ class KeyboardShortcutsPage(QWidget):
         self._apply_filter(self._search.text())
 
     def _apply_filter(self, text: str) -> None:
-        """Show the rows whose command name, id or shortcut contains `text`."""
+        """Show the rows whose command name, id or shortcut contains `text`.
+
+        A section with a match opens and one with none disappears, so a search never lands on a closed
+        heading; clearing the search puts every section back as the person left it.
+        """
         if self._registry is None:
             return
         wanted = text.strip().lower()
+        matches: dict[str, int] = {group: 0 for group in self._sections}
         for entry in self._registry.entries():
             haystack = f"{entry.label} {entry.command_id} {entry.current}".lower()
-            self._rows[entry.command_id][0].setVisible(not wanted or wanted in haystack)
+            shown = not wanted or wanted in haystack
+            self._rows[entry.command_id][0].setVisible(shown)
+            if shown:
+                matches[entry.group or "Window"] += 1
+        self._searching = True
+        try:
+            for group, section in self._sections.items():
+                section.setVisible(matches[group] > 0 or not wanted)
+                section.set_expanded(True if wanted and matches[group] else self._wanted_open[group])
+                self._retitle(group, matches[group] if wanted else None)
+        finally:
+            self._searching = False
+
+    def _on_section_toggled(self, expanded: bool) -> None:
+        """Remember what the person opened or closed (not what a search did).
+
+        A search is a temporary view: a heading opened or closed BY HAND while one is typed is not remembered
+        either, and clearing the search puts the groups back as the person had them before it.
+        """
+        if self._searching or self._search.text().strip():
+            return
+        section = self.sender()
+        for group, own in self._sections.items():
+            if own is section:
+                self._wanted_open[group] = expanded
+                self._save_layout()
+                return
+
+    # --- the arrangement of the groups -----------------------------------------------------------
+
+    def _layout_button(self, text: str, name: str, help_key: str, handler) -> QPushButton:
+        button = QPushButton(text, self)
+        button.setObjectName(name)
+        button.setAutoDefault(False)
+        apply_help_tooltip(button, _HELP[help_key])
+        button.clicked.connect(handler)
+        return button
+
+    def _read_closed(self) -> set[str] | None:
+        """The group ids stored as closed, or None for "nothing stored" (and for anything unreadable)."""
+        if self._settings is None:
+            return None
+        try:
+            value = self._settings.get(CLOSED_GROUPS_KEY, None)
+            if value is None:
+                return None
+            return {part for part in str(value).split(",") if part}
+        except Exception:  # a convenience must never stop the page opening
+            logger.warning("Could not read the remembered Keyboard groups", exc_info=True)
+            return None
+
+    def _opens_by_default(self, group: str, first: bool) -> bool:
+        """Whether a group starts open: as remembered, else only the first. An id nobody stored is open."""
+        if self._stored_closed is None:
+            return first
+        return group_id(group) not in self._stored_closed
+
+    def _save_layout(self) -> None:
+        if self._settings is None:
+            return
+        closed = [group_id(group) for group, wanted in self._wanted_open.items() if not wanted]
+        try:
+            self._settings.set(CLOSED_GROUPS_KEY, ",".join(closed))
+        except Exception:
+            logger.warning("Could not remember the Keyboard groups", exc_info=True)
+
+    def _set_all(self, expanded: bool) -> None:
+        for group in self._wanted_open:
+            self._wanted_open[group] = expanded
+        self._save_layout()
+        self._apply_filter(self._search.text())
+
+    def _on_expand_all(self, _checked: bool = False) -> None:
+        self._set_all(True)
+
+    def _on_collapse_all(self, _checked: bool = False) -> None:
+        self._set_all(False)
+
+    def _on_reset_layout(self, _checked: bool = False) -> None:
+        """Back to the arrangement the page first had, and forget what was stored."""
+        for position, group in enumerate(self._wanted_open):
+            self._wanted_open[group] = position == 0
+        if self._settings is not None:
+            try:
+                self._settings.remove(CLOSED_GROUPS_KEY)
+            except Exception:
+                logger.warning("Could not forget the Keyboard groups", exc_info=True)
+        self._apply_filter(self._search.text())
+
+    def closed_group_ids(self) -> list[str]:
+        """The ids of the groups that are closed in the person's arrangement, for a test."""
+        return [group_id(group) for group, wanted in self._wanted_open.items() if not wanted]
+
+    def _retitle(self, group: str, shown: int | None = None) -> None:
+        """The heading with its count: all the commands in it, or how many a search left."""
+        total = len(self._section_commands[group])
+        count = total if shown is None else f"{shown} of {total}"
+        self._sections[group]._toggle_button.setText(f"{group} ({count})")
+
+    def group_titles(self) -> list[str]:
+        """The sections' menu paths in the order shown, for a test."""
+        return list(self._sections)
+
+    def section_of(self, group: str) -> CollapsibleSection:
+        """One section, for a test to open or read."""
+        return self._sections[group]

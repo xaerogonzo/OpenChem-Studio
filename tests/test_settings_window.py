@@ -19,6 +19,7 @@ from __future__ import annotations
 import logging
 
 import pytest
+from PySide6.QtCore import Qt
 from PySide6.QtWidgets import QMessageBox
 
 import conftest
@@ -118,6 +119,9 @@ def test_the_stored_keys_are_stable_names():
         "quantum_chemistry/psi4_memory_gb",
         "quantum_chemistry/psi4_threads",
         "compute/structure_coverage",
+        "ui/appearance",
+        "ui/interface_size",
+        "ui/plain_english",
     }
 
 
@@ -496,7 +500,9 @@ def _dialog(dialogs, settings, **kwargs) -> SettingsDialog:
 
 def test_the_sections_are_listed_in_order_and_open_by_id(qapp, dialogs):
     dialog = _dialog(dialogs, Settings(EventBus()), section=RESULTS)
-    assert [dialog._sections.item(i).text() for i in range(dialog._sections.count())] == [
+    # The list also holds a heading per group (non-selectable, no section id); the sections themselves are in order.
+    rows = [dialog._sections.item(i) for i in range(dialog._sections.count())]
+    assert [row.text() for row in rows if row.data(Qt.ItemDataRole.UserRole) is not None] == [
         label for _id, label in SECTIONS
     ]
     assert dialog.current_section() == RESULTS

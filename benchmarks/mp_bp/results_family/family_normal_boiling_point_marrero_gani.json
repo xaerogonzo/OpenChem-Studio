@@ -1,0 +1,345 @@
+{
+ "bootstrap": {
+  "resamples": 10000,
+  "seed": 20261025
+ },
+ "by_family": {
+  "alcohol_phenol": {
+   "baseline_mae": 52.67018681960805,
+   "bias": 0.8166724899890009,
+   "claim_supported": true,
+   "coverage": 0.9894736842105263,
+   "improvement": 0.7209770385492706,
+   "improvement_ci95": [
+    0.6923994289994662,
+    0.7473060181555208
+   ],
+   "mae": 14.696191506570212,
+   "mae_ci95": [
+    13.488112157097733,
+    15.948346417564723
+   ],
+   "n_predicted": 470,
+   "n_test": 475,
+   "n_train": 4333,
+   "refused": 5
+  },
+  "aliphatic_hydrocarbon": {
+   "baseline_mae": 90.35298932517193,
+   "bias": -7.611014100393404,
+   "claim_supported": true,
+   "coverage": 0.9816933638443935,
+   "improvement": 0.8926748018198654,
+   "improvement_ci95": [
+    0.8838091108018163,
+    0.9012049253562642
+   ],
+   "mae": 9.69715248549167,
+   "mae_ci95": [
+    8.750906924417745,
+    10.714292783913017
+   ],
+   "n_predicted": 429,
+   "n_test": 437,
+   "n_train": 4371,
+   "refused": 8
+  },
+  "amide": {
+   "baseline_mae": 66.5770919055426,
+   "bias": -7.934177481779572,
+   "claim_supported": true,
+   "coverage": 0.7901234567901234,
+   "improvement": 0.6513469251262145,
+   "improvement_ci95": [
+    0.5455132572901483,
+    0.7397885714409104
+   ],
+   "mae": 23.212307809022043,
+   "mae_ci95": [
+    17.026803880982058,
+    29.643345940801407
+   ],
+   "n_predicted": 64,
+   "n_test": 81,
+   "n_train": 4727,
+   "refused": 17
+  },
+  "amine": {
+   "baseline_mae": 65.85056304495241,
+   "bias": 7.519175415585761,
+   "claim_supported": true,
+   "coverage": 0.9236111111111112,
+   "improvement": 0.7753185093124029,
+   "improvement_ci95": [
+    0.7376716826701131,
+    0.8062582121529193
+   ],
+   "mae": 14.7954026675575,
+   "mae_ci95": [
+    13.087925493571463,
+    16.798890877228477
+   ],
+   "n_predicted": 399,
+   "n_test": 432,
+   "n_train": 4376,
+   "refused": 33
+  },
+  "aromatic_hydrocarbon": {
+   "baseline_mae": 84.4649193681092,
+   "bias": -1.1622247178042782,
+   "claim_supported": true,
+   "coverage": 1.0,
+   "improvement": 0.8462095713309724,
+   "improvement_ci95": [
+    0.8219592196345508,
+    0.8671502259510334
+   ],
+   "mae": 12.989896157116362,
+   "mae_ci95": [
+    11.000856732724339,
+    15.182228301791167
+   ],
+   "n_predicted": 206,
+   "n_test": 206,
+   "n_train": 4602,
+   "refused": 0
+  },
+  "carboxylic_acid": {
+   "baseline_mae": 66.63582494398004,
+   "bias": 7.340776772625801,
+   "claim_supported": true,
+   "coverage": 0.9904761904761905,
+   "improvement": 0.7098348223643066,
+   "improvement_ci95": [
+    0.6136178347716164,
+    0.7858550635108676
+   ],
+   "mae": 19.335395981770937,
+   "mae_ci95": [
+    14.473452268177741,
+    24.7778044796618
+   ],
+   "n_predicted": 104,
+   "n_test": 105,
+   "n_train": 4703,
+   "refused": 1
+  },
+  "ester": {
+   "baseline_mae": 61.406960693240244,
+   "bias": 1.3479752909796898,
+   "claim_supported": true,
+   "coverage": 0.9431818181818182,
+   "improvement": 0.7886239185184342,
+   "improvement_ci95": [
+    0.7604000150238723,
+    0.8133910442467298
+   ],
+   "mae": 12.97996272702966,
+   "mae_ci95": [
+    11.611733120135744,
+    14.469990249798755
+   ],
+   "n_predicted": 498,
+   "n_test": 528,
+   "n_train": 4280,
+   "refused": 30
+  },
+  "ether": {
+   "baseline_mae": 70.15095692607758,
+   "bias": 5.36179058346508,
+   "claim_supported": true,
+   "coverage": 0.9209486166007905,
+   "improvement": 0.8206658845172441,
+   "improvement_ci95": [
+    0.776713508465529,
+    0.8569165198078202
+   ],
+   "mae": 12.580459810607035,
+   "mae_ci95": [
+    10.189366273379646,
+    15.396623003080942
+   ],
+   "n_predicted": 233,
+   "n_test": 253,
+   "n_train": 4555,
+   "refused": 20
+  },
+  "halogenated": {
+   "baseline_mae": 74.79522148899113,
+   "bias": 11.21341349301116,
+   "claim_supported": true,
+   "coverage": 0.8385502471169687,
+   "improvement": 0.7294820435767897,
+   "improvement_ci95": [
+    0.705476908108661,
+    0.7522382824226701
+   ],
+   "mae": 20.23345046742326,
+   "mae_ci95": [
+    18.429029648706678,
+    22.148173399532727
+   ],
+   "n_predicted": 1018,
+   "n_test": 1214,
+   "n_train": 3594,
+   "refused": 196
+  },
+  "ketone_aldehyde": {
+   "baseline_mae": 59.451900470180654,
+   "bias": 3.099111936661466,
+   "claim_supported": true,
+   "coverage": 0.9905660377358491,
+   "improvement": 0.7666118955550038,
+   "improvement_ci95": [
+    0.7258648046964087,
+    0.8025727351070656
+   ],
+   "mae": 13.875366356388042,
+   "mae_ci95": [
+    11.859925679142336,
+    16.06665262969061
+   ],
+   "n_predicted": 315,
+   "n_test": 318,
+   "n_train": 4490,
+   "refused": 3
+  },
+  "nitramine": {
+   "baseline_mae": 61.68574193548392,
+   "bias": -33.717710852922266,
+   "claim_supported": false,
+   "coverage": 0.3333333333333333,
+   "improvement": 0.453395390977269,
+   "mae": 33.717710852922266,
+   "n_predicted": 1,
+   "n_test": 3,
+   "n_train": 4805,
+   "refused": 2
+  },
+  "nitrate_ester": {
+   "baseline_mae": 62.14468176240421,
+   "bias": 0.3084658905864772,
+   "claim_supported": false,
+   "coverage": 1.0,
+   "improvement": 0.8073137501348311,
+   "improvement_ci95": [
+    0.4832400469248884,
+    0.9408708941724844
+   ],
+   "mae": 11.974425677862023,
+   "mae_ci95": [
+    3.765988834125307,
+    23.471367952640012
+   ],
+   "n_predicted": 9,
+   "n_test": 9,
+   "n_train": 4799,
+   "refused": 0
+  },
+  "nitrile": {
+   "baseline_mae": 63.39833124462748,
+   "bias": 3.336566556448295,
+   "claim_supported": true,
+   "coverage": 0.9733333333333334,
+   "improvement": 0.683155428509009,
+   "improvement_ci95": [
+    0.5894755292021931,
+    0.7647540378412153
+   ],
+   "mae": 20.087417096447897,
+   "mae_ci95": [
+    14.574218332074928,
+    26.599014981058385
+   ],
+   "n_predicted": 73,
+   "n_test": 75,
+   "n_train": 4733,
+   "refused": 2
+  },
+  "nitro": {
+   "baseline_mae": 71.94992257163463,
+   "bias": 5.340544689812026,
+   "claim_supported": true,
+   "coverage": 0.9910714285714286,
+   "improvement": 0.763113955582601,
+   "improvement_ci95": [
+    0.6884525720217822,
+    0.8229311816248923
+   ],
+   "mae": 17.043932554132663,
+   "mae_ci95": [
+    12.876943632372738,
+    21.963585680579055
+   ],
+   "n_predicted": 111,
+   "n_test": 112,
+   "n_train": 4696,
+   "refused": 1
+  },
+  "other": {
+   "baseline_mae": 69.9555596158377,
+   "bias": 12.418677793772154,
+   "claim_supported": true,
+   "coverage": 0.6246786632390745,
+   "improvement": 0.5900560598753661,
+   "improvement_ci95": [
+    0.49945302142354364,
+    0.6671785932882935
+   ],
+   "mae": 28.677857742540223,
+   "mae_ci95": [
+    23.975765320484882,
+    33.694220763953645
+   ],
+   "n_predicted": 243,
+   "n_test": 389,
+   "n_train": 4419,
+   "refused": 146
+  },
+  "sulfur": {
+   "baseline_mae": 67.66694346714316,
+   "bias": 9.318797592169801,
+   "claim_supported": true,
+   "coverage": 0.8187134502923976,
+   "improvement": 0.7264327591877895,
+   "improvement_ci95": [
+    0.6186411001968193,
+    0.8129655916333117
+   ],
+   "mae": 18.511459018502183,
+   "mae_ci95": [
+    12.878884290146946,
+    25.213499413594068
+   ],
+   "n_predicted": 140,
+   "n_test": 171,
+   "n_train": 4637,
+   "refused": 31
+  }
+ },
+ "claim": "generalisation to an unseen structural family: Candidate C fitted on every other family and scored on the one left out; a different claim from the hash-split headline, descriptive, with no preregistered threshold and no verdict",
+ "fitted_here": false,
+ "gate_eligible": false,
+ "model": "marrero_gani",
+ "model_output": "tb",
+ "pooled": {
+  "baseline_mae": 69.53035752276242,
+  "bias": 4.5385949247919966,
+  "coverage": 0.8970465890183028,
+  "improvement": 0.7646867766395194,
+  "improvement_ci95": [
+   0.7537869171467843,
+   0.7753252066283425
+  ],
+  "mae": 16.36141255008786,
+  "mae_ci95": [
+   15.657419761250715,
+   17.083915262694987
+  ],
+  "n_predicted": 4313,
+  "n_test": 4808
+ },
+ "ridge_penalty": null,
+ "target": "normal_boiling_point",
+ "verdict": "none: no threshold was preregistered"
+}

@@ -26,6 +26,7 @@ from PySide6.QtWidgets import (
 
 from openchem.chem.engine import ChemistryEngine
 from openchem.domain.scientific_result import StructureEntry, StructureSetResult
+from openchem.ui import theme
 
 _COLUMNS = 3
 _CELL_WIDTH = 240
@@ -50,6 +51,7 @@ class _StructureCell(QFrame):
         number.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
         svg_widget = QSvgWidget(self)
+        theme.paper(svg_widget)
         try:
             svg = engine.render_2d_svg(entry.molblock, {}, None)
             svg_widget.load(svg.encode("utf-8"))

@@ -5,7 +5,13 @@ from pathlib import Path
 
 from openchem.app.settings import Settings
 from openchem.events.base import EventBus
-from openchem.ui.dialogs.external_tools_pages import ExternalToolsPages
+from openchem.ui.dialogs.external_tools_pages import _PAGE_KEY_ROLE, TOOL_GROUPS, ExternalToolsPages
+
+
+def _page_titles(dialog) -> list[str]:
+    """The titles of the list's PAGE rows in order (headings carry no key)."""
+    rows = (dialog._nav.item(i) for i in range(dialog._nav.count()))
+    return [row.text() for row in rows if row.data(_PAGE_KEY_ROLE) is not None]
 
 
 def test_dialog_has_every_tool_tab_and_focuses_the_requested_one(qapp):
@@ -14,29 +20,27 @@ def test_dialog_has_every_tool_tab_and_focuses_the_requested_one(qapp):
 
     dialog = ExternalToolsPages(settings, focus="orca")
 
-    assert [dialog._tabs.tabText(i) for i in range(dialog._tabs.count())] == [
+    # The tools are listed under headings now (a strip of twelve tabs scrolled sideways in the Settings window);
+    # a heading is not a page, so the PAGES are read off the rows that carry a key.
+    assert _page_titles(dialog) == [
+        # The first-time reader's page: what each tool is for and which to get.
+        "Setup guide",
         "AutoDock Vina",
         "ORCA",
-        # A second quantum-chemistry engine, right after the first: the user locates it, the app does not fetch it.
         "Psi4",
-        # The synthesis planner, in an environment of the user's own: locate-only, with the Python and the configuration file as two paths.
+        "xtb",
         "AiZynthFinder",
+        # OPTIONAL: the one tool that nothing depends on (a separate program that remembers where a paper's file is).
+        "Knowledge Vista",
         "pkasolver (pKa)",
-        # Grouped with the other out-of-process Python environments rather
-        # than with the executables above -- same shape, same problem.
         "ADMET (hERG/CYP)",
-        # These two OBTAIN a prerequisite rather than configure a tool the
-        # user already has: a portable Temurin runtime (OPSIN is dead
-        # without one) and the experimental shift index.
+        # These two OBTAIN a prerequisite rather than configure a tool the user already has.
         "Java (Temurin)",
         "NMR Database",
-        # OPTIONAL: the one tab that nothing depends on (a separate program that remembers where a paper's file is).
-        "Knowledge Vista",
-        # Not a tool at all -- where the tools' own multi-gigabyte
-        # installs are kept, and how to move them off the system drive.
+        # Not a tool at all -- where the tools' own multi-gigabyte installs are kept.
         "Storage",
     ]
-    assert dialog._tabs.currentIndex() == 1
+    assert dialog.current_tool() == "orca"
 
 
 def test_dialog_can_focus_the_pkasolver_tab(qapp):
@@ -45,7 +49,7 @@ def test_dialog_can_focus_the_pkasolver_tab(qapp):
 
     dialog = ExternalToolsPages(settings, focus="pkasolver")
 
-    assert dialog._tabs.currentIndex() == 4
+    assert dialog.current_tool() == "pkasolver"
 
 
 def test_editing_pkasolver_path_saves_immediately_to_settings(qapp):
@@ -61,13 +65,14 @@ def test_editing_pkasolver_path_saves_immediately_to_settings(qapp):
     assert settings.get(PKASOLVER_PYTHON_SETTING, "") == r"C:\some\env\python.exe"
 
 
-def test_dialog_defaults_to_vina_tab(qapp):
+def test_dialog_defaults_to_the_setup_guide(qapp):
     bus = EventBus()
     settings = Settings(bus)
 
     dialog = ExternalToolsPages(settings)
 
-    assert dialog._tabs.currentIndex() == 0
+    assert dialog._pages.currentWidget() is dialog._guide
+    assert dialog.current_tool() is None
 
 
 def test_editing_vina_path_saves_immediately_to_settings(qapp):
@@ -149,9 +154,7 @@ def test_the_admet_tab_exists_with_the_full_sidecar_affordance_set(qapp):
     gap that made the pkasolver and STOUT tabs frustrating before."""
     dialog = ExternalToolsPages(Settings(EventBus()))
 
-    assert "ADMET (hERG/CYP)" in [
-        dialog._tabs.tabText(i) for i in range(dialog._tabs.count())
-    ]
+    assert "ADMET (hERG/CYP)" in _page_titles(dialog)
     for attribute in (
         "_admet_path_edit",
         "_admet_setup_button",
@@ -319,3 +322,52 @@ def test_clearing_the_path_field_stores_an_empty_string_not_a_dot(qapp):
 
     assert settings.get("orca/executable_path", "") == ""
     assert dialog._orca_path_edit.text() == ""
+
+
+def test_every_tool_is_under_exactly_one_heading(qapp):
+    dialog = ExternalToolsPages(Settings(EventBus()))
+    grouped = [key for _heading, keys in TOOL_GROUPS for key in keys]
+    registered = [tab.descriptor.key for tab in dialog._tool_tabs]
+
+    assert sorted(grouped) == sorted(registered)
+    assert len(grouped) == len(set(grouped))
+
+
+def test_a_heading_is_never_the_current_tool_and_every_row_opens_its_page(qapp):
+    dialog = ExternalToolsPages(Settings(EventBus()))
+    dialog.show()
+    headings = [i for i in range(dialog._nav.count()) if dialog._nav.item(i).data(_PAGE_KEY_ROLE) is None]
+    assert [dialog._nav.item(i).text() for i in headings] == [h for h, _ in TOOL_GROUPS] + ["Disk"]
+
+    dialog._storage_measured = True  # reaching Storage would start a disk walk on a worker
+    for row in range(dialog._nav.count()):
+        item = dialog._nav.item(row)
+        key = item.data(_PAGE_KEY_ROLE)
+        before = dialog._nav.currentItem()
+        dialog._nav.setCurrentItem(item)
+        if key is None:
+            # A heading made current by code leaves the list where it was.
+            assert dialog._nav.currentItem() is before
+        else:
+            assert dialog._nav.currentItem() is item
+            assert dialog._pages.currentWidget() is dialog._page_for(key)
+
+
+def test_switching_tools_keeps_each_pages_state(qapp):
+    dialog = ExternalToolsPages(Settings(EventBus()), focus="pkasolver")
+    dialog._pkasolver_path_edit.setText(r"C:\kept\python.exe")
+    dialog.show_tool("orca")
+    dialog.show_tool("xtb")
+    dialog.show_tool("pkasolver")
+
+    assert dialog._pkasolver_path_edit.text() == r"C:\kept\python.exe"
+
+
+def test_storage_is_reachable_and_is_not_a_tool(qapp):
+    dialog = ExternalToolsPages(Settings(EventBus()))
+    # Opening Storage starts a disk walk on a worker; this test is about reaching the page, not about the walk.
+    dialog._storage_measured = True
+    dialog._nav.setCurrentItem(dialog._item_of["storage"])
+
+    assert dialog._pages.currentWidget() is dialog._storage_page
+    assert dialog.current_tool() is None

@@ -1,0 +1,13 @@
+ARM C (six C-H bonds next to F and Cl; ATcT 1.228)
+deciding n= 6 missing=0 MAE=0.94 MSE=-0.94 max=1.86
+VERDICT PASS
+standard error of the mean error: 0.24 kcal/mol
+within 0.5 kcal/mol of a limit, so the two sides cannot be told apart: none
+
+bond                                             calc      ref   error
+chloromethane C-H (Chloromethyl)                98.66    99.41   -0.75  [lowest frequency parent 756, radical 147 cm-1; radical analytic]
+dichloromethane C-H (Dichloromethyl)            95.10    96.20   -1.10  [lowest frequency parent 286, radical 304 cm-1; radical analytic]
+chloroform C-H (Trichloromethyl)                92.17    93.31   -1.14  [lowest frequency parent 262, radical 274 cm-1; radical analytic]
+fluoroform C-H (Trifluoromethyl)               104.81   106.67   -1.86  [lowest frequency parent 515, radical 518 cm-1; radical analytic]
+formyl fluoride C-H (Fluoroformyl)             100.74   101.38   -0.64  [lowest frequency parent 684, radical 654 cm-1; radical analytic]
+formyl chloride C-H (Chloroformyl)              90.83    90.95   -0.13  [lowest frequency parent 468, radical 358 cm-1; radical analytic]

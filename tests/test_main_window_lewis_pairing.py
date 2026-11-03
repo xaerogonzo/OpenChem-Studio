@@ -13,6 +13,7 @@ from PySide6.QtGui import QAction
 from rdkit import Chem
 from rdkit.Chem import AllChem
 
+from openchem.app import menu_layout
 from openchem.app.main_window import MainWindow
 from openchem.app.session import SessionManager
 from openchem.app.settings import Settings
@@ -84,28 +85,25 @@ def pair(window):
 _KEEP_ALIVE: list = []
 
 
-def _tools_menu(window):
-    [tools] = [a for a in window.menuBar().actions() if a.text().replace("&", "") == "Tools"]
-    # PySide deletes the menu when the wrapper of the menu-bar action that owns it is collected.
-    _KEEP_ALIVE.append(tools)
-    return tools.menu()
+def _tools_entries(window) -> dict[str, tuple[str, QAction]]:
+    """Every Tools command by its text, with the menu path it sits in (Tools commands are in submenus now)."""
+    found = {a.text(): (path, a) for path, a in menu_layout.walk(window.menuBar()) if path.split(" > ")[0] == "Tools"}
+    # PySide deletes an action when its last wrapper is collected.
+    _KEEP_ALIVE.extend(action for _path, action in found.values())
+    return found
 
 
 def _tools_action(window, text: str) -> QAction:
-    # The menu is held by the caller's frame: a temporary wrapper that dies takes the actions' wrappers with it.
-    menu = _tools_menu(window)
-    [action] = [a for a in menu.actions() if a.text() == text]
-    action._menu_alive = menu
-    return action
+    return _tools_entries(window)[text][1]
 
 
 # --- the menu ------------------------------------------------------------------------------------------------------
 
 
 def test_tools_has_the_pairing_entry_beside_the_goal_wizard(window):
-    texts = [a.text() for a in _tools_menu(window).actions()]
-    assert "Lewis Acid-Base Pairing..." in texts
-    assert abs(texts.index("Lewis Acid-Base Pairing...") - texts.index("Run Calculators by Goal...")) == 1
+    entries = _tools_entries(window)
+    assert "Lewis Acid-Base Pairing..." in entries
+    assert entries["Lewis Acid-Base Pairing..."][0] == entries["Run Calculators by Goal..."][0] == "Tools > Calculators"
 
 
 def test_the_entry_opens_one_window_and_a_second_press_raises_it_rather_than_opening_another(window, pair):

@@ -1,0 +1,13 @@
+LIVE CHECK OF THE v3 CHAIN, 2026-10-28: methanethiol S-H (the first run's lost bond: spent, reported beside Arm D and outside its verdict), real ORCA 6.1.1, run through run_restart_v3.run_stage into a scratch folder.
+NOT AN ARM RESULT. The report below was regenerated after the run with the lowest-vibration print fixed, with the drift check skipped (the runner changed after the run); the records are untouched.
+
+ARM D (three thiol S-H bonds; gas-phase acidity references that share an anchor, n = 3 with correlated errors)
+deciding n=0 missing=0
+VERDICT NOT EVALUABLE
+standard error of the mean error: n/a
+within 0.7 kcal/mol of a limit, so the two sides cannot be told apart: none
+Reference status: ethanethiol's is PUBLISHED (Ervin 2015); 1-propanethiol's and 2-propanethiol's are DERIVED here from published acidities and electron affinities with a thermal step COMPUTED in thermal_step.py, not published numbers.
+Methanethiol's S-H (the first run's lost bond; Nicovich 1992) is printed beside the three bonds and does not enter the mean.
+
+bond                                             calc      ref   error
+methanethiol S-H                                84.97    87.35   -2.38  (beside, outside the verdict)  [lowest frequency parent 223, radical 601 cm-1; radical from the NUMERICAL job, +0.99 kcal/mol vs analytic]

@@ -1,0 +1,2 @@
+### Naming limitations: the first stereo audit (workstream 1) is recorded
+- `docs/NAMING_LIMITATIONS_PLAN.md` now holds the measured result for `NL-001` to `NL-005`: a bridged parent inside a larger molecule loses all its stereo although a pinning name exists (`NL-003`), 2,4-difluoroadamantane is flattened needlessly in 2 of 4 isomers (`NL-004`), and the pseudoasymmetric, substituted-bridgehead and adamantane-spiro cases are validator limits whose descriptor identity is still unresolved. Documentation only; no engine change.

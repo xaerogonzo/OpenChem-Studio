@@ -1,0 +1,169 @@
+{
+ "counts": {
+  "all_method_common_cohort": 949,
+  "entities_considered": 8878,
+  "entities_predicted": 1040,
+  "entities_with_eligible_target": 1186,
+  "paired_with_baseline": 1040
+ },
+ "coverage": 0.8768971332209107,
+ "gate": {
+  "criteria": {
+   "coverage_at_least_70pct": true,
+   "improvement_at_least_20pct": true,
+   "improvement_lower_at_least_10pct": true,
+   "leakage_not_unknown": true,
+   "paired_at_least_300": true,
+   "point_mae_within_1.5x": false,
+   "upper_mae_within_2.0x": true
+  },
+  "evaluation_status": "FAIL",
+  "numeric_criteria_all_met": false,
+  "reason": "criteria not met: point_mae_within_1.5x",
+  "reference_error_k": 22.6
+ },
+ "gate_eligible": true,
+ "label_quality_subset": {
+  "cross_source_agree_mae": 34.34573359652006,
+  "cross_source_agree_n": 210
+ },
+ "leakage": {
+  "evidence": "fit population is the development partition of this corpus",
+  "may_claim_independent_holdout": true,
+  "status": "known_population_no_overlap"
+ },
+ "limitations": [
+  "reference values cannot be regenerated from the public repository (copyrighted handbook tables)",
+  "handbook values contain printed errors; see CORPUS_REPORT.md"
+ ],
+ "metrics": {
+  "baseline_mae_on_same_entities": 67.85282228527888,
+  "bias": 1.5116065135078012,
+  "improvement_ci95": [
+   0.39671419019856796,
+   0.4633039743411489
+  ],
+  "improvement_over_baseline": 0.430900301856988,
+  "mae": 38.615020680703644,
+  "mae_ci95": [
+   36.82046254959548,
+   40.48861156836833
+  ],
+  "median_ae": 33.114218321220676,
+  "rmse": 49.278431268354936
+ },
+ "model": "candidate_c",
+ "model_output": "tm",
+ "partition": "selection",
+ "partitions_examined": [
+  {
+   "partition": "development",
+   "purpose": "fit Candidate C, build the baseline"
+  },
+  {
+   "partition": "selection",
+   "purpose": "choose Candidate C's ridge penalty"
+  }
+ ],
+ "provenance": {
+  "bootstrap_resamples": 10000,
+  "bootstrap_seed": 20261025,
+  "corpus_builder": "mp_bp-corpus-1",
+  "frozen_at_commit": "46f536301a1589d1d4b613570f6d278181890981",
+  "full_corpus_evaluated": true,
+  "judge_version": "mp_bp-judge-1",
+  "source_file_hashes": {
+   "crc97": "60a59278683215474bc827ae67876ce8ac7e51702acac3f4f52fc7a0f920597f",
+   "lange15": "b9ecec4d2e428621737492a46145668743282bc6f5cce83c9f6d564680588dd1"
+  },
+  "split_manifest_hash": "705c8a859e21121ae0348447576b5510cab12574499b7de1b585a6a579a3fd29"
+ },
+ "refusals": {
+  "UNCOVERED_ATOM": 146
+ },
+ "sensitivity": {
+  "mae_range_over_alternative_observations": [
+   38.33730793647837,
+   38.615020680703644
+  ]
+ },
+ "strata": {
+  "alcohol_phenol": {
+   "claim_supported": true,
+   "mae": 37.385444457283654,
+   "n": 87
+  },
+  "aliphatic_hydrocarbon": {
+   "claim_supported": true,
+   "mae": 45.877238882768644,
+   "n": 73
+  },
+  "amide": {
+   "claim_supported": true,
+   "mae": 48.86324343774053,
+   "n": 38
+  },
+  "amine": {
+   "claim_supported": true,
+   "mae": 39.19262288837359,
+   "n": 76
+  },
+  "aromatic_hydrocarbon": {
+   "claim_supported": true,
+   "mae": 32.75297584468223,
+   "n": 55
+  },
+  "carboxylic_acid": {
+   "claim_supported": true,
+   "mae": 45.87150339762602,
+   "n": 97
+  },
+  "ester": {
+   "claim_supported": true,
+   "mae": 31.890146510012055,
+   "n": 99
+  },
+  "ether": {
+   "claim_supported": false,
+   "mae": 34.83593534363268,
+   "n": 24
+  },
+  "halogenated": {
+   "claim_supported": true,
+   "mae": 37.58501824452811,
+   "n": 234
+  },
+  "ketone_aldehyde": {
+   "claim_supported": true,
+   "mae": 39.989649799442184,
+   "n": 96
+  },
+  "nitrate_ester": {
+   "claim_supported": false,
+   "mae": 40.86275093078993,
+   "n": 1
+  },
+  "nitrile": {
+   "claim_supported": false,
+   "mae": 30.76709196473264,
+   "n": 17
+  },
+  "nitro": {
+   "claim_supported": true,
+   "mae": 34.00232024477239,
+   "n": 79
+  },
+  "other": {
+   "claim_supported": true,
+   "mae": 45.498369474519265,
+   "n": 35
+  },
+  "sulfur": {
+   "claim_supported": false,
+   "mae": 34.55310905335785,
+   "n": 29
+  }
+ },
+ "target": "melting_point",
+ "target_matched": true
+}

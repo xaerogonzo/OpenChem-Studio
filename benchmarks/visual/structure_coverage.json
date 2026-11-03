@@ -27,7 +27,7 @@
   {"do": "properties_grab", "path": "artifacts/visual/structure_coverage_surfactant.png"},
 
   {"do": "select", "molecule": 3, "after_ms": 2500},
-  {"do": "expect_coverage", "tag": "salt", "chips": {"griffin_hlb": "Not applicable", "oxygen_balance": "Not applicable", "joback_properties": "Not applicable", "hansen_solubility": "Not applicable"},
+  {"do": "expect_coverage", "tag": "salt", "chips": {"griffin_hlb": "Not applicable", "oxygen_balance": "Can run", "joback_properties": "Not applicable", "hansen_solubility": "Not applicable"},
    "rows": {"orca.proton_affinity": "○"}, "tooltips": {"hansen_solubility": ["pure substance"]}},
   {"do": "properties_grab", "path": "artifacts/visual/structure_coverage_salt.png"},
 

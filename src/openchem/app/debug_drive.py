@@ -23,7 +23,8 @@ dialog. The window can sit behind whatever the user is working in.
 
     OPENCHEM_DRIVE=<script.json>  uv run python -m openchem.main
 
-The script is a JSON list of steps, run in order:
+The full step catalogue, including the traps measured on individual steps,
+is `docs/DRIVE_STEPS.md`. The script is a JSON list of steps, run in order:
 
     [
       {"do": "import",     "path": "C:/tmp/ethylmorphine.mol"},
@@ -186,6 +187,7 @@ from typing import Any
 from PySide6.QtCore import QObject, Qt, QTimer
 from PySide6.QtWidgets import QDialog, QVBoxLayout, QWidget
 
+from openchem.app import menu_layout
 from openchem.app.drive_ledger import ErrorLedger, RunIdentity, log_file_size, write_report
 
 logger = logging.getLogger("openchem.ui")
@@ -611,7 +613,7 @@ class _Driver(QObject):
         logger.warning("OPENCHEM_DRIVE: dock_receptor -> %r", combo.currentText())
 
     #: The tool settings a script may set for its own run, and no others.
-    _TOOL_PATH_KEYS = {"psi4": "psi4/executable_path"}
+    _TOOL_PATH_KEYS = {"psi4": "psi4/executable_path", "xtb": "xtb/executable_path"}
 
     def _do_tool_path(self, step: dict[str, Any]) -> None:
         """Point a tool at an executable for THIS run: `{"do": "tool_path", "tool": "psi4", "path": "D:/.../psi4.exe"}`.
@@ -1704,6 +1706,149 @@ class _Driver(QObject):
         """
         report = self._window.dock_layout_report()
         logger.warning("OPENCHEM_DRIVE: dock_report %s %s", step.get("tag", ""), json.dumps(report))
+
+    def _title_bar(self, panel_id: str):
+        dock = self._dock(panel_id)
+        bar = dock.titleBarWidget() if dock is not None else None
+        if bar is None or not hasattr(bar, "layout_menu"):
+            logger.error("OPENCHEM_DRIVE: dock %r has no layout title bar", panel_id)
+            return None
+        return bar
+
+    def _do_dock_menu(self, step: dict[str, Any]) -> None:
+        """Open a panel's title-bar layout menu the way a click does, and press one entry of it.
+
+        `{"do": "dock_menu", "panel": "Results", "press": "move_bottom",
+          "expect": {"present": ["move_left", "expand"], "disabled": ["move_bottom"], "text": {"lock": "Unlock"}}}`
+
+        The menu is filled by its own `aboutToShow` (emitted here, so the same code runs as for a click), and an
+        entry is found by its objectName without the `dockMenu_` (`move_left`, `expand`, `restore`, `float`,
+        `dock_back`, `lock`, `return`, `alongside_Results`). A disabled entry is logged, not pressed, as for any
+        other drive step. What the press DID is read by `dock_state`, after the layout has settled.
+        """
+        from PySide6.QtGui import QAction
+
+        bar = self._title_bar(str(step["panel"]))
+        if bar is None:
+            return
+        menu = bar.layout_menu()
+        menu.aboutToShow.emit()
+        by_name = {
+            a.objectName().removeprefix("dockMenu_"): a
+            for a in menu.findChildren(QAction)
+            if a.objectName().startswith("dockMenu_")
+        }
+        tag = f"{step['panel']}"
+        problems: list[str] = []
+        expect = step.get("expect", {})
+        for name in expect.get("present", []):
+            if name not in by_name:
+                problems.append(f"no entry {name!r} (have {sorted(by_name)})")
+        for name in expect.get("absent", []):
+            if name in by_name:
+                problems.append(f"entry {name!r} is offered")
+        for name in expect.get("disabled", []):
+            if name in by_name and by_name[name].isEnabled():
+                problems.append(f"{name!r} is enabled")
+        for name in expect.get("enabled", []):
+            if name in by_name and not by_name[name].isEnabled():
+                problems.append(f"{name!r} is disabled")
+        for name, text in expect.get("text", {}).items():
+            if name not in by_name or by_name[name].text() != text:
+                problems.append(f"{name!r} reads {by_name[name].text() if name in by_name else None!r}, wanted {text!r}")
+        if problems:
+            logger.error("OPENCHEM_DRIVE: EXPECT dock_menu FAILED[%s] -- %s", tag, "; ".join(problems))
+        else:
+            logger.warning("OPENCHEM_DRIVE: EXPECT dock_menu ok[%s] entries=%s", tag, sorted(by_name))
+        pressed = step.get("press")
+        if pressed:
+            action = by_name.get(str(pressed))
+            if action is None:
+                logger.error("OPENCHEM_DRIVE: dock_menu[%s] has no entry %r to press", tag, pressed)
+            elif not action.isEnabled():
+                logger.warning("OPENCHEM_DRIVE: dock_menu[%s] entry %r is disabled; not pressed", tag, pressed)
+            else:
+                action.trigger()
+                logger.warning("OPENCHEM_DRIVE: dock_menu[%s] pressed %r", tag, pressed)
+
+    def _do_dock_state(self, step: dict[str, Any]) -> None:
+        """Assert where one dock is and how big, read off the window's own layout report.
+
+        `{"do": "dock_state", "panel": "Results", "tag": "after-move",
+          "expect": {"area": "bottom", "hidden": false, "floating": false, "user_placed": true,
+                     "expanded": null, "min_width": 500, "max_width": 400, "grew_beyond": "Properties"}}`
+
+        `expanded` is the dock the window believes is expanded (or null); `min_width` / `max_width` are on the dock
+        itself; `no_overlaps` asserts the visible docked panels do not overlap.
+        """
+        report = self._window.dock_layout_report()
+        entry = next((d for d in report["docks"] if d["id"] == str(step["panel"])), None)
+        tag = f"{step['panel']}:{step.get('tag', '')}"
+        if entry is None:
+            logger.error("OPENCHEM_DRIVE: EXPECT dock_state FAILED[%s] -- no such dock", tag)
+            return
+        expect = step.get("expect", {})
+        problems: list[str] = []
+        for key in ("area", "hidden", "floating", "user_placed"):
+            if key in expect and entry[key] != expect[key]:
+                problems.append(f"{key} is {entry[key]!r}, wanted {expect[key]!r}")
+        if "expanded" in expect and report.get("expanded") != expect["expanded"]:
+            problems.append(f"expanded is {report.get('expanded')!r}, wanted {expect['expanded']!r}")
+        width = entry["rect"][2]
+        if "min_width" in expect and width < int(expect["min_width"]):
+            problems.append(f"width {width} < {expect['min_width']}")
+        if "max_width" in expect and width > int(expect["max_width"]):
+            problems.append(f"width {width} > {expect['max_width']}")
+        if expect.get("no_overlaps") and report["overlaps"]:
+            problems.append(f"overlaps {report['overlaps']}")
+        if problems:
+            logger.error("OPENCHEM_DRIVE: EXPECT dock_state FAILED[%s] -- %s", tag, "; ".join(problems))
+        else:
+            logger.warning(
+                "OPENCHEM_DRIVE: EXPECT dock_state ok[%s] area=%s width=%s expanded=%s",
+                tag, entry["area"], width, report.get("expanded"),
+            )
+
+    def _do_dock_button(self, step: dict[str, Any]) -> None:
+        """Press a panel's own title-bar button (or one entry of its menu), or assert its state.
+
+        `{"do": "dock_button", "panel": "Jobs", "button": "cancel_all", "expect": {"enabled": false}}`
+        `{"do": "dock_button", "panel": "Results", "button": "report", "item": "copy", "press": true}`
+        """
+        from PySide6.QtGui import QAction
+        from PySide6.QtWidgets import QToolButton
+
+        bar = self._title_bar(str(step["panel"]))
+        if bar is None:
+            return
+        name = f"dockAction_{step['button']}"
+        button = bar.findChild(QToolButton, name)
+        tag = f"{step['panel']}:{step['button']}"
+        if button is None:
+            logger.error("OPENCHEM_DRIVE: EXPECT dock_button FAILED[%s] -- no button %s", tag, name)
+            return
+        expect = step.get("expect", {})
+        if "enabled" in expect and button.isEnabled() != bool(expect["enabled"]):
+            logger.error("OPENCHEM_DRIVE: EXPECT dock_button FAILED[%s] -- enabled is %s", tag, button.isEnabled())
+        else:
+            logger.warning("OPENCHEM_DRIVE: EXPECT dock_button ok[%s] enabled=%s", tag, button.isEnabled())
+        if not step.get("press"):
+            return
+        if not button.isEnabled():
+            logger.warning("OPENCHEM_DRIVE: dock_button[%s] is disabled; not pressed", tag)
+            return
+        if "item" in step:
+            item = next(
+                (a for a in button.menu().findChildren(QAction) if a.objectName() == f"dockActionItem_{step['button']}_{step['item']}"),
+                None,
+            )
+            if item is None:
+                logger.error("OPENCHEM_DRIVE: dock_button[%s] has no entry %r", tag, step["item"])
+                return
+            item.trigger()
+        else:
+            button.click()
+        logger.warning("OPENCHEM_DRIVE: dock_button[%s] pressed", tag)
 
     def _do_reader_layout_report(self, step: dict[str, Any]) -> None:
         """`{"do": "reader_layout_report", "tag": "beside"}` -- how much of the
@@ -4521,11 +4666,11 @@ class _Driver(QObject):
 
         `{"do": "synthesis_panel", "tag": "after", "press": "plan", "route": 1, "step": 0, "expect": {...}}`
 
-        `press` is `plan` or `cancel`: the button's own `click()`, so the path a person's press takes (the configuration read off the GUI
+        `press` is `plan`, `cancel` or `rescreen`: the button's own `click()`, so the path a person's press takes (the configuration read off the GUI
         thread, then `request_plan` through the one service path, where the regulatory gate runs first) is the path driven. `route` and
         `step` select a row of the real lists, and `scroll` ("end", or a pixel offset) scrolls the panel inside its dock, and `details_scroll` does the same for the text box of what the planner said. `expect` keys: `status_contains`, `target_contains`, `routes`, `routes_at_least`, `steps`,
         `picture` (a picture is on screen), `picture_message_contains`, `warning` (the earlier-structure line is showing),
-        `plan_enabled`, `cancel_enabled`, `limitations_contain`, `details_contain`, `expansion`, `stock`, `filter` (the list's current text).
+        `plan_enabled`, `cancel_enabled`, `rescreen_enabled`, `limitations_contain`, `limitations_exclude`, `details_contain`, `expansion`, `stock`, `filter` (the list's current text).
         """
         window = self._window
         window._on_panel_chosen("Synthesis")
@@ -4538,6 +4683,8 @@ class _Driver(QObject):
             panel._plan_button.click()
         elif press == "cancel":
             panel._cancel_button.click()
+        elif press == "rescreen":
+            panel._rescreen_button.click()
         elif press:
             logger.error("OPENCHEM_DRIVE: synthesis_panel -- unknown press %r", press)
         if "route" in step:
@@ -4564,6 +4711,7 @@ class _Driver(QObject):
             "picture_message": "" if panel._picture_message.isHidden() else panel._picture_message.text(),
             "plan_enabled": panel._plan_button.isEnabled(),
             "cancel_enabled": panel._cancel_button.isEnabled(),
+            "rescreen_enabled": panel._rescreen_button.isEnabled(),
             "expansion": panel._expansion.currentText(),
             "stock": panel._stock.currentText(),
             "filter": panel._filter.currentText(),
@@ -4572,7 +4720,7 @@ class _Driver(QObject):
         logger.warning("OPENCHEM_DRIVE: synthesis_panel %s | %s", tag, report)
         expect = step.get("expect") or {}
         problems: list[str] = []
-        for key in ("routes", "steps", "picture", "plan_enabled", "cancel_enabled", "expansion", "stock", "filter"):
+        for key in ("routes", "steps", "picture", "plan_enabled", "cancel_enabled", "rescreen_enabled", "expansion", "stock", "filter"):
             if key in expect and report[key] != expect[key]:
                 problems.append(f"{key} is {report[key]!r}, wanted {expect[key]!r}")
         if "routes_at_least" in expect and report["routes"] < int(expect["routes_at_least"]):
@@ -4587,10 +4735,61 @@ class _Driver(QObject):
             for wanted in ([expect[key]] if isinstance(expect.get(key), str) else expect.get(key, [])):
                 if wanted not in text:
                     problems.append(f"{key}: {wanted!r} is not in {text[:200]!r}")
+        for unwanted in ([expect["limitations_exclude"]] if isinstance(expect.get("limitations_exclude"), str) else expect.get("limitations_exclude", [])):
+            if unwanted in panel._limitations.text():
+                problems.append(f"limitations_exclude: {unwanted!r} is in the limitations")
         if problems:
             logger.error("OPENCHEM_DRIVE: EXPECT synthesis FAILED[%s] -- %s", tag, "; ".join(problems)[:800])
         else:
             logger.warning("OPENCHEM_DRIVE: EXPECT synthesis ok[%s]", tag)
+
+    def _do_qc_fixture_run(self, step: dict[str, Any]) -> None:
+        """Give the selected molecule an ORCA run in the project's own run store without starting ORCA, so a script can read what the assistant is told about runs.
+
+        `{"do": "qc_fixture_run", "run_id": "fixture-optfreq", "fixture": "pa_water_optfreq", "status": "completed", "age_s": 600, "warnings": ["..."]}`
+
+        A `completed` run is the REAL provider's reading (`parse_output`, `parse_vibrational_spectrum`) of a committed real ORCA output in `tests/fixtures/orca/`, recorded the way the service records a finished job
+        (`ResultStoreService.record_quantum_chemistry_run`), on the molecule's drawing as it stands now; `failed` and `cancelled` runs hold no outputs, as the service writes them. The fixture's molecule must be the
+        selected one (the water of `pa_water_optfreq`): the provider reads the geometry into the molecule it is given.
+        """
+        import time
+        from pathlib import Path as _Path
+
+        from openchem.chem.orca_engine import OrcaQuantumEngineProvider
+        from openchem.domain.quantum_chemistry_run import OutputStatus, QuantumChemistryRun, RunStatus, new_run_id
+
+        window = self._window
+        molecule = window._session.project.find_molecule(window._property_panel._selected_molecule_uuid)
+        store_service = window._services.result_store_service
+        if molecule is None or store_service is None:
+            logger.error("OPENCHEM_DRIVE: qc_fixture_run -- no molecule selected, or no result store")
+            return
+        status = RunStatus(str(step.get("status", "completed")))
+        calc_type = str(step.get("calc_type", "opt_freq"))
+        kind = str(step.get("input", "drawing"))
+        started = time.time() - float(step.get("age_s", 60.0))
+        run = QuantumChemistryRun(
+            run_id=str(step.get("run_id") or new_run_id()), molecule_uuid=molecule.uuid, calc_type=calc_type, method_basis=str(step.get("method_basis", "B3LYP def2-SVP")),
+            charge=int(step.get("charge", 0)), multiplicity=int(step.get("multiplicity", 1)), calculation_input=kind,
+            input_fingerprint=store_service.fingerprints_for(molecule)[kind], input_molblock=molecule.molblock, started_at=started, completed_at=started + 7.0,
+            status=status, warnings=[str(w) for w in step.get("warnings", [])],
+        )
+        if status in (RunStatus.COMPLETED, RunStatus.COMPLETED_WITH_WARNINGS):
+            engine = window._services.chemistry_engine
+            mol = engine.mol_from_molblock(engine.molblock_with_explicit_hydrogens(molecule.molblock))
+            text = (_Path("tests") / "fixtures" / "orca" / f"{step.get('fixture', 'pa_water_optfreq')}.out").read_text(encoding="utf-8", errors="replace")
+            provider = OrcaQuantumEngineProvider()
+            descriptors, _conformer = provider.parse_output(text, mol, molecule.uuid, calc_type)
+            run.results["descriptors"] = list(descriptors)
+            run.output_status["descriptors"] = OutputStatus.AVAILABLE
+            vibrational = provider.parse_vibrational_spectrum(text, mol, molecule.uuid, calc_type)
+            if vibrational is not None:
+                run.results["vibrational_spectrum"] = vibrational
+                run.output_status["vibrational_spectrum"] = OutputStatus.AVAILABLE
+            else:
+                run.output_status["vibrational_spectrum"] = OutputStatus.NOT_PRODUCED
+        store_service.record_quantum_chemistry_run(run)
+        logger.warning("OPENCHEM_DRIVE: qc_fixture_run -- %s stored for %s (%s, %s)", run.run_id, molecule.display_name, calc_type, status.value)
 
     def _do_synthesis_fixture_plan(self, step: dict[str, Any]) -> None:
         """Give the selected molecule a plan a real planner once made, so a script can save, reopen and read a plan without the planner.
@@ -5746,21 +5945,22 @@ class _Driver(QObject):
         # `QUndoStack.createUndoAction` reads "Undo <last command>", so the
         # exact text of Edit > Undo is not known before the run.
         prefix = bool(step.get("prefix"))
-        for menu_action in self._window.menuBar().actions():
-            menu = menu_action.menu()
-            if menu is None:
+        # `"in": "Tools > Calculators"` names the menu path the entry must sit in: the menus are grouped now,
+        # so a text alone can match two entries (the CIP toggle is in Structure and in View).
+        path = step.get("in")
+        for home, action in menu_layout.walk(self._window.menuBar()):
+            text = action.text().replace("&", "")
+            if not (text.startswith(wanted) if prefix else text == wanted):
                 continue
-            for action in _walk_actions(menu):
-                text = action.text().replace("&", "")
-                if not (text.startswith(wanted) if prefix else text == wanted):
-                    continue
-                action.trigger()
-                logger.warning(
-                    "OPENCHEM_DRIVE: menu %r triggered -- enabled=%s checkable=%s checked=%s",
-                    wanted, action.isEnabled(), action.isCheckable(), action.isChecked(),
-                )
-                return
-        logger.error("OPENCHEM_DRIVE: no menu entry named %r", wanted)
+            if path is not None and home != str(path):
+                continue
+            action.trigger()
+            logger.warning(
+                "OPENCHEM_DRIVE: menu %r triggered in %r -- enabled=%s checkable=%s checked=%s",
+                wanted, home, action.isEnabled(), action.isCheckable(), action.isChecked(),
+            )
+            return
+        logger.error("OPENCHEM_DRIVE: no menu entry named %r%s", wanted, f" in {path!r}" if path else "")
 
     def _do_rotate_report(self, step: dict[str, Any]) -> None:
         """`{"do": "rotate_report"}` -- the tick, the button AND the page.
@@ -5912,7 +6112,9 @@ class _Driver(QObject):
         control then reads is logged beside what was asked, so a control
         that refused the value -- a bound, a question answered No -- says so.
         """
-        from PySide6.QtWidgets import QAbstractButton, QCheckBox, QSpinBox, QWidget
+        from PySide6.QtWidgets import (
+            QAbstractButton, QCheckBox, QComboBox, QLineEdit, QListWidget, QSpinBox, QWidget,
+        )
 
         dialog = getattr(self, "_dialog", None)
         name = str(step.get("name", ""))
@@ -5920,7 +6122,13 @@ class _Driver(QObject):
             logger.error("OPENCHEM_DRIVE: control %s -- no dialog is open", name)
             return
         widget = dialog.findChild(QWidget, name)
-        if isinstance(widget, QCheckBox):
+        if isinstance(widget, QComboBox):
+            # A choice box (Interface size): the entry whose TEXT is asked for is made current, which fires `currentIndexChanged`.
+            index = widget.findText(str(step["value"]))
+            if index >= 0:
+                widget.setCurrentIndex(index)
+            now = widget.currentText()
+        elif isinstance(widget, QCheckBox):
             widget.setChecked(bool(step["value"]))
             now = widget.isChecked()
         elif isinstance(widget, QSpinBox):
@@ -5930,6 +6138,17 @@ class _Driver(QObject):
         elif isinstance(widget, QAbstractButton):
             widget.click()
             now = "clicked"
+        elif isinstance(widget, QLineEdit):
+            # A search box: the text is set, which is what typing it leaves behind (`textChanged` fires).
+            widget.setText(str(step["value"]))
+            now = widget.text()
+        elif isinstance(widget, QListWidget):
+            # A list of pages (External Tools): the row whose TEXT is asked for is made current, by code, as a click does.
+            rows = [widget.item(i) for i in range(widget.count())]
+            wanted = [row for row in rows if row.text() == str(step["value"])]
+            if wanted:
+                widget.setCurrentItem(wanted[0])
+            now = widget.currentItem().text() if widget.currentItem() else None
         else:
             logger.error(
                 "OPENCHEM_DRIVE: control %s -- %s", name,
@@ -7291,7 +7510,24 @@ class _Driver(QObject):
             ),
         )
         try:
-            dialog = fixture.build(context)
+            if step.get("real") and wanted == "SettingsDialog":
+                # THE WINDOW'S OWN COMMANDS, not the inventory's one stand-in, so a shot of the Keyboard page
+                # shows the real groups. It reads and writes nothing until a control is pressed.
+                from openchem.ui.dialogs.settings_dialog import SettingsDialog
+
+                dialog = SettingsDialog(
+                    window._settings,
+                    shortcut_registry=window._shortcuts,
+                    result_store_service=window._services.result_store_service,
+                )
+            elif step.get("real") and wanted == "CommandPalette":
+                # THE WINDOW'S OWN COMMANDS (the inventory's stand-in has none), so a shot shows the real rows and the
+                # menu path each one carries; `"query"` is typed into its search box below.
+                from openchem.ui.dialogs.command_palette import CommandPalette
+
+                dialog = CommandPalette(window._collect_commands(), window)
+            else:
+                dialog = fixture.build(context)
         except DialogUnavailable as exc:
             logger.error(
                 "OPENCHEM_DRIVE: %s needs %s -- %s", wanted, fixture.needs or "?", exc
@@ -7336,6 +7572,13 @@ class _Driver(QObject):
                     "OPENCHEM_DRIVE: %s has no tab %r (have %s)",
                     wanted, wanted_tab, titles,
                 )
+        # `"query": "derived"` is typed into the command palette's own search box (the real filter).
+        query = str(step.get("query", ""))
+        if query:
+            if wanted != "CommandPalette":
+                logger.error("OPENCHEM_DRIVE: %s has no query box", wanted)
+            else:
+                dialog._search.setText(query)
         # `"search": "SD-POE"` types into the Help window's own search box, the real filter
         # (so what is shown is what a person typing it gets), and `"topic": "calc-dipole-moment"`
         # then opens that topic. Both are HelpDialog's; any other dialog LOGS that it has no
@@ -9535,11 +9778,19 @@ class _Driver(QObject):
         Each `{"tool": name, "input": {...}}` entry is one tool call the model makes; each `{"text": "..."}`
         is a reply that ends the turn. What the tools answered is kept for `ai_expect`. Give it `after_ms`:
         the loop runs on a worker thread.
+
+        **`"live": {"provider": "ollama", "model": "qwen2.5:14b"}` REPLACES THE SCRIPT WITH A REAL MODEL** (no `script`): the panel's own provider of that name
+        answers, with the model named here and not the one in the plugin's stored settings (so nothing is written), and every request and reply is recorded the way
+        the scripted provider's are, so `ai_expect` reads what the tools returned to it. What the model did, which tools it called and what it said, is logged for the
+        run's report. A live model is not deterministic: a script that asserts on one is reporting what THAT model did, which is the point of it.
         """
         import sys
 
         panel = self._ai_panel()
         if panel is None:
+            return
+        if step.get("live"):
+            self._do_ai_send_live(panel, step)
             return
         module = sys.modules[type(panel).__module__]
         responses = []
@@ -9585,14 +9836,110 @@ class _Driver(QObject):
         panel._input.setPlainText(str(step["text"]))
         panel._send_button.click()
 
+    def _do_ai_send_live(self, panel, step: dict[str, Any]) -> None:
+        """The `live` half of `ai_send`: the panel's real provider, recorded, with the model the step names."""
+        from types import SimpleNamespace
+
+        live = dict(step["live"])
+        name = str(live["provider"])
+        model = str(live.get("model") or "")
+        provider = panel._providers.get(name)
+        if provider is None:
+            logger.error("OPENCHEM_DRIVE: ai_send live -- the assistant has no provider %r (it has %s)", name, sorted(panel._providers))
+            return
+        recorded: list = []
+        original = getattr(provider, "_drive_original_stream", None) or provider.stream
+        provider._drive_original_stream = original
+
+        def recording(request, on_chunk, tools=None):
+            if model:
+                request.model = model
+            recorded.append((request, [tool.name for tool in tools] if tools else []))
+            capture = os.environ.get("OPENCHEM_DRIVE_CAPTURE")
+            if capture and len(recorded) == 1:
+                # The first request exactly as the provider is handed it, so a slow or runaway reply can be replayed against the server outside the application, under other settings.
+                Path(capture).write_text(json.dumps({
+                    "model": request.model, "system_context": request.system_context,
+                    "messages": [{"role": m.role, "content": m.content} for m in request.messages],
+                    "tools": [{"name": tool.name, "description": tool.description, "input_schema": tool.input_schema} for tool in (tools or [])],
+                }), encoding="utf-8")
+            # What the tools just told the model (the messages after its last turn), so a report shows how it was answered, not only what it asked.
+            for message in request.messages[-3:]:
+                if message.role == "tool":
+                    logger.warning("OPENCHEM_DRIVE: live tool result to the model: %s", message.content[:700])
+            response = original(request, on_chunk, tools)
+            logger.warning(
+                "OPENCHEM_DRIVE: live %s/%s reply: tools=%s stop=%s text=%r",
+                name, request.model, [call.name for call in response.tool_calls], response.stop_reason, (response.text or "")[:2000],
+            )
+            for call in response.tool_calls:
+                logger.warning("OPENCHEM_DRIVE: live tool call %s %s", call.name, call.input)
+            return response
+
+        provider.stream = recording
+        panel._provider_combo.setCurrentText(name)
+        self._window.reveal_panel("AI Assistant")
+        self._ai_provider = SimpleNamespace(requests=recorded)
+        panel._input.setPlainText(str(step["text"]))
+        panel._send_button.click()
+
+    def _do_ai_wait(self, step: dict[str, Any]) -> None:
+        """`{"do": "ai_wait", "timeout_ms": 400000, "quiet_ms": 1500, "after_ms": 500}` -- hold the script until the assistant has finished its turn: its Send button
+        is enabled again, steadily for `quiet_ms`.
+
+        **REPLACES A GUESSED `after_ms` AFTER A LIVE `ai_send`.** A real model's reply takes anywhere from seconds to minutes (a 14B local model: 10 s to 3 min), and the
+        next `ai_send` pressed while the loop is still running meets a disabled Send button and is lost. Giving up is an ERROR, which fails the run, never a silent move on.
+        """
+        import time
+
+        panel = self._ai_panel()
+        if panel is None:
+            return
+        self._ai_wait = {
+            "panel": panel, "started": time.monotonic(), "deadline": time.monotonic() + int(step.get("timeout_ms", 400000)) / 1000.0,
+            "quiet": int(step.get("quiet_ms", 1500)) / 1000.0, "quiet_since": None, "after_ms": int(step.get("after_ms", 500)),
+        }
+        self._hold_chain = True
+        self._poll_ai_wait()
+
+    def _poll_ai_wait(self) -> None:
+        import time
+
+        wait = self._ai_wait
+        busy = not wait["panel"]._send_button.isEnabled()
+        now = time.monotonic()
+        if busy:
+            wait["quiet_since"] = None
+        elif wait["quiet_since"] is None:
+            wait["quiet_since"] = now
+        timed_out = now >= wait["deadline"]
+        if timed_out or (wait["quiet_since"] is not None and now - wait["quiet_since"] >= wait["quiet"]):
+            logger.warning(
+                "OPENCHEM_DRIVE: ai_wait idle after %.1f s; the application checked the reply and found %s (approval cards showing: %d)",
+                now - wait["started"], list(getattr(wait["panel"], "reply_findings", [])), wait["panel"].approvals_waiting(),
+            )
+            if timed_out and busy:
+                logger.error("OPENCHEM_DRIVE: ai_wait gave up after %.0f s with the assistant still working", now - wait["started"])
+            QTimer.singleShot(wait["after_ms"], self._window, self._run_next)
+            return
+        QTimer.singleShot(500, self._window, self._poll_ai_wait)
+
     def _do_ai_card(self, step: dict[str, Any]) -> None:
         """`{"do": "ai_card", "action": "approve" | "cancel" | "open" | "dismiss", "card": "score"}` -- press a REAL button on the
         first preview card the assistant is showing; `"card": "score"` means a score the assistant PROPOSED, whose Approve is the only way it is saved, and
-        `"card": "synthesis"` a search for synthesis routes it asked for, whose Approve is the only way the planner is asked (the regulatory gate speaks first)."""
+        `"card": "synthesis"` a search for synthesis routes it asked for, whose Approve is the only way the planner is asked (the regulatory gate speaks first),
+        and `"card": "running"` with `"action": "stop"` the Stop job button of an ORCA job a person approved and that is running."""
         panel = self._ai_panel()
         if panel is None:
             return
         action = str(step["action"])
+        if step.get("card") == "running":
+            cards = list(panel._running_cards.values())
+            if not cards or action != "stop":
+                logger.error("OPENCHEM_DRIVE: ai_card running %s -- no such card is showing", action)
+                return
+            cards[0].stop_button.click()
+            return
         if step.get("card") == "synthesis":
             cards = list(panel._synthesis_cards.values())
             button = None
@@ -9632,13 +9979,13 @@ class _Driver(QObject):
         """`{"do": "ai_expect", "tag": "x", "expect": {...}}` -- what the assistant panel shows, asserted.
 
         Keys: `ledger_contains` (substrings, each in some ledger row), `ledger_rows` (exact count),
-        `pending` (preview cards waiting), `service_previews` (service cards showing), `tool_results_contain`
+        `pending` (preview cards waiting), `running_cards` (Stop job cards showing), `service_previews` (service cards showing), `tool_results_contain`
         (substrings of what the tools returned to the model), `tool_results_exclude` (substrings that
         must NOT be in anything a tool returned: a person's free text that was never to leave), `tools_offered` (names the provider was
         given on its first request), `transcript_contains`, `notes` (how many previews' outcomes wait for
         the next message), `send_enabled`, `panel_visible` (a dock's objectName that must be showing), `score_proposals` (proposed-score cards waiting),
         `scores_stored` (scores in the project), `scores_owner` (the owners stored, in order), `sent_contains` (substrings of everything sent to the
-        provider, notes included), `synthesis_requests` (synthesis-search cards waiting) and `notes_contain` / `notes_exclude` (substrings of the
+        provider, notes included), `synthesis_requests` (synthesis-search cards waiting), `findings` (the kinds the reply check has said so far, in order) and `notes_contain` / `notes_exclude` (substrings of the
         notes held for the model's next message).
         """
         panel = self._ai_panel()
@@ -9654,6 +10001,8 @@ class _Driver(QObject):
                     problems.append(f"no ledger row contains {needle!r} (rows: {ledger})")
             if "ledger_rows" in expect and len(ledger) != expect["ledger_rows"]:
                 problems.append(f"{len(ledger)} ledger rows, wanted {expect['ledger_rows']}")
+            if "running_cards" in expect and len(panel.running_run_ids()) != expect["running_cards"]:
+                problems.append(f"{len(panel.running_run_ids())} running card(s), wanted {expect['running_cards']}")
             if "pending" in expect and len(panel.pending_run_ids()) != expect["pending"]:
                 problems.append(f"{len(panel.pending_run_ids())} previews waiting, wanted {expect['pending']}")
             if "service_previews" in expect and len(panel.service_preview_keys()) != expect["service_previews"]:
@@ -9682,6 +10031,8 @@ class _Driver(QObject):
                 missing = [name for name in expect["tools_offered"] if name not in offered]
                 if missing:
                     problems.append(f"tools not offered: {missing} (offered {offered})")
+            if "findings" in expect and list(panel.reply_findings) != list(expect["findings"]):
+                problems.append(f"the reply check found {panel.reply_findings}, wanted {list(expect['findings'])}")
             if "score_proposals" in expect and len(panel.pending_score_ids()) != expect["score_proposals"]:
                 problems.append(f"{len(panel.pending_score_ids())} proposed scores waiting, wanted {expect['score_proposals']}")
             stored_scores = self._window._services.score_service.store.definitions()
@@ -9730,6 +10081,144 @@ class _Driver(QObject):
         )
         QGuiApplication.styleHints().setColorScheme(scheme)
         logger.warning("OPENCHEM_DRIVE: colour scheme set to %s", scheme.name)
+
+    def _do_appearance(self, step: dict[str, Any]) -> None:
+        """`{"do": "appearance", "choice": "dark", "via": "menu"}` -- choose the colour scheme through a REAL control.
+
+        `choice` is `system`, `light` or `dark`. `via` is `menu` (View > Theme, the real checkable action) or
+        `settings` (the combo of the open Settings dialog, so a `dialog` step with `"section": "appearance"` comes
+        first). Nothing is applied here beyond what the control does: the stored choice is written, and the service
+        reacts, exactly as for a person. Read what it did in a LATER step (`appearance_report`), because the look
+        settles a few milliseconds after the write.
+        """
+        from PySide6.QtWidgets import QComboBox
+
+        from openchem.domain.appearance import Appearance
+
+        choice = str(step.get("choice", ""))
+        try:
+            mode = Appearance[choice.upper()]
+        except KeyError:
+            logger.error("OPENCHEM_DRIVE: appearance -- %r is not system, light or dark", choice)
+            return
+        via = str(step.get("via", "menu"))
+        if via == "menu":
+            action = self._window._theme_actions.get(int(mode))
+            if action is None:
+                logger.error("OPENCHEM_DRIVE: appearance -- the View > Theme menu has no %s entry", choice)
+                return
+            action.trigger()
+        elif via == "settings":
+            dialog = getattr(self, "_dialog", None)
+            combo = None if dialog is None else dialog.findChild(QComboBox, "appearanceChoice")
+            if combo is None:
+                logger.error("OPENCHEM_DRIVE: appearance -- no open Settings dialog with an appearance combo")
+                return
+            combo.setCurrentIndex(combo.findData(int(mode)))
+        else:
+            logger.error("OPENCHEM_DRIVE: appearance -- via must be menu or settings, not %r", via)
+            return
+        logger.warning("OPENCHEM_DRIVE: appearance %s chosen via %s", choice, via)
+
+    def _do_appearance_report(self, step: dict[str, Any]) -> None:
+        """`{"do": "appearance_report", "tag": "x", "expect": {...}}` -- the look on screen, and in each page.
+
+        Reads the application's palette (what is DRAWN), the service's settled look, the stored choice, the checked
+        View > Theme entry and, if one is open, the Settings combo, and then asks each embedded page for its own
+        state. `expect` takes
+
+            "effective"     "light" | "dark" -- the settled look, which must agree with the window colour
+            "choice"        "system" | "light" | "dark" -- the stored choice, the menu's checked entry and the combo
+            "editor_style"  true | false -- the editor page holds the dark stylesheet
+            "viewer3d"      "light" | "dark" -- the 3D page's own idea of the look
+            "macromolecule" "light" | "dark" -- the Mol* page's colour scheme (only if its view is built)
+
+        The page reads are asynchronous and are judged when they arrive, so give this step an `after_ms`.
+        """
+        from PySide6.QtGui import QPalette
+        from PySide6.QtWidgets import QApplication, QComboBox
+
+        from openchem.app.settings import APPEARANCE
+        from openchem.domain.appearance import Appearance, appearance_from_stored
+        from openchem.ui import theme
+
+        tag = str(step.get("tag", ""))
+        expect = dict(step.get("expect") or {})
+        window = self._window
+        problems: list[str] = []
+
+        lightness = QApplication.palette().color(QPalette.ColorRole.Window).lightnessF()
+        drawn = "dark" if lightness < 0.5 else "light"
+        service = getattr(QApplication.instance(), "_appearance", None)
+        settled = None if service is None else service.effective().name.lower()
+        stored = appearance_from_stored(window._settings.preference(APPEARANCE)).name.lower()
+        checked = [Appearance(m).name.lower() for m, action in window._theme_actions.items() if action.isChecked()]
+        dialog = getattr(self, "_dialog", None)
+        combo = None if dialog is None else dialog.findChild(QComboBox, "appearanceChoice")
+        combo_choice = None if combo is None else Appearance(int(combo.currentData())).name.lower()
+        logger.warning(
+            "OPENCHEM_DRIVE: appearance_report[%s]: window colour %.2f (%s), settled=%s, theme=%s, stored=%s, "
+            "menu checked=%s, combo=%s",
+            tag, lightness, drawn, settled, theme.effective().name.lower(), stored, checked, combo_choice,
+        )
+        if "effective" in expect:
+            wanted = str(expect["effective"])
+            for name, value in (("palette", drawn), ("service", settled), ("theme", theme.effective().name.lower())):
+                if value != wanted:
+                    problems.append(f"{name} says {value!r}, wanted {wanted!r}")
+        if "choice" in expect:
+            wanted = str(expect["choice"])
+            if stored != wanted:
+                problems.append(f"stored choice {stored!r}, wanted {wanted!r}")
+            if checked != [wanted]:
+                problems.append(f"menu checked {checked!r}, wanted {[wanted]!r}")
+            if combo_choice not in (None, wanted):
+                problems.append(f"settings combo {combo_choice!r}, wanted {wanted!r}")
+
+        pages: list[tuple[str, str, object, object]] = []
+        if "editor_style" in expect:
+            pages.append((
+                "editor_style", "(document.getElementById('openchem-appearance') || {textContent: ''}).textContent.length > 0",
+                window._editor._backend._page, bool(expect["editor_style"]),
+            ))
+        if "viewer3d" in expect:
+            pages.append((
+                "viewer3d", "document.documentElement.getAttribute('data-look')",
+                window._viewer3d._backend._page, str(expect["viewer3d"]),
+            ))
+        if "macromolecule" in expect:
+            backend = window._macromolecule_viewer
+            if backend.is_built:
+                pages.append((
+                    "macromolecule", "document.documentElement.style.colorScheme", backend._page, str(expect["macromolecule"]),
+                ))
+            else:
+                problems.append("the macromolecule view is not built, so it cannot be asked")
+
+        def finish() -> None:
+            if self._record_assertion("appearance_report", tag, not problems, "; ".join(problems) or "as expected"):
+                logger.warning("OPENCHEM_DRIVE: EXPECT appearance ok[%s]", tag)
+            else:
+                logger.error("OPENCHEM_DRIVE: EXPECT appearance FAILED[%s] -- %s", tag, "; ".join(problems)[:900])
+
+        if not pages:
+            finish()
+            return
+        waiting = {"left": len(pages)}
+
+        def reader(name: str, wanted: object):
+            def got(value: object) -> None:
+                logger.warning("OPENCHEM_DRIVE: appearance_report[%s]: page %s reads %r", tag, name, value)
+                if value != wanted:
+                    problems.append(f"page {name} reads {value!r}, wanted {wanted!r}")
+                waiting["left"] -= 1
+                if waiting["left"] == 0:
+                    finish()
+
+            return got
+
+        for name, script, page, wanted in pages:
+            page.runJavaScript(script, reader(name, wanted))
 
     def _do_reader_filter(self, step: dict[str, Any]) -> None:
         """`{"do": "reader_filter", "text": "Donors"}` -- type into the docked reader's fact filter.

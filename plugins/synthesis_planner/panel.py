@@ -32,7 +32,7 @@ from PySide6.QtWidgets import (
 
 from openchem.chem.reaction_depiction import DepictionError
 from openchem.domain.common import CacheState
-from openchem.domain.synthesis_route import Route, RouteSet
+from openchem.domain.synthesis_route import Route, RouteSet, RouteStatus
 from openchem.events.events import (
     MoleculeChanged,
     MoleculeSelected,
@@ -47,6 +47,7 @@ from openchem.plugins.async_task import run_async
 from openchem.plugins.context import PluginContext
 from openchem.services.synthesis_planner_setup import PlannerOptions
 from openchem.services.synthesis_planning_service import BoundResult, RequestOutcome
+from openchem.ui import theme
 from openchem.ui.widgets.help_tooltip import HelpTooltip, apply_help_tooltip
 
 from . import route_text
@@ -73,6 +74,15 @@ _CANCEL_HELP = HelpTooltip(
     text="Stop this molecule's search and end the planner's program, or take the request out of the queue if it has not started. Nothing is kept from a search that was cancelled.",
     tier=1,
     help_id="synthesis.cancel",
+)
+_RESCREEN_HELP = HelpTooltip(
+    text=(
+        "Screen this plan's molecules against the regulatory rulesets again. A plan kept in the project file shows the alerts it had on the day it was made, with a line saying so, because screening takes about a tenth of a second a molecule "
+        "and opening a project must not wait for it.\n\n"
+        "This checks the target first, as any request does, then replaces the alerts with today's. It adds alerts to routes and never removes one. It starts no planner and the routes do not change."
+    ),
+    tier=1,
+    help_id="synthesis.rescreen",
 )
 _EXPANSION_HELP = HelpTooltip(
     text=(
@@ -131,6 +141,8 @@ class SynthesisPanel(QWidget):
         self._plan_after_options: str | None = None
         self._target = None
         self._shown: RouteSet | None = None
+        #: Whether the plan shown is for the structure now drawn: only that plan is screened again.
+        self._shown_current = False
         #: The newest state message of a running search, for the molecule it is about.
         self._job_message: dict[str, str] = {}
         #: What the last request said when it started nothing; shown in place of the plan's own message until something else is selected or a plan arrives.
@@ -147,7 +159,7 @@ class SynthesisPanel(QWidget):
             apply_help_tooltip(combo, tooltip)
             combo.activated.connect(lambda _index, s=section: self._on_choice(s))
         self._version_label = QLabel("", self)
-        self._version_label.setStyleSheet("color: #6e6e6e;")
+        theme.style(self._version_label, "color: #6e6e6e;")
 
         choices = QFormLayout()
         choices.addRow("Expansion policy:", self._expansion)
@@ -160,9 +172,13 @@ class SynthesisPanel(QWidget):
         self._cancel_button = QPushButton("Cancel", self)
         apply_help_tooltip(self._cancel_button, _CANCEL_HELP)
         self._cancel_button.clicked.connect(self._on_cancel_clicked)
+        self._rescreen_button = QPushButton("Re-screen", self)
+        apply_help_tooltip(self._rescreen_button, _RESCREEN_HELP)
+        self._rescreen_button.clicked.connect(self._on_rescreen_clicked)
         buttons = QHBoxLayout()
         buttons.addWidget(self._plan_button)
         buttons.addWidget(self._cancel_button)
+        buttons.addWidget(self._rescreen_button)
         buttons.addStretch(1)
 
         self._status = QLabel(self)
@@ -171,7 +187,7 @@ class SynthesisPanel(QWidget):
         #: Set only when the plan shown is for an earlier structure of the molecule.
         self._warning = QLabel(self)
         self._warning.setWordWrap(True)
-        self._warning.setStyleSheet("color: #b45309; font-weight: bold;")
+        theme.style(self._warning, "color: #b45309; font-weight: bold;")
         self._warning.setHidden(True)
 
         self._routes = _list(self, _ROUTES_HELP, 90, 140)
@@ -192,7 +208,7 @@ class SynthesisPanel(QWidget):
 
         self._limitations = QLabel(self)
         self._limitations.setWordWrap(True)
-        self._limitations.setStyleSheet("color: #6e6e6e;")
+        theme.style(self._limitations, "color: #6e6e6e;")
 
         # Everything about routes is one block that is shown only when there are routes: two empty lists under a refusal are a screenful of nothing between the
         # reason and the limitations.
@@ -253,6 +269,7 @@ class SynthesisPanel(QWidget):
 
     def _show_result(self, bound: BoundResult | None, *, planning: bool) -> None:
         self._shown = bound.route_set if bound is not None else None
+        self._shown_current = bound is not None and bound.is_current
         self._warning.setHidden(bound is None or bound.is_current)
         if bound is not None and not bound.is_current:
             self._warning.setText(f"EARLIER STRUCTURE: {bound.note}")
@@ -340,6 +357,9 @@ class SynthesisPanel(QWidget):
         waiting = self._plan_after_options is not None
         self._plan_button.setEnabled(target is not None and not planning and not waiting)
         self._cancel_button.setEnabled(planning)
+        self._rescreen_button.setEnabled(
+            target is not None and not planning and self._shown_current and self._shown is not None and self._shown.status is RouteStatus.FOUND
+        )
 
     # --- the planner's configuration, read off the GUI thread ---------------------------------------------------------------------
 
@@ -407,6 +427,17 @@ class SynthesisPanel(QWidget):
         self._notice = {
             RequestOutcome.ALREADY_RUNNING: "This molecule is already being planned.",
             RequestOutcome.REJECTED: "There is nothing to plan for this molecule.",
+        }.get(outcome, "")
+        self.refresh()
+
+    def _on_rescreen_clicked(self) -> None:
+        target = self._target
+        if target is None:
+            return
+        outcome = self._requests.request_rescreen(target.molecule_uuid)
+        self._notice = {
+            RequestOutcome.ALREADY_RUNNING: "This molecule is already being planned or screened.",
+            RequestOutcome.REJECTED: "There is no plan with routes to screen again.",
         }.get(outcome, "")
         self.refresh()
 

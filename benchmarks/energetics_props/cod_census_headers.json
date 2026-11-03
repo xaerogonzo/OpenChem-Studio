@@ -1,0 +1,143 @@
+{
+ "archive": "cod-cifs-mysql.txz",
+ "archive_sha256": "569FAE5DC969ED688AA62950D481BE71FA6195C39A08B550085C14D169D8525C",
+ "caveats": [
+  "entries, not compounds: repeat determinations, salts, solvates and co-crystals are all counted",
+  "the composition screen is a cut on the formula, not a definition of an energetic material",
+  "COD overlaps the Cambridge Structural Database, so CSD-trained density methods stay unevaluable on COD labels",
+  "no disorder, form or quality review has been applied; R factors are shown for information, not as a rule"
+ ],
+ "entries_indexed": 521901,
+ "entries_with_a_formula": 518890,
+ "latest_journal_year": 2025,
+ "populations": {
+  "composition screen: N >= 3 and N + O >= C (not a structure test)": {
+   "all": {
+    "distinct_formulas": 3380,
+    "entries": 4665
+   },
+   "and_R_at_most_0.05": {
+    "distinct_formulas": 888,
+    "entries": 1046
+   },
+   "and_R_at_most_0.07": {
+    "distinct_formulas": 1251,
+    "entries": 1523
+   },
+   "and_no_stated_pressure": {
+    "distinct_formulas": 1490,
+    "entries": 1846
+   },
+   "in_273_303_K": {
+    "distinct_formulas": 1500,
+    "entries": 1921
+   },
+   "temperature_stated": {
+    "distinct_formulas": 3266,
+    "entries": 4481
+   },
+   "with_diffraction_density": {
+    "distinct_formulas": 3300,
+    "entries": 4536
+   }
+  },
+  "organic (section 5 element rule)": {
+   "all": {
+    "distinct_formulas": 103919,
+    "entries": 180551
+   },
+   "and_R_at_most_0.05": {
+    "distinct_formulas": 22539,
+    "entries": 33068
+   },
+   "and_R_at_most_0.07": {
+    "distinct_formulas": 35463,
+    "entries": 55960
+   },
+   "and_no_stated_pressure": {
+    "distinct_formulas": 44228,
+    "entries": 71211
+   },
+   "in_273_303_K": {
+    "distinct_formulas": 44339,
+    "entries": 72033
+   },
+   "temperature_stated": {
+    "distinct_formulas": 102843,
+    "entries": 177266
+   },
+   "with_diffraction_density": {
+    "distinct_formulas": 103272,
+    "entries": 178749
+   }
+  },
+  "organic with nitrogen": {
+   "all": {
+    "distinct_formulas": 79544,
+    "entries": 136070
+   },
+   "and_R_at_most_0.05": {
+    "distinct_formulas": 17876,
+    "entries": 26127
+   },
+   "and_R_at_most_0.07": {
+    "distinct_formulas": 28335,
+    "entries": 44307
+   },
+   "and_no_stated_pressure": {
+    "distinct_formulas": 34979,
+    "entries": 55674
+   },
+   "in_273_303_K": {
+    "distinct_formulas": 35048,
+    "entries": 56223
+   },
+   "temperature_stated": {
+    "distinct_formulas": 78845,
+    "entries": 133902
+   },
+   "with_diffraction_density": {
+    "distinct_formulas": 79134,
+    "entries": 134930
+   }
+  },
+  "organic with nitrogen and oxygen": {
+   "all": {
+    "distinct_formulas": 62922,
+    "entries": 111675
+   },
+   "and_R_at_most_0.05": {
+    "distinct_formulas": 15025,
+    "entries": 22534
+   },
+   "and_R_at_most_0.07": {
+    "distinct_formulas": 23777,
+    "entries": 38201
+   },
+   "and_no_stated_pressure": {
+    "distinct_formulas": 29298,
+    "entries": 47889
+   },
+   "in_273_303_K": {
+    "distinct_formulas": 29348,
+    "entries": 48290
+   },
+   "temperature_stated": {
+    "distinct_formulas": 62399,
+    "entries": 109993
+   },
+   "with_diffraction_density": {
+    "distinct_formulas": 62643,
+    "entries": 110812
+   }
+  }
+ },
+ "r_cuts_for_information": [
+  0.05,
+  0.07
+ ],
+ "window_k": [
+  273.0,
+  303.0
+ ]
+}

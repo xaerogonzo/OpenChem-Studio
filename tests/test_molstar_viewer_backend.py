@@ -127,12 +127,18 @@ def test_residue_colors_applied_before_the_viewer_exists_are_replayed(qapp):
     assert calls == []  # nothing escaped to a viewer that does not exist yet
 
     assert _wait_until(qapp, lambda: backend._viewer_ready)
-    assert _wait_until(qapp, lambda: len(calls) >= 2)
+
+    # The page is told the look the moment its viewer is ready, ahead of any payload; that call is not part of
+    # the order this test is about.
+    def payloads() -> list[str]:
+        return [js for js in calls if "setAppearance" not in js]
+
+    assert _wait_until(qapp, lambda: len(payloads()) >= 2)
 
     # Order matters: overpaint attaches to a representation that does not
     # exist until its structure is loaded.
-    assert "loadStructure" in calls[0]
-    assert "applyResidueColors" in calls[1]
+    assert "loadStructure" in payloads()[0]
+    assert "applyResidueColors" in payloads()[1]
     assert backend._pending_layers is _NOTHING_PENDING  # consumed, not left queued
 
 

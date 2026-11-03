@@ -402,6 +402,9 @@ class QuantumEngineProvider(ABC):
     #: The calculation types this engine runs, or `None` for "all of them" (ORCA's default). An engine that runs
     #: fewer is not OFFERED the others, rather than offered and refused: `docs/PSI4_ENGINE_DESIGN.md`.
     supported_calc_types: frozenset[str] | None = None
+    #: The method choices the Quantum Chemistry panel's method box offers when this engine is chosen, or `None` for ORCA's presets (`domain.quantum_methods.METHOD_BASIS_PRESETS`).
+    #: An engine whose method is not a functional-and-basis pair (xtb: `GFN2-xTB`) has to say so, or the box offers only choices its `build_input` refuses.
+    method_basis_presets: tuple[str, ...] | None = None
 
     def engine_name(self) -> str:
         return self.display_name or self.provider_id.upper()

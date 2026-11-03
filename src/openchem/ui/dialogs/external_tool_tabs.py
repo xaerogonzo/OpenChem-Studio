@@ -49,7 +49,9 @@ from PySide6.QtWidgets import (
 )
 
 from openchem.plugins.async_task import run_async
+from openchem.ui import theme
 from openchem.ui.dialogs import external_tools_help as help_text
+from openchem.ui.widgets.flow_layout import flow_row
 from openchem.ui.widgets.help_tooltip import apply_help_tooltip
 
 # Secondary explanation, and a warning that is not an error. Named
@@ -135,7 +137,7 @@ def _add_notes(layout: QVBoxLayout, parent: QWidget, notes: tuple[Note, ...]) ->
         label = QLabel(note.text, parent)
         label.setWordWrap(True)
         if note.style:
-            label.setStyleSheet(note.style)
+            theme.style(label, note.style)
         layout.addWidget(label)
 
 
@@ -475,23 +477,23 @@ class InterpreterSidecarTab(ToolTab):
 
         prerequisites = QLabel(descriptor.prerequisites(), self)
         prerequisites.setWordWrap(True)
-        prerequisites.setStyleSheet(MUTED)
+        theme.style(prerequisites, MUTED)
         self.prerequisites_label = prerequisites
 
         form = QFormLayout()
         form.addRow(descriptor.form_label, self.path_row)
         form.addRow("Status:", self.status_label)
 
-        row = QHBoxLayout()
-        row.addWidget(self.setup_button)
-        row.addWidget(self.remove_button)
-        row.addWidget(self.locate_button)
-        row.addWidget(self.test_button)
-        row.addStretch()
+        # Wraps: with the tool list beside the page, a row of four long buttons was the page's minimum width.
+        row = flow_row(self)
+        row.layout().addWidget(self.setup_button)
+        row.layout().addWidget(self.remove_button)
+        row.layout().addWidget(self.locate_button)
+        row.layout().addWidget(self.test_button)
 
         layout = QVBoxLayout(self)
         layout.addLayout(form)
-        layout.addLayout(row)
+        layout.addWidget(row)
         layout.addWidget(prerequisites)
         _add_notes(layout, self, descriptor.notes)
         layout.addStretch(1)
@@ -655,25 +657,25 @@ class ManagedExecutableTab(ToolTab):
             form.addRow(spec.label, extra)
         form.addRow("Status:", self.status_label)
 
-        row = QHBoxLayout()
+        # Wraps: with the tool list beside the page, a row of long buttons was the page's minimum width.
+        row = flow_row(self)
         # Hidden rather than never created: `ToolTab.__init__` builds both
         # buttons, and a widget left without a parent layout is exactly
         # the leak this project has already measured.
         if descriptor.obtainable:
-            row.addWidget(self.setup_button)
+            row.layout().addWidget(self.setup_button)
         else:
             self.setup_button.setVisible(False)
         if descriptor.removable:
-            row.addWidget(self.remove_button)
+            row.layout().addWidget(self.remove_button)
         else:
             self.remove_button.setVisible(False)
-        row.addWidget(self.locate_button)
-        row.addWidget(self.test_button)
-        row.addStretch()
+        row.layout().addWidget(self.locate_button)
+        row.layout().addWidget(self.test_button)
 
         layout = QVBoxLayout(self)
         layout.addLayout(form)
-        layout.addLayout(row)
+        layout.addWidget(row)
 
         if descriptor.vendor_links:
             links = QHBoxLayout()

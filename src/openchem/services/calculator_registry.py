@@ -116,7 +116,7 @@ class CalculatorRegistry:
                 key = (definition.scope.selection, definition.scope.domain, definition.scope.note)
                 if shared is None or key not in shared:
                     try:
-                        outcome: Any = components.select(mol, definition.scope, definition.display_name).mol
+                        outcome: Any = components.select(mol, definition.scope, definition.display_name)
                     except CalculationRefusal as refusal:
                         outcome = (refusal, definition.display_name)
                     if shared is not None:
@@ -129,11 +129,18 @@ class CalculatorRegistry:
                         return None
                     sentence = refusal.detail or refusal.summary
                     return Coverage.refuses(sentence.replace(raised_for, definition.display_name))
-                target = outcome
+                target = outcome.mol
+                chosen = outcome.note
+            else:
+                chosen = ""
             if definition.preflight is None:
                 return None
             # A copy: `target` may be shared with the next calculator asked, and a hook that edited it would answer for them.
-            return as_coverage(definition.preflight(Chem.Mol(target)))
+            answer = as_coverage(definition.preflight(Chem.Mol(target)))
+            if answer is None or not chosen or answer.kind is CoverageKind.REFUSES:
+                return answer
+            # The hook accepted the component that was CHOSEN for the drawing, so the row says so rather than "Can run".
+            return Coverage.caveat(chosen if answer.kind is CoverageKind.COVERED else f"{answer.reason} {chosen}")
         except Exception:  # noqa: BLE001 - see the docstring
             return None
 

@@ -111,7 +111,7 @@ def test_a_bridge_with_no_host_or_no_molecule_says_unavailable_and_never_raises(
     bridge = _bridge()
     assert bridge.available is False
     for text in (
-        bridge.find_calculators("x"), bridge.list_goals(), bridge.describe_calculator("x"), bridge.read_results(), bridge.read_scores(),
+        bridge.find_calculators("x"), bridge.list_goals(), bridge.describe_calculator("x"), bridge.read_results(), bridge.read_quantum_runs(), bridge.read_scores(),
         bridge.propose_score({"label": "x"}), bridge.run_calculator("x"),
     ):
         data = json.loads(text)
@@ -121,11 +121,11 @@ def test_a_bridge_with_no_host_or_no_molecule_says_unavailable_and_never_raises(
 def test_the_bridge_a_tool_receives_has_no_way_to_approve_or_cancel():
     surface = {name for name in dir(ToolBridge) if not name.startswith("_")}
     assert surface == {
-        "available", "turn", "find_calculators", "list_goals", "describe_calculator", "read_results", "read_scores", "list_score_outputs", "propose_score", "run_calculator",
+        "available", "turn", "find_calculators", "list_goals", "describe_calculator", "read_results", "read_quantum_runs", "read_scores", "list_score_outputs", "propose_score", "run_calculator",
     }
     for name in ("approve", "cancel", "pending", "on_finished", "calculation_approvals"):
         assert not hasattr(_bridge(), name)
-    assert "approve" not in " ".join(CALCULATION_HANDLERS) and len(CALCULATION_TOOLS) == len(CALCULATION_HANDLERS) == 8
+    assert "approve" not in " ".join(CALCULATION_HANDLERS) and len(CALCULATION_TOOLS) == len(CALCULATION_HANDLERS) == 9
 
 
 def test_the_tool_descriptions_tell_the_model_what_it_must_not_do():
@@ -562,11 +562,11 @@ def test_the_panel_says_where_calculator_results_go_for_each_provider(rig):
     assert "leave this machine" in notes["anthropic"] and "anthropic" in notes["anthropic"]
     assert "leave this machine" in notes["openai"]
     assert "localhost:11434" in notes["ollama"] and "leave this machine" not in notes["ollama"]
-    assert "cannot use this application's tools" in notes["claude_cli"]
+    assert "leave this machine" in notes["claude_cli"] and "claude_cli" in notes["claude_cli"]
+    assert "leave this machine" in notes["cursor_cli"] and "cursor_cli" in notes["cursor_cli"]
     assert all(notes.values())
-    for provider_id in ("anthropic", "openai", "ollama"):
+    for provider_id in ("anthropic", "openai", "ollama", "claude_cli", "cursor_cli"):
         assert "names and formulas of your scores" in notes[provider_id], provider_id
-    assert "nor read your scores" in notes["claude_cli"]
 
 
 def test_a_panel_with_no_host_still_works_and_offers_no_calculator_tools(qapp, tmp_path):
@@ -585,3 +585,26 @@ def test_a_panel_with_no_host_still_works_and_offers_no_calculator_tools(qapp, t
     bridge = ToolBridge(panel._context.calculations, panel._context.calculations.begin_turn())
     panel._run_completion(Recorder([]), "s", [AIMessage(role="user", content="hi")], "m", "k", lambda c: None, bridge)
     assert seen == [[t.name for t in AVAILABLE_TOOLS]]
+
+
+def test_the_system_prompt_tells_the_model_which_language_to_answer_in():
+    """A live local model answered an English question in Thai when nothing said which language to use."""
+    assert "Reply in the language the user writes in (English if they write English)." in SYSTEM_PROMPT_PREFIX
+
+
+# --- a turn that ends with nothing, or is cut off, says so ---------------------------------------------------------------------------------------------------
+
+
+def test_an_empty_reply_is_said_in_the_transcript_and_not_left_as_a_blank_line(rig):
+    rig.panel._on_response(AIResponse(text=""))
+    assert "(the model returned an empty reply)" in rig.panel._transcript.toPlainText()
+    assert rig.panel._send_button.isEnabled()
+
+
+def test_a_reply_cut_off_at_the_length_limit_says_so_and_a_whole_one_does_not(rig):
+    rig.panel._on_response(AIResponse(text="Water is H2", stop_reason="length"))
+    assert "(the reply was cut off at the provider's length limit)" in rig.panel._transcript.toPlainText()
+    rig.panel._transcript.clear()
+    rig.panel._on_response(AIResponse(text="Water is H2O.", stop_reason="stop"))
+    text = rig.panel._transcript.toPlainText()
+    assert "Water is H2O." in text and "cut off" not in text and "empty reply" not in text

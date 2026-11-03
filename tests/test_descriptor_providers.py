@@ -737,17 +737,15 @@ def test_an_element_outside_mcgowans_set_refuses_only_the_mcgowan_volume(smiles,
     "smiles,refusal",
     [
         ("[Na+].[Cl-]", "MULTICOMPONENT_UNSUPPORTED"),
-        ("[K+].CC(=O)[O-]", "MULTICOMPONENT_UNSUPPORTED"),
-        ("[Li+].[Li+].[O-]C([O-])=O", "MULTICOMPONENT_UNSUPPORTED"),
         ("[Ca+2].[Cl-].[Cl-]", "MULTICOMPONENT_UNSUPPORTED"),
         ("[CH-]1C=CC=C1.[CH-]1C=CC=C1.[Fe+2]", "METAL_CONTAINING_UNSUPPORTED"),
     ],
 )
-def test_a_salt_with_no_single_parent_keeps_what_describes_the_drawing(smiles, refusal):
-    """Every component a listed salt, or a metal ChEMBL's rule excludes: no
-    parent, so every compound property refuses with ONE code, and the
-    formula, weight, exact mass and charge -- ChEMBL's FULL_ fields --
-    still describe the drawing."""
+def test_a_drawing_with_no_species_to_hand_over_keeps_what_describes_the_drawing(smiles, refusal):
+    """Two species of the largest size, or a metal ChEMBL's rule excludes: no
+    one species to compute on, so every compound property refuses with ONE
+    code, and the formula, weight, exact mass and charge -- ChEMBL's FULL_
+    fields -- still describe the drawing."""
     values = {v.descriptor_id: v for v in RDKitDescriptorProvider().compute(Chem.MolFromSmiles(smiles), "m")}
     for descriptor_id in ("mol_wt", "exact_mass", "formula", "formal_charge"):
         assert values[descriptor_id].cache_state == CacheState.COMPLETED, descriptor_id
@@ -756,6 +754,34 @@ def test_a_salt_with_no_single_parent_keeps_what_describes_the_drawing(smiles, r
         v.cache_state == CacheState.FAILED and v.inapplicable and v.provenance.parameters["refusal"] == refusal
         for v in refused
     )
+
+
+@pytest.mark.parametrize(
+    "salt,neutral",
+    [
+        ("CC(=O)[O-].[Na+]", "CC(=O)O"),
+        ("[K+].CC(=O)[O-]", "CC(=O)O"),
+        ("[Li+].[Li+].[O-]C([O-])=O", "O=C(O)O"),
+        ("[Ca+2].CC(=O)[O-].CC(=O)[O-]", "CC(=O)O"),
+        ("C[N+](C)(C)CCO.OC1=CC=CC=C1C([O-])=O", "OC(=O)c1ccccc1O"),
+    ],
+)
+def test_a_metal_salt_of_an_organic_ion_is_computed_on_that_ion_neutralised_and_says_so(salt, neutral):
+    """Group 3 of the refusal audit: ChEMBL's rule leaves no single parent here (every component a listed salt, or
+    none), and these used to refuse. The largest component is the species meant, re-neutralised as ChEMBL's own
+    parent is (sodium phenolate -> phenol); the numbers are the neutral form's own, and every one that was computed
+    on it carries the label. The weight and formula still describe the drawing."""
+    provider = RDKitDescriptorProvider()
+    on_salt = {v.descriptor_id: v for v in provider.compute(Chem.MolFromSmiles(salt), "m")}
+    on_neutral = {v.descriptor_id: v for v in provider.compute(Chem.MolFromSmiles(neutral), "m")}
+    for descriptor_id in ("mol_logp", "tpsa", "num_hbd", "num_hba", "heavy_atom_count", "qed"):
+        assert on_salt[descriptor_id].cache_state == CacheState.COMPLETED, descriptor_id
+        assert on_salt[descriptor_id].value == pytest.approx(on_neutral[descriptor_id].value), descriptor_id
+    parameters = on_salt["mol_logp"].provenance.parameters
+    assert parameters["component_choice"] == "largest" and parameters["caveat"].startswith("Computed on ")
+    assert "neutralised" in parameters["caveat"]
+    assert "caveat" not in on_salt["mol_wt"].provenance.parameters
+    assert on_salt["mol_wt"].value > on_neutral["mol_wt"].value
 
 
 @pytest.mark.parametrize(
@@ -778,3 +804,4 @@ def test_a_salts_compound_properties_are_its_parents(salt, parent):
         assert on_salt[descriptor_id].value == pytest.approx(on_parent[descriptor_id].value), descriptor_id
     assert on_salt["mol_wt"].value > on_parent["mol_wt"].value
     assert on_salt["mol_logp"].provenance.parameters["parent_smiles"] == Chem.MolToSmiles(Chem.MolFromSmiles(parent))
+    assert "component_choice" not in on_salt["mol_logp"].provenance.parameters  # ChEMBL's rule, not a choice

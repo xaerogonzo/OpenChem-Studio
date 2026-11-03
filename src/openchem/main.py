@@ -6,8 +6,10 @@ import sys
 from PySide6.QtCore import QCoreApplication, Qt, QTimer
 from PySide6.QtWidgets import QApplication
 
+from openchem.app.appearance_service import AppearanceService
 from openchem.app.debug_drive import start_if_requested
 from openchem.app.install_monitor import attach as attach_install_monitor
+from openchem.app.interface_size_service import InterfaceSizeService
 from openchem.app.logging_setup import configure_logging
 from openchem.app.main_window import MainWindow
 from openchem.app.session import SessionManager
@@ -40,6 +42,13 @@ def main() -> int:
     app._window_tracer = install_if_requested(app, services.event_bus)
     settings = Settings(services.event_bus)
     session = SessionManager()
+    # Before the window, so its first widgets are built in the chosen scheme. Held on the app: the
+    # service is parented to it, but a driven run reads it back through this name.
+    app._appearance = AppearanceService(app, settings, services.event_bus)
+    app._appearance.start()
+    # Also before the window: the font it is built with is the scaled one.
+    app._interface_size = InterfaceSizeService(app, settings, services.event_bus)
+    app._interface_size.start()
 
     window = MainWindow(services, settings, session)
     window.show()

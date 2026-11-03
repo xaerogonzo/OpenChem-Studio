@@ -1,0 +1,17 @@
+[
+  {"do": "smiles", "smiles": "CC(=O)[O-].[Na+]", "name": "Sodium acetate", "after_ms": 800},
+  {"do": "select", "molecule": -1, "after_ms": 3000},
+  {"do": "panel", "id": "Properties", "after_ms": 500},
+  {"do": "calculator", "id": "polar_surface_area", "reveal": false, "after_ms": 3000},
+  {"do": "expect_results", "tag": "salt-psa", "expect": {"polar_surface_area": "ready"}},
+  {"do": "descriptors_report", "tag": "sodium-acetate-as-its-acid", "values": {"num_hbd": 1, "heavy_atom_count": 4}},
+  {"do": "shot", "path": "benchmarks/visual/artifacts/salt_largest_component.png"},
+
+  {"do": "smiles", "smiles": "[Na+].[Cl-]", "name": "Sodium chloride", "after_ms": 800},
+  {"do": "select", "molecule": -1, "after_ms": 3000},
+  {"do": "calculator", "id": "polar_surface_area", "reveal": false, "after_ms": 2500},
+  {"do": "result_report", "calculator": "polar_surface_area", "expect_refusal": "MULTICOMPONENT_UNSUPPORTED"},
+  {"do": "shot", "path": "benchmarks/visual/artifacts/salt_no_larger_component.png"},
+  {"do": "expect_clean"},
+  {"do": "quit"}
+]

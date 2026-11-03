@@ -19,8 +19,10 @@ dependencies = [
     # chem/naming_providers.py regardless, because the JRE is the real
     # requirement and declaring the package cannot guarantee one.
     "py2opsin>=1.2.0",
-    "pyside6>=6.7",
-    "pyside6-addons>=6.7",
+    # 6.8 is where QStyleHints.setColorScheme / unsetColorScheme arrived, which the Light / Dark / System
+    # appearance setting (app/appearance_service.py) calls unconditionally.
+    "pyside6>=6.8",
+    "pyside6-addons>=6.8",
     # Pinned exact, not >=: ETKDGv3 is only deterministic for a given seed WITHIN one RDKit
     # build, so a floating lower bound is real risk even though it did not turn out to be the
     # actual cause the one time it was suspected. A 108 kJ/mol HMX reproduction gap was

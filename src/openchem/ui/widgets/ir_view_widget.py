@@ -3,7 +3,7 @@ from __future__ import annotations
 from pathlib import Path
 
 from PySide6.QtCore import Qt, QTimer
-from PySide6.QtGui import QCursor
+from PySide6.QtGui import QColor, QCursor
 from PySide6.QtWidgets import (
     QFileDialog,
     QHBoxLayout,
@@ -25,6 +25,7 @@ from openchem.chem.ir_export import export_jcamp_peaks
 from openchem.chem.mode_animation import normal_mode_frames
 from openchem.chem.spectrum_overlay import prepare_measured
 from openchem.domain.scientific_result import VibrationalSpectrumResult
+from openchem.ui import theme
 from openchem.ui.picture_export import copy_picture
 from openchem.ui.viewer_backend import ViewerBackend
 from openchem.ui.widgets.ir_spectrum_widget import IrSpectrumWidget
@@ -91,7 +92,7 @@ class IrViewWidget(QWidget):
 
         self._warning_label = QLabel("", self)
         self._warning_label.setWordWrap(True)
-        self._warning_label.setStyleSheet(_WARNING_STYLE)
+        theme.style(self._warning_label, _WARNING_STYLE)
         self._warning_label.setVisible(False)
 
         self._backend: ViewerBackend = backend or Mol3DViewerBackend(self)
@@ -331,7 +332,8 @@ class IrViewWidget(QWidget):
             )
             for column, item in enumerate(items):
                 if mode.is_imaginary:
-                    item.setForeground(Qt.GlobalColor.red)
+                    # Pure red is 3.4:1 on a dark table's field; `ink` lifts it only as far as it must (nothing in light).
+                    item.setForeground(theme.ink(QColor(Qt.GlobalColor.red)))
                 self._table.setItem(row, column, item)
         # See the identical comment in `NmrViewWidget._populate_table`:
         # a fresh `QHeaderView`'s own default sort indicator is (section

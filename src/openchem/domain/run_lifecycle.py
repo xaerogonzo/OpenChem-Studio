@@ -73,12 +73,16 @@ _ALLOWED: dict[RunState, frozenset[RunState]] = {
     RunState.PREPARED: frozenset({RunState.RUNNING, RunState.CANCELLED, RunState.INVALIDATED}),
     RunState.PREVIEWED: frozenset({RunState.APPROVED, RunState.CANCELLED, RunState.INVALIDATED}),
     RunState.APPROVED: frozenset({RunState.RUNNING, RunState.CANCELLED, RunState.INVALIDATED}),
-    RunState.RUNNING: frozenset({RunState.COMPLETED, RunState.REFUSED, RunState.FAILED}),
+    #: A run cancelled while running is a person stopping a job that was already going (an ORCA job, from the Quantum Chemistry panel's Cancel); a registry calculator cannot be stopped midway.
+    RunState.RUNNING: frozenset({RunState.COMPLETED, RunState.REFUSED, RunState.FAILED, RunState.CANCELLED}),
 }
 
 #: A preview nobody answered is void after this long, so an old approval cannot start work the person
 #: no longer remembers asking for.
 PREVIEW_TTL_SECONDS = 1800.0
+
+#: The outcome message of a run a person declined before it started, so a surface can tell it from a job stopped while it was running (both end `CANCELLED`).
+CANCELLED_BEFORE_START = "cancelled before it started"
 
 #: Finished runs kept for "what happened to that request" before the oldest are forgotten.
 MAX_FINISHED_RUNS = 200
@@ -109,6 +113,9 @@ class Preparation:
     resource: str = ""
     external_tools: tuple[str, ...] = ()
     created_at: float = field(default_factory=time.time)
+    #: The DRAWING's fingerprint when the plan was made, for a run on a stored geometry (`calculation_input` is then `geometry`). A geometry keeps its own fingerprint when the drawing is edited, so the plan
+    #: would otherwise survive an edit that makes the card describe a molecule that is no longer drawn. "" for a run on the drawing itself, whose own fingerprint already says it.
+    drawing_fingerprint: str = ""
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -274,9 +281,10 @@ class RunLedger:
     def cancel(self, run_id: str) -> bool:
         with self._lock:
             prep = self._preparations.get(run_id)
-            if prep is None or not self._move(run_id, RunState.CANCELLED):
+            # `cancel` is a person declining a run that has not started. A running run ends cancelled only through `finish`, by whoever stopped the job.
+            if prep is None or self._states.get(run_id) is RunState.RUNNING or not self._move(run_id, RunState.CANCELLED):
                 return False
-            self._outcomes[run_id] = RunOutcome(run_id, prep.calculator_id, RunState.CANCELLED, "cancelled before it started")
+            self._outcomes[run_id] = RunOutcome(run_id, prep.calculator_id, RunState.CANCELLED, CANCELLED_BEFORE_START)
             return True
 
     def invalidate(self, run_id: str, reason: str) -> bool:
@@ -300,8 +308,8 @@ class RunLedger:
 
     def finish(self, outcome: RunOutcome) -> bool:
         """RUNNING -> its final state, recording the outcome. False if the run was not running."""
-        if outcome.state not in (RunState.COMPLETED, RunState.REFUSED, RunState.FAILED):
-            raise ValueError(f"a running run finishes as completed, refused or failed, not {outcome.state.value}")
+        if outcome.state not in (RunState.COMPLETED, RunState.REFUSED, RunState.FAILED, RunState.CANCELLED):
+            raise ValueError(f"a running run finishes as completed, refused, failed or cancelled, not {outcome.state.value}")
         with self._lock:
             if not self._move(outcome.run_id, outcome.state):
                 return False

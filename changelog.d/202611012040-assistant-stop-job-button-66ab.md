@@ -1,0 +1,3 @@
+### An ORCA job you approved for the assistant has a Stop job button in the assistant's panel
+- Approving the assistant's card for an ORCA job now leaves a running card with a **Stop job** button until the job ends. It cancels the job the way the Quantum Chemistry panel's Cancel button does. Pressing it only asks: the run ends when ORCA's run record says it was cancelled, so the ledger, the note the assistant is given with your next message and the stored run agree. If the job cannot be stopped from there, the card says so and gives the button back.
+- Only you can press it: the stop is on the approvals handle, which the assistant's tools are never given, and the run's own message now says a person stopped it rather than naming the panel.

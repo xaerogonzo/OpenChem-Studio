@@ -11,6 +11,7 @@ from PySide6.QtWebEngineWidgets import QWebEngineView
 from PySide6.QtWidgets import QVBoxLayout, QWidget
 
 from openchem.ui.viewer_backend import ViewerBackend
+from openchem.ui.widgets.web_appearance import PageLook, call_script
 from openchem.ui.visualization import AnyVisualizationLayer, ResidueColorLayer
 
 logger = logging.getLogger("openchem.ui")
@@ -145,10 +146,13 @@ class MolStarViewerBackend(ViewerBackend):
         # Assigned last: `is_built` must not report True for a half-built view.
         self._page = page
         self._view = view
+        # Built with the look as it is NOW, however long the session has been in it; see `web_appearance`.
+        self._look = PageLook(view, page, lambda look: call_script("openchemMolstarViewer", look))
         page.load(QUrl.fromLocalFile(str(_VIEWER_HTML)))
 
     def _on_viewer_ready(self) -> None:
         self._viewer_ready = True
+        self._look.ready()
         pending, self._pending_calls = self._pending_calls, []
         for structure_text, source_format, label, additional in pending:
             self._run_load(structure_text, source_format, label, additional)

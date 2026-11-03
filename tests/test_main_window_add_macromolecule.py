@@ -70,10 +70,8 @@ def test_import_macromolecule_menu_action_present(qapp, tmp_path):
     # if nothing holds a Python-side reference to it, taking a chained
     # `.actions()[0].menu()` expression's QMenu down with it (same class of
     # bug as the QRunnable GC issue in openchem.plugins.async_task).
-    menu_bar = window.menuBar()
-    menu_bar_actions = menu_bar.actions()
-    file_action = menu_bar_actions[0]
-    file_menu = file_action.menu()
-    file_menu_actions = file_menu.actions()
-    labels = [action.text() for action in file_menu_actions]
-    assert "Import Macromolecule..." in labels
+    # Walked through the submenus: File groups its imports now (File > Macromolecules and Crystals).
+    from openchem.app import menu_layout
+
+    labels = [(path, action.text()) for path, action in menu_layout.walk(window.menuBar())]
+    assert ("File > Macromolecules and Crystals", "Import Macromolecule...") in labels

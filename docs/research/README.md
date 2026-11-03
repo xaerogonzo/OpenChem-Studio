@@ -89,6 +89,23 @@ source reports, a **predicted crystal density** (a method's output, with its tem
 **theoretical maximum density** (an explicitly declared reference-state assumption). A predicted crystal
 density is never a loading density.
 
+## Events, pressure and leakage status (the melting- and boiling-point benchmark)
+
+`benchmarks/mp_bp/PREREGISTRATION.md` (a draft until its open decisions are answered) is the design of the
+first benchmark in this survey with a held-out set, and `tools/validation_rows.py` carries what it needs:
+
+* **What a source observed is not what a method predicts.** The event (`melting`, `boiling`, `sublimation`,
+  `decomposition`, ...) and the target (`melting_point`, `normal_boiling_point`, ...) are separate fields,
+  with an explicit admission decision for every pair. A reduced-pressure boiling point, a sublimation
+  temperature and a decomposition onset are never a normal boiling point.
+* **"No clean event" has no number.** A `NoEventRecord` has no value and cannot be scored; it is counted.
+* **A range is scored as an interval**, never by its midpoint.
+* **Unknown leakage is a status** (`assess_leakage`), and `may_claim_independent_holdout` is false for it.
+  Neither Joback's nor Marrero-Gani's fit population is listed in its paper, so neither can pass an
+  independent-holdout gate on handbook data (the preregistration says so and adds a refit candidate whose fit population is known).
+* **The split key is conservative and is not an identity claim**: the first InChIKey block, so stereoisomers
+  and charge variants of a skeleton share a partition.
+
 ## `SENSITIVITY.md`
 
 How errors in the two inputs the detonation calculator cannot estimate (a loading density and a condensed

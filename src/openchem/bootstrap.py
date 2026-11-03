@@ -264,6 +264,59 @@ _EXTERNAL_CALCULATOR_DEFINITIONS.append(
     )
 )
 
+# NMR on the tautomers of a FINISHED tautomer distribution (QuantumChemistryService.request_tautomer_nmr). Like the distribution it is not one ORCA calc type
+# (one `nmr` job per tautomer, or per conformer of its representative), so it is a standalone entry, and it is registered so that the assistant's card can name it:
+# the Quantum Chemistry panel's 'Tautomer NMR...' button is where a person starts it. It starts from a STORED run, so it has no structure input of its own.
+_EXTERNAL_CALCULATOR_DEFINITIONS.append(
+    CalculatorDefinition(
+        calculator_id="orca.tautomer_nmr",
+        display_name="Tautomer NMR",
+        category="quantum_chemistry",
+        description=(
+            "NMR chemical shifts for every tautomer of a finished tautomer distribution, each from one real ORCA NMR calculation on the geometry that "
+            "distribution optimized for it, referenced like an ordinary NMR calculation (the cached TMS reference for the method, or the empirical scaling), "
+            "and a population-weighted fast-exchange average of the carbon shifts and of the hydrogens on carbon where the distribution gave percentages. "
+            "Needs a finished tautomer distribution for the molecule (run that first) and an ORCA executable; run from the Quantum Chemistry panel's "
+            "'Tautomer NMR...' button on that distribution's run. One job per tautomer, so the cost is the number of tautomers the distribution holds."
+        ),
+        execution=ServiceExecution(
+            service_name="quantum_chemistry_service",
+            panel_name="Quantum Chemistry panel",
+            panel_id="Quantum_Chemistry",
+        ),
+        prediction_basis="ab_initio",
+        parameters=[
+            CalculatorParameter(name="charge", label="Charge", kind="int", default=0, minimum=-10, maximum=10),
+            CalculatorParameter(
+                name="multiplicity", label="Multiplicity", kind="int", default=1, minimum=1, maximum=10
+            ),
+            CalculatorParameter(
+                name="method_basis",
+                label="Method/basis",
+                kind="choice",
+                default=METHOD_BASIS_PRESETS[0],
+                choices=METHOD_BASIS_PRESETS,
+            ),
+            CalculatorParameter(
+                name="distribution_run_id",
+                label="Tautomer distribution run (blank: the newest finished one)",
+                kind="text",
+                default="",
+            ),
+        ],
+        # EXPERIMENTAL for the reason its parent is: the distribution it starts from has no validated populations, and the average it makes inherits that.
+        support=CalculatorSupport(
+            stage=SupportStage.EXPERIMENTAL,
+            default_visibility=Visibility.HIDDEN,
+            support_reason=(
+                "Not yet validated: it starts from a tautomer distribution whose populations have not been checked against published reference data, "
+                "and the shifts have not been compared with measured spectra of tautomer mixtures."
+            ),
+            scope_note="Needs a finished tautomer distribution for the molecule and a configured ORCA executable",
+        ),
+    )
+)
+
 # Like the tautomer distribution, NOT in CALC_TYPE_LABELS: proton affinity is not one ORCA calc type, it dispatches an `Opt Freq` per structure
 # of the base and of every conjugate acid (QuantumChemistryService.request_proton_affinity), so it is a standalone entry. It has no method or
 # free method or charge parameters on purpose: the protocol is exactly the one that was benchmarked, and a different functional or basis is a different
@@ -357,15 +410,19 @@ _EXTERNAL_CALCULATOR_DEFINITIONS.append(
                 choices=[BOND_DISSOCIATION_METHOD],
             ),
         ],
-        # EXPERIMENTAL like the proton affinity, for the same reason: the stage describes THIS implementation, and until it has been driven through the application on real ORCA
-        # (its recorded run is the change that promotes it, docs/CALCULATOR_MATURITY.md) the benchmarks' verdicts are about the benchmarks' own runner.
+        # LIMITED, and shown, like the proton affinity and for the same reason: EXPERIMENTAL waited for this implementation to be driven through the application on real ORCA, and it has
+        # been (benchmarks/visual/bond_dissociation_run.json: the stage-3 branch, then twice on master c86f3e0a with a clean tree, 2026-10-25, the same stored values to the
+        # digit each time; recorded in docs/BDE_DESIGN.md). LIMITED and not STABLE because the scope is narrow (nine heavy atoms of five elements, neutral closed-shell), the calculation runs
+        # about 1.4 kcal/mol low and a thiyl radical gives its S-H no value, and because the held-out arm is one benchmark, not the stratified independent result STABLE asks for
+        # (docs/CALCULATOR_MATURITY.md). To hide it again, set default_visibility back to HIDDEN.
         support=CalculatorSupport(
-            stage=SupportStage.EXPERIMENTAL,
-            default_visibility=Visibility.HIDDEN,
+            stage=SupportStage.LIMITED,
+            default_visibility=Visibility.SHOWN,
             support_reason=(
-                "The protocol was measured on 49 bonds (22 against experiment, PARTIAL by 0.03 kcal/mol on the bias; 27 held out against the Active Thermochemical Tables, PASS): mean absolute error 1.48 kcal/mol, "
-                "values run about 1.4 kcal/mol low, and an O-H next to O or N runs 3.3 low. This implementation has not yet been driven through the application on real ORCA, and it needs many ORCA jobs. "
-                "Every result states the measured error and its limits."
+                "Limited to neutral closed-shell molecules of at most nine heavy atoms of H, C, N, O and S (larger or other: computed after a warning, an estimate). The protocol was measured on 49 bonds "
+                "(22 against experiment, PARTIAL by 0.03 kcal/mol on the bias; 27 held out against the Active Thermochemical Tables, PASS): mean absolute error 1.48 kcal/mol, values run about 1.4 kcal/mol low, "
+                "an O-H next to O or N runs 3.3 low, and an S-H gets no value because its thiyl radical keeps an imaginary vibration. This implementation reproduces the benchmark's numbers when driven through the "
+                "application on real ORCA. It needs many ORCA jobs. Every result states the measured error and its limits."
             ),
             scope_note=(
                 "Measured for neutral closed-shell molecules of at most nine heavy atoms of H, C, N, O and S and their C-H, N-H, O-H, S-H and Si-H bonds (outside that: computed after a warning, an estimate); "

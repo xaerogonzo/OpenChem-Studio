@@ -14,6 +14,7 @@ from __future__ import annotations
 from PySide6.QtWidgets import QCheckBox, QHBoxLayout, QLabel, QVBoxLayout, QWidget
 
 from openchem.chem.tautomer_nmr import NotAveraged, TautomerOverlay, TautomerTrace
+from openchem.ui import theme
 from openchem.ui.widgets.nmr_spectrum_widget import NmrSpectrumWidget
 
 #: How many left-out peaks are listed before the rest are counted.
@@ -65,11 +66,11 @@ class TautomerOverlayControls(QWidget):
         layout.addLayout(self._rows_layout)
         self._note = QLabel("", self)
         self._note.setWordWrap(True)
-        self._note.setStyleSheet("color: #666;")
+        theme.style(self._note, "color: #666;")
         layout.addWidget(self._note)
         self._left_out = QLabel("", self)
         self._left_out.setWordWrap(True)
-        self._left_out.setStyleSheet("color: #666;")
+        theme.style(self._left_out, "color: #666;")
         layout.addWidget(self._left_out)
         self.setVisible(False)
 
@@ -128,7 +129,7 @@ class TautomerOverlayControls(QWidget):
         layout.setContentsMargins(0, 0, 0, 0)
         swatch = QLabel(row)
         swatch.setFixedSize(14, 14)
-        swatch.setStyleSheet(f"background: {self._spectrum.tautomer_trace_colour(trace)}; border: 1px solid #888;")
+        theme.follow(swatch, lambda w, s=self._spectrum, t=trace: w.setStyleSheet(f"background: {theme.ink(s.tautomer_trace_colour(t)).name()}; border: 1px solid #888;"))
         check = QCheckBox(_trace_text(trace), row)
         has_peaks = any(trace.peaks.get(e) for e in ("H", "C"))
         check.setChecked(has_peaks)

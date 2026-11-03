@@ -753,6 +753,47 @@ Results below Properties and start calculations while you read them.
 Placements are saved with the window layout. **View ▸ Reset Panel Layout**
 puts every panel back where it started and hands them all back to the rail.
 
+### The **…** menu on every panel
+
+Dragging works, but nothing on screen says so. Every panel's title bar has a
+**…** button that does the same things from a menu:
+
+- **Move to** Left, Right, Top or Bottom. Where you put a panel is remembered,
+  and the rail stops hiding it when you pick another panel, exactly as for a
+  drag. The side it is already on is greyed.
+- **Expand panel** grows the panel along the side it sits on as far as the
+  window allows. The editor keeps its minimum size and the other panels shrink
+  to theirs, so on a small window there may be little room (the status bar says
+  so, and nothing changes); on a wide screen the gain is large. **Restore size**
+  puts every panel back, not only this one. The panel stays expanded when you
+  resize the window. Moving, floating or hiding any panel, picking another one
+  in the rail, or closing the program ends it first, so an expanded arrangement
+  is never saved as your layout. It is not a full-window mode: nothing is hidden.
+- **Show alongside** lists the other panels and opens the one you pick without
+  hiding this one. It does not arrange the two side by side; they share the
+  window the way any two panels you have opened do.
+- **Lock open** / **Unlock** is the rail's own lock (the same one its right-click
+  menu has): a locked panel stays on screen when you pick another. It does not
+  move the panel.
+- **Float panel** / **Dock panel back** detaches the panel into a window of its
+  own, or puts it back. A floating panel can always be docked again. (The
+  Results panel's own **↗** button is different: it moves the reader into a
+  window, and leaves the panel where it is.)
+- **Return to default side** puts the panel back on the side it started on.
+  That is all it restores: not its size, and not its place among other
+  panels. Panels next to it are left alone.
+
+Some panels add buttons of their own beside the menu. **Results** has
+**Report**, which copies the report on screen or exports it to a file in the
+format the reader's format box names (greyed when no report is showing, and on
+the project table). **Structure Check** has **Check again**, which used to sit
+at the bottom of the panel. **Jobs** has **Cancel all**: it asks every running
+job that can be cancelled to cancel, and says it *requested* that, because a
+job stops when its service stops it and the list shows each one leaving.
+Cancelling discards the work in progress; a job that can keep what it has so
+far has its own **Finish now** button, which this does not use. It asks first
+when more than one job is running, and is greyed when none can be cancelled.
+
 ("Compute" rather than "Quantum" because the group holds docking and
 alignment too, and neither is quantum chemistry.)
 
@@ -1529,10 +1570,13 @@ In the **Docking** panel:
    The columns carry their definitions as tooltips, because two of them
    are routinely misread:
 
-   - **Binding Affinity (kcal/mol)** — Vina's empirical score. Always
-     negative; more negative is predicted-tighter. It is *not* a measured
-     binding free energy, and scores are generally not comparable across
-     different receptors, targets or docking protocols. For scale, Trott &
+   - **Vina score (kcal/mol)** — Vina's empirical score. Always negative;
+     more negative is a better fit to Vina's scoring function. It is a
+     *pose score, not a binding affinity*: not a measured binding free
+     energy and not a Kd. Use it to order the poses of one ligand in one
+     receptor, or to compare a series of similar ligands docked the same
+     way; scores are generally not comparable across different receptors,
+     targets or docking protocols. For scale, Trott &
      Olson (2010) report a standard error of 2.85 kcal/mol against
      experimental binding free energies on their own 190-complex set
      ([source:trott_olson2010]), so a gap smaller than that is not a
@@ -1544,6 +1588,20 @@ In the **Docking** panel:
      allows symmetry-equivalent atoms, so l.b. ≤ u.b. always. A large value
      means a geometrically different pose from pose 1 — it says nothing
      about whether either is correct.
+
+   Under the table the panel also states the result of four **physical
+   checks** on every pose, with each row's detail in its tooltip: a ligand
+   atom closer to a receptor atom than 0.75 of their van der Waals sum, the
+   ligand folded through itself (atoms five or more bonds apart that close),
+   an atom outside the search box (1 Å of slack), and a pose that touches no
+   receptor atom within 4.5 Å. They catch *impossible* poses, not *wrong*
+   ones: a pose that passes all four can still be in the wrong place. Bond
+   lengths, angles and ring planarity are not checked, because Vina keeps
+   every bond rigid and moves only torsions, and the pose reaches the
+   application through a PDBQT file that does not carry them faithfully. This
+   is the application's own implementation of the idea in PoseBusters, not
+   that package. If the search-box check fails on a pose, the box was too
+   small or misplaced.
 5. **Optionally, rescore.** *Rescore with* scores every pose a second time
    with a different function after the search, and is **off by default**.
    Vina is documented as strong at finding the right pose and weaker at
@@ -1558,10 +1616,10 @@ In the **Docking** panel:
    leaving it in a tooltip.
 
    Two things that surprise people: choosing **Vina** here does *not*
-   reproduce the affinity column for any pose but the first, because a
+   reproduce the score column for any pose but the first, because a
    docking run uses one shared unbound reference for all its poses while a
    rescore uses each pose's own; and **nothing re-ranks on the second
-   column**. The poses stay ordered by the affinity, because whether
+   column**. The poses stay ordered by the Vina score, because whether
    Vinardo ranks better on your receptor is not something this application
    has measured. Driven on 5C1M the two disagreed outright — Vina's best
    pose was the worst of the first three by Vinardo.
@@ -1964,9 +2022,9 @@ runs, and the result says the measured error does not apply. Only what the proto
 its reason: a charged or radical species (the jobs are a neutral parent and a neutral doublet radical), a mixture,
 a molecule with no X-H bond, or an element the basis set lacks. A radical whose optimization keeps an imaginary vibration after one re-run gives that bond no value, and
 the result says which structure and why: thiyl radicals (an S-H bond) do this, so the window marks S-H bonds. If
-the hydrogen atom's own job fails, nothing can be computed and the run stops. The calculation is experimental
-until it has been driven through the application on real ORCA; it is hidden from the Properties launcher by
-default.
+the hydrogen atom's own job fails, nothing can be computed and the run stops. The calculation is marked **limited**:
+driven through the application on real ORCA it reproduces the benchmark's own numbers (and the same S-H with no
+value), and what limits it is the narrow scope above, the low bias, and the thiyl radicals.
 
 <!-- help:2d-correlation -->
 ### HSQC, HMBC and COSY — connectivity, not a simulated spectrum
@@ -2409,7 +2467,7 @@ The **Synthesis** panel (the rail's Extensions group, or **Plugins ▸ Plan Synt
 
 **What was checked about a route, and what was flagged.** Beside each step the panel lists the route's own bookkeeping, separately and never as one verdict: whether every molecule parses, whether each step's reaction parses and is made of the molecules the step connects, whether the atom mapping is complete, whether atoms are conserved (judged only where the mapping is complete; otherwise it says it could not be assessed), and whether the starting materials are in the stock. This says the planner's books are consistent. It does not say the chemistry is right. Every molecule of every route (the target, each intermediate, each starting material) is also screened against the application's regulatory rulesets, the shipped ones and any of your own, and what matched is listed with the rule, the ruleset, what kind of listing it is (a controlled substance, a precursor list, a workplace exposure limit and so on) and how sure the rule is. An alert never removes or refuses a route and is not a legal determination; a molecule with no alert is not thereby free of obligations, because the lists are finite; and a molecule that could not be screened says why and is never counted as having no alert. Ordinary solvents and reagents often match an exposure-limit listing, so a route with an alert is common and the listing's kind is what to read. The route list shows how many molecules of each route carry an alert.
 
-**A plan belongs to a structure.** If you edit the drawing after planning, the panel keeps the plan but labels it **EARLIER STRUCTURE** and says which structure it was made for; it is never shown as the plan for what is drawn now. **Plans are saved with the project.** A plan that found routes, or found none, is written into the project file when you save and comes back when you open it (a finished search also marks the project as having unsaved changes, because it can take minutes to get). A plan that was refused, failed, was cancelled or could not start is not saved: asking again is cheap and gives the answer of the day. A saved plan is not trusted blindly when it comes back: the regulatory check is run again on its target before it is shown, so a project file cannot be a way around it, each route's own bookkeeping is checked again, and the sentences beside it are this version's. **The regulatory alerts beside a saved plan are the ones from when it was made, shown with that date, and are not repeated when the file is opened** (screening a plan takes seconds); plan again to refresh them. A project saved before this existed has no plans, and a version of the application that does not know about them drops them the next time it saves the project.
+**A plan belongs to a structure.** If you edit the drawing after planning, the panel keeps the plan but labels it **EARLIER STRUCTURE** and says which structure it was made for; it is never shown as the plan for what is drawn now. **Plans are saved with the project.** A plan that found routes, or found none, is written into the project file when you save and comes back when you open it (a finished search also marks the project as having unsaved changes, because it can take minutes to get). A plan that was refused, failed, was cancelled or could not start is not saved: asking again is cheap and gives the answer of the day. A saved plan is not trusted blindly when it comes back: the regulatory check is run again on its target before it is shown, so a project file cannot be a way around it, each route's own bookkeeping is checked again, and the sentences beside it are this version's. **The regulatory alerts beside a saved plan are the ones from when it was made, shown with that date, and are not repeated when the file is opened** (screening a plan takes seconds); press **Re-screen** to screen the plan's molecules again today (the regulatory check on the target runs first, only the alerts change and never a route, nothing is planned again), or plan again. A project saved before this existed has no plans, and a version of the application that does not know about them drops them the next time it saves the project.
 
 **Who may ask.** A person pressing **Plan synthesis**, or the AI Assistant asking for one: it puts a card on its panel and the search starts only if you press **Approve** (the same regulatory check runs first, and the assistant cannot press it). The `?` in this panel's title bar, and F1 with the focus in it, open this section.
 
@@ -2505,10 +2563,41 @@ which is not a claim either way.
 Tick two or more molecules and see their values side by side — one row per
 property, one column per molecule.
 
-**It never calculates anything.** The values are the ones other panels have
-already computed, so opening Compare is free and a blank cell means *that
-calculator has not run for that molecule* — not that it has no value. Run
-what you want in Properties first; the columns fill in as results arrive.
+**Opening Compare never calculates anything.** The values are the ones other
+panels have already computed, so a blank cell means *that calculator has not
+run for that molecule* — not that it has no value. To fill the table in, press
+**Calculate basic properties**: it works out the everyday properties (mass,
+LogP, polar surface area, ring and bond counts) for the ticked molecules only,
+reusing anything already held, and the columns fill in as results arrive. Run
+anything else in Properties first.
+
+**Double-click a value to read it in full.** Double-clicking a value (or
+pressing Enter on it, or **Show in Results**) selects that molecule and opens
+the value in the Results panel, narrowed to that one fact, with its evidence
+and limits. Double-clicking the Property column opens the first molecule that
+has a value. Your ticks in Compare do not change.
+
+**Open side by side** reads the ticked molecules in the Results reader, one pane
+each, in a window of their own: side by side for two molecules, as tabs for
+more (a button switches). They are the same reader the Results panel uses, so a
+value shows with its evidence and limits. The panes are **linked**: choosing a
+report, or typing in the fact filter, in one does the same in all, so the
+molecules stay on the same value. Double-clicking a value in Compare takes every
+pane to it, linked or not. A molecule that has not had that result calculated
+says so above its pane rather than silently showing something else. Nothing is
+calculated, and the panes follow the ticks and refresh as results arrive.
+
+**Plain English.** Selecting a row says what the property means, in everyday
+words, under the table. The highest value in a row carries a small triangle
+(▲): it only says which number is highest — a higher number is not better or
+worse by itself. For ratio-style properties such as mass the tooltip also says
+roughly how many times larger it is; for log-scale properties such as LogP it
+does not, because a ratio of logarithms means nothing. With exactly two
+molecules ticked, a short summary of the well-understood properties appears
+above the table, always worded as *calculated* or *estimated*. If you do not
+need any of this, turn off **Explain things in plain English** in
+Settings → Appearance and Compare is just the table; Results, Help and anything
+you copy are the same either way.
 
 **Differences only** is the reason to open it. Two related structures agree
 on most of a long table, so hiding the rows where they match leaves the
@@ -3115,6 +3204,13 @@ the structure:
 The structure operations used to sit under Edit, between "Redo" and "Copy
 Structure As", where neither group was easy to find.
 
+**A few commands carry a small icon.** New, Open and Save Project, Undo, Redo,
+Recalculate Now, Settings, Exit and Help for the Current Panel have one beside
+their name; every other entry is text only on purpose. The icons are drawn in
+the colour of the menu text, so they follow Light and Dark and grey out with a
+disabled command. They are decoration: the name and the shortcut are what
+identify a command, and nothing about them can be changed.
+
 **Several things are deliberately reachable more than one way.** Check
 Structure is on the Structure menu, on the Project Explorer's right-click menu,
 and by clicking the status-bar indicator. Copy SMILES is on the Edit menu and
@@ -3347,10 +3443,28 @@ the detail pane and in every cell's tooltip.
 ## Settings
 
 **Edit ▸ Settings…** (Ctrl+,) holds every preference in one window, with a
-list of sections down its left side. Changes apply as you make them, so
+list of sections down its left side, under two headings (**Window** and
+**Calculations**; a heading is not a page, and the arrow keys step over it). Changes apply as you make them, so
 there is no OK button. The one exception is lowering the number of versions
 kept, which asks first.
 
+- **Interface size.** Beside the colour scheme: **Default** (your system's own text
+  size), **Larger** or **Large**. It applies at once, to every panel, dialog and table;
+  the 2D editor and the 3D viewers keep their own zoom, and printed or exported
+  documents are not changed. It is separate from Windows' display scaling and adds to it.
+  At Large the one-line status beside **Run selected** can be cut off; hover it for
+  the whole text, or widen the Properties panel.
+- **Appearance.** The colour scheme: **Follow the system** (the default), **Light**
+  or **Dark**. Follow the system is light or dark as Windows is and changes when
+  Windows does; Light and Dark keep that scheme whatever Windows is set to, the
+  window's title bar included. The same choice is in **View ▸ Theme**, and the
+  checked entry there is the choice you made, so Follow the system stays checked
+  while the window happens to be dark. It applies at once. The 3D viewer follows;
+  in the 2D editor the toolbars, the editor's own dialogs and the drawing area go
+  dark, bonds and carbon labels turn white, and atom colours (nitrogen blue,
+  oxygen red), selection and hover stay exactly as they were, as does a picture
+  you export; the macromolecule viewer's canvas and its side panels go dark too,
+  and the structure keeps its own colours.
 - **Panels.** By default, choosing a panel from the rail hides the other
   right-hand panels in its area, so the one you chose gets the whole column.
   A panel you have dragged somewhere else, or floated, is never hidden. Turn
@@ -3398,7 +3512,12 @@ kept, which asks first.
   default; see the drawing section above). Off hands the keys back to the
   editor, which does nothing with them over a bond.
 - **Keyboard.** Every menu command with the shortcut it holds (Search facts and the
-  Command Palette too). Click a box and press the combination you want; it applies
+  Command Palette too), in one collapsible section per menu, in the order the menus
+  show them (File, Edit, ..., then Tools > Calculators and so on). Click a heading to
+  open or close it, or use **Expand all** and **Collapse all**; which groups you left open
+  is remembered, and **Reset layout** goes back to only the first being open. Searching
+  opens the sections that match and hides the rest, and is only a temporary view: clearing
+  it puts the groups back as you had them. Click a box and press the combination you want; it applies
   at once and is remembered. The ✕ in the box clears a command's shortcut, **Reset**
   puts one back to the shortcut it shipped with, and **Reset all to defaults** puts
   every one back. A combination another command already uses is refused, and the page
@@ -3422,18 +3541,28 @@ kept, which asks first.
 - **File dialogs.** Each kind of file dialog opens where it was last used:
   projects, molecules, and macromolecules with crystal structures. **Forget**
   sends one back to your Documents folder.
-- **External tools.** The eight tabs described [below](#external-tools).
+- **External tools.** The twelve pages described [below](#external-tools).
 
 ---
 
 <!-- help:external-tools -->
 ## External tools
 
-**Edit ▸ Settings… ▸ External tools** has ten tabs: AutoDock Vina, ORCA, Psi4,
-AiZynthFinder, pkasolver, ADMET, Java (Temurin), NMR Database, Knowledge Vista,
-and Storage. **Tools ▸
-External Tools…**, and the Configure buttons on the Docking and Quantum
-Chemistry panels, open the same window at the right tab.
+**Edit ▸ Settings… ▸ External tools** opens on a **Setup guide** and lists twelve
+pages down the left, under headings so that all of them show at once: the guide;
+**Programs** (AutoDock Vina, ORCA, Psi4, xtb, AiZynthFinder, Knowledge Vista);
+**Python environments** (pkasolver, ADMET); **Downloads** (Java (Temurin), NMR
+Database); and **Disk** (Storage). The arrow keys step over a heading.
+**Tools ▸ External Tools…**, and the Configure buttons on the Docking and Quantum
+Chemistry panels, open the same window at the right page.
+
+**The Setup guide answers "which of these do I need?"** Each tool has a row that
+says what it is, what stops working without it, whether it is Recommended,
+Optional or Advanced, the one next thing to do, a link to get it, and its status
+right now (read from that tool's own tab). **I want to** narrows the list to the
+tools one task needs, such as docking or quantum chemistry. Nothing here is
+required: the application works without any of them, and each adds a group of
+features.
 
 Each tab tells you what is currently detected, installs or configures the
 tool, and has a **Test** button that runs the tool for real rather than
@@ -3508,8 +3637,8 @@ CLI cannot) the assistant reads the results stored for the selected molecule and
 run the quick calculators itself, recorded in your project like ones you ran. Anything
 slow, any molecule above 41 heavy atoms and anything unclassified shows a preview with
 **Approve** and **Cancel** first, and nothing starts until you press one. A calculator
-that runs from its own panel (ORCA, Vina) is described, with what it needs and whether
-this machine is ready, and you start it from that panel. What it asked for, and what
+that runs from its own panel and is not one ORCA job (Vina, bond dissociation, tautomers) is described, with what it needs and whether
+this machine is ready, and you start it from that panel. A single ORCA job (single point, optimization, optimization with frequencies, NMR, NMR with coupling, hardness and softness from energy differences, interaction breakdown) or a tautomer distribution (the card says how many ORCA jobs the enumeration gives, uses the default conformer search, and leaves the Full ORCA conformers choice to the Tautomers button) or Fukui functions (an experimental calculation: the card says how many ORCA jobs it is and that it did not pass its own checks; closed-shell species only) or NMR on the tautomers of a tautomer distribution you have already run (the card names that run, the tautomers and the number of NMR jobs, takes the representative conformer of each tautomer, and needs a finished distribution and an ORCA program) or a proton affinity or a bond dissociation enthalpy (which have a fixed protocol, and whose cards say how many ORCA jobs they are and whether the molecule is one the benchmark measured; a bond dissociation card also lists the X-H bonds it would compute, six when there are more (an O-H, N-H or S-H before a C-H), and says which it leaves out, since choosing particular bonds is done with the Bond dissociation button) it can ASK for: a card appears with the molecule, the method and basis, the charge and multiplicity and what the job costs, and ORCA starts only if you press **Approve**. It then runs in the Quantum Chemistry panel by that panel's own rules, where you can follow and cancel it, or press **Stop job** on a card in the assistant's panel, which cancels it the same way; the assistant is told how it ended with your next message. It can also read the ORCA jobs you have already run for the selected molecule: which calculation, the method and basis, whether the job finished, failed or was cancelled, what it warned about, and, for a job it is asked about, the numbers it produced (an infrared analysis as its modes). It cannot approve or stop a job (the Stop job button is yours too), and it is never sent the structure that went to ORCA. What it asked for, and what
 became of it, is listed under the conversation. It can also read the goal wizard's table (which calculators the
 application pairs with a question such as "where is the charge"), as a suggestion rather than a protocol. It can also read the **derived scores** you
 defined (their names, formulas and values for the selected molecule; never the owner or the note), and says so when one cannot be worked out. It cannot save or change one, but it can propose a new one: a card shows the formula, what each

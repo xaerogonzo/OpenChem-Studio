@@ -1,0 +1,33 @@
+[
+  {"do": "smiles", "smiles": "[NH3+]C[C@H](O)C(=O)OCCl", "name": "Settings and palette", "after_ms": 800},
+  {"do": "select", "molecule": -1, "after_ms": 3000},
+
+  {"do": "dialog", "name": "SettingsDialog", "real": true, "section": "appearance", "width": 860, "height": 700, "after_ms": 1000},
+  {"do": "shot", "path": "artifacts/visual/settings_headings_light.png", "widget": "dialog", "after_ms": 500},
+  {"do": "dialog", "name": "SettingsDialog", "real": true, "section": "keyboard", "width": 860, "height": 700, "after_ms": 1000},
+  {"do": "control", "name": "keyboardResetLayout", "value": true, "after_ms": 500},
+  {"do": "shot", "path": "artifacts/visual/settings_keyboard_default.png", "widget": "dialog", "after_ms": 500},
+  {"do": "control", "name": "keyboardExpandAll", "value": true, "after_ms": 800},
+  {"do": "shot", "path": "artifacts/visual/settings_keyboard_expanded.png", "widget": "dialog", "after_ms": 500},
+  {"do": "control", "name": "keyboardCollapseAll", "value": true, "after_ms": 800},
+  {"do": "shot", "path": "artifacts/visual/settings_keyboard_collapsed.png", "widget": "dialog", "after_ms": 500},
+  {"do": "control", "name": "keyboardResetLayout", "value": true, "after_ms": 500},
+  {"do": "close_dialog", "after_ms": 500},
+
+  {"do": "dialog", "name": "CommandPalette", "real": true, "query": "scores", "width": 620, "height": 420, "after_ms": 800},
+  {"do": "shot", "path": "artifacts/visual/palette_path_light.png", "widget": "dialog", "after_ms": 500},
+  {"do": "dialog", "name": "CommandPalette", "real": true, "query": "import", "width": 360, "height": 420, "after_ms": 800},
+  {"do": "shot", "path": "artifacts/visual/palette_path_narrow.png", "widget": "dialog", "after_ms": 500},
+  {"do": "close_dialog", "after_ms": 500},
+
+  {"do": "appearance", "choice": "dark", "via": "menu", "after_ms": 2500},
+  {"do": "dialog", "name": "SettingsDialog", "real": true, "section": "calculators", "width": 860, "height": 700, "after_ms": 1000},
+  {"do": "shot", "path": "artifacts/visual/settings_headings_dark.png", "widget": "dialog", "after_ms": 500},
+  {"do": "close_dialog", "after_ms": 500},
+  {"do": "dialog", "name": "CommandPalette", "real": true, "query": "scores", "width": 620, "height": 420, "after_ms": 800},
+  {"do": "shot", "path": "artifacts/visual/palette_path_dark.png", "widget": "dialog", "after_ms": 500},
+  {"do": "close_dialog", "after_ms": 500},
+  {"do": "appearance", "choice": "system", "via": "menu", "after_ms": 1500},
+  {"do": "expect_clean"},
+  {"do": "quit"}
+]

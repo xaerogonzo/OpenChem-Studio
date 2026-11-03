@@ -21,6 +21,16 @@
    "expect": {"steps": 1, "picture": true}},
   {"do": "shot", "path": "artifacts/visual/synthesis_saved_plan.png", "after_ms": 500},
 
+  {"do": "synthesis_panel", "tag": "re-screen-is-offered-for-the-restored-plan", "after_ms": 500, "expect": {"rescreen_enabled": true}},
+  {"do": "synthesis_panel", "tag": "re-screen-pressed", "press": "rescreen", "after_ms": 1500,
+   "expect": {"status_contains": "again", "rescreen_enabled": false, "cancel_enabled": true}},
+  {"do": "wait", "after_ms": 25000},
+  {"do": "synthesis_panel", "tag": "re-screened",
+   "expect": {"routes_at_least": 10, "status_contains": "routes found", "rescreen_enabled": true,
+              "limitations_contain": ["not a validated or feasible synthesis", "96.7%"],
+              "limitations_exclude": ["was not repeated when this plan was read from the project file"]}},
+  {"do": "shot", "path": "artifacts/visual/synthesis_rescreened.png", "after_ms": 500},
+
   {"do": "synthesis_setup", "restore": true},
   {"do": "expect_clean"},
   {"do": "quit"}

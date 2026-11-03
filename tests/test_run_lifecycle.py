@@ -117,6 +117,16 @@ def test_a_running_run_cannot_be_cancelled_or_invalidated(ledger):
     assert ledger.state_of("r1") is RunState.RUNNING
 
 
+def test_a_running_job_stopped_by_a_person_ends_cancelled_but_cancel_cannot_do_it(ledger):
+    """An ORCA job cancelled in its own panel is reported by the host through `finish`; `cancel` stays the decline of a run that has not started."""
+    ledger.register(_prep())
+    ledger.claim_dispatch("r1")
+    assert ledger.cancel("r1") is False and ledger.state_of("r1") is RunState.RUNNING
+    assert ledger.finish(_outcome(RunState.CANCELLED)) is True
+    assert ledger.state_of("r1") is RunState.CANCELLED and ledger.outcome_of("r1").state is RunState.CANCELLED
+    assert ledger.claim_dispatch("r1") is False and ledger.finish(_outcome(RunState.COMPLETED)) is False
+
+
 def test_an_invalidated_preview_cannot_be_approved(ledger):
     ledger.register(_prep(route=Route.NEEDS_APPROVAL))
     assert ledger.invalidate("r1", "the structure changed") is True
@@ -141,7 +151,7 @@ def test_only_a_running_run_can_finish_and_only_into_a_final_state(ledger):
     assert ledger.finish(_outcome(RunState.COMPLETED)) is False  # not running yet
     ledger.claim_dispatch("r1")
     with pytest.raises(ValueError):
-        ledger.finish(_outcome(RunState.CANCELLED))
+        ledger.finish(_outcome(RunState.INVALIDATED))
     with pytest.raises(ValueError):
         ledger.finish(_outcome(RunState.TIMED_OUT))
     assert ledger.finish(_outcome(RunState.COMPLETED)) is True
@@ -150,7 +160,7 @@ def test_only_a_running_run_can_finish_and_only_into_a_final_state(ledger):
     assert ledger.outcome_of("r1").state is RunState.COMPLETED
 
 
-@pytest.mark.parametrize("final", [RunState.COMPLETED, RunState.REFUSED, RunState.FAILED])
+@pytest.mark.parametrize("final", [RunState.COMPLETED, RunState.REFUSED, RunState.FAILED, RunState.CANCELLED])
 def test_each_way_a_run_can_end_is_recorded(ledger, final):
     ledger.register(_prep())
     ledger.claim_dispatch("r1")

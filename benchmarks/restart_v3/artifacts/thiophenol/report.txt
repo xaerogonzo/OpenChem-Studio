@@ -1,0 +1,9 @@
+ARM D-Ph (thiophenol S-H; REPORTED ONLY, deciding nothing)
+No determination is a reference (they span about 5 kcal/mol and the newest is an upper limit). A claim is made only when the computed value is more than 5.0 kcal/mol outside the whole span of the determinations; anything else is numbers.
+
+thiophenol S-H: computed 79.77 kcal/mol at 298 K; span of the determinations 77.83 to 83.50; no claim (numbers only)  [lowest frequency parent 80, radical 164 cm-1; radical analytic]
+    Lim 2007 (0 K value plus the computed step)      77.83  error +1.94
+    Borges dos Santos 2002                           83.50  error -3.73
+    Luo Table 8.1, low end of the range              79.40  error +0.37
+    Luo Table 8.1, high end of the range             83.50  error -3.73
+    Devine 2008, UPPER LIMIT (0 K value plus the step)   81.17  computed minus limit -1.40
