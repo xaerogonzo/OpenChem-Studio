@@ -8,7 +8,7 @@ The round-89 population it extends is described in `src/openchem/vendor/KNOWN_LI
 are in that file). The seed argument of the run that yielded 39 molecules is not recorded
 there, and it is not invented here.
 
-No cell below has been run.
+`NL-010` was run on 2026-11-03. No other cell has been run.
 
 ## Rules
 
@@ -44,6 +44,20 @@ Stereo class for every cell in this group: `none`.
 | Pass | Each generable class reads back, or a defect row is filed |
 | Non-reproduction | A valence RDKit will not build is recorded as `not generable` and is not a pass |
 | Non-actionable when | Never, for a class that builds. A class that does not build is non-actionable only with the RDKit refusal recorded |
+
+#### Run 2026-11-03
+
+One closed-shell spiro per class, named with `name_smiles`, read back through OPSIN 2.9.0. Pass is the full InChIKey, which here is the same test as the connectivity key because none of these inputs carries stereo. Each name took under 0.2 seconds.
+
+| Class | Input | Result |
+|---|---|---|
+| B− | `C1CC[B-]12CCCC2` | Refused: `No name found that keeps the negative charge (the nearest name, '4lambda4-boraspiro[3.4]octane', is the neutral compound's)`. The neutral name was not emitted. OPSIN reads `4-boranuidaspiro[3.4]octane` as this anion (InChIKey `TYFPZQQHOKXWDN-UHFFFAOYSA-N`). That spelling is not adopted as a target: the engine's own boron-anion parent is `boranuide` (P-72.3), and this spiro spelling was not checked against the book |
+| As | `C1CC[As](C)12CCCC2` | `4-methyl-4lambda5-arsaspiro[3.4]octane`. Full key `LQYCCJLEYSYIMS-UHFFFAOYSA-N` matches. Neutral tetracoordinate As (`C1CC[As]12CCCC2`) is a radical (one unpaired electron); the free-valence guard refuses it, and it is not a closed-shell member of this class |
+| Sb+ | `C1CC[Sb+]12CCCC2` | `4-stibaspiro[3.4]octan-4-ium`. Full key `CAWOOKFZWHQQQB-UHFFFAOYSA-N` matches |
+| S, valence 6 | `O=S12(CCCC1)CCCC2` | `5-oxo-5lambda6-thiaspiro[4.4]nonane`. Full key `LLYOONMDOWDYFS-UHFFFAOYSA-N` matches |
+| Se, valence 6 | `O=[Se]12(CCCC1)CCCC2` | `5-oxo-5lambda6-selenaspiro[4.4]nonane`. Full key `HXMKOEPENTVVGI-UHFFFAOYSA-N` matches |
+
+As, Sb+, S and Se read back. B− builds and is refused. The cell is not met until that refusal is classed by a source check or a defect row with a verified target.
 
 ### NL-011
 

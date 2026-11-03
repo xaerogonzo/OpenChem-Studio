@@ -32,9 +32,9 @@ section, not by a population run, and fixed in naming round 90 (#488). Eight row
 molecule, never adjudicated as an engine fault or a validator fault. Five rows (class I) are cases where the validator cannot say
 whether the name pins the intended stereoisomer. None of these groups has been shown harmless.
 
-**Highest-priority next action.** The WS2 coverage matrix is written ([NAMING_COVERAGE_MATRIX.md](NAMING_COVERAGE_MATRIX.md)); no probe has been run. `NL-108` is classified (the bicyclo[2.1.1]hexane Z matches CIP and OPSIN cannot verify it; the bicyclo[1.1.1]pentane omission is correct). Next is the first matrix cell, which is not part of this change. `NL-109` remains the cumulene axis. `NL-107` was fixed in round 92 (D-389). `NL-003` and `NL-004` were fixed in round 91 (D-388, descriptors dropped by atom, fewest first). `NL-070`, the one confirmed wrong molecule, is closed.
+**Highest-priority next action.** `NL-010` was run on 2026-11-03: As, Sb+, S(VI) and Se(VI) spiro atoms read back; the B− spiro is refused. The matrix is [NAMING_COVERAGE_MATRIX.md](NAMING_COVERAGE_MATRIX.md). Next matrix cell is `NL-011`. `NL-108` is classified. `NL-109` remains the cumulene axis. `NL-107` was fixed in round 92 (D-389). `NL-003` and `NL-004` were fixed in round 91 (D-388). `NL-070` is closed.
 
-**Workstreams.** WS0 confirmed defects: *empty* (`NL-070` closed in round 90). WS1 stereo audit: *active*, first pass done 2026-10-29 (`NL-003` and `NL-004` are needless flattening, `NL-001`, `NL-002` and the `NL-005` spiro case are validator limits with identity unresolved; `NL-003` and `NL-004` fixed in round 91). WS2 coverage probes: *active*, matrix written 2026-11-03, no probe run ([NAMING_COVERAGE_MATRIX.md](NAMING_COVERAGE_MATRIX.md)). WS3 source lookups: *active*,
+**Workstreams.** WS0 confirmed defects: *empty* (`NL-070` closed in round 90). WS1 stereo audit: *active*, first pass done 2026-10-29 (`NL-003` and `NL-004` are needless flattening, `NL-001`, `NL-002` and the `NL-005` spiro case are validator limits with identity unresolved; `NL-003` and `NL-004` fixed in round 91). WS2 coverage probes: *active*, matrix written 2026-11-03, `NL-010` run the same day and not met (the B− spiro is refused); [NAMING_COVERAGE_MATRIX.md](NAMING_COVERAGE_MATRIX.md). WS3 source lookups: *active*,
 not started. WS4 missing constructions: *deferred* (they round-trip today as von Baeyer names). WS5 older non-preferred names:
 *deferred*. WS6 historical clusters: split on 2026-10-27; the rows they left `carried` remain.
 
@@ -118,7 +118,7 @@ decision fields.
 | NL-007 | R42, R44, R45 | A quaternary N+ stereocentre has no descriptor: OPSIN reads one only for an acyclic N+, never the N+ of a bridged parent (ipratropium); the validator strips it. A descriptor at a primed spiro locant that parses as the wrong isomer would not be caught (none found in 79). | V | H | P2 | WS1 | carried |
 | NL-008 | R43 | E/Z is lost for a methyl-branched alkenyl substituent (`N-(2-methylbut-2-en-1-yl)acetamide` names both stereoisomers; the descriptor is collected and never reaches the substituent tree). | I | M | P1 | WS1 | carried |
 | NL-009 | R24, R45 | Four complex natural products lost stereo in the app in round 24 (atropine, scopolamine: tropane parents; galantamine; ibogaine). A fusion name cites its side-chain centre and not its ring-fusion ones (`bis([1,3]dioxolo)pyran`), a real stereo loss OPSIN cannot parse with descriptors. Not diagnosed; round 89 may have changed the tropane case. | I | M | P1 | WS1 | carried |
-| NL-010 | R88b | The heteroatoms probed as the spiro atom were Si, N+ and P+ only (not B-, As, Sb+, or S/Se at a higher valence). | U | H | P2 | WS2 | open |
+| NL-010 | R88b | The heteroatoms probed as the spiro atom were Si, N+ and P+ only (not B-, As, Sb+, or S/Se at a higher valence). **Run 2026-11-03** ([NAMING_COVERAGE_MATRIX.md](NAMING_COVERAGE_MATRIX.md)): As (`4-methyl-4lambda5-arsaspiro[3.4]octane`), Sb+ (`4-stibaspiro[3.4]octan-4-ium`), S(VI) and Se(VI) read back on the full InChIKey. B− (`C1CC[B-]12CCCC2`) is refused rather than named as the neutral `4lambda4-boraspiro[3.4]octane`. A tetracoordinate neutral As is a radical and is refused by the free-valence guard. | U | H | P2 | WS2 | open |
 | NL-011 | R88c | A system of three or more polycyclic components joined at spiro atoms was not generated. | U | H | P2 | WS2 | open |
 | NL-012 | R84c, R85a, R88e | Spiro partners not re-measured: an adamantane or tricyclic bridged partner with a substituent (round 88 did not reproduce it on its own molecules, not round 85's); a tetrahydropteridinone spiro-joined to an imidazoquinazolinone (unreadable); a pteridinone spiro-joined to a benzodiazepinone (`...-2',4-dione`, unreadable); a spiro of two methano-benzazocines (reads back as another molecule). | M | M | P1 | WS2 | open |
 | NL-013 | R81a, R83a | A purinone joined to a purine with no ring N-H (`1H-purin-1-yl`, `3H-purin-3-yl`) is named with the oxo on C8 and the substituent on C2: another molecule (3 of 6,500 pairs; the odd tautomers are the generator's). Round 83 fixed only the `6-oxo-9H-purin-N-yl` half and did not re-measure this. | M | M | P1 | WS2 | open |
@@ -221,7 +221,7 @@ An item is `closed` only when its closure criterion holds, with the evidence rec
 | NL-007 | None until a validator exists | Stays validator limitation |
 | NL-008 | Re-measure the one example on the current engine | Reproduces (defect row) or does not (record input, seed) |
 | NL-009 | Re-measure atropine, scopolamine, galantamine, ibogaine | Each classed |
-| NL-010 | Probe B-, As, Sb+, S/Se at a spiro atom | Coverage matrix met, or a defect row |
+| NL-010 | Decide the B− spiro. As, Sb+, S(VI) and Se(VI) read back on 2026-11-03. OPSIN reads `4-boranuidaspiro[3.4]octane` as `C1CC[B-]12CCCC2`; that spelling is not a verified target | Coverage matrix met, or a defect row |
 | NL-011 | Generate three-component spiro chains | Same |
 | NL-012 | Re-measure the four named molecules on the current engine | Each classed engine, validator, or not reproduced |
 | NL-013 | Re-measure the `1H-purin-1-yl` / `3H-purin-3-yl` pairs; adjudicate which tautomer the generator drew | Classed, or fixed with a regression row |
@@ -342,7 +342,7 @@ Priority order. The detail of method is in the programme's plan; the short form:
    **correct but underspecified** (a contract decision). Order: `NL-003`, `NL-002`, `NL-001`, then the spiro cases `NL-005`.
    `_name_pins_structure` stays strict. An RDKit labeller is not independent ground truth against another RDKit labeller.
 2. **WS2, coverage probes.** The matrix is [NAMING_COVERAGE_MATRIX.md](NAMING_COVERAGE_MATRIX.md), written 2026-11-03 before anything is generated (structural feature, stereo class, prior
-   coverage, planned variants, oracle, pass and fail criteria). No cell has been run. Unusual-spiro-atom probes stay separate from probes that challenge
+   coverage, planned variants, oracle, pass and fail criteria). `NL-010` was run the same day. Unusual-spiro-atom probes stay separate from probes that challenge
    stereo assignment. Reuse `tools/naming_variants.py` (frozen structures refused; use `--orderings` where atom order matters) and
    `tools/naming_ion_populations.py`. The seeds are `8901` and `8902`, recorded in the matrix.
 3. **WS3, source lookups before code.** Record the exact passage, page, rule and applicability. If the book does not settle it,
