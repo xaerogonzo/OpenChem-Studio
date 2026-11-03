@@ -3995,8 +3995,11 @@ def _render_amide_anion(
 
 _COMPOUND_PREFIX = re.compile(r"[-,\s()\[\]{}']|\d|[a-z](?:carbamoyl|sulfamoyl|amino|oxy|sulfanyl|carbonyl|amido)")
 # Inline substituent fused to an acyl stem without a separator (`chloroacetyl`).
+# Plain alkyl prefixes (`methyl` on `azanidyl`) stay solid: `(methylazanidyl)`, not
+# `((methyl)azanidyl)` (round 57 pins; naming round 93, D-391).
 _INLINE_ACYL_SUBSTITUENT = re.compile(
-    r"^(?:di|tri|tetra|bis\()?(?:chloro|bromo|fluoro|iodo|nitro|hydroxy|amino|methyl|ethyl|propyl|butyl|phenyl|cyclo|oxo|formyl|dimethyl|trimethyl)"
+    r"^(?:di|tri|tetra|bis\()?(?:chloro|bromo|fluoro|iodo|nitro|hydroxy|amino|oxo|formyl|dimethyl|trimethyl)"
+    r"(?:acetyl|propionyl|butyryl|glycolyl|lactyl|formyl|methanoyl|ethanoyl|propanoyl|butanoyl)"
 )
 
 
