@@ -1,0 +1,15 @@
+{"pdb": "7E2Y", "arm": "vina", "seed": 20261029, "byte_identical": true, "error": null, "bytes": 20358}
+{"pdb": "7E2Y", "arm": "vina", "seed": 20261030, "byte_identical": true, "error": null, "bytes": 20358}
+{"pdb": "7E2Y", "arm": "vina", "seed": 20261031, "byte_identical": true, "error": null, "bytes": 20358}
+{"pdb": "7E2Y", "arm": "smina-default", "seed": 20261029, "byte_identical": true, "error": null, "bytes": 19510}
+{"pdb": "7E2Y", "arm": "smina-default", "seed": 20261030, "byte_identical": true, "error": null, "bytes": 19508}
+{"pdb": "7E2Y", "arm": "smina-default", "seed": 20261031, "byte_identical": true, "error": null, "bytes": 19512}
+{"pdb": "7E2Y", "arm": "smina-vinardo", "seed": 20261029, "byte_identical": true, "error": null, "bytes": 19510}
+{"pdb": "7E2Y", "arm": "smina-vinardo", "seed": 20261030, "byte_identical": true, "error": null, "bytes": 19512}
+{"pdb": "7E2Y", "arm": "smina-vinardo", "seed": 20261031, "byte_identical": true, "error": null, "bytes": 19512}
+{"pdb": "7E2Y", "arm": "smina-dkoes_fast", "seed": 20261029, "byte_identical": true, "error": null, "bytes": 19510}
+{"pdb": "7E2Y", "arm": "smina-dkoes_fast", "seed": 20261030, "byte_identical": true, "error": null, "bytes": 19506}
+{"pdb": "7E2Y", "arm": "smina-dkoes_fast", "seed": 20261031, "byte_identical": true, "error": null, "bytes": 19511}
+{"pdb": "7E2Y", "arm": "smina-ad4", "seed": 20261029, "byte_identical": true, "error": null, "bytes": 19511}
+{"pdb": "7E2Y", "arm": "smina-ad4", "seed": 20261030, "byte_identical": true, "error": null, "bytes": 17337}
+{"pdb": "7E2Y", "arm": "smina-ad4", "seed": 20261031, "byte_identical": true, "error": null, "bytes": 19507}
