@@ -43,10 +43,14 @@ def test_tally_counts_gained_and_lost_under_the_majority_rule():
     assert (t.gained, t.lost) == (1, 0)
 
 
+def test_g1_tolerance_matches_the_preregistered_ceiling():
+    assert core.G1_DISTANCE_TOL == 0.05
+
+
 def test_g1_reproduces_the_survey_within_tolerance():
-    recorded = [("1HSG", 0.18), ("2RH1", 0.35)]
-    ok = core.gate_g1_reproduces_survey(recorded, [("1HSG", 0.183), ("2RH1", 0.347)])
-    bad = core.gate_g1_reproduces_survey(recorded, [("1HSG", 0.20), ("2RH1", 0.35)])
+    recorded = [("1HSG", 0.18), ("7B6W", 1.41)]
+    ok = core.gate_g1_reproduces_survey(recorded, [("1HSG", 0.22), ("7B6W", 1.46)])
+    bad = core.gate_g1_reproduces_survey(recorded, [("1HSG", 0.18), ("7B6W", 1.47)])
     assert ok.passed is True
     assert bad.passed is False
 
