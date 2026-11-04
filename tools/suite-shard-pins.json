@@ -1999,6 +1999,8 @@
   "tests/test_energetics_props_petn_evidence.py": 4,
   "tests/test_energetics_sensitivity.py": 0,
   "tests/test_energetics_thermophysical_comparison.py": 0,
+  "tests/test_engine_core.py": 2,
+  "tests/test_engine_g1_survey.py": 0,
   "tests/test_eqeq_instrument.py": 4,
   "tests/test_ertl_crosscheck.py": 3,
   "tests/test_execution_plan.py": 1,

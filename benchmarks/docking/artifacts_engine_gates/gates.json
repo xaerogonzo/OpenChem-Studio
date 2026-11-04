@@ -1,0 +1,19 @@
+{
+  "population": 47,
+  "pilot_only": false,
+  "g1_compared": 47,
+  "favorable_fractions": {},
+  "gates": [
+    {
+      "name": "G1",
+      "passed": false,
+      "detail": "5KIR recorded 0.9300 measured 0.9200; 7B6W recorded 1.4100 measured 1.4600"
+    }
+  ],
+  "first_failed": {
+    "name": "G1",
+    "passed": false,
+    "detail": "5KIR recorded 0.9300 measured 0.9200; 7B6W recorded 1.4100 measured 1.4600"
+  },
+  "overall_verdict": "INCONCLUSIVE"
+}

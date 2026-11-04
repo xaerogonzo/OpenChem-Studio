@@ -1,0 +1,70 @@
+{
+  "receptors": [
+    "4DKL",
+    "8EF5",
+    "5HK2",
+    "7M93",
+    "7E2Y",
+    "4IAR",
+    "6A93",
+    "6BQG",
+    "6KUX",
+    "6J8G",
+    "8ZYO",
+    "3EML",
+    "5C1M",
+    "4IB4",
+    "3PBL",
+    "3RZE",
+    "5I6X"
+  ],
+  "arms": {
+    "vina": {
+      "scored": 17,
+      "errors": 0,
+      "favorable": 17,
+      "total_pilot": 17,
+      "favorable_fraction": 1.0,
+      "suggested_min_fraction": 0.9412,
+      "failed_pdbs": []
+    },
+    "smina-default": {
+      "scored": 17,
+      "errors": 0,
+      "favorable": 17,
+      "total_pilot": 17,
+      "favorable_fraction": 1.0,
+      "suggested_min_fraction": 0.9412,
+      "failed_pdbs": []
+    },
+    "smina-vinardo": {
+      "scored": 17,
+      "errors": 0,
+      "favorable": 17,
+      "total_pilot": 17,
+      "favorable_fraction": 1.0,
+      "suggested_min_fraction": 0.9412,
+      "failed_pdbs": []
+    },
+    "smina-dkoes_fast": {
+      "scored": 17,
+      "errors": 0,
+      "favorable": 17,
+      "total_pilot": 17,
+      "favorable_fraction": 1.0,
+      "suggested_min_fraction": 0.9412,
+      "failed_pdbs": []
+    },
+    "smina-ad4": {
+      "scored": 17,
+      "errors": 0,
+      "favorable": 16,
+      "total_pilot": 17,
+      "favorable_fraction": 0.9412,
+      "suggested_min_fraction": 0.8824,
+      "failed_pdbs": [
+        "4DKL"
+      ]
+    }
+  }
+}

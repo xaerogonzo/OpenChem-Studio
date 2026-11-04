@@ -7,9 +7,9 @@ app could be configured to use one interpreter while the numbers were
 measured against another.
 
 So the tools are read from the SAME Settings the application uses. A
-benchmark then measures what the app actually runs, and anyone who has
-set the tools up through the UI can reproduce the tables without editing
-source.
+benchmark then measures what the app actually runs. `OPENCHEM_VINA` and
+`OPENCHEM_SMINA` override Settings when set (scripts and CI); smina is
+also configured under Settings > External tools > smina.
 """
 
 from __future__ import annotations
@@ -32,11 +32,14 @@ def _setting(key: str) -> str:
 
 
 def vina_executable() -> str:
+    override = os.environ.get("OPENCHEM_VINA", "")
+    if override:
+        return override
     path = _setting(VINA_SETTING)
     if not path:
         raise SystemExit(
             "No Vina executable is configured.\n"
-            "Set one via the Docking panel's 'Configure Vina...', then re-run."
+            "Set one via Settings > External tools > AutoDock Vina, or set OPENCHEM_VINA, then re-run."
         )
     return path
 
@@ -56,14 +59,18 @@ def admet_interpreter() -> str:
 #: inventing a Settings key for it would be app surface nothing reaches.
 #: Promote it to a Settings key the day an engine lands in `src/`.
 SMINA_ENV_VAR = "OPENCHEM_SMINA"
+SMINA_SETTING = "docking/smina_executable_path"
 
 
 def smina_executable() -> str:
-    path = os.environ.get(SMINA_ENV_VAR, "")
+    override = os.environ.get(SMINA_ENV_VAR, "")
+    if override:
+        return override
+    path = _setting(SMINA_SETTING)
     if not path:
         raise SystemExit(
-            f"No smina executable given. Set {SMINA_ENV_VAR} to smina.exe -- the\n"
-            "conda-forge win-64 build lands at <env>\\Library\\bin\\smina.exe."
+            f"No smina executable configured.\n"
+            "Set one via Settings > External tools > smina, or set {SMINA_ENV_VAR}, then re-run."
         )
     return path
 
