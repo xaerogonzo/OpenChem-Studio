@@ -2000,6 +2000,7 @@
   "tests/test_energetics_sensitivity.py": 0,
   "tests/test_energetics_thermophysical_comparison.py": 0,
   "tests/test_engine_core.py": 2,
+  "tests/test_engine_core_mutations.py": 3,
   "tests/test_engine_g1_survey.py": 0,
   "tests/test_engine_g2_score_only.py": 4,
   "tests/test_engine_g3_g4.py": 0,

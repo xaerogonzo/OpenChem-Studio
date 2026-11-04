@@ -48,11 +48,12 @@ def measure_g4_coverage(
 def run_g4_gate(receptors: list[str]):
     rows, docked, dropped = measure_g4_coverage(receptors)
     population = len(receptors)
-    if len(dropped) > core.G4_MAX_DROPPED:
+    drop_gate = core.gate_g4_paired_drops(len(dropped))
+    if not drop_gate.passed:
         gate = core.GateResult(
             "G4",
             False,
-            f"paired drop {len(dropped)} > {core.G4_MAX_DROPPED}: {', '.join(sorted(dropped))}",
+            f"{drop_gate.detail}: {', '.join(sorted(dropped))}",
         )
         return gate, rows, docked, dropped
     gate = core.gate_g4_coverage(docked, population)

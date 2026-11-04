@@ -231,6 +231,13 @@ def gate_g4_coverage(docked_per_arm: dict[str, int], population: int = 47) -> Ga
     return GateResult("G4", True, f"all arms >= {G4_MIN_DOCKED}/{population}")
 
 
+def gate_g4_paired_drops(n_dropped: int) -> GateResult:
+    """More than `G4_MAX_DROPPED` paired drops makes G4 fail (INCONCLUSIVE)."""
+    if n_dropped > G4_MAX_DROPPED:
+        return GateResult("G4", False, f"paired drop {n_dropped} > {G4_MAX_DROPPED}")
+    return GateResult("G4", True, f"paired drop {n_dropped} <= {G4_MAX_DROPPED}")
+
+
 def crystal_score_favorable(score: float | None) -> bool:
     """Finite `--score_only` affinity below zero on the app's crystal-ligand pipeline."""
     if score is None:

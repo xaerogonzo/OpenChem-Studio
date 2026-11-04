@@ -72,6 +72,12 @@ def test_g4_fails_when_an_arm_docks_too_few():
     assert core.gate_g4_coverage({"vina": 47, "smina-default": 44}).passed is True
 
 
+def test_g4_paired_drops_allow_three_and_fail_four():
+    assert core.gate_g4_paired_drops(3).passed is True
+    assert core.gate_g4_paired_drops(4).passed is False
+    assert core.G4_MAX_DROPPED == 3
+
+
 def test_g3_fails_on_any_mismatched_rerun():
     assert core.gate_g3_reproducible([]).passed is True
     assert core.gate_g3_reproducible(["vina seed 20261029: pose files differ"]).passed is False

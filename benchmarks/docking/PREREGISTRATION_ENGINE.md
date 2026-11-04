@@ -196,8 +196,12 @@ does not include.
    | `smina-dkoes_fast` | 17/17 | 46/47 (4PE5) | **16/17** |
    | `smina-ad4` | 16/17 (4DKL **+15.8**) | 45/47 (4DKL, 4PE5) | **15/17** |
 
-3. ~~Write the pure core module~~ **`engine_core.py` and `tests/test_engine_core.py` written**;
-   G5's threshold is now pinned. Remaining: mutation-checked gate tests.
+3. ~~Write the pure core module~~ **`engine_core.py` and `tests/test_engine_core.py` written.**
+   ~~mutation-checked gate tests~~ **Resolved 2026-11-04.** Thirteen in-process mutations of
+   the gate rules (tolerances, comparators, G4 drop cap, G5 pins, failed-gate
+   short-circuit, Bonferroni α, seed majority) are each killed by
+   `tests/test_engine_core_mutations.py`. A missing needle fails; the live file is
+   not rewritten.
 
 4. **QuickVina / Vina-GPU control:** not an arm (`docs/DOCKING_ENGINE_CANDIDATES.md`); no further
    control unless a future Amendment adds one.
@@ -238,3 +242,5 @@ say whether the move could have been prompted by them. No other receptor was doc
 3. **2026-11-04, G5 threshold.** Open item 2 closed. Favourable = affinity < 0. Pins stay the
    17-pilot fractions (16/17, ad4 15/17). Catalog 47-receptor `--score_only` PASSed all five
    arms (4PE5 on smina; 4DKL+4PE5 on ad4).
+4. **2026-11-04, gate mutations.** Open item 3 closed. `tests/test_engine_core_mutations.py`
+   kills 13 unique-needle edits of the G1–G5 rules in `engine_core.py`.
