@@ -159,6 +159,33 @@ def candidate_verdict(t: Tally) -> str:
     return "NULL"
 
 
+def row_top_correct(row: dict) -> bool | None:
+    """Whether this dock's top-ranked pose is within `SUCCESS_RMSD`; None when RMSD is missing."""
+    poses = row.get("poses") or []
+    if not poses:
+        return None
+    rmsd = poses[0].get("rmsd")
+    if rmsd is None:
+        return None
+    return float(rmsd) <= SUCCESS_RMSD
+
+
+def deciding_ids(
+    measurable: Sequence[str],
+    *,
+    dropped: Sequence[str],
+    overlap: frozenset[str] = TRAINING_OVERLAP,
+) -> tuple[str, ...]:
+    """Catalog ids that count for gained/lost: measurable minus G4 drops minus training overlap."""
+    skip = {x.upper() for x in dropped} | {x.upper() for x in overlap}
+    return tuple(p.upper() for p in measurable if p.upper() not in skip)
+
+
+def job_count(n_receptors: int) -> int:
+    """Deciding docks: every arm, every pinned seed, every deciding receptor."""
+    return n_receptors * len(G5_ARMS) * len(SEEDS)
+
+
 def control_is_neutral(outcomes: Sequence[PairOutcome], level: float = 0.05) -> bool:
     """Whether `smina-default` differs from `vina` at the two-sided level (search-code backdrop)."""
     discordant = [o for o in outcomes if o.before is not None and o.after is not None and o.before != o.after]

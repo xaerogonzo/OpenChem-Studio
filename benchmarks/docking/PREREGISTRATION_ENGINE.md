@@ -1,8 +1,9 @@
-# Preregistration 3 (DRAFT, NOT FROZEN): does docking with another scoring function put the right pose first?
+# Preregistration 3: does docking with another scoring function put the right pose first?
 
-Drafted 2026-11-02. **Nothing here is binding until a dated "Frozen" line is added at the end,
-and nothing may be scored for the deciding test before then.** Until then it may be edited
-freely; after, only by dated Amendment, as `PREREGISTRATION_PLEC2.md`. The context, the
+Written 2026-11-02. **Frozen 2026-11-04** by the commit that adds this section together with
+`run_engine_test.py` `list` / `dock` / `report`. Gates G1–G5 passed on the catalog before
+this freeze (G4 dropped 4PE5; `TRAINING_OVERLAP` empty). Nothing here may change after the
+first deciding dock is recorded. A change is a dated Amendment at the end. The context, the
 candidates and the licence questions are in `docs/DOCKING_ENGINE_CANDIDATES.md`; this file is
 only the test.
 
@@ -50,8 +51,9 @@ its 2.0 A cutoff, restated here so a later change to the survey cannot move this
 least 2 of the 3 seeds. One seed per arm would make every comparison a comparison of two draws,
 and the survey itself found three receptors within a few tenths of the cutoff.
 
-Cost: 5 arms x 3 seeds x 47 receptors = 705 dockings, about 20 to 50 s each on this machine,
-roughly 5 hours serial.
+Cost: 5 arms × 3 seeds × 46 receptors = **690** dockings (47 measurable minus the G4 drop
+4PE5; training overlap empty), about 20 to 50 s each on this machine, roughly 5 hours serial.
+`run_engine_test.py list` prints this count and starts nothing.
 
 ## Population
 
@@ -205,6 +207,14 @@ does not include.
 
 4. **QuickVina / Vina-GPU control:** not an arm (`docs/DOCKING_ENGINE_CANDIDATES.md`); no further
    control unless a future Amendment adds one.
+
+## Frozen
+
+Frozen 2026-11-04 by the commit that adds this section together with `run_engine_test.py`
+`list` / `dock` / `report` (`engine_dock.py`, `engine_judge.py`). Deciding docks are 5 arms
+× 3 seeds × 46 receptors = 690. `list` runs nothing; `dock` resumes a jsonl; `report` writes
+`RESULT.md` only when that jsonl is complete and from one clean commit. No deciding job was
+recorded before this freeze.
 
 ## What was looked at before this was drafted
 

@@ -16,6 +16,26 @@ sys.modules["engine_core"] = core
 _spec.loader.exec_module(core)
 
 
+def test_row_top_correct_uses_the_frozen_cutoff():
+    assert core.row_top_correct({"poses": [{"rmsd": 2.0}]}) is True
+    assert core.row_top_correct({"poses": [{"rmsd": 2.01}]}) is False
+    assert core.row_top_correct({"poses": []}) is None
+    assert core.row_top_correct({"poses": [{"rmsd": None}]}) is None
+
+
+def test_deciding_ids_drop_g4_and_training_overlap():
+    ids = core.deciding_ids(
+        ["1aaa", "4PE5", "1hsg"],
+        dropped=["4pe5"],
+        overlap=frozenset({"1HSG"}),
+    )
+    assert ids == ("1AAA",)
+
+
+def test_job_count_is_five_arms_times_three_seeds():
+    assert core.job_count(46) == 690
+
+
 def test_the_seed_majority_rule_needs_two_of_three():
     assert core.arm_correct((True, True, False)) is True
     assert core.arm_correct((True, False, False)) is False
