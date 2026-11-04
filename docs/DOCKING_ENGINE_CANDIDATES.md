@@ -28,7 +28,8 @@ are reused here, not repeated.
    calls are excluded, not counted as losses.
 4. **Do not build an engine seam.** Obtaining smina is still a nine-package conda closure, and
    that no longer matters for pose ranking. The product answer stays PR 508's sentence. Learned
-   scorers (gnina, DiffDock-class) are a **new program**, not an Amendment of this test.
+   scorers are a **new program**: slice 1 is the gnina obtain-and-start spike
+   (`docs/GNINA_SPIKE.md`), not an Amendment of this test.
 
 ## The candidates
 
@@ -153,13 +154,10 @@ a comparison means nothing unless the inputs reproduce something known):
    remain search-only.
 3. **The product answer stays PR 508's sentence** (pose 1 is the best-scoring pose, not a
    verified one), plus showing more than the top pose, which needs no new engine.
-4. **Learned scorers are the remaining pose-ranking program if one is started.** gnina
-   (CNN rescore / pose) and DiffDock-class diffusion models are a different question from
-   "another function in a Vina-family engine": they are not an Amendment of
-   `PREREGISTRATION_ENGINE.md`. They were not run here. gnina was previously declined for
-   WSL2 and a ~1.9 GB CUDA build; that is a setup cost, not a measured pose result. A new
-   preregistration would have to say the Windows/CUDA story, the training-overlap rule, and
-   whether the input is Vina's nine poses or a generated pose before any receptor is scored.
+4. **Learned scorers are a new program.** Slice 1 is `docs/GNINA_SPIKE.md` (obtain-and-start
+   in WSL2 + CUDA; no catalog receptor; nothing in `src/`). gnina v1.3.3's Linux static
+   binary is 2,056,131,000 bytes. A Frozen preregistration is a later slice and is not
+   written if the spike fails. DiffDock-class is not an automatic fallback.
 5. **QuickVina and Vina-GPU are worth revisiting only for speed**, never for pose choice, and
    only if a Windows binary with provenance appears.
 
