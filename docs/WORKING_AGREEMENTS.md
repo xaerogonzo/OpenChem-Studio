@@ -49,6 +49,7 @@ for the reasoning. Two notes stay in memory only, on purpose: the one about writ
 - [feedback-patchwork-means-find-the-root-cause](#feedback-patchwork-means-find-the-root-cause) — When I stack reactive guards on one flawed thing, Alex calls it patchwork — name the single root cause and the goal conflict, and write a rework record instead of adding another patch
 - [feedback-pipefail-before-chaining](#feedback-pipefail-before-chaining) — Never chain `pytest ... | tail && git commit/push` without `set -o pipefail`; tail exits 0 and the commit or push goes through on red. Happened twice on 2026-09-14
 - [feedback-pr-bodies-state-decisions-not-questions](#feedback-pr-bodies-state-decisions-not-questions) — A PR body states the decisions made and why; it never asks Alex questions or says \"for your review\" — he finds a question to himself in a PR strange
+- [feedback-pr-no-unchecked-test-plan-checklists](#feedback-pr-no-unchecked-test-plan-checklists) — Do not open PRs with `- [ ]` test-plan checklists the agent will not tick off; write Verified/Measured prose instead (Alex, 2026-11-04)
 - [feedback-prefers-newer-sources](#feedback-prefers-newer-sources) — Alex trusts sources with a literal newer publication year more, almost universally; he does NOT mean newer information; still note when a newer source is only a calculation or a compilation of older data
 - [feedback-propose-distinct-paper-filenames](#feedback-propose-distinct-paper-filenames) — When asking Alex for a paper whose author+year name is already taken in Sci Downloads, propose a distinct filename; he has had to rename collisions by hand several times
 - [feedback-run-every-tree-sweeping-guard](#feedback-run-every-tree-sweeping-guard) — A new tracked file type can fail a guard that sweeps the whole tree; I ran only the docs guards and CI caught the sources guard — run every tests/test_*_are_current.py before pushing docs/data
@@ -1392,11 +1393,21 @@ Alex reacted to #353's "For your review" section (an endpoint tag marked "my jud
 
 **Alex's follow-up (2026-10-16): "from now on before judgment calls let's confirm them before even opening PRs if possible."** So: when a PR rests on a real judgement call (an endpoint tag, which calculator to type, a definition, a threshold), ask in chat and wait BEFORE opening it; do not decide and open. The older "Go with your picks" still covers small implementation choices.
 
+**Alex (2026-11-04): unchecked `- [ ]` test-plan checklists.** Do not use GitHub task lists in the PR body for CI, merge steps, or fork ports unless the agent will check each item off in that same PR before handoff. Write **Verified** / **Measured** as prose (command + outcome). See `docs/feedback_pr_no_unchecked_test_plan_checklists.md`.
+
 **How to apply:** Confirm real judgement calls in chat first, name the PR they concern, and then write the confirmed decisions in the PR as a neutral "Decisions in this diff" section: what was chosen, why, and what changing it later would cost. No "for your review", no second person, no "my judgement" framing. If a call really is his, ask in chat BEFORE opening the PR, and say which PR it concerns. Findings and open limits still belong in the PR as plain statements. Reworded #353's body on 2026-10-16 (PATCH through stdin JSON). See `feedback-workflow-style`.
 
 #### Index line before it was shortened (2026-10-18, MEMORY.md has a size limit)
 
 - [PR bodies state decisions, not questions](feedback_pr_bodies_state_decisions_not_questions.md) — no "for your review" in a PR; CONFIRM real judgement calls in chat BEFORE opening the PR (his ask 2026-10-16), then state them as decisions
+
+## feedback-pr-no-unchecked-test-plan-checklists
+
+*Alex, 2026-11-04. Full text: [`docs/feedback_pr_no_unchecked_test_plan_checklists.md`](feedback_pr_no_unchecked_test_plan_checklists.md).*
+
+**Why:** Unchecked `- [ ]` items in a **Test plan** look like work left for Alex (CI, merge fork). Cursor agents often leave them empty because they cannot tick GitHub checkboxes as CI finishes.
+
+**How to apply:** No markdown task lists for CI or merge unless the agent checks every box in the same session before handoff. Use **Verified** / **Measured** prose (command + outcome). Naming rounds still use the NAMING_ROUNDS step-6 sections, not a checkbox test plan.
 
 ## feedback-prefers-newer-sources
 
