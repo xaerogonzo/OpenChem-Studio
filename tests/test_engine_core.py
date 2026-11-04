@@ -71,6 +71,16 @@ def test_g4_fails_when_an_arm_docks_too_few():
     assert core.gate_g4_coverage({"vina": 47, "smina-default": 44}).passed is True
 
 
+def test_g3_fails_on_any_mismatched_rerun():
+    assert core.gate_g3_reproducible([]).passed is True
+    assert core.gate_g3_reproducible(["vina seed 20261029: pose files differ"]).passed is False
+
+
+def test_training_overlap_stratum_is_empty_until_official_indexes():
+    assert core.TRAINING_OVERLAP == frozenset()
+    assert "dkoes-csar-hiq-2010-343" in core.TRAINING_PROVENANCE_UNRESOLVED
+
+
 def test_overall_verdict_is_inconclusive_when_a_gate_fails():
     gates = [core.GateResult("G1", False, "bad")]
     assert core.overall_verdict(gates, {"smina-vinardo": "PASS"}) == "INCONCLUSIVE"

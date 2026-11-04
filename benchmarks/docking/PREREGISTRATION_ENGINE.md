@@ -102,11 +102,11 @@ Each prints its inputs and its verdict; the runner stops at the first failure.
   receptors (the first five of the 17-receptor pilot list, `engine_g2_score_only.g2_receptors`)
   differs between Vina 1.2.7 and `smina-default` by at most 0.01 kcal/mol (the smina
   spike measured at most 0.004 on one ligand).
-- **G3, each arm is reproducible.** Re-running one receptor per arm and seed gives byte-identical
-  pose files.
+- **G3, each arm is reproducible.** Re-running one receptor (**7E2Y**) per arm and seed
+  (the three pinned seeds) gives byte-identical pose files (`engine_g3_repro.py`).
 - **G4, coverage.** Every arm docks at least 44 of the 47 receptors without error. A receptor
   an arm cannot dock is dropped for ALL arms (a paired test), and more than 3 dropped makes the
-  verdict INCONCLUSIVE.
+  verdict INCONCLUSIVE. `--pilot` skips G4 (it is a 47-receptor dock).
 - **G5, the functions are fed inputs they can read** (OPEN, see item 2). For each function the
   crystal ligand, prepared the same way, scores as a favourable complex on most receptors. The
   threshold is not set here because it has not been measured; it is fixed from the pilot
@@ -191,6 +191,14 @@ does not include.
    `uv run --no-sync python tools/build_engine_training_overlap.py`. Keep
    `TRAINING_PROVENANCE_UNRESOLVED` on the dkoes arm until HiQ `set1.csv` or the NRC tar
    replaces the proxy. Vinardo / Vina arms still need official PDBbind indexes.
+
+   **Measured 2026-11-04:** `tools/build_engine_training_overlap.py` against the held indexes.
+   DeepChem Core 2013 (193) ∩ catalog = **0**; BindingDB CSAR dkoes proxy (746) ∩ catalog = **0**.
+   `engine_core.TRAINING_OVERLAP` stays **empty** (those are the lists that belong to a
+   candidate). PDBbind+ 2020 general PL (19,037, complete on disk) ∩ catalog = **14** ids
+   (`1HSG` … `6BQG`); that index is not Vinardo's 122 nor Vina's 2007 set, so those 14 are
+   **not** the stratum. Unresolved: official Core 2013 / PDBbind 2007 / HiQ 343. Report:
+   `artifacts_engine_gates/training_overlap_report.json`.
 
 2. Measure G5 on the pilot receptors' crystal poses and fix its threshold.
    **Design (2026-11-03):** run G5 on **all five arms**. The gate is per function

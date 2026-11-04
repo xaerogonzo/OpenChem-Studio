@@ -68,9 +68,15 @@ G5_MIN_FRACTION: dict[str, float] = {
 }
 
 #: Catalogued receptors in any training-overlap stratum built from the primary sources in
-#: open item 1 of `PREREGISTRATION_ENGINE.md`. Populated before freeze from maintainer-held
-#: PDB lists (not committed: copyright and registration). Reported apart, never counted.
+#: open item 1 of `PREREGISTRATION_ENGINE.md`. Reported apart, never counted.
+#: Measured 2026-11-04: DeepChem PDBbind Core 2013 (193) and the BindingDB CSAR dkoes
+#: proxy (746) each intersect the catalog in **0** ids. The PDBbind+ 2020 general PL
+#: index (14 catalog hits) is not a candidate training set and is not this stratum.
 TRAINING_OVERLAP: frozenset[str] = frozenset()
+#: Official lists still missing; dkoes stays on the BindingDB proxy until HiQ 343.
+TRAINING_PROVENANCE_UNRESOLVED: frozenset[str] = frozenset(
+    {"vina-pdbbind-2007", "vinardo-core2013-official-122", "dkoes-csar-hiq-2010-343"}
+)
 
 GateName = Literal["G1", "G2", "G3", "G4", "G5"]
 

@@ -167,12 +167,20 @@ def build_report() -> dict:
         pl_audit = audit_pl_extraction(PDBBIND_DEMO, pl_ids)
         blocks.append(overlap_block("pdbbind_plus_demo_pl_index", pl_ids, catalog))
 
+    #: Only lists that belong to a candidate's training set (not PDBbind 2020 general PL).
+    stratum_sources = {
+        "pdbbind_core2013_deepchem",
+        "dkoes_training_proxy_bindingdb746",
+    }
     union = frozenset().union(
-        *(set(b["catalog_overlap"]) for b in blocks if "catalog_overlap" in b)
+        *(
+            set(b["catalog_overlap"])
+            for b in blocks
+            if b.get("source") in stratum_sources and "catalog_overlap" in b
+        )
     )
     return {
         "catalog_count": len(catalog),
-        "catalog_pdbs": sorted(catalog),
         "blocks": blocks,
         "training_overlap_stratum": sorted(union),
         "notes": {

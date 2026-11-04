@@ -3,9 +3,9 @@
     uv run --no-sync python benchmarks/docking/run_engine_test.py gates --out bench-out/engine
     uv run --no-sync python benchmarks/docking/run_engine_test.py gates --pilot
 
-`gates` runs the input-sanity gates in order (G1, G2, then G5 today; G3–G4 added as the test is built).
-A failed gate stops before later gates and before gained/lost; verdict is INCONCLUSIVE via
-`engine_core.overall_verdict`.
+`gates` runs the input-sanity gates in order (G1, G2, G3, G4, G5).
+`--pilot` skips G4 (the 47-receptor coverage dock). A failed gate stops later gates;
+verdict is INCONCLUSIVE via `engine_core.overall_verdict`.
 """
 
 from __future__ import annotations
@@ -20,6 +20,8 @@ sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
 import engine_core as core  # noqa: E402
 from engine_g1_survey import run_g1_gate  # noqa: E402
 from engine_g2_score_only import g2_receptors, run_g2_gate  # noqa: E402
+from engine_g3_repro import G3_RECEPTOR, run_g3_gate  # noqa: E402
+from engine_g4_coverage import run_g4_gate  # noqa: E402
 from engine_g5_crystal import measure_g5_crystal_scores  # noqa: E402
 from engine_pilot import ARM_NAME, pilot_receptors, recorded_rows  # noqa: E402
 
@@ -63,8 +65,10 @@ def run_gates(
 
     gates: list[core.GateResult] = [g1_gate]
     g2_rows: list[dict] = []
+    g3_rows: list[dict] = []
     g5_rows: list[dict] = []
     fractions: dict[str, float] = {}
+    report_extra: dict = {}
     if g1_gate.passed:
         g2_gate, g2_rows, _diffs = run_g2_gate()
         (out_dir / "g2_results.jsonl").write_text(
@@ -73,12 +77,34 @@ def run_gates(
         )
         gates.append(g2_gate)
         if g2_gate.passed:
-            g5_rows, fractions = measure_g5_crystal_scores(receptors)
-            (out_dir / "g5_results.jsonl").write_text(
-                "\n".join(json.dumps(r) for r in g5_rows) + ("\n" if g5_rows else ""),
+            g3_gate, g3_rows = run_g3_gate()
+            (out_dir / "g3_results.jsonl").write_text(
+                "\n".join(json.dumps(r) for r in g3_rows) + ("\n" if g3_rows else ""),
                 encoding="utf-8",
             )
-            gates.extend(core.gate_g5_all_arms(fractions))
+            gates.append(g3_gate)
+            g4_ok = g3_gate.passed
+            if g4_ok and not pilot:
+                g4_gate, g4_rows, docked, dropped = run_g4_gate(receptors)
+                (out_dir / "g4_results.jsonl").write_text(
+                    "\n".join(json.dumps(r) for r in g4_rows) + ("\n" if g4_rows else ""),
+                    encoding="utf-8",
+                )
+                gates.append(g4_gate)
+                g4_ok = g4_gate.passed
+                report_extra = {
+                    "g4_docked": docked,
+                    "g4_dropped": sorted(dropped),
+                }
+            elif pilot:
+                report_extra = {"g4_skipped": True}
+            if g4_ok:
+                g5_rows, fractions = measure_g5_crystal_scores(receptors)
+                (out_dir / "g5_results.jsonl").write_text(
+                    "\n".join(json.dumps(r) for r in g5_rows) + ("\n" if g5_rows else ""),
+                    encoding="utf-8",
+                )
+                gates.extend(core.gate_g5_all_arms(fractions))
 
     report = {
         "population": len(receptors),
@@ -86,6 +112,9 @@ def run_gates(
         "g1_compared": len(g1_rows),
         "g2_receptors": list(g2_receptors()),
         "g2_compared": len(g2_rows),
+        "g3_receptor": G3_RECEPTOR,
+        "g3_compared": len(g3_rows),
+        **report_extra,
         "favorable_fractions": {arm: round(fractions[arm], 6) for arm in core.G5_ARMS} if fractions else {},
         "gates": [_gate_dict(g) for g in gates],
         "first_failed": _gate_dict(f) if (f := core.first_failed_gate(gates)) else None,
@@ -104,7 +133,7 @@ def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     sub = parser.add_subparsers(dest="command", required=True)
 
-    gates = sub.add_parser("gates", help="Run input-sanity gates (G1, G2, then G5)")
+    gates = sub.add_parser("gates", help="Run input-sanity gates (G1–G5; --pilot skips G4)")
     gates.add_argument("--out", default="benchmarks/docking/artifacts_engine_gates")
     gates.add_argument(
         "--pilot",
