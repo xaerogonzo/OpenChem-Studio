@@ -1434,11 +1434,13 @@ def _try_articulation_split_spiro(
     # numbering gives the lowest spiro-atom locant (P-24.5.2).  When a
     # candidate NamedParent does not expose numbering options (e.g. the
     # monocyclic HW naming path), compute locants inline from HW rules.
-    def _best_for_side(named_list, sub_art_idx, sub_mol):
+    def _best_for_side(named_list, sub_art_idx, sub_mol, *, only_method: str | None = None):
         best = None
         best_loc = None
         best_fallback_locs = None
         for np, rs in named_list:
+            if only_method is not None and np.naming_method != only_method:
+                continue
             loc = _spiro_atom_locant_in_partner(sub_art_idx, np)
             fallback_locs = None
             if loc is None and rs.type == "monocyclic":
@@ -1561,9 +1563,28 @@ def _try_articulation_split_spiro(
     if score_a <= score_b:
         first_np, first_rs, first_loc, first_map, first_sub_art, first_fb = np_a, rs_a, loc_a, map_a, sub_art_a, fallback_a
         second_np, second_rs, second_loc, second_map, second_sub_art, second_fb = np_b, rs_b, loc_b, map_b, sub_art_b, fallback_b
+        second_named, second_sub = named_b, sub_b
     else:
         first_np, first_rs, first_loc, first_map, first_sub_art, first_fb = np_b, rs_b, loc_b, map_b, sub_art_b, fallback_b
         second_np, second_rs, second_loc, second_map, second_sub_art, second_fb = np_a, rs_a, loc_a, map_a, sub_art_a, fallback_a
+        second_named, second_sub = named_a, sub_a
+
+    # NL-012 shape 4 (two methano-benzazocines): citing the same ring-table PIN on
+    # both sides and taking P-24.5.2's lowest spiro locant on each copy yields
+    # ``...-4,1'-...`` which OPSIN reads as a different molecule.  The primed
+    # partner keeps the von Baeyer systematic name when one is available.
+    if first_np.name == second_np.name:
+        vb_only = [
+            (np, rs) for np, rs in second_named if np.naming_method == "von_baeyer"
+        ]
+        if vb_only:
+            vb_pick, vb_loc, vb_fb = _best_for_side(
+                vb_only, second_sub_art, second_sub, only_method="von_baeyer"
+            )
+            if vb_pick is not None and vb_loc is not None:
+                second_np, second_rs = vb_pick
+                second_loc = vb_loc
+                second_fb = vb_fb
 
     first_name = _format_smaller_partner_name(first_np.name, first=True)
     second_name = _format_smaller_partner_name(second_np.name)
