@@ -29,6 +29,18 @@ CORE_CSV = TRAINING_DIR / "pdbbind_extract/v2013-core/pdbbind_v2013_core.csv"
 CSAR_TSV = TRAINING_DIR / "BindingDB_CSAR.tsv"
 DKOES_PROXY_MANIFEST = TRAINING_DIR / "dkoes_csar_bindingdb_proxy.json"
 PDBBIND_PL_INDEX = PDBBIND_DEMO / "index/INDEX_general_PL.2020R1.lst"
+PDBBIND_2007_REFINED_INDEX = (
+    TRAINING_DIR
+    / "pdbbind_v2007_indexes/home/ubuntu/v2007/INDEX.2007.refined.data"
+)
+PDBBIND_2007_GENERAL_INDEX = (
+    TRAINING_DIR
+    / "pdbbind_v2007_indexes/home/ubuntu/v2007/INDEX.2007.general.data"
+)
+#: Nature Protocols 2018 Table S3 vs DeepChem's 193: the two missing Core 2013 codes.
+CORE2013_DEEPCHEM_GAP = frozenset({"3zso", "3zsx"})
+CORE2013_OFFICIAL_COUNT = 195
+VINA_PDBBIND_2007_REFINED_COUNT = 1300
 
 DKOES_PROXY_META = {
     "arm": "smina-dkoes_fast",
@@ -41,9 +53,9 @@ DKOES_PROXY_META = {
         "no set1.csv or KEEP_LIST.txt. BindingDB CSAR export is the held PDB index."
     ),
     "caveat": (
-        "818 CSAR-curated rows yield 746 unique PDB codes — not verified identical "
-        "to the HiQ 343 list; treat overlap at PDB-code level as conservative until "
-        "set1.csv arrives."
+        "818 CSAR-curated rows yield 746 unique PDB codes. HiQ 343 as a named file "
+        "was not recovered; freeze uses this CSAR index. Unconfirmed HiQ-era catalog "
+        "ids are not written into TRAINING_OVERLAP."
     ),
 }
 
@@ -147,8 +159,32 @@ def build_report() -> dict:
     if CORE_CSV.is_file():
         core = read_pdbbind_core2013(CORE_CSV)
         blocks.append(overlap_block("pdbbind_core2013_deepchem", core, catalog))
+        official = core | CORE2013_DEEPCHEM_GAP
+        if len(official) != CORE2013_OFFICIAL_COUNT:
+            raise SystemExit(
+                f"Core 2013 official reconstruction is {len(official)}, "
+                f"not {CORE2013_OFFICIAL_COUNT}"
+            )
+        blocks.append(overlap_block("pdbbind_core2013_official_195", official, catalog))
     else:
         blocks.append({"source": "pdbbind_core2013_deepchem", "missing": str(CORE_CSV)})
+
+    if PDBBIND_2007_REFINED_INDEX.is_file():
+        refined = read_pdbbind_pl_index(PDBBIND_2007_REFINED_INDEX)
+        if len(refined) != VINA_PDBBIND_2007_REFINED_COUNT:
+            raise SystemExit(
+                f"PDBbind 2007 refined is {len(refined)}, "
+                f"not {VINA_PDBBIND_2007_REFINED_COUNT}"
+            )
+        blocks.append(overlap_block("pdbbind_v2007_refined", refined, catalog))
+    else:
+        blocks.append(
+            {"source": "pdbbind_v2007_refined", "missing": str(PDBBIND_2007_REFINED_INDEX)}
+        )
+
+    if PDBBIND_2007_GENERAL_INDEX.is_file():
+        general = read_pdbbind_pl_index(PDBBIND_2007_GENERAL_INDEX)
+        blocks.append(overlap_block("pdbbind_v2007_general", general, catalog))
 
     dkoes_proxy: dict | None = None
     if CSAR_TSV.is_file():
@@ -167,9 +203,11 @@ def build_report() -> dict:
         pl_audit = audit_pl_extraction(PDBBIND_DEMO, pl_ids)
         blocks.append(overlap_block("pdbbind_plus_demo_pl_index", pl_ids, catalog))
 
-    #: Only lists that belong to a candidate's training set (not PDBbind 2020 general PL).
+    #: Only lists that belong to a candidate's training set (not PDBbind 2020 PL,
+    #: not 2007 general — Vina's paper names the refined set).
     stratum_sources = {
-        "pdbbind_core2013_deepchem",
+        "pdbbind_core2013_official_195",
+        "pdbbind_v2007_refined",
         "dkoes_training_proxy_bindingdb746",
     }
     union = frozenset().union(
@@ -187,7 +225,17 @@ def build_report() -> dict:
             "koes2013_si": (
                 "PMC3726561 supplement-1 (NIHMS443682-supplement-1_si_001.zip) matches "
                 "D:/Xaero Stuff/Documents/Sci Downloads/koes2013_si — RapidMiner only, "
-                "no HiQ PDB list. dkoes arm locked to BindingDB CSAR proxy manifest."
+                "no HiQ PDB list. dkoes arm uses BindingDB CSAR as the surviving CSAR "
+                "PDB index; HiQ 343 as a named file was not recovered and does not "
+                "populate TRAINING_OVERLAP."
+            ),
+            "vina_training": (
+                "Trott & Olson: training set for Vina is the PDBbind refined set. "
+                "Index: DGL pdbbind_v2007 INDEX.2007.refined.data, n=1300."
+            ),
+            "vinardo_training": (
+                "Quiroga 122 ⊂ PDBbind Core 2013 (195). Official 195 = DeepChem 193 "
+                "plus 3zso and 3zsx from Nature Protocols 2018 Table S3."
             ),
             "dkoes_proxy_manifest": str(DKOES_PROXY_MANIFEST) if dkoes_proxy else None,
             "pdbbind_pl_structures": pl_audit,
@@ -225,8 +273,12 @@ def main() -> None:
     )
     args = parser.parse_args()
     report = build_report()
+    payload = json.dumps(report, indent=2) + "\n"
     args.out.parent.mkdir(parents=True, exist_ok=True)
-    args.out.write_text(json.dumps(report, indent=2) + "\n", encoding="utf-8")
+    args.out.write_text(payload, encoding="utf-8")
+    artifact = ROOT / "benchmarks/docking/artifacts_engine_gates/training_overlap_report.json"
+    artifact.parent.mkdir(parents=True, exist_ok=True)
+    artifact.write_text(payload, encoding="utf-8")
     print(json.dumps(report, indent=2))
     if args.write_core:
         union = frozenset(report["training_overlap_stratum"])

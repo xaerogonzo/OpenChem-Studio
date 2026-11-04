@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import importlib.util
+import json
 import pathlib
 import sys
 
@@ -76,9 +77,29 @@ def test_g3_fails_on_any_mismatched_rerun():
     assert core.gate_g3_reproducible(["vina seed 20261029: pose files differ"]).passed is False
 
 
-def test_training_overlap_stratum_is_empty_until_official_indexes():
+def test_training_overlap_stratum_is_empty_on_held_official_indexes():
     assert core.TRAINING_OVERLAP == frozenset()
-    assert "dkoes-csar-hiq-2010-343" in core.TRAINING_PROVENANCE_UNRESOLVED
+    assert core.TRAINING_PROVENANCE_UNRESOLVED == frozenset()
+    assert core.CORE2013_DEEPCHEM_GAP == frozenset({"3ZSO", "3ZSX"})
+    assert core.VINA_PDBBIND_2007_REFINED_COUNT == 1300
+    report_path = (
+        pathlib.Path(__file__).parents[1]
+        / "benchmarks/docking/artifacts_engine_gates/training_overlap_report.json"
+    )
+    report = json.loads(report_path.read_text(encoding="utf-8"))
+    assert report["training_overlap_stratum"] == []
+    by_source = {block["source"]: block for block in report["blocks"]}
+    refined = by_source["pdbbind_v2007_refined"]
+    assert refined["training_count"] == 1300
+    assert refined["catalog_overlap_count"] == 0
+    official = by_source["pdbbind_core2013_official_195"]
+    assert official["training_count"] == 195
+    assert official["catalog_overlap_count"] == 0
+    dkoes = by_source["dkoes_training_proxy_bindingdb746"]
+    assert dkoes["training_count"] == 746
+    assert dkoes["catalog_overlap_count"] == 0
+    general = by_source["pdbbind_v2007_general"]
+    assert general["catalog_overlap"] == ["1hsg"]
 
 
 def test_overall_verdict_is_inconclusive_when_a_gate_fails():
@@ -90,6 +111,22 @@ def test_g5_min_fraction_pinned_from_pilot():
     assert core.G5_MIN_FRACTION["vina"] == pytest.approx(16 / 17)
     assert core.G5_MIN_FRACTION["smina-ad4"] == pytest.approx(15 / 17)
     assert set(core.G5_MIN_FRACTION) == set(core.G5_ARMS)
+
+
+def test_g5_catalog_artifact_passes_the_pinned_thresholds():
+    summary_path = (
+        pathlib.Path(__file__).parents[1]
+        / "benchmarks/docking/artifacts_engine_gates/g5_summary.json"
+    )
+    summary = json.loads(summary_path.read_text(encoding="utf-8"))
+    assert summary["population"] == 47
+    assert all(gate["passed"] for gate in summary["gates"])
+    fractions = summary["favorable_fractions"]
+    for arm, minimum in core.G5_MIN_FRACTION.items():
+        assert fractions[arm] >= minimum
+    assert summary["failed_pdbs"]["vina"] == []
+    assert summary["failed_pdbs"]["smina-default"] == ["4PE5"]
+    assert summary["failed_pdbs"]["smina-ad4"] == ["4DKL", "4PE5"]
 
 
 def test_g5_gate_uses_per_arm_threshold():

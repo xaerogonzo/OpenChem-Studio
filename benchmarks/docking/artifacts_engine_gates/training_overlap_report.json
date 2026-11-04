@@ -8,6 +8,26 @@
       "catalog_overlap_count": 0
     },
     {
+      "source": "pdbbind_core2013_official_195",
+      "training_count": 195,
+      "catalog_overlap": [],
+      "catalog_overlap_count": 0
+    },
+    {
+      "source": "pdbbind_v2007_refined",
+      "training_count": 1300,
+      "catalog_overlap": [],
+      "catalog_overlap_count": 0
+    },
+    {
+      "source": "pdbbind_v2007_general",
+      "training_count": 3124,
+      "catalog_overlap": [
+        "1hsg"
+      ],
+      "catalog_overlap_count": 1
+    },
+    {
       "source": "bindingdb_csar_202611",
       "training_count": 746,
       "catalog_overlap": [],
@@ -43,7 +63,9 @@
   ],
   "training_overlap_stratum": [],
   "notes": {
-    "koes2013_si": "PMC3726561 supplement-1 (NIHMS443682-supplement-1_si_001.zip) matches D:/Xaero Stuff/Documents/Sci Downloads/koes2013_si \u2014 RapidMiner only, no HiQ PDB list. dkoes arm locked to BindingDB CSAR proxy manifest.",
+    "koes2013_si": "PMC3726561 supplement-1 (NIHMS443682-supplement-1_si_001.zip) matches D:/Xaero Stuff/Documents/Sci Downloads/koes2013_si \u2014 RapidMiner only, no HiQ PDB list. dkoes arm uses BindingDB CSAR as the surviving CSAR PDB index; HiQ 343 as a named file was not recovered and does not populate TRAINING_OVERLAP.",
+    "vina_training": "Trott & Olson: training set for Vina is the PDBbind refined set. Index: DGL pdbbind_v2007 INDEX.2007.refined.data, n=1300.",
+    "vinardo_training": "Quiroga 122 \u2282 PDBbind Core 2013 (195). Official 195 = DeepChem 193 plus 3zso and 3zsx from Nature Protocols 2018 Table S3.",
     "dkoes_proxy_manifest": "E:\\My Area\\Claude\\OpenChem Studio\\docking\\training_indexes\\dkoes_csar_bindingdb_proxy.json",
     "pdbbind_pl_structures": {
       "present": true,

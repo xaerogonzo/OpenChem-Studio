@@ -1,0 +1,40 @@
+{
+  "population": 47,
+  "pilot_only": false,
+  "favorable_fractions": {
+    "vina": 1.0,
+    "smina-default": 0.978723,
+    "smina-vinardo": 0.978723,
+    "smina-dkoes_fast": 0.978723,
+    "smina-ad4": 0.957447
+  },
+  "gates": [
+    {
+      "name": "G5",
+      "passed": true,
+      "detail": "vina: favorable 1.000 need >= 0.941"
+    },
+    {
+      "name": "G5",
+      "passed": true,
+      "detail": "smina-default: favorable 0.979 need >= 0.941"
+    },
+    {
+      "name": "G5",
+      "passed": true,
+      "detail": "smina-vinardo: favorable 0.979 need >= 0.941"
+    },
+    {
+      "name": "G5",
+      "passed": true,
+      "detail": "smina-dkoes_fast: favorable 0.979 need >= 0.941"
+    },
+    {
+      "name": "G5",
+      "passed": true,
+      "detail": "smina-ad4: favorable 0.957 need >= 0.882"
+    }
+  ],
+  "first_failed": null,
+  "overall_verdict": "NULL"
+}

@@ -57,8 +57,10 @@ G5_ARMS = (
     "smina-ad4",
 )
 
-#: Minimum favourable fraction per arm, pinned at freeze from the 17 pilot receptors
+#: Minimum favourable fraction per arm, pinned from the 17-pilot crystal scores
 #: (`engine_g5_probe.py`, 2026-11-03): allow one miss on the pilot except ad4 (15/17).
+#: Catalog remeasure 2026-11-04 (47 receptors) passed these pins: vina 47/47, smina
+#: Vina-family 46/47 (4PE5), ad4 45/47 (4DKL and 4PE5).
 G5_MIN_FRACTION: dict[str, float] = {
     "vina": 16 / 17,
     "smina-default": 16 / 17,
@@ -67,16 +69,21 @@ G5_MIN_FRACTION: dict[str, float] = {
     "smina-ad4": 15 / 17,
 }
 
-#: Catalogued receptors in any training-overlap stratum built from the primary sources in
-#: open item 1 of `PREREGISTRATION_ENGINE.md`. Reported apart, never counted.
-#: Measured 2026-11-04: DeepChem PDBbind Core 2013 (193) and the BindingDB CSAR dkoes
-#: proxy (746) each intersect the catalog in **0** ids. The PDBbind+ 2020 general PL
-#: index (14 catalog hits) is not a candidate training set and is not this stratum.
+#: Catalogued receptors in any training-overlap stratum. Reported apart, never counted.
+#: Frozen empty 2026-11-04 on the held official indexes (see PREREGISTRATION_ENGINE.md
+#: open item 1, resolved): Vina PDBbind 2007 refined (n=1300) ∩ catalog = 0; Vinardo's
+#: 122 ⊂ Core 2013 official 195 ∩ catalog = 0; BindingDB CSAR dkoes proxy (746) ∩
+#: catalog = 0. PDBbind+ 2020 general PL (14 catalog hits) is not a training set.
 TRAINING_OVERLAP: frozenset[str] = frozenset()
-#: Official lists still missing; dkoes stays on the BindingDB proxy until HiQ 343.
-TRAINING_PROVENANCE_UNRESOLVED: frozenset[str] = frozenset(
-    {"vina-pdbbind-2007", "vinardo-core2013-official-122", "dkoes-csar-hiq-2010-343"}
-)
+#: Empty: every candidate arm's held training index has been intersected. HiQ 343 as a
+#: named file is still gone; that does not populate this set (unconfirmed ids stay out).
+TRAINING_PROVENANCE_UNRESOLVED: frozenset[str] = frozenset()
+#: Two Core 2013 codes in Nature Protocols 2018 Table S3 that DeepChem's 193 omit.
+#: 193 ∪ this = 195. Neither is in the catalog.
+CORE2013_DEEPCHEM_GAP: frozenset[str] = frozenset({"3ZSO", "3ZSX"})
+#: `INDEX.2007.refined.data` from the DGL v2007 redistrib (Trott: Vina trained on the
+#: PDBbind refined set). Count pinned so a truncated extract cannot silently look empty.
+VINA_PDBBIND_2007_REFINED_COUNT: int = 1300
 
 GateName = Literal["G1", "G2", "G3", "G4", "G5"]
 
