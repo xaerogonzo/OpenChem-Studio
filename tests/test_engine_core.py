@@ -47,6 +47,17 @@ def test_g1_tolerance_matches_the_preregistered_ceiling():
     assert core.G1_DISTANCE_TOL == 0.05
 
 
+def test_g2_same_function_uses_the_preregistered_score_tolerance():
+    assert core.G2_SCORE_TOL == 0.01
+    assert core.G2_RECEPTOR_COUNT == 5
+    ok = core.gate_g2_same_function([0.004, -0.01, 0.0])
+    bad = core.gate_g2_same_function([0.004, 0.011])
+    empty = core.gate_g2_same_function([])
+    assert ok.passed is True
+    assert bad.passed is False
+    assert empty.passed is False
+
+
 def test_g1_reproduces_the_survey_within_tolerance():
     recorded = [("1HSG", 0.18), ("7B6W", 1.41)]
     ok = core.gate_g1_reproduces_survey(recorded, [("1HSG", 0.22), ("7B6W", 1.46)])

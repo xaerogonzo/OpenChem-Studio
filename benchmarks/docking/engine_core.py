@@ -41,6 +41,8 @@ ALPHA = 0.05 / len(CANDIDATE_ARMS)
 G1_DISTANCE_TOL = 0.05
 #: G2: score-only agreement between Vina 1.2.7 and smina default (kcal/mol).
 G2_SCORE_TOL = 0.01
+#: G2 uses this many receptors from the closed 17-receptor pilot list (first N).
+G2_RECEPTOR_COUNT = 5
 #: G4: every arm must dock at least this many of the 47 measurable receptors.
 G4_MIN_DOCKED = 44
 #: G4: more than this many receptors dropped (paired) makes the verdict INCONCLUSIVE.

@@ -99,7 +99,8 @@ Each prints its inputs and its verdict; the runner stops at the first failure.
   tighter than the artifact. This is the lesson of the PLECscore test: a comparison is worthless
   if the harness no longer reproduces something known. Pilot: 17 of 17 reproduced at 0.05 A.
 - **G2, the control is the same function.** `--score_only` of nine fixed Vina poses on five
-  receptors differs between Vina 1.2.7 and `smina-default` by at most 0.01 kcal/mol (the smina
+  receptors (the first five of the 17-receptor pilot list, `engine_g2_score_only.g2_receptors`)
+  differs between Vina 1.2.7 and `smina-default` by at most 0.01 kcal/mol (the smina
   spike measured at most 0.004 on one ligand).
 - **G3, each arm is reproducible.** Re-running one receptor per arm and seed gives byte-identical
   pose files.
