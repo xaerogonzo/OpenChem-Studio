@@ -81,7 +81,9 @@ Twenty chains, seed `8901`. The joiner is round 88's (`D:\_scratch\r60\r88\bspir
 
 All twenty names are nested `spiro[spiro[...]]`. OPSIN 2.9.0 returns an empty SMILES for every one, so none read back. The cell is not met.
 
-The ring system is classed `bridged`, and `name_spiro` returns before the flat dispiro composer because `spiro_sizes` is empty. `name_polycyclic_spiro` then emits the nested name (`polyspiro_articulation`). On the first chain the composer, called on that same ring system, returns `dispiro[1-azabicyclo[2.2.2]octane-3,6'-8-oxabicyclo[3.2.1]octane-2',2''-adamantane]`, and OPSIN reads it as the input (the same canonical SMILES). That pair is `D-390`. Of the next four chains, the composer returned no name for one, and OPSIN read none of the other three flat names. Those nineteen stay without a target.
+**Re-run after naming round 93 (2026-11-03).** The same twenty chains and seed. Every emitted name is now a flat `dispiro[...]` (no nested `spiro[spiro[...]]`). OPSIN read-back: 3 ok, 17 unparsable (same three connectivity keys as before: first chain plus two others filed as `D-390`, `D-393`, `D-394`). Slowest name 2.26 s. The engine part of the cell is fixed; the matrix pass criterion (twenty read-backs) is still not met.
+
+The ring system is classed `bridged`, and `name_spiro` returns before the flat dispiro composer because `spiro_sizes` is empty. `name_polycyclic_spiro` then emitted the nested name (`polyspiro_articulation`). On the first chain the composer, called on that same ring system, returns `dispiro[1-azabicyclo[2.2.2]octane-3,6'-8-oxabicyclo[3.2.1]octane-2',2''-adamantane]`, and OPSIN reads it as the input (the same canonical SMILES). That pair is `D-390`. Of the next four chains, the composer returned no name for one, and OPSIN read none of the other three flat names. Those nineteen stay without a target.
 
 The same twenty chains, seed `8901`, were handed to `_try_multicomponent_spiro` again. Three flat names read back on the connectivity key (`D-390`, `D-393`, `D-394`). Fourteen flat names OPSIN does not parse. Three chains have no flat name. The nested names are still what is emitted. The cell is not met.
 
