@@ -1,0 +1,60 @@
+{
+  "population": 47,
+  "favorable_fractions": {
+    "vina": 1.0,
+    "smina-default": 0.978723,
+    "smina-vinardo": 0.978723,
+    "smina-dkoes_fast": 0.978723,
+    "smina-ad4": 0.957447
+  },
+  "pinned_min_fraction": {
+    "vina": 0.941176,
+    "smina-default": 0.941176,
+    "smina-vinardo": 0.941176,
+    "smina-dkoes_fast": 0.941176,
+    "smina-ad4": 0.882353
+  },
+  "gates": [
+    {
+      "name": "G5",
+      "passed": true,
+      "detail": "vina: favorable 1.000 need >= 0.941"
+    },
+    {
+      "name": "G5",
+      "passed": true,
+      "detail": "smina-default: favorable 0.979 need >= 0.941"
+    },
+    {
+      "name": "G5",
+      "passed": true,
+      "detail": "smina-vinardo: favorable 0.979 need >= 0.941"
+    },
+    {
+      "name": "G5",
+      "passed": true,
+      "detail": "smina-dkoes_fast: favorable 0.979 need >= 0.941"
+    },
+    {
+      "name": "G5",
+      "passed": true,
+      "detail": "smina-ad4: favorable 0.957 need >= 0.882"
+    }
+  ],
+  "failed_pdbs": {
+    "vina": [],
+    "smina-default": [
+      "4PE5"
+    ],
+    "smina-vinardo": [
+      "4PE5"
+    ],
+    "smina-dkoes_fast": [
+      "4PE5"
+    ],
+    "smina-ad4": [
+      "4DKL",
+      "4PE5"
+    ]
+  }
+}

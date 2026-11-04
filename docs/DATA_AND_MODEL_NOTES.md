@@ -349,10 +349,14 @@ BindingDB/ChEMBL affinity set for library targets — the latter being its own
 branch with its own curation and leakage analysis, and producing numbers not
 comparable to any published table.
 
-Consequence: the Vinardo-vs-Vina training-overlap question is
-`TRAINING_PROVENANCE_UNRESOLVED`, not clean. quiroga2016 §3.1 names the
-selection set (122 of 195 PDBbind Core 2013) and Vina was trained on PDBbind
-2007; neither code list is obtainable either.
+Consequence **for ranking power / CASF affinities**: still
+`TRAINING_PROVENANCE_UNRESOLVED` in `rescore_power.py` — that benchmark needs
+the CASF affinity tables, which this machine still does not hold.
+
+**Pose-ranking engine prereg (2026-11-04), different question:** catalog PDB-id
+overlap on the held indexes is empty (`engine_core.TRAINING_OVERLAP`). Vina:
+PDBbind 2007 refined, n=1300. Vinardo: Core 2013 official 195 (DeepChem 193 plus
+`3ZSO`/`3ZSX`). dkoes: BindingDB CSAR 746. That does not reopen ranking power.
 
 #### What WAS measured, and it is a null
 

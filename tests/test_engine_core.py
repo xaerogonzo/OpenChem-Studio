@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import importlib.util
+import json
 import pathlib
 import sys
 
@@ -13,6 +14,26 @@ _spec = importlib.util.spec_from_file_location("engine_core", _PATH)
 core = importlib.util.module_from_spec(_spec)
 sys.modules["engine_core"] = core
 _spec.loader.exec_module(core)
+
+
+def test_row_top_correct_uses_the_frozen_cutoff():
+    assert core.row_top_correct({"poses": [{"rmsd": 2.0}]}) is True
+    assert core.row_top_correct({"poses": [{"rmsd": 2.01}]}) is False
+    assert core.row_top_correct({"poses": []}) is None
+    assert core.row_top_correct({"poses": [{"rmsd": None}]}) is None
+
+
+def test_deciding_ids_drop_g4_and_training_overlap():
+    ids = core.deciding_ids(
+        ["1aaa", "4PE5", "1hsg"],
+        dropped=["4pe5"],
+        overlap=frozenset({"1HSG"}),
+    )
+    assert ids == ("1AAA",)
+
+
+def test_job_count_is_five_arms_times_three_seeds():
+    assert core.job_count(46) == 690
 
 
 def test_the_seed_majority_rule_needs_two_of_three():
@@ -47,6 +68,17 @@ def test_g1_tolerance_matches_the_preregistered_ceiling():
     assert core.G1_DISTANCE_TOL == 0.05
 
 
+def test_g2_same_function_uses_the_preregistered_score_tolerance():
+    assert core.G2_SCORE_TOL == 0.01
+    assert core.G2_RECEPTOR_COUNT == 5
+    ok = core.gate_g2_same_function([0.004, -0.01, 0.0])
+    bad = core.gate_g2_same_function([0.004, 0.011])
+    empty = core.gate_g2_same_function([])
+    assert ok.passed is True
+    assert bad.passed is False
+    assert empty.passed is False
+
+
 def test_g1_reproduces_the_survey_within_tolerance():
     recorded = [("1HSG", 0.18), ("7B6W", 1.41)]
     ok = core.gate_g1_reproduces_survey(recorded, [("1HSG", 0.22), ("7B6W", 1.46)])
@@ -60,6 +92,42 @@ def test_g4_fails_when_an_arm_docks_too_few():
     assert core.gate_g4_coverage({"vina": 47, "smina-default": 44}).passed is True
 
 
+def test_g4_paired_drops_allow_three_and_fail_four():
+    assert core.gate_g4_paired_drops(3).passed is True
+    assert core.gate_g4_paired_drops(4).passed is False
+    assert core.G4_MAX_DROPPED == 3
+
+
+def test_g3_fails_on_any_mismatched_rerun():
+    assert core.gate_g3_reproducible([]).passed is True
+    assert core.gate_g3_reproducible(["vina seed 20261029: pose files differ"]).passed is False
+
+
+def test_training_overlap_stratum_is_empty_on_held_official_indexes():
+    assert core.TRAINING_OVERLAP == frozenset()
+    assert core.TRAINING_PROVENANCE_UNRESOLVED == frozenset()
+    assert core.CORE2013_DEEPCHEM_GAP == frozenset({"3ZSO", "3ZSX"})
+    assert core.VINA_PDBBIND_2007_REFINED_COUNT == 1300
+    report_path = (
+        pathlib.Path(__file__).parents[1]
+        / "benchmarks/docking/artifacts_engine_gates/training_overlap_report.json"
+    )
+    report = json.loads(report_path.read_text(encoding="utf-8"))
+    assert report["training_overlap_stratum"] == []
+    by_source = {block["source"]: block for block in report["blocks"]}
+    refined = by_source["pdbbind_v2007_refined"]
+    assert refined["training_count"] == 1300
+    assert refined["catalog_overlap_count"] == 0
+    official = by_source["pdbbind_core2013_official_195"]
+    assert official["training_count"] == 195
+    assert official["catalog_overlap_count"] == 0
+    dkoes = by_source["dkoes_training_proxy_bindingdb746"]
+    assert dkoes["training_count"] == 746
+    assert dkoes["catalog_overlap_count"] == 0
+    general = by_source["pdbbind_v2007_general"]
+    assert general["catalog_overlap"] == ["1hsg"]
+
+
 def test_overall_verdict_is_inconclusive_when_a_gate_fails():
     gates = [core.GateResult("G1", False, "bad")]
     assert core.overall_verdict(gates, {"smina-vinardo": "PASS"}) == "INCONCLUSIVE"
@@ -69,6 +137,22 @@ def test_g5_min_fraction_pinned_from_pilot():
     assert core.G5_MIN_FRACTION["vina"] == pytest.approx(16 / 17)
     assert core.G5_MIN_FRACTION["smina-ad4"] == pytest.approx(15 / 17)
     assert set(core.G5_MIN_FRACTION) == set(core.G5_ARMS)
+
+
+def test_g5_catalog_artifact_passes_the_pinned_thresholds():
+    summary_path = (
+        pathlib.Path(__file__).parents[1]
+        / "benchmarks/docking/artifacts_engine_gates/g5_summary.json"
+    )
+    summary = json.loads(summary_path.read_text(encoding="utf-8"))
+    assert summary["population"] == 47
+    assert all(gate["passed"] for gate in summary["gates"])
+    fractions = summary["favorable_fractions"]
+    for arm, minimum in core.G5_MIN_FRACTION.items():
+        assert fractions[arm] >= minimum
+    assert summary["failed_pdbs"]["vina"] == []
+    assert summary["failed_pdbs"]["smina-default"] == ["4PE5"]
+    assert summary["failed_pdbs"]["smina-ad4"] == ["4DKL", "4PE5"]
 
 
 def test_g5_gate_uses_per_arm_threshold():

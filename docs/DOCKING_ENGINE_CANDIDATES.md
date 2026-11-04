@@ -1,11 +1,13 @@
 # Docking engine candidates: can a second native Windows engine pick the right pose more often?
 
-Run 2026-11-02. This is the owner's "option 3" after the pose-choice sentence (PR 508), the
-redocking survey (PR 502, `benchmarks/docking/PREP_BOX_RESULT.md`) and the two PLECscore tests
-(`RESULT_PLEC.md`, inconclusive; `RESULT_PLEC2.md`, harmful). Nothing is added to `src/` and
-nothing ships: this is a measurement and a recommendation. The spike that preceded it is
-`ROADMAP.md`, "Ranking affinities" (smina, finished 2026-09-12 and stopped at its findings);
-its findings are reused here, not repeated.
+Pilot run 2026-11-02; deciding test frozen and run 2026-11-04
+(`PREREGISTRATION_ENGINE.md`, `artifacts_engine/RESULT.md`). This is the owner's
+"option 3" after the pose-choice sentence (PR 508), the redocking survey (PR 502,
+`benchmarks/docking/PREP_BOX_RESULT.md`) and the two PLECscore tests (`RESULT_PLEC.md`,
+inconclusive; `RESULT_PLEC2.md`, harmful). Nothing is added to `src/` and nothing ships:
+this is a measurement and a recommendation. The spike that preceded it is `ROADMAP.md`,
+"Ranking affinities" (smina, finished 2026-09-12 and stopped at its findings); its findings
+are reused here, not repeated.
 
 ## The short answer
 
@@ -14,20 +16,19 @@ its findings are reused here, not repeated.
    receptors whose correct pose Vina finds and ranks lower, which is a scoring question. So the
    speed-ups are not candidates for this problem, and neither has a native Windows binary that
    was obtainable and runnable here anyway (table).
-2. **smina is the one candidate that runs natively and brings other scoring functions.** It
+2. **smina is the one Vina-family engine that ran natively with other scoring functions.** It
    ran here from a clean folder of 27 files (7.4 MB, 2.8 MB zipped) with a bare `PATH`. Its
-   default function reproduced Vina's calls on all 17 pilot receptors, so the harness is sound;
-   its other functions gave a mixed picture on 17 receptors and one seed (below). That is a
-   reason to run the preregistered test, not a result.
-3. **Obtaining it is the hard part, not running it.** smina has no single-file Windows
-   release. The only Windows build found is the conda-forge package, whose runtime comes from 9
-   conda packages. It does not fit the "download one exe" path Vina uses in External Tools
-   (`tool_download_service.py`).
-4. **Recommendation:** do not build an engine seam yet. Finish the open items of
-   `benchmarks/docking/PREREGISTRATION_ENGINE.md` (a draft, not frozen), run it (about 5
-   hours of compute), and decide on engineering only if a candidate function gains on the
-   headroom. A null closes the route on a measured footing and leaves PR 508's sentence as the
-   product answer.
+   default function matched Vina on the 17-receptor pilot and again on all 46 deciding
+   receptors (control is neutral). That harness is sound.
+3. **The frozen deciding test is closed: overall HARMFUL.** 5 arms × 3 seeds × 46 receptors
+   (G4 drop 4PE5; training overlap empty) = 690 docks. Primary vs Vina:
+   `smina-vinardo` NULL (0 gained, 1 lost among 20 comparable), `smina-dkoes_fast` HARMFUL
+   (0/8 among 17), `smina-ad4` HARMFUL (3/15 among 46). Vinardo and dkoes_fast majority calls
+   were incomplete on the rest (`setup: ligand could not be built` on some seeds); incomplete
+   calls are excluded, not counted as losses.
+4. **Do not build an engine seam.** Obtaining smina is still a nine-package conda closure, and
+   that no longer matters for pose ranking. The product answer stays PR 508's sentence. Learned
+   scorers (gnina, DiffDock-class) are a **new program**, not an Amendment of this test.
 
 ## The candidates
 
@@ -40,10 +41,10 @@ its findings are reused here, not repeated.
 | **smina** | 2020.12.10, built 2025-07-15, "Based on AutoDock Vina 1.1.2" | Apache-2.0 for the Vina-derived code and a GPL-2.0 file (`LICENSE.GNU`) in the source mirror; conda-forge lists Apache-2.0. The binary links Open Babel 3.2.1, which conda-forge lists as GPL-2.0-only | conda-forge `win-64/smina-2020.12.10-he0c23c2_2.conda`, 389,686 bytes (sha256 `dac05f31268b054c...7d46`); `smina.exe` 1,180,160 bytes (sha256 `486a5908fdafd477...13af`). Runtime closure: 27 files, 7.4 MB, from 9 conda packages (smina, openbabel, libboost, zstd, liblzma, libzlib, bzip2, ucrt, vc14_runtime) | **Yes**: from the conda env, and from the 27-file folder with `PATH=C:\Windows\System32` | `default` (= Vina's, agrees to 0.004 kcal/mol in the spike), `vinardo`, `dkoes_fast`, `dkoes_scoring`, `ad4_scoring`, custom | Runs as a child process like Vina. Needs a packaging decision (below) |
 | **QuickVina 2.1 / QuickVina-W** | repo `QVina/qvina`, last commit 2022-11-07; no releases | Apache-2.0 (GitHub) | **None.** `bin/` holds Linux ELF files only (`qvina2.1` is 4,277,120 bytes, sha256 `bc1f9088...b43d`, first bytes `7F 45 4C 46`). No compiler (`cl`, `g++`, `gcc`) is on this machine's `PATH`, so no Windows build was attempted | No | Vina's own; its README reports 0.967 Pearson correlation with Vina's first-mode energy | Not a candidate for pose choice (search only); not obtainable for Windows |
 | **Vina-GPU 2.1** (QuickVina2-GPU, QuickVina-W-GPU variants) | repo `DeltaGroupNJUPT/Vina-GPU-2.1`, last push 2024-10-01; no releases | Apache-2.0 (GitHub) | The repository itself commits `AutoDock-Vina-GPU-2.1/Vina-GPU+.exe`: 651,776 bytes, x86-64 PE, linker time 2022-09-22 (older than the repo's 2.1 label), sha256 `5e47ced0...cf6be`, imports `OpenCL.dll` and the MSVC runtime only, plus precompiled kernels (`Kernel1_Opt.bin`, `Kernel2_Opt.bin`). Needs a GPU with an OpenCL driver (CUDA only if one builds for it) | **No.** I inspected the PE imports and stopped there: running an unsigned, unreleased binary taken from a repository was refused by the session's permission layer and I did not work around it | Vina's own | Not a candidate for pose choice (search only); needs a GPU most users lack |
-| **AutoDock4 (4.2.6)** | 4.2.6 | GPL (Scripps download page: "distributed freely under the GNU GPL") | One installer, `autodocksuite-4.2.6.i86Windows.exe` (per the download page; size not stated) | No: it is an installer, and installers are not run in this task | AD4 force field (a different family); needs `autogrid4` maps, so not a drop-in | Possible later; smina's `ad4_scoring` is the stand-in for the function |
+| **AutoDock4 (4.2.6)** | 4.2.6 | GPL (Scripps download page: "distributed freely under the GNU GPL") | One installer, `autodocksuite-4.2.6.i86Windows.exe` (per the download page; size not stated) | No: it is an installer, and installers are not run in this task | AD4 force field (a different family); needs `autogrid4` maps, so not a drop-in | smina `ad4_scoring` was the stand-in and was HARMFUL on the frozen test |
 | **AutoDock-GPU** | repo `ccsb-scripps/AutoDock-GPU`, active 2026-08 | GPL-2.0 plus LGPL files (GitHub) | None. The README's tested-platform table lists Linux and macOS; it is OpenCL or CUDA | No | AD4 on GPU | No |
 | **Uni-Dock** | repo `dptech-corp/Uni-Dock`, active 2026-07 | Apache-2.0 (GitHub) | None found; the repository's README does not mention Windows, and the code is C++ and CUDA | No | Vina, Vinardo, AD4 (per its description) | No (CUDA) |
-| **gnina** | | | | Ruled out by the owner (WSL2 and a ~1.9 GB CUDA build) | | |
+| **gnina** | | | | Not run. Ruled out 2026-11-02 (WSL2 and a ~1.9 GB CUDA build). Reopened 2026-11-04 as a possible **separate** learned-scorer program, not this test | CNN / gnina | Needs CUDA/WSL on this machine; not a Vina-family function |
 | **LeDock, PLANTS, DOCK 6, rDock** | | Closed or academic-licence programs (LeDock has a Windows release per Wikipedia and the vendor's announcement; DOCK 6 is free for academic use and charged for industry per UCSF's page); redistribution terms not read; rDock's platform support not verified | Not looked for further | No | Their own | Not pursued: a bundled or app-downloaded closed binary needs a licence the project does not have, and none was checked |
 
 What the table does not claim: no engine other than smina and Vina was started, so "does not
@@ -66,7 +67,10 @@ Not legal advice; this is how the project already treats Vina, ORCA and xtb.
   Babel, but the source-offer obligations would be new and should be read by the owner before
   anything is bundled.
 
-### How the app could obtain smina (not built)
+### How the app could obtain smina (will not be built for pose ranking)
+
+The frozen test closed the pose-ranking reason to ship smina. The three obtain paths below
+are left as the spike recorded them; none of them should be started for this question.
 
 Vina is one file on a GitHub release. smina is not.
 
@@ -133,29 +137,30 @@ a comparison means nothing unless the inputs reproduce something known):
   its "best of nine" and its gains cannot be read like the others. Open Babel's PDBQT may not
   carry the atom types and charges that function expects. This is the same warning as the
   PLECscore test (a confident number from a function fed inputs it does not read) and it is why
-  the draft test has an input gate for it (G5) that is not yet set.
+  the frozen test has an input gate for it (G5) that later PASSed on the catalog.
 - smina's own `--version` states it is based on AutoDock Vina 1.1.2, while the app's Vina is
   1.2.7. Identical calls on 17 of 17 receptors do not mean identical poses on every
   receptor, only that the pilot found no receptor where the two differ.
 
 ## Recommendation
 
-1. **Do not add an engine to the application on this evidence.** It would start the provider
-   seam work the smina spike listed (an injected rescorer, an engine-qualified rescore id,
-   per-engine function vocabularies) and a packaging decision, for a gain nobody has measured
-   on more than a loaded 17.
-2. **Run the full preregistered test next**, after its open items
-   (`PREREGISTRATION_ENGINE.md`): the training-overlap stratum for each function, the input gate
-   for `ad4_scoring`, and the pure core with its tests. The test is five arms, three seeds, 47
-   receptors, about 705 dockings. Its honest power is low: with 9 receptors of headroom a PASS at
-   the corrected level needs 6 gained and none lost, so it can show a large gain or harm and
-   will read a small real gain as a null.
-3. **If a function passes**, the decision is then packaging (the three options above) and the
-   seam work. If none does, "another scoring function in a Vina-family engine" is closed, the
-   remaining routes are ML scorers (gnina is ruled out; others are untested here), and the
-   product answer stays PR 508's sentence plus showing more than the top pose, which needs no
-   new engine.
-4. **QuickVina and Vina-GPU are worth revisiting only for speed**, never for pose choice, and
+1. **Do not add an engine to the application.** The frozen test is overall HARMFUL
+   (`artifacts_engine/RESULT.md`). A seam (injected rescorer, engine-qualified rescore id,
+   per-engine function vocabularies) and a smina packaging path would be engineering for a
+   route that is closed.
+2. **The Vina-family scoring-function route is closed.** `smina-default` matched Vina on 46
+   of 46. Vinardo is NULL. `dkoes_fast` and `ad4_scoring` are HARMFUL. QuickVina and Vina-GPU
+   remain search-only.
+3. **The product answer stays PR 508's sentence** (pose 1 is the best-scoring pose, not a
+   verified one), plus showing more than the top pose, which needs no new engine.
+4. **Learned scorers are the remaining pose-ranking program if one is started.** gnina
+   (CNN rescore / pose) and DiffDock-class diffusion models are a different question from
+   "another function in a Vina-family engine": they are not an Amendment of
+   `PREREGISTRATION_ENGINE.md`. They were not run here. gnina was previously declined for
+   WSL2 and a ~1.9 GB CUDA build; that is a setup cost, not a measured pose result. A new
+   preregistration would have to say the Windows/CUDA story, the training-overlap rule, and
+   whether the input is Vina's nine poses or a generated pose before any receptor is scored.
+5. **QuickVina and Vina-GPU are worth revisiting only for speed**, never for pose choice, and
    only if a Windows binary with provenance appears.
 
 ## Reproducing

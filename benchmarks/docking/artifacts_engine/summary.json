@@ -1,0 +1,82 @@
+{
+  "n_deciding": 46,
+  "n_rows": 690,
+  "n_expected": 690,
+  "n_missing": 0,
+  "unevaluable": null,
+  "control_is_neutral": true,
+  "control_tally": {
+    "compared": 46,
+    "gained": 0,
+    "lost": 0,
+    "unchanged": 46
+  },
+  "primary": {
+    "smina-ad4": "HARMFUL",
+    "smina-dkoes_fast": "HARMFUL",
+    "smina-vinardo": "NULL"
+  },
+  "candidates": {
+    "smina-ad4": {
+      "vs_vina": {
+        "tally": {
+          "compared": 46,
+          "gained": 3,
+          "lost": 15,
+          "unchanged": 28
+        },
+        "verdict": "HARMFUL"
+      },
+      "vs_default": {
+        "tally": {
+          "compared": 46,
+          "gained": 3,
+          "lost": 15,
+          "unchanged": 28
+        },
+        "verdict": "HARMFUL"
+      }
+    },
+    "smina-dkoes_fast": {
+      "vs_vina": {
+        "tally": {
+          "compared": 17,
+          "gained": 0,
+          "lost": 8,
+          "unchanged": 9
+        },
+        "verdict": "HARMFUL"
+      },
+      "vs_default": {
+        "tally": {
+          "compared": 17,
+          "gained": 0,
+          "lost": 8,
+          "unchanged": 9
+        },
+        "verdict": "HARMFUL"
+      }
+    },
+    "smina-vinardo": {
+      "vs_vina": {
+        "tally": {
+          "compared": 20,
+          "gained": 0,
+          "lost": 1,
+          "unchanged": 19
+        },
+        "verdict": "NULL"
+      },
+      "vs_default": {
+        "tally": {
+          "compared": 20,
+          "gained": 0,
+          "lost": 1,
+          "unchanged": 19
+        },
+        "verdict": "NULL"
+      }
+    }
+  },
+  "overall_verdict": "HARMFUL"
+}

@@ -6,7 +6,7 @@
     uv run --no-sync python benchmarks/docking/engine_pilot.py --report
 
 Written for `docs/DOCKING_ENGINE_CANDIDATES.md`. It is NOT the deciding test and decides
-nothing (the draft of that test is `PREREGISTRATION_ENGINE.md`); it asks whether a second
+nothing (the deciding test is `PREREGISTRATION_ENGINE.md`, frozen 2026-11-04, overall HARMFUL); it asks whether a second
 engine runs here at all and what its numbers look like on a handful of receptors.
 
 It changes ONE thing against `prep_box_survey.py`, the survey whose "app" arm is the

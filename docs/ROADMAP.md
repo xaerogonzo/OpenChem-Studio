@@ -1002,11 +1002,12 @@ The reordering arm is what the shipped UI's refusal rests on: Spearman
 between the two orderings of the same poses is mean +0.71, range +0.07 to
 +1.00. On 3EML and 1HSG they order the poses almost independently.
 
-Leakage is recorded as `TRAINING_PROVENANCE_UNRESOLVED`, three-valued rather
-than clean/contaminated: [source:quiroga2016] §3.1 names Vinardo's selection
-set (122 of the 195 PDBbind Core 2013 structures) and Vina was trained on
-PDBbind 2007, and neither list is obtainable from here for the same reason
-CASF-2016 is not. The overlap is unknown, not absent.
+Leakage **for this ranking-power / CASF-affinity question** is recorded as
+`TRAINING_PROVENANCE_UNRESOLVED`, three-valued rather than clean/contaminated:
+the CASF affinity tables are still the same closure as CASF-2016. The
+pose-ranking engine prereg is a different question: as of 2026-11-04 the
+catalog PDB-id overlap on PDBbind 2007 refined, Core 2013 official 195, and
+BindingDB CSAR is empty (`benchmarks/docking/engine_core.py`).
 
 **THE "WHAT WOULD REOPEN RANKING POWER" LIST THAT STOOD HERE IS DELETED, and
 what it said is why.** It named two options in preference order: a CASF-2016
