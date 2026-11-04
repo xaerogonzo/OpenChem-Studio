@@ -104,6 +104,7 @@ This index is the cheap part; the files are the expensive part.
 | cut a release, or package/smoke-test a build | `docs/gotchas/release-hardening.md` |
 | write an installer or decide where settings and user data live | `docs/gotchas/installer-and-user-data.md` |
 | edit CHANGELOG.md, or several sessions keep conflicting on it | `docs/gotchas/changelog-fragments.md` |
+| open a pull request on this repo | `docs/feedback_pr_no_unchecked_test_plan_checklists.md` (and `docs/WORKING_AGREEMENTS.md` PR-bodies section) |
 
 **These describe failures that do not raise.** A wrong appearance mode renders a
 plausible-looking screenshot; a re-export shim passes its tests for the wrong

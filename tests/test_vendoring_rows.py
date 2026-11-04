@@ -43,6 +43,17 @@ def test_the_rule_does_not_reach_back_to_rounds_that_were_recorded_by_commit():
     assert all(n >= FIRST_ROUND_BY_PULL_REQUEST for n in _rounds_in_changelog())
 
 
+def test_master_vendoring_has_no_pending_sync_rows():
+    """A ``pending sync`` row belongs on a short-lived branch only; master should be flipped with tools/vendoring_mark_synced.py."""
+    text = (VENDOR / "VENDORING.md").read_text(encoding="utf-8")
+    pending = [line for line in text.splitlines() if "pending sync" in line and line.startswith("| fork pull request |")]
+    assert not pending, (
+        "VENDORING.md still has pending sync row(s). After both PRs merge, run "
+        "`uv run python tools/vendoring_mark_synced.py --fork N --app-squash <sha> --write` on master "
+        "and commit once (see VENDORING.md, Recording a sync)."
+    )
+
+
 def test_the_guard_can_fail():
     """Mutation guard: the parser finds a round heading and a row of the documented shape, so a missing row is a failure and not an empty loop."""
     sample_changelog = "## 2026-10-10 -- naming round 34: something\n"
