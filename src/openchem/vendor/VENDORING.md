@@ -230,8 +230,11 @@ change — the benchmark, not the diff, is what says whether it got better.
 1. Push the branch and open the application PR. Its number is the row's `app #N`.
 2. Run `tools/fork_port.py` for it (`--base` is the application commit the fork already holds: `gh pr view <previous app PR> --json mergeCommit`), commit in the fork, push, open the
    fork PR. Its number is the row's `fork #M`. The fork's CHANGELOG then cites the application PR as `xaerogonzo/OpenChem-Studio#N`.
-3. Add the row to `VENDORING.md` on the application branch and push: the same PR, so its CI runs once on the finished tree.
-4. Merge the application PR when green, then the fork PR. Nothing is left to document afterwards.
+3. Add the row to `VENDORING.md` on the application branch and push: the same PR, so its CI runs once on the finished tree. Use **`synced YYYY-MM-DD`** in the row (today's date is fine), not `pending sync`. The row cites pull request numbers only; it does not wait for merge SHAs.
+4. Merge the application PR when green, then the fork PR.
+
+If a row was written as **`pending sync`** (avoid that from step 3 onward), do **not** open a second documentation PR: after both pull requests merge, on `master` run
+`uv run python tools/vendoring_mark_synced.py --fork M --app-squash <squash-sha> --write`, commit once, and push. `tests/test_vendoring_rows.py::test_master_vendoring_has_no_pending_sync_rows` keeps `master` from staying in the pending state.
 
 The row, with every field the older ones carry except the commits:
 
