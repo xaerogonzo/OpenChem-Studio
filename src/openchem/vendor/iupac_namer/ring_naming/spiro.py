@@ -1572,8 +1572,10 @@ def _try_articulation_split_spiro(
     # NL-012 shape 4 (two methano-benzazocines): citing the same ring-table PIN on
     # both sides and taking P-24.5.2's lowest spiro locant on each copy yields
     # ``...-4,1'-...`` which OPSIN reads as a different molecule.  The primed
-    # partner keeps the von Baeyer systematic name when one is available.
-    if first_np.name == second_np.name:
+    # partner keeps the von Baeyer systematic name when one is available.  Two
+    # identical one-word retained names (``adamantane-2,2'-adamantane``, D-383)
+    # stay as the PIN; duplicated modified or table names contain a hyphen.
+    if first_np.name == second_np.name and "-" in first_np.name:
         vb_only = [
             (np, rs) for np, rs in second_named if np.naming_method == "von_baeyer"
         ]

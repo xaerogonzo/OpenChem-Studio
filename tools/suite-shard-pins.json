@@ -2174,6 +2174,7 @@
   "tests/test_namer_label_placement.py": 1,
   "tests/test_namer_multiple_bonds_parent.py": 3,
   "tests/test_namer_multiplicative.py": 0,
+  "tests/test_namer_nl012_bis_benzazocine_spiro.py": 2,
   "tests/test_namer_nuclide_guard.py": 1,
   "tests/test_namer_numbering.py": 1,
   "tests/test_namer_ownership.py": 3,
