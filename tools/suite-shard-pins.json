@@ -2576,6 +2576,7 @@
   "tests/test_validation_rows_energetics.py": 2,
   "tests/test_vdw_radii.py": 2,
   "tests/test_vdw_radii_provenance.py": 2,
+  "tests/test_vendoring_mark_synced.py": 4,
   "tests/test_vendoring_rows.py": 2,
   "tests/test_vibrational_spectrum.py": 1,
   "tests/test_vina_engine.py": 3,
