@@ -1,0 +1,18 @@
+{
+  "gate": {
+    "name": "G4",
+    "passed": true,
+    "detail": "all arms >= 44/47"
+  },
+  "docked": {
+    "vina": 47,
+    "smina-default": 46,
+    "smina-vinardo": 46,
+    "smina-dkoes_fast": 46,
+    "smina-ad4": 46
+  },
+  "dropped": [
+    "4PE5"
+  ],
+  "n_rows": 235
+}
