@@ -12,7 +12,7 @@ import pytest
 from rdkit import Chem
 
 from openchem.chem.electronic_properties import (
-    JENSEN_POLARIZABILITY,
+    ADDITIVE_POLARIZABILITY,
     atomic_polarizabilities,
     compute_atomic_polarizability,
     compute_orbital_electronegativity,
@@ -46,8 +46,8 @@ def test_aromatics_and_halides_land_within_a_few_percent_of_experiment(
 def test_the_parameters_match_the_values_visible_in_vendors_screenshot():
     """Their per-atom display reads 1.36 for aromatic carbon and 0.39 for
     hydrogen, which identifies the Jensen parameter set."""
-    assert JENSEN_POLARIZABILITY["C"] == pytest.approx(1.36, abs=0.04)
-    assert JENSEN_POLARIZABILITY["H"] == pytest.approx(0.39, abs=0.01)
+    assert ADDITIVE_POLARIZABILITY["C"] == pytest.approx(1.36, abs=0.04)
+    assert ADDITIVE_POLARIZABILITY["H"] == pytest.approx(0.39, abs=0.01)
 
 
 def test_saturated_hydrocarbons_are_overestimated_and_that_is_documented():

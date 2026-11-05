@@ -663,10 +663,19 @@ tensor is not implemented.
 **`ahc` and `ahp` are different quantities, not settings of one.** The first
 squares a sum over the whole molecule; the second is plain additivity. They
 are offered side by side because the source offers both, and neither is a
-default for the other. Jensen's additive scheme is a third answer again:
+default for the other. The additive atomic scheme is a third answer again:
 about 1% on aromatics and halogenated compounds, and roughly 11% high on
 saturated hydrocarbons, because an atom-additive scheme has no hybridization
 dependence.
+
+**The additive scheme's table has no recorded source.** It was first labelled
+Jensen et al. 2002, and that is wrong: Jensen's paper is a dipole-interaction model
+that fits only H, B, C, N, O, F and Cl, and none of this table's numbers appear in
+it, in Miller's papers, or in any of the 912 papers held. What is known is that it
+reproduces 13 experimental molecular polarizabilities (about 5.7% mean absolute
+error) and matches another program's displayed per-atom values for carbon and
+hydrogen. It covers 13 elements and refuses the rest; no metal is added, because no
+published additive value for a metal in a molecule has been found.
 
 **One published atom assignment disagrees.** Nitrobenzene's is `6CTR 1NPI2
 2OTE 5H` in the source and differs here on the ipso carbon and on the nitro
@@ -1291,7 +1300,7 @@ had to choose, below). What that leaves out, measured on the panel in
   crystallisation, where the water is a solvent and the answer wanted is
   caffeine's.
 - **Per-atom contributions and the molecular value describe different
-  structures on a salt.** Crippen's and Jensen's per-atom increments are
+  structures on a salt.** Crippen's and the additive polarizability per-atom increments are
   atom-local table look-ups, so they are given for every atom drawn, the
   counter-ion included; the logP and polarizability beside them are the
   parent's. On a salt the contributions therefore do not sum to the value.

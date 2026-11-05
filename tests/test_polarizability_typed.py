@@ -48,7 +48,7 @@ PANEL = {
 #: Every way of asking: the default, each method by its label, the microspecies option with the default and with a Miller method, and a label this build does not know (which falls back to Jensen).
 ASKS = {
     "default": {},
-    "jensen": {"method": "Jensen (additive)"},
+    "jensen": {"method": "Atomic additive"},
     "miller ahc": {"method": "Miller ahc"},
     "miller ahp": {"method": "Miller ahp"},
     "microspecies": {"major_microspecies": True, "pH": 7.4},

@@ -1,15 +1,29 @@
 """Polarizability and orbital electronegativity.
 
-POLARIZABILITY uses the additive atomic scheme of Jensen et al. (2002,
-J. Chem. Phys.), summing per-element contributions in cubic angstroms.
+POLARIZABILITY uses an additive atomic scheme, summing per-element contributions
+in cubic angstroms.
+
+    **THE TABLE IS NOT JENSEN ET AL. 2002, AND ITS SOURCE IS NOT KNOWN.**
+    It was introduced on 2026-07-30 under that name; nothing records where the
+    numbers came from. Checked 2026-11-05: Jensen, Astrand, Osted, Kongsted and
+    Mikkelsen (J. Chem. Phys. 2002, 116, 4001; held as `jensen2002.pdf`) is a
+    dipole-interaction model, not an additive one, and its Table I fits H, B, C,
+    N, O, F and Cl only (best set, converted to A^3: H 0.19, C 1.25, N 0.91,
+    O 0.56, F 0.28, Cl 1.94, against 0.39, 1.33, 0.98, 0.77, 0.46, 2.26 here).
+    None of this table's numbers appear in it, in Miller 1979 or 1990, or in any of
+    the 912 PDFs held (the one hit, in the CRC Handbook, is two unrelated
+    densities). What is established is only that the values reproduce the
+    experiments below and match ChemAxon's per-atom display (1.36 aromatic C,
+    0.39 H). The internal method id stays `jensen` because stored results carry
+    it; the old on-screen label "Jensen (additive)" still selects this method.
 
     Validated two ways. Against experiment: benzene 10.29 vs 10.32,
     CCl4 10.37 vs 10.51, toluene 12.40 vs 12.30, chloromethane 4.75 vs
     4.72 -- all inside 1.5%, with ~5.7% mean absolute error across a
     13-molecule set. And against the vendor's own screenshot, whose per-atom
     values read 1.36 for aromatic carbon and 0.39 for hydrogen against
-    Jensen's 1.3266 and 0.3888 -- close enough to identify the parameter
-    set they are using.
+    this table's 1.3266 and 0.3888 -- close, which is NOT proof of the same
+    parameter set.
 
     KNOWN BIAS: saturated hydrocarbons come out ~11-12% high (methane
     2.88 vs 2.59, n-butane 9.19 vs 8.20). A purely atom-additive scheme
@@ -63,8 +77,8 @@ from openchem.domain.report import ReportResult
 from openchem.chem.report_adapter import report_from_fields
 from openchem.domain.scientific_result import PerAtomDataset
 
-# Jensen et al. (2002) atomic polarizabilities, cubic angstroms.
-JENSEN_POLARIZABILITY: dict[str, float] = {
+# Atomic polarizabilities, cubic angstroms. NOT from Jensen et al. 2002 (see the module docstring); source unknown.
+ADDITIVE_POLARIZABILITY: dict[str, float] = {
     "H": 0.3888, "C": 1.3266, "N": 0.9754, "O": 0.7658, "S": 2.4772,
     "F": 0.4642, "Cl": 2.2604, "Br": 3.3181, "I": 5.5593, "P": 2.6300,
     "Si": 3.9628, "B": 1.6000, "Se": 3.3800,
@@ -255,7 +269,7 @@ def atomic_polarizabilities(mol: Chem.Mol) -> dict[int, float] | None:
     with_hydrogens = Chem.AddHs(mol)
     values: dict[int, float] = {}
     for atom in with_hydrogens.GetAtoms():
-        contribution = JENSEN_POLARIZABILITY.get(atom.GetSymbol())
+        contribution = ADDITIVE_POLARIZABILITY.get(atom.GetSymbol())
         if contribution is None:
             return None
         values[atom.GetIdx()] = contribution
@@ -267,17 +281,17 @@ def molecular_polarizability(mol: Chem.Mol) -> float | None:
     return None if values is None else sum(values.values())
 
 
-def _outside_jensen(target: Chem.Mol) -> CalculationRefusal:
-    """An element with no entry in `JENSEN_POLARIZABILITY` is outside the
+def _outside_additive_table(target: Chem.Mol) -> CalculationRefusal:
+    """An element with no entry in `ADDITIVE_POLARIZABILITY` is outside the
     method, which is a limit and not a fault. It used to come back as a bare
     failure on every sodium salt (round 5 sweep), painted like a crash. The
     covered set is READ from the table, so the sentence cannot drift from it."""
     missing = ", ".join(_unparameterised_elements(target))
-    covered = ", ".join(JENSEN_POLARIZABILITY)
+    covered = ", ".join(ADDITIVE_POLARIZABILITY)
     return CalculationRefusal(
         ELEMENT_OUTSIDE_PARAMETER_SET,
-        "Element outside Jensen's set",
-        f"No Jensen polarizability parameter for: {missing}. The table covers {covered}.",
+        "Element outside the additive table",
+        f"No additive polarizability parameter for: {missing}. The table covers {covered}.",
     )
 
 
@@ -286,7 +300,7 @@ def _unparameterised_elements(mol: Chem.Mol) -> list[str]:
         {
             atom.GetSymbol()
             for atom in Chem.AddHs(mol).GetAtoms()
-            if atom.GetSymbol() not in JENSEN_POLARIZABILITY
+            if atom.GetSymbol() not in ADDITIVE_POLARIZABILITY
         }
     )
 
@@ -301,12 +315,14 @@ def _unparameterised_elements(mol: Chem.Mol) -> list[str]:
 #: `chem/polarizability_miller.py` records that as the likely cause of the
 #: -50% on CCl4 in this project's own history.
 POLARIZABILITY_METHODS: dict[str, str] = {
-    "Jensen (additive)": "jensen",
+    "Atomic additive": "jensen",
     "Miller ahc": "miller_ahc",
     "Miller ahp": "miller_ahp",
 }
 
-_DEFAULT_POLARIZABILITY_METHOD = "Jensen (additive)"
+_DEFAULT_POLARIZABILITY_METHOD = "Atomic additive"
+#: The label this method had before its citation was corrected (2026-11-05); a stored project may still hold it.
+_LEGACY_POLARIZABILITY_LABELS = {"Jensen (additive)": "Atomic additive"}
 
 
 def _polarizability_method(parameters: dict[str, Any]) -> str:
@@ -317,6 +333,7 @@ def _polarizability_method(parameters: dict[str, Any]) -> str:
     unopenable, and the recorded method says which was used either way.
     """
     label = str(parameters.get("method", _DEFAULT_POLARIZABILITY_METHOD))
+    label = _LEGACY_POLARIZABILITY_LABELS.get(label, label)
     return POLARIZABILITY_METHODS.get(label, POLARIZABILITY_METHODS[_DEFAULT_POLARIZABILITY_METHOD])
 
 
@@ -342,7 +359,7 @@ def compute_polarizability(
     if method == "jensen":
         total = molecular_polarizability(target)
         if total is None:
-            refusal = _outside_jensen(target)
+            refusal = _outside_additive_table(target)
             return report_from_fields(
                 alert_id="polarizability",
                 name="Polarizability",
@@ -358,7 +375,7 @@ def compute_polarizability(
             )
         failure = None
         basis = (
-            "Additive atomic scheme (Jensen et al. 2002). Aromatics and halogenated "
+            "Additive atomic scheme (table of unrecorded origin, checked against experiment). Aromatics and halogenated "
             "compounds are accurate to about 1%; saturated hydrocarbons come out roughly "
             "11% high, because an atom-additive scheme has no hybridization dependence."
         )
@@ -462,7 +479,7 @@ def compute_atomic_polarizability(
     target = _maybe_microspecies(mol, parameters)
     values = atomic_polarizabilities(target)
     if values is None:
-        refusal = _outside_jensen(target)
+        refusal = _outside_additive_table(target)
         return PerAtomDataset(
             property_id="atomic_polarizability",
             name="Atomic Polarizability",

@@ -1,0 +1,2 @@
+### Polarizability: the additive method no longer claims to be Jensen et al. 2002
+- The additive atomic polarizability table was labelled "Jensen (additive)" and cited to Jensen et al. 2002. Reading that paper shows it is a dipole-interaction model fitted for H, B, C, N, O, F and Cl only, and none of the table's numbers appear in it or in any held paper, so the origin is unrecorded. The method is now called "Atomic additive"; projects that stored the old label still select it, and the numbers are unchanged. The docs say what is and is not known about the table.

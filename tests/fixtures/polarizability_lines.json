@@ -7,7 +7,7 @@
   "method": "jensen",
   "lines": [
    "Molecular polarizability: 1.54 A^3",
-   "Additive atomic scheme (Jensen et al. 2002). Aromatics and halogenated compounds are accurate to about 1%; saturated hydrocarbons come out roughly 11% high, because an atom-additive scheme has no hybridization dependence."
+   "Additive atomic scheme (table of unrecorded origin, checked against experiment). Aromatics and halogenated compounds are accurate to about 1%; saturated hydrocarbons come out roughly 11% high, because an atom-additive scheme has no hybridization dependence."
   ],
   "facts": [
    [
@@ -21,7 +21,7 @@
    [
     "electronic",
     "Polarizability",
-    "Additive atomic scheme (Jensen et al. 2002). Aromatics and halogenated compounds are accurate to about 1%; saturated hydrocarbons come out roughly 11% high, because an atom-additive scheme has no hybridization dependence.",
+    "Additive atomic scheme (table of unrecorded origin, checked against experiment). Aromatics and halogenated compounds are accurate to about 1%; saturated hydrocarbons come out roughly 11% high, because an atom-additive scheme has no hybridization dependence.",
     "",
     "Polarizability",
     "heuristic"
@@ -36,7 +36,7 @@
    [
     "calculator:polarizability:Polarizability",
     "",
-    "Additive atomic scheme (Jensen et al. 2002). Aromatics and halogenated compounds are accurate to about 1%; saturated hydrocarbons come out roughly 11% high, because an atom-additive scheme has no hybridization dependence."
+    "Additive atomic scheme (table of unrecorded origin, checked against experiment). Aromatics and halogenated compounds are accurate to about 1%; saturated hydrocarbons come out roughly 11% high, because an atom-additive scheme has no hybridization dependence."
    ]
   ]
  },
@@ -48,7 +48,7 @@
   "method": "jensen",
   "lines": [
    "Molecular polarizability: 2.88 A^3",
-   "Additive atomic scheme (Jensen et al. 2002). Aromatics and halogenated compounds are accurate to about 1%; saturated hydrocarbons come out roughly 11% high, because an atom-additive scheme has no hybridization dependence."
+   "Additive atomic scheme (table of unrecorded origin, checked against experiment). Aromatics and halogenated compounds are accurate to about 1%; saturated hydrocarbons come out roughly 11% high, because an atom-additive scheme has no hybridization dependence."
   ],
   "facts": [
    [
@@ -62,7 +62,7 @@
    [
     "electronic",
     "Polarizability",
-    "Additive atomic scheme (Jensen et al. 2002). Aromatics and halogenated compounds are accurate to about 1%; saturated hydrocarbons come out roughly 11% high, because an atom-additive scheme has no hybridization dependence.",
+    "Additive atomic scheme (table of unrecorded origin, checked against experiment). Aromatics and halogenated compounds are accurate to about 1%; saturated hydrocarbons come out roughly 11% high, because an atom-additive scheme has no hybridization dependence.",
     "",
     "Polarizability",
     "heuristic"
@@ -77,7 +77,7 @@
    [
     "calculator:polarizability:Polarizability",
     "",
-    "Additive atomic scheme (Jensen et al. 2002). Aromatics and halogenated compounds are accurate to about 1%; saturated hydrocarbons come out roughly 11% high, because an atom-additive scheme has no hybridization dependence."
+    "Additive atomic scheme (table of unrecorded origin, checked against experiment). Aromatics and halogenated compounds are accurate to about 1%; saturated hydrocarbons come out roughly 11% high, because an atom-additive scheme has no hybridization dependence."
    ]
   ]
  },
@@ -89,7 +89,7 @@
   "method": "jensen",
   "lines": [
    "Molecular polarizability: 5.75 A^3",
-   "Additive atomic scheme (Jensen et al. 2002). Aromatics and halogenated compounds are accurate to about 1%; saturated hydrocarbons come out roughly 11% high, because an atom-additive scheme has no hybridization dependence."
+   "Additive atomic scheme (table of unrecorded origin, checked against experiment). Aromatics and halogenated compounds are accurate to about 1%; saturated hydrocarbons come out roughly 11% high, because an atom-additive scheme has no hybridization dependence."
   ],
   "facts": [
    [
@@ -103,7 +103,7 @@
    [
     "electronic",
     "Polarizability",
-    "Additive atomic scheme (Jensen et al. 2002). Aromatics and halogenated compounds are accurate to about 1%; saturated hydrocarbons come out roughly 11% high, because an atom-additive scheme has no hybridization dependence.",
+    "Additive atomic scheme (table of unrecorded origin, checked against experiment). Aromatics and halogenated compounds are accurate to about 1%; saturated hydrocarbons come out roughly 11% high, because an atom-additive scheme has no hybridization dependence.",
     "",
     "Polarizability",
     "heuristic"
@@ -118,7 +118,7 @@
    [
     "calculator:polarizability:Polarizability",
     "",
-    "Additive atomic scheme (Jensen et al. 2002). Aromatics and halogenated compounds are accurate to about 1%; saturated hydrocarbons come out roughly 11% high, because an atom-additive scheme has no hybridization dependence."
+    "Additive atomic scheme (table of unrecorded origin, checked against experiment). Aromatics and halogenated compounds are accurate to about 1%; saturated hydrocarbons come out roughly 11% high, because an atom-additive scheme has no hybridization dependence."
    ]
   ]
  },
@@ -130,7 +130,7 @@
   "method": "jensen",
   "lines": [
    "Molecular polarizability: 10.29 A^3",
-   "Additive atomic scheme (Jensen et al. 2002). Aromatics and halogenated compounds are accurate to about 1%; saturated hydrocarbons come out roughly 11% high, because an atom-additive scheme has no hybridization dependence."
+   "Additive atomic scheme (table of unrecorded origin, checked against experiment). Aromatics and halogenated compounds are accurate to about 1%; saturated hydrocarbons come out roughly 11% high, because an atom-additive scheme has no hybridization dependence."
   ],
   "facts": [
    [
@@ -144,7 +144,7 @@
    [
     "electronic",
     "Polarizability",
-    "Additive atomic scheme (Jensen et al. 2002). Aromatics and halogenated compounds are accurate to about 1%; saturated hydrocarbons come out roughly 11% high, because an atom-additive scheme has no hybridization dependence.",
+    "Additive atomic scheme (table of unrecorded origin, checked against experiment). Aromatics and halogenated compounds are accurate to about 1%; saturated hydrocarbons come out roughly 11% high, because an atom-additive scheme has no hybridization dependence.",
     "",
     "Polarizability",
     "heuristic"
@@ -159,7 +159,7 @@
    [
     "calculator:polarizability:Polarizability",
     "",
-    "Additive atomic scheme (Jensen et al. 2002). Aromatics and halogenated compounds are accurate to about 1%; saturated hydrocarbons come out roughly 11% high, because an atom-additive scheme has no hybridization dependence."
+    "Additive atomic scheme (table of unrecorded origin, checked against experiment). Aromatics and halogenated compounds are accurate to about 1%; saturated hydrocarbons come out roughly 11% high, because an atom-additive scheme has no hybridization dependence."
    ]
   ]
  },
@@ -171,7 +171,7 @@
   "method": "jensen",
   "lines": [
    "Molecular polarizability: 18.11 A^3",
-   "Additive atomic scheme (Jensen et al. 2002). Aromatics and halogenated compounds are accurate to about 1%; saturated hydrocarbons come out roughly 11% high, because an atom-additive scheme has no hybridization dependence."
+   "Additive atomic scheme (table of unrecorded origin, checked against experiment). Aromatics and halogenated compounds are accurate to about 1%; saturated hydrocarbons come out roughly 11% high, because an atom-additive scheme has no hybridization dependence."
   ],
   "facts": [
    [
@@ -185,7 +185,7 @@
    [
     "electronic",
     "Polarizability",
-    "Additive atomic scheme (Jensen et al. 2002). Aromatics and halogenated compounds are accurate to about 1%; saturated hydrocarbons come out roughly 11% high, because an atom-additive scheme has no hybridization dependence.",
+    "Additive atomic scheme (table of unrecorded origin, checked against experiment). Aromatics and halogenated compounds are accurate to about 1%; saturated hydrocarbons come out roughly 11% high, because an atom-additive scheme has no hybridization dependence.",
     "",
     "Polarizability",
     "heuristic"
@@ -200,7 +200,7 @@
    [
     "calculator:polarizability:Polarizability",
     "",
-    "Additive atomic scheme (Jensen et al. 2002). Aromatics and halogenated compounds are accurate to about 1%; saturated hydrocarbons come out roughly 11% high, because an atom-additive scheme has no hybridization dependence."
+    "Additive atomic scheme (table of unrecorded origin, checked against experiment). Aromatics and halogenated compounds are accurate to about 1%; saturated hydrocarbons come out roughly 11% high, because an atom-additive scheme has no hybridization dependence."
    ]
   ]
  },
@@ -212,7 +212,7 @@
   "method": "jensen",
   "lines": [
    "Molecular polarizability: 19.93 A^3",
-   "Additive atomic scheme (Jensen et al. 2002). Aromatics and halogenated compounds are accurate to about 1%; saturated hydrocarbons come out roughly 11% high, because an atom-additive scheme has no hybridization dependence."
+   "Additive atomic scheme (table of unrecorded origin, checked against experiment). Aromatics and halogenated compounds are accurate to about 1%; saturated hydrocarbons come out roughly 11% high, because an atom-additive scheme has no hybridization dependence."
   ],
   "facts": [
    [
@@ -226,7 +226,7 @@
    [
     "electronic",
     "Polarizability",
-    "Additive atomic scheme (Jensen et al. 2002). Aromatics and halogenated compounds are accurate to about 1%; saturated hydrocarbons come out roughly 11% high, because an atom-additive scheme has no hybridization dependence.",
+    "Additive atomic scheme (table of unrecorded origin, checked against experiment). Aromatics and halogenated compounds are accurate to about 1%; saturated hydrocarbons come out roughly 11% high, because an atom-additive scheme has no hybridization dependence.",
     "",
     "Polarizability",
     "heuristic"
@@ -241,7 +241,7 @@
    [
     "calculator:polarizability:Polarizability",
     "",
-    "Additive atomic scheme (Jensen et al. 2002). Aromatics and halogenated compounds are accurate to about 1%; saturated hydrocarbons come out roughly 11% high, because an atom-additive scheme has no hybridization dependence."
+    "Additive atomic scheme (table of unrecorded origin, checked against experiment). Aromatics and halogenated compounds are accurate to about 1%; saturated hydrocarbons come out roughly 11% high, because an atom-additive scheme has no hybridization dependence."
    ]
   ]
  },
@@ -253,7 +253,7 @@
   "method": "jensen",
   "lines": [
    "Molecular polarizability: 10.37 A^3",
-   "Additive atomic scheme (Jensen et al. 2002). Aromatics and halogenated compounds are accurate to about 1%; saturated hydrocarbons come out roughly 11% high, because an atom-additive scheme has no hybridization dependence."
+   "Additive atomic scheme (table of unrecorded origin, checked against experiment). Aromatics and halogenated compounds are accurate to about 1%; saturated hydrocarbons come out roughly 11% high, because an atom-additive scheme has no hybridization dependence."
   ],
   "facts": [
    [
@@ -267,7 +267,7 @@
    [
     "electronic",
     "Polarizability",
-    "Additive atomic scheme (Jensen et al. 2002). Aromatics and halogenated compounds are accurate to about 1%; saturated hydrocarbons come out roughly 11% high, because an atom-additive scheme has no hybridization dependence.",
+    "Additive atomic scheme (table of unrecorded origin, checked against experiment). Aromatics and halogenated compounds are accurate to about 1%; saturated hydrocarbons come out roughly 11% high, because an atom-additive scheme has no hybridization dependence.",
     "",
     "Polarizability",
     "heuristic"
@@ -282,7 +282,7 @@
    [
     "calculator:polarizability:Polarizability",
     "",
-    "Additive atomic scheme (Jensen et al. 2002). Aromatics and halogenated compounds are accurate to about 1%; saturated hydrocarbons come out roughly 11% high, because an atom-additive scheme has no hybridization dependence."
+    "Additive atomic scheme (table of unrecorded origin, checked against experiment). Aromatics and halogenated compounds are accurate to about 1%; saturated hydrocarbons come out roughly 11% high, because an atom-additive scheme has no hybridization dependence."
    ]
   ]
  },
@@ -294,7 +294,7 @@
   "method": "jensen",
   "lines": [
    "Molecular polarizability: 14.60 A^3",
-   "Additive atomic scheme (Jensen et al. 2002). Aromatics and halogenated compounds are accurate to about 1%; saturated hydrocarbons come out roughly 11% high, because an atom-additive scheme has no hybridization dependence."
+   "Additive atomic scheme (table of unrecorded origin, checked against experiment). Aromatics and halogenated compounds are accurate to about 1%; saturated hydrocarbons come out roughly 11% high, because an atom-additive scheme has no hybridization dependence."
   ],
   "facts": [
    [
@@ -308,7 +308,7 @@
    [
     "electronic",
     "Polarizability",
-    "Additive atomic scheme (Jensen et al. 2002). Aromatics and halogenated compounds are accurate to about 1%; saturated hydrocarbons come out roughly 11% high, because an atom-additive scheme has no hybridization dependence.",
+    "Additive atomic scheme (table of unrecorded origin, checked against experiment). Aromatics and halogenated compounds are accurate to about 1%; saturated hydrocarbons come out roughly 11% high, because an atom-additive scheme has no hybridization dependence.",
     "",
     "Polarizability",
     "heuristic"
@@ -323,7 +323,7 @@
    [
     "calculator:polarizability:Polarizability",
     "",
-    "Additive atomic scheme (Jensen et al. 2002). Aromatics and halogenated compounds are accurate to about 1%; saturated hydrocarbons come out roughly 11% high, because an atom-additive scheme has no hybridization dependence."
+    "Additive atomic scheme (table of unrecorded origin, checked against experiment). Aromatics and halogenated compounds are accurate to about 1%; saturated hydrocarbons come out roughly 11% high, because an atom-additive scheme has no hybridization dependence."
    ]
   ]
  },
@@ -335,7 +335,7 @@
   "method": "jensen",
   "lines": [
    "Molecular polarizability: 5.74 A^3",
-   "Additive atomic scheme (Jensen et al. 2002). Aromatics and halogenated compounds are accurate to about 1%; saturated hydrocarbons come out roughly 11% high, because an atom-additive scheme has no hybridization dependence."
+   "Additive atomic scheme (table of unrecorded origin, checked against experiment). Aromatics and halogenated compounds are accurate to about 1%; saturated hydrocarbons come out roughly 11% high, because an atom-additive scheme has no hybridization dependence."
   ],
   "facts": [
    [
@@ -349,7 +349,7 @@
    [
     "electronic",
     "Polarizability",
-    "Additive atomic scheme (Jensen et al. 2002). Aromatics and halogenated compounds are accurate to about 1%; saturated hydrocarbons come out roughly 11% high, because an atom-additive scheme has no hybridization dependence.",
+    "Additive atomic scheme (table of unrecorded origin, checked against experiment). Aromatics and halogenated compounds are accurate to about 1%; saturated hydrocarbons come out roughly 11% high, because an atom-additive scheme has no hybridization dependence.",
     "",
     "Polarizability",
     "heuristic"
@@ -364,7 +364,7 @@
    [
     "calculator:polarizability:Polarizability",
     "",
-    "Additive atomic scheme (Jensen et al. 2002). Aromatics and halogenated compounds are accurate to about 1%; saturated hydrocarbons come out roughly 11% high, because an atom-additive scheme has no hybridization dependence."
+    "Additive atomic scheme (table of unrecorded origin, checked against experiment). Aromatics and halogenated compounds are accurate to about 1%; saturated hydrocarbons come out roughly 11% high, because an atom-additive scheme has no hybridization dependence."
    ]
   ]
  },
@@ -376,7 +376,7 @@
   "method": "jensen",
   "lines": [
    "Molecular polarizability: 7.10 A^3",
-   "Additive atomic scheme (Jensen et al. 2002). Aromatics and halogenated compounds are accurate to about 1%; saturated hydrocarbons come out roughly 11% high, because an atom-additive scheme has no hybridization dependence."
+   "Additive atomic scheme (table of unrecorded origin, checked against experiment). Aromatics and halogenated compounds are accurate to about 1%; saturated hydrocarbons come out roughly 11% high, because an atom-additive scheme has no hybridization dependence."
   ],
   "facts": [
    [
@@ -390,7 +390,7 @@
    [
     "electronic",
     "Polarizability",
-    "Additive atomic scheme (Jensen et al. 2002). Aromatics and halogenated compounds are accurate to about 1%; saturated hydrocarbons come out roughly 11% high, because an atom-additive scheme has no hybridization dependence.",
+    "Additive atomic scheme (table of unrecorded origin, checked against experiment). Aromatics and halogenated compounds are accurate to about 1%; saturated hydrocarbons come out roughly 11% high, because an atom-additive scheme has no hybridization dependence.",
     "",
     "Polarizability",
     "heuristic"
@@ -405,7 +405,7 @@
    [
     "calculator:polarizability:Polarizability",
     "",
-    "Additive atomic scheme (Jensen et al. 2002). Aromatics and halogenated compounds are accurate to about 1%; saturated hydrocarbons come out roughly 11% high, because an atom-additive scheme has no hybridization dependence."
+    "Additive atomic scheme (table of unrecorded origin, checked against experiment). Aromatics and halogenated compounds are accurate to about 1%; saturated hydrocarbons come out roughly 11% high, because an atom-additive scheme has no hybridization dependence."
    ]
   ]
  },
@@ -420,7 +420,7 @@
   "method": "jensen",
   "lines": [
    "Molecular polarizability: 13.93 A^3",
-   "Additive atomic scheme (Jensen et al. 2002). Aromatics and halogenated compounds are accurate to about 1%; saturated hydrocarbons come out roughly 11% high, because an atom-additive scheme has no hybridization dependence."
+   "Additive atomic scheme (table of unrecorded origin, checked against experiment). Aromatics and halogenated compounds are accurate to about 1%; saturated hydrocarbons come out roughly 11% high, because an atom-additive scheme has no hybridization dependence."
   ],
   "facts": [
    [
@@ -434,7 +434,7 @@
    [
     "electronic",
     "Polarizability",
-    "Additive atomic scheme (Jensen et al. 2002). Aromatics and halogenated compounds are accurate to about 1%; saturated hydrocarbons come out roughly 11% high, because an atom-additive scheme has no hybridization dependence.",
+    "Additive atomic scheme (table of unrecorded origin, checked against experiment). Aromatics and halogenated compounds are accurate to about 1%; saturated hydrocarbons come out roughly 11% high, because an atom-additive scheme has no hybridization dependence.",
     "",
     "Polarizability",
     "heuristic"
@@ -449,14 +449,14 @@
    [
     "calculator:polarizability:Polarizability",
     "",
-    "Additive atomic scheme (Jensen et al. 2002). Aromatics and halogenated compounds are accurate to about 1%; saturated hydrocarbons come out roughly 11% high, because an atom-additive scheme has no hybridization dependence."
+    "Additive atomic scheme (table of unrecorded origin, checked against experiment). Aromatics and halogenated compounds are accurate to about 1%; saturated hydrocarbons come out roughly 11% high, because an atom-additive scheme has no hybridization dependence."
    ]
   ]
  },
  "copper(II) | default": {
   "state": "failed",
-  "error": "No Jensen polarizability parameter for: Cu. The table covers H, C, N, O, S, F, Cl, Br, I, P, Si, B, Se.",
-  "summary": "Element outside Jensen's set",
+  "error": "No additive polarizability parameter for: Cu. The table covers H, C, N, O, S, F, Cl, Br, I, P, Si, B, Se.",
+  "summary": "Element outside the additive table",
   "inapplicable": true,
   "method": "jensen",
   "lines": [],
@@ -477,7 +477,7 @@
   "method": "jensen",
   "lines": [
    "Molecular polarizability: 1.54 A^3",
-   "Additive atomic scheme (Jensen et al. 2002). Aromatics and halogenated compounds are accurate to about 1%; saturated hydrocarbons come out roughly 11% high, because an atom-additive scheme has no hybridization dependence."
+   "Additive atomic scheme (table of unrecorded origin, checked against experiment). Aromatics and halogenated compounds are accurate to about 1%; saturated hydrocarbons come out roughly 11% high, because an atom-additive scheme has no hybridization dependence."
   ],
   "facts": [
    [
@@ -491,7 +491,7 @@
    [
     "electronic",
     "Polarizability",
-    "Additive atomic scheme (Jensen et al. 2002). Aromatics and halogenated compounds are accurate to about 1%; saturated hydrocarbons come out roughly 11% high, because an atom-additive scheme has no hybridization dependence.",
+    "Additive atomic scheme (table of unrecorded origin, checked against experiment). Aromatics and halogenated compounds are accurate to about 1%; saturated hydrocarbons come out roughly 11% high, because an atom-additive scheme has no hybridization dependence.",
     "",
     "Polarizability",
     "heuristic"
@@ -506,7 +506,7 @@
    [
     "calculator:polarizability:Polarizability",
     "",
-    "Additive atomic scheme (Jensen et al. 2002). Aromatics and halogenated compounds are accurate to about 1%; saturated hydrocarbons come out roughly 11% high, because an atom-additive scheme has no hybridization dependence."
+    "Additive atomic scheme (table of unrecorded origin, checked against experiment). Aromatics and halogenated compounds are accurate to about 1%; saturated hydrocarbons come out roughly 11% high, because an atom-additive scheme has no hybridization dependence."
    ]
   ]
  },
@@ -518,7 +518,7 @@
   "method": "jensen",
   "lines": [
    "Molecular polarizability: 2.88 A^3",
-   "Additive atomic scheme (Jensen et al. 2002). Aromatics and halogenated compounds are accurate to about 1%; saturated hydrocarbons come out roughly 11% high, because an atom-additive scheme has no hybridization dependence."
+   "Additive atomic scheme (table of unrecorded origin, checked against experiment). Aromatics and halogenated compounds are accurate to about 1%; saturated hydrocarbons come out roughly 11% high, because an atom-additive scheme has no hybridization dependence."
   ],
   "facts": [
    [
@@ -532,7 +532,7 @@
    [
     "electronic",
     "Polarizability",
-    "Additive atomic scheme (Jensen et al. 2002). Aromatics and halogenated compounds are accurate to about 1%; saturated hydrocarbons come out roughly 11% high, because an atom-additive scheme has no hybridization dependence.",
+    "Additive atomic scheme (table of unrecorded origin, checked against experiment). Aromatics and halogenated compounds are accurate to about 1%; saturated hydrocarbons come out roughly 11% high, because an atom-additive scheme has no hybridization dependence.",
     "",
     "Polarizability",
     "heuristic"
@@ -547,7 +547,7 @@
    [
     "calculator:polarizability:Polarizability",
     "",
-    "Additive atomic scheme (Jensen et al. 2002). Aromatics and halogenated compounds are accurate to about 1%; saturated hydrocarbons come out roughly 11% high, because an atom-additive scheme has no hybridization dependence."
+    "Additive atomic scheme (table of unrecorded origin, checked against experiment). Aromatics and halogenated compounds are accurate to about 1%; saturated hydrocarbons come out roughly 11% high, because an atom-additive scheme has no hybridization dependence."
    ]
   ]
  },
@@ -559,7 +559,7 @@
   "method": "jensen",
   "lines": [
    "Molecular polarizability: 5.75 A^3",
-   "Additive atomic scheme (Jensen et al. 2002). Aromatics and halogenated compounds are accurate to about 1%; saturated hydrocarbons come out roughly 11% high, because an atom-additive scheme has no hybridization dependence."
+   "Additive atomic scheme (table of unrecorded origin, checked against experiment). Aromatics and halogenated compounds are accurate to about 1%; saturated hydrocarbons come out roughly 11% high, because an atom-additive scheme has no hybridization dependence."
   ],
   "facts": [
    [
@@ -573,7 +573,7 @@
    [
     "electronic",
     "Polarizability",
-    "Additive atomic scheme (Jensen et al. 2002). Aromatics and halogenated compounds are accurate to about 1%; saturated hydrocarbons come out roughly 11% high, because an atom-additive scheme has no hybridization dependence.",
+    "Additive atomic scheme (table of unrecorded origin, checked against experiment). Aromatics and halogenated compounds are accurate to about 1%; saturated hydrocarbons come out roughly 11% high, because an atom-additive scheme has no hybridization dependence.",
     "",
     "Polarizability",
     "heuristic"
@@ -588,7 +588,7 @@
    [
     "calculator:polarizability:Polarizability",
     "",
-    "Additive atomic scheme (Jensen et al. 2002). Aromatics and halogenated compounds are accurate to about 1%; saturated hydrocarbons come out roughly 11% high, because an atom-additive scheme has no hybridization dependence."
+    "Additive atomic scheme (table of unrecorded origin, checked against experiment). Aromatics and halogenated compounds are accurate to about 1%; saturated hydrocarbons come out roughly 11% high, because an atom-additive scheme has no hybridization dependence."
    ]
   ]
  },
@@ -600,7 +600,7 @@
   "method": "jensen",
   "lines": [
    "Molecular polarizability: 10.29 A^3",
-   "Additive atomic scheme (Jensen et al. 2002). Aromatics and halogenated compounds are accurate to about 1%; saturated hydrocarbons come out roughly 11% high, because an atom-additive scheme has no hybridization dependence."
+   "Additive atomic scheme (table of unrecorded origin, checked against experiment). Aromatics and halogenated compounds are accurate to about 1%; saturated hydrocarbons come out roughly 11% high, because an atom-additive scheme has no hybridization dependence."
   ],
   "facts": [
    [
@@ -614,7 +614,7 @@
    [
     "electronic",
     "Polarizability",
-    "Additive atomic scheme (Jensen et al. 2002). Aromatics and halogenated compounds are accurate to about 1%; saturated hydrocarbons come out roughly 11% high, because an atom-additive scheme has no hybridization dependence.",
+    "Additive atomic scheme (table of unrecorded origin, checked against experiment). Aromatics and halogenated compounds are accurate to about 1%; saturated hydrocarbons come out roughly 11% high, because an atom-additive scheme has no hybridization dependence.",
     "",
     "Polarizability",
     "heuristic"
@@ -629,7 +629,7 @@
    [
     "calculator:polarizability:Polarizability",
     "",
-    "Additive atomic scheme (Jensen et al. 2002). Aromatics and halogenated compounds are accurate to about 1%; saturated hydrocarbons come out roughly 11% high, because an atom-additive scheme has no hybridization dependence."
+    "Additive atomic scheme (table of unrecorded origin, checked against experiment). Aromatics and halogenated compounds are accurate to about 1%; saturated hydrocarbons come out roughly 11% high, because an atom-additive scheme has no hybridization dependence."
    ]
   ]
  },
@@ -641,7 +641,7 @@
   "method": "jensen",
   "lines": [
    "Molecular polarizability: 18.11 A^3",
-   "Additive atomic scheme (Jensen et al. 2002). Aromatics and halogenated compounds are accurate to about 1%; saturated hydrocarbons come out roughly 11% high, because an atom-additive scheme has no hybridization dependence."
+   "Additive atomic scheme (table of unrecorded origin, checked against experiment). Aromatics and halogenated compounds are accurate to about 1%; saturated hydrocarbons come out roughly 11% high, because an atom-additive scheme has no hybridization dependence."
   ],
   "facts": [
    [
@@ -655,7 +655,7 @@
    [
     "electronic",
     "Polarizability",
-    "Additive atomic scheme (Jensen et al. 2002). Aromatics and halogenated compounds are accurate to about 1%; saturated hydrocarbons come out roughly 11% high, because an atom-additive scheme has no hybridization dependence.",
+    "Additive atomic scheme (table of unrecorded origin, checked against experiment). Aromatics and halogenated compounds are accurate to about 1%; saturated hydrocarbons come out roughly 11% high, because an atom-additive scheme has no hybridization dependence.",
     "",
     "Polarizability",
     "heuristic"
@@ -670,7 +670,7 @@
    [
     "calculator:polarizability:Polarizability",
     "",
-    "Additive atomic scheme (Jensen et al. 2002). Aromatics and halogenated compounds are accurate to about 1%; saturated hydrocarbons come out roughly 11% high, because an atom-additive scheme has no hybridization dependence."
+    "Additive atomic scheme (table of unrecorded origin, checked against experiment). Aromatics and halogenated compounds are accurate to about 1%; saturated hydrocarbons come out roughly 11% high, because an atom-additive scheme has no hybridization dependence."
    ]
   ]
  },
@@ -682,7 +682,7 @@
   "method": "jensen",
   "lines": [
    "Molecular polarizability: 19.93 A^3",
-   "Additive atomic scheme (Jensen et al. 2002). Aromatics and halogenated compounds are accurate to about 1%; saturated hydrocarbons come out roughly 11% high, because an atom-additive scheme has no hybridization dependence."
+   "Additive atomic scheme (table of unrecorded origin, checked against experiment). Aromatics and halogenated compounds are accurate to about 1%; saturated hydrocarbons come out roughly 11% high, because an atom-additive scheme has no hybridization dependence."
   ],
   "facts": [
    [
@@ -696,7 +696,7 @@
    [
     "electronic",
     "Polarizability",
-    "Additive atomic scheme (Jensen et al. 2002). Aromatics and halogenated compounds are accurate to about 1%; saturated hydrocarbons come out roughly 11% high, because an atom-additive scheme has no hybridization dependence.",
+    "Additive atomic scheme (table of unrecorded origin, checked against experiment). Aromatics and halogenated compounds are accurate to about 1%; saturated hydrocarbons come out roughly 11% high, because an atom-additive scheme has no hybridization dependence.",
     "",
     "Polarizability",
     "heuristic"
@@ -711,7 +711,7 @@
    [
     "calculator:polarizability:Polarizability",
     "",
-    "Additive atomic scheme (Jensen et al. 2002). Aromatics and halogenated compounds are accurate to about 1%; saturated hydrocarbons come out roughly 11% high, because an atom-additive scheme has no hybridization dependence."
+    "Additive atomic scheme (table of unrecorded origin, checked against experiment). Aromatics and halogenated compounds are accurate to about 1%; saturated hydrocarbons come out roughly 11% high, because an atom-additive scheme has no hybridization dependence."
    ]
   ]
  },
@@ -723,7 +723,7 @@
   "method": "jensen",
   "lines": [
    "Molecular polarizability: 10.37 A^3",
-   "Additive atomic scheme (Jensen et al. 2002). Aromatics and halogenated compounds are accurate to about 1%; saturated hydrocarbons come out roughly 11% high, because an atom-additive scheme has no hybridization dependence."
+   "Additive atomic scheme (table of unrecorded origin, checked against experiment). Aromatics and halogenated compounds are accurate to about 1%; saturated hydrocarbons come out roughly 11% high, because an atom-additive scheme has no hybridization dependence."
   ],
   "facts": [
    [
@@ -737,7 +737,7 @@
    [
     "electronic",
     "Polarizability",
-    "Additive atomic scheme (Jensen et al. 2002). Aromatics and halogenated compounds are accurate to about 1%; saturated hydrocarbons come out roughly 11% high, because an atom-additive scheme has no hybridization dependence.",
+    "Additive atomic scheme (table of unrecorded origin, checked against experiment). Aromatics and halogenated compounds are accurate to about 1%; saturated hydrocarbons come out roughly 11% high, because an atom-additive scheme has no hybridization dependence.",
     "",
     "Polarizability",
     "heuristic"
@@ -752,7 +752,7 @@
    [
     "calculator:polarizability:Polarizability",
     "",
-    "Additive atomic scheme (Jensen et al. 2002). Aromatics and halogenated compounds are accurate to about 1%; saturated hydrocarbons come out roughly 11% high, because an atom-additive scheme has no hybridization dependence."
+    "Additive atomic scheme (table of unrecorded origin, checked against experiment). Aromatics and halogenated compounds are accurate to about 1%; saturated hydrocarbons come out roughly 11% high, because an atom-additive scheme has no hybridization dependence."
    ]
   ]
  },
@@ -764,7 +764,7 @@
   "method": "jensen",
   "lines": [
    "Molecular polarizability: 14.60 A^3",
-   "Additive atomic scheme (Jensen et al. 2002). Aromatics and halogenated compounds are accurate to about 1%; saturated hydrocarbons come out roughly 11% high, because an atom-additive scheme has no hybridization dependence."
+   "Additive atomic scheme (table of unrecorded origin, checked against experiment). Aromatics and halogenated compounds are accurate to about 1%; saturated hydrocarbons come out roughly 11% high, because an atom-additive scheme has no hybridization dependence."
   ],
   "facts": [
    [
@@ -778,7 +778,7 @@
    [
     "electronic",
     "Polarizability",
-    "Additive atomic scheme (Jensen et al. 2002). Aromatics and halogenated compounds are accurate to about 1%; saturated hydrocarbons come out roughly 11% high, because an atom-additive scheme has no hybridization dependence.",
+    "Additive atomic scheme (table of unrecorded origin, checked against experiment). Aromatics and halogenated compounds are accurate to about 1%; saturated hydrocarbons come out roughly 11% high, because an atom-additive scheme has no hybridization dependence.",
     "",
     "Polarizability",
     "heuristic"
@@ -793,7 +793,7 @@
    [
     "calculator:polarizability:Polarizability",
     "",
-    "Additive atomic scheme (Jensen et al. 2002). Aromatics and halogenated compounds are accurate to about 1%; saturated hydrocarbons come out roughly 11% high, because an atom-additive scheme has no hybridization dependence."
+    "Additive atomic scheme (table of unrecorded origin, checked against experiment). Aromatics and halogenated compounds are accurate to about 1%; saturated hydrocarbons come out roughly 11% high, because an atom-additive scheme has no hybridization dependence."
    ]
   ]
  },
@@ -805,7 +805,7 @@
   "method": "jensen",
   "lines": [
    "Molecular polarizability: 5.74 A^3",
-   "Additive atomic scheme (Jensen et al. 2002). Aromatics and halogenated compounds are accurate to about 1%; saturated hydrocarbons come out roughly 11% high, because an atom-additive scheme has no hybridization dependence."
+   "Additive atomic scheme (table of unrecorded origin, checked against experiment). Aromatics and halogenated compounds are accurate to about 1%; saturated hydrocarbons come out roughly 11% high, because an atom-additive scheme has no hybridization dependence."
   ],
   "facts": [
    [
@@ -819,7 +819,7 @@
    [
     "electronic",
     "Polarizability",
-    "Additive atomic scheme (Jensen et al. 2002). Aromatics and halogenated compounds are accurate to about 1%; saturated hydrocarbons come out roughly 11% high, because an atom-additive scheme has no hybridization dependence.",
+    "Additive atomic scheme (table of unrecorded origin, checked against experiment). Aromatics and halogenated compounds are accurate to about 1%; saturated hydrocarbons come out roughly 11% high, because an atom-additive scheme has no hybridization dependence.",
     "",
     "Polarizability",
     "heuristic"
@@ -834,7 +834,7 @@
    [
     "calculator:polarizability:Polarizability",
     "",
-    "Additive atomic scheme (Jensen et al. 2002). Aromatics and halogenated compounds are accurate to about 1%; saturated hydrocarbons come out roughly 11% high, because an atom-additive scheme has no hybridization dependence."
+    "Additive atomic scheme (table of unrecorded origin, checked against experiment). Aromatics and halogenated compounds are accurate to about 1%; saturated hydrocarbons come out roughly 11% high, because an atom-additive scheme has no hybridization dependence."
    ]
   ]
  },
@@ -846,7 +846,7 @@
   "method": "jensen",
   "lines": [
    "Molecular polarizability: 7.10 A^3",
-   "Additive atomic scheme (Jensen et al. 2002). Aromatics and halogenated compounds are accurate to about 1%; saturated hydrocarbons come out roughly 11% high, because an atom-additive scheme has no hybridization dependence."
+   "Additive atomic scheme (table of unrecorded origin, checked against experiment). Aromatics and halogenated compounds are accurate to about 1%; saturated hydrocarbons come out roughly 11% high, because an atom-additive scheme has no hybridization dependence."
   ],
   "facts": [
    [
@@ -860,7 +860,7 @@
    [
     "electronic",
     "Polarizability",
-    "Additive atomic scheme (Jensen et al. 2002). Aromatics and halogenated compounds are accurate to about 1%; saturated hydrocarbons come out roughly 11% high, because an atom-additive scheme has no hybridization dependence.",
+    "Additive atomic scheme (table of unrecorded origin, checked against experiment). Aromatics and halogenated compounds are accurate to about 1%; saturated hydrocarbons come out roughly 11% high, because an atom-additive scheme has no hybridization dependence.",
     "",
     "Polarizability",
     "heuristic"
@@ -875,7 +875,7 @@
    [
     "calculator:polarizability:Polarizability",
     "",
-    "Additive atomic scheme (Jensen et al. 2002). Aromatics and halogenated compounds are accurate to about 1%; saturated hydrocarbons come out roughly 11% high, because an atom-additive scheme has no hybridization dependence."
+    "Additive atomic scheme (table of unrecorded origin, checked against experiment). Aromatics and halogenated compounds are accurate to about 1%; saturated hydrocarbons come out roughly 11% high, because an atom-additive scheme has no hybridization dependence."
    ]
   ]
  },
@@ -890,7 +890,7 @@
   "method": "jensen",
   "lines": [
    "Molecular polarizability: 13.93 A^3",
-   "Additive atomic scheme (Jensen et al. 2002). Aromatics and halogenated compounds are accurate to about 1%; saturated hydrocarbons come out roughly 11% high, because an atom-additive scheme has no hybridization dependence."
+   "Additive atomic scheme (table of unrecorded origin, checked against experiment). Aromatics and halogenated compounds are accurate to about 1%; saturated hydrocarbons come out roughly 11% high, because an atom-additive scheme has no hybridization dependence."
   ],
   "facts": [
    [
@@ -904,7 +904,7 @@
    [
     "electronic",
     "Polarizability",
-    "Additive atomic scheme (Jensen et al. 2002). Aromatics and halogenated compounds are accurate to about 1%; saturated hydrocarbons come out roughly 11% high, because an atom-additive scheme has no hybridization dependence.",
+    "Additive atomic scheme (table of unrecorded origin, checked against experiment). Aromatics and halogenated compounds are accurate to about 1%; saturated hydrocarbons come out roughly 11% high, because an atom-additive scheme has no hybridization dependence.",
     "",
     "Polarizability",
     "heuristic"
@@ -919,14 +919,14 @@
    [
     "calculator:polarizability:Polarizability",
     "",
-    "Additive atomic scheme (Jensen et al. 2002). Aromatics and halogenated compounds are accurate to about 1%; saturated hydrocarbons come out roughly 11% high, because an atom-additive scheme has no hybridization dependence."
+    "Additive atomic scheme (table of unrecorded origin, checked against experiment). Aromatics and halogenated compounds are accurate to about 1%; saturated hydrocarbons come out roughly 11% high, because an atom-additive scheme has no hybridization dependence."
    ]
   ]
  },
  "copper(II) | jensen": {
   "state": "failed",
-  "error": "No Jensen polarizability parameter for: Cu. The table covers H, C, N, O, S, F, Cl, Br, I, P, Si, B, Se.",
-  "summary": "Element outside Jensen's set",
+  "error": "No additive polarizability parameter for: Cu. The table covers H, C, N, O, S, F, Cl, Br, I, P, Si, B, Se.",
+  "summary": "Element outside the additive table",
   "inapplicable": true,
   "method": "jensen",
   "lines": [],
@@ -2118,7 +2118,7 @@
   "lines": [
    "Molecular polarizability: 1.54 A^3",
    "Computed on the major microspecies at pH 7.4.",
-   "Additive atomic scheme (Jensen et al. 2002). Aromatics and halogenated compounds are accurate to about 1%; saturated hydrocarbons come out roughly 11% high, because an atom-additive scheme has no hybridization dependence."
+   "Additive atomic scheme (table of unrecorded origin, checked against experiment). Aromatics and halogenated compounds are accurate to about 1%; saturated hydrocarbons come out roughly 11% high, because an atom-additive scheme has no hybridization dependence."
   ],
   "facts": [
    [
@@ -2140,7 +2140,7 @@
    [
     "electronic",
     "Polarizability",
-    "Additive atomic scheme (Jensen et al. 2002). Aromatics and halogenated compounds are accurate to about 1%; saturated hydrocarbons come out roughly 11% high, because an atom-additive scheme has no hybridization dependence.",
+    "Additive atomic scheme (table of unrecorded origin, checked against experiment). Aromatics and halogenated compounds are accurate to about 1%; saturated hydrocarbons come out roughly 11% high, because an atom-additive scheme has no hybridization dependence.",
     "",
     "Polarizability",
     "heuristic"
@@ -2160,7 +2160,7 @@
    [
     "calculator:polarizability:Polarizability",
     "",
-    "Additive atomic scheme (Jensen et al. 2002). Aromatics and halogenated compounds are accurate to about 1%; saturated hydrocarbons come out roughly 11% high, because an atom-additive scheme has no hybridization dependence."
+    "Additive atomic scheme (table of unrecorded origin, checked against experiment). Aromatics and halogenated compounds are accurate to about 1%; saturated hydrocarbons come out roughly 11% high, because an atom-additive scheme has no hybridization dependence."
    ]
   ]
  },
@@ -2173,7 +2173,7 @@
   "lines": [
    "Molecular polarizability: 2.88 A^3",
    "Computed on the major microspecies at pH 7.4.",
-   "Additive atomic scheme (Jensen et al. 2002). Aromatics and halogenated compounds are accurate to about 1%; saturated hydrocarbons come out roughly 11% high, because an atom-additive scheme has no hybridization dependence."
+   "Additive atomic scheme (table of unrecorded origin, checked against experiment). Aromatics and halogenated compounds are accurate to about 1%; saturated hydrocarbons come out roughly 11% high, because an atom-additive scheme has no hybridization dependence."
   ],
   "facts": [
    [
@@ -2195,7 +2195,7 @@
    [
     "electronic",
     "Polarizability",
-    "Additive atomic scheme (Jensen et al. 2002). Aromatics and halogenated compounds are accurate to about 1%; saturated hydrocarbons come out roughly 11% high, because an atom-additive scheme has no hybridization dependence.",
+    "Additive atomic scheme (table of unrecorded origin, checked against experiment). Aromatics and halogenated compounds are accurate to about 1%; saturated hydrocarbons come out roughly 11% high, because an atom-additive scheme has no hybridization dependence.",
     "",
     "Polarizability",
     "heuristic"
@@ -2215,7 +2215,7 @@
    [
     "calculator:polarizability:Polarizability",
     "",
-    "Additive atomic scheme (Jensen et al. 2002). Aromatics and halogenated compounds are accurate to about 1%; saturated hydrocarbons come out roughly 11% high, because an atom-additive scheme has no hybridization dependence."
+    "Additive atomic scheme (table of unrecorded origin, checked against experiment). Aromatics and halogenated compounds are accurate to about 1%; saturated hydrocarbons come out roughly 11% high, because an atom-additive scheme has no hybridization dependence."
    ]
   ]
  },
@@ -2228,7 +2228,7 @@
   "lines": [
    "Molecular polarizability: 5.75 A^3",
    "Computed on the major microspecies at pH 7.4.",
-   "Additive atomic scheme (Jensen et al. 2002). Aromatics and halogenated compounds are accurate to about 1%; saturated hydrocarbons come out roughly 11% high, because an atom-additive scheme has no hybridization dependence."
+   "Additive atomic scheme (table of unrecorded origin, checked against experiment). Aromatics and halogenated compounds are accurate to about 1%; saturated hydrocarbons come out roughly 11% high, because an atom-additive scheme has no hybridization dependence."
   ],
   "facts": [
    [
@@ -2250,7 +2250,7 @@
    [
     "electronic",
     "Polarizability",
-    "Additive atomic scheme (Jensen et al. 2002). Aromatics and halogenated compounds are accurate to about 1%; saturated hydrocarbons come out roughly 11% high, because an atom-additive scheme has no hybridization dependence.",
+    "Additive atomic scheme (table of unrecorded origin, checked against experiment). Aromatics and halogenated compounds are accurate to about 1%; saturated hydrocarbons come out roughly 11% high, because an atom-additive scheme has no hybridization dependence.",
     "",
     "Polarizability",
     "heuristic"
@@ -2270,7 +2270,7 @@
    [
     "calculator:polarizability:Polarizability",
     "",
-    "Additive atomic scheme (Jensen et al. 2002). Aromatics and halogenated compounds are accurate to about 1%; saturated hydrocarbons come out roughly 11% high, because an atom-additive scheme has no hybridization dependence."
+    "Additive atomic scheme (table of unrecorded origin, checked against experiment). Aromatics and halogenated compounds are accurate to about 1%; saturated hydrocarbons come out roughly 11% high, because an atom-additive scheme has no hybridization dependence."
    ]
   ]
  },
@@ -2283,7 +2283,7 @@
   "lines": [
    "Molecular polarizability: 10.29 A^3",
    "Computed on the major microspecies at pH 7.4.",
-   "Additive atomic scheme (Jensen et al. 2002). Aromatics and halogenated compounds are accurate to about 1%; saturated hydrocarbons come out roughly 11% high, because an atom-additive scheme has no hybridization dependence."
+   "Additive atomic scheme (table of unrecorded origin, checked against experiment). Aromatics and halogenated compounds are accurate to about 1%; saturated hydrocarbons come out roughly 11% high, because an atom-additive scheme has no hybridization dependence."
   ],
   "facts": [
    [
@@ -2305,7 +2305,7 @@
    [
     "electronic",
     "Polarizability",
-    "Additive atomic scheme (Jensen et al. 2002). Aromatics and halogenated compounds are accurate to about 1%; saturated hydrocarbons come out roughly 11% high, because an atom-additive scheme has no hybridization dependence.",
+    "Additive atomic scheme (table of unrecorded origin, checked against experiment). Aromatics and halogenated compounds are accurate to about 1%; saturated hydrocarbons come out roughly 11% high, because an atom-additive scheme has no hybridization dependence.",
     "",
     "Polarizability",
     "heuristic"
@@ -2325,7 +2325,7 @@
    [
     "calculator:polarizability:Polarizability",
     "",
-    "Additive atomic scheme (Jensen et al. 2002). Aromatics and halogenated compounds are accurate to about 1%; saturated hydrocarbons come out roughly 11% high, because an atom-additive scheme has no hybridization dependence."
+    "Additive atomic scheme (table of unrecorded origin, checked against experiment). Aromatics and halogenated compounds are accurate to about 1%; saturated hydrocarbons come out roughly 11% high, because an atom-additive scheme has no hybridization dependence."
    ]
   ]
  },
@@ -2338,7 +2338,7 @@
   "lines": [
    "Molecular polarizability: 17.72 A^3",
    "Computed on the major microspecies at pH 7.4.",
-   "Additive atomic scheme (Jensen et al. 2002). Aromatics and halogenated compounds are accurate to about 1%; saturated hydrocarbons come out roughly 11% high, because an atom-additive scheme has no hybridization dependence."
+   "Additive atomic scheme (table of unrecorded origin, checked against experiment). Aromatics and halogenated compounds are accurate to about 1%; saturated hydrocarbons come out roughly 11% high, because an atom-additive scheme has no hybridization dependence."
   ],
   "facts": [
    [
@@ -2360,7 +2360,7 @@
    [
     "electronic",
     "Polarizability",
-    "Additive atomic scheme (Jensen et al. 2002). Aromatics and halogenated compounds are accurate to about 1%; saturated hydrocarbons come out roughly 11% high, because an atom-additive scheme has no hybridization dependence.",
+    "Additive atomic scheme (table of unrecorded origin, checked against experiment). Aromatics and halogenated compounds are accurate to about 1%; saturated hydrocarbons come out roughly 11% high, because an atom-additive scheme has no hybridization dependence.",
     "",
     "Polarizability",
     "heuristic"
@@ -2380,7 +2380,7 @@
    [
     "calculator:polarizability:Polarizability",
     "",
-    "Additive atomic scheme (Jensen et al. 2002). Aromatics and halogenated compounds are accurate to about 1%; saturated hydrocarbons come out roughly 11% high, because an atom-additive scheme has no hybridization dependence."
+    "Additive atomic scheme (table of unrecorded origin, checked against experiment). Aromatics and halogenated compounds are accurate to about 1%; saturated hydrocarbons come out roughly 11% high, because an atom-additive scheme has no hybridization dependence."
    ]
   ]
  },
@@ -2393,7 +2393,7 @@
   "lines": [
    "Molecular polarizability: 19.93 A^3",
    "Computed on the major microspecies at pH 7.4.",
-   "Additive atomic scheme (Jensen et al. 2002). Aromatics and halogenated compounds are accurate to about 1%; saturated hydrocarbons come out roughly 11% high, because an atom-additive scheme has no hybridization dependence."
+   "Additive atomic scheme (table of unrecorded origin, checked against experiment). Aromatics and halogenated compounds are accurate to about 1%; saturated hydrocarbons come out roughly 11% high, because an atom-additive scheme has no hybridization dependence."
   ],
   "facts": [
    [
@@ -2415,7 +2415,7 @@
    [
     "electronic",
     "Polarizability",
-    "Additive atomic scheme (Jensen et al. 2002). Aromatics and halogenated compounds are accurate to about 1%; saturated hydrocarbons come out roughly 11% high, because an atom-additive scheme has no hybridization dependence.",
+    "Additive atomic scheme (table of unrecorded origin, checked against experiment). Aromatics and halogenated compounds are accurate to about 1%; saturated hydrocarbons come out roughly 11% high, because an atom-additive scheme has no hybridization dependence.",
     "",
     "Polarizability",
     "heuristic"
@@ -2435,7 +2435,7 @@
    [
     "calculator:polarizability:Polarizability",
     "",
-    "Additive atomic scheme (Jensen et al. 2002). Aromatics and halogenated compounds are accurate to about 1%; saturated hydrocarbons come out roughly 11% high, because an atom-additive scheme has no hybridization dependence."
+    "Additive atomic scheme (table of unrecorded origin, checked against experiment). Aromatics and halogenated compounds are accurate to about 1%; saturated hydrocarbons come out roughly 11% high, because an atom-additive scheme has no hybridization dependence."
    ]
   ]
  },
@@ -2448,7 +2448,7 @@
   "lines": [
    "Molecular polarizability: 10.37 A^3",
    "Computed on the major microspecies at pH 7.4.",
-   "Additive atomic scheme (Jensen et al. 2002). Aromatics and halogenated compounds are accurate to about 1%; saturated hydrocarbons come out roughly 11% high, because an atom-additive scheme has no hybridization dependence."
+   "Additive atomic scheme (table of unrecorded origin, checked against experiment). Aromatics and halogenated compounds are accurate to about 1%; saturated hydrocarbons come out roughly 11% high, because an atom-additive scheme has no hybridization dependence."
   ],
   "facts": [
    [
@@ -2470,7 +2470,7 @@
    [
     "electronic",
     "Polarizability",
-    "Additive atomic scheme (Jensen et al. 2002). Aromatics and halogenated compounds are accurate to about 1%; saturated hydrocarbons come out roughly 11% high, because an atom-additive scheme has no hybridization dependence.",
+    "Additive atomic scheme (table of unrecorded origin, checked against experiment). Aromatics and halogenated compounds are accurate to about 1%; saturated hydrocarbons come out roughly 11% high, because an atom-additive scheme has no hybridization dependence.",
     "",
     "Polarizability",
     "heuristic"
@@ -2490,7 +2490,7 @@
    [
     "calculator:polarizability:Polarizability",
     "",
-    "Additive atomic scheme (Jensen et al. 2002). Aromatics and halogenated compounds are accurate to about 1%; saturated hydrocarbons come out roughly 11% high, because an atom-additive scheme has no hybridization dependence."
+    "Additive atomic scheme (table of unrecorded origin, checked against experiment). Aromatics and halogenated compounds are accurate to about 1%; saturated hydrocarbons come out roughly 11% high, because an atom-additive scheme has no hybridization dependence."
    ]
   ]
  },
@@ -2503,7 +2503,7 @@
   "lines": [
    "Molecular polarizability: 14.60 A^3",
    "Computed on the major microspecies at pH 7.4.",
-   "Additive atomic scheme (Jensen et al. 2002). Aromatics and halogenated compounds are accurate to about 1%; saturated hydrocarbons come out roughly 11% high, because an atom-additive scheme has no hybridization dependence."
+   "Additive atomic scheme (table of unrecorded origin, checked against experiment). Aromatics and halogenated compounds are accurate to about 1%; saturated hydrocarbons come out roughly 11% high, because an atom-additive scheme has no hybridization dependence."
   ],
   "facts": [
    [
@@ -2525,7 +2525,7 @@
    [
     "electronic",
     "Polarizability",
-    "Additive atomic scheme (Jensen et al. 2002). Aromatics and halogenated compounds are accurate to about 1%; saturated hydrocarbons come out roughly 11% high, because an atom-additive scheme has no hybridization dependence.",
+    "Additive atomic scheme (table of unrecorded origin, checked against experiment). Aromatics and halogenated compounds are accurate to about 1%; saturated hydrocarbons come out roughly 11% high, because an atom-additive scheme has no hybridization dependence.",
     "",
     "Polarizability",
     "heuristic"
@@ -2545,7 +2545,7 @@
    [
     "calculator:polarizability:Polarizability",
     "",
-    "Additive atomic scheme (Jensen et al. 2002). Aromatics and halogenated compounds are accurate to about 1%; saturated hydrocarbons come out roughly 11% high, because an atom-additive scheme has no hybridization dependence."
+    "Additive atomic scheme (table of unrecorded origin, checked against experiment). Aromatics and halogenated compounds are accurate to about 1%; saturated hydrocarbons come out roughly 11% high, because an atom-additive scheme has no hybridization dependence."
    ]
   ]
  },
@@ -2558,7 +2558,7 @@
   "lines": [
    "Molecular polarizability: 5.35 A^3",
    "Computed on the major microspecies at pH 7.4.",
-   "Additive atomic scheme (Jensen et al. 2002). Aromatics and halogenated compounds are accurate to about 1%; saturated hydrocarbons come out roughly 11% high, because an atom-additive scheme has no hybridization dependence."
+   "Additive atomic scheme (table of unrecorded origin, checked against experiment). Aromatics and halogenated compounds are accurate to about 1%; saturated hydrocarbons come out roughly 11% high, because an atom-additive scheme has no hybridization dependence."
   ],
   "facts": [
    [
@@ -2580,7 +2580,7 @@
    [
     "electronic",
     "Polarizability",
-    "Additive atomic scheme (Jensen et al. 2002). Aromatics and halogenated compounds are accurate to about 1%; saturated hydrocarbons come out roughly 11% high, because an atom-additive scheme has no hybridization dependence.",
+    "Additive atomic scheme (table of unrecorded origin, checked against experiment). Aromatics and halogenated compounds are accurate to about 1%; saturated hydrocarbons come out roughly 11% high, because an atom-additive scheme has no hybridization dependence.",
     "",
     "Polarizability",
     "heuristic"
@@ -2600,7 +2600,7 @@
    [
     "calculator:polarizability:Polarizability",
     "",
-    "Additive atomic scheme (Jensen et al. 2002). Aromatics and halogenated compounds are accurate to about 1%; saturated hydrocarbons come out roughly 11% high, because an atom-additive scheme has no hybridization dependence."
+    "Additive atomic scheme (table of unrecorded origin, checked against experiment). Aromatics and halogenated compounds are accurate to about 1%; saturated hydrocarbons come out roughly 11% high, because an atom-additive scheme has no hybridization dependence."
    ]
   ]
  },
@@ -2613,7 +2613,7 @@
   "lines": [
    "Molecular polarizability: 7.10 A^3",
    "Computed on the major microspecies at pH 7.4.",
-   "Additive atomic scheme (Jensen et al. 2002). Aromatics and halogenated compounds are accurate to about 1%; saturated hydrocarbons come out roughly 11% high, because an atom-additive scheme has no hybridization dependence."
+   "Additive atomic scheme (table of unrecorded origin, checked against experiment). Aromatics and halogenated compounds are accurate to about 1%; saturated hydrocarbons come out roughly 11% high, because an atom-additive scheme has no hybridization dependence."
   ],
   "facts": [
    [
@@ -2635,7 +2635,7 @@
    [
     "electronic",
     "Polarizability",
-    "Additive atomic scheme (Jensen et al. 2002). Aromatics and halogenated compounds are accurate to about 1%; saturated hydrocarbons come out roughly 11% high, because an atom-additive scheme has no hybridization dependence.",
+    "Additive atomic scheme (table of unrecorded origin, checked against experiment). Aromatics and halogenated compounds are accurate to about 1%; saturated hydrocarbons come out roughly 11% high, because an atom-additive scheme has no hybridization dependence.",
     "",
     "Polarizability",
     "heuristic"
@@ -2655,7 +2655,7 @@
    [
     "calculator:polarizability:Polarizability",
     "",
-    "Additive atomic scheme (Jensen et al. 2002). Aromatics and halogenated compounds are accurate to about 1%; saturated hydrocarbons come out roughly 11% high, because an atom-additive scheme has no hybridization dependence."
+    "Additive atomic scheme (table of unrecorded origin, checked against experiment). Aromatics and halogenated compounds are accurate to about 1%; saturated hydrocarbons come out roughly 11% high, because an atom-additive scheme has no hybridization dependence."
    ]
   ]
  },
@@ -2671,7 +2671,7 @@
   "lines": [
    "Molecular polarizability: 13.93 A^3",
    "Computed on the major microspecies at pH 7.4.",
-   "Additive atomic scheme (Jensen et al. 2002). Aromatics and halogenated compounds are accurate to about 1%; saturated hydrocarbons come out roughly 11% high, because an atom-additive scheme has no hybridization dependence."
+   "Additive atomic scheme (table of unrecorded origin, checked against experiment). Aromatics and halogenated compounds are accurate to about 1%; saturated hydrocarbons come out roughly 11% high, because an atom-additive scheme has no hybridization dependence."
   ],
   "facts": [
    [
@@ -2693,7 +2693,7 @@
    [
     "electronic",
     "Polarizability",
-    "Additive atomic scheme (Jensen et al. 2002). Aromatics and halogenated compounds are accurate to about 1%; saturated hydrocarbons come out roughly 11% high, because an atom-additive scheme has no hybridization dependence.",
+    "Additive atomic scheme (table of unrecorded origin, checked against experiment). Aromatics and halogenated compounds are accurate to about 1%; saturated hydrocarbons come out roughly 11% high, because an atom-additive scheme has no hybridization dependence.",
     "",
     "Polarizability",
     "heuristic"
@@ -2713,14 +2713,14 @@
    [
     "calculator:polarizability:Polarizability",
     "",
-    "Additive atomic scheme (Jensen et al. 2002). Aromatics and halogenated compounds are accurate to about 1%; saturated hydrocarbons come out roughly 11% high, because an atom-additive scheme has no hybridization dependence."
+    "Additive atomic scheme (table of unrecorded origin, checked against experiment). Aromatics and halogenated compounds are accurate to about 1%; saturated hydrocarbons come out roughly 11% high, because an atom-additive scheme has no hybridization dependence."
    ]
   ]
  },
  "copper(II) | microspecies": {
   "state": "failed",
-  "error": "No Jensen polarizability parameter for: Cu. The table covers H, C, N, O, S, F, Cl, Br, I, P, Si, B, Se.",
-  "summary": "Element outside Jensen's set",
+  "error": "No additive polarizability parameter for: Cu. The table covers H, C, N, O, S, F, Cl, Br, I, P, Si, B, Se.",
+  "summary": "Element outside the additive table",
   "inapplicable": true,
   "method": "jensen",
   "lines": [],
@@ -3466,7 +3466,7 @@
   "method": "jensen",
   "lines": [
    "Molecular polarizability: 1.54 A^3",
-   "Additive atomic scheme (Jensen et al. 2002). Aromatics and halogenated compounds are accurate to about 1%; saturated hydrocarbons come out roughly 11% high, because an atom-additive scheme has no hybridization dependence."
+   "Additive atomic scheme (table of unrecorded origin, checked against experiment). Aromatics and halogenated compounds are accurate to about 1%; saturated hydrocarbons come out roughly 11% high, because an atom-additive scheme has no hybridization dependence."
   ],
   "facts": [
    [
@@ -3480,7 +3480,7 @@
    [
     "electronic",
     "Polarizability",
-    "Additive atomic scheme (Jensen et al. 2002). Aromatics and halogenated compounds are accurate to about 1%; saturated hydrocarbons come out roughly 11% high, because an atom-additive scheme has no hybridization dependence.",
+    "Additive atomic scheme (table of unrecorded origin, checked against experiment). Aromatics and halogenated compounds are accurate to about 1%; saturated hydrocarbons come out roughly 11% high, because an atom-additive scheme has no hybridization dependence.",
     "",
     "Polarizability",
     "heuristic"
@@ -3495,7 +3495,7 @@
    [
     "calculator:polarizability:Polarizability",
     "",
-    "Additive atomic scheme (Jensen et al. 2002). Aromatics and halogenated compounds are accurate to about 1%; saturated hydrocarbons come out roughly 11% high, because an atom-additive scheme has no hybridization dependence."
+    "Additive atomic scheme (table of unrecorded origin, checked against experiment). Aromatics and halogenated compounds are accurate to about 1%; saturated hydrocarbons come out roughly 11% high, because an atom-additive scheme has no hybridization dependence."
    ]
   ]
  },
@@ -3507,7 +3507,7 @@
   "method": "jensen",
   "lines": [
    "Molecular polarizability: 2.88 A^3",
-   "Additive atomic scheme (Jensen et al. 2002). Aromatics and halogenated compounds are accurate to about 1%; saturated hydrocarbons come out roughly 11% high, because an atom-additive scheme has no hybridization dependence."
+   "Additive atomic scheme (table of unrecorded origin, checked against experiment). Aromatics and halogenated compounds are accurate to about 1%; saturated hydrocarbons come out roughly 11% high, because an atom-additive scheme has no hybridization dependence."
   ],
   "facts": [
    [
@@ -3521,7 +3521,7 @@
    [
     "electronic",
     "Polarizability",
-    "Additive atomic scheme (Jensen et al. 2002). Aromatics and halogenated compounds are accurate to about 1%; saturated hydrocarbons come out roughly 11% high, because an atom-additive scheme has no hybridization dependence.",
+    "Additive atomic scheme (table of unrecorded origin, checked against experiment). Aromatics and halogenated compounds are accurate to about 1%; saturated hydrocarbons come out roughly 11% high, because an atom-additive scheme has no hybridization dependence.",
     "",
     "Polarizability",
     "heuristic"
@@ -3536,7 +3536,7 @@
    [
     "calculator:polarizability:Polarizability",
     "",
-    "Additive atomic scheme (Jensen et al. 2002). Aromatics and halogenated compounds are accurate to about 1%; saturated hydrocarbons come out roughly 11% high, because an atom-additive scheme has no hybridization dependence."
+    "Additive atomic scheme (table of unrecorded origin, checked against experiment). Aromatics and halogenated compounds are accurate to about 1%; saturated hydrocarbons come out roughly 11% high, because an atom-additive scheme has no hybridization dependence."
    ]
   ]
  },
@@ -3548,7 +3548,7 @@
   "method": "jensen",
   "lines": [
    "Molecular polarizability: 5.75 A^3",
-   "Additive atomic scheme (Jensen et al. 2002). Aromatics and halogenated compounds are accurate to about 1%; saturated hydrocarbons come out roughly 11% high, because an atom-additive scheme has no hybridization dependence."
+   "Additive atomic scheme (table of unrecorded origin, checked against experiment). Aromatics and halogenated compounds are accurate to about 1%; saturated hydrocarbons come out roughly 11% high, because an atom-additive scheme has no hybridization dependence."
   ],
   "facts": [
    [
@@ -3562,7 +3562,7 @@
    [
     "electronic",
     "Polarizability",
-    "Additive atomic scheme (Jensen et al. 2002). Aromatics and halogenated compounds are accurate to about 1%; saturated hydrocarbons come out roughly 11% high, because an atom-additive scheme has no hybridization dependence.",
+    "Additive atomic scheme (table of unrecorded origin, checked against experiment). Aromatics and halogenated compounds are accurate to about 1%; saturated hydrocarbons come out roughly 11% high, because an atom-additive scheme has no hybridization dependence.",
     "",
     "Polarizability",
     "heuristic"
@@ -3577,7 +3577,7 @@
    [
     "calculator:polarizability:Polarizability",
     "",
-    "Additive atomic scheme (Jensen et al. 2002). Aromatics and halogenated compounds are accurate to about 1%; saturated hydrocarbons come out roughly 11% high, because an atom-additive scheme has no hybridization dependence."
+    "Additive atomic scheme (table of unrecorded origin, checked against experiment). Aromatics and halogenated compounds are accurate to about 1%; saturated hydrocarbons come out roughly 11% high, because an atom-additive scheme has no hybridization dependence."
    ]
   ]
  },
@@ -3589,7 +3589,7 @@
   "method": "jensen",
   "lines": [
    "Molecular polarizability: 10.29 A^3",
-   "Additive atomic scheme (Jensen et al. 2002). Aromatics and halogenated compounds are accurate to about 1%; saturated hydrocarbons come out roughly 11% high, because an atom-additive scheme has no hybridization dependence."
+   "Additive atomic scheme (table of unrecorded origin, checked against experiment). Aromatics and halogenated compounds are accurate to about 1%; saturated hydrocarbons come out roughly 11% high, because an atom-additive scheme has no hybridization dependence."
   ],
   "facts": [
    [
@@ -3603,7 +3603,7 @@
    [
     "electronic",
     "Polarizability",
-    "Additive atomic scheme (Jensen et al. 2002). Aromatics and halogenated compounds are accurate to about 1%; saturated hydrocarbons come out roughly 11% high, because an atom-additive scheme has no hybridization dependence.",
+    "Additive atomic scheme (table of unrecorded origin, checked against experiment). Aromatics and halogenated compounds are accurate to about 1%; saturated hydrocarbons come out roughly 11% high, because an atom-additive scheme has no hybridization dependence.",
     "",
     "Polarizability",
     "heuristic"
@@ -3618,7 +3618,7 @@
    [
     "calculator:polarizability:Polarizability",
     "",
-    "Additive atomic scheme (Jensen et al. 2002). Aromatics and halogenated compounds are accurate to about 1%; saturated hydrocarbons come out roughly 11% high, because an atom-additive scheme has no hybridization dependence."
+    "Additive atomic scheme (table of unrecorded origin, checked against experiment). Aromatics and halogenated compounds are accurate to about 1%; saturated hydrocarbons come out roughly 11% high, because an atom-additive scheme has no hybridization dependence."
    ]
   ]
  },
@@ -3630,7 +3630,7 @@
   "method": "jensen",
   "lines": [
    "Molecular polarizability: 18.11 A^3",
-   "Additive atomic scheme (Jensen et al. 2002). Aromatics and halogenated compounds are accurate to about 1%; saturated hydrocarbons come out roughly 11% high, because an atom-additive scheme has no hybridization dependence."
+   "Additive atomic scheme (table of unrecorded origin, checked against experiment). Aromatics and halogenated compounds are accurate to about 1%; saturated hydrocarbons come out roughly 11% high, because an atom-additive scheme has no hybridization dependence."
   ],
   "facts": [
    [
@@ -3644,7 +3644,7 @@
    [
     "electronic",
     "Polarizability",
-    "Additive atomic scheme (Jensen et al. 2002). Aromatics and halogenated compounds are accurate to about 1%; saturated hydrocarbons come out roughly 11% high, because an atom-additive scheme has no hybridization dependence.",
+    "Additive atomic scheme (table of unrecorded origin, checked against experiment). Aromatics and halogenated compounds are accurate to about 1%; saturated hydrocarbons come out roughly 11% high, because an atom-additive scheme has no hybridization dependence.",
     "",
     "Polarizability",
     "heuristic"
@@ -3659,7 +3659,7 @@
    [
     "calculator:polarizability:Polarizability",
     "",
-    "Additive atomic scheme (Jensen et al. 2002). Aromatics and halogenated compounds are accurate to about 1%; saturated hydrocarbons come out roughly 11% high, because an atom-additive scheme has no hybridization dependence."
+    "Additive atomic scheme (table of unrecorded origin, checked against experiment). Aromatics and halogenated compounds are accurate to about 1%; saturated hydrocarbons come out roughly 11% high, because an atom-additive scheme has no hybridization dependence."
    ]
   ]
  },
@@ -3671,7 +3671,7 @@
   "method": "jensen",
   "lines": [
    "Molecular polarizability: 19.93 A^3",
-   "Additive atomic scheme (Jensen et al. 2002). Aromatics and halogenated compounds are accurate to about 1%; saturated hydrocarbons come out roughly 11% high, because an atom-additive scheme has no hybridization dependence."
+   "Additive atomic scheme (table of unrecorded origin, checked against experiment). Aromatics and halogenated compounds are accurate to about 1%; saturated hydrocarbons come out roughly 11% high, because an atom-additive scheme has no hybridization dependence."
   ],
   "facts": [
    [
@@ -3685,7 +3685,7 @@
    [
     "electronic",
     "Polarizability",
-    "Additive atomic scheme (Jensen et al. 2002). Aromatics and halogenated compounds are accurate to about 1%; saturated hydrocarbons come out roughly 11% high, because an atom-additive scheme has no hybridization dependence.",
+    "Additive atomic scheme (table of unrecorded origin, checked against experiment). Aromatics and halogenated compounds are accurate to about 1%; saturated hydrocarbons come out roughly 11% high, because an atom-additive scheme has no hybridization dependence.",
     "",
     "Polarizability",
     "heuristic"
@@ -3700,7 +3700,7 @@
    [
     "calculator:polarizability:Polarizability",
     "",
-    "Additive atomic scheme (Jensen et al. 2002). Aromatics and halogenated compounds are accurate to about 1%; saturated hydrocarbons come out roughly 11% high, because an atom-additive scheme has no hybridization dependence."
+    "Additive atomic scheme (table of unrecorded origin, checked against experiment). Aromatics and halogenated compounds are accurate to about 1%; saturated hydrocarbons come out roughly 11% high, because an atom-additive scheme has no hybridization dependence."
    ]
   ]
  },
@@ -3712,7 +3712,7 @@
   "method": "jensen",
   "lines": [
    "Molecular polarizability: 10.37 A^3",
-   "Additive atomic scheme (Jensen et al. 2002). Aromatics and halogenated compounds are accurate to about 1%; saturated hydrocarbons come out roughly 11% high, because an atom-additive scheme has no hybridization dependence."
+   "Additive atomic scheme (table of unrecorded origin, checked against experiment). Aromatics and halogenated compounds are accurate to about 1%; saturated hydrocarbons come out roughly 11% high, because an atom-additive scheme has no hybridization dependence."
   ],
   "facts": [
    [
@@ -3726,7 +3726,7 @@
    [
     "electronic",
     "Polarizability",
-    "Additive atomic scheme (Jensen et al. 2002). Aromatics and halogenated compounds are accurate to about 1%; saturated hydrocarbons come out roughly 11% high, because an atom-additive scheme has no hybridization dependence.",
+    "Additive atomic scheme (table of unrecorded origin, checked against experiment). Aromatics and halogenated compounds are accurate to about 1%; saturated hydrocarbons come out roughly 11% high, because an atom-additive scheme has no hybridization dependence.",
     "",
     "Polarizability",
     "heuristic"
@@ -3741,7 +3741,7 @@
    [
     "calculator:polarizability:Polarizability",
     "",
-    "Additive atomic scheme (Jensen et al. 2002). Aromatics and halogenated compounds are accurate to about 1%; saturated hydrocarbons come out roughly 11% high, because an atom-additive scheme has no hybridization dependence."
+    "Additive atomic scheme (table of unrecorded origin, checked against experiment). Aromatics and halogenated compounds are accurate to about 1%; saturated hydrocarbons come out roughly 11% high, because an atom-additive scheme has no hybridization dependence."
    ]
   ]
  },
@@ -3753,7 +3753,7 @@
   "method": "jensen",
   "lines": [
    "Molecular polarizability: 14.60 A^3",
-   "Additive atomic scheme (Jensen et al. 2002). Aromatics and halogenated compounds are accurate to about 1%; saturated hydrocarbons come out roughly 11% high, because an atom-additive scheme has no hybridization dependence."
+   "Additive atomic scheme (table of unrecorded origin, checked against experiment). Aromatics and halogenated compounds are accurate to about 1%; saturated hydrocarbons come out roughly 11% high, because an atom-additive scheme has no hybridization dependence."
   ],
   "facts": [
    [
@@ -3767,7 +3767,7 @@
    [
     "electronic",
     "Polarizability",
-    "Additive atomic scheme (Jensen et al. 2002). Aromatics and halogenated compounds are accurate to about 1%; saturated hydrocarbons come out roughly 11% high, because an atom-additive scheme has no hybridization dependence.",
+    "Additive atomic scheme (table of unrecorded origin, checked against experiment). Aromatics and halogenated compounds are accurate to about 1%; saturated hydrocarbons come out roughly 11% high, because an atom-additive scheme has no hybridization dependence.",
     "",
     "Polarizability",
     "heuristic"
@@ -3782,7 +3782,7 @@
    [
     "calculator:polarizability:Polarizability",
     "",
-    "Additive atomic scheme (Jensen et al. 2002). Aromatics and halogenated compounds are accurate to about 1%; saturated hydrocarbons come out roughly 11% high, because an atom-additive scheme has no hybridization dependence."
+    "Additive atomic scheme (table of unrecorded origin, checked against experiment). Aromatics and halogenated compounds are accurate to about 1%; saturated hydrocarbons come out roughly 11% high, because an atom-additive scheme has no hybridization dependence."
    ]
   ]
  },
@@ -3794,7 +3794,7 @@
   "method": "jensen",
   "lines": [
    "Molecular polarizability: 5.74 A^3",
-   "Additive atomic scheme (Jensen et al. 2002). Aromatics and halogenated compounds are accurate to about 1%; saturated hydrocarbons come out roughly 11% high, because an atom-additive scheme has no hybridization dependence."
+   "Additive atomic scheme (table of unrecorded origin, checked against experiment). Aromatics and halogenated compounds are accurate to about 1%; saturated hydrocarbons come out roughly 11% high, because an atom-additive scheme has no hybridization dependence."
   ],
   "facts": [
    [
@@ -3808,7 +3808,7 @@
    [
     "electronic",
     "Polarizability",
-    "Additive atomic scheme (Jensen et al. 2002). Aromatics and halogenated compounds are accurate to about 1%; saturated hydrocarbons come out roughly 11% high, because an atom-additive scheme has no hybridization dependence.",
+    "Additive atomic scheme (table of unrecorded origin, checked against experiment). Aromatics and halogenated compounds are accurate to about 1%; saturated hydrocarbons come out roughly 11% high, because an atom-additive scheme has no hybridization dependence.",
     "",
     "Polarizability",
     "heuristic"
@@ -3823,7 +3823,7 @@
    [
     "calculator:polarizability:Polarizability",
     "",
-    "Additive atomic scheme (Jensen et al. 2002). Aromatics and halogenated compounds are accurate to about 1%; saturated hydrocarbons come out roughly 11% high, because an atom-additive scheme has no hybridization dependence."
+    "Additive atomic scheme (table of unrecorded origin, checked against experiment). Aromatics and halogenated compounds are accurate to about 1%; saturated hydrocarbons come out roughly 11% high, because an atom-additive scheme has no hybridization dependence."
    ]
   ]
  },
@@ -3835,7 +3835,7 @@
   "method": "jensen",
   "lines": [
    "Molecular polarizability: 7.10 A^3",
-   "Additive atomic scheme (Jensen et al. 2002). Aromatics and halogenated compounds are accurate to about 1%; saturated hydrocarbons come out roughly 11% high, because an atom-additive scheme has no hybridization dependence."
+   "Additive atomic scheme (table of unrecorded origin, checked against experiment). Aromatics and halogenated compounds are accurate to about 1%; saturated hydrocarbons come out roughly 11% high, because an atom-additive scheme has no hybridization dependence."
   ],
   "facts": [
    [
@@ -3849,7 +3849,7 @@
    [
     "electronic",
     "Polarizability",
-    "Additive atomic scheme (Jensen et al. 2002). Aromatics and halogenated compounds are accurate to about 1%; saturated hydrocarbons come out roughly 11% high, because an atom-additive scheme has no hybridization dependence.",
+    "Additive atomic scheme (table of unrecorded origin, checked against experiment). Aromatics and halogenated compounds are accurate to about 1%; saturated hydrocarbons come out roughly 11% high, because an atom-additive scheme has no hybridization dependence.",
     "",
     "Polarizability",
     "heuristic"
@@ -3864,7 +3864,7 @@
    [
     "calculator:polarizability:Polarizability",
     "",
-    "Additive atomic scheme (Jensen et al. 2002). Aromatics and halogenated compounds are accurate to about 1%; saturated hydrocarbons come out roughly 11% high, because an atom-additive scheme has no hybridization dependence."
+    "Additive atomic scheme (table of unrecorded origin, checked against experiment). Aromatics and halogenated compounds are accurate to about 1%; saturated hydrocarbons come out roughly 11% high, because an atom-additive scheme has no hybridization dependence."
    ]
   ]
  },
@@ -3879,7 +3879,7 @@
   "method": "jensen",
   "lines": [
    "Molecular polarizability: 13.93 A^3",
-   "Additive atomic scheme (Jensen et al. 2002). Aromatics and halogenated compounds are accurate to about 1%; saturated hydrocarbons come out roughly 11% high, because an atom-additive scheme has no hybridization dependence."
+   "Additive atomic scheme (table of unrecorded origin, checked against experiment). Aromatics and halogenated compounds are accurate to about 1%; saturated hydrocarbons come out roughly 11% high, because an atom-additive scheme has no hybridization dependence."
   ],
   "facts": [
    [
@@ -3893,7 +3893,7 @@
    [
     "electronic",
     "Polarizability",
-    "Additive atomic scheme (Jensen et al. 2002). Aromatics and halogenated compounds are accurate to about 1%; saturated hydrocarbons come out roughly 11% high, because an atom-additive scheme has no hybridization dependence.",
+    "Additive atomic scheme (table of unrecorded origin, checked against experiment). Aromatics and halogenated compounds are accurate to about 1%; saturated hydrocarbons come out roughly 11% high, because an atom-additive scheme has no hybridization dependence.",
     "",
     "Polarizability",
     "heuristic"
@@ -3908,14 +3908,14 @@
    [
     "calculator:polarizability:Polarizability",
     "",
-    "Additive atomic scheme (Jensen et al. 2002). Aromatics and halogenated compounds are accurate to about 1%; saturated hydrocarbons come out roughly 11% high, because an atom-additive scheme has no hybridization dependence."
+    "Additive atomic scheme (table of unrecorded origin, checked against experiment). Aromatics and halogenated compounds are accurate to about 1%; saturated hydrocarbons come out roughly 11% high, because an atom-additive scheme has no hybridization dependence."
    ]
   ]
  },
  "copper(II) | unknown label": {
   "state": "failed",
-  "error": "No Jensen polarizability parameter for: Cu. The table covers H, C, N, O, S, F, Cl, Br, I, P, Si, B, Se.",
-  "summary": "Element outside Jensen's set",
+  "error": "No additive polarizability parameter for: Cu. The table covers H, C, N, O, S, F, Cl, Br, I, P, Si, B, Se.",
+  "summary": "Element outside the additive table",
   "inapplicable": true,
   "method": "jensen",
   "lines": [],
