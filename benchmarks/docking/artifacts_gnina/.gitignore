@@ -1,0 +1,6 @@
+# Molblocks, SDF, receptor PDBs and gnina logs stay on disk (~63 MB).
+*
+!.gitignore
+!results.jsonl
+!cnn_scores.json
+!summary.json

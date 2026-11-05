@@ -2045,6 +2045,8 @@
   "tests/test_gasteiger_charges.py": 1,
   "tests/test_geometry_charges.py": 1,
   "tests/test_geometry_options.py": 3,
+  "tests/test_gnina_core.py": 2,
+  "tests/test_gnina_list.py": 1,
   "tests/test_goal_run.py": 3,
   "tests/test_goal_wizard.py": 0,
   "tests/test_griffin_hlb_calculator.py": 0,
