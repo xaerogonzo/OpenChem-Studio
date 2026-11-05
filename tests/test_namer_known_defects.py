@@ -4847,6 +4847,10 @@ FIXED: list[tuple[str, str, str, str, str]] = [
      "dispiro[tricyclo[3.2.1.0^{3,6}]octane-2,9'-4-azatricyclo[4.3.1.1^{3,8}]undecane-2',2''-adamantane]",
      "spiro[spiro[4-azatricyclo[4.3.1.1^{3,8}]undecane-9,2'-tricyclo[3.2.1.0^{3,6}]octane]-2,2'-adamantane]",
      "a chain of three polycyclic components is classed bridged, so the flat dispiro name was never offered"),
+    ("D-395", "c1ccc2c(c1)CC1CC2CC2(N1)c1ccccc1C1CCNC2C1",
+     "spiro[1,2,3,4,5,6-hexahydro-2,6-methano-3-benzazocine-4,8'-10-azatricyclo[7.3.1.0^{2,7}]trideca-2(7),3,5-triene]",
+     "spiro[1,2,3,4,5,6-hexahydro-2,6-methano-3-benzazocine-4,1'-1,2,3,4,5,6-hexahydro-2,6-methano-3-benzazocine]",
+     "NL-012 shape 4: the same ring-table PIN on both spiro partners with P-24.5.2 locants 4 and 1' is read by OPSIN as another molecule; the primed partner is cited by its von Baeyer name at locant 8'"),
     # D-162, recorded OPEN in naming round 14 and closed by the same change: the same group in an ester's alcohol part. Its target was derived then and is what the fixed engine writes.
     ("D-162", "CC(=O)OCC(=O)N(O)C", "2-[hydroxy(methyl)amino]-2-oxoethyl acetate",
      "[(hydroxycarbamoyl)methyl]methyl acetate",
