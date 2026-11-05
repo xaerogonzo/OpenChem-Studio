@@ -156,8 +156,10 @@ a comparison means nothing unless the inputs reproduce something known):
    verified one), plus showing more than the top pose, which needs no new engine.
 4. **Learned CNN rescore of these Vina poses is closed NULL.** Slice 1
    (`docs/GNINA_SPIKE.md`) PASS 2026-11-04. Frozen test run 2026-11-05:
-   `RESULT_GNINA.md` (29 deciding, gained 3 lost 2, p = 0.5). Not an External
-   Tools tab. gnina-as-dock and DiffDock-class are not automatic fallbacks.
+   `RESULT_GNINA.md` (29 deciding, gained 3 lost 2, p = 0.5). **gnina default
+   dock** is a separate freeze (`PREREGISTRATION_GNINA_DOCK.md`); no catalog
+   search yet. Not an External Tools tab. DiffDock-class is not an automatic
+   fallback.
 5. **QuickVina and Vina-GPU are worth revisiting only for speed**, never for pose choice, and
    only if a Windows binary with provenance appears.
 

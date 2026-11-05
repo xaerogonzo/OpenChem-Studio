@@ -80,7 +80,11 @@ The first run never measured PLECscore: ODDT 0.7's fingerprint hash is Python's 
 
 ## `run_gnina_test.py` — does gnina CNNscore order Vina's poses better?
 
-A preregistered test (`PREREGISTRATION_GNINA.md`, rules in `gnina_core.py`) of re-ranking the same nine Vina poses by gnina's default CNN (`--score_only --cnn_scoring rescore`). Eighteen catalog PDB codes in CrossDocked2020 are held out. Run 2026-11-05: **NULL** (`RESULT_GNINA.md`; 29 deciding, gained 3, lost 2, p = 0.5). CNN rescore of these poses is closed; gnina as a dock was not an arm.
+A preregistered test (`PREREGISTRATION_GNINA.md`, rules in `gnina_core.py`) of re-ranking the same nine Vina poses by gnina's default CNN (`--score_only --cnn_scoring rescore`). Eighteen catalog PDB codes in CrossDocked2020 are held out. Run 2026-11-05: **NULL** (`RESULT_GNINA.md`; 29 deciding, gained 3, lost 2, p = 0.5). CNN rescore of these poses is closed.
+
+## `run_gnina_dock_test.py` — does gnina's default dock beat Vina's top pose?
+
+A separate freeze (`PREREGISTRATION_GNINA_DOCK.md`, rules in `gnina_dock_core.py`): gnina search (no `--score_only`, `--cnn_scoring rescore` as `--help` default), same crystal-ligand box, seed 20261029, exhaustiveness 25, nine poses. **No catalog gnina search in the freeze commit.**
 
 ## `prep_box_survey.py` — is a bad default pose a setup defect?
 
