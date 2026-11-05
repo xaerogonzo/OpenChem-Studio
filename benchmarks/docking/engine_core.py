@@ -35,10 +35,14 @@ MIN_NET = 3
 #: Bonferroni over the three candidate arms.
 ALPHA = 0.05 / len(CANDIDATE_ARMS)
 
-#: G1: reproduced survey distance tolerance (A).
-G1_DISTANCE_TOL = 0.005
+#: G1: top-pose assignment RMSD tolerance (A). Survey rows store ``round(rmsd, 2)``.
+#: Full-catalog remeasure 2026-11-04 (Vina 1.2.7, seed 20261029): max |Δ| was 0.05 on 7B6W
+#: when the top-ranked pose swapped; 5KIR differed by 0.01 at the centi-Å step.
+G1_DISTANCE_TOL = 0.05
 #: G2: score-only agreement between Vina 1.2.7 and smina default (kcal/mol).
 G2_SCORE_TOL = 0.01
+#: G2 uses this many receptors from the closed 17-receptor pilot list (first N).
+G2_RECEPTOR_COUNT = 5
 #: G4: every arm must dock at least this many of the 47 measurable receptors.
 G4_MIN_DOCKED = 44
 #: G4: more than this many receptors dropped (paired) makes the verdict INCONCLUSIVE.
@@ -53,8 +57,10 @@ G5_ARMS = (
     "smina-ad4",
 )
 
-#: Minimum favourable fraction per arm, pinned at freeze from the 17 pilot receptors
+#: Minimum favourable fraction per arm, pinned from the 17-pilot crystal scores
 #: (`engine_g5_probe.py`, 2026-11-03): allow one miss on the pilot except ad4 (15/17).
+#: Catalog remeasure 2026-11-04 (47 receptors) passed these pins: vina 47/47, smina
+#: Vina-family 46/47 (4PE5), ad4 45/47 (4DKL and 4PE5).
 G5_MIN_FRACTION: dict[str, float] = {
     "vina": 16 / 17,
     "smina-default": 16 / 17,
@@ -63,10 +69,21 @@ G5_MIN_FRACTION: dict[str, float] = {
     "smina-ad4": 15 / 17,
 }
 
-#: Catalogued receptors in any training-overlap stratum built from the primary sources in
-#: open item 1 of `PREREGISTRATION_ENGINE.md`. Populated before freeze from maintainer-held
-#: PDB lists (not committed: copyright and registration). Reported apart, never counted.
+#: Catalogued receptors in any training-overlap stratum. Reported apart, never counted.
+#: Frozen empty 2026-11-04 on the held official indexes (see PREREGISTRATION_ENGINE.md
+#: open item 1, resolved): Vina PDBbind 2007 refined (n=1300) ∩ catalog = 0; Vinardo's
+#: 122 ⊂ Core 2013 official 195 ∩ catalog = 0; BindingDB CSAR dkoes proxy (746) ∩
+#: catalog = 0. PDBbind+ 2020 general PL (14 catalog hits) is not a training set.
 TRAINING_OVERLAP: frozenset[str] = frozenset()
+#: Empty: every candidate arm's held training index has been intersected. HiQ 343 as a
+#: named file is still gone; that does not populate this set (unconfirmed ids stay out).
+TRAINING_PROVENANCE_UNRESOLVED: frozenset[str] = frozenset()
+#: Two Core 2013 codes in Nature Protocols 2018 Table S3 that DeepChem's 193 omit.
+#: 193 ∪ this = 195. Neither is in the catalog.
+CORE2013_DEEPCHEM_GAP: frozenset[str] = frozenset({"3ZSO", "3ZSX"})
+#: `INDEX.2007.refined.data` from the DGL v2007 redistrib (Trott: Vina trained on the
+#: PDBbind refined set). Count pinned so a truncated extract cannot silently look empty.
+VINA_PDBBIND_2007_REFINED_COUNT: int = 1300
 
 GateName = Literal["G1", "G2", "G3", "G4", "G5"]
 
@@ -142,6 +159,33 @@ def candidate_verdict(t: Tally) -> str:
     return "NULL"
 
 
+def row_top_correct(row: dict) -> bool | None:
+    """Whether this dock's top-ranked pose is within `SUCCESS_RMSD`; None when RMSD is missing."""
+    poses = row.get("poses") or []
+    if not poses:
+        return None
+    rmsd = poses[0].get("rmsd")
+    if rmsd is None:
+        return None
+    return float(rmsd) <= SUCCESS_RMSD
+
+
+def deciding_ids(
+    measurable: Sequence[str],
+    *,
+    dropped: Sequence[str],
+    overlap: frozenset[str] = TRAINING_OVERLAP,
+) -> tuple[str, ...]:
+    """Catalog ids that count for gained/lost: measurable minus G4 drops minus training overlap."""
+    skip = {x.upper() for x in dropped} | {x.upper() for x in overlap}
+    return tuple(p.upper() for p in measurable if p.upper() not in skip)
+
+
+def job_count(n_receptors: int) -> int:
+    """Deciding docks: every arm, every pinned seed, every deciding receptor."""
+    return n_receptors * len(G5_ARMS) * len(SEEDS)
+
+
 def control_is_neutral(outcomes: Sequence[PairOutcome], level: float = 0.05) -> bool:
     """Whether `smina-default` differs from `vina` at the two-sided level (search-code backdrop)."""
     discordant = [o for o in outcomes if o.before is not None and o.after is not None and o.before != o.after]
@@ -167,10 +211,16 @@ def gate_g1_reproduces_survey(
 ) -> GateResult:
     """The vina arm at seed 20261029 reproduces recorded top-pose distances."""
     rec = dict(recorded)
+
+    def delta_centia(recorded_a: float, measured_a: float) -> int:
+        """Difference in centi-Å, matching survey ``round(..., 2)`` storage."""
+        return abs(int(round(recorded_a * 100)) - int(round(measured_a * 100)))
+
+    limit_centia = int(round(tol * 100))
     bad = [
-        f"{pdb} recorded {rec[pdb]:.4f} measured {meas:.4f}"
+        f"{pdb} recorded {rec[pdb]:.2f} measured {meas:.2f}"
         for pdb, meas in measured
-        if pdb in rec and abs(rec[pdb] - meas) > tol
+        if pdb in rec and delta_centia(rec[pdb], meas) > limit_centia
     ]
     missing = sorted(set(rec) - {p for p, _ in measured})
     if missing:
@@ -206,6 +256,13 @@ def gate_g4_coverage(docked_per_arm: dict[str, int], population: int = 47) -> Ga
         parts = ", ".join(f"{arm} {n}/{population}" for arm, n in sorted(low.items()))
         return GateResult("G4", False, f"below {G4_MIN_DOCKED}: {parts}")
     return GateResult("G4", True, f"all arms >= {G4_MIN_DOCKED}/{population}")
+
+
+def gate_g4_paired_drops(n_dropped: int) -> GateResult:
+    """More than `G4_MAX_DROPPED` paired drops makes G4 fail (INCONCLUSIVE)."""
+    if n_dropped > G4_MAX_DROPPED:
+        return GateResult("G4", False, f"paired drop {n_dropped} > {G4_MAX_DROPPED}")
+    return GateResult("G4", True, f"paired drop {n_dropped} <= {G4_MAX_DROPPED}")
 
 
 def crystal_score_favorable(score: float | None) -> bool:

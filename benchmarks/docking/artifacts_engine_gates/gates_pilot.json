@@ -1,0 +1,59 @@
+{
+  "population": 17,
+  "pilot_only": true,
+  "g1_compared": 17,
+  "g2_receptors": [
+    "4DKL",
+    "8EF5",
+    "5HK2",
+    "7M93",
+    "7E2Y"
+  ],
+  "g2_compared": 43,
+  "favorable_fractions": {
+    "vina": 1.0,
+    "smina-default": 1.0,
+    "smina-vinardo": 1.0,
+    "smina-dkoes_fast": 1.0,
+    "smina-ad4": 0.941176
+  },
+  "gates": [
+    {
+      "name": "G1",
+      "passed": true,
+      "detail": "all within 0.05 A"
+    },
+    {
+      "name": "G2",
+      "passed": true,
+      "detail": "max |diff| 0.0074 kcal/mol"
+    },
+    {
+      "name": "G5",
+      "passed": true,
+      "detail": "vina: favorable 1.000 need >= 0.941"
+    },
+    {
+      "name": "G5",
+      "passed": true,
+      "detail": "smina-default: favorable 1.000 need >= 0.941"
+    },
+    {
+      "name": "G5",
+      "passed": true,
+      "detail": "smina-vinardo: favorable 1.000 need >= 0.941"
+    },
+    {
+      "name": "G5",
+      "passed": true,
+      "detail": "smina-dkoes_fast: favorable 1.000 need >= 0.941"
+    },
+    {
+      "name": "G5",
+      "passed": true,
+      "detail": "smina-ad4: favorable 0.941 need >= 0.882"
+    }
+  ],
+  "first_failed": null,
+  "overall_verdict": "NULL"
+}

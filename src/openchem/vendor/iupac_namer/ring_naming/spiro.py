@@ -835,8 +835,11 @@ def _spiro_locants_for_component(comp_pack: dict, spiro_atoms_inc: list[int]):
         # Try numbering options exposed by the named parent.
         nbs = list(np.numbering_options)
         if not nbs:
-            # Monocyclic / no exposed numbering: walk-based fallback.
-            locs = _component_fallback_locants(rs, sub_spiros, comp_pack["sub_mol"])
+            # Monocyclic walk or von-Baeyer VB numbering when the partner
+            # exposes no numbering_options (naming round 94 / NL-011 bucket A).
+            locs = _component_fallback_locants(
+                rs, sub_spiros, comp_pack["sub_mol"], np
+            )
             if locs is None:
                 continue
             sp_locs = {
@@ -866,10 +869,112 @@ def _spiro_locants_for_component(comp_pack: dict, spiro_atoms_inc: list[int]):
     return best
 
 
-def _component_fallback_locants(rs, sub_spiros: list[int], sub_mol):
-    """Locants for a monocyclic component whose named parent exposes no
-    numbering options.  For a carbocycle the spiro atom is locant 1; for an
-    HW heterocycle use the heteroatom-determined numbering."""
+def _hetero_locants_stated_in_partner_name(partner_name: str) -> set[int]:
+    """Parse HW locants baked into a von-Baeyer partner prefix (``1-aza``, ``2,6-dioxa``)."""
+    import re
+
+    stated: set[int] = set()
+    for m in re.finditer(
+        r"(\d+(?:,\d+)*)-(?:di|tri|tetra)?(?:aza|oxa|thia|sila|phospha|selena|tellura|stiba|bisma|germa|stanna|plumba|borata)",
+        partner_name,
+    ):
+        for s in m.group(1).split(","):
+            try:
+                stated.add(int(s))
+            except ValueError:
+                pass
+    return stated
+
+
+def _filter_vb_numberings_for_partner_name(
+    vb_nbs: list[Numbering],
+    rs,
+    partner_name: str,
+) -> list[Numbering]:
+    """Keep VB numberings whose heteroatom locants match the partner name prefix."""
+    name_hetero_locants = _hetero_locants_stated_in_partner_name(partner_name)
+    if not name_hetero_locants:
+        return list(vb_nbs)
+    partner_hetero_atoms = [hp.atom_idx for hp in (rs.heteroatoms or ())]
+    filtered: list[Numbering] = []
+    for nb in vb_nbs:
+        h_locs_set: set[int] = set()
+        ok = True
+        for ha in partner_hetero_atoms:
+            hl = nb.atom_to_locant.get(ha)
+            if hl is None or not hl.is_numeric or hl._numeric_value is None:
+                ok = False
+                break
+            h_locs_set.add(hl._numeric_value)
+        if ok and h_locs_set == name_hetero_locants:
+            filtered.append(nb)
+    return filtered or list(vb_nbs)
+
+
+def _vb_spiro_locants_for_submol(
+    rs,
+    sub_spiros: list[int],
+    sub_mol,
+    named_parent,
+) -> dict[int, int] | None:
+    """Locants on a von-Baeyer component when ``numbering_options`` is empty."""
+    from openchem.vendor.iupac_namer.ring_naming.bridged import compute_vb_numberings
+
+    rs_for_nb = rs
+    if (
+        rs.type != "bridged"
+        and getattr(named_parent, "naming_method", "") == "von_baeyer"
+    ):
+        rs_for_nb = named_parent.candidate.ring_system
+
+    vb_nbs = list(named_parent.numbering_options)
+    if not vb_nbs:
+        vb_nbs = compute_vb_numberings(
+            rs_for_nb, rs_for_nb.bridge_sizes or (), sub_mol
+        )
+    if not vb_nbs:
+        return None
+    vb_nbs = _filter_vb_numberings_for_partner_name(
+        vb_nbs, rs_for_nb, named_parent.name
+    )
+
+    best_locs: dict[int, int] | None = None
+    best_key: tuple[int, ...] | None = None
+    for nb in vb_nbs:
+        locs: dict[int, int] = {}
+        ok = True
+        for s in sub_spiros:
+            loc = nb.atom_to_locant.get(s)
+            if loc is None or not loc.is_numeric or loc._numeric_value is None:
+                ok = False
+                break
+            locs[s] = loc._numeric_value
+        if not ok:
+            continue
+        key = tuple(sorted(locs.values()))
+        if best_key is None or key < best_key:
+            best_key = key
+            best_locs = locs
+    return best_locs
+
+
+def _component_fallback_locants(rs, sub_spiros: list[int], sub_mol, named_parent=None):
+    """Locants when the named parent exposes no numbering options.
+
+    Monocyclic components use a walk; von-Baeyer bridged partners use
+    ``compute_vb_numberings`` (same pin as D-382 / D-381 in the split-spiro path).
+    """
+    use_vb = rs.type == "bridged" or (
+        named_parent is not None
+        and getattr(named_parent, "naming_method", "") == "von_baeyer"
+    )
+    if use_vb and named_parent is not None:
+        vb_locs = _vb_spiro_locants_for_submol(
+            rs, sub_spiros, sub_mol, named_parent
+        )
+        if vb_locs is not None:
+            return vb_locs
+
     if len(sub_spiros) == 1:
         if rs.heteroatoms:
             return _compute_monocyclic_hw_locants_with_spiro(
@@ -892,6 +997,10 @@ def _component_fallback_locants(rs, sub_spiros: list[int], sub_mol):
         if best_key is None or key < best_key:
             best_key = key
             best = locs
+    if best is None and named_parent is not None:
+        return _vb_spiro_locants_for_submol(
+            rs, sub_spiros, sub_mol, named_parent
+        )
     return best
 
 
@@ -1572,8 +1681,10 @@ def _try_articulation_split_spiro(
     # NL-012 shape 4 (two methano-benzazocines): citing the same ring-table PIN on
     # both sides and taking P-24.5.2's lowest spiro locant on each copy yields
     # ``...-4,1'-...`` which OPSIN reads as a different molecule.  The primed
-    # partner keeps the von Baeyer systematic name when one is available.
-    if first_np.name == second_np.name:
+    # partner keeps the von Baeyer systematic name when one is available.  Two
+    # identical one-word retained names (``adamantane-2,2'-adamantane``, D-383)
+    # stay as the PIN; duplicated modified or table names contain a hyphen.
+    if first_np.name == second_np.name and "-" in first_np.name:
         vb_only = [
             (np, rs) for np, rs in second_named if np.naming_method == "von_baeyer"
         ]

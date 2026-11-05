@@ -1,0 +1,18 @@
+---
+description: PR bodies use Verified prose, not unchecked Test plan checkboxes
+alwaysApply: true
+---
+
+# Pull request bodies
+
+When opening a PR with `gh pr create` or editing with `gh pr edit`:
+
+- **Summary** — what changed and why (decisions, not questions).
+- **Cross-links** / **After merge** — fork PR URLs and merge order as plain sentences.
+- **Verified** — only verification this session actually did: command + outcome, or `gh pr checks` status. No checkbox syntax.
+
+Do **not** add `## Test plan` with `- [ ]` items for CI, merging, or fork ports unless you will update the PR body and mark every box `[x]` in the same session before handoff.
+
+On Windows PowerShell, pass the body with `gh pr create --body-file path.md` (heredocs are unreliable).
+
+If the repo documents a PR shape (e.g. `docs/feedback_pr_no_unchecked_test_plan_checklists.md`, `docs/NAMING_ROUNDS.md` step 6), follow that doc.

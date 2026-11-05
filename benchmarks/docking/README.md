@@ -78,6 +78,10 @@ A preregistered test (`PREREGISTRATION_PLEC.md`, rules in `plec_core.py`) of re-
 
 The first run never measured PLECscore: ODDT 0.7's fingerprint hash is Python's tuple `hash()`, which changed in 3.8, so the model's bits were read through the wrong function, and the poses and receptor reached it without bond orders, charges or non-polar hydrogens. `PREREGISTRATION_PLEC2.md` fixes the same question on the same poses with the old hash restored (`plec_rescore_runner_2.py`), ligands rebuilt on their chemical-component template and a receptor written out before the PDBQT step, behind a fidelity gate (the share of a training complex's stored fingerprint that the pipeline reproduces, median 0.5) and the original sanity rule. Three stages: `inputs`, `rescore`, `report`. Run 2026-11-02: both gates passed (fidelity 59%, crystal-ligand median pKd 6.3) and the verdict is **HARMFUL** (1 gained, 10 lost among 34 rescored deciding receptors; `RESULT_PLEC2.md`, `artifacts_plec2/`).
 
+## `run_gnina_test.py` — does gnina CNNscore order Vina's poses better?
+
+A preregistered test (`PREREGISTRATION_GNINA.md`, rules in `gnina_core.py`) of re-ranking the same nine Vina poses by gnina's default CNN (`--score_only --cnn_scoring rescore`). Eighteen catalog PDB codes in CrossDocked2020 are held out. Run 2026-11-05: **NULL** (`RESULT_GNINA.md`; 29 deciding, gained 3, lost 2, p = 0.5). CNN rescore of these poses is closed; gnina as a dock was not an arm.
+
 ## `prep_box_survey.py` — is a bad default pose a setup defect?
 
 Redocks all 49 catalogued receptors in two preparation arms (cofactors kept, as the panel

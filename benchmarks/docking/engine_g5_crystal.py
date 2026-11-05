@@ -152,3 +152,11 @@ def measure_g5_crystal_scores(
         fav = sum(1 for r in mine if r.get("favorable"))
         fractions[arm] = fav / total if total else math.nan
     return rows, fractions
+
+
+def run_g5_gate(receptors: list[str]):
+    """Score crystal poses and return per-arm G5 results (does not dock)."""
+    from engine_core import gate_g5_all_arms
+
+    rows, fractions = measure_g5_crystal_scores(receptors)
+    return gate_g5_all_arms(fractions), rows, fractions

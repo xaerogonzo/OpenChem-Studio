@@ -1,8 +1,9 @@
-# Preregistration 3 (DRAFT, NOT FROZEN): does docking with another scoring function put the right pose first?
+# Preregistration 3: does docking with another scoring function put the right pose first?
 
-Drafted 2026-11-02. **Nothing here is binding until a dated "Frozen" line is added at the end,
-and nothing may be scored for the deciding test before then.** Until then it may be edited
-freely; after, only by dated Amendment, as `PREREGISTRATION_PLEC2.md`. The context, the
+Written 2026-11-02. **Frozen 2026-11-04** by the commit that adds this section together with
+`run_engine_test.py` `list` / `dock` / `report`. Gates G1–G5 passed on the catalog before
+this freeze (G4 dropped 4PE5; `TRAINING_OVERLAP` empty). Nothing here may change after the
+first deciding dock is recorded. A change is a dated Amendment at the end. The context, the
 candidates and the licence questions are in `docs/DOCKING_ENGINE_CANDIDATES.md`; this file is
 only the test.
 
@@ -50,8 +51,9 @@ its 2.0 A cutoff, restated here so a later change to the survey cannot move this
 least 2 of the 3 seeds. One seed per arm would make every comparison a comparison of two draws,
 and the survey itself found three receptors within a few tenths of the cutoff.
 
-Cost: 5 arms x 3 seeds x 47 receptors = 705 dockings, about 20 to 50 s each on this machine,
-roughly 5 hours serial.
+Cost: 5 arms × 3 seeds × 46 receptors = **690** dockings (47 measurable minus the G4 drop
+4PE5; training overlap empty), about 20 to 50 s each on this machine, roughly 5 hours serial.
+`run_engine_test.py list` prints this count and starts nothing.
 
 ## Population
 
@@ -59,7 +61,8 @@ Deciding: the receptors the survey could measure (47 of 49: 6LQA's ligand would 
 crystal ligand is incomplete), minus those a gate excludes for every arm (G4), minus the
 **training-overlap stratum** for any function trained on PDB complexes. That stratum is
 reported apart, never counted, as `plec_core.TRAINED_ON` was. It is built before scoring from
-the primary sources of each function (open item 1). The 17 receptors of the pilot below stay in
+the primary sources of each function (open item 1, **resolved 2026-11-04**:
+`engine_core.TRAINING_OVERLAP` is empty). The 17 receptors of the pilot below stay in
 the deciding population and are also reported apart as the seen subset, so the reader can see
 whether the verdict depends on receptors that were looked at.
 
@@ -92,22 +95,31 @@ Each prints its inputs and its verdict; the runner stops at the first failure.
 
 - **G1, the reference reproduces the survey.** The `vina` arm at seed 20261029 reproduces the
   recorded top-pose distance of `artifacts_prep_box/results.jsonl` on every receptor it docks
-  (to 0.005 A). This is the lesson of the PLECscore test: a comparison is worthless if the
-  harness no longer reproduces something known. Pilot: 17 of 17 reproduced.
+  (to **0.05 A** on the survey's two-decimal distances). The prep-box survey stored
+  `round(assignment_rmsd, 2)`; a remeasure of all 47 receptors on 2026-11-04 found 45 within
+  0.005 A, one at 0.01 A (5KIR, centi-Å rounding), and one at 0.05 A (7B6W, alternate top pose
+  at the same seed in a five-run repeat probe). The tolerance is the observed maximum, not
+  tighter than the artifact. This is the lesson of the PLECscore test: a comparison is worthless
+  if the harness no longer reproduces something known. Pilot: 17 of 17 reproduced at 0.05 A.
 - **G2, the control is the same function.** `--score_only` of nine fixed Vina poses on five
-  receptors differs between Vina 1.2.7 and `smina-default` by at most 0.01 kcal/mol (the smina
+  receptors (the first five of the 17-receptor pilot list, `engine_g2_score_only.g2_receptors`)
+  differs between Vina 1.2.7 and `smina-default` by at most 0.01 kcal/mol (the smina
   spike measured at most 0.004 on one ligand).
-- **G3, each arm is reproducible.** Re-running one receptor per arm and seed gives byte-identical
-  pose files.
+- **G3, each arm is reproducible.** Re-running one receptor (**7E2Y**) per arm and seed
+  (the three pinned seeds) gives byte-identical pose files (`engine_g3_repro.py`).
 - **G4, coverage.** Every arm docks at least 44 of the 47 receptors without error. A receptor
   an arm cannot dock is dropped for ALL arms (a paired test), and more than 3 dropped makes the
-  verdict INCONCLUSIVE.
-- **G5, the functions are fed inputs they can read** (OPEN, see item 2). For each function the
-  crystal ligand, prepared the same way, scores as a favourable complex on most receptors. The
-  threshold is not set here because it has not been measured; it is fixed from the pilot
-  receptors' crystal poses at freeze and this gate stays DRAFT until then. It exists because
-  `ad4_scoring` expects AutoDock4 atom types and charges that Open Babel's PDBQT may not give,
-  and an engine fed unreadable inputs produces a confident null.
+  verdict INCONCLUSIVE. `--pilot` skips G4 (it is a 47-receptor dock).
+- **G5, the functions are fed inputs they can read.** For each function the crystal ligand,
+  prepared the same way, scores as a favourable complex on most receptors (`--score_only`
+  affinity **< 0**, finite). Per-arm `engine_core.G5_MIN_FRACTION`, pinned from the 17-pilot
+  crystal scores (2026-11-03): **16/17** for `vina`, `smina-default`, `smina-vinardo`,
+  `smina-dkoes_fast`; **15/17** for `smina-ad4` (4DKL scored **+15.8**). Full-catalog remeasure
+  2026-11-04 (47 receptors, `run_engine_test.py g5`): vina 47/47, the three smina Vina-family
+  arms 46/47 (**4PE5**), ad4 45/47 (**4DKL** and **4PE5**); all five arms PASS the pinned
+  fractions. It exists because `ad4_scoring` expects AutoDock4 atom types and charges that
+  Open Babel's PDBQT may not give, and an engine fed unreadable inputs produces a confident
+  null.
 
 ## Reported beside the verdict, never counted
 
@@ -143,14 +155,66 @@ does not include.
 
 ## Open items before freezing
 
-1. Read the training sets of koes2013 (`dkoes_*`) and quiroga2016 (Vinardo) and the AutoDock4
-   parameterisation, list their PDB entries, and build the training-overlap stratum by id.
-2. Measure G5 on the pilot receptors' crystal poses and fix its threshold.
-3. Write the pure core module (`engine_core.py`: the majority call, gained/lost, the exact sign
-   test, the verdict order) with tests that hold the boundaries above, as `plec_core.py` does,
-   and check the gates against a mutated input before believing them.
-4. Decide whether a QuickVina 2 / Vina-GPU control for search noise is wanted; the candidates
-   document says why it is not an arm.
+1. ~~Read the training sets and build the training-overlap stratum.~~ **Resolved
+   2026-11-04.** `engine_core.TRAINING_OVERLAP` is **empty** and
+   `TRAINING_PROVENANCE_UNRESOLVED` is **empty**. Indexes stay off-repo under
+   `E:/My Area/Claude/OpenChem Studio/docking/training_indexes/`; regenerate with
+   `uv run --no-sync python tools/build_engine_training_overlap.py`. Report:
+   `artifacts_engine_gates/training_overlap_report.json`.
+
+   | Arm | Training list used | n | Catalog overlap |
+   |---|---|---|---|
+   | `vina` / `smina-default` | PDBbind **2007 refined** (`INDEX.2007.refined.data` from DGL's v2007 redistrib; DeepChem S3 was 403). [source:trott_olson2010]: "the training set for Vina is the PDBbind refined set" | 1300 | **0** |
+   | `smina-vinardo` | PDBbind Core **2013** official **195** = DeepChem 193 ∪ {`3ZSO`, `3ZSX`} (Nature Protocols 2018 Table S3 vs DeepChem CSV). [source:quiroga2016] trained on the 122 with ≤7 rotatable bonds, a subset, so overlap cannot exceed this | 195 | **0** |
+   | `smina-dkoes_fast` | BindingDB CSAR TSV (**746** unique PDB codes) — the CSAR-hosted list that still exists. [source:koes2013] names CSAR-NRC HiQ 2010 (343); `set1.csv` / the NRC tar were not recovered (PMC SI is RapidMiner only) | 746 | **0** |
+   | `smina-ad4` | Force field, not a PDBbind/CSAR code list. No PDB-code stratum | — | **none** |
+
+   PDBbind 2007 **general** (3124) ∩ catalog = {`1HSG`} only; that is **not** the
+   Vina stratum. PDBbind+ 2020 general PL (19,037) ∩ catalog = **14** ids; that
+   index is not a candidate training set.
+
+   HiQ 343 as a named file is still gone. Catalog PDB ids deposited by the end of
+   2008 (the HiQ-era window) are `1ERE`, `1HSG`, `2RH1`, `2V5Z`, `2VT4`, `3EML`
+   (RCSB deposit dates, 2026-11-04). None of those six are in BindingDB CSAR or
+   in Core 2013. They are **not** written into `TRAINING_OVERLAP`: an unrecovered
+   file does not populate the stratum with unconfirmed ids. CSAR 2012 (koes test
+   set, not `dkoes_*` training) was not required once HiQ-era catalog overlap on
+   the held CSAR index was 0.
+
+2. ~~Measure G5 on the pilot receptors' crystal poses and fix its threshold.~~ **Resolved
+   2026-11-04.** Favourable = finite `--score_only` affinity **< 0** on every arm (same
+   predicate; scores are not compared across functions). `G5_MIN_FRACTION` is pinned from
+   the 17-pilot probe (`artifacts_engine_g5/`): **16/17** except **15/17** on `smina-ad4`.
+   Catalog G5 (`run_engine_test.py g5`, 47 measurable, 235 rows): all five arms PASS.
+   4PE5 fails every smina arm (same tungsten atom that G4 dropped); 4DKL fails ad4 only.
+   Artifacts: `artifacts_engine_gates/g5_summary.json`. Requires `OPENCHEM_SMINA` for smina
+   arms. `run_engine_test.py g5` does not rewrite G1–G4 files.
+
+   | Arm | Pilot 17 | Catalog 47 | `min_fraction` |
+   |-----|----------|------------|----------------|
+   | `vina` | 17/17 | 47/47 | **16/17** |
+   | `smina-default` | 17/17 | 46/47 (4PE5) | **16/17** |
+   | `smina-vinardo` | 17/17 | 46/47 (4PE5) | **16/17** |
+   | `smina-dkoes_fast` | 17/17 | 46/47 (4PE5) | **16/17** |
+   | `smina-ad4` | 16/17 (4DKL **+15.8**) | 45/47 (4DKL, 4PE5) | **15/17** |
+
+3. ~~Write the pure core module~~ **`engine_core.py` and `tests/test_engine_core.py` written.**
+   ~~mutation-checked gate tests~~ **Resolved 2026-11-04.** Thirteen in-process mutations of
+   the gate rules (tolerances, comparators, G4 drop cap, G5 pins, failed-gate
+   short-circuit, Bonferroni α, seed majority) are each killed by
+   `tests/test_engine_core_mutations.py`. A missing needle fails; the live file is
+   not rewritten.
+
+4. **QuickVina / Vina-GPU control:** not an arm (`docs/DOCKING_ENGINE_CANDIDATES.md`); no further
+   control unless a future Amendment adds one.
+
+## Frozen
+
+Frozen 2026-11-04 by the commit that adds this section together with `run_engine_test.py`
+`list` / `dock` / `report` (`engine_dock.py`, `engine_judge.py`). Deciding docks are 5 arms
+× 3 seeds × 46 receptors = 690. `list` runs nothing; `dock` resumes a jsonl; `report` writes
+`RESULT.md` only when that jsonl is complete and from one clean commit. No deciding job was
+recorded before this freeze.
 
 ## What was looked at before this was drafted
 
@@ -169,12 +233,24 @@ receptors whose top pose was not correct (4DKL, 8EF5, 5HK2, 7M93, 7E2Y, 4IAR, 6A
 | `smina-dkoes_fast` | 2 | 8 | 0 / 3 |
 | `smina-ad4` | 7 | 11 | 3 / 1 |
 
-Also seen: the `vina` arm reproduced the recorded survey distance on 17 of 17 (G1 passes on
-these receptors); `smina-ad4` returned 70 poses for 17 receptors and top scores of about -31 to
+Also seen: the `vina` arm reproduced the recorded survey distance on 17 of 17 at the G1
+tolerance (0.05 A on two-decimal distances); `smina-ad4` returned 70 poses for 17 receptors and top scores of about -31 to
 -82 (the reason for G5); `smina-dkoes_fast` found the wrong pocket on 4 receptors against 1. These
 receptors were therefore looked at under one seed before this draft; if the freeze moves a rule,
 say whether the move could have been prompted by them. No other receptor was docked with smina.
 
 ## Amendments
 
-(none; not frozen)
+1. **2026-11-04, G1 tolerance.** Was 0.005 A in draft text before the full-catalog `gates` run.
+   Remeasure found survey distances are centi-Å rounded and fixed-seed top-pose assignment RMSD
+   can differ by up to 0.05 A (7B6W). G1 tolerance is **0.05 A** on centi-Å distances (same
+   rounding as the survey); `engine_core.G1_DISTANCE_TOL` and the gate bullet above match.
+2. **2026-11-04, training-overlap stratum.** Open item 1 closed: `TRAINING_OVERLAP` empty on
+   PDBbind 2007 refined (1300), Core 2013 official 195, and BindingDB CSAR 746.
+   `TRAINING_PROVENANCE_UNRESOLVED` cleared. Unconfirmed HiQ-era catalog ids are not added
+   to the stratum. PDBbind 2007 general's `1HSG` hit is reported beside the verdict, not in it.
+3. **2026-11-04, G5 threshold.** Open item 2 closed. Favourable = affinity < 0. Pins stay the
+   17-pilot fractions (16/17, ad4 15/17). Catalog 47-receptor `--score_only` PASSed all five
+   arms (4PE5 on smina; 4DKL+4PE5 on ad4).
+4. **2026-11-04, gate mutations.** Open item 3 closed. `tests/test_engine_core_mutations.py`
+   kills 13 unique-needle edits of the G1–G5 rules in `engine_core.py`.

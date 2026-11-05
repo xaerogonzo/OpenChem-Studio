@@ -1,0 +1,20 @@
+{
+  "deciding": {
+    "measured": 29,
+    "unscored": 0,
+    "gained": 3,
+    "lost": 2,
+    "before_correct": 20,
+    "after_correct": 21
+  },
+  "overlap": {
+    "measured": 18,
+    "unscored": 0,
+    "gained": 1,
+    "lost": 1,
+    "before_correct": 15,
+    "after_correct": 15
+  },
+  "plausible": true,
+  "verdict": "NULL"
+}
