@@ -155,11 +155,9 @@ a comparison means nothing unless the inputs reproduce something known):
 3. **The product answer stays PR 508's sentence** (pose 1 is the best-scoring pose, not a
    verified one), plus showing more than the top pose, which needs no new engine.
 4. **Learned scorers are a new program.** Slice 1 (`docs/GNINA_SPIKE.md`) **PASS**
-   2026-11-04: gnina v1.3.3 starts in WSL2 with the RTX 4060 after ~6.4 GiB on D:
-   (1.91 GiB ELF + CUDA 12.8/cuDNN 9 libs; the GitHub "static" binary is not
-   self-contained). No catalog receptor. Docker (~22 GB) was not pulled. A Frozen
-   preregistration is the next slice if we want a pose result. DiffDock-class is not
-   an automatic fallback. This is not an External Tools tab.
+   2026-11-04. Frozen test: `PREREGISTRATION_GNINA.md` (CNN **rescore** of Vina's nine
+   poses by CNNscore; 29 deciding after 18 CrossDocked2020 hold-outs). No catalog CNN
+   yet. Not an External Tools tab. DiffDock-class is not an automatic fallback.
 5. **QuickVina and Vina-GPU are worth revisiting only for speed**, never for pose choice, and
    only if a Windows binary with provenance appears.
 

@@ -82,11 +82,9 @@ No RMSD. No catalog id. No gained/lost.
 
 ## After this slice
 
-- **PASS:** draft a Frozen preregistration in a later slice. That draft picks the
-  scientific question (CNN rescore of the existing Vina nine vs gnina as a dock), the
-  training-overlap rule (CrossDocked2020 is in the 1.3 paper; it is not PDBbind 2020
-  general PL), and the Windows/WSL story. No deciding receptor is scored before that
-  Frozen line.
+- **PASS:** Frozen preregistration is `benchmarks/docking/PREREGISTRATION_GNINA.md`
+  (CNN rescore of Vina's nine poses by CNNscore; gnina-as-dock is not an arm). No
+  deciding receptor is CNN-rescored before that freeze.
 - **FAIL:** the program stops. DiffDock-class is a **new** spike if the owner reopens
   it, not an automatic fallback.
 
