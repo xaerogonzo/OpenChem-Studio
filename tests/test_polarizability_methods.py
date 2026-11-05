@@ -80,7 +80,7 @@ def test_the_default_is_jensen_and_naming_nothing_is_the_same_as_naming_it():
     assert _value("c1ccccc1") == pytest.approx(_value("c1ccccc1", "Atomic additive"))
     assert compute_polarizability(
         Chem.MolFromSmiles("c1ccccc1"), "uuid", {}
-    ).provenance.method == "jensen"
+    ).provenance.method == "additive_refit"
 
 
 def test_an_unknown_method_label_falls_back_and_says_which_ran():
@@ -90,7 +90,7 @@ def test_an_unknown_method_label_falls_back_and_says_which_ran():
         Chem.MolFromSmiles("c1ccccc1"), "uuid", {"method": "Miller ahq"}
     )
     assert result.cache_state is not CacheState.FAILED
-    assert result.provenance.method == "jensen"
+    assert result.provenance.method == "additive_refit"
 
 
 def test_millers_refusal_reaches_the_user_as_a_failed_result():
@@ -114,7 +114,7 @@ def test_the_reported_basis_names_the_method_that_ran():
             Chem.MolFromSmiles("c1ccccc1"), "uuid", {"method": label}
         )
         basis = " ".join(result.matched)
-        needle = "Additive atomic scheme" if expected == "jensen" else expected.split("_")[1]
+        needle = "Additive atomic scheme" if expected == "additive_refit" else expected.split("_")[1]
         assert needle in basis, f"{label}: {basis!r} does not name the method"
 
 

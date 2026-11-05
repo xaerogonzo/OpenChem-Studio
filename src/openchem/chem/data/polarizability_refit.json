@@ -1,0 +1,87 @@
+{
+  "_source_key": "bosque2002",
+  "attribution": "Atomic polarizabilities fitted by this project (benchmarks/polarizability/PREREGISTRATION.md, refit.py, RESULT.md) to the experimental polarizabilities of 425 solvents in Bosque and Sales, J. Chem. Inf. Comput. Sci. 42, 1154 (2002), Tables 1 and 2. The values are ours; the data are the paper's. Weighted least squares on the relative error, no intercept.",
+  "units": "cubic angstrom (A^3), isotropic, summed over every atom including hydrogens",
+  "fitted": {
+    "Br": {
+      "value": 3.4334,
+      "se": 0.0605,
+      "molecules": 15,
+      "weakly_determined": false
+    },
+    "C": {
+      "value": 1.4965,
+      "se": 0.0111,
+      "molecules": 420,
+      "weakly_determined": false
+    },
+    "Cl": {
+      "value": 2.2538,
+      "se": 0.02,
+      "molecules": 53,
+      "weakly_determined": false
+    },
+    "F": {
+      "value": 0.2631,
+      "se": 0.0122,
+      "molecules": 27,
+      "weakly_determined": false
+    },
+    "H": {
+      "value": 0.2026,
+      "se": 0.0065,
+      "molecules": 401,
+      "weakly_determined": false
+    },
+    "I": {
+      "value": 5.6014,
+      "se": 0.1147,
+      "molecules": 8,
+      "weakly_determined": true
+    },
+    "N": {
+      "value": 1.1433,
+      "se": 0.0296,
+      "molecules": 100,
+      "weakly_determined": false
+    },
+    "O": {
+      "value": 0.6364,
+      "se": 0.0153,
+      "molecules": 230,
+      "weakly_determined": false
+    },
+    "S": {
+      "value": 3.0171,
+      "se": 0.0581,
+      "molecules": 26,
+      "weakly_determined": false
+    }
+  },
+  "unsourced": {
+    "P": {
+      "value": 2.63,
+      "reason": "only 4 working-set molecules contain it, below the preregistered threshold of 5"
+    },
+    "Si": {
+      "value": 3.9628,
+      "reason": "no molecule containing it in the fitting data"
+    },
+    "B": {
+      "value": 1.6,
+      "reason": "no molecule containing it in the fitting data"
+    },
+    "Se": {
+      "value": 3.38,
+      "reason": "no molecule containing it in the fitting data"
+    }
+  },
+  "measured": {
+    "prediction_set_mape_percent": 2.15,
+    "prediction_set_n": 85,
+    "previous_table_prediction_set_mape_percent": 7.83,
+    "kang1982_secondary_mape_percent": 4.25,
+    "kang1982_secondary_n": 88
+  },
+  "rows_used_in_final_fit": 420
+}

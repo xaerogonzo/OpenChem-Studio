@@ -9694,3 +9694,27 @@ single-bond column (carbon 0.76 against 0.772, chlorine 1.02 against 0.99), so
 a TSEI that uses it carries a warning saying so. Only platinum is used; no
 other value from the paper enters the method.
 """
+
+[[source]]
+key = "bosque2002"
+kind = "literature"
+citation = "Polarizabilities of Solvents from the Chemical Composition, R. Bosque and J. Sales, J. Chem. Inf. Comput. Sci. 2002, 42, 1154-1163"
+identifier_type = "doi"
+identifier = "10.1021/ci025528x"
+status = "shipped"
+used_by = ["src/openchem/chem/data/polarizability_refit.json", "src/openchem/chem/electronic_properties.py"]
+verification = "citation_and_claim"
+verified_date = 2026-11-05
+reason = """
+THE DATA the additive polarizability table was fitted to: the experimental
+polarizabilities in cubic angstrom of 426 solvents (Table 1, 340 of them, the
+authors' working set, and Table 2, 86, their prediction set), read from the
+held copy (`bosque2002.pdf`) on 2026-11-05. The paper's own fit (its Table 4,
+with an intercept) is NOT what ships: the values in
+`polarizability_refit.json` were fitted here, with no intercept, on the
+relative error, as fixed in `benchmarks/polarizability/PREREGISTRATION.md`
+before fitting. 425 rows were used (one name is not a compound and was
+excluded; 39 misspelt or truncated names were corrected by hand, listed in
+`benchmarks/polarizability/name_fixes.json`). The table itself is not
+committed: it is a bulk copy of a published table and is kept outside git.
+"""

@@ -663,19 +663,23 @@ tensor is not implemented.
 **`ahc` and `ahp` are different quantities, not settings of one.** The first
 squares a sum over the whole molecule; the second is plain additivity. They
 are offered side by side because the source offers both, and neither is a
-default for the other. The additive atomic scheme is a third answer again:
-about 1% on aromatics and halogenated compounds, and roughly 11% high on
-saturated hydrocarbons, because an atom-additive scheme has no hybridization
-dependence.
+default for the other. The additive atomic scheme is a third answer again, and
+has no hybridization dependence.
 
-**The additive scheme's table has no recorded source.** It was first labelled
-Jensen et al. 2002, and that is wrong: Jensen's paper is a dipole-interaction model
-that fits only H, B, C, N, O, F and Cl, and none of this table's numbers appear in
-it, in Miller's papers, or in any of the 912 papers held. What is known is that it
-reproduces 13 experimental molecular polarizabilities (about 5.7% mean absolute
-error) and matches another program's displayed per-atom values for carbon and
-hydrogen. It covers 13 elements and refuses the rest; no metal is added, because no
-published additive value for a metal in a molecule has been found.
+**The additive scheme's table was refitted on 2026-11-05.** The numbers used before
+were labelled Jensen et al. 2002 and had no recorded source (Jensen's paper is a
+dipole-interaction model for H, B, C, N, O, F and Cl, and none of the numbers appear
+in it, in Miller's papers or in any of the 912 papers held), so H, C, N, O, F, S, Cl,
+Br and I were fitted here to the experimental polarizabilities of 425 solvents
+(Bosque and Sales 2002), as fixed in `benchmarks/polarizability/PREREGISTRATION.md`.
+Measured: 2.1% mean absolute error on the 85 held-out solvents (the old table: 7.8%),
+4.3% on 88 compounds of a second, gas-phase set (the old table: 9.8%). **Where it is
+weakest:** very small molecules (water 28% low, methane 11% low, ethylene 11% low,
+hydrazine 10% low), fused aromatics (anthracene and larger, 11 to 13% low) and
+chloromethane (8% low). **Phosphorus, silicon, boron and selenium were not fitted** (no
+data, or fewer than five molecules): they keep the old numbers, which have no source, and
+a result that includes one says so. No metal is covered; no published additive value for
+a metal inside a molecule has been found.
 
 **One published atom assignment disagrees.** Nitrobenzene's is `6CTR 1NPI2
 2OTE 5H` in the source and differs here on the ipso carbon and on the nitro

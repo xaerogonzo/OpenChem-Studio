@@ -3875,9 +3875,9 @@ CALCULATOR_DEFINITIONS: list[CalculatorDefinition] = [
         category="electronic",
         description=(
             "Molecular polarizability in A^3, by one of three methods. The "
-            "additive atomic scheme (its table's origin is not recorded; see the limitations) is accurate to about 1% for aromatics and halogenated "
-            "compounds and roughly 11% high for saturated hydrocarbons, since an "
-            "atom-additive scheme has no hybridization dependence. Miller's two methods are "
+            "additive atomic scheme (element values fitted by this project to experimental polarizabilities of solvents) is within about 2% on solvents like those "
+            "and 4% on a second, gas-phase set, but has no hybridization dependence: very small molecules (water is 28% low), fused aromatics (about 11% low) "
+            "and anything unlike the fitting set can be further off. Miller's two methods are "
             "hybridization-aware: ahc squares a sum over the whole molecule and lands within "
             "1% on benzene and CCl4, ahp is plain additivity. The three are different "
             "quantities, not settings of one -- pick one and read the reported method."

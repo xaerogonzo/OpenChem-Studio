@@ -3,34 +3,16 @@
 POLARIZABILITY uses an additive atomic scheme, summing per-element contributions
 in cubic angstroms.
 
-    **THE TABLE IS NOT JENSEN ET AL. 2002, AND ITS SOURCE IS NOT KNOWN.**
-    It was introduced on 2026-07-30 under that name; nothing records where the
-    numbers came from. Checked 2026-11-05: Jensen, Astrand, Osted, Kongsted and
-    Mikkelsen (J. Chem. Phys. 2002, 116, 4001; held as `jensen2002.pdf`) is a
-    dipole-interaction model, not an additive one, and its Table I fits H, B, C,
-    N, O, F and Cl only (best set, converted to A^3: H 0.19, C 1.25, N 0.91,
-    O 0.56, F 0.28, Cl 1.94, against 0.39, 1.33, 0.98, 0.77, 0.46, 2.26 here).
-    None of this table's numbers appear in it, in Miller 1979 or 1990 (whose
-    Table I values are near but not equal), or in any of the 912 PDFs held (see
-    docs/LITERATURE_LOG.md) (the one hit, in the CRC Handbook, is two unrelated
-    densities). What is established is only that the values reproduce the
-    experiments below and match ChemAxon's per-atom display (1.36 aromatic C,
-    0.39 H). The internal method id stays `jensen` because stored results carry
-    it; the old on-screen label "Jensen (additive)" still selects this method.
+    **THE TABLE WAS REPLACED ON 2026-11-05.** The values used before were labelled Jensen et al. 2002 and had no recorded source (`docs/LITERATURE_LOG.md`: ten papers searched, none
+    contains them; Jensen's paper is a dipole-interaction model for H, B, C, N, O, F and Cl). They were matched to another program's screenshot, which is not a basis. Nine elements (H, C, N,
+    O, F, S, Cl, Br, I) are now FITTED by this project, by weighted least squares on the relative error, to the experimental polarizabilities of 425 solvents in Bosque and Sales (J. Chem. Inf.
+    Comput. Sci. 42, 1154, 2002), using that paper's own working set (fit) and prediction set (judged), as fixed in `benchmarks/polarizability/PREREGISTRATION.md` before fitting;
+    results in `benchmarks/polarizability/RESULT.md`. Prediction-set mean absolute error 2.1 % (the old table: 7.8 %, biased +7 %); 4.3 % against 88 compounds of Kang and Jhon 1982, a
+    non-gating second set (old table: 9.8 %). **Phosphorus, silicon, boron and selenium are NOT fitted** (no data, or fewer than five molecules): they keep their old numbers, which have no
+    source, and every result that includes one says so. The result carries method id `additive_refit`; results stored under `jensen` came from the old table.
 
-    Validated two ways. Against experiment: benzene 10.29 vs 10.32,
-    CCl4 10.37 vs 10.51, toluene 12.40 vs 12.30, chloromethane 4.75 vs
-    4.72 -- all inside 1.5%, with ~5.7% mean absolute error across a
-    13-molecule set. And against the vendor's own screenshot, whose per-atom
-    values read 1.36 for aromatic carbon and 0.39 for hydrogen against
-    this table's 1.3266 and 0.3888 -- close, which is NOT proof of the same
-    parameter set.
-
-    KNOWN BIAS: saturated hydrocarbons come out ~11-12% high (methane
-    2.88 vs 2.59, n-butane 9.19 vs 8.20). A purely atom-additive scheme
-    has no hybridization dependence, so it cannot distinguish an sp3
-    carbon from an aromatic one. Aromatics and halogenated compounds --
-    most drug-like matter -- are the accurate cases.
+    LIMIT: a purely atom-additive scheme has no hybridization dependence, so it cannot distinguish an sp3 carbon from an aromatic one. Fitted mostly to aliphatic
+    solvents, it is within about 2 to 4 % on the sets above, and saturated hydrocarbons (Kang's twelve, from methane to dodecane) come out 2.5 % off on average.
 
     MILLER's method is NOT offered. The vendor lists it as their second
     option, but their docs do not publish its parameters, and an
@@ -78,12 +60,18 @@ from openchem.domain.report import ReportResult
 from openchem.chem.report_adapter import report_from_fields
 from openchem.domain.scientific_result import PerAtomDataset
 
-# Atomic polarizabilities, cubic angstroms. NOT from Jensen et al. 2002 (see the module docstring); source unknown.
-ADDITIVE_POLARIZABILITY: dict[str, float] = {
-    "H": 0.3888, "C": 1.3266, "N": 0.9754, "O": 0.7658, "S": 2.4772,
-    "F": 0.4642, "Cl": 2.2604, "Br": 3.3181, "I": 5.5593, "P": 2.6300,
-    "Si": 3.9628, "B": 1.6000, "Se": 3.3800,
-}
+def _load_additive_table() -> tuple[dict[str, float], frozenset[str], dict]:
+    """The additive table, from `data/polarizability_refit.json`: values fitted by this project to experiment (nine elements), and four that were never fitted."""
+    payload = json.loads((Path(__file__).resolve().parent / "data" / "polarizability_refit.json").read_text(encoding="utf-8"))
+    table = {e: row["value"] for e, row in payload["fitted"].items()}
+    table.update({e: row["value"] for e, row in payload["unsourced"].items()})
+    return table, frozenset(payload["unsourced"]), payload
+
+
+# Atomic polarizabilities, cubic angstroms. Fitted 2026-11-05 to 425 experimental solvent polarizabilities (module docstring; benchmarks/polarizability/).
+ADDITIVE_POLARIZABILITY, UNSOURCED_ADDITIVE_ELEMENTS, _ADDITIVE_PAYLOAD = _load_additive_table()
+#: The id this method's results carry. It was "jensen" until the table was replaced on 2026-11-05; results stored under that id came from the old table.
+ADDITIVE_METHOD_ID = "additive_refit"
 
 # Gasteiger-Marsili chi(q) = a + b*q + c*q^2 coefficients, eV.
 _CHI_PARAMETERS: dict[tuple[str, str | None], tuple[float, float, float]] = {
@@ -296,6 +284,10 @@ def _outside_additive_table(target: Chem.Mol) -> CalculationRefusal:
     )
 
 
+def _elements_present(mol: Chem.Mol) -> set[str]:
+    return {atom.GetSymbol() for atom in Chem.AddHs(mol).GetAtoms()}
+
+
 def _unparameterised_elements(mol: Chem.Mol) -> list[str]:
     return sorted(
         {
@@ -316,7 +308,7 @@ def _unparameterised_elements(mol: Chem.Mol) -> list[str]:
 #: `chem/polarizability_miller.py` records that as the likely cause of the
 #: -50% on CCl4 in this project's own history.
 POLARIZABILITY_METHODS: dict[str, str] = {
-    "Atomic additive": "jensen",
+    "Atomic additive": ADDITIVE_METHOD_ID,
     "Miller ahc": "miller_ahc",
     "Miller ahp": "miller_ahp",
 }
@@ -357,7 +349,7 @@ def compute_polarizability(
     target = _maybe_microspecies(mol, parameters)
     method = _polarizability_method(parameters)
 
-    if method == "jensen":
+    if method == ADDITIVE_METHOD_ID:
         total = molecular_polarizability(target)
         if total is None:
             refusal = _outside_additive_table(target)
@@ -376,10 +368,16 @@ def compute_polarizability(
             )
         failure = None
         basis = (
-            "Additive atomic scheme (table of unrecorded origin, checked against experiment). Aromatics and halogenated "
-            "compounds are accurate to about 1%; saturated hydrocarbons come out roughly "
-            "11% high, because an atom-additive scheme has no hybridization dependence."
+            "Additive atomic scheme, element values fitted by this project to experimental polarizabilities of 425 solvents (Bosque and Sales 2002). "
+            "Typical error about 2% on solvents like those and 4% on a second, gas-phase set; it has no hybridization dependence, "
+            "so very small molecules (water is 28% low), fused aromatics (about 11% low), and strained, charged or unusual molecules can be further off."
         )
+        unsourced = sorted(_elements_present(target) & UNSOURCED_ADDITIVE_ELEMENTS)
+        if unsourced:
+            basis += (
+                f" WARNING: {', '.join(unsourced)} has a value that was never fitted to data and has no recorded source; "
+                "treat the total as unvalidated."
+            )
         assignment: dict[str, int] = {}
     else:
         total, failure, basis, assignment = _miller_polarizability(target, method)
@@ -417,7 +415,7 @@ def compute_polarizability(
             parameters={"polarizability_a3": total, "method": method},
         ),
     )
-    if method != "jensen" or parameters.get("major_microspecies"):
+    if method != ADDITIVE_METHOD_ID or parameters.get("major_microspecies"):
         return report
     # **THE DEFAULT ANSWER'S NUMBER IS TYPED, AND NO OTHER ONE IS.** The first line is a fact whose value was the text the line shows (`'10.29'`), which a derived score
     # must not rest on: it would move with a display setting. The producer holds the number, so it hands it over, and the line, the label, the units and the cell's text do not move
@@ -485,33 +483,35 @@ def compute_atomic_polarizability(
             property_id="atomic_polarizability",
             name="Atomic Polarizability",
             units="A^3",
-            method="jensen",
+            method=ADDITIVE_METHOD_ID,
             molecule_uuid=molecule_uuid,
             values={},
             cache_state=CacheState.FAILED,
             error=refusal.detail,
             error_summary=refusal.summary,
             inapplicable=True,
-            provenance=Provenance(created_by="core", method="jensen",
+            provenance=Provenance(created_by="core", method=ADDITIVE_METHOD_ID,
                                   parameters={"decimal_places": _places, "refusal": refusal.code}),
         )
     return PerAtomDataset(
         property_id="atomic_polarizability",
         name="Atomic Polarizability",
         units="A^3",
-        method="jensen",
+        method=ADDITIVE_METHOD_ID,
         molecule_uuid=molecule_uuid,
         values=values,
         provenance=Provenance(
             created_by="core",
-            method="jensen",
+            method=ADDITIVE_METHOD_ID,
             parameters={
                 "decimal_places": _places,
+                **({"summary": "Unsourced element value (never fitted to data): " + ", ".join(sorted(_elements_present(target) & UNSOURCED_ADDITIVE_ELEMENTS))}
+                   if _elements_present(target) & UNSOURCED_ADDITIVE_ELEMENTS else {}),
                 # `atomic_polarizabilities` works on `Chem.AddHs(mol)`, so
                 # every hydrogen carries its own value and the basis is
                 # explicit whatever was handed in.
                 ATOM_BASIS: EXPLICIT_H,
-                # Jensen's method IS an additive atomic scheme -- the
+                # This method IS an additive atomic scheme -- the
                 # molecular polarizability is defined as the sum -- so the
                 # total is exact rather than approximate here.
                 TOTAL: declare_total(
