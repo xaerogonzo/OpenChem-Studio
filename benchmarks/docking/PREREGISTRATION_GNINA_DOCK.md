@@ -98,4 +98,9 @@ uv run --no-sync python benchmarks/docking/run_gnina_dock_test.py report
 
 ## Amendments
 
-(none)
+### Amendment 1 — 2026-11-05, deciding run recorded
+
+The frozen test was run on 2026-11-05 (`vina_dock` then `search` then `report`).
+Verdict **NULL** (29 of 29 deciding docked; Vina 20/29 vs gnina 21/29; gained 4,
+lost 3; one-sided p = 0.5; overlap 15/18 then 14/18). Write-up
+`RESULT_GNINA_DOCK.md`. No rule, cutoff, overlap list or invocation changed.

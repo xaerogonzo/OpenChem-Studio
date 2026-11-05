@@ -84,7 +84,7 @@ A preregistered test (`PREREGISTRATION_GNINA.md`, rules in `gnina_core.py`) of r
 
 ## `run_gnina_dock_test.py` — does gnina's default dock beat Vina's top pose?
 
-A separate freeze (`PREREGISTRATION_GNINA_DOCK.md`, rules in `gnina_dock_core.py`): gnina search (no `--score_only`, `--cnn_scoring rescore` as `--help` default), same crystal-ligand box, seed 20261029, exhaustiveness 25, nine poses. **No catalog gnina search in the freeze commit.**
+A separate freeze (`PREREGISTRATION_GNINA_DOCK.md`, rules in `gnina_dock_core.py`): gnina search (no `--score_only`, `--cnn_scoring rescore` as `--help` default), same crystal-ligand box, seed 20261029, exhaustiveness 25, nine poses. Run 2026-11-05: **NULL** (`RESULT_GNINA_DOCK.md`; 29 deciding, Vina 20/29 vs gnina 21/29, gained 4, lost 3, p = 0.5). Default gnina dock on this catalog is closed.
 
 ## `prep_box_survey.py` — is a bad default pose a setup defect?
 

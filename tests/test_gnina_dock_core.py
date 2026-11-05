@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import importlib.util
+import json
 import pathlib
 import sys
 
@@ -54,6 +55,42 @@ def test_unscored_gnina_search_is_not_a_gain():
     assert (out.before, out.after) == (True, None)
     t = core.tally([out])
     assert (t.gained, t.lost, t.unscored) == (0, 0, 1)
+
+
+def test_committed_summary_is_the_jsonl_tally_not_a_hand_count():
+    root = pathlib.Path(__file__).parents[1] / "benchmarks" / "docking" / "artifacts_gnina_dock"
+    recs = []
+    for line in (root / "results.jsonl").read_text(encoding="utf-8").splitlines():
+        if not line.strip():
+            continue
+        row = json.loads(line)
+        recs.append(
+            core.DockReceptor(
+                row["pdb"],
+                tuple(row["vina_rmsd"]),
+                tuple(row["gnina_rmsd"]) if row.get("gnina_rmsd") else None,
+            )
+        )
+    summary = json.loads((root / "summary.json").read_text(encoding="utf-8"))
+    deciding = [core.judge_dock(r) for r in recs if r.pdb not in core.TRAINING_OVERLAP]
+    overlap = [core.judge_dock(r) for r in recs if r.pdb in core.TRAINING_OVERLAP]
+    t, t_tr = core.tally(deciding), core.tally(overlap)
+    assert summary["verdict"] == core.verdict(t) == "NULL"
+    assert summary["deciding"] == t.__dict__
+    assert summary["overlap"] == t_tr.__dict__
+    assert (t.measured, t.unscored, t.gained, t.lost, t.before_correct, t.after_correct) == (
+        29,
+        0,
+        4,
+        3,
+        20,
+        21,
+    )
+    text = (
+        pathlib.Path(__file__).parents[1] / "benchmarks" / "docking" / "RESULT_GNINA_DOCK.md"
+    ).read_text(encoding="utf-8")
+    assert "**Verdict by the preregistered rule: NULL.**" in text
+    assert "| 29 of 29 | 20 | 21 | 4 | 3 |" in text
 
 
 def test_verdict_grammar_is_the_cnn_rescore_grammar():

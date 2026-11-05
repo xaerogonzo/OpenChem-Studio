@@ -83,7 +83,7 @@ No RMSD. No catalog id. No gained/lost.
 ## After this slice
 
 - **PASS:** Frozen preregistration is `benchmarks/docking/PREREGISTRATION_GNINA.md`
-  (CNN rescore of Vina's nine poses by CNNscore; gnina-as-dock is not an arm). No
+  (CNN rescore NULL; default dock NULL — `RESULT_GNINA.md`, `RESULT_GNINA_DOCK.md`). No
   deciding receptor is CNN-rescored before that freeze.
 - **FAIL:** the program stops. DiffDock-class is a **new** spike if the owner reopens
   it, not an automatic fallback.
