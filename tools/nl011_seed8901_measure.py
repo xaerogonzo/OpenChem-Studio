@@ -48,6 +48,9 @@ SKIP = (33, 34, 52, 51, 5, 14, 15)
 N = 20
 SEED = 8901
 
+# Pre-bucket-A (fa3a0115): flat names OPSIN would not parse.
+BUCKET_B_INDICES = [2, 3, 4, 5, 6, 7, 9, 12, 13, 14, 15, 18, 19, 20]
+
 
 def ring_count(m):
     return len(Chem.GetSymmSSSR(m))
