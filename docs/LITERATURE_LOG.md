@@ -145,6 +145,27 @@ rows; the owner's instruction on bulk tables); the committed manifest holds coun
 Of the 256 distinct compounds the three papers print, 6 are in the COD corpus's manifest (1 in development, 5 held out),
 so they are removed from these models' evaluation and counted. Nothing in these papers was compared with a COD label.
 
+## The additive polarizability table's source (2026-11-05): searched, NOT found
+
+What was wanted: where the 13-element table in `chem/electronic_properties.py` (`ADDITIVE_POLARIZABILITY`: H 0.3888, C 1.3266, N 0.9754, O 0.7658, F 0.4642, S 2.4772, Cl 2.2604, Br 3.3181, I 5.5593, and P, Si, B, Se)
+came from. It was labelled Jensen et al. 2002 when added on 2026-07-30, with no source recorded; the label was removed on 2026-11-05 (see the CHANGELOG fragment). **Every search below came up empty, so the next session
+should not repeat them.**
+
+| file or search | what it is | read for | depth | outcome |
+|---|---|---|---|---|
+| `jensen2002.pdf` | Jensen, Astrand, Osted, Kongsted, Mikkelsen, dipole-interaction polarizability models (J. Chem. Phys. 116, 4001) | the table's numbers; metals | Table I read from the text layer; no supplementary material exists | **not the source**: a dipole-interaction model (atomic polarizability plus a damping parameter), fitted for H, B, C, N, O, F and Cl only. Best set converted at 0.1482 A^3 per a.u.: H 0.19, B 1.28, C 1.25, N 0.91, O 0.56, F 0.28, Cl 1.94. No metals, no S, Br, I, P, Si or Se |
+| `miller1990.pdf` | Miller, additivity methods in molecular polarizability (J. Am. Chem. Soc. 112, 8533) | the table's numbers | Table I read from the page image | **not the source, but close in places**: ahp column H 0.387, F 0.296, Cl 2.315, Br 3.013, I 5.415; C 1.061 / 1.352 / 1.896 / 1.283 by hybrid; N 0.964 to 1.090; O 0.274 to 0.637; S 2.700 to 3.729; P 1.538. The table's F (0.4642), O (0.7658), Br (3.3181) and I (5.5593) match no column |
+| `miller1979.pdf` | Miller and Savchik, atomic hybrid components (J. Am. Chem. Soc. 101, 7206) | the table's numbers | searched for the exact numbers | none present |
+| all 912 PDFs in Sci Downloads | the whole library | the six numbers H 0.3888, C 1.3266, N 0.9754, S 2.4772, Br 3.3181, I 5.5593 (two or more on one file) | text layers, exact strings | one hit, `CRC_Handbook_of_Chemistry_and_Physics_97.pdf`: two unrelated densities in the organic-compound table (pages 302 and 676). Nothing else |
+| the same files, by content | files mentioning polarizability five or more times: 36, none with an atomic additive table for these elements (the largest are Chen's thesis, Verstraelen's EEM papers, Nocito, Chelli, Mathieu, Pearson) | any table of atomic or group polarizabilities | counts and a pattern for pages carrying a polarizability heading with H and C numbers | no page found; the two Miller papers and Jensen 2002 are the only atomic-polarizability sources held |
+| 13 files with no text layer | `Begtrup1988`, `kobayashi1982`, `hancock1996`, `vogel1996`, `mann1947`, the Army explosives pamphlet, and others | | not read | **not searched**: a table inside one of them would not have been found |
+| ChemAxon's polarizability page (web) | the program the table was matched against | the method's references | read | cites Miller and Savchik 1979 for one method and Jensen et al. 2002 for the other; prints no per-element values |
+| Kang and Jhon, Theor. Chim. Acta 61, 41 (1982) (web) | an additive atomic polarizability set | the values | citation confirmed only | **not held**; its values were not seen |
+
+What is established about the table is only that it reproduces 13 experimental molecular polarizabilities (5.7 % mean absolute error) and that its carbon (1.3266) and hydrogen (0.3888) sit near ChemAxon's displayed
+1.36 and 0.39. **Where to look next, if anyone needs the source:** Kang and Jhon 1982 and Applequist 1972 (neither held), a paper that fits additive polarizabilities for C, H, O, N, S, P, F, Cl, Br and I (title not recorded; a web
+search surfaced it but did not show its table), or ChemAxon itself.
+
 ## How to use this
 
 Before searching for a reference for a tautomer system, look here. A paper listed as "not an energy

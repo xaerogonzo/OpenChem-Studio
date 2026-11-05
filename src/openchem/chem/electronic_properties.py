@@ -10,8 +10,9 @@ in cubic angstroms.
     dipole-interaction model, not an additive one, and its Table I fits H, B, C,
     N, O, F and Cl only (best set, converted to A^3: H 0.19, C 1.25, N 0.91,
     O 0.56, F 0.28, Cl 1.94, against 0.39, 1.33, 0.98, 0.77, 0.46, 2.26 here).
-    None of this table's numbers appear in it, in Miller 1979 or 1990, or in any of
-    the 912 PDFs held (the one hit, in the CRC Handbook, is two unrelated
+    None of this table's numbers appear in it, in Miller 1979 or 1990 (whose
+    Table I values are near but not equal), or in any of the 912 PDFs held (see
+    docs/LITERATURE_LOG.md) (the one hit, in the CRC Handbook, is two unrelated
     densities). What is established is only that the values reproduce the
     experiments below and match ChemAxon's per-atom display (1.36 aromatic C,
     0.39 H). The internal method id stays `jensen` because stored results carry
