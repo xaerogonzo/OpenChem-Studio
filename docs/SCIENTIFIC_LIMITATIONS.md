@@ -632,10 +632,11 @@ not a substitute for the 3D steric measures in Geometry.
 *E*s, Hancock's *E*sc, Charton's *ν* and this one — so it is reported as
 Cao–Liu TSEI and never as a bare "steric index".
 
-**Covers 28 elements and refuses the rest by name.** Those are the elements
-Lange's Handbook tabulates a single-bond covalent radius for; the equation
-needs one and there is nothing to substitute that would not be a number from
-a different table.
+**Covers 28 elements, plus platinum with a warning, and refuses the rest by name.**
+Those are the elements Lange's Handbook tabulates a single-bond covalent radius
+for; the equation needs one and anything else is a number from a different
+table. Platinum is the one exception: Lange has no value, so Cordero 2008's
+1.36 Å is used and the result says it is on a slightly different scale.
 
 **The equation is geometric and the validation is not.** There is no
 per-element fitting, so any of those 28 computes — but Cao and Liu validated

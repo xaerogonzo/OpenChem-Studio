@@ -2684,8 +2684,9 @@ CALCULATOR_DEFINITIONS: list[CalculatorDefinition] = [
             "a SUBSTITUENT measured toward a named reaction centre; running it at every "
             "atom is OpenChem's projection of it, not a quantity the paper defines. "
             "Topological, so two conformers of one molecule score identically. Covers "
-            "the 28 elements Lange's Handbook tabulates a covalent radius for, and "
-            "refuses the rest by name. The equation is geometric, so any of those 28 "
+            "the 28 elements Lange's Handbook tabulates a covalent radius for, plus "
+            "platinum from Cordero 2008 (with a warning, since it is on another scale), "
+            "and refuses the rest by name. The equation is geometric, so any of those 28 "
             "computes -- but Cao and Liu validated it on alkyl, halogen and ether "
             "substituents, so a result on an organometallic is an extrapolation."
         ),

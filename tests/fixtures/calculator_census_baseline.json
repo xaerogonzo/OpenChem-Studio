@@ -98,7 +98,7 @@
   "topology_distance_degree": "RRRRRRRRRRRRRRRRRRRRRRRRRRRRR",
   "topology_eccentricity": "RRRRRRRRRRRRRRRRRRRRRRRRRRRRR",
   "torsion_table": "RRRRRRRRRRRRRRRRRRRRRRRRRRRRR",
-  "tsei_projection": "RRRRRRRRRRRRRRRRRRRRRRLRRRRRR"
+  "tsei_projection": "RRRRRRRRRRRRRRRRRRRRRRRRRRRRR"
  },
  "observation": {
   "always_on": "cccccccccwccccccccccccccccccc",
