@@ -31,3 +31,18 @@ def test_pending_row_flips_to_synced():
 def test_check_pattern_matches_pending_only():
     assert PENDING.search("| fork pull request | xaerogonzo/open-iupac-namer#1 — pending sync, x")
     assert not PENDING.search("| fork pull request | xaerogonzo/open-iupac-namer#1 — synced 2026-01-01, x")
+
+
+def test_append_sync_row_is_idempotent():
+    base = "| fork pull request | xaerogonzo/open-iupac-namer#94 — synced 2026-11-04, x. |\n"
+    row = (
+        "| fork pull request | xaerogonzo/open-iupac-namer#95 — synced 2026-11-04, "
+        "corresponding to this repository's pull request #548 (`b`, squash on master at `abc`, base `def`): "
+        "naming round 94, prose. |"
+    )
+    out, n = _MOD.append_sync_row(base, row, insert_after_fork=94)
+    assert n == 1
+    assert out.index("#94") < out.index("#95")
+    out2, n2 = _MOD.append_sync_row(out, row, insert_after_fork=94)
+    assert n2 == 0
+    assert out2 == out
