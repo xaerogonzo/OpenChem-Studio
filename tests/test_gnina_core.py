@@ -72,3 +72,42 @@ def test_sanity_rejects_all_zero_cnn_scores():
 def test_crossdocked_parser_skips_pocket_headers(tmp_path: pathlib.Path):
     text = "--POCKET--\n5kir:rcx,1hsg:foo\n"
     assert core.parse_crossdocked_pdb_ids(text) == {"5KIR", "1HSG"}
+
+
+def _committed_receptors():
+    import json
+
+    root = pathlib.Path(__file__).parents[1] / "benchmarks" / "docking" / "artifacts_gnina"
+    rows = []
+    for line in (root / "results.jsonl").read_text(encoding="utf-8").splitlines():
+        if line.strip():
+            rows.append(json.loads(line))
+    recs = [
+        core.Receptor(r["pdb"], tuple(r["rmsd"]), tuple(r["predicted"]) if r.get("predicted") else None)
+        for r in rows
+    ]
+    return recs, json.loads((root / "summary.json").read_text(encoding="utf-8"))
+
+
+def test_committed_summary_is_the_jsonl_tally_not_a_hand_count():
+    recs, summary = _committed_receptors()
+    deciding = [core.judge_receptor(r) for r in recs if r.pdb not in core.TRAINING_OVERLAP]
+    overlap = [core.judge_receptor(r) for r in recs if r.pdb in core.TRAINING_OVERLAP]
+    t, t_tr = core.tally(deciding), core.tally(overlap)
+    plausible = core.inputs_are_plausible([r for r in recs if r.pdb not in core.TRAINING_OVERLAP])
+    assert summary["verdict"] == core.verdict(t, plausible) == "NULL"
+    assert summary["deciding"] == t.__dict__
+    assert summary["overlap"] == t_tr.__dict__
+    assert (t.measured, t.unscored, t.gained, t.lost, t.before_correct, t.after_correct) == (
+        29,
+        0,
+        3,
+        2,
+        20,
+        21,
+    )
+    text = (pathlib.Path(__file__).parents[1] / "benchmarks" / "docking" / "RESULT_GNINA.md").read_text(
+        encoding="utf-8"
+    )
+    assert "**Verdict by the preregistered rule: NULL.**" in text
+    assert "Vina 20/29 vs CNNscore 21/29" in text or "| 29 of 29 | 20 | 21 | 3 | 2 |" in text

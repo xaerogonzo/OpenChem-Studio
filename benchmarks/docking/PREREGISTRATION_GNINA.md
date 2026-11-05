@@ -130,4 +130,9 @@ catalog CNN and must not run before this freeze.
 
 ## Amendments
 
-(none)
+### Amendment 1 — 2026-11-05, deciding run recorded
+
+The frozen test was run on 2026-11-05 (Vina `dock` then gnina `rescore` then `report`).
+Verdict **NULL** (29 of 29 deciding rescored; Vina 20/29 vs CNNscore 21/29; gained 3, lost 2;
+one-sided p = 0.5; overlap 15/15; CNN sanity ok). Write-up `RESULT_GNINA.md`. No rule,
+cutoff, overlap list or invocation changed.

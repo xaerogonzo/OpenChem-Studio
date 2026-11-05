@@ -45,7 +45,7 @@ are reused here, not repeated.
 | **AutoDock4 (4.2.6)** | 4.2.6 | GPL (Scripps download page: "distributed freely under the GNU GPL") | One installer, `autodocksuite-4.2.6.i86Windows.exe` (per the download page; size not stated) | No: it is an installer, and installers are not run in this task | AD4 force field (a different family); needs `autogrid4` maps, so not a drop-in | smina `ad4_scoring` was the stand-in and was HARMFUL on the frozen test |
 | **AutoDock-GPU** | repo `ccsb-scripps/AutoDock-GPU`, active 2026-08 | GPL-2.0 plus LGPL files (GitHub) | None. The README's tested-platform table lists Linux and macOS; it is OpenCL or CUDA | No | AD4 on GPU | No |
 | **Uni-Dock** | repo `dptech-corp/Uni-Dock`, active 2026-07 | Apache-2.0 (GitHub) | None found; the repository's README does not mention Windows, and the code is C++ and CUDA | No | Vina, Vinardo, AD4 (per its description) | No (CUDA) |
-| **gnina** | | | | Not run. Ruled out 2026-11-02 (WSL2 and a ~1.9 GB CUDA build). Reopened 2026-11-04 as a possible **separate** learned-scorer program, not this test | CNN / gnina | Needs CUDA/WSL on this machine; not a Vina-family function |
+| **gnina** | v1.3.3 (`6fe1ce2`) | Apache-2.0 (GitHub) | GitHub `gnina.cuda12.8.static`, 2,056,131,000 bytes (sha256 `3340c1f4…72172`); not self-contained (CUDA 12.8 + cuDNN 9). Slice 1 PASS in WSL2 | **CNN rescore of Vina poses: NULL** (`RESULT_GNINA.md`, 2026-11-05). gnina-as-dock not an arm | CNN / gnina | Not a Vina-family function; not a one-file Windows PE |
 | **LeDock, PLANTS, DOCK 6, rDock** | | Closed or academic-licence programs (LeDock has a Windows release per Wikipedia and the vendor's announcement; DOCK 6 is free for academic use and charged for industry per UCSF's page); redistribution terms not read; rDock's platform support not verified | Not looked for further | No | Their own | Not pursued: a bundled or app-downloaded closed binary needs a licence the project does not have, and none was checked |
 
 What the table does not claim: no engine other than smina and Vina was started, so "does not
@@ -154,10 +154,10 @@ a comparison means nothing unless the inputs reproduce something known):
    remain search-only.
 3. **The product answer stays PR 508's sentence** (pose 1 is the best-scoring pose, not a
    verified one), plus showing more than the top pose, which needs no new engine.
-4. **Learned scorers are a new program.** Slice 1 (`docs/GNINA_SPIKE.md`) **PASS**
-   2026-11-04. Frozen test: `PREREGISTRATION_GNINA.md` (CNN **rescore** of Vina's nine
-   poses by CNNscore; 29 deciding after 18 CrossDocked2020 hold-outs). No catalog CNN
-   yet. Not an External Tools tab. DiffDock-class is not an automatic fallback.
+4. **Learned CNN rescore of these Vina poses is closed NULL.** Slice 1
+   (`docs/GNINA_SPIKE.md`) PASS 2026-11-04. Frozen test run 2026-11-05:
+   `RESULT_GNINA.md` (29 deciding, gained 3 lost 2, p = 0.5). Not an External
+   Tools tab. gnina-as-dock and DiffDock-class are not automatic fallbacks.
 5. **QuickVina and Vina-GPU are worth revisiting only for speed**, never for pose choice, and
    only if a Windows binary with provenance appears.
 
