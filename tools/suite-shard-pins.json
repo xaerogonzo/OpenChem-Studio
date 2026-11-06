@@ -1925,6 +1925,7 @@
   "tests/test_comparison.py": 1,
   "tests/test_comparison_panel.py": 3,
   "tests/test_completeness.py": 3,
+  "tests/test_component_choice.py": 4,
   "tests/test_conceptual_dft.py": 0,
   "tests/test_conformer_benchmark_overlap.py": 4,
   "tests/test_conformer_commands.py": 4,

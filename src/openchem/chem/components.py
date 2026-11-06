@@ -55,6 +55,10 @@ from openchem.domain.calculator import (
 #: it, through `drawing_label`, so the number it prints is the one on the user's drawing.
 DRAWING_INDEX_PROP = "ocs_drawing_index"
 
+#: Molecule property carrying the canonical SMILES (as drawn) of the component the person chose, set by
+#: `ChemistryEngine.mol_from_model` from `MoleculeModel.component_choice`. Absent is the automatic pick.
+COMPONENT_CHOICE_PROP = "ocs_component_choice"
+
 #: How close the second-largest species must come to the largest (in heavy atoms, as a fraction of the largest)
 #: for the label to say the choice is close and so a guess. Choline salicylate (7 and 10) is the case that
 #: sets it; sodium acetate (1 and 4) is not. It changes a sentence, never which component is taken.
@@ -78,6 +82,8 @@ class Selection:
     note: str = ""
     #: Canonical SMILES of the drawing's components that were left out, when `note` is set.
     left_out: tuple[str, ...] = ()
+    #: True when the component was the person's choice (`MoleculeModel.component_choice`), not the automatic pick.
+    chosen: bool = False
 
 
 def drawing_index(atom: Chem.Atom) -> int:
@@ -128,6 +134,12 @@ def _chembl_parent(mol: Chem.Mol, name: str) -> Selection:
             "structures with a transition metal or more than seven boron atoms. There is no "
             "parent molecule to hand it.",
         )
+    # THE PERSON'S CHOICE COMES BEFORE ANY RULE OF OURS OR ChEMBL's: it is the one fact about which species
+    # is meant. A choice no component matches (the drawing was edited since) falls through to the rule.
+    if mol.HasProp(COMPONENT_CHOICE_PROP):
+        picked = _chosen_component(mol, fragments, mol.GetProp(COMPONENT_CHOICE_PROP))
+        if picked is not None:
+            return picked
     parent_fragments = Chem.GetMolFrags(parent)
     if len(parent_fragments) > 1:
         return _largest_component(mol, fragments, parent)
@@ -173,8 +185,6 @@ def _largest_component(mol: Chem.Mol, fragments: tuple[tuple[int, ...], ...], pa
     components (calcium acetate's anions) are one species; two different species of the largest size have no
     larger one, and that refuses.
     """
-    from openchem.vendor.chembl_structure_pipeline.getparent import uncharge_mol
-
     kept = [[a.GetAtomicNum() for a in f.GetAtoms()] for f in Chem.GetMolFrags(parent, asMols=True, sanitizeFrags=False)]
     pieces = Chem.GetMolFrags(mol, asMols=True)
     candidates: list[tuple[int, int, str]] = []  # (component, heavy atoms, canonical SMILES as drawn)
@@ -196,19 +206,11 @@ def _largest_component(mol: Chem.Mol, fragments: tuple[tuple[int, ...], ...], pa
             f"{len(candidates)}, and the largest are different species of the same size "
             f"({', '.join([smiles, *rivals])}), so none of them is the one meant. Draw the one species you mean.",
         )
-    neutral = uncharge_mol(Chem.Mol(pieces[component]))
-    Chem.SanitizeMol(neutral)  # `uncharge_mol` only updates the property cache; see `_chembl_parent`
-    would_change = Chem.MolToSmiles(neutral) != smiles
-    keep_as_drawn = would_change and any(conformer.Is3D() for conformer in pieces[component].GetConformers())
-    chosen = Chem.Mol(pieces[component]) if keep_as_drawn else neutral
-    computed = Chem.MolToSmiles(chosen)
-    left_out = tuple(sorted(Chem.MolToSmiles(p) for i, p in enumerate(pieces) if i != component))
-    others = ", ".join(sorted(set(left_out) - {smiles})) or "only further copies of the same species"
+    chosen, computed, how, left_out, others = _neutralised_piece(pieces, component, smiles)
     close = [n for _c, n, s in candidates if s != smiles and n >= COMPARABLE_SIZE * size and n > 1]
     note = (
         f"Computed on {computed}"
-        + (f" (the drawn {smiles}, neutralised)" if would_change and not keep_as_drawn else "")
-        + (" (as drawn in the 3D structure, not neutralised, since a hydrogen cannot be added without a position)" if keep_as_drawn else "")
+        + how
         + f", the largest of this drawing's {len(fragments)} components ({size} heavy atoms). "
         f"ChEMBL's parent rule leaves no single parent here, so the components were not combined; not included: {others}. "
         + (
@@ -225,6 +227,59 @@ def _largest_component(mol: Chem.Mol, fragments: tuple[tuple[int, ...], ...], pa
         parent_smiles=computed,
         note=note,
         left_out=left_out,
+    )
+
+
+def _neutralised_piece(pieces, component: int, smiles: str) -> tuple[Chem.Mol, str, str, tuple[str, ...], str]:
+    """The component to hand over, re-neutralised unless it has 3D coordinates (see `_largest_component`).
+
+    Returns (molecule, its SMILES, the phrase saying how it differs from the drawn one, the other components'
+    SMILES, and those others as a sentence fragment).
+    """
+    from openchem.vendor.chembl_structure_pipeline.getparent import uncharge_mol
+
+    neutral = uncharge_mol(Chem.Mol(pieces[component]))
+    Chem.SanitizeMol(neutral)  # `uncharge_mol` only updates the property cache; see `_chembl_parent`
+    would_change = Chem.MolToSmiles(neutral) != smiles
+    keep_as_drawn = would_change and any(conformer.Is3D() for conformer in pieces[component].GetConformers())
+    taken = Chem.Mol(pieces[component]) if keep_as_drawn else neutral
+    how = (
+        (f" (the drawn {smiles}, neutralised)" if would_change and not keep_as_drawn else "")
+        + (" (as drawn in the 3D structure, not neutralised, since a hydrogen cannot be added without a position)" if keep_as_drawn else "")
+    )
+    left_out = tuple(sorted(Chem.MolToSmiles(p) for i, p in enumerate(pieces) if i != component))
+    others = ", ".join(sorted(set(left_out) - {smiles})) or "only further copies of the same species"
+    return taken, Chem.MolToSmiles(taken), how, left_out, others
+
+
+def component_smiles(mol: Chem.Mol) -> list[str]:
+    """The canonical SMILES, as drawn, of each component of `mol`, in `Chem.GetMolFrags` order.
+
+    This is the vocabulary of `MoleculeModel.component_choice`, and what a picker lists.
+    """
+    return [Chem.MolToSmiles(piece) for piece in Chem.GetMolFrags(mol, asMols=True)]
+
+
+def _chosen_component(mol: Chem.Mol, fragments: tuple[tuple[int, ...], ...], choice: str) -> Selection | None:
+    """The component whose canonical SMILES is `choice` (the first of identical ones), or None if none is."""
+    pieces = Chem.GetMolFrags(mol, asMols=True)
+    smiles_of = [Chem.MolToSmiles(piece) for piece in pieces]
+    if choice not in smiles_of:
+        return None
+    component = smiles_of.index(choice)
+    taken, computed, how, left_out, others = _neutralised_piece(pieces, component, choice)
+    note = (
+        f"Computed on {computed}{how}, the component you chose of this drawing's {len(fragments)} components "
+        f"({pieces[component].GetNumHeavyAtoms()} heavy atoms); not included: {others}."
+    )
+    return Selection(
+        mol=_stamp(taken, tuple(fragments[component])),
+        drawing_atoms=tuple(fragments[component]),
+        components=(component,),
+        parent_smiles=computed,
+        note=note,
+        left_out=left_out,
+        chosen=True,
     )
 
 
@@ -267,7 +322,7 @@ def scope_parameters(scope: CalculatorScope, selection: Selection) -> dict[str, 
     if selection.parent_smiles:
         recorded["parent_smiles"] = selection.parent_smiles
     if selection.note:
-        recorded["component_choice"] = "largest"
+        recorded["component_choice"] = "chosen" if selection.chosen else "largest"
         recorded["components_left_out"] = list(selection.left_out)
     return recorded
 
