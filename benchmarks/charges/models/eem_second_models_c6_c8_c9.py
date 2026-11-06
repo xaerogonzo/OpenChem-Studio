@@ -67,7 +67,7 @@ def census_smiles() -> list[str]:
 
 
 def bluebook_smiles() -> list[str]:
-    rows = json.loads((ROOT / "benchmarks" / "naming" / "bluebook_frozen.json").read_text(encoding="utf-8"))
+    rows = json.loads((ROOT / "benchmarks" / "naming" / "bluebook_tuning.json").read_text(encoding="utf-8"))
     return list(dict.fromkeys(r["smiles"] for r in rows if r.get("smiles") and "." not in r["smiles"]))
 
 

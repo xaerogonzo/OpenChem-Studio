@@ -393,6 +393,13 @@ for a type: S2, C3, N3, P).
   O -0.523 / -0.582 / -0.493 / **-0.684**. Ionescu's E model, fitted to protein fragments, puts markedly more negative charge on N and O than the other three.
 - Mean absolute difference between pairs: J-Bultinck 0.024 e (closest), N-Ionescu 0.049, N-Bultinck 0.061, J-N 0.074, Bultinck-Ionescu 0.086, J-Ionescu 0.095 e.
 
+**Re-run on the tuning population (2026-11-06, owner's decision).** The run above read the FROZEN Blue Book file, which the naming lock forbids any other script to name (`tests/test_naming_heldout_lock.py`).
+`eem_second_models_c6_c8_c9.py` now reads `benchmarks/naming/bluebook_tuning.json` (also 1,108 single-component molecules, none shared with the frozen file) and the result file holds that run.
+Nothing registered moved. The conclusions are unchanged: Model N's tail above 1.5 e is still only S2 (35) and P2 (20) atoms and above 2.0 e only S2 (22) and P2 (12); Model J's largest is 1.004 e and nothing is above 1.5 e;
+C6 is identical (the census panel only). What changed with the population: Model N covers 911 molecules (34 refused for a type, 15 for an unpaired electron), 21,447 atoms, **largest |q| 2.856 e**
+(`O=C=NS(=O)(=O)N=C=O`, S2), 99th percentile 0.85 e, 99.9th 2.10 e; Model J covers 725; C9 is 566 CHNO molecules (14,699 atoms), mean N spread 0.286 e, pair differences J-Bultinck 0.025 (closest) to J-IonescuE 0.098 e.
+The figures quoted above are the frozen-population run and are kept as the record of it; `c6_c8_c9.json` no longer holds them.
+
 **Still not run:** C5 (the distance unit against reference charges) and C7 (the oxidised sulfur and phosphorus survey), which need ORCA and wait for Alex's job to finish. C8's
 result is the reason C7 matters most: it is the one population where Model N's largest charges live.
 
