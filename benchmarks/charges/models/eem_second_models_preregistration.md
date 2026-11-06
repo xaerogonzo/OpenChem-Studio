@@ -482,3 +482,19 @@ Fixed first:
 - **Reference and implementation checks:** exactly section 17 (Merz-Kollman from ORCA's potential, B3LYP/6-31G*, same shells), with the checks that the charges sum to zero and that the mean absolute difference from CHELPG over heavy atoms is at most 0.10 e. A failed check means the implementation is wrong and nothing is judged.
 - **The judgement counts only chlorine, bromine and sulfur atoms** of the 26 molecules: (a) mean absolute error of J at most 0.15 e; (b) no such atom off by more than 0.5 e; (c) J's mean on those atoms at most 1.25 times Model N's on the same atoms. Model N is a yardstick only: its own references are NPA charges, so it is expected to differ from Merz-Kollman too.
 - **If all three hold:** an amendment will offer J for molecules containing these elements, with a warning on every result that carries a carbon or nitrogen atom, quoting section 18's measured error (mean 0.14 e, worst atom 0.65 e, on carbon bonded to several carbons and on azole and pyridine nitrogens). It would not be called "unpaused", and the 0.5 e limit of section 13 stays failed. **If any fails,** J stays paused and the number is the answer. Limits are not moved after seeing results.
+
+## 20. Result on chlorine, bromine and sulfur (section 19; run 2026-11-05, ORCA 6.1.1, B3LYP/6-31G*, 412 s, `eem_model_j_halogen_sulfur.py`; `eem_second_models_results/model_j_halogen_sulfur.json`)
+
+**Implementation checks passed:** charges sum to zero; mean absolute difference from CHELPG over heavy atoms 0.060 e (limit 0.10). Dimethyl sulfoxide, thiourea and methanesulfonamide are refused by J and accepted by N, as expected.
+
+| Registered condition (40 chlorine, bromine and sulfur atoms in 26 molecules) | Measured | Met? |
+|---|---|---|
+| mean absolute error of J at most 0.15 e | 0.087 e | yes |
+| no such atom over 0.5 e | worst 0.23 e (sulfur of 2-chloroethanethiol) | yes |
+| J's mean at most 1.25 times Model N's on the same atoms | 0.087 against 0.125 e | yes (J is the lower) |
+
+By element, J against N (mean / worst, e): chlorine (22 atoms) 0.074 / 0.140 against 0.091 / 0.158; bromine (9) 0.087 / 0.173 against 0.097 / 0.167; sulfur (9) 0.116 / 0.231 against 0.236 / 0.370.
+
+**All three hold, so by the rule of section 19 J may be offered for molecules containing these elements, with a warning.** What the warning has to say, from the same run (not part of the rule): the carbon atoms of these 26 molecules are worse than the scoped atoms, mean 0.176 e over 85 carbons, 3 over 0.4 e and 2 over 0.5 e (worst 0.68 e, the carbon of bromoform); nitrogen (3 atoms) and oxygen (7) are small (0.09 and 0.11 e worst). So the halogen and sulfur charges are trustworthy to about 0.2 e in this panel; the carbons next to them, and the carbon of a polyhalomethane in particular, are not. Sulfur is the weakest scoped element, and N is further off on it. Scope limits: neutral molecules only; no oxidised or doubly bonded sulfur (J refuses it; N does not); the panel has no iodine, no charged species and nothing larger than 4-chloroacetanilide.
+
+**Status:** measured and passed; **not yet wired into the application.** Offering J (a method entry, the warning, refusal of molecules without Cl, Br or S, tests) is a separate step awaiting Alex's decision; limit (c) of section 13 stays failed and J is not called unpaused.
