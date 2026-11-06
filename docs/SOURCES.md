@@ -1,5 +1,5 @@
 <!-- GENERATED FROM docs/sources.toml -- do not edit -->
-<!-- SOURCE SHA256: b6dde2e0aef2e39206c1d2e46d72fcb64aa17999da35eaf8302b757a632d397a -->
+<!-- SOURCE SHA256: 3ae97227f6e5c5d863807b21c4c7bb099cdda45c988f1650699731aab3b18c5d -->
 
 # Sources
 
@@ -233,6 +233,7 @@ Title and DOI first; the `key` is what prose and code cite (`[source:key]`) and 
 | Energetics of Propellants, Fuels and Explosives; a Chemical Valence Approach | [10.1002/prep.19870120603](https://doi.org/10.1002/prep.19870120603) | [`jain1987`](#jain1987) | literature | shipped | citation + claim |
 | Electron photodetachment from mercaptyl anions (RS-). Electron affinities of mercaptyl radicals and the S-H bond strength in mercaptans | [10.1021/ja00529a040](https://doi.org/10.1021/ja00529a040) | [`janousek1980`](#janousek1980) | literature | reference only | citation + claim |
 | Relationships among Ionic Lattice Energies, Molecular (Formula Unit) Volumes, and Thermochemical Radii |  | [`jenkins1999`](#jenkins1999) | literature | shipped | citation + claim |
+| Electronegativity Equalization Method: Parameterization and Validation for Organic Molecules using the Merz-Kollman-Singh Charge Distribution Scheme | [10.1002/jcc.21142](https://doi.org/10.1002/jcc.21142) | [`jirouskova2009`](#jirouskova2009) | literature | shipped | citation + claim |
 | Estimation of Pure-Component Properties from Group-Contributions | [10.1080/00986448708960487](https://doi.org/10.1080/00986448708960487) | [`joback1987`](#joback1987) | literature | shipped | citation + claim |
 | Chemistry of Detonations. I. A Simple Method for Calculating Detonation Properties of C-H-N-O Explosives | [10.1063/1.1667908](https://doi.org/10.1063/1.1667908) | [`kamlet1968`](#kamlet1968) | literature | shipped | citation + claim |
 | Chemistry of Detonations. II. Buffered Equilibria | [10.1063/1.1667930](https://doi.org/10.1063/1.1667930) | [`kamlet1968_ii`](#kamlet1968_ii) | literature | reference only | citation |
@@ -290,6 +291,7 @@ Title and DOI first; the `key` is what prose and code cite (`[source:key]`) and 
 | Intermolecular interactions of the carbon-fluorine bond: the crystallographic environment of fluorinated carboxylic acids and related structures | [10.1021/ja00348a041](https://doi.org/10.1021/ja00348a041) | [`murrayrust1983`](#murrayrust1983) | literature | shipped | citation + claim |
 | The chemical hardness of molecules and the band gap of solids within charge equilibration formalisms. Toward force field-based simulations of redox reactions | [10.1140/epjb/e2012-21081-8](https://doi.org/10.1140/epjb/e2012-21081-8) | [`muser2012`](#muser2012) | literature | reference only | citation + claim |
 | Polarizable Charge Equilibration Model for Predicting Accurate Electrostatic Interactions in Molecules and Solids | [10.1063/1.4978891](https://doi.org/10.1063/1.4978891) | [`naserifar2017`](#naserifar2017) | literature | reference only | citation + claim |
+| NEEMP: software for validation, accurate calculation and fast parameterization of EEM charges, J. Cheminform.… | [10.1186/s13321-016-0171-1](https://doi.org/10.1186/s13321-016-0171-1) | [`neemp2016`](#neemp2016) | literature | shipped | citation + claim |
 | DSX: A Knowledge-Based Scoring Function for the Assessment of Protein-Ligand Complexes | [10.1021/ci200274q](https://doi.org/10.1021/ci200274q) | [`neudert2011`](#neudert2011) | literature | **not shipped** | citation |
 | Autodock Vina Adopts More Accurate Binding Poses but Autodock4 Forms Better Binding Affinity | [10.1021/acs.jcim.9b00778](https://doi.org/10.1021/acs.jcim.9b00778) | [`nguyen2020`](#nguyen2020) | literature | shipped | citation + claim |
 | Temperature-dependent kinetics studies of the reactions Br(2P3/2) + H2S = SH + HBr and Br(2P3/2) + CH3SH = CH3S + HBr. Heats of formation of SH and CH3S radicals | [10.1021/j100185a025](https://doi.org/10.1021/j100185a025) | [`nicovich1992`](#nicovich1992) | literature | reference only | citation + claim |
@@ -8149,6 +8151,35 @@ Nothing about xtb's accuracy against ORCA or Psi4 has been measured (`docs/EXTER
 | Used by | `benchmarks/restart_v3/PREREGISTRATION.md`, `benchmarks/restart_v3/references.json`, `benchmarks/restart_v3/LITERATURE_LOG.md`, `tests/test_restart_v3_references.py` |
 
 **Why it is reference only.** WHY THIOPHENOL STAYS OUT OF ARM D: D0(C6H5S-H) <= 28 030 +- 100 cm-1 (335.3 +- 1.2 kJ/mol, 80.15 kcal/mol at 0 K), which the authors call an upper limit; it lies 3.3 kcal/mol above Lim 2007's 76.8 +- 0.3 kcal/mol, so no thiophenol reference passes the 1.0 kcal/mol rule (restart-v3 preregistration section 7, references.json thiophenol_context).
+
+### jirouskova2009 — Electronegativity Equalization Method: Parameterization and Validation for Organic Molecules using the Merz-Kollman-Singh Charge Distribution Scheme
+
+<a id="jirouskova2009"></a>
+
+> Z. Jiroušková, R. Svobodová Vařeková, J. Vaněk & J. Koča, 'Electronegativity Equalization Method: Parameterization and Validation for Organic Molecules using the Merz-Kollman-Singh Charge Distribution Scheme', J. Comput. Chem. 2009, 30, 1174-1178.
+
+| | |
+| --- | --- |
+| Identifier | [10.1002/jcc.21142](https://doi.org/10.1002/jcc.21142) |
+| Status | shipped |
+| Verification | citation + claim |
+| Verified | 2026-10-30 |
+| Local copy | `Jiroušková 2009.pdf` (not checked) |
+| Used by | `src/openchem/chem/typed_eem.py`, `src/openchem/chem/data/eem_second_models.json` |
+
+### neemp2016 — NEEMP: software for validation, accurate calculation and fast parameterization of EEM charges, J. Cheminform.…
+
+<a id="neemp2016"></a>
+
+> NEEMP: software for validation, accurate calculation and fast parameterization of EEM charges, J. Cheminform. 2016, 8, 57 (Svobodová Vařeková's group, Masaryk University); Additional files 1 (source code) and 6 (parameter sets).
+
+| | |
+| --- | --- |
+| Identifier | [10.1186/s13321-016-0171-1](https://doi.org/10.1186/s13321-016-0171-1) |
+| Status | shipped |
+| Verification | citation + claim |
+| Verified | 2026-10-30 |
+| Used by | `src/openchem/chem/typed_eem.py`, `src/openchem/chem/data/eem_second_models.json`, `src/openchem/chem/geometry_charges.py` |
 
 ## Datasets
 

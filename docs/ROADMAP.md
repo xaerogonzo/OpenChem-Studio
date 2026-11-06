@@ -2372,7 +2372,7 @@ and three were checked again recently rather than taken on trust.
      mixtures"). What is left: components of one size that are different species (NaCl, two small organics) and ChEMBL's metal exclusion still refuse, because
      there is no one species to hand over; the three pure-substance methods (solubility, Joback, Hansen) still refuse any second component, a hydrate
      included, which could first lose its listed solvent; and the choice is a guess the person cannot yet correct from the window (naming the component).
-  3. **Parameters missing for an element**: Jensen's atomic polarizability (no Na, Fe, Pt ...), Bultinck's EEM charges (no Cl, B, S), TSEI (no Pt covalent
+  3. **Parameters missing for an element**: Jensen's atomic polarizability (no Na, Fe, Pt ...), Bultinck's EEM charges (no Cl, B, S: **Cl and S now have two NEW EEM models, not an extension -- NEEMP 2016 Ccd2016 (NPA, offered as a method of the 3D partial-charge calculator) and Jiroušková 2009 (Merz-Kollman, offered since 2026-11-05 for molecules with Cl, Br or S only, because its general rule still fails) -- plan and every measurement in `benchmarks/charges/models/eem_second_models_preregistration.md`; no held paper parameterises boron, and a one-type extension failed its registered rule, so boron stays refused**), TSEI (no Pt covalent
      radius in Lange's table), molecular dynamics (no MMFF or UFF type). Each is a parameter-table extension from a source, measured against that source; none
      can be a warning, because there is no number to label.
   4. **Group coverage**: Joback has no group for a ring tertiary nitrogen and several other environments, Hansen (Stefanis-Panayiotou) none for silicon and

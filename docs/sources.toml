@@ -9673,3 +9673,62 @@ verified_date = 2026-10-28
 reason = """
 WHY THIOPHENOL STAYS OUT OF ARM D: D0(C6H5S-H) <= 28 030 +- 100 cm-1 (335.3 +- 1.2 kJ/mol, 80.15 kcal/mol at 0 K), which the authors call an upper limit; it lies 3.3 kcal/mol above Lim 2007's 76.8 +- 0.3 kcal/mol, so no thiophenol reference passes the 1.0 kcal/mol rule (restart-v3 preregistration section 7, references.json thiophenol_context).
 """
+
+[[source]]
+key = "jirouskova2009"
+kind = "literature"
+citation = "Z. Jiroušková, R. Svobodová Vařeková, J. Vaněk & J. Koča, 'Electronegativity Equalization Method: Parameterization and Validation for Organic Molecules using the Merz-Kollman-Singh Charge Distribution Scheme', J. Comput. Chem. 2009, 30, 1174-1178."
+identifier_type = "doi"
+identifier = "10.1002/jcc.21142"
+status = "shipped"
+used_by = ["src/openchem/chem/typed_eem.py", "src/openchem/chem/data/eem_second_models.json"]
+local = "Jiroušková 2009.pdf"
+verification = "citation_and_claim"
+verified_date = 2026-10-30
+reason = """
+THE B3LYP/6-31G* MERZ-KOLLMAN COLUMN OF ITS TABLE 2, as Model J of
+`benchmarks/charges/models/eem_second_models_preregistration.md`: A and B for
+12 atom types (element and highest bond order: H1 C1 C2 N1 N2 O1 O2 F1 Cl1 Br1
+S1 Zn1) and kappa 0.302, built by `tools/build_eem_second_models.py` from
+`tests/fixtures/charges/jirouskova2009/table2.csv`. The CLAIM checked is the
+transcription: the table was read twice, from the PDF's text layer and from the
+page rendered at 300 dpi, and the two agree on all 120 printed numbers (check
+C1; the second reading was not blind). The CALCULATION is held to an independent
+solve to 1e-6 e (check C2). NOT checked: that the printed numbers are right in
+the paper, and the unit of the distance, which the paper does not state
+(angstrom, read from NEEMP's solver; check C5 tests it against reference
+charges). Zinc is in the table and refused by the application. The HF/6-31G*
+column is held in the fixture and not shipped.
+
+PAUSED 2026-10-30: the data and the solver support are in the repository and
+tested, and Model J is not offered by any calculator or setting. The only
+independent test found (Geidl 2015, Table 6) gives this set R2 0.7022, the lowest
+listed, on a different statistic and molecules from the paper's own 0.94; it
+stays unwired until its deviation from Merz-Kollman charges is measured
+(`eem_second_models_preregistration.md`, amendment 2).
+"""
+
+[[source]]
+key = "neemp2016"
+kind = "literature"
+citation = "NEEMP: software for validation, accurate calculation and fast parameterization of EEM charges, J. Cheminform. 2016, 8, 57 (Svobodová Vařeková's group, Masaryk University); Additional files 1 (source code) and 6 (parameter sets)."
+identifier_type = "doi"
+identifier = "10.1186/s13321-016-0171-1"
+status = "shipped"
+used_by = ["src/openchem/chem/typed_eem.py", "src/openchem/chem/data/eem_second_models.json", "src/openchem/chem/geometry_charges.py"]
+verification = "citation_and_claim"
+verified_date = 2026-10-30
+reason = """
+THE Ccd2016 PARAMETER SET `CCD_gen_DE_RMSD_B3LYP_6311G_NPA.par` (Additional file
+6), as Model N of `benchmarks/charges/models/eem_second_models_preregistration.md`:
+15 atom types including C3, N3, S2 and P2, kappa 0.5125, fitted to B3LYP/6-311G
+NPA charges of CORINA-generated CCD ligands that were NOT geometry-optimised.
+Open access, read 2026-10-30 from the article page; the paper's Tables 2, 4 and 7
+are images and were NOT read, so no per-type quality number is quoted anywhere.
+The file is copied byte for byte (SHA-256 in
+`tests/fixtures/charges/neemp2016/README.md`, marked -text in .gitattributes) and
+its numbers are read as a table. The EQUATION and the typing rule are read from
+Additional file 1's solver (`src/eem.c`, `src/io.c`): B on the diagonal, kappa
+over the SDF-coordinate distance off it, the type being the element and the
+highest bond order. There is no local copy of the paper in `Sci Downloads`.
+"""
