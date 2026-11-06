@@ -415,3 +415,12 @@ Alex asked on 2026-11-05 to unpause Model J. Amendment 2 (2) names the condition
 - **Yardstick:** the shipped default (Bultinck 2002 Part 1) against the same CHELPG charges, on the molecules both accept. J is judged against it because an absolute number means little without it.
 - **Unpause rule:** J is offered as a sixth method if (a) its mean absolute difference is at most 0.15 e, (b) it is at most 1.25 times the yardstick's on the common molecules, and (c) no accepted molecule has a heavy atom off by more than 0.5 e. Otherwise it stays paused and the number is reported. It is offered with its scheme named (Merz-Kollman, compared here only against CHELPG) and its scope note.
 
+## 14. Amendment 4 (2026-11-05): a boron feasibility probe, registered before it runs
+
+Alex asked on 2026-11-05 to look at boron. Section 3 left a fit of our own as an unscheduled research item. This is only a probe of whether it is worth doing; **nothing it finds ships**, because Model J is paused (section 13) and Model N's NPA charges cannot be computed here. Fixed first:
+
+- **What is fitted:** one boron type (A and B, two numbers) added to Model J's table with Model J's other types unchanged, to ORCA's CHELPG charges (B3LYP/6-31G*, MMFF conformer, as C5) of the 16 boron compounds in `eem_boron_probe.py`. A compound that needs a type Model J lacks is reported and left out.
+- **Score:** leave-one-molecule-out, so no compound is predicted by a fit that saw it.
+- **Feasible if all of:** the leave-one-out mean absolute error over heavy atoms is at most 0.20 e (Model J's own on its elements is 0.134, `model_j_panel.json`); the worst leave-one-out error on a boron atom is at most 0.5 e; the standard deviation of each fitted number over the leave-one-out fits is at most 10 % of its value.
+- **If feasible:** a model with one fitted boron type is described, not wired, and the reference scheme (CHELPG, not Merz-Kollman) is stated. If not: boron stays refused and the reason is recorded here.
+
