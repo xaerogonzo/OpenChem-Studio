@@ -86,6 +86,10 @@ A preregistered test (`PREREGISTRATION_GNINA.md`, rules in `gnina_core.py`) of r
 
 A separate freeze (`PREREGISTRATION_GNINA_DOCK.md`, rules in `gnina_dock_core.py`): gnina search (no `--score_only`, `--cnn_scoring rescore` as `--help` default), same crystal-ligand box, seed 20261029, exhaustiveness 25, nine poses. Run 2026-11-05: **NULL** (`RESULT_GNINA_DOCK.md`; 29 deciding, Vina 20/29 vs gnina 21/29, gained 4, lost 3, p = 0.5). Default gnina dock on this catalog is closed.
 
+## `run_cnn_affinity_test.py` — does CNNaffinity rank series better than Vina?
+
+A separate freeze (`PREREGISTRATION_CNN_AFFINITY.md`, rules in `cnn_affinity_core.py`): CNNaffinity of the representative Vina pose vs that pose’s Vina score on the frozen 77 within-assay series (paired complete-case Δρ; 35 deciding series after CrossDocked PDB hold-out). **No catalog CNNaffinity in the freeze commit.**
+
 ## `prep_box_survey.py` — is a bad default pose a setup defect?
 
 Redocks all 49 catalogued receptors in two preparation arms (cofactors kept, as the panel
