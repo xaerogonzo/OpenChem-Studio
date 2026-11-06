@@ -189,6 +189,12 @@ scope = "core"
 owner = "namer"
 
 [[consumer]]
+file = "tests/test_namer_round94_nl011_multicomponent_methyl_cite.py"
+why = "NL-011 bucket C narrow: multicomponent dispiro cites N-alkyl on aza partners only, not spurious 5-methylbicyclo-style partner names (#6/#7/#14 regression guard)"
+scope = "core"
+owner = "namer"
+
+[[consumer]]
 file = "tests/test_namer_nuclide_guard.py"
 why = "a name must keep every nuclide (D-193): the guard that refuses one that would not, the routes that label (retained parent, multi-atom prefix, ether oxygen, hypohalous amide, hydroxy/amino prefix, suffix heteroatom), the parent bracket placed before the part it modifies (D-196), and lambda5 on a single-bonded hypervalent centre (D-195)"
 scope = "core"
