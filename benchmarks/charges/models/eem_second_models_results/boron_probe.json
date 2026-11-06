@@ -1,0 +1,272 @@
+{
+ "model": "jirouskova2009_b3lyp_mk",
+ "reference": "CHELPG B3LYP/6-31G*",
+ "molecules": 16,
+ "usable": [
+  "borane",
+  "boron trifluoride",
+  "boron trichloride",
+  "boric acid",
+  "trimethyl borate",
+  "trimethylborane",
+  "methylboronic acid",
+  "phenylboronic acid",
+  "boramide",
+  "aminoborane",
+  "methyldifluoroborane",
+  "ammonia borane",
+  "dimethylamine borane",
+  "tetrafluoroborate",
+  "borohydride",
+  "borazine"
+ ],
+ "refused_for_other_types": {},
+ "fit_all": [
+  2.3572772439897274,
+  0.3883796334865211
+ ],
+ "fit_all_converged": true,
+ "leave_one_out_mean_heavy_error": 0.192403538258479,
+ "leave_one_out_mean_boron_error": 0.2318212459112942,
+ "leave_one_out_worst_boron_error": 0.652296876438062,
+ "model_j_reference_mean_heavy_error": 0.134,
+ "loo": {
+  "borane": {
+   "params": [
+    2.3773328114688645,
+    0.3628700606973732
+   ],
+   "boron_error": 0.4155380472590533,
+   "heavy_error": 0.4155380472590533,
+   "boron_model": [
+    0.03923295274094665
+   ],
+   "boron_chelpg": [
+    0.454771
+   ]
+  },
+  "boron trifluoride": {
+   "params": [
+    2.3583637597003597,
+    0.38525094264846577
+   ],
+   "boron_error": 0.21895339879822806,
+   "heavy_error": 0.10947644939911402,
+   "boron_model": [
+    1.027041398798228
+   ],
+   "boron_chelpg": [
+    0.808088
+   ]
+  },
+  "boron trichloride": {
+   "params": [
+    2.357673098092418,
+    0.38793451154560926
+   ],
+   "boron_error": 0.024827291073722224,
+   "heavy_error": 0.012413645536861122,
+   "boron_model": [
+    0.26617670892627776
+   ],
+   "boron_chelpg": [
+    0.291004
+   ]
+  },
+  "boric acid": {
+   "params": [
+    2.360550575196958,
+    0.3787333182437195
+   ],
+   "boron_error": 0.2035521628933744,
+   "heavy_error": 0.06170717931742359,
+   "boron_model": [
+    1.0338271628933744
+   ],
+   "boron_chelpg": [
+    0.830275
+   ]
+  },
+  "trimethyl borate": {
+   "params": [
+    2.3626353730891747,
+    0.37222526484958124
+   ],
+   "boron_error": 0.2636286043817896,
+   "heavy_error": 0.16357372330312203,
+   "boron_model": [
+    1.0427236043817896
+   ],
+   "boron_chelpg": [
+    0.779095
+   ]
+  },
+  "trimethylborane": {
+   "params": [
+    2.3671152233985553,
+    0.38167403748805356
+   ],
+   "boron_error": 0.3631244626727628,
+   "heavy_error": 0.26733165056334507,
+   "boron_model": [
+    0.41516753732723716
+   ],
+   "boron_chelpg": [
+    0.778292
+   ]
+  },
+  "methylboronic acid": {
+   "params": [
+    2.354753424248823,
+    0.40399075564514736
+   ],
+   "boron_error": 0.3731245349504926,
+   "heavy_error": 0.29203109856253184,
+   "boron_model": [
+    0.7599614650495075
+   ],
+   "boron_chelpg": [
+    1.133086
+   ]
+  },
+  "phenylboronic acid": {
+   "params": [
+    2.357250128347474,
+    0.38858698769515326
+   ],
+   "boron_error": 0.007987441585964872,
+   "heavy_error": 0.031783916266422324,
+   "boron_model": [
+    0.7817144415859649
+   ],
+   "boron_chelpg": [
+    0.773727
+   ]
+  },
+  "boramide": {
+   "params": [
+    2.358034551874231,
+    0.38604335821202407
+   ],
+   "boron_error": 0.14265828736275632,
+   "heavy_error": 0.12494641313107888,
+   "boron_model": [
+    0.9779002873627564
+   ],
+   "boron_chelpg": [
+    0.835242
+   ]
+  },
+  "aminoborane": {
+   "params": [
+    2.351763898438956,
+    0.3932334635830459
+   ],
+   "boron_error": 0.21647439703705829,
+   "heavy_error": 0.20953893682384406,
+   "boron_model": [
+    0.4089433970370583
+   ],
+   "boron_chelpg": [
+    0.192469
+   ]
+  },
+  "methyldifluoroborane": {
+   "params": [
+    2.3576791258275858,
+    0.3903528690923331
+   ],
+   "boron_error": 0.10288876459935936,
+   "heavy_error": 0.10558228577382002,
+   "boron_model": [
+    0.6757292354006407
+   ],
+   "boron_chelpg": [
+    0.778618
+   ]
+  },
+  "ammonia borane": {
+   "params": [
+    2.350672298671882,
+    0.3934057199732778
+   ],
+   "boron_error": 0.235341259095434,
+   "heavy_error": 0.38318810232757783,
+   "boron_model": [
+    0.451627259095434
+   ],
+   "boron_chelpg": [
+    0.216286
+   ]
+  },
+  "dimethylamine borane": {
+   "params": [
+    2.3348414739865286,
+    0.4051220517129154
+   ],
+   "boron_error": 0.652296876438062,
+   "heavy_error": 0.4622724361215111,
+   "boron_model": [
+    0.504551876438062
+   ],
+   "boron_chelpg": [
+    -0.147745
+   ]
+  },
+  "tetrafluoroborate": {
+   "params": [
+    2.357728549564159,
+    0.38823764716116843
+   ],
+   "boron_error": 0.10084648172455402,
+   "heavy_error": 0.040338792689821615,
+   "boron_model": [
+    0.517958518275446
+   ],
+   "boron_chelpg": [
+    0.618805
+   ]
+  },
+  "borohydride": {
+   "params": [
+    2.332556878317068,
+    0.4233299151023937
+   ],
+   "boron_error": 0.23848299218343966,
+   "heavy_error": 0.23848299218343966,
+   "boron_model": [
+    0.026143992183439657
+   ],
+   "boron_chelpg": [
+    -0.212339
+   ]
+  },
+  "borazine": {
+   "params": [
+    2.3599311036394477,
+    0.4005898146121166
+   ],
+   "boron_error": 0.14941493252465543,
+   "heavy_error": 0.1602509428766976,
+   "boron_model": [
+    0.652211691582191,
+    0.634623014756113,
+    0.6342624960877296
+   ],
+   "boron_chelpg": [
+    0.735795,
+    0.773587,
+    0.85996
+   ]
+  }
+ },
+ "boron_chelpg_range": [
+  -0.212339,
+  1.133086
+ ],
+ "parameter_spread_over_loo": {
+  "A": 0.010378311449600991,
+  "B": 0.01361359511290993
+ },
+ "seconds": 83.25574898719788
+}

@@ -424,3 +424,27 @@ Alex asked on 2026-11-05 to look at boron. Section 3 left a fit of our own as an
 - **Feasible if all of:** the leave-one-out mean absolute error over heavy atoms is at most 0.20 e (Model J's own on its elements is 0.134, `model_j_panel.json`); the worst leave-one-out error on a boron atom is at most 0.5 e; the standard deviation of each fitted number over the leave-one-out fits is at most 10 % of its value.
 - **If feasible:** a model with one fitted boron type is described, not wired, and the reference scheme (CHELPG, not Merz-Kollman) is stated. If not: boron stays refused and the reason is recorded here.
 
+## 15. Result of the Model J panel (section 13; run 2026-11-05, ORCA 6.1.1, B3LYP/6-31G*, `eem_model_j_panel.py`, `eem_second_models_results/model_j_panel.json`)
+
+The panel has **37** molecules, not the 36 section 13 says (a miscount in the registration; the list in the script is the one that ran). Model J accepts 35; it refuses acetylene and acetonitrile (they need the triple-bond carbon and nitrogen types, which J lacks).
+
+| Condition (registered) | Measured | Met? |
+|---|---|---|
+| (a) mean absolute difference from CHELPG over heavy atoms, at most 0.15 e | 0.134 e (35 molecules) | yes |
+| (b) at most 1.25 times the shipped default EEM's on the 30 molecules both accept | 0.141 e against 0.124 e, ratio 1.13 | yes |
+| (c) no heavy atom off by more than 0.5 e | worst 0.68 e (isobutane's central carbon) | **no** |
+
+**By the registered rule Model J stays paused.** What the failing atoms are, so the decision can be taken with them in view: 11 atoms of the panel differ from CHELPG by more than 0.4 e. In all 11 the shipped default EEM (Bultinck) is within 0.14 e of Model J (within 0.1 e for ten of them), so these are the EEM family disagreeing with CHELPG and not something peculiar to J. Three are the middle carbon of propane, isobutane and 2-propanol, where CHELPG gives +0.31, +0.57 and +0.61 e; the rest are the ring nitrogen of imidazole and pyrrole, furan's oxygen, acetone's carbonyl carbon, the nitrogen of nitromethane and two nitrogens and a carbon of metronidazole. A buried carbon is a known place for charges fitted to the electrostatic potential to be poorly determined, so condition (c) may be measuring CHELPG's behaviour as much as J's error. That is a reading, not a measurement: settling it needs a Merz-Kollman reference computed properly (ORCA does not write one), which is what Amendment 2 asked for. Relaxing (c) after seeing the result would be a decision to take with this paragraph in front of it; the registered rule is not changed here.
+
+## 16. Result of the boron probe (section 14; run 2026-11-05, `eem_boron_probe.py`, `eem_second_models_results/boron_probe.json`)
+
+16 boron compounds, all of whose other types Model J has, 2 cores, 83 s. One boron type fitted on all 16: A 2.357, B 0.388 (Model J's own types run from 2.3 to 3.6 and 0.36 to 3.4, so the fit is in range).
+
+| Registered condition | Measured | Met? |
+|---|---|---|
+| leave-one-out mean absolute error over heavy atoms at most 0.20 e | 0.192 e | yes, narrowly |
+| worst leave-one-out error on a boron atom at most 0.5 e | 0.65 e (dimethylamine borane) | **no** |
+| each fitted number's standard deviation over the leave-one-out fits at most 10 % of its value | A 0.4 %, B 3.5 % | yes |
+
+**Not feasible by the registered rule, so boron stays refused by both models and nothing is wired.** What the failing case shows, so a later attempt starts from it: the one-type model puts +0.5 e on the boron of dimethylamine borane where CHELPG gives -0.15 e, and +0.04 e on borane where CHELPG gives +0.45 e. Boron bonded to hydrogen (the borohydride, the amine boranes, borane itself) is hydridic and electron-rich and boron bonded to oxygen, fluorine or carbon is electron-poor, so a single boron type has to split the difference: the boron errors on the halide and oxygen compounds are 0.02 to 0.37 e and on the hydrogen-bearing ones 0.24 to 0.65 e. A model with a second boron type chosen by whether hydrogen is bonded would be the next thing to try; it is not tried here, because the rule was registered for one type and because the reference scheme (CHELPG, not Merz-Kollman or NPA) and the fact that Model J is paused (section 15) would still leave nothing to ship it in. Boron compounds have the largest charges in the panel (CHELPG on boron runs from -0.21 to +1.13 e), which is where an equalisation model with a fixed hardness is least forgiving.
+
