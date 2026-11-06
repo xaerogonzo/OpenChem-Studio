@@ -7266,6 +7266,15 @@ said to be reproduced.
 
 The oxidation states are a third case and are neither: they were CHECKED
 AGAINST page 2639 and deliberately not taken from it -- see the note.
+
+**A SECOND COLUMN, 2026-11-05: THE POLARIZABILITY TABLE'S SMALL-MOLECULE
+DATA.** "ATOMIC AND MOLECULAR POLARIZABILITIES" (T. M. Miller; section 10,
+PDF pages 1798 to 1809) supplied 264 experimental molecular
+polarizabilities (those not marked calculated, with a structure whose
+formula equals the printed one, not already in Bosque and Sales' set) that
+the additive polarizability table was refitted to and judged on
+(`benchmarks/polarizability/PREREGISTRATION_2.md`). Only the fitted values
+ship; the table itself is a bulk copy and stays outside git.
 """
 used_by = [
     "src/openchem/chem/data/elements.json",

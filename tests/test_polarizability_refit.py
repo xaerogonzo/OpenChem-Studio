@@ -58,9 +58,14 @@ def test_a_molecule_with_an_element_the_table_lacks_is_not_predicted_at_all():
 def test_the_shipped_table_is_the_committed_result_rounded():
     from openchem.chem.electronic_properties import ADDITIVE_POLARIZABILITY
 
-    result = json.loads((DIR / "results" / "refit.json").read_text(encoding="utf-8"))
+    from openchem.chem.electronic_properties import ADDITIVE_CONSTANT
+
+    result = json.loads((DIR / "results" / "refit2.json").read_text(encoding="utf-8"))
     for element, row in result["shipped_fit_all_rows"].items():
-        assert ADDITIVE_POLARIZABILITY[element] == pytest.approx(row["value"], abs=5e-5), element
+        if element == "constant":
+            assert ADDITIVE_CONSTANT == pytest.approx(row["value"], abs=5e-5)
+        else:
+            assert ADDITIVE_POLARIZABILITY[element] == pytest.approx(row["value"], abs=5e-5), element
 
 
 def test_the_preregistered_criteria_hold_in_the_committed_result():

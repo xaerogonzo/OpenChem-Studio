@@ -674,12 +674,18 @@ Br and I were fitted here to the experimental polarizabilities of 425 solvents
 (Bosque and Sales 2002), as fixed in `benchmarks/polarizability/PREREGISTRATION.md`.
 Measured: 2.1% mean absolute error on the 85 held-out solvents (the old table: 7.8%),
 4.3% on 88 compounds of a second, gas-phase set (the old table: 9.8%). **Where it is
-weakest:** very small molecules (water 28% low, methane 11% low, ethylene 11% low,
-hydrazine 10% low), fused aromatics (anthracene and larger, 11 to 13% low) and
-chloromethane (8% low). **Phosphorus, silicon, boron and selenium were not fitted** (no
-data, or fewer than five molecules): they keep the old numbers, which have no source, and
-a result that includes one says so. No metal is covered; no published additive value for
-a metal inside a molecule has been found.
+weakest:** fused aromatics (anthracene and larger, 11 to 13% low) and any molecule whose
+polarizability is not a sum over atoms. **A second refit the same day** (CRC Handbook
+table of molecular polarizabilities, one constant added per molecule,
+`benchmarks/polarizability/PREREGISTRATION_2.md`) was made because the first table was
+16% low on average for molecules of six atoms or fewer; it cut that to 9% low (13% mean
+absolute error) and water from 28% low to about 6% low, but the error on an independent
+set of 83 held-out molecules is still 7.7% on average, with ozone, iodine chloride,
+tetranitromethane, sulfur hexafluoride and dinitrobenzene 22 to 38% low. **Phosphorus and
+silicon are now fitted, to eight and six molecules, so they are less certain. Boron and
+selenium were not fitted** (two molecules and one): they keep the old numbers, which have
+no source, and a result that includes one says so. No metal is covered; no published
+additive value for a metal inside a molecule has been found.
 
 **One published atom assignment disagrees.** Nitrobenzene's is `6CTR 1NPI2
 2OTE 5H` in the source and differs here on the ipso carbon and on the nitro

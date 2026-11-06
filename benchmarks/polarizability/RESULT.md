@@ -41,3 +41,28 @@ toluene -1.6 %, CCl4 exact, dichloromethane -1.1 %, **chloromethane -7.7 %** (th
   other way (low) where the old table was off high. Anyone using this on small molecules should read the stated errors.
 - The result is limited by its data: one compilation of room-temperature liquids, 8 iodine and 5 phosphorus molecules, none with silicon, boron or selenium.
 - The identity of each molecule rests on OPSIN reading the printed name; 39 names were corrected by hand before the fit (`name_fixes.json`) and one row was excluded.
+
+
+## Second refit, same day: small molecules (`PREREGISTRATION_2.md`, `refit2.py`, `results/refit2.json`)
+
+**Why.** The first table was judged on solvents. The CRC Handbook's table of molecular polarizabilities (97th ed., PDF pages 1798 to 1809), read afterwards, showed it **16 % low on average for molecules of six atoms or fewer**. The fix, its data and its criteria were registered before any fitting.
+
+**Data.** Bosque and Sales as before, plus the CRC table's entries not marked calculated that OPSIN could turn into a structure with the printed formula and that are not already in the Bosque set (305 molecules; 264 of them with elements this fit covers). The two compilations mix methods (molar refraction at the sodium D line, dielectric constant, beam deflection); no correction was attempted and the spread is part of the error.
+
+**Variants (cross-validated, 10-fold, on development = Bosque working set + 70 % of the CRC molecules):** element-additive 4.65 %; plus one constant per molecule 4.18 %; hydrogen split by neighbour 4.61 %; both 4.11 %. Rule: take the simpler unless the gain is 0.2 points; **the constant (B) was chosen**.
+
+**Holdout (Bosque prediction set + the other 30 % of CRC), touched once:**
+
+| | shipped first table | chosen (B) |
+|---|---|---|
+| CRC holdout, mean absolute error (n = 83) | 8.38 % | 7.70 % |
+| six atoms or fewer: mean absolute error / bias | 16.4 % / -16.1 % | 13.4 % / -9.0 % |
+| seven to twelve atoms | 9.1 % / -7.6 % | 7.8 % / -4.6 % |
+| over twelve atoms | 5.9 % / -3.9 % | 6.1 % / -4.1 % |
+| Bosque prediction set (n = 86) | 2.13 % | 2.11 % |
+
+All three registered criteria hold, so it ships. **What it does not fix:** the CRC error is still about 8 % on average and 13 % for the smallest molecules, a systematic low bias of about 5 % remains, and the worst offenders are ozone (-38 %), iodine chloride (-35 %), tetranitromethane (-32 %), a dinitrile (-25 %), sulfur hexafluoride (-23 %) and dinitrobenzene (-22 %); a purely additive scheme with one constant cannot see conjugation, multiple bonds or unusual bonding. The constant is not physics: it is the offset small molecules need, and it is shared out equally over the atoms in the per-atom output.
+
+**First run, superseded.** The first run applied no minimum-molecule rule and fitted one-molecule metals; it is kept as `results/refit2_run1_unrestricted.json`. The rule (an element is fitted only with five development molecules, other molecules left out) was in the registration; the code now applies it. The variant chosen did not change.
+
+**Values shipped** (all 689 usable molecules; standard errors in `polarizability_refit.json`): H 0.1813, C 1.4816, N 1.1378, O 0.5831, F 0.3084, S 2.8877, Cl 2.2158, Br 3.2543, I 5.4220, **P 3.6319 (8 molecules) and Si 4.1253 (6 molecules), both less certain**, constant 0.4160. Boron (two molecules) and selenium (one) are still unfitted and keep their old unsourced numbers. Water: 1.45 measured, about 1.36 here (about 6 % low), from 28 % low. Still absent: any metal inside a molecule.

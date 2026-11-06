@@ -8,8 +8,13 @@ in cubic angstroms.
     O, F, S, Cl, Br, I) are now FITTED by this project, by weighted least squares on the relative error, to the experimental polarizabilities of 425 solvents in Bosque and Sales (J. Chem. Inf.
     Comput. Sci. 42, 1154, 2002), using that paper's own working set (fit) and prediction set (judged), as fixed in `benchmarks/polarizability/PREREGISTRATION.md` before fitting;
     results in `benchmarks/polarizability/RESULT.md`. Prediction-set mean absolute error 2.1 % (the old table: 7.8 %, biased +7 %); 4.3 % against 88 compounds of Kang and Jhon 1982, a
-    non-gating second set (old table: 9.8 %). **Phosphorus, silicon, boron and selenium are NOT fitted** (no data, or fewer than five molecules): they keep their old numbers, which have no
-    source, and every result that includes one says so. The result carries method id `additive_refit`; results stored under `jensen` came from the old table.
+    non-gating second set (old table: 9.8 %).
+
+    **SECOND REFIT, SAME DAY (`PREREGISTRATION_2.md`).** The CRC Handbook's table of molecular polarizabilities showed that table 14 % low on molecules of six atoms or fewer. The table was refitted
+    to the Bosque set plus 264 molecules of that table, with one constant added per molecule (chosen by cross-validation among four variants), and ships because it met the registered criteria on
+    a holdout: 7.7 % mean absolute error on held-out CRC molecules against the first table's 8.4 %, six atoms or fewer 9 % low against 16 % low, Bosque prediction set unchanged at 2.1 %. Phosphorus
+    and silicon are now fitted too, to eight and six molecules, so they are marked as less certain. **Boron and selenium are NOT fitted** (two molecules and one): they keep their old numbers, which
+    have no source, and every result that includes one says so. The result carries method id `additive_refit`; results stored under `jensen` came from the old table.
 
     LIMIT: a purely atom-additive scheme has no hybridization dependence, so it cannot distinguish an sp3 carbon from an aromatic one. Fitted mostly to aliphatic
     solvents, it is within about 2 to 4 % on the sets above, and saturated hydrocarbons (Kang's twelve, from methane to dodecane) come out 2.5 % off on average.
@@ -68,10 +73,18 @@ def _load_additive_table() -> tuple[dict[str, float], frozenset[str], dict]:
     return table, frozenset(payload["unsourced"]), payload
 
 
+def _weak_elements() -> frozenset[str]:
+    """Elements fitted, but to fewer than ten molecules: their value is less certain than the rest."""
+    return frozenset(e for e, row in _ADDITIVE_PAYLOAD["fitted"].items() if row["weakly_determined"])
+
+
 # Atomic polarizabilities, cubic angstroms. Fitted 2026-11-05 to 425 experimental solvent polarizabilities (module docstring; benchmarks/polarizability/).
 ADDITIVE_POLARIZABILITY, UNSOURCED_ADDITIVE_ELEMENTS, _ADDITIVE_PAYLOAD = _load_additive_table()
 #: The id this method's results carry. It was "jensen" until the table was replaced on 2026-11-05; results stored under that id came from the old table.
 ADDITIVE_METHOD_ID = "additive_refit"
+#: One constant added once per molecule (`PREREGISTRATION_2.md`): it absorbs that small molecules are more polarizable per atom than a sum over atoms fitted on larger ones says.
+ADDITIVE_CONSTANT = float(_ADDITIVE_PAYLOAD["constant"]["value"])
+WEAK_ADDITIVE_ELEMENTS = _weak_elements()
 
 # Gasteiger-Marsili chi(q) = a + b*q + c*q^2 coefficients, eV.
 _CHI_PARAMETERS: dict[tuple[str, str | None], tuple[float, float, float]] = {
@@ -262,7 +275,9 @@ def atomic_polarizabilities(mol: Chem.Mol) -> dict[int, float] | None:
         if contribution is None:
             return None
         values[atom.GetIdx()] = contribution
-    return values
+    # The per-molecule constant is shared out equally so the atoms still sum to the molecule's value; it is not a property of any one atom.
+    share = ADDITIVE_CONSTANT / len(values) if values else 0.0
+    return {i: v + share for i, v in values.items()}
 
 
 def molecular_polarizability(mol: Chem.Mol) -> float | None:
@@ -368,10 +383,14 @@ def compute_polarizability(
             )
         failure = None
         basis = (
-            "Additive atomic scheme, element values fitted by this project to experimental polarizabilities of 425 solvents (Bosque and Sales 2002). "
-            "Typical error about 2% on solvents like those and 4% on a second, gas-phase set; it has no hybridization dependence, "
-            "so very small molecules (water is 28% low), fused aromatics (about 11% low), and strained, charged or unusual molecules can be further off."
+            "Additive atomic scheme plus one constant per molecule, fitted by this project to experimental polarizabilities of 425 solvents (Bosque and Sales 2002) "
+            "and 264 further molecules (CRC Handbook). Typical error about 2% on solvents like the first and about 8% on the second, which is more varied; "
+            "molecules of six atoms or fewer are still about 9% low on average (13% mean absolute), and it has no hybridization dependence, "
+            "so fused aromatics (about 11% low) and strained, charged or unusual molecules can be further off."
         )
+        weak = sorted(_elements_present(target) & WEAK_ADDITIVE_ELEMENTS)
+        if weak:
+            basis += f" Note: {', '.join(weak)} was fitted to fewer than ten molecules, so its value is less certain."
         unsourced = sorted(_elements_present(target) & UNSOURCED_ADDITIVE_ELEMENTS)
         if unsourced:
             basis += (
