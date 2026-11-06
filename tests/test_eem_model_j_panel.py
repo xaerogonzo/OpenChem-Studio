@@ -29,4 +29,7 @@ def test_the_committed_result_keeps_model_j_paused_and_agrees_with_its_own_judge
     judged = _panel().judge_unpause(result["mean_abs_J"], result["mean_abs_J_on_common"], result["mean_abs_yardstick_on_common"], result["worst_atom_J"])
     assert judged == result["judge"]
     assert judged["unpause"] is False
-    assert "jirouskova" not in "".join(__import__("openchem.chem.geometry_charges", fromlist=["x"]).GEOMETRY_CHARGE_METHODS).lower()
+    # Not "unpaused": section 13's rule stays failed. It IS offered, but only for chlorine, bromine and sulfur (section 20; `tests/test_jirouskova_charges.py`).
+    gc = __import__("openchem.chem.geometry_charges", fromlist=["x"])
+    assert gc.EEM_JIROUSKOVA2009_B3LYP_MK in gc.GEOMETRY_CHARGE_METHODS
+    assert gc.JIROUSKOVA_SCOPE_ELEMENTS == ("Cl", "Br", "S")

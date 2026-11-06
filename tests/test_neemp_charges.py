@@ -26,7 +26,7 @@ def _code(result):
 
 
 def test_method_is_appended_and_labelled():
-    assert gc.GEOMETRY_CHARGE_METHODS[-1] == M
+    assert gc.GEOMETRY_CHARGE_METHODS[4] == M  # appended after Ionescu's; Jiroušková's is appended after it
     assert M in gc.GEOMETRY_CHARGE_METHOD_LABELS
 
 

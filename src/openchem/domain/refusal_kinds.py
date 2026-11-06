@@ -102,6 +102,8 @@ _LIMIT_CODES = (
     "REFUSE_TYPE_NOT_PARAMETERISED", "REFUSE_BAD_BONDS", "REFUSE_RESONANCE_DEPENDENT",
     "REFUSE_MULTIPLE_COMPONENTS", "REFUSE_UNPAIRED_ELECTRON", "REFUSE_TOO_MANY_RESONANCE_FORMS",
     "REFUSE_NOT_KEKULISABLE",
+    # Jiroušková's EEM is offered only for molecules with chlorine, bromine or sulfur, the elements it was checked on.
+    "REFUSE_OUTSIDE_MEASURED_SCOPE",
 )
 
 #: The codes that carry a kind with no producer declaring it. Deliberately

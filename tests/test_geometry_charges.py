@@ -63,10 +63,11 @@ def test_registered_on_geometry_offering_eem_first_and_qeq_under_its_a8_code():
     # every stored result's identity are unchanged -- which the next test pins.
     assert method.choices == ["eem_bultinck2002_part1", "qeq_rg1991_lambda_half_h_experimental",
                               "eem_ionescu2013_e_mpa_631gs_gas", "eem_ionescu2013_e_mpa_631gss_gas",
-                                  "eem_neemp2016_ccd_gen_npa"]
+                                  "eem_neemp2016_ccd_gen_npa", "eem_jirouskova2009_b3lyp_mk"]
     assert method.choice_labels == ["EEM, Bultinck 2002", "QEq, Rappé–Goddard 1991",
                                     "EEM, Ionescu 2013, Mulliken 6-31G*", "EEM, Ionescu 2013, Mulliken 6-31G**",
-                                        "EEM, NEEMP 2016, NPA 6-311G"]
+                                        "EEM, NEEMP 2016, NPA 6-311G",
+                                        "EEM, Jiroušková 2009, Merz-Kollman 6-31G* (Cl, Br, S only)"]
     assert method.default == "eem_bultinck2002_part1"
     # A8: neither the HF-fitted hydrogen set nor the pre-registered reading is offered.
     assert not any("hf" in choice or "preregistered" in choice for choice in method.choices)

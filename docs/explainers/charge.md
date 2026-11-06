@@ -92,6 +92,19 @@ NPA-like charges, not Mulliken and not Merz-Kollman, so they are not comparable 
 #### Sources
 - [source:neemp2016] -- the model, its parameter file and its equation
 
+### Method: eem_jirouskova2009_b3lyp_mk
+
+#### How it works
+The same kind of EEM as the NEEMP method above, typed by element and highest bond order, with the parameters Jiroušková and colleagues fitted to B3LYP/6-31G* Merz-Kollman charges [source:jirouskova2009]. The nitro and carboxylate option applies to it in the same way. It is offered **only for molecules that contain chlorine, bromine or sulfur**; a molecule with none of them is refused, because those are the only atoms its charges were checked on here.
+
+Shipped: H, C, N and O with bond order 1 or 2, F, S (single bonds only), Cl and Br. Sulfur bonded to oxygen or by a double bond, acetylenes, nitriles, boron, iodine, metals, several components and unpaired electrons are refused, each with its reason.
+
+#### What the result means
+Merz-Kollman-like charges, so not comparable with the NPA-like charges of the NEEMP method or the Mulliken-like charges of the others. Measured here against Merz-Kollman charges computed from ORCA's electrostatic potential at B3LYP/6-31G*, under a rule written down before the run: on 40 chlorine, bromine and sulfur atoms in 26 neutral molecules the mean difference was 0.087 e and the largest 0.23 e, against 0.125 e for the NEEMP method on the same atoms. The carbons and other atoms in those molecules were less reliable (0.18 e on average over 85 carbons, up to 0.68 e), and an earlier, wider rule over 37 molecules failed for that reason, so the model is offered for these elements and not as a general method. Charged molecules and molecules larger than 4-chloroacetanilide were not checked.
+
+#### Sources
+- [source:jirouskova2009] -- the model and its parameter table
+
 ## gasteiger_charge_at_ph
 
 ### What it does

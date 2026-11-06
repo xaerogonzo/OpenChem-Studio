@@ -159,14 +159,14 @@ Oxidation state per atom, by the IUPAC electronegativity-partition rule: each bo
 <!-- help:calc-geometry-partial-charge -->
 ### Partial Charge (3D)
 
-Partial charges that depend on the 3D geometry, by one of four models. EEM: Bultinck's electronegativity equalization (2002, part I) with that paper's own parameters for H, C, N, O and F. QEq: Rappé and Goddard's charge equilibration (1991) with lambda = 1/2 and its experimental hydrogen parameters, for the 16 elements of its Table I; it refuses molecules where its iteration does not settle or a charge reaches its bound. Ionescu EEM: Ionescu et al.'s 2013 protein-fragment models (Mulliken, 6-31G* or 6-31G**, gas phase) for H, C, N, O, S and Ca, reported as an extrapolation on anything else; it refuses a sulfur bonded to oxygen and any charge beyond 2.051 e. NEEMP EEM: the 2016 Ccd2016 model fitted to NPA charges of PDB ligands, typed by element and highest bond order, which covers H, C, N, O, F, S, Cl, Br and P; the two oxygens of a nitro group or carboxylate would get different types by how the structure is drawn, so by default their parameters are averaged over the resonance forms (an extension of the published model; the option can also use the drawing as it is, with a warning, or refuse). It refuses boron, iodine, metals, trivalent phosphorus, several components and unpaired electrons. By default the charges are computed on the stored conformer as it is, with its own hydrogens and net charge. Tick pH-dependent to compute them on the dominant ionization state at that pH instead: the state is carried onto the conformer, every heavy atom and every kept hydrogen holds its coordinates exactly, and only added hydrogens are placed (MMFF94, everything else fixed). Ionization states only, never tautomers, and it refuses rather than choose when a proton leaves an atom whose hydrogens are not equivalent. The result shows the structure it was computed on. Only the sum of the charges equals the net charge. Needs a conformer with explicit hydrogens; an element the chosen method has no parameters for is refused.
+Partial charges that depend on the 3D geometry, by one of five models. EEM: Bultinck's electronegativity equalization (2002, part I) with that paper's own parameters for H, C, N, O and F. QEq: Rappé and Goddard's charge equilibration (1991) with lambda = 1/2 and its experimental hydrogen parameters, for the 16 elements of its Table I; it refuses molecules where its iteration does not settle or a charge reaches its bound. Ionescu EEM: Ionescu et al.'s 2013 protein-fragment models (Mulliken, 6-31G* or 6-31G**, gas phase) for H, C, N, O, S and Ca, reported as an extrapolation on anything else; it refuses a sulfur bonded to oxygen and any charge beyond 2.051 e. NEEMP EEM: the 2016 Ccd2016 model fitted to NPA charges of PDB ligands, typed by element and highest bond order, which covers H, C, N, O, F, S, Cl, Br and P; the two oxygens of a nitro group or carboxylate would get different types by how the structure is drawn, so by default their parameters are averaged over the resonance forms (an extension of the published model; the option can also use the drawing as it is, with a warning, or refuse). It refuses boron, iodine, metals, trivalent phosphorus, several components and unpaired electrons. Jiroušková EEM: the 2009 Merz-Kollman model, offered only for molecules containing chlorine, bromine or sulfur, where it was checked (within 0.23 e of Merz-Kollman charges computed here); it is less reliable on carbon and nitrogen beside them (up to 0.68 e) and refuses a molecule with none of those elements, sulfur bonded to oxygen or doubly bonded, acetylenes and nitriles. By default the charges are computed on the stored conformer as it is, with its own hydrogens and net charge. Tick pH-dependent to compute them on the dominant ionization state at that pH instead: the state is carried onto the conformer, every heavy atom and every kept hydrogen holds its coordinates exactly, and only added hydrogens are placed (MMFF94, everything else fixed). Ionization states only, never tautomers, and it refuses rather than choose when a proton leaves an atom whose hydrogens are not equivalent. The result shows the structure it was computed on. Only the sum of the charges equals the net charge. Needs a conformer with explicit hydrogens; an element the chosen method has no parameters for is refused.
 
 - See also: [Comparing partial charge models](USER_GUIDE.md#comparing-partial-charge-models) -- how the models in this family differ.
 - Produces one value per atom, with a depiction coloured by them.
 - Runs on a real 3D conformer -- generate one first.
 - Options:
-  - `method` -- Charge method (eem_bultinck2002_part1, qeq_rg1991_lambda_half_h_experimental, eem_ionescu2013_e_mpa_631gs_gas, eem_ionescu2013_e_mpa_631gss_gas, eem_neemp2016_ccd_gen_npa) default `eem_bultinck2002_part1`
-  - `resonance` -- Nitro and carboxylate typing (NEEMP EEM only) (averaged, as_drawn, refuse) default `averaged`
+  - `method` -- Charge method (eem_bultinck2002_part1, qeq_rg1991_lambda_half_h_experimental, eem_ionescu2013_e_mpa_631gs_gas, eem_ionescu2013_e_mpa_631gss_gas, eem_neemp2016_ccd_gen_npa, eem_jirouskova2009_b3lyp_mk) default `eem_bultinck2002_part1`
+  - `resonance` -- Nitro and carboxylate typing (NEEMP and Jiroušková EEM only) (averaged, as_drawn, refuse) default `averaged`
   - `ph_dependent` -- pH-dependent (dominant ionization state) default `False`
   - `pH` -- pH default `7.4` range 0.0 to 14.0
   - `include_hydrogens` -- Increment of Hs (fold hydrogen charges onto their atom) default `False`
@@ -270,6 +270,22 @@ NPA-like charges, not Mulliken and not Merz-Kollman, so they are not comparable 
 **Sources**
 
 - [6] NEEMP: software for validation, accurate calculation and fast parameterization of EEM charges, J. Cheminform. 2016, 8, 57 (Svobodová Vařeková's group, Masaryk University); Additional files 1 (source code) and 6 (parameter sets). DOI 10.1186/s13321-016-0171-1. Supports: the model, its parameter file and its equation
+
+#### Method: `eem_jirouskova2009_b3lyp_mk`
+
+**How it works**
+
+The same kind of EEM as the NEEMP method above, typed by element and highest bond order, with the parameters Jiroušková and colleagues fitted to B3LYP/6-31G* Merz-Kollman charges [7]. The nitro and carboxylate option applies to it in the same way. It is offered **only for molecules that contain chlorine, bromine or sulfur**; a molecule with none of them is refused, because those are the only atoms its charges were checked on here.
+
+Shipped: H, C, N and O with bond order 1 or 2, F, S (single bonds only), Cl and Br. Sulfur bonded to oxygen or by a double bond, acetylenes, nitriles, boron, iodine, metals, several components and unpaired electrons are refused, each with its reason.
+
+**What the result means**
+
+Merz-Kollman-like charges, so not comparable with the NPA-like charges of the NEEMP method or the Mulliken-like charges of the others. Measured here against Merz-Kollman charges computed from ORCA's electrostatic potential at B3LYP/6-31G*, under a rule written down before the run: on 40 chlorine, bromine and sulfur atoms in 26 neutral molecules the mean difference was 0.087 e and the largest 0.23 e, against 0.125 e for the NEEMP method on the same atoms. The carbons and other atoms in those molecules were less reliable (0.18 e on average over 85 carbons, up to 0.68 e), and an earlier, wider rule over 37 molecules failed for that reason, so the model is offered for these elements and not as a general method. Charged molecules and molecules larger than 4-chloroacetanilide were not checked.
+
+**Sources**
+
+- [7] Z. Jiroušková, R. Svobodová Vařeková, J. Vaněk & J. Koča, 'Electronegativity Equalization Method: Parameterization and Validation for Organic Molecules using the Merz-Kollman-Singh Charge Distribution Scheme', J. Comput. Chem. 2009, 30, 1174-1178. DOI 10.1002/jcc.21142. Supports: the model and its parameter table
 
 <!-- help:calc-gasteiger-charge-at-ph -->
 ### Partial Charge (pH-dependent)

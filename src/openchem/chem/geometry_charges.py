@@ -76,8 +76,18 @@ EEM_IONESCU2013_E_MPA_631GS_GAS = "eem_ionescu2013_e_mpa_631gs_gas"
 EEM_IONESCU2013_E_MPA_631GSS_GAS = "eem_ionescu2013_e_mpa_631gss_gas"
 #: NEEMP 2016's Ccd2016 model (the CCD_gen, DE-MIN with RMSD, B3LYP/6-311G NPA file of that paper's Additional file 6): an EEM typed by element and highest bond order, fitted to
 #: the NPA charges of wwPDB ligands. Its plan, checks and result are `benchmarks/charges/models/eem_second_models_preregistration.md`; the nitro and carboxylate option is
-#: `benchmarks/charges/models/eem_resonance_typing_design.md`. Jiroušková's Merz-Kollman model is PAUSED and is NOT offered.
+#: `benchmarks/charges/models/eem_resonance_typing_design.md`.
 EEM_NEEMP2016_CCD_GEN_NPA = "eem_neemp2016_ccd_gen_npa"
+#: Jiroušková 2009's Merz-Kollman EEM (B3LYP/6-31G*), typed like NEEMP's. **Offered only for molecules containing chlorine, bromine or sulfur** (2026-11-05), because that is all
+#: that was shown to hold: on 40 such atoms in 26 neutral molecules it came within 0.23 e of Merz-Kollman charges computed here (mean 0.087 e), under a rule registered first
+#: (`eem_second_models_preregistration.md` sections 19 and 20). Its general rule (section 13: no heavy atom over 0.5 e) FAILED, at 0.65 e on a carbon or nitrogen, and
+#: stays failed: the model is not "unpaused", it is offered for the elements it was checked on, with a warning on every result.
+EEM_JIROUSKOVA2009_B3LYP_MK = "eem_jirouskova2009_b3lyp_mk"
+#: The typed models' ids in `typed_eem`, by stored method code.
+_TYPED_MODELS = {
+    EEM_NEEMP2016_CCD_GEN_NPA: te.NEEMP2016_CCD_GEN_NPA,
+    EEM_JIROUSKOVA2009_B3LYP_MK: te.JIROUSKOVA2009_B3LYP_MK,
+}
 #: Each Ionescu code's scheme name in the paper and in `data/eem_ionescu2013.json`.
 IONESCU_SCHEMES = {
     EEM_IONESCU2013_E_MPA_631GS_GAS: "E-MPA/6-31G*/gas",
@@ -89,7 +99,7 @@ IONESCU_SCHEMES = {
 GEOMETRY_CHARGE_METHODS = (
     EEM_BULTINCK2002_PART1, QEQ_RG1991_LAMBDA_HALF_H_EXPERIMENTAL,
     EEM_IONESCU2013_E_MPA_631GS_GAS, EEM_IONESCU2013_E_MPA_631GSS_GAS,
-    EEM_NEEMP2016_CCD_GEN_NPA,
+    EEM_NEEMP2016_CCD_GEN_NPA, EEM_JIROUSKOVA2009_B3LYP_MK,
 )
 #: What each stored code is called on screen.
 GEOMETRY_CHARGE_METHOD_LABELS = {
@@ -98,6 +108,7 @@ GEOMETRY_CHARGE_METHOD_LABELS = {
     EEM_IONESCU2013_E_MPA_631GS_GAS: "EEM, Ionescu 2013, Mulliken 6-31G*",
     EEM_IONESCU2013_E_MPA_631GSS_GAS: "EEM, Ionescu 2013, Mulliken 6-31G**",
     EEM_NEEMP2016_CCD_GEN_NPA: "EEM, NEEMP 2016, NPA 6-311G",
+    EEM_JIROUSKOVA2009_B3LYP_MK: "EEM, Jiroušková 2009, Merz-Kollman 6-31G* (Cl, Br, S only)",
 }
 #: The short name each refusal message speaks of.
 _METHOD_SHORT = {
@@ -106,6 +117,7 @@ _METHOD_SHORT = {
     EEM_IONESCU2013_E_MPA_631GS_GAS: "Ionescu EEM",
     EEM_IONESCU2013_E_MPA_631GSS_GAS: "Ionescu EEM",
     EEM_NEEMP2016_CCD_GEN_NPA: "NEEMP EEM",
+    EEM_JIROUSKOVA2009_B3LYP_MK: "Jiroušková EEM",
 }
 
 #: A stable identifier for how an Ionescu result was validated, persisted with every result and
@@ -149,6 +161,31 @@ NEEMP_OXIDISED_WARN_E = 1.5
 NEEMP_NOTE = (
     "NEEMP 2016's EEM, fitted to NPA charges of PDB ligands. NPA-like charges, not Mulliken or Merz-Kollman ones; not checked against NPA charges of this molecule; moves by about 0.02 e "
     "with the geometry; sulfur bonded to two oxygens and phosphorus can carry charges above 2 e that have not been checked."
+)
+
+#: Elements Jiroušková's model is offered for here: the only ones its check covered. A molecule with none of them is refused.
+JIROUSKOVA_SCOPE_ELEMENTS = ("Cl", "Br", "S")
+#: A stable identifier for how a Jiroušková result was checked, persisted with every result and resolved to wording by the help layer.
+JIROUSKOVA_SCOPE_ID = "jirouskova2009_b3lyp_mk_cl_br_s_v1"
+#: What `JIROUSKOVA_SCOPE_ID` means. Every number is from `eem_second_models_preregistration.md` sections 17, 19 and 20.
+JIROUSKOVA_VALIDATION_SCOPE = (
+    "Jiroušková et al. 2009's EEM, typed by element and highest bond order (H; C, N and O with 1 or 2; F; S with 1; Cl; Br; its zinc type is not accepted), fitted by its authors to B3LYP/6-31G* Merz-Kollman charges. "
+    "Checked here against Merz-Kollman charges computed from ORCA's electrostatic potential at B3LYP/6-31G*, on conformers made like this application's: on 40 chlorine, bromine and sulfur "
+    "atoms in 26 neutral molecules the mean difference was 0.087 e and the largest 0.23 e (Model N, NEEMP, on the same atoms: 0.125 e). The same model failed a general rule on 37 "
+    "molecules of H, C, N, O, F, S and Cl: one carbon or nitrogen was 0.65 e off, and the carbons beside chlorine, bromine and sulfur ran up to 0.68 e (mean 0.18 e). So this method is "
+    "offered only for molecules that contain chlorine, bromine or sulfur, and its charges on other atoms carry that error. Not checked: charged molecules, molecules larger than "
+    "4-chloroacetanilide, iodine (refused). Sulfur bonded to oxygen or by a double bond, acetylenes and nitriles, boron, metals and several components are refused."
+)
+#: What the reader shows beside every computed Jiroušková result.
+JIROUSKOVA_NOTE = (
+    "Jiroušková 2009's EEM, fitted to Merz-Kollman charges. On chlorine, bromine and sulfur atoms it agreed with Merz-Kollman charges computed here to within 0.23 e (mean 0.09 e, 40 atoms "
+    "in 26 neutral molecules). The carbons and other atoms in the same molecules were less reliable: up to 0.68 e off, 0.18 e on average. Not checked on charged molecules."
+)
+#: The refusal for a molecule with none of the elements the check covered.
+REFUSE_OUTSIDE_MEASURED_SCOPE = "REFUSE_OUTSIDE_MEASURED_SCOPE"
+REFUSAL_OUTSIDE_SCOPE_MESSAGE = (
+    "Jiroušková's model is offered here only for molecules that contain chlorine, bromine or sulfur, the only atoms its charges were checked on. This molecule has none, "
+    "so no charges are returned. The other EEM methods cover it."
 )
 
 #: A8's validation scope, verbatim. Recorded beside a QEq result as how the
@@ -245,6 +282,7 @@ _SHORT = {
     rf.REFUSE_UNPAIRED_ELECTRON: "Unpaired electron",
     rf.REFUSE_TOO_MANY_RESONANCE_FORMS: "Too many resonance forms",
     rf.REFUSE_NOT_KEKULISABLE: "Cannot be kekulised",
+    REFUSE_OUTSIDE_MEASURED_SCOPE: "No Cl, Br or S",
 }
 
 #: Sigma q must equal the net charge to this. A necessary check, never evidence
@@ -430,9 +468,12 @@ def compute_geometry_charges(mol: Chem.Mol, molecule_uuid: str, parameters: dict
         result = ce.ionescu_charges(elements, positions, IONESCU_SCHEMES[method], net_charge)
         if result.status != "converged":
             return refuse(result.status, result.message)
-    elif method == EEM_NEEMP2016_CCD_GEN_NPA:
+    elif method in _TYPED_MODELS:
+        if method == EEM_JIROUSKOVA2009_B3LYP_MK and not any(e in JIROUSKOVA_SCOPE_ELEMENTS for e in elements):
+            # Before any solve: this model was checked on these elements only, and its general rule failed (see `EEM_JIROUSKOVA2009_B3LYP_MK`).
+            return refuse(REFUSE_OUTSIDE_MEASURED_SCOPE, REFUSAL_OUTSIDE_SCOPE_MESSAGE, {"scope_elements": list(JIROUSKOVA_SCOPE_ELEMENTS)})
         # The conformer is handed over whole: the typed solver reads its bonds (kekulised), finds the resonance forms and refuses what it cannot type, each by name.
-        typed = rf.typed_eem_for_molecule(mol, te.NEEMP2016_CCD_GEN_NPA, resonance=resonance)
+        typed = rf.typed_eem_for_molecule(mol, _TYPED_MODELS[method], resonance=resonance)
         if typed.status != "converged":
             return refuse(typed.status, typed.message, {"resonance": resonance, "atom_types": list(typed.atom_types), "variable_atoms": list(typed.variable_atoms), "alternative": typed.alternative})
         result = SimpleNamespace(charges=typed.charges, solver_to_source=list(range(len(elements))), status="converged")
@@ -511,6 +552,32 @@ def compute_geometry_charges(mol: Chem.Mol, molecule_uuid: str, parameters: dict
             "summary": IONESCU_EXTRAPOLATION_NOTE + (f" {IONESCU_SADDLE_NOTE}" if stationary == "saddle" else ""),
             "validation": {"preregistration": "benchmarks/charges/models/ionescu_src_preregistration.md",
                            "scope_id": IONESCU_SCOPE_ID},
+        }
+    elif method == EEM_JIROUSKOVA2009_B3LYP_MK:
+        entry = te.parameters()[te.JIROUSKOVA2009_B3LYP_MK]
+        notes = [JIROUSKOVA_NOTE]
+        if net_charge != 0:
+            notes.append("This molecule is charged; the check was made on neutral molecules only.")
+        if typed.claim:
+            notes.append(typed.claim)
+        notes.extend(typed.warnings)
+        computed = {
+            "parameter_set": "jirouskova_2009_table_2_b3lyp_631gs_mk",
+            "scheme": entry["scheme"],
+            "source": "jirouskova2009 (J. Comput. Chem. 2009, 30, 1174-1178)",
+            "equation_convention": "typed_eem_B_diagonal_kappa_over_r_angstrom_A_B_pauling_units",
+            "kappa": entry["kappa"],
+            "units": "the paper's own (A and B in Pauling units); r in angstrom",
+            "parameter_fixture_sha256": entry["fixture_sha256"],
+            "atom_types": list(typed.atom_types),
+            "resonance": typed.resonance,
+            "resonance_variable_atoms": list(typed.variable_atoms),
+            "resonance_forms_averaged": typed.forms_used,
+            "equalized_electronegativity_paper_units": typed.equalized_electronegativity,
+            "applicability": "measured on chlorine, bromine and sulfur only",
+            "scope_elements": list(JIROUSKOVA_SCOPE_ELEMENTS),
+            "summary": " ".join(notes),
+            "validation": {"preregistration": "benchmarks/charges/models/eem_second_models_preregistration.md", "scope_id": JIROUSKOVA_SCOPE_ID},
         }
     elif method == EEM_NEEMP2016_CCD_GEN_NPA:
         entry = te.parameters()[te.NEEMP2016_CCD_GEN_NPA]

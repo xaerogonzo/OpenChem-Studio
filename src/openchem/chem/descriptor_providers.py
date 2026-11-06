@@ -2358,7 +2358,7 @@ CALCULATOR_DEFINITIONS: list[CalculatorDefinition] = [
         display_name="Partial Charge (3D)",
         category="charge",
         description=(
-            "Partial charges that depend on the 3D geometry, by one of four models. EEM: Bultinck's "
+            "Partial charges that depend on the 3D geometry, by one of five models. EEM: Bultinck's "
             "electronegativity equalization (2002, part I) with that paper's own parameters for H, C, "
             "N, O and F. QEq: Rappé and Goddard's charge equilibration (1991) with lambda = 1/2 and "
             "its experimental hydrogen parameters, for the 16 elements of its Table I; it refuses "
@@ -2371,7 +2371,11 @@ CALCULATOR_DEFINITIONS: list[CalculatorDefinition] = [
             "types by how the structure is drawn, so by default their parameters are averaged over the "
             "resonance forms (an extension of the published model; the option can also use the drawing "
             "as it is, with a warning, or refuse). It refuses boron, iodine, metals, trivalent phosphorus, "
-            "several components and unpaired electrons. By default the charges are computed on "
+            "several components and unpaired electrons. Jiroušková EEM: the 2009 Merz-Kollman model, "
+            "offered only for molecules containing chlorine, bromine or sulfur, where it was checked "
+            "(within 0.23 e of Merz-Kollman charges computed here); it is less reliable on carbon and "
+            "nitrogen beside them (up to 0.68 e) and refuses a molecule with none of those elements, "
+            "sulfur bonded to oxygen or doubly bonded, acetylenes and nitriles. By default the charges are computed on "
             "the stored conformer as it is, with its own hydrogens and net charge. Tick pH-dependent "
             "to compute them on the dominant ionization state at that pH instead: the state is carried "
             "onto the conformer, every heavy atom and every kept hydrogen holds its coordinates "
@@ -2396,7 +2400,7 @@ CALCULATOR_DEFINITIONS: list[CalculatorDefinition] = [
                 # ignore it. "Average" is the default because it is the only value that makes the result depend
                 # on the structure alone (benchmarks/charges/models/eem_resonance_typing_design.md).
                 name="resonance",
-                label="Nitro and carboxylate typing (NEEMP EEM only)",
+                label="Nitro and carboxylate typing (NEEMP and Jiroušková EEM only)",
                 kind="choice",
                 default=RESONANCE_AVERAGED,
                 choices=list(RESONANCE_VALUES),
