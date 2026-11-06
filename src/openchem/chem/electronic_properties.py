@@ -79,11 +79,13 @@ def _weak_elements() -> frozenset[str]:
 
 
 # Atomic polarizabilities, cubic angstroms. Fitted 2026-11-05 to 425 experimental solvent polarizabilities (module docstring; benchmarks/polarizability/).
+#: The refitted atomic polarizabilities, the elements whose value has no source, and the parsed file they came from (`data/polarizability_refit.json`).
 ADDITIVE_POLARIZABILITY, UNSOURCED_ADDITIVE_ELEMENTS, _ADDITIVE_PAYLOAD = _load_additive_table()
 #: The id this method's results carry. It was "jensen" until the table was replaced on 2026-11-05; results stored under that id came from the old table.
 ADDITIVE_METHOD_ID = "additive_refit"
 #: One constant added once per molecule (`PREREGISTRATION_2.md`): it absorbs that small molecules are more polarizable per atom than a sum over atoms fitted on larger ones says.
 ADDITIVE_CONSTANT = float(_ADDITIVE_PAYLOAD["constant"]["value"])
+#: Elements fitted to few molecules, whose polarizability a result flags as less certain.
 WEAK_ADDITIVE_ELEMENTS = _weak_elements()
 
 # Gasteiger-Marsili chi(q) = a + b*q + c*q^2 coefficients, eV.
