@@ -183,6 +183,7 @@ JIROUSKOVA_NOTE = (
 )
 #: The refusal for a molecule with none of the elements the check covered.
 REFUSE_OUTSIDE_MEASURED_SCOPE = "REFUSE_OUTSIDE_MEASURED_SCOPE"
+#: What that refusal says.
 REFUSAL_OUTSIDE_SCOPE_MESSAGE = (
     "Jiroušková's model is offered here only for molecules that contain chlorine, bromine or sulfur, the only atoms its charges were checked on. This molecule has none, "
     "so no charges are returned. The other EEM methods cover it."

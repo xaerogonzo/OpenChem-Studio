@@ -42,8 +42,11 @@ from openchem.chem.charge_equilibration import (
 #: Where the shipped parameters live; built by `tools/build_eem_second_models.py` from the committed fixtures.
 PARAMETERS_PATH = Path(__file__).resolve().parent / "data" / "eem_second_models.json"
 
+#: Model J: Jiroušková 2009, B3LYP/6-31G* Merz-Kollman.
 JIROUSKOVA2009_B3LYP_MK = "jirouskova2009_b3lyp_mk"
+#: Model N: NEEMP 2016, Ccd2016, B3LYP/6-311G NPA.
 NEEMP2016_CCD_GEN_NPA = "neemp2016_ccd_gen_npa"
+#: Both models, in the order the parameter file lists them.
 MODELS = (JIROUSKOVA2009_B3LYP_MK, NEEMP2016_CCD_GEN_NPA)
 
 #: Types a paper parameterises that this application does not accept: preregistration section 8. Zinc is Jiroušková's only metal, from 52 atoms, and a
@@ -59,8 +62,11 @@ REFUSE_RESONANCE_DEPENDENT = "REFUSE_RESONANCE_DEPENDENT"
 
 #: What to do about an atom whose type depends on the drawing (the option of `eem_resonance_typing_design.md`). Stored as these codes, never as words.
 RESONANCE_AVERAGED = "averaged"
+#: Use the drawing as it is, with a warning on the atoms that depend on it.
 RESONANCE_AS_DRAWN = "as_drawn"
+#: Decline a molecule whose types depend on the drawing.
 RESONANCE_REFUSE = "refuse"
+#: Every accepted value of the `resonance` option.
 RESONANCE_VALUES = (RESONANCE_AVERAGED, RESONANCE_AS_DRAWN, RESONANCE_REFUSE)
 
 #: The claim line of an averaged result: what it is, and that it is not the published model.
