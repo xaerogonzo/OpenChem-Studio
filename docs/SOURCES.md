@@ -1,5 +1,5 @@
 <!-- GENERATED FROM docs/sources.toml -- do not edit -->
-<!-- SOURCE SHA256: 3ae97227f6e5c5d863807b21c4c7bb099cdda45c988f1650699731aab3b18c5d -->
+<!-- SOURCE SHA256: 58e228a9cc51be3be6469ce26a4583f2e935c4a53f0aae22c68b6ced6245329a -->
 
 # Sources
 
@@ -128,6 +128,7 @@ Title and DOI first; the `key` is what prose and code cite (`[source:key]`) and 
 | Absolute vacuum ultraviolet absorption spectra of some gaseous azabenzenes | [10.1016/0022-2852(84)90051-1](https://doi.org/10.1016/0022-2852(84)90051-1) | [`bolovinos1984`](#bolovinos1984) | literature | shipped | citation + claim |
 | van der Waals Volumes and Radii | [10.1021/j100785a001](https://doi.org/10.1021/j100785a001) | [`bondi1964`](#bondi1964) | literature | shipped | citation + claim |
 | S-H bond dissociation enthalpies in thiophenols: A time-resolved photoacoustic calorimetry and quantum chemistry study | [10.1021/jp025677i](https://doi.org/10.1021/jp025677i) | [`borgesdossantos2002`](#borgesdossantos2002) | literature | reference only | citation + claim |
+| Polarizabilities of Solvents from the Chemical Composition, R. Bosque and J. Sales, J. Chem. Inf. Comput.… | [10.1021/ci025528x](https://doi.org/10.1021/ci025528x) | [`bosque2002`](#bosque2002) | literature | shipped | citation + claim |
 | Compounds with known Abraham descriptors | [10.6084/m9.figshare.1176994](https://doi.org/10.6084/m9.figshare.1176994) | [`bradley2014`](#bradley2014) | dataset | shipped | citation + claim |
 | Predicting Abraham model solvent coefficients | [10.1186/s13065-015-0085-4](https://doi.org/10.1186/s13065-015-0085-4) | [`bradley2015`](#bradley2015) | literature | shipped | citation + claim |
 | Leucopterin, the white pigment in butterfly wings: structural analysis by PDF fit, FIDEL fit, Rietveld refinement, solid-state NMR and DFT-D | [10.1107/S2052252523004281](https://doi.org/10.1107/S2052252523004281) | [`bravetti2023`](#bravetti2023) | literature | shipped | citation |
@@ -155,6 +156,7 @@ Title and DOI first; the `key` is what prose and code cite (`[source:key]`) and 
 | Crystallography Open Database (COD). | <https://www.crystallography.net/cod/> | [`cod`](#cod) | dataset | shipped | citation |
 | Chemistry of Pyrotechnics: Basic Principles and Theory | [10.1201/9780429262135](https://doi.org/10.1201/9780429262135) | [`conkling2019`](#conkling2019) | literature | shipped | citation + claim |
 | The structure factor |  | [`coppens2006`](#coppens2006) | literature | **not shipped** | citation |
+| Covalent radii revisited, B. Cordero, V. Gomez, A. E. Platero-Prats, M. Reves, J. Echeverria, E. Cremades, F.… | [10.1039/b801115j](https://doi.org/10.1039/b801115j) | [`cordero2008`](#cordero2008) | literature | shipped | citation + claim |
 | The molecular energy levels of the azoles: a study by photoelectron spectroscopy and ab initio molecular orbital calculations | [10.1016/0040-4020(73)80161-9](https://doi.org/10.1016/0040-4020(73)80161-9) | [`cradock1973`](#cradock1973) | literature | shipped | citation + claim |
 | CRC Handbook of Chemistry and Physics, 97th edition. | CRC Handbook of Chemistry and Physics, 97th edition | [`crc_handbook`](#crc_handbook) | reference_table | shipped | citation + claim |
 | Assessment of Gaussian-3 and density-functional theories on the G3/05 test set of experimental energies | [10.1063/1.2039080](https://doi.org/10.1063/1.2039080) | [`curtiss2005`](#curtiss2005) | literature | reference only | citation + claim |
@@ -8151,6 +8153,34 @@ Nothing about xtb's accuracy against ORCA or Psi4 has been measured (`docs/EXTER
 | Used by | `benchmarks/restart_v3/PREREGISTRATION.md`, `benchmarks/restart_v3/references.json`, `benchmarks/restart_v3/LITERATURE_LOG.md`, `tests/test_restart_v3_references.py` |
 
 **Why it is reference only.** WHY THIOPHENOL STAYS OUT OF ARM D: D0(C6H5S-H) <= 28 030 +- 100 cm-1 (335.3 +- 1.2 kJ/mol, 80.15 kcal/mol at 0 K), which the authors call an upper limit; it lies 3.3 kcal/mol above Lim 2007's 76.8 +- 0.3 kcal/mol, so no thiophenol reference passes the 1.0 kcal/mol rule (restart-v3 preregistration section 7, references.json thiophenol_context).
+
+### cordero2008 — Covalent radii revisited, B. Cordero, V. Gomez, A. E. Platero-Prats, M. Reves, J. Echeverria, E. Cremades, F.…
+
+<a id="cordero2008"></a>
+
+> Covalent radii revisited, B. Cordero, V. Gomez, A. E. Platero-Prats, M. Reves, J. Echeverria, E. Cremades, F. Barragan and S. Alvarez, Dalton Trans. 2008, 2832-2838
+
+| | |
+| --- | --- |
+| Identifier | [10.1039/b801115j](https://doi.org/10.1039/b801115j) |
+| Status | shipped |
+| Verification | citation + claim |
+| Verified | 2026-11-05 |
+| Used by | `src/openchem/chem/data/tsei_radii.json`, `src/openchem/chem/tsei.py` |
+
+### bosque2002 — Polarizabilities of Solvents from the Chemical Composition, R. Bosque and J. Sales, J. Chem. Inf. Comput.…
+
+<a id="bosque2002"></a>
+
+> Polarizabilities of Solvents from the Chemical Composition, R. Bosque and J. Sales, J. Chem. Inf. Comput. Sci. 2002, 42, 1154-1163
+
+| | |
+| --- | --- |
+| Identifier | [10.1021/ci025528x](https://doi.org/10.1021/ci025528x) |
+| Status | shipped |
+| Verification | citation + claim |
+| Verified | 2026-11-05 |
+| Used by | `src/openchem/chem/data/polarizability_refit.json`, `src/openchem/chem/electronic_properties.py` |
 
 ### jirouskova2009 — Electronegativity Equalization Method: Parameterization and Validation for Organic Molecules using the Merz-Kollman-Singh Charge Distribution Scheme
 

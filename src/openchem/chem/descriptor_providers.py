@@ -2249,10 +2249,10 @@ def compute_admet_endpoints(
 _PARENT_PROPERTY = CalculatorScope(
     ComponentSelection.CHEMBL_PARENT, Aggregation.COLLECTION,
     note="a property of the compound, so of its ChEMBL parent")
-#: The molecular polarizability: a compound property, within Jensen's element set.
+#: The molecular polarizability: a compound property, within the additive table's element set.
 _PARENT_POLARIZABILITY = CalculatorScope(
     ComponentSelection.CHEMBL_PARENT, Aggregation.SCALAR, MethodDomain.METHOD_SPECIFIC,
-    note="a property of the compound; Jensen's additive table covers a fixed element set")
+    note="a property of the compound; the additive table covers a fixed element set")
 #: A protonation curve or microspecies set, of the parent only.
 _PARENT_CURVE = CalculatorScope(
     ComponentSelection.CHEMBL_PARENT, Aggregation.COLLECTION,
@@ -2261,17 +2261,17 @@ _PARENT_CURVE = CalculatorScope(
 _PARENT_PER_ATOM = CalculatorScope(
     ComponentSelection.CHEMBL_PARENT, Aggregation.PER_ATOM,
     note="charges of the compound, equilibrated over its parent and reported on the drawing's atoms")
-#: ATOM-LOCAL table look-ups (Crippen's atom types, Jensen's increments): each
+#: ATOM-LOCAL table look-ups (Crippen's atom types, the additive polarizability increments): each
 #: atom's value is defined wherever the atom is, so each component answers.
 #: Also the only honest scope for a calculator that ADDS hydrogens, which a
 #: parent's atoms cannot be mapped back through (`components.read_back`).
 _EACH_CONTRIBUTION = CalculatorScope(
     ComponentSelection.EACH_COMPONENT, Aggregation.PER_ATOM,
     note="an atom-local table look-up, defined for every atom drawn")
-#: Jensen's per-atom increments: atom-local, within his element set.
+#: The additive table's per-atom increments: atom-local, within its element set.
 _EACH_ATOMIC_POLARIZABILITY = CalculatorScope(
     ComponentSelection.EACH_COMPONENT, Aggregation.PER_ATOM, MethodDomain.METHOD_SPECIFIC,
-    note="Jensen's atom-additive increments, each atom's own")
+    note="the atom-additive increments, each atom's own")
 #: Solubility refuses a salt: its own pH correction models the salt forming.
 _PURE_SOLUBILITY = CalculatorScope(
     ComponentSelection.REFUSE_MULTICOMPONENT, Aggregation.COLLECTION, MethodDomain.METHOD_SPECIFIC,
@@ -2710,8 +2710,9 @@ CALCULATOR_DEFINITIONS: list[CalculatorDefinition] = [
             "a SUBSTITUENT measured toward a named reaction centre; running it at every "
             "atom is OpenChem's projection of it, not a quantity the paper defines. "
             "Topological, so two conformers of one molecule score identically. Covers "
-            "the 28 elements Lange's Handbook tabulates a covalent radius for, and "
-            "refuses the rest by name. The equation is geometric, so any of those 28 "
+            "the 28 elements Lange's Handbook tabulates a covalent radius for, plus "
+            "platinum from Cordero 2008 (with a warning, since it is on another scale), "
+            "and refuses the rest by name. The equation is geometric, so any of those 28 "
             "computes -- but Cao and Liu validated it on alkyl, halogen and ether "
             "substituents, so a result on an organometallic is an extrapolation."
         ),
@@ -3899,10 +3900,10 @@ CALCULATOR_DEFINITIONS: list[CalculatorDefinition] = [
         display_name="Polarizability (molecular)",
         category="electronic",
         description=(
-            "Molecular polarizability in A^3, by one of three methods. Jensen et al.'s "
-            "additive atomic scheme is accurate to about 1% for aromatics and halogenated "
-            "compounds and roughly 11% high for saturated hydrocarbons, since an "
-            "atom-additive scheme has no hybridization dependence. Miller's two methods are "
+            "Molecular polarizability in A^3, by one of three methods. The "
+            "additive atomic scheme (element values fitted by this project to experimental polarizabilities of solvents) is within about 2% on solvents like those "
+            "and 4% on a second, gas-phase set, but has no hybridization dependence: very small molecules (water is 28% low), fused aromatics (about 11% low) "
+            "and anything unlike the fitting set can be further off. Miller's two methods are "
             "hybridization-aware: ahc squares a sum over the whole molecule and lands within "
             "1% on benzene and CCl4, ahp is plain additivity. The three are different "
             "quantities, not settings of one -- pick one and read the reported method."
@@ -3918,7 +3919,7 @@ CALCULATOR_DEFINITIONS: list[CalculatorDefinition] = [
                 name="method",
                 label="Method",
                 kind="choice",
-                default="Jensen (additive)",
+                default="Atomic additive",
                 choices=list(POLARIZABILITY_METHODS),
             ),
             CalculatorParameter(
@@ -3938,7 +3939,7 @@ CALCULATOR_DEFINITIONS: list[CalculatorDefinition] = [
         scope=_EACH_ATOMIC_POLARIZABILITY,
         display_name="Polarizability (per atom)",
         category="electronic",
-        description="Per-atom polarizability contributions (Jensen et al.), projected onto 2D and 3D.",
+        description="Per-atom polarizability contributions (the additive table), projected onto 2D and 3D.",
         execution=RegistryExecution(compute=compute_atomic_polarizability),
         prediction_basis="empirical",
         parameters=[

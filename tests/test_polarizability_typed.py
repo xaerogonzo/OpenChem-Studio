@@ -48,7 +48,7 @@ PANEL = {
 #: Every way of asking: the default, each method by its label, the microspecies option with the default and with a Miller method, and a label this build does not know (which falls back to Jensen).
 ASKS = {
     "default": {},
-    "jensen": {"method": "Jensen (additive)"},
+    "additive": {"method": "Atomic additive"},
     "miller ahc": {"method": "Miller ahc"},
     "miller ahp": {"method": "Miller ahp"},
     "microspecies": {"major_microspecies": True, "pH": 7.4},
@@ -134,7 +134,7 @@ def test_an_answer_from_another_method_or_another_structure_is_never_typed(regis
 
 
 def test_the_jensen_label_and_an_unknown_label_are_the_default_and_are_typed(registry):
-    assert [f.value for f in _typed(_compute(registry, PANEL["benzene"], ASKS["jensen"]))] == [f.value for f in _typed(_compute(registry, PANEL["benzene"], {}))]
+    assert [f.value for f in _typed(_compute(registry, PANEL["benzene"], ASKS["additive"]))] == [f.value for f in _typed(_compute(registry, PANEL["benzene"], {}))]
     assert _typed(_compute(registry, PANEL["benzene"], ASKS["unknown label"])), "an unknown label runs Jensen, so it is the default answer"
 
 

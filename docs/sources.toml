@@ -7266,6 +7266,15 @@ said to be reproduced.
 
 The oxidation states are a third case and are neither: they were CHECKED
 AGAINST page 2639 and deliberately not taken from it -- see the note.
+
+**A SECOND COLUMN, 2026-11-05: THE POLARIZABILITY TABLE'S SMALL-MOLECULE
+DATA.** "ATOMIC AND MOLECULAR POLARIZABILITIES" (T. M. Miller; section 10,
+PDF pages 1798 to 1809) supplied 264 experimental molecular
+polarizabilities (those not marked calculated, with a structure whose
+formula equals the printed one, not already in Bosque and Sales' set) that
+the additive polarizability table was refitted to and judged on
+(`benchmarks/polarizability/PREREGISTRATION_2.md`). Only the fitted values
+ship; the table itself is a bulk copy and stays outside git.
 """
 used_by = [
     "src/openchem/chem/data/elements.json",
@@ -9672,6 +9681,52 @@ verification = "citation_and_claim"
 verified_date = 2026-10-28
 reason = """
 WHY THIOPHENOL STAYS OUT OF ARM D: D0(C6H5S-H) <= 28 030 +- 100 cm-1 (335.3 +- 1.2 kJ/mol, 80.15 kcal/mol at 0 K), which the authors call an upper limit; it lies 3.3 kcal/mol above Lim 2007's 76.8 +- 0.3 kcal/mol, so no thiophenol reference passes the 1.0 kcal/mol rule (restart-v3 preregistration section 7, references.json thiophenol_context).
+"""
+
+[[source]]
+key = "cordero2008"
+kind = "literature"
+citation = "Covalent radii revisited, B. Cordero, V. Gomez, A. E. Platero-Prats, M. Reves, J. Echeverria, E. Cremades, F. Barragan and S. Alvarez, Dalton Trans. 2008, 2832-2838"
+identifier_type = "doi"
+identifier = "10.1039/b801115j"
+status = "shipped"
+used_by = ["src/openchem/chem/data/tsei_radii.json", "src/openchem/chem/tsei.py"]
+verification = "citation_and_claim"
+verified_date = 2026-11-05
+reason = """
+PLATINUM'S COVALENT RADIUS for the Cao-Liu TSEI: 1.36 A with an uncertainty of 5
+in the last digit, read from the held copy (`cordero2008.pdf` in Sci Downloads)
+on 2026-10-30. Lange's Table 4.7 tabulates no platinum, so this is the only
+element taken from a second table. Cordero's radii are an average over crystal
+structures and sit on a slightly different scale from Lange's tetrahedral
+single-bond column (carbon 0.76 against 0.772, chlorine 1.02 against 0.99), so
+a TSEI that uses it carries a warning saying so. Only platinum is used; no
+other value from the paper enters the method.
+"""
+
+[[source]]
+key = "bosque2002"
+kind = "literature"
+citation = "Polarizabilities of Solvents from the Chemical Composition, R. Bosque and J. Sales, J. Chem. Inf. Comput. Sci. 2002, 42, 1154-1163"
+identifier_type = "doi"
+identifier = "10.1021/ci025528x"
+status = "shipped"
+used_by = ["src/openchem/chem/data/polarizability_refit.json", "src/openchem/chem/electronic_properties.py"]
+verification = "citation_and_claim"
+verified_date = 2026-11-05
+reason = """
+THE DATA the additive polarizability table was fitted to: the experimental
+polarizabilities in cubic angstrom of 426 solvents (Table 1, 340 of them, the
+authors' working set, and Table 2, 86, their prediction set), read from the
+held copy (`bosque2002.pdf`) on 2026-11-05. The paper's own fit (its Table 4,
+with an intercept) is NOT what ships: the values in
+`polarizability_refit.json` were fitted here, with no intercept, on the
+relative error, as fixed in `benchmarks/polarizability/PREREGISTRATION.md`
+before fitting. 425 rows were used (one name is not a compound and was
+excluded; 39 misspelt or truncated names were corrected by hand, listed in
+`benchmarks/polarizability/name_fixes.json`). The table itself is not
+committed: it is a bulk copy of a published table and is kept outside git.
+
 """
 
 [[source]]
