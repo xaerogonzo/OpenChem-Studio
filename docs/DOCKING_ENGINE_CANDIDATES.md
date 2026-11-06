@@ -158,8 +158,10 @@ a comparison means nothing unless the inputs reproduce something known):
    default dock is closed NULL.** Slice 1 PASS 2026-11-04. CNN rescore
    `RESULT_GNINA.md` (gained 3 lost 2). Default dock run 2026-11-05:
    `RESULT_GNINA_DOCK.md` (29 deciding, Vina 20/29 vs gnina 21/29, gained 4
-   lost 3, p = 0.5). Not an External Tools tab. `--cnn_scoring all` and
-   DiffDock-class were not arms.
+   lost 3, p = 0.5).    Not an External Tools tab. `--cnn_scoring all` and
+   DiffDock-class were not arms. **CNNaffinity ranking power** is a
+   separate freeze (`PREREGISTRATION_CNN_AFFINITY.md`); no catalog
+   CNNaffinity yet.
 5. **QuickVina and Vina-GPU are worth revisiting only for speed**, never for pose choice, and
    only if a Windows binary with provenance appears.
 
