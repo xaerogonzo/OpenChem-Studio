@@ -149,6 +149,7 @@ from openchem.ui.dialogs.property_choice_dialog import Choice, PropertyChoiceDia
 from openchem.ui.widgets.project_table import _title
 from openchem.ui.widgets.stage_marker import StageMarker
 from openchem.ui.dialogs.nmr_view_dialog import NmrViewDialog
+from openchem.ui.widgets.component_choice_row import ComponentChoiceRow
 from openchem.ui.widgets.substance_card import SubstanceCard, card_data_from_report
 from openchem.ui.widgets.collapsible_section import CollapsibleSection as _CollapsibleSection
 from openchem.ui.widgets.collapsible_section import ExplicitHeightLabel as _ExplicitHeightLabel
@@ -452,6 +453,23 @@ _RUN_SCOPE_HELP = HelpTooltip(
     ),
     tier=2,
     help_id="properties.run_scope",
+    topic="properties",
+    help_anchor="properties",
+)
+
+#: Which piece of a multi-piece drawing the compound-property calculators describe.
+_COMPONENT_CHOICE_HELP = HelpTooltip(
+    text=(
+        "This drawing has more than one different component, such as a salt or a mixture. "
+        "The calculators that describe one compound are handed one of them.\n\n"
+        "**Automatic** lets the application pick: ChEMBL's parent compound when its rule leaves one, "
+        "otherwise the largest piece, which is a guess the result says so about. Choosing a component "
+        "computes on that one instead, re-neutralised unless the structure is 3D, and the result says "
+        "which piece you chose.\n\n"
+        "The choice is saved with the project, can be undone, and recomputes this molecule's results."
+    ),
+    tier=2,
+    help_id="properties.compute_on_component",
     topic="properties",
     help_anchor="properties",
 )
@@ -1760,6 +1778,11 @@ class PropertyPanel(QWidget):
     #: the reason `settings_requested` is.
     help_requested = Signal(str)
 
+    #: The person chose which component of a multi-piece drawing to compute on: (molecule uuid, the
+    #: component's canonical SMILES, or "" for the automatic pick). Routed by the window, which owns the
+    #: undo stack the choice is pushed onto as a command.
+    component_choice_requested = Signal(str, str)
+
     def __init__(
         self,
         event_bus: EventBus,
@@ -2046,6 +2069,11 @@ class PropertyPanel(QWidget):
         # a structure changes with what kind of thing it is, and that
         # answer belongs above the properties rather than among them.
         self._substance_card = SubstanceCard(self)
+        # WHICH PIECE of a multi-piece drawing the calculators are handed. Hidden unless the drawing has two
+        # different components; the pick is a command the window pushes (`component_choice_requested`).
+        self._component_row = ComponentChoiceRow(self)
+        self._component_row.choice_made.connect(self._on_component_chosen)
+        apply_help_tooltip(self._component_row.combo, _COMPONENT_CHOICE_HELP)
 
         # FIND A CALCULATOR. Visibility only -- it never touches ticks, scope,
         # parameters or saved presets. While a query is active the matching
@@ -2107,6 +2135,7 @@ class PropertyPanel(QWidget):
         layout = QVBoxLayout(self)
         layout.setContentsMargins(4, 4, 4, 4)
         layout.addWidget(self._substance_card)
+        layout.addWidget(self._component_row)
         layout.addLayout(batch_row)
         # PRESETS: named tick sets, saved in settings. The first time this panel is
         # built, whatever the Batch panel had ticked is COPIED in (never moved), once.
@@ -2268,6 +2297,29 @@ class PropertyPanel(QWidget):
         )
         self._substance_card.set_badge(quantum_optimized_note(molecule.conformers) if molecule is not None else "")
 
+    def _refresh_component_choice(self) -> None:
+        """Offer the selected molecule's components in the row under the header, or hide it.
+
+        Read off the molecule every time, like the badge above: the components are a fact about the drawing,
+        and the stored choice changes by command (and by undo) without any calculation finishing.
+        """
+        molecule = (
+            self._project.find_molecule(self._selected_molecule_uuid)
+            if self._project is not None and self._selected_molecule_uuid is not None
+            else None
+        )
+        if molecule is None or not molecule.molblock:
+            self._component_row.set_components([], "")
+            return
+        self._component_row.set_components(
+            self._chemistry_engine.component_smiles(molecule), molecule.component_choice
+        )
+
+    def _on_component_chosen(self, smiles: str) -> None:
+        """The row's pick: hand it to the window as a request; nothing is changed here."""
+        if self._selected_molecule_uuid is not None:
+            self.component_choice_requested.emit(self._selected_molecule_uuid, smiles)
+
     def _on_conformers_changed(self, event: ConformersChanged) -> None:
         if event.molecule_uuid == self._selected_molecule_uuid:
             self._refresh_geometry_badge()
@@ -2306,6 +2358,7 @@ class PropertyPanel(QWidget):
             section.clear_rows()
         self._substance_card.clear()
         self._refresh_geometry_badge()
+        self._refresh_component_choice()
         self._update_preflight()
         # **THE DOCKED READER FOLLOWS RATHER THAN CLOSING**, which is the one
         # behaviour that separates it from the window three lines above. It
@@ -3079,6 +3132,7 @@ class PropertyPanel(QWidget):
         if event.molecule_uuid != self._selected_molecule_uuid:
             return
         if not event.during_edit:
+            self._refresh_component_choice()
             self._update_preflight()
             self._refresh_status_chips()
             if self._recipe_answers is not None or self._score_answers is not None:

@@ -1273,12 +1273,17 @@ had to choose, below). What that leaves out, measured on the panel in
   says in so many words whenever the runner-up has at least half the largest
   one's heavy atoms. It never combines the components. It is neutralised
   because the ion as drawn gave a wrong number: the citrate trianion's Crippen
-  logP is -5.25, citric acid's -1.25. Draw the one species you mean to compute
-  on it; naming the component inside the application is not built.
-- **Still refused: no larger component, and a transition-metal structure drawn
-  as ions.** NaCl, calcium chloride (two one-atom species) and two unlisted
+  logP is -5.25, citric acid's -1.25. **Since 2026-10-30 the person can name the
+  component** (Properties, "Compute on:", saved with the molecule as the
+  component's SMILES): the choice replaces both ChEMBL's rule and this guess,
+  the result's first limitation says "the component you chose" and its record
+  has `component_choice = "chosen"`. A choice that no component matches (the
+  drawing was edited) is ignored and the automatic pick applies.
+- **Still refused without a choice: no larger component, and a transition-metal
+  structure drawn as ions.** NaCl, calcium chloride (two one-atom species) and two unlisted
   organics of one size (naphthalene beside quinoline) have no larger
-  component, and refuse with `MULTICOMPONENT_UNSUPPORTED`. ChEMBL's exclusion
+  component, and refuse with `MULTICOMPONENT_UNSUPPORTED` until a component is
+  chosen. ChEMBL's exclusion
   flag (a transition metal, or more than seven borons) refuses with
   `METAL_CONTAINING_UNSUPPORTED`: ferrocene drawn as Fe2+ and two
   cyclopentadienides is the panel's case, and the ligand ions' numbers would

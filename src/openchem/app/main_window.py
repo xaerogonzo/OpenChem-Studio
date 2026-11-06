@@ -77,6 +77,7 @@ from openchem.commands.import_export_commands import ExportMoleculeCommand, Impo
 from openchem.commands.macromolecule_commands import AddMacromoleculeCommand
 from openchem.commands.molecule_commands import (
     AddMoleculeCommand,
+    ChooseComponentCommand,
     EditStructureCommand,
     RenameMoleculeCommand,
 )
@@ -538,6 +539,8 @@ class MainWindow(QMainWindow):
         self._property_panel.tool_setup_requested.connect(self._show_tool_setup)
         # "About this calculator" on a launcher row: the window owns the help window.
         self._property_panel.help_requested.connect(self._show_help)
+        # The row that picks which piece of a salt or mixture to compute on: a command, so it undoes.
+        self._property_panel.component_choice_requested.connect(self._on_component_choice_requested)
         if services.result_store_service is not None:
             # A retained result is unsaved work: the user asked for results
             # to live in the project file, so one that is not there yet is
@@ -5828,6 +5831,14 @@ class MainWindow(QMainWindow):
         self._undo_stack.push(
             RenameMoleculeCommand(molecule, new_name, self._services.event_bus)
         )
+
+    def _on_component_choice_requested(self, molecule_uuid: str, component_smiles: str) -> None:
+        """Push the choice of component as an undoable command (a repeat of the stored choice is not one)."""
+        project = self._session.project
+        molecule = project.find_molecule(molecule_uuid) if project is not None else None
+        if molecule is None or molecule.component_choice == component_smiles:
+            return
+        self._undo_stack.push(ChooseComponentCommand(molecule, component_smiles, self._services.event_bus))
 
     def _identify_structure(self, molecule: MoleculeModel | None = None) -> None:
         """Ask PubChem what this structure is.
