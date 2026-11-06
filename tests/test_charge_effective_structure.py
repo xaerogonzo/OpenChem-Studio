@@ -260,7 +260,9 @@ def _assert_saveable(result) -> None:
 @pytest.mark.parametrize("fold", [False, True])
 def test_every_computed_result_round_trips_through_the_codec(method, mode, fold):
     """QEq's `final_metrics` carried numpy float64 until 2026-09-17, so no QEq result was ever saved."""
-    result = _registry().compute("geometry_partial_charge", _conformer("NCC(=O)O"), "u",
+    # Jiroušková's model is offered only for molecules with Cl, Br or S, so it is given one that has chlorine.
+    smiles = "NCC(=O)Cl" if method == gc.EEM_JIROUSKOVA2009_B3LYP_MK else "NCC(=O)O"
+    result = _registry().compute("geometry_partial_charge", _conformer(smiles), "u",
                                  {"method": method, "include_hydrogens": fold, **mode})
     assert result.cache_state == CacheState.COMPLETED, result.error
     _assert_saveable(result)
