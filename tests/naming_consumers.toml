@@ -189,6 +189,12 @@ scope = "core"
 owner = "namer"
 
 [[consumer]]
+file = "tests/test_namer_nl013_purinone_purine.py"
+why = "NL-013 (programme closed): 3H-purin-3-yl purinone+p264 drawing reads back on full InChIKey; documents closure of the measured arm"
+scope = "core"
+owner = "namer"
+
+[[consumer]]
 file = "tests/test_namer_round94_nl011_multicomponent_methyl_cite.py"
 why = "NL-011 bucket C narrow: multicomponent dispiro cites N-alkyl on aza partners only, not spurious 5-methylbicyclo-style partner names (#6/#7/#14 regression guard)"
 scope = "core"

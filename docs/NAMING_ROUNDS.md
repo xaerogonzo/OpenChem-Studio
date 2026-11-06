@@ -198,6 +198,8 @@ After round 89 Alex asked for a formal plan for the things in KNOWN_LIMITATIONS.
 
 **Next planned:** Workstream 1 audit (validator-limited stereo, evidence-only first), starting with NL-003 (a bridged parent inside a larger molecule, a pure scope question); then substituted bridgehead, pseudoasymmetric r/s, adamantane/bicyclo[2.2.2]octane spiro. Never weaken `_name_pins_structure`. Every round must close or re-measure at least one listed row; inactive needs two rounds meeting a predeclared coverage minimum with a validator able to see the failure.
 
+**2026-11-06 (WS2):** `NL-011` and `NL-013` are **programme-closed** in `docs/NAMING_LIMITATIONS_PLAN.md` with evidence in `docs/NAMING_COVERAGE_MATRIX.md`: `NL-011` seed 8901 reaches **19/20** OPSIN read-backs (chain #13 strict `xfail`); matrix “twenty read-backs” is **not met**. `NL-013`: **3H** arm pinned in `tests/test_namer_nl013_purinone_purine.py`; **`1H-purin-1-yl` + purinone** not in round-81 `pair*.json` — recorded **not reproduced** (`NL-013` class **N**).
+
 **Loose ends:** stray local `master` commit d0b26d71 in the main checkout (Alex runs `git reset --hard 420ca33d` himself); worktrees naming-limitations-plan, naming-round-90-diazo, naming-stereo-collapse can be removed.
 
 ## project-naming-variants-tool
