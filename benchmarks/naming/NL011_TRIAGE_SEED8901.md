@@ -8,13 +8,13 @@ Artifact: `benchmarks/naming/artifacts_nl011_seed8901.json`
 
 Oracle: connectivity InChIKey (first 14 chars). OPSIN 2.9.0 via py2opsin, unique temp file per call.
 
-## Summary (after bucket A + chain #13 engine fix, 2026-11-05)
+## Summary (after bucket A + bucket C narrow, 2026-11-06)
 
 | Outcome | Count | Notes |
 |--------|------:|-------|
-| **ok** (OPSIN read-back) | **16** | Bucket A fixed #10/#16/#17 locants; chains #1/#8/#11 unchanged |
-| **unparsable** flat name | **4** | #6, #7, #13, #14 in `artifacts_nl011_seed8901.json` — validator gaps (bucket B); #13 engine string is pinned |
-| **wrong** read-back | **0** | #13 no longer `1-methyldispiro[...]` |
+| **ok** (OPSIN read-back) | **19** | Bucket A VB locants; bucket C narrow restored #6/#7/#14 |
+| **unparsable** flat name | **1** | **#13** only — engine cites `8-methyl-8-azabicyclo[...]` inside `dispiro[...]`; OPSIN 2.9.0 empty (validator; strict xfail in tests) |
+| **wrong** read-back | **0** | |
 | **nested** `spiro[spiro[...]]` | **0** | |
 
 Prior baseline (pre-fix): 3 ok, 14 unparsable flat, 3 nested — see git history for `artifacts_nl011_seed8901.json`.

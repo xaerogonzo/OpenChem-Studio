@@ -26,6 +26,7 @@ Heteroatom priority (P-25.3.1 / shared with bridged / HW):
 from __future__ import annotations
 
 import logging
+import re
 from typing import TYPE_CHECKING
 
 from rdkit import Chem
@@ -738,26 +739,34 @@ def _try_multicomponent_spiro(
         # incident spiro atoms in chain context (could be 1 for terminals, 2
         # for internal components).
         inc_in_chain = [sp for sp in chain_spiros if ci in sp_to_comps[sp]]
-        sub_pack = _build_component_submol(
-            comp_atoms,
-            inc_in_chain,
-            mol,
-            all_comp_atoms=all_comp_atoms,
-            all_spiro_atoms=spiro_atoms,
-        )
+        sub_pack = _build_component_submol(comp_atoms, inc_in_chain, mol)
         if sub_pack is None:
             return []
         sub_mol, sub_to_full = sub_pack
         named = _name_partner(sub_mol)
         if not named:
             return []
-        display_name = _multicomponent_partner_display_name(sub_mol)
+        display_name: str | None = None
+        expanded_sub_mol = None
+        expanded_sub_to_full: dict[int, int] | None = None
+        exp_pack = _build_component_submol(
+            comp_atoms,
+            inc_in_chain,
+            mol,
+            all_comp_atoms=all_comp_atoms,
+            all_spiro_atoms=spiro_atoms,
+        )
+        if exp_pack is not None:
+            expanded_sub_mol, expanded_sub_to_full = exp_pack
+            display_name = _multicomponent_partner_display_name(expanded_sub_mol)
         named_components.append({
             "ci": ci,
             "comp_atoms": comp_atoms,
             "incident": inc_in_chain,
             "sub_mol": sub_mol,
             "sub_to_full": sub_to_full,
+            "expanded_sub_mol": expanded_sub_mol,
+            "expanded_sub_to_full": expanded_sub_to_full,
             "named": named,
             "display_name": display_name,
         })
@@ -1071,16 +1080,22 @@ def _compose_multicomponent_name(
         if sel is None:
             return []
         np, rs, sp_locs = sel
-        cite_name = pack.get("display_name") or np.name
+        cite_name = _multicomponent_partner_cite_name(np.name, pack.get("display_name"))
+        subst_mol = pack["sub_mol"]
+        subst_to_full = pack["sub_to_full"]
+        if cite_name != np.name and pack.get("expanded_sub_mol") is not None:
+            subst_mol = pack["expanded_sub_mol"]
+            subst_to_full = pack["expanded_sub_to_full"]
         resolved.append({
             "name": cite_name,
             "rs": rs,
             "sp_locs": sp_locs,   # full_spiro_idx -> locant within this component
             "comp_atoms": pack["comp_atoms"],
             "np": np,
-            "sub_to_full": pack["sub_to_full"],
-            "sub_mol": pack["sub_mol"],
+            "sub_to_full": subst_to_full,
+            "sub_mol": subst_mol,
             "incident": pack["incident"],
+            "n_alkyl_cite": cite_name != np.name,
         })
 
     # Assign prime levels: component 0 unprimed, component 1 primed ('),
@@ -1185,11 +1200,17 @@ def _compose_multicomponent_name(
 
     extra_parent_atoms: set[int] = set()
     for pack in named_components:
-        dn = pack.get("display_name") or ""
-        if "-methyl-" not in dn:
+        if not pack.get("display_name"):
             continue
-        sub_to_full = pack["sub_to_full"]
-        sub_mol = pack["sub_mol"]
+        compact_np = _spiro_locants_for_component(pack, pack["incident"])
+        if compact_np is None:
+            continue
+        np = compact_np[0]
+        cite = _multicomponent_partner_cite_name(np.name, pack.get("display_name"))
+        if cite == np.name:
+            continue
+        sub_to_full = pack.get("expanded_sub_to_full") or pack["sub_to_full"]
+        sub_mol = pack.get("expanded_sub_mol") or pack["sub_mol"]
         for sub_idx, full_idx in sub_to_full.items():
             if full_idx in ring_system.atom_indices:
                 continue
@@ -1370,6 +1391,19 @@ def _spiro_atom_as_carbon(sub_mol: Chem.Mol, sub_to_full: dict[int, int], art_at
     except Exception:
         return None
     return out
+
+
+def _multicomponent_partner_cite_name(compact_name: str, display_name: str | None) -> str:
+    """Cite a partner inside ``dispiro[...]`` using ``display_name`` only for N-alkyl on aza partners (#13).
+
+    Bucket C must not cite ``5-methylbicyclo[...]``-style names pulled in by expanding
+    the component sub-mol for unrelated chains (NL-011 seed 8901 #6/#7/#14).
+    """
+    if not display_name or display_name == compact_name:
+        return compact_name
+    if re.search(r"\d+-methyl-\d+-aza", display_name):
+        return display_name
+    return compact_name
 
 
 def _multicomponent_partner_display_name(sub_mol: Chem.Mol) -> str | None:

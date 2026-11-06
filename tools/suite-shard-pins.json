@@ -2249,6 +2249,7 @@
   "tests/test_namer_round91_stereo_is_dropped_by_atom_not_by_locant_number.py": 1,
   "tests/test_namer_round92_ring_stereo_and_terminal_ring_orientation.py": 1,
   "tests/test_namer_round94_nl011_chain13_methyl.py": 0,
+  "tests/test_namer_round94_nl011_multicomponent_methyl_cite.py": 0,
   "tests/test_namer_round94_nl011_multicomponent_vb_locants.py": 0,
   "tests/test_namer_salt_multiplier.py": 2,
   "tests/test_namer_stereo_cache_identity.py": 3,
