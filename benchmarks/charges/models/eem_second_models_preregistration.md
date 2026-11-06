@@ -459,3 +459,15 @@ Fixed first:
 - **The judgement:** the three conditions of section 13, unchanged (mean at most 0.15 e; at most 1.25 times the default EEM's on the common molecules; no heavy atom over 0.5 e), now against Merz-Kollman instead of CHELPG, on the same 37 molecules. Limits are not moved after seeing results.
 - **If J passes:** it is offered as a sixth method with its scheme named and its scope note, and the sentence about CHELPG is replaced by this measurement. If not, it stays paused and the number is the answer.
 
+## 18. Result against our Merz-Kollman charges (section 17; run 2026-11-05, `eem_model_j_mk.py`, `eem_model_j_mk_water.py`; `model_j_mk.json`, `model_j_mk_water.json`)
+
+**Implementation checks:** the charges sum to each molecule's net charge; the mean absolute difference from CHELPG over the panel is 0.019 e (limit 0.10); the worst relative fit of the potential is 0.003 atomic units; water's oxygen is -0.744 e (registered range -0.9 to -0.7). The water check could not be read from the panel, which has no water, so it was run on its own with the same code; the panel's JSON therefore records `implementation_ok: false` for that one missing entry, and this paragraph is the correction.
+
+| Condition | Against Merz-Kollman | Met? |
+|---|---|---|
+| mean absolute error over heavy atoms at most 0.15 e | 0.141 e | yes |
+| at most 1.25 times the default EEM's on the 30 common molecules | 0.144 against 0.128, ratio 1.13 | yes |
+| no heavy atom over 0.5 e | worst 0.65 e (isobutane's central carbon) | **no** |
+
+**Model J stays paused.** 13 atoms are over 0.4 e (six over 0.5 e). **This refutes the reading in section 15** that the failure was CHELPG's instability: Merz-Kollman charges give the same values (+0.54 e on isobutane's central carbon, +0.58 e on 2-propanol's, +0.79 e on a metronidazole nitrogen), and our Merz-Kollman charges differ from CHELPG by only 0.019 e on average. So the failing atoms are real differences between the equalisation model and potential-fitted charges, in carbons bonded to several carbons, azole ring nitrogens, nitro nitrogen, carbonyl carbon and pyridine nitrogen. The default EEM is within 0.14 e of Model J on all 13, so it shares the error. Model J's own paper reports a 0.94 mean per-molecule correlation, which is compatible with this: a correlation can be high while single atoms are off by half an electron. Nothing further is registered for Model J; the only open question is whether to relax limit (c) to a different statistic, which would be a decision, not a measurement.
+
