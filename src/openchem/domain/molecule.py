@@ -27,9 +27,13 @@ class MoleculeModel:
     favorite: bool = False
     notes: str = ""
     conformers: list[ConformerModel] = field(default_factory=list)
+    #: Canonical SMILES, as drawn, of the component of a multi-piece drawing the person chose to
+    #: compute on. Empty is the automatic pick (`chem/components.py`). Keyed by the component's
+    #: structure and not its position, so redrawing the pieces in another order keeps the choice.
+    component_choice: str = ""
 
     def to_dict(self) -> dict[str, Any]:
-        return {
+        data: dict[str, Any] = {
             "uuid": self.uuid,
             "display_name": self.display_name,
             "molblock": self.molblock,
@@ -42,6 +46,10 @@ class MoleculeModel:
             "notes": self.notes,
             "conformers": [c.to_dict() for c in self.conformers],
         }
+        # Written only when set, so a project nobody chose a component in is byte-for-byte what it was.
+        if self.component_choice:
+            data["component_choice"] = self.component_choice
+        return data
 
     @classmethod
     def from_dict(cls, data: dict[str, Any]) -> MoleculeModel:
@@ -57,4 +65,5 @@ class MoleculeModel:
             favorite=data.get("favorite", False),
             notes=data.get("notes", ""),
             conformers=[ConformerModel.from_dict(c) for c in data.get("conformers", [])],
+            component_choice=str(data.get("component_choice") or ""),
         )

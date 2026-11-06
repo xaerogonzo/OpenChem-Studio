@@ -2371,7 +2371,9 @@ and three were checked again recently rather than taken on trust.
      largest component, re-neutralised, with the choice in the result's first limitation and caveat (`docs/SCIENTIFIC_LIMITATIONS.md`, "Salts, hydrates and
      mixtures"). What is left: components of one size that are different species (NaCl, two small organics) and ChEMBL's metal exclusion still refuse, because
      there is no one species to hand over; the three pure-substance methods (solubility, Joback, Hansen) still refuse any second component, a hydrate
-     included, which could first lose its listed solvent; and the choice is a guess the person cannot yet correct from the window (naming the component).
+     included, which could first lose its listed solvent. **The guess can now be corrected (2026-10-30):** Properties shows a "Compute on:" row for a drawing
+     with two different components, the pick is an undoable command saved with the molecule as the component's SMILES (`MoleculeModel.component_choice`), it
+     overrides ChEMBL's rule and the largest-component rule (a metal complex still refuses), and equal-sized different species (NaCl) are now chosen rather than refused.
   3. **Parameters missing for an element**: Jensen's atomic polarizability (no Na, Fe, Pt ...), Bultinck's EEM charges (no Cl, B, S), TSEI (no Pt covalent
      radius in Lange's table), molecular dynamics (no MMFF or UFF type). Each is a parameter-table extension from a source, measured against that source; none
      can be a warning, because there is no number to label.
@@ -2505,9 +2507,9 @@ and three were checked again recently rather than taken on trust.
   `tests/test_tautomer_validation_record.py`). The per-tautomer NMR job, the
   fast-exchange average and the overlay on the NMR spectrum shipped too
   (docs/TAUTOMER_NMR_DESIGN.md). What remains: a new model gets its own
-  preregistered run, never a re-tuned tolerance; the held-out set is narrow; and
-  zoom for the histogram and stick charts (line and scatter charts zoom since
-  #185, these two do not).
+  preregistered run, never a re-tuned tolerance; and the held-out set is narrow.
+  (Zoom for the histogram and stick charts, listed here until 2026-10-30, shipped
+  in #206 and #212 through the shared `XZoomable`; `tests/test_x_zoomable_charts.py`.)
 - ~~**Boltzmann-run descriptors beyond the lowest-energy conformer.**~~
   **DECIDED AND SHIPPED (2026-10-05).** A Boltzmann-averaged QC run publishes
   the lowest-energy conformer's descriptors, as before, PLUS the SCF energy

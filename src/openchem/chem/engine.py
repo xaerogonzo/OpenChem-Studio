@@ -10,6 +10,8 @@ from rdkit.Chem import AllChem, rdDepictor, rdMolTransforms
 from rdkit.Geometry import Point3D
 
 from openchem.chem.camera_orientation import camera_to_model_transform, rotate
+from openchem.chem.components import COMPONENT_CHOICE_PROP
+from openchem.chem.components import component_smiles as _component_smiles
 from openchem.chem.stereochemistry import (
     StereoChange,
     compare_stereochemistry,
@@ -210,7 +212,22 @@ class ChemistryEngine:
     def mol_from_model(self, model: MoleculeModel) -> Chem.Mol:
         if not model.molblock:
             raise InvalidStructureError(f"Molecule {model.uuid} has no molblock")
-        return self.mol_from_molblock(model.molblock)
+        mol = self.mol_from_molblock(model.molblock)
+        if model.component_choice:
+            # The person's pick of component rides on the Mol, so every route into a calculator
+            # (Properties, Batch, the 3D overlay) reads it where `components.select` reads the rest.
+            mol.SetProp(COMPONENT_CHOICE_PROP, model.component_choice)
+        return mol
+
+    def component_smiles(self, model: MoleculeModel) -> list[str]:
+        """The canonical SMILES, as drawn, of each component of the molecule's drawing (what a picker offers).
+
+        Empty for a molecule with no usable drawing, so a caller drawing a control need not catch.
+        """
+        try:
+            return _component_smiles(self.mol_from_model(model))
+        except Exception:  # noqa: BLE001 - a picker has nothing to offer for a structure that will not parse
+            return []
 
     def heavy_atom_count(self, model: MoleculeModel) -> int:
         """Heavy atoms in the molecule's drawing: the size a cost measurement stands for.
