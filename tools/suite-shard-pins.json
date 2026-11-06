@@ -2354,6 +2354,8 @@
   "tests/test_polarity_and_balance.py": 2,
   "tests/test_polarizability_methods.py": 1,
   "tests/test_polarizability_miller.py": 4,
+  "tests/test_polarizability_refit.py": 4,
+  "tests/test_polarizability_refit2.py": 2,
   "tests/test_polarizability_typed.py": 1,
   "tests/test_pop_out_host.py": 4,
   "tests/test_pose_agreement.py": 3,

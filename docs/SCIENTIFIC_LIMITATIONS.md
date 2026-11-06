@@ -632,10 +632,11 @@ not a substitute for the 3D steric measures in Geometry.
 *E*s, Hancock's *E*sc, Charton's *ν* and this one — so it is reported as
 Cao–Liu TSEI and never as a bare "steric index".
 
-**Covers 28 elements and refuses the rest by name.** Those are the elements
-Lange's Handbook tabulates a single-bond covalent radius for; the equation
-needs one and there is nothing to substitute that would not be a number from
-a different table.
+**Covers 28 elements, plus platinum with a warning, and refuses the rest by name.**
+Those are the elements Lange's Handbook tabulates a single-bond covalent radius
+for; the equation needs one and anything else is a number from a different
+table. Platinum is the one exception: Lange has no value, so Cordero 2008's
+1.36 Å is used and the result says it is on a slightly different scale.
 
 **The equation is geometric and the validation is not.** There is no
 per-element fitting, so any of those 28 computes — but Cao and Liu validated
@@ -662,10 +663,29 @@ tensor is not implemented.
 **`ahc` and `ahp` are different quantities, not settings of one.** The first
 squares a sum over the whole molecule; the second is plain additivity. They
 are offered side by side because the source offers both, and neither is a
-default for the other. Jensen's additive scheme is a third answer again:
-about 1% on aromatics and halogenated compounds, and roughly 11% high on
-saturated hydrocarbons, because an atom-additive scheme has no hybridization
-dependence.
+default for the other. The additive atomic scheme is a third answer again, and
+has no hybridization dependence.
+
+**The additive scheme's table was refitted on 2026-11-05.** The numbers used before
+were labelled Jensen et al. 2002 and had no recorded source (Jensen's paper is a
+dipole-interaction model for H, B, C, N, O, F and Cl, and none of the numbers appear
+in it, in Miller's papers or in any of the 912 papers held), so H, C, N, O, F, S, Cl,
+Br and I were fitted here to the experimental polarizabilities of 425 solvents
+(Bosque and Sales 2002), as fixed in `benchmarks/polarizability/PREREGISTRATION.md`.
+Measured: 2.1% mean absolute error on the 85 held-out solvents (the old table: 7.8%),
+4.3% on 88 compounds of a second, gas-phase set (the old table: 9.8%). **Where it is
+weakest:** fused aromatics (anthracene and larger, 11 to 13% low) and any molecule whose
+polarizability is not a sum over atoms. **A second refit the same day** (CRC Handbook
+table of molecular polarizabilities, one constant added per molecule,
+`benchmarks/polarizability/PREREGISTRATION_2.md`) was made because the first table was
+16% low on average for molecules of six atoms or fewer; it cut that to 9% low (13% mean
+absolute error) and water from 28% low to about 6% low, but the error on an independent
+set of 83 held-out molecules is still 7.7% on average, with ozone, iodine chloride,
+tetranitromethane, sulfur hexafluoride and dinitrobenzene 22 to 38% low. **Phosphorus and
+silicon are now fitted, to eight and six molecules, so they are less certain. Boron and
+selenium were not fitted** (two molecules and one): they keep the old numbers, which have
+no source, and a result that includes one says so. No metal is covered; no published
+additive value for a metal inside a molecule has been found.
 
 **One published atom assignment disagrees.** Nitrobenzene's is `6CTR 1NPI2
 2OTE 5H` in the source and differs here on the ipso carbon and on the nitro
@@ -1295,7 +1315,7 @@ had to choose, below). What that leaves out, measured on the panel in
   crystallisation, where the water is a solvent and the answer wanted is
   caffeine's.
 - **Per-atom contributions and the molecular value describe different
-  structures on a salt.** Crippen's and Jensen's per-atom increments are
+  structures on a salt.** Crippen's and the additive polarizability per-atom increments are
   atom-local table look-ups, so they are given for every atom drawn, the
   counter-ion included; the logP and polarizability beside them are the
   parent's. On a salt the contributions therefore do not sum to the value.

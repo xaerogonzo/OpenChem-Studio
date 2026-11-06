@@ -1106,7 +1106,7 @@ document may cite a file or a test that does not exist.
   but a hydrogen the calculator added has no drawing atom once
   neutralisation has changed the count, so the result is refused rather
   than mapped wrongly. No shipped calculator hits it: the two that add
-  hydrogens (Crippen and Jensen per-atom) are scoped per component instead.
+  hydrogens (Crippen and additive-polarizability per-atom) are scoped per component instead.
 
 - **DECISION** -- the 3D alignment overlay has ONE pane with a colour
   mode, not the vendor's two side-by-side views. Requested from a

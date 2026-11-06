@@ -97,7 +97,7 @@ WHAT IT IS AND IS NOT
     a TOPOLOGICAL estimate of through-space bulk: it reads the graph, so
     it cannot see a conformation, and two rotamers score identically
     LIMITED TO THE 28 ELEMENTS Lange's Handbook Table 4.7 tabulates,
-    and it refuses the rest by name
+    plus platinum from Cordero 2008 (with a warning); it refuses the rest by name
     VALIDATED ON A NARROWER SET THAN IT COMPUTES ON -- see below
 
 THE ACCEPTANCE ORACLE IS THE PRINTED TABLES, NOT THE CORRELATIONS. The
@@ -228,6 +228,18 @@ def _radii() -> dict[str, float]:
     return {symbol: row["radius"] for symbol, row in _payload()["radii"].items()}
 
 
+@lru_cache(maxsize=1)
+def supplementary_radii() -> dict[str, float]:
+    """Radii from a SECOND source, for elements Lange's Table 4.7 does not tabulate.
+
+    Cordero 2008's values are an average over crystal structures, not Lange's
+    tetrahedral single-bond radii, so they sit on a slightly different scale
+    (carbon 0.76 against 0.772, chlorine 1.02 against 0.99). A result that
+    used one says so; see `compute_tsei_projection`.
+    """
+    return {symbol: row["radius"] for symbol, row in _payload().get("supplementary_radii", {}).items()}
+
+
 def covalent_radius(symbol: str) -> float:
     """The radius this method uses, or `TseiRadiusError`.
 
@@ -236,6 +248,8 @@ def covalent_radius(symbol: str) -> float:
     own chlorine example at 1.5052 against a printed 1.4190.
     """
     radius = _radii().get(symbol)
+    if radius is None:
+        radius = supplementary_radii().get(symbol)
     if radius is None:
         raise TseiRadiusError(
             f"Lange's Handbook Table 4.7 tabulates no covalent radius for "
@@ -472,6 +486,15 @@ def compute_tsei_projection(
             ),
         },
     )
+
+    # A radius from another table is a number, and a number can be given a warning (the refusal it replaces gave nothing to read).
+    borrowed = sorted({atom.GetSymbol() for atom in mol.GetAtoms()} & set(supplementary_radii()))
+    if borrowed:
+        provenance.parameters["summary"] = (
+            f"{', '.join(borrowed)}: Lange's Table 4.7 has no covalent radius, so Cordero 2008's average ({', '.join(f'{x} {supplementary_radii()[x]:.2f} A' for x in borrowed)}) "
+            "is used, which is on a slightly different scale from the other radii. The paper validated TSEI on alkyl, halogen and ether substituents only, "
+            "so a value involving a metal is an extrapolation."
+        )
 
     try:
         values = tsei_projection(mol, include_hydrogens, crowded)

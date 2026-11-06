@@ -375,20 +375,20 @@ orbital electronegativity, Gasteiger-Marsili, PEOE electronegativity
 <!-- help:calc-polarizability -->
 ### Polarizability (molecular)
 
-Molecular polarizability in A^3, by one of three methods. Jensen et al.'s additive atomic scheme is accurate to about 1% for aromatics and halogenated compounds and roughly 11% high for saturated hydrocarbons, since an atom-additive scheme has no hybridization dependence. Miller's two methods are hybridization-aware: ahc squares a sum over the whole molecule and lands within 1% on benzene and CCl4, ahp is plain additivity. The three are different quantities, not settings of one -- pick one and read the reported method.
+Molecular polarizability in A^3, by one of three methods. The additive atomic scheme (element values fitted by this project to experimental polarizabilities of solvents) is within about 2% on solvents like those and 4% on a second, gas-phase set, but has no hybridization dependence: very small molecules (water is 28% low), fused aromatics (about 11% low) and anything unlike the fitting set can be further off. Miller's two methods are hybridization-aware: ahc squares a sum over the whole molecule and lands within 1% on benzene and CCl4, ahp is plain additivity. The three are different quantities, not settings of one -- pick one and read the reported method.
 
 - Produces a list of facts, each with its own units, basis and evidence.
 - Runs on the 2D drawing, so no conformer is needed.
 - Basis: empirical (fitted to measured data, with real scatter).
 - Options:
-  - `method` -- Method (Jensen (additive), Miller ahc, Miller ahp) default `Jensen (additive)`
+  - `method` -- Method (Atomic additive, Miller ahc, Miller ahp) default `Atomic additive`
   - `major_microspecies` -- Take major microspecies default `False`
   - `pH` -- at pH default `7.4` range 0.0 to 14.0
 
 <!-- help:calc-atomic-polarizability -->
 ### Polarizability (per atom)
 
-Per-atom polarizability contributions (Jensen et al.), projected onto 2D and 3D.
+Per-atom polarizability contributions (the additive table), projected onto 2D and 3D.
 
 - Produces one value per atom, with a depiction coloured by them.
 - Runs on the 2D drawing, so no conformer is needed.
@@ -1111,7 +1111,7 @@ Stereocentres coloured by CIP descriptor -- R against S at a glance, plus E/Z do
 <!-- help:calc-tsei-projection -->
 ### Cao-Liu TSEI projection (per atom)
 
-Cao & Liu's topological steric effect index with every atom in turn as the reaction centre -- how much of each atom's approach the rest of the molecule screens, read off the graph. Dimensionless. TSEI is defined for a SUBSTITUENT measured toward a named reaction centre; running it at every atom is OpenChem's projection of it, not a quantity the paper defines. Topological, so two conformers of one molecule score identically. Covers the 28 elements Lange's Handbook tabulates a covalent radius for, and refuses the rest by name. The equation is geometric, so any of those 28 computes -- but Cao and Liu validated it on alkyl, halogen and ether substituents, so a result on an organometallic is an extrapolation.
+Cao & Liu's topological steric effect index with every atom in turn as the reaction centre -- how much of each atom's approach the rest of the molecule screens, read off the graph. Dimensionless. TSEI is defined for a SUBSTITUENT measured toward a named reaction centre; running it at every atom is OpenChem's projection of it, not a quantity the paper defines. Topological, so two conformers of one molecule score identically. Covers the 28 elements Lange's Handbook tabulates a covalent radius for, plus platinum from Cordero 2008 (with a warning, since it is on another scale), and refuses the rest by name. The equation is geometric, so any of those 28 computes -- but Cao and Liu validated it on alkyl, halogen and ether substituents, so a result on an organometallic is an extrapolation.
 
 - Produces one value per atom, with a depiction coloured by them.
 - Runs on the 2D drawing, so no conformer is needed.

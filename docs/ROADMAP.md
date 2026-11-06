@@ -2374,8 +2374,8 @@ and three were checked again recently rather than taken on trust.
      included, which could first lose its listed solvent. **The guess can now be corrected (2026-10-30):** Properties shows a "Compute on:" row for a drawing
      with two different components, the pick is an undoable command saved with the molecule as the component's SMILES (`MoleculeModel.component_choice`), it
      overrides ChEMBL's rule and the largest-component rule (a metal complex still refuses), and equal-sized different species (NaCl) are now chosen rather than refused.
-  3. **Parameters missing for an element**: Jensen's atomic polarizability (no Na, Fe, Pt ...), Bultinck's EEM charges (no Cl, B, S), TSEI (no Pt covalent
-     radius in Lange's table), molecular dynamics (no MMFF or UFF type). Each is a parameter-table extension from a source, measured against that source; none
+  3. **Parameters missing for an element**: the additive atomic polarizability (no Na, Fe, Pt ...; **the table was refitted on 2026-11-05 and the Jensen label removed, `benchmarks/polarizability/RESULT.md`; a second refit the same day added the CRC Handbook's small molecules and a per-molecule constant (water 28 % low -> about 6 % low; P and Si now fitted to few molecules; only B and Se remain unfitted), and no published additive value for a metal inside a molecule has been found**), Bultinck's EEM charges (no Cl, B, S), TSEI (no Pt covalent
+     radius in Lange's table; **DONE 2026-11-05: Pt now uses Cordero 2008's 1.36 Å (uncertainty 5 in the last digit), with a warning on the result that it is on another scale; no other element was added**), molecular dynamics (no MMFF or UFF type). Each is a parameter-table extension from a source, measured against that source; none
      can be a warning, because there is no number to label.
   4. **Group coverage**: Joback has no group for a ring tertiary nitrogen and several other environments, Hansen (Stefanis-Panayiotou) none for silicon and
      some N and O environments. A later group-contribution table (or the same authors' extensions) would have to be read first.

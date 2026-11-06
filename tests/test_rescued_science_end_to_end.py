@@ -44,36 +44,24 @@ def _polarizability(smiles: str, method: str) -> float:
     return float(result.matched[0].split(":")[1].split()[0])
 
 
-def test_the_registry_reaches_millers_ahc_and_not_jensens_number():
-    """A SATURATED HYDROCARBON, because that is where the two schemes
-    genuinely separate -- and the calculator's own description says so.
+def test_the_registry_reaches_millers_ahc_and_not_the_additive_number():
+    """CYCLOHEXANE, because after the additive table was refitted (2026-11-05, twice) it is where the two schemes still separate by more than rounding.
 
-    Measured across six molecules: CCl4 puts Jensen and Miller ahc 1.5%
-    apart and benzene 1.6%, which two decimals nearly swallow. n-hexane
-    puts them 11.9% apart, which is the "roughly 11% high for saturated
-    hydrocarbons" the description states, because an atom-additive scheme
-    has no hybridization dependence and Miller's does. So this fixture
-    checks the wiring AND the sentence a user reads.
+    The refit made the additive scheme agree with Miller's ahc to within about 4% on every molecule tried (it used to be 11% high on n-hexane, which this test once pinned,
+    and then 28% below on water, which it pinned next). Cyclohexane gives 11.06 against 11.48, which two decimals separate, so this still checks the wiring: Miller's method
+    under its own id, not the additive number under Miller's label.
     """
-    miller = _run("polarizability", "CCCCCC", {"method": "Miller ahc"})
+    miller = _run("polarizability", "C1CCCCC1", {"method": "Miller ahc"})
     assert miller.provenance.method == "miller_ahc"
 
     value = float(miller.matched[0].split(":")[1].split()[0])
-    jensen = _polarizability("CCCCCC", "Jensen (additive)")
+    additive = _polarizability("C1CCCCC1", "Atomic additive")
 
-    assert jensen > value, "Jensen should be the HIGH one on a saturated chain"
-    excess = (jensen - value) / value
-    assert 0.08 < excess < 0.16, (
-        f"Jensen is {excess:.1%} above Miller on n-hexane; the description "
-        "claims roughly 11%, so one of the two has moved"
-    )
+    assert additive > value, "the additive number should be the HIGH one on cyclohexane"
+    assert (additive - value) / value > 0.02, f"ahc {value} and additive {additive} have moved together; the test no longer discriminates"
 
-    # CCl4 is the fixture this test does NOT use, recorded so nobody
-    # substitutes it back: at 1.5% apart it cannot discriminate.
-    assert abs(
-        _polarizability("ClC(Cl)(Cl)Cl", "Miller ahc")
-        - _polarizability("ClC(Cl)(Cl)Cl", "Jensen (additive)")
-    ) < 0.3
+    # CCl4 is the fixture this test does NOT use, recorded so nobody substitutes it back: the two agree to 0.2% and cannot discriminate.
+    assert abs(_polarizability("ClC(Cl)(Cl)Cl", "Miller ahc") - _polarizability("ClC(Cl)(Cl)Cl", "Atomic additive")) < 0.3
 
 
 def test_the_registry_reaches_the_corrected_tsei_and_not_eq_7():
