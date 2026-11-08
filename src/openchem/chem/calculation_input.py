@@ -396,7 +396,10 @@ def _drawing_input(engine: ChemistryEngine, model: MoleculeModel) -> ResolvedInp
     was handed the drawing, so a result computed that way is the same input as a drawing-policy one.
     """
     molblock = model.molblock or ""
-    return ResolvedInput(engine.mol_from_model(model), _fingerprint(DRAWING, molblock), DRAWING)
+    # A chosen component is part of what the calculation received: a result for one piece must not be
+    # replayed for another. Left out when nothing is chosen, so every existing fingerprint is unchanged.
+    parts = (DRAWING, molblock, f"component:{model.component_choice}") if model.component_choice else (DRAWING, molblock)
+    return ResolvedInput(engine.mol_from_model(model), _fingerprint(*parts), DRAWING)
 
 
 #: Every key `geometry_provenance` adds carries this prefix.

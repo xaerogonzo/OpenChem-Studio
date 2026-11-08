@@ -96,6 +96,14 @@ _LIMIT_CODES = (
     "NO_RINGS", "NO_PI_SYSTEM", "NO_IONIZABLE_CENTRE", "NOT_CHNO", "AMPHOLYTE",
     "UNCOVERED_ATOM", "NO_DONOR_ATOM", "NO_POLYOXYETHYLENE",
     "REFUSE_ELEMENT_NOT_PARAMETERISED", "NO_KNOWN_FRAGMENTS",
+    # The typed EEM (NEEMP 2016): an atom type with no published parameters, a structure its
+    # bond list cannot type, one whose type depends on how it is drawn (when the person asked
+    # to refuse that), or one the resonance search cannot cover.
+    "REFUSE_TYPE_NOT_PARAMETERISED", "REFUSE_BAD_BONDS", "REFUSE_RESONANCE_DEPENDENT",
+    "REFUSE_MULTIPLE_COMPONENTS", "REFUSE_UNPAIRED_ELECTRON", "REFUSE_TOO_MANY_RESONANCE_FORMS",
+    "REFUSE_NOT_KEKULISABLE",
+    # Jiroušková's EEM is offered only for molecules with chlorine, bromine or sulfur, the elements it was checked on.
+    "REFUSE_OUTSIDE_MEASURED_SCOPE",
 )
 
 #: The codes that carry a kind with no producer declaring it. Deliberately

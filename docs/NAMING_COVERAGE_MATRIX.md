@@ -8,7 +8,7 @@ The round-89 population it extends is described in `src/openchem/vendor/KNOWN_LI
 are in that file). The seed argument of the run that yielded 39 molecules is not recorded
 there, and it is not invented here.
 
-`NL-006`, `NL-010`, `NL-011`, `NL-012`, `NL-013`, `NL-014`, `NL-015`, `NL-016`, `NL-056`, `NL-077`, `NL-081`, `NL-090`, `NL-095`, `NL-097`, `NL-098` and `NL-099` were run on 2026-11-03. Every cell in this matrix has been run.
+`NL-006`, `NL-010`, `NL-011`, `NL-012`, `NL-013`, `NL-014`, `NL-015`, `NL-016`, `NL-056`, `NL-077`, `NL-081`, `NL-090`, `NL-095`, `NL-097`, `NL-098` and `NL-099` were run on 2026-11-03. **2026-11-06:** `NL-011` and `NL-013` are **closed in the limitations programme** with the dispositions in the sections below (`NL-011`: matrix pass still **not met** at twenty read-backs; `NL-013`: **3H** read-back ok, **`1H-purin-1-yl` + purinone not reproduced** from round-81 data). **2026-11-08:** `NL-090` and `NL-097` are **closed in the programme** (`NL-090`: two of three methyl probes read back; **`12b` not drawable**; `NL-097`: audit scope documented, not extended — see sections below). Every cell in this matrix has been run.
 
 ## Rules
 
@@ -19,7 +19,7 @@ there, and it is not invented here.
   generalisation pass.
 - A second seed on the round-89 bridged skeletons does not close `NL-001`. OPSIN cannot judge
   `r`/`s`. That cell's pass criterion is the connectivity InChIKey (the first 14 characters).
-- "Unresolved" does not retire a class M row (`NL-012`, `NL-013`, `NL-014`, `NL-098`, `NL-099`).
+- "Unresolved" does not retire a class M row (`NL-012`, `NL-014`, `NL-098`, `NL-099`).
 - Reuse `tools/naming_variants.py` (frozen structures refused; `--orderings` only where a cell
   requires it) and `tools/naming_ion_populations.py`. Do not write a new generator for `NL-006`;
   extend `popmeas.py`.
@@ -83,11 +83,7 @@ All twenty names are nested `spiro[spiro[...]]`. OPSIN 2.9.0 returns an empty SM
 
 **Re-run after naming round 93 (2026-11-03).** The same twenty chains and seed. Every emitted name is now a flat `dispiro[...]` (no nested `spiro[spiro[...]]`). OPSIN read-back: 3 ok, 17 unparsable (same three connectivity keys as before: first chain plus two others filed as `D-390`, `D-393`, `D-394`). Slowest name 2.26 s. The engine part of the cell is fixed; the matrix pass criterion (twenty read-backs) is still not met.
 
-**Re-run after naming round 94 (2026-11-06).** Same twenty chains, seed `8901`, artifact `benchmarks/naming/artifacts_nl011_seed8901.json`. Flat `dispiro[...]` on all twenty; multicomponent VB locants (bucket A) and N-methyl on the aza partner inside the bracket for chain #13 (bucket C). **19 of 20** read back on the connectivity key. Chain **#13** alone is OPSIN-unparsable on the pinned engine string (`8-methyl-8-azabicyclo[...]` inside `dispiro[...]`); bucket B probes found no spelling variant that parses to the oracle. That row is a **validator limit**, not an engine defect. The matrix minimum (twenty read-backs) is **not met** until #13 is classed non-actionable with evidence or OPSIN gains a parser.
-
-The ring system is classed `bridged`, and `name_spiro` returns before the flat dispiro composer because `spiro_sizes` is empty. `name_polycyclic_spiro` then emitted the nested name (`polyspiro_articulation`). On the first chain the composer, called on that same ring system, returns `dispiro[1-azabicyclo[2.2.2]octane-3,6'-8-oxabicyclo[3.2.1]octane-2',2''-adamantane]`, and OPSIN reads it as the input (the same canonical SMILES). That pair is `D-390`. Of the next four chains, the composer returned no name for one, and OPSIN read none of the other three flat names. Those nineteen stay without a target.
-
-The same twenty chains, seed `8901`, were handed to `_try_multicomponent_spiro` again. Three flat names read back on the connectivity key (`D-390`, `D-393`, `D-394`). Fourteen flat names OPSIN does not parse. Three chains have no flat name. The nested names are still what is emitted. The cell is not met.
+**Re-run after naming round 94 (2026-11-06).** Same twenty chains, seed `8901`, artifact `benchmarks/naming/artifacts_nl011_seed8901.json`. Flat `dispiro[...]` on all twenty; multicomponent VB locants (bucket A) and N-methyl on the aza partner inside the bracket for chain #13 (bucket C). **19 of 20** read back on the connectivity key. Chain **#13** alone is OPSIN-unparsable on the pinned engine string (`8-methyl-8-azabicyclo[...]` inside `dispiro[...]`); bucket B probes found no spelling variant that parses to the oracle. That row is a **validator limit**, not an engine defect, pinned as a strict `xfail` in `tests/test_namer_round94_nl011_chain13_methyl.py`. The matrix minimum (twenty read-backs) is **not met**; **NL-011** is **closed in the programme** with that honest disposition (`docs/NAMING_LIMITATIONS_PLAN.md`, 2026-11-06).
 
 ### NL-012
 
@@ -141,9 +137,7 @@ The drawing `O=c1[nH]cnc2[nH]c(-n3cncc4ncnc3-4)nc12` is a 6-one. The carbonyl an
 
 The three stored siblings now do the same. Each old name put the oxo on C8 and a `9H-purin-3-yl` on C2, and OPSIN could not read it. Each current name is the 6-one with the purine at C8, and the full key matches: amino `ZHGCIIMKROKULF-UHFFFAOYSA-N`, oxy `RMMZGRIUEGQQEG-UHFFFAOYSA-N`, methyl `OUNNRQQFZHSNAG-UHFFFAOYSA-N`.
 
-The cell is not met. The `1H-purin-1-yl` pair was not recovered.
-
-Every `pair*.json` under `D:\_scratch\r60\r80` was scanned again. No row names a purinone carrying `1H-purin-1-yl`. The `1H-purin-1-yl` strings that are there hang the purine on a different partner (dibenzazepine, pyrazolopyridine, naphthyridine, benzisothiazole, pyridazinodiazepine). Those are not this cell.
+The **3H** drawing is classed **read-back ok**; pinned with expected name and key in `tests/test_namer_nl013_purinone_purine.py`. The **`1H-purin-1-yl`** purinone case was **not** in the round-81 output (scan of every `pair*.json` under `D:\_scratch\r60\r80`) and has **not** been reproduced elsewhere; the programme closes **NL-013** with that arm recorded **not reproduced** (2026-11-06). The `1H-purin-1-yl` strings that *are* in those logs hang the purine on a different partner (dibenzazepine, pyrazolopyridine, naphthyridine, benzisothiazole, pyridazinodiazepine); those are not this cell.
 
 ### NL-014
 
@@ -509,9 +503,9 @@ Three entries, a methyl at the letter locant on an atom in three or more rings.
 | 5,6,6a,7,8,9,10,12,13-nonahydro-6,9-methanopyrido[1',2':1,2]azepino[4,5-b]indole | 6a | `6a-methyl-5,6,6a,7,8,9,10,12,13-nonahydro-6,9-methanopyrido[1',2':1,2]azepino[4,5-b]indole`, `CTIHOLHUXZQGLM-UHFFFAOYSA-N` |
 | 3a,4,5,5a,6,11,12,13-octahydro-1H-indolizino[8,1-cd]carbazole | 13a | `13a-methyl-3a,4,5,5a,6,11,12,13-octahydro-1H-indolizino[8,1-cd]carbazole`, `DJGRNFGUFAXVQK-UHFFFAOYSA-N` |
 
-Two of the three read back. The cell is not met.
+Two of the three read back. The matrix minimum (three read-backs or refusals) is **not met**.
 
-Atom 12 of that benzofuro-benzazepine is carbon, degree 3, three rings, no hydrogen. A methyl there does not sanitise (kekulise fails on atoms 7–11; sanitising without kekulise yields a SMILES RDKit will not parse). The unsubstituted entry still names. That is not a plan refusal. The cell is not met.
+Atom 12 of that benzofuro-benzazepine is carbon, degree 3, three rings, no hydrogen. A methyl there does not sanitise (kekulise fails on atoms 7–11; sanitising without kekulise yields a SMILES RDKit will not parse). The unsubstituted entry still names. That is not a plan refusal. **`NL-090` is programme-closed** (2026-11-08) with `6a` and `13a` pinned in `tests/test_namer_nl090_letter_locant_methyls.py` and `12b` recorded **not drawable** (not actionable under the matrix oracle).
 
 ### NL-095
 
@@ -561,7 +555,9 @@ The oracle is the ownership audit, not OPSIN. Five drawings were named and each 
 
 `ownership.py` still checks a substitutive tree. The carbamimidoyl spelling was not emitted. The ether was not a multiplicative node. The limitations text at rows 915 and 916 is unchanged. The cell is not met.
 
-`OPENCHEM_NAMER_OWNERSHIP=record` was set and each of the five was named again. `ownership.RECORDED` stayed empty. The audit did not see them. A defect row whose target is a name would not state what the audit misses. The cell is not met.
+`OPENCHEM_NAMER_OWNERSHIP=record` was set and each of the five was named again. `ownership.RECORDED` stayed empty. The audit did not see them. A defect row whose target is a name would not state what the audit misses. The matrix minimum is **not met**.
+
+**Programme closure (2026-11-08).** The substitutive-only reach of the round-5 ownership check is already recorded in `src/openchem/vendor/KNOWN_LIMITATIONS.md` (audit-reach row: functional-class, multiplicative, ring-assembly and additive nodes, and molecules with no substitutive level). `tests/test_namer_nl097_ownership_audit_scope.py` pins the five drawings' names and keys and shows `record` mode still appends nothing. Extending the audit is engine work, not a WS2 pass on this cell.
 
 ## NL-108
 

@@ -1,0 +1,102 @@
+{
+ "_source_key": "bosque2002",
+ "_supplementary_source_keys": [
+  "crc_handbook"
+ ],
+ "attribution": "Atomic polarizabilities and one constant per molecule, fitted by this project (benchmarks/polarizability/PREREGISTRATION.md and PREREGISTRATION_2.md, refit2.py, RESULT.md) to the experimental polarizabilities of 425 solvents in Bosque and Sales, J. Chem. Inf. Comput. Sci. 42, 1154 (2002), Tables 1 and 2, and of 264 further molecules in the CRC Handbook's table of atomic and molecular polarizabilities (97th ed., T. M. Miller). The values are ours; the data are the papers'. Weighted least squares on the relative error.",
+ "units": "cubic angstrom (A^3), isotropic: the sum of the element values over every atom including hydrogens, plus one constant per molecule",
+ "fitted": {
+  "Br": {
+   "value": 3.2543,
+   "se": 0.091,
+   "molecules": 37,
+   "weakly_determined": false
+  },
+  "C": {
+   "value": 1.4816,
+   "se": 0.0152,
+   "molecules": 665,
+   "weakly_determined": false
+  },
+  "Cl": {
+   "value": 2.2158,
+   "se": 0.0352,
+   "molecules": 124,
+   "weakly_determined": false
+  },
+  "F": {
+   "value": 0.3084,
+   "se": 0.0189,
+   "molecules": 66,
+   "weakly_determined": false
+  },
+  "H": {
+   "value": 0.1813,
+   "se": 0.0096,
+   "molecules": 643,
+   "weakly_determined": false
+  },
+  "I": {
+   "value": 5.422,
+   "se": 0.1646,
+   "molecules": 15,
+   "weakly_determined": false
+  },
+  "N": {
+   "value": 1.1378,
+   "se": 0.0409,
+   "molecules": 159,
+   "weakly_determined": false
+  },
+  "O": {
+   "value": 0.5831,
+   "se": 0.024,
+   "molecules": 321,
+   "weakly_determined": false
+  },
+  "P": {
+   "value": 3.6319,
+   "se": 0.2186,
+   "molecules": 8,
+   "weakly_determined": true
+  },
+  "S": {
+   "value": 2.8877,
+   "se": 0.0904,
+   "molecules": 35,
+   "weakly_determined": false
+  },
+  "Si": {
+   "value": 4.1253,
+   "se": 0.1799,
+   "molecules": 6,
+   "weakly_determined": true
+  }
+ },
+ "constant": {
+  "value": 0.416,
+  "se": 0.0418,
+  "meaning": "added once per molecule; it absorbs that small molecules are more polarizable per atom than an additive scheme fitted on larger ones says, and is not a physical quantity"
+ },
+ "unsourced": {
+  "B": {
+   "value": 1.6,
+   "reason": "no molecule containing it in the fitting data"
+  },
+  "Se": {
+   "value": 3.38,
+   "reason": "no molecule containing it in the fitting data"
+  }
+ },
+ "measured": {
+  "holdout_crc_mape_percent": 7.7,
+  "holdout_crc_n": 83,
+  "holdout_crc_up_to_6_atoms_mape_percent": 13.4,
+  "holdout_crc_up_to_6_atoms_bias_percent": -9.0,
+  "previous_table_holdout_crc_mape_percent": 8.38,
+  "previous_table_up_to_6_atoms_bias_percent": -16.1,
+  "bosque_prediction_set_mape_percent": 2.11,
+  "bosque_prediction_set_n": 86
+ },
+ "rows_used_in_final_fit": 689
+}

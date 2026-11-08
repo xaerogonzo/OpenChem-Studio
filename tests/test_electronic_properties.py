@@ -12,7 +12,7 @@ import pytest
 from rdkit import Chem
 
 from openchem.chem.electronic_properties import (
-    JENSEN_POLARIZABILITY,
+    ADDITIVE_POLARIZABILITY,
     atomic_polarizabilities,
     compute_atomic_polarizability,
     compute_orbital_electronegativity,
@@ -27,39 +27,60 @@ from openchem.domain.common import CacheState
 
 
 @pytest.mark.parametrize(
-    "smiles,label,experimental",
+    "smiles,label,experimental,tolerance",
     [
-        ("c1ccccc1", "benzene", 10.32),
-        ("ClC(Cl)(Cl)Cl", "CCl4", 10.51),
-        ("c1ccccc1C", "toluene", 12.30),
-        ("CCl", "chloromethane", 4.72),
-        ("ClCCl", "dichloromethane", 6.48),
+        ("c1ccccc1", "benzene", 10.32, 0.03),
+        ("ClC(Cl)(Cl)Cl", "CCl4", 10.51, 0.03),
+        ("c1ccccc1C", "toluene", 12.30, 0.03),
+        ("ClCCl", "dichloromethane", 6.48, 0.05),
+        # Chloromethane is a gas and a small molecule, where the table is weakest (see PREREGISTRATION_2.md): stated here so it is not mistaken for a regression.
+        ("CCl", "chloromethane", 4.72, 0.09),
     ],
 )
-def test_aromatics_and_halides_land_within_a_few_percent_of_experiment(
-    smiles, label, experimental
-):
+def test_the_refit_table_lands_near_experiment_on_familiar_molecules(smiles, label, experimental, tolerance):
     value = molecular_polarizability(Chem.MolFromSmiles(smiles))
-    assert value == pytest.approx(experimental, rel=0.05), label
+    assert value == pytest.approx(experimental, rel=tolerance), label
 
 
-def test_the_parameters_match_the_values_visible_in_vendors_screenshot():
-    """Their per-atom display reads 1.36 for aromatic carbon and 0.39 for
-    hydrogen, which identifies the Jensen parameter set."""
-    assert JENSEN_POLARIZABILITY["C"] == pytest.approx(1.36, abs=0.04)
-    assert JENSEN_POLARIZABILITY["H"] == pytest.approx(0.39, abs=0.01)
+def test_the_table_is_the_fitted_one_and_two_elements_are_flagged_unsourced():
+    """The numbers come from `data/polarizability_refit.json`, whose provenance is `benchmarks/polarizability/`: eleven fitted (P and Si to few molecules), two never fitted."""
+    from openchem.chem.electronic_properties import UNSOURCED_ADDITIVE_ELEMENTS
+
+    from openchem.chem.electronic_properties import ADDITIVE_CONSTANT, WEAK_ADDITIVE_ELEMENTS
+
+    assert UNSOURCED_ADDITIVE_ELEMENTS == frozenset({"B", "Se"})
+    assert WEAK_ADDITIVE_ELEMENTS == frozenset({"P", "Si"})
+    assert ADDITIVE_POLARIZABILITY["H"] == pytest.approx(0.1813) and ADDITIVE_POLARIZABILITY["C"] == pytest.approx(1.4816)
+    assert ADDITIVE_CONSTANT == pytest.approx(0.416)
+    assert set(ADDITIVE_POLARIZABILITY) == {"H", "C", "N", "O", "F", "S", "Cl", "Br", "I", "P", "Si", "B", "Se"}
 
 
-def test_saturated_hydrocarbons_are_overestimated_and_that_is_documented():
-    """A purely atom-additive scheme has no hybridization dependence, so it
-    cannot tell an sp3 carbon from an aromatic one. Known, stated, and
-    pinned here so it is not mistaken for a regression."""
-    value = molecular_polarizability(Chem.MolFromSmiles("CCCC"))
-    assert value > 8.20  # experimental n-butane
-    assert value == pytest.approx(9.19, rel=0.02)
+def test_an_unsourced_element_carries_a_warning_and_a_fitted_one_does_not():
+    plain = compute_polarizability(Chem.MolFromSmiles("CCO"), "mol-1").matched
+    assert not any("never fitted" in line for line in plain)
+    with_b = compute_polarizability(Chem.MolFromSmiles("B(F)(F)F"), "mol-1").matched
+    assert any("never fitted" in line and "B" in line for line in with_b)
+    per_atom = compute_atomic_polarizability(Chem.MolFromSmiles("B(F)(F)F"), "mol-1")
+    assert "never fitted" in per_atom.provenance.parameters["summary"]
+    # phosphorus is fitted now, to few molecules: a note, not the unsourced warning
+    with_p = compute_polarizability(Chem.MolFromSmiles("COP(=O)(OC)OC"), "mol-1").matched
+    assert not any("never fitted" in line for line in with_p)
+    assert any("fewer than ten molecules" in line and "P" in line for line in with_p)
 
-    lines = compute_polarizability(Chem.MolFromSmiles("CCCC"), "mol-1").matched
-    assert any("saturated hydrocarbons" in line for line in lines)
+
+def test_the_per_atom_values_sum_to_the_molecular_value_with_the_constant_shared_out():
+    from openchem.chem.electronic_properties import ADDITIVE_CONSTANT, atomic_polarizabilities
+
+    water = Chem.MolFromSmiles("O")
+    values = atomic_polarizabilities(water)
+    assert sum(values.values()) == pytest.approx(molecular_polarizability(water))
+    assert molecular_polarizability(water) == pytest.approx(2 * ADDITIVE_POLARIZABILITY["H"] + ADDITIVE_POLARIZABILITY["O"] + ADDITIVE_CONSTANT)
+    assert molecular_polarizability(water) == pytest.approx(1.45, rel=0.10)  # was 28% low before the constant
+
+
+def test_saturated_hydrocarbons_are_close_after_the_refit():
+    """The old table was 11-12% high on these (H 0.39 against a fitted 0.20); the fit to solvents, mostly aliphatic, removes that."""
+    assert molecular_polarizability(Chem.MolFromSmiles("CCCC")) == pytest.approx(8.20, rel=0.03)  # experimental n-butane
 
 
 def test_miller_is_not_offered_and_the_description_says_why():

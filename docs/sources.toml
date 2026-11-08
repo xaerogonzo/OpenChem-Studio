@@ -7266,6 +7266,15 @@ said to be reproduced.
 
 The oxidation states are a third case and are neither: they were CHECKED
 AGAINST page 2639 and deliberately not taken from it -- see the note.
+
+**A SECOND COLUMN, 2026-11-05: THE POLARIZABILITY TABLE'S SMALL-MOLECULE
+DATA.** "ATOMIC AND MOLECULAR POLARIZABILITIES" (T. M. Miller; section 10,
+PDF pages 1798 to 1809) supplied 264 experimental molecular
+polarizabilities (those not marked calculated, with a structure whose
+formula equals the printed one, not already in Bosque and Sales' set) that
+the additive polarizability table was refitted to and judged on
+(`benchmarks/polarizability/PREREGISTRATION_2.md`). Only the fitted values
+ship; the table itself is a bulk copy and stays outside git.
 """
 used_by = [
     "src/openchem/chem/data/elements.json",
@@ -9672,4 +9681,109 @@ verification = "citation_and_claim"
 verified_date = 2026-10-28
 reason = """
 WHY THIOPHENOL STAYS OUT OF ARM D: D0(C6H5S-H) <= 28 030 +- 100 cm-1 (335.3 +- 1.2 kJ/mol, 80.15 kcal/mol at 0 K), which the authors call an upper limit; it lies 3.3 kcal/mol above Lim 2007's 76.8 +- 0.3 kcal/mol, so no thiophenol reference passes the 1.0 kcal/mol rule (restart-v3 preregistration section 7, references.json thiophenol_context).
+"""
+
+[[source]]
+key = "cordero2008"
+kind = "literature"
+citation = "Covalent radii revisited, B. Cordero, V. Gomez, A. E. Platero-Prats, M. Reves, J. Echeverria, E. Cremades, F. Barragan and S. Alvarez, Dalton Trans. 2008, 2832-2838"
+identifier_type = "doi"
+identifier = "10.1039/b801115j"
+status = "shipped"
+used_by = ["src/openchem/chem/data/tsei_radii.json", "src/openchem/chem/tsei.py"]
+verification = "citation_and_claim"
+verified_date = 2026-11-05
+reason = """
+PLATINUM'S COVALENT RADIUS for the Cao-Liu TSEI: 1.36 A with an uncertainty of 5
+in the last digit, read from the held copy (`cordero2008.pdf` in Sci Downloads)
+on 2026-10-30. Lange's Table 4.7 tabulates no platinum, so this is the only
+element taken from a second table. Cordero's radii are an average over crystal
+structures and sit on a slightly different scale from Lange's tetrahedral
+single-bond column (carbon 0.76 against 0.772, chlorine 1.02 against 0.99), so
+a TSEI that uses it carries a warning saying so. Only platinum is used; no
+other value from the paper enters the method.
+"""
+
+[[source]]
+key = "bosque2002"
+kind = "literature"
+citation = "Polarizabilities of Solvents from the Chemical Composition, R. Bosque and J. Sales, J. Chem. Inf. Comput. Sci. 2002, 42, 1154-1163"
+identifier_type = "doi"
+identifier = "10.1021/ci025528x"
+status = "shipped"
+used_by = ["src/openchem/chem/data/polarizability_refit.json", "src/openchem/chem/electronic_properties.py"]
+verification = "citation_and_claim"
+verified_date = 2026-11-05
+reason = """
+THE DATA the additive polarizability table was fitted to: the experimental
+polarizabilities in cubic angstrom of 426 solvents (Table 1, 340 of them, the
+authors' working set, and Table 2, 86, their prediction set), read from the
+held copy (`bosque2002.pdf`) on 2026-11-05. The paper's own fit (its Table 4,
+with an intercept) is NOT what ships: the values in
+`polarizability_refit.json` were fitted here, with no intercept, on the
+relative error, as fixed in `benchmarks/polarizability/PREREGISTRATION.md`
+before fitting. 425 rows were used (one name is not a compound and was
+excluded; 39 misspelt or truncated names were corrected by hand, listed in
+`benchmarks/polarizability/name_fixes.json`). The table itself is not
+committed: it is a bulk copy of a published table and is kept outside git.
+
+"""
+
+[[source]]
+key = "jirouskova2009"
+kind = "literature"
+citation = "Z. Jiroušková, R. Svobodová Vařeková, J. Vaněk & J. Koča, 'Electronegativity Equalization Method: Parameterization and Validation for Organic Molecules using the Merz-Kollman-Singh Charge Distribution Scheme', J. Comput. Chem. 2009, 30, 1174-1178."
+identifier_type = "doi"
+identifier = "10.1002/jcc.21142"
+status = "shipped"
+used_by = ["src/openchem/chem/typed_eem.py", "src/openchem/chem/data/eem_second_models.json"]
+local = "Jiroušková 2009.pdf"
+verification = "citation_and_claim"
+verified_date = 2026-10-30
+reason = """
+THE B3LYP/6-31G* MERZ-KOLLMAN COLUMN OF ITS TABLE 2, as Model J of
+`benchmarks/charges/models/eem_second_models_preregistration.md`: A and B for
+12 atom types (element and highest bond order: H1 C1 C2 N1 N2 O1 O2 F1 Cl1 Br1
+S1 Zn1) and kappa 0.302, built by `tools/build_eem_second_models.py` from
+`tests/fixtures/charges/jirouskova2009/table2.csv`. The CLAIM checked is the
+transcription: the table was read twice, from the PDF's text layer and from the
+page rendered at 300 dpi, and the two agree on all 120 printed numbers (check
+C1; the second reading was not blind). The CALCULATION is held to an independent
+solve to 1e-6 e (check C2). NOT checked: that the printed numbers are right in
+the paper, and the unit of the distance, which the paper does not state
+(angstrom, read from NEEMP's solver; check C5 tests it against reference
+charges). Zinc is in the table and refused by the application. The HF/6-31G*
+column is held in the fixture and not shipped.
+
+PAUSED 2026-10-30: the data and the solver support are in the repository and
+tested, and Model J is not offered by any calculator or setting. The only
+independent test found (Geidl 2015, Table 6) gives this set R2 0.7022, the lowest
+listed, on a different statistic and molecules from the paper's own 0.94; it
+stays unwired until its deviation from Merz-Kollman charges is measured
+(`eem_second_models_preregistration.md`, amendment 2).
+"""
+
+[[source]]
+key = "neemp2016"
+kind = "literature"
+citation = "NEEMP: software for validation, accurate calculation and fast parameterization of EEM charges, J. Cheminform. 2016, 8, 57 (Svobodová Vařeková's group, Masaryk University); Additional files 1 (source code) and 6 (parameter sets)."
+identifier_type = "doi"
+identifier = "10.1186/s13321-016-0171-1"
+status = "shipped"
+used_by = ["src/openchem/chem/typed_eem.py", "src/openchem/chem/data/eem_second_models.json", "src/openchem/chem/geometry_charges.py"]
+verification = "citation_and_claim"
+verified_date = 2026-10-30
+reason = """
+THE Ccd2016 PARAMETER SET `CCD_gen_DE_RMSD_B3LYP_6311G_NPA.par` (Additional file
+6), as Model N of `benchmarks/charges/models/eem_second_models_preregistration.md`:
+15 atom types including C3, N3, S2 and P2, kappa 0.5125, fitted to B3LYP/6-311G
+NPA charges of CORINA-generated CCD ligands that were NOT geometry-optimised.
+Open access, read 2026-10-30 from the article page; the paper's Tables 2, 4 and 7
+are images and were NOT read, so no per-type quality number is quoted anywhere.
+The file is copied byte for byte (SHA-256 in
+`tests/fixtures/charges/neemp2016/README.md`, marked -text in .gitattributes) and
+its numbers are read as a table. The EQUATION and the typing rule are read from
+Additional file 1's solver (`src/eem.c`, `src/io.c`): B on the diagonal, kappa
+over the SDF-coordinate distance off it, the type being the element and the
+highest bond order. There is no local copy of the paper in `Sci Downloads`.
 """

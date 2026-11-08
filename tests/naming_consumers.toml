@@ -189,6 +189,24 @@ scope = "core"
 owner = "namer"
 
 [[consumer]]
+file = "tests/test_namer_nl013_purinone_purine.py"
+why = "NL-013 (programme closed): 3H-purin-3-yl purinone+p264 drawing reads back on full InChIKey; documents closure of the measured arm"
+scope = "core"
+owner = "namer"
+
+[[consumer]]
+file = "tests/test_namer_nl090_letter_locant_methyls.py"
+why = "NL-090 (programme closed): 6a and 13a methyl substituents on curated hydro parents read back; 12b fusion carbon methyl is not drawable"
+scope = "core"
+owner = "namer"
+
+[[consumer]]
+file = "tests/test_namer_nl097_ownership_audit_scope.py"
+why = "NL-097 (programme closed): five WS2 drawings name and OPSIN-round-trip; ownership record mode still empty (substitutive-only audit)"
+scope = "core"
+owner = "namer"
+
+[[consumer]]
 file = "tests/test_namer_round94_nl011_multicomponent_methyl_cite.py"
 why = "NL-011 bucket C narrow: multicomponent dispiro cites N-alkyl on aza partners only, not spurious 5-methylbicyclo-style partner names (#6/#7/#14 regression guard)"
 scope = "core"
