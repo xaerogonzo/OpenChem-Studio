@@ -45,7 +45,7 @@ are reused here, not repeated.
 | **AutoDock4 (4.2.6)** | 4.2.6 | GPL (Scripps download page: "distributed freely under the GNU GPL") | One installer, `autodocksuite-4.2.6.i86Windows.exe` (per the download page; size not stated) | No: it is an installer, and installers are not run in this task | AD4 force field (a different family); needs `autogrid4` maps, so not a drop-in | smina `ad4_scoring` was the stand-in and was HARMFUL on the frozen test |
 | **AutoDock-GPU** | repo `ccsb-scripps/AutoDock-GPU`, active 2026-08 | GPL-2.0 plus LGPL files (GitHub) | None. The README's tested-platform table lists Linux and macOS; it is OpenCL or CUDA | No | AD4 on GPU | No |
 | **Uni-Dock** | repo `dptech-corp/Uni-Dock`, active 2026-07 | Apache-2.0 (GitHub) | None found; the repository's README does not mention Windows, and the code is C++ and CUDA | No | Vina, Vinardo, AD4 (per its description) | No (CUDA) |
-| **gnina** | v1.3.3 (`6fe1ce2`) | Apache-2.0 (GitHub) | GitHub `gnina.cuda12.8.static`, 2,056,131,000 bytes (sha256 `3340c1f4…72172`); not self-contained (CUDA 12.8 + cuDNN 9). Slice 1 PASS in WSL2 | **CNN rescore NULL** (`RESULT_GNINA.md`); **default dock NULL** (`RESULT_GNINA_DOCK.md`, 2026-11-05) | CNN / gnina | Not a Vina-family function; not a one-file Windows PE |
+| **gnina** | v1.3.3 (`6fe1ce2`) | Apache-2.0 (GitHub) | GitHub `gnina.cuda12.8.static`, 2,056,131,000 bytes (sha256 `3340c1f4…72172`); not self-contained (CUDA 12.8 + cuDNN 9). Slice 1 PASS in WSL2 | **CNN rescore NULL** (`RESULT_GNINA.md`); **default dock NULL** (`RESULT_GNINA_DOCK.md`, 2026-11-05); **CNNaffinity ranking HARMFUL** (`RESULT_CNN_AFFINITY.md`, 2026-11-08) | CNN / gnina | Not a Vina-family function; not a one-file Windows PE |
 | **LeDock, PLANTS, DOCK 6, rDock** | | Closed or academic-licence programs (LeDock has a Windows release per Wikipedia and the vendor's announcement; DOCK 6 is free for academic use and charged for industry per UCSF's page); redistribution terms not read; rDock's platform support not verified | Not looked for further | No | Their own | Not pursued: a bundled or app-downloaded closed binary needs a licence the project does not have, and none was checked |
 
 What the table does not claim: no engine other than smina and Vina was started, so "does not
@@ -159,9 +159,10 @@ a comparison means nothing unless the inputs reproduce something known):
    `RESULT_GNINA.md` (gained 3 lost 2). Default dock run 2026-11-05:
    `RESULT_GNINA_DOCK.md` (29 deciding, Vina 20/29 vs gnina 21/29, gained 4
    lost 3, p = 0.5).    Not an External Tools tab. `--cnn_scoring all` and
-   DiffDock-class were not arms. **CNNaffinity ranking power** is a
-   separate freeze (`PREREGISTRATION_CNN_AFFINITY.md`); no catalog
-   CNNaffinity yet.
+   DiffDock-class were not arms. **CNNaffinity ranking power** ran
+   HARMFUL (`RESULT_CNN_AFFINITY.md`: 35 deciding series, median Δρ
+   −0.130, series bootstrap [−0.330, −0.014]). That configuration is
+   closed. Nothing in `src/`.
 5. **QuickVina and Vina-GPU are worth revisiting only for speed**, never for pose choice, and
    only if a Windows binary with provenance appears.
 

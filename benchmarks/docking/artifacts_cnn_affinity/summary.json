@@ -1,0 +1,16 @@
+{
+  "deciding_n": 35,
+  "overlap_n": 42,
+  "dropped": 0,
+  "median_delta": -0.12982536057716326,
+  "series_interval": [
+    -0.32967032967032966,
+    -0.013774156949597702
+  ],
+  "clustered_interval": [
+    -0.32967032967032966,
+    0.1785714285714286
+  ],
+  "verdict": "HARMFUL",
+  "integration_eligible": false
+}
