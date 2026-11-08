@@ -2199,6 +2199,8 @@
   "tests/test_namer_multiplicative.py": 0,
   "tests/test_namer_nl012_bis_benzazocine_spiro.py": 2,
   "tests/test_namer_nl013_purinone_purine.py": 4,
+  "tests/test_namer_nl090_letter_locant_methyls.py": 1,
+  "tests/test_namer_nl097_ownership_audit_scope.py": 0,
   "tests/test_namer_nuclide_guard.py": 1,
   "tests/test_namer_numbering.py": 1,
   "tests/test_namer_ownership.py": 3,

@@ -8,7 +8,7 @@ The round-89 population it extends is described in `src/openchem/vendor/KNOWN_LI
 are in that file). The seed argument of the run that yielded 39 molecules is not recorded
 there, and it is not invented here.
 
-`NL-006`, `NL-010`, `NL-011`, `NL-012`, `NL-013`, `NL-014`, `NL-015`, `NL-016`, `NL-056`, `NL-077`, `NL-081`, `NL-090`, `NL-095`, `NL-097`, `NL-098` and `NL-099` were run on 2026-11-03. **2026-11-06:** `NL-011` and `NL-013` are **closed in the limitations programme** with the dispositions in the sections below (`NL-011`: matrix pass still **not met** at twenty read-backs; `NL-013`: **3H** read-back ok, **`1H-purin-1-yl` + purinone not reproduced** from round-81 data). Every cell in this matrix has been run.
+`NL-006`, `NL-010`, `NL-011`, `NL-012`, `NL-013`, `NL-014`, `NL-015`, `NL-016`, `NL-056`, `NL-077`, `NL-081`, `NL-090`, `NL-095`, `NL-097`, `NL-098` and `NL-099` were run on 2026-11-03. **2026-11-06:** `NL-011` and `NL-013` are **closed in the limitations programme** with the dispositions in the sections below (`NL-011`: matrix pass still **not met** at twenty read-backs; `NL-013`: **3H** read-back ok, **`1H-purin-1-yl` + purinone not reproduced** from round-81 data). **2026-11-08:** `NL-090` and `NL-097` are **closed in the programme** (`NL-090`: two of three methyl probes read back; **`12b` not drawable**; `NL-097`: audit scope documented, not extended — see sections below). Every cell in this matrix has been run.
 
 ## Rules
 
@@ -503,9 +503,9 @@ Three entries, a methyl at the letter locant on an atom in three or more rings.
 | 5,6,6a,7,8,9,10,12,13-nonahydro-6,9-methanopyrido[1',2':1,2]azepino[4,5-b]indole | 6a | `6a-methyl-5,6,6a,7,8,9,10,12,13-nonahydro-6,9-methanopyrido[1',2':1,2]azepino[4,5-b]indole`, `CTIHOLHUXZQGLM-UHFFFAOYSA-N` |
 | 3a,4,5,5a,6,11,12,13-octahydro-1H-indolizino[8,1-cd]carbazole | 13a | `13a-methyl-3a,4,5,5a,6,11,12,13-octahydro-1H-indolizino[8,1-cd]carbazole`, `DJGRNFGUFAXVQK-UHFFFAOYSA-N` |
 
-Two of the three read back. The cell is not met.
+Two of the three read back. The matrix minimum (three read-backs or refusals) is **not met**.
 
-Atom 12 of that benzofuro-benzazepine is carbon, degree 3, three rings, no hydrogen. A methyl there does not sanitise (kekulise fails on atoms 7–11; sanitising without kekulise yields a SMILES RDKit will not parse). The unsubstituted entry still names. That is not a plan refusal. The cell is not met.
+Atom 12 of that benzofuro-benzazepine is carbon, degree 3, three rings, no hydrogen. A methyl there does not sanitise (kekulise fails on atoms 7–11; sanitising without kekulise yields a SMILES RDKit will not parse). The unsubstituted entry still names. That is not a plan refusal. **`NL-090` is programme-closed** (2026-11-08) with `6a` and `13a` pinned in `tests/test_namer_nl090_letter_locant_methyls.py` and `12b` recorded **not drawable** (not actionable under the matrix oracle).
 
 ### NL-095
 
@@ -555,7 +555,9 @@ The oracle is the ownership audit, not OPSIN. Five drawings were named and each 
 
 `ownership.py` still checks a substitutive tree. The carbamimidoyl spelling was not emitted. The ether was not a multiplicative node. The limitations text at rows 915 and 916 is unchanged. The cell is not met.
 
-`OPENCHEM_NAMER_OWNERSHIP=record` was set and each of the five was named again. `ownership.RECORDED` stayed empty. The audit did not see them. A defect row whose target is a name would not state what the audit misses. The cell is not met.
+`OPENCHEM_NAMER_OWNERSHIP=record` was set and each of the five was named again. `ownership.RECORDED` stayed empty. The audit did not see them. A defect row whose target is a name would not state what the audit misses. The matrix minimum is **not met**.
+
+**Programme closure (2026-11-08).** The substitutive-only reach of the round-5 ownership check is already recorded in `src/openchem/vendor/KNOWN_LIMITATIONS.md` (audit-reach row: functional-class, multiplicative, ring-assembly and additive nodes, and molecules with no substitutive level). `tests/test_namer_nl097_ownership_audit_scope.py` pins the five drawings' names and keys and shows `record` mode still appends nothing. Extending the audit is engine work, not a WS2 pass on this cell.
 
 ## NL-108
 
