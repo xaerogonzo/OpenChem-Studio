@@ -1,7 +1,7 @@
 # CNNaffinity ranking power (design)
 
-**Status:** freeze text is `benchmarks/docking/PREREGISTRATION_CNN_AFFINITY.md`.
-No ranking ligand is CNN-scored until that freeze commit, then `rescore`.
+**Status:** freeze `PREREGISTRATION_CNN_AFFINITY.md` (`e52f01ae`). Catalog
+`rescore` finished 2026-11-08 **HARMFUL** (`RESULT_CNN_AFFINITY.md`).
 
 **Kept:** CNNaffinity on frozen Vina poses; within-assay Spearman; gnina
 1.3.3 `score_only`; freeze → list → gates → rescore → report → separate

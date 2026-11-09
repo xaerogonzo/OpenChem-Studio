@@ -88,7 +88,7 @@ A separate freeze (`PREREGISTRATION_GNINA_DOCK.md`, rules in `gnina_dock_core.py
 
 ## `run_cnn_affinity_test.py` — does CNNaffinity rank series better than Vina?
 
-A separate freeze (`PREREGISTRATION_CNN_AFFINITY.md`, rules in `cnn_affinity_core.py`): CNNaffinity of the representative Vina pose vs that pose’s Vina score on the frozen 77 within-assay series (paired complete-case Δρ; 35 deciding series after CrossDocked PDB hold-out). **No catalog CNNaffinity in the freeze commit.**
+A separate freeze (`PREREGISTRATION_CNN_AFFINITY.md`, rules in `cnn_affinity_core.py`): CNNaffinity of the representative Vina pose vs that pose’s Vina score on the frozen 77 within-assay series (paired complete-case Δρ; 35 deciding series after CrossDocked PDB hold-out). Freeze commit `e52f01ae`. Run finished 2026-11-08: **HARMFUL** (`RESULT_CNN_AFFINITY.md`; 35 of 35 deciding series, median Δρ −0.130, series bootstrap [−0.330, −0.014], 0 dropped). This configuration is closed.
 
 ## `prep_box_survey.py` — is a bad default pose a setup defect?
 

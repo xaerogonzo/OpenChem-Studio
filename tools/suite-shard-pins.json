@@ -1910,6 +1910,7 @@
   "tests/test_cli.py": 0,
   "tests/test_cnn_affinity_core.py": 1,
   "tests/test_cnn_affinity_list.py": 3,
+  "tests/test_cnn_affinity_result.py": 4,
   "tests/test_code_signing_policy.py": 4,
   "tests/test_colour_literals.py": 0,
   "tests/test_command_palette.py": 2,
