@@ -195,6 +195,18 @@ scope = "core"
 owner = "namer"
 
 [[consumer]]
+file = "tests/test_namer_nl009_ws1_natural_products.py"
+why = "NL-009 (closed): WS1 re-measure of atropine, scopolamine, galantamine, ibogaine with OPSIN read-back"
+scope = "core"
+owner = "namer"
+
+[[consumer]]
+file = "tests/test_namer_nl018_ws3_numbering_conventions.py"
+why = "NL-018 (closed): seventeen curated-ring numbering exceptions sourced to Blue BookV2 (round 87)"
+scope = "core"
+owner = "namer"
+
+[[consumer]]
 file = "tests/test_namer_nl090_letter_locant_methyls.py"
 why = "NL-090 (programme closed): 6a and 13a methyl substituents on curated hydro parents read back; 12b fusion carbon methyl is not drawable"
 scope = "core"
