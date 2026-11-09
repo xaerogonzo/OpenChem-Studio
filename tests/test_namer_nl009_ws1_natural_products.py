@@ -59,8 +59,12 @@ def test_nl009_name_matches_round25_pins(label, smiles, expected_name, partial_s
         assert "does not express stereochemistry" in (result.note or "")
 
 
+EXACT_OPSIN_CASES = tuple(row for row in CASES if not row[3])
+PARTIAL_STEREO_CASES = tuple(row for row in CASES if row[3])
+
+
 @needs_opsin
-@pytest.mark.parametrize("label,smiles,expected_name,partial_stereo", CASES, ids=[c[0] for c in CASES])
+@pytest.mark.parametrize("label,smiles,expected_name,partial_stereo", EXACT_OPSIN_CASES, ids=[c[0] for c in EXACT_OPSIN_CASES])
 def test_nl009_opsin_read_back_full_key(label, smiles, expected_name, partial_stereo):
     del label, partial_stereo
     from py2opsin import py2opsin
@@ -72,3 +76,21 @@ def test_nl009_opsin_read_back_full_key(label, smiles, expected_name, partial_st
     back = py2opsin(result.name)
     assert back, expected_name
     assert inchi.MolToInchiKey(Chem.MolFromSmiles(back)) == want
+
+
+@needs_opsin
+@pytest.mark.parametrize("label,smiles,expected_name,partial_stereo", PARTIAL_STEREO_CASES, ids=[c[0] for c in PARTIAL_STEREO_CASES])
+def test_nl009_opsin_parses_but_does_not_pin_pseudoasymmetric_stereo(label, smiles, expected_name, partial_stereo):
+    """Tropanes: OPSIN read-back is not the pin oracle when the name omits ``r``/``s`` (round 25)."""
+    del label, partial_stereo
+    from py2opsin import py2opsin
+
+    mol = Chem.MolFromSmiles(smiles)
+    result = derived_name_for_structure(mol)
+    assert result.name == expected_name
+    back = py2opsin(result.name)
+    assert back
+    got = inchi.MolToInchiKey(Chem.MolFromSmiles(back))
+    want = inchi.MolToInchiKey(mol)
+    assert got != want
+    assert got[:14] == want[:14]
