@@ -57,6 +57,8 @@ REVIEWED_LOW_CONTRAST: dict[str, str] = {
     "#009e73": _DATA + " (Okabe-Ito green: the checker's clean state, a series colour); 4.0:1 on the field, 4.9:1 on the base",
     "#cc79a7": _DATA + " (Okabe-Ito reddish purple); 4.5:1 on the field",
     "#ef6c00": "a status chip's caution text on the panel base (5.4:1; 4.5:1 on the field); a hue kept apart from the severity orange",
+    "#b91c1c": _INK + " (an acidic pKa site; `theme.acid_ink`, always with an A label)",
+    "#1d4ed8": _INK + " (a basic pKa site; `theme.base_ink`, always with a B label)",
 }
 
 

@@ -5,6 +5,7 @@ from functools import partial
 
 import logging
 import time
+import weakref
 from pathlib import Path
 from typing import Callable
 
@@ -90,7 +91,7 @@ from openchem.domain.calculator import GEOMETRY, RegistryExecution
 from openchem.domain.project import ProjectModel
 from openchem.domain.quantum_chemistry_run import QuantumChemistryRunStore
 from openchem.domain.recipe_run import RecipeRunStore
-from openchem.domain.result_store import SessionResultStore
+from openchem.domain.result_store import SessionResultStore, result_id_of
 from openchem.domain.score_definition_store import ScoreDefinitionStore
 from openchem.domain.synthesis_plan_store import SynthesisPlanStore
 from openchem.domain.synthesis_route import RouteStatus
@@ -395,6 +396,8 @@ _WORKFLOW_BY_DOCK = {dock: workflow for workflow, dock in _DOCK_BY_WORKFLOW.item
 #: The Qt property that carries a workflow's id on the note its tab shows, so one bound
 #: method serves every workflow (a lambda capturing `self` would root the window).
 _WORKFLOW_ID_PROPERTY = "openchem_workflow_id"
+#: Molecule UUID on a pKa window, read from `sender()` when it is destroyed.
+_PKA_VIEW_UUID_PROPERTY = "openchem_pka_view_uuid"
 
 
 @dataclass
@@ -790,9 +793,11 @@ class MainWindow(QMainWindow):
         self._comparison_panel = ComparisonPanel(services.event_bus, self)
         self._comparison_panel.attach_settings(settings)
         self._compare_readers: CompareReaders | None = None
+        self._pka_views: dict[str, weakref.ref] = {}
         self._comparison_panel.readers_requested.connect(self._open_compare_readers)
         self._comparison_panel.chosen_changed.connect(self._on_compare_chosen_changed)
         services.event_bus.subscribe(ResultRecorded, self._on_result_recorded_for_readers)
+        services.event_bus.subscribe(MoleculeChanged, self._on_molecule_changed_for_pka)
         self._comparison_panel.fact_activated.connect(self._on_compare_fact_activated)
         self._comparison_panel.calculate_requested.connect(self._on_compare_calculate_requested)
         compare_dock = self._add_dock(
@@ -2033,6 +2038,7 @@ class MainWindow(QMainWindow):
                 parent=self,
             )
             readers.closed.connect(self._on_compare_readers_closed)
+            readers.link_activated.connect(self._on_atom_fact_link)
             self._compare_readers = readers
         self._compare_readers.set_molecules(list(uuids))
         self._compare_readers.show()
@@ -2057,6 +2063,7 @@ class MainWindow(QMainWindow):
         readers = self._compare_readers
         if readers is not None and event.stored.identity.molecule_uuid in readers.uuids():
             readers.request_refresh()
+        self._refresh_pka_view(event.stored.identity.molecule_uuid)
 
     def _on_compare_calculate_requested(self, uuids: list) -> None:
         """Compare's "Calculate basic properties": the always-on properties of each ticked molecule.
@@ -5353,8 +5360,83 @@ class MainWindow(QMainWindow):
                 "nmr_view": self._link_to_nmr_view,
                 "ir_view": self._link_to_ir_view,
                 "spatial_view": self._link_to_spatial_view,
+                "pka_view": self._link_to_pka_view,
             }
         )
+
+    def _link_to_pka_view(self, params: dict) -> bool:
+        """Open the shared pKa window for the molecule named on the link."""
+        uuid = params.get("molecule_uuid")
+        if not uuid:
+            return False
+        return self._open_pka_view(str(uuid))
+
+    def _pka_payload(self, molecule_uuid: str):
+        project = self._session.project
+        molecule = project.find_molecule(molecule_uuid) if project is not None else None
+        store_service = self._services.result_store_service
+        if molecule is None or store_service is None:
+            return None, None, None
+        found: dict[str, object] = {}
+        for stored in store_service.store.fresh_results(
+            molecule_uuid, store_service.fingerprints_for(molecule)
+        ):
+            found[result_id_of(stored.result)] = stored.result
+        return molecule, found.get("pka"), found.get("pka_microspecies")
+
+    def _open_pka_view(self, molecule_uuid: str) -> bool:
+        existing = self._pka_views.get(molecule_uuid)
+        window = existing() if existing is not None else None
+        if window is not None:
+            molecule, pka, curve = self._pka_payload(molecule_uuid)
+            if molecule is None:
+                window.close()
+                return False
+            window.set_payload(molecule, pka, curve)
+            window.show()
+            window.raise_()
+            window.activateWindow()
+            return True
+        molecule, pka, curve = self._pka_payload(molecule_uuid)
+        if molecule is None:
+            return False
+        from openchem.ui.dialogs.pka_view_dialog import PkaViewDialog
+
+        dialog = PkaViewDialog(self._services.chemistry_engine, molecule, parent=self)
+        dialog.setAttribute(Qt.WidgetAttribute.WA_DeleteOnClose, True)
+        dialog.set_payload(molecule, pka, curve)
+        dialog.setProperty(_PKA_VIEW_UUID_PROPERTY, molecule_uuid)
+        dialog.destroyed.connect(self._on_pka_view_destroyed)
+        self._pka_views[molecule_uuid] = weakref.ref(dialog)
+        dialog.show()
+        return True
+
+    def _on_pka_view_destroyed(self, *_args) -> None:
+        """Drop the closed window's slot. Payload is on the sender, not a lambda."""
+        dialog = self.sender()
+        uuid = ""
+        if dialog is not None:
+            try:
+                uuid = str(dialog.property(_PKA_VIEW_UUID_PROPERTY) or "")
+            except RuntimeError:
+                uuid = ""
+        if uuid:
+            self._pka_views.pop(uuid, None)
+            return
+        for key, ref in list(self._pka_views.items()):
+            if ref() is None:
+                self._pka_views.pop(key, None)
+
+    def _refresh_pka_view(self, molecule_uuid: str) -> None:
+        existing = self._pka_views.get(molecule_uuid)
+        window = existing() if existing is not None else None
+        if window is None:
+            return
+        molecule, pka, curve = self._pka_payload(molecule_uuid)
+        window.set_payload(molecule, pka, curve)
+
+    def _on_molecule_changed_for_pka(self, event) -> None:
+        self._refresh_pka_view(event.molecule_uuid)
 
     def _link_to_spatial_view(self, params: dict) -> bool:
         """One declared picture, drawn on a 3D model.

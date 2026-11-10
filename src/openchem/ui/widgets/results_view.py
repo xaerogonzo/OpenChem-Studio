@@ -77,6 +77,7 @@ from openchem.domain.report import FactLink
 from openchem.domain.result_ordering import grouped_reports, matching_reports
 from openchem.domain.structure_issue import Severity
 from openchem.domain.visualization_index import declared_visualizations
+from openchem.ui.result_adapters import PKA_VIEW, PKA_VIEW_IDS
 from openchem.ui.result_summary import summary_of_merge
 from openchem.ui.widgets.fact_view import FactView
 from openchem.ui.widgets.help_tooltip import HelpTooltip, apply_help_tooltip
@@ -121,6 +122,7 @@ _VIEWER_ACTIONS: dict[str, FactLink] = {
     ),
     "nmr_view": FactLink(target="nmr_view", label="Open in NMR view"),
     "ir_view": FactLink(target="ir_view", label="Open in IR view"),
+    "pka_view": FactLink(target="pka_view", label="Open pKa view"),
 }
 
 #: Which annotation an Open button means, carried on the button itself.
@@ -912,8 +914,19 @@ class ResultsView(QWidget):
         whole thing and declares none, which is why `getattr` with an empty
         default is the right shape rather than a lookup that would have to
         decide what a report's viewer is.
+
+        pKa is the exception: the calculator writes a `ReportResult`, the
+        Results dock stores that object, and the Open destination is still
+        `pka_view`. Matching the report id here is the same rule
+        `summarise` uses when it wraps a summary.
         """
-        return str(getattr(report, "rich_view", "") or "")
+        declared = str(getattr(report, "rich_view", "") or "")
+        if declared:
+            return declared
+        report_id = str(getattr(report, "report_id", "") or "")
+        if report_id in PKA_VIEW_IDS:
+            return PKA_VIEW
+        return ""
 
     def report_available(self) -> bool:
         """Whether the report on screen can be copied or exported now."""
@@ -940,7 +953,13 @@ class ResultsView(QWidget):
         if target not in _VIEWER_ACTIONS:
             return
         self.link_activated.emit(
-            replace(_VIEWER_ACTIONS[target], params={"report_id": report.report_id})
+            replace(
+                _VIEWER_ACTIONS[target],
+                params={
+                    "report_id": report.report_id,
+                    "molecule_uuid": self._molecule_uuid or str(getattr(report, "molecule_uuid", "") or ""),
+                },
+            )
         )
 
     def _sync_open_button(self, report) -> None:
@@ -948,9 +967,10 @@ class ResultsView(QWidget):
 
         Hidden rather than disabled: a disabled control invites a reader to
         wonder what would enable it, and for an entry that IS the whole
-        result -- every `ReportResult` -- the honest answer is that nothing
-        would. The "All results" view shows none either, because it is
-        several producers at once and no one viewer owns it.
+        result -- every ordinary `ReportResult` -- the honest answer is that
+        nothing would. pKa is the dedicated-viewer exception on that type.
+        The "All results" view shows none either, because it is several
+        producers at once and no one viewer owns it.
         """
         target = self._viewer_for(report) if report is not None else ""
         # **`in _VIEWER_ACTIONS`, NOT merely truthy.** A kind can declare a

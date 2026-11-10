@@ -1737,15 +1737,20 @@ def compute_pka_dataset(
             cache_state=CacheState.FAILED,
             error=str(exc),
         )
+    from openchem.chem.pka_sites import ordered_predictions, records_from_predictions, with_site_records
+
+    ordered = ordered_predictions(pairs or [])
     return report_from_fields(
         alert_id="pka",
         name="pKa",
         molecule_uuid=molecule_uuid,
-        matched=[_pka_line(prediction, parameters, mol) for prediction in sorted(
-            pairs or [], key=lambda prediction: prediction.value
-        )],
+        matched=[_pka_line(prediction, parameters, mol) for prediction in ordered],
         category="pka",
-        provenance=Provenance(created_by="core", method="pkasolver"),
+        provenance=Provenance(
+            created_by="core",
+            method="pkasolver",
+            parameters=with_site_records({}, records_from_predictions(ordered)),
+        ),
     )
 
 

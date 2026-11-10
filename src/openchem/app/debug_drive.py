@@ -4302,7 +4302,19 @@ class _Driver(QObject):
         path = Path(str(step["path"]))
         path.parent.mkdir(parents=True, exist_ok=True)
         target = self._window
-        if step.get("widget") == "lewis":
+        if step.get("widget") == "pka_view":
+            from PySide6.QtWidgets import QApplication
+
+            dialogs = [
+                widget
+                for widget in QApplication.topLevelWidgets()
+                if type(widget).__name__ == "PkaViewDialog" and widget.isVisible()
+            ]
+            if not dialogs:
+                logger.error("OPENCHEM_DRIVE: no pKa view open; run results open_viewer first")
+                return
+            target = dialogs[-1]
+        elif step.get("widget") == "lewis":
             if self._lewis is None:
                 logger.error("OPENCHEM_DRIVE: no Lewis dialog open; run {'do': 'lewis'}")
                 return
@@ -5356,6 +5368,63 @@ class _Driver(QObject):
                 logger.warning("OPENCHEM_DRIVE: EXPECT nmr_panes ok[%s]", tag)
             else:
                 logger.error("OPENCHEM_DRIVE: EXPECT nmr_panes FAILED[%s] -- %s", tag, "; ".join(problems))
+
+    def _do_pka_view(self, step: dict[str, Any]) -> None:
+        """Read the open pKa window: site count, pictures, table, refusal sentence.
+
+        `{"do": "pka_view", "tag": "aminophenol", "expect": {"sites": 3, "pictures": 0}}`
+        """
+        from PySide6.QtWidgets import QApplication
+
+        selected = self._window._property_panel._selected_molecule_uuid
+        dialogs = [
+            widget
+            for widget in QApplication.topLevelWidgets()
+            if type(widget).__name__ == "PkaViewDialog" and widget.isVisible()
+        ]
+        matched = [
+            widget
+            for widget in dialogs
+            if getattr(getattr(widget, "_molecule", None), "uuid", None) == selected
+        ]
+        if not matched:
+            logger.error(
+                "OPENCHEM_DRIVE: pka_view needs an open pKa view for %s (%d other pKa window(s))",
+                selected,
+                len(dialogs),
+            )
+            return
+        dialog = matched[-1]
+        pictures = 0
+        layout = dialog._pictures_layout
+        for index in range(layout.count()):
+            widget = layout.itemAt(index).widget()
+            if widget is not None and type(widget).__name__ == "_SpeciesPicture":
+                pictures += 1
+        state = {
+            "sites": len(dialog.records()),
+            "pictures": pictures,
+            "table_columns": dialog._table.columnCount(),
+            "message": dialog.picture_message(),
+            "status": dialog._status.text(),
+        }
+        logger.warning("OPENCHEM_DRIVE: pka_view[%s] %s", step.get("tag", ""), state)
+        expect = step.get("expect") or {}
+        problems = []
+        if "sites" in expect and state["sites"] != expect["sites"]:
+            problems.append(f"sites {state['sites']}, expected {expect['sites']}")
+        if "pictures" in expect and state["pictures"] != expect["pictures"]:
+            problems.append(f"pictures {state['pictures']}, expected {expect['pictures']}")
+        if "pictures_at_least" in expect and state["pictures"] < int(expect["pictures_at_least"]):
+            problems.append(f"pictures {state['pictures']}, expected at least {expect['pictures_at_least']}")
+        if "message_contains" in expect and expect["message_contains"] not in state["message"]:
+            problems.append(f"message {state['message']!r} lacks {expect['message_contains']!r}")
+        tag = str(step.get("tag", ""))
+        if problems or expect:
+            if self._record_assertion("pka_view", tag, not problems, "; ".join(problems) or "as expected"):
+                logger.warning("OPENCHEM_DRIVE: EXPECT pka_view ok[%s]", tag)
+            else:
+                logger.error("OPENCHEM_DRIVE: EXPECT pka_view FAILED[%s] -- %s", tag, "; ".join(problems))
 
     def _log_results_visualizations(self, window: Any) -> None:
         """What the reader offers to SHOW, and what it offers to OPEN.

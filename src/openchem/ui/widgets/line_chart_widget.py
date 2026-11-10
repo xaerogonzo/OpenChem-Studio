@@ -91,6 +91,8 @@ class LineChartWidget(XZoomable, QWidget):
 
     #: The x under the cursor, snapped to the nearest sampled point.
     x_hovered = Signal(float)
+    #: The series the pointer is over, or None. Independent of `x_hovered`.
+    series_hovered = Signal(object)
     #: A reading was pinned by a click (the x), or released (None).
     x_pinned = Signal(object)
     #: The visible x window changed (zoom, pan or reset).
@@ -105,6 +107,12 @@ class LineChartWidget(XZoomable, QWidget):
         theme.repaint_on_change(self)
         self._annotation: LineChartAnnotation | None = None
         self._hover_x: float | None = None
+        #: Which series the pointer is over. None when it is on the plot
+        #: background, which still has a pH readout.
+        self._hover_series: str | None = None
+        #: A series named from outside (a picture hover). Independent of the
+        #: pointer, so leaving the chart does not drop it.
+        self._highlight_series: str | None = None
         #: A reading KEPT by a click, shown when the pointer is elsewhere.
         #: "Stop somewhere on the chart and read it" was the request; a
         #: hover alone vanishes the moment the pointer leaves to do anything
@@ -130,6 +138,8 @@ class LineChartWidget(XZoomable, QWidget):
             annotation = None
         self._annotation = annotation
         self._hover_x = None
+        self._hover_series = None
+        self._highlight_series = None
         self._pinned_x = None
         self._x_window = None
         self.update()
@@ -249,9 +259,15 @@ class LineChartWidget(XZoomable, QWidget):
             fraction = 1.0 - fraction
         target = x_min + fraction * (x_max - x_min)
         nearest = nearest_sampled_x(self._sampled_x(), target)
+        series = self._series_at(event.position(), nearest)
+        changed = nearest != self._hover_x or series != self._hover_series
         if nearest != self._hover_x:
             self._hover_x = nearest
             self.x_hovered.emit(nearest)
+        if series != self._hover_series:
+            self._hover_series = series
+            self.series_hovered.emit(series)
+        if changed:
             self.update()
 
     def mousePressEvent(self, event) -> None:  # noqa: N802 - Qt override
@@ -276,7 +292,43 @@ class LineChartWidget(XZoomable, QWidget):
 
     def leaveEvent(self, event) -> None:  # noqa: N802 - Qt override
         self._hover_x = None
+        if self._hover_series is not None:
+            self._hover_series = None
+            self.series_hovered.emit(None)
         self.update()
+
+    def highlight_series(self, name: str | None) -> None:
+        """Mark a series from outside the chart (a species picture)."""
+        if name == self._highlight_series:
+            return
+        self._highlight_series = name
+        self.update()
+
+    def hovered_series(self) -> str | None:
+        return self._hover_series
+
+    def _emphasized_series(self) -> str | None:
+        return self._hover_series or self._highlight_series
+
+    def _series_at(self, position, sampled_x: float) -> str | None:
+        """The nearest series to `position` at `sampled_x`, or None off every curve."""
+        rect = self._plot_rect()
+        threshold = 10.0
+        closest: tuple[float, str] | None = None
+        for series in self._series():
+            if not series.points:
+                continue
+            xs = [px for px, _py in series.points]
+            if not min(xs) <= sampled_x <= max(xs):
+                continue
+            _x, y = min(series.points, key=lambda p: abs(p[0] - sampled_x))
+            point = self._to_widget(sampled_x, y, rect)
+            distance = ((position.x() - point.x()) ** 2 + (position.y() - point.y()) ** 2) ** 0.5
+            if distance > threshold:
+                continue
+            if closest is None or distance < closest[0]:
+                closest = (distance, series.name)
+        return closest[1] if closest is not None else None
 
     def _has_data(self) -> bool:
         return bool(self._annotation and any(s.points for s in self._series()))
@@ -400,9 +452,13 @@ class LineChartWidget(XZoomable, QWidget):
         # Clipped to the plot: a zoomed window must not draw the curve over the
         # axis labels and the legend.
         painter.setClipRect(rect)
+        emphasized = self._emphasized_series()
         for index, series in enumerate(self._series()):
             color = theme.ink(SERIES_COLORS[index % len(SERIES_COLORS)])
-            painter.setPen(QPen(color, 2))
+            width = 4 if series.name == emphasized else 2
+            if emphasized is not None and series.name != emphasized:
+                color.setAlpha(110)
+            painter.setPen(QPen(color, width))
             points = [self._to_widget(x, y, rect) for x, y in series.points]
             for start, end in zip(points, points[1:]):
                 painter.drawLine(start, end)
