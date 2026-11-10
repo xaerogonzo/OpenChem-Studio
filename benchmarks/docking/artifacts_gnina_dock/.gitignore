@@ -1,0 +1,5 @@
+# Molblocks, SDF, receptor PDBs, ligand starts and gnina logs stay on disk.
+*
+!.gitignore
+!results.jsonl
+!summary.json

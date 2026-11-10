@@ -1,6 +1,6 @@
-# NL-011 triage — seed 8901 (re-measured 2026-11-04)
+# NL-011 triage — seed 8901 (re-measured 2026-11-05)
 
-Worktree `D:\_scratch\OpenChem-Studio-naming-r94` at `origin/master` (`16b8b5ea`).
+Worktree `D:\_scratch\OpenChem-Studio-naming-r94` on `claude/naming-r94-nl011-13-methyl` (includes app #552 on master).
 
 Generator: `tools/nl011_seed8901_measure.py` (round-88 spiro `join`, extended by one joint; 225 polycyclic curated rings + 14 bridged partners; seed `8901`; 30 tries → 20 chains, 10 rejected).
 
@@ -8,14 +8,14 @@ Artifact: `benchmarks/naming/artifacts_nl011_seed8901.json`
 
 Oracle: connectivity InChIKey (first 14 chars). OPSIN 2.9.0 via py2opsin, unique temp file per call.
 
-## Summary (after bucket A fix, 2026-11-04)
+## Summary (after bucket A + bucket C narrow, 2026-11-06)
 
 | Outcome | Count | Notes |
 |--------|------:|-------|
-| **ok** (read-back) | **19** | Was 3 before VB locant fallback on multicomponent components |
-| **wrong** read-back | **1** | #13: `1-methyldispiro[...]` vs flat without methyl (substituent prefix) |
-| **unparsable** flat name, OPSIN empty | **0** among former nested three; **14** others unchanged (bucket B) |
-| **nested** `spiro[spiro[...]]` | **0** | #10, #16, #17 now flat `dispiro[...]` |
+| **ok** (OPSIN read-back) | **19** | Bucket A VB locants; bucket C narrow restored #6/#7/#14 |
+| **unparsable** flat name | **1** | **#13** only — engine cites `8-methyl-8-azabicyclo[...]` inside `dispiro[...]`; OPSIN 2.9.0 empty (validator; strict xfail in tests) |
+| **wrong** read-back | **0** | |
+| **nested** `spiro[spiro[...]]` | **0** | |
 
 Prior baseline (pre-fix): 3 ok, 14 unparsable flat, 3 nested — see git history for `artifacts_nl011_seed8901.json`.
 
@@ -39,17 +39,21 @@ Root cause: `_spiro_locants_for_component` → `_component_fallback_locants` ret
 
 ## Fourteen OPSIN-unparsable flat names (round 94 target B)
 
-OPSIN returns empty for the emitted string (validator limitation unless a spelling variant parses).
+**Update after bucket B probes (2026-11-05):** see `benchmarks/naming/NL011_BUCKET_B_OPSIN_PROBE.md` and `artifacts_nl011_bucket_b_probe.json`. Of the fourteen baseline (`fa3a0115`) flat strings, **13** are fixed for OPSIN by **bucket A locants** (today's emitted name reads back). **None** of those thirteen are bare OPSIN spelling gaps. **#13** remains: wrong read-back (methyl prefix / wrong component), not empty parser output.
 
-Common shapes in the flat string:
+Historical note — common shapes in the **baseline** flat strings (before locant fix):
 
 - Middle or end partner is **`bicyclo[2.1.1]hexane`** (many chains).
 - Retained / fusion names inside brackets: e.g. `5H-2,3-benzodiazepine`, `3,4,5,6-tetrahydroimidazo[4,5-d][1]benzazepine`, `octahydropyridazino[1,2-a][1,2]diazepine`, `5H-dibenzo[a,d][7]annulene`, `hexahydrofuro[2,3-b]furan`.
 - Von-Baeyer tricyclo partners with **`0^{3,6}`** or **`4-azatricyclo[4.3.1.1^{3,8}]`**.
 
-**#13 extra:** N-methyl on a bridged partner → engine prefixes `1-methyl` on the whole dispiro name while the composer omits it; probe whether flat name should carry substituent locants on the correct component.
+**#13 extra:** N-methyl on a bridged partner → engine prefixes `1-methyl` on the whole dispiro name while the composer omits it; bucket B probes found **no** connectivity-correct OPSIN spelling in the locant/methyl variant set (see probe doc).
 
-**Next step:** for each row, run `D:\_scratch\r60\r80\op.py`-style candidate names (retained spelling variants, prime/locant permutations) and classify **fixable spelling** vs **OPSIN gap** before filing OPEN rows.
+**Probe command:**
+
+```powershell
+uv run --no-sync python tools/nl011_bucket_b_opsin_probe.py --json benchmarks/naming/artifacts_nl011_bucket_b_probe.json
+```
 
 ## Command
 

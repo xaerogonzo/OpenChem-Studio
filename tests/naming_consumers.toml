@@ -183,6 +183,66 @@ scope = "core"
 owner = "namer"
 
 [[consumer]]
+file = "tests/test_namer_round94_nl011_chain13_methyl.py"
+why = "NL-011 bucket C: seed 8901 chain #13 cites N-methyl on the tropane partner inside dispiro[...] (OPSIN read-back xfail: validator gap on methyl inside bracket)"
+scope = "core"
+owner = "namer"
+
+[[consumer]]
+file = "tests/test_namer_nl013_purinone_purine.py"
+why = "NL-013 (programme closed): 3H-purin-3-yl purinone+p264 drawing reads back on full InChIKey; documents closure of the measured arm"
+scope = "core"
+owner = "namer"
+
+[[consumer]]
+file = "tests/test_namer_nl008_ws1_alkenyl_ez.py"
+why = "NL-008 (closed): methyl-branched alkenyl E/Z on N-substituted acetamide (round 44 D-231)"
+scope = "core"
+owner = "namer"
+
+[[consumer]]
+file = "tests/test_namer_nl009_ws1_natural_products.py"
+why = "NL-009 (closed): WS1 re-measure of atropine, scopolamine, galantamine, ibogaine with OPSIN read-back"
+scope = "core"
+owner = "namer"
+
+[[consumer]]
+file = "tests/test_namer_nl018_ws3_numbering_conventions.py"
+why = "NL-018 (closed): seventeen curated-ring numbering exceptions sourced to Blue BookV2 (round 87)"
+scope = "core"
+owner = "namer"
+
+[[consumer]]
+file = "tests/test_namer_nl021_ws3_hetero_spiro_sources.py"
+why = "NL-021 (closed): Blue Book P-24.5/24.8 and P-73.4 sources for heteroatom spiro joints (D-384 motifs)"
+scope = "core"
+owner = "namer"
+
+[[consumer]]
+file = "tests/test_namer_nl109_vs231_cumulene_axis.py"
+why = "NL-109 remainder: VS231 cumulene axis flat name plus xfail for future p descriptors (fork)"
+scope = "core"
+owner = "namer"
+
+[[consumer]]
+file = "tests/test_namer_nl090_letter_locant_methyls.py"
+why = "NL-090 (programme closed): 6a and 13a methyl substituents on curated hydro parents read back; 12b fusion carbon methyl is not drawable"
+scope = "core"
+owner = "namer"
+
+[[consumer]]
+file = "tests/test_namer_nl097_ownership_audit_scope.py"
+why = "NL-097 (programme closed): five WS2 drawings name and OPSIN-round-trip; ownership record mode still empty (substitutive-only audit)"
+scope = "core"
+owner = "namer"
+
+[[consumer]]
+file = "tests/test_namer_round94_nl011_multicomponent_methyl_cite.py"
+why = "NL-011 bucket C narrow: multicomponent dispiro cites N-alkyl on aza partners only, not spurious 5-methylbicyclo-style partner names (#6/#7/#14 regression guard)"
+scope = "core"
+owner = "namer"
+
+[[consumer]]
 file = "tests/test_namer_nuclide_guard.py"
 why = "a name must keep every nuclide (D-193): the guard that refuses one that would not, the routes that label (retained parent, multi-atom prefix, ether oxygen, hypohalous amide, hydroxy/amino prefix, suffix heteroatom), the parent bracket placed before the part it modifies (D-196), and lambda5 on a single-bonded hypervalent centre (D-195)"
 scope = "core"

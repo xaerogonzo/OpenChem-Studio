@@ -228,7 +228,7 @@ def test_the_ph_mode_is_an_option_of_the_one_3d_charge_calculator():
     plain = registry.get("geometry_partial_charge")
     assert registry.get("geometry_partial_charge_at_ph") is None
     by_name = {p.name: p for p in plain.parameters}
-    assert set(by_name) == {"method", "ph_dependent", "pH", "include_hydrogens", "decimal_places"}
+    assert set(by_name) == {"method", "ph_dependent", "pH", "include_hydrogens", "decimal_places", "resonance"}
     assert by_name["ph_dependent"].kind == "bool" and by_name["ph_dependent"].default is False
     assert by_name["pH"].enabled_by == "ph_dependent" and by_name["pH"].default == 7.4
 

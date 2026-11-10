@@ -41,6 +41,7 @@ from openchem.chem.geometry_charges import (
     compute_geometry_charges,
 )
 from openchem.chem.interaction_analysis import compute_interaction_analysis
+from openchem.chem.typed_eem import RESONANCE_AVERAGED, RESONANCE_VALUES
 from openchem.chem.logd import BASIC_AMINE_SMARTS
 from openchem.chem.markush import DEFAULT_MAX_STRUCTURES as MARKUSH_DEFAULT_MAX
 from openchem.chem.calculator_options import (
@@ -2248,10 +2249,10 @@ def compute_admet_endpoints(
 _PARENT_PROPERTY = CalculatorScope(
     ComponentSelection.CHEMBL_PARENT, Aggregation.COLLECTION,
     note="a property of the compound, so of its ChEMBL parent")
-#: The molecular polarizability: a compound property, within Jensen's element set.
+#: The molecular polarizability: a compound property, within the additive table's element set.
 _PARENT_POLARIZABILITY = CalculatorScope(
     ComponentSelection.CHEMBL_PARENT, Aggregation.SCALAR, MethodDomain.METHOD_SPECIFIC,
-    note="a property of the compound; Jensen's additive table covers a fixed element set")
+    note="a property of the compound; the additive table covers a fixed element set")
 #: A protonation curve or microspecies set, of the parent only.
 _PARENT_CURVE = CalculatorScope(
     ComponentSelection.CHEMBL_PARENT, Aggregation.COLLECTION,
@@ -2260,17 +2261,17 @@ _PARENT_CURVE = CalculatorScope(
 _PARENT_PER_ATOM = CalculatorScope(
     ComponentSelection.CHEMBL_PARENT, Aggregation.PER_ATOM,
     note="charges of the compound, equilibrated over its parent and reported on the drawing's atoms")
-#: ATOM-LOCAL table look-ups (Crippen's atom types, Jensen's increments): each
+#: ATOM-LOCAL table look-ups (Crippen's atom types, the additive polarizability increments): each
 #: atom's value is defined wherever the atom is, so each component answers.
 #: Also the only honest scope for a calculator that ADDS hydrogens, which a
 #: parent's atoms cannot be mapped back through (`components.read_back`).
 _EACH_CONTRIBUTION = CalculatorScope(
     ComponentSelection.EACH_COMPONENT, Aggregation.PER_ATOM,
     note="an atom-local table look-up, defined for every atom drawn")
-#: Jensen's per-atom increments: atom-local, within his element set.
+#: The additive table's per-atom increments: atom-local, within its element set.
 _EACH_ATOMIC_POLARIZABILITY = CalculatorScope(
     ComponentSelection.EACH_COMPONENT, Aggregation.PER_ATOM, MethodDomain.METHOD_SPECIFIC,
-    note="Jensen's atom-additive increments, each atom's own")
+    note="the atom-additive increments, each atom's own")
 #: Solubility refuses a salt: its own pH correction models the salt forming.
 _PURE_SOLUBILITY = CalculatorScope(
     ComponentSelection.REFUSE_MULTICOMPONENT, Aggregation.COLLECTION, MethodDomain.METHOD_SPECIFIC,
@@ -2357,14 +2358,24 @@ CALCULATOR_DEFINITIONS: list[CalculatorDefinition] = [
         display_name="Partial Charge (3D)",
         category="charge",
         description=(
-            "Partial charges that depend on the 3D geometry, by one of three models. EEM: Bultinck's "
+            "Partial charges that depend on the 3D geometry, by one of five models. EEM: Bultinck's "
             "electronegativity equalization (2002, part I) with that paper's own parameters for H, C, "
             "N, O and F. QEq: Rappé and Goddard's charge equilibration (1991) with lambda = 1/2 and "
             "its experimental hydrogen parameters, for the 16 elements of its Table I; it refuses "
             "molecules where its iteration does not settle or a charge reaches its bound. Ionescu EEM: "
             "Ionescu et al.'s 2013 protein-fragment models (Mulliken, 6-31G* or 6-31G**, gas phase) for "
             "H, C, N, O, S and Ca, reported as an extrapolation on anything else; it refuses a sulfur "
-            "bonded to oxygen and any charge beyond 2.051 e. By default the charges are computed on "
+            "bonded to oxygen and any charge beyond 2.051 e. NEEMP EEM: the 2016 Ccd2016 model fitted to "
+            "NPA charges of PDB ligands, typed by element and highest bond order, which covers H, C, N, "
+            "O, F, S, Cl, Br and P; the two oxygens of a nitro group or carboxylate would get different "
+            "types by how the structure is drawn, so by default their parameters are averaged over the "
+            "resonance forms (an extension of the published model; the option can also use the drawing "
+            "as it is, with a warning, or refuse). It refuses boron, iodine, metals, trivalent phosphorus, "
+            "several components and unpaired electrons. Jiroušková EEM: the 2009 Merz-Kollman model, "
+            "offered only for molecules containing chlorine, bromine or sulfur, where it was checked "
+            "(within 0.23 e of Merz-Kollman charges computed here); it is less reliable on carbon and "
+            "nitrogen beside them (up to 0.68 e) and refuses a molecule with none of those elements, "
+            "sulfur bonded to oxygen or doubly bonded, acetylenes and nitriles. By default the charges are computed on "
             "the stored conformer as it is, with its own hydrogens and net charge. Tick pH-dependent "
             "to compute them on the dominant ionization state at that pH instead: the state is carried "
             "onto the conformer, every heavy atom and every kept hydrogen holds its coordinates "
@@ -2385,6 +2396,21 @@ CALCULATOR_DEFINITIONS: list[CalculatorDefinition] = [
                 choice_labels=[GEOMETRY_CHARGE_METHOD_LABELS[m] for m in GEOMETRY_CHARGE_METHODS],
             ),
             CalculatorParameter(
+                # Stored as codes, never as the words on the screen. Only the NEEMP method reads it; the others
+                # ignore it. "Average" is the default because it is the only value that makes the result depend
+                # on the structure alone (benchmarks/charges/models/eem_resonance_typing_design.md).
+                name="resonance",
+                label="Nitro and carboxylate typing (NEEMP and Jiroušková EEM only)",
+                kind="choice",
+                default=RESONANCE_AVERAGED,
+                choices=list(RESONANCE_VALUES),
+                choice_labels=[
+                    "Average over resonance forms",
+                    "As drawn (depends on how it is drawn)",
+                    "Refuse if it depends on the drawing",
+                ],
+            ),
+            CalculatorParameter(
                 name="ph_dependent",
                 label="pH-dependent (dominant ionization state)",
                 kind="bool",
@@ -2402,7 +2428,7 @@ CALCULATOR_DEFINITIONS: list[CalculatorDefinition] = [
             ),
             decimal_places_parameter(),
         ],
-        tags=["charge", "3d", "per-atom", "eem", "electronegativity equalization", "partial charge", "bultinck", "qeq", "charge equilibration", "rappe", "ionescu", "ph", "protonation", "ionization"],
+        tags=["charge", "3d", "per-atom", "eem", "electronegativity equalization", "partial charge", "bultinck", "qeq", "charge equilibration", "rappe", "ionescu", "neemp", "resonance", "nitro", "carboxylate", "ph", "protonation", "ionization"],
     ),
     CalculatorDefinition(
         calculator_id="crippen_logp_contrib",
@@ -2684,8 +2710,9 @@ CALCULATOR_DEFINITIONS: list[CalculatorDefinition] = [
             "a SUBSTITUENT measured toward a named reaction centre; running it at every "
             "atom is OpenChem's projection of it, not a quantity the paper defines. "
             "Topological, so two conformers of one molecule score identically. Covers "
-            "the 28 elements Lange's Handbook tabulates a covalent radius for, and "
-            "refuses the rest by name. The equation is geometric, so any of those 28 "
+            "the 28 elements Lange's Handbook tabulates a covalent radius for, plus "
+            "platinum from Cordero 2008 (with a warning, since it is on another scale), "
+            "and refuses the rest by name. The equation is geometric, so any of those 28 "
             "computes -- but Cao and Liu validated it on alkyl, halogen and ether "
             "substituents, so a result on an organometallic is an extrapolation."
         ),
@@ -3873,10 +3900,10 @@ CALCULATOR_DEFINITIONS: list[CalculatorDefinition] = [
         display_name="Polarizability (molecular)",
         category="electronic",
         description=(
-            "Molecular polarizability in A^3, by one of three methods. Jensen et al.'s "
-            "additive atomic scheme is accurate to about 1% for aromatics and halogenated "
-            "compounds and roughly 11% high for saturated hydrocarbons, since an "
-            "atom-additive scheme has no hybridization dependence. Miller's two methods are "
+            "Molecular polarizability in A^3, by one of three methods. The "
+            "additive atomic scheme (element values fitted by this project to experimental polarizabilities of solvents) is within about 2% on solvents like those "
+            "and 4% on a second, gas-phase set, but has no hybridization dependence: very small molecules (water is 28% low), fused aromatics (about 11% low) "
+            "and anything unlike the fitting set can be further off. Miller's two methods are "
             "hybridization-aware: ahc squares a sum over the whole molecule and lands within "
             "1% on benzene and CCl4, ahp is plain additivity. The three are different "
             "quantities, not settings of one -- pick one and read the reported method."
@@ -3892,7 +3919,7 @@ CALCULATOR_DEFINITIONS: list[CalculatorDefinition] = [
                 name="method",
                 label="Method",
                 kind="choice",
-                default="Jensen (additive)",
+                default="Atomic additive",
                 choices=list(POLARIZABILITY_METHODS),
             ),
             CalculatorParameter(
@@ -3912,7 +3939,7 @@ CALCULATOR_DEFINITIONS: list[CalculatorDefinition] = [
         scope=_EACH_ATOMIC_POLARIZABILITY,
         display_name="Polarizability (per atom)",
         category="electronic",
-        description="Per-atom polarizability contributions (Jensen et al.), projected onto 2D and 3D.",
+        description="Per-atom polarizability contributions (the additive table), projected onto 2D and 3D.",
         execution=RegistryExecution(compute=compute_atomic_polarizability),
         prediction_basis="empirical",
         parameters=[

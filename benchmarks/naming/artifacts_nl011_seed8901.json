@@ -5,11 +5,11 @@
   "rejected": 10,
   "counts": {
     "ok": 19,
-    "wrong": 1
+    "unparsable": 1
   },
   "flat_counts": {
     "ok": 19,
-    "wrong": 1
+    "unparsable": 1
   },
   "rows": [
     {
@@ -26,7 +26,7 @@
       "flat_back": "N12CC3(C(CC1)CC2)C2CCC1(C(C3)O2)C2CC3CC(CC1C3)C2",
       "verdict": "ok",
       "flat_verdict": "ok",
-      "t": 0.554,
+      "t": 0.405,
       "err": null
     },
     {
@@ -43,7 +43,7 @@
       "flat_back": "C12CC3NCC(C4(C(C1)C3)C3CC1C(C5(C14)C1CCCC(CC5)C1)C3)C2",
       "verdict": "ok",
       "flat_verdict": "ok",
-      "t": 1.205,
+      "t": 1.546,
       "err": null
     },
     {
@@ -60,7 +60,7 @@
       "flat_back": "C1C2(CCC3CCCCC13)C1CC3(C2C1)CNC1=C(C2=C3NC=N2)C=CC=C1",
       "verdict": "ok",
       "flat_verdict": "ok",
-      "t": 0.528,
+      "t": 0.49,
       "err": null
     },
     {
@@ -77,7 +77,7 @@
       "flat_back": "C1=NN=CC2(C3=C1C=CC=C3)C3CCC(C2)C32N3CCC(C2)CC3",
       "verdict": "ok",
       "flat_verdict": "ok",
-      "t": 0.248,
+      "t": 0.23,
       "err": null
     },
     {
@@ -94,7 +94,7 @@
       "flat_back": "C12CC3OC4(C(CC(C1)C3)C2)CCC2C3(CCC24)C2CC(C3)C2",
       "verdict": "ok",
       "flat_verdict": "ok",
-      "t": 0.716,
+      "t": 0.501,
       "err": null
     },
     {
@@ -111,7 +111,7 @@
       "flat_back": "C12C3(CC(C1)C2)C2(CN1N(CC3)CCCC1)C1CC3C(CC32)C1",
       "verdict": "ok",
       "flat_verdict": "ok",
-      "t": 0.406,
+      "t": 0.395,
       "err": null
     },
     {
@@ -128,7 +128,7 @@
       "flat_back": "C12CCC(C13N1CCC(C34C3CCC4C3)CC1)C2",
       "verdict": "ok",
       "flat_verdict": "ok",
-      "t": 0.224,
+      "t": 0.275,
       "err": null
     },
     {
@@ -145,7 +145,7 @@
       "flat_back": "N12C3(CC(CC1)CC2)OC2C1(C4CC(CC3C4)C2)CC2CCCCC2CC1",
       "verdict": "ok",
       "flat_verdict": "ok",
-      "t": 0.683,
+      "t": 0.774,
       "err": null
     },
     {
@@ -162,7 +162,7 @@
       "flat_back": "C12CCC(CC1)C21C2C3(C1C2)C2CC1CC2C3C1",
       "verdict": "ok",
       "flat_verdict": "ok",
-      "t": 0.291,
+      "t": 0.299,
       "err": null
     },
     {
@@ -179,7 +179,7 @@
       "flat_back": "C12C3(C(C1)C2)C2C1(CC(C3)C2)C2CC(C1)C2",
       "verdict": "ok",
       "flat_verdict": "ok",
-      "t": 0.161,
+      "t": 0.212,
       "err": null
     },
     {
@@ -196,7 +196,7 @@
       "flat_back": "C12C3(C4CC(CC(C1)C4)C2)C2C4(C1CC(CNC3C1)C2)C2CC1C(CC14)C2",
       "verdict": "ok",
       "flat_verdict": "ok",
-      "t": 2.881,
+      "t": 3.049,
       "err": null
     },
     {
@@ -213,7 +213,7 @@
       "flat_back": "C1C2(CCC3CCCCC13)C1C3(C(C2)C1)C1=C(C=CC2=C3C=CC=C2)C=CC=C1",
       "verdict": "ok",
       "flat_verdict": "ok",
-      "t": 0.475,
+      "t": 0.529,
       "err": null
     },
     {
@@ -222,16 +222,16 @@
       "smiles": "CN1C2CCC1CC1(C2)C2CC3CC(C2)C2(C4CCC2C4)C1CN3",
       "key": "RLWFDXNXMRUBBS",
       "rings": 9,
-      "emitted": "1-methyldispiro[bicyclo[2.1.1]hexane-5,10'-4-azatricyclo[4.3.1.1^{3,8}]undecane-7',3''-8-azabicyclo[3.2.1]octane]",
-      "flat": "dispiro[bicyclo[2.1.1]hexane-5,10'-4-azatricyclo[4.3.1.1^{3,8}]undecane-7',3''-8-azabicyclo[3.2.1]octane]",
-      "emitted_eq_flat": false,
-      "back": "CC12CCC(C1)C21C2CC3NCC1C1(CC4CCC(C1)N4)C(C2)C3",
-      "back_key": "NWCFKYNBWOBWCB",
-      "flat_back": "C12CC3(CC(CC1)N2)C2CNC1CC(CC3C1)C21C2CCC1C2",
-      "verdict": "wrong",
-      "flat_verdict": "wrong",
-      "t": 0.372,
-      "err": null
+      "emitted": "dispiro[bicyclo[2.1.1]hexane-5,10'-4-azatricyclo[4.3.1.1^{3,8}]undecane-7',3''-8-methyl-8-azabicyclo[3.2.1]octane]",
+      "flat": "dispiro[bicyclo[2.1.1]hexane-5,10'-4-azatricyclo[4.3.1.1^{3,8}]undecane-7',3''-8-methyl-8-azabicyclo[3.2.1]octane]",
+      "emitted_eq_flat": true,
+      "back": null,
+      "back_key": null,
+      "flat_back": null,
+      "verdict": "unparsable",
+      "flat_verdict": "unparsable",
+      "t": 0.783,
+      "err": "empty"
     },
     {
       "index": 14,
@@ -247,7 +247,7 @@
       "flat_back": "C12C3(CCC(CCC1)C2)C2CC2CCC32C3CCC2C3",
       "verdict": "ok",
       "flat_verdict": "ok",
-      "t": 0.101,
+      "t": 0.301,
       "err": null
     },
     {
@@ -264,7 +264,7 @@
       "flat_back": "C12C3(CCC(CCC1)C2)C2C1(CC3CC2)C2CC3CC2C1C3",
       "verdict": "ok",
       "flat_verdict": "ok",
-      "t": 0.428,
+      "t": 0.515,
       "err": null
     },
     {
@@ -281,7 +281,7 @@
       "flat_back": "C12C3(CC(CC1)CC2)C2CC1CC(C4(C3C1)C1CC(C4)C1)C2",
       "verdict": "ok",
       "flat_verdict": "ok",
-      "t": 0.478,
+      "t": 0.76,
       "err": null
     },
     {
@@ -298,7 +298,7 @@
       "flat_back": "C12CC3NCC(C4(C(C1)C3)CC3CC1(C4CC3)C3C4CC3CC1C4)C2",
       "verdict": "ok",
       "flat_verdict": "ok",
-      "t": 1.383,
+      "t": 1.858,
       "err": null
     },
     {
@@ -315,7 +315,7 @@
       "flat_back": "C12CC3CC(C3C13C1CCCC(CC3)C13CCCC1CCCCC13)C2",
       "verdict": "ok",
       "flat_verdict": "ok",
-      "t": 0.279,
+      "t": 0.428,
       "err": null
     },
     {
@@ -332,7 +332,7 @@
       "flat_back": "C1C2(CCC3CCCCC13)SC1(C3=C2N=CN=C3)C3CC(C1)C3",
       "verdict": "ok",
       "flat_verdict": "ok",
-      "t": 0.151,
+      "t": 0.193,
       "err": null
     },
     {
@@ -349,7 +349,7 @@
       "flat_back": "O1C2(CC3C1OCC3)C3CC1(CC2CCC3)C3CC1C3",
       "verdict": "ok",
       "flat_verdict": "ok",
-      "t": 0.098,
+      "t": 0.204,
       "err": null
     }
   ]

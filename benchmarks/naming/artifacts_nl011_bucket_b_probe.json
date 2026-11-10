@@ -1,0 +1,858 @@
+{
+  "baseline_commit": "fa3a0115",
+  "indices": [
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    9,
+    12,
+    13,
+    14,
+    15,
+    18,
+    19,
+    20
+  ],
+  "summary": {
+    "resolved_emitted": 13,
+    "parses_wrong_only": 1
+  },
+  "rows": [
+    {
+      "index": 2,
+      "smiles": "C1CC2CCC3(C(C1)C2)C1CC2CC1C3C21C2CNC3CC(C2)CC1C3",
+      "key": "WBMVNSYOWVBCAS",
+      "baseline_flat": "dispiro[bicyclo[3.3.1]nonane-1,4'-tricyclo[3.2.1.0^{3,6}]octane-2',7''-4-azatricyclo[4.3.1.1^{3,8}]undecane]",
+      "current_flat": "dispiro[bicyclo[3.3.1]nonane-2,4'-tricyclo[3.2.1.0^{3,6}]octane-2',7''-4-azatricyclo[4.3.1.1^{3,8}]undecane]",
+      "emitted": "dispiro[bicyclo[3.3.1]nonane-2,4'-tricyclo[3.2.1.0^{3,6}]octane-2',7''-4-azatricyclo[4.3.1.1^{3,8}]undecane]",
+      "baseline_ok": false,
+      "current_flat_ok": true,
+      "emitted_ok": true,
+      "candidates_tried": 100,
+      "unparsable": 73,
+      "parses_wrong": 17,
+      "hits": [
+        {
+          "name": "dispiro[bicyclo[3.3.1]nonane-6,4'-tricyclo[3.2.1.0(3,6)]octane-2',7''-4-azatricyclo[4.3.1.1^{3,8}]undecane]",
+          "back": "C12CC3NCC(C4(C(C1)C3)C3CC1C(C5(C14)C1CCCC(CC5)C1)C3)C2"
+        },
+        {
+          "name": "dispiro[bicyclo[3.3.1]nonane-2,4'-tricyclo[3.2.1.0^{3,6}]octane-2',7''-4-azatricyclo[4.3.1.1^{3,8}]undecane]",
+          "back": "C12CC3NCC(C4(C(C1)C3)C3CC1C(C5(C14)C1CCCC(CC5)C1)C3)C2"
+        },
+        {
+          "name": "dispiro[bicyclo[3.3.1]nonane-8,4'-tricyclo[3.2.1.0(3,6)]octane-2',7''-4-azatricyclo[4.3.1.1^{3,8}]undecane]",
+          "back": "C12CC3NCC(C4(C(C1)C3)C3CC1C(C5(C14)CCC1CCCC5C1)C3)C2"
+        },
+        {
+          "name": "dispiro[bicyclo[3.3.1]nonane-8,4'-tricyclo[3.2.1.0^{3,6}]octane-2',7''-4-azatricyclo[4.3.1.1^{3,8}]undecane]",
+          "back": "C12CC3NCC(C4(C(C1)C3)C3CC1C(C5(C14)CCC1CCCC5C1)C3)C2"
+        },
+        {
+          "name": "dispiro[bicyclo[3.3.1]nonane-6,4'-tricyclo[3.2.1.0^{3,6}]octane-2',7''-4-azatricyclo[4.3.1.1^{3,8}]undecane]",
+          "back": "C12CC3NCC(C4(C(C1)C3)C3CC1C(C5(C14)C1CCCC(CC5)C1)C3)C2"
+        },
+        {
+          "name": "dispiro[bicyclo[3.3.1]nonane-4,4'-tricyclo[3.2.1.0(3,6)]octane-2',7''-4-azatricyclo[4.3.1.1^{3,8}]undecane]",
+          "back": "C12CC3NCC(C4(C(C1)C3)C3CC1C(C5(C14)CCC1CCCC5C1)C3)C2"
+        },
+        {
+          "name": "dispiro[bicyclo[3.3.1]nonane-4,4'-tricyclo[3.2.1.0^{3,6}]octane-2',7''-4-azatricyclo[4.3.1.1^{3,8}]undecane]",
+          "back": "C12CC3NCC(C4(C(C1)C3)C3CC1C(C5(C14)CCC1CCCC5C1)C3)C2"
+        },
+        {
+          "name": "dispiro[bicyclo[3.3.1]nonane-2,4'-tricyclo[3.2.1.0(3,6)]octane-2',7''-4-azatricyclo[4.3.1.1^{3,8}]undecane]",
+          "back": "C12CC3NCC(C4(C(C1)C3)C3CC1C(C5(C14)C1CCCC(CC5)C1)C3)C2"
+        },
+        {
+          "name": "dispiro[bicyclo[3.3.1]nonane-2,4'-tricyclo[3.2.1.0(3,6)]octane-8',7''-4-azatricyclo[4.3.1.1^{3,8}]undecane]",
+          "back": "C12CC3NCC(C4(C(C1)C3)C3CC1C5(C4C1C3)C3CCCC(CC5)C3)C2"
+        },
+        {
+          "name": "dispiro[bicyclo[3.3.1]nonane-2,4'-tricyclo[3.2.1.0^{3,6}]octane-8',7''-4-azatricyclo[4.3.1.1^{3,8}]undecane]",
+          "back": "C12CC3NCC(C4(C(C1)C3)C3CC1C5(C4C1C3)C3CCCC(CC5)C3)C2"
+        }
+      ],
+      "hit_count": 10,
+      "fixable_hits": [
+        "dispiro[bicyclo[3.3.1]nonane-6,4'-tricyclo[3.2.1.0(3,6)]octane-2',7''-4-azatricyclo[4.3.1.1^{3,8}]undecane]",
+        "dispiro[bicyclo[3.3.1]nonane-8,4'-tricyclo[3.2.1.0(3,6)]octane-2',7''-4-azatricyclo[4.3.1.1^{3,8}]undecane]",
+        "dispiro[bicyclo[3.3.1]nonane-8,4'-tricyclo[3.2.1.0^{3,6}]octane-2',7''-4-azatricyclo[4.3.1.1^{3,8}]undecane]",
+        "dispiro[bicyclo[3.3.1]nonane-6,4'-tricyclo[3.2.1.0^{3,6}]octane-2',7''-4-azatricyclo[4.3.1.1^{3,8}]undecane]",
+        "dispiro[bicyclo[3.3.1]nonane-4,4'-tricyclo[3.2.1.0(3,6)]octane-2',7''-4-azatricyclo[4.3.1.1^{3,8}]undecane]",
+        "dispiro[bicyclo[3.3.1]nonane-4,4'-tricyclo[3.2.1.0^{3,6}]octane-2',7''-4-azatricyclo[4.3.1.1^{3,8}]undecane]",
+        "dispiro[bicyclo[3.3.1]nonane-2,4'-tricyclo[3.2.1.0(3,6)]octane-2',7''-4-azatricyclo[4.3.1.1^{3,8}]undecane]",
+        "dispiro[bicyclo[3.3.1]nonane-2,4'-tricyclo[3.2.1.0(3,6)]octane-8',7''-4-azatricyclo[4.3.1.1^{3,8}]undecane]"
+      ],
+      "classification": "resolved_emitted",
+      "sample_wrong": [
+        {
+          "name": "dispiro[bicyclo[3.3.1]nonane-9,4'-tricyclo[3.2.1.0^{3,6}]octane-2',7''-4-azatricyclo[4.3.1.1^{3,8}]undecane]",
+          "back": "C12CC3NCC(C4(C(C1)C3)C3CC1C(C5(C14)C1CCCC5CCC1)C3)C2",
+          "note": "key=ZUBCUBIIJBMYLQ"
+        },
+        {
+          "name": "dispiro[bicyclo[3.3.1]nonane-7,4'-tricyclo[3.2.1.0(3,6)]octane-2',7''-4-azatricyclo[4.3.1.1^{3,8}]undecane]",
+          "back": "C12CC3NCC(C4(C(C1)C3)C3CC1C(C5(C14)CC1CCCC(C5)C1)C3)C2",
+          "note": "key=YUHATTBPCNBOOG"
+        },
+        {
+          "name": "dispiro[bicyclo[3.3.1]nonane-9,4'-tricyclo[3.2.1.0(3,6)]octane-2',7''-4-azatricyclo[4.3.1.1^{3,8}]undecane]",
+          "back": "C12CC3NCC(C4(C(C1)C3)C3CC1C(C5(C14)C1CCCC5CCC1)C3)C2",
+          "note": "key=ZUBCUBIIJBMYLQ"
+        }
+      ],
+      "label": "azaadamantane + noradamantane + bicyclo331"
+    },
+    {
+      "index": 3,
+      "smiles": "c1ccc2c(c1)NCC1(CC3CC1C31CCC3CCCCC3C1)c1[nH]cnc1-2",
+      "key": "ZHWYVVRUDWFONL",
+      "baseline_flat": "dispiro[3,4,5,6-tetrahydroimidazo[4,5-d][1]benzazepine-4,4'-bicyclo[2.1.1]hexane-1',2''-decahydronaphthalene]",
+      "current_flat": "dispiro[3,4,5,6-tetrahydroimidazo[4,5-d][1]benzazepine-4,2'-bicyclo[2.1.1]hexane-5',2''-decahydronaphthalene]",
+      "emitted": "dispiro[3,4,5,6-tetrahydroimidazo[4,5-d][1]benzazepine-4,2'-bicyclo[2.1.1]hexane-5',2''-decahydronaphthalene]",
+      "baseline_ok": false,
+      "current_flat_ok": true,
+      "emitted_ok": true,
+      "candidates_tried": 240,
+      "unparsable": 215,
+      "parses_wrong": 19,
+      "hits": [
+        {
+          "name": "dispiro[3,4,5,6-tetrahydroimidazo[4,5-d][1]benzazepine-4,2'-bicyclo[2.1.1]hexane-5',2''-decahydronaphthalene]",
+          "back": "C1C2(CCC3CCCCC13)C1CC3(C2C1)CNC1=C(C2=C3NC=N2)C=CC=C1"
+        },
+        {
+          "name": "dispiro[3,4,5,6-tetrahydroimidazo[4,5-d][1]benzazepine-4,2'-bicyclo[2.1.1]hexane-6',2''-decalin]",
+          "back": "C1C2(CCC3CCCCC13)C1C3(CC2C1)CNC1=C(C2=C3NC=N2)C=CC=C1"
+        },
+        {
+          "name": "dispiro[3,4,5,6-tetrahydroimidazo[4,5-d]benzazepine-4,2'-bicyclo[2.1.1]hexane-6',2''-decahydronaphthalene]",
+          "back": "C1C2(CCC3CCCCC13)C1C3(CC2C1)CNC1=C(C2=C3NC=N2)C=CC=C1"
+        },
+        {
+          "name": "dispiro[3,4,5,6-tetrahydroimidazo[4,5-d]benzazepine-4,2'-bicyclo[2.1.1]hexane-5',2''-decahydronaphthalene]",
+          "back": "C1C2(CCC3CCCCC13)C1CC3(C2C1)CNC1=C(C2=C3NC=N2)C=CC=C1"
+        },
+        {
+          "name": "dispiro[3,4,5,6-tetrahydroimidazo[4,5-d][1]benzazepine-4,2'-bicyclo[2.1.1]hexane-6',2''-decahydronaphthalene]",
+          "back": "C1C2(CCC3CCCCC13)C1C3(CC2C1)CNC1=C(C2=C3NC=N2)C=CC=C1"
+        },
+        {
+          "name": "dispiro[3,4,5,6-tetrahydroimidazo[4,5-d][1]benzazepine-4,2'-bicyclo[2.1.1]hexane-5',2''-decalin]",
+          "back": "C1C2(CCC3CCCCC13)C1CC3(C2C1)CNC1=C(C2=C3NC=N2)C=CC=C1"
+        }
+      ],
+      "hit_count": 6,
+      "fixable_hits": [
+        "dispiro[3,4,5,6-tetrahydroimidazo[4,5-d][1]benzazepine-4,2'-bicyclo[2.1.1]hexane-6',2''-decalin]",
+        "dispiro[3,4,5,6-tetrahydroimidazo[4,5-d]benzazepine-4,2'-bicyclo[2.1.1]hexane-6',2''-decahydronaphthalene]",
+        "dispiro[3,4,5,6-tetrahydroimidazo[4,5-d]benzazepine-4,2'-bicyclo[2.1.1]hexane-5',2''-decahydronaphthalene]",
+        "dispiro[3,4,5,6-tetrahydroimidazo[4,5-d][1]benzazepine-4,2'-bicyclo[2.1.1]hexane-6',2''-decahydronaphthalene]",
+        "dispiro[3,4,5,6-tetrahydroimidazo[4,5-d][1]benzazepine-4,2'-bicyclo[2.1.1]hexane-5',2''-decalin]"
+      ],
+      "classification": "resolved_emitted",
+      "sample_wrong": [
+        {
+          "name": "dispiro[3,4,5,6-tetrahydroimidazo[4,5-d]benzazepine-4,2'-bicyclo[2.1.1]hexane-3',2''-decahydronaphthalene]",
+          "back": "C1C2(CCC3CCCCC13)C1(C3CC2C3)CNC3=C(C2=C1NC=N2)C=CC=C3",
+          "note": "key=CABGQVDBFFNRQZ"
+        },
+        {
+          "name": "1-methyldispiro[3,4,5,6-tetrahydroimidazo[4,5-d][1]benzazepine-4,2'-bicyclo[2.1.1]hexane-6',2''-decahydronaphthalene]",
+          "back": "CN1CNC2=C1C1=C(NCC23C2CC(C3)C23CC2CCCCC2CC3)C=CC=C1",
+          "note": "key=VZFOPCMSZWLLRA"
+        },
+        {
+          "name": "1-methyldispiro[3,4,5,6-tetrahydroimidazo[4,5-d][1]benzazepine-4,2'-bicyclo[2.1.1]hexane-5',2''-decahydronaphthalene]",
+          "back": "CN1CNC2=C1C1=C(NCC23C2CC(C3)C23CC2CCCCC2CC3)C=CC=C1",
+          "note": "key=VZFOPCMSZWLLRA"
+        }
+      ],
+      "label": "3,4,5,6-tetrahydroimidazo[4,5-d][1]benzazepine + bicyclo211 + decalin"
+    },
+    {
+      "index": 4,
+      "smiles": "C1=NN=CC2(CC3CCC2C32CC3CCN2CC3)c2ccccc21",
+      "key": "SAUNZCILUMOMQJ",
+      "baseline_flat": "dispiro[1-azabicyclo[2.2.2]octane-2,1'-bicyclo[2.2.1]heptane-4',5''-5H-2,3-benzodiazepine]",
+      "current_flat": "dispiro[1-azabicyclo[2.2.2]octane-2,7'-bicyclo[2.2.1]heptane-2',5''-5H-2,3-benzodiazepine]",
+      "emitted": "dispiro[1-azabicyclo[2.2.2]octane-2,7'-bicyclo[2.2.1]heptane-2',5''-5H-2,3-benzodiazepine]",
+      "baseline_ok": false,
+      "current_flat_ok": true,
+      "emitted_ok": true,
+      "candidates_tried": 250,
+      "unparsable": 195,
+      "parses_wrong": 48,
+      "hits": [
+        {
+          "name": "dispiro[1-azabicyclo[2.2.2]octane-2,7'-bicyclo[2.2.1]heptane-2',5''-5H-4,3-benzodiazepine]",
+          "back": "C1=NN=CC2(C3=C1C=CC=C3)C3CCC(C2)C32N3CCC(C2)CC3"
+        },
+        {
+          "name": "dispiro[1-azabicyclo[2.2.2]octane-7,7'-bicyclo[2.2.1]heptane-2',5''-5H-2,3-benzodiazepine]",
+          "back": "C1=NN=CC2(C3=C1C=CC=C3)C3CCC(C2)C32N3CCC(CC3)C2"
+        },
+        {
+          "name": "dispiro[1-azabicyclo[2.2.2]octane-2,7'-bicyclo[2.2.1]heptane-2',5''-5H-2,3-benzodiazepine]",
+          "back": "C1=NN=CC2(C3=C1C=CC=C3)C3CCC(C2)C32N3CCC(C2)CC3"
+        },
+        {
+          "name": "dispiro[1-azabicyclo[2.2.2]octane-2,7'-bicyclo[2.2.1]heptane-5',5''-5H-2,3-benzodiazepine]",
+          "back": "C1=NN=CC2(C3=C1C=CC=C3)C3CCC(C2)C32N3CCC(C2)CC3"
+        },
+        {
+          "name": "dispiro[1-azabicyclo[2.2.2]octane-2,7'-bicyclo[2.2.1]heptane-3',5''-5H-2,3-benzodiazepine]",
+          "back": "C1=NN=CC2(C3=C1C=CC=C3)CC3CCC2C32N3CCC(C2)CC3"
+        },
+        {
+          "name": "dispiro[1-azabicyclo[2.2.2]octane-6,7'-bicyclo[2.2.1]heptane-2',5''-5H-2,3-benzodiazepine]",
+          "back": "C1=NN=CC2(C3=C1C=CC=C3)C3CCC(C2)C32CC3CCN2CC3"
+        },
+        {
+          "name": "dispiro[1-azabicyclo[2.2.2]octane-2,7'-bicyclo[2.2.1]heptane-6',5''-5H-2,3-benzodiazepine]",
+          "back": "C1=NN=CC2(C3=C1C=CC=C3)CC3CCC2C32N3CCC(C2)CC3"
+        }
+      ],
+      "hit_count": 7,
+      "fixable_hits": [
+        "dispiro[1-azabicyclo[2.2.2]octane-2,7'-bicyclo[2.2.1]heptane-2',5''-5H-4,3-benzodiazepine]",
+        "dispiro[1-azabicyclo[2.2.2]octane-7,7'-bicyclo[2.2.1]heptane-2',5''-5H-2,3-benzodiazepine]",
+        "dispiro[1-azabicyclo[2.2.2]octane-2,7'-bicyclo[2.2.1]heptane-5',5''-5H-2,3-benzodiazepine]",
+        "dispiro[1-azabicyclo[2.2.2]octane-2,7'-bicyclo[2.2.1]heptane-3',5''-5H-2,3-benzodiazepine]",
+        "dispiro[1-azabicyclo[2.2.2]octane-6,7'-bicyclo[2.2.1]heptane-2',5''-5H-2,3-benzodiazepine]",
+        "dispiro[1-azabicyclo[2.2.2]octane-2,7'-bicyclo[2.2.1]heptane-6',5''-5H-2,3-benzodiazepine]"
+      ],
+      "classification": "resolved_emitted",
+      "sample_wrong": [
+        {
+          "name": "dispiro[1-azabicyclo[2.2.2]octane-2,7'-bicyclo[2.2.1]heptane-2',5''-1H-4,3-benzodiazepine]",
+          "back": "C1NN=CC2(C3=C1C=CC=C3)C3CCC(C2)C32N3CCC(C2)CC3",
+          "note": "key=XOVWAINEOYMQND"
+        },
+        {
+          "name": "dispiro[1-azabicyclo[2.2.2]octane-2,7'-bicyclo[2.2.1]heptane-2',5''-4H-7,3-benzodiazepine]",
+          "back": "C1=NCCC2=C1C=CN=CC21C2CCC(C1)C21N2CCC(C1)CC2",
+          "note": "key=RWFIXWRVTBDYDU"
+        },
+        {
+          "name": "dispiro[1-azabicyclo[2.2.2]octane-2,7'-bicyclo[2.2.1]heptane-2',5''-5H-9,3-benzodiazepine]",
+          "back": "N1=CC=CC=2C3(C=NC=CC21)C2CCC(C3)C23N2CCC(C3)CC2",
+          "note": "key=XYERLUMZIHNUCC"
+        }
+      ],
+      "label": "5H-2,3-benzodiazepine + norbornane + quinuclidine"
+    },
+    {
+      "index": 5,
+      "smiles": "C1C2CC3CC1CC(C2)C1(CCC2C1CCC21CC2CC1C2)O3",
+      "key": "XZUGEWQTERBHDL",
+      "baseline_flat": "dispiro[bicyclo[2.1.1]hexane-1,4'-octahydropentalene-1',5''-4-oxatricyclo[4.3.1.1^{3,8}]undecane]",
+      "current_flat": "dispiro[bicyclo[2.1.1]hexane-2,4'-octahydropentalene-1',5''-4-oxatricyclo[4.3.1.1^{3,8}]undecane]",
+      "emitted": "dispiro[bicyclo[2.1.1]hexane-2,4'-octahydropentalene-1',5''-4-oxatricyclo[4.3.1.1^{3,8}]undecane]",
+      "baseline_ok": false,
+      "current_flat_ok": true,
+      "emitted_ok": true,
+      "candidates_tried": 75,
+      "unparsable": 59,
+      "parses_wrong": 14,
+      "hits": [
+        {
+          "name": "dispiro[bicyclo[2.1.1]hexane-3,4'-octahydropentalene-1',5''-4-oxatricyclo[4.3.1.1^{3,8}]undecane]",
+          "back": "C12CC3OC4(C(CC(C1)C3)C2)CCC2C3(CCC24)CC2CC3C2"
+        },
+        {
+          "name": "dispiro[bicyclo[2.1.1]hexane-2,4'-octahydropentalene-1',5''-4-oxatricyclo[4.3.1.1^{3,8}]undecane]",
+          "back": "C12CC3OC4(C(CC(C1)C3)C2)CCC2C3(CCC24)C2CC(C3)C2"
+        }
+      ],
+      "hit_count": 2,
+      "fixable_hits": [
+        "dispiro[bicyclo[2.1.1]hexane-3,4'-octahydropentalene-1',5''-4-oxatricyclo[4.3.1.1^{3,8}]undecane]"
+      ],
+      "classification": "resolved_emitted",
+      "sample_wrong": [
+        {
+          "name": "dispiro[bicyclo[2.1.1]hexane-6,4'-octahydropentalene-1',5''-4-oxatricyclo[4.3.1.1^{3,8}]undecane]",
+          "back": "C12CC3OC4(C(CC(C1)C3)C2)CCC2C3(CCC24)C2CCC3C2",
+          "note": "key=AEUWQKSTHBLPKX"
+        },
+        {
+          "name": "1-methyldispiro[bicyclo[2.1.1]hexane-2,4'-octahydropentalene-1',5''-4-oxatricyclo[4.3.1.1^{3,8}]undecane]",
+          "back": "CC12CC(CC23C2CCC4(OC5CC6CC(CC4C6)C5)C2CC3)C1",
+          "note": "key=NIUNVYFHRZWZKU"
+        },
+        {
+          "name": "dispiro[bicyclo[2.1.1]hexane-5,4'-octahydropentalene-1',5''-4-oxatricyclo[4.3.1.1^{3,8}]undecane]",
+          "back": "C12CC3OC4(C(CC(C1)C3)C2)CCC2C3(CCC24)C2CCC3C2",
+          "note": "key=AEUWQKSTHBLPKX"
+        }
+      ],
+      "label": "octahydropentalene + bicyclo211 + oxaadamantane"
+    },
+    {
+      "index": 6,
+      "smiles": "C1CCN2CC3(C4CC5CC3C5C4)C3(CCN2C1)CC1CC3C1",
+      "key": "DZFMFAOBJAYGGQ",
+      "baseline_flat": "dispiro[tricyclo[3.2.1.0^{3,6}]octane-2,7'-octahydropyridazino[1,2-a][1,2]diazepine-8',1''-bicyclo[2.1.1]hexane]",
+      "current_flat": "dispiro[tricyclo[3.2.1.0^{3,6}]octane-2,7'-octahydropyridazino[1,2-a][1,2]diazepine-8',2''-bicyclo[2.1.1]hexane]",
+      "emitted": "dispiro[tricyclo[3.2.1.0^{3,6}]octane-2,7'-octahydropyridazino[1,2-a][1,2]diazepine-8',2''-bicyclo[2.1.1]hexane]",
+      "baseline_ok": false,
+      "current_flat_ok": true,
+      "emitted_ok": true,
+      "candidates_tried": 170,
+      "unparsable": 140,
+      "parses_wrong": 26,
+      "hits": [
+        {
+          "name": "dispiro[tricyclo[3.2.1.0^{3,6}]octane-2,7'-octahydropyridazino[1,2-a][1,2]diazepine-8',2''-bicyclo[2.1.1]hexane]",
+          "back": "C12C3(CC(C1)C2)C2(CN1N(CC3)CCCC1)C1CC3C(CC32)C1"
+        },
+        {
+          "name": "dispiro[tricyclo[3.2.1.0(3,6)]octane-2,7'-octahydropyridazino[1,2-a][1,2]diazepine-8',2''-bicyclo[2.1.1]hexane]",
+          "back": "C12C3(CC(C1)C2)C2(CN1N(CC3)CCCC1)C1CC3C(CC32)C1"
+        },
+        {
+          "name": "dispiro[tricyclo[3.2.1.0^{3,6}]octane-8,7'-octahydropyridazino[1,2-a][1,2]diazepine-8',2''-bicyclo[2.1.1]hexane]",
+          "back": "C12C3(CC(C1)C2)C2(CN1N(CC3)CCCC1)C1CC3CC2C3C1"
+        },
+        {
+          "name": "dispiro[tricyclo[3.2.1.0(3,6)]octane-8,7'-octahydropyridazino[1,2-a][1,2]diazepine-8',2''-bicyclo[2.1.1]hexane]",
+          "back": "C12C3(CC(C1)C2)C2(CN1N(CC3)CCCC1)C1CC3CC2C3C1"
+        }
+      ],
+      "hit_count": 4,
+      "fixable_hits": [
+        "dispiro[tricyclo[3.2.1.0(3,6)]octane-2,7'-octahydropyridazino[1,2-a][1,2]diazepine-8',2''-bicyclo[2.1.1]hexane]",
+        "dispiro[tricyclo[3.2.1.0^{3,6}]octane-8,7'-octahydropyridazino[1,2-a][1,2]diazepine-8',2''-bicyclo[2.1.1]hexane]",
+        "dispiro[tricyclo[3.2.1.0(3,6)]octane-8,7'-octahydropyridazino[1,2-a][1,2]diazepine-8',2''-bicyclo[2.1.1]hexane]"
+      ],
+      "classification": "resolved_emitted",
+      "sample_wrong": [
+        {
+          "name": "1-methyldispiro[tricyclo[3.2.1.0^{3,6}]octane-2,7'-octahydropyridazino[1,2-a][1,2]diazepine-1',2''-bicyclo[2.1.1]hexane]",
+          "back": "CC12CC3C(CC3C23CN2N(CCC3)C3(C4CC(C3)C4)CCC2)C1",
+          "note": "key=KQSICEJXTLMHPH"
+        },
+        {
+          "name": "1-methyldispiro[tricyclo[3.2.1.0^{3,6}]octane-2,7'-octahydropyridazino[1,2-a][1,2]diazepine-8',2''-bicyclo[2.1.1]hexane]",
+          "back": "CC12CC3C(CC3C23CN2N(CCC34C3CC(C4)C3)CCCC2)C1",
+          "note": "key=PVJYSKDZCRDNBS"
+        },
+        {
+          "name": "dispiro[tricyclo[3.2.1.0(3,6)]octane-2,7'-octahydropyridazino[1,2-a][1,2]diazepine-4',2''-bicyclo[2.1.1]hexane]",
+          "back": "C12C3(CC(C1)C2)CCCN2N3CC3(CCC2)C2CC1C(CC13)C2",
+          "note": "key=XGOFELDPQOSKCK"
+        }
+      ],
+      "label": "octahydropyridazino[1,2-a][1,2]diazepine + bicyclo211 + noradamantane"
+    },
+    {
+      "index": 7,
+      "smiles": "C1CN2CCC1C1(C3CCC1C3)C21C2CCC1C2",
+      "key": "AOENUGAKQYXGMN",
+      "baseline_flat": "dispiro[bicyclo[2.1.1]hexane-1,3'-1-azabicyclo[2.2.2]octane-2',1''-bicyclo[2.1.1]hexane]",
+      "current_flat": "dispiro[bicyclo[2.1.1]hexane-5,3'-1-azabicyclo[2.2.2]octane-2',5''-bicyclo[2.1.1]hexane]",
+      "emitted": "dispiro[bicyclo[2.1.1]hexane-5,3'-1-azabicyclo[2.2.2]octane-2',5''-bicyclo[2.1.1]hexane]",
+      "baseline_ok": false,
+      "current_flat_ok": true,
+      "emitted_ok": true,
+      "candidates_tried": 102,
+      "unparsable": 86,
+      "parses_wrong": 14,
+      "hits": [
+        {
+          "name": "dispiro[bicyclo[2.1.1]hexane-6,3'-1-azabicyclo[2.2.2]octane-2',5''-bicyclo[2.1.1]hexane]",
+          "back": "C12CCC(C13N1CCC(C34C3CCC4C3)CC1)C2"
+        },
+        {
+          "name": "dispiro[bicyclo[2.1.1]hexane-5,3'-1-azabicyclo[2.2.2]octane-2',5''-bicyclo[2.1.1]hexane]",
+          "back": "C12CCC(C13N1CCC(C34C3CCC4C3)CC1)C2"
+        }
+      ],
+      "hit_count": 2,
+      "fixable_hits": [
+        "dispiro[bicyclo[2.1.1]hexane-6,3'-1-azabicyclo[2.2.2]octane-2',5''-bicyclo[2.1.1]hexane]"
+      ],
+      "classification": "resolved_emitted",
+      "sample_wrong": [
+        {
+          "name": "dispiro[bicyclo[2.1.1]hexane-5,3'-1-azabicyclo[2.2.2]octane-5',5''-bicyclo[2.1.1]hexane]",
+          "back": "C12CCC(C13C1C4(CN(C3)CC1)C1CCC4C1)C2",
+          "note": "key=PNNAOIKPPVPSSF"
+        },
+        {
+          "name": "1-methyldispiro[bicyclo[2.1.1]hexane-5,3'-1-azabicyclo[2.2.2]octane-5',5''-bicyclo[2.1.1]hexane]",
+          "back": "CC12CCC(C1)C21CN2CC3(C4CCC3C4)C1CC2",
+          "note": "key=UEJAEVQQIISNNH"
+        },
+        {
+          "name": "1-methyldispiro[bicyclo[2.1.1]hexane-3,3'-1-azabicyclo[2.2.2]octane-2',5''-bicyclo[2.1.1]hexane]",
+          "back": "CC12CC3(C4CCN(CC4)C34C3CCC4C3)C(C1)C2",
+          "note": "key=WMDKOIKXFYFVTO"
+        }
+      ],
+      "label": "bicyclo211 + quinuclidine + bicyclo211"
+    },
+    {
+      "index": 9,
+      "smiles": "C1C2CC3C1C(C2)C31C2CC1C21C2CCC1CC2",
+      "key": "YZHNTUYXPBQVTC",
+      "baseline_flat": "dispiro[tricyclo[3.2.1.0^{3,6}]octane-4,3'-bicyclo[1.1.1]pentane-1',1''-bicyclo[2.2.1]heptane]",
+      "current_flat": "dispiro[tricyclo[3.2.1.0^{3,6}]octane-4,4'-bicyclo[1.1.1]pentane-2',7''-bicyclo[2.2.1]heptane]",
+      "emitted": "dispiro[tricyclo[3.2.1.0^{3,6}]octane-4,4'-bicyclo[1.1.1]pentane-2',7''-bicyclo[2.2.1]heptane]",
+      "baseline_ok": false,
+      "current_flat_ok": true,
+      "emitted_ok": true,
+      "candidates_tried": 136,
+      "unparsable": 121,
+      "parses_wrong": 11,
+      "hits": [
+        {
+          "name": "dispiro[tricyclo[3.2.1.0(3,6)]octane-4,4'-bicyclo[1.1.1]pentane-2',7''-bicyclo[2.2.1]heptane]",
+          "back": "C12CCC(CC1)C21C2C3(C1C2)C2CC1CC2C3C1"
+        },
+        {
+          "name": "dispiro[tricyclo[3.2.1.0^{3,6}]octane-4,4'-bicyclo[1.1.1]pentane-5',7''-bicyclo[2.2.1]heptane]",
+          "back": "C12CCC(CC1)C21C2CC1C21C2CC3CC2C1C3"
+        },
+        {
+          "name": "dispiro[tricyclo[3.2.1.0(3,6)]octane-4,4'-bicyclo[1.1.1]pentane-5',7''-bicyclo[2.2.1]heptane]",
+          "back": "C12CCC(CC1)C21C2CC1C21C2CC3CC2C1C3"
+        },
+        {
+          "name": "dispiro[tricyclo[3.2.1.0^{3,6}]octane-4,4'-bicyclo[1.1.1]pentane-2',7''-bicyclo[2.2.1]heptane]",
+          "back": "C12CCC(CC1)C21C2C3(C1C2)C2CC1CC2C3C1"
+        }
+      ],
+      "hit_count": 4,
+      "fixable_hits": [
+        "dispiro[tricyclo[3.2.1.0(3,6)]octane-4,4'-bicyclo[1.1.1]pentane-2',7''-bicyclo[2.2.1]heptane]",
+        "dispiro[tricyclo[3.2.1.0^{3,6}]octane-4,4'-bicyclo[1.1.1]pentane-5',7''-bicyclo[2.2.1]heptane]",
+        "dispiro[tricyclo[3.2.1.0(3,6)]octane-4,4'-bicyclo[1.1.1]pentane-5',7''-bicyclo[2.2.1]heptane]"
+      ],
+      "classification": "resolved_emitted",
+      "sample_wrong": [
+        {
+          "name": "dispiro[tricyclo[3.2.1.0^{3,6}]octane-8,4'-bicyclo[1.1.1]pentane-2',7''-bicyclo[2.2.1]heptane]",
+          "back": "C12CCC(CC1)C21C2C3(C1C2)C2CC1CC3C1C2",
+          "note": "key=GIJPCRNDUDOGFW"
+        },
+        {
+          "name": "dispiro[tricyclo[3.2.1.0^{3,6}]octane-7,4'-bicyclo[1.1.1]pentane-2',7''-bicyclo[2.2.1]heptane]",
+          "back": "C12CCC(CC1)C21C2C3(C1C2)C2C1CC2CC3C1",
+          "note": "key=KWSPMVMMDOEWAX"
+        },
+        {
+          "name": "1-methyldispiro[tricyclo[3.2.1.0^{3,6}]octane-7,4'-bicyclo[1.1.1]pentane-2',7''-bicyclo[2.2.1]heptane]",
+          "back": "CC12CC3CC(C3C23C2CC3C23C2CCC3CC2)C1",
+          "note": "key=WTQAPXFHXGSCGV"
+        }
+      ],
+      "label": "bicyclo111pent + norbornane + noradamantane"
+    },
+    {
+      "index": 12,
+      "smiles": "C1=Cc2ccccc2C2(c3ccccc31)C1CC2C2(CCC3CCCCC3C2)C1",
+      "key": "XYGOAAVJNYBZSE",
+      "baseline_flat": "dispiro[5H-dibenzo[a,d][7]annulene-5,1'-bicyclo[2.1.1]hexane-5',2''-decahydronaphthalene]",
+      "current_flat": "dispiro[5H-dibenzo[a,d][7]annulene-5,5'-bicyclo[2.1.1]hexane-2',2''-decahydronaphthalene]",
+      "emitted": "dispiro[5H-dibenzo[a,d][7]annulene-5,5'-bicyclo[2.1.1]hexane-2',2''-decahydronaphthalene]",
+      "baseline_ok": false,
+      "current_flat_ok": true,
+      "emitted_ok": true,
+      "candidates_tried": 272,
+      "unparsable": 207,
+      "parses_wrong": 61,
+      "hits": [
+        {
+          "name": "dispiro[5H-dibenzo[a,d][7]annulene-5,5'-bicyclo[2.1.1]hexane-3',2''-decalin]",
+          "back": "C1C2(CCC3CCCCC13)CC1C3(C2C1)C1=C(C=CC2=C3C=CC=C2)C=CC=C1"
+        },
+        {
+          "name": "dispiro[5H-dibenzo[a,d][7]annulene-5,5'-bicyclo[2.1.1]hexane-3',2''-decahydronaphthalene]",
+          "back": "C1C2(CCC3CCCCC13)CC1C3(C2C1)C1=C(C=CC2=C3C=CC=C2)C=CC=C1"
+        },
+        {
+          "name": "dispiro[5H-dibenzo[a,d][7]annulene-5,5'-bicyclo[2.1.1]hexane-2',2''-decahydronaphthalene]",
+          "back": "C1C2(CCC3CCCCC13)C1C3(C(C2)C1)C1=C(C=CC2=C3C=CC=C2)C=CC=C1"
+        },
+        {
+          "name": "dispiro[5H-dibenzo[a,d][7]annulene-5,5'-bicyclo[2.1.1]hexane-2',2''-decalin]",
+          "back": "C1C2(CCC3CCCCC13)C1C3(C(C2)C1)C1=C(C=CC2=C3C=CC=C2)C=CC=C1"
+        }
+      ],
+      "hit_count": 4,
+      "fixable_hits": [
+        "dispiro[5H-dibenzo[a,d][7]annulene-5,5'-bicyclo[2.1.1]hexane-3',2''-decalin]",
+        "dispiro[5H-dibenzo[a,d][7]annulene-5,5'-bicyclo[2.1.1]hexane-3',2''-decahydronaphthalene]",
+        "dispiro[5H-dibenzo[a,d][7]annulene-5,5'-bicyclo[2.1.1]hexane-2',2''-decalin]"
+      ],
+      "classification": "resolved_emitted",
+      "sample_wrong": [
+        {
+          "name": "dispiro[5H-dibenzo[a,d][7]annulene-5,5'-bicyclo[2.1.1]hexane-6',2''-naphthalene]",
+          "back": "C1C2(C=CC3=CC=CC=C13)C1CCC2C12C1=C(C=CC3=C2C=CC=C3)C=CC=C1",
+          "note": "key=FAGZAECHGIAWII"
+        },
+        {
+          "name": "dispiro[4H-dibenzo[a,d][7]annulene-7,5'-bicyclo[2.1.1]hexane-2',2''-decahydronaphthalene]",
+          "back": "C1C2(CCC3CCCCC13)C1C3(C(C2)C1)C=C1C(=CC=C2C(=C1)CCC=C2)C=C3",
+          "note": "key=ZRVGYZOVBGMZNL"
+        },
+        {
+          "name": "dispiro[1H-dibenzo[a,d][7]annulene-5,5'-bicyclo[2.1.1]hexane-2',2''-decahydronaphthalene]",
+          "back": "C1C2(CCC3CCCCC13)C1C3(C(C2)C1)C1=C(C=CC2=C3C=CCC2)C=CC=C1",
+          "note": "key=QHYIMUIWBSZTDR"
+        }
+      ],
+      "label": "5H-dibenzo[a,d][7]annulene + bicyclo211 + decalin"
+    },
+    {
+      "index": 13,
+      "smiles": "CN1C2CCC1CC1(C2)C2CC3CC(C2)C2(C4CCC2C4)C1CN3",
+      "key": "RLWFDXNXMRUBBS",
+      "baseline_flat": "dispiro[bicyclo[2.1.1]hexane-1,10'-4-azatricyclo[4.3.1.1^{3,8}]undecane-7',3''-8-azabicyclo[3.2.1]octane]",
+      "current_flat": "dispiro[bicyclo[2.1.1]hexane-5,10'-4-azatricyclo[4.3.1.1^{3,8}]undecane-7',3''-8-azabicyclo[3.2.1]octane]",
+      "emitted": "1-methyldispiro[bicyclo[2.1.1]hexane-5,10'-4-azatricyclo[4.3.1.1^{3,8}]undecane-7',3''-8-azabicyclo[3.2.1]octane]",
+      "baseline_ok": false,
+      "current_flat_ok": false,
+      "emitted_ok": false,
+      "candidates_tried": 92,
+      "unparsable": 78,
+      "parses_wrong": 14,
+      "hits": [],
+      "hit_count": 0,
+      "fixable_hits": [],
+      "classification": "parses_wrong_only",
+      "sample_wrong": [
+        {
+          "name": "1-methyldispiro[bicyclo[2.1.1]hexane-2,10'-4-azatricyclo[4.3.1.1^{3,8}]undecane-7',3''-8-azabicyclo[3.2.1]octane]",
+          "back": "CC12CC(CC23C2CC4NCC3C3(CC5CCC(C3)N5)C(C2)C4)C1",
+          "note": "key=GZQMOMBRICTCTD"
+        },
+        {
+          "name": "1-methyldispiro[bicyclo[2.1.1]hexane-3,10'-4-azatricyclo[4.3.1.1^{3,8}]undecane-7',3''-8-azabicyclo[3.2.1]octane]",
+          "back": "CC12CC3(C4CC5NCC3C3(CC6CCC(C3)N6)C(C4)C5)C(C1)C2",
+          "note": "key=CQOGNFOIDMRZHX"
+        },
+        {
+          "name": "1-methyldispiro[bicyclo[2.1.1]hexane-6,10'-4-azatricyclo[4.3.1.1^{3,8}]undecane-7',3''-8-azabicyclo[3.2.1]octane]",
+          "back": "CC12CCC(C1)C21C2CC3NCC1C1(CC4CCC(C1)N4)C(C2)C3",
+          "note": "key=NWCFKYNBWOBWCB"
+        }
+      ],
+      "label": "bicyclo211 + azaadamantane + tropane"
+    },
+    {
+      "index": 14,
+      "smiles": "C1CC2CCC3(C(C1)C2)C1CC1CCC31C2CCC1C2",
+      "key": "JIALSNSYRKWXSI",
+      "baseline_flat": "dispiro[bicyclo[2.1.1]hexane-1,1'-bicyclo[4.1.0]heptane-2',1''-bicyclo[3.3.1]nonane]",
+      "current_flat": "dispiro[bicyclo[2.1.1]hexane-5,3'-bicyclo[4.1.0]heptane-2',2''-bicyclo[3.3.1]nonane]",
+      "emitted": "dispiro[bicyclo[2.1.1]hexane-5,3'-bicyclo[4.1.0]heptane-2',2''-bicyclo[3.3.1]nonane]",
+      "baseline_ok": false,
+      "current_flat_ok": true,
+      "emitted_ok": true,
+      "candidates_tried": 102,
+      "unparsable": 88,
+      "parses_wrong": 12,
+      "hits": [
+        {
+          "name": "dispiro[bicyclo[2.1.1]hexane-6,3'-bicyclo[4.1.0]heptane-2',2''-bicyclo[3.3.1]nonane]",
+          "back": "C12C3(CCC(CCC1)C2)C2CC2CCC32C3CCC2C3"
+        },
+        {
+          "name": "dispiro[bicyclo[2.1.1]hexane-5,3'-bicyclo[4.1.0]heptane-2',2''-bicyclo[3.3.1]nonane]",
+          "back": "C12C3(CCC(CCC1)C2)C2CC2CCC32C3CCC2C3"
+        }
+      ],
+      "hit_count": 2,
+      "fixable_hits": [
+        "dispiro[bicyclo[2.1.1]hexane-6,3'-bicyclo[4.1.0]heptane-2',2''-bicyclo[3.3.1]nonane]"
+      ],
+      "classification": "resolved_emitted",
+      "sample_wrong": [
+        {
+          "name": "dispiro[bicyclo[2.1.1]hexane-5,3'-bicyclo[4.1.0]heptane-5',2''-bicyclo[3.3.1]nonane]",
+          "back": "C12C3(CCC(CCC1)C2)CC2(CC1CC13)C1CCC2C1",
+          "note": "key=CSJJDIDRGMQDIN"
+        },
+        {
+          "name": "1-methyldispiro[bicyclo[2.1.1]hexane-5,3'-bicyclo[4.1.0]heptane-2',2''-bicyclo[3.3.1]nonane]",
+          "back": "CC12CCC(C1)C21CCC2CC2C12C1CCCC(CC2)C1",
+          "note": "key=OTJNTUPQTCSBAR"
+        },
+        {
+          "name": "1-methyldispiro[bicyclo[2.1.1]hexane-5,3'-bicyclo[4.1.0]heptane-7',2''-bicyclo[3.3.1]nonane]",
+          "back": "CC12CCC(C1)C21CC2C(CC1)C21C2CCCC(CC1)C2",
+          "note": "key=TYUPHUPZWQTVGX"
+        }
+      ],
+      "label": "bicyclo211 + bicyclo410 + bicyclo331"
+    },
+    {
+      "index": 15,
+      "smiles": "C1CC2CCC3(C(C1)C2)C1CCC3C2(C1)C1CC3CC1C2C3",
+      "key": "RMLSXWPHAKNIIK",
+      "baseline_flat": "dispiro[tricyclo[3.2.1.0^{3,6}]octane-4,6'-bicyclo[2.2.1]heptane-1',1''-bicyclo[3.3.1]nonane]",
+      "current_flat": "dispiro[tricyclo[3.2.1.0^{3,6}]octane-4,2'-bicyclo[2.2.1]heptane-7',2''-bicyclo[3.3.1]nonane]",
+      "emitted": "dispiro[tricyclo[3.2.1.0^{3,6}]octane-4,2'-bicyclo[2.2.1]heptane-7',2''-bicyclo[3.3.1]nonane]",
+      "baseline_ok": false,
+      "current_flat_ok": true,
+      "emitted_ok": true,
+      "candidates_tried": 136,
+      "unparsable": 115,
+      "parses_wrong": 19,
+      "hits": [
+        {
+          "name": "dispiro[tricyclo[3.2.1.0(3,6)]octane-4,2'-bicyclo[2.2.1]heptane-7',2''-bicyclo[3.3.1]nonane]",
+          "back": "C12C3(CCC(CCC1)C2)C2C1(CC3CC2)C2CC3CC2C1C3"
+        },
+        {
+          "name": "dispiro[tricyclo[3.2.1.0^{3,6}]octane-4,2'-bicyclo[2.2.1]heptane-7',2''-bicyclo[3.3.1]nonane]",
+          "back": "C12C3(CCC(CCC1)C2)C2C1(CC3CC2)C2CC3CC2C1C3"
+        }
+      ],
+      "hit_count": 2,
+      "fixable_hits": [
+        "dispiro[tricyclo[3.2.1.0(3,6)]octane-4,2'-bicyclo[2.2.1]heptane-7',2''-bicyclo[3.3.1]nonane]"
+      ],
+      "classification": "resolved_emitted",
+      "sample_wrong": [
+        {
+          "name": "dispiro[tricyclo[3.2.1.0(3,6)]octane-7,2'-bicyclo[2.2.1]heptane-7',2''-bicyclo[3.3.1]nonane]",
+          "back": "C12C3(CCC(CCC1)C2)C2C1(CC3CC2)C2C3CC2CC1C3",
+          "note": "key=YOACWHRGELPAHM"
+        },
+        {
+          "name": "1-methyldispiro[tricyclo[3.2.1.0^{3,6}]octane-8,2'-bicyclo[2.2.1]heptane-7',2''-bicyclo[3.3.1]nonane]",
+          "back": "CC12CC3CC(C3C1)C21C2CCC(C1)C21C2CCCC(CC1)C2",
+          "note": "key=VZKKVAQFNJLNKU"
+        },
+        {
+          "name": "1-methyldispiro[tricyclo[3.2.1.0^{3,6}]octane-4,2'-bicyclo[2.2.1]heptane-3',2''-bicyclo[3.3.1]nonane]",
+          "back": "CC12CC3C(C(C2)C32C3CCC(C3)C23C2CCCC(CC3)C2)C1",
+          "note": "key=VUCKRCBAXOZOSU"
+        }
+      ],
+      "label": "norbornane + noradamantane + bicyclo331"
+    },
+    {
+      "index": 18,
+      "smiles": "C1CCC2C(C1)CCCC21C2CCCC1C1(CC2)C2CC3CC(C2)C31",
+      "key": "FQSIUIDQVMXLSQ",
+      "baseline_flat": "dispiro[decahydronaphthalene-1,1'-bicyclo[3.3.1]nonane-7',7''-tricyclo[3.2.1.0^{3,6}]octane]",
+      "current_flat": "dispiro[decahydronaphthalene-1,9'-bicyclo[3.3.1]nonane-2',7''-tricyclo[3.2.1.0^{3,6}]octane]",
+      "emitted": "dispiro[decahydronaphthalene-1,9'-bicyclo[3.3.1]nonane-2',7''-tricyclo[3.2.1.0^{3,6}]octane]",
+      "baseline_ok": false,
+      "current_flat_ok": true,
+      "emitted_ok": true,
+      "candidates_tried": 204,
+      "unparsable": 145,
+      "parses_wrong": 38,
+      "hits": [
+        {
+          "name": "dispiro[decalin-1,9'-bicyclo[3.3.1]nonane-2',7''-tricyclo[3.2.1.0^{3,6}]octane]",
+          "back": "C12CC3CC(C3C13C1CCCC(CC3)C13CCCC1CCCCC13)C2"
+        },
+        {
+          "name": "dispiro[decalin-4,9'-bicyclo[3.3.1]nonane-2',7''-tricyclo[3.2.1.0^{3,6}]octane]",
+          "back": "C12CC3CC(C3C13C1CCCC(CC3)C13CCCC1CCCCC13)C2"
+        },
+        {
+          "name": "dispiro[decahydronaphthalene-1,9'-bicyclo[3.3.1]nonane-6',7''-tricyclo[3.2.1.0^{3,6}]octane]",
+          "back": "C12CC3CC(C3C13C1CCCC(CC3)C13CCCC1CCCCC13)C2"
+        },
+        {
+          "name": "dispiro[decalin-1,9'-bicyclo[3.3.1]nonane-6',7''-tricyclo[3.2.1.0^{3,6}]octane]",
+          "back": "C12CC3CC(C3C13C1CCCC(CC3)C13CCCC1CCCCC13)C2"
+        },
+        {
+          "name": "dispiro[decahydronaphthalene-1,9'-bicyclo[3.3.1]nonane-4',7''-tricyclo[3.2.1.0^{3,6}]octane]",
+          "back": "C12CC3CC(C3C13CCC1CCCC3C13CCCC1CCCCC13)C2"
+        },
+        {
+          "name": "dispiro[decalin-1,9'-bicyclo[3.3.1]nonane-4',7''-tricyclo[3.2.1.0^{3,6}]octane]",
+          "back": "C12CC3CC(C3C13CCC1CCCC3C13CCCC1CCCCC13)C2"
+        },
+        {
+          "name": "dispiro[decahydronaphthalene-1,9'-bicyclo[3.3.1]nonane-4',7''-tricyclo[3.2.1.0(3,6)]octane]",
+          "back": "C12CC3CC(C3C13CCC1CCCC3C13CCCC1CCCCC13)C2"
+        },
+        {
+          "name": "dispiro[decahydronaphthalene-1,9'-bicyclo[3.3.1]nonane-2',7''-tricyclo[3.2.1.0^{3,6}]octane]",
+          "back": "C12CC3CC(C3C13C1CCCC(CC3)C13CCCC1CCCCC13)C2"
+        },
+        {
+          "name": "dispiro[decahydronaphthalene-1,9'-bicyclo[3.3.1]nonane-6',7''-tricyclo[3.2.1.0(3,6)]octane]",
+          "back": "C12CC3CC(C3C13C1CCCC(CC3)C13CCCC1CCCCC13)C2"
+        },
+        {
+          "name": "dispiro[decahydronaphthalene-4,9'-bicyclo[3.3.1]nonane-2',7''-tricyclo[3.2.1.0^{3,6}]octane]",
+          "back": "C12CC3CC(C3C13C1CCCC(CC3)C13CCCC1CCCCC13)C2"
+        },
+        {
+          "name": "dispiro[decalin-5,9'-bicyclo[3.3.1]nonane-2',7''-tricyclo[3.2.1.0^{3,6}]octane]",
+          "back": "C12CC3CC(C3C13C1CCCC(CC3)C13C1CCCCC1CCC3)C2"
+        },
+        {
+          "name": "dispiro[decahydronaphthalene-1,9'-bicyclo[3.3.1]nonane-8',7''-tricyclo[3.2.1.0^{3,6}]octane]",
+          "back": "C12CC3CC(C3C13CCC1CCCC3C13CCCC1CCCCC13)C2"
+        }
+      ],
+      "hit_count": 21,
+      "fixable_hits": [
+        "dispiro[decalin-1,9'-bicyclo[3.3.1]nonane-2',7''-tricyclo[3.2.1.0^{3,6}]octane]",
+        "dispiro[decalin-4,9'-bicyclo[3.3.1]nonane-2',7''-tricyclo[3.2.1.0^{3,6}]octane]",
+        "dispiro[decahydronaphthalene-1,9'-bicyclo[3.3.1]nonane-6',7''-tricyclo[3.2.1.0^{3,6}]octane]",
+        "dispiro[decalin-1,9'-bicyclo[3.3.1]nonane-6',7''-tricyclo[3.2.1.0^{3,6}]octane]",
+        "dispiro[decahydronaphthalene-1,9'-bicyclo[3.3.1]nonane-4',7''-tricyclo[3.2.1.0^{3,6}]octane]",
+        "dispiro[decalin-1,9'-bicyclo[3.3.1]nonane-4',7''-tricyclo[3.2.1.0^{3,6}]octane]",
+        "dispiro[decahydronaphthalene-1,9'-bicyclo[3.3.1]nonane-4',7''-tricyclo[3.2.1.0(3,6)]octane]",
+        "dispiro[decahydronaphthalene-1,9'-bicyclo[3.3.1]nonane-6',7''-tricyclo[3.2.1.0(3,6)]octane]"
+      ],
+      "classification": "resolved_emitted",
+      "sample_wrong": [
+        {
+          "name": "dispiro[decahydronaphthalene-1,9'-bicyclo[3.3.1]nonane-7',7''-tricyclo[3.2.1.0(3,6)]octane]",
+          "back": "C12CC3CC(C3C13CC1CCCC(C3)C13CCCC1CCCCC13)C2",
+          "note": "key=HYHISBZDRQABNO"
+        },
+        {
+          "name": "dispiro[naphthalene-6,9'-bicyclo[3.3.1]nonane-2',7''-tricyclo[3.2.1.0^{3,6}]octane]",
+          "back": "C12CC3CC(C3C13C1CCCC(CC3)C13CC=1C=CC=CC1C=C3)C2",
+          "note": "key=YEWZOYDENGQTQW"
+        },
+        {
+          "name": "dispiro[naphthalene-5,9'-bicyclo[3.3.1]nonane-2',7''-tricyclo[3.2.1.0^{3,6}]octane]",
+          "back": "C12CC3CC(C3C13C1CCCC(CC3)C13C=1C=CC=CC1C=CC3)C2",
+          "note": "key=KFWFZZJFTUDQHA"
+        }
+      ],
+      "label": "decalin + bicyclo331 + noradamantane"
+    },
+    {
+      "index": 19,
+      "smiles": "c1ncc2c(n1)C1(CCC3CCCCC3C1)SC21CC2CC1C2",
+      "key": "WPHZTLQYGBTQHL",
+      "baseline_flat": "dispiro[bicyclo[2.1.1]hexane-1,5'-5,7-dihydrothieno[3,4-d]pyrimidine-7',2''-decahydronaphthalene]",
+      "current_flat": "dispiro[bicyclo[2.1.1]hexane-2,5'-5,7-dihydrothieno[3,4-d]pyrimidine-7',2''-decahydronaphthalene]",
+      "emitted": "dispiro[bicyclo[2.1.1]hexane-2,5'-5,7-dihydrothieno[3,4-d]pyrimidine-7',2''-decahydronaphthalene]",
+      "baseline_ok": false,
+      "current_flat_ok": true,
+      "emitted_ok": true,
+      "candidates_tried": 205,
+      "unparsable": 163,
+      "parses_wrong": 36,
+      "hits": [
+        {
+          "name": "dispiro[bicyclo[2.1.1]hexane-3,5'-5,7-dihydrothieno[3,4-d]pyrimidine-7',2''-decalin]",
+          "back": "C1C2(CCC3CCCCC13)SC1(C3=C2N=CN=C3)CC3CC1C3"
+        },
+        {
+          "name": "dispiro[bicyclo[2.1.1]hexane-2,5'-5,7-dihydrothieno[3,4-d]pyrimidine-7',2''-decahydronaphthalene]",
+          "back": "C1C2(CCC3CCCCC13)SC1(C3=C2N=CN=C3)C3CC(C1)C3"
+        },
+        {
+          "name": "dispiro[bicyclo[2.1.1]hexane-3,5'-5,7-dihydrothieno[3,4-d]pyrimidine-7',2''-decahydronaphthalene]",
+          "back": "C1C2(CCC3CCCCC13)SC1(C3=C2N=CN=C3)CC3CC1C3"
+        },
+        {
+          "name": "dispiro[bicyclo[2.1.1]hexane-2,5'-5,7-dihydrothieno[3,4-d]pyrimidine-7',2''-decalin]",
+          "back": "C1C2(CCC3CCCCC13)SC1(C3=C2N=CN=C3)C3CC(C1)C3"
+        },
+        {
+          "name": "dispiro[bicyclo[2.1.1]hexane-2,5'-6,7-dihydrothieno[3,4-d]pyrimidine-7',2''-decalin]",
+          "back": "C1C2(CCC3CCCCC13)SC1(C3=C2N=CN=C3)C3CC(C1)C3"
+        },
+        {
+          "name": "dispiro[bicyclo[2.1.1]hexane-2,5'-6,7-dihydrothieno[3,4-d]pyrimidine-7',2''-decahydronaphthalene]",
+          "back": "C1C2(CCC3CCCCC13)SC1(C3=C2N=CN=C3)C3CC(C1)C3"
+        }
+      ],
+      "hit_count": 6,
+      "fixable_hits": [
+        "dispiro[bicyclo[2.1.1]hexane-3,5'-5,7-dihydrothieno[3,4-d]pyrimidine-7',2''-decalin]",
+        "dispiro[bicyclo[2.1.1]hexane-3,5'-5,7-dihydrothieno[3,4-d]pyrimidine-7',2''-decahydronaphthalene]",
+        "dispiro[bicyclo[2.1.1]hexane-2,5'-5,7-dihydrothieno[3,4-d]pyrimidine-7',2''-decalin]",
+        "dispiro[bicyclo[2.1.1]hexane-2,5'-6,7-dihydrothieno[3,4-d]pyrimidine-7',2''-decalin]",
+        "dispiro[bicyclo[2.1.1]hexane-2,5'-6,7-dihydrothieno[3,4-d]pyrimidine-7',2''-decahydronaphthalene]"
+      ],
+      "classification": "resolved_emitted",
+      "sample_wrong": [
+        {
+          "name": "dispiro[bicyclo[2.1.1]hexane-5,5'-5,7-dihydrothieno[3,4-d]pyrimidine-7',2''-decahydronaphthalene]",
+          "back": "C1C2(CCC3CCCCC13)SC1(C3=C2N=CN=C3)C3CCC1C3",
+          "note": "key=JVCKLZJCWCBXBV"
+        },
+        {
+          "name": "dispiro[bicyclo[2.1.1]hexane-6,5'-5,7-dihydrothieno[3,4-d]pyrimidine-7',2''-naphthalene]",
+          "back": "C1C2(C=CC3=CC=CC=C13)SC1(C3=C2N=CN=C3)C3CCC1C3",
+          "note": "key=OMQCLFADNOHKAK"
+        },
+        {
+          "name": "dispiro[bicyclo[2.1.1]hexane-5,5'-5,7-dihydrothieno[3,4-d]pyrimidine-7',2''-naphthalene]",
+          "back": "C1C2(C=CC3=CC=CC=C13)SC1(C3=C2N=CN=C3)C3CCC1C3",
+          "note": "key=OMQCLFADNOHKAK"
+        }
+      ],
+      "label": "5,7-dihydrothieno[3,4-d]pyrimidine + decalin + bicyclo211"
+    },
+    {
+      "index": 20,
+      "smiles": "C1CC2CC3(CC(C1)C21CC2CCOC2O1)C1CC3C1",
+      "key": "VRTVOGJFDKWJDV",
+      "baseline_flat": "dispiro[bicyclo[1.1.1]pentane-1,8'-bicyclo[3.3.1]nonane-1',2''-hexahydrofuro[2,3-b]furan]",
+      "current_flat": "dispiro[bicyclo[1.1.1]pentane-2,3'-bicyclo[3.3.1]nonane-9',2''-hexahydrofuro[2,3-b]furan]",
+      "emitted": "dispiro[bicyclo[1.1.1]pentane-2,3'-bicyclo[3.3.1]nonane-9',2''-hexahydrofuro[2,3-b]furan]",
+      "baseline_ok": false,
+      "current_flat_ok": true,
+      "emitted_ok": true,
+      "candidates_tried": 68,
+      "unparsable": 52,
+      "parses_wrong": 13,
+      "hits": [
+        {
+          "name": "dispiro[bicyclo[1.1.1]pentane-4,3'-bicyclo[3.3.1]nonane-9',2''-hexahydrofuro[2,3-b]furan]",
+          "back": "O1C2(CC3C1OCC3)C3CC1(CC2CCC3)C3CC1C3"
+        },
+        {
+          "name": "dispiro[bicyclo[1.1.1]pentane-2,3'-bicyclo[3.3.1]nonane-9',2''-hexahydrofuro[2,3-b]furan]",
+          "back": "O1C2(CC3C1OCC3)C3CC1(CC2CCC3)C3CC1C3"
+        },
+        {
+          "name": "dispiro[bicyclo[1.1.1]pentane-5,3'-bicyclo[3.3.1]nonane-9',2''-hexahydrofuro[2,3-b]furan]",
+          "back": "O1C2(CC3C1OCC3)C3CC1(CC2CCC3)C3CC1C3"
+        }
+      ],
+      "hit_count": 3,
+      "fixable_hits": [
+        "dispiro[bicyclo[1.1.1]pentane-4,3'-bicyclo[3.3.1]nonane-9',2''-hexahydrofuro[2,3-b]furan]",
+        "dispiro[bicyclo[1.1.1]pentane-5,3'-bicyclo[3.3.1]nonane-9',2''-hexahydrofuro[2,3-b]furan]"
+      ],
+      "classification": "resolved_emitted",
+      "sample_wrong": [
+        {
+          "name": "dispiro[bicyclo[1.1.1]pentane-2,3'-bicyclo[3.3.1]nonane-6',2''-hexahydrofuro[2,3-b]furan]",
+          "back": "O1C2(CC3C1OCC3)C3CC1(CC(CC2)C3)C3CC1C3",
+          "note": "key=PSBRXGFXQBVLEU"
+        },
+        {
+          "name": "1-methyldispiro[bicyclo[1.1.1]pentane-4,3'-bicyclo[3.3.1]nonane-9',2''-hexahydrofuro[2,3-b]furan]",
+          "back": "CC12CC(C1)C21CC2CCCC(C1)C21CC2C(OCC2)O1",
+          "note": "key=WRRNREIYRIVPSF"
+        },
+        {
+          "name": "dispiro[bicyclo[1.1.1]pentane-2,3'-bicyclo[3.3.1]nonane-4',2''-hexahydrofuro[2,3-b]furan]",
+          "back": "O1C2(CC3C1OCC3)C3(CC1CCCC2C1)C1CC3C1",
+          "note": "key=JHUYMIGKEONVGB"
+        }
+      ],
+      "label": "hexahydrofuro[2,3-b]furan + bicyclo331 + bicyclo111pent"
+    }
+  ]
+}

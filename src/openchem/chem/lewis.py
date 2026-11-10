@@ -31,7 +31,7 @@ from dataclasses import replace
 from typing import Any
 
 from openchem.chem.calculator_options import apply_microspecies, microspecies_note
-from openchem.chem.electronic_properties import JENSEN_POLARIZABILITY
+from openchem.chem.electronic_properties import ADDITIVE_POLARIZABILITY
 from openchem.chem.oxidation_states import classical_bonding_refusal, electronegativity_table
 from openchem.domain.common import CacheState, Provenance
 from openchem.domain.lewis import (
@@ -453,7 +453,7 @@ def _donor_evidence(atom: Any) -> LewisEvidence | None:
     if not pairs:
         return None
     supporting = {"lone_pairs": float(pairs)}
-    polarizability = JENSEN_POLARIZABILITY.get(atom.GetSymbol())
+    polarizability = ADDITIVE_POLARIZABILITY.get(atom.GetSymbol())
     if polarizability is not None:
         # Polarizability is the physical basis of softness -- a soft donor
         # is a polarizable one. Reported as the measured quantity rather

@@ -78,6 +78,18 @@ A preregistered test (`PREREGISTRATION_PLEC.md`, rules in `plec_core.py`) of re-
 
 The first run never measured PLECscore: ODDT 0.7's fingerprint hash is Python's tuple `hash()`, which changed in 3.8, so the model's bits were read through the wrong function, and the poses and receptor reached it without bond orders, charges or non-polar hydrogens. `PREREGISTRATION_PLEC2.md` fixes the same question on the same poses with the old hash restored (`plec_rescore_runner_2.py`), ligands rebuilt on their chemical-component template and a receptor written out before the PDBQT step, behind a fidelity gate (the share of a training complex's stored fingerprint that the pipeline reproduces, median 0.5) and the original sanity rule. Three stages: `inputs`, `rescore`, `report`. Run 2026-11-02: both gates passed (fidelity 59%, crystal-ligand median pKd 6.3) and the verdict is **HARMFUL** (1 gained, 10 lost among 34 rescored deciding receptors; `RESULT_PLEC2.md`, `artifacts_plec2/`).
 
+## `run_gnina_test.py` — does gnina CNNscore order Vina's poses better?
+
+A preregistered test (`PREREGISTRATION_GNINA.md`, rules in `gnina_core.py`) of re-ranking the same nine Vina poses by gnina's default CNN (`--score_only --cnn_scoring rescore`). Eighteen catalog PDB codes in CrossDocked2020 are held out. Run 2026-11-05: **NULL** (`RESULT_GNINA.md`; 29 deciding, gained 3, lost 2, p = 0.5). CNN rescore of these poses is closed.
+
+## `run_gnina_dock_test.py` — does gnina's default dock beat Vina's top pose?
+
+A separate freeze (`PREREGISTRATION_GNINA_DOCK.md`, rules in `gnina_dock_core.py`): gnina search (no `--score_only`, `--cnn_scoring rescore` as `--help` default), same crystal-ligand box, seed 20261029, exhaustiveness 25, nine poses. Run 2026-11-05: **NULL** (`RESULT_GNINA_DOCK.md`; 29 deciding, Vina 20/29 vs gnina 21/29, gained 4, lost 3, p = 0.5). Default gnina dock on this catalog is closed.
+
+## `run_cnn_affinity_test.py` — does CNNaffinity rank series better than Vina?
+
+A separate freeze (`PREREGISTRATION_CNN_AFFINITY.md`, rules in `cnn_affinity_core.py`): CNNaffinity of the representative Vina pose vs that pose’s Vina score on the frozen 77 within-assay series (paired complete-case Δρ; 35 deciding series after CrossDocked PDB hold-out). Freeze commit `e52f01ae`. Run finished 2026-11-08: **HARMFUL** (`RESULT_CNN_AFFINITY.md`; 35 of 35 deciding series, median Δρ −0.130, series bootstrap [−0.330, −0.014], 0 dropped). This configuration is closed.
+
 ## `prep_box_survey.py` — is a bad default pose a setup defect?
 
 Redocks all 49 catalogued receptors in two preparation arms (cofactors kept, as the panel

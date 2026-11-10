@@ -442,11 +442,23 @@ def test_an_element_the_book_does_not_tabulate_is_refused():
     metals beyond Cu/Ag/Cd/Hg/Zn, the lanthanides, the actinides -- is
     refused by name rather than given a radius from a neighbouring set,
     which is what RDKit's would be."""
-    with pytest.raises(TseiRadiusError, match="Pt"):
-        covalent_radius("Pt")
+    with pytest.raises(TseiRadiusError, match="Au"):
+        covalent_radius("Au")
 
     with pytest.raises(TseiRadiusError, match="Table 4.7"):
         covalent_radius("Fe")
+
+
+def test_platinum_takes_cordero_radius_and_the_result_says_so():
+    """Lange's table has no platinum; Cordero 2008 prints 1.36(5) A. It is used,
+    never silently: the result carries a warning that it is another scale."""
+    from openchem.chem.tsei import compute_tsei_projection, supplementary_radii
+
+    assert covalent_radius("Pt") == pytest.approx(1.36) and set(supplementary_radii()) == {"Pt"}
+    dataset = compute_tsei_projection(Chem.MolFromSmiles("C[Pt]C"), "m")
+    assert dataset.values and "Cordero" in dataset.provenance.parameters["summary"]
+    plain = compute_tsei_projection(Chem.MolFromSmiles("CCC"), "m")
+    assert "summary" not in plain.provenance.parameters
 
 
 def test_a_refused_element_refuses_the_whole_substituent():

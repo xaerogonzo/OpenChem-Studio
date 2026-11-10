@@ -91,6 +91,33 @@ class RenameMoleculeCommand(OpenChemCommand):
         self._event_bus.publish(MoleculeChanged(molecule_uuid=self._molecule.uuid))
 
 
+class ChooseComponentCommand(OpenChemCommand):
+    """Choose which component of a multi-piece drawing the calculators are handed ("" is the automatic pick).
+
+    The choice is the component's canonical SMILES, saved with the molecule (`MoleculeModel.component_choice`).
+    It changes what every calculator is handed and the input fingerprint of the drawing, so the molecule is
+    announced as changed and its results are computed again for the piece now meant; undo puts the earlier
+    choice back the same way. It never touches the structure, the conformers or the molblock.
+    """
+
+    def __init__(self, molecule: MoleculeModel, component_smiles: str, event_bus: EventBus) -> None:
+        super().__init__(
+            f"Compute on {component_smiles}" if component_smiles else "Compute on the automatic component"
+        )
+        self._molecule = molecule
+        self._old = molecule.component_choice
+        self._new = component_smiles
+        self._event_bus = event_bus
+
+    def redo(self) -> None:
+        self._molecule.component_choice = self._new
+        self._event_bus.publish(MoleculeChanged(molecule_uuid=self._molecule.uuid))
+
+    def undo(self) -> None:
+        self._molecule.component_choice = self._old
+        self._event_bus.publish(MoleculeChanged(molecule_uuid=self._molecule.uuid))
+
+
 class EditStructureCommand(OpenChemCommand):
     """Wraps a whole-structure edit (e.g. from Ketcher) as an undoable command.
 

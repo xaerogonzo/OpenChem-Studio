@@ -1,0 +1,28 @@
+[
+  {"do": "smiles", "smiles": "ClCCS", "name": "2-Chloroethanethiol", "after_ms": 3000},
+  {"do": "select", "molecule": -1, "after_ms": 3000},
+  {"do": "conformers", "count": 1, "after_ms": 10000},
+
+  {"do": "calculator", "id": "geometry_partial_charge", "parameters": {"method": "eem_jirouskova2009_b3lyp_mk"}, "reveal": false, "after_ms": 6000},
+  {"do": "result_report", "tag": "chloroethanethiol-J", "calculator": "geometry_partial_charge", "expect_refusal": "", "after_ms": 500},
+  {"do": "inspect", "id": "geometry_partial_charge", "parameters": {"method": "eem_jirouskova2009_b3lyp_mk"}, "after_ms": 5000},
+  {"do": "shot", "path": "benchmarks/visual/artifacts/jirouskova_inspector.png", "widget": "inspector", "after_ms": 1500},
+  {"do": "panel", "id": "Properties", "after_ms": 1500},
+  {"do": "expand", "section": "charge", "after_ms": 1500},
+  {"do": "shot", "path": "benchmarks/visual/artifacts/jirouskova_properties_computed.png", "after_ms": 1000},
+
+  {"do": "smiles", "smiles": "CCO", "name": "Ethanol", "after_ms": 3000},
+  {"do": "select", "molecule": -1, "after_ms": 3000},
+  {"do": "conformers", "count": 1, "after_ms": 10000},
+  {"do": "calculator", "id": "geometry_partial_charge", "parameters": {"method": "eem_jirouskova2009_b3lyp_mk"}, "reveal": false, "after_ms": 6000},
+  {"do": "result_report", "tag": "ethanol-J-refused", "calculator": "geometry_partial_charge", "expect_refusal": "REFUSE_OUTSIDE_MEASURED_SCOPE", "after_ms": 500},
+  {"do": "panel", "id": "Properties", "after_ms": 1500},
+  {"do": "expand", "section": "charge", "after_ms": 1500},
+  {"do": "shot", "path": "benchmarks/visual/artifacts/jirouskova_ethanol_refused.png", "after_ms": 1000},
+
+  {"do": "calculator", "id": "geometry_partial_charge", "parameters": {"method": "eem_bultinck2002_part1"}, "reveal": false, "after_ms": 6000},
+  {"do": "result_report", "tag": "ethanol-default-still-computes", "calculator": "geometry_partial_charge", "expect_refusal": "", "after_ms": 500},
+
+  {"do": "expect_clean", "allow": []},
+  {"do": "quit"}
+]

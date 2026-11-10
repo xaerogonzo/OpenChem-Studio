@@ -1,0 +1,154 @@
+{
+ "working:8": {
+  "printed": "1,1,2-trichloro-1,2,2-trifluoro-",
+  "used": "1,1,2-trichloro-1,2,2-trifluoroethane"
+ },
+ "working:12": {
+  "printed": "1,1-dichlorethylene",
+  "used": "1,1-dichloroethene"
+ },
+ "working:24": {
+  "printed": "1,2-dichloro-1,1,2,3,3,3-hexa-",
+  "used": "1,2-dichloro-1,1,2,3,3,3-hexafluoropropane"
+ },
+ "working:30": {
+  "printed": "1,2-ethanediol ethylen glycol",
+  "used": "ethane-1,2-diol"
+ },
+ "working:36": {
+  "printed": "1,3-dimethyl-2-oxo-hexahydro-",
+  "used": "1,3-dimethyl-1,3-diazinan-2-one"
+ },
+ "working:46": {
+  "printed": "1,8-cineole",
+  "used": "1,3,3-trimethyl-2-oxabicyclo[2.2.2]octane"
+ },
+ "working:131": {
+  "printed": "N,N,N,N-tetramethylguanidine",
+  "used": "1,1,3,3-tetramethylguanidine"
+ },
+ "working:60": {
+  "printed": "1-mettylnaftalene",
+  "used": "1-methylnaphthalene"
+ },
+ "working:138": {
+  "printed": "N,N-dimethylhtioformamide",
+  "used": "N,N-dimethylmethanethioamide"
+ },
+ "working:222": {
+  "printed": "ethyl tricholoacetate",
+  "used": "ethyl 2,2,2-trichloroacetate"
+ },
+ "working:229": {
+  "printed": "formamida",
+  "used": "formamide"
+ },
+ "working:182": {
+  "printed": "di-n-buthyl ether",
+  "used": "1-butoxybutane"
+ },
+ "working:183": {
+  "printed": "di-n-buthyl phthalate",
+  "used": "dibutyl benzene-1,2-dicarboxylate"
+ },
+ "working:185": {
+  "printed": "di-ter-buthyl ether",
+  "used": "2-tert-butoxy-2-methylpropane"
+ },
+ "working:186": {
+  "printed": "di-tert-buthyl sulfide",
+  "used": "2-tert-butylsulfanyl-2-methylpropane"
+ },
+ "working:260": {
+  "printed": "hexamethyl phosphoramide",
+  "used": "hexamethylphosphoric triamide"
+ },
+ "working:264": {
+  "printed": "n-buthyl acetate",
+  "used": "butyl acetate"
+ },
+ "working:265": {
+  "printed": "n-buthyl methyl ether",
+  "used": "1-methoxybutane"
+ },
+ "working:266": {
+  "printed": "n-buthylamine",
+  "used": "butan-1-amine"
+ },
+ "working:199": {
+  "printed": "di(ethylene glycol)",
+  "used": "2-(2-hydroxyethoxy)ethanol"
+ },
+ "working:200": {
+  "printed": "di(ethyleneglycol) dimethyl ether",
+  "used": "1-methoxy-2-(2-methoxyethoxy)ethane"
+ },
+ "working:218": {
+  "printed": "ethyl chloroacatate",
+  "used": "ethyl 2-chloroacetate"
+ },
+ "working:296": {
+  "printed": "phenylacethylene",
+  "used": "ethynylbenzene"
+ },
+ "working:324": {
+  "printed": "tetrtahydropyran",
+  "used": "oxane"
+ },
+ "working:327": {
+  "printed": "tri-n-buthyl phosphate",
+  "used": "tributyl phosphate"
+ },
+ "working:328": {
+  "printed": "tri-n-buthylamine",
+  "used": "N,N-dibutylbutan-1-amine"
+ },
+ "working:316": {
+  "printed": "tert-buthyl ethyl ether",
+  "used": "2-ethoxy-2-methylpropane"
+ },
+ "working:317": {
+  "printed": "tert-buthyl methyl ether",
+  "used": "2-methoxy-2-methylpropane"
+ },
+ "working:318": {
+  "printed": "tert-buthylamine",
+  "used": "2-methylpropan-2-amine"
+ },
+ "working:31": {
+  "printed": "1,3,5-triflurobenzene",
+  "used": "1,3,5-trifluorobenzene"
+ },
+ "prediction:47": {
+  "printed": "di-n-buthyl sulfide",
+  "used": "1-butylsulfanylbutane"
+ },
+ "prediction:53": {
+  "printed": "di(ethylene glycol) diethyl ether",
+  "used": "1-ethoxy-2-(2-ethoxyethoxy)ethane"
+ },
+ "prediction:12": {
+  "printed": "1-methylpirrole",
+  "used": "1-methylpyrrole"
+ },
+ "prediction:60": {
+  "printed": "glyceryl triacetate",
+  "used": "propane-1,2,3-triyl triacetate"
+ },
+ "prediction:77": {
+  "printed": "pentamethylehe-sulfide",
+  "used": "thiane"
+ },
+ "prediction:34": {
+  "printed": "N,N-dimethylpropinoamide",
+  "used": "N,N-dimethylpropanamide"
+ },
+ "prediction:83": {
+  "printed": "tri(ethylene) glycol",
+  "used": "2-[2-(2-hydroxyethoxy)ethoxy]ethanol"
+ },
+ "prediction:84": {
+  "printed": "tri(ethylene) glycol dimethyl ether",
+  "used": "1-methoxy-2-[2-(2-methoxyethoxy)ethoxy]ethane"
+ }
+}

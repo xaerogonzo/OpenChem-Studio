@@ -26,6 +26,7 @@ Heteroatom priority (P-25.3.1 / shared with bridged / HW):
 from __future__ import annotations
 
 import logging
+import re
 from typing import TYPE_CHECKING
 
 from rdkit import Chem
@@ -728,6 +729,8 @@ def _try_multicomponent_spiro(
     if len(chain_order) != len(comps):
         return []
 
+    all_comp_atoms = [comps[ci][0] for ci in chain_order]
+
     # Name each component sub-mol, recording the spiro-atom locants used.
     # Each component sub-mol includes its incident spiro atom(s).
     named_components: list[dict] = []
@@ -736,9 +739,6 @@ def _try_multicomponent_spiro(
         # incident spiro atoms in chain context (could be 1 for terminals, 2
         # for internal components).
         inc_in_chain = [sp for sp in chain_spiros if ci in sp_to_comps[sp]]
-        full_atoms = frozenset(comp_atoms) | set(inc_in_chain)
-        sub = _build_partner_submol(comp_atoms, inc_in_chain[0], mol) if inc_in_chain else None
-        # Build sub-mol including ALL incident spiro atoms for this component.
         sub_pack = _build_component_submol(comp_atoms, inc_in_chain, mol)
         if sub_pack is None:
             return []
@@ -746,29 +746,89 @@ def _try_multicomponent_spiro(
         named = _name_partner(sub_mol)
         if not named:
             return []
+        display_name: str | None = None
+        expanded_sub_mol = None
+        expanded_sub_to_full: dict[int, int] | None = None
+        exp_pack = _build_component_submol(
+            comp_atoms,
+            inc_in_chain,
+            mol,
+            all_comp_atoms=all_comp_atoms,
+            all_spiro_atoms=spiro_atoms,
+        )
+        if exp_pack is not None:
+            expanded_sub_mol, expanded_sub_to_full = exp_pack
+            display_name = _multicomponent_partner_display_name(expanded_sub_mol)
         named_components.append({
             "ci": ci,
             "comp_atoms": comp_atoms,
             "incident": inc_in_chain,
             "sub_mol": sub_mol,
             "sub_to_full": sub_to_full,
+            "expanded_sub_mol": expanded_sub_mol,
+            "expanded_sub_to_full": expanded_sub_to_full,
             "named": named,
+            "display_name": display_name,
         })
 
-    # Pick best NamedParent + locants for each component (lowest spiro-atom
-    # locant per P-24.6 / P-24.5.2).  For internal components we need BOTH
-    # incident spiro atoms' locants from the SAME numbering.
     result = _compose_multicomponent_name(
-        ring_system, candidate, named_components, chain_spiros, mol
+        ring_system,
+        candidate,
+        named_components,
+        chain_spiros,
+        mol,
     )
     return result
 
 
+def _expand_component_atom_set(
+    comp_atoms: frozenset[int],
+    spiro_atoms_inc: list[int],
+    all_comp_atoms: list[frozenset[int]],
+    spiro_atoms: list[int],
+    mol,
+) -> set[int]:
+    """Atoms belonging to one polyspiro chain component, including exocyclic substituents.
+
+    ``comp_atoms`` is the ring-atom component from graph decomposition (spiro
+    atoms excluded).  Substituents attached to that component (e.g. N-methyl on
+    a tropane partner, NL-011 seed8901 #13) are not in ``comp_atoms`` but must
+    be present in the partner sub-mol so ``_name_partner`` cites them inside the
+    ``dispiro[...]`` bracket rather than as a ``1-methyl`` prefix on the whole name.
+    """
+    spiro_set = set(spiro_atoms)
+    other_ring = set().union(*all_comp_atoms) - set(comp_atoms) - spiro_set
+    out: set[int] = set(comp_atoms) | set(spiro_atoms_inc)
+    stack = list(out)
+    while stack:
+        u = stack.pop()
+        for nb in mol.GetAtomWithIdx(u).GetNeighbors():
+            v = nb.GetIdx()
+            if v in out:
+                continue
+            if v in other_ring:
+                continue
+            out.add(v)
+            stack.append(v)
+    return out
+
+
 def _build_component_submol(
-    comp_atoms: frozenset[int], spiro_atoms_inc: list[int], mol
+    comp_atoms: frozenset[int],
+    spiro_atoms_inc: list[int],
+    mol,
+    *,
+    all_comp_atoms: list[frozenset[int]] | None = None,
+    all_spiro_atoms: list[int] | None = None,
 ):
     """Build a sub-mol from ``comp_atoms`` plus all its incident spiro atoms."""
-    full_atoms = sorted(set(comp_atoms) | set(spiro_atoms_inc))
+    if all_comp_atoms is not None and all_spiro_atoms is not None:
+        atom_set = _expand_component_atom_set(
+            comp_atoms, spiro_atoms_inc, all_comp_atoms, all_spiro_atoms, mol
+        )
+    else:
+        atom_set = set(comp_atoms) | set(spiro_atoms_inc)
+    full_atoms = sorted(atom_set)
     rw = Chem.RWMol()
     full_to_sub: dict[int, int] = {}
     for old in full_atoms:
@@ -1020,11 +1080,22 @@ def _compose_multicomponent_name(
         if sel is None:
             return []
         np, rs, sp_locs = sel
+        cite_name = _multicomponent_partner_cite_name(np.name, pack.get("display_name"))
+        subst_mol = pack["sub_mol"]
+        subst_to_full = pack["sub_to_full"]
+        if cite_name != np.name and pack.get("expanded_sub_mol") is not None:
+            subst_mol = pack["expanded_sub_mol"]
+            subst_to_full = pack["expanded_sub_to_full"]
         resolved.append({
-            "name": np.name,
+            "name": cite_name,
             "rs": rs,
             "sp_locs": sp_locs,   # full_spiro_idx -> locant within this component
             "comp_atoms": pack["comp_atoms"],
+            "np": np,
+            "sub_to_full": subst_to_full,
+            "sub_mol": subst_mol,
+            "incident": pack["incident"],
+            "n_alkyl_cite": cite_name != np.name,
         })
 
     # Assign prime levels: component 0 unprimed, component 1 primed ('),
@@ -1061,14 +1132,109 @@ def _compose_multicomponent_name(
     name_str = f"{spiro_word}[{body}]"
     stem = name_str[:-1] if name_str.endswith("e") else name_str
 
+    total_atoms = len(ring_system.atom_indices)
+    atom_to_loc: dict[int, Locant] = {}
+    for level, r in enumerate(resolved):
+        prim = primes(level)
+        np = r["np"]
+        sub_to_full = r["sub_to_full"]
+        full_to_sub = {v: k for k, v in sub_to_full.items()}
+        sub_art = None
+        for sp in r["incident"]:
+            sub_art = full_to_sub.get(sp)
+            if sub_art is not None:
+                break
+        if sub_art is None:
+            continue
+        chosen = _best_numbering_option(sub_art, np)
+        if chosen is None:
+            continue
+        for sub_idx, loc in chosen.atom_to_locant.items():
+            full_idx = sub_to_full.get(sub_idx)
+            if full_idx is None or full_idx in atom_to_loc:
+                continue
+            if loc.is_numeric and loc._numeric_value is not None:
+                letter = loc.suffix if loc.suffix.isalpha() else ""
+                atom_to_loc[full_idx] = Locant.numeric(loc._numeric_value, letter + prim)
+            else:
+                if prim:
+                    atom_to_loc[full_idx] = Locant(
+                        label=loc.label + prim,
+                        is_numeric=False,
+                        _numeric_value=None,
+                        suffix=prim,
+                    )
+                else:
+                    atom_to_loc[full_idx] = loc
+
+    # Exocyclic substituents on a component (e.g. N-methyl on the cited partner
+    # name) are not in ``name_ring_system`` numbering; inherit the attachment
+    # atom's locant so the engine does not prefix ``1-methyl`` on the whole
+    # ``dispiro[...]`` string (NL-011 seed8901 #13).
+    for level, r in enumerate(resolved):
+        prim = primes(level)
+        sub_to_full = r["sub_to_full"]
+        sub_mol = r["sub_mol"]
+        for sub_idx, full_idx in sub_to_full.items():
+            if full_idx in atom_to_loc:
+                continue
+            atom = sub_mol.GetAtomWithIdx(sub_idx)
+            if atom.GetAtomicNum() == 1:
+                continue
+            if atom.GetAtomicNum() != 6:
+                continue
+            for nb in atom.GetNeighbors():
+                n_full = sub_to_full.get(nb.GetIdx())
+                if n_full is None or n_full not in atom_to_loc:
+                    continue
+                atom_to_loc[full_idx] = atom_to_loc[n_full]
+                break
+
+    numbering_options: tuple[Numbering, ...] = ()
+    if len(atom_to_loc) == total_atoms:
+        assignments = tuple(sorted(atom_to_loc.items()))
+        sorted_locs = sorted(atom_to_loc.values())
+        numbering_options = (
+            Numbering(_assignments=assignments, locant_set=tuple(sorted_locs)),
+        )
+
+    extra_parent_atoms: set[int] = set()
+    for pack in named_components:
+        if not pack.get("display_name"):
+            continue
+        compact_np = _spiro_locants_for_component(pack, pack["incident"])
+        if compact_np is None:
+            continue
+        np = compact_np[0]
+        cite = _multicomponent_partner_cite_name(np.name, pack.get("display_name"))
+        if cite == np.name:
+            continue
+        sub_to_full = pack.get("expanded_sub_to_full") or pack["sub_to_full"]
+        sub_mol = pack.get("expanded_sub_mol") or pack["sub_mol"]
+        for sub_idx, full_idx in sub_to_full.items():
+            if full_idx in ring_system.atom_indices:
+                continue
+            atom = sub_mol.GetAtomWithIdx(sub_idx)
+            if atom.GetAtomicNum() == 6 and atom.GetDegree() == 1:
+                extra_parent_atoms.add(full_idx)
+
+    out_candidate = candidate
+    if extra_parent_atoms and candidate is not None:
+        import dataclasses as _dc
+
+        out_candidate = _dc.replace(
+            candidate,
+            atom_indices=frozenset(set(candidate.atom_indices) | extra_parent_atoms),
+        )
+
     return [NamedParent(
-        candidate=candidate,
+        candidate=out_candidate,
         name=name_str,
         stem=stem,
         alkyl_stem=None,
         naming_method="polyspiro_multicomponent",
         indicated_hydrogen=None,
-        numbering_options=(),
+        numbering_options=numbering_options,
     )]
 
 
@@ -1225,6 +1391,32 @@ def _spiro_atom_as_carbon(sub_mol: Chem.Mol, sub_to_full: dict[int, int], art_at
     except Exception:
         return None
     return out
+
+
+def _multicomponent_partner_cite_name(compact_name: str, display_name: str | None) -> str:
+    """Cite a partner inside ``dispiro[...]`` using ``display_name`` only for N-alkyl on aza partners (#13).
+
+    Bucket C must not cite ``5-methylbicyclo[...]``-style names pulled in by expanding
+    the component sub-mol for unrelated chains (NL-011 seed 8901 #6/#7/#14).
+    """
+    if not display_name or display_name == compact_name:
+        return compact_name
+    if re.search(r"\d+-methyl-\d+-aza", display_name):
+        return display_name
+    return compact_name
+
+
+def _multicomponent_partner_display_name(sub_mol: Chem.Mol) -> str | None:
+    """PIN-style name for one P-24.6 component sub-mol, including exocyclic substituents."""
+    from openchem.vendor.iupac_namer.engine import name_smiles
+
+    try:
+        got = name_smiles(Chem.MolToSmiles(sub_mol))
+    except Exception:
+        return None
+    if not got or got.startswith("NAMING ERROR"):
+        return None
+    return got
 
 
 def _name_partner(sub_mol: Chem.Mol):

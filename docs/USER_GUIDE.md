@@ -1202,7 +1202,7 @@ several molecules the results go to **Results > Project table**, as with **Run s
 | Surface Area | SASA (total and per-atom), vdW surface, molecular volume, and Griffin's HLB for polyoxyethylene nonionic surfactants |
 | Structure Generators | stereoisomers, tautomers, resonance forms, conformers |
 | Quantum (Hückel) | orbital energies, π densities, HOMO/LUMO and the gap |
-| Electronic Properties | polarizability by three methods — Jensen's additive scheme and Miller's ahc and ahp — plus per-atom polarizability, orbital electronegativity in either the sigma or the pi component, and molar refractivity |
+| Electronic Properties | polarizability by three methods — an additive atomic scheme and Miller's ahc and ahp — plus per-atom polarizability, orbital electronegativity in either the sigma or the pi component, and molar refractivity |
 | Lewis acid/base | donor and acceptor sites with the role and strength of each, and whether a chosen pair forms an adduct — with every applicable line of evidence side by side rather than one score |
 | Stereochemistry | CIP descriptors and the stereocentres they label |
 | Medicinal Chemistry | Lipinski, Veber, Ghose, Egan, Pfizer 3/75, GSK 4/400, Rule of Three, QED, PAINS |
@@ -2225,7 +2225,7 @@ drawing such as the molecular weight, the topological polar surface area, the Cr
 the QED and synthetic-accessibility scores, and the oxygen balance, intrinsic solubility, polarizability and Topology Analysis calculators' numbers. You
 choose them from a list; you never type an identifier. Two inputs that estimate the same quantity (the ESOL solubility
 and the solubility calculator's, say) cannot be used together, because two estimates of one quantity combined are a
-consensus predictor, which this project has measured and does not offer. The polarizability is offered for its default answer only (the additive Jensen scheme, on the drawing): a calculator with several methods
+consensus predictor, which this project has measured and does not offer. The polarizability is offered for its default answer only (the additive atomic scheme, on the drawing): a calculator with several methods
 keeps the others' numbers as text, so a score over the polarizability has no number after you run Miller's method or compute it on the major microspecies, and says so.
 From Topology Analysis it offers the eight graph indices (Wiener, hyper-Wiener, Harary, Randić, Balaban J, Szeged, Platt and the Wiener polarity number), which are numbers of the structure drawn without its hydrogens: a score reads the
 drawing's, never a conformer's, and the decimal places you ask the calculator for change what its lines show and never what a score is made from. Ten of its counts are offered too: the bond, ring-atom, ring-bond, chain-atom and chain-bond counts, the cyclomatic number, the carbocyclic, heterocyclic and fused ring counts and the asymmetric atom count. Its atom,
