@@ -232,7 +232,7 @@ owner = "namer"
 
 [[consumer]]
 file = "tests/test_namer_nl109_vs231_cumulene_axis.py"
-why = "NL-109 remainder: VS231 cumulene axis flat name plus xfail for future p descriptors (fork)"
+why = "NL-109: VS231 cumulene axis cites (1p) on the ylidene; RDKit still has no CIP tag"
 scope = "core"
 owner = "namer"
 

@@ -252,8 +252,8 @@ _MULT_PREFIXES = [
 # "(E)-", "(5R)", "(1r,4s)".  Removed whole, before tokenising, so its letters
 # never reach the key.
 _STEREO_GROUP_RE = re.compile(
-    r"\((?:[0-9]+[a-z]?'*)?(?:[RSEZrs]\*?|rel|rac)"
-    r"(?:,(?:[0-9]+[a-z]?'*)?(?:[RSEZrs]\*?))*\)-?"
+    r"\((?:[0-9]+[a-z]?'*)?(?:[RSEZrsPMpm]\*?|rel|rac)"
+    r"(?:,(?:[0-9]+[a-z]?'*)?(?:[RSEZrsPMpm]\*?))*\)-?"
 )
 # What separates the tokens of a name.  None of these characters is ever part
 # of a letter the alphabetisation reads.
@@ -267,7 +267,7 @@ _UNALPHABETISED_TOKEN_RE = re.compile(
     r"|[0-9]+[a-z]?H"                       # 1H  3aH  (indicated hydrogen)
     r"|(?:N|O|S|P|B|Se|Te|As|Sb|Si|Ge|Sn)'*[0-9]*"  # N  N'  O  S  (italic locants)
     r"|lambda[0-9]+|λ[0-9]+"
-    r"|[RSEZ]\*?|[rs]\*?"
+    r"|[RSEZ]\*?|[rsPMpm]\*?"
     r"|tert|sec|cis|trans|rel|rac|endo|exo|syn|anti"
     r")$"
 )
@@ -401,7 +401,7 @@ def derive_sort_name(prefix_name: str) -> str:
 # not the other way round. The same rank P-14.4 (j) gives (Z, R, M, r before E, S, P, s) is used, so the order two prefixes are CITED in
 # and the numbering criterion that looks at "the substituent cited first" can never disagree. A rank, not a letter comparison: "Z" sorts
 # after "E" alphabetically.
-_CITATION_STEREO_RANK = {"Z": 0, "R": 0, "M": 0, "r": 0, "E": 1, "S": 1, "P": 1, "s": 1}
+_CITATION_STEREO_RANK = {"Z": 0, "R": 0, "M": 0, "m": 0, "r": 0, "E": 1, "S": 1, "P": 1, "p": 1, "s": 1}
 
 
 def stereo_citation_key(prefix_name: str) -> tuple[int, ...]:

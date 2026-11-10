@@ -6741,10 +6741,10 @@ def _collect_stereo_descriptors(
         # them OPSIN reports "Failed to assign CIP stereochemistry" on
         # round-trip because the uppercase R/S we would otherwise emit is
         # not the canonical descriptor for the centre.
-        if desc not in ("R", "S", "E", "Z", "r", "s"):
+        if desc not in ("R", "S", "E", "Z", "r", "s", "p", "P", "m", "M"):
             continue
 
-        if sc.type == "tetrahedral":
+        if sc.type in ("tetrahedral", "axial"):
             if sc.atom_idx not in parent_atoms:
                 if (
                     sc.atom_idx in suffix_stereo_atoms
@@ -6762,7 +6762,7 @@ def _collect_stereo_descriptors(
             _centre = mol.GetAtomWithIdx(sc.atom_idx)
             if _centre.GetSymbol() == "N" and _centre.GetFormalCharge() > 0 and _centre.GetTotalNumHs() > 0:
                 continue
-            if skip_tetrahedral:
+            if skip_tetrahedral and sc.type != "axial":
                 # R15-C: Allow fused-ring parent (not bridged/spiro) at
                 # plain-integer locants always.
                 #
@@ -10526,6 +10526,9 @@ def _name_smiles_unchecked(smiles: str, strategy) -> str:
         raise ValueError(f"Invalid SMILES: {smiles}")
     mol = _shift_bridgehead_cation_charge(mol)
     mol = _canonical_amidinium_form(mol)
+    from openchem.vendor.iupac_namer.perception.cumulene import stamp_cumulene_helix_from_smiles
+
+    stamp_cumulene_helix_from_smiles(mol, smiles)
     # NOTE: the whole-molecule curated-name dispatch (_name_radical_whole_mol /
     # _name_curated_whole_mol) was removed in the anti-pinning cleanup; the
     # backing tables are now empty.  The pipeline below names every molecule
@@ -12277,7 +12280,7 @@ def _alphanumerical_locant_key(tree) -> tuple | None:
 
 # P-14.4 (j): of each pair of CIP descriptors the first takes the lower locant -- Z over E, R over S, M over P, r over s.
 # A rank, not a letter comparison: "R" < "S" and "Z" > "E" alphabetically, so the letters cannot be compared directly.
-_STEREO_LOCANT_PREFERENCE = {"Z": 0, "R": 0, "M": 0, "r": 0, "E": 1, "S": 1, "P": 1, "s": 1}
+_STEREO_LOCANT_PREFERENCE = {"Z": 0, "R": 0, "M": 0, "m": 0, "r": 0, "E": 1, "S": 1, "P": 1, "p": 1, "s": 1}
 
 
 def _stereo_locant_key(carrier) -> tuple | None:
@@ -12421,6 +12424,7 @@ def _carries_stereo(mol) -> bool:
     """Whether naming `mol` can write a CIP descriptor at all: a specified centre or double bond, or a carved fragment's inherited stamp."""
     return (
         any(atom.GetChiralTag() != Chem.ChiralType.CHI_UNSPECIFIED for atom in mol.GetAtoms())
+        or any(atom.HasProp("_CumuleneHelix") for atom in mol.GetAtoms())
         or any(bond.GetStereo() != Chem.BondStereo.STEREONONE for bond in mol.GetBonds())
         or bool(context_stereo_key(mol))
     )
