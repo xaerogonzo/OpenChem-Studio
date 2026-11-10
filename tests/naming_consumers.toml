@@ -171,6 +171,18 @@ scope = "core"
 owner = "namer"
 
 [[consumer]]
+file = "tests/test_namer_nl001_nl005_ws1_validator_evidence.py"
+why = "NL-001, NL-002, NL-005: WS1 validator-limit evidence pins (pseudoasymmetric bridgeheads and adamantane spiro methyl)"
+scope = "core"
+owner = "namer"
+
+[[consumer]]
+file = "tests/test_namer_nl022_ws3_ring_assembly_sources.py"
+why = "NL-022 (closed): Blue Book P-28.2/28.3 sources for bi-assembly spelling; round 81–82 OPSIN pins"
+scope = "core"
+owner = "namer"
+
+[[consumer]]
 file = "tests/test_namer_nl012_bis_benzazocine_spiro.py"
 why = "NL-012 shape 4 (D-395): when articulation-split spiro cites the same modified ring-table PIN twice, the primed partner is named by von Baeyer so OPSIN read-back matches the input"
 scope = "core"
