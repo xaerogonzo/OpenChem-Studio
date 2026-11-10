@@ -205,6 +205,20 @@ _SELECTOR_SEARCH_HELP = HelpTooltip(
 #: populate the list -- the same rule `CollapsibleSection`'s toggle
 #: follows, and the reason a per-calculator contract would be sixty
 #: renderings of one concept.
+_ALL_RESULTS_HELP = HelpTooltip(
+    text=(
+        "Show every result for this molecule again.\n\n"
+        "The search box below is kept, so a filter you typed still applies "
+        "across every result. The list above still names each result on its "
+        "own, and choosing one there is the same move as clicking its name "
+        "in the list of facts.\n\n"
+        "It hides nothing permanently and computes nothing."
+    ),
+    tier=1,
+    help_id="results.show_all_results",
+    topic="facts",
+)
+
 _FOCUS_HELP = HelpTooltip(
     text=(
         "Show one calculator's results, or all of them together.\n\n"
@@ -356,6 +370,13 @@ class ResultsView(QWidget):
         #: result is a calculator somebody classified. Costs width, never height.
         self._stage_marker = StageMarker(focus_row)
         row.addWidget(self._stage_marker)
+        # Beside Showing, and only while one result is focused. The dropdown
+        # still lists All results; this is the one-click return.
+        self._all_results_button = QPushButton(ALL_RESULTS, focus_row)
+        self._all_results_button.clicked.connect(self._on_all_results_clicked)
+        self._all_results_button.setVisible(False)
+        apply_help_tooltip(self._all_results_button, _ALL_RESULTS_HELP)
+        row.addWidget(self._all_results_button)
         #: report id -> `SupportMarker` or None; injected like the structure resolver.
         self._support_resolver = None
 
@@ -397,6 +418,7 @@ class ResultsView(QWidget):
         # this is defence rather than a live fix; it is asserted on the
         # WIRING for that reason.
         self._view.link_activated.connect(self.link_activated)
+        self._view.section_activated.connect(self.set_focus)
         self._view.report_available_changed.connect(self.report_available_changed)
         self._empty = QLabel(EMPTY_MESSAGES[NOTHING_COMPUTED], self)
         self._empty.setAlignment(Qt.AlignmentFlag.AlignCenter)
@@ -640,6 +662,9 @@ class ResultsView(QWidget):
     def focus(self) -> str:
         """The `report_id` currently focused, or "" for all of them."""
         return self._focus
+
+    def _on_all_results_clicked(self) -> None:
+        self.set_focus("")
 
     def set_focus(self, report_id: str) -> None:
         """Show one report's facts and its chart.
@@ -955,6 +980,7 @@ class ResultsView(QWidget):
             self._empty.setVisible(True)
             self._view.clear()
             self._stage_marker.set_marker(None)
+            self._all_results_button.setVisible(False)
             return
 
         self._empty.setVisible(False)
@@ -979,6 +1005,7 @@ class ResultsView(QWidget):
             # that one -- `set_report`'s own docstring already describes
             # this failure, which is what makes this a call site rather
             # than a mechanism.
+            self._all_results_button.setVisible(True)
             self._view.set_report(
                 report,
                 title,
@@ -992,10 +1019,12 @@ class ResultsView(QWidget):
         self._sync_open_button(None)
         self._sync_visualizations(None)
         self._stage_marker.set_marker(None)
+        self._all_results_button.setVisible(False)
         self._view.set_report(
             summary_of_merge(self._merged, self._molecule_uuid),
             "All results",
             self._summary(),
+            navigable_origins=frozenset(report.report_id for report in self._merged.reports),
         )
 
     def _summary(self) -> str:

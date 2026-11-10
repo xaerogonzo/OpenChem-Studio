@@ -10,6 +10,8 @@ from __future__ import annotations
 
 import pytest
 from PySide6.QtCore import Qt
+from PySide6.QtTest import QTest
+from PySide6.QtWidgets import QPushButton
 
 from openchem.domain.common import CacheState
 from openchem.domain.report import (
@@ -17,6 +19,7 @@ from openchem.domain.report import (
     Basis,
     Fact,
     FactCategory,
+    FactLink,
     ReportResult,
     Stick,
     StickChartAnnotation,
@@ -979,4 +982,78 @@ def test_a_kind_with_nothing_to_add_keeps_the_destinations_words(qapp):
     window._focus_box.setCurrentIndex(window._focus_box.findData("elemental_analysis"))
 
     assert "Send to 2D Editor" not in window._open_button.text()
+    dispose(window)
+
+
+def _jump(view, label: str) -> QPushButton:
+    for button in view.findChildren(QPushButton):
+        if button.objectName() == "sectionJump" and button.text() == label:
+            return button
+    raise AssertionError(f"no section jump named {label!r}")
+
+
+def test_a_fact_name_in_all_results_focuses_its_report(qapp):
+    window = ResultsView("mol-1")
+    window.set_reports(_two())
+    assert window._all_results_button.isHidden()
+    assert window._view.section_jumps()["Formula"] == "elemental_analysis"
+    _jump(window._view, "Formula").click()
+    assert window.focus() == "elemental_analysis"
+    assert window._view.section_jumps() == {}
+    assert not window._all_results_button.isHidden()
+    dispose(window)
+
+
+def test_returning_to_all_results_keeps_the_fact_search(qapp):
+    window = ResultsView("mol-1")
+    window.set_reports(_two())
+    window._view.search_box().setText("Formula")
+    _jump(window._view, "Formula").click()
+    window._all_results_button.click()
+    assert window.focus() == ""
+    assert window._view.search_box().text() == "Formula"
+    assert window._view.visible_fact_labels() == ["Formula"]
+    assert window._all_results_button.isHidden()
+    dispose(window)
+
+
+def test_a_fact_link_stays_a_separate_action_from_the_section_jump(qapp):
+    link = FactLink(target="periodic_table", params={"symbol": "C"}, label="Carbon")
+    report = _report("elemental_analysis", "Elemental Analysis", ["Formula"])
+    report = replace(report, facts=(replace(report.facts[0], link=link),))
+    window = ResultsView("mol-1")
+    followed = []
+    window.link_activated.connect(followed.append)
+    window.set_reports((report, _report("lewis_sites", "Lewis Sites", ["Donor sites"])))
+    assert window._view.section_jumps()["Formula"] == "elemental_analysis"
+    _jump(window._view, "Formula").click()
+    assert followed == []
+    assert window.focus() == "elemental_analysis"
+    dispose(window)
+
+
+def test_an_origin_outside_the_merge_is_not_a_jump(qapp):
+    from openchem.ui.widgets.fact_view import FactView
+
+    report = _report("elemental_analysis", "Elemental Analysis", ["Formula", "Mass"])
+    view = FactView()
+    view.set_report(
+        replace(report, facts=(
+            replace(report.facts[0], origin=""),
+            replace(report.facts[1], origin="missing"),
+        )),
+        navigable_origins=frozenset({"elemental_analysis"}),
+    )
+    assert view.section_jumps() == {}
+    dispose(view)
+
+
+def test_a_section_jump_answers_the_keyboard(qapp):
+    window = ResultsView("mol-1")
+    window.set_reports(_two())
+    window.show()
+    button = _jump(window._view, "Donor sites")
+    button.setFocus()
+    QTest.keyClick(button, Qt.Key.Key_Space)
+    assert window.focus() == "lewis_sites"
     dispose(window)
