@@ -3575,19 +3575,20 @@ each candidate before accepting it, which matters more than it sounds: "ORCA"
 is a common name, and on a real machine this search found an unrelated
 `Orca.exe` in a Windows Installer cache before the right one.
 
-**AiZynthFinder** is the synthesis planner, and it is a tool you install yourself, in an
-environment of your own: the application never downloads, installs or removes it. The tab has two
-paths, the **Python** of the environment it is installed in and the **configuration** file
-(config.yml) that its `download_public_data` command wrote, and **Test** runs a real search of
-aspirin for a few iterations (the start-up alone takes about 20 seconds) and stops at the first thing
-it can name: a Python that is missing or has no AiZynthFinder, a configuration that will not read,
-or a policy model, template file, filter or stock that is not where the configuration says (each
-checked on its own, by file name). By default it uses the `uspto` policy, the `zinc` stock (or the first
-the file lists) and no filter, the configuration the project's benchmark ran. Installing it takes about 1 GB
-for the environment and 750 MB for its models and stock, a search needs 2.75 GB of memory with a small
-stock and up to 5 GB with ZINC, and a fresh install needs `pip install "pyarrow<21"` or it will not
-import. A route it proposes is a hypothesis from a program trained on patent reactions, with no
-conditions or yields. Nothing in the window plans a synthesis yet; this tab is the first part of that.
+**AiZynthFinder** is the synthesis planner. **Set Up Automatically** builds a separate Python 3.12
+environment, installs the planner (with `pyarrow` pinned below 21, without which a fresh install
+does not import), and runs its `download_public_data` command after showing the size and asking
+first — about 1 GB for the environment and 750 MB for the public USPTO models and ZINC stock.
+The tab has two paths, the **Python** of that environment and the **configuration** file
+(config.yml), which setup fills in; Browse still accepts an environment you already have (the
+environment folder, not a GitHub source zip). **Test** runs a real search of aspirin for a few
+iterations (the start-up alone takes about 20 seconds) and stops at the first thing it can name: a
+Python that is missing or has no AiZynthFinder, a configuration that will not read, or a policy
+model, template file, filter or stock that is not where the configuration says (each checked on its
+own, by file name). By default it uses the `uspto` policy, the `zinc` stock (or the first the file
+lists) and no filter, the configuration the project's benchmark ran. A search needs 2.75 GB of
+memory with a small stock and up to 5 GB with ZINC. A route it proposes is a hypothesis from a
+program trained on patent reactions, with no conditions or yields.
 
 **Knowledge Vista** is the one optional extra: a separate program (`kv`) that
 keeps track of where a library of PDFs is, by what the files contain, so a paper

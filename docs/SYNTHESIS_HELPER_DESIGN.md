@@ -9,7 +9,7 @@ Given a target molecule, an **optional external planner** proposes multi-step ro
 ## Decisions (Alex, 2026-10-19)
 
 1. **First planner to spike: AiZynthFinder.** Not committed to shipping it: if licence, Windows install or quality fails, the spike records NO-GO and names the next candidate (Syntheseus, or a small in-house RDKit/rdchiral template planner).
-2. **Locate-only install**: the app never fetches anything (as Psi4). A download button is a later stage with pinned URLs and checksums, if ever.
+2. **Locate-only install** (2026-10-19): the app never fetches anything (as Psi4). **Reversed 2026-11-10:** Set Up Automatically now builds a sidecar environment the same way pkasolver and ADMET do (`openchem.services.aizynth_setup`), after an ask-first confirmation of size and sources. Browse and Locate still accept an environment installed by hand. The planner is still never imported into OpenChem's own interpreter.
 3. **Regulated targets: routes are shown with an alert, with one exception.** No planning starts for a target matched to a **CWC Schedule 1** entry (the shipped `cwc-schedule-1` ruleset); the refusal names the reason. DEA listings, CWC Schedules 2 and 3 and everything else are alert-only.
 
 ## What was verified against the source

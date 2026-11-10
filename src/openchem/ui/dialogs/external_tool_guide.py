@@ -166,8 +166,8 @@ GUIDE: tuple[GuideEntry, ...] = (
         what="AiZynthFinder, a retrosynthesis planner: it proposes routes to a molecule from purchasable compounds.",
         needed_for="The Synthesis panel. It runs as a separate program in its own Python environment (3.10 to 3.12) with model and stock files.",
         next_step=(
-            "Only for people who already work with it: install it following its own documentation, then point the tab at its Python "
-            "and its configuration file and run Test."
+            "Press Set Up Automatically on the AiZynthFinder tab. It asks first (~1.7 GB), builds a separate Python 3.12 "
+            "environment, fetches the public models and stock, and fills both paths. Then run Test."
         ),
         links=(
             GuideLink("AiZynthFinder project", planner.PROJECT_PAGE),

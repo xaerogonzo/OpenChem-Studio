@@ -111,6 +111,41 @@ def _java_component() -> Component:
     )
 
 
+def _aizynth_component(settings=None) -> Component:
+    """Removable only if it is the copy this app built under its data folder.
+
+    A user who pointed the tab at their own environment (for example under
+    Random Programs) must not lose it because they clicked Remove on a tool tab.
+    """
+    from openchem.services import aizynth_setup
+    from openchem.services.synthesis_planner_setup import CONFIG_KEY, PYTHON_KEY
+
+    managed_dir = aizynth_setup.default_install_root()
+    configured = (settings.get(PYTHON_KEY, "") if settings is not None else "") or ""
+    if configured:
+        try:
+            inside = managed_dir.resolve() in Path(configured).resolve().parents
+        except OSError:
+            inside = False
+        if not inside:
+            return Component(
+                key="aizynthfinder",
+                label="AiZynthFinder",
+                description="Retrosynthesis planner.",
+                paths=[],
+                is_managed=False,
+                unmanaged_reason=f"Configured to {configured}, which this app did not install.",
+            )
+    return Component(
+        key="aizynthfinder",
+        label="AiZynthFinder environment",
+        description="Retrosynthesis planner (separate Python, models and stock).",
+        paths=[managed_dir],
+        settings_keys=(PYTHON_KEY, CONFIG_KEY),
+        reinstall_hint="Re-installable from the AiZynthFinder tab.",
+    )
+
+
 def _vina_component(settings=None) -> Component:
     """Vina is removable only if it is the copy this app downloaded.
 
@@ -160,6 +195,7 @@ def components(settings=None) -> list[Component]:
     from openchem.services import admet_setup, pkasolver_setup, result_cache
 
     items = [
+        _aizynth_component(settings),
         Component(
             key="admet",
             label="ADMET environment",
