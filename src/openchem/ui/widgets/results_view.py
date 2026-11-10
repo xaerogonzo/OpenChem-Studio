@@ -201,10 +201,8 @@ _SELECTOR_SEARCH_HELP = HelpTooltip(
     topic="facts",
 )
 
-#: What the focus control means. ONE contract, however many calculators
-#: populate the list -- the same rule `CollapsibleSection`'s toggle
-#: follows, and the reason a per-calculator contract would be sixty
-#: renderings of one concept.
+#: What "All results" means. One contract for the return, the same way
+#: the Showing list is one contract however many calculators fill it.
 _ALL_RESULTS_HELP = HelpTooltip(
     text=(
         "Show every result for this molecule again.\n\n"
@@ -219,6 +217,10 @@ _ALL_RESULTS_HELP = HelpTooltip(
     topic="facts",
 )
 
+#: What the Showing list means. ONE contract, however many calculators
+#: populate it -- the same rule `CollapsibleSection`'s toggle follows,
+#: and the reason a per-calculator contract would be sixty renderings
+#: of one concept.
 _FOCUS_HELP = HelpTooltip(
     text=(
         "Show one calculator's results, or all of them together.\n\n"

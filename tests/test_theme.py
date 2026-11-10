@@ -249,6 +249,9 @@ _DIRECT_ALLOWED = {
     ("ui/widgets/collapsible_section.py", '"QToolButton { border: none; font-weight: bold; }"'),
     ("ui/widgets/collapsible_section.py", "self.styleSheet()"),
     ("ui/widgets/fact_view.py", '"color: palette(link); padding: 0 4px; text-align: right;"'),
+    # A fact name that opens its result: alignment only, and `palette(link)`,
+    # which follows the application palette without a mapped colour.
+    ("ui/widgets/fact_view.py", '"text-align: left; padding: 0; color: palette(link);"'),
     ("ui/widgets/fact_view.py", "sheet"),
     ("ui/widgets/fact_view.py", '"font-weight: bold;"'),
     ("ui/widgets/fact_view.py", '"padding: 2px 0;"'),
