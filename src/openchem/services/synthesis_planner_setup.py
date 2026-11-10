@@ -1,6 +1,6 @@
 """Where the synthesis planner is and whether it works: the External Tools tab's side of AiZynthFinder, and the setting the planning service reads (`docs/SYNTHESIS_HELPER_DESIGN.md`, Stage 1 slice 7).
 
-LOCATE-ONLY, AS DECIDED (Alex, 2026-10-19): OpenChem never downloads, installs or removes the planner. The user installs AiZynthFinder in an environment of their own (Python 3.10 to 3.12, `numpy<2`, and `pyarrow<21`, without which a fresh install does not import: measured, `docs/SYNTHESIS_HELPER_DESIGN.md` 0b), runs its `download_public_data`, and tells this application two things: the environment's Python and the configuration file that command wrote.
+The user can point this tab at an environment they already have, or press Set Up Automatically (`openchem.services.aizynth_setup`) to build one: Python 3.10 to 3.12, `numpy<2`, and `pyarrow<21`, without which a fresh install does not import (measured, `docs/SYNTHESIS_HELPER_DESIGN.md` 0b), then `download_public_data`. Either way this module only reads the two paths and tests them.
 
 THE STATUS LINE STARTS NOTHING, like ORCA's and Psi4's: it reads two paths and says what is missing. WHAT IS WRONG INSIDE THE ENVIRONMENT IS FOUND BY TEST, which runs the planner for real, in order, and stops at the first thing it can name:
 
@@ -122,8 +122,19 @@ def find_config(root: Path) -> Path | None:
     return None
 
 
-def locate() -> Path | None:
-    """Find an environment of the planner already on this machine: `aizynthcli` (installed beside the Python of its environment) on the PATH, and its Python, checked by asking it."""
+def locate() -> Path | tuple[Path, Path] | None:
+    """Find an environment of the planner already on this machine.
+
+    Prefers the copy this app installed (Python and config.yml together).
+    Otherwise `aizynthcli` on the PATH and the Python beside it, checked
+    by asking it (the configuration file is still the person's to point at).
+    """
+    from openchem.services import aizynth_setup as inst
+
+    managed_python = inst.interpreter_for(inst.default_install_root())
+    managed_config = inst.config_for(inst.default_install_root())
+    if managed_python.is_file() and responds_as_planner(managed_python) and managed_config.is_file():
+        return managed_python, managed_config
     found = shutil.which("aizynthcli")
     if found is None:
         return None

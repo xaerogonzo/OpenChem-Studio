@@ -146,6 +146,40 @@ def test_a_user_installed_vina_is_not_removable(isolated_root, tmp_path):
     assert theirs.exists()
 
 
+def test_a_user_installed_aizynthfinder_is_not_removable(isolated_root, tmp_path):
+    from openchem.services.synthesis_planner_setup import PYTHON_KEY
+
+    theirs = tmp_path / "Random Programs" / "aizynthfinder" / "env" / "Scripts" / "python.exe"
+    theirs.parent.mkdir(parents=True)
+    theirs.write_text("x", encoding="utf-8")
+    settings = _FakeSettings({PYTHON_KEY: str(theirs)})
+
+    component = sidecar_inventory.find("aizynthfinder", settings)
+
+    assert not component.is_managed
+    assert "did not install" in component.unmanaged_reason
+    with pytest.raises(sidecar_inventory.UninstallError, match="not installed by this app"):
+        sidecar_inventory.uninstall(component, settings)
+    assert theirs.exists()
+
+
+def test_a_managed_aizynthfinder_is_removable(isolated_root):
+    from openchem.services.synthesis_planner_setup import CONFIG_KEY, PYTHON_KEY
+
+    managed = app_paths.subdirectory("aizynthfinder_env")
+    python = managed / ".venv" / "Scripts" / "python.exe"
+    python.parent.mkdir(parents=True)
+    python.write_text("x", encoding="utf-8")
+    settings = _FakeSettings({PYTHON_KEY: str(python), CONFIG_KEY: str(managed / "data" / "config.yml")})
+
+    component = sidecar_inventory.find("aizynthfinder", settings)
+
+    assert component.is_managed
+    sidecar_inventory.uninstall(component, settings)
+    assert not managed.exists()
+    assert settings.get(PYTHON_KEY) == "" and settings.get(CONFIG_KEY) == ""
+
+
 def test_a_downloaded_vina_is_removable(isolated_root):
     """The other half: a copy this app fetched into its own tools folder
     is fair game, or the rule above would make it permanently

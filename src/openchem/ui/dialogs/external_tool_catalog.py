@@ -20,6 +20,8 @@ the lazy-import discipline the dialog already followed.
 
 from __future__ import annotations
 
+from pathlib import Path
+
 from openchem.ui.dialogs.external_tool_tabs import (
     CAUTION,
     MUTED,
@@ -621,22 +623,41 @@ def xtb() -> ManagedExecutable:
     )
 
 
-#: Why the AiZynthFinder tab has no Set Up button (locate-only: Alex, 2026-10-19). Stated once so the refusal, the dialog title and the failure status cannot drift apart.
-_AIZYNTH_NO_AUTOMATION = (
-    "OpenChem Studio does not download or install the synthesis planner. Install AiZynthFinder in an environment of your own, "
-    "run its download_public_data command, then point this tab at that environment's Python and the configuration file it wrote."
-)
-
-
 def aizynthfinder() -> ManagedExecutable:
-    """AiZynthFinder: the synthesis planner, a Python environment the user installs and points at (`docs/SYNTHESIS_HELPER_DESIGN.md`).
+    """AiZynthFinder: a separate Python environment this app can build, or that the user points at.
 
-    **Locate-only, deliberately** (Alex, 2026-10-19), and **two paths rather than one**: the environment's Python and the configuration file `download_public_data` wrote, because
-    the planner is a Python package with its own interpreter requirements (3.10 to 3.12, `numpy<2`) that OpenChem's interpreter does not share. The status line only reads the two paths;
-    the Test button runs a real trivial search, stopping at the first thing it can name (a missing Python, a Python without the planner, a model, a template file or the stock that is not where
-    the configuration says). Nothing here starts a download or removes a file.
+    Two paths rather than one: the environment's Python and the configuration file
+    `download_public_data` wrote, because the planner needs Python 3.10 to 3.12 and numpy
+    below 2, which OpenChem's interpreter does not share. Set Up Automatically builds that
+    environment after an ask-first confirmation (`openchem.services.aizynth_setup`). Browse
+    and Locate still accept an environment installed by hand. The status line only reads
+    the two paths; Test runs a real trivial search.
     """
+    import openchem.services.aizynth_setup as inst
     import openchem.services.synthesis_planner_setup as planner
+
+    def blocked() -> Blocked | None:
+        if inst.find_uv() or inst.find_fallback_python():
+            return None
+        return Blocked("Cannot set up automatically", inst.describe_prerequisites())
+
+    def confirm_body() -> str:
+        return (
+            f"Build an AiZynthFinder environment?\n\n"
+            f"Location: {inst.default_install_root()}\n"
+            f"Downloads: roughly {inst.APPROX_DOWNLOAD_MB} MB\n"
+            f"Disk space when finished: about {inst.APPROX_DISK_GB} GB\n\n"
+            f"Sources:\n"
+            f"  - {inst.PLANNER_PACKAGE} and {inst.PYARROW_PIN} from PyPI\n"
+            f"  - public USPTO models (Zenodo) and ZINC stock (Figshare), fetched by the\n"
+            f"    planner's own download_public_data command\n\n"
+            f"{inst.describe_prerequisites()}\n\n"
+            f"A route it later proposes is a hypothesis, not a recipe. Continue?"
+        )
+
+    def success_message(result) -> str:
+        python, config = result
+        return f"Environment built.\n\nPython:\n{python}\n\nConfiguration:\n{config}"
 
     return ManagedExecutable(
         key="aizynthfinder",
@@ -658,32 +679,35 @@ def aizynthfinder() -> ManagedExecutable:
         describe_status=planner.describe_status,
         locate=planner.locate,
         locate_hint=(
-            "Look for an AiZynthFinder environment already on this machine: `aizynthcli` on the PATH, and the Python beside it. "
-            "The Python found is RUN to confirm that it has AiZynthFinder before it is accepted."
+            "Looks where this app installs it, then for `aizynthcli` on the PATH. "
+            "The Python found is RUN to confirm that it has AiZynthFinder before it is accepted. "
+            "Do not point Browse at the GitHub source zip: that is the library's code, not an installed environment."
         ),
         test_label="Test (plans a trivial target)...",
         testing_status="Running a trivial search (this starts the planner: allow up to a minute)...",
         describe_test=planner.verify,
         test_with_settings=True,
         test_errors=planner.ToolVerificationError,
-        obtainable=False,
-        removable=False,
+        obtainable=True,
+        removable=True,
         vendor_links=(
             ("Get AiZynthFinder...", planner.PROJECT_PAGE),
             ("AiZynthFinder Documentation...", planner.DOCS_PAGE),
         ),
-        # Unused by a tab that cannot obtain, but `_ToolBase` requires them (the ORCA tab's reason).
         action_label="Set Up Automatically...",
-        remove_label="AiZynthFinder",
-        confirm_title="AiZynthFinder is not downloaded by this app",
-        confirm_body=lambda: _AIZYNTH_NO_AUTOMATION,
-        run=lambda _on_progress: (_ for _ in ()).throw(RuntimeError(_AIZYNTH_NO_AUTOMATION)),
-        errors=RuntimeError,
-        finished_status=lambda _result: "",
-        success_title="",
-        success_message=lambda _result: "",
-        failure_title="AiZynthFinder is not downloaded by this app",
-        failure_status_prefix="Not available",
+        remove_label="the AiZynthFinder environment",
+        confirm_title="Set up AiZynthFinder",
+        confirm_body=confirm_body,
+        run=lambda on_progress: inst.install(inst.default_install_root(), on_progress=on_progress),
+        errors=inst.AizynthSetupError,
+        blocked=blocked,
+        finished_status=lambda result: (
+            f"Set up: {Path(result[0]).parent} with {Path(result[1]).name} (use Test to check that it works)"
+        ),
+        success_title="AiZynthFinder ready",
+        success_message=success_message,
+        failure_title="AiZynthFinder setup failed",
+        failure_status_prefix="Setup failed",
         notes=(
             Note(
                 "AiZynthFinder is an open-source retrosynthesis planner (MIT licence): it proposes routes from the molecule you draw to compounds in a stock. "
@@ -692,16 +716,15 @@ def aizynthfinder() -> ManagedExecutable:
                 "and nobody has run it."
             ),
             Note(
-                "Installing it is about 1 GB for the environment and about 750 MB for the models and stock that its download_public_data command fetches, "
-                "and a search needs about 2.75 GB of memory with a small stock and up to 5 GB with the ZINC stock. A fresh install needs the extra pin "
-                "pyarrow below version 21 (pip install \"pyarrow<21\") or it will not import. The models and the stock it fetches are published under "
-                "their own licences; read them before using them.",
+                "'Set Up Automatically' builds the environment and fetches the public models and stock, then fills both paths above. "
+                "It will show you exactly what gets downloaded first. Installing it is about 1 GB for the environment and about 750 MB for the models "
+                "and stock; a search needs about 2.75 GB of memory with a small stock and up to 5 GB with the ZINC stock. "
+                "The models and the stock are published under their own licences; read them before using them.",
             ),
             Note(
-                "After installing, point the first row at the environment's Python (Browse takes the environment's folder and finds the Python in it) and the second at the "
-                "config.yml that download_public_data wrote. The Test button runs a real search of aspirin for a few iterations: the start-up alone takes about "
-                "20 seconds. Which expansion policy, stock and filter to use is read from that file: by default the uspto policy, the zinc stock "
-                "(or the first the file lists) and no filter, the configuration the project's benchmark ran.",
+                "If you already have an environment, Browse the environment folder (not the GitHub source tree) for the Python row and the folder "
+                "holding config.yml for the second. The Test button runs a real search of aspirin for a few iterations: the start-up alone takes about "
+                "20 seconds. By default it uses the uspto policy, the zinc stock (or the first the file lists) and no filter.",
                 MUTED,
             ),
         ),
