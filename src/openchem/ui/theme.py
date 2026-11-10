@@ -277,9 +277,10 @@ def faint(colour: QColor | str, look: EffectiveAppearance | None = None) -> QCol
     return QColor.fromHslF(0.0, 0.0, 0.26, result.alphaF())
 
 
-#: Acid and base site tokens for the pKa view. Routed through `ink` at the
-#: draw site; not stylesheet text.
+#: Acid site token for the pKa view. Routed through `ink` at the draw site;
+#: not stylesheet text.
 _ACID_INK = "#b91c1c"
+#: Base site token for the pKa view. Same routing as `_ACID_INK`.
 _BASE_INK = "#1d4ed8"
 
 

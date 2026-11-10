@@ -396,6 +396,8 @@ _WORKFLOW_BY_DOCK = {dock: workflow for workflow, dock in _DOCK_BY_WORKFLOW.item
 #: The Qt property that carries a workflow's id on the note its tab shows, so one bound
 #: method serves every workflow (a lambda capturing `self` would root the window).
 _WORKFLOW_ID_PROPERTY = "openchem_workflow_id"
+#: Molecule UUID on a pKa window, read from `sender()` when it is destroyed.
+_PKA_VIEW_UUID_PROPERTY = "openchem_pka_view_uuid"
 
 
 @dataclass
@@ -5403,10 +5405,27 @@ class MainWindow(QMainWindow):
         dialog = PkaViewDialog(self._services.chemistry_engine, molecule, parent=self)
         dialog.setAttribute(Qt.WidgetAttribute.WA_DeleteOnClose, True)
         dialog.set_payload(molecule, pka, curve)
-        dialog.destroyed.connect(lambda *_args, uuid=molecule_uuid: self._pka_views.pop(uuid, None))
+        dialog.setProperty(_PKA_VIEW_UUID_PROPERTY, molecule_uuid)
+        dialog.destroyed.connect(self._on_pka_view_destroyed)
         self._pka_views[molecule_uuid] = weakref.ref(dialog)
         dialog.show()
         return True
+
+    def _on_pka_view_destroyed(self, *_args) -> None:
+        """Drop the closed window's slot. Payload is on the sender, not a lambda."""
+        dialog = self.sender()
+        uuid = ""
+        if dialog is not None:
+            try:
+                uuid = str(dialog.property(_PKA_VIEW_UUID_PROPERTY) or "")
+            except RuntimeError:
+                uuid = ""
+        if uuid:
+            self._pka_views.pop(uuid, None)
+            return
+        for key, ref in list(self._pka_views.items()):
+            if ref() is None:
+                self._pka_views.pop(key, None)
 
     def _refresh_pka_view(self, molecule_uuid: str) -> None:
         existing = self._pka_views.get(molecule_uuid)

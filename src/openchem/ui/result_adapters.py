@@ -107,7 +107,9 @@ SPATIAL_VIEW = "spatial_view"
 #: Dedicated pKa / microspecies-distribution window. Not a kind-wide
 #: destination: only report ids `pka` and `pka_microspecies` open it.
 PKA_VIEW = "pka_view"
+#: Report ids that open `PKA_VIEW` rather than the Calculator Inspector.
 PKA_VIEW_IDS = frozenset({"pka", "pka_microspecies"})
+#: The Results Open-button text for those ids.
 PKA_VIEW_LABEL = "Open pKa view"
 
 
