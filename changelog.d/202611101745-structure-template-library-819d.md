@@ -1,0 +1,2 @@
+### Structure template library
+- Add an OpenChem-owned catalog of complete molecules (rings, free L-amino acids plus glycine, nucleobases, named sugar anomers), a Template Library dialog, and a normalized user library under the application data folder. Insert places a structure to the right of the drawing through Ketcher `addFragment` as one undo step. Peptide sequences and polymer S-groups stay on the roadmap; dummy-atom fragments are refused.
