@@ -2,7 +2,8 @@
 
 Re-measures the representative constructions from naming rounds 89–91 and records
 that they remain open as validator limits with the evidence chain cited in
-``docs/NAMING_LIMITATIONS_PLAN.md``. Does not close those rows — only guards regression.
+``docs/NAMING_LIMITATIONS_PLAN.md``. NL-001 is closed as that validator limit
+(2026-11-10); NL-002 stays blocked; NL-005 stays open. These tests guard regression.
 """
 
 from __future__ import annotations

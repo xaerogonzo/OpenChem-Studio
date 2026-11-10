@@ -10,6 +10,12 @@ centre (two or more cumulative double bonds, even count: P-93.5.1.4).
 ``@`` → P/p and ``@@`` → M/m. Lowercase is used when another specified
 tetrahedral centre is present (the suite's TH+TH3 shape); that is a
 stand-in for a full CIP pseudoasymmetry test, not a general CIP engine.
+
+A tetrahedral ``@``/``@@`` that RDKit leaves as ``?`` (VS231's cyclohexyl
+``7s``) is paired with that one helix: ``p`` with ``@`` is ``s`` (the
+suite's one labelled point); flipping either bit flips the letter. That
+is the pseudoasymmetric inversion, not a ranking of the extended
+tetrahedron.
 """
 
 from __future__ import annotations
@@ -20,7 +26,9 @@ if TYPE_CHECKING:
     pass
 
 HELIX_PROP = "_CumuleneHelix"
+PAIRED_TETRA_PROP = "_CumulenePairedTetra"
 AXIAL_LETTERS = frozenset({"p", "P", "m", "M"})
+PAIRED_TETRA_LETTERS = frozenset({"r", "s", "R", "S"})
 
 _TWO_LETTER_ORGANIC = frozenset({"Cl", "Br"})
 
@@ -149,10 +157,37 @@ def stamp_cumulene_helix_from_smiles(mol, smiles: str) -> None:
             helix = "p" if lowercase else "P"
         atom.SetProp(HELIX_PROP, helix)
         atom.SetProp("_CIPCode", helix)
+    stamp_axis_paired_tetrahedral(mol, windings)
+
+
+def stamp_axis_paired_tetrahedral(mol, windings: list[str | None]) -> None:
+    """Stamp ``r``/``s`` on a SMILES-tagged tetrahedral that RDKit left unassigned.
+
+    Needs exactly one even-cumulene helix already on the mol. Measured on
+    CIP suite VS231: ``p`` and ``[C@H]`` → ``s``. Either bit flipped → ``r``.
+    """
+    if len(windings) != mol.GetNumAtoms():
+        return
+    helices = [atom.GetProp(HELIX_PROP) for atom in mol.GetAtoms() if atom.HasProp(HELIX_PROP)]
+    if len(helices) != 1:
+        return
+    helix_m = helices[0].lower() == "m"
+    for idx, winding in enumerate(windings):
+        if winding is None:
+            continue
+        atom = mol.GetAtomWithIdx(idx)
+        if atom.HasProp(HELIX_PROP):
+            continue
+        tetra_at = winding == "@@"
+        letter = "r" if helix_m ^ tetra_at else "s"
+        atom.SetProp(PAIRED_TETRA_PROP, letter)
+        atom.SetProp("_CIPCode", letter)
 
 
 def restore_cumulene_cip_after_labeller(mol) -> None:
-    """Put the helical letter back on ``_CIPCode`` after ``AssignCIPLabels``."""
+    """Put helical and axis-paired tetrahedral letters back after ``AssignCIPLabels``."""
     for atom in mol.GetAtoms():
         if atom.HasProp(HELIX_PROP):
             atom.SetProp("_CIPCode", atom.GetProp(HELIX_PROP))
+        elif atom.HasProp(PAIRED_TETRA_PROP):
+            atom.SetProp("_CIPCode", atom.GetProp(PAIRED_TETRA_PROP))
