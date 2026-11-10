@@ -68,7 +68,20 @@ from openchem.domain.compare import (
 )
 from openchem.domain.descriptor import DescriptorValue
 from openchem.domain.execution_plan import NEEDS_INPUT as EXCLUDED_NEEDS_INPUT
-from openchem.domain.calculator_goals import SCOPE_ALL, SCOPE_CHOSEN, SCOPE_THIS, GoalRun, goal_of
+from openchem.domain.calculator_goals import (
+    SCOPE_ALL,
+    SCOPE_CHOSEN,
+    SCOPE_THIS,
+    GoalRun,
+    goal_of,
+    needs_conformer,
+)
+from openchem.domain.goal_run_preferences import (
+    GoalParameterStore,
+    RecommendedBatch,
+    confirmation_text,
+    parameters_for_run,
+)
 from openchem.domain.execution_plan import ExecutionPlan, build_execution_plan
 from openchem.domain.descriptor_aggregate import (
     DESCRIPTOR_AGGREGATE_ID,
@@ -4711,14 +4724,24 @@ class PropertyPanel(QWidget):
         self._start_project_run(plan, molecules, self._project_parameters)
 
     def _start_project_run(
-        self, plan: ExecutionPlan, molecules: list, chosen_parameters: dict, label: str = ""
+        self,
+        plan: ExecutionPlan,
+        molecules: list,
+        chosen_parameters: dict,
+        label: str = "",
+        *,
+        confirmed: bool = False,
     ) -> str:
         """Hand a plan to the batch service, after the cost question. Returns the status text.
 
         Shared by "Run selected" over several molecules and a goal run, so the confirmation,
         the table adoption and the exclusions sentence are one implementation.
         """
-        if plan.job_count > _CONFIRM_PROJECT_RUN_ABOVE and not self._confirm_project_run(plan):
+        if (
+            not confirmed
+            and plan.job_count > _CONFIRM_PROJECT_RUN_ABOVE
+            and not self._confirm_project_run(plan)
+        ):
             text = "Cancelled -- nothing was computed."
             self._batch_status.setText(text)
             return text
@@ -4804,16 +4827,82 @@ class PropertyPanel(QWidget):
 
     def _molecules_for_run(self, run: GoalRun) -> list:
         """The molecules a run names, in project order, read from the project as it is now."""
+        return self._molecules_in_scope(run.scope_mode, run.scope_uuids)
+
+    def _molecules_in_scope(self, scope_mode: str, scope_uuids: tuple[str, ...] | list[str]) -> list:
         if self._project is None:
             return []
-        if run.scope_mode == SCOPE_ALL:
+        if scope_mode == SCOPE_ALL:
             return list(self._project.molecules)
-        if run.scope_mode == SCOPE_CHOSEN:
-            wanted = set(run.scope_uuids)
+        if scope_mode == SCOPE_CHOSEN:
+            wanted = set(scope_uuids)
             return [m for m in self._project.molecules if m.uuid in wanted]
         selected = self._selected_molecule_uuid
         molecule = self._project.find_molecule(selected) if selected else None
         return [molecule] if molecule is not None else []
+
+    def run_recommended_batch(self, batch: RecommendedBatch) -> str:
+        """Run every recommended calculator. Confirms first, including for one molecule.
+
+        The batch is not a goal, so this does not go through `run_goal` and does not
+        invent a goal id. It uses the same plan and the same two start paths.
+        """
+        molecules = self._molecules_in_scope(batch.scope_mode, batch.scope_uuids)
+        if not molecules:
+            return self._say("Nothing to run. Select a molecule first.")
+        plan = build_execution_plan(
+            molecules=molecules,
+            calculator_ids=batch.calculator_ids,
+            chosen_parameters=dict(batch.parameters),
+            definition_of=self._calculator_registry.get,
+            structure_version_of=self._version_of_molecule,
+            plain_label=plain_label,
+        )
+        if not self._confirm_all_recommended(plan, molecules):
+            return self._say("Cancelled -- nothing was computed.")
+        if not plan.calculator_ids or plan.molecule_count == 0:
+            return self._say("Nothing to run. " + (plan.describe_exclusions() or ""))
+        chosen = dict(batch.parameters)
+        if batch.scope_mode == SCOPE_THIS:
+            self._start_single_run(molecules[0], plan, "all recommended calculators")
+        elif self._batch_service is None:
+            return self._say("Running on several molecules is not available here.")
+        elif self._batch_service.is_running():
+            return self._say("A project run is already going -- try again when it finishes.")
+        else:
+            self._start_project_run(plan, molecules, chosen, "all recommended calculators", confirmed=True)
+        return self._say(self._all_recommended_status(plan))
+
+    def _all_recommended_status(self, plan: ExecutionPlan) -> str:
+        text = "Running all recommended calculators."
+        left_out = plan.describe_exclusions()
+        return f"{text} {left_out}".strip() if left_out else text
+
+    def _confirm_all_recommended(self, plan: ExecutionPlan, molecules: list) -> bool:
+        """The gate for running every recommended calculator. It always asks."""
+        conformers = [
+            definition.display_name
+            for calculator_id in plan.calculator_ids
+            if (definition := self._calculator_registry.get(calculator_id)) is not None
+            and needs_conformer(definition)
+        ]
+        lacking = sum(1 for molecule in molecules if not getattr(molecule, "conformers", None))
+        text = confirmation_text(
+            calculator_count=len(plan.calculator_ids),
+            job_count=plan.job_count,
+            molecule_count=plan.molecule_count or len(molecules),
+            conformer_names=conformers,
+            lacking_conformers=lacking,
+            exclusions=plan.describe_exclusions(),
+        )
+        answer = QMessageBox.question(
+            self,
+            "Run all recommended calculators?",
+            text,
+            QMessageBox.StandardButton.Ok | QMessageBox.StandardButton.Cancel,
+            QMessageBox.StandardButton.Cancel,
+        )
+        return answer is QMessageBox.StandardButton.Ok
 
     def current_scope(self) -> tuple[str, set[str]]:
         """The scope Properties has, for the wizard to start from (it keeps its own after that)."""
@@ -4828,11 +4917,20 @@ class PropertyPanel(QWidget):
         if goal is None:
             return
         mode = self._scope_mode if self._batch_service is not None else SCOPE_THIS
+        store = GoalParameterStore.from_settings(self._settings)
+        parameters: dict[str, dict] = {}
+        for entry in goal.recommended():
+            definition = self._calculator_registry.get(entry.calculator_id)
+            if definition is None:
+                continue
+            chosen = parameters_for_run(definition, entry.parameters, store.get(entry.calculator_id))
+            if chosen:
+                parameters[entry.calculator_id] = chosen
         self.run_goal(
             GoalRun(
                 goal_id=goal.goal_id,
                 calculator_ids=goal.recommended_ids(),
-                parameters={e.calculator_id: dict(e.parameters) for e in goal.recommended() if e.parameters},
+                parameters=parameters,
                 scope_mode=mode,
                 scope_uuids=tuple(sorted(self._scope_chosen)) if mode == SCOPE_CHOSEN else (),
             )

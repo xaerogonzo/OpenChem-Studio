@@ -13,6 +13,8 @@
 
 from __future__ import annotations
 
+import json
+
 import pytest
 from PySide6.QtCore import QThreadPool
 from PySide6.QtWidgets import QApplication, QPushButton, QWidget
@@ -20,6 +22,7 @@ from PySide6.QtWidgets import QApplication, QPushButton, QWidget
 import conftest
 from openchem.bootstrap import build_service_container
 from openchem.domain.calculator import CalculationRequest
+from openchem.domain.goal_run_preferences import GOAL_PARAMETER_KEY, RecommendedBatch
 from openchem.domain.calculator_goals import (
     GOALS,
     SCOPE_ALL,
@@ -32,6 +35,7 @@ from openchem.domain.calculator_taxonomy import FALLBACK_TASK_GROUP
 from openchem.domain.molecule import MoleculeModel
 from openchem.domain.project import ProjectModel
 from openchem.events.events import MoleculeSelected
+from openchem.ui.panels import property_panel as property_panel_module
 from openchem.ui.panels.property_panel import PropertyPanel
 from openchem.ui.widgets.results_workspace import ResultsWorkspace
 
@@ -440,6 +444,77 @@ def test_a_run_asked_for_in_the_wizard_runs_in_properties_and_the_wizard_says_so
 
     assert sorted(recorder.ids()) == sorted(goal_of("identity").recommended_ids())
     assert wizard._status.text() == panel._batch_status.text() != ""
+    assert not any(tick.isChecked() for tick in panel._calculator_ticks.values())
+
+
+def _all_recommended(panel, monkeypatch, answer):
+    from openchem.domain.goal_run_preferences import recommended_calculators
+
+    seen: list[str] = []
+
+    def question(_parent, _title, text, *_args, **_kwargs):
+        seen.append(text)
+        return answer
+
+    monkeypatch.setattr(property_panel_module.QMessageBox, "question", question)
+    found = recommended_calculators()
+    batch = RecommendedBatch(found.calculator_ids, dict(found.recommendation_parameters), SCOPE_THIS)
+    return seen, batch
+
+
+def test_run_all_recommended_confirms_for_one_molecule_and_cancel_starts_nothing(services, built, monkeypatch):
+    panel, recorder = _panel(services, built, _molecules(services, ("A", "CCO")))
+    ticks = {cid: tick.isChecked() for cid, tick in panel._calculator_ticks.items()}
+    scope = panel.current_scope()
+    seen, batch = _all_recommended(panel, monkeypatch, property_panel_module.QMessageBox.StandardButton.Cancel)
+
+    text = panel.run_recommended_batch(batch)
+
+    assert seen and "recommended calculators" in seen[0]
+    assert "3D structure" in seen[0]
+    assert "Nothing starts until you continue." in seen[0]
+    assert recorder.calls == []
+    assert text == "Cancelled -- nothing was computed."
+    assert {cid: tick.isChecked() for cid, tick in panel._calculator_ticks.items()} == ticks
+    assert panel.current_scope() == scope
+
+
+def test_run_all_recommended_names_what_it_will_skip(services, built, monkeypatch):
+    bare = MoleculeModel(display_name="bare")
+    panel, recorder = _panel(services, built, [bare])
+    seen, batch = _all_recommended(panel, monkeypatch, property_panel_module.QMessageBox.StandardButton.Cancel)
+
+    panel.run_recommended_batch(batch)
+
+    assert "no structure" in seen[0].lower()
+    assert recorder.calls == []
+
+
+def test_run_all_recommended_starts_after_confirmation(services, built, monkeypatch):
+    panel, recorder = _panel(services, built, _molecules(services, ("A", "CCO")))
+    _seen, batch = _all_recommended(panel, monkeypatch, property_panel_module.QMessageBox.StandardButton.Ok)
+
+    text = panel.run_recommended_batch(batch)
+
+    assert text.startswith("Running all recommended calculators")
+    assert "nmr_database" in recorder.ids()
+    nmr = next(request for _uuid, request in recorder.calls if request.calculator_id == "nmr_database")
+    assert nmr.parameters.get("nucleus") == "1H"
+
+
+def test_a_heading_button_uses_a_saved_goal_choice_and_not_the_registered_default(services, built):
+    panel, recorder = _panel(services, built, _molecules(services, ("A", "CCO")))
+
+    class _Memory:
+        def get(self, key, default=""):
+            assert key == GOAL_PARAMETER_KEY
+            return json.dumps({"nmr_database": {"nucleus": "13C"}})
+
+    panel._settings = _Memory()
+    _heading_button(panel, "spectra").click()
+
+    nmr = next(request for _uuid, request in recorder.calls if request.calculator_id == "nmr_database")
+    assert nmr.parameters.get("nucleus", "13C") == "13C"
     assert not any(tick.isChecked() for tick in panel._calculator_ticks.values())
 
 

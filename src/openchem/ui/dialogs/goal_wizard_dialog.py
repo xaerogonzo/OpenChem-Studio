@@ -2,7 +2,9 @@
 
 **ONE QUESTION, TWO WAYS TO ANSWER IT.** The first page lists the goals; pick one and
 press **Run recommended** and that is the whole interaction: the curated set runs on
-the scope shown, with default settings. **Customise** is the longer road for the person
+the scope shown, with that goal's settings (a saved choice, else the recommendation,
+else the registered default). **Run all recommended** does that for every goal, after
+one confirmation. **Customise** is the longer road for the person
 who wants to see what is in the set, untick one, add an optional one, or change a
 setting first -- and it shows what the run will cost and what it will leave out before
 anything starts.
@@ -25,6 +27,7 @@ the lookups it needs, and it imports no engine.
 from __future__ import annotations
 
 from collections.abc import Callable, Sequence
+from typing import Any
 
 from PySide6.QtCore import Qt, Signal
 from PySide6.QtWidgets import (
@@ -44,6 +47,14 @@ from PySide6.QtWidgets import (
 )
 
 from openchem.domain.calculator import CalculatorDefinition
+from openchem.domain.goal_run_preferences import (
+    GoalParameterStore,
+    RecommendedBatch,
+    chemistry_summary,
+    parameters_for_run,
+    recommended_calculators,
+    resolve_parameters,
+)
 from openchem.domain.calculator_goals import (
     GOALS,
     SCOPE_ALL,
@@ -90,13 +101,29 @@ _SCOPE_HELP = HelpTooltip(
 #: The primary button: the whole quick path.
 _RUN_RECOMMENDED_HELP = HelpTooltip(
     text=(
-        "Run the recommended calculators for the chosen goal on the chosen molecules, with "
-        "their default settings.\n\n"
+        "Run the recommended calculators for the chosen goal on the chosen molecules. "
+        "Each one uses a setting you saved for goal runs, or the goal's own recommendation, "
+        "or the calculator's registered default.\n\n"
         "It asks nothing further. The calculators are listed above the button, and it never "
         "changes your ticks or your presets."
     ),
     tier=2,
     help_id="wizard.run_recommended",
+    topic="properties",
+    help_anchor="properties",
+)
+
+#: Every goal's recommended set, after one confirmation in Properties.
+_RUN_ALL_HELP = HelpTooltip(
+    text=(
+        "Run every recommended calculator, across every goal, on the molecules chosen here. "
+        "Each calculator is included once. A setting you saved for goal runs is used; otherwise "
+        "the goal's recommendation, then the registered default.\n\n"
+        "You are asked to confirm first, including when only one molecule is selected. It never "
+        "changes your ticks or your presets."
+    ),
+    tier=2,
+    help_id="wizard.run_all_recommended",
     topic="properties",
     help_anchor="properties",
 )
@@ -175,6 +202,8 @@ class GoalWizardDialog(QDialog):
 
     #: A run was asked for. Carries an immutable `GoalRun`.
     run_requested = Signal(object)
+    #: Every recommended calculator, as a `RecommendedBatch`. Not a `GoalRun`: it has no goal.
+    all_recommended_requested = Signal(object)
 
     def __init__(
         self,
@@ -187,6 +216,8 @@ class GoalWizardDialog(QDialog):
         on_generate_conformers: Callable[[], None] | None = None,
         structure_version_of: Callable[[str], int] = lambda _uuid: 0,
         plain_label: Callable[[str], str] = lambda text: text,
+        parameter_store: GoalParameterStore | None = None,
+        settings: Any = None,
     ) -> None:
         super().__init__(parent)
         self.setWindowTitle("Run calculators by goal")
@@ -203,8 +234,11 @@ class GoalWizardDialog(QDialog):
         self._scope_mode = mode if mode in (SCOPE_THIS, SCOPE_ALL, SCOPE_CHOSEN) else SCOPE_THIS
         self._scope_chosen: set[str] = set(chosen)
         self._goal: Goal = GOALS[0]
-        #: Settings chosen on the customise page, by calculator id. Only what was chosen.
+        #: Settings accepted on the customise page this visit, by calculator id.
+        #: Switching goals clears this. The store is what survives that, and a later opening.
         self._chosen_parameters: dict[str, dict] = {}
+        self._settings = settings
+        self._store = parameter_store if parameter_store is not None else GoalParameterStore.from_settings(settings)
         self._entry_checks: dict[str, QCheckBox] = {}
 
         self._stack = QStackedWidget(self)
@@ -257,6 +291,10 @@ class GoalWizardDialog(QDialog):
         self._run_recommended_button.setDefault(True)
         apply_help_tooltip(self._run_recommended_button, _RUN_RECOMMENDED_HELP)
         self._run_recommended_button.clicked.connect(self._on_run_recommended)
+        self._run_all_button = QPushButton("Run all recommended", page)
+        self._run_all_button.setObjectName("runAllRecommended")
+        apply_help_tooltip(self._run_all_button, _RUN_ALL_HELP)
+        self._run_all_button.clicked.connect(self._on_run_all_recommended)
         self._customise_button = QPushButton("Customise...", page)
         apply_help_tooltip(self._customise_button, _CUSTOMISE_HELP)
         self._customise_button.clicked.connect(self._on_customise)
@@ -264,6 +302,7 @@ class GoalWizardDialog(QDialog):
         close.clicked.connect(self.close)
         buttons.addStretch(1)
         buttons.addWidget(self._run_recommended_button)
+        buttons.addWidget(self._run_all_button)
         buttons.addWidget(self._customise_button)
         buttons.addWidget(close)
         layout.addLayout(buttons)
@@ -348,19 +387,15 @@ class GoalWizardDialog(QDialog):
     def current_run(self, *, quick: bool) -> GoalRun:
         """The run as it stands -- the goal's recommended set (`quick`) or the ticks."""
         if quick:
-            ids = self._goal.recommended_ids()
-            parameters = {e.calculator_id: dict(e.parameters) for e in self._goal.recommended() if e.parameters}
+            entries = self._goal.recommended()
         else:
-            ids = tuple(self.ticked_ids())
-            parameters = {
-                cid: dict(self._chosen_parameters.get(cid) or self._goal.entry(cid).parameters)
-                for cid in ids
-                if self._chosen_parameters.get(cid) or self._goal.entry(cid).parameters
-            }
+            entries = tuple(
+                entry for entry in self._goal.entries if entry.calculator_id in self.ticked_ids()
+            )
         return GoalRun(
             goal_id=self._goal.goal_id,
-            calculator_ids=tuple(ids),
-            parameters=parameters,
+            calculator_ids=tuple(entry.calculator_id for entry in entries),
+            parameters=self._parameters_of(entries),
             scope_mode=self._scope_mode,
             scope_uuids=tuple(sorted(self._scope_chosen)) if self._scope_mode == SCOPE_CHOSEN else (),
         )
@@ -394,6 +429,7 @@ class GoalWizardDialog(QDialog):
             + f"{len(self.scope_molecules())} molecule(s)."
         )
         self._run_recommended_button.setEnabled(bool(self.scope_molecules()))
+        self._run_all_button.setEnabled(bool(self.scope_molecules()))
         self._customise_button.setEnabled(bool(self.scope_molecules()))
 
     def _name_of(self, calculator_id: str) -> str:
@@ -424,8 +460,54 @@ class GoalWizardDialog(QDialog):
             self._scope_chosen = dialog.chosen()
         self.set_scope(mode)
 
+    def _parameters_of(self, entries) -> dict[str, dict]:
+        """What each entry runs with: saved choice, else the recommendation, else the default."""
+        parameters: dict[str, dict] = {}
+        for entry in entries:
+            definition = self._definition_of(entry.calculator_id)
+            if definition is None:
+                continue
+            chosen = parameters_for_run(definition, entry.parameters, self._saved_for(entry.calculator_id))
+            if chosen:
+                parameters[entry.calculator_id] = chosen
+        return parameters
+
+    def _saved_for(self, calculator_id: str) -> dict:
+        if calculator_id in self._chosen_parameters:
+            return self._chosen_parameters[calculator_id]
+        return self._store.get(calculator_id)
+
     def _on_run_recommended(self, _checked: bool = False) -> None:
         self._emit(self.current_run(quick=True))
+
+    def _on_run_all_recommended(self, _checked: bool = False) -> None:
+        found = recommended_calculators(GOALS)
+        if found.conflict_id:
+            name = self._name_of(found.conflict_id)
+            self._status.setText(
+                f"Run all recommended is not available: {name} is recommended with two different settings."
+            )
+            return
+        parameters: dict[str, dict] = {}
+        for calculator_id in found.calculator_ids:
+            definition = self._definition_of(calculator_id)
+            if definition is None:
+                continue
+            chosen = parameters_for_run(
+                definition,
+                found.recommendation_parameters.get(calculator_id, {}),
+                self._saved_for(calculator_id),
+            )
+            if chosen:
+                parameters[calculator_id] = chosen
+        batch = RecommendedBatch(
+            calculator_ids=found.calculator_ids,
+            parameters=parameters,
+            scope_mode=self._scope_mode,
+            scope_uuids=tuple(sorted(self._scope_chosen)) if self._scope_mode == SCOPE_CHOSEN else (),
+        )
+        self.last_run = None
+        self.all_recommended_requested.emit(batch)
 
     def _emit(self, run: GoalRun) -> None:
         """Hand a run on. Kept as `last_run` too, for a drive script or a test to read back."""
@@ -474,6 +556,11 @@ class GoalWizardDialog(QDialog):
         row_layout.addWidget(check)
         row_layout.addWidget(reason, 1)
         if definition is not None and definition.parameters:
+            summary = QLabel(self._choice_line(entry, definition), row)
+            summary.setObjectName("goalChoiceSummary")
+            summary.setProperty("openchem_calculator_id", entry.calculator_id)
+            summary.setWordWrap(True)
+            row_layout.addWidget(summary, 1)
             settings = QPushButton("Settings...", row)
             apply_help_tooltip(settings, _ENTRY_SETTINGS_HELP)
             settings.setProperty("openchem_calculator_id", entry.calculator_id)
@@ -490,10 +577,24 @@ class GoalWizardDialog(QDialog):
         definition = self._definition_of(str(calculator_id)) if calculator_id else None
         if definition is None:
             return
-        dialog = CalculatorSettingsDialog(definition, self)
-        if dialog.exec() == QDialog.DialogCode.Accepted:
-            self._chosen_parameters[str(calculator_id)] = dialog.parameters()
-            self._refresh_plan()
+        calculator_id = str(calculator_id)
+        entry = self._goal.entry(calculator_id)
+        recommendation = entry.parameters if entry is not None else {}
+        resolved = resolve_parameters(definition, recommendation, self._saved_for(calculator_id))
+        dialog = CalculatorSettingsDialog(definition, self, values=resolved)
+        if dialog.exec() != QDialog.DialogCode.Accepted:
+            return
+        self._chosen_parameters[calculator_id] = dialog.parameters()
+        self._store.remember(calculator_id, dialog.parameters())
+        self._store.save(self._settings)
+        for label in self.findChildren(QLabel, "goalChoiceSummary"):
+            if label.property("openchem_calculator_id") == calculator_id and entry is not None:
+                label.setText(self._choice_line(entry, definition))
+        self._refresh_plan()
+
+    def _choice_line(self, entry, definition) -> str:
+        resolved = resolve_parameters(definition, entry.parameters, self._saved_for(entry.calculator_id))
+        return chemistry_summary(definition, resolved)
 
     def _refresh_plan(self) -> None:
         """What the run would be, said before it starts: its size, what it leaves out, what it needs."""
