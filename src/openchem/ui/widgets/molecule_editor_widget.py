@@ -16,6 +16,7 @@ from openchem.chem import atom_numbering, electron_overlay
 from openchem.chem.calculation_input import input_fingerprint
 from openchem.domain.calculator import DRAWING
 from openchem.chem.engine import ChemistryEngine
+from openchem.chem.structure_templates import place_to_the_right
 from openchem.chem.stereochemistry import StereochemistryConflict
 from openchem.commands.conformer_commands import RotateStructureCommand
 from openchem.commands.molecule_commands import EditStructureCommand
@@ -281,6 +282,26 @@ class MoleculeEditorWidget(QWidget):
         keeps in step.
         """
         self._backend.select_atoms(atom_indices)
+
+    def get_molblock(self, callback) -> None:
+        """The live canvas, not the stored `MoleculeModel` molblock."""
+        self._backend.get_molblock(callback)
+
+    def insert_template_molblock(self, molblock: str, callback) -> None:
+        """Place `molblock` to the right of the drawing and insert it.
+
+        `callback(error)` is `None` on success. The resulting canvas change
+        still goes through `edited` -> `EditStructureCommand`.
+        """
+        def after_canvas(canvas: str | None) -> None:
+            try:
+                placed = place_to_the_right(canvas or "", molblock)
+            except Exception as exc:  # noqa: BLE001 - show the refusal, never crash the dialog
+                callback(str(exc))
+                return
+            self._backend.add_fragment(placed, callback)
+
+        self._backend.get_molblock(after_canvas)
 
     def trigger_toolbar_action(self, test_id: str) -> None:
         """Proxies to one of Ketcher's own real toolbar buttons (e.g. "Add/

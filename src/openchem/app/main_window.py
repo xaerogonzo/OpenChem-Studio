@@ -137,6 +137,7 @@ from openchem.ui.dialogs.calculator_settings_dialog import plain_label
 from openchem.ui.dialogs.goal_wizard_dialog import GoalWizardDialog
 from openchem.ui.dialogs.lewis_pairing_dialog import LewisPairingDialog, PairingContext, PairingHost
 from openchem.ui.dialogs.score_dialog import ScoreDialog, ScoreHost
+from openchem.ui.dialogs.template_library_dialog import TemplateLibraryDialog
 from openchem.ui.panels.docking_panel import DockingPanel
 from openchem.ui.panels.jobs_panel import CANCEL_ALL_BUTTON, JobsPanel
 from openchem.ui.panels.project_explorer_panel import ProjectExplorerPanel
@@ -249,6 +250,7 @@ _MENU_KEYWORDS: dict[str, tuple[str, ...]] = {
     "External Tools...": ("orca", "vina", "sidecar", "executable", "path"),
     "Settings...": ("preferences", "recovery", "autosave", "revisions"),
     "Check Structure...": ("valence", "sanitise", "sanitize", "validate", "problems"),
+    "Template Library...": ("templates", "amino acids", "rings", "my templates"),
     # `crystal`, `cif` and `smiles` deliberately point HERE as well as at
     # the importer. "How do I turn a SMILES into a crystal structure" is a
     # question with a real answer -- you cannot, it has to be measured --
@@ -610,6 +612,7 @@ class MainWindow(QMainWindow):
         # THE LEWIS PAIRING WINDOW: one, built when first asked for and raised after that.
         self._lewis_pairing: LewisPairingDialog | None = None
         self._score_dialog: ScoreDialog | None = None
+        self._template_library: TemplateLibraryDialog | None = None
         self._property_panel.workflow_tab_requested.connect(self._on_workflow_tab_requested)
         self._interactions_panel = InteractionsPanel(
             services.chemistry_engine, services.event_bus, self
@@ -2831,6 +2834,15 @@ class MainWindow(QMainWindow):
             "Check Structure button",
             "check_structure_indigo",
         )
+        library_action = self._document(
+            self._structure_menu.addAction(
+                "Template Library...", self._on_template_library_action
+            ),
+            "template_library",
+        )
+        # Ctrl+T is Ketcher's own template-library gesture while the canvas
+        # has focus. Ctrl+Shift+T is free in the application menus.
+        library_action.setShortcut("Ctrl+Shift+T")
 
 
     def _build_view_menu(self) -> None:
@@ -4549,6 +4561,25 @@ class MainWindow(QMainWindow):
         self._refresh_scores_dialog()
 
     # --- the Derived Scores window ------------------------------------------------------------------
+
+    def _on_template_library_action(self, _checked: bool = False) -> None:
+        self.show_template_library()
+
+    def show_template_library(self, *, activate: bool = True) -> TemplateLibraryDialog:
+        """Open the Template Library, or raise the one that is open."""
+        if self._template_library is None:
+            self._template_library = TemplateLibraryDialog(
+                self._editor, self._services.chemistry_engine, self
+            )
+            if not activate:
+                self._template_library.setAttribute(Qt.WidgetAttribute.WA_ShowWithoutActivating)
+        else:
+            self._template_library.refresh()
+        self._template_library.show()
+        if activate:
+            self._template_library.raise_()
+            self._template_library.activateWindow()
+        return self._template_library
 
     def _on_scores_action(self, _checked: bool = False) -> None:
         self.show_scores()

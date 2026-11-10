@@ -279,6 +279,20 @@ class EditorBackend(QObject):
         """
         raise NotImplementedError
 
+    def add_fragment(self, molblock: str, callback: Callable[[str | None], None] | None = None) -> None:
+        """Insert `molblock` without replacing the canvas.
+
+        A GESTURE, not state: if the editor is not ready, refuse rather than
+        queue. `callback(error)` is `None` on success and a sentence on
+        refusal. Qt's `runJavaScript` does not await Ketcher promises, so
+        the concrete backend reports completion through its bridge.
+
+        The default is a named refusal: an editor that cannot insert a
+        fragment must not pretend it did.
+        """
+        if callback is not None:
+            callback("This editor cannot insert a fragment.")
+
     def get_molblock(self, callback: Callable[[str | None], None]) -> None:
         """Asynchronously fetch the current structure as a molblock.
 
