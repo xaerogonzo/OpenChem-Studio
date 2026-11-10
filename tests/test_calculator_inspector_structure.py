@@ -65,6 +65,77 @@ def _inspect(engine, molecule, result, qapp):
     return dialog, dialog._view
 
 
+def test_a_ph_charge_stores_the_species_it_charged_and_the_picture_uses_it(qapp, recorded_viewer):
+    """A secondary amine at pH 7.4. The charges were already on the cation; the picture was the neutral drawing."""
+    from openchem.chem.descriptor_providers import MMFF94
+    from openchem.chem.result_structure import structure_fingerprint
+    from openchem.domain import result_codec
+    from openchem.domain.common import CacheState
+
+    engine = ChemistryEngine()
+    molecule = MoleculeModel(display_name="dimethylamine")
+    engine.set_structure_from_smiles(molecule, "CNC")
+    mol = engine.mol_from_model(molecule)
+    before = Chem.MolToSmiles(mol)
+    registry = _registry()
+    for method in ("gasteiger", MMFF94):
+        result = registry.compute(
+            "gasteiger_charge_at_ph", mol, molecule.uuid, {"pH": 7.4, "method": method}
+        )
+        assert result.cache_state == CacheState.COMPLETED, result.error
+        species = Chem.MolFromMolBlock(result.structure_molblock, removeHs=False)
+        assert species is not None
+        assert Chem.GetFormalCharge(species) == 1
+        assert [a.GetSymbol() for a in species.GetAtoms()] == ["C", "N", "C"]
+        nitrogen = species.GetAtomWithIdx(1)
+        assert nitrogen.GetFormalCharge() == 1 and nitrogen.GetTotalNumHs() == 2
+        assert result.structure_fingerprint == structure_fingerprint(result.structure_molblock)
+        assert result.provenance.parameters["effective_structure_fingerprint"] == result.structure_fingerprint
+        assert all(isinstance(index, int) and 0 <= index < species.GetNumAtoms() for index in result.values)
+        decoded = result_codec.decode(result_codec.encode(result))
+        assert decoded.structure_molblock == result.structure_molblock
+        assert decoded.structure_fingerprint == result.structure_fingerprint
+
+    assert Chem.MolToSmiles(mol) == before and Chem.GetFormalCharge(mol) == 0
+
+    molecule.conformers = [ConformerModel(conformer_id="c1", molblock=molecule.molblock)]
+    dialog, view = _inspect(engine, molecule, result, qapp)
+    assert view._depiction_for(result) == result.structure_molblock
+    depicted = Chem.MolFromMolBlock(view._depiction_molblock, removeHs=False)
+    assert Chem.GetFormalCharge(depicted) == 1
+    assert Chem.GetFormalCharge(Chem.MolFromMolBlock(molecule.molblock, removeHs=False)) == 0
+    (loaded,) = recorded_viewer["loaded"]
+    shown = Chem.MolFromMolBlock(loaded, removeHs=False)
+    assert Chem.GetFormalCharge(shown) == 1
+    assert [a.GetSymbol() for a in shown.GetAtoms()] == ["C", "N", "C"]
+    assert dialog is not None
+
+
+def test_an_older_dataset_without_a_molblock_still_depicts_the_drawing(qapp, recorded_viewer):
+    engine, molecule, mol = _molecule_with_conformer("CNC")
+    older = PerAtomDataset(
+        property_id="gasteiger_charge_at_ph", name="Partial Charge", units="e", method="m",
+        molecule_uuid=molecule.uuid,
+        values={i: 0.0 for i in range(mol.GetNumHeavyAtoms())},
+        provenance=Provenance(created_by="core", method="m"),
+    )
+    _dialog, view = _inspect(engine, molecule, older, qapp)
+    assert older.structure_molblock == ""
+    assert view._depiction_for(older) == molecule.molblock
+    assert view._structure_source != EFFECTIVE_STRUCTURE
+
+
+def test_a_failed_mmff94_result_does_not_invent_a_structure():
+    from openchem.chem.descriptor_providers import MMFF94
+    from openchem.domain.common import CacheState
+
+    result = _registry().compute(
+        "gasteiger_charge_at_ph", Chem.MolFromSmiles("[Xe]"), "u", {"pH": 7.4, "method": MMFF94}
+    )
+    assert result.cache_state == CacheState.FAILED
+    assert result.structure_molblock == "" and result.structure_fingerprint == ""
+
+
 def test_the_3d_pane_shows_the_protonated_microspecies_not_the_stored_conformer(qapp, recorded_viewer):
     engine, molecule, mol = _molecule_with_conformer(BUTYRYL_FENTANYL)
     result = _registry().compute("geometry_partial_charge", mol, molecule.uuid, PH)

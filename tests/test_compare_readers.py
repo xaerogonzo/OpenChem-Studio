@@ -17,6 +17,8 @@ from openchem.domain.structure_issue import Basis
 from openchem.events.events import MoleculeSelected
 from openchem.ui.widgets.compare_readers import CompareReaders
 
+from PySide6.QtWidgets import QPushButton
+
 import conftest
 
 
@@ -111,6 +113,31 @@ def test_a_fact_filter_typed_in_one_reaches_the_others(readers):
     widget.pane("a").reader._view.set_filter_state("radius", False)
     widget.pane("a").reader._view.filter_changed.emit()
     assert widget.pane("b").reader.view().search == "radius"
+
+
+def _click_jump(reader, label: str) -> None:
+    for button in reader._view.findChildren(QPushButton):
+        if button.objectName() == "sectionJump" and button.text() == label:
+            button.click()
+            return
+    raise AssertionError(f"no section jump named {label!r}")
+
+
+def test_clicking_a_fact_name_moves_that_pane_and_linked_neighbours(readers):
+    widget, _ = readers
+    widget.set_molecules(["a", "b"])
+    _click_jump(widget.pane("a").reader, "Rings")
+    assert widget.pane("a").reader.focus() == "topology_analysis"
+    assert widget.pane("b").reader.focus() == "topology_analysis"
+
+
+def test_clicking_a_fact_name_leaves_an_unlinked_neighbour(readers):
+    widget, _ = readers
+    widget.set_molecules(["a", "b"])
+    widget.set_linked(False)
+    _click_jump(widget.pane("a").reader, "Rings")
+    assert widget.pane("a").reader.focus() == "topology_analysis"
+    assert widget.pane("b").reader.focus() == ""
 
 
 def test_unlinked_panes_move_on_their_own(readers):

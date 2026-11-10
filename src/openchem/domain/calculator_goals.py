@@ -68,8 +68,10 @@ class Recommendation:
     reason: str
     #: Settings that differ from the calculator's registered defaults, by parameter
     #: name. Empty almost everywhere: a recommendation that needs non-default
-    #: settings to make sense is a sign the default is wrong, not a reason to
-    #: override it here.
+    #: settings to make sense is usually a sign the default is wrong. Spectra's
+    #: NMR entry is the exception that is meant to stay: the calculator's own
+    #: default remains 13C for a direct Properties run, and this recommendation
+    #: asks for 1H because that is the spectrum people look up first.
     parameters: Mapping[str, Any] = field(default_factory=dict)
 
     def __post_init__(self) -> None:
@@ -205,7 +207,7 @@ GOALS: tuple[Goal, ...] = (
         "spectra",
         "What spectra and energetics can be read off the structure?",
         (
-            _r("nmr_database", "NMR shifts looked up from experimental data."),
+            _r("nmr_database", "NMR shifts looked up from experimental data.", nucleus="1H"),
             _o("oxygen_balance", "Oxygen balance, for energetic materials."),
         ),
     ),

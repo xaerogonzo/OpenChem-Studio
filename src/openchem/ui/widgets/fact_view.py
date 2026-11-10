@@ -95,6 +95,10 @@ _FACT_PROPERTY = "openchem_fact"
 #: widget so one connection can serve every chart without a closure.
 _PICTURE_STEM = "openchem_picture_stem"
 _LINK_PROPERTY = "fact_link"
+#: The report a caption jumps to, only while All results is showing and that
+#: report is in the merge. A separate property from `_LINK_PROPERTY`: the
+#: caption and the value's ">" button are two actions.
+_SECTION_PROPERTY = "section_report_id"
 
 
 class _FactRow(ExplicitHeightLabel):
@@ -327,6 +331,11 @@ class FactView(QWidget):
     #: owns the destinations, so this widget knows a link exists without
     #: knowing how to open a dialog.
     link_activated = Signal(object)
+    #: The caption of a fact in All results was activated. Carries the
+    #: `report_id` of the producer (`Fact.origin`), and only when that report
+    #: is in the set the host passed. The host focuses its own reader; this
+    #: widget does not know which reader it sits in.
+    section_activated = Signal(str)
     #: The atoms the pointer is currently over, or `()` on the way out.
     #: The host paints them -- and MUST bounds-check first, since a viewer
     #: carries explicit hydrogens a report usually does not.
@@ -363,6 +372,7 @@ class FactView(QWidget):
         #: Whether each row carries its calculator's star. Off for a view already
         #: focused on one calculator, whose header says it once.
         self._stage_on_rows = False
+        self._navigable_origins: frozenset[str] = frozenset()
         self._sections: dict[str, CollapsibleSection] = {}
         #: **THE CHART SECTIONS LIVE APART FROM `_sections` ON PURPOSE.**
         #: `_render` runs `_clear_sections` on every search keystroke, so a
@@ -532,7 +542,13 @@ class FactView(QWidget):
     # --- what it is showing --------------------------------------------------
 
     def set_report(
-        self, report, title: str = "", summary: str = "", expanded=None, stage_on_rows: bool = True
+        self,
+        report,
+        title: str = "",
+        summary: str = "",
+        expanded=None,
+        stage_on_rows: bool = True,
+        navigable_origins: frozenset[str] | None = None,
     ) -> None:
         """Show `report`. `expanded` overrides which categories start open.
 
@@ -556,6 +572,9 @@ class FactView(QWidget):
         """
         self._source_report = report
         self._stage_on_rows = stage_on_rows
+        # Replaced on every set, so a focused report does not keep the jumps
+        # All results handed it a moment earlier.
+        self._navigable_origins = frozenset(navigable_origins or ())
         self._expanded_override = (
             None if expanded is None else frozenset(expanded)
         )
@@ -1071,7 +1090,17 @@ class FactView(QWidget):
         than a repeated one, and for a calculator's own facts the evidence
         and limitations really are the whole answer.
         """
-        caption = QLabel(fact.label, section.content)
+        origin = fact.origin if fact.origin in self._navigable_origins else ""
+        if origin:
+            caption = QPushButton(fact.label, section.content)
+            caption.setObjectName("sectionJump")
+            caption.setFlat(True)
+            caption.setCursor(Qt.CursorShape.PointingHandCursor)
+            caption.setStyleSheet("text-align: left; padding: 0; color: palette(link);")
+            caption.setProperty(_SECTION_PROPERTY, origin)
+            caption.clicked.connect(self._on_section_clicked)
+        else:
+            caption = QLabel(fact.label, section.content)
         contract = contract_for(fact.help_id)
         if contract is not None:
             apply_help_tooltip(caption, contract)
@@ -1140,6 +1169,23 @@ class FactView(QWidget):
     def _on_row_hovered(self, fact) -> None:
         highlight = getattr(fact, "highlight", ()) if fact is not None else ()
         self.highlight_requested.emit(tuple(highlight))
+
+    def section_jumps(self) -> dict[str, str]:
+        """Caption label to the report it opens, for the rows that can jump."""
+        found: dict[str, str] = {}
+        for button in self.findChildren(QPushButton):
+            report_id = button.property(_SECTION_PROPERTY)
+            if isinstance(report_id, str) and report_id:
+                found[button.text()] = report_id
+        return found
+
+    def _on_section_clicked(self) -> None:
+        button = self.sender()
+        if button is None:
+            return
+        report_id = button.property(_SECTION_PROPERTY)
+        if isinstance(report_id, str) and report_id:
+            self.section_activated.emit(report_id)
 
     def _on_link_clicked(self) -> None:
         button = self.sender()

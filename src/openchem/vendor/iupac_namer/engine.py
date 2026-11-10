@@ -140,6 +140,16 @@ _SYSTEMATIC_SALT_ANIONS: dict[str, dict] = {
 
 
 def _build_inorganic_canonical_index() -> dict[str, dict]:
+    """Canonical SMILES to the retained-name record.
+
+    A few valid ions make RDKit write to stderr (a proton, a hydride,
+    uranium in a high oxidation state). Those lines are not failures, and
+    they used to appear in the console the first time any molecule was
+    named. A key that does not parse is skipped and logged: it would
+    otherwise never be findable.
+    """
+    from rdkit import rdBase
+
     from openchem.vendor.iupac_namer.data_loader import _INORGANIC_CURATED_SMILES
     index: dict[str, dict] = {}
     sources = (
@@ -147,21 +157,30 @@ def _build_inorganic_canonical_index() -> dict[str, dict]:
         _SYSTEMATIC_CHALCOGENIDE_DIANIONS,
         _SYSTEMATIC_SALT_ANIONS,
     )
-    for source in sources:
-        for key, record in source.items():
-            try:
-                m = Chem.MolFromSmiles(key)
-            except Exception:
-                m = None
-            if m is None:
-                continue
-            try:
-                canonical = Chem.MolToSmiles(m)
-            except Exception:
-                continue
-            # First-writer-wins so a canonical form already keyed canonically
-            # in the table is never shadowed by a later non-canonical alias.
-            index.setdefault(canonical, record)
+    # BlockLogs restores the previous log when it is deleted.
+    blocked = rdBase.BlockLogs()
+    try:
+        for source in sources:
+            for key, record in source.items():
+                try:
+                    molecule = Chem.MolFromSmiles(key)
+                except Exception:
+                    molecule = None
+                if molecule is None:
+                    logger.warning("inorganic name table skipped %s: RDKit did not parse it", key)
+                    continue
+                try:
+                    canonical = Chem.MolToSmiles(molecule)
+                except Exception:
+                    logger.warning(
+                        "inorganic name table skipped %s: RDKit did not canonicalise it", key
+                    )
+                    continue
+                # First-writer-wins so a canonical form already keyed canonically
+                # in the table is never shadowed by a later non-canonical alias.
+                index.setdefault(canonical, record)
+    finally:
+        del blocked
     return index
 
 
