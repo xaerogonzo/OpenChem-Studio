@@ -172,7 +172,7 @@ owner = "namer"
 
 [[consumer]]
 file = "tests/test_namer_nl001_nl005_ws1_validator_evidence.py"
-why = "NL-001, NL-002, NL-005: WS1 validator-limit evidence pins (pseudoasymmetric bridgeheads and adamantane spiro methyl)"
+why = "NL-001 (closed, validator limit), NL-002 (blocked), NL-005: WS1 evidence pins (pseudoasymmetric bridgeheads and adamantane spiro methyl)"
 scope = "core"
 owner = "namer"
 
@@ -232,7 +232,7 @@ owner = "namer"
 
 [[consumer]]
 file = "tests/test_namer_nl109_vs231_cumulene_axis.py"
-why = "NL-109: VS231 cumulene axis cites (1p) on the ylidene; RDKit still has no CIP tag"
+why = "NL-109 (closed): VS231 cites (1s) on the ethyl carbon and (1p) on the ylidene; RDKit still has no CIP tag"
 scope = "core"
 owner = "namer"
 

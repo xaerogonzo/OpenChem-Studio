@@ -26,6 +26,7 @@ from typing import TYPE_CHECKING
 from openchem.vendor.iupac_namer.perception.cumulene import (
     AXIAL_LETTERS,
     HELIX_PROP,
+    PAIRED_TETRA_PROP,
     is_even_cumulene_center,
     restore_cumulene_cip_after_labeller,
 )
@@ -170,7 +171,8 @@ class StereoAnalysis:
             if inherited_early in AXIAL_LETTERS:
                 continue
             chiral_tag = atom.GetChiralTag()
-            if chiral_tag == Chem.ChiralType.CHI_UNSPECIFIED:
+            paired = atom.GetPropsAsDict().get(PAIRED_TETRA_PROP)
+            if chiral_tag == Chem.ChiralType.CHI_UNSPECIFIED and not paired:
                 continue
 
             # Retrieve CIP code if assigned (may be absent if the center is
@@ -191,6 +193,8 @@ class StereoAnalysis:
             inherited = props.get("_ParentCIPCode", None)
             if inherited is not None:
                 cip = inherited
+            elif paired:
+                cip = paired
 
             sc = StereoCenter(
                 atom_idx=atom.GetIdx(),
