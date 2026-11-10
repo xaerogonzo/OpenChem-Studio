@@ -28,12 +28,16 @@ from openchem import paths as app_paths
 
 logger = logging.getLogger("openchem.services")
 
+#: AiZynthFinder supports 3.10-3.12; 3.12 is what the quality benchmark ran.
 _TARGET_PYTHON = "3.12"
+#: The planner version the quality benchmark used (`docs/SYNTHESIS_HELPER_DESIGN.md` 0b).
 PLANNER_PACKAGE = "aizynthfinder==4.4.1"
+#: A fresh pip install of 4.4.1 resolves a pyarrow that needs NumPy 2; this pin does not.
 PYARROW_PIN = "pyarrow<21"
 
 #: Environment ~900 MB plus models and stock ~754 MB, measured 2026-10-19.
 APPROX_DOWNLOAD_MB = 1700
+#: Same measurement, stated in the ask-first confirmation as finished disk use.
 APPROX_DISK_GB = 1.7
 
 #: Hosts `download_public_data` fetches from (named so the privacy page can
