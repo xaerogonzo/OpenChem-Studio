@@ -819,6 +819,12 @@ scope = "core"
 owner = "namer"
 
 [[consumer]]
+file = "tests/test_inorganic_name_table.py"
+why = "hydronium is indexed as the SMILES RDKit writes, and building the inorganic and ring name tables prints nothing"
+scope = "core"
+owner = "namer"
+
+[[consumer]]
 file = "tests/test_naming_ion_populations.py"
 why = "the ions tools/naming_ion_populations.py builds from census molecules (deprotonated, protonated, N-methylated) and how it classes each name (ok, refused, no_anion_word, charge_changed, wrong); the tool is how rounds 46 to 50 found their defects"
 scope = "core"
