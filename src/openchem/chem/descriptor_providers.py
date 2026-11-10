@@ -1463,6 +1463,14 @@ def compute_gasteiger_charge_at_ph(
     # AFTER the charges: nothing above reads it, which is what "changes no
     # number" rests on.
     cross_check = _cross_check_species(mol, protonated, ph, interpreter_path)
+    # The picture has to be the species the charges were computed on. The
+    # drawing stays the cache identity; this molblock is only what is drawn.
+    from openchem.chem.result_structure import structure_fingerprint
+
+    structure_molblock = Chem.MolToMolBlock(protonated)
+    fingerprint = structure_fingerprint(structure_molblock)
+    if any(not isinstance(index, int) or isinstance(index, bool) or not 0 <= index < protonated.GetNumAtoms() for index in charges):
+        raise ValueError("A charge is keyed to an atom the computed structure does not have")
     return PerAtomDataset(
         property_id="gasteiger_charge_at_ph",
         name=name,
@@ -1470,6 +1478,8 @@ def compute_gasteiger_charge_at_ph(
         method=provenance_method,
         molecule_uuid=molecule_uuid,
         values=charges,
+        structure_molblock=structure_molblock,
+        structure_fingerprint=fingerprint,
         provenance=Provenance(
             created_by="core",
             method=provenance_method,
@@ -1482,6 +1492,7 @@ def compute_gasteiger_charge_at_ph(
                 # application sums -- not a quantity either method defines.
                 "hydrogen_aggregation": "folded" if include_hydrogens else "separate",
                 "decimal_places": _places,
+                "effective_structure_fingerprint": fingerprint,
                 ATOM_BASIS: HEAVY_ATOMS,
                 # THE PRODUCER SAYS WHICH SPECIES IT CHARGED, because the
                 # view cannot work it out and must not try. Reading

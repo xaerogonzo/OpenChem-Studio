@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import html
-from collections.abc import Sequence
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from typing import Any
 
@@ -301,6 +301,7 @@ class CalculatorSettingsDialog(QDialog):
         *,
         molecules: Sequence[MoleculeChoice] = (),
         needed: Sequence[MissingInput] = (),
+        values: Mapping[str, Any] | None = None,
     ) -> None:
         # KEYWORD-ONLY WITH AN EMPTY DEFAULT, so every existing caller
         # is untouched -- including `ui/dialogs/inventory.py`, which
@@ -359,6 +360,8 @@ class CalculatorSettingsDialog(QDialog):
             form.addRow(parameter.label, widget)
         layout.addLayout(form)
         self._definition = definition
+        if values:
+            self._apply_values(values)
         for parameter in definition.parameters:
             controller = self._widgets.get(parameter.enabled_by or "")
             if isinstance(controller, QCheckBox):
@@ -454,6 +457,41 @@ class CalculatorSettingsDialog(QDialog):
             widget.setText(str(parameter.default or ""))
             return widget
         raise ValueError(f"Unknown CalculatorParameter.kind: {parameter.kind!r}")
+
+    def _apply_values(self, values: Mapping[str, Any]) -> None:
+        """Show `values` instead of each parameter's registered default.
+
+        A name this dialog does not have, or a choice it does not offer, is
+        left as the widget was built. The caller is expected to have already
+        dropped those; this is the second check.
+        """
+        for parameter in self._parameters:
+            if parameter.name not in values:
+                continue
+            value = values[parameter.name]
+            widget = self._widgets[parameter.name]
+            if isinstance(widget, (QDoubleSpinBox, QSpinBox)):
+                if isinstance(value, bool) or not isinstance(value, (int, float)):
+                    continue
+                widget.setValue(value)
+            elif isinstance(widget, QComboBox):
+                if widget.findData(value) >= 0:
+                    widget.setCurrentIndex(widget.findData(value))
+                elif value in [widget.itemText(index) for index in range(widget.count())]:
+                    widget.setCurrentText(str(value))
+            elif isinstance(widget, QCheckBox):
+                if isinstance(value, bool):
+                    widget.setChecked(value)
+            elif isinstance(widget, _SmilesChooser):
+                text = str(value)
+                if widget._combo is not None and widget._combo.findData(text) >= 0:
+                    widget._combo.setCurrentIndex(widget._combo.findData(text))
+                else:
+                    if widget._combo is not None:
+                        widget._combo.setCurrentIndex(widget._combo.findData(None))
+                    widget._edit.setText(text)
+            elif isinstance(widget, QLineEdit):
+                widget.setText(str(value))
 
     def _sync_enabled(self, _checked: bool = False) -> None:
         """Grey out every control whose `enabled_by` chain is off, from the current values."""

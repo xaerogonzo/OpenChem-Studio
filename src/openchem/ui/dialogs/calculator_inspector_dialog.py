@@ -620,7 +620,16 @@ class _CalculatorResultView(QWidget):
         looks -- this app distinguishes retained, display-aligned and
         adopted conformers, and a dialog quietly writing a hydrogenated
         structure back into any of them would corrupt all three.
+
+        A result that carries the structure it was computed on (the pH 7.4
+        microspecies) is drawn from that molblock. The colouring is matched
+        afterwards by `depiction_of`. An older result with no molblock keeps
+        the drawing, including the explicit-hydrogen exception below.
         """
+        if isinstance(result, PerAtomDataset):
+            own, source = display_structure(self._molecule, result)
+            if source == EFFECTIVE_STRUCTURE and own:
+                return own
         molblock = self._molecule.molblock
         if not molblock or atom_basis(result) != EXPLICIT_H:
             return molblock

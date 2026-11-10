@@ -117,6 +117,10 @@ class NmrViewerSettings:
     #: never scaled) and whether its peaks are marked.
     reference_scale: float = 1.0
     reference_peaks: bool = False
+    #: Whether the 2D and 3D pictures are on screen. Local to this viewer:
+    #: not written to application settings, and a new viewer starts with both.
+    show_2d_structure: bool = True
+    show_3d_structure: bool = True
 
 
 #: The defaults every viewer starts with and "Reset Settings" restores.
@@ -178,14 +182,11 @@ class NmrViewWidget(QWidget):
 
         self._svg_widget = QSvgWidget(self)
         theme.paper(self._svg_widget)
-        # Small enough that the splitter below can give the spectrum --
-        # the primary analytical view -- the majority of the space by
-        # DEFAULT, which a large minimum here would have prevented
-        # regardless of the splitter's own sizing: this was the exact
-        # complaint that started Phase D. Still large enough to read a
-        # modest structure; dragging the splitter can always make it
-        # bigger.
-        self._svg_widget.setMinimumSize(200, 160)
+        # The floor a drag stops at. A collapsible splitter child ignores its
+        # minimum and shrinks to nothing, so these panes stay non-collapsible
+        # and the minimum is the floor. 80px is enough to keep a grip; hiding
+        # a picture is the Hide action, not a drag.
+        self._svg_widget.setMinimumSize(80, 80)
 
         self._backend: ViewerBackend = backend or Mol3DViewerBackend(self)
         self._backend.atoms_selected.connect(self._on_atoms_selected)
@@ -195,7 +196,8 @@ class NmrViewWidget(QWidget):
         # nothing enforces that a second implementation actually caches
         # it the way `Mol3DViewerBackend` does.
         backend_widget = self._backend.widget()
-        backend_widget.setMinimumSize(200, 160)
+        self._structure_3d = backend_widget
+        backend_widget.setMinimumSize(80, 80)
 
         self._spectrum_widget = NmrSpectrumWidget(parent=self)
         self._spectrum_widget.peak_clicked.connect(self._on_peak_clicked)
@@ -387,6 +389,18 @@ class NmrViewWidget(QWidget):
             self._palette_combo,
         ):
             display_toolbar.addWidget(control)
+        self._hide_2d_action = QAction("Hide 2D", self)
+        self._hide_2d_action.setCheckable(True)
+        self._hide_2d_action.setObjectName("hide2dStructure")
+        self._hide_2d_action.setToolTip("Hide the 2D structure. Show it again with the same button.")
+        self._hide_2d_action.toggled.connect(self._on_hide_2d_toggled)
+        display_toolbar.addAction(self._hide_2d_action)
+        self._hide_3d_action = QAction("Hide 3D", self)
+        self._hide_3d_action.setCheckable(True)
+        self._hide_3d_action.setObjectName("hide3dStructure")
+        self._hide_3d_action.setToolTip("Hide the 3D structure. Show it again with the same button.")
+        self._hide_3d_action.toggled.connect(self._on_hide_3d_toggled)
+        display_toolbar.addAction(self._hide_3d_action)
 
         # A third row for the measured reference and export: the first two
         # already fill the width at 1300 px (seen on screen).
@@ -432,6 +446,9 @@ class NmrViewWidget(QWidget):
         self._structures_splitter.addWidget(self._svg_widget)
         self._structures_splitter.addWidget(backend_widget)
         self._structures_splitter.setChildrenCollapsible(False)
+        #: The 2D/3D split from the last time both pictures were available, restored
+        #: when one is shown again after both were hidden.
+        self._structure_sizes: list[int] | None = None
 
         self._main_splitter = QSplitter(Qt.Orientation.Vertical, self)
         self._main_splitter.addWidget(self._structures_splitter)
@@ -531,6 +548,8 @@ class NmrViewWidget(QWidget):
             palette=self._palette_combo.currentData(),
             reference_scale=round(self._reference_scale_spin.value(), 6),
             reference_peaks=self._reference_peaks_check.isChecked(),
+            show_2d_structure=not self._hide_2d_action.isChecked(),
+            show_3d_structure=not self._hide_3d_action.isChecked(),
         )
 
     def apply_settings(self, settings: NmrViewerSettings) -> None:
@@ -560,9 +579,45 @@ class NmrViewWidget(QWidget):
             check.setChecked(value)
 
         self._reference_scale_spin.setValue(settings.reference_scale)
+        self._hide_2d_action.setChecked(not settings.show_2d_structure)
+        self._hide_3d_action.setChecked(not settings.show_3d_structure)
 
     def reset_settings(self) -> None:
         self.apply_settings(NMR_VIEWER_DEFAULTS)
+
+    def _on_hide_2d_toggled(self, hidden: bool) -> None:
+        self._set_structure_pane(self._svg_widget, visible=not hidden)
+
+    def _on_hide_3d_toggled(self, hidden: bool) -> None:
+        self._set_structure_pane(self._structure_3d, visible=not hidden)
+
+    def _set_structure_pane(self, pane: QWidget, *, visible: bool) -> None:
+        """Show or hide one structure picture without rebuilding it.
+
+        The action has already flipped, so the other action is the other
+        pane's state. `isHidden` is not used: a viewer that has not been
+        shown yet reports every child hidden, which is not what was asked.
+
+        When both are hidden the splitter that holds them is hidden too, so
+        an empty band does not sit above the spectrum. Showing either one
+        brings that splitter back at the sizes it had.
+        """
+        other_shown = (
+            not self._hide_3d_action.isChecked()
+            if pane is self._svg_widget
+            else not self._hide_2d_action.isChecked()
+        )
+        if not visible and not other_shown:
+            sizes = self._structures_splitter.sizes()
+            if sum(sizes) > 0:
+                self._structure_sizes = sizes
+        pane.setVisible(visible)
+        if not visible and not other_shown:
+            self._structures_splitter.hide()
+            return
+        self._structures_splitter.show()
+        if visible and not other_shown and self._structure_sizes:
+            self._structures_splitter.setSizes(self._structure_sizes)
 
     def _current_element(self) -> str:
         return self._element_combo.currentData() or "H"

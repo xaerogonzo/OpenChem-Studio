@@ -65,6 +65,7 @@ by `tests/test_layering.py`.
 ## Key Files
 
 - `src/openchem/main.py` / `bootstrap.py` — composition root, DI wiring
+- `src/openchem/domain/goal_run_preferences.py` — goal-run settings only (saved choice, else the recommendation, else the registered default); Spectra recommends 1H while `nmr_database` stays 13C; Run all recommended confirms before it starts
 - `src/openchem/chem/engine.py` — the only RDKit touchpoint for molecule conversion/canonicalization
 - `src/openchem/services/descriptor_service.py` — async descriptor computation (Queued/Running/Completed/Failed)
 - `src/openchem/ui/widgets/ketcher_editor_backend.py` — the embedded 2D editor, behind the `EditorBackend` interface

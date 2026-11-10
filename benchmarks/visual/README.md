@@ -202,6 +202,8 @@ Every one is a surface with a *recorded* history of breaking, not a guess.
 | `results_layout_narrow_and_short.json` | the Results dock moved beside and on top, resized | a very short dock scrolled: 234 px needed against a 162 px viewport, 72 of it chrome |
 | `results_reader_memory.json` | the reader's remembered selection across close, reopen and an edit | a reader's position had never had to survive anything |
 | `results_reader_stage1.json` | every result kind reaching the reader, and the selector's search | not recorded here |
+| `results_reading_jump.json` | All results opens Elemental Analysis from the Nominal mass fact while the Showing filter is Formula, then All results returns and keeps that filter | not recorded here |
+| `results_reading_live.json` | the results jump, the pH 7.4 charge pictures for an amine, an acid and benzene, the spectra goal's 1H choice, Run all recommended, and hiding the NMR structure pictures | not recorded here |
 | `screening_search_controls.json` | the screening dialog's controls | not recorded here |
 | `screening_strips_the_pocket.json` | a real screening run, and what the service was handed | not recorded here |
 | `solubility_units_live.json` | the reader's Units combo, switched and remembered | not recorded here |

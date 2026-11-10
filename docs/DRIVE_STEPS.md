@@ -67,8 +67,19 @@ The `OPENCHEM_DRIVE` step catalogue, moved out of [`CLAUDE.md`](../CLAUDE.md) on
     {"do": "goal_wizard", "goal": "identity", "scope": "this", "press": "run_recommended",
      "expect": {"ran_all": ["elemental_analysis"], "status_contains": "Running"}}
                                           the goal wizard's REAL buttons ("customise" then
-                                          "run", with "tick"/"untick"); `shot` takes
-                                          "widget": "goal_wizard"
+                                          "run", with "tick"/"untick", or "run_all"); `shot` takes
+                                          "widget": "goal_wizard". `expect.parameters` is the settings
+                                          the run carries. `run_all` reads the Properties status, and
+                                          the confirmation is the harness's modal answer.
+    {"do": "results", "stay": true, "jump": "Formula", "show_all": true, "open_link": "NMR",
+     "expect": {"focus": "elemental_analysis", "search": "Formula", "all_results_visible": true}}
+                                          `stay` keeps the reader that is open. `jump` presses the
+                                          fact name, `show_all` the All results button, `open_link`
+                                          the fact's Open button by its tooltip, `open_viewer` the
+                                          reader's own Open button (the NMR view).
+    {"do": "nmr_panes", "hide": ["2d", "3d"], "reset": true,
+     "expect": {"2d": true, "splitter": true, "spectrum": true}}
+                                          Hide 2D / Hide 3D on the open NMR view, or Reset Settings.
     {"do": "workflow_group", "workflow": "docking", "group": "search", "expanded": false}
                                           open or close a collapsible group INSIDE a workflow
                                           (alignment: settings; docking: box, prep, search)

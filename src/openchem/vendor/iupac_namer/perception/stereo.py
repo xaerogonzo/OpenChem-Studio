@@ -5,9 +5,11 @@ StereoAnalysis subsystem — Subsystem 2 of the Perception layer.
 
 Detects stereocenters in a molecule using RDKit's CIP implementation.
 
-Two kinds of stereocenters are detected:
+Three kinds of stereocenters are detected:
   1. Tetrahedral — chiral atoms with R/S descriptors (or unspecified chirality).
   2. Double-bond — E/Z stereochemistry on C=C and analogous bonds.
+  3. Axial — even-cumulene (allene) P/M or p/m, restored from SMILES because
+     RDKit drops ``=[C@]=`` (NL-109 / CIP suite VS231).
 
 Results are computed once on construction and cached.  All public data is
 immutable.
@@ -21,6 +23,12 @@ from __future__ import annotations
 import logging
 from typing import TYPE_CHECKING
 
+from openchem.vendor.iupac_namer.perception.cumulene import (
+    AXIAL_LETTERS,
+    HELIX_PROP,
+    is_even_cumulene_center,
+    restore_cumulene_cip_after_labeller,
+)
 from openchem.vendor.iupac_namer.types import StereoCenter
 
 if TYPE_CHECKING:
@@ -101,6 +109,11 @@ class StereoAnalysis:
         """Only the double-bond (E/Z) stereocenters."""
         return tuple(sc for sc in self._stereocenters if sc.type == "double_bond")
 
+    @property
+    def axial_centers(self) -> tuple[StereoCenter, ...]:
+        """Only the even-cumulene (allene) axial stereocenters."""
+        return tuple(sc for sc in self._stereocenters if sc.type == "axial")
+
     # ------------------------------------------------------------------
     # Internal analysis
     # ------------------------------------------------------------------
@@ -126,11 +139,13 @@ class StereoAnalysis:
             logger.debug("rdCIPLabeler.AssignCIPLabels unavailable; using legacy CIP codes")
 
         self._label_azolide_on_neutral_view()
+        restore_cumulene_cip_after_labeller(self._mol)
 
         centers: list[StereoCenter] = []
 
         centers.extend(self._detect_tetrahedral())
         centers.extend(self._detect_double_bond())
+        centers.extend(self._detect_axial())
 
         return tuple(centers)
 
@@ -149,6 +164,11 @@ class StereoAnalysis:
         seen_idxs: set[int] = set()
 
         for atom in self._mol.GetAtoms():  # type: ignore[attr-defined]
+            if atom.HasProp(HELIX_PROP):
+                continue
+            inherited_early = atom.GetPropsAsDict().get("_ParentCIPCode")
+            if inherited_early in AXIAL_LETTERS:
+                continue
             chiral_tag = atom.GetChiralTag()
             if chiral_tag == Chem.ChiralType.CHI_UNSPECIFIED:
                 continue
@@ -200,6 +220,8 @@ class StereoAnalysis:
             if not atom.HasProp("_ParentCIPCode"):
                 continue
             inherited = atom.GetProp("_ParentCIPCode")
+            if inherited in AXIAL_LETTERS:
+                continue
             sc = StereoCenter(
                 atom_idx=atom.GetIdx(),
                 type="tetrahedral",
@@ -279,6 +301,41 @@ class StereoAnalysis:
         return results
 
     # ------------------------------------------------------------------
+    # Axial (even-cumulene) detection
+    # ------------------------------------------------------------------
+
+    def _detect_axial(self) -> list[StereoCenter]:
+        """Detect even-cumulene axial stereocenters (P/M or p/m)."""
+        results: list[StereoCenter] = []
+        for atom in self._mol.GetAtoms():  # type: ignore[attr-defined]
+            props = atom.GetPropsAsDict()
+            helix = props.get(HELIX_PROP)
+            if helix not in AXIAL_LETTERS:
+                inherited = props.get("_ParentCIPCode")
+                cip = props.get("_CIPCode")
+                if inherited in AXIAL_LETTERS:
+                    helix = inherited
+                elif cip in AXIAL_LETTERS:
+                    helix = cip
+                else:
+                    continue
+            if not is_even_cumulene_center(atom) and props.get("_ParentCIPCode") not in AXIAL_LETTERS:
+                continue
+            sc = StereoCenter(
+                atom_idx=atom.GetIdx(),
+                type="axial",
+                descriptor=helix,
+                cip_priorities=None,
+            )
+            results.append(sc)
+            logger.debug(
+                "Axial stereocenter at atom %d: descriptor=%s",
+                atom.GetIdx(),
+                helix,
+            )
+        return results
+
+    # ------------------------------------------------------------------
     # Dunder helpers
     # ------------------------------------------------------------------
 
@@ -286,7 +343,8 @@ class StereoAnalysis:
         return (
             f"StereoAnalysis("
             f"n_tetrahedral={len(self.tetrahedral_centers)}, "
-            f"n_double_bond={len(self.double_bond_centers)})"
+            f"n_double_bond={len(self.double_bond_centers)}, "
+            f"n_axial={len(self.axial_centers)})"
         )
 
     def __len__(self) -> int:

@@ -111,9 +111,13 @@ def _context_cip_maps(mol: object) -> "tuple[dict[int, str], dict[tuple[int, int
             rdCIPLabeler.AssignCIPLabels(mol)
         except Exception:  # pragma: no cover — defensive only
             pass
+        from openchem.vendor.iupac_namer.perception.cumulene import (
+            restore_cumulene_cip_after_labeller,
+        )
         from openchem.vendor.iupac_namer.perception.stereo import label_azolide_on_neutral_view
 
         label_azolide_on_neutral_view(mol)
+        restore_cumulene_cip_after_labeller(mol)
     except Exception as exc:  # pragma: no cover - defensive
         logger.debug("Failed to assign CIP codes before carving: %s", exc)
 
@@ -121,6 +125,8 @@ def _context_cip_maps(mol: object) -> "tuple[dict[int, str], dict[tuple[int, int
     for atom in mol.GetAtoms():
         if atom.HasProp(_PARENT_CIP):
             atoms[atom.GetIdx()] = atom.GetProp(_PARENT_CIP)
+        elif atom.HasProp("_CumuleneHelix"):
+            atoms[atom.GetIdx()] = atom.GetProp("_CumuleneHelix")
         elif atom.HasProp("_CIPCode"):
             atoms[atom.GetIdx()] = atom.GetProp("_CIPCode")
     bonds: "dict[tuple[int, int], str]" = {}
@@ -209,6 +215,11 @@ def _stamp_context_cip(
                 f"fragment atom {local_idx} maps to parent atom {parent_idx} of a different element"
             )
         rw.GetAtomWithIdx(local_idx).SetIntProp(_ORIGIN_ATOM, parent_idx)
+        parent_atom = parent.GetAtomWithIdx(parent_idx)
+        if parent_atom.HasProp("_CumuleneHelix"):
+            rw.GetAtomWithIdx(local_idx).SetProp(
+                "_CumuleneHelix", parent_atom.GetProp("_CumuleneHelix")
+            )
         code = atom_codes.get(parent_idx)
         if code is not None:
             rw.GetAtomWithIdx(local_idx).SetProp(_PARENT_CIP, code)

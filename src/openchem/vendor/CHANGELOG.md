@@ -2525,6 +2525,12 @@ what can be verified.
   `tests/test_namer_known_defects.py`. Three earlier tests pinned refusals this round turned into names and now pin the cases still refused: a carboxylate beside two neutral acids
   (`test_namer_round43_*`, `test_namer_round45_*`) and a pyrazolone anion (`test_namer_round46_*`).
 
+## 2026-11-10 -- the hydronium key is the SMILES RDKit parses
+
+The inorganic table keyed hydronium as `[H3O+]`. RDKit rejects that spelling, so the entry never joined the canonical index and the first name of a session printed the parse error, plus the usual notes on a proton, a hydride and uranium. The key is `[OH3+]`, which is the canonical form and the same name (`oxidanium`) the parent-hydride table already gives. Building the index silences those notes. A key that still does not parse is logged and skipped.
+
+The ring table's bare purine skeleton (`c1ncc2ncnc2n1`) cannot kekulize, so the first request for atom numbers printed that and then kept the curated locants anyway. Building the table silences the note. The locants are unchanged: the skeleton is still not parsed.
+
 ## 2026-10-27 -- naming round 90: a diazo compound drawn C=[N+]=[N-] was named as an iminoazanium (D-387)
 
 Alex asked for the confirmed wrong molecule found by the limitations inventory (NL-070) to be fixed as its own round. Measured first: of 150 generated diazo compounds (a census molecule with one CH2 turned into `C=N2`), 124 read back as another molecule; diazomethane drawn `C=[N+]=[N-]` was `imino(methylidene)azanium`, which OPSIN reads as CH3N2+.

@@ -27,6 +27,10 @@ from openchem.domain.calculator_goals import (
     SCOPE_THIS,
     goal_of,
 )
+from openchem.domain.goal_run_preferences import (
+    GoalParameterStore,
+    RecommendedCalculators,
+)
 from openchem.domain.molecule import MoleculeModel
 from openchem.ui.dialogs import goal_wizard_dialog as wizard_module
 from openchem.ui.dialogs.goal_wizard_dialog import GoalWizardDialog
@@ -55,13 +59,14 @@ def _molecules(services, *names_and_smiles):
     return molecules
 
 
-def _wizard(services, built, molecules, *, selected=None, scope=(SCOPE_THIS, set()), conformers=None):
+def _wizard(services, built, molecules, *, selected=None, scope=(SCOPE_THIS, set()), conformers=None, parameter_store=None):
     wizard = GoalWizardDialog(
         services.calculator_registry.get,
         lambda: molecules,
         lambda: selected if selected is not None else (molecules[0].uuid if molecules else None),
         lambda: scope,
         on_generate_conformers=conformers,
+        parameter_store=parameter_store,
     )
     built.append(wizard)
     return wizard
@@ -213,7 +218,7 @@ def test_a_changed_setting_travels_only_with_the_calculator_it_was_chosen_for(se
     wizard.run_requested.connect(asked.append)
 
     class _Accepted:
-        def __init__(self, definition, parent=None):
+        def __init__(self, definition, parent=None, **_kwargs):
             self.definition = definition
 
         def exec(self):
@@ -375,6 +380,97 @@ def test_the_outcome_the_window_reports_is_shown(services, built):
     wizard.show_outcome("Running 3 for 'Identity and naming'")
 
     assert wizard._status.text() == "Running 3 for 'Identity and naming'"
+
+
+def test_settings_opens_on_the_resolved_choice_and_only_accept_saves_it(services, built, monkeypatch):
+    store = GoalParameterStore()
+    wizard = _wizard(services, built, _molecules(services, ("A", "CCO")), parameter_store=store)
+    _customise(wizard, "spectra")
+    opened: list[dict] = []
+
+    class _Cancelled:
+        def __init__(self, definition, parent=None, **kwargs):
+            opened.append(dict(kwargs.get("values") or {}))
+
+        def exec(self):
+            return QDialog.DialogCode.Rejected
+
+        def parameters(self):
+            return {"nucleus": "13C"}
+
+    monkeypatch.setattr(wizard_module, "CalculatorSettingsDialog", _Cancelled)
+    button = _settings_button(wizard, "nmr_database")
+    button.click()
+
+    assert opened[-1]["nucleus"] == "1H"
+    assert store.get("nmr_database") == {}
+
+    class _Accepted(_Cancelled):
+        def exec(self):
+            return QDialog.DialogCode.Accepted
+
+    monkeypatch.setattr(wizard_module, "CalculatorSettingsDialog", _Accepted)
+    button.click()
+
+    assert store.get("nmr_database") == {"nucleus": "13C"}
+    wizard._run_recommended_button.click()
+    assert "nmr_database" not in wizard.last_run.parameters
+
+
+def test_run_recommended_customise_and_run_all_use_the_saved_choice(services, built):
+    store = GoalParameterStore({"nmr_database": {"nucleus": "13C"}})
+    wizard = _wizard(services, built, _molecules(services, ("A", "CCO")), parameter_store=store)
+    wizard.select_goal("spectra")
+    quick = wizard.current_run(quick=True)
+    assert "nmr_database" not in quick.parameters
+
+    _customise(wizard, "spectra")
+    label = _choice_label(wizard, "nmr_database")
+    assert "13C" in label.text()
+    custom = wizard.current_run(quick=False)
+    assert "nmr_database" not in custom.parameters
+
+    batches = []
+    wizard.all_recommended_requested.connect(batches.append)
+    wizard._run_all_button.click()
+    assert batches and "nmr_database" not in batches[0].parameters
+
+
+def test_a_conflicting_recommendation_does_not_run(services, built, monkeypatch):
+    monkeypatch.setattr(
+        wizard_module,
+        "recommended_calculators",
+        lambda goals=None: RecommendedCalculators((), {}, "nmr_database"),
+    )
+    wizard = _wizard(services, built, _molecules(services, ("A", "CCO")))
+    batches = []
+    wizard.all_recommended_requested.connect(batches.append)
+
+    wizard._run_all_button.click()
+
+    assert batches == []
+    assert "two different settings" in wizard._status.text()
+    assert "NMR" in wizard._status.text()
+
+
+def _settings_button(wizard, calculator_id):
+    buttons = [
+        button
+        for button in wizard._entries_area.findChildren(wizard_module.QPushButton)
+        if button.property("openchem_calculator_id") == calculator_id
+    ]
+    assert buttons, calculator_id
+    return buttons[0]
+
+
+def _choice_label(wizard, calculator_id):
+    labels = [
+        label
+        for label in wizard.findChildren(wizard_module.QLabel, "goalChoiceSummary")
+        if label.property("openchem_calculator_id") == calculator_id
+    ]
+    assert labels, calculator_id
+    return labels[0]
 
 
 def test_choosing_another_goal_clears_what_was_said_about_the_last_run(services, built):

@@ -189,10 +189,28 @@ def _build_curated_from_data_loader() -> tuple[
     Stage 2B base (naphthalene, biphenylene, 1,4-dihydronaphthalene, etc.)
     keeps that role.
     """
-    from openchem.vendor.iupac_namer.data_loader import retained_record_refusal
+    from rdkit import rdBase
 
     result: dict[str, tuple[str, str | None, bool, dict | None]] = {}
     optout: set[str] = set()
+    # A bare purine skeleton (`c1ncc2ncnc2n1`) cannot kekulize: the indicated
+    # hydrogens are gone. `MolFromSmiles` returns None and the locants stay
+    # as curated, but RDKit still prints, and this table is built the first
+    # time any molecule's atom numbers are asked for. Parsing unsanitised
+    # would keep a mol whose atom order is not the one the locant map uses.
+    blocked = rdBase.BlockLogs()
+    try:
+        return _curated_records(result, optout)
+    finally:
+        del blocked
+
+
+def _curated_records(
+    result: dict[str, tuple[str, str | None, bool, dict | None]],
+    optout: set[str],
+) -> tuple[dict[str, tuple[str, str | None, bool, dict | None]], set[str]]:
+    from openchem.vendor.iupac_namer.data_loader import retained_record_refusal
+
     for smiles, record in _RING_CURATED_SMILES.items():
         # The registry gate (naming round 5, N5) binds this table as well:
         # "hypoxanthine" and "adenin-9-yl" kept reaching the output as ring

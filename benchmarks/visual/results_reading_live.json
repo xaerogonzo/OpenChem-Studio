@@ -1,0 +1,39 @@
+[
+  {"do": "smiles", "smiles": "CNC", "name": "Dimethylamine", "after_ms": 1200},
+  {"do": "select", "molecule": -1, "after_ms": 2000},
+  {"do": "panel", "id": "Properties", "after_ms": 400},
+  {"do": "calculator", "id": "elemental_analysis", "reveal": false, "after_ms": 2500},
+  {"do": "calculator", "id": "functional_groups", "reveal": false, "after_ms": 2500},
+
+  {"do": "results", "tag": "all", "search": "Formula", "expect": {"focus": "", "search": "Formula", "jumps_at_least": 1, "all_results_visible": false}, "after_ms": 700},
+  {"do": "results", "stay": true, "jump": "Nominal mass", "tag": "jump", "expect": {"focus": "elemental_analysis", "search": "Formula", "all_results_visible": true}, "after_ms": 500},
+  {"do": "results", "stay": true, "show_all": true, "tag": "back", "expect": {"focus": "", "search": "Formula", "all_results_visible": false}, "after_ms": 500},
+
+  {"do": "inspect", "id": "gasteiger_charge_at_ph", "after_ms": 3500},
+  {"do": "inspect_report", "tag": "amine-gasteiger", "expect": {"structure": "effective_structure", "formal_charge": 1, "depiction_charge": 1}},
+  {"do": "inspect", "id": "gasteiger_charge_at_ph", "parameters": {"method": "mmff94"}, "after_ms": 3500},
+  {"do": "inspect_report", "tag": "amine-mmff", "expect": {"structure": "effective_structure", "formal_charge": 1, "depiction_charge": 1}},
+
+  {"do": "smiles", "smiles": "CC(=O)O", "name": "Acetic acid", "after_ms": 800},
+  {"do": "select", "molecule": -1, "after_ms": 1200},
+  {"do": "inspect", "id": "gasteiger_charge_at_ph", "after_ms": 3500},
+  {"do": "inspect_report", "tag": "acetic-acid", "expect": {"structure": "effective_structure", "formal_charge": -1, "depiction_charge": -1}},
+
+  {"do": "smiles", "smiles": "c1ccccc1", "name": "Benzene", "after_ms": 800},
+  {"do": "select", "molecule": -1, "after_ms": 1200},
+  {"do": "inspect", "id": "gasteiger_charge_at_ph", "after_ms": 3500},
+  {"do": "inspect_report", "tag": "benzene", "expect": {"structure": "effective_structure", "formal_charge": 0, "depiction_charge": 0}},
+
+  {"do": "goal_wizard", "goal": "spectra", "press": "customise", "tag": "spectra-line", "expect": {"choice_contains": "1H"}, "after_ms": 600},
+  {"do": "calculator", "id": "nmr_database", "reveal": false, "after_ms": 8000},
+  {"do": "results", "focus": "nmr_13c", "open_viewer": true, "tag": "open-nmr", "after_ms": 2500},
+  {"do": "nmr_panes", "hide": ["2d"], "tag": "hide-2d", "expect": {"2d": false, "3d": true, "splitter": true, "spectrum": true, "table": true}},
+  {"do": "nmr_panes", "hide": ["3d"], "tag": "hide-both", "expect": {"2d": false, "3d": false, "splitter": false, "spectrum": true, "table": true}},
+  {"do": "nmr_panes", "reset": true, "tag": "reset", "expect": {"2d": true, "3d": true, "splitter": true, "spectrum": true}},
+
+  {"do": "goal_wizard", "goal": "spectra", "press": "run_recommended", "tag": "spectra-run", "expect": {"ran_all": ["nmr_database"], "parameters": {"nmr_database": {"nucleus": "1H"}}, "status_contains": "Running"}, "after_ms": 2000},
+  {"do": "goal_wizard", "press": "run_all", "tag": "all-recommended", "expect": {"status_contains": "Running all recommended"}, "after_ms": 3000},
+
+  {"do": "expect_clean", "tag": "end"},
+  {"do": "quit"}
+]

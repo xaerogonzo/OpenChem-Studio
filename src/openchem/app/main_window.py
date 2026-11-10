@@ -2157,8 +2157,10 @@ class MainWindow(QMainWindow):
                 on_generate_conformers=self._generate_conformers,
                 structure_version_of=self._services.structure_check_service.current_version,
                 plain_label=plain_label,
+                settings=self._settings,
             )
             wizard.run_requested.connect(self._on_goal_run_requested)
+            wizard.all_recommended_requested.connect(self._property_panel.run_recommended_batch)
             self._goal_wizard = wizard
         else:
             wizard = self._goal_wizard

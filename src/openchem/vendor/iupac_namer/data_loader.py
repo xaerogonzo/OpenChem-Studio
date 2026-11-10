@@ -4891,7 +4891,11 @@ _RING_CURATED_SMILES: dict[str, dict] = {
 _INORGANIC_CURATED_SMILES: dict[str, dict] = {
     # --- Monoatomic cations ---
     "[NH4+]":  {"name": "azanium"},             # P-73.2.1; also "ammonium" (common)
-    "[H3O+]":  {"name": "oxidanium"},           # hydronium
+    # RDKit rejects `[H3O+]`, so that spelling never joined the lookup and
+    # printed a parse error the first time a molecule was named. `[OH3+]`
+    # is the canonical form, and it is the same name the parent-hydride
+    # table already gives this ion.
+    "[OH3+]":  {"name": "oxidanium"},           # hydronium
     # Formylium (CHO+), the R=H member of the acylium family.
     # _classify_acylium cannot reach it: it requires the [C+] to carry no
     # hydrogen AND to have a single-bonded R neighbour, and formylium fails
