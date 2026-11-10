@@ -311,7 +311,9 @@ The `OPENCHEM_DRIVE` step catalogue, moved out of [`CLAUDE.md`](../CLAUDE.md) on
      "expect": {"inserted": true, "smiles_contains": ".", "undo_delta": 1, "status": "Inserted."}}
                                           Structure > Template Library through its REAL controls: `search`, `category`, `entry`,
                                           `press` insert/save/remove (`name` skips the My Templates prompt), `expect` the live
-                                          molecule, undo depth and stored user templates; `shot` takes "widget": "template_library"
+                                          molecule, undo depth and stored user templates; `shot` takes "widget": "template_library".
+                                          The window is reused: a step without `search` clears the filter, and `save` waits for
+                                          Ketcher's molfile (a click-then-read missed My Templates).
     {"do": "table_scores", "export_csv": "C:/tmp/table.csv", "expect": {"columns": ["Polar window (user-defined, unvalidated)"], "note": "",
      "grid": {"Aspirin": {"Polar window": "0.955"}}, "tooltips": {"Aspirin": {"Polar window": ["Inputs: psa = 63.6"]}},
      "column_tooltips": {"Polar window": ["Formula:"]}, "csv_header_contains": ["Polar window"], "csv_cells": {"Aspirin": {"Polar window": 0.955}},

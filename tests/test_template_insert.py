@@ -125,6 +125,14 @@ def test_inserting_onto_a_drawing_undoes_in_one_step(qapp):
     assert molecule.canonical_smiles != before_smiles
     stack.undo()
     assert molecule.canonical_smiles == before_smiles
+    # A late Ketcher molfile must not replace the undone drawing (live
+    # drive: Redo was disabled ~1 s after Undo while the insert returned).
+    settle = time.monotonic() + 2.0
+    while time.monotonic() < settle:
+        QCoreApplication.processEvents()
+        time.sleep(0.02)
+    assert molecule.canonical_smiles == before_smiles
+    assert stack.canRedo()
     stack.redo()
     assert molecule.canonical_smiles != before_smiles
 

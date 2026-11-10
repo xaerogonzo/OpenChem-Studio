@@ -140,6 +140,11 @@ class MoleculeEditorWidget(QWidget):
         #: Set while this widget is pushing its own edit; see
         #: `_on_molecule_changed`.
         self._applying_own_edit = False
+        #: Bumped on every canvas load so a `getMolfile` that was already
+        #: in flight cannot land as a new undo command after Undo. Live
+        #: drive of Template Library: Edit > Undo restored benzene, then a
+        #: late molfile of benzene+pyridine pushed, which cleared Redo.
+        self._canvas_generation = 0
         #: "off", "pairs", or "lewis". Off by default: an annotation
         #: nobody asked for is one more thing on a crowded canvas.
         self._electron_mode = "off"
@@ -231,6 +236,7 @@ class MoleculeEditorWidget(QWidget):
         event_bus.subscribe(MoleculeChanged, self._on_molecule_changed)
 
     def set_molecule(self, molecule: MoleculeModel | None) -> None:
+        self._canvas_generation += 1
         self._molecule = molecule
         self._synced_smiles = molecule.canonical_smiles if molecule is not None else None
         if molecule is not None and molecule.molblock:
@@ -345,7 +351,14 @@ class MoleculeEditorWidget(QWidget):
     def _on_editor_edited(self) -> None:
         if self._molecule is None:
             return
-        self._backend.get_molblock(self.apply_edited_molblock)
+        generation = self._canvas_generation
+
+        def apply(molblock: str | None) -> None:
+            if generation != self._canvas_generation:
+                return
+            self.apply_edited_molblock(molblock)
+
+        self._backend.get_molblock(apply)
 
     def apply_edited_molblock(self, molblock: str | None) -> None:
         """Make the canvas's drawing the model's structure: one canvas edit, applied.

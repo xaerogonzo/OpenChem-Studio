@@ -3317,8 +3317,13 @@ class _Driver(QObject):
 
         window = self._window
         dialog = window.show_template_library(activate=False)
+        # The dialog is reused. A previous step's filter would otherwise
+        # hide every shipped entry (measured: insert-on-cyclohexane listed []).
         if "search" in step:
             dialog._search.setText(str(step["search"]))
+        else:
+            dialog._search.clear()
+        QApplication.processEvents()
         if "category" in step:
             wanted = str(step["category"]).casefold()
             rows = [dialog._categories.item(i).text() for i in range(dialog._categories.count())]
@@ -3327,6 +3332,7 @@ class _Driver(QObject):
                 logger.error("OPENCHEM_DRIVE: template_library has no category %r (it lists %s)", step["category"], rows)
             else:
                 dialog._categories.setCurrentRow(index)
+            QApplication.processEvents()
         if "entry" in step:
             wanted = str(step["entry"]).casefold()
             rows = [dialog._templates.item(i).text() for i in range(dialog._templates.count())]
@@ -3342,8 +3348,24 @@ class _Driver(QObject):
         if press == "save":
             dialog._name_for_save = str(step.get("name", "Driven template"))
             dialog._save.click()
+            wanted_name = dialog._name_for_save or str(step.get("name", "Driven template"))
+            deadline = time.monotonic() + 8.0
+            while time.monotonic() < deadline:
+                QApplication.processEvents()
+                names = [entry.name for entry in dialog._store.entries()]
+                if wanted_name in names or dialog._status.text().startswith("Saved "):
+                    break
+                time.sleep(0.05)
         elif press == "remove":
             dialog._remove.click()
+            deadline = time.monotonic() + 8.0
+            gone = str(step.get("search") or step.get("name") or "")
+            while time.monotonic() < deadline:
+                QApplication.processEvents()
+                names = [entry.name for entry in dialog._store.entries()]
+                if not gone or gone not in names:
+                    break
+                time.sleep(0.05)
         elif press == "insert":
             dialog._status.clear()
             dialog._insert.click()
