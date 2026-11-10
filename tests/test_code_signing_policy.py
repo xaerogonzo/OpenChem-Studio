@@ -35,6 +35,8 @@ NETWORK_FILES = (
     "plugins/ai_assistant/providers.py",
     # `pip` / `uv pip install` of the ADMET package from PyPI; no literal host either.
     "src/openchem/services/admet_setup.py",
+    # `uv venv` / `uv pip install` of aizynthfinder, then the planner's own download_public_data.
+    "src/openchem/services/aizynth_setup.py",
 )
 
 #: The one module every plain HTTP request goes through. It names no service of its own.
@@ -45,7 +47,6 @@ HELPERS = {"src/openchem/net.py"}
 MENTION_ONLY = {
     "src/openchem/services/sidecar_inventory.py",
     "src/openchem/services/storage_service.py",
-    "src/openchem/ui/dialogs/external_tool_catalog.py",
     "src/openchem/services/synthesis_planner_setup.py",
 }
 

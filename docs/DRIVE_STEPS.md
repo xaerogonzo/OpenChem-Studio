@@ -76,10 +76,14 @@ The `OPENCHEM_DRIVE` step catalogue, moved out of [`CLAUDE.md`](../CLAUDE.md) on
                                           `stay` keeps the reader that is open. `jump` presses the
                                           fact name, `show_all` the All results button, `open_link`
                                           the fact's Open button by its tooltip, `open_viewer` the
-                                          reader's own Open button (the NMR view).
+                                          reader's own Open button (NMR, IR, Calculator Inspector, or pKa view).
     {"do": "nmr_panes", "hide": ["2d", "3d"], "reset": true,
      "expect": {"2d": true, "splitter": true, "spectrum": true}}
                                           Hide 2D / Hide 3D on the open NMR view, or Reset Settings.
+    {"do": "pka_view", "tag": "aminophenol",
+     "expect": {"sites": 3, "pictures": 0, "message_contains": "same drawing atom"}}
+                                          the open pKa window: stored site count, species pictures,
+                                          and the refusal sentence when pictures cannot be built
     {"do": "workflow_group", "workflow": "docking", "group": "search", "expanded": false}
                                           open or close a collapsible group INSIDE a workflow
                                           (alignment: settings; docking: box, prep, search)

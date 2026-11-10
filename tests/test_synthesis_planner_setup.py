@@ -1,6 +1,6 @@
 """Locating and verifying the synthesis planner (`openchem.services.synthesis_planner_setup`, the runner's `inspect` request, `chem.aizynth_planner.inspect_environment` and the External Tools tab): each thing that can be wrong is named, nothing is downloaded or removed, and the planning service reads what the tab writes.
 
-The planner's environment is replaced by stand-ins (a fake `yaml` and a fake `aizynthfinder` dist-info on the child's path) so these run anywhere; the last tests use the real environment where it is installed."""
+The planner's environment is replaced by stand-ins (a fake `yaml` and a fake `aizynthfinder` dist-info on the child's path) so these run anywhere; the last tests use the real environment where it is installed. Automatic setup of that environment is `tests/test_aizynth_setup.py`."""
 
 from __future__ import annotations
 
@@ -562,15 +562,16 @@ def wait_for(qapp, condition, seconds=20.0):
     raise AssertionError("the condition never became true")
 
 
-def test_the_descriptor_is_locate_only_with_two_paths_and_no_way_to_obtain_or_remove(qapp):
+def test_the_descriptor_is_obtainable_with_two_paths(qapp):
+    from openchem.services import aizynth_setup as inst
     from openchem.ui.dialogs import external_tool_catalog as catalog
 
     descriptor = catalog.aizynthfinder()
-    assert descriptor.key == "aizynthfinder" and descriptor.obtainable is False and descriptor.removable is False and descriptor.test_with_settings is True
+    assert descriptor.key == "aizynthfinder" and descriptor.obtainable is True and descriptor.removable is True and descriptor.test_with_settings is True
     assert descriptor.setting_key == setup.PYTHON_KEY and [e.setting_key for e in descriptor.extra_paths] == [setup.CONFIG_KEY]
+    assert descriptor.errors is inst.AizynthSetupError
     assert [label for label, _ in descriptor.vendor_links] == ["Get AiZynthFinder...", "AiZynthFinder Documentation..."]
-    with pytest.raises(RuntimeError, match="does not download or install"):
-        descriptor.run(lambda _: None)
+    assert "PyPI" in descriptor.confirm_body() and "Zenodo" in descriptor.confirm_body() and str(inst.default_install_root()) in descriptor.confirm_body()
 
 
 def test_the_dialog_tab_writes_both_paths_to_the_settings_and_shows_the_status(qapp, tmp_path):
@@ -579,7 +580,7 @@ def test_the_dialog_tab_writes_both_paths_to_the_settings_and_shows_the_status(q
     settings = Settings(EventBus())
     dialog = ExternalToolsPages(settings, focus="aizynthfinder")
     tab = dialog._tab_for("aizynthfinder")
-    assert dialog.current_tool() == "aizynthfinder" and not tab.setup_button.isVisibleTo(tab) and not tab.remove_button.isVisibleTo(tab)
+    assert dialog.current_tool() == "aizynthfinder" and tab.setup_button.isVisibleTo(tab) and tab.remove_button.isVisibleTo(tab)
     assert tab.status_label.text().startswith("Not configured")
 
     python = tmp_path / "python.exe"
@@ -625,11 +626,33 @@ def test_the_test_button_passes_both_paths_and_the_settings_and_shows_the_answer
     assert tab.status_label.text() == "Test failed: the stock file is not there: x." and tab.test_button.isEnabled()
 
 
+def test_setup_and_locate_fill_both_path_rows(qapp, tmp_path):
+    from openchem.ui.dialogs import external_tool_catalog as catalog
+    from openchem.ui.dialogs.external_tool_tabs import ManagedExecutableTab
+
+    python = tmp_path / "python.exe"
+    config_file = tmp_path / "config.yml"
+    python.write_text("x", encoding="utf-8")
+    config_file.write_text("x", encoding="utf-8")
+    settings = Settings(EventBus())
+    descriptor = catalog.aizynthfinder()
+    tab = ManagedExecutableTab(descriptor, None, settings=settings, remove_button_factory=lambda parent, key, label: __import__("PySide6.QtWidgets", fromlist=["QPushButton"]).QPushButton(label, parent))
+
+    tab._on_install_finished((python, config_file))
+    assert tab.path_row.text() == str(python) and tab.extra_rows[0].text() == str(config_file)
+    assert settings.get(setup.PYTHON_KEY, "") == str(python) and settings.get(setup.CONFIG_KEY, "") == str(config_file)
+
+    tab.path_row.set_path("")
+    tab.extra_rows[0].set_path("")
+    tab._on_located((python, config_file))
+    assert tab.path_row.text() == str(python) and tab.extra_rows[0].text() == str(config_file)
+
+
 # --- the real planner, where it is installed ----------------------------------------------------------------------------------------------------
 
 
-_PLANNER_PYTHON = Path("D:/_scratch/aizynth/env/Scripts/python.exe")
-_PLANNER_CONFIG = Path("D:/_scratch/aizynth/data/config.yml")
+_PLANNER_PYTHON = Path("D:/Random Programs/aizynthfinder/env/Scripts/python.exe")
+_PLANNER_CONFIG = Path("D:/Random Programs/aizynthfinder/data/config.yml")
 _REAL = pytest.mark.skipif(not (_PLANNER_PYTHON.exists() and _PLANNER_CONFIG.exists()), reason="the planner environment is not on this machine")
 
 

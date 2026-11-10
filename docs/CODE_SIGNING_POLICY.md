@@ -86,7 +86,8 @@ only the service that feature names. Nothing is sent in the background.
 | Build the NMR database | SourceForge (`sourceforge.net`) | a download request for nmrshiftdb2 |
 | Set up the pKa predictor | PyTorch (`download.pytorch.org`) and PyG (`data.pyg.org`) wheel indexes, the Python Package Index (PyPI, `pypi.org`) for the other packages, GitHub (`github.com`) for the predictor's source and trained models, and, if no suitable Python is installed, a standalone Python build that `uv` downloads from GitHub | download requests for the packages, the source and the models |
 | Set up the ADMET predictor | the Python Package Index (PyPI, `pypi.org`) and, if no suitable Python is installed, a standalone Python from GitHub through `uv` | a download request for the `admet-ai` package, whose trained weights are inside it |
-| Use synthesis route planning (Synthesis Planner plugin) | nothing, from OpenChem | it runs the AiZynthFinder program you installed yourself, on your computer. That program's own downloads (its models and stock) are made by that program when you set it up, not by OpenChem |
+| Set up the synthesis planner | the Python Package Index (PyPI, `pypi.org`) for `aizynthfinder` and `pyarrow`, and, if no suitable Python is installed, a standalone Python from GitHub through `uv`. The planner's own `download_public_data` then fetches public USPTO models from Zenodo (`zenodo.org`) and a ZINC stock snapshot from Figshare (`figshare.com`) | download requests for the package, the models and the stock; nothing about the molecule you later plan |
+| Use synthesis route planning (Synthesis Planner plugin) | nothing further, from OpenChem | it runs the AiZynthFinder program on your computer, in the environment this app built or that you pointed it at |
 
 Some buttons only open a web page in **your browser** (the ChemSpider search, the
 vendor pages for ORCA and Psi4, which you install yourself). The program sends nothing

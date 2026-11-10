@@ -546,6 +546,17 @@ class InterpreterSidecarTab(ToolTab):
         )
 
 
+def _unpack_located(found: Any) -> tuple[Any, tuple[Any, ...]]:
+    """A locate/install result is one path, or `(python, config, ...)` when the tool needs more than one."""
+    if found is None:
+        return None, ()
+    if isinstance(found, (tuple, list)):
+        if not found:
+            return None, ()
+        return found[0], tuple(found[1:])
+    return found, ()
+
+
 @dataclass(frozen=True, kw_only=True)
 class ExtraPath:
     """A second path a tool needs beside its program: AiZynthFinder is a Python environment AND the configuration file its `download_public_data` wrote."""
@@ -718,8 +729,11 @@ class ManagedExecutableTab(ToolTab):
         self._refresh_status()
 
     def _on_install_finished(self, result: Any) -> None:
-        if result is not None:
-            self.path_row.set_path(str(result))
+        python, extras = _unpack_located(result)
+        if python is not None:
+            self.path_row.set_path(str(python))
+        for extra, value in zip(self.extra_rows, extras):
+            extra.set_path(str(value))
         self.status_label.setText(self.descriptor.finished_status(result))
 
     def _on_vendor_link_clicked(self, _checked: bool = False) -> None:
@@ -758,10 +772,15 @@ class ManagedExecutableTab(ToolTab):
                 self,
                 "Not found automatically",
                 "Nothing matching was found where this kind of tool is normally "
-                "installed.\n\nUse Browse if it is somewhere else.",
+                "installed.\n\nUse Set Up Automatically if this app can install it, "
+                "or Browse if it is somewhere else.",
             )
             return
-        self.path_row.set_path(str(found))
+        python, extras = _unpack_located(found)
+        if python is not None:
+            self.path_row.set_path(str(python))
+        for extra, value in zip(self.extra_rows, extras):
+            extra.set_path(str(value))
         self._refresh_status()
 
     def _on_locate_failed(self, message: str) -> None:

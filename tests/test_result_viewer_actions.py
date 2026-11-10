@@ -196,7 +196,7 @@ def test_pressing_it_asks_for_the_REPORT_rather_than_a_fact(window):
     link = seen[0]
     assert isinstance(link, FactLink)
     assert link.target == "calculator_inspector"
-    assert link.params == {"report_id": "charges"}
+    assert link.params == {"report_id": "charges", "molecule_uuid": MOLECULE}
 
 
 def test_pressing_it_on_an_unreachable_viewer_asks_for_nothing(window):

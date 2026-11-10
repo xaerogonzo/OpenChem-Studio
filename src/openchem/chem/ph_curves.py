@@ -219,7 +219,10 @@ def _resolve_pkas(
             "pH-dependent curve to draw.",
             True,
         )
-    return sorted(p.value for p in pairs), n_acids, n_bases, None
+    from openchem.chem.pka_sites import ordered_predictions
+
+    ordered = ordered_predictions(pairs)
+    return [p.value for p in ordered], n_acids, n_bases, None
 
 
 def _failed_curve(curve_id: str, name: str, molecule_uuid: str, refused: _Refused) -> PhCurveResult:
@@ -256,6 +259,15 @@ def compute_pka_distribution(
         label = f"Species {index}" if charge is None else f"Species {index} ({charge:+d})"
         series[label] = [100.0 * row[index] for row in rows]
 
+    from openchem.chem.pka_providers import compute_pka
+    from openchem.chem.pka_sites import records_from_predictions, with_site_records
+
+    records = ()
+    try:
+        records = records_from_predictions(compute_pka(mol, interpreter_path) or [])
+    except Exception:  # noqa: BLE001 - a mapping payload must not fail the curve
+        records = ()
+
     return PhCurveResult(
         curve_id="pka_microspecies",
         name="Microspecies distribution (%)",
@@ -269,7 +281,9 @@ def compute_pka_distribution(
         y_min=0.0,
         y_max=100.0,
         provenance=Provenance(
-            created_by="core", method="pkasolver", parameters={"pka_values": pkas}
+            created_by="core",
+            method="pkasolver",
+            parameters=with_site_records({"pka_values": pkas}, records),
         ),
     )
 
