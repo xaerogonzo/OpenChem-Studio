@@ -1248,3 +1248,84 @@ def test_cancelling_the_save_dialog_writes_nothing(qapp, tmp_path, monkeypatch):
     view._export_jcamp_action.trigger()
 
     assert list(tmp_path.iterdir()) == []
+
+
+def _shown(qapp):
+    view, backend, *_ = _make_view(qapp)
+    view.resize(900, 700)
+    view.show()
+    QApplication.processEvents()
+    return view, backend
+
+
+def test_hiding_one_structure_leaves_the_other_and_the_spectrum(qapp):
+    view, backend = _shown(qapp)
+    structure_3d = view._structure_3d
+
+    view._hide_2d_action.trigger()
+
+    assert view._svg_widget.isHidden()
+    assert not view._structure_3d.isHidden()
+    assert not view._structures_splitter.isHidden()
+    assert view._hide_2d_action.isChecked()
+    assert not view._hide_3d_action.isChecked()
+    assert view._spectrum_widget.isVisible() and view._table_tabs.isVisible()
+
+    view._hide_3d_action.trigger()
+
+    assert view._structure_3d.isHidden() and view._structures_splitter.isHidden()
+    assert view._structure_3d is structure_3d
+    assert view._spectrum_widget.isVisible() and view._table_tabs.isVisible()
+    seen: list = []
+    view._select_signal = lambda signal: seen.append(signal)
+    view._backend.atoms_selected.emit(list(view.signals()[0].atom_indices))
+    assert seen and seen[0] is not None
+    assert backend is view._backend
+
+
+def test_showing_one_pane_while_the_other_stays_hidden_brings_the_splitter_back(qapp):
+    view, _backend = _shown(qapp)
+    view._hide_2d_action.trigger()
+    view._hide_3d_action.trigger()
+
+    view._hide_2d_action.trigger()
+
+    assert not view._svg_widget.isHidden()
+    assert view._structure_3d.isHidden()
+    assert not view._structures_splitter.isHidden()
+    assert view._hide_3d_action.isChecked()
+
+
+def test_reset_settings_shows_both_structure_panes(qapp):
+    view, _backend = _shown(qapp)
+    view._hide_2d_action.trigger()
+    view._hide_3d_action.trigger()
+
+    view.reset_settings()
+
+    assert not view._svg_widget.isHidden() and not view._structure_3d.isHidden()
+    assert not view._structures_splitter.isHidden()
+    assert view.current_settings() == nmr_view_module.NMR_VIEWER_DEFAULTS
+    assert view.current_settings().show_2d_structure and view.current_settings().show_3d_structure
+
+
+def test_resizing_with_one_pane_hidden_keeps_that_pane_hidden(qapp):
+    view, _backend = _shown(qapp)
+    view._hide_3d_action.trigger()
+
+    view.resize(1100, 800)
+    QApplication.processEvents()
+
+    assert view._structure_3d.isHidden() and not view._svg_widget.isHidden()
+    assert view._spectrum_widget.isVisible() and view._table_tabs.isVisible()
+
+
+def test_a_drag_cannot_take_a_visible_structure_pane_under_the_floor(qapp):
+    view, _backend = _shown(qapp)
+
+    view._structures_splitter.setSizes([1, 800])
+    view._structures_splitter.setSizes([800, 1])
+
+    assert min(view._structures_splitter.sizes()) >= 80
+    assert not view._structures_splitter.childrenCollapsible()
+    assert not view._main_splitter.childrenCollapsible()
