@@ -1,7 +1,7 @@
 # Structure template library
 
 OpenChem-owned catalog of complete molecules for the 2D editor. Not Ketcher's
-template button, not Marvin Sketch, and not a peptide or polymer builder.
+template button, not the reference editor, and not a peptide or polymer builder.
 
 ## What it is
 

@@ -2364,8 +2364,8 @@ and three were checked again recently rather than taken on trust.
 
 - **Peptide sequence building and polymer S-groups (recorded 2026-11-10).** The
   structure template library ships complete molecules only. Expanding
-  `Ala-Glu-Gly` / `AEG` into an atomistic peptide, and Marvin-style repeating
-  polymer S-groups, wait on a measured sequence builder and on molfile S-group
+  `Ala-Glu-Gly` / `AEG` into an atomistic peptide, and repeating
+  polymer S-groups as in the reference editor, wait on a measured sequence builder and on molfile S-group
   round-trip through Ketcher. Ketcher's own polymer mode stays. See
   `docs/STRUCTURE_TEMPLATE_LIBRARY_DESIGN.md`.
 

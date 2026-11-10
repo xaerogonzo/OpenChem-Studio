@@ -27,14 +27,18 @@ class TemplateKind(Enum):
     COMPLETE_MOLECULE = "complete_molecule"
 
 
+#: The only shipped kind: a complete molecule, never a dummy-atom fragment.
 SHIPPED_KIND = TemplateKind.COMPLETE_MOLECULE
 
 #: User category ids, including My Templates, start with this.
 USER_ID_PREFIX = "user:"
 
+#: Stable id of the built-in user category the person can save into.
 MY_TEMPLATES_ID = "user:my_templates"
+#: Display title of that category.
 MY_TEMPLATES_TITLE = "My Templates"
 
+#: Version of the user's library.json schema.
 LIBRARY_VERSION = 1
 
 

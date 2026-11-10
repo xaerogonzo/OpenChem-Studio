@@ -22,11 +22,13 @@ from openchem.domain.structure_template import (
     parse_kind,
 )
 
+#: Directory of the committed shipped JSON catalogs.
 SHIPPED_DIR = Path(__file__).resolve().parent / "data" / "structure_templates"
 
 #: Gap between the existing drawing's right edge and the inserted fragment, Å.
 PLACEMENT_GAP_ANGSTROM = 2.0
 
+#: Shipped catalog files, in the order the dialog lists them.
 _SHIPPED_FILES = (
     "rings.json",
     "amino_acids.json",
