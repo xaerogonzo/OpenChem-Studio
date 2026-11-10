@@ -420,6 +420,11 @@
   "default": ""
  },
  {
+  "id": "template_library",
+  "label": "Template Library",
+  "default": "Ctrl+Shift+T"
+ },
+ {
   "id": "theme_choice:Theme: Dark",
   "label": "Theme: Dark",
   "default": ""

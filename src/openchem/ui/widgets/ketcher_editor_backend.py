@@ -57,6 +57,7 @@ class _Bridge(QObject):
         on_rotation_angles: Callable[[float, float], None] | None = None,
         on_rotation_finished: Callable[[], None] | None = None,
         on_rotation_exit: Callable[[bool], None] | None = None,
+        on_fragment_ready: Callable[[str, str], None] | None = None,
     ) -> None:
         super().__init__()
         self._on_structure_edited = on_structure_edited
@@ -71,6 +72,7 @@ class _Bridge(QObject):
         self._on_bond_selected = on_bond_selected
         self._on_editor_action = on_editor_action
         self._on_bond_order_key = on_bond_order_key
+        self._on_fragment_ready = on_fragment_ready
 
     @Slot(int, int)
     def bondOrderKey(self, bond_index: int, order: int) -> None:  # noqa: N802 - called from JS by this exact name
@@ -183,6 +185,16 @@ class _Bridge(QObject):
     def molfileReady(self, request_id: str, molblock: str) -> None:  # noqa: N802
         self._on_molfile_ready(request_id, molblock)
 
+    @Slot(str, str)
+    def fragmentReady(self, request_id: str, error: str) -> None:  # noqa: N802 - called from JS by this exact name
+        """Ketcher's `addFragment` promise has resolved (or failed).
+
+        Empty `error` is success. Qt's `runJavaScript` does not await that
+        promise, so the host cannot learn the outcome from its return value.
+        """
+        if self._on_fragment_ready is not None:
+            self._on_fragment_ready(request_id, error)
+
     @Slot(str)
     def loadComplete(self, token: str) -> None:  # noqa: N802 - called from JS by this exact name
         """Ketcher's `setMolecule` promise has resolved for this load.
@@ -240,6 +252,7 @@ class KetcherEditorBackend(EditorBackend):
             self.rotation_angles_changed.emit,
             self.rotation_finished.emit,
             self.rotation_exit_requested.emit,
+            self._on_fragment_ready,
         )
         self._channel.registerObject("bridge", self._bridge)
         self._page.setWebChannel(self._channel)
@@ -300,7 +313,11 @@ class KetcherEditorBackend(EditorBackend):
         #: Non-None while one of OUR loads is settling; see
         #: `_on_structure_edited`.
         self._loading_token: str | None = None
+        #: Non-None while an `addFragment` is settling; `_on_structure_edited`
+        #: ignores Ketcher's change echoes, then one `edited` is emitted.
+        self._fragment_token: str | None = None
         self._pending_requests: dict[str, Callable[[str | None], None]] = {}
+        self._pending_fragments: dict[str, Callable[[str | None], None]] = {}
 
         # The page has no script of ours, so the look is a stylesheet it is given (`web_appearance`). Told as
         # soon as the document exists rather than when Ketcher's own boot finishes, so it never flashes light.
@@ -421,6 +438,9 @@ class KetcherEditorBackend(EditorBackend):
             self._pending_atom_numbers = None
 
     def _on_structure_edited(self, molblock: str) -> None:
+        if self._fragment_token is not None:
+            logger.debug("Ignoring a change event from our own fragment insert")
+            return
         if self._loading_token is not None:
             # Our own `setMolecule` echoing back, not the user drawing.
             # Ketcher fires `change` while it lays the loaded structure
@@ -935,6 +955,65 @@ class KetcherEditorBackend(EditorBackend):
             f"if (window.openchemRotation) "
             f"window.openchemRotation.leave({json.dumps(bool(restore))});"
         )
+
+    def add_fragment(self, molblock: str, callback: Callable[[str | None], None] | None = None) -> None:
+        """Insert `molblock` through Ketcher's `addFragment`.
+
+        Refuses if the editor is not ready or the molblock is empty. Change
+        events during the insert are suppressed, then `edited` fires once
+        so the host records one undo step.
+        """
+        done = callback or (lambda _error: None)
+        if not self._ketcher_ready:
+            done("The 2D editor is still loading.")
+            return
+        if not molblock.strip():
+            done("Nothing to insert.")
+            return
+        request_id = str(uuid.uuid4())
+        self._pending_fragments[request_id] = done
+        self._fragment_token = request_id
+        script = f"""
+        (function() {{
+          var done = function(error) {{
+            window.__openchemBridge.fragmentReady({json.dumps(request_id)}, error);
+          }};
+          if (!window.ketcher || typeof window.ketcher.addFragment !== "function") {{
+            done("The editor cannot insert a fragment.");
+            return;
+          }}
+          try {{
+            var result = window.ketcher.addFragment({json.dumps(molblock)});
+            if (result && typeof result.then === "function") {{
+              result.then(function() {{ done(""); }}).catch(function(e) {{ done(String(e)); }});
+            }} else {{
+              done("");
+            }}
+          }} catch (e) {{
+            done(String(e));
+          }}
+        }})();
+        """
+        self._page.runJavaScript(script)
+
+    def _on_fragment_ready(self, request_id: str, error: str) -> None:
+        callback = self._pending_fragments.pop(request_id, None)
+        if error:
+            if self._fragment_token == request_id:
+                self._fragment_token = None
+            if callback is not None:
+                callback(error)
+            return
+        QTimer.singleShot(
+            _LOAD_SETTLE_MS, self, partial(self._finish_fragment, request_id, callback)
+        )
+
+    def _finish_fragment(self, request_id: str, callback: Callable[[str | None], None] | None) -> None:
+        if self._fragment_token == request_id:
+            self._fragment_token = None
+        self.edited.emit()
+        if callback is not None:
+            callback(None)
 
     def get_molblock(self, callback: Callable[[str | None], None]) -> None:
         if not self._ketcher_ready:
