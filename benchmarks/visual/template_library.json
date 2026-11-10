@@ -9,12 +9,12 @@
   {"do": "shot", "path": "artifacts/visual/template_library_insert.png", "widget": "template_library", "after_ms": 400},
 
   {"do": "menu", "text": "Undo", "prefix": true, "in": "Edit", "after_ms": 1500},
-  {"do": "template_library", "tag": "undo-restores-benzene", "after_ms": 400,
-   "expect": {"smiles_equals": "c1ccccc1"}},
+  {"do": "template_library", "tag": "undo-restores-benzene", "after_ms": 3500,
+   "expect": {"smiles_equals": "c1ccccc1", "redo_enabled": true}},
 
   {"do": "menu", "text": "Redo", "prefix": true, "in": "Edit", "after_ms": 1500},
   {"do": "template_library", "tag": "redo-restores-insert", "after_ms": 400,
-   "expect": {"smiles_contains": "."}},
+   "expect": {"smiles_contains": ".", "redo_enabled": false}},
 
   {"do": "menu", "text": "Undo", "prefix": true, "in": "Edit", "after_ms": 1500},
   {"do": "template_library", "press": "save", "name": "Drive benzene",

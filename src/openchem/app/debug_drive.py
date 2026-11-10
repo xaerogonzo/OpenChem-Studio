@@ -3412,6 +3412,11 @@ class _Driver(QObject):
             problems.append(f"status {status!r} does not contain {expect['status']!r}")
         if "my_templates_contains" in expect and expect["my_templates_contains"] not in names:
             problems.append(f"My Templates lacks {expect['my_templates_contains']!r} (has {names})")
+        if "redo_enabled" in expect and window._undo_stack.canRedo() is not bool(expect["redo_enabled"]):
+            problems.append(
+                f"Redo is {'enabled' if window._undo_stack.canRedo() else 'disabled'}, "
+                f"expected {expect['redo_enabled']!r}"
+            )
         if expect.get("inserted") is True and (press == "insert") and smiles == before_smiles:
             problems.append("insert did not change the molecule")
         tag = str(step.get("tag", ""))
@@ -6249,11 +6254,15 @@ class _Driver(QObject):
                 continue
             if path is not None and home != str(path):
                 continue
-            action.trigger()
+            enabled = action.isEnabled()
             logger.warning(
                 "OPENCHEM_DRIVE: menu %r triggered in %r -- enabled=%s checkable=%s checked=%s",
-                wanted, home, action.isEnabled(), action.isCheckable(), action.isChecked(),
+                wanted, home, enabled, action.isCheckable(), action.isChecked(),
             )
+            if not enabled:
+                logger.error("OPENCHEM_DRIVE: menu %r in %r is disabled", wanted, home)
+                return
+            action.trigger()
             return
         logger.error("OPENCHEM_DRIVE: no menu entry named %r%s", wanted, f" in {path!r}" if path else "")
 

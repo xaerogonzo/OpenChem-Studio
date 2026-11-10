@@ -123,14 +123,24 @@ def test_inserting_onto_a_drawing_undoes_in_one_step(qapp):
         time.sleep(0.02)
     assert stack.count() == before + 1
     assert molecule.canonical_smiles != before_smiles
+    inserted = molecule.molblock
     stack.undo()
     assert molecule.canonical_smiles == before_smiles
-    # A late Ketcher molfile must not replace the undone drawing (live
-    # drive: Redo was disabled ~1 s after Undo while the insert returned).
-    settle = time.monotonic() + 2.0
+    assert stack.canRedo()
+    # Live MainWindow drive: Ketcher's getMolfile still returned the insert
+    # ~1 s after Undo, and applying it pushed a new command that discarded
+    # Redo. That molfile must not become a command, immediately or after
+    # the delay the drive saw.
+    widget.apply_edited_molblock(inserted)
+    assert molecule.canonical_smiles == before_smiles
+    assert stack.canRedo()
+    # The live window applied the insert ~3 s after Undo, after the 2 s
+    # suppress window. Redo still being available must drop it too.
+    settle = time.monotonic() + 3.0
     while time.monotonic() < settle:
         QCoreApplication.processEvents()
         time.sleep(0.02)
+    widget.apply_edited_molblock(inserted)
     assert molecule.canonical_smiles == before_smiles
     assert stack.canRedo()
     stack.redo()
