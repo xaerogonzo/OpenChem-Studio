@@ -277,6 +277,22 @@ def faint(colour: QColor | str, look: EffectiveAppearance | None = None) -> QCol
     return QColor.fromHslF(0.0, 0.0, 0.26, result.alphaF())
 
 
+#: Acid and base site tokens for the pKa view. Routed through `ink` at the
+#: draw site; not stylesheet text.
+_ACID_INK = "#b91c1c"
+_BASE_INK = "#1d4ed8"
+
+
+def acid_ink(look: EffectiveAppearance | None = None) -> QColor:
+    """Colour for an acidic ionisable site. Always paired with an `A` label."""
+    return ink(_ACID_INK, look)
+
+
+def base_ink(look: EffectiveAppearance | None = None) -> QColor:
+    """Colour for a basic ionisable site. Always paired with a `B` label."""
+    return ink(_BASE_INK, look)
+
+
 def paper(widget: QWidget) -> None:
     """Show `widget` on white paper in a dark window, and exactly as it was in a light one.
 

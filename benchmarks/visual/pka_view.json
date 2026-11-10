@@ -1,0 +1,20 @@
+[
+  {"do": "smiles", "smiles": "Nc1ccc(O)cc1", "name": "4-aminophenol", "after_ms": 1000},
+  {"do": "select", "molecule": -1, "after_ms": 400},
+  {"do": "calculator", "id": "pka", "reveal": false, "after_ms": 90000},
+  {"do": "calculator", "id": "pka_microspecies", "reveal": false, "after_ms": 20000},
+  {"do": "calculator", "id": "ionisable_sites", "reveal": false, "after_ms": 8000},
+  {"do": "results", "focus": "pka", "open_viewer": true, "after_ms": 1500,
+   "expect": {"focus": "pka"}},
+  {"do": "pka_view", "tag": "aminophenol",
+   "expect": {"sites": 3, "pictures": 0, "message_contains": "same drawing atom"}},
+  {"do": "shot", "path": "artifacts/pka_view_aminophenol.png", "widget": "pka_view"},
+  {"do": "smiles", "smiles": "CC(=O)O", "name": "Acetic acid", "after_ms": 800},
+  {"do": "select", "molecule": -1, "after_ms": 400},
+  {"do": "calculator", "id": "pka", "reveal": false, "after_ms": 90000},
+  {"do": "calculator", "id": "pka_microspecies", "reveal": false, "after_ms": 20000},
+  {"do": "results", "focus": "pka_microspecies", "open_viewer": true, "after_ms": 1500},
+  {"do": "pka_view", "tag": "acetic",
+   "expect": {"sites": 1, "pictures": 2, "message_contains": "sequential"}},
+  {"do": "quit"}
+]

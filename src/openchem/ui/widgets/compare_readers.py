@@ -103,6 +103,9 @@ class CompareReaders(QWidget):
 
     #: The window was closed.
     closed = Signal()
+    #: A pane's Open button or fact link. Forwarded so CompareReaders never
+    #: opens another molecule's structures itself.
+    link_activated = Signal(object)
 
     def __init__(
         self,
@@ -185,6 +188,7 @@ class CompareReaders(QWidget):
     def _add(self, uuid: str) -> None:
         pane = _Pane(uuid, self._names(uuid), self._display_order_of, self)
         pane.reader.view_changed.connect(self._on_reader_changed)
+        pane.reader.link_activated.connect(self.link_activated)
         self._panes[uuid] = pane
 
     def _drop(self, uuid: str) -> None:
@@ -193,6 +197,10 @@ class CompareReaders(QWidget):
             return
         try:
             pane.reader.view_changed.disconnect(self._on_reader_changed)
+        except (RuntimeError, TypeError):
+            pass
+        try:
+            pane.reader.link_activated.disconnect(self.link_activated)
         except (RuntimeError, TypeError):
             pass
         pane.setParent(None)

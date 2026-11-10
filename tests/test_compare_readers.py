@@ -228,6 +228,18 @@ def test_a_molecule_that_stays_keeps_its_pane_and_one_that_leaves_is_disposed(re
     assert widget.uuids() == ["a", "b", "d"]
 
 
+def test_a_pane_open_link_is_forwarded_with_that_pane_still_the_source(readers):
+    from openchem.domain.report import FactLink
+
+    widget, _ = readers
+    widget.set_molecules(["a", "b"])
+    seen = []
+    widget.link_activated.connect(seen.append)
+    link = FactLink(target="pka_view", params={"report_id": "pka", "molecule_uuid": "a"})
+    widget.pane("a").reader.link_activated.emit(link)
+    assert seen == [link]
+
+
 def test_closing_releases_every_pane_and_stops_the_timer(readers):
     widget, _ = readers
     widget.set_molecules(["a", "b"])

@@ -375,6 +375,14 @@ def iter_dialog_fixtures() -> Iterator[DialogFixture]:
             context.conformer_molblock,
         )
 
+    def pka_view(context: DialogContext):
+        from openchem.ui.dialogs.pka_view_dialog import PkaViewDialog
+
+        _require(context, "services", "molecule")
+        dialog = PkaViewDialog(context.services.chemistry_engine, context.molecule)
+        dialog.set_payload(context.molecule, context.results.get("pka"), context.results.get("pka_microspecies"))
+        return dialog
+
     def spatial_result(context: DialogContext):
         from openchem.ui.dialogs.spatial_result_dialog import SpatialResultDialog
 
@@ -431,6 +439,7 @@ def iter_dialog_fixtures() -> Iterator[DialogFixture]:
         "CalculatorInspectorDialog", calculator_inspector, needs="a per-atom result"
     )
     yield DialogFixture("NmrViewDialog", nmr_view, needs="an NMR spectrum")
+    yield DialogFixture("PkaViewDialog", pka_view, needs="a molecule")
     yield DialogFixture("SpatialResultDialog", spatial_result, needs="a report carrying shapes")
     yield DialogFixture("PopOutWindow", pop_out_window)
 

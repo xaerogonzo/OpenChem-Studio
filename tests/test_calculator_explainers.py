@@ -52,14 +52,14 @@ EXPLAINER_DEBT = frozenset({
     "joback_properties", "lewis_adduct", "lewis_hsab", "lewis_sites", "locants", "logd",
     "major_microspecies", "markush_enumeration", "mass_spectrum",
     "nmr_database", "orca.delta_scf", "orca.led", "orca.nmr", "orca.nmr_coupling", "orca.opt",
-    "orca.opt_freq", "orca.sp", "orca.tautomer_distribution", "oxidation_states", "oxygen_balance",
-    "pka", "pka_microspecies", "polarizability", "regulatory_screen",
+    "orca.opt_freq", "orca.sp", "orca.tautomer_distribution",     "oxidation_states", "oxygen_balance",
+    "polarizability", "regulatory_screen",
     "resonance_forms", "ring_systems", "solubility", "stereo_descriptors", "stereocenters",
     "stereoisomers", "structural_frameworks", "substance_analysis",
     "substructure_search", "tautomers", "topology_analysis",
     "topology_distance_degree", "topology_eccentricity", "tsei_projection",
 })
-_DEBT_CEILING = 58
+_DEBT_CEILING = 56
 
 
 @pytest.fixture(scope="module")

@@ -96,4 +96,6 @@ def read_site(prediction, ph: float) -> IonisableSite:
 
 def read_sites(predictions, ph: float) -> list[IonisableSite]:
     """Every site, lowest pKa first, the order `pKa` lists them in."""
-    return [read_site(p, ph) for p in sorted(predictions, key=lambda p: p.value)]
+    from openchem.chem.pka_sites import ordered_predictions
+
+    return [read_site(p, ph) for p in ordered_predictions(predictions)]

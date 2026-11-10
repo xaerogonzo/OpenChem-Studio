@@ -104,6 +104,11 @@ IR_VIEW = "ir_view"
 #: PICTURE rather than from a kind, which is why nothing in `ADAPTERS` names
 #: it.
 SPATIAL_VIEW = "spatial_view"
+#: Dedicated pKa / microspecies-distribution window. Not a kind-wide
+#: destination: only report ids `pka` and `pka_microspecies` open it.
+PKA_VIEW = "pka_view"
+PKA_VIEW_IDS = frozenset({"pka", "pka_microspecies"})
+PKA_VIEW_LABEL = "Open pKa view"
 
 
 def _units_suffix(result: ScientificResult) -> str:
@@ -899,17 +904,61 @@ def summarise(
     """
     kind = kind_of(result)
     if kind == REPORT:
+        if result_id in PKA_VIEW_IDS or getattr(result, "report_id", "") in PKA_VIEW_IDS:
+            from openchem.ui.result_summary import ResultSummaryView
+
+            report = result
+            return ResultSummaryView(
+                report_id=result_id or report.report_id,
+                name=name or report.name,
+                category=category or report.category,
+                facts=tuple(report.facts),
+                charts=tuple(getattr(report, "charts", ()) or ()),
+                rich_view=PKA_VIEW,
+                rich_view_label=PKA_VIEW_LABEL,
+                limitations=tuple(getattr(report, "limitations", ()) or ()),
+                molecule_uuid=str(getattr(result, "molecule_uuid", "") or ""),
+                structure_version=structure_version,
+                cache_state=getattr(result, "cache_state", None),
+                error=getattr(result, "error", None),
+                error_summary=getattr(result, "error_summary", None),
+                inapplicable=bool(getattr(result, "inapplicable", False)),
+                provenance=getattr(result, "provenance", None),
+            )
         return result
     if kind == ALERT:
         from openchem.chem.report_adapter import report_from_alert
 
-        return report_from_alert(result)
+        report = report_from_alert(result)
+        if result_id not in PKA_VIEW_IDS and getattr(result, "alert_id", "") not in PKA_VIEW_IDS:
+            return report
+        from openchem.ui.result_summary import ResultSummaryView
+
+        return ResultSummaryView(
+            report_id=result_id or report.report_id,
+            name=name or report.name,
+            category=category or report.category,
+            facts=tuple(report.facts),
+            charts=(),
+            rich_view=PKA_VIEW,
+            rich_view_label=PKA_VIEW_LABEL,
+            limitations=tuple(getattr(report, "limitations", ()) or ()),
+            molecule_uuid=str(getattr(result, "molecule_uuid", "") or ""),
+            structure_version=structure_version,
+            cache_state=getattr(result, "cache_state", None),
+            error=getattr(result, "error", None),
+            error_summary=getattr(result, "error_summary", None),
+            inapplicable=bool(getattr(result, "inapplicable", False)),
+            provenance=getattr(result, "provenance", None),
+        )
     adapter = adapter_for(result)
     from openchem.domain.calculator_taxonomy import category_for
     from openchem.ui.result_summary import ResultSummaryView
 
     fact_category = category_for(category)
     producer_limitations = tuple(getattr(result, "limitations", ()) or ())
+    view = PKA_VIEW if result_id in PKA_VIEW_IDS else adapter.rich_view
+    view_label = PKA_VIEW_LABEL if result_id in PKA_VIEW_IDS else _rich_view_label(result, adapter)
     return ResultSummaryView(
         report_id=result_id,
         name=name,
@@ -919,8 +968,8 @@ def summarise(
         # The adapter's own answer, carried so the reader can offer the whole
         # result. Without it a summary is a dead end for the 30 of 60 entries
         # that have a viewer.
-        rich_view=adapter.rich_view,
-        rich_view_label=_rich_view_label(result, adapter),
+        rich_view=view,
+        rich_view_label=view_label,
         # The projection's own caveat FIRST, then whatever the producer said.
         # A reader meeting the producer's caveats under a summary would have
         # no way to tell which half it was reading.
