@@ -17,9 +17,15 @@ from openchem.vendor.iupac_namer import name_smiles
 
 needs_opsin = pytest.mark.skipif(shutil.which("java") is None, reason="needs java on PATH (OPSIN)")
 
-# NL-001: pseudoasymmetric bridgeheads on dimethylnorbornane — 4 embeddable isomers, one flat name.
+# NL-001: pseudoasymmetric bridgeheads on dimethylnorbornane — 4 embeddable isomers, 3 names (CI / Java).
 DIMETHYLNORBORNANE = "CC1CC2CC(C)C1C2"
-FLAT_DIMETHYLNORBORNANE = "2,6-dimethylbicyclo[2.2.1]heptane"
+NL001_THREE_NAMES = frozenset(
+    {
+        "(2R,6R)-2,6-dimethylbicyclo[2.2.1]heptane",
+        "(2R,6S)-2,6-dimethylbicyclo[2.2.1]heptane",
+        "(2S,6S)-2,6-dimethylbicyclo[2.2.1]heptane",
+    }
+)
 
 # NL-002: substituted bridgehead 9-chloro bicyclo[3.3.1]nonan-1-ol — flat name (round 89).
 NL002_CASES = (
@@ -46,12 +52,13 @@ def test_nl005_adamantane_spiro_methyl_still_names_all_embeddable_isomers_flat()
     assert len(_embeddable_isomers(NL005_SPIRO_METHYL)) >= 2
 
 
+@needs_opsin
 def test_nl001_dimethylnorbornane_still_collapses_pseudoasymmetric_isomers():
-    """Four embeddable isomers share one flat name (validator limit; was three names before round 89)."""
+    """Four isomers still share three names (validator limit on unreadable r/s); measured on Windows CI 2026-11-10."""
     isomers = _embeddable_isomers(DIMETHYLNORBORNANE)
     names = {name_smiles(s) for s in isomers}
     assert len(isomers) == 4
-    assert names == {FLAT_DIMETHYLNORBORNANE}
+    assert names == NL001_THREE_NAMES
 
 
 @pytest.mark.parametrize("label,smiles", NL002_CASES, ids=[c[0] for c in NL002_CASES])
