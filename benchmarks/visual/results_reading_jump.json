@@ -1,0 +1,11 @@
+[
+  {"do": "smiles", "smiles": "CNC", "name": "Dimethylamine", "after_ms": 800},
+  {"do": "select", "molecule": -1, "after_ms": 2000},
+  {"do": "panel", "id": "Properties", "after_ms": 300},
+  {"do": "calculator", "id": "elemental_analysis", "reveal": false, "after_ms": 2000},
+  {"do": "results", "tag": "all", "search": "Formula", "expect": {"focus": "", "search": "Formula", "all_results_visible": false}, "after_ms": 400},
+  {"do": "results", "stay": true, "jump": "Nominal mass", "tag": "jump", "expect": {"focus": "elemental_analysis", "search": "Formula", "all_results_visible": true}, "after_ms": 400},
+  {"do": "results", "stay": true, "show_all": true, "tag": "back", "expect": {"focus": "", "search": "Formula", "all_results_visible": false}, "after_ms": 300},
+  {"do": "expect_clean", "tag": "end"},
+  {"do": "quit"}
+]

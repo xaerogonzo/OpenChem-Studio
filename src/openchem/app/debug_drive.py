@@ -2787,11 +2787,14 @@ class _Driver(QObject):
         `{"do": "goal_wizard", "goal": "identity", "scope": "this", "press": "run_recommended",
         "expect": {"ran_all": ["elemental_analysis"], "status_contains": "Running"}}`
 
-        `press` is `"run_recommended"` (page 1), or `"customise"` followed by `"run"` with
-        `untick` / `tick` naming calculators on the checklist, or absent to only open it.
-        The buttons, not `_emit`, because the wiring from a button to the run to Properties
-        is what is being proved. `expect.ran_all` reads the run the wizard emitted
-        (`last_run`), and `status_contains` what the wizard said back about it.
+        `press` is `"run_recommended"` (page 1), `"run_all"` (every recommended calculator,
+        which asks first; the harness answers that question), or `"customise"` followed by
+        `"run"` with `untick` / `tick` naming calculators on the checklist, or absent to
+        only open it. The buttons, not `_emit`, because the wiring from a button to the
+        run to Properties is what is being proved. `expect.ran_all` reads the run the
+        wizard emitted (`last_run`), `expect.parameters` is calculator id to the settings
+        that run must carry, and `status_contains` is what the wizard said back. For
+        `run_all` the status is the one Properties shows.
         """
         from openchem.ui.panels.property_panel import _SCOPE_ALL, _SCOPE_CHOSEN, _SCOPE_THIS
 
@@ -2814,13 +2817,22 @@ class _Driver(QObject):
                     check.setChecked(True)
         if press == "run_recommended":
             wizard._run_recommended_button.click()
+        elif press == "run_all":
+            wizard._run_all_button.click()
         elif press == "run":
             wizard._run_button.click()
         run = wizard.last_run
+        panel_status = self._window._property_panel._batch_status.text()
+        choice_lines = [
+            f"{label.property('openchem_calculator_id')}={label.text()}"
+            for label in wizard.findChildren(type(wizard._status), "goalChoiceSummary")
+        ]
         logger.warning(
-            "OPENCHEM_DRIVE: goal_wizard goal=%s page=%s run=%s status=%r",
+            "OPENCHEM_DRIVE: goal_wizard goal=%s page=%s run=%s parameters=%s status=%r panel=%r choices=%s",
             wizard.goal.goal_id, wizard._stack.currentIndex(),
-            list(run.calculator_ids) if run is not None else None, wizard._status.text(),
+            list(run.calculator_ids) if run is not None else None,
+            dict(run.parameters) if run is not None else None,
+            wizard._status.text(), panel_status, choice_lines,
         )
         expect = step.get("expect")
         if expect:
@@ -2832,9 +2844,20 @@ class _Driver(QObject):
             for calculator_id in expect.get("ran_none", []):
                 if calculator_id in ran:
                     problems.append(f"{calculator_id} was in the run")
+            if "parameters" in expect and run is not None:
+                for calculator_id, wanted in expect["parameters"].items():
+                    got = dict(run.parameters.get(calculator_id, {}))
+                    for key, value in dict(wanted).items():
+                        if got.get(key) != value:
+                            problems.append(f"{calculator_id}.{key} is {got.get(key)!r}, expected {value!r}")
+            said = panel_status if press == "run_all" else wizard._status.text()
             needle = expect.get("status_contains")
-            if needle and needle not in wizard._status.text():
-                problems.append(f"status {wizard._status.text()!r} lacks {needle!r}")
+            if needle and needle not in said:
+                problems.append(f"status {said!r} lacks {needle!r}")
+            if expect.get("choice_contains"):
+                blob = " ".join(choice_lines)
+                if str(expect["choice_contains"]) not in blob:
+                    problems.append(f"choices {blob!r} lack {expect['choice_contains']!r}")
             tag = str(step.get("tag", ""))
             if self._record_assertion("goal_wizard", tag, not problems, "; ".join(problems) or "as expected"):
                 logger.warning("OPENCHEM_DRIVE: EXPECT goal_wizard ok[%s]", tag)
@@ -4177,6 +4200,15 @@ class _Driver(QObject):
             "OPENCHEM_DRIVE: inspect %s -> %r", calculator_id, getattr(result, "name", "")
         )
 
+    def _formal_charge(self, molblock: str | None) -> int | None:
+        if not molblock:
+            return None
+        try:
+            mol = self._window._services.chemistry_engine.mol_from_molblock(molblock)
+        except Exception:  # noqa: BLE001 - a report must not stop the run
+            return None
+        return sum(atom.GetFormalCharge() for atom in mol.GetAtoms())
+
     def _do_inspect_report(self, step: dict[str, Any]) -> None:
         """What the open Calculator Inspector is drawing, in words a screenshot cannot give.
 
@@ -4212,10 +4244,26 @@ class _Driver(QObject):
         rows = view._table_proxy.rowCount() if getattr(view, "_table_proxy", None) is not None else None
         logger.warning(
             "OPENCHEM_DRIVE: inspect_report[%s] structure=%s atoms=%s formal_charge=%s placement=%r "
-            "labels_2d=%d table_rows=%s selected_atom=%s emphasised_2d=%s size=%dx%d",
+            "labels_2d=%d table_rows=%s selected_atom=%s emphasised_2d=%s size=%dx%d depiction_charge=%s",
             tag, view._structure_source, atoms, charge, view._placement_label.text(), labels_2d, rows,
             view.selected_atom(), view._emphasised, dialog.width(), dialog.height(),
+            self._formal_charge(view._depiction_molblock),
         )
+        expect = step.get("expect") or {}
+        problems = []
+        if "formal_charge" in expect and charge != expect["formal_charge"]:
+            problems.append(f"formal charge {charge}, expected {expect['formal_charge']}")
+        if "structure" in expect and view._structure_source != expect["structure"]:
+            problems.append(f"structure {view._structure_source}, expected {expect['structure']}")
+        if "depiction_charge" in expect and self._formal_charge(view._depiction_molblock) != expect["depiction_charge"]:
+            problems.append(
+                f"2D formal charge {self._formal_charge(view._depiction_molblock)}, expected {expect['depiction_charge']}"
+            )
+        if problems or expect:
+            if self._record_assertion("inspect_report", str(tag), not problems, "; ".join(problems) or "as expected"):
+                logger.warning("OPENCHEM_DRIVE: EXPECT inspect_report ok[%s]", tag)
+            else:
+                logger.error("OPENCHEM_DRIVE: EXPECT inspect_report FAILED[%s] -- %s", tag, "; ".join(problems))
         view._viewer3d._page.runJavaScript(
             "window.openchemViewer.labelState()",
             lambda state: logger.warning("OPENCHEM_DRIVE: inspect_report[%s] page=%s", tag, state),
@@ -5112,6 +5160,20 @@ class _Driver(QObject):
         screenshot, and a stale badge is a few pixels of text.
         """
         panel = self._window._property_panel
+        if step.get("stay") and getattr(self, "_results", None) is not None:
+            window = self._results
+            if "search" in step:
+                window._selector_search.setText(str(step.get("search") or ""))
+            if step.get("jump"):
+                self._click_results_button(window, "sectionJump", str(step["jump"]))
+            if step.get("show_all"):
+                window._all_results_button.click()
+            if step.get("open_link"):
+                self._click_results_link(window, str(step["open_link"]))
+            if step.get("open_viewer"):
+                window._open_button.click()
+            self._assert_results(window, step)
+            return
         if step.get("close"):
             # **RETURNS A DETACHED READER RATHER THAN DESTROYING ONE.** The
             # reader is persistent now, so there is no close -- what this
@@ -5183,8 +5245,117 @@ class _Driver(QObject):
         self._log_results_selector(window)
         self._log_results_visualizations(window)
         self._log_results_copy(window)
+        if step.get("jump"):
+            self._click_results_button(window, "sectionJump", str(step["jump"]))
+        if step.get("show_all"):
+            window._all_results_button.click()
+        if step.get("open_link"):
+            self._click_results_link(window, str(step["open_link"]))
+        if step.get("open_viewer"):
+            window._open_button.click()
         if "open_visual" in step:
             self._press_visual_open(window, int(step.get("open_visual") or 0))
+        self._assert_results(window, step)
+
+    def _assert_results(self, window: Any, step: dict[str, Any]) -> None:
+        search = window._selector_search.text()
+        jumps = list(window._view.section_jumps()) if hasattr(window._view, "section_jumps") else []
+        logger.warning(
+            "OPENCHEM_DRIVE: results after tag=%s focus=%r search=%r all_results_visible=%s jumps=%s",
+            step.get("tag", ""), window.focus(), search, window._all_results_button.isVisible(), jumps,
+        )
+        expect = step.get("expect") or {}
+        problems = []
+        if "focus" in expect and window.focus() != expect["focus"]:
+            problems.append(f"focus {window.focus()!r}, expected {expect['focus']!r}")
+        if "search" in expect and search != expect["search"]:
+            problems.append(f"search {search!r}, expected {expect['search']!r}")
+        if "all_results_visible" in expect and window._all_results_button.isVisible() != bool(expect["all_results_visible"]):
+            problems.append(f"All results visible={window._all_results_button.isVisible()}")
+        if "jumps_at_least" in expect and len(jumps) < int(expect["jumps_at_least"]):
+            problems.append(f"{len(jumps)} jumps, expected at least {expect['jumps_at_least']}")
+        if problems or expect:
+            if self._record_assertion("results", str(step.get("tag", "")), not problems, "; ".join(problems) or "as expected"):
+                logger.warning("OPENCHEM_DRIVE: EXPECT results ok[%s]", step.get("tag", ""))
+            else:
+                logger.error("OPENCHEM_DRIVE: EXPECT results FAILED[%s] -- %s", step.get("tag", ""), "; ".join(problems))
+
+    def _click_results_button(self, window: Any, object_name: str, needle: str) -> None:
+        """Press a real reader button whose object name matches and whose text contains `needle`."""
+        from PySide6.QtWidgets import QPushButton
+
+        wanted = needle.casefold()
+        buttons = [
+            button for button in window._view.findChildren(QPushButton, object_name)
+            if button.text().casefold() == wanted
+        ]
+        if not buttons:
+            buttons = [
+                button for button in window._view.findChildren(QPushButton, object_name)
+                if wanted in button.text().casefold()
+            ]
+        if not buttons:
+            logger.error("OPENCHEM_DRIVE: results has no %s button containing %r", object_name, needle)
+            return
+        buttons[0].click()
+
+    def _click_results_link(self, window: Any, needle: str) -> None:
+        """Press a fact's real Open button, matched on the tooltip (the button itself is '>')."""
+        from PySide6.QtWidgets import QPushButton
+
+        wanted = needle.casefold()
+        buttons = [
+            button for button in window.findChildren(QPushButton)
+            if button.property("fact_link") is not None and wanted in button.toolTip().casefold()
+        ]
+        if not buttons:
+            logger.error("OPENCHEM_DRIVE: results has no fact link whose tip contains %r", needle)
+            return
+        buttons[0].click()
+
+    def _do_nmr_panes(self, step: dict[str, Any]) -> None:
+        """Press Hide 2D / Hide 3D on the open NMR viewer and read what is actually hidden.
+
+        `{"do": "nmr_panes", "hide": ["2d"], "tag": "hide-2d", "expect": {"2d": false, "3d": true, "splitter": true}}`
+        `hide` is which pictures to hide (`2d`, `3d`); `"reset": true` presses Reset Settings instead.
+        """
+        from PySide6.QtWidgets import QApplication
+
+        dialogs = [widget for widget in QApplication.topLevelWidgets() if type(widget).__name__ == "NmrViewDialog" and widget.isVisible()]
+        if not dialogs:
+            logger.error("OPENCHEM_DRIVE: nmr_panes needs an open NMR view")
+            return
+        view = dialogs[-1].view
+        if step.get("reset"):
+            view._reset_settings_action.trigger()
+        for which in step.get("hide") or []:
+            action = {"2d": view._hide_2d_action, "3d": view._hide_3d_action}.get(str(which))
+            if action is None:
+                logger.error("OPENCHEM_DRIVE: nmr_panes has no pane %r", which)
+                continue
+            if not action.isChecked():
+                action.trigger()
+        state = {
+            "2d": not view._svg_widget.isHidden(),
+            "3d": not view._structure_3d.isHidden(),
+            "splitter": not view._structures_splitter.isHidden(),
+            "spectrum": view._spectrum_widget.isVisible(),
+            "table": view._table_tabs.isVisible(),
+            "floor": min(view._svg_widget.minimumWidth(), view._structure_3d.minimumWidth()),
+        }
+        logger.warning("OPENCHEM_DRIVE: nmr_panes[%s] %s", step.get("tag", ""), state)
+        expect = step.get("expect") or {}
+        problems = [
+            f"{key} is {state.get(key)}, expected {value}"
+            for key, value in expect.items()
+            if state.get(key) != value
+        ]
+        if problems or expect:
+            tag = str(step.get("tag", ""))
+            if self._record_assertion("nmr_panes", tag, not problems, "; ".join(problems) or "as expected"):
+                logger.warning("OPENCHEM_DRIVE: EXPECT nmr_panes ok[%s]", tag)
+            else:
+                logger.error("OPENCHEM_DRIVE: EXPECT nmr_panes FAILED[%s] -- %s", tag, "; ".join(problems))
 
     def _log_results_visualizations(self, window: Any) -> None:
         """What the reader offers to SHOW, and what it offers to OPEN.
