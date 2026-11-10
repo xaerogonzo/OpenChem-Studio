@@ -717,7 +717,12 @@ class ResultsView(QWidget):
         # truthiness here made it unfocusable -- it appeared in the selector
         # and choosing it fell back to All results, silently.
         self._focus = report_id if self._merged.report_for(report_id) is not None else ""
-        self._sync_focus_box()
+        # Rebuild, rather than only moving the current row. The selector
+        # search lists results by name and section, so the result a fact
+        # name just opened may not be in that list. `_sync_focus_box`
+        # treats a missing row as "back to All results", which threw the
+        # jump away. `matching_reports` already keeps the focused entry.
+        self._rebuild_focus_box()
         self._render()
 
     # --- rendering -----------------------------------------------------------

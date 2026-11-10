@@ -1004,6 +1004,23 @@ def test_a_fact_name_in_all_results_focuses_its_report(qapp):
     dispose(window)
 
 
+def test_a_jump_sticks_when_the_selector_search_does_not_name_that_result(qapp):
+    """The Showing filter matches names and sections, not fact labels.
+
+    A fact in All results can still be clicked while that filter hides the
+    result it belongs to. The jump has to keep the result on screen: syncing
+    the box used to treat a missing row as All results and undo the click.
+    """
+    window = ResultsView("mol-1")
+    window.set_reports(_two())
+    window._selector_search.setText("zzzz")
+    _jump(window._view, "Formula").click()
+    assert window.focus() == "elemental_analysis"
+    assert window._focus_box.findData("elemental_analysis") >= 0
+    assert not window._all_results_button.isHidden()
+    dispose(window)
+
+
 def test_returning_to_all_results_keeps_the_fact_search(qapp):
     window = ResultsView("mol-1")
     window.set_reports(_two())
