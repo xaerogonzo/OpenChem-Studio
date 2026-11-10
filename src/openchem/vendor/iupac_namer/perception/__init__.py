@@ -81,7 +81,7 @@ class Perception:
 
     @property
     def stereo(self) -> StereoAnalysis:
-        """Stereocenter detection — tetrahedral R/S and double-bond E/Z."""
+        """Stereocenter detection — tetrahedral R/S, double-bond E/Z, even-cumulene P/M."""
         if self._stereo is None:
             self._stereo = StereoAnalysis(self._mol, self.atoms)
         return self._stereo
