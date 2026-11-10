@@ -6,6 +6,7 @@ These sections were moved here on 2026-10-29 from the assistant's private memory
 
 ## Contents
 
+- [project-six-shards-2026-11-10](#project-six-shards-2026-11-10) — Shard 1 of five timed out at 30 min with no test failing on unrelated PRs; sixth shard, ruleset `1/6`…`6/6`
 - [project-shard3-timeout-2026-10-14](#project-shard3-timeout-2026-10-14) — CI shard 3/3 timed out at the 30-min step on master and on two PRs on 2026-10-14; the red is capacity, not a test; how it was told apart from a regression
 - [project-handoff-2026-10-07-shards-and-naming-prs](#project-handoff-2026-10-07-shards-and-naming-prs) — State of play at 2026-10-07 ~03:30 UTC when Alex archived the sessions to start over: open PRs #239 and #242, the fork ports of #235 and #239 (DONE, fork #24), three-shard CI + ruleset facts, and what is deliberately NOT being done
 - [project-suite-time-and-linux-closed](#project-suite-time-and-linux-closed) — MERGED #92/#93 (2026-09-12): 30% of the suite is one gc.collect() that nothing cheaper can replace, the suite is sharded, and the Linux crash chase is CLOSED by Alex's decision
@@ -29,6 +30,14 @@ These sections were moved here on 2026-10-29 from the assistant's private memory
 - [reference-merging-prs-and-required-checks](#reference-merging-prs-and-required-checks) — How a PR actually gets merged here: gh-api merge is blocked by the auto-mode classifier, auto-merge needs the ruleset, a path-filtered workflow cannot be a required check, and how to rebase a stack onto a squash-merged base without force
 - [reference-branch-and-scratch-cleanup-rule](#reference-branch-and-scratch-cleanup-rule) — What is safe to delete after a naming round: local branches with a MERGED PR whose tip is on a remote branch, merged fork branches, merged-round scratch dirs; what to keep and report
 - [project-conformer-descriptor-race-stack](#project-conformer-descriptor-race-stack) — #334 MERGED (restore path, one owner per shape id); #336 (in-flight drawing run, _GeometryClaims) retargeted to master, CI running, merge is Alex's call
+
+## project-six-shards-2026-11-10
+
+*Shard 1 of five timed out at the 30-min step with no pytest `FAILED` on unrelated PRs (#567, #569, Results navigation/settings). Capacity, not a test. Sixth shard; do not raise the 30.*
+
+On 2026-11-10 `test suite 1/5` on PR #569 (`d5191f68`) was killed at `timed out after 30 minutes` around 85% collected, with no shard summary line. The later step then said "A test failed or the step timed out. This was not a crash, so it is not retried." Same pattern as the 4→5 move (#481): a slow runner fills the five-way 30-minute step, other shards pass, a re-run of the same SHA sometimes passes. This happened more than once in a week.
+
+**The fix:** matrix `shard: [1, 2, 3, 4, 5, 6]`, `--repin --splits=6` (820 files, modelled 1081–1085 s each). Step timeout stays 30. Required checks are matched by exact job name, so ruleset Basic (id 20312707) must require `gating benchmarks` + `test suite 1/6`…`6/6`. Other open PRs then need master merged in to report `/6`.
 
 ## project-shard3-timeout-2026-10-14
 

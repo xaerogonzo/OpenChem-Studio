@@ -120,7 +120,7 @@ jobs:
       # problem is local, are destroyed.
       fail-fast: false
       matrix:
-        shard: [1, 2, 3, 4, 5]
+        shard: [1, 2, 3, 4, 5, 6]
     # 30 WAS NOT A CEILING, IT WAS A COIN FLIP -- measured across five
     # consecutive runs, four of them on unmodified master:
     #
@@ -196,6 +196,12 @@ jobs:
     # next, over identical code, and timed out (30 minutes, no test failed) on master's own push and on pull requests; the other shards sat at
     # 27 to 30. Four shards were at capacity on a runner that varies by 15%, so the fifth carries the same files at about 80% of the step. The
     # required checks are matched by exact job name: `test suite 1/4` ... `4/4` become `1/5` ... `5/5` in the master ruleset when this merges.
+    #
+    # **SIX SHARDS SINCE 2026-11-10, THE SAME SENTENCE FOLLOWED A FOURTH TIME.** Shard 1 of five timed out at the 30-minute step with no test
+    # failing on unrelated PRs (#567, #569, Results navigation/settings) in the same week: 85% collected when the cap fired. Five shards are at
+    # capacity on a slow runner the same way four were. Six carry the same files at about 5/6 of that wall (modelled ~808 s each vs ~970 s on five).
+    # The step limit stays 30. The required checks are matched by exact job name: `test suite 1/5` ... `5/5` become `1/6` ... `6/6` in the master
+    # ruleset (Basic, id 20312707) when this merges.
     #
     # THE SPLIT WAS BALANCED ON WALL TIME, NOT ON THE TIME TESTS REPORT. A shard's wall time is its tests + the
     # `gc.collect()` after each Qt test + ~30 s, to the second in both shards of both runs read; the weights modelled
