@@ -1,7 +1,7 @@
 # Salt composition engine: design
 
-**Status: architecture contract accepted for slice 1; `balance_two` and
-Mode B are the first code; Mode A/C/UI still not authorized by this slice.**
+**Status: slice 1 (`balance_two`, Mode B) is in master; slice 2 adds Mode A
+for two molecular neutrals; Mode C and UI still not authorized by this work.**
 This note is the scientific and module-boundary contract. It is not an
 implementation plan: file names below are the intended homes when code exists,
 not a commitment to write them in this change. No calculator is registered, no
