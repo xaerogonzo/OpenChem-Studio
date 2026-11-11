@@ -1,6 +1,6 @@
 """Smallest charge-neutral integers for exactly two ions.
 
-No RDKit. No lattice-energy import. Identity is opaque: the solver uses
+No chemistry toolkit. No lattice-energy import. Identity is opaque: the solver uses
 charges only. Drawn multiplicities are a later layer's problem.
 
     n_C = |z-| / gcd(|z+|, |z-|)
