@@ -1,0 +1,37 @@
+{
+  "id": "nucleobases",
+  "title": "Nucleobases",
+  "description": "The five common free nucleobases, not nucleosides or nucleotides.",
+  "entries": [
+    {
+      "id": "nucleobases.adenine",
+      "name": "Adenine",
+      "smiles": "Nc1ncnc2[nH]cnc12",
+      "tags": ["A", "purine"]
+    },
+    {
+      "id": "nucleobases.cytosine",
+      "name": "Cytosine",
+      "smiles": "Nc1ccnc(=O)[nH]1",
+      "tags": ["C", "pyrimidine"]
+    },
+    {
+      "id": "nucleobases.guanine",
+      "name": "Guanine",
+      "smiles": "Nc1nc2[nH]cnc2c(=O)[nH]1",
+      "tags": ["G", "purine"]
+    },
+    {
+      "id": "nucleobases.thymine",
+      "name": "Thymine",
+      "smiles": "Cc1c[nH]c(=O)[nH]c1=O",
+      "tags": ["T", "pyrimidine"]
+    },
+    {
+      "id": "nucleobases.uracil",
+      "name": "Uracil",
+      "smiles": "O=c1cc[nH]c(=O)[nH]1",
+      "tags": ["U", "pyrimidine"]
+    }
+  ]
+}

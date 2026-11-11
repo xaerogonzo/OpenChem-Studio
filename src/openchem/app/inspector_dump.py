@@ -13,6 +13,7 @@ from typing import Any
 from openchem.chem.molblock_summary import same_if_both, summarize_molblock
 from openchem.domain.molecule import MoleculeModel
 
+#: Inspect dump JSON schema version. Bump when the record shape changes.
 SCHEMA_VERSION = 1
 
 #: Provenance.parameters keys that identify the calculation without dumping paths.
@@ -24,6 +25,7 @@ _PROVENANCE_PARAMETER_KEYS = (
     "method",
 )
 
+#: Keys inspect_report may assert. An unknown expect key fails closed.
 INSPECT_REPORT_EXPECT_KEYS = frozenset(
     {
         "structure",

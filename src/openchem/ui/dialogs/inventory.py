@@ -145,6 +145,27 @@ def iter_dialog_fixtures() -> Iterator[DialogFixture]:
         dialog.set_draft(Draft(inputs=(InputRow("psa", "descriptor:tpsa"),), constants=(ConstantRow("hi", "140", "\u00c5^2"),)))
         return dialog
 
+    def template_library(_context: DialogContext):
+        from openchem.chem.engine import ChemistryEngine
+        from openchem.domain.structure_template_store import StructureTemplateStore
+        from openchem.ui.dialogs.template_library_dialog import TemplateLibraryDialog
+
+        class _StubEditor:
+            _molecule = None
+
+            def get_molblock(self, callback):
+                callback("")
+
+            def insert_template_molblock(self, molblock, callback):
+                callback(None)
+
+        # A throwaway store so the help-contract walk never writes the user's library.
+        from pathlib import Path
+        import tempfile
+
+        store = StructureTemplateStore(Path(tempfile.mkdtemp(prefix="openchem-templates-")))
+        return TemplateLibraryDialog(_StubEditor(), ChemistryEngine(), store=store)
+
     def particle(_context: DialogContext):
         from openchem.ui.dialogs.particle_dialog import ParticleDialog
 
@@ -430,6 +451,7 @@ def iter_dialog_fixtures() -> Iterator[DialogFixture]:
     yield DialogFixture("GoalWizardDialog", goal_wizard, needs="the service container")
     yield DialogFixture("LewisPairingDialog", lewis_pairing, needs="the service container")
     yield DialogFixture("ScoreDialog", derived_scores)
+    yield DialogFixture("TemplateLibraryDialog", template_library)
     yield DialogFixture("ConformerDetailsDialog", conformer_details, needs="a conformer")
     yield DialogFixture(
         "StructureContentsDialog", structure_contents, needs="a parsed structure summary"

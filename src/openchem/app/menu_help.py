@@ -363,6 +363,17 @@ MENU_HELP: dict[str, HelpTooltip] = {
         tier=2, help_id="structure.check_structure", topic=_M,
         help_anchor="structure-check",
     ),
+    "template_library": HelpTooltip(
+        text=(
+            "Opens this application's structure template library: shipped complete "
+            "molecules, My Templates, and imported categories.\n\n"
+            "Insert places the selected molecule to the right of the drawing as one "
+            "undo step. This is not the editor's own T-button library, and a free "
+            "amino acid here is not a peptide residue."
+        ),
+        tier=2, help_id="structure.template_library", topic=_M,
+        help_anchor="template-library",
+    ),
     "check_structure_indigo": HelpTooltip(
         text=(
             "Runs the EDITOR's own checker (Indigo) -- the opinion the canvas "

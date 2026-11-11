@@ -1,2 +1,2 @@
 ### Drive: louder Calculator Inspector dump
-- `inspect_report` writes one compact JSON object per tag: drawing vs 2D depiction vs the structure supplied to the 3D viewer, pane sizes, and the requested calculator id beside the result's property id. A walk without `expect` stays observational.
+- `inspect_report` writes one compact JSON object per tag: drawing vs 2D depiction vs the structure supplied to the 3D viewer, pane sizes, and the requested calculator id beside the result's property id. A walk without `expect` stays observational. `#:` comments on `SCHEMA_VERSION` and `INSPECT_REPORT_EXPECT_KEYS` keep them on the documented-constant ratchet.

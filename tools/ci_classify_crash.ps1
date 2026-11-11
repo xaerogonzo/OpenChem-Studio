@@ -9,12 +9,13 @@
 # victim. Those are what measure the crash rate over time, which is the only way to learn whether
 # any fix worked: the crash cannot be reproduced locally.
 #
-# `-ExitCode` (optional, only the measurement workflow passes it) adds the OTHER shape of the same crash:
-# pytest printed a CLEAN summary (nothing failed, nothing errored) and the process still exited non-zero,
-# with no fatal-exception text at all -- measured on windows-crash-rate run 37356155136, leg 5: "6535 passed
-# ... in 1322.04s", exit 1. That is a crash at interpreter exit, and without this it was filed as an
-# ordinary failure and the crash rate came out low. The retry in tests.yml does not pass it, so what CI
-# retries is unchanged.
+# `-ExitCode` adds the OTHER shape of the same crash: pytest printed a CLEAN summary (nothing
+# failed, nothing errored) and the process still exited non-zero, with no fatal-exception text
+# at all -- measured on windows-crash-rate run 37356155136, leg 5: "6535 passed ... in 1322.04s",
+# exit 1; seen again on suite shard 5 of PR #575 (1c642c96): "3523 passed ... in 687.47s", exit 1.
+# That is a crash at interpreter exit. tests.yml passes `-ExitCode 1` because the classify step
+# runs only when the first attempt already failed; without it that shape was filed as an ordinary
+# failure and not retried. A timeout still has no summary, so it is not retried.
 param([Parameter(Mandatory)][string]$Log, [int]$Shard = 0, [int]$ExitCode = 0)
 
 if (-not (Test-Path -LiteralPath $Log)) { Write-Output "crashed=false"; exit 0 }

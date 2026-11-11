@@ -151,9 +151,16 @@ class EditStructureCommand(OpenChemCommand):
         # same structure the undo is reverting to, so they're still valid.
         self._old_conformers: list[ConformerModel] = list(molecule.conformers)
         self._old_smiles = molecule.canonical_smiles
+        #: Filled on the first `redo` (including `QUndoStack.push`).
+        self._new_smiles: str | None = None
+
+    def redo_smiles(self) -> str | None:
+        """The constitution this command would put back. None before the first redo."""
+        return self._new_smiles
 
     def redo(self) -> None:
         self._engine.set_structure_from_molblock(self._molecule, self._new_molblock)
+        self._new_smiles = self._molecule.canonical_smiles
         self._invalidate_stale_conformers()
         drawing, self._during_edit = self._during_edit, False
         self._event_bus.publish(MoleculeChanged(molecule_uuid=self._molecule.uuid, during_edit=drawing))

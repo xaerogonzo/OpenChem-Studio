@@ -337,6 +337,7 @@ def test_the_windows_ten_shortcuts_are_registered_with_their_defaults(window):
         "settings": "Ctrl+,",
         "rotate_in_3d": "F7",
         "check_structure": "Ctrl+Shift+K",
+        "template_library": "Ctrl+Shift+T",
         "recalculate_now": "F5",
         "help_current_panel": "F1",
     }, "a command that gained or lost a shortcut in code must say so here"
