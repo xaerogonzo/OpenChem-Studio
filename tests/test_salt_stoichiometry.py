@@ -8,12 +8,27 @@ from pathlib import Path
 import pytest
 
 from openchem.domain.salt_stoichiometry import (
+    KIND_ION,
+    KIND_METAL_HYDROXIDE,
+    KIND_MOLECULAR_NEUTRAL,
     BalanceRefusal,
     ChargedSpecies,
+    ModeARefusal,
+    ModeASpecies,
     TwoIonBalance,
     balance_two,
+    compose_mode_a,
     formula_unit_conserved,
 )
+
+
+def _species(identity: str, charge: int, kind: str, counts: dict[str, int]) -> ModeASpecies:
+    return ModeASpecies(
+        identity=identity,
+        charge=charge,
+        kind=kind,
+        element_counts=tuple(sorted(counts.items())),
+    )
 
 
 def test_plus_one_and_minus_one_is_one_to_one() -> None:
@@ -93,6 +108,28 @@ def test_a_one_to_one_check_of_the_base_against_the_dication_is_the_wrong_test()
     base = {"C": 2, "H": 8, "N": 2}
     cation = {"C": 2, "H": 10, "N": 2}
     assert not formula_unit_conserved([(base, 1)], [(cation, 1)])
+
+
+def test_naoh_plus_acetic_is_refused_as_hydroxide_neutralization() -> None:
+    result = compose_mode_a(
+        _species("NaOH", 0, KIND_METAL_HYDROXIDE, {"H": 1, "Na": 1, "O": 1}),
+        _species("AcOH", 0, KIND_MOLECULAR_NEUTRAL, {"C": 2, "H": 4, "O": 2}),
+        _species("Na+", 1, KIND_ION, {"Na": 1}),
+        _species("AcO-", -1, KIND_ION, {"C": 2, "H": 3, "O": 2}),
+    )
+    assert isinstance(result, ModeARefusal)
+    assert result.code == "hydroxide_neutralization"
+
+
+def test_neutral_base_plus_sulfate_without_a_proton_source_is_refused() -> None:
+    result = compose_mode_a(
+        _species("B", 0, KIND_MOLECULAR_NEUTRAL, {"C": 2, "H": 7, "N": 1}),
+        _species("SO4", -2, KIND_ION, {"O": 4, "S": 1}),
+        _species("BH+", 1, KIND_ION, {"C": 2, "H": 8, "N": 1}),
+        _species("SO4", -2, KIND_ION, {"O": 4, "S": 1}),
+    )
+    assert isinstance(result, ModeARefusal)
+    assert result.code == "missing_proton_source"
 
 
 def test_the_domain_module_does_not_import_lattice_energy() -> None:

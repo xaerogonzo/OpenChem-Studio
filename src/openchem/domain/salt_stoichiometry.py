@@ -21,6 +21,60 @@ from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from math import gcd
 
+KIND_MOLECULAR_NEUTRAL = "molecular_neutral"
+KIND_ION = "ion"
+KIND_METAL_HYDROXIDE = "metal_hydroxide"
+
+
+@dataclass(frozen=True)
+class ModeASpecies:
+    identity: str
+    charge: int
+    kind: str
+    element_counts: tuple[tuple[str, int], ...]
+
+
+@dataclass(frozen=True)
+class ModeAComposition:
+    cation_count: int
+    anion_count: int
+    charge_valid: bool
+
+
+@dataclass(frozen=True)
+class ModeARefusal:
+    code: str
+    reason: str
+
+
+def compose_mode_a(
+    base: ModeASpecies,
+    acid: ModeASpecies,
+    cation: ModeASpecies,
+    anion: ModeASpecies,
+) -> ModeAComposition | ModeARefusal:
+    if base.kind == KIND_METAL_HYDROXIDE or acid.kind == KIND_METAL_HYDROXIDE:
+        return ModeARefusal(
+            code="hydroxide_neutralization",
+            reason=(
+                "Metal-hydroxide neutralization is not two-neutral proton "
+                "transfer; v1 does not form water and a spectator cation."
+            ),
+        )
+    kinds = {base.kind, acid.kind}
+    if KIND_MOLECULAR_NEUTRAL in kinds and KIND_ION in kinds:
+        return ModeARefusal(
+            code="missing_proton_source",
+            reason=(
+                "A molecular neutral plus a supplied ion does not provide "
+                "the protons for the product ions."
+            ),
+        )
+    return ModeARefusal(
+        code="not_implemented",
+        reason="Success path is the next task.",
+    )
+
 
 @dataclass(frozen=True)
 class ChargedSpecies:
