@@ -2,175 +2,210 @@
 
 Research inventory only. **Not loaded by the application.** Do not add this file or the sibling JSON to `_SHIPPED_FILES` in `src/openchem/chem/structure_templates.py`.
 
-Companion: [`STRUCTURE_TEMPLATE_CANDIDATES.json`](STRUCTURE_TEMPLATE_CANDIDATES.json). One chemical identity per entry, many `category_ids`. Structures from PubChem PUG REST (record id + URL on every row). ChEBI ids from UniChem source 7 when present (162 of 193). Head of this worktree: `f503ba5b`.
+Companion: [`STRUCTURE_TEMPLATE_CANDIDATES.json`](STRUCTURE_TEMPLATE_CANDIDATES.json). Schema version 2. One chemical identity per entry, many `category_ids`.
 
-A later, separately reviewed change would convert accepted identities into shipped JSON and, if wanted, multi-category support in `TemplateEntry`. 3D insert and fuse-on-click fragments are separate slices.
+This revision is an **identity-correction pass**. RDKit parse/sanitize is recorded separately from identity verification. A valid graph is not evidence that the record is the intended compound.
 
-## V1 constraints (this checkout)
+## QA summary
 
-Shipped catalog: four files (`rings.json`, `amino_acids.json`, `nucleobases.json`, `sugars.json`), **34** entries (7 + 20 + 5 + 2). `TemplateEntry` has a **singular** `category_id`. Kind is `complete_molecule` only. Dummy atoms, query atoms, and S-groups are refused. `molblock_for()` builds a 2D molblock from SMILES, or regenerates 2D when a stored molblock has |z| > 0.05 Å — so a 3D conformer does not survive the current insert path.
+| Measure | Count |
+|---|---|
+| Candidate records | 195 |
+| PubChem records retrieved | 195 |
+| RDKit parse/sanitize passed | 195 |
+| Identity verified | 193 |
+| Identity mismatch | 0 |
+| Identity unresolved | 2 |
+| Accepted candidates (identity + RDKit) | 193 |
+| Editor-ready (accepted, not coordination-special) | 186 |
+| Stereochemistry reviewed | 41 |
+| Stereochemistry not applicable | 123 |
+| Stereochemistry not reviewed | 31 |
+| Editor display tested | 0 |
+| Coordination/metal special handling | 7 |
+| PubChem CID replaced vs previous draft | 30 |
+| ChEBI independently verified (OLS name) | 151 |
 
-Amino acids in V1 are the 20 proteinogenic set (glycine + 19 L), stored as **neutral** carboxylic acid + amine, not the zwitterion. This dump keeps that form. A later note for shipped docs: that set is not “20 L plus glycine.”
+Do not read `rdkit_structure_accepted` as overall acceptance. `validation.candidate_accepted` requires `identity.status == verified` as well.
 
-This JSON is richer than `TemplateEntry` on purpose (`category_ids`, `category_memberships`, `structure_form`, alkaloid class, validation, both PubChem and ChEBI provenance).
+### CID replacements this pass
 
-## Inclusion rules
+| Id | Intended name | Previous CID | New CID | PubChem title |
+|---|---|---|---|---|
+| `pyrrole` | Pyrrole | 802 | 8027 | Pyrrole |
+| `benzothiophene` | Benzo[b]thiophene | 9224 | 7221 | Benzo(B)Thiophene |
+| `cyclopropane` | Cyclopropane | 6354 | 6351 | Cyclopropane |
+| `cyclopentadiene` | Cyclopentadiene | 6491 | 7612 | Cyclopentadiene |
+| `cyclooctane` | Cyclooctane | 11717 | 9266 | Cyclooctane |
+| `cyclodecane` | Cyclodecane | 13611 | 9267 | Cyclodecane |
+| `cis_decalin` | cis-Decalin | 9244 | 7044 | Decalin |
+| `trans_decalin` | trans-Decalin | 9243 | 7044 | Decalin |
+| `norbornene` | Norbornene | 82466 | 638051 | Norbornene |
+| `bicyclo_2_2_2_octane` | Bicyclo[2.2.2]octane | 13609 | 9235 | Bicyclo(2.2.2)octane |
+| `bicyclo_1_1_1_pentane` | Bicyclo[1.1.1]pentane | 139601 | 136153 | Bicyclo(1.1.1)pentane |
+| `barrelene` | Barrelene | 136091 | 136326 | Barrelene |
+| `camphor` | (1R,4R)-Camphor | 2537 | 159055 | D-Camphor |
+| `perylene` | Perylene | 9115 | 9142 | Perylene |
+| `coronene` | Coronene | 9112 | 9115 | Coronene |
+| `15_crown_5` | 15-Crown-5 | 27224 | 36336 | 15-Crown-5 |
+| `21_crown_7` | 21-Crown-7 | 27225 | 93160 | 1,4,7,10,13,16,19-Heptaoxacycloheneicosane |
+| `dibenzo_18_crown_6` | Dibenzo-18-crown-6 | 24847 | 26541 | Dibenzo-18-crown-6 |
+| `benzo_15_crown_5` | Benzo-15-crown-5 | 24846 | 84197 | 1,4,7,10,13-Benzopentaoxacyclopentadecin, 2,3,5,6,8,9,11,12-octahydro- |
+| `1_10_diaza_18_crown_6` | 1,10-Diaza-18-crown-6 | 27351 | 72805 | Diaza-18-crown-6 |
+| `l_selenocysteine` | L-Selenocysteine | 6326983 | 25076 | L-Selenocysteine |
+| `fmoc_glycine` | Fmoc-Glycine | 94144 | 93124 | Fmoc-Gly-OH |
+| `fmoc_l_alanine` | Fmoc-L-alanine | 100113 | 6364642 | N-((9H-Fluoren-9-ylmethoxy)carbonyl)-L-alanine |
+| `boc_glycine` | Boc-Glycine | 84944 | 78288 | N-(tert-butoxycarbonyl)glycine |
+| `boc_l_alanine` | Boc-L-alanine | 6950269 | 85082 | Tert-butoxycarbonylalanine |
+| `guanine` | Guanine | 764 | 135398634 | Guanine |
+| `hypoxanthine` | Hypoxanthine | 790 | 135398638 | Hypoxanthine |
+| `isoflavone` | Isoflavone | 70377 | 72304 | Isoflavone |
+| `naringenin` | Naringenin | 932 | 439246 | Naringenin |
+| `cyanocobalamin` | Cyanocobalamin | 5311498 | 166596686 | Cyanocobalamin |
 
-A candidate is in the dump only if all of these hold:
+### Not identity-verified
 
-- It is a **named complete molecule**, not a Markush, not a dummy-atom fragment, not a bulk natural-product dump.
-- PubChem returned a CID and a SMILES for that identity.
-- RDKit parsed and sanitized that SMILES. No atomic-number-0 dummy, no query atoms.
-- The structure form is recorded (charge, protonation, stereo or anomer/ring form where it matters, salt vs free).
-- Class membership that is **not** a graph property (alkaloids, vitamers, anomers) has a source, or is marked as a browsing decision.
+| Id | Status | Rationale |
+|---|---|---|
+| `cis_decalin` | unresolved | PubChem name queries for cis- and trans-decalin both resolve to unspecified CID 7044 (Decalin), formula C10H18, with no stereochemistry in the SMILES. Not identity-verified as the named stereoisomer. |
+| `trans_decalin` | unresolved | PubChem name queries for cis- and trans-decalin both resolve to unspecified CID 7044 (Decalin), formula C10H18, with no stereochemistry in the SMILES. Not identity-verified as the named stereoisomer. |
 
-Rejected during QA, not silently rewritten: PubChem CID 5460518 for “cobalamin” is oxidoboron (`BO+`); CID 439386 for “beta-D-mannopyranose” is a sulfate (`C6H12O9S`); CID 439163 / 439242 for xylose are the wrong formulas; CID 6036 is unspecified D-galactose, not the beta pyranose. Those rows cite the replacement CID.
+## V1 constraints
 
-Do not pad a category with analogues to hit a count. Broad categories aimed at about 5–20 recognizable parents; a closed set is enumerated when the names are the point (crowns, C3–C12 cycloalkanes, the proteinogenic acids, the five nucleobases, the four deoxynucleosides).
+Shipped catalog remains four files and **34** entries. `TemplateEntry` still has a singular `category_id`. Dummy/query/S-group refused. `molblock_for()` flattens 3D. Amino acids in V1 and in this dump are **neutral** carboxylic acid + amine, not zwitterions.
+
+This JSON remains richer than `TemplateEntry`.
+
+## Inclusion and identity rules
+
+- Intended OpenChem `name` is preserved. Never rename the entry to match a wrong PubChem title.
+- PubChem is queried by intended name (and aliases), not by a guessed CID.
+- Identity verification needs a name-resolved record, a title/synonym overlap, and an expected-formula match when a formula is specified.
+- ChEBI is resolved from the intended name via OLS, not from UniChem of the selected CID.
+- `as_source` on tautomer/protonation/salt is provenance, not a completed review (`status: not_reviewed` unless independently decided).
 
 ## Content kinds
 
-| Kind | Meaning | This dump |
-|---|---|---|
-| **A** | Complete molecules on the V1 insert path | Every accepted entry |
-| **B** | Attachment fragments (`*` is a wildcard, not an attach handle) | Category kept; populated with complete-molecule examples only; fuse-on-click deferred |
-| **C** | Generic / query (homology, Markush) | Taxonomy only; no fake SMILES |
-| **D** | Conformers / 3D | Taxonomy only; PubChem `ConformerCount3D` is stored as availability, not as a template |
+| Kind | Meaning |
+|---|---|
+| **A** | Complete molecules |
+| **B** | Attachment fragments (deferred; `*` is a wildcard) |
+| **C** | Query / homology (not ordinary SMILES) |
+| **D** | Conformers / 3D (availability only) |
 
-## Taxonomy (26 supplied concepts)
+## Taxonomy
 
-| Id | Title | Kind | Treatment |
-|---|---|---|---|
-| `generic` | Generic | A | Common starters (benzene, pyridine, cyclohexane, water). Not assumed to duplicate the 2D editor’s built-in rings. |
-| `rings` | Rings | A | Common ring parents as complete molecules. |
-| `cyclopentyl_rings` | Cyclopentyl rings | A (B later) | Cyclopentane and close relatives as molecules. Attachment use deferred. |
-| `phenyl_rings` | Phenyl rings | A (B later) | Benzene and phenyl-containing molecules. Attachment use deferred. |
-| `amino_acids` | Amino acids | A | Neutral proteinogenic set plus selenocysteine and ornithine. |
-| `aromatics` | Aromatics | A | Named aromatics and fused parents. |
-| `bicyclics` | Bicyclics | A | Named bicyclic parents (decalins, norbornane, …). |
-| `bridged_polycyclics` | Bridged polycyclics | A | Bridged and cage parents (adamantane, cubane, …). |
-| `crown_ethers` | Crown ethers | A | 12-crown-4 through 21-crown-7 plus two benzo crowns and 1,10-diaza-18-crown-6. |
-| `cycloalkanes` | Cycloalkanes | A | C3–C12 monocycles plus methylcyclohexane and both decalins. |
-| `conformers` | Conformers | D | **Unresolved.** V1 `molblock_for` regenerates 2D. Empty. |
-| `heterocycles` | Heterocycles | A | Named heterocyclic parents (largest browsing bucket). |
-| `polycyclics` | Polycyclics | A | Fused aromatics and cages. |
-| `homology_groups` | Homology groups | C | **Deferred.** Query/variable groups are not ordinary SMILES. Empty. |
-| `alpha_d_sugars` | Alpha D sugars | A | Named α-D pyranoses/furanoses; ring form and anomer recorded. |
-| `beta_d_sugars` | Beta D sugars | A | Named β-D pyranoses/furanoses; ring form and anomer recorded. |
-| `deoxynucleosides` | Deoxynucleosides | A | dA, dG, dC, thymidine. |
-| `flavonoids` | Flavonoids | A | Subclass parents plus named aglycones. Cyanidin is the flavylium cation. |
-| `nucleobases` | Nucleobases | A | Free bases, not nucleosides. Caffeine is **also** here as a xanthine (browsing), classed as a **pseudoalkaloid** for alkaloid policy. |
-| `nucleosides` | Nucleosides | A | A, G, C, U, I plus adenosine overlap with cofactors. |
-| `organometallics` | Organometallics | A | Metallocenes and (benzene)tricarbonylchromium. SMILES are disconnected ligand + metal as PubChem stores them. 2D-editor display **unverified**. |
-| `peptide_building_blocks` | Peptide building blocks | A | Complete Fmoc/Boc amino acids plus the free acids. **No sequencer.** |
-| `protoalkaloids` | Protoalkaloids | A | Amino-acid-derived amines whose nitrogen is **not** in a heterocycle. |
-| `true_alkaloids` | True alkaloids | A | Amino-acid-derived alkaloids with nitrogen in a heterocycle. |
-| `vitamins` | Vitamins | A | Named **vitamers**, not family names. B12 is cyanocobalamin (CID 5311498), not a wrong small-molecule CID. |
-| `my_templates` | My Templates | A | Existing **user** library. Not a shipped category. Empty here. |
+| Id | Title | Kind | Status | n | Description |
+|---|---|---|---|---|---|
+| `generic` | Generic | A | active | 12 | Common starter molecules useful on an empty canvas. |
+| `rings` | Rings | A | active | 21 | Common ring systems as complete molecules. |
+| `cyclopentyl_rings` | Cyclopentyl rings | A | active | 4 | Cyclopentane and cyclopentene complete molecules, not five-membered heterocycles. |
+| `phenyl_rings` | Phenyl rings | A | active | 13 | Benzene and phenyl-containing complete molecules. Attachment-fragment use is deferred. |
+| `amino_acids` | Amino acids | A | active | 22 | Free proteinogenic amino acids plus selenocysteine and ornithine (neutral carboxylic acid + amine). Protected derivatives are not in this category. |
+| `aromatics` | Aromatics | A | active | 31 | Representative aromatic molecules and scaffolds. |
+| `bicyclics` | Bicyclics | A | active | 9 | Recognizable bicyclic parent structures. |
+| `bridged_polycyclics` | Bridged polycyclics | A | active | 8 | Bridged and cage-like polycycles. |
+| `crown_ethers` | Crown ethers | A | active | 7 | Common crown ethers and selected derivatives. |
+| `cycloalkanes` | Cycloalkanes | A | active | 14 | Saturated monocycles C3–C12 inclusive, plus methylcyclohexane. cis/trans-Decalin are listed separately and are not identity-verified as stereoisomers. |
+| `conformers` | Conformers | D | unresolved | 0 | Conformational templates need 3D coordinates; V1 molblock_for regenerates 2D. |
+| `heterocycles` | Heterocycles | A | active | 51 | Representative heterocyclic complete molecules. |
+| `polycyclics` | Polycyclics | A | active | 20 | Fused and cage polycycles. |
+| `homology_groups` | Homology groups | C | deferred | 0 | Query/variable-group concept. Not ordinary SMILES. Not populated. |
+| `alpha_d_sugars` | Alpha D sugars | A | active | 6 | Named alpha-D sugars with ring form and anomer recorded. |
+| `beta_d_sugars` | Beta D sugars | A | active | 7 | Named beta-D sugars with ring form and anomer recorded. |
+| `deoxynucleosides` | Deoxynucleosides | A | active | 4 | Named 2'-deoxyribonucleosides. |
+| `flavonoids` | Flavonoids | A | active | 13 | Named flavonoid aglycones and subclass parents. |
+| `nucleobases` | Nucleobases | A | active | 6 | Free nucleobases (A, G, C, T, U, hypoxanthine). Not methylxanthine alkaloids. |
+| `nucleosides` | Nucleosides | A | active | 5 | Named ribonucleosides only (not deoxynucleosides or nucleotides). |
+| `organometallics` | Organometallics | A | active | 5 | Selected compounds with metal-carbon bonds. Not editor-ready until coordination display is tested. |
+| `peptide_building_blocks` | Peptide building blocks | A | active | 26 | Free amino acids and complete N-protected amino acids (Fmoc/Boc). No sequence builder. |
+| `protoalkaloids` | Protoalkaloids | A | active | 2 | Amino-acid-derived amines whose nitrogen is not in a heterocycle, where the assignment is not disputed. |
+| `true_alkaloids` | True alkaloids | A | active | 7 | Amino-acid-derived alkaloids with nitrogen in a heterocycle. |
+| `pseudoalkaloids` | Pseudoalkaloids | A | active | 3 | Nitrogenous metabolites whose nitrogen is not introduced as part of an amino-acid skeleton (Aniszewski 2015). Compound-level assignments may be unresolved. |
+| `vitamins` | Vitamins | A | active | 15 | Named vitamers, not family names. |
+| `my_templates` | My Templates | A | user_library | 0 | Existing user store. Not a shipped category. |
+| `solvents_reagents` | Solvents and reagents | A | active | 14 | Common laboratory solvents and simple reagents. |
+| `functional_group_examples` | Functional-group examples | A | active | 8 | Small complete molecules illustrating common functional groups. |
+| `terpenoids_steroids` | Terpenoids and steroids | A | active | 7 | A few recognizable terpenes and steroids. |
+| `cofactors_metabolites` | Cofactors and metabolites | A | active | 3 | A few named cofactors, including nucleotides such as ATP. |
+| `coordination_complexes` | Coordination complexes | A | active | 2 | Metal complexes without requiring a metal-carbon bond. Not editor-ready until coordination display is tested. |
 
-## Extra categories (created only because they have entries)
+Category `entry_ids` are derived from `category_ids` on identity-verified **or** still-listed candidates (mismatches remain in the file until replaced). Counts below are **identity-verified** memberships.
 
-| Id | Title | Why |
-|---|---|---|
-| `pseudoalkaloids` | Pseudoalkaloids | Required by alkaloid policy (caffeine, theobromine, theophylline). |
-| `solvents_reagents` | Solvents and reagents | Common named solvents; not empty. |
-| `functional_group_examples` | Functional-group examples | Small complete molecules (phenol, acetone, aniline, …). |
-| `terpenoids_steroids` | Terpenoids and steroids | Camphor, cholesterol, carotene, two D vitamers. |
-| `cofactors_metabolites` | Cofactors and metabolites | ATP, NAD+, adenosine. |
-| `coordination_complexes` | Coordination complexes | Cisplatin (no M–C bond) and cyanocobalamin. Separate from organometallics. |
+| Category | Identity-verified n |
+|---|---|
+| `generic` | 12 |
+| `rings` | 21 |
+| `cyclopentyl_rings` | 4 |
+| `phenyl_rings` | 13 |
+| `amino_acids` | 22 |
+| `aromatics` | 31 |
+| `bicyclics` | 7 |
+| `bridged_polycyclics` | 8 |
+| `crown_ethers` | 7 |
+| `cycloalkanes` | 12 |
+| `conformers` | 0 |
+| `heterocycles` | 51 |
+| `polycyclics` | 20 |
+| `homology_groups` | 0 |
+| `alpha_d_sugars` | 6 |
+| `beta_d_sugars` | 7 |
+| `deoxynucleosides` | 4 |
+| `flavonoids` | 13 |
+| `nucleobases` | 6 |
+| `nucleosides` | 5 |
+| `organometallics` | 5 |
+| `peptide_building_blocks` | 26 |
+| `protoalkaloids` | 2 |
+| `true_alkaloids` | 7 |
+| `pseudoalkaloids` | 3 |
+| `vitamins` | 15 |
+| `my_templates` | 0 |
+| `solvents_reagents` | 14 |
+| `functional_group_examples` | 8 |
+| `terpenoids_steroids` | 7 |
+| `cofactors_metabolites` | 3 |
+| `coordination_complexes` | 2 |
 
-## Counts (accepted entries)
+### Category corrections in this pass
 
-193 identities, all RDKit-accepted. Category memberships overlap, so the sum of `n` is larger than 193.
-
-| Category | n | Status |
-|---|---|---|
-| generic | 12 | active |
-| rings | 21 | active |
-| cyclopentyl_rings | 5 | active |
-| phenyl_rings | 12 | active |
-| amino_acids | 24 | active |
-| aromatics | 30 | active |
-| bicyclics | 9 | active |
-| bridged_polycyclics | 8 | active |
-| crown_ethers | 7 | active |
-| cycloalkanes | 12 | active |
-| conformers | 0 | unresolved |
-| heterocycles | 51 | active |
-| polycyclics | 19 | active |
-| homology_groups | 0 | deferred |
-| alpha_d_sugars | 6 | active |
-| beta_d_sugars | 7 | active |
-| deoxynucleosides | 4 | active |
-| flavonoids | 13 | active |
-| nucleobases | 7 | active |
-| nucleosides | 7 | active |
-| organometallics | 5 | active |
-| peptide_building_blocks | 26 | active |
-| protoalkaloids | 4 | active |
-| true_alkaloids | 7 | active |
-| pseudoalkaloids | 3 | active |
-| vitamins | 15 | active |
-| my_templates | 0 | user_library |
-| solvents_reagents | 14 | active |
-| functional_group_examples | 8 | active |
-| terpenoids_steroids | 7 | active |
-| cofactors_metabolites | 3 | active |
-| coordination_complexes | 2 | active |
+- Protected Fmoc/Boc alanines removed from `amino_acids`; they stay in `peptide_building_blocks` once identity-verified.
+- `peptide_building_blocks` includes free amino acids and protected derivatives.
+- Thymidine is only in `deoxynucleosides`. ATP is only in `cofactors_metabolites` (a nucleotide, not a nucleoside).
+- Caffeine is not a nucleobase; it remains a pseudoalkaloid / heterocycle.
+- Tetrahydrofuran is not in `cyclopentyl_rings`.
+- Cyclononane and cycloundecane added so C3–C12 monocycles are complete. cis/trans-Decalin are unresolved stereoisomers (PubChem parent only).
 
 ## Alkaloids
 
-Class is **biosynthetic origin**, not “nitrogen in a ring.” Source on every alkaloid row: Aniszewski, *Alkaloids: Chemistry, Biology, Ecology, and Applications*, 2nd ed., Elsevier, 2015: **true** = amino-acid nitrogen in a heterocycle; **proto** = amino-acid amine, nitrogen not in a heterocycle; **pseudo** = nitrogen introduced other than from an amino-acid skeleton.
+Class is biosynthetic origin (Aniszewski 2015), not nitrogen-in-a-ring. Book citation, no DOI in this dump. Ephedrine and colchicine are **unresolved** at compound level (see their `classification_source`). Caffeine remains pseudo.
 
-| Id | Class | ChEBI | Notes |
-|---|---|---|---|
-| morphine | true | CHEBI:17303 | Tyrosine morphinan |
-| codeine | true | CHEBI:16714 | |
-| atropine | true | (UniChem miss) | Tropane ester |
-| cocaine | true | CHEBI:27958 | Tropane |
-| nicotine | true | CHEBI:17688 | Mixed ring origins; still true |
-| quinine | true | CHEBI:15854 | |
-| strychnine | true | CHEBI:28973 | Indole |
-| mescaline | proto | CHEBI:28346 | Phenethylamine; N not in a ring |
-| ephedrine | proto | CHEBI:15407 | |
-| hordenine | proto | CHEBI:5764 | |
-| colchicine | proto | CHEBI:27882 | Acetamide nitrogen, not heterocyclic |
-| caffeine | pseudo | CHEBI:27732 | Xanthine from nucleotide metabolism |
-| theobromine | pseudo | CHEBI:28946 | |
-| theophylline | pseudo | CHEBI:28177 | |
+| Id | Class | Class status | ChEBI | Identity |
+|---|---|---|---|---|
+| `morphine` | true | verified | CHEBI:17303 | verified |
+| `codeine` | true | verified | CHEBI:16714 | verified |
+| `atropine` | true | verified | CHEBI:16684 | verified |
+| `cocaine` | true | verified | CHEBI:27958 | verified |
+| `nicotine` | true | verified | CHEBI:18723 | verified |
+| `quinine` | true | verified | CHEBI:15854 | verified |
+| `strychnine` | true | verified | CHEBI:28973 | verified |
+| `mescaline` | proto | verified | CHEBI:28346 | verified |
+| `ephedrine` | — | unresolved | — | verified |
+| `hordenine` | proto | verified | CHEBI:5764 | verified |
+| `colchicine` | — | unresolved | CHEBI:23359 | verified |
+| `caffeine` | pseudo | verified | CHEBI:27732 | verified |
+| `theobromine` | pseudo | verified | CHEBI:28946 | verified |
+| `theophylline` | pseudo | verified | CHEBI:28177 | verified |
 
-Caffeine is **not** in `true_alkaloids`.
+## Organometallics and coordination
 
-## Validation
-
-Every accepted SMILES: RDKit `MolFromSmiles` + `SanitizeMol`; canonical isomeric SMILES; InChIKey (RDKit and PubChem); formula/charge compared to the PubChem record; dummy/query refused.
-
-Recorded, not rejected:
-
-- **cisplatin**: PubChem formula `Cl2H6N2Pt`, RDKit `H6Cl2N2Pt` (element order). Same composition.
-- **Metals**: Fe, Ni, Co, Cr, Pt recorded on the organometallic/coordination rows. 2D-editor display is **unverified**. Sandwich compounds are stored as separate ligands + metal ion, as PubChem returns them.
-- **cyanidin** and **thiamine**: formal charge +1, matching the source.
-- **Amino acids**: PubChem SMILES on these CIDs are the **neutral** forms (`C(=O)O` + `N`), matching V1.
-
-Classification confidence on each membership: `verified` (alkaloid class with literature), `supported` (named biochemical class), or `curation_decision` (OpenChem browsing overlap such as benzene in rings + aromatics + phenyl).
-
-## Closed sets in this dump
-
-- Crown ethers: 12-crown-4, 15-crown-5, 18-crown-6 (`C12H24O6`), 21-crown-7, dibenzo-18-crown-6, benzo-15-crown-5, 1,10-diaza-18-crown-6.
-- Cycloalkanes: cyclopropane through cyclododecane (C10 and C12 included), methylcyclohexane, cis- and trans-decalin.
-- Sugars: α/β-D-gluco, galacto, manno, xylo (pyranose); α/β-D-ribofuranose; β-D-fructofuranose; 2-deoxy-α/β-D-ribofuranose. Anomer in `structure_form`.
-- Nucleobases: A, G, C, T, U, hypoxanthine (plus caffeine overlap).
-- Nucleosides: adenosine, guanosine, cytidine, uridine, inosine.
-- Deoxynucleosides: dA, dG, dC, thymidine.
-- Vitamers: retinol, thiamine, riboflavin, nicotinic acid, nicotinamide, pantothenic acid, pyridoxine, biotin, folic acid, ascorbic acid, ergocalciferol, cholecalciferol, α-tocopherol, phylloquinone, cyanocobalamin.
+Kept in the research inventory. `editor_ready` is false while PubChem SMILES are disconnected ligand/metal components. Cisplatin `N.N.Cl[Pt]Cl` does not encode Pt–N bonds or cis geometry. Cyanocobalamin similarly splits Co/CN from the corrin. These are not insertable V1 templates.
 
 ## Open questions (not this task)
 
-- Whether `TemplateEntry.category_id` becomes a list when shipping this inventory.
-- How (or whether) PubChem 3D conformers are inserted without `molblock_for` flattening them.
-- Fuse-on-click for cyclopentyl/phenyl vs keeping complete molecules only.
-- Live 2D-editor display of sandwich compounds and cyanocobalamin.
-- Atropine and cyanocobalamin ChEBI ids (UniChem source 7 did not return them here).
-- Homology groups: needs a query encoding, not SMILES.
+- Shipping any of this into `_SHIPPED_FILES`.
+- Multi-`category_id` in `TemplateEntry`.
+- 3D insert; attachment fragments; homology encoding.
+- Stereo-specific PubChem records for cis- and trans-decalin.
+- Compound-level alkaloid class for ephedrine and colchicine.
 
-Temporary fetch helpers (`_research_fetch.py` and friends) stay untracked and are not a runtime dependency.
