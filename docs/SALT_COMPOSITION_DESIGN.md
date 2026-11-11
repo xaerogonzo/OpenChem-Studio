@@ -1,7 +1,7 @@
 # Salt composition engine: design
 
-**Status: architecture contract, 2026-11-10 (revised same day after first
-review). Nothing is built.** This note is the scientific and module-boundary
+**Status: architecture contract, 2026-11-10 (revised twice the same day).
+Nothing is built.** This note is the scientific and module-boundary
 contract. It is not an implementation plan: file names below are the intended
 homes when code exists, not a commitment to write them in this change. No
 calculator is registered, no UI is specified beyond "later, beside the pKa
@@ -179,9 +179,17 @@ named in an earlier research note is not in this tree.
 **A. Generate.** Two different workflows; mixing them in one step without
 explicit proton accounting is a refusal.
 
-1. **Two neutrals** (parent + parent acid/base). The ionization layer models
-   proton transfer, then `balance_two` runs on the resulting ions. Supplying
-   NaOH or sulfuric acid is this path.
+1. **Two molecular neutrals** (organic or molecular parent + molecular parent
+   acid/base). The ionization layer models proton transfer of the form
+   `B + HA → BH+ + A−`, then `balance_two` runs on the resulting ions.
+   Supplying acetic acid or sulfuric acid as a **molecular** parent is this
+   path. **Metal hydroxides are not.** NaOH is ordinarily `Na+` and `OH−`;
+   `HA + NaOH → NaA + H2O` is a different reaction class (spectator cation,
+   hydroxide as proton acceptor, water as a product). v1 **does not** model
+   that neutralization. Do not treat NaOH as a two-neutral parent. Use
+   workflow 2 if the user supplies `Na+` (already ionic, no invented
+   protons) or defer the hydroxide path until a later contract defines the
+   spectator, the water byproduct, and formula-unit conservation for it.
 2. **Already ionic counter-species.** Supplying `Na+` or `SO4^2-` is not
    supplying the parent acid/base. The ion is used as given. The engine must
    **not** invent the hydrogens or charge needed to protonate a remaining
@@ -205,10 +213,12 @@ drawn counts.
 one selected two-component pair**. Deduplicate identical species+compositions.
 Hard cap: **50** unique compositions. Order is **deterministic** for identical
 inputs: user-specified fully specified states first, then ladder species in
-the ladder's own index order, then by identity key. If more than 50 would be
-produced, return those 50 in that order and an explicit **omitted count**.
-Repeated runs of the same input must produce the same ordered list and the
-same truncation report. This is **not** general multicomponent salt search.
+the ladder's own index order, then by identity key. Record three integers:
+**generated** (unique compositions before truncation), **returned** (at most
+50), **omitted** (`generated - returned`). If more than 50 would be produced,
+return those 50 in that order and those counts. Repeated runs of the same
+input must produce the same ordered list and the same three counts. This is
+**not** general multicomponent salt search.
 
 ## Why `balance_many` is deferred
 
@@ -281,6 +291,13 @@ For a polyprotic acid, use the **dissociation step that matches the proposed
 ion**. Hydrogen sulfate is not "sulfuric acid is diprotic, so the salt is
 2:1". A triprotic parent is not automatically assigned its third pKa when
 the proposed anion is still protonated.
+
+The same rule applies to a **polybasic** molecule. Sequential conjugate-acid
+pKa values are different steps. Assessing `BH2^2+` with the first
+protonation pKa of B is the same class of error as assessing `SO4^2-` with
+the first pKa of sulfuric acid. `pka_compatible` must name the
+protonation/dissociation step that corresponds to the **proposed
+microspecies**, not reuse the first step for every subsequent one.
 
 Record, when used: pKa value, measured vs predicted, solvent/medium,
 temperature, ionic strength, uncertainty, and step identity. Do not compare
@@ -405,10 +422,12 @@ selection is accepted.
 
 **Acid-base / Mode A.** Monoprotic; diprotic first vs second deprotonation
 (hydrogen sulfate vs sulfate); triprotic with partial deprotonation; one
-basic site; several basic sites (do not assume max protonation);
-`B + 2 HA → BH2^2+ + 2 A−` multiplicity-weighted conservation; user-selected
-**structure** with pKa unused; pKa missing or incomparable; **neutral base +
-supplied sulfate** without a proton source is refused, not auto-protonated.
+basic site; several basic sites (do not assume max protonation); polybasic
+second protonation assessed with the **matching** conjugate-acid pKa, not the
+first; `B + 2 HA → BH2^2+ + 2 A−` multiplicity-weighted conservation;
+user-selected **structure** with pKa unused; pKa missing or incomparable;
+**neutral base + supplied sulfate** without a proton source is refused, not
+auto-protonated; **NaOH + HA** is out of v1 (not two-neutral proton transfer).
 
 **Classification.** Balanced binary; net-charge-nonzero drawing not reported
 as the theoretical salt; **unclassified** neutral extra (not labelled
@@ -421,8 +440,8 @@ several distinct cations and anions ambiguous; repeated identical components
 conservation on proton transfer; combined formula vs independent element
 arithmetic; mass vs independent RDKit component-mass sum; original identities
 and drawn counts preserved beside the theoretical ratio; extras not mixed
-into hydrate fields. Mode C: identical inputs → identical order and omitted
-count.
+into hydrate fields. Mode C: identical inputs → identical order and the same
+generated / returned / omitted counts.
 
 Handbook checks: **one printed formula unit at a time**, not a bulk table.
 
@@ -459,6 +478,9 @@ UI later, companion to the pKa view, never presented as a crystal.
 - Hydrates and solvates as first-class composition features.
 - Pharmaceutical safety or acceptability.
 - `balance_many()` / general multicomponent integer balancing.
+- Metal-hydroxide neutralization (`HA + NaOH → NaA + H2O`): spectator cation,
+  hydroxide as acceptor, water as product. Not the two-neutral `B + HA`
+  workflow. v1 does not invent that reaction class.
 
 Preserve `substance.py`'s distinction: an ionic **association** is not a
 covalent bond, carries no length, and must never grow a fake edge.
