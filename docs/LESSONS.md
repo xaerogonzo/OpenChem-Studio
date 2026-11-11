@@ -21914,3 +21914,23 @@ pattern, so notify counts were not ligand counts.
 dock failed, no representative, no receptor, no poses, or one DONE line after
 exit 0. Do not `Read` the terminal after every `ok`. Do not treat a partial
 jsonl as a verdict. Grep this heading before the next catalog dock.
+
+## BROWSE OF A PLANNER SOURCE ZIP IS NOT AN INSTALL
+
+AiZynthFinder's GitHub release is a source tree. **Browse** on the External
+tools tab looks for `python.exe` (or `Scripts` / `.venv` / `env`) beside the
+chosen folder. Pointing it at that zip, or at the unpacked repository, finds
+nothing usable and reads as a locate failure, not as "this is the project
+page, not the environment." A working install is a Python 3.10–3.12 venv with
+the `aizynthfinder` package imported **and** the configuration file
+`download_public_data` writes, whose model and stock paths exist. **Set Up
+Automatically** builds that sidecar; Browse still accepts one you already have.
+
+A Windows venv cannot be relocated. Copying `D:\_scratch\aizynth\env` with
+robocopy left an interpreter whose shebangs and `pyvenv.cfg` still named the
+scratch path. Recreate the venv and copy only the data files, then rewrite
+the YAML paths. Robocopy exit 1 is success (files copied with extras).
+
+**How to apply:** do not point Browse at a GitHub source zip. Do not move a
+Windows venv. Remove only deletes `aizynthfinder_env` under the application
+data folder, never a hand-built copy (for example `D:\Random Programs\aizynthfinder`).
