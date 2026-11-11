@@ -13,11 +13,13 @@ from openchem.domain.salt_stoichiometry import (
     KIND_MOLECULAR_NEUTRAL,
     BalanceRefusal,
     ChargedSpecies,
+    IonizationRefusal,
     ModeAComposition,
     ModeARefusal,
     ModeASpecies,
     TwoIonBalance,
     balance_two,
+    choose_ionization,
     compose_mode_a,
     formula_unit_conserved,
 )
@@ -166,6 +168,21 @@ def test_neutral_base_plus_sulfate_without_a_proton_source_is_refused() -> None:
     )
     assert isinstance(result, ModeARefusal)
     assert result.code == "missing_proton_source"
+
+
+def test_one_structure_at_the_requested_state_is_accepted() -> None:
+    assert choose_ionization(["CC(=O)[O-]"]) == "CC(=O)[O-]"
+
+
+def test_a_net_charge_with_no_structure_is_refused() -> None:
+    refused = choose_ionization([])
+    assert refused.code == "net_charge_only"
+
+
+def test_two_structures_at_the_same_charge_are_not_auto_picked() -> None:
+    refused = choose_ionization(["CC(=O)[O-]", "[O-]C=O"])
+    assert refused.code == "ambiguous_microspecies"
+    assert isinstance(refused, IonizationRefusal)
 
 
 def test_the_domain_module_does_not_import_lattice_energy() -> None:

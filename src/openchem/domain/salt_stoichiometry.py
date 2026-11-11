@@ -132,6 +132,12 @@ class BalanceRefusal:
     reason: str
 
 
+@dataclass(frozen=True)
+class IonizationRefusal:
+    code: str
+    reason: str
+
+
 def balance_two(
     cation: ChargedSpecies, anion: ChargedSpecies
 ) -> TwoIonBalance | BalanceRefusal:
@@ -164,3 +170,20 @@ def formula_unit_conserved(
         return out
 
     return _total(left) == _total(right)
+
+
+#: Pick among fully specified ionic structures. An empty list is a net-charge
+#: request with no structure; several distinct graphs at one charge are not ranked.
+def choose_ionization(candidates: Sequence[str]) -> str | IonizationRefusal:
+    unique = list(dict.fromkeys(candidates))
+    if not unique:
+        return IonizationRefusal(
+            code="net_charge_only",
+            reason="A net charge is not an ionization state; name a structure.",
+        )
+    if len(unique) > 1:
+        return IonizationRefusal(
+            code="ambiguous_microspecies",
+            reason="Several structures share this charge; v1 does not pick one.",
+        )
+    return unique[0]
