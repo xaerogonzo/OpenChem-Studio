@@ -97,9 +97,12 @@ def test_the_workflow_wires_the_retry_and_keeps_each_attempts_budget():
     # The pytest invocation, and so the network deselection, lives in ONE place: the shard script.
     assert "-m pytest" not in code
     assert "NetworkTest" in (ROOT / "tools" / "ci_suite_shard.ps1").read_text(encoding="utf-8")
+    # Classify runs only when the first attempt failed, so -ExitCode 1 is the
+    # crash-at-interpreter-exit shape (clean summary, process still red).
+    assert "-ExitCode 1" in code
 
 
-# --- the crash that exits non-zero AFTER a clean summary (measurement only: -ExitCode) --------------------
+# --- the crash that exits non-zero AFTER a clean summary (-ExitCode; tests.yml and the rate workflow) ---
 
 
 def classify_with_exit(tmp_path, text: str, exit_code: int) -> list[str]:
@@ -135,6 +138,6 @@ def test_a_nonzero_exit_is_a_crash_only_after_a_clean_summary(tmp_path, name, te
     assert classify_with_exit(tmp_path, text, exit_code) == ["crashed=false"], name
 
 
-def test_without_an_exit_code_the_ci_retry_classifier_is_unchanged(tmp_path):
-    """tests.yml does not pass -ExitCode, so what CI retries must stay exactly the narrow fatal-exception shape."""
+def test_without_an_exit_code_a_clean_summary_is_not_a_crash(tmp_path):
+    """The default (no -ExitCode) stays the fatal-exception shape. tests.yml passes -ExitCode 1."""
     assert classify(tmp_path, PROGRESS + SUMMARY_PASS) == ["crashed=false"]

@@ -280,10 +280,13 @@ jobs:
       #
       # WHAT COUNTS AS A CRASH is decided by `tools/ci_classify_crash.ps1` and is narrow on
       # purpose: a fatal exception printed, AND no pytest summary line, AND no test reported
-      # FAILED or ERROR. A real failure is never retried away, a timeout (no fatal exception)
-      # still fails, and a crash that REPEATS fails the job. The first attempt's step is
-      # `continue-on-error` only so the next step can look at it; the job still goes red through
-      # the "Fail the job" step unless the retry ran and passed.
+      # FAILED or ERROR; or (with `-ExitCode 1`, which this job passes because classify runs
+      # only when the first attempt failed) a CLEAN pytest summary and a non-zero process exit,
+      # which is a crash at interpreter exit with no fatal-exception text (shard 5 of PR #575
+      # on 1c642c96: 3523 passed, exit 1). A real failure is never retried away, a timeout
+      # (no summary) still fails, and a crash that REPEATS fails the job. The first attempt's
+      # step is `continue-on-error` only so the next step can look at it; the job still goes
+      # red through the "Fail the job" step unless the retry ran and passed.
       #
       # EACH ATTEMPT KEEPS THE 30-MINUTE STEP BUDGET, so the gate on suite growth is unchanged;
       # the job's own limit is 65 because a crash late in attempt one leaves a whole attempt two.
@@ -301,7 +304,7 @@ jobs:
         if: steps.suite.outcome == 'failure'
         shell: pwsh
         run: |
-          $out = ./tools/ci_classify_crash.ps1 -Log suite-attempt-1.log -Shard ${{ matrix.shard }}
+          $out = ./tools/ci_classify_crash.ps1 -Log suite-attempt-1.log -Shard ${{ matrix.shard }} -ExitCode 1
           $crashed = ($out | Where-Object { $_ -like 'crashed=*' } | Select-Object -First 1)
           if (-not $crashed) { $crashed = 'crashed=false' }
           Add-Content -Path $env:GITHUB_OUTPUT -Value $crashed
