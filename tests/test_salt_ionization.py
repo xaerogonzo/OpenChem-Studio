@@ -1,7 +1,13 @@
 from rdkit import Chem
 
 from openchem.chem.salt_components import fragment_formal_charge, fragment_key
-from openchem.chem.salt_ionization import SiteTransform, apply_site_transform
+from openchem.chem.salt_ionization import (
+    SiteTransform,
+    apply_site_transform,
+    select_by_net_charge,
+    structures_at_net_charge,
+)
+from openchem.domain.salt_stoichiometry import IonizationRefusal
 
 
 def _acetic() -> Chem.Mol:
@@ -34,3 +40,28 @@ def test_a_bad_atom_index_is_refused() -> None:
     mol = _acetic()
     refused = apply_site_transform(mol, SiteTransform(99, "deprotonate"))
     assert refused.code == "invalid_site"
+
+
+def test_acetic_acid_at_minus_one_is_acetate() -> None:
+    mol = Chem.MolFromSmiles("CC(=O)O")
+    chosen = select_by_net_charge(mol, -1)
+    assert chosen == fragment_key(Chem.MolFromSmiles("CC(=O)[O-]"))
+
+
+def test_acetic_acid_at_plus_one_is_net_charge_only() -> None:
+    mol = Chem.MolFromSmiles("CC(=O)O")
+    refused = select_by_net_charge(mol, 1)
+    assert isinstance(refused, IonizationRefusal)
+    assert refused.code == "net_charge_only"
+
+
+def test_two_inequivalent_sites_at_the_same_charge_are_not_picked() -> None:
+    # 4-hydroxybenzoic acid: carboxylate vs phenolate at -1 are different graphs.
+    # If RDKit collapses them to one SMILES, identity is graph, not formula —
+    # switch the pair to tyrosol (OCCc1ccc(O)cc1).
+    mol = Chem.MolFromSmiles("O=C(O)c1ccc(O)cc1")
+    keys = structures_at_net_charge(mol, -1)
+    assert len(set(keys)) >= 2
+    refused = select_by_net_charge(mol, -1)
+    assert isinstance(refused, IonizationRefusal)
+    assert refused.code == "ambiguous_microspecies"

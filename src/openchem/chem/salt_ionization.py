@@ -7,7 +7,11 @@ from dataclasses import dataclass
 
 from rdkit import Chem
 
-from openchem.chem.salt_components import IdentityRefusal, fragment_key
+from openchem.chem.salt_components import (
+    IdentityRefusal,
+    fragment_formal_charge,
+    fragment_key,
+)
 from openchem.domain.salt_stoichiometry import IonizationRefusal, choose_ionization
 
 REACHED_BY = (
@@ -61,3 +65,55 @@ def ionize_at_sites(
     if isinstance(key, IdentityRefusal):
         return key
     return choose_ionization([key])
+
+
+# Neutral C–H and neutral oxygen both sanitize in this RDKit pin (acetic acid
+# gives ``[CH2-]C(=O)O``, ``CC(O)=[OH+]`` and ``CC(=O)[OH2+]``). Those are not
+# v1 microspecies: a named atom can still be transformed, but net-charge
+# enumeration only offers heteroatom acids and N/P bases, plus a proton on an
+# existing anion or off an existing cation. No ranking and no tautomer pass.
+_ACID_ELEMENTS = frozenset({7, 8, 15, 16})  # N, O, P, S
+_BASE_ELEMENTS = frozenset({7, 15})  # N, P
+
+
+def _enumeration_directions(atom: Chem.Atom) -> tuple[str, ...]:
+    charge = atom.GetFormalCharge()
+    number = atom.GetAtomicNum()
+    directions: list[str] = []
+    if number in _BASE_ELEMENTS or charge < 0:
+        directions.append("protonate")
+    if atom.GetTotalNumHs() >= 1 and (number in _ACID_ELEMENTS or charge > 0):
+        directions.append("deprotonate")
+    return tuple(directions)
+
+
+def structures_at_net_charge(mol: Chem.Mol, target_charge: int) -> tuple[str, ...]:
+    """Distinct fragment_key values from one protonate or deprotonate that match target_charge.
+
+    Order is atom index, then protonate before deprotonate. Identity refusals
+    are skipped. Keys are not ranked and are not tautomer-canonicalized:
+    ``choose_ionization`` decides whether one graph is unique.
+    """
+    keys: list[str] = []
+    seen: set[str] = set()
+    for atom in mol.GetAtoms():
+        if atom.GetAtomicNum() <= 1:
+            continue
+        for direction in _enumeration_directions(atom):
+            result = apply_site_transform(mol, SiteTransform(atom.GetIdx(), direction))
+            if isinstance(result, IdentityRefusal):
+                continue
+            if fragment_formal_charge(result) != target_charge:
+                continue
+            key = fragment_key(result)
+            if isinstance(key, IdentityRefusal) or key in seen:
+                continue
+            seen.add(key)
+            keys.append(key)
+    return tuple(keys)
+
+
+def select_by_net_charge(
+    mol: Chem.Mol, target_charge: int
+) -> str | IonizationRefusal | IdentityRefusal:
+    return choose_ionization(structures_at_net_charge(mol, target_charge))
