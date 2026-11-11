@@ -12,6 +12,7 @@ from openchem.domain.salt_stoichiometry import (
     ChargedSpecies,
     TwoIonBalance,
     balance_two,
+    formula_unit_conserved,
 )
 
 
@@ -74,6 +75,24 @@ def test_successful_counts_are_positive() -> None:
     result = balance_two(ChargedSpecies("c", 3), ChargedSpecies("a", -2))
     assert isinstance(result, TwoIonBalance)
     assert result.cation_count > 0 and result.anion_count > 0
+
+
+def test_one_base_and_two_acids_match_the_dication_formula_unit() -> None:
+    # B + 2 HA → BH2^2+ + 2 A−  (ethylenediamine + 2 acetic, as counts)
+    base = {"C": 2, "H": 8, "N": 2}
+    acid = {"C": 2, "H": 4, "O": 2}
+    cation = {"C": 2, "H": 10, "N": 2}
+    anion = {"C": 2, "H": 3, "O": 2}
+    assert formula_unit_conserved(
+        [(base, 1), (acid, 2)],
+        [(cation, 1), (anion, 2)],
+    )
+
+
+def test_a_one_to_one_check_of_the_base_against_the_dication_is_the_wrong_test() -> None:
+    base = {"C": 2, "H": 8, "N": 2}
+    cation = {"C": 2, "H": 10, "N": 2}
+    assert not formula_unit_conserved([(base, 1)], [(cation, 1)])
 
 
 def test_the_domain_module_does_not_import_lattice_energy() -> None:

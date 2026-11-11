@@ -17,6 +17,7 @@ REACHED_BY = (
     "tests/test_salt_components.py; Mode B is not on the window yet"
 )
 
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from math import gcd
 
@@ -57,3 +58,19 @@ def balance_two(
         cation_count=(-anion.charge) // common,
         anion_count=cation.charge // common,
     )
+
+
+def formula_unit_conserved(
+    left: Sequence[tuple[Mapping[str, int], int]],
+    right: Sequence[tuple[Mapping[str, int], int]],
+) -> bool:
+    def _total(parts: Sequence[tuple[Mapping[str, int], int]]) -> dict[str, int]:
+        out: dict[str, int] = {}
+        for counts, n in parts:
+            if n <= 0:
+                return {"__invalid__": 1}
+            for element, count in counts.items():
+                out[element] = out.get(element, 0) + n * count
+        return out
+
+    return _total(left) == _total(right)
