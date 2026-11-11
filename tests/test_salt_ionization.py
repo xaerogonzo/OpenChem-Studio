@@ -14,6 +14,34 @@ def _acetic() -> Chem.Mol:
     return Chem.MolFromSmiles("CC(=O)O")
 
 
+def test_deprotonating_explicit_hydrogen_acetic_acid_removes_the_bonded_hydrogen() -> None:
+    parent = Chem.AddHs(Chem.MolFromSmiles("CC(=O)O"))
+    oxygen = next(
+        atom.GetIdx()
+        for atom in parent.GetAtoms()
+        if atom.GetSymbol() == "O" and any(neighbor.GetAtomicNum() == 1 for neighbor in atom.GetNeighbors())
+    )
+    parent_smiles = Chem.MolToSmiles(parent)
+    result = apply_site_transform(parent, SiteTransform(oxygen, "deprotonate"))
+    assert fragment_formal_charge(result) == -1
+    assert fragment_key(result) == "CC(=O)[O-]"
+    assert Chem.MolToSmiles(parent) == parent_smiles
+
+
+def test_protonating_explicit_hydrogen_oxygen_does_not_stack_a_hydrogen_property() -> None:
+    parent = Chem.AddHs(Chem.MolFromSmiles("CC(=O)O"))
+    oxygen = next(
+        atom.GetIdx()
+        for atom in parent.GetAtoms()
+        if atom.GetSymbol() == "O" and any(neighbor.GetAtomicNum() == 1 for neighbor in atom.GetNeighbors())
+    )
+    parent_smiles = Chem.MolToSmiles(parent)
+    result = apply_site_transform(parent, SiteTransform(oxygen, "protonate"))
+    assert fragment_formal_charge(result) == 1
+    assert fragment_key(result) == "CC(=O)[OH2+]"
+    assert Chem.MolToSmiles(parent) == parent_smiles
+
+
 def test_deprotonating_acetic_acid_updates_hydrogen_and_charge() -> None:
     mol = _acetic()
     oxygen = next(

@@ -419,7 +419,8 @@ implicit-H formulas still distinguish graphs.
 
 **Ionization selection.** Net charge only is refused or listed as candidates;
 two microspecies at the same charge are not auto-picked; site-specific
-selection is accepted.
+selection is accepted. Net-charge listing tries N, O, P and S sites only, so
+a carbon deprotonation of acetic acid is not treated as a competing microspecies.
 
 **Acid-base / Mode A.** Monoprotic; diprotic first vs second deprotonation
 (hydrogen sulfate vs sulfate); triprotic with partial deprotonation; one

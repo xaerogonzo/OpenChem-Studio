@@ -26,17 +26,40 @@ class SiteTransform:
     direction: str
 
 
+def _bonded_hydrogen_indexes(atom: Chem.Atom) -> list[int]:
+    """Hydrogen *atoms* bonded to ``atom``. ``GetTotalNumHs()`` does not count these."""
+    return [neighbor.GetIdx() for neighbor in atom.GetNeighbors() if neighbor.GetAtomicNum() == 1]
+
+
 def apply_site_transform(mol: Chem.Mol, transform: SiteTransform) -> Chem.Mol | IdentityRefusal:
     if transform.direction not in {"protonate", "deprotonate"}:
         return IdentityRefusal(code="invalid_site", reason="direction must be protonate or deprotonate.")
     if transform.atom_index < 0 or transform.atom_index >= mol.GetNumAtoms():
         return IdentityRefusal(code="invalid_site", reason="atom index is not in the parent.")
-    copy = Chem.Mol(mol)
-    atom = copy.GetAtomWithIdx(transform.atom_index)
+    editable = Chem.RWMol(mol)
+    atom = editable.GetAtomWithIdx(transform.atom_index)
+    bonded = _bonded_hydrogen_indexes(atom)
     if transform.direction == "protonate":
-        atom.SetNumExplicitHs(atom.GetTotalNumHs() + 1)
-        atom.SetFormalCharge(atom.GetFormalCharge() + 1)
-        atom.SetNoImplicit(True)
+        # A bonded hydrogen is invisible to GetTotalNumHs(). Setting an
+        # explicit-H property on top of it would count that hydrogen twice.
+        if bonded:
+            hydrogen = Chem.Atom(1)
+            hydrogen_index = editable.AddAtom(hydrogen)
+            editable.AddBond(transform.atom_index, hydrogen_index, Chem.BondType.SINGLE)
+            atom.SetFormalCharge(atom.GetFormalCharge() + 1)
+            atom.SetNoImplicit(True)
+        else:
+            atom.SetNumExplicitHs(atom.GetTotalNumHs() + 1)
+            atom.SetFormalCharge(atom.GetFormalCharge() + 1)
+            atom.SetNoImplicit(True)
+    elif bonded:
+        # Delete one real hydrogen. An index above it moves down.
+        hydrogen_index = max(bonded)
+        editable.RemoveAtom(hydrogen_index)
+        site_index = transform.atom_index - (1 if hydrogen_index < transform.atom_index else 0)
+        site = editable.GetAtomWithIdx(site_index)
+        site.SetFormalCharge(site.GetFormalCharge() - 1)
+        site.SetNoImplicit(True)
     else:
         total = atom.GetTotalNumHs()
         if total < 1:
@@ -44,8 +67,12 @@ def apply_site_transform(mol: Chem.Mol, transform: SiteTransform) -> Chem.Mol | 
         atom.SetNumExplicitHs(total - 1)
         atom.SetFormalCharge(atom.GetFormalCharge() - 1)
         atom.SetNoImplicit(True)
+    copy = editable.GetMol()
     try:
         Chem.SanitizeMol(copy)
+        # Spectator hydrogen atoms would keep an AddHs parent from sharing
+        # the implicit-H fragment key (acetate is CC(=O)[O-]).
+        copy = Chem.RemoveHs(copy)
     except (ValueError, RuntimeError):
         return IdentityRefusal(code="unsanitizable", reason="the ionized structure could not be sanitized.")
     return copy
@@ -54,6 +81,14 @@ def apply_site_transform(mol: Chem.Mol, transform: SiteTransform) -> Chem.Mol | 
 def ionize_at_sites(
     mol: Chem.Mol, transforms: Sequence[SiteTransform]
 ) -> str | IdentityRefusal | IonizationRefusal:
+    """Apply each transform to the molecule the previous one returned.
+
+    Atom indexes are positions on that updated molecule. Deprotonation deletes
+    a bonded hydrogen when one is present, and the result then drops remaining
+    explicit hydrogen atoms, so every later index has to be read from the
+    updated mol. An index taken from the parent is only still valid when no
+    earlier transform removed an atom below it.
+    """
     current: Chem.Mol | IdentityRefusal = mol
     for transform in transforms:
         if isinstance(current, IdentityRefusal):
@@ -82,7 +117,9 @@ def _enumeration_directions(atom: Chem.Atom) -> tuple[str, ...]:
     directions: list[str] = []
     if number in _BASE_ELEMENTS or charge < 0:
         directions.append("protonate")
-    if atom.GetTotalNumHs() >= 1 and (number in _ACID_ELEMENTS or charge > 0):
+    # includeNeighbors counts a real hydrogen atom. GetTotalNumHs() alone
+    # reports 0 after AddHs, so an explicit-H acid would never be offered.
+    if atom.GetTotalNumHs(includeNeighbors=True) >= 1 and (number in _ACID_ELEMENTS or charge > 0):
         directions.append("deprotonate")
     return tuple(directions)
 
@@ -93,6 +130,9 @@ def structures_at_net_charge(mol: Chem.Mol, target_charge: int) -> tuple[str, ..
     Order is atom index, then protonate before deprotonate. Identity refusals
     are skipped. Keys are not ranked and are not tautomer-canonicalized:
     ``choose_ionization`` decides whether one graph is unique.
+
+    Listing tries N, O, P and S only, so a carbon deprotonation of acetic acid
+    is not a competing microspecies.
     """
     keys: list[str] = []
     seen: set[str] = set()
