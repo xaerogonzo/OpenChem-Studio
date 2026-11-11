@@ -1,0 +1,22 @@
+[
+  {"do": "smiles", "smiles": "CNC", "name": "Dimethylamine"},
+  {"do": "select", "molecule": -1},
+  {"do": "inspect", "id": "crippen_logp_contrib"},
+  {"do": "inspect_report", "tag": "dimethylamine-crippen", "filter": "N"},
+  {"do": "inspect", "id": "crippen_mr_contrib"},
+  {"do": "inspect_report", "tag": "dimethylamine-mr"},
+
+  {"do": "smiles", "smiles": "CC(=O)O", "name": "Acetic acid"},
+  {"do": "select", "molecule": -1},
+  {"do": "inspect", "id": "crippen_logp_contrib"},
+  {"do": "inspect_report", "tag": "acetic-acid-crippen"},
+
+  {"do": "smiles", "smiles": "c1ccccc1", "name": "Benzene"},
+  {"do": "select", "molecule": -1},
+  {"do": "inspect", "id": "huckel_pi_density"},
+  {"do": "inspect_report", "tag": "benzene-huckel"},
+  {"do": "inspect", "id": "ring_systems"},
+  {"do": "inspect_report", "tag": "benzene-rings"},
+
+  {"do": "quit"}
+]

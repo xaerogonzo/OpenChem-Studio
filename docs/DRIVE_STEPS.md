@@ -106,9 +106,11 @@ The `OPENCHEM_DRIVE` step catalogue, moved out of [`CLAUDE.md`](../CLAUDE.md) on
                                           labels; Settings > Recalculation switches it off
     {"do": "inspector_report", "tag": "after-edit"}  the Atom Inspector's
                                           pinned line, HELD results and state
-    {"do": "inspect", "id": "geometry_partial_charge", "parameters": {"ph_dependent": true}}
+    {"do": "inspect", "id": "crippen_logp_contrib"}
     {"do": "inspect_report", "tag": "ph", "filter": "N", "select_row": 0}  the
-                                          structure the panes draw, labels, table
+                                          structure the panes draw, labels, table;
+                                          one JSON object on a following log line
+                                          (see inspect_report below)
     {"do": "result_report", "calculator": "geometry_partial_charge",
      "expect_refusal": "REFUSE_NOT_CONVERGED"}  WHICH refusal Properties
                                           holds; "Not applicable" names none
@@ -547,3 +549,35 @@ Four things that cost a run each:
   `show_scores(activate=False)`. A new drive step that shows a window with text
   fields takes the same care, and the app still takes the foreground when a run
   starts, so type nothing into it in the first seconds.
+
+`inspect` computes **synchronously** via `CalculatorRegistry.compute`. `after_ms`
+only delays the next step after that returns. It is not an async wait. A
+`ServiceExecution` calculator cannot be inspected this way. Each `inspect` closes
+the previous driver-owned Inspector before opening the next.
+
+`inspect_report` is observational. With no `expect` object it records no
+assertion; a dump-only walk can still `VERDICT PASS`. A failed or refused
+calculator result is still a useful dump. Unknown `expect` keys fail; they never
+pass silently. Existing keys keep their meanings:
+
+- `structure` — `_structure_source` (`effective_structure` / stored conformer / `none`)
+- `formal_charge` — net formal charge of `_conformer_molblock` (the structure
+  supplied to the 3D viewer, not the drawing)
+- `depiction_charge` — net formal charge of `_depiction_molblock`
+- `drawing_charge` — net formal charge of the molecule's stored molblock
+
+Layout keys: `pane_2d_width_px` is the 2D pane's allocated width;
+`pane_2d_min_width_px` is its `minimumWidth()`. `2d_share` is
+`sizes[0] / sum(sizes)` from `_views_splitter.sizes()` after the dialog has been
+shown. `table.model_rows` is the result table; `visible_rows` is the filtered
+proxy.
+
+The JSON line is `OPENCHEM_DRIVE: inspect_report[tag] {json}` (`schema_version`
+1, compact, sorted keys). `shown_3d` is the structure supplied to the 3D viewer;
+`has_3d_coordinates` is from Z-span of the parsed coords, not from that field
+being present. The 3D page `labelState()` callback and an optional PNG still
+emit their own lines. Example:
+
+```json
+{"schema_version":1,"tag":"dimethylamine-crippen","calculator":{"id":"crippen_logp_contrib","result_property_id":"crippen_logp_contrib"},"drawing":{"present":true,"parse_ok":true,"net_formal_charge":0},"depiction":{"present":true,"parse_ok":true,"net_formal_charge":0},"shown_3d":{"present":false,"has_3d_coordinates":null},"comparison":{"depiction_same_formal_charge_as_drawing":true},"layout":{"2d_share":0.5,"pane_2d_min_width_px":320}}
+```

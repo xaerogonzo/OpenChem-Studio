@@ -4278,11 +4278,16 @@ class _Driver(QObject):
         through the panel's reveal-and-click path, which is unchanged and
         covered by `tests/test_property_panel.py`.
         """
+        from PySide6.QtCore import Qt
+        from PySide6.QtWidgets import QApplication
+
+        from openchem.domain.scientific_result import PerAtomDataset
         from openchem.ui.dialogs.calculator_inspector_dialog import (
             CalculatorInspectorDialog,
         )
         from openchem.chem.calculation_input import canonical_conformer
 
+        self._dispose_driver_inspector()
         window = self._window
         panel = window._property_panel
         calculator_id = str(step["id"])
@@ -4305,9 +4310,23 @@ class _Driver(QObject):
 
         engine = window._services.chemistry_engine
         mol = resolve_calculation_input(engine, molecule, definition.calculation_input).mol
-        result = window._services.calculator_registry.compute(calculator_id, mol, molecule.uuid, parameters)
+        # Synchronous registry.compute — after_ms does not make this async.
+        try:
+            result = window._services.calculator_registry.compute(
+                calculator_id, mol, molecule.uuid, parameters
+            )
+        except Exception as exc:  # noqa: BLE001 - a failed inspect must not abort the drive
+            logger.error("OPENCHEM_DRIVE: inspect %s compute failed: %s", calculator_id, exc)
+            return
+        if not isinstance(result, PerAtomDataset):
+            logger.error(
+                "OPENCHEM_DRIVE: inspect %s returned %s, not a per-atom dataset",
+                calculator_id,
+                type(result).__name__,
+            )
+            return
         best = canonical_conformer(molecule)
-        self._inspector = CalculatorInspectorDialog(
+        dialog = CalculatorInspectorDialog(
             window._services.chemistry_engine,
             molecule,
             result,
@@ -4319,19 +4338,21 @@ class _Driver(QObject):
             # -- and reported the absence as a product fact.
             on_add_structure=window._add_generated_structure,
         )
+        dialog.setAttribute(Qt.WidgetAttribute.WA_DeleteOnClose, True)
+        dialog._requested_calculator_id = calculator_id
+        dialog._inspect_molecule = molecule
+        self._inspector = dialog
         self._inspector.show()
+        QApplication.processEvents()
         logger.warning(
             "OPENCHEM_DRIVE: inspect %s -> %r", calculator_id, getattr(result, "name", "")
         )
 
-    def _formal_charge(self, molblock: str | None) -> int | None:
-        if not molblock:
-            return None
-        try:
-            mol = self._window._services.chemistry_engine.mol_from_molblock(molblock)
-        except Exception:  # noqa: BLE001 - a report must not stop the run
-            return None
-        return sum(atom.GetFormalCharge() for atom in mol.GetAtoms())
+    def _dispose_driver_inspector(self) -> None:
+        from openchem.app.inspector_dump import dispose_driver_inspector
+
+        dispose_driver_inspector(getattr(self, "_inspector", None))
+        self._inspector = None
 
     def _do_inspect_report(self, step: dict[str, Any]) -> None:
         """What the open Calculator Inspector is drawing, in words a screenshot cannot give.
@@ -4345,6 +4366,10 @@ class _Driver(QObject):
         then report the atom the selection stands for. The 3D page's own
         label state arrives asynchronously in a second log line.
         """
+        from PySide6.QtWidgets import QApplication
+
+        from openchem.app.inspector_dump import encode_inspect_dump, evaluate_inspect_expect, inspect_dump
+
         dialog = getattr(self, "_inspector", None)
         view = getattr(dialog, "_view", None)
         if view is None or not hasattr(view, "_structure_source"):
@@ -4355,35 +4380,27 @@ class _Driver(QObject):
             view._table_filter.setText(str(step["filter"]))
         if "select_row" in step and getattr(view, "_table", None) is not None:
             view._table.selectRow(int(step["select_row"]))
-        engine = self._window._services.chemistry_engine
-        shown = view._conformer_molblock
-        atoms = charge = None
-        if shown:
-            try:
-                mol = engine.mol_from_molblock(shown)
-                atoms, charge = mol.GetNumAtoms(), sum(a.GetFormalCharge() for a in mol.GetAtoms())
-            except Exception:  # noqa: BLE001 - a report must not stop the run
-                pass
-        labels_2d = len(view._layer_2d.atom_labels or {}) if view._layer_2d is not None else 0
-        rows = view._table_proxy.rowCount() if getattr(view, "_table_proxy", None) is not None else None
+        QApplication.processEvents()
+        molecule = getattr(dialog, "_inspect_molecule", None) or getattr(view, "_molecule", None)
+        dump = inspect_dump(dialog, molecule, tag=str(tag))
+        shown = dump.get("shown_3d") or {}
+        atoms = shown.get("atom_count")
+        charge = dump.get("formal_charge")
+        labels_2d = (dump.get("table") or {}).get("labels_2d") or 0
+        rows = (dump.get("table") or {}).get("visible_rows")
         logger.warning(
             "OPENCHEM_DRIVE: inspect_report[%s] structure=%s atoms=%s formal_charge=%s placement=%r "
             "labels_2d=%d table_rows=%s selected_atom=%s emphasised_2d=%s size=%dx%d depiction_charge=%s",
-            tag, view._structure_source, atoms, charge, view._placement_label.text(), labels_2d, rows,
-            view.selected_atom(), view._emphasised, dialog.width(), dialog.height(),
-            self._formal_charge(view._depiction_molblock),
+            tag, dump.get("structure_source"), atoms, charge, (dump.get("text") or {}).get("placement", ""),
+            labels_2d, rows,
+            (dump.get("table") or {}).get("selected_atom"), (dump.get("table") or {}).get("emphasised_atom"),
+            dialog.width(), dialog.height(),
+            dump.get("depiction_charge"),
         )
-        expect = step.get("expect") or {}
-        problems = []
-        if "formal_charge" in expect and charge != expect["formal_charge"]:
-            problems.append(f"formal charge {charge}, expected {expect['formal_charge']}")
-        if "structure" in expect and view._structure_source != expect["structure"]:
-            problems.append(f"structure {view._structure_source}, expected {expect['structure']}")
-        if "depiction_charge" in expect and self._formal_charge(view._depiction_molblock) != expect["depiction_charge"]:
-            problems.append(
-                f"2D formal charge {self._formal_charge(view._depiction_molblock)}, expected {expect['depiction_charge']}"
-            )
-        if problems or expect:
+        logger.warning("OPENCHEM_DRIVE: inspect_report[%s] %s", tag, encode_inspect_dump(dump))
+        expect = step.get("expect")
+        problems = evaluate_inspect_expect(dump, expect)
+        if problems is not None:
             if self._record_assertion("inspect_report", str(tag), not problems, "; ".join(problems) or "as expected"):
                 logger.warning("OPENCHEM_DRIVE: EXPECT inspect_report ok[%s]", tag)
             else:
@@ -10819,6 +10836,9 @@ class _Driver(QObject):
                 logger.error("OPENCHEM_DRIVE: close_windows: unknown window %r", name)
                 continue
             target = getattr(self, attribute, None)
+            if attribute == "_inspector":
+                self._dispose_driver_inspector()
+                continue
             if target is not None:
                 target.close()
             setattr(self, attribute, None)
