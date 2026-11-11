@@ -21,8 +21,11 @@ from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from math import gcd
 
+#: Uncharged molecular acid or base in Mode A (B or HA), not a drawn ion.
 KIND_MOLECULAR_NEUTRAL = "molecular_neutral"
+#: A supplied ion. Mixed with a molecular neutral this is a missing proton source, not a salt.
 KIND_ION = "ion"
+#: Alkali hydroxide. Neutralization is refused; it is not a salt-assembly path.
 KIND_METAL_HYDROXIDE = "metal_hydroxide"
 
 
