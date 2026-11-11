@@ -1,5 +1,5 @@
 <!-- GENERATED FROM docs/sources.toml -- do not edit -->
-<!-- SOURCE SHA256: 58e228a9cc51be3be6469ce26a4583f2e935c4a53f0aae22c68b6ced6245329a -->
+<!-- SOURCE SHA256: d69cf5cc8eee75b9f4420df3fced70edaff0852d5c59d922206f84f2490016fd -->
 
 # Sources
 
@@ -346,6 +346,7 @@ Title and DOI first; the `key` is what prose and code cite (`[source:key]`) and 
 | MetFrag relaunched: incorporating strategies beyond in silico fragmentation | [10.1186/s13321-016-0115-9](https://doi.org/10.1186/s13321-016-0115-9) | [`ruttkies2016`](#ruttkies2016) | literature | reference only | citation |
 | Computing Fukui functions without differentiating with respect to electron number. II. Calculation of condensed molecular Fukui functions | [10.1063/1.2736698](https://doi.org/10.1063/1.2736698) | [`sablon2007`](#sablon2007) | literature | shipped | citation + claim |
 | AiZynthFinder 4.0: developments based on learnings from 3 years of industrial application | [10.1186/s13321-024-00860-x](https://doi.org/10.1186/s13321-024-00860-x) | [`saigiridharan2024aizynthfinder4`](#saigiridharan2024aizynthfinder4) | literature | reference only | citation |
+| OpenChem Studio v1 salt ion catalog: named common ions as canonical SMILES for composition, not a… |  | [`salt_ion_catalog`](#salt_ion_catalog) | dataset | shipped | citation |
 | Reversal in the Sequence of Two Highest Occupied Molecular Orbitals in the Series Thiophen, Selenophen, and Tellurophen | [10.1039/c39730000541](https://doi.org/10.1039/c39730000541) | [`schafer1973`](#schafer1973) | literature | shipped | citation + claim |
 | Optimized SQE atomic charges for peptides accessible via a web application | [10.1186/s13321-021-00528-w](https://doi.org/10.1186/s13321-021-00528-w) | [`schindler2021`](#schindler2021) | literature | reference only | citation |
 | Correction to: Optimized SQE atomic charges for peptides accessible via a web application | [10.1186/s13321-021-00531-1](https://doi.org/10.1186/s13321-021-00531-1) | [`schindler2021_correction`](#schindler2021_correction) | literature | reference only | citation |
@@ -8785,6 +8786,24 @@ the one rule every calculator's `CalculatorScope` follows.
 | Used by | `src/openchem/chem/bond_dissociation.py`, `docs/explainers/thermochemistry.md`, `benchmarks/restart_v2/PREREGISTRATION.md`, `benchmarks/bde_heldout/extract_atct.py` |
 
 **Why it is reference only.** THE REFERENCE VALUES OF THE HELD-OUT BOND-DISSOCIATION ARM: `benchmarks/bde_heldout/extract_atct.py` parses the saved page (3,455 species rows, kJ/mol at 298.15 K) and combines a parent's, a radical's and the hydrogen atom's enthalpies of formation into DH298 and its uncertainty. The arithmetic was checked against the 22 bonds Blanksby and Ellison also give: ATcT minus theirs is -0.11 kcal/mol on average, within 0.2 for every reference held to 0.1 or better, beyond three combined uncertainties for one bond (propene's allylic C-H, 87.50 against 88.8). Nothing is shipped from it yet; it backs a benchmark's reference column.
+
+### salt_ion_catalog — OpenChem Studio v1 salt ion catalog: named common ions as canonical SMILES for composition, not a…
+
+<a id="salt_ion_catalog"></a>
+
+> OpenChem Studio v1 salt ion catalog: named common ions as canonical SMILES for composition, not a pharmaceutical list.
+
+| | |
+| --- | --- |
+| Identifier | OpenChem Studio v1 salt ion catalog |
+| Status | shipped |
+| Verification | citation |
+| Verified | 2026-11-11 |
+| Used by | `src/openchem/chem/data/ionic_species.json` |
+
+STRUCTURES ONLY. Each row is a named ion's graph and its parent, so Mode A
+workflow 2 and the catalog agree on identity. No pKa numbers. Not safety or
+acceptability. Hydrogen sulfate and sulfate are different rows.
 
 ## Legal texts
 
