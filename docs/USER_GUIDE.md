@@ -2469,7 +2469,7 @@ with it, and *Style* keeps working from the panel.
 <!-- help:synthesis -->
 ## Synthesis
 
-The **Synthesis** panel (the rail's Extensions group, or **Plugins ▸ Plan Synthesis**) asks a synthesis planner for routes to the selected molecule. It is a front end for **AiZynthFinder**, a program you install yourself and point the application at under **Edit ▸ Settings ▸ External tools ▸ AiZynthFinder** (the application never downloads or installs it). Until that is done the panel says what is missing and where to set it up, and **Plan synthesis** answers that the planner is not available.
+The **Synthesis** panel (the rail's Extensions group, or **Plugins ▸ Plan Synthesis**) asks a synthesis planner for routes to the selected molecule. It is a front end for **AiZynthFinder**. Set it up under **Edit ▸ Settings ▸ External tools ▸ AiZynthFinder**: **Set Up Automatically** builds a separate Python 3.12 environment and fetches the public models after asking first (about 1.7 GB), or Browse an environment you already have (the environment folder, not a GitHub source zip). The planner still runs as a program of its own, never inside OpenChem's Python. Until that is done the panel says what is missing and where to set it up, and **Plan synthesis** answers that the planner is not available.
 
 **Before anything runs, the target is checked.** A molecule that matches the structural rules of the shipped `cwc-schedule-1` ruleset is refused, with the reason, and no planner starts; a molecule the check could not be applied to is refused the same way. A refusal is a result like any other and stays on the molecule until it is edited. The check covers the target only: a molecule in the middle of a route is flagged where a flag is meant to go, and is not a refusal.
 

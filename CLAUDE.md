@@ -68,6 +68,7 @@ by `tests/test_layering.py`.
 - `src/openchem/domain/goal_run_preferences.py` — goal-run settings only (saved choice, else the recommendation, else the registered default); Spectra recommends 1H while `nmr_database` stays 13C; Run all recommended confirms before it starts
 - `src/openchem/chem/engine.py` — the only RDKit touchpoint for molecule conversion/canonicalization
 - `src/openchem/services/descriptor_service.py` — async descriptor computation (Queued/Running/Completed/Failed)
+- `src/openchem/app/inspector_dump.py` / `nmr_dump.py` / `results_dump.py` — observational JSON dumps for `OPENCHEM_DRIVE` (`inspect_report`, `nmr_panes`, `results`); `inspect` `"source": "result"` after `calculator` + `jobs_wait`; walk is `benchmarks/visual/louder_probe.json`
 - `src/openchem/ui/widgets/ketcher_editor_backend.py` — the embedded 2D editor, behind the `EditorBackend` interface
 - `src/openchem/domain/structure_template.py` / `src/openchem/chem/structure_templates.py` / `src/openchem/ui/dialogs/template_library_dialog.py` — OpenChem-owned complete-molecule template library (`docs/STRUCTURE_TEMPLATE_LIBRARY_DESIGN.md`): shipped JSON under `src/openchem/chem/data/structure_templates/`, user store under `data_root()/structure_templates`, insert via `EditorBackend.add_fragment` with 2.0 Å right-side placement and one undo step; peptide sequences and polymer S-groups stay on the roadmap
 - `src/openchem/chem/naming_providers.py` — structure <-> name; the only entry point to the vendored nomenclature engine
@@ -302,7 +303,7 @@ legitimate rule maintenance.
 
 ## Lessons (moved out of this file)
 
-They live in [`docs/LESSONS.md`](docs/LESSONS.md) and are not loaded on every message. Every title that used to be listed here is a heading there, unchanged. Before work that matches a past failure (a guard, a drive script, naming, ORCA, the suite, a panel), grep that file for the heading and read the section.
+They live in [`docs/LESSONS.md`](docs/LESSONS.md) and are not loaded on every message. Every title that used to be listed here is a heading there, unchanged. Before work that matches a past failure (a guard, a drive script, naming, ORCA, the suite, a panel, a catalog dock), grep that file for the heading and read the section.
 
 ## Books and papers: use the facts
 

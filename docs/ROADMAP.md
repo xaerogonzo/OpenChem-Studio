@@ -719,7 +719,7 @@ share and the five bugs that motivated it — the most serious being Open
 Babel's silent unit-cell expansion, which handed Vina eight overlapping
 copies of one protein.
 
-### Ranking affinities — the gap is measured, and three routes are open
+### Ranking affinities — the gap is measured
 
 **Route 1 is SHIPPED, route 2's axis is shipped AND ITS RANKING POWER IS NOW
 MEASURED, and route 3 has been spiked but ships nothing.** All three are
@@ -743,6 +743,17 @@ below rather than left as an adjective.
                                     nothing, and what stops it is now a COST
                                     NUMBER rather than a missing prerequisite.
                                     `git diff src/` is empty for all of it
+
+**UPDATE 2026-11-10.** Route 2's cheap second-function and learned-scorer
+attempts on this catalog are **closed as product paths**. Vinardo Δρ +0.000
+(77 series). Engine-pilot smina **HARMFUL** (no engine seam). PLECscore
+**HARMFUL**. gnina CNN rescore of Vina's poses **NULL**; gnina default dock
+**NULL**; default-ensemble CNNaffinity ranking **HARMFUL** (35 deciding
+series, median Δρ −0.130, #564). Pose copy stays PR 508. Owner 2026-11-09:
+stop this line; a later affinity *number* is a new program (MM-GBSA, RBFE,
+or a generator), not a gnina continuation. Those catalog docks were
+hours-to-days on a local GPU; see `docs/LESSONS.md` (per-ligand agent
+notify) and `benchmarks/docking/README.md`.
 
 **WHAT THE NULL DID TO THIS LIST.** It closed route 2's open question, it
 handed route 3 the acceptance oracle it was waiting for, and it moved "more
@@ -1515,7 +1526,7 @@ scores, slices 1 to 4 and their follow-ups, including scores over 3D numbers (`d
 
 **Phase 3** (ORCA calculators, each behind a preregistered benchmark): proton affinity and gas basicity passed their benchmark (#398) and the calculator is LIMITED and shown by default since 2026-10-23 (`docs/PROTON_AFFINITY_DESIGN.md`); X-H bond dissociation enthalpy's benchmark was PARTIAL on 2026-10-21, its held-out arm PASSED on 2026-10-23, and the calculator is LIMITED and shown since 2026-10-25, with the restart protocols and what they found in `benchmarks/restart_v2/` and `benchmarks/restart_v3/`; Fukui functions (built 2026-10-18) failed two preregistered gates, the first by 0.0014 on one quantity and the second, on De Proft et al.'s tables, with 33 of 47 numbers within 0.02, so they are offered as experimental and not validated (`benchmarks/fukui_gate/PREREGISTRATION.md` and `benchmarks/fukui_gate_2/PREREGISTRATION.md`).
 
-**Phase 4** (the synthesis helper, `docs/SYNTHESIS_HELPER_DESIGN.md`): Stage 1 is built, plans are saved in the project file, and the planner's quality was measured three times. Protocol 2 (2026-10-22) put the patent route among the first 10 shown for 41.7% of 300 patent targets, and slice 3 ranks and caps the routes as it measured; protocol 3 (2026-10-24), on 51 routes from journal papers newer than the model's training data, read lower, 13 of 51 (0.255), and that figure is quoted beside the patent one in every plan.
+**Phase 4** (the synthesis helper, `docs/SYNTHESIS_HELPER_DESIGN.md`): Stage 1 is built, plans are saved in the project file, and the planner's quality was measured three times. Protocol 2 (2026-10-22) put the patent route among the first 10 shown for 41.7% of 300 patent targets, and slice 3 ranks and caps the routes as it measured; protocol 3 (2026-10-24), on 51 routes from journal papers newer than the model's training data, read lower, 13 of 51 (0.255), and that figure is quoted beside the patent one in every plan. **Set Up Automatically** on the AiZynthFinder External tools tab builds the sidecar environment (#572, 2026-11-10); the planner is still never imported into OpenChem's interpreter.
 
 **Built 2026-10-30:** the assistant can read the ORCA runs a person made (`read_quantum_runs`), and can ASK for a single ORCA job (`run_calculator` on `orca.sp`, `opt`, `opt_freq`, `nmr`, `nmr_coupling`, `delta_scf` or `led`): a card with the settings and the cost, and ORCA starts only if the person approves it, by the Quantum Chemistry panel's own Run rules (`docs/AI_CALCULATION_BRIDGE.md`, sections 15 to 17). Proton affinity followed the same day (a fixed protocol: the card states the base, the job count and whether it was measured; section 18), then bond dissociation (the same, with the bonds it would compute listed and the ones it leaves out named; section 19) and the tautomer distribution (the three settings and the job count its enumeration gives, the default conformer search; section 20). A bond card past six classes keeps an O-H, N-H or S-H before a C-H, and an approved job has a **Stop job** button on the assistant's panel (section 21, 2026-11-01). NMR on the tautomers of a finished distribution followed (`orca.tautomer_nmr`, a card bound to the stored run; section 22), then Fukui functions (`orca.fukui`: a card that counts the jobs and states the experimental stage; section 23). **Still not built:** a card for particular bonds chosen on it (Fukui followed, and the live provider runs: see the handoff below). `docs/WHATS_NEW.md` is a tour of all of it.
 

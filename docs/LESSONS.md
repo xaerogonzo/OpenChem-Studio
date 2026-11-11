@@ -21890,3 +21890,47 @@ and are the ones that can fail on a pure data edit.
 tree as far as the sweeping guards are concerned, so run those two files' tests as
 well as the ones named after your feature. And when a run you have not read is still
 in flight, read its result before the next push: a cancelled run hides a red shard.
+
+## A PER-LIGAND SHELL NOTIFY ON A CATALOG DOCK BURNS THE WEEK'S USAGE
+
+The frozen CNNaffinity ranking rescore (`run_cnn_affinity_test.py rescore`) is
+one Vina re-dock plus one gnina `score_only` per ligand, ~30–60 s each, **833
+ligands**, WSL2 RTX 4060. Resume is `results.jsonl`. That is a night-to-weekend
+job, in the same class as prep-box (47 receptors) and the engine-pilot (690
+docks).
+
+The 2026-11-06 start attached `notify_on_output` to `/ok |mismatch|failed|…/`.
+Every ligand printed `ok`, so every ligand opened a new agent turn. Cursor
+usage ran out at about **380 of 833**. The jsonl was intact (later 422 rows,
+zero vina mismatches). Resume on 2026-11-08 notified only on failure or
+`CNN_AFFINITY_RESCORE_DONE`. The catalog finished; the verdict was HARMFUL
+(`RESULT_CNN_AFFINITY.md`, #564). Owner 2026-11-09: stop this learned-scorer
+line.
+
+Open Babel `Failed to kekulize` also matched a case-insensitive `failed`
+pattern, so notify counts were not ligand counts.
+
+**How to apply:** a catalog dock is compute, not a chat. Notify on mismatch,
+dock failed, no representative, no receptor, no poses, or one DONE line after
+exit 0. Do not `Read` the terminal after every `ok`. Do not treat a partial
+jsonl as a verdict. Grep this heading before the next catalog dock.
+
+## BROWSE OF A PLANNER SOURCE ZIP IS NOT AN INSTALL
+
+AiZynthFinder's GitHub release is a source tree. **Browse** on the External
+tools tab looks for `python.exe` (or `Scripts` / `.venv` / `env`) beside the
+chosen folder. Pointing it at that zip, or at the unpacked repository, finds
+nothing usable and reads as a locate failure, not as "this is the project
+page, not the environment." A working install is a Python 3.10–3.12 venv with
+the `aizynthfinder` package imported **and** the configuration file
+`download_public_data` writes, whose model and stock paths exist. **Set Up
+Automatically** builds that sidecar; Browse still accepts one you already have.
+
+A Windows venv cannot be relocated. Copying `D:\_scratch\aizynth\env` with
+robocopy left an interpreter whose shebangs and `pyvenv.cfg` still named the
+scratch path. Recreate the venv and copy only the data files, then rewrite
+the YAML paths. Robocopy exit 1 is success (files copied with extras).
+
+**How to apply:** do not point Browse at a GitHub source zip. Do not move a
+Windows venv. Remove only deletes `aizynthfinder_env` under the application
+data folder, never a hand-built copy (for example `D:\Random Programs\aizynthfinder`).

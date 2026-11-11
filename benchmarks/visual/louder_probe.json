@@ -1,0 +1,47 @@
+[
+  {"do": "smiles", "smiles": "CNC", "name": "Dimethylamine", "after_ms": 800},
+  {"do": "select", "molecule": -1, "after_ms": 1500},
+  {"do": "panel", "id": "Properties", "after_ms": 400},
+
+  {"do": "calculator", "id": "elemental_analysis", "reveal": false},
+  {"do": "calculator", "id": "functional_groups", "reveal": false},
+  {"do": "jobs_wait", "timeout_ms": 20000, "quiet_ms": 400, "after_ms": 400},
+  {"do": "results", "tag": "all", "search": "Formula", "expect": {"focus": "", "search": "Formula", "jumps_at_least": 1, "all_results_visible": false}, "after_ms": 500},
+  {"do": "results", "stay": true, "jump": "Nominal mass", "tag": "jump", "expect": {"focus": "elemental_analysis", "search": "Formula", "all_results_visible": true}, "after_ms": 400},
+  {"do": "results", "stay": true, "show_all": true, "tag": "back", "expect": {"focus": "", "search": "Formula", "all_results_visible": false}, "after_ms": 400},
+
+  {"do": "inspect", "id": "crippen_logp_contrib"},
+  {"do": "inspect_report", "tag": "dimethylamine-crippen", "filter": "N"},
+  {"do": "inspect", "id": "crippen_mr_contrib"},
+  {"do": "inspect_report", "tag": "dimethylamine-mr"},
+  {"do": "inspect", "id": "topology_eccentricity"},
+  {"do": "inspect_report", "tag": "dimethylamine-eccentricity"},
+  {"do": "inspect", "id": "topology_distance_degree"},
+  {"do": "inspect_report", "tag": "dimethylamine-distance-degree"},
+
+  {"do": "calculator", "id": "gasteiger_charge_at_ph", "reveal": false},
+  {"do": "jobs_wait", "id": "gasteiger_charge_at_ph", "timeout_ms": 120000, "quiet_ms": 400, "after_ms": 400},
+  {"do": "inspect", "id": "gasteiger_charge_at_ph", "source": "result"},
+  {"do": "inspect_report", "tag": "dimethylamine-pH"},
+
+  {"do": "smiles", "smiles": "CC(=O)O", "name": "Acetic acid", "after_ms": 800},
+  {"do": "select", "molecule": -1, "after_ms": 1200},
+  {"do": "inspect", "id": "crippen_logp_contrib"},
+  {"do": "inspect_report", "tag": "acetic-acid-crippen"},
+
+  {"do": "smiles", "smiles": "c1ccccc1", "name": "Benzene", "after_ms": 800},
+  {"do": "select", "molecule": -1, "after_ms": 1200},
+  {"do": "inspect", "id": "huckel_pi_density"},
+  {"do": "inspect_report", "tag": "benzene-huckel"},
+  {"do": "inspect", "id": "ring_systems"},
+  {"do": "inspect_report", "tag": "benzene-rings"},
+
+  {"do": "calculator", "id": "nmr_database", "reveal": false},
+  {"do": "jobs_wait", "id": "nmr_database", "timeout_ms": 30000, "quiet_ms": 400, "after_ms": 500},
+  {"do": "results", "focus": "nmr_13c", "open_viewer": true, "tag": "open-nmr", "after_ms": 1500},
+  {"do": "nmr_panes", "hide": ["2d"], "tag": "hide-2d", "expect": {"2d": false, "3d": true, "splitter": true, "spectrum": true, "table": true}},
+  {"do": "nmr_panes", "hide": ["3d"], "tag": "hide-both", "expect": {"2d": false, "3d": false, "splitter": false, "spectrum": true, "table": true}},
+  {"do": "nmr_panes", "reset": true, "tag": "reset", "expect": {"2d": true, "3d": true, "splitter": true, "spectrum": true}},
+
+  {"do": "quit"}
+]

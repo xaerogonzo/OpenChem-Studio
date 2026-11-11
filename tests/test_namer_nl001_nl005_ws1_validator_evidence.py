@@ -1,9 +1,9 @@
 """WS1 evidence pins for NL-001, NL-002 and NL-005 (validator limits, not engine defects).
 
 Re-measures the representative constructions from naming rounds 89–91 and records
-that they remain open as validator limits with the evidence chain cited in
-``docs/NAMING_LIMITATIONS_PLAN.md``. NL-001 is closed as that validator limit
-(2026-11-10); NL-002 stays blocked; NL-005 stays open. These tests guard regression.
+that they remain validator limits with the evidence chain cited in
+``docs/NAMING_LIMITATIONS_PLAN.md``. NL-001 and NL-005 are closed as that class
+(2026-11-10); NL-002 stays blocked. These tests guard regression.
 """
 
 from __future__ import annotations
@@ -48,9 +48,19 @@ def _embeddable_isomers(smiles: str) -> list[str]:
 
 def test_nl005_adamantane_spiro_methyl_still_names_all_embeddable_isomers_flat():
     """RDKit embeds two stereoisomers here; both name flat (validator limit; round 88 reported four)."""
-    names = {name_smiles(s) for s in _embeddable_isomers(NL005_SPIRO_METHYL)}
+    isomers = _embeddable_isomers(NL005_SPIRO_METHYL)
+    names = {name_smiles(s) for s in isomers}
     assert names == {NL005_FLAT}
-    assert len(_embeddable_isomers(NL005_SPIRO_METHYL)) >= 2
+    assert len(isomers) >= 2
+
+
+@needs_opsin
+def test_nl005_adamantane_spiro_flat_name_does_not_pin_embeddable_isomer():
+    """OPSIN reads the flat name but cannot tie it to one stereoisomer — why NL-005 stays flat."""
+    from openchem.vendor.iupac_namer import engine
+
+    isomer = _embeddable_isomers(NL005_SPIRO_METHYL)[0]
+    assert not engine._name_pins_structure(NL005_FLAT, Chem.MolFromSmiles(isomer))
 
 
 @needs_opsin
