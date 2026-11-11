@@ -51,7 +51,7 @@ What the table says and does not: a code licence says nothing about the data, an
 |---|---|
 | Python | a separate **3.12.13** (uv-managed); OpenChem's own interpreter is never used |
 | `pip install aizynthfinder==4.4.1` (uv) | **67 s**; environment **922 MB** on disk |
-| Resolved versions | aizynthfinder 4.4.1, onnxruntime 1.31.0, numpy 1.26.4, rdkit 2023.9.6, no TensorFlow (full lock: `benchmarks/synthesis/planner_env_lock.txt`, 177 packages) |
+| Resolved versions | aizynthfinder 4.4.1, onnxruntime 1.31.0, numpy 1.26.4, rdkit 2023.9.6, no TensorFlow (full lock: `benchmarks/synthesis/planner_env_lock.txt`, 177 packages). The rebuild card is `benchmarks/synthesis/sidecar_recipe.json` (Python, lock hash, sha256 of the six public-data files); `tools/sidecar_recipe.py` verifies it and does not keep the 1.7 GB tree. |
 | **A fresh install does not import** | pip resolved `pyarrow 26.0.0`, which needs NumPy 2, while aizynthfinder pins `numpy<2`: `ImportError: pyarrow requires NumPy 2.0 or newer, found 1.26.4`. **Fixed by `pyarrow<21` (20.0.0).** A user following the README on this date would hit it; the install route must carry the pin. |
 | `download_public_data` | **161 s**, **754 MB**, six files; **every byte count equals the Zenodo and Figshare records** and the stock's MD5 (`00de7171...`) equals the Figshare record's |
 | Disk total | about **1.7 GB** (environment plus data) |

@@ -5267,6 +5267,7 @@
   "tests/test_settings_window.py": 7,
   "tests/test_sidecar_env.py": 2,
   "tests/test_sidecar_inventory.py": 6,
+  "tests/test_sidecar_recipe.py": 4,
   "tests/test_sidecar_setup_rerun.py": 6,
   "tests/test_solubility.py": 5,
   "tests/test_sources_are_current.py": 2,
