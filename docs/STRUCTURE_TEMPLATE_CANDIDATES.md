@@ -27,10 +27,18 @@ PubChem identity is verified separately from ChEBI. Primary `chebi_id` is set on
 | Coordination/metal special handling | 7 |
 | PubChem CID replaced vs first dump | 30 |
 | ChEBI structure-verified (full InChIKey) | 173 |
-| ChEBI name-lookup related/unresolved kept aside | 40 |
+| ChEBI related records (all chebi_related array items) | 42 |
+| Distinct ChEBI IDs among related records | 41 |
+| Duplicate primary chebi_id values | [] |
 | Formula mismatch after composition normalize | 0 |
 
+`chebi_structure_verified` counts entries whose primary `chebi_id` is a full InChIKey match. `chebi_related_records` counts every object in every `chebi_related` array. `chebi_related_distinct_ids` counts unique IDs in those arrays (CHEBI:38853 is the unspecified decalin parent on both cis and trans). `duplicate_primary_chebi_ids` checks only primary `chebi_id`, not related records.
+
 `editor_eligible` means identity-accepted and not coordination-special. It is **not** an editor smoke test (`editor_display_tested` is 0).
+
+## Release gate (not this dump)
+
+Do not convert a candidate into a shipped template solely because `identity.status` is verified or `editor_eligible` is true. A later shipping PR must require stereochemical review for any intended identity that specifies stereo (anomer, L/D, named stereoisomer, cis/trans). The 31 `stereochemistry_not_reviewed` entries stay listed, not silently promoted. cis/trans-decalin stay out of accepted candidates until a stereospecific structure is sourced.
 
 ### CID replacements vs first dump
 
@@ -76,7 +84,7 @@ PubChem identity is verified separately from ChEBI. Primary `chebi_id` is set on
 
 ## Atropine stereochemical cross-check
 
-PubChem CID 174174 InChIKey `RKUNBYITZUJHSG-PJPHBNEVSA-N`. ChEBI CHEBI:16684 is atropine the racemate, InChIKey `RKUNBYITZUJHSG-SPUOUPEWSA-N`. Connectivity and protonation layers match; the stereochemical layer differs. This is **not** a confirmed cross-database structure match. `chebi_id` is unset; the racemate is recorded as related with `stereo_difference`.
+PubChem CID 174174 (title `Npc209773`). Candidate InChIKey `RKUNBYITZUJHSG-PJPHBNEVSA-N` (`InChI=1S/C17H23NO3/c1-18-13-7-8-14(18)10-15(9-13)21-17(20)16(11-19)12-5-3-2-4-6-12/h2-6,13-16,19H,7-11H2,1H3/t13-,14+,15?,16?`). The candidate records four potential chiral centers; `stereochemistry_status` remains `not_reviewed`. ChEBI CHEBI:16684 is atropine the racemate, InChIKey `RKUNBYITZUJHSG-SPUOUPEWSA-N`. Connectivity and protonation layers match; the stereochemical InChIKey layer differs (`structure_comparison: stereochemistry_difference`). This is **not** a confirmed cross-database structure match. Primary `chebi_id` is unset.
 
 ## V1 constraints
 
@@ -106,7 +114,7 @@ Shipped catalog remains four files and **34** entries. Dummy/query/S-group refus
 | `cycloalkanes` | Cycloalkanes | A | active | 12 | Saturated monocycles C3–C12 inclusive, plus methylcyclopentane and methylcyclohexane. Bicyclic decalins are not in this category. |
 | `conformers` | Conformers | D | unresolved | 0 | Conformational templates need 3D coordinates; V1 molblock_for regenerates 2D. |
 | `heterocycles` | Heterocycles | A | active | 51 | Representative heterocyclic complete molecules. |
-| `polycyclics` | Polycyclics | A | active | 20 | Fused and cage polycycles. |
+| `polycyclics` | Polycyclics | A | active | 19 | Fused and cage polycycles. |
 | `homology_groups` | Homology groups | C | deferred | 0 | Query/variable-group concept. Not ordinary SMILES. Not populated. |
 | `alpha_d_sugars` | Alpha D sugars | A | active | 6 | Named alpha-D sugars with ring form and anomer recorded. |
 | `beta_d_sugars` | Beta D sugars | A | active | 7 | Named beta-D sugars with ring form and anomer recorded. |
@@ -141,7 +149,7 @@ Shipped catalog remains four files and **34** entries. Dummy/query/S-group refus
 | `cycloalkanes` | 12 |
 | `conformers` | 0 |
 | `heterocycles` | 51 |
-| `polycyclics` | 20 |
+| `polycyclics` | 19 |
 | `homology_groups` | 0 |
 | `alpha_d_sugars` | 6 |
 | `beta_d_sugars` | 7 |
@@ -166,24 +174,24 @@ Cycloalkanes are the C3–C12 monocycles plus methylcyclopentane and methylcyclo
 
 ## Alkaloids
 
-Biosynthetic class (Aniszewski 2015). Ephedrine and colchicine are class-unresolved. Caffeine is pseudo. Atropine remains a true alkaloid by that framework; its ChEBI structure match is not verified.
+Biosynthetic class uses Aniszewski 2015 as a **definitional framework** (true / proto / pseudo), not a compound-specific page citation. Assigned classes are `framework_only`. Ephedrine and colchicine stay class-unresolved. No page numbers were invented.
 
 | Id | Class | Class status | chebi_id | Identity |
 |---|---|---|---|---|
-| `morphine` | true | verified | CHEBI:17303 | verified |
-| `codeine` | true | verified | CHEBI:16714 | verified |
-| `atropine` | true | verified | — | verified |
-| `cocaine` | true | verified | CHEBI:27958 | verified |
-| `nicotine` | true | verified | CHEBI:17688 | verified |
-| `quinine` | true | verified | CHEBI:15854 | verified |
-| `strychnine` | true | verified | CHEBI:28973 | verified |
-| `mescaline` | proto | verified | CHEBI:28346 | verified |
+| `morphine` | true | framework_only | CHEBI:17303 | verified |
+| `codeine` | true | framework_only | CHEBI:16714 | verified |
+| `atropine` | true | framework_only | — | verified |
+| `cocaine` | true | framework_only | CHEBI:27958 | verified |
+| `nicotine` | true | framework_only | CHEBI:17688 | verified |
+| `quinine` | true | framework_only | CHEBI:15854 | verified |
+| `strychnine` | true | framework_only | CHEBI:28973 | verified |
+| `mescaline` | proto | framework_only | CHEBI:28346 | verified |
 | `ephedrine` | — | unresolved | CHEBI:15407 | verified |
-| `hordenine` | proto | verified | CHEBI:5764 | verified |
+| `hordenine` | proto | framework_only | CHEBI:5764 | verified |
 | `colchicine` | — | unresolved | CHEBI:27882 | verified |
-| `caffeine` | pseudo | verified | CHEBI:27732 | verified |
-| `theobromine` | pseudo | verified | CHEBI:28946 | verified |
-| `theophylline` | pseudo | verified | CHEBI:28177 | verified |
+| `caffeine` | pseudo | framework_only | CHEBI:27732 | verified |
+| `theobromine` | pseudo | framework_only | CHEBI:28946 | verified |
+| `theophylline` | pseudo | framework_only | CHEBI:28177 | verified |
 
 ## Organometallics and coordination
 

@@ -1,7 +1,7 @@
 {
   "schema_version": 3,
   "title": "OpenChem structure template candidates",
-  "status": "research_inventory_chebi_structure",
+  "status": "research_inventory_freeze_qa",
   "not_shipped": true,
   "notes": [
     "Not loaded by the application. Do not add to _SHIPPED_FILES.",
@@ -26,9 +26,10 @@
     "requires_coordination_representation": 7,
     "cid_replaced": 30,
     "chebi_structure_verified": 173,
-    "chebi_name_lookup_resolved": 40,
     "formula_mismatch": 0,
-    "duplicate_chebi_ids": []
+    "chebi_related_records": 42,
+    "chebi_related_distinct_ids": 41,
+    "duplicate_primary_chebi_ids": []
   },
   "categories": [
     {
@@ -335,7 +336,6 @@
       "content_kind": "A",
       "status": "active",
       "entry_ids": [
-        "biphenyl",
         "naphthalene",
         "anthracene",
         "phenanthrene",
@@ -1285,8 +1285,7 @@
       },
       "category_ids": [
         "aromatics",
-        "phenyl_rings",
-        "polycyclics"
+        "phenyl_rings"
       ],
       "category_memberships": [
         {
@@ -1296,11 +1295,6 @@
         },
         {
           "category_id": "phenyl_rings",
-          "confidence": "curation_decision",
-          "evidence": "OpenChem browsing category"
-        },
-        {
-          "category_id": "polycyclics",
           "confidence": "curation_decision",
           "evidence": "OpenChem browsing category"
         }
@@ -6570,8 +6564,9 @@
           "inchikey": "NNBZCPXTIHJBJL-AOOOYVTPSA-N",
           "smiles": "[H][C@]12CCCC[C@@]1([H])CCCC2",
           "inchi": "InChI=1S/C10H18/c1-2-6-10-8-4-3-7-9(10)5-1/h9-10H,1-8H2/t9-,10+",
-          "structure_comparison": "connectivity_only",
-          "reason": "Name-associated ChEBI matches connectivity only (tautomer, protonation, or salt-form difference possible)"
+          "structure_comparison": "stereochemistry_unspecified_in_source",
+          "reason": "Candidate InChI has no stereo layer (unspecified decalin parent). CHEBI:38860 is cis-decalin (/t9-,10+).",
+          "reason_kind": "stereochemistry_unspecified_in_source"
         },
         {
           "id": "CHEBI:38853",
@@ -6696,8 +6691,9 @@
           "inchikey": "NNBZCPXTIHJBJL-MGCOHNPYSA-N",
           "smiles": "[H][C@]12CCCC[C@]1([H])CCCC2",
           "inchi": "InChI=1S/C10H18/c1-2-6-10-8-4-3-7-9(10)5-1/h9-10H,1-8H2/t9-,10-",
-          "structure_comparison": "connectivity_only",
-          "reason": "Name-associated ChEBI matches connectivity only (tautomer, protonation, or salt-form difference possible)"
+          "structure_comparison": "stereochemistry_unspecified_in_source",
+          "reason": "Candidate InChI has no stereo layer (unspecified decalin parent). CHEBI:38863 is trans-decalin (/t9-,10-).",
+          "reason_kind": "stereochemistry_unspecified_in_source"
         },
         {
           "id": "CHEBI:38853",
@@ -6727,7 +6723,7 @@
         "label": null,
         "status": "related",
         "source": "No ChEBI default structure with a full InChIKey match",
-        "structure_comparison": "connectivity_only"
+        "structure_comparison": "stereochemistry_unspecified_in_source"
       },
       "category_ids": [
         "bicyclics",
@@ -6828,8 +6824,9 @@
           "inchikey": "UMRZSTCPUPJPOJ-KNVOCYPGSA-N",
           "smiles": "C1C[C@H]2CC[C@@H]1C2",
           "inchi": "InChI=1S/C7H12/c1-2-7-4-3-6(1)5-7/h6-7H,1-5H2/t6-,7+",
-          "structure_comparison": "connectivity_only",
-          "reason": "Name-associated ChEBI matches connectivity only (tautomer, protonation, or salt-form difference possible)"
+          "structure_comparison": "stereochemistry_unspecified_in_source",
+          "reason": "Candidate InChI has no stereo layer. CHEBI:71546 records relative bridge stereo (/t6-,7+).",
+          "reason_kind": "stereochemistry_unspecified_in_source"
         }
       ]
     },
@@ -15490,8 +15487,9 @@
           "inchikey": "DQFBYFPFKXHELB-UHFFFAOYSA-N",
           "smiles": "[H]C(C(=O)c1ccccc1)=C([H])c1ccccc1",
           "inchi": "InChI=1S/C15H12O/c16-15(14-9-5-2-6-10-14)12-11-13-7-3-1-4-8-13/h1-12H",
-          "structure_comparison": "connectivity_only",
-          "reason": "Name-associated ChEBI matches connectivity only (tautomer, protonation, or salt-form difference possible)"
+          "structure_comparison": "stereochemistry_unspecified_in_source",
+          "reason": "Candidate InChI specifies the alkene as E (/b12-11+). CHEBI:27618 has no double-bond stereo layer.",
+          "reason_kind": "stereochemistry_unspecified_in_source"
         }
       ]
     },
@@ -16054,8 +16052,9 @@
           "inchikey": "FTVWIRXFELQLPI-UHFFFAOYSA-N",
           "smiles": "O=C1CC(c2ccc(O)cc2)Oc2cc(O)cc(O)c21",
           "inchi": "InChI=1S/C15H12O5/c16-9-3-1-8(2-4-9)13-7-12(19)15-11(18)5-10(17)6-14(15)20-13/h1-6,13,16-18H,7H2",
-          "structure_comparison": "connectivity_only",
-          "reason": "Name-associated ChEBI matches connectivity only (tautomer, protonation, or salt-form difference possible)"
+          "structure_comparison": "stereochemistry_unspecified_in_source",
+          "reason": "Candidate InChI is the 2S stereoisomer (/t13-/m0/s1). CHEBI:50202 has no tetrahedral stereo layer.",
+          "reason_kind": "stereochemistry_unspecified_in_source"
         }
       ]
     },
@@ -16626,8 +16625,9 @@
           "inchikey": "FPIPGXGPPPQFEQ-UHFFFAOYSA-N",
           "smiles": "CC(C=CC1=C(C)CCCC1(C)C)=CC=CC(C)=CCO",
           "inchi": "InChI=1S/C20H30O/c1-16(8-6-9-17(2)13-15-21)11-12-19-18(3)10-7-14-20(19,4)5/h6,8-9,11-13,21H,7,10,14-15H2,1-5H3",
-          "structure_comparison": "connectivity_only",
-          "reason": "Name-associated ChEBI matches connectivity only (tautomer, protonation, or salt-form difference possible)"
+          "structure_comparison": "stereochemistry_unspecified_in_source",
+          "reason": "Candidate InChI specifies polyene double-bond geometry. CHEBI:50211 has no stereo layer.",
+          "reason_kind": "stereochemistry_unspecified_in_source"
         }
       ]
     },
@@ -17210,8 +17210,9 @@
           "inchikey": "GHOKWGTUZJEAQD-UHFFFAOYSA-N",
           "smiles": "CC(C)(CO)C(O)C(=O)NCCC(=O)O",
           "inchi": "InChI=1S/C9H17NO5/c1-9(2,5-11)7(14)8(15)10-4-3-6(12)13/h7,11,14H,3-5H2,1-2H3,(H,10,15)(H,12,13)",
-          "structure_comparison": "connectivity_only",
-          "reason": "Name-associated ChEBI matches connectivity only (tautomer, protonation, or salt-form difference possible)"
+          "structure_comparison": "stereochemistry_unspecified_in_source",
+          "reason": "Candidate InChI is the (R) acid (/t7-/m0/s1). CHEBI:7916 has no tetrahedral stereo layer.",
+          "reason_kind": "stereochemistry_unspecified_in_source"
         }
       ]
     },
@@ -18868,8 +18869,8 @@
       "category_memberships": [
         {
           "category_id": "true_alkaloids",
-          "confidence": "verified",
-          "evidence": "Aniszewski, Alkaloids: Chemistry, Biology, Ecology, and Applications, 2nd ed., Elsevier, 2015: true = amino-acid N in a heterocycle; proto = amino-acid amine, N not in a heterocycle; pseudo = N introduced other than from an amino-acid skeleton."
+          "confidence": "uncertain",
+          "evidence": "Aniszewski, Alkaloids: Chemistry, Biology, Ecology, and Applications, 2nd ed., Elsevier, 2015: definitional true/proto/pseudo framework only. No compound-specific chapter or page was recorded; the class is not cited as a located passage in that book."
         },
         {
           "category_id": "heterocycles",
@@ -18887,8 +18888,8 @@
         "isoquinoline"
       ],
       "alkaloid_class": "true",
-      "alkaloid_class_status": "verified",
-      "classification_source": "Aniszewski, Alkaloids: Chemistry, Biology, Ecology, and Applications, 2nd ed., Elsevier, 2015: true = amino-acid N in a heterocycle; proto = amino-acid amine, N not in a heterocycle; pseudo = N introduced other than from an amino-acid skeleton.",
+      "alkaloid_class_status": "framework_only",
+      "classification_source": "Aniszewski, Alkaloids: Chemistry, Biology, Ecology, and Applications, 2nd ed., Elsevier, 2015: definitional true/proto/pseudo framework only. No compound-specific chapter or page was recorded; the class is not cited as a located passage in that book.",
       "structure_form": {
         "formal_charge": 0,
         "protonation": {
@@ -18991,16 +18992,16 @@
       "category_memberships": [
         {
           "category_id": "true_alkaloids",
-          "confidence": "verified",
-          "evidence": "Aniszewski, Alkaloids: Chemistry, Biology, Ecology, and Applications, 2nd ed., Elsevier, 2015: true = amino-acid N in a heterocycle; proto = amino-acid amine, N not in a heterocycle; pseudo = N introduced other than from an amino-acid skeleton."
+          "confidence": "uncertain",
+          "evidence": "Aniszewski, Alkaloids: Chemistry, Biology, Ecology, and Applications, 2nd ed., Elsevier, 2015: definitional true/proto/pseudo framework only. No compound-specific chapter or page was recorded; the class is not cited as a located passage in that book."
         }
       ],
       "tags": [
         "morphinan"
       ],
       "alkaloid_class": "true",
-      "alkaloid_class_status": "verified",
-      "classification_source": "Aniszewski, Alkaloids: Chemistry, Biology, Ecology, and Applications, 2nd ed., Elsevier, 2015: true = amino-acid N in a heterocycle; proto = amino-acid amine, N not in a heterocycle; pseudo = N introduced other than from an amino-acid skeleton.",
+      "alkaloid_class_status": "framework_only",
+      "classification_source": "Aniszewski, Alkaloids: Chemistry, Biology, Ecology, and Applications, 2nd ed., Elsevier, 2015: definitional true/proto/pseudo framework only. No compound-specific chapter or page was recorded; the class is not cited as a located passage in that book.",
       "structure_form": {
         "formal_charge": 0,
         "protonation": {
@@ -19088,7 +19089,7 @@
         "label": null,
         "status": "related",
         "source": "No ChEBI default structure with a full InChIKey match",
-        "structure_comparison": "connectivity_only"
+        "structure_comparison": "stereochemistry_difference"
       },
       "category_ids": [
         "true_alkaloids",
@@ -19097,8 +19098,8 @@
       "category_memberships": [
         {
           "category_id": "true_alkaloids",
-          "confidence": "verified",
-          "evidence": "Aniszewski, Alkaloids: Chemistry, Biology, Ecology, and Applications, 2nd ed., Elsevier, 2015: true = amino-acid N in a heterocycle; proto = amino-acid amine, N not in a heterocycle; pseudo = N introduced other than from an amino-acid skeleton."
+          "confidence": "uncertain",
+          "evidence": "Aniszewski, Alkaloids: Chemistry, Biology, Ecology, and Applications, 2nd ed., Elsevier, 2015: definitional true/proto/pseudo framework only. No compound-specific chapter or page was recorded; the class is not cited as a located passage in that book."
         },
         {
           "category_id": "heterocycles",
@@ -19110,8 +19111,8 @@
         "tropane"
       ],
       "alkaloid_class": "true",
-      "alkaloid_class_status": "verified",
-      "classification_source": "Aniszewski, Alkaloids: Chemistry, Biology, Ecology, and Applications, 2nd ed., Elsevier, 2015: true = amino-acid N in a heterocycle; proto = amino-acid amine, N not in a heterocycle; pseudo = N introduced other than from an amino-acid skeleton.",
+      "alkaloid_class_status": "framework_only",
+      "classification_source": "Aniszewski, Alkaloids: Chemistry, Biology, Ecology, and Applications, 2nd ed., Elsevier, 2015: definitional true/proto/pseudo framework only. No compound-specific chapter or page was recorded; the class is not cited as a located passage in that book.",
       "structure_form": {
         "formal_charge": 0,
         "protonation": {
@@ -19193,8 +19194,9 @@
           "inchikey": "RKUNBYITZUJHSG-SPUOUPEWSA-N",
           "smiles": "CN1[C@@H]2CC[C@H]1C[C@@H](OC(=O)C(CO)c1ccccc1)C2",
           "inchi": "InChI=1S/C17H23NO3/c1-18-13-7-8-14(18)10-15(9-13)21-17(20)16(11-19)12-5-3-2-4-6-12/h2-6,13-16,19H,7-11H2,1H3/t13-,14+,15+,16?",
-          "structure_comparison": "connectivity_only",
-          "reason": "Name-associated ChEBI matches connectivity only (tautomer, protonation, or salt-form difference possible)"
+          "structure_comparison": "stereochemistry_difference",
+          "reason": "Both records have stereo layers; InChIKey third blocks differ (PJPHBNEV vs SPUOUPEW). Candidate InChI leaves C15/C16 unspecified (15?,16?); CHEBI:16684 specifies 15+,16? as the racemate drawing.",
+          "reason_kind": "stereochemistry_difference"
         }
       ]
     },
@@ -19227,8 +19229,8 @@
       "category_memberships": [
         {
           "category_id": "true_alkaloids",
-          "confidence": "verified",
-          "evidence": "Aniszewski, Alkaloids: Chemistry, Biology, Ecology, and Applications, 2nd ed., Elsevier, 2015: true = amino-acid N in a heterocycle; proto = amino-acid amine, N not in a heterocycle; pseudo = N introduced other than from an amino-acid skeleton."
+          "confidence": "uncertain",
+          "evidence": "Aniszewski, Alkaloids: Chemistry, Biology, Ecology, and Applications, 2nd ed., Elsevier, 2015: definitional true/proto/pseudo framework only. No compound-specific chapter or page was recorded; the class is not cited as a located passage in that book."
         },
         {
           "category_id": "heterocycles",
@@ -19240,8 +19242,8 @@
         "tropane"
       ],
       "alkaloid_class": "true",
-      "alkaloid_class_status": "verified",
-      "classification_source": "Aniszewski, Alkaloids: Chemistry, Biology, Ecology, and Applications, 2nd ed., Elsevier, 2015: true = amino-acid N in a heterocycle; proto = amino-acid amine, N not in a heterocycle; pseudo = N introduced other than from an amino-acid skeleton.",
+      "alkaloid_class_status": "framework_only",
+      "classification_source": "Aniszewski, Alkaloids: Chemistry, Biology, Ecology, and Applications, 2nd ed., Elsevier, 2015: definitional true/proto/pseudo framework only. No compound-specific chapter or page was recorded; the class is not cited as a located passage in that book.",
       "structure_form": {
         "formal_charge": 0,
         "protonation": {
@@ -19343,8 +19345,8 @@
       "category_memberships": [
         {
           "category_id": "true_alkaloids",
-          "confidence": "verified",
-          "evidence": "Aniszewski, Alkaloids: Chemistry, Biology, Ecology, and Applications, 2nd ed., Elsevier, 2015: true = amino-acid N in a heterocycle; proto = amino-acid amine, N not in a heterocycle; pseudo = N introduced other than from an amino-acid skeleton."
+          "confidence": "uncertain",
+          "evidence": "Aniszewski, Alkaloids: Chemistry, Biology, Ecology, and Applications, 2nd ed., Elsevier, 2015: definitional true/proto/pseudo framework only. No compound-specific chapter or page was recorded; the class is not cited as a located passage in that book."
         },
         {
           "category_id": "heterocycles",
@@ -19357,8 +19359,8 @@
         "pyrrolidine"
       ],
       "alkaloid_class": "true",
-      "alkaloid_class_status": "verified",
-      "classification_source": "Aniszewski, Alkaloids: Chemistry, Biology, Ecology, and Applications, 2nd ed., Elsevier, 2015: true = amino-acid N in a heterocycle; proto = amino-acid amine, N not in a heterocycle; pseudo = N introduced other than from an amino-acid skeleton.",
+      "alkaloid_class_status": "framework_only",
+      "classification_source": "Aniszewski, Alkaloids: Chemistry, Biology, Ecology, and Applications, 2nd ed., Elsevier, 2015: definitional true/proto/pseudo framework only. No compound-specific chapter or page was recorded; the class is not cited as a located passage in that book.",
       "structure_form": {
         "formal_charge": 0,
         "protonation": {
@@ -19474,8 +19476,8 @@
       "category_memberships": [
         {
           "category_id": "true_alkaloids",
-          "confidence": "verified",
-          "evidence": "Aniszewski, Alkaloids: Chemistry, Biology, Ecology, and Applications, 2nd ed., Elsevier, 2015: true = amino-acid N in a heterocycle; proto = amino-acid amine, N not in a heterocycle; pseudo = N introduced other than from an amino-acid skeleton."
+          "confidence": "uncertain",
+          "evidence": "Aniszewski, Alkaloids: Chemistry, Biology, Ecology, and Applications, 2nd ed., Elsevier, 2015: definitional true/proto/pseudo framework only. No compound-specific chapter or page was recorded; the class is not cited as a located passage in that book."
         },
         {
           "category_id": "heterocycles",
@@ -19487,8 +19489,8 @@
         "quinoline"
       ],
       "alkaloid_class": "true",
-      "alkaloid_class_status": "verified",
-      "classification_source": "Aniszewski, Alkaloids: Chemistry, Biology, Ecology, and Applications, 2nd ed., Elsevier, 2015: true = amino-acid N in a heterocycle; proto = amino-acid amine, N not in a heterocycle; pseudo = N introduced other than from an amino-acid skeleton.",
+      "alkaloid_class_status": "framework_only",
+      "classification_source": "Aniszewski, Alkaloids: Chemistry, Biology, Ecology, and Applications, 2nd ed., Elsevier, 2015: definitional true/proto/pseudo framework only. No compound-specific chapter or page was recorded; the class is not cited as a located passage in that book.",
       "structure_form": {
         "formal_charge": 0,
         "protonation": {
@@ -19590,8 +19592,8 @@
       "category_memberships": [
         {
           "category_id": "true_alkaloids",
-          "confidence": "verified",
-          "evidence": "Aniszewski, Alkaloids: Chemistry, Biology, Ecology, and Applications, 2nd ed., Elsevier, 2015: true = amino-acid N in a heterocycle; proto = amino-acid amine, N not in a heterocycle; pseudo = N introduced other than from an amino-acid skeleton."
+          "confidence": "uncertain",
+          "evidence": "Aniszewski, Alkaloids: Chemistry, Biology, Ecology, and Applications, 2nd ed., Elsevier, 2015: definitional true/proto/pseudo framework only. No compound-specific chapter or page was recorded; the class is not cited as a located passage in that book."
         },
         {
           "category_id": "heterocycles",
@@ -19603,8 +19605,8 @@
         "indole"
       ],
       "alkaloid_class": "true",
-      "alkaloid_class_status": "verified",
-      "classification_source": "Aniszewski, Alkaloids: Chemistry, Biology, Ecology, and Applications, 2nd ed., Elsevier, 2015: true = amino-acid N in a heterocycle; proto = amino-acid amine, N not in a heterocycle; pseudo = N introduced other than from an amino-acid skeleton.",
+      "alkaloid_class_status": "framework_only",
+      "classification_source": "Aniszewski, Alkaloids: Chemistry, Biology, Ecology, and Applications, 2nd ed., Elsevier, 2015: definitional true/proto/pseudo framework only. No compound-specific chapter or page was recorded; the class is not cited as a located passage in that book.",
       "structure_form": {
         "formal_charge": 0,
         "protonation": {
@@ -19706,8 +19708,8 @@
       "category_memberships": [
         {
           "category_id": "protoalkaloids",
-          "confidence": "verified",
-          "evidence": "Aniszewski, Alkaloids: Chemistry, Biology, Ecology, and Applications, 2nd ed., Elsevier, 2015: true = amino-acid N in a heterocycle; proto = amino-acid amine, N not in a heterocycle; pseudo = N introduced other than from an amino-acid skeleton."
+          "confidence": "uncertain",
+          "evidence": "Aniszewski, Alkaloids: Chemistry, Biology, Ecology, and Applications, 2nd ed., Elsevier, 2015: definitional true/proto/pseudo framework only. No compound-specific chapter or page was recorded; the class is not cited as a located passage in that book."
         },
         {
           "category_id": "phenyl_rings",
@@ -19719,8 +19721,8 @@
         "phenethylamine"
       ],
       "alkaloid_class": "proto",
-      "alkaloid_class_status": "verified",
-      "classification_source": "Aniszewski, Alkaloids: Chemistry, Biology, Ecology, and Applications, 2nd ed., Elsevier, 2015: true = amino-acid N in a heterocycle; proto = amino-acid amine, N not in a heterocycle; pseudo = N introduced other than from an amino-acid skeleton.",
+      "alkaloid_class_status": "framework_only",
+      "classification_source": "Aniszewski, Alkaloids: Chemistry, Biology, Ecology, and Applications, 2nd ed., Elsevier, 2015: definitional true/proto/pseudo framework only. No compound-specific chapter or page was recorded; the class is not cited as a located passage in that book.",
       "structure_form": {
         "formal_charge": 0,
         "protonation": {
@@ -19935,16 +19937,16 @@
       "category_memberships": [
         {
           "category_id": "protoalkaloids",
-          "confidence": "verified",
-          "evidence": "Aniszewski, Alkaloids: Chemistry, Biology, Ecology, and Applications, 2nd ed., Elsevier, 2015: true = amino-acid N in a heterocycle; proto = amino-acid amine, N not in a heterocycle; pseudo = N introduced other than from an amino-acid skeleton."
+          "confidence": "uncertain",
+          "evidence": "Aniszewski, Alkaloids: Chemistry, Biology, Ecology, and Applications, 2nd ed., Elsevier, 2015: definitional true/proto/pseudo framework only. No compound-specific chapter or page was recorded; the class is not cited as a located passage in that book."
         }
       ],
       "tags": [
         "phenethylamine"
       ],
       "alkaloid_class": "proto",
-      "alkaloid_class_status": "verified",
-      "classification_source": "Aniszewski, Alkaloids: Chemistry, Biology, Ecology, and Applications, 2nd ed., Elsevier, 2015: true = amino-acid N in a heterocycle; proto = amino-acid amine, N not in a heterocycle; pseudo = N introduced other than from an amino-acid skeleton.",
+      "alkaloid_class_status": "framework_only",
+      "classification_source": "Aniszewski, Alkaloids: Chemistry, Biology, Ecology, and Applications, 2nd ed., Elsevier, 2015: definitional true/proto/pseudo framework only. No compound-specific chapter or page was recorded; the class is not cited as a located passage in that book.",
       "structure_form": {
         "formal_charge": 0,
         "protonation": {
@@ -20140,8 +20142,9 @@
           "inchikey": "IAKHMKGGTNLKSZ-UHFFFAOYSA-N",
           "smiles": "COc1cc2c(c(OC)c1OC)-c1ccc(OC)c(=O)cc1C(NC(C)=O)CC2",
           "inchi": "InChI=1S/C22H25NO6/c1-12(24)23-16-8-6-13-10-19(27-3)21(28-4)22(29-5)20(13)14-7-9-18(26-2)17(25)11-15(14)16/h7,9-11,16H,6,8H2,1-5H3,(H,23,24)",
-          "structure_comparison": "connectivity_only",
-          "reason": "Name-associated ChEBI matches connectivity only (tautomer, protonation, or salt-form difference possible)"
+          "structure_comparison": "stereochemistry_unspecified_in_source",
+          "reason": "Candidate InChI is the (S) acetamide (/t16-/m0/s1). CHEBI:23359 has no tetrahedral stereo layer.",
+          "reason_kind": "stereochemistry_unspecified_in_source"
         }
       ]
     },
@@ -20174,8 +20177,8 @@
       "category_memberships": [
         {
           "category_id": "pseudoalkaloids",
-          "confidence": "verified",
-          "evidence": "Aniszewski, Alkaloids: Chemistry, Biology, Ecology, and Applications, 2nd ed., Elsevier, 2015: true = amino-acid N in a heterocycle; proto = amino-acid amine, N not in a heterocycle; pseudo = N introduced other than from an amino-acid skeleton."
+          "confidence": "uncertain",
+          "evidence": "Aniszewski, Alkaloids: Chemistry, Biology, Ecology, and Applications, 2nd ed., Elsevier, 2015: definitional true/proto/pseudo framework only. No compound-specific chapter or page was recorded; the class is not cited as a located passage in that book."
         },
         {
           "category_id": "heterocycles",
@@ -20188,8 +20191,8 @@
         "purine"
       ],
       "alkaloid_class": "pseudo",
-      "alkaloid_class_status": "verified",
-      "classification_source": "Aniszewski, Alkaloids: Chemistry, Biology, Ecology, and Applications, 2nd ed., Elsevier, 2015: true = amino-acid N in a heterocycle; proto = amino-acid amine, N not in a heterocycle; pseudo = N introduced other than from an amino-acid skeleton.",
+      "alkaloid_class_status": "framework_only",
+      "classification_source": "Aniszewski, Alkaloids: Chemistry, Biology, Ecology, and Applications, 2nd ed., Elsevier, 2015: definitional true/proto/pseudo framework only. No compound-specific chapter or page was recorded; the class is not cited as a located passage in that book.",
       "structure_form": {
         "formal_charge": 0,
         "protonation": {
@@ -20293,8 +20296,8 @@
       "category_memberships": [
         {
           "category_id": "pseudoalkaloids",
-          "confidence": "verified",
-          "evidence": "Aniszewski, Alkaloids: Chemistry, Biology, Ecology, and Applications, 2nd ed., Elsevier, 2015: true = amino-acid N in a heterocycle; proto = amino-acid amine, N not in a heterocycle; pseudo = N introduced other than from an amino-acid skeleton."
+          "confidence": "uncertain",
+          "evidence": "Aniszewski, Alkaloids: Chemistry, Biology, Ecology, and Applications, 2nd ed., Elsevier, 2015: definitional true/proto/pseudo framework only. No compound-specific chapter or page was recorded; the class is not cited as a located passage in that book."
         },
         {
           "category_id": "heterocycles",
@@ -20306,8 +20309,8 @@
         "xanthine"
       ],
       "alkaloid_class": "pseudo",
-      "alkaloid_class_status": "verified",
-      "classification_source": "Aniszewski, Alkaloids: Chemistry, Biology, Ecology, and Applications, 2nd ed., Elsevier, 2015: true = amino-acid N in a heterocycle; proto = amino-acid amine, N not in a heterocycle; pseudo = N introduced other than from an amino-acid skeleton.",
+      "alkaloid_class_status": "framework_only",
+      "classification_source": "Aniszewski, Alkaloids: Chemistry, Biology, Ecology, and Applications, 2nd ed., Elsevier, 2015: definitional true/proto/pseudo framework only. No compound-specific chapter or page was recorded; the class is not cited as a located passage in that book.",
       "structure_form": {
         "formal_charge": 0,
         "protonation": {
@@ -20409,8 +20412,8 @@
       "category_memberships": [
         {
           "category_id": "pseudoalkaloids",
-          "confidence": "verified",
-          "evidence": "Aniszewski, Alkaloids: Chemistry, Biology, Ecology, and Applications, 2nd ed., Elsevier, 2015: true = amino-acid N in a heterocycle; proto = amino-acid amine, N not in a heterocycle; pseudo = N introduced other than from an amino-acid skeleton."
+          "confidence": "uncertain",
+          "evidence": "Aniszewski, Alkaloids: Chemistry, Biology, Ecology, and Applications, 2nd ed., Elsevier, 2015: definitional true/proto/pseudo framework only. No compound-specific chapter or page was recorded; the class is not cited as a located passage in that book."
         },
         {
           "category_id": "heterocycles",
@@ -20422,8 +20425,8 @@
         "xanthine"
       ],
       "alkaloid_class": "pseudo",
-      "alkaloid_class_status": "verified",
-      "classification_source": "Aniszewski, Alkaloids: Chemistry, Biology, Ecology, and Applications, 2nd ed., Elsevier, 2015: true = amino-acid N in a heterocycle; proto = amino-acid amine, N not in a heterocycle; pseudo = N introduced other than from an amino-acid skeleton.",
+      "alkaloid_class_status": "framework_only",
+      "classification_source": "Aniszewski, Alkaloids: Chemistry, Biology, Ecology, and Applications, 2nd ed., Elsevier, 2015: definitional true/proto/pseudo framework only. No compound-specific chapter or page was recorded; the class is not cited as a located passage in that book.",
       "structure_form": {
         "formal_charge": 0,
         "protonation": {
@@ -23205,5 +23208,11 @@
       "kind": "complete_molecule",
       "chebi_related": []
     }
-  ]
+  ],
+  "qa_definitions": {
+    "chebi_structure_verified": "Entries whose primary chebi_id is a full InChIKey match to a ChEBI default structure.",
+    "chebi_related_records": "Number of objects across all chebi_related arrays.",
+    "chebi_related_distinct_ids": "Distinct ChEBI IDs in those arrays.",
+    "duplicate_primary_chebi_ids": "Primary chebi_id values used more than once. Related arrays are excluded."
+  }
 }
