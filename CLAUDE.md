@@ -301,7 +301,7 @@ legitimate rule maintenance.
 
 ## Lessons (moved out of this file)
 
-They live in [`docs/LESSONS.md`](docs/LESSONS.md) and are not loaded on every message. Every title that used to be listed here is a heading there, unchanged. Before work that matches a past failure (a guard, a drive script, naming, ORCA, the suite, a panel), grep that file for the heading and read the section.
+They live in [`docs/LESSONS.md`](docs/LESSONS.md) and are not loaded on every message. Every title that used to be listed here is a heading there, unchanged. Before work that matches a past failure (a guard, a drive script, naming, ORCA, the suite, a panel, a catalog dock), grep that file for the heading and read the section.
 
 ## Books and papers: use the facts
 

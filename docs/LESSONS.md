@@ -21890,3 +21890,27 @@ and are the ones that can fail on a pure data edit.
 tree as far as the sweeping guards are concerned, so run those two files' tests as
 well as the ones named after your feature. And when a run you have not read is still
 in flight, read its result before the next push: a cancelled run hides a red shard.
+
+## A PER-LIGAND SHELL NOTIFY ON A CATALOG DOCK BURNS THE WEEK'S USAGE
+
+The frozen CNNaffinity ranking rescore (`run_cnn_affinity_test.py rescore`) is
+one Vina re-dock plus one gnina `score_only` per ligand, ~30–60 s each, **833
+ligands**, WSL2 RTX 4060. Resume is `results.jsonl`. That is a night-to-weekend
+job, in the same class as prep-box (47 receptors) and the engine-pilot (690
+docks).
+
+The 2026-11-06 start attached `notify_on_output` to `/ok |mismatch|failed|…/`.
+Every ligand printed `ok`, so every ligand opened a new agent turn. Cursor
+usage ran out at about **380 of 833**. The jsonl was intact (later 422 rows,
+zero vina mismatches). Resume on 2026-11-08 notified only on failure or
+`CNN_AFFINITY_RESCORE_DONE`. The catalog finished; the verdict was HARMFUL
+(`RESULT_CNN_AFFINITY.md`, #564). Owner 2026-11-09: stop this learned-scorer
+line.
+
+Open Babel `Failed to kekulize` also matched a case-insensitive `failed`
+pattern, so notify counts were not ligand counts.
+
+**How to apply:** a catalog dock is compute, not a chat. Notify on mismatch,
+dock failed, no representative, no receptor, no poses, or one DONE line after
+exit 0. Do not `Read` the terminal after every `ok`. Do not treat a partial
+jsonl as a verdict. Grep this heading before the next catalog dock.
