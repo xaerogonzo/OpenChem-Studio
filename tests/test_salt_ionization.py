@@ -4,6 +4,7 @@ from openchem.chem.salt_components import fragment_formal_charge, fragment_key
 from openchem.chem.salt_ionization import (
     SiteTransform,
     apply_site_transform,
+    ionize_at_sites,
     select_by_net_charge,
     structures_at_net_charge,
 )
@@ -62,6 +63,13 @@ def test_protonating_pyridine_updates_hydrogen_and_charge() -> None:
     result = apply_site_transform(mol, SiteTransform(nitrogen, "protonate"))
     assert fragment_formal_charge(result) == 1
     assert "[nH+]" in fragment_key(result) or "c1cc[nH+]cc1" == fragment_key(result)
+
+
+def test_ionize_at_sites_protonates_pyridine() -> None:
+    mol = Chem.MolFromSmiles("c1ccncc1")
+    nitrogen = next(atom.GetIdx() for atom in mol.GetAtoms() if atom.GetSymbol() == "N")
+    key = ionize_at_sites(mol, [SiteTransform(nitrogen, "protonate")])
+    assert key == fragment_key(Chem.MolFromSmiles("c1cc[nH+]cc1"))
 
 
 def test_a_bad_atom_index_is_refused() -> None:
