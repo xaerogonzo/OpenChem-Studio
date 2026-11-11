@@ -5229,6 +5229,7 @@
   "tests/test_run_app_gate.py": 2,
   "tests/test_run_lifecycle.py": 0,
   "tests/test_salt_components.py": 2,
+  "tests/test_salt_mode_a.py": 1,
   "tests/test_salt_stoichiometry.py": 5,
   "tests/test_sasa.py": 0,
   "tests/test_scalar_field.py": 5,

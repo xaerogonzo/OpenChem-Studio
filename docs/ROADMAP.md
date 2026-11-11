@@ -2373,12 +2373,15 @@ struck through and marked SHIPPED here, never deleted.
 Nothing here is simply unstarted — each is blocked on something nameable,
 and three were checked again recently rather than taken on trust.
 
-- **Salt composition engine (recorded 2026-11-10).** Not built. Charge-valid
-  two-ion stoichiometry from identified ionic species, with proton-transfer
-  conservation and independent evidence (`charge_valid` is not an isolable
-  salt). `substance.py` is an adapter, not the engine; COD search, ion-pair
-  3D, hydrates as first-class features, pharmaceutical acceptability and
-  `balance_many` stay out. Contract: `docs/SALT_COMPOSITION_DESIGN.md`.
+- **Salt composition engine (recorded 2026-11-10; slice 1 in master,
+  slice 2 Mode A).** Slice 1 shipped `balance_two` and Mode B drawing
+  analysis; slice 2 adds Mode A for two molecular neutrals (still library-only,
+  no panel). Charge-valid two-ion stoichiometry from identified ionic species,
+  with proton-transfer conservation and independent evidence (`charge_valid` is
+  not an isolable salt). `substance.py` is an adapter, not the engine; COD
+  search, ion-pair 3D, hydrates as first-class features, pharmaceutical
+  acceptability and `balance_many` stay out. Contract:
+  `docs/SALT_COMPOSITION_DESIGN.md`.
 
 - **Peptide sequence building and polymer S-groups (recorded 2026-11-10).** The
   structure template library ships complete molecules only. Expanding
