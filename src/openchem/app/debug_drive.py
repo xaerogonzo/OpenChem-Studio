@@ -3301,6 +3301,130 @@ class _Driver(QObject):
         else:
             logger.error("OPENCHEM_DRIVE: EXPECT score_dialog FAILED[%s] -- %s", tag, "; ".join(problems)[:800])
 
+    def _do_template_library(self, step: dict[str, Any]) -> None:
+        """The Template Library window, driven through its real controls.
+
+        `{"do": "template_library", "category": "Rings", "entry": "Pyridine", "press": "insert",
+        "expect": {"inserted": true, "smiles_contains": ".", "undo_delta": 1}}`
+
+        `search` types into the global filter. `category` / `entry` pick list rows by
+        substring. `press` is `insert`, `save`, or `remove`. `name` is the My Templates
+        name (skips the modal). `shot` takes `"widget": "template_library"`.
+        """
+        import time
+
+        from PySide6.QtWidgets import QApplication
+
+        window = self._window
+        dialog = window.show_template_library(activate=False)
+        # The dialog is reused. A previous step's filter would otherwise
+        # hide every shipped entry (measured: insert-on-cyclohexane listed []).
+        if "search" in step:
+            dialog._search.setText(str(step["search"]))
+        else:
+            dialog._search.clear()
+        QApplication.processEvents()
+        if "category" in step:
+            wanted = str(step["category"]).casefold()
+            rows = [dialog._categories.item(i).text() for i in range(dialog._categories.count())]
+            index = next((i for i, text in enumerate(rows) if wanted in text.casefold()), None)
+            if index is None:
+                logger.error("OPENCHEM_DRIVE: template_library has no category %r (it lists %s)", step["category"], rows)
+            else:
+                dialog._categories.setCurrentRow(index)
+            QApplication.processEvents()
+        if "entry" in step:
+            wanted = str(step["entry"]).casefold()
+            rows = [dialog._templates.item(i).text() for i in range(dialog._templates.count())]
+            index = next((i for i, text in enumerate(rows) if wanted in text.casefold()), None)
+            if index is None:
+                logger.error("OPENCHEM_DRIVE: template_library has no entry %r (it lists %s)", step["entry"], rows)
+            else:
+                dialog._templates.setCurrentRow(index)
+        molecule = window._current_molecule()
+        before_undo = window._undo_stack.count()
+        before_smiles = molecule.canonical_smiles if molecule is not None else ""
+        press = step.get("press")
+        if press == "save":
+            dialog._name_for_save = str(step.get("name", "Driven template"))
+            dialog._save.click()
+            wanted_name = dialog._name_for_save or str(step.get("name", "Driven template"))
+            deadline = time.monotonic() + 8.0
+            while time.monotonic() < deadline:
+                QApplication.processEvents()
+                names = [entry.name for entry in dialog._store.entries()]
+                if wanted_name in names or dialog._status.text().startswith("Saved "):
+                    break
+                time.sleep(0.05)
+        elif press == "remove":
+            dialog._remove.click()
+            deadline = time.monotonic() + 8.0
+            gone = str(step.get("search") or step.get("name") or "")
+            while time.monotonic() < deadline:
+                QApplication.processEvents()
+                names = [entry.name for entry in dialog._store.entries()]
+                if not gone or gone not in names:
+                    break
+                time.sleep(0.05)
+        elif press == "insert":
+            dialog._status.clear()
+            dialog._insert.click()
+            deadline = time.monotonic() + 8.0
+            while time.monotonic() < deadline:
+                QApplication.processEvents()
+                if dialog._status.text() in ("Inserted.",) or (
+                    dialog._status.text() and dialog._status.text() != "Inserted." and not dialog._insert.isEnabled()
+                ):
+                    if dialog._status.text() == "Inserted.":
+                        break
+                if molecule is not None and molecule.canonical_smiles != before_smiles:
+                    break
+                time.sleep(0.05)
+            leftover = time.monotonic() + 1.0
+            while time.monotonic() < leftover:
+                QApplication.processEvents()
+                time.sleep(0.05)
+        for _ in range(8):
+            QApplication.processEvents()
+        molecule = window._current_molecule()
+        smiles = molecule.canonical_smiles if molecule is not None else ""
+        undo = window._undo_stack.count()
+        names = [entry.name for entry in dialog._store.entries()]
+        status = dialog._status.text()
+        logger.warning(
+            "OPENCHEM_DRIVE: template_library press=%s status=%r smiles=%s undo=%s->%s my_templates=%s",
+            press, status, smiles, before_undo, undo, names,
+        )
+        expect = step.get("expect")
+        if not expect:
+            return
+        problems: list[str] = []
+        if "smiles_equals" in expect and smiles != expect["smiles_equals"]:
+            problems.append(f"smiles is {smiles!r}, expected {expect['smiles_equals']!r}")
+        for needle in expect.get("smiles_contains", []) if isinstance(expect.get("smiles_contains"), list) else (
+            [expect["smiles_contains"]] if "smiles_contains" in expect else []
+        ):
+            if needle not in (smiles or ""):
+                problems.append(f"{needle!r} is not in {smiles!r}")
+        if "undo_delta" in expect and undo - before_undo != int(expect["undo_delta"]):
+            problems.append(f"undo {before_undo}->{undo}, expected delta {expect['undo_delta']}")
+        if "status" in expect and expect["status"] not in status:
+            problems.append(f"status {status!r} does not contain {expect['status']!r}")
+        if "my_templates_contains" in expect and expect["my_templates_contains"] not in names:
+            problems.append(f"My Templates lacks {expect['my_templates_contains']!r} (has {names})")
+        if "redo_enabled" in expect and window._undo_stack.canRedo() is not bool(expect["redo_enabled"]):
+            problems.append(
+                f"Redo is {'enabled' if window._undo_stack.canRedo() else 'disabled'}, "
+                f"expected {expect['redo_enabled']!r}"
+            )
+        if expect.get("inserted") is True and (press == "insert") and smiles == before_smiles:
+            problems.append("insert did not change the molecule")
+        tag = str(step.get("tag", ""))
+        if self._record_assertion("template_library", tag, not problems, "; ".join(problems) or "as expected"):
+            logger.warning("OPENCHEM_DRIVE: EXPECT template_library ok[%s]", tag)
+        else:
+            logger.error("OPENCHEM_DRIVE: EXPECT template_library FAILED[%s] -- %s", tag, "; ".join(problems)[:800])
+
     def _fill_score_form(self, dialog, fill: dict[str, Any]) -> None:
         """Replace the Derived Scores form's contents by pressing its buttons and typing into its edits, row by row."""
         if "inputs" in fill:
@@ -4355,6 +4479,11 @@ class _Driver(QObject):
                 logger.error("OPENCHEM_DRIVE: no Derived Scores window open; run {'do': 'score_dialog'}")
                 return
             target = self._window._score_dialog
+        elif step.get("widget") == "template_library":
+            if self._window._template_library is None:
+                logger.error("OPENCHEM_DRIVE: no Template Library open; run {'do': 'template_library'}")
+                return
+            target = self._window._template_library
         elif step.get("widget") == "results_reader":
             # The docked Results reader as the window builds it, not a second one: the same widget a person reads.
             target = self._window._results_view
@@ -6194,11 +6323,15 @@ class _Driver(QObject):
                 continue
             if path is not None and home != str(path):
                 continue
-            action.trigger()
+            enabled = action.isEnabled()
             logger.warning(
                 "OPENCHEM_DRIVE: menu %r triggered in %r -- enabled=%s checkable=%s checked=%s",
-                wanted, home, action.isEnabled(), action.isCheckable(), action.isChecked(),
+                wanted, home, enabled, action.isCheckable(), action.isChecked(),
             )
+            if not enabled:
+                logger.error("OPENCHEM_DRIVE: menu %r in %r is disabled", wanted, home)
+                return
+            action.trigger()
             return
         logger.error("OPENCHEM_DRIVE: no menu entry named %r%s", wanted, f" in {path!r}" if path else "")
 

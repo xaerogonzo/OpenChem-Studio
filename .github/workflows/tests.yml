@@ -205,8 +205,11 @@ jobs:
     # The step limit stays 30. The required checks are matched by exact job name: `test suite 1/5` ... `5/5` become `1/7` ... `7/7` in the
     # master ruleset (Basic, id 20312707) when this merges.
     #
-    # **EIGHT SHARDS SINCE 2026-11-11.** Shard 1 of seven timed out at 32 minutes on unrelated PRs (#576, pka-view on master). Eight shards
-    # repinned on the same weights; required checks become `test suite 1/8` ... `8/8` in the master ruleset when this merges.
+    # **EIGHT SHARDS SINCE 2026-11-10, THE SAME SENTENCE FOLLOWED A FIFTH TIME.** Seven still timed out: shard 1 of PR #575
+    # (`1e86235f`) hit 99% at 26 min then sat there until the 30-minute kill, no test failed (the last 8% of tests had
+    # taken 30 s; the remaining 4 min printed nothing). Shard 5 of the same run passed in 12 min. Modelled 7-way cost
+    # is even (~940 s); the slow runner plus a hang after 99% still fills 30. Eight carry the same files. The step
+    # limit stays 30. The required checks become `test suite 1/8` ... `8/8` in the master ruleset.
     #
     # THE SPLIT WAS BALANCED ON WALL TIME, NOT ON THE TIME TESTS REPORT. A shard's wall time is its tests + the
     # `gc.collect()` after each Qt test + ~30 s, to the second in both shards of both runs read; the weights modelled
@@ -283,10 +286,13 @@ jobs:
       #
       # WHAT COUNTS AS A CRASH is decided by `tools/ci_classify_crash.ps1` and is narrow on
       # purpose: a fatal exception printed, AND no pytest summary line, AND no test reported
-      # FAILED or ERROR. A real failure is never retried away, a timeout (no fatal exception)
-      # still fails, and a crash that REPEATS fails the job. The first attempt's step is
-      # `continue-on-error` only so the next step can look at it; the job still goes red through
-      # the "Fail the job" step unless the retry ran and passed.
+      # FAILED or ERROR; or (with `-ExitCode 1`, which this job passes because classify runs
+      # only when the first attempt failed) a CLEAN pytest summary and a non-zero process exit,
+      # which is a crash at interpreter exit with no fatal-exception text (shard 5 of PR #575
+      # on 1c642c96: 3523 passed, exit 1). A real failure is never retried away, a timeout
+      # (no summary) still fails, and a crash that REPEATS fails the job. The first attempt's
+      # step is `continue-on-error` only so the next step can look at it; the job still goes
+      # red through the "Fail the job" step unless the retry ran and passed.
       #
       # EACH ATTEMPT KEEPS THE 30-MINUTE STEP BUDGET, so the gate on suite growth is unchanged;
       # the job's own limit is 65 because a crash late in attempt one leaves a whole attempt two.
@@ -304,7 +310,7 @@ jobs:
         if: steps.suite.outcome == 'failure'
         shell: pwsh
         run: |
-          $out = ./tools/ci_classify_crash.ps1 -Log suite-attempt-1.log -Shard ${{ matrix.shard }}
+          $out = ./tools/ci_classify_crash.ps1 -Log suite-attempt-1.log -Shard ${{ matrix.shard }} -ExitCode 1
           $crashed = ($out | Where-Object { $_ -like 'crashed=*' } | Select-Object -First 1)
           if (-not $crashed) { $crashed = 'crashed=false' }
           Add-Content -Path $env:GITHUB_OUTPUT -Value $crashed

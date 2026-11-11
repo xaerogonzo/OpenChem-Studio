@@ -29,6 +29,7 @@ class _RecordingEditorBackend(EditorBackend):
         #: "whatever was last loaded", i.e. an edit that changed nothing --
         #: set it to stage a real one.
         self.next_molblock: str | None = None
+        self.fragment_calls: list[str] = []
 
     def load_molblock(self, molblock: str) -> None:
         self.load_calls.append(molblock)
@@ -51,6 +52,12 @@ class _RecordingEditorBackend(EditorBackend):
 
     def trigger_toolbar_action(self, action_id):
         self.toolbar_action_calls.append(action_id)
+
+    def add_fragment(self, molblock, callback=None):
+        self.fragment_calls.append(molblock)
+        if callback is not None:
+            callback(None)
+        self.edited.emit()
 
     def set_atom_tool(self, symbol, mass_number=None):
         self.atom_tool_calls.append(symbol)
@@ -519,3 +526,29 @@ def test_no_lone_pairs_is_announced_too_because_it_LOOKS_the_same(qapp):
 
     assert backend.electron_payloads[-1]["refused"] is False
     assert said[-1] == "No lone pairs."
+
+
+def test_insert_template_places_to_the_right_and_calls_add_fragment(qapp):
+    from openchem.chem.structure_templates import bounds_2d, molblock_for
+    from openchem.domain.structure_template import TemplateEntry
+
+    engine, widget, backend = _make_widget()
+    canvas = molblock_for(TemplateEntry(id="a", name="a", category_id="x", smiles="c1ccccc1"), engine)
+    fragment = molblock_for(TemplateEntry(id="b", name="b", category_id="x", smiles="c1ccncc1"), engine)
+    backend.load_molblock(canvas)
+    errors = []
+    widget.insert_template_molblock(fragment, errors.append)
+    assert errors == [None]
+    assert len(backend.fragment_calls) == 1
+    canvas_box = bounds_2d(canvas)
+    placed_box = bounds_2d(backend.fragment_calls[0])
+    assert canvas_box is not None and placed_box is not None
+    assert placed_box[0] >= canvas_box[1]
+
+
+def test_get_molblock_does_not_reach_into_the_backend_field_from_callers(qapp):
+    _, widget, backend = _make_widget()
+    backend.load_molblock("canvas")
+    got = []
+    widget.get_molblock(got.append)
+    assert got == ["canvas"]

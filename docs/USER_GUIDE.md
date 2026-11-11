@@ -147,6 +147,20 @@ options this app only partly mirrors under View ▸ 2D Structure Display),
 and **polymer mode** — Ketcher can *draw* RNA/DNA/peptides, where the
 Macromolecule Viewer only shows one.
 
+<!-- help:template-library -->
+### Template Library
+
+**Structure ▸ Template Library…** (`Ctrl+Shift+T`) is this application's own
+catalog of complete molecules, not Ketcher's T-button library. It ships rings,
+the 20 proteinogenic L-amino acids plus glycine as **ordinary expanded free
+amino acids** (neutral carboxylic acid + amine, not zwitterions, not abbreviated
+residues, and not a peptide builder), free nucleobases, and named sugar anomers.
+Insert places the selected molecule to the right of the drawing as one undo
+step. **My Templates** stores the live canvas. Extra categories come from
+importing `.mol` / `.sdf` files, which are copied into the application data
+folder rather than kept as live paths. Dummy-atom (`*`) fragments are refused:
+bonding to a wildcard in the editor does not attach a substituent.
+
 **Right-clicking an atom** opens this application's own menu (off an atom,
 Ketcher's opens instead). It changes the atom without leaving the canvas:
 **Change *X* to** a common element (C, N, O, S, P, F, Cl, Br, I, H),
