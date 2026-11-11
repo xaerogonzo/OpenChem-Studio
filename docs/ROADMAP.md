@@ -719,7 +719,7 @@ share and the five bugs that motivated it — the most serious being Open
 Babel's silent unit-cell expansion, which handed Vina eight overlapping
 copies of one protein.
 
-### Ranking affinities — the gap is measured, and three routes are open
+### Ranking affinities — the gap is measured
 
 **Route 1 is SHIPPED, route 2's axis is shipped AND ITS RANKING POWER IS NOW
 MEASURED, and route 3 has been spiked but ships nothing.** All three are
@@ -743,6 +743,17 @@ below rather than left as an adjective.
                                     nothing, and what stops it is now a COST
                                     NUMBER rather than a missing prerequisite.
                                     `git diff src/` is empty for all of it
+
+**UPDATE 2026-11-10.** Route 2's cheap second-function and learned-scorer
+attempts on this catalog are **closed as product paths**. Vinardo Δρ +0.000
+(77 series). Engine-pilot smina **HARMFUL** (no engine seam). PLECscore
+**HARMFUL**. gnina CNN rescore of Vina's poses **NULL**; gnina default dock
+**NULL**; default-ensemble CNNaffinity ranking **HARMFUL** (35 deciding
+series, median Δρ −0.130, #564). Pose copy stays PR 508. Owner 2026-11-09:
+stop this line; a later affinity *number* is a new program (MM-GBSA, RBFE,
+or a generator), not a gnina continuation. Those catalog docks were
+hours-to-days on a local GPU; see `docs/LESSONS.md` (per-ligand agent
+notify) and `benchmarks/docking/README.md`.
 
 **WHAT THE NULL DID TO THIS LIST.** It closed route 2's open question, it
 handed route 3 the acceptance oracle it was waiting for, and it moved "more

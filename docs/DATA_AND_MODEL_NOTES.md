@@ -15,7 +15,7 @@ These sections were moved here on 2026-10-29 from the assistant's private memory
 - [reference-chen-thesis-qtpie-code](#reference-chen-thesis-qtpie-code) — Chen's 2009 QTPIE thesis carries its own Fortran source (Appendix A), which settled what prose could not; its Table 2.2 exponents do not recompute from §2.4, and H is printed two ways
 - [project-nmr-ml-not-shipped](#project-nmr-ml-not-shipped) — A gradient-boosted NMR shift model was trained on nmrshiftdb2 (2026-08-03) and lost to the HOSE lookup; do not retry without a GNN
 - [solubility-predictor](#solubility-predictor) — Solubility predictor — aqueous, 91 non-aqueous solvents by lookup, and the base bias that is reported rather than corrected
-- [project-affinity-ranking-program](#project-affinity-ranking-program) — Docking ranking program — route 1 shipped; route 2 ranking MEASURED NULL on a ChEMBL corpus; route 3 spiked and refused at corpus scale on cost; smina spike started 2026-09-12
+- [project-affinity-ranking-program](#project-affinity-ranking-program) — Docking ranking program — route 1 shipped; route 2 Vinardo NULL then learned/smina/PLEC/gnina closed 2026-11-10; route 3 spiked and refused at corpus scale on cost
 - [project-vdw-radii-program](#project-vdw-radii-program) — van der Waals radii decisions 2026-10-11/12 (all merged): Bondi's own radii for steric, surface, volume, projections, Geometry; RDKit's table is Batsanov's; H stays 1.20; docking keeps its own table; what is open
 - [project-interaction-analysis-v2](#project-interaction-analysis-v2) — Interaction Analysis method interactions-v2 (2026-10-11) - five rules fixed, what stays a limit, what was stacked on, and the open docking-side twin
 - [project-metal-bond-windows-followup](#project-metal-bond-windows-followup) — DONE and merged: metal-bond-as-clash fix (#294), per-metal bond windows (#299, interactions-v3), fluorine refinements (#301/#302); the sourced targets and what is still open
@@ -281,7 +281,7 @@ Related: `feedback_ask_leakage_of_every_model`,
 ## project-affinity-ranking-program
 
 *From the assistant's notes (`project_affinity_ranking_program.md`, type: n/a).*  
-*Docking ranking program — route 1 shipped; route 2 ranking MEASURED NULL on a ChEMBL corpus; route 3 spiked and refused at corpus scale on cost; smina spike started 2026-09-12*
+*Docking ranking program — route 1 shipped; route 2 Vinardo NULL then learned/smina/PLEC/gnina closed 2026-11-10; route 3 spiked and refused at corpus scale on cost*
 
 **UPDATE 2026-09-12 -- the "blocked on data" section below is SUPERSEDED.**
 A within-assay ChEMBL corpus became the oracle (#72, widened #76): route 2's
@@ -298,6 +298,15 @@ diff src/` empty. Do not re-propose shipping smina or a corpus arm without a
 new reason. Its three live findings (silent "vinardo" swap on engine
 injection; shipped Vinardo != paper's implementation; dkoes is -pK) are in
 `docs/ROADMAP.md` "Ranking affinities". Read that for the live state.
+
+**UPDATE 2026-11-10.** The cheap learned and Vina-family second-function
+path is closed. Engine-pilot smina HARMFUL; PLECscore HARMFUL; gnina CNN
+pose rescore NULL; gnina default dock NULL; default-ensemble CNNaffinity
+ranking HARMFUL (`RESULT_CNN_AFFINITY.md`, #564). Owner stopped the line.
+Do not reopen gnina/smina/PLEC as a product path without a new
+preregistration and a reason the closed tests do not already answer.
+Catalog docks on this machine are hours-to-days of GPU; do not agent-poll
+them per ligand (`docs/LESSONS.md`).
 
 Agreed 2026-08-31: plan **multiseed, X-Score, and "maybe OpenMM too"** in
 cost order, with a month of Claude Max behind it. The routes and their

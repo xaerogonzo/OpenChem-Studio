@@ -191,3 +191,7 @@ and its DLLs (a throwaway script in scratch, not committed).
   full, and the closed-source rows were not looked into beyond the one search.
 - Vina-GPU's executable was inspected, not run; `QuickVina` was not built. Neither would change
   pose ranking, but "does not run" is not claimed for either.
+- Catalog docks (prep-box 47 receptors, engine-pilot 690 docks, 833-ligand CNNaffinity) are
+  hours-to-days on the local GPU. Resume from jsonl. Do not attach an agent notify to every
+  ligand `ok` — that burned a week's Cursor usage on the 2026-11-06 CNNaffinity run
+  (`docs/LESSONS.md`).

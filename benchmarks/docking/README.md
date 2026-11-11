@@ -90,6 +90,20 @@ A separate freeze (`PREREGISTRATION_GNINA_DOCK.md`, rules in `gnina_dock_core.py
 
 A separate freeze (`PREREGISTRATION_CNN_AFFINITY.md`, rules in `cnn_affinity_core.py`): CNNaffinity of the representative Vina pose vs that pose’s Vina score on the frozen 77 within-assay series (paired complete-case Δρ; 35 deciding series after CrossDocked PDB hold-out). Freeze commit `e52f01ae`. Run finished 2026-11-08: **HARMFUL** (`RESULT_CNN_AFFINITY.md`; 35 of 35 deciding series, median Δρ −0.130, series bootstrap [−0.330, −0.014], 0 dropped). This configuration is closed.
 
+## Catalog jobs (hours, GPU)
+
+Prep-box, engine-pilot, gnina, and CNNaffinity `rescore` are **hours to days** on
+the local GPU (CNNaffinity: 833 ligands, Vina re-dock plus gnina `score_only` on
+WSL2 RTX 4060). They are resume-safe from `results.jsonl`. An incomplete jsonl
+is not a verdict; run `report` only when the row count matches the freeze.
+
+Do **not** attach an agent `notify_on_output` to every ligand `ok`. The
+2026-11-06 CNNaffinity run did that: each ligand opened a chat turn and burned
+the week's usage at ~380 of 833. Notify only on `vina mismatch`, `dock failed`,
+`no representative`, `no receptor`, `no poses`, or a single `…_DONE` line after
+the process exits. Do not `Read` the terminal tail after every notify. Record:
+`docs/LESSONS.md`.
+
 ## `prep_box_survey.py` — is a bad default pose a setup defect?
 
 Redocks all 49 catalogued receptors in two preparation arms (cofactors kept, as the panel

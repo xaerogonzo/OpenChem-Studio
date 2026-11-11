@@ -506,7 +506,8 @@ list is priced rather than merely ordered:
 
 | | cost | what it buys |
 | --- | --- | --- |
-| ~~**smina**~~ ([source:koes2013]) | **SPIKED 2026-09-12, stopped at findings** | the abstraction test it was for has an answer: 2 seams held, 3 needed adapter translation, 3 need interface changes (`benchmarks/docking/smina_seam_ledger.json`). **Not an independent second opinion** -- a Vina 1.1.2 fork -- and not added to the application. See `docs/ROADMAP.md` |
+| ~~**smina**~~ ([source:koes2013]) | **SPIKED 2026-09-12, stopped at findings**; engine-pilot **HARMFUL** 2026-11-04 | the abstraction test it was for has an answer: 2 seams held, 3 needed adapter translation, 3 need interface changes (`benchmarks/docking/smina_seam_ledger.json`). Frozen catalog: overall HARMFUL (`artifacts_engine/RESULT.md`). **Not added to the application.** See `docs/ROADMAP.md` |
+| ~~**gnina CNN / default dock / CNNaffinity**~~ | WSL2+CUDA, hours-to-days | Pose CNN **NULL** (`RESULT_GNINA.md`); default dock **NULL** (`RESULT_GNINA_DOCK.md`); CNNaffinity ranking **HARMFUL** (`RESULT_CNN_AFFINITY.md`, 833 ligands, #564). Closed. PLECscore **HARMFUL**. Owner 2026-11-09: stop this line. |
 | **more targets** | curation, not compute | eight is family spread, not data volume, and seven of the eight are GPCRs or a single enzyme |
 | **more series** | ~14.5 h per 56 | 1586 exist and 56 were docked; needs no new machinery and costs proportionally. All 1586 is ≈ **17 days** continuous |
 | **RBFE, one series** | **2.3–5.5 GPU-days** | one ΔΔG ladder over one series, against a measured docking baseline |
