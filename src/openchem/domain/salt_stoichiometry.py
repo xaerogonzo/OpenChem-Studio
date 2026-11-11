@@ -70,9 +70,42 @@ def compose_mode_a(
                 "the protons for the product ions."
             ),
         )
-    return ModeARefusal(
-        code="not_implemented",
-        reason="Success path is the next task.",
+    if base.kind != KIND_MOLECULAR_NEUTRAL or acid.kind != KIND_MOLECULAR_NEUTRAL:
+        return ModeARefusal(
+            code="unsupported_parents",
+            reason="Mode A workflow 1 needs two molecular neutrals.",
+        )
+    if base.charge != 0 or acid.charge != 0:
+        return ModeARefusal(
+            code="unsupported_parents",
+            reason="Mode A workflow 1 parents must be uncharged.",
+        )
+    balanced = balance_two(
+        ChargedSpecies(cation.identity, cation.charge),
+        ChargedSpecies(anion.identity, anion.charge),
+    )
+    if isinstance(balanced, BalanceRefusal):
+        return ModeARefusal(code=balanced.code, reason=balanced.reason)
+    left = [
+        (dict(base.element_counts), balanced.cation_count),
+        (dict(acid.element_counts), balanced.anion_count),
+    ]
+    right = [
+        (dict(cation.element_counts), balanced.cation_count),
+        (dict(anion.element_counts), balanced.anion_count),
+    ]
+    if not formula_unit_conserved(left, right):
+        return ModeARefusal(
+            code="conservation_failed",
+            reason=(
+                "Element counts of the parents at the balanced multiplicities "
+                "do not match the product ions."
+            ),
+        )
+    return ModeAComposition(
+        cation_count=balanced.cation_count,
+        anion_count=balanced.anion_count,
+        charge_valid=True,
     )
 
 

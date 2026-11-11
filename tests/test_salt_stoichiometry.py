@@ -13,6 +13,7 @@ from openchem.domain.salt_stoichiometry import (
     KIND_MOLECULAR_NEUTRAL,
     BalanceRefusal,
     ChargedSpecies,
+    ModeAComposition,
     ModeARefusal,
     ModeASpecies,
     TwoIonBalance,
@@ -119,6 +120,41 @@ def test_naoh_plus_acetic_is_refused_as_hydroxide_neutralization() -> None:
     )
     assert isinstance(result, ModeARefusal)
     assert result.code == "hydroxide_neutralization"
+
+
+def test_ethylamine_and_acetic_acid_is_one_to_one() -> None:
+    result = compose_mode_a(
+        _species("EtNH2", 0, KIND_MOLECULAR_NEUTRAL, {"C": 2, "H": 7, "N": 1}),
+        _species("AcOH", 0, KIND_MOLECULAR_NEUTRAL, {"C": 2, "H": 4, "O": 2}),
+        _species("EtNH3+", 1, KIND_ION, {"C": 2, "H": 8, "N": 1}),
+        _species("AcO-", -1, KIND_ION, {"C": 2, "H": 3, "O": 2}),
+    )
+    assert result == ModeAComposition(
+        cation_count=1, anion_count=1, charge_valid=True
+    )
+
+
+def test_ethylenediamine_and_two_acetic_acids_is_one_to_two() -> None:
+    result = compose_mode_a(
+        _species("en", 0, KIND_MOLECULAR_NEUTRAL, {"C": 2, "H": 8, "N": 2}),
+        _species("AcOH", 0, KIND_MOLECULAR_NEUTRAL, {"C": 2, "H": 4, "O": 2}),
+        _species("enH2+2", 2, KIND_ION, {"C": 2, "H": 10, "N": 2}),
+        _species("AcO-", -1, KIND_ION, {"C": 2, "H": 3, "O": 2}),
+    )
+    assert isinstance(result, ModeAComposition)
+    assert result.cation_count == 1 and result.anion_count == 2
+    assert result.charge_valid is True
+
+
+def test_broken_hydrogen_count_is_not_a_composition() -> None:
+    result = compose_mode_a(
+        _species("EtNH2", 0, KIND_MOLECULAR_NEUTRAL, {"C": 2, "H": 7, "N": 1}),
+        _species("AcOH", 0, KIND_MOLECULAR_NEUTRAL, {"C": 2, "H": 4, "O": 2}),
+        _species("wrong", 1, KIND_ION, {"C": 2, "H": 9, "N": 1}),
+        _species("AcO-", -1, KIND_ION, {"C": 2, "H": 3, "O": 2}),
+    )
+    assert isinstance(result, ModeARefusal)
+    assert result.code == "conservation_failed"
 
 
 def test_neutral_base_plus_sulfate_without_a_proton_source_is_refused() -> None:
