@@ -2,33 +2,37 @@
 
 Research inventory only. **Not loaded by the application.** Do not add this file or the sibling JSON to `_SHIPPED_FILES` in `src/openchem/chem/structure_templates.py`.
 
-Companion: [`STRUCTURE_TEMPLATE_CANDIDATES.json`](STRUCTURE_TEMPLATE_CANDIDATES.json). Schema version 2. One chemical identity per entry, many `category_ids`.
+Companion: [`STRUCTURE_TEMPLATE_CANDIDATES.json`](STRUCTURE_TEMPLATE_CANDIDATES.json). Schema version 3. One chemical identity per entry, many `category_ids`.
 
-This revision is an **identity-correction pass**. RDKit parse/sanitize is recorded separately from identity verification. A valid graph is not evidence that the record is the intended compound.
+PubChem identity is verified separately from ChEBI. Primary `chebi_id` is set only when the ChEBI default structure's InChIKey equals the candidate InChIKey. Name-search hits that are derivatives, salts, or substring matches are `related`, not exact identities.
 
 ## QA summary
 
 | Measure | Count |
 |---|---|
 | Candidate records | 195 |
-| PubChem records retrieved | 195 |
+| PubChem candidate lookups | 195 |
+| Distinct PubChem CIDs | 194 |
 | RDKit parse/sanitize passed | 195 |
 | Identity verified | 193 |
 | Identity mismatch | 0 |
 | Identity unresolved | 2 |
 | Accepted candidates (identity + RDKit) | 193 |
-| Editor-ready (accepted, not coordination-special) | 186 |
-| Stereochemistry reviewed | 41 |
-| Stereochemistry not applicable | 123 |
+| Eligible for editor testing | 186 |
+| Stereochemistry verified | 41 |
+| Stereochemistry not applicable | 121 |
 | Stereochemistry not reviewed | 31 |
+| Stereochemistry unresolved | 2 |
 | Editor display tested | 0 |
 | Coordination/metal special handling | 7 |
-| PubChem CID replaced vs previous draft | 30 |
-| ChEBI independently verified (OLS name) | 151 |
+| PubChem CID replaced vs first dump | 30 |
+| ChEBI structure-verified (full InChIKey) | 173 |
+| ChEBI name-lookup related/unresolved kept aside | 40 |
+| Formula mismatch after composition normalize | 0 |
 
-Do not read `rdkit_structure_accepted` as overall acceptance. `validation.candidate_accepted` requires `identity.status == verified` as well.
+`editor_eligible` means identity-accepted and not coordination-special. It is **not** an editor smoke test (`editor_display_tested` is 0).
 
-### CID replacements this pass
+### CID replacements vs first dump
 
 | Id | Intended name | Previous CID | New CID | PubChem title |
 |---|---|---|---|---|
@@ -70,28 +74,21 @@ Do not read `rdkit_structure_accepted` as overall acceptance. `validation.candid
 | `cis_decalin` | unresolved | PubChem name queries for cis- and trans-decalin both resolve to unspecified CID 7044 (Decalin), formula C10H18, with no stereochemistry in the SMILES. Not identity-verified as the named stereoisomer. |
 | `trans_decalin` | unresolved | PubChem name queries for cis- and trans-decalin both resolve to unspecified CID 7044 (Decalin), formula C10H18, with no stereochemistry in the SMILES. Not identity-verified as the named stereoisomer. |
 
+## Atropine stereochemical cross-check
+
+PubChem CID 174174 InChIKey `RKUNBYITZUJHSG-PJPHBNEVSA-N`. ChEBI CHEBI:16684 is atropine the racemate, InChIKey `RKUNBYITZUJHSG-SPUOUPEWSA-N`. Connectivity and protonation layers match; the stereochemical layer differs. This is **not** a confirmed cross-database structure match. `chebi_id` is unset; the racemate is recorded as related with `stereo_difference`.
+
 ## V1 constraints
 
-Shipped catalog remains four files and **34** entries. `TemplateEntry` still has a singular `category_id`. Dummy/query/S-group refused. `molblock_for()` flattens 3D. Amino acids in V1 and in this dump are **neutral** carboxylic acid + amine, not zwitterions.
+Shipped catalog remains four files and **34** entries. Dummy/query/S-group refused. `molblock_for()` flattens 3D. Amino acids remain **neutral**.
 
-This JSON remains richer than `TemplateEntry`.
+## Inclusion rules
 
-## Inclusion and identity rules
-
-- Intended OpenChem `name` is preserved. Never rename the entry to match a wrong PubChem title.
-- PubChem is queried by intended name (and aliases), not by a guessed CID.
-- Identity verification needs a name-resolved record, a title/synonym overlap, and an expected-formula match when a formula is specified.
-- ChEBI is resolved from the intended name via OLS, not from UniChem of the selected CID.
-- `as_source` on tautomer/protonation/salt is provenance, not a completed review (`status: not_reviewed` unless independently decided).
-
-## Content kinds
-
-| Kind | Meaning |
-|---|---|
-| **A** | Complete molecules |
-| **B** | Attachment fragments (deferred; `*` is a wildcard) |
-| **C** | Query / homology (not ordinary SMILES) |
-| **D** | Conformers / 3D (availability only) |
+- Intended OpenChem `name` is preserved.
+- PubChem identity is from intended-name resolution plus formula/synonym checks.
+- Primary `chebi_id` requires a full InChIKey match to the ChEBI default structure.
+- Related ChEBI hits stay in `chebi_related` with a reason.
+- Formula comparison uses element-count maps, not string order.
 
 ## Taxonomy
 
@@ -99,14 +96,14 @@ This JSON remains richer than `TemplateEntry`.
 |---|---|---|---|---|---|
 | `generic` | Generic | A | active | 12 | Common starter molecules useful on an empty canvas. |
 | `rings` | Rings | A | active | 21 | Common ring systems as complete molecules. |
-| `cyclopentyl_rings` | Cyclopentyl rings | A | active | 4 | Cyclopentane and cyclopentene complete molecules, not five-membered heterocycles. |
+| `cyclopentyl_rings` | Cyclopentyl rings | A | active | 4 | Cyclopentane, cyclopentene, cyclopentadiene, and methylcyclopentane as complete molecules, not five-membered heterocycles. |
 | `phenyl_rings` | Phenyl rings | A | active | 13 | Benzene and phenyl-containing complete molecules. Attachment-fragment use is deferred. |
 | `amino_acids` | Amino acids | A | active | 22 | Free proteinogenic amino acids plus selenocysteine and ornithine (neutral carboxylic acid + amine). Protected derivatives are not in this category. |
 | `aromatics` | Aromatics | A | active | 31 | Representative aromatic molecules and scaffolds. |
 | `bicyclics` | Bicyclics | A | active | 9 | Recognizable bicyclic parent structures. |
 | `bridged_polycyclics` | Bridged polycyclics | A | active | 8 | Bridged and cage-like polycycles. |
 | `crown_ethers` | Crown ethers | A | active | 7 | Common crown ethers and selected derivatives. |
-| `cycloalkanes` | Cycloalkanes | A | active | 14 | Saturated monocycles C3–C12 inclusive, plus methylcyclohexane. cis/trans-Decalin are listed separately and are not identity-verified as stereoisomers. |
+| `cycloalkanes` | Cycloalkanes | A | active | 12 | Saturated monocycles C3–C12 inclusive, plus methylcyclopentane and methylcyclohexane. Bicyclic decalins are not in this category. |
 | `conformers` | Conformers | D | unresolved | 0 | Conformational templates need 3D coordinates; V1 molblock_for regenerates 2D. |
 | `heterocycles` | Heterocycles | A | active | 51 | Representative heterocyclic complete molecules. |
 | `polycyclics` | Polycyclics | A | active | 20 | Fused and cage polycycles. |
@@ -117,7 +114,7 @@ This JSON remains richer than `TemplateEntry`.
 | `flavonoids` | Flavonoids | A | active | 13 | Named flavonoid aglycones and subclass parents. |
 | `nucleobases` | Nucleobases | A | active | 6 | Free nucleobases (A, G, C, T, U, hypoxanthine). Not methylxanthine alkaloids. |
 | `nucleosides` | Nucleosides | A | active | 5 | Named ribonucleosides only (not deoxynucleosides or nucleotides). |
-| `organometallics` | Organometallics | A | active | 5 | Selected compounds with metal-carbon bonds. Not editor-ready until coordination display is tested. |
+| `organometallics` | Organometallics | A | active | 5 | Selected compounds with metal-carbon bonds. Not editor-eligible until coordination display is tested. |
 | `peptide_building_blocks` | Peptide building blocks | A | active | 26 | Free amino acids and complete N-protected amino acids (Fmoc/Boc). No sequence builder. |
 | `protoalkaloids` | Protoalkaloids | A | active | 2 | Amino-acid-derived amines whose nitrogen is not in a heterocycle, where the assignment is not disputed. |
 | `true_alkaloids` | True alkaloids | A | active | 7 | Amino-acid-derived alkaloids with nitrogen in a heterocycle. |
@@ -128,9 +125,7 @@ This JSON remains richer than `TemplateEntry`.
 | `functional_group_examples` | Functional-group examples | A | active | 8 | Small complete molecules illustrating common functional groups. |
 | `terpenoids_steroids` | Terpenoids and steroids | A | active | 7 | A few recognizable terpenes and steroids. |
 | `cofactors_metabolites` | Cofactors and metabolites | A | active | 3 | A few named cofactors, including nucleotides such as ATP. |
-| `coordination_complexes` | Coordination complexes | A | active | 2 | Metal complexes without requiring a metal-carbon bond. Not editor-ready until coordination display is tested. |
-
-Category `entry_ids` are derived from `category_ids` on identity-verified **or** still-listed candidates (mismatches remain in the file until replaced). Counts below are **identity-verified** memberships.
+| `coordination_complexes` | Coordination complexes | A | active | 2 | Metal complexes without requiring a metal-carbon bond. Not editor-eligible until coordination display is tested. |
 
 | Category | Identity-verified n |
 |---|---|
@@ -167,45 +162,36 @@ Category `entry_ids` are derived from `category_ids` on identity-verified **or**
 | `cofactors_metabolites` | 3 |
 | `coordination_complexes` | 2 |
 
-### Category corrections in this pass
-
-- Protected Fmoc/Boc alanines removed from `amino_acids`; they stay in `peptide_building_blocks` once identity-verified.
-- `peptide_building_blocks` includes free amino acids and protected derivatives.
-- Thymidine is only in `deoxynucleosides`. ATP is only in `cofactors_metabolites` (a nucleotide, not a nucleoside).
-- Caffeine is not a nucleobase; it remains a pseudoalkaloid / heterocycle.
-- Tetrahydrofuran is not in `cyclopentyl_rings`.
-- Cyclononane and cycloundecane added so C3–C12 monocycles are complete. cis/trans-Decalin are unresolved stereoisomers (PubChem parent only).
+Cycloalkanes are the C3–C12 monocycles plus methylcyclopentane and methylcyclohexane. cis/trans-Decalin remain in `bicyclics` only, identity unresolved.
 
 ## Alkaloids
 
-Class is biosynthetic origin (Aniszewski 2015), not nitrogen-in-a-ring. Book citation, no DOI in this dump. Ephedrine and colchicine are **unresolved** at compound level (see their `classification_source`). Caffeine remains pseudo.
+Biosynthetic class (Aniszewski 2015). Ephedrine and colchicine are class-unresolved. Caffeine is pseudo. Atropine remains a true alkaloid by that framework; its ChEBI structure match is not verified.
 
-| Id | Class | Class status | ChEBI | Identity |
+| Id | Class | Class status | chebi_id | Identity |
 |---|---|---|---|---|
 | `morphine` | true | verified | CHEBI:17303 | verified |
 | `codeine` | true | verified | CHEBI:16714 | verified |
-| `atropine` | true | verified | CHEBI:16684 | verified |
+| `atropine` | true | verified | — | verified |
 | `cocaine` | true | verified | CHEBI:27958 | verified |
-| `nicotine` | true | verified | CHEBI:18723 | verified |
+| `nicotine` | true | verified | CHEBI:17688 | verified |
 | `quinine` | true | verified | CHEBI:15854 | verified |
 | `strychnine` | true | verified | CHEBI:28973 | verified |
 | `mescaline` | proto | verified | CHEBI:28346 | verified |
-| `ephedrine` | — | unresolved | — | verified |
+| `ephedrine` | — | unresolved | CHEBI:15407 | verified |
 | `hordenine` | proto | verified | CHEBI:5764 | verified |
-| `colchicine` | — | unresolved | CHEBI:23359 | verified |
+| `colchicine` | — | unresolved | CHEBI:27882 | verified |
 | `caffeine` | pseudo | verified | CHEBI:27732 | verified |
 | `theobromine` | pseudo | verified | CHEBI:28946 | verified |
 | `theophylline` | pseudo | verified | CHEBI:28177 | verified |
 
 ## Organometallics and coordination
 
-Kept in the research inventory. `editor_ready` is false while PubChem SMILES are disconnected ligand/metal components. Cisplatin `N.N.Cl[Pt]Cl` does not encode Pt–N bonds or cis geometry. Cyanocobalamin similarly splits Co/CN from the corrin. These are not insertable V1 templates.
+Seven records require a coordination representation. `editor_eligible` is false. Display tests have not been run.
 
-## Open questions (not this task)
+## Open questions
 
-- Shipping any of this into `_SHIPPED_FILES`.
-- Multi-`category_id` in `TemplateEntry`.
-- 3D insert; attachment fragments; homology encoding.
-- Stereo-specific PubChem records for cis- and trans-decalin.
-- Compound-level alkaloid class for ephedrine and colchicine.
-
+- Shipping into `_SHIPPED_FILES`.
+- Stereo-specific PubChem records for cis/trans-decalin.
+- Compound-level class for ephedrine and colchicine.
+- Editor smoke tests (still zero).
