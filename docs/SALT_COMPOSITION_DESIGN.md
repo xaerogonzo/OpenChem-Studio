@@ -1,12 +1,12 @@
 # Salt composition engine: design
 
-**Status: architecture contract, 2026-11-10 (revised twice the same day).
-Nothing is built.** This note is the scientific and module-boundary
-contract. It is not an implementation plan: file names below are the intended
-homes when code exists, not a commitment to write them in this change. No
-calculator is registered, no UI is specified beyond "later, beside the pKa
-view", and a charge-valid composition is never an isolable salt. This revision
-does not authorize implementation.
+**Status: architecture contract accepted for slice 1; `balance_two` and
+Mode B are the first code; Mode A/C/UI still not authorized by this slice.**
+This note is the scientific and module-boundary contract. It is not an
+implementation plan: file names below are the intended homes when code exists,
+not a commitment to write them in this change. No calculator is registered, no
+UI is specified beyond "later, beside the pKa view", and a charge-valid
+composition is never an isolable salt.
 
 This document lives on branch `cursor/salt-composition-design`, created from
 fetched `origin/master` in an isolated worktree. It was not written on
