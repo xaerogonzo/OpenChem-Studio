@@ -150,24 +150,24 @@ def analyze_drawing(mol: Chem.Mol) -> ModeBResult:
     cations = [c for c in ions if c.charge > 0]
     anions = [c for c in ions if c.charge < 0]
 
-    def _result(
-        code: str, reason: str, theoretical: TwoIonBalance | None, valid: bool
-    ) -> ModeBResult:
-        return ModeBResult(code, reason, ions, extras, drawn_total, valid, theoretical)
+    charge_valid = drawn_total == 0
+
+    def _result(code: str, reason: str, theoretical: TwoIonBalance | None) -> ModeBResult:
+        return ModeBResult(
+            code, reason, ions, extras, drawn_total, charge_valid, theoretical
+        )
 
     if len(cations) >= 2 and len(anions) >= 2:
         return _result(
             "ambiguous_pairing",
             "Several cation and anion species; the drawing does not say which pair.",
             None,
-            False,
         )
     if len(ions) > 2:
         return _result(
             "unsupported_multicomponent",
             "More than two distinct ionic species; v1 does not balance those.",
             None,
-            False,
         )
     if len(cations) == 1 and len(anions) == 1:
         theoretical = balance_two(
@@ -180,20 +180,17 @@ def analyze_drawing(mol: Chem.Mol) -> ModeBResult:
                 "charge_neutral",
                 "Drawn charges cancel. The theoretical ratio is a separate fact.",
                 ratio,
-                True,
             )
         return _result(
             "unbalanced",
             "Drawn charges do not cancel. The theoretical ratio is diagnostic only.",
             ratio,
-            False,
         )
     if ions:
         return _result(
             "unbalanced",
             "No opposite-charge partner in the drawing.",
             None,
-            False,
         )
     if len(frags) == 1:
         atom_charges = [atom.GetFormalCharge() for atom in mol.GetAtoms()]
@@ -202,11 +199,9 @@ def analyze_drawing(mol: Chem.Mol) -> ModeBResult:
                 "zwitterion",
                 "One connected molecule with internal charges, not a salt pair.",
                 None,
-                False,
             )
     return _result(
         "not_a_salt",
         "No charged components.",
         None,
-        False,
     )

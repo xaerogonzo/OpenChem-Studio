@@ -103,12 +103,15 @@ def test_nacl_and_kbr_is_ambiguous() -> None:
     result = analyze_drawing(mol)
     assert result.code == "ambiguous_pairing"
     assert result.theoretical is None
+    assert result.drawn_total_charge == 0
+    assert result.charge_valid is True
 
 
 def test_ethanol_and_benzene_is_not_a_salt() -> None:
     mol = _mol("CCO.c1ccccc1")
     result = analyze_drawing(mol)
     assert result.code == "not_a_salt"
+    assert result.charge_valid is True
     assert result.ions == ()
     assert len(result.extras) == 2
     assert "coformer" not in result.reason.lower()
@@ -128,6 +131,7 @@ def test_glycine_zwitterion_is_one_molecule() -> None:
     mol = _mol("C(C(=O)[O-])[NH3+]")
     result = analyze_drawing(mol)
     assert result.code == "zwitterion"
+    assert result.charge_valid is True
     assert result.ions == ()
     assert result.theoretical is None
 
