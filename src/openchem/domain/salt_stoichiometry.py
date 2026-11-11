@@ -112,6 +112,31 @@ def compose_mode_a(
     )
 
 
+def compose_supplied_ions(
+    cation: ModeASpecies,
+    anion: ModeASpecies,
+) -> ModeAComposition | ModeARefusal:
+    if cation.kind != KIND_ION or anion.kind != KIND_ION:
+        return ModeARefusal(
+            code="missing_proton_source",
+            reason=(
+                "A molecular neutral plus a supplied ion does not provide "
+                "the protons for a transfer; supply both ions as given."
+            ),
+        )
+    balanced = balance_two(
+        ChargedSpecies(cation.identity, cation.charge),
+        ChargedSpecies(anion.identity, anion.charge),
+    )
+    if isinstance(balanced, BalanceRefusal):
+        return ModeARefusal(code=balanced.code, reason=balanced.reason)
+    return ModeAComposition(
+        cation_count=balanced.cation_count,
+        anion_count=balanced.anion_count,
+        charge_valid=True,
+    )
+
+
 @dataclass(frozen=True)
 class ChargedSpecies:
     """One ion, as the stoichiometry layer is allowed to see it."""

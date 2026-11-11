@@ -20,6 +20,17 @@ def _pyridinium() -> PkaValue:
     return PkaValue(5.23, ORIGIN_MEASURED, "water", 298.15, None, None, "pyridine_bh1")
 
 
+def test_supplied_ions_do_not_assess_pka() -> None:
+    result = assess_pka_compatible(
+        already_charged=True,
+        proposed_acid_step_id="x",
+        proposed_conjugate_acid_step_id="y",
+        acid=None,
+        conjugate_acid=None,
+    )
+    assert result.verdict == VERDICT_NOT_ASSESSED
+
+
 def test_already_charged_input_is_not_assessed() -> None:
     result = assess_pka_compatible(
         already_charged=True,
