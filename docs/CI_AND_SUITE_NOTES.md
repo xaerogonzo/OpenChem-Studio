@@ -41,7 +41,7 @@ Six shards were tried on PR #570 (`7fce6e58`): modelled 1081–1085 s each, 820 
 
 **The fix (then):** matrix `shard: [1, 2, 3, 4, 5, 6, 7]`, `--repin --splits=7`. Step timeout stays 30. Ruleset Basic (id 20312707) required `gating benchmarks` + `test suite 1/7`…`7/7`.
 
-**Seven still timed out, 2026-11-10 evening.** Shard 1 of PR #575 (`1e86235f`) hit 99% at 26 min then printed nothing until the 30-minute kill; no test failed. 91→99% had taken 30 s, so the last four minutes were a hang after the tests, not more work. Same run: shards 2–7 passed in 12–18 min. Modelled 7-way cost was even (~940 s). **Eight shards** (`--repin --splits=8`); step timeout stays 30. The ruleset must require `test suite 1/8`…`8/8` or this PR cannot merge (job names changed).
+**Seven still timed out, 2026-11-10 evening.** Shard 1 of PR #575 (`1e86235f`) hit 99% at 26 min then printed nothing until the 30-minute kill; no test failed. 91→99% had taken 30 s, so the last four minutes were a hang after the tests, not more work. Same run: shards 2–7 passed in 12–18 min. Modelled 7-way cost was even (~940 s). **Eight shards** (`--repin --splits=8`); step timeout stays 30. The ruleset must require `test suite 1/8`…`8/8` or this PR cannot merge (job names changed). **DONE 2026-11-10 19:59 ET:** Basic (id 20312707) now requires `gating benchmarks` + `test suite 1/8`…`8/8`.
 
 ## project-shard3-timeout-2026-10-14
 
