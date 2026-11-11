@@ -81,3 +81,63 @@ def test_two_sodium_and_sulfate_is_charge_neutral() -> None:
     assert result.charge_valid is True
     sodium = next(c for c in result.ions if c.charge > 0)
     assert sodium.drawn_count == 2
+
+
+def test_two_cations_and_one_anion_is_unsupported() -> None:
+    mol = _mol("[Na+].[K+].[Cl-]")
+    result = analyze_drawing(mol)
+    assert result.code == "unsupported_multicomponent"
+    assert result.theoretical is None
+    assert result.charge_valid is False
+
+
+def test_one_cation_and_two_anions_is_unsupported() -> None:
+    mol = _mol("[Na+].[Cl-].[Br-]")
+    result = analyze_drawing(mol)
+    assert result.code == "unsupported_multicomponent"
+    assert result.theoretical is None
+
+
+def test_nacl_and_kbr_is_ambiguous() -> None:
+    mol = _mol("[Na+].[Cl-].[K+].[Br-]")
+    result = analyze_drawing(mol)
+    assert result.code == "ambiguous_pairing"
+    assert result.theoretical is None
+
+
+def test_ethanol_and_benzene_is_not_a_salt() -> None:
+    mol = _mol("CCO.c1ccccc1")
+    result = analyze_drawing(mol)
+    assert result.code == "not_a_salt"
+    assert result.ions == ()
+    assert len(result.extras) == 2
+    assert "coformer" not in result.reason.lower()
+    assert "hydrate" not in result.reason.lower()
+    assert "solvate" not in result.reason.lower()
+
+
+def test_a_neutral_extra_beside_nacl_is_unclassified() -> None:
+    mol = _mol("[Na+].[Cl-].CCO")
+    result = analyze_drawing(mol)
+    assert result.code == "charge_neutral"
+    assert len(result.extras) == 1
+    assert "coformer" not in result.reason.lower()
+
+
+def test_glycine_zwitterion_is_one_molecule() -> None:
+    mol = _mol("C(C(=O)[O-])[NH3+]")
+    result = analyze_drawing(mol)
+    assert result.code == "zwitterion"
+    assert result.ions == ()
+    assert result.theoretical is None
+
+
+def test_drawn_counts_survive_when_the_ratio_reduces() -> None:
+    mol = _mol("[Ca+2].[Ca+2].[Cl-].[Cl-].[Cl-].[Cl-]")
+    result = analyze_drawing(mol)
+    assert result.code == "charge_neutral"
+    calcium = next(c for c in result.ions if c.charge > 0)
+    chloride = next(c for c in result.ions if c.charge < 0)
+    assert calcium.drawn_count == 2
+    assert chloride.drawn_count == 4
+    assert result.theoretical == TwoIonBalance(cation_count=1, anion_count=2)
