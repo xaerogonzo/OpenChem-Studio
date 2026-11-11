@@ -39,7 +39,7 @@ how this project's own documentation has gone stale before.
 
 | | |
 |---|---|
-| [SALT_COMPOSITION_DESIGN.md](SALT_COMPOSITION_DESIGN.md) | Architecture contract for a two-ion salt composition engine (not built): charge balance is not a salt, `substance.py` is an adapter, pKa is evidence |
+| [SALT_COMPOSITION_DESIGN.md](SALT_COMPOSITION_DESIGN.md) | Architecture contract for a two-ion salt composition engine (slice 1–2 library code, no UI): charge balance is not a salt, `substance.py` is an adapter, pKa is evidence |
 | [DERIVED_SCORES_DESIGN.md](DERIVED_SCORES_DESIGN.md) | Design record for derived scores, slice by slice: why a score is a projection and not a result, the approved outputs, what was measured, and the geometry decisions |
 | [RECIPES_DESIGN.md](RECIPES_DESIGN.md) | Design record for recipes (typed dependencies between calculators) and the Lewis pairing, with the preregistered gate |
 | [AI_CALCULATION_BRIDGE.md](AI_CALCULATION_BRIDGE.md) | Design record for the assistant's calculator bridge: the execution policy, the handle, the frozen turn and the approval flow |
