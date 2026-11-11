@@ -4264,6 +4264,10 @@ class _Driver(QObject):
 
         `{"do": "inspect", "id": "gasteiger_charge_at_ph"}`, then
         `{"do": "shot", "widget": "inspector"}`.
+        `"source": "result"` opens the Inspector from the panel's filed
+        dataset after `calculator` + `jobs_wait`, and does not call
+        `registry.compute`. The default `"source": "compute"` is the
+        synchronous registry path.
 
         **`show()`, NEVER `exec()`.** `exec()` spins an event loop inside the
         handler -- the next step is never scheduled and an unattended run
@@ -4308,15 +4312,31 @@ class _Driver(QObject):
         # greyed-out parameters.
         from openchem.chem.calculation_input import resolve_calculation_input
 
-        engine = window._services.chemistry_engine
-        mol = resolve_calculation_input(engine, molecule, definition.calculation_input).mol
-        # Synchronous registry.compute — after_ms does not make this async.
-        try:
-            result = window._services.calculator_registry.compute(
-                calculator_id, mol, molecule.uuid, parameters
-            )
-        except Exception as exc:  # noqa: BLE001 - a failed inspect must not abort the drive
-            logger.error("OPENCHEM_DRIVE: inspect %s compute failed: %s", calculator_id, exc)
+        source = str(step.get("source") or "compute")
+        result = None
+        if source == "result":
+            from openchem.app.inspector_dump import panel_per_atom_result
+
+            result = panel_per_atom_result(panel, calculator_id)
+            if result is None:
+                logger.error(
+                    "OPENCHEM_DRIVE: inspect %s source=result but no PerAtomDataset is filed",
+                    calculator_id,
+                )
+                return
+        elif source == "compute":
+            engine = window._services.chemistry_engine
+            mol = resolve_calculation_input(engine, molecule, definition.calculation_input).mol
+            # Synchronous registry.compute — after_ms does not make this async.
+            try:
+                result = window._services.calculator_registry.compute(
+                    calculator_id, mol, molecule.uuid, parameters
+                )
+            except Exception as exc:  # noqa: BLE001 - a failed inspect must not abort the drive
+                logger.error("OPENCHEM_DRIVE: inspect %s compute failed: %s", calculator_id, exc)
+                return
+        else:
+            logger.error("OPENCHEM_DRIVE: inspect source %r is not compute or result", source)
             return
         if not isinstance(result, PerAtomDataset):
             logger.error(
@@ -4345,7 +4365,10 @@ class _Driver(QObject):
         self._inspector.show()
         QApplication.processEvents()
         logger.warning(
-            "OPENCHEM_DRIVE: inspect %s -> %r", calculator_id, getattr(result, "name", "")
+            "OPENCHEM_DRIVE: inspect %s source=%s -> %r",
+            calculator_id,
+            source,
+            getattr(result, "name", ""),
         )
 
     def _dispose_driver_inspector(self) -> None:
@@ -4763,6 +4786,72 @@ class _Driver(QObject):
             None if protocol is None else protocol.protocol_seed,
         )
         logger.warning("OPENCHEM_DRIVE: screen_run status=%r", dialog._status.text())
+
+    def _do_jobs_wait(self, step: dict[str, Any]) -> None:
+        """`{"do": "jobs_wait", "id": "gasteiger_charge_at_ph", "timeout_ms": 120000}`
+        -- hold the script until Properties is idle, steadily for `quiet_ms`.
+
+        Optional `id` waits for that calculator: no longer marked running, or
+        a `PerAtomDataset` already filed (the running set can keep a producer
+        id after the result has landed under another name). Without `id`, any
+        running calculator keeps the wait going.
+
+        **REPLACES A GUESSED `after_ms` AFTER `calculator`.** `inspect` with
+        `"source": "result"` needs the filed dataset. Giving up is an ERROR.
+        """
+        import time
+
+        panel = getattr(self._window, "_property_panel", None)
+        if panel is None:
+            logger.error("OPENCHEM_DRIVE: jobs_wait -- no Properties panel on this window")
+            return
+        self._jobs_wait = {
+            "panel": panel,
+            "id": str(step.get("id") or ""),
+            "started": time.monotonic(),
+            "deadline": time.monotonic() + int(step.get("timeout_ms", 120_000)) / 1000.0,
+            "quiet": int(step.get("quiet_ms", 400)) / 1000.0,
+            "quiet_since": None,
+            "after_ms": int(step.get("after_ms", 500)),
+        }
+        self._hold_chain = True
+        self._poll_jobs_wait()
+
+    def _poll_jobs_wait(self) -> None:
+        import time
+
+        from openchem.app.inspector_dump import panel_per_atom_result
+
+        wait = self._jobs_wait
+        panel = wait["panel"]
+        running = getattr(panel, "_running_calculator_ids", ()) or ()
+        wanted = wait["id"]
+        if wanted:
+            busy = wanted in running and panel_per_atom_result(panel, wanted) is None
+        else:
+            busy = bool(running)
+        now = time.monotonic()
+        if busy:
+            wait["quiet_since"] = None
+        elif wait["quiet_since"] is None:
+            wait["quiet_since"] = now
+        timed_out = now >= wait["deadline"]
+        idle_long_enough = wait["quiet_since"] is not None and now - wait["quiet_since"] >= wait["quiet"]
+        if timed_out or idle_long_enough:
+            logger.warning(
+                "OPENCHEM_DRIVE: jobs_wait idle after %.1f s running=%s",
+                now - wait["started"],
+                sorted(getattr(panel, "_running_calculator_ids", ())),
+            )
+            if timed_out and busy:
+                logger.error(
+                    "OPENCHEM_DRIVE: jobs_wait gave up after %.0f s with %s still running",
+                    now - wait["started"],
+                    sorted(getattr(panel, "_running_calculator_ids", ())),
+                )
+            QTimer.singleShot(wait["after_ms"], self._window, self._run_next)
+            return
+        QTimer.singleShot(200, self._window, self._poll_jobs_wait)
 
     def _do_jobs_report(self, step: dict[str, Any]) -> None:
         """Dump what the Jobs panel SHOWS, plus whether it is still polling.
@@ -5416,23 +5505,24 @@ class _Driver(QObject):
         self._assert_results(window, step)
 
     def _assert_results(self, window: Any, step: dict[str, Any]) -> None:
-        search = window._selector_search.text()
-        jumps = list(window._view.section_jumps()) if hasattr(window._view, "section_jumps") else []
+        from openchem.app.results_dump import encode_results_dump, evaluate_results_expect, results_dump
+
+        host = getattr(self._window, "_results_host", None)
+        dock = getattr(self._window, "_results_dock", None)
+        dump = results_dump(
+            window,
+            tag=str(step.get("tag", "")),
+            detached=bool(host.is_popped_out()) if host is not None else None,
+            dock_hidden=bool(dock.isHidden()) if dock is not None else None,
+        )
         logger.warning(
             "OPENCHEM_DRIVE: results after tag=%s focus=%r search=%r all_results_visible=%s jumps=%s",
-            step.get("tag", ""), window.focus(), search, window._all_results_button.isVisible(), jumps,
+            step.get("tag", ""), dump.get("focus"), dump.get("search"),
+            dump.get("all_results_visible"), dump.get("jumps"),
         )
-        expect = step.get("expect") or {}
-        problems = []
-        if "focus" in expect and window.focus() != expect["focus"]:
-            problems.append(f"focus {window.focus()!r}, expected {expect['focus']!r}")
-        if "search" in expect and search != expect["search"]:
-            problems.append(f"search {search!r}, expected {expect['search']!r}")
-        if "all_results_visible" in expect and window._all_results_button.isVisible() != bool(expect["all_results_visible"]):
-            problems.append(f"All results visible={window._all_results_button.isVisible()}")
-        if "jumps_at_least" in expect and len(jumps) < int(expect["jumps_at_least"]):
-            problems.append(f"{len(jumps)} jumps, expected at least {expect['jumps_at_least']}")
-        if problems or expect:
+        logger.warning("OPENCHEM_DRIVE: results_dump[%s] %s", step.get("tag", ""), encode_results_dump(dump))
+        problems = evaluate_results_expect(dump, step.get("expect"))
+        if problems is not None:
             if self._record_assertion("results", str(step.get("tag", "")), not problems, "; ".join(problems) or "as expected"):
                 logger.warning("OPENCHEM_DRIVE: EXPECT results ok[%s]", step.get("tag", ""))
             else:
@@ -5493,22 +5583,18 @@ class _Driver(QObject):
                 continue
             if not action.isChecked():
                 action.trigger()
-        state = {
-            "2d": not view._svg_widget.isHidden(),
-            "3d": not view._structure_3d.isHidden(),
-            "splitter": not view._structures_splitter.isHidden(),
-            "spectrum": view._spectrum_widget.isVisible(),
-            "table": view._table_tabs.isVisible(),
-            "floor": min(view._svg_widget.minimumWidth(), view._structure_3d.minimumWidth()),
-        }
-        logger.warning("OPENCHEM_DRIVE: nmr_panes[%s] %s", step.get("tag", ""), state)
-        expect = step.get("expect") or {}
-        problems = [
-            f"{key} is {state.get(key)}, expected {value}"
-            for key, value in expect.items()
-            if state.get(key) != value
-        ]
-        if problems or expect:
+        QApplication.processEvents()
+        from openchem.app.nmr_dump import encode_nmr_dump, evaluate_nmr_expect, nmr_dump
+
+        dump = nmr_dump(view, tag=str(step.get("tag", "")))
+        logger.warning(
+            "OPENCHEM_DRIVE: nmr_panes[%s] 2d=%s 3d=%s splitter=%s spectrum=%s table=%s floor=%s",
+            step.get("tag", ""), dump.get("2d"), dump.get("3d"), dump.get("splitter"),
+            dump.get("spectrum"), dump.get("table"), dump.get("floor"),
+        )
+        logger.warning("OPENCHEM_DRIVE: nmr_dump[%s] %s", step.get("tag", ""), encode_nmr_dump(dump))
+        problems = evaluate_nmr_expect(dump, step.get("expect"))
+        if problems is not None:
             tag = str(step.get("tag", ""))
             if self._record_assertion("nmr_panes", tag, not problems, "; ".join(problems) or "as expected"):
                 logger.warning("OPENCHEM_DRIVE: EXPECT nmr_panes ok[%s]", tag)

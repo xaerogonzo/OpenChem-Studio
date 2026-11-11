@@ -80,6 +80,8 @@ The `OPENCHEM_DRIVE` step catalogue, moved out of [`CLAUDE.md`](../CLAUDE.md) on
     {"do": "nmr_panes", "hide": ["2d", "3d"], "reset": true,
      "expect": {"2d": true, "splitter": true, "spectrum": true}}
                                           Hide 2D / Hide 3D on the open NMR view, or Reset Settings.
+                                          A JSON dump of pane sizes and hide
+                                          state follows (`nmr_dump`).
     {"do": "pka_view", "tag": "aminophenol",
      "expect": {"sites": 3, "pictures": 0, "message_contains": "same drawing atom"}}
                                           the open pKa window: stored site count, species pictures,
@@ -107,10 +109,19 @@ The `OPENCHEM_DRIVE` step catalogue, moved out of [`CLAUDE.md`](../CLAUDE.md) on
     {"do": "inspector_report", "tag": "after-edit"}  the Atom Inspector's
                                           pinned line, HELD results and state
     {"do": "inspect", "id": "crippen_logp_contrib"}
+    {"do": "inspect", "id": "gasteiger_charge_at_ph", "source": "result"}
     {"do": "inspect_report", "tag": "ph", "filter": "N", "select_row": 0}  the
                                           structure the panes draw, labels, table;
                                           one JSON object on a following log line
-                                          (see inspect_report below)
+                                          (see inspect_report below). `source`
+                                          is `compute` (default, synchronous
+                                          registry) or `result` (the dataset
+                                          `calculator` already filed)
+    {"do": "jobs_wait", "id": "gasteiger_charge_at_ph", "timeout_ms": 120000}
+                                          hold until Properties is idle, or
+                                          until `id` has a filed per-atom
+                                          result; use after `calculator`
+                                          before `inspect` `source=result`
     {"do": "result_report", "calculator": "geometry_partial_charge",
      "expect_refusal": "REFUSE_NOT_CONVERGED"}  WHICH refusal Properties
                                           holds; "Not applicable" names none
@@ -550,10 +561,19 @@ Four things that cost a run each:
   fields takes the same care, and the app still takes the foreground when a run
   starts, so type nothing into it in the first seconds.
 
-`inspect` computes **synchronously** via `CalculatorRegistry.compute`. `after_ms`
-only delays the next step after that returns. It is not an async wait. A
-`ServiceExecution` calculator cannot be inspected this way. Each `inspect` closes
-the previous driver-owned Inspector before opening the next.
+`inspect` with `"source": "compute"` (the default) uses `CalculatorRegistry.compute`
+synchronously. `after_ms` only delays the next step after that returns. It is not
+an async wait. A `ServiceExecution` calculator cannot be inspected that way.
+`"source": "result"` does not compute: it opens the Inspector on the
+`PerAtomDataset` Properties already filed after `calculator` (the
+`run_calculator` path). Use `jobs_wait` between those two steps. Each `inspect`
+closes the previous driver-owned Inspector before opening the next.
+
+`results` and `nmr_panes` emit the same kind of compact JSON line
+(`results_dump[tag]`, `nmr_dump[tag]`). Unknown `expect` keys fail on those
+steps too. `nmr_panes` layout keys include `2d_share` and pane widths; `2d` /
+`3d` / `splitter` remain visibility booleans. `results` keeps `focus`, `search`,
+`all_results_visible`, `jumps_at_least`.
 
 `inspect_report` is observational. With no `expect` object it records no
 assertion; a dump-only walk can still `VERDICT PASS`. A failed or refused

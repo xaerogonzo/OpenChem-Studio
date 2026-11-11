@@ -229,34 +229,74 @@ def _table_section(view) -> dict[str, Any]:
     }
 
 
+def evaluate_keyed_expect(
+    expect: dict[str, Any] | None,
+    allowed: frozenset[str],
+    actuals: dict[str, Any],
+) -> list[str] | None:
+    """Problems for a nonempty ``expect``, or ``None`` when no assertion is due.
+
+    Unknown keys fail closed. Extra ``actuals`` keys are ignored.
+    """
+    if not expect:
+        return None
+    unknown = sorted(str(key) for key in expect if key not in allowed)
+    if unknown:
+        return [f"unknown expect keys: {', '.join(unknown)}"]
+    problems: list[str] = []
+    for key, expected in expect.items():
+        actual = actuals[key]
+        if actual != expected:
+            problems.append(f"{key} {actual}, expected {expected}")
+    return problems
+
+
 def evaluate_inspect_expect(dump: dict[str, Any], expect: dict[str, Any] | None) -> list[str] | None:
     """Problems for a nonempty ``expect`` object, or ``None`` when no assertion is due.
 
     Unknown keys are a failed assertion, never a silent pass.
     """
-    if not expect:
-        return None
-    unknown = sorted(str(key) for key in expect if key not in INSPECT_REPORT_EXPECT_KEYS)
-    problems: list[str] = []
-    if unknown:
-        problems.append(f"unknown expect keys: {', '.join(unknown)}")
-        return problems
-    checks = {
-        "structure": dump.get("structure_source"),
-        "formal_charge": dump.get("formal_charge"),
-        "depiction_charge": dump.get("depiction_charge"),
-        "drawing_charge": dump.get("drawing_charge"),
-        "pane_2d_width_px": (dump.get("layout") or {}).get("pane_2d_width_px"),
-        "pane_2d_min_width_px": (dump.get("layout") or {}).get("pane_2d_min_width_px"),
-        "pane_3d_width_px": (dump.get("layout") or {}).get("pane_3d_width_px"),
-        "pane_3d_min_width_px": (dump.get("layout") or {}).get("pane_3d_min_width_px"),
-        "2d_share": (dump.get("layout") or {}).get("2d_share"),
-    }
-    for key, expected in expect.items():
-        actual = checks[key]
-        if actual != expected:
-            problems.append(f"{key} {actual}, expected {expected}")
-    return problems
+    layout = dump.get("layout") or {}
+    return evaluate_keyed_expect(
+        expect,
+        INSPECT_REPORT_EXPECT_KEYS,
+        {
+            "structure": dump.get("structure_source"),
+            "formal_charge": dump.get("formal_charge"),
+            "depiction_charge": dump.get("depiction_charge"),
+            "drawing_charge": dump.get("drawing_charge"),
+            "pane_2d_width_px": layout.get("pane_2d_width_px"),
+            "pane_2d_min_width_px": layout.get("pane_2d_min_width_px"),
+            "pane_3d_width_px": layout.get("pane_3d_width_px"),
+            "pane_3d_min_width_px": layout.get("pane_3d_min_width_px"),
+            "2d_share": layout.get("2d_share"),
+        },
+    )
+
+
+def panel_per_atom_result(panel, calculator_id: str):
+    """The filed ``PerAtomDataset`` for ``calculator_id``, or ``None``.
+
+    Prefers the panel's producer map (``gasteiger_charge_at_ph`` files as
+    ``gasteiger_charge``) so an async ``run_calculator`` result can be
+    inspected without calling ``registry.compute`` again.
+    """
+    from openchem.domain.scientific_result import PerAtomDataset
+
+    produced = getattr(panel, "_produced_results", None) or {}
+    candidate = produced.get(calculator_id)
+    if isinstance(candidate, PerAtomDataset):
+        return candidate
+    getter = getattr(panel, "_result_for", None)
+    if getter is not None:
+        candidate = getter(calculator_id)
+        if isinstance(candidate, PerAtomDataset):
+            return candidate
+    retained = getattr(panel, "_retained_results", None) or {}
+    wanted = retained.get(calculator_id)
+    if isinstance(wanted, PerAtomDataset):
+        return wanted
+    return None
 
 
 def dispose_driver_inspector(dialog) -> None:

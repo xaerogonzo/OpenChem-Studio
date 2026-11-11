@@ -12,6 +12,7 @@ from openchem.app.inspector_dump import (
     encode_inspect_dump,
     evaluate_inspect_expect,
     inspect_dump,
+    panel_per_atom_result,
 )
 from openchem.chem.engine import ChemistryEngine
 from openchem.chem.result_structure import EFFECTIVE_STRUCTURE, structure_fingerprint
@@ -203,6 +204,19 @@ def test_existing_expect_keys_and_unknown_key_fails():
     assert unknown and "unknown expect keys" in unknown[0]
     layout_ok = evaluate_inspect_expect(dump, {"pane_2d_min_width_px": 320})
     assert layout_ok == []
+
+
+def test_panel_per_atom_result_prefers_the_producer_map():
+    from types import SimpleNamespace
+
+    dataset = _dataset({0: 0.1}, property_id="gasteiger_charge")
+    panel = SimpleNamespace(
+        _produced_results={"gasteiger_charge_at_ph": dataset},
+        _result_for=lambda _id: None,
+        _retained_results={},
+    )
+    assert panel_per_atom_result(panel, "gasteiger_charge_at_ph") is dataset
+    assert panel_per_atom_result(panel, "missing") is None
 
 
 def test_helper_does_not_compute(qapp, monkeypatch):
