@@ -6,7 +6,7 @@ These sections were moved here on 2026-10-29 from the assistant's private memory
 
 ## Contents
 
-- [project-six-shards-2026-11-10](#project-six-shards-2026-11-10) — Shard 1 of five timed out; six shards still timed out shard 6 at 98%; seven shards, ruleset `1/7`…`7/7`
+- [project-six-shards-2026-11-10](#project-six-shards-2026-11-10) — Shard 1 of five timed out; six shards still timed out shard 6 at 98%; seven shards `1/7`…`7/7`; eight shards `1/8`…`8/8` (2026-11-11)
 - [project-shard3-timeout-2026-10-14](#project-shard3-timeout-2026-10-14) — CI shard 3/3 timed out at the 30-min step on master and on two PRs on 2026-10-14; the red is capacity, not a test; how it was told apart from a regression
 - [project-handoff-2026-10-07-shards-and-naming-prs](#project-handoff-2026-10-07-shards-and-naming-prs) — State of play at 2026-10-07 ~03:30 UTC when Alex archived the sessions to start over: open PRs #239 and #242, the fork ports of #235 and #239 (DONE, fork #24), three-shard CI + ruleset facts, and what is deliberately NOT being done
 - [project-suite-time-and-linux-closed](#project-suite-time-and-linux-closed) — MERGED #92/#93 (2026-09-12): 30% of the suite is one gc.collect() that nothing cheaper can replace, the suite is sharded, and the Linux crash chase is CLOSED by Alex's decision
@@ -40,6 +40,8 @@ On 2026-11-10 `test suite 1/5` on PR #569 (`d5191f68`) was killed at `timed out 
 Six shards were tried on PR #570 (`7fce6e58`): modelled 1081–1085 s each, 820 files. First run: shards 1–4 passed in 18–23 min; shard 5 failed `test_pop_out_host` (Qt leftover-window flake, 19 min); shard 6 timed out at 98% of the 30-minute step with no test failing.
 
 **The fix:** matrix `shard: [1, 2, 3, 4, 5, 6, 7]`, `--repin --splits=7`. Step timeout stays 30. Ruleset Basic (id 20312707) requires `gating benchmarks` + `test suite 1/7`…`7/7`. Other open PRs then need master merged in to report `/7`.
+
+On 2026-11-11 `test suite 1/7` on PR #576 (`ec3af9ff`) timed out at the 30-minute step (~32 m 28 s) with no pytest `FAILED` called out; shards 2/7–7/7 passed. **Eight shards:** matrix `shard: [1, …, 8]`, `python tools/suite_shards.py --repin --splits=8` (826 files). Step timeout stays 30. Alex updated the master ruleset to require `test suite 1/8`…`8/8` before this lands; other open PRs need master merged in to report `/8`.
 
 ## project-shard3-timeout-2026-10-14
 
