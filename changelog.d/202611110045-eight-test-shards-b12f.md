@@ -1,0 +1,2 @@
+### The test suite runs in eight CI shards instead of seven
+- Shard 1 of seven timed out at the 30-minute step on PR #575 (`1e86235f`): 99% at 26 min, then four minutes of no output, no test failed. The other six shards of that run passed in 12–18 min. Eight carry the same files. The step limit is unchanged. The master ruleset's required checks must change from `test suite 1/7`…`7/7` to `1/8`…`8/8` when this merges.
