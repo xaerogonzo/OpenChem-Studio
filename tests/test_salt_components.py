@@ -5,7 +5,8 @@ Contract: docs/SALT_COMPOSITION_DESIGN.md.
 
 from rdkit import Chem
 
-from openchem.chem.salt_components import fragment_key
+from openchem.chem.salt_components import analyze_drawing, fragment_key
+from openchem.domain.salt_stoichiometry import TwoIonBalance
 
 
 def _mol(smiles: str) -> Chem.Mol:
@@ -40,3 +41,43 @@ def test_sodium_oxide_is_not_sulfate() -> None:
     oxide = fragment_key(_mol("[O-2]"))
     sulfate = fragment_key(_mol("S(=O)(=O)([O-])[O-]"))
     assert oxide != sulfate
+
+
+def test_two_chlorides_and_calcium_is_charge_neutral() -> None:
+    mol = _mol("[Ca+2].[Cl-].[Cl-]")
+    result = analyze_drawing(mol)
+    assert result.code == "charge_neutral"
+    assert result.charge_valid is True
+    assert result.drawn_total_charge == 0
+    assert result.theoretical == TwoIonBalance(cation_count=1, anion_count=2)
+    calcium = next(c for c in result.ions if c.charge > 0)
+    chloride = next(c for c in result.ions if c.charge < 0)
+    assert calcium.drawn_count == 1 and chloride.drawn_count == 2
+
+
+def test_one_chloride_and_calcium_is_not_silently_corrected() -> None:
+    mol = _mol("[Ca+2].[Cl-]")
+    result = analyze_drawing(mol)
+    assert result.code == "unbalanced"
+    assert result.charge_valid is False
+    assert result.drawn_total_charge == 1
+    assert result.theoretical == TwoIonBalance(cation_count=1, anion_count=2)
+    chloride = next(c for c in result.ions if c.charge < 0)
+    assert chloride.drawn_count == 1
+
+
+def test_one_sodium_and_sulfate_is_unbalanced() -> None:
+    mol = _mol("[Na+].S(=O)(=O)([O-])[O-]")
+    result = analyze_drawing(mol)
+    assert result.code == "unbalanced"
+    assert result.charge_valid is False
+    assert result.theoretical == TwoIonBalance(cation_count=2, anion_count=1)
+
+
+def test_two_sodium_and_sulfate_is_charge_neutral() -> None:
+    mol = _mol("[Na+].[Na+].S(=O)(=O)([O-])[O-]")
+    result = analyze_drawing(mol)
+    assert result.code == "charge_neutral"
+    assert result.charge_valid is True
+    sodium = next(c for c in result.ions if c.charge > 0)
+    assert sodium.drawn_count == 2
