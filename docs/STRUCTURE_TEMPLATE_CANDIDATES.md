@@ -88,7 +88,7 @@ PubChem CID 174174 (title `Npc209773`). Candidate InChIKey `RKUNBYITZUJHSG-PJPHB
 
 ## V1 constraints
 
-Shipped catalog remains four files and **34** entries. Dummy/query/S-group refused. `molblock_for()` flattens 3D. Amino acids remain **neutral**.
+Shipped catalog is seven files (rings, amino acids, nucleobases, sugars, cycloalkanes, heterocycles, solvents). Dummy/query/S-group refused. `molblock_for()` flattens 3D. Amino acids remain **neutral**. This research dump is still not one of those files.
 
 ## Inclusion rules
 
@@ -199,7 +199,8 @@ Seven records require a coordination representation. `editor_eligible` is false.
 
 ## Open questions
 
-- Shipping into `_SHIPPED_FILES`.
+- First shipping promotion is in `_SHIPPED_FILES` (cycloalkanes, heterocycles, solvents, extra named sugars). This research file is still not loaded.
 - Stereo-specific PubChem records for cis/trans-decalin.
 - Compound-level class for ephedrine and colchicine.
-- Editor smoke tests (still zero).
+- Remaining candidates (alkaloids, flavonoids, vitamins, metals, stereo-not-reviewed) stay listed until a later promotion.
+- Broader editor display tests beyond the Template Library drive script.

@@ -33,5 +33,10 @@
   {"do": "template_library", "tag": "first-molecule-unchanged", "after_ms": 400,
    "expect": {"smiles_equals": "c1ccccc1"}},
 
+  {"do": "select", "molecule": "Cyclohexane", "after_ms": 1500},
+  {"do": "template_library", "category": "Cycloalkanes", "entry": "Cyclopropane", "press": "insert",
+   "tag": "insert-cyclopropane", "after_ms": 1500,
+   "expect": {"inserted": true, "smiles_contains": ".", "undo_delta": 1, "status": "Inserted."}},
+
   {"do": "quit"}
 ]

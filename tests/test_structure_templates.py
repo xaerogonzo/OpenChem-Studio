@@ -29,12 +29,93 @@ def test_shipped_catalog_lives_beside_the_other_chem_data_tables():
 def test_every_shipped_category_loads_with_unique_ids_and_complete_molecules():
     categories = load_shipped()
     ids = [c.id for c in categories]
-    assert ids == ["rings", "amino_acids", "nucleobases", "sugars"]
+    assert ids == [
+        "rings",
+        "amino_acids",
+        "nucleobases",
+        "sugars",
+        "cycloalkanes",
+        "heterocycles",
+        "solvents_reagents",
+    ]
     assert all(c.origin is TemplateOrigin.SHIPPED for c in categories)
     entry_ids = [e.id for c in categories for e in c.entries]
     assert len(entry_ids) == len(set(entry_ids))
     assert all(e.kind is TemplateKind.COMPLETE_MOLECULE for c in categories for e in c.entries)
     assert all(e.smiles and not e.molblock for c in categories for e in c.entries)
+
+
+def test_first_promotion_ids_are_shipped_once_and_not_the_research_dump():
+    from pathlib import Path
+
+    research = Path("docs/STRUCTURE_TEMPLATE_CANDIDATES.json")
+    assert research.is_file()
+    assert not (SHIPPED_DIR / "STRUCTURE_TEMPLATE_CANDIDATES.json").exists()
+    assert (SHIPPED_DIR / "cycloalkanes.json").is_file()
+    assert (SHIPPED_DIR / "heterocycles.json").is_file()
+    assert (SHIPPED_DIR / "solvents_reagents.json").is_file()
+
+    by_category = {c.id: [e.id for e in c.entries] for c in load_shipped()}
+    assert by_category["cycloalkanes"] == [
+        "cycloalkanes.cyclopropane",
+        "cycloalkanes.cyclobutane",
+        "cycloalkanes.methylcyclopentane",
+        "cycloalkanes.methylcyclohexane",
+        "cycloalkanes.cycloheptane",
+        "cycloalkanes.cyclooctane",
+        "cycloalkanes.cyclononane",
+        "cycloalkanes.cyclodecane",
+        "cycloalkanes.cycloundecane",
+        "cycloalkanes.cyclododecane",
+    ]
+    assert "cycloalkanes.cyclopentane" not in by_category["cycloalkanes"]
+    assert "cycloalkanes.cyclohexane" not in by_category["cycloalkanes"]
+    assert "rings.cyclopentane" in by_category["rings"]
+    assert "rings.cyclohexane" in by_category["rings"]
+    for stem in (
+        "pyrimidine",
+        "imidazole",
+        "morpholine",
+        "piperidine",
+        "quinoline",
+        "hypoxanthine",
+    ):
+        assert f"heterocycles.{stem}" in by_category["heterocycles"]
+    assert "heterocycles.pyridine" not in by_category["heterocycles"]
+    assert "heterocycles.caffeine" not in by_category["heterocycles"]
+    assert "heterocycles.morphine" not in by_category["heterocycles"]
+    for stem in ("water", "ethanol", "acetone", "tetrahydrofuran", "1_4_dioxane"):
+        assert f"solvents_reagents.{stem}" in by_category["solvents_reagents"]
+    assert "sugars.alpha_d_galactopyranose" in by_category["sugars"]
+    assert "sugars.beta_d_mannopyranose" in by_category["sugars"]
+    assert "sugars.alpha_d_ribofuranose" in by_category["sugars"]
+
+
+def test_shipped_entries_that_match_candidates_keep_verified_identity_and_reviewed_stereo():
+    import json
+    from pathlib import Path
+
+    from rdkit.Chem.inchi import MolToInchiKey
+
+    raw = json.loads(Path("docs/STRUCTURE_TEMPLATE_CANDIDATES.json").read_text(encoding="utf-8"))
+    candidates = {entry["id"]: entry for entry in raw["entries"]}
+    engine = ChemistryEngine()
+    allowed_stereo = {"verified", "not_applicable"}
+    matched = 0
+    for category in load_shipped(engine):
+        for entry in category.entries:
+            stem = entry.id.split(".", 1)[1]
+            candidate = candidates.get(stem)
+            if candidate is None:
+                continue
+            matched += 1
+            assert candidate["identity"]["status"] == "verified", entry.id
+            stereo = candidate["structure_form"]["stereochemistry"]["status"]
+            assert stereo in allowed_stereo, f"{entry.id} stereo {stereo}"
+            assert candidate["validation"]["editor_eligible"] is True, entry.id
+            mol = engine.mol_from_smiles(entry.smiles)
+            assert MolToInchiKey(mol) == candidate["inchikey"], entry.id
+    assert matched >= 34
 
 
 def test_every_shipped_entry_makes_a_2d_molblock_without_dummy_atoms():
@@ -72,6 +153,16 @@ def test_l_alanine_keeps_its_stereochemistry():
     assert len(chiral) == 1
     smiles = engine.molblock_to_smiles(molblock_for(alanine, engine))
     assert "@" in smiles
+
+
+def test_the_two_galactopyranose_anomers_are_different_molecules():
+    engine = ChemistryEngine()
+    [sugars] = [c for c in load_shipped(engine) if c.id == "sugars"]
+    alpha = next(e for e in sugars.entries if e.id == "sugars.alpha_d_galactopyranose")
+    beta = next(e for e in sugars.entries if e.id == "sugars.beta_d_galactopyranose")
+    assert engine.molblock_to_smiles(molblock_for(alpha, engine)) != engine.molblock_to_smiles(
+        molblock_for(beta, engine)
+    )
 
 
 def test_the_two_glucopyranose_anomers_are_different_molecules():

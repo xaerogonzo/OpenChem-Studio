@@ -35,14 +35,23 @@ Shipped JSON lives under `src/openchem/chem/data/structure_templates/`, loaded
 the same way as the other `chem/data` tables (`Path(__file__).parent / "data"`).
 PyInstaller already copies all of `chem/data/`. User data is never stored there.
 
-V1 categories, all **complete molecules** (no dummy `*` attachment points):
+Shipped categories, all **complete molecules** (no dummy `*` attachment points).
+Each molecule appears in **one** category. The research inventory in
+`docs/STRUCTURE_TEMPLATE_CANDIDATES.json` is not loaded.
 
 | id | contents |
 |---|---|
 | `rings` | benzene, cyclohexane, cyclopentane, pyridine, pyrrole, furan, thiophene |
 | `amino_acids` | 20 proteinogenic L-amino acids plus glycine, **neutral** (carboxylic acid + amine, not zwitterion), expanded free molecules, not residues |
 | `nucleobases` | adenine, cytosine, guanine, thymine, uracil (free bases, not nucleosides) |
-| `sugars` | named anomers: α-D-glucopyranose and β-D-glucopyranose |
+| `sugars` | named anomers (gluco, galacto, manno, xylo, ribo, fructo, 2-deoxyribo) with recorded ring form |
+| `cycloalkanes` | C3–C12 monocycles except cyclopentane and cyclohexane (those stay in Rings), plus methylcyclopentane and methylcyclohexane |
+| `heterocycles` | common heterocycles not already in Rings or Nucleobases; alkaloids, flavonoids, vitamins, and crown ethers stay in the research inventory |
+| `solvents_reagents` | water, common solvents, acetic acid, toluene |
+
+A candidate is promoted only when PubChem identity is verified, `editor_eligible`
+is true, and stereochemistry is `verified` or `not_applicable`. Coordination
+compounds and `stereochemistry_not_reviewed` identities stay listed, not shipped.
 
 A dummy atom (`*`) is a wildcard in the molecule. Bonding to it does not
 consume an attachment point. Fragments that need that behaviour are not

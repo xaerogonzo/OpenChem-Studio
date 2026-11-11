@@ -152,9 +152,10 @@ Macromolecule Viewer only shows one.
 
 **Structure ▸ Template Library…** (`Ctrl+Shift+T`) is this application's own
 catalog of complete molecules, not Ketcher's T-button library. It ships rings,
-the 20 proteinogenic L-amino acids plus glycine as **ordinary expanded free
-amino acids** (neutral carboxylic acid + amine, not zwitterions, not abbreviated
-residues, and not a peptide builder), free nucleobases, and named sugar anomers.
+cycloalkanes, heterocycles, solvents and reagents, the 20 proteinogenic L-amino
+acids plus glycine as **ordinary expanded free amino acids** (neutral carboxylic
+acid + amine, not zwitterions, not abbreviated residues, and not a peptide
+builder), free nucleobases, and named sugar anomers.
 Insert places the selected molecule to the right of the drawing as one undo
 step. **My Templates** stores the live canvas. Extra categories come from
 importing `.mol` / `.sdf` files, which are copied into the application data

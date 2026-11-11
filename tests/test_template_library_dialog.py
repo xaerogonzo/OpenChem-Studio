@@ -42,6 +42,9 @@ def test_shipped_categories_are_listed(qapp, tmp_path):
     titles = [dialog._categories.item(i).text() for i in range(dialog._categories.count())]
     assert any(text.startswith("Rings") for text in titles)
     assert any("Amino" in text for text in titles)
+    assert any(text.startswith("Cycloalkanes") for text in titles)
+    assert any(text.startswith("Heterocycles") for text in titles)
+    assert any("Solvent" in text for text in titles)
     assert any("My Templates" in text for text in titles)
 
 
