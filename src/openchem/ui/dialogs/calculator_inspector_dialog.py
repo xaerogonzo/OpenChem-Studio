@@ -185,6 +185,15 @@ class _CalculatorResultView(QWidget):
             sentence.setTextInteractionFlags(
                 sentence.textInteractionFlags() | Qt.TextInteractionFlag.TextSelectableByMouse
             )
+        # Named so a drive dump reads the displayed text, not an unlabeled QLabel scan.
+        self._name_label = name_label
+        self._name_label.setObjectName("inspectorName")
+        self._summary_label = summary_label
+        self._summary_label.setObjectName("inspectorSummary")
+        self._note_label = note_label
+        self._note_label.setObjectName("inspectorSummaryNote")
+        self._balance_label = balance_label
+        self._balance_label.setObjectName("inspectorBalance")
 
         self._engine = engine
         self._molecule = molecule
@@ -253,6 +262,7 @@ class _CalculatorResultView(QWidget):
                 self._to_depiction = dict(projection.mapping)
                 self._layer_2d = build_visualization_layer(dataclasses.replace(result, values=values_2d), include_labels=True)
         self._placement_label = QLabel(placement_note, self)
+        self._placement_label.setObjectName("inspectorPlacement")
         self._placement_label.setWordWrap(True)
         self._placement_label.setVisible(bool(placement_note))
 
@@ -988,6 +998,8 @@ class CalculatorInspectorDialog(QDialog):
     ) -> None:
         super().__init__(parent)
         self.setWindowTitle(f"Calculator Inspector — {molecule.display_name}")
+        #: Requested calculator id, set by the drive `inspect` step. Not inferred from the result.
+        self._requested_calculator_id: str | None = None
         # Room for two panes and a value table. 820 x 460 left the 3D labels
         # unreadable on a 57-atom molecule (2026-09-17). An initial size only:
         # the dialog stays resizable, and never larger than the screen.
