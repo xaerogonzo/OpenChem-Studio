@@ -199,6 +199,7 @@ MENU_SPECS: dict[str, MenuSpec] = {
             "Check": ("Check Structure", "Check Structure in the Editor (Indigo)"),
             "Layout and Clean-up": ("Clean Up", "Layout (Recalculate Coordinates)", "Redraw in 2D"),
         },
+        last=("Template Library",),
     ),
     "View": MenuSpec(
         sorted_submenus=("2D Structure Display",),

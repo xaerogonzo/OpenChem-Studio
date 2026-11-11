@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import time
+
 from PySide6.QtCore import Qt, Signal
 
 from PySide6.QtGui import QKeySequence, QShortcut, QUndoStack
@@ -15,7 +17,8 @@ from PySide6.QtWidgets import (
 from openchem.chem import atom_numbering, electron_overlay
 from openchem.chem.calculation_input import input_fingerprint
 from openchem.domain.calculator import DRAWING
-from openchem.chem.engine import ChemistryEngine
+from openchem.chem.engine import ChemistryEngine, InvalidStructureError
+from openchem.chem.structure_templates import place_to_the_right
 from openchem.chem.stereochemistry import StereochemistryConflict
 from openchem.commands.conformer_commands import RotateStructureCommand
 from openchem.commands.molecule_commands import EditStructureCommand
@@ -139,6 +142,16 @@ class MoleculeEditorWidget(QWidget):
         #: Set while this widget is pushing its own edit; see
         #: `_on_molecule_changed`.
         self._applying_own_edit = False
+                #: Bumped on every canvas load so a `getMolfile` that was already
+        #: in flight cannot land as a new undo command after Undo. Live
+        #: drive of Template Library: Edit > Undo restored benzene, then a
+        #: late molfile of benzene+pyridine pushed, which cleared Redo.
+        self._canvas_generation = 0
+        #: Canonical SMILES of the drawing Undo/Redo just left, ignored
+        #: until `_suppress_canvas_until` so Ketcher's lagging getMolfile
+        #: cannot push it as a new command.
+        self._suppress_canvas_smiles: str | None = None
+        self._suppress_canvas_until: float = 0.0
         #: "off", "pairs", or "lewis". Off by default: an annotation
         #: nobody asked for is one more thing on a crowded canvas.
         self._electron_mode = "off"
@@ -230,6 +243,7 @@ class MoleculeEditorWidget(QWidget):
         event_bus.subscribe(MoleculeChanged, self._on_molecule_changed)
 
     def set_molecule(self, molecule: MoleculeModel | None) -> None:
+        self._canvas_generation += 1
         self._molecule = molecule
         self._synced_smiles = molecule.canonical_smiles if molecule is not None else None
         if molecule is not None and molecule.molblock:
@@ -282,6 +296,26 @@ class MoleculeEditorWidget(QWidget):
         """
         self._backend.select_atoms(atom_indices)
 
+    def get_molblock(self, callback) -> None:
+        """The live canvas, not the stored `MoleculeModel` molblock."""
+        self._backend.get_molblock(callback)
+
+    def insert_template_molblock(self, molblock: str, callback) -> None:
+        """Place `molblock` to the right of the drawing and insert it.
+
+        `callback(error)` is `None` on success. The resulting canvas change
+        still goes through `edited` -> `EditStructureCommand`.
+        """
+        def after_canvas(canvas: str | None) -> None:
+            try:
+                placed = place_to_the_right(canvas or "", molblock)
+            except Exception as exc:  # noqa: BLE001 - show the refusal, never crash the dialog
+                callback(str(exc))
+                return
+            self._backend.add_fragment(placed, callback)
+
+        self._backend.get_molblock(after_canvas)
+
     def trigger_toolbar_action(self, test_id: str) -> None:
         """Proxies to one of Ketcher's own real toolbar buttons (e.g. "Add/
         Remove explicit hydrogens", "3D Viewer") by its stable
@@ -319,12 +353,24 @@ class MoleculeEditorWidget(QWidget):
             return
         if self._molecule.canonical_smiles == self._synced_smiles:
             return
+        # The canvas still holds `_synced_smiles` until `setMolecule`
+        # finishes. A change event in that window is the old drawing, not
+        # a new edit; applying it pushes a command and discards Redo.
+        self._suppress_canvas_smiles = self._synced_smiles
+        self._suppress_canvas_until = time.monotonic() + 2.0
         self.set_molecule(self._molecule)
 
     def _on_editor_edited(self) -> None:
         if self._molecule is None:
             return
-        self._backend.get_molblock(self.apply_edited_molblock)
+        generation = self._canvas_generation
+
+        def apply(molblock: str | None) -> None:
+            if generation != self._canvas_generation:
+                return
+            self.apply_edited_molblock(molblock)
+
+        self._backend.get_molblock(apply)
 
     def apply_edited_molblock(self, molblock: str | None) -> None:
         """Make the canvas's drawing the model's structure: one canvas edit, applied.
@@ -336,6 +382,29 @@ class MoleculeEditorWidget(QWidget):
         waits for the scheduler's `RecalculationDue`.
         """
         if not molblock or self._molecule is None:
+            return
+        try:
+            incoming = MoleculeModel(display_name="canvas")
+            self._engine.set_structure_from_molblock(incoming, molblock)
+        except (InvalidStructureError, ValueError):
+            return
+        if self._undo_stack.canRedo():
+            # Echo of the restored drawing, or Ketcher still holding the
+            # undone one (live drive: ~3 s after Undo, not 400 ms). Either
+            # molfile would push a command and discard Redo.
+            if incoming.canonical_smiles == self._synced_smiles:
+                return
+            pending = self._undo_stack.command(self._undo_stack.index())
+            if (
+                isinstance(pending, EditStructureCommand)
+                and pending.redo_smiles() == incoming.canonical_smiles
+            ):
+                return
+        if (
+            self._suppress_canvas_smiles is not None
+            and incoming.canonical_smiles == self._suppress_canvas_smiles
+            and time.monotonic() < self._suppress_canvas_until
+        ):
             return
         # What the canvas was known to be showing BEFORE this edit --
         # read now, because the push below overwrites it.

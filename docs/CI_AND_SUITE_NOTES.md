@@ -6,7 +6,7 @@ These sections were moved here on 2026-10-29 from the assistant's private memory
 
 ## Contents
 
-- [project-six-shards-2026-11-10](#project-six-shards-2026-11-10) — Shard 1 of five timed out; six shards still timed out shard 6 at 98%; seven shards, ruleset `1/7`…`7/7`
+- [project-six-shards-2026-11-10](#project-six-shards-2026-11-10) — Shard 1 of five timed out; six timed out shard 6 at 98%; seven still timed out shard 1 of #575 at 99%; eight shards, ruleset `1/8`…`8/8`
 - [project-shard3-timeout-2026-10-14](#project-shard3-timeout-2026-10-14) — CI shard 3/3 timed out at the 30-min step on master and on two PRs on 2026-10-14; the red is capacity, not a test; how it was told apart from a regression
 - [project-handoff-2026-10-07-shards-and-naming-prs](#project-handoff-2026-10-07-shards-and-naming-prs) — State of play at 2026-10-07 ~03:30 UTC when Alex archived the sessions to start over: open PRs #239 and #242, the fork ports of #235 and #239 (DONE, fork #24), three-shard CI + ruleset facts, and what is deliberately NOT being done
 - [project-suite-time-and-linux-closed](#project-suite-time-and-linux-closed) — MERGED #92/#93 (2026-09-12): 30% of the suite is one gc.collect() that nothing cheaper can replace, the suite is sharded, and the Linux crash chase is CLOSED by Alex's decision
@@ -39,7 +39,9 @@ On 2026-11-10 `test suite 1/5` on PR #569 (`d5191f68`) was killed at `timed out 
 
 Six shards were tried on PR #570 (`7fce6e58`): modelled 1081–1085 s each, 820 files. First run: shards 1–4 passed in 18–23 min; shard 5 failed `test_pop_out_host` (Qt leftover-window flake, 19 min); shard 6 timed out at 98% of the 30-minute step with no test failing.
 
-**The fix:** matrix `shard: [1, 2, 3, 4, 5, 6, 7]`, `--repin --splits=7`. Step timeout stays 30. Ruleset Basic (id 20312707) requires `gating benchmarks` + `test suite 1/7`…`7/7`. Other open PRs then need master merged in to report `/7`.
+**The fix (then):** matrix `shard: [1, 2, 3, 4, 5, 6, 7]`, `--repin --splits=7`. Step timeout stays 30. Ruleset Basic (id 20312707) required `gating benchmarks` + `test suite 1/7`…`7/7`.
+
+**Seven still timed out, 2026-11-10 evening.** Shard 1 of PR #575 (`1e86235f`) hit 99% at 26 min then printed nothing until the 30-minute kill; no test failed. 91→99% had taken 30 s, so the last four minutes were a hang after the tests, not more work. Same run: shards 2–7 passed in 12–18 min. Modelled 7-way cost was even (~940 s). **Eight shards** (`--repin --splits=8`); step timeout stays 30. The ruleset must require `test suite 1/8`…`8/8` or this PR cannot merge (job names changed). **DONE 2026-11-10 19:59 ET:** Basic (id 20312707) now requires `gating benchmarks` + `test suite 1/8`…`8/8`.
 
 ## project-shard3-timeout-2026-10-14
 

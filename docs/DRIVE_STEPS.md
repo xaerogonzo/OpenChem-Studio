@@ -311,6 +311,15 @@ The `OPENCHEM_DRIVE` step catalogue, moved out of [`CLAUDE.md`](../CLAUDE.md) on
                                           save/revert/delete/new (a disabled button is logged, not pressed), `confirm` answers its two questions;
                                           `expect` reads the window (message, `where`, fields outlined as `marked`, `pointer_column` of the caret, preview, buttons, list) and the project
                                           (definitions stored, unsaved, listed in Results); `shot` takes "widget": "scores"
+    {"do": "template_library", "category": "Rings", "entry": "Pyridine", "press": "insert",
+     "expect": {"inserted": true, "smiles_contains": ".", "undo_delta": 1, "status": "Inserted."}}
+                                          Structure > Template Library through its REAL controls: `search`, `category`, `entry`,
+                                          `press` insert/save/remove (`name` skips the My Templates prompt), `expect` the live
+                                          molecule, undo depth and stored user templates; `shot` takes "widget": "template_library".
+                                          The window is reused: a step without `search` clears the filter, and `save` waits for
+                                          Ketcher's molfile (a click-then-read missed My Templates). `redo_enabled` is
+                                          `QUndoStack.canRedo()`. The `menu` step logs enabled *before* `trigger()` and
+                                          refuses a disabled entry (logging after a successful Redo reads as disabled).
     {"do": "table_scores", "export_csv": "C:/tmp/table.csv", "expect": {"columns": ["Polar window (user-defined, unvalidated)"], "note": "",
      "grid": {"Aspirin": {"Polar window": "0.955"}}, "tooltips": {"Aspirin": {"Polar window": ["Inputs: psa = 63.6"]}},
      "column_tooltips": {"Polar window": ["Formula:"]}, "csv_header_contains": ["Polar window"], "csv_cells": {"Aspirin": {"Polar window": 0.955}},

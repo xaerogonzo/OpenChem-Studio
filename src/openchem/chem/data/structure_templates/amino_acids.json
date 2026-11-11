@@ -1,0 +1,27 @@
+{
+  "id": "amino_acids",
+  "title": "Amino acids",
+  "description": "Expanded free proteinogenic amino acids (L, plus glycine), drawn neutral, not residues or a sequence builder.",
+  "entries": [
+    {"id": "amino_acids.glycine", "name": "Glycine", "smiles": "NCC(=O)O", "tags": ["Gly", "G"]},
+    {"id": "amino_acids.l_alanine", "name": "L-Alanine", "smiles": "C[C@H](N)C(=O)O", "tags": ["Ala", "A"]},
+    {"id": "amino_acids.l_valine", "name": "L-Valine", "smiles": "CC(C)[C@H](N)C(=O)O", "tags": ["Val", "V"]},
+    {"id": "amino_acids.l_leucine", "name": "L-Leucine", "smiles": "CC(C)C[C@H](N)C(=O)O", "tags": ["Leu", "L"]},
+    {"id": "amino_acids.l_isoleucine", "name": "L-Isoleucine", "smiles": "CC[C@H](C)[C@H](N)C(=O)O", "tags": ["Ile", "I"]},
+    {"id": "amino_acids.l_serine", "name": "L-Serine", "smiles": "OC[C@H](N)C(=O)O", "tags": ["Ser", "S"]},
+    {"id": "amino_acids.l_threonine", "name": "L-Threonine", "smiles": "C[C@@H](O)[C@H](N)C(=O)O", "tags": ["Thr", "T"]},
+    {"id": "amino_acids.l_cysteine", "name": "L-Cysteine", "smiles": "SC[C@H](N)C(=O)O", "tags": ["Cys", "C"]},
+    {"id": "amino_acids.l_methionine", "name": "L-Methionine", "smiles": "CSCC[C@H](N)C(=O)O", "tags": ["Met", "M"]},
+    {"id": "amino_acids.l_aspartic_acid", "name": "L-Aspartic acid", "smiles": "OC(=O)C[C@H](N)C(=O)O", "tags": ["Asp", "D"]},
+    {"id": "amino_acids.l_asparagine", "name": "L-Asparagine", "smiles": "NC(=O)C[C@H](N)C(=O)O", "tags": ["Asn", "N"]},
+    {"id": "amino_acids.l_glutamic_acid", "name": "L-Glutamic acid", "smiles": "OC(=O)CC[C@H](N)C(=O)O", "tags": ["Glu", "E"]},
+    {"id": "amino_acids.l_glutamine", "name": "L-Glutamine", "smiles": "NC(=O)CC[C@H](N)C(=O)O", "tags": ["Gln", "Q"]},
+    {"id": "amino_acids.l_lysine", "name": "L-Lysine", "smiles": "NCCCC[C@H](N)C(=O)O", "tags": ["Lys", "K"]},
+    {"id": "amino_acids.l_arginine", "name": "L-Arginine", "smiles": "NC(N)=NCCC[C@H](N)C(=O)O", "tags": ["Arg", "R"]},
+    {"id": "amino_acids.l_histidine", "name": "L-Histidine", "smiles": "N1C=NC=C1C[C@H](N)C(=O)O", "tags": ["His", "H"]},
+    {"id": "amino_acids.l_phenylalanine", "name": "L-Phenylalanine", "smiles": "c1ccccc1C[C@H](N)C(=O)O", "tags": ["Phe", "F"]},
+    {"id": "amino_acids.l_tyrosine", "name": "L-Tyrosine", "smiles": "Oc1ccc(cc1)C[C@H](N)C(=O)O", "tags": ["Tyr", "Y"]},
+    {"id": "amino_acids.l_tryptophan", "name": "L-Tryptophan", "smiles": "c1ccc2c(c1)[nH]cc2C[C@H](N)C(=O)O", "tags": ["Trp", "W"]},
+    {"id": "amino_acids.l_proline", "name": "L-Proline", "smiles": "OC(=O)[C@@H]1CCCN1", "tags": ["Pro", "P"]}
+  ]
+}
