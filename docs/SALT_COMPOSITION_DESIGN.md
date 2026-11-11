@@ -1,16 +1,17 @@
 # Salt composition engine: design
 
-**Status: architecture contract, 2026-11-10. Nothing is built.** This note is the
-scientific and module-boundary contract. It is not an implementation plan: file
-names below are the intended homes when code exists, not a commitment to write
-them in this change. No calculator is registered, no UI is specified beyond
-"later, beside the pKa view", and a charge-valid composition is never an
-isolable salt.
+**Status: architecture contract, 2026-11-10 (revised same day after first
+review). Nothing is built.** This note is the scientific and module-boundary
+contract. It is not an implementation plan: file names below are the intended
+homes when code exists, not a commitment to write them in this change. No
+calculator is registered, no UI is specified beyond "later, beside the pKa
+view", and a charge-valid composition is never an isolable salt. This revision
+does not authorize implementation.
 
-This document was written on branch `cursor/salt-composition-design`, created
-from fetched `origin/master` in an isolated worktree. It was not written on
+This document lives on branch `cursor/salt-composition-design`, created from
+fetched `origin/master` in an isolated worktree. It was not written on
 `claude/nl005-close-validator`. Implementation, if it happens, is a later
-session with its own plan after this file is reviewed.
+session with its own plan after this file is accepted.
 
 ## What is computed, and what is never claimed
 
@@ -38,12 +39,13 @@ inorganic acid.
    `lattice_energy`. Exact **binary** charge balance only (`balance_two`).
 2. **Chemistry components** — graph-sensitive identity, formula, mass, formal
    charge. Mode B perception adapter.
-3. **Ionization** — user-selected protonation/deprotonation is the v1 state of
-   record. Optional pKa-ladder adapter with its own refusals. Proton transfer
-   conserves elements.
+3. **Ionization** — a **fully specified** user-selected ionic structure is
+   the v1 state of record (not a bare net charge). Optional pKa-ladder adapter
+   with its own refusals. Proton transfer conserves elements, **weighted by
+   formula-unit multiplicities**.
 4. **Assembly** — multiplicities on the composition, combined formula from
-   **element counts**, conservation checks. Structures are primary; formula
-   strings are presentation.
+   **element counts**, multiplicity-weighted conservation of the complete
+   formula unit. Structures are primary; formula strings are presentation.
 5. **Evidence** — four independent claims, not a score.
 6. **UI** — deferred.
 
@@ -69,35 +71,76 @@ equivalence is not structural equivalence.
 
 The `Component` dataclass (atom indices, formula, charge, count) remains a
 useful *shape* for "a piece of the drawing". The engine's identity key is
-**graph-sensitive**: the chemistry engine's isomeric canonical SMILES of that
-fragment (stereo and isotopes included; the same canonicalization the rest of
-the application already uses), with formal charge carried as a check that must
-match the SMILES, not as a substitute for the graph. Sanitization failure is a
-refusal, not a fallback to formula.
+**graph-sensitive**, not a universal chemical-species equivalence:
+
+- Use a consistent sanitized, canonicalized representation: the chemistry
+  engine's isomeric canonical SMILES of the fragment (the same
+  canonicalization the rest of the application already uses).
+- Strip atom-map annotations from the identity key.
+- Preserve defined stereochemistry.
+- Preserve isotope information.
+- Keep formal charge as an **independent** consistency check that must match
+  the SMILES; it is not a substitute for the graph. `[Na+].[O-]` is not
+  sulfate: identity and charge stay independent.
+- Do not collapse different constitutional structures because formula and
+  charge match.
+- Do not silently normalize tautomers or resonance forms into one identity.
+  If tautomer or resonance equivalence is ever wanted, it is a separate,
+  validated operation, not an implicit part of canonicalization.
+
+Sanitization failure is a refusal, not a fallback to formula. v1 identity is
+the molecular graph as written after that sanitization, not "the same
+species" in a chemical-equivalence sense.
 
 `_classify_ionic()` records `total charge` in its evidence but **does not
 require it to be zero** before returning `IONIC_SALT`. Any disconnected drawing
-with at least one charged fragment reaches that path, so a **neutral coformer
+with at least one charged fragment reaches that path, so a **neutral disconnected fragment
 beside ions** can still be labelled an ionic salt. The engine must classify
-independently:
+independently. `SubstanceKind.IONIC_SALT` is not proof of a valid neutral
+salt, and the existing classifier does not necessarily resolve the cases
+below.
 
 | Situation | v1 engine |
 |---|---|
-| Charge-neutral two-ion salt, graph identities distinct | Mode B composition, reduced ratio computed |
-| Unbalanced collection of ions | `charge_valid` false; do not call it a salt |
-| Ionic pair plus disconnected neutral (coformer, solvent) | Ions go through `balance_two`; neutrals listed as **non-ionic extras**, not counterions |
-| Hydrate / solvate as first-class formula-unit water | **Deferred.** v1 lists water/solvent as extras the same way; it does not emit `· 5 H2O` as a claimed crystal formula |
-| Several distinct cations **and** several distinct anions | Keep `substance.py`'s **ambiguous** refusal; do not invent a pairing |
+| Exactly one distinct cation species and one distinct anion species, `drawn_total_charge = 0` | Eligible for Mode B as a charge-neutral input; report drawn counts and the theoretical ratio as **separate** facts |
+| Same two species, `drawn_total_charge ≠ 0` | Not a charge-neutral composition. May report `balance_two`'s theoretical ratio as a **diagnostic**. Must **not** present the drawing as that salt |
+| More than two distinct ionic species (two cations + one anion; one cation + two anions; or any larger set) | **Unsupported multicomponent.** Distinct refusal from ambiguous pairing. Do not call `balance_two`. Do not infer a pairing |
+| Several distinct cations **and** several distinct anions | Ambiguous pairing: refuse rather than infer (keep `substance.py`'s refusal). Do not invent NaCl+KBr versus NaBr+KCl |
+| Multiple copies of the **same** ionic species | One component identity; preserve the drawn count (`2 × Cl−` is one species, count 2) |
+| Ionic pair plus disconnected **neutral** fragment | Ions follow the two-species rules above. Neutrals are **unclassified extras**, not automatically a coformer, hydrate, or solvate |
+| First-class hydrate / solvate formula unit | **Deferred.** v1 does not emit `· 5 H2O` as a claimed crystal formula |
 | Mixture of only neutrals | Not a salt (existing `MIXTURE` path) |
 | One connected zwitterion | One molecule, not a cation/anion pair |
 
-`formula_unit` reports **drawn** multiplicities (`2 × Cl−` if the drawing has
-two chlorides). The solver must not treat those as already reduced. A result
-reports **drawn counts** and the **reduced integer ratio** as two facts.
+`formula_unit` in `substance.py` reports **drawn** multiplicities. The solver
+must not treat those as already reduced.
 
-`perceive()` already refuses `[Na+].[Cl-].[K+].[Br-]` as ambiguous. The engine
-keeps that refusal. It does **not** treat `SubstanceKind.IONIC_SALT` as proof
-of a valid neutral salt.
+### Mode B invariant: no automatic stoichiometric correction
+
+Evaluate the input on its **actual drawn** multiplicities:
+
+    drawn_total_charge = sum(component.count * component.charge)
+
+Only `drawn_total_charge = 0` may be reported as a charge-neutral
+composition of that drawing. `balance_two()` returns the unique reduced
+theoretical ratio for the two charges. That ratio **must never silently
+correct** an unbalanced drawing.
+
+Example: `[Ca+2].[Cl-]` has drawn total charge +1. The theoretical Ca²⁺/Cl⁻
+ratio is 1:2. The engine may say so as a diagnostic. It must not report the
+drawing as calcium chloride. `[Ca+2].[Cl-].[Cl-]` is the balanced drawn
+input.
+
+Three facts stay distinct in every Mode B result:
+
+1. **Drawn counts** (component identity unchanged).
+2. **Reduced theoretical ratio** from `balance_two`.
+3. **Input charge validity** (`drawn_total_charge == 0` or not).
+
+`perceive()` already refuses `[Na+].[Cl-].[K+].[Br-]` as ambiguous. The
+engine keeps that refusal **and** refuses every other >2 distinct ionic
+species as unsupported multicomponent, even when `substance.py` would still
+call it an ionic salt (for example two distinct cations and one anion).
 
 ### `lattice_energy.py` — sibling, not a dependency
 
@@ -133,22 +176,39 @@ named in an earlier research note is not in this tree.
 
 ## Modes
 
-**A. Generate.** The user supplies a parent and either (i) an already ionic
-counter-species or (ii) a parent acid/base. Those are different workflows:
-supplying `Na+` or `SO4^2-` is not supplying NaOH or sulfuric acid. From two
-neutrals, the ionization layer models proton transfer and then `balance_two`
-runs on the resulting ions.
+**A. Generate.** Two different workflows; mixing them in one step without
+explicit proton accounting is a refusal.
 
-**B. Analyze.** Already-charged disconnected fragments. Graph identity,
-independent net-charge check, coformers as extras, zwitterion as one
-component, ambiguous pairings refused. `balance_two` only when exactly one
-cation species and one anion species remain after extras are set aside.
+1. **Two neutrals** (parent + parent acid/base). The ionization layer models
+   proton transfer, then `balance_two` runs on the resulting ions. Supplying
+   NaOH or sulfuric acid is this path.
+2. **Already ionic counter-species.** Supplying `Na+` or `SO4^2-` is not
+   supplying the parent acid/base. The ion is used as given. The engine must
+   **not** invent the hydrogens or charge needed to protonate a remaining
+   neutral. A neutral organic base plus sulfate dianion does not, by itself,
+   provide the protons for `BH+` or `BH2^2+`. Require one of: the organic
+   parent already in its selected protonated state; a user-specified
+   protonation transform with explicit proton-source accounting; or a
+   modelled proton donor (neutral parent acid or other accounted source).
+   Distinguish **supplied** ionic components from species **generated** by
+   proton transfer.
+
+**B. Analyze.** Already-charged disconnected fragments. Graph identity.
+`drawn_total_charge` on the drawn counts. Neutral fragments are unclassified
+extras. Zwitterion is one molecule. `balance_two` only when extras are set
+aside and **exactly one** distinct cation species and **exactly one**
+distinct anion species remain. More than two distinct ionic species:
+unsupported or ambiguous, as in the table above. No silent correction of
+drawn counts.
 
 **C. Enumerate (v1).** Cartesian product of **candidate ionization states of
 one selected two-component pair**. Deduplicate identical species+compositions.
-Hard cap: **50** unique compositions; if more would be produced, return those
-50 in a stated order (user-specified states first, then ladder order) and a
-count of omitted. This is **not** general multicomponent salt search.
+Hard cap: **50** unique compositions. Order is **deterministic** for identical
+inputs: user-specified fully specified states first, then ladder species in
+the ladder's own index order, then by identity key. If more than 50 would be
+produced, return those 50 in that order and an explicit **omitted count**.
+Repeated runs of the same input must produce the same ordered list and the
+same truncation report. This is **not** general multicomponent salt search.
 
 ## Why `balance_many` is deferred
 
@@ -177,9 +237,19 @@ Three objects, never interchangeable:
 A site does not prove a dominant solution species. A microspecies does not
 prove an isolated salt.
 
-**v1 state of record:** the user specifies how many protons to add or remove
-(or picks a charge). Protonation and deprotonation must update **both** the
-hydrogen count and the formal charge.
+**User-selected ionization must identify a structure.** A net charge alone
+does **not**: several site arrangements can share a charge.
+
+| User input | v1 |
+|---|---|
+| Fully specified ionic structure (drawing, molblock, or registry ion) | Accepted as the proposed state |
+| Specific ionization-site selection that yields one structure | Accepted |
+| Number of protons added or removed, when that maps to **exactly one** structure | Accepted |
+| Desired net charge only | **Not enough.** Must not protonate whichever site is encountered first |
+| Several valid structures at the same charge (alternative microspecies) | Present the candidates, or refuse to pick one automatically |
+
+Protonation and deprotonation, when applied, must update **both** the
+hydrogen count and the formal charge on the chosen structure.
 
 **Already-charged input:** pKa compatibility is **not assessed**. The
 protonation state is in the drawing.
@@ -222,28 +292,51 @@ evidence, or that pKa was not assessed.
 
 ## Proton transfer and elemental conservation (Mode A from neutrals)
 
-`B + HA → BH+ + A−` (and the acid-side analogue: `HA + B → A− + BH+`):
+One reaction, written once:
 
-- The ionization layer actually changes hydrogen count and charge on each
-  structure. Charge balancing never creates or destroys atoms.
-- Combined elemental composition of the **neutral parents** equals combined
-  composition of the **ions**, including hydrogen.
-- Explicit and implicit hydrogens are not double-counted.
-- Isotopic hydrogens are preserved where the representation supports them.
-- Combined formula is summed from component element counts, never by
-  concatenating formula strings.
+    B + HA → BH+ + A−
 
-An already supplied ion (`Na+`, `SO4^2-`) skips this transfer and is used as
-the ionic component. Mixing the two workflows in one step is a refusal.
+The same accounting applies whichever parent is described as the acid or the
+base. Do not treat a swapped writing as a second mechanism.
 
-The conservation test compares original neutrals with resulting ions. That is
-stronger than testing a formula string.
+Conservation is **multiplicity-weighted over the complete formula unit**, not
+a 1:1 pairing of two parent molecules. For a generated composition:
+
+    sum over neutrals (n_parent * elemental_counts(parent))
+        = sum over ions (n_ion * elemental_counts(ion))
+
+Example:
+
+    B + 2 HA → BH2^2+ + 2 A−
+
+Compare one B and two HA against one BH2²⁺ and two A⁻. A 1:1 check of B
+against BH2²⁺ would fail for the wrong reason (missing two hydrogens that
+came from two HA).
+
+Charge balancing and proton-transfer accounting stay separate:
+
+- The ionization layer produces valid structures and named transformations
+  (which protons moved, from where). It must not invent atoms.
+- `balance_two` only assigns integer multiplicities from charges.
+- The assembly layer verifies **formula-unit** conservation: total element
+  counts, total hydrogen (explicit and implicit, not double-counted),
+  isotopes where the representation supports them, and total charge before
+  versus after the modelled transfer (the ions' `sum n_i z_i` is 0; the
+  neutrals' net charge is 0).
+
+Combined formula is summed from component element counts, never by
+concatenating formula strings.
+
+An already supplied ion skips this transfer and is used as given (Mode A
+workflow 2). Combining a remaining **neutral** with that ion still requires
+explicit proton-source accounting; the generator must not treat "neutral
+parent + counterion" as a complete acid-base reaction.
 
 ## Evidence (independent dimensions, not a scale)
 
 | Claim | Means | v1 |
 |---|---|---|
-| `charge_valid` | `sum n_i z_i = 0` at the proposed multiplicities | Required for a successful composition |
+| `charge_valid` | For Mode B: `drawn_total_charge = 0`. For a generated composition: `sum n_i z_i = 0` at the **assigned** multiplicities. Theoretical `balance_two` output does not make an unbalanced drawing valid | Required to report a charge-neutral composition |
 | `structurally_consistent` | Structures, charges, formulas, valences, and identities internally consistent | Required for a successful composition |
 | `pka_compatible` | pKa evidence for the stated proton-transfer step under stated conditions | Optional; **absent / not assessed** for already-charged input |
 | `experimentally_established` | An identifiable reference for **this** composition | Unset in v1 |
@@ -259,7 +352,7 @@ Multiplicity lives on the **composition**, not on the component.
 
 An ionic component is more than `(id, formula, charge, mass)`:
 
-- stable identity (isomeric canonical SMILES of the fragment, as above)
+- stable identity (graph key as in the identity policy above; no atom maps)
 - molecular structure (canonical representation; **primary**)
 - molecular formula (presentation)
 - formal charge
@@ -291,30 +384,45 @@ the structure and charge.
 
 **Mathematics.** Opposite-sign two-ion GCD for +1/−1, +1/−2, +2/−1, +2/−2,
 +3/−2; reject charge 0, same-sign, negative multiplicities; large |z|;
-reduce when drawn counts share a factor; component identity unchanged by
-balancing. Property: every successful `balance_two` has total charge 0 and
-is the smallest positive integers.
+reduce when drawn counts share a factor. Property: every successful
+`balance_two` has total charge 0 and is the smallest positive integers.
+**Identities and drawn multiplicities are unchanged** when the theoretical
+ratio is calculated (the ratio is a separate fact).
+
+**Mode B correction forbidden.** `[Ca+2].[Cl-]` unbalanced (drawn +1);
+`[Ca+2].[Cl-].[Cl-]` balanced; `[Na+].[SO4-2]` unbalanced; `[Na+].[Na+].[SO4-2]`
+balanced; `[Na+].[O-]` is not sulfate (identity ≠ formula guess).
 
 **Structure.** Same formula and charge, **different constitution** (must not
-collapse); stereo; isotopes; explicit hydrogen; permanent charge (quaternary
+collapse); stereo; isotopes; explicit hydrogen; atom maps stripped from
+identity; no tautomer/resonance merge; permanent charge (quaternary
 ammonium, no protonation required); unsanitizable structures refuse;
 implicit-H formulas still distinguish graphs.
 
-**Acid-base.** Monoprotic; diprotic first vs second deprotonation (hydrogen
-sulfate vs sulfate); triprotic with partial deprotonation; one basic site;
-several basic sites (do not assume max protonation); user-selected state
-with pKa unused; pKa missing or incomparable (`pka_compatible` not assessed
-or refused, composition may still be charge-valid).
+**Ionization selection.** Net charge only is refused or listed as candidates;
+two microspecies at the same charge are not auto-picked; site-specific
+selection is accepted.
 
-**Classification.** Balanced binary; net-charge-nonzero; salt plus coformer;
-zwitterion vs disconnected ions; several distinct cations and anions
-(ambiguous refusal); repeated identical components (drawn vs reduced);
-ethanol + benzene not a salt.
+**Acid-base / Mode A.** Monoprotic; diprotic first vs second deprotonation
+(hydrogen sulfate vs sulfate); triprotic with partial deprotonation; one
+basic site; several basic sites (do not assume max protonation);
+`B + 2 HA → BH2^2+ + 2 A−` multiplicity-weighted conservation; user-selected
+**structure** with pKa unused; pKa missing or incomparable; **neutral base +
+supplied sulfate** without a proton source is refused, not auto-protonated.
 
-**Conservation and output.** Elemental and hydrogen conservation on proton
-transfer; combined formula vs independent element arithmetic; mass vs
-independent RDKit component-mass sum; original identities and formulas
-preserved; multiplicities not mixed with hydrate/solvate extras.
+**Classification.** Balanced binary; net-charge-nonzero drawing not reported
+as the theoretical salt; **unclassified** neutral extra (not labelled
+coformer/hydrate unless evidence says so); zwitterion vs disconnected ions;
+two cations + one anion unsupported; one cation + two anions unsupported;
+several distinct cations and anions ambiguous; repeated identical components
+(drawn vs reduced); ethanol + benzene not a salt.
+
+**Conservation and output.** Multiplicity-weighted elemental and hydrogen
+conservation on proton transfer; combined formula vs independent element
+arithmetic; mass vs independent RDKit component-mass sum; original identities
+and drawn counts preserved beside the theoretical ratio; extras not mixed
+into hydrate fields. Mode C: identical inputs → identical order and omitted
+count.
 
 Handbook checks: **one printed formula unit at a time**, not a bulk table.
 
@@ -328,10 +436,11 @@ citations stay on files that already exist.
   lattice-energy import.
 - chem salt_components — graph identity; Mode B around `perceive`
   fragments, **not** `_components()`'s `(formula, charge)` key.
-- chem salt_ionization — user deltas; optional ladder adapter;
-  conservation.
+- chem salt_ionization — fully specified user states; optional ladder
+  adapter; proton-source accounting when a counter-species is already ionic.
 - chem data ionic_species (JSON) — general ions, cited.
-- chem salt_assembly — element counts; evidence record.
+- chem salt_assembly — element counts; multiplicity-weighted formula-unit
+  conservation; evidence record.
 
 UI later, companion to the pKa view, never presented as a crystal.
 
@@ -357,10 +466,12 @@ covalent bond, carries no length, and must never grow a fake edge.
 ## Order of work after this note is accepted
 
 1. Review this file. Amend it here if a contract statement is wrong.
-2. Separate implementation plan (tests first for `balance_two`).
-3. Mode B on real drawings with graph identity and independent charge checks.
-4. User-selected ionization and a small cited registry.
-5. Mode C state pairs; pKa as annotation only.
+2. Separate implementation plan (tests first for `balance_two`). Not
+   authorized by this revision.
+3. Mode B on real drawings: graph identity, `drawn_total_charge`, no silent
+   correction, >2 ionic species refused.
+4. Fully specified user ionization, proton-source rules, small cited registry.
+5. Mode C state pairs with deterministic truncation; pKa as annotation only.
 6. UI.
 
-No `src/` in the change that lands this document.
+No `src/` in the change that lands or revises this document.
