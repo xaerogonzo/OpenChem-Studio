@@ -4591,6 +4591,7 @@
   "tests/test_bond_order_keys.py": 6,
   "tests/test_bond_report.py": 2,
   "tests/test_bootstrap.py": 6,
+  "tests/test_brand_art.py": 4,
   "tests/test_build_info.py": 6,
   "tests/test_calculation_bridge.py": 0,
   "tests/test_calculation_host.py": 7,

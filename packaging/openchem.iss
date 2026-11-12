@@ -86,6 +86,11 @@ InfoBeforeFile={#SourcePath}installer_privacy.txt
 OutputDir={#OutputDir}
 OutputBaseFilename={#OutputName}
 WizardStyle=modern
+; Artwork drawn by tools/make_brand_art.py. Each image is given at two sizes so it stays sharp
+; at higher display scaling. The same pictures frame Setup and the uninstaller.
+SetupIconFile={#SourcePath}icon.ico
+WizardImageFile={#SourcePath}installer\wizard_large.bmp,{#SourcePath}installer\wizard_large_2x.bmp
+WizardSmallImageFile={#SourcePath}installer\wizard_small.bmp,{#SourcePath}installer\wizard_small_2x.bmp
 UninstallDisplayName=OpenChem Studio
 UninstallDisplayIcon={app}\OpenChemStudio.exe
 CloseApplications=yes
