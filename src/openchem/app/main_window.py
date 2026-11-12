@@ -3654,7 +3654,13 @@ class MainWindow(QMainWindow):
         if not path_str:
             return
         remember_chosen_path(self._settings, "project", path_str)
-        command = OpenProjectCommand(self._services.project_service, Path(path_str))
+        self.open_project_file(Path(path_str))
+
+    def open_project_file(self, path: Path) -> None:
+        """Open a project from a path already chosen: the file dialog's answer, or one handed to
+        the program on its command line (double-clicking a `.ocsproj`). The caller has dealt with
+        unsaved changes; a freshly started program has none."""
+        command = OpenProjectCommand(self._services.project_service, path)
         self._undo_stack.push(command)
         if command.loaded_project is not None:
             self._set_project(

@@ -69,6 +69,7 @@ DefaultDirName={autopf}\OpenChem Studio
 ; listed in Windows Settings > Apps, but nobody looks there, hence the shortcut.
 DefaultGroupName={#GroupName}
 DisableProgramGroupPage=yes
+ChangesAssociations=yes
 ; Always ask where to install. Inno's default ("auto") skips the page when a copy is already
 ; installed, which hid the choice from anyone re-running Setup. The previous folder is still
 ; the suggestion (UsePreviousAppDir).
@@ -105,8 +106,24 @@ Name: "english"; MessagesFile: "compiler:Default.isl"
 [Tasks]
 Name: "desktopicon"; Description: "Create a &desktop shortcut"; GroupDescription: "Shortcuts:"; Flags: unchecked
 
+#ifndef TestBuild
+; Not in the test installer: it would take over a developer's real association while testing.
+Name: "associate"; Description: "Open OpenChem Studio project files (.ocsproj) with &OpenChem Studio"; GroupDescription: "File types:"
+#endif
+
 [Files]
 Source: "{#SourceDir}\*"; DestDir: "{app}"; Flags: recursesubdirs createallsubdirs ignoreversion
+
+#ifndef TestBuild
+[Registry]
+; Per-user installs write under HKCU\Software\Classes, all-users installs under HKLM (HKA picks).
+; The program takes the project path as its first argument (main.project_argument).
+Root: HKA; Subkey: "Software\Classes\.ocsproj"; ValueType: string; ValueName: ""; ValueData: "OpenChemStudio.Project"; Flags: uninsdeletevalue; Tasks: associate
+Root: HKA; Subkey: "Software\Classes\.ocsproj\OpenWithProgids"; ValueType: string; ValueName: "OpenChemStudio.Project"; ValueData: ""; Flags: uninsdeletevalue; Tasks: associate
+Root: HKA; Subkey: "Software\Classes\OpenChemStudio.Project"; ValueType: string; ValueName: ""; ValueData: "OpenChem Studio project"; Flags: uninsdeletekey; Tasks: associate
+Root: HKA; Subkey: "Software\Classes\OpenChemStudio.Project\DefaultIcon"; ValueType: string; ValueName: ""; ValueData: "{app}\OpenChemStudio.exe,0"; Tasks: associate
+Root: HKA; Subkey: "Software\Classes\OpenChemStudio.Project\shell\open\command"; ValueType: string; ValueName: ""; ValueData: """{app}\OpenChemStudio.exe"" ""%1"""; Tasks: associate
+#endif
 
 [InstallDelete]
 ; The whole previous runtime goes first (see the header). Not `plugins\`.

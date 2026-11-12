@@ -39,6 +39,8 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 REAL_APP_ID = "C33CE7E7-F8EE-4EEA-82B6-142ECE2F7F4F"
 TEST_APP_ID = "C33CE7E7-F8EE-4EEA-82B6-142ECE2F7F40"
+#: Written by the real installer's file-type task (per-user installs write under HKCU).
+ASSOCIATION_KEY = r"Software\Classes\OpenChemStudio.Project\shell\open\command"
 UNINSTALL_KEY = r"Software\Microsoft\Windows\CurrentVersion\Uninstall"
 TEST_SETTINGS_KEY = r"Software\OpenChemStudio-TEST"
 
@@ -157,6 +159,8 @@ def lifecycle(installer: Path, app_id: str, scratch: Path, smoke: bool = True) -
     check(exe.is_file(), "the application is installed")
     check((target / "_internal" / "openchem" / "chem" / "data" / "elements.json").is_file(), "its data files are installed")
     check(registered(app_id), "an uninstall entry is registered for this user")
+    if app_id != TEST_APP_ID:  # the test installer deliberately leaves file types alone
+        check(key_exists(ASSOCIATION_KEY), ".ocsproj project files are associated with the program")
     check((target / "unins000.exe").is_file(), "an uninstaller is installed")
     check((target / "README.txt").is_file() and (target / "LICENSE").is_file(), "the short README and the licence are installed")
     check((target / "CHANGELOG.md").is_file(), "the changelog is installed")
@@ -193,6 +197,7 @@ def uninstall_and_check(target: Path, app_id: str, keep_check: list[Path]) -> No
     check(not (target / "OpenChemStudio.exe").exists(), "the application is removed")
     check(not (target / "_internal").exists(), "the runtime folder is removed")
     check(not registered(app_id), "the uninstall entry is gone")
+    check(not key_exists(ASSOCIATION_KEY), "the file association is removed with the program")
     start_menu = start_menu_folder(app_id)
     check(not start_menu.exists(), "the Start menu folder is removed")
     check((target / "plugins" / "my_own_plugin" / "plugin.py").is_file(), "a plugin the person added is NOT deleted")
