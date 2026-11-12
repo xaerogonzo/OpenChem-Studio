@@ -1,8 +1,7 @@
 # Salt composition engine: design
 
-**Status: slice 1 (`balance_two`, Mode B) is in master; slice 2 adds Mode A
-for two molecular neutrals; slice 3 adds ionization, a cited ion catalog, and
-pKa evidence; Mode C and UI still not authorized by this work.**
+**Status: slices 1–4 are in the library (`balance_two`, Mode B, Mode A,
+ionization and catalog, Mode C enumerate); UI still not authorized by this work.**
 This note is the scientific and module-boundary contract. It is not an
 implementation plan: file names below are the intended homes when code exists,
 not a commitment to write them in this change. No calculator is registered, no

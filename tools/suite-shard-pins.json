@@ -5233,6 +5233,7 @@
   "tests/test_salt_evidence.py": 7,
   "tests/test_salt_ionization.py": 3,
   "tests/test_salt_mode_a.py": 1,
+  "tests/test_salt_mode_c.py": 6,
   "tests/test_salt_stoichiometry.py": 5,
   "tests/test_sasa.py": 0,
   "tests/test_scalar_field.py": 5,
