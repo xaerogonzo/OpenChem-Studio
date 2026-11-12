@@ -11,17 +11,22 @@ from openchem.domain.salt_stoichiometry import (
     KIND_ION,
     KIND_METAL_HYDROXIDE,
     KIND_MOLECULAR_NEUTRAL,
+    MODE_C_LIMIT,
+    ORIGIN_LADDER,
+    ORIGIN_USER,
     BalanceRefusal,
     ChargedSpecies,
     IonizationRefusal,
     ModeAComposition,
     ModeARefusal,
     ModeASpecies,
+    ModeCCandidate,
     TwoIonBalance,
     balance_two,
     choose_ionization,
     compose_mode_a,
     compose_supplied_ions,
+    enumerate_mode_c,
     formula_unit_conserved,
 )
 
@@ -202,6 +207,74 @@ def test_two_structures_at_the_same_charge_are_not_auto_picked() -> None:
     refused = choose_ionization(["CC(=O)[O-]", "[O-]C=O"])
     assert refused.code == "ambiguous_microspecies"
     assert isinstance(refused, IonizationRefusal)
+
+
+def test_one_user_cation_and_anion_is_the_one_to_one_salt() -> None:
+    result = enumerate_mode_c(
+        (ModeCCandidate("[Na+]", 1, ORIGIN_USER),),
+        (ModeCCandidate("CC(=O)[O-]", -1, ORIGIN_USER),),
+    )
+    assert result.generated == 1
+    assert result.returned == 1
+    assert result.omitted == 0
+    hit = result.hits[0]
+    assert hit.cation_count == 1
+    assert hit.anion_count == 1
+    assert hit.charge_valid is True
+
+
+def test_the_same_mode_c_inputs_yield_the_same_order_and_counts() -> None:
+    cations = tuple(ModeCCandidate(f"c{i}", 1, ORIGIN_USER) for i in range(3))
+    anions = tuple(ModeCCandidate(f"a{i}", -1, ORIGIN_USER) for i in range(2))
+    first = enumerate_mode_c(cations, anions)
+    second = enumerate_mode_c(cations, anions)
+    assert first.hits == second.hits
+    assert (first.generated, first.returned, first.omitted) == (
+        second.generated,
+        second.returned,
+        second.omitted,
+    )
+
+
+def test_mode_c_keeps_fifty_and_says_how_many_it_left_out() -> None:
+    cations = tuple(ModeCCandidate(f"c{i:02d}", 1, ORIGIN_USER) for i in range(8))
+    anions = tuple(ModeCCandidate(f"a{i:02d}", -1, ORIGIN_USER) for i in range(7))
+    result = enumerate_mode_c(cations, anions)
+    assert result.generated == 56
+    assert result.returned == MODE_C_LIMIT
+    assert result.omitted == 6
+    assert len(result.hits) == MODE_C_LIMIT
+
+
+def test_identical_species_and_ratio_are_kept_once() -> None:
+    result = enumerate_mode_c(
+        (ModeCCandidate("[Na+]", 1, ORIGIN_USER), ModeCCandidate("[Na+]", 1, ORIGIN_LADDER, 0)),
+        (ModeCCandidate("[Cl-]", -1, ORIGIN_USER),),
+    )
+    assert result.generated == 1
+    assert result.returned == 1
+
+
+def test_same_sign_pairs_are_not_compositions() -> None:
+    result = enumerate_mode_c(
+        (ModeCCandidate("[Na+]", 1, ORIGIN_USER),),
+        (ModeCCandidate("[K+]", 1, ORIGIN_USER),),
+    )
+    assert result.generated == 0
+    assert result.returned == 0
+    assert result.omitted == 0
+    assert result.hits == ()
+
+
+def test_user_states_come_before_ladder_states() -> None:
+    result = enumerate_mode_c(
+        (
+            ModeCCandidate("zz-ladder", 1, ORIGIN_LADDER, 0),
+            ModeCCandidate("aa-user", 1, ORIGIN_USER),
+        ),
+        (ModeCCandidate("[Cl-]", -1, ORIGIN_USER),),
+    )
+    assert [hit.cation_identity for hit in result.hits] == ["aa-user", "zz-ladder"]
 
 
 def test_the_domain_module_does_not_import_lattice_energy() -> None:
