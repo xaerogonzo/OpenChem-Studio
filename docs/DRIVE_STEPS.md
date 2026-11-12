@@ -302,6 +302,12 @@ The `OPENCHEM_DRIVE` step catalogue, moved out of [`CLAUDE.md`](../CLAUDE.md) on
                                           combos, "choose" a run by id, "press" Keep or a job row's button (which
                                           asks for the Quantum Chemistry panel and starts nothing); `expect` reads the
                                           screen, the project's recipe runs and where the press went
+    {"do": "salt_composition", "first": 0, "second": 1, "mode": "neutrals",
+     "expect": {"headline_contains": "1 : 1", "disclaimer": true, "charge_valid": true}}
+                                          the Salt composition window (Tools menu): `first`/`second` are project
+                                          positions, `mode` is analyze|neutrals|ions|enumerate; `expect` reads the
+                                          headline, body, standing disclaimer and charge_valid. `shot` takes
+                                          "widget": "salt_composition"
     {"do": "recipe_results", "focus": true, "expect": {"entries": 1, "stale": 0, "title_contains": ["BH3 + CO"],
      "summary_contains": ["was edited"], "stored_as_results": 0}}
                                           what the Results READER holds of the recipe answers kept in the project, for the

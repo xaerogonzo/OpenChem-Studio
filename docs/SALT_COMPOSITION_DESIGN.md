@@ -1,12 +1,13 @@
 # Salt composition engine: design
 
-**Status: slices 1–4 are in the library (`balance_two`, Mode B, Mode A,
-ionization and catalog, Mode C enumerate); UI still not authorized by this work.**
+**Status: slices 1–5 are in the library and on Tools > Salt Composition
+(`balance_two`, Mode B, Mode A, ionization and catalog, Mode C enumerate, the
+window). Charge-valid is never an isolable salt.**
 This note is the scientific and module-boundary contract. It is not an
 implementation plan: file names below are the intended homes when code exists,
-not a commitment to write them in this change. No calculator is registered, no
-UI is specified beyond "later, beside the pKa view", and a charge-valid
-composition is never an isolable salt.
+not a commitment to write them in this change. No calculator is registered. The
+UI is Tools > Salt Composition, beside the pKa view as evidence, and a
+charge-valid composition is never an isolable salt.
 
 This document lives on branch `cursor/salt-composition-design`, created from
 fetched `origin/master` in an isolated worktree. It was not written on
@@ -47,7 +48,9 @@ inorganic acid.
    **element counts**, multiplicity-weighted conservation of the complete
    formula unit. Structures are primary; formula strings are presentation.
 5. **Evidence** — four independent claims, not a score.
-6. **UI** — deferred.
+6. **UI** — Tools > Salt Composition (`ui/dialogs/salt_composition_dialog.py`),
+   companion to the pKa view: Analyze / two neutrals / two ions / enumerate.
+   Never presented as a crystal.
 
 ```
 drawing / pair
@@ -462,7 +465,7 @@ citations stay on files that already exist.
 - chem salt_assembly — element counts; multiplicity-weighted formula-unit
   conservation; evidence record.
 
-UI later, companion to the pKa view, never presented as a crystal.
+UI: Tools > Salt Composition, companion to the pKa view, never presented as a crystal.
 
 ## Explicitly out of scope (unchanged)
 

@@ -2145,6 +2145,19 @@ machine is likely to have.
 estimate knows this, but it is worth knowing yourself: a π-stacked pair is
 the expensive case, and it is usually the one you want.
 
+<!-- help:salt-composition -->
+### Salt composition
+
+**Tools ▸ Salt Composition…** asks for a charge-balanced formula unit from one drawing or two molecules in the project. It is a companion to the pKa view in the sense that pKa is evidence beside a composition, never a reason to pick one.
+
+**A charge-balanced composition is not an isolable salt, a crystal, or a 3D ion pair.** The window says that on every result.
+
+**Analyze drawing** reads disconnected ions as they are drawn and never rewrites their counts. A theoretical ratio is shown only as a diagnostic. Uncharged fragments are set aside and are not labelled hydrate.
+
+**Two neutrals** models `B + HA → BH+ + A−` when each side has a unique N/O/P/S ionization, then balances those ions. Metal hydroxide neutralization is refused. A molecular parent plus an already-drawn ion is refused: that mix does not supply the protons.
+
+**Two ions as drawn** uses the charges you supplied. **Enumerate pair** lists charge-balanced combinations of those sides' ionization states (at most 50, in a fixed order) and does not rank them by pKa.
+
 <!-- help:lewis-pairing -->
 ### Pairing two molecules as Lewis acid and base
 
