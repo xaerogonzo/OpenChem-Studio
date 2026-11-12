@@ -21,10 +21,7 @@ ROOT = Path(__file__).resolve().parent.parent
 PAGE = (ROOT / "docs" / "RELEASE_CONTENTS.md").read_text(encoding="utf-8")
 
 #: Entries the page says DO reach a release. Everything else tracked at the top is "No".
-SHIPS = {
-    "src", "plugins", "docs",
-    "README.md", "CHANGELOG.md", "CONTRIBUTING.md", "CODE_OF_CONDUCT.md", "CITATION.cff", "LICENSE",
-}
+SHIPS = {"src", "plugins", "CITATION.cff", "LICENSE"}
 
 
 def _tracked_top_level() -> set[str]:
@@ -89,9 +86,15 @@ def test_nothing_marked_not_shipped_is_named_as_release_data_by_the_build():
 
 def test_the_staged_documents_match_the_page():
     build = (ROOT / "build.ps1").read_text(encoding="utf-8")
-    staged = set(re.findall(r'"(README\.md|LICENSE|CHANGELOG\.md|CONTRIBUTING\.md|CODE_OF_CONDUCT\.md|CITATION\.cff)"', build))
-    assert staged == {"README.md", "LICENSE", "CHANGELOG.md", "CONTRIBUTING.md", "CODE_OF_CONDUCT.md", "CITATION.cff"}
-    assert 'Copy-Item "$ROOT\\docs"' in build and 'Copy-Item "$ROOT\\plugins"' in build
+    stage = build.split("# ---------- Stage the few files a person opens", 1)[1].split("# ---------- Verify", 1)[0]
+    staged = set(re.findall(r'"(LICENSE|CITATION\.cff)"', stage))
+    assert staged == {"LICENSE", "CITATION.cff"}
+    assert (ROOT / "packaging" / "README-release.txt").is_file() and "README-release.txt" in stage
+    # The maintainer docs are NOT shipped: a copy of docs\ beside the exe looked like unprotected
+    # Help and carried the README's screenshots and design notes to every user.
+    code = [line for line in stage.splitlines() if not line.lstrip().startswith("#")]
+    assert not any("docs" in line for line in code), "build.ps1 stages something from docs\\ into the release"
+    assert 'Copy-Item "$ROOT\\plugins"' in build
 
 
 def test_every_file_the_build_refuses_to_ship_loose_is_written_down():

@@ -15,8 +15,12 @@ as a zip and as an installer. **Neither is code-signed yet**, so Windows SmartSc
 `SHA256SUMS.txt`.
 
 **Installing and trusting a download**
-- A Windows installer (per-user or all-users, upgrade-safe, and an uninstaller that asks before it
-  removes your settings or data). The zip unpacks into a versioned folder.
+- A Windows installer (per-user or all-users, upgrade-safe). It adds a Start menu folder with the
+  program, **Uninstall OpenChem Studio** and a link to the online documentation, and running it
+  again over an existing install asks whether to repair or uninstall. The uninstaller asks before
+  it removes your settings or data. The zip unpacks into a versioned folder.
+- The install folder is small and contains no loose documentation: just the program, `plugins\`, the
+  licence, a short `README.txt` and the citation file.
 - The built-in Help is compiled into the program, so it can no longer be broken by editing a file;
   its "Open file" button opens a read-only copy.
 - The program checks its own data files at startup and tells you (About, and the status bar if
@@ -53,6 +57,21 @@ as a zip and as an installer. **Neither is code-signed yet**, so Windows SmartSc
 - Results are computed estimates with stated limits; see the Scientific Limitations help page.
 
 <!-- release-notes-end -->
+
+### Installer: Start menu folder, repair prompt, and no maintainer documents in the install
+
+- The installer makes a Start menu folder with the program, **Uninstall OpenChem Studio** and a
+  link to the online documentation. The uninstaller was always installed (`unins000.exe`, and in
+  Windows Settings > Apps) but nothing led to it.
+- Running Setup again over an existing install asks: repair or update, uninstall, or cancel. A silent
+  run still installs without asking.
+- The release no longer copies the repository's `docs\` tree (7 MB of design notes, benchmark records
+  and the README's screenshots), `README.md`, `CHANGELOG.md`, `CONTRIBUTING.md` or
+  `CODE_OF_CONDUCT.md` beside the exe. The in-app Help was already inside the exe and is unchanged.
+  A short `README.txt` says what the folder is. Upgrading removes those files from an install that
+  has them. `tools/make_release_zip.py` and `build.ps1` now refuse a release that carries them.
+- The test installer uses its own Start menu folder, so testing it cannot touch a real install's
+  shortcuts.
 
 ### Salt composition, slice 5 (Tools menu)
 

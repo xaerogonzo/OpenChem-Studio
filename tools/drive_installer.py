@@ -28,6 +28,7 @@ entry. The all-users path needs an elevation prompt and is checked by hand.
 from __future__ import annotations
 
 import argparse
+import os
 import subprocess
 import sys
 import tempfile
@@ -150,6 +151,12 @@ def lifecycle(installer: Path, app_id: str, scratch: Path, smoke: bool = True) -
     check((target / "_internal" / "openchem" / "chem" / "data" / "elements.json").is_file(), "its data files are installed")
     check(registered(app_id), "an uninstall entry is registered for this user")
     check((target / "unins000.exe").is_file(), "an uninstaller is installed")
+    check((target / "README.txt").is_file() and (target / "LICENSE").is_file(), "the short README and the licence are installed")
+    check(not (target / "docs").exists(), "no loose docs folder is installed (the Help is inside the exe)")
+    check(not (target / "README.md").exists(), "no repository README (with its screenshots) is installed")
+    start_menu = Path(os.environ["APPDATA"]) / "Microsoft" / "Windows" / "Start Menu" / "Programs" / "OpenChem Studio (TEST)"
+    for name in ("OpenChem Studio.lnk", "Uninstall OpenChem Studio.lnk"):
+        check((start_menu / name).is_file(), f"the Start menu folder has {name}")
 
     if smoke:
         import frozen_smoke
@@ -177,6 +184,8 @@ def uninstall_and_check(target: Path, app_id: str, keep_check: list[Path]) -> No
     check(not (target / "OpenChemStudio.exe").exists(), "the application is removed")
     check(not (target / "_internal").exists(), "the runtime folder is removed")
     check(not registered(app_id), "the uninstall entry is gone")
+    start_menu = Path(os.environ["APPDATA"]) / "Microsoft" / "Windows" / "Start Menu" / "Programs" / "OpenChem Studio (TEST)"
+    check(not start_menu.exists(), "the Start menu folder is removed")
     check((target / "plugins" / "my_own_plugin" / "plugin.py").is_file(), "a plugin the person added is NOT deleted")
     for path, content in before.items():
         check(path.is_file() and path.read_bytes() == content, f"user data is untouched: {path.name}")

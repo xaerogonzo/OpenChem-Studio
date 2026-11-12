@@ -36,10 +36,17 @@
 #ifdef TestBuild
   #define AppIdGuid "{{C33CE7E7-F8EE-4EEA-82B6-142ECE2F7F40}"
   #define OutputName "OpenChemStudio-TEST-setup"
+  ; Its own Start menu folder, so installing and uninstalling the test build can never touch the
+  ; shortcuts of a real installation.
+  #define GroupName "OpenChem Studio (TEST)"
 #else
+  #define GroupName "OpenChem Studio"
   #define AppIdGuid "{{C33CE7E7-F8EE-4EEA-82B6-142ECE2F7F4F}"
   #define OutputName "OpenChemStudio-v" + AppVersion + "-windows-x64-setup"
 #endif
+; The same GUID with a single brace, as the registry key under Uninstall spells it (the doubled
+; brace above is how [Setup] escapes it). [Code] uses this to find an existing installation.
+#define AppIdKey Copy(AppIdGuid, 2)
 
 [Setup]
 AppId={#AppIdGuid}
@@ -57,6 +64,10 @@ VersionInfoCompany=OpenChem Studio
 VersionInfoDescription=OpenChem Studio Setup
 VersionInfoCopyright=Copyright (C) OpenChem Studio contributors. GPL-3.0-or-later.
 DefaultDirName={autopf}\OpenChem Studio
+; One Start menu folder, not chosen by the person: the program, its uninstaller and a link to
+; the documentation. The uninstaller is also copied into the install folder (unins000.exe) and
+; listed in Windows Settings > Apps, but nobody looks there, hence the shortcut.
+DefaultGroupName={#GroupName}
 DisableProgramGroupPage=yes
 PrivilegesRequired=lowest
 PrivilegesRequiredOverridesAllowed=dialog
@@ -96,9 +107,23 @@ Source: "{#SourceDir}\*"; DestDir: "{app}"; Flags: recursesubdirs createallsubdi
 [InstallDelete]
 ; The whole previous runtime goes first (see the header). Not `plugins\`.
 Type: filesandordirs; Name: "{app}\_internal"
+; What an earlier build (0.11.0 drafts) put beside the exe and this one does not: the whole docs
+; tree, the README's screenshots and the maintainer files. All of it is ours, none of it is read
+; by the program, and the Help is compiled into the exe. `plugins\` stays.
+Type: filesandordirs; Name: "{app}\docs"
+Type: files; Name: "{app}\README.md"
+Type: files; Name: "{app}\CHANGELOG.md"
+Type: files; Name: "{app}\CONTRIBUTING.md"
+Type: files; Name: "{app}\CODE_OF_CONDUCT.md"
+#ifndef TestBuild
+; The single shortcut an earlier build made directly in the Start menu; it is now in a folder.
+Type: files; Name: "{autoprograms}\OpenChem Studio.lnk"
+#endif
 
 [Icons]
-Name: "{autoprograms}\OpenChem Studio"; Filename: "{app}\OpenChemStudio.exe"
+Name: "{group}\OpenChem Studio"; Filename: "{app}\OpenChemStudio.exe"
+Name: "{group}\Uninstall OpenChem Studio"; Filename: "{uninstallexe}"
+Name: "{group}\OpenChem Studio documentation (online)"; Filename: "https://github.com/xaerogonzo/OpenChem-Studio"
 Name: "{autodesktop}\OpenChem Studio"; Filename: "{app}\OpenChemStudio.exe"; Tasks: desktopicon
 
 [Run]
@@ -113,6 +138,54 @@ Type: filesandordirs; Name: "{app}\_internal"
 var
   RemoveSettings: Boolean;
   RemoveData: Boolean;
+
+{ The uninstaller of an existing installation of THIS product ('' when there is none), found
+  through the same registry key Windows' Apps list reads: per-user installs register under
+  HKCU, all-users installs under HKLM. }
+function InstalledUninstaller(): String;
+var
+  Key, Command: String;
+begin
+  Result := '';
+  Key := 'Software\Microsoft\Windows\CurrentVersion\Uninstall\{#AppIdKey}_is1';
+  if RegQueryStringValue(HKCU, Key, 'UninstallString', Command) or
+     RegQueryStringValue(HKLM, Key, 'UninstallString', Command) then
+    Result := RemoveQuotes(Command);
+end;
+
+{ Running Setup again over an installation used to just upgrade it, with no way to say "I
+  wanted to remove it". Ask first, as most programs do: repair (a reinstall of this version,
+  which replaces every shipped file), uninstall, or leave. A silent run (what the tests and an
+  administrator's script use) skips the question and installs, exactly as before. }
+function InitializeSetup(): Boolean;
+var
+  Uninstaller: String;
+  Answer, ResultCode: Integer;
+  Labels: TArrayOfString;
+begin
+  Result := True;
+  if WizardSilent then
+    Exit;
+  SetArrayLength(Labels, 3);
+  Labels[0] := 'Repair or update the existing installation';
+  Labels[1] := 'Uninstall OpenChem Studio';
+  Labels[2] := 'Cancel';
+  Uninstaller := InstalledUninstaller();
+  if (Uninstaller = '') or not FileExists(Uninstaller) then
+    Exit;
+  Answer := TaskDialogMsgBox(
+    'OpenChem Studio is already installed',
+    'Repair reinstalls this version over the existing one and keeps your settings, data and ' +
+    'plugins. Uninstall removes the program and asks what else to remove.',
+    mbInformation, MB_YESNOCANCEL, Labels, IDYES);
+  if Answer = IDNO then
+  begin
+    ShellExec('', Uninstaller, '', '', SW_SHOWNORMAL, ewNoWait, ResultCode);
+    Result := False;
+  end
+  else if Answer <> IDYES then
+    Result := False;
+end;
 
 { Where the application keeps its caches, downloaded tools and recovery copies by default.
   src/openchem/paths.py: platformdirs user_data_dir("OpenChemStudio") on Windows. }
