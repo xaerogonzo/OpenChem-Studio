@@ -15,8 +15,9 @@ as a zip and as an installer. **Neither is code-signed yet**, so Windows SmartSc
 `SHA256SUMS.txt`.
 
 **Installing and trusting a download**
-- A Windows installer (per-user or all-users, upgrade-safe). It adds a Start menu folder with the
-  program, **Uninstall OpenChem Studio** and a link to the online documentation, and running it
+- A Windows installer (per-user or all-users, upgrade-safe, always asks where to install). It adds a
+  Start menu folder with the program, **Uninstall OpenChem Studio**, the documentation and the
+  changelog, and running it
   again over an existing install asks whether to repair or uninstall. The uninstaller asks before
   it removes your settings or data. The zip unpacks into a versioned folder.
 - The install folder is small and contains no loose documentation: just the program, `plugins\`, the
@@ -65,11 +66,13 @@ as a zip and as an installer. **Neither is code-signed yet**, so Windows SmartSc
   Windows Settings > Apps) but nothing led to it.
 - Running Setup again over an existing install asks: repair or update, uninstall, or cancel. A silent
   run still installs without asking.
-- The release no longer copies the repository's `docs\` tree (7 MB of design notes, benchmark records
-  and the README's screenshots), `README.md`, `CHANGELOG.md`, `CONTRIBUTING.md` or
-  `CODE_OF_CONDUCT.md` beside the exe. The in-app Help was already inside the exe and is unchanged.
-  A short `README.txt` says what the folder is. Upgrading removes those files from an install that
-  has them. `tools/make_release_zip.py` and `build.ps1` now refuse a release that carries them.
+- The install folder holds a short `README.txt`, `CHANGELOG.md` and a `docs\` folder of the
+  user-facing documents (the list is `packaging/release-docs.txt`: the four Help documents and what
+  they link to, about 1 MB). The repository's other 7 MB of design notes and benchmark records, the
+  README's screenshots and the contributor files are no longer shipped; upgrading clears them from
+  an install that has them. The in-app Help is still compiled into the exe and is unchanged.
+- Setup now always shows the install-folder page, including when re-run over an existing install
+  (Inno hides it by default then, which left no way to choose a location).
 - The test installer uses its own Start menu folder, so testing it cannot touch a real install's
   shortcuts.
 

@@ -69,6 +69,10 @@ DefaultDirName={autopf}\OpenChem Studio
 ; listed in Windows Settings > Apps, but nobody looks there, hence the shortcut.
 DefaultGroupName={#GroupName}
 DisableProgramGroupPage=yes
+; Always ask where to install. Inno's default ("auto") skips the page when a copy is already
+; installed, which hid the choice from anyone re-running Setup. The previous folder is still
+; the suggestion (UsePreviousAppDir).
+DisableDirPage=no
 PrivilegesRequired=lowest
 PrivilegesRequiredOverridesAllowed=dialog
 ArchitecturesAllowed=x64compatible
@@ -107,12 +111,11 @@ Source: "{#SourceDir}\*"; DestDir: "{app}"; Flags: recursesubdirs createallsubdi
 [InstallDelete]
 ; The whole previous runtime goes first (see the header). Not `plugins\`.
 Type: filesandordirs; Name: "{app}\_internal"
-; What an earlier build (0.11.0 drafts) put beside the exe and this one does not: the whole docs
-; tree, the README's screenshots and the maintainer files. All of it is ours, none of it is read
-; by the program, and the Help is compiled into the exe. `plugins\` stays.
+; What an earlier build (0.11.0 drafts) put beside the exe and this one does not: the README's
+; screenshots and the maintainer files. `docs\` is cleared so a document dropped from the list
+; does not linger; the current set is installed again below. `plugins\` stays.
 Type: filesandordirs; Name: "{app}\docs"
 Type: files; Name: "{app}\README.md"
-Type: files; Name: "{app}\CHANGELOG.md"
 Type: files; Name: "{app}\CONTRIBUTING.md"
 Type: files; Name: "{app}\CODE_OF_CONDUCT.md"
 #ifndef TestBuild
@@ -123,6 +126,8 @@ Type: files; Name: "{autoprograms}\OpenChem Studio.lnk"
 [Icons]
 Name: "{group}\OpenChem Studio"; Filename: "{app}\OpenChemStudio.exe"
 Name: "{group}\Uninstall OpenChem Studio"; Filename: "{uninstallexe}"
+Name: "{group}\Documentation"; Filename: "{app}\docs"
+Name: "{group}\What's new (changelog)"; Filename: "{app}\CHANGELOG.md"
 Name: "{group}\OpenChem Studio documentation (online)"; Filename: "https://github.com/xaerogonzo/OpenChem-Studio"
 Name: "{autodesktop}\OpenChem Studio"; Filename: "{app}\OpenChemStudio.exe"; Tasks: desktopicon
 

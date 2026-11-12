@@ -1,0 +1,15 @@
+# The documents a release carries in its docs\ folder, one file name per line, from the
+# repository's docs\ directory. Read by build.ps1 and held by tests/test_release_contents.py.
+# Everything the in-app Help reads is here, plus what those documents link to and a person
+# might want to read. Design notes, benchmark records and maintainer logs stay on GitHub.
+QUICKSTART.md
+USER_GUIDE.md
+SCIENTIFIC_LIMITATIONS.md
+CALCULATOR_REFERENCE.md
+CALCULATOR_MATURITY.md
+VALIDATION.md
+WHATS_NEW.md
+PLUGIN_SDK.md
+ARCHITECTURE.md
+DOCKING_RANKING_BENCHMARK.md
+CODE_SIGNING_POLICY.md

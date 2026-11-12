@@ -159,10 +159,12 @@ def lifecycle(installer: Path, app_id: str, scratch: Path, smoke: bool = True) -
     check(registered(app_id), "an uninstall entry is registered for this user")
     check((target / "unins000.exe").is_file(), "an uninstaller is installed")
     check((target / "README.txt").is_file() and (target / "LICENSE").is_file(), "the short README and the licence are installed")
-    check(not (target / "docs").exists(), "no loose docs folder is installed (the Help is inside the exe)")
+    check((target / "CHANGELOG.md").is_file(), "the changelog is installed")
+    check((target / "docs" / "USER_GUIDE.md").is_file(), "the user documentation is installed in docs")
+    check(not list((target / "docs").glob("*.png")), "no screenshots are installed")
     check(not (target / "README.md").exists(), "no repository README (with its screenshots) is installed")
     start_menu = start_menu_folder(app_id)
-    for name in ("OpenChem Studio.lnk", "Uninstall OpenChem Studio.lnk"):
+    for name in ("OpenChem Studio.lnk", "Uninstall OpenChem Studio.lnk", "Documentation.lnk"):
         check((start_menu / name).is_file(), f"the Start menu folder has {name}")
 
     if smoke:
