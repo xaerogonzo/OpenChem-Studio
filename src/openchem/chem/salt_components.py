@@ -34,8 +34,7 @@ from __future__ import annotations
 #: slice wires Mode B. Remove this when something reachable from
 #: ``openchem.main`` imports the module.
 REACHED_BY = (
-    "tooling: consumed by tests/test_salt_components.py; Mode B is not "
-    "on the window yet"
+    "window: consumed by chem/salt_compose.py for Tools > Salt Composition"
 )
 
 from dataclasses import dataclass

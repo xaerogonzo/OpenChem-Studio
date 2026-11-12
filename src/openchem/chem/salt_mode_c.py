@@ -25,8 +25,7 @@ from openchem.domain.salt_stoichiometry import (
 )
 
 REACHED_BY = (
-    "tooling: consumed by tests/test_salt_mode_c.py; Mode C is not "
-    "on the window yet"
+    "window: consumed by chem/salt_compose.py for Tools > Salt Composition"
 )
 
 
