@@ -181,7 +181,7 @@ def arrange(
 #: Each top-level menu's layout, by its title. The wording of every name is the menu entry's own.
 MENU_SPECS: dict[str, MenuSpec] = {
     "File": MenuSpec(
-        first=("New Project", "Open Project", "Save Project"),
+        first=("New Project", "Open Project", "Save Project", "Save Project As"),
         groups={
             "Macromolecules and Crystals": ("Import Crystal Structure", "Import Macromolecule", "Receptor Library"),
             "Molecules": ("Energetic Formulation", "Export Molecule", "Import Molecule", "New Molecule"),

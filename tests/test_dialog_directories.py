@@ -240,7 +240,7 @@ def test_a_nameless_project_falls_back_to_the_bare_directory(settings, tmp_path)
 #: Every dialog that must remember, and which memory it uses.
 _EXPECTED_DIALOGS = {
     "_open_project": "project",
-    "_save_project": "project",
+    "_save_project_as": "project",
     "_import_molecule": "molecule",
     "_export_molecule": "molecule",
     "_import_crystal": "macromolecule",
