@@ -34,6 +34,9 @@ _SHIPPED_FILES = (
     "amino_acids.json",
     "nucleobases.json",
     "sugars.json",
+    "cycloalkanes.json",
+    "heterocycles.json",
+    "solvents_reagents.json",
 )
 
 

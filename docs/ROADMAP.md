@@ -306,9 +306,10 @@ document answers "what does the app do" without being a diary.
 
 ### Structure template library
 
-Shipped as an OpenChem-owned catalog of **complete molecules** (rings, free
-L-amino acids plus glycine, nucleobases, named sugar anomers), a Template
-Library dialog, and a normalized user library under `data_root()/structure_templates`.
+Shipped as an OpenChem-owned catalog of **complete molecules** (rings,
+cycloalkanes, heterocycles, solvents, free L-amino acids plus glycine,
+nucleobases, named sugar anomers), a Template Library dialog, and a normalized
+user library under `data_root()/structure_templates`.
 Insert uses Ketcher `addFragment` with a 2.0 Å right-side placement and one undo
 step. Ketcher's T-button library and polymer mode stay. Design:
 `docs/STRUCTURE_TEMPLATE_LIBRARY_DESIGN.md`.

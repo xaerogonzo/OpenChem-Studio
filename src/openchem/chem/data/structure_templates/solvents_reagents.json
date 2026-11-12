@@ -1,0 +1,120 @@
+{
+  "id": "solvents_reagents",
+  "title": "Solvents and reagents",
+  "description": "Common laboratory solvents and simple reagents as complete molecules.",
+  "entries": [
+    {
+      "id": "solvents_reagents.water",
+      "name": "Water",
+      "smiles": "O",
+      "tags": [
+        "solvent"
+      ]
+    },
+    {
+      "id": "solvents_reagents.methanol",
+      "name": "Methanol",
+      "smiles": "CO",
+      "tags": [
+        "solvent",
+        "alcohol"
+      ]
+    },
+    {
+      "id": "solvents_reagents.ethanol",
+      "name": "Ethanol",
+      "smiles": "CCO",
+      "tags": [
+        "solvent",
+        "alcohol"
+      ]
+    },
+    {
+      "id": "solvents_reagents.acetone",
+      "name": "Acetone",
+      "smiles": "CC(C)=O",
+      "tags": [
+        "solvent",
+        "ketone"
+      ]
+    },
+    {
+      "id": "solvents_reagents.dichloromethane",
+      "name": "Dichloromethane",
+      "smiles": "ClCCl",
+      "tags": [
+        "solvent"
+      ]
+    },
+    {
+      "id": "solvents_reagents.dimethyl_sulfoxide",
+      "name": "Dimethyl sulfoxide",
+      "smiles": "CS(C)=O",
+      "tags": [
+        "solvent"
+      ]
+    },
+    {
+      "id": "solvents_reagents.acetonitrile",
+      "name": "Acetonitrile",
+      "smiles": "CC#N",
+      "tags": [
+        "solvent"
+      ]
+    },
+    {
+      "id": "solvents_reagents.diethyl_ether",
+      "name": "Diethyl ether",
+      "smiles": "CCOCC",
+      "tags": [
+        "solvent",
+        "ether"
+      ]
+    },
+    {
+      "id": "solvents_reagents.tetrahydrofuran",
+      "name": "Tetrahydrofuran",
+      "smiles": "C1CCOC1",
+      "tags": [
+        "solvent",
+        "ether"
+      ]
+    },
+    {
+      "id": "solvents_reagents.1_4_dioxane",
+      "name": "1,4-Dioxane",
+      "smiles": "C1COCCO1",
+      "tags": [
+        "solvent",
+        "ether"
+      ]
+    },
+    {
+      "id": "solvents_reagents.ethyl_acetate",
+      "name": "Ethyl acetate",
+      "smiles": "CCOC(C)=O",
+      "tags": [
+        "solvent",
+        "ester"
+      ]
+    },
+    {
+      "id": "solvents_reagents.acetic_acid",
+      "name": "Acetic acid",
+      "smiles": "CC(=O)O",
+      "tags": [
+        "solvent",
+        "acid"
+      ]
+    },
+    {
+      "id": "solvents_reagents.toluene",
+      "name": "Toluene",
+      "smiles": "Cc1ccccc1",
+      "tags": [
+        "solvent",
+        "aromatic"
+      ]
+    }
+  ]
+}
