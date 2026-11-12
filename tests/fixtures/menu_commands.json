@@ -360,6 +360,11 @@
   "default": "F7"
  },
  {
+  "id": "salt_composition",
+  "label": "Salt Composition",
+  "default": ""
+ },
+ {
   "id": "save_project",
   "label": "Save Project",
   "default": ""

@@ -137,6 +137,7 @@ from openchem.ui.panels.batch_panel import BatchPanel
 from openchem.ui.dialogs.calculator_settings_dialog import plain_label
 from openchem.ui.dialogs.goal_wizard_dialog import GoalWizardDialog
 from openchem.ui.dialogs.lewis_pairing_dialog import LewisPairingDialog, PairingContext, PairingHost
+from openchem.ui.dialogs.salt_composition_dialog import SaltCompositionDialog, SaltHost
 from openchem.ui.dialogs.score_dialog import ScoreDialog, ScoreHost
 from openchem.ui.dialogs.template_library_dialog import TemplateLibraryDialog
 from openchem.ui.panels.docking_panel import DockingPanel
@@ -614,6 +615,7 @@ class MainWindow(QMainWindow):
         self._property_panel.goal_wizard_requested.connect(self._on_goal_wizard_action)
         # THE LEWIS PAIRING WINDOW: one, built when first asked for and raised after that.
         self._lewis_pairing: LewisPairingDialog | None = None
+        self._salt_composition: SaltCompositionDialog | None = None
         self._score_dialog: ScoreDialog | None = None
         self._template_library: TemplateLibraryDialog | None = None
         self._property_panel.workflow_tab_requested.connect(self._on_workflow_tab_requested)
@@ -1004,6 +1006,7 @@ class MainWindow(QMainWindow):
         for event_type in (MoleculeSelected, MoleculeChanged, ResultRecorded):
             services.event_bus.subscribe(event_type, self._refresh_scores_preview)
         services.event_bus.subscribe(MoleculeChanged, self._refresh_lewis_pairing)
+        services.event_bus.subscribe(MoleculeChanged, self._refresh_salt_composition)
         services.event_bus.subscribe(ConformersChanged, self._refresh_lewis_pairing)
         services.event_bus.subscribe(PluginLoaded, self._on_plugins_state_changed)
         services.event_bus.subscribe(PluginUnloaded, self._on_plugins_state_changed)
@@ -2186,6 +2189,58 @@ class MainWindow(QMainWindow):
     def _on_lewis_pairing_action(self, _checked: bool = False) -> None:
         self.show_lewis_pairing()
 
+    def _on_salt_composition_action(self, _checked: bool = False) -> None:
+        self.show_salt_composition()
+
+    def show_salt_composition(
+        self, first_uuid: str | None = None, second_uuid: str | None = None
+    ) -> SaltCompositionDialog:
+        """Open the salt-composition window, or raise the one that is open. There is never a second."""
+        if self._salt_composition is None:
+            dialog = SaltCompositionDialog(self._salt_composition_host(), self)
+            self._salt_composition = dialog
+        else:
+            dialog = self._salt_composition
+            dialog.refresh()
+        if first_uuid or second_uuid:
+            dialog.select_molecules(first_uuid, second_uuid)
+        dialog.show()
+        dialog.raise_()
+        dialog.activateWindow()
+        return dialog
+
+    def _salt_composition_host(self) -> SaltHost:
+        engine = self._services.chemistry_engine
+
+        def evaluate(mode: str, first: str | None, second: str | None):
+            from openchem.chem.salt_compose import compose
+
+            project = self._session.project
+
+            def mol_of(uuid: str | None):
+                if project is None or uuid is None:
+                    return None
+                model = project.find_molecule(uuid)
+                if model is None:
+                    return None
+                try:
+                    return engine.mol_from_model(model)
+                except Exception:  # noqa: BLE001 - a molecule with no readable structure is a missing pick
+                    return None
+
+            return compose(mode, mol_of(first), mol_of(second))
+
+        return SaltHost(
+            molecules=lambda: [(m.display_name, m.uuid) for m in self._wizard_molecules()],
+            selected_uuid=self._property_panel.selected_molecule_uuid,
+            evaluate=evaluate,
+        )
+
+    def _refresh_salt_composition(self, _event=None) -> None:
+        dialog = self._salt_composition
+        if dialog is not None and not dialog.isHidden():
+            dialog.refresh()
+
     def show_lewis_pairing(
         self, first_uuid: str | None = None, second_uuid: str | None = None
     ) -> LewisPairingDialog:
@@ -3000,6 +3055,10 @@ class MainWindow(QMainWindow):
             "lewis_pairing",
         )
         self._document(
+            tools_menu.addAction("Salt Composition...", self._on_salt_composition_action),
+            "salt_composition",
+        )
+        self._document(
             tools_menu.addAction("Derived Scores...", self._on_scores_action),
             "derived_scores",
         )
@@ -3578,6 +3637,8 @@ class MainWindow(QMainWindow):
         # "you have unsaved changes" the moment they open the next one.
         if self._lewis_pairing is not None:
             self._lewis_pairing.refresh()
+        if self._salt_composition is not None:
+            self._salt_composition.refresh()
         self._refresh_scores_dialog()
         self._session.mark_clean()
 
