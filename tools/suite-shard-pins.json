@@ -5119,6 +5119,7 @@
   "tests/test_powder_xrd.py": 4,
   "tests/test_prep_box_core.py": 3,
   "tests/test_project_and_plugin_inverses.py": 7,
+  "tests/test_project_argument.py": 4,
   "tests/test_project_details.py": 1,
   "tests/test_project_explorer_panel.py": 0,
   "tests/test_project_property_choice.py": 0,

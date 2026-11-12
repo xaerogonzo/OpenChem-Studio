@@ -99,10 +99,12 @@ def delete_key(path: str) -> None:
 # --- running the installer --------------------------------------------------------
 
 
-def run_setup(installer: Path, target: Path, log: Path, extra: list[str] = ()) -> int:
+def run_setup(installer: Path, target: Path, log: Path, extra: list[str] = (), tasks: str = "") -> int:
+    # /TASKS= selects exactly the named tasks (none by default), so the file-type task is only
+    # present when a caller asks for it; the test installer has no such task.
     command = [
         str(installer), "/VERYSILENT", "/SUPPRESSMSGBOXES", "/NORESTART", "/CURRENTUSER",
-        f"/DIR={target}", f"/LOG={log}", "/TASKS=", *extra,
+        f"/DIR={target}", f"/LOG={log}", f"/TASKS={tasks}", *extra,
     ]
     return subprocess.run(command, timeout=900).returncode
 
@@ -154,7 +156,8 @@ def lifecycle(installer: Path, app_id: str, scratch: Path, smoke: bool = True) -
     target = scratch / "Open Chem Install"
     log = scratch / "setup.log"
     print(f"install (per-user) -> {target}")
-    check(run_setup(installer, target, log) == 0, "the installer exits 0")
+    tasks = "" if app_id == TEST_APP_ID else "associate"
+    check(run_setup(installer, target, log, tasks=tasks) == 0, "the installer exits 0")
     exe = target / "OpenChemStudio.exe"
     check(exe.is_file(), "the application is installed")
     check((target / "_internal" / "openchem" / "chem" / "data" / "elements.json").is_file(), "its data files are installed")
@@ -183,7 +186,7 @@ def lifecycle(installer: Path, app_id: str, scratch: Path, smoke: bool = True) -
     mine = target / "plugins" / "my_own_plugin"
     mine.mkdir(parents=True, exist_ok=True)
     (mine / "plugin.py").write_text("# added by a person\n", encoding="utf-8")
-    check(run_setup(installer, target, log) == 0, "installing again over it exits 0")
+    check(run_setup(installer, target, log, tasks=tasks) == 0, "installing again over it exits 0")
     check(not stale.exists(), "a file the new version does not ship is removed (no mixed versions)")
     check((mine / "plugin.py").is_file(), "a plugin the person added is kept")
     check(exe.is_file() and registered(app_id), "the application and its registration are intact")
