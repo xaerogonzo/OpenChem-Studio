@@ -7,6 +7,830 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.11.0] — 2026-11-12
+
+The first release since 0.9.0 (the 0.10.0 tag was never published as a release). Windows x64 only,
+as a zip and as an installer. **Neither is code-signed yet**, so Windows SmartScreen will say
+"unknown publisher": choose More info, then Run anyway. Check your download against
+`SHA256SUMS.txt`.
+
+**Installing and trusting a download**
+- A Windows installer (per-user or all-users, upgrade-safe, and an uninstaller that asks before it
+  removes your settings or data). The zip unpacks into a versioned folder.
+- The built-in Help is compiled into the program, so it can no longer be broken by editing a file;
+  its "Open file" button opens a read-only copy.
+- The program checks its own data files at startup and tells you (About, and the status bar if
+  something is wrong) when an install is damaged. It reports; it never repairs or blocks.
+- Every release is built by a public workflow, smoke-tested by running the built program, and
+  published only after a person approves it.
+
+**What is new in the program**
+- **AI Assistant** can use the application's calculators, read your ORCA jobs and scores, and ask for
+  ORCA runs (proton affinity, bond dissociation, tautomers, Fukui, NMR on tautomers) that start only
+  when you approve a card saying what will run. Providers: OpenAI-compatible (including local
+  Ollama), Claude CLI and Cursor CLI on your own login. Its replies are checked against what the
+  application actually knows.
+- **Derived scores**: write your own formulas over calculated results, see them in Results and the
+  project table.
+- **Lewis pairing** recipe, **synthesis route planning** (AiZynthFinder set up from Settings,
+  behind a regulatory screen), **structure template library**, **salt composition** (Tools menu),
+  proton affinity and gas basicity, X-H bond dissociation enthalpy, tautomer distribution, Fukui
+  functions (experimental), xtb and Psi4 as extra quantum engines.
+- **Interface**: Light, Dark and Follow-the-system; interface size; grouped and ordered menus with
+  icons; a layout menu on every panel; Settings and External tools reorganised with a Setup guide;
+  a dedicated pKa window; Compare opens values in Results and reads them in plain English; goal runs
+  (including 1H NMR).
+- **Docking** says plainly that pose 1 is the best-scoring pose, not a verified one, and gives each
+  pose four physical plausibility checks.
+- **Naming** engine: many more structures are named and read back correctly (spiro, bridged, ylidene
+  and ion cases), with the known limits recorded.
+
+**Know before you install**
+- Several of the features above were verified by automated tests and scripted runs of the program,
+  and only lightly by hand. Calculators carry a maturity star (full, half, empty); trust the label.
+- External programs (ORCA, Vina, Psi4, xtb, AiZynthFinder) are not included; set them up under
+  Settings > External tools.
+- Results are computed estimates with stated limits; see the Scientific Limitations help page.
+
+<!-- release-notes-end -->
+
+### Salt composition, slice 5 (Tools menu)
+
+- Tools > Salt Composition asks for a charge-balanced formula unit from one
+  drawing or two project molecules (Analyze, two neutrals, two ions, or
+  enumerate). A charge-balanced composition is not an isolable salt, a
+  crystal, or a 3D ion pair. pKa is evidence and does not rank the list.
+
+### Salt composition, slice 4 (library, no UI)
+
+- Mode C enumerates candidate ionization states of one two-component pair:
+  user structures first, then ladder species, then identity; identical
+  compositions are kept once; at most 50 are returned with generated /
+  returned / omitted counts. pKa is not used to rank. Still no panel.
+
+### Template library first promotion
+
+- Ship cycloalkanes, extra heterocycles, solvents, and more named sugar anomers in the Template Library. Each molecule stays in one category; the research candidate dump is still not loaded.
+
+### Salt composition, slice 3 (library, no UI)
+
+- Fully specified ionization (site transforms; net charge alone refused;
+  several microspecies at one charge listed, not picked), two supplied ions
+  as given, a small cited ion catalog, and `pka_compatible` as named-step
+  evidence that never feeds `balance_two`. Still no panel and not a crystal.
+- Site ionization counts a bonded hydrogen atom. `GetTotalNumHs()` does not,
+  so an `AddHs` acetic acid refused deprotonation and a protonation could
+  stack an explicit-H property on the real hydrogen.
+
+### Structure template research catalog
+
+- Add a docs-only candidate inventory (195 complete molecules, 26 categories) with PubChem identity verification and ChEBI InChIKey matching. The files are not loaded by the application.
+
+### Salt composition, slice 2 (library, no UI)
+
+- Mode A for two molecular neutrals: `balance_two` on the product ions,
+  multiplicity-weighted formula-unit conservation, and refusals for
+  metal-hydroxide neutralization and a neutral plus a supplied ion with
+  no proton source. Still not a claim that a salt exists. No panel.
+
+### Help no longer says to install AiZynthFinder by hand
+- The Synthesis help topic, the architecture and roadmap notes, and the helper design now match **Set Up Automatically** (#572): the planner is still a separate Python, but the application can build that sidecar after asking first.
+
+### Drive: NMR, Results, and async Inspector dumps
+- `nmr_panes` and `results` emit one compact JSON object per tag (pane sizes and hide state; focus, search, jumps, report ids). `inspect` can take `"source": "result"` after `calculator` and `jobs_wait`, so a pH-charge Inspector is built from the filed dataset instead of a second synchronous `compute`.
+
+### VENDORING: record squash for fork #100 / app #576
+- NL-005 validator-limit port merged at `cf8fe964`; replace the fork row’s `squash pending` and the pre-merge base with the real squash and PR base.
+
+### Salt composition (library, no UI)
+
+- Two-ion charge balance as a domain function, and Mode B analysis of a
+  disconnected drawing: drawn counts, a diagnostic theoretical ratio, and
+  refusals for unbalanced, unsupported, and ambiguous inputs. Not a claim
+  that a salt exists. No panel and no calculator row.
+
+### Record that catalog docks are closed and must not be polled per ligand
+- ROADMAP, ranking benchmark, and DATA_AND_MODEL_NOTES now state the cheap learned/smina/PLEC/gnina path is closed (CNNaffinity HARMFUL, #564). A lesson and the docking README record that a per-ligand agent notify burned a week's usage on the 833-ligand GPU rescore.
+
+### Drive: louder Calculator Inspector dump
+- `inspect_report` writes one compact JSON object per tag: drawing vs 2D depiction vs the structure supplied to the 3D viewer, pane sizes, and the requested calculator id beside the result's property id. A walk without `expect` stays observational. `#:` comments on `SCHEMA_VERSION` and `INSPECT_REPORT_EXPECT_KEYS` keep them on the documented-constant ratchet.
+
+### The test suite runs in eight CI shards instead of seven
+- Shard 1 of seven timed out at the 30-minute step on PR #575 (`1e86235f`): 99% at 26 min, then four minutes of no output, no test failed. The other six shards of that run passed in 12–18 min. Eight carry the same files. The step limit is unchanged. The master ruleset's required checks must change from `test suite 1/7`…`7/7` to `1/8`…`8/8` when this merges.
+
+### Close NL-005 as a WS1 validator limit
+- Record programme disposition for the round-88 ylidene 23 (triage 2026-10-30; one row is `NL-108`) and close the adamantane-spiro flat name as a validator limit. Pin flat naming and OPSIN non-pinning in `tests/test_namer_nl001_nl005_ws1_validator_evidence.py`; dashboard updated in `docs/NAMING_LIMITATIONS_PLAN.md`.
+
+### Windows CI retries a shard that exits 1 after every test passed
+- A Windows shard can print a clean pytest summary (`3523 passed`, nothing failed) and still exit 1: a crash at interpreter exit with no `Windows fatal exception` text. The crash-rate workflow already classified that shape; the suite retry did not, so the job went red and was not retried (shard 5 of PR #575). `tests.yml` now passes `-ExitCode 1` into the classifier. A real failure and a timeout still fail the job.
+
+### Record the NL-109 ring-s fork port
+- VENDORING.md now cites fork #99 against already-merged app #571 (`7a4bc009`). The row was not in the code PR because the fork PR number did not exist yet.
+
+### Structure template library
+- Add an OpenChem-owned catalog of complete molecules (rings, free L-amino acids plus glycine, nucleobases, named sugar anomers), a Template Library dialog, and a normalized user library under the application data folder. Insert places a structure to the right of the drawing through Ketcher `addFragment` as one undo step. Peptide sequences and polymer S-groups stay on the roadmap; dummy-atom fragments are refused. After Undo, a lagging Ketcher molfile of the undone drawing is not pushed as a new command, so Redo stays available.
+
+### Dedicated pKa results window
+- Opening pKa or Microspecies Distribution now shows one window per molecule with mapped site labels, the sequential distribution chart, and pictures of that protonation ladder when they can be built from the stored site records; Major Microspecies stays the separate Dimorphite calculator.
+
+### AiZynthFinder can be set up from Settings
+- **Set Up Automatically** on the AiZynthFinder External tools tab builds a separate Python 3.12 environment, installs `aizynthfinder==4.4.1` with `pyarrow<21`, and runs `download_public_data`, after showing the size (~1.7 GB) and sources (PyPI, Zenodo, Figshare) and asking first. Browse still accepts an environment you already have; do not point it at the GitHub source zip.
+- Remove from Disk only deletes the copy this app built, not an environment you pointed it at yourself.
+
+### NL-109 VS231 cites (1s) with the cumulene (1p)
+- RDKit still leaves the cyclohexyl centre as `?`. Pair that SMILES `@`/`@@` with the one restored helix (`p`+`@` → `s`). Name `(1s)-1-ethyl-4-[(1p)-prop-1-en-1-ylidene]cyclohexane`.
+- Close NL-001 as a validator limit: two oracles already agree; OPSIN still reads no `r`/`s`; existing pins stay.
+
+### The test suite runs in seven CI shards instead of five
+- Shard 1 of five timed out at the 30-minute step with no test failing on unrelated PRs (#567, #569, Results navigation/settings). Six shards were tried on this PR: modelled even at ~1083 s, then shard 6 timed out at 98% of the step with no test failing. Seven carry the same 820 files. The step limit is unchanged. The master ruleset's required checks must change from `test suite 1/5`...`5/5` to `1/7`...`7/7` when this merges.
+
+### Naming programme: NL-109 VS231 cumulene axis cites p
+
+- Restore even-cumulene helical letters from SMILES `=[C@]=` / `=[C@@]=` (RDKit still drops the tag) and cite them on the ylidene (`1-ethyl-4-[(1p)-prop-1-en-1-ylidene]cyclohexane`; opposite winding `(1m)`).
+- The cyclohexyl `7s` remains omitted (RDKit CIP still `?`).
+
+### Naming a molecule no longer prints RDKit's parse and kekulize notes
+- The inorganic name table stored hydronium as `[H3O+]`, which RDKit rejects, so the entry was never used and the first name of a session printed a parse error. The key is now `[OH3+]`, the form RDKit writes, and the name is still oxidanium.
+- The ring table's bare purine skeleton cannot kekulize. Asking for atom numbers printed that and then kept the curated locants. It still keeps them, and it no longer prints.
+
+### A fact name still opens its result when the Showing filter hides that name
+- Clicking a fact name in All results keeps that result open when the Showing filter does not name it. The filter matches calculator names and sections, so the jump used to land and then snap back to All results.
+
+### Partial charge at pH 7.4 draws the structure that was charged
+- The 2D picture for a pH 7.4 partial charge is the microspecies the charges were computed on. A base that is protonated at 7.4 is drawn protonated, for both Gasteiger and MMFF94.
+- An older result that did not store that structure still draws the structure you drew. A result MMFF94 cannot compute does not invent one.
+
+### NMR viewer: hide the structure pictures, and stop the drag at a floor
+- **Hide 2D** and **Hide 3D** take those pictures off the spectrum. Hiding both removes the empty band above the plot. Showing one brings the pictures back. Reset Settings shows both.
+- A drag stops at about 80 pixels, so a picture cannot be dragged away. The choice lasts for this viewer only.
+
+### Run by goal: 1H NMR, saved choices, and Run all recommended
+- The Spectra goal looks up 1H NMR. A direct NMR Shifts run still starts on 13C.
+- A choice saved from a goal's Settings is used the next time that calculator is run from a goal: saved choice, then the goal's recommendation, then the registered default. An old or unknown value is ignored. Cancel does not save it. The same choice does not change a run started from Properties.
+- Customise shows the chemistry those settings will use (nucleus, charge method, pH, and the same kind of choice). Decimal places stay in Settings.
+- **Run all recommended** runs every recommended calculator once, after a confirmation that says how many calculations that is, which need a 3D structure, and what will be left out. Cancelling starts nothing. It does not change which calculators are ticked.
+
+### Results: jump from All results into one result, and back
+- In All results, a fact's name opens the result that produced it. The number stays text, and a fact that already has its own link (the > button) keeps that link as a separate action.
+- **All results**, beside Showing, returns to the full list. It is hidden while you are already there, and the search you typed is kept.
+- Side-by-side readers follow the same way they already follow the Showing list: a linked pane moves with the one you clicked, and an unlinked pane does not.
+
+### Naming programme: WS1 evidence, WS3 NL-022, NL-109 fork notes
+- WS1 validator-limit regression pins for `NL-001`, `NL-002`, `NL-005` (`tests/test_namer_nl001_nl005_ws1_validator_evidence.py`).
+- WS3 `NL-022` Blue Book sources and round 81–82 assembly name pins (`tests/test_namer_nl022_ws3_ring_assembly_sources.py`); programme row closed.
+- Cumulene-axis fork checklist for `NL-109` / VS231 (`benchmarks/naming/NL109_VS231_FORK.md`).
+
+### Naming programme: NL-008 and NL-021 closed; NL-109 VS231 measured
+- Re-measured NL-008 (methyl-branched alkenyl E/Z): round 44 pins hold with OPSIN read-back pins (`tests/test_namer_nl008_ws1_alkenyl_ez.py`).
+- Closed NL-021: Blue Book P-24.5/24.8 and P-73.4 sources for heteroatom spiro joints; D-384 spelling notes (`tests/test_namer_nl021_ws3_hetero_spiro_sources.py`).
+- NL-109: pinned VS231 flat name and RDKit gap; strict `xfail` for future cumulene `p` descriptors (fork) (`tests/test_namer_nl109_vs231_cumulene_axis.py`).
+
+### Close NL-009 (WS1) and NL-018 (WS3) in the naming limitations programme
+- Re-measure atropine, scopolamine, galantamine and ibogaine; pin names and OPSIN read-back in `tests/test_namer_nl009_ws1_natural_products.py`.
+- Record NL-018 as source-verified via round 87 `CONVENTIONS` in `tests/test_namer_nl018_ws3_numbering_conventions.py`; update the limitations plan dashboard.
+
+### Record CNNaffinity ranking power as HARMFUL
+- The frozen test (`PREREGISTRATION_CNN_AFFINITY.md`) finished 2026-11-08: 35 deciding series, median Δρ −0.130, series bootstrap [−0.330, −0.014], 0 dropped. Default-ensemble CNNaffinity of the representative Vina pose is closed (`RESULT_CNN_AFFINITY.md`).
+
+### Close NL-090 and NL-097 in the WS2 naming-limitations programme
+- Programme-close `NL-090` (6a/13a letter-locant methyls read back; 12b fusion carbon not drawable) and `NL-097` (ownership audit remains substitutive-only; scope documented in `KNOWN_LIMITATIONS.md`).
+- Add `tests/test_namer_nl090_letter_locant_methyls.py` and `tests/test_namer_nl097_ownership_audit_scope.py`; update the limitations plan, coverage matrix, and suite shard pins.
+
+### Document WS2 closure of NL-011 and NL-013
+- Update the limitations plan and coverage matrix: NL-011 closed with 19/20 OPSIN read-backs and chain #13 a strict validator xfail; NL-013 closed with the 3H arm pinned and the 1H arm not reproduced from round-81 data.
+- Add `tests/test_namer_nl013_purinone_purine.py` and a `naming_consumers.toml` row for the regression; pin the new file in `tools/suite-shard-pins.json` (`suite_shards.py --pin-new`).
+
+### VENDORING fork #97
+- `VENDORING.md` sync row for open-iupac-namer#97 / OpenChem-Studio#556 (NL-011 bucket C narrow).
+
+### NL-011 bucket C narrow
+- Multicomponent dispiro cites expanded partner names only for ``N``-alkyl on aza partners (#13); fixes spurious ``5-methylbicyclo`` citations on chains #6/#7/#14. Remeasured seed 8901: 19/20 OPSIN read-back (#13 validator xfail).
+
+### Freeze CNNaffinity ranking power vs Vina
+- `PREREGISTRATION_CNN_AFFINITY.md` is Frozen 2026-11-05. The question is whether gnina CNNaffinity of the representative Vina pose ranks the frozen 77 within-assay ChEMBL series better than that pose’s Vina score (paired complete-case Δρ; 35 deciding series after CrossDocked PDB hold-out). No catalog CNNaffinity in this commit. Nothing is in `src/`.
+
+### VENDORING fork #96
+- VENDORING.md fork #96 row (naming round 94 / NL-011 bucket C, app #553).
+
+### EEM: Model J measured against CHELPG and stays paused; a boron probe says not yet
+- Jiroušková's Merz-Kollman EEM model (Model J) was measured against ORCA's CHELPG charges on 37 molecules, with the shipped default EEM as the yardstick, under rules registered first (`benchmarks/charges/models/eem_second_models_preregistration.md` sections 13 and 15). Mean error 0.134 e and 1.13 times the yardstick's, but one heavy atom is 0.68 e off (the limit was 0.5 e), so by the registered rule it stays paused and is not offered. Eleven atoms are over 0.4 e and the default EEM is within 0.14 e of Model J on every one, so the default EEM shares the error. (A Merz-Kollman reference, below, turned out to say the same.)
+- A probe of whether one fitted boron type could be added (16 boron compounds, leave-one-out against CHELPG) came to 0.19 e mean error but 0.65 e on the worst boron atom (a hydridic B-H boron against halide and oxygen boron), over the registered 0.5 e. Boron stays refused by both models; nothing ships from the probe.
+- Model J was then measured against Merz-Kollman charges computed here from ORCA's electrostatic potential (checked on water and against CHELPG first). Same verdict: mean 0.141 e, but 0.65 e on the worst atom, so it stays paused. The earlier suspicion that CHELPG was to blame was wrong: the two references agree to 0.019 e on average.
+- A further panel of 26 chlorine, bromine and sulfur compounds (rule registered first, `eem_second_models_preregistration.md` sections 19 and 20) found Model J accurate on those elements: mean 0.087 e, worst atom 0.23 e, better than Model N's 0.125 e on the same atoms. The carbons beside them are not (worst 0.68 e). Measured and passed.
+- Model J is now a method of the 3D partial charge calculator ("EEM, Jiroušková 2009, Merz-Kollman 6-31G* (Cl, Br, S only)"), offered only for molecules containing chlorine, bromine or sulfur: a molecule with none of them is refused, and every result carries the measured errors (0.23 e at worst on those atoms; up to 0.68 e on carbons beside them; charged molecules not checked). Its general rule still failed, so it is offered for these elements and is not called unpaused.
+
+### Polarizability: the additive table was refitted to experiment, and is no longer called Jensen
+- The additive atomic polarizability had no recorded source and was labelled Jensen et al. 2002 in error. H, C, N, O, F, S, Cl, Br and I are now fitted to the experimental polarizabilities of 425 solvents (Bosque and Sales 2002), by a procedure fixed before fitting (`benchmarks/polarizability/`). On held-out solvents the mean error is 2.1 % (the old table: 7.8 %, always high); on a second, gas-phase set of 88 compounds it is 4.3 % (old: 9.8 %). It is weakest on very small molecules (water comes out 28 % low) and fused aromatics (about 11 % low), and the result says so. Phosphorus, silicon, boron and selenium were not fitted (no data) and keep unsourced values, with a warning on any result that uses one. The method id changes from `jensen` to `additive_refit`, and results stored under the old id came from the old table.
+- A second refit the same day added the CRC Handbook's table of molecular polarizabilities (264 more molecules) and one constant per molecule, because the first table was 16 % low on average for molecules of six atoms or fewer. On held-out molecules that bias is now 9 % low (water: 28 % low before, about 6 % now), the mean error on the CRC holdout 7.7 % against 8.4 %, and the solvent set unchanged at 2.1 %; the criteria were registered first (`benchmarks/polarizability/PREREGISTRATION_2.md`). Phosphorus and silicon are now fitted, to eight and six molecules, and say they are less certain; only boron and selenium remain unfitted. The per-atom values include an equal share of the constant.
+
+### Record gnina default dock as NULL
+- The frozen default-dock run (`PREREGISTRATION_GNINA_DOCK.md`, freeze `6301920e`) is NULL: 29 of 29 deciding receptors, Vina 20/29 vs gnina 21/29 (gained 4, lost 3, p = 0.5). Default gnina dock on this catalog is closed. Nothing is in `src/`.
+
+### Polarizability: the additive method no longer claims to be Jensen et al. 2002
+- The additive atomic polarizability table was labelled "Jensen (additive)" and cited to Jensen et al. 2002. Reading that paper shows it is a dipole-interaction model fitted for H, B, C, N, O, F and Cl only, and none of the table's numbers appear in it or in any held paper, so the origin is unrecorded. The method is now called "Atomic additive"; projects that stored the old label still select it, and the numbers are unchanged. The docs say what is and is not known about the table.
+
+### Freeze gnina default dock vs Vina
+- `PREREGISTRATION_GNINA_DOCK.md` is Frozen 2026-11-05. The question is gnina's own search (no `--score_only`; `--help` default `--cnn_scoring rescore`) into the survey box, not CNN rescore of Vina's poses. No catalog gnina dock in this commit.
+
+### Cao-Liu TSEI now computes for platinum, with a warning
+- Platinum has no covalent radius in Lange's Table 4.7, so the TSEI projection refused it. It now uses Cordero 2008's 1.36 Å, and the result carries a note that this radius is on a slightly different scale and that TSEI was only validated on alkyl, halogen and ether substituents. Other missing elements are still refused by name.
+
+### NL-011 bucket C
+- NL-011 seed 8901 chain #13: cite N-methyl on the `8-azabicyclo[3.2.1]octane` partner inside `dispiro[...]` instead of a `1-methyldispiro[...]` prefix (multicomponent partner sub-mol expansion + display name).
+
+### Record the gnina CNN pose-rescore as NULL
+- The frozen test (`PREREGISTRATION_GNINA.md`) ran on 2026-11-05: 29 deciding receptors, Vina 20/29 vs CNNscore 21/29, gained 3 lost 2 (p = 0.5). CNN rescore of these Vina poses is closed (`RESULT_GNINA.md`).
+
+### Freeze the gnina CNN pose-rescore test
+- `PREREGISTRATION_GNINA.md` is Frozen 2026-11-04 with `run_gnina_test.py`. The question is CNNscore re-ranking of Vina's nine poses (not gnina-as-dock, not affinity). Deciding n=29 after 18 CrossDocked2020 hold-outs. No catalog receptor is CNN-rescored in this commit.
+
+### gnina obtain-and-start spike PASSed
+- gnina v1.3.3 starts in WSL2 with the RTX 4060. The GitHub "static" binary still needs CUDA 12.8 + cuDNN 9 (~6.4 GiB on `D:/_scratch/gnina/`). No catalog receptor, no `src/` change, not an External Tools tab.
+
+### Sync bookkeeping
+- VENDORING.md fork #95 row (naming round 94 / NL-011 bucket A, app #548). `vendoring_mark_synced.py` gains `--append-row` for when the sync row was not added before merge.
+
+### Record the gnina obtain-and-start spike (not yet run)
+- `docs/GNINA_SPIKE.md` is slice 1 of the learned-scorer program: WSL2 + CUDA, official v1.3.3 Linux static binary first (~1.91 GiB), `--version` plus a visible GPU to PASS, no catalog receptor, nothing in `src/`. A Frozen preregistration waits on this slice.
+
+### Close the Vina-family second-engine pose-ranking route
+- `docs/DOCKING_ENGINE_CANDIDATES.md` records the frozen deciding run (overall HARMFUL) and says not to build an engine seam. Learned scorers (gnina, DiffDock-class) are named as a separate program if started, not an Amendment of this test.
+
+### Record the frozen engine pose-ranking deciding run
+- 690 docks (46 receptors × 5 arms × 3 seeds) finished after freeze. Primary vs Vina: vinardo NULL (0/1), dkoes_fast HARMFUL (0/8), ad4 HARMFUL (3/15); smina-default matched Vina on all 46. Overall HARMFUL. Artifacts in `benchmarks/docking/artifacts_engine/` (jsonl, `RESULT.md`).
+
+### Naming
+- NL-011 multicomponent `dispiro[...]`: von-Baeyer chain components with empty `numbering_options` now get spiro locants from `compute_vb_numberings` (seed 8901 bucket A; sixteen more chains read back).
+
+### Freeze the docking-engine pose-ranking test
+- `PREREGISTRATION_ENGINE.md` is Frozen 2026-11-04 with `run_engine_test.py` `list`/`dock`/`report`. Deciding docks are 5×3×46 = 690 (G4 drop 4PE5; training overlap empty). `list` starts nothing; `report` writes `RESULT.md` only on a complete, single-commit jsonl.
+
+### Mutation-check the engine preregistration gate rules
+- Thirteen unique-needle edits of `engine_core.py` (G1–G5 tolerances and comparators, G4 drop cap, failed-gate short-circuit, Bonferroni α, seed majority) are each killed in-process. A missing needle fails; the live file is not rewritten.
+
+### Pin G5 crystal-score fractions from the 17-pilot probe
+- Favourable is `--score_only` affinity < 0. Thresholds stay 16/17 (ad4 15/17). Catalog 47-receptor G5 PASSed all five arms (4PE5 on smina; 4DKL and 4PE5 on ad4). `run_engine_test.py g5` scores crystals without rewriting G1–G4 artifacts.
+
+### Close the engine-prereg training-overlap stratum
+- Open item 1 is resolved: Vina's PDBbind 2007 refined set (1300), Vinardo's Core 2013 (195), and the BindingDB CSAR dkoes index (746) each intersect the catalog in 0 ids, so `TRAINING_OVERLAP` stays empty and `TRAINING_PROVENANCE_UNRESOLVED` is cleared. PDBbind 2007 general's `1HSG` hit is not the Vina list.
+
+### Docs
+- Document PR body convention: no unchecked Test plan checkboxes; use Verified prose instead.
+
+### VENDORING workflow
+- Add `tools/vendoring_mark_synced.py` and a master guard so fork rows use `synced` in the code PR, or one post-merge commit instead of a follow-up PR (#547).
+
+### Wire G3/G4 gates and lock an empty training-overlap stratum
+- `gates` runs G3 (byte-identical re-dock of 7E2Y on each arm and seed) then G4 (47-receptor paired coverage; skipped on `--pilot`). Open item 1: DeepChem Core 2013 and the dkoes BindingDB proxy intersect the catalog in 0 ids, so `TRAINING_OVERLAP` stays empty; PDBbind 2020 PL hits are not the stratum.
+
+### VENDORING
+- Record open-iupac-namer#94 synced after NL-012 / D-395 (application #545).
+
+### Wire G2 score-only control into engine test runner
+- `run_engine_test.py gates` now runs G2 after G1 (Vina vs smina-default `--score_only` on nine poses for the first five pilot receptors, 0.01 kcal/mol) and skips G5 when G2 fails; `engine_g2_score_only.py` holds the measurement.
+
+### Set G1 tolerance from full-catalog Vina remeasure
+- `G1_DISTANCE_TOL` is 0.05 Å on the survey's two-decimal top-pose distances (was 0.005 Å in draft text); `PREREGISTRATION_ENGINE.md` amendment 1 records the 2026-11-04 remeasure and repeat probe; G1 compares at centi-Å precision like `prep_box_survey.py`.
+
+### NL-012 shape 4: bis methano-benzazocine spiro (D-395)
+- When articulation-split spiro cites the same ring-table PIN on both partners, the primed side now uses the von Baeyer systematic name so OPSIN read-back matches the input (locants `4,8'`).
+
+### Wire G1 survey-repro gate into engine test runner
+- `run_engine_test.py gates` now reruns Vina at seed 20261029 against `artifacts_prep_box` before G5, writes `g1_results.jsonl`, and skips G5 when G1 fails; logic lives in `engine_g1_survey.py` with tests pinning the 47-receptor recorded set.
+
+### Engine preregistration: pure decision rules and literature checklist
+- `benchmarks/docking/engine_core.py` holds the frozen majority-over-seeds rule, gained/lost tallies, Bonferroni sign tests and gate helpers for `PREREGISTRATION_ENGINE.md`; per-arm `G5_MIN_FRACTION` is pinned from the pilot crystal probe. `run_engine_test.py gates` runs G1 then G5 on the measurable catalog (or `--pilot`); shared crystal scoring lives in `engine_g5_crystal.py`. `tests/test_engine_core.py` pins the boundaries. The preregistration's open items now list which training-set sources are held locally versus still needed.
+
+### Naming round 93: flat dispiro, azanide enclosure, boron spiro uide
+- `name_polycyclic_spiro` offers `_try_multicomponent_spiro` before nested articulation (NL-011; D-390, D-393, D-394). Compound acyl azanides parenthesise inline substituents (NL-081; D-391). Ring spiro boron anions name as P-72.4 `-uide` PINs (NL-010; D-392).
+
+### Naming limitations: three leftover matrix cells closed
+- `NL-010` (`D-392`), `NL-016` and `NL-056` met their cells. `NL-011` gained `D-393` and `D-394`. `NL-013`, `NL-090` and `NL-097` stay open.
+
+### Naming limitations: the remaining coverage cells were run
+- `NL-006`, `NL-015`, `NL-077`, `NL-081` (`D-391`) and `NL-095` met their cells and closed. `NL-016`, `NL-056`, `NL-090` and `NL-097` were run and stay open.
+
+### Naming limitations: five round-14 misnames read back
+- `NL-099`: the acylamidine, the thioamidine oxime ether, the purine, the hydrazide and the steroid oxime ether each read back as the drawing. `D-162` was not reopened.
+
+### Naming limitations: the two methano-benzocyclooctenes read back
+- `NL-098`: `census1027625` and `census1746625` are now named as the oxa and aza tricycles, and each name reads back as the drawing. The old methanobenzocyclooctene names still denote other molecules.
+
+### Naming limitations: the tetrahydropteridinone assembly reads back
+- `NL-014`: the one round-82 assembly is named `3-hydroxy-8-(5,6,7,8-tetrahydropteridin-4(3H)-on-7-yl)-5,6,7,8-tetrahydropteridin-4(3H)-one`, and OPSIN reads that name as the drawing. The earlier `1-hydroxy-5-` name is not what is emitted.
+
+### Naming limitations: the stored purinone pair reads back
+- `NL-013`: the round-81 hypoxanthine joined to a `3H-purin-3-yl` is now named as the 6-one, and OPSIN reads that name as the drawing. The `1H-purin-1-yl` pair was not in the saved output, so the cell stays open.
+
+### Naming limitations: four spiro shapes re-measured
+- `NL-012`: the round-85 tricyclic case now reads back. Two names that OPSIN could not read are unchanged. A spiro of two methano-benzazocines still reads back as another molecule.
+
+### Naming limitations: three-component spiro chains do not read back
+- `NL-011`: twenty polycyclic spiro chains (seed 8901) are each named as a nested `spiro[spiro[...]]`, and OPSIN reads none of them. The flat dispiro name of the first chain does read back and is filed as open defect `D-390`.
+
+### Agent instructions: the drive-step catalogue left CLAUDE.md
+- The `OPENCHEM_DRIVE` step catalogue now lives in `docs/DRIVE_STEPS.md`, and the lesson-title index is a pointer at `docs/LESSONS.md`, so `CLAUDE.md` fits inside the text Cursor pastes into an agent prompt.
+
+### Naming limitations: the first WS2 cell, unusual spiro atoms
+- `NL-010` was run: an arsenic, stibonium, sulfur(VI) and selenium(VI) spiro atom each read back through OPSIN. The borate spiro `C1CC[B-]12CCCC2` is refused rather than named as the neutral compound, so the cell is not met.
+
+### Naming limitations: the WS2 coverage matrix, and the two NL-108 rows classified
+- The WS2 coverage matrix is written before any population (`docs/NAMING_COVERAGE_MATRIX.md`, seeds 8901 and 8902); no probe was run.
+- `NL-108`: the `(6'Z)` on the bicyclo[2.1.1]hexane one-atom bridge matches the CIP label and OPSIN cannot verify it, so it stays a validator limitation; the bicyclo[1.1.1]pentane name omits E/Z because the CIP label is seqTrans, not E or Z.
+
+### The assistant's replies are now checked against what the application knows, and a false claim is said so under the reply
+- If a reply says a preview is waiting for your approval but no approval card is showing, a line under the reply says so ("Nothing was requested and nothing will start"), and the model is told with your next message so it can correct itself. A reply that says the opposite ("there is no preview waiting") is left alone, and so is a true claim.
+- If a reply states a decimal number that appears in nothing the model was shown (the molecule summary, your messages, any calculator result in the conversation), a line names it and says to treat it as the model's own, not a result from this application. Rounding is allowed; more places than were shown is not. This applies only when the calculator tools were offered.
+- It never blocks or edits a reply and never starts or stops anything. Found by a live local-model run (it said a preview was waiting when none was, and quoted a molecular weight it had not read). It looks at the cards a moment after the reply, because a card can arrive just after it, and the line is scrolled into view.
+- The drive harness gains `ai_expect` with `findings`, and `ai_wait` logs what the check found.
+
+### Docking engine candidates: only smina brings another scoring function to native Windows, and a pilot plus a draft test are written up
+- New `docs/DOCKING_ENGINE_CANDIDATES.md`: licence, Windows binary, size, version and whether it ran, for smina, QuickVina 2 / QuickVina-W, Vina-GPU, AutoDock4, AutoDock-GPU, Uni-Dock and the closed-source engines, plus a pinned-seed redock of 17 catalogued receptors through the survey's own harness (`benchmarks/docking/engine_pilot.py`). The speed-up engines use Vina's own function and so cannot change pose ranking; smina's other functions gave a mixed result on one seed. Nothing is added to `src/` and no engine ships.
+- New `benchmarks/docking/PREREGISTRATION_ENGINE.md`: a DRAFT, not frozen, preregistration for the full test (2.0 A cutoff, three seeds, gained/lost per receptor, exact one-sided sign test, input gates before any count is read).
+
+### Measured: agreement among Vina's poses does not reliably say whether pose 1 is right
+- `benchmarks/docking/pose_agreement.py` counts, per catalogued receptor, how many of the other poses sit within 2 A of pose 1 and compares that with whether pose 1 is right. The trend points the hoped-for way (70% right with no agreeing pose, 82% to 88% with two or more) but is not distinguishable from chance on 46 receptors (p = 0.26 at best), so no agreement cue was added to the Docking panel; `RESULT_AGREEMENT.md` holds the table. `RESULT_PLEC2.md` also records that ODDT's `master` already carries the hash fix. No change under `src/`.
+
+### A local model's reply is now bounded and retried when empty, and the assistant says when a reply was empty or cut off
+- The Ollama provider now asks for at most 1,024 tokens per reply, with a frequency penalty of 0.5, and asks again once when a reply comes back with no text and no tool call. A live `qwen2.5:14b` run generated one reply for over 15 minutes (it was writing an endless list of invented settings); 4 of 6 first turns did that before the bound. OpenAI and Anthropic are unchanged.
+- When a reply is empty, or stops at the length limit, the transcript now says so instead of showing a blank line.
+- Measured, and recorded in `docs/AI_CALCULATION_BRIDGE.md` section 27: the whole approval path ran once with a live model (card, Approve, real ORCA, the note), but over ten action prompts the model left a card in 4, twice said a preview was waiting when no card existed, and answered a question as if it had read a result it had not. Nothing ever started without an Approve. One model on one machine.
+- The drive harness gains `ai_wait` (wait for a live model to finish) and `OPENCHEM_DRIVE_CAPTURE` (write the first live request to a file, to replay against the server).
+
+### The assistant can use its tools through the Cursor CLI, on your Cursor login and with no API key
+- A new provider, `cursor_cli`, runs the assistant through `cursor-agent` (sign in once with `cursor-agent login`). It takes the same tools as the Claude CLI provider through the same written protocol, so the approval cards and the regulatory check are unchanged. Calls count against your Cursor plan; the default model is whatever Cursor is configured to use, and Configure... lists a few others.
+- Cursor's agent cannot have its own tools switched off, so each call runs in a throwaway folder in read-only mode with a permissions file that denies file, shell, web and MCP access. Measured: in read-only mode it still read a file outside its folder, and the permissions file stopped that. Shell and write were refused with or without the file, so those rules are untested defence in depth here. `tools/check_cursor_cli_isolation.py` re-runs the probe (and a control without the file); run it when Cursor updates.
+- The Ollama model list in Configure... now offers `qwen2.5:14b`. Tried live on one model and one prompt (`benchmarks/visual/ai_live_cursor_cli.json`): it searched, described the calculator, requested it with valid settings and left a card with nothing started.
+
+### The assistant can use its tools through the Claude CLI, on your Claude subscription login and with no API key
+- The `claude_cli` provider now takes this application's tools, so the assistant can read results, ask for calculators and leave approval cards while running on a Claude subscription instead of the API (each call counts against your plan's limits). The CLI has no tool interface for them, so the tools are offered through a written protocol: the model writes one fenced `tool_calls` block, the application reads the first block, runs the tools as it does for any provider (the approval cards and the regulatory check are unchanged) and shows the model the results. A reply that does not hold to the protocol is shown as written, never lost.
+- Every call to the CLI now leaves your own Claude Code context out (your CLAUDE.md files, skills and MCP lists): a one-word prompt created 60,075 prompt tokens before and 1,090 after. This also applies to the plain-text path the provider already had. Your login still works.
+- Tried live on one model and one prompt (`benchmarks/visual/ai_live_claude_cli.json`): it described the calculator, requested it with valid settings and left a card with nothing started. The Cursor CLI is not done.
+
+### The assistant answers in the language you write in, and a local Ollama model is asked at a lower temperature
+- The system prompt now says to reply in the language the user writes in (English if they write English). A live `qwen2.5:14b` run answered an English question in Thai when nothing said which language to use.
+- The Ollama provider asks for a temperature of 0.2 instead of the server's default (0.8 on Ollama), which was loose for tool calling: the same run invented about seventy settings for one calculator. The OpenAI and Anthropic providers are unchanged.
+- The drive harness's `ai_send` step takes `"live": {"provider": ..., "model": ...}` to send through a real provider and record what it did (`benchmarks/visual/ai_live_ollama.json`).
+
+### PLECscore re-tested on properly built inputs: it ranks Vina's poses worse, not better
+- The first PLECscore test was invalid: ODDT 0.7 hashes with Python's tuple `hash()`, which changed in Python 3.8, and the poses and receptor arrived without bond orders, charges or non-polar hydrogens. `benchmarks/docking/PREREGISTRATION_PLEC2.md` repeats the test on the same poses with the old hash restored, ligands rebuilt on their chemical-component template, the receptor written out before the PDBQT step and a fidelity gate; both gates passed and the verdict is HARMFUL (1 receptor gained, 10 lost, `RESULT_PLEC2.md`). No change under `src/`.
+
+### The assistant can ask for Fukui functions, and ORCA starts only if you approve a card that says what it is and that it is experimental
+- `run_calculator` on `orca.fukui` now leaves a card instead of "run it from its panel". The card names the method, how many ORCA single points the run is (counted from the same plan the run is written from, under your Settings > Quantum chemistry choices: the neutral, the cation and the anion, extra starts for an anionic state at a basis with diffuse functions, and the three cation starts that look for other cation states), that the states are vertical, and, for an anion, that its f+ comes from a dianion. It also says the stage in the registry's own words: experimental, and which two preregistered checks it failed. Approve is the only thing that starts it; the calculator stays experimental and hidden by default.
+- An open-shell request, or a species whose electrons cannot all be paired, is refused before a card exists, in the words the Quantum Chemistry panel uses. Conformer averaging is not something a card can choose.
+- `QuantumChemistryService.fukui_options()` is a read-only view of the two Fukui settings, so a card and the run read the same ones. The two drive scripts that used Fukui as their example of a calculator that is only described now use docking.
+
+### Compare: open a value in Results, calculate the basics, and read it in plain English
+- Double-click a value in Compare (or press Enter, or **Show in Results**) to select that molecule and open that one fact in the Results panel, with its evidence and limits; the Property column opens the first molecule that has a value. A value that is no longer stored says so instead of doing nothing.
+- A **Calculate basic properties** button works out the everyday properties for the ticked molecules only (reusing anything already held), with progress shown, so the first look at two molecules is not a table of blanks. Opening Compare still calculates nothing by itself.
+- Rows are now keyed by the report they came from, so two calculators that both report "Energy" are two rows instead of one overwriting the other. Copy, CSV and the table text are unchanged.
+- **Explain things in plain English** (Settings, Appearance; on by default): selecting a row says what the property means, the highest value is marked with a triangle that does not claim better or worse, two molecules get a short summary worded as calculated/estimated, and ratios are only quoted where a ratio means something (not for LogP). Off gives the plain table.
+- **Open side by side** (Compare): the ticked molecules in their own window, one linked Results reader each (side by side for two, tabs for more). Choosing a report or typing a fact filter in one pane moves all of them, double-clicking a value in Compare takes all of them to it even with linking off, and a molecule without that result says so instead of silently showing everything. The panes are fed from each molecule's stored results without selecting it and without publishing anything, held to the selected-molecule panel by a parity test (`ui/reader_entries.py`).
+
+### The assistant can ask for NMR on the tautomers of a finished tautomer distribution, and ORCA starts only if you approve the card
+- New calculator `orca.tautomer_nmr` (experimental, hidden by default like the tautomer distribution it starts from). `run_calculator` on it leaves a card that names the finished distribution run it would start from (the newest, or the one named by `distribution_run_id`), the tautomers, the number of ORCA NMR jobs, that it takes the representative conformer of each tautomer, anything it leaves out and why, and that a missing cached reference for the method stops the run at its first result. Approve is the only thing that starts it. With no finished distribution the assistant is told to run the distribution first.
+- It runs on the geometries that distribution optimized, so nothing is embedded or optimized again, and a drawing edited after the card withdraws it. The run shows in the Quantum Chemistry panel, can be stopped from its card, and the assistant is told how it ended with your next message.
+- The Tautomer NMR button's question, queued line and start moved into `chem/quantum_run_request.py` as `PreparedTautomerNmr`, shared with the card; the button's behaviour is unchanged (its tests pass as they were). The card and the calculator have an explainer in `docs/explainers/nmr_tautomers.md`.
+
+### SOURCES.md index leads with the article title and DOI
+- The index and each entry heading in the generated `docs/SOURCES.md` now show the article or book title and a DOI link beside the registry key, so a source can be found without knowing the author-year key. Generator change only; `sources.toml` is untouched.
+
+### Docs: menu icons, the contrast finding and the dead-submenu lesson
+- The user guide now says which menu commands carry an icon, the appearance design page records that increased contrast was measured and not built, and the lessons file explains the "QAction already deleted" flake that the menu icons exposed.
+
+### Icons on the menu entries used most
+- Nine commands (New, Open and Save Project, Undo, Redo, Recalculate Now, Settings, Exit and Help for the Current Panel) now carry a small drawn icon beside their name. The icons follow the Light or Dark look and grey out with a disabled command; every other entry stays text-only, and no command's name, id or shortcut changed.
+
+### The Synthesis panel can screen a saved plan against the regulatory rulesets again
+- A plan kept in a project file comes back with the alerts it had on the day it was made. The new **Re-screen** button screens the plan's molecules again today, in the background, and replaces the old alerts and the line saying they were not repeated. The regulatory check on the target runs first, as for any request, and a target it no longer allows replaces the plan with the refusal. Only the alerts change, never a route, and no planner is started.
+- If the screen cannot be made, the plan keeps its old alerts and its dated line. The assistant can read a plan but cannot ask for a re-screen.
+
+### An ORCA job you approved for the assistant has a Stop job button in the assistant's panel
+- Approving the assistant's card for an ORCA job now leaves a running card with a **Stop job** button until the job ends. It cancels the job the way the Quantum Chemistry panel's Cancel button does. Pressing it only asks: the run ends when ORCA's run record says it was cancelled, so the ledger, the note the assistant is given with your next message and the stored run agree. If the job cannot be stopped from there, the card says so and gives the button back.
+- Only you can press it: the stop is on the approvals handle, which the assistant's tools are never given, and the run's own message now says a person stopped it rather than naming the panel.
+
+### Bond dissociation: past six bond classes, the O-H, N-H and S-H bonds are kept before the C-H bonds
+- When a molecule has more than six X-H bond classes, the Bond dissociation dialog's ticked default and an assistant's card now keep a heteroatom X-H bond before a C-H bond, in the molecule's own order. Before, the first six by atom order were taken, so hexanol's O-H was left out while five of its six C-H classes were computed. The dialog and the card use one function (`bond_dissociation.default_bond_atoms`), so they cannot disagree; a molecule with six or fewer classes is unchanged, and the dialog still lets a person tick any six.
+
+### Settings > Appearance has an Interface size: Default, Larger or Large
+- Every panel, dialog and table scales its text from the system's own size (x1.15 or x1.3), and a change applies at once with no restart. The pixel-sized notes and the element cells scale with it, and the Settings list refits. The 2D editor and the 3D viewers are web pages and keep their own zoom. A 1.5 step was measured and left out: it elided two Properties controls at the default panel width. See `docs/INTERFACE_SIZE_DESIGN.md`.
+
+### Settings > External tools lists its tools under headings instead of a scrolling tab strip
+- The twelve tool pages needed about 1040 px of tabs in a window about 600 px wide, so the strip scrolled sideways and hid the last third of the tools. They are now a list down the left (Programs, Python environments, Downloads, Disk) and every tool shows at once. The pages' button rows wrap so a page no longer sets the window's width.
+
+### Geometry partial charges: NEEMP 2016 EEM method with a resonance option
+- `geometry_partial_charge` gains a fourth method, NEEMP 2016's Ccd2016 EEM (typed by element and highest bond order; fitted to NPA charges of PDB ligands; H, C, N, O, F, S, Cl, Br, P). Nitro and carboxylate oxygens would get different parameters by how the structure is drawn, so a new option averages them over the resonance forms (default), uses the drawing as it is with a warning, or refuses. Boron, iodine, metals, several components and unpaired electrons are refused with a named reason. Sulfur bonded to two oxygens and phosphorus above 1.5 e carry a warning: against CHELPG and Loewdin charges this model ran about 1 e higher on them. Jiroušková's Merz-Kollman model stays unoffered.
+
+### The assistant can ask for a tautomer distribution, and ORCA starts only if you approve the card
+- `run_calculator` on `orca.tautomer_distribution` now leaves a card, like the other ORCA calculations. It states the charge, multiplicity and method and basis, how many ORCA geometry optimizations the enumeration gives (the tautomers, their stereoisomers and the lowest distinct conformers of each), and, when it applies, that a tautomer or stereoisomer over its cap makes the result incomplete with no population percentages. Approve is the only thing that starts it. It runs on the drawing, so no 3D conformer is needed, and a drawing edited after the card withdraws it.
+- A card uses the default conformer search whatever the panel's Full ORCA conformers box says, since that box is a different model and a card cannot state a widget; the card names the Tautomers button as where to choose the other.
+- The tautomer-distribution run record carries no input fingerprint, so its completion is matched by molecule and calculation type; the assistant is told how it ended and reads the run as `unverifiable` (the record cannot be compared with the drawing), by the run id the note names.
+- The Tautomers button's job count, cost question and queued line moved into `chem/quantum_run_request.py` as `PreparedTautomers`, shared with the card; the button's behaviour is unchanged (its tests pass as they were).
+
+### Phase B computed arbiter: result for pentaerythritol and NIBTN (computed, not measured)
+- The arbiter plan's coupled-cluster runs finished and `benchmarks/energetics_props/arbiter/RESULT.md` records them, labelled `computed`: validation RMS 1.31 kJ/mol (floor 3.0), pentaerythritol gas phase -785.4 kJ/mol with 2U 8.6 (it separates the sublimation rows, favouring the two low ones), NIBTN -330.2 with 2U 10.9 (neither condensed measurement is compatible under the fixed rule, so it cannot arbitrate), and PETN 26.7 kJ/mol below its derived comparator, which weakens the NIBTN reading. No `value_kind`, rule or section-11 number changes and R1 is unmet. `arbiter_run.py` gained `--fast-scratch` so ORCA's temporary files can go to a fast drive; the first attempt on a hard disk was too slow.
+
+### The 2D editor's dialogs and the macromolecule viewer's panels are dark in a dark window
+- The 2D editor's own dialogs (Atom Properties, Bond Properties, Settings, the periodic table and the rest) used to open as a white box in a dark window; they are dark now, and so are the macromolecule viewer's side panels (Home, Structure Tools, the sequence panel). The structure keeps its own colours in both: nothing above the 3D canvas or the drawing is filtered. Light mode is unchanged.
+- An imaginary vibrational mode's row in the IR view is a lighter red in a dark window (pure red was 3.4:1 on the dark table).
+- A colour sweep of the interface's own code: every hex literal is now either given a dark value, readable on dark (4.5:1), or listed with the reason it is neither; a new unreviewed one fails a test. The result and a table of how each part of the interface follows the look are in `docs/APPEARANCE_DESIGN.md`.
+
+### The assistant can ask for a bond dissociation enthalpy, and ORCA starts only if you approve the card
+- `run_calculator` on `orca.bond_dissociation_enthalpy` now leaves a card, like the single-job ORCA calculations and the proton affinity. The protocol is fixed; its one choice, which bonds, is what the Bond dissociation dialog ticks by default (every X-H bond class, the first six when there are more), and the card lists them, says how many ORCA jobs that is and whether the benchmark measured the molecule, and says which bond classes it leaves out and that the Bond dissociation button is where to choose others. Approve is the only thing that starts it. It runs on the drawing, so no 3D conformer is needed, and a drawing edited after the card withdraws it.
+- The weakest bond is what the run finds, so the card cannot pre-select it: the result states the weakest bond computed and every bond's own value.
+- The Bond dissociation button's rules (the structure check, the scope refusal, the job count and the question) moved into `chem/quantum_run_request.py`, shared with the card; the button's behaviour is unchanged (its tests pass as they were).
+
+### The assistant can ask for a proton affinity, and ORCA starts only if you approve the card
+- `run_calculator` on `orca.proton_affinity` now leaves a card, like the single-job ORCA calculations. The protocol is fixed, so the card has nothing to choose: it states the base, how many ORCA geometry optimizations with frequencies that is, and whether the benchmark measured it; Approve is the only thing that starts it, and a base the protocol cannot compute (a charged one) gets its reason and no card. It runs on the drawing, so no 3D conformer is needed, and a drawing edited after the card withdraws it.
+- The proton-affinity button's rules (the structure check, the scope refusal, the job count and the question) moved into `chem/quantum_run_request.py`, shared with the card; the button's behaviour is unchanged (its 11 tests pass as they were).
+- The preview of a calculator that runs from its own panel no longer lists "a 3D conformer" as a requirement for proton affinity, bond dissociation and the tautomer runs, which need none.
+
+### Settings has section headings, the Keyboard page remembers its groups, and the command palette shows where a command lives
+- The Settings section list now has two headings, **Window** and **Calculations**, over the sections (still A-Z inside each). A heading is not a page: the arrow keys step over it, Home goes to the first section, and clicking it changes nothing. Every page is found by the section's id, never by its row, so opening Settings at a section from anywhere works as before.
+- Settings > Keyboard gains **Expand all**, **Collapse all** and **Reset layout**. Which groups you left closed is remembered between sessions (stored under stable group ids, not the headings you read, so rewording a heading cannot lose it). A search is only a temporary view: it opens the matching groups, and clearing it puts the groups back as you had them.
+- The command palette draws each result's menu path (for example `Tools > Calculators`) dimmed on the right of its name; a long path is shortened from its left and never pushes the name aside, and a narrow window no longer scrolls sideways.
+- The Settings text for Appearance still said the 2D drawing area stays light in dark mode; it now says what it does.
+
+### The AI Assistant can ask for an ORCA job, and ORCA starts only if you approve the card
+- `run_calculator` on a single-job ORCA calculation (`orca.sp`, `orca.opt`, `orca.opt_freq`, `orca.nmr`, `orca.nmr_coupling`, `orca.delta_scf`, `orca.led`) now leaves a card with the molecule, the method and basis, the charge and multiplicity and what the job costs, instead of only describing it. **Approve is the only thing that starts ORCA**, and the assistant has no call that presses it. The job then runs in the Quantum Chemistry panel by that panel's own Run rules (the same refusals, the same conformer, the same arguments to the service), where it can be followed and cancelled, and the assistant is told how it ended with your next message and reads it with `read_quantum_runs`. Proton affinity, bond dissociation, tautomers and Fukui stay "run from its own panel".
+- A card is bound to the drawing as well as the conformer: the stored conformer keeps its fingerprint when the drawing is edited, so a card for a structure that has since changed would have survived the edit. It is withdrawn now and hands nothing to ORCA.
+- The Quantum Chemistry panel's interaction-breakdown cost dialog reads its rules and words from the same shared review the card uses; the boxes it shows are unchanged.
+
+### Preregistered test: does PLECscore order Vina's poses better than Vina does?
+- `benchmarks/docking/PREREGISTRATION_PLEC.md` fixes, before any receptor is rescored, a test of re-ranking the nine Vina poses of each catalogued receptor by ODDT's shipped PLECscore, with the decision rules in `plec_core.py`, a three-stage runner (`run_plec_test.py`, and `plec_rescore_runner.py` run by ODDT's own Python) and `tests/test_plec_core.py`. Eight receptors that are in the model's own training set are reported apart. The one-receptor smoke test found three places where ODDT 0.7 meets a modern library; they are recorded in the preregistration. Run: INCONCLUSIVE by the preregistered sanity rule; 1 receptor gained and 18 lost their correct top pose (`RESULT_PLEC.md`). No change under `src/`.
+
+### The Quantum Chemistry panel's Run rules are in one function (`chem/quantum_run_request.py`)
+- Every rule for "may this molecule be run on ORCA as asked, and with what" (a molecule, a conformer, a usable one, a method, an open-shell Fukui run, an average over conformers) moved out of the Run button's 125-line handler into `prepare_run`, with `RunChoice`, `PreparedRun`, `RunRefusal` and `start`. The button reads its widgets into a `RunChoice` and calls it; nothing it does changed. This is the first step of letting an assistant's card start an ORCA job the person approves: the card has to be checked by exactly the rules the button is, and could not be while they lived in a handler that read widgets.
+- The button's behaviour was pinned through the real panel before the move (`tests/test_quantum_run_button.py`, 16 tests; most branches had none), and the function is tested directly (`tests/test_quantum_run_request.py`, 14 tests).
+
+### Naming round 92: ring and ylidene stereo is named, and a polyspiro system's terminal rings are numbered both ways
+- RDKit's legacy stereo perception cleaned the chiral tag off ring atoms whose branches differ only by another centre's configuration, and the stereo of a double bond between two rings, when a SMILES was parsed, so the engine never named them (`4-methyl-1,1-bis(4-methylcyclohexyl)cyclohexane` lost the central ring's `1r,4r`, a cyclohexylidene lost `E` and `s`, a carbinol between two such rings lost its `R`). `name_smiles` now runs under RDKit's non-legacy perception (counted and restored, so concurrent calls are safe), and three CIP Validation Suite entries carry the suite's labels. Closes most of NL-109.
+- A terminal ring of a polyspiro system is numbered in both directions, the numberings that tie are offered to the stereodescriptor tie-break, and a chirality centre precedes a pseudoasymmetric one when every rank ties: the tetraoxatetraspiro of the book's P-93.5.3 example 5 is `(3R,4r,7S,10s)-1,5,8,11-tetraoxa...` in 16 of 16 atom orders (it was `1,6,9,12` or `1,5,9,12`). Closes NL-107 (D-389).
+
+### Naming limitations plan: the CIP Validation Suite recorded as a second oracle, NL-109 filed
+- NL-001's bridged cases agree with the suite's labels; NL-107's descriptors are right at atom level (numbering direction only); NL-109 records four suite entries where the engine states fewer or different stereo descriptors. Documentation only; nothing from the suite is copied into the repository.
+
+### The AI Assistant can read the ORCA jobs you ran (`read_quantum_runs`)
+- A new read-only tool lists the ORCA jobs run for the selected molecule: which calculation, the method and basis, charge and multiplicity, whether it finished, failed or was cancelled, what it warned about, and which outputs it produced. Asked for a job by id (up to three at a time), it also reads the numbers, an infrared analysis as its modes. Before, the assistant could read an ORCA energy but could not see a job that failed or was cancelled, a warning, a spectrum or a vibrational analysis. A run on an earlier structure is marked historical and listed only on request. It cannot start, stop or approve a job, and the structure that went to ORCA is never sent.
+- The serialiser behind `read_results` told every infrared spectrum as "0 peaks" (a vibrational spectrum keeps its numbers in modes, not per-atom values). It now tells the modes, for a stored result as well as a run.
+- New drive step `qc_fixture_run` gives a molecule a run without starting ORCA, and `benchmarks/visual/ai_quantum_runs.json` drives the tool in the real window.
+
+### A person can choose which piece of a salt or mixture the calculators describe
+- **Properties** shows a "Compute on:" row under the header when a drawing has two or more different components: Automatic (ChEMBL's parent, else the largest piece, as before) or any one component. The pick is a command, so it undoes and redoes, and it recomputes the molecule's results for the piece now meant.
+- **Saved with the project** as the component's canonical SMILES (`component_choice` on the molecule, written only when set), so a redrawn or reordered drawing keeps the choice and an older project opens with the automatic pick. A choice no component matches any more (the drawing was edited) falls back to the automatic pick.
+- **The result says so**: its first limitation and `caveat` read "the component you chose", and its record has `component_choice = "chosen"` where the automatic largest-component pick records `"largest"`. The choice is part of the drawing's input fingerprint, so a result for one piece is never replayed for another.
+- **Not covered yet**: the three pure-substance methods (solubility, Joback, Hansen) still refuse any second component, and a metal complex still refuses (ChEMBL's exclusion), whatever is chosen.
+
+### Docs: the roadmap's Phase 1 to 4 status paragraph is current again
+- `docs/ROADMAP.md` said bond dissociation energy was "preregistered and not yet reported", that scores over 3D numbers were not built, and that the synthesis helper's Stage 1 was built with only the second quality protocol left. All three were out of date. The paragraph now says what is true on master: proton affinity and bond dissociation are LIMITED and shown (since 2026-10-23 and 2026-10-25), scores over 3D numbers are built, the planner's quality was measured three times (the patent-route figure of protocol 2 and the lower figure of protocol 3, on routes newer than the model's training data), and what is still not built is the ORCA dispatch adapter and the live provider run for Phase 1.
+
+### The Docking panel says pose 1 is the best-scoring pose, not a verified one
+- A sentence under the pose table quotes the redocking measurement (the top pose was within 2 A of the crystal pose for 35 of 47 receptors, and for 9 more a pose that close was among the nine but ranked lower) and names, in this run, the poses that score within 2.85 kcal/mol of pose 1 yet sit more than 2 A from it, because the score cannot separate those. Hovering such a row says where it sits. It never names a correct pose. The arithmetic is `chem/pose_choice.py`, and a test holds the quoted figures to `benchmarks/docking/PREP_BOX_RESULT.md`.
+
+### Naming limitations plan: Blue Book oracle for NL-001 and the 23 ylidene molecules triaged
+- The Blue Book's `r`/`s` worked examples agree with the engine's pre-validation descriptors on three bridged constructions (`NL-001` stays a validator limit); `NL-002` has no book oracle and is blocked; 18 of the 23 ylidene inputs are not embeddable by RDKit so the pin test cannot judge them; two new rows (`NL-107` tetraspiro numbering, `NL-108` ylidene stereo on a one-atom bridge). Documentation only.
+
+### Research: Phase B evidence file, Font and Muntasell 1995 (G70, G71) makes pentaerythritol's sublimation enthalpy four studies, not three
+- `benchmarks/energetics_props/PETN_EVIDENCE.json` and `.md` gain two rows read in the paper, and the B03 and G68 notes are tightened. Font and Muntasell 1995 measured pentaerythritol themselves, where their 1994 paper had re-reported Nitta's value: 134 +/- 7 kJ/mol for the crystalline phase at 441 to 461 K (142 extrapolated to 298 K, G70) and 96 +/- 9 for the plastic phase at 465 to 477 K, a different solid that is not pooled with the crystalline values (G71). The crystalline values are now 131.4, 143.9, 161.0 and 134 kJ/mol from four studies; the new one sits 27 kJ/mol below Barone's over almost the same temperatures, so the spread is real and not a temperature artefact. B03's seven rows rest on four studies, which replaces the looser "five measurements at most". No entity state, no `value_kind` of an existing row and no number of the preregistration changes.
+
+### Docking: a survey of whether bad default poses come from setup
+- `benchmarks/docking/prep_box_survey.py` redocks all 49 catalogued receptors in two preparation arms and classes each result. On real Vina, 35 of 47 top poses were within 2 A of the crystal ligand and 44 of 47 had a correct pose among the nine; no setup step failed, so the gap is pose ranking and not receptor or box preparation. Benchmark only; the application is unchanged. Details and limits are in `benchmarks/docking/PREP_BOX_RESULT.md`.
+
+### Naming: a bridged parent keeps the stereo descriptors OPSIN can read (round 91)
+- When OPSIN rejects a name, the validator now drops bridged and spiro R/S descriptors one atom at a time, fewest first, and keeps the first name that reads back to exactly the input, instead of dropping by locant number across the whole name. A norbornyl group on a bicyclo[2.2.2]octane (10 of 10 sampled isomers were named flat) and 2,4-difluoroadamantane (2 of 4) now keep descriptors that pin each isomer (D-388). Where OPSIN cannot read a bridgehead or an `r`/`s` descriptor and no subset pins the isomer, the flat name stays.
+
+### Docs: assistant notes moved into versioned pages
+- The naming engine rounds history (docs/NAMING_ROUNDS.md) and notes on CI and the suite, worktrees and tooling, the quantum-chemistry programs, data and models and product planning (five more pages under docs/, named *_NOTES.md) moved from private assistant notes into the repository, verbatim, so they can be read, searched and linked. Nine papers those notes cite were added to docs/sources.toml as reference-only rows (eight checked against their Crossref records, one recorded without a check), and two stale calculator counts in the notes are declared as history. No code changed.
+
+### Research: Phase B evidence file, five rows (G65 to G69) that check a literature search's leads for nitroisobutylglycerol trinitrate and pentaerythritol's sublimation enthalpy
+- `benchmarks/energetics_props/PETN_EVIDENCE.json` and `.md` gain five rows, each read in the paper, and one note correction (B03). No third measured combustion or formation enthalpy for nitroisobutylglycerol trinitrate turned up: Dong et al. 2017 says its heats of combustion were measured, but its Table 3 gives this compound's 2205.2 kJ/mol to the literature (Zeman 1995), which is NIST's Médard and Thomas figure again (G65); a 2008 Russian preparation patent states -54 kcal/mol with no source (G66); and the 1971 handbook AMCP 706-177 has an entry with no enthalpy in it (G67). Pentaerythritol's four published sublimation values (131.4, 143.9, 161.0 and 163.0 kJ/mol) are three measurements: Font and Muntasell 1994 did not measure it and re-report Nitta's value as 131.3 (G68), and Jones 1960 compiles Nitta and Bradley and Cotson (G69). No entity state, no `value_kind` of an existing row and no number of the preregistration changes; the nitroisobutylglycerol trinitrate entity stays `disagree` and R1 stays unmet.
+
+### Restart protocol v3: Arms C, D, D-Ph and C-Br run — C PASS, D PARTIAL (benchmark records)
+- Arm C (six C-H bonds next to F and Cl, ATcT): PASS, MAE 0.94, mean error -0.94, max 1.86 kcal/mol. Arm D (four thiol S-H bonds, references from the gas-phase acidity cycle that share an anchor): PARTIAL, MAE 1.78, mean error -1.78 (limit 1.5, within the band that cannot tell the sides apart), max 2.90; the first arm in which the numerical-frequency step for radicals fired (nine jobs, eight clean, one "frequencies not verified"). D-Ph (thiophenol) and C-Br (four bromine bonds) are reported only, with no claim. A follow-up numerical job on the largest error's analytic radical (1-propanethiol) moved that bond only +0.34 kcal/mol, from -2.90 to -2.56, so the arm stays PARTIAL (1.69) and about 1.2 kcal/mol of it is unexplained. The calculator is unchanged: no scope change and no S-H value is made by these results. Records and reports are in `benchmarks/restart_v3/artifacts/`, the results in `RESULT_C.md`, `RESULT_D.md`, `RESULT_Dph.md` and `RESULT_CBr.md`.
+
+### Naming limitations: the first stereo audit (workstream 1) is recorded
+- `docs/NAMING_LIMITATIONS_PLAN.md` now holds the measured result for `NL-001` to `NL-005`: a bridged parent inside a larger molecule loses all its stereo although a pinning name exists (`NL-003`), 2,4-difluoroadamantane is flattened needlessly in 2 of 4 isomers (`NL-004`), and the pseudoasymmetric, substituted-bridgehead and adamantane-spiro cases are validator limits whose descriptor identity is still unresolved. Documentation only; no engine change.
+
+### Docking: a driven check of the pose checks on real Vina
+- `benchmarks/visual/docking_pose_checks.json` docks fentanyl into 5C1M with the real Vina through the Docking panel and captures the "Vina score" column and the physical-checks sentence under the pose table (passed 2026-10-29, nine poses). Checking tooling only; the application is unchanged.
+
+### Docking: the score is called a score, and every pose gets four physical checks
+- The Docking panel's "Binding Affinity" column is now "Vina score (kcal/mol)", and its tooltip and the User Guide say it is a pose score for ordering poses of one ligand or comparing similar ligands docked the same way, not a Kd. Under the pose table the panel now states how many poses failed four distance checks (a clash with the receptor, the ligand folded through itself, leaving the search box, touching no receptor atom), with each row's detail in its tooltip and a reminder that passing does not mean the pose is right. The stored field and the Help id are unchanged, so saved projects open as before.
+
+### Research: the three Phase B density papers are in the literature log and manifest, with their printed errors and the leads their reference lists name
+- `docs/LITERATURE_LOG.md` gains a section for Tarver 1979 and Keshavarz 2009 (two papers): what was read, how it was checked, and the printed errors found (Tarver's furan volume, Keshavarz's CNG coefficient, a caption count). `docs/research/literature.toml` carries the same findings on the three held entries, replaces a placeholder title with the one on the file's first page, and records three papers the reference list names and the library does not hold (two 2007 Keshavarz density papers, Nielsen 1973) as `not_held`. Records only; no code or number changes.
+
+### Research: Phase B enthalpy arm, a second root for pentaerythritol's solid, the `historical` flag, and a study-stated combustion step (Amendment 4)
+- `benchmarks/energetics_props/PREREGISTRATION.md` gains section 18. Stohmann and Langbein 1892 (read on the page images) measured pentaerythritol's combustion enthalpy independently of Médard and Thomas 1954, which the NIST WebBook, the CRC Handbook, Lange's and both Domalski compilations all trace to: 5.4 kJ/mol apart on the combustion enthalpy, 5.5 on the formation enthalpy. Three owner decisions are written in: a combustion measurement may be filed with a formation enthalpy computed by this study's own fixed step (CODATA CO2 and liquid-water values, frozen with the corpus; 3.1's `derived_from_measured` row is reworded); a `historical` flag, defined by property (no standard-state correction or an undefined calorie, not a date), with its 8.2 rule (compared on the combustion enthalpy, the 10 kJ/mol tolerance unchanged, with a 0.2% calorie uncertainty stated beside the comparison and not added to it, never turns `disagree` into verified); and R1 is stated to be still unmet, because the sublimation leg (131.4 to 161.0 kJ/mol) is unchanged. The three pentaerythritol observations are recorded as rows B08 to B10 of `PETN_EVIDENCE.md` and its JSON. No number of section 11 changes and no corpus row is written. `tests/test_energetics_props_inventory.py` now expects sections 1 to 18.
+
+### External Tools opens on a Setup guide
+- Settings > External tools now opens on a Setup guide: for each tool, what it is for, what stops working without it, whether it is Recommended, Optional or Advanced, the one next step, links to get it and to the Help, and its live status; an "I want to" box narrows it to the tools one task needs. A test holds the guide to the tool tabs, the Help topics and the links, so a new tool cannot ship without a row.
+
+### xtb compared with ORCA and Psi4
+
+- Ran the frozen comparison of xtb with ORCA and Psi4 and recorded the outcome. xtb structures are close to ORCA's B3LYP/def2-SVP ones (median 0.014 A, worst 0.26 A) but should be treated as quick and rough; its energy differences are not reliable for ranking isomers or conformers (tier C); and starting an ORCA optimization from an xtb structure does not reduce ORCA's cycles. The xtb tab's note now says this.
+
+### The menus are grouped and in order, the Keyboard page is collapsible, and the 2D drawing is dark in dark mode
+- Every menu is laid out from one table (`src/openchem/app/menu_layout.py`): the conventional commands stay where they were (New, Open and Save Project, Undo and Redo, Settings, Exit, Help for the Current Panel, About), related commands sit in submenus that open on hover (File > Molecules, Structure > Layout and Clean-up, Tools > Calculators and Reference, View > Panels, Help > Manual), and everything else is A-Z. View > Panels lists every panel A-Z, and a plugin panel joins it in its place. No command id or default shortcut changed (a committed snapshot test holds that), so a shortcut you set is still yours.
+- Settings > Keyboard shows one collapsible section per menu a command lives in, in the menus' order, with its count; only the first is open, a search opens the sections with a match and hides the rest, and clearing it puts every section back as you left it. The Settings sections themselves are now two runs, each A-Z: how the window looks and behaves, then how calculations run.
+- Dark mode now darkens the 2D drawing area too. Only the ink the editor draws in black (bonds, carbon labels, charges, stereo wedges) turns light; nitrogen blue, oxygen red, chlorine green, selection and hover are untouched (a live test compares every atom colour dark against light), and the editor's own image export is identical either way.
+- The top-level menus were Python-owned wrappers that the window did not keep, so a menu and its actions could be destroyed when the wrapper was collected; the window now owns them.
+
+### xtb engine
+
+- Added xtb (GFN2-xTB and GFN1-xTB) as a third quantum-chemistry engine for single points, optimizations and frequency jobs. Download the Windows build yourself, then point the new xtb tab in External Tools at it (Locate or Browse; its Test runs a two-atom calculation); with xtb set up, the Engine box on the Quantum Chemistry panel offers it and the method box offers its two methods. It is far faster and far less accurate than ORCA or Psi4 and has not yet been compared with them.
+
+### Restart v3: a computed 0 K to 298 K step for the propanethiol references, and the runner for Arms C, D and C-Br (benchmarks only; no calculator changed)
+- `benchmarks/restart_v3/thermal_step.py` replaces the borrowed +5.2 kJ/mol with a step computed from B3LYP/def2-TZVPD frequencies. The method gives 5.16 kJ/mol for ethanethiol against Ervin 2015's published 5.2, and 5.09 and 4.98 for 1- and 2-propanethiol; the two references move by -0.02 and -0.05 kcal/mol (87.72 +- 0.62 and 87.08 +- 0.63). The records are committed and `tests/test_restart_v3_references.py` recomputes the steps from them.
+- A caution recorded in the preregistration, and followed up: two of three optimised 2-propanethiyl structures are saddle points (-233 cm-1) on a very flat double well, 0.04 kcal/mol above two minima (reached by following the mode, +216 cm-1) that match the one already used. The step is unaffected, but a radical left on such a saddle would get a numerical-job enthalpy about 0.5 kcal/mol too low; the report prints the frequencies so it is visible.
+- `run_restart_v3.py` and `restart_v3_core.py` add the numerical-frequency stage (one `NumFreq` job for a radical still imaginary after the re-run, no displaced restart, enthalpy kept and labelled when the numerical mode is below -20 cm-1, any radical size, labelled above 12 atoms) and the bond lists, references and reading rules of the three arms. Tested with excerpts of real ORCA output and a stand-in ORCA, and run once on a spent bond (methanethiol S-H) on real ORCA: the numerical job replaced an imaginary mode of -1328 cm-1 with +601 cm-1 and moved the radical's enthalpy by +0.99 kcal/mol (bond energy 84.97 against 87.35, disclosed in the preregistration). No arm has been run.
+- **Arm D-Ph (thiophenol S-H, reported only):** the one aromatic thiol, read against every determination (Lim 2007 and Devine 2008 at 0 K, converted to 298 K with a COMPUTED thermal step of 4.30 kJ/mol; Borges dos Santos 2002; Luo's range), with Devine's value as a one-sided upper limit and a claim only for a gross failure (more than 5.0 kcal/mol outside the whole span, 77.83 to 83.5). Devine's upper limit (81.17 at 298 K) lies 2.3 kcal/mol below the top of the other determinations. No verdict; no scope change follows from it.
+- **Arm D has a fourth deciding bond, tert-butanethiol S-H** (decision D7): its reference is the same acidity cycle with a thermal step computed for it (5.14 kJ/mol; 87.36 +- 0.63 kcal/mol), and its 14-atom radical is the benchmark's only test of the numerical job above 12 atoms. NOT EVALUABLE is now two or more of the four missing. The second independent read's findings are fixed: a refused report states no verdict anywhere, the drift check sees uncommitted edits and no longer refuses a run for a commit that touched nothing watched, ORCA's process tree is killed on the time limit, and a structures file is stamped with its bond list.
+- **Arm C was run (2026-10-28, frozen commit `a14c01a3`): PASS** on its six halogen C-H bonds, mean absolute error 0.94 kcal/mol, mean signed error -0.94, largest 1.86 (fluoroform), standard error 0.24. No radical kept an imaginary mode, so the numerical stage was not exercised. `benchmarks/restart_v3/RESULT_C.md`; no calculator changed.
+
+### Naming: a diazo compound drawn C=[N+]=[N-] is named as a diazo compound
+- Diazomethane drawn `C=[N+]=[N-]` was named `imino(methylidene)azanium`, which OPSIN reads as CH3N2+, a different molecule; 124 of 150 generated diazo compounds read back wrong. The diazo functional group overlapped the imine it contains with no subsumption entry, and the imine won. The names are now the Blue Book's (`diazomethane`, `ethyl diazoacetate`, `1-diazo-1-(trimethylsilyl)propan-2-one`, P-61.4). On diazo populations never looked at while fixing: 447 of 450 read back exactly, the other three differing in stereo only. The other Lewis form, a diazonium and an azide are unchanged.
+
+### External tool candidates inventory
+
+- Added `docs/EXTERNAL_TOOL_CANDIDATES.md`: a provisional triage of open-source tools (xtb, CREST, RXNMapper, Syntheseus, docking pose checks, gnina, Meeko and others) that could follow the locate/test/measure pattern, with the gate that would promote each. Documentation only; no code and no tool is added.
+
+### Research: Phase B crystal density, the published candidates transcribed and Candidate D's group list fixed (Amendment 3)
+- `benchmarks/energetics_props/PREREGISTRATION.md` gains section 17 and closes items (d) and (e) of 15.9. Tarver 1979 (188 compounds, 26 + 47 group volumes) and Keshavarz 2009's two correlations (113 and 59 compounds) are transcribed and checked three ways: each row against its own arithmetic or printed correlation, and 84 shared compounds between the papers (80 agree to the printed digit). The full tables stay in the maintainer's private notes; `density_candidates_manifest.json` holds entity keys, counts, hashes and the printed inconsistencies by id (6 of the 256 printed compounds are in the COD corpus, 5 of them held out, so they are removed from those models' evaluation). Findings worth knowing: Tarver's volume for furan is half its group sum, and Keshavarz's arene correlation prints its CNG coefficient as -0.751 while its own tables need -0.0751. Keshavarz reports an rms deviation, not a mean absolute error, so the replication criterion is not applied to it. Candidate D's ten groups, element list, weights, ridge grid and refusals are fixed before any fit (`epb_density_candidates.py`, tested on synthetic data). Nothing scored; no COD label compared with a prediction.
+
+### Naming limitations: one inventory of what the engine still gets wrong
+- Added `docs/NAMING_LIMITATIONS_PLAN.md`: 93 canonical rows (class, priority, confidence, workstream, next action, closure criterion) mapping the 13 strict-xfail `OPEN` regression rows, the round 80 to 89 "left open" bullets and the older "Open after round N" sections. Documentation only; no engine, test or `KNOWN_LIMITATIONS.md` change.
+- Records the baseline it was read against (application `4c0696b1`, fork `58058f0`, both files' blob hashes) and that the printed round dates in `KNOWN_LIMITATIONS.md` disagree with the merge history (round 89 printed before rounds 87 and 88).
+- Re-measuring the older sections on the current engine found one confirmed wrong molecule, `NL-070`: a diazo compound drawn `C=[N+]=[N-]` is named as an iminoazanium that OPSIN reads back as a different formula (six of six shapes). The four cluster rows are split; 8 rows are unadjudicated read-back mismatches and 6 are stereo identities no check can settle.
+
+### The five CI test shards are balanced on weights measured from a real run
+- Shard 4 of five took 29m45s (15 s under the 30-minute step limit) and timed out once, while the others took 19 to 22 minutes: the committed weights were stale (many files had none), so the split that looked even at 972 s per shard was really 1010 to 1686 s. The weights, the Qt-test counts and every pin were regenerated from that run's JUnit; the re-balanced shards model at about 1299 s each, and the old pins under the new weights reproduce the measured spread, which is the check that the model is right now.
+
+### Restart-v3 preregistration: decisions taken, a thiol S-H arm from the gas-phase acidity route, and a reported-only bromine arm (benchmarks only; no calculator changed)
+- `benchmarks/restart_v3/PREREGISTRATION.md` records decisions D1 to D5 (12-atom cap for the numerical frequency job; R1 alone with the 4-in-40 miss stated, and a numerical result below -20 cm-1 kept and labelled "frequencies not verified"; the six halogen bonds deciding; S-H re-decided; bromine a reported-only sub-arm). It is still a DRAFT and nothing in it has been run.
+- **S-H is now a deciding arm (Arm D) of three bonds** (ethanethiol, 1-propanethiol, 2-propanethiol), from Ervin 2015's re-anchored gas-phase acidities and photodetachment electron affinities. Ethanethiol's value is published (87.16 +- 0.53 kcal/mol); the propanethiols' are derived here with a borrowed thermal correction and say so. The three share an acidity anchor with the first run's methanethiol bond, which the report must state.
+- **Bromine stays reported only (Arm C-Br).** An independent bromination value agrees for bromomethane, but a coupled-cluster calculation sits 2 to 7 kJ/mol below Seetula's values, bromoethane and bromochloromethane are contested by other determinations, and Leplat 2013 shows the R + HBr method is disputed.
+- `benchmarks/restart_v3/references.json` holds the printed inputs; `tests/test_restart_v3_references.py` recomputes every derived number from them and holds the ethanethiol cycle to the paper's own published figure.
+- `benchmarks/restart_v3/LITERATURE_LOG.md` is the record of what was searched, fetched and read (PDF file names, NIST values, what an outside search got right and wrong, the reusable prompt); eleven papers are registered in `docs/sources.toml`.
+
+### Research: Phase B preregistration, Amendment 2 (the correction study's minimum and pair population)
+- `benchmarks/energetics_props/PREREGISTRATION.md` gains section 16: the density correction study needs at least 35 held-out entities (section 11.2's derivation at the study's own ceilings, no allowance; fewer is NOT EVALUABLE), its pairs are drawn from every organic nitrogen-containing crystal rather than only the four explosophore groups (369 pairs of 349 entities, 82 held-out), the explosophore pairs are flagged and reported beside the whole and never gate it, and the mechanics now fixed in code are written down. It also states that the widening followed a count (8 held-out explosophore entities against a minimum of 35), no density having been compared with anything. Items (d) and (e) of 15.9 remain open. Text only; nothing scored.
+
+### The test suite runs in five CI shards instead of four
+- Shard 1 of four took 27 minutes on one run of master and 32 on the next over identical code and hit the 30-minute step limit with no test failing, so four shards were at capacity on a variable runner. Five shards carry the same files at about 970 s of modelled cost each instead of 1215 s. The step limit is unchanged. The master ruleset's required checks must change from `test suite 1/4`...`4/4` to `1/5`...`5/5` when this merges.
+
+### Research: Phase B low-temperature density correction study, code and tests only (nothing scored)
+
+- `benchmarks/energetics_props/epb_density_correction.py` is the correction study of `PREREGISTRATION.md` 15.8: a constant and a temperature-linear thermal-expansion form, both fitted in closed form (least squares on the density ratio) on development pairs only, chosen on selection pairs, scored once on held-out pairs behind a lock and a frozen file list, with an entity-resampling 95% bootstrap interval and the bar of 0.015 g/cm3 (interval's upper end 0.02). It reads `cod_correction_pairs.json` and refuses a pair outside the rules of 15.8.
+- **The pairs are widened to every organic, nitrogen-containing crystal (owner, 2026-10-27).** The four explosophore groups alone gave 49 pairs and 8 held-out entities, below the minimum of 35 held-out entities that the code uses (the section 13 derivation at the 4/3 bar, 34.6 rounded up; confirmed by the owner), so the outcome would have been `NOT_EVALUABLE` however the fit behaved. `pairs_for_study` no longer asks for an explosophore family, so `cod_correction_pairs.json` now holds 369 pairs (23 more dropped on the volume ratio), 82 held-out entities, and the study can be evaluated. Each pair carries an `explosophore` flag (both determinations carry one of the four groups); the 49 flagged pairs and their 8 held-out entities are reported beside the whole as a descriptive subset, never as the gate. The split manifest is unchanged. The preregistration text does not yet say either the 35 or the wider population; an amendment will, after the other open amendments merge. 46 tests, and every mutation of the rules is caught.
+
+### Research: Phase B crystal-density corpus built from the full COD snapshot (counts only, nothing scored)
+
+- `benchmarks/energetics_props/epb_cod_corpus.py` reads the February 2025 COD archive as a stream (133,170 candidate entries, 0 unreadable) and gives every entry one disposition under the rules of `PREREGISTRATION.md` section 15: 2,970 accepted determinations make 2,848 entities (one heavy-atom connectivity each), of which 2,797 have a resolved label (median of one form; 43 have different forms and 8 spread over 0.03 g/cm3, both left unresolved). The 60/20/20 split is development 1,687 / selection 591 / holdout 519, with the two previously examined compounds that COD holds at room temperature forced into development. The corpus stays beside the archive; `cod_split_manifest.json` (checksum recorded), `cod_corpus_summary.json`, `cod_correction_pairs.json` (49 matched low/room-temperature pairs for the correction study) and the generated `COD_CORPUS_REPORT.md` are committed.
+- Bond orders for the accepted determinations are perceived from coordinates (2,926 of 2,970), replacing Open Babel's unusable ones: nitro groups are set aside as placeholders, the rest is perceived by RDKit, and 15 known explosophores came back with identical InChI. `cod_structure_pass.entity_key` now hashes heavy atoms only, so unplaced hydrogens do not split an entity. 13 mutations of the builder's rules and 5 of its committed outputs are each caught by a test.
+
+### A layout menu on every panel's title bar, and buttons that belong to the panel
+- Every panel (Console and Jobs included) now has a **…** button in its title bar. Its menu moves the panel to the left, right, top or bottom, shows another panel alongside it, locks it open or releases it, floats it into a window of its own and docks it back, and returns it to the side it started on. What those did already worked by dragging or from the rail's right-click menu; nothing on screen said so. **Expand panel** grows the panel along its side as far as the window allows (the editor keeps its minimum size and the other panels shrink to theirs), and **Restore size** puts every panel back, not only that one. It stays expanded when you resize the window, any other change to the layout ends it first, and closing restores first so an expanded arrangement is never saved as your layout. The float icon moved into the menu, so the bar has the same three fixed buttons. See `docs/DOCK_LAYOUT_DESIGN.md` for the measurements behind Expand.
+- Panels can put their own buttons in the title bar. **Results** has **Report** (Copy report, Export report...), greyed with no report showing and on the project table; **Structure Check**'s Check again moved up from the bottom of the panel; **Jobs** has **Cancel all**, which asks every job that can be cancelled to cancel (and says it *requested* that, never that they stopped, because a job stops when its service stops it). It asks first for more than one job, and is greyed when none can be cancelled.
+- Panel titles that are too long for the bar now end in an ellipsis instead of being clipped, with the whole title in the tooltip, and every title-bar control has a fixed name and an accessible name.
+- A move followed at once by View ▸ Reset Panel Layout could leave the reset panel marked as placed (the rail would then not hide it); the reset now drops any placement decision still waiting.
+- Found by driving the real window: the first version of the layout button drew the Qt logo, because the standard title-bar menu icon is the window's own icon on Windows. It is a text ellipsis now.
+
+### Research: Phase B preregistration, Amendment 1: the owner's decisions of 2026-10-26 on crystal density
+
+- `benchmarks/energetics_props/PREREGISTRATION.md` section 15 records the decisions: the primary population for crystal density is COD entries that carry a nitrate ester, nitramine, C-nitro or azide group (a ring with two nitrogens is not an explosophore), with the books' known energetic materials as a separate side stratum; label quality is a quality filter (R at most 0.07, 273-303 K, repeats to the median, repeats spreading over 0.03 g/cm3 unresolved) with the agreeing subset as a side check; the gate, the numbers and the 60/20/20 split are confirmed; the famous compounds stay out of the sealed set; no CSD access is assumed; room temperature only for the claim, plus a gated low-temperature correction study with a 0.015 g/cm3 admission bar.
+- The entity key for a COD entry is an element-graph hash of its heavy-atom connectivity (`cod_structure_pass.entity_key`), tested to ignore bond orders, charges and stereochemistry. The preregistration is still a draft: it freezes when the corpus builder and its parser tests merge, and nothing is built or scored.
+
+### Naming: stereoisomers of a substituted bridged bicycle no longer share one name
+- The names of 3-methylbicyclo[2.2.2]octan-2-ol's four stereoisomers were all flat, because OPSIN cannot take the descriptors of a bicyclo[2.2.2]octane's bridgeheads and the validator then dropped every bridged descriptor with them. Only the descriptors OPSIN rejects are dropped now, and a shorter name is kept only if OPSIN reads it back to exactly the input. On 39 generated bridged bicycles, molecules with distinct names for all isomers went from 27 to 35 and names that did not say which isomer they were from 31 to 12; no name is wrong. Isomers that differ only in a pseudoasymmetric r/s centre, or at a substituted bridgehead, still share a name because OPSIN cannot read them.
+
+### Thiyl probe, its calibration, a halogen reference set and a draft restart-v3 preregistration (benchmarks only; no calculator changed)
+- `benchmarks/thiyl_probe/` shows that the imaginary modes on the methyl- and ethyl-thiyl radicals are spurious (the analytic M06-2X Hessian is wrong there and a numerical Hessian is clean; the cause inside ORCA is not isolated, only associated with a very soft orbital-rotation direction) and that a radical which passes can still carry a quiet analytic error of about 0.3 kcal/mol, so "an imaginary mode appeared" cannot be the rule for when to compute numerical frequencies. `calibrate.py` measures how the smallest stability eigenvalue relates to that shift on radicals the two earlier benchmarks had already computed (nothing in it is held out).
+- `benchmarks/bde_heldout/candidates_halogen.json` holds six chlorine- and fluorine-containing C-H bonds from the saved ATcT table, chosen from the table's names alone; `tests/test_bde_heldout_halogen.py` recomputes every one.
+- The probe also shows the integration grid is not the cause: a finer grid keeps the imaginary mode, and a coarser one removes its sign but leaves the frequencies wrong. The draft lists four literature bromine C-H bond energies (Seetula 2003, Seetula and Eskola 2008) as an open decision, D5; none is adopted.
+- `benchmarks/restart_v3/PREREGISTRATION.md` is a DRAFT, not frozen: nothing in it has been run. It waits on five decisions (D1 to D5).
+
+### Naming: spiro joints to bridged partners, and a heteroatom as the spiro atom
+- Round 88 tried a new population shape, a ring spiro-joined to a bridged partner (adamantane, norbornane, tropane, norcarane, noradamantane and others), and found four defects: a spiro joint to norcarane or bicyclo[3.2.0]heptane was a NAMING ERROR, a tricyclic partner's spiro locant named another molecule, two polycyclic partners were skipped (or lost to an unreadable `octacyclo[...]` descriptor), a silicon, N+ or P+ spiro atom with a polycyclic partner was a NAMING ERROR (161 of 200), and the E/Z of an ethylidene on a spiro name's primed ring was dropped (both isomers had one name). Of 400 plain molecules 295 read back through OPSIN before and all 400 after; 1,800 more over three seeds and 1,100 hetero-spiro-atom molecules also read back, and no name took over 1.2 s.
+
+### Light, Dark and Follow-the-system colour schemes
+- There is now a real colour-scheme setting. **Settings ▸ Appearance** and **View ▸ Theme** are the same setting (a stored 0 follow the system, 1 light, 2 dark): change it in one and the other follows. It applies at once, with no restart. Until now the program had no setting at all and was dark only when Windows was, which is why it could not be turned on or off.
+- Follow the system is the default and keeps following Windows while it is chosen; Light and Dark hold whatever Windows is set to, including the window's title bar. Choosing Follow the system gives the choice back to Windows rather than copying its present value.
+- Every colour that was written for a light window now reads in a dark one: muted notes, status chips, the structure checker's severities, spectra, charts, the Lewis shell diagram and the rail's icons, kept through `src/openchem/ui/theme.py` and rewritten when the look changes. A test fails when a stylesheet is set around it.
+- A widget with its own stylesheet kept the colours it was built with after a live switch (collapsible-section headers stayed black and the rail's buttons stayed pale); they are now refreshed on every change.
+- The 3D viewer and the macromolecule viewer's canvas follow the scheme. In the 2D editor the four toolbars go dark and the drawing area stays white and untouched, so atom colours, bonds and selection are exactly what they were (measured: the drawing region is pixel-identical in light and dark). The macromolecule viewer's side panels and the editor's dialogs keep their light styling.
+- The minimum PySide6 is now 6.8, where Qt's colour-scheme setting begins; the locked version (6.11.1) is unchanged.
+
+### Naming: the curated ring table's numbering exceptions are checked against the Blue Book and its label pairs against OPSIN
+- Round 87 closed the two checks round 86 left open, with no engine change. The 17 numbering conventions of the curated ring table were read against the IUPAC 2013 recommendations (anthracene, acridine, xanthene and thioxanthene, morphinan, adamantane and the bridge-atom rule are confirmed, each with its page in the test; perylene is the declared deviation; corrin and two large systems are not printed in the book). A new `tools/naming_ring_table_vs_opsin.py` has OPSIN read `i,j-dichloro-<ring name>` for every pair of labelled positions of 303 neutral entries (8,585 pairs) and compares the skeleton with the table's: no disagreement, and no swapped symmetric pair of the kind rounds 82 and 85 found.
+
+### Phase B: an evidence hunt on PETN and the nitrate esters (benchmark records, nothing scored)
+- `benchmarks/energetics_props/PETN_EVIDENCE.md` and `PETN_EVIDENCE.json` (137 rows) inventory what exists for PETN and its family against the preregistration's R1 and R2 conditions, with seven primary papers read on the page: PETN has no measured gas-phase enthalpy (derived -388 kJ/mol, W1-F12 -395.5), pentaerythritol is the one four-arm compound with measured data and does not meet R1 as drafted, the R1 pattern is also matched by a hydrocarbon, four printed enthalpies are one Cheetah input table and one of them (-371) is contradicted by 171 kJ/mol. A COD pass outside the census window (`cod_nitrate_ester_pass.py`, `cod_nitrate_extra.json`) finds 73 nitrate-ester entries, 41 of them the census could not see. The fit tables of the held papers were mined (they repeat NIST, so NIST holds at least 26 nitrate esters, the closest measured neighbours of PETN being solid-phase only; Cawkwell 2021 adds gas-phase nitroglycerin). Klapoetke's 4th edition, Viswanath, Akhavan's nitroglycerin table and Boddu were read too and add no independent value. Chavez 2008 and Barone 1990 were read, and the nitramine stratum (R2) was counted: 14 nitramines in NIST (12 solid, 2 verified by the preregistration's agreement rule, 8 eligible for a holdout) and about 17 more names in Klapoetke's Encyclopedia, against about 150 verified entities needed; Keshavarz and Sadeghi's experimental column is the NIST WebBook. The eleven primaries behind NIST's nitramine rows were read: five of the eight eligible solid nitramines now rest on a primary page, and NIST's rows turn out to be re-evaluations that differ from the papers' printed figures by up to 15 kJ/mol. A 2009 recommended set (Miroshnichenko et al.) adds six measured solid nitramines and shows methyldinitramine is a liquid, so about 10 of about 13 eligible solid nitramines are now verified, still far short of the 150 R2 needs. Pedley 1986 confirms, on readable pages, the Medard-Thomas digits for pentaerythritol, EDNA, DINA, nitroguanidine, trimethylolpropane trinitrate and dipentaerythritol hexanitrate (same lineage, so no independent root). Stegeman's 1945 OSRD report (found on archive.org) is a primary for nitroguanidine, HMX, DINA and tetryl; its HMX value is an outlier. Cox and Pilcher (1970) was read from its scanned data tables: it prints the Medard-Thomas digits with decodable reference codes, shows that its nitroguanidine value is a National Bureau of Standards measurement (McEwan and Rigg 1951, [DOI in the maintainer's library]), and gives PETN a derived gas-phase enthalpy of -387.0 kJ/mol. Its N6 block holds dipentaerythritol hexanitrate (-979.5 kJ/mol, Medard and Thomas 1956); McEwan and Rigg's 1951 paper only quotes the NBS nitroguanidine value (Prosen and Gilmont, OSRD 1590, 1943); the Bradley-Cleasby file fetched is Part I (oxamide), the pentaerythritol paper is Bradley and Cotson (Part II), now read: its 143.9 kJ/mol, Nitta's 131.4 and Barone's 161.0 are second-law slopes over different temperature ranges that rise with temperature. Edwards 1953 and Cundall 1978 (the sublimation primaries for PETN and, new here, RDX, HMX, tetryl and nitroguanidine) were read. Values are quoted as facts with locators. No number of the preregistration changed and no method was scored. The 2023 Rzhevskiy paper and its Supporting Information (row G42) give a computed -402 kJ/mol for nitroisobutylglycerol trinitrate, 176 kJ/mol from the -226 that NIST prints from Medard and Thomas 1949; unresolved. Muravyev 2021 and its SI (rows G43-G51) add a measured-sublimation plus W1-F12 solid enthalpy for ten nitramines and nitramides (seven within 10 kJ/mol of the nearest experimental value, three not), DSC melting and fusion data, the SI's calculated-against-'experiment' gas-phase comparison with two internal inconsistencies, the paper's own accuracy statements (up to 25 kJ/mol) and the sublimation rule behind the Rzhevskiy numbers; the nitramine stratum stays far below R2's size. Meyer's 2016 *Explosives* (rows G52-G54) prints nitroisobutylglycerol trinitrate (-228.2 kJ/mol) and nitrourea (-282.5), agreeing with NIST but being a compilation of the same Medard-era data, and disagrees with it on DINA, metriol trinitrate and mannitol hexanitrate by 25 to 33 kJ/mol. The whole book is mined (rows G55-G57; the parsed corpus stays in private notes): 214 entries, 13 nitramines and 21 nitrate esters with a printed enthalpy, all unlabelled. The Army Encyclopedia (rows G58-G60) holds nitrourea (-281.2 kJ/mol) and an early combustion value (unstated source) for nitroisobutylglycerol trinitrate that, read as kcal/kg, gives about -403 kJ/mol (-375 bias-scaled), supporting the computed -402 and contradicting the -226 of NIST and Meyer; the Memorial de l'artillerie francaise index (G61) confirms Medard's tables as vol. 28 no. 2 p. 415. Vol. 2 of the Encyclopedia (rows G62-G64) prints Medard and Thomas's own combustion value for nitroisobutylglycerol trinitrate, which converts to -226.8 kJ/mol and shows NIST's -226 is correctly derived; the disagreement with the computed -402 is between two combustion measurements 8% apart, and the citation is corrected to Mem. Poudres 31 (1949) 196. Two lessons from the sweep are written up in docs/LESSONS.md: that four books agreeing to the last digit were one 1949 measurement, and that the DOI guard in tests/test_sources_are_current.py sweeps every tracked file and so can fail on a pure data edit.
+
+### Naming: the curated ring table's labels are checked against the ring's bonds
+- Round 86 added a structural check, with no OPSIN, that the consecutive locants of every curated ring entry (3,104 pairs over 371 entries) are bonded atoms or joined through one atom. It found one mislabel, the tetracenetrione's C1 and C3 carbonyls swapped against C12a (D-380; no name changes, since the two are symmetric), and 17 pairs that are the book's own numbering, now listed in a test that fails for any other pair. Rounds 83 to 85 found the generated populations nearly spent; the last two real finds were table labels, which this guards.
+
+### Naming: a substituent on a spiro joint to a methano-bridged azepinoquinoxaline takes the right locant
+- Round 85 scanned three-ring chains (400, clean) and spiro joints with one or two substituents (500: 489 read back, 11 did not). Eight of the eleven had one partner, the curated `7,8,9,10-tetrahydro-6H-6,10-methanoazepino[4,5-g]quinoxaline`, which labelled 11 of its 16 atoms and had its two nitrogens swapped, so a substituent on an unlabelled atom got the generic number (`...-16-carboxamide`) that OPSIN cannot read (D-379). All its atoms are labelled now (`...-2'-carboxamide`), the molecule that used to hang the namer in round 84 reads back, and 498 of 500 do. An audit of the other curated entries (475 single-chlorine variants) found no second case.
+
+### Research: a first count of the Crystallography Open Database for the energetic-materials crystal-density benchmark
+
+- `benchmarks/energetics_props/cod_census_headers.json` (from `inventory_scripts/cod_index.py` and `cod_census_headers.py`) counts, from header fields alone, how many of the 521,901 entries in the February 2025 COD snapshot could be crystal-density labels under the Phase B rules: organic, a diffraction density, a measurement temperature in 273-303 K, no stated pressure. About 72,000 organic entries qualify, and 1,921 pass a nitrogen-rich composition screen, against the 235 verified crystal densities the held books can supply at most.
+- These are entries, not compounds, and the screen is a formula cut, not a structure test; the counts say so, and say that COD overlaps the Cambridge Structural Database, so CSD-trained density methods stay unevaluable on COD labels. Nothing is scored and no preregistration number changes. The COD archive and its index live outside the repository.
+- A second pass (`cod_structure_pass.py`, `cod_census_structures.py`, counts in `cod_census_structures.json`) reads the connectivity of the 55,674 nitrogen-containing candidates straight from the archive and finds the section 5 groups with bond-order-agnostic patterns, because Open Babel's bond orders were measured unusable on this data. About 5,600 entries (about 4,000 single-component, from at least 3,000 distinct formulas) carry a nitrate ester, nitramine, C-nitro or azide group; a ring with two nitrogens is counted separately and not treated as explosophoric.
+
+### Energetic materials (Phase B): a draft preregistration and an evidence inventory, nothing built or scored
+- `benchmarks/energetics_props/PREREGISTRATION.md` (DRAFT, unmerged for the owner's decisions) sets out how crystal density, condensed-phase enthalpy of formation, melting point and decomposition are to be validated on known energetic compounds, in Phase A's discipline: separate targets with their reference states, a `value_kind` field (a calculated value is never a reference label), a leakage status per candidate method (most published ones are `unknown` because their papers do not list their fit populations), label-error detection fixed before scoring (within-row plausibility, cross-source agreement with lineage, review that never sees a prediction), compounds the earlier survey already examined forced out of the holdout, one holdout look per property, and a minimum n derived rather than copied (60 paired verified holdout entities, so about 300 verified entities). Kamlet-Jacobs stays `NEEDS_INPUT`; the PETN reversal conditions are given a rule. Fourteen owner decisions, each with a recommendation, are listed at the end.
+- `benchmarks/energetics_props/INVENTORY.md` (generated from `inventory.json` by `inventory_report.py`, which refuses a count without a locator) counts, per held source and property, the entries that print a numeric value, with page or table locators, hand-check error rates and the printed errors found while counting; LMU dissertations are recorded as NOT in the library.
+- `benchmarks/energetics_props/epb_families.py` fixes the structural families before any score; Phase A's "organic" rule is not inherited because it would have dropped NTO, nitroguanidine and the aminotetrazoles. `tests/test_energetics_props_families.py` holds them on public structures (three mutations caught after the cage definition was fixed).
+
+### X-H bond dissociation enthalpy is LIMITED and shown by default
+- **Promoted from EXPERIMENTAL and hidden to LIMITED and shown**, the same move the proton affinity made (#445): it was held back for one reason, that this implementation had not been driven through the application on real ORCA with the benchmark's numbers read back from the stored result. The recorded run of 2026-10-23 was made before the scope-warning change reached it, and its first attempt had failed for a cause nobody found, so it was driven twice more on master `c86f3e0a` with a clean tree: both VERDICT PASS, 6 of 6, and the stored values agree to the last digit with each other and with the record (methanol C-H 397.76 and O-H 429.8 kJ/mol, hydrogen peroxide O-H 355.62, methanethiol's S-H with no value for the same stated reason).
+- **LIMITED and not STABLE**, and the reasons are on the calculator: the measured scope is neutral closed-shell molecules of at most nine heavy atoms of H, C, N, O and S (beyond that it still computes, after a warning, as an estimate); the calculation runs about 1.4 kcal/mol low and 3.3 low for an O-H next to O or N; an S-H gets no value because its thiyl radical keeps an imaginary vibration; and one held-out arm is not the stratified independent result STABLE asks for.
+- **The unexplained first failure is not explained**: two clean runs do not show its cause is gone, and `docs/BDE_DESIGN.md` says so. A long run is best left with the machine otherwise quiet. The execution policy is unchanged: a model may not start it without a person's approval.
+
+### Research: the family-grouped generalisation report for the melting- and boiling-point benchmark
+
+- `benchmarks/mp_bp/FAMILY_REPORT.md` (from `mpbp_family.py`) asks what the hash-split headline cannot: does Candidate C, fitted on some families, predict a family it never saw? Leaving each of the 16 families out in turn, its pooled error is 25.0 K for boiling point and 42.2 K for melting point, against 20.8 K and 38.6 K on the headline holdout. It is a different claim, descriptive, with no preregistered threshold and no verdict (Amendment 3 fixes it before the numbers existed).
+- The headline scorer, its results and the spent holdout are untouched. Nothing user-facing changes.
+
+### Synthesis planner benchmark: protocol 3 addendum for two late papers
+- Two papers that arrived after protocol 3 was frozen (Kral's article and Singh's SI, which the frozen run had to drop for missing text) were read with the same rules and searched once: 0 of 2 recovered in the first 10, which protocol 2's depth rates predict (0.43 expected). A third (Ma) was excluded because its lead route needs about 8 reactions. The addendum is reported beside the frozen result (LOWER, 13 of 51), which it does not revise, and `tests/test_synthesis_protocol3_addendum.py` holds the two sets apart. Benchmark records and notes only; nothing in `src/` changed.
+
+### Research: result of the melting- and boiling-point benchmark: no method passed
+
+- The preregistered holdout was scored once (`benchmarks/mp_bp/RESULT.md`, `results/`). Candidate C, Joback's 41 groups refit on development rows, FAILED both gates on the point-error ceiling alone: 20.8 K for boiling point against 19.35 K, and 38.6 K for melting point against 33.9 K; it beat the family-mean baseline by 66% and 43% with intervals clear of the thresholds. Joback and Marrero-Gani cannot make an independent claim because neither paper lists its fit population, so they are NOT EVALUABLE; Marrero-Gani's melting-point error (36.4 K against a 37.35 K ceiling) would have met every numeric criterion, and that is reported as exploratory.
+- Joback's freezing point as a melting-point proxy runs 38 K high on average and is never gate-eligible. No calculator is added or promoted; nothing user-facing changes.
+- The scorer (`mpbp_score.py`) keeps the holdout to one look in code, and `mpbp_result.py` writes the result document from the committed reports.
+
+### Marrero-Gani first-order fragmenter: structure to Table 6 group counts, all 182 groups
+- `benchmarks/thermophysical/marrero2001_groups.py` turns a SMILES into the first-order group counts of Marrero and Gani (2001), by the paper's own rules (a full and disjoint splitting, the heavier group wins, aC-R groups first) and refuses what Table 6 cannot describe, naming the atoms no group claimed, or a tie it cannot rank (benzanilide), instead of returning a partial sum. "Aromatic" is the paper's meaning, not RDKit's (dicoumarol's pyranone, furan and imidazole are ring groups). Results are keyed by group id because the paper prints `aC-NCO` for two groups. `marrero2001_table.py` and `energetics_groups.py` are unchanged.
+- `tests/test_marrero2001_groups.py` (606 tests) holds it to the paper: every group's sample compound gives the printed occurrence count, Appendix B's six examples give the printed groups, sums and Tb/Tm, the paper's own rule examples come out as printed, counts do not change with the SMILES spelling, and the ten-group counter agrees wherever it applies. Eleven mutations of the fragmenter (a weakened SMARTS, a changed priority or tier, an order-dependent search) are each caught. Found on the way: `energetics_groups.py` labels a ring N-H `N (cyclic)` where the paper has `NH (cyclic)` (not changed here; no molecule of its corpus has one).
+
+### Research: the melting- and boiling-point corpus, built from two handbooks and not yet scored
+
+- `benchmarks/mp_bp/` reads Lange's Handbook (15th ed., Table 1.15) and the CRC Handbook (97th ed., organic constants) from the local PDF library by where each value sits on the page, not by reading order, recovers the minus signs the text layer drops by drawing each symbol, and gives every melting- or boiling-point cell exactly one disposition: accepted, evidence only (decomposition or sublimation), reduced pressure, unreadable, or one of five identity outcomes. Names resolve through OPSIN and must match the printed formula and weight.
+- Comparing the two books found real faults in the books themselves (a melting point printed as -100.7 for a compound that melts at +100.7, a value repeated from the row above, a whole row shifted one column); a within-row check and a malformed-number check refuse some, and each entity is marked as agreeing or disagreeing between the books for a secondary analysis.
+- Committed: the parser's tests, the 60/20/20 split manifest (keys and partitions, no values), an aggregate summary and a quality report generated from it. The handbook tables and the corpus stay outside the repository. No method has been scored and nothing user-facing changes.
+
+### Research: a draft preregistration for a melting- and boiling-point benchmark, and the validation-row schema it needs
+
+- `tools/validation_rows.py` now keeps what a source observed (melting, boiling, sublimation, decomposition, ...) apart from what a method predicts, with an explicit scoring decision for every pair; a normal-boiling-point admission that checks the pressure; a record with no value for "there was no clean event"; ranges scored as intervals; a deterministic 60/20/20 split on the molecule's skeleton; and unknown leakage as a status that can never clear a held-out claim.
+- `benchmarks/mp_bp/PREREGISTRATION.md` is the draft design. No corpus has been built and no method scored. It records that neither Joback's nor Marrero-Gani's fit population is listed in its paper, so neither could pass an independent-holdout gate on handbook data; at the owner's decision it adds a third candidate, Joback's groups refit on the development partition only, whose fit population is known by construction.
+- No calculator changes; the one existing test that used `boiling` as an invalid event now uses `freezing`.
+
+### A drawing with no single parent is computed on its largest component, labelled, instead of refused
+- **Sixteen compound-property calculators** (pKa, logD, polar surface area, ADMET, the CNS and BBB scores, charges and microspecies at a pH ...) and the always-on descriptors used to refuse sodium acetate, potassium benzoate, calcium acetate, magnesium succinate, trisodium citrate and choline salicylate, because ChEMBL's parent rule keeps every component of those (all listed salts, or none). They now compute on the component with the most heavy atoms, re-neutralised as ChEMBL's own parent is (sodium acetate gives acetic acid's numbers, checked equal to the neutral control). Computed on the ion as drawn the numbers were wrong (the citrate trianion's Crippen logP is -5.25, citric acid's -1.25), which is why it is neutralised.
+- **The result says so**: its first limitation, its `caveat` (read by the assistant and the Atom Inspector) and its record (`component_choice`, `components_left_out`) name the drawn ion, the neutral form computed and what was left out, and add "close in size, so this is a guess" when the runner-up has at least half the heavy atoms (choline salicylate: 7 and 10). The formula and weight still describe the whole drawing.
+- **Still refused**, because there is no one species to hand over: components of one size that are different species (NaCl, calcium chloride, naphthalene beside quinoline), and ChEMBL's metal exclusion (ferrocene drawn as ions: the ligand ions' numbers would describe a different compound). Solubility, Joback and Hansen still refuse any second component.
+- Not built: naming the component in the window, so the guess can be corrected without redrawing. Recorded in `docs/ROADMAP.md`.
+
+### Naming: spiro joints of lactam rings are named, and a polycycle with dozens of bridges no longer hangs the namer
+- Round 84 scanned 600 spiro joints of two curated rings: 566 read back, 30 were a naming error. The finds: a spiro joint on a bridged, benzo-fused polycycle made the von Baeyer numbering search try billions of bridge orderings and the call never returned (D-376; a system with more than 50,000 orderings now has no von Baeyer numbering); and a spiro ring ketone on a pyridone-type, bridgehead-nitrogen or sulfur component was a naming error because the partner could not be rebuilt without its `=O` (D-377, D-378: `spiro[5,6,7,8-tetrahydroquinoline-6,1'-cyclopropane]-4(1H)-one`, `spiro[6,7,8,9-tetrahydro-4H-pyrido[1,2-a]pyrimidine-8,1'-cyclohexane]-4-one`). After the fixes 593 of 600 read back; the rest are listed as open.
+
+### Synthesis planner wording: protocol 3's figure first, the patent figure beside it
+- The sentence under every plan (`chem/aizynth_planner.BENCHMARK_FINDING`) now leads with protocol 3 (`benchmarks/synthesis/RESULT_3.md`, 51 routes from journal papers published after the models' training data): the paper's route was among the first 10 shown for 13 of 51 = 25.5% (95% interval 15.5% to 38.9%), by depth 5 of 15, 6 of 10, 2 of 14 and 0 of 12 at 1 to 4 steps, lower than the planner's depth-matched rate on patent routes (preregistered reading LOWER, p = 0.0073). Protocol 2's 41.7% stays, labelled as the figure for 300 patent targets the models probably trained on and "not a figure for a molecule the model has not seen", and is never quoted alone.
+- The sentence also says that a route that differs from the paper's is the normal outcome and not a fault, that a missing paper route is not evidence a plan is wrong (a route from the paper's own starting materials was among the first 10 for 17 of 51 targets), and that feasibility and long or hard routes were not measured. The User Guide's Synthesis section and the Scientific Limitations "Synthesis route planning" section say the same.
+- `tests/test_synthesis_planner.py` now holds every figure in the sentence to the matching row of `RESULT_3.md` or `RESULT_2.md`. Wording only: no search, ranking or parsing behaviour changed.
+
+### Naming: a purine ketone with no ring N-H takes the oxo carbon's indicated hydrogen
+- Round 83 ran four new populations (curated rings joined by 12 functional linkers, richer substituents on every curated ring, charged rings, and 6,000 more ring pairs; about 11,000 molecules) and found them clean apart from OPSIN's beta-lactam and morphinan stereo defaults and one case round 81 recorded. That case is fixed (D-375): a hypoxanthine drawn with no ring N-H was named `methyl 6-oxo-9H-purine-8-carboxylate`, with a hydrogen on N9 the drawing does not have; it is now `methyl 6-oxo-6H-purine-8-carboxylate`, and `6-oxo-6H-purin-8-yl` as a substituent (a thione the same: `6-thioxo-6H-`).
+
+### Oxygen balance: phosphorus, molybdenum, tungsten and iodine
+
+- The Oxygen Balance calculator now also computes structures containing phosphorus (burned to
+  P₂O₅), molybdenum (MoO₃) and tungsten (WO₃), on the CO₂ basis. The products are the ones
+  Conkling & Mocella's *Chemistry of Pyrotechnics* states: phosphorus in its Table 3.5 (and in
+  Shimizu's *Fireworks*), molybdenum in the worked answer to its Exercise 4, tungsten in its
+  Table 3.4. The tests reproduce that book's "grams of fuel per gram of oxygen" column for eleven
+  elements, its molybdenum delay composition, and phosphoric acid balancing at zero.
+- A phosphorus, molybdenum or tungsten halide is refused: no source says how many halogens such
+  a compound holds.
+- Iron and copper are now computed, at the oxide of the charge they are drawn with: Fe(II) to
+  FeO, Fe(III) to Fe₂O₃, Cu(I) to Cu₂O, Cu(II) to CuO. No source states this as a rule; it is
+  what every printed value follows (Meyer's ferrocene −223.6% and iron acetylacetonate, to the
+  digit; Conkling's two copper oxides). An atom drawn with another charge, or none, is refused
+  by name, and the other oxide's figure is printed beside the answer.
+- Persson, Holmberg & Lee's closed form (Eq. 4.43) is now held against the calculator term for
+  term, an independent statement of the oxide and halogen conventions (boron to B₂O₃, chlorine
+  and fluorine sparing half an oxygen each).
+- Cerium is now computed, to CeO₂: a Klapötke-group thesis states it and prints ceric ammonium
+  nitrate at +35.02%, which reproduces.
+- Bromine is now computed, to HBr (or the metal's bromide), as chlorine is. It took a long search:
+  an NBS report (Tsang & Domalski 1974) states the HBr product in its formula and prints propargyl
+  bromide at −94.1%, Lease et al. (2023) print three brominated PETN derivatives that agree
+  to 0.3, and Wang et al. (2024) print two bromo-trinitroanisoles that agree to the digit. A metal bromide is not printed by either, so it follows the chlorides and the result
+  says so. Bromine beyond what hydrogen and metals can take is refused.
+- Still refused, by name: every other element. Jain's
+  1987 paper, where the method comes from, covers C, H, O, N and Cl only.
+- Iodine is now computed too, left as I₂ (it takes no hydrogen, unlike chlorine), following He,
+  Hooper & Shreeve's formula; seven of their printed balances reproduce with iodine untouched.
+- Where Klapötke's *Energetic Materials Encyclopedia* leaves chlorine as Cl₂ (guanidinium and
+  hydrazinium perchlorates, trinitrochlorobenzene) and Meyer, Conkling and Jain count HCl, the
+  result now prints the Cl₂ figure beside the HCl one whenever a hydrogen took a chlorine.
+
+### The proton affinity and X-H BDE rows say "With limits" for a structure outside what was measured
+- Both calculators now compute a structure the benchmark did not measure (larger, other elements, a metal) after a warning instead of refusing it. Their structure-coverage hooks (`chem/coverage_hooks.py`) read the same `scope_warnings`, so the row's `△` appears and its tooltip quotes the warning, instead of the `○` it showed while that was a refusal. `check_scope` remains the refusal (several components, a radical, a charged structure, no protonation site, an element the basis set lacks).
+
+### The Hansen row says "With limits" for a structure it now computes outside its stated domain
+- Hansen no longer refuses fewer than three carbons: it computes and labels the result as outside the paper's stated domain. The structure-coverage hook (`chem/coverage_hooks.py`) reads that same label off `fragment`, so the row reads `△ With limits` and its tooltip quotes the sentence the numbers will carry, instead of the `Not applicable` it showed while that was a refusal.
+
+### Oxygen balance beyond C/H/N/O
+
+- The Oxygen Balance calculator now computes structures containing sulfur, chlorine,
+  fluorine, boron, silicon and sixteen metals (Al, Li, Na, K, Mg, Ca, Sr, Ba, Ti, Zr, Cr, Co,
+  Zn, Pb, Hg, Ag) on the CO₂ basis, with each element burned to the product a source states or
+  prints: Meyer, Köhler & Homburg's *Explosives* (7th ed.) and Conkling & Mocella's *Chemistry
+  of Pyrotechnics* (3rd ed., Table 2.5), with boron's B2O3 also stated by US patent 6,599,380.
+  Sulfur to SO₂; chlorine and fluorine to HCl/HF or the metal's halide (the number is the same
+  either way); each metal to its oxide, mercury and silver left as the metal as Meyer does.
+  35 of Meyer's printed balances are tests, as are Conkling's printed net valences and worked
+  mixtures, Klapötke's two borate esters, the patent's boron igniter and three rows of
+  Akhavan's *The Chemistry of Explosives*. Every assumed product is named in the result.
+- Mercury is the one product the two books disagree on (Meyer leaves the metal, Akhavan
+  burns it to HgO). The result follows Meyer and gives the HgO figure beside it.
+- Still refused, by name: bromine, iodine, phosphorus, copper, iron (the sources give
+  different products for it), every other element, and more halogen than the structure's
+  hydrogen and metals can take (carbon tetrachloride, Teflon). The CO basis is still reported for
+  C/H/N/O only, and C/H/N/O results are unchanged.
+- Kamlet–Jacobs detonation stays C/H/N/O only: all four Kamlet papers and Meyer's entry
+  state it for C-H-N-O explosives.
+
+### Properties says, before you run anything, whether each calculator takes the structure on screen
+- Before a run, a calculator's status chip now reads `Can run` (the structure is inside what the method covers), `△ With limits` (it will run, and the tooltip names the limit) or `○ Not applicable` (it will refuse, and the tooltip says why); a calculator that has nothing to say still reads `Not run`. The answer comes from the very function the calculator refuses with, so a calculator changed to refuse less makes its row say so with no second edit, and it follows the drawing as it is edited (`domain/structure_coverage.py`, `chem/coverage_hooks.py`, `docs/STRUCTURE_COVERAGE_DESIGN.md`).
+- Every calculator with a component scope (a salt given to a pure-substance method, a structure with no carbon given to an organic one, a metal complex given to a parent-compound one) now says "Not applicable" for it, from the same `components.select` call a run makes. Hooks were added for Griffin HLB, oxygen balance, Joback, Hansen, HOMA and Bird, proton affinity and X-H bond dissociation enthalpy; HOMA and Bird stay silent until the molecule has a 3D structure.
+- The rows that open another panel (proton affinity, bond dissociation) have no chip, so they carry a `✓`, `△` or `○` before their name and the same sentence in their tooltip.
+- New setting, Settings > Recalculation > "Say whether each calculator takes the structure, before I run it" (on by default; off skips the check entirely). Measured over the 29-molecule census panel plus three: the whole pass for every calculator that has a hook or a scope takes a few milliseconds and runs once per settled structure, never while dragging.
+
+### Synthesis benchmark: the two protocols' stock checked, and a stray character fixed in the protocol 2 record
+- `benchmarks/synthesis/stock_identity.py` (a diagnostic of saved records, deciding nothing) asks whether protocol 2 searched with the stock protocol 1 searched with, from what each search recorded, because protocol 1's key file was never kept: of the 1,634 leaves both protocols recorded, 1,634 got the same `in_stock` flag, and running `make_stock.py` again reproduces protocol 2's key file byte for byte. Only the literal checksum of protocol 1's own key file stays unknown. The result is a dated section of `benchmarks/synthesis/RESULT_2.md`, output in `artifacts_protocol2/stock_identity.txt`.
+- `RESULT_2.md` carried a carriage return where a backslash and an `r` belonged in the path of the records backup, which most terminals draw as a missing letter; fixed, the second copy of the records added, and `tests/test_docs_are_current.py` now fails on a lone carriage return in any tracked markdown file (checked against the defect put back).
+
+### Hansen and solubility: outside the stated domain is labelled, not refused; and the refusals that still need work are on the roadmap
+- **Hansen solubility parameters** for a molecule with fewer than three carbons (ethanol, acetonitrile, ethane; checked) are now computed when every atom is in the group table, and every number carries "outside the model's stated domain" (the paper states it for three or more carbons) in its row, the report's first limitation and the stored caveat. A structure with an atom in no group is still refused: there is no number to label.
+- **Solubility of an ampholyte** (glycine, a zwitterion) now shows the model's intrinsic estimate, with a first row saying the pH profile, the value at a chosen pH and the BCS screen are not computed and why (Henderson-Hasselbalch puts a zwitterion's minimum in the wrong place, so those would describe a different compound). Before, the whole result was refused.
+- `docs/ROADMAP.md` ("What is left") records the refusals that stay because the calculation cannot be done yet, in order of the work each needs: oxygen balance (and Kamlet-Jacobs) beyond C/H/N/O first, then several disconnected pieces with no single parent, elements missing from a parameter table, group-contribution coverage, an ampholyte's pH profile, and the benchmarks that would widen a limited scope; and the five that stay refused by definition.
+
+### Proton affinity and bond dissociation: outside what was measured is a warning, not a refusal
+- A molecule the benchmarks did not measure (more than ten heavy atoms for proton affinity, nine for bond dissociation, or an element such as a halogen, silicon or a metal, or a bond of an unmeasured kind such as P-H) is now **computed after a question** that names what was not measured, and the result says "outside what was measured ... an estimate, the measured error does not apply" in the panel, in the stored result's provenance (`within_measured_scope`, `outside_measured_scope`) and in its accuracy note. Before, it was refused, which made molecules above ten heavy atoms impossible to compute at all. Only what the protocol **cannot** compute is still refused: a charged or radical structure (the jobs are written as a neutral base and a +1 ion, or a neutral parent and a doublet radical), a mixture, a molecule with no protonation site or no X-H bond, or an element the def2 basis set lacks. Halogens and selenium are now candidate protonation sites (unmeasured, so with the warning), and any X-H bond can be chosen, an unmeasured kind marked in the bond-choice window.
+
+### A small star beside each calculator says how far its result can be trusted
+- Properties rows and the Results reader now carry a quiet star for a calculator with a declared support stage: a full star is Stable, a half star Limited, an empty star Experimental. It sits at the right edge of the row, follows the light or dark theme, and its tooltip says what the stage means and gives the calculator's own reason. In Results it appears beside "Showing" for a focused calculator and on each fact of "All results"; a focused result says it once, not on every row.
+- A calculator nobody has classified (66 of 73 today, treated as Stable so nothing changed) gets no star: a star there would claim a validation that has not been made. Rows of a section that has a star keep the room for one so their buttons and chips stay in line; a section with none is unchanged. No calculator's stage or visibility changed.
+- `domain/support_marker.py` holds the meaning (no Qt), `ui/widgets/stage_marker.py` draws it, `tests/test_support_marker.py` (21 tests) pins the mapping, the tooltip, the pixels of each fill, the palette, the placement and the real registry's workflow rows, and `benchmarks/visual/stage_markers.json` drives the real window in light and dark (new drive steps `color_scheme`, `stage_report`, `reader_filter`).
+
+### Proton affinity and gas basicity: promoted from experimental to limited, and shown in the Properties launcher by default
+- `orca.proton_affinity` was experimental and hidden for one reason: its preregistered benchmark passed (28 bases against NIST, mean absolute error 1.55 kcal/mol for PA and 1.53 for GB), but the implementation had not been driven through the application on real ORCA. It now has been, twice (2026-10-22 and 2026-10-23, the second on this commit's base): ammonia and methylamine reproduce the benchmark's PA and GB from the stored result, water has no value as the benchmark found, and chloromethane is refused. It is **limited** (the scope stays neutral closed-shell bases of at most ten heavy atoms of H, C, N, O, P and S), shown by default, and still needs a person's approval before a model can start it. The evidence is in `docs/PROTON_AFFINITY_DESIGN.md`.
+
+### Remove the retired BASIC_INSTRUCTIONS.md
+- Its text has lived in `CLAUDE.md` since the instruction-chain migration and nothing included it, so an edit there would have silently done nothing. The docs-currency list and the release-contents page no longer name it.
+
+### X-H bond dissociation enthalpy: the calculator, the button and its bond choice, stage 3 of three (experimental, hidden by default)
+- `orca.bond_dissociation_enthalpy` is registered (EXPERIMENTAL and hidden by default until a recorded driven run on real ORCA promotes it; execution policy: needs approval) with one fixed-choice parameter showing the benchmarked protocol. The Quantum Chemistry panel gains a **Bond dissociation...** button: a molecule the benchmarks did not measure is refused before anything is asked; otherwise a dialog lists the molecule's X-H bond classes (equivalent atoms count once) with every one ticked up to six, marks an O-H next to another oxygen or a nitrogen (measured to run 3.3 kcal/mol low) and an S-H (whose radical may have no value), states the measured error, and will not run with none or more than six ticked; a long run is confirmed with its job count. The result reads the weakest bond in kJ/mol, then every chosen bond in kJ/mol and kcal/mol or the reason it has none, and the measured error for the classes chosen; a stored run re-renders the same from the Runs history.
+- A User Guide section, a reference explainer and the drive steps `bond_dissociation_run` (the real button and the real dialog, answered through its own widgets) and `bond_dissociation_report` (the stored output, the run, the panel's text), with `benchmarks/visual/bond_dissociation_run.json` for the run on real ORCA.
+
+### Naming: polysubstituted rings are clean; ring assemblies find a benzodithiete, sibling rings and unreadable bi-components
+- Round 82 added two populations: every curated ring with three or four mixed substituents (about 6,000 molecules; clean apart from OPSIN's beta-lactam stereo and the first find) and curated rings joined to one or two copies of themselves (about 3,100). The finds: the curated 1,2-benzodithiete numbered four of its ten atoms, so a substituted one was a naming error (D-371; the pin `5-fluoro-1,2-benzodithiete` is now the lowest locant, `4-fluoro`); two copies of a ring joined by a bond numbered the parent by the generic fallback when the hydrogen-pinned query matched only the other ring (`...-2H-benzotriazole-5-carboxylic acid` for a 4-acid, also two beta-carbolines and two benzoxazinediones; D-372); ring assemblies of tricyclic, hydro or von Baeyer components, and of xanthene, thioxanthene, phenothiazine or phenoxazine, were unreadable or another molecule and are now enclosed with their indicated hydrogen (`3,1'-bi(9H-xanthene)`, D-373); and an assembly bond at a fusion atom took locant 1 (`3a,3a'-bi(octahydropentalene)`, D-374).
+
+### X-H bond dissociation enthalpy: the service sequence, stage 2 of three (no registered calculator or panel button yet)
+- `QuantumChemistryService.request_bond_dissociation` runs the stage-1 protocol under the molecule's single job slot: the hydrogen atom first (its failure ends the run, since no bond can have a value without it), the parent's conformers, then a radical per chosen bond and conformer as a doublet, with the one `Calc_Hess` retry of a structure that kept an imaginary mode. A structure whose output cannot be read costs that structure; a cancellation or a crash ends the operation with no result. It publishes ONE result (`orca.bond_dissociation_enthalpy`, the weakest computed bond, stamped with the parent's charge and multiplicity) and records ONE run for the whole operation. A molecule outside the benchmarks' scope, or a choice of bonds that is not valid, is refused with its reason before any job starts.
+- `tests/test_bond_dissociation_service.py` (13 tests) drives the real sequence with a real subprocess standing in for ORCA, printing real outputs of hydrogen cyanide (a new fixture is the parent; the stand-in reads each output from a file, because a real ORCA output is far past Windows' command-line limit).
+
+### X-H bond dissociation enthalpy: the chemistry of the calculation, stage 1 of three (no service or panel yet)
+- `openchem.chem.bond_dissociation` ports the protocol of `benchmarks/bde/` (and of the held-out arm of `benchmarks/restart_v2/`): scope, the X-H bond classes of a molecule (an O-H next to another oxygen or a nitrogen is flagged), the parent's conformers and a radical's starts made from them, the ORCA input and its output reader, the radical-skeleton check, the bond enthalpy `H(R.) + H(H.) - H(RH)` from the lowest structure of each species, a pure sequence of jobs (hydrogen atom first, one `Calc_Hess` retry) and the typed output `orca.bond_dissociation_enthalpy`. It states the measured error beside every number: 49 bonds, mean absolute error 1.48 kcal/mol, mean signed error -1.38 (the calculation runs low), and 3.3 for an O-H next to O or N.
+- `tests/test_bond_dissociation_calculation.py` (39 tests) holds the library to both benchmarks' own records: the structures, the input, the parsed output, and the bond enthalpy of all 63 judged bonds equal the benchmarks' to the digit, the stated error is recomputed from the committed records, and five mutations of the library each fail a test. A new real ORCA output of hydrogen cyanide is a fixture.
+
+### Instruction chain: BASIC_INSTRUCTIONS.md spliced into CLAUDE.md
+- CLAUDE.md now includes only `@project-baseline.md`; the text of the old BASIC file replaces the one line that included it, so the same text loads in the same order. The BASIC file was deleted in a follow-up.
+- `project-baseline.md` is refreshed from TokenSave Manager's current template and three shared lessons are delivered to `docs/gotchas/` (`release-hardening`, `changelog-fragments`, `installer-and-user-data`).
+
+### Held-out BDE arm: the second reference column (Luo's handbook, Ruscic 2015), read after the result and reported only (benchmark records)
+- `benchmarks/restart_v2/second_column.py` holds Luo's handbook values for the held-out bonds (read by page and by boldface, since the recommended datum is marked in bold) and Ruscic's 2015 tables for the first run's methane, ethane and methanol bonds. Luo gives one usable gas-phase number for 14 of the 27 deciding bonds; computed minus Luo has mean -1.21 (SE 0.45), the same sign as the ATcT result, but the handbook scatters about ATcT by 1.5 kcal/mol and cannot tell -1.25 from -1.53. Ruscic's version 1.122 agrees with the ATcT 1.228 references to within 0.24 kcal/mol. Neither changes the verdict or the bias test (`PREREGISTRATION.md` section 14).
+
+### Displaced restart (protocol v2): both arms run — stress DO NOT ADOPT, held-out PASS, the first run's bias did not reproduce (benchmark records)
+- Stress arm: the restart triggered on 2 of 14 new structures (ethanethiyl conformers) and rescued neither, so it is not adopted into the calculators' protocol; it repaired three of the four controls (H3O+, toluene, ethoxyl). Held-out arm (27 bonds against ATcT, unchanged judge): PASS, MAE 1.25, mean error -1.25, max 3.27 kcal/mol, 0 missing. The preregistered bias test: the first run's -1.53 is outside the held-out interval (-1.50, -1.01), so a correction is not supported; every deciding error is negative and the stated bias stays about 1.3 kcal/mol low. Records and reports are in `benchmarks/restart_v2/artifacts/`, the result in `PREREGISTRATION.md` section 13.
+
+### Naming: scanning pairs of curated rings finds N-linked purines, added hydrogen on the wrong nitrogen and a bi-assembly
+- Round 81 added a population: two curated rings joined directly or through CH2, O or NH (about 13,000 molecules in all), read back through OPSIN. The finds: a purine joined through a ring nitrogen kept the curated `9H` (`(9H-purin-7-yl)acetic acid`, another molecule); now `(7H-purin-7-yl)` (D-367). The added hydrogen of a ring ketone stayed on N3 beside a substituent on N1 (`1-methyl-5,6,7,8-tetrahydropteridin-4(3H)-one`, and `-4(3H)-on-1-yl`); it follows the substituted nitrogen (D-368). A ring assembly of an indicated-hydrogen fusion component ran the hydrogen into the `bi` (`3,1'-bi5H-dibenz[b,f]azepine`); it is now `3,1'-bi(5H-dibenz[b,f]azepine)` (D-369). Adenine joined through its amino nitrogen was named with the nucleoside form `adenin-9-yl`; it is `[(9H-purin-6-yl)amino]` (D-370).
+
+### Displaced restart (protocol v2): the preregistration is frozen after an independent read of the runner (benchmark tooling; no job has run)
+- A reviewer who had not written the runner read it against the text. Four defects were fixed before any job, each with a test: an ORCA that could not be started closed the structure's chain as a permanent missing cell (it now stays open and is redone); the held-out report gave a verdict with chains still open (now NOT EVALUABLE); the Hessian file's frame was assumed to be the geometry's (now checked, and measured on real ORCA: one common translation, modes are Cartesian displacements); a Hessian with no imaginary mode displaced along a rotation (now ends the restart). `benchmarks/restart_v2/PREREGISTRATION.md` section 12 records the freeze and what was not done before it (the second reference column, reported only).
+
+### Naming: scanning every curated ring as a substituent finds ring ketones, cation esters and a fusion label
+- Round 80 added a population: every substitutable ring atom of every curated ring joined to a more senior parent (acetic acid, acetamide, acetate, thioacetate, a methyl ketone, a secondary alcohol, acetonitrile; 1,952 molecules each), so the ring is named as a `-yl` prefix, read back through OPSIN. Clean apart from OPSIN's stereo defaults for the cephem, penam, carbapenem and morphinan rings. The finds: a ring ketone cited as a substituent put its indicated hydrogen before the oxo prefixes, `(2H-2,4-dioxo-1H-3,1-benzoxazin-6-yl)`, a name OPSIN cannot read (now `(2,4-dioxo-1,4-dihydro-2H-3,1-benzoxazin-6-yl)`, D-364); an ester of a ring O+, S+, Se+ or Te+ cation was refused (`chromen-2-yl acetate` named the neutral ring; 61 molecules), and a cation outranks an ester, so it is `2-(acetyloxy)chromenylium` and the pyrylium ester is `4-(acetyloxy)pyrylium` (D-365); and the curated octahydro-1H-pyrrolo[3,4-b]pyridine labelled its fusion carbon `3a` instead of `4a` (D-366).
+
+### Displaced restart (protocol v2): the runner and its tests are written (benchmark tooling, still a draft preregistration; no arm has been run)
+- `benchmarks/restart_v2/run_restart.py` and `restart_core.py` run the two arms of the draft: for each structure the first run's optimization and its `Calc_Hess` re-run, and for one still imaginary with its skeleton intact a Hessian job and two optimizations from the geometry displaced +0.15 and -0.15 Angstrom along the most imaginary mode (the two results are ordinary structures of the species; every chain ends in a closing record, so an interrupted structure is redone and a finished one is not). The stress set is 15 species by class (18 structures, four of them the first run's own failures as controls with no weight) with the preregistered adoption rule; the held-out arm is the 30 ATcT bonds judged by the first run's unchanged judge on the 27 deciding ones, with the three excluded reported and the preregistered bias test (does the first run's -1.53 reproduce) and a standard error beside every mean.
+- `tests/test_restart_v2_runner.py` (37 tests) reads a real ORCA Hessian of planar H3O+, checks the displacement and the two rules, runs the chain against a stand-in that returns the benchmark's real output text, and was checked by three mutations. It also found a defect before any run: a Hessian job recorded under its structure's own id would have crashed the first run's selection. One structure was run through real ORCA 6.1.1 in a scratch folder (4 min 38 s): the planar H3O+ saddle at -601.55 cm-1, the mode read from the Hessian, and both displaced optimizations reaching the real minimum, 0.30 kcal/mol below the saddle.
+
+### Bond dissociation: the held-out arm is drafted from the Active Thermochemical Tables (benchmark record; nothing is run, nothing in the application changes)
+- Blanksby and Ellison's Table 1 has no in-scope X-H bond the first run did not use, so `benchmarks/bde_heldout/` builds the held-out set from ATcT 1.228 instead: 30 bonds chosen by a rule before any value was computed (20 C-H, 8 N-H and 2 O-H), 27 deciding and 3 excluded and documented (the radicals NCO, N3 and HCCO, linear pi radicals the first run's scope did not cover, with what would lift the exclusion), each reference with an uncertainty of at most 0.47 kcal/mol. The arithmetic was checked on the 22 first-run bonds both sources cover (ATcT minus Blanksby and Ellison -0.11 kcal/mol on average; one bond beyond three combined uncertainties, propene's allylic C-H). A post-hoc diagnostic, not a re-judging: the first run's mean error over the 17 bonds ATcT also gives is -1.27 against ATcT and -1.48 against Blanksby and Ellison, so the bias is not an artefact of the reference.
+- `benchmarks/restart_v2/PREREGISTRATION.md` is rewritten (still a DRAFT: not frozen, no runner) into a restart stress set (11 species by class, counts and no verdict) and the held-out arm judged by the unchanged rule, with a preregistered test of whether the first run's -1.53 bias reproduces. Four sources are registered (`atct1228`, `ruscic2004`, `ruscic2015`, `luo2007`).
+
+### Changelog fragments: a PR adds a file, not a section of CHANGELOG.md (`tools/changelog.py`, `changelog.d/`)
+- Every PR used to insert its section at the top of `## [Unreleased]`, so whichever merged second conflicted, was rebased and waited for CI again. A PR now adds one uniquely named file under `changelog.d/` (`new`, `check` and `preview` are read-only or create-only); `build` folds them into `CHANGELOG.md` during release preparation and deletes them, writing the changelog completely before removing any fragment and touching no Git index.
+- The release workflow now fails a tag that still has unfolded fragments, before the long build, and `tools/changelog.py` is in its pull-request path filter. `tests/test_changelog_fragments.py` includes a disposable-repository test that two same-slug fragment branches merge cleanly and two branches editing `[Unreleased]` do not. Existing `[Unreleased]` entries are left as they are. Nothing enforces that a PR adds a fragment; that is a convention.
+
 ### Proton affinity: a run with no value no longer breaks the Runs history, and the real window can be driven through it
 - Driving the new **Proton affinity...** button in the real window on real ORCA found a defect the unit tests had not: the Quantum Chemistry panel's **Runs history** formatted every stored output as a number, so re-rendering a stored proton-affinity run whose structures were all dropped (water, as the benchmark found) raised `TypeError` on `None` the moment the next molecule was added. It now reads through the same line and site-table readers the live result uses, so a stored run shows its reason, its sites and the measured error as it did when it finished. New drive steps `proton_affinity_run` and `proton_affinity_report` (`benchmarks/visual/proton_affinity_run.json`): in the first real run the refusal of chloromethane was asserted, ammonia reproduced the benchmark's PA and GB to the last printed digit (844.5166 and 810.1305 kJ/mol), and water gave no value, as the benchmark found. A second, complete run on 2026-10-22 (master as of b41c2e93, real ORCA 6.1.1, about 9 minutes) passed all five assertions with no application error: the chloromethane refusal, ammonia (844.5166 and 810.1305 kJ/mol, the benchmark's own numbers to the last digit), water with no value, and methylamine (890.8002 and 856.3339 kJ/mol against the benchmark's 890.8003 and 856.3341, nitrogen site), each with the identity the panel captured stored beside the result.
 

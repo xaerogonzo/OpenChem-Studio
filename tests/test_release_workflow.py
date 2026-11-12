@@ -237,3 +237,61 @@ def test_a_failed_build_keeps_its_evidence():
 def test_the_workflow_says_what_it_does_and_does_not_prove():
     assert "DRAFT" in WORKFLOW and "not a code signature" in WORKFLOW
     assert "gh attestation verify" in WORKFLOW
+
+
+# --- release notes that fit in a GitHub release --------------------------------------------
+
+SUMMARISED = """## [Unreleased]
+
+## [2.0.0] — 2027-01-01
+
+The short summary people read.
+
+- one
+- two
+
+<!-- release-notes-end -->
+
+### Per-change record
+- a very long entry
+- another
+"""
+
+
+def test_the_notes_stop_at_the_marker_and_the_record_below_it_is_linked_not_pasted():
+    notes = info.release_notes(SUMMARISED, "2.0.0")
+    assert "The short summary" in notes and "- two" in notes
+    assert "Per-change record" not in notes and "very long entry" not in notes
+    body = info.release_body(SUMMARISED, "2.0.0", "v2.0.0")
+    assert body.startswith(notes.rstrip("\n"))
+    assert "**Full changelog:** https://github.com/xaerogonzo/OpenChem-Studio/blob/v2.0.0/CHANGELOG.md" in body
+
+
+def test_a_section_without_a_marker_gets_no_link():
+    body = info.release_body(CHANGELOG, "0.10.0", "v0.10.0")
+    assert "Full changelog" not in body and "the thing" in body
+
+
+def test_an_empty_summary_above_the_marker_is_refused():
+    text = "## [2.0.0]\n\n<!-- release-notes-end -->\n\n- entry\n"
+    with pytest.raises(info.ReleaseInfoError, match="summary above"):
+        info.release_notes(text, "2.0.0")
+
+
+def test_a_section_too_long_for_a_github_release_is_refused_and_the_fix_is_named():
+    huge = "## [3.0.0]\n\n" + ("- an entry that goes on and on and on\n" * 4000)
+    assert len(huge) > info.MAX_NOTES
+    with pytest.raises(info.ReleaseInfoError, match=r"short summary at the top.*release-notes-end"):
+        info.release_notes(huge, "3.0.0")
+    # ...and the same section with a summary above the marker is fine.
+    info.release_notes("## [3.0.0]\n\nsummary\n\n<!-- release-notes-end -->\n\n" + huge.split("\n\n", 1)[1], "3.0.0")
+
+
+def test_the_real_release_notes_fit_in_a_github_release():
+    """GitHub refuses a description over 125,000 characters. The project's changelog section for
+    one release is several times that, which this test exists to keep from reaching a real tag."""
+    version = info.project_version()
+    changelog = (ROOT / "CHANGELOG.md").read_text(encoding="utf-8")
+    body = info.release_body(changelog, version, f"v{version}")
+    assert 200 < len(body) < 120_000
+    assert info.END_MARKER in changelog, "the current release has no summary/marker, so its notes would be the whole changelog section"
