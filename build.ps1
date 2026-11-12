@@ -211,20 +211,26 @@ Get-ChildItem "$APPDIR\plugins" -Recurse -Directory -Filter "__pycache__" |
 
 # ---------- Stage the few files a person opens ---------------------------------
 # What ships beside the exe is deliberately small: the licence a copy must carry,
-# how to cite it, and a short README.txt saying what the folder is and where the
-# documentation is. The in-app Help is compiled into the exe, so it needs nothing
-# from here, and the repository's docs\ tree (design notes, benchmark records, the
-# README's screenshots) is maintainer material read on GitHub, not shipped. An
-# earlier build copied all of docs\ beside the exe, which looked like unprotected
-# Help and added 7 MB nobody needs.
+# how to cite it, a short README.txt, the changelog, and a docs\ folder holding the
+# documents named in packaging\release-docs.txt (the Help's own four plus what they
+# link to). Design notes, benchmark records, the README's screenshots and the
+# maintainer logs stay on GitHub. The in-app Help is compiled into the exe and needs
+# none of this; these are copies a person can read without starting the program, and
+# the installer's Repair puts back any that are deleted.
 #
 # This runs on every build, so a shipped zip can never carry a stale licence.
 
-Write-Host "  Staging README.txt, LICENSE, CITATION.cff ..." -ForegroundColor Cyan
+Write-Host "  Staging README.txt, LICENSE, CITATION.cff, CHANGELOG.md, docs\ ..." -ForegroundColor Cyan
 $releaseReadme = Join-Path $ROOT "packaging\README-release.txt"
 Copy-Item $releaseReadme "$APPDIR\README.txt" -Force
-foreach ($doc in @("LICENSE", "CITATION.cff")) {
+foreach ($doc in @("LICENSE", "CITATION.cff", "CHANGELOG.md")) {
     Copy-Item "$ROOT\$doc" "$APPDIR\$doc" -Force
+}
+New-Item -ItemType Directory -Path "$APPDIR\docs" -Force | Out-Null
+$releaseDocs = Get-Content (Join-Path $ROOT "packaging\release-docs.txt") |
+    Where-Object { $_.Trim() -and -not $_.StartsWith("#") }
+foreach ($doc in $releaseDocs) {
+    Copy-Item "$ROOT\docs\$($doc.Trim())" "$APPDIR\docs\$($doc.Trim())" -Force
 }
 
 # ---------- Verify ------------------------------------------------------------
@@ -278,6 +284,8 @@ $required = @(
     # The files a person opens, staged above.
     "README.txt",
     "LICENSE",
+    "CHANGELOG.md",
+    "docs\USER_GUIDE.md",
     "OpenChemStudio.exe"
 )
 
@@ -295,7 +303,7 @@ if (-not (Test-Path $pyzToc) -or -not (Select-String -Path $pyzToc -SimpleMatch 
 if (-not (Select-String -Path $pyzToc -SimpleMatch "openchem._integrity" -Quiet)) {
     $missing += "openchem._integrity inside the compiled archive (build\openchem\PYZ-00.toc)"
 }
-foreach ($loose in @("docs", "README.md", "CHANGELOG.md", "_internal\openchem\docs", "_internal\openchem\_help_bundle.py", "_internal\openchem\_integrity.py")) {
+foreach ($loose in @("README.md", "_internal\openchem\docs", "_internal\openchem\_help_bundle.py", "_internal\openchem\_integrity.py")) {
     if (Test-Path "$APPDIR\$loose") { $missing += "$loose must not exist (help is bundled; maintainer docs are not shipped)" }
 }
 

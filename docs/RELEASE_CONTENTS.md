@@ -27,21 +27,23 @@ Qt/Chromium runtime.
 | `_internal\` (rdkit, openbabel, numpy, py2opsin, PIL and other libraries) | Third-party packages and their data, including OPSIN's jar | about 130 MB | Yes | No |
 | `plugins\` | The bundled plugins, as **source**, so a person can add or change one without Python | 0.2 MB | Yes | **Yes, by design** |
 | `README.txt` | A short note: what the folder is, F1 for Help, where the documentation is online (written for the release, from `packaging/README-release.txt`) | 1 KB | No | Yes |
+| `CHANGELOG.md` | What changed in each version | 0.6 MB | No | Yes |
+| `docs\` | A listed subset of the documentation (`packaging/release-docs.txt`): the four help documents and what they link to, as plain markdown a person can open without starting the program | 1 MB | No | Yes |
 | `CITATION.cff` | How to cite the program | small | No | Yes |
 | `LICENSE` | GPL-3.0-or-later, which a copy of this software must carry | small | No | Please do not |
 
 The four help documents (`QUICKSTART`, `USER_GUIDE`, `SCIENTIFIC_LIMITATIONS`,
-`CALCULATOR_REFERENCE`) are **not** loose files in the release. They are
-compressed into the exe's archive, so saving over a copy of them cannot change
-the Help window, and nothing beside the exe is a second, editable copy. The
-repository's `docs/` tree (design notes, benchmark records, the README's
-screenshots), `README.md`, `CHANGELOG.md`, `CONTRIBUTING.md` and
-`CODE_OF_CONDUCT.md` are **not shipped**: they are read on GitHub, and the Start menu
-folder links there. (Builds up to the 0.11.0 drafts shipped them; the installer
-deletes them when it upgrades such an install.)
+`CALCULATOR_REFERENCE`) are ALSO compressed into the exe's archive, and that is the
+copy the Help window reads: editing the loose files in `docs\` cannot change it,
+and the Open file button opens a read-only temporary copy. The loose `docs\` folder is
+there to be read; the installer's Repair restores it. The rest of the repository's
+`docs/` tree (design notes, benchmark records, maintainer logs), the README's
+screenshots, `README.md`, `CONTRIBUTING.md` and `CODE_OF_CONDUCT.md` are **not shipped**:
+they are read on GitHub. (Builds up to the 0.11.0 drafts shipped the whole tree; the
+installer clears it when it upgrades such an install.)
 
 Left out on purpose, so they cannot be shipped by mistake: the build refuses an
-archive that holds `__pycache__`, a top-level `docs\`, a loose `_internal\openchem\docs\`,
+archive that holds `__pycache__`, a top-level `README.md`, a loose `_internal\openchem\docs\`,
 `_help_bundle.py`, `_integrity.py` or `_build_stamp.py`.
 
 What the user owns is **not** in the install at all: projects, settings, logs,
@@ -60,9 +62,11 @@ differs is how:
 - **Per-user or all-users**, chosen by the person at the start. Per-user needs no
   administrator and installs under their own profile; all-users installs under
   Program Files and asks for elevation.
-- **A Start menu folder** holds the program, **Uninstall OpenChem Studio** and a link to
-  the online documentation. The uninstaller itself (`unins000.exe`) is also in the install
+- **A Start menu folder** holds the program, **Uninstall OpenChem Studio**, the
+  documentation folder, the changelog and a link to the online documentation. The uninstaller itself (`unins000.exe`) is also in the install
   folder and in Windows Settings > Apps.
+- **The install folder is always asked for**, including on a re-run (the previous folder is
+  the suggestion); the Browse button is Windows' own folder picker.
 - **Running Setup again over an install asks first**: repair or update, uninstall, or
   cancel. (A silent run skips the question and installs.)
 - **Upgrade in place.** Installing a newer version over an older one replaces it and
@@ -82,8 +86,9 @@ Every tracked top-level entry, and whether it reaches a release.
 |---|---|---|
 | `src` | Yes, frozen into the exe, plus the data files above | The application |
 | `plugins` | Yes, as source beside the exe | Plugins load from source by design |
-| `docs` | **No** (the in-app Help is compiled into the exe) | Maintainer material, read on GitHub |
-| `README.md`, `CHANGELOG.md`, `CONTRIBUTING.md`, `CODE_OF_CONDUCT.md` | **No** (the release carries its own short `README.txt`) | Read on GitHub; the README's images are in `docs/` |
+| `docs` | Yes, a listed subset (`packaging/release-docs.txt`; for example `USER_GUIDE.md`) | The user-facing documents; the rest is maintainer material, read on GitHub |
+| `CHANGELOG.md` | Yes | Users read what changed |
+| `README.md`, `CONTRIBUTING.md`, `CODE_OF_CONDUCT.md` | **No** (the release carries its own short `README.txt`) | Read on GitHub; the README's images are in `docs/` |
 | `CITATION.cff`, `LICENSE` | Yes | How to cite it, and the licence a copy must carry |
 | `tests` | **No** | Build-time and development only |
 | `benchmarks` | **No** | Measurements and drive scripts, development only (the frozen smoke script is read from here by the build, not shipped) |

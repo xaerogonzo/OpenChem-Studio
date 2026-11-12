@@ -35,13 +35,13 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 APP_FOLDER = "OpenChemStudio"
 
 #: Must be in the archive (relative to the top folder).
-REQUIRED = ("OpenChemStudio.exe", "README.txt", "LICENSE", "_internal/openchem/chem/data/elements.json")
+REQUIRED = ("OpenChemStudio.exe", "README.txt", "LICENSE", "CHANGELOG.md", "docs/USER_GUIDE.md", "_internal/openchem/chem/data/elements.json")
 
 #: Must NOT be loose in the archive: they live in the exe's archive, or are build debris.
 FORBIDDEN_PARTS = ("__pycache__",)
 FORBIDDEN_PATHS = (
-    "docs/",
     "_internal/openchem/docs/",
+    "README.md",
     "_internal/openchem/_help_bundle.py",
     "_internal/openchem/_integrity.py",
     "_internal/openchem/_build_stamp.py",
