@@ -10,9 +10,14 @@ installed. Three things, each a way a release goes wrong quietly:
   * `check-tag`: the tag a release is cut from must be `v` + the version in
     `pyproject.toml`. A mismatch means the installer's version, the zip's name and
     About all say one thing and the tag another.
-  * `notes`: the release notes are the `## [<version>]` section of `CHANGELOG.md`,
-    and a version with no section, or an empty one, is refused. "Unreleased" is not
-    a version: shipping it would announce a release whose notes say nothing about it.
+  * `notes`: the release notes are the `## [<version>]` section of `CHANGELOG.md`, and a
+    version with no section, or an empty one, is refused. "Unreleased" is not a version:
+    shipping it would announce a release whose notes say nothing about it. The notes end
+    at a line `<!-- release-notes-end -->` when the section has one (a short summary above,
+    the per-change record below it, which is then linked, not pasted), because GitHub
+    refuses a release description over 125,000 characters and this project's changelog is
+    far longer than that. Without the marker, a section over `MAX_NOTES` is refused with
+    the fix named, instead of failing at the end of a 20 minute build.
   * `version`: the single source for the number, so no step parses it a second way.
 """
 
@@ -28,6 +33,15 @@ ROOT = Path(__file__).resolve().parent.parent
 
 #: A release tag: `v` and a plain dotted version. Pre-release suffixes are not used here.
 TAG = re.compile(r"^v(\d+\.\d+\.\d+)$")
+
+#: Where the summary stops and the per-change record begins, in a changelog section.
+END_MARKER = "<!-- release-notes-end -->"
+
+#: GitHub refuses a release description over 125,000 characters. Kept well under, so the
+#: footer and a little growth fit.
+MAX_NOTES = 100_000
+
+REPOSITORY = "https://github.com/xaerogonzo/OpenChem-Studio"
 
 
 class ReleaseInfoError(ValueError):
@@ -77,7 +91,28 @@ def release_notes(changelog: str, version: str) -> str:
     text = "\n".join(body).strip()
     if not text:
         raise ReleaseInfoError(f"the '## [{version}]' section of CHANGELOG.md is empty")
+    if END_MARKER in text:
+        text = text.split(END_MARKER, 1)[0].strip()
+        if not text:
+            raise ReleaseInfoError(f"the summary above {END_MARKER} in '## [{version}]' is empty")
+    elif len(text) > MAX_NOTES:
+        raise ReleaseInfoError(
+            f"the '## [{version}]' section is {len(text):,} characters, and GitHub refuses a release "
+            f"description over 125,000. Write a short summary at the top of the section and put "
+            f"{END_MARKER} after it; everything below is then linked, not pasted."
+        )
     return text + "\n"
+
+
+def release_body(changelog: str, version: str, tag: str) -> str:
+    """The notes plus, when the section has a per-change record below the marker, a link to it."""
+    text = release_notes(changelog, version)
+    section = re.search(rf"^## \[{re.escape(version)}\](.*?)(?=^## \[|\Z)", changelog, re.S | re.M)
+    if section and END_MARKER in section.group(1):
+        text += f"\n**Full changelog:** {REPOSITORY}/blob/{tag}/CHANGELOG.md\n"
+    if len(text) > 120_000:
+        raise ReleaseInfoError(f"the release description is {len(text):,} characters; GitHub's limit is 125,000")
+    return text
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -98,7 +133,7 @@ def main(argv: list[str] | None = None) -> int:
         elif args.command == "check-tag":
             print(check_tag(args.tag, version))
         else:
-            text = release_notes(args.changelog.read_text(encoding="utf-8"), check_tag(args.tag, version))
+            text = release_body(args.changelog.read_text(encoding="utf-8"), check_tag(args.tag, version), args.tag)
             if args.out:
                 args.out.write_text(text, encoding="utf-8", newline="\n")
             else:
