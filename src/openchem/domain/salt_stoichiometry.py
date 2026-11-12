@@ -112,6 +112,31 @@ def compose_mode_a(
     )
 
 
+def compose_supplied_ions(
+    cation: ModeASpecies,
+    anion: ModeASpecies,
+) -> ModeAComposition | ModeARefusal:
+    if cation.kind != KIND_ION or anion.kind != KIND_ION:
+        return ModeARefusal(
+            code="missing_proton_source",
+            reason=(
+                "A molecular neutral plus a supplied ion does not provide "
+                "the protons for a transfer; supply both ions as given."
+            ),
+        )
+    balanced = balance_two(
+        ChargedSpecies(cation.identity, cation.charge),
+        ChargedSpecies(anion.identity, anion.charge),
+    )
+    if isinstance(balanced, BalanceRefusal):
+        return ModeARefusal(code=balanced.code, reason=balanced.reason)
+    return ModeAComposition(
+        cation_count=balanced.cation_count,
+        anion_count=balanced.anion_count,
+        charge_valid=True,
+    )
+
+
 @dataclass(frozen=True)
 class ChargedSpecies:
     """One ion, as the stoichiometry layer is allowed to see it."""
@@ -128,6 +153,12 @@ class TwoIonBalance:
 
 @dataclass(frozen=True)
 class BalanceRefusal:
+    code: str
+    reason: str
+
+
+@dataclass(frozen=True)
+class IonizationRefusal:
     code: str
     reason: str
 
@@ -164,3 +195,20 @@ def formula_unit_conserved(
         return out
 
     return _total(left) == _total(right)
+
+
+#: Pick among fully specified ionic structures. An empty list is a net-charge
+#: request with no structure; several distinct graphs at one charge are not ranked.
+def choose_ionization(candidates: Sequence[str]) -> str | IonizationRefusal:
+    unique = list(dict.fromkeys(candidates))
+    if not unique:
+        return IonizationRefusal(
+            code="net_charge_only",
+            reason="A net charge is not an ionization state; name a structure.",
+        )
+    if len(unique) > 1:
+        return IonizationRefusal(
+            code="ambiguous_microspecies",
+            reason="Several structures share this charge; v1 does not pick one.",
+        )
+    return unique[0]

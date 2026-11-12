@@ -1,7 +1,8 @@
 # Salt composition engine: design
 
 **Status: slice 1 (`balance_two`, Mode B) is in master; slice 2 adds Mode A
-for two molecular neutrals; Mode C and UI still not authorized by this work.**
+for two molecular neutrals; slice 3 adds ionization, a cited ion catalog, and
+pKa evidence; Mode C and UI still not authorized by this work.**
 This note is the scientific and module-boundary contract. It is not an
 implementation plan: file names below are the intended homes when code exists,
 not a commitment to write them in this change. No calculator is registered, no
@@ -418,7 +419,8 @@ implicit-H formulas still distinguish graphs.
 
 **Ionization selection.** Net charge only is refused or listed as candidates;
 two microspecies at the same charge are not auto-picked; site-specific
-selection is accepted.
+selection is accepted. Net-charge listing tries N, O, P and S sites only, so
+a carbon deprotonation of acetic acid is not treated as a competing microspecies.
 
 **Acid-base / Mode A.** Monoprotic; diprotic first vs second deprotonation
 (hydrogen sulfate vs sulfate); triprotic with partial deprotonation; one

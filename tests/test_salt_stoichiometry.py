@@ -13,12 +13,15 @@ from openchem.domain.salt_stoichiometry import (
     KIND_MOLECULAR_NEUTRAL,
     BalanceRefusal,
     ChargedSpecies,
+    IonizationRefusal,
     ModeAComposition,
     ModeARefusal,
     ModeASpecies,
     TwoIonBalance,
     balance_two,
+    choose_ionization,
     compose_mode_a,
+    compose_supplied_ions,
     formula_unit_conserved,
 )
 
@@ -157,6 +160,24 @@ def test_broken_hydrogen_count_is_not_a_composition() -> None:
     assert result.code == "conservation_failed"
 
 
+def test_sodium_and_acetate_as_given_ions_balance_one_to_one() -> None:
+    sodium = ModeASpecies("[Na+]", 1, KIND_ION, (("Na", 1),))
+    acetate = ModeASpecies("CC(=O)[O-]", -1, KIND_ION, (("C", 2), ("H", 3), ("O", 2)))
+    result = compose_supplied_ions(sodium, acetate)
+    assert isinstance(result, ModeAComposition)
+    assert result.cation_count == 1
+    assert result.anion_count == 1
+    assert result.charge_valid is True
+
+
+def test_a_neutral_passed_to_supplied_ions_is_refused() -> None:
+    acetic = ModeASpecies("CC(=O)O", 0, KIND_MOLECULAR_NEUTRAL, (("C", 2), ("H", 4), ("O", 2)))
+    sodium = ModeASpecies("[Na+]", 1, KIND_ION, (("Na", 1),))
+    refused = compose_supplied_ions(sodium, acetic)
+    assert isinstance(refused, ModeARefusal)
+    assert refused.code == "missing_proton_source"
+
+
 def test_neutral_base_plus_sulfate_without_a_proton_source_is_refused() -> None:
     result = compose_mode_a(
         _species("B", 0, KIND_MOLECULAR_NEUTRAL, {"C": 2, "H": 7, "N": 1}),
@@ -166,6 +187,21 @@ def test_neutral_base_plus_sulfate_without_a_proton_source_is_refused() -> None:
     )
     assert isinstance(result, ModeARefusal)
     assert result.code == "missing_proton_source"
+
+
+def test_one_structure_at_the_requested_state_is_accepted() -> None:
+    assert choose_ionization(["CC(=O)[O-]"]) == "CC(=O)[O-]"
+
+
+def test_a_net_charge_with_no_structure_is_refused() -> None:
+    refused = choose_ionization([])
+    assert refused.code == "net_charge_only"
+
+
+def test_two_structures_at_the_same_charge_are_not_auto_picked() -> None:
+    refused = choose_ionization(["CC(=O)[O-]", "[O-]C=O"])
+    assert refused.code == "ambiguous_microspecies"
+    assert isinstance(refused, IonizationRefusal)
 
 
 def test_the_domain_module_does_not_import_lattice_energy() -> None:

@@ -9787,3 +9787,24 @@ Additional file 1's solver (`src/eem.c`, `src/io.c`): B on the diagonal, kappa
 over the SDF-coordinate distance off it, the type being the element and the
 highest bond order. There is no local copy of the paper in `Sci Downloads`.
 """
+
+[[source]]
+key = "salt_ion_catalog"
+kind = "dataset"
+citation = "OpenChem Studio v1 salt ion catalog: named common ions as canonical SMILES for composition, not a pharmaceutical list."
+identifier_type = "bibliographic"
+identifier = "OpenChem Studio v1 salt ion catalog"
+status = "shipped"
+verification = "citation"
+verified_date = 2026-11-11
+used_by = ["src/openchem/chem/data/ionic_species.json"]
+note = """
+STRUCTURES ONLY. Each row is a named ion's graph and its parent, so Mode A
+workflow 2 and the catalog agree on identity. No pKa numbers. Not safety or
+acceptability. Hydrogen sulfate and sulfate are different rows.
+"""
+reason = """
+STRUCTURES ONLY. Each row is a named ion's graph and its parent, so Mode A
+workflow 2 and the catalog agree on identity. No pKa numbers. Not safety or
+acceptability. Hydrogen sulfate and sulfate are different rows.
+"""

@@ -2375,9 +2375,11 @@ Nothing here is simply unstarted — each is blocked on something nameable,
 and three were checked again recently rather than taken on trust.
 
 - **Salt composition engine (recorded 2026-11-10; slice 1 in master,
-  slice 2 Mode A).** Slice 1 shipped `balance_two` and Mode B drawing
-  analysis; slice 2 adds Mode A for two molecular neutrals (still library-only,
-  no panel). Charge-valid two-ion stoichiometry from identified ionic species,
+  slice 2 Mode A, slice 3 ionization).** Slice 1 shipped `balance_two` and
+  Mode B drawing analysis; slice 2 adds Mode A for two molecular neutrals;
+  slice 3 adds fully specified ionization, a small cited ion catalog, and
+  `pka_compatible` as named-step evidence (still library-only, no panel; Mode C
+  is not authorized). Charge-valid two-ion stoichiometry from identified ionic species,
   with proton-transfer conservation and independent evidence (`charge_valid` is
   not an isolable salt). `substance.py` is an adapter, not the engine; COD
   search, ion-pair 3D, hydrates as first-class features, pharmaceutical
