@@ -24,11 +24,6 @@ from openchem.domain.salt_stoichiometry import (
     enumerate_mode_c,
 )
 
-REACHED_BY = (
-    "tooling: consumed by tests/test_salt_mode_c.py; Mode C is not "
-    "on the window yet"
-)
-
 
 def _candidate(mol: Chem.Mol, origin: str, ladder_index: int | None = None) -> ModeCCandidate | IdentityRefusal:
     key = fragment_key(mol)

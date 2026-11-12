@@ -2374,16 +2374,16 @@ struck through and marked SHIPPED here, never deleted.
 Nothing here is simply unstarted — each is blocked on something nameable,
 and three were checked again recently rather than taken on trust.
 
-- **Salt composition engine (recorded 2026-11-10; slices 1–4 in master as
-  library code).** Slice 1 shipped `balance_two` and
-  Mode B drawing analysis; slice 2 adds Mode A for two molecular neutrals;
-  slice 3 adds fully specified ionization, a small cited ion catalog, and
-  `pka_compatible` as named-step evidence; slice 4 adds Mode C enumeration
-  of one two-component pair (still library-only, no panel). Charge-valid two-ion stoichiometry from identified ionic species,
-  with proton-transfer conservation and independent evidence (`charge_valid` is
-  not an isolable salt). `substance.py` is an adapter, not the engine; COD
-  search, ion-pair 3D, hydrates as first-class features, pharmaceutical
-  acceptability and `balance_many` stay out. Contract:
+- **Salt composition engine (recorded 2026-11-10; slices 1–5).** Slice 1 shipped
+  `balance_two` and Mode B drawing analysis; slice 2 Mode A for two molecular
+  neutrals; slice 3 fully specified ionization, a small cited ion catalog, and
+  `pka_compatible` as named-step evidence; slice 4 Mode C enumeration of one
+  two-component pair; slice 5 Tools > Salt Composition (Analyze / two neutrals /
+  two ions / enumerate; never a crystal). Charge-valid two-ion stoichiometry
+  from identified ionic species, with proton-transfer conservation and
+  independent evidence (`charge_valid` is not an isolable salt). `substance.py`
+  is an adapter, not the engine; COD search, ion-pair 3D, hydrates as first-class
+  features, pharmaceutical acceptability and `balance_many` stay out. Contract:
   `docs/SALT_COMPOSITION_DESIGN.md`.
 
 - **Peptide sequence building and polymer S-groups (recorded 2026-11-10).** The

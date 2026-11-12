@@ -213,6 +213,7 @@ MENU_SPECS: dict[str, MenuSpec] = {
                 "Lewis Acid-Base Pairing",
                 "ORCA Geometry Optimization",
                 "Run Calculators by Goal",
+                "Salt Composition",
                 "Virtual Screening",
             ),
             "Reference": ("Identify Structure Online", "Periodic Table", "Quarks and Hadrons"),

@@ -628,6 +628,17 @@ MENU_HELP: dict[str, HelpTooltip] = {
         tier=1, help_id="tools.lewis_pairing", topic=_M,
         help_anchor="lewis-pairing",
     ),
+    "salt_composition": HelpTooltip(
+        text=(
+            "Opens salt composition: pick one drawing or two project molecules and ask for a "
+            "charge-balanced formula unit. Analyze never rewrites drawn ion counts. Two neutrals "
+            "transfers a proton only when each side has a unique ionization. Enumerate lists at most "
+            "50 pairs and does not rank them by pKa.\n\n"
+            "A charge-balanced composition is not an isolable salt, a crystal, or a 3D ion pair."
+        ),
+        tier=1, help_id="tools.salt_composition", topic=_M,
+        help_anchor="salt-composition",
+    ),
     "derived_scores": HelpTooltip(
         text=(
             "Opens the scores of this project: formulas you write over numbers the application already computes, such as a weighted sum of desirabilities.\n\n"

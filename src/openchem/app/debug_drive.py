@@ -2971,6 +2971,50 @@ class _Driver(QObject):
         else:
             logger.error("OPENCHEM_DRIVE: EXPECT lewis_pairing FAILED[%s] -- %s", tag, "; ".join(problems)[:800])
 
+    def _do_salt_composition(self, step: dict[str, Any]) -> None:
+        """Open the salt-composition window and read what it shows.
+
+        `{"do": "salt_composition", "first": 0, "second": 1, "mode": "neutrals",
+        "expect": {"headline_contains": "1 : 1", "disclaimer": true}}`
+        """
+        molecules = list(self._window._session.project.molecules)
+
+        def uuid_at(key: str) -> str | None:
+            index = step.get(key)
+            if index is None or not -len(molecules) <= index < len(molecules):
+                return None
+            return molecules[index].uuid
+
+        dialog = self._window.show_salt_composition(uuid_at("first"), uuid_at("second"))
+        if step.get("mode"):
+            dialog.set_mode(str(step["mode"]))
+        snapshot = dialog.snapshot()
+        logger.warning(
+            "OPENCHEM_DRIVE: salt_composition mode=%s | %s",
+            snapshot["mode"], str(snapshot["headline"])[:120],
+        )
+        expect = step.get("expect")
+        if not expect:
+            return
+        problems: list[str] = []
+        headline = str(snapshot["headline"])
+        body = str(snapshot["body"])
+        if "headline_contains" in expect and str(expect["headline_contains"]) not in headline:
+            problems.append(f"headline {headline!r} lacks {expect['headline_contains']!r}")
+        if "body_contains" in expect and str(expect["body_contains"]) not in body:
+            problems.append(f"body lacks {expect['body_contains']!r}")
+        if expect.get("disclaimer") and snapshot["disclaimer"] not in body:
+            problems.append("disclaimer missing from the body")
+        if "charge_valid" in expect and snapshot["charge_valid"] != expect["charge_valid"]:
+            problems.append(f"charge_valid {snapshot['charge_valid']!r} != {expect['charge_valid']!r}")
+        if "mode" in expect and snapshot["mode"] != expect["mode"]:
+            problems.append(f"mode {snapshot['mode']!r} != {expect['mode']!r}")
+        tag = str(step.get("tag", ""))
+        if self._record_assertion("salt_composition", tag, not problems, "; ".join(problems) or "as expected"):
+            logger.warning("OPENCHEM_DRIVE: EXPECT salt_composition ok[%s]", tag)
+        else:
+            logger.error("OPENCHEM_DRIVE: EXPECT salt_composition FAILED[%s] -- %s", tag, "; ".join(problems)[:800])
+
     def _do_recipe_results(self, step: dict[str, Any]) -> None:
         """What the Results reader holds of the recipe answers kept in the project, for the SELECTED molecule.
 
@@ -4508,6 +4552,11 @@ class _Driver(QObject):
                 logger.error("OPENCHEM_DRIVE: no Lewis pairing window open; run {'do': 'lewis_pairing'}")
                 return
             target = self._window._lewis_pairing
+        elif step.get("widget") == "salt_composition":
+            if self._window._salt_composition is None:
+                logger.error("OPENCHEM_DRIVE: no salt composition window open; run {'do': 'salt_composition'}")
+                return
+            target = self._window._salt_composition
         elif step.get("widget") == "project_table":
             # The Results dock's own project table, as the window builds it: the grid, its progress and status lines and the export row.
             target = self._window._results_workspace.table_view

@@ -14,11 +14,6 @@ from openchem.chem.salt_components import (
 )
 from openchem.domain.salt_stoichiometry import IonizationRefusal, choose_ionization
 
-REACHED_BY = (
-    "tooling: consumed by tests/test_salt_ionization.py; ionization is not "
-    "on the window yet"
-)
-
 
 @dataclass(frozen=True)
 class SiteTransform:

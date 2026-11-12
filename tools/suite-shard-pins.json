@@ -5230,6 +5230,8 @@
   "tests/test_run_app_gate.py": 2,
   "tests/test_run_lifecycle.py": 0,
   "tests/test_salt_components.py": 2,
+  "tests/test_salt_compose.py": 0,
+  "tests/test_salt_composition_dialog.py": 1,
   "tests/test_salt_evidence.py": 7,
   "tests/test_salt_ionization.py": 3,
   "tests/test_salt_mode_a.py": 1,
