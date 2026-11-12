@@ -73,6 +73,8 @@ as a zip and as an installer. **Neither is code-signed yet**, so Windows SmartSc
   an install that has them. The in-app Help is still compiled into the exe and is unchanged.
 - Setup now always shows the install-folder page, including when re-run over an existing install
   (Inno hides it by default then, which left no way to choose a location).
+- Setup's Browse button now offers **Make New Folder**, so a folder that does not exist yet can be
+  created from the picker instead of typed.
 - The test installer uses its own Start menu folder, so testing it cannot touch a real install's
   shortcuts.
 

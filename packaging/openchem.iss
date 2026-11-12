@@ -192,6 +192,24 @@ begin
     Result := False;
 end;
 
+{ Setup's own Browse button opens a folder picker with no "Make New Folder" button, so choosing
+  a folder that does not exist yet meant typing its path. The same picker is available to the
+  script with that button switched on; use it. The chosen folder is taken exactly as picked (no
+  "OpenChem Studio" is appended), so a person who makes a new folder here gets that folder. }
+procedure BrowseForInstallFolder(Sender: TObject);
+var
+  Dir: String;
+begin
+  Dir := WizardForm.DirEdit.Text;
+  if BrowseForFolder('Select the folder to install OpenChem Studio into, then click OK.', Dir, True) then
+    WizardForm.DirEdit.Text := Dir;
+end;
+
+procedure InitializeWizard();
+begin
+  WizardForm.DirBrowseButton.OnClick := @BrowseForInstallFolder;
+end;
+
 { Where the application keeps its caches, downloaded tools and recovery copies by default.
   src/openchem/paths.py: platformdirs user_data_dir("OpenChemStudio") on Windows. }
 function DataFolder(): String;
