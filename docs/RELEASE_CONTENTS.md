@@ -26,18 +26,22 @@ Qt/Chromium runtime.
 | `_internal\openchem\chem\*_runner.py` | Scripts handed to a separate interpreter (pKa, ADMET, the route planner) | small | Yes | No |
 | `_internal\` (rdkit, openbabel, numpy, py2opsin, PIL and other libraries) | Third-party packages and their data, including OPSIN's jar | about 130 MB | Yes | No |
 | `plugins\` | The bundled plugins, as **source**, so a person can add or change one without Python | 0.2 MB | Yes | **Yes, by design** |
-| `docs\` | The whole `docs/` tree, as files for people to read | 4.7 MB | **No** | Yes, and nothing breaks |
-| `README.md`, `CHANGELOG.md`, `CONTRIBUTING.md`, `CODE_OF_CONDUCT.md`, `CITATION.cff` | For people | small | No | Yes |
+| `README.txt` | A short note: what the folder is, F1 for Help, where the documentation is online (written for the release, from `packaging/README-release.txt`) | 1 KB | No | Yes |
+| `CITATION.cff` | How to cite the program | small | No | Yes |
 | `LICENSE` | GPL-3.0-or-later, which a copy of this software must carry | small | No | Please do not |
 
 The four help documents (`QUICKSTART`, `USER_GUIDE`, `SCIENTIFIC_LIMITATIONS`,
 `CALCULATOR_REFERENCE`) are **not** loose files in the release. They are
 compressed into the exe's archive, so saving over a copy of them cannot change
-the Help window. The `docs\` folder beside the exe is a human-readable copy of
-the same text and more.
+the Help window, and nothing beside the exe is a second, editable copy. The
+repository's `docs/` tree (design notes, benchmark records, the README's
+screenshots), `README.md`, `CHANGELOG.md`, `CONTRIBUTING.md` and
+`CODE_OF_CONDUCT.md` are **not shipped**: they are read on GitHub, and the Start menu
+folder links there. (Builds up to the 0.11.0 drafts shipped them; the installer
+deletes them when it upgrades such an install.)
 
 Left out on purpose, so they cannot be shipped by mistake: the build refuses an
-archive that holds `__pycache__`, a loose `_internal\openchem\docs\`,
+archive that holds `__pycache__`, a top-level `docs\`, a loose `_internal\openchem\docs\`,
 `_help_bundle.py`, `_integrity.py` or `_build_stamp.py`.
 
 What the user owns is **not** in the install at all: projects, settings, logs,
@@ -56,6 +60,11 @@ differs is how:
 - **Per-user or all-users**, chosen by the person at the start. Per-user needs no
   administrator and installs under their own profile; all-users installs under
   Program Files and asks for elevation.
+- **A Start menu folder** holds the program, **Uninstall OpenChem Studio** and a link to
+  the online documentation. The uninstaller itself (`unins000.exe`) is also in the install
+  folder and in Windows Settings > Apps.
+- **Running Setup again over an install asks first**: repair or update, uninstall, or
+  cancel. (A silent run skips the question and installs.)
 - **Upgrade in place.** Installing a newer version over an older one replaces it and
   first deletes the old `_internal` folder, so no stale file survives. `plugins\` is
   never cleared, because people add their own there.
@@ -73,8 +82,9 @@ Every tracked top-level entry, and whether it reaches a release.
 |---|---|---|
 | `src` | Yes, frozen into the exe, plus the data files above | The application |
 | `plugins` | Yes, as source beside the exe | Plugins load from source by design |
-| `docs` | Yes, copied beside the exe | For people |
-| `README.md`, `CHANGELOG.md`, `CONTRIBUTING.md`, `CODE_OF_CONDUCT.md`, `CITATION.cff`, `LICENSE` | Yes | For people, and the licence |
+| `docs` | **No** (the in-app Help is compiled into the exe) | Maintainer material, read on GitHub |
+| `README.md`, `CHANGELOG.md`, `CONTRIBUTING.md`, `CODE_OF_CONDUCT.md` | **No** (the release carries its own short `README.txt`) | Read on GitHub; the README's images are in `docs/` |
+| `CITATION.cff`, `LICENSE` | Yes | How to cite it, and the licence a copy must carry |
 | `tests` | **No** | Build-time and development only |
 | `benchmarks` | **No** | Measurements and drive scripts, development only (the frozen smoke script is read from here by the build, not shipped) |
 | `tools` | **No** | Build and maintenance scripts |

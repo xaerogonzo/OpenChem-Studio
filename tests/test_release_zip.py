@@ -35,7 +35,7 @@ def _dist(tmp_path) -> Path:
     dist = tmp_path / "dist" / "OpenChemStudio"
     (dist / "_internal" / "openchem" / "chem" / "data").mkdir(parents=True, exist_ok=True)
     (dist / "OpenChemStudio.exe").write_bytes(b"MZ not a real exe")
-    (dist / "README.md").write_text("readme", encoding="utf-8")
+    (dist / "README.txt").write_text("readme", encoding="utf-8")
     (dist / "LICENSE").write_text("licence", encoding="utf-8")
     (dist / "_internal" / "openchem" / "chem" / "data" / "elements.json").write_text("{}", encoding="utf-8")
     (dist / "plugins" / "x").mkdir(parents=True, exist_ok=True)
@@ -138,7 +138,7 @@ def _zip(path: Path, entries: dict[str, bytes]) -> Path:
 TOP = "OpenChemStudio-v9.9.9"
 GOOD = {
     f"{TOP}/OpenChemStudio.exe": b"x",
-    f"{TOP}/README.md": b"x",
+    f"{TOP}/README.txt": b"x",
     f"{TOP}/LICENSE": b"x",
     f"{TOP}/_internal/openchem/chem/data/elements.json": b"{}",
 }
@@ -158,6 +158,7 @@ def test_a_good_archive_has_no_problems(tmp_path):
         ({"OpenChemStudio/OpenChemStudio.exe": b"x"}, "outside"),  # the old unversioned folder
         ({f"{TOP}/_internal/__pycache__/m.pyc": b"x"}, "debris"),
         ({f"{TOP}/_internal/openchem/docs/USER_GUIDE.md": b"x"}, "must not ship loose"),
+        ({f"{TOP}/docs/USER_GUIDE.md": b"x"}, "must not ship loose"),
         ({f"{TOP}/_internal/openchem/_integrity.py": b"x"}, "must not ship loose"),
         ({f"{TOP}/_internal/openchem/_build_stamp.py": b"x"}, "must not ship loose"),
     ],
