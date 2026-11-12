@@ -24,10 +24,6 @@ from openchem.domain.salt_stoichiometry import (
     enumerate_mode_c,
 )
 
-REACHED_BY = (
-    "window: consumed by chem/salt_compose.py for Tools > Salt Composition"
-)
-
 
 def _candidate(mol: Chem.Mol, origin: str, ladder_index: int | None = None) -> ModeCCandidate | IdentityRefusal:
     key = fragment_key(mol)

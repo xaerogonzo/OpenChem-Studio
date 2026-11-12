@@ -9,13 +9,6 @@ charges only. Drawn multiplicities are a later layer's problem.
 
 from __future__ import annotations
 
-#: Slice 1 has no window import; tests are the only consumers until a later
-#: slice wires Mode B. Remove this when something reachable from
-#: ``openchem.main`` imports the module.
-REACHED_BY = (
-    "window: consumed by chem/salt_compose.py for Tools > Salt Composition"
-)
-
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from math import gcd

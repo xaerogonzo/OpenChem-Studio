@@ -25,10 +25,6 @@ from openchem.domain.salt_stoichiometry import (
     compose_supplied_ions,
 )
 
-REACHED_BY = (
-    "window: consumed by chem/salt_compose.py for Tools > Salt Composition"
-)
-
 _ALKALI = frozenset({"Li", "Na", "K", "Rb", "Cs"})
 
 

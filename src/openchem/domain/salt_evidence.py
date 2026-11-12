@@ -4,12 +4,6 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-#: Evidence is not on the window. Remove this when something reachable from
-#: ``openchem.main`` imports the module.
-REACHED_BY = (
-    "window: consumed by chem/salt_compose.py for Tools > Salt Composition"
-)
-
 #: Measured value supplied by the caller. Not a model output.
 ORIGIN_MEASURED = "measured"
 #: Predicted value supplied by the caller. This module does not run a model.

@@ -33,10 +33,6 @@ from openchem.domain.salt_stoichiometry import (
     ModeARefusal,
 )
 
-REACHED_BY = (
-    "window: MainWindow.show_salt_composition evaluates through this module"
-)
-
 
 def _pka_line(*, already_charged: bool) -> str:
     claim = assess_pka_compatible(

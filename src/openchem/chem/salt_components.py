@@ -30,13 +30,6 @@ Mode B ``analyze_drawing`` rules:
 
 from __future__ import annotations
 
-#: Slice 1 has no window import; tests are the only consumers until a later
-#: slice wires Mode B. Remove this when something reachable from
-#: ``openchem.main`` imports the module.
-REACHED_BY = (
-    "window: consumed by chem/salt_compose.py for Tools > Salt Composition"
-)
-
 from dataclasses import dataclass
 
 from rdkit import Chem

@@ -14,10 +14,6 @@ from openchem.chem.salt_components import (
 )
 from openchem.domain.salt_stoichiometry import IonizationRefusal, choose_ionization
 
-REACHED_BY = (
-    "window: consumed by chem/salt_compose.py for Tools > Salt Composition"
-)
-
 
 @dataclass(frozen=True)
 class SiteTransform:
