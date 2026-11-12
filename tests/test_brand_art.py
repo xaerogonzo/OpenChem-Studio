@@ -21,7 +21,7 @@ def test_icon_has_every_size_windows_asks_for():
 
 
 def test_window_icon_is_square():
-    with Image.open(ROOT / "src" / "openchem" / "resources" / "branding" / "app_icon.png") as image:
+    with Image.open(ROOT / "src" / "openchem" / "branding" / "app_icon.png") as image:
         assert image.width == image.height >= 128
 
 

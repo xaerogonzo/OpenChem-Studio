@@ -32,7 +32,7 @@ def main() -> int:
     app.setApplicationName("OpenChemStudio")
     # Every window inherits this, so the taskbar and title bars match the installed icon even
     # when run from a checkout. A missing file leaves Qt's default; it is not an error.
-    _icon = Path(__file__).resolve().parent / "resources" / "branding" / "app_icon.png"
+    _icon = Path(__file__).resolve().parent / "branding" / "app_icon.png"
     if _icon.is_file():
         app.setWindowIcon(QIcon(str(_icon)))
 

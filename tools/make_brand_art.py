@@ -5,7 +5,7 @@ so there is no third-party image licence to track.
 
 Writes (all committed; the build does not run this):
   packaging/icon.ico                          the exe's icon (16 to 256 px)
-  src/openchem/resources/branding/app_icon.png  the window icon the running program sets
+  src/openchem/branding/app_icon.png  the window icon the running program sets
   packaging/installer/wizard_large[_2x].bmp   the Setup / Uninstall side panel
   packaging/installer/wizard_small[_2x].bmp   the Setup header corner
 """
@@ -88,7 +88,7 @@ def _write_icon() -> None:
     sizes = [16, 24, 32, 48, 64, 128, 256]
     ico = ROOT / "packaging" / "icon.ico"
     mark.resize((256, 256), Image.LANCZOS).save(ico, format="ICO", sizes=[(n, n) for n in sizes])
-    png = ROOT / "src" / "openchem" / "resources" / "branding" / "app_icon.png"
+    png = ROOT / "src" / "openchem" / "branding" / "app_icon.png"
     png.parent.mkdir(parents=True, exist_ok=True)
     mark.resize((256, 256), Image.LANCZOS).save(png)
 
