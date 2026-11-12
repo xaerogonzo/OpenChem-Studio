@@ -2,8 +2,10 @@ from __future__ import annotations
 
 import os
 import sys
+from pathlib import Path
 
 from PySide6.QtCore import QCoreApplication, Qt, QTimer
+from PySide6.QtGui import QIcon
 from PySide6.QtWidgets import QApplication
 
 from openchem.app.appearance_service import AppearanceService
@@ -28,6 +30,11 @@ def main() -> int:
     app = QApplication(sys.argv)
     app.setOrganizationName("OpenChemStudio")
     app.setApplicationName("OpenChemStudio")
+    # Every window inherits this, so the taskbar and title bars match the installed icon even
+    # when run from a checkout. A missing file leaves Qt's default; it is not an error.
+    _icon = Path(__file__).resolve().parent / "resources" / "branding" / "app_icon.png"
+    if _icon.is_file():
+        app.setWindowIcon(QIcon(str(_icon)))
 
     # The pKa predictor keeps a warm sidecar process between structures
     # (chem/pka_worker.py). It is created on first use and ends itself when

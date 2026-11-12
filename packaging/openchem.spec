@@ -288,7 +288,7 @@ exe = EXE(  # noqa: F821
     codesign_identity=None,
     entitlements_file=None,
     version=str(_VERSION_FILE),
-    icon=str(ROOT / "icon.ico") if (ROOT / "icon.ico").exists() else None,
+    icon=str(ROOT / "packaging" / "icon.ico"),  # drawn by tools/make_brand_art.py
 )
 
 coll = COLLECT(  # noqa: F821

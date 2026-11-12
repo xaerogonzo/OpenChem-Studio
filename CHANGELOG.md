@@ -71,6 +71,9 @@ as a zip and as an installer. **Neither is code-signed yet**, so Windows SmartSc
   they link to, about 1 MB). The repository's other 7 MB of design notes and benchmark records, the
   README's screenshots and the contributor files are no longer shipped; upgrading clears them from
   an install that has them. The in-app Help is still compiled into the exe and is unchanged.
+- A new icon (a flask holding a benzene ring) for the program, its windows and Setup, and side and
+  corner pictures for Setup and the uninstaller. All drawn in `tools/make_brand_art.py`, so there is
+  no third-party image licence to track.
 - Setup now always shows the install-folder page, including when re-run over an existing install
   (Inno hides it by default then, which left no way to choose a location).
 - The test installer uses its own Start menu folder, so testing it cannot touch a real install's
