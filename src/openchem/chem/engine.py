@@ -174,6 +174,27 @@ class InvalidStructureError(ValueError):
     """Raised when a molblock/SMILES cannot be parsed into a valid RDKit Mol."""
 
 
+def _rejection_reason(molblock: str) -> str:
+    """WHY RDKit would not read `molblock`, in its own words, for a message a person reads.
+
+    `MolFromMolBlock` returns `None` and says nothing, which is how a drawn ClF3 (RDKit allows
+    chlorine one bond) was dropped without a word. Re-reading it unsanitised and sanitising a copy
+    makes RDKit state the atom and valence it objects to. The strict parse itself is unchanged: this
+    only explains a refusal that already happened.
+    """
+    try:
+        unsanitised = Chem.MolFromMolBlock(molblock, sanitize=False, removeHs=False)
+    except Exception as error:  # noqa: BLE001 - RDKit raises several types for a malformed file
+        return str(error) or "the molfile is malformed"
+    if unsanitised is None:
+        return "the molfile is malformed"
+    try:
+        Chem.SanitizeMol(Chem.Mol(unsanitised))
+    except Exception as error:  # noqa: BLE001 - RDKit raises several sanitisation types
+        return str(error).strip() or "RDKit could not sanitise it"
+    return "RDKit could not read it"
+
+
 class StructureEditError(ValueError):
     """A change to one atom that would not give a valid structure, with the reason as its message."""
 
@@ -250,7 +271,7 @@ class ChemistryEngine:
         # energy instead of failing loudly.
         mol = Chem.MolFromMolBlock(molblock, removeHs=False)
         if mol is None:
-            raise InvalidStructureError("Could not parse molblock")
+            raise InvalidStructureError(f"Could not parse molblock: {_rejection_reason(molblock)}")
         return mol
 
     def mol_to_molblock(self, mol: Chem.Mol) -> str:

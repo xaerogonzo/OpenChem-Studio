@@ -552,3 +552,80 @@ def test_get_molblock_does_not_reach_into_the_backend_field_from_callers(qapp):
     got = []
     widget.get_molblock(got.append)
     assert got == ["canvas"]
+
+
+# --- a drawing the molecule cannot hold must be SAID, not dropped ------------
+
+#: ClF3 as the canvas writes it. RDKit allows chlorine one bond, so this does not parse; the
+#: project's own hypervalent table accepts it, which is why the refusal has to be explained.
+_CLF3_MOLBLOCK = """
+  Ketcher
+
+  4  3  0  0  0  0  0  0  0  0999 V2000
+    0.0000    0.0000    0.0000 Cl  0  0  0  0  0  0  0  0  0  0  0  0
+    0.0000    1.0000    0.0000 F   0  0  0  0  0  0  0  0  0  0  0  0
+   -1.0000   -0.5000    0.0000 F   0  0  0  0  0  0  0  0  0  0  0  0
+    1.0000   -0.5000    0.0000 F   0  0  0  0  0  0  0  0  0  0  0  0
+  1  2  1  0
+  1  3  1  0
+  1  4  1  0
+M  END
+"""
+
+
+def _widget_on(qapp, smiles):
+    engine, widget, backend = _make_widget()
+    molecule = MoleculeModel(display_name="Test")
+    engine.set_structure_from_smiles(molecule, smiles)
+    widget.set_molecule(molecule)
+    return engine, widget, backend, molecule
+
+
+def test_a_rejected_drawing_is_reported_and_changes_nothing(qapp):
+    """THE REPORTED BUG: ClF was on screen in 3D after ClF3 was drawn, because the refusal was a bare return.
+
+    The reason carries RDKit's own words (the atom and its valence), the molecule keeps its structure
+    and identity, and no undo step is made.
+    """
+    _, widget, backend, molecule = _widget_on(qapp, "FCl")
+    before = (molecule.molblock, molecule.canonical_smiles, molecule.inchikey)
+    depth = widget._undo_stack.count()
+    reasons: list[str] = []
+    widget.edit_rejected.connect(reasons.append)
+
+    _edit_the_canvas(widget, backend, _CLF3_MOLBLOCK)
+
+    assert len(reasons) == 1
+    assert "not applied" in reasons[0] and "unchanged" in reasons[0]
+    assert "Cl" in reasons[0] and "valence" in reasons[0]
+    assert (molecule.molblock, molecule.canonical_smiles, molecule.inchikey) == before
+    assert widget._undo_stack.count() == depth
+
+
+def test_a_rejected_drawing_keeps_redo(qapp):
+    """An undone step must survive a refused drawing: pushing a command (or reloading) would discard it."""
+    engine, widget, backend, molecule = _widget_on(qapp, "CO")
+    _external_edit(widget, engine, molecule, "CCO")
+    widget._undo_stack.undo()
+    assert widget._undo_stack.canRedo()
+    index = widget._undo_stack.index()
+
+    _edit_the_canvas(widget, backend, _CLF3_MOLBLOCK)
+
+    assert widget._undo_stack.canRedo()
+    assert widget._undo_stack.index() == index
+
+
+def test_the_reason_is_taken_down_by_the_next_applied_drawing(qapp):
+    """`edit_rejected("")` is how the window clears the persistent message; a valid edit sends it once."""
+    _, widget, backend, molecule = _widget_on(qapp, "CO")
+    reasons: list[str] = []
+    widget.edit_rejected.connect(reasons.append)
+
+    _edit_the_canvas(widget, backend, _CLF3_MOLBLOCK)
+    _edit_the_canvas(widget, backend, _molblock_for("CCO"))
+
+    assert reasons[0] and reasons[1:] == [""]
+    assert molecule.canonical_smiles == "CCO"
+    _edit_the_canvas(widget, backend, _molblock_for("CCCO"))
+    assert reasons[1:] == [""], "a second valid edit must not repeat the clear"

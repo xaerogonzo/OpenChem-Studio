@@ -361,3 +361,18 @@ def test_empty_space_is_left_unpainted(qapp):
     assert thresholded_signal == unthresholded_signal, (
         "and it must not cost any of the real signal"
     )
+
+
+def test_a_refused_molblock_says_which_atom_and_why():
+    """RDKit returns None and says nothing; the error must carry its reason (ClF3: chlorine one bond)."""
+    molblock = (
+        "\n  Ketcher\n\n  4  3  0  0  0  0  0  0  0  0999 V2000\n"
+        "    0.0000    0.0000    0.0000 Cl  0  0  0  0  0  0  0  0  0  0  0  0\n"
+        "    0.0000    1.0000    0.0000 F   0  0  0  0  0  0  0  0  0  0  0  0\n"
+        "   -1.0000   -0.5000    0.0000 F   0  0  0  0  0  0  0  0  0  0  0  0\n"
+        "    1.0000   -0.5000    0.0000 F   0  0  0  0  0  0  0  0  0  0  0  0\n"
+        "  1  2  1  0\n  1  3  1  0\n  1  4  1  0\nM  END\n"
+    )
+    with pytest.raises(InvalidStructureError) as caught:
+        ChemistryEngine().mol_from_molblock(molblock)
+    assert "Cl" in str(caught.value) and "valence" in str(caught.value)
