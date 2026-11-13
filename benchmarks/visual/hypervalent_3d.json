@@ -1,0 +1,278 @@
+[
+ {
+  "do": "smiles",
+  "smiles": "CCO",
+  "name": "hypervalent",
+  "after_ms": 2500
+ },
+ {
+  "do": "select",
+  "molecule": -1,
+  "after_ms": 2500
+ },
+ {
+  "do": "canvas_edit",
+  "tag": "ClF3",
+  "star": {
+   "centre": "Cl",
+   "ligand": "F",
+   "count": 3
+  },
+  "expect": {
+   "smiles_equals": "FCl(F)F",
+   "rejected": false
+  },
+  "after_ms": 2500
+ },
+ {
+  "do": "conformers",
+  "count": 5,
+  "embeddings": 50,
+  "after_ms": 6000
+ },
+ {
+  "do": "expect_conformers",
+  "min": 1
+ },
+ {
+  "do": "conformers_provenance",
+  "tag": "ClF3",
+  "expect": {
+   "stop_reason": "template",
+   "geometry_method": "vsepr_template"
+  },
+  "after_ms": 500
+ },
+ {
+  "do": "shot",
+  "path": "D:/_scratch/hypervalent/ClF3_3d.png",
+  "after_ms": 800
+ },
+ {
+  "do": "canvas_edit",
+  "tag": "BrF3",
+  "star": {
+   "centre": "Br",
+   "ligand": "F",
+   "count": 3
+  },
+  "expect": {
+   "smiles_equals": "FBr(F)F",
+   "rejected": false
+  },
+  "after_ms": 2500
+ },
+ {
+  "do": "conformers",
+  "count": 5,
+  "embeddings": 50,
+  "after_ms": 6000
+ },
+ {
+  "do": "expect_conformers",
+  "min": 1
+ },
+ {
+  "do": "conformers_provenance",
+  "tag": "BrF3",
+  "expect": {
+   "stop_reason": "template",
+   "geometry_method": "vsepr_template"
+  },
+  "after_ms": 500
+ },
+ {
+  "do": "canvas_edit",
+  "tag": "XeF2",
+  "star": {
+   "centre": "Xe",
+   "ligand": "F",
+   "count": 2
+  },
+  "expect": {
+   "smiles_equals": "F[Xe]F",
+   "rejected": false
+  },
+  "after_ms": 2500
+ },
+ {
+  "do": "conformers",
+  "count": 5,
+  "embeddings": 50,
+  "after_ms": 6000
+ },
+ {
+  "do": "expect_conformers",
+  "min": 1
+ },
+ {
+  "do": "conformers_provenance",
+  "tag": "XeF2",
+  "expect": {
+   "stop_reason": "template",
+   "geometry_method": "vsepr_template"
+  },
+  "after_ms": 500
+ },
+ {
+  "do": "canvas_edit",
+  "tag": "XeF4",
+  "star": {
+   "centre": "Xe",
+   "ligand": "F",
+   "count": 4
+  },
+  "expect": {
+   "smiles_equals": "F[Xe](F)(F)F",
+   "rejected": false
+  },
+  "after_ms": 2500
+ },
+ {
+  "do": "conformers",
+  "count": 5,
+  "embeddings": 50,
+  "after_ms": 6000
+ },
+ {
+  "do": "expect_conformers",
+  "min": 1
+ },
+ {
+  "do": "conformers_provenance",
+  "tag": "XeF4",
+  "expect": {
+   "stop_reason": "template",
+   "geometry_method": "vsepr_template"
+  },
+  "after_ms": 500
+ },
+ {
+  "do": "shot",
+  "path": "D:/_scratch/hypervalent/XeF4_3d.png",
+  "after_ms": 800
+ },
+ {
+  "do": "canvas_edit",
+  "tag": "SF4",
+  "star": {
+   "centre": "S",
+   "ligand": "F",
+   "count": 4
+  },
+  "expect": {
+   "smiles_equals": "FS(F)(F)F",
+   "rejected": false
+  },
+  "after_ms": 2500
+ },
+ {
+  "do": "conformers",
+  "count": 5,
+  "embeddings": 50,
+  "after_ms": 6000
+ },
+ {
+  "do": "expect_conformers",
+  "min": 1
+ },
+ {
+  "do": "conformers_provenance",
+  "tag": "SF4",
+  "expect": {
+   "stop_reason": "template",
+   "geometry_method": "vsepr_template"
+  },
+  "after_ms": 500
+ },
+ {
+  "do": "canvas_edit",
+  "tag": "SF6",
+  "star": {
+   "centre": "S",
+   "ligand": "F",
+   "count": 6
+  },
+  "expect": {
+   "smiles_equals": "FS(F)(F)(F)(F)F",
+   "rejected": false
+  },
+  "after_ms": 2500
+ },
+ {
+  "do": "conformers",
+  "count": 5,
+  "embeddings": 50,
+  "after_ms": 6000
+ },
+ {
+  "do": "expect_conformers",
+  "min": 1
+ },
+ {
+  "do": "conformers_provenance",
+  "tag": "SF6",
+  "expect": {
+   "stop_reason": "template",
+   "geometry_method": "vsepr_template"
+  },
+  "after_ms": 500
+ },
+ {
+  "do": "canvas_edit",
+  "tag": "PF5",
+  "star": {
+   "centre": "P",
+   "ligand": "F",
+   "count": 5
+  },
+  "expect": {
+   "smiles_equals": "FP(F)(F)(F)F",
+   "rejected": false
+  },
+  "after_ms": 2500
+ },
+ {
+  "do": "conformers",
+  "count": 5,
+  "embeddings": 50,
+  "after_ms": 6000
+ },
+ {
+  "do": "expect_conformers",
+  "min": 1
+ },
+ {
+  "do": "conformers_provenance",
+  "tag": "PF5",
+  "expect": {
+   "stop_reason": "template",
+   "geometry_method": "vsepr_template"
+  },
+  "after_ms": 500
+ },
+ {
+  "do": "canvas_edit",
+  "tag": "CF5",
+  "star": {
+   "centre": "C",
+   "ligand": "F",
+   "count": 5
+  },
+  "expect": {
+   "rejected": true,
+   "smiles_equals": "FS(F)(F)(F)(F)F"
+  },
+  "after_ms": 1500
+ },
+ {
+  "do": "jobs_report",
+  "tag": "end"
+ },
+ {
+  "do": "expect_clean"
+ },
+ {
+  "do": "quit"
+ }
+]
