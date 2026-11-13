@@ -2653,9 +2653,14 @@ class MainWindow(QMainWindow):
         self._document(
             file_menu.addAction("Open Project...", self._open_project), "open_project"
         )
-        self._document(
-            file_menu.addAction("Save Project...", self._save_project), "save_project"
+        save_action = self._document(
+            file_menu.addAction("Save Project", self._save_project), "save_project"
         )
+        save_action.setShortcut("Ctrl+S")
+        save_as_action = self._document(
+            file_menu.addAction("Save Project As...", self._save_project_as), "save_project_as"
+        )
+        save_as_action.setShortcut("Ctrl+Shift+S")
         file_menu.addSeparator()
         self._document(
             file_menu.addAction("New Molecule", self._new_molecule), "new_molecule"
@@ -3603,6 +3608,8 @@ class MainWindow(QMainWindow):
         # ['New molecule', 'A-one', 'A-two'] to [], while the Project
         # Explorer showed the new one and nothing appeared to happen.
         self._undo_stack.clear()
+        # A different document has no file yet; Open and recovery set it again right after this call.
+        self._project_path = ""
         self._session.set_project(project)
         # THE RESULT STORE BELONGS TO THE DOCUMENT TOO, for the same reason,
         # and it is replaced BEFORE any panel is told: a panel may select a
@@ -3667,23 +3674,42 @@ class MainWindow(QMainWindow):
                 command.loaded_project, command.loaded_results, command.loaded_qc_runs, command.loaded_recipe_runs,
                 command.loaded_derived_scores, command.loaded_synthesis_plans,
             )
+            self._project_path = str(path)
 
     def _save_project(self) -> bool:
-        """True when the project reached disk.
+        """Save to the file this project already has; ask for one only when it has none.
 
-        Reports its outcome because `_confirm_discarding_unsaved_changes`
-        offers Save as the way out of losing work, and a save the user
-        cancelled at the file dialog must NOT then be treated as permission
-        to discard.
+        A project has a file once it was opened from one or saved to one (`_project_path`, cleared by
+        `_set_project`, so a new project never inherits the last one's). If that file's folder is gone
+        the person is asked where to put it rather than shown an error.
+
+        True when the project reached disk. Reports its outcome because
+        `_confirm_discarding_unsaved_changes` offers Save as the way out of
+        losing work, and a save the user cancelled at the file dialog must NOT
+        then be treated as permission to discard.
         """
         if self._session.project is None:
             return False
+        known = getattr(self, "_project_path", "")
+        if known and Path(known).parent.is_dir():
+            self.save_project_to(Path(known))
+            return True
+        return self._save_project_as()
+
+    def _save_project_as(self) -> bool:
+        """Always ask where to save, offering the current file's name and folder first.
+
+        True when the project reached disk (False if the person cancelled)."""
+        if self._session.project is None:
+            return False
+        known = getattr(self, "_project_path", "")
+        # The file's own name, in the remembered project folder (which Save and Save As both record, so
+        # it is the current file's folder unless something else moved it).
+        name = Path(known).stem if known else self._session.project.name
         path_str, _ = QFileDialog.getSaveFileName(
             self,
-            "Save Project",
-            suggested_save_path(
-                self._settings, "project", self._session.project.name, ".ocsproj"
-            ),
+            "Save Project As",
+            suggested_save_path(self._settings, "project", name, ".ocsproj"),
             filter="OpenChem Project (*.ocsproj)",
         )
         if not path_str:

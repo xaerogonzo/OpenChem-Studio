@@ -340,6 +340,8 @@ def test_the_windows_ten_shortcuts_are_registered_with_their_defaults(window):
         "template_library": "Ctrl+Shift+T",
         "recalculate_now": "F5",
         "help_current_panel": "F1",
+        "save_project": "Ctrl+S",
+        "save_project_as": "Ctrl+Shift+S",
     }, "a command that gained or lost a shortcut in code must say so here"
 
 

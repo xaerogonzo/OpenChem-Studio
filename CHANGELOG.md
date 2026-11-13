@@ -45,6 +45,8 @@ as a zip and as an installer. **Neither is code-signed yet**, so Windows SmartSc
   icons; a layout menu on every panel; Settings and External tools reorganised with a Setup guide;
   a dedicated pKa window; Compare opens values in Results and reads them in plain English; goal runs
   (including 1H NMR).
+- **Save and Save As**: **File > Save Project** (`Ctrl+S`) writes to the project's own file without asking
+  again, and **Save Project As...** (`Ctrl+Shift+S`) always asks. Before, every save opened the file dialog.
 - **Docking** says plainly that pose 1 is the best-scoring pose, not a verified one, and gives each
   pose four physical plausibility checks.
 - **Naming** engine: many more structures are named and read back correctly (spiro, bridged, ylidene

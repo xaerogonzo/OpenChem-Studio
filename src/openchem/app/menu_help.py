@@ -53,13 +53,22 @@ MENU_HELP: dict[str, HelpTooltip] = {
     ),
     "save_project": HelpTooltip(
         text=(
-            "Writes the whole project to one file: every structure, and the "
+            "Writes the whole project to its file (asking for one the first time, or "
+            "after the file has moved): every structure, and the "
             "results computed for them with the provenance that says how.\n\n"
             "A macromolecule and a crystal are stored as their ORIGINAL file "
             "text rather than as a parse, so a later reader improvement reaches "
             "projects that were saved before it existed."
         ),
         tier=2, help_id="file.save_project", topic=_M, help_anchor="projects",
+    ),
+    "save_project_as": HelpTooltip(
+        text=(
+            "Writes the project to a file you choose, offering the current "
+            "file's name first. Use it to keep a copy or to start a new "
+            "version; later Save Project commands then write to the new file."
+        ),
+        tier=2, help_id="file.save_project_as", topic=_M, help_anchor="projects",
     ),
     "new_molecule": HelpTooltip(
         text="Adds an empty molecule to the project and selects it for drawing.",
