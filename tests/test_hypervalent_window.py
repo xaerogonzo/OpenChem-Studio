@@ -17,7 +17,7 @@ from openchem.domain.calculator import DRAWING, CalculationRefusal
 from openchem.domain.common import CacheState
 from openchem.domain.molecule import MoleculeModel
 from openchem.domain.refusal_kinds import HYPERVALENT_UNSUPPORTED, RefusalKind
-from openchem.events.events import ConformersReady, DescriptorComputed
+from openchem.events.events import ConformersReady, DescriptorComputed, RecalculationDue
 from tests.test_chem_engine import _hypervalent_molblock
 from tests.test_main_window_conformers import _build_window, _drain
 
@@ -127,4 +127,27 @@ def test_conformer_generation_gives_the_t_shape_and_leaves_the_window_clean(qapp
         for j in ligands[n + 1 :]
     )
     assert angles == [87.45, 87.45, 174.9]
+    assert log_errors == [], [r.getMessage() for r in log_errors]
+
+
+def test_the_properties_header_does_not_keep_the_previous_molecules_formula(qapp, tmp_path, log_errors):
+    """Found by driving the real window: redrawing ethanol as ClF3 left 'C2H6O Molecule' in the header.
+
+    The header is the `substance_analysis` report; ClF3 refuses it, so nothing replaced the old card.
+    """
+    window, services = _build_window(qapp, tmp_path)
+    ethanol = MoleculeModel(display_name="Ethanol")
+    services.chemistry_engine.set_structure_from_smiles(ethanol, "CCO")
+    window.add_molecule(ethanol)
+    _drain(qapp)
+    card = window._property_panel._substance_card
+    assert card.data().formula == "C2H6O", "the control: the header does show a formula for a normal molecule"
+
+    window._editor.apply_edited_molblock(_hypervalent_molblock("Cl", "F", 3))
+    # A canvas edit waits out the quiet period before anything is recomputed; publish what the scheduler would.
+    services.event_bus.publish(RecalculationDue(molecule_uuid=ethanol.uuid))
+    _drain(qapp)
+
+    assert ethanol.canonical_smiles == "FCl(F)F"
+    assert card.data().formula == "" and "C2H6O" not in card.summary_text()
     assert log_errors == [], [r.getMessage() for r in log_errors]

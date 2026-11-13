@@ -78,6 +78,7 @@ class Reference:
 
 # Axial and equatorial are the two classes of a T-shape, seesaw or trigonal bipyramid; a one-class shape
 # (linear, square planar, octahedral) has `axial == equatorial`.
+#: The measured geometries, one row per molecule (see `Reference`); `REFERENCES` is the lookup built from them.
 _ENTRIES = (
     # Every row was read from NIST's CCCBDB experimental-geometry table on 2026-11-13 (the original paper in
     # each case is the "source"). CCCBDB's "axial" and "on axis" wording is not consistent across molecules,
@@ -162,6 +163,7 @@ _ENTRIES = (
     ),
 )
 # `key` is derived from the entry, so the table cannot disagree with the lookup.
+#: `(centre, ligand, number of ligands)` -> its measured geometry. A molecule not here is refused, never estimated.
 REFERENCES: dict[tuple[str, str, int], Reference] = {r.key: r for r in _ENTRIES}
 
 
@@ -190,6 +192,17 @@ class VseprOutcome:
     kind: Kind
     reason: str = ""
     geometry: VseprGeometry | None = None
+
+
+#: A fixed rotation applied to every built geometry. The templates sit on the axes (a linear molecule along z, a
+#: planar one in a coordinate plane), and the 3D viewer looks down z: ClF3 then drew as a line and XeF2 as a dot,
+#: found in the real window. Tilting about x then y changes no length or angle and makes no template edge-on.
+_VIEW_TILT = (
+    np.array([[math.cos(math.radians(35)), 0.0, math.sin(math.radians(35))], [0.0, 1.0, 0.0],
+              [-math.sin(math.radians(35)), 0.0, math.cos(math.radians(35))]])
+    @ np.array([[1.0, 0.0, 0.0], [0.0, math.cos(math.radians(25)), -math.sin(math.radians(25))],
+                [0.0, math.sin(math.radians(25)), math.cos(math.radians(25))]])
+)
 
 
 # --- the templates ---------------------------------------------------------------------------------------
@@ -351,7 +364,9 @@ def build_vsepr_geometry(mol: Any) -> VseprOutcome:
             f"no measured geometry is recorded for {symbol}{ligand}{n}",
         )
 
-    axial_vectors, equatorial_vectors = placer(reference)
+    axial_vectors, equatorial_vectors = (
+        [_VIEW_TILT @ v for v in group] for group in placer(reference)
+    )
     slots = [(v, reference.axial) for v in axial_vectors] + [
         (v, reference.equatorial) for v in equatorial_vectors
     ]

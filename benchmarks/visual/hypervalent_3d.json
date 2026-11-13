@@ -44,9 +44,19 @@
   "after_ms": 500
  },
  {
+  "do": "tab",
+  "name": "3D Viewer",
+  "after_ms": 2500
+ },
+ {
   "do": "shot",
   "path": "D:/_scratch/hypervalent/ClF3_3d.png",
   "after_ms": 800
+ },
+ {
+  "do": "tab",
+  "name": "2D Editor",
+  "after_ms": 500
  },
  {
   "do": "canvas_edit",
@@ -148,9 +158,19 @@
   "after_ms": 500
  },
  {
+  "do": "tab",
+  "name": "3D Viewer",
+  "after_ms": 2500
+ },
+ {
   "do": "shot",
   "path": "D:/_scratch/hypervalent/XeF4_3d.png",
   "after_ms": 800
+ },
+ {
+  "do": "tab",
+  "name": "2D Editor",
+  "after_ms": 500
  },
  {
   "do": "canvas_edit",
@@ -261,7 +281,7 @@
   },
   "expect": {
    "rejected": true,
-   "smiles_equals": "FS(F)(F)(F)(F)F"
+   "smiles_equals": "FP(F)(F)(F)F"
   },
   "after_ms": 1500
  },

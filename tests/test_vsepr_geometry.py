@@ -45,7 +45,7 @@ def _angle(points, a: int, b: int, c: int) -> float:
         np.array(points[c]) - np.array(points[b]),
     )
     return math.degrees(
-        math.acos(float(np.dot(u, v) / (np.linalg.norm(u) * np.linalg.norm(v))))
+        math.acos(float(np.clip(np.dot(u, v) / (np.linalg.norm(u) * np.linalg.norm(v)), -1.0, 1.0)))
     )
 
 

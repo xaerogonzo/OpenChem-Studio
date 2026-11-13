@@ -163,7 +163,7 @@ from openchem.ui.widgets.project_table import _title
 from openchem.ui.widgets.stage_marker import StageMarker
 from openchem.ui.dialogs.nmr_view_dialog import NmrViewDialog
 from openchem.ui.widgets.component_choice_row import ComponentChoiceRow
-from openchem.ui.widgets.substance_card import SubstanceCard, card_data_from_report
+from openchem.ui.widgets.substance_card import SubstanceCard, SubstanceCardData, card_data_from_report
 from openchem.ui.widgets.collapsible_section import CollapsibleSection as _CollapsibleSection
 from openchem.ui.widgets.collapsible_section import ExplicitHeightLabel as _ExplicitHeightLabel
 from openchem.ui.widgets.workflow_body import HOME_PROPERTIES, HOME_TAB, WorkflowBody
@@ -3851,6 +3851,13 @@ class PropertyPanel(QWidget):
         dataset = event.dataset
         self._finish_batch_run(dataset.property_id)
         if dataset.molecule_uuid == self._selected_molecule_uuid:
+            if dataset.property_id == "substance_analysis" and dataset.cache_state == CacheState.FAILED:
+                # THE HEADER MUST NOT KEEP THE PREVIOUS STRUCTURE'S FORMULA. It is cleared on selection, but a
+                # redrawn molecule keeps its row, and when the analysis then refuses (a drawn ClF3 is held and
+                # refused as hypervalent) nothing replaced the card: it said "C2H6O" over a ClF3. Measured in
+                # the real window by `benchmarks/visual/hypervalent_3d.json`.
+                # Keep the molecule's NAME, so the header says which molecule this is instead of "No structure selected".
+                self._substance_card.set_data(SubstanceCardData(name=self._selected_molecule_name()))
             self._compare_pool[_compare_key(dataset)] = ComparedResult(
                 dataset, event.input_fingerprint, event.calculation_input
             )

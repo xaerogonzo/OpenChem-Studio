@@ -345,9 +345,9 @@ STOP_TIME = "time"
 #: `STOP_RULE_KEPT_SET`). Its own reason, not `STOP_PLATEAU`, because the two stop on different evidence and the record
 #: must say which one ended a run.
 STOP_KEPT_SET_STEADY = "kept_set_steady"
-#: The user stopped it from the Jobs panel.
 #: The geometry came from a deterministic template (`chem.vsepr_geometry`), so there was nothing to search.
 STOP_TEMPLATE = "template"
+#: The user stopped it from the Jobs panel.
 STOP_CANCELLED = "cancelled"
 #: The user pressed "Finish now": the search ended where it was and what it had found IS the result. Unlike
 #: `STOP_CANCELLED`, which discards the run.

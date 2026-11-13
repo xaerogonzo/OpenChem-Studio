@@ -41,7 +41,7 @@ def _angle(mol: Chem.Mol, a: int, b: int, c: int) -> float:
     conf = mol.GetConformer()
     u = np.array(conf.GetAtomPosition(a)) - np.array(conf.GetAtomPosition(b))
     v = np.array(conf.GetAtomPosition(c)) - np.array(conf.GetAtomPosition(b))
-    return math.degrees(math.acos(float(np.dot(u, v) / (np.linalg.norm(u) * np.linalg.norm(v)))))
+    return math.degrees(math.acos(float(np.clip(np.dot(u, v) / (np.linalg.norm(u) * np.linalg.norm(v)), -1.0, 1.0))))
 
 
 def _search(mol: Chem.Mol, **kwargs):
