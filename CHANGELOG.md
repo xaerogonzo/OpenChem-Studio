@@ -58,6 +58,9 @@ as a zip and as an installer. **Neither is code-signed yet**, so Windows SmartSc
 - External programs (ORCA, Vina, Psi4, xtb, AiZynthFinder) are not included; set them up under
   Settings > External tools.
 - Results are computed estimates with stated limits; see the Scientific Limitations help page.
+- Saving into Documents can fail with "File not found" when Windows Defender's Controlled Folder Access
+  is on (it blocks the unsigned program without a notification). Allow `OpenChemStudio.exe` under Windows
+  Security > Ransomware protection > Allow an app through Controlled folder access.
 
 <!-- release-notes-end -->
 

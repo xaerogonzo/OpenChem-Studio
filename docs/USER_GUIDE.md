@@ -42,6 +42,16 @@ once instead of recalculating them, and so does reopening the project.
 - If part of a saved set cannot be read (a file from a newer version, or a
   damaged entry), only that part is recalculated; the rest is shown.
 
+**Saving**: **Save Project** (`Ctrl+S`) writes to the project's own file and asks for a location only the
+first time; **Save Project As...** (`Ctrl+Shift+S`) always asks.
+
+**"File not found" when saving into Documents.** If Windows Defender's *Controlled Folder Access* is on, it
+can block this program (unsigned for now) from writing to Documents and other protected folders. Windows
+then shows a misleading "File not found. Check the file name and try again" in the Save dialog, with no
+Defender notification. Open Windows Security > Virus & threat protection > Ransomware protection >
+Allow an app through Controlled folder access and add `OpenChemStudio.exe`; excluding the install folder
+in Defender also worked. Or save to a folder Windows does not protect.
+
 **Unsaved work is kept in a recovery copy.** While a project has unsaved
 changes, a copy — results included — is written to the `recovery` folder
 under your data directory every few seconds. Saving or choosing *Discard*
