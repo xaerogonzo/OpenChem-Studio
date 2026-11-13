@@ -10108,13 +10108,17 @@ kind = "literature"
 citation = "S. W. Peterson, J. H. Holloway, B. A. Coyle & J. M. Williams, 'Structure of XeO2F2' (neutron diffraction), J. Chem. Phys. 58, 456 (1973)"
 identifier_type = "doi"
 identifier = "10.1063/1.1679827"
-status = "reference_only"
-used_by = ["docs/HYPERVALENT_COVERAGE_DESIGN.md"]
+status = "shipped"
+used_by = [
+    "src/openchem/chem/vsepr_geometry.py",
+    "tests/test_vsepr_geometry.py",
+    "docs/HYPERVALENT_COVERAGE_DESIGN.md",
+]
 local = "peterson1973.pdf"
-verification = "citation"
+verification = "citation_and_claim"
 verified_date = 2026-11-13
-reason = """
-Table III read. Neutron diffraction, room temperature, crystal: Xe-F 1.899 (3), Xe-O 1.714 (4) A, O-Xe-F 91.6 (1), O-Xe-O 105.7 (3), F-Xe-F 174.7 (4) degrees (thermal-motion corrected 1.92 and 1.74 A). Layers joined by weak Xe...O bridges, so the monomer is not the isolated molecule. Not shipped: two ligand kinds and a Xe=O bond, which the builder does not handle yet.
+note = """
+Table III read. Neutron diffraction of the CRYSTAL at room temperature: Xe-F 1.899 (3), Xe-O 1.714 (4) A, O-Xe-F 91.6 (1), O-Xe-O 105.7 (3), F-Xe-F 174.7 (4) degrees (thermal-motion corrected 1.92 and 1.74 A). Layers are joined by weak Xe...O bridges, which the built molecule omits. Shipped as the XeO2F2 row, labelled a crystal.
 """
 
 [[source]]
@@ -10123,13 +10127,17 @@ kind = "literature"
 citation = "E. J. Jacob, H. B. Thompson & L. S. Bartell, 'Structure analyses combining electron diffraction and microwave data. I. Study of XeOF4', J. Mol. Struct. 8, 383 (1971)"
 identifier_type = "doi"
 identifier = "10.1016/0022-2860(71)80016-9"
-status = "reference_only"
-used_by = ["docs/HYPERVALENT_COVERAGE_DESIGN.md"]
+status = "shipped"
+used_by = [
+    "src/openchem/chem/vsepr_geometry.py",
+    "tests/test_vsepr_geometry.py",
+    "docs/HYPERVALENT_COVERAGE_DESIGN.md",
+]
 local = "jacob1971.pdf"
-verification = "citation"
+verification = "citation_and_claim"
 verified_date = 2026-11-13
-reason = """
-Table 1 read. Gas, combined electron diffraction and microwave: the spectroscopic column gives r(Xe=O) 1.705, r(Xe-F) 1.904 A and O-Xe-F 91.7 degrees (the electron-diffraction columns 1.708 to 1.711, 1.901 to 1.902 A and 91.6 to 91.9); it refines the preliminary 1964 microwave values. Not shipped: two ligand kinds and a Xe=O bond.
+note = """
+Table 1 read. The spectroscopic (rz) column is used: r(Xe=O) 1.7053, r(Xe-F) 1.9040 A, O-Xe-F 91.66 degrees; the electron-diffraction columns give Xe=O 1.708 to 1.711, Xe-F 1.901 to 1.902 A and 91.6 to 91.9. It refines the preliminary 1964 microwave values (martins1964). Shipped as the XeOF4 row.
 """
 
 [[source]]
@@ -10138,13 +10146,17 @@ kind = "literature"
 citation = "L. Hedberg & K. Hedberg, 'Thionyl tetrafluoride. Reanalysis of the molecular structure and resolution of the multiple model problem', J. Phys. Chem. 86, 598-602 (1982)"
 identifier_type = "doi"
 identifier = "10.1021/j100394a004"
-status = "reference_only"
-used_by = ["docs/HYPERVALENT_COVERAGE_DESIGN.md"]
+status = "shipped"
+used_by = [
+    "src/openchem/chem/vsepr_geometry.py",
+    "tests/test_vsepr_geometry.py",
+    "docs/HYPERVALENT_COVERAGE_DESIGN.md",
+]
 local = "hedberg1982.pdf"
-verification = "citation"
+verification = "citation_and_claim"
 verified_date = 2026-11-13
-reason = """
-Abstract read. Best-compromise model, ra at room temperature: S=O 1.409 (3), S-F equatorial 1.539 (3), S-F axial 1.596 (3) A, F(eq)-S-F(eq) 112.8 (4) degrees; the other angles are quoted in the abstract and were not transcribed. Not shipped: an S=O bond and two ligand kinds.
+note = """
+Abstract read. Best-compromise model, ra at room temperature: S=O 1.409 (3), S-F equatorial 1.539 (3), S-F axial 1.596 (3) A, F(eq)-S-F(eq) 112.8 (4), F(ax)-S-O 97.7 (1) degrees; the paper's F(ax)-S-F(eq) 85.7 and F(eq)-S-O 123.6 follow from those and are checked by a test. Shipped as the SOF4 row.
 """
 
 [[source]]
@@ -10153,13 +10165,17 @@ kind = "literature"
 citation = "R. Kewley, K. S. R. Murty & T. M. Sugden, 'The microwave spectrum of sulphur chloride pentafluoride', Trans. Faraday Soc. 56, 1732 (1960)"
 identifier_type = "doi"
 identifier = "10.1039/TF9605601732"
-status = "reference_only"
-used_by = ["docs/HYPERVALENT_COVERAGE_DESIGN.md"]
+status = "shipped"
+used_by = [
+    "src/openchem/chem/vsepr_geometry.py",
+    "tests/test_vsepr_geometry.py",
+    "docs/HYPERVALENT_COVERAGE_DESIGN.md",
+]
 local = "kewley1960.pdf"
-verification = "citation"
+verification = "citation_and_claim"
 verified_date = 2026-11-13
-reason = """
-Abstract read. C4v: S-Cl 2.0301 (0.0019), S-F 1.576 (0.010) A, Cl-S-F axial angle 88 degrees 22 minutes (10 minutes). Not shipped: two ligand kinds (the builder takes one reference per ligand element).
+note = """
+Abstract read. C4v: S-Cl 2.0301 (0.0019), S-F 1.576 (0.010) A, Cl-S-F 88 degrees 22 minutes (10 minutes); all S-F lengths assumed equal. Shipped as the SF5Cl row.
 """
 
 [[source]]
@@ -10168,13 +10184,17 @@ kind = "literature"
 citation = "H. Oberhammer & K. O. Christe, 'Gas-phase structure of chlorine trifluoride oxide, ClF3O', Inorg. Chem. 21, 273-275 (1982)"
 identifier_type = "doi"
 identifier = "10.1021/ic00131a050"
-status = "reference_only"
-used_by = ["docs/HYPERVALENT_COVERAGE_DESIGN.md"]
+status = "shipped"
+used_by = [
+    "src/openchem/chem/vsepr_geometry.py",
+    "tests/test_vsepr_geometry.py",
+    "docs/HYPERVALENT_COVERAGE_DESIGN.md",
+]
 local = "oberhammer1982.pdf"
-verification = "citation"
+verification = "citation_and_claim"
 verified_date = 2026-11-13
-reason = """
-Abstract read. Gas electron diffraction, r-alpha: Cl=O 1.405 (3), Cl-F equatorial 1.603 (4), Cl-F axial 1.713 (3) A, F(eq)-Cl-O 108.9 (0.9), F(ax)-Cl-F(eq) 87.9 (1.2), F(ax)-Cl-O 94.7 (2.0) degrees; a distorted trigonal bipyramid with the lone pair equatorial. Not shipped: a Cl=O bond and two ligand kinds.
+note = """
+Abstract read. Gas electron diffraction, r-alpha: Cl=O 1.405 (3), Cl-F equatorial 1.603 (4), Cl-F axial 1.713 (3) A, F(eq)-Cl-O 108.9 (0.9), F(ax)-Cl-F(eq) 87.9 (1.2), F(ax)-Cl-O 94.7 (2.0) degrees; a distorted trigonal bipyramid with the lone pair equatorial. Shipped as the ClF3O row.
 """
 
 [[source]]

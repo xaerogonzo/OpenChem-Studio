@@ -12,7 +12,7 @@ template for its shape. It has no energy, it is not a force-field minimum and it
 minimum; ORCA is what refines it. Nothing here estimates a bond length from radii: a molecule with no
 entry in `REFERENCES` gets a stated refusal, not a guess.
 
-THE SHAPE COMES FROM THE GRAPH. For one centre with `n` terminal, singly bonded ligands and no formal
+THE SHAPE COMES FROM THE GRAPH. For one centre with `n` terminal ligands (singly bonded, or doubly bonded oxygen where a measured geometry is recorded) and no formal
 charge, the lone pairs are `(outer electrons - n) / 2`, and `(n, lone pairs)` names the shape (ClF3:
 7 electrons, 3 bonds, 2 lone pairs, T-shaped). Lone pairs are never atoms and never occupy a ligand slot.
 
@@ -74,6 +74,13 @@ class Reference:
     checked: bool = False
     #: The formal charge on the centre (an anion's, ClF4- and XeF5-); 0 for a neutral molecule.
     charge: int = 0
+    #: For a molecule with more than one kind of ligand, or a double bond to oxygen: one `(token, length)` per slot in
+    #: the template's slot order (axial slots, then equatorial). A token is the ligand's element, followed by "=" for a
+    #: double bond ("F", "O="). Empty for the ordinary case, where `axial` and `equatorial` give every length.
+    slots: tuple[tuple[str, float], ...] = ()
+    #: Names a placer other than the template's default (see `_LAYOUTS`), for a distorted shape whose angles the
+    #: default does not read (ClF3O's Cs bipyramid, SOF4's C2v one, SF5Cl's C4v octahedron).
+    layout: str = ""
 
     @property
     def key(self) -> tuple[str, str, int, int]:
@@ -270,6 +277,80 @@ _ENTRIES = (
         "gas electron diffraction, ra (0.006 esd), D term not included: axial 243.0, equatorial 229.8 pm; Cl-Te-Cl axial 175.9 (0.6), equatorial 103.0 (0.7); seesaw",
         True,
     ),
+    # Molecules with two kinds of ligand or a double bond to oxygen. Read from the papers (held copies, 2026-11-13);
+    # each says what its figures are. The `slots` give a (ligand, length) per position in template order.
+    Reference(
+        "Cl",
+        "FFFO=",
+        4,
+        1.713,
+        1.603,
+        {"fax-feq": 87.9, "fax-o": 94.7, "feq-o": 108.9},
+        "Oberhammer and Christe 1982, Inorg Chem 21, 273 [source:oberhammer1982]",
+        "gas electron diffraction, r-alpha (esd 0.003 to 0.004 A, angles 0.9 to 2.0 degrees); distorted trigonal bipyramid, "
+        "Cs, lone pair equatorial",
+        True,
+        0,
+        (("F", 1.713), ("F", 1.713), ("F", 1.603), ("O=", 1.405)),
+        "cs_bipyramid",
+    ),
+    Reference(
+        "Xe",
+        "FFFFO=",
+        5,
+        1.7053,
+        1.9040,
+        {"ax-eq": 91.66},
+        "Jacob, Thompson and Bartell 1971, J Mol Struct 8, 383 [source:jacob1971]",
+        "microwave rotational constants refined with electron diffraction, rz basis (spectroscopic column; the diffraction "
+        "columns give Xe=O 1.708 to 1.711, Xe-F 1.901 to 1.902 A, O-Xe-F 91.6 to 91.9); C4v square pyramid, O apical",
+        True,
+        0,
+        (("O=", 1.7053),) + (("F", 1.9040),) * 4,
+    ),
+    Reference(
+        "Xe",
+        "FFO=O=",
+        4,
+        1.899,
+        1.714,
+        {"ax-ax": 174.7, "eq-eq": 105.7, "ax-eq": 91.6},
+        "Peterson, Holloway, Coyle and Williams 1973, J Chem Phys 58, 456 [source:peterson1973]",
+        "neutron diffraction of the CRYSTAL at room temperature (not corrected for thermal motion; the corrected lengths "
+        "are 1.92 and 1.74 A); the molecules are joined into layers by weak Xe...O contacts, which are omitted here",
+        True,
+        0,
+        (("F", 1.899), ("F", 1.899), ("O=", 1.714), ("O=", 1.714)),
+    ),
+    Reference(
+        "S",
+        "FFFFO=",
+        5,
+        1.596,
+        1.539,
+        {"eq-eq": 112.8, "ax-o": 97.7},
+        "Hedberg and Hedberg 1982, J Phys Chem 86, 598 [source:hedberg1982]",
+        "gas electron diffraction with microwave data, ra at room temperature (esd 0.003 A); C2v trigonal bipyramid with the "
+        "oxygen and two fluorines equatorial. Published F(ax)-S-F(eq) 85.7 follows from the two angles used",
+        True,
+        0,
+        (("F", 1.596), ("F", 1.596), ("O=", 1.409), ("F", 1.539), ("F", 1.539)),
+        "c2v_bipyramid",
+    ),
+    Reference(
+        "S",
+        "ClFFFFF",
+        6,
+        2.0301,
+        1.576,
+        {"ax-eq": 88.0 + 22.0 / 60.0},
+        "Kewley, Murty and Sugden 1960, Trans Faraday Soc 56, 1732 [source:kewley1960]",
+        "microwave (four isotopologues); C4v, all five S-F lengths taken equal (1.576 +- 0.010 A), Cl-S-F 88 degrees 22 minutes",
+        True,
+        0,
+        (("Cl", 2.0301), ("F", 1.576)) + (("F", 1.576),) * 4,
+        "c4v_octahedron",
+    ),
     # The two anions are CRYSTAL structures: the ion is in an ionic lattice, where a Cl-F or Xe-F distance moves by a few
     # hundredths of an Angstrom with the counter-ion (ClF4- spans 1.73 to 1.87 A between salts).
     Reference(
@@ -319,6 +400,8 @@ class VseprGeometry:
     equatorial_indices: tuple[int, ...]
     reference: Reference
     diagnostics: dict[str, float] = field(default_factory=dict)
+    #: The distance each ligand was placed at, by atom index (what `validate` checks against).
+    ligand_lengths: dict[int, float] = field(default_factory=dict)
     #: Always the same statement, so no consumer can mistake this for an optimised structure.
     provenance: str = "idealised VSEPR template with published bond lengths and angles; not optimised, no energy"
 
@@ -375,6 +458,11 @@ def _seesaw(ref: Reference) -> tuple[list[np.ndarray], list[np.ndarray]]:
     ax = math.radians(ref.angles.get("ax-ax", 180.0))
     eq = math.radians(ref.angles.get("eq-eq", 120.0))
     t = (math.pi - ax) / 2
+    if "ax-eq" in ref.angles:
+        # A reference that states the axial-equatorial angle says which way the axial pair bends: toward the lone pair
+        # (an ax-eq above 90, as in XeO2F2, where the oxo ligands push the fluorines back) or away from it (below 90).
+        if (math.cos(math.radians(ref.angles["ax-eq"])) < 0) != (math.sin(t) * math.cos(eq / 2) < 0):
+            t = -t
     return (
         [
             np.array([math.sin(t), 0.0, math.cos(t)]),
@@ -428,6 +516,48 @@ def _pentagonal_planar(ref: Reference) -> tuple[list[np.ndarray], list[np.ndarra
     return [], ring
 
 
+def _cs_bipyramid(ref: Reference) -> tuple[list[np.ndarray], list[np.ndarray]]:
+    # ClF3O: two axial ligands mirror each other across the equatorial plane; two ligands (F and O) lie in that plane
+    # `feq-o` apart, and the lone pair is the third equatorial position. Each axial vector (a, b, +-c) is solved from
+    # its angle to the in-plane F (`fax-feq`) and to the in-plane O (`fax-o`), so all three published angles hold.
+    gamma = math.radians(ref.angles["feq-o"]) / 2
+    cos_f, cos_o = math.cos(math.radians(ref.angles["fax-feq"])), math.cos(math.radians(ref.angles["fax-o"]))
+    a = (cos_f + cos_o) / (2 * math.cos(gamma))
+    b = (cos_f - cos_o) / (2 * math.sin(gamma))
+    c = math.sqrt(1.0 - a * a - b * b)
+    in_plane_f = np.array([math.cos(gamma), math.sin(gamma), 0.0])
+    in_plane_o = np.array([math.cos(gamma), -math.sin(gamma), 0.0])
+    return [np.array([a, b, c]), np.array([a, b, -c])], [in_plane_f, in_plane_o]
+
+
+def _c2v_bipyramid(ref: Reference) -> tuple[list[np.ndarray], list[np.ndarray]]:
+    # SOF4: the oxygen and two fluorines are equatorial (the oxygen on +x, the fluorines `eq-eq` apart about -x), and
+    # the axial pair sits `ax-o` from the oxygen in the plane that holds the oxygen and the axis.
+    half = math.radians(ref.angles["eq-eq"]) / 2
+    cos_ax_o = math.cos(math.radians(ref.angles["ax-o"]))
+    axial = [np.array([cos_ax_o, 0.0, s * math.sqrt(1.0 - cos_ax_o**2)]) for s in (1.0, -1.0)]
+    equatorial = [
+        np.array([1.0, 0.0, 0.0]),
+        np.array([-math.cos(half), math.sin(half), 0.0]),
+        np.array([-math.cos(half), -math.sin(half), 0.0]),
+    ]
+    return axial, equatorial
+
+
+def _c4v_octahedron(ref: Reference) -> tuple[list[np.ndarray], list[np.ndarray]]:
+    # SF5Cl: the unique ligand (Cl) on +z, its trans ligand on -z, four basal ligands `ax-eq` from the unique one.
+    t = math.radians(ref.angles["ax-eq"])
+    basal = [
+        np.array([math.sin(t) * math.cos(math.radians(p)), math.sin(t) * math.sin(math.radians(p)), math.cos(t)])
+        for p in (0, 90, 180, 270)
+    ]
+    return [np.array([0.0, 0.0, 1.0]), np.array([0.0, 0.0, -1.0])], basal
+
+
+#: Layout name -> placer, for the references that name one.
+_LAYOUTS = {"cs_bipyramid": _cs_bipyramid, "c2v_bipyramid": _c2v_bipyramid, "c4v_octahedron": _c4v_octahedron}
+
+
 #: (bonds, lone pairs) -> (classification, shape, placer). XeF6 (a distorted mean structure, not one shape) and
 #: every shape with more than seven bonds are not here.
 _TEMPLATES = {
@@ -449,7 +579,8 @@ _TEMPLATES = {
 def _hypervalent_centre(mol: Any) -> tuple[int, list[int]] | None:
     """The one centre and its ligands, when `mol` has the shape this module is about; else None.
 
-    One connected fragment; every other atom terminal, neutral and singly bonded to the centre; a formal
+    One connected fragment; every other atom terminal, neutral and singly bonded to the centre (or doubly bonded, for
+    an oxygen: an oxo ligand, accepted here only so a lookup can find a measured geometry for it); a formal
     charge only on the centre (an anion such as ClF4- or XeF5-; the charge is drawn on the atom whose
     electrons it changes); the centre's element in the hypervalent table with an EFFECTIVE valence (its
     bonds, less a positive or plus a negative charge, as `checkers.valence` counts it) that is permitted
@@ -467,10 +598,13 @@ def _hypervalent_centre(mol: Any) -> tuple[int, list[int]] | None:
     for index in ligands:
         atom = mol.GetAtomWithIdx(index)
         bond = mol.GetBondBetweenAtoms(index, centre.GetIdx())
-        if atom.GetDegree() != 1 or atom.GetFormalCharge() or bond is None or bond.GetBondTypeAsDouble() != 1.0:
+        order = bond.GetBondTypeAsDouble() if bond is not None else 0.0
+        if atom.GetDegree() != 1 or atom.GetFormalCharge() or order not in (1.0, 2.0):
+            return None
+        if order == 2.0 and atom.GetSymbol() != "O":
             return None
     rule = hypervalent_rules().get(centre.GetSymbol())
-    effective = centre.GetDegree() - centre.GetFormalCharge()
+    effective = _bonding_electrons(centre) - centre.GetFormalCharge()
     if (
         not rule
         or effective not in rule["permitted_valences"]
@@ -478,6 +612,24 @@ def _hypervalent_centre(mol: Any) -> tuple[int, list[int]] | None:
     ):
         return None
     return centre.GetIdx(), ligands
+
+
+def _bonding_electrons(centre: Any) -> int:
+    """The centre's valence as its bonds count it: a double bond counts two."""
+    return int(round(sum(b.GetBondTypeAsDouble() for b in centre.GetBonds())))
+
+
+def _token(mol: Any, centre_index: int, ligand_index: int) -> str:
+    """A ligand's element, with "=" for a double bond to the centre ("F", "O=")."""
+    bond = mol.GetBondBetweenAtoms(centre_index, ligand_index)
+    return mol.GetAtomWithIdx(ligand_index).GetSymbol() + ("=" if bond.GetBondTypeAsDouble() == 2.0 else "")
+
+
+def _ligand_key(tokens: list[str]) -> str:
+    """The `Reference.ligand` string for a set of ligand tokens: the bare element for identical single-bonded ligands."""
+    if len(set(tokens)) == 1 and not tokens[0].endswith("="):
+        return tokens[0]
+    return "".join(sorted(tokens))
 
 
 def _fragments(mol: Any) -> list[Any]:
@@ -509,52 +661,78 @@ def build_vsepr_geometry(mol: Any) -> VseprOutcome:
         )
     charge = centre.GetFormalCharge()
     # The centre's own electrons are its outer shell less the charge it carries (an anion has one more).
-    lone_pairs, remainder = divmod(outer - charge - n, 2)
+    tokens = {i: _token(mol, centre_index, i) for i in ligand_indices}
+    has_oxo = any(t.endswith("=") for t in tokens.values())
+    left_over = outer - charge - _bonding_electrons(centre)
+    lone_pairs, remainder = divmod(left_over, 2)
+    ligand = _ligand_key(list(tokens.values()))
+    reference = REFERENCES.get((symbol, ligand, n, charge))
+    if has_oxo and reference is None:
+        # An oxo ligand with no recorded geometry is the ordinary case (a sulfate, a perchlorate, a phosphate): it was
+        # never this module's, and stays on the conformer path it was always on.
+        return VseprOutcome(Kind.NOT_APPLICABLE, "a double-bonded ligand with no recorded geometry")
     if remainder or lone_pairs < 0 or (n, lone_pairs) not in _TEMPLATES:
         return VseprOutcome(
             Kind.UNSUPPORTED,
-            f"{symbol} with {n} bonds and {outer - charge - n} left-over electrons has no template here",
+            f"{symbol} with {n} ligands and {left_over} left-over electrons has no template here",
         )
     classification, shape, placer = _TEMPLATES[(n, lone_pairs)]
-    ligand_symbols = {mol.GetAtomWithIdx(i).GetSymbol() for i in ligand_indices}
-    if len(ligand_symbols) != 1:
-        return VseprOutcome(
-            Kind.UNSUPPORTED,
-            f"mixed ligands ({'/'.join(sorted(ligand_symbols))}) have no measured geometry here",
-        )
-    ligand = ligand_symbols.pop()
-    reference = REFERENCES.get((symbol, ligand, n, charge))
     if reference is None:
         sign = "" if charge == 0 else f" with charge {charge:+d}"
+        kinds = sorted(set(tokens.values()))
+        if len(kinds) > 1:
+            return VseprOutcome(
+                Kind.UNSUPPORTED,
+                f"mixed ligands ({'/'.join(kinds)}) have no measured geometry for {symbol}{sign}",
+            )
         return VseprOutcome(
             Kind.UNSUPPORTED,
             f"no measured geometry is recorded for {symbol}{ligand}{n}{sign}",
         )
+    if reference.layout:
+        placer = _LAYOUTS[reference.layout]
 
     axial_vectors, equatorial_vectors = (
         [_VIEW_TILT @ v for v in group] for group in placer(reference)
     )
-    slots = [(v, reference.axial) for v in axial_vectors] + [
-        (v, reference.equatorial) for v in equatorial_vectors
-    ]
-    assert len(slots) == n, (classification, len(slots), n)
+    vectors = axial_vectors + equatorial_vectors
+    if reference.slots:
+        lengths = [length for _, length in reference.slots]
+        wanted = [token for token, _ in reference.slots]
+    else:
+        lengths = [reference.axial] * len(axial_vectors) + [reference.equatorial] * len(equatorial_vectors)
+        wanted = []
+    assert len(vectors) == n, (classification, len(vectors), n)
+    # With several kinds of ligand, each slot takes the first unused ligand of its kind (atom order, so deterministic).
+    if wanted:
+        pool = list(ligand_indices)
+        order: list[int] = []
+        for token in wanted:
+            pick = next((i for i in pool if tokens[i] == token), None)
+            if pick is None:
+                return VseprOutcome(Kind.UNSUPPORTED, "the ligands do not match the recorded geometry's ligands")
+            pool.remove(pick)
+            order.append(pick)
+    else:
+        order = list(ligand_indices)
     coordinates: list[tuple[float, float, float]] = [
         (0.0, 0.0, 0.0)
     ] * mol.GetNumAtoms()
-    for index, (vector, length) in zip(
-        ligand_indices, slots
-    ):  # ligands in atom order: deterministic
+    placed: dict[int, float] = {}
+    for index, vector, length in zip(order, vectors, lengths):
         point = vector / np.linalg.norm(vector) * length
         coordinates[index] = (float(point[0]), float(point[1]), float(point[2]))
+        placed[index] = length
     geometry = VseprGeometry(
         coordinates=tuple(coordinates),
         centre_index=centre_index,
         ligand_indices=tuple(ligand_indices),
         classification=classification,
         shape=shape,
-        axial_indices=tuple(ligand_indices[: len(axial_vectors)]),
-        equatorial_indices=tuple(ligand_indices[len(axial_vectors) :]),
+        axial_indices=tuple(order[: len(axial_vectors)]),
+        equatorial_indices=tuple(order[len(axial_vectors) :]),
         reference=reference,
+        ligand_lengths=placed,
     )
     problems = validate(geometry)
     if problems:
@@ -610,10 +788,7 @@ def validate(geometry: VseprGeometry) -> list[str]:
         return ["a coordinate is not finite"]
     if np.linalg.norm(points[geometry.centre_index]) > 1e-9:
         problems.append("the centre is not at the origin")
-    expected = {i: geometry.reference.axial for i in geometry.axial_indices}
-    expected.update(
-        {i: geometry.reference.equatorial for i in geometry.equatorial_indices}
-    )
+    expected = dict(geometry.ligand_lengths)
     for index, length in expected.items():
         actual = float(np.linalg.norm(points[index]))
         if abs(actual - length) > 1e-6:

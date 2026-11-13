@@ -1,3 +1,4 @@
-### Hypervalent geometries: SeF6 and TeCl4 added, PCl5 moved to its primary paper
+### Hypervalent geometries: SeF6, TeCl4 and five oxyfluorides added, PCl5 moved to its primary paper
 - **A drawn SeF6 and TeCl4 now get their measured 3D geometry** (SeF6 octahedral, Se-F 1.685 A; TeCl4 seesaw, 2.430 and 2.298 A, 175.9 and 103.0 degrees), and PCl5 cites Adams and Bartell 1971 instead of a compilation. Tellurium joins the hypervalent rule table.
-- **Eight more papers are recorded as read but not shipped** (XeO2F2, XeOF4, SOF4, SF5Cl, ClF3O, XeO4, SF6/SeF6/TeF6 1933, IF4-), because the builder does not yet handle two ligand kinds or oxo ligands. Their values are in `docs/sources.toml`.
+- **ClF3O, XeOF4, XeO2F2, SOF4 and SF5Cl are built from the published structures** (electron diffraction, microwave or, for XeO2F2, a neutron crystal), instead of the wrong shape RDKit embeds. The builder now takes molecules with two kinds of ligand and with a double bond to oxygen, and ClF3O (which RDKit refuses) is held like ClF3.
+- **An oxo molecule with no recorded geometry is untouched**: sulfuric acid, perchlorate, XeO3 and XeO4 still take the ordinary path.

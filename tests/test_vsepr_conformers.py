@@ -168,3 +168,50 @@ def test_the_service_reports_an_unsupported_structure_as_a_failure(qapp):
 
     assert states[-1].state == CacheState.FAILED
     assert "wrong shape" in states[-1].message
+
+
+@pytest.mark.parametrize(
+    ("smiles", "shape"),
+    [
+        ("F[Xe](F)(F)(F)=O", "square pyramidal"),
+        ("F[Xe](F)(=O)=O", "seesaw"),
+        ("FS(F)(F)(F)=O", "trigonal bipyramidal"),
+        ("FS(F)(F)(F)(F)Cl", "octahedral"),
+    ],
+)
+def test_oxo_and_mixed_ligand_molecules_are_built_from_their_measured_geometry(smiles, shape):
+    """RDKit accepts these and, left to itself, embeds them with wrong angles; the template is used instead."""
+    outcome = _search(Chem.MolFromSmiles(smiles))
+    ((mol, energy),) = outcome.pool
+    assert energy is None and outcome.geometry_method == VSEPR_TEMPLATE
+    assert shape in outcome.geometry_note
+    assert mol.GetConformer().Is3D()
+
+
+def test_a_drawn_clf3o_which_rdkit_refuses_is_held_and_built():
+    from rdkit.Chem import AllChem
+
+    drawn = Chem.MolFromSmiles("FCl(F)(F)=O", sanitize=False)
+    for atom in drawn.GetAtoms():
+        atom.SetNoImplicit(True)
+    drawn.UpdatePropertyCache(strict=False)
+    AllChem.Compute2DCoords(drawn)
+    mol = ChemistryEngine().hypervalent_mol_from_molblock(Chem.MolToMolBlock(drawn))
+    outcome = _search(mol)
+    ((built, energy),) = outcome.pool
+    assert energy is None
+    centre = next(a.GetIdx() for a in built.GetAtoms() if a.GetSymbol() == "Cl")
+    oxygen = next(a.GetIdx() for a in built.GetAtoms() if a.GetSymbol() == "O")
+    conf = built.GetConformer()
+    length = np.linalg.norm(np.array(conf.GetAtomPosition(oxygen)) - np.array(conf.GetAtomPosition(centre)))
+    assert length == pytest.approx(1.405, abs=1e-6)
+
+
+def test_ordinary_oxo_molecules_still_use_the_search():
+    outcome = search_conformers(
+        RDKitConformerProvider(random_seed=1),
+        Chem.MolFromSmiles("OS(=O)(=O)O"),
+        True,
+        GenerationOptions(max_embeddings=10, embedding_batch_size=5),
+    )
+    assert outcome.stop_reason != STOP_TEMPLATE and outcome.unoptimised == 0

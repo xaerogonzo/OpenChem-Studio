@@ -326,9 +326,13 @@ def test_ordinary_molecules_are_left_to_the_normal_path(smiles):
 
 def test_every_reference_has_a_template_and_builds():
     """No entry is dead: each key reaches a built geometry (guards a table row nothing can use)."""
-    for centre, ligand, n, charge in REFERENCES:
+    for (centre, ligand, n, charge), reference in REFERENCES.items():
         symbol = f"[{centre}{'-' if charge < 0 else '+' if charge > 0 else ''}]"
-        smiles = f"{ligand}{symbol}" + "".join(f"({ligand})" for _ in range(n - 1))
+        if reference.slots:
+            parts = [f"(={t[:-1]})" if t.endswith("=") else f"({t})" for t, _ in reference.slots]
+            smiles = symbol + "".join(parts)
+        else:
+            smiles = f"{ligand}{symbol}" + "".join(f"({ligand})" for _ in range(n - 1))
         outcome = build_vsepr_geometry(_mol(smiles))
         assert outcome.kind is Kind.BUILT, (smiles, outcome.reason)
 
@@ -356,3 +360,105 @@ def test_it_agrees_with_what_the_engines_opt_in_path_returns():
         _hypervalent_molblock("Cl", "F", 3)
     )
     assert build_vsepr_geometry(mol).kind is Kind.BUILT
+
+
+# --- mixed ligands and oxo ligands (each figure typed again from its paper; the angles are what the paper printed) ---
+
+
+def _by_element(g, mol_smiles: str, symbol: str) -> list[int]:
+    mol = _mol(mol_smiles)
+    return [i for i in g.ligand_indices if mol.GetAtomWithIdx(i).GetSymbol() == symbol]
+
+
+def test_clf3o_reproduces_the_three_published_angles_and_each_length():
+    smiles = "FCl(F)(F)=O"
+    g = _built(smiles)
+    assert (g.classification, g.shape) == ("AX4E", "seesaw")
+    p, c = g.coordinates, g.centre_index
+    oxygen = _by_element(g, smiles, "O")[0]
+    ax1, ax2 = g.axial_indices
+    f_eq = next(i for i in g.equatorial_indices if i != oxygen)
+    assert _bond(p, c, oxygen) == pytest.approx(1.405, abs=1e-6)
+    assert _bond(p, c, ax1) == pytest.approx(1.713, abs=1e-6) and _bond(p, c, ax2) == pytest.approx(1.713, abs=1e-6)
+    assert _bond(p, c, f_eq) == pytest.approx(1.603, abs=1e-6)
+    assert _angle(p, f_eq, c, oxygen) == pytest.approx(108.9, abs=1e-6)
+    for axial in (ax1, ax2):
+        assert _angle(p, axial, c, f_eq) == pytest.approx(87.9, abs=1e-6)
+        assert _angle(p, axial, c, oxygen) == pytest.approx(94.7, abs=1e-6)
+
+
+def test_xeof4_is_a_square_pyramid_with_oxygen_apical():
+    smiles = "F[Xe](F)(F)(F)=O"
+    g = _built(smiles)
+    assert (g.classification, g.shape) == ("AX5E", "square pyramidal")
+    p, c = g.coordinates, g.centre_index
+    oxygen = _by_element(g, smiles, "O")[0]
+    assert g.axial_indices == (oxygen,)
+    assert _bond(p, c, oxygen) == pytest.approx(1.7053, abs=1e-6)
+    for f in _by_element(g, smiles, "F"):
+        assert _bond(p, c, f) == pytest.approx(1.9040, abs=1e-6)
+        assert _angle(p, oxygen, c, f) == pytest.approx(91.66, abs=1e-6)
+    basal = _by_element(g, smiles, "F")
+    # the basal fluorines form a square about the axis: four neighbouring pairs at 90 degrees, two opposite at 180
+    pair_angles = sorted(_angle(p, a, c, b) for a, b in itertools.combinations(basal, 2))
+    assert pair_angles[:4] == pytest.approx([90.0] * 4, abs=1e-6) or pair_angles[:4] == pytest.approx(
+        [pair_angles[0]] * 4, abs=1e-6
+    )
+    assert pair_angles[-2:] == pytest.approx([pair_angles[-1]] * 2, abs=1e-6)
+
+
+def test_xeo2f2_is_a_seesaw_with_the_published_angles():
+    smiles = "F[Xe](F)(=O)=O"
+    g = _built(smiles)
+    p, c = g.coordinates, g.centre_index
+    f1, f2 = g.axial_indices
+    o1, o2 = g.equatorial_indices
+    assert {_by_element(g, smiles, "F")[0], _by_element(g, smiles, "F")[1]} == {f1, f2}
+    assert _angle(p, f1, c, f2) == pytest.approx(174.7, abs=1e-6)
+    assert _angle(p, o1, c, o2) == pytest.approx(105.7, abs=1e-6)
+    assert _bond(p, c, o1) == pytest.approx(1.714, abs=1e-6) and _bond(p, c, f1) == pytest.approx(1.899, abs=1e-6)
+    # the paper's O-Xe-F 91.6 is above 90: the fluorines bend toward the lone pair, and the angle comes out of the other two
+    assert _angle(p, f1, c, o1) == pytest.approx(91.6, abs=0.1)
+
+
+def test_sof4_gets_the_published_angle_it_was_not_given():
+    smiles = "FS(F)(F)(F)=O"
+    g = _built(smiles)
+    p, c = g.coordinates, g.centre_index
+    oxygen = _by_element(g, smiles, "O")[0]
+    ax1, ax2 = g.axial_indices
+    f_eq = [i for i in g.equatorial_indices if i != oxygen]
+    assert _bond(p, c, oxygen) == pytest.approx(1.409, abs=1e-6)
+    assert _bond(p, c, ax1) == pytest.approx(1.596, abs=1e-6)
+    assert all(_bond(p, c, f) == pytest.approx(1.539, abs=1e-6) for f in f_eq)
+    assert _angle(p, f_eq[0], c, f_eq[1]) == pytest.approx(112.8, abs=1e-6)
+    assert _angle(p, ax1, c, oxygen) == pytest.approx(97.7, abs=1e-6)
+    # published F(ax)-S-F(eq) 85.7 and F(eq)-S-O 123.6: inputs of neither, implied by the two above
+    assert _angle(p, ax1, c, f_eq[0]) == pytest.approx(85.7, abs=0.3)
+    assert _angle(p, f_eq[0], c, oxygen) == pytest.approx(123.6, abs=0.1)
+
+
+def test_sf5cl_has_chlorine_apical_and_the_published_cl_s_f_angle():
+    smiles = "FS(F)(F)(F)(F)Cl"
+    g = _built(smiles)
+    p, c = g.coordinates, g.centre_index
+    cl = _by_element(g, smiles, "Cl")[0]
+    assert _bond(p, c, cl) == pytest.approx(2.0301, abs=1e-6)
+    trans = g.axial_indices[1]
+    assert _angle(p, cl, c, trans) == pytest.approx(180.0, abs=1e-6)
+    for f in g.equatorial_indices:
+        assert _angle(p, cl, c, f) == pytest.approx(88.0 + 22.0 / 60.0, abs=1e-6)
+        assert _bond(p, c, f) == pytest.approx(1.576, abs=1e-6)
+
+
+@pytest.mark.parametrize(
+    "smiles",
+    ["O=S(=O)(O)O", "O=[Xe](=O)=O", "O=[Xe](=O)(=O)=O", "[O-][Cl](=O)(=O)=O", "O=P(Cl)(Cl)Cl", "FS(F)(F)(F)(F)F"],
+)
+def test_oxo_molecules_without_a_recorded_geometry_stay_on_the_ordinary_path(smiles):
+    outcome = build_vsepr_geometry(_mol(smiles))
+    assert outcome.kind in (Kind.NOT_APPLICABLE, Kind.BUILT)
+    if outcome.kind is Kind.BUILT:
+        assert smiles == "FS(F)(F)(F)(F)F"
+    # and a mixed-ligand molecule the table lacks is refused with the reason, not guessed
+    assert build_vsepr_geometry(_mol("FCl(F)Cl")).kind is Kind.UNSUPPORTED
