@@ -53,7 +53,7 @@ So: **fix defects where they arise, add one generic guard that would have caught
 
 Each has an acceptance test written first against the measurement above, and a control that must not move.
 
-**WP1. No non-finite number is ever published.** A guard where results leave the calculators (`DescriptorService`, for registry
+**WP1. No non-finite number is ever published. DONE 2026-11-13** (`domain/finite_guard.py`, applied in both `DescriptorService` tasks; `tests/test_nonfinite_guard.py` holds the seven measured molecules and eight controls, mutation-checked: with the guard removed 15 of 33 tests fail; the census and the descriptor-service tests are unchanged; per-atom datasets are refused whole, as recommended; the scan script calls the calculators directly and so still shows the raw NaN, the guard sits between them and the panels). A guard where results leave the calculators (`DescriptorService`, for registry
 results, always-on descriptors and per-atom datasets): any NaN or infinity becomes a refusal `ELEMENT_OUTSIDE_PARAMETER_SET` (an
 existing LIMIT) naming the element and, where known, the atoms. Fixes `gasteiger_charge_at_ph`, the always-on Gasteiger dataset and
 anything similar not yet found. *Accept:* PF5, XeF4, XeF2, IF5, PCl5, PIDA, CH3-PF4 no longer publish NaN; the six controls'

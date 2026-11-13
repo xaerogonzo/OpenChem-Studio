@@ -5052,6 +5052,7 @@
   "tests/test_nmr_view_widget_tautomers.py": 2,
   "tests/test_no_competitor_names.py": 6,
   "tests/test_no_stray_top_level_windows.py": 4,
+  "tests/test_nonfinite_guard.py": 1,
   "tests/test_nuclide_table.py": 6,
   "tests/test_nuclides.py": 1,
   "tests/test_opsin_isolation.py": 1,

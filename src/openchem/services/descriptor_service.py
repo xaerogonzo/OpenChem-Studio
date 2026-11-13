@@ -24,6 +24,7 @@ from openchem.chem.descriptor_providers import (
 )
 from openchem.chem.engine import ChemistryEngine
 from openchem.domain.calculator import DRAWING, GEOMETRY, CalculationRefusal, CalculationRequest
+from openchem.domain.finite_guard import refusal_for
 from openchem.domain.structure_coverage import Coverage, CoverageKind
 from openchem.domain.refusal_kinds import HYPERVALENT_UNSUPPORTED, MissingInput, RefusalKind, refusal_parameters
 from openchem.domain.input_snapshot import InputSnapshot, snapshot_model
@@ -247,6 +248,17 @@ class _DescriptorComputeTask(QRunnable):
             for value in values:
                 if self._only is not None and value.descriptor_id not in self._only:
                     continue
+                # NO NON-FINITE NUMBER IS PUBLISHED (docs/HYPERVALENT_COVERAGE_DESIGN.md, WP1): a descriptor whose
+                # value is NaN or infinite is reported as the method's limit, and the others are unaffected.
+                refusal = refusal_for(value, value.descriptor_id, self._element_of(mol))
+                if refusal is not None:
+                    logger.info("Descriptor %s refused: not finite", value.descriptor_id)
+                    self._part_failed = True
+                    self._publish(
+                        value.descriptor_id, CacheState.FAILED, error=refusal.detail,
+                        category=categories.get(value.descriptor_id, ""), record=True,
+                    )
+                    continue
                 if self._calculation_input != DRAWING:
                     # A geometry run says WHICH conformer it measured (`geometry_provenance`: id, position, energy, force field), as a calculator's result on a conformer does, so a score
                     # over a shape descriptor can name the conformer it read. The identity key does not depend on it (`make_identity` takes its parameters explicitly).
@@ -269,6 +281,10 @@ class _DescriptorComputeTask(QRunnable):
             self._part_failed = True
         else:
             for alert in alerts:
+                if refusal_for(alert, "an alert catalogue") is not None:
+                    logger.info("Alert result dropped: not finite")
+                    self._part_failed = True
+                    continue
                 self._event_bus.publish(
                     AlertComputed(alert=alert, structure_version=self._structure_version)
                 )
@@ -281,6 +297,13 @@ class _DescriptorComputeTask(QRunnable):
             self._part_failed = True
         else:
             for dataset in datasets:
+                # A per-atom set with a hole is refused WHOLE: charges that skip an atom do not sum to the charge
+                # of the structure, so showing the rest would be showing a different answer than the method gives.
+                refusal = refusal_for(dataset, dataset.property_id, self._element_of(mol))
+                if refusal is not None:
+                    logger.info("Per-atom dataset %s refused: not finite", dataset.property_id)
+                    self._part_failed = True
+                    continue
                 self._event_bus.publish(PerAtomDataComputed(
                     dataset=dataset,
                     input_fingerprint=self._fingerprint,
@@ -288,6 +311,11 @@ class _DescriptorComputeTask(QRunnable):
                 ))
                 self._record(dataset)
         self._finish_part()
+
+    @staticmethod
+    def _element_of(mol):
+        """Atom index -> element symbol, for naming what a non-finite number was on."""
+        return lambda index: mol.GetAtomWithIdx(index).GetSymbol()
 
     def _fail_descriptors(self, exc: Exception, categories: dict[str, str]) -> None:
         logger.exception("Descriptor provider %s failed", self._provider.provider_id)
@@ -534,6 +562,13 @@ class _CalculationTask(QRunnable):
             result = self._registry.compute(
                 self._request.calculator_id, mol, self._model.uuid, self._request.parameters
             )
+            # NO NON-FINITE NUMBER IS PUBLISHED (WP1): a calculator that returns NaN or infinity has no parameters for
+            # part of this structure (gasteiger_charge_at_ph on PF5, xenon, iodine(III)); that is its limit, stated.
+            not_finite = refusal_for(
+                result, self._request.calculator_id, lambda index: mol.GetAtomWithIdx(index).GetSymbol()
+            )
+            if not_finite is not None:
+                raise not_finite
             # Which geometry produced this, recorded on the way out rather
             # than asked of each calculator -- they are handed a molecule
             # and have no idea where it came from. Without it a steric
