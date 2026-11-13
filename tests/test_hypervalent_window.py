@@ -69,10 +69,12 @@ def test_the_shared_input_boundary_refuses_with_the_typed_limit(qapp, tmp_path):
 
 def test_a_held_clf3_runs_the_window_without_a_fault(qapp, tmp_path, log_errors):
     window, services = _build_window(qapp, tmp_path)
-    states: dict[str, str] = {}
+    states: dict[str, tuple] = {}
     services.event_bus.subscribe(
         DescriptorComputed,
-        lambda e: states.__setitem__(e.descriptor.descriptor_id, (e.descriptor.cache_state, e.descriptor.error)),
+        lambda e: states.__setitem__(
+            e.descriptor.descriptor_id, (e.descriptor.cache_state, e.descriptor.error, e.descriptor.value)
+        ),
     )
     molecule = _clf3(services)
     window.add_molecule(molecule)
@@ -80,8 +82,17 @@ def test_a_held_clf3_runs_the_window_without_a_fault(qapp, tmp_path, log_errors)
 
     assert molecule.canonical_smiles == "FCl(F)F"
     assert states, "the always-on properties must have been dispatched and reported"
-    assert {state for state, _ in states.values()} == {CacheState.FAILED}
-    assert all("hypervalent" in (error or "") for _, error in states.values())
+    completed = {k for k, (state, _, _) in states.items() if state == CacheState.COMPLETED}
+    assert completed == {"mol_wt", "exact_mass", "formula", "formal_charge", "heavy_atom_count"}, completed
+    # the textbook values for ClF3: M 92.447, exact mass 91.964, Hill formula ClF3, neutral, four atoms
+    assert states["mol_wt"][2] == pytest.approx(92.447, abs=1e-3)
+    assert states["exact_mass"][2] == pytest.approx(91.96406, abs=1e-4)
+    assert states["formula"][2] == "ClF3"
+    assert states["formal_charge"][2] == 0 and states["heavy_atom_count"][2] == 4
+    refused = {k: err for k, (state, err, _) in states.items() if state == CacheState.FAILED}
+    # everything that came out meaningless on ClF3 (Crippen logP 1.95, TPSA 0.0, QED, rule passes) is refused
+    for descriptor_id in ("mol_logp", "tpsa", "qed", "lipinski_pass", "sa_score"):
+        assert "hypervalent" in (refused.get(descriptor_id) or ""), descriptor_id
     assert log_errors == [], [r.getMessage() for r in log_errors]
 
 

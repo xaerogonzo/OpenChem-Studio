@@ -14,6 +14,7 @@ from openchem.chem.conformer_providers import (
     DEFAULT_SEARCH_SEED,
     STOP_USER_FINISHED,
     GenerationOptions,
+    GeometryUnsupportedError,
     RDKitConformerProvider,
     SearchProgress,
     distinct_conformers,
@@ -165,6 +166,17 @@ class _ConformerGenerationTask(QRunnable):
             )
             batch = outcome
             results = outcome.pool
+        except GeometryUnsupportedError as exc:
+            # An anticipated refusal (a hypervalent structure with no measured geometry), not a fault: said once,
+            # without a traceback, and the job fails with the sentence that explains it.
+            logger.warning("No conformer built for molecule %s: %s", self._model.uuid, exc)
+            self._event_bus.publish(
+                ConformerJobStateChanged(
+                    molecule_uuid=self._model.uuid, state=CacheState.FAILED, message=str(exc)
+                )
+            )
+            self._job_manager.finish(_JOB_KIND, self._model.uuid)
+            return
         except Exception as exc:  # noqa: BLE001 - report failure, never crash the pool
             logger.exception("Conformer generation failed for molecule %s", self._model.uuid)
             self._event_bus.publish(

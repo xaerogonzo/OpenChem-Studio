@@ -866,6 +866,14 @@ def _refused_descriptor(value: DescriptorValue, refusal: CalculationRefusal) -> 
     )
 
 
+#: The always-on descriptors that are plain arithmetic on the atoms and their charges, so they stay right on a held
+#: hypervalent structure (ClF3) that RDKit cannot sanitise. Measured on ClF3, BrF3, XeF4 and SF6: molecular weight,
+#: exact mass, formula (Hill order: ClF3, F4Xe), formal charge and heavy-atom count come out as the textbook values;
+#: everything else is a fitted or valence-model number (Crippen logP 1.95 and TPSA 0.0 for ClF3, QED, SA score, the
+#: rule passes) and is refused, because a number that merely appears is not evidence it means anything.
+HYPERVALENT_SAFE_DESCRIPTORS = frozenset({"mol_wt", "exact_mass", "formula", "formal_charge", "heavy_atom_count"})
+
+
 class RDKitDescriptorProvider(DescriptorProvider):
     """Computes the built-in descriptor set using RDKit only."""
 
@@ -925,6 +933,43 @@ class RDKitDescriptorProvider(DescriptorProvider):
             else components.read_back(by_id[value.descriptor_id], _DESCRIPTOR_PARENT_SCOPE, selection)
             for value in whole
         ]
+
+    def compute_hypervalent(
+        self, mol: Chem.Mol, molecule_uuid: str, refusal: CalculationRefusal
+    ) -> list[DescriptorValue]:
+        """The descriptors of a HELD HYPERVALENT structure (`ChemistryEngine.hypervalent_mol_from_molblock`).
+
+        Only `HYPERVALENT_SAFE_DESCRIPTORS` are computed; each other one is the typed refusal `refusal`
+        (limit `HYPERVALENT_UNSUPPORTED`), and the shape descriptors say they need a real conformer as they
+        do for any flat drawing. Never calls anything that needs a sanitised molecule.
+        """
+        now = time.time()
+        provenance = Provenance(created_by="core", method=self.provider_id, timestamp=now)
+        safe = {
+            "mol_wt": lambda: Descriptors.MolWt(mol),
+            "exact_mass": lambda: Descriptors.ExactMolWt(mol),
+            "formula": lambda: rdMolDescriptors.CalcMolFormula(mol),
+            "formal_charge": lambda: Chem.GetFormalCharge(mol),
+            "heavy_atom_count": lambda: mol.GetNumHeavyAtoms(),
+        }
+        values = []
+        for descriptor_id, name, units, category in _DESCRIPTOR_SPECS:
+            value = DescriptorValue(
+                descriptor_id=descriptor_id, name=name, units=units, category=category, provider=self.provider_id,
+                molecule_uuid=molecule_uuid, value=None, timestamp=now, cache_state=CacheState.FAILED,
+                provenance=provenance,
+            )
+            values.append(
+                replace(
+                    value,
+                    value=safe[descriptor_id](),
+                    cache_state=CacheState.COMPLETED,
+                )
+                if descriptor_id in safe
+                else _refused_descriptor(value, refusal)
+            )
+        values.extend(self._compute_shape_descriptors(mol, molecule_uuid, now, provenance))
+        return values
 
     def _compute_all(self, mol: Chem.Mol, molecule_uuid: str) -> list[DescriptorValue]:
         now = time.time()

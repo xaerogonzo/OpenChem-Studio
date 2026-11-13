@@ -286,6 +286,53 @@
   "after_ms": 1500
  },
  {
+  "do": "smiles",
+  "smiles": "FI(F)F",
+  "name": "IF3 (no measured geometry)",
+  "after_ms": 2500
+ },
+ {
+  "do": "select",
+  "molecule": -1,
+  "after_ms": 2500
+ },
+ {
+  "do": "conformers",
+  "count": 5,
+  "embeddings": 50,
+  "after_ms": 4000
+ },
+ {
+  "do": "smiles",
+  "smiles": "[O-]Cl(=O)(=O)=O",
+  "name": "perchlorate (control)",
+  "after_ms": 2500
+ },
+ {
+  "do": "select",
+  "molecule": -1,
+  "after_ms": 2500
+ },
+ {
+  "do": "conformers",
+  "count": 5,
+  "embeddings": 50,
+  "after_ms": 7000
+ },
+ {
+  "do": "expect_conformers",
+  "min": 1
+ },
+ {
+  "do": "conformers_provenance",
+  "tag": "perchlorate",
+  "expect": {
+   "geometry_method": null,
+   "conformers_unoptimised": 0
+  },
+  "after_ms": 500
+ },
+ {
   "do": "jobs_report",
   "tag": "end"
  },
