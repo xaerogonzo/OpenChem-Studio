@@ -85,6 +85,7 @@ Every tracked top-level entry, and whether it reaches a release.
 | `scripts`, `spikes`, `prof.out` | **No** | Probes and experiments |
 | `pyproject.toml`, `uv.lock`, `.python-version` | **No** | Development environment; the frozen app carries its own Python |
 | `CLAUDE.md`, `AGENTS.md`, `project-baseline.md`, `.agent-tool.json`, `.codegraph`, `.cursor` | **No** | Instructions and indexes for development tooling (`AGENTS.md` and `.cursor/rules` are what Cursor reads; `.cursor/mcp.json` is local and git-ignored) |
+| `.superpowers` | **No** | Subagent-driven-development session notes and PR bodies, development only |
 | `.github`, `.gitignore`, `.gitattributes` | **No** | Repository configuration |
 
 ## What the release is checked against
