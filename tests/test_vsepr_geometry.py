@@ -69,6 +69,11 @@ CASES = [
     ("FS(F)(F)F", "AX4E", "seesaw", 1.646, 1.545),
     ("FS(F)(F)(F)(F)F", "AX6", "octahedral", 1.561, 1.561),
     ("FP(F)(F)(F)F", "AX5", "trigonal bipyramidal", 1.577, 1.534),
+    # from the papers (Robiette 1971, Bodenseh 1976, Adams 1970): apical then basal / axial then equatorial
+    ("FBr(F)(F)(F)F", "AX5E", "square pyramidal", 1.689, 1.774),
+    ("FI(F)(F)(F)F", "AX5E", "square pyramidal", 1.844, 1.869),
+    ("FCl(F)(F)(F)F", "AX5E", "square pyramidal", 1.65, 1.65),
+    ("FI(F)(F)(F)(F)(F)F", "AX7", "pentagonal bipyramidal", 1.786, 1.858),
 ]
 
 
@@ -156,6 +161,45 @@ def test_pf5_is_a_trigonal_bipyramid():
     assert _all_angles(g) == [90.0] * 6 + [120.0] * 3 + [180.0]
 
 
+@pytest.mark.parametrize(("smiles", "angle"), [("FBr(F)(F)(F)F", 84.8), ("FI(F)(F)(F)F", 81.9), ("FCl(F)(F)(F)F", 86.5)])
+def test_a_square_pyramid_has_the_published_apical_basal_angle_and_a_planar_basal_square(smiles, angle):
+    g = _built(smiles)
+    (apical,) = g.axial_indices
+    for basal in g.equatorial_indices:
+        assert _angle(g.coordinates, apical, g.centre_index, basal) == pytest.approx(angle, abs=1e-6)
+    points = np.array([g.coordinates[i] for i in g.equatorial_indices])
+    assert np.linalg.matrix_rank(points - points.mean(axis=0), tol=1e-9) == 2, "the four basal ligands are coplanar"
+    # four equal basal-basal contacts round the square, and the two diagonals
+    pairs = sorted(
+        round(_angle(g.coordinates, i, g.centre_index, j), 2)
+        for n, i in enumerate(g.equatorial_indices)
+        for j in g.equatorial_indices[n + 1 :]
+    )
+    theta = math.radians(angle)
+    assert pairs == sorted([round(math.degrees(math.acos(math.cos(theta) ** 2)), 2)] * 4 + [round(2 * angle, 2)] * 2)
+
+
+def test_brf5_basal_basal_angle_matches_the_independently_listed_figure():
+    """NIST CCCBDB lists 89.53 degrees for BrF5's basal-basal angle (Gurvich): a number this file did not derive."""
+    g = _built("FBr(F)(F)(F)F")
+    first, second = g.equatorial_indices[0], g.equatorial_indices[1]
+    assert _angle(g.coordinates, first, g.centre_index, second) == pytest.approx(89.53, abs=0.02)
+
+
+def test_clf5_is_the_one_row_whose_lengths_are_an_assumption_and_says_so():
+    from openchem.chem.vsepr_geometry import REFERENCES
+
+    reference = REFERENCES[("Cl", "F", 5)]
+    assert reference.axial == reference.equatorial == 1.65
+    assert "complete structure is not possible" in reference.method
+
+
+def test_if7_is_an_ideal_pentagonal_bipyramid():
+    g = _built("FI(F)(F)(F)(F)(F)F")
+    # 21 ligand pairs: one axial-axial, ten axial-equatorial, five 72 degree and five 144 degree equatorial
+    assert _all_angles(g) == [72.0] * 5 + [90.0] * 10 + [144.0] * 5 + [180.0]
+
+
 def test_atom_order_is_the_molecules_own():
     """The centre need not be first: its coordinates stay at its own index, ligands fill in atom order."""
     mol = _mol("F[Cl](F)F")
@@ -181,7 +225,7 @@ def test_the_input_molecule_is_not_modified():
 
 @pytest.mark.parametrize(
     ("smiles", "fragment"),
-    [("FCl(F)(F)(F)F", "no template"), ("FI(F)F", "no measured geometry")],
+    [("ClP(Cl)(Cl)(Cl)Cl", "no measured geometry"), ("FI(F)F", "no measured geometry")],
 )
 def test_a_recognised_molecule_without_a_reference_is_refused_not_guessed(
     smiles, fragment

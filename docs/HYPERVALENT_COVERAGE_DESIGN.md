@@ -1,6 +1,6 @@
 # Hypervalent structures that RDKit accepts: design
 
-**Status: design, nothing implemented.** Follows PRs #597 and #598, which made the application hold, draw in 3D and compute on the
+**Status: design. WP6 (geometry coverage) is done, see its section; the other packages are not.** Follows PRs #597 and #598, which made the application hold, draw in 3D and compute on the
 structures RDKit refuses (ClF3, BrF3, ClF5). This is about the other half: hypervalent structures RDKit **accepts**, which have
 always taken the ordinary path (SF6, PF5, XeF4, XeF2, SF4, IF5, PCl5, Ar-SF5, iodine(III) reagents).
 
@@ -80,12 +80,20 @@ and a test holds whatever is shipped to it.
 **WP5. Extend the held-structure verified list.** The unverified calculators are each checked against an oracle exactly as in
 #598. The likely candidates are few (the Lewis-sites report, formula-driven facts). A calculator is added only with its oracle test.
 
-**WP6. Geometry coverage.** BrF5 (square pyramid; NIST CCCBDB: apical 1.689, basal 1.774 A, apical-basal 84.8, basal-basal 89.53
+**WP6. Geometry coverage. DONE 2026-11-13** (BrF5, IF5, ClF5 and IF7 added from the papers, held in the maintainer's library and
+recorded in `docs/sources.toml` and `docs/LITERATURE_LOG.md`; the table below is what was found before reading them). BrF5 (square pyramid; NIST CCCBDB: apical 1.689, basal 1.774 A, apical-basal 84.8, basal-basal 89.53
 degrees, Gurvich compilation) and IF7 (pentagonal bipyramid; Adams, Thompson and Bartell 1970: axial 1.786, equatorial 1.858 A)
 need two templates. IF5 (Robiette, Bradley and Brier 1971) and ClF5 (Bodenseh, Huttner and Nowicki 1976) need the original papers:
 CCCBDB has no IF5 geometry, and its ClF5 entry lists D3h and one length, which cannot be a square pyramid. XeF6 is a distorted
 mean structure (Bartell and Gavin 1968: lengths spread over about 0.08 A around 1.890) and stays excluded. Oxyfluorides (XeOF4,
 SOF4) and ions need a source search first; the CCCBDB lookup by CAS number did not serve them.
+
+What the papers showed, and what shipped. Robiette 1971 gives BrF5 (apical 1.689, basal 1.774 A, 84.8 degrees) and IF5 (1.844, 1.869 A,
+81.9 degrees; the difference is poorly determined). Adams 1970 gives IF7 (axial 1.786, equatorial 1.858 A, ideal D5h placed; the 7.5 degree puckering
+is an average and is not). **Bodenseh 1976 does not determine ClF5's lengths**: only the angle (86.5 +/- 1.0 degrees), with both lengths about 1.65 A
+and "a complete structure determination is not possible", so the shipped row uses 1.65 for both and says so; NIST's single 1.650 A is the same
+assumption. A real ORCA B3LYP/def2-SVP optimisation from that start gives apical 1.664, basal 1.709 A, 85.6 degrees. ORCA also keeps BrF5 (84.9 to
+85.0 degrees against 84.8), IF5 and IF7 in shape. Still unsupported: IF3 (no structure found), XeF6 (not one geometry), the oxyfluorides and ions.
 
 **WP7. The regulatory screen on a held structure stays refused**, with a test that a held structure never yields "no matches" (it
 did in the #598 audit, a silent false negative for a screen). Not a change; a guard on the decision of #598.

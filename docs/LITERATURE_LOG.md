@@ -177,6 +177,30 @@ should not repeat them.**
 **Outcome (2026-11-05): the table was replaced rather than traced.** Its values were refitted to Bosque and Sales' experimental solvent polarizabilities (`benchmarks/polarizability/`), so the old table's source no longer matters to the product; this entry stays so the search is not repeated. For the old table, what is established is only that it reproduces 13 experimental molecular polarizabilities (5.7 % mean absolute error) and that its carbon (1.3266) and hydrogen (0.3888) sit near The vendor's displayed
 1.36 and 0.39. **Ten papers named as leads were obtained on 2026-11-05 (the first four, then Vogel's two 1948 papers, Bosque and Sales, Thole, Jensen 2000 and Blair and Thakkar) and searched, and none is the source (rows above).** Where to look next, if anyone needs it: Le Fevre's refraction papers (not held), Miller's group- and bond-polarizability papers (not held), the source code of other programs, or the vendor itself. Converted to molar refraction (our value divided by 0.3964), the table reads H 0.98, C 3.35, N 2.46, O 1.93, F 1.17, S 6.25, Cl 5.70, Br 8.37, I 14.02, which is not Vogel's set (H 1.028, C 2.591). Two sets close to ours in places (Miller 1990's, Applequist's additive column) suggest a table assembled or rescaled from several sources, which cannot be shown.
 
+## Hypervalent molecular geometries for the VSEPR builder (2026-11-13)
+
+What was read to give `chem/vsepr_geometry.py` measured bond lengths and angles, and what came of each. DOIs are in the
+registry (`docs/sources.toml`) for the papers that ship numbers; none is repeated here. The point of the section is the
+negative results: **a compilation can be right about a number and wrong about what it means.**
+
+| file or page | what it is | read for | depth | outcome | registry key |
+|---|---|---|---|---|---|
+| `robiette1971.pdf` | Gas-phase BrF5 and IF5 from electron diffraction plus microwave rotational constants (J. Chem. Soc. D, 1971) | apical and basal lengths and the apical-basal angle of BrF5 and IF5 | full (two pages), table read | **used**: BrF5 1.689/1.774 A, 84.8 deg; IF5 1.844/1.869 A, 81.9 deg; says the IF5 apical-basal difference is poorly determined (0.025 +/- 0.024) | `robiette1971` |
+| `bodenseh1976.pdf` | ClF5 microwave spectrum, quadrupole coupling, dipole moment and structure (Z. Naturforsch. A 31) | ClF5 bond lengths and angle | full, structure section | **used with its limit stated**: only the angle (86.5 +/- 1.0 deg) is determined, "a complete structure determination is not possible", both lengths about 1.65 A. NIST's single 1.650 A is this, not an apical/basal pair | `bodenseh1976` |
+| `adams1970.pdf` | IF7 gas-phase electron diffraction, pseudorotation (J. Chem. Phys. 53) | IF7 axial and equatorial lengths | identity + abstract | **used**: axial 1.786 (0.007), equatorial 1.858 (0.004) A, D5h average with 7.5 deg puckering and 4.5 deg axial bend not placed | `adams1970` |
+| `whittle1971.pdf` | BrF5 microwave spectrum (Trans. Faraday Soc. 67) | a BrF5 structure | read (five pages) | rotational, distortion and quadrupole constants only, C4v confirmed from spin statistics; no structure. Its constants are the other half of Robiette's BrF5 result | `whittle1971` |
+| NIST CCCBDB, experimental geometry pages for ClF3, BrF3, XeF2, XeF4, SF4, SF6, PF5, BrF5 | a compilation, each value citing its source | the seven rows not from a held paper | page of each molecule | used; checked against the compilation and not against the original papers. ClF3 (Muller 2001, re), BrF3 (Magnuson 1957), XeF2, XeF4, SF4 (Tolles and Gwinn 1962), SF6 (Kuchitsu), PF5 (Gurvich); BrF5 agrees with Robiette | `nist_cccbdb_geometries` |
+| NIST CCCBDB, ClF5 | same | ClF5 geometry | page | **not usable as listed**: point group D3h, one length 1.650 A and 86.5 deg; D3h cannot be a square pyramid and the length is not an apical/basal pair (see Bodenseh) | none |
+| NIST CCCBDB, IF5 and IF7 | same | IF5 and IF7 geometry | page | "No coordinate data available" | none |
+| NIST CCCBDB, XeF6 and XeOF4 (by CAS number) | same | XeF6, XeOF4 | page | the CAS lookup returned another molecule's page (formaldehyde); not served | none |
+| `structure-of-free-polyatomic-molecules-1998.pdf` | Kuchitsu's structure data, 1998 | numbers for ClF3, SF4, XeF2 and others | searched, pages located | **an index of citations with no numbers** (entries read `11/15(2,105)`, a pointer to the Landolt-Bornstein volume): not a source of any value here | none |
+| Bartell and Gavin, XeF6 electron diffraction, parts I and II (J. Chem. Phys. 48, 1968; open copy at the University of Michigan repository) | XeF6 gas-phase structure | whether XeF6 is one geometry | abstracts via a search | not one geometry: mean Xe-F 1.890 (0.005) A, bond lengths spread over about 0.08 A, fluorines displaced up to 5 to 10 deg from octahedral sites. **XeF6 stays unsupported** | none |
+
+**For the next session:** IF3 has no gas-phase structure that was found (it is unstable); the oxyfluorides (XeOF4, SOF4) and
+the ions (ClF4-, XeF5-) have not been searched beyond the CCCBDB attempt above. A real ORCA B3LYP/def2-SVP optimisation of
+each new shape from its VSEPR start (`tests/test_hypervalent_orca.py`, `benchmarks/hypervalent/`) keeps the shape; for ClF5
+it puts the apical bond 0.045 A shorter than the basal ones and the angle at 85.6 deg, against 86.5 +/- 1.0 measured.
+
 ## How to use this
 
 Before searching for a reference for a tautomer system, look here. A paper listed as "not an energy

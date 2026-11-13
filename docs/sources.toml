@@ -9808,3 +9808,126 @@ STRUCTURES ONLY. Each row is a named ion's graph and its parent, so Mode A
 workflow 2 and the catalog agree on identity. No pKa numbers. Not safety or
 acceptability. Hydrogen sulfate and sulfate are different rows.
 """
+
+
+# =============================================================================
+# Hypervalent molecular geometries (chem/vsepr_geometry.py)
+# =============================================================================
+
+[[source]]
+key = "robiette1971"
+kind = "literature"
+citation = "A. G. Robiette, R. H. Bradley & P. N. Brier, 'Gas-phase molecular structures of BrF5 and IF5: information from electron diffraction and rotational constant data', J. Chem. Soc. D (Chem. Commun.) 1971, (23), 1567-1568."
+identifier_type = "doi"
+identifier = "10.1039/c29710001567"
+status = "shipped"
+used_by = [
+    "src/openchem/chem/vsepr_geometry.py",
+    "tests/test_vsepr_geometry.py",
+    "docs/HYPERVALENT_COVERAGE_DESIGN.md",
+]
+local = "robiette1971.pdf"
+verification = "citation_and_claim"
+verified_date = 2026-11-13
+note = """
+Read in full (two pages). The table's gas-phase column ("this work") is what ships: BrF5 apical 1.689 (0.008),
+basal 1.774 (0.003) A and F(apical)-Br-F(basal) 84.8 (0.1) degrees; IF5 apical 1.844 (0.025), basal 1.869 (0.005) A and
+81.9 (0.1) degrees (distances are ra, with perpendicular amplitude corrections). The paper says the IF5 apical-basal
+difference is "poorly determined" (0.025 +/- 0.024 A), and that the crystal values agree (BrF5 crystal 84.5 degrees,
+IF5 crystal 80.9). Its BrF5 row matches NIST CCCBDB's listing (which cites Gurvich), so the two sources agree.
+"""
+
+[[source]]
+key = "bodenseh1976"
+kind = "literature"
+citation = "H. K. Bodenseh, W. Huttner & P. Nowicki, 'Microwave Spectrum, Nuclear Quadrupole Coupling Constants, Dipole Moment, and Structure of Chlorine Pentafluoride, ClF5', Z. Naturforsch. A 31, 1638-1643 (1976)."
+identifier_type = "doi"
+identifier = "10.1515/zna-1976-1227"
+status = "shipped"
+used_by = [
+    "src/openchem/chem/vsepr_geometry.py",
+    "tests/test_vsepr_geometry.py",
+    "docs/HYPERVALENT_COVERAGE_DESIGN.md",
+]
+local = "bodenseh1976.pdf"
+verification = "citation_and_claim"
+verified_date = 2026-11-13
+note = """
+Read in full, structure section included. **The paper does NOT determine ClF5's two bond lengths**: with two rotational
+constants and three parameters (r Cl-F apical, r Cl-F basal, the apical-basal angle) it states that "a complete structure
+determination is not possible", finds F(apical)-Cl-F(basal) = 86.5 (1.0) degrees, and says both distances are about
+1.65 A (the other root, about 145 degrees, is rejected as unreasonable; moving the angle by more than 1 degree separates
+the distances by more than 0.15 A). NIST CCCBDB lists the same 86.5 and a single 1.650 A, which is this and not an
+apical/basal pair. The shipped row therefore uses 1.65 A for BOTH classes and says so in its `method`.
+A real ORCA B3LYP/def2-SVP optimisation from that start gives apical 1.664, basal 1.709 A and 85.6 degrees
+(tests/test_hypervalent_orca.py). Also gives the same procedure for BrF5: 85 (1) degrees against 84.8 from electron
+diffraction.
+"""
+
+[[source]]
+key = "adams1970"
+kind = "literature"
+citation = "W. J. Adams, H. B. Thompson & L. S. Bartell, 'Structure, Pseudorotation, and Vibrational Mode Coupling in IF7: An Electron Diffraction Study', J. Chem. Phys. 53, 4040-4046 (1970)."
+identifier_type = "doi"
+identifier = "10.1063/1.1673876"
+status = "shipped"
+used_by = [
+    "src/openchem/chem/vsepr_geometry.py",
+    "tests/test_vsepr_geometry.py",
+    "docs/HYPERVALENT_COVERAGE_DESIGN.md",
+]
+local = "adams1970.pdf"
+verification = "citation_and_claim"
+verified_date = 2026-11-13
+note = """
+Abstract and the structure statement read (identity + abstract; the radial-distribution analysis was not worked
+through). Free IF7 molecules are pentagonal bipyramids with axial bonds 1.786 (0.007) A shorter than equatorial bonds
+1.858 (0.004) A (esd), deformed from D5h on average by 7.5 degrees of ring puckering and 4.5 degrees of axial bend, with
+essentially free pseudorotation. The shipped geometry is the IDEAL D5h shape with these two lengths; the puckering and
+bend are averages over a vibrating molecule and are not placed.
+"""
+
+[[source]]
+key = "whittle1971"
+kind = "literature"
+citation = "M. J. Whittle, R. H. Bradley & P. N. Brier, 'Microwave spectrum of bromine pentafluoride', Trans. Faraday Soc. 67, 2505 (1971)."
+identifier_type = "doi"
+identifier = "10.1039/tf9716702505"
+status = "reference_only"
+used_by = ["docs/HYPERVALENT_COVERAGE_DESIGN.md"]
+local = "whittle1971.pdf"
+verification = "citation"
+verified_date = 2026-11-13
+reason = """
+Read for whether it gives a structure: it does not. It reports rotational, centrifugal-distortion and quadrupole
+constants of BrF5 and confirms C4v symmetry from the nuclear-spin statistical weights. Robiette, Bradley and Brier
+(1971) combine its rotational constants with electron diffraction to get the geometry that ships, so this paper is the
+other half of that result and backs no number in this application on its own.
+"""
+
+[[source]]
+key = "nist_cccbdb_geometries"
+kind = "dataset"
+citation = "NIST Computational Chemistry Comparison and Benchmark Database (CCCBDB), NIST Standard Reference Database 101, experimental geometry pages, read 2026-11-13."
+identifier_type = "url"
+identifier = "https://cccbdb.nist.gov/"
+status = "shipped"
+used_by = [
+    "src/openchem/chem/vsepr_geometry.py",
+    "tests/test_vsepr_geometry.py",
+    "docs/HYPERVALENT_COVERAGE_DESIGN.md",
+]
+verification = "citation_and_claim"
+verified_date = 2026-11-13
+note = """
+The compilation behind the seven rows of `chem/vsepr_geometry.py` that are NOT from a held paper: ClF3 (Muller 2001,
+re), BrF3 (Magnuson 1957), XeF2 (Burger and Ma 1993, re), XeF4 (Burger, Ma, Breidung and Thiel 1996, r0), SF4 (Tolles
+and Gwinn 1962), SF6 (Kuchitsu 1998) and PF5 (Gurvich, Veyts and Alcock 1989). Each number was read from the page of
+that molecule's experimental geometry. The ORIGINAL papers are not held (only the 2001 ClF3 and the 1962 SF4 abstracts
+were seen), so a number here is checked against the compilation and not against the paper that measured it.
+
+Two CCCBDB entries are NOT usable as they stand and were not used: ClF5 (lists D3h, one length and 86.5 degrees; the
+original, now held, shows one length is an assumption) and IF5/IF7 (no coordinate data). Its XeF6 and XeOF4 pages were
+not served for the CAS numbers tried. CCCBDB's "axial"/"on axis" wording is not consistent between molecules, so the
+classes in the module are the VSEPR ones, not CCCBDB's labels.
+"""

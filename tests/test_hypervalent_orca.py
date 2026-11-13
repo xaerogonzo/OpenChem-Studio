@@ -28,9 +28,9 @@ from tests.test_chem_engine import _hypervalent_molblock
 METHOD = "B3LYP def2-SVP"
 
 
-def _molecule_with_conformer(engine: ChemistryEngine) -> MoleculeModel:
-    molecule = MoleculeModel(display_name="ClF3")
-    engine.set_structure_from_molblock(molecule, _hypervalent_molblock("Cl", "F", 3), allow_hypervalent=True)
+def _molecule_with_conformer(engine: ChemistryEngine, spec: tuple[str, str, int] = ("Cl", "F", 3)) -> MoleculeModel:
+    molecule = MoleculeModel(display_name="".join(spec[:2]) + str(spec[2]))
+    engine.set_structure_from_molblock(molecule, _hypervalent_molblock(*spec), allow_hypervalent=True)
     mol = engine.mol_from_model(molecule, allow_hypervalent=True)
     outcome = search_conformers(RDKitConformerProvider(random_seed=1), mol, True, GenerationOptions())
     conf_mol, energy = outcome.pool[0]
@@ -126,3 +126,48 @@ def test_real_orca_optimizes_the_vsepr_start(qapp, tmp_path):
     print(f"\nORCA {METHOD}: angles {angles}, Cl-F {lengths}")
     # A T-shape has two near-90 degree angles and one near-180; the measurement is printed above, this is the shape test.
     assert angles[0] < 100 and angles[1] < 100 and angles[2] > 160
+
+
+@pytest.mark.skipif(not (ORCA and Path(ORCA).exists()), reason="needs a real ORCA: set OPENCHEM_ORCA_EXE")
+def test_real_orca_keeps_the_clf5_square_pyramid_and_resolves_what_the_experiment_could_not(qapp):
+    """Bodenseh 1976 could fix only the apical-basal angle of ClF5 (86.5, esd 1.0) and had to assume equal lengths.
+
+    ORCA, started from that assumption, should keep the square pyramid, land near the measured angle and show the
+    apical bond SHORTER than the basal ones (measured here: 1.664 and 1.709 A, angle 85.6 degrees).
+    """
+    import time
+
+    from openchem.bootstrap import build_service_container
+    from openchem.domain.common import CacheState
+    from openchem.events.events import QuantumChemistryJobStateChanged, QuantumChemistryResultReady
+
+    services = build_service_container()
+    qc = services.quantum_chemistry_service
+    qc._settings.set("orca/executable_path", ORCA)
+    engine = services.chemistry_engine
+    molecule = _molecule_with_conformer(engine, ("Cl", "F", 5))
+    states: list = []
+    results: list = []
+    services.event_bus.subscribe(QuantumChemistryJobStateChanged, states.append)
+    services.event_bus.subscribe(QuantumChemistryResultReady, results.append)
+    prepared = prepare_run(engine, molecule, _choice("opt"))
+    assert isinstance(prepared, PreparedRun)
+    start(qc, prepared)
+    deadline = time.time() + 400
+    while time.time() < deadline and not results and not any(s.state == CacheState.FAILED for s in states):
+        qapp.processEvents()
+        time.sleep(0.05)
+    QThreadPool.globalInstance().waitForDone(5000)
+    assert results, [s.message for s in states if s.state == CacheState.FAILED]
+    mol = Chem.MolFromMolBlock(results[-1].conformer.molblock, sanitize=False, removeHs=False)
+    conf = mol.GetConformer()
+    points = {i: np.array(conf.GetAtomPosition(i)) for i in range(mol.GetNumAtoms())}
+    centre = next(i for i, a in enumerate(mol.GetAtoms()) if a.GetSymbol() == "Cl")
+    ligands = sorted((float(np.linalg.norm(points[i] - points[centre])), i) for i in points if i != centre)
+    (apical_length, apical), basal = ligands[0], ligands[1:]
+    assert all(length - apical_length > 0.02 for length, _ in basal), ligands
+    u = points[apical] - points[centre]
+    for _, i in basal:
+        v = points[i] - points[centre]
+        angle = math.degrees(math.acos(float(np.dot(u, v) / np.linalg.norm(u) / np.linalg.norm(v))))
+        assert 83.0 < angle < 89.5, angle

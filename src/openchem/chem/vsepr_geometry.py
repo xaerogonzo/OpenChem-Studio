@@ -26,12 +26,14 @@ THREE OUTCOMES, kept apart because they need different handling (`VseprOutcome.k
 * `NOT_APPLICABLE` anything else (a carbon, sulfate with its double bonds, a ring, a charged ion, a
                  normal valence): the ordinary conformer path is correct for it and is left alone.
 
-The reference values are literature figures recorded with their source. All were read from NIST's CCCBDB
-experimental-geometry table (2026-11-13) and compared with the original abstracts where those were open;
-`checked` says so. The angles are as measured: ClF3 87.45 degrees (so its trans pair is 174.9), BrF3 86.21,
-SF4 173.07 and 101.55. The held library copy of Kuchitsu 1998 is only an index of citations, so SF6's value
-could not be read off the held book itself. Lengths are `re` or `r0` as stated per row: they differ by a
-few thousandths of an Angstrom, far below what a starting geometry needs, and ORCA refines them.
+The reference values are literature figures recorded with their source. The first seven rows (ClF3, BrF3, XeF2,
+XeF4, SF4, SF6, PF5) were read from NIST's CCCBDB experimental-geometry table (2026-11-13) [source:nist_cccbdb_geometries], a compilation whose
+original papers are not held; the last four (BrF5, IF5, ClF5, IF7) were read from the papers themselves, held in
+the maintainer's library, and say what each paper does and does not determine. The angles are as measured: ClF3
+87.45 degrees (so its trans pair is 174.9), BrF3 86.21, SF4 173.07 and 101.55. The held copy of Kuchitsu 1998 is
+only an index of citations, so SF6's value could not be read off the held book. Lengths are `re`, `r0`, `ra` or
+`rg` as the source gives them: they differ by a few thousandths of an Angstrom, far below what a starting
+geometry needs, and ORCA refines them. ClF5 is the one row whose two lengths are an ASSUMPTION (see its method).
 """
 
 from __future__ import annotations
@@ -161,6 +163,55 @@ _ENTRIES = (
         "compiled",
         True,
     ),
+    # The four rows below were read from the PAPERS (held copies, 2026-11-13), not from a compilation. For the
+    # square pyramids `axial` is the apical bond and `equatorial` the basal ones; `ax-eq` is F(apical)-X-F(basal).
+    Reference(
+        "Br",
+        "F",
+        5,
+        1.689,
+        1.774,
+        {"ax-eq": 84.8},
+        "Robiette, Bradley and Brier 1971, J Chem Soc D (23), 1567 [source:robiette1971]",
+        "gas electron diffraction with microwave rotational constants (apical 0.008, basal 0.003, angle 0.1 esd)",
+        True,
+    ),
+    Reference(
+        "I",
+        "F",
+        5,
+        1.844,
+        1.869,
+        {"ax-eq": 81.9},
+        "Robiette, Bradley and Brier 1971, J Chem Soc D (23), 1567 [source:robiette1971]",
+        "gas electron diffraction with microwave rotational constants (apical 0.025, basal 0.005, angle 0.1 esd; "
+        "the apical-basal difference is poorly determined)",
+        True,
+    ),
+    Reference(
+        "Cl",
+        "F",
+        5,
+        1.65,
+        1.65,
+        {"ax-eq": 86.5},
+        "Bodenseh, Huttner and Nowicki 1976, Z Naturforsch 31a, 1638 [source:bodenseh1976]",
+        "microwave, two rotational constants: only the angle (86.5, esd 1.0) is determined; the paper states that a "
+        "complete structure is not possible and that both lengths are about 1.65 A, so one value is used for both",
+        True,
+    ),
+    Reference(
+        "I",
+        "F",
+        7,
+        1.786,
+        1.858,
+        {},
+        "Adams, Thompson and Bartell 1970, J Chem Phys 53, 4040 [source:adams1970]",
+        "gas electron diffraction, D5h average (axial 0.007, equatorial 0.004 esd); the molecule is puckered by "
+        "7.5 degrees and axially bent by 4.5 degrees on average, which the ideal pentagonal bipyramid here omits",
+        True,
+    ),
 )
 # `key` is derived from the entry, so the table cannot disagree with the lookup.
 #: `(centre, ligand, number of ligands)` -> its measured geometry. A molecule not here is refused, never estimated.
@@ -267,15 +318,36 @@ def _octahedron(ref: Reference) -> tuple[list[np.ndarray], list[np.ndarray]]:
     return v, []
 
 
-#: (bonds, lone pairs) -> (classification, shape, placer). Pentagonal and larger shapes are not here:
-#: IF5, IF7, ClF5, XeF6 and the rest wait for validated references (XeF6 is not a regular octahedron).
+def _square_pyramid(ref: Reference) -> tuple[list[np.ndarray], list[np.ndarray]]:
+    # Apical ligand on +z; the four basal ligands at `ax-eq` from it, 90 degrees apart about z. The lone pair sits
+    # opposite the apex and pushes the basal bonds TOWARD it, so ax-eq < 90 (BrF5 84.8, IF5 81.9, ClF5 86.5).
+    t = math.radians(ref.angles.get("ax-eq", 90.0))
+    basal = [
+        np.array([math.sin(t) * math.cos(math.radians(p)), math.sin(t) * math.sin(math.radians(p)), math.cos(t)])
+        for p in (0, 90, 180, 270)
+    ]
+    return [np.array([0.0, 0.0, 1.0])], basal
+
+
+def _pentagonal_bipyramid(ref: Reference) -> tuple[list[np.ndarray], list[np.ndarray]]:
+    # The IDEAL D5h shape (72 and 90 degrees); the measured puckering and axial bend are averages, not a structure.
+    equatorial = [
+        np.array([math.cos(math.radians(p)), math.sin(math.radians(p)), 0.0]) for p in (0, 72, 144, 216, 288)
+    ]
+    return [np.array([0.0, 0.0, 1.0]), np.array([0.0, 0.0, -1.0])], equatorial
+
+
+#: (bonds, lone pairs) -> (classification, shape, placer). XeF6 (a distorted mean structure, not one shape) and
+#: every shape with more than seven bonds are not here.
 _TEMPLATES = {
     (2, 3): ("AX2E3", "linear", _linear),
     (3, 2): ("AX3E2", "T-shaped", _t_shape),
     (4, 2): ("AX4E2", "square planar", _square_planar),
     (4, 1): ("AX4E", "seesaw", _seesaw),
     (5, 0): ("AX5", "trigonal bipyramidal", _trigonal_bipyramid),
+    (5, 1): ("AX5E", "square pyramidal", _square_pyramid),
     (6, 0): ("AX6", "octahedral", _octahedron),
+    (7, 0): ("AX7", "pentagonal bipyramidal", _pentagonal_bipyramid),
 }
 
 
