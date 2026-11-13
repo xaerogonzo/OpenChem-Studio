@@ -238,8 +238,14 @@ class _ConformerGenerationTask(QRunnable):
             self._model.uuid,
         )
 
+        # A geometry built from a template was never force-field minimised, whatever was asked for: the label,
+        # the energy window and the force field recorded below must say so (`outcome.unoptimised`).
+        templated = bool(outcome.geometry_method)
+        optimised = self._optimize and not templated
         method = (
-            f"{self._provider.provider_id}+MMFF94/UFF" if self._optimize else self._provider.provider_id
+            outcome.geometry_method
+            if templated
+            else (f"{self._provider.provider_id}+MMFF94/UFF" if self._optimize else self._provider.provider_id)
         )
         now = time.time()
         provenance = Provenance(
@@ -315,8 +321,10 @@ class _ConformerGenerationTask(QRunnable):
                 # A merge VETO, never a claim that two structures with
                 # different energies are different conformers. See
                 # DEFAULT_ENERGY_WINDOW.
-                "energy_window": DEFAULT_ENERGY_WINDOW if self._optimize else None,
-                "force_field": "MMFF94/UFF" if self._optimize else None,
+                "energy_window": DEFAULT_ENERGY_WINDOW if optimised else None,
+                "force_field": "MMFF94/UFF" if optimised else None,
+                "geometry_method": outcome.geometry_method or None,
+                "conformers_unoptimised": outcome.unoptimised,
                 # An RDKit upgrade can move every number above; without
                 # this there is nothing to say whether the toolkit or the
                 # algorithm changed.
@@ -363,6 +371,8 @@ class _ConformerGenerationTask(QRunnable):
         # differ" -- the energy term declines to merge on insufficient
         # evidence, it does not classify. See DEFAULT_ENERGY_WINDOW.
         message = self._completion_message(batch, distinct, len(conformers))
+        if outcome.geometry_note:
+            message = f"{len(conformers)} conformer(s) - {outcome.geometry_note}"
         self._event_bus.publish(
             ConformerJobStateChanged(
                 molecule_uuid=self._model.uuid, state=CacheState.COMPLETED, message=message
