@@ -24,7 +24,11 @@ from openchem.chem.conformer_providers import (
 )
 from openchem.chem.engine import ChemistryEngine
 from openchem.domain.common import CacheState
-from openchem.domain.conformer import VSEPR_TEMPLATE, ConformerModel, conformer_choice_text
+from openchem.domain.conformer import (
+    VSEPR_TEMPLATE,
+    ConformerModel,
+    conformer_choice_text,
+)
 from openchem.domain.molecule import MoleculeModel
 from openchem.events.base import EventBus
 from openchem.events.events import ConformerJobStateChanged, ConformersReady
