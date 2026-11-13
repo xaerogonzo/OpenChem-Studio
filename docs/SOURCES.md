@@ -1,5 +1,5 @@
 <!-- GENERATED FROM docs/sources.toml -- do not edit -->
-<!-- SOURCE SHA256: d69cf5cc8eee75b9f4420df3fced70edaff0852d5c59d922206f84f2490016fd -->
+<!-- SOURCE SHA256: 1040dd6e1b783fbc9f2f900e4f922456598115c1bb6491be9c17339e064141c1 -->
 
 # Sources
 
@@ -89,6 +89,7 @@ Title and DOI first; the `key` is what prose and code cite (`[source:key]`) and 
 | title | DOI / identifier | key | kind | status | verification |
 | --- | --- | --- | --- | --- | --- |
 | The predicted (non-measured) solvent coefficients of Bradley, Abraham, Acree & Lang 2015 -- 202 solvents, of… | [10.1186/s13065-015-0085-4](https://doi.org/10.1186/s13065-015-0085-4) | [`abraham_predicted_solvents`](#abraham_predicted_solvents) | reference_table | **not shipped** | citation + claim |
+| Structure, Pseudorotation, and Vibrational Mode Coupling in IF7: An Electron Diffraction Study | [10.1063/1.1673876](https://doi.org/10.1063/1.1673876) | [`adams1970`](#adams1970) | literature | shipped | citation + claim |
 | Eclipse Temurin JRE, fetched from the Adoptium API on demand. | <https://api.adoptium.net/> | [`adoptium_temurin`](#adoptium_temurin) | software | shipped | citation |
 | Speed vs accuracy: Effect on ligand pose accuracy of varying box size and exhaustiveness in AutoDock Vina | [10.1002/minf.202200188](https://doi.org/10.1002/minf.202200188) | [`agarwal2022`](#agarwal2022) | literature | shipped | citation + claim |
 | Ranking metrics conceal pose errors in blind docking with AutoDock Vina, a cross-target benchmark | [10.1016/j.rineng.2026.112651](https://doi.org/10.1016/j.rineng.2026.112651) | [`agboola2026`](#agboola2026) | literature | shipped | citation + claim |
@@ -125,6 +126,7 @@ Title and DOI first; the `key` is what prose and code cite (`[source:key]`) and 
 | Exact ligand cone angles | [10.1002/jcc.23217](https://doi.org/10.1002/jcc.23217) | [`bilbrey2013`](#bilbrey2013) | literature | shipped | citation |
 | A new aromaticity index and its application to five-membered ring heterocycles | [10.1016/S0040-4020(01)96543-3](https://doi.org/10.1016/S0040-4020(01)96543-3) | [`bird1985`](#bird1985) | literature | shipped | citation |
 | Bond Dissociation Energies of Organic Molecules | [10.1021/ar020230d](https://doi.org/10.1021/ar020230d) | [`blanksby2003`](#blanksby2003) | literature | shipped | citation + claim |
+| Microwave Spectrum, Nuclear Quadrupole Coupling Constants, Dipole Moment, and Structure of Chlorine Pentafluoride, ClF5 | [10.1515/zna-1976-1227](https://doi.org/10.1515/zna-1976-1227) | [`bodenseh1976`](#bodenseh1976) | literature | shipped | citation + claim |
 | Absolute vacuum ultraviolet absorption spectra of some gaseous azabenzenes | [10.1016/0022-2852(84)90051-1](https://doi.org/10.1016/0022-2852(84)90051-1) | [`bolovinos1984`](#bolovinos1984) | literature | shipped | citation + claim |
 | van der Waals Volumes and Radii | [10.1021/j100785a001](https://doi.org/10.1021/j100785a001) | [`bondi1964`](#bondi1964) | literature | shipped | citation + claim |
 | S-H bond dissociation enthalpies in thiophenols: A time-resolved photoacoustic calorimetry and quantum chemistry study | [10.1021/jp025677i](https://doi.org/10.1021/jp025677i) | [`borgesdossantos2002`](#borgesdossantos2002) | literature | reference only | citation + claim |
@@ -297,6 +299,7 @@ Title and DOI first; the `key` is what prose and code cite (`[source:key]`) and 
 | DSX: A Knowledge-Based Scoring Function for the Assessment of Protein-Ligand Complexes | [10.1021/ci200274q](https://doi.org/10.1021/ci200274q) | [`neudert2011`](#neudert2011) | literature | **not shipped** | citation |
 | Autodock Vina Adopts More Accurate Binding Poses but Autodock4 Forms Better Binding Affinity | [10.1021/acs.jcim.9b00778](https://doi.org/10.1021/acs.jcim.9b00778) | [`nguyen2020`](#nguyen2020) | literature | shipped | citation + claim |
 | Temperature-dependent kinetics studies of the reactions Br(2P3/2) + H2S = SH + HBr and Br(2P3/2) + CH3SH = CH3S + HBr. Heats of formation of SH and CH3S radicals | [10.1021/j100185a025](https://doi.org/10.1021/j100185a025) | [`nicovich1992`](#nicovich1992) | literature | reference only | citation + claim |
+| NIST Computational Chemistry Comparison and Benchmark Database (CCCBDB), NIST Standard Reference Database… | <https://cccbdb.nist.gov/> | [`nist_cccbdb_geometries`](#nist_cccbdb_geometries) | dataset | shipped | citation + claim |
 | A generalization of the charge equilibration method for nonmetallic materials | [10.1063/1.2346671](https://doi.org/10.1063/1.2346671) | [`nistor2006`](#nistor2006) | literature | reference only | citation + claim |
 | Facilitating quality control for spectra assignments of small organic molecules: nmrshiftdb2 - a free in-house NMR database with integrated LIMS for academic service laboratories | [10.1002/mrc.4263](https://doi.org/10.1002/mrc.4263) | [`nmrshiftdb2`](#nmrshiftdb2) | dataset | shipped | citation |
 | npscorer.py | <https://github.com/rdkit/rdkit/tree/master/Contrib/NP_Score> | [`npscorer2015`](#npscorer2015) | software | shipped | citation |
@@ -339,6 +342,7 @@ Title and DOI first; the `key` is what prose and code cite (`[source:key]`) and 
 | Distributed data parallel coupled-cluster algorithm: Application to the 2-hydroxypyridine/2-pyridone tautomerism | [10.1002/jcc.540141204](https://doi.org/10.1002/jcc.540141204) | [`rendell1993`](#rendell1993) | literature | reference only | unverified |
 | An efficient and near linear scaling pair natural orbital based local coupled cluster method | [10.1063/1.4773581](https://doi.org/10.1063/1.4773581) | [`riplinger2013dlpno`](#riplinger2013dlpno) | literature | reference only | citation + claim |
 | Natural triple excitations in local coupled cluster calculations with pair natural orbitals | [10.1063/1.4821834](https://doi.org/10.1063/1.4821834) | [`riplinger2013triples`](#riplinger2013triples) | literature | reference only | citation + claim |
+| Gas-phase molecular structures of BrF5 and IF5: information from electron diffraction and rotational constant data | [10.1039/c29710001567](https://doi.org/10.1039/c29710001567) | [`robiette1971`](#robiette1971) | literature | shipped | citation + claim |
 | Intermolecular Nonbonded Contact Distances in Organic Crystal Structures: Comparison with Distances Expected from van der Waals Radii |  | [`rowland1996`](#rowland1996) | literature | shipped | citation + claim |
 | On non-negativity of Fukui function indices | [10.1063/1.478792](https://doi.org/10.1063/1.478792) | [`roy1999`](#roy1999) | literature | shipped | citation + claim |
 | Introduction to Active Thermochemical Tables: Several 'Key' Enthalpies of Formation Revisited | [10.1021/jp047912y](https://doi.org/10.1021/jp047912y) | [`ruscic2004`](#ruscic2004) | literature | reference only | citation |
@@ -398,6 +402,7 @@ Title and DOI first; the `key` is what prose and code cite (`[source:key]`) and 
 | A high density and low sensitivity carrier explosive promising to replace TNT: 3-Bromo-5-fluoro-2,4,6-trinitroanisole | [10.1016/j.enmf.2024.06.003](https://doi.org/10.1016/j.enmf.2024.06.003) | [`wang2024`](#wang2024) | literature | shipped | citation + claim |
 | Charge Equilibration Based on Atomic Ionization in Metal-Organic Frameworks | [10.1021/jp510415h](https://doi.org/10.1021/jp510415h) | [`wells2014`](#wells2014) | literature | reference only | citation |
 | Empirical Correlations between Thermodynamic Properties and Intermolecular Forces | [10.1021/ja00123a001](https://doi.org/10.1021/ja00123a001) | [`westwell1995`](#westwell1995) | literature | **not shipped** | citation |
+| Microwave spectrum of bromine pentafluoride | [10.1039/tf9716702505](https://doi.org/10.1039/tf9716702505) | [`whittle1971`](#whittle1971) | literature | reference only | citation |
 | Prediction of Physicochemical Parameters by Atomic Contributions | [10.1021/ci990307l](https://doi.org/10.1021/ci990307l) | [`wildman1999`](#wildman1999) | literature | shipped | citation |
 | Synthesis and Electrochemistry of Copper(I) Complexes with Weakly Basic, Fluorinated, and Multicyclic Arenes | [10.1002/chem.202501134](https://doi.org/10.1002/chem.202501134) | [`willrett2025`](#willrett2025) | literature | reference only | citation + claim |
 | Towards rapid computational screening of metal-organic frameworks for carbon dioxide capture: Calculation of framework charges via charge equilibration | [10.1016/j.cej.2010.10.035](https://doi.org/10.1016/j.cej.2010.10.035) | [`wilmer2011`](#wilmer2011) | literature | reference only | citation |
@@ -8212,6 +8217,93 @@ Nothing about xtb's accuracy against ORCA or Psi4 has been measured (`docs/EXTER
 | Verified | 2026-10-30 |
 | Used by | `src/openchem/chem/typed_eem.py`, `src/openchem/chem/data/eem_second_models.json`, `src/openchem/chem/geometry_charges.py` |
 
+### robiette1971 — Gas-phase molecular structures of BrF5 and IF5: information from electron diffraction and rotational constant data
+
+<a id="robiette1971"></a>
+
+> A. G. Robiette, R. H. Bradley & P. N. Brier, 'Gas-phase molecular structures of BrF5 and IF5: information from electron diffraction and rotational constant data', J. Chem. Soc. D (Chem. Commun.) 1971, (23), 1567-1568.
+
+| | |
+| --- | --- |
+| Identifier | [10.1039/c29710001567](https://doi.org/10.1039/c29710001567) |
+| Status | shipped |
+| Verification | citation + claim |
+| Verified | 2026-11-13 |
+| Local copy | `robiette1971.pdf` (not checked) |
+| Used by | `src/openchem/chem/vsepr_geometry.py`, `tests/test_vsepr_geometry.py`, `docs/HYPERVALENT_COVERAGE_DESIGN.md` |
+
+Read in full (two pages). The table's gas-phase column ("this work") is what ships: BrF5 apical 1.689 (0.008),
+basal 1.774 (0.003) A and F(apical)-Br-F(basal) 84.8 (0.1) degrees; IF5 apical 1.844 (0.025), basal 1.869 (0.005) A and
+81.9 (0.1) degrees (distances are ra, with perpendicular amplitude corrections). The paper says the IF5 apical-basal
+difference is "poorly determined" (0.025 +/- 0.024 A), and that the crystal values agree (BrF5 crystal 84.5 degrees,
+IF5 crystal 80.9). Its BrF5 row matches NIST CCCBDB's listing (which cites Gurvich), so the two sources agree.
+
+### bodenseh1976 — Microwave Spectrum, Nuclear Quadrupole Coupling Constants, Dipole Moment, and Structure of Chlorine Pentafluoride, ClF5
+
+<a id="bodenseh1976"></a>
+
+> H. K. Bodenseh, W. Huttner & P. Nowicki, 'Microwave Spectrum, Nuclear Quadrupole Coupling Constants, Dipole Moment, and Structure of Chlorine Pentafluoride, ClF5', Z. Naturforsch. A 31, 1638-1643 (1976).
+
+| | |
+| --- | --- |
+| Identifier | [10.1515/zna-1976-1227](https://doi.org/10.1515/zna-1976-1227) |
+| Status | shipped |
+| Verification | citation + claim |
+| Verified | 2026-11-13 |
+| Local copy | `bodenseh1976.pdf` (not checked) |
+| Used by | `src/openchem/chem/vsepr_geometry.py`, `tests/test_vsepr_geometry.py`, `docs/HYPERVALENT_COVERAGE_DESIGN.md` |
+
+Read in full, structure section included. **The paper does NOT determine ClF5's two bond lengths**: with two rotational
+constants and three parameters (r Cl-F apical, r Cl-F basal, the apical-basal angle) it states that "a complete structure
+determination is not possible", finds F(apical)-Cl-F(basal) = 86.5 (1.0) degrees, and says both distances are about
+1.65 A (the other root, about 145 degrees, is rejected as unreasonable; moving the angle by more than 1 degree separates
+the distances by more than 0.15 A). NIST CCCBDB lists the same 86.5 and a single 1.650 A, which is this and not an
+apical/basal pair. The shipped row therefore uses 1.65 A for BOTH classes and says so in its `method`.
+A real ORCA B3LYP/def2-SVP optimisation from that start gives apical 1.664, basal 1.709 A and 85.6 degrees
+(tests/test_hypervalent_orca.py). Also gives the same procedure for BrF5: 85 (1) degrees against 84.8 from electron
+diffraction.
+
+### adams1970 — Structure, Pseudorotation, and Vibrational Mode Coupling in IF7: An Electron Diffraction Study
+
+<a id="adams1970"></a>
+
+> W. J. Adams, H. B. Thompson & L. S. Bartell, 'Structure, Pseudorotation, and Vibrational Mode Coupling in IF7: An Electron Diffraction Study', J. Chem. Phys. 53, 4040-4046 (1970).
+
+| | |
+| --- | --- |
+| Identifier | [10.1063/1.1673876](https://doi.org/10.1063/1.1673876) |
+| Status | shipped |
+| Verification | citation + claim |
+| Verified | 2026-11-13 |
+| Local copy | `adams1970.pdf` (not checked) |
+| Used by | `src/openchem/chem/vsepr_geometry.py`, `tests/test_vsepr_geometry.py`, `docs/HYPERVALENT_COVERAGE_DESIGN.md` |
+
+Abstract and the structure statement read (identity + abstract; the radial-distribution analysis was not worked
+through). Free IF7 molecules are pentagonal bipyramids with axial bonds 1.786 (0.007) A shorter than equatorial bonds
+1.858 (0.004) A (esd), deformed from D5h on average by 7.5 degrees of ring puckering and 4.5 degrees of axial bend, with
+essentially free pseudorotation. The shipped geometry is the IDEAL D5h shape with these two lengths; the puckering and
+bend are averages over a vibrating molecule and are not placed.
+
+### whittle1971 — Microwave spectrum of bromine pentafluoride
+
+<a id="whittle1971"></a>
+
+> M. J. Whittle, R. H. Bradley & P. N. Brier, 'Microwave spectrum of bromine pentafluoride', Trans. Faraday Soc. 67, 2505 (1971).
+
+| | |
+| --- | --- |
+| Identifier | [10.1039/tf9716702505](https://doi.org/10.1039/tf9716702505) |
+| Status | reference only |
+| Verification | citation |
+| Verified | 2026-11-13 |
+| Local copy | `whittle1971.pdf` (not checked) |
+| Used by | `docs/HYPERVALENT_COVERAGE_DESIGN.md` |
+
+**Why it is reference only.** Read for whether it gives a structure: it does not. It reports rotational, centrifugal-distortion and quadrupole
+constants of BrF5 and confirms C4v symmetry from the nuclear-spin statistical weights. Robiette, Bradley and Brier
+(1971) combine its rotational constants with electron diffraction to get the geometry that ships, so this paper is the
+other half of that result and backs no number in this application on its own.
+
 ## Datasets
 
 ### bradley2014 — Compounds with known Abraham descriptors
@@ -8804,6 +8896,31 @@ the one rule every calculator's `CalculatorScope` follows.
 STRUCTURES ONLY. Each row is a named ion's graph and its parent, so Mode A
 workflow 2 and the catalog agree on identity. No pKa numbers. Not safety or
 acceptability. Hydrogen sulfate and sulfate are different rows.
+
+### nist_cccbdb_geometries — NIST Computational Chemistry Comparison and Benchmark Database (CCCBDB), NIST Standard Reference Database…
+
+<a id="nist_cccbdb_geometries"></a>
+
+> NIST Computational Chemistry Comparison and Benchmark Database (CCCBDB), NIST Standard Reference Database 101, experimental geometry pages, read 2026-11-13.
+
+| | |
+| --- | --- |
+| Identifier | <https://cccbdb.nist.gov/> |
+| Status | shipped |
+| Verification | citation + claim |
+| Verified | 2026-11-13 |
+| Used by | `src/openchem/chem/vsepr_geometry.py`, `tests/test_vsepr_geometry.py`, `docs/HYPERVALENT_COVERAGE_DESIGN.md` |
+
+The compilation behind the seven rows of `chem/vsepr_geometry.py` that are NOT from a held paper: ClF3 (Muller 2001,
+re), BrF3 (Magnuson 1957), XeF2 (Burger and Ma 1993, re), XeF4 (Burger, Ma, Breidung and Thiel 1996, r0), SF4 (Tolles
+and Gwinn 1962), SF6 (Kuchitsu 1998) and PF5 (Gurvich, Veyts and Alcock 1989). Each number was read from the page of
+that molecule's experimental geometry. The ORIGINAL papers are not held (only the 2001 ClF3 and the 1962 SF4 abstracts
+were seen), so a number here is checked against the compilation and not against the paper that measured it.
+
+Two CCCBDB entries are NOT usable as they stand and were not used: ClF5 (lists D3h, one length and 86.5 degrees; the
+original, now held, shows one length is an assumption) and IF5/IF7 (no coordinate data). Its XeF6 and XeOF4 pages were
+not served for the CAS numbers tried. CCCBDB's "axial"/"on axis" wording is not consistent between molecules, so the
+classes in the module are the VSEPR ones, not CCCBDB's labels.
 
 ## Legal texts
 
