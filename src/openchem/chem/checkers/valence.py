@@ -84,6 +84,50 @@ def _effective_valence(atom: Any, outer_electrons: int) -> int:
     return valence + charge
 
 
+def is_allowed_hypervalent(rule: dict[str, Any] | None, valence: int, ligands: Any) -> bool:
+    """Whether an atom over its usual valence is one the shipped table accepts.
+
+    The ONE statement of the rule (central valence permitted, within the maximum, and every ligand an
+    element that stabilises it), so the structure check and the engine's hypervalent parse cannot
+    drift apart.
+    """
+    if not rule:
+        return False
+    return (
+        valence in rule.get("permitted_valences", [])
+        and valence <= rule.get("maximum_valence", 0)
+        and set(ligands) <= set(rule.get("expanded_octet_requires_ligands", []))
+    )
+
+
+def accepted_hypervalent_atoms(mol: Any) -> list[int]:
+    """Indices of the atoms of `mol` that exceed RDKit's valence list but pass `hypervalent_rules()`.
+
+    Reads an UNSANITISED molecule (its property cache is refreshed non-strictly, as `_check_valence`
+    does). An atom RDKit would also refuse and the table does not accept is not listed, so a caller
+    can tell "RDKit refuses it and so does OpenChem" from "OpenChem accepts what RDKit refuses".
+    """
+    from rdkit import Chem
+
+    table = Chem.GetPeriodicTable()
+    rules = hypervalent_rules()
+    mol.UpdatePropertyCache(strict=False)
+    found: list[int] = []
+    for atom in mol.GetAtoms():
+        number = atom.GetAtomicNum()
+        if number == 0:
+            continue
+        allowed = list(table.GetValenceList(number))
+        if -1 in allowed:
+            continue
+        valence = _effective_valence(atom, table.GetNOuterElecs(number))
+        if valence > max(allowed) and is_allowed_hypervalent(
+            rules.get(atom.GetSymbol()), valence, {n.GetSymbol() for n in atom.GetNeighbors()}
+        ):
+            found.append(atom.GetIdx())
+    return found
+
+
 def _check_valence(context: CheckContext) -> list[StructureIssue]:
     from rdkit import Chem
 
@@ -122,11 +166,9 @@ def _check_valence(context: CheckContext) -> list[StructureIssue]:
         rule = rules.get(symbol)
 
         if valence > max(allowed):
-            permitted = rule.get("permitted_valences", []) if rule else []
             allowed_ligands = set(rule.get("expanded_octet_requires_ligands", [])) if rule else set()
-            maximum = rule.get("maximum_valence", 0) if rule else 0
 
-            if rule and valence in permitted and valence <= maximum and set(ligands) <= allowed_ligands:
+            if is_allowed_hypervalent(rule, valence, ligands):
                 issues.append(
                     StructureIssue(
                         checker_id="hypervalent_allowed",

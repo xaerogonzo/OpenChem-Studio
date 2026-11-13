@@ -174,6 +174,20 @@ class InvalidStructureError(ValueError):
     """Raised when a molblock/SMILES cannot be parsed into a valid RDKit Mol."""
 
 
+class UnsanitizableStructureError(InvalidStructureError):
+    """A structure OpenChem's own valence table ACCEPTS but RDKit will not sanitise (ClF3, BrF3, ClF5).
+
+    A subclass of `InvalidStructureError`, so every existing caller of the strict parse keeps exactly
+    its behaviour (a typed failure, never a number computed on a half-sanitised molecule). The ones
+    that know how to hold such a structure ask for it explicitly: `hypervalent_mol_from_molblock`.
+    `atom_indices` are the drawing atoms (molfile positions, from 0) that pass the table and fail RDKit.
+    """
+
+    def __init__(self, message: str, atom_indices: tuple[int, ...] = ()) -> None:
+        super().__init__(message)
+        self.atom_indices = atom_indices
+
+
 def _rejection_reason(molblock: str) -> str:
     """WHY RDKit would not read `molblock`, in its own words, for a message a person reads.
 
@@ -193,6 +207,21 @@ def _rejection_reason(molblock: str) -> str:
     except Exception as error:  # noqa: BLE001 - RDKit raises several sanitisation types
         return str(error).strip() or "RDKit could not sanitise it"
     return "RDKit could not read it"
+
+
+def _relaxed_sanitise(mol: Chem.Mol, hypervalent: list[int]) -> None:
+    """Sanitise `mol` in place, with the valence test waived ONLY on the accepted hypervalent atoms.
+
+    Every other atom must still pass RDKit's strict valence check (`UpdatePropertyCache(strict=True)`
+    raises), so one wrong atom beside a ClF3 is still refused.
+    """
+    for atom in mol.GetAtoms():
+        if atom.GetIdx() in hypervalent:
+            atom.SetNoImplicit(True)
+            atom.UpdatePropertyCache(strict=False)
+        else:
+            atom.UpdatePropertyCache(strict=True)
+    Chem.SanitizeMol(mol, Chem.SANITIZE_ALL ^ Chem.SANITIZE_PROPERTIES)
 
 
 class StructureEditError(ValueError):
@@ -271,8 +300,50 @@ class ChemistryEngine:
         # energy instead of failing loudly.
         mol = Chem.MolFromMolBlock(molblock, removeHs=False)
         if mol is None:
-            raise InvalidStructureError(f"Could not parse molblock: {_rejection_reason(molblock)}")
+            reason = _rejection_reason(molblock)
+            accepted = self._accepted_hypervalent_indices(molblock)
+            if accepted:
+                raise UnsanitizableStructureError(
+                    f"Could not parse molblock: {reason}. OpenChem's hypervalent table accepts this "
+                    "structure, but the chemistry toolkit cannot represent it, so it is not supported yet.",
+                    tuple(accepted),
+                )
+            raise InvalidStructureError(f"Could not parse molblock: {reason}")
         return mol
+
+    @staticmethod
+    def _accepted_hypervalent_indices(molblock: str) -> list[int]:
+        """Atoms of an unreadable molblock that the hypervalent table accepts, only when ALL of its problems are such."""
+        from openchem.chem.checkers.valence import accepted_hypervalent_atoms
+
+        mol = Chem.MolFromMolBlock(molblock, sanitize=False, removeHs=False)
+        if mol is None:
+            return []
+        accepted = accepted_hypervalent_atoms(mol)
+        if not accepted:
+            return []
+        try:
+            _relaxed_sanitise(mol, accepted)
+        except Exception:  # noqa: BLE001 - another atom is wrong too: that is a refusal, not a hypervalent case
+            return []
+        return accepted
+
+    def hypervalent_mol_from_molblock(self, molblock: str) -> Chem.Mol:
+        """The molecule of a molblock whose ONLY problem is hypervalent atoms the table accepts.
+
+        **OPT-IN, NEVER THE DEFAULT.** The returned Mol is not sanitised the way every other Mol here
+        is, and RDKit then fails (embedding, force fields) or, worse, returns a number that means
+        nothing (measured on ClF3: Gasteiger charges are NaN, Crippen logP 1.95 and TPSA 0.0 are
+        invented). Only code that knows that takes it: identity, the VSEPR geometry builder and the
+        3D conformer branch, and the ORCA input. A structure that parses normally is returned exactly
+        as `mol_from_molblock` returns it; one with any other problem raises `InvalidStructureError`.
+        """
+        try:
+            return self.mol_from_molblock(molblock)
+        except UnsanitizableStructureError as error:
+            mol = Chem.MolFromMolBlock(molblock, sanitize=False, removeHs=False)
+            _relaxed_sanitise(mol, list(error.atom_indices))
+            return mol
 
     def mol_to_molblock(self, mol: Chem.Mol) -> str:
         return Chem.MolToMolBlock(mol)
@@ -839,9 +910,23 @@ class ChemistryEngine:
         since only this module ever imports rdkit."""
         return Chem.GetFormalCharge(self.mol_from_model(model))
 
-    def canonicalize(self, model: MoleculeModel) -> MoleculeModel:
-        """Recompute canonical_smiles/inchi/inchikey from model.molblock, in place."""
-        mol = self.mol_from_model(model)
+    def canonicalize(self, model: MoleculeModel, *, allow_hypervalent: bool = False) -> MoleculeModel:
+        """Recompute canonical_smiles/inchi/inchikey from model.molblock, in place.
+
+        `allow_hypervalent` reads a structure the hypervalent table accepts and RDKit does not (see
+        `hypervalent_mol_from_molblock`); its identity must then survive being read back from the
+        molblock, or it is refused rather than given an identity that could name another structure.
+        """
+        if allow_hypervalent and model.molblock:
+            mol = self.hypervalent_mol_from_molblock(model.molblock)
+            smiles = Chem.MolToSmiles(mol)
+            reread = Chem.MolToSmiles(self.hypervalent_mol_from_molblock(Chem.MolToMolBlock(mol)))
+            if smiles != reread:
+                raise InvalidStructureError(
+                    f"The identity of this structure is not stable ({smiles!r} reads back as {reread!r})."
+                )
+        else:
+            mol = self.mol_from_model(model)
         model.canonical_smiles = Chem.MolToSmiles(mol)
         inchi = Chem.MolToInchi(mol)
         model.inchi = inchi or None
@@ -906,10 +991,21 @@ class ChemistryEngine:
         )
         return Chem.MolToMolBlock(mol), residual
 
-    def set_structure_from_molblock(self, model: MoleculeModel, molblock: str) -> MoleculeModel:
-        mol = self.mol_from_molblock(molblock)
+    def set_structure_from_molblock(
+        self, model: MoleculeModel, molblock: str, *, allow_hypervalent: bool = False
+    ) -> MoleculeModel:
+        """Make `molblock` the model's structure. Strict by default: a structure RDKit refuses raises.
+
+        `allow_hypervalent=True` also accepts the ones OpenChem's table accepts (ClF3, ...). Nothing
+        passes it yet: it is switched on where the editor applies a drawing only once every consumer
+        of the model refuses what it cannot compute, so that a held ClF3 never reaches a calculator
+        that would return a number for it.
+        """
+        mol = (
+            self.hypervalent_mol_from_molblock(molblock) if allow_hypervalent else self.mol_from_molblock(molblock)
+        )
         model.molblock = Chem.MolToMolBlock(mol)
-        return self.canonicalize(model)
+        return self.canonicalize(model, allow_hypervalent=allow_hypervalent)
 
     def edit_atom(self, molblock: str, atom_index: int, change: str, value: str = "") -> str:
         """`molblock` with ONE atom changed -- its element, its charge, or removed -- as a molblock.
