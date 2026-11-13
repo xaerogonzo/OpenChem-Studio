@@ -36,7 +36,7 @@ from openchem.chem.calculation_input import (
     canonical_conformer,
     input_fingerprint,
 )
-from openchem.chem.engine import ChemistryEngine
+from openchem.chem.engine import ChemistryEngine, UnsanitizableStructureError
 from openchem.chem.fukui import summary_lines
 from openchem.chem.isotopes import same_structure
 from openchem.chem.nmr_correlation import (
@@ -2031,7 +2031,7 @@ class QuantumChemistryPanel(QWidget):
         self._reset_empty_states()
         self._update_tab_status_indicators(run)
         self._display_mol = (
-            self._chemistry_engine.mol_from_molblock(run.input_molblock)
+            self._chemistry_engine.hypervalent_mol_from_molblock(run.input_molblock)
             if run.input_molblock
             else None
         )
@@ -2297,7 +2297,13 @@ class QuantumChemistryPanel(QWidget):
             self._status_label.setText("Enter a method/basis (e.g. 'B3LYP def2-SVP').")
             return
 
-        mol = self._chemistry_engine.mol_from_molblock(molecule.molblock)
+        try:
+            mol = self._chemistry_engine.mol_from_molblock(molecule.molblock)
+        except UnsanitizableStructureError:
+            self._status_label.setText(
+                "Tautomers are not available for this hypervalent structure (it is outside the method's scope)."
+            )
+            return
         policy = policy_for_mode(self._tautomer_full_check.isChecked())
         # The count of jobs, what it stands for and the words of the question are `chem.quantum_run_request.PreparedTautomers`, shared with an assistant's card. The generation call and the
         # threshold stay named here, which is where this panel's tests patch them.

@@ -11,6 +11,7 @@ from openchem.domain.execution_policy import ExecutionPolicy
 # Re-exported: every calculator module imports its refusal codes from here.
 from openchem.domain.refusal_kinds import (  # noqa: F401
     ELEMENT_OUTSIDE_PARAMETER_SET,
+    HYPERVALENT_UNSUPPORTED,
     INPUT_REQUIRED,
     METAL_CONTAINING_UNSUPPORTED,
     MULTICOMPONENT_UNSUPPORTED,

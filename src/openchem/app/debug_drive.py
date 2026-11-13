@@ -5272,6 +5272,59 @@ class _Driver(QObject):
         if step.get("press", True) and button.isEnabled():
             button.click()
 
+    def _do_canvas_edit(self, step: dict[str, Any]) -> None:
+        """`{"do": "canvas_edit", "star": {"centre": "Cl", "ligand": "F", "count": 3}, "expect": {...}}`
+        -- the canvas reports a drawing, through `MoleculeEditorWidget.apply_edited_molblock`, the very method
+        the editor calls once Ketcher has handed over a molfile.
+
+        `star` is one centre with `count` ligands round it, the shape of ClF3 or XeF4 (no SMILES route can
+        make these: RDKit refuses a chlorine with three bonds). `expect` may hold `"smiles_equals"` and
+        `"rejected": true|false` (whether the editor said the drawing was not applied). A mismatch is an
+        ERROR line, which `expect_clean` then fails the run on.
+        """
+        import math
+
+        window = self._window
+        editor = window._editor
+        molecule = window._session.project.find_molecule(window._property_panel._selected_molecule_uuid)
+        tag = str(step.get("tag", ""))
+        if molecule is None:
+            logger.error("OPENCHEM_DRIVE: canvas_edit %s -- no molecule selected", tag)
+            return
+        star = step.get("star") or {}
+        centre, ligand, count = str(star.get("centre", "")), str(star.get("ligand", "")), int(star.get("count", 0))
+        if not centre or not ligand or count < 1:
+            logger.error("OPENCHEM_DRIVE: canvas_edit %s needs star {centre, ligand, count}", tag)
+            return
+        atoms = [f"    0.0000    0.0000    0.0000 {centre:<3} 0  0  0  0  0  0  0  0  0  0  0  0"]
+        for i in range(count):
+            a = 2 * math.pi * i / count
+            atoms.append(f"{math.cos(a):10.4f}{math.sin(a):10.4f}    0.0000 {ligand:<3} 0  0  0  0  0  0  0  0  0  0  0  0")
+        bonds = [f"{1:3d}{i + 2:3d}  1  0" for i in range(count)]
+        molblock = (
+            f"\n  drive\n\n{count + 1:3d}{count:3d}  0  0  0  0  0  0  0  0999 V2000\n"
+            + "\n".join(atoms) + "\n" + "\n".join(bonds) + "\nM  END\n"
+        )
+        reasons: list[str] = []
+        editor.edit_rejected.connect(reasons.append)
+        try:
+            editor.apply_edited_molblock(molblock)
+        finally:
+            editor.edit_rejected.disconnect(reasons.append)
+        rejected = any(reasons)
+        logger.warning(
+            "OPENCHEM_DRIVE: canvas_edit %s | smiles=%s rejected=%s %s",
+            tag, molecule.canonical_smiles, rejected, next((r for r in reasons if r), ""),
+        )
+        expect = step.get("expect") or {}
+        if "smiles_equals" in expect and molecule.canonical_smiles != expect["smiles_equals"]:
+            logger.error(
+                "OPENCHEM_DRIVE: EXPECT canvas_edit %s FAILED -- smiles is %r, wanted %r",
+                tag, molecule.canonical_smiles, expect["smiles_equals"],
+            )
+        if "rejected" in expect and rejected != bool(expect["rejected"]):
+            logger.error("OPENCHEM_DRIVE: EXPECT canvas_edit %s FAILED -- rejected is %r", tag, rejected)
+
     def _do_conformers_provenance(self, step: dict[str, Any]) -> None:
         """Log how the selected molecule's conformer run ended, from the stored record.
 

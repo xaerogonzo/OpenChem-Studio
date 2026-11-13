@@ -8,6 +8,9 @@ from typing import Callable
 from rdkit import Chem
 from rdkit.Chem import AllChem, TorsionFingerprints, rdMolAlign, rdMolTransforms
 
+from openchem.chem.vsepr_geometry import Kind as VseprKind
+from openchem.chem.vsepr_geometry import build_vsepr_geometry
+from openchem.domain.conformer import VSEPR_TEMPLATE
 from openchem.plugins.interfaces import ConformerBatch, ConformerProvider
 
 logger = logging.getLogger("openchem.chemistry")
@@ -342,6 +345,8 @@ STOP_TIME = "time"
 #: `STOP_RULE_KEPT_SET`). Its own reason, not `STOP_PLATEAU`, because the two stop on different evidence and the record
 #: must say which one ended a run.
 STOP_KEPT_SET_STEADY = "kept_set_steady"
+#: The geometry came from a deterministic template (`chem.vsepr_geometry`), so there was nothing to search.
+STOP_TEMPLATE = "template"
 #: The user stopped it from the Jobs panel.
 STOP_CANCELLED = "cancelled"
 #: The user pressed "Finish now": the search ended where it was and what it had found IS the result. Unlike
@@ -1049,6 +1054,59 @@ class SearchOutcome:
     #: rather than derived, because the threshold it is compared against
     #: is a setting and a stored record must not depend on today's value.
     batches_without_new_candidates: int = 0
+    #: Geometries generated WITHOUT any optimisation, because none exists for the structure. They are in `pool`
+    #: with an unknown energy and are NOT counted in `converged`, which keeps its meaning (reached a minimum).
+    unoptimised: int = 0
+    #: What made them (`ConformerModel.method`), "" for an ordinary search; and a sentence for the status line.
+    geometry_method: str = ""
+    geometry_note: str = ""
+
+
+class GeometryUnsupportedError(Exception):
+    """A hypervalent structure the VSEPR builder recognises but has no measured geometry for.
+
+    Raised INSTEAD of embedding: distance geometry is known to give a wrong shape for these (XeF2 bent,
+    SF6 with 42 degree angles), so a failure that says why is the honest outcome. `ConformerService`
+    reports its message as the job's failure.
+    """
+
+
+def _template_search(mol: Chem.Mol) -> SearchOutcome | None:
+    """The one deterministic geometry of a supported hypervalent molecule, or None for an ordinary one.
+
+    Raises `GeometryUnsupportedError` for a recognised molecule with no reference geometry.
+    """
+    outcome = build_vsepr_geometry(mol)
+    if outcome.kind is VseprKind.NOT_APPLICABLE:
+        return None
+    if outcome.kind is VseprKind.UNSUPPORTED:
+        raise GeometryUnsupportedError(
+            f"No 3D geometry can be built for this structure: {outcome.reason}. "
+            "Embedding is not used for it because it gives a wrong shape."
+        )
+    geometry = outcome.geometry
+    built = Chem.Mol(mol)
+    built.RemoveAllConformers()
+    conformer = Chem.Conformer(built.GetNumAtoms())
+    for index, (x, y, z) in enumerate(geometry.coordinates):
+        conformer.SetAtomPosition(index, (x, y, z))
+    conformer.Set3D(True)
+    built.AddConformer(conformer, assignId=True)
+    built.SetProp(ORIGIN_PROPERTY, f"vsepr template {geometry.classification}")
+    return SearchOutcome(
+        pool=[(built, None)],
+        attempted=1,
+        embedded=1,
+        converged=0,
+        batches=1,
+        stop_reason=STOP_TEMPLATE,
+        unoptimised=1,
+        geometry_method=VSEPR_TEMPLATE,
+        geometry_note=(
+            f"idealised {geometry.shape} VSEPR geometry ({geometry.classification}) from published bond data, "
+            "not optimised"
+        ),
+    )
 
 
 def search_conformers(
@@ -1088,6 +1146,14 @@ def search_conformers(
     through unchanged would give each batch the whole limit. The remaining
     time goes down to the provider so a long batch still stops inside it.
     """
+    if isinstance(provider, RDKitConformerProvider):
+        # A hypervalent molecule with a measured geometry is BUILT, not searched: embedding has no idea of lone
+        # pairs, and for ClF3 / BrF3 it cannot run at all. The rest of the pipeline sees an ordinary pool.
+        templated = _template_search(mol)
+        if templated is not None:
+            if on_progress is not None:
+                on_progress(1, 1)
+            return templated
     deadline = (
         time.monotonic() + options.time_limit_seconds
         if options.time_limit_seconds

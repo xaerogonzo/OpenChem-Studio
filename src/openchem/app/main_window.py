@@ -700,6 +700,7 @@ class MainWindow(QMainWindow):
         self._editor.geometry_requested.connect(self._on_geometry_requested)
         self._editor.electron_status.connect(self._on_electron_status)
         self._editor.atom_number_status.connect(self._on_atom_number_status)
+        self._editor.edit_rejected.connect(self._on_edit_rejected)
         # The way back from the 3D viewer -- see `_adopt_conformer`.
         self._viewer3d.conformer_adopted.connect(self._adopt_conformer)
         # The way to ORCA from the conformers -- see `_on_orca_optimize_requested`.
@@ -3499,6 +3500,19 @@ class MainWindow(QMainWindow):
         )
         dialog.exec()
 
+    def _on_edit_rejected(self, message: str) -> None:
+        """Say that the drawing on the canvas is not the molecule's structure, and keep saying it.
+
+        **NO TIMEOUT, on purpose:** a reason that fades leaves a canvas and a model that disagree with
+        nothing to explain it. It is replaced by the next message and taken down (an empty string)
+        when a drawing is applied again. Also logged, so it is in the console after the bar moves on.
+        """
+        if message:
+            logger.warning("Canvas drawing not applied: %s", message)
+            self.statusBar().showMessage(message)
+        else:
+            self.statusBar().clearMessage()
+
     def _on_electron_status(self, message: str) -> None:
         """Say what the dots cannot.
 
@@ -6021,7 +6035,7 @@ class MainWindow(QMainWindow):
             display_name=project.unique_molecule_name(f"{molecule.display_name} copy")
         )
         if molecule.molblock:
-            self._services.chemistry_engine.set_structure_from_molblock(copy, molecule.molblock)
+            self._services.chemistry_engine.set_structure_from_molblock(copy, molecule.molblock, allow_hypervalent=True)
         self.add_molecule(copy)
         self.statusBar().showMessage(f"Duplicated as '{copy.display_name}'.", 3000)
 

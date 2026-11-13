@@ -122,6 +122,11 @@ class MoleculeEditorWidget(QWidget):
     #: where "0 of 24 atoms numbered" and "numbering failed" are different
     #: facts that both draw nothing.
     atom_number_status = Signal(str)
+    #: The canvas drawing was NOT made the molecule's structure, and why; "" when the next drawing
+    #: IS applied, so whoever showed the reason can take it down. Before this the rejection was a
+    #: bare `return`: a drawn ClF3 (RDKit allows chlorine one bond) left the model on the PREVIOUS
+    #: molecule while the canvas showed the new one, and everything computed described the wrong one.
+    edit_rejected = Signal(str)
 
     def __init__(
         self,
@@ -142,6 +147,8 @@ class MoleculeEditorWidget(QWidget):
         #: Set while this widget is pushing its own edit; see
         #: `_on_molecule_changed`.
         self._applying_own_edit = False
+        #: The last canvas drawing was refused (see `edit_rejected`), so a reason may be on screen.
+        self._edit_rejected = False
                 #: Bumped on every canvas load so a `getMolfile` that was already
         #: in flight cannot land as a new undo command after Undo. Live
         #: drive of Template Library: Edit > Undo restored benzene, then a
@@ -385,9 +392,21 @@ class MoleculeEditorWidget(QWidget):
             return
         try:
             incoming = MoleculeModel(display_name="canvas")
-            self._engine.set_structure_from_molblock(incoming, molblock)
-        except (InvalidStructureError, ValueError):
+            self._engine.set_structure_from_molblock(incoming, molblock, allow_hypervalent=True)
+        except (InvalidStructureError, ValueError) as error:
+            # NOTHING ELSE HAPPENS: no command (so no undo step and Redo survives), no change to the
+            # model, its identity, its conformers or its results. The person is only told, because the
+            # canvas still shows a drawing the molecule does not have.
+            self._edit_rejected = True
+            self.edit_rejected.emit(
+                f"This drawing was not applied, so the molecule is unchanged ({error}). "
+                "Correct the drawing, or undo it, to bring the canvas back in step."
+            )
             return
+        if self._edit_rejected:
+            # A readable drawing again (an undo, or the fix): take the reason down.
+            self._edit_rejected = False
+            self.edit_rejected.emit("")
         if self._undo_stack.canRedo():
             # Echo of the restored drawing, or Ketcher still holding the
             # undone one (live drive: ~3 s after Undo, not 400 ms). Either

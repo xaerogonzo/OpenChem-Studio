@@ -24,7 +24,7 @@ from openchem.chem.descriptor_providers import (
 from openchem.chem.engine import ChemistryEngine
 from openchem.domain.calculator import DRAWING, GEOMETRY, CalculationRefusal, CalculationRequest
 from openchem.domain.structure_coverage import Coverage, CoverageKind
-from openchem.domain.refusal_kinds import MissingInput, RefusalKind, refusal_parameters
+from openchem.domain.refusal_kinds import HYPERVALENT_UNSUPPORTED, MissingInput, RefusalKind, refusal_parameters
 from openchem.domain.input_snapshot import InputSnapshot, snapshot_model
 from openchem.domain.common import CacheState, Provenance
 from openchem.domain.descriptor import DescriptorValue
@@ -200,6 +200,33 @@ class _DescriptorComputeTask(QRunnable):
             resolved = resolve_calculation_input(self._engine, self._model, self._calculation_input)
             self._fingerprint = resolved.fingerprint
             mol = resolved.mol
+        except CalculationRefusal as refusal:
+            # A held hypervalent structure (`chem.calculation_input`): a stated limit, not a fault, so no
+            # traceback. The few descriptors that are plain arithmetic on the atoms are still computed
+            # (`HYPERVALENT_SAFE_DESCRIPTORS`); every other one reports the refusal.
+            logger.info("Descriptors declined: %s", refusal.code)
+            self._part_failed = True
+            compute_held = getattr(self._provider, "compute_hypervalent", None)
+            if refusal.code == HYPERVALENT_UNSUPPORTED and self._calculation_input == DRAWING and compute_held:
+                try:
+                    held = self._engine.mol_from_model(self._model, allow_hypervalent=True)
+                    values = compute_held(held, self._model.uuid, refusal)
+                except Exception:  # noqa: BLE001 - fall back to refusing them all, as before
+                    logger.exception("Held-structure descriptors failed")
+                else:
+                    for value in values:
+                        if self._only is None or value.descriptor_id in self._only:
+                            self._show(value.descriptor_id, value)
+                            self._record(value)
+                    self._finish_part()
+                    return
+            for descriptor_id in self._ids():
+                self._publish(
+                    descriptor_id, CacheState.FAILED, error=refusal.detail,
+                    category=categories.get(descriptor_id, ""), record=True,
+                )
+            self._finish_part()
+            return
         except Exception as exc:  # noqa: BLE001 - a bad provider must not kill the pool
             # No molecule, so nothing below has anything to run on.
             self._fail_descriptors(exc, categories)

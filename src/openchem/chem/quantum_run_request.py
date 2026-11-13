@@ -549,7 +549,9 @@ def prepare_run(engine: ChemistryEngine, molecule: MoleculeModel | None, choice:
     # list happens to be energy-sorted.
     chosen = chosen_conformer(molecule, choice)
     target = chosen if chosen is not None else canonical_conformer(molecule)
-    resolved = resolve_conformer_input(engine, molecule, target)
+    # ORCA needs atoms, charge and coordinates and nothing of RDKit's valence model, so a held hypervalent
+    # geometry (ClF3, BrF3) is a usable input here although every descriptor refuses it.
+    resolved = resolve_conformer_input(engine, molecule, target, allow_hypervalent=True)
     if resolved.used != GEOMETRY:
         # The resolver fell back to the DRAWING (the conformer would not parse, or is flat): refused, never run.
         return RunRefusal(NO_USABLE_CONFORMER)

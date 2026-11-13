@@ -159,7 +159,7 @@ class EditStructureCommand(OpenChemCommand):
         return self._new_smiles
 
     def redo(self) -> None:
-        self._engine.set_structure_from_molblock(self._molecule, self._new_molblock)
+        self._engine.set_structure_from_molblock(self._molecule, self._new_molblock, allow_hypervalent=True)
         self._new_smiles = self._molecule.canonical_smiles
         self._invalidate_stale_conformers()
         drawing, self._during_edit = self._during_edit, False
@@ -167,7 +167,7 @@ class EditStructureCommand(OpenChemCommand):
 
     def undo(self) -> None:
         if self._old_molblock is not None:
-            self._engine.set_structure_from_molblock(self._molecule, self._old_molblock)
+            self._engine.set_structure_from_molblock(self._molecule, self._old_molblock, allow_hypervalent=True)
         else:
             self._molecule.molblock = None
             self._molecule.canonical_smiles = None

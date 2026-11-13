@@ -552,3 +552,99 @@ def test_get_molblock_does_not_reach_into_the_backend_field_from_callers(qapp):
     got = []
     widget.get_molblock(got.append)
     assert got == ["canvas"]
+
+
+# --- a drawing the molecule cannot hold must be SAID, not dropped ------------
+
+#: Carbon with five bonds (CF5): not a molecule, and no hypervalent rule covers carbon, so the editor must refuse it.
+#: ClF3, which this used to hold, is ACCEPTED now (see `test_a_hypervalent_drawing_is_accepted`).
+_CF5_MOLBLOCK = """
+  Ketcher
+
+  6  5  0  0  0  0  0  0  0  0999 V2000
+    0.0000    0.0000    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0
+    1.0000    0.0000    0.0000 F   0  0  0  0  0  0  0  0  0  0  0  0
+    0.3090    0.9511    0.0000 F   0  0  0  0  0  0  0  0  0  0  0  0
+   -0.8090    0.5878    0.0000 F   0  0  0  0  0  0  0  0  0  0  0  0
+   -0.8090   -0.5878    0.0000 F   0  0  0  0  0  0  0  0  0  0  0  0
+    0.3090   -0.9511    0.0000 F   0  0  0  0  0  0  0  0  0  0  0  0
+  1  2  1  0
+  1  3  1  0
+  1  4  1  0
+  1  5  1  0
+  1  6  1  0
+M  END
+"""
+
+
+def _widget_on(qapp, smiles):
+    engine, widget, backend = _make_widget()
+    molecule = MoleculeModel(display_name="Test")
+    engine.set_structure_from_smiles(molecule, smiles)
+    widget.set_molecule(molecule)
+    return engine, widget, backend, molecule
+
+
+def test_a_rejected_drawing_is_reported_and_changes_nothing(qapp):
+    """THE REPORTED BUG: the old structure stayed on screen after a refused drawing, because the refusal was a bare return.
+
+    The reason carries RDKit's own words (the atom and its valence), the molecule keeps its structure
+    and identity, and no undo step is made.
+    """
+    _, widget, backend, molecule = _widget_on(qapp, "FCl")
+    before = (molecule.molblock, molecule.canonical_smiles, molecule.inchikey)
+    depth = widget._undo_stack.count()
+    reasons: list[str] = []
+    widget.edit_rejected.connect(reasons.append)
+
+    _edit_the_canvas(widget, backend, _CF5_MOLBLOCK)
+
+    assert len(reasons) == 1
+    assert "not applied" in reasons[0] and "unchanged" in reasons[0]
+    assert "C" in reasons[0] and "valence" in reasons[0]
+    assert (molecule.molblock, molecule.canonical_smiles, molecule.inchikey) == before
+    assert widget._undo_stack.count() == depth
+
+
+def test_a_rejected_drawing_keeps_redo(qapp):
+    """An undone step must survive a refused drawing: pushing a command (or reloading) would discard it."""
+    engine, widget, backend, molecule = _widget_on(qapp, "CO")
+    _external_edit(widget, engine, molecule, "CCO")
+    widget._undo_stack.undo()
+    assert widget._undo_stack.canRedo()
+    index = widget._undo_stack.index()
+
+    _edit_the_canvas(widget, backend, _CF5_MOLBLOCK)
+
+    assert widget._undo_stack.canRedo()
+    assert widget._undo_stack.index() == index
+
+
+def test_the_reason_is_taken_down_by_the_next_applied_drawing(qapp):
+    """`edit_rejected("")` is how the window clears the persistent message; a valid edit sends it once."""
+    _, widget, backend, molecule = _widget_on(qapp, "CO")
+    reasons: list[str] = []
+    widget.edit_rejected.connect(reasons.append)
+
+    _edit_the_canvas(widget, backend, _CF5_MOLBLOCK)
+    _edit_the_canvas(widget, backend, _molblock_for("CCO"))
+
+    assert reasons[0] and reasons[1:] == [""]
+    assert molecule.canonical_smiles == "CCO"
+    _edit_the_canvas(widget, backend, _molblock_for("CCCO"))
+    assert reasons[1:] == [""], "a second valid edit must not repeat the clear"
+
+
+def test_a_hypervalent_drawing_is_accepted(qapp):
+    """ClF3 was the drawing that started this: the molecule must now BE ClF3, not stay on the previous one."""
+    from tests.test_chem_engine import _hypervalent_molblock
+
+    _, widget, backend, molecule = _widget_on(qapp, "FCl")
+    reasons: list[str] = []
+    widget.edit_rejected.connect(reasons.append)
+
+    _edit_the_canvas(widget, backend, _hypervalent_molblock("Cl", "F", 3))
+
+    assert reasons == []
+    assert molecule.canonical_smiles == "FCl(F)F"
+    assert molecule.inchi == "InChI=1S/ClF3/c2-1(3)4"
