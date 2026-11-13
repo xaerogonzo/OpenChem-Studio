@@ -95,6 +95,17 @@ and "a complete structure determination is not possible", so the shipped row use
 assumption. A real ORCA B3LYP/def2-SVP optimisation from that start gives apical 1.664, basal 1.709 A, 85.6 degrees. ORCA also keeps BrF5 (84.9 to
 85.0 degrees against 84.8), IF5 and IF7 in shape. Still unsupported: IF3 (no structure found), XeF6 (not one geometry), the oxyfluorides and ions.
 
+**Second pass (2026-11-13), from five more papers.** Added AsF5 (Clippard and Bartell 1970: rg axial 1.711, equatorial 1.656 A), SeF4
+(Bowater, Brown and Burden 1968: 1.7713 and 1.6821 A, 169.20 and 100.55 degrees), PCl5 (NIST CCCBDB, Gurvich: 2.124 and 2.020 A, primary paper not held)
+and, as the first CHARGED cases, ClF4- (Scheibe et al. 2020: K salt 1.7982 A, square planar, a crystal) and XeF5- (Christe et al. 1991: mean
+2.012 A, planar regular pentagon, a crystal). Charged centres needed three changes: the builder counts lone pairs from the centre's outer
+shell less its formal charge and keys a reference by charge; the acceptance test became "RDKit actually refuses this atom and the table allows it"
+(the old comparison with RDKit's valence list never flagged XeF5-, which sits inside xenon's list, so a drawn XeF5- was rejected); and arsenic
+and selenium joined `hypervalent_rules.json` because a paper was read for each. A real ORCA optimisation from each start keeps the shape: SeF4 100.0
+and 170.2 degrees, both anions D4h and D5h. **XeOF4** (Martins and Wilson 1964: Xe-O 1.70, Xe-F 1.95 A, 91 degrees, preliminary and uncertain to 0.05 A) is
+read and recorded and not shipped, because it has two kinds of ligand and a Xe=O bond, which the builder does not handle; so are SF5Cl and SOF4. That
+is the next structural step (a per-ligand-class reference and oxo ligands), not a data one.
+
 **WP7. The regulatory screen on a held structure stays refused**, with a test that a held structure never yields "no matches" (it
 did in the #598 audit, a silent false negative for a screen). Not a change; a guard on the decision of #598.
 

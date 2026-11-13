@@ -201,6 +201,31 @@ the ions (ClF4-, XeF5-) have not been searched beyond the CCCBDB attempt above. 
 each new shape from its VSEPR start (`tests/test_hypervalent_orca.py`, `benchmarks/hypervalent/`) keeps the shape; for ClF5
 it puts the apical bond 0.045 A shorter than the basal ones and the angle at 85.6 deg, against 86.5 +/- 1.0 measured.
 
+## More hypervalent geometries: the second literature pass (2026-11-13)
+
+Follows the section above. The papers were fetched after a search; the section records what each gave, and, as before,
+what the searches did NOT find so nobody repeats them. DOIs for the papers that ship numbers are in the registry.
+
+| file or page | what it is | read for | depth | outcome | registry key |
+|---|---|---|---|---|---|
+| `clippard1970.pdf` | AsF3 and AsF5 by gas electron diffraction (Inorg. Chem. 9) | AsF5 axial and equatorial lengths | abstract + parameter table | **used**: rg axial 1.711 (0.005), equatorial 1.656 (0.004) A, trigonal bipyramid; agrees with NIST CCCBDB, which cites it | `clippard1970` |
+| `bowater1968.pdf` | SeF4 microwave spectrum, dipole moment and structure (J. Mol. Spectrosc. 28) | SeF4 lengths and angles | abstract + results table | **used**: equatorial 1.6821, axial 1.7713 A, 100.55 and 169.20 degrees; same seesaw form as SF4 | `bowater1968` |
+| `martins1964.pdf` | XeOF4 microwave spectrum (J. Chem. Phys. 41) | XeOF4 lengths and angle | full (a two-page Letter) | **not shipped**: Xe-O 1.70 (0.05), Xe-F 1.95 (0.05) A, O-Xe-F 91 (2) degrees, and the authors call it preliminary (the Xe atom is 0.1 A from the centre of mass). Held for when the builder handles two kinds of ligand and a Xe=O bond | `martins1964` |
+| `christe1991.pdf` | XeF5- anion, first pentagonal planar AX5 species (J. Am. Chem. Soc. 113) | XeF5- geometry | abstract + crystal-structure table | **used**: five Xe-F 1.979 to 2.034 A, mean 2.012 (0.002); mean F-Xe-F 72.0 (0.4); planar D5h. A crystal structure | `christe1991` |
+| `scheibe2020.pdf` | Tetrafluoridochlorates(III) A[ClF4] (Eur. J. Inorg. Chem. 2020) | ClF4- geometry | the structure passage | **used**: K[ClF4] Cl-F 1.7982 (0.0006) A, 89.79 and 90.21 degrees; Rb 1.7930, Cs 1.792. **The held copy is the Accepted Article**, not the version of record. Other [ClF4]- salts span 1.73 to 1.87 A, so the value depends on the counter-ion | `scheibe2020` |
+| NIST CCCBDB, PCl5 | compilation | PCl5 axial and equatorial lengths | page | used with its limit: axial 2.124, equatorial 2.020 A (Gurvich 1989); the primary electron-diffraction paper is not held, and its identity was not searched | `nist_cccbdb_geometries` |
+| NIST CCCBDB, SF5Cl | compilation | a mixed-ligand case | page | not used: C4v, S-Cl 2.030, S-F 1.576 A, F-S-F 88.4 (Landolt-Bornstein); needs per-ligand lengths | none |
+| NIST CCCBDB, SeF6 and TeF6 | compilation | octahedral lengths | page | SeF6 lists the point group and no values; the TeF6 page defaulted to another molecule ("Molecule problem"). The classic source is Brockway and Pauling 1933 (not searched further) | none |
+| web search: IF3 | unstable (decomposes above -28 C) | an experimental structure | results only | **none exists in what was found**; the only I-F lengths seen were on unsourced pages. IF3 stays unsupported | none |
+| web search: BrF4- and IF4- | square planar anions | crystal structures | results only | **nothing found** beyond ClF4-; Christe 2001 covers the cations (ClF4+, BrF4+, IF4+) with fluorine bridging | none |
+| web search: SOF4 | thionyl tetrafluoride | a structure | results only | a 1982 J. Phys. Chem. reanalysis exists ("resolution of the multiple model problem"); its DOI could not be confirmed (Crossref rate-limited) and the numbers seen were from encyclopedia pages. Has an S=O bond, which the builder does not handle | none |
+| web search: XeF6 | distorted octahedron | one geometry | results only | unchanged: not one geometry | none |
+
+**What ORCA says about the new shapes** (B3LYP/def2-SVP; def2-SVPD and charge -1 for the anions), from the VSEPR start:
+SeF4 100.0 and 170.2 degrees (measured 100.55 and 169.20); AsF5 and PCl5 stay trigonal bipyramids with axial bonds 0.02 and 0.09 A
+longer than equatorial; ClF4- stays D4h (Cl-F 1.853, longer than the crystal's 1.798, as expected for an isolated anion);
+XeF5- stays a planar regular pentagon (Xe-F 2.060 against 2.012 in the crystal).
+
 ## How to use this
 
 Before searching for a reference for a tautomer system, look here. A paper listed as "not an energy

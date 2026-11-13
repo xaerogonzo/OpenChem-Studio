@@ -9920,7 +9920,8 @@ used_by = [
 verification = "citation_and_claim"
 verified_date = 2026-11-13
 note = """
-The compilation behind the seven rows of `chem/vsepr_geometry.py` that are NOT from a held paper: ClF3 (Muller 2001,
+The compilation behind the rows of `chem/vsepr_geometry.py` that are NOT from a held paper: PCl5 (Gurvich 1989; axial 2.124,
+equatorial 2.020 A; added with the second pass) and, from the first pass, ClF3 (Muller 2001,
 re), BrF3 (Magnuson 1957), XeF2 (Burger and Ma 1993, re), XeF4 (Burger, Ma, Breidung and Thiel 1996, r0), SF4 (Tolles
 and Gwinn 1962), SF6 (Kuchitsu 1998) and PF5 (Gurvich, Veyts and Alcock 1989). Each number was read from the page of
 that molecule's experimental geometry. The ORIGINAL papers are not held (only the 2001 ClF3 and the 1962 SF4 abstracts
@@ -9930,4 +9931,116 @@ Two CCCBDB entries are NOT usable as they stand and were not used: ClF5 (lists D
 original, now held, shows one length is an assumption) and IF5/IF7 (no coordinate data). Its XeF6 and XeOF4 pages were
 not served for the CAS numbers tried. CCCBDB's "axial"/"on axis" wording is not consistent between molecules, so the
 classes in the module are the VSEPR ones, not CCCBDB's labels.
+"""
+
+
+[[source]]
+key = "clippard1970"
+kind = "literature"
+citation = "F. B. Clippard Jr. & L. S. Bartell, 'Molecular Structures of Arsenic Trifluoride and Arsenic Pentafluoride as Determined by Electron Diffraction', Inorg. Chem. 9, 805-811 (1970)."
+identifier_type = "doi"
+identifier = "10.1021/ic50086a022"
+status = "shipped"
+used_by = [
+    "src/openchem/chem/vsepr_geometry.py",
+    "tests/test_vsepr_geometry.py",
+    "docs/HYPERVALENT_COVERAGE_DESIGN.md",
+]
+local = "clippard1970.pdf"
+verification = "citation_and_claim"
+verified_date = 2026-11-13
+note = """
+Abstract and the parameter table read. AsF5 is a trigonal bipyramid with axial bonds 0.055 (0.010) A longer than
+equatorial: rg(As-F axial) 1.711 (0.005), rg(As-F equatorial) 1.656 (0.004), mean 1.678 (0.002) A. NIST CCCBDB lists the
+same two numbers and cites this paper, so the compilation and the source agree. Also gives AsF3 (1.706 A, F-As-F 96.2
+degrees), which is not hypervalent and not used.
+"""
+
+[[source]]
+key = "bowater1968"
+kind = "literature"
+citation = "I. C. Bowater, R. D. Brown & F. R. Burden, 'The Microwave Spectrum, Dipole Moment, and Structure Analysis of Selenium Tetrafluoride', J. Mol. Spectrosc. 28, 454-460 (1968)."
+identifier_type = "doi"
+identifier = "10.1016/0022-2852(68)90178-1"
+status = "shipped"
+used_by = [
+    "src/openchem/chem/vsepr_geometry.py",
+    "tests/test_vsepr_geometry.py",
+    "docs/HYPERVALENT_COVERAGE_DESIGN.md",
+]
+local = "bowater1968.pdf"
+verification = "citation_and_claim"
+verified_date = 2026-11-13
+note = """
+Abstract and the results table read. From the rotational constants of two isotopologues: r(Se-F equatorial) 1.6821,
+r(Se-F axial) 1.7713 A, F(eq)-Se-F(eq) 100.55 and F(ax)-Se-F(ax) 169.20 degrees, dipole moment 1.779 D. The same
+seesaw form as SF4 (the paper compares them). NIST CCCBDB lists the same numbers and cites this paper.
+"""
+
+[[source]]
+key = "martins1964"
+kind = "literature"
+citation = "J. Martins & E. B. Wilson Jr., 'Microwave Spectrum of Xenon Oxytetrafluoride', J. Chem. Phys. 41, 570-571 (1964)."
+identifier_type = "doi"
+identifier = "10.1063/1.1725910"
+status = "reference_only"
+used_by = ["docs/HYPERVALENT_COVERAGE_DESIGN.md"]
+local = "martins1964.pdf"
+verification = "citation"
+verified_date = 2026-11-13
+reason = """
+Read in full (a two-page Letter). XeOF4 is a C4v square pyramid: r(Xe-O) 1.70 (0.05), r(Xe-F) 1.95 (0.05) A and
+O-Xe-F 91 (2) degrees, from the rotational constants of five xenon isotopologues. **The authors call it preliminary**:
+the xenon atom lies only 0.1 (0.03) A from the centre of mass, so its position and everything else carry large
+uncertainties, and "more precise measurements are being undertaken". Nothing ships from it yet because XeOF4 has two
+kinds of ligand and a Xe=O bond, which `chem/vsepr_geometry.py` does not handle; the numbers are kept here so the next
+session does not look them up again.
+"""
+
+[[source]]
+key = "christe1991"
+kind = "literature"
+citation = "K. O. Christe, E. C. Curtis, D. A. Dixon, H. P. Mercier, J. C. P. Sanders & G. J. Schrobilgen, 'The Pentafluoroxenate(IV) Anion, XeF5-: The First Example of a Pentagonal Planar AX5 Species', J. Am. Chem. Soc. 113, 3351-3361 (1991)."
+identifier_type = "doi"
+identifier = "10.1021/ja00009a021"
+status = "shipped"
+used_by = [
+    "src/openchem/chem/vsepr_geometry.py",
+    "tests/test_vsepr_geometry.py",
+    "docs/HYPERVALENT_COVERAGE_DESIGN.md",
+]
+local = "christe1991.pdf"
+verification = "citation_and_claim"
+verified_date = 2026-11-13
+note = """
+Abstract and the crystal-structure table read (identity + abstract + structural data; the vibrational analysis and the
+computations were not worked through). In [N(CH3)4][XeF5] (-86 C) the five Xe-F distances are 1.979, 2.001, 2.030, 2.018
+and 2.034 A (esd 0.002), mean 2.012 (0.002), and the F-Xe-F angles 71.5 to 72.3, mean 72.0 (0.4) degrees: a planar
+pentagon, D5h, the first AX5E2 species with all six atoms coplanar. The paper compares the mean with XeF4 (1.953 in
+the crystal) and IF7 (equatorial 1.858). A CRYSTAL structure: the anion is in a lattice, and its distances depend on the
+counter-ion.
+"""
+
+[[source]]
+key = "scheibe2020"
+kind = "literature"
+citation = "B. Scheibe, S. I. Ivlev, A. J. Karttunen & F. Kraus, 'Synthesis and Characterization of the Tetrafluoridochlorates(III) A[ClF4] (A = K, Rb, Cs)', Eur. J. Inorg. Chem. 2020, 1319-1324."
+identifier_type = "doi"
+identifier = "10.1002/ejic.202000106"
+status = "shipped"
+used_by = [
+    "src/openchem/chem/vsepr_geometry.py",
+    "tests/test_vsepr_geometry.py",
+    "docs/HYPERVALENT_COVERAGE_DESIGN.md",
+]
+local = "scheibe2020.pdf"
+verification = "citation_and_claim"
+verified_date = 2026-11-13
+note = """
+**The copy held is the Accepted Article** (a peer-reviewed manuscript the journal states may differ from the version of
+record), recorded rather than glossed, as for other pre-publication copies in this registry. Read for the structure of
+the anion: in K[ClF4] it is almost square but planar, Cl-F 1.7982 (0.0006) A and F-Cl-F 89.79 (0.04) and 90.21 (0.04)
+degrees; the Rb and Cs salts give 1.7930 (0.0009) and 1.792 (0.004) A. The paper cites other [ClF4]- salts spanning
+1.73 to 1.87 A (NO[ClF4]: 1.727 and 1.874 A), so the value depends on the counter-ion. A CRYSTAL structure, not a
+gas-phase one.
 """

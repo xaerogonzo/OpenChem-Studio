@@ -381,7 +381,7 @@ def test_a_refused_molblock_says_which_atom_and_why():
 # --- hypervalent structures OpenChem accepts and RDKit refuses (Phase 2) ---------------------------
 
 
-def _hypervalent_molblock(centre: str, ligand: str, count: int) -> str:
+def _hypervalent_molblock(centre: str, ligand: str, count: int, charge: int = 0) -> str:
     """A star molecule `centre`(`ligand`)n as the canvas would write it."""
     import math
 
@@ -393,7 +393,8 @@ def _hypervalent_molblock(centre: str, ligand: str, count: int) -> str:
         )
     bonds = [f"{1:3d}{i + 2:3d}  1  0" for i in range(count)]
     header = f"\n  test\n\n{count + 1:3d}{count:3d}  0  0  0  0  0  0  0  0999 V2000\n"
-    return header + "\n".join(atoms) + "\n" + "\n".join(bonds) + "\nM  END\n"
+    charge_line = f"M  CHG  1   1 {charge:3d}\n" if charge else ""
+    return header + "\n".join(atoms) + "\n" + "\n".join(bonds) + "\n" + charge_line + "M  END\n"
 
 
 @pytest.mark.parametrize(("centre", "ligand", "count"), [("Cl", "F", 3), ("Br", "F", 3), ("Cl", "F", 5)])
@@ -456,3 +457,36 @@ def test_an_ordinary_structure_goes_through_the_opt_in_path_unchanged():
     strict = engine.mol_from_molblock(molecule.molblock)
     opt_in = engine.hypervalent_mol_from_molblock(molecule.molblock)
     assert Chem.MolToSmiles(strict) == Chem.MolToSmiles(opt_in)
+
+
+@pytest.mark.parametrize(
+    ("centre", "ligand", "count", "charge"),
+    [("Cl", "F", 4, -1), ("Xe", "F", 5, -1), ("Br", "F", 4, -1)],
+)
+def test_a_hypervalent_anion_rdkit_refuses_is_held_like_the_neutrals(centre, ligand, count, charge):
+    """XeF5- and ClF4- (crystal structures are known) were rejected or half-handled: XeF5- sits inside xenon's own
+    valence list, so a comparison with the list never flagged it although RDKit refuses it."""
+    from openchem.chem.engine import UnsanitizableStructureError
+
+    engine = ChemistryEngine()
+    molblock = _hypervalent_molblock(centre, ligand, count, charge)
+    with pytest.raises(UnsanitizableStructureError):
+        engine.mol_from_molblock(molblock)
+    model = MoleculeModel(display_name="x")
+    engine.set_structure_from_molblock(model, molblock, allow_hypervalent=True)
+    assert "-" in model.canonical_smiles
+    assert engine.formal_charge(model) == charge
+    again = engine.hypervalent_mol_from_molblock(model.molblock)
+    assert again.GetAtomWithIdx(0).GetFormalCharge() == charge
+
+
+def test_the_acceptance_test_is_rdkits_refusal_not_a_comparison_with_its_list():
+    """SF6 and PF5 sanitise, so they are NOT 'held'; only atoms RDKit actually refuses are listed."""
+    from rdkit import Chem
+
+    from openchem.chem.checkers.valence import accepted_hypervalent_atoms
+
+    for smiles in ("FS(F)(F)(F)(F)F", "FP(F)(F)(F)F", "F[Xe](F)(F)F", "O=Cl(=O)(=O)[O-]", "CS(C)=O"):
+        assert accepted_hypervalent_atoms(Chem.MolFromSmiles(smiles, sanitize=False)) == [], smiles
+    assert accepted_hypervalent_atoms(Chem.MolFromSmiles("F[Xe-](F)(F)(F)F", sanitize=False)) == [1]
+    assert accepted_hypervalent_atoms(Chem.MolFromSmiles("FCl(F)F", sanitize=False)) == [1]

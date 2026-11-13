@@ -74,6 +74,13 @@ CASES = [
     ("FI(F)(F)(F)F", "AX5E", "square pyramidal", 1.844, 1.869),
     ("FCl(F)(F)(F)F", "AX5E", "square pyramidal", 1.65, 1.65),
     ("FI(F)(F)(F)(F)(F)F", "AX7", "pentagonal bipyramidal", 1.786, 1.858),
+    # arsenic and selenium from their papers (Clippard 1970, Bowater 1968), PCl5 from the CCCBDB compilation, and the two
+    # anions from crystal structures (Scheibe 2020, Christe 1991)
+    ("F[As](F)(F)(F)F", "AX5", "trigonal bipyramidal", 1.711, 1.656),
+    ("F[Se](F)(F)F", "AX4E", "seesaw", 1.7713, 1.6821),
+    ("ClP(Cl)(Cl)(Cl)Cl", "AX5", "trigonal bipyramidal", 2.124, 2.020),
+    ("F[Cl-](F)(F)F", "AX4E2", "square planar", 1.7982, 1.7982),
+    ("F[Xe-](F)(F)(F)F", "AX5E2", "pentagonal planar", 2.012, 2.012),
 ]
 
 
@@ -189,7 +196,7 @@ def test_brf5_basal_basal_angle_matches_the_independently_listed_figure():
 def test_clf5_is_the_one_row_whose_lengths_are_an_assumption_and_says_so():
     from openchem.chem.vsepr_geometry import REFERENCES
 
-    reference = REFERENCES[("Cl", "F", 5)]
+    reference = REFERENCES[("Cl", "F", 5, 0)]
     assert reference.axial == reference.equatorial == 1.65
     assert "complete structure is not possible" in reference.method
 
@@ -198,6 +205,45 @@ def test_if7_is_an_ideal_pentagonal_bipyramid():
     g = _built("FI(F)(F)(F)(F)(F)F")
     # 21 ligand pairs: one axial-axial, ten axial-equatorial, five 72 degree and five 144 degree equatorial
     assert _all_angles(g) == [72.0] * 5 + [90.0] * 10 + [144.0] * 5 + [180.0]
+
+
+def test_asf5_is_a_trigonal_bipyramid_with_the_published_axial_and_equatorial_lengths():
+    g = _built("F[As](F)(F)(F)F")
+    assert _all_angles(g) == [90.0] * 6 + [120.0] * 3 + [180.0]
+
+
+def test_sef4_is_a_seesaw_with_the_published_angles():
+    g = _built("F[Se](F)(F)F")
+    ax1, ax2 = g.axial_indices
+    eq1, eq2 = g.equatorial_indices
+    assert _angle(g.coordinates, ax1, g.centre_index, ax2) == pytest.approx(169.20, abs=1e-6)
+    assert _angle(g.coordinates, eq1, g.centre_index, eq2) == pytest.approx(100.55, abs=1e-6)
+
+
+def test_clf4_anion_is_square_planar():
+    g = _built("F[Cl-](F)(F)F")
+    assert _all_angles(g) == [90.0] * 4 + [180.0] * 2
+    assert np.linalg.matrix_rank(np.array(g.coordinates), tol=1e-9) == 2
+
+
+def test_xef5_anion_is_a_planar_regular_pentagon():
+    """Five ligands in one plane through the centre: five 72 degree and five 144 degree angles, nothing else."""
+    g = _built("F[Xe-](F)(F)(F)F")
+    assert _all_angles(g) == [72.0] * 5 + [144.0] * 5
+    assert np.linalg.matrix_rank(np.array(g.coordinates), tol=1e-9) == 2, "all six atoms are coplanar"
+    assert g.axial_indices == () and len(g.equatorial_indices) == 5
+
+
+def test_the_charge_is_part_of_the_reference_key():
+    """ClF4- has a geometry, the neutral and the cation do not share it: a different charge is a different molecule."""
+    assert build_vsepr_geometry(_mol("F[Cl-](F)(F)F")).kind is Kind.BUILT
+    cation = build_vsepr_geometry(_mol("F[Cl+](F)(F)F"))
+    assert cation.kind is Kind.UNSUPPORTED and "charge +1" in cation.reason
+
+
+def test_a_charge_on_a_ligand_or_a_second_fragment_is_not_a_hypervalent_anion():
+    assert build_vsepr_geometry(_mol("[F-].F[Cl](F)F")).kind is Kind.NOT_APPLICABLE
+    assert build_vsepr_geometry(_mol("[F-][Cl](F)(F)F")).kind is Kind.NOT_APPLICABLE
 
 
 def test_atom_order_is_the_molecules_own():
@@ -225,7 +271,12 @@ def test_the_input_molecule_is_not_modified():
 
 @pytest.mark.parametrize(
     ("smiles", "fragment"),
-    [("ClP(Cl)(Cl)(Cl)Cl", "no measured geometry"), ("FI(F)F", "no measured geometry")],
+    [
+        ("ClS(Cl)(Cl)Cl", "no measured geometry"),
+        ("FI(F)F", "no measured geometry"),
+        ("F[Cl+](F)(F)F", "charge +1"),
+        ("F[Br-](F)(F)F", "charge -1"),
+    ],
 )
 def test_a_recognised_molecule_without_a_reference_is_refused_not_guessed(
     smiles, fragment
@@ -265,8 +316,9 @@ def test_ordinary_molecules_are_left_to_the_normal_path(smiles):
 
 def test_every_reference_has_a_template_and_builds():
     """No entry is dead: each key reaches a built geometry (guards a table row nothing can use)."""
-    for centre, ligand, n in REFERENCES:
-        smiles = f"{ligand}[{centre}]" + "".join(f"({ligand})" for _ in range(n - 1))
+    for centre, ligand, n, charge in REFERENCES:
+        symbol = f"[{centre}{'-' if charge < 0 else '+' if charge > 0 else ''}]"
+        smiles = f"{ligand}{symbol}" + "".join(f"({ligand})" for _ in range(n - 1))
         outcome = build_vsepr_geometry(_mol(smiles))
         assert outcome.kind is Kind.BUILT, (smiles, outcome.reason)
 

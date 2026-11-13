@@ -28,9 +28,11 @@ from tests.test_chem_engine import _hypervalent_molblock
 METHOD = "B3LYP def2-SVP"
 
 
-def _molecule_with_conformer(engine: ChemistryEngine, spec: tuple[str, str, int] = ("Cl", "F", 3)) -> MoleculeModel:
+def _molecule_with_conformer(
+    engine: ChemistryEngine, spec: tuple[str, str, int] = ("Cl", "F", 3), charge: int = 0
+) -> MoleculeModel:
     molecule = MoleculeModel(display_name="".join(spec[:2]) + str(spec[2]))
-    engine.set_structure_from_molblock(molecule, _hypervalent_molblock(*spec), allow_hypervalent=True)
+    engine.set_structure_from_molblock(molecule, _hypervalent_molblock(*spec, charge=charge), allow_hypervalent=True)
     mol = engine.mol_from_model(molecule, allow_hypervalent=True)
     outcome = search_conformers(RDKitConformerProvider(random_seed=1), mol, True, GenerationOptions())
     conf_mol, energy = outcome.pool[0]
@@ -40,8 +42,8 @@ def _molecule_with_conformer(engine: ChemistryEngine, spec: tuple[str, str, int]
     return molecule
 
 
-def _choice(calc_type: str) -> RunChoice:
-    return RunChoice(calc_type=calc_type, method_basis=METHOD, charge=0, multiplicity=1, provider_id="orca")
+def _choice(calc_type: str, charge: int = 0, method_basis: str = METHOD) -> RunChoice:
+    return RunChoice(calc_type=calc_type, method_basis=method_basis, charge=charge, multiplicity=1, provider_id="orca")
 
 
 def test_a_held_clf3_conformer_is_a_valid_orca_input():
@@ -171,3 +173,53 @@ def test_real_orca_keeps_the_clf5_square_pyramid_and_resolves_what_the_experimen
         v = points[i] - points[centre]
         angle = math.degrees(math.acos(float(np.dot(u, v) / np.linalg.norm(u) / np.linalg.norm(v))))
         assert 83.0 < angle < 89.5, angle
+
+
+@pytest.mark.skipif(not (ORCA and Path(ORCA).exists()), reason="needs a real ORCA: set OPENCHEM_ORCA_EXE")
+@pytest.mark.parametrize(
+    ("spec", "angles"),
+    [(("Cl", "F", 4), {90.0, 180.0}), (("Xe", "F", 5), {72.0, 144.0})],
+    ids=["ClF4-", "XeF5-"],
+)
+def test_real_orca_keeps_the_anions_planar_and_symmetric(qapp, spec, angles):
+    """The two anions (charge -1, diffuse functions) from their crystal-structure VSEPR start: square planar D4h and
+    a regular planar pentagon D5h, every ligand at the same distance. Their ORCA lengths are longer than the crystal's
+    (1.853 against 1.798 A, 2.060 against 2.012 A), as an isolated anion's are."""
+    import time
+
+    from openchem.bootstrap import build_service_container
+    from openchem.domain.common import CacheState
+    from openchem.events.events import QuantumChemistryJobStateChanged, QuantumChemistryResultReady
+
+    services = build_service_container()
+    qc = services.quantum_chemistry_service
+    qc._settings.set("orca/executable_path", ORCA)
+    engine = services.chemistry_engine
+    molecule = _molecule_with_conformer(engine, spec, charge=-1)
+    assert engine.formal_charge(molecule) == -1
+    states: list = []
+    results: list = []
+    services.event_bus.subscribe(QuantumChemistryJobStateChanged, states.append)
+    services.event_bus.subscribe(QuantumChemistryResultReady, results.append)
+    prepared = prepare_run(engine, molecule, _choice("opt", charge=-1, method_basis="B3LYP def2-SVPD"))
+    assert isinstance(prepared, PreparedRun), getattr(prepared, "message", prepared)
+    start(qc, prepared)
+    deadline = time.time() + 400
+    while time.time() < deadline and not results and not any(s.state == CacheState.FAILED for s in states):
+        qapp.processEvents()
+        time.sleep(0.05)
+    QThreadPool.globalInstance().waitForDone(5000)
+    assert results, [s.message for s in states if s.state == CacheState.FAILED]
+    mol = Chem.MolFromMolBlock(results[-1].conformer.molblock, sanitize=False, removeHs=False)
+    conf = mol.GetConformer()
+    points = {i: np.array(conf.GetAtomPosition(i)) for i in range(mol.GetNumAtoms())}
+    centre = next(i for i, a in enumerate(mol.GetAtoms()) if a.GetSymbol() == spec[0])
+    ligands = [i for i in points if i != centre]
+    lengths = [float(np.linalg.norm(points[i] - points[centre])) for i in ligands]
+    assert max(lengths) - min(lengths) < 0.01, lengths
+    found = set()
+    for n, i in enumerate(ligands):
+        for j in ligands[n + 1 :]:
+            u, v = points[i] - points[centre], points[j] - points[centre]
+            found.add(round(math.degrees(math.acos(float(np.clip(np.dot(u, v) / np.linalg.norm(u) / np.linalg.norm(v), -1, 1)))), 0))
+    assert found == angles, found

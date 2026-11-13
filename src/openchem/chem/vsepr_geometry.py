@@ -46,7 +46,7 @@ from typing import Any
 import numpy as np
 
 #: Outer-shell electrons of the centres covered (group number), for the lone-pair count.
-_OUTER_ELECTRONS = {"P": 5, "S": 6, "Cl": 7, "Br": 7, "I": 7, "Xe": 8}
+_OUTER_ELECTRONS = {"P": 5, "As": 5, "S": 6, "Se": 6, "Cl": 7, "Br": 7, "I": 7, "Xe": 8}
 
 
 class Kind(str, Enum):
@@ -72,10 +72,12 @@ class Reference:
     method: str = ""
     #: True when the figures were compared with a published table (see the module docstring).
     checked: bool = False
+    #: The formal charge on the centre (an anion's, ClF4- and XeF5-); 0 for a neutral molecule.
+    charge: int = 0
 
     @property
-    def key(self) -> tuple[str, str, int]:
-        return (self.centre, self.ligand, self.n_ligands)
+    def key(self) -> tuple[str, str, int, int]:
+        return (self.centre, self.ligand, self.n_ligands, self.charge)
 
 
 # Axial and equatorial are the two classes of a T-shape, seesaw or trigonal bipyramid; a one-class shape
@@ -212,10 +214,71 @@ _ENTRIES = (
         "7.5 degrees and axially bent by 4.5 degrees on average, which the ideal pentagonal bipyramid here omits",
         True,
     ),
+    # Read from the papers (held copies, 2026-11-13). rg distances are as the source gives them.
+    Reference(
+        "As",
+        "F",
+        5,
+        1.711,
+        1.656,
+        {},
+        "Clippard and Bartell 1970, Inorg Chem 9, 805 [source:clippard1970]",
+        "gas electron diffraction, rg (axial 0.005, equatorial 0.004 esd); trigonal bipyramid with the ideal 90 and 120 degrees",
+        True,
+    ),
+    Reference(
+        "Se",
+        "F",
+        4,
+        1.7713,
+        1.6821,
+        {"ax-ax": 169.20, "eq-eq": 100.55},
+        "Bowater, Brown and Burden 1968, J Mol Spec 28, 454 [source:bowater1968]",
+        "microwave (two isotopologues); equatorial F-Se-F 100.55, axial F-Se-F 169.20",
+        True,
+    ),
+    Reference(
+        "P",
+        "Cl",
+        5,
+        2.124,
+        2.020,
+        {},
+        "Gurvich, Veyts and Alcock 1989 (compilation, as listed by NIST CCCBDB) [source:nist_cccbdb_geometries]",
+        "compiled; the primary paper is not held",
+        True,
+    ),
+    # The two anions are CRYSTAL structures: the ion is in an ionic lattice, where a Cl-F or Xe-F distance moves by a few
+    # hundredths of an Angstrom with the counter-ion (ClF4- spans 1.73 to 1.87 A between salts).
+    Reference(
+        "Cl",
+        "F",
+        4,
+        1.7982,
+        1.7982,
+        {},
+        "Scheibe, Ivlev, Karttunen and Kraus 2020, Eur J Inorg Chem, 1319 [source:scheibe2020]",
+        "single-crystal X-ray, K[ClF4] (F-Cl-F 89.79 and 90.21); the anion is square planar, D4h",
+        True,
+        -1,
+    ),
+    Reference(
+        "Xe",
+        "F",
+        5,
+        2.012,
+        2.012,
+        {},
+        "Christe et al. 1991, J Am Chem Soc 113, 3351 [source:christe1991]",
+        "single-crystal X-ray, [N(CH3)4][XeF5], mean of five distances 1.979 to 2.034 (esd 0.002); mean F-Xe-F 72.0 (0.4); "
+        "planar, D5h",
+        True,
+        -1,
+    ),
 )
 # `key` is derived from the entry, so the table cannot disagree with the lookup.
 #: `(centre, ligand, number of ligands)` -> its measured geometry. A molecule not here is refused, never estimated.
-REFERENCES: dict[tuple[str, str, int], Reference] = {r.key: r for r in _ENTRIES}
+REFERENCES: dict[tuple[str, str, int, int], Reference] = {r.key: r for r in _ENTRIES}
 
 
 @dataclass(frozen=True)
@@ -337,9 +400,16 @@ def _pentagonal_bipyramid(ref: Reference) -> tuple[list[np.ndarray], list[np.nda
     return [np.array([0.0, 0.0, 1.0]), np.array([0.0, 0.0, -1.0])], equatorial
 
 
+def _pentagonal_planar(ref: Reference) -> tuple[list[np.ndarray], list[np.ndarray]]:
+    # AX5E2: five ligands in one plane at 72 degrees (the two lone pairs are the two poles), as in XeF5-.
+    ring = [np.array([math.cos(math.radians(p)), math.sin(math.radians(p)), 0.0]) for p in (0, 72, 144, 216, 288)]
+    return [], ring
+
+
 #: (bonds, lone pairs) -> (classification, shape, placer). XeF6 (a distorted mean structure, not one shape) and
 #: every shape with more than seven bonds are not here.
 _TEMPLATES = {
+    (5, 2): ("AX5E2", "pentagonal planar", _pentagonal_planar),
     (2, 3): ("AX2E3", "linear", _linear),
     (3, 2): ("AX3E2", "T-shaped", _t_shape),
     (4, 2): ("AX4E2", "square planar", _square_planar),
@@ -357,16 +427,16 @@ _TEMPLATES = {
 def _hypervalent_centre(mol: Any) -> tuple[int, list[int]] | None:
     """The one centre and its ligands, when `mol` has the shape this module is about; else None.
 
-    One connected fragment; every other atom terminal and singly bonded to the centre; no formal charge
-    anywhere; the centre's element in the hypervalent table with `n` bonds a permitted valence other than
-    its preferred one. Anything else belongs to the ordinary conformer path.
+    One connected fragment; every other atom terminal, neutral and singly bonded to the centre; a formal
+    charge only on the centre (an anion such as ClF4- or XeF5-; the charge is drawn on the atom whose
+    electrons it changes); the centre's element in the hypervalent table with an EFFECTIVE valence (its
+    bonds, less a positive or plus a negative charge, as `checkers.valence` counts it) that is permitted
+    and is not the preferred one. Anything else belongs to the ordinary conformer path.
     """
     from openchem.chem.checkers.valence import hypervalent_rules
 
     n_atoms = mol.GetNumAtoms()
     if n_atoms < 3 or len(_fragments(mol)) != 1:
-        return None
-    if any(a.GetFormalCharge() for a in mol.GetAtoms()):
         return None
     centre = max(mol.GetAtoms(), key=lambda a: a.GetDegree())
     if centre.GetDegree() != n_atoms - 1:
@@ -375,14 +445,14 @@ def _hypervalent_centre(mol: Any) -> tuple[int, list[int]] | None:
     for index in ligands:
         atom = mol.GetAtomWithIdx(index)
         bond = mol.GetBondBetweenAtoms(index, centre.GetIdx())
-        if atom.GetDegree() != 1 or bond is None or bond.GetBondTypeAsDouble() != 1.0:
+        if atom.GetDegree() != 1 or atom.GetFormalCharge() or bond is None or bond.GetBondTypeAsDouble() != 1.0:
             return None
     rule = hypervalent_rules().get(centre.GetSymbol())
-    n = centre.GetDegree()
+    effective = centre.GetDegree() - centre.GetFormalCharge()
     if (
         not rule
-        or n not in rule["permitted_valences"]
-        or n == rule["preferred_valence"]
+        or effective not in rule["permitted_valences"]
+        or effective == rule["preferred_valence"]
     ):
         return None
     return centre.GetIdx(), ligands
@@ -415,11 +485,13 @@ def build_vsepr_geometry(mol: Any) -> VseprOutcome:
             Kind.UNSUPPORTED,
             f"no electron count is recorded for the centre element {symbol}",
         )
-    lone_pairs, remainder = divmod(outer - n, 2)
+    charge = centre.GetFormalCharge()
+    # The centre's own electrons are its outer shell less the charge it carries (an anion has one more).
+    lone_pairs, remainder = divmod(outer - charge - n, 2)
     if remainder or lone_pairs < 0 or (n, lone_pairs) not in _TEMPLATES:
         return VseprOutcome(
             Kind.UNSUPPORTED,
-            f"{symbol} with {n} bonds and {outer - n} left-over electrons has no template here",
+            f"{symbol} with {n} bonds and {outer - charge - n} left-over electrons has no template here",
         )
     classification, shape, placer = _TEMPLATES[(n, lone_pairs)]
     ligand_symbols = {mol.GetAtomWithIdx(i).GetSymbol() for i in ligand_indices}
@@ -429,11 +501,12 @@ def build_vsepr_geometry(mol: Any) -> VseprOutcome:
             f"mixed ligands ({'/'.join(sorted(ligand_symbols))}) have no measured geometry here",
         )
     ligand = ligand_symbols.pop()
-    reference = REFERENCES.get((symbol, ligand, n))
+    reference = REFERENCES.get((symbol, ligand, n, charge))
     if reference is None:
+        sign = "" if charge == 0 else f" with charge {charge:+d}"
         return VseprOutcome(
             Kind.UNSUPPORTED,
-            f"no measured geometry is recorded for {symbol}{ligand}{n}",
+            f"no measured geometry is recorded for {symbol}{ligand}{n}{sign}",
         )
 
     axial_vectors, equatorial_vectors = (
