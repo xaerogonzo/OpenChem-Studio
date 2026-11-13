@@ -330,8 +330,27 @@ def resolve_ensemble(engine: ChemistryEngine, model: MoleculeModel) -> ResolvedE
     return ResolvedEnsemble(tuple(mols), _ensemble_fingerprint(conformers))
 
 
+#: The registry calculators VERIFIED on a held hypervalent structure (ClF3, BrF3, SF6, PF5, ...), by independent oracle in
+#: `tests/test_hypervalent_calculators.py`: each is handed the unsanitised Mol and its answer was checked against
+#: values worked out by hand or by a second implementation. **A calculator is NOT here because it returned a number**:
+#: measured on these molecules, topology analysis reported one chiral centre for octahedral SF6, geometry analysis
+#: included a force-field energy for ClF3 that means nothing, surface analysis split polar from hydrophobic area on
+#: charges that do not exist for these molecules, the additive polarizability of SF6 was 21% below experiment, and the
+#: regulatory screen said "no matches" on a structure it could not read (a silent false negative, for a screen).
+#: NOTE the boundary only meets structures RDKit REFUSES (ClF3, BrF3, ClF5): SF6, PF5, XeF4 and SF4 sanitise and take
+#: the ordinary path, where those same defects are present today and nothing here changes them.
+#: Everything else is refused with `HYPERVALENT_UNSUPPORTED`.
+HYPERVALENT_VERIFIED_CALCULATORS = frozenset(
+    {"elemental_analysis", "mass_spectrum", "substance_analysis", "oxidation_states", "atom_sasa"}
+)
+
+
 def resolve_calculation_input(
-    engine: ChemistryEngine, model: MoleculeModel, calculation_input: str = DRAWING
+    engine: ChemistryEngine,
+    model: MoleculeModel,
+    calculation_input: str = DRAWING,
+    *,
+    allow_hypervalent: bool = False,
 ) -> ResolvedInput:
     """The molecule to hand a calculator declaring `calculation_input`.
 
@@ -354,8 +373,10 @@ def resolve_calculation_input(
     `batch_service` already did for the same case.
     """
     if calculation_input == GEOMETRY:
-        return resolve_conformer_input(engine, model, canonical_conformer(model))
-    return _drawing_input(engine, model)
+        return resolve_conformer_input(
+            engine, model, canonical_conformer(model), allow_hypervalent=allow_hypervalent
+        )
+    return _drawing_input(engine, model, allow_hypervalent=allow_hypervalent)
 
 
 def resolve_conformer_input(
@@ -403,7 +424,7 @@ def resolve_conformer_input(
                 conformer.conformer_id,
                 model.uuid,
             )
-    return _drawing_input(engine, model)
+    return _drawing_input(engine, model, allow_hypervalent=allow_hypervalent)
 
 
 def _hypervalent_refusal(error: UnsanitizableStructureError) -> CalculationRefusal:
@@ -418,7 +439,7 @@ def _hypervalent_refusal(error: UnsanitizableStructureError) -> CalculationRefus
     )
 
 
-def _drawing_input(engine: ChemistryEngine, model: MoleculeModel) -> ResolvedInput:
+def _drawing_input(engine: ChemistryEngine, model: MoleculeModel, *, allow_hypervalent: bool = False) -> ResolvedInput:
     """The drawing, fingerprinted as the DRAWING.
 
     The DRAWING fingerprint for a geometry request that fell back, on purpose: the calculator really
@@ -426,7 +447,7 @@ def _drawing_input(engine: ChemistryEngine, model: MoleculeModel) -> ResolvedInp
     """
     molblock = model.molblock or ""
     try:
-        mol = engine.mol_from_model(model)
+        mol = engine.mol_from_model(model, allow_hypervalent=allow_hypervalent)
     except UnsanitizableStructureError as error:
         raise _hypervalent_refusal(error) from error
     # A chosen component is part of what the calculation received: a result for one piece must not be

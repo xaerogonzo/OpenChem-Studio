@@ -9,6 +9,7 @@ from dataclasses import replace
 from PySide6.QtCore import QRunnable, QThreadPool
 
 from openchem.chem.calculation_input import (
+    HYPERVALENT_VERIFIED_CALCULATORS,
     INPUT_PREFIX,
     geometry_provenance,
     input_fingerprint,
@@ -517,7 +518,12 @@ class _CalculationTask(QRunnable):
             # Resolved WITH its fingerprint, so the result is recorded
             # against exactly the input it was computed on.
             self._fingerprint = input_fingerprint(self._engine, self._model, DRAWING)
-            resolved = resolve_calculation_input(self._engine, self._model, definition.calculation_input)
+            resolved = resolve_calculation_input(
+                self._engine, self._model, definition.calculation_input,
+                # A held hypervalent structure reaches ONLY the calculators verified on one
+                # (`HYPERVALENT_VERIFIED_CALCULATORS`); every other one gets the refusal.
+                allow_hypervalent=self._request.calculator_id in HYPERVALENT_VERIFIED_CALCULATORS,
+            )
             self._fingerprint = resolved.fingerprint
             mol = resolved.mol
             # WHICH CONFORMER, READ WITH THE RESOLUTION, NOT AFTER THE RUN. It

@@ -144,7 +144,7 @@ def test_conformer_generation_gives_the_t_shape_and_leaves_the_window_clean(qapp
 def test_the_properties_header_does_not_keep_the_previous_molecules_formula(qapp, tmp_path, log_errors):
     """Found by driving the real window: redrawing ethanol as ClF3 left 'C2H6O Molecule' in the header.
 
-    The header is the `substance_analysis` report; ClF3 refuses it, so nothing replaced the old card.
+    The header is the `substance_analysis` report; it used to be refused for ClF3, so nothing replaced the old card.
     """
     window, services = _build_window(qapp, tmp_path)
     ethanol = MoleculeModel(display_name="Ethanol")
@@ -160,5 +160,7 @@ def test_the_properties_header_does_not_keep_the_previous_molecules_formula(qapp
     _drain(qapp)
 
     assert ethanol.canonical_smiles == "FCl(F)F"
-    assert card.data().formula == "" and "C2H6O" not in card.summary_text()
+    # Substance analysis is verified on held structures (`HYPERVALENT_VERIFIED_CALCULATORS`), so the header now says what
+    # the molecule IS; before that it fell back to the name alone, and before THAT it kept "C2H6O".
+    assert card.data().formula == "ClF3" and "C2H6O" not in card.summary_text()
     assert log_errors == [], [r.getMessage() for r in log_errors]
