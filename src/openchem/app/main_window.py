@@ -6035,7 +6035,7 @@ class MainWindow(QMainWindow):
             display_name=project.unique_molecule_name(f"{molecule.display_name} copy")
         )
         if molecule.molblock:
-            self._services.chemistry_engine.set_structure_from_molblock(copy, molecule.molblock)
+            self._services.chemistry_engine.set_structure_from_molblock(copy, molecule.molblock, allow_hypervalent=True)
         self.add_molecule(copy)
         self.statusBar().showMessage(f"Duplicated as '{copy.display_name}'.", 3000)
 

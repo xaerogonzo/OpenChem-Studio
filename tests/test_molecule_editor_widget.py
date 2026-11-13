@@ -556,19 +556,23 @@ def test_get_molblock_does_not_reach_into_the_backend_field_from_callers(qapp):
 
 # --- a drawing the molecule cannot hold must be SAID, not dropped ------------
 
-#: ClF3 as the canvas writes it. RDKit allows chlorine one bond, so this does not parse; the
-#: project's own hypervalent table accepts it, which is why the refusal has to be explained.
-_CLF3_MOLBLOCK = """
+#: Carbon with five bonds (CF5): not a molecule, and no hypervalent rule covers carbon, so the editor must refuse it.
+#: ClF3, which this used to hold, is ACCEPTED now (see `test_a_hypervalent_drawing_is_accepted`).
+_CF5_MOLBLOCK = """
   Ketcher
 
-  4  3  0  0  0  0  0  0  0  0999 V2000
-    0.0000    0.0000    0.0000 Cl  0  0  0  0  0  0  0  0  0  0  0  0
-    0.0000    1.0000    0.0000 F   0  0  0  0  0  0  0  0  0  0  0  0
-   -1.0000   -0.5000    0.0000 F   0  0  0  0  0  0  0  0  0  0  0  0
-    1.0000   -0.5000    0.0000 F   0  0  0  0  0  0  0  0  0  0  0  0
+  6  5  0  0  0  0  0  0  0  0999 V2000
+    0.0000    0.0000    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0
+    1.0000    0.0000    0.0000 F   0  0  0  0  0  0  0  0  0  0  0  0
+    0.3090    0.9511    0.0000 F   0  0  0  0  0  0  0  0  0  0  0  0
+   -0.8090    0.5878    0.0000 F   0  0  0  0  0  0  0  0  0  0  0  0
+   -0.8090   -0.5878    0.0000 F   0  0  0  0  0  0  0  0  0  0  0  0
+    0.3090   -0.9511    0.0000 F   0  0  0  0  0  0  0  0  0  0  0  0
   1  2  1  0
   1  3  1  0
   1  4  1  0
+  1  5  1  0
+  1  6  1  0
 M  END
 """
 
@@ -582,7 +586,7 @@ def _widget_on(qapp, smiles):
 
 
 def test_a_rejected_drawing_is_reported_and_changes_nothing(qapp):
-    """THE REPORTED BUG: ClF was on screen in 3D after ClF3 was drawn, because the refusal was a bare return.
+    """THE REPORTED BUG: the old structure stayed on screen after a refused drawing, because the refusal was a bare return.
 
     The reason carries RDKit's own words (the atom and its valence), the molecule keeps its structure
     and identity, and no undo step is made.
@@ -593,11 +597,11 @@ def test_a_rejected_drawing_is_reported_and_changes_nothing(qapp):
     reasons: list[str] = []
     widget.edit_rejected.connect(reasons.append)
 
-    _edit_the_canvas(widget, backend, _CLF3_MOLBLOCK)
+    _edit_the_canvas(widget, backend, _CF5_MOLBLOCK)
 
     assert len(reasons) == 1
     assert "not applied" in reasons[0] and "unchanged" in reasons[0]
-    assert "Cl" in reasons[0] and "valence" in reasons[0]
+    assert "C" in reasons[0] and "valence" in reasons[0]
     assert (molecule.molblock, molecule.canonical_smiles, molecule.inchikey) == before
     assert widget._undo_stack.count() == depth
 
@@ -610,7 +614,7 @@ def test_a_rejected_drawing_keeps_redo(qapp):
     assert widget._undo_stack.canRedo()
     index = widget._undo_stack.index()
 
-    _edit_the_canvas(widget, backend, _CLF3_MOLBLOCK)
+    _edit_the_canvas(widget, backend, _CF5_MOLBLOCK)
 
     assert widget._undo_stack.canRedo()
     assert widget._undo_stack.index() == index
@@ -622,10 +626,25 @@ def test_the_reason_is_taken_down_by_the_next_applied_drawing(qapp):
     reasons: list[str] = []
     widget.edit_rejected.connect(reasons.append)
 
-    _edit_the_canvas(widget, backend, _CLF3_MOLBLOCK)
+    _edit_the_canvas(widget, backend, _CF5_MOLBLOCK)
     _edit_the_canvas(widget, backend, _molblock_for("CCO"))
 
     assert reasons[0] and reasons[1:] == [""]
     assert molecule.canonical_smiles == "CCO"
     _edit_the_canvas(widget, backend, _molblock_for("CCCO"))
     assert reasons[1:] == [""], "a second valid edit must not repeat the clear"
+
+
+def test_a_hypervalent_drawing_is_accepted(qapp):
+    """ClF3 was the drawing that started this: the molecule must now BE ClF3, not stay on the previous one."""
+    from tests.test_chem_engine import _hypervalent_molblock
+
+    _, widget, backend, molecule = _widget_on(qapp, "FCl")
+    reasons: list[str] = []
+    widget.edit_rejected.connect(reasons.append)
+
+    _edit_the_canvas(widget, backend, _hypervalent_molblock("Cl", "F", 3))
+
+    assert reasons == []
+    assert molecule.canonical_smiles == "FCl(F)F"
+    assert molecule.inchi == "InChI=1S/ClF3/c2-1(3)4"

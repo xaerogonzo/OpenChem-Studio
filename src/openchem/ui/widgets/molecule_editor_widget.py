@@ -392,7 +392,7 @@ class MoleculeEditorWidget(QWidget):
             return
         try:
             incoming = MoleculeModel(display_name="canvas")
-            self._engine.set_structure_from_molblock(incoming, molblock)
+            self._engine.set_structure_from_molblock(incoming, molblock, allow_hypervalent=True)
         except (InvalidStructureError, ValueError) as error:
             # NOTHING ELSE HAPPENS: no command (so no undo step and Redo survives), no change to the
             # model, its identity, its conformers or its results. The person is only told, because the

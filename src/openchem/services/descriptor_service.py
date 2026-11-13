@@ -200,6 +200,18 @@ class _DescriptorComputeTask(QRunnable):
             resolved = resolve_calculation_input(self._engine, self._model, self._calculation_input)
             self._fingerprint = resolved.fingerprint
             mol = resolved.mol
+        except CalculationRefusal as refusal:
+            # A held hypervalent structure (`chem.calculation_input`): a stated limit, not a fault, so no
+            # traceback. Nothing below has a molecule to run on, exactly as for any other failure here.
+            logger.info("Descriptors declined: %s", refusal.code)
+            self._part_failed = True
+            for descriptor_id in self._ids():
+                self._publish(
+                    descriptor_id, CacheState.FAILED, error=refusal.detail,
+                    category=categories.get(descriptor_id, ""), record=True,
+                )
+            self._finish_part()
+            return
         except Exception as exc:  # noqa: BLE001 - a bad provider must not kill the pool
             # No molecule, so nothing below has anything to run on.
             self._fail_descriptors(exc, categories)

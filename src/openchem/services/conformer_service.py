@@ -134,7 +134,7 @@ class _ConformerGenerationTask(QRunnable):
             ConformerJobStateChanged(molecule_uuid=self._model.uuid, state=CacheState.RUNNING)
         )
         try:
-            mol = self._engine.mol_from_model(self._model)
+            mol = self._engine.mol_from_model(self._model, allow_hypervalent=True)
             # WHICH DRAWING ATOM EACH CONFORMER ATOM IS, recorded at creation
             # against the drawing as it is NOW. See
             # `ConformerModel.drawing_atom_ids` for why the map carries its

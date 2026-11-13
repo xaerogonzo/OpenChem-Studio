@@ -259,10 +259,16 @@ class ChemistryEngine:
     else works with `MoleculeModel` and calls through here.
     """
 
-    def mol_from_model(self, model: MoleculeModel) -> Chem.Mol:
+    def mol_from_model(self, model: MoleculeModel, *, allow_hypervalent: bool = False) -> Chem.Mol:
+        """The model's Mol. `allow_hypervalent` is the opt-in of `hypervalent_mol_from_molblock`: only code
+        that knows what it returns (conformer generation, the charge default) passes it."""
         if not model.molblock:
             raise InvalidStructureError(f"Molecule {model.uuid} has no molblock")
-        mol = self.mol_from_molblock(model.molblock)
+        mol = (
+            self.hypervalent_mol_from_molblock(model.molblock)
+            if allow_hypervalent
+            else self.mol_from_molblock(model.molblock)
+        )
         if model.component_choice:
             # The person's pick of component rides on the Mol, so every route into a calculator
             # (Properties, Batch, the 3D overlay) reads it where `components.select` reads the rest.
@@ -908,7 +914,8 @@ class ChemistryEngine:
         """Sum of RDKit formal charges — used as a sensible default charge
         for a quantum-chemistry job (6.5), never guessed in the UI layer
         since only this module ever imports rdkit."""
-        return Chem.GetFormalCharge(self.mol_from_model(model))
+        # The sum of the atoms' charges needs no valence model, so a held hypervalent structure has one too.
+        return Chem.GetFormalCharge(self.mol_from_model(model, allow_hypervalent=True))
 
     def canonicalize(self, model: MoleculeModel, *, allow_hypervalent: bool = False) -> MoleculeModel:
         """Recompute canonical_smiles/inchi/inchikey from model.molblock, in place.
