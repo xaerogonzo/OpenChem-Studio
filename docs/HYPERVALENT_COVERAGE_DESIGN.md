@@ -106,6 +106,8 @@ and 170.2 degrees, both anions D4h and D5h. **XeOF4** (Martins and Wilson 1964: 
 read and recorded and not shipped, because it has two kinds of ligand and a Xe=O bond, which the builder does not handle; so are SF5Cl and SOF4. That
 is the next structural step (a per-ligand-class reference and oxo ligands), not a data one.
 
+**Third pass (2026-11-13), from the ChatGPT-suggested batch.** Added SeF6 (Bartell and Jin 1984, rg 1.685 A) and TeCl4 (Kovacs, Martinsen and Konings 1997, ra 243.0 and 229.8 pm, 175.9 and 103.0 degrees; tellurium joins `hypervalent_rules.json`) and moved PCl5 to its primary paper (Adams and Bartell 1971). The five mixed-ligand or oxo cases (ClF3O, XeOF4, XeO2F2, SOF4, SF5Cl) now all have measured values (see `docs/LITERATURE_LOG.md`), so the next step is the builder's per-ligand-class reference and oxo ligands, no longer a data search. IF4- is square planar on spectral evidence but has no lengths; IF3 has only a crystal with bridging contacts.
+
 **WP7. The regulatory screen on a held structure stays refused**, with a test that a held structure never yields "no matches" (it
 did in the #598 audit, a silent false negative for a screen). Not a change; a guard on the decision of #598.
 

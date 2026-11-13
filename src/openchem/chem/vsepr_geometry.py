@@ -46,7 +46,7 @@ from typing import Any
 import numpy as np
 
 #: Outer-shell electrons of the centres covered (group number), for the lone-pair count.
-_OUTER_ELECTRONS = {"P": 5, "As": 5, "S": 6, "Se": 6, "Cl": 7, "Br": 7, "I": 7, "Xe": 8}
+_OUTER_ELECTRONS = {"P": 5, "As": 5, "S": 6, "Se": 6, "Te": 6, "Cl": 7, "Br": 7, "I": 7, "Xe": 8}
 
 
 class Kind(str, Enum):
@@ -244,8 +244,30 @@ _ENTRIES = (
         2.124,
         2.020,
         {},
-        "Gurvich, Veyts and Alcock 1989 (compilation, as listed by NIST CCCBDB) [source:nist_cccbdb_geometries]",
-        "compiled; the primary paper is not held",
+        "Adams and Bartell 1971, J Mol Struct 8, 23 [source:adams1971]",
+        "gas electron diffraction, rg (axial 0.009, equatorial 0.007 esd; mean 2.061 0.002); equals the CCCBDB compilation entry",
+        True,
+    ),
+    Reference(
+        "Se",
+        "F",
+        6,
+        1.685,
+        1.685,
+        {},
+        "Bartell and Jin 1984, J Mol Struct 118, 289 [source:bartell1984]",
+        "gas electron diffraction, rg(3a) 1.685 (0.002); regular octahedron",
+        True,
+    ),
+    Reference(
+        "Te",
+        "Cl",
+        4,
+        2.430,
+        2.298,
+        {"ax-ax": 175.9, "eq-eq": 103.0},
+        "Kovacs, Martinsen and Konings 1997, J Chem Soc Dalton Trans, 1037 [source:kovacs1997]",
+        "gas electron diffraction, ra (0.006 esd), D term not included: axial 243.0, equatorial 229.8 pm; Cl-Te-Cl axial 175.9 (0.6), equatorial 103.0 (0.7); seesaw",
         True,
     ),
     # The two anions are CRYSTAL structures: the ion is in an ionic lattice, where a Cl-F or Xe-F distance moves by a few

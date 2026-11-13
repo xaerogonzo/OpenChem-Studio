@@ -226,6 +226,30 @@ SeF4 100.0 and 170.2 degrees (measured 100.55 and 169.20); AsF5 and PCl5 stay tr
 longer than equatorial; ClF4- stays D4h (Cl-F 1.853, longer than the crystal's 1.798, as expected for an isolated anion);
 XeF5- stays a planar regular pentagon (Xe-F 2.060 against 2.012 in the crystal).
 
+## Third hypervalent pass: the ChatGPT-suggested batch (2026-11-13)
+
+Twenty-four papers fetched from a literature audit. Each was identified by its text, checked for its identity against
+Crossref, and read for the numbers it carries.
+
+| Paper | What it is | Used for | Outcome | Registry key |
+|---|---|---|---|---|
+| Adams and Bartell 1971 | PCl5 gas electron diffraction | PCl5 | **shipped**: rg axial 2.124 (0.009), equatorial 2.020 (0.007) A; replaces the compilation as the source | `adams1971` |
+| Bartell and Jin 1984 | SeF6 gas electron diffraction | SeF6 | **shipped**: rg 1.685 (0.002) A, octahedron | `bartell1984` |
+| Kovacs, Martinsen and Konings 1997 | TeCl4 gas electron diffraction | TeCl4 | **shipped**: ra 243.0 and 229.8 pm, 175.9 and 103.0 degrees (the thermal-term column gives 243.5, 229.4, 176.4, 103.7); tellurium joined the rule table | `kovacs1997` |
+| Peterson et al. 1973 | XeO2F2 neutron diffraction, crystal | -- | read, not shipped: two ligand kinds, Xe=O, weak Xe...O bridges | `peterson1973` |
+| Jacob, Thompson and Bartell 1971 | XeOF4 electron diffraction with microwave | -- | read, not shipped: Xe=O 1.705, Xe-F 1.904 A, 91.7 degrees | `jacob1971` |
+| Hedberg and Hedberg 1982 | SOF4 reanalysis | -- | read, not shipped: S=O 1.409, S-F 1.539 and 1.596 A | `hedberg1982` |
+| Kewley, Murty and Sugden 1960 | SF5Cl microwave | -- | read, not shipped: S-Cl 2.0301, S-F 1.576 A | `kewley1960` |
+| Oberhammer and Christe 1982 | ClF3O electron diffraction | -- | read, not shipped: Cl=O 1.405, Cl-F 1.603 and 1.713 A | `oberhammer1982` |
+| Gundersen, Hedberg and Huston 1970 | XeO4 electron diffraction | -- | read, not shipped: tetrahedral, Xe-O 1.736 A, all double bonds | `gundersen1970` |
+| Brockway and Pauling 1933 | SF6, SeF6, TeF6 electron diffraction | -- | read, not shipped: 1933 precision, no uncertainties (TeF6 1.84 A) | `brockway1933` |
+| Christe and Naumann 1973 | IF4- vibrational spectra | -- | read: square planar D4h on spectral evidence, no lengths, so IF4- stays unsupported | `christe1973` |
+| Hoyer and Seppelt 2000, Claassen and Huston 1971, Christe 2001 with Ellern 2002, Christe 1988, Weller 1991, Templeton 1963, Brock 2007, Pusztai 2006, Frigerio 1999, Griffiths 1964, Schrockeneder 2012 (with SI) | IF3 crystal, XeO3F2 matrix, ClF4+ and BrF3O crystals, PPh3F2 crystal, XeO3 crystal, XeOF2, others | -- | held; **not read for values in this pass**, none needed for what shipped (all are crystal, matrix or solution evidence, or outside the single-bond terminal-ligand rule) | none |
+
+What these papers settle: PCl5's numbers are now backed by the primary paper, not a compilation. The mixed-ligand and oxo cases
+(ClF3O, XeOF4, XeO2F2, SOF4, SF5Cl) now all have measured values in hand, so the missing piece is the builder, not data.
+IF4- and BrF4- still have no lengths.
+
 ## How to use this
 
 Before searching for a reference for a tautomer system, look here. A paper listed as "not an energy

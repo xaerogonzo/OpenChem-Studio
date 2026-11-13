@@ -10044,3 +10044,180 @@ degrees; the Rb and Cs salts give 1.7930 (0.0009) and 1.792 (0.004) A. The paper
 1.73 to 1.87 A (NO[ClF4]: 1.727 and 1.874 A), so the value depends on the counter-ion. A CRYSTAL structure, not a
 gas-phase one.
 """
+
+[[source]]
+key = "adams1971"
+kind = "literature"
+citation = "W. J. Adams & L. S. Bartell, 'Structure and vibrational assignments for PCl5. An electron diffraction study', J. Mol. Struct. 8, 23-30 (1971)"
+identifier_type = "doi"
+identifier = "10.1016/0022-2860(71)80038-8"
+status = "shipped"
+used_by = [
+    "src/openchem/chem/vsepr_geometry.py",
+    "tests/test_vsepr_geometry.py",
+    "docs/HYPERVALENT_COVERAGE_DESIGN.md",
+]
+local = "adams1971.pdf"
+verification = "citation_and_claim"
+verified_date = 2026-11-13
+note = """
+Read for Table 3: gas-phase rg axial P-Cl 2.124 (0.009) and equatorial 2.020 (0.007) A, mean 2.061 (0.002), trigonal bipyramid. These are the figures NIST CCCBDB lists from Gurvich's compilation, so the primary paper now backs the PCl5 row.
+"""
+
+[[source]]
+key = "bartell1984"
+kind = "literature"
+citation = "L. S. Bartell & A. Jin, 'Electron diffraction analysis of charge redistribution model and structure of SeF6', J. Mol. Struct. 118, 47-52 (1984)"
+identifier_type = "doi"
+identifier = "10.1016/0022-2860(84)85178-9"
+status = "shipped"
+used_by = [
+    "src/openchem/chem/vsepr_geometry.py",
+    "tests/test_vsepr_geometry.py",
+    "docs/HYPERVALENT_COVERAGE_DESIGN.md",
+]
+local = "bartell1984.pdf"
+verification = "citation_and_claim"
+verified_date = 2026-11-13
+note = """
+Read for the abstract and results: gas-phase SeF6 is an octahedron with rg(3a) = 1.685 (0.002) A. Only the bond length is used.
+"""
+
+[[source]]
+key = "kovacs1997"
+kind = "literature"
+citation = "A. Kovacs, K.-G. Martinsen & R. J. M. Konings, 'Gas-phase vibrational spectrum and molecular geometry of TeCl4', J. Chem. Soc., Dalton Trans. 1037-1042 (1997)"
+identifier_type = "doi"
+identifier = "10.1039/A605574E"
+status = "shipped"
+used_by = [
+    "src/openchem/chem/vsepr_geometry.py",
+    "tests/test_vsepr_geometry.py",
+    "docs/HYPERVALENT_COVERAGE_DESIGN.md",
+]
+local = "Kovács1997.pdf"
+verification = "citation_and_claim"
+verified_date = 2026-11-13
+note = """
+Read for Table 5 (gas electron diffraction, ra): Te-Cl axial 243.0 (0.6) and equatorial 229.8 (0.6) pm, Cl-Te-Cl axial 175.9 (0.6) and equatorial 103.0 (0.7) degrees, seesaw (the second column, with the thermal D term included, gives 243.5, 229.4, 176.4 and 103.7). The first column is used. The vapour held some TeCl2 (mole fraction 0.16 to 0.18), which the refinement allowed for.
+"""
+
+[[source]]
+key = "peterson1973"
+kind = "literature"
+citation = "S. W. Peterson, J. H. Holloway, B. A. Coyle & J. M. Williams, 'Structure of XeO2F2' (neutron diffraction), J. Chem. Phys. 58, 456 (1973)"
+identifier_type = "doi"
+identifier = "10.1063/1.1679827"
+status = "reference_only"
+used_by = ["docs/HYPERVALENT_COVERAGE_DESIGN.md"]
+local = "peterson1973.pdf"
+verification = "citation"
+verified_date = 2026-11-13
+reason = """
+Table III read. Neutron diffraction, room temperature, crystal: Xe-F 1.899 (3), Xe-O 1.714 (4) A, O-Xe-F 91.6 (1), O-Xe-O 105.7 (3), F-Xe-F 174.7 (4) degrees (thermal-motion corrected 1.92 and 1.74 A). Layers joined by weak Xe...O bridges, so the monomer is not the isolated molecule. Not shipped: two ligand kinds and a Xe=O bond, which the builder does not handle yet.
+"""
+
+[[source]]
+key = "jacob1971"
+kind = "literature"
+citation = "E. J. Jacob, H. B. Thompson & L. S. Bartell, 'Structure analyses combining electron diffraction and microwave data. I. Study of XeOF4', J. Mol. Struct. 8, 383 (1971)"
+identifier_type = "doi"
+identifier = "10.1016/0022-2860(71)80016-9"
+status = "reference_only"
+used_by = ["docs/HYPERVALENT_COVERAGE_DESIGN.md"]
+local = "jacob1971.pdf"
+verification = "citation"
+verified_date = 2026-11-13
+reason = """
+Table 1 read. Gas, combined electron diffraction and microwave: the spectroscopic column gives r(Xe=O) 1.705, r(Xe-F) 1.904 A and O-Xe-F 91.7 degrees (the electron-diffraction columns 1.708 to 1.711, 1.901 to 1.902 A and 91.6 to 91.9); it refines the preliminary 1964 microwave values. Not shipped: two ligand kinds and a Xe=O bond.
+"""
+
+[[source]]
+key = "hedberg1982"
+kind = "literature"
+citation = "L. Hedberg & K. Hedberg, 'Thionyl tetrafluoride. Reanalysis of the molecular structure and resolution of the multiple model problem', J. Phys. Chem. 86, 598-602 (1982)"
+identifier_type = "doi"
+identifier = "10.1021/j100394a004"
+status = "reference_only"
+used_by = ["docs/HYPERVALENT_COVERAGE_DESIGN.md"]
+local = "hedberg1982.pdf"
+verification = "citation"
+verified_date = 2026-11-13
+reason = """
+Abstract read. Best-compromise model, ra at room temperature: S=O 1.409 (3), S-F equatorial 1.539 (3), S-F axial 1.596 (3) A, F(eq)-S-F(eq) 112.8 (4) degrees; the other angles are quoted in the abstract and were not transcribed. Not shipped: an S=O bond and two ligand kinds.
+"""
+
+[[source]]
+key = "kewley1960"
+kind = "literature"
+citation = "R. Kewley, K. S. R. Murty & T. M. Sugden, 'The microwave spectrum of sulphur chloride pentafluoride', Trans. Faraday Soc. 56, 1732 (1960)"
+identifier_type = "doi"
+identifier = "10.1039/TF9605601732"
+status = "reference_only"
+used_by = ["docs/HYPERVALENT_COVERAGE_DESIGN.md"]
+local = "kewley1960.pdf"
+verification = "citation"
+verified_date = 2026-11-13
+reason = """
+Abstract read. C4v: S-Cl 2.0301 (0.0019), S-F 1.576 (0.010) A, Cl-S-F axial angle 88 degrees 22 minutes (10 minutes). Not shipped: two ligand kinds (the builder takes one reference per ligand element).
+"""
+
+[[source]]
+key = "oberhammer1982"
+kind = "literature"
+citation = "H. Oberhammer & K. O. Christe, 'Gas-phase structure of chlorine trifluoride oxide, ClF3O', Inorg. Chem. 21, 273-275 (1982)"
+identifier_type = "doi"
+identifier = "10.1021/ic00131a050"
+status = "reference_only"
+used_by = ["docs/HYPERVALENT_COVERAGE_DESIGN.md"]
+local = "oberhammer1982.pdf"
+verification = "citation"
+verified_date = 2026-11-13
+reason = """
+Abstract read. Gas electron diffraction, r-alpha: Cl=O 1.405 (3), Cl-F equatorial 1.603 (4), Cl-F axial 1.713 (3) A, F(eq)-Cl-O 108.9 (0.9), F(ax)-Cl-F(eq) 87.9 (1.2), F(ax)-Cl-O 94.7 (2.0) degrees; a distorted trigonal bipyramid with the lone pair equatorial. Not shipped: a Cl=O bond and two ligand kinds.
+"""
+
+[[source]]
+key = "gundersen1970"
+kind = "literature"
+citation = "G. Gundersen, K. Hedberg & J. L. Huston, 'Molecular structure of xenon tetroxide, XeO4', J. Chem. Phys. 52, 812 (1970)"
+identifier_type = "doi"
+identifier = "10.1063/1.1673060"
+status = "reference_only"
+used_by = ["docs/HYPERVALENT_COVERAGE_DESIGN.md"]
+local = "gundersen1970.pdf"
+verification = "citation"
+verified_date = 2026-11-13
+reason = """
+Abstract read. Gas electron diffraction: tetrahedral, r(Xe-O) 1.736 (0.0023) A. Not shipped: all four ligands are Xe=O double bonds, outside the single-bond terminal-ligand rule.
+"""
+
+[[source]]
+key = "brockway1933"
+kind = "literature"
+citation = "L. O. Brockway & L. Pauling, 'The determination of the structures of the hexafluorides of sulfur, selenium and tellurium by the electron diffraction method', Proc. Natl. Acad. Sci. USA 19, 68-73 (1933)"
+identifier_type = "doi"
+identifier = "10.1073/pnas.19.1.68"
+status = "reference_only"
+used_by = ["docs/HYPERVALENT_COVERAGE_DESIGN.md"]
+local = "brockway1933.pdf"
+verification = "citation"
+verified_date = 2026-11-13
+reason = """
+Read. Octahedral SF6, SeF6 and TeF6 by visual-era electron diffraction; the paper's own corrected S-F is 1.58 A (the modern value is about 1.56) and its TeF6 average is 1.84 A. Not shipped: no uncertainty and a method superseded by modern work (SeF6 is taken from Bartell and Jin 1984).
+"""
+
+[[source]]
+key = "christe1973"
+kind = "literature"
+citation = "K. O. Christe & D. Naumann, 'The tetrafluoroiodate(III) anion, IF4-', Inorg. Chem. 12, 59 (1973)"
+identifier_type = "doi"
+identifier = "10.1021/ic50119a016"
+status = "reference_only"
+used_by = ["docs/HYPERVALENT_COVERAGE_DESIGN.md"]
+local = "christe1973.pdf"
+verification = "citation"
+verified_date = 2026-11-13
+reason = """
+Abstract read. The infrared and Raman spectra of IF4- fit a square-planar D4h anion (the earlier nonplanar assignment was IF6-). No bond lengths, so nothing can be built from it; IF4- stays unsupported until a structure is found. The held PDF begins with an unrelated page and was identified by its abstract.
+"""

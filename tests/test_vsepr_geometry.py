@@ -74,11 +74,13 @@ CASES = [
     ("FI(F)(F)(F)F", "AX5E", "square pyramidal", 1.844, 1.869),
     ("FCl(F)(F)(F)F", "AX5E", "square pyramidal", 1.65, 1.65),
     ("FI(F)(F)(F)(F)(F)F", "AX7", "pentagonal bipyramidal", 1.786, 1.858),
-    # arsenic and selenium from their papers (Clippard 1970, Bowater 1968), PCl5 from the CCCBDB compilation, and the two
+    # arsenic and selenium from their papers (Clippard 1970, Bowater 1968), PCl5 (Adams 1971), SeF6 (Bartell 1984), TeCl4 (Kovacs 1997) and the two
     # anions from crystal structures (Scheibe 2020, Christe 1991)
     ("F[As](F)(F)(F)F", "AX5", "trigonal bipyramidal", 1.711, 1.656),
     ("F[Se](F)(F)F", "AX4E", "seesaw", 1.7713, 1.6821),
     ("ClP(Cl)(Cl)(Cl)Cl", "AX5", "trigonal bipyramidal", 2.124, 2.020),
+    ("F[Se](F)(F)(F)(F)F", "AX6", "octahedral", 1.685, 1.685),
+    ("Cl[Te](Cl)(Cl)Cl", "AX4E", "seesaw", 2.430, 2.298),
     ("F[Cl-](F)(F)F", "AX4E2", "square planar", 1.7982, 1.7982),
     ("F[Xe-](F)(F)(F)F", "AX5E2", "pentagonal planar", 2.012, 2.012),
 ]
@@ -218,6 +220,14 @@ def test_sef4_is_a_seesaw_with_the_published_angles():
     eq1, eq2 = g.equatorial_indices
     assert _angle(g.coordinates, ax1, g.centre_index, ax2) == pytest.approx(169.20, abs=1e-6)
     assert _angle(g.coordinates, eq1, g.centre_index, eq2) == pytest.approx(100.55, abs=1e-6)
+
+
+def test_tecl4_is_a_seesaw_with_the_published_angles():
+    g = _built("Cl[Te](Cl)(Cl)Cl")
+    ax1, ax2 = g.axial_indices
+    eq1, eq2 = g.equatorial_indices
+    assert _angle(g.coordinates, ax1, g.centre_index, ax2) == pytest.approx(175.9, abs=1e-6)
+    assert _angle(g.coordinates, eq1, g.centre_index, eq2) == pytest.approx(103.0, abs=1e-6)
 
 
 def test_clf4_anion_is_square_planar():
