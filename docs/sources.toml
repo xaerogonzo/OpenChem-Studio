@@ -10333,8 +10333,8 @@ Read. XeO3 is a trigonal pyramid in the crystal: Xe-O 1.74, 1.76 and 1.77 (0.03)
 key = "zhang1997"
 kind = "literature"
 citation = "X. Zhang & K. Seppelt, 'Preparation and Structures of Salts with the Anions of IF2-, ClF4-, IF4-, TeF7-, and AsF4-', Z. Anorg. Allg. Chem. 623, 491-500 (1997)"
-identifier_type = "bibliographic"
-identifier = "Z. Anorg. Allg. Chem. 623 (1997) 491-500 (no DOI printed on the paper, none found in Crossref)"
+identifier_type = "doi"
+identifier = "10.1002/zaac.19976230178"
 status = "shipped"
 used_by = [
     "src/openchem/chem/vsepr_geometry.py",
@@ -10444,4 +10444,222 @@ verification = "citation_and_claim"
 verified_date = 2026-11-14
 note = """
 Read. BrO2F crystal with O and F disordered over six positions: only the average Br-(O,F) distance 167.4 (0.6) pm is determined, and the all-equal C3v model has angles of 103.8 (0.3) degrees. Shipped as the BrO2F row with that one mean length for all three ligands and said to be a mean (the Br=O is really shorter and the Br-F longer). The same paper's Br2O (bent, Br-O-Br 114.2 degrees, Br-O 187.5 pm) and O2BrOTeF5 are not used.
+"""
+
+[[source]]
+key = "ivashkevich1982"
+kind = "literature"
+citation = "L. S. Ivashkevich, A. A. Ishchenko, V. P. Spiridonov, T. G. Strand, A. A. Ivanov & A. N. Nikolaev, 'An electron-diffraction study of the structure and pseudorotation of antimony pentachloride in the vapor state', J. Struct. Chem. 23, 295-298 (1982)"
+identifier_type = "doi"
+identifier = "10.1007/BF00790775"
+status = "shipped"
+used_by = [
+    "src/openchem/chem/vsepr_geometry.py",
+    "tests/test_vsepr_geometry.py",
+    "docs/HYPERVALENT_COVERAGE_DESIGN.md",
+]
+local = "ivashkevich1982.pdf"
+verification = "citation_and_claim"
+verified_date = 2026-11-14
+note = """
+Table 3 read from the rendered page. Gas electron diffraction, nozzle temperature about 25 C: re(Sb-Cl axial) 2.338 (7), re(Sb-Cl equatorial) 2.277 (5) A, D3h, Berry pseudorotation barrier 1.8 (6) kcal/mol. The 1940 diffraction values (2.43 and 2.31 A) and Ohlberg's crystal (2.34 and 2.29 A) are quoted for comparison. Shipped as the SbCl5 row.
+"""
+
+[[source]]
+key = "french1985"
+kind = "literature"
+citation = "R. J. French, K. Hedberg, J. M. Shreeve & K. D. Gupta, 'Dichlorotrifluorophosphorane (PCl2F3): molecular structure by gas-phase electron diffraction and quadratic force field', Inorg. Chem. 24, 2774-2777 (1985)"
+identifier_type = "doi"
+identifier = "10.1021/ic00212a014"
+status = "shipped"
+used_by = [
+    "src/openchem/chem/vsepr_geometry.py",
+    "tests/test_vsepr_geometry.py",
+    "docs/HYPERVALENT_COVERAGE_DESIGN.md",
+]
+local = "french1985.pdf"
+verification = "citation_and_claim"
+verified_date = 2026-11-14
+note = """
+Abstract and Table II read. Gas electron diffraction at 22 to 24 C: rg P-F equatorial 1.546 (9), P-F axial 1.593 (4), P-Cl 2.004 (2) A, F(ax)-P-F(eq) 89.3 (3), Cl-P-Cl 122.0 (5) degrees; the chlorines are equatorial (a Berry exchange would give axial isomers, which the data neither show nor rule out). Shipped as the PCl2F3 row with the ideal 90 and 120 degrees.
+"""
+
+[[source]]
+key = "ohlberg1959"
+kind = "literature"
+citation = "S. M. Ohlberg, 'The crystal structure of antimony pentachloride at -30 degrees', J. Am. Chem. Soc. 81, 811-813 (1959)"
+identifier_type = "doi"
+identifier = "10.1021/ja01513a015"
+status = "reference_only"
+used_by = ["docs/HYPERVALENT_COVERAGE_DESIGN.md"]
+local = "ohlberg1959.pdf"
+verification = "citation"
+verified_date = 2026-11-14
+reason = """
+Read. Molecular crystal of trigonal bipyramidal SbCl5 at -30 (2) C: Sb-Cl axial 2.34, equatorial 2.29 A, no esds in the accessible text; not a dimer. Used only as the comparison value for the gas-phase electron diffraction row.
+"""
+
+[[source]]
+key = "gavin1968"
+kind = "literature"
+citation = "R. M. Gavin Jr. & L. S. Bartell, 'Molecular structure of XeF6. I. Analysis of electron-diffraction intensities', J. Chem. Phys. 48, 2460-2465 (1968)"
+identifier_type = "doi"
+identifier = "10.1063/1.1669470"
+status = "reference_only"
+used_by = ["docs/HYPERVALENT_COVERAGE_DESIGN.md"]
+local = "gavin1968.pdf"
+verification = "citation"
+verified_date = 2026-11-14
+reason = """
+Abstract read. Gas electron diffraction: a mean Xe-F bond length of 1.890 (0.005) A, a radial distribution that is a composite of nonequivalent bonds, and no regular octahedron. NOT shipped as a geometry: see bartell1968.
+"""
+
+[[source]]
+key = "bartell1968"
+kind = "literature"
+citation = "L. S. Bartell & R. M. Gavin Jr., 'Molecular structure of XeF6. II. Internal motion and mean geometry deduced by electron diffraction', J. Chem. Phys. 48, 2466-2483 (1968)"
+identifier_type = "doi"
+identifier = "10.1063/1.1669471"
+status = "reference_only"
+used_by = ["docs/HYPERVALENT_COVERAGE_DESIGN.md"]
+local = "bartell1968.pdf"
+verification = "citation"
+verified_date = 2026-11-14
+reason = """
+Abstract, model table and discussion read. The molecule is predominantly in the broad vicinity of C3v distorted octahedra with the lone pair avoiding the bonding pairs, Xe-F lengths distributed over about 0.08 A, fluorine displacements of 5 to 10 degrees and enormous bending amplitudes; three models (C2v, Cs, C3v) fit about equally and the authors call the least-squares parameters rough guides. NOT shipped: no single set of lengths and angles is the measured molecule, and a regular octahedron at 1.890 A is a symmetry-protected saddle that a quantum optimisation would not leave.
+"""
+
+[[source]]
+key = "burbank1974"
+kind = "literature"
+citation = "R. D. Burbank & G. R. Jones, 'Structure of the cubic phase of xenon hexafluoride at 193 K', J. Am. Chem. Soc. 96, 43-48 (1974)"
+identifier_type = "doi"
+identifier = "10.1021/ja00808a007"
+status = "reference_only"
+used_by = ["docs/HYPERVALENT_COVERAGE_DESIGN.md"]
+local = "burbank1974.pdf"
+verification = "citation"
+verified_date = 2026-11-14
+reason = """
+Held (the PDF's first page belongs to another article). The cubic crystal is built of XeF5+ and F- units in tetramers and hexamers, not isolated XeF6 molecules. Not used.
+"""
+
+[[source]]
+key = "hoyer2006"
+kind = "literature"
+citation = "S. Hoyer, T. Emmler & K. Seppelt, 'The structure of xenon hexafluoride in the solid state', J. Fluorine Chem. 127, 1415-1422 (2006)"
+identifier_type = "doi"
+identifier = "10.1016/j.jfluchem.2006.04.014"
+status = "reference_only"
+used_by = ["docs/HYPERVALENT_COVERAGE_DESIGN.md"]
+local = "hoyer2006.pdf"
+verification = "citation"
+verified_date = 2026-11-14
+reason = """
+Held. Solid XeF6 modifications (tetramers, hexamers) by X-ray, neutron and NMR work; bridged oligomers, not an isolated molecule. Not used.
+"""
+
+[[source]]
+key = "mahjoub1991"
+kind = "literature"
+citation = "A.-R. Mahjoub & K. Seppelt, 'Preparation and structure of the IOF6- and TeF7- anions', J. Chem. Soc., Chem. Commun. 840-841 (1991)"
+identifier_type = "doi"
+identifier = "10.1039/C39910000840"
+status = "reference_only"
+used_by = ["docs/HYPERVALENT_COVERAGE_DESIGN.md"]
+local = "mahjoub1991.pdf"
+verification = "citation"
+verified_date = 2026-11-14
+reason = """
+Read. IOF6- and TeF7- are prepared as tetramethylammonium salts; the crystallographic analysis of the IOF6- salt suffers from a fourfold disorder or systematic twinning. No usable refined TeF7- geometry (zhang1997 has it). Not used.
+"""
+
+[[source]]
+key = "selig1974"
+kind = "literature"
+citation = "H. Selig, S. Sarig & S. Abramowitz, 'Alkali fluorotellurates(VI)', Inorg. Chem. 13, 1508-1511 (1974)"
+identifier_type = "doi"
+identifier = "10.1021/ic50136a051"
+status = "reference_only"
+used_by = ["docs/HYPERVALENT_COVERAGE_DESIGN.md"]
+local = "selig1974.pdf"
+verification = "citation"
+verified_date = 2026-11-14
+reason = """
+Read for the abstract. CsF/RbF adducts of TeF6; the spectra are interpreted as D5h TeF7- and D4d TeF8(2-). No structure. Not used.
+"""
+
+[[source]]
+key = "doxsee1992"
+kind = "literature"
+citation = "K. M. Doxsee, E. M. Hanawalt & T. J. R. Weakley, 'Structure of difluorotriphenylphosphorane', Acta Cryst. C48, 1288-1290 (1992)"
+identifier_type = "doi"
+identifier = "10.1107/S0108270191014889"
+status = "reference_only"
+used_by = ["docs/HYPERVALENT_COVERAGE_DESIGN.md"]
+local = "doxsee1992.pdf"
+verification = "citation"
+verified_date = 2026-11-14
+reason = """
+Read. Second crystal determination of (C6H5)3PF2 at 294 K: P-F 1.663 (2) A and F-P-F 178.3 (2) degrees, agreeing with Weller 1991 (1.665 and 178.58); (C6F5)3PF2 is 1.636 (2) A. NOT built: the phenyl groups are not terminal single-atom ligands, and the builder places no ligand hydrogens or rings.
+"""
+
+[[source]]
+key = "bartell1965"
+kind = "literature"
+citation = "L. S. Bartell & K. W. Hansen, 'Structure and bonding in CH3PF4 and (CH3)2PF3. An electron diffraction study', Inorg. Chem. 4, 1777-1782 (1965)"
+identifier_type = "doi"
+identifier = "10.1021/ic50034a024"
+status = "reference_only"
+used_by = ["docs/HYPERVALENT_COVERAGE_DESIGN.md"]
+local = "bartell1965.pdf"
+verification = "citation"
+verified_date = 2026-11-14
+reason = """
+Read. Gas electron diffraction of the methylfluorophosphoranes (the methyl on equatorial sites). NOT built: a methyl ligand carries hydrogens the builder does not place, so the molecule would come out missing them.
+"""
+
+[[source]]
+key = "beckers1990"
+kind = "literature"
+citation = "H. Beckers, J. Breidung, H. Burger, R. Kuna, A. Rahner, W. Schneider & W. Thiel, 'High-resolution rotation-vibration spectroscopy of difluorophosphorane: a combined theoretical and experimental study', J. Chem. Phys. 93, 4603-4614 (1990)"
+identifier_type = "doi"
+identifier = "10.1063/1.458700"
+status = "reference_only"
+used_by = ["docs/HYPERVALENT_COVERAGE_DESIGN.md"]
+local = "beckers1990.pdf"
+verification = "citation"
+verified_date = 2026-11-14
+reason = """
+Read for identity and abstract. PH3F2 from rotation-vibration spectra (r0 P-H 1.394, P-F axial 1.6468 A). NOT built: the hydrogens are implicit in a drawing, so the centre does not present as a five-ligand one.
+"""
+
+[[source]]
+key = "heimburger1975"
+kind = "literature"
+citation = "R. Heimburger & M. J. F. Leroy, 'Evidence of a molecular dimeric form of antimony pentachloride at low temperature using Raman spectroscopy', Spectrochim. Acta A 31, 653-660 (1975)"
+identifier_type = "doi"
+identifier = "10.1016/0584-8539(75)80060-2"
+status = "reference_only"
+used_by = ["docs/HYPERVALENT_COVERAGE_DESIGN.md"]
+local = "heimburger1975.pdf"
+verification = "citation"
+verified_date = 2026-11-14
+reason = """
+Read for the abstract. Raman evidence of a dimer below about 212 K; spectroscopy, no distances.
+"""
+
+[[source]]
+key = "downs1967"
+kind = "literature"
+citation = "A. J. Downs & R. Schmutzler, 'Stereochemistry of fluorophosphoranes-II. The vibrational spectra and molecular structures of dimethyltrifluorophosphorane and trimethyldifluorophosphorane', Spectrochim. Acta A 23, 681-701 (1967)"
+identifier_type = "doi"
+identifier = "10.1016/0584-8539(67)80323-4"
+status = "reference_only"
+used_by = ["docs/HYPERVALENT_COVERAGE_DESIGN.md"]
+local = "downs1967.pdf"
+verification = "citation"
+verified_date = 2026-11-14
+reason = """
+Held. Vapour infrared and liquid Raman evidence for the structures of (CH3)2PF3 and (CH3)3PF2; spectroscopy, no distances.
 """

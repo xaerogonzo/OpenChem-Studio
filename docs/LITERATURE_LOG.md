@@ -297,6 +297,27 @@ Seven papers fetched after the fourth pass, read for values (Zhang and Seppelt's
 
 **Both gaps named after the fourth pass are closed**: IF4- and BrF4- now have measured lengths. The BrF4- value rests on a powder neutron study (esd 0.02 A, the angles within 2 degrees), the weakest of the four, and the paper by Zhang and Seppelt quotes 189 pm for a Rb salt single crystal from older work, in agreement.
 
+## Sixth hypervalent pass: SbCl5, PCl2F3 and what could not be built (2026-11-14)
+
+Fourteen papers fetched from a second literature search, read for values (Ivashkevich's Table 3 from the rendered page). Every DOI was checked in Crossref.
+
+| Paper | What it is | Outcome | Registry key |
+|---|---|---|---|
+| Ivashkevich et al. 1982 | SbCl5 gas electron diffraction | **shipped**: re(Sb-Cl) 2.338 (7) axial, 2.277 (5) equatorial A, D3h, nozzle about 25 C; antimony joins the rule table | `ivashkevich1982` |
+| French et al. 1985 | PCl2F3 gas electron diffraction | **shipped**: rg P-F axial 1.593 (4), P-F equatorial 1.546 (9), P-Cl 2.004 (2) A, chlorines equatorial; angles placed ideal | `french1985` |
+| Ohlberg 1959 | SbCl5 crystal at -30 C | comparison only: 2.34 and 2.29 A | `ohlberg1959` |
+| Gavin and Bartell 1968, Bartell and Gavin 1968 | XeF6 gas electron diffraction | **deliberately not built**: mean Xe-F 1.890 (5) A but the molecule is a fluxional, distorted octahedron (bond lengths spread about 0.08 A, bending displacements 5 to 10 degrees, three models fit about equally, and the authors call the fitted parameters rough guides); a regular octahedron is a symmetry-protected saddle, not a start | `gavin1968`, `bartell1968` |
+| Burbank and Jones 1974, Hoyer et al. 2006 | solid XeF6 | not used: XeF5+ and F- oligomers, not molecules | `burbank1974`, `hoyer2006` |
+| Mahjoub and Seppelt 1991, Selig et al. 1974 | TeF7- preparations | no usable TeF7- geometry (twinning, spectra only); **Zhang and Seppelt's table has eight distance lines for seven fluorines (one label printed twice), so the axial and equatorial means cannot be assigned**, and tellurium would need a rule for eight bonds; not built | `mahjoub1991`, `selig1974` |
+| Doxsee et al. 1992 | PPh3F2 second crystal, 294 K | P-F 1.663 (2) A, F-P-F 178.3 (2) degrees, agreeing with Weller 1991; **not built**: phenyl groups are not terminal ligands | `doxsee1992` |
+| Bartell and Hansen 1965 | CH3PF4 and (CH3)2PF3 gas electron diffraction | **not built**: a methyl ligand has hydrogens the builder does not place | `bartell1965` |
+| Beckers et al. 1990 | PH3F2 rotation-vibration spectra | not built: hydrogens are implicit in a drawing | `beckers1990` |
+| Heimburger and Leroy 1975, Downs and Schmutzler 1967 | SbCl5 dimer Raman, methylfluorophosphorane vibrational spectra | spectroscopy, no distances | `heimburger1975`, `downs1967` |
+
+**What ORCA says about the two starts** (B3LYP/def2-SVP): SbCl5 stays a D3h trigonal bipyramid (Sb-Cl 2.392 axial and 2.364 equatorial A against the gas value 2.338 and 2.277); PCl2F3 keeps the chlorines equatorial (P-Cl 2.042, P-F axial 1.615 and equatorial 1.588 A, Cl-P-Cl 123.1 degrees against the measured 122.0, F-P-F axial 179.0).
+
+The DOI of Zhang and Seppelt 1997 turned out to exist (10.1002/zaac.19976230178, found by the second search and confirmed in Crossref); its registry entry now carries it.
+
 ## How to use this
 
 Before searching for a reference for a tautomer system, look here. A paper listed as "not an energy

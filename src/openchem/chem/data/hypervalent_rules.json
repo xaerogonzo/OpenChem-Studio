@@ -79,5 +79,13 @@
     "expanded_octet_requires_ligands": ["F", "Cl", "Br", "I", "O", "C"],
     "examples": ["TeCl4", "TeF6", "TeO2"],
     "reference": "lambda-convention, IUPAC 2013 P-14.1; TeCl4 is a characterised seesaw in the gas phase (electron diffraction)"
+  },
+  "Sb": {
+    "preferred_valence": 3,
+    "maximum_valence": 5,
+    "permitted_valences": [3, 5],
+    "expanded_octet_requires_ligands": ["F", "Cl", "O", "N", "C"],
+    "examples": ["SbCl5", "SbF5", "SbPh5"],
+    "reference": "lambda-convention, IUPAC 2013 P-14.1; SbCl5 is a characterised trigonal bipyramid in the gas phase (electron diffraction) and in the crystal"
   }
 }

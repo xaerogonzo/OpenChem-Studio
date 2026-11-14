@@ -46,7 +46,7 @@ from typing import Any
 import numpy as np
 
 #: Outer-shell electrons of the centres covered (group number), for the lone-pair count.
-_OUTER_ELECTRONS = {"P": 5, "As": 5, "S": 6, "Se": 6, "Te": 6, "Cl": 7, "Br": 7, "I": 7, "Xe": 8}
+_OUTER_ELECTRONS = {"P": 5, "As": 5, "Sb": 5, "S": 6, "Se": 6, "Te": 6, "Cl": 7, "Br": 7, "I": 7, "Xe": 8}
 
 
 class Kind(str, Enum):
@@ -429,6 +429,33 @@ _ENTRIES = (
         "the axial-equatorial angles (84.5 to 86.1) follow from those two; a seesaw with several F...H and weak As...F contacts omitted",
         True,
         -1,
+    ),
+    # Two more trigonal bipyramids (2026-11-14), from gas-phase electron diffraction: antimony pentachloride and PCl2F3 (chlorines equatorial).
+    Reference(
+        "Sb",
+        "Cl",
+        5,
+        2.338,
+        2.277,
+        {},
+        "Ivashkevich, Ishchenko, Spiridonov et al. 1982, J Struct Chem 23, 295 [source:ivashkevich1982]",
+        "gas electron diffraction, re (esd 0.007 axial, 0.005 equatorial), nozzle about 25 C, D3h with a Berry pseudorotation barrier of 1.8 (0.6) kcal/mol; the crystal "
+        "(Ohlberg 1959) gives 2.34 and 2.29 A, and the liquid is a different model",
+        True,
+    ),
+    Reference(
+        "P",
+        "ClClFFF",
+        5,
+        1.593,
+        1.546,
+        {},
+        "French, Hedberg, Shreeve and Gupta 1985, Inorg Chem 24, 2774 [source:french1985]",
+        "gas electron diffraction, rg (P-F axial 1.593 (0.004), P-F equatorial 1.546 (0.009), P-Cl 2.004 (0.002) A, nozzle 22 to 24 C): the chlorines are equatorial, "
+        "F(ax)-P-F(eq) 89.3 (0.3) and Cl-P-Cl 122.0 (0.5) degrees are placed at the ideal 90 and 120; the molecule exchanges its fluorines by a Berry motion",
+        True,
+        0,
+        (("F", 1.593), ("F", 1.593), ("F", 1.546), ("Cl", 2.004), ("Cl", 2.004)),
     ),
     # Trigonal pyramids (2026-11-14): the template `_trigonal_pyramid` with the two molecules whose crystals are the only structures measured.
     Reference(

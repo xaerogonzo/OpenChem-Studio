@@ -87,6 +87,7 @@ CASES = [
     ("F[I-]F", "AX2E3", "linear", 2.0785, 2.0785),
     ("F[Br-](F)(F)F", "AX4E2", "square planar", 1.89, 1.89),
     ("F[As-](F)(F)F", "AX4E", "seesaw", 1.870, 1.7255),
+    ("Cl[Sb](Cl)(Cl)(Cl)Cl", "AX5", "trigonal bipyramidal", 2.338, 2.277),
     ("F[Cl+](F)(F)F", "AX4E", "seesaw", 1.617, 1.530),
     ("F[Xe-](F)(F)(F)F", "AX5E2", "pentagonal planar", 2.012, 2.012),
 ]
@@ -545,3 +546,17 @@ def test_a_pyramid_the_table_lacks_is_still_left_to_the_ordinary_path():
         outcome = build_vsepr_geometry(_mol(smiles))
         assert outcome.kind in (Kind.NOT_APPLICABLE, Kind.UNSUPPORTED), smiles
         assert outcome.kind is not Kind.BUILT
+
+
+def test_pcl2f3_has_the_chlorines_equatorial_and_the_three_published_lengths():
+    """French et al. 1985: rg P-F axial 1.593, P-F equatorial 1.546, P-Cl 2.004 A; the chlorines sit in the equatorial plane."""
+    smiles = "FP(F)(F)(Cl)Cl"
+    g = _built(smiles)
+    p, c = g.coordinates, g.centre_index
+    chlorines = _by_element(g, smiles, "Cl")
+    assert len(chlorines) == 2 and all(i in g.equatorial_indices for i in chlorines)
+    assert all(_bond(p, c, i) == pytest.approx(2.004, abs=1e-6) for i in chlorines)
+    fluorines = _by_element(g, smiles, "F")
+    assert sorted(round(_bond(p, c, i), 3) for i in fluorines) == [1.546, 1.593, 1.593]
+    axial_fluorines = [i for i in fluorines if i in g.axial_indices]
+    assert len(axial_fluorines) == 2 and _angle(p, axial_fluorines[0], c, axial_fluorines[1]) == pytest.approx(180.0, abs=1e-6)

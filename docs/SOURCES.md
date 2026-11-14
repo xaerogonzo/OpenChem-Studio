@@ -1,5 +1,5 @@
 <!-- GENERATED FROM docs/sources.toml -- do not edit -->
-<!-- SOURCE SHA256: 76f68d95b6c9bdbe2434bf3afeb41220047af8f98ca68b9ffa5c0795d55b268d -->
+<!-- SOURCE SHA256: 3f60d0885eb70a08880b86cb14f46bf0fabf9657c4ef6735c7560d196d30560c -->
 
 # Sources
 
@@ -118,8 +118,11 @@ Title and DOI first; the `key` is what prose and code cite (`[source:key]`) and 
 | A machine learning approach to predicting protein-ligand binding affinity with applications to molecular docking | [10.1093/bioinformatics/btq112](https://doi.org/10.1093/bioinformatics/btq112) | [`ballester2010`](#ballester2010) | literature | **not shipped** | citation |
 | C. Bannwarth, E. Caldeweyher, S. Ehlert, A. Hansen, P. Pracht, J. Seibert, S. Spicher & S. Grimme, WIREs… | [10.1002/wcms.1493](https://doi.org/10.1002/wcms.1493) | [`bannwarth2021xtb`](#bannwarth2021xtb) | literature | shipped | citation |
 | DFT Meets Wave-Function Composite Methods for Characterizing Cytosine Tautomers in the Gas Phase | [10.1021/acs.jctc.3c00465](https://doi.org/10.1021/acs.jctc.3c00465) | [`barone2023`](#barone2023) | literature | reference only | citation |
+| Structure and bonding in CH3PF4 and (CH3)2PF3. An electron diffraction study | [10.1021/ic50034a024](https://doi.org/10.1021/ic50034a024) | [`bartell1965`](#bartell1965) | literature | reference only | citation |
+| Molecular structure of XeF6. II. Internal motion and mean geometry deduced by electron diffraction | [10.1063/1.1669471](https://doi.org/10.1063/1.1669471) | [`bartell1968`](#bartell1968) | literature | reference only | citation |
 | Electron diffraction analysis of charge redistribution model and structure of SeF6 | [10.1016/0022-2860(84)85178-9](https://doi.org/10.1016/0022-2860(84)85178-9) | [`bartell1984`](#bartell1984) | literature | shipped | citation + claim |
 | Van der Waals Radii of Elements | [10.1023/a:1011625728803](https://doi.org/10.1023/a:1011625728803) | [`batsanov2001`](#batsanov2001) | literature | reference only | citation |
+| High-resolution rotation-vibration spectroscopy of difluorophosphorane: a combined theoretical and experimental study | [10.1063/1.458700](https://doi.org/10.1063/1.458700) | [`beckers1990`](#beckers1990) | literature | reference only | citation |
 | Tautomeric Properties and Gas-Phase Structure of Acetylacetone | [10.1021/jo402814c](https://doi.org/10.1021/jo402814c) | [`belova2014`](#belova2014) | literature | shipped | citation + claim |
 | An open source chemical structure curation pipeline using RDKit | [10.1186/s13321-020-00456-1](https://doi.org/10.1186/s13321-020-00456-1) | [`bento2020`](#bento2020) | literature | shipped | citation + claim |
 | The First General Index of Molecular Complexity | [10.1021/ja00402a071](https://doi.org/10.1021/ja00402a071) | [`bertz1981`](#bertz1981) | literature | shipped | citation |
@@ -146,6 +149,7 @@ Title and DOI first; the `key` is what prose and code cite (`[source:key]`) and 
 | The Electronegativity Equalization Method I: Parametrization and Validation for Atomic Charge Calculations | [10.1021/jp0205463](https://doi.org/10.1021/jp0205463) | [`bultinck2002a`](#bultinck2002a) | literature | shipped | citation + claim |
 | The Electronegativity Equalization Method II: Applicability of Different Atomic Charge Schemes | [10.1021/jp020547v](https://doi.org/10.1021/jp020547v) | [`bultinck2002b`](#bultinck2002b) | literature | reference only | citation + claim |
 | Critical thoughts on computing atom condensed Fukui functions | [10.1063/1.2749518](https://doi.org/10.1063/1.2749518) | [`bultinck2007`](#bultinck2007) | literature | shipped | citation + claim |
+| Structure of the cubic phase of xenon hexafluoride at 193 K | [10.1021/ja00808a007](https://doi.org/10.1021/ja00808a007) | [`burbank1974`](#burbank1974) | literature | reference only | citation |
 | Topological Steric Effect Index and Its Application | [10.1021/ci034266b](https://doi.org/10.1021/ci034266b) | [`cao2004`](#cao2004) | literature | shipped | citation + claim |
 | Importance of aromaticity on the relative stabilities of indazole annular tautomers: an ab initio study | [10.1039/P29960000057](https://doi.org/10.1039/P29960000057) | [`catalan1996`](#catalan1996) | literature | reference only | citation + claim |
 | Electrical response in chemical potential equalization schemes | [10.1063/1.480198](https://doi.org/10.1063/1.480198) | [`chelli1999`](#chelli1999) | literature | reference only | citation |
@@ -184,6 +188,8 @@ Title and DOI first; the `key` is what prose and code cite (`[source:key]`) and 
 | Photoelectron Spectra of Molecules. II. The Ionization Potentials of Azabenzenes and Azanaphthalenes | [10.1063/1.1671718](https://doi.org/10.1063/1.1671718) | [`dewar1969`](#dewar1969) | literature | reference only | citation |
 | Dimorphite-DL: An open-source program for enumerating the ionization states of drug-like small molecules | <https://github.com/durrantlab/dimorphite_dl> | [`dimorphite_dl`](#dimorphite_dl) | software | shipped | citation |
 | BRAIN 2.0: Time and Memory Complexity Improvements in the Algorithm for Calculating the Isotope Distribution | [10.1007/s13361-013-0796-5](https://doi.org/10.1007/s13361-013-0796-5) | [`dittwald2014`](#dittwald2014) | literature | reference only | citation |
+| Stereochemistry of fluorophosphoranes-II. The vibrational spectra and molecular structures of dimethyltrifluorophosphorane and trimethyldifluorophosphorane | [10.1016/0584-8539(67)80323-4](https://doi.org/10.1016/0584-8539(67)80323-4) | [`downs1967`](#downs1967) | literature | reference only | citation |
+| Structure of difluorotriphenylphosphorane | [10.1107/S0108270191014889](https://doi.org/10.1107/S0108270191014889) | [`doxsee1992`](#doxsee1992) | literature | reference only | citation |
 | A Double-Scale Equation for Correlating Enthalpies of Lewis Acid-Base Interactions | [10.1021/ja01094a008](https://doi.org/10.1021/ja01094a008) | [`drago1965`](#drago1965) | literature | shipped | citation + claim |
 | A method for the analysis and prediction of gas-phase ion-molecule enthalpies | [10.1021/ja00180a047](https://doi.org/10.1021/ja00180a047) | [`drago1990`](#drago1990) | literature | shipped | citation |
 | Addition of new donors to the E and C model | [10.1021/ic00063a045](https://doi.org/10.1021/ic00063a045) | [`drago1993`](#drago1993) | literature | shipped | citation |
@@ -203,10 +209,12 @@ Title and DOI first; the `key` is what prose and code cite (`[source:key]`) and 
 | Targeting Tyrosinase: Development and Structural Insights of Novel Inhibitors Bearing Arylpiperidine and Arylpiperazine Fragments | [10.1021/acs.jmedchem.7b01745](https://doi.org/10.1021/acs.jmedchem.7b01745) | [`ferro2018`](#ferro2018) | literature | reference only | citation + claim |
 | Calculation of Fukui Functions Without Differentiating to the Number of Electrons. 3. Local Fukui Function and Dual Descriptor | [10.1021/ct800027e](https://doi.org/10.1021/ct800027e) | [`fievez2008`](#fievez2008) | literature | reference only | citation |
 | Studies on tautomerism: Benchmark quantum chemical calculations on formamide and formamidine | [10.1016/j.molstruc.2010.02.065](https://doi.org/10.1016/j.molstruc.2010.02.065) | [`fogarasi2010`](#fogarasi2010) | literature | shipped | citation + claim |
+| Dichlorotrifluorophosphorane (PCl2F3): molecular structure by gas-phase electron diffraction and quadratic force field | [10.1021/ic00212a014](https://doi.org/10.1021/ic00212a014) | [`french1985`](#french1985) | literature | shipped | citation + claim |
 | Thermochemistry of Uracil, Thymine, Cytosine, and Adenine | [10.1021/acs.jpca.9b02061](https://doi.org/10.1021/acs.jpca.9b02061) | [`ganyecz2019`](#ganyecz2019) | literature | reference only | citation |
 | Iterative Partial Equalization of Orbital Electronegativity -- A Rapid Access to Atomic Charges | [10.1016/0040-4020(80)80168-2](https://doi.org/10.1016/0040-4020(80)80168-2) | [`gasteiger1980`](#gasteiger1980) | literature | shipped | citation + claim |
 | Calculation of the Charge Distribution in Conjugated Systems by a Quantification of the Resonance Concept | [10.1002/anie.198506871](https://doi.org/10.1002/anie.198506871) | [`gasteiger1985`](#gasteiger1985) | literature | **not shipped** | citation |
 | The calculation of molecular volumes and the use of volume analysis in the investigation of structured media and of solid-state organic reactivity | [10.1021/ja00354a007](https://doi.org/10.1021/ja00354a007) | [`gavezzotti1983`](#gavezzotti1983) | literature | reference only | citation + claim |
+| Molecular structure of XeF6. I. Analysis of electron-diffraction intensities | [10.1063/1.1669470](https://doi.org/10.1063/1.1669470) | [`gavin1968`](#gavin1968) | literature | reference only | citation |
 | High-quality and universal empirical atomic charges for chemoinformatics applications | [10.1186/s13321-015-0107-1](https://doi.org/10.1186/s13321-015-0107-1) | [`geidl2015`](#geidl2015) | literature | reference only | citation |
 | AiZynthFinder: a fast, robust and flexible open-source software for retrosynthetic planning | [10.1186/s13321-020-00472-1](https://doi.org/10.1186/s13321-020-00472-1) | [`genheden2020aizynthfinder`](#genheden2020aizynthfinder) | literature | reference only | citation + claim |
 | Clustering of synthetic routes using tree edit distance | [10.1021/acs.jcim.1c00232](https://doi.org/10.1021/acs.jcim.1c00232) | [`genheden2021ted`](#genheden2021ted) | literature | reference only | citation |
@@ -234,6 +242,7 @@ Title and DOI first; the `key` is what prose and code cite (`[source:key]`) and 
 | Molecular Structures of Gas-Phase Polyatomic Molecules Determined by Spectroscopic Methods | [10.1063/1.555605](https://doi.org/10.1063/1.555605) | [`harmony1979`](#harmony1979) | literature | reference only | citation + claim |
 | Iodine-Rich Imidazolium Iodate and Periodate Salts: En Route to Single-Based Biocidal Agents | [10.1021/acs.inorgchem.6b02195](https://doi.org/10.1021/acs.inorgchem.6b02195) | [`he2016`](#he2016) | literature | shipped | citation + claim |
 | Thionyl tetrafluoride. Reanalysis of the molecular structure and resolution of the multiple model problem | [10.1021/j100394a004](https://doi.org/10.1021/j100394a004) | [`hedberg1982`](#hedberg1982) | literature | shipped | citation + claim |
+| Evidence of a molecular dimeric form of antimony pentachloride at low temperature using Raman spectroscopy | [10.1016/0584-8539(75)80060-2](https://doi.org/10.1016/0584-8539(75)80060-2) | [`heimburger1975`](#heimburger1975) | literature | reference only | citation |
 | The Thermodynamic and Kinetic Properties of 2-Hydroxypyridine/2-Pyridone Tautomerization: A Theoretical and Computational Revisit | [10.3390/ijms17111893](https://doi.org/10.3390/ijms17111893) | [`hejazi2016`](#hejazi2016) | literature | reference only | citation |
 | The deferral of HLB -- OVERTURNED. See [source:schott1989]. |  | [`hlb`](#hlb) | reference_table | reference only | citation |
 | A study of the valence shell electronic states of pyridazine by photoabsorption spectroscopy and time-dependent density functional theory calculations | [10.1088/0953-4075/46/17/175103](https://doi.org/10.1088/0953-4075/46/17/175103) | [`holland2013`](#holland2013) | literature | shipped | citation + claim |
@@ -241,6 +250,7 @@ Title and DOI first; the `key` is what prose and code cite (`[source:key]`) and 
 | An experimental and theoretical study of the valence shell photoelectron spectra of 2-chloropyridine and 3-chloropyridine | [10.1063/1.4999433](https://doi.org/10.1063/1.4999433) | [`holland2017`](#holland2017) | literature | shipped | citation + claim |
 | Findings of the challenge to predict aqueous solubility |  | [`hopfinger2009`](#hopfinger2009) | dataset | shipped | citation |
 | The structure of IF3 | [10.1002/(SICI)1521-3773(20000417)39:8<1448::AID-ANIE1448>3.0.CO;2-G](https://doi.org/10.1002/(SICI)1521-3773(20000417)39:8<1448::AID-ANIE1448>3.0.CO;2-G) | [`hoyer2000`](#hoyer2000) | literature | shipped | citation + claim |
+| The structure of xenon hexafluoride in the solid state | [10.1016/j.jfluchem.2006.04.014](https://doi.org/10.1016/j.jfluchem.2006.04.014) | [`hoyer2006`](#hoyer2006) | literature | reference only | citation |
 | Molecular Spectra and Molecular Structure IV. Constants of Diatomic Molecules |  | [`huber1979`](#huber1979) | literature | reference only | citation + claim |
 | Evaluated Gas Phase Basicities and Proton Affinities of Molecules: An Update | [10.1063/1.556018](https://doi.org/10.1063/1.556018) | [`hunter1998`](#hunter1998) | literature | reference only | citation + claim |
 | Structures of Bromine Oxygen Compounds | [10.1002/zaac.19976230160](https://doi.org/10.1002/zaac.19976230160) | [`hwang1997`](#hwang1997) | literature | shipped | citation + claim |
@@ -251,6 +261,7 @@ Title and DOI first; the `key` is what prose and code cite (`[source:key]`) and 
 | IUPAC, Nomenclature of Organic Chemistry: Recommendations and Preferred Names 2013 (the Blue Book). | IUPAC Recommendations and Preferred Names 2013 | [`iupac2013`](#iupac2013) | standard | shipped | citation + claim |
 | IUPAC, Compendium of Chemical Terminology (the Gold Book), version 2.3.1, 2012-03-23. | IUPAC Compendium of Chemical Terminology, version 2.3.1 | [`iupac_goldbook`](#iupac_goldbook) | standard | shipped | citation + claim |
 | open-iupac-namer, vendored under `src/openchem/vendor/iupac_namer/` -- the offline deterministic… | <https://github.com/leehiufung911/open-iupac-namer> | [`iupac_namer`](#iupac_namer) | software | shipped | citation |
+| An electron-diffraction study of the structure and pseudorotation of antimony pentachloride in the vapor state | [10.1007/BF00790775](https://doi.org/10.1007/BF00790775) | [`ivashkevich1982`](#ivashkevich1982) | literature | shipped | citation + claim |
 | Structure analyses combining electron diffraction and microwave data. I. Study of XeOF4 | [10.1016/0022-2860(71)80016-9](https://doi.org/10.1016/0022-2860(71)80016-9) | [`jacob1971`](#jacob1971) | literature | shipped | citation + claim |
 | Energetics of Propellants, Fuels and Explosives; a Chemical Valence Approach | [10.1002/prep.19870120603](https://doi.org/10.1002/prep.19870120603) | [`jain1987`](#jain1987) | literature | shipped | citation + claim |
 | Electron photodetachment from mercaptyl anions (RS-). Electron affinities of mercaptyl radicals and the S-H bond strength in mercaptans | [10.1021/ja00529a040](https://doi.org/10.1021/ja00529a040) | [`janousek1980`](#janousek1980) | literature | reference only | citation + claim |
@@ -290,6 +301,7 @@ Title and DOI first; the `key` is what prose and code cite (`[source:key]`) and 
 | A CASPT2 study of the valence and lowest Rydberg electronic states of benzene and phenol | [10.1007/BF01113865](https://doi.org/10.1007/BF01113865) | [`lorentzon1995`](#lorentzon1995) | literature | reference only | citation + claim |
 | Escape from Flatland: Increasing Saturation as an Approach to Improving Clinical Success | [10.1021/jm901241e](https://doi.org/10.1021/jm901241e) | [`lovering2009`](#lovering2009) | literature | shipped | citation |
 | Comprehensive Handbook of Chemical Bond Energies |  | [`luo2007`](#luo2007) | reference_table | reference only | citation |
+| Preparation and structure of the IOF6- and TeF7- anions | [10.1039/C39910000840](https://doi.org/10.1039/C39910000840) | [`mahjoub1991`](#mahjoub1991) | literature | reference only | citation |
 | On a Test of Whether one of Two Random Variables is Stochastically Larger than the Other |  | [`mann1947`](#mann1947) | literature | shipped | citation + claim |
 | Consistent van der Waals Radii for the Whole Main Group | [10.1021/jp8111556](https://doi.org/10.1021/jp8111556) | [`mantina2009`](#mantina2009) | literature | shipped | citation + claim |
 | Thirty years of density functional theory in computational chemistry: an overview and extensive assessment of 200 density functionals | [10.1080/00268976.2017.1333644](https://doi.org/10.1080/00268976.2017.1333644) | [`mardirossian2017`](#mardirossian2017) | literature | reference only | citation + claim |
@@ -327,6 +339,7 @@ Title and DOI first; the `key` is what prose and code cite (`[source:key]`) and 
 | The NUBASE2020 evaluation of nuclear physics properties | [10.1088/1674-1137/abddae](https://doi.org/10.1088/1674-1137/abddae) | [`nubase2020`](#nubase2020) | dataset | shipped | citation + claim |
 | Gas-phase structure of chlorine trifluoride oxide, ClF3O | [10.1021/ic00131a050](https://doi.org/10.1021/ic00131a050) | [`oberhammer1982`](#oberhammer1982) | literature | shipped | citation + claim |
 | Geometry-dependent atomic charge calculations using charge equilibration method with empirical two-center Coulombic terms | [10.1016/S0166-1280(03)00338-5](https://doi.org/10.1016/S0166-1280(03)00338-5) | [`oda2003`](#oda2003) | literature | reference only | citation |
+| The crystal structure of antimony pentachloride at -30 degrees | [10.1021/ja01513a015](https://doi.org/10.1021/ja01513a015) | [`ohlberg1959`](#ohlberg1959) | literature | reference only | citation |
 | Condensed Fukui Functions Derived from Stockholder Charges: Assessment of Their Performance as Local Reactivity Descriptors | [10.1021/jp014039h](https://doi.org/10.1021/jp014039h) | [`olah2002`](#olah2002) | literature | shipped | citation + claim |
 | Evaluating Charge Equilibration Methods To Generate Electrostatic Fields in Nanoporous Materials | [10.1021/acs.jctc.8b00669](https://doi.org/10.1021/acs.jctc.8b00669) | [`ongari2018`](#ongari2018) | literature | reference only | citation + claim |
 | Open Notebook Science Challenge Solubility Dataset | [10.6084/m9.figshare.1514952](https://doi.org/10.6084/m9.figshare.1514952) | [`ons_solubility`](#ons_solubility) | dataset | shipped | citation |
@@ -384,6 +397,7 @@ Title and DOI first; the `key` is what prose and code cite (`[source:key]`) and 
 | Kinetics of the R + HBr = RH + Br (R = CH2Br, CHBrCl or CCl3) equilibrium. Thermochemistry of the CH2Br and CHBrCl radicals | [10.1039/b210787m](https://doi.org/10.1039/b210787m) | [`seetula2003`](#seetula2003) | literature | reference only | citation + claim |
 | Kinetics of the R + HBr = RH + Br (CH3CHBr, CHBr2 or CDBr2) equilibrium. Thermochemistry of the CH3CHBr and CHBr2 radicals | [10.1016/j.chemphys.2008.04.008](https://doi.org/10.1016/j.chemphys.2008.04.008) | [`seetula2008`](#seetula2008) | literature | reference only | citation + claim |
 | Dynamic Charge Equilibration-Morse Stretch Force Field: Application to Energetics of Pure Silica Zeolites | [10.1002/jcc.10130](https://doi.org/10.1002/jcc.10130) | [`sefcik2002`](#sefcik2002) | literature | reference only | citation + claim |
+| Alkali fluorotellurates(VI) | [10.1021/ic50136a051](https://doi.org/10.1021/ic50136a051) | [`selig1974`](#selig1974) | literature | reference only | citation |
 | Synthesis of metal iodates from an energetic salt | [10.1039/d0ra02250k](https://doi.org/10.1039/d0ra02250k) | [`shancita2020`](#shancita2020) | literature | shipped | citation |
 | Revised effective ionic radii and systematic studies of interatomic distances in halides and chalcogenides |  | [`shannon1976`](#shannon1976) | literature | shipped | citation + claim |
 | Fireworks: The Art, Science and Technique | 0-929388-05-4 | [`shimizu1996`](#shimizu1996) | literature | shipped | citation |
@@ -441,7 +455,7 @@ Title and DOI first; the `key` is what prose and code cite (`[source:key]`) and 
 | PaRoutes 2.0 and USPTO-based models | [10.5281/zenodo.7341155](https://doi.org/10.5281/zenodo.7341155) | [`zenodo7341155`](#zenodo7341155) | dataset | reference only | citation + claim |
 | USPTO-based ONNX models | [10.5281/zenodo.7797465](https://doi.org/10.5281/zenodo.7797465) | [`zenodo7797465`](#zenodo7797465) | dataset | reference only | citation + claim |
 | Guanidine-thermite igniter composition for use in gas generators | <https://patents.google.com/patent/US6599380B2/en> | [`zeuner2003`](#zeuner2003) | literature | shipped | citation + claim |
-| Preparation and Structures of Salts with the Anions of IF2-, ClF4-, IF4-, TeF7-, and AsF4- |  | [`zhang1997`](#zhang1997) | literature | shipped | citation + claim |
+| Preparation and Structures of Salts with the Anions of IF2-, ClF4-, IF4-, TeF7-, and AsF4- | [10.1002/zaac.19976230178](https://doi.org/10.1002/zaac.19976230178) | [`zhang1997`](#zhang1997) | literature | shipped | citation + claim |
 | Self-Consistent Charge Equilibration Method and Its Application to Au13Nan (n = 1, 10) Clusters | [10.1021/jp8063273](https://doi.org/10.1021/jp8063273) | [`zhang2009`](#zhang2009) | literature | reference only | citation |
 | Fast calculation of van der Waals volume as a sum of atomic and bond contributions and its application to drug compounds | [10.1021/jo034808o](https://doi.org/10.1021/jo034808o) | [`zhao2003`](#zhao2003) | literature | reference only | citation + claim |
 | The M06 suite of density functionals for main group thermochemistry, thermochemical kinetics, noncovalent interactions, excited states, and transition elements: two new functionals and systematic testing of four M06-class functionals and 12 other functionals | [10.1007/s00214-007-0310-x](https://doi.org/10.1007/s00214-007-0310-x) | [`zhao2008`](#zhao2008) | literature | reference only | citation + claim |
@@ -8717,7 +8731,7 @@ Read. XeO3 is a trigonal pyramid in the crystal: Xe-O 1.74, 1.76 and 1.77 (0.03)
 
 | | |
 | --- | --- |
-| Identifier | Z. Anorg. Allg. Chem. 623 (1997) 491-500 (no DOI printed on the paper, none found in Crossref) |
+| Identifier | [10.1002/zaac.19976230178](https://doi.org/10.1002/zaac.19976230178) |
 | Status | shipped |
 | Verification | citation + claim |
 | Verified | 2026-11-14 |
@@ -8827,6 +8841,244 @@ Table 4 read. Neutron powder diffraction of KBrF4: Br-F 1.89 (0.02) A, F-Br-F 90
 | Used by | `src/openchem/chem/vsepr_geometry.py`, `tests/test_vsepr_geometry.py`, `docs/HYPERVALENT_COVERAGE_DESIGN.md` |
 
 Read. BrO2F crystal with O and F disordered over six positions: only the average Br-(O,F) distance 167.4 (0.6) pm is determined, and the all-equal C3v model has angles of 103.8 (0.3) degrees. Shipped as the BrO2F row with that one mean length for all three ligands and said to be a mean (the Br=O is really shorter and the Br-F longer). The same paper's Br2O (bent, Br-O-Br 114.2 degrees, Br-O 187.5 pm) and O2BrOTeF5 are not used.
+
+### ivashkevich1982 — An electron-diffraction study of the structure and pseudorotation of antimony pentachloride in the vapor state
+
+<a id="ivashkevich1982"></a>
+
+> L. S. Ivashkevich, A. A. Ishchenko, V. P. Spiridonov, T. G. Strand, A. A. Ivanov & A. N. Nikolaev, 'An electron-diffraction study of the structure and pseudorotation of antimony pentachloride in the vapor state', J. Struct. Chem. 23, 295-298 (1982)
+
+| | |
+| --- | --- |
+| Identifier | [10.1007/BF00790775](https://doi.org/10.1007/BF00790775) |
+| Status | shipped |
+| Verification | citation + claim |
+| Verified | 2026-11-14 |
+| Local copy | `ivashkevich1982.pdf` (not checked) |
+| Used by | `src/openchem/chem/vsepr_geometry.py`, `tests/test_vsepr_geometry.py`, `docs/HYPERVALENT_COVERAGE_DESIGN.md` |
+
+Table 3 read from the rendered page. Gas electron diffraction, nozzle temperature about 25 C: re(Sb-Cl axial) 2.338 (7), re(Sb-Cl equatorial) 2.277 (5) A, D3h, Berry pseudorotation barrier 1.8 (6) kcal/mol. The 1940 diffraction values (2.43 and 2.31 A) and Ohlberg's crystal (2.34 and 2.29 A) are quoted for comparison. Shipped as the SbCl5 row.
+
+### french1985 — Dichlorotrifluorophosphorane (PCl2F3): molecular structure by gas-phase electron diffraction and quadratic force field
+
+<a id="french1985"></a>
+
+> R. J. French, K. Hedberg, J. M. Shreeve & K. D. Gupta, 'Dichlorotrifluorophosphorane (PCl2F3): molecular structure by gas-phase electron diffraction and quadratic force field', Inorg. Chem. 24, 2774-2777 (1985)
+
+| | |
+| --- | --- |
+| Identifier | [10.1021/ic00212a014](https://doi.org/10.1021/ic00212a014) |
+| Status | shipped |
+| Verification | citation + claim |
+| Verified | 2026-11-14 |
+| Local copy | `french1985.pdf` (not checked) |
+| Used by | `src/openchem/chem/vsepr_geometry.py`, `tests/test_vsepr_geometry.py`, `docs/HYPERVALENT_COVERAGE_DESIGN.md` |
+
+Abstract and Table II read. Gas electron diffraction at 22 to 24 C: rg P-F equatorial 1.546 (9), P-F axial 1.593 (4), P-Cl 2.004 (2) A, F(ax)-P-F(eq) 89.3 (3), Cl-P-Cl 122.0 (5) degrees; the chlorines are equatorial (a Berry exchange would give axial isomers, which the data neither show nor rule out). Shipped as the PCl2F3 row with the ideal 90 and 120 degrees.
+
+### ohlberg1959 — The crystal structure of antimony pentachloride at -30 degrees
+
+<a id="ohlberg1959"></a>
+
+> S. M. Ohlberg, 'The crystal structure of antimony pentachloride at -30 degrees', J. Am. Chem. Soc. 81, 811-813 (1959)
+
+| | |
+| --- | --- |
+| Identifier | [10.1021/ja01513a015](https://doi.org/10.1021/ja01513a015) |
+| Status | reference only |
+| Verification | citation |
+| Verified | 2026-11-14 |
+| Local copy | `ohlberg1959.pdf` (not checked) |
+| Used by | `docs/HYPERVALENT_COVERAGE_DESIGN.md` |
+
+**Why it is reference only.** Read. Molecular crystal of trigonal bipyramidal SbCl5 at -30 (2) C: Sb-Cl axial 2.34, equatorial 2.29 A, no esds in the accessible text; not a dimer. Used only as the comparison value for the gas-phase electron diffraction row.
+
+### gavin1968 — Molecular structure of XeF6. I. Analysis of electron-diffraction intensities
+
+<a id="gavin1968"></a>
+
+> R. M. Gavin Jr. & L. S. Bartell, 'Molecular structure of XeF6. I. Analysis of electron-diffraction intensities', J. Chem. Phys. 48, 2460-2465 (1968)
+
+| | |
+| --- | --- |
+| Identifier | [10.1063/1.1669470](https://doi.org/10.1063/1.1669470) |
+| Status | reference only |
+| Verification | citation |
+| Verified | 2026-11-14 |
+| Local copy | `gavin1968.pdf` (not checked) |
+| Used by | `docs/HYPERVALENT_COVERAGE_DESIGN.md` |
+
+**Why it is reference only.** Abstract read. Gas electron diffraction: a mean Xe-F bond length of 1.890 (0.005) A, a radial distribution that is a composite of nonequivalent bonds, and no regular octahedron. NOT shipped as a geometry: see bartell1968.
+
+### bartell1968 — Molecular structure of XeF6. II. Internal motion and mean geometry deduced by electron diffraction
+
+<a id="bartell1968"></a>
+
+> L. S. Bartell & R. M. Gavin Jr., 'Molecular structure of XeF6. II. Internal motion and mean geometry deduced by electron diffraction', J. Chem. Phys. 48, 2466-2483 (1968)
+
+| | |
+| --- | --- |
+| Identifier | [10.1063/1.1669471](https://doi.org/10.1063/1.1669471) |
+| Status | reference only |
+| Verification | citation |
+| Verified | 2026-11-14 |
+| Local copy | `bartell1968.pdf` (not checked) |
+| Used by | `docs/HYPERVALENT_COVERAGE_DESIGN.md` |
+
+**Why it is reference only.** Abstract, model table and discussion read. The molecule is predominantly in the broad vicinity of C3v distorted octahedra with the lone pair avoiding the bonding pairs, Xe-F lengths distributed over about 0.08 A, fluorine displacements of 5 to 10 degrees and enormous bending amplitudes; three models (C2v, Cs, C3v) fit about equally and the authors call the least-squares parameters rough guides. NOT shipped: no single set of lengths and angles is the measured molecule, and a regular octahedron at 1.890 A is a symmetry-protected saddle that a quantum optimisation would not leave.
+
+### burbank1974 — Structure of the cubic phase of xenon hexafluoride at 193 K
+
+<a id="burbank1974"></a>
+
+> R. D. Burbank & G. R. Jones, 'Structure of the cubic phase of xenon hexafluoride at 193 K', J. Am. Chem. Soc. 96, 43-48 (1974)
+
+| | |
+| --- | --- |
+| Identifier | [10.1021/ja00808a007](https://doi.org/10.1021/ja00808a007) |
+| Status | reference only |
+| Verification | citation |
+| Verified | 2026-11-14 |
+| Local copy | `burbank1974.pdf` (not checked) |
+| Used by | `docs/HYPERVALENT_COVERAGE_DESIGN.md` |
+
+**Why it is reference only.** Held (the PDF's first page belongs to another article). The cubic crystal is built of XeF5+ and F- units in tetramers and hexamers, not isolated XeF6 molecules. Not used.
+
+### hoyer2006 — The structure of xenon hexafluoride in the solid state
+
+<a id="hoyer2006"></a>
+
+> S. Hoyer, T. Emmler & K. Seppelt, 'The structure of xenon hexafluoride in the solid state', J. Fluorine Chem. 127, 1415-1422 (2006)
+
+| | |
+| --- | --- |
+| Identifier | [10.1016/j.jfluchem.2006.04.014](https://doi.org/10.1016/j.jfluchem.2006.04.014) |
+| Status | reference only |
+| Verification | citation |
+| Verified | 2026-11-14 |
+| Local copy | `hoyer2006.pdf` (not checked) |
+| Used by | `docs/HYPERVALENT_COVERAGE_DESIGN.md` |
+
+**Why it is reference only.** Held. Solid XeF6 modifications (tetramers, hexamers) by X-ray, neutron and NMR work; bridged oligomers, not an isolated molecule. Not used.
+
+### mahjoub1991 — Preparation and structure of the IOF6- and TeF7- anions
+
+<a id="mahjoub1991"></a>
+
+> A.-R. Mahjoub & K. Seppelt, 'Preparation and structure of the IOF6- and TeF7- anions', J. Chem. Soc., Chem. Commun. 840-841 (1991)
+
+| | |
+| --- | --- |
+| Identifier | [10.1039/C39910000840](https://doi.org/10.1039/C39910000840) |
+| Status | reference only |
+| Verification | citation |
+| Verified | 2026-11-14 |
+| Local copy | `mahjoub1991.pdf` (not checked) |
+| Used by | `docs/HYPERVALENT_COVERAGE_DESIGN.md` |
+
+**Why it is reference only.** Read. IOF6- and TeF7- are prepared as tetramethylammonium salts; the crystallographic analysis of the IOF6- salt suffers from a fourfold disorder or systematic twinning. No usable refined TeF7- geometry (zhang1997 has it). Not used.
+
+### selig1974 — Alkali fluorotellurates(VI)
+
+<a id="selig1974"></a>
+
+> H. Selig, S. Sarig & S. Abramowitz, 'Alkali fluorotellurates(VI)', Inorg. Chem. 13, 1508-1511 (1974)
+
+| | |
+| --- | --- |
+| Identifier | [10.1021/ic50136a051](https://doi.org/10.1021/ic50136a051) |
+| Status | reference only |
+| Verification | citation |
+| Verified | 2026-11-14 |
+| Local copy | `selig1974.pdf` (not checked) |
+| Used by | `docs/HYPERVALENT_COVERAGE_DESIGN.md` |
+
+**Why it is reference only.** Read for the abstract. CsF/RbF adducts of TeF6; the spectra are interpreted as D5h TeF7- and D4d TeF8(2-). No structure. Not used.
+
+### doxsee1992 — Structure of difluorotriphenylphosphorane
+
+<a id="doxsee1992"></a>
+
+> K. M. Doxsee, E. M. Hanawalt & T. J. R. Weakley, 'Structure of difluorotriphenylphosphorane', Acta Cryst. C48, 1288-1290 (1992)
+
+| | |
+| --- | --- |
+| Identifier | [10.1107/S0108270191014889](https://doi.org/10.1107/S0108270191014889) |
+| Status | reference only |
+| Verification | citation |
+| Verified | 2026-11-14 |
+| Local copy | `doxsee1992.pdf` (not checked) |
+| Used by | `docs/HYPERVALENT_COVERAGE_DESIGN.md` |
+
+**Why it is reference only.** Read. Second crystal determination of (C6H5)3PF2 at 294 K: P-F 1.663 (2) A and F-P-F 178.3 (2) degrees, agreeing with Weller 1991 (1.665 and 178.58); (C6F5)3PF2 is 1.636 (2) A. NOT built: the phenyl groups are not terminal single-atom ligands, and the builder places no ligand hydrogens or rings.
+
+### bartell1965 — Structure and bonding in CH3PF4 and (CH3)2PF3. An electron diffraction study
+
+<a id="bartell1965"></a>
+
+> L. S. Bartell & K. W. Hansen, 'Structure and bonding in CH3PF4 and (CH3)2PF3. An electron diffraction study', Inorg. Chem. 4, 1777-1782 (1965)
+
+| | |
+| --- | --- |
+| Identifier | [10.1021/ic50034a024](https://doi.org/10.1021/ic50034a024) |
+| Status | reference only |
+| Verification | citation |
+| Verified | 2026-11-14 |
+| Local copy | `bartell1965.pdf` (not checked) |
+| Used by | `docs/HYPERVALENT_COVERAGE_DESIGN.md` |
+
+**Why it is reference only.** Read. Gas electron diffraction of the methylfluorophosphoranes (the methyl on equatorial sites). NOT built: a methyl ligand carries hydrogens the builder does not place, so the molecule would come out missing them.
+
+### beckers1990 — High-resolution rotation-vibration spectroscopy of difluorophosphorane: a combined theoretical and experimental study
+
+<a id="beckers1990"></a>
+
+> H. Beckers, J. Breidung, H. Burger, R. Kuna, A. Rahner, W. Schneider & W. Thiel, 'High-resolution rotation-vibration spectroscopy of difluorophosphorane: a combined theoretical and experimental study', J. Chem. Phys. 93, 4603-4614 (1990)
+
+| | |
+| --- | --- |
+| Identifier | [10.1063/1.458700](https://doi.org/10.1063/1.458700) |
+| Status | reference only |
+| Verification | citation |
+| Verified | 2026-11-14 |
+| Local copy | `beckers1990.pdf` (not checked) |
+| Used by | `docs/HYPERVALENT_COVERAGE_DESIGN.md` |
+
+**Why it is reference only.** Read for identity and abstract. PH3F2 from rotation-vibration spectra (r0 P-H 1.394, P-F axial 1.6468 A). NOT built: the hydrogens are implicit in a drawing, so the centre does not present as a five-ligand one.
+
+### heimburger1975 — Evidence of a molecular dimeric form of antimony pentachloride at low temperature using Raman spectroscopy
+
+<a id="heimburger1975"></a>
+
+> R. Heimburger & M. J. F. Leroy, 'Evidence of a molecular dimeric form of antimony pentachloride at low temperature using Raman spectroscopy', Spectrochim. Acta A 31, 653-660 (1975)
+
+| | |
+| --- | --- |
+| Identifier | [10.1016/0584-8539(75)80060-2](https://doi.org/10.1016/0584-8539(75)80060-2) |
+| Status | reference only |
+| Verification | citation |
+| Verified | 2026-11-14 |
+| Local copy | `heimburger1975.pdf` (not checked) |
+| Used by | `docs/HYPERVALENT_COVERAGE_DESIGN.md` |
+
+**Why it is reference only.** Read for the abstract. Raman evidence of a dimer below about 212 K; spectroscopy, no distances.
+
+### downs1967 — Stereochemistry of fluorophosphoranes-II. The vibrational spectra and molecular structures of dimethyltrifluorophosphorane and trimethyldifluorophosphorane
+
+<a id="downs1967"></a>
+
+> A. J. Downs & R. Schmutzler, 'Stereochemistry of fluorophosphoranes-II. The vibrational spectra and molecular structures of dimethyltrifluorophosphorane and trimethyldifluorophosphorane', Spectrochim. Acta A 23, 681-701 (1967)
+
+| | |
+| --- | --- |
+| Identifier | [10.1016/0584-8539(67)80323-4](https://doi.org/10.1016/0584-8539(67)80323-4) |
+| Status | reference only |
+| Verification | citation |
+| Verified | 2026-11-14 |
+| Local copy | `downs1967.pdf` (not checked) |
+| Used by | `docs/HYPERVALENT_COVERAGE_DESIGN.md` |
+
+**Why it is reference only.** Held. Vapour infrared and liquid Raman evidence for the structures of (CH3)2PF3 and (CH3)3PF2; spectroscopy, no distances.
 
 ## Datasets
 
