@@ -378,6 +378,58 @@ _ENTRIES = (
         True,
         1,
     ),
+    # Four more anions, all CRYSTAL structures (2026-11-14). Zhang and Seppelt 1997 used the 1,1,3,3,5,5-hexamethylpiperidinium cation because its contacts with the
+    # anion are weak; the ions are close to ideal.
+    Reference(
+        "I",
+        "F",
+        4,
+        2.007,
+        2.007,
+        {},
+        "Zhang and Seppelt 1997, Z Anorg Allg Chem 623, 491 [source:zhang1997]",
+        "single-crystal X-ray of (pip+)2 IF4- H2F3-, two independent square planar ions: I-F 200.6 (0.3), 201.8 (0.3), 200.3 (0.4) and 200.0 (0.4) pm, mean 200.7; angles 90 and 180 within 0.3",
+        True,
+        -1,
+    ),
+    Reference(
+        "I",
+        "F",
+        2,
+        2.0785,
+        2.0785,
+        {},
+        "Zhang and Seppelt 1997, Z Anorg Allg Chem 623, 491 [source:zhang1997]",
+        "single-crystal X-ray of pip+ IF2-: I-F 207.5 (0.3) and 208.2 (0.3) pm (mean 207.85, equal within 3 esd), F-I-F 177.8 (0.1) degrees in the crystal, placed linear here",
+        True,
+        -1,
+    ),
+    Reference(
+        "Br",
+        "F",
+        4,
+        1.89,
+        1.89,
+        {},
+        "Edwards and Jones 1969, J Chem Soc A, 1936 [source:edwards1969]",
+        "neutron powder diffraction of the K salt: Br-F 1.89 (0.02) A, F-Br-F 90.9 and 89.1 (2.0), square planar; Zhang and Seppelt 1997 quote 189 pm from a Rb salt single crystal. "
+        "Siegel's 1956 tetrahedral model (1.81 A) was shown wrong",
+        True,
+        -1,
+    ),
+    Reference(
+        "As",
+        "F",
+        4,
+        1.870,
+        1.7255,
+        {"ax-ax": 165.7, "eq-eq": 97.5},
+        "Zhang and Seppelt 1997, Z Anorg Allg Chem 623, 491 [source:zhang1997]",
+        "single-crystal X-ray of pip+ AsF4-: As-F axial 187.8 (0.2) and 186.2 (0.3) (mean 187.0), equatorial 172.4 (0.2) and 172.7 (0.3) (mean 172.55) pm; F-As-F 165.7 (0.1) axial, 97.5 (0.1) equatorial; "
+        "the axial-equatorial angles (84.5 to 86.1) follow from those two; a seesaw with several F...H and weak As...F contacts omitted",
+        True,
+        -1,
+    ),
     # The two anions are CRYSTAL structures: the ion is in an ionic lattice, where a Cl-F or Xe-F distance moves by a few
     # hundredths of an Angstrom with the counter-ion (ClF4- spans 1.73 to 1.87 A between salts).
     Reference(

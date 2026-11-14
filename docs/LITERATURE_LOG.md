@@ -277,6 +277,24 @@ The papers of the third pass that had not been read for values. Read from the te
 
 **Still missing, and the wanted list says what to fetch.** IF4- and BrF4- are known square planar anions and have no lengths in any held paper: Christe and Naumann 1973 (held) gives IF4- from spectra only, and the BrF4- crystal papers (Siegel 1956, Sly and Marsh 1957, Edwards and Jones 1969, and Zhang and Seppelt 1997 for IF4-) are not held. A calculated length is not shipped as a measured one.
 
+## Fifth hypervalent pass: the square planar anions (2026-11-14)
+
+Seven papers fetched after the fourth pass, read for values (Zhang and Seppelt's Table 1 from the rendered page, its text layer being scrambled).
+
+| Paper | What it is | Outcome | Registry key |
+|---|---|---|---|
+| Zhang and Seppelt 1997 | single-crystal X-rays of IF2-, ClF4-, IF4-, TeF7- and AsF4- (hexamethylpiperidinium salts, weak cation contacts) | **shipped, three rows as crystals**: IF4- I-F 200.0 to 201.8 pm (mean 200.7), square planar; IF2- I-F 207.5 and 208.2 pm; AsF4- seesaw, As-F 187.0 axial and 172.55 equatorial (means of two each), 165.7 and 97.5 degrees. ClF4- (the K salt is already a row) and TeF7- (a distorted pentagonal bipyramid, outside the rule table) not used. No DOI is printed on it and none was found | `zhang1997` |
+| Edwards and Jones 1969 | neutron powder diffraction of KBrF4 and KAuF4 | **shipped as a crystal**: BrF4- Br-F 1.89 (0.02) A, square planar | `edwards1969` |
+| Siegel 1956 | KBrF4 X-ray powder, a tetrahedral model, Br-F 1.81 A | read, superseded by the neutron study | `siegel1956` |
+| Sly and Marsh 1957 | the same data fitted with a square planar anion | read: both models fit, the data cannot choose | `sly1957` |
+| Christe and Schack 1970 | BrF4- vibrational spectra | read: D4h from spectra, no lengths | `christe1970` |
+| Christe et al. 1998 | IF52- by spectra, calculation and comparison with XeF5- | read, not built: no measured length (2.11 A is calculated) | `christe1998` |
+| Hwang et al. 1997 | Br2O, BrO2F and O2BrOTeF5 crystals | read, not built: BrO2F has O and F disordered, a mean angle of 103.8 degrees and no resolved O-Br-F | `hwang1997` |
+
+**What ORCA says about the four starts** (B3LYP/def2-SVPD, charge -1): IF4- stays square planar D4h (I-F 2.071 A against the crystal's 2.007, longer as an isolated anion's is); BrF4- stays D4h (1.937 against 1.89); AsF4- stays a seesaw (As-F 1.921 axial and 1.793 equatorial, F-As-F 170.8 and 97.7 degrees against 165.7 and 97.5); IF2- stays linear (2.135 against 2.079).
+
+**Both gaps named after the fourth pass are closed**: IF4- and BrF4- now have measured lengths. The BrF4- value rests on a powder neutron study (esd 0.02 A, the angles within 2 degrees), the weakest of the four, and the paper by Zhang and Seppelt quotes 189 pm for a Rb salt single crystal from older work, in agreement.
+
 ## How to use this
 
 Before searching for a reference for a tautomer system, look here. A paper listed as "not an energy

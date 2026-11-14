@@ -83,6 +83,10 @@ CASES = [
     ("Cl[Te](Cl)(Cl)Cl", "AX4E", "seesaw", 2.430, 2.298),
     ("F[Cl-](F)(F)F", "AX4E2", "square planar", 1.7982, 1.7982),
     ("FI(F)F", "AX3E2", "T-shaped", 1.983, 1.872),
+    ("F[I-](F)(F)F", "AX4E2", "square planar", 2.007, 2.007),
+    ("F[I-]F", "AX2E3", "linear", 2.0785, 2.0785),
+    ("F[Br-](F)(F)F", "AX4E2", "square planar", 1.89, 1.89),
+    ("F[As-](F)(F)F", "AX4E", "seesaw", 1.870, 1.7255),
     ("F[Cl+](F)(F)F", "AX4E", "seesaw", 1.617, 1.530),
     ("F[Xe-](F)(F)(F)F", "AX5E2", "pentagonal planar", 2.012, 2.012),
 ]
@@ -287,7 +291,7 @@ def test_the_input_molecule_is_not_modified():
         ("ClS(Cl)(Cl)Cl", "no measured geometry"),
         ("ClI(Cl)Cl", "no measured geometry"),
         ("F[Br+](F)(F)F", "charge +1"),
-        ("F[Br-](F)(F)F", "charge -1"),
+        ("Cl[I-](Cl)(Cl)Cl", "charge -1"),
     ],
 )
 def test_a_recognised_molecule_without_a_reference_is_refused_not_guessed(
@@ -486,3 +490,21 @@ def test_clf4_cation_reproduces_the_crystals_three_angles():
     assert _angle(p, ax1, c, ax2) == pytest.approx(173.92, abs=1e-6)
     assert _angle(p, eq1, c, eq2) == pytest.approx(103.08, abs=1e-6)
     assert _angle(p, ax1, c, eq1) == pytest.approx(88.1, abs=0.1)
+
+
+def test_asf4_anion_reproduces_the_published_axial_and_equatorial_angles():
+    """Zhang and Seppelt 1997: F-As-F 165.7 axial and 97.5 equatorial; the 84.5 to 86.1 between them is implied."""
+    g = _built("F[As-](F)(F)F")
+    ax1, ax2 = g.axial_indices
+    eq1, eq2 = g.equatorial_indices
+    p, c = g.coordinates, g.centre_index
+    assert _angle(p, ax1, c, ax2) == pytest.approx(165.7, abs=1e-6)
+    assert _angle(p, eq1, c, eq2) == pytest.approx(97.5, abs=1e-6)
+    assert 84.5 <= _angle(p, ax1, c, eq1) <= 86.1, "inside the published range of the other angles"
+
+
+@pytest.mark.parametrize(("smiles", "angles"), [("F[I-](F)(F)F", [90.0] * 4 + [180.0] * 2), ("F[Br-](F)(F)F", [90.0] * 4 + [180.0] * 2)])
+def test_the_square_planar_tetrafluoro_anions_are_planar_d4h(smiles, angles):
+    g = _built(smiles)
+    assert _all_angles(g) == angles
+    assert g.shape == "square planar"

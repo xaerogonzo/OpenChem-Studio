@@ -1,5 +1,5 @@
 <!-- GENERATED FROM docs/sources.toml -- do not edit -->
-<!-- SOURCE SHA256: dfa34d4edbf005ceafc56ef2326bcf94a687c90841925d3936efbf4a64fef9cd -->
+<!-- SOURCE SHA256: 3cb8af70720b0c814574632cbc200af0fc1dc6e4b7d603a7f7caf96948e4af2f -->
 
 # Sources
 
@@ -156,8 +156,10 @@ Title and DOI first; the `key` is what prose and code cite (`[source:key]`) and 
 | A unified theoretical framework for fluctuating-charge models in atom-space and in bond-space | [10.1063/1.3021400](https://doi.org/10.1063/1.3021400) | [`chen2008framework`](#chen2008framework) | literature | reference only | citation |
 | Revisiting van der Waals radii: from comprehensive structural analysis to knowledge-based classification of interatomic contacts | [10.1002/cphc.201901083](https://doi.org/10.1002/cphc.201901083) | [`chernyshov2020`](#chernyshov2020) | literature | reference only | citation |
 | Experimental and quantum-chemical studies on photoionization and dissociative photoionization of CH2Br2 | [10.1063/1.1641010](https://doi.org/10.1063/1.1641010) | [`chiang2004`](#chiang2004) | literature | reference only | citation + claim |
+| Tetrafluorobromate(III) anion, BrF4- | [10.1021/ic50090a015](https://doi.org/10.1021/ic50090a015) | [`christe1970`](#christe1970) | literature | reference only | citation |
 | The tetrafluoroiodate(III) anion, IF4- | [10.1021/ic50119a016](https://doi.org/10.1021/ic50119a016) | [`christe1973`](#christe1973) | literature | reference only | citation |
 | The Pentafluoroxenate(IV) Anion, XeF5-: The First Example of a Pentagonal Planar AX5 Species | [10.1021/ja00009a021](https://doi.org/10.1021/ja00009a021) | [`christe1991`](#christe1991) | literature | shipped | citation + claim |
+| Pentagonal planar AX5 species: synthesis and characterization of the iodine(III) pentafluoride dianion, IF52- | [10.1021/ja980057+](https://doi.org/10.1021/ja980057+) | [`christe1998`](#christe1998) | literature | reference only | citation |
 | Crystal Structure of ClF4+SbF6-, Normal Coordinate Analyses of ClF4+, BrF4+, IF4+, SF4, SeF4, and TeF4, and Simple Method for Calculating the Effects of Fluorine Bridging... | [10.1021/ja003347a](https://doi.org/10.1021/ja003347a) | [`christe2001`](#christe2001) | literature | shipped | citation + claim |
 | A New Population Analysis Based on Atomic Polar Tensors | [10.1021/ja00204a001](https://doi.org/10.1021/ja00204a001) | [`cioslowski1989`](#cioslowski1989) | literature | reference only | citation |
 | General and Unique Partitioning of Molecular Electronic Properties into Atomic Contributions | [10.1103/PhysRevLett.62.1469](https://doi.org/10.1103/PhysRevLett.62.1469) | [`cioslowski1989prl`](#cioslowski1989prl) | literature | reference only | citation + claim |
@@ -188,6 +190,7 @@ Title and DOI first; the `key` is what prose and code cite (`[source:key]`) and 
 | Investigation of Next-Generation Visible Light-Producing Pyrotechnics | <https://edoc.ub.uni-muenchen.de/37604/> | [`dufter2026`](#dufter2026) | literature | shipped | citation + claim |
 | Organic Fluorine Hardly Ever Accepts Hydrogen Bonds | [10.1002/chem.19970030115](https://doi.org/10.1002/chem.19970030115) | [`dunitz1997`](#dunitz1997) | literature | shipped | citation + claim |
 | Organic Fluorine: Odd Man Out | [10.1002/cbic.200300801](https://doi.org/10.1002/cbic.200300801) | [`dunitz2004`](#dunitz2004) | literature | shipped | citation + claim |
+| Fluoride crystal structures. Part VIII. Neutron diffraction studies of potassium tetrafluorobromate(III) and potassium tetrafluoroaurate(III) | [10.1039/j19690001936](https://doi.org/10.1039/j19690001936) | [`edwards1969`](#edwards1969) | literature | shipped | citation + claim |
 | The Crystal Structures of ClF3O, BrF3O, and [NO][BrF4O] | [10.1002/1521-3749(200209)628:9/10<1991::AID-ZAAC1991>3.0.CO;2-1](https://doi.org/10.1002/1521-3749(200209)628:9/10<1991::AID-ZAAC1991>3.0.CO;2-1) | [`ellern2002`](#ellern2002) | literature | reference only | citation |
 | Fast Calculation of Molecular Polar Surface Area as a Sum of Fragment-Based Contributions and Its Application to the Prediction of Drug Transport Properties | [10.1021/jm000942e](https://doi.org/10.1021/jm000942e) | [`ertl2000`](#ertl2000) | literature | shipped | citation |
 | Natural Product-likeness Score and Its Application for Prioritization of Compound Libraries | [10.1021/ci700286x](https://doi.org/10.1021/ci700286x) | [`ertl2008`](#ertl2008) | literature | shipped | citation |
@@ -240,6 +243,7 @@ Title and DOI first; the `key` is what prose and code cite (`[source:key]`) and 
 | The structure of IF3 | [10.1002/(SICI)1521-3773(20000417)39:8<1448::AID-ANIE1448>3.0.CO;2-G](https://doi.org/10.1002/(SICI)1521-3773(20000417)39:8<1448::AID-ANIE1448>3.0.CO;2-G) | [`hoyer2000`](#hoyer2000) | literature | shipped | citation + claim |
 | Molecular Spectra and Molecular Structure IV. Constants of Diatomic Molecules |  | [`huber1979`](#huber1979) | literature | reference only | citation + claim |
 | Evaluated Gas Phase Basicities and Proton Affinities of Molecules: An Update | [10.1063/1.556018](https://doi.org/10.1063/1.556018) | [`hunter1998`](#hunter1998) | literature | reference only | citation + claim |
+| Structures of Bromine Oxygen Compounds | [10.1002/zaac.19976230160](https://doi.org/10.1002/zaac.19976230160) | [`hwang1997`](#hwang1997) | literature | reference only | citation |
 | Biopharmaceutics Classification System-Based Biowaivers M9 | ICH M9 (Step 4, 20 November 2019) | [`ich_m9`](#ich_m9) | standard | shipped | citation + claim |
 | Exploiting the 1-(4-fluorobenzyl)piperazine fragment for the development of novel tyrosinase inhibitors as anti-melanogenic agents: Design, synthesis, structural insights and biological profile | [10.1016/j.ejmech.2019.06.019](https://doi.org/10.1016/j.ejmech.2019.06.019) | [`ielo2019`](#ielo2019) | literature | reference only | citation + claim |
 | Rapid Calculation of Accurate Atomic Charges for Proteins via the Electronegativity Equalization Method | [10.1021/ci400448n](https://doi.org/10.1021/ci400448n) | [`ionescu2013`](#ionescu2013) | literature | shipped | citation + claim |
@@ -385,6 +389,8 @@ Title and DOI first; the `key` is what prose and code cite (`[source:key]`) and 
 | Fireworks: The Art, Science and Technique | 0-929388-05-4 | [`shimizu1996`](#shimizu1996) | literature | shipped | citation |
 | Electron Momentum Spectroscopy of pyrimidine at the benchmark ADC(3) level | [10.1016/j.cplett.2010.08.055](https://doi.org/10.1016/j.cplett.2010.08.055) | [`shojaei2010`](#shojaei2010) | literature | shipped | citation + claim |
 | Environment and exposure to solvent of protein atoms. Lysozyme and insulin | [10.1016/0022-2836(73)90011-9](https://doi.org/10.1016/0022-2836(73)90011-9) | [`shrake1973`](#shrake1973) | literature | shipped | citation |
+| The crystal structure of KBrF4 | [10.1107/S0365110X56001340](https://doi.org/10.1107/S0365110X56001340) | [`siegel1956`](#siegel1956) | literature | reference only | citation |
+| A note on the structure of KBrF4 | [10.1107/S0365110X57001139](https://doi.org/10.1107/S0365110X57001139) | [`sly1957`](#sly1957) | literature | reference only | citation |
 | Efficient Calculation of Exact Mass Isotopic Distributions | [10.1016/j.jasms.2007.05.016](https://doi.org/10.1016/j.jasms.2007.05.016) | [`snider2007`](#snider2007) | literature | reference only | citation |
 | Space groups and their descriptions | [10.1107/97809553602060000922](https://doi.org/10.1107/97809553602060000922) | [`souvignier2016`](#souvignier2016) | literature | shipped | citation |
 | Prediction of Hansen Solubility Parameters with a New Group-Contribution Method | [10.1007/s10765-008-0415-z](https://doi.org/10.1007/s10765-008-0415-z) | [`stefanis2008`](#stefanis2008) | literature | shipped | citation + claim |
@@ -435,6 +441,7 @@ Title and DOI first; the `key` is what prose and code cite (`[source:key]`) and 
 | PaRoutes 2.0 and USPTO-based models | [10.5281/zenodo.7341155](https://doi.org/10.5281/zenodo.7341155) | [`zenodo7341155`](#zenodo7341155) | dataset | reference only | citation + claim |
 | USPTO-based ONNX models | [10.5281/zenodo.7797465](https://doi.org/10.5281/zenodo.7797465) | [`zenodo7797465`](#zenodo7797465) | dataset | reference only | citation + claim |
 | Guanidine-thermite igniter composition for use in gas generators | <https://patents.google.com/patent/US6599380B2/en> | [`zeuner2003`](#zeuner2003) | literature | shipped | citation + claim |
+| Preparation and Structures of Salts with the Anions of IF2-, ClF4-, IF4-, TeF7-, and AsF4- |  | [`zhang1997`](#zhang1997) | literature | shipped | citation + claim |
 | Self-Consistent Charge Equilibration Method and Its Application to Au13Nan (n = 1, 10) Clusters | [10.1021/jp8063273](https://doi.org/10.1021/jp8063273) | [`zhang2009`](#zhang2009) | literature | reference only | citation |
 | Fast calculation of van der Waals volume as a sum of atomic and bond contributions and its application to drug compounds | [10.1021/jo034808o](https://doi.org/10.1021/jo034808o) | [`zhao2003`](#zhao2003) | literature | reference only | citation + claim |
 | The M06 suite of density functionals for main group thermochemistry, thermochemical kinetics, noncovalent interactions, excited states, and transition elements: two new functionals and systematic testing of four M06-class functionals and 12 other functionals | [10.1007/s00214-007-0310-x](https://doi.org/10.1007/s00214-007-0310-x) | [`zhao2008`](#zhao2008) | literature | reference only | citation + claim |
@@ -8701,6 +8708,125 @@ Distances and angles table read. ClF4+ in ClF4+SbF6- (crystal): Cl-F 1.617 (2) a
 | Used by | `docs/HYPERVALENT_COVERAGE_DESIGN.md` |
 
 **Why it is reference only.** Read. XeO3 is a trigonal pyramid in the crystal: Xe-O 1.74, 1.76 and 1.77 (0.03) A, mean 1.76 A, O-Xe-O mean 103 degrees. NOT shipped: a trigonal pyramid (three bonds and a lone pair) has no template yet, three double bonds are outside the oxo rule, and the 1963 values carry 0.03 A.
+
+### zhang1997 — Preparation and Structures of Salts with the Anions of IF2-, ClF4-, IF4-, TeF7-, and AsF4-
+
+<a id="zhang1997"></a>
+
+> X. Zhang & K. Seppelt, 'Preparation and Structures of Salts with the Anions of IF2-, ClF4-, IF4-, TeF7-, and AsF4-', Z. Anorg. Allg. Chem. 623, 491-500 (1997)
+
+| | |
+| --- | --- |
+| Identifier | Z. Anorg. Allg. Chem. 623 (1997) 491-500 (no DOI printed on the paper, none found in Crossref) |
+| Status | shipped |
+| Verification | citation + claim |
+| Verified | 2026-11-14 |
+| Local copy | `zhang1997.pdf` (not checked) |
+| Used by | `src/openchem/chem/vsepr_geometry.py`, `tests/test_vsepr_geometry.py`, `docs/HYPERVALENT_COVERAGE_DESIGN.md` |
+
+Table 1 read from the rendered page. Single-crystal X-ray of 1,1,3,3,5,5-hexamethylpiperidinium salts (chosen because their contacts with the anion are weak). IF2-: I-F 207.5 (3) and 208.2 (3) pm, F-I-F 177.8 (1). IF4- (two independent ions, H2F3- salt): I-F 200.6 (3), 201.8 (3), 200.3 (4), 200.0 (4) pm, angles 90 and 180 within 0.3. AsF4-: As-F 187.8 (2), 186.2 (3) axial and 172.4 (2), 172.7 (3) equatorial pm, F-As-F 165.7 (1) and 97.5 (1), the others 84.5 to 86.1. ClF4-: 175.9, 181.4, 177.1, 181.3 pm in the pip salt (two elongated by cation contacts), 172.7 and 187.4 in the NO+ salt; not used (the K salt of scheibe2020 is already a row). TeF7- (a distorted pentagonal bipyramid) is not used. The paper quotes Br-F 189 pm for BrF4- in a Rb salt.
+
+### edwards1969 — Fluoride crystal structures. Part VIII. Neutron diffraction studies of potassium tetrafluorobromate(III) and potassium tetrafluoroaurate(III)
+
+<a id="edwards1969"></a>
+
+> A. J. Edwards & G. R. Jones, 'Fluoride crystal structures. Part VIII. Neutron diffraction studies of potassium tetrafluorobromate(III) and potassium tetrafluoroaurate(III)', J. Chem. Soc. A, 1936-1940 (1969)
+
+| | |
+| --- | --- |
+| Identifier | [10.1039/j19690001936](https://doi.org/10.1039/j19690001936) |
+| Status | shipped |
+| Verification | citation + claim |
+| Verified | 2026-11-14 |
+| Local copy | `edwards1969.pdf` (not checked) |
+| Used by | `src/openchem/chem/vsepr_geometry.py`, `tests/test_vsepr_geometry.py`, `docs/HYPERVALENT_COVERAGE_DESIGN.md` |
+
+Table 4 read. Neutron powder diffraction of KBrF4: Br-F 1.89 (0.02) A, F-Br-F 90.9 and 89.1 (2.0) degrees, a square planar anion; KAuF4 Au-F 1.95 A. It settles the question Siegel's 1956 tetrahedral model (Br-F 1.81 A) and Sly and Marsh's square planar alternative left open.
+
+### siegel1956 — The crystal structure of KBrF4
+
+<a id="siegel1956"></a>
+
+> S. Siegel, 'The crystal structure of KBrF4', Acta Cryst. 9, 493-495 (1956)
+
+| | |
+| --- | --- |
+| Identifier | [10.1107/S0365110X56001340](https://doi.org/10.1107/S0365110X56001340) |
+| Status | reference only |
+| Verification | citation |
+| Verified | 2026-11-14 |
+| Local copy | `siegel1956.pdf` (not checked) |
+| Used by | `docs/HYPERVALENT_COVERAGE_DESIGN.md` |
+
+**Why it is reference only.** Read. X-ray powder photographs of KBrF4 interpreted with a TETRAHEDRAL BrF4 group, Br-F 1.81 (0.04) A. Superseded: neutron diffraction (edwards1969) showed the anion is square planar with 1.89 A. Not used.
+
+### sly1957 — A note on the structure of KBrF4
+
+<a id="sly1957"></a>
+
+> W. G. Sly & R. E. Marsh, 'A note on the structure of KBrF4', Acta Cryst. 10, 378-379 (1957)
+
+| | |
+| --- | --- |
+| Identifier | [10.1107/S0365110X57001139](https://doi.org/10.1107/S0365110X57001139) |
+| Status | reference only |
+| Verification | citation |
+| Verified | 2026-11-14 |
+| Local copy | `sly1957.pdf` (not checked) |
+| Used by | `docs/HYPERVALENT_COVERAGE_DESIGN.md` |
+
+**Why it is reference only.** Read. Shows a square planar BrF4- fits Siegel's powder data as well as his tetrahedral one; the data cannot choose. Not used for a length (edwards1969 and zhang1997 give the values).
+
+### christe1970 — Tetrafluorobromate(III) anion, BrF4-
+
+<a id="christe1970"></a>
+
+> K. O. Christe & C. J. Schack, 'Tetrafluorobromate(III) anion, BrF4-', Inorg. Chem. 9, 1852-1858 (1970)
+
+| | |
+| --- | --- |
+| Identifier | [10.1021/ic50090a015](https://doi.org/10.1021/ic50090a015) |
+| Status | reference only |
+| Verification | citation |
+| Verified | 2026-11-14 |
+| Local copy | `christe1970.pdf` (not checked) |
+| Used by | `docs/HYPERVALENT_COVERAGE_DESIGN.md` |
+
+**Why it is reference only.** Held. Vibrational spectra of BrF4- salts fitting a square planar D4h anion; no bond lengths, so nothing is built from it. Read for identity and abstract only.
+
+### christe1998 — Pentagonal planar AX5 species: synthesis and characterization of the iodine(III) pentafluoride dianion, IF52-
+
+<a id="christe1998"></a>
+
+> K. O. Christe, W. W. Wilson, G. W. Drake, D. A. Dixon, J. A. Boatz & R. Z. Gnann, 'Pentagonal planar AX5 species: synthesis and characterization of the iodine(III) pentafluoride dianion, IF52-', J. Am. Chem. Soc. 120, 4711-4716 (1998)
+
+| | |
+| --- | --- |
+| Identifier | [10.1021/ja980057+](https://doi.org/10.1021/ja980057+) |
+| Status | reference only |
+| Verification | citation |
+| Verified | 2026-11-14 |
+| Local copy | `Christe1998.pdf` (not checked) |
+| Used by | `docs/HYPERVALENT_COVERAGE_DESIGN.md` |
+
+**Why it is reference only.** Read. IF5(2-) is established by infrared and Raman spectra, ab initio calculation and comparison with XeF5-; no X-ray structure (the calculated I-F is 2.11 A). A calculated length is not shipped as a measured one, so IF5(2-) is not built.
+
+### hwang1997 — Structures of Bromine Oxygen Compounds
+
+<a id="hwang1997"></a>
+
+> I. C. Hwang, R. Kuschel & K. Seppelt, 'Structures of Bromine Oxygen Compounds', Z. Anorg. Allg. Chem. 623, 379-383 (1997)
+
+| | |
+| --- | --- |
+| Identifier | [10.1002/zaac.19976230160](https://doi.org/10.1002/zaac.19976230160) |
+| Status | reference only |
+| Verification | citation |
+| Verified | 2026-11-14 |
+| Local copy | `hwang1997.pdf` (not checked) |
+| Used by | `docs/HYPERVALENT_COVERAGE_DESIGN.md` |
+
+**Why it is reference only.** Read for the abstract. Crystals of Br2O (bent, Br-O-Br 114.2 (2) degrees), BrO2F (a pyramid with O and F disordered, mean angle 103.8 (3) degrees, so the O-Br-F angle is not resolved) and O2Br-OTeF5. Not built: BrO2F would need a trigonal pyramid template and has no resolved geometry.
 
 ## Datasets
 
