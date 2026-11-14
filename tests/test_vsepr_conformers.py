@@ -84,7 +84,7 @@ def test_clf3_which_rdkit_cannot_embed_is_built_and_survives_the_pool_stages():
 
 def test_a_recognised_molecule_without_a_geometry_fails_loudly_instead_of_embedding():
     with pytest.raises(GeometryUnsupportedError) as caught:
-        _search(Chem.MolFromSmiles("FI(F)F"))  # IF3: RDKit accepts it and embeds it planar; no reference recorded
+        _search(Chem.MolFromSmiles("ClI(Cl)Cl"))  # ICl3: RDKit accepts it and embeds it planar; no reference recorded
     assert "wrong shape" in str(caught.value)
 
 
@@ -159,7 +159,7 @@ def test_the_service_reports_an_unsupported_structure_as_a_failure(qapp):
     engine = ChemistryEngine()
     service = ConformerService(bus, engine)
     model = MoleculeModel()
-    engine.set_structure_from_smiles(model, "FI(F)F")
+    engine.set_structure_from_smiles(model, "ClI(Cl)Cl")
     states: list[ConformerJobStateChanged] = []
     bus.subscribe(ConformerJobStateChanged, states.append)
 
@@ -168,3 +168,84 @@ def test_the_service_reports_an_unsupported_structure_as_a_failure(qapp):
 
     assert states[-1].state == CacheState.FAILED
     assert "wrong shape" in states[-1].message
+
+
+@pytest.mark.parametrize(
+    ("smiles", "shape"),
+    [
+        ("F[Xe](F)(F)(F)=O", "square pyramidal"),
+        ("F[Xe](F)(=O)=O", "seesaw"),
+        ("FS(F)(F)(F)=O", "trigonal bipyramidal"),
+        ("FS(F)(F)(F)(F)Cl", "octahedral"),
+    ],
+)
+def test_oxo_and_mixed_ligand_molecules_are_built_from_their_measured_geometry(smiles, shape):
+    """RDKit accepts these and, left to itself, embeds them with wrong angles; the template is used instead."""
+    outcome = _search(Chem.MolFromSmiles(smiles))
+    ((mol, energy),) = outcome.pool
+    assert energy is None and outcome.geometry_method == VSEPR_TEMPLATE
+    assert shape in outcome.geometry_note
+    assert mol.GetConformer().Is3D()
+
+
+def test_a_drawn_clf3o_which_rdkit_refuses_is_held_and_built():
+    from rdkit.Chem import AllChem
+
+    drawn = Chem.MolFromSmiles("FCl(F)(F)=O", sanitize=False)
+    for atom in drawn.GetAtoms():
+        atom.SetNoImplicit(True)
+    drawn.UpdatePropertyCache(strict=False)
+    AllChem.Compute2DCoords(drawn)
+    mol = ChemistryEngine().hypervalent_mol_from_molblock(Chem.MolToMolBlock(drawn))
+    outcome = _search(mol)
+    ((built, energy),) = outcome.pool
+    assert energy is None
+    centre = next(a.GetIdx() for a in built.GetAtoms() if a.GetSymbol() == "Cl")
+    oxygen = next(a.GetIdx() for a in built.GetAtoms() if a.GetSymbol() == "O")
+    conf = built.GetConformer()
+    length = np.linalg.norm(np.array(conf.GetAtomPosition(oxygen)) - np.array(conf.GetAtomPosition(centre)))
+    assert length == pytest.approx(1.405, abs=1e-6)
+
+
+def test_ordinary_oxo_molecules_still_use_the_search():
+    outcome = search_conformers(
+        RDKitConformerProvider(random_seed=1),
+        Chem.MolFromSmiles("OS(=O)(=O)O"),
+        True,
+        GenerationOptions(max_embeddings=10, embedding_batch_size=5),
+    )
+    assert outcome.stop_reason != STOP_TEMPLATE and outcome.unoptimised == 0
+
+
+
+def test_the_service_builds_a_drawn_phosphorane_with_phenyl_groups(qapp):
+    """Triphenyldifluorophosphorane through the real service: every hydrogen is there, the conformers differ, none has an energy, the core is the crystal's."""
+    bus = EventBus()
+    engine = ChemistryEngine()
+    service = ConformerService(bus, engine)
+    model = MoleculeModel()
+    engine.set_structure_from_smiles(model, "FP(F)(c1ccccc1)(c1ccccc1)c1ccccc1")
+    states: list[ConformerJobStateChanged] = []
+    bus.subscribe(ConformerJobStateChanged, states.append)
+    ready: list[list[ConformerModel]] = []
+    bus.subscribe(ConformersReady, lambda e: ready.append(e.conformers))
+
+    service.request_conformers(model, num_conformers=10, optimize=True)
+    _drain(qapp)
+
+    assert states[-1].state == CacheState.COMPLETED
+    assert "not optimised" in states[-1].message and "measured" in states[-1].message
+    (conformers,) = ready
+    assert len(conformers) >= 2, "the rings turn: the conformers are not one shape"
+    for conformer in conformers:
+        assert conformer.method == VSEPR_TEMPLATE and conformer.energy is None
+        stored = engine.mol_from_molblock(conformer.molblock)
+        assert stored.GetNumAtoms() == 36 and stored.GetConformer().Is3D()
+        phosphorus = next(a.GetIdx() for a in stored.GetAtoms() if a.GetSymbol() == "P")
+        points = stored.GetConformer().GetPositions()
+        lengths = [
+            (stored.GetAtomWithIdx(n.GetIdx()).GetSymbol(), float(np.linalg.norm(points[n.GetIdx()] - points[phosphorus])))
+            for n in stored.GetAtomWithIdx(phosphorus).GetNeighbors()
+        ]
+        assert sorted(symbol for symbol, _ in lengths) == ["C", "C", "C", "F", "F"]
+        assert all(length == pytest.approx(1.8225 if symbol == "C" else 1.664, abs=2e-3) for symbol, length in lengths)

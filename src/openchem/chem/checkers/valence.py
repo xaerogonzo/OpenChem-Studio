@@ -101,27 +101,40 @@ def is_allowed_hypervalent(rule: dict[str, Any] | None, valence: int, ligands: A
 
 
 def accepted_hypervalent_atoms(mol: Any) -> list[int]:
-    """Indices of the atoms of `mol` that exceed RDKit's valence list but pass `hypervalent_rules()`.
+    """Indices of the atoms of `mol` that RDKit REFUSES and `hypervalent_rules()` accepts.
 
-    Reads an UNSANITISED molecule (its property cache is refreshed non-strictly, as `_check_valence`
-    does). An atom RDKit would also refuse and the table does not accept is not listed, so a caller
-    can tell "RDKit refuses it and so does OpenChem" from "OpenChem accepts what RDKit refuses".
+    Reads an UNSANITISED molecule. The test is RDKit's own strict valence check on each atom, not a
+    comparison with its valence list: XeF5- (an anion, six effective bonds) is inside Xe's list and is
+    still refused, and a comparison with the list missed it, so a drawn XeF5- was rejected as invalid.
+    An atom RDKit refuses and the table does not accept is not listed, so a caller can tell "RDKit
+    refuses it and so does OpenChem" from "OpenChem accepts what RDKit refuses".
     """
     from rdkit import Chem
 
     table = Chem.GetPeriodicTable()
     rules = hypervalent_rules()
-    mol.UpdatePropertyCache(strict=False)
+    probe = Chem.Mol(mol)
+    try:
+        # A molecule RDKit sanitises is not held, however its atoms look beforehand: sanitisation rewrites
+        # perchlorate Cl(=O)(=O)(=O)[O-] into a valid charge-separated form, which a per-atom probe would call refused.
+        Chem.SanitizeMol(Chem.Mol(probe))
+        return []
+    except Exception:  # noqa: BLE001 - RDKit raises several sanitisation types; any failure means "look at the atoms"
+        pass
+    probe.UpdatePropertyCache(strict=False)
     found: list[int] = []
-    for atom in mol.GetAtoms():
+    for atom in probe.GetAtoms():
         number = atom.GetAtomicNum()
-        if number == 0:
+        if number == 0 or -1 in list(table.GetValenceList(number)):
             continue
-        allowed = list(table.GetValenceList(number))
-        if -1 in allowed:
+        try:
+            atom.UpdatePropertyCache(strict=True)
+        except Exception:  # noqa: BLE001 - RDKit raises AtomValenceException; any refusal counts
+            pass
+        else:
             continue
         valence = _effective_valence(atom, table.GetNOuterElecs(number))
-        if valence > max(allowed) and is_allowed_hypervalent(
+        if is_allowed_hypervalent(
             rules.get(atom.GetSymbol()), valence, {n.GetSymbol() for n in atom.GetNeighbors()}
         ):
             found.append(atom.GetIdx())

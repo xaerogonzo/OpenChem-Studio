@@ -12,7 +12,7 @@ template for its shape. It has no energy, it is not a force-field minimum and it
 minimum; ORCA is what refines it. Nothing here estimates a bond length from radii: a molecule with no
 entry in `REFERENCES` gets a stated refusal, not a guess.
 
-THE SHAPE COMES FROM THE GRAPH. For one centre with `n` terminal, singly bonded ligands and no formal
+THE SHAPE COMES FROM THE GRAPH. For one centre with `n` terminal ligands (singly bonded, or doubly bonded oxygen where a measured geometry is recorded) and no formal
 charge, the lone pairs are `(outer electrons - n) / 2`, and `(n, lone pairs)` names the shape (ClF3:
 7 electrons, 3 bonds, 2 lone pairs, T-shaped). Lone pairs are never atoms and never occupy a ligand slot.
 
@@ -46,7 +46,7 @@ from typing import Any
 import numpy as np
 
 #: Outer-shell electrons of the centres covered (group number), for the lone-pair count.
-_OUTER_ELECTRONS = {"P": 5, "S": 6, "Cl": 7, "Br": 7, "I": 7, "Xe": 8}
+_OUTER_ELECTRONS = {"P": 5, "As": 5, "Sb": 5, "S": 6, "Se": 6, "Te": 6, "Cl": 7, "Br": 7, "I": 7, "Xe": 8}
 
 
 class Kind(str, Enum):
@@ -72,10 +72,28 @@ class Reference:
     method: str = ""
     #: True when the figures were compared with a published table (see the module docstring).
     checked: bool = False
+    #: The formal charge on the centre (an anion's, ClF4- and XeF5-); 0 for a neutral molecule.
+    charge: int = 0
+    #: For a molecule with more than one kind of ligand, or a double bond to oxygen: one `(token, length)` per slot in
+    #: the template's slot order (axial slots, then equatorial). A token is the ligand's element, followed by "=" for a
+    #: double bond ("F", "O="). Empty for the ordinary case, where `axial` and `equatorial` give every length.
+    slots: tuple[tuple[str, float], ...] = ()
+    #: Names a placer other than the template's default (see `_LAYOUTS`), for a distorted shape whose angles the
+    #: default does not read (ClF3O's Cs bipyramid, SOF4's C2v one, SF5Cl's C4v octahedron).
+    layout: str = ""
+    #: How well the numbers are known, and it reaches the conformer's note so an estimate never reads as a measurement:
+    #: "measured" (a diffraction or spectroscopic determination of this molecule), "model" (one of several models that fit a measurement,
+    #: for a molecule with no single measured geometry), "calculated" (a published calculation, no measurement) or "estimated" (a measured
+    #: analogue's lengths transferred, or lengths the source itself assumed).
+    evidence: str = "measured"
+    #: For a core with organic ligands (`chem.vsepr_graft`): which ligands the measurement covers, a comma-separated list of "aromatic" (carbon ligands are phenyls), "methyl" (carbon
+    #: ligands are methyls) and "acyloxy" (oxygen ligands are carboxylates); "" means any. A molecule whose ligands are of another kind gets the row's lengths as an estimate by
+    #: transfer, and says so (`graft_evidence`).
+    scope: str = ""
 
     @property
-    def key(self) -> tuple[str, str, int]:
-        return (self.centre, self.ligand, self.n_ligands)
+    def key(self) -> tuple[str, str, int, int]:
+        return (self.centre, self.ligand, self.n_ligands, self.charge)
 
 
 # Axial and equatorial are the two classes of a T-shape, seesaw or trigonal bipyramid; a one-class shape
@@ -196,9 +214,10 @@ _ENTRIES = (
         1.65,
         {"ax-eq": 86.5},
         "Bodenseh, Huttner and Nowicki 1976, Z Naturforsch 31a, 1638 [source:bodenseh1976]",
-        "microwave, two rotational constants: only the angle (86.5, esd 1.0) is determined; the paper states that a "
+        "ESTIMATED lengths: microwave, two rotational constants, only the angle (86.5, esd 1.0) is determined; the paper states that a "
         "complete structure is not possible and that both lengths are about 1.65 A, so one value is used for both",
         True,
+        evidence="estimated",
     ),
     Reference(
         "I",
@@ -212,10 +231,503 @@ _ENTRIES = (
         "7.5 degrees and axially bent by 4.5 degrees on average, which the ideal pentagonal bipyramid here omits",
         True,
     ),
+    # Read from the papers (held copies, 2026-11-13). rg distances are as the source gives them.
+    Reference(
+        "As",
+        "F",
+        5,
+        1.711,
+        1.656,
+        {},
+        "Clippard and Bartell 1970, Inorg Chem 9, 805 [source:clippard1970]",
+        "gas electron diffraction, rg (axial 0.005, equatorial 0.004 esd); trigonal bipyramid with the ideal 90 and 120 degrees",
+        True,
+    ),
+    Reference(
+        "Se",
+        "F",
+        4,
+        1.7713,
+        1.6821,
+        {"ax-ax": 169.20, "eq-eq": 100.55},
+        "Bowater, Brown and Burden 1968, J Mol Spec 28, 454 [source:bowater1968]",
+        "microwave (two isotopologues); equatorial F-Se-F 100.55, axial F-Se-F 169.20",
+        True,
+    ),
+    Reference(
+        "P",
+        "Cl",
+        5,
+        2.124,
+        2.020,
+        {},
+        "Adams and Bartell 1971, J Mol Struct 8, 23 [source:adams1971]",
+        "gas electron diffraction, rg (axial 0.009, equatorial 0.007 esd; mean 2.061 0.002); equals the CCCBDB compilation entry",
+        True,
+    ),
+    Reference(
+        "Se",
+        "F",
+        6,
+        1.685,
+        1.685,
+        {},
+        "Bartell and Jin 1984, J Mol Struct 118, 289 [source:bartell1984]",
+        "gas electron diffraction, rg(3a) 1.685 (0.002); regular octahedron",
+        True,
+    ),
+    Reference(
+        "Te",
+        "Cl",
+        4,
+        2.430,
+        2.298,
+        {"ax-ax": 175.9, "eq-eq": 103.0},
+        "Kovacs, Martinsen and Konings 1997, J Chem Soc Dalton Trans, 1037 [source:kovacs1997]",
+        "gas electron diffraction, ra (0.006 esd), D term not included: axial 243.0, equatorial 229.8 pm; Cl-Te-Cl axial 175.9 (0.6), equatorial 103.0 (0.7); seesaw",
+        True,
+    ),
+    # Molecules with two kinds of ligand or a double bond to oxygen. Read from the papers (held copies, 2026-11-13);
+    # each says what its figures are. The `slots` give a (ligand, length) per position in template order.
+    Reference(
+        "Cl",
+        "FFFO=",
+        4,
+        1.713,
+        1.603,
+        {"fax-feq": 87.9, "fax-o": 94.7, "feq-o": 108.9},
+        "Oberhammer and Christe 1982, Inorg Chem 21, 273 [source:oberhammer1982]",
+        "gas electron diffraction, r-alpha (esd 0.003 to 0.004 A, angles 0.9 to 2.0 degrees); distorted trigonal bipyramid, "
+        "Cs, lone pair equatorial",
+        True,
+        0,
+        (("F", 1.713), ("F", 1.713), ("F", 1.603), ("O=", 1.405)),
+        "cs_bipyramid",
+    ),
+    Reference(
+        "Xe",
+        "FFFFO=",
+        5,
+        1.7053,
+        1.9040,
+        {"ax-eq": 91.66},
+        "Jacob, Thompson and Bartell 1971, J Mol Struct 8, 383 [source:jacob1971]",
+        "microwave rotational constants refined with electron diffraction, rz basis (spectroscopic column; the diffraction "
+        "columns give Xe=O 1.708 to 1.711, Xe-F 1.901 to 1.902 A, O-Xe-F 91.6 to 91.9); C4v square pyramid, O apical",
+        True,
+        0,
+        (("O=", 1.7053),) + (("F", 1.9040),) * 4,
+    ),
+    Reference(
+        "Xe",
+        "FFO=O=",
+        4,
+        1.899,
+        1.714,
+        {"ax-ax": 174.7, "eq-eq": 105.7, "ax-eq": 91.6},
+        "Peterson, Holloway, Coyle and Williams 1973, J Chem Phys 58, 456 [source:peterson1973]",
+        "neutron diffraction of the CRYSTAL at room temperature (not corrected for thermal motion; the corrected lengths "
+        "are 1.92 and 1.74 A); the molecules are joined into layers by weak Xe...O contacts, which are omitted here",
+        True,
+        0,
+        (("F", 1.899), ("F", 1.899), ("O=", 1.714), ("O=", 1.714)),
+    ),
+    Reference(
+        "S",
+        "FFFFO=",
+        5,
+        1.596,
+        1.539,
+        {"eq-eq": 112.8, "ax-o": 97.7},
+        "Hedberg and Hedberg 1982, J Phys Chem 86, 598 [source:hedberg1982]",
+        "gas electron diffraction with microwave data, ra at room temperature (esd 0.003 A); C2v trigonal bipyramid with the "
+        "oxygen and two fluorines equatorial. Published F(ax)-S-F(eq) 85.7 follows from the two angles used",
+        True,
+        0,
+        (("F", 1.596), ("F", 1.596), ("O=", 1.409), ("F", 1.539), ("F", 1.539)),
+        "c2v_bipyramid",
+    ),
+    Reference(
+        "S",
+        "ClFFFFF",
+        6,
+        2.0301,
+        1.576,
+        {"ax-eq": 88.0 + 22.0 / 60.0},
+        "Kewley, Murty and Sugden 1960, Trans Faraday Soc 56, 1732 [source:kewley1960]",
+        "microwave (four isotopologues); C4v, all five S-F lengths taken equal (1.576 +- 0.010 A), Cl-S-F 88 degrees 22 minutes",
+        True,
+        0,
+        (("Cl", 2.0301), ("F", 1.576)) + (("F", 1.576),) * 4,
+        "c4v_octahedron",
+    ),
+    # Two more CRYSTAL structures, from the papers (2026-11-14). In each the molecule or ion is bridged to its neighbours by longer contacts, which are omitted.
+    Reference(
+        "I",
+        "F",
+        3,
+        1.983,
+        1.872,
+        {"ax-eq": 80.2},
+        "Hoyer and Seppelt 2000, Angew Chem Int Ed 39, 1448 [source:hoyer2000]",
+        "single-crystal X-ray, -135 C: I-F 198.3 (0.3) twice and 187.2 (0.4) pm, F-I-F 160.3 (0.2) and 80.2 (0.1) degrees; a planar T, but "
+        "the solid is polymeric through I...F bridges of 276.9 pm, which are omitted (IF3 decomposes above -28 C and has no gas-phase structure)",
+        True,
+    ),
+    Reference(
+        "Cl",
+        "F",
+        4,
+        1.617,
+        1.530,
+        {"ax-ax": 173.92, "eq-eq": 103.08, "ax-eq": 88.1},
+        "Christe, Zhang, Sheehy and Bau 2001, J Am Chem Soc 123, 6338 [source:christe2001]",
+        "single-crystal X-ray of ClF4+SbF6-: Cl-F 1.617 (0.002) axial, 1.527 and 1.532 (0.002) equatorial (mean 1.530), F-Cl-F 173.92 axial, "
+        "103.08 equatorial, 88.1 axial-equatorial; two longer Cl...F contacts of 2.41 and 2.43 A to anions are omitted, and they compress the equatorial angle "
+        "(the free cation calculates near 109.7)",
+        True,
+        1,
+    ),
+    # Four more anions, all CRYSTAL structures (2026-11-14). Zhang and Seppelt 1997 used the 1,1,3,3,5,5-hexamethylpiperidinium cation because its contacts with the
+    # anion are weak; the ions are close to ideal.
+    Reference(
+        "I",
+        "F",
+        4,
+        2.007,
+        2.007,
+        {},
+        "Zhang and Seppelt 1997, Z Anorg Allg Chem 623, 491 [source:zhang1997]",
+        "single-crystal X-ray of (pip+)2 IF4- H2F3-, two independent square planar ions: I-F 200.6 (0.3), 201.8 (0.3), 200.3 (0.4) and 200.0 (0.4) pm, mean 200.7; angles 90 and 180 within 0.3",
+        True,
+        -1,
+    ),
+    Reference(
+        "I",
+        "F",
+        2,
+        2.0785,
+        2.0785,
+        {},
+        "Zhang and Seppelt 1997, Z Anorg Allg Chem 623, 491 [source:zhang1997]",
+        "single-crystal X-ray of pip+ IF2-: I-F 207.5 (0.3) and 208.2 (0.3) pm (mean 207.85, equal within 3 esd), F-I-F 177.8 (0.1) degrees in the crystal, placed linear here",
+        True,
+        -1,
+    ),
+    Reference(
+        "Br",
+        "F",
+        4,
+        1.89,
+        1.89,
+        {},
+        "Edwards and Jones 1969, J Chem Soc A, 1936 [source:edwards1969]",
+        "neutron powder diffraction of the K salt: Br-F 1.89 (0.02) A, F-Br-F 90.9 and 89.1 (2.0), square planar; Zhang and Seppelt 1997 quote 189 pm from a Rb salt single crystal. "
+        "Siegel's 1956 tetrahedral model (1.81 A) was shown wrong",
+        True,
+        -1,
+    ),
+    Reference(
+        "As",
+        "F",
+        4,
+        1.870,
+        1.7255,
+        {"ax-ax": 165.7, "eq-eq": 97.5},
+        "Zhang and Seppelt 1997, Z Anorg Allg Chem 623, 491 [source:zhang1997]",
+        "single-crystal X-ray of pip+ AsF4-: As-F axial 187.8 (0.2) and 186.2 (0.3) (mean 187.0), equatorial 172.4 (0.2) and 172.7 (0.3) (mean 172.55) pm; F-As-F 165.7 (0.1) axial, 97.5 (0.1) equatorial; "
+        "the axial-equatorial angles (84.5 to 86.1) follow from those two; a seesaw with several F...H and weak As...F contacts omitted",
+        True,
+        -1,
+    ),
+    # Two more trigonal bipyramids (2026-11-14), from gas-phase electron diffraction: antimony pentachloride and PCl2F3 (chlorines equatorial).
+    Reference(
+        "Sb",
+        "Cl",
+        5,
+        2.338,
+        2.277,
+        {},
+        "Ivashkevich, Ishchenko, Spiridonov et al. 1982, J Struct Chem 23, 295 [source:ivashkevich1982]",
+        "gas electron diffraction, re (esd 0.007 axial, 0.005 equatorial), nozzle about 25 C, D3h with a Berry pseudorotation barrier of 1.8 (0.6) kcal/mol; the crystal "
+        "(Ohlberg 1959) gives 2.34 and 2.29 A, and the liquid is a different model",
+        True,
+    ),
+    Reference(
+        "P",
+        "ClClFFF",
+        5,
+        1.593,
+        1.546,
+        {},
+        "French, Hedberg, Shreeve and Gupta 1985, Inorg Chem 24, 2774 [source:french1985]",
+        "gas electron diffraction, rg (P-F axial 1.593 (0.004), P-F equatorial 1.546 (0.009), P-Cl 2.004 (0.002) A, nozzle 22 to 24 C): the chlorines are equatorial, "
+        "F(ax)-P-F(eq) 89.3 (0.3) and Cl-P-Cl 122.0 (0.5) degrees are placed at the ideal 90 and 120; the molecule exchanges its fluorines by a Berry motion",
+        True,
+        0,
+        (("F", 1.593), ("F", 1.593), ("F", 1.546), ("Cl", 2.004), ("Cl", 2.004)),
+    ),
+    # Cores with organic or hydrogen ligands (2026-11-14), used by `chem.vsepr_graft`, which grows the groups on the ligands. Phosphoranes, trigonal bipyramids with the carbons equatorial.
+    Reference(
+        "P",
+        "CCCFF",
+        5,
+        1.664,
+        1.8225,
+        {},
+        "Weller et al. 1991, Z Anorg Allg Chem 602, 7 [source:weller1991]; Doxsee, Hanawalt and Weakley 1992, Acta Cryst C48, 1288 [source:doxsee1992]",
+        "two single-crystal X-ray determinations of triphenyldifluorophosphorane (20 C and 294 K): P-F axial 1.665 (0.002) and 1.663 (0.002) A, P-C 1.815 and 1.826 (Weller, mean 1.8205) "
+        "and 1.825 and 1.824 (Doxsee, mean 1.8245) A, F-P-F 178.58 (0.08) and 178.3 (0.2), F-P-C 89.2 to 90.6, C-P-C 119.6 to 120.9 degrees (placed ideal); the phenyl groups are the "
+        "measured ones, any other carbon ligand gets these lengths as an estimate",
+        True,
+        0,
+        (("F", 1.664), ("F", 1.664), ("C", 1.8225), ("C", 1.8225), ("C", 1.8225)),
+        "",
+        "measured",
+        "aromatic",
+    ),
+    Reference(
+        "P",
+        "CCFFF",
+        5,
+        1.643,
+        1.553,
+        {},
+        "Bartell and Hansen 1965, Inorg Chem 4, 1777 [source:bartell1965]",
+        "gas electron diffraction, rg: P-F axial 1.643 (0.003), P-F equatorial 1.553 (0.006), P-C 1.798 (0.004) A, F(ax)-P-F(eq) 89.9 (0.3), F(eq)-P-C 118.0 (0.8) degrees, methyls equatorial "
+        "(C2v); the angles are placed ideal",
+        True,
+        0,
+        (("F", 1.643), ("F", 1.643), ("F", 1.553), ("C", 1.798), ("C", 1.798)),
+        "",
+        "measured",
+        "methyl",
+    ),
+    Reference(
+        "P",
+        "CFFFF",
+        5,
+        1.612,
+        1.543,
+        {},
+        "Bartell and Hansen 1965, Inorg Chem 4, 1777 [source:bartell1965]",
+        "gas electron diffraction, rg: P-F axial 1.612 (0.004), P-F equatorial 1.543 (0.004), P-C 1.780 (0.005) A, F(ax)-P-C 91.8 (0.4) and F(eq)-P-C 122.2 degrees, methyl equatorial "
+        "(C2v); the angles are placed ideal",
+        True,
+        0,
+        (("F", 1.612), ("F", 1.612), ("F", 1.543), ("F", 1.543), ("C", 1.780)),
+        "",
+        "measured",
+        "methyl",
+    ),
+    Reference(
+        "P",
+        "FFHHH",
+        5,
+        1.6468,
+        1.394,
+        {},
+        "Beckers, Breidung, Burger et al. 1990, J Chem Phys 93, 4603 [source:beckers1990]",
+        "high-resolution rotation-vibration spectra, r0: P-F axial 1.6468 (0.0002), P-H equatorial 1.394 (0.002) A, D3h; the hydrogens are ligands of the centre",
+        True,
+        0,
+        (("F", 1.6468), ("F", 1.6468), ("H", 1.394), ("H", 1.394), ("H", 1.394)),
+    ),
+    # Cores of the most-drawn hypervalent reagents (2026-11-14), grown by `chem.vsepr_graft`: iodine(III) and the aryl-SF5 group.
+    Reference(
+        "I",
+        "COO",
+        3,
+        2.156,
+        2.090,
+        {"ax-eq": 82.0},
+        "Alcock, Countryman, Esperas and Sawyer 1979, J Chem Soc Dalton Trans, 854 [source:alcock1979]; Lee, Mak, Li and Kirner 1977, Acta Cryst B 33, 1620 [source:lee1977]",
+        "single-crystal X-ray of PhI(OAc)2 at -60 C (R 0.021): I-O 2.159 (5) and 2.153 (5) A (mean 2.156), I-C 2.090 (6) A, O-I-O 164.0 (2) and O-I-C 81.4 (2) and 82.6 (3) degrees (mean 82.0); "
+        "Lee et al. 1977, independently, I-O 2.186 (9) and 2.143 (8), I-C 2.093 (9), O-I-O 163.2 (3), C-I-O 81.6 (4). A T with the two acetate oxygens axial and the phenyl carbon equatorial; "
+        "the other (carbonyl) oxygens make secondary I...O contacts of about 2.8 A, which are not placed",
+        True,
+        0,
+        (("O", 2.156), ("O", 2.156), ("C", 2.090)),
+        "",
+        "measured",
+        "aromatic,acyloxy",
+    ),
+    Reference(
+        "I",
+        "CClCl",
+        3,
+        2.4946,
+        2.0977,
+        {"ax-eq": 88.47},
+        "Poynder, Chamorro Orue, Tania et al. 2021, Chem Commun 57, 4970, Supporting Information CIF [source:poynder2021]",
+        "single-crystal X-ray of PhICl2 at 100 K: I-Cl 2.5059 (1) and 2.4832 (1) A (mean 2.4946), I-C 2.0977 (4) A, Cl-I-Cl 176.701 (4), C-I-Cl 88.900 (10) and 88.035 (10) degrees (mean 88.47); a T "
+        "with the chlorines axial; the two I-Cl lengths differ through intermolecular contacts. An independent low-temperature determination (Carey et al. 1996, 173 K, R 0.054, "
+        "CSD BENICL01) computed from its deposited coordinates gives I-Cl 2.474 and 2.497, I-C 2.119 A (esd about 0.01), Cl-I-Cl 176.65, C-I-Cl 87.9 and 89.2 degrees: the same within its esds",
+        True,
+        0,
+        (("Cl", 2.4946), ("Cl", 2.4946), ("C", 2.0977)),
+        "",
+        "measured",
+        "aromatic",
+    ),
+    Reference(
+        "S",
+        "CFFFFF",
+        6,
+        1.804,
+        1.595,
+        {"ax-eq": 92.4},
+        "Du, Hua, Beier, Slawin and Woollins 2016, Struct Chem 28, 723 [source:du2016]; Gonzalez Espiet, Cintron Cruz and Pinero Cruz 2020, Acta Cryst E76, 231 [source:espiet2020]",
+        "single-crystal X-ray of nine aryl-SF5 compounds (and a tenth): S-F axial 1.568 to 1.607 A (midpoint 1.5875), S-F equatorial 1.572 to 1.618 A (midpoint 1.595), S-C 1.785 to 1.823 A (midpoint 1.804), "
+        "C-S-F equatorial 91.3 to 93.5 degrees (midpoint 92.4, 92.0 and 92.2 in the benzonitrile), C-S-F axial 178.9 to 180; the row uses the MIDPOINTS of those ranges, an octahedron with the aryl "
+        "carbon apical and the four equatorial fluorines bent away from it (an umbrella), the trans fluorine at 1.5875 A",
+        True,
+        0,
+        (("C", 1.804), ("F", 1.5875), ("F", 1.595), ("F", 1.595), ("F", 1.595), ("F", 1.595)),
+        "c4v_octahedron",
+        "measured",
+        "aromatic",
+    ),
+    # Three rows whose evidence is not a plain measurement of that molecule (2026-11-14); `Reference.evidence` says which kind, and it reaches the conformer's note.
+    Reference(
+        "Te",
+        "F",
+        7,
+        1.827,
+        1.8805,
+        {},
+        "Zhang and Seppelt 1997, Z Anorg Allg Chem 623, 491 [source:zhang1997]",
+        "single-crystal X-ray of pip+ TeF7-: Te-F 183.0 and 182.4 (0.3) pm for the two axial fluorines (F-Te-F 175.7), and 188.2, 187.1, 188.7, 187.3, 187.3 and 189.7 pm for the equatorial "
+        "ones, which the printed table gives as SIX lines for FIVE atoms (one label is printed twice), so the mean of all six, 188.05 pm, is used (any five of them average 187.9 to 188.2); "
+        "the real equatorial pentagon is puckered (angles 69.6 to 74.4 and 138.5 to 146.8 degrees) and is placed regular here",
+        True,
+        -1,
+    ),
+    Reference(
+        "I",
+        "F",
+        5,
+        2.11,
+        2.11,
+        {},
+        "Christe, Wilson, Drake, Dixon, Boatz and Gnann 1998, J Am Chem Soc 120, 4711 [source:christe1998]",
+        "CALCULATED, NOT MEASURED: no structure of IF5(2-) has been determined. The paper's HF/ECP/DZP optimisation gives a planar D5h pentagon with I-F 2.094 A (LDFT 2.163 A), and "
+        "its 'predicted' 2.11 A applies the correction found for IF4- (calculated 1.994 against 2.007 observed); the shape is established by the spectra and by the isoelectronic XeF5-",
+        True,
+        -2,
+        (),
+        "",
+        "calculated",
+    ),
+    Reference(
+        "P",
+        "ClClClFF",
+        5,
+        1.593,
+        2.004,
+        {},
+        "Lengths transferred from French, Hedberg, Shreeve and Gupta 1985, Inorg Chem 24, 2774 [source:french1985]; shape from Griffiths, Carter and Holmes 1964, J Chem Phys 41, 863 [source:griffiths1964]",
+        "ESTIMATED, NOT MEASURED: no structure of PCl3F2 with distances has been published. The shape (D3h, fluorines axial, three equatorial chlorines) follows from the infrared and Raman spectra "
+        "(Griffiths 1964); the lengths are those of its measured neighbour PCl2F3 (rg P-F axial 1.593 (0.004), P-Cl 2.004 (0.002) A), a change of one equatorial atom, so uncertain by a few hundredths of an Angstrom",
+        True,
+        0,
+        (("F", 1.593), ("F", 1.593), ("Cl", 2.004), ("Cl", 2.004), ("Cl", 2.004)),
+        "",
+        "estimated",
+    ),
+    # XeF6 is NOT one measured geometry. This row is a MODEL (Bartell and Gavin's Model C, C3v, the one that fits the radial distribution as well as the others) of a molecule
+    # that is a fluxional average over such distorted octahedra; it is a starting geometry, labelled so.
+    Reference(
+        "Xe",
+        "F",
+        6,
+        1.912,
+        1.862,
+        {"l-l": 100.6, "s-s": 91.0},
+        "Bartell and Gavin 1968, J Chem Phys 48, 2466 [source:bartell1968]",
+        "MODEL, not a rigid measured structure: gas electron diffraction Model C (C3v), Analysis I (rg): three long Xe-F 1.912 and three short 1.862 A (mean 1.887 (0.005), difference "
+        "0.050 (0.03)), the long triple 100.6 and the short triple 91.0 degrees apart; the authors call these parameters rough guides, the molecule is a distribution of distorted "
+        "octahedra with bond lengths spread over about 0.08 A and fluorine displacements of 5 to 10 degrees, and the lone pair sits on the side of the long bonds",
+        True,
+        0,
+        (),
+        "",
+        "model",
+    ),
+    # Trigonal pyramids (2026-11-14): the template `_trigonal_pyramid` with the two molecules whose crystals are the only structures measured.
+    Reference(
+        "Xe",
+        "O=O=O=",
+        3,
+        1.76,
+        1.76,
+        {"l-l": 103.0},
+        "Templeton, Zalkin, Forrester and Williamson 1963, J Am Chem Soc 85, 817 [source:templeton1963]",
+        "single-crystal X-ray: Xe-O 1.74, 1.76 and 1.77 (0.03) A and O-Xe-O 108, 100 and 101 (2) degrees, whose deviations from threefold symmetry the authors "
+        "call of doubtful significance; the thermal-motion-corrected means 1.76 A and 103 degrees are used",
+        True,
+    ),
+    Reference(
+        "Br",
+        "FO=O=",
+        3,
+        1.8015,
+        1.6018,
+        {"l1-l2": 107.4, "l3-l12": 100.05},
+        "Seppelt 2019 and its Supporting Information, Table S4, Angew Chem Int Ed 58, 18928 [source:seppelt2019]; the pure crystal is Hwang, Kuschel and Seppelt 1997 [source:hwang1997]",
+        "single-crystal X-ray at 100 K of the adduct 3 BrO2F.4 acetone, the two molecules the paper calls undisturbed by disorder (Br1 and Br3): Br=O 1.606, 1.620 and 1.587, 1.594 (mean 1.6018) "
+        "and Br-F 1.781 and 1.822 (mean 1.8015) A (esd 0.002); O-Br-O 107.4 (0.1) in both, O-Br-F 99.8 and 100.3 (0.1) in both (mean 100.05). The third molecule (Br2, with O and F "
+        "disordered) is not used. The mean Br-(O,F) distance 1.668 A reproduces the disordered pure crystal's 167.4 (0.6) pm. Each Br also has contacts of about 2.6 A to acetone oxygens, omitted",
+        True,
+        0,
+        (("O=", 1.6018), ("O=", 1.6018), ("F", 1.8015)),
+        "cs_pyramid",
+    ),
+    # The two anions are CRYSTAL structures: the ion is in an ionic lattice, where a Cl-F or Xe-F distance moves by a few
+    # hundredths of an Angstrom with the counter-ion (ClF4- spans 1.73 to 1.87 A between salts).
+    Reference(
+        "Cl",
+        "F",
+        4,
+        1.7982,
+        1.7982,
+        {},
+        "Scheibe, Ivlev, Karttunen and Kraus 2020, Eur J Inorg Chem, 1319 [source:scheibe2020]",
+        "single-crystal X-ray, K[ClF4] (F-Cl-F 89.79 and 90.21); the anion is square planar, D4h",
+        True,
+        -1,
+    ),
+    Reference(
+        "Xe",
+        "F",
+        5,
+        2.012,
+        2.012,
+        {},
+        "Christe et al. 1991, J Am Chem Soc 113, 3351 [source:christe1991]",
+        "single-crystal X-ray, [N(CH3)4][XeF5], mean of five distances 1.979 to 2.034 (esd 0.002); mean F-Xe-F 72.0 (0.4); "
+        "planar, D5h",
+        True,
+        -1,
+    ),
 )
 # `key` is derived from the entry, so the table cannot disagree with the lookup.
 #: `(centre, ligand, number of ligands)` -> its measured geometry. A molecule not here is refused, never estimated.
-REFERENCES: dict[tuple[str, str, int], Reference] = {r.key: r for r in _ENTRIES}
+REFERENCES: dict[tuple[str, str, int, int], Reference] = {r.key: r for r in _ENTRIES}
+
+
+#: What each evidence tier of a `Reference` means in a sentence a person reads.
+EVIDENCE_PHRASES = {
+    "measured": "measured bond lengths and angles",
+    "model": "bond lengths and angles of a published MODEL of a molecule that has no single measured geometry",
+    "calculated": "a published CALCULATED bond length (no structure of this species has been measured)",
+    "estimated": "ESTIMATED bond lengths (transferred from a measured analogue, or assumed by the source)",
+}
+
+
+def evidence_phrase(reference: Reference) -> str:
+    """The sentence for `reference.evidence`; an unknown tier is said as it is rather than hidden."""
+    return EVIDENCE_PHRASES.get(reference.evidence, f"evidence of kind {reference.evidence!r}")
 
 
 @dataclass(frozen=True)
@@ -234,7 +746,9 @@ class VseprGeometry:
     equatorial_indices: tuple[int, ...]
     reference: Reference
     diagnostics: dict[str, float] = field(default_factory=dict)
-    #: Always the same statement, so no consumer can mistake this for an optimised structure.
+    #: The distance each ligand was placed at, by atom index (what `validate` checks against).
+    ligand_lengths: dict[int, float] = field(default_factory=dict)
+    #: Always says it is not optimised, and says how well the numbers are known (`evidence_phrase`), so no consumer can mistake an estimate for a measurement.
     provenance: str = "idealised VSEPR template with published bond lengths and angles; not optimised, no energy"
 
 
@@ -243,6 +757,10 @@ class VseprOutcome:
     kind: Kind
     reason: str = ""
     geometry: VseprGeometry | None = None
+    #: For a molecule whose organic groups were grown on the core (`chem.vsepr_graft`): the Mol WITH its hydrogens that `geometry` refers to
+    #: (its atoms are the drawing's heavy atoms, in order, then the hydrogens), and further conformers' coordinates for it. None for a bare core.
+    molecule: Any = None
+    alternatives: tuple[tuple[tuple[float, float, float], ...], ...] = ()
 
 
 #: A fixed rotation applied to every built geometry. The templates sit on the axes (a linear molecule along z, a
@@ -290,6 +808,11 @@ def _seesaw(ref: Reference) -> tuple[list[np.ndarray], list[np.ndarray]]:
     ax = math.radians(ref.angles.get("ax-ax", 180.0))
     eq = math.radians(ref.angles.get("eq-eq", 120.0))
     t = (math.pi - ax) / 2
+    if "ax-eq" in ref.angles:
+        # A reference that states the axial-equatorial angle says which way the axial pair bends: toward the lone pair
+        # (an ax-eq above 90, as in XeO2F2, where the oxo ligands push the fluorines back) or away from it (below 90).
+        if (math.cos(math.radians(ref.angles["ax-eq"])) < 0) != (math.sin(t) * math.cos(eq / 2) < 0):
+            t = -t
     return (
         [
             np.array([math.sin(t), 0.0, math.cos(t)]),
@@ -337,10 +860,105 @@ def _pentagonal_bipyramid(ref: Reference) -> tuple[list[np.ndarray], list[np.nda
     return [np.array([0.0, 0.0, 1.0]), np.array([0.0, 0.0, -1.0])], equatorial
 
 
+def _pentagonal_planar(ref: Reference) -> tuple[list[np.ndarray], list[np.ndarray]]:
+    # AX5E2: five ligands in one plane at 72 degrees (the two lone pairs are the two poles), as in XeF5-.
+    ring = [np.array([math.cos(math.radians(p)), math.sin(math.radians(p)), 0.0]) for p in (0, 72, 144, 216, 288)]
+    return [], ring
+
+
+def _cs_bipyramid(ref: Reference) -> tuple[list[np.ndarray], list[np.ndarray]]:
+    # ClF3O: two axial ligands mirror each other across the equatorial plane; two ligands (F and O) lie in that plane
+    # `feq-o` apart, and the lone pair is the third equatorial position. Each axial vector (a, b, +-c) is solved from
+    # its angle to the in-plane F (`fax-feq`) and to the in-plane O (`fax-o`), so all three published angles hold.
+    gamma = math.radians(ref.angles["feq-o"]) / 2
+    cos_f, cos_o = math.cos(math.radians(ref.angles["fax-feq"])), math.cos(math.radians(ref.angles["fax-o"]))
+    a = (cos_f + cos_o) / (2 * math.cos(gamma))
+    b = (cos_f - cos_o) / (2 * math.sin(gamma))
+    c = math.sqrt(1.0 - a * a - b * b)
+    in_plane_f = np.array([math.cos(gamma), math.sin(gamma), 0.0])
+    in_plane_o = np.array([math.cos(gamma), -math.sin(gamma), 0.0])
+    return [np.array([a, b, c]), np.array([a, b, -c])], [in_plane_f, in_plane_o]
+
+
+def _c2v_bipyramid(ref: Reference) -> tuple[list[np.ndarray], list[np.ndarray]]:
+    # SOF4: the oxygen and two fluorines are equatorial (the oxygen on +x, the fluorines `eq-eq` apart about -x), and
+    # the axial pair sits `ax-o` from the oxygen in the plane that holds the oxygen and the axis.
+    half = math.radians(ref.angles["eq-eq"]) / 2
+    cos_ax_o = math.cos(math.radians(ref.angles["ax-o"]))
+    axial = [np.array([cos_ax_o, 0.0, s * math.sqrt(1.0 - cos_ax_o**2)]) for s in (1.0, -1.0)]
+    equatorial = [
+        np.array([1.0, 0.0, 0.0]),
+        np.array([-math.cos(half), math.sin(half), 0.0]),
+        np.array([-math.cos(half), -math.sin(half), 0.0]),
+    ]
+    return axial, equatorial
+
+
+def _c4v_octahedron(ref: Reference) -> tuple[list[np.ndarray], list[np.ndarray]]:
+    # SF5Cl: the unique ligand (Cl) on +z, its trans ligand on -z, four basal ligands `ax-eq` from the unique one.
+    t = math.radians(ref.angles["ax-eq"])
+    basal = [
+        np.array([math.sin(t) * math.cos(math.radians(p)), math.sin(t) * math.sin(math.radians(p)), math.cos(t)])
+        for p in (0, 90, 180, 270)
+    ]
+    return [np.array([0.0, 0.0, 1.0]), np.array([0.0, 0.0, -1.0])], basal
+
+
+def _trigonal_pyramid(ref: Reference) -> tuple[list[np.ndarray], list[np.ndarray]]:
+    # AX3E: three ligands on a cone about the axis, 120 degrees apart about it, the lone pair on the other end of the axis. `l-l` is the angle between any two
+    # ligands: for ligands at angle b from the axis, cos(l-l) = (3 cos^2 b - 1) / 2, so cos^2 b = (2 cos(l-l) + 1) / 3 (XeO3 103 degrees, BrO2F 103.8).
+    cos_ll = math.cos(math.radians(ref.angles.get("l-l", 109.5)))
+    cos_b = math.sqrt(max((2.0 * cos_ll + 1.0) / 3.0, 0.0))
+    sin_b = math.sqrt(1.0 - cos_b * cos_b)
+    ring = [
+        np.array([sin_b * math.cos(math.radians(p)), sin_b * math.sin(math.radians(p)), -cos_b]) for p in (0, 120, 240)
+    ]
+    return [], ring
+
+
+def _c3v_octahedron(ref: Reference) -> tuple[list[np.ndarray], list[np.ndarray]]:
+    # AX6E, a C3v distorted octahedron (XeF6, Bartell and Gavin's Model C): a triple of LONG bonds around the lone pair's side with mutual angle `l-l` (above 90), and a
+    # triple of short bonds on the far side with mutual angle `s-s`, staggered by 60 degrees about the axis. For a triple with mutual angle t each bond makes
+    # an angle a with the axis where cos^2 a = (2 cos t + 1) / 3. The returned groups are the long triple (`axial`) and the short triple (`equatorial`).
+    def cone(mutual: float) -> float:
+        return math.sqrt(max((2.0 * math.cos(math.radians(mutual)) + 1.0) / 3.0, 0.0))
+
+    cos_l, cos_s = cone(ref.angles["l-l"]), cone(ref.angles["s-s"])
+    sin_l, sin_s = math.sqrt(1.0 - cos_l**2), math.sqrt(1.0 - cos_s**2)
+    long_triple = [
+        np.array([sin_l * math.cos(math.radians(p)), sin_l * math.sin(math.radians(p)), cos_l]) for p in (0, 120, 240)
+    ]
+    short_triple = [
+        np.array([sin_s * math.cos(math.radians(p)), sin_s * math.sin(math.radians(p)), -cos_s]) for p in (60, 180, 300)
+    ]
+    return long_triple, short_triple
+
+
+def _cs_pyramid(ref: Reference) -> tuple[list[np.ndarray], list[np.ndarray]]:
+    # A Cs trigonal pyramid with two equivalent ligands (BrO2F: O, O, F): the two equivalent ligands `l1-l2` apart in a plane through the centre, the third out of that plane
+    # at `l3-l12` from each of them. The returned order is [first equivalent, second equivalent, third], the order of the reference's `slots`.
+    gamma = math.radians(ref.angles["l1-l2"]) / 2
+    cos_phi = math.cos(math.radians(ref.angles["l3-l12"]))
+    a = cos_phi / math.cos(gamma)
+    c = math.sqrt(max(1.0 - a * a, 0.0))
+    return [], [
+        np.array([math.cos(gamma), math.sin(gamma), 0.0]),
+        np.array([math.cos(gamma), -math.sin(gamma), 0.0]),
+        np.array([a, 0.0, c]),
+    ]
+
+
+#: Layout name -> placer, for the references that name one.
+_LAYOUTS = {"cs_pyramid": _cs_pyramid, "cs_bipyramid": _cs_bipyramid, "c2v_bipyramid": _c2v_bipyramid, "c4v_octahedron": _c4v_octahedron}
+
+
 #: (bonds, lone pairs) -> (classification, shape, placer). XeF6 (a distorted mean structure, not one shape) and
 #: every shape with more than seven bonds are not here.
 _TEMPLATES = {
+    (5, 2): ("AX5E2", "pentagonal planar", _pentagonal_planar),
     (2, 3): ("AX2E3", "linear", _linear),
+    (3, 1): ("AX3E", "trigonal pyramidal", _trigonal_pyramid),
+    (6, 1): ("AX6E", "C3v distorted octahedron", _c3v_octahedron),
     (3, 2): ("AX3E2", "T-shaped", _t_shape),
     (4, 2): ("AX4E2", "square planar", _square_planar),
     (4, 1): ("AX4E", "seesaw", _seesaw),
@@ -357,35 +975,57 @@ _TEMPLATES = {
 def _hypervalent_centre(mol: Any) -> tuple[int, list[int]] | None:
     """The one centre and its ligands, when `mol` has the shape this module is about; else None.
 
-    One connected fragment; every other atom terminal and singly bonded to the centre; no formal charge
-    anywhere; the centre's element in the hypervalent table with `n` bonds a permitted valence other than
-    its preferred one. Anything else belongs to the ordinary conformer path.
+    One connected fragment; every other atom terminal, neutral and singly bonded to the centre (or doubly bonded, for
+    an oxygen: an oxo ligand, accepted here only so a lookup can find a measured geometry for it); a formal
+    charge only on the centre (an anion such as ClF4- or XeF5-; the charge is drawn on the atom whose
+    electrons it changes); the centre's element in the hypervalent table with an EFFECTIVE valence (its
+    bonds, less a positive or plus a negative charge, as `checkers.valence` counts it) that is permitted
+    and is not the preferred one. Anything else belongs to the ordinary conformer path.
     """
     from openchem.chem.checkers.valence import hypervalent_rules
 
     n_atoms = mol.GetNumAtoms()
     if n_atoms < 3 or len(_fragments(mol)) != 1:
         return None
-    if any(a.GetFormalCharge() for a in mol.GetAtoms()):
-        return None
     centre = max(mol.GetAtoms(), key=lambda a: a.GetDegree())
-    if centre.GetDegree() != n_atoms - 1:
-        return None
+    if centre.GetDegree() != n_atoms - 1 or centre.GetTotalNumHs():
+        return None  # not a bare star: a hydrogen on the centre is a ligand and belongs to `chem.vsepr_graft`
     ligands = [a.GetIdx() for a in mol.GetAtoms() if a.GetIdx() != centre.GetIdx()]
     for index in ligands:
         atom = mol.GetAtomWithIdx(index)
         bond = mol.GetBondBetweenAtoms(index, centre.GetIdx())
-        if atom.GetDegree() != 1 or bond is None or bond.GetBondTypeAsDouble() != 1.0:
+        order = bond.GetBondTypeAsDouble() if bond is not None else 0.0
+        if atom.GetDegree() != 1 or atom.GetTotalNumHs() or atom.GetFormalCharge() or order not in (1.0, 2.0):
+            return None
+        if order == 2.0 and atom.GetSymbol() != "O":
             return None
     rule = hypervalent_rules().get(centre.GetSymbol())
-    n = centre.GetDegree()
+    effective = _bonding_electrons(centre) - centre.GetFormalCharge()
     if (
         not rule
-        or n not in rule["permitted_valences"]
-        or n == rule["preferred_valence"]
+        or effective not in rule["permitted_valences"]
+        or effective == rule["preferred_valence"]
     ):
         return None
     return centre.GetIdx(), ligands
+
+
+def _bonding_electrons(centre: Any) -> int:
+    """The centre's valence as its bonds count it: a double bond counts two."""
+    return int(round(sum(b.GetBondTypeAsDouble() for b in centre.GetBonds()))) + centre.GetTotalNumHs()
+
+
+def _token(mol: Any, centre_index: int, ligand_index: int) -> str:
+    """A ligand's element, with "=" for a double bond to the centre ("F", "O=")."""
+    bond = mol.GetBondBetweenAtoms(centre_index, ligand_index)
+    return mol.GetAtomWithIdx(ligand_index).GetSymbol() + ("=" if bond.GetBondTypeAsDouble() == 2.0 else "")
+
+
+def _ligand_key(tokens: list[str]) -> str:
+    """The `Reference.ligand` string for a set of ligand tokens: the bare element for identical single-bonded ligands."""
+    if len(set(tokens)) == 1 and not tokens[0].endswith("="):
+        return tokens[0]
+    return "".join(sorted(tokens))
 
 
 def _fragments(mol: Any) -> list[Any]:
@@ -394,85 +1034,142 @@ def _fragments(mol: Any) -> list[Any]:
     return list(Chem.GetMolFrags(mol))
 
 
+@dataclass(frozen=True)
+class CorePlacement:
+    """Where the centre and its ligands go: the part of a build that does not depend on what the ligands are bonded to."""
+
+    #: Atom index -> (x, y, z), Angstrom, for the centre (at the origin) and every ligand; in the template's frame, view-tilted.
+    coordinates: dict[int, tuple[float, float, float]]
+    centre_index: int
+    ligand_indices: tuple[int, ...]
+    classification: str
+    shape: str
+    axial_indices: tuple[int, ...]
+    equatorial_indices: tuple[int, ...]
+    reference: Reference
+    ligand_lengths: dict[int, float]
+
+
+def place_core(mol: Any, centre_index: int, ligand_indices: list[int]) -> CorePlacement | VseprOutcome:
+    """Place a centre and its ligands from the measured table, or say (as an outcome) why that cannot be done.
+
+    The ligands are the centre's neighbours whatever they are bonded to beyond it: a bare fluorine, a methyl carbon, a hydrogen
+    or an oxygen carrying an acetyl group are all one token each ("F", "C", "H", "O"), and the table is keyed by those tokens.
+    `mol` must show every hydrogen of the centre as an atom, since a hydrogen on it is a ligand.
+    """
+    centre = mol.GetAtomWithIdx(centre_index)
+    symbol, n = centre.GetSymbol(), len(ligand_indices)
+    outer = _OUTER_ELECTRONS.get(symbol)
+    if outer is None:
+        return VseprOutcome(Kind.UNSUPPORTED, f"no electron count is recorded for the centre element {symbol}")
+    charge = centre.GetFormalCharge()
+    # The centre's own electrons are its outer shell less the charge it carries (an anion has one more).
+    tokens = {i: _token(mol, centre_index, i) for i in ligand_indices}
+    has_oxo = any(t.endswith("=") for t in tokens.values())
+    left_over = outer - charge - _bonding_electrons(centre)
+    lone_pairs, remainder = divmod(left_over, 2)
+    ligand = _ligand_key(list(tokens.values()))
+    reference = REFERENCES.get((symbol, ligand, n, charge))
+    if has_oxo and reference is None:
+        # An oxo ligand with no recorded geometry is the ordinary case (a sulfate, a perchlorate, a phosphate): it was
+        # never this module's, and stays on the conformer path it was always on.
+        return VseprOutcome(Kind.NOT_APPLICABLE, "a double-bonded ligand with no recorded geometry")
+    if remainder or lone_pairs < 0 or (n, lone_pairs) not in _TEMPLATES:
+        return VseprOutcome(
+            Kind.UNSUPPORTED,
+            f"{symbol} with {n} ligands and {left_over} left-over electrons has no template here",
+        )
+    classification, shape, placer = _TEMPLATES[(n, lone_pairs)]
+    if reference is None:
+        sign = "" if charge == 0 else f" with charge {charge:+d}"
+        kinds = sorted(set(tokens.values()))
+        if len(kinds) > 1:
+            return VseprOutcome(
+                Kind.UNSUPPORTED,
+                f"mixed ligands ({'/'.join(kinds)}) have no measured geometry for {symbol}{sign}",
+            )
+        return VseprOutcome(Kind.UNSUPPORTED, f"no measured geometry is recorded for {symbol}{ligand}{n}{sign}")
+    if reference.layout:
+        placer = _LAYOUTS[reference.layout]
+
+    axial_vectors, equatorial_vectors = ([_VIEW_TILT @ v for v in group] for group in placer(reference))
+    vectors = axial_vectors + equatorial_vectors
+    if reference.slots:
+        lengths = [length for _, length in reference.slots]
+        wanted = [token for token, _ in reference.slots]
+    else:
+        lengths = [reference.axial] * len(axial_vectors) + [reference.equatorial] * len(equatorial_vectors)
+        wanted = []
+    assert len(vectors) == n, (classification, len(vectors), n)
+    # With several kinds of ligand, each slot takes the first unused ligand of its kind (atom order, so deterministic).
+    if wanted:
+        pool = list(ligand_indices)
+        order: list[int] = []
+        for token in wanted:
+            pick = next((i for i in pool if tokens[i] == token), None)
+            if pick is None:
+                return VseprOutcome(Kind.UNSUPPORTED, "the ligands do not match the recorded geometry's ligands")
+            pool.remove(pick)
+            order.append(pick)
+    else:
+        order = list(ligand_indices)
+    coordinates: dict[int, tuple[float, float, float]] = {centre_index: (0.0, 0.0, 0.0)}
+    placed: dict[int, float] = {}
+    for index, vector, length in zip(order, vectors, lengths):
+        point = vector / np.linalg.norm(vector) * length
+        coordinates[index] = (float(point[0]), float(point[1]), float(point[2]))
+        placed[index] = length
+    return CorePlacement(
+        coordinates=coordinates,
+        centre_index=centre_index,
+        ligand_indices=tuple(ligand_indices),
+        classification=classification,
+        shape=shape,
+        axial_indices=tuple(order[: len(axial_vectors)]),
+        equatorial_indices=tuple(order[len(axial_vectors) :]),
+        reference=reference,
+        ligand_lengths=placed,
+    )
+
+
 def build_vsepr_geometry(mol: Any) -> VseprOutcome:
     """Coordinates for `mol` if it is a supported hypervalent molecule; see the module docstring for the outcomes.
 
     `mol` is the Mol of `ChemistryEngine.hypervalent_mol_from_molblock` (or any Mol; it is only read: atoms,
     bonds, charges). The input is never modified.
+
+    A molecule that is NOT one centre with bare terminal ligands (a phosphorane with phenyl groups, an iodine(III) reagent, a
+    methyl or a hydrogen on the centre) is handed to `chem.vsepr_graft`, which places the centre and its ligands from this
+    same table and grows the organic groups on the ligands.
     """
     found = _hypervalent_centre(mol)
     if found is None:
-        return VseprOutcome(
-            Kind.NOT_APPLICABLE,
-            "not a single hypervalent centre with terminal single bonds",
-        )
-    centre_index, ligand_indices = found
-    centre = mol.GetAtomWithIdx(centre_index)
-    symbol, n = centre.GetSymbol(), len(ligand_indices)
-    outer = _OUTER_ELECTRONS.get(symbol)
-    if outer is None:
-        return VseprOutcome(
-            Kind.UNSUPPORTED,
-            f"no electron count is recorded for the centre element {symbol}",
-        )
-    lone_pairs, remainder = divmod(outer - n, 2)
-    if remainder or lone_pairs < 0 or (n, lone_pairs) not in _TEMPLATES:
-        return VseprOutcome(
-            Kind.UNSUPPORTED,
-            f"{symbol} with {n} bonds and {outer - n} left-over electrons has no template here",
-        )
-    classification, shape, placer = _TEMPLATES[(n, lone_pairs)]
-    ligand_symbols = {mol.GetAtomWithIdx(i).GetSymbol() for i in ligand_indices}
-    if len(ligand_symbols) != 1:
-        return VseprOutcome(
-            Kind.UNSUPPORTED,
-            f"mixed ligands ({'/'.join(sorted(ligand_symbols))}) have no measured geometry here",
-        )
-    ligand = ligand_symbols.pop()
-    reference = REFERENCES.get((symbol, ligand, n))
-    if reference is None:
-        return VseprOutcome(
-            Kind.UNSUPPORTED,
-            f"no measured geometry is recorded for {symbol}{ligand}{n}",
-        )
+        from openchem.chem.vsepr_graft import graft_outcome
 
-    axial_vectors, equatorial_vectors = (
-        [_VIEW_TILT @ v for v in group] for group in placer(reference)
-    )
-    slots = [(v, reference.axial) for v in axial_vectors] + [
-        (v, reference.equatorial) for v in equatorial_vectors
-    ]
-    assert len(slots) == n, (classification, len(slots), n)
-    coordinates: list[tuple[float, float, float]] = [
-        (0.0, 0.0, 0.0)
-    ] * mol.GetNumAtoms()
-    for index, (vector, length) in zip(
-        ligand_indices, slots
-    ):  # ligands in atom order: deterministic
-        point = vector / np.linalg.norm(vector) * length
-        coordinates[index] = (float(point[0]), float(point[1]), float(point[2]))
+        return graft_outcome(mol)
+    centre_index, ligand_indices = found
+    core = place_core(mol, centre_index, ligand_indices)
+    if isinstance(core, VseprOutcome):
+        return core
+    coordinates: list[tuple[float, float, float]] = [(0.0, 0.0, 0.0)] * mol.GetNumAtoms()
+    for index, point in core.coordinates.items():
+        coordinates[index] = point
     geometry = VseprGeometry(
         coordinates=tuple(coordinates),
         centre_index=centre_index,
         ligand_indices=tuple(ligand_indices),
-        classification=classification,
-        shape=shape,
-        axial_indices=tuple(ligand_indices[: len(axial_vectors)]),
-        equatorial_indices=tuple(ligand_indices[len(axial_vectors) :]),
-        reference=reference,
+        classification=core.classification,
+        shape=core.shape,
+        axial_indices=core.axial_indices,
+        equatorial_indices=core.equatorial_indices,
+        reference=core.reference,
+        ligand_lengths=core.ligand_lengths,
+        provenance=f"idealised VSEPR template with {evidence_phrase(core.reference)}; not optimised, no energy",
     )
     problems = validate(geometry)
     if problems:
-        return VseprOutcome(
-            Kind.UNSUPPORTED,
-            "the built geometry failed its own checks: " + "; ".join(problems),
-        )
-    return VseprOutcome(
-        Kind.BUILT,
-        geometry=VseprGeometry(
-            **{**geometry.__dict__, "diagnostics": _diagnostics(geometry)}
-        ),
-    )
+        return VseprOutcome(Kind.UNSUPPORTED, "the built geometry failed its own checks: " + "; ".join(problems))
+    return VseprOutcome(Kind.BUILT, geometry=VseprGeometry(**{**geometry.__dict__, "diagnostics": _diagnostics(geometry)}))
 
 
 # --- checks ---------------------------------------------------------------------------------------------
@@ -515,10 +1212,7 @@ def validate(geometry: VseprGeometry) -> list[str]:
         return ["a coordinate is not finite"]
     if np.linalg.norm(points[geometry.centre_index]) > 1e-9:
         problems.append("the centre is not at the origin")
-    expected = {i: geometry.reference.axial for i in geometry.axial_indices}
-    expected.update(
-        {i: geometry.reference.equatorial for i in geometry.equatorial_indices}
-    )
+    expected = dict(geometry.ligand_lengths)
     for index, length in expected.items():
         actual = float(np.linalg.norm(points[index]))
         if abs(actual - length) > 1e-6:

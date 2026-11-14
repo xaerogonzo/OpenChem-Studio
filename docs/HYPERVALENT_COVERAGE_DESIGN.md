@@ -53,31 +53,31 @@ So: **fix defects where they arise, add one generic guard that would have caught
 
 Each has an acceptance test written first against the measurement above, and a control that must not move.
 
-**WP1. No non-finite number is ever published.** A guard where results leave the calculators (`DescriptorService`, for registry
+**WP1. No non-finite number is ever published. DONE 2026-11-13** (`domain/finite_guard.py`, applied in both `DescriptorService` tasks; `tests/test_nonfinite_guard.py` holds the seven measured molecules and eight controls, mutation-checked: with the guard removed 15 of 33 tests fail; the census and the descriptor-service tests are unchanged; per-atom datasets are refused whole, as recommended; the scan script calls the calculators directly and so still shows the raw NaN, the guard sits between them and the panels). A guard where results leave the calculators (`DescriptorService`, for registry
 results, always-on descriptors and per-atom datasets): any NaN or infinity becomes a refusal `ELEMENT_OUTSIDE_PARAMETER_SET` (an
 existing LIMIT) naming the element and, where known, the atoms. Fixes `gasteiger_charge_at_ph`, the always-on Gasteiger dataset and
 anything similar not yet found. *Accept:* PF5, XeF4, XeF2, IF5, PCl5, PIDA, CH3-PF4 no longer publish NaN; the six controls'
 results are byte-identical; a mutation test (guard removed) fails. *Open:* whether the dataset should drop only the bad atoms or
 refuse whole. Recommendation: refuse whole, because a charge set with holes does not sum to the formal charge.
 
-**WP2. Stereocentre perception for 5- and 6-coordinate centres.** `topology_analysis.stereo_counts` counts a stereocentre only
+**WP2. Stereocentre perception for 5- and 6-coordinate centres. DONE 2026-11-13** (`chem/stereo_elements.py`, used by `topology_analysis.stereo_counts` and `bbb_stereo.stereo_descriptors`; a centre with more than four neighbours is reported as not assessed; the other stereo paths already said 0; `tests/test_stereo_elements.py`, mutation-checked: with the rule off 17 of 30 fail). `topology_analysis.stereo_counts` counts a stereocentre only
 where RDKit's stereo model applies (three or four neighbours, the cases the codebase already treats as tetrahedral or pyramidal),
 and says "not assessed" for a higher coordination rather than 1. *Accept:* SF6, PF5, Ph-SF5, CH3-PF4, PCl5, IF5 count 0; CHFClBr
 1; a sulfoxide and a sulfoximine unchanged. Check the sibling code paths (`stereo_descriptors`, per-atom `stereocenters`) for the
 same count; the always-on `num_stereocenters` was already 0 on SF6.
 
-**WP3. Dreiding typing must respect coordination.** `chem/dreiding` refuses (`UntypedAtomError`, which the report already turns
+**WP3. Dreiding typing must respect coordination. DONE 2026-11-14** (`chem/dreiding/typer.py`: a type refuses an atom with more neighbours than its hybridisation or, for sp3 main-group atoms, its own electrons allow; measured before: SF6 708, PF5 163, SF4 394, IF5 1053, perchlorate 404 kcal/mol; `tests/test_dreiding_coordination.py`, mutation-checked: 10 of 24 fail with the check off; a perchlorate chlorine is also refused now, which the 'no change to perchlorates' non-goal did not foresee, because its energy was meaningless too). `chem/dreiding` refuses (`UntypedAtomError`, which the report already turns
 into a stated reason) an atom whose coordination exceeds its type's (a halogen with more than one bond, a noble gas, a type with a
 fixed geometry that the neighbour count contradicts). *Accept:* the Dreiding fact on ClF3 and on Cl, Br, I and Xe centres says it
 cannot type them; the facts that already carry numbers for ordinary molecules are unchanged (`tests/test_dreiding*`).
 
-**WP4. Polarizability: decide from the data, not from one molecule.** The CRC Handbook table that `benchmarks/polarizability/`
+**WP4. Polarizability: decide from the data, not from one molecule. DONE 2026-11-14.** Decision table, from the 908 non-calculated Bosque and CRC rows the additive model predicts (mean absolute error 4.38%, median 2.60%): 23 have a centre the hypervalent table lists. Three have five or more neighbours: SF6 6.54 against 5.15 (-21.2%), SeF6 7.33 against 5.65 (-23.0%), PF5 6.10 against 5.59 (-8.4%); TeF6 has no tellurium parameter and is refused. The other 20 are S(IV) and S(VI) oxo compounds and phosphates (mean absolute error 8.8%, near the CRC set's stated 8%; worst: hexamethylphosphoramide +25.8%, sulfur dioxide +20.2%, dimethyl sulfone +16.7%, sulfuryl chloride -15.2%). **Shipped:** a warning with those three figures for any centre with five or more neighbours, and an 'unvalidated' statement for xenon and for a halogen with more than one neighbour (the data holds no such molecule); no number and no ordinary molecule changes. `tests/test_polarizability_hypervalent.py` recomputes the percentages. Not measurable here: ClF3, BrF3, XeF2, XeF4, IF5 (no experimental polarizability in the held tables). The CRC Handbook table that `benchmarks/polarizability/`
 already parses (`crc_parse.py`, `crc_resolve.py`) contains hypervalent molecules (SF6 and others). Compute the model's error on
 every entry with a hypervalent centre. If the error is a clear outlier against the stated 2.1 and 9 per cent, add a caveat (or a
 limit) for those centres with the measured figure; if it is not, do nothing. *Accept:* the decision is a table in this document,
 and a test holds whatever is shipped to it.
 
-**WP5. Extend the held-structure verified list.** The unverified calculators are each checked against an oracle exactly as in
+**WP5. Extend the held-structure verified list. DONE 2026-11-14** for the topology trio. Probe of every registry calculator on held ClF3, BrF3 and ClF5 (the rest refuse, fail on their own inputs, or return a number): the graph-theory calculators `topology_analysis`, `topology_eccentricity` and `topology_distance_degree` were allowed after `tests/test_hypervalent_topology.py` held them to a second implementation on eight held structures (Balaban needed bond-order distances to agree, as RDKit's does). **Not allowed, with the measured reason:** `dipole_moment` (0.00 for ClF3, whose T-shape has a dipole), `cns_mpo`/`bbb_descriptors` (TPSA 0.00 and a Crippen logP that means nothing), `polarizability`, `logd`, `solubility`, `surface_analysis`, `geometry_analysis`, `lewis_sites` (no independent oracle), `regulatory_screen` (said 'no matches' on a structure it could not read) and the pKa and charge calculators (no model). **Not added, not rejected:** `stereocenters`, `stereoisomers`, `stereo_descriptors`, `ring_systems`, `structural_frameworks`, `functional_groups`, `torsion_table` and `hbond_sites` return empty or zero on every held structure tried and have no oracle that could fail yet; `iupac_name` answers from PubChem after the engine fails ('Invalid SMILES'), so it needs the network. Each is checked against an oracle exactly as in The unverified calculators are each checked against an oracle exactly as in
 #598. The likely candidates are few (the Lewis-sites report, formula-driven facts). A calculator is added only with its oracle test.
 
 **WP6. Geometry coverage. DONE 2026-11-13** (BrF5, IF5, ClF5 and IF7 added from the papers, held in the maintainer's library and
@@ -95,7 +95,32 @@ and "a complete structure determination is not possible", so the shipped row use
 assumption. A real ORCA B3LYP/def2-SVP optimisation from that start gives apical 1.664, basal 1.709 A, 85.6 degrees. ORCA also keeps BrF5 (84.9 to
 85.0 degrees against 84.8), IF5 and IF7 in shape. Still unsupported: IF3 (no structure found), XeF6 (not one geometry), the oxyfluorides and ions.
 
-**WP7. The regulatory screen on a held structure stays refused**, with a test that a held structure never yields "no matches" (it
+**Second pass (2026-11-13), from five more papers.** Added AsF5 (Clippard and Bartell 1970: rg axial 1.711, equatorial 1.656 A), SeF4
+(Bowater, Brown and Burden 1968: 1.7713 and 1.6821 A, 169.20 and 100.55 degrees), PCl5 (NIST CCCBDB, Gurvich: 2.124 and 2.020 A, primary paper not held)
+and, as the first CHARGED cases, ClF4- (Scheibe et al. 2020: K salt 1.7982 A, square planar, a crystal) and XeF5- (Christe et al. 1991: mean
+2.012 A, planar regular pentagon, a crystal). Charged centres needed three changes: the builder counts lone pairs from the centre's outer
+shell less its formal charge and keys a reference by charge; the acceptance test became "RDKit actually refuses this atom and the table allows it"
+(the old comparison with RDKit's valence list never flagged XeF5-, which sits inside xenon's list, so a drawn XeF5- was rejected); and arsenic
+and selenium joined `hypervalent_rules.json` because a paper was read for each. A real ORCA optimisation from each start keeps the shape: SeF4 100.0
+and 170.2 degrees, both anions D4h and D5h. **XeOF4** (Martins and Wilson 1964: Xe-O 1.70, Xe-F 1.95 A, 91 degrees, preliminary and uncertain to 0.05 A) is
+read and recorded and not shipped, because it has two kinds of ligand and a Xe=O bond, which the builder does not handle; so are SF5Cl and SOF4. That
+is the next structural step (a per-ligand-class reference and oxo ligands), not a data one.
+
+**Third pass (2026-11-13), from the ChatGPT-suggested batch.** Added SeF6 (Bartell and Jin 1984, rg 1.685 A) and TeCl4 (Kovacs, Martinsen and Konings 1997, ra 243.0 and 229.8 pm, 175.9 and 103.0 degrees; tellurium joins `hypervalent_rules.json`) and moved PCl5 to its primary paper (Adams and Bartell 1971). The five mixed-ligand or oxo cases (ClF3O, XeOF4, XeO2F2, SOF4, SF5Cl) now all have measured values (see `docs/LITERATURE_LOG.md`), and the builder then gained per-slot ligand kinds, oxo ligands (a double bond to oxygen) and three layouts (Cs and C2v bipyramids, C4v octahedron): ClF3O, XeOF4, XeO2F2, SOF4 and SF5Cl are built. An oxo ligand with no recorded geometry (sulfate, perchlorate, XeO3, XeO4) is still left to the ordinary path. IF4- is square planar on spectral evidence but has no lengths; IF3 has only a crystal with bridging contacts.
+
+**Fourth pass (2026-11-14).** IF3 (Hoyer and Seppelt 2000, crystal, bridges omitted) and ClF4+ (Christe 2001, crystal, bridges omitted) were added; IF4- and BrF4- still have no measured lengths in a held paper, and the wanted-literature list names the papers to fetch. BrF3O, [BrF4O]-, XeOF2 and XeO3 were read and are not built (see the log for each reason).
+
+**Fifth pass (2026-11-14).** IF4-, BrF4-, IF2- and AsF4- were added from Zhang and Seppelt 1997 and Edwards and Jones 1969 (all crystals), closing the IF4- and BrF4- gaps; IF5(2-) has no measured length and stays unsupported.
+
+**Trigonal pyramid (2026-11-14).** The (3 bonds, 1 lone pair) template was added (`_trigonal_pyramid`, one angle between any two ligands) with XeO3 (Templeton 1963, mean 1.76 A and 103 degrees) and BrO2F (Hwang 1997: one averaged Br-(O,F) distance because the crystal's O and F are disordered, said in the row).
+
+**Sixth pass (2026-11-14).** SbCl5 (gas electron diffraction; antimony joins the rule table) and PCl2F3 were added. XeF6 is built as a labelled MODEL (Bartell and Gavin's C3v Model C; it has no single measured geometry, and B3LYP/def2-SVP relaxes the start to a regular octahedron, so it is a starting point only), BrO2F got separate Br=O and Br-F lengths from Seppelt 2019, and TeF7-, PPh3F2 and the methylphosphoranes remain outside the builder for stated reasons (an ambiguous distance table, phenyl and methyl ligands).
+
+**Evidence tiers and three models (2026-11-14).** `Reference.evidence` (`measured`, `model`, `calculated`, `estimated`) is said in the conformer's note. TeF7- (measured, with its ambiguous table said), IF5(2-) (a published calculation) and PCl3F2 (lengths transferred from PCl2F3) were added; XeF6 is a `model` and ClF5 `estimated`. What is still not a plain measurement stays visibly so.
+
+**Hybrid builder (2026-11-14).** `chem/vsepr_graft.py`: a hypervalent centre with organic or hydrogen ligands has its core placed from the table and its groups grown on the ligands (see the log's eighth pass). Cores: (C6H5)3PF2, (CH3)2PF3, CH3PF4, PH3F2, PhI(OAc)2, PhICl2 and aryl-SF5. A molecule with no core row, or one RDKit cannot read, keeps the ordinary path.
+
+**WP7. DONE 2026-11-14 (and it found a real gap).** Every route a held structure can take to the screen was probed: the calculator registry and the synthesis gate and node screen already refused or failed closed, but `engine.screen` and `compute_regulatory_screen` answered 'No matches' when handed a held Mol directly. The engine now raises `UnscreenableStructureError` for a structure that does not sanitise and the calculator turns it into `HYPERVALENT_UNSUPPORTED`; `tests/test_regulatory_held_structures.py` covers all five routes plus six readable controls (mutation-checked: 6 fail with the engine check off), and names no substance. **The regulatory screen on a held structure stays refused**, with a test that a held structure never yields "no matches" (it
 did in the #598 audit, a silent false negative for a screen). Not a change; a guard on the decision of #598.
 
 ## 4. Order and non-goals

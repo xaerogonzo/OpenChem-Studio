@@ -201,6 +201,175 @@ the ions (ClF4-, XeF5-) have not been searched beyond the CCCBDB attempt above. 
 each new shape from its VSEPR start (`tests/test_hypervalent_orca.py`, `benchmarks/hypervalent/`) keeps the shape; for ClF5
 it puts the apical bond 0.045 A shorter than the basal ones and the angle at 85.6 deg, against 86.5 +/- 1.0 measured.
 
+## More hypervalent geometries: the second literature pass (2026-11-13)
+
+Follows the section above. The papers were fetched after a search; the section records what each gave, and, as before,
+what the searches did NOT find so nobody repeats them. DOIs for the papers that ship numbers are in the registry.
+
+| file or page | what it is | read for | depth | outcome | registry key |
+|---|---|---|---|---|---|
+| `clippard1970.pdf` | AsF3 and AsF5 by gas electron diffraction (Inorg. Chem. 9) | AsF5 axial and equatorial lengths | abstract + parameter table | **used**: rg axial 1.711 (0.005), equatorial 1.656 (0.004) A, trigonal bipyramid; agrees with NIST CCCBDB, which cites it | `clippard1970` |
+| `bowater1968.pdf` | SeF4 microwave spectrum, dipole moment and structure (J. Mol. Spectrosc. 28) | SeF4 lengths and angles | abstract + results table | **used**: equatorial 1.6821, axial 1.7713 A, 100.55 and 169.20 degrees; same seesaw form as SF4 | `bowater1968` |
+| `martins1964.pdf` | XeOF4 microwave spectrum (J. Chem. Phys. 41) | XeOF4 lengths and angle | full (a two-page Letter) | **not shipped**: Xe-O 1.70 (0.05), Xe-F 1.95 (0.05) A, O-Xe-F 91 (2) degrees, and the authors call it preliminary (the Xe atom is 0.1 A from the centre of mass). Held for when the builder handles two kinds of ligand and a Xe=O bond | `martins1964` |
+| `christe1991.pdf` | XeF5- anion, first pentagonal planar AX5 species (J. Am. Chem. Soc. 113) | XeF5- geometry | abstract + crystal-structure table | **used**: five Xe-F 1.979 to 2.034 A, mean 2.012 (0.002); mean F-Xe-F 72.0 (0.4); planar D5h. A crystal structure | `christe1991` |
+| `scheibe2020.pdf` | Tetrafluoridochlorates(III) A[ClF4] (Eur. J. Inorg. Chem. 2020) | ClF4- geometry | the structure passage | **used**: K[ClF4] Cl-F 1.7982 (0.0006) A, 89.79 and 90.21 degrees; Rb 1.7930, Cs 1.792. **The held copy is the Accepted Article**, not the version of record. Other [ClF4]- salts span 1.73 to 1.87 A, so the value depends on the counter-ion | `scheibe2020` |
+| NIST CCCBDB, PCl5 | compilation | PCl5 axial and equatorial lengths | page | used with its limit: axial 2.124, equatorial 2.020 A (Gurvich 1989); the primary electron-diffraction paper is not held, and its identity was not searched | `nist_cccbdb_geometries` |
+| NIST CCCBDB, SF5Cl | compilation | a mixed-ligand case | page | not used: C4v, S-Cl 2.030, S-F 1.576 A, F-S-F 88.4 (Landolt-Bornstein); needs per-ligand lengths | none |
+| NIST CCCBDB, SeF6 and TeF6 | compilation | octahedral lengths | page | SeF6 lists the point group and no values; the TeF6 page defaulted to another molecule ("Molecule problem"). The classic source is Brockway and Pauling 1933 (not searched further) | none |
+| web search: IF3 | unstable (decomposes above -28 C) | an experimental structure | results only | **none exists in what was found**; the only I-F lengths seen were on unsourced pages. IF3 stays unsupported | none |
+| web search: BrF4- and IF4- | square planar anions | crystal structures | results only | **nothing found** beyond ClF4-; Christe 2001 covers the cations (ClF4+, BrF4+, IF4+) with fluorine bridging | none |
+| web search: SOF4 | thionyl tetrafluoride | a structure | results only | a 1982 J. Phys. Chem. reanalysis exists ("resolution of the multiple model problem"); its DOI could not be confirmed (Crossref rate-limited) and the numbers seen were from encyclopedia pages. Has an S=O bond, which the builder does not handle | none |
+| web search: XeF6 | distorted octahedron | one geometry | results only | unchanged: not one geometry | none |
+
+**What ORCA says about the new shapes** (B3LYP/def2-SVP; def2-SVPD and charge -1 for the anions), from the VSEPR start:
+SeF4 100.0 and 170.2 degrees (measured 100.55 and 169.20); AsF5 and PCl5 stay trigonal bipyramids with axial bonds 0.02 and 0.09 A
+longer than equatorial; ClF4- stays D4h (Cl-F 1.853, longer than the crystal's 1.798, as expected for an isolated anion);
+XeF5- stays a planar regular pentagon (Xe-F 2.060 against 2.012 in the crystal).
+
+## Third hypervalent pass: the ChatGPT-suggested batch (2026-11-13)
+
+Twenty-four papers fetched from a literature audit. Each was identified by its text, checked for its identity against
+Crossref, and read for the numbers it carries.
+
+| Paper | What it is | Used for | Outcome | Registry key |
+|---|---|---|---|---|
+| Adams and Bartell 1971 | PCl5 gas electron diffraction | PCl5 | **shipped**: rg axial 2.124 (0.009), equatorial 2.020 (0.007) A; replaces the compilation as the source | `adams1971` |
+| Bartell and Jin 1984 | SeF6 gas electron diffraction | SeF6 | **shipped**: rg 1.685 (0.002) A, octahedron | `bartell1984` |
+| Kovacs, Martinsen and Konings 1997 | TeCl4 gas electron diffraction | TeCl4 | **shipped**: ra 243.0 and 229.8 pm, 175.9 and 103.0 degrees (the thermal-term column gives 243.5, 229.4, 176.4, 103.7); tellurium joined the rule table | `kovacs1997` |
+| Peterson et al. 1973 | XeO2F2 neutron diffraction, crystal | -- | **shipped** (mixed-ligand/oxo step): two ligand kinds, Xe=O, weak Xe...O bridges | `peterson1973` |
+| Jacob, Thompson and Bartell 1971 | XeOF4 electron diffraction with microwave | -- | **shipped** (mixed-ligand/oxo step): Xe=O 1.705, Xe-F 1.904 A, 91.7 degrees | `jacob1971` |
+| Hedberg and Hedberg 1982 | SOF4 reanalysis | -- | **shipped** (mixed-ligand/oxo step): S=O 1.409, S-F 1.539 and 1.596 A | `hedberg1982` |
+| Kewley, Murty and Sugden 1960 | SF5Cl microwave | -- | **shipped** (mixed-ligand/oxo step): S-Cl 2.0301, S-F 1.576 A | `kewley1960` |
+| Oberhammer and Christe 1982 | ClF3O electron diffraction | -- | **shipped** (mixed-ligand/oxo step): Cl=O 1.405, Cl-F 1.603 and 1.713 A | `oberhammer1982` |
+| Gundersen, Hedberg and Huston 1970 | XeO4 electron diffraction | -- | read, not shipped: tetrahedral, Xe-O 1.736 A, all double bonds | `gundersen1970` |
+| Brockway and Pauling 1933 | SF6, SeF6, TeF6 electron diffraction | -- | read, not shipped: 1933 precision, no uncertainties (TeF6 1.84 A) | `brockway1933` |
+| Christe and Naumann 1973 | IF4- vibrational spectra | -- | read: square planar D4h on spectral evidence, no lengths, so IF4- stays unsupported | `christe1973` |
+| Hoyer and Seppelt 2000, Claassen and Huston 1971, Christe 2001 with Ellern 2002, Christe 1988, Weller 1991, Templeton 1963, Brock 2007, Pusztai 2006, Frigerio 1999, Griffiths 1964, Schrockeneder 2012 (with SI) | IF3 crystal, XeO3F2 matrix, ClF4+ and BrF3O crystals, PPh3F2 crystal, XeO3 crystal, XeOF2, others | -- | held; **not read for values in this pass**, none needed for what shipped (all are crystal, matrix or solution evidence, or outside the single-bond terminal-ligand rule) | none |
+
+**What ORCA says about the five oxyfluoride starts** (B3LYP/def2-SVP optimisation, from the VSEPR start): all keep their shape. ClF3O: axial Cl-F 1.761,
+equatorial 1.686, Cl=O 1.446 A, angles 85.9, 96.4 and 110.3 degrees (measured 87.9, 94.7, 108.9). XeOF4: C4v, Xe=O 1.722, Xe-F 1.93 A, O-Xe-F 92.5 (measured 91.7).
+XeO2F2: F-Xe-F 167.7 and O-Xe-O 108.1 degrees (the isolated molecule; the crystal's are 174.7 and 105.7). SOF4: S-F 1.596 and 1.627, F-S-F 111.2 (measured 112.8).
+SF5Cl: Cl-S-F 90.5 degrees against the measured 88.4, which the method does not reproduce.
+
+What these papers settle: PCl5's numbers are now backed by the primary paper, not a compilation. The mixed-ligand and oxo cases
+(ClF3O, XeOF4, XeO2F2, SOF4, SF5Cl) were then built (per-slot ligand kinds, oxo ligands, three new layouts) and are shipped.
+IF4- and BrF4- still have no lengths.
+
+## Fourth hypervalent pass: the rest of the held batch (2026-11-14)
+
+The papers of the third pass that had not been read for values. Read from the text, or, for Hoyer and Seppelt, from the rendered pages because the text layer is garbled.
+
+| Paper | What it is | Outcome | Registry key |
+|---|---|---|---|
+| Hoyer and Seppelt 2000 | IF3 single-crystal X-ray, -135 C | **shipped as a crystal**: I-F 198.3 (0.3) twice, 187.2 (0.4) pm, F-I-F 160.3 and 80.2 degrees; the I...F bridges of 276.9 pm that make the solid polymeric are omitted | `hoyer2000` |
+| Christe, Zhang, Sheehy and Bau 2001 | ClF4+SbF6- single-crystal X-ray | **shipped as a crystal**, the first charged cation: Cl-F 1.617 axial, 1.530 equatorial (two values, 1.527 and 1.532), F-Cl-F 173.92, 103.08 and 88.1 degrees; two Cl...F contacts to the anions are omitted | `christe2001` |
+| Ellern et al. 2002 | ClF3O, BrF3O and [NO][BrF4O] crystals | read, not shipped: BrF3O lacks the angle that places its axial pair, and [BrF4O]- gives 193.6 pm in the text and 191.2 pm in the table; its [NO2][BrF4] co-crystal holds the square planar BrF4- but the paper gives no lengths and cites older work | `ellern2002` |
+| Brock et al. 2007 | XeOF2 and its CH3CN adduct | read, not shipped: free XeOF2 has Raman spectra and calculations only; the crystal is the adduct | `brock2007` |
+| Templeton et al. 1963 | XeO3 crystal | **shipped** (the trigonal pyramid template, added the same day): mean Xe-O 1.76 A and O-Xe-O 103 degrees, the 0.03 A esd stated | `templeton1963` |
+| Claassen and Huston 1971 | matrix-isolated XeO3F2, Raman and infrared | read: D3h indicated by the vibrational spectra, no lengths | none |
+| Christe and Wilson 1988 | XeO2F2 syntheses, vibrational spectra | read: no structural values | none |
+| Weller et al. 1991 | PPh3F2 crystal (and [PPh3NH2]Cl) | not built: a phosphorane with carbon ligands (several kinds of ligand and phenyl groups), outside the one-centre terminal-ligand rule | none |
+| Pusztai and McGreevy 2006 | liquid SbCl5 and WCl6 by neutron diffraction | not used: a liquid, reverse Monte Carlo model; antimony is not in the rule table | none |
+| Frigerio et al. 1999 | a synthesis of IBX | not a structure paper (organic iodine(V) chemistry) | none |
+| Griffiths, Carter and Holmes 1964 | the held PDF's first page belongs to another article; the PCl4F, PCl3F2 and PF5 vibrational study is inside | identity noted, no values used (the shape of PF5 is not in question) | none |
+
+**What ORCA says about the two new starts** (B3LYP/def2-SVPD, charge +1 for the cation): IF3 stays a planar T (I-F 1.928 and 1.993 A, F-I-F 170.3 and 85.1 degrees against the crystal's 160.3 and 80.2, the isolated molecule having no bridges to bend it); ClF4+ stays a seesaw (Cl-F 1.597 and 1.652 A, 174.3 and 105.1 degrees against the crystal's 173.9 and 103.1).
+
+**Still missing, and the wanted list says what to fetch.** IF4- and BrF4- are known square planar anions and have no lengths in any held paper: Christe and Naumann 1973 (held) gives IF4- from spectra only, and the BrF4- crystal papers (Siegel 1956, Sly and Marsh 1957, Edwards and Jones 1969, and Zhang and Seppelt 1997 for IF4-) are not held. A calculated length is not shipped as a measured one.
+
+## Fifth hypervalent pass: the square planar anions (2026-11-14)
+
+Seven papers fetched after the fourth pass, read for values (Zhang and Seppelt's Table 1 from the rendered page, its text layer being scrambled).
+
+| Paper | What it is | Outcome | Registry key |
+|---|---|---|---|
+| Zhang and Seppelt 1997 | single-crystal X-rays of IF2-, ClF4-, IF4-, TeF7- and AsF4- (hexamethylpiperidinium salts, weak cation contacts) | **shipped, three rows as crystals**: IF4- I-F 200.0 to 201.8 pm (mean 200.7), square planar; IF2- I-F 207.5 and 208.2 pm; AsF4- seesaw, As-F 187.0 axial and 172.55 equatorial (means of two each), 165.7 and 97.5 degrees. ClF4- (the K salt is already a row) and TeF7- (a distorted pentagonal bipyramid, outside the rule table) not used. No DOI is printed on it and none was found | `zhang1997` |
+| Edwards and Jones 1969 | neutron powder diffraction of KBrF4 and KAuF4 | **shipped as a crystal**: BrF4- Br-F 1.89 (0.02) A, square planar | `edwards1969` |
+| Siegel 1956 | KBrF4 X-ray powder, a tetrahedral model, Br-F 1.81 A | read, superseded by the neutron study | `siegel1956` |
+| Sly and Marsh 1957 | the same data fitted with a square planar anion | read: both models fit, the data cannot choose | `sly1957` |
+| Christe and Schack 1970 | BrF4- vibrational spectra | read: D4h from spectra, no lengths | `christe1970` |
+| Christe et al. 1998 | IF52- by spectra, calculation and comparison with XeF5- | read, not built: no measured length (2.11 A is calculated) | `christe1998` |
+| Hwang et al. 1997 | Br2O, BrO2F and O2BrOTeF5 crystals | **shipped with a stated limit**: BrO2F has O and F disordered, so ONE mean Br-(O,F) distance (167.4 pm) goes to all three ligands with 103.8 degrees; the row says so | `hwang1997` |
+
+**What ORCA says about the four starts** (B3LYP/def2-SVPD, charge -1): IF4- stays square planar D4h (I-F 2.071 A against the crystal's 2.007, longer as an isolated anion's is); BrF4- stays D4h (1.937 against 1.89); AsF4- stays a seesaw (As-F 1.921 axial and 1.793 equatorial, F-As-F 170.8 and 97.7 degrees against 165.7 and 97.5); IF2- stays linear (2.135 against 2.079).
+
+**What ORCA says about the two pyramids** (B3LYP/def2-SVP): XeO3 stays a C3v pyramid (Xe-O 1.771 A against the crystal mean 1.76, O-Xe-O 106.7 to 107.0 degrees against 103); BrO2F resolves what the crystal could not: Br=O 1.609 A and Br-F 1.840 A (the crystal's one mean was 1.674), O-Br-O 113.0 and O-Br-F 101.9 and 102.1 degrees (the crystal's mean was 103.8). The isolated molecule is thus a Cs pyramid with the double bonds shorter and the fluorine longer, as for ClO2F.
+
+**Both gaps named after the fourth pass are closed**: IF4- and BrF4- now have measured lengths. The BrF4- value rests on a powder neutron study (esd 0.02 A, the angles within 2 degrees), the weakest of the four, and the paper by Zhang and Seppelt quotes 189 pm for a Rb salt single crystal from older work, in agreement.
+
+## Sixth hypervalent pass: SbCl5, PCl2F3 and what could not be built (2026-11-14)
+
+Fourteen papers fetched from a second literature search, read for values (Ivashkevich's Table 3 from the rendered page). Every DOI was checked in Crossref.
+
+| Paper | What it is | Outcome | Registry key |
+|---|---|---|---|
+| Ivashkevich et al. 1982 | SbCl5 gas electron diffraction | **shipped**: re(Sb-Cl) 2.338 (7) axial, 2.277 (5) equatorial A, D3h, nozzle about 25 C; antimony joins the rule table | `ivashkevich1982` |
+| French et al. 1985 | PCl2F3 gas electron diffraction | **shipped**: rg P-F axial 1.593 (4), P-F equatorial 1.546 (9), P-Cl 2.004 (2) A, chlorines equatorial; angles placed ideal | `french1985` |
+| Ohlberg 1959 | SbCl5 crystal at -30 C | comparison only: 2.34 and 2.29 A | `ohlberg1959` |
+| Gavin and Bartell 1968, Bartell and Gavin 1968 | XeF6 gas electron diffraction | **shipped as a MODEL (added after the first draft of this section)**: Model C (C3v, Analysis I, rg): three long Xe-F 1.912 and three short 1.862 A, the long triple 100.6 and the short triple 91.0 degrees apart. The molecule itself has no single measured geometry (mean Xe-F 1.890 (5) A, bond lengths spread about 0.08 A, bending displacements 5 to 10 degrees, three models fit about equally, the authors call the parameters rough guides), so the row says MODEL and the built geometry is a starting point. The paper's own F...F distances for the model are reproduced and tested | `gavin1968`, `bartell1968` |
+| Burbank and Jones 1974, Hoyer et al. 2006 | solid XeF6 | not used: XeF5+ and F- oligomers, not molecules | `burbank1974`, `hoyer2006` |
+| Mahjoub and Seppelt 1991, Selig et al. 1974 | TeF7- preparations | no usable TeF7- geometry (twinning, spectra only); **Zhang and Seppelt's table has eight distance lines for seven fluorines (one label printed twice), so the axial and equatorial means cannot be assigned**, and tellurium would need a rule for eight bonds; not built | `mahjoub1991`, `selig1974` |
+| Doxsee et al. 1992 | PPh3F2 second crystal, 294 K | P-F 1.663 (2) A, F-P-F 178.3 (2) degrees, agreeing with Weller 1991; **not built**: phenyl groups are not terminal ligands | `doxsee1992` |
+| Bartell and Hansen 1965 | CH3PF4 and (CH3)2PF3 gas electron diffraction | **not built**: a methyl ligand has hydrogens the builder does not place | `bartell1965` |
+| Beckers et al. 1990 | PH3F2 rotation-vibration spectra | not built: hydrogens are implicit in a drawing | `beckers1990` |
+| Heimburger and Leroy 1975, Downs and Schmutzler 1967 | SbCl5 dimer Raman, methylfluorophosphorane vibrational spectra | spectroscopy, no distances | `heimburger1975`, `downs1967` |
+
+**What ORCA says about the two starts** (B3LYP/def2-SVP): SbCl5 stays a D3h trigonal bipyramid (Sb-Cl 2.392 axial and 2.364 equatorial A against the gas value 2.338 and 2.277); PCl2F3 keeps the chlorines equatorial (P-Cl 2.042, P-F axial 1.615 and equatorial 1.588 A, Cl-P-Cl 123.1 degrees against the measured 122.0, F-P-F axial 179.0).
+
+**The XeF6 model and ORCA** (B3LYP/def2-SVP): the C3v model start relaxes to a regular octahedron (Xe-F 1.941 A, all angles 90 and 180 degrees), not to a C3v structure. That agrees with the literature the search turned up (high-level calculations put the minimum in C3v with the regular octahedron only insignificantly higher, a very shallow surface that DFT with a small basis does not resolve; one MP2 C3v study quotes bond lengths 1.856 and 1.972 A, angles 80.8 and 112.8 degrees, calculated and not used here). It means the model is a start geometry and the optimised shape depends on the level of theory. **An earlier statement in this pass, that a regular octahedron is a saddle a quantum optimisation would not leave, was wrong at this level of theory and has been removed.**
+
+**BrO2F from a 2019 paper and its Supporting Information** (Seppelt, Angew. Chem. Int. Ed. 58, 18928; now held as a PDF with the SI): the SI's Table S4 gives the individual values of (BrO2F)3.4 acetone at 100 K. Br1 and Br3, which the paper calls undisturbed by disorder: Br=O 1.606, 1.620 and 1.587, 1.594, Br-F 1.781 and 1.822, O-Br-O 107.4 and O-Br-F 99.8 and 100.3 degrees (esd 0.002 A, 0.1 degree); Br2 (disordered) is not used. The BrO2F row now has the means (Br=O 1.6018, Br-F 1.8015 A, O-Br-O 107.4, O-Br-F 100.05) on a Cs pyramid, and their mean distance, 1.668 A, reproduces the 167.4 (0.6) pm that the disordered pure crystal could only give as one average (Hwang 1997), an independent check. The printed table repeats Br3-F1 for a bond that is probably Br3-F3. Real ORCA (B3LYP/def2-SVP) from that start gives Br=O 1.609, Br-F 1.840 A, O-Br-O 113.0 and O-Br-F 102.0 degrees: the acetone contacts of the adduct compress the O-Br-O angle, which the isolated molecule relaxes.
+
+**Hedberg, Peterson, Ryan and Weinstock 1966 (held, read)**: a one-page letter comparing XeF6 with TeF6 by electron diffraction at about 22 C: the patterns differ conclusively, so XeF6 is not a regular octahedron. No distances; it supports Bartell and Gavin independently.
+
+The DOI of Zhang and Seppelt 1997 turned out to exist (10.1002/zaac.19976230178, found by the second search and confirmed in Crossref); its registry entry now carries it.
+
+## Seventh hypervalent pass: models and estimates, each labelled (2026-11-14)
+
+Three more species were built although no plain measurement of the molecule exists, on the owner's instruction that an honest approximate geometry is better than a refusal. **Every `Reference` now has an `evidence` tier** (`measured`, `model`, `calculated`, `estimated`), the tier is said in the row's method and in the conformer's note (`evidence_phrase`), and a test fixes which rows are not `measured`. A length is still never made up from covalent radii: each is a published number of one of those kinds.
+
+| Species | Tier | What the numbers are |
+|---|---|---|
+| TeF7- | measured, with an ambiguity said | Zhang and Seppelt 1997: axial Te-F 183.0 and 182.4 pm, equatorial mean 188.05 pm of six printed values (the table prints six lines for five equatorial fluorines, so any five average 187.9 to 188.2); the crystal's equatorial pentagon is puckered and is placed regular. Tellurium's rule now allows eight bonds | 
+| IF5(2-) | calculated | Christe et al. 1998: HF/ECP/DZP 2.094 A, LDFT 2.163 A, and the paper's predicted 2.11 A (the correction found for IF4-); pentagonal planar like the isoelectronic XeF5- (its shape is by spectra) |
+| PCl3F2 | estimated | shape D3h, fluorines axial (Griffiths, Carter and Holmes 1964, from spectra); lengths transferred from the measured PCl2F3 (rg P-F axial 1.593, P-Cl 2.004 A), uncertain by a few hundredths of an Angstrom |
+
+**What ORCA says about the three starts** (B3LYP/def2-SVP, def2-SVPD for the anions): TeF7- stays a pentagonal bipyramid (Te-F 1.917 axial and 1.975 equatorial A against 1.827 and 1.8805; the pentagon puckers by about 2 degrees, as the crystal's does); IF5(2-) stays a regular planar pentagon (I-F 2.174 A against the published prediction 2.11); PCl3F2 stays D3h with the fluorines axial (P-F 1.642, P-Cl 2.050 A against the transferred 1.593 and 2.004: 0.05 A longer, which is the size of the uncertainty the ESTIMATED label states).
+
+Two existing rows were re-labelled: **XeF6 is `model`** and **ClF5 is `estimated`** (its source assumed both lengths equal). A drawn ClF5, XeF6, IF5(2-) or PCl3F2 therefore now says so where the geometry's origin is shown.
+
+## Eighth hypervalent pass: the hybrid builder, organic groups on a hypervalent centre (2026-11-14)
+
+`chem/vsepr_graft.py` places a centre with organic or hydrogen ligands (triphenyldifluorophosphorane, a methyl or a hydrogen on phosphorus), which RDKit's distance geometry gets wrong and a bare-core builder could not take. The core comes from the same measured table, keyed by the ligands' elements (a methyl is "C", a hydrogen "H"); each substituent is cut out as its own small molecule with a hydrogen cap in the centre's place, embedded and optimised by the ordinary route, and put back on its ligand turned to the angle with the fewest clashes. Nothing is relaxed afterwards. Several conformers (different seeds and angles) are returned, none with an energy. A row has a `scope` ("aromatic" or "methyl"): the measurement covers carbon ligands of that kind, and another kind gets the same lengths as an ESTIMATE, said as such.
+
+| Core row | Source | Evidence |
+|---|---|---|
+| (C6H5)3PF2: P-F axial 1.664, P-C 1.8225 A | Weller 1991 and Doxsee 1992, two crystals that agree (P-F 1.665 and 1.663, P-C 1.8205 and 1.8245) | measured for phenyls, estimated for other carbon ligands |
+| (CH3)2PF3: P-F axial 1.643, equatorial 1.553, P-C 1.798 A | Bartell and Hansen 1965, gas electron diffraction (rg) | measured for methyls |
+| CH3PF4: P-F axial 1.612, equatorial 1.543, P-C 1.780 A | Bartell and Hansen 1965 | measured for methyls |
+| PH3F2: P-F axial 1.6468, P-H equatorial 1.394 A | Beckers et al. 1990, rotation-vibration spectra (r0) | measured |
+
+Aryl-SF5 and the iodine(III) reagents (PIDA, PhICl2) have no core row: their data are not held (an SF5-arene study quotes S-F 1.572 to 1.618 A and no S-C length; PIDA's I-C 2.08 and I-O 2.156 A are seen only on a mirror of a Wikipedia page; PhICl2's crystal is in a CIF and a supporting information file not held), so they keep the ordinary path, unchanged. The wanted list names the papers.
+
+## Ninth hypervalent pass: the reagent cores (2026-11-14)
+
+Ten papers fetched for the cores the hybrid builder lacked, all DOIs checked in Crossref (`alberto1996.pdf` turned out to be an unrelated silver crown-thioether paper, not Carey et al. 1996, so that lead stays open).
+
+| Paper | What it is | Outcome | Registry key |
+|---|---|---|---|
+| Alcock et al. 1979 | PhI(OAc)2 crystal at -60 C | **shipped** as a core row: I-O 2.156 (mean), I-C 2.090 A, O-I-O 164.0, O-I-C 81.4 and 82.6 degrees; T-shaped, acetate oxygens axial | `alcock1979` |
+| Lee et al. 1977 | the first PhI(OAc)2 structure | cross-check: I-C 2.093, I-O 2.186 and 2.143 A, O-I-O 163.2, C-I-O 81.6 | `lee1977` |
+| Poynder et al. 2021 (CIF) | PhICl2 at 100 K | **shipped** as a core row: I-Cl 2.5059 and 2.4832 (mean 2.4946), I-C 2.0977 A, Cl-I-Cl 176.701, C-I-Cl 88.900 and 88.035 | `poynder2021` |
+| Du et al. 2016, Gonzalez Espiet et al. 2020 | nine aryl-SF5 crystals and the benzonitrile | **shipped** as a core row at the MIDPOINTS of the published ranges: S-F axial 1.5875, S-F equatorial 1.595, S-C 1.804 A, C-S-F equatorial 92.4 degrees (an umbrella octahedron); the individual values are in the Supporting Information, not held | `du2016`, `espiet2020` |
+| Christe et al. 1993 | TeF7- spectra and calculations | read: pentagonal bipyramid at equilibrium, no structure | `christe1993` |
+| Burbank and Jones 1970, 1971; Muetterties 1957 | solid XeF6 phases; fluorotellurate preparation | held, not molecular geometries | `burbank1970`, `burbank1971`, `muetterties1957` |
+
+**Carey et al. 1996 (CSD BENICL01, 173 K, R 0.054; the journal synopsis has no DOI)**: the held CIF has a cell and coordinates only, so its distances were computed here: I-Cl 2.474 and 2.497, I-C 2.119 A, Cl-I-Cl 176.65, C-I-Cl 87.9 and 89.2 degrees (esd about 0.01 A). They agree with the 100 K determination within the esds; Poynder's is the better and stays the row's source, this the cross-check. The attribution of BENICL01 to Carey et al. rests on a search lead plus the compound and temperature, and is said so in the registry entry.
+
+**Real ORCA (B3LYP/def2-SVP) optimisations of the grown molecules, each started from the builder's own geometry**: PhICl2 keeps the T-shape (I-C 2.202, I-Cl 2.540 and 2.540 A, C-I-Cl 92.1, Cl-I-Cl 175.7 degrees; the isolated molecule's C-I-Cl is about 4 degrees wider than the crystal's 88). PhI(OAc)2 keeps it too (I-C 2.152, I-O 2.166 and 2.202 A, O-I-O 171.0, C-I-O 83.3 and 88.5). Ph3PF2, (CH3)2PF3 and aryl-SF5 were run earlier in this pass and kept their trigonal bipyramid or octahedron. PH3F2 must be DRAWN with explicit hydrogen atoms: a molfile cannot hold three hydrogens on a two-bonded phosphorus, so the implicit-hydrogen drawing is PHF2, a different molecule (it was run as that once by mistake and the result discarded). These are one level of theory on isolated molecules, a check that the starting geometry is not nonsense, not a measurement.
+
+Each row is a measurement only for the ligands that were measured (`Reference.scope: aromatic carbon, acyloxy oxygen); an alkyl-SF5 or a methyl-iodine diacetate takes the same lengths as an ESTIMATE, said as such.
+
 ## How to use this
 
 Before searching for a reference for a tautomer system, look here. A paper listed as "not an energy
