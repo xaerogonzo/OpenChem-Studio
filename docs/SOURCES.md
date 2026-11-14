@@ -1,5 +1,5 @@
 <!-- GENERATED FROM docs/sources.toml -- do not edit -->
-<!-- SOURCE SHA256: 471e7358a8d4c7d38c73838595272aa789b301d7035effe5a70b670911f07f21 -->
+<!-- SOURCE SHA256: f790e0a0177d4e0e5477af38fd2ddc8f99c573ed6410c5b314f76966da2b0a93 -->
 
 # Sources
 
@@ -241,6 +241,7 @@ Title and DOI first; the `key` is what prose and code cite (`[source:key]`) and 
 | Metal-ligand geometry relevant to proteins and in proteins: sodium and potassium. Corrigendum | [10.1107/S0907444913019859](https://doi.org/10.1107/S0907444913019859) | [`harding2013`](#harding2013) | literature | reference only | citation + claim |
 | Molecular Structures of Gas-Phase Polyatomic Molecules Determined by Spectroscopic Methods | [10.1063/1.555605](https://doi.org/10.1063/1.555605) | [`harmony1979`](#harmony1979) | literature | reference only | citation + claim |
 | Iodine-Rich Imidazolium Iodate and Periodate Salts: En Route to Single-Based Biocidal Agents | [10.1021/acs.inorgchem.6b02195](https://doi.org/10.1021/acs.inorgchem.6b02195) | [`he2016`](#he2016) | literature | shipped | citation + claim |
+| On the structure of gaseous XeF6 | [10.1063/1.1726928](https://doi.org/10.1063/1.1726928) | [`hedberg1966`](#hedberg1966) | literature | reference only | citation |
 | Thionyl tetrafluoride. Reanalysis of the molecular structure and resolution of the multiple model problem | [10.1021/j100394a004](https://doi.org/10.1021/j100394a004) | [`hedberg1982`](#hedberg1982) | literature | shipped | citation + claim |
 | Evidence of a molecular dimeric form of antimony pentachloride at low temperature using Raman spectroscopy | [10.1016/0584-8539(75)80060-2](https://doi.org/10.1016/0584-8539(75)80060-2) | [`heimburger1975`](#heimburger1975) | literature | reference only | citation |
 | The Thermodynamic and Kinetic Properties of 2-Hydroxypyridine/2-Pyridone Tautomerization: A Theoretical and Computational Revisit | [10.3390/ijms17111893](https://doi.org/10.3390/ijms17111893) | [`hejazi2016`](#hejazi2016) | literature | reference only | citation |
@@ -9093,9 +9094,27 @@ Table II rendered and read (the text layer is scrambled). Shipped as a MODEL, no
 | Status | shipped |
 | Verification | citation + claim |
 | Verified | 2026-11-14 |
+| Local copy | `seppelt2019.pdf` (not checked) |
 | Used by | `src/openchem/chem/vsepr_geometry.py`, `tests/test_vsepr_geometry.py`, `docs/HYPERVALENT_COVERAGE_DESIGN.md` |
 
-NOT HELD as a PDF: read from the open-access text (PubMed Central PMC6973041), and the one sentence quoted verbatim: 'In the adduct 3 BrO2F.4 acetone, the bond lengths are undisturbed by disorder: r BrO = 1.587-1.620(2) and r BrF = 1.781-1.822(2) A.' The adduct came from recrystallisation from acetone at low temperature; the paper prints ranges over several independent bonds, no temperature and no angle. Used for the BrO2F row's separate Br=O and Br-F lengths (the middle of each range), which reproduce the 167.4 pm mean of the disordered pure crystal (hwang1997).
+Now HELD (seppelt2019.pdf, an Accepted Article, and seppelt2019_SI.pdf). The Supporting Information's Table S4 gives the individual values of (BrO2F)3.4 acetone at 100.03 K: Br1: Br=O 1.606 and 1.620, Br-F 1.781, O-Br-O 107.4 (1), O-Br-F 99.8 (1) and 100.3 (1); Br3: Br=O 1.587 and 1.594, Br-F 1.822, the same angles (Br3-F1 as printed, probably F3); Br2, where oxygen and fluorine are disordered: Br=O 1.622 and 1.671, Br-F 1.7037, O-Br-O 104.2, O-Br-F 102.5 and 99.4. The main text calls Br1 and Br3 undisturbed (Br=O 1.587 to 1.620 (2), Br-F 1.781 to 1.822 (2) A). The BrO2F row uses the Br1 and Br3 means: Br=O 1.6018, Br-F 1.8015 A, O-Br-O 107.4, O-Br-F 100.05 degrees. Each Br also has about 2.6 A contacts to acetone oxygens, omitted.
+
+### hedberg1966 — On the structure of gaseous XeF6
+
+<a id="hedberg1966"></a>
+
+> K. Hedberg, S. H. Peterson, R. R. Ryan & B. Weinstock, 'On the structure of gaseous XeF6', J. Chem. Phys. 44, 1726 (1966)
+
+| | |
+| --- | --- |
+| Identifier | [10.1063/1.1726928](https://doi.org/10.1063/1.1726928) |
+| Status | reference only |
+| Verification | citation |
+| Verified | 2026-11-14 |
+| Local copy | `hedberg1966.pdf` (not checked) |
+| Used by | `docs/HYPERVALENT_COVERAGE_DESIGN.md` |
+
+**Why it is reference only.** Read (a one-page letter). A preliminary electron diffraction comparison of XeF6 with TeF6 (a regular octahedron) at a nozzle temperature of about 22 C: the two patterns differ conclusively, so XeF6 is not a regular octahedron. It gives no distances or angles and says the analysis is continuing. Nothing to ship; it independently supports the distorted-structure reading of Bartell and Gavin (bartell1968).
 
 ## Datasets
 

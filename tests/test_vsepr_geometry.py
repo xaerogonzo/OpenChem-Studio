@@ -528,8 +528,8 @@ def test_xeo3_is_a_trigonal_pyramid_with_the_published_mean_distance_and_angle()
 
 
 def test_bro2f_is_a_pyramid_with_the_adducts_separate_double_and_single_bond_lengths():
-    """Seppelt 2019 (3 BrO2F.4 acetone): Br=O 1.587 to 1.620 and Br-F 1.781 to 1.822 A, each inside its printed range; their weighted mean is the 1.674 A that the disordered
-    pure crystal (Hwang 1997) could only give as one average, which is an independent check of the pair."""
+    """Seppelt 2019 (3 BrO2F.4 acetone, 100 K), Table S4 of the Supporting Information: Br=O 1.587 to 1.620 and Br-F 1.781 to 1.822 A, each inside its printed range, O-Br-O 107.4 and
+    O-Br-F 99.8 and 100.3; the mean distance is the 1.674 A that the disordered pure crystal (Hwang 1997) could only give as one average, an independent check of the pair."""
     smiles = "FBr(=O)=O"
     g = _built(smiles)
     assert (g.classification, g.shape) == ("AX3E", "trigonal pyramidal")
@@ -541,7 +541,11 @@ def test_bro2f_is_a_pyramid_with_the_adducts_separate_double_and_single_bond_len
     assert 1.781 <= _bond(p, c, fluorine[0]) <= 1.822
     mean = sum(_bond(p, c, i) for i in g.ligand_indices) / 3
     assert mean == pytest.approx(1.674, abs=0.0075), "the disordered crystal's one measured mean (167.4 (0.6) pm)"
-    assert _all_angles(g) == [103.8] * 3
+    o1, o2 = oxygens
+    assert _angle(p, o1, c, o2) == pytest.approx(107.4, abs=1e-6)
+    assert _angle(p, o1, c, fluorine[0]) == pytest.approx(100.05, abs=1e-6)
+    assert _angle(p, o2, c, fluorine[0]) == pytest.approx(100.05, abs=1e-6)
+    assert 99.8 <= _angle(p, o1, c, fluorine[0]) <= 100.3, "inside the two printed O-Br-F angles"
 
 
 def test_a_pyramid_the_table_lacks_is_still_left_to_the_ordinary_path():

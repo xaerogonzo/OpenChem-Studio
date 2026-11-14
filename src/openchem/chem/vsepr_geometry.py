@@ -493,15 +493,16 @@ _ENTRIES = (
         "FO=O=",
         3,
         1.8015,
-        1.6035,
-        {"l-l": 103.8},
-        "Seppelt 2019, Angew Chem Int Ed 58, 18928 [source:seppelt2019]; angle from Hwang, Kuschel and Seppelt 1997, Z Anorg Allg Chem 623, 379 [source:hwang1997]",
-        "lengths from the single-crystal X-ray of the adduct 3 BrO2F.4 acetone, where the bond lengths are not disturbed by disorder: Br=O 1.587 to 1.620 (0.002) and Br-F 1.781 to "
-        "1.822 (0.002) A, each placed at the middle of its printed range; they reproduce the 167.4 (0.6) pm mean Br-(O,F) distance of the disordered pure crystal (Hwang 1997). "
-        "The angle is that crystal's mean 103.8 (0.3) degrees (the all-equal C3v model), because the adduct paper gives no angle: O-Br-O and O-Br-F are not separately measured",
+        1.6018,
+        {"l1-l2": 107.4, "l3-l12": 100.05},
+        "Seppelt 2019 and its Supporting Information, Table S4, Angew Chem Int Ed 58, 18928 [source:seppelt2019]; the pure crystal is Hwang, Kuschel and Seppelt 1997 [source:hwang1997]",
+        "single-crystal X-ray at 100 K of the adduct 3 BrO2F.4 acetone, the two molecules the paper calls undisturbed by disorder (Br1 and Br3): Br=O 1.606, 1.620 and 1.587, 1.594 (mean 1.6018) "
+        "and Br-F 1.781 and 1.822 (mean 1.8015) A (esd 0.002); O-Br-O 107.4 (0.1) in both, O-Br-F 99.8 and 100.3 (0.1) in both (mean 100.05). The third molecule (Br2, with O and F "
+        "disordered) is not used. The mean Br-(O,F) distance 1.668 A reproduces the disordered pure crystal's 167.4 (0.6) pm. Each Br also has contacts of about 2.6 A to acetone oxygens, omitted",
         True,
         0,
-        (("F", 1.8015), ("O=", 1.6035), ("O=", 1.6035)),
+        (("O=", 1.6018), ("O=", 1.6018), ("F", 1.8015)),
+        "cs_pyramid",
     ),
     # The two anions are CRYSTAL structures: the ion is in an ionic lattice, where a Cl-F or Xe-F distance moves by a few
     # hundredths of an Angstrom with the counter-ion (ClF4- spans 1.73 to 1.87 A between salts).
@@ -736,8 +737,22 @@ def _c3v_octahedron(ref: Reference) -> tuple[list[np.ndarray], list[np.ndarray]]
     return long_triple, short_triple
 
 
+def _cs_pyramid(ref: Reference) -> tuple[list[np.ndarray], list[np.ndarray]]:
+    # A Cs trigonal pyramid with two equivalent ligands (BrO2F: O, O, F): the two equivalent ligands `l1-l2` apart in a plane through the centre, the third out of that plane
+    # at `l3-l12` from each of them. The returned order is [first equivalent, second equivalent, third], the order of the reference's `slots`.
+    gamma = math.radians(ref.angles["l1-l2"]) / 2
+    cos_phi = math.cos(math.radians(ref.angles["l3-l12"]))
+    a = cos_phi / math.cos(gamma)
+    c = math.sqrt(max(1.0 - a * a, 0.0))
+    return [], [
+        np.array([math.cos(gamma), math.sin(gamma), 0.0]),
+        np.array([math.cos(gamma), -math.sin(gamma), 0.0]),
+        np.array([a, 0.0, c]),
+    ]
+
+
 #: Layout name -> placer, for the references that name one.
-_LAYOUTS = {"cs_bipyramid": _cs_bipyramid, "c2v_bipyramid": _c2v_bipyramid, "c4v_octahedron": _c4v_octahedron}
+_LAYOUTS = {"cs_pyramid": _cs_pyramid, "cs_bipyramid": _cs_bipyramid, "c2v_bipyramid": _c2v_bipyramid, "c4v_octahedron": _c4v_octahedron}
 
 
 #: (bonds, lone pairs) -> (classification, shape, placer). XeF6 (a distorted mean structure, not one shape) and

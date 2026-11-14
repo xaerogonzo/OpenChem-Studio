@@ -10681,7 +10681,23 @@ used_by = [
     "docs/HYPERVALENT_COVERAGE_DESIGN.md",
 ]
 verification = "citation_and_claim"
+local = "seppelt2019.pdf"
 verified_date = 2026-11-14
 note = """
-NOT HELD as a PDF: read from the open-access text (PubMed Central PMC6973041), and the one sentence quoted verbatim: 'In the adduct 3 BrO2F.4 acetone, the bond lengths are undisturbed by disorder: r BrO = 1.587-1.620(2) and r BrF = 1.781-1.822(2) A.' The adduct came from recrystallisation from acetone at low temperature; the paper prints ranges over several independent bonds, no temperature and no angle. Used for the BrO2F row's separate Br=O and Br-F lengths (the middle of each range), which reproduce the 167.4 pm mean of the disordered pure crystal (hwang1997).
+Now HELD (seppelt2019.pdf, an Accepted Article, and seppelt2019_SI.pdf). The Supporting Information's Table S4 gives the individual values of (BrO2F)3.4 acetone at 100.03 K: Br1: Br=O 1.606 and 1.620, Br-F 1.781, O-Br-O 107.4 (1), O-Br-F 99.8 (1) and 100.3 (1); Br3: Br=O 1.587 and 1.594, Br-F 1.822, the same angles (Br3-F1 as printed, probably F3); Br2, where oxygen and fluorine are disordered: Br=O 1.622 and 1.671, Br-F 1.7037, O-Br-O 104.2, O-Br-F 102.5 and 99.4. The main text calls Br1 and Br3 undisturbed (Br=O 1.587 to 1.620 (2), Br-F 1.781 to 1.822 (2) A). The BrO2F row uses the Br1 and Br3 means: Br=O 1.6018, Br-F 1.8015 A, O-Br-O 107.4, O-Br-F 100.05 degrees. Each Br also has about 2.6 A contacts to acetone oxygens, omitted.
+"""
+
+[[source]]
+key = "hedberg1966"
+kind = "literature"
+citation = "K. Hedberg, S. H. Peterson, R. R. Ryan & B. Weinstock, 'On the structure of gaseous XeF6', J. Chem. Phys. 44, 1726 (1966)"
+identifier_type = "doi"
+identifier = "10.1063/1.1726928"
+status = "reference_only"
+used_by = ["docs/HYPERVALENT_COVERAGE_DESIGN.md"]
+local = "hedberg1966.pdf"
+verification = "citation"
+verified_date = 2026-11-14
+reason = """
+Read (a one-page letter). A preliminary electron diffraction comparison of XeF6 with TeF6 (a regular octahedron) at a nozzle temperature of about 22 C: the two patterns differ conclusively, so XeF6 is not a regular octahedron. It gives no distances or angles and says the analysis is continuing. Nothing to ship; it independently supports the distorted-structure reading of Bartell and Gavin (bartell1968).
 """
