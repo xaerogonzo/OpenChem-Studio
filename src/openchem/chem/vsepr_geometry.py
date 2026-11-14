@@ -86,6 +86,9 @@ class Reference:
     #: for a molecule with no single measured geometry), "calculated" (a published calculation, no measurement) or "estimated" (a measured
     #: analogue's lengths transferred, or lengths the source itself assumed).
     evidence: str = "measured"
+    #: For a core with organic ligands (`chem.vsepr_graft`): which carbon ligands the measurement covers, "aromatic" (a phenyl) or "methyl"; "" means any. A molecule whose
+    #: carbon ligands are of another kind gets the row's lengths as an ESTIMATE by transfer, and says so (`graft_evidence`).
+    scope: str = ""
 
     @property
     def key(self) -> tuple[str, str, int, int]:
@@ -463,6 +466,72 @@ _ENTRIES = (
         0,
         (("F", 1.593), ("F", 1.593), ("F", 1.546), ("Cl", 2.004), ("Cl", 2.004)),
     ),
+    # Cores with organic or hydrogen ligands (2026-11-14), used by `chem.vsepr_graft`, which grows the groups on the ligands. Phosphoranes, trigonal bipyramids with the carbons equatorial.
+    Reference(
+        "P",
+        "CCCFF",
+        5,
+        1.664,
+        1.8225,
+        {},
+        "Weller et al. 1991, Z Anorg Allg Chem 602, 7 [source:weller1991]; Doxsee, Hanawalt and Weakley 1992, Acta Cryst C48, 1288 [source:doxsee1992]",
+        "two single-crystal X-ray determinations of triphenyldifluorophosphorane (20 C and 294 K): P-F axial 1.665 (0.002) and 1.663 (0.002) A, P-C 1.815 and 1.826 (Weller, mean 1.8205) "
+        "and 1.825 and 1.824 (Doxsee, mean 1.8245) A, F-P-F 178.58 (0.08) and 178.3 (0.2), F-P-C 89.2 to 90.6, C-P-C 119.6 to 120.9 degrees (placed ideal); the phenyl groups are the "
+        "measured ones, any other carbon ligand gets these lengths as an estimate",
+        True,
+        0,
+        (("F", 1.664), ("F", 1.664), ("C", 1.8225), ("C", 1.8225), ("C", 1.8225)),
+        "",
+        "measured",
+        "aromatic",
+    ),
+    Reference(
+        "P",
+        "CCFFF",
+        5,
+        1.643,
+        1.553,
+        {},
+        "Bartell and Hansen 1965, Inorg Chem 4, 1777 [source:bartell1965]",
+        "gas electron diffraction, rg: P-F axial 1.643 (0.003), P-F equatorial 1.553 (0.006), P-C 1.798 (0.004) A, F(ax)-P-F(eq) 89.9 (0.3), F(eq)-P-C 118.0 (0.8) degrees, methyls equatorial "
+        "(C2v); the angles are placed ideal",
+        True,
+        0,
+        (("F", 1.643), ("F", 1.643), ("F", 1.553), ("C", 1.798), ("C", 1.798)),
+        "",
+        "measured",
+        "methyl",
+    ),
+    Reference(
+        "P",
+        "CFFFF",
+        5,
+        1.612,
+        1.543,
+        {},
+        "Bartell and Hansen 1965, Inorg Chem 4, 1777 [source:bartell1965]",
+        "gas electron diffraction, rg: P-F axial 1.612 (0.004), P-F equatorial 1.543 (0.004), P-C 1.780 (0.005) A, F(ax)-P-C 91.8 (0.4) and F(eq)-P-C 122.2 degrees, methyl equatorial "
+        "(C2v); the angles are placed ideal",
+        True,
+        0,
+        (("F", 1.612), ("F", 1.612), ("F", 1.543), ("F", 1.543), ("C", 1.780)),
+        "",
+        "measured",
+        "methyl",
+    ),
+    Reference(
+        "P",
+        "FFHHH",
+        5,
+        1.6468,
+        1.394,
+        {},
+        "Beckers, Breidung, Burger et al. 1990, J Chem Phys 93, 4603 [source:beckers1990]",
+        "high-resolution rotation-vibration spectra, r0: P-F axial 1.6468 (0.0002), P-H equatorial 1.394 (0.002) A, D3h; the hydrogens are ligands of the centre",
+        True,
+        0,
+        (("F", 1.6468), ("F", 1.6468), ("H", 1.394), ("H", 1.394), ("H", 1.394)),
+    ),
     # Three rows whose evidence is not a plain measurement of that molecule (2026-11-14); `Reference.evidence` says which kind, and it reaches the conformer's note.
     Reference(
         "Te",
@@ -632,6 +701,10 @@ class VseprOutcome:
     kind: Kind
     reason: str = ""
     geometry: VseprGeometry | None = None
+    #: For a molecule whose organic groups were grown on the core (`chem.vsepr_graft`): the Mol WITH its hydrogens that `geometry` refers to
+    #: (its atoms are the drawing's heavy atoms, in order, then the hydrogens), and further conformers' coordinates for it. None for a bare core.
+    molecule: Any = None
+    alternatives: tuple[tuple[tuple[float, float, float], ...], ...] = ()
 
 
 #: A fixed rotation applied to every built geometry. The templates sit on the axes (a linear molecule along z, a
@@ -859,14 +932,14 @@ def _hypervalent_centre(mol: Any) -> tuple[int, list[int]] | None:
     if n_atoms < 3 or len(_fragments(mol)) != 1:
         return None
     centre = max(mol.GetAtoms(), key=lambda a: a.GetDegree())
-    if centre.GetDegree() != n_atoms - 1:
-        return None
+    if centre.GetDegree() != n_atoms - 1 or centre.GetTotalNumHs():
+        return None  # not a bare star: a hydrogen on the centre is a ligand and belongs to `chem.vsepr_graft`
     ligands = [a.GetIdx() for a in mol.GetAtoms() if a.GetIdx() != centre.GetIdx()]
     for index in ligands:
         atom = mol.GetAtomWithIdx(index)
         bond = mol.GetBondBetweenAtoms(index, centre.GetIdx())
         order = bond.GetBondTypeAsDouble() if bond is not None else 0.0
-        if atom.GetDegree() != 1 or atom.GetFormalCharge() or order not in (1.0, 2.0):
+        if atom.GetDegree() != 1 or atom.GetTotalNumHs() or atom.GetFormalCharge() or order not in (1.0, 2.0):
             return None
         if order == 2.0 and atom.GetSymbol() != "O":
             return None
@@ -883,7 +956,7 @@ def _hypervalent_centre(mol: Any) -> tuple[int, list[int]] | None:
 
 def _bonding_electrons(centre: Any) -> int:
     """The centre's valence as its bonds count it: a double bond counts two."""
-    return int(round(sum(b.GetBondTypeAsDouble() for b in centre.GetBonds())))
+    return int(round(sum(b.GetBondTypeAsDouble() for b in centre.GetBonds()))) + centre.GetTotalNumHs()
 
 
 def _token(mol: Any, centre_index: int, ligand_index: int) -> str:
@@ -905,27 +978,34 @@ def _fragments(mol: Any) -> list[Any]:
     return list(Chem.GetMolFrags(mol))
 
 
-def build_vsepr_geometry(mol: Any) -> VseprOutcome:
-    """Coordinates for `mol` if it is a supported hypervalent molecule; see the module docstring for the outcomes.
+@dataclass(frozen=True)
+class CorePlacement:
+    """Where the centre and its ligands go: the part of a build that does not depend on what the ligands are bonded to."""
 
-    `mol` is the Mol of `ChemistryEngine.hypervalent_mol_from_molblock` (or any Mol; it is only read: atoms,
-    bonds, charges). The input is never modified.
+    #: Atom index -> (x, y, z), Angstrom, for the centre (at the origin) and every ligand; in the template's frame, view-tilted.
+    coordinates: dict[int, tuple[float, float, float]]
+    centre_index: int
+    ligand_indices: tuple[int, ...]
+    classification: str
+    shape: str
+    axial_indices: tuple[int, ...]
+    equatorial_indices: tuple[int, ...]
+    reference: Reference
+    ligand_lengths: dict[int, float]
+
+
+def place_core(mol: Any, centre_index: int, ligand_indices: list[int]) -> CorePlacement | VseprOutcome:
+    """Place a centre and its ligands from the measured table, or say (as an outcome) why that cannot be done.
+
+    The ligands are the centre's neighbours whatever they are bonded to beyond it: a bare fluorine, a methyl carbon, a hydrogen
+    or an oxygen carrying an acetyl group are all one token each ("F", "C", "H", "O"), and the table is keyed by those tokens.
+    `mol` must show every hydrogen of the centre as an atom, since a hydrogen on it is a ligand.
     """
-    found = _hypervalent_centre(mol)
-    if found is None:
-        return VseprOutcome(
-            Kind.NOT_APPLICABLE,
-            "not a single hypervalent centre with terminal single bonds",
-        )
-    centre_index, ligand_indices = found
     centre = mol.GetAtomWithIdx(centre_index)
     symbol, n = centre.GetSymbol(), len(ligand_indices)
     outer = _OUTER_ELECTRONS.get(symbol)
     if outer is None:
-        return VseprOutcome(
-            Kind.UNSUPPORTED,
-            f"no electron count is recorded for the centre element {symbol}",
-        )
+        return VseprOutcome(Kind.UNSUPPORTED, f"no electron count is recorded for the centre element {symbol}")
     charge = centre.GetFormalCharge()
     # The centre's own electrons are its outer shell less the charge it carries (an anion has one more).
     tokens = {i: _token(mol, centre_index, i) for i in ligand_indices}
@@ -952,16 +1032,11 @@ def build_vsepr_geometry(mol: Any) -> VseprOutcome:
                 Kind.UNSUPPORTED,
                 f"mixed ligands ({'/'.join(kinds)}) have no measured geometry for {symbol}{sign}",
             )
-        return VseprOutcome(
-            Kind.UNSUPPORTED,
-            f"no measured geometry is recorded for {symbol}{ligand}{n}{sign}",
-        )
+        return VseprOutcome(Kind.UNSUPPORTED, f"no measured geometry is recorded for {symbol}{ligand}{n}{sign}")
     if reference.layout:
         placer = _LAYOUTS[reference.layout]
 
-    axial_vectors, equatorial_vectors = (
-        [_VIEW_TILT @ v for v in group] for group in placer(reference)
-    )
+    axial_vectors, equatorial_vectors = ([_VIEW_TILT @ v for v in group] for group in placer(reference))
     vectors = axial_vectors + equatorial_vectors
     if reference.slots:
         lengths = [length for _, length in reference.slots]
@@ -982,16 +1057,14 @@ def build_vsepr_geometry(mol: Any) -> VseprOutcome:
             order.append(pick)
     else:
         order = list(ligand_indices)
-    coordinates: list[tuple[float, float, float]] = [
-        (0.0, 0.0, 0.0)
-    ] * mol.GetNumAtoms()
+    coordinates: dict[int, tuple[float, float, float]] = {centre_index: (0.0, 0.0, 0.0)}
     placed: dict[int, float] = {}
     for index, vector, length in zip(order, vectors, lengths):
         point = vector / np.linalg.norm(vector) * length
         coordinates[index] = (float(point[0]), float(point[1]), float(point[2]))
         placed[index] = length
-    geometry = VseprGeometry(
-        coordinates=tuple(coordinates),
+    return CorePlacement(
+        coordinates=coordinates,
         centre_index=centre_index,
         ligand_indices=tuple(ligand_indices),
         classification=classification,
@@ -1000,20 +1073,47 @@ def build_vsepr_geometry(mol: Any) -> VseprOutcome:
         equatorial_indices=tuple(order[len(axial_vectors) :]),
         reference=reference,
         ligand_lengths=placed,
-        provenance=f"idealised VSEPR template with {evidence_phrase(reference)}; not optimised, no energy",
+    )
+
+
+def build_vsepr_geometry(mol: Any) -> VseprOutcome:
+    """Coordinates for `mol` if it is a supported hypervalent molecule; see the module docstring for the outcomes.
+
+    `mol` is the Mol of `ChemistryEngine.hypervalent_mol_from_molblock` (or any Mol; it is only read: atoms,
+    bonds, charges). The input is never modified.
+
+    A molecule that is NOT one centre with bare terminal ligands (a phosphorane with phenyl groups, an iodine(III) reagent, a
+    methyl or a hydrogen on the centre) is handed to `chem.vsepr_graft`, which places the centre and its ligands from this
+    same table and grows the organic groups on the ligands.
+    """
+    found = _hypervalent_centre(mol)
+    if found is None:
+        from openchem.chem.vsepr_graft import graft_outcome
+
+        return graft_outcome(mol)
+    centre_index, ligand_indices = found
+    core = place_core(mol, centre_index, ligand_indices)
+    if isinstance(core, VseprOutcome):
+        return core
+    coordinates: list[tuple[float, float, float]] = [(0.0, 0.0, 0.0)] * mol.GetNumAtoms()
+    for index, point in core.coordinates.items():
+        coordinates[index] = point
+    geometry = VseprGeometry(
+        coordinates=tuple(coordinates),
+        centre_index=centre_index,
+        ligand_indices=tuple(ligand_indices),
+        classification=core.classification,
+        shape=core.shape,
+        axial_indices=core.axial_indices,
+        equatorial_indices=core.equatorial_indices,
+        reference=core.reference,
+        ligand_lengths=core.ligand_lengths,
+        provenance=f"idealised VSEPR template with {evidence_phrase(core.reference)}; not optimised, no energy",
     )
     problems = validate(geometry)
     if problems:
-        return VseprOutcome(
-            Kind.UNSUPPORTED,
-            "the built geometry failed its own checks: " + "; ".join(problems),
-        )
-    return VseprOutcome(
-        Kind.BUILT,
-        geometry=VseprGeometry(
-            **{**geometry.__dict__, "diagnostics": _diagnostics(geometry)}
-        ),
-    )
+        return VseprOutcome(Kind.UNSUPPORTED, "the built geometry failed its own checks: " + "; ".join(problems))
+    return VseprOutcome(Kind.BUILT, geometry=VseprGeometry(**{**geometry.__dict__, "diagnostics": _diagnostics(geometry)}))
 
 
 # --- checks ---------------------------------------------------------------------------------------------

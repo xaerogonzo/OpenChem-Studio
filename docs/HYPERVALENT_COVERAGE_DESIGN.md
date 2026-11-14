@@ -118,6 +118,8 @@ is the next structural step (a per-ligand-class reference and oxo ligands), not 
 
 **Evidence tiers and three models (2026-11-14).** `Reference.evidence` (`measured`, `model`, `calculated`, `estimated`) is said in the conformer's note. TeF7- (measured, with its ambiguous table said), IF5(2-) (a published calculation) and PCl3F2 (lengths transferred from PCl2F3) were added; XeF6 is a `model` and ClF5 `estimated`. What is still not a plain measurement stays visibly so.
 
+**Hybrid builder (2026-11-14).** `chem/vsepr_graft.py`: a hypervalent centre with organic or hydrogen ligands has its core placed from the table and its groups grown on the ligands (see the log's eighth pass). Cores: (C6H5)3PF2, (CH3)2PF3, CH3PF4 and PH3F2. A molecule with no core row, or one RDKit cannot read, keeps the ordinary path.
+
 **WP7. DONE 2026-11-14 (and it found a real gap).** Every route a held structure can take to the screen was probed: the calculator registry and the synthesis gate and node screen already refused or failed closed, but `engine.screen` and `compute_regulatory_screen` answered 'No matches' when handed a held Mol directly. The engine now raises `UnscreenableStructureError` for a structure that does not sanitise and the calculator turns it into `HYPERVALENT_UNSUPPORTED`; `tests/test_regulatory_held_structures.py` covers all five routes plus six readable controls (mutation-checked: 6 fail with the engine check off), and names no substance. **The regulatory screen on a held structure stays refused**, with a test that a held structure never yields "no matches" (it
 did in the #598 audit, a silent false negative for a screen). Not a change; a guard on the decision of #598.
 

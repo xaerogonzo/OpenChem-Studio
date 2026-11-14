@@ -10603,13 +10603,17 @@ kind = "literature"
 citation = "K. M. Doxsee, E. M. Hanawalt & T. J. R. Weakley, 'Structure of difluorotriphenylphosphorane', Acta Cryst. C48, 1288-1290 (1992)"
 identifier_type = "doi"
 identifier = "10.1107/S0108270191014889"
-status = "reference_only"
-used_by = ["docs/HYPERVALENT_COVERAGE_DESIGN.md"]
+status = "shipped"
+used_by = [
+    "src/openchem/chem/vsepr_geometry.py",
+    "tests/test_vsepr_geometry.py",
+    "docs/HYPERVALENT_COVERAGE_DESIGN.md",
+]
 local = "doxsee1992.pdf"
-verification = "citation"
+verification = "citation_and_claim"
 verified_date = 2026-11-14
-reason = """
-Read. Second crystal determination of (C6H5)3PF2 at 294 K: P-F 1.663 (2) A and F-P-F 178.3 (2) degrees, agreeing with Weller 1991 (1.665 and 178.58); (C6F5)3PF2 is 1.636 (2) A. NOT built: the phenyl groups are not terminal single-atom ligands, and the builder places no ligand hydrogens or rings.
+note = """
+Table 2 read: P-F 1.663 (2), P-C 1.825 (4) and 1.824 (6) A, F-P-F 178.3 (2), F-P-C 90.6, 90.2 and 89.2 (1), C-P-C 119.6 (2) and 120.2 (1) degrees at 294 K. Shipped with weller1991 as the (C6H5)3PF2 core row (the phenyl groups are grown by the hybrid builder).
 """
 
 [[source]]
@@ -10618,13 +10622,17 @@ kind = "literature"
 citation = "L. S. Bartell & K. W. Hansen, 'Structure and bonding in CH3PF4 and (CH3)2PF3. An electron diffraction study', Inorg. Chem. 4, 1777-1782 (1965)"
 identifier_type = "doi"
 identifier = "10.1021/ic50034a024"
-status = "reference_only"
-used_by = ["docs/HYPERVALENT_COVERAGE_DESIGN.md"]
+status = "shipped"
+used_by = [
+    "src/openchem/chem/vsepr_geometry.py",
+    "tests/test_vsepr_geometry.py",
+    "docs/HYPERVALENT_COVERAGE_DESIGN.md",
+]
 local = "bartell1965.pdf"
-verification = "citation"
+verification = "citation_and_claim"
 verified_date = 2026-11-14
-reason = """
-Read. Gas electron diffraction of the methylfluorophosphoranes (the methyl on equatorial sites). NOT built: a methyl ligand carries hydrogens the builder does not place, so the molecule would come out missing them.
+note = """
+Abstract read: CH3PF4 (rg P-F axial 1.612 (4), equatorial 1.543 (4), P-C 1.780 (5) A, F(ax)-P-C 91.8 (4), F(eq)-P-C 122.2) and (CH3)2PF3 (P-F axial 1.643 (3), equatorial 1.553 (6), P-C 1.798 (4) A, F(ax)-P-F(eq) 89.9 (3), F(eq)-P-C 118.0 (8)), distorted trigonal bipyramids with the methyls equatorial. Shipped as the two methylphosphorane core rows of the hybrid builder.
 """
 
 [[source]]
@@ -10633,13 +10641,17 @@ kind = "literature"
 citation = "H. Beckers, J. Breidung, H. Burger, R. Kuna, A. Rahner, W. Schneider & W. Thiel, 'High-resolution rotation-vibration spectroscopy of difluorophosphorane: a combined theoretical and experimental study', J. Chem. Phys. 93, 4603-4614 (1990)"
 identifier_type = "doi"
 identifier = "10.1063/1.458700"
-status = "reference_only"
-used_by = ["docs/HYPERVALENT_COVERAGE_DESIGN.md"]
+status = "shipped"
+used_by = [
+    "src/openchem/chem/vsepr_geometry.py",
+    "tests/test_vsepr_geometry.py",
+    "docs/HYPERVALENT_COVERAGE_DESIGN.md",
+]
 local = "beckers1990.pdf"
-verification = "citation"
+verification = "citation_and_claim"
 verified_date = 2026-11-14
-reason = """
-Read for identity and abstract. PH3F2 from rotation-vibration spectra (r0 P-H 1.394, P-F axial 1.6468 A). NOT built: the hydrogens are implicit in a drawing, so the centre does not present as a five-ligand one.
+note = """
+Structure listing read (not the full table): PH3F2 r0 P-H 1.394 (2) and P-F axial 1.6468 (2) A, D3h from rotation-vibration spectra. Shipped as the PH3F2 core row (the hydrogens are ligands of the centre).
 """
 
 [[source]]
@@ -10723,4 +10735,23 @@ verification = "citation_and_claim"
 verified_date = 2026-11-14
 note = """
 Read for the shape only (the held PDF's first page belongs to another article; the paper is inside). The vapour infrared and low-temperature Raman spectra of PCl3F2 are fully in agreement with D3h, a trigonal bipyramid with the fluorines axial and three equatorial chlorines. It gives no distances. Used for the SHAPE of the PCl3F2 row, whose lengths are transferred from PCl2F3 (french1985) and are labelled ESTIMATED.
+"""
+
+[[source]]
+key = "weller1991"
+kind = "literature"
+citation = "F. Weller, D. Nusshar, K. Dehnicke, F. Gingl & J. Strahle, 'Uber die Reaktionen von Phosphaniminatokomplexen des Niobs, Molybdans und Wolframs mit Natriumfluorid. Die Kristallstrukturen von [PPh2NH2]Cl und PPh3F2', Z. Anorg. Allg. Chem. 602, 7-16 (1991)"
+identifier_type = "doi"
+identifier = "10.1002/zaac.19916020102"
+status = "shipped"
+used_by = [
+    "src/openchem/chem/vsepr_geometry.py",
+    "tests/test_vsepr_geometry.py",
+    "docs/HYPERVALENT_COVERAGE_DESIGN.md",
+]
+local = "weller1991.pdf"
+verification = "citation_and_claim"
+verified_date = 2026-11-14
+note = """
+Table 3 read (German; decimal commas). PPh3F2 at 20 C, Pbcn, trigonal bipyramid with axial fluorines: P-F 166.5 (2), P-C(11) 181.5 (3), P-C(21) 182.6 (4) pm, F-P-F' 178.58 (8), F-P-C 89.29 to 90.5 (1), C-P-C 119.8 (1) and 120.9 (8) degrees. Shipped, with Doxsee 1992 (a second crystal that agrees), as the (C6H5)3PF2 core row of the hybrid builder, which grows the phenyl groups.
 """

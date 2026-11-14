@@ -1,5 +1,5 @@
 <!-- GENERATED FROM docs/sources.toml -- do not edit -->
-<!-- SOURCE SHA256: 2e0fa058cc6add55394f364379b5bd4ec4714ef6dc8a021442a67c0299f49b56 -->
+<!-- SOURCE SHA256: a0ba1f69fe0503fa3c16a5070cd981185beacdf4f892bc5cf2264f1966d8ec3e -->
 
 # Sources
 
@@ -118,11 +118,11 @@ Title and DOI first; the `key` is what prose and code cite (`[source:key]`) and 
 | A machine learning approach to predicting protein-ligand binding affinity with applications to molecular docking | [10.1093/bioinformatics/btq112](https://doi.org/10.1093/bioinformatics/btq112) | [`ballester2010`](#ballester2010) | literature | **not shipped** | citation |
 | C. Bannwarth, E. Caldeweyher, S. Ehlert, A. Hansen, P. Pracht, J. Seibert, S. Spicher & S. Grimme, WIREs… | [10.1002/wcms.1493](https://doi.org/10.1002/wcms.1493) | [`bannwarth2021xtb`](#bannwarth2021xtb) | literature | shipped | citation |
 | DFT Meets Wave-Function Composite Methods for Characterizing Cytosine Tautomers in the Gas Phase | [10.1021/acs.jctc.3c00465](https://doi.org/10.1021/acs.jctc.3c00465) | [`barone2023`](#barone2023) | literature | reference only | citation |
-| Structure and bonding in CH3PF4 and (CH3)2PF3. An electron diffraction study | [10.1021/ic50034a024](https://doi.org/10.1021/ic50034a024) | [`bartell1965`](#bartell1965) | literature | reference only | citation |
+| Structure and bonding in CH3PF4 and (CH3)2PF3. An electron diffraction study | [10.1021/ic50034a024](https://doi.org/10.1021/ic50034a024) | [`bartell1965`](#bartell1965) | literature | shipped | citation + claim |
 | Molecular structure of XeF6. II. Internal motion and mean geometry deduced by electron diffraction | [10.1063/1.1669471](https://doi.org/10.1063/1.1669471) | [`bartell1968`](#bartell1968) | literature | shipped | citation + claim |
 | Electron diffraction analysis of charge redistribution model and structure of SeF6 | [10.1016/0022-2860(84)85178-9](https://doi.org/10.1016/0022-2860(84)85178-9) | [`bartell1984`](#bartell1984) | literature | shipped | citation + claim |
 | Van der Waals Radii of Elements | [10.1023/a:1011625728803](https://doi.org/10.1023/a:1011625728803) | [`batsanov2001`](#batsanov2001) | literature | reference only | citation |
-| High-resolution rotation-vibration spectroscopy of difluorophosphorane: a combined theoretical and experimental study | [10.1063/1.458700](https://doi.org/10.1063/1.458700) | [`beckers1990`](#beckers1990) | literature | reference only | citation |
+| High-resolution rotation-vibration spectroscopy of difluorophosphorane: a combined theoretical and experimental study | [10.1063/1.458700](https://doi.org/10.1063/1.458700) | [`beckers1990`](#beckers1990) | literature | shipped | citation + claim |
 | Tautomeric Properties and Gas-Phase Structure of Acetylacetone | [10.1021/jo402814c](https://doi.org/10.1021/jo402814c) | [`belova2014`](#belova2014) | literature | shipped | citation + claim |
 | An open source chemical structure curation pipeline using RDKit | [10.1186/s13321-020-00456-1](https://doi.org/10.1186/s13321-020-00456-1) | [`bento2020`](#bento2020) | literature | shipped | citation + claim |
 | The First General Index of Molecular Complexity | [10.1021/ja00402a071](https://doi.org/10.1021/ja00402a071) | [`bertz1981`](#bertz1981) | literature | shipped | citation |
@@ -189,7 +189,7 @@ Title and DOI first; the `key` is what prose and code cite (`[source:key]`) and 
 | Dimorphite-DL: An open-source program for enumerating the ionization states of drug-like small molecules | <https://github.com/durrantlab/dimorphite_dl> | [`dimorphite_dl`](#dimorphite_dl) | software | shipped | citation |
 | BRAIN 2.0: Time and Memory Complexity Improvements in the Algorithm for Calculating the Isotope Distribution | [10.1007/s13361-013-0796-5](https://doi.org/10.1007/s13361-013-0796-5) | [`dittwald2014`](#dittwald2014) | literature | reference only | citation |
 | Stereochemistry of fluorophosphoranes-II. The vibrational spectra and molecular structures of dimethyltrifluorophosphorane and trimethyldifluorophosphorane | [10.1016/0584-8539(67)80323-4](https://doi.org/10.1016/0584-8539(67)80323-4) | [`downs1967`](#downs1967) | literature | reference only | citation |
-| Structure of difluorotriphenylphosphorane | [10.1107/S0108270191014889](https://doi.org/10.1107/S0108270191014889) | [`doxsee1992`](#doxsee1992) | literature | reference only | citation |
+| Structure of difluorotriphenylphosphorane | [10.1107/S0108270191014889](https://doi.org/10.1107/S0108270191014889) | [`doxsee1992`](#doxsee1992) | literature | shipped | citation + claim |
 | A Double-Scale Equation for Correlating Enthalpies of Lewis Acid-Base Interactions | [10.1021/ja01094a008](https://doi.org/10.1021/ja01094a008) | [`drago1965`](#drago1965) | literature | shipped | citation + claim |
 | A method for the analysis and prediction of gas-phase ion-molecule enthalpies | [10.1021/ja00180a047](https://doi.org/10.1021/ja00180a047) | [`drago1990`](#drago1990) | literature | shipped | citation |
 | Addition of new donors to the E and C model | [10.1021/ic00063a045](https://doi.org/10.1021/ic00063a045) | [`drago1993`](#drago1993) | literature | shipped | citation |
@@ -444,6 +444,7 @@ Title and DOI first; the `key` is what prose and code cite (`[source:key]`) and 
 | CFM-ID 4.0: More Accurate ESI-MS/MS Spectral Prediction and Compound Identification | [10.1021/acs.analchem.1c01465](https://doi.org/10.1021/acs.analchem.1c01465) | [`wang2021`](#wang2021) | literature | reference only | citation |
 | Beyond the Ground State: Predicting Electron Ionization Mass Spectra Using Excited-State Molecular Dynamics | [10.1021/acs.jcim.2c00597](https://doi.org/10.1021/acs.jcim.2c00597) | [`wang2022`](#wang2022) | literature | reference only | citation |
 | A high density and low sensitivity carrier explosive promising to replace TNT: 3-Bromo-5-fluoro-2,4,6-trinitroanisole | [10.1016/j.enmf.2024.06.003](https://doi.org/10.1016/j.enmf.2024.06.003) | [`wang2024`](#wang2024) | literature | shipped | citation + claim |
+| Uber die Reaktionen von Phosphaniminatokomplexen des Niobs, Molybdans und Wolframs mit Natriumfluorid. Die Kristallstrukturen von [PPh2NH2]Cl und PPh3F2 | [10.1002/zaac.19916020102](https://doi.org/10.1002/zaac.19916020102) | [`weller1991`](#weller1991) | literature | shipped | citation + claim |
 | Charge Equilibration Based on Atomic Ionization in Metal-Organic Frameworks | [10.1021/jp510415h](https://doi.org/10.1021/jp510415h) | [`wells2014`](#wells2014) | literature | reference only | citation |
 | Empirical Correlations between Thermodynamic Properties and Intermolecular Forces | [10.1021/ja00123a001](https://doi.org/10.1021/ja00123a001) | [`westwell1995`](#westwell1995) | literature | **not shipped** | citation |
 | Microwave spectrum of bromine pentafluoride | [10.1039/tf9716702505](https://doi.org/10.1039/tf9716702505) | [`whittle1971`](#whittle1971) | literature | reference only | citation |
@@ -9007,13 +9008,13 @@ Table II rendered and read (the text layer is scrambled). Shipped as a MODEL, no
 | | |
 | --- | --- |
 | Identifier | [10.1107/S0108270191014889](https://doi.org/10.1107/S0108270191014889) |
-| Status | reference only |
-| Verification | citation |
+| Status | shipped |
+| Verification | citation + claim |
 | Verified | 2026-11-14 |
 | Local copy | `doxsee1992.pdf` (not checked) |
-| Used by | `docs/HYPERVALENT_COVERAGE_DESIGN.md` |
+| Used by | `src/openchem/chem/vsepr_geometry.py`, `tests/test_vsepr_geometry.py`, `docs/HYPERVALENT_COVERAGE_DESIGN.md` |
 
-**Why it is reference only.** Read. Second crystal determination of (C6H5)3PF2 at 294 K: P-F 1.663 (2) A and F-P-F 178.3 (2) degrees, agreeing with Weller 1991 (1.665 and 178.58); (C6F5)3PF2 is 1.636 (2) A. NOT built: the phenyl groups are not terminal single-atom ligands, and the builder places no ligand hydrogens or rings.
+Table 2 read: P-F 1.663 (2), P-C 1.825 (4) and 1.824 (6) A, F-P-F 178.3 (2), F-P-C 90.6, 90.2 and 89.2 (1), C-P-C 119.6 (2) and 120.2 (1) degrees at 294 K. Shipped with weller1991 as the (C6H5)3PF2 core row (the phenyl groups are grown by the hybrid builder).
 
 ### bartell1965 — Structure and bonding in CH3PF4 and (CH3)2PF3. An electron diffraction study
 
@@ -9024,13 +9025,13 @@ Table II rendered and read (the text layer is scrambled). Shipped as a MODEL, no
 | | |
 | --- | --- |
 | Identifier | [10.1021/ic50034a024](https://doi.org/10.1021/ic50034a024) |
-| Status | reference only |
-| Verification | citation |
+| Status | shipped |
+| Verification | citation + claim |
 | Verified | 2026-11-14 |
 | Local copy | `bartell1965.pdf` (not checked) |
-| Used by | `docs/HYPERVALENT_COVERAGE_DESIGN.md` |
+| Used by | `src/openchem/chem/vsepr_geometry.py`, `tests/test_vsepr_geometry.py`, `docs/HYPERVALENT_COVERAGE_DESIGN.md` |
 
-**Why it is reference only.** Read. Gas electron diffraction of the methylfluorophosphoranes (the methyl on equatorial sites). NOT built: a methyl ligand carries hydrogens the builder does not place, so the molecule would come out missing them.
+Abstract read: CH3PF4 (rg P-F axial 1.612 (4), equatorial 1.543 (4), P-C 1.780 (5) A, F(ax)-P-C 91.8 (4), F(eq)-P-C 122.2) and (CH3)2PF3 (P-F axial 1.643 (3), equatorial 1.553 (6), P-C 1.798 (4) A, F(ax)-P-F(eq) 89.9 (3), F(eq)-P-C 118.0 (8)), distorted trigonal bipyramids with the methyls equatorial. Shipped as the two methylphosphorane core rows of the hybrid builder.
 
 ### beckers1990 — High-resolution rotation-vibration spectroscopy of difluorophosphorane: a combined theoretical and experimental study
 
@@ -9041,13 +9042,13 @@ Table II rendered and read (the text layer is scrambled). Shipped as a MODEL, no
 | | |
 | --- | --- |
 | Identifier | [10.1063/1.458700](https://doi.org/10.1063/1.458700) |
-| Status | reference only |
-| Verification | citation |
+| Status | shipped |
+| Verification | citation + claim |
 | Verified | 2026-11-14 |
 | Local copy | `beckers1990.pdf` (not checked) |
-| Used by | `docs/HYPERVALENT_COVERAGE_DESIGN.md` |
+| Used by | `src/openchem/chem/vsepr_geometry.py`, `tests/test_vsepr_geometry.py`, `docs/HYPERVALENT_COVERAGE_DESIGN.md` |
 
-**Why it is reference only.** Read for identity and abstract. PH3F2 from rotation-vibration spectra (r0 P-H 1.394, P-F axial 1.6468 A). NOT built: the hydrogens are implicit in a drawing, so the centre does not present as a five-ligand one.
+Structure listing read (not the full table): PH3F2 r0 P-H 1.394 (2) and P-F axial 1.6468 (2) A, D3h from rotation-vibration spectra. Shipped as the PH3F2 core row (the hydrogens are ligands of the centre).
 
 ### heimburger1975 — Evidence of a molecular dimeric form of antimony pentachloride at low temperature using Raman spectroscopy
 
@@ -9133,6 +9134,23 @@ Now HELD (seppelt2019.pdf, an Accepted Article, and seppelt2019_SI.pdf). The Sup
 | Used by | `src/openchem/chem/vsepr_geometry.py`, `tests/test_vsepr_geometry.py`, `docs/HYPERVALENT_COVERAGE_DESIGN.md` |
 
 Read for the shape only (the held PDF's first page belongs to another article; the paper is inside). The vapour infrared and low-temperature Raman spectra of PCl3F2 are fully in agreement with D3h, a trigonal bipyramid with the fluorines axial and three equatorial chlorines. It gives no distances. Used for the SHAPE of the PCl3F2 row, whose lengths are transferred from PCl2F3 (french1985) and are labelled ESTIMATED.
+
+### weller1991 — Uber die Reaktionen von Phosphaniminatokomplexen des Niobs, Molybdans und Wolframs mit Natriumfluorid. Die Kristallstrukturen von [PPh2NH2]Cl und PPh3F2
+
+<a id="weller1991"></a>
+
+> F. Weller, D. Nusshar, K. Dehnicke, F. Gingl & J. Strahle, 'Uber die Reaktionen von Phosphaniminatokomplexen des Niobs, Molybdans und Wolframs mit Natriumfluorid. Die Kristallstrukturen von [PPh2NH2]Cl und PPh3F2', Z. Anorg. Allg. Chem. 602, 7-16 (1991)
+
+| | |
+| --- | --- |
+| Identifier | [10.1002/zaac.19916020102](https://doi.org/10.1002/zaac.19916020102) |
+| Status | shipped |
+| Verification | citation + claim |
+| Verified | 2026-11-14 |
+| Local copy | `weller1991.pdf` (not checked) |
+| Used by | `src/openchem/chem/vsepr_geometry.py`, `tests/test_vsepr_geometry.py`, `docs/HYPERVALENT_COVERAGE_DESIGN.md` |
+
+Table 3 read (German; decimal commas). PPh3F2 at 20 C, Pbcn, trigonal bipyramid with axial fluorines: P-F 166.5 (2), P-C(11) 181.5 (3), P-C(21) 182.6 (4) pm, F-P-F' 178.58 (8), F-P-C 89.29 to 90.5 (1), C-P-C 119.8 (1) and 120.9 (8) degrees. Shipped, with Doxsee 1992 (a second crystal that agrees), as the (C6H5)3PF2 core row of the hybrid builder, which grows the phenyl groups.
 
 ## Datasets
 

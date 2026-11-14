@@ -215,3 +215,37 @@ def test_ordinary_oxo_molecules_still_use_the_search():
         GenerationOptions(max_embeddings=10, embedding_batch_size=5),
     )
     assert outcome.stop_reason != STOP_TEMPLATE and outcome.unoptimised == 0
+
+
+
+def test_the_service_builds_a_drawn_phosphorane_with_phenyl_groups(qapp):
+    """Triphenyldifluorophosphorane through the real service: every hydrogen is there, the conformers differ, none has an energy, the core is the crystal's."""
+    bus = EventBus()
+    engine = ChemistryEngine()
+    service = ConformerService(bus, engine)
+    model = MoleculeModel()
+    engine.set_structure_from_smiles(model, "FP(F)(c1ccccc1)(c1ccccc1)c1ccccc1")
+    states: list[ConformerJobStateChanged] = []
+    bus.subscribe(ConformerJobStateChanged, states.append)
+    ready: list[list[ConformerModel]] = []
+    bus.subscribe(ConformersReady, lambda e: ready.append(e.conformers))
+
+    service.request_conformers(model, num_conformers=10, optimize=True)
+    _drain(qapp)
+
+    assert states[-1].state == CacheState.COMPLETED
+    assert "not optimised" in states[-1].message and "measured" in states[-1].message
+    (conformers,) = ready
+    assert len(conformers) >= 2, "the rings turn: the conformers are not one shape"
+    for conformer in conformers:
+        assert conformer.method == VSEPR_TEMPLATE and conformer.energy is None
+        stored = engine.mol_from_molblock(conformer.molblock)
+        assert stored.GetNumAtoms() == 36 and stored.GetConformer().Is3D()
+        phosphorus = next(a.GetIdx() for a in stored.GetAtoms() if a.GetSymbol() == "P")
+        points = stored.GetConformer().GetPositions()
+        lengths = [
+            (stored.GetAtomWithIdx(n.GetIdx()).GetSymbol(), float(np.linalg.norm(points[n.GetIdx()] - points[phosphorus])))
+            for n in stored.GetAtomWithIdx(phosphorus).GetNeighbors()
+        ]
+        assert sorted(symbol for symbol, _ in lengths) == ["C", "C", "C", "F", "F"]
+        assert all(length == pytest.approx(1.8225 if symbol == "C" else 1.664, abs=2e-3) for symbol, length in lengths)

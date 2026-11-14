@@ -338,6 +338,19 @@ Three more species were built although no plain measurement of the molecule exis
 
 Two existing rows were re-labelled: **XeF6 is `model`** and **ClF5 is `estimated`** (its source assumed both lengths equal). A drawn ClF5, XeF6, IF5(2-) or PCl3F2 therefore now says so where the geometry's origin is shown.
 
+## Eighth hypervalent pass: the hybrid builder, organic groups on a hypervalent centre (2026-11-14)
+
+`chem/vsepr_graft.py` places a centre with organic or hydrogen ligands (triphenyldifluorophosphorane, a methyl or a hydrogen on phosphorus), which RDKit's distance geometry gets wrong and a bare-core builder could not take. The core comes from the same measured table, keyed by the ligands' elements (a methyl is "C", a hydrogen "H"); each substituent is cut out as its own small molecule with a hydrogen cap in the centre's place, embedded and optimised by the ordinary route, and put back on its ligand turned to the angle with the fewest clashes. Nothing is relaxed afterwards. Several conformers (different seeds and angles) are returned, none with an energy. A row has a `scope` ("aromatic" or "methyl"): the measurement covers carbon ligands of that kind, and another kind gets the same lengths as an ESTIMATE, said as such.
+
+| Core row | Source | Evidence |
+|---|---|---|
+| (C6H5)3PF2: P-F axial 1.664, P-C 1.8225 A | Weller 1991 and Doxsee 1992, two crystals that agree (P-F 1.665 and 1.663, P-C 1.8205 and 1.8245) | measured for phenyls, estimated for other carbon ligands |
+| (CH3)2PF3: P-F axial 1.643, equatorial 1.553, P-C 1.798 A | Bartell and Hansen 1965, gas electron diffraction (rg) | measured for methyls |
+| CH3PF4: P-F axial 1.612, equatorial 1.543, P-C 1.780 A | Bartell and Hansen 1965 | measured for methyls |
+| PH3F2: P-F axial 1.6468, P-H equatorial 1.394 A | Beckers et al. 1990, rotation-vibration spectra (r0) | measured |
+
+Aryl-SF5 and the iodine(III) reagents (PIDA, PhICl2) have no core row: their data are not held (an SF5-arene study quotes S-F 1.572 to 1.618 A and no S-C length; PIDA's I-C 2.08 and I-O 2.156 A are seen only on a mirror of a Wikipedia page; PhICl2's crystal is in a CIF and a supporting information file not held), so they keep the ordinary path, unchanged. The wanted list names the papers.
+
 ## How to use this
 
 Before searching for a reference for a tautomer system, look here. A paper listed as "not an energy

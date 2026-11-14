@@ -1085,22 +1085,28 @@ def _template_search(mol: Chem.Mol) -> SearchOutcome | None:
             "Embedding is not used for it because it gives a wrong shape."
         )
     geometry = outcome.geometry
-    built = Chem.Mol(mol)
-    built.RemoveAllConformers()
-    conformer = Chem.Conformer(built.GetNumAtoms())
-    for index, (x, y, z) in enumerate(geometry.coordinates):
-        conformer.SetAtomPosition(index, (x, y, z))
-    conformer.Set3D(True)
-    built.AddConformer(conformer, assignId=True)
-    built.SetProp(ORIGIN_PROPERTY, f"vsepr template {geometry.classification}")
+    # A bare core is the drawing's own atoms; a core with organic groups grown on it is the drawing WITH its hydrogens (`vsepr_graft`),
+    # one molecule per conformer, none with an energy.
+    sets = [geometry.coordinates, *outcome.alternatives]
+    pool: list[tuple[Chem.Mol, float | None]] = []
+    for coordinates in sets:
+        built = Chem.Mol(outcome.molecule if outcome.molecule is not None else mol)
+        built.RemoveAllConformers()
+        conformer = Chem.Conformer(built.GetNumAtoms())
+        for index, (x, y, z) in enumerate(coordinates):
+            conformer.SetAtomPosition(index, (x, y, z))
+        conformer.Set3D(True)
+        built.AddConformer(conformer, assignId=True)
+        built.SetProp(ORIGIN_PROPERTY, f"vsepr template {geometry.classification}")
+        pool.append((built, None))
     return SearchOutcome(
-        pool=[(built, None)],
-        attempted=1,
-        embedded=1,
+        pool=pool,
+        attempted=len(pool),
+        embedded=len(pool),
         converged=0,
         batches=1,
         stop_reason=STOP_TEMPLATE,
-        unoptimised=1,
+        unoptimised=len(pool),
         geometry_method=VSEPR_TEMPLATE,
         geometry_note=(
             f"idealised {geometry.shape} VSEPR geometry ({geometry.classification}) from {evidence_phrase(geometry.reference)}, "

@@ -339,10 +339,13 @@ def test_every_reference_has_a_template_and_builds():
             import re
 
             tokens = [t for t, _ in reference.slots] if reference.slots else re.findall(r"[A-Z][a-z]?=?", ligand)
-            smiles = symbol + "".join(f"(={t[:-1]})" if t.endswith("=") else f"({t})" for t in tokens)
+            smiles = symbol + "".join(f"(={t[:-1]})" if t.endswith("=") else f"([H])" if t == "H" else f"({t})" for t in tokens)
         else:
             smiles = f"{ligand}{symbol}" + "".join(f"({ligand})" for _ in range(n - 1))
-        outcome = build_vsepr_geometry(_mol(smiles))
+        # a core with a carbon or hydrogen ligand is grown by `chem.vsepr_graft` and needs a molecule RDKit reads (a methyl brings its own hydrogens)
+        grown = any(t in ("C", "H") for t in (tokens if (reference.slots or "=" in ligand) else []))
+        mol = Chem.MolFromSmiles(smiles) if grown else _mol(smiles)
+        outcome = build_vsepr_geometry(mol)
         assert outcome.kind is Kind.BUILT, (smiles, outcome.reason)
 
 
@@ -659,3 +662,102 @@ def test_pcl3f2_has_the_fluorines_axial_and_the_transferred_lengths():
     assert all(_bond(p, c, i) == pytest.approx(1.593, abs=1e-6) for i in fluorines)
     assert all(_bond(p, c, i) == pytest.approx(2.004, abs=1e-6) for i in _by_element(g, smiles, "Cl"))
     assert _all_angles(g) == [90.0] * 6 + [120.0] * 3 + [180.0]
+
+
+
+# --- an organic group on a hypervalent centre: the core from the table, the groups grown on it (`chem.vsepr_graft`) -------------------------------
+
+
+def _grafted(smiles: str):
+    outcome = build_vsepr_geometry(Chem.MolFromSmiles(smiles))
+    assert outcome.kind is Kind.BUILT, outcome.reason
+    return outcome
+
+
+def _implausible_bonds(outcome) -> list[tuple[int, int, float]]:
+    """Bonds that are not a plausible length: the graft must not stretch or crush what it grows."""
+    points = np.array(outcome.geometry.coordinates)
+    bad = []
+    for b in outcome.molecule.GetBonds():
+        i, j = b.GetBeginAtomIdx(), b.GetEndAtomIdx()
+        d = float(np.linalg.norm(points[i] - points[j]))
+        if not 0.95 <= d <= 1.95:
+            bad.append((i, j, round(d, 2)))
+    return bad
+
+
+def test_ph3pf2_core_is_the_crystals_and_every_atom_is_there():
+    outcome = _grafted("FP(F)(c1ccccc1)(c1ccccc1)c1ccccc1")
+    g, mol = outcome.geometry, outcome.molecule
+    assert mol.GetNumAtoms() == 36, "1 P, 2 F, 18 ring carbons and 15 hydrogens: none missing"
+    assert [a.GetSymbol() for a in mol.GetAtoms()].count("H") == 15
+    p, c = g.coordinates, g.centre_index
+    fluorines = [i for i in g.ligand_indices if mol.GetAtomWithIdx(i).GetSymbol() == "F"]
+    carbons = [i for i in g.ligand_indices if mol.GetAtomWithIdx(i).GetSymbol() == "C"]
+    assert all(_bond(p, c, i) == pytest.approx(1.664, abs=1e-6) for i in fluorines)
+    assert all(_bond(p, c, i) == pytest.approx(1.8225, abs=1e-6) for i in carbons)
+    assert _angle(p, fluorines[0], c, fluorines[1]) == pytest.approx(180.0, abs=1e-6)
+    assert sorted(round(_angle(p, i, c, j), 1) for i, j in itertools.combinations(carbons, 2)) == [120.0] * 3
+    assert all(round(_angle(p, f, c, k), 1) == 90.0 for f in fluorines for k in carbons)
+    assert g.reference.evidence == "measured"
+
+
+def test_the_grown_phenyl_rings_are_real_rings_and_do_not_clash():
+    outcome = _grafted("FP(F)(c1ccccc1)(c1ccccc1)c1ccccc1")
+    points = np.array(outcome.geometry.coordinates)
+    mol = outcome.molecule
+    assert _implausible_bonds(outcome) == []
+    for ring in mol.GetRingInfo().AtomRings():
+        centre = points[list(ring)].mean(axis=0)
+        normal = np.linalg.svd(points[list(ring)] - centre)[2][2]
+        assert max(abs(float(np.dot(points[i] - centre, normal))) for i in ring) < 0.05, "each ring is planar"
+        assert all(1.33 < _bond(points, ring[k], ring[(k + 1) % 6]) < 1.45 for k in range(6))
+    topological = Chem.GetDistanceMatrix(mol)
+    distances = np.linalg.norm(points[:, None] - points[None], axis=2)
+    assert distances[(topological > 2)].min() > 1.8, "no two atoms that are not near neighbours are on top of each other"
+
+
+def test_the_grown_conformers_differ_and_keep_the_core_exactly():
+    outcome = _grafted("FP(F)(c1ccccc1)(c1ccccc1)c1ccccc1")
+    assert outcome.alternatives, "the three rings can turn: more than one conformer"
+    first = np.array(outcome.geometry.coordinates)
+    assert any(np.abs(np.array(other) - first).max() > 0.5 for other in outcome.alternatives)
+    core = [outcome.geometry.centre_index, *outcome.geometry.ligand_indices]
+    for other in outcome.alternatives:
+        assert np.allclose(np.array(other)[core], first[core], atol=1e-9), "the core is the table's in every conformer"
+
+
+@pytest.mark.parametrize(
+    ("smiles", "atoms"),
+    [("CP(C)(F)(F)F", 12), ("CP(F)(F)(F)F", 9), ("FP(F)([H])([H])[H]", 6)],
+)
+def test_methyl_and_hydrogen_ligands_get_their_hydrogens_and_are_measured(smiles, atoms):
+    """(CH3)2PF3 and CH3PF4 (gas electron diffraction) and PH3F2 (rotation-vibration spectra)."""
+    outcome = _grafted(smiles)
+    assert outcome.molecule.GetNumAtoms() == atoms
+    assert outcome.geometry.reference.evidence == "measured"
+    assert _implausible_bonds(outcome) == []
+
+
+def test_a_methyl_ligand_on_the_phenyl_row_or_a_phenyl_on_the_methyl_row_is_an_estimate():
+    """The CCCFF row was measured for phenyls: trimethyldifluorophosphorane takes it by transfer and says so; so does the CCFFF row for a phenyl."""
+    outcome = _grafted("CP(C)(C)(F)F")
+    assert outcome.geometry.reference.evidence == "estimated" and "ESTIMATED" in outcome.geometry.provenance
+    assert "ESTIMATED" in outcome.geometry.reference.method
+
+
+def test_methylphosphorane_core_reproduces_the_published_gas_phase_lengths():
+    outcome = _grafted("CP(C)(F)(F)F")
+    g, mol = outcome.geometry, outcome.molecule
+    p, c = g.coordinates, g.centre_index
+    carbons = [i for i in g.ligand_indices if mol.GetAtomWithIdx(i).GetSymbol() == "C"]
+    fluorines = [i for i in g.ligand_indices if mol.GetAtomWithIdx(i).GetSymbol() == "F"]
+    assert all(_bond(p, c, i) == pytest.approx(1.798, abs=1e-6) for i in carbons)
+    assert sorted(round(_bond(p, c, i), 4) for i in fluorines) == [1.553, 1.643, 1.643]
+    assert all(i in g.equatorial_indices for i in carbons), "the methyls are equatorial, as the electron diffraction found"
+
+
+def test_a_hypervalent_organic_with_no_row_keeps_the_ordinary_path():
+    """Phenyl-SF5 and phenyl-iodine diacetate have no measured core here: unchanged behaviour, not a refusal; and ordinary molecules are untouched."""
+    for smiles in ("FS(F)(F)(F)(F)c1ccccc1", "CC(=O)OI(OC(C)=O)c1ccccc1", "CCO", "c1ccccc1P(c1ccccc1)c1ccccc1", "CS(C)=O"):
+        assert build_vsepr_geometry(Chem.MolFromSmiles(smiles)).kind is Kind.NOT_APPLICABLE, smiles
