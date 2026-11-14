@@ -119,13 +119,13 @@ GOALS: tuple[Goal, ...] = (
         "What is this compound, and what is it called?",
         (
             _r("elemental_analysis", "Formula, average and exact mass, composition."),
-            _r("substance_analysis", "Whether it is a salt, a molecule, a complex or a mixture."),
-            _r("iupac_name", "Its systematic name, withheld when it cannot be checked."),
-            _r("functional_groups", "The functional groups it carries."),
             _r(
                 "mass_spectrum",
                 "The isotope envelope of a chosen ion, including the effect of its ionization mode.",
             ),
+            _r("substance_analysis", "Whether it is a salt, a molecule, a complex or a mixture."),
+            _r("iupac_name", "Its systematic name, withheld when it cannot be checked."),
+            _r("functional_groups", "The functional groups it carries."),
             _o("locants", "The IUPAC numbering drawn onto the structure."),
         ),
     ),

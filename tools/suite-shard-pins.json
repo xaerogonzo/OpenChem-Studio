@@ -4614,6 +4614,7 @@
   "tests/test_calculator_taxonomy.py": 1,
   "tests/test_calculator_visibility.py": 7,
   "tests/test_camera_orientation.py": 5,
+  "tests/test_change_kind.py": 0,
   "tests/test_changelog_fragments.py": 4,
   "tests/test_charge_consumers.py": 0,
   "tests/test_charge_effective_structure.py": 7,
@@ -5392,6 +5393,7 @@
   "tests/test_xtb_comparison_judge.py": 7,
   "tests/test_xtb_comparison_runner.py": 4,
   "tests/test_xtb_engine.py": 1,
+  "tests/test_xtb_release_choice.py": 1,
   "tests/test_xtb_tool.py": 5
  }
 }

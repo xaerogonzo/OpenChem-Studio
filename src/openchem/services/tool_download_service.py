@@ -238,6 +238,7 @@ def verify_psi4(configured_path: str) -> str:
 
 #: Where a person gets xtb. Set Up Automatically reads this API and skips bleed and drafts.
 XTB_DOWNLOAD_PAGE = "https://github.com/grimme-lab/xtb/releases"
+#: The releases API Set Up reads. Bleed and drafts are skipped in `choose_xtb_windows_asset`.
 XTB_RELEASES_API = "https://api.github.com/repos/grimme-lab/xtb/releases"
 #: The xtb project's home.
 XTB_DOCS_PAGE = "https://github.com/grimme-lab/xtb"

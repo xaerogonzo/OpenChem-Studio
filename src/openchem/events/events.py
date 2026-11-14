@@ -42,6 +42,7 @@ CHANGE_IDENTITY = "identity"
 #: It does not advance the structure version and does not rerun descriptors.
 CHANGE_LAYOUT = "layout"
 
+#: The four kinds a `MoleculeChanged` may name. A typo is refused at construction.
 CHANGE_KINDS = frozenset({
     CHANGE_STRUCTURE,
     CHANGE_CALCULATION_INPUT,
