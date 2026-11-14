@@ -66,7 +66,7 @@ and says "not assessed" for a higher coordination rather than 1. *Accept:* SF6, 
 1; a sulfoxide and a sulfoximine unchanged. Check the sibling code paths (`stereo_descriptors`, per-atom `stereocenters`) for the
 same count; the always-on `num_stereocenters` was already 0 on SF6.
 
-**WP3. Dreiding typing must respect coordination.** `chem/dreiding` refuses (`UntypedAtomError`, which the report already turns
+**WP3. Dreiding typing must respect coordination. DONE 2026-11-14** (`chem/dreiding/typer.py`: a type refuses an atom with more neighbours than its hybridisation or, for sp3 main-group atoms, its own electrons allow; measured before: SF6 708, PF5 163, SF4 394, IF5 1053, perchlorate 404 kcal/mol; `tests/test_dreiding_coordination.py`, mutation-checked: 10 of 24 fail with the check off; a perchlorate chlorine is also refused now, which the 'no change to perchlorates' non-goal did not foresee, because its energy was meaningless too). `chem/dreiding` refuses (`UntypedAtomError`, which the report already turns
 into a stated reason) an atom whose coordination exceeds its type's (a halogen with more than one bond, a noble gas, a type with a
 fixed geometry that the neighbour count contradicts). *Accept:* the Dreiding fact on ClF3 and on Cl, Br, I and Xe centres says it
 cannot type them; the facts that already carry numbers for ordinary molecules are unchanged (`tests/test_dreiding*`).

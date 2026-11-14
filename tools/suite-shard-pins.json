@@ -4701,6 +4701,7 @@
   "tests/test_docs_are_current.py": 1,
   "tests/test_dreiding.py": 1,
   "tests/test_dreiding_barriers.py": 0,
+  "tests/test_dreiding_coordination.py": 3,
   "tests/test_dreiding_gradient.py": 1,
   "tests/test_drive_ledger.py": 4,
   "tests/test_editor_rotation_mode.py": 1,
