@@ -10511,7 +10511,7 @@ local = "gavin1968.pdf"
 verification = "citation"
 verified_date = 2026-11-14
 reason = """
-Abstract read. Gas electron diffraction: a mean Xe-F bond length of 1.890 (0.005) A, a radial distribution that is a composite of nonequivalent bonds, and no regular octahedron. NOT shipped as a geometry: see bartell1968.
+Abstract read. Gas electron diffraction: a mean Xe-F bond length of 1.890 (0.005) A, a radial distribution that is a composite of nonequivalent bonds, and no regular octahedron. The mean is not itself built (it would be six equal bonds); the model row comes from bartell1968.
 """
 
 [[source]]
@@ -10520,13 +10520,17 @@ kind = "literature"
 citation = "L. S. Bartell & R. M. Gavin Jr., 'Molecular structure of XeF6. II. Internal motion and mean geometry deduced by electron diffraction', J. Chem. Phys. 48, 2466-2483 (1968)"
 identifier_type = "doi"
 identifier = "10.1063/1.1669471"
-status = "reference_only"
-used_by = ["docs/HYPERVALENT_COVERAGE_DESIGN.md"]
+status = "shipped"
+used_by = [
+    "src/openchem/chem/vsepr_geometry.py",
+    "tests/test_vsepr_geometry.py",
+    "docs/HYPERVALENT_COVERAGE_DESIGN.md",
+]
 local = "bartell1968.pdf"
-verification = "citation"
+verification = "citation_and_claim"
 verified_date = 2026-11-14
-reason = """
-Abstract, model table and discussion read. The molecule is predominantly in the broad vicinity of C3v distorted octahedra with the lone pair avoiding the bonding pairs, Xe-F lengths distributed over about 0.08 A, fluorine displacements of 5 to 10 degrees and enormous bending amplitudes; three models (C2v, Cs, C3v) fit about equally and the authors call the least-squares parameters rough guides. NOT shipped: no single set of lengths and angles is the measured molecule, and a regular octahedron at 1.890 A is a symmetry-protected saddle that a quantum optimisation would not leave.
+note = """
+Table II rendered and read (the text layer is scrambled). Shipped as a MODEL, not as a measured geometry: the authors fit three models (C2v, Cs, C3v) equally well to a radial distribution that is a composite of nonequivalent bonds, and call the parameters rough guides. Model C (C3v), Analysis I, rg: three long Xe-F 1.912 and three short 1.862 A (mean 1.887 (0.005)), the long triple 100.6 and the short triple 91.0 degrees apart. The paper's own nonbonded F...F distances for this model (2.939, 2.652, 2.525 and 3.765 A) are NOT inputs and are reproduced by the built geometry (tested). Analysis II lists inconsistent angles for the same distances, so Analysis I is used.
 """
 
 [[source]]
@@ -10662,4 +10666,22 @@ verification = "citation"
 verified_date = 2026-11-14
 reason = """
 Held. Vapour infrared and liquid Raman evidence for the structures of (CH3)2PF3 and (CH3)3PF2; spectroscopy, no distances.
+"""
+
+[[source]]
+key = "seppelt2019"
+kind = "literature"
+citation = "K. Seppelt, 'Reactions of Bromine Fluoride Dioxide, BrO2F, for the Generation of the Mixed-Valent Bromine Oxygen Cations Br3O4+ and Br3O6+', Angew. Chem. Int. Ed. 58, 18928-18930 (2019)"
+identifier_type = "doi"
+identifier = "10.1002/anie.201912271"
+status = "shipped"
+used_by = [
+    "src/openchem/chem/vsepr_geometry.py",
+    "tests/test_vsepr_geometry.py",
+    "docs/HYPERVALENT_COVERAGE_DESIGN.md",
+]
+verification = "citation_and_claim"
+verified_date = 2026-11-14
+note = """
+NOT HELD as a PDF: read from the open-access text (PubMed Central PMC6973041), and the one sentence quoted verbatim: 'In the adduct 3 BrO2F.4 acetone, the bond lengths are undisturbed by disorder: r BrO = 1.587-1.620(2) and r BrF = 1.781-1.822(2) A.' The adduct came from recrystallisation from acetone at low temperature; the paper prints ranges over several independent bonds, no temperature and no angle. Used for the BrO2F row's separate Br=O and Br-F lengths (the middle of each range), which reproduce the 167.4 pm mean of the disordered pure crystal (hwang1997).
 """

@@ -457,6 +457,24 @@ _ENTRIES = (
         0,
         (("F", 1.593), ("F", 1.593), ("F", 1.546), ("Cl", 2.004), ("Cl", 2.004)),
     ),
+    # XeF6 is NOT one measured geometry. This row is a MODEL (Bartell and Gavin's Model C, C3v, the one that fits the radial distribution as well as the others) of a molecule
+    # that is a fluxional average over such distorted octahedra; it is a starting geometry, labelled so.
+    Reference(
+        "Xe",
+        "F",
+        6,
+        1.912,
+        1.862,
+        {"l-l": 100.6, "s-s": 91.0},
+        "Bartell and Gavin 1968, J Chem Phys 48, 2466 [source:bartell1968]",
+        "MODEL, not a rigid measured structure: gas electron diffraction Model C (C3v), Analysis I (rg): three long Xe-F 1.912 and three short 1.862 A (mean 1.887 (0.005), difference "
+        "0.050 (0.03)), the long triple 100.6 and the short triple 91.0 degrees apart; the authors call these parameters rough guides, the molecule is a distribution of distorted "
+        "octahedra with bond lengths spread over about 0.08 A and fluorine displacements of 5 to 10 degrees, and the lone pair sits on the side of the long bonds",
+        True,
+        0,
+        (),
+        "",
+    ),
     # Trigonal pyramids (2026-11-14): the template `_trigonal_pyramid` with the two molecules whose crystals are the only structures measured.
     Reference(
         "Xe",
@@ -474,16 +492,16 @@ _ENTRIES = (
         "Br",
         "FO=O=",
         3,
-        1.674,
-        1.674,
+        1.8015,
+        1.6035,
         {"l-l": 103.8},
-        "Hwang, Kuschel and Seppelt 1997, Z Anorg Allg Chem 623, 379 [source:hwang1997]",
-        "single-crystal X-ray of BrO2F with O and F disordered over six positions: ONLY the average Br-(O,F) distance 167.4 (0.6) pm is determined, so the double bond and "
-        "the single bond are given that one length, and 103.8 (0.3) degrees is the all-equal C3v model the authors call the straightforward one; the real Br=O is shorter and "
-        "Br-F longer than this mean (compare ClO2F 142.0 and 169.4 pm), which ORCA resolves",
+        "Seppelt 2019, Angew Chem Int Ed 58, 18928 [source:seppelt2019]; angle from Hwang, Kuschel and Seppelt 1997, Z Anorg Allg Chem 623, 379 [source:hwang1997]",
+        "lengths from the single-crystal X-ray of the adduct 3 BrO2F.4 acetone, where the bond lengths are not disturbed by disorder: Br=O 1.587 to 1.620 (0.002) and Br-F 1.781 to "
+        "1.822 (0.002) A, each placed at the middle of its printed range; they reproduce the 167.4 (0.6) pm mean Br-(O,F) distance of the disordered pure crystal (Hwang 1997). "
+        "The angle is that crystal's mean 103.8 (0.3) degrees (the all-equal C3v model), because the adduct paper gives no angle: O-Br-O and O-Br-F are not separately measured",
         True,
         0,
-        (("F", 1.674), ("O=", 1.674), ("O=", 1.674)),
+        (("F", 1.8015), ("O=", 1.6035), ("O=", 1.6035)),
     ),
     # The two anions are CRYSTAL structures: the ion is in an ionic lattice, where a Cl-F or Xe-F distance moves by a few
     # hundredths of an Angstrom with the counter-ion (ClF4- spans 1.73 to 1.87 A between salts).
@@ -700,6 +718,24 @@ def _trigonal_pyramid(ref: Reference) -> tuple[list[np.ndarray], list[np.ndarray
     return [], ring
 
 
+def _c3v_octahedron(ref: Reference) -> tuple[list[np.ndarray], list[np.ndarray]]:
+    # AX6E, a C3v distorted octahedron (XeF6, Bartell and Gavin's Model C): a triple of LONG bonds around the lone pair's side with mutual angle `l-l` (above 90), and a
+    # triple of short bonds on the far side with mutual angle `s-s`, staggered by 60 degrees about the axis. For a triple with mutual angle t each bond makes
+    # an angle a with the axis where cos^2 a = (2 cos t + 1) / 3. The returned groups are the long triple (`axial`) and the short triple (`equatorial`).
+    def cone(mutual: float) -> float:
+        return math.sqrt(max((2.0 * math.cos(math.radians(mutual)) + 1.0) / 3.0, 0.0))
+
+    cos_l, cos_s = cone(ref.angles["l-l"]), cone(ref.angles["s-s"])
+    sin_l, sin_s = math.sqrt(1.0 - cos_l**2), math.sqrt(1.0 - cos_s**2)
+    long_triple = [
+        np.array([sin_l * math.cos(math.radians(p)), sin_l * math.sin(math.radians(p)), cos_l]) for p in (0, 120, 240)
+    ]
+    short_triple = [
+        np.array([sin_s * math.cos(math.radians(p)), sin_s * math.sin(math.radians(p)), -cos_s]) for p in (60, 180, 300)
+    ]
+    return long_triple, short_triple
+
+
 #: Layout name -> placer, for the references that name one.
 _LAYOUTS = {"cs_bipyramid": _cs_bipyramid, "c2v_bipyramid": _c2v_bipyramid, "c4v_octahedron": _c4v_octahedron}
 
@@ -710,6 +746,7 @@ _TEMPLATES = {
     (5, 2): ("AX5E2", "pentagonal planar", _pentagonal_planar),
     (2, 3): ("AX2E3", "linear", _linear),
     (3, 1): ("AX3E", "trigonal pyramidal", _trigonal_pyramid),
+    (6, 1): ("AX6E", "C3v distorted octahedron", _c3v_octahedron),
     (3, 2): ("AX3E2", "T-shaped", _t_shape),
     (4, 2): ("AX4E2", "square planar", _square_planar),
     (4, 1): ("AX4E", "seesaw", _seesaw),

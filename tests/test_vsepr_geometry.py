@@ -527,17 +527,21 @@ def test_xeo3_is_a_trigonal_pyramid_with_the_published_mean_distance_and_angle()
     assert abs(np.linalg.det(np.array([points[1] - points[0], points[2] - points[0], np.array(p[c]) - points[0]]))) > 0.1, "not coplanar with the centre"
 
 
-def test_bro2f_is_a_pyramid_with_the_one_measured_mean_distance():
+def test_bro2f_is_a_pyramid_with_the_adducts_separate_double_and_single_bond_lengths():
+    """Seppelt 2019 (3 BrO2F.4 acetone): Br=O 1.587 to 1.620 and Br-F 1.781 to 1.822 A, each inside its printed range; their weighted mean is the 1.674 A that the disordered
+    pure crystal (Hwang 1997) could only give as one average, which is an independent check of the pair."""
     smiles = "FBr(=O)=O"
     g = _built(smiles)
     assert (g.classification, g.shape) == ("AX3E", "trigonal pyramidal")
     p, c = g.coordinates, g.centre_index
-    for i in g.ligand_indices:
-        assert _bond(p, c, i) == pytest.approx(1.674, abs=1e-6)
-    assert _all_angles(g) == [103.8] * 3
     oxygens = _by_element(g, smiles, "O")
     fluorine = _by_element(g, smiles, "F")
     assert len(oxygens) == 2 and len(fluorine) == 1
+    assert all(1.587 <= _bond(p, c, i) <= 1.620 for i in oxygens)
+    assert 1.781 <= _bond(p, c, fluorine[0]) <= 1.822
+    mean = sum(_bond(p, c, i) for i in g.ligand_indices) / 3
+    assert mean == pytest.approx(1.674, abs=0.0075), "the disordered crystal's one measured mean (167.4 (0.6) pm)"
+    assert _all_angles(g) == [103.8] * 3
 
 
 def test_a_pyramid_the_table_lacks_is_still_left_to_the_ordinary_path():
@@ -560,3 +564,26 @@ def test_pcl2f3_has_the_chlorines_equatorial_and_the_three_published_lengths():
     assert sorted(round(_bond(p, c, i), 3) for i in fluorines) == [1.546, 1.593, 1.593]
     axial_fluorines = [i for i in fluorines if i in g.axial_indices]
     assert len(axial_fluorines) == 2 and _angle(p, axial_fluorines[0], c, axial_fluorines[1]) == pytest.approx(180.0, abs=1e-6)
+
+
+def test_xef6_model_reproduces_the_papers_nonbonded_distances_it_was_not_given():
+    """Bartell and Gavin 1968, Table II, Model C (C3v), Analysis I: the F...F distances are NOT inputs; the bond lengths and the two triple angles are.
+
+    Long triple mutual 2.939, short triple mutual 2.652, adjacent long-short 2.525 and the three trans pairs 3.765 A (rg; shrinkage 0.002 to 0.003 A).
+    """
+    g = _built("F[Xe](F)(F)(F)(F)F")
+    assert (g.classification, g.shape) == ("AX6E", "C3v distorted octahedron")
+    p, c = g.coordinates, g.centre_index
+    long_triple, short_triple = g.axial_indices, g.equatorial_indices
+    assert all(_bond(p, c, i) == pytest.approx(1.912, abs=1e-6) for i in long_triple)
+    assert all(_bond(p, c, i) == pytest.approx(1.862, abs=1e-6) for i in short_triple)
+    aa = [_bond(p, i, j) for i, j in itertools.combinations(long_triple, 2)]
+    bb = [_bond(p, i, j) for i, j in itertools.combinations(short_triple, 2)]
+    cross = sorted(_bond(p, i, j) for i in long_triple for j in short_triple)
+    assert aa == pytest.approx([2.939] * 3, abs=0.01)
+    assert bb == pytest.approx([2.652] * 3, abs=0.01)
+    assert cross[:6] == pytest.approx([2.525] * 6, abs=0.02), "the six adjacent long-short contacts"
+    assert cross[6:] == pytest.approx([3.765] * 3, abs=0.02), "each long bond has a short one trans to it"
+    # the long bonds are the ones around the lone pair's side: that triple is the more open one
+    assert _angle(p, long_triple[0], c, long_triple[1]) > _angle(p, short_triple[0], c, short_triple[1])
+    assert "MODEL" in g.reference.method

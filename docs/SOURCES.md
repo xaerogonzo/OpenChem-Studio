@@ -1,5 +1,5 @@
 <!-- GENERATED FROM docs/sources.toml -- do not edit -->
-<!-- SOURCE SHA256: 3f60d0885eb70a08880b86cb14f46bf0fabf9657c4ef6735c7560d196d30560c -->
+<!-- SOURCE SHA256: 471e7358a8d4c7d38c73838595272aa789b301d7035effe5a70b670911f07f21 -->
 
 # Sources
 
@@ -119,7 +119,7 @@ Title and DOI first; the `key` is what prose and code cite (`[source:key]`) and 
 | C. Bannwarth, E. Caldeweyher, S. Ehlert, A. Hansen, P. Pracht, J. Seibert, S. Spicher & S. Grimme, WIREs… | [10.1002/wcms.1493](https://doi.org/10.1002/wcms.1493) | [`bannwarth2021xtb`](#bannwarth2021xtb) | literature | shipped | citation |
 | DFT Meets Wave-Function Composite Methods for Characterizing Cytosine Tautomers in the Gas Phase | [10.1021/acs.jctc.3c00465](https://doi.org/10.1021/acs.jctc.3c00465) | [`barone2023`](#barone2023) | literature | reference only | citation |
 | Structure and bonding in CH3PF4 and (CH3)2PF3. An electron diffraction study | [10.1021/ic50034a024](https://doi.org/10.1021/ic50034a024) | [`bartell1965`](#bartell1965) | literature | reference only | citation |
-| Molecular structure of XeF6. II. Internal motion and mean geometry deduced by electron diffraction | [10.1063/1.1669471](https://doi.org/10.1063/1.1669471) | [`bartell1968`](#bartell1968) | literature | reference only | citation |
+| Molecular structure of XeF6. II. Internal motion and mean geometry deduced by electron diffraction | [10.1063/1.1669471](https://doi.org/10.1063/1.1669471) | [`bartell1968`](#bartell1968) | literature | shipped | citation + claim |
 | Electron diffraction analysis of charge redistribution model and structure of SeF6 | [10.1016/0022-2860(84)85178-9](https://doi.org/10.1016/0022-2860(84)85178-9) | [`bartell1984`](#bartell1984) | literature | shipped | citation + claim |
 | Van der Waals Radii of Elements | [10.1023/a:1011625728803](https://doi.org/10.1023/a:1011625728803) | [`batsanov2001`](#batsanov2001) | literature | reference only | citation |
 | High-resolution rotation-vibration spectroscopy of difluorophosphorane: a combined theoretical and experimental study | [10.1063/1.458700](https://doi.org/10.1063/1.458700) | [`beckers1990`](#beckers1990) | literature | reference only | citation |
@@ -398,6 +398,7 @@ Title and DOI first; the `key` is what prose and code cite (`[source:key]`) and 
 | Kinetics of the R + HBr = RH + Br (CH3CHBr, CHBr2 or CDBr2) equilibrium. Thermochemistry of the CH3CHBr and CHBr2 radicals | [10.1016/j.chemphys.2008.04.008](https://doi.org/10.1016/j.chemphys.2008.04.008) | [`seetula2008`](#seetula2008) | literature | reference only | citation + claim |
 | Dynamic Charge Equilibration-Morse Stretch Force Field: Application to Energetics of Pure Silica Zeolites | [10.1002/jcc.10130](https://doi.org/10.1002/jcc.10130) | [`sefcik2002`](#sefcik2002) | literature | reference only | citation + claim |
 | Alkali fluorotellurates(VI) | [10.1021/ic50136a051](https://doi.org/10.1021/ic50136a051) | [`selig1974`](#selig1974) | literature | reference only | citation |
+| Reactions of Bromine Fluoride Dioxide, BrO2F, for the Generation of the Mixed-Valent Bromine Oxygen Cations Br3O4+ and Br3O6+ | [10.1002/anie.201912271](https://doi.org/10.1002/anie.201912271) | [`seppelt2019`](#seppelt2019) | literature | shipped | citation + claim |
 | Synthesis of metal iodates from an energetic salt | [10.1039/d0ra02250k](https://doi.org/10.1039/d0ra02250k) | [`shancita2020`](#shancita2020) | literature | shipped | citation |
 | Revised effective ionic radii and systematic studies of interatomic distances in halides and chalcogenides |  | [`shannon1976`](#shannon1976) | literature | shipped | citation + claim |
 | Fireworks: The Art, Science and Technique | 0-929388-05-4 | [`shimizu1996`](#shimizu1996) | literature | shipped | citation |
@@ -8908,7 +8909,7 @@ Abstract and Table II read. Gas electron diffraction at 22 to 24 C: rg P-F equat
 | Local copy | `gavin1968.pdf` (not checked) |
 | Used by | `docs/HYPERVALENT_COVERAGE_DESIGN.md` |
 
-**Why it is reference only.** Abstract read. Gas electron diffraction: a mean Xe-F bond length of 1.890 (0.005) A, a radial distribution that is a composite of nonequivalent bonds, and no regular octahedron. NOT shipped as a geometry: see bartell1968.
+**Why it is reference only.** Abstract read. Gas electron diffraction: a mean Xe-F bond length of 1.890 (0.005) A, a radial distribution that is a composite of nonequivalent bonds, and no regular octahedron. The mean is not itself built (it would be six equal bonds); the model row comes from bartell1968.
 
 ### bartell1968 — Molecular structure of XeF6. II. Internal motion and mean geometry deduced by electron diffraction
 
@@ -8919,13 +8920,13 @@ Abstract and Table II read. Gas electron diffraction at 22 to 24 C: rg P-F equat
 | | |
 | --- | --- |
 | Identifier | [10.1063/1.1669471](https://doi.org/10.1063/1.1669471) |
-| Status | reference only |
-| Verification | citation |
+| Status | shipped |
+| Verification | citation + claim |
 | Verified | 2026-11-14 |
 | Local copy | `bartell1968.pdf` (not checked) |
-| Used by | `docs/HYPERVALENT_COVERAGE_DESIGN.md` |
+| Used by | `src/openchem/chem/vsepr_geometry.py`, `tests/test_vsepr_geometry.py`, `docs/HYPERVALENT_COVERAGE_DESIGN.md` |
 
-**Why it is reference only.** Abstract, model table and discussion read. The molecule is predominantly in the broad vicinity of C3v distorted octahedra with the lone pair avoiding the bonding pairs, Xe-F lengths distributed over about 0.08 A, fluorine displacements of 5 to 10 degrees and enormous bending amplitudes; three models (C2v, Cs, C3v) fit about equally and the authors call the least-squares parameters rough guides. NOT shipped: no single set of lengths and angles is the measured molecule, and a regular octahedron at 1.890 A is a symmetry-protected saddle that a quantum optimisation would not leave.
+Table II rendered and read (the text layer is scrambled). Shipped as a MODEL, not as a measured geometry: the authors fit three models (C2v, Cs, C3v) equally well to a radial distribution that is a composite of nonequivalent bonds, and call the parameters rough guides. Model C (C3v), Analysis I, rg: three long Xe-F 1.912 and three short 1.862 A (mean 1.887 (0.005)), the long triple 100.6 and the short triple 91.0 degrees apart. The paper's own nonbonded F...F distances for this model (2.939, 2.652, 2.525 and 3.765 A) are NOT inputs and are reproduced by the built geometry (tested). Analysis II lists inconsistent angles for the same distances, so Analysis I is used.
 
 ### burbank1974 — Structure of the cubic phase of xenon hexafluoride at 193 K
 
@@ -9079,6 +9080,22 @@ Abstract and Table II read. Gas electron diffraction at 22 to 24 C: rg P-F equat
 | Used by | `docs/HYPERVALENT_COVERAGE_DESIGN.md` |
 
 **Why it is reference only.** Held. Vapour infrared and liquid Raman evidence for the structures of (CH3)2PF3 and (CH3)3PF2; spectroscopy, no distances.
+
+### seppelt2019 — Reactions of Bromine Fluoride Dioxide, BrO2F, for the Generation of the Mixed-Valent Bromine Oxygen Cations Br3O4+ and Br3O6+
+
+<a id="seppelt2019"></a>
+
+> K. Seppelt, 'Reactions of Bromine Fluoride Dioxide, BrO2F, for the Generation of the Mixed-Valent Bromine Oxygen Cations Br3O4+ and Br3O6+', Angew. Chem. Int. Ed. 58, 18928-18930 (2019)
+
+| | |
+| --- | --- |
+| Identifier | [10.1002/anie.201912271](https://doi.org/10.1002/anie.201912271) |
+| Status | shipped |
+| Verification | citation + claim |
+| Verified | 2026-11-14 |
+| Used by | `src/openchem/chem/vsepr_geometry.py`, `tests/test_vsepr_geometry.py`, `docs/HYPERVALENT_COVERAGE_DESIGN.md` |
+
+NOT HELD as a PDF: read from the open-access text (PubMed Central PMC6973041), and the one sentence quoted verbatim: 'In the adduct 3 BrO2F.4 acetone, the bond lengths are undisturbed by disorder: r BrO = 1.587-1.620(2) and r BrF = 1.781-1.822(2) A.' The adduct came from recrystallisation from acetone at low temperature; the paper prints ranges over several independent bonds, no temperature and no angle. Used for the BrO2F row's separate Br=O and Br-F lengths (the middle of each range), which reproduce the 167.4 pm mean of the disordered pure crystal (hwang1997).
 
 ## Datasets
 
