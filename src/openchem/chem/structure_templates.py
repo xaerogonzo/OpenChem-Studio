@@ -45,6 +45,8 @@ _SHIPPED_FILES = (
     "peptide_building_blocks.json",
     "allotropes.json",
     "reactive_species.json",
+    "cofactors.json",
+    "terpenoids_steroids.json",
 )
 
 
@@ -73,7 +75,7 @@ def molblock_for(entry: TemplateEntry, engine: ChemistryEngine | None = None) ->
         mol = engine.mol_from_smiles(entry.smiles)
         _refuse_unsupported(mol, entry.id)
         rdDepictor.Compute2DCoords(mol)
-        return Chem.MolToMolBlock(mol)
+        return _molblock_with_up_down_bonds(mol)
     raise TemplateError(f"{entry.id}: a template needs exactly one of smiles or molblock")
 
 
@@ -197,13 +199,22 @@ def _refuse_unsupported(mol: Chem.Mol, entry_id: str) -> None:
 
 
 def _ensure_2d(mol: Chem.Mol, entry_id: str) -> str:
+    del entry_id
     if mol.GetNumConformers() == 0:
         rdDepictor.Compute2DCoords(mol)
-        return Chem.MolToMolBlock(mol)
+        return _molblock_with_up_down_bonds(mol)
     conf = mol.GetConformer()
     zs = [abs(conf.GetAtomPosition(i).z) for i in range(mol.GetNumAtoms())]
     if zs and max(zs) > 0.05:
         rdDepictor.Compute2DCoords(mol)
+    return _molblock_with_up_down_bonds(mol)
+
+
+def _molblock_with_up_down_bonds(mol: Chem.Mol) -> str:
+    """Wedge/hash bonds for specified stereo so the 2D editor shows up/down by default."""
+    if mol.GetNumConformers() == 0:
+        rdDepictor.Compute2DCoords(mol)
+    Chem.WedgeMolBonds(mol, mol.GetConformer())
     return Chem.MolToMolBlock(mol)
 
 

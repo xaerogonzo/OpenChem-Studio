@@ -98,6 +98,14 @@
       "tags": [
         "anthocyanidin"
       ]
+    },
+    {
+      "id": "flavonoids.naringenin",
+      "name": "Naringenin",
+      "smiles": "C1[C@H](OC2=CC(=CC(=C2C1=O)O)O)C3=CC=C(C=C3)O",
+      "tags": [
+        "flavonoid"
+      ]
     }
   ]
 }

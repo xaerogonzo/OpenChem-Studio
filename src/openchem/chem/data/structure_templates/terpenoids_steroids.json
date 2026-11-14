@@ -1,0 +1,15 @@
+{
+  "id": "terpenoids_steroids",
+  "title": "Terpenoids and steroids",
+  "description": "Named terpenes and steroids as complete molecules. Camphene stays out until it has stereo.",
+  "entries": [
+    {
+      "id": "terpenoids_steroids.cholesterol",
+      "name": "Cholesterol",
+      "smiles": "C[C@H](CCCC(C)C)[C@H]1CC[C@@H]2[C@@]1(CC[C@H]3[C@H]2CC=C4[C@@]3(CC[C@@H](C4)O)C)C",
+      "tags": [
+        "steroid"
+      ]
+    }
+  ]
+}
