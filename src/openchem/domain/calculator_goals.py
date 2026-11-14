@@ -119,10 +119,13 @@ GOALS: tuple[Goal, ...] = (
         "What is this compound, and what is it called?",
         (
             _r("elemental_analysis", "Formula, average and exact mass, composition."),
+            _r(
+                "mass_spectrum",
+                "The isotope envelope of a chosen ion, including the effect of its ionization mode.",
+            ),
             _r("substance_analysis", "Whether it is a salt, a molecule, a complex or a mixture."),
             _r("iupac_name", "Its systematic name, withheld when it cannot be checked."),
             _r("functional_groups", "The functional groups it carries."),
-            _o("mass_spectrum", "The isotope envelope of a chosen ion."),
             _o("locants", "The IUPAC numbering drawn onto the structure."),
         ),
     ),
@@ -135,7 +138,10 @@ GOALS: tuple[Goal, ...] = (
             _r("geometry_partial_charge", "Partial charges on the 3D structure."),
             _r("dipole_moment", "How polar the 3D structure is, as a vector."),
             _r("polarizability", "How easily its electrons are displaced."),
-            _o("oxidation_states", "Formal oxidation state of each atom."),
+            _r(
+                "oxidation_states",
+                "Formal oxidation-state assignment for each atom using the IUPAC electronegativity-partition rule.",
+            ),
             _o("atomic_polarizability", "Polarizability atom by atom."),
             _o("orbital_electronegativity", "Electronegativity of each atom's orbitals."),
             _o("lewis_sites", "Which atoms can give or accept an electron pair."),
@@ -164,6 +170,14 @@ GOALS: tuple[Goal, ...] = (
             _r("polar_surface_area", "Polar surface area from the 2D structure."),
             _r("surface_analysis", "Molecular surface area of the 3D structure."),
             _r("steric_analysis", "How much room it takes up, in the 3D structure."),
+            _r(
+                "interaction_analysis",
+                "Intramolecular non-covalent contacts and clashes in the current 3D conformer.",
+            ),
+            _r(
+                "torsion_table",
+                "The dihedral angle around every rotatable bond in the current 3D conformer.",
+            ),
             _o("atom_sasa", "Accessible surface area, atom by atom."),
             _o("griffin_hlb", "Hydrophilic-lipophilic balance (Griffin)."),
         ),

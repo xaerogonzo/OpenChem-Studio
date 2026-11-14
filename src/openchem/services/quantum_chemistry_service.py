@@ -10,7 +10,7 @@ import time
 from dataclasses import dataclass, field
 from pathlib import Path
 
-from PySide6.QtCore import QObject, QProcess, QProcessEnvironment
+from PySide6.QtCore import QObject, QProcess, QProcessEnvironment, QTimer
 from rdkit import Chem
 
 from openchem import paths as app_paths
@@ -550,6 +550,12 @@ class QuantumChemistryService(QObject):
     ) -> None:
         super().__init__()
         self._event_bus = event_bus
+        # One ORCA process for the whole application. Psi4 and xtb do not take this.
+        # A sequence keeps it from the first subjob until the slot is released.
+        self._orca_holder: tuple[str, str, float] | None = None
+        self._orca_timer = QTimer(self)
+        self._orca_timer.setInterval(1000)
+        self._orca_timer.timeout.connect(self._tick_orca_status)
         self._settings = settings
         # The person's choices about an anion's f+ and about the search for other cation states are read each time a Fukui input is written, not once: Settings applies
         # as it changes. They close over the settings and not over `self`, so the provider (which this service holds) does not hold the service back.
@@ -1099,6 +1105,7 @@ class QuantumChemistryService(QObject):
         self._tautomer_nmr_runs[molecule_uuid] = run
         if not self._launch_next_tautomer_nmr_job(run):
             self._job_manager.finish(_JOB_KIND, molecule_uuid)
+            self._release_orca(molecule_uuid)
 
     def _launch_next_tautomer_nmr_job(self, run: _TautomerNmrRun) -> bool:
         """Starts the next structure's job. True: a process is running (the logical job continues). False: the
@@ -1286,6 +1293,42 @@ class QuantumChemistryService(QObject):
         # build, so finish with whatever was already collected.
         self._complete_scaling_run(key, run)
 
+    def _claim_orca(self, key: str, label: str, provider) -> bool:
+        """Take the application-wide ORCA lease. False when another ORCA job holds it.
+
+        The same key may claim again: a multi-job sequence launches the next
+        subjob under the lease it already holds. Any other engine is ignored.
+        """
+        if getattr(provider, "provider_id", "") != "orca":
+            return True
+        holder = self._orca_holder
+        if holder is not None and holder[0] != key:
+            self._publish_state(
+                key,
+                CacheState.FAILED,
+                f"ORCA is already running {holder[1]}. Wait for it to finish. Nothing was queued.",
+            )
+            return False
+        if holder is None:
+            self._orca_holder = (key, label, time.monotonic())
+            self._orca_timer.start()
+        return True
+
+    def _release_orca(self, key: str) -> None:
+        holder = self._orca_holder
+        if holder is not None and holder[0] == key:
+            self._orca_holder = None
+            self._orca_timer.stop()
+
+    def _tick_orca_status(self) -> None:
+        holder = self._orca_holder
+        if holder is None:
+            self._orca_timer.stop()
+            return
+        key, label, started = holder
+        elapsed = int(time.monotonic() - started)
+        self._publish_state(key, CacheState.RUNNING, f"ORCA {label} — {elapsed // 60} min {elapsed % 60} s")
+
     def _launch_job(
         self,
         *,
@@ -1318,6 +1361,9 @@ class QuantumChemistryService(QObject):
         here) so it's guaranteed to be the exact path the caller already
         validated, not a second, potentially-different lookup.
         """
+        if not self._claim_orca(key, calc_type, provider):
+            self._job_manager.finish(_job_manager_kind(kind), key)
+            return
         self._publish_state(key, CacheState.QUEUED)
 
         # A space-free scratch directory is a hard requirement: ORCA
@@ -1354,6 +1400,7 @@ class QuantumChemistryService(QObject):
             self._proton_runs.pop(key, None)
             self._bond_runs.pop(key, None)
             self._job_manager.finish(job_kind_for_manager, key)
+            self._release_orca(key)
             return
 
         input_path = scratch_dir / "job.inp"
@@ -1476,6 +1523,7 @@ class QuantumChemistryService(QObject):
             self._bond_runs.pop(key, None)
             self._cleanup_scratch(job.scratch_dir)
             self._job_manager.finish(_job_manager_kind(job.kind), key)
+            self._release_orca(key)
 
     def _report_job_failure(self, job: _ActiveJob, message: str) -> None:
         """Announce a terminal failure on the channel this job's requester
@@ -1611,6 +1659,7 @@ class QuantumChemistryService(QObject):
             self._cleanup_scratch(job.scratch_dir)
             if not chaining:
                 self._job_manager.finish(_job_manager_kind(job.kind), key)
+                self._release_orca(key)
 
     def _finish_calculation_job(self, job: _ActiveJob, output_text: str) -> None:
         molecule_uuid = job.molecule_uuid

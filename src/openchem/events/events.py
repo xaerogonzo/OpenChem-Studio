@@ -26,21 +26,58 @@ from openchem.domain.synthesis_route import RouteSet
 from openchem.events.base import Event
 
 
+#: The drawing's chemistry changed: connectivity, bond order, formal charge,
+#: stereochemistry, or isotope labels. This is the only kind that advances the
+#: structure version.
+CHANGE_STRUCTURE = "structure"
+
+#: What a calculator is handed changed without the drawing's chemistry changing.
+#: Choosing which piece of a salt to compute on is this kind.
+CHANGE_CALCULATION_INPUT = "calculation_input"
+
+#: A name or other label. The project is dirty; the chemistry is not.
+CHANGE_IDENTITY = "identity"
+
+#: 2D coordinates moved and the chemical graph did not. Saved with the drawing.
+#: It does not advance the structure version and does not rerun descriptors.
+CHANGE_LAYOUT = "layout"
+
+#: The four kinds a `MoleculeChanged` may name. A typo is refused at construction.
+CHANGE_KINDS = frozenset({
+    CHANGE_STRUCTURE,
+    CHANGE_CALCULATION_INPUT,
+    CHANGE_IDENTITY,
+    CHANGE_LAYOUT,
+})
+
+
 @dataclass(frozen=True)
 class MoleculeChanged(Event):
-    """A molecule's structure or identity changed.
+    """A molecule changed, and `kind` says which sort of change it was.
 
     `during_edit` is True for a CANVAS EDIT in progress -- the person is drawing and
     more edits may follow within moments -- and only for that. Everything that wants
-    to recompute because of it waits for `RecalculationDue` instead of acting on this
-    event; everything that only has to KNOW the structure moved (the version bump, the
-    explorer's label, the results going stale) acts on it at once. An undo, a redo, an
-    import, a rename and a conformer command are deliberate single actions and publish
-    it False, so they recompute immediately as they always did.
+    to recompute because of a STRUCTURE change waits for `RecalculationDue` instead of
+    acting on this event; everything that only has to KNOW the structure moved (the
+    version bump, the explorer's label, the results going stale) acts on it at once.
+    An undo, a redo, an import and a conformer command are deliberate single actions
+    and publish `during_edit` False.
+
+    **A RENAME IS `identity`.** It still publishes, because the explorer, the snapshot
+    and every open name listen to this event. It does not advance the structure version
+    and it does not start a calculation. `layout` is the same for a 2D move.
+    `calculation_input` still asks for the calculations that read that choice again.
+    The default kind is `structure`, so a publisher that has not been classified keeps
+    the old meaning rather than silently becoming a rename.
     """
 
     molecule_uuid: str
     during_edit: bool = False
+    kind: str = CHANGE_STRUCTURE
+
+    def __post_init__(self) -> None:
+        if self.kind not in CHANGE_KINDS:
+            raise ValueError(f"unknown molecule change kind {self.kind!r}")
 
 
 @dataclass(frozen=True)

@@ -203,6 +203,30 @@ _SELECTOR_SEARCH_HELP = HelpTooltip(
     topic="facts",
 )
 
+#: Expand all opens every section in this reader and calculates nothing.
+_EXPAND_ALL_HELP = HelpTooltip(
+    text=(
+        "Open every section in this reader.\n\n"
+        "It only changes which sections are folded. It does not calculate "
+        "anything, and it does not change which result is selected."
+    ),
+    tier=1,
+    help_id="results.expand_all",
+    topic="facts",
+)
+
+#: Collapse all folds every section in this reader and calculates nothing.
+_COLLAPSE_ALL_HELP = HelpTooltip(
+    text=(
+        "Fold every section in this reader.\n\n"
+        "It only changes which sections are folded. It does not calculate "
+        "anything, and it does not change which result is selected."
+    ),
+    tier=1,
+    help_id="results.collapse_all",
+    topic="facts",
+)
+
 #: What "All results" means. One contract for the return, the same way
 #: the Showing list is one contract however many calculators fill it.
 _ALL_RESULTS_HELP = HelpTooltip(
@@ -381,6 +405,14 @@ class ResultsView(QWidget):
         self._all_results_button.setVisible(False)
         apply_help_tooltip(self._all_results_button, _ALL_RESULTS_HELP)
         row.addWidget(self._all_results_button)
+        self._expand_all = QPushButton("Expand all", focus_row)
+        self._expand_all.clicked.connect(self._on_expand_all_clicked)
+        apply_help_tooltip(self._expand_all, _EXPAND_ALL_HELP)
+        self._collapse_all = QPushButton("Collapse all", focus_row)
+        self._collapse_all.clicked.connect(self._on_collapse_all_clicked)
+        apply_help_tooltip(self._collapse_all, _COLLAPSE_ALL_HELP)
+        row.addWidget(self._expand_all)
+        row.addWidget(self._collapse_all)
         #: report id -> `SupportMarker` or None; injected like the structure resolver.
         self._support_resolver = None
 
@@ -669,6 +701,12 @@ class ResultsView(QWidget):
 
     def _on_all_results_clicked(self) -> None:
         self.set_focus("")
+
+    def _on_expand_all_clicked(self, _checked: bool = False) -> None:
+        self._view.set_all_expanded(True)
+
+    def _on_collapse_all_clicked(self, _checked: bool = False) -> None:
+        self._view.set_all_expanded(False)
 
     def set_focus(self, report_id: str) -> None:
         """Show one report's facts and its chart.

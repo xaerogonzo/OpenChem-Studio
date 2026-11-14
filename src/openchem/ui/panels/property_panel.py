@@ -3144,6 +3144,17 @@ class PropertyPanel(QWidget):
         """
         if event.molecule_uuid != self._selected_molecule_uuid:
             return
+        from openchem.events.events import CHANGE_IDENTITY, CHANGE_LAYOUT
+
+        if event.kind == CHANGE_IDENTITY:
+            card = getattr(self, "_substance_card", None)
+            if card is not None and not card.data().is_empty:
+                from dataclasses import replace
+
+                card.set_data(replace(card.data(), name=self._selected_molecule_name()))
+            return
+        if event.kind == CHANGE_LAYOUT:
+            return
         if not event.during_edit:
             self._refresh_component_choice()
             self._update_preflight()

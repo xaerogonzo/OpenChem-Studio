@@ -179,21 +179,21 @@ def test_a_real_xtb_passes_its_own_locate_and_test():
 # --- the External Tools tab --------------------------------------------------------------------------------------------
 
 
-def test_the_xtb_descriptor_is_locate_only():
+def test_the_xtb_descriptor_can_download_the_windows_build():
     descriptor = xtb()
 
     assert descriptor.key == "xtb" and descriptor.setting_key == "xtb/executable_path"
-    assert descriptor.obtainable is False and descriptor.removable is False
+    assert descriptor.obtainable is True and descriptor.removable is False
     assert [label for label, _url in descriptor.vendor_links] == ["Get xtb...", "xtb Project Page..."]
     assert descriptor.locate is not None and descriptor.describe_test is tools.verify_xtb
 
 
-def test_the_dialog_has_an_xtb_tab_with_locate_and_test_and_no_set_up_button(qapp):
+def test_the_dialog_has_an_xtb_tab_with_locate_test_and_set_up(qapp):
     dialog = ExternalToolsPages(Settings(EventBus()))
     try:
         tab = dialog._tab_for("xtb")
         assert tab.locate_button is not None and tab.test_button is not None
-        assert tab.setup_button.isHidden() and tab.remove_button.isHidden()
+        assert not tab.setup_button.isHidden() and tab.remove_button.isHidden()
         assert tab.status_label.text() == "Not configured" or tab.status_label.text().startswith("Configured")
     finally:
         conftest.dispose(dialog)

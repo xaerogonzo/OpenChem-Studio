@@ -69,6 +69,7 @@ class ProjectExplorerPanel(QWidget):
         on_identify: Callable[[MoleculeModel], None] | None = None,
         on_check: Callable[[], None] | None = None,
         on_edit_formulation: Callable[[object], None] | None = None,
+        on_new_molecule: Callable[[], None] | None = None,
     ) -> None:
         super().__init__(parent)
         self._event_bus = event_bus
@@ -81,6 +82,7 @@ class ProjectExplorerPanel(QWidget):
         # both the dialog and the SMILES the picker offers -- deriving one
         # from a drawing needs RDKit, which this layer may not import.
         self._on_edit_formulation = on_edit_formulation
+        self._on_new_molecule = on_new_molecule
         self._project: ProjectModel | None = None
         # Set while `refresh()` is rebuilding `_list` -- guards `_on_item_changed`
         # against firing a rename command for edits that aren't user-initiated
@@ -233,14 +235,22 @@ class ProjectExplorerPanel(QWidget):
             return None
         return self._project.find_molecule(item.data(Qt.ItemDataRole.UserRole))
 
+    def _offer_new_molecule(self, menu: QMenu) -> QAction | None:
+        if self._on_new_molecule is None:
+            return None
+        return menu.addAction("New Molecule")
+
     def _on_context_menu_requested(self, pos) -> None:
-        # Falls back to the selected row when the click misses one. With a
-        # narrow dock holding a couple of entries most of the panel is
-        # empty space, and a menu that silently does not appear reads as
-        # "this panel has no context menu" rather than "aim at a row" --
-        # which is exactly how it was reported.
-        item = self._list.itemAt(pos) or self._list.currentItem()
+        # A click on empty space is its own menu. Falling through to the current
+        # row made "New Molecule" unreachable unless a row was already selected.
+        item = self._list.itemAt(pos)
         if item is None:
+            menu = QMenu(self._list)
+            new_action = self._offer_new_molecule(menu)
+            if new_action is None:
+                return
+            if menu.exec(self._list.mapToGlobal(pos)) is new_action:
+                self._on_new_molecule()
             return
         # A recipe gets its own short menu rather than the molecular one.
         # "Copy SMILES" on a mixture is a question with no answer, and
@@ -251,6 +261,9 @@ class ProjectExplorerPanel(QWidget):
             self._show_formulation_menu(formulation, pos)
             return
         menu = QMenu(self._list)
+        new_action = self._offer_new_molecule(menu)
+        if new_action is not None:
+            menu.addSeparator()
         # Identifiers first: this is the most frequent reason to
         # right-click a molecule, and -- since most structures have no
         # verified IUPAC name (see benchmarks/naming) -- a SMILES or an
@@ -275,6 +288,9 @@ class ProjectExplorerPanel(QWidget):
         rename_action = menu.addAction("Rename")
         delete_action = menu.addAction("Delete")
         chosen = menu.exec(self._list.mapToGlobal(pos))
+        if new_action is not None and chosen is new_action:
+            self._on_new_molecule()
+            return
         if chosen is not None and chosen is check_action:
             self._on_check()
             return
@@ -310,10 +326,15 @@ class ProjectExplorerPanel(QWidget):
         front of the user hides the fields that decide the answer.
         """
         menu = QMenu(self._list)
+        new_action = self._offer_new_molecule(menu)
+        if new_action is not None:
+            menu.addSeparator()
         edit_action = menu.addAction("Edit...") if self._on_edit_formulation else None
         delete_action = menu.addAction("Delete")
         chosen = menu.exec(self._list.mapToGlobal(pos))
-        if edit_action is not None and chosen is edit_action:
+        if new_action is not None and chosen is new_action:
+            self._on_new_molecule()
+        elif edit_action is not None and chosen is edit_action:
             self._on_edit_formulation(formulation)
         elif chosen is delete_action and self._project is not None:
             self._undo_stack.push(

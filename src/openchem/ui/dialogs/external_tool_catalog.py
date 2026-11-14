@@ -553,13 +553,6 @@ def psi4() -> ManagedExecutable:
     )
 
 
-#: Why the xtb tab has no Set Up button (locate-only, as Psi4's is). Stated once so the refusal, the dialog title and the failure status cannot drift apart.
-_XTB_NO_AUTOMATION = (
-    "OpenChem Studio does not download xtb. Get the Windows build from the xtb project's releases page, "
-    "then use Locate Installed or Browse to point at it."
-)
-
-
 def xtb() -> ManagedExecutable:
     """xtb: a third quantum-chemistry engine, the fast tight-binding one, which the user installs and points at (`docs/EXTERNAL_TOOL_CANDIDATES.md`).
 
@@ -586,7 +579,7 @@ def xtb() -> ManagedExecutable:
         testing_status="Running a test calculation...",
         describe_test=tools.verify_xtb,
         test_errors=tools.ToolVerificationError,
-        obtainable=False,
+        obtainable=True,
         removable=False,
         vendor_links=(
             ("Get xtb...", tools.XTB_DOWNLOAD_PAGE),
@@ -595,15 +588,21 @@ def xtb() -> ManagedExecutable:
         # Unused by a tab that cannot obtain, but `_ToolBase` requires them (the ORCA tab's reason).
         action_label="Set Up Automatically...",
         remove_label="xtb",
-        confirm_title="xtb is not downloaded by this app",
-        confirm_body=lambda: _XTB_NO_AUTOMATION,
-        run=lambda _on_progress: (_ for _ in ()).throw(RuntimeError(_XTB_NO_AUTOMATION)),
+        confirm_title="Download xtb",
+        confirm_body=lambda: (
+            "Look up the latest stable xtb release and download its Windows build?\n\n"
+            f"Source: {tools.XTB_DOWNLOAD_PAGE}\n"
+            "Bleeding-edge builds are not selected. If the Windows file is the pre build, "
+            "that is the file the project publishes for Windows and it is labelled as such.\n\n"
+            "Nothing is downloaded until you confirm."
+        ),
+        run=lambda on_progress: tools.install_xtb_windows(on_progress),
         errors=RuntimeError,
-        finished_status=lambda _result: "",
-        success_title="",
-        success_message=lambda _result: "",
-        failure_title="xtb is not downloaded by this app",
-        failure_status_prefix="Not available",
+        finished_status=lambda result: f"Installed: {result}",
+        success_title="xtb download complete",
+        success_message=lambda result: f"xtb installed at:\n{result}\n\nUse Test to run the two-atom calculation.",
+        failure_title="xtb download failed",
+        failure_status_prefix="Download failed",
         notes=(
             Note(
                 "xtb is an open-source semi-empirical (tight-binding) quantum-chemistry program that runs single-point energies, geometry "
