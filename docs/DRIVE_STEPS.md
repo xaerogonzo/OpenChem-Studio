@@ -42,6 +42,12 @@ The `OPENCHEM_DRIVE` step catalogue, moved out of [`CLAUDE.md`](../CLAUDE.md) on
     {"do": "compare_results", "property": "geometry_partial_charge",
      "expect": {"columns": 2, "atoms": 9}}     the inspector's REAL "Compare
                                           with..." menu, then the window
+    {"do": "compare_readers", "names": ["Water", "Ethanol"], "layout": "tabs",
+     "expect": {"side_by_side": false, "tabs": 2, "pane_h_at_least": 120}}
+                                          Compare's REAL Open side by side,
+                                          then Show as tabs, asserted on pane
+                                          height (a blank tab page is 0).
+                                          `shot` takes `"widget": "compare_readers"`
     {"do": "service_row", "calculator": "orca.nmr", "expect": {"panel": "Quantum_Chemistry"}}
                                           PRESS a row that opens another panel;
                                           `reveal_row` scrolls one into a shot

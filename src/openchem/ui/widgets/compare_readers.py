@@ -28,6 +28,7 @@ from PySide6.QtWidgets import (
     QHBoxLayout,
     QLabel,
     QPushButton,
+    QSizePolicy,
     QSplitter,
     QStackedWidget,
     QTabWidget,
@@ -67,6 +68,21 @@ _LAYOUT_HELP = HelpTooltip(
 
 #: How many molecules still start side by side.
 SIDE_BY_SIDE_UP_TO = 2
+
+#: Qt's default maximum; a splitter can leave a pane with a 0 max after it is moved into tabs.
+_UNLIMITED = 16777215
+
+
+def _reset_hosted_pane(pane: QWidget) -> None:
+    """Drop size limits a QSplitter left on a pane.
+
+    Moving the same widget from the splitter into the tab widget (or back) keeps those
+    limits. The near-blank Show-as-tabs page was the current tab at height 0 because the
+    splitter had collapsed the pane's maximum to its last slice.
+    """
+    pane.setMinimumSize(0, 0)
+    pane.setMaximumSize(_UNLIMITED, _UNLIMITED)
+    pane.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
 
 #: Wait this long after a result arrives before re-reading, so a burst is one re-read.
 _REFRESH_MS = 150
@@ -209,25 +225,33 @@ class CompareReaders(QWidget):
     def _arrange(self) -> None:
         """Put the panes in the splitter or the tabs, in group order."""
         for pane in self._panes.values():
+            # Hide first: setParent(None) on a visible widget makes a second top-level
+            # window, and addTab of an already-shown pane leaves every page painted at
+            # once (titles and caveats stacked as "Waterol" on Show as tabs).
+            pane.hide()
             pane.setParent(None)
+            _reset_hosted_pane(pane)
         self._tabs.clear()
+        host = self._splitter if self._side_by_side else self._tabs
+        self._stack.setCurrentWidget(host)
         for uuid in self._order:
             pane = self._panes[uuid]
             if self._side_by_side:
                 self._splitter.addWidget(pane)
+                pane.show()
             else:
                 self._tabs.addTab(pane, self._names(uuid))
-            pane.show()
-        self._stack.setCurrentWidget(self._splitter if self._side_by_side else self._tabs)
         if self._side_by_side and self._order:
-            each = max(1, self._splitter.width() // len(self._order))
+            width = max(1, self._splitter.width())
+            each = max(1, width // len(self._order))
             self._splitter.setSizes([each] * len(self._order))
         elif self._tabs.count():
             self._tabs.setCurrentIndex(0)
-            current = self._tabs.currentWidget()
-            if current is not None:
-                current.setMinimumHeight(1)
-                current.updateGeometry()
+            for index in range(self._tabs.count()):
+                page = self._tabs.widget(index)
+                if page is not None:
+                    _reset_hosted_pane(page)
+            self._tabs.updateGeometry()
         self._update_layout_button()
 
     def _on_layout_clicked(self, _checked: bool = False) -> None:
