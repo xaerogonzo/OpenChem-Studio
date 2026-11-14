@@ -45,6 +45,8 @@ def test_every_shipped_category_loads_with_unique_ids_and_complete_molecules():
         "peptide_building_blocks",
         "allotropes",
         "reactive_species",
+        "cofactors",
+        "terpenoids_steroids",
     ]
     assert all(c.origin is TemplateOrigin.SHIPPED for c in categories)
     entry_ids = [e.id for c in categories for e in c.entries]
@@ -104,7 +106,23 @@ def test_first_promotion_ids_are_shipped_once_and_not_the_research_dump():
     assert "alkaloids.mescaline" in by_category["alkaloids"]
     assert "alkaloids.hordenine" in by_category["alkaloids"]
     assert "alkaloids.caffeine" in by_category["alkaloids"]
-    assert "alkaloids.morphine" not in by_category["alkaloids"]
+    assert "alkaloids.morphine" in by_category["alkaloids"]
+    assert "alkaloids.codeine" in by_category["alkaloids"]
+    assert "alkaloids.cocaine" in by_category["alkaloids"]
+    assert "alkaloids.nicotine" in by_category["alkaloids"]
+    assert "alkaloids.quinine" in by_category["alkaloids"]
+    assert "alkaloids.strychnine" in by_category["alkaloids"]
+    assert "alkaloids.colchicine" in by_category["alkaloids"]
+    assert "alkaloids.atropine" in by_category["alkaloids"]
+    assert "alkaloids.hyoscyamine" in by_category["alkaloids"]
+    assert "alkaloids.scopolamine" in by_category["alkaloids"]
+    assert "vitamins.biotin" in by_category["vitamins"]
+    assert "flavonoids.naringenin" in by_category["flavonoids"]
+    assert "polycycles.norbornene" in by_category["polycycles"]
+    assert "cofactors.atp" in by_category["cofactors"]
+    assert "cofactors.nad" in by_category["cofactors"]
+    assert "terpenoids_steroids.cholesterol" in by_category["terpenoids_steroids"]
+    assert "terpenoids_steroids.camphene" not in by_category.get("terpenoids_steroids", [])
     assert "flavonoids.flavone" in by_category["flavonoids"]
     assert "vitamins.ascorbic_acid" in by_category["vitamins"]
     assert "functional_groups.phenol" in by_category["functional_groups"]
@@ -140,21 +158,7 @@ def test_shipped_entries_that_match_candidates_keep_verified_identity_and_review
             matched += 1
             assert candidate["identity"]["status"] == "verified", entry.id
             stereo = candidate["structure_form"]["stereochemistry"]["status"]
-            named_nucleoside = stem in {
-                "adenosine",
-                "guanosine",
-                "cytidine",
-                "uridine",
-                "inosine",
-                "deoxyadenosine",
-                "deoxyguanosine",
-                "deoxycytidine",
-                "thymidine",
-            }
-            if named_nucleoside:
-                assert stereo in allowed_stereo | {"not_reviewed"}, entry.id
-            else:
-                assert stereo in allowed_stereo, f"{entry.id} stereo {stereo}"
+            assert stereo in allowed_stereo, f"{entry.id} stereo {stereo}"
             assert candidate["validation"]["editor_eligible"] is True, entry.id
             mol = engine.mol_from_smiles(entry.smiles)
             assert MolToInchiKey(mol) == candidate["inchikey"], entry.id
@@ -215,6 +219,39 @@ def test_an_entry_with_both_smiles_and_molblock_is_refused():
         assert "exactly one" in str(exc)
     else:
         raise AssertionError("expected TemplateError")
+
+
+def test_morphine_keeps_its_stereochemistry():
+    engine = ChemistryEngine()
+    [alkaloids] = [c for c in load_shipped(engine) if c.id == "alkaloids"]
+    morphine = next(e for e in alkaloids.entries if e.id == "alkaloids.morphine")
+    smiles = engine.molblock_to_smiles(molblock_for(morphine, engine))
+    assert "@" in smiles
+
+
+def test_tropane_templates_draw_default_up_down_bonds():
+    from rdkit.Chem.inchi import MolToInchiKey
+
+    engine = ChemistryEngine()
+    [alkaloids] = [c for c in load_shipped(engine) if c.id == "alkaloids"]
+    by_id = {e.id: e for e in alkaloids.entries}
+    atropine = by_id["alkaloids.atropine"]
+    hyoscyamine = by_id["alkaloids.hyoscyamine"]
+    scopolamine = by_id["alkaloids.scopolamine"]
+    atropine_block = molblock_for(atropine, engine)
+    bond_stereo = [
+        line[9:12].strip()
+        for line in atropine_block.splitlines()
+        if len(line) >= 12 and line[0:3].strip().isdigit() and line[3:6].strip().isdigit()
+    ]
+    assert {"1", "6"} & set(bond_stereo)
+    assert MolToInchiKey(engine.mol_from_smiles(atropine.smiles)) == "RKUNBYITZUJHSG-SPUOUPEWSA-N"
+    hyoscyamine_mol = engine.mol_from_smiles(hyoscyamine.smiles)
+    scopolamine_mol = engine.mol_from_smiles(scopolamine.smiles)
+    assert MolToInchiKey(hyoscyamine_mol).startswith("RKUNBYITZUJHSG-")
+    assert MolToInchiKey(hyoscyamine_mol) == "RKUNBYITZUJHSG-FXUDXRNXSA-N"
+    assert MolToInchiKey(scopolamine_mol) == "STECJAGHUSJQJN-FWXGHANASA-N"
+    assert "@" in atropine.smiles and "@" in hyoscyamine.smiles and "@" in scopolamine.smiles
 
 
 def test_l_alanine_keeps_its_stereochemistry():
