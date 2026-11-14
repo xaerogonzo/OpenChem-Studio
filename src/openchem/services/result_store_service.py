@@ -293,7 +293,8 @@ class ResultStoreService:
         molecule_uuid = event.stored.identity.molecule_uuid
         if not self._belongs(molecule_uuid):
             return
-        self.store.put(event.stored)
+        if not self.store.put(event.stored):
+            return
         for callback in list(self._on_recorded):
             callback(molecule_uuid)
 

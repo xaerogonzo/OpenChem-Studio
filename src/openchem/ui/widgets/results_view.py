@@ -381,6 +381,12 @@ class ResultsView(QWidget):
         self._all_results_button.setVisible(False)
         apply_help_tooltip(self._all_results_button, _ALL_RESULTS_HELP)
         row.addWidget(self._all_results_button)
+        self._expand_all = QPushButton("Expand all", focus_row)
+        self._expand_all.clicked.connect(lambda: self._view.set_all_expanded(True))
+        self._collapse_all = QPushButton("Collapse all", focus_row)
+        self._collapse_all.clicked.connect(lambda: self._view.set_all_expanded(False))
+        row.addWidget(self._expand_all)
+        row.addWidget(self._collapse_all)
         #: report id -> `SupportMarker` or None; injected like the structure resolver.
         self._support_resolver = None
 

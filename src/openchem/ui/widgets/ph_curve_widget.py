@@ -63,6 +63,7 @@ def annotation_for(result: PhCurveResult | None) -> LineChartAnnotation | None:
         x_descending=False,
         y_min=result.y_min,
         y_max=result.y_max,
+        title=result.name or "",
     )
 
 

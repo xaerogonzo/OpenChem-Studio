@@ -390,6 +390,11 @@ class MoleculeEditorWidget(QWidget):
         """
         if not molblock or self._molecule is None:
             return
+        # Textually the drawing already stored. Ketcher reports this for a load
+        # echo and for a selection that is not an edit. A real 2D move is a
+        # different molblock, so it is not caught here.
+        if molblock == (self._molecule.molblock or ""):
+            return
         try:
             incoming = MoleculeModel(display_name="canvas")
             self._engine.set_structure_from_molblock(incoming, molblock, allow_hypervalent=True)
@@ -407,6 +412,11 @@ class MoleculeEditorWidget(QWidget):
             # A readable drawing again (an undo, or the fix): take the reason down.
             self._edit_rejected = False
             self.edit_rejected.emit("")
+        if (
+            incoming.molblock == (self._molecule.molblock or "")
+            and incoming.canonical_smiles == self._molecule.canonical_smiles
+        ):
+            return
         if self._undo_stack.canRedo():
             # Echo of the restored drawing, or Ketcher still holding the
             # undone one (live drive: ~3 s after Undo, not 400 ms). Either

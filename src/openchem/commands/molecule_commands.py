@@ -7,7 +7,15 @@ from openchem.domain.conformer import ConformerModel
 from openchem.domain.molecule import MoleculeModel
 from openchem.domain.project import ProjectModel
 from openchem.events.base import EventBus
-from openchem.events.events import ConformersChanged, ConformersInvalidated, MoleculeChanged
+from openchem.events.events import (
+    CHANGE_CALCULATION_INPUT,
+    CHANGE_IDENTITY,
+    CHANGE_LAYOUT,
+    CHANGE_STRUCTURE,
+    ConformersChanged,
+    ConformersInvalidated,
+    MoleculeChanged,
+)
 
 
 class AddMoleculeCommand(OpenChemCommand):
@@ -84,11 +92,11 @@ class RenameMoleculeCommand(OpenChemCommand):
 
     def redo(self) -> None:
         self._molecule.display_name = self._new_name
-        self._event_bus.publish(MoleculeChanged(molecule_uuid=self._molecule.uuid))
+        self._event_bus.publish(MoleculeChanged(molecule_uuid=self._molecule.uuid, kind=CHANGE_IDENTITY))
 
     def undo(self) -> None:
         self._molecule.display_name = self._old_name
-        self._event_bus.publish(MoleculeChanged(molecule_uuid=self._molecule.uuid))
+        self._event_bus.publish(MoleculeChanged(molecule_uuid=self._molecule.uuid, kind=CHANGE_IDENTITY))
 
 
 class ChooseComponentCommand(OpenChemCommand):
@@ -111,11 +119,15 @@ class ChooseComponentCommand(OpenChemCommand):
 
     def redo(self) -> None:
         self._molecule.component_choice = self._new
-        self._event_bus.publish(MoleculeChanged(molecule_uuid=self._molecule.uuid))
+        self._event_bus.publish(
+            MoleculeChanged(molecule_uuid=self._molecule.uuid, kind=CHANGE_CALCULATION_INPUT)
+        )
 
     def undo(self) -> None:
         self._molecule.component_choice = self._old
-        self._event_bus.publish(MoleculeChanged(molecule_uuid=self._molecule.uuid))
+        self._event_bus.publish(
+            MoleculeChanged(molecule_uuid=self._molecule.uuid, kind=CHANGE_CALCULATION_INPUT)
+        )
 
 
 class EditStructureCommand(OpenChemCommand):
@@ -135,12 +147,14 @@ class EditStructureCommand(OpenChemCommand):
         event_bus: EventBus,
         *,
         during_edit: bool = False,
+        kind: str = CHANGE_STRUCTURE,
     ) -> None:
         super().__init__(f"Edit structure '{molecule.display_name}'")
         #: True when this is a canvas edit the person is still making. It applies to
         #: the FIRST application only: an undo, or a redo of it, is a deliberate
         #: single action and recomputes at once (see `MoleculeChanged.during_edit`).
         self._during_edit = during_edit
+        self._kind = kind if kind in (CHANGE_STRUCTURE, CHANGE_LAYOUT) else CHANGE_STRUCTURE
         self._engine = engine
         self._molecule = molecule
         self._old_molblock = molecule.molblock
@@ -163,7 +177,10 @@ class EditStructureCommand(OpenChemCommand):
         self._new_smiles = self._molecule.canonical_smiles
         self._invalidate_stale_conformers()
         drawing, self._during_edit = self._during_edit, False
-        self._event_bus.publish(MoleculeChanged(molecule_uuid=self._molecule.uuid, during_edit=drawing))
+        kind = CHANGE_STRUCTURE if self._chemistry_changed() else CHANGE_LAYOUT
+        self._event_bus.publish(
+            MoleculeChanged(molecule_uuid=self._molecule.uuid, during_edit=drawing, kind=kind)
+        )
 
     def undo(self) -> None:
         if self._old_molblock is not None:
@@ -176,7 +193,19 @@ class EditStructureCommand(OpenChemCommand):
         if self._molecule.conformers != self._old_conformers:
             self._molecule.conformers = list(self._old_conformers)
             self._event_bus.publish(ConformersChanged(molecule_uuid=self._molecule.uuid))
-        self._event_bus.publish(MoleculeChanged(molecule_uuid=self._molecule.uuid))
+        kind = CHANGE_STRUCTURE if self._chemistry_changed() else CHANGE_LAYOUT
+        self._event_bus.publish(MoleculeChanged(molecule_uuid=self._molecule.uuid, kind=kind))
+
+    def _chemistry_changed(self) -> bool:
+        """True when this edit is more than a 2D move.
+
+        Canonical SMILES carries constitution and stereochemistry. An isotope
+        label changes the SMILES and is chemistry too (a mass), even though the
+        conformers are kept. Coordinates alone are not.
+        """
+        if self._new_smiles is None:
+            return True
+        return self._new_smiles != self._old_smiles
 
     def _invalidate_stale_conformers(self) -> None:
         """Drop conformers that described a DIFFERENT structure.

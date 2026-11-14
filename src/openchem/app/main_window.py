@@ -110,6 +110,7 @@ from openchem.events.events import (
     MoleculeSnapshotUpdated,
     PluginLoaded,
     PluginUnloaded,
+    QuantumChemistryJobStateChanged,
     QuantumChemistryResultReady,
     QuantumChemistryRunCompleted,
     QuantumChemistryRunDeleted,
@@ -520,6 +521,7 @@ class MainWindow(QMainWindow):
             on_identify=self._identify_structure,
             on_check=self._show_structure_check_panel,
             on_edit_formulation=self._edit_formulation,
+            on_new_molecule=self._new_molecule,
         )
         self._property_panel = PropertyPanel(
             services.event_bus,
@@ -797,6 +799,7 @@ class MainWindow(QMainWindow):
             "Batch", self._wrap_scrollable(self._batch_panel), Qt.DockWidgetArea.RightDockWidgetArea
         )
         self._comparison_panel = ComparisonPanel(services.event_bus, self)
+        self._comparison_panel.set_stored_reader(self._stored_reports_for_compare)
         self._comparison_panel.attach_settings(settings)
         self._compare_readers: CompareReaders | None = None
         self._pka_views: dict[str, weakref.ref] = {}
@@ -984,6 +987,7 @@ class MainWindow(QMainWindow):
         self._sync_rail_to_the_restored_panel()
 
         services.event_bus.subscribe(MoleculeSelected, self._on_molecule_selected)
+        services.event_bus.subscribe(QuantumChemistryJobStateChanged, self._on_quantum_job_state)
         services.event_bus.subscribe(MoleculeChanged, self._on_molecule_changed)
         services.event_bus.subscribe(RecalculationDue, self._on_recalculation_due)
         self._recalc_hint_shown = False
@@ -1996,6 +2000,34 @@ class MainWindow(QMainWindow):
         "no_report": "That molecule has no stored result for it any more. Run the calculator again to see it.",
         "no_fact": "The result is there, but that value is not in it.",
     }
+
+    def _stored_result(self, molecule_uuid: str, report_id: str):
+        """The fresh stored result with this id, for the molecule the link named.
+
+        None when it is gone. The caller refuses rather than opening another molecule's result.
+        """
+        from openchem.domain.result_store import result_id_of
+
+        project = self._session.project
+        service = self._services.result_store_service
+        if project is None or service is None:
+            return None
+        molecule = project.find_molecule(molecule_uuid)
+        if molecule is None:
+            return None
+        for stored in service.store.fresh_results(molecule_uuid, service.fingerprints_for(molecule)):
+            try:
+                found = result_id_of(stored.result)
+            except TypeError:
+                continue
+            if found == report_id:
+                return stored.result
+        return None
+
+    def _stored_reports_for_compare(self, molecule_uuid: str) -> list:
+        """Fresh stored reports for Compare, the same ones the side-by-side readers use."""
+        entries, _version = self.reader_entries_for(molecule_uuid)
+        return entries
 
     def reader_entries_for(self, molecule_uuid: str) -> tuple[list, int]:
         """What a Results reader pinned to ANY molecule of the project should show, and its version.
@@ -4495,10 +4527,17 @@ class MainWindow(QMainWindow):
         self._check_current_structure()
 
     def _on_molecule_changed(self, event: MoleculeChanged) -> None:
+        from openchem.events.events import CHANGE_CALCULATION_INPUT, CHANGE_STRUCTURE
+
         self._session.mark_dirty()
+        # A rename and a 2D move are saved. They are not a new structure, so they
+        # do not replay or recompute, and they do not ask the structure checkers.
+        chemistry = event.kind in (CHANGE_STRUCTURE, CHANGE_CALCULATION_INPUT)
         # Remembered for `_on_undo_index_changed`, which runs right after the push that
         # published this: a canvas edit's atom-table rebuild waits for the pause too.
-        self._canvas_edit_pending = event.during_edit and self._services.recalc_scheduler is not None
+        self._canvas_edit_pending = (
+            event.during_edit and chemistry and self._services.recalc_scheduler is not None
+        )
         molecule = self._current_molecule()
         if molecule is not None and molecule.uuid == event.molecule_uuid:
             # A CANVAS EDIT IN PROGRESS waits for the scheduler (`RecalculationDue`):
@@ -4507,12 +4546,16 @@ class MainWindow(QMainWindow):
             # been bumped by the structure checker, so what is on screen reads stale.
             # Without a scheduler (a container built without one) there is nothing to
             # wait for, so it recomputes as it always did.
-            waits_for_scheduler = event.during_edit and self._services.recalc_scheduler is not None
-            if not waits_for_scheduler:
+            waits_for_scheduler = (
+                event.during_edit and chemistry and self._services.recalc_scheduler is not None
+            )
+            if chemistry and not waits_for_scheduler:
                 # The same decision as a selection: an undo back to a structure
                 # whose results are held replays them rather than recomputing.
                 self._restore_or_compute(molecule)
             self._publish_molecule_snapshot(molecule)
+        if not chemistry:
+            return
         # After the snapshot, not before: the service bumps this molecule's
         # version from its own MoleculeChanged subscription, and checking
         # against the version it had a moment ago would produce a result
@@ -5638,6 +5681,14 @@ class MainWindow(QMainWindow):
         came from", and different in where that tool is.
         """
         report_id = params.get("report_id")
+        molecule_uuid = str(params.get("molecule_uuid") or "")
+        if report_id and molecule_uuid:
+            # The pane that sent the link names its molecule. Properties may be
+            # showing a different one, and its cache must not answer for both.
+            result = self._stored_result(molecule_uuid, str(report_id))
+            if result is None:
+                return False
+            return self._property_panel.open_result_inspector(result)
         if report_id:
             # THE RESULTS READER'S SHAPE. It holds a summary VIEW, which is
             # deliberately not the result, so "open this properly" has to come
@@ -5874,6 +5925,11 @@ class MainWindow(QMainWindow):
             return
         self._services.descriptor_service.request_descriptors(molecule, GEOMETRY)
         self._publish_molecule_snapshot(molecule)
+
+    def _on_quantum_job_state(self, event: QuantumChemistryJobStateChanged) -> None:
+        """The status bar names a running ORCA job. The Jobs dock keeps the cancel button."""
+        if event.message:
+            self.statusBar().showMessage(event.message)
 
     def _on_quantum_chemistry_result_ready(self, event: QuantumChemistryResultReady) -> None:
         molecule = self._session.project.find_molecule(event.molecule_uuid) if self._session.project else None

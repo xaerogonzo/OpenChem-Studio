@@ -219,6 +219,15 @@ class CompareReaders(QWidget):
                 self._tabs.addTab(pane, self._names(uuid))
             pane.show()
         self._stack.setCurrentWidget(self._splitter if self._side_by_side else self._tabs)
+        if self._side_by_side and self._order:
+            each = max(1, self._splitter.width() // len(self._order))
+            self._splitter.setSizes([each] * len(self._order))
+        elif self._tabs.count():
+            self._tabs.setCurrentIndex(0)
+            current = self._tabs.currentWidget()
+            if current is not None:
+                current.setMinimumHeight(1)
+                current.updateGeometry()
         self._update_layout_button()
 
     def _on_layout_clicked(self, _checked: bool = False) -> None:
