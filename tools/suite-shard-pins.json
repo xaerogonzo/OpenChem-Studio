@@ -5195,6 +5195,7 @@
   "tests/test_refusal_kinds.py": 0,
   "tests/test_regulatory_calculator.py": 7,
   "tests/test_regulatory_engine.py": 7,
+  "tests/test_regulatory_held_structures.py": 6,
   "tests/test_regulatory_predicates.py": 5,
   "tests/test_regulatory_rulesets.py": 7,
   "tests/test_release_contents.py": 7,

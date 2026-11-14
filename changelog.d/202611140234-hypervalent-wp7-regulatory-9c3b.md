@@ -1,0 +1,3 @@
+### The regulatory screen refuses a structure it cannot read instead of saying "no matches"
+- **`RegulatoryEngine.screen` now raises `UnscreenableStructureError` for a structure RDKit cannot sanitise, and the Regulatory Screen calculator turns it into a stated limit (`HYPERVALENT_UNSUPPORTED`).** Before, a held ClF3, BrF3 or ClF5 handed to the engine or the calculator function answered "No matches in the 5 rulesets consulted", a silent false negative. The application's own route already refused such a structure; this closes the other ways in.
+- **The synthesis gate and a route's node screen already failed closed** (unscreened) and are now tested to. Structures RDKit accepts, including SF6, PF5, XeF2 and perchlorate, are screened exactly as before.

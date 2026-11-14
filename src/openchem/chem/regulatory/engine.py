@@ -86,6 +86,23 @@ NEAR_MISS_MAX_DISTANCE = 2
 _SKELETON_BLOCK = 14
 
 
+class UnscreenableStructureError(ValueError):
+    """A structure RDKit cannot sanitise was handed to `screen`.
+
+    A screen of a structure that cannot be read matches nothing, and "no matches" reads as "not listed". That is the silent false negative this
+    module exists to prevent, so it is refused here, at the engine, instead of in each caller: the application's own route (the calculator
+    registry) already refuses a held hypervalent structure, and this makes a route that reaches the engine another way refuse too.
+    """
+
+
+def _readable(mol: Chem.Mol) -> bool:
+    """True when `mol` sanitises, on a copy (the caller's molecule is not touched)."""
+    try:
+        return Chem.SanitizeMol(Chem.Mol(mol), catchErrors=True) == Chem.SanitizeFlags.SANITIZE_NONE
+    except Exception:  # noqa: BLE001 - an exception is as unreadable as a failed flag
+        return False
+
+
 class EffectiveDateError(ValueError):
     """A stored effective date that is neither absent nor a valid ISO date."""
 
@@ -265,6 +282,10 @@ class RegulatoryEngine:
                 rulesets_consulted=tuple(self._rulesets), as_of=as_of
             )
 
+        if not _readable(mol):
+            raise UnscreenableStructureError(
+                "the structure cannot be sanitised, so it cannot be screened; no result is not the same as not listed"
+            )
         normalised = self._normalise(mol)
         findings: list[Finding] = []
         near_misses: list[NearMiss] = []
