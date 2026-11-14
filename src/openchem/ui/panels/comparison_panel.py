@@ -308,13 +308,18 @@ class ComparisonPanel(QWidget):
         if reader is None:
             return
         bucket = self._values.setdefault(uuid, {})
+        held = {cell.fact_label for cell in bucket.values()}
         for report in reader(uuid) or ():
             report_id = getattr(report, "report_id", "") or ""
             for fact in getattr(report, "facts", ()) or ():
                 origin = fact.origin or report_id
                 key = f"{origin}::{fact.label}"
-                if key in bucket:
+                # A live event already filed this wording. Adding the stored
+                # copy makes the row label grow a report suffix, and the
+                # table no longer says the name the person reads.
+                if key in bucket or fact.label in held:
                     continue
+                held.add(fact.label)
                 bucket[key] = CompareCell(
                     display=fact.display_value,
                     units=fact.units,
