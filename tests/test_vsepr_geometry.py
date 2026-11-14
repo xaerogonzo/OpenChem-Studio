@@ -611,7 +611,6 @@ def test_every_row_has_a_known_evidence_tier_and_the_unmeasured_ones_say_so_in_t
         ("Xe", "F", 6, 0): "model",
         ("Cl", "F", 5, 0): "estimated",
         ("I", "F", 5, -2): "calculated",
-        ("P", "ClClClFF", 5, 0): "estimated",
     }
 
 
@@ -620,7 +619,7 @@ def test_every_row_has_a_known_evidence_tier_and_the_unmeasured_ones_say_so_in_t
     [
         ("F[Xe](F)(F)(F)(F)F", "MODEL"),
         ("F[I-2](F)(F)(F)F", "CALCULATED"),
-        ("FP(F)(Cl)(Cl)Cl", "ESTIMATED"),
+        ("FP(F)(Cl)(Cl)Cl", "measured"),
         ("FCl(F)(F)(F)F", "ESTIMATED"),
         ("FS(F)(F)(F)(F)F", "measured"),
     ],
@@ -638,8 +637,8 @@ def test_tef7_anion_is_a_pentagonal_bipyramid_with_the_axial_bonds_shorter():
     g = _built("F[Te-](F)(F)(F)(F)(F)F")
     assert (g.classification, g.shape) == ("AX7", "pentagonal bipyramidal")
     p, c = g.coordinates, g.centre_index
-    assert all(_bond(p, c, i) == pytest.approx(1.827, abs=1e-6) for i in g.axial_indices)
-    assert all(_bond(p, c, i) == pytest.approx(1.8805, abs=1e-6) for i in g.equatorial_indices)
+    assert all(_bond(p, c, i) == pytest.approx(1.8276, abs=1e-6) for i in g.axial_indices), "the two axial lengths of the labelled CIF (ROLSOA), 1.8249 and 1.8303"
+    assert all(_bond(p, c, i) == pytest.approx(1.8820, abs=1e-6) for i in g.equatorial_indices), "the five equatorial lengths of the CIF, 1.8705 to 1.8975"
     assert _angle(p, *g.axial_indices[:1], c, g.axial_indices[1]) == pytest.approx(180.0, abs=1e-6)
     equatorial_angles = sorted(round(_angle(p, i, c, j), 1) for i, j in itertools.combinations(g.equatorial_indices, 2))
     assert equatorial_angles == [72.0] * 5 + [144.0] * 5
@@ -653,15 +652,17 @@ def test_if5_dianion_is_a_regular_planar_pentagon_at_the_calculated_length():
     assert g.reference.evidence == "calculated"
 
 
-def test_pcl3f2_has_the_fluorines_axial_and_the_transferred_lengths():
+def test_pcl3f2_has_the_fluorines_axial_and_the_measured_lengths():
+    """Macho et al. 1986 Table VIII (gas electron diffraction): P-F axial 1.596 (2), P-Cl equatorial 2.005 (3) A, D3h."""
     smiles = "FP(F)(Cl)(Cl)Cl"
     g = _built(smiles)
     p, c = g.coordinates, g.centre_index
     fluorines = _by_element(g, smiles, "F")
     assert all(i in g.axial_indices for i in fluorines)
-    assert all(_bond(p, c, i) == pytest.approx(1.593, abs=1e-6) for i in fluorines)
-    assert all(_bond(p, c, i) == pytest.approx(2.004, abs=1e-6) for i in _by_element(g, smiles, "Cl"))
+    assert all(_bond(p, c, i) == pytest.approx(1.596, abs=1e-6) for i in fluorines)
+    assert all(_bond(p, c, i) == pytest.approx(2.005, abs=1e-6) for i in _by_element(g, smiles, "Cl"))
     assert _all_angles(g) == [90.0] * 6 + [120.0] * 3 + [180.0]
+    assert g.reference.evidence == "measured"
 
 
 
@@ -760,8 +761,8 @@ def test_methylphosphorane_core_reproduces_the_published_gas_phase_lengths():
 
 
 def test_a_hypervalent_organic_with_no_row_keeps_the_ordinary_path():
-    """Phenyl-IF2 has no measured core here: unchanged behaviour, not a refusal; and ordinary molecules are untouched."""
-    for smiles in ("FI(F)c1ccccc1", "CCO", "c1ccccc1P(c1ccccc1)c1ccccc1", "CS(C)=O", "O=S(=O)(c1ccccc1)N"):
+    """Ordinary molecules, a phosphine, a sulfoxide and a sulfonamide are not hypervalent organics with a core: unchanged behaviour, not a refusal."""
+    for smiles in ("CCO", "c1ccccc1P(c1ccccc1)c1ccccc1", "CS(C)=O", "O=S(=O)(c1ccccc1)N"):
         assert build_vsepr_geometry(Chem.MolFromSmiles(smiles)).kind is Kind.NOT_APPLICABLE, smiles
 
 
@@ -801,18 +802,18 @@ def test_phenyliodine_dichloride_core_reproduces_the_crystals_lengths_and_angle(
 
 
 def test_aryl_sf5_core_is_an_umbrella_octahedron_inside_the_published_ranges():
-    """Du 2016 and Espiet 2020: S-F axial 1.568 to 1.607, S-F equatorial 1.572 to 1.618, S-C 1.785 to 1.823 A, C-S-F equatorial 91.3 to 93.5, C-S-F axial 178.9 to 180."""
+    """Du 2016 (the nine deposited crystals' own means) and Espiet 2020: S-F axial 1.568 to 1.607, S-F equatorial 1.572 to 1.618, S-C 1.785 to 1.823 A, C-S-F equatorial 91.3 to 93.5, C-S-F axial 178.9 to 180."""
     outcome = _grafted("FS(F)(F)(F)(F)c1ccccc1")
     g, mol = outcome.geometry, outcome.molecule
     p, c = g.coordinates, g.centre_index
     assert mol.GetNumAtoms() == 17
     carbon = _core_ligands(outcome, "C")[0]
     fluorines = _core_ligands(outcome, "F")
-    assert _bond(p, c, carbon) == pytest.approx(1.804, abs=1e-6) and 1.785 <= _bond(p, c, carbon) <= 1.823
+    assert _bond(p, c, carbon) == pytest.approx(1.8036, abs=1e-6) and 1.785 <= _bond(p, c, carbon) <= 1.823
     lengths = sorted(round(_bond(p, c, i), 4) for i in fluorines)
-    assert lengths == [1.5875, 1.595, 1.595, 1.595, 1.595] and all(1.568 <= x <= 1.618 for x in lengths)
+    assert lengths == [1.5859, 1.5859, 1.5859, 1.5859, 1.5868] and all(1.568 <= x <= 1.618 for x in lengths)
     angles = sorted(round(_angle(p, carbon, c, i), 1) for i in fluorines)
-    assert angles == [92.4] * 4 + [180.0] and 91.3 <= 92.4 <= 93.5
+    assert angles[-1] == 180.0 and all(a == pytest.approx(92.35, abs=0.06) for a in angles[:4]) and 91.3 <= 92.35 <= 93.5
     assert g.reference.evidence == "measured" and _implausible_bonds(outcome) == []
 
 
@@ -826,6 +827,9 @@ def test_aryl_sf5_core_is_an_umbrella_octahedron_inside_the_published_ranges():
         ("OI(O)c1ccccc1", "estimated"),
         ("ClI(Cl)c1ccccc1", "measured"),
         ("ClI(Cl)C", "estimated"),
+        ("FI(F)c1ccccc1", "measured"),
+        ("FI(F)C", "estimated"),
+        ("FI(F)(F)(F)c1ccc(F)cc1", "measured"),
     ],
 )
 def test_the_reagent_cores_are_measured_only_for_the_kind_of_ligand_that_was_measured(smiles, tier):
@@ -848,3 +852,33 @@ def test_ph3f2_drawn_with_explicit_hydrogens_is_built_too():
     assert all(_bond(p, c, i) == pytest.approx(1.394, abs=1e-6) for i in hydrogens)
     assert all(_bond(p, c, i) == pytest.approx(1.6468, abs=1e-6) for i in fluorines)
     assert _angle(p, fluorines[0], c, fluorines[1]) == pytest.approx(180.0, abs=1e-6)
+
+
+def test_aryl_iodine_difluoride_core_is_a_t_with_the_fluorines_axial_and_bent_toward_the_carbon():
+    """Ye 2005, Sarie 2017 and Haefliger 2019 (nine free molecules, four crystals): I-F 2.0071, I-C 2.092 A, F-I-F 172.6 (170.8 to 174.4), C-I-F 86.4 (85.0 to 88.2)."""
+    outcome = _grafted("FI(F)c1ccccc1")
+    g, mol = outcome.geometry, outcome.molecule
+    p, c = g.coordinates, g.centre_index
+    assert mol.GetNumAtoms() == 14, "C6H5F2I: every hydrogen is there"
+    fluorines, carbon = _core_ligands(outcome, "F"), _core_ligands(outcome, "C")[0]
+    assert all(_bond(p, c, i) == pytest.approx(2.0071, abs=1e-6) for i in fluorines)
+    assert _bond(p, c, carbon) == pytest.approx(2.092, abs=1e-6)
+    assert 170.8 <= _angle(p, fluorines[0], c, fluorines[1]) <= 174.4
+    assert all(85.0 <= _angle(p, f, c, carbon) <= 88.2 for f in fluorines)
+    assert g.reference.evidence == "measured" and _implausible_bonds(outcome) == []
+    assert all(i in g.axial_indices for i in fluorines) and carbon in g.equatorial_indices
+
+
+def test_aryl_iodine_tetrafluoride_core_is_a_square_pyramid_with_the_carbon_apical():
+    """Haefliger 2019 (one molecule, 100 K): I-C 2.0778 apical, I-F 1.9152 to 1.9600 (mean 1.9393) basal, C-I-F 83.9 to 86.7 (mean 85.13)."""
+    outcome = _grafted("FI(F)(F)(F)c1ccc(F)cc1")
+    g, mol = outcome.geometry, outcome.molecule
+    p, c = g.coordinates, g.centre_index
+    assert mol.GetNumAtoms() == 16, "C6H4F5I"
+    carbon = _core_ligands(outcome, "C")[0]
+    fluorines = [i for i in _core_ligands(outcome, "F") if i in g.ligand_indices and i != carbon and _bond(p, c, i) < 2.2]
+    assert len(fluorines) == 4
+    assert _bond(p, c, carbon) == pytest.approx(2.0778, abs=1e-6)
+    assert all(_bond(p, c, i) == pytest.approx(1.9393, abs=1e-6) for i in fluorines)
+    assert all(_angle(p, carbon, c, i) == pytest.approx(85.13, abs=0.01) for i in fluorines)
+    assert g.reference.evidence == "measured" and carbon in g.axial_indices and _implausible_bonds(outcome) == []

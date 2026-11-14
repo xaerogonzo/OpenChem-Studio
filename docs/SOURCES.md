@@ -1,5 +1,5 @@
 <!-- GENERATED FROM docs/sources.toml -- do not edit -->
-<!-- SOURCE SHA256: da9c01c6e5f5d9bb43f240484b6c887cef27d35ab31b09e890a7a7b1da3e0638 -->
+<!-- SOURCE SHA256: 3b60bc3cddb64e98c96b2c7992055b33c1ed4971ec0cf41750e6783fd3507fbf -->
 
 # Sources
 
@@ -217,6 +217,7 @@ Title and DOI first; the `key` is what prose and code cite (`[source:key]`) and 
 | Calculation of Fukui Functions Without Differentiating to the Number of Electrons. 3. Local Fukui Function and Dual Descriptor | [10.1021/ct800027e](https://doi.org/10.1021/ct800027e) | [`fievez2008`](#fievez2008) | literature | reference only | citation |
 | Studies on tautomerism: Benchmark quantum chemical calculations on formamide and formamidine | [10.1016/j.molstruc.2010.02.065](https://doi.org/10.1016/j.molstruc.2010.02.065) | [`fogarasi2010`](#fogarasi2010) | literature | shipped | citation + claim |
 | Dichlorotrifluorophosphorane (PCl2F3): molecular structure by gas-phase electron diffraction and quadratic force field | [10.1021/ic00212a014](https://doi.org/10.1021/ic00212a014) | [`french1985`](#french1985) | literature | shipped | citation + claim |
+| First isolation and structural characterization of N-base adducts of mono- and perfluoroaryliodine(III) compounds, ArfIX2 (X = F, CN) | [10.1002/zaac.200900169](https://doi.org/10.1002/zaac.200900169) | [`frohn2009`](#frohn2009) | literature | reference only | citation |
 | Thermochemistry of Uracil, Thymine, Cytosine, and Adenine | [10.1021/acs.jpca.9b02061](https://doi.org/10.1021/acs.jpca.9b02061) | [`ganyecz2019`](#ganyecz2019) | literature | reference only | citation |
 | Iterative Partial Equalization of Orbital Electronegativity -- A Rapid Access to Atomic Charges | [10.1016/0040-4020(80)80168-2](https://doi.org/10.1016/0040-4020(80)80168-2) | [`gasteiger1980`](#gasteiger1980) | literature | shipped | citation + claim |
 | Calculation of the Charge Distribution in Conjugated Systems by a Quantification of the Resonance Concept | [10.1002/anie.198506871](https://doi.org/10.1002/anie.198506871) | [`gasteiger1985`](#gasteiger1985) | literature | **not shipped** | citation |
@@ -236,6 +237,7 @@ Title and DOI first; the `key` is what prose and code cite (`[source:key]`) and 
 | Bridging Chemists and AI: An Expert-Augmented Framework for Interpretable Route Evaluation | [10.48550/arXiv.2605.29108](https://doi.org/10.48550/arXiv.2605.29108) | [`guo2026routeevaluation`](#guo2026routeevaluation) | literature | reference only | citation |
 | Solvent effects on the reactivities of organometallic compounds | [10.1016/S0010-8545(00)82045-7](https://doi.org/10.1016/S0010-8545(00)82045-7) | [`gutmann1976`](#gutmann1976) | literature | shipped | citation + claim |
 | Gutmann's Donor and Acceptor Numbers for Ionic Liquids and Deep Eutectic Solvents | [10.3389/fchem.2022.861379](https://doi.org/10.3389/fchem.2022.861379) | [`gutmann_frontiers2022`](#gutmann_frontiers2022) | literature | **not shipped** | citation |
+| Substituent-controlled, mild oxidative fluorination of iodoarenes: synthesis and structural study of aryl I(III)- and I(V)-fluorides | [10.1039/c9sc02162k](https://doi.org/10.1039/c9sc02162k) | [`haefliger2019`](#haefliger2019) | literature | shipped | citation + claim |
 | Merck Molecular Force Field. I. Basis, Form, Scope, Parameterization, and Performance of MMFF94 |  | [`halgren1996_mmff1`](#halgren1996_mmff1) | literature | shipped | citation |
 | Merck Molecular Force Field. II. MMFF94 van der Waals and Electrostatic Parameters for Intermolecular Interactions |  | [`halgren1996_mmff2`](#halgren1996_mmff2) | literature | shipped | citation + claim |
 | Space-Group Notation with an Explicit Origin | [10.1107/S0567739481001228](https://doi.org/10.1107/S0567739481001228) | [`hall1981`](#hall1981) | literature | shipped | citation |
@@ -311,6 +313,7 @@ Title and DOI first; the `key` is what prose and code cite (`[source:key]`) and 
 | A CASPT2 study of the valence and lowest Rydberg electronic states of benzene and phenol | [10.1007/BF01113865](https://doi.org/10.1007/BF01113865) | [`lorentzon1995`](#lorentzon1995) | literature | reference only | citation + claim |
 | Escape from Flatland: Increasing Saturation as an Approach to Improving Clinical Success | [10.1021/jm901241e](https://doi.org/10.1021/jm901241e) | [`lovering2009`](#lovering2009) | literature | shipped | citation |
 | Comprehensive Handbook of Chemical Bond Energies |  | [`luo2007`](#luo2007) | reference_table | reference only | citation |
+| The chlorofluorophosphoranes PCl(n)F(5-n) (n = 1-4). Gas-phase structures and vibrational analyses | [10.1021/ic00236a034](https://doi.org/10.1021/ic00236a034) | [`macho1986`](#macho1986) | literature | shipped | citation + claim |
 | Preparation and structure of the IOF6- and TeF7- anions | [10.1039/C39910000840](https://doi.org/10.1039/C39910000840) | [`mahjoub1991`](#mahjoub1991) | literature | reference only | citation |
 | On a Test of Whether one of Two Random Variables is Stochastically Larger than the Other |  | [`mann1947`](#mann1947) | literature | shipped | citation + claim |
 | Consistent van der Waals Radii for the Whole Main Group | [10.1021/jp8111556](https://doi.org/10.1021/jp8111556) | [`mantina2009`](#mantina2009) | literature | shipped | citation + claim |
@@ -399,6 +402,7 @@ Title and DOI first; the `key` is what prose and code cite (`[source:key]`) and 
 | Computing Fukui functions without differentiating with respect to electron number. II. Calculation of condensed molecular Fukui functions | [10.1063/1.2736698](https://doi.org/10.1063/1.2736698) | [`sablon2007`](#sablon2007) | literature | shipped | citation + claim |
 | AiZynthFinder 4.0: developments based on learnings from 3 years of industrial application | [10.1186/s13321-024-00860-x](https://doi.org/10.1186/s13321-024-00860-x) | [`saigiridharan2024aizynthfinder4`](#saigiridharan2024aizynthfinder4) | literature | reference only | citation |
 | OpenChem Studio v1 salt ion catalog: named common ions as canonical SMILES for composition, not a… |  | [`salt_ion_catalog`](#salt_ion_catalog) | dataset | shipped | citation |
+| Deconstructing the catalytic, vicinal difluorination of alkenes: HF-free synthesis and structural study of p-TolIF2 | [10.1021/acs.joc.7b01671](https://doi.org/10.1021/acs.joc.7b01671) | [`sarie2017`](#sarie2017) | literature | shipped | citation + claim |
 | Reversal in the Sequence of Two Highest Occupied Molecular Orbitals in the Series Thiophen, Selenophen, and Tellurophen | [10.1039/c39730000541](https://doi.org/10.1039/c39730000541) | [`schafer1973`](#schafer1973) | literature | shipped | citation + claim |
 | Synthesis and Characterization of the Tetrafluoridochlorates(III) A[ClF4] (A = K, Rb, Cs) | [10.1002/ejic.202000106](https://doi.org/10.1002/ejic.202000106) | [`scheibe2020`](#scheibe2020) | literature | shipped | citation + claim |
 | Optimized SQE atomic charges for peptides accessible via a web application | [10.1186/s13321-021-00528-w](https://doi.org/10.1186/s13321-021-00528-w) | [`schindler2021`](#schindler2021) | literature | reference only | citation |
@@ -466,6 +470,7 @@ Title and DOI first; the `key` is what prose and code cite (`[source:key]`) and 
 | Near ultraviolet photolysis of methanethiol studied by H atom photofragment translational spectroscopy | [10.1063/1.468248](https://doi.org/10.1063/1.468248) | [`wilson1994`](#wilson1994) | literature | reference only | citation + claim |
 | Ultraviolet photodissociation of methanethiol (CH3SH): revealing an S(1D) atom elimination channel | [10.1039/D5SC04716A](https://doi.org/10.1039/D5SC04716A) | [`wu2025`](#wu2025) | literature | reference only | citation + claim |
 | Aqueous Solubility: Methods of Estimation for Organic Compounds | 978-0-8247-8615-1 | [`yalkowsky_banerjee1992`](#yalkowsky_banerjee1992) | dataset | shipped | citation |
+| Straightforward syntheses of hypervalent iodine(III) reagents mediated by Selectfluor | [10.1021/ol051446t](https://doi.org/10.1021/ol051446t) | [`ye2005`](#ye2005) | literature | shipped | citation + claim |
 | PaRoutes 2.0 and USPTO-based models | [10.5281/zenodo.7341155](https://doi.org/10.5281/zenodo.7341155) | [`zenodo7341155`](#zenodo7341155) | dataset | reference only | citation + claim |
 | USPTO-based ONNX models | [10.5281/zenodo.7797465](https://doi.org/10.5281/zenodo.7797465) | [`zenodo7797465`](#zenodo7797465) | dataset | reference only | citation + claim |
 | Guanidine-thermite igniter composition for use in gas generators | <https://patents.google.com/patent/US6599380B2/en> | [`zeuner2003`](#zeuner2003) | literature | shipped | citation + claim |
@@ -8752,7 +8757,7 @@ Read. XeO3 is a trigonal pyramid in the crystal: Xe-O 1.74, 1.76 and 1.77 (0.03)
 | Local copy | `zhang1997.pdf` (not checked) |
 | Used by | `src/openchem/chem/vsepr_geometry.py`, `tests/test_vsepr_geometry.py`, `docs/HYPERVALENT_COVERAGE_DESIGN.md` |
 
-Table 1 read from the rendered page. Single-crystal X-ray of 1,1,3,3,5,5-hexamethylpiperidinium salts (chosen because their contacts with the anion are weak). IF2-: I-F 207.5 (3) and 208.2 (3) pm, F-I-F 177.8 (1). IF4- (two independent ions, H2F3- salt): I-F 200.6 (3), 201.8 (3), 200.3 (4), 200.0 (4) pm, angles 90 and 180 within 0.3. AsF4-: As-F 187.8 (2), 186.2 (3) axial and 172.4 (2), 172.7 (3) equatorial pm, F-As-F 165.7 (1) and 97.5 (1), the others 84.5 to 86.1. ClF4-: 175.9, 181.4, 177.1, 181.3 pm in the pip salt (two elongated by cation contacts), 172.7 and 187.4 in the NO+ salt; not used (the K salt of scheibe2020 is already a row). TeF7- (a distorted pentagonal bipyramid) IS used (2026-11-14): axial Te-F 183.0 and 182.4 pm, equatorial mean 188.05 pm of six printed values, because the table prints six equatorial lines for five atoms; the pentagon is placed regular although the crystal's is puckered. The paper quotes Br-F 189 pm for BrF4- in a Rb salt.
+Table 1 read from the rendered page. Single-crystal X-ray of 1,1,3,3,5,5-hexamethylpiperidinium salts (chosen because their contacts with the anion are weak). IF2-: I-F 207.5 (3) and 208.2 (3) pm, F-I-F 177.8 (1). IF4- (two independent ions, H2F3- salt): I-F 200.6 (3), 201.8 (3), 200.3 (4), 200.0 (4) pm, angles 90 and 180 within 0.3. AsF4-: As-F 187.8 (2), 186.2 (3) axial and 172.4 (2), 172.7 (3) equatorial pm, F-As-F 165.7 (1) and 97.5 (1), the others 84.5 to 86.1. ClF4-: 175.9, 181.4, 177.1, 181.3 pm in the pip salt (two elongated by cation contacts), 172.7 and 187.4 in the NO+ salt; not used (the K salt of scheibe2020 is already a row). TeF7- (a distorted pentagonal bipyramid) IS used: the deposited CIF (ROLSOA, 130 K, R 0.035, `zhang1997_SI/`) labels every fluorine, which settles the printed table's six equatorial lines for five atoms: axial Te-F 1.8249 and 1.8303 (mean 1.8276), equatorial 1.8705 to 1.8975 (mean 1.8820) A; the pentagon is placed regular although the crystal's is puckered. The paper quotes Br-F 189 pm for BrF4- in a Rb salt.
 
 ### edwards1969 — Fluoride crystal structures. Part VIII. Neutron diffraction studies of potassium tetrafluorobromate(III) and potassium tetrafluoroaurate(III)
 
@@ -8888,7 +8893,7 @@ Table 3 read from the rendered page. Gas electron diffraction, nozzle temperatur
 | Local copy | `french1985.pdf` (not checked) |
 | Used by | `src/openchem/chem/vsepr_geometry.py`, `tests/test_vsepr_geometry.py`, `docs/HYPERVALENT_COVERAGE_DESIGN.md` |
 
-Abstract and Table II read. Gas electron diffraction at 22 to 24 C: rg P-F equatorial 1.546 (9), P-F axial 1.593 (4), P-Cl 2.004 (2) A, F(ax)-P-F(eq) 89.3 (3), Cl-P-Cl 122.0 (5) degrees; the chlorines are equatorial (a Berry exchange would give axial isomers, which the data neither show nor rule out). Shipped as the PCl2F3 row with the ideal 90 and 120 degrees; its lengths are also TRANSFERRED to PCl3F2 (evidence tier ESTIMATED, below).
+Abstract and Table II read. Gas electron diffraction at 22 to 24 C: rg P-F equatorial 1.546 (9), P-F axial 1.593 (4), P-Cl 2.004 (2) A, F(ax)-P-F(eq) 89.3 (3), Cl-P-Cl 122.0 (5) degrees; the chlorines are equatorial (a Berry exchange would give axial isomers, which the data neither show nor rule out). Shipped as the PCl2F3 row with the ideal 90 and 120 degrees; its lengths were first TRANSFERRED to PCl3F2 as an estimate, until macho1986 measured that molecule.
 
 ### ohlberg1959 — The crystal structure of antimony pentachloride at -30 degrees
 
@@ -9143,7 +9148,7 @@ Now HELD (seppelt2019.pdf, an Accepted Article, and seppelt2019_SI.pdf). The Sup
 | Local copy | `griffiths1964.pdf` (not checked) |
 | Used by | `src/openchem/chem/vsepr_geometry.py`, `tests/test_vsepr_geometry.py`, `docs/HYPERVALENT_COVERAGE_DESIGN.md` |
 
-Read for the shape only (the held PDF's first page belongs to another article; the paper is inside). The vapour infrared and low-temperature Raman spectra of PCl3F2 are fully in agreement with D3h, a trigonal bipyramid with the fluorines axial and three equatorial chlorines. It gives no distances. Used for the SHAPE of the PCl3F2 row, whose lengths are transferred from PCl2F3 (french1985) and are labelled ESTIMATED.
+Read for the shape only (the held PDF's first page belongs to another article; the paper is inside). The vapour infrared and low-temperature Raman spectra of PCl3F2 are fully in agreement with D3h, a trigonal bipyramid with the fluorines axial and three equatorial chlorines. It gives no distances. Cited for the SHAPE of the PCl3F2 row, whose lengths are now measured (macho1986, electron diffraction, which confirms the shape); they were first transferred from PCl2F3 (french1985) as an estimate.
 
 ### weller1991 — Uber die Reaktionen von Phosphaniminatokomplexen des Niobs, Molybdans und Wolframs mit Natriumfluorid. Die Kristallstrukturen von [PPh2NH2]Cl und PPh3F2
 
@@ -9228,7 +9233,7 @@ The Supporting Information's CIF (data block PhICl2_IAM, 100 (2) K) read: I-Cl 2
 | Local copy | `du2016.pdf` (not checked) |
 | Used by | `src/openchem/chem/vsepr_geometry.py`, `tests/test_vsepr_geometry.py`, `docs/HYPERVALENT_COVERAGE_DESIGN.md` |
 
-Text read (the individual bond tables are in its Supporting Information, which is not held). Nine aryl-SF5 crystals: S-F axial 1.568 (4) to 1.607 (3), S-F equatorial 1.572 (3) to 1.618 (3), S-C 1.785 (3) to 1.823 (4) A, C-S-F equatorial 91.3 (2) to 93.50 (13), C-S-F axial 178.9 to 180 degrees; the SF5 group is an umbrella, staggered with respect to the ring. Used with espiet2020 for the aryl-SF5 core row, at the MIDPOINTS of the ranges.
+Text read, and now the nine deposited CIFs (CCDC 1497382 to 1497390, 125 K, one at 273 K; `du2016_SI/`) read for the individual values: the means over twelve SF5 groups are S-F axial 1.5868, S-F equatorial 1.5859, S-C 1.8036 A and C-S-F equatorial 92.35 degrees (computed here). Nine aryl-SF5 crystals: S-F axial 1.568 (4) to 1.607 (3), S-F equatorial 1.572 (3) to 1.618 (3), S-C 1.785 (3) to 1.823 (4) A, C-S-F equatorial 91.3 (2) to 93.50 (13), C-S-F axial 178.9 to 180 degrees; the SF5 group is an umbrella, staggered with respect to the ring. Used with espiet2020 for the aryl-SF5 core row; it first used the MIDPOINTS of the printed ranges and now uses the CIF means (the equatorial S-F midpoint was 0.009 A too long).
 
 ### espiet2020 — Structural characterization and Hirshfeld surface analysis of 2-iodo-4-(pentafluoro-lambda6-sulfanyl)benzonitrile
 
@@ -9331,6 +9336,91 @@ Table 1 and the geometry listing read (300 K): S-F equatorial 1.561 (4) and 1.57
 | Used by | `docs/HYPERVALENT_COVERAGE_DESIGN.md` |
 
 **Why it is reference only.** The held file is the CSD entry's CIF (173 K, P21/c, R 0.054), which carries a cell and fractional coordinates but no printed geometry; the values were COMPUTED here from them (the authors' list was not read, so the attribution to Carey, Chaloner, Hitchcock, Neugebauer and Seddon rests on the search lead that CSD BENICL01 is their 1996 low-temperature PhICl2 structure and on the compound and temperature agreeing): I-Cl 2.474 and 2.497, I-C 2.119 A, Cl-I-Cl 176.65, C-I-Cl 87.86 and 89.22 degrees, with an esd of about 0.01 A. It agrees with the 100 K determination of poynder2021 (I-Cl 2.5059 and 2.4832, I-C 2.0977 A, esds 0.0001 to 0.0004) within its esds, which is the better-determined and is the row's source. The CSD's terms forbid redistributing the file, so only these computed numbers are recorded.
+
+### macho1986 — The chlorofluorophosphoranes PCl(n)F(5-n) (n = 1-4). Gas-phase structures and vibrational analyses
+
+<a id="macho1986"></a>
+
+> C. Macho, R. Minkwitz, J. Rohmann, B. Steger, V. Woelfel & H. Oberhammer, 'The chlorofluorophosphoranes PCl(n)F(5-n) (n = 1-4). Gas-phase structures and vibrational analyses', Inorg. Chem. 25, 2828-2835 (1986)
+
+| | |
+| --- | --- |
+| Identifier | [10.1021/ic00236a034](https://doi.org/10.1021/ic00236a034) |
+| Status | shipped |
+| Verification | citation + claim |
+| Verified | 2026-11-14 |
+| Local copy | `macho1986.pdf` (not checked) |
+| Used by | `src/openchem/chem/vsepr_geometry.py`, `tests/test_vsepr_geometry.py`, `docs/HYPERVALENT_COVERAGE_DESIGN.md` |
+
+Table VIII read (rg distances, ra angles; its columns come out scrambled in the text layer, so each value was assigned to its molecule by the row's order and the paper's own trend statements). PCl3F2: P-F axial 1.596 (2), P-Cl equatorial 2.005 (3) A, D3h, angles 90 and 120 degrees by symmetry. The same table gives PCl2F3 (P-F axial 1.593, P-Cl 2.002, P-F equatorial 1.538 A), which agrees with french1985. Quoted limits are 2 sigma with a possible scale error. Shipped as the PCl3F2 row, replacing an estimate that had transferred PCl2F3's lengths.
+
+### ye2005 — Straightforward syntheses of hypervalent iodine(III) reagents mediated by Selectfluor
+
+<a id="ye2005"></a>
+
+> C. Ye, B. Twamley & J. M. Shreeve, 'Straightforward syntheses of hypervalent iodine(III) reagents mediated by Selectfluor', Org. Lett. 7, 3961-3964 (2005)
+
+| | |
+| --- | --- |
+| Identifier | [10.1021/ol051446t](https://doi.org/10.1021/ol051446t) |
+| Status | shipped |
+| Verification | citation + claim |
+| Verified | 2026-11-14 |
+| Local copy | `ye2005.pdf` (not checked) |
+| Used by | `src/openchem/chem/vsepr_geometry.py`, `tests/test_vsepr_geometry.py`, `docs/HYPERVALENT_COVERAGE_DESIGN.md` |
+
+The two Supporting Information CIFs read (87 K, R 0.023 and 0.049; two aryl-IF2 crystals holding 2 and 4 independent molecules): I-F 1.990 to 2.026, I-C 2.090 to 2.096 A, F-I-F 171.0 to 174.4, C-I-F 85.0 to 88.2 degrees. With sarie2017 and haefliger2019 they give the ArIF2 core row (means of nine molecules).
+
+### sarie2017 — Deconstructing the catalytic, vicinal difluorination of alkenes: HF-free synthesis and structural study of p-TolIF2
+
+<a id="sarie2017"></a>
+
+> J. C. Sarie, C. Thiehoff, R. J. Mudd, C. G. Daniliuc, G. Kehr & R. Gilmour, 'Deconstructing the catalytic, vicinal difluorination of alkenes: HF-free synthesis and structural study of p-TolIF2', J. Org. Chem. 82, 11792-11798 (2017)
+
+| | |
+| --- | --- |
+| Identifier | [10.1021/acs.joc.7b01671](https://doi.org/10.1021/acs.joc.7b01671) |
+| Status | shipped |
+| Verification | citation + claim |
+| Verified | 2026-11-14 |
+| Local copy | `sarie2017.pdf` (not checked) |
+| Used by | `src/openchem/chem/vsepr_geometry.py`, `tests/test_vsepr_geometry.py`, `docs/HYPERVALENT_COVERAGE_DESIGN.md` |
+
+The Supporting Information CIF (data block gil8757, p-TolIF2, 100 K, R 0.020, two independent molecules) read: I-F 1.993 and 2.036, 2.003 and 2.020, I-C 2.0835 and 2.0930 A, F-I-F 173.3 and 170.8 degrees. One of the three sources of the ArIF2 core row.
+
+### haefliger2019 — Substituent-controlled, mild oxidative fluorination of iodoarenes: synthesis and structural study of aryl I(III)- and I(V)-fluorides
+
+<a id="haefliger2019"></a>
+
+> J. Haefliger, C. R. Pitts, D. Bornemann, R. Kaeser, N. Santschi, J. Charpentier, E. Otth, N. Trapp, R. Verel, H. P. Luethi & A. Togni, 'Substituent-controlled, mild oxidative fluorination of iodoarenes: synthesis and structural study of aryl I(III)- and I(V)-fluorides', Chem. Sci. 10, 7251-7259 (2019)
+
+| | |
+| --- | --- |
+| Identifier | [10.1039/c9sc02162k](https://doi.org/10.1039/c9sc02162k) |
+| Status | shipped |
+| Verification | citation + claim |
+| Verified | 2026-11-14 |
+| Local copy | `Haefliger2019.pdf` (not checked) |
+| Used by | `src/openchem/chem/vsepr_geometry.py`, `tests/test_vsepr_geometry.py`, `docs/HYPERVALENT_COVERAGE_DESIGN.md` |
+
+The Supporting Information CIF (three data blocks, 100 K) read: a bromo-tetrahydronaphthyl-IF2 (I-F 1.9977 and 1.9979, I-C 2.0966 A, F-I-F 171.86 degrees: a third ArIF2 source), 4-fluorophenyl-IF4 (I-C 2.0778 apical, I-F 1.9152 to 1.9600 basal, C-I-F 83.9 to 86.7: the ArIF4 core row, ONE molecule), and an ArIF3(OR)-type I(V) molecule (not used). The file name in the library keeps the accented author initial.
+
+### frohn2009 — First isolation and structural characterization of N-base adducts of mono- and perfluoroaryliodine(III) compounds, ArfIX2 (X = F, CN)
+
+<a id="frohn2009"></a>
+
+> H.-J. Frohn, M. Hirschberg, A. Westphal, U. Floerke, R. Boese & D. Blaeser, 'First isolation and structural characterization of N-base adducts of mono- and perfluoroaryliodine(III) compounds, ArfIX2 (X = F, CN)', Z. Anorg. Allg. Chem. 635, 2249-2257 (2009)
+
+| | |
+| --- | --- |
+| Identifier | [10.1002/zaac.200900169](https://doi.org/10.1002/zaac.200900169) |
+| Status | reference only |
+| Verification | citation |
+| Verified | 2026-11-14 |
+| Local copy | `frohn2009.pdf` (not checked) |
+| Used by | `docs/HYPERVALENT_COVERAGE_DESIGN.md` |
+
+**Why it is reference only.** The three CIFs (CCDC 760658 to 760660, 120 K) were read: ArIF2 as N-base ADDUCTS, F-I-F only 158.6 to 161.8 degrees, I-F 2.000 to 2.014, I-C 2.104 to 2.115 A. The coordinated base distorts the T, so these are not free molecules and are not in the ArIF2 core row. Kept as the evidence for how far a donor moves F-I-F.
 
 ## Datasets
 
