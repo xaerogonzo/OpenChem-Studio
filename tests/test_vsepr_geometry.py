@@ -334,9 +334,11 @@ def test_every_reference_has_a_template_and_builds():
     """No entry is dead: each key reaches a built geometry (guards a table row nothing can use)."""
     for (centre, ligand, n, charge), reference in REFERENCES.items():
         symbol = f"[{centre}{'-' if charge < 0 else '+' if charge > 0 else ''}]"
-        if reference.slots:
-            parts = [f"(={t[:-1]})" if t.endswith("=") else f"({t})" for t, _ in reference.slots]
-            smiles = symbol + "".join(parts)
+        if reference.slots or "=" in ligand:
+            import re
+
+            tokens = [t for t, _ in reference.slots] if reference.slots else re.findall(r"[A-Z][a-z]?=?", ligand)
+            smiles = symbol + "".join(f"(={t[:-1]})" if t.endswith("=") else f"({t})" for t in tokens)
         else:
             smiles = f"{ligand}{symbol}" + "".join(f"({ligand})" for _ in range(n - 1))
         outcome = build_vsepr_geometry(_mol(smiles))
@@ -459,7 +461,7 @@ def test_sf5cl_has_chlorine_apical_and_the_published_cl_s_f_angle():
 
 @pytest.mark.parametrize(
     "smiles",
-    ["O=S(=O)(O)O", "O=[Xe](=O)=O", "O=[Xe](=O)(=O)=O", "[O-][Cl](=O)(=O)=O", "O=P(Cl)(Cl)Cl", "FS(F)(F)(F)(F)F"],
+    ["O=S(=O)(O)O", "O=[Xe](=O)(=O)=O", "[O-][Cl](=O)(=O)=O", "O=P(Cl)(Cl)Cl", "FS(F)(F)(F)(F)F"],
 )
 def test_oxo_molecules_without_a_recorded_geometry_stay_on_the_ordinary_path(smiles):
     outcome = build_vsepr_geometry(_mol(smiles))
@@ -508,3 +510,38 @@ def test_the_square_planar_tetrafluoro_anions_are_planar_d4h(smiles, angles):
     g = _built(smiles)
     assert _all_angles(g) == angles
     assert g.shape == "square planar"
+
+
+def test_xeo3_is_a_trigonal_pyramid_with_the_published_mean_distance_and_angle():
+    """Templeton 1963: mean Xe-O 1.76 A and O-Xe-O 103 degrees; the three angles are equal by the template, a fact of the shape."""
+    g = _built("O=[Xe](=O)=O")
+    assert (g.classification, g.shape) == ("AX3E", "trigonal pyramidal")
+    p, c = g.coordinates, g.centre_index
+    for i in g.ligand_indices:
+        assert _bond(p, c, i) == pytest.approx(1.76, abs=1e-6)
+    assert _all_angles(g) == [103.0] * 3
+    # the centre sits above the plane of the three oxygens (a pyramid, not a planar triangle): the oxygens are on one side of the centre
+    points = np.array([p[i] for i in g.ligand_indices])
+    assert np.all(np.dot(points - np.array(p[c]), np.mean(points, axis=0)) > 0.0)
+    assert abs(np.linalg.det(np.array([points[1] - points[0], points[2] - points[0], np.array(p[c]) - points[0]]))) > 0.1, "not coplanar with the centre"
+
+
+def test_bro2f_is_a_pyramid_with_the_one_measured_mean_distance():
+    smiles = "FBr(=O)=O"
+    g = _built(smiles)
+    assert (g.classification, g.shape) == ("AX3E", "trigonal pyramidal")
+    p, c = g.coordinates, g.centre_index
+    for i in g.ligand_indices:
+        assert _bond(p, c, i) == pytest.approx(1.674, abs=1e-6)
+    assert _all_angles(g) == [103.8] * 3
+    oxygens = _by_element(g, smiles, "O")
+    fluorine = _by_element(g, smiles, "F")
+    assert len(oxygens) == 2 and len(fluorine) == 1
+
+
+def test_a_pyramid_the_table_lacks_is_still_left_to_the_ordinary_path():
+    """Sulfite, chlorate, bromate and a trioxide have oxo ligands and no recorded geometry: not this module's."""
+    for smiles in ("O=S(=O)=O", "[O-]Cl(=O)=O", "O=Cl(=O)F"):
+        outcome = build_vsepr_geometry(_mol(smiles))
+        assert outcome.kind in (Kind.NOT_APPLICABLE, Kind.UNSUPPORTED), smiles
+        assert outcome.kind is not Kind.BUILT

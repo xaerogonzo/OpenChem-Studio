@@ -112,6 +112,8 @@ is the next structural step (a per-ligand-class reference and oxo ligands), not 
 
 **Fifth pass (2026-11-14).** IF4-, BrF4-, IF2- and AsF4- were added from Zhang and Seppelt 1997 and Edwards and Jones 1969 (all crystals), closing the IF4- and BrF4- gaps; IF5(2-) has no measured length and stays unsupported.
 
+**Trigonal pyramid (2026-11-14).** The (3 bonds, 1 lone pair) template was added (`_trigonal_pyramid`, one angle between any two ligands) with XeO3 (Templeton 1963, mean 1.76 A and 103 degrees) and BrO2F (Hwang 1997: one averaged Br-(O,F) distance because the crystal's O and F are disordered, said in the row).
+
 **WP7. DONE 2026-11-14 (and it found a real gap).** Every route a held structure can take to the screen was probed: the calculator registry and the synthesis gate and node screen already refused or failed closed, but `engine.screen` and `compute_regulatory_screen` answered 'No matches' when handed a held Mol directly. The engine now raises `UnscreenableStructureError` for a structure that does not sanitise and the calculator turns it into `HYPERVALENT_UNSUPPORTED`; `tests/test_regulatory_held_structures.py` covers all five routes plus six readable controls (mutation-checked: 6 fail with the engine check off), and names no substance. **The regulatory screen on a held structure stays refused**, with a test that a held structure never yields "no matches" (it
 did in the #598 audit, a silent false negative for a screen). Not a change; a guard on the decision of #598.
 

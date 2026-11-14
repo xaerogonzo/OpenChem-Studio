@@ -265,7 +265,7 @@ The papers of the third pass that had not been read for values. Read from the te
 | Christe, Zhang, Sheehy and Bau 2001 | ClF4+SbF6- single-crystal X-ray | **shipped as a crystal**, the first charged cation: Cl-F 1.617 axial, 1.530 equatorial (two values, 1.527 and 1.532), F-Cl-F 173.92, 103.08 and 88.1 degrees; two Cl...F contacts to the anions are omitted | `christe2001` |
 | Ellern et al. 2002 | ClF3O, BrF3O and [NO][BrF4O] crystals | read, not shipped: BrF3O lacks the angle that places its axial pair, and [BrF4O]- gives 193.6 pm in the text and 191.2 pm in the table; its [NO2][BrF4] co-crystal holds the square planar BrF4- but the paper gives no lengths and cites older work | `ellern2002` |
 | Brock et al. 2007 | XeOF2 and its CH3CN adduct | read, not shipped: free XeOF2 has Raman spectra and calculations only; the crystal is the adduct | `brock2007` |
-| Templeton et al. 1963 | XeO3 crystal | read, not shipped: a trigonal pyramid (no template), three double bonds, 0.03 A esd | `templeton1963` |
+| Templeton et al. 1963 | XeO3 crystal | **shipped** (the trigonal pyramid template, added the same day): mean Xe-O 1.76 A and O-Xe-O 103 degrees, the 0.03 A esd stated | `templeton1963` |
 | Claassen and Huston 1971 | matrix-isolated XeO3F2, Raman and infrared | read: D3h indicated by the vibrational spectra, no lengths | none |
 | Christe and Wilson 1988 | XeO2F2 syntheses, vibrational spectra | read: no structural values | none |
 | Weller et al. 1991 | PPh3F2 crystal (and [PPh3NH2]Cl) | not built: a phosphorane with carbon ligands (several kinds of ligand and phenyl groups), outside the one-centre terminal-ligand rule | none |
@@ -289,9 +289,11 @@ Seven papers fetched after the fourth pass, read for values (Zhang and Seppelt's
 | Sly and Marsh 1957 | the same data fitted with a square planar anion | read: both models fit, the data cannot choose | `sly1957` |
 | Christe and Schack 1970 | BrF4- vibrational spectra | read: D4h from spectra, no lengths | `christe1970` |
 | Christe et al. 1998 | IF52- by spectra, calculation and comparison with XeF5- | read, not built: no measured length (2.11 A is calculated) | `christe1998` |
-| Hwang et al. 1997 | Br2O, BrO2F and O2BrOTeF5 crystals | read, not built: BrO2F has O and F disordered, a mean angle of 103.8 degrees and no resolved O-Br-F | `hwang1997` |
+| Hwang et al. 1997 | Br2O, BrO2F and O2BrOTeF5 crystals | **shipped with a stated limit**: BrO2F has O and F disordered, so ONE mean Br-(O,F) distance (167.4 pm) goes to all three ligands with 103.8 degrees; the row says so | `hwang1997` |
 
 **What ORCA says about the four starts** (B3LYP/def2-SVPD, charge -1): IF4- stays square planar D4h (I-F 2.071 A against the crystal's 2.007, longer as an isolated anion's is); BrF4- stays D4h (1.937 against 1.89); AsF4- stays a seesaw (As-F 1.921 axial and 1.793 equatorial, F-As-F 170.8 and 97.7 degrees against 165.7 and 97.5); IF2- stays linear (2.135 against 2.079).
+
+**What ORCA says about the two pyramids** (B3LYP/def2-SVP): XeO3 stays a C3v pyramid (Xe-O 1.771 A against the crystal mean 1.76, O-Xe-O 106.7 to 107.0 degrees against 103); BrO2F resolves what the crystal could not: Br=O 1.609 A and Br-F 1.840 A (the crystal's one mean was 1.674), O-Br-O 113.0 and O-Br-F 101.9 and 102.1 degrees (the crystal's mean was 103.8). The isolated molecule is thus a Cs pyramid with the double bonds shorter and the fluorine longer, as for ClO2F.
 
 **Both gaps named after the fourth pass are closed**: IF4- and BrF4- now have measured lengths. The BrF4- value rests on a powder neutron study (esd 0.02 A, the angles within 2 degrees), the weakest of the four, and the paper by Zhang and Seppelt quotes 189 pm for a Rb salt single crystal from older work, in agreement.
 

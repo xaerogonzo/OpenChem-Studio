@@ -1,5 +1,5 @@
 <!-- GENERATED FROM docs/sources.toml -- do not edit -->
-<!-- SOURCE SHA256: 3cb8af70720b0c814574632cbc200af0fc1dc6e4b7d603a7f7caf96948e4af2f -->
+<!-- SOURCE SHA256: 76f68d95b6c9bdbe2434bf3afeb41220047af8f98ca68b9ffa5c0795d55b268d -->
 
 # Sources
 
@@ -243,7 +243,7 @@ Title and DOI first; the `key` is what prose and code cite (`[source:key]`) and 
 | The structure of IF3 | [10.1002/(SICI)1521-3773(20000417)39:8<1448::AID-ANIE1448>3.0.CO;2-G](https://doi.org/10.1002/(SICI)1521-3773(20000417)39:8<1448::AID-ANIE1448>3.0.CO;2-G) | [`hoyer2000`](#hoyer2000) | literature | shipped | citation + claim |
 | Molecular Spectra and Molecular Structure IV. Constants of Diatomic Molecules |  | [`huber1979`](#huber1979) | literature | reference only | citation + claim |
 | Evaluated Gas Phase Basicities and Proton Affinities of Molecules: An Update | [10.1063/1.556018](https://doi.org/10.1063/1.556018) | [`hunter1998`](#hunter1998) | literature | reference only | citation + claim |
-| Structures of Bromine Oxygen Compounds | [10.1002/zaac.19976230160](https://doi.org/10.1002/zaac.19976230160) | [`hwang1997`](#hwang1997) | literature | reference only | citation |
+| Structures of Bromine Oxygen Compounds | [10.1002/zaac.19976230160](https://doi.org/10.1002/zaac.19976230160) | [`hwang1997`](#hwang1997) | literature | shipped | citation + claim |
 | Biopharmaceutics Classification System-Based Biowaivers M9 | ICH M9 (Step 4, 20 November 2019) | [`ich_m9`](#ich_m9) | standard | shipped | citation + claim |
 | Exploiting the 1-(4-fluorobenzyl)piperazine fragment for the development of novel tyrosinase inhibitors as anti-melanogenic agents: Design, synthesis, structural insights and biological profile | [10.1016/j.ejmech.2019.06.019](https://doi.org/10.1016/j.ejmech.2019.06.019) | [`ielo2019`](#ielo2019) | literature | reference only | citation + claim |
 | Rapid Calculation of Accurate Atomic Charges for Proteins via the Electronegativity Equalization Method | [10.1021/ci400448n](https://doi.org/10.1021/ci400448n) | [`ionescu2013`](#ionescu2013) | literature | shipped | citation + claim |
@@ -400,7 +400,7 @@ Title and DOI first; the `key` is what prose and code cite (`[source:key]`) and 
 | Comparative Assessment of Scoring Functions: The CASF-2016 Update | [10.1021/acs.jcim.8b00545](https://doi.org/10.1021/acs.jcim.8b00545) | [`su2019`](#su2019) | literature | shipped | citation + claim |
 | A computer simulation method for the calculation of equilibrium constants for the formation of physical clusters of molecules: Application to small water clusters | [10.1063/1.442716](https://doi.org/10.1063/1.442716) | [`swope1982`](#swope1982) | literature | shipped | citation + claim |
 | Therapeutics Data Commons: Machine Learning Datasets and Tasks for Drug Discovery and Development | <https://tdcommons.ai/> | [`tdc_admet`](#tdc_admet) | dataset | reference only | citation |
-| Crystal and molecular structure of xenon trioxide | [10.1021/ja00889a037](https://doi.org/10.1021/ja00889a037) | [`templeton1963`](#templeton1963) | literature | reference only | citation |
+| Crystal and molecular structure of xenon trioxide | [10.1021/ja00889a037](https://doi.org/10.1021/ja00889a037) | [`templeton1963`](#templeton1963) | literature | shipped | citation + claim |
 | Influence of Protonation, Tautomeric, and Stereoisomeric States on Protein-Ligand Docking Results | [10.1021/ci800420z](https://doi.org/10.1021/ci800420z) | [`tenbrink2009`](#tenbrink2009) | literature | shipped | citation + claim |
 | Chemical reactivity and selectivity using Fukui functions: basis set and population scheme dependence in the framework of B3LYP theory | [10.1007/s00214-002-0352-z](https://doi.org/10.1007/s00214-002-0352-z) | [`thanikaivelan2002`](#thanikaivelan2002) | literature | shipped | citation + claim |
 | More reliable partial atomic charges when using diffuse basis sets | [10.1039/B206369G](https://doi.org/10.1039/B206369G) | [`thompson2002`](#thompson2002) | literature | reference only | citation |
@@ -8701,13 +8701,13 @@ Distances and angles table read. ClF4+ in ClF4+SbF6- (crystal): Cl-F 1.617 (2) a
 | | |
 | --- | --- |
 | Identifier | [10.1021/ja00889a037](https://doi.org/10.1021/ja00889a037) |
-| Status | reference only |
-| Verification | citation |
+| Status | shipped |
+| Verification | citation + claim |
 | Verified | 2026-11-14 |
 | Local copy | `templeton1963.pdf` (not checked) |
-| Used by | `docs/HYPERVALENT_COVERAGE_DESIGN.md` |
+| Used by | `src/openchem/chem/vsepr_geometry.py`, `tests/test_vsepr_geometry.py`, `docs/HYPERVALENT_COVERAGE_DESIGN.md` |
 
-**Why it is reference only.** Read. XeO3 is a trigonal pyramid in the crystal: Xe-O 1.74, 1.76 and 1.77 (0.03) A, mean 1.76 A, O-Xe-O mean 103 degrees. NOT shipped: a trigonal pyramid (three bonds and a lone pair) has no template yet, three double bonds are outside the oxo rule, and the 1963 values carry 0.03 A.
+Read. XeO3 is a trigonal pyramid in the crystal: Xe-O 1.74, 1.76 and 1.77 (0.03) A, O-Xe-O 108, 100 and 101 (2) degrees, deviations from threefold symmetry of doubtful significance; thermal-motion-corrected means 1.76 A and 103 degrees. Shipped as the XeO3 row of the trigonal pyramid template.
 
 ### zhang1997 — Preparation and Structures of Salts with the Anions of IF2-, ClF4-, IF4-, TeF7-, and AsF4-
 
@@ -8820,13 +8820,13 @@ Table 4 read. Neutron powder diffraction of KBrF4: Br-F 1.89 (0.02) A, F-Br-F 90
 | | |
 | --- | --- |
 | Identifier | [10.1002/zaac.19976230160](https://doi.org/10.1002/zaac.19976230160) |
-| Status | reference only |
-| Verification | citation |
+| Status | shipped |
+| Verification | citation + claim |
 | Verified | 2026-11-14 |
 | Local copy | `hwang1997.pdf` (not checked) |
-| Used by | `docs/HYPERVALENT_COVERAGE_DESIGN.md` |
+| Used by | `src/openchem/chem/vsepr_geometry.py`, `tests/test_vsepr_geometry.py`, `docs/HYPERVALENT_COVERAGE_DESIGN.md` |
 
-**Why it is reference only.** Read for the abstract. Crystals of Br2O (bent, Br-O-Br 114.2 (2) degrees), BrO2F (a pyramid with O and F disordered, mean angle 103.8 (3) degrees, so the O-Br-F angle is not resolved) and O2Br-OTeF5. Not built: BrO2F would need a trigonal pyramid template and has no resolved geometry.
+Read. BrO2F crystal with O and F disordered over six positions: only the average Br-(O,F) distance 167.4 (0.6) pm is determined, and the all-equal C3v model has angles of 103.8 (0.3) degrees. Shipped as the BrO2F row with that one mean length for all three ligands and said to be a mean (the Br=O is really shorter and the Br-F longer). The same paper's Br2O (bent, Br-O-Br 114.2 degrees, Br-O 187.5 pm) and O2BrOTeF5 are not used.
 
 ## Datasets
 

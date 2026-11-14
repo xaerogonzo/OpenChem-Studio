@@ -430,6 +430,34 @@ _ENTRIES = (
         True,
         -1,
     ),
+    # Trigonal pyramids (2026-11-14): the template `_trigonal_pyramid` with the two molecules whose crystals are the only structures measured.
+    Reference(
+        "Xe",
+        "O=O=O=",
+        3,
+        1.76,
+        1.76,
+        {"l-l": 103.0},
+        "Templeton, Zalkin, Forrester and Williamson 1963, J Am Chem Soc 85, 817 [source:templeton1963]",
+        "single-crystal X-ray: Xe-O 1.74, 1.76 and 1.77 (0.03) A and O-Xe-O 108, 100 and 101 (2) degrees, whose deviations from threefold symmetry the authors "
+        "call of doubtful significance; the thermal-motion-corrected means 1.76 A and 103 degrees are used",
+        True,
+    ),
+    Reference(
+        "Br",
+        "FO=O=",
+        3,
+        1.674,
+        1.674,
+        {"l-l": 103.8},
+        "Hwang, Kuschel and Seppelt 1997, Z Anorg Allg Chem 623, 379 [source:hwang1997]",
+        "single-crystal X-ray of BrO2F with O and F disordered over six positions: ONLY the average Br-(O,F) distance 167.4 (0.6) pm is determined, so the double bond and "
+        "the single bond are given that one length, and 103.8 (0.3) degrees is the all-equal C3v model the authors call the straightforward one; the real Br=O is shorter and "
+        "Br-F longer than this mean (compare ClO2F 142.0 and 169.4 pm), which ORCA resolves",
+        True,
+        0,
+        (("F", 1.674), ("O=", 1.674), ("O=", 1.674)),
+    ),
     # The two anions are CRYSTAL structures: the ion is in an ionic lattice, where a Cl-F or Xe-F distance moves by a few
     # hundredths of an Angstrom with the counter-ion (ClF4- spans 1.73 to 1.87 A between salts).
     Reference(
@@ -633,6 +661,18 @@ def _c4v_octahedron(ref: Reference) -> tuple[list[np.ndarray], list[np.ndarray]]
     return [np.array([0.0, 0.0, 1.0]), np.array([0.0, 0.0, -1.0])], basal
 
 
+def _trigonal_pyramid(ref: Reference) -> tuple[list[np.ndarray], list[np.ndarray]]:
+    # AX3E: three ligands on a cone about the axis, 120 degrees apart about it, the lone pair on the other end of the axis. `l-l` is the angle between any two
+    # ligands: for ligands at angle b from the axis, cos(l-l) = (3 cos^2 b - 1) / 2, so cos^2 b = (2 cos(l-l) + 1) / 3 (XeO3 103 degrees, BrO2F 103.8).
+    cos_ll = math.cos(math.radians(ref.angles.get("l-l", 109.5)))
+    cos_b = math.sqrt(max((2.0 * cos_ll + 1.0) / 3.0, 0.0))
+    sin_b = math.sqrt(1.0 - cos_b * cos_b)
+    ring = [
+        np.array([sin_b * math.cos(math.radians(p)), sin_b * math.sin(math.radians(p)), -cos_b]) for p in (0, 120, 240)
+    ]
+    return [], ring
+
+
 #: Layout name -> placer, for the references that name one.
 _LAYOUTS = {"cs_bipyramid": _cs_bipyramid, "c2v_bipyramid": _c2v_bipyramid, "c4v_octahedron": _c4v_octahedron}
 
@@ -642,6 +682,7 @@ _LAYOUTS = {"cs_bipyramid": _cs_bipyramid, "c2v_bipyramid": _c2v_bipyramid, "c4v
 _TEMPLATES = {
     (5, 2): ("AX5E2", "pentagonal planar", _pentagonal_planar),
     (2, 3): ("AX2E3", "linear", _linear),
+    (3, 1): ("AX3E", "trigonal pyramidal", _trigonal_pyramid),
     (3, 2): ("AX3E2", "T-shaped", _t_shape),
     (4, 2): ("AX4E2", "square planar", _square_planar),
     (4, 1): ("AX4E", "seesaw", _seesaw),

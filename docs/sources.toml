@@ -10316,13 +10316,17 @@ kind = "literature"
 citation = "D. H. Templeton, A. Zalkin, J. D. Forrester & S. M. Williamson, 'Crystal and molecular structure of xenon trioxide', J. Am. Chem. Soc. 85, 817 (1963)"
 identifier_type = "doi"
 identifier = "10.1021/ja00889a037"
-status = "reference_only"
-used_by = ["docs/HYPERVALENT_COVERAGE_DESIGN.md"]
+status = "shipped"
+used_by = [
+    "src/openchem/chem/vsepr_geometry.py",
+    "tests/test_vsepr_geometry.py",
+    "docs/HYPERVALENT_COVERAGE_DESIGN.md",
+]
 local = "templeton1963.pdf"
-verification = "citation"
+verification = "citation_and_claim"
 verified_date = 2026-11-14
-reason = """
-Read. XeO3 is a trigonal pyramid in the crystal: Xe-O 1.74, 1.76 and 1.77 (0.03) A, mean 1.76 A, O-Xe-O mean 103 degrees. NOT shipped: a trigonal pyramid (three bonds and a lone pair) has no template yet, three double bonds are outside the oxo rule, and the 1963 values carry 0.03 A.
+note = """
+Read. XeO3 is a trigonal pyramid in the crystal: Xe-O 1.74, 1.76 and 1.77 (0.03) A, O-Xe-O 108, 100 and 101 (2) degrees, deviations from threefold symmetry of doubtful significance; thermal-motion-corrected means 1.76 A and 103 degrees. Shipped as the XeO3 row of the trigonal pyramid template.
 """
 
 [[source]]
@@ -10429,11 +10433,15 @@ kind = "literature"
 citation = "I. C. Hwang, R. Kuschel & K. Seppelt, 'Structures of Bromine Oxygen Compounds', Z. Anorg. Allg. Chem. 623, 379-383 (1997)"
 identifier_type = "doi"
 identifier = "10.1002/zaac.19976230160"
-status = "reference_only"
-used_by = ["docs/HYPERVALENT_COVERAGE_DESIGN.md"]
+status = "shipped"
+used_by = [
+    "src/openchem/chem/vsepr_geometry.py",
+    "tests/test_vsepr_geometry.py",
+    "docs/HYPERVALENT_COVERAGE_DESIGN.md",
+]
 local = "hwang1997.pdf"
-verification = "citation"
+verification = "citation_and_claim"
 verified_date = 2026-11-14
-reason = """
-Read for the abstract. Crystals of Br2O (bent, Br-O-Br 114.2 (2) degrees), BrO2F (a pyramid with O and F disordered, mean angle 103.8 (3) degrees, so the O-Br-F angle is not resolved) and O2Br-OTeF5. Not built: BrO2F would need a trigonal pyramid template and has no resolved geometry.
+note = """
+Read. BrO2F crystal with O and F disordered over six positions: only the average Br-(O,F) distance 167.4 (0.6) pm is determined, and the all-equal C3v model has angles of 103.8 (0.3) degrees. Shipped as the BrO2F row with that one mean length for all three ligands and said to be a mean (the Br=O is really shorter and the Br-F longer). The same paper's Br2O (bent, Br-O-Br 114.2 degrees, Br-O 187.5 pm) and O2BrOTeF5 are not used.
 """
