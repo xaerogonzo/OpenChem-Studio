@@ -351,6 +351,25 @@ Two existing rows were re-labelled: **XeF6 is `model`** and **ClF5 is `estimated
 
 Aryl-SF5 and the iodine(III) reagents (PIDA, PhICl2) have no core row: their data are not held (an SF5-arene study quotes S-F 1.572 to 1.618 A and no S-C length; PIDA's I-C 2.08 and I-O 2.156 A are seen only on a mirror of a Wikipedia page; PhICl2's crystal is in a CIF and a supporting information file not held), so they keep the ordinary path, unchanged. The wanted list names the papers.
 
+## Ninth hypervalent pass: the reagent cores (2026-11-14)
+
+Ten papers fetched for the cores the hybrid builder lacked, all DOIs checked in Crossref (`alberto1996.pdf` turned out to be an unrelated silver crown-thioether paper, not Carey et al. 1996, so that lead stays open).
+
+| Paper | What it is | Outcome | Registry key |
+|---|---|---|---|
+| Alcock et al. 1979 | PhI(OAc)2 crystal at -60 C | **shipped** as a core row: I-O 2.156 (mean), I-C 2.090 A, O-I-O 164.0, O-I-C 81.4 and 82.6 degrees; T-shaped, acetate oxygens axial | `alcock1979` |
+| Lee et al. 1977 | the first PhI(OAc)2 structure | cross-check: I-C 2.093, I-O 2.186 and 2.143 A, O-I-O 163.2, C-I-O 81.6 | `lee1977` |
+| Poynder et al. 2021 (CIF) | PhICl2 at 100 K | **shipped** as a core row: I-Cl 2.5059 and 2.4832 (mean 2.4946), I-C 2.0977 A, Cl-I-Cl 176.701, C-I-Cl 88.900 and 88.035 | `poynder2021` |
+| Du et al. 2016, Gonzalez Espiet et al. 2020 | nine aryl-SF5 crystals and the benzonitrile | **shipped** as a core row at the MIDPOINTS of the published ranges: S-F axial 1.5875, S-F equatorial 1.595, S-C 1.804 A, C-S-F equatorial 92.4 degrees (an umbrella octahedron); the individual values are in the Supporting Information, not held | `du2016`, `espiet2020` |
+| Christe et al. 1993 | TeF7- spectra and calculations | read: pentagonal bipyramid at equilibrium, no structure | `christe1993` |
+| Burbank and Jones 1970, 1971; Muetterties 1957 | solid XeF6 phases; fluorotellurate preparation | held, not molecular geometries | `burbank1970`, `burbank1971`, `muetterties1957` |
+
+**Carey et al. 1996 (CSD BENICL01, 173 K, R 0.054; the journal synopsis has no DOI)**: the held CIF has a cell and coordinates only, so its distances were computed here: I-Cl 2.474 and 2.497, I-C 2.119 A, Cl-I-Cl 176.65, C-I-Cl 87.9 and 89.2 degrees (esd about 0.01 A). They agree with the 100 K determination within the esds; Poynder's is the better and stays the row's source, this the cross-check. The attribution of BENICL01 to Carey et al. rests on a search lead plus the compound and temperature, and is said so in the registry entry.
+
+**Real ORCA (B3LYP/def2-SVP) optimisations of the grown molecules, each started from the builder's own geometry**: PhICl2 keeps the T-shape (I-C 2.202, I-Cl 2.540 and 2.540 A, C-I-Cl 92.1, Cl-I-Cl 175.7 degrees; the isolated molecule's C-I-Cl is about 4 degrees wider than the crystal's 88). PhI(OAc)2 keeps it too (I-C 2.152, I-O 2.166 and 2.202 A, O-I-O 171.0, C-I-O 83.3 and 88.5). Ph3PF2, (CH3)2PF3 and aryl-SF5 were run earlier in this pass and kept their trigonal bipyramid or octahedron. PH3F2 must be DRAWN with explicit hydrogen atoms: a molfile cannot hold three hydrogens on a two-bonded phosphorus, so the implicit-hydrogen drawing is PHF2, a different molecule (it was run as that once by mistake and the result discarded). These are one level of theory on isolated molecules, a check that the starting geometry is not nonsense, not a measurement.
+
+Each row is a measurement only for the ligands that were measured (`Reference.scope: aromatic carbon, acyloxy oxygen); an alkyl-SF5 or a methyl-iodine diacetate takes the same lengths as an ESTIMATE, said as such.
+
 ## How to use this
 
 Before searching for a reference for a tautomer system, look here. A paper listed as "not an energy

@@ -10755,3 +10755,173 @@ verified_date = 2026-11-14
 note = """
 Table 3 read (German; decimal commas). PPh3F2 at 20 C, Pbcn, trigonal bipyramid with axial fluorines: P-F 166.5 (2), P-C(11) 181.5 (3), P-C(21) 182.6 (4) pm, F-P-F' 178.58 (8), F-P-C 89.29 to 90.5 (1), C-P-C 119.8 (1) and 120.9 (8) degrees. Shipped, with Doxsee 1992 (a second crystal that agrees), as the (C6H5)3PF2 core row of the hybrid builder, which grows the phenyl groups.
 """
+
+[[source]]
+key = "alcock1979"
+kind = "literature"
+citation = "N. W. Alcock, R. M. Countryman, S. Esperas & J. F. Sawyer, 'Secondary bonding. Part 5. The crystal and molecular structures of phenyliodine(III) diacetate and bis(dichloroacetate)', J. Chem. Soc., Dalton Trans., 854-860 (1979)"
+identifier_type = "doi"
+identifier = "10.1039/DT9790000854"
+status = "shipped"
+used_by = [
+    "src/openchem/chem/vsepr_geometry.py",
+    "tests/test_vsepr_geometry.py",
+    "docs/HYPERVALENT_COVERAGE_DESIGN.md",
+]
+local = "alcock1979.pdf"
+verification = "citation_and_claim"
+verified_date = 2026-11-14
+note = """
+Table 2 read. PhI(OAc)2 at -60 C, Pnn2, R 0.021: I-O 2.159 (5) and 2.153 (5), I-C 2.090 (6) A, O-I-O 164.0 (2), O-I-C 81.4 (2) and 82.6 (3) degrees, T-shaped; the carbonyl oxygens make intramolecular secondary contacts (O(2)-I-O(4) 95.2 degrees). Shipped as the PhI(OAc)2 core row of the hybrid builder.
+"""
+
+[[source]]
+key = "lee1977"
+kind = "literature"
+citation = "C.-K. Lee, T. C. W. Mak, W.-K. Li & J. F. Kirner, 'Iodobenzene diacetate', Acta Cryst. B33, 1620-1622 (1977)"
+identifier_type = "doi"
+identifier = "10.1107/S0567740877006694"
+status = "shipped"
+used_by = [
+    "src/openchem/chem/vsepr_geometry.py",
+    "tests/test_vsepr_geometry.py",
+    "docs/HYPERVALENT_COVERAGE_DESIGN.md",
+]
+local = "lee1977.pdf"
+verification = "citation_and_claim"
+verified_date = 2026-11-14
+note = """
+Table 2 read. The first structure of PhI(OAc)2, independent of Alcock 1979: I-C 2.093 (9), I-O 2.186 (9) and 2.143 (8) A, C-I-O 81.6 (4) twice, O-I-O 163.2 (3) degrees. Agrees with Alcock within the esds; used as the cross-check of the PhI(OAc)2 core row.
+"""
+
+[[source]]
+key = "poynder2021"
+kind = "literature"
+citation = "T. B. Poynder, A. I. Chamorro Orue, Tania, L. Sharp-Bucknall, M. T. Flynn, D. J. D. Wilson, K. S. Athukorala Arachchige, J. K. Clegg & J. L. Dutton, 'On the activation of PhICl2 with pyridine', Chem. Commun. 57, 4970-4973 (2021)"
+identifier_type = "doi"
+identifier = "10.1039/d1cc01567b"
+status = "shipped"
+used_by = [
+    "src/openchem/chem/vsepr_geometry.py",
+    "tests/test_vsepr_geometry.py",
+    "docs/HYPERVALENT_COVERAGE_DESIGN.md",
+]
+local = "poynder2021.pdf"
+verification = "citation_and_claim"
+verified_date = 2026-11-14
+note = """
+The Supporting Information's CIF (data block PhICl2_IAM, 100 (2) K) read: I-Cl 2.50592 (11) and 2.48319 (12), I-C 2.0977 (4) A; Cl-I-Cl 176.701 (4), C-I-Cl 88.900 (10) and 88.035 (10) degrees. A T with the chlorines axial. Shipped as the PhICl2 core row of the hybrid builder.
+"""
+
+[[source]]
+key = "du2016"
+kind = "literature"
+citation = "J. Du, G. Hua, P. Beier, A. M. Z. Slawin & J. D. Woollins, 'Single crystal X-ray structural features of aromatic compounds having a pentafluorosulfuranyl (SF5) functional group', Struct. Chem. 28, 723-733 (2017; online 2016)"
+identifier_type = "doi"
+identifier = "10.1007/s11224-016-0854-2"
+status = "shipped"
+used_by = [
+    "src/openchem/chem/vsepr_geometry.py",
+    "tests/test_vsepr_geometry.py",
+    "docs/HYPERVALENT_COVERAGE_DESIGN.md",
+]
+local = "du2016.pdf"
+verification = "citation_and_claim"
+verified_date = 2026-11-14
+note = """
+Text read (the individual bond tables are in its Supporting Information, which is not held). Nine aryl-SF5 crystals: S-F axial 1.568 (4) to 1.607 (3), S-F equatorial 1.572 (3) to 1.618 (3), S-C 1.785 (3) to 1.823 (4) A, C-S-F equatorial 91.3 (2) to 93.50 (13), C-S-F axial 178.9 to 180 degrees; the SF5 group is an umbrella, staggered with respect to the ring. Used with espiet2020 for the aryl-SF5 core row, at the MIDPOINTS of the ranges.
+"""
+
+[[source]]
+key = "espiet2020"
+kind = "literature"
+citation = "J. A. Gonzalez Espiet, J. A. Cintron Cruz & D. M. Pinero Cruz, 'Structural characterization and Hirshfeld surface analysis of 2-iodo-4-(pentafluoro-lambda6-sulfanyl)benzonitrile', Acta Cryst. E76, 231-234 (2020)"
+identifier_type = "doi"
+identifier = "10.1107/S2056989020000365"
+status = "shipped"
+used_by = [
+    "src/openchem/chem/vsepr_geometry.py",
+    "tests/test_vsepr_geometry.py",
+    "docs/HYPERVALENT_COVERAGE_DESIGN.md",
+]
+local = "Espiet2020.pdf"
+verification = "citation_and_claim"
+verified_date = 2026-11-14
+note = """
+Table 1 and the geometry listing read (300 K): S-F equatorial 1.561 (4) and 1.572 (3), S-F axial 1.582 (5), S-C 1.823 (7) A, F(ax)-S-C 179.4 (3), C-S-F(eq) 92.0 and 92.2 (2) degrees. One more aryl-SF5 crystal, inside the ranges of du2016; used for the aryl-SF5 core row.
+"""
+
+[[source]]
+key = "christe1993"
+kind = "literature"
+citation = "K. O. Christe, D. A. Dixon, J. C. P. Sanders, G. J. Schrobilgen & W. W. Wilson, 'Heptacoordination: pentagonal bipyramidal XeF7+ and TeF7- ions', J. Am. Chem. Soc. 115, 9461-9467 (1993)"
+identifier_type = "doi"
+identifier = "10.1021/ja00074a011"
+status = "reference_only"
+used_by = ["docs/HYPERVALENT_COVERAGE_DESIGN.md"]
+local = "christe1993.pdf"
+verification = "citation"
+verified_date = 2026-11-14
+reason = """
+Read for the abstract. TeF7- by vibrational and 19F/125Te NMR spectroscopy plus ab initio and density-functional calculations on TeF7-, IF7 and XeF7+: all three are pentagonal bipyramids at equilibrium. No measured structure, so nothing is added to the TeF7- row (zhang1997 has the crystal).
+"""
+
+[[source]]
+key = "burbank1970"
+kind = "literature"
+citation = "R. D. Burbank & G. R. Jones, 'Xenon hexafluoride: structure of a cubic phase at -80 C', Science 168, 248-249 (1970)"
+identifier_type = "doi"
+identifier = "10.1126/science.168.3928.248"
+status = "reference_only"
+used_by = ["docs/HYPERVALENT_COVERAGE_DESIGN.md"]
+local = "burbank1970.pdf"
+verification = "citation"
+verified_date = 2026-11-14
+reason = """
+Held (the PDF's first page is another article). The crystal structure of a cubic phase of XeF6 at -80 C: XeF5+ and F- in tetrameric and hexameric rings, no simple molecules. Not a molecular geometry; not used.
+"""
+
+[[source]]
+key = "burbank1971"
+kind = "literature"
+citation = "R. D. Burbank & G. R. Jones, 'Xenon hexafluoride: structural crystallography of tetrameric phases', Science 171, 485-487 (1971)"
+identifier_type = "doi"
+identifier = "10.1126/science.171.3970.485"
+status = "reference_only"
+used_by = ["docs/HYPERVALENT_COVERAGE_DESIGN.md"]
+local = "burbank1971.pdf"
+verification = "citation"
+verified_date = 2026-11-14
+reason = """
+Held (the PDF's first page is another article). Further solid XeF6 phases built of tetramers; not a molecular geometry; not used.
+"""
+
+[[source]]
+key = "muetterties1957"
+kind = "literature"
+citation = "E. L. Muetterties, 'Fluorotellurates', J. Am. Chem. Soc. 79, 1004 (1957)"
+identifier_type = "doi"
+identifier = "10.1021/ja01561a067"
+status = "reference_only"
+used_by = ["docs/HYPERVALENT_COVERAGE_DESIGN.md"]
+local = "muetterties1957.pdf"
+verification = "citation"
+verified_date = 2026-11-14
+reason = """
+Held (a one-page letter on a page shared with another article). Preparation of 2MF.TeF6 fluorotellurates and X-ray powder patterns; no structure. Not used.
+"""
+
+[[source]]
+key = "carey1996"
+kind = "literature"
+citation = "D. M. P. Carey, P. S. Chaloner, P. B. Hitchcock, D. Neugebauer & K. R. Seddon, low-temperature crystal structure of (dichloroiodo)benzene, J. Chem. Res. (S) 358 (1996); CSD refcode BENICL01, CCDC 1108655"
+identifier_type = "bibliographic"
+identifier = "J. Chem. Res. (S) 1996, 358; CSD BENICL01 (CCDC 1108655); the journal synopsis has no DOI"
+status = "reference_only"
+used_by = ["docs/HYPERVALENT_COVERAGE_DESIGN.md"]
+local = "cif files/BENICLO1.cif"
+verification = "citation"
+verified_date = 2026-11-14
+reason = """
+The held file is the CSD entry's CIF (173 K, P21/c, R 0.054), which carries a cell and fractional coordinates but no printed geometry; the values were COMPUTED here from them (the authors' list was not read, so the attribution to Carey, Chaloner, Hitchcock, Neugebauer and Seddon rests on the search lead that CSD BENICL01 is their 1996 low-temperature PhICl2 structure and on the compound and temperature agreeing): I-Cl 2.474 and 2.497, I-C 2.119 A, Cl-I-Cl 176.65, C-I-Cl 87.86 and 89.22 degrees, with an esd of about 0.01 A. It agrees with the 100 K determination of poynder2021 (I-Cl 2.5059 and 2.4832, I-C 2.0977 A, esds 0.0001 to 0.0004) within its esds, which is the better-determined and is the row's source. The CSD's terms forbid redistributing the file, so only these computed numbers are recorded.
+"""

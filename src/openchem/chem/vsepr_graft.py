@@ -136,21 +136,28 @@ def graft_evidence(mol_h: Any, ligands: list[int], reference: Any) -> Any:
     """
     if not reference.scope or reference.evidence != "measured":
         return reference
+    scopes = {part.strip() for part in reference.scope.split(",")}
 
     def covered(atom: Any) -> bool:
-        if reference.scope == "aromatic":
-            return bool(atom.GetIsAromatic())
-        if reference.scope == "methyl":
-            return not atom.GetIsAromatic() and sum(1 for n in atom.GetNeighbors() if n.GetSymbol() == "H") == 3 and atom.GetDegree() == 4
+        if atom.GetSymbol() == "C":
+            if "aromatic" in scopes:
+                return bool(atom.GetIsAromatic())
+            if "methyl" in scopes:
+                return not atom.GetIsAromatic() and sum(1 for n in atom.GetNeighbors() if n.GetSymbol() == "H") == 3 and atom.GetDegree() == 4
+        if atom.GetSymbol() == "O" and "acyloxy" in scopes:
+            # an oxygen on a carbon that carries a double-bonded oxygen: a carboxylate
+            return any(
+                n.GetSymbol() == "C" and any(b.GetBondTypeAsDouble() == 2.0 and b.GetOtherAtom(n).GetSymbol() == "O" for b in n.GetBonds())
+                for n in atom.GetNeighbors()
+            )
         return True
 
-    carbons = [mol_h.GetAtomWithIdx(i) for i in ligands if mol_h.GetAtomWithIdx(i).GetSymbol() == "C"]
-    if all(covered(a) for a in carbons):
+    if all(covered(mol_h.GetAtomWithIdx(i)) for i in ligands):
         return reference
     return dataclasses.replace(
         reference,
         evidence="estimated",
-        method="ESTIMATED by transfer to other carbon ligands: " + reference.method,
+        method="ESTIMATED by transfer to other ligands than the measured kind: " + reference.method,
     )
 
 

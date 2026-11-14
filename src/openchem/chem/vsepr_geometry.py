@@ -86,8 +86,9 @@ class Reference:
     #: for a molecule with no single measured geometry), "calculated" (a published calculation, no measurement) or "estimated" (a measured
     #: analogue's lengths transferred, or lengths the source itself assumed).
     evidence: str = "measured"
-    #: For a core with organic ligands (`chem.vsepr_graft`): which carbon ligands the measurement covers, "aromatic" (a phenyl) or "methyl"; "" means any. A molecule whose
-    #: carbon ligands are of another kind gets the row's lengths as an ESTIMATE by transfer, and says so (`graft_evidence`).
+    #: For a core with organic ligands (`chem.vsepr_graft`): which ligands the measurement covers, a comma-separated list of "aromatic" (carbon ligands are phenyls), "methyl" (carbon
+    #: ligands are methyls) and "acyloxy" (oxygen ligands are carboxylates); "" means any. A molecule whose ligands are of another kind gets the row's lengths as an estimate by
+    #: transfer, and says so (`graft_evidence`).
     scope: str = ""
 
     @property
@@ -531,6 +532,61 @@ _ENTRIES = (
         True,
         0,
         (("F", 1.6468), ("F", 1.6468), ("H", 1.394), ("H", 1.394), ("H", 1.394)),
+    ),
+    # Cores of the most-drawn hypervalent reagents (2026-11-14), grown by `chem.vsepr_graft`: iodine(III) and the aryl-SF5 group.
+    Reference(
+        "I",
+        "COO",
+        3,
+        2.156,
+        2.090,
+        {"ax-eq": 82.0},
+        "Alcock, Countryman, Esperas and Sawyer 1979, J Chem Soc Dalton Trans, 854 [source:alcock1979]; Lee, Mak, Li and Kirner 1977, Acta Cryst B 33, 1620 [source:lee1977]",
+        "single-crystal X-ray of PhI(OAc)2 at -60 C (R 0.021): I-O 2.159 (5) and 2.153 (5) A (mean 2.156), I-C 2.090 (6) A, O-I-O 164.0 (2) and O-I-C 81.4 (2) and 82.6 (3) degrees (mean 82.0); "
+        "Lee et al. 1977, independently, I-O 2.186 (9) and 2.143 (8), I-C 2.093 (9), O-I-O 163.2 (3), C-I-O 81.6 (4). A T with the two acetate oxygens axial and the phenyl carbon equatorial; "
+        "the other (carbonyl) oxygens make secondary I...O contacts of about 2.8 A, which are not placed",
+        True,
+        0,
+        (("O", 2.156), ("O", 2.156), ("C", 2.090)),
+        "",
+        "measured",
+        "aromatic,acyloxy",
+    ),
+    Reference(
+        "I",
+        "CClCl",
+        3,
+        2.4946,
+        2.0977,
+        {"ax-eq": 88.47},
+        "Poynder, Chamorro Orue, Tania et al. 2021, Chem Commun 57, 4970, Supporting Information CIF [source:poynder2021]",
+        "single-crystal X-ray of PhICl2 at 100 K: I-Cl 2.5059 (1) and 2.4832 (1) A (mean 2.4946), I-C 2.0977 (4) A, Cl-I-Cl 176.701 (4), C-I-Cl 88.900 (10) and 88.035 (10) degrees (mean 88.47); a T "
+        "with the chlorines axial; the two I-Cl lengths differ through intermolecular contacts. An independent low-temperature determination (Carey et al. 1996, 173 K, R 0.054, "
+        "CSD BENICL01) computed from its deposited coordinates gives I-Cl 2.474 and 2.497, I-C 2.119 A (esd about 0.01), Cl-I-Cl 176.65, C-I-Cl 87.9 and 89.2 degrees: the same within its esds",
+        True,
+        0,
+        (("Cl", 2.4946), ("Cl", 2.4946), ("C", 2.0977)),
+        "",
+        "measured",
+        "aromatic",
+    ),
+    Reference(
+        "S",
+        "CFFFFF",
+        6,
+        1.804,
+        1.595,
+        {"ax-eq": 92.4},
+        "Du, Hua, Beier, Slawin and Woollins 2016, Struct Chem 28, 723 [source:du2016]; Gonzalez Espiet, Cintron Cruz and Pinero Cruz 2020, Acta Cryst E76, 231 [source:espiet2020]",
+        "single-crystal X-ray of nine aryl-SF5 compounds (and a tenth): S-F axial 1.568 to 1.607 A (midpoint 1.5875), S-F equatorial 1.572 to 1.618 A (midpoint 1.595), S-C 1.785 to 1.823 A (midpoint 1.804), "
+        "C-S-F equatorial 91.3 to 93.5 degrees (midpoint 92.4, 92.0 and 92.2 in the benzonitrile), C-S-F axial 178.9 to 180; the row uses the MIDPOINTS of those ranges, an octahedron with the aryl "
+        "carbon apical and the four equatorial fluorines bent away from it (an umbrella), the trans fluorine at 1.5875 A",
+        True,
+        0,
+        (("C", 1.804), ("F", 1.5875), ("F", 1.595), ("F", 1.595), ("F", 1.595), ("F", 1.595)),
+        "c4v_octahedron",
+        "measured",
+        "aromatic",
     ),
     # Three rows whose evidence is not a plain measurement of that molecule (2026-11-14); `Reference.evidence` says which kind, and it reaches the conformer's note.
     Reference(

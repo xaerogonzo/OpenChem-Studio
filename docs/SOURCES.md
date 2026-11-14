@@ -1,5 +1,5 @@
 <!-- GENERATED FROM docs/sources.toml -- do not edit -->
-<!-- SOURCE SHA256: a0ba1f69fe0503fa3c16a5070cd981185beacdf4f892bc5cf2264f1966d8ec3e -->
+<!-- SOURCE SHA256: da9c01c6e5f5d9bb43f240484b6c887cef27d35ab31b09e890a7a7b1da3e0638 -->
 
 # Sources
 
@@ -95,6 +95,7 @@ Title and DOI first; the `key` is what prose and code cite (`[source:key]`) and 
 | Speed vs accuracy: Effect on ligand pose accuracy of varying box size and exhaustiveness in AutoDock Vina | [10.1002/minf.202200188](https://doi.org/10.1002/minf.202200188) | [`agarwal2022`](#agarwal2022) | literature | shipped | citation + claim |
 | Ranking metrics conceal pose errors in blind docking with AutoDock Vina, a cross-target benchmark | [10.1016/j.rineng.2026.112651](https://doi.org/10.1016/j.rineng.2026.112651) | [`agboola2026`](#agboola2026) | literature | shipped | citation + claim |
 | The Chemistry of Explosives | 978-1-84973-330-4 | [`akhavan2011`](#akhavan2011) | literature | shipped | citation + claim |
+| Secondary bonding. Part 5. The crystal and molecular structures of phenyliodine(III) diacetate and bis(dichloroacetate) | [10.1039/DT9790000854](https://doi.org/10.1039/DT9790000854) | [`alcock1979`](#alcock1979) | literature | shipped | citation + claim |
 | CFM-ID: a web server for annotation, spectrum prediction and metabolite identification from tandem mass spectra | [10.1093/nar/gku436](https://doi.org/10.1093/nar/gku436) | [`allen2014`](#allen2014) | literature | reference only | citation |
 | Computational prediction of electron ionization mass spectra to assist in GC-MS compound identification | [10.1021/acs.analchem.6b01622](https://doi.org/10.1021/acs.analchem.6b01622) | [`allen2016`](#allen2016) | literature | reference only | citation |
 | Electronegativity values from thermochemical data |  | [`allred1961`](#allred1961) | reference_table | shipped | citation |
@@ -149,8 +150,11 @@ Title and DOI first; the `key` is what prose and code cite (`[source:key]`) and 
 | The Electronegativity Equalization Method I: Parametrization and Validation for Atomic Charge Calculations | [10.1021/jp0205463](https://doi.org/10.1021/jp0205463) | [`bultinck2002a`](#bultinck2002a) | literature | shipped | citation + claim |
 | The Electronegativity Equalization Method II: Applicability of Different Atomic Charge Schemes | [10.1021/jp020547v](https://doi.org/10.1021/jp020547v) | [`bultinck2002b`](#bultinck2002b) | literature | reference only | citation + claim |
 | Critical thoughts on computing atom condensed Fukui functions | [10.1063/1.2749518](https://doi.org/10.1063/1.2749518) | [`bultinck2007`](#bultinck2007) | literature | shipped | citation + claim |
+| Xenon hexafluoride: structure of a cubic phase at -80 C | [10.1126/science.168.3928.248](https://doi.org/10.1126/science.168.3928.248) | [`burbank1970`](#burbank1970) | literature | reference only | citation |
+| Xenon hexafluoride: structural crystallography of tetrameric phases | [10.1126/science.171.3970.485](https://doi.org/10.1126/science.171.3970.485) | [`burbank1971`](#burbank1971) | literature | reference only | citation |
 | Structure of the cubic phase of xenon hexafluoride at 193 K | [10.1021/ja00808a007](https://doi.org/10.1021/ja00808a007) | [`burbank1974`](#burbank1974) | literature | reference only | citation |
 | Topological Steric Effect Index and Its Application | [10.1021/ci034266b](https://doi.org/10.1021/ci034266b) | [`cao2004`](#cao2004) | literature | shipped | citation + claim |
+| D. M. P. Carey, P. S. Chaloner, P. B. Hitchcock, D. Neugebauer & K. R. Seddon, low-temperature crystal… |  | [`carey1996`](#carey1996) | literature | reference only | citation |
 | Importance of aromaticity on the relative stabilities of indazole annular tautomers: an ab initio study | [10.1039/P29960000057](https://doi.org/10.1039/P29960000057) | [`catalan1996`](#catalan1996) | literature | reference only | citation + claim |
 | Electrical response in chemical potential equalization schemes | [10.1063/1.480198](https://doi.org/10.1063/1.480198) | [`chelli1999`](#chelli1999) | literature | reference only | citation |
 | ChEMBL 37 schema documentation, table COMPOUND_PROPERTIES (EMBL-EBI). | <https://ftp.ebi.ac.uk/pub/databases/chembl/ChEMBLdb/latest/schema_documentation.txt> | [`chembl_schema`](#chembl_schema) | dataset | shipped | citation + claim |
@@ -163,6 +167,7 @@ Title and DOI first; the `key` is what prose and code cite (`[source:key]`) and 
 | Tetrafluorobromate(III) anion, BrF4- | [10.1021/ic50090a015](https://doi.org/10.1021/ic50090a015) | [`christe1970`](#christe1970) | literature | reference only | citation |
 | The tetrafluoroiodate(III) anion, IF4- | [10.1021/ic50119a016](https://doi.org/10.1021/ic50119a016) | [`christe1973`](#christe1973) | literature | reference only | citation |
 | The Pentafluoroxenate(IV) Anion, XeF5-: The First Example of a Pentagonal Planar AX5 Species | [10.1021/ja00009a021](https://doi.org/10.1021/ja00009a021) | [`christe1991`](#christe1991) | literature | shipped | citation + claim |
+| Heptacoordination: pentagonal bipyramidal XeF7+ and TeF7- ions | [10.1021/ja00074a011](https://doi.org/10.1021/ja00074a011) | [`christe1993`](#christe1993) | literature | reference only | citation |
 | Pentagonal planar AX5 species: synthesis and characterization of the iodine(III) pentafluoride dianion, IF52- | [10.1021/ja980057+](https://doi.org/10.1021/ja980057+) | [`christe1998`](#christe1998) | literature | shipped | citation + claim |
 | Crystal Structure of ClF4+SbF6-, Normal Coordinate Analyses of ClF4+, BrF4+, IF4+, SF4, SeF4, and TeF4, and Simple Method for Calculating the Effects of Fluorine Bridging... | [10.1021/ja003347a](https://doi.org/10.1021/ja003347a) | [`christe2001`](#christe2001) | literature | shipped | citation + claim |
 | A New Population Analysis Based on Atomic Polar Tensors | [10.1021/ja00204a001](https://doi.org/10.1021/ja00204a001) | [`cioslowski1989`](#cioslowski1989) | literature | reference only | citation |
@@ -193,6 +198,7 @@ Title and DOI first; the `key` is what prose and code cite (`[source:key]`) and 
 | A Double-Scale Equation for Correlating Enthalpies of Lewis Acid-Base Interactions | [10.1021/ja01094a008](https://doi.org/10.1021/ja01094a008) | [`drago1965`](#drago1965) | literature | shipped | citation + claim |
 | A method for the analysis and prediction of gas-phase ion-molecule enthalpies | [10.1021/ja00180a047](https://doi.org/10.1021/ja00180a047) | [`drago1990`](#drago1990) | literature | shipped | citation |
 | Addition of new donors to the E and C model | [10.1021/ic00063a045](https://doi.org/10.1021/ic00063a045) | [`drago1993`](#drago1993) | literature | shipped | citation |
+| Single crystal X-ray structural features of aromatic compounds having a pentafluorosulfuranyl (SF5) functional group | [10.1007/s11224-016-0854-2](https://doi.org/10.1007/s11224-016-0854-2) | [`du2016`](#du2016) | literature | shipped | citation + claim |
 | Investigation of Next-Generation Visible Light-Producing Pyrotechnics | <https://edoc.ub.uni-muenchen.de/37604/> | [`dufter2026`](#dufter2026) | literature | shipped | citation + claim |
 | Organic Fluorine Hardly Ever Accepts Hydrogen Bonds | [10.1002/chem.19970030115](https://doi.org/10.1002/chem.19970030115) | [`dunitz1997`](#dunitz1997) | literature | shipped | citation + claim |
 | Organic Fluorine: Odd Man Out | [10.1002/cbic.200300801](https://doi.org/10.1002/cbic.200300801) | [`dunitz2004`](#dunitz2004) | literature | shipped | citation + claim |
@@ -203,6 +209,7 @@ Title and DOI first; the `key` is what prose and code cite (`[source:key]`) and 
 | Estimation of synthetic accessibility score of drug-like molecules based on molecular complexity and fragment contributions | [10.1186/1758-2946-1-8](https://doi.org/10.1186/1758-2946-1-8) | [`ertl2009`](#ertl2009) | literature | shipped | citation |
 | An algorithm to identify functional groups in organic molecules | [10.1186/s13321-017-0225-z](https://doi.org/10.1186/s13321-017-0225-z) | [`ertl2017`](#ertl2017) | literature | reference only | citation |
 | Anchoring the gas-phase acidity scale from hydrogen sulfide to pyrrole. Experimental bond dissociation energies of nitromethane, ethanethiol, and cyclopentadiene | [10.1021/jp510137g](https://doi.org/10.1021/jp510137g) | [`ervin2015`](#ervin2015) | literature | reference only | citation + claim |
+| Structural characterization and Hirshfeld surface analysis of 2-iodo-4-(pentafluoro-lambda6-sulfanyl)benzonitrile | [10.1107/S2056989020000365](https://doi.org/10.1107/S2056989020000365) | [`espiet2020`](#espiet2020) | literature | shipped | citation + claim |
 | Theoretical C-H bond dissociation enthalpies for CH3Br and CH2ClBr | [10.1021/jp9834614](https://doi.org/10.1021/jp9834614) | [`espinosagarcia1999`](#espinosagarcia1999) | literature | reference only | citation + claim |
 | Anchoring the gas-phase acidity scale: From formic acid to methanethiol | [10.1016/j.ijms.2009.01.001](https://doi.org/10.1016/j.ijms.2009.01.001) | [`eyet2009`](#eyet2009) | literature | reference only | citation + claim |
 | Calculating an optimal box size for ligand docking and virtual screening against experimental and predicted binding pockets | [10.1186/s13321-015-0067-5](https://doi.org/10.1186/s13321-015-0067-5) | [`feinstein2015`](#feinstein2015) | literature | shipped | citation + claim |
@@ -293,6 +300,7 @@ Title and DOI first; the `key` is what prose and code cite (`[source:key]`) and 
 | DELTA50: A Highly Accurate Database of Experimental 1H and 13C NMR Chemical Shifts Applied to DFT Benchmarking | [10.3390/molecules28062449](https://doi.org/10.3390/molecules28062449) | [`kwon2023`](#kwon2023) | dataset | shipped | citation + claim |
 | J. A. Dean (ed.), Lange's Handbook of Chemistry, 15th ed.; McGraw-Hill: New York, 1999; p 4.35 (covalent… | 978-0070163843 | [`langes15`](#langes15) | reference_table | shipped | citation + claim |
 | Halogenated PETN derivatives: interplay between physical and chemical factors in explosive sensitivity | [10.1039/D3SC01627G](https://doi.org/10.1039/D3SC01627G) | [`lease2023`](#lease2023) | literature | shipped | citation + claim |
+| Iodobenzene diacetate | [10.1107/S0567740877006694](https://doi.org/10.1107/S0567740877006694) | [`lee1977`](#lee1977) | literature | shipped | citation + claim |
 | Reinvestigation of the elementary chemical kinetics of the reaction C2H5 + HBr (HI) = C2H6 + Br (I) in the range 293-623 K and its implication on the thermochemical parameters of C2H5 free radical | [10.1021/jp403761r](https://doi.org/10.1021/jp403761r) | [`leplat2013`](#leplat2013) | literature | reference only | citation + claim |
 | Design, Synthesis, and Biological Evaluation of 3,4-Dihydroisoquinolin-1(2H)-one Derivatives as Protein Arginine Methyltransferase 5 Inhibitors for the Treatment of Non-Hodgkin’s Lymphoma | [10.1021/acs.jmedchem.4c01548](https://doi.org/10.1021/acs.jmedchem.4c01548) | [`li2024_prmt5`](#li2024_prmt5) | literature | reference only | citation |
 | Retro-BLEU: quantifying chemical plausibility of retrosynthesis routes through reaction template sequence analysis | [10.1039/D3DD00219E](https://doi.org/10.1039/D3DD00219E) | [`li2024retrobleu`](#li2024retrobleu) | literature | reference only | citation |
@@ -327,6 +335,7 @@ Title and DOI first; the `key` is what prose and code cite (`[source:key]`) and 
 | Electronegativity Equalization Method for the Calculation of Atomic Charges in Molecules | [10.1021/ja00275a013](https://doi.org/10.1021/ja00275a013) | [`mortier1986`](#mortier1986) | literature | reference only | citation |
 | Accurate Proton Affinity and Gas-Phase Basicity Values for Molecules Important in Biocatalysis | [10.1021/jp107450n](https://doi.org/10.1021/jp107450n) | [`moser2010`](#moser2010) | literature | shipped | citation + claim |
 | Glossary of class names of organic compounds and reactive intermediates based on structure (IUPAC Recommendations 1995) | [10.1351/pac199567081307](https://doi.org/10.1351/pac199567081307) | [`moss1995`](#moss1995) | literature | reference only | citation |
+| Fluorotellurates | [10.1021/ja01561a067](https://doi.org/10.1021/ja01561a067) | [`muetterties1957`](#muetterties1957) | literature | reference only | citation |
 | Intermolecular interactions of the carbon-fluorine bond: the crystallographic environment of fluorinated carboxylic acids and related structures | [10.1021/ja00348a041](https://doi.org/10.1021/ja00348a041) | [`murrayrust1983`](#murrayrust1983) | literature | shipped | citation + claim |
 | The chemical hardness of molecules and the band gap of solids within charge equilibration formalisms. Toward force field-based simulations of redox reactions | [10.1140/epjb/e2012-21081-8](https://doi.org/10.1140/epjb/e2012-21081-8) | [`muser2012`](#muser2012) | literature | reference only | citation + claim |
 | Polarizable Charge Equilibration Model for Predicting Accurate Electrostatic Interactions in Molecules and Solids | [10.1063/1.4978891](https://doi.org/10.1063/1.4978891) | [`naserifar2017`](#naserifar2017) | literature | reference only | citation + claim |
@@ -366,6 +375,7 @@ Title and DOI first; the `key` is what prose and code cite (`[source:key]`) and 
 | The Coordination Chemistry of Fluorine in Fluorocarbons | [10.1002/cbic.200300752](https://doi.org/10.1002/cbic.200300752) | [`plenio2004`](#plenio2004) | literature | shipped | citation + claim |
 | PLIP: fully automated protein-ligand interaction profiler | [10.1093/nar/gkv315](https://doi.org/10.1093/nar/gkv315) | [`plip2015`](#plip2015) | literature | reference only | citation |
 | SambVca: A Web Application for the Calculation of the Buried Volume of N-Heterocyclic Carbene Ligands | [10.1002/ejic.200801160](https://doi.org/10.1002/ejic.200801160) | [`poater2009`](#poater2009) | literature | shipped | citation |
+| On the activation of PhICl2 with pyridine | [10.1039/d1cc01567b](https://doi.org/10.1039/d1cc01567b) | [`poynder2021`](#poynder2021) | literature | shipped | citation + claim |
 | PSI4 1.4: Open-source software for high-throughput quantum chemistry | [10.1063/5.0006002](https://doi.org/10.1063/5.0006002) | [`psi42020`](#psi42020) | literature | shipped | citation |
 | Qt for Python (PySide6). | <https://doc.qt.io/qtforpython/> | [`pyside6`](#pyside6) | software | shipped | citation |
 | Vinardo: A Scoring Function Based on Autodock Vina Improves Scoring, Docking, and Virtual Screening | [10.1371/journal.pone.0155183](https://doi.org/10.1371/journal.pone.0155183) | [`quiroga2016`](#quiroga2016) | literature | shipped | citation + claim |
@@ -9151,6 +9161,176 @@ Read for the shape only (the held PDF's first page belongs to another article; t
 | Used by | `src/openchem/chem/vsepr_geometry.py`, `tests/test_vsepr_geometry.py`, `docs/HYPERVALENT_COVERAGE_DESIGN.md` |
 
 Table 3 read (German; decimal commas). PPh3F2 at 20 C, Pbcn, trigonal bipyramid with axial fluorines: P-F 166.5 (2), P-C(11) 181.5 (3), P-C(21) 182.6 (4) pm, F-P-F' 178.58 (8), F-P-C 89.29 to 90.5 (1), C-P-C 119.8 (1) and 120.9 (8) degrees. Shipped, with Doxsee 1992 (a second crystal that agrees), as the (C6H5)3PF2 core row of the hybrid builder, which grows the phenyl groups.
+
+### alcock1979 — Secondary bonding. Part 5. The crystal and molecular structures of phenyliodine(III) diacetate and bis(dichloroacetate)
+
+<a id="alcock1979"></a>
+
+> N. W. Alcock, R. M. Countryman, S. Esperas & J. F. Sawyer, 'Secondary bonding. Part 5. The crystal and molecular structures of phenyliodine(III) diacetate and bis(dichloroacetate)', J. Chem. Soc., Dalton Trans., 854-860 (1979)
+
+| | |
+| --- | --- |
+| Identifier | [10.1039/DT9790000854](https://doi.org/10.1039/DT9790000854) |
+| Status | shipped |
+| Verification | citation + claim |
+| Verified | 2026-11-14 |
+| Local copy | `alcock1979.pdf` (not checked) |
+| Used by | `src/openchem/chem/vsepr_geometry.py`, `tests/test_vsepr_geometry.py`, `docs/HYPERVALENT_COVERAGE_DESIGN.md` |
+
+Table 2 read. PhI(OAc)2 at -60 C, Pnn2, R 0.021: I-O 2.159 (5) and 2.153 (5), I-C 2.090 (6) A, O-I-O 164.0 (2), O-I-C 81.4 (2) and 82.6 (3) degrees, T-shaped; the carbonyl oxygens make intramolecular secondary contacts (O(2)-I-O(4) 95.2 degrees). Shipped as the PhI(OAc)2 core row of the hybrid builder.
+
+### lee1977 — Iodobenzene diacetate
+
+<a id="lee1977"></a>
+
+> C.-K. Lee, T. C. W. Mak, W.-K. Li & J. F. Kirner, 'Iodobenzene diacetate', Acta Cryst. B33, 1620-1622 (1977)
+
+| | |
+| --- | --- |
+| Identifier | [10.1107/S0567740877006694](https://doi.org/10.1107/S0567740877006694) |
+| Status | shipped |
+| Verification | citation + claim |
+| Verified | 2026-11-14 |
+| Local copy | `lee1977.pdf` (not checked) |
+| Used by | `src/openchem/chem/vsepr_geometry.py`, `tests/test_vsepr_geometry.py`, `docs/HYPERVALENT_COVERAGE_DESIGN.md` |
+
+Table 2 read. The first structure of PhI(OAc)2, independent of Alcock 1979: I-C 2.093 (9), I-O 2.186 (9) and 2.143 (8) A, C-I-O 81.6 (4) twice, O-I-O 163.2 (3) degrees. Agrees with Alcock within the esds; used as the cross-check of the PhI(OAc)2 core row.
+
+### poynder2021 — On the activation of PhICl2 with pyridine
+
+<a id="poynder2021"></a>
+
+> T. B. Poynder, A. I. Chamorro Orue, Tania, L. Sharp-Bucknall, M. T. Flynn, D. J. D. Wilson, K. S. Athukorala Arachchige, J. K. Clegg & J. L. Dutton, 'On the activation of PhICl2 with pyridine', Chem. Commun. 57, 4970-4973 (2021)
+
+| | |
+| --- | --- |
+| Identifier | [10.1039/d1cc01567b](https://doi.org/10.1039/d1cc01567b) |
+| Status | shipped |
+| Verification | citation + claim |
+| Verified | 2026-11-14 |
+| Local copy | `poynder2021.pdf` (not checked) |
+| Used by | `src/openchem/chem/vsepr_geometry.py`, `tests/test_vsepr_geometry.py`, `docs/HYPERVALENT_COVERAGE_DESIGN.md` |
+
+The Supporting Information's CIF (data block PhICl2_IAM, 100 (2) K) read: I-Cl 2.50592 (11) and 2.48319 (12), I-C 2.0977 (4) A; Cl-I-Cl 176.701 (4), C-I-Cl 88.900 (10) and 88.035 (10) degrees. A T with the chlorines axial. Shipped as the PhICl2 core row of the hybrid builder.
+
+### du2016 — Single crystal X-ray structural features of aromatic compounds having a pentafluorosulfuranyl (SF5) functional group
+
+<a id="du2016"></a>
+
+> J. Du, G. Hua, P. Beier, A. M. Z. Slawin & J. D. Woollins, 'Single crystal X-ray structural features of aromatic compounds having a pentafluorosulfuranyl (SF5) functional group', Struct. Chem. 28, 723-733 (2017; online 2016)
+
+| | |
+| --- | --- |
+| Identifier | [10.1007/s11224-016-0854-2](https://doi.org/10.1007/s11224-016-0854-2) |
+| Status | shipped |
+| Verification | citation + claim |
+| Verified | 2026-11-14 |
+| Local copy | `du2016.pdf` (not checked) |
+| Used by | `src/openchem/chem/vsepr_geometry.py`, `tests/test_vsepr_geometry.py`, `docs/HYPERVALENT_COVERAGE_DESIGN.md` |
+
+Text read (the individual bond tables are in its Supporting Information, which is not held). Nine aryl-SF5 crystals: S-F axial 1.568 (4) to 1.607 (3), S-F equatorial 1.572 (3) to 1.618 (3), S-C 1.785 (3) to 1.823 (4) A, C-S-F equatorial 91.3 (2) to 93.50 (13), C-S-F axial 178.9 to 180 degrees; the SF5 group is an umbrella, staggered with respect to the ring. Used with espiet2020 for the aryl-SF5 core row, at the MIDPOINTS of the ranges.
+
+### espiet2020 — Structural characterization and Hirshfeld surface analysis of 2-iodo-4-(pentafluoro-lambda6-sulfanyl)benzonitrile
+
+<a id="espiet2020"></a>
+
+> J. A. Gonzalez Espiet, J. A. Cintron Cruz & D. M. Pinero Cruz, 'Structural characterization and Hirshfeld surface analysis of 2-iodo-4-(pentafluoro-lambda6-sulfanyl)benzonitrile', Acta Cryst. E76, 231-234 (2020)
+
+| | |
+| --- | --- |
+| Identifier | [10.1107/S2056989020000365](https://doi.org/10.1107/S2056989020000365) |
+| Status | shipped |
+| Verification | citation + claim |
+| Verified | 2026-11-14 |
+| Local copy | `Espiet2020.pdf` (not checked) |
+| Used by | `src/openchem/chem/vsepr_geometry.py`, `tests/test_vsepr_geometry.py`, `docs/HYPERVALENT_COVERAGE_DESIGN.md` |
+
+Table 1 and the geometry listing read (300 K): S-F equatorial 1.561 (4) and 1.572 (3), S-F axial 1.582 (5), S-C 1.823 (7) A, F(ax)-S-C 179.4 (3), C-S-F(eq) 92.0 and 92.2 (2) degrees. One more aryl-SF5 crystal, inside the ranges of du2016; used for the aryl-SF5 core row.
+
+### christe1993 — Heptacoordination: pentagonal bipyramidal XeF7+ and TeF7- ions
+
+<a id="christe1993"></a>
+
+> K. O. Christe, D. A. Dixon, J. C. P. Sanders, G. J. Schrobilgen & W. W. Wilson, 'Heptacoordination: pentagonal bipyramidal XeF7+ and TeF7- ions', J. Am. Chem. Soc. 115, 9461-9467 (1993)
+
+| | |
+| --- | --- |
+| Identifier | [10.1021/ja00074a011](https://doi.org/10.1021/ja00074a011) |
+| Status | reference only |
+| Verification | citation |
+| Verified | 2026-11-14 |
+| Local copy | `christe1993.pdf` (not checked) |
+| Used by | `docs/HYPERVALENT_COVERAGE_DESIGN.md` |
+
+**Why it is reference only.** Read for the abstract. TeF7- by vibrational and 19F/125Te NMR spectroscopy plus ab initio and density-functional calculations on TeF7-, IF7 and XeF7+: all three are pentagonal bipyramids at equilibrium. No measured structure, so nothing is added to the TeF7- row (zhang1997 has the crystal).
+
+### burbank1970 — Xenon hexafluoride: structure of a cubic phase at -80 C
+
+<a id="burbank1970"></a>
+
+> R. D. Burbank & G. R. Jones, 'Xenon hexafluoride: structure of a cubic phase at -80 C', Science 168, 248-249 (1970)
+
+| | |
+| --- | --- |
+| Identifier | [10.1126/science.168.3928.248](https://doi.org/10.1126/science.168.3928.248) |
+| Status | reference only |
+| Verification | citation |
+| Verified | 2026-11-14 |
+| Local copy | `burbank1970.pdf` (not checked) |
+| Used by | `docs/HYPERVALENT_COVERAGE_DESIGN.md` |
+
+**Why it is reference only.** Held (the PDF's first page is another article). The crystal structure of a cubic phase of XeF6 at -80 C: XeF5+ and F- in tetrameric and hexameric rings, no simple molecules. Not a molecular geometry; not used.
+
+### burbank1971 — Xenon hexafluoride: structural crystallography of tetrameric phases
+
+<a id="burbank1971"></a>
+
+> R. D. Burbank & G. R. Jones, 'Xenon hexafluoride: structural crystallography of tetrameric phases', Science 171, 485-487 (1971)
+
+| | |
+| --- | --- |
+| Identifier | [10.1126/science.171.3970.485](https://doi.org/10.1126/science.171.3970.485) |
+| Status | reference only |
+| Verification | citation |
+| Verified | 2026-11-14 |
+| Local copy | `burbank1971.pdf` (not checked) |
+| Used by | `docs/HYPERVALENT_COVERAGE_DESIGN.md` |
+
+**Why it is reference only.** Held (the PDF's first page is another article). Further solid XeF6 phases built of tetramers; not a molecular geometry; not used.
+
+### muetterties1957 — Fluorotellurates
+
+<a id="muetterties1957"></a>
+
+> E. L. Muetterties, 'Fluorotellurates', J. Am. Chem. Soc. 79, 1004 (1957)
+
+| | |
+| --- | --- |
+| Identifier | [10.1021/ja01561a067](https://doi.org/10.1021/ja01561a067) |
+| Status | reference only |
+| Verification | citation |
+| Verified | 2026-11-14 |
+| Local copy | `muetterties1957.pdf` (not checked) |
+| Used by | `docs/HYPERVALENT_COVERAGE_DESIGN.md` |
+
+**Why it is reference only.** Held (a one-page letter on a page shared with another article). Preparation of 2MF.TeF6 fluorotellurates and X-ray powder patterns; no structure. Not used.
+
+### carey1996 — D. M. P. Carey, P. S. Chaloner, P. B. Hitchcock, D. Neugebauer & K. R. Seddon, low-temperature crystal…
+
+<a id="carey1996"></a>
+
+> D. M. P. Carey, P. S. Chaloner, P. B. Hitchcock, D. Neugebauer & K. R. Seddon, low-temperature crystal structure of (dichloroiodo)benzene, J. Chem. Res. (S) 358 (1996); CSD refcode BENICL01, CCDC 1108655
+
+| | |
+| --- | --- |
+| Identifier | J. Chem. Res. (S) 1996, 358; CSD BENICL01 (CCDC 1108655); the journal synopsis has no DOI |
+| Status | reference only |
+| Verification | citation |
+| Verified | 2026-11-14 |
+| Local copy | `cif files/BENICLO1.cif` (not checked) |
+| Used by | `docs/HYPERVALENT_COVERAGE_DESIGN.md` |
+
+**Why it is reference only.** The held file is the CSD entry's CIF (173 K, P21/c, R 0.054), which carries a cell and fractional coordinates but no printed geometry; the values were COMPUTED here from them (the authors' list was not read, so the attribution to Carey, Chaloner, Hitchcock, Neugebauer and Seddon rests on the search lead that CSD BENICL01 is their 1996 low-temperature PhICl2 structure and on the compound and temperature agreeing): I-Cl 2.474 and 2.497, I-C 2.119 A, Cl-I-Cl 176.65, C-I-Cl 87.86 and 89.22 degrees, with an esd of about 0.01 A. It agrees with the 100 K determination of poynder2021 (I-Cl 2.5059 and 2.4832, I-C 2.0977 A, esds 0.0001 to 0.0004) within its esds, which is the better-determined and is the row's source. The CSD's terms forbid redistributing the file, so only these computed numbers are recorded.
 
 ## Datasets
 

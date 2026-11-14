@@ -680,6 +680,8 @@ def _implausible_bonds(outcome) -> list[tuple[int, int, float]]:
     bad = []
     for b in outcome.molecule.GetBonds():
         i, j = b.GetBeginAtomIdx(), b.GetEndAtomIdx()
+        if outcome.geometry.centre_index in (i, j):
+            continue  # the core's own bonds are the table's (an iodine bond is 2.1 to 2.5 A) and are checked against it
         d = float(np.linalg.norm(points[i] - points[j]))
         if not 0.95 <= d <= 1.95:
             bad.append((i, j, round(d, 2)))
@@ -758,6 +760,91 @@ def test_methylphosphorane_core_reproduces_the_published_gas_phase_lengths():
 
 
 def test_a_hypervalent_organic_with_no_row_keeps_the_ordinary_path():
-    """Phenyl-SF5 and phenyl-iodine diacetate have no measured core here: unchanged behaviour, not a refusal; and ordinary molecules are untouched."""
-    for smiles in ("FS(F)(F)(F)(F)c1ccccc1", "CC(=O)OI(OC(C)=O)c1ccccc1", "CCO", "c1ccccc1P(c1ccccc1)c1ccccc1", "CS(C)=O"):
+    """Phenyl-IF2 has no measured core here: unchanged behaviour, not a refusal; and ordinary molecules are untouched."""
+    for smiles in ("FI(F)c1ccccc1", "CCO", "c1ccccc1P(c1ccccc1)c1ccccc1", "CS(C)=O", "O=S(=O)(c1ccccc1)N"):
         assert build_vsepr_geometry(Chem.MolFromSmiles(smiles)).kind is Kind.NOT_APPLICABLE, smiles
+
+
+
+def _core_ligands(outcome, symbol):
+    mol = outcome.molecule
+    return [i for i in outcome.geometry.ligand_indices if mol.GetAtomWithIdx(i).GetSymbol() == symbol]
+
+
+def test_phenyliodine_diacetate_core_reproduces_the_crystals_angles_and_has_every_atom():
+    """Alcock 1979 (-60 C): I-O 2.156 (mean), I-C 2.090 A, O-I-O 164.0 and O-I-C 81.4 and 82.6; the angles are the published ones."""
+    smiles = "CC(=O)OI(OC(C)=O)c1ccccc1"
+    outcome = _grafted(smiles)
+    g, mol = outcome.geometry, outcome.molecule
+    p, c = g.coordinates, g.centre_index
+    assert mol.GetNumAtoms() == 26, "C10H11IO4: every hydrogen is there"
+    oxygens, carbon = _core_ligands(outcome, "O"), _core_ligands(outcome, "C")[0]
+    assert all(_bond(p, c, i) == pytest.approx(2.156, abs=1e-6) for i in oxygens)
+    assert _bond(p, c, carbon) == pytest.approx(2.090, abs=1e-6)
+    assert _angle(p, oxygens[0], c, oxygens[1]) == pytest.approx(164.0, abs=1e-6)
+    assert all(81.4 - 0.01 <= _angle(p, o, c, carbon) <= 82.6 + 0.01 for o in oxygens), "inside the two published O-I-C angles"
+    assert g.reference.evidence == "measured" and _implausible_bonds(outcome) == []
+    assert all(i in g.axial_indices for i in oxygens) and carbon in g.equatorial_indices
+
+
+def test_phenyliodine_dichloride_core_reproduces_the_crystals_lengths_and_angle():
+    """Poynder 2021 CIF (100 K): I-Cl 2.5059 and 2.4832, I-C 2.0977 A, Cl-I-Cl 176.701 and C-I-Cl 88.900 and 88.035 degrees."""
+    outcome = _grafted("ClI(Cl)c1ccccc1")
+    g, mol = outcome.geometry, outcome.molecule
+    p, c = g.coordinates, g.centre_index
+    assert mol.GetNumAtoms() == 14
+    chlorines, carbon = _core_ligands(outcome, "Cl"), _core_ligands(outcome, "C")[0]
+    assert all(_bond(p, c, i) == pytest.approx(2.4946, abs=1e-6) for i in chlorines)
+    assert _bond(p, c, carbon) == pytest.approx(2.0977, abs=1e-6)
+    assert _angle(p, chlorines[0], c, chlorines[1]) == pytest.approx(176.701, abs=0.3), "implied by the mean 88.47 each; the crystal's 176.701 is inside 0.3"
+    assert all(88.035 - 0.01 <= _angle(p, i, c, carbon) <= 88.900 + 0.01 for i in chlorines)
+
+
+def test_aryl_sf5_core_is_an_umbrella_octahedron_inside_the_published_ranges():
+    """Du 2016 and Espiet 2020: S-F axial 1.568 to 1.607, S-F equatorial 1.572 to 1.618, S-C 1.785 to 1.823 A, C-S-F equatorial 91.3 to 93.5, C-S-F axial 178.9 to 180."""
+    outcome = _grafted("FS(F)(F)(F)(F)c1ccccc1")
+    g, mol = outcome.geometry, outcome.molecule
+    p, c = g.coordinates, g.centre_index
+    assert mol.GetNumAtoms() == 17
+    carbon = _core_ligands(outcome, "C")[0]
+    fluorines = _core_ligands(outcome, "F")
+    assert _bond(p, c, carbon) == pytest.approx(1.804, abs=1e-6) and 1.785 <= _bond(p, c, carbon) <= 1.823
+    lengths = sorted(round(_bond(p, c, i), 4) for i in fluorines)
+    assert lengths == [1.5875, 1.595, 1.595, 1.595, 1.595] and all(1.568 <= x <= 1.618 for x in lengths)
+    angles = sorted(round(_angle(p, carbon, c, i), 1) for i in fluorines)
+    assert angles == [92.4] * 4 + [180.0] and 91.3 <= 92.4 <= 93.5
+    assert g.reference.evidence == "measured" and _implausible_bonds(outcome) == []
+
+
+@pytest.mark.parametrize(
+    ("smiles", "tier"),
+    [
+        ("FS(F)(F)(F)(F)c1ccccc1", "measured"),
+        ("CS(F)(F)(F)(F)F", "estimated"),
+        ("CC(=O)OI(OC(C)=O)c1ccccc1", "measured"),
+        ("CC(=O)OI(OC(C)=O)C", "estimated"),
+        ("OI(O)c1ccccc1", "estimated"),
+        ("ClI(Cl)c1ccccc1", "measured"),
+        ("ClI(Cl)C", "estimated"),
+    ],
+)
+def test_the_reagent_cores_are_measured_only_for_the_kind_of_ligand_that_was_measured(smiles, tier):
+    assert _grafted(smiles).geometry.reference.evidence == tier
+
+
+
+def test_ph3f2_drawn_with_explicit_hydrogens_is_built_too():
+    """A drawing carries a hydrogen on phosphorus only as an atom: written that way the molecule is a bare five-ligand star and takes the table's PH3F2 row directly."""
+    params = Chem.SmilesParserParams()
+    params.removeHs = False
+    mol = Chem.MolFromSmiles("FP(F)([H])([H])[H]", params)
+    assert mol.GetNumAtoms() == 6
+    outcome = build_vsepr_geometry(mol)
+    assert outcome.kind is Kind.BUILT, outcome.reason
+    g = outcome.geometry
+    p, c = g.coordinates, g.centre_index
+    hydrogens = [i for i in g.ligand_indices if mol.GetAtomWithIdx(i).GetSymbol() == "H"]
+    fluorines = [i for i in g.ligand_indices if mol.GetAtomWithIdx(i).GetSymbol() == "F"]
+    assert all(_bond(p, c, i) == pytest.approx(1.394, abs=1e-6) for i in hydrogens)
+    assert all(_bond(p, c, i) == pytest.approx(1.6468, abs=1e-6) for i in fluorines)
+    assert _angle(p, fluorines[0], c, fluorines[1]) == pytest.approx(180.0, abs=1e-6)
