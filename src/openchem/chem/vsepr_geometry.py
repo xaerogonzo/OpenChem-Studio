@@ -351,6 +351,33 @@ _ENTRIES = (
         (("Cl", 2.0301), ("F", 1.576)) + (("F", 1.576),) * 4,
         "c4v_octahedron",
     ),
+    # Two more CRYSTAL structures, from the papers (2026-11-14). In each the molecule or ion is bridged to its neighbours by longer contacts, which are omitted.
+    Reference(
+        "I",
+        "F",
+        3,
+        1.983,
+        1.872,
+        {"ax-eq": 80.2},
+        "Hoyer and Seppelt 2000, Angew Chem Int Ed 39, 1448 [source:hoyer2000]",
+        "single-crystal X-ray, -135 C: I-F 198.3 (0.3) twice and 187.2 (0.4) pm, F-I-F 160.3 (0.2) and 80.2 (0.1) degrees; a planar T, but "
+        "the solid is polymeric through I...F bridges of 276.9 pm, which are omitted (IF3 decomposes above -28 C and has no gas-phase structure)",
+        True,
+    ),
+    Reference(
+        "Cl",
+        "F",
+        4,
+        1.617,
+        1.530,
+        {"ax-ax": 173.92, "eq-eq": 103.08, "ax-eq": 88.1},
+        "Christe, Zhang, Sheehy and Bau 2001, J Am Chem Soc 123, 6338 [source:christe2001]",
+        "single-crystal X-ray of ClF4+SbF6-: Cl-F 1.617 (0.002) axial, 1.527 and 1.532 (0.002) equatorial (mean 1.530), F-Cl-F 173.92 axial, "
+        "103.08 equatorial, 88.1 axial-equatorial; two longer Cl...F contacts of 2.41 and 2.43 A to anions are omitted, and they compress the equatorial angle "
+        "(the free cation calculates near 109.7)",
+        True,
+        1,
+    ),
     # The two anions are CRYSTAL structures: the ion is in an ionic lattice, where a Cl-F or Xe-F distance moves by a few
     # hundredths of an Angstrom with the counter-ion (ClF4- spans 1.73 to 1.87 A between salts).
     Reference(

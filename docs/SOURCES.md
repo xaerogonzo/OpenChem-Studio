@@ -1,5 +1,5 @@
 <!-- GENERATED FROM docs/sources.toml -- do not edit -->
-<!-- SOURCE SHA256: bd1003b282e74aa31b6f4007795959ddfa49f4bdb451d5028eda511da064c2f3 -->
+<!-- SOURCE SHA256: dfa34d4edbf005ceafc56ef2326bcf94a687c90841925d3936efbf4a64fef9cd -->
 
 # Sources
 
@@ -139,6 +139,7 @@ Title and DOI first; the `key` is what prose and code cite (`[source:key]`) and 
 | Leucopterin, the white pigment in butterfly wings: structural analysis by PDF fit, FIDEL fit, Rietveld refinement, solid-state NMR and DFT-D | [10.1107/S2052252523004281](https://doi.org/10.1107/S2052252523004281) | [`bravetti2023`](#bravetti2023) | literature | shipped | citation |
 | How Well Can We Predict Mass Spectra from Structures? Benchmarking Competitive Fragmentation Modeling for Metabolite Identification on Untrained Tandem Mass Spectra | [10.1021/acs.jcim.2c00936](https://doi.org/10.1021/acs.jcim.2c00936) | [`bremer2022`](#bremer2022) | literature | reference only | citation |
 | Lessons Learnt from Assembling Screening Libraries for Drug Discovery for Neglected Diseases | [10.1002/cmdc.200700139](https://doi.org/10.1002/cmdc.200700139) | [`brenk2008`](#brenk2008) | literature | shipped | citation |
+| XeOF2, F2OXeN=CCH3, and XeOF2.nHF: Rare Examples of Xe(IV) Oxide Fluorides | [10.1021/ja0673480](https://doi.org/10.1021/ja0673480) | [`brock2007`](#brock2007) | literature | reference only | citation |
 | The determination of the structures of the hexafluorides of sulfur, selenium and tellurium by the electron diffraction method | [10.1073/pnas.19.1.68](https://doi.org/10.1073/pnas.19.1.68) | [`brockway1933`](#brockway1933) | literature | reference only | citation |
 | Prototropic tautomerism and basic molecular principles of hypoxanthine mutagenicity: an exhaustive quantum-chemical analysis | [10.1080/07391102.2012.715041](https://doi.org/10.1080/07391102.2012.715041) | [`brovarets2013`](#brovarets2013) | literature | reference only | citation |
 | Intensity of diffracted intensities |  | [`brown2006`](#brown2006) | literature | **not shipped** | citation |
@@ -157,6 +158,7 @@ Title and DOI first; the `key` is what prose and code cite (`[source:key]`) and 
 | Experimental and quantum-chemical studies on photoionization and dissociative photoionization of CH2Br2 | [10.1063/1.1641010](https://doi.org/10.1063/1.1641010) | [`chiang2004`](#chiang2004) | literature | reference only | citation + claim |
 | The tetrafluoroiodate(III) anion, IF4- | [10.1021/ic50119a016](https://doi.org/10.1021/ic50119a016) | [`christe1973`](#christe1973) | literature | reference only | citation |
 | The Pentafluoroxenate(IV) Anion, XeF5-: The First Example of a Pentagonal Planar AX5 Species | [10.1021/ja00009a021](https://doi.org/10.1021/ja00009a021) | [`christe1991`](#christe1991) | literature | shipped | citation + claim |
+| Crystal Structure of ClF4+SbF6-, Normal Coordinate Analyses of ClF4+, BrF4+, IF4+, SF4, SeF4, and TeF4, and Simple Method for Calculating the Effects of Fluorine Bridging... | [10.1021/ja003347a](https://doi.org/10.1021/ja003347a) | [`christe2001`](#christe2001) | literature | shipped | citation + claim |
 | A New Population Analysis Based on Atomic Polar Tensors | [10.1021/ja00204a001](https://doi.org/10.1021/ja00204a001) | [`cioslowski1989`](#cioslowski1989) | literature | reference only | citation |
 | General and Unique Partitioning of Molecular Electronic Properties into Atomic Contributions | [10.1103/PhysRevLett.62.1469](https://doi.org/10.1103/PhysRevLett.62.1469) | [`cioslowski1989prl`](#cioslowski1989prl) | literature | reference only | citation + claim |
 | The isotope distribution: A rose with thorns | [10.1002/mas.21820](https://doi.org/10.1002/mas.21820) | [`claesen2023`](#claesen2023) | literature | reference only | citation |
@@ -186,6 +188,7 @@ Title and DOI first; the `key` is what prose and code cite (`[source:key]`) and 
 | Investigation of Next-Generation Visible Light-Producing Pyrotechnics | <https://edoc.ub.uni-muenchen.de/37604/> | [`dufter2026`](#dufter2026) | literature | shipped | citation + claim |
 | Organic Fluorine Hardly Ever Accepts Hydrogen Bonds | [10.1002/chem.19970030115](https://doi.org/10.1002/chem.19970030115) | [`dunitz1997`](#dunitz1997) | literature | shipped | citation + claim |
 | Organic Fluorine: Odd Man Out | [10.1002/cbic.200300801](https://doi.org/10.1002/cbic.200300801) | [`dunitz2004`](#dunitz2004) | literature | shipped | citation + claim |
+| The Crystal Structures of ClF3O, BrF3O, and [NO][BrF4O] | [10.1002/1521-3749(200209)628:9/10<1991::AID-ZAAC1991>3.0.CO;2-1](https://doi.org/10.1002/1521-3749(200209)628:9/10<1991::AID-ZAAC1991>3.0.CO;2-1) | [`ellern2002`](#ellern2002) | literature | reference only | citation |
 | Fast Calculation of Molecular Polar Surface Area as a Sum of Fragment-Based Contributions and Its Application to the Prediction of Drug Transport Properties | [10.1021/jm000942e](https://doi.org/10.1021/jm000942e) | [`ertl2000`](#ertl2000) | literature | shipped | citation |
 | Natural Product-likeness Score and Its Application for Prioritization of Compound Libraries | [10.1021/ci700286x](https://doi.org/10.1021/ci700286x) | [`ertl2008`](#ertl2008) | literature | shipped | citation |
 | Estimation of synthetic accessibility score of drug-like molecules based on molecular complexity and fragment contributions | [10.1186/1758-2946-1-8](https://doi.org/10.1186/1758-2946-1-8) | [`ertl2009`](#ertl2009) | literature | shipped | citation |
@@ -234,6 +237,7 @@ Title and DOI first; the `key` is what prose and code cite (`[source:key]`) and 
 | A study of the valence shell electronic states of s-triazine by photoabsorption spectroscopy and ab initio calculations | [10.1016/j.chemphys.2016.07.019](https://doi.org/10.1016/j.chemphys.2016.07.019) | [`holland2016`](#holland2016) | literature | reference only | citation |
 | An experimental and theoretical study of the valence shell photoelectron spectra of 2-chloropyridine and 3-chloropyridine | [10.1063/1.4999433](https://doi.org/10.1063/1.4999433) | [`holland2017`](#holland2017) | literature | shipped | citation + claim |
 | Findings of the challenge to predict aqueous solubility |  | [`hopfinger2009`](#hopfinger2009) | dataset | shipped | citation |
+| The structure of IF3 | [10.1002/(SICI)1521-3773(20000417)39:8<1448::AID-ANIE1448>3.0.CO;2-G](https://doi.org/10.1002/(SICI)1521-3773(20000417)39:8<1448::AID-ANIE1448>3.0.CO;2-G) | [`hoyer2000`](#hoyer2000) | literature | shipped | citation + claim |
 | Molecular Spectra and Molecular Structure IV. Constants of Diatomic Molecules |  | [`huber1979`](#huber1979) | literature | reference only | citation + claim |
 | Evaluated Gas Phase Basicities and Proton Affinities of Molecules: An Update | [10.1063/1.556018](https://doi.org/10.1063/1.556018) | [`hunter1998`](#hunter1998) | literature | reference only | citation + claim |
 | Biopharmaceutics Classification System-Based Biowaivers M9 | ICH M9 (Step 4, 20 November 2019) | [`ich_m9`](#ich_m9) | standard | shipped | citation + claim |
@@ -390,6 +394,7 @@ Title and DOI first; the `key` is what prose and code cite (`[source:key]`) and 
 | Comparative Assessment of Scoring Functions: The CASF-2016 Update | [10.1021/acs.jcim.8b00545](https://doi.org/10.1021/acs.jcim.8b00545) | [`su2019`](#su2019) | literature | shipped | citation + claim |
 | A computer simulation method for the calculation of equilibrium constants for the formation of physical clusters of molecules: Application to small water clusters | [10.1063/1.442716](https://doi.org/10.1063/1.442716) | [`swope1982`](#swope1982) | literature | shipped | citation + claim |
 | Therapeutics Data Commons: Machine Learning Datasets and Tasks for Drug Discovery and Development | <https://tdcommons.ai/> | [`tdc_admet`](#tdc_admet) | dataset | reference only | citation |
+| Crystal and molecular structure of xenon trioxide | [10.1021/ja00889a037](https://doi.org/10.1021/ja00889a037) | [`templeton1963`](#templeton1963) | literature | reference only | citation |
 | Influence of Protonation, Tautomeric, and Stereoisomeric States on Protein-Ligand Docking Results | [10.1021/ci800420z](https://doi.org/10.1021/ci800420z) | [`tenbrink2009`](#tenbrink2009) | literature | shipped | citation + claim |
 | Chemical reactivity and selectivity using Fukui functions: basis set and population scheme dependence in the framework of B3LYP theory | [10.1007/s00214-002-0352-z](https://doi.org/10.1007/s00214-002-0352-z) | [`thanikaivelan2002`](#thanikaivelan2002) | literature | shipped | citation + claim |
 | More reliable partial atomic charges when using diffuse basis sets | [10.1039/B206369G](https://doi.org/10.1039/B206369G) | [`thompson2002`](#thompson2002) | literature | reference only | citation |
@@ -8611,6 +8616,91 @@ Abstract read. Gas electron diffraction, r-alpha: Cl=O 1.405 (3), Cl-F equatoria
 | Used by | `docs/HYPERVALENT_COVERAGE_DESIGN.md` |
 
 **Why it is reference only.** Abstract read. The infrared and Raman spectra of IF4- fit a square-planar D4h anion (the earlier nonplanar assignment was IF6-). No bond lengths, so nothing can be built from it; IF4- stays unsupported until a structure is found. The held PDF begins with an unrelated page and was identified by its abstract.
+
+### hoyer2000 — The structure of IF3
+
+<a id="hoyer2000"></a>
+
+> S. Hoyer & K. Seppelt, 'The structure of IF3', Angew. Chem. Int. Ed. 39, 1448-1449 (2000)
+
+| | |
+| --- | --- |
+| Identifier | [10.1002/(SICI)1521-3773(20000417)39:8<1448::AID-ANIE1448>3.0.CO;2-G](https://doi.org/10.1002/(SICI)1521-3773(20000417)39:8<1448::AID-ANIE1448>3.0.CO;2-G) |
+| Status | shipped |
+| Verification | citation + claim |
+| Verified | 2026-11-14 |
+| Local copy | `hoyer2000.pdf` (not checked) |
+| Used by | `src/openchem/chem/vsepr_geometry.py`, `tests/test_vsepr_geometry.py`, `docs/HYPERVALENT_COVERAGE_DESIGN.md` |
+
+Read from the rendered pages (the text layer is garbled). Single-crystal X-ray at -135 C, Pcmn: I-F1 198.3 (3) twice and I-F2 187.2 (4) pm, F1-I-F2 80.2 (1), F1-I-F1' 160.3 (2) degrees, bridging I...F 276.9 (3) pm. A planar T in a polymeric solid; the bridges are omitted from the built molecule. IF3 has no gas-phase structure (it decomposes above -28 C). The same paper gives the I(OTeF5)3 crystal (not used).
+
+### christe2001 — Crystal Structure of ClF4+SbF6-, Normal Coordinate Analyses of ClF4+, BrF4+, IF4+, SF4, SeF4, and TeF4, and Simple Method for Calculating the Effects of Fluorine Bridging...
+
+<a id="christe2001"></a>
+
+> K. O. Christe, X. Zhang, J. A. Sheehy & R. Bau, 'Crystal Structure of ClF4+SbF6-, Normal Coordinate Analyses of ClF4+, BrF4+, IF4+, SF4, SeF4, and TeF4, and Simple Method for Calculating the Effects of Fluorine Bridging...', J. Am. Chem. Soc. 123, 6338-6349 (2001)
+
+| | |
+| --- | --- |
+| Identifier | [10.1021/ja003347a](https://doi.org/10.1021/ja003347a) |
+| Status | shipped |
+| Verification | citation + claim |
+| Verified | 2026-11-14 |
+| Local copy | `christe2001.pdf` (not checked) |
+| Used by | `src/openchem/chem/vsepr_geometry.py`, `tests/test_vsepr_geometry.py`, `docs/HYPERVALENT_COVERAGE_DESIGN.md` |
+
+Distances and angles table read. ClF4+ in ClF4+SbF6- (crystal): Cl-F 1.617 (2) axial, 1.527 (2) and 1.532 (2) equatorial; F-Cl-F 173.92 (13) axial, 103.08 (12) equatorial, 88.16 (6) and 88.06 (6) between them; two Cl...F contacts of 2.41 and 2.43 A to the anions, omitted. Those contacts compress the equatorial angle; the free cation calculates near 109.7 degrees, which is not used.
+
+### ellern2002 — The Crystal Structures of ClF3O, BrF3O, and [NO][BrF4O]
+
+<a id="ellern2002"></a>
+
+> A. Ellern, J. A. Boatz, K. O. Christe, T. Drews & K. Seppelt, 'The Crystal Structures of ClF3O, BrF3O, and [NO][BrF4O]', Z. Anorg. Allg. Chem. 628, 1991-1999 (2002)
+
+| | |
+| --- | --- |
+| Identifier | [10.1002/1521-3749(200209)628:9/10<1991::AID-ZAAC1991>3.0.CO;2-1](https://doi.org/10.1002/1521-3749(200209)628:9/10<1991::AID-ZAAC1991>3.0.CO;2-1) |
+| Status | reference only |
+| Verification | citation |
+| Verified | 2026-11-14 |
+| Local copy | `ellern2002.pdf` (not checked) |
+| Used by | `docs/HYPERVALENT_COVERAGE_DESIGN.md` |
+
+**Why it is reference only.** Tables 1 and 4 read. BrF3O crystal (two independent molecules, pm): Br-F axial 182.0 and 183.9 (I), 182.2 and 183.6 (II); Br-F equatorial 172.5 and 169.2; Br=O 156.9 and 160.6; F(ax)-Br-F(ax) 169.8 and 174.4; F(eq)-Br-O 103.3 and 105.0. [BrF4O]- in [NO][BrF4O]: Br=O 157.5 (3), Br-F 184.6 (2) and 191.2 (2) pm in the table but 193.6 pm in the text for the bridged bond, F-Br-O about 93. NOT shipped: the paper does not give the angle that places the axial pair of BrF3O, so it would be assumed, and the two Br-F values of [BrF4O]- disagree between text and table. The ClF3O crystal values are not used either: the gas-phase structure (oberhammer1982) is better.
+
+### brock2007 — XeOF2, F2OXeN=CCH3, and XeOF2.nHF: Rare Examples of Xe(IV) Oxide Fluorides
+
+<a id="brock2007"></a>
+
+> D. S. Brock, V. Bilir, H. P. A. Mercier & G. J. Schrobilgen, 'XeOF2, F2OXeN=CCH3, and XeOF2.nHF: Rare Examples of Xe(IV) Oxide Fluorides', J. Am. Chem. Soc. 129, 3598-3611 (2007)
+
+| | |
+| --- | --- |
+| Identifier | [10.1021/ja0673480](https://doi.org/10.1021/ja0673480) |
+| Status | reference only |
+| Verification | citation |
+| Verified | 2026-11-14 |
+| Local copy | `brock2007.pdf` (not checked) |
+| Used by | `docs/HYPERVALENT_COVERAGE_DESIGN.md` |
+
+**Why it is reference only.** Read for structure. XeOF2 itself is characterised by Raman spectra and calculation as a weakly associated planar T-shaped monomer; the X-ray structure determined is that of the CH3CN adduct F2OXeNCCH3 (Xe=O 1.778 and 1.782 (4), Xe-F 1.952 to 1.981 (3) A, F-Xe-F 174.2 (2) and 171.9 (1) degrees, with a long Xe...N contact). No measured geometry of free XeOF2 exists, so it is not built.
+
+### templeton1963 — Crystal and molecular structure of xenon trioxide
+
+<a id="templeton1963"></a>
+
+> D. H. Templeton, A. Zalkin, J. D. Forrester & S. M. Williamson, 'Crystal and molecular structure of xenon trioxide', J. Am. Chem. Soc. 85, 817 (1963)
+
+| | |
+| --- | --- |
+| Identifier | [10.1021/ja00889a037](https://doi.org/10.1021/ja00889a037) |
+| Status | reference only |
+| Verification | citation |
+| Verified | 2026-11-14 |
+| Local copy | `templeton1963.pdf` (not checked) |
+| Used by | `docs/HYPERVALENT_COVERAGE_DESIGN.md` |
+
+**Why it is reference only.** Read. XeO3 is a trigonal pyramid in the crystal: Xe-O 1.74, 1.76 and 1.77 (0.03) A, mean 1.76 A, O-Xe-O mean 103 degrees. NOT shipped: a trigonal pyramid (three bonds and a lone pair) has no template yet, three double bonds are outside the oxo rule, and the 1963 values carry 0.03 A.
 
 ## Datasets
 

@@ -82,6 +82,8 @@ CASES = [
     ("F[Se](F)(F)(F)(F)F", "AX6", "octahedral", 1.685, 1.685),
     ("Cl[Te](Cl)(Cl)Cl", "AX4E", "seesaw", 2.430, 2.298),
     ("F[Cl-](F)(F)F", "AX4E2", "square planar", 1.7982, 1.7982),
+    ("FI(F)F", "AX3E2", "T-shaped", 1.983, 1.872),
+    ("F[Cl+](F)(F)F", "AX4E", "seesaw", 1.617, 1.530),
     ("F[Xe-](F)(F)(F)F", "AX5E2", "pentagonal planar", 2.012, 2.012),
 ]
 
@@ -247,7 +249,7 @@ def test_xef5_anion_is_a_planar_regular_pentagon():
 def test_the_charge_is_part_of_the_reference_key():
     """ClF4- has a geometry, the neutral and the cation do not share it: a different charge is a different molecule."""
     assert build_vsepr_geometry(_mol("F[Cl-](F)(F)F")).kind is Kind.BUILT
-    cation = build_vsepr_geometry(_mol("F[Cl+](F)(F)F"))
+    cation = build_vsepr_geometry(_mol("F[Br+](F)(F)F"))
     assert cation.kind is Kind.UNSUPPORTED and "charge +1" in cation.reason
 
 
@@ -283,8 +285,8 @@ def test_the_input_molecule_is_not_modified():
     ("smiles", "fragment"),
     [
         ("ClS(Cl)(Cl)Cl", "no measured geometry"),
-        ("FI(F)F", "no measured geometry"),
-        ("F[Cl+](F)(F)F", "charge +1"),
+        ("ClI(Cl)Cl", "no measured geometry"),
+        ("F[Br+](F)(F)F", "charge +1"),
         ("F[Br-](F)(F)F", "charge -1"),
     ],
 )
@@ -462,3 +464,25 @@ def test_oxo_molecules_without_a_recorded_geometry_stay_on_the_ordinary_path(smi
         assert smiles == "FS(F)(F)(F)(F)F"
     # and a mixed-ligand molecule the table lacks is refused with the reason, not guessed
     assert build_vsepr_geometry(_mol("FCl(F)Cl")).kind is Kind.UNSUPPORTED
+
+
+def test_if3_is_a_planar_t_with_the_published_angles():
+    """Hoyer and Seppelt 2000: F-I-F 160.3 (0.2) between the two long bonds, 80.2 (0.1) to the short one."""
+    g = _built("FI(F)F")
+    ax1, ax2 = g.axial_indices
+    eq = g.equatorial_indices[0]
+    p, c = g.coordinates, g.centre_index
+    assert _angle(p, ax1, c, eq) == pytest.approx(80.2, abs=1e-6)
+    assert _angle(p, ax1, c, ax2) == pytest.approx(160.4, abs=1e-6), "implied by 80.2 twice; the paper's 160.3 is inside its esd"
+    assert max(abs(np.dot(np.array(p[i]) - np.array(p[c]), np.cross(np.array(p[ax1]) - np.array(p[c]), np.array(p[ax2]) - np.array(p[c])))) for i in (eq,)) < 1e-9, "planar"
+
+
+def test_clf4_cation_reproduces_the_crystals_three_angles():
+    """Christe 2001: F-Cl-F 173.92 axial, 103.08 equatorial, 88.1 between them (88.16 and 88.06 measured)."""
+    g = _built("F[Cl+](F)(F)F")
+    ax1, ax2 = g.axial_indices
+    eq1, eq2 = g.equatorial_indices
+    p, c = g.coordinates, g.centre_index
+    assert _angle(p, ax1, c, ax2) == pytest.approx(173.92, abs=1e-6)
+    assert _angle(p, eq1, c, eq2) == pytest.approx(103.08, abs=1e-6)
+    assert _angle(p, ax1, c, eq1) == pytest.approx(88.1, abs=0.1)

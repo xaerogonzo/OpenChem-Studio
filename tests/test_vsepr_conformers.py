@@ -84,7 +84,7 @@ def test_clf3_which_rdkit_cannot_embed_is_built_and_survives_the_pool_stages():
 
 def test_a_recognised_molecule_without_a_geometry_fails_loudly_instead_of_embedding():
     with pytest.raises(GeometryUnsupportedError) as caught:
-        _search(Chem.MolFromSmiles("FI(F)F"))  # IF3: RDKit accepts it and embeds it planar; no reference recorded
+        _search(Chem.MolFromSmiles("ClI(Cl)Cl"))  # ICl3: RDKit accepts it and embeds it planar; no reference recorded
     assert "wrong shape" in str(caught.value)
 
 
@@ -159,7 +159,7 @@ def test_the_service_reports_an_unsupported_structure_as_a_failure(qapp):
     engine = ChemistryEngine()
     service = ConformerService(bus, engine)
     model = MoleculeModel()
-    engine.set_structure_from_smiles(model, "FI(F)F")
+    engine.set_structure_from_smiles(model, "ClI(Cl)Cl")
     states: list[ConformerJobStateChanged] = []
     bus.subscribe(ConformerJobStateChanged, states.append)
 

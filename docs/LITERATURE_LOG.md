@@ -255,6 +255,28 @@ What these papers settle: PCl5's numbers are now backed by the primary paper, no
 (ClF3O, XeOF4, XeO2F2, SOF4, SF5Cl) were then built (per-slot ligand kinds, oxo ligands, three new layouts) and are shipped.
 IF4- and BrF4- still have no lengths.
 
+## Fourth hypervalent pass: the rest of the held batch (2026-11-14)
+
+The papers of the third pass that had not been read for values. Read from the text, or, for Hoyer and Seppelt, from the rendered pages because the text layer is garbled.
+
+| Paper | What it is | Outcome | Registry key |
+|---|---|---|---|
+| Hoyer and Seppelt 2000 | IF3 single-crystal X-ray, -135 C | **shipped as a crystal**: I-F 198.3 (0.3) twice, 187.2 (0.4) pm, F-I-F 160.3 and 80.2 degrees; the I...F bridges of 276.9 pm that make the solid polymeric are omitted | `hoyer2000` |
+| Christe, Zhang, Sheehy and Bau 2001 | ClF4+SbF6- single-crystal X-ray | **shipped as a crystal**, the first charged cation: Cl-F 1.617 axial, 1.530 equatorial (two values, 1.527 and 1.532), F-Cl-F 173.92, 103.08 and 88.1 degrees; two Cl...F contacts to the anions are omitted | `christe2001` |
+| Ellern et al. 2002 | ClF3O, BrF3O and [NO][BrF4O] crystals | read, not shipped: BrF3O lacks the angle that places its axial pair, and [BrF4O]- gives 193.6 pm in the text and 191.2 pm in the table; its [NO2][BrF4] co-crystal holds the square planar BrF4- but the paper gives no lengths and cites older work | `ellern2002` |
+| Brock et al. 2007 | XeOF2 and its CH3CN adduct | read, not shipped: free XeOF2 has Raman spectra and calculations only; the crystal is the adduct | `brock2007` |
+| Templeton et al. 1963 | XeO3 crystal | read, not shipped: a trigonal pyramid (no template), three double bonds, 0.03 A esd | `templeton1963` |
+| Claassen and Huston 1971 | matrix-isolated XeO3F2, Raman and infrared | read: D3h indicated by the vibrational spectra, no lengths | none |
+| Christe and Wilson 1988 | XeO2F2 syntheses, vibrational spectra | read: no structural values | none |
+| Weller et al. 1991 | PPh3F2 crystal (and [PPh3NH2]Cl) | not built: a phosphorane with carbon ligands (several kinds of ligand and phenyl groups), outside the one-centre terminal-ligand rule | none |
+| Pusztai and McGreevy 2006 | liquid SbCl5 and WCl6 by neutron diffraction | not used: a liquid, reverse Monte Carlo model; antimony is not in the rule table | none |
+| Frigerio et al. 1999 | a synthesis of IBX | not a structure paper (organic iodine(V) chemistry) | none |
+| Griffiths, Carter and Holmes 1964 | the held PDF's first page belongs to another article; the PCl4F, PCl3F2 and PF5 vibrational study is inside | identity noted, no values used (the shape of PF5 is not in question) | none |
+
+**What ORCA says about the two new starts** (B3LYP/def2-SVPD, charge +1 for the cation): IF3 stays a planar T (I-F 1.928 and 1.993 A, F-I-F 170.3 and 85.1 degrees against the crystal's 160.3 and 80.2, the isolated molecule having no bridges to bend it); ClF4+ stays a seesaw (Cl-F 1.597 and 1.652 A, 174.3 and 105.1 degrees against the crystal's 173.9 and 103.1).
+
+**Still missing, and the wanted list says what to fetch.** IF4- and BrF4- are known square planar anions and have no lengths in any held paper: Christe and Naumann 1973 (held) gives IF4- from spectra only, and the BrF4- crystal papers (Siegel 1956, Sly and Marsh 1957, Edwards and Jones 1969, and Zhang and Seppelt 1997 for IF4-) are not held. A calculated length is not shipped as a measured one.
+
 ## How to use this
 
 Before searching for a reference for a tautomer system, look here. A paper listed as "not an energy
