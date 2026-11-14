@@ -1,0 +1,3 @@
+### Polarizability warns for over-coordinated centres: SF6 and SeF6 were measured 21% and 23% low
+- **The additive polarizability now carries a warning when a centre has five or more neighbours**, with the measured errors: against the CRC Handbook's values SF6 came out 21% low, SeF6 23% low and PF5 8% low, far outside the stated 2% on solvents and 8% on the CRC set. A xenon atom, or a halogen with more than one neighbour, is called unvalidated because the data holds no such molecule.
+- **Nothing changes for sulfones, sulfates, phosphates, sulfoxides or perchlorate** (mean absolute error 8.8% on the 20 the CRC and solvent data hold, near the CRC set's stated 8%), and no number moves; only the wording of the result for the affected molecules.

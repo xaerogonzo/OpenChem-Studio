@@ -5110,6 +5110,7 @@
   "tests/test_plugin_service_registration.py": 6,
   "tests/test_plugin_ui_registry.py": 4,
   "tests/test_polarity_and_balance.py": 5,
+  "tests/test_polarizability_hypervalent.py": 2,
   "tests/test_polarizability_methods.py": 1,
   "tests/test_polarizability_miller.py": 2,
   "tests/test_polarizability_refit.py": 7,

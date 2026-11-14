@@ -88,6 +88,44 @@ ADDITIVE_CONSTANT = float(_ADDITIVE_PAYLOAD["constant"]["value"])
 #: Elements fitted to few molecules, whose polarizability a result flags as less certain.
 WEAK_ADDITIVE_ELEMENTS = _weak_elements()
 
+#: The over-coordinated molecules the additive model can predict whose polarizability the CRC Handbook prints [source:crc_handbook] (97th ed., the table of
+#: molecular polarizabilities, A^3): name -> (SMILES, experimental). `tests/test_polarizability_hypervalent.py` recomputes the model's error on each and holds the percentages
+#: quoted in a result's warning to them. The table has no other over-coordinated molecule the model covers (TeF6 has no tellurium parameter).
+OVER_COORDINATED_MEASURED = {
+    "SF6": ("FS(F)(F)(F)(F)F", 6.54),
+    "SeF6": ("F[Se](F)(F)(F)(F)F", 7.33),
+    "PF5": ("FP(F)(F)(F)F", 6.10),
+}
+#: The sentence a result carries for a centre with five or more neighbours; its percentages are the model's errors on `OVER_COORDINATED_MEASURED`, rounded.
+OVER_COORDINATED_WARNING = (
+    " WARNING: a centre here has five or more neighbours. Against the measured polarizabilities of SF6, SeF6 and PF5 this additive scheme was 21%, 23% and 8% low, "
+    "so atom values fitted on ordinary molecules do not carry over to such a centre; treat the total as an underestimate."
+)
+#: The sentence for a hypervalent centre the data holds no molecule of (xenon, or chlorine, bromine or iodine with more than one neighbour).
+UNMEASURED_HYPERVALENT_WARNING = (
+    " WARNING: this molecule has a hypervalent centre (xenon, or a halogen with more than one neighbour) and the data this scheme was fitted to holds no such molecule; "
+    "treat the total as unvalidated."
+)
+
+
+def _over_coordinated(mol: Chem.Mol) -> bool:
+    """True when some atom has five or more neighbours (hydrogens counted)."""
+    return any(atom.GetTotalDegree() >= 5 for atom in mol.GetAtoms())
+
+
+def _unmeasured_hypervalent(mol: Chem.Mol) -> bool:
+    """True for a neutral xenon or krypton atom with a bond, or a neutral Cl, Br or I with two or more neighbours."""
+    for atom in mol.GetAtoms():
+        symbol = atom.GetSymbol()
+        if atom.GetFormalCharge():
+            continue
+        if symbol in ("Xe", "Kr") and atom.GetDegree() >= 1:
+            return True
+        if symbol in ("Cl", "Br", "I") and atom.GetTotalDegree() >= 2:
+            return True
+    return False
+
+
 # Gasteiger-Marsili chi(q) = a + b*q + c*q^2 coefficients, eV.
 _CHI_PARAMETERS: dict[tuple[str, str | None], tuple[float, float, float]] = {
     ("H", None): (7.17, 6.24, -0.56),
@@ -399,6 +437,10 @@ def compute_polarizability(
                 f" WARNING: {', '.join(unsourced)} has a value that was never fitted to data and has no recorded source; "
                 "treat the total as unvalidated."
             )
+        if _over_coordinated(target):
+            basis += OVER_COORDINATED_WARNING
+        if _unmeasured_hypervalent(target):
+            basis += UNMEASURED_HYPERVALENT_WARNING
         assignment: dict[str, int] = {}
     else:
         total, failure, basis, assignment = _miller_polarizability(target, method)
