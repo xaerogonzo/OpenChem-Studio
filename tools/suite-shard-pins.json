@@ -4804,6 +4804,7 @@
   "tests/test_hose_codes.py": 1,
   "tests/test_hypervalent_calculators.py": 0,
   "tests/test_hypervalent_orca.py": 3,
+  "tests/test_hypervalent_topology.py": 5,
   "tests/test_hypervalent_window.py": 2,
   "tests/test_identifiers.py": 2,
   "tests/test_inorganic_name_table.py": 7,

@@ -331,9 +331,10 @@ def resolve_ensemble(engine: ChemistryEngine, model: MoleculeModel) -> ResolvedE
 
 
 #: The registry calculators VERIFIED on a held hypervalent structure (ClF3, BrF3, SF6, PF5, ...), by independent oracle in
-#: `tests/test_hypervalent_calculators.py`: each is handed the unsanitised Mol and its answer was checked against
-#: values worked out by hand or by a second implementation. **A calculator is NOT here because it returned a number**:
-#: measured on these molecules, topology analysis reported one chiral centre for octahedral SF6, geometry analysis
+#: `tests/test_hypervalent_calculators.py` and `tests/test_hypervalent_topology.py`: each is handed the unsanitised Mol and its answer was checked against
+#: values worked out by hand or by a second implementation (the three topology calculators, against a breadth-first search on eight held structures including
+#: ones with a ring, an aromatic ring and a stereocentre). **A calculator is NOT here because it returned a number**:
+#: measured on these molecules, geometry analysis
 #: included a force-field energy for ClF3 that means nothing, surface analysis split polar from hydrophobic area on
 #: charges that do not exist for these molecules, the additive polarizability of SF6 was 21% below experiment, and the
 #: regulatory screen said "no matches" on a structure it could not read (a silent false negative, for a screen).
@@ -341,7 +342,10 @@ def resolve_ensemble(engine: ChemistryEngine, model: MoleculeModel) -> ResolvedE
 #: the ordinary path, where those same defects are present today and nothing here changes them.
 #: Everything else is refused with `HYPERVALENT_UNSUPPORTED`.
 HYPERVALENT_VERIFIED_CALCULATORS = frozenset(
-    {"elemental_analysis", "mass_spectrum", "substance_analysis", "oxidation_states", "atom_sasa"}
+    {
+        "elemental_analysis", "mass_spectrum", "substance_analysis", "oxidation_states", "atom_sasa",
+        "topology_analysis", "topology_eccentricity", "topology_distance_degree",
+    }
 )
 
 
