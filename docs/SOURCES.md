@@ -1,5 +1,5 @@
 <!-- GENERATED FROM docs/sources.toml -- do not edit -->
-<!-- SOURCE SHA256: 3b60bc3cddb64e98c96b2c7992055b33c1ed4971ec0cf41750e6783fd3507fbf -->
+<!-- SOURCE SHA256: a42ba0c46d88f7b6a1ad63f59d44a041a68377ea525a8b28cc0a8be43ff72404 -->
 
 # Sources
 
@@ -113,6 +113,7 @@ Title and DOI first; the `key` is what prose and code cite (`[source:key]`) and 
 | Prediction of aqueous intrinsic solubility of druglike molecules using Random Forest regression trained with Wiki-pS0 database | [10.5599/admet.766](https://doi.org/10.5599/admet.766) | [`avdeef2020`](#avdeef2020) | literature | shipped | citation + claim |
 | Computing Fukui functions without differentiating with respect to electron number. I. Fundamentals | [10.1063/1.2736697](https://doi.org/10.1063/1.2736697) | [`ayers2007`](#ayers2007) | literature | reference only | citation |
 | New Substructure Filters for Removal of Pan Assay Interference Compounds (PAINS) from Screening Libraries and for Their Exclusion in Bioassays | [10.1021/jm901137j](https://doi.org/10.1021/jm901137j) | [`baell2010`](#baell2010) | literature | shipped | citation |
+| Pentafluorphenylioddifluorid: alternative Darstellungsmethoden, Molekuelstruktur und Eigenschaften | [10.1002/(sici)1521-3749(200006)626:6<1406::aid-zaac1406>3.0.co;2-9](https://doi.org/10.1002/(sici)1521-3749(200006)626:6<1406::aid-zaac1406>3.0.co;2-9) | [`bailly2000`](#bailly2000) | literature | shipped | citation + claim |
 | Addition of Carbon-Fluorine Bonds to a Mg(I)-Mg(I) Bond: An Equivalent of Grignard Formation in Solution | [10.1021/jacs.6b08104](https://doi.org/10.1021/jacs.6b08104) | [`bakewell2016`](#bakewell2016) | literature | reference only | citation |
 | Semiempirical Treatment of Electrostatic Potentials and Partial Charges in Combined Quantum Mechanical and Molecular Mechanical Approaches | [10.1002/(SICI)1096-987X(19960115)17:1<87::AID-JCC8>3.0.CO;2-X](https://doi.org/10.1002/(SICI)1096-987X(19960115)17:1<87::AID-JCC8>3.0.CO;2-X) | [`bakowies1996`](#bakowies1996) | literature | **not shipped** | citation + claim |
 | Tautomeric equilibrium and hydrogen shifts in tetrazole and triazoles: Focal-point analysis and ab initio limit | [10.1063/1.3249968](https://doi.org/10.1063/1.3249968) | [`balabin2009`](#balabin2009) | literature | reference only | citation + claim |
@@ -215,8 +216,10 @@ Title and DOI first; the `key` is what prose and code cite (`[source:key]`) and 
 | Calculating an optimal box size for ligand docking and virtual screening against experimental and predicted binding pockets | [10.1186/s13321-015-0067-5](https://doi.org/10.1186/s13321-015-0067-5) | [`feinstein2015`](#feinstein2015) | literature | shipped | citation + claim |
 | Targeting Tyrosinase: Development and Structural Insights of Novel Inhibitors Bearing Arylpiperidine and Arylpiperazine Fragments | [10.1021/acs.jmedchem.7b01745](https://doi.org/10.1021/acs.jmedchem.7b01745) | [`ferro2018`](#ferro2018) | literature | reference only | citation + claim |
 | Calculation of Fukui Functions Without Differentiating to the Number of Electrons. 3. Local Fukui Function and Dual Descriptor | [10.1021/ct800027e](https://doi.org/10.1021/ct800027e) | [`fievez2008`](#fievez2008) | literature | reference only | citation |
+| U. Floerke, o-fluorophenyl-iodine difluoride dichloromethane solvate, CSD private communication, CCDC 938893… |  | [`floerke2013`](#floerke2013) | literature | shipped | citation |
 | Studies on tautomerism: Benchmark quantum chemical calculations on formamide and formamidine | [10.1016/j.molstruc.2010.02.065](https://doi.org/10.1016/j.molstruc.2010.02.065) | [`fogarasi2010`](#fogarasi2010) | literature | shipped | citation + claim |
 | Dichlorotrifluorophosphorane (PCl2F3): molecular structure by gas-phase electron diffraction and quadratic force field | [10.1021/ic00212a014](https://doi.org/10.1021/ic00212a014) | [`french1985`](#french1985) | literature | shipped | citation + claim |
+| Pentafluorphenyliod(V)-Verbindungen. 2. Pentafluorphenyliodtetrafluorid C6F5IF4 | [10.1002/zaac.19956210725](https://doi.org/10.1002/zaac.19956210725) | [`frohn1995`](#frohn1995) | literature | shipped | citation + claim |
 | First isolation and structural characterization of N-base adducts of mono- and perfluoroaryliodine(III) compounds, ArfIX2 (X = F, CN) | [10.1002/zaac.200900169](https://doi.org/10.1002/zaac.200900169) | [`frohn2009`](#frohn2009) | literature | reference only | citation |
 | Thermochemistry of Uracil, Thymine, Cytosine, and Adenine | [10.1021/acs.jpca.9b02061](https://doi.org/10.1021/acs.jpca.9b02061) | [`ganyecz2019`](#ganyecz2019) | literature | reference only | citation |
 | Iterative Partial Equalization of Orbital Electronegativity -- A Rapid Access to Atomic Charges | [10.1016/0040-4020(80)80168-2](https://doi.org/10.1016/0040-4020(80)80168-2) | [`gasteiger1980`](#gasteiger1980) | literature | shipped | citation + claim |
@@ -261,6 +264,7 @@ Title and DOI first; the `key` is what prose and code cite (`[source:key]`) and 
 | An experimental and theoretical study of the valence shell photoelectron spectra of 2-chloropyridine and 3-chloropyridine | [10.1063/1.4999433](https://doi.org/10.1063/1.4999433) | [`holland2017`](#holland2017) | literature | shipped | citation + claim |
 | Findings of the challenge to predict aqueous solubility |  | [`hopfinger2009`](#hopfinger2009) | dataset | shipped | citation |
 | The structure of IF3 | [10.1002/(SICI)1521-3773(20000417)39:8<1448::AID-ANIE1448>3.0.CO;2-G](https://doi.org/10.1002/(SICI)1521-3773(20000417)39:8<1448::AID-ANIE1448>3.0.CO;2-G) | [`hoyer2000`](#hoyer2000) | literature | shipped | citation + claim |
+| Phenyliodine(V) fluorides | [10.1016/j.jfluchem.2003.12.004](https://doi.org/10.1016/j.jfluchem.2003.12.004) | [`hoyer2004`](#hoyer2004) | literature | shipped | citation + claim |
 | The structure of xenon hexafluoride in the solid state | [10.1016/j.jfluchem.2006.04.014](https://doi.org/10.1016/j.jfluchem.2006.04.014) | [`hoyer2006`](#hoyer2006) | literature | reference only | citation |
 | Molecular Spectra and Molecular Structure IV. Constants of Diatomic Molecules |  | [`huber1979`](#huber1979) | literature | reference only | citation + claim |
 | Evaluated Gas Phase Basicities and Proton Affinities of Molecules: An Update | [10.1063/1.556018](https://doi.org/10.1063/1.556018) | [`hunter1998`](#hunter1998) | literature | reference only | citation + claim |
@@ -9369,7 +9373,7 @@ Table VIII read (rg distances, ra angles; its columns come out scrambled in the 
 | Local copy | `ye2005.pdf` (not checked) |
 | Used by | `src/openchem/chem/vsepr_geometry.py`, `tests/test_vsepr_geometry.py`, `docs/HYPERVALENT_COVERAGE_DESIGN.md` |
 
-The two Supporting Information CIFs read (87 K, R 0.023 and 0.049; two aryl-IF2 crystals holding 2 and 4 independent molecules): I-F 1.990 to 2.026, I-C 2.090 to 2.096 A, F-I-F 171.0 to 174.4, C-I-F 85.0 to 88.2 degrees. With sarie2017 and haefliger2019 they give the ArIF2 core row (means of nine molecules).
+The two Supporting Information CIFs read (87 K, R 0.023 and 0.049; two aryl-IF2 crystals holding 2 and 4 independent molecules): I-F 1.990 to 2.026, I-C 2.090 to 2.096 A, F-I-F 171.0 to 174.4, C-I-F 85.0 to 88.2 degrees. With sarie2017, haefliger2019, bailly2000 and floerke2013 they give the ArIF2 core row (means of twelve molecules).
 
 ### sarie2017 — Deconstructing the catalytic, vicinal difluorination of alkenes: HF-free synthesis and structural study of p-TolIF2
 
@@ -9403,7 +9407,7 @@ The Supporting Information CIF (data block gil8757, p-TolIF2, 100 K, R 0.020, tw
 | Local copy | `Haefliger2019.pdf` (not checked) |
 | Used by | `src/openchem/chem/vsepr_geometry.py`, `tests/test_vsepr_geometry.py`, `docs/HYPERVALENT_COVERAGE_DESIGN.md` |
 
-The Supporting Information CIF (three data blocks, 100 K) read: a bromo-tetrahydronaphthyl-IF2 (I-F 1.9977 and 1.9979, I-C 2.0966 A, F-I-F 171.86 degrees: a third ArIF2 source), 4-fluorophenyl-IF4 (I-C 2.0778 apical, I-F 1.9152 to 1.9600 basal, C-I-F 83.9 to 86.7: the ArIF4 core row, ONE molecule), and an ArIF3(OR)-type I(V) molecule (not used). The file name in the library keeps the accented author initial.
+The Supporting Information CIF (three data blocks, 100 K) read: a bromo-tetrahydronaphthyl-IF2 (I-F 1.9977 and 1.9979, I-C 2.0966 A, F-I-F 171.86 degrees: a third ArIF2 source), 4-fluorophenyl-IF4 (I-C 2.0778 apical, I-F 1.9152 to 1.9600 basal, C-I-F 83.9 to 86.7: one of the four ArIF4 molecules of the core row), and an ArIF3(OR)-type I(V) molecule (not used). The file name in the library keeps the accented author initial.
 
 ### frohn2009 — First isolation and structural characterization of N-base adducts of mono- and perfluoroaryliodine(III) compounds, ArfIX2 (X = F, CN)
 
@@ -9421,6 +9425,74 @@ The Supporting Information CIF (three data blocks, 100 K) read: a bromo-tetrahyd
 | Used by | `docs/HYPERVALENT_COVERAGE_DESIGN.md` |
 
 **Why it is reference only.** The three CIFs (CCDC 760658 to 760660, 120 K) were read: ArIF2 as N-base ADDUCTS, F-I-F only 158.6 to 161.8 degrees, I-F 2.000 to 2.014, I-C 2.104 to 2.115 A. The coordinated base distorts the T, so these are not free molecules and are not in the ArIF2 core row. Kept as the evidence for how far a donor moves F-I-F.
+
+### hoyer2004 — Phenyliodine(V) fluorides
+
+<a id="hoyer2004"></a>
+
+> S. Hoyer & K. Seppelt, 'Phenyliodine(V) fluorides', J. Fluorine Chem. 125, 989-996 (2004)
+
+| | |
+| --- | --- |
+| Identifier | [10.1016/j.jfluchem.2003.12.004](https://doi.org/10.1016/j.jfluchem.2003.12.004) |
+| Status | shipped |
+| Verification | citation + claim |
+| Verified | 2026-11-14 |
+| Local copy | `hoyer2004.pdf` (not checked) |
+| Used by | `src/openchem/chem/vsepr_geometry.py`, `tests/test_vsepr_geometry.py`, `docs/HYPERVALENT_COVERAGE_DESIGN.md` |
+
+Table 1 read and the deposited CIF (CCDC 216480, data block phif4, 293 K, R 0.019) computed. PhIF4: a square pyramid with the phenyl apical, a zigzag chain through basal F...I contacts. Printed Table 1: I-F 195.7, 194.8, 192.1, 193.6 (3) pm, I-C 207.7 (4) pm, C-I-F 84.2, 85.7, 85.5, 86.0, average 85.35; the CIF (a later refinement, esds about 0.002 A) gives I-F 1.9514, 1.9419, 1.9223, 1.9226, I-C 2.0817 A, C-I-F 84.42, 85.59, 85.52, 85.91 (mean 85.36). The CIF is used. The paper's comparison: IF5 average I-F 187, CF3IF4 192, C6F5IF4 191 pm.
+
+### frohn1995 — Pentafluorphenyliod(V)-Verbindungen. 2. Pentafluorphenyliodtetrafluorid C6F5IF4
+
+<a id="frohn1995"></a>
+
+> H. J. Frohn, S. Goerg, G. Henkel & M. Laege, 'Pentafluorphenyliod(V)-Verbindungen. 2. Pentafluorphenyliodtetrafluorid C6F5IF4', Z. Anorg. Allg. Chem. 621, 1251-1256 (1995)
+
+| | |
+| --- | --- |
+| Identifier | [10.1002/zaac.19956210725](https://doi.org/10.1002/zaac.19956210725) |
+| Status | shipped |
+| Verification | citation + claim |
+| Verified | 2026-11-14 |
+| Local copy | `frohn1995.pdf` (not checked) |
+| Used by | `src/openchem/chem/vsepr_geometry.py`, `tests/test_vsepr_geometry.py`, `docs/HYPERVALENT_COVERAGE_DESIGN.md` |
+
+Fig. 3 (selected distances and angles) read in German. C6F5IF4, 150 K, two independent molecules, a square pyramid with C6F5 apical and the IF4 group staggered: molecule 1a I-C 2.081 (7), I-F 1.929 (4) and 1.911 (4), C-I-F 84.7 and 83.9; molecule 1b I-C 2.088 (5), I-F 1.927, 1.910, 1.916 and 1.904 (4), C-I-F 84.3, 83.1, 84.9, 84.9 degrees; the mean C-I-F is 84.3 and 84.5 in the text; C6F5I has I-C 2.077 (4). The same paper compares C6F5IF2 (I-F 1.946 and 2.029, I-C 2.071 A). The held folder frohn1995_SI contains a cerium compound's CIF (CCDC 2181609), NOT this structure, so the printed values are what is used.
+
+### bailly2000 — Pentafluorphenylioddifluorid: alternative Darstellungsmethoden, Molekuelstruktur und Eigenschaften
+
+<a id="bailly2000"></a>
+
+> F. Bailly, P. Barthen, W. Breuer, H.-J. Frohn, M. Giesen, J. Helber, G. Henkel & A. Priwitzer, 'Pentafluorphenylioddifluorid: alternative Darstellungsmethoden, Molekuelstruktur und Eigenschaften', Z. Anorg. Allg. Chem. 626, 1406-1413 (2000)
+
+| | |
+| --- | --- |
+| Identifier | [10.1002/(sici)1521-3749(200006)626:6<1406::aid-zaac1406>3.0.co;2-9](https://doi.org/10.1002/(sici)1521-3749(200006)626:6<1406::aid-zaac1406>3.0.co;2-9) |
+| Status | shipped |
+| Verification | citation + claim |
+| Verified | 2026-11-14 |
+| Local copy | `bailly2000.pdf` (not checked) |
+| Used by | `src/openchem/chem/vsepr_geometry.py`, `tests/test_vsepr_geometry.py`, `docs/HYPERVALENT_COVERAGE_DESIGN.md` |
+
+The deposited CIF (CCDC 139385, data block C6F7I, 150 K, R 0.024) computed: C6F5IF2, two independent molecules, free T-shapes: I-F 1.9595 and 2.0250, I-C 2.0684, F-I-F 171.58, C-I-F 85.44 and 86.23; I-F 1.9499 and 2.0324, I-C 2.0677, F-I-F 170.46, C-I-F 87.39 and 83.29. Two of the twelve molecules of the ArIF2 core row (the electron-poor aryl, at the short end of I-C).
+
+### floerke2013 — U. Floerke, o-fluorophenyl-iodine difluoride dichloromethane solvate, CSD private communication, CCDC 938893…
+
+<a id="floerke2013"></a>
+
+> U. Floerke, o-fluorophenyl-iodine difluoride dichloromethane solvate, CSD private communication, CCDC 938893 (refcode UDOSEN), 2013
+
+| | |
+| --- | --- |
+| Identifier | CCDC 938893 (CSD UDOSEN), a private communication, no paper |
+| Status | shipped |
+| Verification | citation |
+| Verified | 2026-11-14 |
+| Local copy | `cif files/UDOSEN_938893.cif` (not checked) |
+| Used by | `src/openchem/chem/vsepr_geometry.py`, `tests/test_vsepr_geometry.py`, `docs/HYPERVALENT_COVERAGE_DESIGN.md` |
+
+The deposited CIF (SHELXL-97, 153 K, R 0.048; o-fluorophenyl-IF2 with a quarter of a CH2Cl2 per molecule) computed: one free T-shaped molecule, I-F 2.0137 and 2.0160, I-C 2.0515 A, F-I-F 169.02, C-I-F 84.21 and 84.81 degrees. One of the twelve molecules of the ArIF2 core row, the shortest I-C (an ortho fluorine). No paper describes it; the CSD terms forbid redistributing the file, so only these computed numbers are recorded.
 
 ## Datasets
 

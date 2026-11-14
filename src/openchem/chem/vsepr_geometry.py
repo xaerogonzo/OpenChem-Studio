@@ -574,16 +574,18 @@ _ENTRIES = (
         "I",
         "CFF",
         3,
-        2.0071,
-        2.092,
-        {"ax-eq": 86.4},
-        "Ye, Twamley and Shreeve 2005, Org Lett 7, 3961, Supporting Information CIFs [source:ye2005]; Sarie et al. 2017, J Org Chem 82, 11792, CIF [source:sarie2017]; Haefliger et al. 2019, Chem Sci 10, 7251, CIF [source:haefliger2019]",
-        "single-crystal X-ray of free aryl-IF2 molecules, nine of them in four crystals (six in Ye et al.'s two crystals at 87 K, two of p-TolIF2 at 100 K, one of a bromo-tetrahydronaphthyl at 100 K), "
-        "MEANS computed here from the deposited coordinates: I-F 2.0071 (1.990 to 2.036; the two fluorines of a molecule differ by up to 0.04 A through contacts), I-C 2.092 (2.083 to 2.097) A, F-I-F 172.6 (170.8 to 174.4), "
-        "C-I-F 86.4 (85.0 to 88.2) degrees; a T with the fluorines axial and bent toward the carbon. The N-base adducts of Frohn et al. 2009 (F-I-F 158 to 162) are NOT included, being coordinated [source:frohn2009]",
+        2.0052,
+        2.0846,
+        {"ax-eq": 86.1},
+        "Ye, Twamley and Shreeve 2005, Org Lett 7, 3961, Supporting Information CIFs [source:ye2005]; Sarie et al. 2017, J Org Chem 82, 11792, CIF [source:sarie2017]; Haefliger et al. 2019, Chem Sci 10, 7251, CIF [source:haefliger2019]; "
+        "Bailly et al. 2000, Z Anorg Allg Chem 626, 1406, CIF [source:bailly2000]; Floerke 2013, CSD private communication, CCDC 938893 [source:floerke2013]",
+        "single-crystal X-ray of free aryl-IF2 molecules, twelve of them in six crystals (six in Ye et al.'s two crystals at 87 K, two of p-TolIF2 at 100 K, one of a bromo-tetrahydronaphthyl at 100 K, two of C6F5IF2 at 150 K, "
+        "one of o-fluorophenyl-IF2 as a CH2Cl2 solvate at 153 K), MEANS computed here from the deposited coordinates: I-F 2.0052 (1.950 to 2.036; the two fluorines of a molecule differ by up to 0.08 A through contacts), "
+        "I-C 2.0846 (2.0515 to 2.0966) A, F-I-F 172.1 (169.0 to 174.4), C-I-F 86.1 (83.3 to 88.2) degrees; a T with the fluorines axial and bent toward the carbon. The electron-poor aryls sit at the short end "
+        "(C6F5 I-C 2.068, o-fluorophenyl 2.052 against 2.083 to 2.097 for the others), so the mean is for a generic aryl, not for one substituent. The N-base adducts of Frohn et al. 2009 (F-I-F 158 to 162) are NOT included, being coordinated [source:frohn2009]",
         True,
         0,
-        (("F", 2.0071), ("F", 2.0071), ("C", 2.092)),
+        (("F", 2.0052), ("F", 2.0052), ("C", 2.0846)),
         "",
         "measured",
         "aromatic",
@@ -592,15 +594,17 @@ _ENTRIES = (
         "I",
         "CFFFF",
         5,
-        2.0778,
-        1.9393,
-        {"ax-eq": 85.13},
-        "Haefliger et al. 2019, Chem Sci 10, 7251, CIF [source:haefliger2019]",
-        "single-crystal X-ray of one aryl-IF4 (4-fluorophenyl-IF4) at 100 K, ONE molecule: I-C 2.0778 A apical, I-F 1.9152, 1.9340, 1.9481 and 1.9600 (mean 1.9393) A basal, C-I-F 86.69, 85.12, 84.81 and 83.91 "
-        "(mean 85.13) degrees; a square pyramid with the aryl carbon apical. A single determination, so the spread of the basal lengths is its own and not a population's",
+        2.0821,
+        1.9270,
+        {"ax-eq": 84.77},
+        "Haefliger et al. 2019, Chem Sci 10, 7251, CIF [source:haefliger2019]; Hoyer and Seppelt 2004, J Fluorine Chem 125, 989, CIF [source:hoyer2004]; Frohn, Goerg, Henkel and Laege 1995, Z Anorg Allg Chem 621, 1251, Fig. 3 [source:frohn1995]",
+        "single-crystal X-ray of aryl-IF4, four molecules in three crystals, the mean of each molecule then of the four: 4-fluorophenyl-IF4 at 100 K (I-C 2.0778, I-F mean 1.9393, C-I-F 85.13; computed from its CIF), "
+        "PhIF4 at 293 K (I-C 2.0817, I-F 1.9223 to 1.9514, mean 1.9346, C-I-F 85.36; computed from its CIF, which is a later refinement than the paper's Table 1: I-C 2.077, I-F mean 1.940, C-I-F 85.35), "
+        "and two molecules of C6F5IF4 at 150 K (I-C 2.081 and 2.088, I-F means 1.920 and 1.914, C-I-F 84.3 for both; the printed values of the paper, whose CIF is not held): I-C 2.0821, I-F 1.9270, C-I-F 84.77 degrees; "
+        "a square pyramid with the aryl carbon apical and the iodine below the basal plane",
         True,
         0,
-        (("C", 2.0778), ("F", 1.9393), ("F", 1.9393), ("F", 1.9393), ("F", 1.9393)),
+        (("C", 2.0821), ("F", 1.9270), ("F", 1.9270), ("F", 1.9270), ("F", 1.9270)),
         "",
         "measured",
         "aromatic",

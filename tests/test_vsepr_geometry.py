@@ -855,22 +855,22 @@ def test_ph3f2_drawn_with_explicit_hydrogens_is_built_too():
 
 
 def test_aryl_iodine_difluoride_core_is_a_t_with_the_fluorines_axial_and_bent_toward_the_carbon():
-    """Ye 2005, Sarie 2017 and Haefliger 2019 (nine free molecules, four crystals): I-F 2.0071, I-C 2.092 A, F-I-F 172.6 (170.8 to 174.4), C-I-F 86.4 (85.0 to 88.2)."""
+    """Ye 2005, Sarie 2017, Haefliger 2019, Bailly 2000 and Floerke 2013 (twelve free molecules, six crystals): I-F 2.0052, I-C 2.0846 A, F-I-F 172.1 (169.0 to 174.4), C-I-F 86.1 (83.3 to 88.2)."""
     outcome = _grafted("FI(F)c1ccccc1")
     g, mol = outcome.geometry, outcome.molecule
     p, c = g.coordinates, g.centre_index
     assert mol.GetNumAtoms() == 14, "C6H5F2I: every hydrogen is there"
     fluorines, carbon = _core_ligands(outcome, "F"), _core_ligands(outcome, "C")[0]
-    assert all(_bond(p, c, i) == pytest.approx(2.0071, abs=1e-6) for i in fluorines)
-    assert _bond(p, c, carbon) == pytest.approx(2.092, abs=1e-6)
-    assert 170.8 <= _angle(p, fluorines[0], c, fluorines[1]) <= 174.4
-    assert all(85.0 <= _angle(p, f, c, carbon) <= 88.2 for f in fluorines)
+    assert all(_bond(p, c, i) == pytest.approx(2.0052, abs=1e-6) for i in fluorines)
+    assert _bond(p, c, carbon) == pytest.approx(2.0846, abs=1e-6)
+    assert 169.0 <= _angle(p, fluorines[0], c, fluorines[1]) <= 174.4
+    assert all(83.3 <= _angle(p, f, c, carbon) <= 88.2 for f in fluorines)
     assert g.reference.evidence == "measured" and _implausible_bonds(outcome) == []
     assert all(i in g.axial_indices for i in fluorines) and carbon in g.equatorial_indices
 
 
 def test_aryl_iodine_tetrafluoride_core_is_a_square_pyramid_with_the_carbon_apical():
-    """Haefliger 2019 (one molecule, 100 K): I-C 2.0778 apical, I-F 1.9152 to 1.9600 (mean 1.9393) basal, C-I-F 83.9 to 86.7 (mean 85.13)."""
+    """Haefliger 2019, Hoyer 2004 and Frohn 1995 (four molecules, three crystals): I-C 2.0821 apical, I-F 1.9270 basal, C-I-F 84.77."""
     outcome = _grafted("FI(F)(F)(F)c1ccc(F)cc1")
     g, mol = outcome.geometry, outcome.molecule
     p, c = g.coordinates, g.centre_index
@@ -878,7 +878,7 @@ def test_aryl_iodine_tetrafluoride_core_is_a_square_pyramid_with_the_carbon_apic
     carbon = _core_ligands(outcome, "C")[0]
     fluorines = [i for i in _core_ligands(outcome, "F") if i in g.ligand_indices and i != carbon and _bond(p, c, i) < 2.2]
     assert len(fluorines) == 4
-    assert _bond(p, c, carbon) == pytest.approx(2.0778, abs=1e-6)
-    assert all(_bond(p, c, i) == pytest.approx(1.9393, abs=1e-6) for i in fluorines)
-    assert all(_angle(p, carbon, c, i) == pytest.approx(85.13, abs=0.01) for i in fluorines)
+    assert _bond(p, c, carbon) == pytest.approx(2.0821, abs=1e-6)
+    assert all(_bond(p, c, i) == pytest.approx(1.9270, abs=1e-6) for i in fluorines)
+    assert all(_angle(p, carbon, c, i) == pytest.approx(84.77, abs=0.01) for i in fluorines)
     assert g.reference.evidence == "measured" and carbon in g.axial_indices and _implausible_bonds(outcome) == []
