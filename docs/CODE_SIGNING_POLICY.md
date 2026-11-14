@@ -83,6 +83,7 @@ only the service that feature names. Nothing is sent in the background.
 | Ask the AI assistant (AI Assistant plugin) | the provider you choose and configure: Anthropic (`api.anthropic.com`), OpenAI (`api.openai.com`), a local Ollama on your own machine (`localhost`), or the **Claude Code** or **Cursor** command-line program if it is installed on your computer, which the assistant runs and which sends the conversation to Anthropic or to Cursor under your own login (the Cursor program is a coding agent whose own tools cannot be switched off, so the assistant runs it in a throwaway folder in read-only mode with file, shell and web access denied) | your messages and any calculation results you ask it to read, with **your own** API key (or your own Claude Code or Cursor login); a key is stored only on your computer |
 | Set up Java for name-to-structure conversion | Adoptium (`api.adoptium.net`) | a download request for the Temurin runtime |
 | Set up AutoDock Vina | GitHub (`api.github.com`, `github.com`) | a download request for the release |
+| Set up Psi4 | Georgia Tech Psi4 download host (`vergil.chemistry.gatech.edu`) | a download request for the pinned Psi4conda Windows installer |
 | Build the NMR database | SourceForge (`sourceforge.net`) | a download request for nmrshiftdb2 |
 | Set up the pKa predictor | PyTorch (`download.pytorch.org`) and PyG (`data.pyg.org`) wheel indexes, the Python Package Index (PyPI, `pypi.org`) for the other packages, GitHub (`github.com`) for the predictor's source and trained models, and, if no suitable Python is installed, a standalone Python build that `uv` downloads from GitHub | download requests for the packages, the source and the models |
 | Set up the ADMET predictor | the Python Package Index (PyPI, `pypi.org`) and, if no suitable Python is installed, a standalone Python from GitHub through `uv` | a download request for the `admet-ai` package, whose trained weights are inside it |
@@ -90,7 +91,7 @@ only the service that feature names. Nothing is sent in the background.
 | Use synthesis route planning (Synthesis Planner plugin) | nothing further, from OpenChem | it runs the AiZynthFinder program on your computer, in the environment this app built or that you pointed it at |
 
 Some buttons only open a web page in **your browser** (the ChemSpider search, the
-vendor pages for ORCA and Psi4, which you install yourself). The program sends nothing
+vendor pages for ORCA, and Psi4's install page if you prefer to fetch it yourself). The program sends nothing
 to those sites; your browser does, as you choose.
 
 Each service has its own privacy policy, which applies to what it receives. If you do not

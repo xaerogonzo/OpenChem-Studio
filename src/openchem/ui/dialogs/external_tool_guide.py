@@ -120,9 +120,9 @@ GUIDE: tuple[GuideEntry, ...] = (
         tier=OPTIONAL,
         what="Psi4, a second open-source quantum-chemistry program.",
         needed_for="Nothing on its own. It is a cross-check for ORCA, chosen in the Engine box on the Quantum Chemistry panel.",
-        next_step="Skip it unless you want a second opinion. If you do, install it, then Locate Installed or Browse and run Test.",
+        next_step="Skip it unless you want a second opinion. If you do, press Set Up Automatically on the Psi4 tab (Windows) or install it yourself, then run Test.",
         links=(GuideLink("Psi4 install page", tools.PSI4_DOWNLOAD_PAGE),),
-        caveat="A full install is about 2 GB on disk.",
+        caveat="A full install is about 2.1 GB on disk (measured from the Psi4conda 1.11 Windows installer).",
     ),
     GuideEntry(
         key="xtb",
