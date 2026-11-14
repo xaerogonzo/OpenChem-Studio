@@ -174,8 +174,11 @@ def test_no_always_on_result_is_not_finite_on_the_measured_molecules(rig, qapp, 
         assert not non_finite_in(d), (name, d.descriptor_id)
     for dataset in datasets:
         assert not non_finite_in(dataset), (name, dataset.property_id)
-    gasteiger = [d for d in datasets if d.property_id == "gasteiger_charge" and d.cache_state is not CacheState.FAILED]
-    assert gasteiger == [], f"{name}: Gasteiger charges that were NaN must not be shown"
+    gasteiger = [d for d in datasets if d.property_id == "gasteiger_charge"]
+    assert gasteiger, f"{name}: the refusal is published, so the result is accounted for"
+    for d in gasteiger:
+        assert d.cache_state is CacheState.FAILED and d.values == {} and d.inapplicable, name
+        assert d.provenance.parameters[REFUSAL_KEY] == ELEMENT_OUTSIDE_PARAMETER_SET
 
 
 @pytest.mark.parametrize("name", NAN_MOLECULES)

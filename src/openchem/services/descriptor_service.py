@@ -303,7 +303,16 @@ class _DescriptorComputeTask(QRunnable):
                 if refusal is not None:
                     logger.info("Per-atom dataset %s refused: not finite", dataset.property_id)
                     self._part_failed = True
-                    continue
+                    # Published as the refusal it is, with no values, so the result is ACCOUNTED FOR (a panel row and
+                    # the census see a stated limit) instead of silently absent.
+                    dataset = replace(
+                        dataset, values={}, cache_state=CacheState.FAILED, error=refusal.detail,
+                        error_summary=refusal.summary, inapplicable=True,
+                        provenance=Provenance(
+                            created_by="core", method=dataset.property_id,
+                            parameters=refusal_parameters(refusal.code, refusal.kind),
+                        ),
+                    )
                 self._event_bus.publish(PerAtomDataComputed(
                     dataset=dataset,
                     input_fingerprint=self._fingerprint,
