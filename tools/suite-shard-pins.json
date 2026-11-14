@@ -5291,6 +5291,7 @@
   "tests/test_spatial_result_dialog.py": 7,
   "tests/test_spectrum_overlay.py": 1,
   "tests/test_status_chip_routes.py": 1,
+  "tests/test_stereo_elements.py": 7,
   "tests/test_stereochemistry_change.py": 5,
   "tests/test_steric.py": 5,
   "tests/test_stick_chart_widget.py": 5,

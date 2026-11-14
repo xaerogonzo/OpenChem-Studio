@@ -60,7 +60,7 @@ anything similar not yet found. *Accept:* PF5, XeF4, XeF2, IF5, PCl5, PIDA, CH3-
 results are byte-identical; a mutation test (guard removed) fails. *Open:* whether the dataset should drop only the bad atoms or
 refuse whole. Recommendation: refuse whole, because a charge set with holes does not sum to the formal charge.
 
-**WP2. Stereocentre perception for 5- and 6-coordinate centres.** `topology_analysis.stereo_counts` counts a stereocentre only
+**WP2. Stereocentre perception for 5- and 6-coordinate centres. DONE 2026-11-13** (`chem/stereo_elements.py`, used by `topology_analysis.stereo_counts` and `bbb_stereo.stereo_descriptors`; a centre with more than four neighbours is reported as not assessed; the other stereo paths already said 0; `tests/test_stereo_elements.py`, mutation-checked: with the rule off 17 of 30 fail). `topology_analysis.stereo_counts` counts a stereocentre only
 where RDKit's stereo model applies (three or four neighbours, the cases the codebase already treats as tetrahedral or pyramidal),
 and says "not assessed" for a higher coordination rather than 1. *Accept:* SF6, PF5, Ph-SF5, CH3-PF4, PCl5, IF5 count 0; CHFClBr
 1; a sulfoxide and a sulfoximine unchanged. Check the sibling code paths (`stereo_descriptors`, per-atom `stereocenters`) for the
