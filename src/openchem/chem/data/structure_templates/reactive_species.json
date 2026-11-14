@@ -1,0 +1,61 @@
+{
+  "id": "reactive_species",
+  "title": "Reactive species",
+  "description": "Oxygen and nitrogen reactive species with distinct connectivity or charge. Ozone lives under Allotropes.",
+  "entries": [
+    {
+      "id": "reactive_species.superoxide",
+      "name": "Superoxide",
+      "smiles": "[O-][O]",
+      "tags": [
+        "ROS"
+      ],
+      "description": "PubChem CID 5359597. RDKit's InChIKey of this SMILES is MXDZWXWHPVATGF-UHFFFAOYSA-N; PubChem prints OUUQCZGPVNCOIJ-UHFFFAOYSA-M for the same CID."
+    },
+    {
+      "id": "reactive_species.hydroxyl",
+      "name": "Hydroxyl radical",
+      "smiles": "[OH]",
+      "tags": [
+        "ROS"
+      ],
+      "description": "PubChem CID 157350."
+    },
+    {
+      "id": "reactive_species.hydrogen_peroxide",
+      "name": "Hydrogen peroxide",
+      "smiles": "OO",
+      "tags": [
+        "ROS"
+      ],
+      "description": "PubChem CID 784."
+    },
+    {
+      "id": "reactive_species.nitric_oxide",
+      "name": "Nitric oxide",
+      "smiles": "[N]=O",
+      "tags": [
+        "RNS"
+      ],
+      "description": "PubChem CID 145068."
+    },
+    {
+      "id": "reactive_species.nitrogen_dioxide",
+      "name": "Nitrogen dioxide",
+      "smiles": "N(=O)[O]",
+      "tags": [
+        "RNS"
+      ],
+      "description": "PubChem CID 3032552."
+    },
+    {
+      "id": "reactive_species.nitrous_oxide",
+      "name": "Nitrous oxide",
+      "smiles": "[N-]=[N+]=O",
+      "tags": [
+        "RNS"
+      ],
+      "description": "PubChem CID 948."
+    }
+  ]
+}

@@ -38,5 +38,13 @@
    "tag": "insert-cyclopropane", "after_ms": 1500,
    "expect": {"inserted": true, "smiles_contains": ".", "undo_delta": 1, "status": "Inserted."}},
 
+  {"do": "select", "molecule": "Benzene", "after_ms": 1500},
+  {"do": "template_library", "category": "Allotropes", "entry": "Singlet oxygen", "press": "insert",
+   "tag": "insert-singlet-oxygen", "after_ms": 1500,
+   "expect": {"inserted": true, "smiles_contains": ".", "undo_delta": 1, "status": "Inserted."}},
+  {"do": "template_library", "category": "Alkaloids", "entry": "Mescaline", "press": "insert",
+   "tag": "insert-mescaline", "after_ms": 1500,
+   "expect": {"inserted": true, "smiles_contains": ".", "undo_delta": 1, "status": "Inserted."}},
+
   {"do": "quit"}
 ]

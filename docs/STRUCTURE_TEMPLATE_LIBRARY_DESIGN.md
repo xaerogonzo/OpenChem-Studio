@@ -43,15 +43,28 @@ Each molecule appears in **one** category. The research inventory in
 |---|---|
 | `rings` | benzene, cyclohexane, cyclopentane, pyridine, pyrrole, furan, thiophene |
 | `amino_acids` | 20 proteinogenic L-amino acids plus glycine, **neutral** (carboxylic acid + amine, not zwitterion), expanded free molecules, not residues |
-| `nucleobases` | adenine, cytosine, guanine, thymine, uracil (free bases, not nucleosides) |
+| `nucleobases` | titled Nucleic acids: free bases plus named ribo and 2'-deoxy nucleosides |
 | `sugars` | named anomers (gluco, galacto, manno, xylo, ribo, fructo, 2-deoxyribo) with recorded ring form |
 | `cycloalkanes` | C3–C12 monocycles except cyclopentane and cyclohexane (those stay in Rings), plus methylcyclopentane and methylcyclohexane |
-| `heterocycles` | common heterocycles not already in Rings or Nucleobases; alkaloids, flavonoids, vitamins, and crown ethers stay in the research inventory |
+| `heterocycles` | common heterocycles not already in Rings or Nucleic acids, including 12-/15-/18-crown-6 |
 | `solvents_reagents` | water, common solvents, acetic acid, toluene |
+| `alkaloids` | protoalkaloids (mescaline, hordenine), methylxanthines, and (1R,2S)-ephedrine; morphine-class stereoisomers stay in the research inventory |
+| `flavonoids` | named aglycones and subclass parents |
+| `vitamins` | named vitamers |
+| `functional_groups` | phenol, aniline, benzaldehyde, and similar complete examples |
+| `polycycles` | fused aromatics and cage hydrocarbons |
+| `peptide_building_blocks` | Fmoc/Boc amino acids; not a sequence builder |
+| `allotropes` | molecular allotropes (two Lewis drawings of O2, ozone, S6, S8, P4). Polymeric red P is not a template |
+| `reactive_species` | superoxide, hydroxyl, hydrogen peroxide, NO, NO2, N2O |
+
+`nucleobases` is titled **Nucleic acids** and holds free bases plus named nucleosides. Each molecule still has one `category_id`.
+
+Singlet oxygen is the closed-shell drawing `O=O` (PubChem CID 977). Triplet oxygen is the diradical `[O][O]`. They share an InChIKey. PubChem name-search "singlet oxygen" is atomic oxygen CID 159832 and is not used. Full Lewis structure and the lone-pair overlay already refuse unpaired electrons on a main-group atom; calculator coverage for radicals is not this slice (the hypervalent opt-in in `ChemistryEngine` is the pattern for a later session).
 
 A candidate is promoted only when PubChem identity is verified, `editor_eligible`
-is true, and stereochemistry is `verified` or `not_applicable`. Coordination
-compounds and `stereochemistry_not_reviewed` identities stay listed, not shipped.
+is true, and stereochemistry is `verified` or `not_applicable`, except named
+nucleosides whose InChIKey still has to match the candidate. Coordination
+compounds and morphine-class `stereochemistry_not_reviewed` identities stay listed, not shipped.
 
 A dummy atom (`*`) is a wildcard in the molecule. Bonding to it does not
 consume an attachment point. Fragments that need that behaviour are not
@@ -101,5 +114,5 @@ temp-file then `os.replace`. Tests set `OPENCHEM_DATA_ROOT`.
 ## Not in this slice
 
 Peptide sequence expansion (`Ala-Glu-Gly`), polymer S-groups, a pinned
-category toolbar, click-to-fuse attachment, Ketcher “use as 2D clean
-template”.
+category toolbar, nested subcategories, click-to-fuse attachment, Ketcher
+“use as 2D clean template”, unpaired-electron calculator coverage.

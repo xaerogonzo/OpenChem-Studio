@@ -1,0 +1,63 @@
+{
+  "id": "vitamins",
+  "title": "Vitamins",
+  "description": "Named vitamers as complete molecules, not family names.",
+  "entries": [
+    {
+      "id": "vitamins.ascorbic_acid",
+      "name": "L-Ascorbic acid",
+      "smiles": "O=C1O[C@H]([C@@H](O)CO)C(O)=C1O",
+      "tags": [
+        "vitamin C"
+      ]
+    },
+    {
+      "id": "vitamins.nicotinamide",
+      "name": "Nicotinamide",
+      "smiles": "NC(=O)c1cccnc1",
+      "tags": [
+        "vitamin B3"
+      ]
+    },
+    {
+      "id": "vitamins.nicotinic_acid",
+      "name": "Nicotinic acid",
+      "smiles": "O=C(O)c1cccnc1",
+      "tags": [
+        "vitamin B3"
+      ]
+    },
+    {
+      "id": "vitamins.pyridoxine",
+      "name": "Pyridoxine",
+      "smiles": "Cc1ncc(CO)c(CO)c1O",
+      "tags": [
+        "vitamin B6"
+      ]
+    },
+    {
+      "id": "vitamins.thiamine",
+      "name": "Thiamine",
+      "smiles": "Cc1ncc(C[n+]2csc(CCO)c2C)c(N)n1",
+      "tags": [
+        "vitamin B1"
+      ]
+    },
+    {
+      "id": "vitamins.alpha_tocopherol",
+      "name": "alpha-Tocopherol",
+      "smiles": "Cc1c(C)c2c(c(C)c1O)CC[C@@](C)(CCC[C@H](C)CCC[C@H](C)CCCC(C)C)O2",
+      "tags": [
+        "vitamin E"
+      ]
+    },
+    {
+      "id": "vitamins.retinol",
+      "name": "Retinol",
+      "smiles": "CC1=C(/C=C/C(C)=C/C=C/C(C)=C/CO)C(C)(C)CCC1",
+      "tags": [
+        "vitamin A"
+      ]
+    }
+  ]
+}

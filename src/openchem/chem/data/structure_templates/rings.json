@@ -7,43 +7,100 @@
       "id": "rings.benzene",
       "name": "Benzene",
       "smiles": "c1ccccc1",
-      "tags": ["aromatic", "six-membered ring"]
+      "tags": [
+        "aromatic",
+        "six-membered ring"
+      ]
     },
     {
       "id": "rings.cyclohexane",
       "name": "Cyclohexane",
       "smiles": "C1CCCCC1",
-      "tags": ["saturated ring", "six-membered ring"]
+      "tags": [
+        "saturated ring",
+        "six-membered ring"
+      ]
     },
     {
       "id": "rings.cyclopentane",
       "name": "Cyclopentane",
       "smiles": "C1CCCC1",
-      "tags": ["saturated ring", "five-membered ring"]
+      "tags": [
+        "saturated ring",
+        "five-membered ring"
+      ]
     },
     {
       "id": "rings.pyridine",
       "name": "Pyridine",
       "smiles": "c1ccncc1",
-      "tags": ["heterocycle", "aromatic"]
+      "tags": [
+        "heterocycle",
+        "aromatic"
+      ]
     },
     {
       "id": "rings.pyrrole",
       "name": "Pyrrole",
       "smiles": "c1cc[nH]c1",
-      "tags": ["heterocycle", "aromatic"]
+      "tags": [
+        "heterocycle",
+        "aromatic"
+      ]
     },
     {
       "id": "rings.furan",
       "name": "Furan",
       "smiles": "c1ccoc1",
-      "tags": ["heterocycle", "aromatic"]
+      "tags": [
+        "heterocycle",
+        "aromatic"
+      ]
     },
     {
       "id": "rings.thiophene",
       "name": "Thiophene",
       "smiles": "c1ccsc1",
-      "tags": ["heterocycle", "aromatic"]
+      "tags": [
+        "heterocycle",
+        "aromatic"
+      ]
+    },
+    {
+      "id": "rings.cyclopentene",
+      "name": "Cyclopentene",
+      "smiles": "C1=CCCC1",
+      "tags": [
+        "unsaturated ring",
+        "five-membered ring"
+      ]
+    },
+    {
+      "id": "rings.cyclopentadiene",
+      "name": "Cyclopentadiene",
+      "smiles": "C1=CCC=C1",
+      "tags": [
+        "unsaturated ring",
+        "five-membered ring"
+      ]
+    },
+    {
+      "id": "rings.naphthalene",
+      "name": "Naphthalene",
+      "smiles": "c1ccc2ccccc2c1",
+      "tags": [
+        "aromatic",
+        "fused"
+      ]
+    },
+    {
+      "id": "rings.azulene",
+      "name": "Azulene",
+      "smiles": "c1ccc2cccc-2cc1",
+      "tags": [
+        "aromatic",
+        "fused"
+      ]
     }
   ]
 }

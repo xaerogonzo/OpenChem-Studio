@@ -1,0 +1,39 @@
+{
+  "id": "peptide_building_blocks",
+  "title": "Peptide building blocks",
+  "description": "Complete N-protected amino acids. Not a sequence builder and not the free amino acids in Amino acids.",
+  "entries": [
+    {
+      "id": "peptide_building_blocks.fmoc_glycine",
+      "name": "Fmoc-Glycine",
+      "smiles": "O=C(O)CNC(=O)OCC1c2ccccc2-c2ccccc21",
+      "tags": [
+        "Fmoc"
+      ]
+    },
+    {
+      "id": "peptide_building_blocks.fmoc_l_alanine",
+      "name": "Fmoc-L-alanine",
+      "smiles": "C[C@H](NC(=O)OCC1c2ccccc2-c2ccccc21)C(=O)O",
+      "tags": [
+        "Fmoc"
+      ]
+    },
+    {
+      "id": "peptide_building_blocks.boc_glycine",
+      "name": "Boc-Glycine",
+      "smiles": "CC(C)(C)OC(=O)NCC(=O)O",
+      "tags": [
+        "Boc"
+      ]
+    },
+    {
+      "id": "peptide_building_blocks.boc_l_alanine",
+      "name": "Boc-L-alanine",
+      "smiles": "C[C@H](NC(=O)OC(C)(C)C)C(=O)O",
+      "tags": [
+        "Boc"
+      ]
+    }
+  ]
+}

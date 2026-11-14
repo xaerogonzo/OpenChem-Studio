@@ -1,7 +1,7 @@
 {
   "id": "heterocycles",
   "title": "Heterocycles",
-  "description": "Common heterocyclic complete molecules that are not already in Rings or Nucleobases. Alkaloids, flavonoids, vitamins, and crown ethers stay in the research inventory.",
+  "description": "Common heterocyclic complete molecules that are not already in Rings or Nucleic acids.",
   "entries": [
     {
       "id": "heterocycles.pyrimidine",
@@ -196,6 +196,30 @@
       "tags": [
         "heterocycle",
         "nucleobase analog"
+      ]
+    },
+    {
+      "id": "heterocycles.12_crown_4",
+      "name": "12-Crown-4",
+      "smiles": "C1COCCOCCOCCO1",
+      "tags": [
+        "crown ether"
+      ]
+    },
+    {
+      "id": "heterocycles.15_crown_5",
+      "name": "15-Crown-5",
+      "smiles": "C1COCCOCCOCCOCCO1",
+      "tags": [
+        "crown ether"
+      ]
+    },
+    {
+      "id": "heterocycles.18_crown_6",
+      "name": "18-Crown-6",
+      "smiles": "C1COCCOCCOCCOCCOCCO1",
+      "tags": [
+        "crown ether"
       ]
     }
   ]

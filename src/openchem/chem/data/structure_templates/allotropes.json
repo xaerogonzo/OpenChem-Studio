@@ -1,0 +1,72 @@
+{
+  "id": "allotropes",
+  "title": "Allotropes",
+  "description": "Molecular allotropes as complete drawings. Polymeric red phosphorus and plastic sulfur are not templates. Singlet and triplet oxygen are two Lewis drawings of O2, not two PubChem compounds.",
+  "entries": [
+    {
+      "id": "allotropes.singlet_oxygen",
+      "name": "Singlet oxygen",
+      "smiles": "O=O",
+      "tags": [
+        "oxygen",
+        "closed shell"
+      ],
+      "description": "Closed-shell Lewis drawing of O2 (PubChem CID 977, molecular oxygen). Singlet vs triplet is an electronic state; this SMILES is not a second PubChem compound. Name-search 'singlet oxygen' resolves to atomic oxygen and must not be used."
+    },
+    {
+      "id": "allotropes.triplet_oxygen",
+      "name": "Triplet oxygen",
+      "smiles": "[O][O]",
+      "tags": [
+        "oxygen",
+        "diradical"
+      ],
+      "description": "Diradical Lewis drawing of ground-state O2. No PubChem CID. Full Lewis structure and the lone-pair overlay refuse unpaired electrons on a main-group atom; insert is educational."
+    },
+    {
+      "id": "allotropes.atomic_oxygen",
+      "name": "Atomic oxygen",
+      "smiles": "[O]",
+      "tags": [
+        "oxygen"
+      ],
+      "description": "PubChem CID 159832."
+    },
+    {
+      "id": "allotropes.ozone",
+      "name": "Ozone",
+      "smiles": "[O-][O+]=O",
+      "tags": [
+        "oxygen"
+      ],
+      "description": "PubChem CID 24823."
+    },
+    {
+      "id": "allotropes.hexasulfur",
+      "name": "Hexasulfur",
+      "smiles": "S1SSSSS1",
+      "tags": [
+        "sulfur"
+      ],
+      "description": "PubChem CID 139602."
+    },
+    {
+      "id": "allotropes.cyclooctasulfur",
+      "name": "Cyclooctasulfur",
+      "smiles": "S1SSSSSSS1",
+      "tags": [
+        "sulfur"
+      ],
+      "description": "PubChem CID 66348."
+    },
+    {
+      "id": "allotropes.tetraphosphorus",
+      "name": "Tetraphosphorus",
+      "smiles": "P12P3P1P23",
+      "tags": [
+        "phosphorus"
+      ],
+      "description": "White phosphorus P4. PubChem CID 123286 (name tetraphosphorus). The 'white phosphorus' hit CID 5462309 is atomic P and must not be used."
+    }
+  ]
+}
