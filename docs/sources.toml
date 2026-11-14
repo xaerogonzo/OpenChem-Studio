@@ -10345,7 +10345,7 @@ local = "zhang1997.pdf"
 verification = "citation_and_claim"
 verified_date = 2026-11-14
 note = """
-Table 1 read from the rendered page. Single-crystal X-ray of 1,1,3,3,5,5-hexamethylpiperidinium salts (chosen because their contacts with the anion are weak). IF2-: I-F 207.5 (3) and 208.2 (3) pm, F-I-F 177.8 (1). IF4- (two independent ions, H2F3- salt): I-F 200.6 (3), 201.8 (3), 200.3 (4), 200.0 (4) pm, angles 90 and 180 within 0.3. AsF4-: As-F 187.8 (2), 186.2 (3) axial and 172.4 (2), 172.7 (3) equatorial pm, F-As-F 165.7 (1) and 97.5 (1), the others 84.5 to 86.1. ClF4-: 175.9, 181.4, 177.1, 181.3 pm in the pip salt (two elongated by cation contacts), 172.7 and 187.4 in the NO+ salt; not used (the K salt of scheibe2020 is already a row). TeF7- (a distorted pentagonal bipyramid) IS used (2026-11-14): axial Te-F 183.0 and 182.4 pm, equatorial mean 188.05 pm of six printed values, because the table prints six equatorial lines for five atoms; the pentagon is placed regular although the crystal's is puckered. The paper quotes Br-F 189 pm for BrF4- in a Rb salt.
+Table 1 read from the rendered page. Single-crystal X-ray of 1,1,3,3,5,5-hexamethylpiperidinium salts (chosen because their contacts with the anion are weak). IF2-: I-F 207.5 (3) and 208.2 (3) pm, F-I-F 177.8 (1). IF4- (two independent ions, H2F3- salt): I-F 200.6 (3), 201.8 (3), 200.3 (4), 200.0 (4) pm, angles 90 and 180 within 0.3. AsF4-: As-F 187.8 (2), 186.2 (3) axial and 172.4 (2), 172.7 (3) equatorial pm, F-As-F 165.7 (1) and 97.5 (1), the others 84.5 to 86.1. ClF4-: 175.9, 181.4, 177.1, 181.3 pm in the pip salt (two elongated by cation contacts), 172.7 and 187.4 in the NO+ salt; not used (the K salt of scheibe2020 is already a row). TeF7- (a distorted pentagonal bipyramid) IS used: the deposited CIF (ROLSOA, 130 K, R 0.035, `zhang1997_SI/`) labels every fluorine, which settles the printed table's six equatorial lines for five atoms: axial Te-F 1.8249 and 1.8303 (mean 1.8276), equatorial 1.8705 to 1.8975 (mean 1.8820) A; the pentagon is placed regular although the crystal's is puckered. The paper quotes Br-F 189 pm for BrF4- in a Rb salt.
 """
 
 [[source]]
@@ -10485,7 +10485,7 @@ local = "french1985.pdf"
 verification = "citation_and_claim"
 verified_date = 2026-11-14
 note = """
-Abstract and Table II read. Gas electron diffraction at 22 to 24 C: rg P-F equatorial 1.546 (9), P-F axial 1.593 (4), P-Cl 2.004 (2) A, F(ax)-P-F(eq) 89.3 (3), Cl-P-Cl 122.0 (5) degrees; the chlorines are equatorial (a Berry exchange would give axial isomers, which the data neither show nor rule out). Shipped as the PCl2F3 row with the ideal 90 and 120 degrees; its lengths are also TRANSFERRED to PCl3F2 (evidence tier ESTIMATED, below).
+Abstract and Table II read. Gas electron diffraction at 22 to 24 C: rg P-F equatorial 1.546 (9), P-F axial 1.593 (4), P-Cl 2.004 (2) A, F(ax)-P-F(eq) 89.3 (3), Cl-P-Cl 122.0 (5) degrees; the chlorines are equatorial (a Berry exchange would give axial isomers, which the data neither show nor rule out). Shipped as the PCl2F3 row with the ideal 90 and 120 degrees; its lengths were first TRANSFERRED to PCl3F2 as an estimate, until macho1986 measured that molecule.
 """
 
 [[source]]
@@ -10734,7 +10734,7 @@ local = "griffiths1964.pdf"
 verification = "citation_and_claim"
 verified_date = 2026-11-14
 note = """
-Read for the shape only (the held PDF's first page belongs to another article; the paper is inside). The vapour infrared and low-temperature Raman spectra of PCl3F2 are fully in agreement with D3h, a trigonal bipyramid with the fluorines axial and three equatorial chlorines. It gives no distances. Used for the SHAPE of the PCl3F2 row, whose lengths are transferred from PCl2F3 (french1985) and are labelled ESTIMATED.
+Read for the shape only (the held PDF's first page belongs to another article; the paper is inside). The vapour infrared and low-temperature Raman spectra of PCl3F2 are fully in agreement with D3h, a trigonal bipyramid with the fluorines axial and three equatorial chlorines. It gives no distances. Cited for the SHAPE of the PCl3F2 row, whose lengths are now measured (macho1986, electron diffraction, which confirms the shape); they were first transferred from PCl2F3 (french1985) as an estimate.
 """
 
 [[source]]
@@ -10829,7 +10829,7 @@ local = "du2016.pdf"
 verification = "citation_and_claim"
 verified_date = 2026-11-14
 note = """
-Text read (the individual bond tables are in its Supporting Information, which is not held). Nine aryl-SF5 crystals: S-F axial 1.568 (4) to 1.607 (3), S-F equatorial 1.572 (3) to 1.618 (3), S-C 1.785 (3) to 1.823 (4) A, C-S-F equatorial 91.3 (2) to 93.50 (13), C-S-F axial 178.9 to 180 degrees; the SF5 group is an umbrella, staggered with respect to the ring. Used with espiet2020 for the aryl-SF5 core row, at the MIDPOINTS of the ranges.
+Text read, and now the nine deposited CIFs (CCDC 1497382 to 1497390, 125 K, one at 273 K; `du2016_SI/`) read for the individual values: the means over twelve SF5 groups are S-F axial 1.5868, S-F equatorial 1.5859, S-C 1.8036 A and C-S-F equatorial 92.35 degrees (computed here). Nine aryl-SF5 crystals: S-F axial 1.568 (4) to 1.607 (3), S-F equatorial 1.572 (3) to 1.618 (3), S-C 1.785 (3) to 1.823 (4) A, C-S-F equatorial 91.3 (2) to 93.50 (13), C-S-F axial 178.9 to 180 degrees; the SF5 group is an umbrella, staggered with respect to the ring. Used with espiet2020 for the aryl-SF5 core row; it first used the MIDPOINTS of the printed ranges and now uses the CIF means (the equatorial S-F midpoint was 0.009 A too long).
 """
 
 [[source]]
@@ -10924,4 +10924,171 @@ verification = "citation"
 verified_date = 2026-11-14
 reason = """
 The held file is the CSD entry's CIF (173 K, P21/c, R 0.054), which carries a cell and fractional coordinates but no printed geometry; the values were COMPUTED here from them (the authors' list was not read, so the attribution to Carey, Chaloner, Hitchcock, Neugebauer and Seddon rests on the search lead that CSD BENICL01 is their 1996 low-temperature PhICl2 structure and on the compound and temperature agreeing): I-Cl 2.474 and 2.497, I-C 2.119 A, Cl-I-Cl 176.65, C-I-Cl 87.86 and 89.22 degrees, with an esd of about 0.01 A. It agrees with the 100 K determination of poynder2021 (I-Cl 2.5059 and 2.4832, I-C 2.0977 A, esds 0.0001 to 0.0004) within its esds, which is the better-determined and is the row's source. The CSD's terms forbid redistributing the file, so only these computed numbers are recorded.
+"""
+
+[[source]]
+key = "macho1986"
+kind = "literature"
+citation = "C. Macho, R. Minkwitz, J. Rohmann, B. Steger, V. Woelfel & H. Oberhammer, 'The chlorofluorophosphoranes PCl(n)F(5-n) (n = 1-4). Gas-phase structures and vibrational analyses', Inorg. Chem. 25, 2828-2835 (1986)"
+identifier_type = "doi"
+identifier = "10.1021/ic00236a034"
+status = "shipped"
+used_by = [
+    "src/openchem/chem/vsepr_geometry.py",
+    "tests/test_vsepr_geometry.py",
+    "docs/HYPERVALENT_COVERAGE_DESIGN.md",
+]
+local = "macho1986.pdf"
+verification = "citation_and_claim"
+verified_date = 2026-11-14
+note = """
+Table VIII read (rg distances, ra angles; its columns come out scrambled in the text layer, so each value was assigned to its molecule by the row's order and the paper's own trend statements). PCl3F2: P-F axial 1.596 (2), P-Cl equatorial 2.005 (3) A, D3h, angles 90 and 120 degrees by symmetry. The same table gives PCl2F3 (P-F axial 1.593, P-Cl 2.002, P-F equatorial 1.538 A), which agrees with french1985. Quoted limits are 2 sigma with a possible scale error. Shipped as the PCl3F2 row, replacing an estimate that had transferred PCl2F3's lengths.
+"""
+
+[[source]]
+key = "ye2005"
+kind = "literature"
+citation = "C. Ye, B. Twamley & J. M. Shreeve, 'Straightforward syntheses of hypervalent iodine(III) reagents mediated by Selectfluor', Org. Lett. 7, 3961-3964 (2005)"
+identifier_type = "doi"
+identifier = "10.1021/ol051446t"
+status = "shipped"
+used_by = [
+    "src/openchem/chem/vsepr_geometry.py",
+    "tests/test_vsepr_geometry.py",
+    "docs/HYPERVALENT_COVERAGE_DESIGN.md",
+]
+local = "ye2005.pdf"
+verification = "citation_and_claim"
+verified_date = 2026-11-14
+note = """
+The two Supporting Information CIFs read (87 K, R 0.023 and 0.049; two aryl-IF2 crystals holding 2 and 4 independent molecules): I-F 1.990 to 2.026, I-C 2.090 to 2.096 A, F-I-F 171.0 to 174.4, C-I-F 85.0 to 88.2 degrees. With sarie2017, haefliger2019, bailly2000 and floerke2013 they give the ArIF2 core row (means of twelve molecules).
+"""
+
+[[source]]
+key = "sarie2017"
+kind = "literature"
+citation = "J. C. Sarie, C. Thiehoff, R. J. Mudd, C. G. Daniliuc, G. Kehr & R. Gilmour, 'Deconstructing the catalytic, vicinal difluorination of alkenes: HF-free synthesis and structural study of p-TolIF2', J. Org. Chem. 82, 11792-11798 (2017)"
+identifier_type = "doi"
+identifier = "10.1021/acs.joc.7b01671"
+status = "shipped"
+used_by = [
+    "src/openchem/chem/vsepr_geometry.py",
+    "tests/test_vsepr_geometry.py",
+    "docs/HYPERVALENT_COVERAGE_DESIGN.md",
+]
+local = "sarie2017.pdf"
+verification = "citation_and_claim"
+verified_date = 2026-11-14
+note = """
+The Supporting Information CIF (data block gil8757, p-TolIF2, 100 K, R 0.020, two independent molecules) read: I-F 1.993 and 2.036, 2.003 and 2.020, I-C 2.0835 and 2.0930 A, F-I-F 173.3 and 170.8 degrees. One of the three sources of the ArIF2 core row.
+"""
+
+[[source]]
+key = "haefliger2019"
+kind = "literature"
+citation = "J. Haefliger, C. R. Pitts, D. Bornemann, R. Kaeser, N. Santschi, J. Charpentier, E. Otth, N. Trapp, R. Verel, H. P. Luethi & A. Togni, 'Substituent-controlled, mild oxidative fluorination of iodoarenes: synthesis and structural study of aryl I(III)- and I(V)-fluorides', Chem. Sci. 10, 7251-7259 (2019)"
+identifier_type = "doi"
+identifier = "10.1039/c9sc02162k"
+status = "shipped"
+used_by = [
+    "src/openchem/chem/vsepr_geometry.py",
+    "tests/test_vsepr_geometry.py",
+    "docs/HYPERVALENT_COVERAGE_DESIGN.md",
+]
+local = "Haefliger2019.pdf"
+verification = "citation_and_claim"
+verified_date = 2026-11-14
+note = """
+The Supporting Information CIF (three data blocks, 100 K) read: a bromo-tetrahydronaphthyl-IF2 (I-F 1.9977 and 1.9979, I-C 2.0966 A, F-I-F 171.86 degrees: a third ArIF2 source), 4-fluorophenyl-IF4 (I-C 2.0778 apical, I-F 1.9152 to 1.9600 basal, C-I-F 83.9 to 86.7: one of the four ArIF4 molecules of the core row), and an ArIF3(OR)-type I(V) molecule (not used). The file name in the library keeps the accented author initial.
+"""
+
+[[source]]
+key = "frohn2009"
+kind = "literature"
+citation = "H.-J. Frohn, M. Hirschberg, A. Westphal, U. Floerke, R. Boese & D. Blaeser, 'First isolation and structural characterization of N-base adducts of mono- and perfluoroaryliodine(III) compounds, ArfIX2 (X = F, CN)', Z. Anorg. Allg. Chem. 635, 2249-2257 (2009)"
+identifier_type = "doi"
+identifier = "10.1002/zaac.200900169"
+status = "reference_only"
+used_by = ["docs/HYPERVALENT_COVERAGE_DESIGN.md"]
+local = "frohn2009.pdf"
+verification = "citation"
+verified_date = 2026-11-14
+reason = """
+The three CIFs (CCDC 760658 to 760660, 120 K) were read: ArIF2 as N-base ADDUCTS, F-I-F only 158.6 to 161.8 degrees, I-F 2.000 to 2.014, I-C 2.104 to 2.115 A. The coordinated base distorts the T, so these are not free molecules and are not in the ArIF2 core row. Kept as the evidence for how far a donor moves F-I-F.
+"""
+
+[[source]]
+key = "hoyer2004"
+kind = "literature"
+citation = "S. Hoyer & K. Seppelt, 'Phenyliodine(V) fluorides', J. Fluorine Chem. 125, 989-996 (2004)"
+identifier_type = "doi"
+identifier = "10.1016/j.jfluchem.2003.12.004"
+status = "shipped"
+used_by = [
+    "src/openchem/chem/vsepr_geometry.py",
+    "tests/test_vsepr_geometry.py",
+    "docs/HYPERVALENT_COVERAGE_DESIGN.md",
+]
+local = "hoyer2004.pdf"
+verification = "citation_and_claim"
+verified_date = 2026-11-14
+note = """
+Table 1 read and the deposited CIF (CCDC 216480, data block phif4, 293 K, R 0.019) computed. PhIF4: a square pyramid with the phenyl apical, a zigzag chain through basal F...I contacts. Printed Table 1: I-F 195.7, 194.8, 192.1, 193.6 (3) pm, I-C 207.7 (4) pm, C-I-F 84.2, 85.7, 85.5, 86.0, average 85.35; the CIF (a later refinement, esds about 0.002 A) gives I-F 1.9514, 1.9419, 1.9223, 1.9226, I-C 2.0817 A, C-I-F 84.42, 85.59, 85.52, 85.91 (mean 85.36). The CIF is used. The paper's comparison: IF5 average I-F 187, CF3IF4 192, C6F5IF4 191 pm.
+"""
+
+[[source]]
+key = "frohn1995"
+kind = "literature"
+citation = "H. J. Frohn, S. Goerg, G. Henkel & M. Laege, 'Pentafluorphenyliod(V)-Verbindungen. 2. Pentafluorphenyliodtetrafluorid C6F5IF4', Z. Anorg. Allg. Chem. 621, 1251-1256 (1995)"
+identifier_type = "doi"
+identifier = "10.1002/zaac.19956210725"
+status = "shipped"
+used_by = [
+    "src/openchem/chem/vsepr_geometry.py",
+    "tests/test_vsepr_geometry.py",
+    "docs/HYPERVALENT_COVERAGE_DESIGN.md",
+]
+local = "frohn1995.pdf"
+verification = "citation_and_claim"
+verified_date = 2026-11-14
+note = """
+Fig. 3 (selected distances and angles) read in German. C6F5IF4, 150 K, two independent molecules, a square pyramid with C6F5 apical and the IF4 group staggered: molecule 1a I-C 2.081 (7), I-F 1.929 (4) and 1.911 (4), C-I-F 84.7 and 83.9; molecule 1b I-C 2.088 (5), I-F 1.927, 1.910, 1.916 and 1.904 (4), C-I-F 84.3, 83.1, 84.9, 84.9 degrees; the mean C-I-F is 84.3 and 84.5 in the text; C6F5I has I-C 2.077 (4). The same paper compares C6F5IF2 (I-F 1.946 and 2.029, I-C 2.071 A). The held folder frohn1995_SI contains a cerium compound's CIF (CCDC 2181609), NOT this structure, so the printed values are what is used.
+"""
+
+[[source]]
+key = "bailly2000"
+kind = "literature"
+citation = "F. Bailly, P. Barthen, W. Breuer, H.-J. Frohn, M. Giesen, J. Helber, G. Henkel & A. Priwitzer, 'Pentafluorphenylioddifluorid: alternative Darstellungsmethoden, Molekuelstruktur und Eigenschaften', Z. Anorg. Allg. Chem. 626, 1406-1413 (2000)"
+identifier_type = "doi"
+identifier = "10.1002/(sici)1521-3749(200006)626:6<1406::aid-zaac1406>3.0.co;2-9"
+status = "shipped"
+used_by = [
+    "src/openchem/chem/vsepr_geometry.py",
+    "tests/test_vsepr_geometry.py",
+    "docs/HYPERVALENT_COVERAGE_DESIGN.md",
+]
+local = "bailly2000.pdf"
+verification = "citation_and_claim"
+verified_date = 2026-11-14
+note = """
+The deposited CIF (CCDC 139385, data block C6F7I, 150 K, R 0.024) computed: C6F5IF2, two independent molecules, free T-shapes: I-F 1.9595 and 2.0250, I-C 2.0684, F-I-F 171.58, C-I-F 85.44 and 86.23; I-F 1.9499 and 2.0324, I-C 2.0677, F-I-F 170.46, C-I-F 87.39 and 83.29. Two of the twelve molecules of the ArIF2 core row (the electron-poor aryl, at the short end of I-C).
+"""
+
+[[source]]
+key = "floerke2013"
+kind = "literature"
+citation = "U. Floerke, o-fluorophenyl-iodine difluoride dichloromethane solvate, CSD private communication, CCDC 938893 (refcode UDOSEN), 2013"
+identifier_type = "bibliographic"
+identifier = "CCDC 938893 (CSD UDOSEN), a private communication, no paper"
+status = "shipped"
+used_by = [
+    "src/openchem/chem/vsepr_geometry.py",
+    "tests/test_vsepr_geometry.py",
+    "docs/HYPERVALENT_COVERAGE_DESIGN.md",
+]
+local = "cif files/UDOSEN_938893.cif"
+verification = "citation"
+verified_date = 2026-11-14
+note = """
+The deposited CIF (SHELXL-97, 153 K, R 0.048; o-fluorophenyl-IF2 with a quarter of a CH2Cl2 per molecule) computed: one free T-shaped molecule, I-F 2.0137 and 2.0160, I-C 2.0515 A, F-I-F 169.02, C-I-F 84.21 and 84.81 degrees. One of the twelve molecules of the ArIF2 core row, the shortest I-C (an ortho fluorine). No paper describes it; the CSD terms forbid redistributing the file, so only these computed numbers are recorded.
 """

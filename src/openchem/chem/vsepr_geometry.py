@@ -571,19 +571,59 @@ _ENTRIES = (
         "aromatic",
     ),
     Reference(
+        "I",
+        "CFF",
+        3,
+        2.0052,
+        2.0846,
+        {"ax-eq": 86.1},
+        "Ye, Twamley and Shreeve 2005, Org Lett 7, 3961, Supporting Information CIFs [source:ye2005]; Sarie et al. 2017, J Org Chem 82, 11792, CIF [source:sarie2017]; Haefliger et al. 2019, Chem Sci 10, 7251, CIF [source:haefliger2019]; "
+        "Bailly et al. 2000, Z Anorg Allg Chem 626, 1406, CIF [source:bailly2000]; Floerke 2013, CSD private communication, CCDC 938893 [source:floerke2013]",
+        "single-crystal X-ray of free aryl-IF2 molecules, twelve of them in six crystals (six in Ye et al.'s two crystals at 87 K, two of p-TolIF2 at 100 K, one of a bromo-tetrahydronaphthyl at 100 K, two of C6F5IF2 at 150 K, "
+        "one of o-fluorophenyl-IF2 as a CH2Cl2 solvate at 153 K), MEANS computed here from the deposited coordinates: I-F 2.0052 (1.950 to 2.036; the two fluorines of a molecule differ by up to 0.08 A through contacts), "
+        "I-C 2.0846 (2.0515 to 2.0966) A, F-I-F 172.1 (169.0 to 174.4), C-I-F 86.1 (83.3 to 88.2) degrees; a T with the fluorines axial and bent toward the carbon. The electron-poor aryls sit at the short end "
+        "(C6F5 I-C 2.068, o-fluorophenyl 2.052 against 2.083 to 2.097 for the others), so the mean is for a generic aryl, not for one substituent. The N-base adducts of Frohn et al. 2009 (F-I-F 158 to 162) are NOT included, being coordinated [source:frohn2009]",
+        True,
+        0,
+        (("F", 2.0052), ("F", 2.0052), ("C", 2.0846)),
+        "",
+        "measured",
+        "aromatic",
+    ),
+    Reference(
+        "I",
+        "CFFFF",
+        5,
+        2.0821,
+        1.9270,
+        {"ax-eq": 84.77},
+        "Haefliger et al. 2019, Chem Sci 10, 7251, CIF [source:haefliger2019]; Hoyer and Seppelt 2004, J Fluorine Chem 125, 989, CIF [source:hoyer2004]; Frohn, Goerg, Henkel and Laege 1995, Z Anorg Allg Chem 621, 1251, Fig. 3 [source:frohn1995]",
+        "single-crystal X-ray of aryl-IF4, four molecules in three crystals, the mean of each molecule then of the four: 4-fluorophenyl-IF4 at 100 K (I-C 2.0778, I-F mean 1.9393, C-I-F 85.13; computed from its CIF), "
+        "PhIF4 at 293 K (I-C 2.0817, I-F 1.9223 to 1.9514, mean 1.9346, C-I-F 85.36; computed from its CIF, which is a later refinement than the paper's Table 1: I-C 2.077, I-F mean 1.940, C-I-F 85.35), "
+        "and two molecules of C6F5IF4 at 150 K (I-C 2.081 and 2.088, I-F means 1.920 and 1.914, C-I-F 84.3 for both; the printed values of the paper, whose CIF is not held): I-C 2.0821, I-F 1.9270, C-I-F 84.77 degrees; "
+        "a square pyramid with the aryl carbon apical and the iodine below the basal plane",
+        True,
+        0,
+        (("C", 2.0821), ("F", 1.9270), ("F", 1.9270), ("F", 1.9270), ("F", 1.9270)),
+        "",
+        "measured",
+        "aromatic",
+    ),
+    Reference(
         "S",
         "CFFFFF",
         6,
-        1.804,
-        1.595,
-        {"ax-eq": 92.4},
+        1.8036,
+        1.5859,
+        {"ax-eq": 92.35},
         "Du, Hua, Beier, Slawin and Woollins 2016, Struct Chem 28, 723 [source:du2016]; Gonzalez Espiet, Cintron Cruz and Pinero Cruz 2020, Acta Cryst E76, 231 [source:espiet2020]",
-        "single-crystal X-ray of nine aryl-SF5 compounds (and a tenth): S-F axial 1.568 to 1.607 A (midpoint 1.5875), S-F equatorial 1.572 to 1.618 A (midpoint 1.595), S-C 1.785 to 1.823 A (midpoint 1.804), "
-        "C-S-F equatorial 91.3 to 93.5 degrees (midpoint 92.4, 92.0 and 92.2 in the benzonitrile), C-S-F axial 178.9 to 180; the row uses the MIDPOINTS of those ranges, an octahedron with the aryl "
-        "carbon apical and the four equatorial fluorines bent away from it (an umbrella), the trans fluorine at 1.5875 A",
+        "single-crystal X-ray of nine aryl-SF5 compounds (twelve SF5 groups, deposited as CCDC 1497382 to 1497390), MEANS computed here from the deposited coordinates (the printed ranges are S-F axial 1.568 to 1.607, "
+        "S-F equatorial 1.572 to 1.618, S-C 1.785 to 1.823 A, C-S-F equatorial 91.3 to 93.5, C-S-F axial 178.9 to 180 degrees): S-F axial 1.5868 (1.5676 to 1.6067), S-F equatorial 1.5859 (1.5714 to 1.6178), "
+        "S-C 1.8036 (1.7939 to 1.8228) A, C-S-F equatorial 92.35 (91.3 to 93.3) degrees; an octahedron with the aryl carbon apical and the four equatorial fluorines bent away from it (an umbrella). "
+        "Earlier this row used the MIDPOINTS of the printed ranges, which put the equatorial S-F nearly 0.01 A too long",
         True,
         0,
-        (("C", 1.804), ("F", 1.5875), ("F", 1.595), ("F", 1.595), ("F", 1.595), ("F", 1.595)),
+        (("C", 1.8036), ("F", 1.5868), ("F", 1.5859), ("F", 1.5859), ("F", 1.5859), ("F", 1.5859)),
         "c4v_octahedron",
         "measured",
         "aromatic",
@@ -593,13 +633,13 @@ _ENTRIES = (
         "Te",
         "F",
         7,
-        1.827,
-        1.8805,
+        1.8276,
+        1.8820,
         {},
-        "Zhang and Seppelt 1997, Z Anorg Allg Chem 623, 491 [source:zhang1997]",
-        "single-crystal X-ray of pip+ TeF7-: Te-F 183.0 and 182.4 (0.3) pm for the two axial fluorines (F-Te-F 175.7), and 188.2, 187.1, 188.7, 187.3, 187.3 and 189.7 pm for the equatorial "
-        "ones, which the printed table gives as SIX lines for FIVE atoms (one label is printed twice), so the mean of all six, 188.05 pm, is used (any five of them average 187.9 to 188.2); "
-        "the real equatorial pentagon is puckered (angles 69.6 to 74.4 and 138.5 to 146.8 degrees) and is placed regular here",
+        "Zhang and Seppelt 1997, Z Anorg Allg Chem 623, 491, and its deposited CIF (CSD ROLSOA) [source:zhang1997]",
+        "single-crystal X-ray of pip+ TeF7- at 130 K (R 0.035), the deposited coordinates read here with every fluorine labelled: Te-F axial 1.8249 and 1.8303 (mean 1.8276), F-Te-F 175.70; "
+        "equatorial 1.8705, 1.8727, 1.8818, 1.8875 and 1.8975 (mean 1.8820) A. The printed table gives SIX equatorial lines for five atoms (one label is printed twice; 183.0 and 182.4 pm axial, "
+        "mean of its six equatorial 188.05 pm), so the CIF replaces the earlier mean of six. The real equatorial pentagon is puckered (angles 69.6 to 74.4 and 138.5 to 146.8 degrees) and is placed regular here",
         True,
         -1,
     ),
@@ -623,17 +663,18 @@ _ENTRIES = (
         "P",
         "ClClClFF",
         5,
-        1.593,
-        2.004,
+        1.596,
+        2.005,
         {},
-        "Lengths transferred from French, Hedberg, Shreeve and Gupta 1985, Inorg Chem 24, 2774 [source:french1985]; shape from Griffiths, Carter and Holmes 1964, J Chem Phys 41, 863 [source:griffiths1964]",
-        "ESTIMATED, NOT MEASURED: no structure of PCl3F2 with distances has been published. The shape (D3h, fluorines axial, three equatorial chlorines) follows from the infrared and Raman spectra "
-        "(Griffiths 1964); the lengths are those of its measured neighbour PCl2F3 (rg P-F axial 1.593 (0.004), P-Cl 2.004 (0.002) A), a change of one equatorial atom, so uncertain by a few hundredths of an Angstrom",
+        "Macho, Minkwitz, Rohmann, Steger, Woelfel and Oberhammer 1986, Inorg Chem 25, 2828, Table VIII [source:macho1986]; the D3h shape was first shown by the spectra of Griffiths, Carter and Holmes 1964 [source:griffiths1964]",
+        "gas electron diffraction (the paper's table of rg distances and ra angles for PCln F5-n): P-F axial 1.596 (0.002), P-Cl equatorial 2.005 (0.003) A, D3h with both fluorines axial and the three "
+        "chlorines equatorial, the angles 90 and 120 degrees fixed by that symmetry and not refined; the quoted limits are 2 sigma with a possible scale error. This replaces an earlier ESTIMATE "
+        "that transferred PCl2F3's lengths (1.593 and 2.004), which the measurement confirms to 0.003 A",
         True,
         0,
-        (("F", 1.593), ("F", 1.593), ("Cl", 2.004), ("Cl", 2.004), ("Cl", 2.004)),
+        (("F", 1.596), ("F", 1.596), ("Cl", 2.005), ("Cl", 2.005), ("Cl", 2.005)),
         "",
-        "estimated",
+        "measured",
     ),
     # XeF6 is NOT one measured geometry. This row is a MODEL (Bartell and Gavin's Model C, C3v, the one that fits the radial distribution as well as the others) of a molecule
     # that is a fluxional average over such distorted octahedra; it is a starting geometry, labelled so.

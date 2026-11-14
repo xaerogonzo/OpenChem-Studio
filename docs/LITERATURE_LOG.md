@@ -370,6 +370,28 @@ Ten papers fetched for the cores the hybrid builder lacked, all DOIs checked in 
 
 Each row is a measurement only for the ligands that were measured (`Reference.scope: aromatic carbon, acyloxy oxygen); an alkyl-SF5 or a methyl-iodine diacetate takes the same lengths as an ESTIMATE, said as such.
 
+## Tenth hypervalent pass: the CIFs and the missing sources (2026-11-14)
+
+Papers and deposited CIFs fetched for the four items left open after the ninth pass; every DOI checked in Crossref.
+
+| Paper | What it is | Outcome | Registry key |
+|---|---|---|---|
+| Macho et al. 1986 | gas electron diffraction of PCl(n)F(5-n), Table VIII | **PCl3F2 measured**: P-F axial 1.596 (2), P-Cl equatorial 2.005 (3) A, D3h (the row was an estimate transferred from PCl2F3, whose lengths the table confirms to 0.003) | `macho1986` |
+| Zhang and Seppelt 1997, CIF ROLSOA | pip+ TeF7- at 130 K | **labelled**: axial 1.8249 and 1.8303, equatorial 1.8705 to 1.8975 A (means 1.8276 and 1.8820), F-Te-F axial 175.7; the CIF holds five equatorial fluorines, so the printed table's sixth line is an error of the table | `zhang1997` |
+| Du et al. 2016, nine CIFs (and the SI document) | aryl-SF5 | the row's lengths are now the MEANS of twelve SF5 groups, not midpoints of ranges: S-F axial 1.5868, S-F equatorial 1.5859, S-C 1.8036 A, C-S-F equatorial 92.35 degrees; the old equatorial midpoint (1.595) was 0.009 A too long | `du2016` |
+| Ye 2005, Sarie 2017, Haefliger 2019 (CIFs) | free aryl-IF2 molecules | **ArIF2 core row**, nine molecules in four crystals: I-F 2.0071, I-C 2.092 A, F-I-F 172.6, C-I-F 86.4 degrees; no unsubstituted PhIF2 crystal exists, the p-tolyl and two others stand for it, scoped to aromatic carbon | `ye2005`, `sarie2017`, `haefliger2019` |
+| Haefliger 2019 (CIF) | 4-fluorophenyl-IF4 | **ArIF4 core row**, ONE molecule: I-C 2.0778 apical, I-F basal mean 1.9393 (1.9152 to 1.9600), C-I-F 85.13 degrees | `haefliger2019` |
+| Frohn et al. 2009 (CIFs) | N-base adducts of ArIF2 | not used: coordinated, F-I-F 158.6 to 161.8 | `frohn2009` |
+| Mahjoub and Seppelt 1991 | IOF6- and TeF7- preparation | read earlier: no usable refined TeF7- geometry (the 1997 CIF is the source) | `mahjoub1991` |
+
+The CIF geometry was computed here with a small reader (cell, symmetry operators, labelled atoms; every symmetry image within the cutoff), checked by reproducing printed values: the TeF7- axial pair and angle against Zhang and Seppelt's table, and PhICl2's I-Cl against its paper. Real ORCA (B3LYP/def2-SVP) from the builder's own start keeps both shapes: PhIF2 stays a T (I-C 2.155, I-F 2.024 and 2.024 A, F-I-F 174.8, C-I-F 87.4 degrees; the isolated molecule's bonds are about 0.02 to 0.06 A longer than the crystals'), and 4-fluorophenyl-IF4 stays a square pyramid with the carbon apical (I-C 2.120, I-F 1.975 to 1.979 A, C-I-F 85.8 to 86.3, a symmetric basal square where the crystal's four lengths spread over 0.045 A). A check that the start is sound, not a measurement.
+
+A search afterwards (COD queried by formula, the Haefliger SI's survey of known crystals, Crossref) found no crystal of PhIF2, and COD holds only the aryl-IF2 and IF4 entries already used. Leads that need the CCDC: Hoyer and Seppelt 2004 (PhIF4, CCDC 216480), Frohn et al. 1995 (CSD 59004) and Bailly et al. 2000 (C6F5IF2, CCDC 139385). ClF5's lengths remain unmeasured: Bodenseh 1976 gives only the angle, and 1.57 and 1.67 A appear only in a secondary comparison table crediting Gillespie and Robinson 1992, unverified.
+
+**Eleventh pass (the search's leads, all obtained)**: Hoyer and Seppelt 2004 (CIF 216480: PhIF4 at 293 K, I-C 2.0817, I-F mean 1.9346, C-I-F 85.36; the paper's Table 1 is an earlier refinement, 2.077 and 1.940, so the CIF is used), Frohn et al. 1995 (C6F5IF4, two molecules at 150 K, from the printed Fig. 3: I-C 2.081 and 2.088, I-F means 1.920 and 1.914, C-I-F 84.3; the folder held for it contains a cerium compound's CIF, a wrong deposit, so the printed values are used), Bailly et al. 2000 (CIF 139385: C6F5IF2, two molecules at 150 K) and Floerke 2013 (UDOSEN, CCDC 938893: o-fluorophenyl-IF2). The ArIF4 core row is now the mean of four molecules in three crystals (I-C 2.0821, I-F 1.9270, C-I-F 84.77) and the ArIF2 row the mean of twelve molecules in six (I-F 2.0052, I-C 2.0846, C-I-F 86.1); the electron-poor aryls sit at the short end of I-C (2.05 to 2.07 against 2.08 to 2.10). The earlier ORCA runs (PhIF2, 4-fluorophenyl-IF4) used the previous means; the shapes held and nothing else about them changes with these.
+
+Still open: any crystal of PhIF2 itself, a measured ClF5 pair of lengths, and cyclic periodinanes (a hypervalent centre in a ring is unsupported).
+
 ## How to use this
 
 Before searching for a reference for a tautomer system, look here. A paper listed as "not an energy

@@ -1,0 +1,4 @@
+### Hypervalent: aryl-IF2 and aryl-IF4 cores, PCl3F2 and TeF7- from their sources, aryl-SF5 from the CIFs
+- A drawn ArIF2 (p-tolyl, phenyl and the like) and an ArIF4 now get a measured T-shaped or square-pyramidal core (nine free ArIF2 molecules in four crystals; one ArIF4), grown with its aryl group by the hybrid builder; an alkyl-IF2 takes the same lengths as a labelled estimate.
+- PCl3F2 is now a measured geometry (gas electron diffraction, Macho 1986) instead of an estimate; TeF7- uses its labelled crystal (ROLSOA) instead of the mean of an ambiguous printed table; the aryl-SF5 core uses the means of the nine deposited crystals instead of midpoints of the printed ranges (the equatorial S-F falls from 1.595 to 1.586 A).
+- The ArIF2 core is now the mean of twelve molecules in six crystals and the ArIF4 core the mean of four molecules in three (adding PhIF4, C6F5IF4, C6F5IF2 and an o-fluorophenyl-IF2), so each rests on more than one compound.
