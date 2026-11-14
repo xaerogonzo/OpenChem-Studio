@@ -324,6 +324,20 @@ Fourteen papers fetched from a second literature search, read for values (Ivashk
 
 The DOI of Zhang and Seppelt 1997 turned out to exist (10.1002/zaac.19976230178, found by the second search and confirmed in Crossref); its registry entry now carries it.
 
+## Seventh hypervalent pass: models and estimates, each labelled (2026-11-14)
+
+Three more species were built although no plain measurement of the molecule exists, on the owner's instruction that an honest approximate geometry is better than a refusal. **Every `Reference` now has an `evidence` tier** (`measured`, `model`, `calculated`, `estimated`), the tier is said in the row's method and in the conformer's note (`evidence_phrase`), and a test fixes which rows are not `measured`. A length is still never made up from covalent radii: each is a published number of one of those kinds.
+
+| Species | Tier | What the numbers are |
+|---|---|---|
+| TeF7- | measured, with an ambiguity said | Zhang and Seppelt 1997: axial Te-F 183.0 and 182.4 pm, equatorial mean 188.05 pm of six printed values (the table prints six lines for five equatorial fluorines, so any five average 187.9 to 188.2); the crystal's equatorial pentagon is puckered and is placed regular. Tellurium's rule now allows eight bonds | 
+| IF5(2-) | calculated | Christe et al. 1998: HF/ECP/DZP 2.094 A, LDFT 2.163 A, and the paper's predicted 2.11 A (the correction found for IF4-); pentagonal planar like the isoelectronic XeF5- (its shape is by spectra) |
+| PCl3F2 | estimated | shape D3h, fluorines axial (Griffiths, Carter and Holmes 1964, from spectra); lengths transferred from the measured PCl2F3 (rg P-F axial 1.593, P-Cl 2.004 A), uncertain by a few hundredths of an Angstrom |
+
+**What ORCA says about the three starts** (B3LYP/def2-SVP, def2-SVPD for the anions): TeF7- stays a pentagonal bipyramid (Te-F 1.917 axial and 1.975 equatorial A against 1.827 and 1.8805; the pentagon puckers by about 2 degrees, as the crystal's does); IF5(2-) stays a regular planar pentagon (I-F 2.174 A against the published prediction 2.11); PCl3F2 stays D3h with the fluorines axial (P-F 1.642, P-Cl 2.050 A against the transferred 1.593 and 2.004: 0.05 A longer, which is the size of the uncertainty the ESTIMATED label states).
+
+Two existing rows were re-labelled: **XeF6 is `model`** and **ClF5 is `estimated`** (its source assumed both lengths equal). A drawn ClF5, XeF6, IF5(2-) or PCl3F2 therefore now says so where the geometry's origin is shown.
+
 ## How to use this
 
 Before searching for a reference for a tautomer system, look here. A paper listed as "not an energy

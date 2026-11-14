@@ -334,7 +334,7 @@ def test_ordinary_molecules_are_left_to_the_normal_path(smiles):
 def test_every_reference_has_a_template_and_builds():
     """No entry is dead: each key reaches a built geometry (guards a table row nothing can use)."""
     for (centre, ligand, n, charge), reference in REFERENCES.items():
-        symbol = f"[{centre}{'-' if charge < 0 else '+' if charge > 0 else ''}]"
+        symbol = f"[{centre}{'-' if charge < 0 else '+' if charge > 0 else ''}{abs(charge) if abs(charge) > 1 else ''}]"
         if reference.slots or "=" in ligand:
             import re
 
@@ -591,3 +591,71 @@ def test_xef6_model_reproduces_the_papers_nonbonded_distances_it_was_not_given()
     # the long bonds are the ones around the lone pair's side: that triple is the more open one
     assert _angle(p, long_triple[0], c, long_triple[1]) > _angle(p, short_triple[0], c, short_triple[1])
     assert "MODEL" in g.reference.method
+
+
+# --- the evidence tier: an estimate is never presented as a measurement ----------------------------------------
+
+
+def test_every_row_has_a_known_evidence_tier_and_the_unmeasured_ones_say_so_in_their_method():
+    from openchem.chem.vsepr_geometry import EVIDENCE_PHRASES
+
+    tiers = {r.key: r.evidence for r in REFERENCES.values()}
+    assert set(tiers.values()) <= set(EVIDENCE_PHRASES)
+    for reference in REFERENCES.values():
+        if reference.evidence != "measured":
+            assert reference.evidence.upper() in reference.method.upper() or reference.method.startswith(("MODEL", "CALCULATED", "ESTIMATED")), reference.key
+    assert {k: v for k, v in tiers.items() if v != "measured"} == {
+        ("Xe", "F", 6, 0): "model",
+        ("Cl", "F", 5, 0): "estimated",
+        ("I", "F", 5, -2): "calculated",
+        ("P", "ClClClFF", 5, 0): "estimated",
+    }
+
+
+@pytest.mark.parametrize(
+    ("smiles", "phrase"),
+    [
+        ("F[Xe](F)(F)(F)(F)F", "MODEL"),
+        ("F[I-2](F)(F)(F)F", "CALCULATED"),
+        ("FP(F)(Cl)(Cl)Cl", "ESTIMATED"),
+        ("FCl(F)(F)(F)F", "ESTIMATED"),
+        ("FS(F)(F)(F)(F)F", "measured"),
+    ],
+)
+def test_the_geometry_and_the_conformer_note_state_how_well_the_numbers_are_known(smiles, phrase):
+    outcome = build_vsepr_geometry(_mol(smiles))
+    assert outcome.kind is Kind.BUILT, outcome.reason
+    assert phrase in outcome.geometry.provenance
+    from openchem.chem.conformer_providers import _template_search
+
+    assert phrase in _template_search(_mol(smiles)).geometry_note
+
+
+def test_tef7_anion_is_a_pentagonal_bipyramid_with_the_axial_bonds_shorter():
+    g = _built("F[Te-](F)(F)(F)(F)(F)F")
+    assert (g.classification, g.shape) == ("AX7", "pentagonal bipyramidal")
+    p, c = g.coordinates, g.centre_index
+    assert all(_bond(p, c, i) == pytest.approx(1.827, abs=1e-6) for i in g.axial_indices)
+    assert all(_bond(p, c, i) == pytest.approx(1.8805, abs=1e-6) for i in g.equatorial_indices)
+    assert _angle(p, *g.axial_indices[:1], c, g.axial_indices[1]) == pytest.approx(180.0, abs=1e-6)
+    equatorial_angles = sorted(round(_angle(p, i, c, j), 1) for i, j in itertools.combinations(g.equatorial_indices, 2))
+    assert equatorial_angles == [72.0] * 5 + [144.0] * 5
+
+
+def test_if5_dianion_is_a_regular_planar_pentagon_at_the_calculated_length():
+    g = _built("F[I-2](F)(F)(F)F")
+    assert (g.classification, g.shape) == ("AX5E2", "pentagonal planar")
+    assert _all_angles(g) == sorted([72.0] * 5 + [144.0] * 5)
+    assert all(_bond(g.coordinates, g.centre_index, i) == pytest.approx(2.11, abs=1e-6) for i in g.ligand_indices)
+    assert g.reference.evidence == "calculated"
+
+
+def test_pcl3f2_has_the_fluorines_axial_and_the_transferred_lengths():
+    smiles = "FP(F)(Cl)(Cl)Cl"
+    g = _built(smiles)
+    p, c = g.coordinates, g.centre_index
+    fluorines = _by_element(g, smiles, "F")
+    assert all(i in g.axial_indices for i in fluorines)
+    assert all(_bond(p, c, i) == pytest.approx(1.593, abs=1e-6) for i in fluorines)
+    assert all(_bond(p, c, i) == pytest.approx(2.004, abs=1e-6) for i in _by_element(g, smiles, "Cl"))
+    assert _all_angles(g) == [90.0] * 6 + [120.0] * 3 + [180.0]

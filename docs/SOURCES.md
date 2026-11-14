@@ -1,5 +1,5 @@
 <!-- GENERATED FROM docs/sources.toml -- do not edit -->
-<!-- SOURCE SHA256: f790e0a0177d4e0e5477af38fd2ddc8f99c573ed6410c5b314f76966da2b0a93 -->
+<!-- SOURCE SHA256: 2e0fa058cc6add55394f364379b5bd4ec4714ef6dc8a021442a67c0299f49b56 -->
 
 # Sources
 
@@ -163,7 +163,7 @@ Title and DOI first; the `key` is what prose and code cite (`[source:key]`) and 
 | Tetrafluorobromate(III) anion, BrF4- | [10.1021/ic50090a015](https://doi.org/10.1021/ic50090a015) | [`christe1970`](#christe1970) | literature | reference only | citation |
 | The tetrafluoroiodate(III) anion, IF4- | [10.1021/ic50119a016](https://doi.org/10.1021/ic50119a016) | [`christe1973`](#christe1973) | literature | reference only | citation |
 | The Pentafluoroxenate(IV) Anion, XeF5-: The First Example of a Pentagonal Planar AX5 Species | [10.1021/ja00009a021](https://doi.org/10.1021/ja00009a021) | [`christe1991`](#christe1991) | literature | shipped | citation + claim |
-| Pentagonal planar AX5 species: synthesis and characterization of the iodine(III) pentafluoride dianion, IF52- | [10.1021/ja980057+](https://doi.org/10.1021/ja980057+) | [`christe1998`](#christe1998) | literature | reference only | citation |
+| Pentagonal planar AX5 species: synthesis and characterization of the iodine(III) pentafluoride dianion, IF52- | [10.1021/ja980057+](https://doi.org/10.1021/ja980057+) | [`christe1998`](#christe1998) | literature | shipped | citation + claim |
 | Crystal Structure of ClF4+SbF6-, Normal Coordinate Analyses of ClF4+, BrF4+, IF4+, SF4, SeF4, and TeF4, and Simple Method for Calculating the Effects of Fluorine Bridging... | [10.1021/ja003347a](https://doi.org/10.1021/ja003347a) | [`christe2001`](#christe2001) | literature | shipped | citation + claim |
 | A New Population Analysis Based on Atomic Polar Tensors | [10.1021/ja00204a001](https://doi.org/10.1021/ja00204a001) | [`cioslowski1989`](#cioslowski1989) | literature | reference only | citation |
 | General and Unique Partitioning of Molecular Electronic Properties into Atomic Contributions | [10.1103/PhysRevLett.62.1469](https://doi.org/10.1103/PhysRevLett.62.1469) | [`cioslowski1989prl`](#cioslowski1989prl) | literature | reference only | citation + claim |
@@ -223,6 +223,7 @@ Title and DOI first; the `key` is what prose and code cite (`[source:key]`) and 
 | Photoelectron Spectra of Azabenzenes and Azanaphthalenes: I. Pyridine, diazines, s-triazine and s-tetrazine | [10.1002/hlca.19720550130](https://doi.org/10.1002/hlca.19720550130) | [`gleiter1972`](#gleiter1972) | literature | shipped | citation + claim |
 | A look at the density functional theory zoo with the advanced GMTKN55 database for general main group thermochemistry, kinetics and noncovalent interactions | [10.1039/c7cp04913g](https://doi.org/10.1039/c7cp04913g) | [`goerigk2017`](#goerigk2017) | literature | reference only | citation + claim |
 | Reliable gas-phase tautomer equilibria of drug-like molecule scaffolds and the issue of continuum solvation | [10.1007/s10822-022-00480-3](https://doi.org/10.1007/s10822-022-00480-3) | [`goller2022`](#goller2022) | literature | shipped | citation + claim |
+| Molecular structures of PCl4F, PCl3F2, PCl2F3, and PF5: infrared and low-temperature Raman vibrational spectra | [10.1063/1.1725974](https://doi.org/10.1063/1.1725974) | [`griffiths1964`](#griffiths1964) | literature | shipped | citation + claim |
 | Molecular structure of xenon tetroxide, XeO4 | [10.1063/1.1673060](https://doi.org/10.1063/1.1673060) | [`gundersen1970`](#gundersen1970) | literature | reference only | citation |
 | Calculation of hydrophile-lipophile balance for polyethoxylated surfactants by group contribution method | [10.1016/j.jcis.2005.12.009](https://doi.org/10.1016/j.jcis.2005.12.009) | [`guo2006`](#guo2006) | literature | reference only | citation + claim |
 | Bridging Chemists and AI: An Expert-Augmented Framework for Interpretable Route Evaluation | [10.48550/arXiv.2605.29108](https://doi.org/10.48550/arXiv.2605.29108) | [`guo2026routeevaluation`](#guo2026routeevaluation) | literature | reference only | citation |
@@ -8740,7 +8741,7 @@ Read. XeO3 is a trigonal pyramid in the crystal: Xe-O 1.74, 1.76 and 1.77 (0.03)
 | Local copy | `zhang1997.pdf` (not checked) |
 | Used by | `src/openchem/chem/vsepr_geometry.py`, `tests/test_vsepr_geometry.py`, `docs/HYPERVALENT_COVERAGE_DESIGN.md` |
 
-Table 1 read from the rendered page. Single-crystal X-ray of 1,1,3,3,5,5-hexamethylpiperidinium salts (chosen because their contacts with the anion are weak). IF2-: I-F 207.5 (3) and 208.2 (3) pm, F-I-F 177.8 (1). IF4- (two independent ions, H2F3- salt): I-F 200.6 (3), 201.8 (3), 200.3 (4), 200.0 (4) pm, angles 90 and 180 within 0.3. AsF4-: As-F 187.8 (2), 186.2 (3) axial and 172.4 (2), 172.7 (3) equatorial pm, F-As-F 165.7 (1) and 97.5 (1), the others 84.5 to 86.1. ClF4-: 175.9, 181.4, 177.1, 181.3 pm in the pip salt (two elongated by cation contacts), 172.7 and 187.4 in the NO+ salt; not used (the K salt of scheibe2020 is already a row). TeF7- (a distorted pentagonal bipyramid) is not used. The paper quotes Br-F 189 pm for BrF4- in a Rb salt.
+Table 1 read from the rendered page. Single-crystal X-ray of 1,1,3,3,5,5-hexamethylpiperidinium salts (chosen because their contacts with the anion are weak). IF2-: I-F 207.5 (3) and 208.2 (3) pm, F-I-F 177.8 (1). IF4- (two independent ions, H2F3- salt): I-F 200.6 (3), 201.8 (3), 200.3 (4), 200.0 (4) pm, angles 90 and 180 within 0.3. AsF4-: As-F 187.8 (2), 186.2 (3) axial and 172.4 (2), 172.7 (3) equatorial pm, F-As-F 165.7 (1) and 97.5 (1), the others 84.5 to 86.1. ClF4-: 175.9, 181.4, 177.1, 181.3 pm in the pip salt (two elongated by cation contacts), 172.7 and 187.4 in the NO+ salt; not used (the K salt of scheibe2020 is already a row). TeF7- (a distorted pentagonal bipyramid) IS used (2026-11-14): axial Te-F 183.0 and 182.4 pm, equatorial mean 188.05 pm of six printed values, because the table prints six equatorial lines for five atoms; the pentagon is placed regular although the crystal's is puckered. The paper quotes Br-F 189 pm for BrF4- in a Rb salt.
 
 ### edwards1969 — Fluoride crystal structures. Part VIII. Neutron diffraction studies of potassium tetrafluorobromate(III) and potassium tetrafluoroaurate(III)
 
@@ -8819,13 +8820,13 @@ Table 4 read. Neutron powder diffraction of KBrF4: Br-F 1.89 (0.02) A, F-Br-F 90
 | | |
 | --- | --- |
 | Identifier | [10.1021/ja980057+](https://doi.org/10.1021/ja980057+) |
-| Status | reference only |
-| Verification | citation |
+| Status | shipped |
+| Verification | citation + claim |
 | Verified | 2026-11-14 |
 | Local copy | `Christe1998.pdf` (not checked) |
-| Used by | `docs/HYPERVALENT_COVERAGE_DESIGN.md` |
+| Used by | `src/openchem/chem/vsepr_geometry.py`, `tests/test_vsepr_geometry.py`, `docs/HYPERVALENT_COVERAGE_DESIGN.md` |
 
-**Why it is reference only.** Read. IF5(2-) is established by infrared and Raman spectra, ab initio calculation and comparison with XeF5-; no X-ray structure (the calculated I-F is 2.11 A). A calculated length is not shipped as a measured one, so IF5(2-) is not built.
+Table 4 and its text read. IF52- is established by infrared and Raman spectra, ab initio calculation and comparison with XeF5-; NO structure has been measured. The HF/ECP/DZP optimisation gives a planar D5h pentagon with I-F 2.094 A (LDFT 2.163 A), and the paper's predicted 2.11 A applies the correction found for IF4- (calculated 1.994 against 2.007 observed). Shipped as the IF5(2-) row with evidence tier CALCULATED, which the conformer note states.
 
 ### hwang1997 — Structures of Bromine Oxygen Compounds
 
@@ -8876,7 +8877,7 @@ Table 3 read from the rendered page. Gas electron diffraction, nozzle temperatur
 | Local copy | `french1985.pdf` (not checked) |
 | Used by | `src/openchem/chem/vsepr_geometry.py`, `tests/test_vsepr_geometry.py`, `docs/HYPERVALENT_COVERAGE_DESIGN.md` |
 
-Abstract and Table II read. Gas electron diffraction at 22 to 24 C: rg P-F equatorial 1.546 (9), P-F axial 1.593 (4), P-Cl 2.004 (2) A, F(ax)-P-F(eq) 89.3 (3), Cl-P-Cl 122.0 (5) degrees; the chlorines are equatorial (a Berry exchange would give axial isomers, which the data neither show nor rule out). Shipped as the PCl2F3 row with the ideal 90 and 120 degrees.
+Abstract and Table II read. Gas electron diffraction at 22 to 24 C: rg P-F equatorial 1.546 (9), P-F axial 1.593 (4), P-Cl 2.004 (2) A, F(ax)-P-F(eq) 89.3 (3), Cl-P-Cl 122.0 (5) degrees; the chlorines are equatorial (a Berry exchange would give axial isomers, which the data neither show nor rule out). Shipped as the PCl2F3 row with the ideal 90 and 120 degrees; its lengths are also TRANSFERRED to PCl3F2 (evidence tier ESTIMATED, below).
 
 ### ohlberg1959 — The crystal structure of antimony pentachloride at -30 degrees
 
@@ -9115,6 +9116,23 @@ Now HELD (seppelt2019.pdf, an Accepted Article, and seppelt2019_SI.pdf). The Sup
 | Used by | `docs/HYPERVALENT_COVERAGE_DESIGN.md` |
 
 **Why it is reference only.** Read (a one-page letter). A preliminary electron diffraction comparison of XeF6 with TeF6 (a regular octahedron) at a nozzle temperature of about 22 C: the two patterns differ conclusively, so XeF6 is not a regular octahedron. It gives no distances or angles and says the analysis is continuing. Nothing to ship; it independently supports the distorted-structure reading of Bartell and Gavin (bartell1968).
+
+### griffiths1964 — Molecular structures of PCl4F, PCl3F2, PCl2F3, and PF5: infrared and low-temperature Raman vibrational spectra
+
+<a id="griffiths1964"></a>
+
+> J. E. Griffiths, R. P. Carter Jr. & R. R. Holmes, 'Molecular structures of PCl4F, PCl3F2, PCl2F3, and PF5: infrared and low-temperature Raman vibrational spectra', J. Chem. Phys. 41, 863-876 (1964)
+
+| | |
+| --- | --- |
+| Identifier | [10.1063/1.1725974](https://doi.org/10.1063/1.1725974) |
+| Status | shipped |
+| Verification | citation + claim |
+| Verified | 2026-11-14 |
+| Local copy | `griffiths1964.pdf` (not checked) |
+| Used by | `src/openchem/chem/vsepr_geometry.py`, `tests/test_vsepr_geometry.py`, `docs/HYPERVALENT_COVERAGE_DESIGN.md` |
+
+Read for the shape only (the held PDF's first page belongs to another article; the paper is inside). The vapour infrared and low-temperature Raman spectra of PCl3F2 are fully in agreement with D3h, a trigonal bipyramid with the fluorines axial and three equatorial chlorines. It gives no distances. Used for the SHAPE of the PCl3F2 row, whose lengths are transferred from PCl2F3 (french1985) and are labelled ESTIMATED.
 
 ## Datasets
 

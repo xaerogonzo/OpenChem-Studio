@@ -81,6 +81,11 @@ class Reference:
     #: Names a placer other than the template's default (see `_LAYOUTS`), for a distorted shape whose angles the
     #: default does not read (ClF3O's Cs bipyramid, SOF4's C2v one, SF5Cl's C4v octahedron).
     layout: str = ""
+    #: How well the numbers are known, and it reaches the conformer's note so an estimate never reads as a measurement:
+    #: "measured" (a diffraction or spectroscopic determination of this molecule), "model" (one of several models that fit a measurement,
+    #: for a molecule with no single measured geometry), "calculated" (a published calculation, no measurement) or "estimated" (a measured
+    #: analogue's lengths transferred, or lengths the source itself assumed).
+    evidence: str = "measured"
 
     @property
     def key(self) -> tuple[str, str, int, int]:
@@ -205,9 +210,10 @@ _ENTRIES = (
         1.65,
         {"ax-eq": 86.5},
         "Bodenseh, Huttner and Nowicki 1976, Z Naturforsch 31a, 1638 [source:bodenseh1976]",
-        "microwave, two rotational constants: only the angle (86.5, esd 1.0) is determined; the paper states that a "
+        "ESTIMATED lengths: microwave, two rotational constants, only the angle (86.5, esd 1.0) is determined; the paper states that a "
         "complete structure is not possible and that both lengths are about 1.65 A, so one value is used for both",
         True,
+        evidence="estimated",
     ),
     Reference(
         "I",
@@ -457,6 +463,53 @@ _ENTRIES = (
         0,
         (("F", 1.593), ("F", 1.593), ("F", 1.546), ("Cl", 2.004), ("Cl", 2.004)),
     ),
+    # Three rows whose evidence is not a plain measurement of that molecule (2026-11-14); `Reference.evidence` says which kind, and it reaches the conformer's note.
+    Reference(
+        "Te",
+        "F",
+        7,
+        1.827,
+        1.8805,
+        {},
+        "Zhang and Seppelt 1997, Z Anorg Allg Chem 623, 491 [source:zhang1997]",
+        "single-crystal X-ray of pip+ TeF7-: Te-F 183.0 and 182.4 (0.3) pm for the two axial fluorines (F-Te-F 175.7), and 188.2, 187.1, 188.7, 187.3, 187.3 and 189.7 pm for the equatorial "
+        "ones, which the printed table gives as SIX lines for FIVE atoms (one label is printed twice), so the mean of all six, 188.05 pm, is used (any five of them average 187.9 to 188.2); "
+        "the real equatorial pentagon is puckered (angles 69.6 to 74.4 and 138.5 to 146.8 degrees) and is placed regular here",
+        True,
+        -1,
+    ),
+    Reference(
+        "I",
+        "F",
+        5,
+        2.11,
+        2.11,
+        {},
+        "Christe, Wilson, Drake, Dixon, Boatz and Gnann 1998, J Am Chem Soc 120, 4711 [source:christe1998]",
+        "CALCULATED, NOT MEASURED: no structure of IF5(2-) has been determined. The paper's HF/ECP/DZP optimisation gives a planar D5h pentagon with I-F 2.094 A (LDFT 2.163 A), and "
+        "its 'predicted' 2.11 A applies the correction found for IF4- (calculated 1.994 against 2.007 observed); the shape is established by the spectra and by the isoelectronic XeF5-",
+        True,
+        -2,
+        (),
+        "",
+        "calculated",
+    ),
+    Reference(
+        "P",
+        "ClClClFF",
+        5,
+        1.593,
+        2.004,
+        {},
+        "Lengths transferred from French, Hedberg, Shreeve and Gupta 1985, Inorg Chem 24, 2774 [source:french1985]; shape from Griffiths, Carter and Holmes 1964, J Chem Phys 41, 863 [source:griffiths1964]",
+        "ESTIMATED, NOT MEASURED: no structure of PCl3F2 with distances has been published. The shape (D3h, fluorines axial, three equatorial chlorines) follows from the infrared and Raman spectra "
+        "(Griffiths 1964); the lengths are those of its measured neighbour PCl2F3 (rg P-F axial 1.593 (0.004), P-Cl 2.004 (0.002) A), a change of one equatorial atom, so uncertain by a few hundredths of an Angstrom",
+        True,
+        0,
+        (("F", 1.593), ("F", 1.593), ("Cl", 2.004), ("Cl", 2.004), ("Cl", 2.004)),
+        "",
+        "estimated",
+    ),
     # XeF6 is NOT one measured geometry. This row is a MODEL (Bartell and Gavin's Model C, C3v, the one that fits the radial distribution as well as the others) of a molecule
     # that is a fluxional average over such distorted octahedra; it is a starting geometry, labelled so.
     Reference(
@@ -474,6 +527,7 @@ _ENTRIES = (
         0,
         (),
         "",
+        "model",
     ),
     # Trigonal pyramids (2026-11-14): the template `_trigonal_pyramid` with the two molecules whose crystals are the only structures measured.
     Reference(
@@ -537,6 +591,20 @@ _ENTRIES = (
 REFERENCES: dict[tuple[str, str, int, int], Reference] = {r.key: r for r in _ENTRIES}
 
 
+#: What each evidence tier of a `Reference` means in a sentence a person reads.
+EVIDENCE_PHRASES = {
+    "measured": "measured bond lengths and angles",
+    "model": "bond lengths and angles of a published MODEL of a molecule that has no single measured geometry",
+    "calculated": "a published CALCULATED bond length (no structure of this species has been measured)",
+    "estimated": "ESTIMATED bond lengths (transferred from a measured analogue, or assumed by the source)",
+}
+
+
+def evidence_phrase(reference: Reference) -> str:
+    """The sentence for `reference.evidence`; an unknown tier is said as it is rather than hidden."""
+    return EVIDENCE_PHRASES.get(reference.evidence, f"evidence of kind {reference.evidence!r}")
+
+
 @dataclass(frozen=True)
 class VseprGeometry:
     """The built coordinates and how they were made."""
@@ -555,7 +623,7 @@ class VseprGeometry:
     diagnostics: dict[str, float] = field(default_factory=dict)
     #: The distance each ligand was placed at, by atom index (what `validate` checks against).
     ligand_lengths: dict[int, float] = field(default_factory=dict)
-    #: Always the same statement, so no consumer can mistake this for an optimised structure.
+    #: Always says it is not optimised, and says how well the numbers are known (`evidence_phrase`), so no consumer can mistake an estimate for a measurement.
     provenance: str = "idealised VSEPR template with published bond lengths and angles; not optimised, no energy"
 
 
@@ -932,6 +1000,7 @@ def build_vsepr_geometry(mol: Any) -> VseprOutcome:
         equatorial_indices=tuple(order[len(axial_vectors) :]),
         reference=reference,
         ligand_lengths=placed,
+        provenance=f"idealised VSEPR template with {evidence_phrase(reference)}; not optimised, no energy",
     )
     problems = validate(geometry)
     if problems:

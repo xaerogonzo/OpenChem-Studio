@@ -9,7 +9,7 @@ from rdkit import Chem
 from rdkit.Chem import AllChem, TorsionFingerprints, rdMolAlign, rdMolTransforms
 
 from openchem.chem.vsepr_geometry import Kind as VseprKind
-from openchem.chem.vsepr_geometry import build_vsepr_geometry
+from openchem.chem.vsepr_geometry import build_vsepr_geometry, evidence_phrase
 from openchem.domain.conformer import VSEPR_TEMPLATE
 from openchem.plugins.interfaces import ConformerBatch, ConformerProvider
 
@@ -1103,7 +1103,7 @@ def _template_search(mol: Chem.Mol) -> SearchOutcome | None:
         unoptimised=1,
         geometry_method=VSEPR_TEMPLATE,
         geometry_note=(
-            f"idealised {geometry.shape} VSEPR geometry ({geometry.classification}) from published bond data, "
+            f"idealised {geometry.shape} VSEPR geometry ({geometry.classification}) from {evidence_phrase(geometry.reference)}, "
             "not optimised"
         ),
     )
