@@ -1381,6 +1381,38 @@ too large for that format, so the common path is consistent by default.
 
 ---
 
+## Hypervalent molecules
+
+Molecules such as ClF3, BrF3, ClF5, SF4, SF6, PF5, XeF2, XeF4 and the iodine(III) reagents have a central atom with more
+bonds than the octet rule allows. RDKit, the engine under most of the calculators, was built and parameterised for organic
+chemistry, so this is where the application's coverage is narrowest. What is true today:
+
+**Drawing and 3D.** Every structure the valence checker accepts can be drawn and held, including the ones RDKit itself
+refuses (chlorine or bromine at three, five or seven bonds). The 3D geometry is built from a VSEPR template with published
+bond lengths and angles, each row labelled `measured`, `model`, `calculated` or `estimated` in the conformer's note. It is a
+starting geometry: no force-field relaxation, no energy, and a molecule without a table row (or with two hypervalent centres,
+or a hypervalent centre inside a ring) keeps the ordinary embedding or is declined.
+
+**Calculators on a structure RDKit refuses.** Only the calculators that were checked against an independent answer run:
+elemental analysis, mass spectrum, substance analysis, oxidation states, per-atom surface area and the three topology
+calculators. Every other calculator declines with a stated reason instead of returning a number, because the wrong answers
+were measured: Gasteiger charges came back as NaN, and Crippen logP and TPSA returned plausible numbers with no meaning for
+the molecule. ORCA quantum runs work on these structures.
+
+**Calculators on a structure RDKit accepts** (SF6, PF5, XeF4, SF4 and similar). These take the ordinary path, so most
+calculators run, but some are known to be weaker there. The additive polarizability of SF6 is about 21% low (SeF6 23%, PF5 8%
+against the data; a result with such a centre carries a warning). Two defects were measured and then fixed: Dreiding
+energies of 163 to 1053 kcal/mol for SF6, PF5, SF4 and IF5 (such a centre is now declined) and one chiral centre reported for
+SF6 (a five- or six-coordinate centre is now "not assessed"). Others may remain unmeasured: a number is not evidence that the
+method covers the molecule.
+
+**What would lift this** is per-calculator work, not one switch: coordinate-only calculators need an independent check each;
+the ones built on RDKit's valence model (partial charges, logP, TPSA, fingerprints, force fields) need parameters that do not
+exist for hypervalent centres, so for those a quantum calculation is the honest route. The measured list and the reasoning are
+in [HYPERVALENT_COVERAGE_DESIGN.md](HYPERVALENT_COVERAGE_DESIGN.md).
+
+---
+
 <!-- help:limits-conformers -->
 ## Conformer generation
 
