@@ -1,0 +1,55 @@
+{
+  "id": "alkaloids",
+  "title": "Alkaloids",
+  "description": "Complete-molecule examples. Tags mark Aniszewski's true/proto/pseudo framework; compound-level pages were not invented. Named stereoisomers with unreviewed stereo stay in the research inventory.",
+  "entries": [
+    {
+      "id": "alkaloids.mescaline",
+      "name": "Mescaline",
+      "smiles": "COc1cc(CCN)cc(OC)c1OC",
+      "tags": [
+        "protoalkaloid"
+      ]
+    },
+    {
+      "id": "alkaloids.hordenine",
+      "name": "Hordenine",
+      "smiles": "CN(C)CCc1ccc(O)cc1",
+      "tags": [
+        "protoalkaloid"
+      ]
+    },
+    {
+      "id": "alkaloids.caffeine",
+      "name": "Caffeine",
+      "smiles": "Cn1c(=O)c2c(ncn2C)n(C)c1=O",
+      "tags": [
+        "pseudoalkaloid"
+      ]
+    },
+    {
+      "id": "alkaloids.theobromine",
+      "name": "Theobromine",
+      "smiles": "Cn1cnc2c1c(=O)[nH]c(=O)n2C",
+      "tags": [
+        "pseudoalkaloid"
+      ]
+    },
+    {
+      "id": "alkaloids.theophylline",
+      "name": "Theophylline",
+      "smiles": "Cn1c(=O)c2[nH]cnc2n(C)c1=O",
+      "tags": [
+        "pseudoalkaloid"
+      ]
+    },
+    {
+      "id": "alkaloids.ephedrine",
+      "name": "(1R,2S)-Ephedrine",
+      "smiles": "CN[C@@H](C)[C@H](O)c1ccccc1",
+      "tags": [
+        "class unresolved"
+      ]
+    }
+  ]
+}

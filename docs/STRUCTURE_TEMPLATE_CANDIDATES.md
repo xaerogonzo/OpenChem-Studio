@@ -199,8 +199,9 @@ Seven records require a coordination representation. `editor_eligible` is false.
 
 ## Open questions
 
-- First shipping promotion is in `_SHIPPED_FILES` (cycloalkanes, heterocycles, solvents, extra named sugars). This research file is still not loaded.
+- A second shipping promotion is in `_SHIPPED_FILES` (alkaloids including protoalkaloids, flavonoids, vitamins, nucleic acids, allotropes, reactive species, and more). This research file is still not loaded.
 - Stereo-specific PubChem records for cis/trans-decalin.
 - Compound-level class for ephedrine and colchicine.
-- Remaining candidates (alkaloids, flavonoids, vitamins, metals, stereo-not-reviewed) stay listed until a later promotion.
+- Morphine-class true alkaloids stay listed until stereochemistry is reviewed. Metals stay unshipped.
 - Broader editor display tests beyond the Template Library drive script.
+- Unpaired-electron calculator coverage is not this dump.

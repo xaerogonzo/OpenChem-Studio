@@ -37,6 +37,14 @@ _SHIPPED_FILES = (
     "cycloalkanes.json",
     "heterocycles.json",
     "solvents_reagents.json",
+    "alkaloids.json",
+    "flavonoids.json",
+    "vitamins.json",
+    "functional_groups.json",
+    "polycycles.json",
+    "peptide_building_blocks.json",
+    "allotropes.json",
+    "reactive_species.json",
 )
 
 

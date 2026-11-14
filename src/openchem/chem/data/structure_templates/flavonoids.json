@@ -1,0 +1,103 @@
+{
+  "id": "flavonoids",
+  "title": "Flavonoids",
+  "description": "Named flavonoid aglycones and subclass parents as complete molecules.",
+  "entries": [
+    {
+      "id": "flavonoids.flavone",
+      "name": "Flavone",
+      "smiles": "O=c1cc(-c2ccccc2)oc2ccccc12",
+      "tags": [
+        "flavonoid"
+      ]
+    },
+    {
+      "id": "flavonoids.flavonol",
+      "name": "3-Hydroxyflavone",
+      "smiles": "O=c1c(O)c(-c2ccccc2)oc2ccccc12",
+      "tags": [
+        "flavonoid"
+      ]
+    },
+    {
+      "id": "flavonoids.isoflavone",
+      "name": "Isoflavone",
+      "smiles": "O=c1c(-c2ccccc2)coc2ccccc12",
+      "tags": [
+        "flavonoid"
+      ]
+    },
+    {
+      "id": "flavonoids.chalcone",
+      "name": "Chalcone",
+      "smiles": "O=C(/C=C/c1ccccc1)c1ccccc1",
+      "tags": [
+        "flavonoid"
+      ]
+    },
+    {
+      "id": "flavonoids.catechin",
+      "name": "(+)-Catechin",
+      "smiles": "Oc1cc(O)c2c(c1)O[C@H](c1ccc(O)c(O)c1)[C@@H](O)C2",
+      "tags": [
+        "flavonoid"
+      ]
+    },
+    {
+      "id": "flavonoids.apigenin",
+      "name": "Apigenin",
+      "smiles": "O=c1cc(-c2ccc(O)cc2)oc2cc(O)cc(O)c12",
+      "tags": [
+        "flavonoid"
+      ]
+    },
+    {
+      "id": "flavonoids.luteolin",
+      "name": "Luteolin",
+      "smiles": "O=c1cc(-c2ccc(O)c(O)c2)oc2cc(O)cc(O)c12",
+      "tags": [
+        "flavonoid"
+      ]
+    },
+    {
+      "id": "flavonoids.kaempferol",
+      "name": "Kaempferol",
+      "smiles": "O=c1c(O)c(-c2ccc(O)cc2)oc2cc(O)cc(O)c12",
+      "tags": [
+        "flavonoid"
+      ]
+    },
+    {
+      "id": "flavonoids.quercetin",
+      "name": "Quercetin",
+      "smiles": "O=c1c(O)c(-c2ccc(O)c(O)c2)oc2cc(O)cc(O)c12",
+      "tags": [
+        "flavonoid"
+      ]
+    },
+    {
+      "id": "flavonoids.daidzein",
+      "name": "Daidzein",
+      "smiles": "O=c1c(-c2ccc(O)cc2)coc2cc(O)ccc12",
+      "tags": [
+        "isoflavone"
+      ]
+    },
+    {
+      "id": "flavonoids.genistein",
+      "name": "Genistein",
+      "smiles": "O=c1c(-c2ccc(O)cc2)coc2cc(O)cc(O)c12",
+      "tags": [
+        "isoflavone"
+      ]
+    },
+    {
+      "id": "flavonoids.cyanidin",
+      "name": "Cyanidin",
+      "smiles": "Oc1cc(O)c2cc(O)c(-c3ccc(O)c(O)c3)[o+]c2c1",
+      "tags": [
+        "anthocyanidin"
+      ]
+    }
+  ]
+}

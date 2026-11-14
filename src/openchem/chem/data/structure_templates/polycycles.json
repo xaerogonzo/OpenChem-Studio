@@ -1,0 +1,63 @@
+{
+  "id": "polycycles",
+  "title": "Polycycles",
+  "description": "Fused aromatics and cage hydrocarbons as complete molecules.",
+  "entries": [
+    {
+      "id": "polycycles.anthracene",
+      "name": "Anthracene",
+      "smiles": "c1ccc2cc3ccccc3cc2c1",
+      "tags": [
+        "fused aromatic"
+      ]
+    },
+    {
+      "id": "polycycles.phenanthrene",
+      "name": "Phenanthrene",
+      "smiles": "c1ccc2c(c1)ccc1ccccc12",
+      "tags": [
+        "fused aromatic"
+      ]
+    },
+    {
+      "id": "polycycles.pyrene",
+      "name": "Pyrene",
+      "smiles": "c1cc2ccc3cccc4ccc(c1)c2c34",
+      "tags": [
+        "fused aromatic"
+      ]
+    },
+    {
+      "id": "polycycles.fluorene",
+      "name": "Fluorene",
+      "smiles": "c1ccc2c(c1)Cc1ccccc1-2",
+      "tags": [
+        "fused aromatic"
+      ]
+    },
+    {
+      "id": "polycycles.adamantane",
+      "name": "Adamantane",
+      "smiles": "C1C2CC3CC1CC(C2)C3",
+      "tags": [
+        "cage"
+      ]
+    },
+    {
+      "id": "polycycles.cubane",
+      "name": "Cubane",
+      "smiles": "C12C3C4C1C1C2C3C41",
+      "tags": [
+        "cage"
+      ]
+    },
+    {
+      "id": "polycycles.norbornane",
+      "name": "Norbornane",
+      "smiles": "C1CC2CCC1C2",
+      "tags": [
+        "bridged"
+      ]
+    }
+  ]
+}

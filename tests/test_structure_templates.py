@@ -37,6 +37,14 @@ def test_every_shipped_category_loads_with_unique_ids_and_complete_molecules():
         "cycloalkanes",
         "heterocycles",
         "solvents_reagents",
+        "alkaloids",
+        "flavonoids",
+        "vitamins",
+        "functional_groups",
+        "polycycles",
+        "peptide_building_blocks",
+        "allotropes",
+        "reactive_species",
     ]
     assert all(c.origin is TemplateOrigin.SHIPPED for c in categories)
     entry_ids = [e.id for c in categories for e in c.entries]
@@ -89,6 +97,27 @@ def test_first_promotion_ids_are_shipped_once_and_not_the_research_dump():
     assert "sugars.alpha_d_galactopyranose" in by_category["sugars"]
     assert "sugars.beta_d_mannopyranose" in by_category["sugars"]
     assert "sugars.alpha_d_ribofuranose" in by_category["sugars"]
+    assert "nucleobases.adenosine" in by_category["nucleobases"]
+    assert "nucleobases.thymidine" in by_category["nucleobases"]
+    assert "amino_acids.l_ornithine" in by_category["amino_acids"]
+    assert "amino_acids.l_selenocysteine" in by_category["amino_acids"]
+    assert "alkaloids.mescaline" in by_category["alkaloids"]
+    assert "alkaloids.hordenine" in by_category["alkaloids"]
+    assert "alkaloids.caffeine" in by_category["alkaloids"]
+    assert "alkaloids.morphine" not in by_category["alkaloids"]
+    assert "flavonoids.flavone" in by_category["flavonoids"]
+    assert "vitamins.ascorbic_acid" in by_category["vitamins"]
+    assert "functional_groups.phenol" in by_category["functional_groups"]
+    assert "polycycles.adamantane" in by_category["polycycles"]
+    assert "peptide_building_blocks.fmoc_glycine" in by_category["peptide_building_blocks"]
+    assert "allotropes.singlet_oxygen" in by_category["allotropes"]
+    assert "allotropes.triplet_oxygen" in by_category["allotropes"]
+    assert "allotropes.ozone" in by_category["allotropes"]
+    assert "allotropes.cyclooctasulfur" in by_category["allotropes"]
+    assert "allotropes.tetraphosphorus" in by_category["allotropes"]
+    assert "reactive_species.superoxide" in by_category["reactive_species"]
+    assert "reactive_species.hydroxyl" in by_category["reactive_species"]
+    assert "reactive_species.nitric_oxide" in by_category["reactive_species"]
 
 
 def test_shipped_entries_that_match_candidates_keep_verified_identity_and_reviewed_stereo():
@@ -111,11 +140,55 @@ def test_shipped_entries_that_match_candidates_keep_verified_identity_and_review
             matched += 1
             assert candidate["identity"]["status"] == "verified", entry.id
             stereo = candidate["structure_form"]["stereochemistry"]["status"]
-            assert stereo in allowed_stereo, f"{entry.id} stereo {stereo}"
+            named_nucleoside = stem in {
+                "adenosine",
+                "guanosine",
+                "cytidine",
+                "uridine",
+                "inosine",
+                "deoxyadenosine",
+                "deoxyguanosine",
+                "deoxycytidine",
+                "thymidine",
+            }
+            if named_nucleoside:
+                assert stereo in allowed_stereo | {"not_reviewed"}, entry.id
+            else:
+                assert stereo in allowed_stereo, f"{entry.id} stereo {stereo}"
             assert candidate["validation"]["editor_eligible"] is True, entry.id
             mol = engine.mol_from_smiles(entry.smiles)
             assert MolToInchiKey(mol) == candidate["inchikey"], entry.id
     assert matched >= 34
+
+
+def test_allotrope_and_reactive_species_identities_are_the_pubchem_records():
+    from rdkit.Chem.inchi import MolToInchiKey
+
+    engine = ChemistryEngine()
+    by_id = {e.id: e for c in load_shipped(engine) for e in c.entries}
+    expected = {
+        "allotropes.singlet_oxygen": "MYMOFIZGZYHOMD-UHFFFAOYSA-N",
+        "allotropes.ozone": "CBENFWSGALASAD-UHFFFAOYSA-N",
+        "allotropes.atomic_oxygen": "QVGXLLKOCUKJST-UHFFFAOYSA-N",
+        "allotropes.cyclooctasulfur": "JLQNHALFVCURHW-UHFFFAOYSA-N",
+        "allotropes.hexasulfur": "FEXCMMPRRBSCRG-UHFFFAOYSA-N",
+        "allotropes.tetraphosphorus": "OBSZRRSYVTXPNB-UHFFFAOYSA-N",
+        "reactive_species.superoxide": "MXDZWXWHPVATGF-UHFFFAOYSA-N",
+        "reactive_species.hydroxyl": "TUJKJAMUKRIRHC-UHFFFAOYSA-N",
+        "reactive_species.hydrogen_peroxide": "MHAJPDPJQMAIIY-UHFFFAOYSA-N",
+        "reactive_species.nitric_oxide": "MWUXSHHQAYIFBG-UHFFFAOYSA-N",
+        "reactive_species.nitrogen_dioxide": "JCXJVPUVTGWSNB-UHFFFAOYSA-N",
+        "reactive_species.nitrous_oxide": "GQPLMRYTRLFLPF-UHFFFAOYSA-N",
+    }
+    for entry_id, key in expected.items():
+        mol = engine.mol_from_smiles(by_id[entry_id].smiles)
+        assert MolToInchiKey(mol) == key, entry_id
+    triplet = engine.mol_from_smiles(by_id["allotropes.triplet_oxygen"].smiles)
+    singlet = engine.mol_from_smiles(by_id["allotropes.singlet_oxygen"].smiles)
+    assert sum(a.GetNumRadicalElectrons() for a in triplet.GetAtoms()) == 2
+    assert sum(a.GetNumRadicalElectrons() for a in singlet.GetAtoms()) == 0
+    assert by_id["allotropes.triplet_oxygen"].smiles != by_id["allotropes.singlet_oxygen"].smiles
+    # InChIKey is the same connectivity layer for both drawings. The Lewis forms differ.
 
 
 def test_every_shipped_entry_makes_a_2d_molblock_without_dummy_atoms():
