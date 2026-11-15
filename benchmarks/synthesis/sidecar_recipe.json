@@ -1,0 +1,47 @@
+{
+  "kind": "sidecar-recipe",
+  "format": 1,
+  "id": "aizynthfinder-4.4.1",
+  "python": "3.12",
+  "lockfile": "planner_env_lock.txt",
+  "lockfile_sha256": "f519ccef16615d8dac93de9a3818a05dffc360f3330c8923bf4620c653597154",
+  "pins": [
+    "aizynthfinder==4.4.1",
+    "pyarrow<21"
+  ],
+  "obtain_data": "download_public_data",
+  "files": [
+    {
+      "path": "uspto_filter_model.onnx",
+      "sha256": "ad29aa32bdfcbe37065045546493806cf04899c55386c438905d83fb14bb6320",
+      "bytes": 16788859
+    },
+    {
+      "path": "uspto_model.onnx",
+      "sha256": "bd0a3cb74cd7068de474c8fb789a00a66bc42c75636d66510ccac585ebe928f8",
+      "bytes": 91518243
+    },
+    {
+      "path": "uspto_ringbreaker_model.onnx",
+      "sha256": "1bf0690352d9e9212d7dbe8b35649caf74f73ef0b30edefdfdac37fce38085be",
+      "bytes": 15036094
+    },
+    {
+      "path": "uspto_ringbreaker_templates.csv.gz",
+      "sha256": "5616a056454b10a2f044e69e027422128986856ebd958541a3bf9f837e3a0d14",
+      "bytes": 373753
+    },
+    {
+      "path": "uspto_templates.csv.gz",
+      "sha256": "a4f1945e90cfa195538320833d68aed38f14e2fcc2f8afb5d958bc920edcafbe",
+      "bytes": 3313598
+    },
+    {
+      "path": "zinc_stock.hdf5",
+      "sha256": "99d39a6f807c3e815487500bafc2b4a9dc66a31af189e3b1776874fb0d4a188d",
+      "bytes": 663232280
+    }
+  ],
+  "smoke_package": "aizynthfinder",
+  "smoke_version": "4.4.1"
+}
