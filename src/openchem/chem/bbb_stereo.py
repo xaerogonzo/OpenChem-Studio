@@ -47,6 +47,7 @@ from rdkit import Chem
 from rdkit.Chem import Descriptors, Lipinski, rdMolDescriptors
 
 from openchem.chem.calculator_options import apply_microspecies, decimals, microspecies_note
+from openchem.chem.stereo_elements import perceived_elements, unassessed_centres
 from openchem.domain.common import Provenance
 from openchem.domain.report import ReportResult
 from openchem.chem.report_adapter import report_from_fields
@@ -162,7 +163,7 @@ def stereo_descriptors(mol: Chem.Mol) -> list[tuple[int, str, str]]:
         pass
 
     found: list[tuple[int, str, str]] = []
-    for element in Chem.FindPotentialStereo(working):
+    for element in perceived_elements(working):
         index = int(element.centeredOn)
         if element.type == Chem.StereoType.Atom_Tetrahedral:
             kind, holder = "tetrahedral", working.GetAtomWithIdx(index)
@@ -194,12 +195,18 @@ def compute_stereo_descriptors(
     """
     parameters = parameters or {}
     elements = stereo_descriptors(mol)
+    unassessed = unassessed_centres(mol)
+    note = (
+        [f"{len(unassessed)} centre(s) with five or more neighbours (atom {', '.join(map(str, unassessed))}) not assessed: "
+         "this model describes only three- and four-coordinate centres."]
+        if unassessed else []
+    )
     if not elements:
         return report_from_fields(
             alert_id="stereo_descriptors",
             name="Stereo Descriptors",
             molecule_uuid=molecule_uuid,
-            matched=["No stereo elements in this structure."],
+            matched=["No stereo elements in this structure."] + note,
             category="stereochemistry",
             provenance=Provenance(created_by="core", method="rdkit_cip"),
         )
@@ -228,6 +235,7 @@ def compute_stereo_descriptors(
 
     undefined = sum(1 for _i, _k, label in elements if label == "undefined")
     lines.append(f"{len(elements)} stereo element(s), {undefined} undefined.")
+    lines.extend(note)
     return report_from_fields(
         alert_id="stereo_descriptors",
         name="Stereo Descriptors",

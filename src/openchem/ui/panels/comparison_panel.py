@@ -289,8 +289,47 @@ class ComparisonPanel(QWidget):
 
     def set_project(self, project: ProjectModel | None) -> None:
         self._project = project
+        # A new project must not keep the previous one's numbers.
+        self._values.clear()
         self._rebuild_molecule_list()
         self._render()
+
+    def set_stored_reader(self, reader) -> None:
+        """Read fresh stored reports for a molecule without selecting it or publishing.
+
+        `reader(uuid)` returns the same report objects the side-by-side Results readers
+        are built from. Compare stays passive: it does not replay, calculate, or select.
+        """
+        self._stored_reader = reader
+
+    def _hydrate(self, uuid: str) -> None:
+        """Fill empty cells from the store. A live event's cell is left as it is."""
+        reader = getattr(self, "_stored_reader", None)
+        if reader is None:
+            return
+        bucket = self._values.setdefault(uuid, {})
+        held = {cell.fact_label for cell in bucket.values()}
+        for report in reader(uuid) or ():
+            report_id = getattr(report, "report_id", "") or ""
+            for fact in getattr(report, "facts", ()) or ():
+                origin = fact.origin or report_id
+                key = f"{origin}::{fact.label}"
+                # A live event already filed this wording. Adding the stored
+                # copy makes the row label grow a report suffix, and the
+                # table no longer says the name the person reads.
+                if key in bucket or fact.label in held:
+                    continue
+                held.add(fact.label)
+                bucket[key] = CompareCell(
+                    display=fact.display_value,
+                    units=fact.units,
+                    numeric_value=finite_number(fact.value),
+                    row_key=key,
+                    report_id=origin,
+                    fact_label=fact.label,
+                    help_id=fact.help_id,
+                    link=fact.link,
+                )
 
     def _rebuild_molecule_list(self) -> None:
         """Rebuilt wholesale rather than diffed -- there are a handful of
@@ -392,6 +431,8 @@ class ComparisonPanel(QWidget):
             for row in range(self._molecules.count())
             if self._molecules.item(row).checkState() == Qt.CheckState.Checked
         ]
+        for uuid in self._chosen:
+            self._hydrate(uuid)
         self._render()
         self.chosen_changed.emit(list(self._chosen))
 
@@ -404,6 +445,8 @@ class ComparisonPanel(QWidget):
         """
         self._chosen = [u for u in uuids if u]
         self._rebuild_molecule_list()
+        for uuid in self._chosen:
+            self._hydrate(uuid)
         self._render()
         self.chosen_changed.emit(list(self._chosen))
 

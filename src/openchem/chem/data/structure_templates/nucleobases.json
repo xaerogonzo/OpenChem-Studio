@@ -1,37 +1,132 @@
 {
   "id": "nucleobases",
-  "title": "Nucleobases",
-  "description": "The five common free nucleobases, not nucleosides or nucleotides.",
+  "title": "Nucleic acids",
+  "description": "Free nucleobases and named nucleosides (ribo and 2'-deoxy). Not nucleotides, and not a sequence builder.",
   "entries": [
     {
       "id": "nucleobases.adenine",
       "name": "Adenine",
       "smiles": "Nc1ncnc2[nH]cnc12",
-      "tags": ["A", "purine"]
+      "tags": [
+        "A",
+        "purine"
+      ]
     },
     {
       "id": "nucleobases.cytosine",
       "name": "Cytosine",
       "smiles": "Nc1ccnc(=O)[nH]1",
-      "tags": ["C", "pyrimidine"]
+      "tags": [
+        "C",
+        "pyrimidine"
+      ]
     },
     {
       "id": "nucleobases.guanine",
       "name": "Guanine",
       "smiles": "Nc1nc2[nH]cnc2c(=O)[nH]1",
-      "tags": ["G", "purine"]
+      "tags": [
+        "G",
+        "purine"
+      ]
     },
     {
       "id": "nucleobases.thymine",
       "name": "Thymine",
       "smiles": "Cc1c[nH]c(=O)[nH]c1=O",
-      "tags": ["T", "pyrimidine"]
+      "tags": [
+        "T",
+        "pyrimidine"
+      ]
     },
     {
       "id": "nucleobases.uracil",
       "name": "Uracil",
       "smiles": "O=c1cc[nH]c(=O)[nH]1",
-      "tags": ["U", "pyrimidine"]
+      "tags": [
+        "U",
+        "pyrimidine"
+      ]
+    },
+    {
+      "id": "nucleobases.adenosine",
+      "name": "Adenosine",
+      "smiles": "Nc1ncnc2c1ncn2[C@@H]1O[C@H](CO)[C@@H](O)[C@H]1O",
+      "tags": [
+        "nucleoside",
+        "A"
+      ]
+    },
+    {
+      "id": "nucleobases.guanosine",
+      "name": "Guanosine",
+      "smiles": "Nc1nc2c(ncn2[C@@H]2O[C@H](CO)[C@@H](O)[C@H]2O)c(=O)[nH]1",
+      "tags": [
+        "nucleoside",
+        "G"
+      ]
+    },
+    {
+      "id": "nucleobases.cytidine",
+      "name": "Cytidine",
+      "smiles": "Nc1ccn([C@@H]2O[C@H](CO)[C@@H](O)[C@H]2O)c(=O)n1",
+      "tags": [
+        "nucleoside",
+        "C"
+      ]
+    },
+    {
+      "id": "nucleobases.uridine",
+      "name": "Uridine",
+      "smiles": "O=c1ccn([C@@H]2O[C@H](CO)[C@@H](O)[C@H]2O)c(=O)[nH]1",
+      "tags": [
+        "nucleoside",
+        "U"
+      ]
+    },
+    {
+      "id": "nucleobases.inosine",
+      "name": "Inosine",
+      "smiles": "O=c1[nH]cnc2c1ncn2[C@@H]1O[C@H](CO)[C@@H](O)[C@H]1O",
+      "tags": [
+        "nucleoside"
+      ]
+    },
+    {
+      "id": "nucleobases.deoxyadenosine",
+      "name": "2'-Deoxyadenosine",
+      "smiles": "Nc1ncnc2c1ncn2[C@H]1C[C@H](O)[C@@H](CO)O1",
+      "tags": [
+        "deoxynucleoside",
+        "dA"
+      ]
+    },
+    {
+      "id": "nucleobases.deoxyguanosine",
+      "name": "2'-Deoxyguanosine",
+      "smiles": "Nc1nc2c(ncn2[C@H]2C[C@H](O)[C@@H](CO)O2)c(=O)[nH]1",
+      "tags": [
+        "deoxynucleoside",
+        "dG"
+      ]
+    },
+    {
+      "id": "nucleobases.deoxycytidine",
+      "name": "2'-Deoxycytidine",
+      "smiles": "Nc1ccn([C@H]2C[C@H](O)[C@@H](CO)O2)c(=O)n1",
+      "tags": [
+        "deoxynucleoside",
+        "dC"
+      ]
+    },
+    {
+      "id": "nucleobases.thymidine",
+      "name": "Thymidine",
+      "smiles": "Cc1cn([C@H]2C[C@H](O)[C@@H](CO)O2)c(=O)[nH]c1=O",
+      "tags": [
+        "deoxynucleoside",
+        "dT"
+      ]
     }
   ]
 }

@@ -360,9 +360,19 @@
   "default": "F7"
  },
  {
+  "id": "salt_composition",
+  "label": "Salt Composition",
+  "default": ""
+ },
+ {
   "id": "save_project",
   "label": "Save Project",
-  "default": ""
+  "default": "Ctrl+S"
+ },
+ {
+  "id": "save_project_as",
+  "label": "Save Project As",
+  "default": "Ctrl+Shift+S"
  },
  {
   "id": "search_facts",

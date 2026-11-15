@@ -100,6 +100,11 @@ class ConformerModel:
         )
 
 
+#: `ConformerModel.method` of a geometry built from a VSEPR template and measured bond data
+#: (`chem.vsepr_geometry`). It has no energy and is not optimised: ORCA is what refines it.
+VSEPR_TEMPLATE = "vsepr_template"
+
+
 def is_quantum_optimized(conformer: ConformerModel) -> bool:
     """Did a quantum-chemistry optimization produce this geometry (see `QUANTUM_OPTIMIZED_METHODS`)?"""
     return conformer.method in QUANTUM_OPTIMIZED_METHODS
@@ -144,6 +149,8 @@ def conformer_choice_text(conformers: Sequence[ConformerModel], index: int) -> s
         level = quantum_level_of_theory(conformer)
         engine = quantum_engine_name(conformer)
         return f"{position} - {engine} optimized ({level})" if level else f"{position} - {engine} optimized"
+    if conformer.method == VSEPR_TEMPLATE:
+        return f"{position} - idealised VSEPR geometry, not optimised"
     energies = [c.energy for c in conformers if c.energy is not None]
     if conformer.energy is None or not energies:
         return f"{position} - no energy"

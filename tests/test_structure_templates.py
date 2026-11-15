@@ -14,10 +14,12 @@ from openchem.chem.structure_templates import (
     place_to_the_right,
 )
 from openchem.domain.structure_template import (
+    SHIPPED_CATEGORY_GROUPS,
     TemplateEntry,
     TemplateError,
     TemplateKind,
     TemplateOrigin,
+    nested_category_groups,
 )
 
 
@@ -29,12 +31,182 @@ def test_shipped_catalog_lives_beside_the_other_chem_data_tables():
 def test_every_shipped_category_loads_with_unique_ids_and_complete_molecules():
     categories = load_shipped()
     ids = [c.id for c in categories]
-    assert ids == ["rings", "amino_acids", "nucleobases", "sugars"]
+    assert ids == [
+        "rings",
+        "amino_acids",
+        "nucleobases",
+        "sugars",
+        "cycloalkanes",
+        "heterocycles",
+        "solvents_reagents",
+        "alkaloids",
+        "flavonoids",
+        "vitamins",
+        "functional_groups",
+        "polycycles",
+        "peptide_building_blocks",
+        "allotropes",
+        "reactive_species",
+        "cofactors",
+        "terpenoids_steroids",
+    ]
     assert all(c.origin is TemplateOrigin.SHIPPED for c in categories)
     entry_ids = [e.id for c in categories for e in c.entries]
     assert len(entry_ids) == len(set(entry_ids))
     assert all(e.kind is TemplateKind.COMPLETE_MOLECULE for c in categories for e in c.entries)
     assert all(e.smiles and not e.molblock for c in categories for e in c.entries)
+
+
+def test_every_shipped_category_sits_in_exactly_one_dialog_group():
+    grouped = [cid for _title, ids in SHIPPED_CATEGORY_GROUPS for cid in ids]
+    assert grouped == list(dict.fromkeys(grouped))
+    assert set(grouped) == {c.id for c in load_shipped()}
+    trees = nested_category_groups(load_shipped())
+    assert [title for title, _cats in trees] == [title for title, ids in SHIPPED_CATEGORY_GROUPS if ids]
+    by_group = {title: [c.id for c in cats] for title, cats in trees}
+    assert by_group["Scaffolds"][0] == "rings"
+    assert "amino_acids" in by_group["Building blocks"]
+    assert "alkaloids" in by_group["Natural products"]
+
+
+def test_first_promotion_ids_are_shipped_once_and_not_the_research_dump():
+    from pathlib import Path
+
+    research = Path("docs/STRUCTURE_TEMPLATE_CANDIDATES.json")
+    assert research.is_file()
+    assert not (SHIPPED_DIR / "STRUCTURE_TEMPLATE_CANDIDATES.json").exists()
+    assert (SHIPPED_DIR / "cycloalkanes.json").is_file()
+    assert (SHIPPED_DIR / "heterocycles.json").is_file()
+    assert (SHIPPED_DIR / "solvents_reagents.json").is_file()
+
+    by_category = {c.id: [e.id for e in c.entries] for c in load_shipped()}
+    assert by_category["cycloalkanes"] == [
+        "cycloalkanes.cyclopropane",
+        "cycloalkanes.cyclobutane",
+        "cycloalkanes.methylcyclopentane",
+        "cycloalkanes.methylcyclohexane",
+        "cycloalkanes.cycloheptane",
+        "cycloalkanes.cyclooctane",
+        "cycloalkanes.cyclononane",
+        "cycloalkanes.cyclodecane",
+        "cycloalkanes.cycloundecane",
+        "cycloalkanes.cyclododecane",
+    ]
+    assert "cycloalkanes.cyclopentane" not in by_category["cycloalkanes"]
+    assert "cycloalkanes.cyclohexane" not in by_category["cycloalkanes"]
+    assert "rings.cyclopentane" in by_category["rings"]
+    assert "rings.cyclohexane" in by_category["rings"]
+    for stem in (
+        "pyrimidine",
+        "imidazole",
+        "morpholine",
+        "piperidine",
+        "quinoline",
+        "hypoxanthine",
+    ):
+        assert f"heterocycles.{stem}" in by_category["heterocycles"]
+    assert "heterocycles.pyridine" not in by_category["heterocycles"]
+    assert "heterocycles.caffeine" not in by_category["heterocycles"]
+    assert "heterocycles.morphine" not in by_category["heterocycles"]
+    for stem in ("water", "ethanol", "acetone", "tetrahydrofuran", "1_4_dioxane"):
+        assert f"solvents_reagents.{stem}" in by_category["solvents_reagents"]
+    assert "sugars.alpha_d_galactopyranose" in by_category["sugars"]
+    assert "sugars.beta_d_mannopyranose" in by_category["sugars"]
+    assert "sugars.alpha_d_ribofuranose" in by_category["sugars"]
+    assert "nucleobases.adenosine" in by_category["nucleobases"]
+    assert "nucleobases.thymidine" in by_category["nucleobases"]
+    assert "amino_acids.l_ornithine" in by_category["amino_acids"]
+    assert "amino_acids.l_selenocysteine" in by_category["amino_acids"]
+    assert "alkaloids.mescaline" in by_category["alkaloids"]
+    assert "alkaloids.hordenine" in by_category["alkaloids"]
+    assert "alkaloids.caffeine" in by_category["alkaloids"]
+    assert "alkaloids.morphine" in by_category["alkaloids"]
+    assert "alkaloids.codeine" in by_category["alkaloids"]
+    assert "alkaloids.cocaine" in by_category["alkaloids"]
+    assert "alkaloids.nicotine" in by_category["alkaloids"]
+    assert "alkaloids.quinine" in by_category["alkaloids"]
+    assert "alkaloids.strychnine" in by_category["alkaloids"]
+    assert "alkaloids.colchicine" in by_category["alkaloids"]
+    assert "alkaloids.atropine" in by_category["alkaloids"]
+    assert "alkaloids.hyoscyamine" in by_category["alkaloids"]
+    assert "alkaloids.scopolamine" in by_category["alkaloids"]
+    assert "vitamins.biotin" in by_category["vitamins"]
+    assert "flavonoids.naringenin" in by_category["flavonoids"]
+    assert "polycycles.norbornene" in by_category["polycycles"]
+    assert "cofactors.atp" in by_category["cofactors"]
+    assert "cofactors.nad" in by_category["cofactors"]
+    assert "terpenoids_steroids.cholesterol" in by_category["terpenoids_steroids"]
+    assert "terpenoids_steroids.camphene" not in by_category.get("terpenoids_steroids", [])
+    assert "flavonoids.flavone" in by_category["flavonoids"]
+    assert "vitamins.ascorbic_acid" in by_category["vitamins"]
+    assert "functional_groups.phenol" in by_category["functional_groups"]
+    assert "polycycles.adamantane" in by_category["polycycles"]
+    assert "peptide_building_blocks.fmoc_glycine" in by_category["peptide_building_blocks"]
+    assert "allotropes.singlet_oxygen" in by_category["allotropes"]
+    assert "allotropes.triplet_oxygen" in by_category["allotropes"]
+    assert "allotropes.ozone" in by_category["allotropes"]
+    assert "allotropes.cyclooctasulfur" in by_category["allotropes"]
+    assert "allotropes.tetraphosphorus" in by_category["allotropes"]
+    assert "reactive_species.superoxide" in by_category["reactive_species"]
+    assert "reactive_species.hydroxyl" in by_category["reactive_species"]
+    assert "reactive_species.nitric_oxide" in by_category["reactive_species"]
+
+
+def test_shipped_entries_that_match_candidates_keep_verified_identity_and_reviewed_stereo():
+    import json
+    from pathlib import Path
+
+    from rdkit.Chem.inchi import MolToInchiKey
+
+    raw = json.loads(Path("docs/STRUCTURE_TEMPLATE_CANDIDATES.json").read_text(encoding="utf-8"))
+    candidates = {entry["id"]: entry for entry in raw["entries"]}
+    engine = ChemistryEngine()
+    allowed_stereo = {"verified", "not_applicable"}
+    matched = 0
+    for category in load_shipped(engine):
+        for entry in category.entries:
+            stem = entry.id.split(".", 1)[1]
+            candidate = candidates.get(stem)
+            if candidate is None:
+                continue
+            matched += 1
+            assert candidate["identity"]["status"] == "verified", entry.id
+            stereo = candidate["structure_form"]["stereochemistry"]["status"]
+            assert stereo in allowed_stereo, f"{entry.id} stereo {stereo}"
+            assert candidate["validation"]["editor_eligible"] is True, entry.id
+            mol = engine.mol_from_smiles(entry.smiles)
+            assert MolToInchiKey(mol) == candidate["inchikey"], entry.id
+    assert matched >= 34
+
+
+def test_allotrope_and_reactive_species_identities_are_the_pubchem_records():
+    from rdkit.Chem.inchi import MolToInchiKey
+
+    engine = ChemistryEngine()
+    by_id = {e.id: e for c in load_shipped(engine) for e in c.entries}
+    expected = {
+        "allotropes.singlet_oxygen": "MYMOFIZGZYHOMD-UHFFFAOYSA-N",
+        "allotropes.ozone": "CBENFWSGALASAD-UHFFFAOYSA-N",
+        "allotropes.atomic_oxygen": "QVGXLLKOCUKJST-UHFFFAOYSA-N",
+        "allotropes.cyclooctasulfur": "JLQNHALFVCURHW-UHFFFAOYSA-N",
+        "allotropes.hexasulfur": "FEXCMMPRRBSCRG-UHFFFAOYSA-N",
+        "allotropes.tetraphosphorus": "OBSZRRSYVTXPNB-UHFFFAOYSA-N",
+        "reactive_species.superoxide": "MXDZWXWHPVATGF-UHFFFAOYSA-N",
+        "reactive_species.hydroxyl": "TUJKJAMUKRIRHC-UHFFFAOYSA-N",
+        "reactive_species.hydrogen_peroxide": "MHAJPDPJQMAIIY-UHFFFAOYSA-N",
+        "reactive_species.nitric_oxide": "MWUXSHHQAYIFBG-UHFFFAOYSA-N",
+        "reactive_species.nitrogen_dioxide": "JCXJVPUVTGWSNB-UHFFFAOYSA-N",
+        "reactive_species.nitrous_oxide": "GQPLMRYTRLFLPF-UHFFFAOYSA-N",
+    }
+    for entry_id, key in expected.items():
+        mol = engine.mol_from_smiles(by_id[entry_id].smiles)
+        assert MolToInchiKey(mol) == key, entry_id
+    triplet = engine.mol_from_smiles(by_id["allotropes.triplet_oxygen"].smiles)
+    singlet = engine.mol_from_smiles(by_id["allotropes.singlet_oxygen"].smiles)
+    assert sum(a.GetNumRadicalElectrons() for a in triplet.GetAtoms()) == 2
+    assert sum(a.GetNumRadicalElectrons() for a in singlet.GetAtoms()) == 0
+    assert by_id["allotropes.triplet_oxygen"].smiles != by_id["allotropes.singlet_oxygen"].smiles
+    # InChIKey is the same connectivity layer for both drawings. The Lewis forms differ.
 
 
 def test_every_shipped_entry_makes_a_2d_molblock_without_dummy_atoms():
@@ -63,6 +235,39 @@ def test_an_entry_with_both_smiles_and_molblock_is_refused():
         raise AssertionError("expected TemplateError")
 
 
+def test_morphine_keeps_its_stereochemistry():
+    engine = ChemistryEngine()
+    [alkaloids] = [c for c in load_shipped(engine) if c.id == "alkaloids"]
+    morphine = next(e for e in alkaloids.entries if e.id == "alkaloids.morphine")
+    smiles = engine.molblock_to_smiles(molblock_for(morphine, engine))
+    assert "@" in smiles
+
+
+def test_tropane_templates_draw_default_up_down_bonds():
+    from rdkit.Chem.inchi import MolToInchiKey
+
+    engine = ChemistryEngine()
+    [alkaloids] = [c for c in load_shipped(engine) if c.id == "alkaloids"]
+    by_id = {e.id: e for e in alkaloids.entries}
+    atropine = by_id["alkaloids.atropine"]
+    hyoscyamine = by_id["alkaloids.hyoscyamine"]
+    scopolamine = by_id["alkaloids.scopolamine"]
+    atropine_block = molblock_for(atropine, engine)
+    bond_stereo = [
+        line[9:12].strip()
+        for line in atropine_block.splitlines()
+        if len(line) >= 12 and line[0:3].strip().isdigit() and line[3:6].strip().isdigit()
+    ]
+    assert {"1", "6"} & set(bond_stereo)
+    assert MolToInchiKey(engine.mol_from_smiles(atropine.smiles)) == "RKUNBYITZUJHSG-SPUOUPEWSA-N"
+    hyoscyamine_mol = engine.mol_from_smiles(hyoscyamine.smiles)
+    scopolamine_mol = engine.mol_from_smiles(scopolamine.smiles)
+    assert MolToInchiKey(hyoscyamine_mol).startswith("RKUNBYITZUJHSG-")
+    assert MolToInchiKey(hyoscyamine_mol) == "RKUNBYITZUJHSG-FXUDXRNXSA-N"
+    assert MolToInchiKey(scopolamine_mol) == "STECJAGHUSJQJN-FWXGHANASA-N"
+    assert "@" in atropine.smiles and "@" in hyoscyamine.smiles and "@" in scopolamine.smiles
+
+
 def test_l_alanine_keeps_its_stereochemistry():
     engine = ChemistryEngine()
     [amino] = [c for c in load_shipped(engine) if c.id == "amino_acids"]
@@ -72,6 +277,16 @@ def test_l_alanine_keeps_its_stereochemistry():
     assert len(chiral) == 1
     smiles = engine.molblock_to_smiles(molblock_for(alanine, engine))
     assert "@" in smiles
+
+
+def test_the_two_galactopyranose_anomers_are_different_molecules():
+    engine = ChemistryEngine()
+    [sugars] = [c for c in load_shipped(engine) if c.id == "sugars"]
+    alpha = next(e for e in sugars.entries if e.id == "sugars.alpha_d_galactopyranose")
+    beta = next(e for e in sugars.entries if e.id == "sugars.beta_d_galactopyranose")
+    assert engine.molblock_to_smiles(molblock_for(alpha, engine)) != engine.molblock_to_smiles(
+        molblock_for(beta, engine)
+    )
 
 
 def test_the_two_glucopyranose_anomers_are_different_molecules():

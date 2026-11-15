@@ -1,0 +1,113 @@
+{
+  "_source_key": "salt_ion_catalog",
+  "ions": [
+    {
+      "id": "chloride",
+      "name": "chloride",
+      "ion_smiles": "[Cl-]",
+      "charge": -1,
+      "parent_smiles": "Cl",
+      "relationship": "hydrohalide",
+      "source_key": "salt_ion_catalog"
+    },
+    {
+      "id": "bromide",
+      "name": "bromide",
+      "ion_smiles": "[Br-]",
+      "charge": -1,
+      "parent_smiles": "Br",
+      "relationship": "hydrohalide",
+      "source_key": "salt_ion_catalog"
+    },
+    {
+      "id": "iodide",
+      "name": "iodide",
+      "ion_smiles": "[I-]",
+      "charge": -1,
+      "parent_smiles": "I",
+      "relationship": "hydrohalide",
+      "source_key": "salt_ion_catalog"
+    },
+    {
+      "id": "hydrogen_sulfate",
+      "name": "hydrogen sulfate",
+      "ion_smiles": "O=S(=O)([O-])O",
+      "charge": -1,
+      "parent_smiles": "OS(=O)(=O)O",
+      "relationship": "first_dissociation",
+      "source_key": "salt_ion_catalog"
+    },
+    {
+      "id": "sulfate",
+      "name": "sulfate",
+      "ion_smiles": "O=S(=O)([O-])[O-]",
+      "charge": -2,
+      "parent_smiles": "OS(=O)(=O)O",
+      "relationship": "second_dissociation",
+      "source_key": "salt_ion_catalog"
+    },
+    {
+      "id": "dihydrogen_phosphate",
+      "name": "dihydrogen phosphate",
+      "ion_smiles": "O=P([O-])(O)O",
+      "charge": -1,
+      "parent_smiles": "OP(=O)(O)O",
+      "relationship": "first_dissociation",
+      "source_key": "salt_ion_catalog"
+    },
+    {
+      "id": "hydrogen_phosphate",
+      "name": "hydrogen phosphate",
+      "ion_smiles": "O=P([O-])([O-])O",
+      "charge": -2,
+      "parent_smiles": "OP(=O)(O)O",
+      "relationship": "second_dissociation",
+      "source_key": "salt_ion_catalog"
+    },
+    {
+      "id": "phosphate",
+      "name": "phosphate",
+      "ion_smiles": "O=P([O-])([O-])[O-]",
+      "charge": -3,
+      "parent_smiles": "OP(=O)(O)O",
+      "relationship": "third_dissociation",
+      "source_key": "salt_ion_catalog"
+    },
+    {
+      "id": "acetate",
+      "name": "acetate",
+      "ion_smiles": "CC(=O)[O-]",
+      "charge": -1,
+      "parent_smiles": "CC(=O)O",
+      "relationship": "first_dissociation",
+      "source_key": "salt_ion_catalog"
+    },
+    {
+      "id": "nitrate",
+      "name": "nitrate",
+      "ion_smiles": "O=[N+]([O-])[O-]",
+      "charge": -1,
+      "parent_smiles": "O[N+](=O)[O-]",
+      "relationship": "first_dissociation",
+      "source_key": "salt_ion_catalog"
+    },
+    {
+      "id": "ammonium",
+      "name": "ammonium",
+      "ion_smiles": "[NH4+]",
+      "charge": 1,
+      "parent_smiles": "N",
+      "relationship": "protonated_base",
+      "source_key": "salt_ion_catalog"
+    },
+    {
+      "id": "pyridinium",
+      "name": "pyridinium",
+      "ion_smiles": "c1cc[nH+]cc1",
+      "charge": 1,
+      "parent_smiles": "c1ccncc1",
+      "relationship": "protonated_base",
+      "source_key": "salt_ion_catalog"
+    }
+  ]
+}

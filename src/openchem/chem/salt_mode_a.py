@@ -22,11 +22,7 @@ from openchem.domain.salt_stoichiometry import (
     ModeARefusal,
     ModeASpecies,
     compose_mode_a,
-)
-
-REACHED_BY = (
-    "tooling: consumed by tests/test_salt_mode_a.py; Mode A is not "
-    "on the window yet"
+    compose_supplied_ions,
 )
 
 _ALKALI = frozenset({"Li", "Na", "K", "Rb", "Cs"})
@@ -70,7 +66,7 @@ def _kind(mol: Chem.Mol, charge: int) -> str:
     return KIND_MOLECULAR_NEUTRAL
 
 
-def _species(mol: Chem.Mol) -> ModeASpecies | IdentityRefusal:
+def species_from_mol(mol: Chem.Mol) -> ModeASpecies | IdentityRefusal:
     key = fragment_key(mol)
     if isinstance(key, IdentityRefusal):
         return key
@@ -84,8 +80,19 @@ def compose_from_mols(
     cation: Chem.Mol,
     anion: Chem.Mol,
 ) -> ModeAComposition | ModeARefusal | IdentityRefusal:
-    parts = [_species(base), _species(acid), _species(cation), _species(anion)]
+    parts = [species_from_mol(base), species_from_mol(acid), species_from_mol(cation), species_from_mol(anion)]
     for part in parts:
         if isinstance(part, IdentityRefusal):
             return part
     return compose_mode_a(parts[0], parts[1], parts[2], parts[3])
+
+
+def compose_from_ion_mols(
+    cation: Chem.Mol,
+    anion: Chem.Mol,
+) -> ModeAComposition | ModeARefusal | IdentityRefusal:
+    parts = [species_from_mol(cation), species_from_mol(anion)]
+    for part in parts:
+        if isinstance(part, IdentityRefusal):
+            return part
+    return compose_supplied_ions(parts[0], parts[1])

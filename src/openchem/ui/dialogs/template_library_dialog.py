@@ -18,6 +18,8 @@ from PySide6.QtWidgets import (
     QListWidgetItem,
     QMessageBox,
     QPushButton,
+    QTreeWidget,
+    QTreeWidgetItem,
     QVBoxLayout,
     QWidget,
 )
@@ -31,6 +33,7 @@ from openchem.domain.structure_template import (
     TemplateError,
     TemplateKind,
     TemplateOrigin,
+    nested_category_groups,
 )
 from openchem.domain.structure_template_store import StructureTemplateStore
 from openchem.ui.widgets.help_tooltip import HelpTooltip, apply_help_tooltip
@@ -74,11 +77,13 @@ class TemplateLibraryDialog(QDialog):
             "Filters every category at once by name, tag or description.",
         ))
         self._search.textChanged.connect(self._refill_templates)
-        self._categories = QListWidget(self)
+        self._categories = QTreeWidget(self)
         self._categories.setObjectName("templateCategories")
+        self._categories.setHeaderHidden(True)
+        self._categories.setRootIsDecorated(True)
         apply_help_tooltip(self._categories, _help(
             "templates.categories",
-            "Shipped catalogs and your own categories. Titles can match; ids do not.",
+            "Shipped catalogs nested under headings, then your own categories. Titles can match; ids do not.",
         ))
         self._categories.currentItemChanged.connect(self._refill_templates)
         self._templates = QListWidget(self)
@@ -141,28 +146,47 @@ class TemplateLibraryDialog(QDialog):
         self._store.load()
         self._categories.blockSignals(True)
         self._categories.clear()
-        for category in (*self._shipped, *self._store.categories()):
-            item = QListWidgetItem(f"{category.title} ({len(category.entries)})")
-            item.setData(Qt.ItemDataRole.UserRole, category.id)
-            self._categories.addItem(item)
+        first_leaf: QTreeWidgetItem | None = None
+        for heading, categories in nested_category_groups((*self._shipped, *self._store.categories())):
+            parent = QTreeWidgetItem([heading])
+            parent.setData(0, Qt.ItemDataRole.UserRole, None)
+            self._categories.addTopLevelItem(parent)
+            for category in categories:
+                item = QTreeWidgetItem([f"{category.title} ({len(category.entries)})"])
+                item.setData(0, Qt.ItemDataRole.UserRole, category.id)
+                parent.addChild(item)
+                if first_leaf is None:
+                    first_leaf = item
+            parent.setExpanded(True)
         self._categories.blockSignals(False)
-        if self._categories.count() and self._categories.currentRow() < 0:
-            self._categories.setCurrentRow(0)
+        if first_leaf is not None and self._categories.currentItem() is None:
+            self._categories.setCurrentItem(first_leaf)
         self._refill_templates()
         self._update_target()
 
     def _all_categories(self) -> tuple[TemplateCategory, ...]:
         return (*self._shipped, *self._store.categories())
 
+    def _visible_category_ids(self, item: QTreeWidgetItem | None) -> set[str]:
+        if item is None:
+            return set()
+        category_id = item.data(0, Qt.ItemDataRole.UserRole)
+        if category_id:
+            return {category_id}
+        ids: set[str] = set()
+        for index in range(item.childCount()):
+            ids.update(self._visible_category_ids(item.child(index)))
+        return ids
+
     def _refill_templates(self) -> None:
         query = self._search.text()
         current = self._categories.currentItem()
-        category_id = current.data(Qt.ItemDataRole.UserRole) if current else None
+        wanted_ids = self._visible_category_ids(current)
         self._templates.blockSignals(True)
         self._templates.clear()
         self._entries_by_id = {}
         for category in self._all_categories():
-            if not query.strip() and category.id != category_id:
+            if not query.strip() and category.id not in wanted_ids:
                 continue
             for entry in category.entries:
                 if not entry.matches(query):

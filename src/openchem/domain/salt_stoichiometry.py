@@ -9,14 +9,6 @@ charges only. Drawn multiplicities are a later layer's problem.
 
 from __future__ import annotations
 
-#: Slice 1 has no window import; tests are the only consumers until a later
-#: slice wires Mode B. Remove this when something reachable from
-#: ``openchem.main`` imports the module.
-REACHED_BY = (
-    "tooling: consumed by tests/test_salt_stoichiometry.py and "
-    "tests/test_salt_components.py; Mode B is not on the window yet"
-)
-
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from math import gcd
@@ -112,6 +104,31 @@ def compose_mode_a(
     )
 
 
+def compose_supplied_ions(
+    cation: ModeASpecies,
+    anion: ModeASpecies,
+) -> ModeAComposition | ModeARefusal:
+    if cation.kind != KIND_ION or anion.kind != KIND_ION:
+        return ModeARefusal(
+            code="missing_proton_source",
+            reason=(
+                "A molecular neutral plus a supplied ion does not provide "
+                "the protons for a transfer; supply both ions as given."
+            ),
+        )
+    balanced = balance_two(
+        ChargedSpecies(cation.identity, cation.charge),
+        ChargedSpecies(anion.identity, anion.charge),
+    )
+    if isinstance(balanced, BalanceRefusal):
+        return ModeARefusal(code=balanced.code, reason=balanced.reason)
+    return ModeAComposition(
+        cation_count=balanced.cation_count,
+        anion_count=balanced.anion_count,
+        charge_valid=True,
+    )
+
+
 @dataclass(frozen=True)
 class ChargedSpecies:
     """One ion, as the stoichiometry layer is allowed to see it."""
@@ -128,6 +145,12 @@ class TwoIonBalance:
 
 @dataclass(frozen=True)
 class BalanceRefusal:
+    code: str
+    reason: str
+
+
+@dataclass(frozen=True)
+class IonizationRefusal:
     code: str
     reason: str
 
@@ -164,3 +187,117 @@ def formula_unit_conserved(
         return out
 
     return _total(left) == _total(right)
+
+
+#: Pick among fully specified ionic structures. An empty list is a net-charge
+#: request with no structure; several distinct graphs at one charge are not ranked.
+def choose_ionization(candidates: Sequence[str]) -> str | IonizationRefusal:
+    unique = list(dict.fromkeys(candidates))
+    if not unique:
+        return IonizationRefusal(
+            code="net_charge_only",
+            reason="A net charge is not an ionization state; name a structure.",
+        )
+    if len(unique) > 1:
+        return IonizationRefusal(
+            code="ambiguous_microspecies",
+            reason="Several structures share this charge; v1 does not pick one.",
+        )
+    return unique[0]
+
+
+#: Fully specified structures the caller named.
+ORIGIN_USER = "user"
+#: Sequential ladder species, in the ladder's own index order.
+ORIGIN_LADDER = "ladder"
+
+#: Unique compositions Mode C returns. Generated may be larger; omitted is the rest.
+MODE_C_LIMIT = 50
+
+
+@dataclass(frozen=True)
+class ModeCCandidate:
+    identity: str
+    charge: int
+    origin: str
+    ladder_index: int | None = None
+
+
+@dataclass(frozen=True)
+class ModeCHit:
+    cation_identity: str
+    anion_identity: str
+    cation_count: int
+    anion_count: int
+    charge_valid: bool
+
+
+@dataclass(frozen=True)
+class ModeCResult:
+    hits: tuple[ModeCHit, ...]
+    generated: int
+    returned: int
+    omitted: int
+    notes: tuple[str, ...]
+
+
+def _mode_c_order(candidate: ModeCCandidate) -> tuple[int, int, str]:
+    if candidate.origin == ORIGIN_USER:
+        rank = 0
+    elif candidate.origin == ORIGIN_LADDER:
+        rank = 1
+    else:
+        rank = 2
+    index = candidate.ladder_index if candidate.ladder_index is not None else 0
+    return (rank, index, candidate.identity)
+
+
+def enumerate_mode_c(
+    cations: Sequence[ModeCCandidate],
+    anions: Sequence[ModeCCandidate],
+    notes: Sequence[str] = (),
+) -> ModeCResult:
+    """Cartesian product of one cation list and one anion list, then ``balance_two``.
+
+    Deduplicates identical species+ratio, keeps the first occurrence, and
+    truncates to ``MODE_C_LIMIT``. pKa is not consulted.
+    """
+    ordered_cations = sorted(cations, key=_mode_c_order)
+    ordered_anions = sorted(anions, key=_mode_c_order)
+    unique: list[ModeCHit] = []
+    seen: set[tuple[str, str, int, int]] = set()
+    for cation in ordered_cations:
+        for anion in ordered_anions:
+            balanced = balance_two(
+                ChargedSpecies(cation.identity, cation.charge),
+                ChargedSpecies(anion.identity, anion.charge),
+            )
+            if isinstance(balanced, BalanceRefusal):
+                continue
+            key = (
+                cation.identity,
+                anion.identity,
+                balanced.cation_count,
+                balanced.anion_count,
+            )
+            if key in seen:
+                continue
+            seen.add(key)
+            unique.append(
+                ModeCHit(
+                    cation_identity=cation.identity,
+                    anion_identity=anion.identity,
+                    cation_count=balanced.cation_count,
+                    anion_count=balanced.anion_count,
+                    charge_valid=True,
+                )
+            )
+    generated = len(unique)
+    hits = tuple(unique[:MODE_C_LIMIT])
+    return ModeCResult(
+        hits=hits,
+        generated=generated,
+        returned=len(hits),
+        omitted=generated - len(hits),
+        notes=tuple(notes),
+    )

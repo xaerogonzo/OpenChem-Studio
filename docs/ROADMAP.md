@@ -306,10 +306,13 @@ document answers "what does the app do" without being a diary.
 
 ### Structure template library
 
-Shipped as an OpenChem-owned catalog of **complete molecules** (rings, free
-L-amino acids plus glycine, nucleobases, named sugar anomers), a Template
-Library dialog, and a normalized user library under `data_root()/structure_templates`.
-Insert uses Ketcher `addFragment` with a 2.0 Å right-side placement and one undo
+Shipped as an OpenChem-owned catalog of **complete molecules** (rings,
+cycloalkanes, heterocycles, solvents, alkaloids, flavonoids, vitamins,
+allotropes, reactive species, free L-amino acids plus glycine, nucleic acids,
+named sugar anomers, Fmoc/Boc building blocks), a Template Library dialog, and a normalized
+user library under `data_root()/structure_templates`.
+The dialog nests shipped catalogs under headings. Insert uses Ketcher
+`addFragment` with a 2.0 Å right-side placement and one undo
 step. Ketcher's T-button library and polymer mode stay. Design:
 `docs/STRUCTURE_TEMPLATE_LIBRARY_DESIGN.md`.
 
@@ -317,7 +320,8 @@ Still later: a peptide sequence expander (`Ala-Glu-Gly` / `AEG` as one
 atomistic peptide — not these free amino acids, and not Ketcher polymer-monomer
 mode); polymer S-groups (needs molfile S-group round-trip through Ketcher);
 a pinned category toolbar; true fragment attachment that consumes an attachment
-point rather than leaving `*`.
+point rather than leaving `*`. Polymer S-groups are not a missing parse:
+`addFragment` strips them (measured 2026-11-14).
 
 ### Batch mode and the analytics over it
 
@@ -2373,22 +2377,26 @@ struck through and marked SHIPPED here, never deleted.
 Nothing here is simply unstarted — each is blocked on something nameable,
 and three were checked again recently rather than taken on trust.
 
-- **Salt composition engine (recorded 2026-11-10; slice 1 in master,
-  slice 2 Mode A).** Slice 1 shipped `balance_two` and Mode B drawing
-  analysis; slice 2 adds Mode A for two molecular neutrals (still library-only,
-  no panel). Charge-valid two-ion stoichiometry from identified ionic species,
-  with proton-transfer conservation and independent evidence (`charge_valid` is
-  not an isolable salt). `substance.py` is an adapter, not the engine; COD
-  search, ion-pair 3D, hydrates as first-class features, pharmaceutical
-  acceptability and `balance_many` stay out. Contract:
+- **Salt composition engine (recorded 2026-11-10; slices 1–5).** Slice 1 shipped
+  `balance_two` and Mode B drawing analysis; slice 2 Mode A for two molecular
+  neutrals; slice 3 fully specified ionization, a small cited ion catalog, and
+  `pka_compatible` as named-step evidence; slice 4 Mode C enumeration of one
+  two-component pair; slice 5 Tools > Salt Composition (Analyze / two neutrals /
+  two ions / enumerate; never a crystal). Charge-valid two-ion stoichiometry
+  from identified ionic species, with proton-transfer conservation and
+  independent evidence (`charge_valid` is not an isolable salt). `substance.py`
+  is an adapter, not the engine; COD search, ion-pair 3D, hydrates as first-class
+  features, pharmaceutical acceptability and `balance_many` stay out. Contract:
   `docs/SALT_COMPOSITION_DESIGN.md`.
 
-- **Peptide sequence building and polymer S-groups (recorded 2026-11-10).** The
+- **Peptide sequence building and polymer S-groups (recorded 2026-11-10; S-group probe 2026-11-14).** The
   structure template library ships complete molecules only. Expanding
-  `Ala-Glu-Gly` / `AEG` into an atomistic peptide, and repeating
-  polymer S-groups as in the reference editor, wait on a measured sequence builder and on molfile S-group
-  round-trip through Ketcher. Ketcher's own polymer mode stays. See
-  `docs/STRUCTURE_TEMPLATE_LIBRARY_DESIGN.md`.
+  `Ala-Glu-Gly` / `AEG` into an atomistic peptide still waits on a measured
+  sequence builder. Polymer S-groups: Ketcher `setMolecule` then `getMolfile`
+  keeps SRU and SUP; `addFragment` (what Insert uses) drops every `M  STY`
+  line (`tests/test_ketcher_sgroup_roundtrip.py`). They stay out of the
+  Template Library until insert preserves them. Ketcher's own polymer mode
+  stays. See `docs/STRUCTURE_TEMPLATE_LIBRARY_DESIGN.md`.
 
 - **Refusals that still need work (recorded 2026-10-23).** The rule since then (Alex): a calculator refuses only what it **cannot compute**; the edge of what a
   source or a benchmark measured is a **warning**, the number computed and labelled an estimate (proton affinity and bond dissociation, #447; Hansen below three

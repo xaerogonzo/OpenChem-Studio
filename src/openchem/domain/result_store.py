@@ -388,6 +388,22 @@ class ForeignProjectError(ValueError):
     pass
 
 
+def _same_stored_payload(previous: StoredResult, stored: StoredResult) -> bool:
+    """The same identity and the same result, ignoring who recorded it.
+
+    `restored` and `application_version` say where a copy came from. A replay of
+    numbers already in the file differs in those and must not count as a new value.
+    A result that cannot be compared with `==` (an array, for one) is a change.
+    """
+    if previous.identity != stored.identity:
+        return False
+    try:
+        same = previous.result == stored.result
+    except Exception:  # noqa: BLE001 - a comparison that cannot be made is not a match
+        return False
+    return same is True
+
+
 class SessionResultStore:
     def __init__(self, project_uuid: str) -> None:
         self.project_uuid = project_uuid
@@ -402,12 +418,27 @@ class SessionResultStore:
 
     # --- writing ----------------------------------------------------------
 
-    def put(self, stored: StoredResult) -> None:
+    def put(self, stored: StoredResult) -> bool:
+        """Store `stored`. False when that slot already holds the same result.
+
+        A replay of a result the file already has must not look like a new one:
+        the assignment and the revision list both stay put, so a listener can
+        tell a duplicate from a value that replaced another.
+        """
         identity = stored.identity
         record = self._molecules.setdefault(identity.molecule_uuid, _MoleculeRecord())
-        record.results[(identity.result_id, identity.calculation_input, identity.input_fingerprint,
-                        identity.method_version)] = stored
+        key = (
+            identity.result_id,
+            identity.calculation_input,
+            identity.input_fingerprint,
+            identity.method_version,
+        )
+        previous = record.results.get(key)
+        if previous is not None and _same_stored_payload(previous, stored):
+            return False
+        record.results[key] = stored
         self._touch(record, identity.calculation_input, identity.input_fingerprint)
+        return True
 
     def record_part(self, molecule_uuid: str, part: BundlePart) -> None:
         # A part is always a DRAWING run's: `bundle_state` looks parts up by

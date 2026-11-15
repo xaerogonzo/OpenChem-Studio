@@ -21,10 +21,7 @@ ROOT = Path(__file__).resolve().parent.parent
 PAGE = (ROOT / "docs" / "RELEASE_CONTENTS.md").read_text(encoding="utf-8")
 
 #: Entries the page says DO reach a release. Everything else tracked at the top is "No".
-SHIPS = {
-    "src", "plugins", "docs",
-    "README.md", "CHANGELOG.md", "CONTRIBUTING.md", "CODE_OF_CONDUCT.md", "CITATION.cff", "LICENSE",
-}
+SHIPS = {"src", "plugins", "docs", "CHANGELOG.md", "CITATION.cff", "LICENSE"}
 
 
 def _tracked_top_level() -> set[str]:
@@ -89,9 +86,27 @@ def test_nothing_marked_not_shipped_is_named_as_release_data_by_the_build():
 
 def test_the_staged_documents_match_the_page():
     build = (ROOT / "build.ps1").read_text(encoding="utf-8")
-    staged = set(re.findall(r'"(README\.md|LICENSE|CHANGELOG\.md|CONTRIBUTING\.md|CODE_OF_CONDUCT\.md|CITATION\.cff)"', build))
-    assert staged == {"README.md", "LICENSE", "CHANGELOG.md", "CONTRIBUTING.md", "CODE_OF_CONDUCT.md", "CITATION.cff"}
-    assert 'Copy-Item "$ROOT\\docs"' in build and 'Copy-Item "$ROOT\\plugins"' in build
+    stage = build.split("# ---------- Stage the few files a person opens", 1)[1].split("# ---------- Verify", 1)[0]
+    staged = set(re.findall(r'"(LICENSE|CITATION\.cff|CHANGELOG\.md)"', stage))
+    assert staged == {"LICENSE", "CITATION.cff", "CHANGELOG.md"}
+    assert (ROOT / "packaging" / "README-release.txt").is_file() and "README-release.txt" in stage
+    # docs\ is a CURATED list, never the whole tree: design notes, benchmark records and
+    # maintainer logs stay on GitHub, and the README's screenshots are not shipped.
+    assert "release-docs.txt" in stage
+    assert not re.search(r'Copy-Item\s+"\$ROOT\\docs"', stage), "build.ps1 copies the whole docs tree"
+    listed = [
+        line.strip()
+        for line in (ROOT / "packaging" / "release-docs.txt").read_text(encoding="utf-8").splitlines()
+        if line.strip() and not line.startswith("#")
+    ]
+    assert listed and len(listed) == len(set(listed))
+    for name in listed:
+        assert name.endswith(".md") and (ROOT / "docs" / name).is_file(), name
+    sys.path.insert(0, str(ROOT / "src"))
+    from openchem import help as help_docs
+
+    assert set(help_docs.HELP_DOCUMENTS) <= set(listed), "a document the Help reads is not in the release's docs"
+    assert 'Copy-Item "$ROOT\\plugins"' in build
 
 
 def test_every_file_the_build_refuses_to_ship_loose_is_written_down():

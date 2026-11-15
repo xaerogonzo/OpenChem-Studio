@@ -31,7 +31,7 @@ from PySide6.QtCore import QObject, QTimer, Signal
 
 from openchem.domain.recalc_policy import RecalcPolicy
 from openchem.events.base import EventBus
-from openchem.events.events import MoleculeChanged, MoleculeSelected, RecalculationDue
+from openchem.events.events import CHANGE_STRUCTURE, MoleculeChanged, MoleculeSelected, RecalculationDue
 
 logger = logging.getLogger("openchem.services")
 
@@ -66,6 +66,12 @@ class RecalcScheduler(QObject):
     # --- what the scheduler is told ------------------------------------------------
 
     def _on_molecule_changed(self, event: MoleculeChanged) -> None:
+        from openchem.events.events import CHANGE_STRUCTURE
+
+        # A rename or a 2D move must not start a descriptor run, and must not
+        # cancel one that a real edit is already waiting to run.
+        if event.kind != CHANGE_STRUCTURE:
+            return
         if not event.during_edit:
             self.cancel(event.molecule_uuid)
             return

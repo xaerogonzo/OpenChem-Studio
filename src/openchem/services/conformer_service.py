@@ -14,6 +14,7 @@ from openchem.chem.conformer_providers import (
     DEFAULT_SEARCH_SEED,
     STOP_USER_FINISHED,
     GenerationOptions,
+    GeometryUnsupportedError,
     RDKitConformerProvider,
     SearchProgress,
     distinct_conformers,
@@ -134,7 +135,7 @@ class _ConformerGenerationTask(QRunnable):
             ConformerJobStateChanged(molecule_uuid=self._model.uuid, state=CacheState.RUNNING)
         )
         try:
-            mol = self._engine.mol_from_model(self._model)
+            mol = self._engine.mol_from_model(self._model, allow_hypervalent=True)
             # WHICH DRAWING ATOM EACH CONFORMER ATOM IS, recorded at creation
             # against the drawing as it is NOW. See
             # `ConformerModel.drawing_atom_ids` for why the map carries its
@@ -165,6 +166,17 @@ class _ConformerGenerationTask(QRunnable):
             )
             batch = outcome
             results = outcome.pool
+        except GeometryUnsupportedError as exc:
+            # An anticipated refusal (a hypervalent structure with no measured geometry), not a fault: said once,
+            # without a traceback, and the job fails with the sentence that explains it.
+            logger.warning("No conformer built for molecule %s: %s", self._model.uuid, exc)
+            self._event_bus.publish(
+                ConformerJobStateChanged(
+                    molecule_uuid=self._model.uuid, state=CacheState.FAILED, message=str(exc)
+                )
+            )
+            self._job_manager.finish(_JOB_KIND, self._model.uuid)
+            return
         except Exception as exc:  # noqa: BLE001 - report failure, never crash the pool
             logger.exception("Conformer generation failed for molecule %s", self._model.uuid)
             self._event_bus.publish(
@@ -238,8 +250,14 @@ class _ConformerGenerationTask(QRunnable):
             self._model.uuid,
         )
 
+        # A geometry built from a template was never force-field minimised, whatever was asked for: the label,
+        # the energy window and the force field recorded below must say so (`outcome.unoptimised`).
+        templated = bool(outcome.geometry_method)
+        optimised = self._optimize and not templated
         method = (
-            f"{self._provider.provider_id}+MMFF94/UFF" if self._optimize else self._provider.provider_id
+            outcome.geometry_method
+            if templated
+            else (f"{self._provider.provider_id}+MMFF94/UFF" if self._optimize else self._provider.provider_id)
         )
         now = time.time()
         provenance = Provenance(
@@ -315,8 +333,10 @@ class _ConformerGenerationTask(QRunnable):
                 # A merge VETO, never a claim that two structures with
                 # different energies are different conformers. See
                 # DEFAULT_ENERGY_WINDOW.
-                "energy_window": DEFAULT_ENERGY_WINDOW if self._optimize else None,
-                "force_field": "MMFF94/UFF" if self._optimize else None,
+                "energy_window": DEFAULT_ENERGY_WINDOW if optimised else None,
+                "force_field": "MMFF94/UFF" if optimised else None,
+                "geometry_method": outcome.geometry_method or None,
+                "conformers_unoptimised": outcome.unoptimised,
                 # An RDKit upgrade can move every number above; without
                 # this there is nothing to say whether the toolkit or the
                 # algorithm changed.
@@ -363,6 +383,8 @@ class _ConformerGenerationTask(QRunnable):
         # differ" -- the energy term declines to merge on insufficient
         # evidence, it does not classify. See DEFAULT_ENERGY_WINDOW.
         message = self._completion_message(batch, distinct, len(conformers))
+        if outcome.geometry_note:
+            message = f"{len(conformers)} conformer(s) - {outcome.geometry_note}"
         self._event_bus.publish(
             ConformerJobStateChanged(
                 molecule_uuid=self._model.uuid, state=CacheState.COMPLETED, message=message

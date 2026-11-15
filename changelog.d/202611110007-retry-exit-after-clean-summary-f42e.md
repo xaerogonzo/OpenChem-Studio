@@ -1,2 +1,0 @@
-### Windows CI retries a shard that exits 1 after every test passed
-- A Windows shard can print a clean pytest summary (`3523 passed`, nothing failed) and still exit 1: a crash at interpreter exit with no `Windows fatal exception` text. The crash-rate workflow already classified that shape; the suite retry did not, so the job went red and was not retried (shard 5 of PR #575). `tests.yml` now passes `-ExitCode 1` into the classifier. A real failure and a timeout still fail the job.

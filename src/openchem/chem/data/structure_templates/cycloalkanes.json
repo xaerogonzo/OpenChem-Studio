@@ -1,0 +1,97 @@
+{
+  "id": "cycloalkanes",
+  "title": "Cycloalkanes",
+  "description": "Saturated monocycles C3–C12 except cyclopentane and cyclohexane, which stay in Rings, plus the two methyl derivatives.",
+  "entries": [
+    {
+      "id": "cycloalkanes.cyclopropane",
+      "name": "Cyclopropane",
+      "smiles": "C1CC1",
+      "tags": [
+        "saturated ring",
+        "three-membered ring"
+      ]
+    },
+    {
+      "id": "cycloalkanes.cyclobutane",
+      "name": "Cyclobutane",
+      "smiles": "C1CCC1",
+      "tags": [
+        "saturated ring",
+        "four-membered ring"
+      ]
+    },
+    {
+      "id": "cycloalkanes.methylcyclopentane",
+      "name": "Methylcyclopentane",
+      "smiles": "CC1CCCC1",
+      "tags": [
+        "saturated ring",
+        "five-membered ring"
+      ]
+    },
+    {
+      "id": "cycloalkanes.methylcyclohexane",
+      "name": "Methylcyclohexane",
+      "smiles": "CC1CCCCC1",
+      "tags": [
+        "saturated ring",
+        "six-membered ring"
+      ]
+    },
+    {
+      "id": "cycloalkanes.cycloheptane",
+      "name": "Cycloheptane",
+      "smiles": "C1CCCCCC1",
+      "tags": [
+        "saturated ring",
+        "seven-membered ring"
+      ]
+    },
+    {
+      "id": "cycloalkanes.cyclooctane",
+      "name": "Cyclooctane",
+      "smiles": "C1CCCCCCC1",
+      "tags": [
+        "saturated ring",
+        "eight-membered ring"
+      ]
+    },
+    {
+      "id": "cycloalkanes.cyclononane",
+      "name": "Cyclononane",
+      "smiles": "C1CCCCCCCC1",
+      "tags": [
+        "saturated ring",
+        "nine-membered ring"
+      ]
+    },
+    {
+      "id": "cycloalkanes.cyclodecane",
+      "name": "Cyclodecane",
+      "smiles": "C1CCCCCCCCC1",
+      "tags": [
+        "saturated ring",
+        "ten-membered ring"
+      ]
+    },
+    {
+      "id": "cycloalkanes.cycloundecane",
+      "name": "Cycloundecane",
+      "smiles": "C1CCCCCCCCCC1",
+      "tags": [
+        "saturated ring",
+        "eleven-membered ring"
+      ]
+    },
+    {
+      "id": "cycloalkanes.cyclododecane",
+      "name": "Cyclododecane",
+      "smiles": "C1CCCCCCCCCCC1",
+      "tags": [
+        "saturated ring",
+        "twelve-membered ring"
+      ]
+    }
+  ]
+}

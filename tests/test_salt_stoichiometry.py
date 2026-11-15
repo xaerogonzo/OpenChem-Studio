@@ -11,14 +11,22 @@ from openchem.domain.salt_stoichiometry import (
     KIND_ION,
     KIND_METAL_HYDROXIDE,
     KIND_MOLECULAR_NEUTRAL,
+    MODE_C_LIMIT,
+    ORIGIN_LADDER,
+    ORIGIN_USER,
     BalanceRefusal,
     ChargedSpecies,
+    IonizationRefusal,
     ModeAComposition,
     ModeARefusal,
     ModeASpecies,
+    ModeCCandidate,
     TwoIonBalance,
     balance_two,
+    choose_ionization,
     compose_mode_a,
+    compose_supplied_ions,
+    enumerate_mode_c,
     formula_unit_conserved,
 )
 
@@ -157,6 +165,24 @@ def test_broken_hydrogen_count_is_not_a_composition() -> None:
     assert result.code == "conservation_failed"
 
 
+def test_sodium_and_acetate_as_given_ions_balance_one_to_one() -> None:
+    sodium = ModeASpecies("[Na+]", 1, KIND_ION, (("Na", 1),))
+    acetate = ModeASpecies("CC(=O)[O-]", -1, KIND_ION, (("C", 2), ("H", 3), ("O", 2)))
+    result = compose_supplied_ions(sodium, acetate)
+    assert isinstance(result, ModeAComposition)
+    assert result.cation_count == 1
+    assert result.anion_count == 1
+    assert result.charge_valid is True
+
+
+def test_a_neutral_passed_to_supplied_ions_is_refused() -> None:
+    acetic = ModeASpecies("CC(=O)O", 0, KIND_MOLECULAR_NEUTRAL, (("C", 2), ("H", 4), ("O", 2)))
+    sodium = ModeASpecies("[Na+]", 1, KIND_ION, (("Na", 1),))
+    refused = compose_supplied_ions(sodium, acetic)
+    assert isinstance(refused, ModeARefusal)
+    assert refused.code == "missing_proton_source"
+
+
 def test_neutral_base_plus_sulfate_without_a_proton_source_is_refused() -> None:
     result = compose_mode_a(
         _species("B", 0, KIND_MOLECULAR_NEUTRAL, {"C": 2, "H": 7, "N": 1}),
@@ -166,6 +192,89 @@ def test_neutral_base_plus_sulfate_without_a_proton_source_is_refused() -> None:
     )
     assert isinstance(result, ModeARefusal)
     assert result.code == "missing_proton_source"
+
+
+def test_one_structure_at_the_requested_state_is_accepted() -> None:
+    assert choose_ionization(["CC(=O)[O-]"]) == "CC(=O)[O-]"
+
+
+def test_a_net_charge_with_no_structure_is_refused() -> None:
+    refused = choose_ionization([])
+    assert refused.code == "net_charge_only"
+
+
+def test_two_structures_at_the_same_charge_are_not_auto_picked() -> None:
+    refused = choose_ionization(["CC(=O)[O-]", "[O-]C=O"])
+    assert refused.code == "ambiguous_microspecies"
+    assert isinstance(refused, IonizationRefusal)
+
+
+def test_one_user_cation_and_anion_is_the_one_to_one_salt() -> None:
+    result = enumerate_mode_c(
+        (ModeCCandidate("[Na+]", 1, ORIGIN_USER),),
+        (ModeCCandidate("CC(=O)[O-]", -1, ORIGIN_USER),),
+    )
+    assert result.generated == 1
+    assert result.returned == 1
+    assert result.omitted == 0
+    hit = result.hits[0]
+    assert hit.cation_count == 1
+    assert hit.anion_count == 1
+    assert hit.charge_valid is True
+
+
+def test_the_same_mode_c_inputs_yield_the_same_order_and_counts() -> None:
+    cations = tuple(ModeCCandidate(f"c{i}", 1, ORIGIN_USER) for i in range(3))
+    anions = tuple(ModeCCandidate(f"a{i}", -1, ORIGIN_USER) for i in range(2))
+    first = enumerate_mode_c(cations, anions)
+    second = enumerate_mode_c(cations, anions)
+    assert first.hits == second.hits
+    assert (first.generated, first.returned, first.omitted) == (
+        second.generated,
+        second.returned,
+        second.omitted,
+    )
+
+
+def test_mode_c_keeps_fifty_and_says_how_many_it_left_out() -> None:
+    cations = tuple(ModeCCandidate(f"c{i:02d}", 1, ORIGIN_USER) for i in range(8))
+    anions = tuple(ModeCCandidate(f"a{i:02d}", -1, ORIGIN_USER) for i in range(7))
+    result = enumerate_mode_c(cations, anions)
+    assert result.generated == 56
+    assert result.returned == MODE_C_LIMIT
+    assert result.omitted == 6
+    assert len(result.hits) == MODE_C_LIMIT
+
+
+def test_identical_species_and_ratio_are_kept_once() -> None:
+    result = enumerate_mode_c(
+        (ModeCCandidate("[Na+]", 1, ORIGIN_USER), ModeCCandidate("[Na+]", 1, ORIGIN_LADDER, 0)),
+        (ModeCCandidate("[Cl-]", -1, ORIGIN_USER),),
+    )
+    assert result.generated == 1
+    assert result.returned == 1
+
+
+def test_same_sign_pairs_are_not_compositions() -> None:
+    result = enumerate_mode_c(
+        (ModeCCandidate("[Na+]", 1, ORIGIN_USER),),
+        (ModeCCandidate("[K+]", 1, ORIGIN_USER),),
+    )
+    assert result.generated == 0
+    assert result.returned == 0
+    assert result.omitted == 0
+    assert result.hits == ()
+
+
+def test_user_states_come_before_ladder_states() -> None:
+    result = enumerate_mode_c(
+        (
+            ModeCCandidate("zz-ladder", 1, ORIGIN_LADDER, 0),
+            ModeCCandidate("aa-user", 1, ORIGIN_USER),
+        ),
+        (ModeCCandidate("[Cl-]", -1, ORIGIN_USER),),
+    )
+    assert [hit.cation_identity for hit in result.hits] == ["aa-user", "zz-ladder"]
 
 
 def test_the_domain_module_does_not_import_lattice_energy() -> None:

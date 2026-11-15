@@ -1,19 +1,137 @@
 {
   "id": "sugars",
   "title": "Sugars",
-  "description": "Selected pyranose forms, named with anomer and configuration.",
+  "description": "Named pyranose and furanose forms with anomer and configuration.",
   "entries": [
     {
       "id": "sugars.alpha_d_glucopyranose",
       "name": "α-D-Glucopyranose",
       "smiles": "OC[C@H]1O[C@H](O)[C@H](O)[C@@H](O)[C@@H]1O",
-      "tags": ["glucose", "pyranose", "alpha"]
+      "tags": [
+        "glucose",
+        "pyranose",
+        "alpha"
+      ]
     },
     {
       "id": "sugars.beta_d_glucopyranose",
       "name": "β-D-Glucopyranose",
       "smiles": "OC[C@H]1O[C@@H](O)[C@H](O)[C@@H](O)[C@@H]1O",
-      "tags": ["glucose", "pyranose", "beta"]
+      "tags": [
+        "glucose",
+        "pyranose",
+        "beta"
+      ]
+    },
+    {
+      "id": "sugars.alpha_d_galactopyranose",
+      "name": "α-D-Galactopyranose",
+      "smiles": "OC[C@H]1O[C@H](O)[C@H](O)[C@@H](O)[C@H]1O",
+      "tags": [
+        "galactose",
+        "pyranose",
+        "alpha"
+      ]
+    },
+    {
+      "id": "sugars.beta_d_galactopyranose",
+      "name": "β-D-Galactopyranose",
+      "smiles": "OC[C@H]1O[C@@H](O)[C@H](O)[C@@H](O)[C@H]1O",
+      "tags": [
+        "galactose",
+        "pyranose",
+        "beta"
+      ]
+    },
+    {
+      "id": "sugars.alpha_d_mannopyranose",
+      "name": "α-D-Mannopyranose",
+      "smiles": "OC[C@H]1O[C@H](O)[C@@H](O)[C@@H](O)[C@@H]1O",
+      "tags": [
+        "mannose",
+        "pyranose",
+        "alpha"
+      ]
+    },
+    {
+      "id": "sugars.beta_d_mannopyranose",
+      "name": "β-D-Mannopyranose",
+      "smiles": "OC[C@H]1O[C@@H](O)[C@@H](O)[C@@H](O)[C@@H]1O",
+      "tags": [
+        "mannose",
+        "pyranose",
+        "beta"
+      ]
+    },
+    {
+      "id": "sugars.alpha_d_xylopyranose",
+      "name": "α-D-Xylopyranose",
+      "smiles": "O[C@@H]1[C@@H](O)[C@@H](O)OC[C@H]1O",
+      "tags": [
+        "xylose",
+        "pyranose",
+        "alpha"
+      ]
+    },
+    {
+      "id": "sugars.beta_d_xylopyranose",
+      "name": "β-D-Xylopyranose",
+      "smiles": "O[C@@H]1[C@@H](O)[C@H](O)OC[C@H]1O",
+      "tags": [
+        "xylose",
+        "pyranose",
+        "beta"
+      ]
+    },
+    {
+      "id": "sugars.alpha_d_ribofuranose",
+      "name": "α-D-Ribofuranose",
+      "smiles": "OC[C@H]1O[C@H](O)[C@H](O)[C@@H]1O",
+      "tags": [
+        "ribose",
+        "furanose",
+        "alpha"
+      ]
+    },
+    {
+      "id": "sugars.beta_d_ribofuranose",
+      "name": "β-D-Ribofuranose",
+      "smiles": "OC[C@H]1O[C@@H](O)[C@H](O)[C@@H]1O",
+      "tags": [
+        "ribose",
+        "furanose",
+        "beta"
+      ]
+    },
+    {
+      "id": "sugars.beta_d_fructofuranose",
+      "name": "β-D-Fructofuranose",
+      "smiles": "OC[C@H]1O[C@](O)(CO)[C@@H](O)[C@@H]1O",
+      "tags": [
+        "fructose",
+        "furanose",
+        "beta"
+      ]
+    },
+    {
+      "id": "sugars.2_deoxy_alpha_d_ribofuranose",
+      "name": "2-Deoxy-α-D-ribofuranose",
+      "smiles": "OC[C@H]1O[C@H](O)C[C@@H]1O",
+      "tags": [
+        "deoxyribose",
+        "furanose",
+        "alpha"
+      ]
+    },
+    {
+      "id": "sugars.2_deoxy_beta_d_ribofuranose",
+      "name": "2-Deoxy-β-D-ribofuranose",
+      "smiles": "OC[C@H]1O[C@@H](O)C[C@@H]1O",
+      "tags": [
+        "deoxyribose",
+        "furanose",
+        "beta"
+      ]
     }
   ]
 }

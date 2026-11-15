@@ -1,0 +1,105 @@
+{
+  "id": "vitamins",
+  "title": "Vitamins",
+  "description": "Named vitamers as complete molecules, not family names.",
+  "entries": [
+    {
+      "id": "vitamins.ascorbic_acid",
+      "name": "L-Ascorbic acid",
+      "smiles": "O=C1O[C@H]([C@@H](O)CO)C(O)=C1O",
+      "tags": [
+        "vitamin C"
+      ]
+    },
+    {
+      "id": "vitamins.nicotinamide",
+      "name": "Nicotinamide",
+      "smiles": "NC(=O)c1cccnc1",
+      "tags": [
+        "vitamin B3"
+      ]
+    },
+    {
+      "id": "vitamins.nicotinic_acid",
+      "name": "Nicotinic acid",
+      "smiles": "O=C(O)c1cccnc1",
+      "tags": [
+        "vitamin B3"
+      ]
+    },
+    {
+      "id": "vitamins.pyridoxine",
+      "name": "Pyridoxine",
+      "smiles": "Cc1ncc(CO)c(CO)c1O",
+      "tags": [
+        "vitamin B6"
+      ]
+    },
+    {
+      "id": "vitamins.thiamine",
+      "name": "Thiamine",
+      "smiles": "Cc1ncc(C[n+]2csc(CCO)c2C)c(N)n1",
+      "tags": [
+        "vitamin B1"
+      ]
+    },
+    {
+      "id": "vitamins.alpha_tocopherol",
+      "name": "alpha-Tocopherol",
+      "smiles": "Cc1c(C)c2c(c(C)c1O)CC[C@@](C)(CCC[C@H](C)CCC[C@H](C)CCCC(C)C)O2",
+      "tags": [
+        "vitamin E"
+      ]
+    },
+    {
+      "id": "vitamins.retinol",
+      "name": "Retinol",
+      "smiles": "CC1=C(/C=C/C(C)=C/C=C/C(C)=C/CO)C(C)(C)CCC1",
+      "tags": [
+        "vitamin A"
+      ]
+    },
+    {
+      "id": "vitamins.riboflavin",
+      "name": "Riboflavin",
+      "smiles": "CC1=CC2=C(C=C1C)N(C3=NC(=O)NC(=O)C3=N2)C[C@@H]([C@@H]([C@@H](CO)O)O)O",
+      "tags": []
+    },
+    {
+      "id": "vitamins.pantothenic_acid",
+      "name": "Pantothenic acid",
+      "smiles": "CC(C)(CO)[C@H](C(=O)NCCC(=O)O)O",
+      "tags": []
+    },
+    {
+      "id": "vitamins.biotin",
+      "name": "Biotin",
+      "smiles": "C1[C@H]2[C@@H]([C@@H](S1)CCCCC(=O)O)NC(=O)N2",
+      "tags": []
+    },
+    {
+      "id": "vitamins.folic_acid",
+      "name": "Folic acid",
+      "smiles": "C1=CC(=CC=C1C(=O)N[C@@H](CCC(=O)O)C(=O)O)NCC2=CN=C3C(=N2)C(=O)NC(=N3)N",
+      "tags": []
+    },
+    {
+      "id": "vitamins.ergocalciferol",
+      "name": "Ergocalciferol",
+      "smiles": "C[C@H](/C=C/[C@H](C)C(C)C)[C@H]1CC[C@@H]\\2[C@@]1(CCC/C2=C\\C=C/3\\C[C@H](CCC3=C)O)C",
+      "tags": []
+    },
+    {
+      "id": "vitamins.cholecalciferol",
+      "name": "Cholecalciferol",
+      "smiles": "C[C@H](CCCC(C)C)[C@H]1CC[C@@H]\\2[C@@]1(CCC/C2=C\\C=C/3\\C[C@H](CCC3=C)O)C",
+      "tags": []
+    },
+    {
+      "id": "vitamins.phylloquinone",
+      "name": "Phylloquinone",
+      "smiles": "CC1=C(C(=O)C2=CC=CC=C2C1=O)C/C=C(\\C)/CCC[C@H](C)CCC[C@H](C)CCCC(C)C",
+      "tags": []
+    }
+  ]
+}

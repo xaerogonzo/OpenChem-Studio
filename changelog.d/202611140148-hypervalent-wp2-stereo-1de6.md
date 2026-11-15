@@ -1,0 +1,3 @@
+### SF6, PF5, PCl5, IF5, Ar-SF5 and CH3-PF4 are no longer reported as having a chiral centre
+- **Topology analysis said "Chiral center count: 1" and the stereo descriptors "1 stereo element(s), 1 undefined" for these**, because RDKit applies its tetrahedral model to centres with five or six neighbours. Only centres with three or four neighbours are counted now; a higher coordination is reported as "not assessed" (a chiral octahedral complex can be stereogenic, so it is not called achiral either).
+- **The always-on stereocentre count and the stereocentre calculators already said 0 and are unchanged**, as are CHFClBr, sulfoxides, sulfoximines, phosphines, ammonium centres and double bonds. The rule is `chem/stereo_elements.py`.

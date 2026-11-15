@@ -84,11 +84,11 @@ Do not convert a candidate into a shipped template solely because `identity.stat
 
 ## Atropine stereochemical cross-check
 
-PubChem CID 174174 (title `Npc209773`). Candidate InChIKey `RKUNBYITZUJHSG-PJPHBNEVSA-N` (`InChI=1S/C17H23NO3/c1-18-13-7-8-14(18)10-15(9-13)21-17(20)16(11-19)12-5-3-2-4-6-12/h2-6,13-16,19H,7-11H2,1H3/t13-,14+,15?,16?`). The candidate records four potential chiral centers; `stereochemistry_status` remains `not_reviewed`. ChEBI CHEBI:16684 is atropine the racemate, InChIKey `RKUNBYITZUJHSG-SPUOUPEWSA-N`. Connectivity and protonation layers match; the stereochemical InChIKey layer differs (`structure_comparison: stereochemistry_difference`). This is **not** a confirmed cross-database structure match. Primary `chebi_id` is unset.
+PubChem CID 174174 (title `Npc209773`) leaves tropane C3 unspecified (`RKUNBYITZUJHSG-PJPHBNEVSA-N`). The candidate and the shipped atropine template use the ChEBI racemate drawing instead: tropane C3 endo wedges, tropic acid still unspecified, InChIKey `RKUNBYITZUJHSG-SPUOUPEWSA-N`, primary `chebi_id` CHEBI:16684 (`structure_comparison: exact`). Hyoscyamine and scopolamine are shipped beside it with the same tropane C3 default plus PubChem's (S)-tropic acid; they are not separate dump rows.
 
 ## V1 constraints
 
-Shipped catalog remains four files and **34** entries. Dummy/query/S-group refused. `molblock_for()` flattens 3D. Amino acids remain **neutral**.
+Shipped catalog is seven files (rings, amino acids, nucleobases, sugars, cycloalkanes, heterocycles, solvents). Dummy/query/S-group refused. `molblock_for()` flattens 3D. Amino acids remain **neutral**. This research dump is still not one of those files.
 
 ## Inclusion rules
 
@@ -199,7 +199,9 @@ Seven records require a coordination representation. `editor_eligible` is false.
 
 ## Open questions
 
-- Shipping into `_SHIPPED_FILES`.
+- A second shipping promotion is in `_SHIPPED_FILES` (alkaloids including protoalkaloids, flavonoids, vitamins, nucleic acids, allotropes, reactive species, and more). This research file is still not loaded.
 - Stereo-specific PubChem records for cis/trans-decalin.
 - Compound-level class for ephedrine and colchicine.
-- Editor smoke tests (still zero).
+- Morphine-class true alkaloids stay listed until stereochemistry is reviewed. Metals stay unshipped.
+- Broader editor display tests beyond the Template Library drive script.
+- Unpaired-electron calculator coverage is not this dump.

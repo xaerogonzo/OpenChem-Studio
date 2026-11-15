@@ -9,6 +9,7 @@ from dataclasses import replace
 from PySide6.QtCore import QRunnable, QThreadPool
 
 from openchem.chem.calculation_input import (
+    HYPERVALENT_VERIFIED_CALCULATORS,
     INPUT_PREFIX,
     geometry_provenance,
     input_fingerprint,
@@ -23,8 +24,9 @@ from openchem.chem.descriptor_providers import (
 )
 from openchem.chem.engine import ChemistryEngine
 from openchem.domain.calculator import DRAWING, GEOMETRY, CalculationRefusal, CalculationRequest
+from openchem.domain.finite_guard import refusal_for
 from openchem.domain.structure_coverage import Coverage, CoverageKind
-from openchem.domain.refusal_kinds import MissingInput, RefusalKind, refusal_parameters
+from openchem.domain.refusal_kinds import HYPERVALENT_UNSUPPORTED, MissingInput, RefusalKind, refusal_parameters
 from openchem.domain.input_snapshot import InputSnapshot, snapshot_model
 from openchem.domain.common import CacheState, Provenance
 from openchem.domain.descriptor import DescriptorValue
@@ -200,6 +202,33 @@ class _DescriptorComputeTask(QRunnable):
             resolved = resolve_calculation_input(self._engine, self._model, self._calculation_input)
             self._fingerprint = resolved.fingerprint
             mol = resolved.mol
+        except CalculationRefusal as refusal:
+            # A held hypervalent structure (`chem.calculation_input`): a stated limit, not a fault, so no
+            # traceback. The few descriptors that are plain arithmetic on the atoms are still computed
+            # (`HYPERVALENT_SAFE_DESCRIPTORS`); every other one reports the refusal.
+            logger.info("Descriptors declined: %s", refusal.code)
+            self._part_failed = True
+            compute_held = getattr(self._provider, "compute_hypervalent", None)
+            if refusal.code == HYPERVALENT_UNSUPPORTED and self._calculation_input == DRAWING and compute_held:
+                try:
+                    held = self._engine.mol_from_model(self._model, allow_hypervalent=True)
+                    values = compute_held(held, self._model.uuid, refusal)
+                except Exception:  # noqa: BLE001 - fall back to refusing them all, as before
+                    logger.exception("Held-structure descriptors failed")
+                else:
+                    for value in values:
+                        if self._only is None or value.descriptor_id in self._only:
+                            self._show(value.descriptor_id, value)
+                            self._record(value)
+                    self._finish_part()
+                    return
+            for descriptor_id in self._ids():
+                self._publish(
+                    descriptor_id, CacheState.FAILED, error=refusal.detail,
+                    category=categories.get(descriptor_id, ""), record=True,
+                )
+            self._finish_part()
+            return
         except Exception as exc:  # noqa: BLE001 - a bad provider must not kill the pool
             # No molecule, so nothing below has anything to run on.
             self._fail_descriptors(exc, categories)
@@ -218,6 +247,17 @@ class _DescriptorComputeTask(QRunnable):
         else:
             for value in values:
                 if self._only is not None and value.descriptor_id not in self._only:
+                    continue
+                # NO NON-FINITE NUMBER IS PUBLISHED (docs/HYPERVALENT_COVERAGE_DESIGN.md, WP1): a descriptor whose
+                # value is NaN or infinite is reported as the method's limit, and the others are unaffected.
+                refusal = refusal_for(value, value.descriptor_id, self._element_of(mol))
+                if refusal is not None:
+                    logger.info("Descriptor %s refused: not finite", value.descriptor_id)
+                    self._part_failed = True
+                    self._publish(
+                        value.descriptor_id, CacheState.FAILED, error=refusal.detail,
+                        category=categories.get(value.descriptor_id, ""), record=True,
+                    )
                     continue
                 if self._calculation_input != DRAWING:
                     # A geometry run says WHICH conformer it measured (`geometry_provenance`: id, position, energy, force field), as a calculator's result on a conformer does, so a score
@@ -241,6 +281,10 @@ class _DescriptorComputeTask(QRunnable):
             self._part_failed = True
         else:
             for alert in alerts:
+                if refusal_for(alert, "an alert catalogue") is not None:
+                    logger.info("Alert result dropped: not finite")
+                    self._part_failed = True
+                    continue
                 self._event_bus.publish(
                     AlertComputed(alert=alert, structure_version=self._structure_version)
                 )
@@ -253,6 +297,22 @@ class _DescriptorComputeTask(QRunnable):
             self._part_failed = True
         else:
             for dataset in datasets:
+                # A per-atom set with a hole is refused WHOLE: charges that skip an atom do not sum to the charge
+                # of the structure, so showing the rest would be showing a different answer than the method gives.
+                refusal = refusal_for(dataset, dataset.property_id, self._element_of(mol))
+                if refusal is not None:
+                    logger.info("Per-atom dataset %s refused: not finite", dataset.property_id)
+                    self._part_failed = True
+                    # Published as the refusal it is, with no values, so the result is ACCOUNTED FOR (a panel row and
+                    # the census see a stated limit) instead of silently absent.
+                    dataset = replace(
+                        dataset, values={}, cache_state=CacheState.FAILED, error=refusal.detail,
+                        error_summary=refusal.summary, inapplicable=True,
+                        provenance=Provenance(
+                            created_by="core", method=dataset.property_id,
+                            parameters=refusal_parameters(refusal.code, refusal.kind),
+                        ),
+                    )
                 self._event_bus.publish(PerAtomDataComputed(
                     dataset=dataset,
                     input_fingerprint=self._fingerprint,
@@ -260,6 +320,11 @@ class _DescriptorComputeTask(QRunnable):
                 ))
                 self._record(dataset)
         self._finish_part()
+
+    @staticmethod
+    def _element_of(mol):
+        """Atom index -> element symbol, for naming what a non-finite number was on."""
+        return lambda index: mol.GetAtomWithIdx(index).GetSymbol()
 
     def _fail_descriptors(self, exc: Exception, categories: dict[str, str]) -> None:
         logger.exception("Descriptor provider %s failed", self._provider.provider_id)
@@ -490,7 +555,12 @@ class _CalculationTask(QRunnable):
             # Resolved WITH its fingerprint, so the result is recorded
             # against exactly the input it was computed on.
             self._fingerprint = input_fingerprint(self._engine, self._model, DRAWING)
-            resolved = resolve_calculation_input(self._engine, self._model, definition.calculation_input)
+            resolved = resolve_calculation_input(
+                self._engine, self._model, definition.calculation_input,
+                # A held hypervalent structure reaches ONLY the calculators verified on one
+                # (`HYPERVALENT_VERIFIED_CALCULATORS`); every other one gets the refusal.
+                allow_hypervalent=self._request.calculator_id in HYPERVALENT_VERIFIED_CALCULATORS,
+            )
             self._fingerprint = resolved.fingerprint
             mol = resolved.mol
             # WHICH CONFORMER, READ WITH THE RESOLUTION, NOT AFTER THE RUN. It
@@ -501,6 +571,13 @@ class _CalculationTask(QRunnable):
             result = self._registry.compute(
                 self._request.calculator_id, mol, self._model.uuid, self._request.parameters
             )
+            # NO NON-FINITE NUMBER IS PUBLISHED (WP1): a calculator that returns NaN or infinity has no parameters for
+            # part of this structure (gasteiger_charge_at_ph on PF5, xenon, iodine(III)); that is its limit, stated.
+            not_finite = refusal_for(
+                result, self._request.calculator_id, lambda index: mol.GetAtomWithIdx(index).GetSymbol()
+            )
+            if not_finite is not None:
+                raise not_finite
             # Which geometry produced this, recorded on the way out rather
             # than asked of each calculator -- they are handed a molecule
             # and have no idea where it came from. Without it a steric

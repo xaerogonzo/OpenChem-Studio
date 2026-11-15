@@ -1,11 +1,12 @@
 """Psi4 as a tool the user sets up and an engine the panel can choose (`docs/PSI4_ENGINE_DESIGN.md`, stage 1): the service resolves each engine's own executable, the External Tools
-dialog has a locate-only tab, the Test button checks the energy, and the Quantum Chemistry panel shows an Engine box only when there is a choice.
+dialog has a Set Up on Windows plus Locate and Test, the Test button checks the energy, and the Quantum Chemistry panel shows an Engine box only when there is a choice.
 
 Nothing here needs Psi4: the subprocess calls are replaced. The real program is exercised by `tests/test_psi4_engine.py` (when `OPENCHEM_PSI4_EXE` is set).
 """
 
 from __future__ import annotations
 
+import hashlib
 import subprocess
 import sys
 from pathlib import Path
@@ -151,25 +152,111 @@ def test_the_test_button_refuses_a_path_that_is_not_a_file(tmp_path):
 # --- the External Tools tab --------------------------------------------------------------------------------------------
 
 
-def test_the_psi4_descriptor_is_locate_only():
+def test_the_psi4_descriptor_can_download_the_windows_installer():
     descriptor = psi4()
 
     assert descriptor.key == "psi4" and descriptor.setting_key == "psi4/executable_path"
-    # Alex, 2026-10-19: locate-only. No download, and nothing to remove from disk (this app never installed it).
-    assert descriptor.obtainable is False and descriptor.removable is False
+    assert descriptor.obtainable is True and descriptor.removable is False
     assert [label for label, _url in descriptor.vendor_links] == ["Get Psi4...", "Psi4 Documentation..."]
     assert descriptor.locate is not None and descriptor.describe_test is tools.verify_psi4
+    body = descriptor.confirm_body()
+    assert tools.PSI4_INSTALLER_URL in body and f"{tools.PSI4_INSTALLER_SIZE:,}" in body
+    assert tools.PSI4_INSTALLER_SHA256 in body
 
 
-def test_the_dialog_has_a_psi4_tab_with_locate_and_test_and_no_set_up_button(qapp):
+def test_the_dialog_has_a_psi4_tab_with_locate_test_and_set_up(qapp):
     dialog = ExternalToolsPages(Settings(EventBus()))
     try:
         tab = dialog._tab_for("psi4")
         assert tab.locate_button is not None and tab.test_button is not None
-        assert tab.setup_button.isHidden() and tab.remove_button.isHidden()
+        assert not tab.setup_button.isHidden() and tab.remove_button.isHidden()
         assert tab.status_label.text() == "Not configured" or tab.status_label.text().startswith("Configured")
     finally:
         conftest.dispose(dialog)
+
+
+class _BytesResponse:
+    def __init__(self, data: bytes) -> None:
+        self._data = data
+        self._offset = 0
+        self.headers = {"Content-Length": str(len(data))}
+
+    def read(self, size: int = -1) -> bytes:
+        if self._offset >= len(self._data):
+            return b""
+        if size < 0:
+            chunk = self._data[self._offset :]
+            self._offset = len(self._data)
+            return chunk
+        chunk = self._data[self._offset : self._offset + size]
+        self._offset += len(chunk)
+        return chunk
+
+    def __enter__(self) -> _BytesResponse:
+        return self
+
+    def __exit__(self, *_exc) -> bool:
+        return False
+
+
+def _pin_installer(monkeypatch, payload: bytes, tmp_path: Path) -> None:
+    monkeypatch.setattr(tools, "PSI4_INSTALLER_SIZE", len(payload))
+    monkeypatch.setattr(tools, "PSI4_INSTALLER_SHA256", hashlib.sha256(payload).hexdigest())
+    monkeypatch.setattr(tools, "PSI4_INSTALL_DISK_BYTES", 8)
+    monkeypatch.setattr(tools.platform, "system", lambda: "Windows")
+    monkeypatch.setattr(tools.app_paths, "subdirectory", lambda name: tmp_path / name)
+
+
+def test_install_refuses_a_file_whose_hash_is_not_the_pin(tmp_path, monkeypatch):
+    expected = b"MZ-right-xxxxxxxx"
+    payload = b"MZ-wrong-xxxxxxxx"
+    _pin_installer(monkeypatch, expected, tmp_path)
+    monkeypatch.setattr(tools, "open_url", lambda url, timeout, headers=None: _BytesResponse(payload))
+
+    with pytest.raises(RuntimeError, match="SHA-256"):
+        tools.install_psi4_windows()
+
+
+def test_install_runs_the_constructor_and_returns_psi4_exe(tmp_path, monkeypatch):
+    payload = b"MZ" + bytes(64)
+    _pin_installer(monkeypatch, payload, tmp_path)
+    monkeypatch.setattr(tools, "open_url", lambda url, timeout, headers=None: _BytesResponse(payload))
+    seen: list[list[str]] = []
+
+    def run(command, **_kwargs):
+        seen.append(list(command))
+        prefix = Path(str(command[-1]).split("=", 1)[1])
+        exe = prefix / "Scripts" / "psi4.exe"
+        exe.parent.mkdir(parents=True, exist_ok=True)
+        exe.write_text("not really", encoding="utf-8")
+        return SimpleNamespace(returncode=0, stdout=b"", stderr=b"")
+
+    monkeypatch.setattr(subprocess, "run", run)
+
+    exe = tools.install_psi4_windows()
+
+    assert exe.name == "psi4.exe" and exe.is_file()
+    assert seen and seen[0][-2] == "/S" and str(seen[0][-1]).startswith("/D=")
+
+
+def test_install_reuses_a_prefix_that_already_has_psi4(tmp_path, monkeypatch):
+    _pin_installer(monkeypatch, b"unused", tmp_path)
+    prefix = tmp_path / "tools" / "psi4" / "1.11" / "prefix"
+    exe = prefix / "Scripts" / "psi4.exe"
+    exe.parent.mkdir(parents=True, exist_ok=True)
+    exe.write_text("already", encoding="utf-8")
+    fetched = []
+    monkeypatch.setattr(tools, "open_url", lambda *_a, **_k: fetched.append(True) or _BytesResponse(b""))
+
+    assert tools.install_psi4_windows() == exe
+    assert fetched == []
+
+
+def test_install_is_refused_off_windows(monkeypatch):
+    monkeypatch.setattr(tools.platform, "system", lambda: "Linux")
+
+    with pytest.raises(RuntimeError, match="only offered on Windows"):
+        tools.install_psi4_windows()
 
 
 # --- the panel ---------------------------------------------------------------------------------------------------------

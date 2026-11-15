@@ -42,6 +42,12 @@ The `OPENCHEM_DRIVE` step catalogue, moved out of [`CLAUDE.md`](../CLAUDE.md) on
     {"do": "compare_results", "property": "geometry_partial_charge",
      "expect": {"columns": 2, "atoms": 9}}     the inspector's REAL "Compare
                                           with..." menu, then the window
+    {"do": "compare_readers", "names": ["Water", "Ethanol"], "layout": "tabs",
+     "expect": {"side_by_side": false, "tabs": 2, "pane_h_at_least": 120}}
+                                          Compare's REAL Open side by side,
+                                          then Show as tabs, asserted on pane
+                                          height (a blank tab page is 0).
+                                          `shot` takes `"widget": "compare_readers"`
     {"do": "service_row", "calculator": "orca.nmr", "expect": {"panel": "Quantum_Chemistry"}}
                                           PRESS a row that opens another panel;
                                           `reveal_row` scrolls one into a shot
@@ -122,6 +128,18 @@ The `OPENCHEM_DRIVE` step catalogue, moved out of [`CLAUDE.md`](../CLAUDE.md) on
                                           until `id` has a filed per-atom
                                           result; use after `calculator`
                                           before `inspect` `source=result`
+    {"do": "inspect_walk", "tag": "in-process",
+     "expect": {"inspect_at_least": 8, "skip_sidecar_at_least": 1}}
+                                          open the Inspector on every
+                                          in-process per-atom calculator;
+                                          sidecar and service (ORCA) ids
+                                          are logged skip, not computed
+    {"do": "calculator_walk", "group": "sidecar"}
+                                          start every interpreter-bound
+                                          calculator through ``run_calculator``
+                                          (pkasolver and ADMET); follow with
+                                          ``jobs_wait``. ``group: pkasolver``
+                                          is the pKa set alone.
     {"do": "result_report", "calculator": "geometry_partial_charge",
      "expect_refusal": "REFUSE_NOT_CONVERGED"}  WHICH refusal Properties
                                           holds; "Not applicable" names none
@@ -302,6 +320,12 @@ The `OPENCHEM_DRIVE` step catalogue, moved out of [`CLAUDE.md`](../CLAUDE.md) on
                                           combos, "choose" a run by id, "press" Keep or a job row's button (which
                                           asks for the Quantum Chemistry panel and starts nothing); `expect` reads the
                                           screen, the project's recipe runs and where the press went
+    {"do": "salt_composition", "first": 0, "second": 1, "mode": "neutrals",
+     "expect": {"headline_contains": "1 : 1", "disclaimer": true, "charge_valid": true}}
+                                          the Salt composition window (Tools menu): `first`/`second` are project
+                                          positions, `mode` is analyze|neutrals|ions|enumerate; `expect` reads the
+                                          headline, body, standing disclaimer and charge_valid. `shot` takes
+                                          "widget": "salt_composition"
     {"do": "recipe_results", "focus": true, "expect": {"entries": 1, "stale": 0, "title_contains": ["BH3 + CO"],
      "summary_contains": ["was edited"], "stored_as_results": 0}}
                                           what the Results READER holds of the recipe answers kept in the project, for the
@@ -326,7 +350,8 @@ The `OPENCHEM_DRIVE` step catalogue, moved out of [`CLAUDE.md`](../CLAUDE.md) on
                                           (definitions stored, unsaved, listed in Results); `shot` takes "widget": "scores"
     {"do": "template_library", "category": "Rings", "entry": "Pyridine", "press": "insert",
      "expect": {"inserted": true, "smiles_contains": ".", "undo_delta": 1, "status": "Inserted."}}
-                                          Structure > Template Library through its REAL controls: `search`, `category`, `entry`,
+                                          Structure > Template Library through its REAL controls: `search`, `category` (a leaf
+                                          title such as Rings, not a heading), `entry`,
                                           `press` insert/save/remove (`name` skips the My Templates prompt), `expect` the live
                                           molecule, undo depth and stored user templates; `shot` takes "widget": "template_library".
                                           The window is reused: a step without `search` clears the filter, and `save` waits for
@@ -572,8 +597,20 @@ closes the previous driver-owned Inspector before opening the next.
 `results` and `nmr_panes` emit the same kind of compact JSON line
 (`results_dump[tag]`, `nmr_dump[tag]`). Unknown `expect` keys fail on those
 steps too. `nmr_panes` layout keys include `2d_share` and pane widths; `2d` /
-`3d` / `splitter` remain visibility booleans. `results` keeps `focus`, `search`,
-`all_results_visible`, `jumps_at_least`.
+`3d` / `splitter` remain visibility booleans. `2d_oversized` is true when both
+structure panes are visible and `2d_share` is above `OVERSIZED_2D_SHARE` (0.4);
+`2d_share_at_most` is an inequality, like Results' `jumps_at_least`. `results`
+keeps `focus`, `search`, `all_results_visible`, `jumps_at_least`.
+
+`inspect_walk` is the registry presentation census: one Inspector dump per
+in-process `PerAtomDataset` calculator, and a skip row for sidecar and
+service-executed ids (Inspector ``compute`` still must not block on a sidecar).
+`calculator_walk` `group=sidecar` starts every interpreter-bound calculator
+through `run_calculator` (then `jobs_wait`); the pH-charge Inspector is
+`source=result`. Markush enumeration is a Results dump (`StructureSetResult`).
+ORCA in `louder_kinds.json` is water at HF STO-3G: opt, single point, NMR,
+Fukui, and delta-SCF. Proton affinity, bond dissociation, tautomer protocols
+and LED stay out — those are the hour-class job chains.
 
 `inspect_report` is observational. With no `expect` object it records no
 assertion; a dump-only walk can still `VERDICT PASS`. A failed or refused

@@ -110,6 +110,7 @@ from openchem.events.events import (
     MoleculeSnapshotUpdated,
     PluginLoaded,
     PluginUnloaded,
+    QuantumChemistryJobStateChanged,
     QuantumChemistryResultReady,
     QuantumChemistryRunCompleted,
     QuantumChemistryRunDeleted,
@@ -137,6 +138,7 @@ from openchem.ui.panels.batch_panel import BatchPanel
 from openchem.ui.dialogs.calculator_settings_dialog import plain_label
 from openchem.ui.dialogs.goal_wizard_dialog import GoalWizardDialog
 from openchem.ui.dialogs.lewis_pairing_dialog import LewisPairingDialog, PairingContext, PairingHost
+from openchem.ui.dialogs.salt_composition_dialog import SaltCompositionDialog, SaltHost
 from openchem.ui.dialogs.score_dialog import ScoreDialog, ScoreHost
 from openchem.ui.dialogs.template_library_dialog import TemplateLibraryDialog
 from openchem.ui.panels.docking_panel import DockingPanel
@@ -519,6 +521,7 @@ class MainWindow(QMainWindow):
             on_identify=self._identify_structure,
             on_check=self._show_structure_check_panel,
             on_edit_formulation=self._edit_formulation,
+            on_new_molecule=self._new_molecule,
         )
         self._property_panel = PropertyPanel(
             services.event_bus,
@@ -614,6 +617,7 @@ class MainWindow(QMainWindow):
         self._property_panel.goal_wizard_requested.connect(self._on_goal_wizard_action)
         # THE LEWIS PAIRING WINDOW: one, built when first asked for and raised after that.
         self._lewis_pairing: LewisPairingDialog | None = None
+        self._salt_composition: SaltCompositionDialog | None = None
         self._score_dialog: ScoreDialog | None = None
         self._template_library: TemplateLibraryDialog | None = None
         self._property_panel.workflow_tab_requested.connect(self._on_workflow_tab_requested)
@@ -698,6 +702,7 @@ class MainWindow(QMainWindow):
         self._editor.geometry_requested.connect(self._on_geometry_requested)
         self._editor.electron_status.connect(self._on_electron_status)
         self._editor.atom_number_status.connect(self._on_atom_number_status)
+        self._editor.edit_rejected.connect(self._on_edit_rejected)
         # The way back from the 3D viewer -- see `_adopt_conformer`.
         self._viewer3d.conformer_adopted.connect(self._adopt_conformer)
         # The way to ORCA from the conformers -- see `_on_orca_optimize_requested`.
@@ -794,6 +799,7 @@ class MainWindow(QMainWindow):
             "Batch", self._wrap_scrollable(self._batch_panel), Qt.DockWidgetArea.RightDockWidgetArea
         )
         self._comparison_panel = ComparisonPanel(services.event_bus, self)
+        self._comparison_panel.set_stored_reader(self._stored_reports_for_compare)
         self._comparison_panel.attach_settings(settings)
         self._compare_readers: CompareReaders | None = None
         self._pka_views: dict[str, weakref.ref] = {}
@@ -981,6 +987,7 @@ class MainWindow(QMainWindow):
         self._sync_rail_to_the_restored_panel()
 
         services.event_bus.subscribe(MoleculeSelected, self._on_molecule_selected)
+        services.event_bus.subscribe(QuantumChemistryJobStateChanged, self._on_quantum_job_state)
         services.event_bus.subscribe(MoleculeChanged, self._on_molecule_changed)
         services.event_bus.subscribe(RecalculationDue, self._on_recalculation_due)
         self._recalc_hint_shown = False
@@ -1004,6 +1011,7 @@ class MainWindow(QMainWindow):
         for event_type in (MoleculeSelected, MoleculeChanged, ResultRecorded):
             services.event_bus.subscribe(event_type, self._refresh_scores_preview)
         services.event_bus.subscribe(MoleculeChanged, self._refresh_lewis_pairing)
+        services.event_bus.subscribe(MoleculeChanged, self._refresh_salt_composition)
         services.event_bus.subscribe(ConformersChanged, self._refresh_lewis_pairing)
         services.event_bus.subscribe(PluginLoaded, self._on_plugins_state_changed)
         services.event_bus.subscribe(PluginUnloaded, self._on_plugins_state_changed)
@@ -1993,6 +2001,34 @@ class MainWindow(QMainWindow):
         "no_fact": "The result is there, but that value is not in it.",
     }
 
+    def _stored_result(self, molecule_uuid: str, report_id: str):
+        """The fresh stored result with this id, for the molecule the link named.
+
+        None when it is gone. The caller refuses rather than opening another molecule's result.
+        """
+        from openchem.domain.result_store import result_id_of
+
+        project = self._session.project
+        service = self._services.result_store_service
+        if project is None or service is None:
+            return None
+        molecule = project.find_molecule(molecule_uuid)
+        if molecule is None:
+            return None
+        for stored in service.store.fresh_results(molecule_uuid, service.fingerprints_for(molecule)):
+            try:
+                found = result_id_of(stored.result)
+            except TypeError:
+                continue
+            if found == report_id:
+                return stored.result
+        return None
+
+    def _stored_reports_for_compare(self, molecule_uuid: str) -> list:
+        """Fresh stored reports for Compare, the same ones the side-by-side readers use."""
+        entries, _version = self.reader_entries_for(molecule_uuid)
+        return entries
+
     def reader_entries_for(self, molecule_uuid: str) -> tuple[list, int]:
         """What a Results reader pinned to ANY molecule of the project should show, and its version.
 
@@ -2185,6 +2221,58 @@ class MainWindow(QMainWindow):
 
     def _on_lewis_pairing_action(self, _checked: bool = False) -> None:
         self.show_lewis_pairing()
+
+    def _on_salt_composition_action(self, _checked: bool = False) -> None:
+        self.show_salt_composition()
+
+    def show_salt_composition(
+        self, first_uuid: str | None = None, second_uuid: str | None = None
+    ) -> SaltCompositionDialog:
+        """Open the salt-composition window, or raise the one that is open. There is never a second."""
+        if self._salt_composition is None:
+            dialog = SaltCompositionDialog(self._salt_composition_host(), self)
+            self._salt_composition = dialog
+        else:
+            dialog = self._salt_composition
+            dialog.refresh()
+        if first_uuid or second_uuid:
+            dialog.select_molecules(first_uuid, second_uuid)
+        dialog.show()
+        dialog.raise_()
+        dialog.activateWindow()
+        return dialog
+
+    def _salt_composition_host(self) -> SaltHost:
+        engine = self._services.chemistry_engine
+
+        def evaluate(mode: str, first: str | None, second: str | None):
+            from openchem.chem.salt_compose import compose
+
+            project = self._session.project
+
+            def mol_of(uuid: str | None):
+                if project is None or uuid is None:
+                    return None
+                model = project.find_molecule(uuid)
+                if model is None:
+                    return None
+                try:
+                    return engine.mol_from_model(model)
+                except Exception:  # noqa: BLE001 - a molecule with no readable structure is a missing pick
+                    return None
+
+            return compose(mode, mol_of(first), mol_of(second))
+
+        return SaltHost(
+            molecules=lambda: [(m.display_name, m.uuid) for m in self._wizard_molecules()],
+            selected_uuid=self._property_panel.selected_molecule_uuid,
+            evaluate=evaluate,
+        )
+
+    def _refresh_salt_composition(self, _event=None) -> None:
+        dialog = self._salt_composition
+        if dialog is not None and not dialog.isHidden():
+            dialog.refresh()
 
     def show_lewis_pairing(
         self, first_uuid: str | None = None, second_uuid: str | None = None
@@ -2598,9 +2686,14 @@ class MainWindow(QMainWindow):
         self._document(
             file_menu.addAction("Open Project...", self._open_project), "open_project"
         )
-        self._document(
-            file_menu.addAction("Save Project...", self._save_project), "save_project"
+        save_action = self._document(
+            file_menu.addAction("Save Project", self._save_project), "save_project"
         )
+        save_action.setShortcut("Ctrl+S")
+        save_as_action = self._document(
+            file_menu.addAction("Save Project As...", self._save_project_as), "save_project_as"
+        )
+        save_as_action.setShortcut("Ctrl+Shift+S")
         file_menu.addSeparator()
         self._document(
             file_menu.addAction("New Molecule", self._new_molecule), "new_molecule"
@@ -2998,6 +3091,10 @@ class MainWindow(QMainWindow):
         self._document(
             tools_menu.addAction("Lewis Acid-Base Pairing...", self._on_lewis_pairing_action),
             "lewis_pairing",
+        )
+        self._document(
+            tools_menu.addAction("Salt Composition...", self._on_salt_composition_action),
+            "salt_composition",
         )
         self._document(
             tools_menu.addAction("Derived Scores...", self._on_scores_action),
@@ -3435,6 +3532,19 @@ class MainWindow(QMainWindow):
         )
         dialog.exec()
 
+    def _on_edit_rejected(self, message: str) -> None:
+        """Say that the drawing on the canvas is not the molecule's structure, and keep saying it.
+
+        **NO TIMEOUT, on purpose:** a reason that fades leaves a canvas and a model that disagree with
+        nothing to explain it. It is replaced by the next message and taken down (an empty string)
+        when a drawing is applied again. Also logged, so it is in the console after the bar moves on.
+        """
+        if message:
+            logger.warning("Canvas drawing not applied: %s", message)
+            self.statusBar().showMessage(message)
+        else:
+            self.statusBar().clearMessage()
+
     def _on_electron_status(self, message: str) -> None:
         """Say what the dots cannot.
 
@@ -3544,6 +3654,8 @@ class MainWindow(QMainWindow):
         # ['New molecule', 'A-one', 'A-two'] to [], while the Project
         # Explorer showed the new one and nothing appeared to happen.
         self._undo_stack.clear()
+        # A different document has no file yet; Open and recovery set it again right after this call.
+        self._project_path = ""
         self._session.set_project(project)
         # THE RESULT STORE BELONGS TO THE DOCUMENT TOO, for the same reason,
         # and it is replaced BEFORE any panel is told: a panel may select a
@@ -3578,6 +3690,8 @@ class MainWindow(QMainWindow):
         # "you have unsaved changes" the moment they open the next one.
         if self._lewis_pairing is not None:
             self._lewis_pairing.refresh()
+        if self._salt_composition is not None:
+            self._salt_composition.refresh()
         self._refresh_scores_dialog()
         self._session.mark_clean()
 
@@ -3593,30 +3707,55 @@ class MainWindow(QMainWindow):
         if not path_str:
             return
         remember_chosen_path(self._settings, "project", path_str)
-        command = OpenProjectCommand(self._services.project_service, Path(path_str))
+        self.open_project_file(Path(path_str))
+
+    def open_project_file(self, path: Path) -> None:
+        """Open a project from a path already chosen: the file dialog's answer, or one handed to
+        the program on its command line (double-clicking a `.ocsproj`). The caller has dealt with
+        unsaved changes; a freshly started program has none."""
+        command = OpenProjectCommand(self._services.project_service, path)
         self._undo_stack.push(command)
         if command.loaded_project is not None:
             self._set_project(
                 command.loaded_project, command.loaded_results, command.loaded_qc_runs, command.loaded_recipe_runs,
                 command.loaded_derived_scores, command.loaded_synthesis_plans,
             )
+            self._project_path = str(path)
 
     def _save_project(self) -> bool:
-        """True when the project reached disk.
+        """Save to the file this project already has; ask for one only when it has none.
 
-        Reports its outcome because `_confirm_discarding_unsaved_changes`
-        offers Save as the way out of losing work, and a save the user
-        cancelled at the file dialog must NOT then be treated as permission
-        to discard.
+        A project has a file once it was opened from one or saved to one (`_project_path`, cleared by
+        `_set_project`, so a new project never inherits the last one's). If that file's folder is gone
+        the person is asked where to put it rather than shown an error.
+
+        True when the project reached disk. Reports its outcome because
+        `_confirm_discarding_unsaved_changes` offers Save as the way out of
+        losing work, and a save the user cancelled at the file dialog must NOT
+        then be treated as permission to discard.
         """
         if self._session.project is None:
             return False
+        known = getattr(self, "_project_path", "")
+        if known and Path(known).parent.is_dir():
+            self.save_project_to(Path(known))
+            return True
+        return self._save_project_as()
+
+    def _save_project_as(self) -> bool:
+        """Always ask where to save, offering the current file's name and folder first.
+
+        True when the project reached disk (False if the person cancelled)."""
+        if self._session.project is None:
+            return False
+        known = getattr(self, "_project_path", "")
+        # The file's own name, in the remembered project folder (which Save and Save As both record, so
+        # it is the current file's folder unless something else moved it).
+        name = Path(known).stem if known else self._session.project.name
         path_str, _ = QFileDialog.getSaveFileName(
             self,
-            "Save Project",
-            suggested_save_path(
-                self._settings, "project", self._session.project.name, ".ocsproj"
-            ),
+            "Save Project As",
+            suggested_save_path(self._settings, "project", name, ".ocsproj"),
             filter="OpenChem Project (*.ocsproj)",
         )
         if not path_str:
@@ -4388,10 +4527,17 @@ class MainWindow(QMainWindow):
         self._check_current_structure()
 
     def _on_molecule_changed(self, event: MoleculeChanged) -> None:
+        from openchem.events.events import CHANGE_CALCULATION_INPUT, CHANGE_STRUCTURE
+
         self._session.mark_dirty()
+        # A rename and a 2D move are saved. They are not a new structure, so they
+        # do not replay or recompute, and they do not ask the structure checkers.
+        chemistry = event.kind in (CHANGE_STRUCTURE, CHANGE_CALCULATION_INPUT)
         # Remembered for `_on_undo_index_changed`, which runs right after the push that
         # published this: a canvas edit's atom-table rebuild waits for the pause too.
-        self._canvas_edit_pending = event.during_edit and self._services.recalc_scheduler is not None
+        self._canvas_edit_pending = (
+            event.during_edit and chemistry and self._services.recalc_scheduler is not None
+        )
         molecule = self._current_molecule()
         if molecule is not None and molecule.uuid == event.molecule_uuid:
             # A CANVAS EDIT IN PROGRESS waits for the scheduler (`RecalculationDue`):
@@ -4400,12 +4546,16 @@ class MainWindow(QMainWindow):
             # been bumped by the structure checker, so what is on screen reads stale.
             # Without a scheduler (a container built without one) there is nothing to
             # wait for, so it recomputes as it always did.
-            waits_for_scheduler = event.during_edit and self._services.recalc_scheduler is not None
-            if not waits_for_scheduler:
+            waits_for_scheduler = (
+                event.during_edit and chemistry and self._services.recalc_scheduler is not None
+            )
+            if chemistry and not waits_for_scheduler:
                 # The same decision as a selection: an undo back to a structure
                 # whose results are held replays them rather than recomputing.
                 self._restore_or_compute(molecule)
             self._publish_molecule_snapshot(molecule)
+        if not chemistry:
+            return
         # After the snapshot, not before: the service bumps this molecule's
         # version from its own MoleculeChanged subscription, and checking
         # against the version it had a moment ago would produce a result
@@ -5531,6 +5681,14 @@ class MainWindow(QMainWindow):
         came from", and different in where that tool is.
         """
         report_id = params.get("report_id")
+        molecule_uuid = str(params.get("molecule_uuid") or "")
+        if report_id and molecule_uuid:
+            # The pane that sent the link names its molecule. Properties may be
+            # showing a different one, and its cache must not answer for both.
+            result = self._stored_result(molecule_uuid, str(report_id))
+            if result is None:
+                return False
+            return self._property_panel.open_result_inspector(result)
         if report_id:
             # THE RESULTS READER'S SHAPE. It holds a summary VIEW, which is
             # deliberately not the result, so "open this properly" has to come
@@ -5768,6 +5926,11 @@ class MainWindow(QMainWindow):
         self._services.descriptor_service.request_descriptors(molecule, GEOMETRY)
         self._publish_molecule_snapshot(molecule)
 
+    def _on_quantum_job_state(self, event: QuantumChemistryJobStateChanged) -> None:
+        """The status bar names a running ORCA job. The Jobs dock keeps the cancel button."""
+        if event.message:
+            self.statusBar().showMessage(event.message)
+
     def _on_quantum_chemistry_result_ready(self, event: QuantumChemistryResultReady) -> None:
         molecule = self._session.project.find_molecule(event.molecule_uuid) if self._session.project else None
         if molecule is None:
@@ -5928,7 +6091,7 @@ class MainWindow(QMainWindow):
             display_name=project.unique_molecule_name(f"{molecule.display_name} copy")
         )
         if molecule.molblock:
-            self._services.chemistry_engine.set_structure_from_molblock(copy, molecule.molblock)
+            self._services.chemistry_engine.set_structure_from_molblock(copy, molecule.molblock, allow_hypervalent=True)
         self.add_molecule(copy)
         self.statusBar().showMessage(f"Duplicated as '{copy.display_name}'.", 3000)
 

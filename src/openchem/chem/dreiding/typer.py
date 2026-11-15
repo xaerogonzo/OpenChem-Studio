@@ -51,6 +51,25 @@ _UNHYBRIDISED = {
 _BARE_DIGIT_STEMS = {"Al", "Si", "Ga", "Ge", "As", "Se", "In", "Sn", "Sb", "Te"}
 
 
+#: The most neighbours (hydrogens included) a type's own geometry allows, from its hybridisation digit: `X_3` is
+#: tetrahedral (four), `X_2` and `X_R` trigonal (three), `X_1` linear (two), and a one-bond type one. A centre with more is
+#: not that type, and typing it anyway gave a number that means nothing: SF6 as `S_3` came out at 708 kcal/mol, PF5 as `P_3`
+#: at 163, a perchlorate chlorine as a monovalent halogen at 404 (measured 2026-11-13).
+_MAX_NEIGHBOURS = {"3": 4, "2": 3, "R": 3, "1": 2}
+#: The metals in Table I, which the neighbour limit does not bind: their coordination is whatever the complex has.
+_METALS = {"Na", "Ca", "Fe", "Zn"}
+
+
+def _coordination_limit(candidate: str) -> int | None:
+    """The neighbour limit of a DREIDING type, or None where it is not bounded."""
+    symbol = candidate.rstrip("_0123R") or candidate
+    if candidate in {"H_", "F_", "Cl", "Br", "I_"}:
+        return 1
+    if symbol in _METALS or candidate[:2].rstrip("_") in _METALS:
+        return None
+    return _MAX_NEIGHBOURS.get(candidate[-1])
+
+
 def _is_resonant(atom: Chem.Atom) -> bool:
     """Whether this centre is `X_R` rather than `X_2`.
 
@@ -107,9 +126,9 @@ def atom_type(atom: Chem.Atom) -> str:
     """
     symbol = atom.GetSymbol()
     if symbol == "H":
-        return "H_"
+        return _checked(atom, "H_")
     if symbol in _UNHYBRIDISED:
-        return _UNHYBRIDISED[symbol]
+        return _checked(atom, _UNHYBRIDISED[symbol])
 
     if _is_resonant(atom):
         suffix = "R"
@@ -128,6 +147,29 @@ def atom_type(atom: Chem.Atom) -> str:
             f"DREIDING has no parameters for {symbol} as {candidate!r}. The "
             "force field covers 37 atom types (Table I of Mayo, Olafson & "
             "Goddard 1990) and this structure needs one outside them."
+        )
+    return _checked(atom, candidate)
+
+
+def _sp3_limit(atom: Chem.Atom) -> int:
+    """Neighbours an sp3 main-group atom has from its own electrons: its valence electrons less its charge, `v`, gives
+    `v` bonds up to four and `8 - v` beyond (neutral C 4, N 3, O 2, P 3, S 2, B 3; N+ 4, S+ 3, B- 4). SF4's sulfur has four
+    neighbours and a lone pair, which is not an sp3 sulfur, however tetrahedral the formula looks."""
+    outer = Chem.GetPeriodicTable().GetNOuterElecs(atom.GetAtomicNum()) - atom.GetFormalCharge()
+    return outer if outer <= 4 else 8 - outer
+
+
+def _checked(atom: Chem.Atom, candidate: str) -> str:
+    """`candidate`, unless the atom has more neighbours than that type's geometry has."""
+    limit = _coordination_limit(candidate)
+    if limit is not None and candidate.endswith("3") and candidate not in {"H_", "F_", "Cl", "Br", "I_"}:
+        limit = min(limit, max(_sp3_limit(atom), 0))
+    neighbours = atom.GetTotalDegree()
+    if limit is not None and neighbours > limit:
+        raise UntypedAtomError(
+            f"{atom.GetSymbol()} has {neighbours} neighbours, more than DREIDING's {candidate.strip('_')!r} type allows "
+            f"({limit}). The force field has no type for a hypervalent or over-coordinated centre, and the number it "
+            "would give is not an energy."
         )
     return candidate
 

@@ -73,6 +73,11 @@ NO_ENTHALPY_OF_FORMATION = "NO_ENTHALPY_OF_FORMATION"
 #: the model has no prediction for this structure, which is a limit of the
 #: model.
 NO_PKA_PREDICTION = "NO_PKA_PREDICTION"
+#: The structure is a hypervalent one OpenChem accepts (ClF3, BrF3, ClF5) and RDKit cannot sanitise, so a
+#: calculator that needs an RDKit molecule has nothing honest to compute on. Measured on ClF3: Gasteiger
+#: charges are NaN, Crippen logP and TPSA are numbers that mean nothing. A limit of the toolkit, said once
+#: at the shared input boundary (`chem.calculation_input`) instead of in every calculator.
+HYPERVALENT_UNSUPPORTED = "HYPERVALENT_UNSUPPORTED"
 
 
 class RefusalKind(str, Enum):
@@ -119,6 +124,7 @@ REFUSAL_KINDS: dict[str, RefusalKind] = {
     NO_ORGANIC_COMPONENT: RefusalKind.LIMIT,
     ELEMENT_OUTSIDE_PARAMETER_SET: RefusalKind.LIMIT,
     NO_PKA_PREDICTION: RefusalKind.LIMIT,
+    HYPERVALENT_UNSUPPORTED: RefusalKind.LIMIT,
     INPUT_REQUIRED: RefusalKind.NEEDS_INPUT,
     NO_LOADING_DENSITY: RefusalKind.NEEDS_INPUT,
     NO_ENTHALPY_OF_FORMATION: RefusalKind.NEEDS_INPUT,

@@ -103,13 +103,13 @@ class AdoptConformerCommand(OpenChemCommand):
         self.stereo = drawing.stereo
 
     def redo(self) -> None:
-        self._engine.set_structure_from_molblock(self._molecule, self._new_molblock)
+        self._engine.set_structure_from_molblock(self._molecule, self._new_molblock, allow_hypervalent=True)
         self._event_bus.publish(MoleculeChanged(molecule_uuid=self._molecule.uuid))
         self._redraw()
 
     def undo(self) -> None:
         if self._old_molblock:
-            self._engine.set_structure_from_molblock(self._molecule, self._old_molblock)
+            self._engine.set_structure_from_molblock(self._molecule, self._old_molblock, allow_hypervalent=True)
         self._event_bus.publish(MoleculeChanged(molecule_uuid=self._molecule.uuid))
         self._redraw()
 
@@ -186,13 +186,13 @@ class RedrawFlatCommand(OpenChemCommand):
         self.stereo = drawing.stereo
 
     def redo(self) -> None:
-        self._engine.set_structure_from_molblock(self._molecule, self._new_molblock)
+        self._engine.set_structure_from_molblock(self._molecule, self._new_molblock, allow_hypervalent=True)
         self._event_bus.publish(MoleculeChanged(molecule_uuid=self._molecule.uuid))
         self._redraw()
 
     def undo(self) -> None:
         if self._old_molblock:
-            self._engine.set_structure_from_molblock(self._molecule, self._old_molblock)
+            self._engine.set_structure_from_molblock(self._molecule, self._old_molblock, allow_hypervalent=True)
         self._event_bus.publish(MoleculeChanged(molecule_uuid=self._molecule.uuid))
         self._redraw()
 
@@ -458,13 +458,13 @@ class RotateStructureCommand(OpenChemCommand):
         )
 
     def redo(self) -> None:
-        self._engine.set_structure_from_molblock(self._molecule, self._new_molblock)
+        self._engine.set_structure_from_molblock(self._molecule, self._new_molblock, allow_hypervalent=True)
         self._event_bus.publish(MoleculeChanged(molecule_uuid=self._molecule.uuid))
         self._redraw()
 
     def undo(self) -> None:
         if self._old_molblock:
-            self._engine.set_structure_from_molblock(self._molecule, self._old_molblock)
+            self._engine.set_structure_from_molblock(self._molecule, self._old_molblock, allow_hypervalent=True)
         self._event_bus.publish(MoleculeChanged(molecule_uuid=self._molecule.uuid))
         self._redraw()
 

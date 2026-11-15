@@ -486,19 +486,13 @@ def orca() -> ManagedExecutable:
     )
 
 
-#: Why the Psi4 tab has no Set Up button (locate-only: Alex, 2026-10-19). Stated once so the refusal, the dialog title and the failure status cannot drift apart.
-_PSI4_NO_AUTOMATION = (
-    "OpenChem Studio does not download Psi4. Install it from the Psi4 project's install page, "
-    "then use Locate Installed or Browse to point at it."
-)
-
-
+#: Psi4 tab: Set Up on Windows from a pinned Psi4conda 1.11 installer (#607), plus Locate and Test.
 def psi4() -> ManagedExecutable:
-    """Psi4: a second quantum-chemistry engine the user installs and points at (`docs/PSI4_ENGINE_DESIGN.md`).
+    """Psi4: a second quantum-chemistry engine (`docs/PSI4_ENGINE_DESIGN.md`).
 
-    **Locate-only, deliberately** (Alex, 2026-10-19): Psi4 is LGPL and could be fetched, but a pinned download is a commitment this version does not make, so there is no Set Up button
-    and no Remove from Disk (this app never installed it). Everything else is the ORCA tab's: a status line, Locate, Browse and a Test that runs a real two-atom calculation.
-    Locate RUNS each candidate (`psi4 --version`) before accepting it, so another program of that name is not picked.
+    On Windows, Set Up downloads a pinned Psi4conda 1.11 installer (URL, size and SHA-256
+    measured 2026-11-14). Locate and Test remain: Locate RUNS each candidate (`psi4 --version`)
+    before accepting it, so another program of that name is not picked.
     """
     import openchem.services.tool_download_service as tools
 
@@ -519,52 +513,43 @@ def psi4() -> ManagedExecutable:
         testing_status="Running a test calculation...",
         describe_test=tools.verify_psi4,
         test_errors=tools.ToolVerificationError,
-        obtainable=False,
+        obtainable=True,
         removable=False,
         vendor_links=(
             ("Get Psi4...", tools.PSI4_DOWNLOAD_PAGE),
             ("Psi4 Documentation...", tools.PSI4_DOCS_PAGE),
         ),
-        # Unused by a tab that cannot obtain, but `_ToolBase` requires them (the ORCA tab's reason).
         action_label="Set Up Automatically...",
         remove_label="Psi4",
-        confirm_title="Psi4 is not downloaded by this app",
-        confirm_body=lambda: _PSI4_NO_AUTOMATION,
-        run=lambda _on_progress: (_ for _ in ()).throw(RuntimeError(_PSI4_NO_AUTOMATION)),
+        confirm_title="Download Psi4",
+        confirm_body=tools.psi4_setup_confirm_body,
+        run=lambda on_progress: tools.install_psi4_windows(on_progress),
         errors=RuntimeError,
-        finished_status=lambda _result: "",
-        success_title="",
-        success_message=lambda _result: "",
-        failure_title="Psi4 is not downloaded by this app",
-        failure_status_prefix="Not available",
+        finished_status=lambda result: f"Installed: {result}",
+        success_title="Psi4 download complete",
+        success_message=lambda result: f"Psi4 installed at:\n{result}\n\nUse Test to run the two-atom calculation.",
+        failure_title="Psi4 download failed",
+        failure_status_prefix="Download failed",
         notes=(
             Note(
                 "Psi4 is an open-source quantum-chemistry program (LGPL-3.0) that runs single-point energies and geometry "
                 "optimizations here, as a second engine beside ORCA; choose it with the Engine box on the Quantum Chemistry panel. "
-                "It runs natively on Windows: the project's install page offers a command-line installer and a conda package. "
-                "A full install is large -- about 2 GB on disk (measured with the conda package, whose download is about 330 MB)."
+                "On Windows, Set Up Automatically fetches the project's Psi4conda 1.11 installer (433 MiB download, about 2.1 GB "
+                "on disk after install, both measured 2026-11-14) and points the path at Scripts\\psi4.exe."
             ),
             Note(
-                "After installing, use Locate Installed or Browse to point at the folder it was installed in; the app finds "
-                '"psi4.exe" inside it (with conda, in the Scripts folder of the environment). Unlike ORCA, a path with spaces is fine.',
+                "A copy you already installed can still be pointed at with Locate Installed or Browse; the app finds "
+                '"psi4.exe" inside the folder (with conda, in the Scripts folder of the environment). Unlike ORCA, a path with spaces is fine.',
                 MUTED,
             ),
         ),
     )
 
 
-#: Why the xtb tab has no Set Up button (locate-only, as Psi4's is). Stated once so the refusal, the dialog title and the failure status cannot drift apart.
-_XTB_NO_AUTOMATION = (
-    "OpenChem Studio does not download xtb. Get the Windows build from the xtb project's releases page, "
-    "then use Locate Installed or Browse to point at it."
-)
-
-
 def xtb() -> ManagedExecutable:
-    """xtb: a third quantum-chemistry engine, the fast tight-binding one, which the user installs and points at (`docs/EXTERNAL_TOOL_CANDIDATES.md`).
+    """xtb: a third quantum-chemistry engine, the fast tight-binding one (`docs/EXTERNAL_TOOL_CANDIDATES.md`).
 
-    **Locate-only, deliberately**, as Psi4's is: a pinned download is a commitment this version does not make, and the Windows build is labelled a pre-release by its own project.
-    Everything else is the ORCA tab's: a status line, Locate, Browse and a Test that runs a real two-atom calculation through the engine's own input and command.
+    Set Up downloads the latest stable Windows zip (bleed and drafts skipped; a Windows file labelled pre is used only when that is what the project publishes).
     Locate RUNS each candidate (`xtb --version`) before accepting it, so another program of that name is not picked.
     """
     import openchem.services.tool_download_service as tools
@@ -586,7 +571,7 @@ def xtb() -> ManagedExecutable:
         testing_status="Running a test calculation...",
         describe_test=tools.verify_xtb,
         test_errors=tools.ToolVerificationError,
-        obtainable=False,
+        obtainable=True,
         removable=False,
         vendor_links=(
             ("Get xtb...", tools.XTB_DOWNLOAD_PAGE),
@@ -595,15 +580,21 @@ def xtb() -> ManagedExecutable:
         # Unused by a tab that cannot obtain, but `_ToolBase` requires them (the ORCA tab's reason).
         action_label="Set Up Automatically...",
         remove_label="xtb",
-        confirm_title="xtb is not downloaded by this app",
-        confirm_body=lambda: _XTB_NO_AUTOMATION,
-        run=lambda _on_progress: (_ for _ in ()).throw(RuntimeError(_XTB_NO_AUTOMATION)),
+        confirm_title="Download xtb",
+        confirm_body=lambda: (
+            "Look up the latest stable xtb release and download its Windows build?\n\n"
+            f"Source: {tools.XTB_DOWNLOAD_PAGE}\n"
+            "Bleeding-edge builds are not selected. If the Windows file is the pre build, "
+            "that is the file the project publishes for Windows and it is labelled as such.\n\n"
+            "Nothing is downloaded until you confirm."
+        ),
+        run=lambda on_progress: tools.install_xtb_windows(on_progress),
         errors=RuntimeError,
-        finished_status=lambda _result: "",
-        success_title="",
-        success_message=lambda _result: "",
-        failure_title="xtb is not downloaded by this app",
-        failure_status_prefix="Not available",
+        finished_status=lambda result: f"Installed: {result}",
+        success_title="xtb download complete",
+        success_message=lambda result: f"xtb installed at:\n{result}\n\nUse Test to run the two-atom calculation.",
+        failure_title="xtb download failed",
+        failure_status_prefix="Download failed",
         notes=(
             Note(
                 "xtb is an open-source semi-empirical (tight-binding) quantum-chemistry program that runs single-point energies, geometry "

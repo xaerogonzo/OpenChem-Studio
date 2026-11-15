@@ -781,13 +781,34 @@ def verify_name_round_trip(name: str, original: Chem.Mol) -> RoundTrip:
     candidate = Chem.MolFromSmiles(parsed.smiles)
     if candidate is None:
         return RoundTrip.PARSER_FAILED
-    if Chem.MolToSmiles(candidate) == Chem.MolToSmiles(original):
+    # Compare the implicit-H graphs. Ketcher writes stereo as explicit hydrogen
+    # atoms and ChemistryEngine keeps them (`removeHs=False`); OPSIN's parse has
+    # none. Canonical SMILES then differ, stereo-stripped SMILES still differ
+    # (the extra H atoms), and equal InChI used to land in TAUTOMER -- a morphinan
+    # with wedges to H was labelled a tautomer of itself. True tautomers still
+    # disagree after this strip (metformin's two biguanide spellings).
+    drawn = _implicit_hydrogens(original)
+    parsed_mol = _implicit_hydrogens(candidate)
+    if Chem.MolToSmiles(parsed_mol) == Chem.MolToSmiles(drawn):
         return RoundTrip.MATCH
-    if _skeleton(candidate) == _skeleton(original):
+    if _skeleton(parsed_mol) == _skeleton(drawn):
         return _stereo_verdict(candidate, original)
     if _same_compound(candidate, original):
         return RoundTrip.TAUTOMER
     return RoundTrip.MISMATCH
+
+
+def _implicit_hydrogens(mol: Chem.Mol) -> Chem.Mol:
+    """The structure with explicit H atoms folded onto their neighbours.
+
+    `RemoveHs` failing (odd input) must not invent a MATCH: keep the mol as
+    given so a later InChI or skeleton check still sees a real difference.
+    """
+    try:
+        stripped = Chem.RemoveHs(mol)
+    except Exception:  # noqa: BLE001 -- RDKit raises widely; stripping is only a comparison aid
+        return Chem.Mol(mol)
+    return stripped if stripped is not None else Chem.Mol(mol)
 
 
 def _same_compound(candidate: Chem.Mol, original: Chem.Mol) -> bool:

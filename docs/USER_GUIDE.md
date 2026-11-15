@@ -42,6 +42,16 @@ once instead of recalculating them, and so does reopening the project.
 - If part of a saved set cannot be read (a file from a newer version, or a
   damaged entry), only that part is recalculated; the rest is shown.
 
+**Saving**: **Save Project** (`Ctrl+S`) writes to the project's own file and asks for a location only the
+first time; **Save Project As...** (`Ctrl+Shift+S`) always asks.
+
+**"File not found" when saving into Documents.** If Windows Defender's *Controlled Folder Access* is on, it
+can block this program (unsigned for now) from writing to Documents and other protected folders. Windows
+then shows a misleading "File not found. Check the file name and try again" in the Save dialog, with no
+Defender notification. Open Windows Security > Virus & threat protection > Ransomware protection >
+Allow an app through Controlled folder access and add `OpenChemStudio.exe`; excluding the install folder
+in Defender also worked. Or save to a folder Windows does not protect.
+
 **Unsaved work is kept in a recovery copy.** While a project has unsaved
 changes, a copy — results included — is written to the `recovery` folder
 under your data directory every few seconds. Saving or choosing *Discard*
@@ -152,11 +162,18 @@ Macromolecule Viewer only shows one.
 
 **Structure ▸ Template Library…** (`Ctrl+Shift+T`) is this application's own
 catalog of complete molecules, not Ketcher's T-button library. It ships rings,
-the 20 proteinogenic L-amino acids plus glycine as **ordinary expanded free
-amino acids** (neutral carboxylic acid + amine, not zwitterions, not abbreviated
-residues, and not a peptide builder), free nucleobases, and named sugar anomers.
-Insert places the selected molecule to the right of the drawing as one undo
-step. **My Templates** stores the live canvas. Extra categories come from
+cycloalkanes, heterocycles, solvents, alkaloids (including protoalkaloids,
+morphine, and the tropanes atropine, hyoscyamine, and scopolamine),
+flavonoids, vitamins, cofactors, terpenoids and steroids, functional-group examples, polycycles, molecular
+allotropes, reactive oxygen and nitrogen species, the 20 proteinogenic L-amino
+acids plus glycine as **ordinary expanded free amino acids** (neutral carboxylic
+acid + amine, not zwitterions, not abbreviated residues, and not a peptide
+builder), Fmoc/Boc building blocks, nucleic acids (free bases and named
+nucleosides), and named sugar anomers.
+The left list is nested under headings (Scaffolds, Building blocks, Laboratory,
+Natural products, Elements, Mine). Insert places the selected molecule to the
+right of the drawing as one undo step, with up/down (wedge/hash) bonds for
+specified stereochemistry. **My Templates** stores the live canvas. Extra categories come from
 importing `.mol` / `.sdf` files, which are copied into the application data
 folder rather than kept as live paths. Dummy-atom (`*`) fragments are refused:
 bonding to a wildcard in the editor does not attach a substituent.
@@ -1658,11 +1675,11 @@ string (the presets are editable; anything you type, including dispersion or
 solvation keywords, is passed through and is part of the calibration cache
 key).
 
-**A second engine, Psi4.** If you have installed Psi4 and pointed the app at it (**Tools ▸ External Tools ▸ Psi4**: Locate Installed or Browse, then Test), an **Engine** box
+**A second engine, Psi4.** If Psi4 is set up (**Tools ▸ External Tools ▸ Psi4**: Set Up Automatically on Windows, or Locate Installed or Browse, then Test), an **Engine** box
 appears above the Calculation list. Psi4 runs **single points and geometry optimizations** only, at B3LYP, PBE0, M062X and HF with a basis such as def2-SVP, def2-TZVP or 6-31G(d); the
 calculations it does not run are greyed out, and the solvent box, the conformer average, the TMS and scaling calibrations, the tautomer buttons and Proton affinity (all ORCA's, and each would start an ORCA job) are disabled with a tooltip saying so, and **Configure** opens the Psi4 tab. A Psi4 geometry is labelled **Psi4 optimized** wherever a conformer is
 named. Two engines' numbers are never mixed under one label: the name "B3LYP" is a different functional in the two programs (they differ by 37 mEh on water), which the Psi4 engine translates, and a
-result records the engine, level and settings that made it. Psi4 is large (about 2 GB installed) and the app does not download it. Psi4's **memory per job** (2 GB unless changed) and **threads** (Automatic follows ORCA's core count) are set under **Edit ▸ Settings… ▸ Quantum chemistry ▸ Psi4** and apply to the next Psi4 job.
+result records the engine, level and settings that made it. Psi4 is large (about 2.1 GB installed). On Windows, **Set Up Automatically** on the Psi4 tab downloads the project's pinned 1.11 installer. Psi4's **memory per job** (2 GB unless changed) and **threads** (Automatic follows ORCA's core count) are set under **Edit ▸ Settings… ▸ Quantum chemistry ▸ Psi4** and apply to the next Psi4 job.
 
 **Which conformer a single calculation runs on** is the **Conformer** box.
 **Automatic** is the one every calculation uses (the newest ORCA-optimized
@@ -2143,6 +2160,19 @@ machine is likely to have.
 **Aromatic partners cost about three times what their size suggests.** The
 estimate knows this, but it is worth knowing yourself: a π-stacked pair is
 the expensive case, and it is usually the one you want.
+
+<!-- help:salt-composition -->
+### Salt composition
+
+**Tools ▸ Salt Composition…** asks for a charge-balanced formula unit from one drawing or two molecules in the project. It is a companion to the pKa view in the sense that pKa is evidence beside a composition, never a reason to pick one.
+
+**A charge-balanced composition is not an isolable salt, a crystal, or a 3D ion pair.** The window says that on every result.
+
+**Analyze drawing** reads disconnected ions as they are drawn and never rewrites their counts. A theoretical ratio is shown only as a diagnostic. Uncharged fragments are set aside and are not labelled hydrate.
+
+**Two neutrals** models `B + HA → BH+ + A−` when each side has a unique N/O/P/S ionization, then balances those ions. Metal hydroxide neutralization is refused. A molecular parent plus an already-drawn ion is refused: that mix does not supply the protons.
+
+**Two ions as drawn** uses the charges you supplied. **Enumerate pair** lists charge-balanced combinations of those sides' ionization states (at most 50, in a fixed order) and does not rank them by pKa.
 
 <!-- help:lewis-pairing -->
 ### Pairing two molecules as Lewis acid and base

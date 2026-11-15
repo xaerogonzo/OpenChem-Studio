@@ -27,7 +27,11 @@ slice.
 A category has a stable `id` and a display `title`. `origin` is `shipped` or
 `user` and is not a free string: user JSON cannot claim `shipped`. User
 category ids start with `user:`. Duplicate titles are allowed; duplicate ids
-are not.
+are not. The dialog tree groups shipped catalogs under
+`SHIPPED_CATEGORY_GROUPS` in `domain/structure_template.py` (Scaffolds,
+Building blocks, Laboratory, Natural products, Elements). Selecting a heading
+lists every child. User categories sit under Mine. Each molecule still has
+one `category_id`.
 
 ## Catalog
 
@@ -35,14 +39,42 @@ Shipped JSON lives under `src/openchem/chem/data/structure_templates/`, loaded
 the same way as the other `chem/data` tables (`Path(__file__).parent / "data"`).
 PyInstaller already copies all of `chem/data/`. User data is never stored there.
 
-V1 categories, all **complete molecules** (no dummy `*` attachment points):
+Shipped categories, all **complete molecules** (no dummy `*` attachment points).
+Each molecule appears in **one** category. The research inventory in
+`docs/STRUCTURE_TEMPLATE_CANDIDATES.json` is not loaded.
 
 | id | contents |
 |---|---|
 | `rings` | benzene, cyclohexane, cyclopentane, pyridine, pyrrole, furan, thiophene |
 | `amino_acids` | 20 proteinogenic L-amino acids plus glycine, **neutral** (carboxylic acid + amine, not zwitterion), expanded free molecules, not residues |
-| `nucleobases` | adenine, cytosine, guanine, thymine, uracil (free bases, not nucleosides) |
-| `sugars` | named anomers: α-D-glucopyranose and β-D-glucopyranose |
+| `nucleobases` | titled Nucleic acids: free bases plus named ribo and 2'-deoxy nucleosides |
+| `sugars` | named anomers (gluco, galacto, manno, xylo, ribo, fructo, 2-deoxyribo) with recorded ring form |
+| `cycloalkanes` | C3–C12 monocycles except cyclopentane and cyclohexane (those stay in Rings), plus methylcyclopentane and methylcyclohexane |
+| `heterocycles` | common heterocycles not already in Rings or Nucleic acids, including 12-/15-/18-crown-6 |
+| `solvents_reagents` | water, common solvents, acetic acid, toluene |
+| `alkaloids` | protoalkaloids, methylxanthines, (1R,2S)-ephedrine, morphine/codeine, tropanes (atropine as the racemate drawing with default tropane C3 wedges, plus hyoscyamine and scopolamine), and other named identities |
+| `flavonoids` | named aglycones and subclass parents |
+| `vitamins` | named vitamers |
+| `functional_groups` | phenol, aniline, benzaldehyde, and similar complete examples |
+| `polycycles` | fused aromatics and cage hydrocarbons |
+| `peptide_building_blocks` | Fmoc/Boc amino acids; not a sequence builder |
+| `allotropes` | molecular allotropes (two Lewis drawings of O2, ozone, S6, S8, P4). Polymeric red P is not a template |
+| `reactive_species` | superoxide, hydroxyl, hydrogen peroxide, NO, NO2, N2O |
+| `cofactors` | ATP and NAD+ |
+| `terpenoids_steroids` | cholesterol; camphene stays in the research inventory until it has stereo |
+
+`nucleobases` is titled **Nucleic acids** and holds free bases plus named nucleosides. Each molecule still has one `category_id`.
+
+Singlet oxygen is the closed-shell drawing `O=O` (PubChem CID 977). Triplet oxygen is the diradical `[O][O]`. They share an InChIKey. PubChem name-search "singlet oxygen" is atomic oxygen CID 159832 and is not used. Full Lewis structure and the lone-pair overlay already refuse unpaired electrons on a main-group atom; calculator coverage for radicals is not this slice (the hypervalent opt-in in `ChemistryEngine` is the pattern for a later session).
+
+A candidate is promoted only when PubChem identity is verified, `editor_eligible`
+is true, and stereochemistry is `verified` or `not_applicable`. Insert writes
+wedge/hash bonds for specified stereo (`WedgeMolBonds`) so the 2D editor shows
+up/down bonds by default. PubChem's atropine, hyoscyamine, and scopolamine
+records leave tropane C3 unspecified; the shipped drawings add the usual endo
+C3 wedges (atropine matches CHEBI:16684, tropic acid still unspecified;
+hyoscyamine and scopolamine keep PubChem's (S)-tropic acid). Camphene still has
+no `@` in its SMILES and is not shipped. Coordination compounds stay listed, not shipped.
 
 A dummy atom (`*`) is a wildcard in the molecule. Bonding to it does not
 consume an attachment point. Fragments that need that behaviour are not
@@ -92,5 +124,12 @@ temp-file then `os.replace`. Tests set `OPENCHEM_DATA_ROOT`.
 ## Not in this slice
 
 Peptide sequence expansion (`Ala-Glu-Gly`), polymer S-groups, a pinned
-category toolbar, click-to-fuse attachment, Ketcher “use as 2D clean
-template”.
+category toolbar, click-to-fuse attachment, Ketcher
+“use as 2D clean template”, unpaired-electron calculator coverage.
+
+**S-group probe (2026-11-14).** Ketcher `setMolecule` then `getMolfile` keeps
+an SRU and a SUP on propane (`tests/fixtures/ketcher/propane_sru.mol`,
+`propane_sup.mol`). Template insert uses `addFragment`; that path returns the
+carbons and **drops** every `M  STY` line. Held by
+`tests/test_ketcher_sgroup_roundtrip.py`. Polymer templates stay out until
+insert preserves the groups, not because the editor cannot load them.

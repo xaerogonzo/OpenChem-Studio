@@ -1,0 +1,23 @@
+{
+  "id": "cofactors",
+  "title": "Cofactors",
+  "description": "Named cofactors as complete molecules.",
+  "entries": [
+    {
+      "id": "cofactors.atp",
+      "name": "Adenosine 5'-triphosphate",
+      "smiles": "C1=NC(=C2C(=N1)N(C=N2)[C@H]3[C@@H]([C@@H]([C@H](O3)COP(=O)(O)OP(=O)(O)OP(=O)(O)O)O)O)N",
+      "tags": [
+        "nucleotide"
+      ]
+    },
+    {
+      "id": "cofactors.nad",
+      "name": "NAD+",
+      "smiles": "C1=CC(=C[N+](=C1)[C@H]2[C@@H]([C@@H]([C@H](O2)COP(=O)(O)OP(=O)(O)OC[C@@H]3[C@H]([C@H]([C@@H](O3)N4C=NC5=C(N=CN=C54)N)O)O)O)O)C(=O)N",
+      "tags": [
+        "nucleotide"
+      ]
+    }
+  ]
+}

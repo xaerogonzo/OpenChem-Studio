@@ -28,7 +28,12 @@ from openchem.chem.structure_check import (
 )
 from openchem.domain.structure_issue import CheckerResult
 from openchem.events.base import EventBus
-from openchem.events.events import MoleculeChanged, StructureChecked
+from openchem.events.events import (
+    CHANGE_CALCULATION_INPUT,
+    CHANGE_STRUCTURE,
+    MoleculeChanged,
+    StructureChecked,
+)
 
 
 class StructureCheckService:
@@ -52,6 +57,11 @@ class StructureCheckService:
     # --- versions -----------------------------------------------------------
 
     def _on_molecule_changed(self, event: MoleculeChanged) -> None:
+        # A rename and a 2D move are not a new structure. A component choice is
+        # not a new drawing either, but it changes what every calculator is handed,
+        # and the version is what makes the results already on screen read stale.
+        if event.kind not in (CHANGE_STRUCTURE, CHANGE_CALCULATION_INPUT):
+            return
         self._versions[event.molecule_uuid] = self._versions.get(event.molecule_uuid, 0) + 1
 
     def current_version(self, molecule_uuid: str) -> int:

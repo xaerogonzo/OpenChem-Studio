@@ -37,7 +37,7 @@ def test_there_is_a_section_per_menu_in_menu_order_and_only_the_first_is_open(pa
 
 
 def test_a_sections_heading_says_how_many_commands_it_holds(page):
-    assert page.section_of("Tools > Calculators").title() == "Tools > Calculators (5)"
+    assert page.section_of("Tools > Calculators").title() == "Tools > Calculators (6)"
 
 
 def test_within_a_section_the_commands_read_as_the_menu_does(page):
@@ -53,7 +53,7 @@ def test_a_search_opens_the_sections_with_a_match_and_hides_the_rest(page):
     assert page.section_of("Tools > Calculators").is_expanded()
     assert page.section_of("Tools > Calculators").isVisibleTo(page)
     assert not page.section_of("File").isVisibleTo(page)
-    assert page.section_of("Tools > Calculators").title() == "Tools > Calculators (1 of 5)"
+    assert page.section_of("Tools > Calculators").title() == "Tools > Calculators (1 of 6)"
 
 
 def test_clearing_the_search_puts_every_section_back_as_the_person_left_it(page):
@@ -65,7 +65,7 @@ def test_clearing_the_search_puts_every_section_back_as_the_person_left_it(page)
     assert page.section_of("Edit").is_expanded() and not page.section_of("File").is_expanded()
     assert not page.section_of("Tools > Calculators").is_expanded()
     assert all(page.section_of(t).isVisibleTo(page) for t in page.group_titles())
-    assert page.section_of("Tools > Calculators").title() == "Tools > Calculators (5)"
+    assert page.section_of("Tools > Calculators").title() == "Tools > Calculators (6)"
 
 
 def test_rows_are_still_found_by_their_command_id_inside_a_section(page):

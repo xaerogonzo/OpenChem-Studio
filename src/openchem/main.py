@@ -2,8 +2,10 @@ from __future__ import annotations
 
 import os
 import sys
+from pathlib import Path
 
 from PySide6.QtCore import QCoreApplication, Qt, QTimer
+from PySide6.QtGui import QIcon
 from PySide6.QtWidgets import QApplication
 
 from openchem.app.appearance_service import AppearanceService
@@ -21,6 +23,18 @@ from openchem.paths import subdirectory
 from openchem.services.recovery_service import RecoveryService
 
 
+def project_argument(args: list[str]) -> Path | None:
+    """The first command-line argument that names an existing `.ocsproj` file, else None.
+
+    Anything else (Qt's own switches, a path that does not exist) is ignored rather than
+    guessed at: a wrong double-click should open nothing, not an error window."""
+    for arg in args:
+        path = Path(arg)
+        if path.suffix.lower() == ".ocsproj" and path.is_file():
+            return path
+    return None
+
+
 def main() -> int:
     QCoreApplication.setAttribute(Qt.ApplicationAttribute.AA_ShareOpenGLContexts, True)
     configure_logging()
@@ -28,6 +42,11 @@ def main() -> int:
     app = QApplication(sys.argv)
     app.setOrganizationName("OpenChemStudio")
     app.setApplicationName("OpenChemStudio")
+    # Every window inherits this, so the taskbar and title bars match the installed icon even
+    # when run from a checkout. A missing file leaves Qt's default; it is not an error.
+    _icon = Path(__file__).resolve().parent / "branding" / "app_icon.png"
+    if _icon.is_file():
+        app.setWindowIcon(QIcon(str(_icon)))
 
     # The pKa predictor keeps a warm sidecar process between structures
     # (chem/pka_worker.py). It is created on first use and ends itself when
@@ -70,6 +89,13 @@ def main() -> int:
             RecoveryService(services.project_service, subdirectory("recovery"))
         )
         QTimer.singleShot(0, window, window.offer_recovery)
+
+    # A project handed on the command line (double-clicking a .ocsproj once Setup has registered
+    # the type). Queued after the recovery question, which is modal, so the person answers that
+    # first and the file they asked for opens last. A scripted run ignores it.
+    project_path = project_argument(sys.argv[1:])
+    if project_path is not None and not os.environ.get("OPENCHEM_DRIVE"):
+        QTimer.singleShot(0, window, lambda: window.open_project_file(project_path))
 
     return app.exec()
 

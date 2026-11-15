@@ -1,0 +1,75 @@
+{
+  "id": "functional_groups",
+  "title": "Functional groups",
+  "description": "Small complete molecules that illustrate common functional groups.",
+  "entries": [
+    {
+      "id": "functional_groups.phenol",
+      "name": "Phenol",
+      "smiles": "Oc1ccccc1",
+      "tags": [
+        "alcohol",
+        "aromatic"
+      ]
+    },
+    {
+      "id": "functional_groups.aniline",
+      "name": "Aniline",
+      "smiles": "Nc1ccccc1",
+      "tags": [
+        "amine",
+        "aromatic"
+      ]
+    },
+    {
+      "id": "functional_groups.benzaldehyde",
+      "name": "Benzaldehyde",
+      "smiles": "O=Cc1ccccc1",
+      "tags": [
+        "aldehyde"
+      ]
+    },
+    {
+      "id": "functional_groups.benzoic_acid",
+      "name": "Benzoic acid",
+      "smiles": "O=C(O)c1ccccc1",
+      "tags": [
+        "carboxylic acid"
+      ]
+    },
+    {
+      "id": "functional_groups.nitrobenzene",
+      "name": "Nitrobenzene",
+      "smiles": "O=[N+]([O-])c1ccccc1",
+      "tags": [
+        "nitro"
+      ]
+    },
+    {
+      "id": "functional_groups.anisole",
+      "name": "Anisole",
+      "smiles": "COc1ccccc1",
+      "tags": [
+        "ether",
+        "aromatic"
+      ]
+    },
+    {
+      "id": "functional_groups.styrene",
+      "name": "Styrene",
+      "smiles": "C=Cc1ccccc1",
+      "tags": [
+        "alkene",
+        "aromatic"
+      ]
+    },
+    {
+      "id": "functional_groups.biphenyl",
+      "name": "Biphenyl",
+      "smiles": "c1ccc(-c2ccccc2)cc1",
+      "tags": [
+        "aromatic"
+      ]
+    }
+  ]
+}

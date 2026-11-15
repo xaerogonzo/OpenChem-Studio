@@ -85,6 +85,29 @@ def test_the_layout_can_be_switched_and_the_choice_is_kept(readers):
     assert widget._tabs.count() == 2
 
 
+def test_show_as_tabs_gives_the_current_pane_a_usable_height(readers, qapp):
+    """The blank Show-as-tabs page was a pane at height 0 after leaving the splitter."""
+    widget, _ = readers
+    widget.set_molecules(["a", "b"])
+    widget.show()
+    widget.resize(980, 640)
+    qapp.processEvents()
+    assert min(widget.pane(u).height() for u in ("a", "b")) > 80
+    widget._layout_button.click()
+    qapp.processEvents()
+    current = widget._tabs.currentWidget()
+    assert current is not None and current.isVisible()
+    assert current.height() > 80, f"tab page height {current.height()} is the blank-page defect"
+    assert current.reader.height() > 40
+    widget._tabs.setCurrentIndex(1)
+    qapp.processEvents()
+    other = widget._tabs.currentWidget()
+    assert other is not None and other.height() > 80
+    hidden = widget._tabs.widget(0)
+    assert hidden is not None and hidden is not other
+    assert not hidden.isVisible(), "an unselected tab must not paint over the current page"
+
+
 def test_every_pane_is_fed_for_its_own_molecule_only(readers):
     widget, feed = readers
     widget.set_molecules(["a", "b"])

@@ -26,8 +26,9 @@ from typing import NamedTuple
 
 from rdkit import Chem
 
-from openchem.chem.engine import ChemistryEngine
-from openchem.domain.calculator import DRAWING, ENSEMBLE, GEOMETRY
+from openchem.chem.engine import ChemistryEngine, UnsanitizableStructureError
+from openchem.domain.calculator import DRAWING, ENSEMBLE, GEOMETRY, CalculationRefusal
+from openchem.domain.refusal_kinds import HYPERVALENT_UNSUPPORTED, RefusalKind
 from openchem.domain.common import Provenance
 from openchem.domain.conformer import (
     OPTIMIZED_FROM_ID,
@@ -160,7 +161,8 @@ def with_source_atom_map(
     source = located[1] if located is not None else None
     if source is None or source.drawing_atom_ids is None or source.drawing_fingerprint is None:
         return optimized
-    if len(source.drawing_atom_ids) != engine.mol_from_molblock(optimized.molblock).GetNumAtoms():
+    # Only the atom count is read, so a hypervalent geometry (ClF3) is counted through the opt-in parse.
+    if len(source.drawing_atom_ids) != engine.hypervalent_mol_from_molblock(optimized.molblock).GetNumAtoms():
         return optimized
     return dataclasses.replace(
         optimized,
@@ -328,8 +330,31 @@ def resolve_ensemble(engine: ChemistryEngine, model: MoleculeModel) -> ResolvedE
     return ResolvedEnsemble(tuple(mols), _ensemble_fingerprint(conformers))
 
 
+#: The registry calculators VERIFIED on a held hypervalent structure (ClF3, BrF3, SF6, PF5, ...), by independent oracle in
+#: `tests/test_hypervalent_calculators.py` and `tests/test_hypervalent_topology.py`: each is handed the unsanitised Mol and its answer was checked against
+#: values worked out by hand or by a second implementation (the three topology calculators, against a breadth-first search on eight held structures including
+#: ones with a ring, an aromatic ring and a stereocentre). **A calculator is NOT here because it returned a number**:
+#: measured on these molecules, geometry analysis
+#: included a force-field energy for ClF3 that means nothing, surface analysis split polar from hydrophobic area on
+#: charges that do not exist for these molecules, the additive polarizability of SF6 was 21% below experiment, and the
+#: regulatory screen said "no matches" on a structure it could not read (a silent false negative, for a screen).
+#: NOTE the boundary only meets structures RDKit REFUSES (ClF3, BrF3, ClF5): SF6, PF5, XeF4 and SF4 sanitise and take
+#: the ordinary path, where those same defects are present today and nothing here changes them.
+#: Everything else is refused with `HYPERVALENT_UNSUPPORTED`.
+HYPERVALENT_VERIFIED_CALCULATORS = frozenset(
+    {
+        "elemental_analysis", "mass_spectrum", "substance_analysis", "oxidation_states", "atom_sasa",
+        "topology_analysis", "topology_eccentricity", "topology_distance_degree",
+    }
+)
+
+
 def resolve_calculation_input(
-    engine: ChemistryEngine, model: MoleculeModel, calculation_input: str = DRAWING
+    engine: ChemistryEngine,
+    model: MoleculeModel,
+    calculation_input: str = DRAWING,
+    *,
+    allow_hypervalent: bool = False,
 ) -> ResolvedInput:
     """The molecule to hand a calculator declaring `calculation_input`.
 
@@ -352,12 +377,18 @@ def resolve_calculation_input(
     `batch_service` already did for the same case.
     """
     if calculation_input == GEOMETRY:
-        return resolve_conformer_input(engine, model, canonical_conformer(model))
-    return _drawing_input(engine, model)
+        return resolve_conformer_input(
+            engine, model, canonical_conformer(model), allow_hypervalent=allow_hypervalent
+        )
+    return _drawing_input(engine, model, allow_hypervalent=allow_hypervalent)
 
 
 def resolve_conformer_input(
-    engine: ChemistryEngine, model: MoleculeModel, conformer: ConformerModel | None
+    engine: ChemistryEngine,
+    model: MoleculeModel,
+    conformer: ConformerModel | None,
+    *,
+    allow_hypervalent: bool = False,
 ) -> ResolvedInput:
     """The molecule to hand a calculation that runs on ONE named conformer.
 
@@ -368,10 +399,21 @@ def resolve_conformer_input(
     caller can tell from `used`, and must not present the fallback as the conformer it asked for.
 
     `conformer` None (a molecule with none) is the drawing.
+
+    **`allow_hypervalent` is for a caller that needs only atoms, charge and coordinates** (an ORCA run): a
+    held hypervalent geometry (ClF3) is then returned as the unsanitised Mol of `hypervalent_mol_from_molblock`
+    instead of falling back to the drawing, which would refuse. Nothing that computes a descriptor passes it.
     """
     if conformer is not None:
         try:
-            mol = engine.mol_from_molblock(conformer.molblock)
+            mol = (
+                engine.hypervalent_mol_from_molblock(conformer.molblock)
+                if allow_hypervalent
+                else engine.mol_from_molblock(conformer.molblock)
+            )
+        except UnsanitizableStructureError:
+            # A hypervalent geometry: not a defect, and nothing to log. The drawing is asked next and says so.
+            pass
         except Exception:  # noqa: BLE001 - the drawing remains a valid answer
             logger.exception(
                 "Conformer %s of molecule %s is unusable; using the drawn structure",
@@ -386,20 +428,36 @@ def resolve_conformer_input(
                 conformer.conformer_id,
                 model.uuid,
             )
-    return _drawing_input(engine, model)
+    return _drawing_input(engine, model, allow_hypervalent=allow_hypervalent)
 
 
-def _drawing_input(engine: ChemistryEngine, model: MoleculeModel) -> ResolvedInput:
+def _hypervalent_refusal(error: UnsanitizableStructureError) -> CalculationRefusal:
+    """The one refusal for a held hypervalent structure (ClF3, BrF3, ClF5), raised where every route meets it."""
+    return CalculationRefusal(
+        HYPERVALENT_UNSUPPORTED,
+        "Not available for this hypervalent structure",
+        "This structure is accepted (its central atom has an allowed expanded octet) but the chemistry toolkit "
+        "cannot represent it, so calculators that need it have nothing sound to compute on. Its 3D geometry "
+        f"and ORCA calculations are separate. ({error})",
+        kind=RefusalKind.LIMIT,
+    )
+
+
+def _drawing_input(engine: ChemistryEngine, model: MoleculeModel, *, allow_hypervalent: bool = False) -> ResolvedInput:
     """The drawing, fingerprinted as the DRAWING.
 
     The DRAWING fingerprint for a geometry request that fell back, on purpose: the calculator really
     was handed the drawing, so a result computed that way is the same input as a drawing-policy one.
     """
     molblock = model.molblock or ""
+    try:
+        mol = engine.mol_from_model(model, allow_hypervalent=allow_hypervalent)
+    except UnsanitizableStructureError as error:
+        raise _hypervalent_refusal(error) from error
     # A chosen component is part of what the calculation received: a result for one piece must not be
     # replayed for another. Left out when nothing is chosen, so every existing fingerprint is unchanged.
     parts = (DRAWING, molblock, f"component:{model.component_choice}") if model.component_choice else (DRAWING, molblock)
-    return ResolvedInput(engine.mol_from_model(model), _fingerprint(*parts), DRAWING)
+    return ResolvedInput(mol, _fingerprint(*parts), DRAWING)
 
 
 #: Every key `geometry_provenance` adds carries this prefix.

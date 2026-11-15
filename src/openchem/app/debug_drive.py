@@ -143,6 +143,14 @@ is `docs/DRIVE_STEPS.md`. The script is a JSON list of steps, run in order:
                                               open a Calculator Inspector, take
                                               "Compare with..." from ITS menu, and
                                               assert the comparison window
+      {"do": "compare_readers",  "names": ["Water", "Ethanol"], "layout": "tabs",
+                                  "expect": {"side_by_side": false, "tabs": 2,
+                                             "pane_h_at_least": 120}}
+                                              Compare's REAL "Open side by side",
+                                              then the layout button, and the
+                                              pane heights (Show as tabs was a
+                                              blank page). `shot` takes
+                                              "widget": "compare_readers"
       {"do": "tool_setup",       "tool": "pkasolver"}
                                               the window half of a "Needs setup"
                                               press (see `_do_tool_setup`)
@@ -2971,6 +2979,50 @@ class _Driver(QObject):
         else:
             logger.error("OPENCHEM_DRIVE: EXPECT lewis_pairing FAILED[%s] -- %s", tag, "; ".join(problems)[:800])
 
+    def _do_salt_composition(self, step: dict[str, Any]) -> None:
+        """Open the salt-composition window and read what it shows.
+
+        `{"do": "salt_composition", "first": 0, "second": 1, "mode": "neutrals",
+        "expect": {"headline_contains": "1 : 1", "disclaimer": true}}`
+        """
+        molecules = list(self._window._session.project.molecules)
+
+        def uuid_at(key: str) -> str | None:
+            index = step.get(key)
+            if index is None or not -len(molecules) <= index < len(molecules):
+                return None
+            return molecules[index].uuid
+
+        dialog = self._window.show_salt_composition(uuid_at("first"), uuid_at("second"))
+        if step.get("mode"):
+            dialog.set_mode(str(step["mode"]))
+        snapshot = dialog.snapshot()
+        logger.warning(
+            "OPENCHEM_DRIVE: salt_composition mode=%s | %s",
+            snapshot["mode"], str(snapshot["headline"])[:120],
+        )
+        expect = step.get("expect")
+        if not expect:
+            return
+        problems: list[str] = []
+        headline = str(snapshot["headline"])
+        body = str(snapshot["body"])
+        if "headline_contains" in expect and str(expect["headline_contains"]) not in headline:
+            problems.append(f"headline {headline!r} lacks {expect['headline_contains']!r}")
+        if "body_contains" in expect and str(expect["body_contains"]) not in body:
+            problems.append(f"body lacks {expect['body_contains']!r}")
+        if expect.get("disclaimer") and snapshot["disclaimer"] not in body:
+            problems.append("disclaimer missing from the body")
+        if "charge_valid" in expect and snapshot["charge_valid"] != expect["charge_valid"]:
+            problems.append(f"charge_valid {snapshot['charge_valid']!r} != {expect['charge_valid']!r}")
+        if "mode" in expect and snapshot["mode"] != expect["mode"]:
+            problems.append(f"mode {snapshot['mode']!r} != {expect['mode']!r}")
+        tag = str(step.get("tag", ""))
+        if self._record_assertion("salt_composition", tag, not problems, "; ".join(problems) or "as expected"):
+            logger.warning("OPENCHEM_DRIVE: EXPECT salt_composition ok[%s]", tag)
+        else:
+            logger.error("OPENCHEM_DRIVE: EXPECT salt_composition FAILED[%s] -- %s", tag, "; ".join(problems)[:800])
+
     def _do_recipe_results(self, step: dict[str, Any]) -> None:
         """What the Results reader holds of the recipe answers kept in the project, for the SELECTED molecule.
 
@@ -3307,7 +3359,8 @@ class _Driver(QObject):
         `{"do": "template_library", "category": "Rings", "entry": "Pyridine", "press": "insert",
         "expect": {"inserted": true, "smiles_contains": ".", "undo_delta": 1}}`
 
-        `search` types into the global filter. `category` / `entry` pick list rows by
+        `search` types into the global filter. `category` / `entry` pick tree leaves /
+        list rows by
         substring. `press` is `insert`, `save`, or `remove`. `name` is the My Templates
         name (skips the modal). `shot` takes `"widget": "template_library"`.
         """
@@ -3326,12 +3379,26 @@ class _Driver(QObject):
         QApplication.processEvents()
         if "category" in step:
             wanted = str(step["category"]).casefold()
-            rows = [dialog._categories.item(i).text() for i in range(dialog._categories.count())]
-            index = next((i for i, text in enumerate(rows) if wanted in text.casefold()), None)
-            if index is None:
+            rows: list[str] = []
+            match = None
+
+            def _walk(item) -> None:
+                nonlocal match
+                text = item.text(0)
+                rows.append(text)
+                category_id = item.data(0, Qt.ItemDataRole.UserRole)
+                if category_id and wanted in text.casefold() and match is None:
+                    match = item
+                for child in range(item.childCount()):
+                    _walk(item.child(child))
+
+            tree = dialog._categories
+            for index in range(tree.topLevelItemCount()):
+                _walk(tree.topLevelItem(index))
+            if match is None:
                 logger.error("OPENCHEM_DRIVE: template_library has no category %r (it lists %s)", step["category"], rows)
             else:
-                dialog._categories.setCurrentRow(index)
+                tree.setCurrentItem(match)
             QApplication.processEvents()
         if "entry" in step:
             wanted = str(step["entry"]).casefold()
@@ -4259,6 +4326,42 @@ class _Driver(QObject):
             ),
         )
 
+    def _do_calculator_walk(self, step: dict[str, Any]) -> None:
+        """Start every calculator in a named group through ``run_calculator``.
+
+        `{"do": "calculator_walk", "group": "sidecar"}` then ``jobs_wait``.
+        ``pkasolver`` is the pKa sidecar only; ``sidecar`` adds ADMET and
+        solubility. ORCA stays on ``qc_run``.
+        """
+        from openchem.app.inspector_dump import encode_inspect_dump
+        from openchem.app.registry_walk import pkasolver_run_ids, sidecar_run_ids
+
+        group = str(step.get("group") or "sidecar")
+        pickers = {"pkasolver": pkasolver_run_ids, "sidecar": sidecar_run_ids}
+        picker = pickers.get(group)
+        if picker is None:
+            logger.error("OPENCHEM_DRIVE: calculator_walk group %r is not pkasolver or sidecar", group)
+            return
+        ids = picker(self._window._services.calculator_registry.definitions())
+        tag = str(step.get("tag", group))
+        logger.warning(
+            "OPENCHEM_DRIVE: calculator_walk[%s] %s",
+            tag,
+            encode_inspect_dump({"tag": tag, "group": group, "ids": ids}),
+        )
+        reveal = bool(step.get("reveal", False))
+        for calculator_id in ids:
+            self._do_calculator({"id": calculator_id, "reveal": reveal})
+        expect = step.get("expect") or {}
+        problems: list[str] = []
+        if "at_least" in expect and len(ids) < int(expect["at_least"]):
+            problems.append(f"{len(ids)} {group} calculators, expected at least {expect['at_least']}")
+        if problems or expect:
+            if self._record_assertion("calculator_walk", tag, not problems, "; ".join(problems) or "as expected"):
+                logger.warning("OPENCHEM_DRIVE: EXPECT calculator_walk ok[%s]", tag)
+            else:
+                logger.error("OPENCHEM_DRIVE: EXPECT calculator_walk FAILED[%s] -- %s", tag, "; ".join(problems))
+
     def _do_inspect(self, step: dict[str, Any]) -> None:
         """Open the Calculator Inspector on a per-atom calculator's result.
 
@@ -4313,13 +4416,15 @@ class _Driver(QObject):
         from openchem.chem.calculation_input import resolve_calculation_input
 
         source = str(step.get("source") or "compute")
+        quiet = bool(step.get("quiet"))
+        complain = logger.warning if quiet else logger.error
         result = None
         if source == "result":
             from openchem.app.inspector_dump import panel_per_atom_result
 
             result = panel_per_atom_result(panel, calculator_id)
             if result is None:
-                logger.error(
+                complain(
                     "OPENCHEM_DRIVE: inspect %s source=result but no PerAtomDataset is filed",
                     calculator_id,
                 )
@@ -4333,13 +4438,13 @@ class _Driver(QObject):
                     calculator_id, mol, molecule.uuid, parameters
                 )
             except Exception as exc:  # noqa: BLE001 - a failed inspect must not abort the drive
-                logger.error("OPENCHEM_DRIVE: inspect %s compute failed: %s", calculator_id, exc)
+                complain("OPENCHEM_DRIVE: inspect %s compute failed: %s", calculator_id, exc)
                 return
         else:
-            logger.error("OPENCHEM_DRIVE: inspect source %r is not compute or result", source)
+            complain("OPENCHEM_DRIVE: inspect source %r is not compute or result", source)
             return
         if not isinstance(result, PerAtomDataset):
-            logger.error(
+            complain(
                 "OPENCHEM_DRIVE: inspect %s returned %s, not a per-atom dataset",
                 calculator_id,
                 type(result).__name__,
@@ -4370,6 +4475,65 @@ class _Driver(QObject):
             source,
             getattr(result, "name", ""),
         )
+
+    def _do_inspect_walk(self, step: dict[str, Any]) -> None:
+        """Open the Inspector on every in-process per-atom calculator.
+
+        `{"do": "inspect_walk", "expect": {"inspect_at_least": 8}}`
+
+        Sidecar and service (ORCA/docking) calculators are logged as skip,
+        not computed. A compute that refuses is a warning, not a driver failure.
+        """
+        from openchem.app.inspector_dump import encode_inspect_dump
+        from openchem.app.registry_walk import plan_counts, registry_inspect_plan
+
+        registry = self._window._services.calculator_registry
+        plan = registry_inspect_plan(registry.definitions())
+        counts = plan_counts(plan)
+        tag = str(step.get("tag", "registry"))
+        logger.warning(
+            "OPENCHEM_DRIVE: inspect_walk[%s] %s",
+            tag,
+            encode_inspect_dump({"tag": tag, "counts": counts, "plan": plan}),
+        )
+        opened = 0
+        for row in plan:
+            if row.get("action") != "inspect":
+                continue
+            self._do_inspect({"id": row["id"], "quiet": True})
+            dialog = getattr(self, "_inspector", None)
+            if dialog is None or getattr(dialog, "_view", None) is None:
+                logger.warning("OPENCHEM_DRIVE: inspect_walk no dialog for %s", row["id"])
+                continue
+            opened += 1
+            self._do_inspect_report({"tag": row["id"]})
+        counts["opened"] = opened
+        logger.warning("OPENCHEM_DRIVE: inspect_walk[%s] opened=%s", tag, opened)
+        expect = step.get("expect") or {}
+        problems: list[str] = []
+        if "inspect_at_least" in expect and counts.get("inspect", 0) < int(expect["inspect_at_least"]):
+            problems.append(
+                f"{counts.get('inspect', 0)} inspect candidates, expected at least {expect['inspect_at_least']}"
+            )
+        if "opened_at_least" in expect and opened < int(expect["opened_at_least"]):
+            problems.append(f"{opened} inspectors opened, expected at least {expect['opened_at_least']}")
+        if "skip_sidecar_at_least" in expect and counts.get("skip_sidecar", 0) < int(
+            expect["skip_sidecar_at_least"]
+        ):
+            problems.append(
+                f"{counts.get('skip_sidecar', 0)} sidecar skips, expected at least {expect['skip_sidecar_at_least']}"
+            )
+        if "skip_service_at_least" in expect and counts.get("skip_service", 0) < int(
+            expect["skip_service_at_least"]
+        ):
+            problems.append(
+                f"{counts.get('skip_service', 0)} service skips, expected at least {expect['skip_service_at_least']}"
+            )
+        if problems or expect:
+            if self._record_assertion("inspect_walk", tag, not problems, "; ".join(problems) or "as expected"):
+                logger.warning("OPENCHEM_DRIVE: EXPECT inspect_walk ok[%s]", tag)
+            else:
+                logger.error("OPENCHEM_DRIVE: EXPECT inspect_walk FAILED[%s] -- %s", tag, "; ".join(problems))
 
     def _dispose_driver_inspector(self) -> None:
         from openchem.app.inspector_dump import dispose_driver_inspector
@@ -4508,6 +4672,11 @@ class _Driver(QObject):
                 logger.error("OPENCHEM_DRIVE: no Lewis pairing window open; run {'do': 'lewis_pairing'}")
                 return
             target = self._window._lewis_pairing
+        elif step.get("widget") == "salt_composition":
+            if self._window._salt_composition is None:
+                logger.error("OPENCHEM_DRIVE: no salt composition window open; run {'do': 'salt_composition'}")
+                return
+            target = self._window._salt_composition
         elif step.get("widget") == "project_table":
             # The Results dock's own project table, as the window builds it: the grid, its progress and status lines and the export row.
             target = self._window._results_workspace.table_view
@@ -4527,6 +4696,14 @@ class _Driver(QObject):
         elif step.get("widget") == "results_reader":
             # The docked Results reader as the window builds it, not a second one: the same widget a person reads.
             target = self._window._results_view
+        elif step.get("widget") == "compare_readers":
+            readers = getattr(self._window, "_compare_readers", None)
+            if readers is None or not readers.isVisible():
+                logger.error(
+                    "OPENCHEM_DRIVE: no Compare readers window; run {'do': 'compare_readers'}"
+                )
+                return
+            target = readers
         elif step.get("widget") == "dialog":
             if getattr(self, "_dialog", None) is None:
                 logger.error("OPENCHEM_DRIVE: no dialog open; run {'do': 'dialog', ...}")
@@ -5222,6 +5399,59 @@ class _Driver(QObject):
             )
         if step.get("press", True) and button.isEnabled():
             button.click()
+
+    def _do_canvas_edit(self, step: dict[str, Any]) -> None:
+        """`{"do": "canvas_edit", "star": {"centre": "Cl", "ligand": "F", "count": 3}, "expect": {...}}`
+        -- the canvas reports a drawing, through `MoleculeEditorWidget.apply_edited_molblock`, the very method
+        the editor calls once Ketcher has handed over a molfile.
+
+        `star` is one centre with `count` ligands round it, the shape of ClF3 or XeF4 (no SMILES route can
+        make these: RDKit refuses a chlorine with three bonds). `expect` may hold `"smiles_equals"` and
+        `"rejected": true|false` (whether the editor said the drawing was not applied). A mismatch is an
+        ERROR line, which `expect_clean` then fails the run on.
+        """
+        import math
+
+        window = self._window
+        editor = window._editor
+        molecule = window._session.project.find_molecule(window._property_panel._selected_molecule_uuid)
+        tag = str(step.get("tag", ""))
+        if molecule is None:
+            logger.error("OPENCHEM_DRIVE: canvas_edit %s -- no molecule selected", tag)
+            return
+        star = step.get("star") or {}
+        centre, ligand, count = str(star.get("centre", "")), str(star.get("ligand", "")), int(star.get("count", 0))
+        if not centre or not ligand or count < 1:
+            logger.error("OPENCHEM_DRIVE: canvas_edit %s needs star {centre, ligand, count}", tag)
+            return
+        atoms = [f"    0.0000    0.0000    0.0000 {centre:<3} 0  0  0  0  0  0  0  0  0  0  0  0"]
+        for i in range(count):
+            a = 2 * math.pi * i / count
+            atoms.append(f"{math.cos(a):10.4f}{math.sin(a):10.4f}    0.0000 {ligand:<3} 0  0  0  0  0  0  0  0  0  0  0  0")
+        bonds = [f"{1:3d}{i + 2:3d}  1  0" for i in range(count)]
+        molblock = (
+            f"\n  drive\n\n{count + 1:3d}{count:3d}  0  0  0  0  0  0  0  0999 V2000\n"
+            + "\n".join(atoms) + "\n" + "\n".join(bonds) + "\nM  END\n"
+        )
+        reasons: list[str] = []
+        editor.edit_rejected.connect(reasons.append)
+        try:
+            editor.apply_edited_molblock(molblock)
+        finally:
+            editor.edit_rejected.disconnect(reasons.append)
+        rejected = any(reasons)
+        logger.warning(
+            "OPENCHEM_DRIVE: canvas_edit %s | smiles=%s rejected=%s %s",
+            tag, molecule.canonical_smiles, rejected, next((r for r in reasons if r), ""),
+        )
+        expect = step.get("expect") or {}
+        if "smiles_equals" in expect and molecule.canonical_smiles != expect["smiles_equals"]:
+            logger.error(
+                "OPENCHEM_DRIVE: EXPECT canvas_edit %s FAILED -- smiles is %r, wanted %r",
+                tag, molecule.canonical_smiles, expect["smiles_equals"],
+            )
+        if "rejected" in expect and rejected != bool(expect["rejected"]):
+            logger.error("OPENCHEM_DRIVE: EXPECT canvas_edit %s FAILED -- rejected is %r", tag, rejected)
 
     def _do_conformers_provenance(self, step: dict[str, Any]) -> None:
         """Log how the selected molecule's conformer run ended, from the stored record.
@@ -9808,6 +10038,141 @@ class _Driver(QObject):
             logger.warning("OPENCHEM_DRIVE: EXPECT compare_results ok[%s] %s", tag, offered)
         else:
             logger.error("OPENCHEM_DRIVE: EXPECT compare_results FAILED[%s] -- %s", tag, detail)
+
+    def _do_compare_readers(self, step: dict[str, Any]) -> None:
+        """`{"do": "compare_readers", "names": ["Water", "Ethanol"], "layout": "tabs", "expect": {...}}`
+
+        Compare's **Open side by side** window: tick the named molecules, press the REAL
+        button, optionally press **Show as tabs** / **Show side by side**, then assert the
+        panes occupy the window. The screenshot of Show as tabs was a near-blank page; an
+        offscreen unit test cannot see that.
+
+            "names"     tick exactly these display names, then press Open side by side
+            "layout"    "tabs" or "side": press the layout button until it matches
+            "tab"       make this tab current (0-based)
+            "focus"     set the current pane's Showing combo by report id
+            "link"      tick or untick Link readers through the checkbox
+            "resize"    [width, height] of the readers window
+            "refresh"   true: the same re-read a new stored result asks for
+            "close"     true: close the window
+            "expect"    side_by_side, tabs, pane_h_at_least, reader_h_at_least, linked,
+                        only_current_tab_visible
+        """
+        from PySide6.QtCore import Qt
+        from PySide6.QtWidgets import QApplication
+
+        tag = str(step.get("tag", ""))
+        panel = self._window._comparison_panel
+        if step.get("names"):
+            wanted = [str(name) for name in step["names"]]
+            found = {panel._molecules.item(row).text(): row for row in range(panel._molecules.count())}
+            missing = [name for name in wanted if name not in found]
+            if missing:
+                logger.error("OPENCHEM_DRIVE: compare_readers -- no Compare row named %s", missing)
+                self._record_assertion("compare_readers", tag, False, f"no Compare row named {missing}")
+                return
+            wanted_set = set(wanted)
+            for row in range(panel._molecules.count()):
+                item = panel._molecules.item(row)
+                checked = item.text() in wanted_set
+                item.setCheckState(Qt.CheckState.Checked if checked else Qt.CheckState.Unchecked)
+            if not panel._readers_button.isEnabled():
+                logger.error("OPENCHEM_DRIVE: compare_readers -- Open side by side is DISABLED")
+                self._record_assertion("compare_readers", tag, False, "Open side by side is disabled")
+                return
+            panel._readers_button.click()
+        readers = self._window._compare_readers
+        if readers is None:
+            logger.error("OPENCHEM_DRIVE: compare_readers -- the window did not open")
+            self._record_assertion("compare_readers", tag, False, "the window did not open")
+            return
+        if step.get("close"):
+            readers.close()
+            logger.warning("OPENCHEM_DRIVE: compare_readers closed")
+            return
+        if "layout" in step:
+            want_side = str(step["layout"]) == "side"
+            if readers.is_side_by_side() != want_side:
+                if not readers._layout_button.isEnabled():
+                    logger.error("OPENCHEM_DRIVE: compare_readers -- layout button is DISABLED")
+                    self._record_assertion("compare_readers", tag, False, "layout button is disabled")
+                    return
+                readers._layout_button.click()
+        if "tab" in step:
+            readers._tabs.setCurrentIndex(int(step["tab"]))
+            QApplication.processEvents()
+        if "link" in step:
+            want = bool(step["link"])
+            if readers._link.isChecked() != want:
+                readers._link.click()
+        if "focus" in step:
+            pane = readers._tabs.currentWidget() if not readers.is_side_by_side() else readers.pane(readers.uuids()[0])
+            if pane is None:
+                logger.error("OPENCHEM_DRIVE: compare_readers -- no pane to focus")
+                self._record_assertion("compare_readers", tag, False, "no pane to focus")
+                return
+            box = pane.reader._focus_box
+            index = box.findData(str(step["focus"]))
+            if index < 0:
+                held = [box.itemData(i) for i in range(box.count())]
+                logger.error(
+                    "OPENCHEM_DRIVE: compare_readers -- no report %r (held %s)",
+                    step["focus"],
+                    held,
+                )
+                self._record_assertion(
+                    "compare_readers", tag, False, f"no report {step['focus']!r} (held {held})"
+                )
+                return
+            box.setCurrentIndex(index)
+        if step.get("refresh"):
+            readers.request_refresh()
+        if step.get("resize"):
+            width, height = (int(v) for v in step["resize"])
+            readers.resize(width, height)
+        QApplication.processEvents()
+        current = readers._tabs.currentWidget() if not readers.is_side_by_side() else (
+            readers.pane(readers.uuids()[0]) if readers.uuids() else None
+        )
+        pane_h = 0 if current is None else current.height()
+        reader_h = 0 if current is None else current.reader.height()
+        snapshot = (
+            f"side={readers.is_side_by_side()} tabs={readers._tabs.count()} "
+            f"uuids={len(readers.uuids())} win={readers.width()}x{readers.height()} "
+            f"pane_h={pane_h} reader_h={reader_h} current_vis={None if current is None else current.isVisible()} "
+            f"linked={readers.is_linked()} button={readers._layout_button.text()!r}"
+        )
+        logger.warning("OPENCHEM_DRIVE: compare_readers %s %s", tag, snapshot)
+        expect = dict(step.get("expect") or {})
+        problems: list[str] = []
+        if "side_by_side" in expect and readers.is_side_by_side() != bool(expect["side_by_side"]):
+            problems.append(f"side_by_side={readers.is_side_by_side()}, wanted {expect['side_by_side']}")
+        if "tabs" in expect and readers._tabs.count() != int(expect["tabs"]):
+            problems.append(f"{readers._tabs.count()} tabs, wanted {expect['tabs']}")
+        if "pane_h_at_least" in expect and pane_h < int(expect["pane_h_at_least"]):
+            problems.append(f"pane height {pane_h} < {expect['pane_h_at_least']}")
+        if "reader_h_at_least" in expect and reader_h < int(expect["reader_h_at_least"]):
+            problems.append(f"reader height {reader_h} < {expect['reader_h_at_least']}")
+        if "linked" in expect and readers.is_linked() != bool(expect["linked"]):
+            problems.append(f"linked={readers.is_linked()}, wanted {expect['linked']}")
+        if expect.get("only_current_tab_visible"):
+            extras = [
+                i
+                for i in range(readers._tabs.count())
+                if i != readers._tabs.currentIndex()
+                and readers._tabs.widget(i) is not None
+                and readers._tabs.widget(i).isVisible()
+            ]
+            if extras:
+                problems.append(f"unselected tabs still visible: {extras}")
+        if not expect:
+            return
+        ok = not problems
+        detail = ("as expected" if ok else "; ".join(problems)) + f" ({snapshot})"
+        if self._record_assertion("compare_readers", tag, ok, detail):
+            logger.warning("OPENCHEM_DRIVE: EXPECT compare_readers ok[%s] %s", tag, snapshot)
+        else:
+            logger.error("OPENCHEM_DRIVE: EXPECT compare_readers FAILED[%s] -- %s", tag, detail)
 
     def _do_reveal_row(self, step: dict[str, Any]) -> None:
         """`{"do": "reveal_row", "calculator": "orca.nmr"}` -- scroll a Properties row into view.

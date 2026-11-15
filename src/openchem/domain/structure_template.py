@@ -6,6 +6,7 @@ turns a SMILES or molblock into a drawable 2D molblock; this module does not.
 
 from __future__ import annotations
 
+from collections.abc import Sequence
 from dataclasses import dataclass
 from enum import Enum
 
@@ -40,6 +41,54 @@ MY_TEMPLATES_TITLE = "My Templates"
 
 #: Version of the user's library.json schema.
 LIBRARY_VERSION = 1
+
+#: How the Template Library tree is grouped. Each shipped category id appears
+#: once. Display order is this table, not `_SHIPPED_FILES`. A leftover id lands
+#: under Other so a new catalog cannot vanish from the dialog.
+SHIPPED_CATEGORY_GROUPS: tuple[tuple[str, tuple[str, ...]], ...] = (
+    ("Scaffolds", ("rings", "cycloalkanes", "heterocycles", "polycycles")),
+    (
+        "Building blocks",
+        (
+            "amino_acids",
+            "nucleobases",
+            "sugars",
+            "functional_groups",
+            "peptide_building_blocks",
+        ),
+    ),
+    ("Laboratory", ("solvents_reagents",)),
+    (
+        "Natural products",
+        ("alkaloids", "flavonoids", "vitamins", "cofactors", "terpenoids_steroids"),
+    ),
+    ("Elements", ("allotropes", "reactive_species")),
+)
+
+
+def nested_category_groups(
+    categories: Sequence[TemplateCategory],
+) -> tuple[tuple[str, tuple[TemplateCategory, ...]], ...]:
+    """Headings and the categories under them, for the dialog tree."""
+    by_id = {category.id: category for category in categories}
+    used: set[str] = set()
+    groups: list[tuple[str, tuple[TemplateCategory, ...]]] = []
+    for title, ids in SHIPPED_CATEGORY_GROUPS:
+        present = tuple(by_id[cid] for cid in ids if cid in by_id)
+        if present:
+            groups.append((title, present))
+            used.update(category.id for category in present)
+    leftover = tuple(
+        category
+        for category in categories
+        if category.origin is TemplateOrigin.SHIPPED and category.id not in used
+    )
+    if leftover:
+        groups.append(("Other", leftover))
+    mine = tuple(category for category in categories if category.origin is TemplateOrigin.USER)
+    if mine:
+        groups.append(("Mine", mine))
+    return tuple(groups)
 
 
 class TemplateError(ValueError):

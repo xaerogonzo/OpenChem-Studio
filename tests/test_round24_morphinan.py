@@ -48,6 +48,25 @@ def test_morphinan_family_name(label, smiles, expected):
     assert not result.note  # reads back to the structure, stereo included
 
 
+@needs_opsin
+def test_morphine_with_explicit_stereo_hydrogens_is_not_called_a_tautomer():
+    """The app's drawing path: ChemistryEngine keeps explicit H (`removeHs=False`).
+
+    Ketcher writes stereo as hydrogen atoms. OPSIN's parse has none. Before the
+    implicit-H compare those two graphs were TAUTOMER (same InChI, extra H atoms
+    in the SMILES) -- 6-monoacetylmorphine and 6-monoethylmorphine in a live
+    project, 2026-11-14.
+    """
+    from openchem.chem.engine import ChemistryEngine
+
+    _, smiles, expected = FAMILY[0]
+    held = ChemistryEngine().mol_from_molblock(Chem.MolToMolBlock(Chem.AddHs(Chem.MolFromSmiles(smiles))))
+    assert any(a.GetAtomicNum() == 1 for a in held.GetAtoms())
+    result = derived_name_for_structure(held)
+    assert result.name == expected
+    assert not result.note
+
+
 def test_the_retained_lookup_still_names_the_plain_skeleton():
     # a saturated morphinan with no bridge is the plain retained path, untouched by the new strategy
     from openchem.vendor.iupac_namer import name_smiles

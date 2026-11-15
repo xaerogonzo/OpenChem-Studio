@@ -1070,6 +1070,11 @@ class FactView(QWidget):
 
         self._status.setText(self._status_text(report, shown, needle, hidden_by_depth))
 
+    def set_all_expanded(self, expanded: bool) -> None:
+        """Open or close every section this reader is showing. The results are unchanged."""
+        for section in (*self._chart_sections, *self._sections.values()):
+            section.set_expanded(expanded)
+
     def _caption(self, section: CollapsibleSection, fact: Fact, provenance: str) -> QLabel:
         """The fact's NAME, carrying what the fact MEANS.
 

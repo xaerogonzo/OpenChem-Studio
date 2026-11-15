@@ -55,5 +55,37 @@
     "expanded_octet_requires_ligands": ["F", "Cl", "O", "N", "C"],
     "examples": ["PF5", "PCl5", "H3PO4", "phosphine oxides"],
     "reference": "lambda-convention, IUPAC 2013 P-14.1; already in RDKit's own list"
+  },
+  "As": {
+    "preferred_valence": 3,
+    "maximum_valence": 5,
+    "permitted_valences": [3, 5],
+    "expanded_octet_requires_ligands": ["F", "Cl", "O", "N", "C"],
+    "examples": ["AsF5", "AsPh5", "H3AsO4"],
+    "reference": "lambda-convention, IUPAC 2013 P-14.1; AsF5 is a characterised trigonal bipyramid (gas-phase electron diffraction); already in RDKit's own list"
+  },
+  "Se": {
+    "preferred_valence": 2,
+    "maximum_valence": 6,
+    "permitted_valences": [2, 4, 6],
+    "expanded_octet_requires_ligands": ["F", "Cl", "O", "N", "C"],
+    "examples": ["SeF4", "SeF6", "SeO2", "selenones"],
+    "reference": "lambda-convention, IUPAC 2013 P-14.1; SeF4 is a characterised C2v seesaw (microwave); already in RDKit's own list"
+  },
+  "Te": {
+    "preferred_valence": 2,
+    "maximum_valence": 8,
+    "permitted_valences": [2, 4, 6, 8],
+    "expanded_octet_requires_ligands": ["F", "Cl", "Br", "I", "O", "C"],
+    "examples": ["TeCl4", "TeF6", "TeO2", "TeF7-"],
+    "reference": "lambda-convention, IUPAC 2013 P-14.1; TeCl4 is a characterised seesaw in the gas phase (electron diffraction); TeF7- is a crystallographically characterised pentagonal bipyramid (effective valence 8)"
+  },
+  "Sb": {
+    "preferred_valence": 3,
+    "maximum_valence": 5,
+    "permitted_valences": [3, 5],
+    "expanded_octet_requires_ligands": ["F", "Cl", "O", "N", "C"],
+    "examples": ["SbCl5", "SbF5", "SbPh5"],
+    "reference": "lambda-convention, IUPAC 2013 P-14.1; SbCl5 is a characterised trigonal bipyramid in the gas phase (electron diffraction) and in the crystal"
   }
 }

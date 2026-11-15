@@ -12,9 +12,14 @@ checks itself is in [ARCHITECTURE.md](ARCHITECTURE.md) ("Packaging").
    to see the pending entries, then `python tools/changelog.py build`, which folds every
    fragment in `changelog.d/` into `## [Unreleased]` and deletes it (see
    [changelog.d/README.md](../changelog.d/README.md)). Change `version` in `pyproject.toml`,
-   and move the entries under `## [Unreleased]` you are shipping to a new
-   `## [<version>] — <date>` heading in `CHANGELOG.md`. Those entries become the release
-   notes. `tests/test_release_workflow.py` fails if the version has no changelog section.
+   (and `uv.lock` and `CITATION.cff`), and move the entries under `## [Unreleased]` you are
+   shipping to a new `## [<version>] — <date>` heading in `CHANGELOG.md`, leaving an empty
+   `## [Unreleased]` above it. **Write a short summary at the top of that section and put a
+   line `<!-- release-notes-end -->` after it.** The summary is the release description; the
+   per-change entries below the marker are linked, not pasted, because GitHub refuses a
+   description over 125,000 characters and this changelog is several times that.
+   `tests/test_release_workflow.py` fails if the version has no changelog section, and
+   `tools/release_info.py` refuses a section that is too long without the marker.
 2. **Merge it**, and let master's checks finish green.
 3. **Tag that commit** `v<version>` (exactly: `v0.11.0`, no suffix) and push the tag. From
    GitHub: Releases, Draft a new release, choose a new tag on `master`, then save it as a

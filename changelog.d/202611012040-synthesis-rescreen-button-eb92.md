@@ -1,3 +1,0 @@
-### The Synthesis panel can screen a saved plan against the regulatory rulesets again
-- A plan kept in a project file comes back with the alerts it had on the day it was made. The new **Re-screen** button screens the plan's molecules again today, in the background, and replaces the old alerts and the line saying they were not repeated. The regulatory check on the target runs first, as for any request, and a target it no longer allows replaces the plan with the refusal. Only the alerts change, never a route, and no planner is started.
-- If the screen cannot be made, the plan keeps its old alerts and its dated line. The assistant can read a plan but cannot ask for a re-screen.

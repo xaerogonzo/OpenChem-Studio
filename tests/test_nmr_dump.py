@@ -66,3 +66,18 @@ def test_nmr_expect_unknown_key_fails():
     assert evaluate_nmr_expect(dump, {"2d": True, "floor": 80}) == []
     unknown = evaluate_nmr_expect(dump, {"janky": True})
     assert unknown and "unknown expect keys" in unknown[0]
+
+
+def test_2d_share_at_most_and_oversized_flag(qapp):
+    from openchem.app.nmr_dump import OVERSIZED_2D_SHARE, evaluate_nmr_expect, nmr_dump
+
+    view, _backend, _molecule, _spectrum = _make_view(qapp)
+    _show(view, qapp)
+    dump = nmr_dump(view, tag="initial")
+    share = dump["layout"]["2d_share"]
+    assert "2d_oversized" in dump
+    assert dump["2d_oversized"] is (dump["2d"] and dump["3d"] and share is not None and share > OVERSIZED_2D_SHARE)
+    ok = evaluate_nmr_expect(dump, {"2d_share_at_most": 1.0, "2d_oversized": dump["2d_oversized"]})
+    assert ok == []
+    too_small = evaluate_nmr_expect(dump, {"2d_share_at_most": -0.01})
+    assert too_small and "at most" in too_small[0]

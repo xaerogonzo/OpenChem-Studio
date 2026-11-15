@@ -132,6 +132,16 @@ def iter_dialog_fixtures() -> Iterator[DialogFixture]:
             keep=lambda run: False,
         ))
 
+    def salt_composition(_context: DialogContext):
+        from openchem.domain.salt_preview import MODE_ANALYZE, make_preview
+        from openchem.ui.dialogs.salt_composition_dialog import SaltCompositionDialog, SaltHost
+
+        return SaltCompositionDialog(SaltHost(
+            molecules=lambda: [],
+            selected_uuid=lambda: None,
+            evaluate=lambda mode, first, second: make_preview(mode or MODE_ANALYZE, "No project."),
+        ))
+
     def derived_scores(_context: DialogContext):
         from openchem.domain.score_editor import ConstantRow, Draft, InputRow
         from openchem.ui.dialogs.score_dialog import ScoreDialog, ScoreHost
@@ -450,6 +460,7 @@ def iter_dialog_fixtures() -> Iterator[DialogFixture]:
     yield DialogFixture("VirtualScreeningDialog", virtual_screening, needs="a project")
     yield DialogFixture("GoalWizardDialog", goal_wizard, needs="the service container")
     yield DialogFixture("LewisPairingDialog", lewis_pairing, needs="the service container")
+    yield DialogFixture("SaltCompositionDialog", salt_composition)
     yield DialogFixture("ScoreDialog", derived_scores)
     yield DialogFixture("TemplateLibraryDialog", template_library)
     yield DialogFixture("ConformerDetailsDialog", conformer_details, needs="a conformer")

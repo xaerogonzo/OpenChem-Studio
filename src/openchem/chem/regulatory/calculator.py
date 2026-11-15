@@ -44,6 +44,7 @@ from rdkit import Chem
 from openchem.chem.regulatory.engine import (
     EffectiveDateError,
     RegulatoryEngine,
+    UnscreenableStructureError,
     parse_effective_date,
 )
 from openchem.chem.regulatory.loader import load_all
@@ -55,7 +56,9 @@ from openchem.chem.regulatory.types import (
     QuantitativeLimit,
     ScreeningReport,
 )
+from openchem.domain.calculator import CalculationRefusal
 from openchem.domain.common import CacheState, Provenance
+from openchem.domain.refusal_kinds import HYPERVALENT_UNSUPPORTED
 from openchem.domain.report import Detail, Fact, FactCategory, ReportResult
 from openchem.domain.structure_issue import Basis
 
@@ -145,12 +148,21 @@ def compute_regulatory_screen(
         return _refuse_an_unreadable_date(molecule_uuid, options, requested_date)
 
     engine, problems = _shared_engine()
-    report = engine.screen(
-        mol,
-        jurisdictions=jurisdictions,
-        include_near_misses=include_near_misses,
-        as_of=as_of,
-    )
+    try:
+        report = engine.screen(
+            mol,
+            jurisdictions=jurisdictions,
+            include_near_misses=include_near_misses,
+            as_of=as_of,
+        )
+    except UnscreenableStructureError as exc:
+        # A structure RDKit cannot sanitise (a held hypervalent one) is REFUSED, never screened: "no matches" on a structure the screen
+        # could not read would read as "not listed". The application's route refuses it earlier, at `calculation_input`; this is the second line.
+        raise CalculationRefusal(
+            HYPERVALENT_UNSUPPORTED,
+            "The regulatory screen cannot read this structure",
+            f"The regulatory screen was not run: {exc}.",
+        ) from exc
 
     lines = _finding_lines(report)
     if include_near_misses:

@@ -63,6 +63,7 @@ from rdkit import Chem
 from rdkit.Chem import Descriptors, rdMolDescriptors
 
 from openchem.chem.calculator_options import atom_basis_of, decimals
+from openchem.chem.stereo_elements import perceived_elements
 from openchem.domain.common import ATOM_BASIS, TOTAL, Provenance, declare_total, decline_total
 from openchem.domain.report import ReportResult
 from openchem.chem.report_adapter import report_from_fields
@@ -246,7 +247,8 @@ def stereo_counts(mol: Chem.Mol) -> dict[str, int]:
     centres and no asymmetric atoms.
     """
     asymmetric = len(Chem.FindMolChiralCenters(mol, includeUnassigned=True, useLegacyImplementation=True))
-    stereo_info = Chem.FindPotentialStereo(mol)
+    # Five- and six-coordinate centres are not counted: RDKit reports SF6 and PF5 as one tetrahedral element each.
+    stereo_info = perceived_elements(mol)
     centres = sum(1 for element in stereo_info if str(element.type).startswith("Atom_"))
     return {"asymmetric_atom_count": asymmetric, "chiral_center_count": centres}
 

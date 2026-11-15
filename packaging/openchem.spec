@@ -40,6 +40,10 @@ datas = []
 # app starts perfectly and every editor/viewer is a blank white rectangle.
 datas += [(str(PKG / "resources"), "openchem/resources")]
 
+# The window icon (tools/make_brand_art.py). Not under resources\ because that tree is for
+# bundled third-party libraries and docs/sources.toml wants every directory in it declared.
+datas += [(str(PKG / "branding"), "openchem/branding")]
+
 # The vendored IUPAC namer's data, which MUST land as a SIBLING of
 # `vendor/iupac_namer/`, not inside it. Different modules resolve it from
 # different depths -- `data_loader.py` walks up two levels,
@@ -288,7 +292,7 @@ exe = EXE(  # noqa: F821
     codesign_identity=None,
     entitlements_file=None,
     version=str(_VERSION_FILE),
-    icon=str(ROOT / "icon.ico") if (ROOT / "icon.ico").exists() else None,
+    icon=str(ROOT / "packaging" / "icon.ico"),  # drawn by tools/make_brand_art.py
 )
 
 coll = COLLECT(  # noqa: F821

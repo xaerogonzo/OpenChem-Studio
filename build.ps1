@@ -209,21 +209,28 @@ Copy-Item "$ROOT\plugins" "$APPDIR\plugins" -Recurse -Force
 Get-ChildItem "$APPDIR\plugins" -Recurse -Directory -Filter "__pycache__" |
     Remove-Item -Recurse -Force
 
-# ---------- Stage documentation ------------------------------------------------
-# Documentation ships BESIDE the exe, for the same reason plugins\ does: a user
-# is meant to open and read it. The spec's `datas` all land in _internal\, which
-# is the wrong place for anything a person is supposed to find.
+# ---------- Stage the few files a person opens ---------------------------------
+# What ships beside the exe is deliberately small: the licence a copy must carry,
+# how to cite it, a short README.txt, the changelog, and a docs\ folder holding the
+# documents named in packaging\release-docs.txt (the Help's own four plus what they
+# link to). Design notes, benchmark records, the README's screenshots and the
+# maintainer logs stay on GitHub. The in-app Help is compiled into the exe and needs
+# none of this; these are copies a person can read without starting the program, and
+# the installer's Repair puts back any that are deleted.
 #
-# This runs on every build rather than being a release-time step, so a shipped
-# zip can never carry a stale README or miss the docs entirely.
+# This runs on every build, so a shipped zip can never carry a stale licence.
 
-Write-Host "  Staging docs\ ..." -ForegroundColor Cyan
-Copy-Item "$ROOT\docs" "$APPDIR\docs" -Recurse -Force
-foreach ($doc in @("README.md", "LICENSE", "CHANGELOG.md",
-                   "CONTRIBUTING.md", "CODE_OF_CONDUCT.md", "CITATION.cff")) {
-    if (Test-Path "$ROOT\$doc") {
-        Copy-Item "$ROOT\$doc" "$APPDIR\$doc" -Force
-    }
+Write-Host "  Staging README.txt, LICENSE, CITATION.cff, CHANGELOG.md, docs\ ..." -ForegroundColor Cyan
+$releaseReadme = Join-Path $ROOT "packaging\README-release.txt"
+Copy-Item $releaseReadme "$APPDIR\README.txt" -Force
+foreach ($doc in @("LICENSE", "CITATION.cff", "CHANGELOG.md")) {
+    Copy-Item "$ROOT\$doc" "$APPDIR\$doc" -Force
+}
+New-Item -ItemType Directory -Path "$APPDIR\docs" -Force | Out-Null
+$releaseDocs = Get-Content (Join-Path $ROOT "packaging\release-docs.txt") |
+    Where-Object { $_.Trim() -and -not $_.StartsWith("#") }
+foreach ($doc in $releaseDocs) {
+    Copy-Item "$ROOT\docs\$($doc.Trim())" "$APPDIR\docs\$($doc.Trim())" -Force
 }
 
 # ---------- Verify ------------------------------------------------------------
@@ -274,15 +281,11 @@ $required = @(
     "_internal\openbabel\bin\data\atomtyp.txt",
     # Plugins, staged above.
     "plugins\ai_assistant\plugin.py",
-    # Documentation, staged above. A missing docs\ tree is exactly the kind of
-    # silent gap this list exists for -- the app runs perfectly without it and
-    # nobody notices until a user goes looking. images\ is checked separately
-    # because a partially-copied tree would satisfy only the top-level entry,
-    # and the README's screenshots are the first thing a reader hits.
-    "README.md",
+    # The files a person opens, staged above.
+    "README.txt",
     "LICENSE",
+    "CHANGELOG.md",
     "docs\USER_GUIDE.md",
-    "docs\images\main-window.png",
     "OpenChemStudio.exe"
 )
 
@@ -300,8 +303,8 @@ if (-not (Test-Path $pyzToc) -or -not (Select-String -Path $pyzToc -SimpleMatch 
 if (-not (Select-String -Path $pyzToc -SimpleMatch "openchem._integrity" -Quiet)) {
     $missing += "openchem._integrity inside the compiled archive (build\openchem\PYZ-00.toc)"
 }
-foreach ($loose in @("_internal\openchem\docs", "_internal\openchem\_help_bundle.py", "_internal\openchem\_integrity.py")) {
-    if (Test-Path "$APPDIR\$loose") { $missing += "$loose must not exist (help is bundled)" }
+foreach ($loose in @("README.md", "_internal\openchem\docs", "_internal\openchem\_help_bundle.py", "_internal\openchem\_integrity.py")) {
+    if (Test-Path "$APPDIR\$loose") { $missing += "$loose must not exist (help is bundled; maintainer docs are not shipped)" }
 }
 
 # The exe says which product and version it is. Blank until 2026-10-22, which is harmless

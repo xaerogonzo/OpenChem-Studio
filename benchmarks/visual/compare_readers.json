@@ -1,0 +1,46 @@
+[
+  {"do": "smiles", "smiles": "O", "name": "Water", "after_ms": 1200},
+  {"do": "select", "molecule": -1, "after_ms": 800},
+  {"do": "smiles", "smiles": "CCO", "name": "Ethanol", "after_ms": 1200},
+  {"do": "select", "molecule": -1, "after_ms": 800},
+  {"do": "smiles", "smiles": "C", "name": "Methane", "after_ms": 1200},
+  {"do": "select", "molecule": -1, "after_ms": 800},
+  {"do": "panel", "id": "Compare", "after_ms": 600},
+
+  {"do": "compare_readers", "tag": "two-side", "names": ["Water", "Ethanol"], "layout": "side",
+   "expect": {"side_by_side": true, "pane_h_at_least": 120, "reader_h_at_least": 80}, "after_ms": 800},
+  {"do": "shot", "path": "benchmarks/visual/artifacts/compare_readers_side.png", "widget": "compare_readers", "after_ms": 400},
+
+  {"do": "compare_readers", "tag": "two-tabs", "layout": "tabs",
+   "expect": {"side_by_side": false, "tabs": 2, "pane_h_at_least": 120, "reader_h_at_least": 80,
+              "only_current_tab_visible": true}, "after_ms": 800},
+  {"do": "shot", "path": "benchmarks/visual/artifacts/compare_readers_tabs.png", "widget": "compare_readers", "after_ms": 400},
+
+  {"do": "compare_readers", "tag": "tab-1", "tab": 1, "focus": "molecular_properties",
+   "expect": {"side_by_side": false, "tabs": 2, "pane_h_at_least": 120, "only_current_tab_visible": true}, "after_ms": 600},
+
+  {"do": "compare_readers", "tag": "unlinked", "link": false,
+   "expect": {"linked": false, "pane_h_at_least": 120}, "after_ms": 400},
+  {"do": "compare_readers", "tag": "relinked", "link": true,
+   "expect": {"linked": true, "pane_h_at_least": 120}, "after_ms": 400},
+
+  {"do": "compare_readers", "tag": "three-tabs", "names": ["Water", "Ethanol", "Methane"],
+   "expect": {"side_by_side": false, "tabs": 3, "pane_h_at_least": 120, "reader_h_at_least": 80,
+              "only_current_tab_visible": true}, "after_ms": 800},
+  {"do": "shot", "path": "benchmarks/visual/artifacts/compare_readers_three_tabs.png", "widget": "compare_readers", "after_ms": 400},
+
+  {"do": "compare_readers", "tag": "refresh-tabbed", "refresh": true,
+   "expect": {"side_by_side": false, "tabs": 3, "pane_h_at_least": 120}, "after_ms": 500},
+
+  {"do": "compare_readers", "tag": "resized-tabs", "resize": [720, 480],
+   "expect": {"side_by_side": false, "tabs": 3, "pane_h_at_least": 80, "reader_h_at_least": 40}, "after_ms": 600},
+  {"do": "shot", "path": "benchmarks/visual/artifacts/compare_readers_resized.png", "widget": "compare_readers", "after_ms": 400},
+
+  {"do": "compare_readers", "tag": "three-side", "layout": "side",
+   "expect": {"side_by_side": true, "pane_h_at_least": 80, "reader_h_at_least": 40}, "after_ms": 800},
+  {"do": "compare_readers", "tag": "back-to-tabs", "layout": "tabs",
+   "expect": {"side_by_side": false, "tabs": 3, "pane_h_at_least": 80, "reader_h_at_least": 40}, "after_ms": 800},
+
+  {"do": "expect_clean"},
+  {"do": "quit"}
+]
