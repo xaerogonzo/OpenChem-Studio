@@ -126,3 +126,10 @@ temp-file then `os.replace`. Tests set `OPENCHEM_DATA_ROOT`.
 Peptide sequence expansion (`Ala-Glu-Gly`), polymer S-groups, a pinned
 category toolbar, click-to-fuse attachment, Ketcher
 “use as 2D clean template”, unpaired-electron calculator coverage.
+
+**S-group probe (2026-11-14).** Ketcher `setMolecule` then `getMolfile` keeps
+an SRU and a SUP on propane (`tests/fixtures/ketcher/propane_sru.mol`,
+`propane_sup.mol`). Template insert uses `addFragment`; that path returns the
+carbons and **drops** every `M  STY` line. Held by
+`tests/test_ketcher_sgroup_roundtrip.py`. Polymer templates stay out until
+insert preserves the groups, not because the editor cannot load them.
