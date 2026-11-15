@@ -32,7 +32,7 @@ from openchem.chem.calculation_input import (
 )
 from openchem.chem.engine import ChemistryEngine
 from openchem.chem.fukui import conformer_average_message, open_shell_message
-from openchem.chem.open_shell import multiplicity_problem, spin_note
+from openchem.chem.open_shell import multiplicity_problem, spin_from_molblock, spin_note
 from openchem.chem.fukui_plan import has_diffuse_functions, plan_fukui, searchable_holes
 from openchem.chem.proton_affinity import OutOfScope as ProtonAffinityOutOfScope
 from openchem.chem.proton_affinity import Sequence as ProtonAffinitySequence
@@ -591,7 +591,7 @@ def prepare_run(engine: ChemistryEngine, molecule: MoleculeModel | None, choice:
         fingerprint=resolved.fingerprint,
         source_slot=slot_of(molecule, resolved.fingerprint),
         conformer_note=" ".join(
-            part for part in (chosen_conformer_note(molecule, chosen, choice.calc_type), spin_note(resolved.mol, choice.multiplicity)) if part
+            part for part in (chosen_conformer_note(molecule, chosen, choice.calc_type), spin_note(resolved.mol, choice.multiplicity, spin_from_molblock(molecule.molblock))) if part
         ),
         ensemble=ensemble,
     )

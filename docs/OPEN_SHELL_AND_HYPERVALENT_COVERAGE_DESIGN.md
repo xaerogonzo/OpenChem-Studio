@@ -122,13 +122,20 @@ a valence model that assumes closed shells and octets", which is a reason to kee
 6. **OS5.** ORCA results gain `orca.s_squared` (the last `<S**2>`, with the ideal value and the excess in the provenance) for any unrestricted run; a restricted run
    gains nothing. `Psi4QuantumEngineProvider.build_input` refuses an impossible electron count like xtb's. **Psi4 is not installed here**, so only the arithmetic is tested, not Psi4's own behaviour.
 
+7. **OS1, the multiplicity stays with the structure** (done without a new field or a file-format change). RDKit rewrites a singlet carbene's `M  RAD  1` as `3`, so
+   `set_structure_from_molblock` now puts the drawing's singlet code back into the molblock it stores (`molblock_keeping_spin`); `spin_from_molblock` reads the multiplicity
+   from that text (singlet 0, doublet 1, triplet 2 unpaired electrons per atom) and `ChemistryEngine.default_multiplicity` prefers it. Because the information is in the
+   molblock, undo, redo and the project file carry it with no migration, and the canonical SMILES and InChI are unchanged. The run note compares against the drawing's own
+   multiplicity, so a drawn singlet carbene run at 1 carries none. **Not done:** a control in the editor or panel to CHANGE the stored multiplicity; the panel's spin box remains
+   a per-run choice that is re-derived when a molecule is selected. Whether Ketcher itself writes singlet, doublet or triplet codes for its radical property is still unmeasured.
+
 Mutation checks run: each of 7 edits (Joback, Hansen, both Hueckel rules, the parity refusal, the spin note, the engine default) fails 1 to 5 tests when reverted.
 
 ## 6. Proposed work packages, by value and risk (not started; each needs the owner's go-ahead)
 
 | # | Package | Why | What it takes | Risk |
 |---|---|---|---|---|
-| OS1 | **Store the multiplicity** with the structure (a `spin_multiplicity` field, project format bump, `None` = derive) and read `M  RAD 1/2/3` from the molblock text ourselves because RDKit conflates 1 and 3 | a drawn singlet carbene is rewritten as triplet today; the default would stop being a guess | a field on `MoleculeModel`, codec and project-file migration, an editor control, tests | medium (file format) |
+| OS1 | **DONE (stored in the molblock; no editor control yet).** Store the multiplicity with the structure (a `spin_multiplicity` field, project format bump, `None` = derive) and read `M  RAD 1/2/3` from the molblock text ourselves because RDKit conflates 1 and 3 | a drawn singlet carbene is rewritten as triplet today; the default would stop being a guess | a field on `MoleculeModel`, codec and project-file migration, an editor control, tests | medium (file format) |
 | OS2 | **DONE (O2, SO, S2; citations pending).** Known-ground-state table: O2, CH2, NH, SO, S2... drawn closed-shell (`O=O`) default to their measured ground-state multiplicity, with the source for each | `O=O` is the most likely way someone draws oxygen, and gets multiplicity 1 | a small cited table like `vsepr_geometry`'s, tests against the ORCA runs above | low |
 | OS3 | **Open-shell 3D starts**: small-molecule geometry table for diatomic and triatomic radicals (O2, NO, OH, CH3, CH2, NH2...), each with a source | section 3.2: 1.316 A and 1.151 A for O2 | same shape as WP6; sources needed (below) | low |
 | OS4 | **Calculator audit for radicals with oracles:** `logd`/ionisable sites, `hbond_sites`, `steric_analysis`, charge models, `solubility`: decide gate or refuse per calculator | section 3.4, TEMPO | a nitroxide pKa (not held), a decision per calculator; if more than about four calculators are gated, one registry-level `CLOSED_SHELL_ONLY` set beside `HYPERVALENT_VERIFIED_CALCULATORS` is cleaner than per-calculator code | low to medium |
