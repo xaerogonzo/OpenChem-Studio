@@ -4934,6 +4934,7 @@
   "tests/test_namer_multiple_bonds_parent.py": 0,
   "tests/test_namer_multiplicative.py": 4,
   "tests/test_namer_nl001_nl005_ws1_validator_evidence.py": 7,
+  "tests/test_namer_nl002_ws1_partial_oracle.py": 2,
   "tests/test_namer_nl008_ws1_alkenyl_ez.py": 4,
   "tests/test_namer_nl009_ws1_natural_products.py": 1,
   "tests/test_namer_nl012_bis_benzazocine_spiro.py": 5,

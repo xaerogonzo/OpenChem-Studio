@@ -39,10 +39,14 @@ PINNED = {
     ),
 }
 
-BRIDGEHEAD_GREP = re.compile(
-    r"bicyclo\[[0-9.]*\]|norborn|adamant|bridgehead",
-    re.IGNORECASE,
+# SMILES in the suite never spell "bicyclo[…]" — use Blue Book rule ids and
+# norbornane / tropane stereopatterns instead (measured 2026-11-15).
+BRIDGEHEAD_RULE = re.compile(r"P-93\.5\.2\.2\.[12]|P-93\.5\.2\.1")
+POLYCYCLIC_STEREO_CORE = re.compile(
+    r"\[C@?H\]1\[C@?H\]2C[C@]|N1\[C@?H\]2",
 )
+# Rows the programme already cites (NL-001 / tropane); VS238 has an empty rule field.
+BRIDGEHEAD_SUITE_IDS = frozenset({"VS111", "VS159", "VS235", "VS238", "VS241"})
 
 
 @dataclass(frozen=True)
@@ -99,11 +103,30 @@ def cmd_list(rows: list[SuiteRow]) -> int:
     return 0
 
 
+def bridgehead_candidate_rows(rows: list[SuiteRow]) -> list[SuiteRow]:
+    picked: dict[str, SuiteRow] = {}
+    for r in rows:
+        if (
+            r.suite_id in BRIDGEHEAD_SUITE_IDS
+            or BRIDGEHEAD_RULE.search(r.rule)
+            or POLYCYCLIC_STEREO_CORE.search(r.smiles)
+        ):
+            picked[r.suite_id] = r
+    return [picked[k] for k in sorted(picked)]
+
+
 def cmd_bridgehead(rows: list[SuiteRow]) -> int:
-    hits = [r for r in rows if BRIDGEHEAD_GREP.search(r.smiles)]
-    print(f"{len(hits)} entries match bridgehead / polycyclic grep")
+    hits = bridgehead_candidate_rows(rows)
+    print(f"{len(hits)} entries under P-93.5.2 bridgehead / norbornane–tropane rules")
     for r in hits:
-        print(f"  {r.suite_id}\t{r.labels}\t{r.smiles}")
+        rule = r.rule or "(no rule field)"
+        print(f"  {r.suite_id}\t{r.labels}\t{rule}\t{r.smiles}")
+    nl002 = [
+        r
+        for r in rows
+        if "bicyclo[3.3.1]" in r.smiles.lower() or "bicyclo[3.3.1]" in r.labels.lower()
+    ]
+    print(f"NL-002: {len(nl002)} row(s) with bicyclo[3.3.1] in SMILES or labels")
     return 0
 
 

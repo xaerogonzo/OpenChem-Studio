@@ -3,7 +3,8 @@
 Re-measures the representative constructions from naming rounds 89–91 and records
 that they remain validator limits with the evidence chain cited in
 ``docs/NAMING_LIMITATIONS_PLAN.md``. NL-001 and NL-005 are closed as that class
-(2026-11-10); NL-002 stays blocked. These tests guard regression.
+(2026-11-10); NL-002 closed 2026-11-15 with partial oracle in
+``tests/test_namer_nl002_ws1_partial_oracle.py``. These tests guard regression.
 """
 
 from __future__ import annotations

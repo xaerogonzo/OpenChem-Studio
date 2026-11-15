@@ -172,7 +172,13 @@ owner = "namer"
 
 [[consumer]]
 file = "tests/test_namer_nl001_nl005_ws1_validator_evidence.py"
-why = "NL-001 (closed, validator limit), NL-002 (blocked), NL-005: WS1 evidence pins (pseudoasymmetric bridgeheads and adamantane spiro methyl)"
+why = "NL-001 (closed, validator limit), NL-002 (closed, validator limit), NL-005: WS1 regression pins (flat-name limits)"
+scope = "core"
+owner = "namer"
+
+[[consumer]]
+file = "tests/test_namer_nl002_ws1_partial_oracle.py"
+why = "NL-002 (closed 2026-11-15): validator limit with partial oracle — CIP suite P-93.5.2 rows, NL-002 pre-validation vs RDKit, cage alcohol analogue"
 scope = "core"
 owner = "namer"
 

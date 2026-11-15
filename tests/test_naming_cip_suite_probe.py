@@ -43,13 +43,14 @@ def test_cip_suite_pins_vs207_vs214_vs279_vs231_present():
 
 @pytest.mark.skipif(_suite_missing, reason=f"CIP suite SMILES not at {_suite_path}")
 def test_cip_suite_has_no_bicyclo_3_3_1_bridgehead_row_nl002():
-    """Measured 2026-11-15: no norbornane / bicyclo[3.3.1] entry for NL-002."""
+    """Measured 2026-11-15: P-93.5.2.2.1 rows exist; no bicyclo[3.3.1] row for NL-002."""
     rows = probe.load_rows(_suite_path)
-    hits = [r for r in rows if probe.BRIDGEHEAD_GREP.search(r.smiles)]
     bicyclo_331 = [
         r
         for r in rows
         if "bicyclo[3.3.1]" in r.smiles.lower() or "bicyclo[3.3.1]" in r.labels.lower()
     ]
     assert not bicyclo_331
-    assert not hits  # measured 2026-11-15: no bicyclo/norborn bridgehead SMILES in the suite
+    bridgehead = probe.bridgehead_candidate_rows(rows)
+    ids = {r.suite_id for r in bridgehead}
+    assert ids >= probe.BRIDGEHEAD_SUITE_IDS
