@@ -257,6 +257,19 @@ def test_two_structures_inchi_cannot_write_are_not_called_the_same_compound(monk
     assert not naming_providers._same_compound(Chem.MolFromSmiles("CN"), Chem.MolFromSmiles("CN"))
 
 
+def test_explicit_stereo_hydrogens_are_MATCH_not_a_tautomer(monkeypatch):
+    """Ketcher / the engine keep explicit H on stereo carbons; OPSIN does not.
+
+    Measured on 6-monoacetylmorphine from Morphinan.ocsproj through
+    `ChemistryEngine.mol_from_model` (removeHs=False): 27 atoms vs OPSIN's 24,
+    InChI equal, SMILES equal only after RemoveHs. That was TAUTOMER. Ethanol
+    here is the same shape without needing OPSIN or a morphinan molblock.
+    """
+    drawn = Chem.MolToSmiles(Chem.AddHs(Chem.MolFromSmiles("CCO")))
+    assert "[H]" in drawn
+    assert _verdict_for(monkeypatch, "CCO", drawn) is naming_providers.RoundTrip.MATCH
+
+
 def test_a_tautomer_name_is_SHOWN_with_a_note_that_says_so(monkeypatch):
     monkeypatch.setattr(
         naming_providers, "verify_name_round_trip", lambda name, mol: naming_providers.RoundTrip.TAUTOMER
