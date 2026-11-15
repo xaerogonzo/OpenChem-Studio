@@ -11,6 +11,7 @@ from rdkit.Geometry import Point3D
 
 from openchem.chem.camera_orientation import camera_to_model_transform, rotate
 from openchem.chem.components import COMPONENT_CHOICE_PROP
+from openchem.chem.open_shell import default_multiplicity
 from openchem.chem.components import component_smiles as _component_smiles
 from openchem.chem.stereochemistry import (
     StereoChange,
@@ -916,6 +917,14 @@ class ChemistryEngine:
         since only this module ever imports rdkit."""
         # The sum of the atoms' charges needs no valence model, so a held hypervalent structure has one too.
         return Chem.GetFormalCharge(self.mol_from_model(model, allow_hypervalent=True))
+
+    def default_multiplicity(self, model: MoleculeModel) -> int:
+        """The spin multiplicity a quantum job should start from: the drawing's unpaired electrons plus one (1 for a closed-shell drawing).
+
+        A DEFAULT like `formal_charge`, not a fact about the molecule: the structure does not store a multiplicity, and RDKit reads a
+        singlet and a triplet carbene alike (`chem.open_shell`). Never guessed in the UI layer, which imports no rdkit.
+        """
+        return default_multiplicity(self.mol_from_model(model, allow_hypervalent=True))
 
     def canonicalize(self, model: MoleculeModel, *, allow_hypervalent: bool = False) -> MoleculeModel:
         """Recompute canonical_smiles/inchi/inchikey from model.molblock, in place.

@@ -48,6 +48,7 @@ from pathlib import Path
 from rdkit import Chem
 from rdkit.Chem import Descriptors
 
+from openchem.chem.open_shell import OPEN_SHELL_GROUP_NOTE, has_unpaired_electrons
 from openchem.domain.common import TOTAL, CacheState, Provenance, decline_total
 from openchem.domain.report import Fact, FactCategory, ReportResult
 from openchem.domain.structure_issue import Basis
@@ -82,6 +83,7 @@ class HansenRefusal(Enum):
     NOT_A_STRUCTURE = "the structure could not be read"
     NOT_A_PURE_COMPONENT = "more than one disconnected fragment"
     CHARGED = "the structure carries a net formal charge"
+    OPEN_SHELL = "the structure carries unpaired electrons"
     NO_HEAVY_ATOMS = "the structure has no heavy atoms"
     UNCOVERED_ATOM = "an atom belongs to no Stefanis-Panayiotou group"
     NO_CONTRIBUTION = "a group in this molecule has no contribution for that parameter"
@@ -441,6 +443,9 @@ def fragment(mol: Chem.Mol | None) -> Fragmentation:
         return Fragmentation(refusal=HansenRefusal.NOT_A_PURE_COMPONENT)
     if Chem.GetFormalCharge(working) != 0:
         return Fragmentation(refusal=HansenRefusal.CHARGED)
+    if has_unpaired_electrons(working):
+        # Measured: benzyl radical was decomposed into the groups of ethylbenzene's ring-attached CH2, a bond the structure lacks.
+        return Fragmentation(refusal=HansenRefusal.OPEN_SHELL)
     carbons = _carbon_count(working)
     outside = OUTSIDE_DOMAIN_NOTE.format(n=carbons) if carbons < MINIMUM_CARBONS else ""
 
@@ -586,6 +591,8 @@ def refusal_text(f: Fragmentation) -> str:
     if f.refusal is None:
         return ""
     text = f.refusal.value
+    if f.refusal is HansenRefusal.OPEN_SHELL:
+        text += ". " + OPEN_SHELL_GROUP_NOTE.format(method="Hansen's (Stefanis-Panayiotou)")
     if f.detail:
         text += f" -- {f.detail}"
     return text

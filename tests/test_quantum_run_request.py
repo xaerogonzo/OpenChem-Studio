@@ -210,7 +210,7 @@ def test_start_hands_the_service_a_single_job_the_arguments_the_panel_always_sen
 
 def test_start_hands_the_service_an_average_with_the_identity_of_the_set():
     molecule = butane(3)
-    prepared = prepare_run(ENGINE, molecule, choice(calc_type="nmr", average_conformers=True, charge=-1))
+    prepared = prepare_run(ENGINE, molecule, choice(calc_type="nmr", average_conformers=True, charge=-1, multiplicity=2))
     service = _Service()
     start(service, prepared)
     [(kind, kwargs)] = service.calls

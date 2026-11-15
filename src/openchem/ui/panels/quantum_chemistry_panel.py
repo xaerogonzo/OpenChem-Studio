@@ -273,10 +273,11 @@ _HELP: dict[str, HelpTooltip] = {
         text=(
             "Spin multiplicity, 2S+1: 1 for a closed-shell singlet, 2 for a doublet "
             "radical, 3 for a triplet. Range 1 to 10, default 1.\n\n"
-            "UNLIKE CHARGE, THIS IS NOT DERIVED FROM THE STRUCTURE -- it stays at 1 "
-            "whatever you select, so a radical or a triplet has to be set by hand. A "
-            "singlet calculation on an open-shell species converges to a state the "
-            "molecule does not have."
+            "Selecting a molecule sets it to the drawing's unpaired electrons plus one "
+            "(2 for a radical, 3 for a carbene or for O2 drawn as [O][O]); a closed-shell "
+            "drawing gives 1, so O2 drawn as O=O needs 3 set by hand. It is a default, "
+            "not a fact the structure stores. A singlet calculation on an open-shell "
+            "species runs a state the molecule does not have in its ground state."
         ),
         tier=2,
         help_id="quantum.spin_multiplicity",
@@ -1613,6 +1614,9 @@ class QuantumChemistryPanel(QWidget):
         molecule = self._current_molecule()
         if molecule is not None and molecule.molblock:
             self._charge_spin.setValue(self._chemistry_engine.formal_charge(molecule))
+            # Derived from the drawing's unpaired electrons like the charge is (it stayed at 1 whatever was selected: real ORCA
+            # runs O2 at multiplicity 1 without a message, 39.7 kcal/mol above the triplet).
+            self._multiplicity_spin.setValue(self._chemistry_engine.default_multiplicity(molecule))
         self._refresh_conformer_combo()
         self._refresh_active_run()
 

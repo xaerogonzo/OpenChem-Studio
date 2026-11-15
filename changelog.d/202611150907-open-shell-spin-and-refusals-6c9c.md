@@ -1,0 +1,5 @@
+### Open-shell molecules: spin default, impossible-spin refusal, and no more closed-shell answers for radicals
+- The Quantum Chemistry panel now sets the multiplicity from the selected drawing (unpaired electrons plus one), as it already did the charge. It stayed at 1, and real ORCA ran triplet O2 at multiplicity 1 without a message, 39.7 kcal/mol above the triplet. A closed-shell drawing such as `O=O` still gives 1.
+- A charge and multiplicity the electrons cannot have (a methyl radical or NO at multiplicity 1, which ORCA refuses after queueing) is refused before the job is queued, and a multiplicity that does not match the drawn radicals is noted on the run.
+- Joback and Hansen refuse a structure with unpaired electrons (`OPEN_SHELL`): ethyl radical had been given a vinyl CH2 group and benzyl radical ethylbenzene's CH2. Hueckel now includes a carbon radical centre as a pi centre (benzyl 8.72 beta, allyl 2.83, the textbook values) and refuses other radical atoms; it had dropped the benzyl carbon.
+- Measurements, the shared-cause question against the hypervalent work and the proposed packages: `docs/OPEN_SHELL_AND_HYPERVALENT_COVERAGE_DESIGN.md`.
