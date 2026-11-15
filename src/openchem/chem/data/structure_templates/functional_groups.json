@@ -70,6 +70,4966 @@
       "tags": [
         "aromatic"
       ]
+    },
+    {
+      "id": "functional_groups.formaldehyde",
+      "name": "Formaldehyde",
+      "smiles": "C=O",
+      "tags": [
+        "aldehyde"
+      ]
+    },
+    {
+      "id": "functional_groups.acetaldehyde",
+      "name": "Acetaldehyde",
+      "smiles": "CC=O",
+      "tags": [
+        "aldehyde"
+      ]
+    },
+    {
+      "id": "functional_groups.propanal",
+      "name": "Propanal",
+      "smiles": "CCC=O",
+      "tags": [
+        "aldehyde"
+      ]
+    },
+    {
+      "id": "functional_groups.butanal",
+      "name": "Butanal",
+      "smiles": "CCCC=O",
+      "tags": [
+        "aldehyde"
+      ]
+    },
+    {
+      "id": "functional_groups.acetophenone",
+      "name": "Acetophenone",
+      "smiles": "CC(=O)c1ccccc1",
+      "tags": [
+        "ketone"
+      ]
+    },
+    {
+      "id": "functional_groups.benzophenone",
+      "name": "Benzophenone",
+      "smiles": "O=C(c1ccccc1)c1ccccc1",
+      "tags": [
+        "ketone"
+      ]
+    },
+    {
+      "id": "functional_groups.methyl_acetate",
+      "name": "Methyl acetate",
+      "smiles": "COC(C)=O",
+      "tags": [
+        "ester"
+      ]
+    },
+    {
+      "id": "functional_groups.methyl_benzoate",
+      "name": "Methyl benzoate",
+      "smiles": "COC(=O)c1ccccc1",
+      "tags": [
+        "ester"
+      ]
+    },
+    {
+      "id": "functional_groups.ethyl_benzoate",
+      "name": "Ethyl benzoate",
+      "smiles": "CCOC(=O)c1ccccc1",
+      "tags": [
+        "ester"
+      ]
+    },
+    {
+      "id": "functional_groups.acetamide",
+      "name": "Acetamide",
+      "smiles": "CC(N)=O",
+      "tags": [
+        "amide"
+      ]
+    },
+    {
+      "id": "functional_groups.benzamide",
+      "name": "Benzamide",
+      "smiles": "NC(=O)c1ccccc1",
+      "tags": [
+        "amide"
+      ]
+    },
+    {
+      "id": "functional_groups.urea",
+      "name": "Urea",
+      "smiles": "NC(N)=O",
+      "tags": [
+        "amide"
+      ]
+    },
+    {
+      "id": "functional_groups.thiourea",
+      "name": "Thiourea",
+      "smiles": "NC(S)N",
+      "tags": [
+        "amide"
+      ]
+    },
+    {
+      "id": "functional_groups.methylamine",
+      "name": "Methylamine",
+      "smiles": "CN",
+      "tags": [
+        "amine"
+      ]
+    },
+    {
+      "id": "functional_groups.dimethylamine",
+      "name": "Dimethylamine",
+      "smiles": "CNC",
+      "tags": [
+        "amine"
+      ]
+    },
+    {
+      "id": "functional_groups.trimethylamine",
+      "name": "Trimethylamine",
+      "smiles": "CN(C)C",
+      "tags": [
+        "amine"
+      ]
+    },
+    {
+      "id": "functional_groups.ethylamine",
+      "name": "Ethylamine",
+      "smiles": "CCN",
+      "tags": [
+        "amine"
+      ]
+    },
+    {
+      "id": "functional_groups.diethylamine",
+      "name": "Diethylamine",
+      "smiles": "CCNCC",
+      "tags": [
+        "amine"
+      ]
+    },
+    {
+      "id": "functional_groups.tert_butylamine",
+      "name": "tert-Butylamine",
+      "smiles": "CC(C)(C)N",
+      "tags": [
+        "amine"
+      ]
+    },
+    {
+      "id": "functional_groups.benzylamine",
+      "name": "Benzylamine",
+      "smiles": "NCc1ccccc1",
+      "tags": [
+        "amine"
+      ]
+    },
+    {
+      "id": "functional_groups.acrylonitrile",
+      "name": "Acrylonitrile",
+      "smiles": "C=CC#N",
+      "tags": [
+        "nitrile"
+      ]
+    },
+    {
+      "id": "functional_groups.dimethyl_sulfone",
+      "name": "Dimethyl sulfone",
+      "smiles": "CS(C)(=O)=O",
+      "tags": [
+        "sulfone"
+      ]
+    },
+    {
+      "id": "functional_groups.oxalic_acid",
+      "name": "Oxalic acid",
+      "smiles": "OC(=O)C(=O)O",
+      "tags": [
+        "carboxylic acid"
+      ]
+    },
+    {
+      "id": "functional_groups.malonic_acid",
+      "name": "Malonic acid",
+      "smiles": "OC(=O)CC(=O)O",
+      "tags": [
+        "carboxylic acid"
+      ]
+    },
+    {
+      "id": "functional_groups.succinic_acid",
+      "name": "Succinic acid",
+      "smiles": "OC(=O)CCC(=O)O",
+      "tags": [
+        "carboxylic acid"
+      ]
+    },
+    {
+      "id": "functional_groups.glutaric_acid",
+      "name": "Glutaric acid",
+      "smiles": "OC(=O)CCCC(=O)O",
+      "tags": [
+        "carboxylic acid"
+      ]
+    },
+    {
+      "id": "functional_groups.adipic_acid",
+      "name": "Adipic acid",
+      "smiles": "OC(=O)CCCCC(=O)O",
+      "tags": [
+        "carboxylic acid"
+      ]
+    },
+    {
+      "id": "functional_groups.maleic_acid",
+      "name": "Maleic acid",
+      "smiles": "OC(=O)/C=C\\C(=O)O",
+      "tags": [
+        "carboxylic acid"
+      ]
+    },
+    {
+      "id": "functional_groups.fumaric_acid",
+      "name": "Fumaric acid",
+      "smiles": "OC(=O)/C=C/C(=O)O",
+      "tags": [
+        "carboxylic acid"
+      ]
+    },
+    {
+      "id": "functional_groups.phthalic_acid",
+      "name": "Phthalic acid",
+      "smiles": "OC(=O)c1ccccc1C(=O)O",
+      "tags": [
+        "carboxylic acid"
+      ]
+    },
+    {
+      "id": "functional_groups.terephthalic_acid",
+      "name": "Terephthalic acid",
+      "smiles": "OC(=O)c1ccc(C(=O)O)cc1",
+      "tags": [
+        "carboxylic acid"
+      ]
+    },
+    {
+      "id": "functional_groups.isophthalic_acid",
+      "name": "Isophthalic acid",
+      "smiles": "OC(=O)c1cccc(C(=O)O)c1",
+      "tags": [
+        "carboxylic acid"
+      ]
+    },
+    {
+      "id": "functional_groups.salicylic_acid",
+      "name": "Salicylic acid",
+      "smiles": "OC(=O)c1ccccc1O",
+      "tags": [
+        "carboxylic acid"
+      ]
+    },
+    {
+      "id": "functional_groups.acetylsalicylic_acid",
+      "name": "Acetylsalicylic acid",
+      "smiles": "CC(=O)Oc1ccccc1C(=O)O",
+      "tags": [
+        "ester"
+      ]
+    },
+    {
+      "id": "functional_groups.paracetamol",
+      "name": "Paracetamol",
+      "smiles": "CC(=O)Nc1ccc(O)cc1",
+      "tags": [
+        "amide"
+      ]
+    },
+    {
+      "id": "functional_groups.s_ibuprofen",
+      "name": "(S)-Ibuprofen",
+      "smiles": "C[C@H](C(=O)O)c1ccc(CC(C)C)cc1",
+      "tags": [
+        "carboxylic acid"
+      ]
+    },
+    {
+      "id": "functional_groups.s_naproxen",
+      "name": "(S)-Naproxen",
+      "smiles": "COc1ccc2cc([C@H](C)C(=O)O)ccc2c1",
+      "tags": [
+        "carboxylic acid"
+      ]
+    },
+    {
+      "id": "functional_groups.glycerol",
+      "name": "Glycerol",
+      "smiles": "OCC(O)CO",
+      "tags": [
+        "alcohol"
+      ]
+    },
+    {
+      "id": "functional_groups.ethylene_glycol",
+      "name": "Ethylene glycol",
+      "smiles": "OCCO",
+      "tags": [
+        "alcohol"
+      ]
+    },
+    {
+      "id": "functional_groups.catechol",
+      "name": "Catechol",
+      "smiles": "Oc1ccccc1O",
+      "tags": [
+        "phenol"
+      ]
+    },
+    {
+      "id": "functional_groups.resorcinol",
+      "name": "Resorcinol",
+      "smiles": "Oc1cccc(O)c1",
+      "tags": [
+        "phenol"
+      ]
+    },
+    {
+      "id": "functional_groups.hydroquinone",
+      "name": "Hydroquinone",
+      "smiles": "Oc1ccc(O)cc1",
+      "tags": [
+        "phenol"
+      ]
+    },
+    {
+      "id": "functional_groups.1_4_benzoquinone",
+      "name": "1,4-Benzoquinone",
+      "smiles": "O=C1C=CC(=O)C=C1",
+      "tags": [
+        "ketone"
+      ]
+    },
+    {
+      "id": "functional_groups.fluorobenzene",
+      "name": "Fluorobenzene",
+      "smiles": "Fc1ccccc1",
+      "tags": [
+        "halide"
+      ]
+    },
+    {
+      "id": "functional_groups.bromobenzene",
+      "name": "Bromobenzene",
+      "smiles": "Brc1ccccc1",
+      "tags": [
+        "halide"
+      ]
+    },
+    {
+      "id": "functional_groups.iodobenzene",
+      "name": "Iodobenzene",
+      "smiles": "Ic1ccccc1",
+      "tags": [
+        "halide"
+      ]
+    },
+    {
+      "id": "functional_groups.benzotrifluoride",
+      "name": "Benzotrifluoride",
+      "smiles": "FC(F)(F)c1ccccc1",
+      "tags": [
+        "halide"
+      ]
+    },
+    {
+      "id": "functional_groups.benzonitrile",
+      "name": "Benzonitrile",
+      "smiles": "N#Cc1ccccc1",
+      "tags": [
+        "nitrile"
+      ]
+    },
+    {
+      "id": "functional_groups.phenylacetylene",
+      "name": "Phenylacetylene",
+      "smiles": "C#Cc1ccccc1",
+      "tags": [
+        "alkyne"
+      ]
+    },
+    {
+      "id": "functional_groups.diphenylacetylene",
+      "name": "Diphenylacetylene",
+      "smiles": "C(#Cc1ccccc1)c1ccccc1",
+      "tags": [
+        "alkyne"
+      ]
+    },
+    {
+      "id": "functional_groups.thioanisole",
+      "name": "Thioanisole",
+      "smiles": "CSc1ccccc1",
+      "tags": [
+        "thioether"
+      ]
+    },
+    {
+      "id": "functional_groups.diphenyl_ether",
+      "name": "Diphenyl ether",
+      "smiles": "O(c1ccccc1)c1ccccc1",
+      "tags": [
+        "ether"
+      ]
+    },
+    {
+      "id": "functional_groups.dimethyl_sulfide",
+      "name": "Dimethyl sulfide",
+      "smiles": "CSC",
+      "tags": [
+        "thioether"
+      ]
+    },
+    {
+      "id": "functional_groups.dimethyl_disulfide",
+      "name": "Dimethyl disulfide",
+      "smiles": "CSSC",
+      "tags": [
+        "disulfide"
+      ]
+    },
+    {
+      "id": "functional_groups.thiophenol",
+      "name": "Thiophenol",
+      "smiles": "Sc1ccccc1",
+      "tags": [
+        "thiol"
+      ]
+    },
+    {
+      "id": "functional_groups.benzyl_bromide",
+      "name": "Benzyl bromide",
+      "smiles": "BrCc1ccccc1",
+      "tags": [
+        "halide"
+      ]
+    },
+    {
+      "id": "functional_groups.benzyl_chloride",
+      "name": "Benzyl chloride",
+      "smiles": "ClCc1ccccc1",
+      "tags": [
+        "halide"
+      ]
+    },
+    {
+      "id": "functional_groups.allyl_alcohol",
+      "name": "Allyl alcohol",
+      "smiles": "OCC=C",
+      "tags": [
+        "alcohol"
+      ]
+    },
+    {
+      "id": "functional_groups.acrolein",
+      "name": "Acrolein",
+      "smiles": "C=CC=O",
+      "tags": [
+        "aldehyde"
+      ]
+    },
+    {
+      "id": "functional_groups.acrylic_acid",
+      "name": "Acrylic acid",
+      "smiles": "C=CC(=O)O",
+      "tags": [
+        "carboxylic acid"
+      ]
+    },
+    {
+      "id": "functional_groups.methacrylic_acid",
+      "name": "Methacrylic acid",
+      "smiles": "C=C(C)C(=O)O",
+      "tags": [
+        "carboxylic acid"
+      ]
+    },
+    {
+      "id": "functional_groups.methyl_methacrylate",
+      "name": "Methyl methacrylate",
+      "smiles": "COC(=O)C(C)=C",
+      "tags": [
+        "ester"
+      ]
+    },
+    {
+      "id": "functional_groups.vinyl_acetate",
+      "name": "Vinyl acetate",
+      "smiles": "CC(=O)OC=C",
+      "tags": [
+        "ester"
+      ]
+    },
+    {
+      "id": "functional_groups.isoprene",
+      "name": "Isoprene",
+      "smiles": "C=C(C)C=C",
+      "tags": [
+        "alkene"
+      ]
+    },
+    {
+      "id": "functional_groups.1_3_butadiene",
+      "name": "1,3-Butadiene",
+      "smiles": "C=CC=C",
+      "tags": [
+        "alkene"
+      ]
+    },
+    {
+      "id": "functional_groups.trans_stilbene",
+      "name": "trans-Stilbene",
+      "smiles": "c1ccc(/C=C/c2ccccc2)cc1",
+      "tags": [
+        "alkene"
+      ]
+    },
+    {
+      "id": "functional_groups.cis_stilbene",
+      "name": "cis-Stilbene",
+      "smiles": "c1ccc(/C=C\\c2ccccc2)cc1",
+      "tags": [
+        "alkene"
+      ]
+    },
+    {
+      "id": "functional_groups.trans_cinnamaldehyde",
+      "name": "trans-Cinnamaldehyde",
+      "smiles": "O=C/C=C/c1ccccc1",
+      "tags": [
+        "aldehyde"
+      ]
+    },
+    {
+      "id": "functional_groups.trans_cinnamic_acid",
+      "name": "trans-Cinnamic acid",
+      "smiles": "OC(=O)/C=C/c1ccccc1",
+      "tags": [
+        "carboxylic acid"
+      ]
+    },
+    {
+      "id": "functional_groups.vanillin",
+      "name": "Vanillin",
+      "smiles": "COc1cc(C=O)ccc1O",
+      "tags": [
+        "aldehyde"
+      ]
+    },
+    {
+      "id": "functional_groups.guaiacol",
+      "name": "Guaiacol",
+      "smiles": "COc1ccccc1O",
+      "tags": [
+        "phenol"
+      ]
+    },
+    {
+      "id": "functional_groups.veratrole",
+      "name": "Veratrole",
+      "smiles": "COc1ccccc1OC",
+      "tags": [
+        "ether"
+      ]
+    },
+    {
+      "id": "functional_groups.piperonal",
+      "name": "Piperonal",
+      "smiles": "O=Cc1ccc2c(c1)OCO2",
+      "tags": [
+        "aldehyde"
+      ]
+    },
+    {
+      "id": "functional_groups.safrole",
+      "name": "Safrole",
+      "smiles": "C=CCc1ccc2c(c1)OCO2",
+      "tags": [
+        "alkene"
+      ]
+    },
+    {
+      "id": "functional_groups.l_lactic_acid",
+      "name": "L-Lactic acid",
+      "smiles": "C[C@H](O)C(=O)O",
+      "tags": [
+        "carboxylic acid"
+      ]
+    },
+    {
+      "id": "functional_groups.l_malic_acid",
+      "name": "L-Malic acid",
+      "smiles": "O=C(O)C[C@H](O)C(=O)O",
+      "tags": [
+        "carboxylic acid"
+      ]
+    },
+    {
+      "id": "functional_groups.l_tartaric_acid",
+      "name": "L-Tartaric acid",
+      "smiles": "O=C(O)[C@H](O)[C@@H](O)C(=O)O",
+      "tags": [
+        "carboxylic acid"
+      ]
+    },
+    {
+      "id": "functional_groups.pyruvic_acid",
+      "name": "Pyruvic acid",
+      "smiles": "CC(=O)C(=O)O",
+      "tags": [
+        "ketone"
+      ]
+    },
+    {
+      "id": "functional_groups.citric_acid",
+      "name": "Citric acid",
+      "smiles": "C(C(=O)O)C(O)(CC(=O)O)C(=O)O",
+      "tags": [
+        "carboxylic acid"
+      ]
+    },
+    {
+      "id": "functional_groups.methane",
+      "name": "Methane",
+      "smiles": "C",
+      "tags": [
+        "alkane"
+      ]
+    },
+    {
+      "id": "functional_groups.ethane",
+      "name": "Ethane",
+      "smiles": "CC",
+      "tags": [
+        "alkane"
+      ]
+    },
+    {
+      "id": "functional_groups.propane",
+      "name": "Propane",
+      "smiles": "CCC",
+      "tags": [
+        "alkane"
+      ]
+    },
+    {
+      "id": "functional_groups.n_butane",
+      "name": "Butane",
+      "smiles": "CCCC",
+      "tags": [
+        "alkane"
+      ]
+    },
+    {
+      "id": "functional_groups.isobutane",
+      "name": "2-Methylpropane",
+      "smiles": "CC(C)C",
+      "tags": [
+        "alkane"
+      ]
+    },
+    {
+      "id": "functional_groups.ethene",
+      "name": "Ethene",
+      "smiles": "C=C",
+      "tags": [
+        "alkene"
+      ]
+    },
+    {
+      "id": "functional_groups.propene",
+      "name": "Propene",
+      "smiles": "C=CC",
+      "tags": [
+        "alkene"
+      ]
+    },
+    {
+      "id": "functional_groups.ethyne",
+      "name": "Ethyne",
+      "smiles": "C#C",
+      "tags": [
+        "alkyne"
+      ]
+    },
+    {
+      "id": "functional_groups.carbon_dioxide",
+      "name": "Carbon dioxide",
+      "smiles": "O=C=O",
+      "tags": [
+        "gas"
+      ]
+    },
+    {
+      "id": "functional_groups.carbon_monoxide",
+      "name": "Carbon monoxide",
+      "smiles": "[C-]#[O+]",
+      "tags": [
+        "gas"
+      ]
+    },
+    {
+      "id": "functional_groups.dinitrogen",
+      "name": "Dinitrogen",
+      "smiles": "N#N",
+      "tags": [
+        "gas"
+      ]
+    },
+    {
+      "id": "functional_groups.ammonia",
+      "name": "Ammonia",
+      "smiles": "N",
+      "tags": [
+        "amine"
+      ]
+    },
+    {
+      "id": "functional_groups.hydrazine",
+      "name": "Hydrazine",
+      "smiles": "NN",
+      "tags": [
+        "amine"
+      ]
+    },
+    {
+      "id": "functional_groups.hydroxylamine",
+      "name": "Hydroxylamine",
+      "smiles": "NO",
+      "tags": [
+        "amine"
+      ]
+    },
+    {
+      "id": "functional_groups.propionic_acid",
+      "name": "Propionic acid",
+      "smiles": "CCC(=O)O",
+      "tags": [
+        "carboxylic acid"
+      ]
+    },
+    {
+      "id": "functional_groups.butyric_acid",
+      "name": "Butyric acid",
+      "smiles": "CCCC(=O)O",
+      "tags": [
+        "carboxylic acid"
+      ]
+    },
+    {
+      "id": "functional_groups.valeric_acid",
+      "name": "Pentanoic acid",
+      "smiles": "CCCCC(=O)O",
+      "tags": [
+        "carboxylic acid"
+      ]
+    },
+    {
+      "id": "functional_groups.hexanoic_acid",
+      "name": "Hexanoic acid",
+      "smiles": "CCCCCC(=O)O",
+      "tags": [
+        "carboxylic acid"
+      ]
+    },
+    {
+      "id": "functional_groups.octanoic_acid",
+      "name": "Octanoic acid",
+      "smiles": "CCCCCCCC(=O)O",
+      "tags": [
+        "carboxylic acid"
+      ]
+    },
+    {
+      "id": "functional_groups.decanoic_acid",
+      "name": "Decanoic acid",
+      "smiles": "CCCCCCCCCC(=O)O",
+      "tags": [
+        "carboxylic acid"
+      ]
+    },
+    {
+      "id": "functional_groups.lauric_acid",
+      "name": "Lauric acid",
+      "smiles": "CCCCCCCCCCCC(=O)O",
+      "tags": [
+        "carboxylic acid"
+      ]
+    },
+    {
+      "id": "functional_groups.myristic_acid",
+      "name": "Myristic acid",
+      "smiles": "CCCCCCCCCCCCCC(=O)O",
+      "tags": [
+        "carboxylic acid"
+      ]
+    },
+    {
+      "id": "functional_groups.palmitic_acid",
+      "name": "Palmitic acid",
+      "smiles": "CCCCCCCCCCCCCCCC(=O)O",
+      "tags": [
+        "carboxylic acid"
+      ]
+    },
+    {
+      "id": "functional_groups.stearic_acid",
+      "name": "Stearic acid",
+      "smiles": "CCCCCCCCCCCCCCCCCC(=O)O",
+      "tags": [
+        "carboxylic acid"
+      ]
+    },
+    {
+      "id": "functional_groups.oleic_acid",
+      "name": "Oleic acid",
+      "smiles": "CCCCCCCC/C=C\\CCCCCCCC(=O)O",
+      "tags": [
+        "carboxylic acid"
+      ]
+    },
+    {
+      "id": "functional_groups.elaidic_acid",
+      "name": "Elaidic acid",
+      "smiles": "CCCCCCCC/C=C/CCCCCCCC(=O)O",
+      "tags": [
+        "carboxylic acid"
+      ]
+    },
+    {
+      "id": "functional_groups.linoleic_acid",
+      "name": "Linoleic acid",
+      "smiles": "CCCCC/C=C\\C/C=C\\CCCCCCCC(=O)O",
+      "tags": [
+        "carboxylic acid"
+      ]
+    },
+    {
+      "id": "functional_groups.alpha_linolenic_acid",
+      "name": "alpha-Linolenic acid",
+      "smiles": "CC/C=C\\C/C=C\\C/C=C\\CCCCCCCC(=O)O",
+      "tags": [
+        "carboxylic acid"
+      ]
+    },
+    {
+      "id": "functional_groups.arachidic_acid",
+      "name": "Arachidic acid",
+      "smiles": "CCCCCCCCCCCCCCCCCCCC(=O)O",
+      "tags": [
+        "carboxylic acid"
+      ]
+    },
+    {
+      "id": "functional_groups.arachidonic_acid",
+      "name": "Arachidonic acid",
+      "smiles": "CCCCC/C=C\\C/C=C\\C/C=C\\C/C=C\\CCCC(=O)O",
+      "tags": [
+        "carboxylic acid"
+      ]
+    },
+    {
+      "id": "functional_groups.gaba",
+      "name": "4-Aminobutanoic acid",
+      "smiles": "NCCCC(=O)O",
+      "tags": [
+        "amino acid"
+      ]
+    },
+    {
+      "id": "functional_groups.lidocaine",
+      "name": "Lidocaine",
+      "smiles": "CCN(CC)CC(=O)Nc1c(C)cccc1C",
+      "tags": [
+        "amide"
+      ]
+    },
+    {
+      "id": "functional_groups.benzocaine",
+      "name": "Benzocaine",
+      "smiles": "CCOC(=O)c1ccc(N)cc1",
+      "tags": [
+        "ester"
+      ]
+    },
+    {
+      "id": "functional_groups.sulfanilamide",
+      "name": "Sulfanilamide",
+      "smiles": "Nc1ccc(S(N)(=O)=O)cc1",
+      "tags": [
+        "sulfonamide"
+      ]
+    },
+    {
+      "id": "functional_groups.metformin",
+      "name": "Metformin",
+      "smiles": "CN(C)C(=N)NC(=N)N",
+      "tags": [
+        "guanidine"
+      ]
+    },
+    {
+      "id": "functional_groups.o_cresol",
+      "name": "2-Methylphenol",
+      "smiles": "Cc1ccccc1O",
+      "tags": [
+        "phenol"
+      ]
+    },
+    {
+      "id": "functional_groups.m_cresol",
+      "name": "3-Methylphenol",
+      "smiles": "Cc1cccc(O)c1",
+      "tags": [
+        "phenol"
+      ]
+    },
+    {
+      "id": "functional_groups.p_cresol",
+      "name": "4-Methylphenol",
+      "smiles": "Cc1ccc(O)cc1",
+      "tags": [
+        "phenol"
+      ]
+    },
+    {
+      "id": "functional_groups.picric_acid",
+      "name": "2,4,6-Trinitrophenol",
+      "smiles": "O=[N+]([O-])c1cc([N+](=O)[O-])c(O)c([N+](=O)[O-])c1",
+      "tags": [
+        "phenol"
+      ]
+    },
+    {
+      "id": "functional_groups.p_nitrophenol",
+      "name": "4-Nitrophenol",
+      "smiles": "O=[N+]([O-])c1ccc(O)cc1",
+      "tags": [
+        "phenol"
+      ]
+    },
+    {
+      "id": "functional_groups.p_aminophenol",
+      "name": "4-Aminophenol",
+      "smiles": "Nc1ccc(O)cc1",
+      "tags": [
+        "phenol"
+      ]
+    },
+    {
+      "id": "functional_groups.p_anisidine",
+      "name": "4-Methoxyaniline",
+      "smiles": "COc1ccc(N)cc1",
+      "tags": [
+        "amine"
+      ]
+    },
+    {
+      "id": "functional_groups.o_anisidine",
+      "name": "2-Methoxyaniline",
+      "smiles": "COc1ccccc1N",
+      "tags": [
+        "amine"
+      ]
+    },
+    {
+      "id": "functional_groups.p_toluidine",
+      "name": "4-Methylaniline",
+      "smiles": "Cc1ccc(N)cc1",
+      "tags": [
+        "amine"
+      ]
+    },
+    {
+      "id": "functional_groups.o_toluidine",
+      "name": "2-Methylaniline",
+      "smiles": "Cc1ccccc1N",
+      "tags": [
+        "amine"
+      ]
+    },
+    {
+      "id": "functional_groups.n_methylaniline",
+      "name": "N-Methylaniline",
+      "smiles": "CNc1ccccc1",
+      "tags": [
+        "amine"
+      ]
+    },
+    {
+      "id": "functional_groups.n_n_dimethylaniline",
+      "name": "N,N-Dimethylaniline",
+      "smiles": "CN(C)c1ccccc1",
+      "tags": [
+        "amine"
+      ]
+    },
+    {
+      "id": "functional_groups.diphenylamine",
+      "name": "Diphenylamine",
+      "smiles": "c1ccc(Nc2ccccc2)cc1",
+      "tags": [
+        "amine"
+      ]
+    },
+    {
+      "id": "functional_groups.triphenylamine",
+      "name": "Triphenylamine",
+      "smiles": "c1ccc(N(c2ccccc2)c2ccccc2)cc1",
+      "tags": [
+        "amine"
+      ]
+    },
+    {
+      "id": "functional_groups.acetanilide",
+      "name": "Acetanilide",
+      "smiles": "CC(=O)Nc1ccccc1",
+      "tags": [
+        "amide"
+      ]
+    },
+    {
+      "id": "functional_groups.benzanilide",
+      "name": "N-Phenylbenzamide",
+      "smiles": "O=C(Nc1ccccc1)c1ccccc1",
+      "tags": [
+        "amide"
+      ]
+    },
+    {
+      "id": "functional_groups.phenyl_isocyanate",
+      "name": "Phenyl isocyanate",
+      "smiles": "O=C=Nc1ccccc1",
+      "tags": [
+        "isocyanate"
+      ]
+    },
+    {
+      "id": "functional_groups.methyl_isocyanate",
+      "name": "Methyl isocyanate",
+      "smiles": "CN=C=O",
+      "tags": [
+        "isocyanate"
+      ]
+    },
+    {
+      "id": "functional_groups.phenyl_isothiocyanate",
+      "name": "Phenyl isothiocyanate",
+      "smiles": "S=C=Nc1ccccc1",
+      "tags": [
+        "isothiocyanate"
+      ]
+    },
+    {
+      "id": "functional_groups.methyl_isothiocyanate",
+      "name": "Methyl isothiocyanate",
+      "smiles": "CN=C=S",
+      "tags": [
+        "isothiocyanate"
+      ]
+    },
+    {
+      "id": "functional_groups.phenylacetonitrile",
+      "name": "Phenylacetonitrile",
+      "smiles": "N#CCc1ccccc1",
+      "tags": [
+        "nitrile"
+      ]
+    },
+    {
+      "id": "functional_groups.malononitrile",
+      "name": "Malononitrile",
+      "smiles": "N#CCC#N",
+      "tags": [
+        "nitrile"
+      ]
+    },
+    {
+      "id": "functional_groups.adiponitrile",
+      "name": "Adiponitrile",
+      "smiles": "N#CCCCCC#N",
+      "tags": [
+        "nitrile"
+      ]
+    },
+    {
+      "id": "functional_groups.phenylboronic_acid",
+      "name": "Phenylboronic acid",
+      "smiles": "OB(O)c1ccccc1",
+      "tags": [
+        "boronic acid"
+      ]
+    },
+    {
+      "id": "functional_groups.methylboronic_acid",
+      "name": "Methylboronic acid",
+      "smiles": "CB(O)O",
+      "tags": [
+        "boronic acid"
+      ]
+    },
+    {
+      "id": "functional_groups.trimethylborate",
+      "name": "Trimethyl borate",
+      "smiles": "COB(OC)OC",
+      "tags": [
+        "borate"
+      ]
+    },
+    {
+      "id": "functional_groups.triphenylphosphine_oxide",
+      "name": "Triphenylphosphine oxide",
+      "smiles": "O=P(c1ccccc1)(c1ccccc1)c1ccccc1",
+      "tags": [
+        "phosphine oxide"
+      ]
+    },
+    {
+      "id": "functional_groups.trimethyl_phosphate",
+      "name": "Trimethyl phosphate",
+      "smiles": "COP(=O)(OC)OC",
+      "tags": [
+        "phosphate"
+      ]
+    },
+    {
+      "id": "functional_groups.triethyl_phosphate",
+      "name": "Triethyl phosphate",
+      "smiles": "CCOP(=O)(OCC)OCC",
+      "tags": [
+        "phosphate"
+      ]
+    },
+    {
+      "id": "functional_groups.dimethyl_sulfate",
+      "name": "Dimethyl sulfate",
+      "smiles": "COS(=O)(=O)OC",
+      "tags": [
+        "sulfate"
+      ]
+    },
+    {
+      "id": "functional_groups.diethyl_sulfate",
+      "name": "Diethyl sulfate",
+      "smiles": "CCOS(=O)(=O)OCC",
+      "tags": [
+        "sulfate"
+      ]
+    },
+    {
+      "id": "functional_groups.methyl_tosylate",
+      "name": "Methyl 4-methylbenzenesulfonate",
+      "smiles": "COS(=O)(=O)c1ccc(C)cc1",
+      "tags": [
+        "sulfonate"
+      ]
+    },
+    {
+      "id": "functional_groups.ethyl_tosylate",
+      "name": "Ethyl 4-methylbenzenesulfonate",
+      "smiles": "CCOS(=O)(=O)c1ccc(C)cc1",
+      "tags": [
+        "sulfonate"
+      ]
+    },
+    {
+      "id": "functional_groups.benzenesulfonamide",
+      "name": "Benzenesulfonamide",
+      "smiles": "NS(=O)(=O)c1ccccc1",
+      "tags": [
+        "sulfonamide"
+      ]
+    },
+    {
+      "id": "functional_groups.p_toluenesulfonamide",
+      "name": "4-Methylbenzenesulfonamide",
+      "smiles": "Cc1ccc(S(N)(=O)=O)cc1",
+      "tags": [
+        "sulfonamide"
+      ]
+    },
+    {
+      "id": "functional_groups.methanesulfonamide",
+      "name": "Methanesulfonamide",
+      "smiles": "CS(N)(=O)=O",
+      "tags": [
+        "sulfonamide"
+      ]
+    },
+    {
+      "id": "functional_groups.guanidine",
+      "name": "Guanidine",
+      "smiles": "N=C(N)N",
+      "tags": [
+        "guanidine"
+      ]
+    },
+    {
+      "id": "functional_groups.cyanamide",
+      "name": "Cyanamide",
+      "smiles": "N#CN",
+      "tags": [
+        "nitrile"
+      ]
+    },
+    {
+      "id": "functional_groups.dicyandiamide",
+      "name": "Cyanoguanidine",
+      "smiles": "N#CNC(=N)N",
+      "tags": [
+        "guanidine"
+      ]
+    },
+    {
+      "id": "functional_groups.biuret",
+      "name": "Biuret",
+      "smiles": "NC(=O)NC(N)=O",
+      "tags": [
+        "amide"
+      ]
+    },
+    {
+      "id": "functional_groups.ethyl_carbamate",
+      "name": "Ethyl carbamate",
+      "smiles": "CCOC(N)=O",
+      "tags": [
+        "carbamate"
+      ]
+    },
+    {
+      "id": "functional_groups.methyl_carbamate",
+      "name": "Methyl carbamate",
+      "smiles": "COC(N)=O",
+      "tags": [
+        "carbamate"
+      ]
+    },
+    {
+      "id": "functional_groups.phenyl_chloroformate",
+      "name": "Phenyl chloroformate",
+      "smiles": "O=C(Cl)Oc1ccccc1",
+      "tags": [
+        "chloroformate"
+      ]
+    },
+    {
+      "id": "functional_groups.ethyl_chloroformate",
+      "name": "Ethyl chloroformate",
+      "smiles": "CCOC(=O)Cl",
+      "tags": [
+        "chloroformate"
+      ]
+    },
+    {
+      "id": "functional_groups.methyl_chloroformate",
+      "name": "Methyl chloroformate",
+      "smiles": "COC(=O)Cl",
+      "tags": [
+        "chloroformate"
+      ]
+    },
+    {
+      "id": "functional_groups.phosgene",
+      "name": "Carbonyl dichloride",
+      "smiles": "O=C(Cl)Cl",
+      "tags": [
+        "acid chloride"
+      ]
+    },
+    {
+      "id": "functional_groups.thiophosgene",
+      "name": "Thiocarbonyl dichloride",
+      "smiles": "S=C(Cl)Cl",
+      "tags": [
+        "acid chloride"
+      ]
+    },
+    {
+      "id": "functional_groups.acetyl_chloride",
+      "name": "Acetyl chloride",
+      "smiles": "CC(=O)Cl",
+      "tags": [
+        "acid chloride"
+      ]
+    },
+    {
+      "id": "functional_groups.propionyl_chloride",
+      "name": "Propanoyl chloride",
+      "smiles": "CCC(=O)Cl",
+      "tags": [
+        "acid chloride"
+      ]
+    },
+    {
+      "id": "functional_groups.pivaloyl_chloride",
+      "name": "2,2-Dimethylpropanoyl chloride",
+      "smiles": "CC(C)(C)C(=O)Cl",
+      "tags": [
+        "acid chloride"
+      ]
+    },
+    {
+      "id": "functional_groups.pivalic_acid",
+      "name": "2,2-Dimethylpropanoic acid",
+      "smiles": "CC(C)(C)C(=O)O",
+      "tags": [
+        "carboxylic acid"
+      ]
+    },
+    {
+      "id": "functional_groups.isobutyric_acid",
+      "name": "2-Methylpropanoic acid",
+      "smiles": "CC(C)C(=O)O",
+      "tags": [
+        "carboxylic acid"
+      ]
+    },
+    {
+      "id": "functional_groups.crotonic_acid",
+      "name": "trans-But-2-enoic acid",
+      "smiles": "C/C=C/C(=O)O",
+      "tags": [
+        "carboxylic acid"
+      ]
+    },
+    {
+      "id": "functional_groups.itaconic_acid",
+      "name": "2-Methylidenebutanedioic acid",
+      "smiles": "C=C(CC(=O)O)C(=O)O",
+      "tags": [
+        "carboxylic acid"
+      ]
+    },
+    {
+      "id": "functional_groups.aconitic_acid",
+      "name": "Prop-1-ene-1,2,3-tricarboxylic acid",
+      "smiles": "O=C(O)CC(=CC(=O)O)C(=O)O",
+      "tags": [
+        "carboxylic acid"
+      ]
+    },
+    {
+      "id": "functional_groups.levulinic_acid",
+      "name": "4-Oxopentanoic acid",
+      "smiles": "CC(=O)CCC(=O)O",
+      "tags": [
+        "carboxylic acid"
+      ]
+    },
+    {
+      "id": "functional_groups.glycolic_acid",
+      "name": "Hydroxyacetic acid",
+      "smiles": "OCC(=O)O",
+      "tags": [
+        "carboxylic acid"
+      ]
+    },
+    {
+      "id": "functional_groups.glyoxylic_acid",
+      "name": "Oxoacetic acid",
+      "smiles": "O=CC(=O)O",
+      "tags": [
+        "carboxylic acid"
+      ]
+    },
+    {
+      "id": "functional_groups.mandelic_acid",
+      "name": "2-Hydroxy-2-phenylacetic acid",
+      "smiles": "O=C(O)C(O)c1ccccc1",
+      "tags": [
+        "carboxylic acid"
+      ]
+    },
+    {
+      "id": "functional_groups.hippuric_acid",
+      "name": "N-Benzoylglycine",
+      "smiles": "O=C(O)CNC(=O)c1ccccc1",
+      "tags": [
+        "amide"
+      ]
+    },
+    {
+      "id": "functional_groups.anthranilic_acid",
+      "name": "2-Aminobenzoic acid",
+      "smiles": "Nc1ccccc1C(=O)O",
+      "tags": [
+        "carboxylic acid"
+      ]
+    },
+    {
+      "id": "functional_groups.p_aminobenzoic_acid",
+      "name": "4-Aminobenzoic acid",
+      "smiles": "Nc1ccc(C(=O)O)cc1",
+      "tags": [
+        "carboxylic acid"
+      ]
+    },
+    {
+      "id": "functional_groups.p_nitrobenzoic_acid",
+      "name": "4-Nitrobenzoic acid",
+      "smiles": "O=[N+]([O-])c1ccc(C(=O)O)cc1",
+      "tags": [
+        "carboxylic acid"
+      ]
+    },
+    {
+      "id": "functional_groups.p_toluic_acid",
+      "name": "4-Methylbenzoic acid",
+      "smiles": "Cc1ccc(C(=O)O)cc1",
+      "tags": [
+        "carboxylic acid"
+      ]
+    },
+    {
+      "id": "functional_groups.o_toluic_acid",
+      "name": "2-Methylbenzoic acid",
+      "smiles": "Cc1ccccc1C(=O)O",
+      "tags": [
+        "carboxylic acid"
+      ]
+    },
+    {
+      "id": "functional_groups.trimesic_acid",
+      "name": "Benzene-1,3,5-tricarboxylic acid",
+      "smiles": "O=C(O)c1cc(C(=O)O)cc(C(=O)O)c1",
+      "tags": [
+        "carboxylic acid"
+      ]
+    },
+    {
+      "id": "functional_groups.pyromellitic_acid",
+      "name": "Benzene-1,2,4,5-tetracarboxylic acid",
+      "smiles": "O=C(O)c1cc(C(=O)O)c(C(=O)O)cc1C(=O)O",
+      "tags": [
+        "carboxylic acid"
+      ]
+    },
+    {
+      "id": "functional_groups.naphthalene_1_carboxylic_acid",
+      "name": "Naphthalene-1-carboxylic acid",
+      "smiles": "O=C(O)c1cccc2ccccc12",
+      "tags": [
+        "carboxylic acid"
+      ]
+    },
+    {
+      "id": "functional_groups.naphthalene_2_carboxylic_acid",
+      "name": "Naphthalene-2-carboxylic acid",
+      "smiles": "O=C(O)c1ccc2ccccc2c1",
+      "tags": [
+        "carboxylic acid"
+      ]
+    },
+    {
+      "id": "functional_groups.1_naphthol",
+      "name": "Naphthalen-1-ol",
+      "smiles": "Oc1cccc2ccccc12",
+      "tags": [
+        "phenol"
+      ]
+    },
+    {
+      "id": "functional_groups.2_naphthol",
+      "name": "Naphthalen-2-ol",
+      "smiles": "Oc1ccc2ccccc2c1",
+      "tags": [
+        "phenol"
+      ]
+    },
+    {
+      "id": "functional_groups.1_naphthylamine",
+      "name": "Naphthalen-1-amine",
+      "smiles": "Nc1cccc2ccccc12",
+      "tags": [
+        "amine"
+      ]
+    },
+    {
+      "id": "functional_groups.2_naphthylamine",
+      "name": "Naphthalen-2-amine",
+      "smiles": "Nc1ccc2ccccc2c1",
+      "tags": [
+        "amine"
+      ]
+    },
+    {
+      "id": "functional_groups.9_anthracenemethanol",
+      "name": "Anthracen-9-ylmethanol",
+      "smiles": "OCc1c2ccccc2cc2ccccc12",
+      "tags": [
+        "alcohol"
+      ]
+    },
+    {
+      "id": "functional_groups.fluorene_9_methanol",
+      "name": "9H-Fluoren-9-ylmethanol",
+      "smiles": "OCC1c2ccccc2-c2ccccc21",
+      "tags": [
+        "alcohol"
+      ]
+    },
+    {
+      "id": "functional_groups.triphenylmethane",
+      "name": "Triphenylmethane",
+      "smiles": "c1ccc(C(c2ccccc2)c2ccccc2)cc1",
+      "tags": [
+        "aromatic"
+      ]
+    },
+    {
+      "id": "functional_groups.triphenylmethanol",
+      "name": "Triphenylmethanol",
+      "smiles": "OC(c1ccccc1)(c1ccccc1)c1ccccc1",
+      "tags": [
+        "alcohol"
+      ]
+    },
+    {
+      "id": "functional_groups.benzhydrol",
+      "name": "Diphenylmethanol",
+      "smiles": "OC(c1ccccc1)c1ccccc1",
+      "tags": [
+        "alcohol"
+      ]
+    },
+    {
+      "id": "functional_groups.diphenylmethane",
+      "name": "Diphenylmethane",
+      "smiles": "c1ccc(Cc2ccccc2)cc1",
+      "tags": [
+        "aromatic"
+      ]
+    },
+    {
+      "id": "functional_groups.bibenzyl",
+      "name": "1,2-Diphenylethane",
+      "smiles": "c1ccc(CCc2ccccc2)cc1",
+      "tags": [
+        "aromatic"
+      ]
+    },
+    {
+      "id": "functional_groups.trans_azobenzene",
+      "name": "trans-Azobenzene",
+      "smiles": "c1ccc(/N=N/c2ccccc2)cc1",
+      "tags": [
+        "azo"
+      ]
+    },
+    {
+      "id": "functional_groups.nitrosobenzene",
+      "name": "Nitrosobenzene",
+      "smiles": "O=Nc1ccccc1",
+      "tags": [
+        "nitroso"
+      ]
+    },
+    {
+      "id": "functional_groups.2_nitropropane",
+      "name": "2-Nitropropane",
+      "smiles": "CC(C)[N+](=O)[O-]",
+      "tags": [
+        "nitro"
+      ]
+    },
+    {
+      "id": "functional_groups.chloral",
+      "name": "Trichloroacetaldehyde",
+      "smiles": "O=CC(Cl)(Cl)Cl",
+      "tags": [
+        "aldehyde"
+      ]
+    },
+    {
+      "id": "functional_groups.chloral_hydrate",
+      "name": "2,2,2-Trichloroethane-1,1-diol",
+      "smiles": "OC(O)C(Cl)(Cl)Cl",
+      "tags": [
+        "alcohol"
+      ]
+    },
+    {
+      "id": "functional_groups.bromoform",
+      "name": "Tribromomethane",
+      "smiles": "BrC(Br)Br",
+      "tags": [
+        "halide"
+      ]
+    },
+    {
+      "id": "functional_groups.iodoform",
+      "name": "Triiodomethane",
+      "smiles": "IC(I)I",
+      "tags": [
+        "halide"
+      ]
+    },
+    {
+      "id": "functional_groups.fluoroform",
+      "name": "Trifluoromethane",
+      "smiles": "FC(F)F",
+      "tags": [
+        "halide"
+      ]
+    },
+    {
+      "id": "functional_groups.dichlorofluoromethane",
+      "name": "Dichlorofluoromethane",
+      "smiles": "FC(Cl)Cl",
+      "tags": [
+        "halide"
+      ]
+    },
+    {
+      "id": "functional_groups.tetrachloroethylene",
+      "name": "Tetrachloroethene",
+      "smiles": "ClC(Cl)=C(Cl)Cl",
+      "tags": [
+        "alkene"
+      ]
+    },
+    {
+      "id": "functional_groups.trichloroethylene",
+      "name": "Trichloroethene",
+      "smiles": "ClC=C(Cl)Cl",
+      "tags": [
+        "alkene"
+      ]
+    },
+    {
+      "id": "functional_groups.vinyl_chloride",
+      "name": "Chloroethene",
+      "smiles": "C=CCl",
+      "tags": [
+        "alkene"
+      ]
+    },
+    {
+      "id": "functional_groups.vinylidene_chloride",
+      "name": "1,1-Dichloroethene",
+      "smiles": "C=C(Cl)Cl",
+      "tags": [
+        "alkene"
+      ]
+    },
+    {
+      "id": "functional_groups.allyl_chloride",
+      "name": "3-Chloroprop-1-ene",
+      "smiles": "C=CCCl",
+      "tags": [
+        "halide"
+      ]
+    },
+    {
+      "id": "functional_groups.allyl_bromide",
+      "name": "3-Bromoprop-1-ene",
+      "smiles": "C=CCBr",
+      "tags": [
+        "halide"
+      ]
+    },
+    {
+      "id": "functional_groups.propargyl_alcohol",
+      "name": "Prop-2-yn-1-ol",
+      "smiles": "C#CCO",
+      "tags": [
+        "alcohol"
+      ]
+    },
+    {
+      "id": "functional_groups.propargyl_bromide",
+      "name": "3-Bromoprop-1-yne",
+      "smiles": "C#CCBr",
+      "tags": [
+        "halide"
+      ]
+    },
+    {
+      "id": "functional_groups.1_4_dichlorobenzene",
+      "name": "1,4-Dichlorobenzene",
+      "smiles": "Clc1ccc(Cl)cc1",
+      "tags": [
+        "halide"
+      ]
+    },
+    {
+      "id": "functional_groups.1_3_dichlorobenzene",
+      "name": "1,3-Dichlorobenzene",
+      "smiles": "Clc1cccc(Cl)c1",
+      "tags": [
+        "halide"
+      ]
+    },
+    {
+      "id": "functional_groups.hexachlorobenzene",
+      "name": "Hexachlorobenzene",
+      "smiles": "Clc1c(Cl)c(Cl)c(Cl)c(Cl)c1Cl",
+      "tags": [
+        "halide"
+      ]
+    },
+    {
+      "id": "functional_groups.procaine",
+      "name": "Procaine",
+      "smiles": "CCN(CC)CCOC(=O)c1ccc(N)cc1",
+      "tags": [
+        "ester"
+      ]
+    },
+    {
+      "id": "functional_groups.tetracaine",
+      "name": "Tetracaine",
+      "smiles": "CCCCNc1ccc(C(=O)OCCN(C)C)cc1",
+      "tags": [
+        "ester"
+      ]
+    },
+    {
+      "id": "functional_groups.procainamide",
+      "name": "Procainamide",
+      "smiles": "CCN(CC)CCNC(=O)c1ccc(N)cc1",
+      "tags": [
+        "amide"
+      ]
+    },
+    {
+      "id": "functional_groups.valproic_acid",
+      "name": "Valproic acid",
+      "smiles": "CCCC(C(=O)O)CCC",
+      "tags": [
+        "carboxylic acid"
+      ]
+    },
+    {
+      "id": "functional_groups.diphenhydramine",
+      "name": "Diphenhydramine",
+      "smiles": "CN(C)CCOC(c1ccccc1)c1ccccc1",
+      "tags": [
+        "ether"
+      ]
+    },
+    {
+      "id": "functional_groups.guaifenesin",
+      "name": "Guaifenesin",
+      "smiles": "COc1ccccc1OCC(O)CO",
+      "tags": [
+        "ether"
+      ]
+    },
+    {
+      "id": "functional_groups.chloramphenicol",
+      "name": "Chloramphenicol",
+      "smiles": "O=C(N[C@H](CO)[C@H](O)c1ccc([N+](=O)[O-])cc1)C(Cl)Cl",
+      "tags": [
+        "amide"
+      ]
+    },
+    {
+      "id": "functional_groups.fentanyl",
+      "name": "Fentanyl",
+      "smiles": "CCC(=O)N(c1ccccc1)C1CCN(CCc2ccccc2)CC1",
+      "tags": [
+        "amide"
+      ]
+    },
+    {
+      "id": "functional_groups.methadone",
+      "name": "Methadone",
+      "smiles": "CCC(=O)C(CC(C)N(C)C)(c1ccccc1)c1ccccc1",
+      "tags": [
+        "ketone"
+      ]
+    },
+    {
+      "id": "functional_groups.ketamine",
+      "name": "Ketamine",
+      "smiles": "CNC1(c2ccccc2Cl)CCCCC1=O",
+      "tags": [
+        "ketone"
+      ]
+    },
+    {
+      "id": "functional_groups.amitriptyline",
+      "name": "Amitriptyline",
+      "smiles": "CN(C)CCC=C1c2ccccc2CCc2ccccc21",
+      "tags": [
+        "amine"
+      ]
+    },
+    {
+      "id": "functional_groups.haloperidol",
+      "name": "Haloperidol",
+      "smiles": "O=C(CCCN1CCC(O)(c2ccc(Cl)cc2)CC1)c1ccc(F)cc1",
+      "tags": [
+        "ketone"
+      ]
+    },
+    {
+      "id": "functional_groups.fluoxetine",
+      "name": "(S)-Fluoxetine",
+      "smiles": "CNCC[C@H](Oc1ccc(C(F)(F)F)cc1)c1ccccc1",
+      "tags": [
+        "ether"
+      ]
+    },
+    {
+      "id": "functional_groups.gabapentin",
+      "name": "Gabapentin",
+      "smiles": "NCC1(CC(=O)O)CCCCC1",
+      "tags": [
+        "amino acid"
+      ]
+    },
+    {
+      "id": "functional_groups.pregabalin",
+      "name": "(S)-Pregabalin",
+      "smiles": "CC(C)C[C@H](CN)CC(=O)O",
+      "tags": [
+        "amino acid"
+      ]
+    },
+    {
+      "id": "functional_groups.taurine",
+      "name": "Taurine",
+      "smiles": "NCCS(=O)(=O)O",
+      "tags": [
+        "amino acid"
+      ]
+    },
+    {
+      "id": "functional_groups.beta_alanine",
+      "name": "3-Aminopropanoic acid",
+      "smiles": "NCCC(=O)O",
+      "tags": [
+        "amino acid"
+      ]
+    },
+    {
+      "id": "functional_groups.creatine",
+      "name": "Creatine",
+      "smiles": "CN(CC(=O)O)C(=N)N",
+      "tags": [
+        "guanidine"
+      ]
+    },
+    {
+      "id": "functional_groups.carnitine",
+      "name": "L-Carnitine",
+      "smiles": "C[N+](C)(C)C[C@H](O)CC(=O)[O-]",
+      "tags": [
+        "amino acid"
+      ]
+    },
+    {
+      "id": "functional_groups.choline",
+      "name": "Choline",
+      "smiles": "C[N+](C)(C)CCO",
+      "tags": [
+        "amine"
+      ]
+    },
+    {
+      "id": "functional_groups.ethanolamine",
+      "name": "2-Aminoethanol",
+      "smiles": "NCCO",
+      "tags": [
+        "amine"
+      ]
+    },
+    {
+      "id": "functional_groups.sphingosine",
+      "name": "Sphingosine",
+      "smiles": "CCCCCCCCCCCCC/C=C/[C@@H](O)[C@@H](N)CO",
+      "tags": [
+        "lipid"
+      ]
+    },
+    {
+      "id": "functional_groups.ddt",
+      "name": "1,1,1-Trichloro-2,2-bis(4-chlorophenyl)ethane",
+      "smiles": "Clc1ccc(C(c2ccc(Cl)cc2)C(Cl)(Cl)Cl)cc1",
+      "tags": [
+        "halide"
+      ]
+    },
+    {
+      "id": "functional_groups.phloroglucinol",
+      "name": "Phloroglucinol",
+      "smiles": "Oc1cc(O)cc(O)c1",
+      "tags": [
+        "phenol"
+      ]
+    },
+    {
+      "id": "functional_groups.pyrogallol",
+      "name": "Pyrogallol",
+      "smiles": "Oc1cccc(O)c1O",
+      "tags": [
+        "phenol"
+      ]
+    },
+    {
+      "id": "functional_groups.bht",
+      "name": "2,6-Di-tert-butyl-4-methylphenol",
+      "smiles": "Cc1cc(C(C)(C)C)c(O)c(C(C)(C)C)c1",
+      "tags": [
+        "phenol"
+      ]
+    },
+    {
+      "id": "functional_groups.bha",
+      "name": "2-tert-Butyl-4-methoxyphenol",
+      "smiles": "COc1ccc(O)c(C(C)(C)C)c1",
+      "tags": [
+        "phenol"
+      ]
+    },
+    {
+      "id": "functional_groups.phenetole",
+      "name": "Phenetole",
+      "smiles": "CCOc1ccccc1",
+      "tags": [
+        "ether"
+      ]
+    },
+    {
+      "id": "functional_groups.1_4_dimethoxybenzene",
+      "name": "1,4-Dimethoxybenzene",
+      "smiles": "COc1ccc(OC)cc1",
+      "tags": [
+        "ether"
+      ]
+    },
+    {
+      "id": "functional_groups.1_3_dimethoxybenzene",
+      "name": "1,3-Dimethoxybenzene",
+      "smiles": "COc1cccc(OC)c1",
+      "tags": [
+        "ether"
+      ]
+    },
+    {
+      "id": "functional_groups.1_2_3_trimethoxybenzene",
+      "name": "1,2,3-Trimethoxybenzene",
+      "smiles": "COc1cccc(OC)c1OC",
+      "tags": [
+        "ether"
+      ]
+    },
+    {
+      "id": "functional_groups.1_3_5_trimethoxybenzene",
+      "name": "1,3,5-Trimethoxybenzene",
+      "smiles": "COc1cc(OC)cc(OC)c1",
+      "tags": [
+        "ether"
+      ]
+    },
+    {
+      "id": "functional_groups.anisaldehyde",
+      "name": "4-Methoxybenzaldehyde",
+      "smiles": "COc1ccc(C=O)cc1",
+      "tags": [
+        "aldehyde"
+      ]
+    },
+    {
+      "id": "functional_groups.veratraldehyde",
+      "name": "3,4-Dimethoxybenzaldehyde",
+      "smiles": "COc1ccc(C=O)cc1OC",
+      "tags": [
+        "aldehyde"
+      ]
+    },
+    {
+      "id": "functional_groups.salicylaldehyde",
+      "name": "Salicylaldehyde",
+      "smiles": "O=Cc1ccccc1O",
+      "tags": [
+        "aldehyde"
+      ]
+    },
+    {
+      "id": "functional_groups.4_nitroaniline",
+      "name": "4-Nitroaniline",
+      "smiles": "Nc1ccc([N+](=O)[O-])cc1",
+      "tags": [
+        "amine"
+      ]
+    },
+    {
+      "id": "functional_groups.2_nitroaniline",
+      "name": "2-Nitroaniline",
+      "smiles": "Nc1ccccc1[N+](=O)[O-]",
+      "tags": [
+        "amine"
+      ]
+    },
+    {
+      "id": "functional_groups.3_nitroaniline",
+      "name": "3-Nitroaniline",
+      "smiles": "Nc1cccc([N+](=O)[O-])c1",
+      "tags": [
+        "amine"
+      ]
+    },
+    {
+      "id": "functional_groups.4_nitrobenzaldehyde",
+      "name": "4-Nitrobenzaldehyde",
+      "smiles": "O=Cc1ccc([N+](=O)[O-])cc1",
+      "tags": [
+        "aldehyde"
+      ]
+    },
+    {
+      "id": "functional_groups.2_nitrobenzaldehyde",
+      "name": "2-Nitrobenzaldehyde",
+      "smiles": "O=Cc1ccccc1[N+](=O)[O-]",
+      "tags": [
+        "aldehyde"
+      ]
+    },
+    {
+      "id": "functional_groups.4_chlorobenzaldehyde",
+      "name": "4-Chlorobenzaldehyde",
+      "smiles": "O=Cc1ccc(Cl)cc1",
+      "tags": [
+        "aldehyde"
+      ]
+    },
+    {
+      "id": "functional_groups.4_bromobenzaldehyde",
+      "name": "4-Bromobenzaldehyde",
+      "smiles": "O=Cc1ccc(Br)cc1",
+      "tags": [
+        "aldehyde"
+      ]
+    },
+    {
+      "id": "functional_groups.4_fluorobenzaldehyde",
+      "name": "4-Fluorobenzaldehyde",
+      "smiles": "O=Cc1ccc(F)cc1",
+      "tags": [
+        "aldehyde"
+      ]
+    },
+    {
+      "id": "functional_groups.4_methoxybenzoic_acid",
+      "name": "4-Methoxybenzoic acid",
+      "smiles": "COc1ccc(C(=O)O)cc1",
+      "tags": [
+        "carboxylic acid"
+      ]
+    },
+    {
+      "id": "functional_groups.4_hydroxybenzoic_acid",
+      "name": "4-Hydroxybenzoic acid",
+      "smiles": "O=C(O)c1ccc(O)cc1",
+      "tags": [
+        "carboxylic acid"
+      ]
+    },
+    {
+      "id": "functional_groups.3_hydroxybenzoic_acid",
+      "name": "3-Hydroxybenzoic acid",
+      "smiles": "O=C(O)c1cccc(O)c1",
+      "tags": [
+        "carboxylic acid"
+      ]
+    },
+    {
+      "id": "functional_groups.protocatechuic_acid",
+      "name": "Protocatechuic acid",
+      "smiles": "O=C(O)c1ccc(O)c(O)c1",
+      "tags": [
+        "carboxylic acid"
+      ]
+    },
+    {
+      "id": "functional_groups.vanillic_acid",
+      "name": "Vanillic acid",
+      "smiles": "COc1cc(C(=O)O)ccc1O",
+      "tags": [
+        "carboxylic acid"
+      ]
+    },
+    {
+      "id": "functional_groups.syringic_acid",
+      "name": "Syringic acid",
+      "smiles": "COc1cc(C(=O)O)cc(OC)c1O",
+      "tags": [
+        "carboxylic acid"
+      ]
+    },
+    {
+      "id": "functional_groups.gentisic_acid",
+      "name": "Gentisic acid",
+      "smiles": "O=C(O)c1cc(O)ccc1O",
+      "tags": [
+        "carboxylic acid"
+      ]
+    },
+    {
+      "id": "functional_groups.4_tert_butylphenol",
+      "name": "4-tert-Butylphenol",
+      "smiles": "CC(C)(C)c1ccc(O)cc1",
+      "tags": [
+        "phenol"
+      ]
+    },
+    {
+      "id": "functional_groups.pentafluorobenzene",
+      "name": "Pentafluorobenzene",
+      "smiles": "Fc1c(F)c(F)c(F)c(F)c1",
+      "tags": [
+        "halide"
+      ]
+    },
+    {
+      "id": "functional_groups.hexafluorobenzene",
+      "name": "Hexafluorobenzene",
+      "smiles": "Fc1c(F)c(F)c(F)c(F)c1F",
+      "tags": [
+        "halide"
+      ]
+    },
+    {
+      "id": "functional_groups.1_3_5_trichlorobenzene",
+      "name": "1,3,5-Trichlorobenzene",
+      "smiles": "Clc1cc(Cl)cc(Cl)c1",
+      "tags": [
+        "halide"
+      ]
+    },
+    {
+      "id": "functional_groups.1_2_4_trichlorobenzene",
+      "name": "1,2,4-Trichlorobenzene",
+      "smiles": "Clc1ccc(Cl)c(Cl)c1",
+      "tags": [
+        "halide"
+      ]
+    },
+    {
+      "id": "functional_groups.1_nitropropane",
+      "name": "1-Nitropropane",
+      "smiles": "CCC[N+](=O)[O-]",
+      "tags": [
+        "nitro"
+      ]
+    },
+    {
+      "id": "functional_groups.2_nitrophenol",
+      "name": "2-Nitrophenol",
+      "smiles": "Oc1ccccc1[N+](=O)[O-]",
+      "tags": [
+        "phenol"
+      ]
+    },
+    {
+      "id": "functional_groups.3_nitrophenol",
+      "name": "3-Nitrophenol",
+      "smiles": "Oc1cccc([N+](=O)[O-])c1",
+      "tags": [
+        "phenol"
+      ]
+    },
+    {
+      "id": "functional_groups.2_4_dinitrophenol",
+      "name": "2,4-Dinitrophenol",
+      "smiles": "Oc1ccc([N+](=O)[O-])cc1[N+](=O)[O-]",
+      "tags": [
+        "phenol"
+      ]
+    },
+    {
+      "id": "functional_groups.4_chloroaniline",
+      "name": "4-Chloroaniline",
+      "smiles": "Nc1ccc(Cl)cc1",
+      "tags": [
+        "amine"
+      ]
+    },
+    {
+      "id": "functional_groups.2_chloroaniline",
+      "name": "2-Chloroaniline",
+      "smiles": "Nc1ccccc1Cl",
+      "tags": [
+        "amine"
+      ]
+    },
+    {
+      "id": "functional_groups.4_bromoaniline",
+      "name": "4-Bromoaniline",
+      "smiles": "Nc1ccc(Br)cc1",
+      "tags": [
+        "amine"
+      ]
+    },
+    {
+      "id": "functional_groups.4_fluoroaniline",
+      "name": "4-Fluoroaniline",
+      "smiles": "Nc1ccc(F)cc1",
+      "tags": [
+        "amine"
+      ]
+    },
+    {
+      "id": "functional_groups.4_iodoaniline",
+      "name": "4-Iodoaniline",
+      "smiles": "Nc1ccc(I)cc1",
+      "tags": [
+        "amine"
+      ]
+    },
+    {
+      "id": "functional_groups.1_chloro_4_nitrobenzene",
+      "name": "1-Chloro-4-nitrobenzene",
+      "smiles": "O=[N+]([O-])c1ccc(Cl)cc1",
+      "tags": [
+        "nitro"
+      ]
+    },
+    {
+      "id": "functional_groups.1_bromo_4_nitrobenzene",
+      "name": "1-Bromo-4-nitrobenzene",
+      "smiles": "O=[N+]([O-])c1ccc(Br)cc1",
+      "tags": [
+        "nitro"
+      ]
+    },
+    {
+      "id": "functional_groups.1_fluoro_4_nitrobenzene",
+      "name": "1-Fluoro-4-nitrobenzene",
+      "smiles": "O=[N+]([O-])c1ccc(F)cc1",
+      "tags": [
+        "nitro"
+      ]
+    },
+    {
+      "id": "functional_groups.phenacetin",
+      "name": "Phenacetin",
+      "smiles": "CCOc1ccc(NC(C)=O)cc1",
+      "tags": [
+        "amide"
+      ]
+    },
+    {
+      "id": "functional_groups.methyl_salicylate",
+      "name": "Methyl salicylate",
+      "smiles": "COC(=O)c1ccccc1O",
+      "tags": [
+        "ester"
+      ]
+    },
+    {
+      "id": "functional_groups.ethyl_salicylate",
+      "name": "Ethyl salicylate",
+      "smiles": "CCOC(=O)c1ccccc1O",
+      "tags": [
+        "ester"
+      ]
+    },
+    {
+      "id": "functional_groups.2_hydroxyacetophenone",
+      "name": "2-Hydroxyacetophenone",
+      "smiles": "CC(=O)c1ccccc1O",
+      "tags": [
+        "ketone"
+      ]
+    },
+    {
+      "id": "functional_groups.4_hydroxyacetophenone",
+      "name": "4-Hydroxyacetophenone",
+      "smiles": "CC(=O)c1ccc(O)cc1",
+      "tags": [
+        "ketone"
+      ]
+    },
+    {
+      "id": "functional_groups.4_aminoacetophenone",
+      "name": "4-Aminoacetophenone",
+      "smiles": "CC(=O)c1ccc(N)cc1",
+      "tags": [
+        "ketone"
+      ]
+    },
+    {
+      "id": "functional_groups.methyl_paraben",
+      "name": "Methyl 4-hydroxybenzoate",
+      "smiles": "COC(=O)c1ccc(O)cc1",
+      "tags": [
+        "ester"
+      ]
+    },
+    {
+      "id": "functional_groups.ethyl_paraben",
+      "name": "Ethyl 4-hydroxybenzoate",
+      "smiles": "CCOC(=O)c1ccc(O)cc1",
+      "tags": [
+        "ester"
+      ]
+    },
+    {
+      "id": "functional_groups.propyl_paraben",
+      "name": "Propyl 4-hydroxybenzoate",
+      "smiles": "CCCOC(=O)c1ccc(O)cc1",
+      "tags": [
+        "ester"
+      ]
+    },
+    {
+      "id": "functional_groups.butyl_paraben",
+      "name": "Butyl 4-hydroxybenzoate",
+      "smiles": "CCCCOC(=O)c1ccc(O)cc1",
+      "tags": [
+        "ester"
+      ]
+    },
+    {
+      "id": "functional_groups.1_naphthaldehyde",
+      "name": "1-Naphthaldehyde",
+      "smiles": "O=Cc1cccc2ccccc12",
+      "tags": [
+        "aldehyde"
+      ]
+    },
+    {
+      "id": "functional_groups.2_naphthaldehyde",
+      "name": "2-Naphthaldehyde",
+      "smiles": "O=Cc1ccc2ccccc2c1",
+      "tags": [
+        "aldehyde"
+      ]
+    },
+    {
+      "id": "functional_groups.benzoin",
+      "name": "Benzoin",
+      "smiles": "O=C(C(O)c1ccccc1)c1ccccc1",
+      "tags": [
+        "ketone"
+      ]
+    },
+    {
+      "id": "functional_groups.benzil",
+      "name": "Benzil",
+      "smiles": "O=C(C(=O)c1ccccc1)c1ccccc1",
+      "tags": [
+        "ketone"
+      ]
+    },
+    {
+      "id": "functional_groups.dimedone",
+      "name": "Dimedone",
+      "smiles": "CC1(C)CC(=O)CC(=O)C1",
+      "tags": [
+        "ketone"
+      ]
+    },
+    {
+      "id": "functional_groups.cyclohexane_1_3_dione",
+      "name": "Cyclohexane-1,3-dione",
+      "smiles": "O=C1CCCC(=O)C1",
+      "tags": [
+        "ketone"
+      ]
+    },
+    {
+      "id": "functional_groups.cyclohexane_1_4_dione",
+      "name": "Cyclohexane-1,4-dione",
+      "smiles": "O=C1CCC(=O)CC1",
+      "tags": [
+        "ketone"
+      ]
+    },
+    {
+      "id": "functional_groups.tropone",
+      "name": "Tropone",
+      "smiles": "O=C1C=CC=CC=C1",
+      "tags": [
+        "ketone"
+      ]
+    },
+    {
+      "id": "functional_groups.tropolone",
+      "name": "Tropolone",
+      "smiles": "O=c1cccccc1O",
+      "tags": [
+        "phenol"
+      ]
+    },
+    {
+      "id": "functional_groups.1_5_cyclooctadiene",
+      "name": "1,5-Cyclooctadiene",
+      "smiles": "C1CC=CCCC=C1",
+      "tags": [
+        "alkene"
+      ]
+    },
+    {
+      "id": "functional_groups.cyclooctatetraene",
+      "name": "Cyclooctatetraene",
+      "smiles": "C1=CC=CC=CC=C1",
+      "tags": [
+        "alkene"
+      ]
+    },
+    {
+      "id": "functional_groups.edta",
+      "name": "Ethylenediaminetetraacetic acid",
+      "smiles": "O=C(O)CN(CCN(CC(=O)O)CC(=O)O)CC(=O)O",
+      "tags": [
+        "carboxylic acid"
+      ]
+    },
+    {
+      "id": "functional_groups.n_n_dimethylurea",
+      "name": "N,N'-Dimethylurea",
+      "smiles": "CNC(=O)NC",
+      "tags": [
+        "urea"
+      ]
+    },
+    {
+      "id": "functional_groups.2_phenylethanol",
+      "name": "2-Phenylethanol",
+      "smiles": "OCCc1ccccc1",
+      "tags": [
+        "alcohol"
+      ]
+    },
+    {
+      "id": "functional_groups.pentaerythritol",
+      "name": "Pentaerythritol",
+      "smiles": "OCC(CO)(CO)CO",
+      "tags": [
+        "alcohol"
+      ]
+    },
+    {
+      "id": "functional_groups.trimethylolpropane",
+      "name": "Trimethylolpropane",
+      "smiles": "CCC(CO)(CO)CO",
+      "tags": [
+        "alcohol"
+      ]
+    },
+    {
+      "id": "functional_groups.propane_1_3_diamine",
+      "name": "Propane-1,3-diamine",
+      "smiles": "NCCCN",
+      "tags": [
+        "amine"
+      ]
+    },
+    {
+      "id": "functional_groups.butane_1_4_diamine",
+      "name": "Butane-1,4-diamine",
+      "smiles": "NCCCCN",
+      "tags": [
+        "amine"
+      ]
+    },
+    {
+      "id": "functional_groups.pentane_1_5_diamine",
+      "name": "Pentane-1,5-diamine",
+      "smiles": "NCCCCCN",
+      "tags": [
+        "amine"
+      ]
+    },
+    {
+      "id": "functional_groups.hexane_1_6_diamine",
+      "name": "Hexane-1,6-diamine",
+      "smiles": "NCCCCCCN",
+      "tags": [
+        "amine"
+      ]
+    },
+    {
+      "id": "functional_groups.spermidine",
+      "name": "Spermidine",
+      "smiles": "NCCCCNCCCN",
+      "tags": [
+        "amine"
+      ]
+    },
+    {
+      "id": "functional_groups.spermine",
+      "name": "Spermine",
+      "smiles": "NCCCNCCCCNCCCN",
+      "tags": [
+        "amine"
+      ]
+    },
+    {
+      "id": "functional_groups.methyl_orange",
+      "name": "Methyl orange",
+      "smiles": "CN(C)c1ccc(N=Nc2ccc(S(=O)(=O)O)cc2)cc1",
+      "tags": [
+        "dye"
+      ]
+    },
+    {
+      "id": "functional_groups.methyl_red",
+      "name": "Methyl red",
+      "smiles": "CN(C)c1ccc(N=Nc2ccccc2C(=O)O)cc1",
+      "tags": [
+        "dye"
+      ]
+    },
+    {
+      "id": "functional_groups.diclofenac",
+      "name": "Diclofenac",
+      "smiles": "O=C(O)Cc1ccccc1Nc1c(Cl)cccc1Cl",
+      "tags": [
+        "carboxylic acid"
+      ]
+    },
+    {
+      "id": "functional_groups.verapamil",
+      "name": "Verapamil",
+      "smiles": "COc1ccc(CCN(C)CCCC(C#N)(c2ccc(OC)c(OC)c2)C(C)C)cc1OC",
+      "tags": [
+        "nitrile"
+      ]
+    },
+    {
+      "id": "functional_groups.propranolol",
+      "name": "(S)-Propranolol",
+      "smiles": "CC(C)NC[C@@H](O)COc1cccc2ccccc12",
+      "tags": [
+        "alcohol"
+      ]
+    },
+    {
+      "id": "functional_groups.atenolol",
+      "name": "Atenolol",
+      "smiles": "CC(C)NCC(O)COc1ccc(CC(N)=O)cc1",
+      "tags": [
+        "amide"
+      ]
+    },
+    {
+      "id": "functional_groups.metoprolol",
+      "name": "Metoprolol",
+      "smiles": "CC(C)NCC(O)COc1ccc(CCOC)cc1",
+      "tags": [
+        "alcohol"
+      ]
+    },
+    {
+      "id": "functional_groups.sertraline",
+      "name": "(1S,4S)-Sertraline",
+      "smiles": "CN[C@H]1CC[C@@H](c2ccc(Cl)c(Cl)c2)c2ccccc21",
+      "tags": [
+        "amine"
+      ]
+    },
+    {
+      "id": "functional_groups.bupropion",
+      "name": "Bupropion",
+      "smiles": "CC(NC(C)(C)C)C(=O)c1cccc(Cl)c1",
+      "tags": [
+        "ketone"
+      ]
+    },
+    {
+      "id": "functional_groups.tramadol",
+      "name": "Tramadol",
+      "smiles": "COc1cccc(C2(O)CCCCC2CN(C)C)c1",
+      "tags": [
+        "amine"
+      ]
+    },
+    {
+      "id": "functional_groups.5_aminolevulinic_acid",
+      "name": "5-Aminolevulinic acid",
+      "smiles": "NCC(=O)CCC(=O)O",
+      "tags": [
+        "amino acid"
+      ]
+    },
+    {
+      "id": "functional_groups.trans_urocanic_acid",
+      "name": "trans-Urocanic acid",
+      "smiles": "O=C(O)/C=C/c1c[nH]cn1",
+      "tags": [
+        "alkene"
+      ]
+    },
+    {
+      "id": "functional_groups.phenylacetic_acid",
+      "name": "Phenylacetic acid",
+      "smiles": "O=C(O)Cc1ccccc1",
+      "tags": [
+        "carboxylic acid"
+      ]
+    },
+    {
+      "id": "functional_groups.hydrocinnamic_acid",
+      "name": "3-Phenylpropionic acid",
+      "smiles": "O=C(O)CCc1ccccc1",
+      "tags": [
+        "carboxylic acid"
+      ]
+    },
+    {
+      "id": "functional_groups.cinnamyl_alcohol",
+      "name": "Cinnamyl alcohol",
+      "smiles": "OC/C=C/c1ccccc1",
+      "tags": [
+        "alcohol"
+      ]
+    },
+    {
+      "id": "functional_groups.phenylacetaldehyde",
+      "name": "Phenylacetaldehyde",
+      "smiles": "O=CCc1ccccc1",
+      "tags": [
+        "aldehyde"
+      ]
+    },
+    {
+      "id": "functional_groups.hydroquinone_monomethyl_ether",
+      "name": "4-Methoxyphenol",
+      "smiles": "COc1ccc(O)cc1",
+      "tags": [
+        "phenol"
+      ]
+    },
+    {
+      "id": "functional_groups.creosol",
+      "name": "2-Methoxy-4-methylphenol",
+      "smiles": "COc1cc(C)ccc1O",
+      "tags": [
+        "phenol"
+      ]
+    },
+    {
+      "id": "functional_groups.methyleugenol",
+      "name": "Methyleugenol",
+      "smiles": "COc1ccc(CC=C)cc1OC",
+      "tags": [
+        "ether"
+      ]
+    },
+    {
+      "id": "functional_groups.isosafrole",
+      "name": "Isosafrole",
+      "smiles": "C/C=C/c1ccc2c(c1)OCO2",
+      "tags": [
+        "alkene"
+      ]
+    },
+    {
+      "id": "functional_groups.sesamol",
+      "name": "Sesamol",
+      "smiles": "Oc1ccc2c(c1)OCO2",
+      "tags": [
+        "phenol"
+      ]
+    },
+    {
+      "id": "functional_groups.piperonyl_alcohol",
+      "name": "Piperonyl alcohol",
+      "smiles": "OCc1ccc2c(c1)OCO2",
+      "tags": [
+        "alcohol"
+      ]
+    },
+    {
+      "id": "functional_groups.piperonylic_acid",
+      "name": "Piperonylic acid",
+      "smiles": "O=C(O)c1ccc2c(c1)OCO2",
+      "tags": [
+        "carboxylic acid"
+      ]
+    },
+    {
+      "id": "functional_groups.vanillyl_alcohol",
+      "name": "Vanillyl alcohol",
+      "smiles": "COc1cc(CO)ccc1O",
+      "tags": [
+        "alcohol"
+      ]
+    },
+    {
+      "id": "functional_groups.vanillylamine",
+      "name": "Vanillylamine",
+      "smiles": "COc1cc(CN)ccc1O",
+      "tags": [
+        "amine"
+      ]
+    },
+    {
+      "id": "functional_groups.syringaldehyde",
+      "name": "Syringaldehyde",
+      "smiles": "COc1cc(C=O)cc(OC)c1O",
+      "tags": [
+        "aldehyde"
+      ]
+    },
+    {
+      "id": "functional_groups.sinapaldehyde",
+      "name": "Sinapaldehyde",
+      "smiles": "COc1cc(/C=C/C=O)cc(OC)c1O",
+      "tags": [
+        "aldehyde"
+      ]
+    },
+    {
+      "id": "functional_groups.coniferaldehyde",
+      "name": "Coniferaldehyde",
+      "smiles": "COc1cc(/C=C/C=O)ccc1O",
+      "tags": [
+        "aldehyde"
+      ]
+    },
+    {
+      "id": "functional_groups.coniferyl_alcohol",
+      "name": "Coniferyl alcohol",
+      "smiles": "COc1cc(/C=C/CO)ccc1O",
+      "tags": [
+        "alcohol"
+      ]
+    },
+    {
+      "id": "functional_groups.sinapyl_alcohol",
+      "name": "Sinapyl alcohol",
+      "smiles": "COc1cc(/C=C/CO)cc(OC)c1O",
+      "tags": [
+        "alcohol"
+      ]
+    },
+    {
+      "id": "functional_groups.p_coumaryl_alcohol",
+      "name": "p-Coumaryl alcohol",
+      "smiles": "Oc1ccc(/C=C/CO)cc1",
+      "tags": [
+        "alcohol"
+      ]
+    },
+    {
+      "id": "functional_groups.apocynin",
+      "name": "Apocynin",
+      "smiles": "COc1cc(C(C)=O)ccc1O",
+      "tags": [
+        "ketone"
+      ]
+    },
+    {
+      "id": "functional_groups.zingerone",
+      "name": "Zingerone",
+      "smiles": "COc1cc(CCC(C)=O)ccc1O",
+      "tags": [
+        "ketone"
+      ]
+    },
+    {
+      "id": "functional_groups.gingerol",
+      "name": "(6)-Gingerol",
+      "smiles": "COc1cc(C[C@@H](O)CCCCC)ccc1O",
+      "tags": [
+        "phenol"
+      ]
+    },
+    {
+      "id": "functional_groups.dihydrocapsaicin",
+      "name": "Dihydrocapsaicin",
+      "smiles": "COc1cc(CNC(=O)CCCCCCCC(C)C)ccc1O",
+      "tags": [
+        "amide"
+      ]
+    },
+    {
+      "id": "functional_groups.nonivamide",
+      "name": "Nonivamide",
+      "smiles": "COc1cc(CNC(=O)CCCCCCCC)ccc1O",
+      "tags": [
+        "amide"
+      ]
+    },
+    {
+      "id": "functional_groups.oleamide",
+      "name": "Oleamide",
+      "smiles": "CCCCCCCC/C=C\\CCCCCCCC(N)=O",
+      "tags": [
+        "amide"
+      ]
+    },
+    {
+      "id": "functional_groups.stearamide",
+      "name": "Stearamide",
+      "smiles": "CCCCCCCCCCCCCCCCCC(N)=O",
+      "tags": [
+        "amide"
+      ]
+    },
+    {
+      "id": "functional_groups.erucamide",
+      "name": "Erucamide",
+      "smiles": "CCCCCCCC/C=C\\CCCCCCCCCCCC(N)=O",
+      "tags": [
+        "amide"
+      ]
+    },
+    {
+      "id": "functional_groups.anandamide",
+      "name": "Anandamide",
+      "smiles": "CCCCC/C=C\\C/C=C\\C/C=C\\C/C=C\\CCCC(=O)NCCO",
+      "tags": [
+        "amide"
+      ]
+    },
+    {
+      "id": "functional_groups.2_ag",
+      "name": "2-Arachidonoylglycerol",
+      "smiles": "CCCCC/C=C\\C/C=C\\C/C=C\\C/C=C\\CCCC(=O)OCC(O)CO",
+      "tags": [
+        "ester"
+      ]
+    },
+    {
+      "id": "functional_groups.palmitoylethanolamide",
+      "name": "Palmitoylethanolamide",
+      "smiles": "CCCCCCCCCCCCCCCC(=O)NCCO",
+      "tags": [
+        "amide"
+      ]
+    },
+    {
+      "id": "functional_groups.oleoylethanolamide",
+      "name": "Oleoylethanolamide",
+      "smiles": "CCCCCCCC/C=C\\CCCCCCCC(=O)NCCO",
+      "tags": [
+        "amide"
+      ]
+    },
+    {
+      "id": "functional_groups.linoleic_amide",
+      "name": "Linoleamide",
+      "smiles": "CCCCC/C=C\\C/C=C\\CCCCCCCC(N)=O",
+      "tags": [
+        "amide"
+      ]
+    },
+    {
+      "id": "functional_groups.gamma_linolenic_acid",
+      "name": "gamma-Linolenic acid",
+      "smiles": "CC/C=C\\C/C=C\\C/C=C\\CCCCCC(=O)O",
+      "tags": [
+        "carboxylic acid"
+      ]
+    },
+    {
+      "id": "functional_groups.stearidonic_acid",
+      "name": "Stearidonic acid",
+      "smiles": "CC/C=C\\C/C=C\\C/C=C\\C/C=C\\CCCC(=O)O",
+      "tags": [
+        "carboxylic acid"
+      ]
+    },
+    {
+      "id": "functional_groups.eicosapentaenoic_acid",
+      "name": "Icosapentaenoic acid",
+      "smiles": "CC/C=C\\C/C=C\\C/C=C\\C/C=C\\C/C=C\\CCCC(=O)O",
+      "tags": [
+        "carboxylic acid"
+      ]
+    },
+    {
+      "id": "functional_groups.docosahexaenoic_acid",
+      "name": "Docosahexaenoic acid",
+      "smiles": "CC/C=C\\C/C=C\\C/C=C\\C/C=C\\C/C=C\\C/C=C\\CCC(=O)O",
+      "tags": [
+        "carboxylic acid"
+      ]
+    },
+    {
+      "id": "functional_groups.nervonic_acid",
+      "name": "Nervonic acid",
+      "smiles": "CCCCCCCC/C=C\\CCCCCCCCCCCCCC(=O)O",
+      "tags": [
+        "carboxylic acid"
+      ]
+    },
+    {
+      "id": "functional_groups.behenic_acid",
+      "name": "Behenic acid",
+      "smiles": "CCCCCCCCCCCCCCCCCCCCCC(=O)O",
+      "tags": [
+        "carboxylic acid"
+      ]
+    },
+    {
+      "id": "functional_groups.lignoceric_acid",
+      "name": "Lignoceric acid",
+      "smiles": "CCCCCCCCCCCCCCCCCCCCCCCC(=O)O",
+      "tags": [
+        "carboxylic acid"
+      ]
+    },
+    {
+      "id": "functional_groups.cerotic_acid",
+      "name": "Cerotic acid",
+      "smiles": "CCCCCCCCCCCCCCCCCCCCCCCCCC(=O)O",
+      "tags": [
+        "carboxylic acid"
+      ]
+    },
+    {
+      "id": "functional_groups.montanic_acid",
+      "name": "Montanic acid",
+      "smiles": "CCCCCCCCCCCCCCCCCCCCCCCCCCCC(=O)O",
+      "tags": [
+        "carboxylic acid"
+      ]
+    },
+    {
+      "id": "functional_groups.undecanoic_acid",
+      "name": "Undecanoic acid",
+      "smiles": "CCCCCCCCCCC(=O)O",
+      "tags": [
+        "carboxylic acid"
+      ]
+    },
+    {
+      "id": "functional_groups.pelargonic_acid",
+      "name": "Nonanoic acid",
+      "smiles": "CCCCCCCCC(=O)O",
+      "tags": [
+        "carboxylic acid"
+      ]
+    },
+    {
+      "id": "functional_groups.enanthic_acid",
+      "name": "Heptanoic acid",
+      "smiles": "CCCCCCC(=O)O",
+      "tags": [
+        "carboxylic acid"
+      ]
+    },
+    {
+      "id": "functional_groups.undecylenic_acid",
+      "name": "Undec-10-enoic acid",
+      "smiles": "C=CCCCCCCCCC(=O)O",
+      "tags": [
+        "carboxylic acid"
+      ]
+    },
+    {
+      "id": "functional_groups.sorbic_acid",
+      "name": "Sorbic acid",
+      "smiles": "C/C=C/C=C/C(=O)O",
+      "tags": [
+        "carboxylic acid"
+      ]
+    },
+    {
+      "id": "functional_groups.muconic_acid",
+      "name": "trans,trans-Muconic acid",
+      "smiles": "O=C(O)/C=C/C=C/C(=O)O",
+      "tags": [
+        "carboxylic acid"
+      ]
+    },
+    {
+      "id": "functional_groups.mesaconic_acid",
+      "name": "Mesaconic acid",
+      "smiles": "C/C(=C\\C(=O)O)C(=O)O",
+      "tags": [
+        "carboxylic acid"
+      ]
+    },
+    {
+      "id": "functional_groups.citraconic_acid",
+      "name": "Citraconic acid",
+      "smiles": "C/C(=C/C(=O)O)C(=O)O",
+      "tags": [
+        "carboxylic acid"
+      ]
+    },
+    {
+      "id": "functional_groups.glutaconic_acid",
+      "name": "trans-Glutaconic acid",
+      "smiles": "O=C(O)C/C=C/C(=O)O",
+      "tags": [
+        "carboxylic acid"
+      ]
+    },
+    {
+      "id": "functional_groups.suberic_acid",
+      "name": "Suberic acid",
+      "smiles": "O=C(O)CCCCCCC(=O)O",
+      "tags": [
+        "carboxylic acid"
+      ]
+    },
+    {
+      "id": "functional_groups.azelaic_acid",
+      "name": "Azelaic acid",
+      "smiles": "O=C(O)CCCCCCCC(=O)O",
+      "tags": [
+        "carboxylic acid"
+      ]
+    },
+    {
+      "id": "functional_groups.sebacic_acid",
+      "name": "Sebacic acid",
+      "smiles": "O=C(O)CCCCCCCCC(=O)O",
+      "tags": [
+        "carboxylic acid"
+      ]
+    },
+    {
+      "id": "functional_groups.dodecanedioic_acid",
+      "name": "Dodecanedioic acid",
+      "smiles": "O=C(O)CCCCCCCCCCC(=O)O",
+      "tags": [
+        "carboxylic acid"
+      ]
+    },
+    {
+      "id": "functional_groups.brassylic_acid",
+      "name": "Tridecanedioic acid",
+      "smiles": "O=C(O)CCCCCCCCCCCC(=O)O",
+      "tags": [
+        "carboxylic acid"
+      ]
+    },
+    {
+      "id": "functional_groups.thapsic_acid",
+      "name": "Hexadecanedioic acid",
+      "smiles": "O=C(O)CCCCCCCCCCCCCCC(=O)O",
+      "tags": [
+        "carboxylic acid"
+      ]
+    },
+    {
+      "id": "functional_groups.pimelic_acid",
+      "name": "Pimelic acid",
+      "smiles": "O=C(O)CCCCCC(=O)O",
+      "tags": [
+        "carboxylic acid"
+      ]
+    },
+    {
+      "id": "functional_groups.1_3_cyclohexadiene",
+      "name": "Cyclohexa-1,3-diene",
+      "smiles": "C1=CCCC=C1",
+      "tags": [
+        "alkene"
+      ]
+    },
+    {
+      "id": "functional_groups.1_4_cyclohexadiene",
+      "name": "Cyclohexa-1,4-diene",
+      "smiles": "C1=CCC=CC1",
+      "tags": [
+        "alkene"
+      ]
+    },
+    {
+      "id": "functional_groups.fulvene",
+      "name": "Fulvene",
+      "smiles": "C=C1C=CC=C1",
+      "tags": [
+        "alkene"
+      ]
+    },
+    {
+      "id": "functional_groups.6_6_dimethylfulvene",
+      "name": "6,6-Dimethylfulvene",
+      "smiles": "CC(C)=C1C=CC=C1",
+      "tags": [
+        "alkene"
+      ]
+    },
+    {
+      "id": "functional_groups.1_methylcyclohexene",
+      "name": "1-Methylcyclohexene",
+      "smiles": "CC1=CCCCC1",
+      "tags": [
+        "alkene"
+      ]
+    },
+    {
+      "id": "functional_groups.methylenecyclohexane",
+      "name": "Methylenecyclohexane",
+      "smiles": "C=C1CCCCC1",
+      "tags": [
+        "alkene"
+      ]
+    },
+    {
+      "id": "functional_groups.hex_1_ene",
+      "name": "Hex-1-ene",
+      "smiles": "CCCCC=C",
+      "tags": [
+        "alkene"
+      ]
+    },
+    {
+      "id": "functional_groups.oct_1_ene",
+      "name": "Oct-1-ene",
+      "smiles": "CCCCCCC=C",
+      "tags": [
+        "alkene"
+      ]
+    },
+    {
+      "id": "functional_groups.dec_1_ene",
+      "name": "Dec-1-ene",
+      "smiles": "CCCCCCCCC=C",
+      "tags": [
+        "alkene"
+      ]
+    },
+    {
+      "id": "functional_groups.ethylbenzene",
+      "name": "Ethylbenzene",
+      "smiles": "CCc1ccccc1",
+      "tags": [
+        "aromatic"
+      ]
+    },
+    {
+      "id": "functional_groups.cumene",
+      "name": "Cumene",
+      "smiles": "CC(C)c1ccccc1",
+      "tags": [
+        "aromatic"
+      ]
+    },
+    {
+      "id": "functional_groups.n_propylbenzene",
+      "name": "Propylbenzene",
+      "smiles": "CCCc1ccccc1",
+      "tags": [
+        "aromatic"
+      ]
+    },
+    {
+      "id": "functional_groups.tert_butylbenzene",
+      "name": "tert-Butylbenzene",
+      "smiles": "CC(C)(C)c1ccccc1",
+      "tags": [
+        "aromatic"
+      ]
+    },
+    {
+      "id": "functional_groups.alpha_methylstyrene",
+      "name": "2-Phenylpropene",
+      "smiles": "C=C(C)c1ccccc1",
+      "tags": [
+        "alkene"
+      ]
+    },
+    {
+      "id": "functional_groups.4_methylstyrene",
+      "name": "4-Methylstyrene",
+      "smiles": "C=Cc1ccc(C)cc1",
+      "tags": [
+        "alkene"
+      ]
+    },
+    {
+      "id": "functional_groups.hemimellitene",
+      "name": "1,2,3-Trimethylbenzene",
+      "smiles": "Cc1cccc(C)c1C",
+      "tags": [
+        "aromatic"
+      ]
+    },
+    {
+      "id": "functional_groups.pseudocumene",
+      "name": "1,2,4-Trimethylbenzene",
+      "smiles": "Cc1ccc(C)c(C)c1",
+      "tags": [
+        "aromatic"
+      ]
+    },
+    {
+      "id": "functional_groups.isodurene",
+      "name": "1,2,3,5-Tetramethylbenzene",
+      "smiles": "Cc1cc(C)c(C)c(C)c1",
+      "tags": [
+        "aromatic"
+      ]
+    },
+    {
+      "id": "functional_groups.prehnitene",
+      "name": "1,2,3,4-Tetramethylbenzene",
+      "smiles": "Cc1ccc(C)c(C)c1C",
+      "tags": [
+        "aromatic"
+      ]
+    },
+    {
+      "id": "functional_groups.tropic_acid",
+      "name": "Tropic acid",
+      "smiles": "O=C(O)C(CO)c1ccccc1",
+      "tags": [
+        "carboxylic acid"
+      ]
+    },
+    {
+      "id": "functional_groups.tamsulosin",
+      "name": "Tamsulosin",
+      "smiles": "CCOc1ccccc1OCCN[C@H](C)Cc1ccc(OC)c(S(N)(=O)=O)c1",
+      "tags": [
+        "sulfonamide"
+      ]
+    },
+    {
+      "id": "functional_groups.fexofenadine",
+      "name": "Fexofenadine",
+      "smiles": "CC(C)(c1ccc(C(O)CCCN2CCC(C(O)(c3ccccc3)c3ccccc3)CC2)cc1)C(=O)O",
+      "tags": [
+        "carboxylic acid"
+      ]
+    },
+    {
+      "id": "functional_groups.metoclopramide",
+      "name": "Metoclopramide",
+      "smiles": "CCN(CC)CCNC(=O)c1cc(Cl)c(N)cc1OC",
+      "tags": [
+        "amide"
+      ]
+    },
+    {
+      "id": "functional_groups.paroxetine",
+      "name": "(3S,4R)-Paroxetine",
+      "smiles": "Fc1ccc([C@@H]2CCNC[C@H]2COc2ccc3c(c2)OCO3)cc1",
+      "tags": [
+        "amine"
+      ]
+    },
+    {
+      "id": "functional_groups.venlafaxine",
+      "name": "Venlafaxine",
+      "smiles": "COc1ccc(C(CN(C)C)C2(O)CCCCC2)cc1",
+      "tags": [
+        "amine"
+      ]
+    },
+    {
+      "id": "functional_groups.fluvoxamine",
+      "name": "Fluvoxamine",
+      "smiles": "COc1ccc(/C(CCNCCO)=N/OCCCC)cc1C(F)(F)F",
+      "tags": [
+        "oxime"
+      ]
+    },
+    {
+      "id": "functional_groups.nortriptyline",
+      "name": "Nortriptyline",
+      "smiles": "CNCCC=C1c2ccccc2CCc2ccccc21",
+      "tags": [
+        "amine"
+      ]
+    },
+    {
+      "id": "functional_groups.r_salbutamol",
+      "name": "(R)-Salbutamol",
+      "smiles": "CC(C)(C)NC[C@@H](O)c1ccc(O)c(CO)c1",
+      "tags": [
+        "alcohol"
+      ]
+    },
+    {
+      "id": "functional_groups.gemfibrozil",
+      "name": "Gemfibrozil",
+      "smiles": "Cc1ccc(C)c(OCCCC(C)(C)C(=O)O)c1",
+      "tags": [
+        "carboxylic acid"
+      ]
+    },
+    {
+      "id": "functional_groups.fenofibrate",
+      "name": "Fenofibrate",
+      "smiles": "CC(C)OC(=O)C(C)(C)Oc1ccc(C(=O)c2ccc(Cl)cc2)cc1",
+      "tags": [
+        "ester"
+      ]
+    },
+    {
+      "id": "functional_groups.ketoprofen",
+      "name": "Ketoprofen",
+      "smiles": "CC(C(=O)O)c1cccc(C(=O)c2ccccc2)c1",
+      "tags": [
+        "carboxylic acid"
+      ]
+    },
+    {
+      "id": "functional_groups.mefenamic_acid",
+      "name": "Mefenamic acid",
+      "smiles": "Cc1cccc(C)c1Nc1ccccc1C(=O)O",
+      "tags": [
+        "carboxylic acid"
+      ]
+    },
+    {
+      "id": "functional_groups.ethambutol",
+      "name": "(S,S)-Ethambutol",
+      "smiles": "CC[C@@H](CO)NCCN[C@@H](CC)CO",
+      "tags": [
+        "amine"
+      ]
+    },
+    {
+      "id": "functional_groups.dapsone",
+      "name": "Dapsone",
+      "smiles": "Nc1ccc(S(=O)(=O)c2ccc(N)cc2)cc1",
+      "tags": [
+        "sulfonamide"
+      ]
+    },
+    {
+      "id": "functional_groups.oseltamivir",
+      "name": "Oseltamivir",
+      "smiles": "CCOC(=O)C1=C[C@@H](OC(CC)CC)[C@H](NC(C)=O)[C@@H](N)C1",
+      "tags": [
+        "ester"
+      ]
+    },
+    {
+      "id": "functional_groups.nabumetone",
+      "name": "Nabumetone",
+      "smiles": "COc1ccc2cc(CCC(C)=O)ccc2c1",
+      "tags": [
+        "ketone"
+      ]
+    },
+    {
+      "id": "functional_groups.guanfacine",
+      "name": "Guanfacine",
+      "smiles": "NC(=N)NC(=O)Cc1c(Cl)cccc1Cl",
+      "tags": [
+        "guanidine"
+      ]
+    },
+    {
+      "id": "functional_groups.glyceryl_trinitrate",
+      "name": "Propane-1,2,3-triyl trinitrate",
+      "smiles": "O=[N+]([O-])OCC(CO[N+](=O)[O-])O[N+](=O)[O-]",
+      "tags": [
+        "nitrate"
+      ]
+    },
+    {
+      "id": "functional_groups.benzyl_methyl_ether",
+      "name": "Benzyl methyl ether",
+      "smiles": "COCc1ccccc1",
+      "tags": [
+        "ether"
+      ]
+    },
+    {
+      "id": "functional_groups.benzyl_ethyl_ether",
+      "name": "Benzyl ethyl ether",
+      "smiles": "CCOCc1ccccc1",
+      "tags": [
+        "ether"
+      ]
+    },
+    {
+      "id": "functional_groups.pentanal",
+      "name": "Pentanal",
+      "smiles": "CCCCC=O",
+      "tags": [
+        "aldehyde"
+      ]
+    },
+    {
+      "id": "functional_groups.hexanal",
+      "name": "Hexanal",
+      "smiles": "CCCCCC=O",
+      "tags": [
+        "aldehyde"
+      ]
+    },
+    {
+      "id": "functional_groups.heptanal",
+      "name": "Heptanal",
+      "smiles": "CCCCCCC=O",
+      "tags": [
+        "aldehyde"
+      ]
+    },
+    {
+      "id": "functional_groups.octanal",
+      "name": "Octanal",
+      "smiles": "CCCCCCCC=O",
+      "tags": [
+        "aldehyde"
+      ]
+    },
+    {
+      "id": "functional_groups.nonanal",
+      "name": "Nonanal",
+      "smiles": "CCCCCCCCC=O",
+      "tags": [
+        "aldehyde"
+      ]
+    },
+    {
+      "id": "functional_groups.decanal",
+      "name": "Decanal",
+      "smiles": "CCCCCCCCCC=O",
+      "tags": [
+        "aldehyde"
+      ]
+    },
+    {
+      "id": "functional_groups.isobutyraldehyde",
+      "name": "2-Methylpropanal",
+      "smiles": "CC(C)C=O",
+      "tags": [
+        "aldehyde"
+      ]
+    },
+    {
+      "id": "functional_groups.isovaleraldehyde",
+      "name": "3-Methylbutanal",
+      "smiles": "CC(C)CC=O",
+      "tags": [
+        "aldehyde"
+      ]
+    },
+    {
+      "id": "functional_groups.cyclohexanecarboxaldehyde",
+      "name": "Cyclohexanecarbaldehyde",
+      "smiles": "O=CC1CCCCC1",
+      "tags": [
+        "aldehyde"
+      ]
+    },
+    {
+      "id": "functional_groups.hydrocinnamaldehyde",
+      "name": "3-Phenylpropanal",
+      "smiles": "O=CCCc1ccccc1",
+      "tags": [
+        "aldehyde"
+      ]
+    },
+    {
+      "id": "functional_groups.cyclooctanone",
+      "name": "Cyclooctanone",
+      "smiles": "O=C1CCCCCCC1",
+      "tags": [
+        "ketone"
+      ]
+    },
+    {
+      "id": "functional_groups.heptan_2_one",
+      "name": "Heptan-2-one",
+      "smiles": "CCCCCC(C)=O",
+      "tags": [
+        "ketone"
+      ]
+    },
+    {
+      "id": "functional_groups.octan_2_one",
+      "name": "Octan-2-one",
+      "smiles": "CCCCCCC(C)=O",
+      "tags": [
+        "ketone"
+      ]
+    },
+    {
+      "id": "functional_groups.hexan_3_one",
+      "name": "Hexan-3-one",
+      "smiles": "CCCC(=O)CC",
+      "tags": [
+        "ketone"
+      ]
+    },
+    {
+      "id": "functional_groups.heptan_4_one",
+      "name": "Heptan-4-one",
+      "smiles": "CCCC(=O)CCC",
+      "tags": [
+        "ketone"
+      ]
+    },
+    {
+      "id": "functional_groups.propiophenone",
+      "name": "Propiophenone",
+      "smiles": "CCC(=O)c1ccccc1",
+      "tags": [
+        "ketone"
+      ]
+    },
+    {
+      "id": "functional_groups.butyrophenone",
+      "name": "Butyrophenone",
+      "smiles": "CCCC(=O)c1ccccc1",
+      "tags": [
+        "ketone"
+      ]
+    },
+    {
+      "id": "functional_groups.4_methylacetophenone",
+      "name": "4-Methylacetophenone",
+      "smiles": "CC(=O)c1ccc(C)cc1",
+      "tags": [
+        "ketone"
+      ]
+    },
+    {
+      "id": "functional_groups.4_chloroacetophenone",
+      "name": "4-Chloroacetophenone",
+      "smiles": "CC(=O)c1ccc(Cl)cc1",
+      "tags": [
+        "ketone"
+      ]
+    },
+    {
+      "id": "functional_groups.4_bromoacetophenone",
+      "name": "4-Bromoacetophenone",
+      "smiles": "CC(=O)c1ccc(Br)cc1",
+      "tags": [
+        "ketone"
+      ]
+    },
+    {
+      "id": "functional_groups.4_methoxyacetophenone",
+      "name": "4-Methoxyacetophenone",
+      "smiles": "COc1ccc(C(C)=O)cc1",
+      "tags": [
+        "ketone"
+      ]
+    },
+    {
+      "id": "functional_groups.4_nitroacetophenone",
+      "name": "4-Nitroacetophenone",
+      "smiles": "CC(=O)c1ccc([N+](=O)[O-])cc1",
+      "tags": [
+        "ketone"
+      ]
+    },
+    {
+      "id": "functional_groups.1_acetonaphthone",
+      "name": "1-Acetonaphthone",
+      "smiles": "CC(=O)c1cccc2ccccc12",
+      "tags": [
+        "ketone"
+      ]
+    },
+    {
+      "id": "functional_groups.2_acetonaphthone",
+      "name": "2-Acetonaphthone",
+      "smiles": "CC(=O)c1ccc2ccccc2c1",
+      "tags": [
+        "ketone"
+      ]
+    },
+    {
+      "id": "functional_groups.1_indanone",
+      "name": "1-Indanone",
+      "smiles": "O=C1CCc2ccccc21",
+      "tags": [
+        "ketone"
+      ]
+    },
+    {
+      "id": "functional_groups.2_indanone",
+      "name": "2-Indanone",
+      "smiles": "O=C1Cc2ccccc2C1",
+      "tags": [
+        "ketone"
+      ]
+    },
+    {
+      "id": "functional_groups.1_tetralone",
+      "name": "1-Tetralone",
+      "smiles": "O=C1CCCc2ccccc21",
+      "tags": [
+        "ketone"
+      ]
+    },
+    {
+      "id": "functional_groups.2_tetralone",
+      "name": "2-Tetralone",
+      "smiles": "O=C1CCc2ccccc2C1",
+      "tags": [
+        "ketone"
+      ]
+    },
+    {
+      "id": "functional_groups.benzyl_acetate",
+      "name": "Benzyl acetate",
+      "smiles": "CC(=O)OCc1ccccc1",
+      "tags": [
+        "ester"
+      ]
+    },
+    {
+      "id": "functional_groups.phenyl_acetate",
+      "name": "Phenyl acetate",
+      "smiles": "CC(=O)Oc1ccccc1",
+      "tags": [
+        "ester"
+      ]
+    },
+    {
+      "id": "functional_groups.ethyl_hexanoate",
+      "name": "Ethyl hexanoate",
+      "smiles": "CCCCCC(=O)OCC",
+      "tags": [
+        "ester"
+      ]
+    },
+    {
+      "id": "functional_groups.methyl_palmitate",
+      "name": "Methyl palmitate",
+      "smiles": "CCCCCCCCCCCCCCCC(=O)OC",
+      "tags": [
+        "ester"
+      ]
+    },
+    {
+      "id": "functional_groups.methyl_stearate",
+      "name": "Methyl stearate",
+      "smiles": "CCCCCCCCCCCCCCCCCC(=O)OC",
+      "tags": [
+        "ester"
+      ]
+    },
+    {
+      "id": "functional_groups.methyl_oleate",
+      "name": "Methyl oleate",
+      "smiles": "CCCCCCCC/C=C\\CCCCCCCC(=O)OC",
+      "tags": [
+        "ester"
+      ]
+    },
+    {
+      "id": "functional_groups.methyl_linoleate",
+      "name": "Methyl linoleate",
+      "smiles": "CCCCC/C=C\\C/C=C\\CCCCCCCC(=O)OC",
+      "tags": [
+        "ester"
+      ]
+    },
+    {
+      "id": "functional_groups.triacetin",
+      "name": "Triacetin",
+      "smiles": "CC(=O)OCC(COC(C)=O)OC(C)=O",
+      "tags": [
+        "ester"
+      ]
+    },
+    {
+      "id": "functional_groups.tributyrin",
+      "name": "Tributyrin",
+      "smiles": "CCCC(=O)OCC(COC(=O)CCC)OC(=O)CCC",
+      "tags": [
+        "ester"
+      ]
+    },
+    {
+      "id": "functional_groups.triphenylphosphine_sulfide",
+      "name": "Triphenylphosphine sulfide",
+      "smiles": "S=P(c1ccccc1)(c1ccccc1)c1ccccc1",
+      "tags": [
+        "phosphine sulfide"
+      ]
+    },
+    {
+      "id": "functional_groups.diethyl_disulfide",
+      "name": "Diethyl disulfide",
+      "smiles": "CCSSCC",
+      "tags": [
+        "disulfide"
+      ]
+    },
+    {
+      "id": "functional_groups.diphenyl_disulfide",
+      "name": "Diphenyl disulfide",
+      "smiles": "c1ccc(SSc2ccccc2)cc1",
+      "tags": [
+        "disulfide"
+      ]
+    },
+    {
+      "id": "functional_groups.methanethiol",
+      "name": "Methanethiol",
+      "smiles": "CS",
+      "tags": [
+        "thiol"
+      ]
+    },
+    {
+      "id": "functional_groups.ethanethiol",
+      "name": "Ethanethiol",
+      "smiles": "CCS",
+      "tags": [
+        "thiol"
+      ]
+    },
+    {
+      "id": "functional_groups.propane_1_thiol",
+      "name": "Propane-1-thiol",
+      "smiles": "CCCS",
+      "tags": [
+        "thiol"
+      ]
+    },
+    {
+      "id": "functional_groups.propane_2_thiol",
+      "name": "Propane-2-thiol",
+      "smiles": "CC(C)S",
+      "tags": [
+        "thiol"
+      ]
+    },
+    {
+      "id": "functional_groups.butane_1_thiol",
+      "name": "Butane-1-thiol",
+      "smiles": "CCCCS",
+      "tags": [
+        "thiol"
+      ]
+    },
+    {
+      "id": "functional_groups.2_methylpropane_2_thiol",
+      "name": "2-Methylpropane-2-thiol",
+      "smiles": "CC(C)(C)S",
+      "tags": [
+        "thiol"
+      ]
+    },
+    {
+      "id": "functional_groups.phenylmethanethiol",
+      "name": "Phenylmethanethiol",
+      "smiles": "SCc1ccccc1",
+      "tags": [
+        "thiol"
+      ]
+    },
+    {
+      "id": "functional_groups.2_mercaptoethanol",
+      "name": "2-Mercaptoethanol",
+      "smiles": "OCCS",
+      "tags": [
+        "thiol"
+      ]
+    },
+    {
+      "id": "functional_groups.thioglycolic_acid",
+      "name": "Thioglycolic acid",
+      "smiles": "O=C(O)CS",
+      "tags": [
+        "thiol"
+      ]
+    },
+    {
+      "id": "functional_groups.3_mercaptopropionic_acid",
+      "name": "3-Mercaptopropionic acid",
+      "smiles": "O=C(O)CCS",
+      "tags": [
+        "thiol"
+      ]
+    },
+    {
+      "id": "functional_groups.cysteamine",
+      "name": "Cysteamine",
+      "smiles": "NCCS",
+      "tags": [
+        "thiol"
+      ]
+    },
+    {
+      "id": "functional_groups.dithiothreitol",
+      "name": "Dithiothreitol",
+      "smiles": "SC[C@H](O)[C@H](O)CS",
+      "tags": [
+        "thiol"
+      ]
+    },
+    {
+      "id": "functional_groups.thioacetic_acid",
+      "name": "Thioacetic acid",
+      "smiles": "CC(=O)S",
+      "tags": [
+        "thioacid"
+      ]
+    },
+    {
+      "id": "functional_groups.propionitrile",
+      "name": "Propanenitrile",
+      "smiles": "CCC#N",
+      "tags": [
+        "nitrile"
+      ]
+    },
+    {
+      "id": "functional_groups.butyronitrile",
+      "name": "Butanenitrile",
+      "smiles": "CCCC#N",
+      "tags": [
+        "nitrile"
+      ]
+    },
+    {
+      "id": "functional_groups.valeronitrile",
+      "name": "Pentanenitrile",
+      "smiles": "CCCCC#N",
+      "tags": [
+        "nitrile"
+      ]
+    },
+    {
+      "id": "functional_groups.methacrylonitrile",
+      "name": "Methacrylonitrile",
+      "smiles": "C=C(C)C#N",
+      "tags": [
+        "nitrile"
+      ]
+    },
+    {
+      "id": "functional_groups.succinonitrile",
+      "name": "Succinonitrile",
+      "smiles": "N#CCCC#N",
+      "tags": [
+        "nitrile"
+      ]
+    },
+    {
+      "id": "functional_groups.fumaronitrile",
+      "name": "Fumaronitrile",
+      "smiles": "N#C/C=C/C#N",
+      "tags": [
+        "nitrile"
+      ]
+    },
+    {
+      "id": "functional_groups.tetracyanoethylene",
+      "name": "Tetracyanoethylene",
+      "smiles": "N#CC(C#N)=C(C#N)C#N",
+      "tags": [
+        "nitrile"
+      ]
+    },
+    {
+      "id": "functional_groups.tcnq",
+      "name": "7,7,8,8-Tetracyanoquinodimethane",
+      "smiles": "N#CC(C#N)=C1C=CC(=C(C#N)C#N)C=C1",
+      "tags": [
+        "nitrile"
+      ]
+    },
+    {
+      "id": "functional_groups.dppe",
+      "name": "1,2-Bis(diphenylphosphino)ethane",
+      "smiles": "c1ccc(P(CCP(c2ccccc2)c2ccccc2)c2ccccc2)cc1",
+      "tags": [
+        "phosphine"
+      ]
+    },
+    {
+      "id": "functional_groups.methyl_myristate",
+      "name": "Methyl myristate",
+      "smiles": "CCCCCCCCCCCCCC(=O)OC",
+      "tags": [
+        "ester"
+      ]
+    },
+    {
+      "id": "functional_groups.methyl_laurate",
+      "name": "Methyl laurate",
+      "smiles": "CCCCCCCCCCCC(=O)OC",
+      "tags": [
+        "ester"
+      ]
+    },
+    {
+      "id": "functional_groups.ethyl_oleate",
+      "name": "Ethyl oleate",
+      "smiles": "CCCCCCCC/C=C\\CCCCCCCC(=O)OCC",
+      "tags": [
+        "ester"
+      ]
+    },
+    {
+      "id": "functional_groups.bisoprolol",
+      "name": "Bisoprolol",
+      "smiles": "CC(C)NCC(O)COc1ccc(COCCOC(C)C)cc1",
+      "tags": [
+        "alcohol"
+      ]
+    },
+    {
+      "id": "functional_groups.sotalol",
+      "name": "Sotalol",
+      "smiles": "CC(C)NCC(O)c1ccc(NS(C)(=O)=O)cc1",
+      "tags": [
+        "sulfonamide"
+      ]
+    },
+    {
+      "id": "functional_groups.propafenone",
+      "name": "Propafenone",
+      "smiles": "CCCNCC(O)COc1ccccc1C(=O)CCc1ccccc1",
+      "tags": [
+        "ketone"
+      ]
+    },
+    {
+      "id": "functional_groups.propofol",
+      "name": "Propofol",
+      "smiles": "CC(C)c1cccc(C(C)C)c1O",
+      "tags": [
+        "phenol"
+      ]
+    },
+    {
+      "id": "functional_groups.flurbiprofen",
+      "name": "Flurbiprofen",
+      "smiles": "CC(C(=O)O)c1ccc(-c2ccccc2)c(F)c1",
+      "tags": [
+        "carboxylic acid"
+      ]
+    },
+    {
+      "id": "functional_groups.aceclofenac",
+      "name": "Aceclofenac",
+      "smiles": "O=C(O)COC(=O)Cc1ccccc1Nc1c(Cl)cccc1Cl",
+      "tags": [
+        "carboxylic acid"
+      ]
+    },
+    {
+      "id": "functional_groups.salsalate",
+      "name": "Salsalate",
+      "smiles": "O=C(Oc1ccccc1C(=O)O)c1ccccc1O",
+      "tags": [
+        "ester"
+      ]
+    },
+    {
+      "id": "functional_groups.diflunisal",
+      "name": "Diflunisal",
+      "smiles": "O=C(O)c1cc(-c2ccc(F)cc2F)ccc1O",
+      "tags": [
+        "carboxylic acid"
+      ]
+    },
+    {
+      "id": "functional_groups.fenoprofen",
+      "name": "Fenoprofen",
+      "smiles": "CC(C(=O)O)c1cccc(Oc2ccccc2)c1",
+      "tags": [
+        "carboxylic acid"
+      ]
+    },
+    {
+      "id": "functional_groups.6_methoxy_2_naphthaldehyde",
+      "name": "6-Methoxy-2-naphthaldehyde",
+      "smiles": "COc1ccc2cc(C=O)ccc2c1",
+      "tags": [
+        "aldehyde"
+      ]
+    },
+    {
+      "id": "functional_groups.1_fluoro_4_iodobenzene",
+      "name": "1-Fluoro-4-iodobenzene",
+      "smiles": "Fc1ccc(I)cc1",
+      "tags": [
+        "halide"
+      ]
+    },
+    {
+      "id": "functional_groups.1_bromo_4_iodobenzene",
+      "name": "1-Bromo-4-iodobenzene",
+      "smiles": "Brc1ccc(I)cc1",
+      "tags": [
+        "halide"
+      ]
+    },
+    {
+      "id": "functional_groups.1_chloro_4_iodobenzene",
+      "name": "1-Chloro-4-iodobenzene",
+      "smiles": "Clc1ccc(I)cc1",
+      "tags": [
+        "halide"
+      ]
+    },
+    {
+      "id": "functional_groups.1_4_diiodobenzene",
+      "name": "1,4-Diiodobenzene",
+      "smiles": "Ic1ccc(I)cc1",
+      "tags": [
+        "halide"
+      ]
+    },
+    {
+      "id": "functional_groups.1_4_dibromobenzene",
+      "name": "1,4-Dibromobenzene",
+      "smiles": "Brc1ccc(Br)cc1",
+      "tags": [
+        "halide"
+      ]
+    },
+    {
+      "id": "functional_groups.1_4_difluorobenzene",
+      "name": "1,4-Difluorobenzene",
+      "smiles": "Fc1ccc(F)cc1",
+      "tags": [
+        "halide"
+      ]
+    },
+    {
+      "id": "functional_groups.1_3_difluorobenzene",
+      "name": "1,3-Difluorobenzene",
+      "smiles": "Fc1cccc(F)c1",
+      "tags": [
+        "halide"
+      ]
+    },
+    {
+      "id": "functional_groups.1_2_difluorobenzene",
+      "name": "1,2-Difluorobenzene",
+      "smiles": "Fc1ccccc1F",
+      "tags": [
+        "halide"
+      ]
+    },
+    {
+      "id": "functional_groups.1_3_5_trifluorobenzene",
+      "name": "1,3,5-Trifluorobenzene",
+      "smiles": "Fc1cc(F)cc(F)c1",
+      "tags": [
+        "halide"
+      ]
+    },
+    {
+      "id": "functional_groups.1_2_4_trifluorobenzene",
+      "name": "1,2,4-Trifluorobenzene",
+      "smiles": "Fc1ccc(F)c(F)c1",
+      "tags": [
+        "halide"
+      ]
+    },
+    {
+      "id": "functional_groups.pentafluoroiodobenzene",
+      "name": "Pentafluoroiodobenzene",
+      "smiles": "Fc1c(F)c(F)c(I)c(F)c1F",
+      "tags": [
+        "halide"
+      ]
+    },
+    {
+      "id": "functional_groups.bromopentafluorobenzene",
+      "name": "Bromopentafluorobenzene",
+      "smiles": "Fc1c(F)c(F)c(Br)c(F)c1F",
+      "tags": [
+        "halide"
+      ]
+    },
+    {
+      "id": "functional_groups.chloropentafluorobenzene",
+      "name": "Chloropentafluorobenzene",
+      "smiles": "Fc1c(F)c(F)c(Cl)c(F)c1F",
+      "tags": [
+        "halide"
+      ]
+    },
+    {
+      "id": "functional_groups.styrene_oxide",
+      "name": "Styrene oxide",
+      "smiles": "c1ccc(C2CO2)cc1",
+      "tags": [
+        "epoxide"
+      ]
+    },
+    {
+      "id": "functional_groups.cyclohexene_oxide",
+      "name": "Cyclohexene oxide",
+      "smiles": "C1CCC2OC2C1",
+      "tags": [
+        "epoxide"
+      ]
+    },
+    {
+      "id": "functional_groups.1_2_epoxybutane",
+      "name": "1,2-Epoxybutane",
+      "smiles": "CCC1CO1",
+      "tags": [
+        "epoxide"
+      ]
+    },
+    {
+      "id": "functional_groups.phenyl_glycidyl_ether",
+      "name": "Phenyl glycidyl ether",
+      "smiles": "c1ccc(OCC2CO2)cc1",
+      "tags": [
+        "epoxide"
+      ]
+    },
+    {
+      "id": "functional_groups.sudan_i",
+      "name": "Sudan I",
+      "smiles": "Oc1ccc2ccccc2c1/N=N/c1ccccc1",
+      "tags": [
+        "dye"
+      ]
+    },
+    {
+      "id": "functional_groups.sudan_ii",
+      "name": "Sudan II",
+      "smiles": "Cc1ccc(/N=N/c2c(O)ccc3ccccc23)cc1C",
+      "tags": [
+        "dye"
+      ]
+    },
+    {
+      "id": "functional_groups.alizarin_red_s_acid",
+      "name": "Alizarin-3-sulfonic acid",
+      "smiles": "O=C1c2ccccc2C(=O)c2cc(S(=O)(=O)O)c(O)c(O)c21",
+      "tags": [
+        "dye"
+      ]
+    },
+    {
+      "id": "functional_groups.acrylamide",
+      "name": "Acrylamide",
+      "smiles": "C=CC(N)=O",
+      "tags": [
+        "amide"
+      ]
+    },
+    {
+      "id": "functional_groups.methacrylamide",
+      "name": "Methacrylamide",
+      "smiles": "C=C(C)C(N)=O",
+      "tags": [
+        "amide"
+      ]
+    },
+    {
+      "id": "functional_groups.n_isopropylacrylamide",
+      "name": "N-Isopropylacrylamide",
+      "smiles": "C=CC(=O)NC(C)C",
+      "tags": [
+        "amide"
+      ]
+    },
+    {
+      "id": "functional_groups.n_n_dimethylacrylamide",
+      "name": "N,N-Dimethylacrylamide",
+      "smiles": "C=CC(=O)N(C)C",
+      "tags": [
+        "amide"
+      ]
+    },
+    {
+      "id": "functional_groups.4_chlorostyrene",
+      "name": "4-Chlorostyrene",
+      "smiles": "C=Cc1ccc(Cl)cc1",
+      "tags": [
+        "alkene"
+      ]
+    },
+    {
+      "id": "functional_groups.4_fluorostyrene",
+      "name": "4-Fluorostyrene",
+      "smiles": "C=Cc1ccc(F)cc1",
+      "tags": [
+        "alkene"
+      ]
+    },
+    {
+      "id": "functional_groups.4_vinylanisole",
+      "name": "4-Vinylanisole",
+      "smiles": "C=Cc1ccc(OC)cc1",
+      "tags": [
+        "alkene"
+      ]
+    },
+    {
+      "id": "functional_groups.1_4_divinylbenzene",
+      "name": "1,4-Divinylbenzene",
+      "smiles": "C=Cc1ccc(C=C)cc1",
+      "tags": [
+        "alkene"
+      ]
+    },
+    {
+      "id": "functional_groups.1_3_divinylbenzene",
+      "name": "1,3-Divinylbenzene",
+      "smiles": "C=Cc1cccc(C=C)c1",
+      "tags": [
+        "alkene"
+      ]
+    },
+    {
+      "id": "functional_groups.chloroprene",
+      "name": "Chloroprene",
+      "smiles": "C=CC(Cl)=C",
+      "tags": [
+        "alkene"
+      ]
+    },
+    {
+      "id": "functional_groups.vinylidene_fluoride",
+      "name": "1,1-Difluoroethene",
+      "smiles": "C=C(F)F",
+      "tags": [
+        "alkene"
+      ]
+    },
+    {
+      "id": "functional_groups.tetrafluoroethene",
+      "name": "Tetrafluoroethene",
+      "smiles": "FC(F)=C(F)F",
+      "tags": [
+        "alkene"
+      ]
+    },
+    {
+      "id": "functional_groups.hexafluoropropene",
+      "name": "Hexafluoropropene",
+      "smiles": "FC(F)=C(C(F)(F)F)F",
+      "tags": [
+        "alkene"
+      ]
+    },
+    {
+      "id": "functional_groups.bisphenol_a",
+      "name": "Bisphenol A",
+      "smiles": "CC(C)(c1ccc(O)cc1)c1ccc(O)cc1",
+      "tags": [
+        "phenol"
+      ]
+    },
+    {
+      "id": "functional_groups.bisphenol_f",
+      "name": "Bisphenol F",
+      "smiles": "Oc1ccc(Cc2ccc(O)cc2)cc1",
+      "tags": [
+        "phenol"
+      ]
+    },
+    {
+      "id": "functional_groups.bisphenol_s",
+      "name": "Bisphenol S",
+      "smiles": "O=S(=O)(c1ccc(O)cc1)c1ccc(O)cc1",
+      "tags": [
+        "phenol"
+      ]
+    },
+    {
+      "id": "functional_groups.toluene_2_4_diisocyanate",
+      "name": "Toluene-2,4-diisocyanate",
+      "smiles": "Cc1ccc(N=C=O)cc1N=C=O",
+      "tags": [
+        "isocyanate"
+      ]
+    },
+    {
+      "id": "functional_groups.methylene_diphenyl_diisocyanate",
+      "name": "4,4'-Methylene diphenyl diisocyanate",
+      "smiles": "O=C=Nc1ccc(Cc2ccc(N=C=O)cc2)cc1",
+      "tags": [
+        "isocyanate"
+      ]
+    },
+    {
+      "id": "functional_groups.hexamethylene_diisocyanate",
+      "name": "Hexamethylene diisocyanate",
+      "smiles": "O=C=NCCCCCCN=C=O",
+      "tags": [
+        "isocyanate"
+      ]
+    },
+    {
+      "id": "functional_groups.isophorone_diisocyanate",
+      "name": "Isophorone diisocyanate",
+      "smiles": "CC1(C)CC(N=C=O)CC(C)(CN=C=O)C1",
+      "tags": [
+        "isocyanate"
+      ]
+    },
+    {
+      "id": "functional_groups.two_four_d",
+      "name": "2,4-Dichlorophenoxyacetic acid",
+      "smiles": "O=C(O)COc1ccc(Cl)c(Cl)c1",
+      "tags": [
+        "carboxylic acid"
+      ]
+    },
+    {
+      "id": "functional_groups.two_four_five_t",
+      "name": "2,4,5-Trichlorophenoxyacetic acid",
+      "smiles": "O=C(O)COc1cc(Cl)c(Cl)c(Cl)c1",
+      "tags": [
+        "carboxylic acid"
+      ]
+    },
+    {
+      "id": "functional_groups.mcpa",
+      "name": "MCPA",
+      "smiles": "Cc1cc(OCC(=O)O)ccc1Cl",
+      "tags": [
+        "carboxylic acid"
+      ]
+    },
+    {
+      "id": "functional_groups.dicamba",
+      "name": "Dicamba",
+      "smiles": "COc1c(Cl)ccc(Cl)c1C(=O)O",
+      "tags": [
+        "carboxylic acid"
+      ]
+    },
+    {
+      "id": "functional_groups.diuron",
+      "name": "Diuron",
+      "smiles": "CN(C)C(=O)Nc1ccc(Cl)c(Cl)c1",
+      "tags": [
+        "urea"
+      ]
+    },
+    {
+      "id": "functional_groups.carbaryl",
+      "name": "Carbaryl",
+      "smiles": "CNC(=O)Oc1cccc2ccccc12",
+      "tags": [
+        "carbamate"
+      ]
+    },
+    {
+      "id": "functional_groups.deet",
+      "name": "DEET",
+      "smiles": "CCN(CC)C(=O)c1cccc(C)c1",
+      "tags": [
+        "amide"
+      ]
+    },
+    {
+      "id": "functional_groups.glyphosate",
+      "name": "Glyphosate",
+      "smiles": "O=C(O)CNCP(=O)(O)O",
+      "tags": [
+        "phosphonic acid"
+      ]
+    },
+    {
+      "id": "functional_groups.malathion",
+      "name": "Malathion",
+      "smiles": "CCOC(=O)CC(SP(=S)(OC)OC)C(=O)OCC",
+      "tags": [
+        "organophosphate"
+      ]
+    },
+    {
+      "id": "functional_groups.1_bromonaphthalene",
+      "name": "1-Bromonaphthalene",
+      "smiles": "Brc1cccc2ccccc12",
+      "tags": [
+        "halide"
+      ]
+    },
+    {
+      "id": "functional_groups.2_bromonaphthalene",
+      "name": "2-Bromonaphthalene",
+      "smiles": "Brc1ccc2ccccc2c1",
+      "tags": [
+        "halide"
+      ]
+    },
+    {
+      "id": "functional_groups.1_chloronaphthalene",
+      "name": "1-Chloronaphthalene",
+      "smiles": "Clc1cccc2ccccc12",
+      "tags": [
+        "halide"
+      ]
+    },
+    {
+      "id": "functional_groups.2_chloronaphthalene",
+      "name": "2-Chloronaphthalene",
+      "smiles": "Clc1ccc2ccccc2c1",
+      "tags": [
+        "halide"
+      ]
+    },
+    {
+      "id": "functional_groups.1_iodonaphthalene",
+      "name": "1-Iodonaphthalene",
+      "smiles": "Ic1cccc2ccccc12",
+      "tags": [
+        "halide"
+      ]
+    },
+    {
+      "id": "functional_groups.2_iodonaphthalene",
+      "name": "2-Iodonaphthalene",
+      "smiles": "Ic1ccc2ccccc2c1",
+      "tags": [
+        "halide"
+      ]
+    },
+    {
+      "id": "functional_groups.1_fluoronaphthalene",
+      "name": "1-Fluoronaphthalene",
+      "smiles": "Fc1cccc2ccccc12",
+      "tags": [
+        "halide"
+      ]
+    },
+    {
+      "id": "functional_groups.2_fluoronaphthalene",
+      "name": "2-Fluoronaphthalene",
+      "smiles": "Fc1ccc2ccccc2c1",
+      "tags": [
+        "halide"
+      ]
+    },
+    {
+      "id": "functional_groups.1_nitronaphthalene",
+      "name": "1-Nitronaphthalene",
+      "smiles": "O=[N+]([O-])c1cccc2ccccc12",
+      "tags": [
+        "nitro"
+      ]
+    },
+    {
+      "id": "functional_groups.2_nitronaphthalene",
+      "name": "2-Nitronaphthalene",
+      "smiles": "O=[N+]([O-])c1ccc2ccccc2c1",
+      "tags": [
+        "nitro"
+      ]
+    },
+    {
+      "id": "functional_groups.allantoic_acid",
+      "name": "Allantoic acid",
+      "smiles": "NC(=O)NC(NC(N)=O)C(=O)O",
+      "tags": [
+        "urea"
+      ]
+    },
+    {
+      "id": "functional_groups.ninhydrin",
+      "name": "Ninhydrin",
+      "smiles": "O=C1C(=O)C(O)(O)c2ccccc21",
+      "tags": [
+        "ketone"
+      ]
+    },
+    {
+      "id": "functional_groups.tropylium",
+      "name": "Tropylium",
+      "smiles": "[cH+]1cccccc1",
+      "tags": [
+        "cation"
+      ]
+    },
+    {
+      "id": "functional_groups.cycloheptatriene",
+      "name": "Cyclohepta-1,3,5-triene",
+      "smiles": "C1=CC=CC=CC1",
+      "tags": [
+        "alkene"
+      ]
+    },
+    {
+      "id": "functional_groups.pivalaldehyde",
+      "name": "Pivalaldehyde",
+      "smiles": "CC(C)(C)C=O",
+      "tags": [
+        "aldehyde"
+      ]
+    },
+    {
+      "id": "functional_groups.nta",
+      "name": "Nitrilotriacetic acid",
+      "smiles": "O=C(O)CN(CC(=O)O)CC(=O)O",
+      "tags": [
+        "carboxylic acid"
+      ]
+    },
+    {
+      "id": "functional_groups.egta",
+      "name": "EGTA",
+      "smiles": "O=C(O)CN(CC(=O)O)CCOCCOCCN(CC(=O)O)CC(=O)O",
+      "tags": [
+        "carboxylic acid"
+      ]
+    },
+    {
+      "id": "functional_groups.dtpa",
+      "name": "DTPA",
+      "smiles": "O=C(O)CN(CCN(CC(=O)O)CC(=O)O)CCN(CC(=O)O)CC(=O)O",
+      "tags": [
+        "carboxylic acid"
+      ]
+    },
+    {
+      "id": "functional_groups.bapta",
+      "name": "BAPTA",
+      "smiles": "O=C(O)CN(CC(=O)O)c1ccccc1Oc1ccccc1N(CC(=O)O)CC(=O)O",
+      "tags": [
+        "carboxylic acid"
+      ]
+    },
+    {
+      "id": "functional_groups.isocitric_acid",
+      "name": "Isocitric acid",
+      "smiles": "O=C(O)C[C@H](C(=O)O)[C@H](O)C(=O)O",
+      "tags": [
+        "carboxylic acid"
+      ]
+    },
+    {
+      "id": "functional_groups.homocitric_acid",
+      "name": "Homocitric acid",
+      "smiles": "O=C(O)CCC(O)(CC(=O)O)C(=O)O",
+      "tags": [
+        "carboxylic acid"
+      ]
+    },
+    {
+      "id": "functional_groups.oxaloacetic_acid",
+      "name": "Oxaloacetic acid",
+      "smiles": "O=C(O)CC(=O)C(=O)O",
+      "tags": [
+        "carboxylic acid"
+      ]
+    },
+    {
+      "id": "functional_groups.alpha_ketoglutaric_acid",
+      "name": "2-Oxoglutaric acid",
+      "smiles": "O=C(O)CCC(=O)C(=O)O",
+      "tags": [
+        "carboxylic acid"
+      ]
+    },
+    {
+      "id": "functional_groups.phosphoenolpyruvate",
+      "name": "Phosphoenolpyruvic acid",
+      "smiles": "O=C(O)C(=C)OP(=O)(O)O",
+      "tags": [
+        "phosphate"
+      ]
+    },
+    {
+      "id": "functional_groups.3_phosphoglyceric_acid",
+      "name": "3-Phosphoglyceric acid",
+      "smiles": "O=C(O)[C@H](O)COP(=O)(O)O",
+      "tags": [
+        "phosphate"
+      ]
+    },
+    {
+      "id": "functional_groups.heptafulvene",
+      "name": "Heptafulvene",
+      "smiles": "C=C1C=CC=CC=C1",
+      "tags": [
+        "alkene"
+      ]
+    },
+    {
+      "id": "functional_groups.calicene",
+      "name": "Calicene",
+      "smiles": "C1=CC1=C1C=CC=C1",
+      "tags": [
+        "alkene"
+      ]
+    },
+    {
+      "id": "functional_groups.sesquifulvalene",
+      "name": "Sesquifulvalene",
+      "smiles": "C1=CC(=C2C=CC=CC=C2)C=C1",
+      "tags": [
+        "alkene"
+      ]
+    },
+    {
+      "id": "functional_groups.fulvalene",
+      "name": "Fulvalene",
+      "smiles": "C1=CC(=C2C=CC=C2)C=C1",
+      "tags": [
+        "alkene"
+      ]
+    },
+    {
+      "id": "functional_groups.naphthoquinone_1_4",
+      "name": "1,4-Naphthoquinone",
+      "smiles": "O=C1C=CC(=O)c2ccccc21",
+      "tags": [
+        "quinone"
+      ]
+    },
+    {
+      "id": "functional_groups.naphthoquinone_1_2",
+      "name": "1,2-Naphthoquinone",
+      "smiles": "O=C1C(=O)c2ccccc2C=C1",
+      "tags": [
+        "quinone"
+      ]
+    },
+    {
+      "id": "functional_groups.1_4_anthraquinone",
+      "name": "1,4-Anthraquinone",
+      "smiles": "O=C1C=CC(=O)c2cc3ccccc3cc21",
+      "tags": [
+        "quinone"
+      ]
+    },
+    {
+      "id": "functional_groups.lawsone",
+      "name": "Lawsone",
+      "smiles": "O=C1C=C(O)C(=O)c2ccccc12",
+      "tags": [
+        "quinone"
+      ]
+    },
+    {
+      "id": "functional_groups.juglone",
+      "name": "Juglone",
+      "smiles": "O=C1C=CC(=O)c2cccc(O)c12",
+      "tags": [
+        "quinone"
+      ]
+    },
+    {
+      "id": "functional_groups.plumbagin",
+      "name": "Plumbagin",
+      "smiles": "Cc1cc(=O)c2c(O)cccc2c1=O",
+      "tags": [
+        "quinone"
+      ]
+    },
+    {
+      "id": "functional_groups.cyclohexanecarboxylic_acid",
+      "name": "Cyclohexanecarboxylic acid",
+      "smiles": "O=C(O)C1CCCCC1",
+      "tags": [
+        "carboxylic acid"
+      ]
+    },
+    {
+      "id": "functional_groups.cyclopentanecarboxylic_acid",
+      "name": "Cyclopentanecarboxylic acid",
+      "smiles": "O=C(O)C1CCCC1",
+      "tags": [
+        "carboxylic acid"
+      ]
+    },
+    {
+      "id": "functional_groups.methacrolein",
+      "name": "Methacrolein",
+      "smiles": "C=C(C)C=O",
+      "tags": [
+        "aldehyde"
+      ]
+    },
+    {
+      "id": "functional_groups.crotonaldehyde",
+      "name": "Crotonaldehyde",
+      "smiles": "C/C=C/C=O",
+      "tags": [
+        "aldehyde"
+      ]
+    },
+    {
+      "id": "functional_groups.tiglic_aldehyde",
+      "name": "Tiglic aldehyde",
+      "smiles": "C/C=C(\\C)C=O",
+      "tags": [
+        "aldehyde"
+      ]
+    },
+    {
+      "id": "functional_groups.senecioaldehyde",
+      "name": "3-Methylbut-2-enal",
+      "smiles": "CC(C)=CC=O",
+      "tags": [
+        "aldehyde"
+      ]
+    },
+    {
+      "id": "functional_groups.glyoxal",
+      "name": "Glyoxal",
+      "smiles": "O=CC=O",
+      "tags": [
+        "aldehyde"
+      ]
+    },
+    {
+      "id": "functional_groups.methylglyoxal",
+      "name": "Methylglyoxal",
+      "smiles": "CC(=O)C=O",
+      "tags": [
+        "aldehyde"
+      ]
+    },
+    {
+      "id": "functional_groups.diacetyl",
+      "name": "Butane-2,3-dione",
+      "smiles": "CC(=O)C(C)=O",
+      "tags": [
+        "ketone"
+      ]
+    },
+    {
+      "id": "functional_groups.acetoin",
+      "name": "Acetoin",
+      "smiles": "CC(=O)C(C)O",
+      "tags": [
+        "ketone"
+      ]
+    },
+    {
+      "id": "functional_groups.hydroxyacetone",
+      "name": "Hydroxyacetone",
+      "smiles": "CC(=O)CO",
+      "tags": [
+        "ketone"
+      ]
+    },
+    {
+      "id": "functional_groups.methoxyacetone",
+      "name": "Methoxyacetone",
+      "smiles": "COCC(C)=O",
+      "tags": [
+        "ketone"
+      ]
+    },
+    {
+      "id": "functional_groups.chloroacetone",
+      "name": "Chloroacetone",
+      "smiles": "CC(=O)CCl",
+      "tags": [
+        "ketone"
+      ]
+    },
+    {
+      "id": "functional_groups.bromoacetone",
+      "name": "Bromoacetone",
+      "smiles": "CC(=O)CBr",
+      "tags": [
+        "ketone"
+      ]
+    },
+    {
+      "id": "functional_groups.methyl_vinyl_ketone",
+      "name": "Methyl vinyl ketone",
+      "smiles": "C=CC(C)=O",
+      "tags": [
+        "ketone"
+      ]
+    },
+    {
+      "id": "functional_groups.ethyl_vinyl_ketone",
+      "name": "Ethyl vinyl ketone",
+      "smiles": "C=CC(=O)CC",
+      "tags": [
+        "ketone"
+      ]
+    },
+    {
+      "id": "functional_groups.mesityl_oxide",
+      "name": "Mesityl oxide",
+      "smiles": "CC(=O)C=C(C)C",
+      "tags": [
+        "ketone"
+      ]
+    },
+    {
+      "id": "functional_groups.phorone",
+      "name": "Phorone",
+      "smiles": "CC(C)=CC(=O)C=C(C)C",
+      "tags": [
+        "ketone"
+      ]
+    },
+    {
+      "id": "functional_groups.isophorone",
+      "name": "Isophorone",
+      "smiles": "CC1=CC(=O)CC(C)(C)C1",
+      "tags": [
+        "ketone"
+      ]
+    },
+    {
+      "id": "functional_groups.2_ethylhexanoic_acid",
+      "name": "2-Ethylhexanoic acid",
+      "smiles": "CCCCC(CC)C(=O)O",
+      "tags": [
+        "carboxylic acid"
+      ]
+    },
+    {
+      "id": "functional_groups.tiglic_acid",
+      "name": "Tiglic acid",
+      "smiles": "C/C=C(\\C)C(=O)O",
+      "tags": [
+        "carboxylic acid"
+      ]
+    },
+    {
+      "id": "functional_groups.angelic_acid",
+      "name": "Angelic acid",
+      "smiles": "C/C=C(/C)C(=O)O",
+      "tags": [
+        "carboxylic acid"
+      ]
+    },
+    {
+      "id": "functional_groups.senecioic_acid",
+      "name": "3-Methylbut-2-enoic acid",
+      "smiles": "CC(C)=CC(=O)O",
+      "tags": [
+        "carboxylic acid"
+      ]
+    },
+    {
+      "id": "functional_groups.glycolaldehyde",
+      "name": "Glycolaldehyde",
+      "smiles": "O=CCO",
+      "tags": [
+        "aldehyde"
+      ]
+    },
+    {
+      "id": "functional_groups.lactaldehyde",
+      "name": "Lactaldehyde",
+      "smiles": "CC(O)C=O",
+      "tags": [
+        "aldehyde"
+      ]
+    },
+    {
+      "id": "functional_groups.hydracrylic_acid",
+      "name": "3-Hydroxypropionic acid",
+      "smiles": "O=C(O)CCO",
+      "tags": [
+        "carboxylic acid"
+      ]
+    },
+    {
+      "id": "functional_groups.3_hydroxybutyric_acid",
+      "name": "3-Hydroxybutyric acid",
+      "smiles": "CC(O)CC(=O)O",
+      "tags": [
+        "carboxylic acid"
+      ]
+    },
+    {
+      "id": "functional_groups.4_hydroxybutyric_acid",
+      "name": "4-Hydroxybutyric acid",
+      "smiles": "O=C(O)CCCO",
+      "tags": [
+        "carboxylic acid"
+      ]
+    },
+    {
+      "id": "functional_groups.cyclononanone",
+      "name": "Cyclononanone",
+      "smiles": "O=C1CCCCCCCC1",
+      "tags": [
+        "ketone"
+      ]
+    },
+    {
+      "id": "functional_groups.cyclodecanone",
+      "name": "Cyclodecanone",
+      "smiles": "O=C1CCCCCCCCC1",
+      "tags": [
+        "ketone"
+      ]
+    },
+    {
+      "id": "functional_groups.nonan_2_one",
+      "name": "Nonan-2-one",
+      "smiles": "CCCCCCCC(C)=O",
+      "tags": [
+        "ketone"
+      ]
+    },
+    {
+      "id": "functional_groups.decan_2_one",
+      "name": "Decan-2-one",
+      "smiles": "CCCCCCCCC(C)=O",
+      "tags": [
+        "ketone"
+      ]
+    },
+    {
+      "id": "functional_groups.undecan_2_one",
+      "name": "Undecan-2-one",
+      "smiles": "CCCCCCCCCC(C)=O",
+      "tags": [
+        "ketone"
+      ]
+    },
+    {
+      "id": "functional_groups.dodecan_2_one",
+      "name": "Dodecan-2-one",
+      "smiles": "CCCCCCCCCCC(C)=O",
+      "tags": [
+        "ketone"
+      ]
+    },
+    {
+      "id": "functional_groups.tridecan_2_one",
+      "name": "Tridecan-2-one",
+      "smiles": "CCCCCCCCCCCC(C)=O",
+      "tags": [
+        "ketone"
+      ]
+    },
+    {
+      "id": "functional_groups.methyl_nonanoate",
+      "name": "Methyl nonanoate",
+      "smiles": "CCCCCCCCC(=O)OC",
+      "tags": [
+        "ester"
+      ]
+    },
+    {
+      "id": "functional_groups.methyl_decanoate",
+      "name": "Methyl decanoate",
+      "smiles": "CCCCCCCCCC(=O)OC",
+      "tags": [
+        "ester"
+      ]
+    },
+    {
+      "id": "functional_groups.ethyl_octanoate",
+      "name": "Ethyl octanoate",
+      "smiles": "CCCCCCCC(=O)OCC",
+      "tags": [
+        "ester"
+      ]
+    },
+    {
+      "id": "functional_groups.ethyl_decanoate",
+      "name": "Ethyl decanoate",
+      "smiles": "CCCCCCCCCC(=O)OCC",
+      "tags": [
+        "ester"
+      ]
     }
   ]
 }

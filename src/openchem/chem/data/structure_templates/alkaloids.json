@@ -134,6 +134,470 @@
         "true alkaloid",
         "tropane"
       ]
+    },
+    {
+      "id": "alkaloids.tryptamine",
+      "name": "Tryptamine",
+      "smiles": "NCCc1c[nH]c2ccccc12",
+      "tags": [
+        "tryptamine"
+      ]
+    },
+    {
+      "id": "alkaloids.serotonin",
+      "name": "Serotonin",
+      "smiles": "NCCc1c[nH]c2ccc(O)cc12",
+      "tags": [
+        "tryptamine"
+      ]
+    },
+    {
+      "id": "alkaloids.melatonin",
+      "name": "Melatonin",
+      "smiles": "CC(=O)NCCc1c[nH]c2ccc(OC)cc12",
+      "tags": [
+        "tryptamine"
+      ]
+    },
+    {
+      "id": "alkaloids.psilocin",
+      "name": "Psilocin",
+      "smiles": "CN(C)CCc1c[nH]c2cccc(O)c12",
+      "tags": [
+        "tryptamine"
+      ]
+    },
+    {
+      "id": "alkaloids.harmine",
+      "name": "Harmine",
+      "smiles": "COc1ccc2c(c1)[nH]c1c(C)nccc12",
+      "tags": [
+        "beta-carboline"
+      ]
+    },
+    {
+      "id": "alkaloids.dopamine",
+      "name": "Dopamine",
+      "smiles": "NCCc1ccc(O)c(O)c1",
+      "tags": [
+        "phenethylamine"
+      ]
+    },
+    {
+      "id": "alkaloids.tyramine",
+      "name": "Tyramine",
+      "smiles": "NCCc1ccc(O)cc1",
+      "tags": [
+        "phenethylamine"
+      ]
+    },
+    {
+      "id": "alkaloids.phenethylamine",
+      "name": "Phenethylamine",
+      "smiles": "NCCc1ccccc1",
+      "tags": [
+        "phenethylamine"
+      ]
+    },
+    {
+      "id": "alkaloids.histamine",
+      "name": "Histamine",
+      "smiles": "NCCc1c[nH]cn1",
+      "tags": [
+        "imidazole"
+      ]
+    },
+    {
+      "id": "alkaloids.r_epinephrine",
+      "name": "(R)-Epinephrine",
+      "smiles": "CNC[C@H](O)c1ccc(O)c(O)c1",
+      "tags": [
+        "catecholamine"
+      ]
+    },
+    {
+      "id": "alkaloids.r_norepinephrine",
+      "name": "(R)-Norepinephrine",
+      "smiles": "NC[C@H](O)c1ccc(O)c(O)c1",
+      "tags": [
+        "catecholamine"
+      ]
+    },
+    {
+      "id": "alkaloids.capsaicin",
+      "name": "Capsaicin",
+      "smiles": "COc1cc(CNC(=O)CCCC/C=C/C(C)C)ccc1O",
+      "tags": [
+        "amide"
+      ]
+    },
+    {
+      "id": "alkaloids.piperine",
+      "name": "Piperine",
+      "smiles": "O=C(/C=C/C=C/c1ccc2c(c1)OCO2)N1CCCCC1",
+      "tags": [
+        "amide"
+      ]
+    },
+    {
+      "id": "alkaloids.papaverine",
+      "name": "Papaverine",
+      "smiles": "COc1ccc(Cc2nccc3cc(OC)c(OC)cc23)cc1OC",
+      "tags": [
+        "isoquinoline"
+      ]
+    },
+    {
+      "id": "alkaloids.anabasine",
+      "name": "(S)-Anabasine",
+      "smiles": "c1ccnc([C@@H]2CCCCN2)c1",
+      "tags": [
+        "pyridine"
+      ]
+    },
+    {
+      "id": "alkaloids.nornicotine",
+      "name": "(S)-Nornicotine",
+      "smiles": "c1ccnc([C@@H]2CCCN2)c1",
+      "tags": [
+        "pyridine"
+      ]
+    },
+    {
+      "id": "alkaloids.arecoline",
+      "name": "Arecoline",
+      "smiles": "COC(=O)C1=CCCN(C)C1",
+      "tags": [
+        "pyridine"
+      ]
+    },
+    {
+      "id": "alkaloids.trigonelline",
+      "name": "Trigonelline",
+      "smiles": "C[n+]1cccc(C(=O)O)c1",
+      "tags": [
+        "pyridine"
+      ]
+    },
+    {
+      "id": "alkaloids.harmane",
+      "name": "Harmane",
+      "smiles": "Cc1nccc2c1[nH]c1ccccc12",
+      "tags": [
+        "beta-carboline"
+      ]
+    },
+    {
+      "id": "alkaloids.harmaline",
+      "name": "Harmaline",
+      "smiles": "COc1ccc2[nH]c3c(c2c1)CCN=C3C",
+      "tags": [
+        "beta-carboline"
+      ]
+    },
+    {
+      "id": "alkaloids.bufotenin",
+      "name": "Bufotenin",
+      "smiles": "CN(C)CCc1c[nH]c2ccc(O)cc12",
+      "tags": [
+        "tryptamine"
+      ]
+    },
+    {
+      "id": "alkaloids.n_n_dimethyltryptamine",
+      "name": "N,N-Dimethyltryptamine",
+      "smiles": "CN(C)CCc1c[nH]c2ccccc12",
+      "tags": [
+        "tryptamine"
+      ]
+    },
+    {
+      "id": "alkaloids.gramine",
+      "name": "Gramine",
+      "smiles": "CN(C)Cc1c[nH]c2ccccc12",
+      "tags": [
+        "tryptamine"
+      ]
+    },
+    {
+      "id": "alkaloids.indole_3_acetic_acid",
+      "name": "Indole-3-acetic acid",
+      "smiles": "O=C(O)Cc1c[nH]c2ccccc12",
+      "tags": [
+        "tryptamine"
+      ]
+    },
+    {
+      "id": "alkaloids.octopamine",
+      "name": "4-(2-Amino-1-hydroxyethyl)phenol",
+      "smiles": "NC[C@H](O)c1ccc(O)cc1",
+      "tags": [
+        "phenethylamine"
+      ]
+    },
+    {
+      "id": "alkaloids.synephrine",
+      "name": "4-[1-Hydroxy-2-(methylamino)ethyl]phenol",
+      "smiles": "CNC[C@H](O)c1ccc(O)cc1",
+      "tags": [
+        "phenethylamine"
+      ]
+    },
+    {
+      "id": "alkaloids.thebaine",
+      "name": "Thebaine",
+      "smiles": "COc1ccc2c3c1O[C@H]1C(=O)C=C[C@H]4[C@@H](C2)N(C)CC[C@]314",
+      "tags": [
+        "morphinan"
+      ]
+    },
+    {
+      "id": "alkaloids.berberine",
+      "name": "Berberine",
+      "smiles": "COc1ccc2cc3[n+](ccc4cc5c(cc43)OCO5)cc2c1OC",
+      "tags": [
+        "isoquinoline"
+      ]
+    },
+    {
+      "id": "alkaloids.sanguinarine",
+      "name": "Sanguinarine",
+      "smiles": "COc1ccc2c(c1OC)-c1ccc3c(c1C2)OCO3",
+      "tags": [
+        "isoquinoline"
+      ]
+    },
+    {
+      "id": "alkaloids.galantamine",
+      "name": "Galantamine",
+      "smiles": "COc1ccc2c3c1O[C@H]1C[C@@H](O)C=C[C@]31CCN(C)C2",
+      "tags": [
+        "amaryllidaceae"
+      ]
+    },
+    {
+      "id": "alkaloids.physostigmine",
+      "name": "Physostigmine",
+      "smiles": "CNC(=O)Oc1ccc2c(c1)[C@]1(C)N(C)CC[C@H]1N2C",
+      "tags": [
+        "indole"
+      ]
+    },
+    {
+      "id": "alkaloids.quinidine",
+      "name": "Quinidine",
+      "smiles": "C=C[C@H]1CN2CC[C@H]1C[C@@H]2[C@@H](O)c1ccnc2ccc(OC)cc12",
+      "tags": [
+        "quinoline"
+      ]
+    },
+    {
+      "id": "alkaloids.cinchonine",
+      "name": "Cinchonine",
+      "smiles": "C=C[C@H]1CN2CC[C@H]1C[C@@H]2[C@@H](O)c1ccnc2ccccc12",
+      "tags": [
+        "quinoline"
+      ]
+    },
+    {
+      "id": "alkaloids.cinchonidine",
+      "name": "Cinchonidine",
+      "smiles": "C=C[C@H]1CN2CC[C@H]1C[C@H]2[C@@H](O)c1ccnc2ccccc12",
+      "tags": [
+        "quinoline"
+      ]
+    },
+    {
+      "id": "alkaloids.pseudoephedrine",
+      "name": "(1S,2S)-Pseudoephedrine",
+      "smiles": "CN[C@@H](C)[C@@H](O)c1ccccc1",
+      "tags": [
+        "phenethylamine"
+      ]
+    },
+    {
+      "id": "alkaloids.phenylephrine",
+      "name": "(R)-Phenylephrine",
+      "smiles": "CNC[C@H](O)c1cccc(O)c1",
+      "tags": [
+        "phenethylamine"
+      ]
+    },
+    {
+      "id": "alkaloids.dextromethorphan",
+      "name": "Dextromethorphan",
+      "smiles": "COc1ccc2c(c1)C13CCCC[C@@H]1[C@@H](C2)N(C)CC3",
+      "tags": [
+        "morphinan"
+      ]
+    },
+    {
+      "id": "alkaloids.cotinine",
+      "name": "(S)-Cotinine",
+      "smiles": "CN1C(=O)CC[C@H]1c1cccnc1",
+      "tags": [
+        "pyridine"
+      ]
+    },
+    {
+      "id": "alkaloids.tropinone",
+      "name": "Tropinone",
+      "smiles": "CN1[C@H]2CCC[C@@H]1CC(=O)C2",
+      "tags": [
+        "tropane"
+      ]
+    },
+    {
+      "id": "alkaloids.tropine",
+      "name": "Tropine",
+      "smiles": "CN1[C@H]2CC[C@@H]1C[C@H](O)C2",
+      "tags": [
+        "tropane"
+      ]
+    },
+    {
+      "id": "alkaloids.ecgonine",
+      "name": "Ecgonine",
+      "smiles": "COC(=O)[C@H]1C[C@@H](O)C[C@H]2CC[C@@H]1N2C",
+      "tags": [
+        "tropane"
+      ]
+    },
+    {
+      "id": "alkaloids.benzoylecgonine",
+      "name": "Benzoylecgonine",
+      "smiles": "CN1[C@H]2CC[C@@H]1[C@H](C(=O)O)[C@H](OC(=O)c1ccccc1)C2",
+      "tags": [
+        "tropane"
+      ]
+    },
+    {
+      "id": "alkaloids.psilocybin",
+      "name": "Psilocybin",
+      "smiles": "CN(C)CCc1c[nH]c2cccc(OP(=O)(O)O)c12",
+      "tags": [
+        "tryptamine"
+      ]
+    },
+    {
+      "id": "alkaloids.anatabine",
+      "name": "(S)-Anatabine",
+      "smiles": "c1cncc([C@@H]2C=CCNC2)c1",
+      "tags": [
+        "pyridine"
+      ]
+    },
+    {
+      "id": "alkaloids.myosmine",
+      "name": "Myosmine",
+      "smiles": "c1cncc(C2=NCCC2)c1",
+      "tags": [
+        "pyridine"
+      ]
+    },
+    {
+      "id": "alkaloids.cathinone",
+      "name": "(S)-Cathinone",
+      "smiles": "C[C@H](N)C(=O)c1ccccc1",
+      "tags": [
+        "phenethylamine"
+      ]
+    },
+    {
+      "id": "alkaloids.hygrine",
+      "name": "Hygrine",
+      "smiles": "CC(=O)C[C@H]1CCCN1C",
+      "tags": [
+        "pyrrolidine"
+      ]
+    },
+    {
+      "id": "alkaloids.pilocarpine",
+      "name": "(3S,4R)-Pilocarpine",
+      "smiles": "CC[C@H]1[C@@H](CC2=CN=CN2C)COC1=O",
+      "tags": [
+        "imidazole"
+      ]
+    },
+    {
+      "id": "alkaloids.cytisine",
+      "name": "(-)-Cytisine",
+      "smiles": "O=c1cccc2n1C[C@@H]1CNC[C@H]2C1",
+      "tags": [
+        "quinolizidine"
+      ]
+    },
+    {
+      "id": "alkaloids.naloxone",
+      "name": "Naloxone",
+      "smiles": "C=CCN1CC[C@]23c4ccc(O)c5c4O[C@H]2[C@@H](O)C=C[C@H]3[C@H]1C5",
+      "tags": [
+        "morphinan"
+      ]
+    },
+    {
+      "id": "alkaloids.naltrexone",
+      "name": "Naltrexone",
+      "smiles": "O=C1CC[C@@]2(O)[C@H]3Cc4ccc(O)c5c4[C@]2(CCN3CC2CC2)[C@H]1O5",
+      "tags": [
+        "morphinan"
+      ]
+    },
+    {
+      "id": "alkaloids.hydrocodone",
+      "name": "Hydrocodone",
+      "smiles": "COc1ccc2c3c1O[C@H]1C(=O)CC[C@H]4[C@@H](C2)N(C)CC[C@]314",
+      "tags": [
+        "morphinan"
+      ]
+    },
+    {
+      "id": "alkaloids.hydromorphone",
+      "name": "Hydromorphone",
+      "smiles": "CN1CC[C@]23c4c5ccc(O)c4O[C@H]2C(=O)CC[C@H]3[C@H]1C5",
+      "tags": [
+        "morphinan"
+      ]
+    },
+    {
+      "id": "alkaloids.oxycodone",
+      "name": "Oxycodone",
+      "smiles": "COc1ccc2c3c1O[C@H]1C(=O)CC[C@@]4(O)[C@@H](C2)N(C)CC[C@]314",
+      "tags": [
+        "morphinan"
+      ]
+    },
+    {
+      "id": "alkaloids.7_methylxanthine",
+      "name": "7-Methylxanthine",
+      "smiles": "Cn1cnc2[nH]c(=O)[nH]c(=O)c21",
+      "tags": [
+        "xanthine"
+      ]
+    },
+    {
+      "id": "alkaloids.1_methylxanthine",
+      "name": "1-Methylxanthine",
+      "smiles": "Cn1c(=O)[nH]c2nc[nH]c2c1=O",
+      "tags": [
+        "xanthine"
+      ]
+    },
+    {
+      "id": "alkaloids.3_methylxanthine",
+      "name": "3-Methylxanthine",
+      "smiles": "Cn1c(=O)[nH]c(=O)c2[nH]cnc21",
+      "tags": [
+        "xanthine"
+      ]
+    },
+    {
+      "id": "alkaloids.paraxanthine",
+      "name": "Paraxanthine",
+      "smiles": "Cn1c(=O)[nH]c2ncn(C)c2c1=O",
+      "tags": [
+        "xanthine"
+      ]
     }
   ]
 }

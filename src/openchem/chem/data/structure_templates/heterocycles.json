@@ -221,6 +221,3846 @@
       "tags": [
         "crown ether"
       ]
+    },
+    {
+      "id": "heterocycles.21_crown_7",
+      "name": "21-Crown-7",
+      "smiles": "C1COCCOCCOCCOCCOCCOCCO1",
+      "tags": [
+        "crown ether"
+      ]
+    },
+    {
+      "id": "heterocycles.dibenzo_18_crown_6",
+      "name": "Dibenzo-18-crown-6",
+      "smiles": "C1COC2=CC=CC=C2OCCOCCOC3=CC=CC=C3OCCO1",
+      "tags": [
+        "crown ether"
+      ]
+    },
+    {
+      "id": "heterocycles.benzo_15_crown_5",
+      "name": "Benzo-15-crown-5",
+      "smiles": "C1COCCOC2=CC=CC=C2OCCOCCO1",
+      "tags": [
+        "crown ether"
+      ]
+    },
+    {
+      "id": "heterocycles.1_10_diaza_18_crown_6",
+      "name": "1,10-Diaza-18-crown-6",
+      "smiles": "C1COCCOCCNCCOCCOCCN1",
+      "tags": [
+        "crown ether"
+      ]
+    },
+    {
+      "id": "heterocycles.pyrrolidine",
+      "name": "Pyrrolidine",
+      "smiles": "C1CCNC1",
+      "tags": [
+        "saturated"
+      ]
+    },
+    {
+      "id": "heterocycles.2_pyrrolidone",
+      "name": "2-Pyrrolidone",
+      "smiles": "O=C1CCCN1",
+      "tags": [
+        "lactam"
+      ]
+    },
+    {
+      "id": "heterocycles.benzimidazole",
+      "name": "Benzimidazole",
+      "smiles": "c1ccc2[nH]cnc2c1",
+      "tags": [
+        "aromatic"
+      ]
+    },
+    {
+      "id": "heterocycles.carbazole",
+      "name": "Carbazole",
+      "smiles": "c1ccc2c(c1)[nH]c1ccccc12",
+      "tags": [
+        "aromatic"
+      ]
+    },
+    {
+      "id": "heterocycles.acridine",
+      "name": "Acridine",
+      "smiles": "c1ccc2nc3ccccc3cc2c1",
+      "tags": [
+        "aromatic"
+      ]
+    },
+    {
+      "id": "heterocycles.phenothiazine",
+      "name": "Phenothiazine",
+      "smiles": "c1ccc2c(c1)Sc1ccccc1N2",
+      "tags": [
+        "aromatic"
+      ]
+    },
+    {
+      "id": "heterocycles.phenoxazine",
+      "name": "Phenoxazine",
+      "smiles": "c1ccc2c(c1)Oc1ccccc1N2",
+      "tags": [
+        "aromatic"
+      ]
+    },
+    {
+      "id": "heterocycles.xanthene",
+      "name": "Xanthene",
+      "smiles": "C1c2ccccc2Oc2ccccc12",
+      "tags": [
+        "fused"
+      ]
+    },
+    {
+      "id": "heterocycles.coumarin",
+      "name": "Coumarin",
+      "smiles": "O=c1ccc2ccccc2o1",
+      "tags": [
+        "aromatic"
+      ]
+    },
+    {
+      "id": "heterocycles.chromone",
+      "name": "Chromone",
+      "smiles": "O=c1ccoc2ccccc12",
+      "tags": [
+        "aromatic"
+      ]
+    },
+    {
+      "id": "heterocycles.isatin",
+      "name": "Isatin",
+      "smiles": "O=C1Nc2ccccc2C1=O",
+      "tags": [
+        "aromatic"
+      ]
+    },
+    {
+      "id": "heterocycles.oxindole",
+      "name": "Oxindole",
+      "smiles": "O=C1Cc2ccccc2N1",
+      "tags": [
+        "aromatic"
+      ]
+    },
+    {
+      "id": "heterocycles.indoline",
+      "name": "Indoline",
+      "smiles": "c1ccc2c(c1)CCN2",
+      "tags": [
+        "saturated"
+      ]
+    },
+    {
+      "id": "heterocycles.1_2_3_4_tetrahydroisoquinoline",
+      "name": "1,2,3,4-Tetrahydroisoquinoline",
+      "smiles": "c1ccc2c(c1)CCNC2",
+      "tags": [
+        "saturated"
+      ]
+    },
+    {
+      "id": "heterocycles.quinuclidine",
+      "name": "Quinuclidine",
+      "smiles": "C1CN2CCC1CC2",
+      "tags": [
+        "bridged"
+      ]
+    },
+    {
+      "id": "heterocycles.dabco",
+      "name": "DABCO",
+      "smiles": "C1CN2CCN1CC2",
+      "tags": [
+        "bridged"
+      ]
+    },
+    {
+      "id": "heterocycles.2_2_bipyridine",
+      "name": "2,2'-Bipyridine",
+      "smiles": "c1ccnc(-c2ccccn2)c1",
+      "tags": [
+        "aromatic"
+      ]
+    },
+    {
+      "id": "heterocycles.1_10_phenanthroline",
+      "name": "1,10-Phenanthroline",
+      "smiles": "c1cnc2c(c1)ccc1cccnc12",
+      "tags": [
+        "aromatic"
+      ]
+    },
+    {
+      "id": "heterocycles.furfural",
+      "name": "Furfural",
+      "smiles": "O=Cc1ccco1",
+      "tags": [
+        "aldehyde"
+      ]
+    },
+    {
+      "id": "heterocycles.thiophene_2_carbaldehyde",
+      "name": "Thiophene-2-carbaldehyde",
+      "smiles": "O=Cc1cccs1",
+      "tags": [
+        "aldehyde"
+      ]
+    },
+    {
+      "id": "heterocycles.2_aminopyridine",
+      "name": "2-Aminopyridine",
+      "smiles": "Nc1ccccn1",
+      "tags": [
+        "aromatic"
+      ]
+    },
+    {
+      "id": "heterocycles.4_aminopyridine",
+      "name": "4-Aminopyridine",
+      "smiles": "Nc1ccncc1",
+      "tags": [
+        "aromatic"
+      ]
+    },
+    {
+      "id": "heterocycles.barbituric_acid",
+      "name": "Barbituric acid",
+      "smiles": "O=C1CC(=O)NC(=O)N1",
+      "tags": [
+        "amide"
+      ]
+    },
+    {
+      "id": "heterocycles.xanthine",
+      "name": "Xanthine",
+      "smiles": "O=c1[nH]c(=O)c2[nH]cnc2[nH]1",
+      "tags": [
+        "nucleobase analog"
+      ]
+    },
+    {
+      "id": "heterocycles.uric_acid",
+      "name": "Uric acid",
+      "smiles": "O=c1[nH]c(=O)c2[nH]c(=O)[nH]c2[nH]1",
+      "tags": [
+        "nucleobase analog"
+      ]
+    },
+    {
+      "id": "heterocycles.8_hydroxyquinoline",
+      "name": "8-Hydroxyquinoline",
+      "smiles": "Oc1cccc2cccnc12",
+      "tags": [
+        "aromatic"
+      ]
+    },
+    {
+      "id": "heterocycles.benzoxazole",
+      "name": "Benzoxazole",
+      "smiles": "c1ccc2ocnc2c1",
+      "tags": [
+        "aromatic"
+      ]
+    },
+    {
+      "id": "heterocycles.benzothiazole",
+      "name": "Benzothiazole",
+      "smiles": "c1ccc2scnc2c1",
+      "tags": [
+        "aromatic"
+      ]
+    },
+    {
+      "id": "heterocycles.quinoxaline",
+      "name": "Quinoxaline",
+      "smiles": "c1ccc2nccnc2c1",
+      "tags": [
+        "aromatic"
+      ]
+    },
+    {
+      "id": "heterocycles.phthalazine",
+      "name": "Phthalazine",
+      "smiles": "c1ccc2cnncc2c1",
+      "tags": [
+        "aromatic"
+      ]
+    },
+    {
+      "id": "heterocycles.cinnoline",
+      "name": "Cinnoline",
+      "smiles": "c1ccc2nnccc2c1",
+      "tags": [
+        "aromatic"
+      ]
+    },
+    {
+      "id": "heterocycles.pteridine",
+      "name": "Pteridine",
+      "smiles": "c1cnc2ncncc2n1",
+      "tags": [
+        "aromatic"
+      ]
+    },
+    {
+      "id": "heterocycles.1_8_naphthyridine",
+      "name": "1,8-Naphthyridine",
+      "smiles": "c1cnc2ncccc2c1",
+      "tags": [
+        "aromatic"
+      ]
+    },
+    {
+      "id": "heterocycles.indolizine",
+      "name": "Indolizine",
+      "smiles": "c1ccn2cccc2c1",
+      "tags": [
+        "aromatic"
+      ]
+    },
+    {
+      "id": "heterocycles.caprolactam",
+      "name": "Caprolactam",
+      "smiles": "O=C1CCCCCN1",
+      "tags": [
+        "lactam"
+      ]
+    },
+    {
+      "id": "heterocycles.delta_valerolactam",
+      "name": "delta-Valerolactam",
+      "smiles": "O=C1CCCCN1",
+      "tags": [
+        "lactam"
+      ]
+    },
+    {
+      "id": "heterocycles.gamma_butyrolactone",
+      "name": "gamma-Butyrolactone",
+      "smiles": "O=C1CCCO1",
+      "tags": [
+        "lactone"
+      ]
+    },
+    {
+      "id": "heterocycles.delta_valerolactone",
+      "name": "delta-Valerolactone",
+      "smiles": "O=C1CCCCO1",
+      "tags": [
+        "lactone"
+      ]
+    },
+    {
+      "id": "heterocycles.epsilon_caprolactone",
+      "name": "epsilon-Caprolactone",
+      "smiles": "O=C1CCCCCO1",
+      "tags": [
+        "lactone"
+      ]
+    },
+    {
+      "id": "heterocycles.maleic_anhydride",
+      "name": "Maleic anhydride",
+      "smiles": "O=C1OC(=O)C=C1",
+      "tags": [
+        "anhydride"
+      ]
+    },
+    {
+      "id": "heterocycles.succinic_anhydride",
+      "name": "Succinic anhydride",
+      "smiles": "O=C1CCC(=O)O1",
+      "tags": [
+        "anhydride"
+      ]
+    },
+    {
+      "id": "heterocycles.phthalic_anhydride",
+      "name": "Phthalic anhydride",
+      "smiles": "O=C1OC(=O)c2ccccc12",
+      "tags": [
+        "anhydride"
+      ]
+    },
+    {
+      "id": "heterocycles.maleimide",
+      "name": "Maleimide",
+      "smiles": "O=C1C=CC(=O)N1",
+      "tags": [
+        "imide"
+      ]
+    },
+    {
+      "id": "heterocycles.succinimide",
+      "name": "Succinimide",
+      "smiles": "O=C1CCC(=O)N1",
+      "tags": [
+        "imide"
+      ]
+    },
+    {
+      "id": "heterocycles.phthalimide",
+      "name": "Phthalimide",
+      "smiles": "O=C1NC(=O)c2ccccc12",
+      "tags": [
+        "imide"
+      ]
+    },
+    {
+      "id": "heterocycles.hydantoin",
+      "name": "Hydantoin",
+      "smiles": "O=C1CNC(=O)N1",
+      "tags": [
+        "amide"
+      ]
+    },
+    {
+      "id": "heterocycles.isonicotinic_acid",
+      "name": "Isonicotinic acid",
+      "smiles": "O=C(O)c1ccncc1",
+      "tags": [
+        "carboxylic acid"
+      ]
+    },
+    {
+      "id": "heterocycles.picolinic_acid",
+      "name": "Picolinic acid",
+      "smiles": "O=C(O)c1ccccn1",
+      "tags": [
+        "carboxylic acid"
+      ]
+    },
+    {
+      "id": "heterocycles.5_fluorouracil",
+      "name": "5-Fluorouracil",
+      "smiles": "O=c1[nH]cc(F)c(=O)[nH]1",
+      "tags": [
+        "nucleobase analog"
+      ]
+    },
+    {
+      "id": "heterocycles.allopurinol",
+      "name": "Allopurinol",
+      "smiles": "C1=NNC2=C1C(=O)NC=N2",
+      "tags": [
+        "aromatic"
+      ]
+    },
+    {
+      "id": "heterocycles.6_mercaptopurine",
+      "name": "6-Mercaptopurine",
+      "smiles": "Sc1ncnc2[nH]cnc12",
+      "tags": [
+        "nucleobase analog"
+      ]
+    },
+    {
+      "id": "heterocycles.oxirane",
+      "name": "Oxirane",
+      "smiles": "C1CO1",
+      "tags": [
+        "saturated"
+      ]
+    },
+    {
+      "id": "heterocycles.oxetane",
+      "name": "Oxetane",
+      "smiles": "C1COC1",
+      "tags": [
+        "saturated"
+      ]
+    },
+    {
+      "id": "heterocycles.thietane",
+      "name": "Thietane",
+      "smiles": "C1CSC1",
+      "tags": [
+        "saturated"
+      ]
+    },
+    {
+      "id": "heterocycles.thiirane",
+      "name": "Thiirane",
+      "smiles": "C1CS1",
+      "tags": [
+        "saturated"
+      ]
+    },
+    {
+      "id": "heterocycles.aziridine",
+      "name": "Aziridine",
+      "smiles": "C1CN1",
+      "tags": [
+        "saturated"
+      ]
+    },
+    {
+      "id": "heterocycles.azetidine",
+      "name": "Azetidine",
+      "smiles": "C1CNC1",
+      "tags": [
+        "saturated"
+      ]
+    },
+    {
+      "id": "heterocycles.thiolane",
+      "name": "Thiolane",
+      "smiles": "C1CCSC1",
+      "tags": [
+        "saturated"
+      ]
+    },
+    {
+      "id": "heterocycles.tetrahydrothiophene_1_oxide",
+      "name": "Tetrahydrothiophene 1-oxide",
+      "smiles": "O=S1CCCC1",
+      "tags": [
+        "saturated"
+      ]
+    },
+    {
+      "id": "heterocycles.isoxazole",
+      "name": "Isoxazole",
+      "smiles": "c1cnoc1",
+      "tags": [
+        "aromatic"
+      ]
+    },
+    {
+      "id": "heterocycles.isothiazole",
+      "name": "Isothiazole",
+      "smiles": "c1cnsc1",
+      "tags": [
+        "aromatic"
+      ]
+    },
+    {
+      "id": "heterocycles.1_2_5_oxadiazole",
+      "name": "1,2,5-Oxadiazole",
+      "smiles": "c1ncon1",
+      "tags": [
+        "aromatic"
+      ]
+    },
+    {
+      "id": "heterocycles.1_3_4_thiadiazole",
+      "name": "1,3,4-Thiadiazole",
+      "smiles": "c1nncs1",
+      "tags": [
+        "aromatic"
+      ]
+    },
+    {
+      "id": "heterocycles.1_2_4_5_tetrazine",
+      "name": "1,2,4,5-Tetrazine",
+      "smiles": "c1nncnn1",
+      "tags": [
+        "aromatic"
+      ]
+    },
+    {
+      "id": "heterocycles.1_2_3_triazine",
+      "name": "1,2,3-Triazine",
+      "smiles": "c1cnnnc1",
+      "tags": [
+        "aromatic"
+      ]
+    },
+    {
+      "id": "heterocycles.1_2_4_triazine",
+      "name": "1,2,4-Triazine",
+      "smiles": "c1nncnc1",
+      "tags": [
+        "aromatic"
+      ]
+    },
+    {
+      "id": "heterocycles.phenazine",
+      "name": "Phenazine",
+      "smiles": "c1ccc2nc3ccccc3nc2c1",
+      "tags": [
+        "aromatic"
+      ]
+    },
+    {
+      "id": "heterocycles.phenanthridine",
+      "name": "Phenanthridine",
+      "smiles": "c1ccc2c(c1)cnc1ccccc12",
+      "tags": [
+        "aromatic"
+      ]
+    },
+    {
+      "id": "heterocycles.dibenzofuran",
+      "name": "Dibenzofuran",
+      "smiles": "c1ccc2c(c1)oc1ccccc12",
+      "tags": [
+        "aromatic"
+      ]
+    },
+    {
+      "id": "heterocycles.dibenzothiophene",
+      "name": "Dibenzothiophene",
+      "smiles": "c1ccc2c(c1)sc1ccccc12",
+      "tags": [
+        "aromatic"
+      ]
+    },
+    {
+      "id": "heterocycles.xanthone",
+      "name": "Xanthone",
+      "smiles": "O=c1c2ccccc2oc2ccccc12",
+      "tags": [
+        "aromatic"
+      ]
+    },
+    {
+      "id": "heterocycles.thioxanthone",
+      "name": "Thioxanthone",
+      "smiles": "O=c1c2ccccc2sc2ccccc12",
+      "tags": [
+        "aromatic"
+      ]
+    },
+    {
+      "id": "heterocycles.1_6_naphthyridine",
+      "name": "1,6-Naphthyridine",
+      "smiles": "c1cnc2ccncc2c1",
+      "tags": [
+        "aromatic"
+      ]
+    },
+    {
+      "id": "heterocycles.2_2_bithiophene",
+      "name": "2,2'-Bithiophene",
+      "smiles": "c1csc(-c2cccs2)c1",
+      "tags": [
+        "aromatic"
+      ]
+    },
+    {
+      "id": "heterocycles.2_2_bifuran",
+      "name": "2,2'-Bifuran",
+      "smiles": "c1coc(-c2ccco2)c1",
+      "tags": [
+        "aromatic"
+      ]
+    },
+    {
+      "id": "heterocycles.pyrrole_2_carbaldehyde",
+      "name": "Pyrrole-2-carbaldehyde",
+      "smiles": "O=Cc1ccc[nH]1",
+      "tags": [
+        "aldehyde"
+      ]
+    },
+    {
+      "id": "heterocycles.imidazole_2_carbaldehyde",
+      "name": "Imidazole-2-carbaldehyde",
+      "smiles": "O=Cc1ncc[nH]1",
+      "tags": [
+        "aldehyde"
+      ]
+    },
+    {
+      "id": "heterocycles.2_hydroxypyridine",
+      "name": "2-Hydroxypyridine",
+      "smiles": "Oc1ccccn1",
+      "tags": [
+        "aromatic"
+      ]
+    },
+    {
+      "id": "heterocycles.4_hydroxypyridine",
+      "name": "4-Hydroxypyridine",
+      "smiles": "Oc1ccncc1",
+      "tags": [
+        "aromatic"
+      ]
+    },
+    {
+      "id": "heterocycles.2_chloropyridine",
+      "name": "2-Chloropyridine",
+      "smiles": "Clc1ccccn1",
+      "tags": [
+        "aromatic"
+      ]
+    },
+    {
+      "id": "heterocycles.3_chloropyridine",
+      "name": "3-Chloropyridine",
+      "smiles": "Clc1cccnc1",
+      "tags": [
+        "aromatic"
+      ]
+    },
+    {
+      "id": "heterocycles.4_chloropyridine",
+      "name": "4-Chloropyridine",
+      "smiles": "Clc1ccncc1",
+      "tags": [
+        "aromatic"
+      ]
+    },
+    {
+      "id": "heterocycles.2_picoline",
+      "name": "2-Methylpyridine",
+      "smiles": "Cc1ccccn1",
+      "tags": [
+        "aromatic"
+      ]
+    },
+    {
+      "id": "heterocycles.3_picoline",
+      "name": "3-Methylpyridine",
+      "smiles": "Cc1cccnc1",
+      "tags": [
+        "aromatic"
+      ]
+    },
+    {
+      "id": "heterocycles.4_picoline",
+      "name": "4-Methylpyridine",
+      "smiles": "Cc1ccncc1",
+      "tags": [
+        "aromatic"
+      ]
+    },
+    {
+      "id": "heterocycles.2_6_lutidine",
+      "name": "2,6-Lutidine",
+      "smiles": "Cc1cccc(C)n1",
+      "tags": [
+        "aromatic"
+      ]
+    },
+    {
+      "id": "heterocycles.collidine",
+      "name": "2,4,6-Collidine",
+      "smiles": "Cc1cc(C)nc(C)c1",
+      "tags": [
+        "aromatic"
+      ]
+    },
+    {
+      "id": "heterocycles.quinoline_n_oxide",
+      "name": "Quinoline N-oxide",
+      "smiles": "[O-][n+]1cccc2ccccc12",
+      "tags": [
+        "aromatic"
+      ]
+    },
+    {
+      "id": "heterocycles.pyridine_n_oxide",
+      "name": "Pyridine N-oxide",
+      "smiles": "[O-][n+]1ccccc1",
+      "tags": [
+        "aromatic"
+      ]
+    },
+    {
+      "id": "heterocycles.nicotinamide_n_oxide",
+      "name": "Nicotinamide N-oxide",
+      "smiles": "NC(=O)c1ccc[n+]([O-])c1",
+      "tags": [
+        "aromatic"
+      ]
+    },
+    {
+      "id": "heterocycles.melamine",
+      "name": "Melamine",
+      "smiles": "Nc1nc(N)nc(N)n1",
+      "tags": [
+        "aromatic"
+      ]
+    },
+    {
+      "id": "heterocycles.cyanuric_acid",
+      "name": "Cyanuric acid",
+      "smiles": "O=c1[nH]c(=O)[nH]c(=O)[nH]1",
+      "tags": [
+        "amide"
+      ]
+    },
+    {
+      "id": "heterocycles.urazole",
+      "name": "Urazole",
+      "smiles": "O=C1NNC(=O)N1",
+      "tags": [
+        "amide"
+      ]
+    },
+    {
+      "id": "heterocycles.parabanic_acid",
+      "name": "Parabanic acid",
+      "smiles": "O=C1NC(=O)C(=O)N1",
+      "tags": [
+        "amide"
+      ]
+    },
+    {
+      "id": "heterocycles.alloxan",
+      "name": "Alloxan",
+      "smiles": "O=C1NC(=O)C(=O)C(=O)N1",
+      "tags": [
+        "amide"
+      ]
+    },
+    {
+      "id": "heterocycles.diazepam",
+      "name": "Diazepam",
+      "smiles": "CN1C(=O)CN=C(c2ccccc2)c2cc(Cl)ccc21",
+      "tags": [
+        "diazepine"
+      ]
+    },
+    {
+      "id": "heterocycles.phenobarbital",
+      "name": "Phenobarbital",
+      "smiles": "CCC1(c2ccccc2)C(=O)NC(=O)NC1=O",
+      "tags": [
+        "barbiturate"
+      ]
+    },
+    {
+      "id": "heterocycles.carbamazepine",
+      "name": "Carbamazepine",
+      "smiles": "NC(=O)N1c2ccccc2C=Cc2ccccc21",
+      "tags": [
+        "amide"
+      ]
+    },
+    {
+      "id": "heterocycles.chlorpheniramine",
+      "name": "Chlorpheniramine",
+      "smiles": "CN(C)CCC(c1ccc(Cl)cc1)c1ccccn1",
+      "tags": [
+        "pyridine"
+      ]
+    },
+    {
+      "id": "heterocycles.omeprazole",
+      "name": "Omeprazole",
+      "smiles": "COc1ccc2[nH]c(S(=O)Cc3ncc(C)c(OC)c3C)nc2c1",
+      "tags": [
+        "benzimidazole"
+      ]
+    },
+    {
+      "id": "heterocycles.cimetidine",
+      "name": "Cimetidine",
+      "smiles": "CNC(=NC#N)NCCSCc1nc[nH]c1C",
+      "tags": [
+        "imidazole"
+      ]
+    },
+    {
+      "id": "heterocycles.ranitidine",
+      "name": "Ranitidine",
+      "smiles": "CNC(=C[N+](=O)[O-])NCCSCc1ccc(CN(C)C)o1",
+      "tags": [
+        "furan"
+      ]
+    },
+    {
+      "id": "heterocycles.trimethoprim",
+      "name": "Trimethoprim",
+      "smiles": "COc1cc(Cc2cnc(N)nc2N)cc(OC)c1OC",
+      "tags": [
+        "pyrimidine"
+      ]
+    },
+    {
+      "id": "heterocycles.sulfamethoxazole",
+      "name": "Sulfamethoxazole",
+      "smiles": "Cc1cc(NS(=O)(=O)c2ccc(N)cc2)no1",
+      "tags": [
+        "sulfonamide"
+      ]
+    },
+    {
+      "id": "heterocycles.s_warfarin",
+      "name": "(S)-Warfarin",
+      "smiles": "CC(=O)C[C@H](c1ccccc1)c1c(O)c2ccccc2oc1=O",
+      "tags": [
+        "coumarin"
+      ]
+    },
+    {
+      "id": "heterocycles.imipramine",
+      "name": "Imipramine",
+      "smiles": "CN(C)CCCN1c2ccccc2CCc2ccccc21",
+      "tags": [
+        "amine"
+      ]
+    },
+    {
+      "id": "heterocycles.chlorpromazine",
+      "name": "Chlorpromazine",
+      "smiles": "CN(C)CCCN1c2ccccc2Sc2ccc(Cl)cc21",
+      "tags": [
+        "phenothiazine"
+      ]
+    },
+    {
+      "id": "heterocycles.s_citalopram",
+      "name": "(S)-Citalopram",
+      "smiles": "CN(C)CCC[C@]1(c2ccc(F)cc2)OCc2cc(C#N)ccc21",
+      "tags": [
+        "nitrile"
+      ]
+    },
+    {
+      "id": "heterocycles.creatinine",
+      "name": "Creatinine",
+      "smiles": "CN1CC(=O)N=C1N",
+      "tags": [
+        "guanidine"
+      ]
+    },
+    {
+      "id": "heterocycles.acridone",
+      "name": "Acridone",
+      "smiles": "O=c1c2ccccc2[nH]c2ccccc12",
+      "tags": [
+        "aromatic"
+      ]
+    },
+    {
+      "id": "heterocycles.1_5_naphthyridine",
+      "name": "1,5-Naphthyridine",
+      "smiles": "c1cnc2cccnc2c1",
+      "tags": [
+        "aromatic"
+      ]
+    },
+    {
+      "id": "heterocycles.1_3_dioxolane",
+      "name": "1,3-Dioxolane",
+      "smiles": "C1COCO1",
+      "tags": [
+        "heterocycle"
+      ]
+    },
+    {
+      "id": "heterocycles.1_3_dioxane",
+      "name": "1,3-Dioxane",
+      "smiles": "C1COCOC1",
+      "tags": [
+        "heterocycle"
+      ]
+    },
+    {
+      "id": "heterocycles.1_4_dithiane",
+      "name": "1,4-Dithiane",
+      "smiles": "C1CSCCS1",
+      "tags": [
+        "heterocycle"
+      ]
+    },
+    {
+      "id": "heterocycles.1_3_dithiane",
+      "name": "1,3-Dithiane",
+      "smiles": "C1CSCSC1",
+      "tags": [
+        "heterocycle"
+      ]
+    },
+    {
+      "id": "heterocycles.1_3_5_triazine",
+      "name": "1,3,5-Triazine",
+      "smiles": "c1ncncn1",
+      "tags": [
+        "aromatic"
+      ]
+    },
+    {
+      "id": "heterocycles.1_3_4_oxadiazole",
+      "name": "1,3,4-Oxadiazole",
+      "smiles": "c1nnco1",
+      "tags": [
+        "aromatic"
+      ]
+    },
+    {
+      "id": "heterocycles.cyanuric_chloride",
+      "name": "Cyanuric chloride",
+      "smiles": "Clc1nc(Cl)nc(Cl)n1",
+      "tags": [
+        "aromatic"
+      ]
+    },
+    {
+      "id": "heterocycles.2_methylfuran",
+      "name": "2-Methylfuran",
+      "smiles": "Cc1ccco1",
+      "tags": [
+        "aromatic"
+      ]
+    },
+    {
+      "id": "heterocycles.2_5_dimethylfuran",
+      "name": "2,5-Dimethylfuran",
+      "smiles": "Cc1ccc(C)o1",
+      "tags": [
+        "aromatic"
+      ]
+    },
+    {
+      "id": "heterocycles.2_methylthiophene",
+      "name": "2-Methylthiophene",
+      "smiles": "Cc1cccs1",
+      "tags": [
+        "aromatic"
+      ]
+    },
+    {
+      "id": "heterocycles.3_methylthiophene",
+      "name": "3-Methylthiophene",
+      "smiles": "Cc1ccsc1",
+      "tags": [
+        "aromatic"
+      ]
+    },
+    {
+      "id": "heterocycles.4_4_bipyridine",
+      "name": "4,4'-Bipyridine",
+      "smiles": "c1ccncc1-c1ccncc1",
+      "tags": [
+        "aromatic"
+      ]
+    },
+    {
+      "id": "heterocycles.7_azaindole",
+      "name": "7-Azaindole",
+      "smiles": "c1cnc2[nH]ccc2c1",
+      "tags": [
+        "aromatic"
+      ]
+    },
+    {
+      "id": "heterocycles.isoindole",
+      "name": "Isoindole",
+      "smiles": "c1ccc2c[nH]cc2c1",
+      "tags": [
+        "aromatic"
+      ]
+    },
+    {
+      "id": "heterocycles.benzofurazan",
+      "name": "Benzofurazan",
+      "smiles": "c1ccc2nonc2c1",
+      "tags": [
+        "aromatic"
+      ]
+    },
+    {
+      "id": "heterocycles.2_aminothiazole",
+      "name": "2-Aminothiazole",
+      "smiles": "Nc1nccs1",
+      "tags": [
+        "aromatic"
+      ]
+    },
+    {
+      "id": "heterocycles.2_mercaptobenzothiazole",
+      "name": "2-Mercaptobenzothiazole",
+      "smiles": "Sc1nc2ccccc2s1",
+      "tags": [
+        "aromatic"
+      ]
+    },
+    {
+      "id": "heterocycles.2_oxazolidinone",
+      "name": "2-Oxazolidinone",
+      "smiles": "O=C1NCCO1",
+      "tags": [
+        "heterocycle"
+      ]
+    },
+    {
+      "id": "heterocycles.dmpu",
+      "name": "N,N'-Dimethylpropyleneurea",
+      "smiles": "O=C1N(C)CCCN1C",
+      "tags": [
+        "urea"
+      ]
+    },
+    {
+      "id": "heterocycles.dbu",
+      "name": "1,8-Diazabicyclo[5.4.0]undec-7-ene",
+      "smiles": "C1CCN2CCCN=C2CC1",
+      "tags": [
+        "base"
+      ]
+    },
+    {
+      "id": "heterocycles.dbn",
+      "name": "1,5-Diazabicyclo[4.3.0]non-5-ene",
+      "smiles": "C1CN2CCCN=C2C1",
+      "tags": [
+        "base"
+      ]
+    },
+    {
+      "id": "heterocycles.saccharin",
+      "name": "Saccharin",
+      "smiles": "O=C1NS(=O)(=O)c2ccccc12",
+      "tags": [
+        "sulfonamide"
+      ]
+    },
+    {
+      "id": "heterocycles.acesulfame",
+      "name": "Acesulfame",
+      "smiles": "CC1=CC(=O)NS(=O)(=O)O1",
+      "tags": [
+        "sulfonamide"
+      ]
+    },
+    {
+      "id": "heterocycles.pentafluoropyridine",
+      "name": "Pentafluoropyridine",
+      "smiles": "Fc1nc(F)c(F)c(F)c1F",
+      "tags": [
+        "aromatic"
+      ]
+    },
+    {
+      "id": "heterocycles.2_acetylfuran",
+      "name": "2-Acetylfuran",
+      "smiles": "CC(=O)c1ccco1",
+      "tags": [
+        "ketone"
+      ]
+    },
+    {
+      "id": "heterocycles.2_acetylthiophene",
+      "name": "2-Acetylthiophene",
+      "smiles": "CC(=O)c1cccs1",
+      "tags": [
+        "ketone"
+      ]
+    },
+    {
+      "id": "heterocycles.2_acetylpyridine",
+      "name": "2-Acetylpyridine",
+      "smiles": "CC(=O)c1ccccn1",
+      "tags": [
+        "ketone"
+      ]
+    },
+    {
+      "id": "heterocycles.3_acetylpyridine",
+      "name": "3-Acetylpyridine",
+      "smiles": "CC(=O)c1cccnc1",
+      "tags": [
+        "ketone"
+      ]
+    },
+    {
+      "id": "heterocycles.4_acetylpyridine",
+      "name": "4-Acetylpyridine",
+      "smiles": "CC(=O)c1ccncc1",
+      "tags": [
+        "ketone"
+      ]
+    },
+    {
+      "id": "heterocycles.2_bromopyridine",
+      "name": "2-Bromopyridine",
+      "smiles": "Brc1ccccn1",
+      "tags": [
+        "halide"
+      ]
+    },
+    {
+      "id": "heterocycles.3_bromopyridine",
+      "name": "3-Bromopyridine",
+      "smiles": "Brc1cccnc1",
+      "tags": [
+        "halide"
+      ]
+    },
+    {
+      "id": "heterocycles.2_fluoropyridine",
+      "name": "2-Fluoropyridine",
+      "smiles": "Fc1ccccn1",
+      "tags": [
+        "halide"
+      ]
+    },
+    {
+      "id": "heterocycles.3_fluoropyridine",
+      "name": "3-Fluoropyridine",
+      "smiles": "Fc1cccnc1",
+      "tags": [
+        "halide"
+      ]
+    },
+    {
+      "id": "heterocycles.4_fluoropyridine",
+      "name": "4-Fluoropyridine",
+      "smiles": "Fc1ccncc1",
+      "tags": [
+        "halide"
+      ]
+    },
+    {
+      "id": "heterocycles.meldrums_acid",
+      "name": "Meldrum's acid",
+      "smiles": "CC1(C)OC(=O)CC(=O)O1",
+      "tags": [
+        "dicarbonyl"
+      ]
+    },
+    {
+      "id": "heterocycles.allantoin",
+      "name": "Allantoin",
+      "smiles": "NC(=O)NC1NC(=O)NC1=O",
+      "tags": [
+        "urea"
+      ]
+    },
+    {
+      "id": "heterocycles.thiobarbituric_acid",
+      "name": "2-Thiobarbituric acid",
+      "smiles": "O=C1CC(=S)NC(=O)N1",
+      "tags": [
+        "urea"
+      ]
+    },
+    {
+      "id": "heterocycles.dipicolinic_acid",
+      "name": "Pyridine-2,6-dicarboxylic acid",
+      "smiles": "O=C(O)c1cccc(C(=O)O)n1",
+      "tags": [
+        "carboxylic acid"
+      ]
+    },
+    {
+      "id": "heterocycles.terpyridine",
+      "name": "2,2':6',2''-Terpyridine",
+      "smiles": "c1ccc(-c2cccc(-c3ccccn3)n2)nc1",
+      "tags": [
+        "aromatic"
+      ]
+    },
+    {
+      "id": "heterocycles.quinaldic_acid",
+      "name": "Quinoline-2-carboxylic acid",
+      "smiles": "O=C(O)c1ccc2ccccc2n1",
+      "tags": [
+        "carboxylic acid"
+      ]
+    },
+    {
+      "id": "heterocycles.methylene_blue_cation",
+      "name": "3,7-Bis(dimethylamino)phenothiazin-5-ium",
+      "smiles": "CN(C)c1ccc2nc3ccc(N(C)C)cc3[s+]c2c1",
+      "tags": [
+        "dye"
+      ]
+    },
+    {
+      "id": "heterocycles.rhodamine_b_lactone",
+      "name": "Rhodamine B lactone",
+      "smiles": "CCN(CC)c1ccc2c(c1)Oc1cc(N(CC)CC)ccc1C21OC(=O)c2ccccc21",
+      "tags": [
+        "dye"
+      ]
+    },
+    {
+      "id": "heterocycles.indomethacin",
+      "name": "Indomethacin",
+      "smiles": "COc1ccc2c(c1)c(CC(=O)O)c(C)n2C(=O)c1ccc(Cl)cc1",
+      "tags": [
+        "indole"
+      ]
+    },
+    {
+      "id": "heterocycles.celecoxib",
+      "name": "Celecoxib",
+      "smiles": "Cc1ccc(-n2nc(C(F)(F)F)cc2-c2ccc(S(N)(=O)=O)cc2)cc1",
+      "tags": [
+        "pyrazole"
+      ]
+    },
+    {
+      "id": "heterocycles.piroxicam",
+      "name": "Piroxicam",
+      "smiles": "CN1C(=C(O)c2ccccc2S1(=O)=O)C(=O)Nc1ccccn1",
+      "tags": [
+        "sulfonamide"
+      ]
+    },
+    {
+      "id": "heterocycles.nifedipine",
+      "name": "Nifedipine",
+      "smiles": "COC(=O)C1=C(C)NC(C)=C(C(=O)OC)C1c1ccccc1[N+](=O)[O-]",
+      "tags": [
+        "dihydropyridine"
+      ]
+    },
+    {
+      "id": "heterocycles.amlodipine",
+      "name": "Amlodipine",
+      "smiles": "CCOC(=O)C1=C(COCCN)NC(C)=C(C(=O)OC)C1c1ccccc1Cl",
+      "tags": [
+        "dihydropyridine"
+      ]
+    },
+    {
+      "id": "heterocycles.hydrochlorothiazide",
+      "name": "Hydrochlorothiazide",
+      "smiles": "NS(=O)(=O)c1cc2c(cc1Cl)NCNS2(=O)=O",
+      "tags": [
+        "sulfonamide"
+      ]
+    },
+    {
+      "id": "heterocycles.furosemide",
+      "name": "Furosemide",
+      "smiles": "NS(=O)(=O)c1cc(C(=O)O)c(NCc2ccco2)cc1Cl",
+      "tags": [
+        "sulfonamide"
+      ]
+    },
+    {
+      "id": "heterocycles.losartan",
+      "name": "Losartan",
+      "smiles": "CCCCc1nc(Cl)c(CO)n1Cc1ccc(-c2ccccc2-c2nnn[nH]2)cc1",
+      "tags": [
+        "imidazole"
+      ]
+    },
+    {
+      "id": "heterocycles.sildenafil",
+      "name": "Sildenafil",
+      "smiles": "CCCc1nn(C)c2c(=O)[nH]c(-c3cc(S(=O)(=O)N4CCN(C)CC4)ccc3OCC)nc12",
+      "tags": [
+        "pyrazolopyrimidine"
+      ]
+    },
+    {
+      "id": "heterocycles.imatinib",
+      "name": "Imatinib",
+      "smiles": "Cc1ccc(NC(=O)c2ccc(CN3CCN(C)CC3)cc2)cc1Nc1nccc(-c2cccnc2)n1",
+      "tags": [
+        "pyrimidine"
+      ]
+    },
+    {
+      "id": "heterocycles.methotrexate",
+      "name": "Methotrexate",
+      "smiles": "CN(Cc1cnc2nc(N)nc(N)c2n1)c1ccc(C(=O)N[C@@H](CCC(=O)O)C(=O)O)cc1",
+      "tags": [
+        "pteridine"
+      ]
+    },
+    {
+      "id": "heterocycles.metronidazole",
+      "name": "Metronidazole",
+      "smiles": "Cc1ncc([N+](=O)[O-])n1CCO",
+      "tags": [
+        "imidazole"
+      ]
+    },
+    {
+      "id": "heterocycles.ciprofloxacin",
+      "name": "Ciprofloxacin",
+      "smiles": "O=C(O)c1cn(C2CC2)c2cc(N3CCNCC3)c(F)cc2c1=O",
+      "tags": [
+        "quinoline"
+      ]
+    },
+    {
+      "id": "heterocycles.fluconazole",
+      "name": "Fluconazole",
+      "smiles": "OC(Cn1cncn1)(Cn1cncn1)c1ccc(F)cc1F",
+      "tags": [
+        "triazole"
+      ]
+    },
+    {
+      "id": "heterocycles.phenytoin",
+      "name": "Phenytoin",
+      "smiles": "O=C1NC(=O)C(c2ccccc2)(c2ccccc2)N1",
+      "tags": [
+        "hydantoin"
+      ]
+    },
+    {
+      "id": "heterocycles.lamotrigine",
+      "name": "Lamotrigine",
+      "smiles": "Nc1nnc(-c2cccc(Cl)c2Cl)c(N)n1",
+      "tags": [
+        "triazine"
+      ]
+    },
+    {
+      "id": "heterocycles.alprazolam",
+      "name": "Alprazolam",
+      "smiles": "Cc1nnc2n1-c1ccc(Cl)cc1C(c1ccccc1)=NC2",
+      "tags": [
+        "benzodiazepine"
+      ]
+    },
+    {
+      "id": "heterocycles.lorazepam",
+      "name": "Lorazepam",
+      "smiles": "O=C1Nc2ccc(Cl)cc2C(c2ccccc2Cl)=NC1O",
+      "tags": [
+        "benzodiazepine"
+      ]
+    },
+    {
+      "id": "heterocycles.clonazepam",
+      "name": "Clonazepam",
+      "smiles": "O=C1CN=C(c2ccccc2Cl)c2cc([N+](=O)[O-])ccc2N1",
+      "tags": [
+        "benzodiazepine"
+      ]
+    },
+    {
+      "id": "heterocycles.zolpidem",
+      "name": "Zolpidem",
+      "smiles": "Cc1ccc(-c2nc3ccc(C)cn3c2CC(=O)N(C)C)cc1",
+      "tags": [
+        "imidazopyridine"
+      ]
+    },
+    {
+      "id": "heterocycles.olanzapine",
+      "name": "Olanzapine",
+      "smiles": "Cc1cc2c(s1)Nc1ccccc1N=C2N1CCN(C)CC1",
+      "tags": [
+        "thienobenzodiazepine"
+      ]
+    },
+    {
+      "id": "heterocycles.quetiapine",
+      "name": "Quetiapine",
+      "smiles": "OCCOCCN1CCN(C2=Nc3ccccc3Sc3ccccc32)CC1",
+      "tags": [
+        "dibenzothiazepine"
+      ]
+    },
+    {
+      "id": "heterocycles.risperidone",
+      "name": "Risperidone",
+      "smiles": "Cc1nc2ccccn2c(=O)c1CCN1CCC(c2noc3cc(F)ccc23)CC1",
+      "tags": [
+        "pyrimidinone"
+      ]
+    },
+    {
+      "id": "heterocycles.clozapine",
+      "name": "Clozapine",
+      "smiles": "CN1CCN(C2=Nc3cc(Cl)ccc3Nc3ccccc32)CC1",
+      "tags": [
+        "dibenzodiazepine"
+      ]
+    },
+    {
+      "id": "heterocycles.benzylpenicillin",
+      "name": "Benzylpenicillin",
+      "smiles": "CC1(C)S[C@@H]2[C@H](NC(=O)Cc3ccccc3)C(=O)N2[C@H]1C(=O)O",
+      "tags": [
+        "beta-lactam"
+      ]
+    },
+    {
+      "id": "heterocycles.ampicillin",
+      "name": "Ampicillin",
+      "smiles": "CC1(C)S[C@@H]2[C@H](NC(=O)[C@H](N)c3ccccc3)C(=O)N2[C@H]1C(=O)O",
+      "tags": [
+        "beta-lactam"
+      ]
+    },
+    {
+      "id": "heterocycles.amoxicillin",
+      "name": "Amoxicillin",
+      "smiles": "CC1(C)S[C@@H]2[C@H](NC(=O)[C@H](N)c3ccc(O)cc3)C(=O)N2[C@H]1C(=O)O",
+      "tags": [
+        "beta-lactam"
+      ]
+    },
+    {
+      "id": "heterocycles.cephalexin",
+      "name": "Cefalexin",
+      "smiles": "CC1=C(C(=O)O)N2C(=O)[C@@H](NC(=O)[C@H](N)c3ccccc3)[C@H]2SC1",
+      "tags": [
+        "beta-lactam"
+      ]
+    },
+    {
+      "id": "heterocycles.hoat",
+      "name": "1-Hydroxy-7-azabenzotriazole",
+      "smiles": "Oc1nnnc2ncccc12",
+      "tags": [
+        "reagent"
+      ]
+    },
+    {
+      "id": "heterocycles.n_methylpyrrolidine",
+      "name": "N-Methylpyrrolidine",
+      "smiles": "CN1CCCC1",
+      "tags": [
+        "amine"
+      ]
+    },
+    {
+      "id": "heterocycles.n_methylpyrrole",
+      "name": "N-Methylpyrrole",
+      "smiles": "Cn1cccc1",
+      "tags": [
+        "aromatic"
+      ]
+    },
+    {
+      "id": "heterocycles.2_methylindole",
+      "name": "2-Methylindole",
+      "smiles": "Cc1cc2ccccc2[nH]1",
+      "tags": [
+        "aromatic"
+      ]
+    },
+    {
+      "id": "heterocycles.3_methylindole",
+      "name": "3-Methylindole",
+      "smiles": "Cc1c[nH]c2ccccc12",
+      "tags": [
+        "aromatic"
+      ]
+    },
+    {
+      "id": "heterocycles.2_phenylindole",
+      "name": "2-Phenylindole",
+      "smiles": "c1ccc(-c2cc3ccccc3[nH]2)cc1",
+      "tags": [
+        "aromatic"
+      ]
+    },
+    {
+      "id": "heterocycles.tryptophol",
+      "name": "Tryptophol",
+      "smiles": "OCCc1c[nH]c2ccccc12",
+      "tags": [
+        "indole"
+      ]
+    },
+    {
+      "id": "heterocycles.indole_3_carbaldehyde",
+      "name": "Indole-3-carbaldehyde",
+      "smiles": "O=Cc1c[nH]c2ccccc12",
+      "tags": [
+        "indole"
+      ]
+    },
+    {
+      "id": "heterocycles.indole_3_acetonitrile",
+      "name": "Indole-3-acetonitrile",
+      "smiles": "N#CCc1c[nH]c2ccccc12",
+      "tags": [
+        "indole"
+      ]
+    },
+    {
+      "id": "heterocycles.2_methylimidazole",
+      "name": "2-Methylimidazole",
+      "smiles": "Cc1ncc[nH]1",
+      "tags": [
+        "aromatic"
+      ]
+    },
+    {
+      "id": "heterocycles.4_methylimidazole",
+      "name": "4-Methylimidazole",
+      "smiles": "Cc1c[nH]cn1",
+      "tags": [
+        "aromatic"
+      ]
+    },
+    {
+      "id": "heterocycles.2_ethylimidazole",
+      "name": "2-Ethylimidazole",
+      "smiles": "CCc1ncc[nH]1",
+      "tags": [
+        "aromatic"
+      ]
+    },
+    {
+      "id": "heterocycles.2_3_lutidine",
+      "name": "2,3-Lutidine",
+      "smiles": "Cc1cccnc1C",
+      "tags": [
+        "aromatic"
+      ]
+    },
+    {
+      "id": "heterocycles.2_4_lutidine",
+      "name": "2,4-Lutidine",
+      "smiles": "Cc1ccnc(C)c1",
+      "tags": [
+        "aromatic"
+      ]
+    },
+    {
+      "id": "heterocycles.2_5_lutidine",
+      "name": "2,5-Lutidine",
+      "smiles": "Cc1ccc(C)nc1",
+      "tags": [
+        "aromatic"
+      ]
+    },
+    {
+      "id": "heterocycles.3_4_lutidine",
+      "name": "3,4-Lutidine",
+      "smiles": "Cc1ccncc1C",
+      "tags": [
+        "aromatic"
+      ]
+    },
+    {
+      "id": "heterocycles.3_5_lutidine",
+      "name": "3,5-Lutidine",
+      "smiles": "Cc1cncc(C)c1",
+      "tags": [
+        "aromatic"
+      ]
+    },
+    {
+      "id": "heterocycles.2_vinylpyridine",
+      "name": "2-Vinylpyridine",
+      "smiles": "C=Cc1ccccn1",
+      "tags": [
+        "alkene"
+      ]
+    },
+    {
+      "id": "heterocycles.4_vinylpyridine",
+      "name": "4-Vinylpyridine",
+      "smiles": "C=Cc1ccncc1",
+      "tags": [
+        "alkene"
+      ]
+    },
+    {
+      "id": "heterocycles.2_cyanopyridine",
+      "name": "2-Cyanopyridine",
+      "smiles": "N#Cc1ccccn1",
+      "tags": [
+        "nitrile"
+      ]
+    },
+    {
+      "id": "heterocycles.3_cyanopyridine",
+      "name": "3-Cyanopyridine",
+      "smiles": "N#Cc1cccnc1",
+      "tags": [
+        "nitrile"
+      ]
+    },
+    {
+      "id": "heterocycles.4_cyanopyridine",
+      "name": "4-Cyanopyridine",
+      "smiles": "N#Cc1ccncc1",
+      "tags": [
+        "nitrile"
+      ]
+    },
+    {
+      "id": "heterocycles.quinaldine",
+      "name": "Quinaldine",
+      "smiles": "Cc1ccc2ccccc2n1",
+      "tags": [
+        "aromatic"
+      ]
+    },
+    {
+      "id": "heterocycles.lepidine",
+      "name": "Lepidine",
+      "smiles": "Cc1ccnc2ccccc12",
+      "tags": [
+        "aromatic"
+      ]
+    },
+    {
+      "id": "heterocycles.8_aminoquinoline",
+      "name": "8-Aminoquinoline",
+      "smiles": "Nc1cccc2cccnc12",
+      "tags": [
+        "aromatic"
+      ]
+    },
+    {
+      "id": "heterocycles.neocuproine",
+      "name": "Neocuproine",
+      "smiles": "Cc1ccc2ccc3ccc(C)nc3c2n1",
+      "tags": [
+        "aromatic"
+      ]
+    },
+    {
+      "id": "heterocycles.2_mercaptopyridine",
+      "name": "Pyridine-2-thiol",
+      "smiles": "Sc1ccccn1",
+      "tags": [
+        "thiol"
+      ]
+    },
+    {
+      "id": "heterocycles.4_mercaptopyridine",
+      "name": "Pyridine-4-thiol",
+      "smiles": "Sc1ccncc1",
+      "tags": [
+        "thiol"
+      ]
+    },
+    {
+      "id": "heterocycles.2_6_di_tert_butylpyridine",
+      "name": "2,6-Di-tert-butylpyridine",
+      "smiles": "CC(C)(C)c1cccc(C(C)(C)C)n1",
+      "tags": [
+        "base"
+      ]
+    },
+    {
+      "id": "heterocycles.1_2_3_thiadiazole",
+      "name": "1,2,3-Thiadiazole",
+      "smiles": "c1csnn1",
+      "tags": [
+        "aromatic"
+      ]
+    },
+    {
+      "id": "heterocycles.1_2_5_thiadiazole",
+      "name": "1,2,5-Thiadiazole",
+      "smiles": "c1ncns1",
+      "tags": [
+        "aromatic"
+      ]
+    },
+    {
+      "id": "heterocycles.selenophene",
+      "name": "Selenophene",
+      "smiles": "c1cc[se]c1",
+      "tags": [
+        "aromatic"
+      ]
+    },
+    {
+      "id": "heterocycles.oxipurinol",
+      "name": "Oxipurinol",
+      "smiles": "O=c1[nH]nc2[nH]c(=O)[nH]c2n1",
+      "tags": [
+        "purine"
+      ]
+    },
+    {
+      "id": "heterocycles.valsartan",
+      "name": "Valsartan",
+      "smiles": "CCCCC(=O)N(Cc1ccc(-c2ccccc2-c2nnn[nH]2)cc1)[C@H](C(=O)O)C(C)C",
+      "tags": [
+        "tetrazole"
+      ]
+    },
+    {
+      "id": "heterocycles.tadalafil",
+      "name": "Tadalafil",
+      "smiles": "CN1CC(=O)N2[C@H](Cc3c([nH]c4ccccc34)[C@H]2c2ccc3c(c2)OCO3)C1=O",
+      "tags": [
+        "indole"
+      ]
+    },
+    {
+      "id": "heterocycles.vardenafil",
+      "name": "Vardenafil",
+      "smiles": "CCCc1nc(C)c2c(=O)[nH]c(-c3cc(S(=O)(=O)N4CCN(CC)CC4)ccc3OCC)nn12",
+      "tags": [
+        "imidazotriazine"
+      ]
+    },
+    {
+      "id": "heterocycles.famotidine",
+      "name": "Famotidine",
+      "smiles": "N/C(N)=N\\CCSCc1nc[nH]c1CS(N)(=O)=O",
+      "tags": [
+        "thiazole"
+      ]
+    },
+    {
+      "id": "heterocycles.nizatidine",
+      "name": "Nizatidine",
+      "smiles": "CNC(=C[N+](=O)[O-])NCCSCc1csc(CN(C)C)n1",
+      "tags": [
+        "thiazole"
+      ]
+    },
+    {
+      "id": "heterocycles.lansoprazole",
+      "name": "Lansoprazole",
+      "smiles": "Cc1c(OCC(F)(F)F)ccnc1CS(=O)c1nc2ccccc2[nH]1",
+      "tags": [
+        "benzimidazole"
+      ]
+    },
+    {
+      "id": "heterocycles.pantoprazole",
+      "name": "Pantoprazole",
+      "smiles": "COc1ccnc(CS(=O)c2nc3cc(OC(F)F)ccc3[nH]2)c1OC",
+      "tags": [
+        "benzimidazole"
+      ]
+    },
+    {
+      "id": "heterocycles.rabeprazole",
+      "name": "Rabeprazole",
+      "smiles": "COc1ccnc(CS(=O)c2nc3ccccc3[nH]2)c1OCCCOC",
+      "tags": [
+        "benzimidazole"
+      ]
+    },
+    {
+      "id": "heterocycles.esomeprazole",
+      "name": "(S)-Esomeprazole",
+      "smiles": "COc1ccc2[nH]c([S@@](=O)Cc3ncc(C)c(OC)c3C)nc2c1",
+      "tags": [
+        "benzimidazole"
+      ]
+    },
+    {
+      "id": "heterocycles.cetirizine",
+      "name": "Cetirizine",
+      "smiles": "O=C(O)COCCN1CCN(C(c2ccccc2)c2ccc(Cl)cc2)CC1",
+      "tags": [
+        "piperazine"
+      ]
+    },
+    {
+      "id": "heterocycles.loratadine",
+      "name": "Loratadine",
+      "smiles": "CCOC(=O)N1CCC(=C2c3ccc(Cl)cc3CCc3cccnc32)CC1",
+      "tags": [
+        "pyridine"
+      ]
+    },
+    {
+      "id": "heterocycles.desloratadine",
+      "name": "Desloratadine",
+      "smiles": "Clc1ccc2c(c1)CCc1cccnc1C2=C1CCNCC1",
+      "tags": [
+        "pyridine"
+      ]
+    },
+    {
+      "id": "heterocycles.ondansetron",
+      "name": "Ondansetron",
+      "smiles": "Cc1nccn1CC1CCc2c(c3ccccc3n2C)C1=O",
+      "tags": [
+        "carbazole"
+      ]
+    },
+    {
+      "id": "heterocycles.loperamide",
+      "name": "Loperamide",
+      "smiles": "CN(C)C(=O)C(c1ccccc1)(c1ccccc1)C1CCN(CCc2ccc(Cl)cc2)CC1",
+      "tags": [
+        "piperidine"
+      ]
+    },
+    {
+      "id": "heterocycles.promethazine",
+      "name": "Promethazine",
+      "smiles": "CC(CN1c2ccccc2Sc2ccccc21)N(C)C",
+      "tags": [
+        "phenothiazine"
+      ]
+    },
+    {
+      "id": "heterocycles.meclizine",
+      "name": "Meclizine",
+      "smiles": "Cc1ccc(CN2CCN(C(c3ccccc3)c3ccc(Cl)cc3)CC2)cc1",
+      "tags": [
+        "piperazine"
+      ]
+    },
+    {
+      "id": "heterocycles.buspirone",
+      "name": "Buspirone",
+      "smiles": "O=C1CC2(CCCC2)CC(=O)N1CCCCN1CCN(c2ncccn2)CC1",
+      "tags": [
+        "pyrimidine"
+      ]
+    },
+    {
+      "id": "heterocycles.mirtazapine",
+      "name": "Mirtazapine",
+      "smiles": "CN1CCN2c3ccccc3Cc3ncccc3C2C1",
+      "tags": [
+        "pyridine"
+      ]
+    },
+    {
+      "id": "heterocycles.trazodone",
+      "name": "Trazodone",
+      "smiles": "O=c1n(CCCN2CCN(c3cccc(Cl)c3)CC2)nc2ccccn12",
+      "tags": [
+        "triazolopyridine"
+      ]
+    },
+    {
+      "id": "heterocycles.duloxetine",
+      "name": "(S)-Duloxetine",
+      "smiles": "CNCC[C@H](Oc1cccc2ccsc12)c1cccs1",
+      "tags": [
+        "thiophene"
+      ]
+    },
+    {
+      "id": "heterocycles.desipramine",
+      "name": "Desipramine",
+      "smiles": "CNCCCN1c2ccccc2CCc2ccccc21",
+      "tags": [
+        "dibenzazepine"
+      ]
+    },
+    {
+      "id": "heterocycles.clomipramine",
+      "name": "Clomipramine",
+      "smiles": "CN(C)CCCN1c2ccccc2CCc2ccc(Cl)cc21",
+      "tags": [
+        "dibenzazepine"
+      ]
+    },
+    {
+      "id": "heterocycles.doxepin",
+      "name": "Doxepin",
+      "smiles": "CN(C)CCC=C1c2ccccc2COc2ccccc21",
+      "tags": [
+        "oxepine"
+      ]
+    },
+    {
+      "id": "heterocycles.midazolam",
+      "name": "Midazolam",
+      "smiles": "Cc1ncc2n1-c1ccc(Cl)cc1C(c1ccccc1F)=NC2",
+      "tags": [
+        "benzodiazepine"
+      ]
+    },
+    {
+      "id": "heterocycles.oxazepam",
+      "name": "Oxazepam",
+      "smiles": "O=C1Nc2ccc(Cl)cc2C(c2ccccc2)=NC1O",
+      "tags": [
+        "benzodiazepine"
+      ]
+    },
+    {
+      "id": "heterocycles.temazepam",
+      "name": "Temazepam",
+      "smiles": "CN1C(=O)C(O)N=C(c2ccccc2)c2cc(Cl)ccc21",
+      "tags": [
+        "benzodiazepine"
+      ]
+    },
+    {
+      "id": "heterocycles.nitrazepam",
+      "name": "Nitrazepam",
+      "smiles": "O=C1CN=C(c2ccccc2)c2cc([N+](=O)[O-])ccc2N1",
+      "tags": [
+        "benzodiazepine"
+      ]
+    },
+    {
+      "id": "heterocycles.zaleplon",
+      "name": "Zaleplon",
+      "smiles": "CCN(C(C)=O)c1cccc(-c2ccnc3c(C#N)cnn23)c1",
+      "tags": [
+        "pyrazolopyrimidine"
+      ]
+    },
+    {
+      "id": "heterocycles.levetiracetam",
+      "name": "(S)-Levetiracetam",
+      "smiles": "CC[C@H](N1CCCC1=O)C(N)=O",
+      "tags": [
+        "pyrrolidinone"
+      ]
+    },
+    {
+      "id": "heterocycles.oxcarbazepine",
+      "name": "Oxcarbazepine",
+      "smiles": "NC(=O)N1c2ccccc2C(=O)Cc2ccccc21",
+      "tags": [
+        "dibenzazepine"
+      ]
+    },
+    {
+      "id": "heterocycles.methimazole",
+      "name": "Methimazole",
+      "smiles": "Cn1cc[nH]c1=S",
+      "tags": [
+        "imidazole"
+      ]
+    },
+    {
+      "id": "heterocycles.propylthiouracil",
+      "name": "Propylthiouracil",
+      "smiles": "CCCc1cc(=O)[nH]c(=S)[nH]1",
+      "tags": [
+        "pyrimidine"
+      ]
+    },
+    {
+      "id": "heterocycles.glipizide",
+      "name": "Glipizide",
+      "smiles": "Cc1cnc(C(=O)NCCc2ccc(S(=O)(=O)NC(=O)NC3CCCCC3)cc2)cn1",
+      "tags": [
+        "pyrazine"
+      ]
+    },
+    {
+      "id": "heterocycles.pioglitazone",
+      "name": "Pioglitazone",
+      "smiles": "CCc1ccc(CCc2ccc(CC3SC(=O)NC3=O)cc2)nc1",
+      "tags": [
+        "thiazolidinedione"
+      ]
+    },
+    {
+      "id": "heterocycles.rosiglitazone",
+      "name": "Rosiglitazone",
+      "smiles": "CN(CCc1ccc(CC2SC(=O)NC2=O)cc1)c1ccccn1",
+      "tags": [
+        "thiazolidinedione"
+      ]
+    },
+    {
+      "id": "heterocycles.clonidine",
+      "name": "Clonidine",
+      "smiles": "Clc1cccc(Cl)c1NC1=NCCN1",
+      "tags": [
+        "imidazoline"
+      ]
+    },
+    {
+      "id": "heterocycles.hydralazine",
+      "name": "Hydralazine",
+      "smiles": "NNc1nncc2ccccc12",
+      "tags": [
+        "phthalazine"
+      ]
+    },
+    {
+      "id": "heterocycles.prazosin",
+      "name": "Prazosin",
+      "smiles": "COc1cc2nc(N3CCN(C(=O)c4occc4)CC3)nc(N)c2cc1OC",
+      "tags": [
+        "quinazoline"
+      ]
+    },
+    {
+      "id": "heterocycles.doxazosin",
+      "name": "Doxazosin",
+      "smiles": "COc1cc2nc(N3CCN(C(=O)C4COc5ccccc5O4)CC3)nc(N)c2cc1OC",
+      "tags": [
+        "quinazoline"
+      ]
+    },
+    {
+      "id": "heterocycles.felodipine",
+      "name": "Felodipine",
+      "smiles": "CCOC(=O)C1=C(C)NC(C)=C(C(=O)OC)C1c1cccc(Cl)c1Cl",
+      "tags": [
+        "dihydropyridine"
+      ]
+    },
+    {
+      "id": "heterocycles.diltiazem",
+      "name": "Diltiazem",
+      "smiles": "COc1ccc([C@@H]2Sc3ccccc3N(CCN(C)C)C(=O)[C@@H]2OC(C)=O)cc1",
+      "tags": [
+        "benzothiazepine"
+      ]
+    },
+    {
+      "id": "heterocycles.chlorthalidone",
+      "name": "Chlorthalidone",
+      "smiles": "NS(=O)(=O)c1cc(C2(O)NC(=O)c3ccccc32)ccc1Cl",
+      "tags": [
+        "sulfonamide"
+      ]
+    },
+    {
+      "id": "heterocycles.acetazolamide",
+      "name": "Acetazolamide",
+      "smiles": "CC(=O)Nc1nnc(S(N)(=O)=O)s1",
+      "tags": [
+        "thiadiazole"
+      ]
+    },
+    {
+      "id": "heterocycles.ezetimibe",
+      "name": "Ezetimibe",
+      "smiles": "O=C1[C@H](CC[C@H](O)c2ccc(F)cc2)[C@@H](c2ccc(O)cc2)N1c1ccc(F)cc1",
+      "tags": [
+        "beta-lactam"
+      ]
+    },
+    {
+      "id": "heterocycles.atorvastatin",
+      "name": "Atorvastatin",
+      "smiles": "CC(C)c1c(C(=O)Nc2ccccc2)c(-c2ccccc2)c(-c2ccc(F)cc2)n1CC[C@@H](O)C[C@@H](O)CC(=O)O",
+      "tags": [
+        "pyrrole"
+      ]
+    },
+    {
+      "id": "heterocycles.meloxicam",
+      "name": "Meloxicam",
+      "smiles": "Cc1cnc(NC(=O)C2=C(O)c3ccccc3S(=O)(=O)N2C)s1",
+      "tags": [
+        "thiazole"
+      ]
+    },
+    {
+      "id": "heterocycles.sulindac",
+      "name": "Sulindac",
+      "smiles": "Cc1c(CC(=O)O)c2cc(F)ccc2n1C/C=C1/c2ccccc2S1=O",
+      "tags": [
+        "indene"
+      ]
+    },
+    {
+      "id": "heterocycles.chloroquine",
+      "name": "Chloroquine",
+      "smiles": "CCN(CC)CCCC(C)Nc1ccnc2cc(Cl)ccc12",
+      "tags": [
+        "quinoline"
+      ]
+    },
+    {
+      "id": "heterocycles.hydroxychloroquine",
+      "name": "Hydroxychloroquine",
+      "smiles": "CCN(CCO)CCCC(C)Nc1ccnc2cc(Cl)ccc12",
+      "tags": [
+        "quinoline"
+      ]
+    },
+    {
+      "id": "heterocycles.primaquine",
+      "name": "Primaquine",
+      "smiles": "COc1cc(NC(C)CCCN)c2ccccc2n1",
+      "tags": [
+        "quinoline"
+      ]
+    },
+    {
+      "id": "heterocycles.pyrimethamine",
+      "name": "Pyrimethamine",
+      "smiles": "CCc1nc(N)nc(N)c1-c1ccc(Cl)cc1",
+      "tags": [
+        "pyrimidine"
+      ]
+    },
+    {
+      "id": "heterocycles.nitrofurantoin",
+      "name": "Nitrofurantoin",
+      "smiles": "O=C1CN(/N=C/c2ccc([N+](=O)[O-])o2)C(=O)N1",
+      "tags": [
+        "nitrofuran"
+      ]
+    },
+    {
+      "id": "heterocycles.isoniazid",
+      "name": "Isoniazid",
+      "smiles": "NNC(=O)c1ccncc1",
+      "tags": [
+        "pyridine"
+      ]
+    },
+    {
+      "id": "heterocycles.pyrazinamide",
+      "name": "Pyrazinamide",
+      "smiles": "NC(=O)c1cnccn1",
+      "tags": [
+        "pyrazine"
+      ]
+    },
+    {
+      "id": "heterocycles.clopidogrel",
+      "name": "(S)-Clopidogrel",
+      "smiles": "COC(=O)[C@H](c1ccccc1Cl)N1CCc2sccc2C1",
+      "tags": [
+        "thienopyridine"
+      ]
+    },
+    {
+      "id": "heterocycles.prasugrel",
+      "name": "Prasugrel",
+      "smiles": "O=C(C1CC1)N1CCc2cc(OC(=O)C3CC3)sc2C1c1ccccc1F",
+      "tags": [
+        "thienopyridine"
+      ]
+    },
+    {
+      "id": "heterocycles.ticagrelor",
+      "name": "Ticagrelor",
+      "smiles": "CCCSc1nc(N[C@@H]2C[C@H]2c2ccc(F)cc2F)c2nnn([C@@H]3C[C@H](O)[C@@H](O)[C@H]3O)c2n1",
+      "tags": [
+        "triazolopyrimidine"
+      ]
+    },
+    {
+      "id": "heterocycles.apixaban",
+      "name": "Apixaban",
+      "smiles": "COc1ccc(-n2nc3c(C(N)=O)nn(C4CCC(=O)CC4)c3c2)cc1",
+      "tags": [
+        "pyrazolopyridine"
+      ]
+    },
+    {
+      "id": "heterocycles.rivaroxaban",
+      "name": "Rivaroxaban",
+      "smiles": "O=C(NC[C@H]1CN(c2ccc(N3CCOCC3=O)c(Cl)c2)C(=O)O1)c1ccc(Cl)s1",
+      "tags": [
+        "oxazolidinone"
+      ]
+    },
+    {
+      "id": "heterocycles.cilostazol",
+      "name": "Cilostazol",
+      "smiles": "O=c1ccc2ccc(OCCCCN3C(=O)N(c4ccccc4)N=N3)cc2[nH]1",
+      "tags": [
+        "quinolinone"
+      ]
+    },
+    {
+      "id": "heterocycles.pentoxifylline",
+      "name": "Pentoxifylline",
+      "smiles": "Cn1c(=O)c2c(ncn2CCCCC(C)=O)n(C)c1=O",
+      "tags": [
+        "xanthine"
+      ]
+    },
+    {
+      "id": "heterocycles.ketorolac",
+      "name": "Ketorolac",
+      "smiles": "O=C(c1ccccc1)c1ccc2n1C(C(=O)O)CC2",
+      "tags": [
+        "pyrrole"
+      ]
+    },
+    {
+      "id": "heterocycles.indapamide",
+      "name": "Indapamide",
+      "smiles": "Cc1cc2c(cc1Cl)[nH]nc2NS(=O)(=O)c1ccc(Cl)c(S(N)(=O)=O)c1",
+      "tags": [
+        "indole"
+      ]
+    },
+    {
+      "id": "heterocycles.amiloride",
+      "name": "Amiloride",
+      "smiles": "N/C(N)=N/c1nc(Cl)c(N)nc1N",
+      "tags": [
+        "pyrazine"
+      ]
+    },
+    {
+      "id": "heterocycles.triamterene",
+      "name": "Triamterene",
+      "smiles": "Nc1nc(N)c2nc(-c3ccccc3)c(N)nc2n1",
+      "tags": [
+        "pteridine"
+      ]
+    },
+    {
+      "id": "heterocycles.isonicotinamide",
+      "name": "Isonicotinamide",
+      "smiles": "NC(=O)c1ccncc1",
+      "tags": [
+        "pyridine"
+      ]
+    },
+    {
+      "id": "heterocycles.hydroxyzine",
+      "name": "Hydroxyzine",
+      "smiles": "OCCOCCN1CCN(C(c2ccccc2)c2ccc(Cl)cc2)CC1",
+      "tags": [
+        "piperazine"
+      ]
+    },
+    {
+      "id": "heterocycles.minoxidil",
+      "name": "Minoxidil",
+      "smiles": "Nc1cc(N2CCCCC2)[n+]([O-])c(N)n1",
+      "tags": [
+        "pyrimidine"
+      ]
+    },
+    {
+      "id": "heterocycles.linezolid",
+      "name": "Linezolid",
+      "smiles": "CC(=O)NC[C@H]1CN(c2ccc(N3CCOCC3)c(F)c2)C(=O)O1",
+      "tags": [
+        "oxazolidinone"
+      ]
+    },
+    {
+      "id": "heterocycles.montelukast",
+      "name": "Montelukast",
+      "smiles": "CC(C)(O)c1ccccc1CC[C@@H](SCC1(CC(=O)O)CC1)c1ccc(/C=C/c2nc3ccccc3cc2Cl)cc1",
+      "tags": [
+        "quinoline"
+      ]
+    },
+    {
+      "id": "heterocycles.5_hydroxymethylfurfural",
+      "name": "5-Hydroxymethylfurfural",
+      "smiles": "O=Cc1ccc(CO)o1",
+      "tags": [
+        "aldehyde"
+      ]
+    },
+    {
+      "id": "heterocycles.5_methylfurfural",
+      "name": "5-Methylfurfural",
+      "smiles": "Cc1ccc(C=O)o1",
+      "tags": [
+        "aldehyde"
+      ]
+    },
+    {
+      "id": "heterocycles.thiane",
+      "name": "Thiane",
+      "smiles": "C1CCSCC1",
+      "tags": [
+        "heterocycle"
+      ]
+    },
+    {
+      "id": "heterocycles.1_3_5_trithiane",
+      "name": "1,3,5-Trithiane",
+      "smiles": "C1SCSCS1",
+      "tags": [
+        "heterocycle"
+      ]
+    },
+    {
+      "id": "heterocycles.3_sulfolene",
+      "name": "3-Sulfolene",
+      "smiles": "O=S1(=O)CC=CC1",
+      "tags": [
+        "sulfone"
+      ]
+    },
+    {
+      "id": "heterocycles.hexamethylenetetramine",
+      "name": "Hexamethylenetetramine",
+      "smiles": "C1N2CN3CN1CN(C2)C3",
+      "tags": [
+        "amine"
+      ]
+    },
+    {
+      "id": "heterocycles.n_methylpiperazine",
+      "name": "N-Methylpiperazine",
+      "smiles": "CN1CCNCC1",
+      "tags": [
+        "amine"
+      ]
+    },
+    {
+      "id": "heterocycles.n_ethylpiperazine",
+      "name": "N-Ethylpiperazine",
+      "smiles": "CCN1CCNCC1",
+      "tags": [
+        "amine"
+      ]
+    },
+    {
+      "id": "heterocycles.n_phenylpiperazine",
+      "name": "N-Phenylpiperazine",
+      "smiles": "c1ccc(N2CCNCC2)cc1",
+      "tags": [
+        "amine"
+      ]
+    },
+    {
+      "id": "heterocycles.1_4_dimethylpiperazine",
+      "name": "1,4-Dimethylpiperazine",
+      "smiles": "CN1CCN(C)CC1",
+      "tags": [
+        "amine"
+      ]
+    },
+    {
+      "id": "heterocycles.thiomorpholine",
+      "name": "Thiomorpholine",
+      "smiles": "C1CSCCN1",
+      "tags": [
+        "heterocycle"
+      ]
+    },
+    {
+      "id": "heterocycles.azepane",
+      "name": "Azepane",
+      "smiles": "C1CCCNCC1",
+      "tags": [
+        "amine"
+      ]
+    },
+    {
+      "id": "heterocycles.homopiperazine",
+      "name": "Homopiperazine",
+      "smiles": "C1CNCCNC1",
+      "tags": [
+        "amine"
+      ]
+    },
+    {
+      "id": "heterocycles.n_methylpiperidine",
+      "name": "N-Methylpiperidine",
+      "smiles": "CN1CCCCC1",
+      "tags": [
+        "amine"
+      ]
+    },
+    {
+      "id": "heterocycles.n_ethylpiperidine",
+      "name": "N-Ethylpiperidine",
+      "smiles": "CCN1CCCCC1",
+      "tags": [
+        "amine"
+      ]
+    },
+    {
+      "id": "heterocycles.2_methylpiperidine",
+      "name": "2-Methylpiperidine",
+      "smiles": "CC1CCCCN1",
+      "tags": [
+        "amine"
+      ]
+    },
+    {
+      "id": "heterocycles.4_methylpiperidine",
+      "name": "4-Methylpiperidine",
+      "smiles": "CC1CCNCC1",
+      "tags": [
+        "amine"
+      ]
+    },
+    {
+      "id": "heterocycles.n_ethylpyrrolidine",
+      "name": "N-Ethylpyrrolidine",
+      "smiles": "CCN1CCCC1",
+      "tags": [
+        "amine"
+      ]
+    },
+    {
+      "id": "heterocycles.n_ethylpyrrole",
+      "name": "N-Ethylpyrrole",
+      "smiles": "CCn1cccc1",
+      "tags": [
+        "aromatic"
+      ]
+    },
+    {
+      "id": "heterocycles.n_phenylpyrrole",
+      "name": "N-Phenylpyrrole",
+      "smiles": "c1ccc(-n2cccc2)cc1",
+      "tags": [
+        "aromatic"
+      ]
+    },
+    {
+      "id": "heterocycles.n_methylindole",
+      "name": "N-Methylindole",
+      "smiles": "Cn1ccc2ccccc21",
+      "tags": [
+        "aromatic"
+      ]
+    },
+    {
+      "id": "heterocycles.tetrahydroquinoline",
+      "name": "1,2,3,4-Tetrahydroquinoline",
+      "smiles": "c1ccc2c(c1)CCCN2",
+      "tags": [
+        "amine"
+      ]
+    },
+    {
+      "id": "heterocycles.tetrahydrocarbazole",
+      "name": "1,2,3,4-Tetrahydrocarbazole",
+      "smiles": "c1ccc2c3c([nH]c2c1)CCCC3",
+      "tags": [
+        "aromatic"
+      ]
+    },
+    {
+      "id": "heterocycles.chromane",
+      "name": "Chromane",
+      "smiles": "c1ccc2c(c1)CCCO2",
+      "tags": [
+        "heterocycle"
+      ]
+    },
+    {
+      "id": "heterocycles.4_chromanone",
+      "name": "4-Chromanone",
+      "smiles": "O=C1CCOc2ccccc21",
+      "tags": [
+        "ketone"
+      ]
+    },
+    {
+      "id": "heterocycles.dihydrocoumarin",
+      "name": "3,4-Dihydrocoumarin",
+      "smiles": "O=C1CCc2ccccc2O1",
+      "tags": [
+        "lactone"
+      ]
+    },
+    {
+      "id": "heterocycles.phthalide",
+      "name": "Phthalide",
+      "smiles": "O=C1OCc2ccccc12",
+      "tags": [
+        "lactone"
+      ]
+    },
+    {
+      "id": "heterocycles.isochroman",
+      "name": "Isochroman",
+      "smiles": "c1ccc2c(c1)CCOC2",
+      "tags": [
+        "heterocycle"
+      ]
+    },
+    {
+      "id": "heterocycles.1_4_benzodioxane",
+      "name": "1,4-Benzodioxane",
+      "smiles": "c1ccc2c(c1)OCCO2",
+      "tags": [
+        "heterocycle"
+      ]
+    },
+    {
+      "id": "heterocycles.1_3_benzodioxole",
+      "name": "1,3-Benzodioxole",
+      "smiles": "c1ccc2c(c1)OCO2",
+      "tags": [
+        "heterocycle"
+      ]
+    },
+    {
+      "id": "heterocycles.thianthrene",
+      "name": "Thianthrene",
+      "smiles": "c1ccc2c(c1)Sc1ccccc1S2",
+      "tags": [
+        "aromatic"
+      ]
+    },
+    {
+      "id": "heterocycles.phenoxathiine",
+      "name": "Phenoxathiine",
+      "smiles": "c1ccc2c(c1)Oc1ccccc1S2",
+      "tags": [
+        "aromatic"
+      ]
+    },
+    {
+      "id": "heterocycles.thiochroman",
+      "name": "Thiochroman",
+      "smiles": "c1ccc2c(c1)CCCS2",
+      "tags": [
+        "heterocycle"
+      ]
+    },
+    {
+      "id": "heterocycles.xantphos_core",
+      "name": "4,5-Bis(diphenylphosphino)-9,9-dimethylxanthene",
+      "smiles": "CC1(C)c2cccc(P(c3ccccc3)c3ccccc3)c2Oc2c(P(c3ccccc3)c3ccccc3)cccc21",
+      "tags": [
+        "phosphine"
+      ]
+    },
+    {
+      "id": "heterocycles.captopril",
+      "name": "(S)-Captopril",
+      "smiles": "C[C@H](CS)C(=O)N1CCC[C@H]1C(=O)O",
+      "tags": [
+        "pyrrolidine"
+      ]
+    },
+    {
+      "id": "heterocycles.enalapril",
+      "name": "Enalapril",
+      "smiles": "CCOC(=O)[C@H](CCc1ccccc1)N[C@@H](C)C(=O)N1CCC[C@H]1C(=O)O",
+      "tags": [
+        "pyrrolidine"
+      ]
+    },
+    {
+      "id": "heterocycles.lisinopril",
+      "name": "Lisinopril",
+      "smiles": "NCCCC[C@H](N[C@@H](CCc1ccccc1)C(=O)O)C(=O)N1CCC[C@H]1C(=O)O",
+      "tags": [
+        "pyrrolidine"
+      ]
+    },
+    {
+      "id": "heterocycles.ramipril",
+      "name": "Ramipril",
+      "smiles": "CCOC(=O)[C@H](CCc1ccccc1)N[C@@H](C)C(=O)N1[C@H]2CCC[C@H]2C[C@H]1C(=O)O",
+      "tags": [
+        "pyrrolidine"
+      ]
+    },
+    {
+      "id": "heterocycles.irbesartan",
+      "name": "Irbesartan",
+      "smiles": "CCCCC1=NC2(CCCC2)C(=O)N1Cc1ccc(-c2ccccc2-c2nnn[nH]2)cc1",
+      "tags": [
+        "tetrazole"
+      ]
+    },
+    {
+      "id": "heterocycles.telmisartan",
+      "name": "Telmisartan",
+      "smiles": "CCCc1nc2c(C)cc(-c3nc4ccccc4n3C)cc2n1Cc1ccc(-c2ccccc2C(=O)O)cc1",
+      "tags": [
+        "benzimidazole"
+      ]
+    },
+    {
+      "id": "heterocycles.candesartan",
+      "name": "Candesartan",
+      "smiles": "CCOc1nc2cccc(C(=O)O)c2n1Cc1ccc(-c2ccccc2-c2nnn[nH]2)cc1",
+      "tags": [
+        "benzimidazole"
+      ]
+    },
+    {
+      "id": "heterocycles.carvedilol",
+      "name": "Carvedilol",
+      "smiles": "COc1ccccc1OCCNCC(O)COc1cccc2[nH]c3ccccc3c12",
+      "tags": [
+        "carbazole"
+      ]
+    },
+    {
+      "id": "heterocycles.timolol",
+      "name": "(S)-Timolol",
+      "smiles": "CC(C)(C)NC[C@H](O)COc1nsnc1N1CCOCC1",
+      "tags": [
+        "thiadiazole"
+      ]
+    },
+    {
+      "id": "heterocycles.amiodarone",
+      "name": "Amiodarone",
+      "smiles": "CCCCc1oc2ccccc2c1C(=O)c1cc(I)c(OCCN(CC)CC)c(I)c1",
+      "tags": [
+        "benzofuran"
+      ]
+    },
+    {
+      "id": "heterocycles.flecainide",
+      "name": "Flecainide",
+      "smiles": "O=C(NCC1CCCCN1)c1cc(OCC(F)(F)F)ccc1OCC(F)(F)F",
+      "tags": [
+        "piperidine"
+      ]
+    },
+    {
+      "id": "heterocycles.rosuvastatin",
+      "name": "Rosuvastatin",
+      "smiles": "CC(C)c1nc(N(C)S(C)(=O)=O)nc(-c2ccc(F)cc2)c1/C=C/[C@@H](O)C[C@@H](O)CC(=O)O",
+      "tags": [
+        "pyrimidine"
+      ]
+    },
+    {
+      "id": "heterocycles.etomidate",
+      "name": "(R)-Etomidate",
+      "smiles": "CCOC(=O)c1cncn1[C@H](C)c1ccccc1",
+      "tags": [
+        "imidazole"
+      ]
+    },
+    {
+      "id": "heterocycles.pentobarbital",
+      "name": "Pentobarbital",
+      "smiles": "CCCC(C)C1(CC)C(=O)NC(=O)NC1=O",
+      "tags": [
+        "barbiturate"
+      ]
+    },
+    {
+      "id": "heterocycles.thiopental",
+      "name": "Thiopental",
+      "smiles": "CCCC(C)C1(CC)C(=O)NC(=S)NC1=O",
+      "tags": [
+        "barbiturate"
+      ]
+    },
+    {
+      "id": "heterocycles.meperidine",
+      "name": "Pethidine",
+      "smiles": "CCOC(=O)C1(c2ccccc2)CCN(C)CC1",
+      "tags": [
+        "piperidine"
+      ]
+    },
+    {
+      "id": "heterocycles.diphenoxylate",
+      "name": "Diphenoxylate",
+      "smiles": "CCOC(=O)C1(c2ccccc2)CCN(CCC(C#N)(c2ccccc2)c2ccccc2)CC1",
+      "tags": [
+        "piperidine"
+      ]
+    },
+    {
+      "id": "heterocycles.etodolac",
+      "name": "Etodolac",
+      "smiles": "CCc1cccc2c1[nH]c1c2CCOC1(CC)CC(=O)O",
+      "tags": [
+        "indole"
+      ]
+    },
+    {
+      "id": "heterocycles.etoricoxib",
+      "name": "Etoricoxib",
+      "smiles": "Cc1ccc(-c2nc(-c3ccc(S(C)(=O)=O)cc3)ccc2Cl)nc1",
+      "tags": [
+        "pyridine"
+      ]
+    },
+    {
+      "id": "heterocycles.oxaprozin",
+      "name": "Oxaprozin",
+      "smiles": "O=C(O)CCc1nc(-c2ccccc2)c(-c2ccccc2)o1",
+      "tags": [
+        "oxazole"
+      ]
+    },
+    {
+      "id": "heterocycles.tolmetin",
+      "name": "Tolmetin",
+      "smiles": "Cc1ccc(C(=O)c2ccc(CC(=O)O)n2C)cc1",
+      "tags": [
+        "pyrrole"
+      ]
+    },
+    {
+      "id": "heterocycles.n_methylsuccinimide",
+      "name": "N-Methylsuccinimide",
+      "smiles": "CN1C(=O)CCC1=O",
+      "tags": [
+        "imide"
+      ]
+    },
+    {
+      "id": "heterocycles.n_phenylsuccinimide",
+      "name": "N-Phenylsuccinimide",
+      "smiles": "O=C1CCC(=O)N1c1ccccc1",
+      "tags": [
+        "imide"
+      ]
+    },
+    {
+      "id": "heterocycles.n_methylphthalimide",
+      "name": "N-Methylphthalimide",
+      "smiles": "CN1C(=O)c2ccccc2C1=O",
+      "tags": [
+        "imide"
+      ]
+    },
+    {
+      "id": "heterocycles.n_phenylphthalimide",
+      "name": "N-Phenylphthalimide",
+      "smiles": "O=C1c2ccccc2C(=O)N1c1ccccc1",
+      "tags": [
+        "imide"
+      ]
+    },
+    {
+      "id": "heterocycles.maleic_hydrazide",
+      "name": "Maleic hydrazide",
+      "smiles": "O=c1ccc(=O)[nH][nH]1",
+      "tags": [
+        "pyridazine"
+      ]
+    },
+    {
+      "id": "heterocycles.4_phenylurazole",
+      "name": "4-Phenylurazole",
+      "smiles": "O=C1NNC(=O)N1c1ccccc1",
+      "tags": [
+        "urazole"
+      ]
+    },
+    {
+      "id": "heterocycles.crystal_violet_cation",
+      "name": "Crystal violet",
+      "smiles": "CN(C)c1ccc(C(=C2C=CC(=[N+](C)C)C=C2)c2ccc(N(C)C)cc2)cc1",
+      "tags": [
+        "dye"
+      ]
+    },
+    {
+      "id": "heterocycles.malachite_green_cation",
+      "name": "Malachite green",
+      "smiles": "CN(C)c1ccc(C(=C2C=CC(=[N+](C)C)C=C2)c2ccccc2)cc1",
+      "tags": [
+        "dye"
+      ]
+    },
+    {
+      "id": "heterocycles.phenol_red",
+      "name": "Phenol red",
+      "smiles": "O=S1(=O)OC(c2ccc(O)cc2)(c2ccc(O)cc2)c2ccccc21",
+      "tags": [
+        "dye"
+      ]
+    },
+    {
+      "id": "heterocycles.cresol_red",
+      "name": "Cresol red",
+      "smiles": "Cc1cc(C2(c3ccc(O)c(C)c3)OS(=O)(=O)c3ccccc32)ccc1O",
+      "tags": [
+        "dye"
+      ]
+    },
+    {
+      "id": "heterocycles.nile_red",
+      "name": "Nile red",
+      "smiles": "CCN(CC)c1ccc2nc3c4ccccc4c(=O)cc3oc2c1",
+      "tags": [
+        "dye"
+      ]
+    },
+    {
+      "id": "heterocycles.acridine_orange",
+      "name": "Acridine orange",
+      "smiles": "CN(C)c1ccc2nc3ccc(N(C)C)cc3cc2c1",
+      "tags": [
+        "dye"
+      ]
+    },
+    {
+      "id": "heterocycles.safranin_o",
+      "name": "Safranin O",
+      "smiles": "Cc1cc(N)c2nc3ccc(N)cc3[n+](c2c1)c1ccccc1",
+      "tags": [
+        "dye"
+      ]
+    },
+    {
+      "id": "heterocycles.indigo_5_5_disulfonic_acid",
+      "name": "Indigo-5,5'-disulfonic acid",
+      "smiles": "O=C1C(=C2C(=O)c3cc(S(=O)(=O)O)ccc3N2)Nc2ccc(S(=O)(=O)O)cc21",
+      "tags": [
+        "dye"
+      ]
+    },
+    {
+      "id": "heterocycles.porphine",
+      "name": "Porphine",
+      "smiles": "C1=CC2=NC1=CC3=CC=C(N3)C=C4C=CC(=N4)C=C5C=CC(=C2)N5",
+      "tags": [
+        "porphyrin"
+      ]
+    },
+    {
+      "id": "heterocycles.n_vinylpyrrolidone",
+      "name": "N-Vinyl-2-pyrrolidone",
+      "smiles": "C=CN1CCCC1=O",
+      "tags": [
+        "lactam"
+      ]
+    },
+    {
+      "id": "heterocycles.1_vinylimidazole",
+      "name": "1-Vinylimidazole",
+      "smiles": "C=Cn1ccnc1",
+      "tags": [
+        "aromatic"
+      ]
+    },
+    {
+      "id": "heterocycles.d_lactide",
+      "name": "(S,S)-Lactide",
+      "smiles": "C[C@H]1OC(=O)[C@@H](C)OC1=O",
+      "tags": [
+        "lactone"
+      ]
+    },
+    {
+      "id": "heterocycles.glycolide",
+      "name": "Glycolide",
+      "smiles": "O=C1COC(=O)CO1",
+      "tags": [
+        "lactone"
+      ]
+    },
+    {
+      "id": "heterocycles.p_dioxanone",
+      "name": "1,4-Dioxan-2-one",
+      "smiles": "O=C1COCCO1",
+      "tags": [
+        "lactone"
+      ]
+    },
+    {
+      "id": "heterocycles.trimethylene_carbonate",
+      "name": "Trimethylene carbonate",
+      "smiles": "O=C1OCCCO1",
+      "tags": [
+        "carbonate"
+      ]
+    },
+    {
+      "id": "heterocycles.atrazine",
+      "name": "Atrazine",
+      "smiles": "CCNc1nc(Cl)nc(NC(C)C)n1",
+      "tags": [
+        "triazine"
+      ]
+    },
+    {
+      "id": "heterocycles.simazine",
+      "name": "Simazine",
+      "smiles": "CCNc1nc(Cl)nc(NCC)n1",
+      "tags": [
+        "triazine"
+      ]
+    },
+    {
+      "id": "heterocycles.carbofuran",
+      "name": "Carbofuran",
+      "smiles": "CNC(=O)Oc1cccc2c1OC(C)(C)C2",
+      "tags": [
+        "carbamate"
+      ]
+    },
+    {
+      "id": "heterocycles.paraquat_dication",
+      "name": "1,1'-Dimethyl-4,4'-bipyridinium",
+      "smiles": "C[n+]1ccc(-c2cc[n+](C)cc2)cc1",
+      "tags": [
+        "pyridinium"
+      ]
+    },
+    {
+      "id": "heterocycles.diquat_dication",
+      "name": "6,7-Dihydrodipyrido[1,2-a:2',1'-c]pyrazinediium",
+      "smiles": "C1C[n+]2ccccc2-c2cccc[n+]12",
+      "tags": [
+        "pyridinium"
+      ]
+    },
+    {
+      "id": "heterocycles.chlorpyrifos",
+      "name": "Chlorpyrifos",
+      "smiles": "CCOP(=S)(OCC)Oc1nc(Cl)c(Cl)cc1Cl",
+      "tags": [
+        "organophosphate"
+      ]
+    },
+    {
+      "id": "heterocycles.diazinon",
+      "name": "Diazinon",
+      "smiles": "CCOP(=S)(OCC)Oc1cc(C)nc(C(C)C)n1",
+      "tags": [
+        "organophosphate"
+      ]
+    },
+    {
+      "id": "heterocycles.imidacloprid",
+      "name": "Imidacloprid",
+      "smiles": "O=[N+]([O-])NC1=NCCN1Cc1ccncc1Cl",
+      "tags": [
+        "pyridine"
+      ]
+    },
+    {
+      "id": "heterocycles.clopyralid",
+      "name": "Clopyralid",
+      "smiles": "O=C(O)c1ccc(Cl)c(Cl)n1",
+      "tags": [
+        "pyridine"
+      ]
+    },
+    {
+      "id": "heterocycles.picloram",
+      "name": "Picloram",
+      "smiles": "Nc1c(Cl)c(Cl)nc(C(=O)O)c1Cl",
+      "tags": [
+        "pyridine"
+      ]
+    },
+    {
+      "id": "heterocycles.triclopyr",
+      "name": "Triclopyr",
+      "smiles": "O=C(O)COc1ncc(Cl)c(Cl)c1Cl",
+      "tags": [
+        "pyridine"
+      ]
+    },
+    {
+      "id": "heterocycles.n_methylsaccharin",
+      "name": "N-Methylsaccharin",
+      "smiles": "CN1C(=O)c2ccccc2S1(=O)=O",
+      "tags": [
+        "sulfonamide"
+      ]
+    },
+    {
+      "id": "heterocycles.isoquinoline_n_oxide",
+      "name": "Isoquinoline N-oxide",
+      "smiles": "[O-][n+]1ccc2ccccc2c1",
+      "tags": [
+        "aromatic"
+      ]
+    },
+    {
+      "id": "heterocycles.2_6_lutidine_n_oxide",
+      "name": "2,6-Lutidine N-oxide",
+      "smiles": "Cc1cccc(C)[n+]1[O-]",
+      "tags": [
+        "aromatic"
+      ]
+    },
+    {
+      "id": "heterocycles.4_picoline_n_oxide",
+      "name": "4-Picoline N-oxide",
+      "smiles": "Cc1cc[n+]([O-])cc1",
+      "tags": [
+        "aromatic"
+      ]
+    },
+    {
+      "id": "heterocycles.3_picoline_n_oxide",
+      "name": "3-Picoline N-oxide",
+      "smiles": "Cc1ccc[n+]([O-])c1",
+      "tags": [
+        "aromatic"
+      ]
+    },
+    {
+      "id": "heterocycles.2_picoline_n_oxide",
+      "name": "2-Picoline N-oxide",
+      "smiles": "Cc1cccc[n+]1[O-]",
+      "tags": [
+        "aromatic"
+      ]
+    },
+    {
+      "id": "heterocycles.isonicotinamide_n_oxide",
+      "name": "Isonicotinamide N-oxide",
+      "smiles": "NC(=O)c1cc[n+]([O-])cc1",
+      "tags": [
+        "aromatic"
+      ]
+    },
+    {
+      "id": "heterocycles.2_aminopyrimidine",
+      "name": "2-Aminopyrimidine",
+      "smiles": "Nc1ncccn1",
+      "tags": [
+        "aromatic"
+      ]
+    },
+    {
+      "id": "heterocycles.4_aminopyrimidine",
+      "name": "4-Aminopyrimidine",
+      "smiles": "Nc1ccncn1",
+      "tags": [
+        "aromatic"
+      ]
+    },
+    {
+      "id": "heterocycles.2_hydroxypyrimidine",
+      "name": "2-Hydroxypyrimidine",
+      "smiles": "O=c1nccc[nH]1",
+      "tags": [
+        "aromatic"
+      ]
+    },
+    {
+      "id": "heterocycles.4_hydroxypyrimidine",
+      "name": "4-Hydroxypyrimidine",
+      "smiles": "O=c1ccnc[nH]1",
+      "tags": [
+        "aromatic"
+      ]
+    },
+    {
+      "id": "heterocycles.2_chloropyrimidine",
+      "name": "2-Chloropyrimidine",
+      "smiles": "Clc1ncccn1",
+      "tags": [
+        "halide"
+      ]
+    },
+    {
+      "id": "heterocycles.4_chloropyrimidine",
+      "name": "4-Chloropyrimidine",
+      "smiles": "Clc1ccncn1",
+      "tags": [
+        "halide"
+      ]
+    },
+    {
+      "id": "heterocycles.2_4_dichloropyrimidine",
+      "name": "2,4-Dichloropyrimidine",
+      "smiles": "Clc1ccnc(Cl)n1",
+      "tags": [
+        "halide"
+      ]
+    },
+    {
+      "id": "heterocycles.4_6_dichloropyrimidine",
+      "name": "4,6-Dichloropyrimidine",
+      "smiles": "Clc1cc(Cl)ncn1",
+      "tags": [
+        "halide"
+      ]
+    },
+    {
+      "id": "heterocycles.2_4_6_trichloropyrimidine",
+      "name": "2,4,6-Trichloropyrimidine",
+      "smiles": "Clc1nc(Cl)cc(Cl)n1",
+      "tags": [
+        "halide"
+      ]
+    },
+    {
+      "id": "heterocycles.2_aminopyrazine",
+      "name": "2-Aminopyrazine",
+      "smiles": "Nc1cnccn1",
+      "tags": [
+        "aromatic"
+      ]
+    },
+    {
+      "id": "heterocycles.2_chloropyrazine",
+      "name": "2-Chloropyrazine",
+      "smiles": "Clc1cnccn1",
+      "tags": [
+        "halide"
+      ]
+    },
+    {
+      "id": "heterocycles.2_hydroxypyrazine",
+      "name": "2-Hydroxypyrazine",
+      "smiles": "O=c1cncc[nH]1",
+      "tags": [
+        "aromatic"
+      ]
+    },
+    {
+      "id": "heterocycles.3_aminopyridazine",
+      "name": "3-Aminopyridazine",
+      "smiles": "Nc1cccnn1",
+      "tags": [
+        "aromatic"
+      ]
+    },
+    {
+      "id": "heterocycles.3_chloropyridazine",
+      "name": "3-Chloropyridazine",
+      "smiles": "Clc1cccnn1",
+      "tags": [
+        "halide"
+      ]
+    },
+    {
+      "id": "heterocycles.4_aminopyridazine",
+      "name": "4-Aminopyridazine",
+      "smiles": "Nc1ccnnc1",
+      "tags": [
+        "aromatic"
+      ]
+    },
+    {
+      "id": "heterocycles.2_amino_1_3_5_triazine",
+      "name": "2-Amino-1,3,5-triazine",
+      "smiles": "Nc1ncncn1",
+      "tags": [
+        "aromatic"
+      ]
+    },
+    {
+      "id": "heterocycles.2_chloro_1_3_5_triazine",
+      "name": "2-Chloro-1,3,5-triazine",
+      "smiles": "Clc1ncncn1",
+      "tags": [
+        "halide"
+      ]
+    },
+    {
+      "id": "heterocycles.2_4_dichloro_1_3_5_triazine",
+      "name": "2,4-Dichloro-1,3,5-triazine",
+      "smiles": "Clc1ncnc(Cl)n1",
+      "tags": [
+        "halide"
+      ]
+    },
+    {
+      "id": "heterocycles.ammeline",
+      "name": "Ammeline",
+      "smiles": "Nc1nc(N)nc(O)n1",
+      "tags": [
+        "triazine"
+      ]
+    },
+    {
+      "id": "heterocycles.ammelide",
+      "name": "Ammelide",
+      "smiles": "Nc1nc(O)nc(O)n1",
+      "tags": [
+        "triazine"
+      ]
+    },
+    {
+      "id": "heterocycles.tetramethylpiperidine",
+      "name": "2,2,6,6-Tetramethylpiperidine",
+      "smiles": "CC1(C)CCCC(C)(C)N1",
+      "tags": [
+        "amine"
+      ]
+    },
+    {
+      "id": "heterocycles.proton_sponge",
+      "name": "1,8-Bis(dimethylamino)naphthalene",
+      "smiles": "CN(C)c1cccc2cccc(N(C)C)c12",
+      "tags": [
+        "amine"
+      ]
+    },
+    {
+      "id": "heterocycles.1_3_5_trioxane",
+      "name": "1,3,5-Trioxane",
+      "smiles": "C1OCOCO1",
+      "tags": [
+        "acetal"
+      ]
+    },
+    {
+      "id": "heterocycles.paraldehyde",
+      "name": "Paraldehyde",
+      "smiles": "C[C@H]1O[C@@H](C)O[C@H](C)O1",
+      "tags": [
+        "acetal"
+      ]
+    },
+    {
+      "id": "heterocycles.3_4_dihydro_2h_pyran",
+      "name": "3,4-Dihydro-2H-pyran",
+      "smiles": "C1=COCCC1",
+      "tags": [
+        "enol ether"
+      ]
+    },
+    {
+      "id": "heterocycles.n_hydroxyphthalimide",
+      "name": "N-Hydroxyphthalimide",
+      "smiles": "ON1C(=O)c2ccccc2C1=O",
+      "tags": [
+        "imide"
+      ]
+    },
+    {
+      "id": "heterocycles.n_hydroxymaleimide",
+      "name": "N-Hydroxymaleimide",
+      "smiles": "ON1C(=O)C=CC1=O",
+      "tags": [
+        "imide"
+      ]
+    },
+    {
+      "id": "heterocycles.bathophenanthroline",
+      "name": "Bathophenanthroline",
+      "smiles": "c1ccc(-c2cc3ccc4cc(-c5ccccc5)nc4c3n2)cc1",
+      "tags": [
+        "aromatic"
+      ]
+    },
+    {
+      "id": "heterocycles.protoporphyrin_ix",
+      "name": "Protoporphyrin IX",
+      "smiles": "C=Cc1c(C)c2cc3[nH]c(cc4nc(cc5[nH]c(cc1n2)c(C)c5CCC(=O)O)c(CCC(=O)O)c4C)c(C)c3C=C",
+      "tags": [
+        "porphyrin"
+      ]
+    },
+    {
+      "id": "heterocycles.coproporphyrin_i",
+      "name": "Coproporphyrin I",
+      "smiles": "Cc1c(CCC(=O)O)c2cc3[nH]c(cc4nc(cc5[nH]c(cc1n2)c(C)c5CCC(=O)O)c(CCC(=O)O)c4C)c(C)c3CCC(=O)O",
+      "tags": [
+        "porphyrin"
+      ]
+    },
+    {
+      "id": "heterocycles.phthalocyanine",
+      "name": "Phthalocyanine",
+      "smiles": "c1ccc2c(c1)-c1nc-2nc2[nH]c(nc3nc(nc4[nH]c(n1)c1ccccc41)c1ccccc31)c1ccccc21",
+      "tags": [
+        "porphyrin"
+      ]
+    },
+    {
+      "id": "heterocycles.chlorin",
+      "name": "Chlorin",
+      "smiles": "C1=Cc2cc3ccc(cc4nc(cc5ccc(cc1n2)[nH]5)CC4)[nH]3",
+      "tags": [
+        "porphyrin"
+      ]
+    },
+    {
+      "id": "heterocycles.rose_oxide",
+      "name": "Rose oxide",
+      "smiles": "C[C@@H]1CC[C@H](C(C)=C)CO1",
+      "tags": [
+        "ether"
+      ]
+    },
+    {
+      "id": "heterocycles.nerol_oxide",
+      "name": "Nerol oxide",
+      "smiles": "CC1=CCO[C@H](C=C(C)C)C1",
+      "tags": [
+        "ether"
+      ]
+    },
+    {
+      "id": "heterocycles.theaspirane",
+      "name": "Theaspirane",
+      "smiles": "CC1(C)CCCC2(C)OC(C)=CC12",
+      "tags": [
+        "ether"
+      ]
+    },
+    {
+      "id": "heterocycles.dihydroactinidiolide",
+      "name": "Dihydroactinidiolide",
+      "smiles": "CC1=CCCC2(C)OC(=O)CC12",
+      "tags": [
+        "lactone"
+      ]
+    },
+    {
+      "id": "heterocycles.whiskey_lactone",
+      "name": "Whisky lactone",
+      "smiles": "CCCC[C@@H]1OC(=O)C[C@@H]1C",
+      "tags": [
+        "lactone"
+      ]
+    },
+    {
+      "id": "heterocycles.gamma_decalactone",
+      "name": "gamma-Decalactone",
+      "smiles": "CCCCCCC[C@@H]1CCC(=O)O1",
+      "tags": [
+        "lactone"
+      ]
+    },
+    {
+      "id": "heterocycles.gamma_nonalactone",
+      "name": "gamma-Nonalactone",
+      "smiles": "CCCCCC[C@@H]1CCC(=O)O1",
+      "tags": [
+        "lactone"
+      ]
+    },
+    {
+      "id": "heterocycles.delta_decalactone",
+      "name": "delta-Decalactone",
+      "smiles": "CCCCC[C@@H]1CCCC(=O)O1",
+      "tags": [
+        "lactone"
+      ]
+    },
+    {
+      "id": "heterocycles.massoia_lactone",
+      "name": "Massoia lactone",
+      "smiles": "CCCCC[C@@H]1CC=CC(=O)O1",
+      "tags": [
+        "lactone"
+      ]
+    },
+    {
+      "id": "heterocycles.jasmine_lactone",
+      "name": "Jasmine lactone",
+      "smiles": "CC/C=C\\C[C@@H]1CCCC(=O)O1",
+      "tags": [
+        "lactone"
+      ]
+    },
+    {
+      "id": "heterocycles.picolinaldehyde",
+      "name": "Pyridine-2-carbaldehyde",
+      "smiles": "O=Cc1ccccn1",
+      "tags": [
+        "aldehyde"
+      ]
+    },
+    {
+      "id": "heterocycles.nicotinaldehyde",
+      "name": "Pyridine-3-carbaldehyde",
+      "smiles": "O=Cc1cccnc1",
+      "tags": [
+        "aldehyde"
+      ]
+    },
+    {
+      "id": "heterocycles.isonicotinaldehyde",
+      "name": "Pyridine-4-carbaldehyde",
+      "smiles": "O=Cc1ccncc1",
+      "tags": [
+        "aldehyde"
+      ]
+    },
+    {
+      "id": "heterocycles.pyrrole_2_carbonitrile",
+      "name": "Pyrrole-2-carbonitrile",
+      "smiles": "N#Cc1ccc[nH]1",
+      "tags": [
+        "nitrile"
+      ]
+    },
+    {
+      "id": "heterocycles.thiophene_2_carbonitrile",
+      "name": "Thiophene-2-carbonitrile",
+      "smiles": "N#Cc1cccs1",
+      "tags": [
+        "nitrile"
+      ]
+    },
+    {
+      "id": "heterocycles.furan_2_carbonitrile",
+      "name": "Furan-2-carbonitrile",
+      "smiles": "N#Cc1ccco1",
+      "tags": [
+        "nitrile"
+      ]
+    },
+    {
+      "id": "heterocycles.indole_3_carbonitrile",
+      "name": "Indole-3-carbonitrile",
+      "smiles": "N#Cc1c[nH]c2ccccc12",
+      "tags": [
+        "nitrile"
+      ]
+    },
+    {
+      "id": "heterocycles.quinoline_2_carbonitrile",
+      "name": "Quinoline-2-carbonitrile",
+      "smiles": "N#Cc1ccc2ccccc2n1",
+      "tags": [
+        "nitrile"
+      ]
+    },
+    {
+      "id": "heterocycles.quinoline_4_carbonitrile",
+      "name": "Quinoline-4-carbonitrile",
+      "smiles": "N#Cc1ccnc2ccccc12",
+      "tags": [
+        "nitrile"
+      ]
+    },
+    {
+      "id": "heterocycles.isoquinoline_1_carbonitrile",
+      "name": "Isoquinoline-1-carbonitrile",
+      "smiles": "N#Cc1nccc2ccccc12",
+      "tags": [
+        "nitrile"
+      ]
+    },
+    {
+      "id": "heterocycles.2_vinylfuran",
+      "name": "2-Vinylfuran",
+      "smiles": "C=Cc1ccco1",
+      "tags": [
+        "alkene"
+      ]
+    },
+    {
+      "id": "heterocycles.2_vinylthiophene",
+      "name": "2-Vinylthiophene",
+      "smiles": "C=Cc1cccs1",
+      "tags": [
+        "alkene"
+      ]
+    },
+    {
+      "id": "heterocycles.2_vinylpyrrole",
+      "name": "2-Vinylpyrrole",
+      "smiles": "C=Cc1ccc[nH]1",
+      "tags": [
+        "alkene"
+      ]
+    },
+    {
+      "id": "heterocycles.1_vinylpyrrole",
+      "name": "1-Vinylpyrrole",
+      "smiles": "C=Cn1cccc1",
+      "tags": [
+        "alkene"
+      ]
+    },
+    {
+      "id": "heterocycles.2_vinylindole",
+      "name": "2-Vinylindole",
+      "smiles": "C=Cc1cc2ccccc2[nH]1",
+      "tags": [
+        "alkene"
+      ]
+    },
+    {
+      "id": "heterocycles.3_vinylindole",
+      "name": "3-Vinylindole",
+      "smiles": "C=Cc1c[nH]c2ccccc12",
+      "tags": [
+        "alkene"
+      ]
+    },
+    {
+      "id": "heterocycles.2_acetylindole",
+      "name": "2-Acetylindole",
+      "smiles": "CC(=O)c1cc2ccccc2[nH]1",
+      "tags": [
+        "ketone"
+      ]
+    },
+    {
+      "id": "heterocycles.3_acetylindole",
+      "name": "3-Acetylindole",
+      "smiles": "CC(=O)c1c[nH]c2ccccc12",
+      "tags": [
+        "ketone"
+      ]
+    },
+    {
+      "id": "heterocycles.2_acetylpyrrole",
+      "name": "2-Acetylpyrrole",
+      "smiles": "CC(=O)c1ccc[nH]1",
+      "tags": [
+        "ketone"
+      ]
+    },
+    {
+      "id": "heterocycles.3_acetylpyrrole",
+      "name": "3-Acetylpyrrole",
+      "smiles": "CC(=O)c1cc[nH]c1",
+      "tags": [
+        "ketone"
+      ]
+    },
+    {
+      "id": "heterocycles.2_acetylthiazole",
+      "name": "2-Acetylthiazole",
+      "smiles": "CC(=O)c1nccs1",
+      "tags": [
+        "ketone"
+      ]
+    },
+    {
+      "id": "heterocycles.2_acetylimidazole",
+      "name": "2-Acetylimidazole",
+      "smiles": "CC(=O)c1ncc[nH]1",
+      "tags": [
+        "ketone"
+      ]
+    },
+    {
+      "id": "heterocycles.4_acetylimidazole",
+      "name": "4-Acetylimidazole",
+      "smiles": "CC(=O)c1c[nH]cn1",
+      "tags": [
+        "ketone"
+      ]
+    },
+    {
+      "id": "heterocycles.2_acetylpyrazine",
+      "name": "2-Acetylpyrazine",
+      "smiles": "CC(=O)c1cnccn1",
+      "tags": [
+        "ketone"
+      ]
+    },
+    {
+      "id": "heterocycles.2_acetylpyrimidine",
+      "name": "2-Acetylpyrimidine",
+      "smiles": "CC(=O)c1ncccn1",
+      "tags": [
+        "ketone"
+      ]
+    },
+    {
+      "id": "heterocycles.4_acetylpyrimidine",
+      "name": "4-Acetylpyrimidine",
+      "smiles": "CC(=O)c1ccncn1",
+      "tags": [
+        "ketone"
+      ]
+    },
+    {
+      "id": "heterocycles.3_acetylthiophene",
+      "name": "3-Acetylthiophene",
+      "smiles": "CC(=O)c1ccsc1",
+      "tags": [
+        "ketone"
+      ]
+    },
+    {
+      "id": "heterocycles.3_acetylfuran",
+      "name": "3-Acetylfuran",
+      "smiles": "CC(=O)c1ccoc1",
+      "tags": [
+        "ketone"
+      ]
+    },
+    {
+      "id": "heterocycles.2_furoic_acid",
+      "name": "2-Furoic acid",
+      "smiles": "O=C(O)c1ccco1",
+      "tags": [
+        "carboxylic acid"
+      ]
+    },
+    {
+      "id": "heterocycles.3_furoic_acid",
+      "name": "3-Furoic acid",
+      "smiles": "O=C(O)c1ccoc1",
+      "tags": [
+        "carboxylic acid"
+      ]
+    },
+    {
+      "id": "heterocycles.2_thiophenecarboxylic_acid",
+      "name": "Thiophene-2-carboxylic acid",
+      "smiles": "O=C(O)c1cccs1",
+      "tags": [
+        "carboxylic acid"
+      ]
+    },
+    {
+      "id": "heterocycles.3_thiophenecarboxylic_acid",
+      "name": "Thiophene-3-carboxylic acid",
+      "smiles": "O=C(O)c1ccsc1",
+      "tags": [
+        "carboxylic acid"
+      ]
+    },
+    {
+      "id": "heterocycles.pyrrole_2_carboxylic_acid",
+      "name": "Pyrrole-2-carboxylic acid",
+      "smiles": "O=C(O)c1ccc[nH]1",
+      "tags": [
+        "carboxylic acid"
+      ]
+    },
+    {
+      "id": "heterocycles.indole_2_carboxylic_acid",
+      "name": "Indole-2-carboxylic acid",
+      "smiles": "O=C(O)c1cc2ccccc2[nH]1",
+      "tags": [
+        "carboxylic acid"
+      ]
+    },
+    {
+      "id": "heterocycles.indole_3_carboxylic_acid",
+      "name": "Indole-3-carboxylic acid",
+      "smiles": "O=C(O)c1c[nH]c2ccccc12",
+      "tags": [
+        "carboxylic acid"
+      ]
+    },
+    {
+      "id": "heterocycles.quinoline_3_carboxylic_acid",
+      "name": "Quinoline-3-carboxylic acid",
+      "smiles": "O=C(O)c1cnc2ccccc2c1",
+      "tags": [
+        "carboxylic acid"
+      ]
+    },
+    {
+      "id": "heterocycles.quinoline_4_carboxylic_acid",
+      "name": "Quinoline-4-carboxylic acid",
+      "smiles": "O=C(O)c1ccnc2ccccc12",
+      "tags": [
+        "carboxylic acid"
+      ]
+    },
+    {
+      "id": "heterocycles.isoquinoline_3_carboxylic_acid",
+      "name": "Isoquinoline-3-carboxylic acid",
+      "smiles": "O=C(O)c1cc2ccccc2cn1",
+      "tags": [
+        "carboxylic acid"
+      ]
+    },
+    {
+      "id": "heterocycles.2_pyrazinecarboxylic_acid",
+      "name": "Pyrazine-2-carboxylic acid",
+      "smiles": "O=C(O)c1cnccn1",
+      "tags": [
+        "carboxylic acid"
+      ]
+    },
+    {
+      "id": "heterocycles.pyrimidine_2_carboxylic_acid",
+      "name": "Pyrimidine-2-carboxylic acid",
+      "smiles": "O=C(O)c1ncccn1",
+      "tags": [
+        "carboxylic acid"
+      ]
+    },
+    {
+      "id": "heterocycles.pyrimidine_4_carboxylic_acid",
+      "name": "Pyrimidine-4-carboxylic acid",
+      "smiles": "O=C(O)c1ccncn1",
+      "tags": [
+        "carboxylic acid"
+      ]
+    },
+    {
+      "id": "heterocycles.pyrimidine_5_carboxylic_acid",
+      "name": "Pyrimidine-5-carboxylic acid",
+      "smiles": "O=C(O)c1cncnc1",
+      "tags": [
+        "carboxylic acid"
+      ]
+    },
+    {
+      "id": "heterocycles.thiazole_2_carboxylic_acid",
+      "name": "Thiazole-2-carboxylic acid",
+      "smiles": "O=C(O)c1nccs1",
+      "tags": [
+        "carboxylic acid"
+      ]
+    },
+    {
+      "id": "heterocycles.imidazole_4_carboxylic_acid",
+      "name": "Imidazole-4-carboxylic acid",
+      "smiles": "O=C(O)c1c[nH]cn1",
+      "tags": [
+        "carboxylic acid"
+      ]
+    },
+    {
+      "id": "heterocycles.imidazole_2_carboxylic_acid",
+      "name": "Imidazole-2-carboxylic acid",
+      "smiles": "O=C(O)c1ncc[nH]1",
+      "tags": [
+        "carboxylic acid"
+      ]
+    },
+    {
+      "id": "heterocycles.mevalonolactone",
+      "name": "Mevalonolactone",
+      "smiles": "CC1(O)CCOC(=O)C1",
+      "tags": [
+        "lactone"
+      ]
+    },
+    {
+      "id": "heterocycles.pantolactone",
+      "name": "(R)-Pantolactone",
+      "smiles": "CC1(C)[C@H](O)C(=O)OC1",
+      "tags": [
+        "lactone"
+      ]
+    },
+    {
+      "id": "heterocycles.protoanemonin",
+      "name": "Protoanemonin",
+      "smiles": "C=C1OC(=O)C=C1",
+      "tags": [
+        "lactone"
+      ]
+    },
+    {
+      "id": "heterocycles.tulipalin_a",
+      "name": "Tulipalin A",
+      "smiles": "C=C1CCOC1=O",
+      "tags": [
+        "lactone"
+      ]
+    },
+    {
+      "id": "heterocycles.coumalic_acid",
+      "name": "Coumalic acid",
+      "smiles": "O=C(O)c1ccc(=O)oc1",
+      "tags": [
+        "lactone"
+      ]
+    },
+    {
+      "id": "heterocycles.maltol",
+      "name": "Maltol",
+      "smiles": "Cc1occc(=O)c1O",
+      "tags": [
+        "pyrone"
+      ]
+    },
+    {
+      "id": "heterocycles.ethylmaltol",
+      "name": "Ethylmaltol",
+      "smiles": "CCc1occc(=O)c1O",
+      "tags": [
+        "pyrone"
+      ]
+    },
+    {
+      "id": "heterocycles.comenic_acid",
+      "name": "Comenic acid",
+      "smiles": "O=C(O)c1cc(=O)c(O)co1",
+      "tags": [
+        "pyrone"
+      ]
+    },
+    {
+      "id": "heterocycles.chelidonic_acid",
+      "name": "Chelidonic acid",
+      "smiles": "O=C(O)c1cc(=O)cc(C(=O)O)o1",
+      "tags": [
+        "pyrone"
+      ]
+    },
+    {
+      "id": "heterocycles.meconic_acid",
+      "name": "Meconic acid",
+      "smiles": "O=C(O)c1cc(=O)c(O)c(C(=O)O)o1",
+      "tags": [
+        "pyrone"
+      ]
+    },
+    {
+      "id": "heterocycles.five_methylfuranone",
+      "name": "5-Methylfuran-2(3H)-one",
+      "smiles": "CC1=CCC(=O)O1",
+      "tags": [
+        "lactone"
+      ]
     }
   ]
 }

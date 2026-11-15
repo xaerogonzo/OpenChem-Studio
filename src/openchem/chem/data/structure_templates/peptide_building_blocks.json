@@ -34,6 +34,222 @@
       "tags": [
         "Boc"
       ]
+    },
+    {
+      "id": "peptide_building_blocks.fmoc_l_phenylalanine",
+      "name": "Fmoc-L-phenylalanine",
+      "smiles": "O=C(O)[C@H](Cc1ccccc1)NC(=O)OCC1c2ccccc2-c2ccccc21",
+      "tags": [
+        "fmoc"
+      ]
+    },
+    {
+      "id": "peptide_building_blocks.fmoc_l_valine",
+      "name": "Fmoc-L-valine",
+      "smiles": "CC(C)[C@H](NC(=O)OCC1c2ccccc2-c2ccccc21)C(=O)O",
+      "tags": [
+        "fmoc"
+      ]
+    },
+    {
+      "id": "peptide_building_blocks.fmoc_l_proline",
+      "name": "Fmoc-L-proline",
+      "smiles": "O=C(O)[C@@H]1CCCN1C(=O)OCC1c2ccccc2-c2ccccc21",
+      "tags": [
+        "fmoc"
+      ]
+    },
+    {
+      "id": "peptide_building_blocks.boc_l_phenylalanine",
+      "name": "Boc-L-phenylalanine",
+      "smiles": "CC(C)(C)OC(=O)N[C@@H](Cc1ccccc1)C(=O)O",
+      "tags": [
+        "boc"
+      ]
+    },
+    {
+      "id": "peptide_building_blocks.boc_l_valine",
+      "name": "Boc-L-valine",
+      "smiles": "CC(C)[C@H](NC(=O)OC(C)(C)C)C(=O)O",
+      "tags": [
+        "boc"
+      ]
+    },
+    {
+      "id": "peptide_building_blocks.boc_l_proline",
+      "name": "Boc-L-proline",
+      "smiles": "CC(C)(C)OC(=O)N1CCC[C@H]1C(=O)O",
+      "tags": [
+        "boc"
+      ]
+    },
+    {
+      "id": "peptide_building_blocks.fmoc_l_leucine",
+      "name": "Fmoc-L-leucine",
+      "smiles": "CC(C)C[C@H](NC(=O)OCC1c2ccccc2-c2ccccc21)C(=O)O",
+      "tags": [
+        "fmoc"
+      ]
+    },
+    {
+      "id": "peptide_building_blocks.fmoc_l_isoleucine",
+      "name": "Fmoc-L-isoleucine",
+      "smiles": "CC[C@H](C)[C@H](NC(=O)OCC1c2ccccc2-c2ccccc21)C(=O)O",
+      "tags": [
+        "fmoc"
+      ]
+    },
+    {
+      "id": "peptide_building_blocks.fmoc_l_serine",
+      "name": "Fmoc-L-serine",
+      "smiles": "O=C(O)[C@H](CO)NC(=O)OCC1c2ccccc2-c2ccccc21",
+      "tags": [
+        "fmoc"
+      ]
+    },
+    {
+      "id": "peptide_building_blocks.fmoc_l_threonine",
+      "name": "Fmoc-L-threonine",
+      "smiles": "C[C@@H](O)[C@H](NC(=O)OCC1c2ccccc2-c2ccccc21)C(=O)O",
+      "tags": [
+        "fmoc"
+      ]
+    },
+    {
+      "id": "peptide_building_blocks.fmoc_l_aspartic_acid",
+      "name": "Fmoc-L-aspartic acid",
+      "smiles": "O=C(O)C[C@H](NC(=O)OCC1c2ccccc2-c2ccccc21)C(=O)O",
+      "tags": [
+        "fmoc"
+      ]
+    },
+    {
+      "id": "peptide_building_blocks.fmoc_l_glutamic_acid",
+      "name": "Fmoc-L-glutamic acid",
+      "smiles": "O=C(O)CC[C@H](NC(=O)OCC1c2ccccc2-c2ccccc21)C(=O)O",
+      "tags": [
+        "fmoc"
+      ]
+    },
+    {
+      "id": "peptide_building_blocks.fmoc_l_methionine",
+      "name": "Fmoc-L-methionine",
+      "smiles": "CSCC[C@H](NC(=O)OCC1c2ccccc2-c2ccccc21)C(=O)O",
+      "tags": [
+        "fmoc"
+      ]
+    },
+    {
+      "id": "peptide_building_blocks.fmoc_l_tryptophan",
+      "name": "Fmoc-L-tryptophan",
+      "smiles": "O=C(O)[C@H](Cc1c[nH]c2ccccc12)NC(=O)OCC1c2ccccc2-c2ccccc21",
+      "tags": [
+        "fmoc"
+      ]
+    },
+    {
+      "id": "peptide_building_blocks.fmoc_l_tyrosine",
+      "name": "Fmoc-L-tyrosine",
+      "smiles": "O=C(O)[C@H](Cc1ccc(O)cc1)NC(=O)OCC1c2ccccc2-c2ccccc21",
+      "tags": [
+        "fmoc"
+      ]
+    },
+    {
+      "id": "peptide_building_blocks.boc_l_leucine",
+      "name": "Boc-L-leucine",
+      "smiles": "CC(C)C[C@H](NC(=O)OC(C)(C)C)C(=O)O",
+      "tags": [
+        "boc"
+      ]
+    },
+    {
+      "id": "peptide_building_blocks.boc_l_isoleucine",
+      "name": "Boc-L-isoleucine",
+      "smiles": "CC[C@H](C)[C@H](NC(=O)OC(C)(C)C)C(=O)O",
+      "tags": [
+        "boc"
+      ]
+    },
+    {
+      "id": "peptide_building_blocks.boc_l_serine",
+      "name": "Boc-L-serine",
+      "smiles": "CC(C)(C)OC(=O)N[C@@H](CO)C(=O)O",
+      "tags": [
+        "boc"
+      ]
+    },
+    {
+      "id": "peptide_building_blocks.boc_l_threonine",
+      "name": "Boc-L-threonine",
+      "smiles": "C[C@@H](O)[C@H](NC(=O)OC(C)(C)C)C(=O)O",
+      "tags": [
+        "boc"
+      ]
+    },
+    {
+      "id": "peptide_building_blocks.boc_l_aspartic_acid",
+      "name": "Boc-L-aspartic acid",
+      "smiles": "CC(C)(C)OC(=O)N[C@@H](CC(=O)O)C(=O)O",
+      "tags": [
+        "boc"
+      ]
+    },
+    {
+      "id": "peptide_building_blocks.boc_l_glutamic_acid",
+      "name": "Boc-L-glutamic acid",
+      "smiles": "CC(C)(C)OC(=O)N[C@@H](CCC(=O)O)C(=O)O",
+      "tags": [
+        "boc"
+      ]
+    },
+    {
+      "id": "peptide_building_blocks.boc_l_methionine",
+      "name": "Boc-L-methionine",
+      "smiles": "CSCC[C@H](NC(=O)OC(C)(C)C)C(=O)O",
+      "tags": [
+        "boc"
+      ]
+    },
+    {
+      "id": "peptide_building_blocks.boc_l_tryptophan",
+      "name": "Boc-L-tryptophan",
+      "smiles": "CC(C)(C)OC(=O)N[C@@H](Cc1c[nH]c2ccccc12)C(=O)O",
+      "tags": [
+        "boc"
+      ]
+    },
+    {
+      "id": "peptide_building_blocks.boc_l_tyrosine",
+      "name": "Boc-L-tyrosine",
+      "smiles": "CC(C)(C)OC(=O)N[C@@H](Cc1ccc(O)cc1)C(=O)O",
+      "tags": [
+        "boc"
+      ]
+    },
+    {
+      "id": "peptide_building_blocks.l_carnosine",
+      "name": "L-Carnosine",
+      "smiles": "NCCC(=O)N[C@@H](Cc1c[nH]cn1)C(=O)O",
+      "tags": [
+        "dipeptide"
+      ]
+    },
+    {
+      "id": "peptide_building_blocks.l_anserine",
+      "name": "L-Anserine",
+      "smiles": "C[n+]1c[nH]cc1C[C@H](NC(=O)CCN)C(=O)[O-]",
+      "tags": [
+        "dipeptide"
+      ]
+    },
+    {
+      "id": "peptide_building_blocks.aspartame",
+      "name": "Aspartame",
+      "smiles": "COC(=O)[C@H](Cc1ccccc1)NC(=O)[C@@H](N)CC(=O)O",
+      "tags": [
+        "dipeptide"
+      ]
     }
   ]
 }

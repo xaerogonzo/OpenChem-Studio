@@ -199,6 +199,254 @@
         "Sec",
         "U"
       ]
+    },
+    {
+      "id": "amino_acids.levothyroxine",
+      "name": "Levothyroxine",
+      "smiles": "N[C@@H](Cc1cc(I)c(Oc2cc(I)c(O)c(I)c2)c(I)c1)C(=O)O",
+      "tags": [
+        "thyroid"
+      ]
+    },
+    {
+      "id": "amino_acids.kynurenine",
+      "name": "L-Kynurenine",
+      "smiles": "N[C@@H](CC(=O)c1ccccc1N)C(=O)O",
+      "tags": [
+        "amino acid"
+      ]
+    },
+    {
+      "id": "amino_acids.l_citrulline",
+      "name": "L-Citrulline",
+      "smiles": "NC(=O)NCCC[C@H](N)C(=O)O",
+      "tags": [
+        "amino acid"
+      ]
+    },
+    {
+      "id": "amino_acids.l_homocysteine",
+      "name": "L-Homocysteine",
+      "smiles": "N[C@@H](CCS)C(=O)O",
+      "tags": [
+        "amino acid"
+      ]
+    },
+    {
+      "id": "amino_acids.l_homoserine",
+      "name": "L-Homoserine",
+      "smiles": "N[C@@H](CCO)C(=O)O",
+      "tags": [
+        "amino acid"
+      ]
+    },
+    {
+      "id": "amino_acids.sarcosine",
+      "name": "Sarcosine",
+      "smiles": "CNCC(=O)O",
+      "tags": [
+        "amino acid"
+      ]
+    },
+    {
+      "id": "amino_acids.betaine",
+      "name": "Glycine betaine",
+      "smiles": "C[N+](C)(C)CC(=O)[O-]",
+      "tags": [
+        "zwitterion"
+      ]
+    },
+    {
+      "id": "amino_acids.l_dopa",
+      "name": "L-DOPA",
+      "smiles": "N[C@@H](Cc1ccc(O)c(O)c1)C(=O)O",
+      "tags": [
+        "amino acid"
+      ]
+    },
+    {
+      "id": "amino_acids.5_hydroxytryptophan",
+      "name": "5-Hydroxy-L-tryptophan",
+      "smiles": "N[C@@H](Cc1c[nH]c2ccc(O)cc12)C(=O)O",
+      "tags": [
+        "amino acid"
+      ]
+    },
+    {
+      "id": "amino_acids.l_theanine",
+      "name": "L-Theanine",
+      "smiles": "CCNC(=O)CC[C@H](N)C(=O)O",
+      "tags": [
+        "amino acid"
+      ]
+    },
+    {
+      "id": "amino_acids.liothyronine",
+      "name": "Liothyronine",
+      "smiles": "N[C@@H](Cc1cc(I)c(Oc2ccc(O)c(I)c2)c(I)c1)C(=O)O",
+      "tags": [
+        "amino acid"
+      ]
+    },
+    {
+      "id": "amino_acids.methyldopa",
+      "name": "L-Methyldopa",
+      "smiles": "C[C@](N)(Cc1ccc(O)c(O)c1)C(=O)O",
+      "tags": [
+        "amino acid"
+      ]
+    },
+    {
+      "id": "amino_acids.l_hydroxyproline",
+      "name": "(2S,4R)-4-Hydroxyproline",
+      "smiles": "O=C(O)[C@@H]1C[C@H](O)CN1",
+      "tags": [
+        "amino acid"
+      ]
+    },
+    {
+      "id": "amino_acids.l_pyroglutamic_acid",
+      "name": "L-Pyroglutamic acid",
+      "smiles": "O=C(O)[C@@H]1CCC(=O)N1",
+      "tags": [
+        "amino acid"
+      ]
+    },
+    {
+      "id": "amino_acids.l_norvaline",
+      "name": "L-Norvaline",
+      "smiles": "CCC[C@H](N)C(=O)O",
+      "tags": [
+        "amino acid"
+      ]
+    },
+    {
+      "id": "amino_acids.l_norleucine",
+      "name": "L-Norleucine",
+      "smiles": "CCCC[C@H](N)C(=O)O",
+      "tags": [
+        "amino acid"
+      ]
+    },
+    {
+      "id": "amino_acids.aib",
+      "name": "2-Aminoisobutyric acid",
+      "smiles": "CC(C)(N)C(=O)O",
+      "tags": [
+        "amino acid"
+      ]
+    },
+    {
+      "id": "amino_acids.l_tert_leucine",
+      "name": "L-tert-Leucine",
+      "smiles": "CC(C)(C)[C@H](N)C(=O)O",
+      "tags": [
+        "amino acid"
+      ]
+    },
+    {
+      "id": "amino_acids.l_cyclohexylalanine",
+      "name": "L-Cyclohexylalanine",
+      "smiles": "N[C@@H](CC1CCCCC1)C(=O)O",
+      "tags": [
+        "amino acid"
+      ]
+    },
+    {
+      "id": "amino_acids.l_homophenylalanine",
+      "name": "L-Homophenylalanine",
+      "smiles": "N[C@@H](CCc1ccccc1)C(=O)O",
+      "tags": [
+        "amino acid"
+      ]
+    },
+    {
+      "id": "amino_acids.4_fluoro_l_phenylalanine",
+      "name": "4-Fluoro-L-phenylalanine",
+      "smiles": "N[C@@H](Cc1ccc(F)cc1)C(=O)O",
+      "tags": [
+        "amino acid"
+      ]
+    },
+    {
+      "id": "amino_acids.4_chloro_l_phenylalanine",
+      "name": "4-Chloro-L-phenylalanine",
+      "smiles": "N[C@@H](Cc1ccc(Cl)cc1)C(=O)O",
+      "tags": [
+        "amino acid"
+      ]
+    },
+    {
+      "id": "amino_acids.n_n_dimethylglycine",
+      "name": "N,N-Dimethylglycine",
+      "smiles": "CN(C)CC(=O)O",
+      "tags": [
+        "amino acid"
+      ]
+    },
+    {
+      "id": "amino_acids.carbamoyl_aspartate",
+      "name": "N-Carbamoyl-L-aspartate",
+      "smiles": "NC(=O)N[C@@H](CC(=O)O)C(=O)O",
+      "tags": [
+        "amino acid"
+      ]
+    },
+    {
+      "id": "amino_acids.d_alanine",
+      "name": "D-Alanine",
+      "smiles": "C[C@@H](N)C(=O)O",
+      "tags": [
+        "amino acid"
+      ]
+    },
+    {
+      "id": "amino_acids.d_serine",
+      "name": "D-Serine",
+      "smiles": "OC[C@@H](N)C(=O)O",
+      "tags": [
+        "amino acid"
+      ]
+    },
+    {
+      "id": "amino_acids.d_valine",
+      "name": "D-Valine",
+      "smiles": "CC(C)[C@@H](N)C(=O)O",
+      "tags": [
+        "amino acid"
+      ]
+    },
+    {
+      "id": "amino_acids.d_phenylalanine",
+      "name": "D-Phenylalanine",
+      "smiles": "N[C@H](Cc1ccccc1)C(=O)O",
+      "tags": [
+        "amino acid"
+      ]
+    },
+    {
+      "id": "amino_acids.d_proline",
+      "name": "D-Proline",
+      "smiles": "O=C(O)[C@H]1CCCN1",
+      "tags": [
+        "amino acid"
+      ]
+    },
+    {
+      "id": "amino_acids.l_canavanine",
+      "name": "L-Canavanine",
+      "smiles": "N[C@@H](CCONC(N)=N)C(=O)O",
+      "tags": [
+        "amino acid"
+      ]
+    },
+    {
+      "id": "amino_acids.5_hydroxy_l_lysine",
+      "name": "(2S,5R)-5-Hydroxylysine",
+      "smiles": "NCC[C@@H](O)C[C@H](N)C(=O)O",
+      "tags": [
+        "amino acid"
+      ]
     }
   ]
 }

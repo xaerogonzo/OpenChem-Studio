@@ -100,6 +100,86 @@
       "name": "Phylloquinone",
       "smiles": "CC1=C(C(=O)C2=CC=CC=C2C1=O)C/C=C(\\C)/CCC[C@H](C)CCC[C@H](C)CCCC(C)C",
       "tags": []
+    },
+    {
+      "id": "vitamins.menadione",
+      "name": "Menadione",
+      "smiles": "CC1=CC(=O)c2ccccc2C1=O",
+      "tags": [
+        "vitamin K"
+      ]
+    },
+    {
+      "id": "vitamins.menadiol",
+      "name": "Menadiol",
+      "smiles": "Cc1cc(O)c2ccccc2c1O",
+      "tags": [
+        "vitamin K"
+      ]
+    },
+    {
+      "id": "vitamins.menaquinone_4",
+      "name": "Menaquinone-4",
+      "smiles": "CC1=C(C/C=C(\\C)CC/C=C(\\C)CC/C=C(\\C)CCC=C(C)C)C(=O)c2ccccc2C1=O",
+      "tags": [
+        "quinone"
+      ]
+    },
+    {
+      "id": "vitamins.gamma_tocotrienol",
+      "name": "gamma-Tocotrienol",
+      "smiles": "Cc1c(O)c(C)c2c(c1C)CC[C@@](C)(CCC=C(C)CCC=C(C)CCC=C(C)C)O2",
+      "tags": [
+        "tocopherol"
+      ]
+    },
+    {
+      "id": "vitamins.phthiocol",
+      "name": "Phthiocol",
+      "smiles": "Cc1c(O)c(=O)c2ccccc2c1=O",
+      "tags": [
+        "quinone"
+      ]
+    },
+    {
+      "id": "vitamins.tocopherolquinone",
+      "name": "alpha-Tocopherolquinone",
+      "smiles": "Cc1c(C)c(=O)c(C)c(CCC[C@](C)(O)CCC[C@H](C)CCC[C@H](C)CCCC(C)C)c1=O",
+      "tags": [
+        "quinone"
+      ]
+    },
+    {
+      "id": "vitamins.dehydroascorbic_acid",
+      "name": "Dehydroascorbic acid",
+      "smiles": "O=C1C(=O)[C@H](O)[C@@H](O)[C@@H]1O",
+      "tags": [
+        "lactone"
+      ]
+    },
+    {
+      "id": "vitamins.pyridoxal_phosphate",
+      "name": "Pyridoxal phosphate",
+      "smiles": "Cc1ncc(COP(=O)(O)O)c(C=O)c1O",
+      "tags": [
+        "phosphate"
+      ]
+    },
+    {
+      "id": "vitamins.pyridoxamine_phosphate",
+      "name": "Pyridoxamine phosphate",
+      "smiles": "Cc1ncc(COP(=O)(O)O)c(CN)c1O",
+      "tags": [
+        "phosphate"
+      ]
+    },
+    {
+      "id": "vitamins.thiamine_pyrophosphate",
+      "name": "Thiamine pyrophosphate",
+      "smiles": "Cc1ncc(C[n+]2csc(CCOP(=O)(O)OP(=O)(O)O)c2C)c(N)n1",
+      "tags": [
+        "phosphate"
+      ]
     }
   ]
 }

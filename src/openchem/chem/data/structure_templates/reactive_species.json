@@ -56,6 +56,14 @@
         "RNS"
       ],
       "description": "PubChem CID 948."
+    },
+    {
+      "id": "reactive_species.sulfur_trioxide",
+      "name": "Sulfur trioxide",
+      "smiles": "O=S(=O)=O",
+      "tags": [
+        "oxide"
+      ]
     }
   ]
 }
