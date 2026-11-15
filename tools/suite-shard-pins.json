@@ -4842,6 +4842,7 @@
   "tests/test_ketcher_holds_3d_coordinates.py": 1,
   "tests/test_ketcher_notices_workflow.py": 3,
   "tests/test_ketcher_overrule.py": 1,
+  "tests/test_ketcher_sgroup_roundtrip.py": 4,
   "tests/test_ketcher_viewport_transform.py": 4,
   "tests/test_keyboard_groups.py": 6,
   "tests/test_keyboard_shortcuts.py": 5,

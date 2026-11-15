@@ -320,7 +320,8 @@ Still later: a peptide sequence expander (`Ala-Glu-Gly` / `AEG` as one
 atomistic peptide — not these free amino acids, and not Ketcher polymer-monomer
 mode); polymer S-groups (needs molfile S-group round-trip through Ketcher);
 a pinned category toolbar; true fragment attachment that consumes an attachment
-point rather than leaving `*`.
+point rather than leaving `*`. Polymer S-groups are not a missing parse:
+`addFragment` strips them (measured 2026-11-14).
 
 ### Batch mode and the analytics over it
 
@@ -2388,12 +2389,14 @@ and three were checked again recently rather than taken on trust.
   features, pharmaceutical acceptability and `balance_many` stay out. Contract:
   `docs/SALT_COMPOSITION_DESIGN.md`.
 
-- **Peptide sequence building and polymer S-groups (recorded 2026-11-10).** The
+- **Peptide sequence building and polymer S-groups (recorded 2026-11-10; S-group probe 2026-11-14).** The
   structure template library ships complete molecules only. Expanding
-  `Ala-Glu-Gly` / `AEG` into an atomistic peptide, and repeating
-  polymer S-groups as in the reference editor, wait on a measured sequence builder and on molfile S-group
-  round-trip through Ketcher. Ketcher's own polymer mode stays. See
-  `docs/STRUCTURE_TEMPLATE_LIBRARY_DESIGN.md`.
+  `Ala-Glu-Gly` / `AEG` into an atomistic peptide still waits on a measured
+  sequence builder. Polymer S-groups: Ketcher `setMolecule` then `getMolfile`
+  keeps SRU and SUP; `addFragment` (what Insert uses) drops every `M  STY`
+  line (`tests/test_ketcher_sgroup_roundtrip.py`). They stay out of the
+  Template Library until insert preserves them. Ketcher's own polymer mode
+  stays. See `docs/STRUCTURE_TEMPLATE_LIBRARY_DESIGN.md`.
 
 - **Refusals that still need work (recorded 2026-10-23).** The rule since then (Alex): a calculator refuses only what it **cannot compute**; the edge of what a
   source or a benchmark measured is a **warning**, the number computed and labelled an estimate (proton affinity and bond dissociation, #447; Hansen below three
