@@ -100,7 +100,7 @@ def test_the_same_open_shell_setting_is_fine_for_another_calculation(qapp):
     panel, service, _molecule = _panel_with_conformers(1)
     try:
         panel._calc_type_combo.setCurrentIndex(panel._calc_type_combo.findText("Single Point"))
-        panel._multiplicity_spin.setValue(2)
+        panel._multiplicity_spin.setValue(3)  # butane has an even number of electrons, so a triplet fits it; multiplicity 2 does not (`multiplicity_problem`)
         panel._on_run_clicked()
         assert len(service.requests) == 1
     finally:

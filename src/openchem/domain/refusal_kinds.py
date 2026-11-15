@@ -109,6 +109,9 @@ _LIMIT_CODES = (
     "REFUSE_NOT_KEKULISABLE",
     # Jiroušková's EEM is offered only for molecules with chlorine, bromine or sulfur, the elements it was checked on.
     "REFUSE_OUTSIDE_MEASURED_SCOPE",
+    # A method defined for closed-shell molecules handed a structure with unpaired electrons (Joback, Hansen, Hueckel;
+    # `chem.open_shell`): measured, each returned a number computed as if the molecule were closed-shell.
+    "OPEN_SHELL",
 )
 
 #: The codes that carry a kind with no producer declaring it. Deliberately

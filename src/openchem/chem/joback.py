@@ -78,6 +78,7 @@ from openchem.chem.group_contribution import (
 )
 from rdkit.Chem import Descriptors
 
+from openchem.chem.open_shell import OPEN_SHELL_GROUP_NOTE, has_unpaired_electrons
 from openchem.domain.common import TOTAL, CacheState, Provenance, decline_total
 from openchem.domain.report import Fact, FactCategory, ReportResult
 from openchem.domain.structure_issue import Basis
@@ -124,6 +125,7 @@ class JobackRefusal(Enum):
     NOT_A_STRUCTURE = "the structure could not be read"
     NOT_A_PURE_COMPONENT = "more than one disconnected fragment"
     CHARGED = "the structure carries a net formal charge"
+    OPEN_SHELL = "the structure carries unpaired electrons"
     NO_HEAVY_ATOMS = "the structure has no heavy atoms"
     UNCOVERED_ATOM = "an atom belongs to no Joback group"
     NO_CONTRIBUTION = "a group in this molecule has no contribution for that property"
@@ -336,6 +338,12 @@ def fragment(mol: Chem.Mol | None) -> Fragmentation:
     if Chem.GetFormalCharge(working) != 0:
         return Fragmentation(refusal=JobackRefusal.CHARGED)
 
+    # A radical is matched by patterns that count hydrogens and connections and never a missing valence: measured, ethyl
+    # radical C[CH2] came back as {-CH3, =CH2} (a vinyl group the structure does not contain) and allyl radical as two
+    # vinyl CH2 groups. The groups are defined for closed-shell molecules, so an unpaired electron is a refusal.
+    if has_unpaired_electrons(working):
+        return Fragmentation(refusal=JobackRefusal.OPEN_SHELL)
+
     walk = claim_groups(working, _patterns())
     if not walk.complete:
         return Fragmentation(
@@ -474,6 +482,8 @@ def refusal_text(result: Fragmentation) -> str:
         )
     if result.refusal is JobackRefusal.CHARGED:
         return "Joback's groups are parameterised for neutral species."
+    if result.refusal is JobackRefusal.OPEN_SHELL:
+        return OPEN_SHELL_GROUP_NOTE.format(method="Joback")
     if result.refusal is JobackRefusal.NO_CONTRIBUTION:
         return (
             f"Joback's table prints no contribution for {result.detail} -- a dash, "
