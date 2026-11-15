@@ -171,8 +171,11 @@ PSI4_INSTALLER_URL = (
     "https://vergil.chemistry.gatech.edu/psicode-download/"
     "Psi4conda-1.11-py312-Windows-x86_64.exe"
 )
+#: Filename of that installer, as stored next to the prefix after download.
 PSI4_INSTALLER_NAME = "Psi4conda-1.11-py312-Windows-x86_64.exe"
+#: Byte length of that file (HEAD Content-Length and a full download, 2026-11-14).
 PSI4_INSTALLER_SIZE = 454_306_730
+#: SHA-256 of that file. The host has no checksum sidecar (the `.sha256` URL is HTML).
 PSI4_INSTALLER_SHA256 = "db73edd4ea86577619facc6e95aba9c8745aff45ba3380210780baddae21a908"
 #: Bytes on disk after a silent `/S /D=` install of that file (measured 2026-11-14).
 PSI4_INSTALL_DISK_BYTES = 2_265_490_170
