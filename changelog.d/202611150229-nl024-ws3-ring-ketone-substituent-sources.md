@@ -1,0 +1,2 @@
+### Close NL-024 with Blue Book V3 P-58.2 ring-ketone substituent sources
+- Added `tests/test_namer_nl024_ws3_ring_ketone_substituent_sources.py` and marked NL-024 closed in the limitations plan (benzoxazine hydro-prefix vs quinazoline `1H,3H` spelling, round 80 pins).
