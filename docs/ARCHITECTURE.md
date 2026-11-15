@@ -230,7 +230,10 @@ it).
   structure out. A rule engine cannot be fluently wrong the way a language
   model can, but it can still be wrong, and a wrong systematic name looks
   exactly as authoritative as a right one. No parser available means the
-  name is flagged unverified, not silently trusted.
+  name is flagged unverified, not silently trusted. `MISMATCH` and
+  `STEREO_CONTRADICTED` are withheld; `TAUTOMER` and `STEREO_OMITTED` are
+  shown with a note. The MATCH compare is on implicit-H graphs: Ketcher
+  stereo hydrogens used to look like a tautomer (`#611`).
 - **Every outbound HTTP request goes through `openchem/net.py`.** It exists
   because Adoptium sits behind Cloudflare, which rejects Python's default
   `Python-urllib/3.x` User-Agent with a 403 whose body says only

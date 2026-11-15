@@ -911,6 +911,8 @@ The `VENDORING.md` row is merged too (#230, squash `f7bc3c1f`), so the next `for
 
 Consequences: engine-level census classes (naming_error, mismatch_*) are NOT what a user sees; a fix turns "no name" into a right name. Severity ranking of an engine defect should account for this. Round 12 got it wrong in its docs (fixed in round 13). Pinned by 3 tests in `tests/test_naming_providers.py` on real engine output (D-133 for the embedded error, D-151 for the read-back mismatch). The engine still emits the embedded string on purpose; the fork (no app layer) shows it. See `project_naming_round_13`.
 
+**2026-11-14 (#611):** a third path used to look like a withheld or tautomer name. Ketcher writes stereo as explicit hydrogen atoms; `ChemistryEngine.mol_from_molblock` keeps them (`removeHs=False`). OPSIN's parse has none. Canonical SMILES then differ, InChI still matches, and `verify_name_round_trip` called that `TAUTOMER`. Measured on 6-monoacetylmorphine (27 atoms vs 24) and 6-monoethylmorphine (26 vs 23). The compare now `RemoveHs` before MATCH / skeleton. Real tautomer pairs (metformin) still get the note. Tests: `test_explicit_stereo_hydrogens_are_MATCH_not_a_tautomer`, `test_morphine_with_explicit_stereo_hydrogens_is_not_called_a_tautomer`. The SMILES-only morphinan family tests never saw this.
+
 ## reference-caller-atom-maps-break-dimorphite
 
 *From the assistant's notes (`reference_caller_atom_maps_break_dimorphite.md`, type: n/a).*  
