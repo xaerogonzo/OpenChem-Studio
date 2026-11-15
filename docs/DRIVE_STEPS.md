@@ -128,6 +128,18 @@ The `OPENCHEM_DRIVE` step catalogue, moved out of [`CLAUDE.md`](../CLAUDE.md) on
                                           until `id` has a filed per-atom
                                           result; use after `calculator`
                                           before `inspect` `source=result`
+    {"do": "inspect_walk", "tag": "in-process",
+     "expect": {"inspect_at_least": 8, "skip_sidecar_at_least": 1}}
+                                          open the Inspector on every
+                                          in-process per-atom calculator;
+                                          sidecar and service (ORCA) ids
+                                          are logged skip, not computed
+    {"do": "calculator_walk", "group": "sidecar"}
+                                          start every interpreter-bound
+                                          calculator through ``run_calculator``
+                                          (pkasolver and ADMET); follow with
+                                          ``jobs_wait``. ``group: pkasolver``
+                                          is the pKa set alone.
     {"do": "result_report", "calculator": "geometry_partial_charge",
      "expect_refusal": "REFUSE_NOT_CONVERGED"}  WHICH refusal Properties
                                           holds; "Not applicable" names none
@@ -585,8 +597,20 @@ closes the previous driver-owned Inspector before opening the next.
 `results` and `nmr_panes` emit the same kind of compact JSON line
 (`results_dump[tag]`, `nmr_dump[tag]`). Unknown `expect` keys fail on those
 steps too. `nmr_panes` layout keys include `2d_share` and pane widths; `2d` /
-`3d` / `splitter` remain visibility booleans. `results` keeps `focus`, `search`,
-`all_results_visible`, `jumps_at_least`.
+`3d` / `splitter` remain visibility booleans. `2d_oversized` is true when both
+structure panes are visible and `2d_share` is above `OVERSIZED_2D_SHARE` (0.4);
+`2d_share_at_most` is an inequality, like Results' `jumps_at_least`. `results`
+keeps `focus`, `search`, `all_results_visible`, `jumps_at_least`.
+
+`inspect_walk` is the registry presentation census: one Inspector dump per
+in-process `PerAtomDataset` calculator, and a skip row for sidecar and
+service-executed ids (Inspector ``compute`` still must not block on a sidecar).
+`calculator_walk` `group=sidecar` starts every interpreter-bound calculator
+through `run_calculator` (then `jobs_wait`); the pH-charge Inspector is
+`source=result`. Markush enumeration is a Results dump (`StructureSetResult`).
+ORCA in `louder_kinds.json` is water at HF STO-3G: opt, single point, NMR,
+Fukui, and delta-SCF. Proton affinity, bond dissociation, tautomer protocols
+and LED stay out — those are the hour-class job chains.
 
 `inspect_report` is observational. With no `expect` object it records no
 assertion; a dump-only walk can still `VERDICT PASS`. A failed or refused

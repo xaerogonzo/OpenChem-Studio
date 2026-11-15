@@ -4326,6 +4326,42 @@ class _Driver(QObject):
             ),
         )
 
+    def _do_calculator_walk(self, step: dict[str, Any]) -> None:
+        """Start every calculator in a named group through ``run_calculator``.
+
+        `{"do": "calculator_walk", "group": "sidecar"}` then ``jobs_wait``.
+        ``pkasolver`` is the pKa sidecar only; ``sidecar`` adds ADMET and
+        solubility. ORCA stays on ``qc_run``.
+        """
+        from openchem.app.inspector_dump import encode_inspect_dump
+        from openchem.app.registry_walk import pkasolver_run_ids, sidecar_run_ids
+
+        group = str(step.get("group") or "sidecar")
+        pickers = {"pkasolver": pkasolver_run_ids, "sidecar": sidecar_run_ids}
+        picker = pickers.get(group)
+        if picker is None:
+            logger.error("OPENCHEM_DRIVE: calculator_walk group %r is not pkasolver or sidecar", group)
+            return
+        ids = picker(self._window._services.calculator_registry.definitions())
+        tag = str(step.get("tag", group))
+        logger.warning(
+            "OPENCHEM_DRIVE: calculator_walk[%s] %s",
+            tag,
+            encode_inspect_dump({"tag": tag, "group": group, "ids": ids}),
+        )
+        reveal = bool(step.get("reveal", False))
+        for calculator_id in ids:
+            self._do_calculator({"id": calculator_id, "reveal": reveal})
+        expect = step.get("expect") or {}
+        problems: list[str] = []
+        if "at_least" in expect and len(ids) < int(expect["at_least"]):
+            problems.append(f"{len(ids)} {group} calculators, expected at least {expect['at_least']}")
+        if problems or expect:
+            if self._record_assertion("calculator_walk", tag, not problems, "; ".join(problems) or "as expected"):
+                logger.warning("OPENCHEM_DRIVE: EXPECT calculator_walk ok[%s]", tag)
+            else:
+                logger.error("OPENCHEM_DRIVE: EXPECT calculator_walk FAILED[%s] -- %s", tag, "; ".join(problems))
+
     def _do_inspect(self, step: dict[str, Any]) -> None:
         """Open the Calculator Inspector on a per-atom calculator's result.
 
@@ -4380,13 +4416,15 @@ class _Driver(QObject):
         from openchem.chem.calculation_input import resolve_calculation_input
 
         source = str(step.get("source") or "compute")
+        quiet = bool(step.get("quiet"))
+        complain = logger.warning if quiet else logger.error
         result = None
         if source == "result":
             from openchem.app.inspector_dump import panel_per_atom_result
 
             result = panel_per_atom_result(panel, calculator_id)
             if result is None:
-                logger.error(
+                complain(
                     "OPENCHEM_DRIVE: inspect %s source=result but no PerAtomDataset is filed",
                     calculator_id,
                 )
@@ -4400,13 +4438,13 @@ class _Driver(QObject):
                     calculator_id, mol, molecule.uuid, parameters
                 )
             except Exception as exc:  # noqa: BLE001 - a failed inspect must not abort the drive
-                logger.error("OPENCHEM_DRIVE: inspect %s compute failed: %s", calculator_id, exc)
+                complain("OPENCHEM_DRIVE: inspect %s compute failed: %s", calculator_id, exc)
                 return
         else:
-            logger.error("OPENCHEM_DRIVE: inspect source %r is not compute or result", source)
+            complain("OPENCHEM_DRIVE: inspect source %r is not compute or result", source)
             return
         if not isinstance(result, PerAtomDataset):
-            logger.error(
+            complain(
                 "OPENCHEM_DRIVE: inspect %s returned %s, not a per-atom dataset",
                 calculator_id,
                 type(result).__name__,
@@ -4437,6 +4475,65 @@ class _Driver(QObject):
             source,
             getattr(result, "name", ""),
         )
+
+    def _do_inspect_walk(self, step: dict[str, Any]) -> None:
+        """Open the Inspector on every in-process per-atom calculator.
+
+        `{"do": "inspect_walk", "expect": {"inspect_at_least": 8}}`
+
+        Sidecar and service (ORCA/docking) calculators are logged as skip,
+        not computed. A compute that refuses is a warning, not a driver failure.
+        """
+        from openchem.app.inspector_dump import encode_inspect_dump
+        from openchem.app.registry_walk import plan_counts, registry_inspect_plan
+
+        registry = self._window._services.calculator_registry
+        plan = registry_inspect_plan(registry.definitions())
+        counts = plan_counts(plan)
+        tag = str(step.get("tag", "registry"))
+        logger.warning(
+            "OPENCHEM_DRIVE: inspect_walk[%s] %s",
+            tag,
+            encode_inspect_dump({"tag": tag, "counts": counts, "plan": plan}),
+        )
+        opened = 0
+        for row in plan:
+            if row.get("action") != "inspect":
+                continue
+            self._do_inspect({"id": row["id"], "quiet": True})
+            dialog = getattr(self, "_inspector", None)
+            if dialog is None or getattr(dialog, "_view", None) is None:
+                logger.warning("OPENCHEM_DRIVE: inspect_walk no dialog for %s", row["id"])
+                continue
+            opened += 1
+            self._do_inspect_report({"tag": row["id"]})
+        counts["opened"] = opened
+        logger.warning("OPENCHEM_DRIVE: inspect_walk[%s] opened=%s", tag, opened)
+        expect = step.get("expect") or {}
+        problems: list[str] = []
+        if "inspect_at_least" in expect and counts.get("inspect", 0) < int(expect["inspect_at_least"]):
+            problems.append(
+                f"{counts.get('inspect', 0)} inspect candidates, expected at least {expect['inspect_at_least']}"
+            )
+        if "opened_at_least" in expect and opened < int(expect["opened_at_least"]):
+            problems.append(f"{opened} inspectors opened, expected at least {expect['opened_at_least']}")
+        if "skip_sidecar_at_least" in expect and counts.get("skip_sidecar", 0) < int(
+            expect["skip_sidecar_at_least"]
+        ):
+            problems.append(
+                f"{counts.get('skip_sidecar', 0)} sidecar skips, expected at least {expect['skip_sidecar_at_least']}"
+            )
+        if "skip_service_at_least" in expect and counts.get("skip_service", 0) < int(
+            expect["skip_service_at_least"]
+        ):
+            problems.append(
+                f"{counts.get('skip_service', 0)} service skips, expected at least {expect['skip_service_at_least']}"
+            )
+        if problems or expect:
+            if self._record_assertion("inspect_walk", tag, not problems, "; ".join(problems) or "as expected"):
+                logger.warning("OPENCHEM_DRIVE: EXPECT inspect_walk ok[%s]", tag)
+            else:
+                logger.error("OPENCHEM_DRIVE: EXPECT inspect_walk FAILED[%s] -- %s", tag, "; ".join(problems))
 
     def _dispose_driver_inspector(self) -> None:
         from openchem.app.inspector_dump import dispose_driver_inspector
