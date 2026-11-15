@@ -1,6 +1,7 @@
 """NL-020 (WS3): validator limit for ``5,1'-biheptalene`` (round 82 / R82a).
 
-OPSIN cannot read the assembly name in any spelling tried; the row stays a permanent
+OPSIN does not round-trip the measured ``5,1'-biheptalene`` assembly (some spellings parse other
+molecules); the row stays a permanent
 validator limit (not an engine defect). Measured 2026-11-15 on the heptalene dimer
 built at locants 5 and 1 (``data_loader`` atom_locants).
 """
@@ -10,6 +11,8 @@ from __future__ import annotations
 import shutil
 
 import pytest
+from rdkit import Chem
+from rdkit.Chem import inchi
 
 from openchem.vendor.iupac_namer import name_smiles
 
@@ -54,7 +57,11 @@ def test_nl020_engine_emits_biheptalene():
         "heptalen-5-yl heptalene",
     ),
 )
-def test_nl020_opsin_reads_no_biheptalene_spelling(candidate):
+def test_nl020_opsin_does_not_round_trip_biheptalene_assembly(candidate):
     from py2opsin import py2opsin
 
-    assert not py2opsin(candidate)
+    back = py2opsin(candidate)
+    if not back:
+        return
+    target_key = inchi.MolToInchiKey(Chem.MolFromSmiles(HEPTALENE_BI_SMILES))
+    assert inchi.MolToInchiKey(Chem.MolFromSmiles(back)) != target_key

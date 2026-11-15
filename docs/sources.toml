@@ -9226,6 +9226,25 @@ A POSSIBLE SOFTER ROUTE-AGREEMENT MEASURE, NOT USED: adapts BLEU to a route's se
 """
 
 [[source]]
+key = "hanson2018cip_suite"
+kind = "literature"
+citation = "R. M. Hanson, P. A. Mayfield, J. M. Swanson & S. J. B. Brown, 'New stereochemical descriptors for the validation of structures proposed for assignments of absolute configuration: the CIP Validation Suite', J. Chem. Inf. Model. 2018, 58(9), 1755-1763."
+identifier_type = "doi"
+identifier = "10.1021/acs.jcim.8b00324"
+status = "reference_only"
+used_by = [
+    "benchmarks/naming/CIP_VALIDATION_SUITE.md",
+    "docs/NAMING_LIMITATIONS_PLAN.md",
+    "tools/naming_cip_suite_probe.py",
+    "tests/test_naming_cip_suite_probe.py",
+]
+verification = "citation"
+verified_date = 2026-11-15
+reason = """
+THE CIP VALIDATION SUITE oracle inventory in benchmarks/naming: second stereo oracle beside the Blue Book; suite files live on the maintainer machine, not in git.
+"""
+
+[[source]]
 key = "genheden2021ted"
 kind = "literature"
 citation = "S. Genheden, O. Engkvist & E. Bjerrum, 'Clustering of synthetic routes using tree edit distance', J. Chem. Inf. Model. 2021, 61, 3899-3907."

@@ -183,6 +183,48 @@ scope = "core"
 owner = "namer"
 
 [[consumer]]
+file = "tests/test_namer_nl023_ws3_cation_ester_sources.py"
+why = "NL-023 (closed): Blue Book P-73/P-66 sources for cationic ring ester spelling (round 80)"
+scope = "core"
+owner = "namer"
+
+[[consumer]]
+file = "tests/test_namer_nl024_ws3_ring_ketone_substituent_sources.py"
+why = "NL-024 (closed): Blue Book P-58.2/P-64.2 substituent hydro blocks vs quinazoline 1H,3H (round 80)"
+scope = "core"
+owner = "namer"
+
+[[consumer]]
+file = "tests/test_namer_nl050_ws3_radical_anion_validator.py"
+why = "NL-050 (closed): cyclopentadienyl radical anion has no OPSIN read-back oracle"
+scope = "core"
+owner = "namer"
+
+[[consumer]]
+file = "tests/test_namer_nl080_ws3_betaine_prefix_sources.py"
+why = "NL-080 (closed): betaine cation prefix book vs engine (V3 pp. 357, 429, 830)"
+scope = "core"
+owner = "namer"
+
+[[consumer]]
+file = "tests/test_namer_nl085_ws3_hypoboric_validator.py"
+why = "NL-085 (closed): hypoboric vs hypodiboric acid OPSIN validator limit"
+scope = "core"
+owner = "namer"
+
+[[consumer]]
+file = "tests/test_namer_nl088_nl089_ws3_bench_policies.py"
+why = "NL-088/089 (closed): deliberate purine 9H normalization and metformin imidodicarbonimidic PIN"
+scope = "core"
+owner = "namer"
+
+[[consumer]]
+file = "tests/test_namer_nl106_ws3_adjudication_undecided.py"
+why = "NL-106 (closed): five adjudication.toml UNDECIDED rows stay open with engine re-pin"
+scope = "core"
+owner = "namer"
+
+[[consumer]]
 file = "tests/test_namer_nl012_bis_benzazocine_spiro.py"
 why = "NL-012 shape 4 (D-395): when articulation-split spiro cites the same modified ring-table PIN twice, the primed partner is named by von Baeyer so OPSIN read-back matches the input"
 scope = "core"
@@ -221,6 +263,12 @@ owner = "namer"
 [[consumer]]
 file = "tests/test_namer_nl018_ws3_numbering_conventions.py"
 why = "NL-018 (closed): seventeen curated-ring numbering exceptions sourced to Blue BookV2 (round 87)"
+scope = "core"
+owner = "namer"
+
+[[consumer]]
+file = "tests/test_namer_nl020_ws3_heptalene_bi_validator.py"
+why = "NL-020 (closed): validator limit for 5,1'-biheptalene; Blue Book assembly sources (round 82)"
 scope = "core"
 owner = "namer"
 
