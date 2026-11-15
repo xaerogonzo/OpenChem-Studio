@@ -17,6 +17,8 @@ DEFAULT the person can change, never a fact about the molecule. Pure RDKit, no Q
 
 from __future__ import annotations
 
+import re
+
 from rdkit import Chem
 
 #: Why a group-contribution method refuses a radical; one wording for Joback and Hansen.
@@ -45,6 +47,61 @@ def electron_count(mol: Chem.Mol, charge: int) -> int:
 #: optimised geometry: O2 -39.7, SO -29.7, S2 -23.7 kcal/mol (`benchmarks/open_shell/orca_spin_states.py`). N2 (+147.5) is the control that
 #: must not be here. The ground states are textbook X 3Sigma-; a literature citation per row is still to be attached (OS2 in the design).
 TRIPLET_GROUND_STATES = frozenset({"O=O", "S=S", "O=S"})
+
+
+# --- the spin a molfile states (RDKit cannot keep it) -------------------------------------------------------------------------------------------
+
+#: Unpaired electrons an atom's `M  RAD` code stands for: 1 singlet (a carbene's paired electrons), 2 doublet, 3 triplet.
+_RAD_UNPAIRED = {1: 0, 2: 1, 3: 2}
+#: One `M  RAD` line: the count, then (atom, code) pairs, atoms 1-based; at most eight pairs to a line.
+_RAD_LINE = re.compile(r"^M  RAD\s+(\d+)((?:\s+\d+\s+\d+)+)\s*$")
+
+
+def rad_codes(molblock: str) -> dict[int, int]:
+    """The molfile's own `M  RAD` codes, atom index (0-based) -> code. Empty when it has none."""
+    codes: dict[int, int] = {}
+    for line in molblock.splitlines():
+        match = _RAD_LINE.match(line)
+        if match:
+            numbers = [int(n) for n in match.group(2).split()]
+            codes.update({numbers[i] - 1: numbers[i + 1] for i in range(0, len(numbers) - 1, 2)})
+    return codes
+
+
+def spin_from_molblock(molblock: str | None) -> int | None:
+    """The multiplicity a molfile's radical codes state (one electron per spin: singlet 0, doublet 1, triplet 2 unpaired each), or None when it has none.
+
+    RDKit reads singlet (1) and triplet (3) as two radical electrons alike and writes the triplet back, so this reads the TEXT. The structure
+    `ChemistryEngine.set_structure_from_molblock` stores keeps the singlet code (`molblock_keeping_spin`), so the drawing's multiplicity survives
+    undo, redo and the project file with no field of its own.
+    """
+    codes = rad_codes(molblock or "")
+    if not codes:
+        return None
+    return 1 + sum(_RAD_UNPAIRED.get(code, 0) for code in codes.values())
+
+
+def molblock_keeping_spin(written: str, original: str) -> str:
+    """`written` (RDKit's molfile for a structure) with the singlet codes `original` carried put back, since RDKit rewrites a singlet as a triplet."""
+    singlets = {index for index, code in rad_codes(original).items() if code == 1}
+    if not singlets:
+        return written
+    codes = rad_codes(written)
+    patched = {index: (1 if index in singlets and code == 3 else code) for index, code in codes.items()}
+    if patched == codes:
+        return written
+    out, done = [], False
+    for line in written.splitlines(keepends=True):
+        if _RAD_LINE.match(line.rstrip("\r\n")):
+            if not done:
+                items = sorted(patched.items())
+                for start in range(0, len(items), 8):
+                    chunk = items[start:start + 8]
+                    out.append(f"M  RAD{len(chunk):3d}" + "".join(f" {index + 1:3d} {code:3d}" for index, code in chunk) + "\n")
+                done = True
+            continue
+        out.append(line)
+    return "".join(out)
 
 
 def default_multiplicity(mol: Chem.Mol) -> int:
@@ -82,13 +139,18 @@ def multiplicity_problem(mol: Chem.Mol, charge: int, multiplicity: int) -> str:
     return ""
 
 
-def spin_note(mol: Chem.Mol, multiplicity: int) -> str:
+def spin_note(mol: Chem.Mol, multiplicity: int, drawn_multiplicity: int | None = None) -> str:
     """A caution when the multiplicity chosen does not match the radicals drawn, or "" when it does.
 
     Said, not refused: a person may want the open-shell singlet or a low-spin state. What is measured is that the
     mismatch is silent: O2 and CH2 at multiplicity 1 ran and finished, 39.7 and 41.9 kcal/mol above the triplet.
     """
     unpaired = unpaired_electrons(mol)
+    if drawn_multiplicity is not None:
+        # The drawing's own statement (`spin_from_molblock`) wins over RDKit's count, which cannot tell a singlet carbene from a triplet one.
+        unpaired = drawn_multiplicity - 1
+        if unpaired == 0 and multiplicity == 1:
+            return ""
     if unpaired == 0:
         if default_multiplicity(mol) == 3 and multiplicity == 1:
             return "This molecule's ground state is a triplet (multiplicity 3); multiplicity 1 runs a higher-energy closed-shell state."

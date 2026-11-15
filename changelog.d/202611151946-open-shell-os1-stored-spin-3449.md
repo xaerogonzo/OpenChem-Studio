@@ -1,0 +1,2 @@
+### A drawn singlet carbene keeps its multiplicity
+- RDKit rewrote a singlet carbene (`M  RAD  1`) as a triplet in the stored structure. The stored molfile now keeps the singlet code, so the drawing's multiplicity survives undo, redo and the project file (no format change), the Quantum panel defaults to it, and a drawn singlet run at multiplicity 1 gets no closed-shell warning. Identity (SMILES, InChI) is unchanged.

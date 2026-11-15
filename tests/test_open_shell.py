@@ -247,3 +247,60 @@ def test_psi4_refuses_an_impossible_electron_count_before_running():
     AllChem.EmbedMolecule(methyl, randomSeed=1)
     with pytest.raises(ValueError, match="multiplicity 1"):
         Psi4QuantumEngineProvider().build_input(methyl, 0, 1, "B3LYP def2-SVP", "sp")
+
+
+# --- OS1: the drawing's multiplicity stays with the structure ---------------------------------------------------------------------------------
+
+
+CARBENE = "\n  t\n\n  1  0  0  0  0  0  0  0  0  0999 V2000\n    0.0000    0.0000    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\nM  RAD  1   1   {r}\nM  END\n"
+
+
+def test_the_multiplicity_is_read_from_the_molfile_text():
+    from openchem.chem.open_shell import spin_from_molblock
+
+    assert [spin_from_molblock(CARBENE.format(r=r)) for r in (1, 2, 3)] == [1, 2, 3]
+    assert spin_from_molblock(Chem.MolToMolBlock(mol("CCO"))) is None
+    assert spin_from_molblock(None) is None
+    # two atoms: a triplet O2 drawn as two doublets is multiplicity 3
+    assert spin_from_molblock(Chem.MolToMolBlock(mol("[O][O]"))) == 3
+
+
+def test_a_singlet_carbene_stays_a_singlet_through_the_structure_the_model_stores():
+    singlet, triplet = MoleculeModel(display_name="s"), MoleculeModel(display_name="t")
+    ENGINE.set_structure_from_molblock(singlet, CARBENE.format(r=1))
+    ENGINE.set_structure_from_molblock(triplet, CARBENE.format(r=3))
+    assert ENGINE.default_multiplicity(singlet) == 1
+    assert ENGINE.default_multiplicity(triplet) == 3
+    assert singlet.canonical_smiles == triplet.canonical_smiles  # identity is unchanged: the spin is not in the SMILES
+    assert singlet.molblock != triplet.molblock
+
+
+def test_the_singlet_survives_the_project_file_and_an_undoable_edit():
+    from openchem.commands.molecule_commands import EditStructureCommand
+    from openchem.events.base import EventBus
+
+    molecule = MoleculeModel(display_name="s")
+    ENGINE.set_structure_from_molblock(molecule, CARBENE.format(r=1))
+    assert ENGINE.default_multiplicity(MoleculeModel.from_dict(molecule.to_dict())) == 1
+    before = molecule.molblock
+    command = EditStructureCommand(ENGINE, molecule, Chem.MolToMolBlock(mol("CCO")), EventBus())
+    command.redo()
+    assert ENGINE.default_multiplicity(molecule) == 1 and molecule.canonical_smiles == "CCO"
+    command.undo()
+    assert molecule.molblock == before and ENGINE.default_multiplicity(molecule) == 1
+
+
+def test_a_run_of_a_drawn_singlet_at_multiplicity_1_carries_no_note():
+    result = run_from_molblock(CARBENE.format(r=1), 1)
+    assert not isinstance(result, RunRefusal) and result.conformer_note == ""
+    triplet = run_from_molblock(CARBENE.format(r=3), 1)
+    assert "closed-shell" in triplet.conformer_note
+
+
+def run_from_molblock(molblock: str, multiplicity: int):
+    molecule = MoleculeModel(display_name="c")
+    ENGINE.set_structure_from_molblock(molecule, molblock)
+    three_d = Chem.AddHs(Chem.MolFromMolBlock(molblock, removeHs=False))
+    AllChem.EmbedMolecule(three_d, randomSeed=7)
+    molecule.conformers.append(ConformerModel(molblock=Chem.MolToMolBlock(three_d), method="rdkit_etkdg", energy=0.0))
+    return prepare_run(ENGINE, molecule, RunChoice(calc_type="sp", method_basis="B3LYP def2-SVP", charge=0, multiplicity=multiplicity))
