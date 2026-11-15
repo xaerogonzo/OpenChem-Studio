@@ -3222,6 +3222,12 @@ when you have network; everything else is named by the vendored
 deterministic IUPAC engine, and every generated name is verified by parsing
 it back with OPSIN before you see it.
 
+A name that parses back to a **different tautomer** of the same compound
+(metformin is the usual case) is still shown, with a note saying so. That
+note is not about stereo wedges to hydrogen: the 2D editor writes those as
+explicit H atoms, OPSIN does not, and the checker treats that as the same
+drawing.
+
 Names carry their **source** and whether they are `exact`, `derived` or
 `parsed`. They are never merged into one unattributed answer — if two
 sources disagree, you see that.

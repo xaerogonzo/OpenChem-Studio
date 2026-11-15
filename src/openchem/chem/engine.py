@@ -11,6 +11,7 @@ from rdkit.Geometry import Point3D
 
 from openchem.chem.camera_orientation import camera_to_model_transform, rotate
 from openchem.chem.components import COMPONENT_CHOICE_PROP
+from openchem.chem.open_shell import default_multiplicity, molblock_keeping_spin, spin_from_molblock
 from openchem.chem.components import component_smiles as _component_smiles
 from openchem.chem.stereochemistry import (
     StereoChange,
@@ -917,6 +918,17 @@ class ChemistryEngine:
         # The sum of the atoms' charges needs no valence model, so a held hypervalent structure has one too.
         return Chem.GetFormalCharge(self.mol_from_model(model, allow_hypervalent=True))
 
+    def default_multiplicity(self, model: MoleculeModel) -> int:
+        """The spin multiplicity a quantum job should start from: the drawing's unpaired electrons plus one (1 for a closed-shell drawing).
+
+        A DEFAULT like `formal_charge`, not a fact about the molecule: the structure does not store a multiplicity, and RDKit reads a
+        singlet and a triplet carbene alike (`chem.open_shell`). Never guessed in the UI layer, which imports no rdkit.
+        """
+        stated = spin_from_molblock(model.molblock)
+        if stated is not None:
+            return stated
+        return default_multiplicity(self.mol_from_model(model, allow_hypervalent=True))
+
     def canonicalize(self, model: MoleculeModel, *, allow_hypervalent: bool = False) -> MoleculeModel:
         """Recompute canonical_smiles/inchi/inchikey from model.molblock, in place.
 
@@ -1011,7 +1023,8 @@ class ChemistryEngine:
         mol = (
             self.hypervalent_mol_from_molblock(molblock) if allow_hypervalent else self.mol_from_molblock(molblock)
         )
-        model.molblock = Chem.MolToMolBlock(mol)
+        # RDKit writes a singlet carbene back as a triplet; the drawing's singlet code is put back so the multiplicity stays with the structure.
+        model.molblock = molblock_keeping_spin(Chem.MolToMolBlock(mol), molblock)
         return self.canonicalize(model, allow_hypervalent=allow_hypervalent)
 
     def edit_atom(self, molblock: str, atom_index: int, change: str, value: str = "") -> str:

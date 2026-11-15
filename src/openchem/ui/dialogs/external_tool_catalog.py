@@ -486,7 +486,7 @@ def orca() -> ManagedExecutable:
     )
 
 
-#: Why the Psi4 tab has no Set Up button (locate-only: Alex, 2026-10-19). Stated once so the refusal, the dialog title and the failure status cannot drift apart.
+#: Psi4 tab: Set Up on Windows from a pinned Psi4conda 1.11 installer (#607), plus Locate and Test.
 def psi4() -> ManagedExecutable:
     """Psi4: a second quantum-chemistry engine (`docs/PSI4_ENGINE_DESIGN.md`).
 
@@ -547,10 +547,9 @@ def psi4() -> ManagedExecutable:
 
 
 def xtb() -> ManagedExecutable:
-    """xtb: a third quantum-chemistry engine, the fast tight-binding one, which the user installs and points at (`docs/EXTERNAL_TOOL_CANDIDATES.md`).
+    """xtb: a third quantum-chemistry engine, the fast tight-binding one (`docs/EXTERNAL_TOOL_CANDIDATES.md`).
 
-    **Locate-only, deliberately**, as Psi4's is: a pinned download is a commitment this version does not make, and the Windows build is labelled a pre-release by its own project.
-    Everything else is the ORCA tab's: a status line, Locate, Browse and a Test that runs a real two-atom calculation through the engine's own input and command.
+    Set Up downloads the latest stable Windows zip (bleed and drafts skipped; a Windows file labelled pre is used only when that is what the project publishes).
     Locate RUNS each candidate (`xtb --version`) before accepting it, so another program of that name is not picked.
     """
     import openchem.services.tool_download_service as tools

@@ -22,12 +22,19 @@ NMR_PANES_EXPECT_KEYS = frozenset(
         "table",
         "floor",
         "2d_share",
+        "2d_share_at_most",
+        "2d_oversized",
         "pane_2d_width_px",
         "pane_2d_min_width_px",
         "pane_3d_width_px",
         "pane_3d_min_width_px",
     }
 )
+
+#: Both structure panes visible and the 2D splitter share above this is the
+#: oversized-2D layout the NMR viewer showed; a screenshot taste pass is not
+#: required to name it.
+OVERSIZED_2D_SHARE = 0.4
 
 
 def encode_nmr_dump(payload: dict[str, Any]) -> str:
@@ -64,6 +71,12 @@ def nmr_dump(view, *, tag: str = "") -> dict[str, Any]:
         payload["spectrum"] = bool(spectrum is not None and spectrum.isVisible())
         payload["table"] = bool(table is not None and table.isVisible())
         payload["floor"] = floor
+        payload["2d_oversized"] = bool(
+            visible_2d
+            and visible_3d
+            and share is not None
+            and share > OVERSIZED_2D_SHARE
+        )
         payload["hide"] = {
             "2d_checked": bool(hide_2d.isChecked()) if hide_2d is not None else None,
             "3d_checked": bool(hide_3d.isChecked()) if hide_3d is not None else None,
@@ -88,9 +101,23 @@ def nmr_dump(view, *, tag: str = "") -> dict[str, Any]:
 
 
 def evaluate_nmr_expect(dump: dict[str, Any], expect: dict[str, Any] | None) -> list[str] | None:
+    if not expect:
+        return None
     layout = dump.get("layout") or {}
-    return evaluate_keyed_expect(
-        expect,
+    leftover = dict(expect)
+    problems: list[str] = []
+    if "2d_share_at_most" in leftover:
+        cap = leftover.pop("2d_share_at_most")
+        share = layout.get("2d_share")
+        try:
+            limit = float(cap)
+        except (TypeError, ValueError):
+            problems.append(f"2d_share_at_most {cap!r} is not a number")
+        else:
+            if share is None or float(share) > limit:
+                problems.append(f"2d_share {share}, expected at most {limit}")
+    keyed = evaluate_keyed_expect(
+        leftover or None,
         NMR_PANES_EXPECT_KEYS,
         {
             "2d": dump.get("2d"),
@@ -100,9 +127,13 @@ def evaluate_nmr_expect(dump: dict[str, Any], expect: dict[str, Any] | None) -> 
             "table": dump.get("table"),
             "floor": dump.get("floor"),
             "2d_share": layout.get("2d_share"),
+            "2d_oversized": dump.get("2d_oversized"),
             "pane_2d_width_px": layout.get("pane_2d_width_px"),
             "pane_2d_min_width_px": layout.get("pane_2d_min_width_px"),
             "pane_3d_width_px": layout.get("pane_3d_width_px"),
             "pane_3d_min_width_px": layout.get("pane_3d_min_width_px"),
         },
     )
+    if keyed:
+        problems.extend(keyed)
+    return problems

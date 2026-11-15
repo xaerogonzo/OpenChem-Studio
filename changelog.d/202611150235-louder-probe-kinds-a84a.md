@@ -1,0 +1,2 @@
+### Drive: registry Inspector walk, Markush, ORCA panel, NMR oversized 2D
+- `inspect_walk` opens the Calculator Inspector on every in-process per-atom calculator and logs sidecar/ORCA ids as skip of Inspector ``compute``. `calculator_walk` `group=sidecar` starts pkasolver and ADMET asynchronously. Markush is dumped from Results. ORCA on water at HF STO-3G runs opt, single point, NMR, Fukui and delta-SCF (not PA/BDE/tautomer/LED). NMR dumps `2d_oversized` from splitter share.
