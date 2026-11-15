@@ -2288,10 +2288,17 @@ document may cite a file or a test that does not exist.
   not parse back to this structure, so it is being withheld". Measured
   before deciding, and both halves of the measurement mattered.
 
-  **The reported symptom does not reproduce.** Morphine, codeine and
-  ethylmorphine all return `RoundTrip.MATCH` today. The reported structure
-  was never recorded, so it cannot be reproduced exactly from what is
-  written here -- which is its own lesson about writing up a defect.
+  **The reported symptom reproduces on the drawing path, not on SMILES.**
+  Morphine, codeine and ethylmorphine from `MolFromSmiles` return
+  `RoundTrip.MATCH`. The same structures through `ChemistryEngine.mol_from_model`
+  (Ketcher molblock, `removeHs=False`) used to return `TAUTOMER`: the drawing
+  carries explicit hydrogen atoms on stereo carbons, OPSIN's parse does not,
+  canonical SMILES differ, and equal InChI was read as a tautomer. Measured
+  2026-11-14 on 6-monoacetylmorphine (27 atoms vs 24) and 6-monoethylmorphine
+  (26 vs 23); `RemoveHs` makes the SMILES equal. The compare now strips
+  explicit H before MATCH / skeleton, so those drawings are MATCH; metformin
+  is still TAUTOMER. The earlier write-up that "ethylmorphine all return MATCH"
+  was the SMILES path only.
 
   **`MISMATCH` fires once in 181 molecules and that once is real.** Over
   `benchmarks/naming/corpus.json`: 180 MATCH, 1 MISMATCH, and the one is

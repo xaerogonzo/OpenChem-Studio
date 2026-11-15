@@ -73,6 +73,9 @@ tautomers; InChI does. A name can be correct while its round-trip lands on a
 different tautomer of the same compound — metformin is the worked example.
 The benchmark classes these separately and counts them as successes only
 when both a canonical-tautomer match and an InChIKey match agree.
+Explicit hydrogens on a stereo carbon (how the 2D editor writes a wedge to H)
+are not a tautomer: the checker folds them away before comparing, so a
+morphinan drawn that way is a match, not the tautomer note.
 
 **PubChem lookups are exact but only for known compounds**, and require
 network. They are never silently blended with a generated name: every name
