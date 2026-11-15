@@ -1,5 +1,5 @@
 <!-- GENERATED FROM docs/sources.toml -- do not edit -->
-<!-- SOURCE SHA256: a42ba0c46d88f7b6a1ad63f59d44a041a68377ea525a8b28cc0a8be43ff72404 -->
+<!-- SOURCE SHA256: cc0a480949702f1b880cdc7b96f3c48acbc17a5b00bd72a208da90c3932d93a5 -->
 
 # Sources
 
@@ -245,6 +245,7 @@ Title and DOI first; the `key` is what prose and code cite (`[source:key]`) and 
 | Merck Molecular Force Field. II. MMFF94 van der Waals and Electrostatic Parameters for Intermolecular Interactions |  | [`halgren1996_mmff2`](#halgren1996_mmff2) | literature | shipped | citation + claim |
 | Space-Group Notation with an Explicit Origin | [10.1107/S0567739481001228](https://doi.org/10.1107/S0567739481001228) | [`hall1981`](#hall1981) | literature | shipped | citation |
 | Hard and Soft Acid-Base Behavior in Aqueous Solution: Steric Effects Make Some Metal Ions Hard; A Quantitative Scale of Hardness-Softness for Acids and Bases | [10.1021/ed073p654](https://doi.org/10.1021/ed073p654) | [`hancock1996`](#hancock1996) | literature | reference only | citation |
+| New stereochemical descriptors for the validation of structures proposed for assignments of absolute configuration: the CIP Validation Suite | [10.1021/acs.jcim.8b00324](https://doi.org/10.1021/acs.jcim.8b00324) | [`hanson2018cip_suite`](#hanson2018cip_suite) | literature | reference only | citation |
 | Correlated ab Initio Study of Nucleic Acid Bases and Their Tautomers in the Gas Phase, in a Microhydrated Environment, and in Aqueous Solution. Part 3. Adenine | [10.1021/jp036090m](https://doi.org/10.1021/jp036090m) | [`hanus2004`](#hanus2004) | literature | reference only | citation + claim |
 | The geometry of metal-ligand interactions relevant to proteins | [10.1107/S0907444999007374](https://doi.org/10.1107/S0907444999007374) | [`harding1999`](#harding1999) | literature | shipped | citation + claim |
 | The geometry of metal-ligand interactions relevant to proteins. II. Angles at the metal atom, additional weak metal-donor interactions | [10.1107/S0907444900005849](https://doi.org/10.1107/S0907444900005849) | [`harding2000`](#harding2000) | literature | reference only | citation |
@@ -7833,6 +7834,22 @@ Nothing about xtb's accuracy against ORCA or Psi4 has been measured (`docs/EXTER
 | Used by | `docs/SYNTHESIS_HELPER_DESIGN.md` |
 
 **Why it is reference only.** A POSSIBLE SOFTER ROUTE-AGREEMENT MEASURE, NOT USED: adapts BLEU to a route's sequence of reaction templates, evaluated on routes from PaRoutes made with AiZynthFinder and Retro*. Only the abstract and the evaluation set-up were read. The authors, journal, volume and pages were checked against the paper's own first page; the DOI is the one the publisher's page carries.
+
+### hanson2018cip_suite — New stereochemical descriptors for the validation of structures proposed for assignments of absolute configuration: the CIP Validation Suite
+
+<a id="hanson2018cip_suite"></a>
+
+> R. M. Hanson, P. A. Mayfield, J. M. Swanson & S. J. B. Brown, 'New stereochemical descriptors for the validation of structures proposed for assignments of absolute configuration: the CIP Validation Suite', J. Chem. Inf. Model. 2018, 58(9), 1755-1763.
+
+| | |
+| --- | --- |
+| Identifier | [10.1021/acs.jcim.8b00324](https://doi.org/10.1021/acs.jcim.8b00324) |
+| Status | reference only |
+| Verification | citation |
+| Verified | 2026-11-15 |
+| Used by | `benchmarks/naming/CIP_VALIDATION_SUITE.md`, `docs/NAMING_LIMITATIONS_PLAN.md`, `tools/naming_cip_suite_probe.py`, `tests/test_naming_cip_suite_probe.py` |
+
+**Why it is reference only.** THE CIP VALIDATION SUITE oracle inventory in benchmarks/naming: second stereo oracle beside the Blue Book; suite files live on the maintainer machine, not in git.
 
 ### genheden2021ted — Clustering of synthetic routes using tree edit distance
 

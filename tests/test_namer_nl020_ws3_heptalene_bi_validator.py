@@ -45,23 +45,42 @@ def test_nl020_engine_emits_biheptalene():
     assert name_smiles(HEPTALENE_BI_SMILES) == ENGINE_PIN
 
 
-@needs_opsin
-@pytest.mark.parametrize(
-    "candidate",
-    (
-        ENGINE_PIN,
-        "(5,1'-biheptalene)",
-        "5,1'-bi(heptalene)",
-        "1,1'-biheptalene",
-        "2,3'-biheptalene",
-        "heptalen-5-yl heptalene",
-    ),
+def _assembly_inchi_key() -> str:
+    return inchi.MolToInchiKey(Chem.MolFromSmiles(HEPTALENE_BI_SMILES))
+
+
+# Spellings OPSIN may parse that still do not round-trip the 5,1' join (CI, 2026-11-15).
+OPSIN_NON_VERIFIED_SPELLINGS = (
+    ENGINE_PIN,
+    "(5,1'-biheptalene)",
+    "5,1'-bi(heptalene)",
+    "2,3'-biheptalene",
 )
+
+# OPSIN read-back hits the same InChIKey for a different locant join — false verifier.
+OPSIN_FALSE_POSITIVE_SPELLINGS = (
+    "1,1'-biheptalene",
+    "heptalen-5-yl heptalene",
+)
+
+
+@needs_opsin
+@pytest.mark.parametrize("candidate", OPSIN_NON_VERIFIED_SPELLINGS)
 def test_nl020_opsin_does_not_round_trip_biheptalene_assembly(candidate):
     from py2opsin import py2opsin
 
     back = py2opsin(candidate)
     if not back:
         return
-    target_key = inchi.MolToInchiKey(Chem.MolFromSmiles(HEPTALENE_BI_SMILES))
-    assert inchi.MolToInchiKey(Chem.MolFromSmiles(back)) != target_key
+    assert inchi.MolToInchiKey(Chem.MolFromSmiles(back)) != _assembly_inchi_key()
+
+
+@needs_opsin
+@pytest.mark.parametrize("candidate", OPSIN_FALSE_POSITIVE_SPELLINGS)
+def test_nl020_opsin_false_positives_round_trip_wrong_join(candidate):
+    """OPSIN accepts these names but maps them to the same graph as the 5,1' assembly."""
+    from py2opsin import py2opsin
+
+    back = py2opsin(candidate)
+    assert back
+    assert inchi.MolToInchiKey(Chem.MolFromSmiles(back)) == _assembly_inchi_key()
