@@ -202,7 +202,7 @@ After round 89 Alex asked for a formal plan for the things in KNOWN_LIMITATIONS.
 
 **2026-11-08 (WS2):** `NL-090` and `NL-097` **programme-closed**; WS2 matrix has no open cells. `NL-090`: `6a`/`13a` methyls in `tests/test_namer_nl090_letter_locant_methyls.py`; **`12b` not drawable** (class **N**). `NL-097`: substitutive-only ownership scope in `tests/test_namer_nl097_ownership_audit_scope.py` plus `KNOWN_LIMITATIONS.md` audit-reach row.
 
-**2026-11-08 (WS1 / WS3, sequence after WS2):** `NL-009` re-measured — four natural products (`tests/test_namer_nl009_ws1_natural_products.py`; tropanes correct but underspecified). `NL-018` closed — seventeen curated numbering exceptions sourced in round 87 (`tests/test_namer_nl018_ws3_numbering_conventions.py`). **2026-11-10:** `NL-001`, `NL-005`, `NL-109` closed on WS1. Next programme focus: `NL-002` (blocked) or WS3 `NL-023`/`NL-024`.
+**2026-11-08 (WS1 / WS3, sequence after WS2):** `NL-009` re-measured — four natural products (`tests/test_namer_nl009_ws1_natural_products.py`; tropanes correct but underspecified). `NL-018` closed — seventeen curated numbering exceptions sourced in round 87 (`tests/test_namer_nl018_ws3_numbering_conventions.py`). **2026-11-10:** `NL-001`, `NL-005`, `NL-109` closed on WS1. **2026-11-15:** `NL-023` / `NL-024` closed on WS3 (Blue Book V3 source tests). Same day: WS3 P3 batch (`NL-020`, `NL-050`, `NL-080`, `NL-085`, `NL-088`, `NL-089`, `NL-106`) closed with `tests/test_namer_nl0*_ws3_*.py` pins. Next programme focus: `NL-002` (blocked) or WS5 P3 rows.
 
 **Loose ends:** stray local `master` commit d0b26d71 in the main checkout (Alex runs `git reset --hard 420ca33d` himself); worktrees naming-limitations-plan, naming-round-90-diazo, naming-stereo-collapse can be removed.
 
