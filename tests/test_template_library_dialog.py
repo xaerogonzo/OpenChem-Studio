@@ -47,6 +47,7 @@ def test_shipped_categories_are_listed(qapp, tmp_path):
     assert any("Solvent" in text for text in titles)
     assert any("Nucleic" in text or text.startswith("Nucleobases") for text in titles)
     assert any(text.startswith("Alkaloids") for text in titles)
+    assert any("Cofactor" in text for text in titles)
     assert any(text.startswith("Allotropes") for text in titles)
     assert any("Reactive" in text for text in titles)
     assert any("My Templates" in text for text in titles)

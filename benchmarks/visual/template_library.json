@@ -45,6 +45,12 @@
   {"do": "template_library", "category": "Alkaloids", "entry": "Mescaline", "press": "insert",
    "tag": "insert-mescaline", "after_ms": 1500,
    "expect": {"inserted": true, "smiles_contains": ".", "undo_delta": 1, "status": "Inserted."}},
+  {"do": "template_library", "category": "Alkaloids", "entry": "Morphine", "press": "insert",
+   "tag": "insert-morphine", "after_ms": 1500,
+   "expect": {"inserted": true, "smiles_contains": ".", "undo_delta": 1, "status": "Inserted."}},
+  {"do": "template_library", "category": "Alkaloids", "entry": "Atropine", "press": "insert",
+   "tag": "insert-atropine", "after_ms": 1500,
+   "expect": {"inserted": true, "smiles_contains": ".", "undo_delta": 1, "status": "Inserted."}},
 
   {"do": "quit"}
 ]
