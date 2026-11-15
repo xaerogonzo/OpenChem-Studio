@@ -45,8 +45,10 @@ from rdkit import Chem
 from rdkit.Chem import AllChem, rdMolTransforms
 
 from openchem.chem.calculator_options import decimals
+from openchem.chem.checkers.valence import accepted_hypervalent_atoms
 from openchem.chem.dreiding import UntypedAtomError, dreiding_energy
 from openchem.chem.geometry_options import (
+    POLICY_NEVER,
     POLICY_ALWAYS,
     POLICY_IF_2D,
     GeometryOptions,
@@ -65,7 +67,9 @@ from openchem.chem.projection_geometry import (
     closest_fragment_approach,
     shape_descriptors,
 )
+from openchem.domain.calculator import CalculationRefusal
 from openchem.domain.common import CacheState, Provenance
+from openchem.domain.refusal_kinds import HYPERVALENT_UNSUPPORTED, RefusalKind
 from openchem.chem.vdw_radii import RADII_LABEL
 from openchem.domain.result_store import GEOMETRY_METHOD
 from openchem.domain.report import Fact, FactCategory, ReportResult, AxesAnnotation, valid_spatial_annotation
@@ -220,6 +224,18 @@ def compute_geometry_analysis(
     """
     places = decimals(parameters)
     options = geometry_options(parameters)
+    # A HELD hypervalent structure (ClF3, BrF3: RDKit refuses the centre, `chem.calculation_input`) has coordinates and nothing else a force field
+    # can use. The radii and the shadow are arithmetic on the atoms and the van der Waals table, so they are computed (held to an independent
+    # implementation by `tests/test_hypervalent_geometry.py`); a force field, or generating or relaxing a conformer with one, is refused.
+    held = bool(accepted_hypervalent_atoms(mol))
+    if held and (options.conformer_policy != POLICY_NEVER or options.optimise_mmff or options.optimise_projection):
+        raise CalculationRefusal(
+            HYPERVALENT_UNSUPPORTED,
+            "Not available for this hypervalent structure with these options",
+            "Generating or relaxing a conformer needs a force field, and none can represent this structure. Set the conformer option to "
+            "'Never: use the conformer as it is' and turn the relaxation options off to measure the stored geometry.",
+            kind=RefusalKind.LIMIT,
+        )
     try:
         selected, search = _select_geometry(mol, options)
     except NoConformerError as exc:
@@ -231,7 +247,7 @@ def compute_geometry_analysis(
     shape_mol = relaxed.mol if (relaxed is not None and options.optimise_projection) else selected
     try:
         radii = molecular_radii(shape_mol)
-        energies = force_field_energies(selected)
+        energies = {"mmff94": None, "uff": None, "dreiding": None} if held else force_field_energies(selected)
         shape = shape_descriptors(shape_mol, radius_scale=options.radius_scale)
     except NoConformerError as exc:
         return _failed(molecule_uuid, str(exc))
@@ -371,7 +387,11 @@ def compute_geometry_analysis(
                 category=FactCategory.GEOMETRY,
                 label="Force field energy",
                 value=None,
-                display_value="No force field parameters for this molecule.",
+                display_value=(
+                    "Not computed: no force field can represent this hypervalent structure."
+                    if held
+                    else "No force field parameters for this molecule."
+                ),
                 source="Geometry",
                 basis=Basis.DETERMINISTIC,
             )
