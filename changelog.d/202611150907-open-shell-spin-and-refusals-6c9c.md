@@ -3,3 +3,4 @@
 - A charge and multiplicity the electrons cannot have (a methyl radical or NO at multiplicity 1, which ORCA refuses after queueing) is refused before the job is queued, and a multiplicity that does not match the drawn radicals is noted on the run.
 - Joback and Hansen refuse a structure with unpaired electrons (`OPEN_SHELL`): ethyl radical had been given a vinyl CH2 group and benzyl radical ethylbenzene's CH2. Hueckel now includes a carbon radical centre as a pi centre (benzyl 8.72 beta, allyl 2.83, the textbook values) and refuses other radical atoms; it had dropped the benzyl carbon.
 - Measurements, the shared-cause question against the hypervalent work and the proposed packages: `docs/OPEN_SHELL_AND_HYPERVALENT_COVERAGE_DESIGN.md`.
+- O2, SO and S2 drawn closed-shell now default to multiplicity 3 (real ORCA: the triplet is 24 to 40 kcal/mol lower), ORCA results carry `<S**2>` for unrestricted runs, and Psi4 refuses an impossible electron count before running.

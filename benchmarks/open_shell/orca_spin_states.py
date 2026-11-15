@@ -23,7 +23,8 @@ from openchem.chem.conformer_providers import GenerationOptions, RDKitConformerP
 from openchem.chem.orca_engine import OrcaQuantumEngineProvider
 
 CASES = [("O2_m3", "[O][O]", 3), ("O2_m1", "[O][O]", 1), ("O2_m5", "[O][O]", 5), ("CH3_m1", "[CH3]", 1), ("CH3_m2", "[CH3]", 2), ("NO_m1", "[N]=O", 1), ("NO_m2", "[N]=O", 2),
-         ("CH2_m3", "[CH2]", 3), ("CH2_m1", "[CH2]", 1), ("OH_m2", "[OH]", 2)]
+         ("CH2_m3", "[CH2]", 3), ("CH2_m1", "[CH2]", 1), ("OH_m2", "[OH]", 2),
+         ("SS_m1", "S=S", 1), ("SS_m3", "S=S", 3), ("SO_m1", "S=O", 1), ("SO_m3", "S=O", 3), ("N2_m1", "N#N", 1), ("N2_m3", "N#N", 3)]
 
 
 def main(orca: str, folder: str) -> None:

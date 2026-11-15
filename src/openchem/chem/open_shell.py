@@ -40,9 +40,21 @@ def electron_count(mol: Chem.Mol, charge: int) -> int:
     return sum(atom.GetAtomicNum() + atom.GetTotalNumHs() for atom in mol.GetAtoms()) - charge
 
 
+#: Neutral molecules whose ground state is a triplet although the usual drawing has no unpaired electrons (keyed by canonical SMILES of the
+#: closed-shell drawing). Each was MEASURED here, not only recalled: real ORCA 6.1.1, B3LYP/def2-SVP, triplet minus singlet energy at the
+#: optimised geometry: O2 -39.7, SO -29.7, S2 -23.7 kcal/mol (`benchmarks/open_shell/orca_spin_states.py`). N2 (+147.5) is the control that
+#: must not be here. The ground states are textbook X 3Sigma-; a literature citation per row is still to be attached (OS2 in the design).
+TRIPLET_GROUND_STATES = frozenset({"O=O", "S=S", "O=S"})
+
+
 def default_multiplicity(mol: Chem.Mol) -> int:
-    """High-spin multiplicity of the drawn radicals, 2S+1 with one electron per spin: 1 for a closed-shell drawing."""
-    return unpaired_electrons(mol) + 1
+    """The multiplicity a job starts from: high-spin for drawn radicals (2S+1, one electron per spin), 3 for a listed triplet drawn closed-shell, else 1."""
+    unpaired = unpaired_electrons(mol)
+    if unpaired:
+        return unpaired + 1
+    if Chem.GetFormalCharge(mol) == 0 and Chem.MolToSmiles(Chem.RemoveHs(mol)) in TRIPLET_GROUND_STATES:
+        return 3
+    return 1
 
 
 def multiplicity_problem(mol: Chem.Mol, charge: int, multiplicity: int) -> str:
@@ -72,7 +84,11 @@ def spin_note(mol: Chem.Mol, multiplicity: int) -> str:
     mismatch is silent: O2 and CH2 at multiplicity 1 ran and finished, 39.7 and 41.9 kcal/mol above the triplet.
     """
     unpaired = unpaired_electrons(mol)
-    if unpaired == 0 or multiplicity == unpaired + 1:
+    if unpaired == 0:
+        if default_multiplicity(mol) == 3 and multiplicity == 1:
+            return "This molecule's ground state is a triplet (multiplicity 3); multiplicity 1 runs a higher-energy closed-shell state."
+        return ""
+    if multiplicity == unpaired + 1:
         return ""
     if multiplicity == 1:
         return (

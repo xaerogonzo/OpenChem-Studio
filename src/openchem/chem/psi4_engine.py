@@ -32,6 +32,7 @@ from pathlib import Path
 from rdkit import Chem
 from rdkit.Geometry import Point3D
 
+from openchem.chem.open_shell import multiplicity_problem
 from openchem.domain.common import CacheState, Provenance
 from openchem.domain.conformer import PSI4_OPTIMIZED, ConformerModel
 from openchem.domain.descriptor import DescriptorValue
@@ -119,6 +120,10 @@ class Psi4QuantumEngineProvider(QuantumEngineProvider):
     # -- input ---------------------------------------------------------------------------------------------------
 
     def build_input(self, mol: Chem.Mol, charge: int, multiplicity: int, method_basis: str, calc_type: str) -> str:
+        # An impossible electron count is refused before any run, as xtb's provider does and ORCA does itself (`chem.open_shell`).
+        problem = multiplicity_problem(mol, charge, multiplicity)
+        if problem:
+            raise ValueError(problem)
         if calc_type not in PSI4_CALC_TYPES:
             raise ValueError(f"The Psi4 engine does not run {calc_type!r} (it runs {', '.join(sorted(PSI4_CALC_TYPES))}).")
         keyword, basis, _label = split_method_basis(method_basis)

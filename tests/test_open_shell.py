@@ -34,7 +34,7 @@ def mol(smiles: str) -> Chem.Mol:
 
 @pytest.mark.parametrize(
     "smiles, unpaired, multiplicity",
-    [("[CH3]", 1, 2), ("[OH]", 1, 2), ("[N]=O", 1, 2), ("[O][O]", 2, 3), ("[CH2]", 2, 3), ("[O]", 2, 3), ("CC1(C)CCCC(C)(C)N1[O]", 1, 2), ("CCO", 0, 1), ("O=O", 0, 1)],
+    [("[CH3]", 1, 2), ("[OH]", 1, 2), ("[N]=O", 1, 2), ("[O][O]", 2, 3), ("[CH2]", 2, 3), ("[O]", 2, 3), ("CC1(C)CCCC(C)(C)N1[O]", 1, 2), ("CCO", 0, 1), ("O=O", 0, 3), ("S=S", 0, 3), ("S=O", 0, 3), ("N#N", 0, 1), ("[O-]O", 0, 1)],
 )
 def test_the_default_multiplicity_is_unpaired_electrons_plus_one(smiles, unpaired, multiplicity):
     assert unpaired_electrons(mol(smiles)) == unpaired
@@ -212,3 +212,38 @@ def test_selecting_a_molecule_sets_the_panel_multiplicity_from_its_unpaired_elec
         assert seen == [1, 2, 3]
     finally:
         _dispose_panel(panel)
+
+
+# --- ground states drawn closed-shell, and <S**2> ---------------------------------------------------------------------------------------------
+
+
+def test_a_closed_shell_drawn_triplet_says_so_when_run_as_a_singlet():
+    assert "triplet" in spin_note(mol("O=O"), 1)
+    assert spin_note(mol("O=O"), 3) == ""
+    assert spin_note(mol("N#N"), 1) == ""  # the control: N2 is a singlet (triplet is +147.5 kcal/mol in real ORCA)
+
+
+def test_orca_reports_s_squared_only_for_an_unrestricted_run():
+    from openchem.chem.orca_engine import OrcaQuantumEngineProvider
+
+    base = "FINAL SINGLE POINT ENERGY      -150.1449\n"
+    unrestricted = base + "Expectation value of <S**2>     :     2.006490\nIdeal value S*(S+1) for S=1.0   :     2.000000\nDeviation                       :     0.006490\n"
+    provider = OrcaQuantumEngineProvider()
+    water = Chem.AddHs(mol("O"))
+    AllChem.EmbedMolecule(water, randomSeed=1)
+
+    def ids(text):
+        return {d.descriptor_id: d for d in provider.parse_output(text, water, "u", "sp")[0]}
+
+    found = ids(unrestricted)["orca.s_squared"]
+    assert found.value == 2.00649 and found.provenance.parameters["ideal_s_squared"] == 2.0 and found.provenance.parameters["excess"] == 0.00649
+    assert "orca.s_squared" not in ids(base)
+
+
+def test_psi4_refuses_an_impossible_electron_count_before_running():
+    from openchem.chem.psi4_engine import Psi4QuantumEngineProvider
+
+    methyl = Chem.AddHs(mol("[CH3]"))
+    AllChem.EmbedMolecule(methyl, randomSeed=1)
+    with pytest.raises(ValueError, match="multiplicity 1"):
+        Psi4QuantumEngineProvider().build_input(methyl, 0, 1, "B3LYP def2-SVP", "sp")

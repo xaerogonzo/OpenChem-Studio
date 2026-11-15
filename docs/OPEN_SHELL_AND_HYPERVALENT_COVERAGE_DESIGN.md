@@ -1,6 +1,6 @@
 # Open-shell molecules and hypervalent molecules: what was measured, what shipped, what is proposed
 
-**Status: investigation done 2026-11-15; the small, verified pieces (section 5) are shipped; the rest are proposals (section 6).**
+**Status: investigation done 2026-11-15; the small, verified pieces (section 5) are shipped, and OS2 and OS5 followed the same day (section 5, items 5 and 6); the rest are proposals (section 6).**
 Companion to `docs/HYPERVALENT_COVERAGE_DESIGN.md`, which covers hypervalent structures RDKit accepts (WP1 to WP7) and the held ones of #597/#598.
 The question put to this investigation: the owner saw triplet O2 "have the same difficulties" as hypervalent structures. **That was an observation, not a
 measurement; it was measured per layer here.**
@@ -116,6 +116,12 @@ a valence model that assumes closed shells and octets", which is a reason to kee
 4. **`OPEN_SHELL` refusal** (a LIMIT) for Joback and Hansen, and for Hueckel on anything but a carbon radical centre; Hueckel now includes the carbon radical centre as a pi centre.
    Controls (toluene, ethylbenzene, benzene) are unchanged.
 
+5. **OS2, ground states drawn closed-shell.** `TRIPLET_GROUND_STATES` (O2, SO, S2) default to multiplicity 3 and `spin_note` says so at 1. Measured in real ORCA 6.1.1
+   (B3LYP/def2-SVP, optimised, triplet minus singlet): O2 -39.7, SO -29.7, S2 -23.7 kcal/mol; N2 +147.5 is the control kept out. Se2 produced no output and is not listed.
+   The textbook X 3Sigma- citation per row is still to be attached. This supersedes the earlier statement that `O=O` stays at 1.
+6. **OS5.** ORCA results gain `orca.s_squared` (the last `<S**2>`, with the ideal value and the excess in the provenance) for any unrestricted run; a restricted run
+   gains nothing. `Psi4QuantumEngineProvider.build_input` refuses an impossible electron count like xtb's. **Psi4 is not installed here**, so only the arithmetic is tested, not Psi4's own behaviour.
+
 Mutation checks run: each of 7 edits (Joback, Hansen, both Hueckel rules, the parity refusal, the spin note, the engine default) fails 1 to 5 tests when reverted.
 
 ## 6. Proposed work packages, by value and risk (not started; each needs the owner's go-ahead)
@@ -123,15 +129,15 @@ Mutation checks run: each of 7 edits (Joback, Hansen, both Hueckel rules, the pa
 | # | Package | Why | What it takes | Risk |
 |---|---|---|---|---|
 | OS1 | **Store the multiplicity** with the structure (a `spin_multiplicity` field, project format bump, `None` = derive) and read `M  RAD 1/2/3` from the molblock text ourselves because RDKit conflates 1 and 3 | a drawn singlet carbene is rewritten as triplet today; the default would stop being a guess | a field on `MoleculeModel`, codec and project-file migration, an editor control, tests | medium (file format) |
-| OS2 | **Known-ground-state table**: O2, CH2, NH, SO, S2... drawn closed-shell (`O=O`) default to their measured ground-state multiplicity, with the source for each | `O=O` is the most likely way someone draws oxygen, and gets multiplicity 1 | a small cited table like `vsepr_geometry`'s, tests against the ORCA runs above | low |
+| OS2 | **DONE (O2, SO, S2; citations pending).** Known-ground-state table: O2, CH2, NH, SO, S2... drawn closed-shell (`O=O`) default to their measured ground-state multiplicity, with the source for each | `O=O` is the most likely way someone draws oxygen, and gets multiplicity 1 | a small cited table like `vsepr_geometry`'s, tests against the ORCA runs above | low |
 | OS3 | **Open-shell 3D starts**: small-molecule geometry table for diatomic and triatomic radicals (O2, NO, OH, CH3, CH2, NH2...), each with a source | section 3.2: 1.316 A and 1.151 A for O2 | same shape as WP6; sources needed (below) | low |
 | OS4 | **Calculator audit for radicals with oracles:** `logd`/ionisable sites, `hbond_sites`, `steric_analysis`, charge models, `solubility`: decide gate or refuse per calculator | section 3.4, TEMPO | a nitroxide pKa (not held), a decision per calculator; if more than about four calculators are gated, one registry-level `CLOSED_SHELL_ONLY` set beside `HYPERVALENT_VERIFIED_CALCULATORS` is cleaner than per-calculator code | low to medium |
-| OS5 | **Psi4 parity check** (measure first) and a spin-contamination figure (`<S**2>`) in every unrestricted result, as bond dissociation already flags | an unrestricted run's quality is invisible | parse ORCA/Psi4 `<S**2>`, one fact | low |
+| OS5 | **DONE** (Psi4 only by arithmetic). Psi4 parity check and a spin-contamination figure (`<S**2>`) in every unrestricted result, as bond dissociation already flags | an unrestricted run's quality is invisible | parse ORCA/Psi4 `<S**2>`, one fact | low |
 | OS6 | Hueckel for heteroatom radicals (nitroxide, NO) with real alpha/beta parameters | currently refused | parameter set, oracle | medium, little value |
 | H1 | **Hypervalent, calculator by calculator** (the owner's long-term goal): split `geometry_analysis` so the size and shape descriptors (pure coordinates) run on held structures and only the Dreiding energy refuses; then `dipole_moment` from a quantum run, where the ORCA geometry check of #600 is the oracle | the descriptors that need no valence model are the cheap ones | one calculator at a time, each with its own oracle test as in #598 | low |
 | H2 | **Parameters for Cl(III), Br(III), P(V), Xe in a charge model** | the Gasteiger NaN is guarded, not solved | a published parameter set per element (a literature question) | high |
 
-Order: **OS2 and OS5 first** (cheap, and OS2 removes the last way O2 gets the wrong spin by default), then OS1 (it makes the default a stored choice, and carries the file-format
+Order: OS2 and OS5 are done; next OS1 (it makes the default a stored choice, and carries the file-format
 risk), then OS3, OS4 with the nitroxide pKa in hand, H1 in parallel since it is independent, OS6 and H2 last.
 
 ## 7. Commands and what was not done
