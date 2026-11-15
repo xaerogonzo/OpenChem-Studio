@@ -27,7 +27,11 @@ slice.
 A category has a stable `id` and a display `title`. `origin` is `shipped` or
 `user` and is not a free string: user JSON cannot claim `shipped`. User
 category ids start with `user:`. Duplicate titles are allowed; duplicate ids
-are not.
+are not. The dialog tree groups shipped catalogs under
+`SHIPPED_CATEGORY_GROUPS` in `domain/structure_template.py` (Scaffolds,
+Building blocks, Laboratory, Natural products, Elements). Selecting a heading
+lists every child. User categories sit under Mine. Each molecule still has
+one `category_id`.
 
 ## Catalog
 
@@ -120,5 +124,5 @@ temp-file then `os.replace`. Tests set `OPENCHEM_DATA_ROOT`.
 ## Not in this slice
 
 Peptide sequence expansion (`Ala-Glu-Gly`), polymer S-groups, a pinned
-category toolbar, nested subcategories, click-to-fuse attachment, Ketcher
+category toolbar, click-to-fuse attachment, Ketcher
 “use as 2D clean template”, unpaired-electron calculator coverage.

@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from PySide6.QtCore import Qt
+
 from openchem.chem.engine import ChemistryEngine
 from openchem.chem.structure_templates import molblock_for
 from openchem.domain.molecule import MoleculeModel
@@ -37,9 +39,40 @@ def _dialog(tmp_path, editor=None, molblock: str = "\n  Ketcher canvas\n"):
     return dialog, host, store, engine
 
 
+def _tree_labels(dialog) -> list[str]:
+    labels: list[str] = []
+
+    def walk(item) -> None:
+        labels.append(item.text(0))
+        for index in range(item.childCount()):
+            walk(item.child(index))
+
+    for index in range(dialog._categories.topLevelItemCount()):
+        walk(dialog._categories.topLevelItem(index))
+    return labels
+
+
+def _select_category(dialog, category_id: str) -> None:
+    def walk(item) -> bool:
+        if item.data(0, Qt.ItemDataRole.UserRole) == category_id:
+            dialog._categories.setCurrentItem(item)
+            return True
+        return any(walk(item.child(index)) for index in range(item.childCount()))
+
+    found = any(
+        walk(dialog._categories.topLevelItem(index))
+        for index in range(dialog._categories.topLevelItemCount())
+    )
+    assert found, category_id
+
+
 def test_shipped_categories_are_listed(qapp, tmp_path):
     dialog, _host, _store, _engine = _dialog(tmp_path)
-    titles = [dialog._categories.item(i).text() for i in range(dialog._categories.count())]
+    titles = _tree_labels(dialog)
+    assert "Scaffolds" in titles
+    assert "Building blocks" in titles
+    assert "Natural products" in titles
+    assert "Mine" in titles
     assert any(text.startswith("Rings") for text in titles)
     assert any("Amino" in text for text in titles)
     assert any(text.startswith("Cycloalkanes") for text in titles)
@@ -51,11 +84,26 @@ def test_shipped_categories_are_listed(qapp, tmp_path):
     assert any(text.startswith("Allotropes") for text in titles)
     assert any("Reactive" in text for text in titles)
     assert any("My Templates" in text for text in titles)
+    rings = dialog._categories.topLevelItem(0).child(0)
+    assert rings is not None and rings.text(0).startswith("Rings")
+    assert rings.parent().text(0) == "Scaffolds"
+
+
+def test_selecting_a_group_lists_every_child_category(qapp, tmp_path):
+    dialog, _host, _store, _engine = _dialog(tmp_path)
+    scaffolds = dialog._categories.topLevelItem(0)
+    dialog._categories.setCurrentItem(scaffolds)
+    names = [dialog._templates.item(i).text() for i in range(dialog._templates.count())]
+    assert "Benzene" in names
+    assert "Adamantane" in names
+    _select_category(dialog, "rings")
+    names = [dialog._templates.item(i).text() for i in range(dialog._templates.count())]
+    assert "Benzene" in names
+    assert "Adamantane" not in names
 
 
 def test_global_search_is_not_limited_to_the_selected_category(qapp, tmp_path):
     dialog, _host, _store, _engine = _dialog(tmp_path)
-    dialog._categories.setCurrentRow(0)
     dialog._search.setText("adenine")
     names = [dialog._templates.item(i).text().casefold() for i in range(dialog._templates.count())]
     assert names and any("adenine" in name for name in names)
