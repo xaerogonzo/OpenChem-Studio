@@ -52,8 +52,13 @@ def default_multiplicity(mol: Chem.Mol) -> int:
     unpaired = unpaired_electrons(mol)
     if unpaired:
         return unpaired + 1
-    if Chem.GetFormalCharge(mol) == 0 and Chem.MolToSmiles(Chem.RemoveHs(mol)) in TRIPLET_GROUND_STATES:
-        return 3
+    # No RemoveHs: it sanitises, and a held hypervalent Mol (ClF3) is not sanitisable. Only a two-atom molecule can be in the table.
+    if mol.GetNumAtoms() == 2 and Chem.GetFormalCharge(mol) == 0:
+        try:
+            if Chem.MolToSmiles(mol) in TRIPLET_GROUND_STATES:
+                return 3
+        except Exception:  # noqa: BLE001 - an unreadable structure has no table entry
+            return 1
     return 1
 
 
