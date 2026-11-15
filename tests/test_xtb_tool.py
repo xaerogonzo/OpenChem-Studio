@@ -1,5 +1,4 @@
-"""xtb as a tool the user sets up and an engine the panel can choose (`docs/EXTERNAL_TOOL_CANDIDATES.md`): the service resolves its own executable, the External Tools dialog has a locate-only
-tab, the Test button checks the energy through the engine's own input and command, and the Quantum Chemistry panel's method box follows the engine.
+"""xtb as a tool the user sets up and an engine the panel can choose (`docs/EXTERNAL_TOOL_CANDIDATES.md`): the service resolves its own executable, the External Tools dialog has Set Up plus Locate and Test, the Test button checks the energy through the engine's own input and command, and the Quantum Chemistry panel's method box follows the engine.
 
 Most of this needs no xtb: the subprocess calls are replaced. The real program is exercised by `tests/test_xtb_engine.py` and by the last test here, when `OPENCHEM_XTB_EXE` is set.
 """

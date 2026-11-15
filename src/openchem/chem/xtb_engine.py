@@ -2,7 +2,7 @@
 
 xtb itself is Grimme's group's program [source:bannwarth2021xtb]; this module is only the driver around it, on the seam ORCA and Psi4 use: it builds an input and reads an output, and the service owns the process.
 It runs three calculation types, `sp`, `opt` and `opt_freq`, at GFN2-xTB or GFN1-xTB. Everything here was measured against a real xtb 6.7.1pre on Windows (the spike, 2026-10-27);
-the fixtures in `tests/fixtures/xtb/` are real outputs, produced by this module's own `build_input` and `command_args`. It is registered with `QuantumChemistryService` (used only when `xtb/executable_path` is set or xtb is on PATH), has a locate-only External Tools tab and its own method presets; nothing here has been compared with ORCA or Psi4.
+the fixtures in `tests/fixtures/xtb/` are real outputs, produced by this module's own `build_input` and `command_args`. It is registered with `QuantumChemistryService` (used only when `xtb/executable_path` is set or xtb is on PATH), has an External Tools tab (Set Up downloads the stable Windows zip) and its own method presets; nothing here has been compared with ORCA or Psi4.
 
 THE INPUT FILE CARRIES THE JOB. `command_args(executable_path, input_path)` is handed neither the charge, the spin nor the calculation type, and xtb takes all three on its command line. So `build_input` writes them into
 a header comment on the first line of the file and `command_args` reads that line back (a plain file read; the provider still owns no process or thread). The file the service writes is always called `job.inp`, and xtb
