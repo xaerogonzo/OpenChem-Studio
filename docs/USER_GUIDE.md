@@ -170,8 +170,10 @@ acids plus glycine as **ordinary expanded free amino acids** (neutral carboxylic
 acid + amine, not zwitterions, not abbreviated residues, and not a peptide
 builder), Fmoc/Boc building blocks, nucleic acids (free bases and named
 nucleosides), and named sugar anomers.
-Insert places the selected molecule to the right of the drawing as one undo
-step, with up/down (wedge/hash) bonds for specified stereochemistry. **My Templates** stores the live canvas. Extra categories come from
+The left list is nested under headings (Scaffolds, Building blocks, Laboratory,
+Natural products, Elements, Mine). Insert places the selected molecule to the
+right of the drawing as one undo step, with up/down (wedge/hash) bonds for
+specified stereochemistry. **My Templates** stores the live canvas. Extra categories come from
 importing `.mol` / `.sdf` files, which are copied into the application data
 folder rather than kept as live paths. Dummy-atom (`*`) fragments are refused:
 bonding to a wildcard in the editor does not attach a substituent.

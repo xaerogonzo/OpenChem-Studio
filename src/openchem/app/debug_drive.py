@@ -3359,7 +3359,8 @@ class _Driver(QObject):
         `{"do": "template_library", "category": "Rings", "entry": "Pyridine", "press": "insert",
         "expect": {"inserted": true, "smiles_contains": ".", "undo_delta": 1}}`
 
-        `search` types into the global filter. `category` / `entry` pick list rows by
+        `search` types into the global filter. `category` / `entry` pick tree leaves /
+        list rows by
         substring. `press` is `insert`, `save`, or `remove`. `name` is the My Templates
         name (skips the modal). `shot` takes `"widget": "template_library"`.
         """
@@ -3378,12 +3379,26 @@ class _Driver(QObject):
         QApplication.processEvents()
         if "category" in step:
             wanted = str(step["category"]).casefold()
-            rows = [dialog._categories.item(i).text() for i in range(dialog._categories.count())]
-            index = next((i for i, text in enumerate(rows) if wanted in text.casefold()), None)
-            if index is None:
+            rows: list[str] = []
+            match = None
+
+            def _walk(item) -> None:
+                nonlocal match
+                text = item.text(0)
+                rows.append(text)
+                category_id = item.data(0, Qt.ItemDataRole.UserRole)
+                if category_id and wanted in text.casefold() and match is None:
+                    match = item
+                for child in range(item.childCount()):
+                    _walk(item.child(child))
+
+            tree = dialog._categories
+            for index in range(tree.topLevelItemCount()):
+                _walk(tree.topLevelItem(index))
+            if match is None:
                 logger.error("OPENCHEM_DRIVE: template_library has no category %r (it lists %s)", step["category"], rows)
             else:
-                dialog._categories.setCurrentRow(index)
+                tree.setCurrentItem(match)
             QApplication.processEvents()
         if "entry" in step:
             wanted = str(step["entry"]).casefold()

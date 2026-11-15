@@ -338,7 +338,8 @@ The `OPENCHEM_DRIVE` step catalogue, moved out of [`CLAUDE.md`](../CLAUDE.md) on
                                           (definitions stored, unsaved, listed in Results); `shot` takes "widget": "scores"
     {"do": "template_library", "category": "Rings", "entry": "Pyridine", "press": "insert",
      "expect": {"inserted": true, "smiles_contains": ".", "undo_delta": 1, "status": "Inserted."}}
-                                          Structure > Template Library through its REAL controls: `search`, `category`, `entry`,
+                                          Structure > Template Library through its REAL controls: `search`, `category` (a leaf
+                                          title such as Rings, not a heading), `entry`,
                                           `press` insert/save/remove (`name` skips the My Templates prompt), `expect` the live
                                           molecule, undo depth and stored user templates; `shot` takes "widget": "template_library".
                                           The window is reused: a step without `search` clears the filter, and `save` waits for

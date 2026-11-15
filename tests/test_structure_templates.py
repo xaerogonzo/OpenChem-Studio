@@ -14,10 +14,12 @@ from openchem.chem.structure_templates import (
     place_to_the_right,
 )
 from openchem.domain.structure_template import (
+    SHIPPED_CATEGORY_GROUPS,
     TemplateEntry,
     TemplateError,
     TemplateKind,
     TemplateOrigin,
+    nested_category_groups,
 )
 
 
@@ -53,6 +55,18 @@ def test_every_shipped_category_loads_with_unique_ids_and_complete_molecules():
     assert len(entry_ids) == len(set(entry_ids))
     assert all(e.kind is TemplateKind.COMPLETE_MOLECULE for c in categories for e in c.entries)
     assert all(e.smiles and not e.molblock for c in categories for e in c.entries)
+
+
+def test_every_shipped_category_sits_in_exactly_one_dialog_group():
+    grouped = [cid for _title, ids in SHIPPED_CATEGORY_GROUPS for cid in ids]
+    assert grouped == list(dict.fromkeys(grouped))
+    assert set(grouped) == {c.id for c in load_shipped()}
+    trees = nested_category_groups(load_shipped())
+    assert [title for title, _cats in trees] == [title for title, ids in SHIPPED_CATEGORY_GROUPS if ids]
+    by_group = {title: [c.id for c in cats] for title, cats in trees}
+    assert by_group["Scaffolds"][0] == "rings"
+    assert "amino_acids" in by_group["Building blocks"]
+    assert "alkaloids" in by_group["Natural products"]
 
 
 def test_first_promotion_ids_are_shipped_once_and_not_the_research_dump():
