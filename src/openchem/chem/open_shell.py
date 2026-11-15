@@ -53,6 +53,7 @@ TRIPLET_GROUND_STATES = frozenset({"O=O", "S=S", "O=S"})
 
 #: Unpaired electrons an atom's `M  RAD` code stands for: 1 singlet (a carbene's paired electrons), 2 doublet, 3 triplet.
 _RAD_UNPAIRED = {1: 0, 2: 1, 3: 2}
+#: One `M  RAD` line: the count, then (atom, code) pairs, atoms 1-based; at most eight pairs to a line.
 _RAD_LINE = re.compile(r"^M  RAD\s+(\d+)((?:\s+\d+\s+\d+)+)\s*$")
 
 
