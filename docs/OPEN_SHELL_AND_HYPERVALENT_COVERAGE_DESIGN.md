@@ -183,8 +183,9 @@ against them and agreed, with the corrections noted.
   from the printed rho_e 46.0692 (21)) with T0 = 3147 cm-1 (8.998 kcal/mol), Te = 3223 cm-1 (Jensen and Bunker 1988); singlet r_e 1.107 A, theta_e 102.4 degrees (Petek et al. 1989, abstract;
   no uncertainty is printed there); Leopold et al. 1984 revised the photoelectron splitting from at least 19.5 to about 9 kcal/mol. **Corrections to the chatbot summary:** the +/-0.0003 A and
   +/-0.06 degrees it gave for triplet CH2 are not in the paper (the fit gives 0.00011 A and 0.002 degrees on rho_e); the diatomic r_e values it credited to NIST are in Huber and Herzberg itself.
-  **Not read:** CH3 (C-H 1.079 A, planar) and NH2 (N-H 1.024 A, 103.4 degrees) are NIST CCCBDB entries crediting Herzberg 1966 (held, `herzberg1966`); the CCCBDB page and Herzberg's pages were
-  not opened, so those two are unverified and should not be shipped until they are.
+  **CH3 and NH2** (read in the saved NIST CCCBDB pages, which credit Herzberg 1966): CH3 D3h, C-H 1.079 A, HCH 120 degrees (rotational constants from Yamada et al. 1981, whose ground-state
+  B = 9.57789 and C = 4.74202 cm-1 were found in the paper, and whose analysis supports a planar radical); NH2 C2v, N-H 1.024 A, HNH 103.4 degrees. These are NIST's transcriptions: Herzberg's own
+  pages were not opened and the bond-length convention (r0, rs, re) is not stated, so OS3 should label them 'experimental geometry, as listed by CCCBDB' and not r_e.
 * **Hueckel.** Benzyl 7 alpha + 8.721 beta (Ramachandran et al. 2008, Table 4.10, PDF p. 97), which is the application's 8.72; allyl 2 sqrt(2) beta is arithmetic.
 * **Spin contamination (the `orca.s_squared` threshold).** Jensen 1990: even a small contamination can change vibrational frequencies markedly (his <S**2> of 0.785 and 0.787 are called small in
   the text); the 10% rule of thumb quoted second-hand comes from the online page of D. Young, which was NOT downloaded and is not registered. No threshold is shipped; `orca.s_squared` reports the

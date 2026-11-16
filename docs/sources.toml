@@ -11201,7 +11201,7 @@ local = "Molecular Spectra and Molecular Structure_ Electronic -- Gerhard Herzbe
 verification = "citation"
 verified_date = 2026-11-15
 reason = """
-Held. The source NIST CCCBDB credits for the experimental geometries of CH3 (planar, C-H 1.079 A) and NH2 (bent, N-H 1.024 A, 103.4 degrees). Not read for those values here.
+Held, and its two geometries now confirmed through NIST CCCBDB pages saved by the owner (the folder with the book's name and the suffix _DATA, 'Listing of experimental geometry data for CH3' and 'for NH2'): CH3 point group D3h, r(CH) 1.079 A, HCH 120 degrees, both credited to this book (1966Herzberg), with rotational constants A = B = 9.57789, C = 4.74202 cm-1 credited to Yamada, Hirota and Kawaguchi 1981 (yamada1981); NH2 point group C2v, r(NH) 1.024 A, HNH 103.4 degrees, rotational constants 23.72, 12.94, 8.16 cm-1, all credited to this book. The CCCBDB page does not say which bond-length convention (r0, rs, re) the printed values are. The book's own pages were NOT opened: these are NIST's transcriptions of it.
 """
 
 [[source]]
@@ -11337,4 +11337,19 @@ verification = "citation"
 verified_date = 2026-11-15
 reason = """
 Held (with its supporting-information folder). A modern discussion of spin contamination in open-shell DFT; cited as context, no number from it is used.
+"""
+
+[[source]]
+key = "yamada1981"
+kind = "literature"
+citation = "C. Yamada, E. Hirota & K. Kawaguchi, 'Diode laser study of the nu2 band of the methyl radical', J. Chem. Phys. 75, 5256-5264 (1981)"
+identifier_type = "doi"
+identifier = "10.1063/1.441991"
+status = "reference_only"
+used_by = ["docs/OPEN_SHELL_AND_HYPERVALENT_COVERAGE_DESIGN.md"]
+local = "yamada1981.pdf"
+verification = "citation_and_claim"
+verified_date = 2026-11-15
+reason = """
+Read in part. The nu2 (out-of-plane bending) band of CH3 by diode laser spectroscopy at 606.4531, 681.6369 and 731.0757 cm-1; the vibration-rotation analysis supports a planar (or nearly planar, with no potential hump at the planar configuration) ground state, which is the D3h geometry the CCCBDB page lists. Ground-state B = 9.57789 (16) cm-1 and C = 4.74202 [67] cm-1 (Table), the rotational constants CCCBDB credits to this paper. The paper does not itself give a C-H length in the parts read.
 """

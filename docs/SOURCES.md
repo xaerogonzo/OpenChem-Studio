@@ -1,5 +1,5 @@
 <!-- GENERATED FROM docs/sources.toml -- do not edit -->
-<!-- SOURCE SHA256: 59be47f284e6437dacb39adf697ffe31a2792d7fdfe1603a5db3784bd815128a -->
+<!-- SOURCE SHA256: 8f6279b0e2f88d40924513737d967bd45cdde188940357424cfc8c71d3cda911 -->
 
 # Sources
 
@@ -489,6 +489,7 @@ Title and DOI first; the `key` is what prose and code cite (`[source:key]`) and 
 | Near ultraviolet photolysis of methanethiol studied by H atom photofragment translational spectroscopy | [10.1063/1.468248](https://doi.org/10.1063/1.468248) | [`wilson1994`](#wilson1994) | literature | reference only | citation + claim |
 | Ultraviolet photodissociation of methanethiol (CH3SH): revealing an S(1D) atom elimination channel | [10.1039/D5SC04716A](https://doi.org/10.1039/D5SC04716A) | [`wu2025`](#wu2025) | literature | reference only | citation + claim |
 | Aqueous Solubility: Methods of Estimation for Organic Compounds | 978-0-8247-8615-1 | [`yalkowsky_banerjee1992`](#yalkowsky_banerjee1992) | dataset | shipped | citation |
+| Diode laser study of the nu2 band of the methyl radical | [10.1063/1.441991](https://doi.org/10.1063/1.441991) | [`yamada1981`](#yamada1981) | literature | reference only | citation + claim |
 | Straightforward syntheses of hypervalent iodine(III) reagents mediated by Selectfluor | [10.1021/ol051446t](https://doi.org/10.1021/ol051446t) | [`ye2005`](#ye2005) | literature | shipped | citation + claim |
 | Density-Corrected Density Functional Theory for Open Shells: How to Deal with Spin Contamination | [10.1021/acs.jpclett.3c02017](https://doi.org/10.1021/acs.jpclett.3c02017) | [`yu2023`](#yu2023) | literature | reference only | citation |
 | PaRoutes 2.0 and USPTO-based models | [10.5281/zenodo.7341155](https://doi.org/10.5281/zenodo.7341155) | [`zenodo7341155`](#zenodo7341155) | dataset | reference only | citation + claim |
@@ -9628,7 +9629,7 @@ The deposited CIF (SHELXL-97, 153 K, R 0.048; o-fluorophenyl-IF2 with a quarter 
 | Local copy | `Molecular Spectra and Molecular Structure_ Electronic -- Gerhard Herzberg -- 1966-01-01 -- Van Nostrand Reinhold.pdf` (not checked) |
 | Used by | `docs/OPEN_SHELL_AND_HYPERVALENT_COVERAGE_DESIGN.md` |
 
-**Why it is reference only.** Held. The source NIST CCCBDB credits for the experimental geometries of CH3 (planar, C-H 1.079 A) and NH2 (bent, N-H 1.024 A, 103.4 degrees). Not read for those values here.
+**Why it is reference only.** Held, and its two geometries now confirmed through NIST CCCBDB pages saved by the owner (the folder with the book's name and the suffix _DATA, 'Listing of experimental geometry data for CH3' and 'for NH2'): CH3 point group D3h, r(CH) 1.079 A, HCH 120 degrees, both credited to this book (1966Herzberg), with rotational constants A = B = 9.57789, C = 4.74202 cm-1 credited to Yamada, Hirota and Kawaguchi 1981 (yamada1981); NH2 point group C2v, r(NH) 1.024 A, HNH 103.4 degrees, rotational constants 23.72, 12.94, 8.16 cm-1, all credited to this book. The CCCBDB page does not say which bond-length convention (r0, rs, re) the printed values are. The book's own pages were NOT opened: these are NIST's transcriptions of it.
 
 ### jensen1988 — The potential surface and stretching frequencies of X 3B1 methylene (CH2) determined from experiment using the Morse oscillator-rigid bender internal dynamics Hamiltonian
 
@@ -9782,6 +9783,23 @@ The deposited CIF (SHELXL-97, 153 K, R 0.048; o-fluorophenyl-IF2 with a quarter 
 | Used by | `docs/OPEN_SHELL_AND_HYPERVALENT_COVERAGE_DESIGN.md` |
 
 **Why it is reference only.** Held (with its supporting-information folder). A modern discussion of spin contamination in open-shell DFT; cited as context, no number from it is used.
+
+### yamada1981 — Diode laser study of the nu2 band of the methyl radical
+
+<a id="yamada1981"></a>
+
+> C. Yamada, E. Hirota & K. Kawaguchi, 'Diode laser study of the nu2 band of the methyl radical', J. Chem. Phys. 75, 5256-5264 (1981)
+
+| | |
+| --- | --- |
+| Identifier | [10.1063/1.441991](https://doi.org/10.1063/1.441991) |
+| Status | reference only |
+| Verification | citation + claim |
+| Verified | 2026-11-15 |
+| Local copy | `yamada1981.pdf` (not checked) |
+| Used by | `docs/OPEN_SHELL_AND_HYPERVALENT_COVERAGE_DESIGN.md` |
+
+**Why it is reference only.** Read in part. The nu2 (out-of-plane bending) band of CH3 by diode laser spectroscopy at 606.4531, 681.6369 and 731.0757 cm-1; the vibration-rotation analysis supports a planar (or nearly planar, with no potential hump at the planar configuration) ground state, which is the D3h geometry the CCCBDB page lists. Ground-state B = 9.57789 (16) cm-1 and C = 4.74202 [67] cm-1 (Table), the rotational constants CCCBDB credits to this paper. The paper does not itself give a C-H length in the parts read.
 
 ## Datasets
 

@@ -409,9 +409,10 @@ Papers fetched for the open-shell work (`docs/OPEN_SHELL_AND_HYPERVALENT_COVERAG
 | Leopold, Murray and Lineberger 1984 | CH2 singlet-triplet splitting | revised from at least 19.5 to about 9 kcal/mol; the 9.05 +/- 0.06 in it is another group's measurement | `leopold1984` |
 | Ramachandran et al. 2008 | benzyl Hueckel table | Table 4.10, PDF p. 97: 7 alpha + 8.721 beta | `ramachandran2008` |
 | Jensen 1990, Yu et al. 2023 | spin contamination | first page and abstract only; no threshold taken from either | `jensen1990`, `yu2023` |
-| Herzberg 1966, Streitwieser 1961, Jacox supplements A and B | CH3 and NH2 geometries; Hueckel; transient-molecule levels | held, NOT opened for a number | `herzberg1966`, `streitwieser1961`, `jacox1998`, `jacox2003` |
+| Herzberg 1966 (via saved CCCBDB pages), Yamada et al. 1981 | CH3 and NH2 geometries | CH3 D3h 1.079 A / 120 degrees, NH2 C2v 1.024 A / 103.4 degrees as listed by CCCBDB (Herzberg's pages not opened); Yamada's B and C found, planarity supported | `herzberg1966`, `yamada1981` |
+| Streitwieser 1961, Jacox supplements A and B | Hueckel; transient-molecule levels | held, NOT opened for a number | `streitwieser1961`, `jacox1998`, `jacox2003` |
 
-Not downloaded: D. Young's spin-contamination page (ccl.net), the source of the 10% rule of thumb; the NIST CCCBDB entries for CH3 and NH2. Still open: any measurement for 4-oxo-TEMPO or di-tert-butyl nitroxide.
+Not downloaded: D. Young's spin-contamination page (ccl.net), the source of the 10% rule of thumb. Still open: any measurement for 4-oxo-TEMPO or di-tert-butyl nitroxide.
 
 ## How to use this
 
