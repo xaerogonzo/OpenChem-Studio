@@ -1,0 +1,2 @@
+### Session notes convention for PR drafts
+- Add `docs/session-notes/` with per-PR folders for PR bodies, commit drafts, and probe scripts; document the workflow and link from the PR-body feedback doc.

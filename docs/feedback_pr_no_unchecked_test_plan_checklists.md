@@ -12,3 +12,5 @@ Alex (2026-11-04): Cursor agents often open PRs with a **Test plan** full of `- 
 4. Naming rounds follow `docs/NAMING_ROUNDS.md` step 6: scanned / Fixed / Decisions / Not changed / Measured — still no checklists.
 
 This extends [feedback-pr-bodies-state-decisions-not-questions](WORKING_AGREEMENTS.md#feedback-pr-bodies-state-decisions-not-questions): the PR is a record of decisions and measurements, not a shared task board.
+
+**Session drafts:** keep the `gh pr create --body-file` sources and commit-message drafts under [`docs/session-notes/`](session-notes/README.md) (per-PR folder) so the shipped PR body can stay prose-only while the repo still holds the working copies.
