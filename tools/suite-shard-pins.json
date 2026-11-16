@@ -899,6 +899,8 @@
   "tests/test_namer_nl032_nl042_ws5_known_defect_pins.py": 0,
   "tests/test_namer_nl050_ws3_radical_anion_validator.py": 1,
   "tests/test_namer_nl051_nl055_ws5_carried_ions_programme.py": 1,
+  "tests/test_namer_nl056_nl064_programme.py": 0,
+  "tests/test_namer_nl057_ws3_opsin_unreadable_programme.py": 2,
   "tests/test_namer_nl071_ws5_diazo_azaallenium_refusal.py": 1,
   "tests/test_namer_nl072_nl076_ws5_nonpreferred_pins.py": 0,
   "tests/test_namer_nl078_nl087_ws5_nonpreferred_pins.py": 2,

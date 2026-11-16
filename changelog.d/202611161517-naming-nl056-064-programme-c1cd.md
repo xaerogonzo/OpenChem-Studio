@@ -1,0 +1,2 @@
+### WS5/WS3: close NL-056..NL-064 carried programme rows
+- Re-measured exemplars (`tests/test_namer_nl056_nl064_programme.py`, `tests/test_namer_nl057_ws3_opsin_unreadable_programme.py`); NL-064 P-14.5.4 pentyl tie and mixed-anion esters noted as residual.
