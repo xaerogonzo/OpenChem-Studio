@@ -12,6 +12,7 @@ from rdkit.Geometry import Point3D
 from openchem.chem.camera_orientation import camera_to_model_transform, rotate
 from openchem.chem.components import COMPONENT_CHOICE_PROP
 from openchem.chem.open_shell import default_multiplicity, molblock_keeping_spin, spin_from_molblock
+from openchem.chem.open_shell_geometry import SPIN_PROP
 from openchem.chem.components import component_smiles as _component_smiles
 from openchem.chem.stereochemistry import (
     StereoChange,
@@ -274,6 +275,10 @@ class ChemistryEngine:
             # The person's pick of component rides on the Mol, so every route into a calculator
             # (Properties, Batch, the 3D overlay) reads it where `components.select` reads the rest.
             mol.SetProp(COMPONENT_CHOICE_PROP, model.component_choice)
+        # The drawing's own multiplicity, which RDKit cannot keep for a singlet carbene: the open-shell geometry table reads it (`chem.open_shell_geometry`).
+        stated = spin_from_molblock(model.molblock)
+        if stated is not None:
+            mol.SetProp(SPIN_PROP, str(stated))
         return mol
 
     def component_smiles(self, model: MoleculeModel) -> list[str]:

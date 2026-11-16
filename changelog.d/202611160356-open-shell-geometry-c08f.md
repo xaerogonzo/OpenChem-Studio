@@ -1,0 +1,2 @@
+### Small open-shell molecules get measured 3D geometries
+- Triplet O2, NO, OH, SO, S2, Se2, CH3, NH2 and CH2 (singlet and triplet, by the drawing's multiplicity) are now built from published geometries instead of distance geometry and a force field, which put O2 at 1.316 or 1.151 A and NO at 1.424 A against 1.208 and 1.151 measured. The conformer has no energy, is labelled an experimental geometry, and names its source; ORCA still refines it. Other radicals are unchanged.

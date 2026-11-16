@@ -1,5 +1,5 @@
 <!-- GENERATED FROM docs/sources.toml -- do not edit -->
-<!-- SOURCE SHA256: 8f6279b0e2f88d40924513737d967bd45cdde188940357424cfc8c71d3cda911 -->
+<!-- SOURCE SHA256: 608bffffca69eff4312bf501f0bc04cb6d7c8816b6c492f38a236bafe73f0409 -->
 
 # Sources
 
@@ -4565,7 +4565,7 @@ was confirmed against Crossref.
 | Verification | citation + claim |
 | Verified | 2026-09-14 |
 | Local copy | `huber1979.pdf` (not checked) |
-| Used by | `tests/fixtures/charges/geometries.csv`, `src/openchem/chem/open_shell.py`, `docs/OPEN_SHELL_AND_HYPERVALENT_COVERAGE_DESIGN.md` |
+| Used by | `tests/fixtures/charges/geometries.csv`, `src/openchem/chem/open_shell.py`, `docs/OPEN_SHELL_AND_HYPERVALENT_COVERAGE_DESIGN.md`, `src/openchem/chem/open_shell_geometry.py` |
 
 **Why it is reference only.** THE EXPERIMENTAL BOND LENGTHS THE QEQ ORACLES RUN AT, and nothing the
 application computes. Rappé & Goddard cite this book (their reference 10) for
@@ -9627,7 +9627,7 @@ The deposited CIF (SHELXL-97, 153 K, R 0.048; o-fluorophenyl-IF2 with a quarter 
 | Verification | citation |
 | Verified | 2026-11-15 |
 | Local copy | `Molecular Spectra and Molecular Structure_ Electronic -- Gerhard Herzberg -- 1966-01-01 -- Van Nostrand Reinhold.pdf` (not checked) |
-| Used by | `docs/OPEN_SHELL_AND_HYPERVALENT_COVERAGE_DESIGN.md` |
+| Used by | `docs/OPEN_SHELL_AND_HYPERVALENT_COVERAGE_DESIGN.md`, `src/openchem/chem/open_shell_geometry.py` |
 
 **Why it is reference only.** Held, and its two geometries now confirmed through NIST CCCBDB pages saved by the owner (the folder with the book's name and the suffix _DATA, 'Listing of experimental geometry data for CH3' and 'for NH2'): CH3 point group D3h, r(CH) 1.079 A, HCH 120 degrees, both credited to this book (1966Herzberg), with rotational constants A = B = 9.57789, C = 4.74202 cm-1 credited to Yamada, Hirota and Kawaguchi 1981 (yamada1981); NH2 point group C2v, r(NH) 1.024 A, HNH 103.4 degrees, rotational constants 23.72, 12.94, 8.16 cm-1, all credited to this book. The CCCBDB page does not say which bond-length convention (r0, rs, re) the printed values are. The book's own pages were NOT opened: these are NIST's transcriptions of it.
 
@@ -9644,7 +9644,7 @@ The deposited CIF (SHELXL-97, 153 K, R 0.048; o-fluorophenyl-IF2 with a quarter 
 | Verification | citation + claim |
 | Verified | 2026-11-15 |
 | Local copy | `jensen1988.pdf` (not checked) |
-| Used by | `docs/OPEN_SHELL_AND_HYPERVALENT_COVERAGE_DESIGN.md` |
+| Used by | `docs/OPEN_SHELL_AND_HYPERVALENT_COVERAGE_DESIGN.md`, `src/openchem/chem/open_shell_geometry.py` |
 
 **Why it is reference only.** Read. Triplet CH2 equilibrium: r(CH) = 1.07530 (11) A (Table II, 'fitted'; the text says 1.0753 A) and rho_e = 46.0692 (21) degrees, the supplement of the HCH angle, so alpha_e = 133.931 degrees (derived here, not printed as such). Singlet-triplet splitting T0 = 3147 +/- 5 cm-1 (8.998 kcal/mol) and Te = 3223 cm-1 (9.215 kcal/mol).
 
@@ -9661,7 +9661,7 @@ The deposited CIF (SHELXL-97, 153 K, R 0.048; o-fluorophenyl-IF2 with a quarter 
 | Verification | citation + claim |
 | Verified | 2026-11-15 |
 | Local copy | `petek1989.pdf` (not checked) |
-| Used by | `docs/OPEN_SHELL_AND_HYPERVALENT_COVERAGE_DESIGN.md` |
+| Used by | `docs/OPEN_SHELL_AND_HYPERVALENT_COVERAGE_DESIGN.md`, `src/openchem/chem/open_shell_geometry.py` |
 
 **Why it is reference only.** Read (abstract). Singlet CH2 a 1A1 equilibrium structure from Ae, Be, Ce = 19.8054 (206), 11.2489 (45), 7.2386 (36) cm-1: r_e = 1.107 A, theta_e = 102.4 degrees. No uncertainty is printed with the two structure numbers in the abstract.
 

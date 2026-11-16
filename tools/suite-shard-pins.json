@@ -5071,6 +5071,7 @@
   "tests/test_nuclide_table.py": 6,
   "tests/test_nuclides.py": 1,
   "tests/test_open_shell.py": 7,
+  "tests/test_open_shell_geometry.py": 6,
   "tests/test_opsin_isolation.py": 1,
   "tests/test_optimize_a_chosen_conformer.py": 3,
   "tests/test_orca_atom_equivalents.py": 1,
