@@ -1,7 +1,7 @@
 {
   "id": "cycloalkanes",
   "title": "Cycloalkanes",
-  "description": "Saturated monocycles C3–C12 except cyclopentane and cyclohexane, which stay in Rings, plus the two methyl derivatives.",
+  "description": "Saturated monocycles C3\u2013C12 except cyclopentane and cyclohexane, which stay in Rings, plus the two methyl derivatives.",
   "entries": [
     {
       "id": "cycloalkanes.cyclopropane",
@@ -91,6 +91,38 @@
       "tags": [
         "saturated ring",
         "twelve-membered ring"
+      ]
+    },
+    {
+      "id": "cycloalkanes.cis_1_4_dimethylcyclohexane",
+      "name": "cis-1,4-Dimethylcyclohexane",
+      "smiles": "C[C@H]1CC[C@H](C)CC1",
+      "tags": [
+        "alicyclic"
+      ]
+    },
+    {
+      "id": "cycloalkanes.trans_1_4_dimethylcyclohexane",
+      "name": "trans-1,4-Dimethylcyclohexane",
+      "smiles": "C[C@H]1CC[C@@H](C)CC1",
+      "tags": [
+        "alicyclic"
+      ]
+    },
+    {
+      "id": "cycloalkanes.cis_1_2_dimethylcyclohexane",
+      "name": "cis-1,2-Dimethylcyclohexane",
+      "smiles": "C[C@H]1CCCC[C@H]1C",
+      "tags": [
+        "alicyclic"
+      ]
+    },
+    {
+      "id": "cycloalkanes.trans_1_2_dimethylcyclohexane",
+      "name": "trans-1,2-Dimethylcyclohexane",
+      "smiles": "C[C@H]1CCCC[C@@H]1C",
+      "tags": [
+        "alicyclic"
       ]
     }
   ]

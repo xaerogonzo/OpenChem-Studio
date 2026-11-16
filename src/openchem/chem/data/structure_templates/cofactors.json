@@ -18,6 +18,206 @@
       "tags": [
         "nucleotide"
       ]
+    },
+    {
+      "id": "cofactors.amp",
+      "name": "Adenosine 5'-monophosphate",
+      "smiles": "C1=NC(=C2C(=N1)N(C=N2)[C@H]3[C@@H]([C@@H]([C@H](O3)COP(=O)(O)O)O)O)N",
+      "tags": [
+        "nucleotide"
+      ]
+    },
+    {
+      "id": "cofactors.adp",
+      "name": "Adenosine 5'-diphosphate",
+      "smiles": "C1=NC(=C2C(=N1)N(C=N2)[C@H]3[C@@H]([C@@H]([C@H](O3)COP(=O)(O)OP(=O)(O)O)O)O)N",
+      "tags": [
+        "nucleotide"
+      ]
+    },
+    {
+      "id": "cofactors.gmp",
+      "name": "Guanosine 5'-monophosphate",
+      "smiles": "C1=NC2=C(N1[C@H]3[C@@H]([C@@H]([C@H](O3)COP(=O)(O)O)O)O)NC(=O)N=C2N",
+      "tags": [
+        "nucleotide"
+      ]
+    },
+    {
+      "id": "cofactors.glutathione",
+      "name": "Glutathione",
+      "smiles": "N[C@@H](CCC(=O)N[C@@H](CS)C(=O)NCC(=O)O)C(=O)O",
+      "tags": [
+        "peptide"
+      ]
+    },
+    {
+      "id": "cofactors.pyridoxal",
+      "name": "Pyridoxal",
+      "smiles": "Cc1ncc(CO)c(C=O)c1O",
+      "tags": [
+        "vitamin B6"
+      ]
+    },
+    {
+      "id": "cofactors.pyridoxamine",
+      "name": "Pyridoxamine",
+      "smiles": "Cc1ncc(CO)c(CN)c1O",
+      "tags": [
+        "vitamin B6"
+      ]
+    },
+    {
+      "id": "cofactors.ump",
+      "name": "Uridine 5'-monophosphate",
+      "smiles": "O=c1ccn([C@@H]2O[C@H](COP(=O)(O)O)[C@@H](O)[C@H]2O)c(=O)[nH]1",
+      "tags": [
+        "nucleotide"
+      ]
+    },
+    {
+      "id": "cofactors.cmp",
+      "name": "Cytidine 5'-monophosphate",
+      "smiles": "Nc1ccn([C@@H]2O[C@H](COP(=O)(O)O)[C@@H](O)[C@H]2O)c(=O)n1",
+      "tags": [
+        "nucleotide"
+      ]
+    },
+    {
+      "id": "cofactors.tmp",
+      "name": "Thymidine 5'-monophosphate",
+      "smiles": "Cc1cn([C@H]2C[C@H](O)[C@@H](COP(=O)(O)O)O2)c(=O)[nH]c1=O",
+      "tags": [
+        "nucleotide"
+      ]
+    },
+    {
+      "id": "cofactors.gdp",
+      "name": "Guanosine 5'-diphosphate",
+      "smiles": "C1=NC2=C(N1[C@H]3[C@@H]([C@@H]([C@H](O3)COP(=O)(O)OP(=O)(O)O)O)O)NC(=O)N=C2N",
+      "tags": [
+        "nucleotide"
+      ]
+    },
+    {
+      "id": "cofactors.gtp",
+      "name": "Guanosine 5'-triphosphate",
+      "smiles": "C1=NC2=C(N1[C@H]3[C@@H]([C@@H]([C@H](O3)COP(=O)(O)OP(=O)(O)OP(=O)(O)O)O)O)NC(=O)N=C2N",
+      "tags": [
+        "nucleotide"
+      ]
+    },
+    {
+      "id": "cofactors.udp",
+      "name": "Uridine 5'-diphosphate",
+      "smiles": "O=c1ccn([C@@H]2O[C@H](COP(=O)(O)OP(=O)(O)O)[C@@H](O)[C@H]2O)c(=O)[nH]1",
+      "tags": [
+        "nucleotide"
+      ]
+    },
+    {
+      "id": "cofactors.utp",
+      "name": "Uridine 5'-triphosphate",
+      "smiles": "O=c1ccn([C@@H]2O[C@H](COP(=O)(O)OP(=O)(O)OP(=O)(O)O)[C@@H](O)[C@H]2O)c(=O)[nH]1",
+      "tags": [
+        "nucleotide"
+      ]
+    },
+    {
+      "id": "cofactors.nadh",
+      "name": "NADH",
+      "smiles": "C1=CC(=CN([C@H]2[C@@H]([C@@H]([C@H](O2)COP(=O)(O)OP(=O)(O)OC[C@@H]3[C@H]([C@H]([C@@H](O3)N4C=NC5=C(N=CN=C54)N)O)O)O)O)C1)C(=O)N",
+      "tags": [
+        "nucleotide"
+      ]
+    },
+    {
+      "id": "cofactors.sam",
+      "name": "S-Adenosylmethionine",
+      "smiles": "C[S+](CC[C@H](N)C(=O)O)C[C@H]1O[C@@H](n2cnc3c(N)ncnc32)[C@H](O)[C@@H]1O",
+      "tags": [
+        "nucleotide"
+      ]
+    },
+    {
+      "id": "cofactors.lipoic_acid",
+      "name": "(R)-Lipoic acid",
+      "smiles": "O=C(O)CCCC[C@@H]1CCSS1",
+      "tags": [
+        "cofactor"
+      ]
+    },
+    {
+      "id": "cofactors.pantetheine",
+      "name": "Pantetheine",
+      "smiles": "CC(C)(CO)[C@@H](O)C(=O)NCCC(=O)NCCS",
+      "tags": [
+        "cofactor"
+      ]
+    },
+    {
+      "id": "cofactors.fmn",
+      "name": "Riboflavin 5'-phosphate",
+      "smiles": "Cc1cc2nc3c(=O)[nH]c(=O)nc-3n(C[C@H](O)[C@H](O)[C@H](O)COP(=O)(O)O)c2cc1C",
+      "tags": [
+        "nucleotide"
+      ]
+    },
+    {
+      "id": "cofactors.ubiquinone_0",
+      "name": "2,3-Dimethoxy-5-methylcyclohexa-2,5-diene-1,4-dione",
+      "smiles": "COC1=C(OC)C(=O)C(C)=CC1=O",
+      "tags": [
+        "quinone"
+      ]
+    },
+    {
+      "id": "cofactors.coenzyme_q1",
+      "name": "Ubiquinone-1",
+      "smiles": "COC1=C(OC)C(=O)C(C/C=C(\\C)C)=C(C)C1=O",
+      "tags": [
+        "quinone"
+      ]
+    },
+    {
+      "id": "cofactors.plastoquinone_0",
+      "name": "Plastoquinone-0",
+      "smiles": "Cc1c(C)c(=O)c(C)c(C)c1=O",
+      "tags": [
+        "quinone"
+      ]
+    },
+    {
+      "id": "cofactors.plastoquinone_1",
+      "name": "Plastoquinone-1",
+      "smiles": "Cc1c(C)c(=O)c(C/C=C(\\C)C)c(C)c1=O",
+      "tags": [
+        "quinone"
+      ]
+    },
+    {
+      "id": "cofactors.lipoamide",
+      "name": "Lipoamide",
+      "smiles": "NC(=O)CCCC[C@@H]1CCSS1",
+      "tags": [
+        "disulfide"
+      ]
+    },
+    {
+      "id": "cofactors.dihydrolipoic_acid",
+      "name": "Dihydrolipoic acid",
+      "smiles": "O=C(O)CCCC[C@@H](S)CCS",
+      "tags": [
+        "thiol"
+      ]
+    },
+    {
+      "id": "cofactors.phosphopantetheine",
+      "name": "4-Phosphopantetheine",
+      "smiles": "CC(C)(COP(=O)(O)O)[C@@H](O)C(=O)NCCC(=O)NCCS",
+      "tags": [
+        "phosphate"
+      ]
     }
   ]
 }

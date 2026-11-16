@@ -164,7 +164,7 @@ Macromolecule Viewer only shows one.
 catalog of complete molecules, not Ketcher's T-button library. It ships rings,
 cycloalkanes, heterocycles, solvents, alkaloids (including protoalkaloids,
 morphine, and the tropanes atropine, hyoscyamine, and scopolamine),
-flavonoids, vitamins, cofactors, terpenoids and steroids, functional-group examples, polycycles, molecular
+flavonoids, vitamins, cofactors, terpenoids and steroids, functional-group examples, polycycles, cisplatin and transplatin as connected square-planar drawings, about 2000 named complete molecules in all, molecular
 allotropes, reactive oxygen and nitrogen species, the 20 proteinogenic L-amino
 acids plus glycine as **ordinary expanded free amino acids** (neutral carboxylic
 acid + amine, not zwitterions, not abbreviated residues, and not a peptide

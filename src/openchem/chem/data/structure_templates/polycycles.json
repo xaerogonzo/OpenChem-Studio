@@ -66,6 +66,535 @@
       "tags": [
         "bridged"
       ]
+    },
+    {
+      "id": "polycycles.fluoranthene",
+      "name": "Fluoranthene",
+      "smiles": "C1=CC=C2C(=C1)C3=CC=CC4=C3C2=CC=C4",
+      "tags": [
+        "fused aromatic"
+      ]
+    },
+    {
+      "id": "polycycles.chrysene",
+      "name": "Chrysene",
+      "smiles": "C1=CC=C2C(=C1)C=CC3=C2C=CC4=CC=CC=C43",
+      "tags": [
+        "fused aromatic"
+      ]
+    },
+    {
+      "id": "polycycles.perylene",
+      "name": "Perylene",
+      "smiles": "C1=CC2=C3C(=C1)C4=CC=CC5=C4C(=CC=C5)C3=CC=C2",
+      "tags": [
+        "fused aromatic"
+      ]
+    },
+    {
+      "id": "polycycles.coronene",
+      "name": "Coronene",
+      "smiles": "C1=CC2=C3C4=C1C=CC5=C4C6=C(C=C5)C=CC7=C6C3=C(C=C2)C=C7",
+      "tags": [
+        "fused aromatic"
+      ]
+    },
+    {
+      "id": "polycycles.acenaphthene",
+      "name": "Acenaphthene",
+      "smiles": "C1CC2=CC=CC3=C2C1=CC=C3",
+      "tags": [
+        "fused aromatic"
+      ]
+    },
+    {
+      "id": "polycycles.bicyclo_2_2_2_octane",
+      "name": "Bicyclo[2.2.2]octane",
+      "smiles": "C1CC2CCC1CC2",
+      "tags": [
+        "bridged"
+      ]
+    },
+    {
+      "id": "polycycles.bicyclo_1_1_1_pentane",
+      "name": "Bicyclo[1.1.1]pentane",
+      "smiles": "C1C2CC1C2",
+      "tags": [
+        "bridged",
+        "cage"
+      ]
+    },
+    {
+      "id": "polycycles.barrelene",
+      "name": "Barrelene",
+      "smiles": "C1=CC2C=CC1C=C2",
+      "tags": [
+        "bridged"
+      ]
+    },
+    {
+      "id": "polycycles.9_10_anthraquinone",
+      "name": "9,10-Anthraquinone",
+      "smiles": "O=C1c2ccccc2C(=O)c2ccccc12",
+      "tags": [
+        "fused aromatic"
+      ]
+    },
+    {
+      "id": "polycycles.acenaphthylene",
+      "name": "Acenaphthylene",
+      "smiles": "C1=Cc2cccc3cccc1c23",
+      "tags": [
+        "fused aromatic"
+      ]
+    },
+    {
+      "id": "polycycles.biphenylene",
+      "name": "Biphenylene",
+      "smiles": "c1ccc2c(c1)-c1ccccc1-2",
+      "tags": [
+        "fused aromatic"
+      ]
+    },
+    {
+      "id": "polycycles.triphenylene",
+      "name": "Triphenylene",
+      "smiles": "c1ccc2c(c1)c1ccccc1c1ccccc21",
+      "tags": [
+        "fused aromatic"
+      ]
+    },
+    {
+      "id": "polycycles.tetracene",
+      "name": "Tetracene",
+      "smiles": "c1ccc2cc3cc4ccccc4cc3cc2c1",
+      "tags": [
+        "fused aromatic"
+      ]
+    },
+    {
+      "id": "polycycles.pentacene",
+      "name": "Pentacene",
+      "smiles": "c1ccc2cc3cc4cc5ccccc5cc4cc3cc2c1",
+      "tags": [
+        "fused aromatic"
+      ]
+    },
+    {
+      "id": "polycycles.indane",
+      "name": "Indane",
+      "smiles": "C1Cc2ccccc2C1",
+      "tags": [
+        "fused"
+      ]
+    },
+    {
+      "id": "polycycles.tetralin",
+      "name": "Tetralin",
+      "smiles": "C1CCc2ccccc2C1",
+      "tags": [
+        "fused"
+      ]
+    },
+    {
+      "id": "polycycles.hexamethylbenzene",
+      "name": "Hexamethylbenzene",
+      "smiles": "Cc1c(C)c(C)c(C)c(C)c1C",
+      "tags": [
+        "aromatic"
+      ]
+    },
+    {
+      "id": "polycycles.durene",
+      "name": "Durene",
+      "smiles": "Cc1cc(C)c(C)cc1C",
+      "tags": [
+        "aromatic"
+      ]
+    },
+    {
+      "id": "polycycles.fluorenone",
+      "name": "9-Fluorenone",
+      "smiles": "O=C1c2ccccc2-c2ccccc21",
+      "tags": [
+        "ketone"
+      ]
+    },
+    {
+      "id": "polycycles.anthrone",
+      "name": "Anthrone",
+      "smiles": "O=C1c2ccccc2Cc2ccccc21",
+      "tags": [
+        "ketone"
+      ]
+    },
+    {
+      "id": "polycycles.9_10_phenanthrenequinone",
+      "name": "9,10-Phenanthrenequinone",
+      "smiles": "O=C1C(=O)c2ccccc2-c2ccccc21",
+      "tags": [
+        "ketone"
+      ]
+    },
+    {
+      "id": "polycycles.indigo",
+      "name": "Indigo",
+      "smiles": "O=C1C(=C2Nc3ccccc3C2=O)Nc2ccccc12",
+      "tags": [
+        "dye"
+      ]
+    },
+    {
+      "id": "polycycles.alizarin",
+      "name": "Alizarin",
+      "smiles": "O=C1c2ccccc2C(=O)c2c(O)c(O)ccc12",
+      "tags": [
+        "dye"
+      ]
+    },
+    {
+      "id": "polycycles.quinizarin",
+      "name": "Quinizarin",
+      "smiles": "O=C1c2ccccc2C(=O)c2c(O)ccc(O)c12",
+      "tags": [
+        "dye"
+      ]
+    },
+    {
+      "id": "polycycles.phenolphthalein",
+      "name": "Phenolphthalein",
+      "smiles": "O=C1OC(c2ccccc12)(c1ccc(O)cc1)c1ccc(O)cc1",
+      "tags": [
+        "dye"
+      ]
+    },
+    {
+      "id": "polycycles.fluorescein",
+      "name": "Fluorescein",
+      "smiles": "O=C1OC2(c3ccc(O)cc3Oc3cc(O)ccc32)c2ccccc12",
+      "tags": [
+        "dye"
+      ]
+    },
+    {
+      "id": "polycycles.benz_a_anthracene",
+      "name": "Benz[a]anthracene",
+      "smiles": "c1ccc2c(c1)ccc1cc3ccccc3cc12",
+      "tags": [
+        "fused aromatic"
+      ]
+    },
+    {
+      "id": "polycycles.benzo_a_pyrene",
+      "name": "Benzo[a]pyrene",
+      "smiles": "c1ccc2c(c1)cc1ccc3cccc4ccc2c1c34",
+      "tags": [
+        "fused aromatic"
+      ]
+    },
+    {
+      "id": "polycycles.benzo_e_pyrene",
+      "name": "Benzo[e]pyrene",
+      "smiles": "c1ccc2c(c1)c1cccc3ccc4cccc2c4c13",
+      "tags": [
+        "fused aromatic"
+      ]
+    },
+    {
+      "id": "polycycles.benzo_ghi_perylene",
+      "name": "Benzo[ghi]perylene",
+      "smiles": "c1cc2ccc3ccc4cccc5ccc(c1)c2c3c45",
+      "tags": [
+        "fused aromatic"
+      ]
+    },
+    {
+      "id": "polycycles.dibenz_ah_anthracene",
+      "name": "Dibenz[a,h]anthracene",
+      "smiles": "c1ccc2c(c1)ccc1cc3c(ccc4ccccc43)cc12",
+      "tags": [
+        "fused aromatic"
+      ]
+    },
+    {
+      "id": "polycycles.aceanthrylene",
+      "name": "Aceanthrylene",
+      "smiles": "C1=Cc2cc3ccccc3c3cccc1c23",
+      "tags": [
+        "fused aromatic"
+      ]
+    },
+    {
+      "id": "polycycles.9_methylanthracene",
+      "name": "9-Methylanthracene",
+      "smiles": "Cc1c2ccccc2cc2ccccc12",
+      "tags": [
+        "fused aromatic"
+      ]
+    },
+    {
+      "id": "polycycles.9_10_dimethylanthracene",
+      "name": "9,10-Dimethylanthracene",
+      "smiles": "Cc1c2ccccc2c(C)c2ccccc12",
+      "tags": [
+        "fused aromatic"
+      ]
+    },
+    {
+      "id": "polycycles.1_methylnaphthalene",
+      "name": "1-Methylnaphthalene",
+      "smiles": "Cc1cccc2ccccc12",
+      "tags": [
+        "fused aromatic"
+      ]
+    },
+    {
+      "id": "polycycles.2_methylnaphthalene",
+      "name": "2-Methylnaphthalene",
+      "smiles": "Cc1ccc2ccccc2c1",
+      "tags": [
+        "fused aromatic"
+      ]
+    },
+    {
+      "id": "polycycles.acenaphthenequinone",
+      "name": "Acenaphthenequinone",
+      "smiles": "O=C1C(=O)c2cccc3cccc1c23",
+      "tags": [
+        "ketone"
+      ]
+    },
+    {
+      "id": "polycycles.retene",
+      "name": "1-Methyl-7-isopropylphenanthrene",
+      "smiles": "Cc1cccc2c1ccc1cc(C(C)C)ccc12",
+      "tags": [
+        "fused aromatic"
+      ]
+    },
+    {
+      "id": "polycycles.norbornadiene",
+      "name": "Norbornadiene",
+      "smiles": "C1=CC2C=CC1C2",
+      "tags": [
+        "alkene"
+      ]
+    },
+    {
+      "id": "polycycles.dicyclopentadiene",
+      "name": "Dicyclopentadiene",
+      "smiles": "C1=CC2C3C=CC(C3)C2C1",
+      "tags": [
+        "alkene"
+      ]
+    },
+    {
+      "id": "polycycles.cis_decahydronaphthalene",
+      "name": "cis-Decalin",
+      "smiles": "C1CC[C@H]2CCCC[C@H]2C1",
+      "tags": [
+        "alicyclic"
+      ]
+    },
+    {
+      "id": "polycycles.trans_decahydronaphthalene",
+      "name": "trans-Decalin",
+      "smiles": "C1CC[C@H]2CCCC[C@@H]2C1",
+      "tags": [
+        "alicyclic"
+      ]
+    },
+    {
+      "id": "polycycles.indene",
+      "name": "Indene",
+      "smiles": "C1=CCc2ccccc12",
+      "tags": [
+        "aromatic"
+      ]
+    },
+    {
+      "id": "polycycles.9_10_dihydroanthracene",
+      "name": "9,10-Dihydroanthracene",
+      "smiles": "c1ccc2c(c1)Cc1ccccc1C2",
+      "tags": [
+        "aromatic"
+      ]
+    },
+    {
+      "id": "polycycles.9_10_dihydrophenanthrene",
+      "name": "9,10-Dihydrophenanthrene",
+      "smiles": "c1ccc2c(c1)CCc1ccccc1-2",
+      "tags": [
+        "aromatic"
+      ]
+    },
+    {
+      "id": "polycycles.corannulene",
+      "name": "Corannulene",
+      "smiles": "c1cc2ccc3ccc4ccc5ccc1c1c2c3c4c51",
+      "tags": [
+        "aromatic"
+      ]
+    },
+    {
+      "id": "polycycles.picene",
+      "name": "Picene",
+      "smiles": "c1ccc2c(c1)ccc1c2ccc2c3ccccc3ccc12",
+      "tags": [
+        "aromatic"
+      ]
+    },
+    {
+      "id": "polycycles.prismane",
+      "name": "Prismane",
+      "smiles": "C12C3C1C1C2C31",
+      "tags": [
+        "cage"
+      ]
+    },
+    {
+      "id": "polycycles.quadricyclane",
+      "name": "Quadricyclane",
+      "smiles": "C1C2C3CC1C2C3",
+      "tags": [
+        "cage"
+      ]
+    },
+    {
+      "id": "polycycles.homocubane",
+      "name": "Homocubane",
+      "smiles": "C1C2C3C4C1C5C2C3C45",
+      "tags": [
+        "cage"
+      ]
+    },
+    {
+      "id": "polycycles.twistane",
+      "name": "Twistane",
+      "smiles": "C1CC2CCC3C1CCC2C3",
+      "tags": [
+        "cage"
+      ]
+    },
+    {
+      "id": "polycycles.dodecahedrane",
+      "name": "Dodecahedrane",
+      "smiles": "C1C2C3C4C1C5C2C6C3C7C4C5C67",
+      "tags": [
+        "cage"
+      ]
+    },
+    {
+      "id": "polycycles.cuneane",
+      "name": "Cuneane",
+      "smiles": "C1C2C3C1C1C2C3C1",
+      "tags": [
+        "cage"
+      ]
+    },
+    {
+      "id": "polycycles.bullvalene",
+      "name": "Bullvalene",
+      "smiles": "C1=CC2C3C=CC1C=CC23",
+      "tags": [
+        "alkene"
+      ]
+    },
+    {
+      "id": "polycycles.semibullvalene",
+      "name": "Semibullvalene",
+      "smiles": "C1=CC2C3C=CC1C23",
+      "tags": [
+        "alkene"
+      ]
+    },
+    {
+      "id": "polycycles.barbaralane",
+      "name": "Barbaralane",
+      "smiles": "C1C2C=CC3C1C=CC23",
+      "tags": [
+        "alkene"
+      ]
+    },
+    {
+      "id": "polycycles.heptalene",
+      "name": "Heptalene",
+      "smiles": "C1=CC=C2C=CC=CC2=CC=C1",
+      "tags": [
+        "aromatic"
+      ]
+    },
+    {
+      "id": "polycycles.pentalene",
+      "name": "Pentalene",
+      "smiles": "C1=CC2=CC=CC2=C1",
+      "tags": [
+        "aromatic"
+      ]
+    },
+    {
+      "id": "polycycles.adamantane_1_carboxylic_acid",
+      "name": "Adamantane-1-carboxylic acid",
+      "smiles": "O=C(O)C12CC3CC(CC(C3)C1)C2",
+      "tags": [
+        "carboxylic acid"
+      ]
+    },
+    {
+      "id": "polycycles.1_adamantanol",
+      "name": "Adamantan-1-ol",
+      "smiles": "OC12CC3CC(CC(C3)C1)C2",
+      "tags": [
+        "alcohol"
+      ]
+    },
+    {
+      "id": "polycycles.2_adamantanol",
+      "name": "Adamantan-2-ol",
+      "smiles": "OC1C2CC3CC(C2)CC1C3",
+      "tags": [
+        "alcohol"
+      ]
+    },
+    {
+      "id": "polycycles.1_bromoadamantane",
+      "name": "1-Bromoadamantane",
+      "smiles": "BrC12CC3CC(CC(C3)C1)C2",
+      "tags": [
+        "halide"
+      ]
+    },
+    {
+      "id": "polycycles.1_aminoadamantane",
+      "name": "Amantadine",
+      "smiles": "NC12CC3CC(CC(C3)C1)C2",
+      "tags": [
+        "amine"
+      ]
+    },
+    {
+      "id": "polycycles.memantine",
+      "name": "Memantine",
+      "smiles": "CC12CC3CC(C)(C1)CC(N)(C3)C2",
+      "tags": [
+        "amine"
+      ]
+    },
+    {
+      "id": "polycycles.rimantadine",
+      "name": "Rimantadine",
+      "smiles": "CC(N)C12CC3CC(CC(C3)C1)C2",
+      "tags": [
+        "amine"
+      ]
+    },
+    {
+      "id": "polycycles.norbornan_2_one",
+      "name": "Norbornan-2-one",
+      "smiles": "O=C1CC2CCC1C2",
+      "tags": [
+        "ketone"
+      ]
     }
   ]
 }

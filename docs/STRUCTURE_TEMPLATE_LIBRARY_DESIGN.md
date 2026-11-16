@@ -1,7 +1,13 @@
 # Structure template library
 
-OpenChem-owned catalog of complete molecules for the 2D editor. Not Ketcher's
-template button, not the reference editor, and not a peptide or polymer builder.
+OpenChem-owned catalog of about **2000 named complete molecules** for the 2D
+editor. Not Ketcher's template button, not the reference editor, and not a
+peptide or polymer builder. Two thousand is the plateau for a named-molecule
+picker: common laboratory, teaching, and named natural-product structures a
+person would insert by name. It is not a second PubChem. Further growth is a
+named class on request (more sugars, more steroids), not another mixed wave.
+Square-planar cisplatin and transplatin ship as connected molblocks.
+Haptic metallocenes stay listed, not shipped: Insert empties ferrocene.
 
 ## What it is
 
@@ -17,7 +23,8 @@ Ketcher's own template library and polymer mode stay as they are
 A `TemplateEntry` has **exactly one** of `smiles` or `molblock`. Both or
 neither is refused.
 
-- Shipped entries are SMILES.
+- Shipped entries are SMILES, except square-planar coordination drawings,
+  which keep a 2D molblock so cis/trans is in the coordinates.
 - User drawings and imported molfiles keep a 2D molblock.
 
 Optional: `description`, `tags` (search aliases), `source` (a key in
@@ -29,7 +36,8 @@ A category has a stable `id` and a display `title`. `origin` is `shipped` or
 category ids start with `user:`. Duplicate titles are allowed; duplicate ids
 are not. The dialog tree groups shipped catalogs under
 `SHIPPED_CATEGORY_GROUPS` in `domain/structure_template.py` (Scaffolds,
-Building blocks, Laboratory, Natural products, Elements). Selecting a heading
+Building blocks, Laboratory including coordination complexes, Natural products,
+Elements). Selecting a heading
 lists every child. User categories sit under Mine. Each molecule still has
 one `category_id`.
 
@@ -50,22 +58,28 @@ Each molecule appears in **one** category. The research inventory in
 | `nucleobases` | titled Nucleic acids: free bases plus named ribo and 2'-deoxy nucleosides |
 | `sugars` | named anomers (gluco, galacto, manno, xylo, ribo, fructo, 2-deoxyribo) with recorded ring form |
 | `cycloalkanes` | C3–C12 monocycles except cyclopentane and cyclohexane (those stay in Rings), plus methylcyclopentane and methylcyclohexane |
-| `heterocycles` | common heterocycles not already in Rings or Nucleic acids, including 12-/15-/18-crown-6 |
-| `solvents_reagents` | water, common solvents, acetic acid, toluene |
+| `heterocycles` | common heterocycles not already in Rings or Nucleic acids, including 12-/15-/18-crown-6, 21-crown-7, and benzo/dibenzo/diaza crowns |
+| `solvents_reagents` | water, common solvents, acids, bases, and reagents (DMF, hexane, TEA, TFA, …) |
+| `coordination_complexes` | cisplatin and transplatin as connected square-planar drawings (dative N→Pt). Not PubChem ion SMILES. Ferrocene and other haptic metallocenes stay out |
 | `alkaloids` | protoalkaloids, methylxanthines, (1R,2S)-ephedrine, morphine/codeine, tropanes (atropine as the racemate drawing with default tropane C3 wedges, plus hyoscyamine and scopolamine), and other named identities |
 | `flavonoids` | named aglycones and subclass parents |
 | `vitamins` | named vitamers |
-| `functional_groups` | phenol, aniline, benzaldehyde, and similar complete examples |
-| `polycycles` | fused aromatics and cage hydrocarbons |
+| `functional_groups` | phenol, aniline, benzaldehyde, fatty acids, small named drugs, and similar complete examples |
+| `polycycles` | fused aromatics (including fluoranthene, chrysene, perylene, coronene, acenaphthene) and cage/bridged hydrocarbons (bicyclo[2.2.2]octane, bicyclo[1.1.1]pentane, barrelene) |
 | `peptide_building_blocks` | Fmoc/Boc amino acids; not a sequence builder |
-| `allotropes` | molecular allotropes (two Lewis drawings of O2, ozone, S6, S8, P4). Polymeric red P is not a template |
+| `allotropes` | molecular allotropes (two Lewis drawings of O2, ozone, S6, S8, P4, C60). Polymeric red P is not a template |
 | `reactive_species` | superoxide, hydroxyl, hydrogen peroxide, NO, NO2, N2O |
-| `cofactors` | ATP and NAD+ |
-| `terpenoids_steroids` | cholesterol; camphene stays in the research inventory until it has stereo |
+| `cofactors` | ATP, ADP, AMP, NAD+, GMP, glutathione |
+| `terpenoids_steroids` | cholesterol, (1R,4R)-camphor, (+)-camphene, beta-carotene, limonene, menthol, pinene, testosterone and related named sterols |
 
 `nucleobases` is titled **Nucleic acids** and holds free bases plus named nucleosides. Each molecule still has one `category_id`.
 
 Singlet oxygen is the closed-shell drawing `O=O` (PubChem CID 977). Triplet oxygen is the diradical `[O][O]`. They share an InChIKey. PubChem name-search "singlet oxygen" is atomic oxygen CID 159832 and is not used. Full Lewis structure and the lone-pair overlay already refuse unpaired electrons on a main-group atom; calculator coverage for radicals is not this slice (the hypervalent opt-in in `ChemistryEngine` is the pattern for a later session).
+
+To grow the catalog, draft **isomeric SMILES** (ChatGPT prompt in
+`docs/STRUCTURE_TEMPLATE_DRAFT_PROMPT.md`) and check them with
+`tools/template_draft_check.py` (parse, stereo-in-name, InChIKey duplicate).
+PubChem is a checksum **by InChIKey**, never a name search.
 
 A candidate is promoted only when PubChem identity is verified, `editor_eligible`
 is true, and stereochemistry is `verified` or `not_applicable`. Insert writes
@@ -73,8 +87,10 @@ wedge/hash bonds for specified stereo (`WedgeMolBonds`) so the 2D editor shows
 up/down bonds by default. PubChem's atropine, hyoscyamine, and scopolamine
 records leave tropane C3 unspecified; the shipped drawings add the usual endo
 C3 wedges (atropine matches CHEBI:16684, tropic acid still unspecified;
-hyoscyamine and scopolamine keep PubChem's (S)-tropic acid). Camphene still has
-no `@` in its SMILES and is not shipped. Coordination compounds stay listed, not shipped.
+hyoscyamine and scopolamine keep PubChem's (S)-tropic acid). `(+)-Camphene` is
+shipped with bridgehead `@` (`C=C1C[C@@H]2CC[C@H]1C2(C)C`). Cisplatin and
+transplatin ship as 2D molblocks (Insert keeps them; haptic ferrocene still
+empties).
 
 A dummy atom (`*`) is a wildcard in the molecule. Bonding to it does not
 consume an attachment point. Fragments that need that behaviour are not
@@ -133,3 +149,14 @@ an SRU and a SUP on propane (`tests/fixtures/ketcher/propane_sru.mol`,
 carbons and **drops** every `M  STY` line. Held by
 `tests/test_ketcher_sgroup_roundtrip.py`. Polymer templates stay out until
 insert preserves the groups, not because the editor cannot load them.
+
+**Coordination probe (2026-11-15).** Connected drawings, not PubChem ion
+SMILES: cis-PtCl2(NH3)2 with dative N→Pt, and ferrocene as Fe bound to both
+Cp rings (`tests/fixtures/ketcher/cisplatin_cis.mol`, `ferrocene.mol`).
+`molblock_for` accepts both. Ketcher `setMolecule` then `getMolfile` keeps
+both (cisplatin still cis with both datives; ferrocene still ten Fe–C bonds).
+`addFragment` (Insert) keeps cisplatin and transplatin the same way and
+**returns an empty molfile** for ferrocene, with no error. Held by
+`tests/test_ketcher_coordination_roundtrip.py`. Cisplatin and transplatin
+are shipped under `coordination_complexes`. Haptic metallocenes stay out
+until insert keeps the drawing.
