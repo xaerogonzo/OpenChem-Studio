@@ -6,7 +6,7 @@ Paste the block below into ChatGPT only if you want a *short* research list of n
 
 This is **not** a PubChem name search. The model writes **isomeric SMILES**. The checker parses them, computes InChIKey, and optionally confirms that key against PubChem. Wrong English names were the expensive part of the first 200; do not look compounds up by name.
 
-Do not copy ChemDraw, Marvin, Ketcher, or any other editor’s template list.
+Do not copy the reference editor’s template list, this application’s 2D editor T-button library, or any other editor’s template list.
 
 ---
 
@@ -32,7 +32,7 @@ What a row is
 - No dummy atoms (*), no query atoms, no polymers, no SRU/SUP, no peptides-as-sequences, no metal complexes / organometallics / coordination compounds, no “R-group” fragments.
 
 Hard bans
-- Do not reproduce another molecular editor’s template catalog (Marvin, ChemDraw, Ketcher T-button, etc.).
+- Do not reproduce another molecular editor’s template catalog (the reference editor, this application’s T-button library, etc.).
 - Do not guess a PubChem CID. Do not invent InChIKeys. Do not look the name up and paste a canonical (stereo-stripped) SMILES.
 - If you are unsure of the isomeric SMILES, skip it.
 

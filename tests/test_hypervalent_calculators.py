@@ -209,7 +209,7 @@ def test_a_verified_calculator_runs_through_the_service_and_a_measured_wrong_one
     ran = _run_through_the_service(rig, qapp, molecule, "substance_analysis")
     assert any(isinstance(e, ReportComputed) and e.report.report_id == "substance_analysis" for e in ran)
 
-    for calculator_id in ("geometry_analysis", "surface_analysis"):
+    for calculator_id in ("surface_analysis",):
         refused = _run_through_the_service(rig, qapp, molecule, calculator_id)
         failed = [e for e in refused if isinstance(e, PerAtomDataComputed) and e.dataset.property_id == calculator_id]
         assert failed and "hypervalent" in (failed[-1].dataset.error or ""), calculator_id
@@ -218,7 +218,7 @@ def test_a_verified_calculator_runs_through_the_service_and_a_measured_wrong_one
 
 @pytest.mark.parametrize(
     "calculator_id",
-    ["geometry_analysis", "surface_analysis", "polarizability", "regulatory_screen", "logd", "solubility", "dipole_moment"],
+    ["surface_analysis", "polarizability", "regulatory_screen", "logd", "solubility", "dipole_moment"],
 )
 def test_the_calculators_measured_wrong_or_unsafe_are_not_on_the_list(calculator_id):
     assert calculator_id not in HYPERVALENT_VERIFIED_CALCULATORS

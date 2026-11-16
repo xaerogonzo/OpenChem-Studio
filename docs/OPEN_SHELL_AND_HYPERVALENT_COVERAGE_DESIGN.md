@@ -129,6 +129,16 @@ a valence model that assumes closed shells and octets", which is a reason to kee
    multiplicity, so a drawn singlet carbene run at 1 carries none. **Not done:** a control in the editor or panel to CHANGE the stored multiplicity; the panel's spin box remains
    a per-run choice that is re-derived when a molecule is selected. Whether Ketcher itself writes singlet, doublet or triplet codes for its radical property is still unmeasured.
 
+8. **H1, first calculator: `geometry_analysis` on held structures (ClF3, BrF3, ClF5).** The radii and the shadow (projection areas, enclosing-circle radii, sizes) are arithmetic on
+   the atoms and the van der Waals table, so they are now allowed; `geometry_analysis` joins `HYPERVALENT_VERIFIED_CALCULATORS`. Held to an independent implementation
+   (`tests/test_hypervalent_geometry.py`: centroid distances; a raster of the union of discs over 300 viewing directions; a Nelder-Mead enclosing circle; the extent
+   along the sampled direction), which agreed with the application's exact search within 0.2% on areas and radii and 0.4% on sizes on ClF3 and BrF3 (prototype run before
+   the test). No force field is computed for a held structure (the energy fact says why), and the options that need one (a conformer policy other than Never, relaxing for
+   the energy or the projections) raise the `HYPERVALENT_UNSUPPORTED` limit; before this change they raised an uncaught `AtomValenceException`. Honest note: on default
+   options the held structure already got no energies (MMFF and UFF have no parameters for it and Dreiding refuses since WP3), so the explicit guard is a statement and a
+   clearer message, not a behaviour change there; reverting it does not fail a test, reverting the option refusal fails 4 and removing the list entry fails 1.
+   `dipole_moment` from a quantum run, the second part of H1, is not started.
+
 Mutation checks run: each of 7 edits (Joback, Hansen, both Hueckel rules, the parity refusal, the spin note, the engine default) fails 1 to 5 tests when reverted.
 
 ## 6. Proposed work packages, by value and risk (not started; each needs the owner's go-ahead)
@@ -141,7 +151,7 @@ Mutation checks run: each of 7 edits (Joback, Hansen, both Hueckel rules, the pa
 | OS4 | **Calculator audit for radicals with oracles:** `logd`/ionisable sites, `hbond_sites`, `steric_analysis`, charge models, `solubility`: decide gate or refuse per calculator | section 3.4, TEMPO | a nitroxide pKa (not held), a decision per calculator; if more than about four calculators are gated, one registry-level `CLOSED_SHELL_ONLY` set beside `HYPERVALENT_VERIFIED_CALCULATORS` is cleaner than per-calculator code | low to medium |
 | OS5 | **DONE** (Psi4 only by arithmetic). Psi4 parity check and a spin-contamination figure (`<S**2>`) in every unrestricted result, as bond dissociation already flags | an unrestricted run's quality is invisible | parse ORCA/Psi4 `<S**2>`, one fact | low |
 | OS6 | Hueckel for heteroatom radicals (nitroxide, NO) with real alpha/beta parameters | currently refused | parameter set, oracle | medium, little value |
-| H1 | **Hypervalent, calculator by calculator** (the owner's long-term goal): split `geometry_analysis` so the size and shape descriptors (pure coordinates) run on held structures and only the Dreiding energy refuses; then `dipole_moment` from a quantum run, where the ORCA geometry check of #600 is the oracle | the descriptors that need no valence model are the cheap ones | one calculator at a time, each with its own oracle test as in #598 | low |
+| H1 | **PARTLY DONE: `geometry_analysis` (radii and shadow) is verified; `dipole_moment` is next.** Hypervalent, calculator by calculator (the owner's long-term goal): split `geometry_analysis` so the size and shape descriptors (pure coordinates) run on held structures and only the Dreiding energy refuses; then `dipole_moment` from a quantum run, where the ORCA geometry check of #600 is the oracle | the descriptors that need no valence model are the cheap ones | one calculator at a time, each with its own oracle test as in #598 | low |
 | H2 | **Parameters for Cl(III), Br(III), P(V), Xe in a charge model** | the Gasteiger NaN is guarded, not solved | a published parameter set per element (a literature question) | high |
 
 Order: OS2 and OS5 are done; next OS1 (it makes the default a stored choice, and carries the file-format

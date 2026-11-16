@@ -335,7 +335,7 @@ def resolve_ensemble(engine: ChemistryEngine, model: MoleculeModel) -> ResolvedE
 #: values worked out by hand or by a second implementation (the three topology calculators, against a breadth-first search on eight held structures including
 #: ones with a ring, an aromatic ring and a stereocentre). **A calculator is NOT here because it returned a number**:
 #: measured on these molecules, geometry analysis
-#: included a force-field energy for ClF3 that means nothing, surface analysis split polar from hydrophobic area on
+#: included a force-field energy for ClF3 that means nothing (since refused: it now reports the radii and the shadow only), surface analysis split polar from hydrophobic area on
 #: charges that do not exist for these molecules, the additive polarizability of SF6 was 21% below experiment, and the
 #: regulatory screen said "no matches" on a structure it could not read (a silent false negative, for a screen).
 #: NOTE the boundary only meets structures RDKit REFUSES (ClF3, BrF3, ClF5): SF6, PF5, XeF4 and SF4 sanitise and take
@@ -345,6 +345,8 @@ HYPERVALENT_VERIFIED_CALCULATORS = frozenset(
     {
         "elemental_analysis", "mass_spectrum", "substance_analysis", "oxidation_states", "atom_sasa",
         "topology_analysis", "topology_eccentricity", "topology_distance_degree",
+        # The radii and the shadow only (no force field is computed for a held structure): `tests/test_hypervalent_geometry.py`.
+        "geometry_analysis",
     }
 )
 
