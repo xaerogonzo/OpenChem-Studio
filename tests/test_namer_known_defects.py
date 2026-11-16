@@ -4912,7 +4912,7 @@ OPEN: list[tuple[str, str, str, str, str]] = [
      "are named '[chloro(methyl)amino]methane'"),
     ("D-088h", "Oc1ccc(OCC(C)COc2ccc(O)cc2)cc1",
      "4,4'-[(2-methylpropane-1,3-diyl)bis(oxy)]diphenol",
-     "4-{[3-(4-hydroxyphenoxy)-2-methylpropyl]oxy}phenol",
+     "4-[3-(4-hydroxyphenoxy)-2-methylpropoxy]phenol",
      "p. 105: a substituted linker (P-15.3.1.2.1.2) is outside the built class"),
     ("D-088i", "[SiH3]c1cc([SiH3])cc([SiH3])c1", "(benzene-1,3,5-triyl)tris(silane)",
      "[3,5-bis(silyl)phenyl]silane", "p. 107: a ring as the central group is not built"),
@@ -4950,7 +4950,7 @@ OPEN: list[tuple[str, str, str, str, str]] = [
     # never becomes a suffix candidate at all -- a narrower, separate
     # candidate-generation question than this item's admission reason.
     ("D-130", "C(=NC1CCCCC1)=NC1CCCCC1", "dicyclohexylmethanediimine",
-     "1,1'-[methylenebis(azanediyl)]dicyclohexane",
+     "{[(cyclohexylimino)methylidene]amino}cyclohexane",
      "P-62.3.1.4 (pdf p. 528), verbatim 'dicyclohexylmethanediimine (PIN)'; "
      "today's output is '{[(cyclohexylimino)methylidene]amino}cyclohexane' "
      "-- the WRONG MOLECULE this item was admitted for is fixed, the PIN is "

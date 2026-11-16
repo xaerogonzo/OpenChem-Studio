@@ -895,6 +895,7 @@
   "tests/test_namer_nl023_ws3_cation_ester_sources.py": 0,
   "tests/test_namer_nl024_ws3_ring_ketone_substituent_sources.py": 2,
   "tests/test_namer_nl030_nl031_ws4_fusion_vonbaeyer.py": 2,
+  "tests/test_namer_nl032_nl042_ws5_known_defect_pins.py": 0,
   "tests/test_namer_nl050_ws3_radical_anion_validator.py": 1,
   "tests/test_namer_nl071_ws5_diazo_azaallenium_refusal.py": 1,
   "tests/test_namer_nl072_nl076_ws5_nonpreferred_pins.py": 0,

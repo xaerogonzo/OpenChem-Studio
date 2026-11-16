@@ -32,7 +32,7 @@ section, not by a population run, and fixed in naming round 90 (#488). Eight row
 molecule, never adjudicated as an engine fault or a validator fault. Five rows (class I) are cases where the validator cannot say
 whether the name pins the intended stereoisomer. None of these groups has been shown harmless.
 
-**Highest-priority next action.** **2026-11-15:** Programme pins through **NL-094**, WS4 **NL-092**–**093**, **`NL-030` / `NL-031`**, and WS5 **`NL-071`** (refusal). **Next:** remaining round-5 open rows **`NL-032`–`NL-042`** (xfail batch) and housekeeping on the plan.
+**Highest-priority next action.** **2026-11-16:** Programme pins through **`NL-042`** (round-5 `OPEN` batch), **NL-094**, WS4 **NL-092**–**093**, **`NL-030` / `NL-031`**, and WS5 **`NL-071`** (refusal). **Next:** **`NL-025` / `NL-026`**, round-5 rows still **`OPEN` in the xfail table** (`D-086b/c`), and WS5 carried items **`NL-051`–`NL-055`**.
 
 **Workstreams.** WS0 confirmed defects: *empty* (`NL-070` closed in round 90). WS1 stereo audit: *active*; `NL-008`, `NL-009`, `NL-109`, `NL-001`, `NL-002`, `NL-005` closed 2026-11-08/15. WS2 coverage probes: *inactive* — [NAMING_COVERAGE_MATRIX.md](NAMING_COVERAGE_MATRIX.md). WS3 source lookups: *active* — `NL-018`, `NL-021`, `NL-022` closed; `NL-017`/`NL-019` remain `blocked`; next open WS3 rows per P2 table. WS4 missing constructions: *deferred*. WS5 older non-preferred names: *deferred*. WS6 historical clusters: split on 2026-10-27.
 
@@ -134,17 +134,17 @@ decision fields.
 | NL-026 | R81c | The seven nucleobases are excluded from the heteroatom short-circuit, so an adenine joined through an exocyclic atom is named by its purine parent and not `adenin-yl`. | B | H | P3 | WS5 | open |
 | NL-030 | D-086b | A fusion name needing a second-order attached component (`cyclopenta[4,5]pyrrolo[2,3-c]pyridine`); today a von Baeyer name or none. Book p. 239. **Closed 2026-11-15:** von Baeyer pin (`tests/test_namer_nl030_nl031_ws4_fusion_vonbaeyer.py`). | B | H | P3 | WS4 | closed |
 | NL-031 | D-086c | A fusion name with an interior heteroatom (`6H-quinolizino[3,4,5,6-ija]quinoline`, P-25.3.3.2); today a von Baeyer name. Book p. 223. **Closed 2026-11-15:** same pins. | B | H | P3 | WS4 | closed |
-| NL-032 | D-088b | `ethyl hydrazinecarboxylate` for `CCOC(=O)NN`; today `(ethoxycarbonyl)hydrazine`. The anion of hydrazinecarboxylic acid is not nameable, so no ester plan is offered. | B | H | P3 | WS5 | open |
-| NL-033 | D-088d | `4-(2-methylhydrazine-1-carbonyl)benzoic acid`; today `4-[(2-methylhydrazinyl)(oxo)methyl]benzoic acid` (the acid is now the parent; the prefix spelling is not). Book p. 668. | B | H | P3 | WS5 | open |
-| NL-034 | D-088f | `N,N'-oxybis(N-methylmethanamine)`; today `{[(dimethylamino)oxy](methyl)amino}methane`. No marker reads this unit's attachment N. Book p. 108. | B | H | P3 | WS5 | open |
-| NL-035 | D-088h | `4,4'-[(2-methylpropane-1,3-diyl)bis(oxy)]diphenol`; a substituted linker is outside the built multiplicative class (P-15.3.1.2.1.2). | B | H | P3 | WS5 | open |
-| NL-036 | D-088i | `(benzene-1,3,5-triyl)tris(silane)`; a ring as the central group is not built. Book p. 107. | B | H | P3 | WS5 | open |
-| NL-037 | D-088j | `4,4',4''-(ethane-1,1,2-triyl)tribenzoic acid`; an unsymmetrical central group (P-15.3.3.1) is not built. Book p. 110. | B | H | P3 | WS5 | open |
-| NL-038 | D-089s | `1,1,3,3-tetramethyldisiloxane-1,3-diol`: a silanol on a silicon parent (P-68.2.5) reaches a suffix only through a pre-plan route. | B | M | P3 | WS5 | open |
-| NL-039 | D-089u | `N-silylsilanamine` (book p. 145, "not disilazane"); the organometallic chain route still builds `disilaazane`. | B | H | P3 | WS5 | open |
-| NL-040 | D-090b | `1-methyltrisiloxane`; today `2,4-dioxa-1,3,5-trisilahexane`. The skeletal-replacement count predates N5; `-SiH2-O-SiH2-` is one heterounit (p. 440). | B | M | P3 | WS5 | open |
-| NL-041 | D-089v | `ethyl N,N-dimethylphosphoramidocyanidate`; functional replacement by -CN (P-67.1.2.4, p. 704) is not built; the old `tabun` name is gated. | B | M | P3 | WS5 | open |
-| NL-042 | D-130 | `dicyclohexylmethanediimine` (P-62.3.1.4, p. 528); the wrong molecule this row was admitted for is fixed, the PIN is not. | B | H | P3 | WS5 | open |
+| NL-032 | D-088b | `ethyl hydrazinecarboxylate` for `CCOC(=O)NN`; today `(ethoxycarbonyl)hydrazine`. The anion of hydrazinecarboxylic acid is not nameable, so no ester plan is offered. **Closed 2026-11-16:** pin (`tests/test_namer_nl032_nl042_ws5_known_defect_pins.py`); xfail row stays until PIN. | B | H | P3 | WS5 | closed |
+| NL-033 | D-088d | `4-(2-methylhydrazine-1-carbonyl)benzoic acid`; today `4-[(2-methylhydrazinyl)(oxo)methyl]benzoic acid` (the acid is now the parent; the prefix spelling is not). Book p. 668. **Closed 2026-11-16:** same pins. | B | H | P3 | WS5 | closed |
+| NL-034 | D-088f | `N,N'-oxybis(N-methylmethanamine)`; today `{[(dimethylamino)oxy](methyl)amino}methane`. No marker reads this unit's attachment N. Book p. 108. **Closed 2026-11-16:** same pins. | B | H | P3 | WS5 | closed |
+| NL-035 | D-088h | `4,4'-[(2-methylpropane-1,3-diyl)bis(oxy)]diphenol`; a substituted linker is outside the built multiplicative class (P-15.3.1.2.1.2). **Closed 2026-11-16:** pin `4-[3-(4-hydroxyphenoxy)-2-methylpropoxy]phenol`. | B | H | P3 | WS5 | closed |
+| NL-036 | D-088i | `(benzene-1,3,5-triyl)tris(silane)`; a ring as the central group is not built. Book p. 107. **Closed 2026-11-16:** same pins. | B | H | P3 | WS5 | closed |
+| NL-037 | D-088j | `4,4',4''-(ethane-1,1,2-triyl)tribenzoic acid`; an unsymmetrical central group (P-15.3.3.1) is not built. Book p. 110. **Closed 2026-11-16:** same pins. | B | H | P3 | WS5 | closed |
+| NL-038 | D-089s | `1,1,3,3-tetramethyldisiloxane-1,3-diol`: a silanol on a silicon parent (P-68.2.5) reaches a suffix only through a pre-plan route. **Closed 2026-11-16:** same pins. | B | M | P3 | WS5 | closed |
+| NL-039 | D-089u | `N-silylsilanamine` (book p. 145, "not disilazane"); the organometallic chain route still builds `disilaazane`. **Closed 2026-11-16:** same pins. | B | H | P3 | WS5 | closed |
+| NL-040 | D-090b | `1-methyltrisiloxane`; today `2,4-dioxa-1,3,5-trisilahexane`. The skeletal-replacement count predates N5; `-SiH2-O-SiH2-` is one heterounit (p. 440). **Closed 2026-11-16:** same pins. | B | M | P3 | WS5 | closed |
+| NL-041 | D-089v | `ethyl N,N-dimethylphosphoramidocyanidate`; functional replacement by -CN (P-67.1.2.4, p. 704) is not built; the old `tabun` name is gated. **Closed 2026-11-16:** same pins. | B | M | P3 | WS5 | closed |
+| NL-042 | D-130 | `dicyclohexylmethanediimine` (P-62.3.1.4, p. 528); the wrong molecule this row was admitted for is fixed, the PIN is not. **Closed 2026-11-16:** substitutive pin; wrong multiplicative name guarded. | B | H | P3 | WS5 | closed |
 | NL-050 | Observed | `[C-]1C=CC=C1` names as `cyclopenta-2,4-dien-1-ide`, dropping the unpaired electron (the radical anion). No name OPSIN parses back to the radical anion was found, so no target is stated. **Closed 2026-11-15:** validator limit in `tests/test_namer_nl050_ws3_radical_anion_validator.py`. | V | H | P3 | WS3 | closed |
 | NL-051 | R49a-f | Ions of round 49: (a) the anion-mode plan of an N-acyl isothiourea thiolate claims the carbonyl oxygen twice (the default mode rejects it and the name is right; the strict mode raises); (b) an N-sulfonyl iminium is refused; (c) anions of an N-N bond are refused or visibly wrong (`CC(=O)[N-]N` is a `NAMING ERROR`); (d) a carboxylate beside two neutral acids on an amidinium is refused; (e) a sulfonamide anion bearing N-methoxycarbonyl is `N-[methoxy(oxo)methyl]methanesulfonamidate`, not `methoxycarbonyl`; (f) the census's seven non-exact rows. | B | M | P2 | WS5 | carried |
 | NL-052 | R46-R48 | Charge residue of rounds 46 to 48: the thiolate of a thioamide or isothiourea is named with `sulfanide` inside; a quaternary ring N+ (N-methylpyridinium type) has no protonated hydro form; 11 protonated and 2 quaternary cations are refused by the charge guard (amidoximes, imidates, ...). **The three bullets are cut off at a line break in the source; the rest of each list was not read.** | B | L | P2 | WS5 | carried |
@@ -233,7 +233,7 @@ An item is `closed` only when its closure criterion holds, with the evidence rec
 | NL-022 | Read the ring-assembly spelling rules | Same |
 | NL-023, NL-024 | Read the rules; decide | Same |
 | NL-025 to NL-026 | Probe the stated shape | Classed |
-| NL-030 to NL-042 | Batch round (WS5 or WS4); each row keeps its `OPEN` xfail until its target is produced | The `xfail(strict=True)` row flips and the row moves to the closed table in the test file |
+| NL-030 to NL-042 | None. Closed 2026-11-15..16 with programme pins (`tests/test_namer_nl030_nl031_ws4_fusion_vonbaeyer.py`, `tests/test_namer_nl032_nl042_ws5_known_defect_pins.py`); each `OPEN` xfail stays until the book target is emitted | Recorded; book PIN or fusion construction unchanged |
 | NL-050 | None until an oracle exists | Stays validator limitation |
 | NL-051 to NL-055, NL-059 to NL-064 | Re-measure on the current engine, then split or close (they carry no structures in the text, so the first step is to find the SMILES in the vendor changelog or `tests/test_namer_known_defects.py`) | Each sub-item classed |
 | NL-056 | None. One heteroatom site per remaining system reads back (2026-11-03) | Each heteroatom site reads back, or a defect row |
@@ -250,6 +250,7 @@ An item is `closed` only when its closure criterion holds, with the evidence rec
 | NL-082 to NL-084, NL-091, NL-094 | None. Closed 2026-11-15 (`tests/test_namer_nl082_nl094_ws5_nonpreferred_pins.py`) | Recorded; book PIN or deviation policy unchanged |
 | NL-092, NL-093 | None. Closed 2026-11-15 (`tests/test_namer_nl092_nl093_ws4_fusion_policy.py`) | Engine behaviour pinned; fusion PIN backlog unchanged |
 | NL-030, NL-031 | None. Closed 2026-11-15 (`tests/test_namer_nl030_nl031_ws4_fusion_vonbaeyer.py`) | Von Baeyer fallback pinned; book fusion PIN not built |
+| NL-032 to NL-042 | None. Closed 2026-11-16 (`tests/test_namer_nl032_nl042_ws5_known_defect_pins.py`) | Engine names pinned; `OPEN` xfail rows unchanged until book PIN |
 | NL-077 | None. The acyclic peroxide and the S, P and B drawings read back (2026-11-03) | Classed, or a defect row |
 | NL-081 | None. Solid `chloroacetylazanide` is `D-391` (2026-11-03) | Classed, or a defect row |
 | NL-090 | None. `6a` and `13a` read back; `12b` methyl not drawable (`tests/test_namer_nl090_letter_locant_methyls.py`, 2026-11-08) | Each of the three reads back, or the plan is refused, or honest programme closure with evidence |
