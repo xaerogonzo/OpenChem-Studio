@@ -1,0 +1,2 @@
+### Geometry analysis now runs on ClF3, BrF3 and ClF5
+- The radii and the projection shadow (areas, enclosing-circle radii, sizes) are computed for held hypervalent structures, checked against an independent raster and circle fit (within 0.2% on areas and radii, 0.4% on sizes). No force field energy is computed for them, and the conformer and relaxation options that need one are refused with the hypervalent limit instead of raising an unhandled valence error.

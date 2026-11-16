@@ -307,16 +307,18 @@ def test_the_report_says_the_score_is_a_user_s_formula_and_why_a_row_has_none(se
 
 
 def test_the_workspace_rebuilds_the_score_columns_when_a_definition_changes(services):
+    from openchem.ui.panels.batch_panel import BatchPanel
+
     definitions = Definitions()
-    workspace = ResultsWorkspace(
-        QWidget(), services.calculator_registry, services.table_export_service, services.event_bus, services.chemistry_engine,
-        score_definitions=definitions,
+    workspace = BatchPanel(
+        services.batch_service, services.calculator_registry, services.table_export_service,
+        services.event_bus, services.chemistry_engine, score_definitions=definitions,
     )
-    workspace.table_view.apply_progress(_event(_table()), adopt=True)
-    assert not any(c.source == "score" for c in workspace.table_view.table().columns)
+    workspace._view.apply_progress(_event(_table()), adopt=True)
+    assert not any(c.source == "score" for c in workspace.table().columns)
     definitions.items.append(_definition())
     services.event_bus.publish(ScoreDefinitionsChanged(project_uuid="p", score_ids=("user.window",)))
-    assert any(c.source == "score" for c in workspace.table_view.table().columns)
+    assert any(c.source == "score" for c in workspace.table().columns)
     assert dataclasses.is_dataclass(ScoreDefinitionsChanged)
 
 

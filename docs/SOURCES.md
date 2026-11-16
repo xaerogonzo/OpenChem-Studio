@@ -1,5 +1,5 @@
 <!-- GENERATED FROM docs/sources.toml -- do not edit -->
-<!-- SOURCE SHA256: cc0a480949702f1b880cdc7b96f3c48acbc17a5b00bd72a208da90c3932d93a5 -->
+<!-- SOURCE SHA256: 608bffffca69eff4312bf501f0bc04cb6d7c8816b6c492f38a236bafe73f0409 -->
 
 # Sources
 
@@ -259,6 +259,7 @@ Title and DOI first; the `key` is what prose and code cite (`[source:key]`) and 
 | Thionyl tetrafluoride. Reanalysis of the molecular structure and resolution of the multiple model problem | [10.1021/j100394a004](https://doi.org/10.1021/j100394a004) | [`hedberg1982`](#hedberg1982) | literature | shipped | citation + claim |
 | Evidence of a molecular dimeric form of antimony pentachloride at low temperature using Raman spectroscopy | [10.1016/0584-8539(75)80060-2](https://doi.org/10.1016/0584-8539(75)80060-2) | [`heimburger1975`](#heimburger1975) | literature | reference only | citation |
 | The Thermodynamic and Kinetic Properties of 2-Hydroxypyridine/2-Pyridone Tautomerization: A Theoretical and Computational Revisit | [10.3390/ijms17111893](https://doi.org/10.3390/ijms17111893) | [`hejazi2016`](#hejazi2016) | literature | reference only | citation |
+| G. Herzberg, Molecular Spectra and Molecular Structure III: Electronic Spectra and Electronic Structure of… |  | [`herzberg1966`](#herzberg1966) | literature | reference only | citation |
 | The deferral of HLB -- OVERTURNED. See [source:schott1989]. |  | [`hlb`](#hlb) | reference_table | reference only | citation |
 | A study of the valence shell electronic states of pyridazine by photoabsorption spectroscopy and time-dependent density functional theory calculations | [10.1088/0953-4075/46/17/175103](https://doi.org/10.1088/0953-4075/46/17/175103) | [`holland2013`](#holland2013) | literature | shipped | citation + claim |
 | A study of the valence shell electronic states of s-triazine by photoabsorption spectroscopy and ab initio calculations | [10.1016/j.chemphys.2016.07.019](https://doi.org/10.1016/j.chemphys.2016.07.019) | [`holland2016`](#holland2016) | literature | reference only | citation |
@@ -279,9 +280,13 @@ Title and DOI first; the `key` is what prose and code cite (`[source:key]`) and 
 | open-iupac-namer, vendored under `src/openchem/vendor/iupac_namer/` -- the offline deterministic… | <https://github.com/leehiufung911/open-iupac-namer> | [`iupac_namer`](#iupac_namer) | software | shipped | citation |
 | An electron-diffraction study of the structure and pseudorotation of antimony pentachloride in the vapor state | [10.1007/BF00790775](https://doi.org/10.1007/BF00790775) | [`ivashkevich1982`](#ivashkevich1982) | literature | shipped | citation + claim |
 | Structure analyses combining electron diffraction and microwave data. I. Study of XeOF4 | [10.1016/0022-2860(71)80016-9](https://doi.org/10.1016/0022-2860(71)80016-9) | [`jacob1971`](#jacob1971) | literature | shipped | citation + claim |
+| Vibrational and Electronic Energy Levels of Polyatomic Transient Molecules. Supplement A | [10.1063/1.556017](https://doi.org/10.1063/1.556017) | [`jacox1998`](#jacox1998) | literature | reference only | citation |
+| Vibrational and Electronic Energy Levels of Polyatomic Transient Molecules. Supplement B | [10.1063/1.1497629](https://doi.org/10.1063/1.1497629) | [`jacox2003`](#jacox2003) | literature | reference only | citation |
 | Energetics of Propellants, Fuels and Explosives; a Chemical Valence Approach | [10.1002/prep.19870120603](https://doi.org/10.1002/prep.19870120603) | [`jain1987`](#jain1987) | literature | shipped | citation + claim |
 | Electron photodetachment from mercaptyl anions (RS-). Electron affinities of mercaptyl radicals and the S-H bond strength in mercaptans | [10.1021/ja00529a040](https://doi.org/10.1021/ja00529a040) | [`janousek1980`](#janousek1980) | literature | reference only | citation + claim |
 | Relationships among Ionic Lattice Energies, Molecular (Formula Unit) Volumes, and Thermochemical Radii |  | [`jenkins1999`](#jenkins1999) | literature | shipped | citation + claim |
+| The potential surface and stretching frequencies of X 3B1 methylene (CH2) determined from experiment using the Morse oscillator-rigid bender internal dynamics Hamiltonian | [10.1063/1.455184](https://doi.org/10.1063/1.455184) | [`jensen1988`](#jensen1988) | literature | reference only | citation + claim |
+| A remarkable large effect of spin contamination on calculated vibrational frequencies | [10.1016/0009-2614(90)85641-O](https://doi.org/10.1016/0009-2614(90)85641-O) | [`jensen1990`](#jensen1990) | literature | reference only | citation |
 | Electronegativity Equalization Method: Parameterization and Validation for Organic Molecules using the Merz-Kollman-Singh Charge Distribution Scheme | [10.1002/jcc.21142](https://doi.org/10.1002/jcc.21142) | [`jirouskova2009`](#jirouskova2009) | literature | shipped | citation + claim |
 | Estimation of Pure-Component Properties from Group-Contributions | [10.1080/00986448708960487](https://doi.org/10.1080/00986448708960487) | [`joback1987`](#joback1987) | literature | shipped | citation + claim |
 | Chemistry of Detonations. I. A Simple Method for Calculating Detonation Properties of C-H-N-O Explosives | [10.1063/1.1667908](https://doi.org/10.1063/1.1667908) | [`kamlet1968`](#kamlet1968) | literature | shipped | citation + claim |
@@ -297,6 +302,7 @@ Title and DOI first; the `key` is what prose and code cite (`[source:key]`) and 
 | Energetic Materials Encyclopedia |  | [`klapotke2021`](#klapotke2021) | literature | shipped | citation + claim |
 | Photoelectron Angular Distribution Study of Some Isoxazoles Combined with Perturbation Theoretic Approach | [10.1246/bcsj.55.3915](https://doi.org/10.1246/bcsj.55.3915) | [`kobayashi1982`](#kobayashi1982) | literature | shipped | citation + claim |
 | Lessons Learned in Empirical Scoring with smina from the CSAR 2011 Benchmarking Exercise | [10.1021/ci300604z](https://doi.org/10.1021/ci300604z) | [`koes2013`](#koes2013) | literature | **not shipped** | citation |
+| Mutual Activation of Two Radical Trapping Agents: Unusual Win-Win Synergy of Resveratrol and TEMPO during Scavenging of dpph radical in Methanol | [10.1021/acs.joc.2c02080](https://doi.org/10.1021/acs.joc.2c02080) | [`konopko2022`](#konopko2022) | literature | reference only | citation + claim |
 | Gas-phase vibrational spectrum and molecular geometry of TeCl4 | [10.1039/A605574E](https://doi.org/10.1039/A605574E) | [`kovacs1997`](#kovacs1997) | literature | shipped | citation + claim |
 | Definition of aromaticity basing on the harmonic oscillator model | [10.1016/S0040-4039(01)94175-9](https://doi.org/10.1016/S0040-4039(01)94175-9) | [`kruszewski1972`](#kruszewski1972) | literature | shipped | citation |
 | Crystallographic Studies of Inter- and Intramolecular Interactions Reflected in Aromatic Character of pi-Electron Systems | [10.1021/ci00011a011](https://doi.org/10.1021/ci00011a011) | [`krygowski1993`](#krygowski1993) | literature | shipped | citation + claim |
@@ -308,6 +314,7 @@ Title and DOI first; the `key` is what prose and code cite (`[source:key]`) and 
 | J. A. Dean (ed.), Lange's Handbook of Chemistry, 15th ed.; McGraw-Hill: New York, 1999; p 4.35 (covalent… | 978-0070163843 | [`langes15`](#langes15) | reference_table | shipped | citation + claim |
 | Halogenated PETN derivatives: interplay between physical and chemical factors in explosive sensitivity | [10.1039/D3SC01627G](https://doi.org/10.1039/D3SC01627G) | [`lease2023`](#lease2023) | literature | shipped | citation + claim |
 | Iodobenzene diacetate | [10.1107/S0567740877006694](https://doi.org/10.1107/S0567740877006694) | [`lee1977`](#lee1977) | literature | shipped | citation + claim |
+| Laser photoelectron spectroscopy of vibrationally relaxed CH2-: a reinvestigation of the singlet-triplet splitting in methylene | [10.1063/1.447741](https://doi.org/10.1063/1.447741) | [`leopold1984`](#leopold1984) | literature | reference only | citation + claim |
 | Reinvestigation of the elementary chemical kinetics of the reaction C2H5 + HBr (HI) = C2H6 + Br (I) in the range 293-623 K and its implication on the thermochemical parameters of C2H5 free radical | [10.1021/jp403761r](https://doi.org/10.1021/jp403761r) | [`leplat2013`](#leplat2013) | literature | reference only | citation + claim |
 | Design, Synthesis, and Biological Evaluation of 3,4-Dihydroisoquinolin-1(2H)-one Derivatives as Protein Arginine Methyltransferase 5 Inhibitors for the Treatment of Non-Hodgkin’s Lymphoma | [10.1021/acs.jmedchem.4c01548](https://doi.org/10.1021/acs.jmedchem.4c01548) | [`li2024_prmt5`](#li2024_prmt5) | literature | reference only | citation |
 | Retro-BLEU: quantifying chemical plausibility of retrosynthesis routes through reaction template sequence analysis | [10.1039/D3DD00219E](https://doi.org/10.1039/D3DD00219E) | [`li2024retrobleu`](#li2024retrobleu) | literature | reference only | citation |
@@ -320,6 +327,7 @@ Title and DOI first; the `key` is what prose and code cite (`[source:key]`) and 
 | Comprehensive Handbook of Chemical Bond Energies |  | [`luo2007`](#luo2007) | reference_table | reference only | citation |
 | The chlorofluorophosphoranes PCl(n)F(5-n) (n = 1-4). Gas-phase structures and vibrational analyses | [10.1021/ic00236a034](https://doi.org/10.1021/ic00236a034) | [`macho1986`](#macho1986) | literature | shipped | citation + claim |
 | Preparation and structure of the IOF6- and TeF7- anions | [10.1039/C39910000840](https://doi.org/10.1039/C39910000840) | [`mahjoub1991`](#mahjoub1991) | literature | reference only | citation |
+| Protonated nitroxide radicals | [10.1021/ja00800a041](https://doi.org/10.1021/ja00800a041) | [`malatesta1973`](#malatesta1973) | literature | reference only | citation + claim |
 | On a Test of Whether one of Two Random Variables is Stochastically Larger than the Other |  | [`mann1947`](#mann1947) | literature | shipped | citation + claim |
 | Consistent van der Waals Radii for the Whole Main Group | [10.1021/jp8111556](https://doi.org/10.1021/jp8111556) | [`mantina2009`](#mantina2009) | literature | shipped | citation + claim |
 | Thirty years of density functional theory in computational chemistry: an overview and extensive assessment of 200 density functionals | [10.1080/00268976.2017.1333644](https://doi.org/10.1080/00268976.2017.1333644) | [`mardirossian2017`](#mardirossian2017) | literature | reference only | citation + claim |
@@ -375,6 +383,7 @@ Title and DOI first; the `key` is what prose and code cite (`[source:key]`) and 
 | Absolute Electronegativity and Hardness: Application to Inorganic Chemistry | [10.1021/ic00277a030](https://doi.org/10.1021/ic00277a030) | [`pearson1988`](#pearson1988) | literature | shipped | citation + claim |
 | Taming Tautomerism in Organic Crystal Structure Prediction | [10.1021/jacs.5c08442](https://doi.org/10.1021/jacs.5c08442) | [`perry2025`](#perry2025) | literature | reference only | citation |
 | Rock Blasting and Explosives Engineering | [10.1201/9780203740514](https://doi.org/10.1201/9780203740514) | [`persson1994`](#persson1994) | literature | shipped | citation + claim |
+| Analysis of CH2 a 1A1 (1,0,0) and (0,0,1) Coriolis-coupled states, a 1A1-X 3B1 spin-orbit coupling, and the equilibrium structure of CH2 a 1A1 state | [10.1063/1.457375](https://doi.org/10.1063/1.457375) | [`petek1989`](#petek1989) | literature | reference only | citation + claim |
 | Structure of XeO2F2 | [10.1063/1.1679827](https://doi.org/10.1063/1.1679827) | [`peterson1973`](#peterson1973) | literature | shipped | citation + claim |
 | Angular distribution parameter as a function of photon energy for some mono- and diazabenzenes and its use for orbital assignment | [10.1021/ja00351a019](https://doi.org/10.1021/ja00351a019) | [`piancastelli1983`](#piancastelli1983) | literature | shipped | citation + claim |
 | Improving Small Molecule pKa Prediction Using Transfer Learning with Graph Neural Networks | <https://github.com/mayrf/pkasolver> | [`pkasolver`](#pkasolver) | software | shipped | citation |
@@ -388,6 +397,7 @@ Title and DOI first; the `key` is what prose and code cite (`[source:key]`) and 
 | Qt for Python (PySide6). | <https://doc.qt.io/qtforpython/> | [`pyside6`](#pyside6) | software | shipped | citation |
 | Vinardo: A Scoring Function Based on Autodock Vina Improves Scoring, Docking, and Virtual Screening | [10.1371/journal.pone.0155183](https://doi.org/10.1371/journal.pone.0155183) | [`quiroga2016`](#quiroga2016) | literature | shipped | citation + claim |
 | Toward an Understanding of Zeolite Y as a Cracking Catalyst with the Use of Periodic Charge Equilibration | [10.1021/jp952864q](https://doi.org/10.1021/jp952864q) | [`ramachandran1996`](#ramachandran1996) | literature | **not shipped** | citation + claim |
+| K. I. Ramachandran, G. Deepa & K. Namboori, Computational Chemistry and Molecular Modeling: Principles and… | [10.1007/978-3-540-77304-7](https://doi.org/10.1007/978-3-540-77304-7) | [`ramachandran2008`](#ramachandran2008) | literature | reference only | citation + claim |
 | Estimation of aqueous solubility of organic compounds by using the general solubility equation | [10.1016/S0045-6535(02)00118-2](https://doi.org/10.1016/S0045-6535(02)00118-2) | [`ran2002`](#ran2002) | literature | reference only | citation |
 | Vertical valence ionization potential benchmarks from equation-of-motion coupled cluster theory and QTP functionals | [10.1063/1.5084728](https://doi.org/10.1063/1.5084728) | [`ranasinghe2019`](#ranasinghe2019) | literature | shipped | citation + claim |
 | Charge Equilibration for Molecular Dynamics Simulations | [10.1021/j100161a070](https://doi.org/10.1021/j100161a070) | [`rappe1991`](#rappe1991) | literature | shipped | citation + claim |
@@ -419,6 +429,7 @@ Title and DOI first; the `key` is what prose and code cite (`[source:key]`) and 
 | Kinetics of the R + HBr = RH + Br (CH3CHBr, CHBr2 or CDBr2) equilibrium. Thermochemistry of the CH3CHBr and CHBr2 radicals | [10.1016/j.chemphys.2008.04.008](https://doi.org/10.1016/j.chemphys.2008.04.008) | [`seetula2008`](#seetula2008) | literature | reference only | citation + claim |
 | Dynamic Charge Equilibration-Morse Stretch Force Field: Application to Energetics of Pure Silica Zeolites | [10.1002/jcc.10130](https://doi.org/10.1002/jcc.10130) | [`sefcik2002`](#sefcik2002) | literature | reference only | citation + claim |
 | Alkali fluorotellurates(VI) | [10.1021/ic50136a051](https://doi.org/10.1021/ic50136a051) | [`selig1974`](#selig1974) | literature | reference only | citation |
+| Kinetics and mechanism for acid-catalyzed disproportionation of 2,2,6,6-tetramethylpiperidine-1-oxyl | [10.1002/poc.1439](https://doi.org/10.1002/poc.1439) | [`sen2008`](#sen2008) | literature | reference only | citation + claim |
 | Reactions of Bromine Fluoride Dioxide, BrO2F, for the Generation of the Mixed-Valent Bromine Oxygen Cations Br3O4+ and Br3O6+ | [10.1002/anie.201912271](https://doi.org/10.1002/anie.201912271) | [`seppelt2019`](#seppelt2019) | literature | shipped | citation + claim |
 | Synthesis of metal iodates from an energetic salt | [10.1039/d0ra02250k](https://doi.org/10.1039/d0ra02250k) | [`shancita2020`](#shancita2020) | literature | shipped | citation |
 | Revised effective ionic radii and systematic studies of interatomic distances in halides and chalcogenides |  | [`shannon1976`](#shannon1976) | literature | shipped | citation + claim |
@@ -433,6 +444,7 @@ Title and DOI first; the `key` is what prose and code cite (`[source:key]`) and 
 | A study of the valence shell electronic states of pyrimidine and pyrazine by photoabsorption spectroscopy and time-dependent density functional theory calculations | [10.1088/0953-4075/44/7/075203](https://doi.org/10.1088/0953-4075/44/7/075203) | [`stener2011`](#stener2011) | literature | shipped | citation + claim |
 | Prediction of organic homolytic bond dissociation enthalpies at near chemical accuracy with sub-second computational cost | [10.1038/s41467-020-16201-z](https://doi.org/10.1038/s41467-020-16201-z) | [`stjohn2020`](#stjohn2020) | literature | reference only | citation + claim |
 | Abraham model correlations for estimating solute transfer of neutral molecules into anhydrous acetic acid from water and from the gas phase | [10.1016/j.molliq.2015.08.042](https://doi.org/10.1016/j.molliq.2015.08.042) | [`stovall2015`](#stovall2015) | literature | shipped | citation + claim |
+| A. Streitwieser Jr., Molecular Orbital Theory for Organic Chemists, Wiley, New York, 1961 |  | [`streitwieser1961`](#streitwieser1961) | literature | reference only | citation |
 | Comparative Assessment of Scoring Functions: The CASF-2016 Update | [10.1021/acs.jcim.8b00545](https://doi.org/10.1021/acs.jcim.8b00545) | [`su2019`](#su2019) | literature | shipped | citation + claim |
 | A computer simulation method for the calculation of equilibrium constants for the formation of physical clusters of molecules: Application to small water clusters | [10.1063/1.442716](https://doi.org/10.1063/1.442716) | [`swope1982`](#swope1982) | literature | shipped | citation + claim |
 | Therapeutics Data Commons: Machine Learning Datasets and Tasks for Drug Discovery and Development | <https://tdcommons.ai/> | [`tdc_admet`](#tdc_admet) | dataset | reference only | citation |
@@ -458,11 +470,13 @@ Title and DOI first; the `key` is what prose and code cite (`[source:key]`) and 
 | Calculating bond dissociation energies of X-H (X = C, N, O, S) bonds of aromatic systems via density functional theory: a detailed comparison of methods | [10.1098/rsos.220177](https://doi.org/10.1098/rsos.220177) | [`vo2022`](#vo2022) | literature | reference only | citation + claim |
 | The ECW Model |  | [`vogel_drago1996`](#vogel_drago1996) | literature | shipped | citation + claim |
 | Structure Data of Free Polyatomic Molecules | [10.1007/978-3-030-29430-4](https://doi.org/10.1007/978-3-030-29430-4) | [`vogt2019`](#vogt2019) | literature | **not shipped** | citation |
+| Measuring local pH at interfaces from molecular tumbling: a concept for designing EPR-active pH-sensitive labels and probes | [10.1039/d4ob00167b](https://doi.org/10.1039/d4ob00167b) | [`voinov2024`](#voinov2024) | literature | reference only | citation + claim |
 | New Analytical Scattering-Factor Functions for Free Atoms and Ions | [10.1107/S0108767394013292](https://doi.org/10.1107/S0108767394013292) | [`waasmaier1995`](#waasmaier1995) | literature | shipped | citation + claim |
 | A comparative study to predict regioselectivity, electrophilicity and nucleophilicity with Fukui function and Hirshfeld charge | [10.1007/s00214-019-2515-1](https://doi.org/10.1007/s00214-019-2515-1) | [`wang2019`](#wang2019) | literature | shipped | citation + claim |
 | CFM-ID 4.0: More Accurate ESI-MS/MS Spectral Prediction and Compound Identification | [10.1021/acs.analchem.1c01465](https://doi.org/10.1021/acs.analchem.1c01465) | [`wang2021`](#wang2021) | literature | reference only | citation |
 | Beyond the Ground State: Predicting Electron Ionization Mass Spectra Using Excited-State Molecular Dynamics | [10.1021/acs.jcim.2c00597](https://doi.org/10.1021/acs.jcim.2c00597) | [`wang2022`](#wang2022) | literature | reference only | citation |
 | A high density and low sensitivity carrier explosive promising to replace TNT: 3-Bromo-5-fluoro-2,4,6-trinitroanisole | [10.1016/j.enmf.2024.06.003](https://doi.org/10.1016/j.enmf.2024.06.003) | [`wang2024`](#wang2024) | literature | shipped | citation + claim |
+| Thermochemistry of Proton-Coupled Electron Transfer Reagents and its Implications | [10.1021/cr100085k](https://doi.org/10.1021/cr100085k) | [`warren2010`](#warren2010) | literature | reference only | citation |
 | Uber die Reaktionen von Phosphaniminatokomplexen des Niobs, Molybdans und Wolframs mit Natriumfluorid. Die Kristallstrukturen von [PPh2NH2]Cl und PPh3F2 | [10.1002/zaac.19916020102](https://doi.org/10.1002/zaac.19916020102) | [`weller1991`](#weller1991) | literature | shipped | citation + claim |
 | Charge Equilibration Based on Atomic Ionization in Metal-Organic Frameworks | [10.1021/jp510415h](https://doi.org/10.1021/jp510415h) | [`wells2014`](#wells2014) | literature | reference only | citation |
 | Empirical Correlations between Thermodynamic Properties and Intermolecular Forces | [10.1021/ja00123a001](https://doi.org/10.1021/ja00123a001) | [`westwell1995`](#westwell1995) | literature | **not shipped** | citation |
@@ -475,7 +489,9 @@ Title and DOI first; the `key` is what prose and code cite (`[source:key]`) and 
 | Near ultraviolet photolysis of methanethiol studied by H atom photofragment translational spectroscopy | [10.1063/1.468248](https://doi.org/10.1063/1.468248) | [`wilson1994`](#wilson1994) | literature | reference only | citation + claim |
 | Ultraviolet photodissociation of methanethiol (CH3SH): revealing an S(1D) atom elimination channel | [10.1039/D5SC04716A](https://doi.org/10.1039/D5SC04716A) | [`wu2025`](#wu2025) | literature | reference only | citation + claim |
 | Aqueous Solubility: Methods of Estimation for Organic Compounds | 978-0-8247-8615-1 | [`yalkowsky_banerjee1992`](#yalkowsky_banerjee1992) | dataset | shipped | citation |
+| Diode laser study of the nu2 band of the methyl radical | [10.1063/1.441991](https://doi.org/10.1063/1.441991) | [`yamada1981`](#yamada1981) | literature | reference only | citation + claim |
 | Straightforward syntheses of hypervalent iodine(III) reagents mediated by Selectfluor | [10.1021/ol051446t](https://doi.org/10.1021/ol051446t) | [`ye2005`](#ye2005) | literature | shipped | citation + claim |
+| Density-Corrected Density Functional Theory for Open Shells: How to Deal with Spin Contamination | [10.1021/acs.jpclett.3c02017](https://doi.org/10.1021/acs.jpclett.3c02017) | [`yu2023`](#yu2023) | literature | reference only | citation |
 | PaRoutes 2.0 and USPTO-based models | [10.5281/zenodo.7341155](https://doi.org/10.5281/zenodo.7341155) | [`zenodo7341155`](#zenodo7341155) | dataset | reference only | citation + claim |
 | USPTO-based ONNX models | [10.5281/zenodo.7797465](https://doi.org/10.5281/zenodo.7797465) | [`zenodo7797465`](#zenodo7797465) | dataset | reference only | citation + claim |
 | Guanidine-thermite igniter composition for use in gas generators | <https://patents.google.com/patent/US6599380B2/en> | [`zeuner2003`](#zeuner2003) | literature | shipped | citation + claim |
@@ -4549,7 +4565,7 @@ was confirmed against Crossref.
 | Verification | citation + claim |
 | Verified | 2026-09-14 |
 | Local copy | `huber1979.pdf` (not checked) |
-| Used by | `tests/fixtures/charges/geometries.csv` |
+| Used by | `tests/fixtures/charges/geometries.csv`, `src/openchem/chem/open_shell.py`, `docs/OPEN_SHELL_AND_HYPERVALENT_COVERAGE_DESIGN.md`, `src/openchem/chem/open_shell_geometry.py` |
 
 **Why it is reference only.** THE EXPERIMENTAL BOND LENGTHS THE QEQ ORACLES RUN AT, and nothing the
 application computes. Rappé & Goddard cite this book (their reference 10) for
@@ -4563,6 +4579,8 @@ that digit.
 
 The held PDF's title page names Springer Science+Business Media; the citation
 above is the edition the paper cites.
+
+READ AGAIN 2026-11-15 FOR THE OPEN-SHELL WORK (`chem/open_shell.py`, `TRIPLET_GROUND_STATES`): the ground-state r_e of NO 1.15077 A (PDF page 489, X 2Pi), O2 1.20752 A (page 511, X 3Sigma-g-), OH 0.96966 A (page 521), S2 1.8892 A (page 577, X 3Sigma-g-), Se2 2.1660 A (page 595; the X1 spin-orbit component, with 2.1628 A for X2 on the same page) and SO 1.481087 A (page 635, X 3Sigma-). Located by searching the text layer for each value, then each line read in place. The ground-state triplet assignment of O2, SO and S2 is therefore backed by this book, in addition to the measured ORCA energies.
 
 ### marsili1980 — pi-Charge Distribution from Molecular Topology and pi-Orbital Electronegativity
 
@@ -9510,6 +9528,278 @@ The deposited CIF (CCDC 139385, data block C6F7I, 150 K, R 0.024) computed: C6F5
 | Used by | `src/openchem/chem/vsepr_geometry.py`, `tests/test_vsepr_geometry.py`, `docs/HYPERVALENT_COVERAGE_DESIGN.md` |
 
 The deposited CIF (SHELXL-97, 153 K, R 0.048; o-fluorophenyl-IF2 with a quarter of a CH2Cl2 per molecule) computed: one free T-shaped molecule, I-F 2.0137 and 2.0160, I-C 2.0515 A, F-I-F 169.02, C-I-F 84.21 and 84.81 degrees. One of the twelve molecules of the ArIF2 core row, the shortest I-C (an ortho fluorine). No paper describes it; the CSD terms forbid redistributing the file, so only these computed numbers are recorded.
+
+### malatesta1973 — Protonated nitroxide radicals
+
+<a id="malatesta1973"></a>
+
+> V. Malatesta & K. U. Ingold, 'Protonated nitroxide radicals', J. Am. Chem. Soc. 95, 6404-6407 (1973)
+
+| | |
+| --- | --- |
+| Identifier | [10.1021/ja00800a041](https://doi.org/10.1021/ja00800a041) |
+| Status | reference only |
+| Verification | citation + claim |
+| Verified | 2026-11-15 |
+| Local copy | `malatesta1973.pdf` (not checked) |
+| Used by | `docs/OPEN_SHELL_AND_HYPERVALENT_COVERAGE_DESIGN.md` |
+
+**Why it is reference only.** Read. EPR of dialkyl nitroxides in strong acid: TEMPO is protonated (on oxygen) at Hammett H0 more negative than -7.5 and unprotonated above -3.7; between the two no EPR signal is seen because of line broadening from rapid proton exchange. The pKa of dialkyl nitroxides is estimated at -5.5 +/- 1 (the paper's own words, 'the pK_a for dialkyl nitroxides is -5.5 +/- 1'). A measurement in concentrated sulfuric acid, NOT an aqueous pKa. Backs the design document's statement that a nitroxide is not an ordinary amine-like base.
+
+### sen2008 — Kinetics and mechanism for acid-catalyzed disproportionation of 2,2,6,6-tetramethylpiperidine-1-oxyl
+
+<a id="sen2008"></a>
+
+> V. D. Sen & V. A. Golubev, 'Kinetics and mechanism for acid-catalyzed disproportionation of 2,2,6,6-tetramethylpiperidine-1-oxyl', J. Phys. Org. Chem. 22, 138-143 (2009; published online 17 September 2008)
+
+| | |
+| --- | --- |
+| Identifier | [10.1002/poc.1439](https://doi.org/10.1002/poc.1439) |
+| Status | reference only |
+| Verification | citation + claim |
+| Verified | 2026-11-15 |
+| Local copy | `sen2008.pdf` (not checked) |
+| Used by | `docs/OPEN_SHELL_AND_HYPERVALENT_COVERAGE_DESIGN.md` |
+
+**Why it is reference only.** Read. pK(1HR) of protonated TEMPO = -5.8 +/- 0.3 (the minus sign is lost in the PDF text layer; konopko2022 Table 2 prints it as -5.8 +/- 0.3), from the acid-catalysed disproportionation kinetics in sulfuric acid. The -6.2 for 4-hydroxy-TEMPO that konopko2022 credits to this paper is NOT in the main text (the supplementary document sen2008_SI.doc was not opened). Medium: H2SO4, not water.
+
+### konopko2022 — Mutual Activation of Two Radical Trapping Agents: Unusual Win-Win Synergy of Resveratrol and TEMPO during Scavenging of dpph radical in Methanol
+
+<a id="konopko2022"></a>
+
+> A. Konopko & G. Litwinienko, 'Mutual Activation of Two Radical Trapping Agents: Unusual Win-Win Synergy of Resveratrol and TEMPO during Scavenging of dpph radical in Methanol', J. Org. Chem. 87, 15530-15538 (2022)
+
+| | |
+| --- | --- |
+| Identifier | [10.1021/acs.joc.2c02080](https://doi.org/10.1021/acs.joc.2c02080) |
+| Status | reference only |
+| Verification | citation + claim |
+| Verified | 2026-11-15 |
+| Local copy | `konopko2022.pdf` (not checked) |
+| Used by | `docs/OPEN_SHELL_AND_HYPERVALENT_COVERAGE_DESIGN.md` |
+
+**Why it is reference only.** Read. Table 2 lists the pKa of TEMPOH.+ as -5.5 +/- 1 (Malatesta and Ingold) and -5.8 +/- 0.3 (Sen and Golubev) and of 4-OH-TEMPOH.+ as -6.2, with the footnote 'Both values determined in H2SO4'. Also TEMPOH pKa 12.9 (for diethylhydroxylamine in water) and TEMPOH2+ 7.36, 7.9, 7.5, 6.90: different species, not the protonated radical. The open-access route to the three values.
+
+### voinov2024 — Measuring local pH at interfaces from molecular tumbling: a concept for designing EPR-active pH-sensitive labels and probes
+
+<a id="voinov2024"></a>
+
+> M. A. Voinov, N. Nunn, R. Rana, A. Davidsson, A. I. Smirnov & T. I. Smirnova, 'Measuring local pH at interfaces from molecular tumbling: a concept for designing EPR-active pH-sensitive labels and probes', Org. Biomol. Chem. 22, 3652-3667 (2024)
+
+| | |
+| --- | --- |
+| Identifier | [10.1039/d4ob00167b](https://doi.org/10.1039/d4ob00167b) |
+| Status | reference only |
+| Verification | citation + claim |
+| Verified | 2026-11-15 |
+| Local copy | `Voinov2024.pdf` (not checked) |
+| Used by | `docs/OPEN_SHELL_AND_HYPERVALENT_COVERAGE_DESIGN.md` |
+
+**Why it is reference only.** Read for one statement: nitroxides undergo reversible protonation at the oxygen atom of the N-O radical moiety in concentrated acids or non-aqueous media. Supports 'a nitroxide is protonated on oxygen, not on nitrogen'. The supplementary file Voinov2024_SI.pdf was not read.
+
+### warren2010 — Thermochemistry of Proton-Coupled Electron Transfer Reagents and its Implications
+
+<a id="warren2010"></a>
+
+> J. J. Warren, T. A. Tronic & J. M. Mayer, 'Thermochemistry of Proton-Coupled Electron Transfer Reagents and its Implications', Chem. Rev. 110, 6961-7001 (2010)
+
+| | |
+| --- | --- |
+| Identifier | [10.1021/cr100085k](https://doi.org/10.1021/cr100085k) |
+| Status | reference only |
+| Verification | citation |
+| Verified | 2026-11-15 |
+| Local copy | `Warren2010.pdf` (not checked) |
+| Used by | `docs/OPEN_SHELL_AND_HYPERVALENT_COVERAGE_DESIGN.md` |
+
+**Why it is reference only.** Cited for the thermochemistry of TEMPOH and its radical cation (a very weak base, about -4 in acetonitrile according to the second-hand summary this entry was made from). The table was not opened, so no number here has been checked against the paper.
+
+### herzberg1966 — G. Herzberg, Molecular Spectra and Molecular Structure III: Electronic Spectra and Electronic Structure of…
+
+<a id="herzberg1966"></a>
+
+> G. Herzberg, Molecular Spectra and Molecular Structure III: Electronic Spectra and Electronic Structure of Polyatomic Molecules, Van Nostrand Reinhold, 1966
+
+| | |
+| --- | --- |
+| Identifier | Herzberg (1966), Molecular Spectra and Molecular Structure III, Van Nostrand Reinhold |
+| Status | reference only |
+| Verification | citation |
+| Verified | 2026-11-15 |
+| Local copy | `Molecular Spectra and Molecular Structure_ Electronic -- Gerhard Herzberg -- 1966-01-01 -- Van Nostrand Reinhold.pdf` (not checked) |
+| Used by | `docs/OPEN_SHELL_AND_HYPERVALENT_COVERAGE_DESIGN.md`, `src/openchem/chem/open_shell_geometry.py` |
+
+**Why it is reference only.** Held, and its two geometries now confirmed through NIST CCCBDB pages saved by the owner (the folder with the book's name and the suffix _DATA, 'Listing of experimental geometry data for CH3' and 'for NH2'): CH3 point group D3h, r(CH) 1.079 A, HCH 120 degrees, both credited to this book (1966Herzberg), with rotational constants A = B = 9.57789, C = 4.74202 cm-1 credited to Yamada, Hirota and Kawaguchi 1981 (yamada1981); NH2 point group C2v, r(NH) 1.024 A, HNH 103.4 degrees, rotational constants 23.72, 12.94, 8.16 cm-1, all credited to this book. The CCCBDB page does not say which bond-length convention (r0, rs, re) the printed values are. The book's own pages were NOT opened: these are NIST's transcriptions of it.
+
+### jensen1988 — The potential surface and stretching frequencies of X 3B1 methylene (CH2) determined from experiment using the Morse oscillator-rigid bender internal dynamics Hamiltonian
+
+<a id="jensen1988"></a>
+
+> P. Jensen & P. R. Bunker, 'The potential surface and stretching frequencies of X 3B1 methylene (CH2) determined from experiment using the Morse oscillator-rigid bender internal dynamics Hamiltonian', J. Chem. Phys. 89, 1327-1332 (1988)
+
+| | |
+| --- | --- |
+| Identifier | [10.1063/1.455184](https://doi.org/10.1063/1.455184) |
+| Status | reference only |
+| Verification | citation + claim |
+| Verified | 2026-11-15 |
+| Local copy | `jensen1988.pdf` (not checked) |
+| Used by | `docs/OPEN_SHELL_AND_HYPERVALENT_COVERAGE_DESIGN.md`, `src/openchem/chem/open_shell_geometry.py` |
+
+**Why it is reference only.** Read. Triplet CH2 equilibrium: r(CH) = 1.07530 (11) A (Table II, 'fitted'; the text says 1.0753 A) and rho_e = 46.0692 (21) degrees, the supplement of the HCH angle, so alpha_e = 133.931 degrees (derived here, not printed as such). Singlet-triplet splitting T0 = 3147 +/- 5 cm-1 (8.998 kcal/mol) and Te = 3223 cm-1 (9.215 kcal/mol).
+
+### petek1989 — Analysis of CH2 a 1A1 (1,0,0) and (0,0,1) Coriolis-coupled states, a 1A1-X 3B1 spin-orbit coupling, and the equilibrium structure of CH2 a 1A1 state
+
+<a id="petek1989"></a>
+
+> H. Petek, D. J. Nesbitt, D. C. Darwin, P. R. Ogilby, C. B. Moore & D. A. Ramsay, 'Analysis of CH2 a 1A1 (1,0,0) and (0,0,1) Coriolis-coupled states, a 1A1-X 3B1 spin-orbit coupling, and the equilibrium structure of CH2 a 1A1 state', J. Chem. Phys. 91, 6566-6578 (1989)
+
+| | |
+| --- | --- |
+| Identifier | [10.1063/1.457375](https://doi.org/10.1063/1.457375) |
+| Status | reference only |
+| Verification | citation + claim |
+| Verified | 2026-11-15 |
+| Local copy | `petek1989.pdf` (not checked) |
+| Used by | `docs/OPEN_SHELL_AND_HYPERVALENT_COVERAGE_DESIGN.md`, `src/openchem/chem/open_shell_geometry.py` |
+
+**Why it is reference only.** Read (abstract). Singlet CH2 a 1A1 equilibrium structure from Ae, Be, Ce = 19.8054 (206), 11.2489 (45), 7.2386 (36) cm-1: r_e = 1.107 A, theta_e = 102.4 degrees. No uncertainty is printed with the two structure numbers in the abstract.
+
+### leopold1984 — Laser photoelectron spectroscopy of vibrationally relaxed CH2-: a reinvestigation of the singlet-triplet splitting in methylene
+
+<a id="leopold1984"></a>
+
+> D. G. Leopold, K. K. Murray & W. C. Lineberger, 'Laser photoelectron spectroscopy of vibrationally relaxed CH2-: a reinvestigation of the singlet-triplet splitting in methylene', J. Chem. Phys. 81, 1048-1050 (1984)
+
+| | |
+| --- | --- |
+| Identifier | [10.1063/1.447741](https://doi.org/10.1063/1.447741) |
+| Status | reference only |
+| Verification | citation + claim |
+| Verified | 2026-11-15 |
+| Local copy | `leopold1984.pdf` (not checked) |
+| Used by | `docs/OPEN_SHELL_AND_HYPERVALENT_COVERAGE_DESIGN.md` |
+
+**Why it is reference only.** Read. Revises the earlier photoelectron singlet-triplet splitting of at least 19.5 kcal/mol (hot bands had been mistaken for the origin) to about 9 kcal/mol (the text's own '~9 kcal/mol'); the 9.05 +/- 0.06 kcal/mol figure in the same paper is the far-infrared laser magnetic resonance measurement of another group, cited, not Leopold's.
+
+### jacox1998 — Vibrational and Electronic Energy Levels of Polyatomic Transient Molecules. Supplement A
+
+<a id="jacox1998"></a>
+
+> M. E. Jacox, 'Vibrational and Electronic Energy Levels of Polyatomic Transient Molecules. Supplement A', J. Phys. Chem. Ref. Data 27, 115-393 (1998)
+
+| | |
+| --- | --- |
+| Identifier | [10.1063/1.556017](https://doi.org/10.1063/1.556017) |
+| Status | reference only |
+| Verification | citation |
+| Verified | 2026-11-15 |
+| Local copy | `jacox1998_SUP-A.pdf` (not checked) |
+| Used by | `docs/OPEN_SHELL_AND_HYPERVALENT_COVERAGE_DESIGN.md` |
+
+**Why it is reference only.** Held. Spectroscopic energy levels of transient molecules: for assignments and cross-checks, not a table of equilibrium geometries. The 1994 Monograph 3 it supplements is online at https://webbook.nist.gov/chemistry/polyatom/ and is not held as a file.
+
+### jacox2003 — Vibrational and Electronic Energy Levels of Polyatomic Transient Molecules. Supplement B
+
+<a id="jacox2003"></a>
+
+> M. E. Jacox, 'Vibrational and Electronic Energy Levels of Polyatomic Transient Molecules. Supplement B', J. Phys. Chem. Ref. Data 32, 1-441 (2003)
+
+| | |
+| --- | --- |
+| Identifier | [10.1063/1.1497629](https://doi.org/10.1063/1.1497629) |
+| Status | reference only |
+| Verification | citation |
+| Verified | 2026-11-15 |
+| Local copy | `jacox2003_SUP-B.pdf` (not checked) |
+| Used by | `docs/OPEN_SHELL_AND_HYPERVALENT_COVERAGE_DESIGN.md` |
+
+**Why it is reference only.** Held. As jacox1998, for the later literature.
+
+### ramachandran2008 — K. I. Ramachandran, G. Deepa & K. Namboori, Computational Chemistry and Molecular Modeling: Principles and…
+
+<a id="ramachandran2008"></a>
+
+> K. I. Ramachandran, G. Deepa & K. Namboori, Computational Chemistry and Molecular Modeling: Principles and Applications, Springer, Berlin, 2008
+
+| | |
+| --- | --- |
+| Identifier | [10.1007/978-3-540-77304-7](https://doi.org/10.1007/978-3-540-77304-7) |
+| Status | reference only |
+| Verification | citation + claim |
+| Verified | 2026-11-15 |
+| Local copy | `computational-chemistry-and-molecular-modeling-2008.pdf` (not checked) |
+| Used by | `tests/test_open_shell.py`, `docs/OPEN_SHELL_AND_HYPERVALENT_COVERAGE_DESIGN.md` |
+
+**Why it is reference only.** Read. Table 4.10 (PDF page 97): the benzyl radical's seven Hueckel levels alpha + 2.101, 1.259, 1.000, 0, -1.000, -1.259, -2.101 beta and the total energy 7 alpha + 8.721 beta; Table 4.11 the nonbonding orbital. The test holds the application's Hueckel result for benzyl to 8.72 beta (and recomputes it independently); the allyl value 2 sqrt(2) beta is arithmetic and was not read from a table.
+
+### streitwieser1961 — A. Streitwieser Jr., Molecular Orbital Theory for Organic Chemists, Wiley, New York, 1961
+
+<a id="streitwieser1961"></a>
+
+> A. Streitwieser Jr., Molecular Orbital Theory for Organic Chemists, Wiley, New York, 1961
+
+| | |
+| --- | --- |
+| Identifier | Streitwieser (1961), Molecular Orbital Theory for Organic Chemists, Wiley |
+| Status | reference only |
+| Verification | citation |
+| Verified | 2026-11-15 |
+| Local copy | `molecular orbital theory_ for organic chemists -- andrew streitwieser, jr_1961.pdf` (not checked) |
+| Used by | `docs/OPEN_SHELL_AND_HYPERVALENT_COVERAGE_DESIGN.md` |
+
+**Why it is reference only.** Held (a scan). The classic Hueckel text. The benzyl and allyl totals were checked against ramachandran2008 and an independent diagonalisation, not against a page of this book.
+
+### jensen1990 — A remarkable large effect of spin contamination on calculated vibrational frequencies
+
+<a id="jensen1990"></a>
+
+> F. Jensen, 'A remarkable large effect of spin contamination on calculated vibrational frequencies', Chem. Phys. Lett. 169, 519-528 (1990)
+
+| | |
+| --- | --- |
+| Identifier | [10.1016/0009-2614(90)85641-O](https://doi.org/10.1016/0009-2614(90)85641-O) |
+| Status | reference only |
+| Verification | citation |
+| Verified | 2026-11-15 |
+| Local copy | `jensen1990.pdf` (not checked) |
+| Used by | `docs/OPEN_SHELL_AND_HYPERVALENT_COVERAGE_DESIGN.md` |
+
+**Why it is reference only.** Read (abstract and first page): even a small amount of spin contamination in UHF wavefunctions can change calculated vibrational frequencies substantially; <S**2> values of 0.785 and 0.787 are called small in the text. Cited for why an <S**2> figure is reported with an unrestricted result.
+
+### yu2023 — Density-Corrected Density Functional Theory for Open Shells: How to Deal with Spin Contamination
+
+<a id="yu2023"></a>
+
+> H. Yu, S. Song, S. Nam, K. Burke & E. Sim, 'Density-Corrected Density Functional Theory for Open Shells: How to Deal with Spin Contamination', J. Phys. Chem. Lett. 14, 9230-9237 (2023)
+
+| | |
+| --- | --- |
+| Identifier | [10.1021/acs.jpclett.3c02017](https://doi.org/10.1021/acs.jpclett.3c02017) |
+| Status | reference only |
+| Verification | citation |
+| Verified | 2026-11-15 |
+| Local copy | `Yu2023.pdf` (not checked) |
+| Used by | `docs/OPEN_SHELL_AND_HYPERVALENT_COVERAGE_DESIGN.md` |
+
+**Why it is reference only.** Held (with its supporting-information folder). A modern discussion of spin contamination in open-shell DFT; cited as context, no number from it is used.
+
+### yamada1981 — Diode laser study of the nu2 band of the methyl radical
+
+<a id="yamada1981"></a>
+
+> C. Yamada, E. Hirota & K. Kawaguchi, 'Diode laser study of the nu2 band of the methyl radical', J. Chem. Phys. 75, 5256-5264 (1981)
+
+| | |
+| --- | --- |
+| Identifier | [10.1063/1.441991](https://doi.org/10.1063/1.441991) |
+| Status | reference only |
+| Verification | citation + claim |
+| Verified | 2026-11-15 |
+| Local copy | `yamada1981.pdf` (not checked) |
+| Used by | `docs/OPEN_SHELL_AND_HYPERVALENT_COVERAGE_DESIGN.md` |
+
+**Why it is reference only.** Read in part. The nu2 (out-of-plane bending) band of CH3 by diode laser spectroscopy at 606.4531, 681.6369 and 731.0757 cm-1; the vibration-rotation analysis supports a planar (or nearly planar, with no potential hump at the planar configuration) ground state, which is the D3h geometry the CCCBDB page lists. Ground-state B = 9.57789 (16) cm-1 and C = 4.74202 [67] cm-1 (Table), the rotational constants CCCBDB credits to this paper. The paper does not itself give a C-H length in the parts read.
 
 ## Datasets
 

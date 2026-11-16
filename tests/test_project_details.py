@@ -22,7 +22,7 @@ from openchem.domain.molecule import MoleculeModel
 from openchem.domain.project import ProjectModel
 from openchem.ui.dialogs.batch_detail_dialog import BatchDetailDialog
 from openchem.ui.panels.property_panel import _SCOPE_CHOSEN, PropertyPanel
-from openchem.ui.widgets.results_workspace import ResultsWorkspace
+from openchem.ui.panels.batch_panel import BatchPanel
 
 
 @pytest.fixture
@@ -70,16 +70,15 @@ def _build(services, project, built, versions):
         batch_service=services.batch_service,
     )
     panel.set_project(project)
-    workspace = ResultsWorkspace(
-        QWidget(),
+    workspace = BatchPanel(
+        services.batch_service,
         services.calculator_registry,
         services.table_export_service,
         services.event_bus,
         services.chemistry_engine,
-        project_of=lambda: project,
-        structure_version_of=lambda uuid: versions.get(uuid, 0),
-        batch_service=services.batch_service,
+        structure_check_service=type("C", (), {"current_version": staticmethod(lambda uuid=None: versions.get(uuid, 0) if uuid else 0)})(),
     )
+    workspace.set_project(project)
     panel.project_run_started.connect(workspace.begin_project_run)
     built.extend([panel, workspace])
     return panel, workspace
@@ -109,7 +108,7 @@ def shown(monkeypatch):
 
 
 def _held(services, workspace, molecule, versions):
-    store = workspace.table_view._store
+    store = workspace._store
     return set(store.for_molecule(molecule.uuid, versions.get(molecule.uuid, 0))) if store else set()
 
 
@@ -119,7 +118,7 @@ def test_details_computes_what_the_table_has_for_every_other_molecule(services, 
     other = project.molecules[1]
     assert "polar_surface_area" not in _held(services, workspace, other, versions)
 
-    workspace._on_details_requested(other.uuid)
+    workspace._show_details(other.uuid)
     _wait()
 
     assert "polar_surface_area" in _held(services, workspace, other, versions)
@@ -129,19 +128,19 @@ def test_details_computes_what_the_table_has_for_every_other_molecule(services, 
 def test_the_one_molecule_run_does_not_replace_the_table(services, project, built, versions, shown):
     panel, workspace = _build(services, project, built, versions)
     _run_on_first(panel, project)
-    before = list(workspace.table_view.table().row_uuids)
+    before = list(workspace._view.table().row_uuids)
 
-    workspace._on_details_requested(project.molecules[1].uuid)
+    workspace._show_details(project.molecules[1].uuid)
     _wait()
 
-    assert workspace.table_view.table().row_uuids == before == [project.molecules[0].uuid]
+    assert workspace._view.table().row_uuids == before == [project.molecules[0].uuid]
 
 
 def test_details_opens_only_after_the_computation_lands(services, project, built, versions, shown):
     panel, workspace = _build(services, project, built, versions)
     _run_on_first(panel, project)
 
-    workspace._on_details_requested(project.molecules[1].uuid)
+    workspace._show_details(project.molecules[1].uuid)
 
     assert shown == [], "the dialog must wait for the numbers it is about to show"
     _wait()
@@ -162,7 +161,7 @@ def test_the_dialog_is_not_opened_inside_the_event_dispatch(services, project, b
             seen_open_at_completion.append(len(shown))
 
     services.event_bus.subscribe(BatchProgress, later_subscriber)
-    workspace._on_details_requested(project.molecules[1].uuid)
+    workspace._show_details(project.molecules[1].uuid)
     _wait()
 
     assert seen_open_at_completion == [0], "the dialog was already open when a later subscriber ran"
@@ -175,7 +174,7 @@ def test_nothing_runs_when_nothing_is_missing(services, project, built, versions
     asked = []
     monkeypatch.setattr(services.batch_service, "request_batch", lambda *a, **k: asked.append(a))
 
-    workspace._on_details_requested(project.molecules[0].uuid)
+    workspace._show_details(project.molecules[0].uuid)
 
     assert asked == [] and len(shown) == 1
 
@@ -202,7 +201,7 @@ def test_the_one_molecule_run_uses_the_settings_the_table_used(services, project
         services.batch_service, "request_batch", lambda request, molecules: (requests.append(request), real(request, molecules))
     )
 
-    workspace._on_details_requested(project.molecules[1].uuid)
+    workspace._show_details(project.molecules[1].uuid)
     _wait()
 
     assert requests[0].parameters == {"gasteiger_charge_at_ph": {"pH": 6.5}}
@@ -214,13 +213,13 @@ def test_it_computes_only_what_is_missing(services, project, built, versions, sh
     panel, workspace = _build(services, project, built, versions)
     _run_on_first(panel, project, ids=("polar_surface_area", "topology_analysis"))
     first = project.molecules[0].uuid
-    workspace._table_view._store.results.pop(
-        next(key for key in workspace._table_view._store.results if key.molecule_uuid == first and key.calculator_id == "topology_analysis")
+    workspace._view._store.results.pop(
+        next(key for key in workspace._view._store.results if key.molecule_uuid == first and key.calculator_id == "topology_analysis")
     )
     requests = []
     monkeypatch.setattr(services.batch_service, "request_batch", lambda request, molecules: requests.append(request))
 
-    workspace._on_details_requested(first)
+    workspace._show_details(first)
 
     assert requests[0].calculator_ids == ["topology_analysis"]
 
@@ -232,10 +231,10 @@ def test_details_is_refused_while_another_run_is_in_progress(services, project, 
     monkeypatch.setattr(services.batch_service, "is_running", lambda: True)
     monkeypatch.setattr(services.batch_service, "request_batch", lambda *a, **k: asked.append(a))
 
-    workspace._on_details_requested(project.molecules[1].uuid)
+    workspace._show_details(project.molecules[1].uuid)
 
     assert asked == [] and shown == []
-    assert "already in progress" in workspace.table_view._status.text()
+    assert "already in progress" in workspace._view._status.text()
 
 
 def test_a_molecule_with_no_structure_just_opens(services, project, built, versions, shown, monkeypatch):
@@ -246,26 +245,24 @@ def test_a_molecule_with_no_structure_just_opens(services, project, built, versi
     asked = []
     monkeypatch.setattr(services.batch_service, "request_batch", lambda *a, **k: asked.append(a))
 
-    workspace._on_details_requested(empty.uuid)
+    workspace._show_details(empty.uuid)
 
     assert asked == [] and len(shown) == 1
 
 
 def test_without_a_service_details_never_tries_to_compute(services, project, built, versions, shown):
     panel, _ = _build(services, project, built, versions)
-    workspace = ResultsWorkspace(
-        QWidget(),
+    workspace = BatchPanel(
+        services.batch_service,
         services.calculator_registry,
         services.table_export_service,
         services.event_bus,
         services.chemistry_engine,
-        project_of=lambda: project,
     )
+    workspace.set_project(project)
     built.append(workspace)
-    panel.project_run_started.connect(workspace.begin_project_run)
-    _run_on_first(panel, project)
 
-    workspace._on_details_requested(project.molecules[1].uuid)
+    workspace._show_details(project.molecules[1].uuid)
 
     assert len(shown) == 1
 
@@ -283,6 +280,6 @@ def test_properties_and_catalogs_are_never_what_makes_details_run(services, proj
     asked = []
     monkeypatch.setattr(services.batch_service, "request_batch", lambda *a, **k: asked.append(a))
 
-    workspace._on_details_requested(project.molecules[0].uuid)
+    workspace._show_details(project.molecules[0].uuid)
 
     assert asked == [] and len(shown) == 1

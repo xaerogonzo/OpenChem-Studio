@@ -39,12 +39,13 @@ _DONOR = Chem.MolFromSmarts(
 )
 
 #: RDKit's acceptor definition (`Lipinski.HAcceptorSmarts`) with the aromatic nitrogen restricted to two
-#: connections (see the module docstring for why): a hydroxyl or thiol on a carbon that is not itself
+#: connections (see the module docstring for why), and a nitroxide nitrogen (N bonded to a neutral one-connection oxygen) is not an acceptor:
+#: its lone pair is in the three-electron N-O bond and the radical protonates on oxygen (`docs/OPEN_SHELL_AND_HYPERVALENT_COVERAGE_DESIGN.md`, section 8): a hydroxyl or thiol on a carbon that is not itself
 #: double-bonded to O, N, P or S; a two-valent O or S with no hydrogen; an oxyanion; a three-valent N that
 #: is not conjugated to such a double bond; a pyridine-type n; an aromatic o or s.
 _ACCEPTOR = Chem.MolFromSmarts(
     "[$([O,S;H1;v2]-[!$(*=[O,N,P,S])]),$([O,S;H0;v2]),$([O,S;-]),"
-    "$([N;v3;!$(N-*=!@[O,N,P,S])]),$([nX2,o,s;+0])]"
+    "$([N;v3;!$(N-*=!@[O,N,P,S]);!$(N-[OX1;+0])]),$([nX2,o,s;+0])]"
 )
 
 #: The role of an atom that gives a hydrogen to a bond.

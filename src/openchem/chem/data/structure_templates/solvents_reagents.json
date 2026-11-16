@@ -115,6 +115,1995 @@
         "solvent",
         "aromatic"
       ]
+    },
+    {
+      "id": "solvents_reagents.chloroform",
+      "name": "Chloroform",
+      "smiles": "ClC(Cl)Cl",
+      "tags": [
+        "solvent"
+      ]
+    },
+    {
+      "id": "solvents_reagents.carbon_tetrachloride",
+      "name": "Carbon tetrachloride",
+      "smiles": "ClC(Cl)(Cl)Cl",
+      "tags": [
+        "solvent"
+      ]
+    },
+    {
+      "id": "solvents_reagents.n_pentane",
+      "name": "Pentane",
+      "smiles": "CCCCC",
+      "tags": [
+        "solvent"
+      ]
+    },
+    {
+      "id": "solvents_reagents.n_hexane",
+      "name": "Hexane",
+      "smiles": "CCCCCC",
+      "tags": [
+        "solvent"
+      ]
+    },
+    {
+      "id": "solvents_reagents.n_heptane",
+      "name": "Heptane",
+      "smiles": "CCCCCCC",
+      "tags": [
+        "solvent"
+      ]
+    },
+    {
+      "id": "solvents_reagents.n_octane",
+      "name": "Octane",
+      "smiles": "CCCCCCCC",
+      "tags": [
+        "solvent"
+      ]
+    },
+    {
+      "id": "solvents_reagents.cyclohexanone",
+      "name": "Cyclohexanone",
+      "smiles": "O=C1CCCCC1",
+      "tags": [
+        "solvent",
+        "ketone"
+      ]
+    },
+    {
+      "id": "solvents_reagents.propan_2_ol",
+      "name": "Propan-2-ol",
+      "smiles": "CC(C)O",
+      "tags": [
+        "solvent",
+        "alcohol"
+      ]
+    },
+    {
+      "id": "solvents_reagents.2_methylpropan_2_ol",
+      "name": "2-Methylpropan-2-ol",
+      "smiles": "CC(C)(C)O",
+      "tags": [
+        "solvent",
+        "alcohol"
+      ]
+    },
+    {
+      "id": "solvents_reagents.propan_1_ol",
+      "name": "Propan-1-ol",
+      "smiles": "CCCO",
+      "tags": [
+        "solvent",
+        "alcohol"
+      ]
+    },
+    {
+      "id": "solvents_reagents.butan_1_ol",
+      "name": "Butan-1-ol",
+      "smiles": "CCCCO",
+      "tags": [
+        "solvent",
+        "alcohol"
+      ]
+    },
+    {
+      "id": "solvents_reagents.n_n_dimethylformamide",
+      "name": "N,N-Dimethylformamide",
+      "smiles": "CN(C)C=O",
+      "tags": [
+        "solvent"
+      ]
+    },
+    {
+      "id": "solvents_reagents.n_n_dimethylacetamide",
+      "name": "N,N-Dimethylacetamide",
+      "smiles": "CC(=O)N(C)C",
+      "tags": [
+        "solvent"
+      ]
+    },
+    {
+      "id": "solvents_reagents.n_methylpyrrolidone",
+      "name": "N-Methylpyrrolidone",
+      "smiles": "CN1CCCC1=O",
+      "tags": [
+        "solvent"
+      ]
+    },
+    {
+      "id": "solvents_reagents.triethylamine",
+      "name": "Triethylamine",
+      "smiles": "CCN(CC)CC",
+      "tags": [
+        "base"
+      ]
+    },
+    {
+      "id": "solvents_reagents.n_ethyldiisopropylamine",
+      "name": "N-Ethyldiisopropylamine",
+      "smiles": "CCN(C(C)C)C(C)C",
+      "tags": [
+        "base"
+      ]
+    },
+    {
+      "id": "solvents_reagents.trifluoroacetic_acid",
+      "name": "Trifluoroacetic acid",
+      "smiles": "OC(=O)C(F)(F)F",
+      "tags": [
+        "acid"
+      ]
+    },
+    {
+      "id": "solvents_reagents.formic_acid",
+      "name": "Formic acid",
+      "smiles": "OC=O",
+      "tags": [
+        "acid"
+      ]
+    },
+    {
+      "id": "solvents_reagents.acetic_anhydride",
+      "name": "Acetic anhydride",
+      "smiles": "CC(=O)OC(C)=O",
+      "tags": [
+        "reagent"
+      ]
+    },
+    {
+      "id": "solvents_reagents.1_2_dichloroethane",
+      "name": "1,2-Dichloroethane",
+      "smiles": "ClCCCl",
+      "tags": [
+        "solvent"
+      ]
+    },
+    {
+      "id": "solvents_reagents.chlorobenzene",
+      "name": "Chlorobenzene",
+      "smiles": "Clc1ccccc1",
+      "tags": [
+        "solvent"
+      ]
+    },
+    {
+      "id": "solvents_reagents.o_xylene",
+      "name": "o-Xylene",
+      "smiles": "Cc1ccccc1C",
+      "tags": [
+        "solvent"
+      ]
+    },
+    {
+      "id": "solvents_reagents.m_xylene",
+      "name": "m-Xylene",
+      "smiles": "Cc1cccc(C)c1",
+      "tags": [
+        "solvent"
+      ]
+    },
+    {
+      "id": "solvents_reagents.p_xylene",
+      "name": "p-Xylene",
+      "smiles": "Cc1ccc(C)cc1",
+      "tags": [
+        "solvent"
+      ]
+    },
+    {
+      "id": "solvents_reagents.mesitylene",
+      "name": "Mesitylene",
+      "smiles": "Cc1cc(C)cc(C)c1",
+      "tags": [
+        "solvent"
+      ]
+    },
+    {
+      "id": "solvents_reagents.nitromethane",
+      "name": "Nitromethane",
+      "smiles": "C[N+](=O)[O-]",
+      "tags": [
+        "solvent"
+      ]
+    },
+    {
+      "id": "solvents_reagents.1_2_dimethoxyethane",
+      "name": "1,2-Dimethoxyethane",
+      "smiles": "COCCOC",
+      "tags": [
+        "solvent"
+      ]
+    },
+    {
+      "id": "solvents_reagents.tert_butyl_methyl_ether",
+      "name": "tert-Butyl methyl ether",
+      "smiles": "COC(C)(C)C",
+      "tags": [
+        "solvent"
+      ]
+    },
+    {
+      "id": "solvents_reagents.2_methyltetrahydrofuran",
+      "name": "2-Methyltetrahydrofuran",
+      "smiles": "CC1CCCO1",
+      "tags": [
+        "solvent"
+      ]
+    },
+    {
+      "id": "solvents_reagents.carbon_disulfide",
+      "name": "Carbon disulfide",
+      "smiles": "S=C=S",
+      "tags": [
+        "solvent"
+      ]
+    },
+    {
+      "id": "solvents_reagents.diisopropyl_ether",
+      "name": "Diisopropyl ether",
+      "smiles": "CC(C)OC(C)C",
+      "tags": [
+        "solvent"
+      ]
+    },
+    {
+      "id": "solvents_reagents.1_2_dichlorobenzene",
+      "name": "1,2-Dichlorobenzene",
+      "smiles": "Clc1ccccc1Cl",
+      "tags": [
+        "solvent"
+      ]
+    },
+    {
+      "id": "solvents_reagents.sulfolane",
+      "name": "Sulfolane",
+      "smiles": "O=S1(=O)CCCC1",
+      "tags": [
+        "solvent"
+      ]
+    },
+    {
+      "id": "solvents_reagents.dmap",
+      "name": "4-Dimethylaminopyridine",
+      "smiles": "CN(C)c1ccncc1",
+      "tags": [
+        "base"
+      ]
+    },
+    {
+      "id": "solvents_reagents.n_bromosuccinimide",
+      "name": "N-Bromosuccinimide",
+      "smiles": "O=C1CCC(=O)N1Br",
+      "tags": [
+        "reagent"
+      ]
+    },
+    {
+      "id": "solvents_reagents.n_chlorosuccinimide",
+      "name": "N-Chlorosuccinimide",
+      "smiles": "O=C1CCC(=O)N1Cl",
+      "tags": [
+        "reagent"
+      ]
+    },
+    {
+      "id": "solvents_reagents.triphenylphosphine",
+      "name": "Triphenylphosphine",
+      "smiles": "c1ccc(P(c2ccccc2)c2ccccc2)cc1",
+      "tags": [
+        "reagent"
+      ]
+    },
+    {
+      "id": "solvents_reagents.thionyl_chloride",
+      "name": "Thionyl chloride",
+      "smiles": "O=S(Cl)Cl",
+      "tags": [
+        "reagent"
+      ]
+    },
+    {
+      "id": "solvents_reagents.oxalyl_chloride",
+      "name": "Oxalyl chloride",
+      "smiles": "ClC(=O)C(=O)Cl",
+      "tags": [
+        "reagent"
+      ]
+    },
+    {
+      "id": "solvents_reagents.phosphorus_oxychloride",
+      "name": "Phosphorus oxychloride",
+      "smiles": "O=P(Cl)(Cl)Cl",
+      "tags": [
+        "reagent"
+      ]
+    },
+    {
+      "id": "solvents_reagents.benzoyl_chloride",
+      "name": "Benzoyl chloride",
+      "smiles": "O=C(Cl)c1ccccc1",
+      "tags": [
+        "reagent"
+      ]
+    },
+    {
+      "id": "solvents_reagents.tosyl_chloride",
+      "name": "p-Toluenesulfonyl chloride",
+      "smiles": "Cc1ccc(S(=O)(=O)Cl)cc1",
+      "tags": [
+        "reagent"
+      ]
+    },
+    {
+      "id": "solvents_reagents.methanesulfonyl_chloride",
+      "name": "Methanesulfonyl chloride",
+      "smiles": "CS(=O)(=O)Cl",
+      "tags": [
+        "reagent"
+      ]
+    },
+    {
+      "id": "solvents_reagents.p_toluenesulfonic_acid",
+      "name": "p-Toluenesulfonic acid",
+      "smiles": "Cc1ccc(S(=O)(=O)O)cc1",
+      "tags": [
+        "acid"
+      ]
+    },
+    {
+      "id": "solvents_reagents.methanesulfonic_acid",
+      "name": "Methanesulfonic acid",
+      "smiles": "CS(=O)(=O)O",
+      "tags": [
+        "acid"
+      ]
+    },
+    {
+      "id": "solvents_reagents.benzyl_alcohol",
+      "name": "Benzyl alcohol",
+      "smiles": "OCc1ccccc1",
+      "tags": [
+        "solvent"
+      ]
+    },
+    {
+      "id": "solvents_reagents.nitroethane",
+      "name": "Nitroethane",
+      "smiles": "CC[N+](=O)[O-]",
+      "tags": [
+        "solvent"
+      ]
+    },
+    {
+      "id": "solvents_reagents.formamide",
+      "name": "Formamide",
+      "smiles": "NC=O",
+      "tags": [
+        "solvent"
+      ]
+    },
+    {
+      "id": "solvents_reagents.hexamethylphosphoramide",
+      "name": "Hexamethylphosphoramide",
+      "smiles": "CN(C)P(=O)(N(C)C)N(C)C",
+      "tags": [
+        "solvent"
+      ]
+    },
+    {
+      "id": "solvents_reagents.n_methylmorpholine",
+      "name": "N-Methylmorpholine",
+      "smiles": "CN1CCOCC1",
+      "tags": [
+        "base"
+      ]
+    },
+    {
+      "id": "solvents_reagents.n_methylimidazole",
+      "name": "1-Methylimidazole",
+      "smiles": "Cn1ccnc1",
+      "tags": [
+        "base"
+      ]
+    },
+    {
+      "id": "solvents_reagents.dicyclohexylcarbodiimide",
+      "name": "Dicyclohexylcarbodiimide",
+      "smiles": "C1CCC(N=C=NC2CCCCC2)CC1",
+      "tags": [
+        "reagent"
+      ]
+    },
+    {
+      "id": "solvents_reagents.diisopropylcarbodiimide",
+      "name": "N,N'-Diisopropylcarbodiimide",
+      "smiles": "CC(C)N=C=NC(C)C",
+      "tags": [
+        "reagent"
+      ]
+    },
+    {
+      "id": "solvents_reagents.hydroxybenzotriazole",
+      "name": "1-Hydroxybenzotriazole",
+      "smiles": "On1nnc2ccccc12",
+      "tags": [
+        "reagent"
+      ]
+    },
+    {
+      "id": "solvents_reagents.n_hydroxysuccinimide",
+      "name": "N-Hydroxysuccinimide",
+      "smiles": "ON1C(=O)CCC1=O",
+      "tags": [
+        "reagent"
+      ]
+    },
+    {
+      "id": "solvents_reagents.trimethylsilyl_chloride",
+      "name": "Chlorotrimethylsilane",
+      "smiles": "C[Si](C)(C)Cl",
+      "tags": [
+        "reagent"
+      ]
+    },
+    {
+      "id": "solvents_reagents.hexamethyldisilazane",
+      "name": "Hexamethyldisilazane",
+      "smiles": "C[Si](C)(C)N[Si](C)(C)C",
+      "tags": [
+        "reagent"
+      ]
+    },
+    {
+      "id": "solvents_reagents.trimethylsilyl_triflate",
+      "name": "Trimethylsilyl trifluoromethanesulfonate",
+      "smiles": "C[Si](C)(C)OS(=O)(=O)C(F)(F)F",
+      "tags": [
+        "reagent"
+      ]
+    },
+    {
+      "id": "solvents_reagents.boron_trifluoride_etherate_bf3",
+      "name": "Boron trifluoride",
+      "smiles": "FB(F)F",
+      "tags": [
+        "reagent"
+      ]
+    },
+    {
+      "id": "solvents_reagents.titanium_tetrachloride",
+      "name": "Titanium tetrachloride",
+      "smiles": "Cl[Ti](Cl)(Cl)Cl",
+      "tags": [
+        "reagent"
+      ]
+    },
+    {
+      "id": "solvents_reagents.tin_tetrachloride",
+      "name": "Tin tetrachloride",
+      "smiles": "Cl[Sn](Cl)(Cl)Cl",
+      "tags": [
+        "reagent"
+      ]
+    },
+    {
+      "id": "solvents_reagents.phosphorus_trichloride",
+      "name": "Phosphorus trichloride",
+      "smiles": "ClP(Cl)Cl",
+      "tags": [
+        "reagent"
+      ]
+    },
+    {
+      "id": "solvents_reagents.phosphorus_pentachloride",
+      "name": "Phosphorus pentachloride",
+      "smiles": "ClP(Cl)(Cl)(Cl)Cl",
+      "tags": [
+        "reagent"
+      ]
+    },
+    {
+      "id": "solvents_reagents.sulfuryl_chloride",
+      "name": "Sulfuryl chloride",
+      "smiles": "O=S(=O)(Cl)Cl",
+      "tags": [
+        "reagent"
+      ]
+    },
+    {
+      "id": "solvents_reagents.chlorosulfonic_acid",
+      "name": "Chlorosulfonic acid",
+      "smiles": "O=S(=O)(O)Cl",
+      "tags": [
+        "reagent"
+      ]
+    },
+    {
+      "id": "solvents_reagents.iodine",
+      "name": "Diiodine",
+      "smiles": "II",
+      "tags": [
+        "reagent"
+      ]
+    },
+    {
+      "id": "solvents_reagents.dibromine",
+      "name": "Dibromine",
+      "smiles": "BrBr",
+      "tags": [
+        "reagent"
+      ]
+    },
+    {
+      "id": "solvents_reagents.dichlorine",
+      "name": "Dichlorine",
+      "smiles": "ClCl",
+      "tags": [
+        "reagent"
+      ]
+    },
+    {
+      "id": "solvents_reagents.hydrogen_cyanide",
+      "name": "Hydrogen cyanide",
+      "smiles": "C#N",
+      "tags": [
+        "reagent"
+      ]
+    },
+    {
+      "id": "solvents_reagents.hydrogen_sulfide",
+      "name": "Hydrogen sulfide",
+      "smiles": "S",
+      "tags": [
+        "reagent"
+      ]
+    },
+    {
+      "id": "solvents_reagents.sulfur_dioxide",
+      "name": "Sulfur dioxide",
+      "smiles": "O=S=O",
+      "tags": [
+        "reagent"
+      ]
+    },
+    {
+      "id": "solvents_reagents.phosphoric_acid",
+      "name": "Phosphoric acid",
+      "smiles": "OP(=O)(O)O",
+      "tags": [
+        "acid"
+      ]
+    },
+    {
+      "id": "solvents_reagents.sulfuric_acid",
+      "name": "Sulfuric acid",
+      "smiles": "O=S(=O)(O)O",
+      "tags": [
+        "acid"
+      ]
+    },
+    {
+      "id": "solvents_reagents.nitric_acid",
+      "name": "Nitric acid",
+      "smiles": "O=[N+]([O-])O",
+      "tags": [
+        "acid"
+      ]
+    },
+    {
+      "id": "solvents_reagents.perchloric_acid",
+      "name": "Perchloric acid",
+      "smiles": "O=Cl(=O)(=O)O",
+      "tags": [
+        "acid"
+      ]
+    },
+    {
+      "id": "solvents_reagents.hydrobromic_acid",
+      "name": "Hydrogen bromide",
+      "smiles": "Br",
+      "tags": [
+        "acid"
+      ]
+    },
+    {
+      "id": "solvents_reagents.pinacol",
+      "name": "Pinacol",
+      "smiles": "CC(C)(O)C(C)(C)O",
+      "tags": [
+        "alcohol"
+      ]
+    },
+    {
+      "id": "solvents_reagents.pinacolone",
+      "name": "Pinacolone",
+      "smiles": "CC(=O)C(C)(C)C",
+      "tags": [
+        "ketone"
+      ]
+    },
+    {
+      "id": "solvents_reagents.diacetone_alcohol",
+      "name": "4-Hydroxy-4-methylpentan-2-one",
+      "smiles": "CC(=O)CC(C)(C)O",
+      "tags": [
+        "solvent"
+      ]
+    },
+    {
+      "id": "solvents_reagents.methyl_isobutyl_ketone",
+      "name": "4-Methylpentan-2-one",
+      "smiles": "CC(=O)CC(C)C",
+      "tags": [
+        "solvent"
+      ]
+    },
+    {
+      "id": "solvents_reagents.cyclopentanone",
+      "name": "Cyclopentanone",
+      "smiles": "O=C1CCCC1",
+      "tags": [
+        "ketone"
+      ]
+    },
+    {
+      "id": "solvents_reagents.cycloheptanone",
+      "name": "Cycloheptanone",
+      "smiles": "O=C1CCCCCC1",
+      "tags": [
+        "ketone"
+      ]
+    },
+    {
+      "id": "solvents_reagents.2_butanone",
+      "name": "Butan-2-one",
+      "smiles": "CCC(C)=O",
+      "tags": [
+        "solvent"
+      ]
+    },
+    {
+      "id": "solvents_reagents.3_pentanone",
+      "name": "Pentan-3-one",
+      "smiles": "CCC(=O)CC",
+      "tags": [
+        "solvent"
+      ]
+    },
+    {
+      "id": "solvents_reagents.2_butanol",
+      "name": "Butan-2-ol",
+      "smiles": "CCC(C)O",
+      "tags": [
+        "alcohol"
+      ]
+    },
+    {
+      "id": "solvents_reagents.isobutanol",
+      "name": "2-Methylpropan-1-ol",
+      "smiles": "CC(C)CO",
+      "tags": [
+        "alcohol"
+      ]
+    },
+    {
+      "id": "solvents_reagents.tert_amyl_alcohol",
+      "name": "2-Methylbutan-2-ol",
+      "smiles": "CCC(C)(C)O",
+      "tags": [
+        "alcohol"
+      ]
+    },
+    {
+      "id": "solvents_reagents.ethylene_carbonate",
+      "name": "Ethylene carbonate",
+      "smiles": "O=C1OCCO1",
+      "tags": [
+        "solvent"
+      ]
+    },
+    {
+      "id": "solvents_reagents.propylene_carbonate",
+      "name": "4-Methyl-1,3-dioxolan-2-one",
+      "smiles": "CC1COC(=O)O1",
+      "tags": [
+        "solvent"
+      ]
+    },
+    {
+      "id": "solvents_reagents.dimethyl_carbonate",
+      "name": "Dimethyl carbonate",
+      "smiles": "COC(=O)OC",
+      "tags": [
+        "solvent"
+      ]
+    },
+    {
+      "id": "solvents_reagents.diethyl_carbonate",
+      "name": "Diethyl carbonate",
+      "smiles": "CCOC(=O)OCC",
+      "tags": [
+        "solvent"
+      ]
+    },
+    {
+      "id": "solvents_reagents.gamma_valerolactone",
+      "name": "5-Methyloxolan-2-one",
+      "smiles": "CC1CCC(=O)O1",
+      "tags": [
+        "solvent"
+      ]
+    },
+    {
+      "id": "solvents_reagents.n_butyl_acetate",
+      "name": "Butyl acetate",
+      "smiles": "CCCCOC(C)=O",
+      "tags": [
+        "solvent"
+      ]
+    },
+    {
+      "id": "solvents_reagents.isopropyl_acetate",
+      "name": "Propan-2-yl acetate",
+      "smiles": "CC(C)OC(C)=O",
+      "tags": [
+        "solvent"
+      ]
+    },
+    {
+      "id": "solvents_reagents.edc",
+      "name": "1-Ethyl-3-(3-dimethylaminopropyl)carbodiimide",
+      "smiles": "CCN=C=NCCCN(C)C",
+      "tags": [
+        "reagent"
+      ]
+    },
+    {
+      "id": "solvents_reagents.tmeda",
+      "name": "N,N,N',N'-Tetramethylethylenediamine",
+      "smiles": "CN(C)CCN(C)C",
+      "tags": [
+        "base"
+      ]
+    },
+    {
+      "id": "solvents_reagents.ethyl_acetoacetate",
+      "name": "Ethyl acetoacetate",
+      "smiles": "CCOC(=O)CC(C)=O",
+      "tags": [
+        "ester"
+      ]
+    },
+    {
+      "id": "solvents_reagents.diethyl_malonate",
+      "name": "Diethyl malonate",
+      "smiles": "CCOC(=O)CC(=O)OCC",
+      "tags": [
+        "ester"
+      ]
+    },
+    {
+      "id": "solvents_reagents.ethyl_cyanoacetate",
+      "name": "Ethyl cyanoacetate",
+      "smiles": "CCOC(=O)CC#N",
+      "tags": [
+        "ester"
+      ]
+    },
+    {
+      "id": "solvents_reagents.tetramethylurea",
+      "name": "Tetramethylurea",
+      "smiles": "CN(C)C(=O)N(C)C",
+      "tags": [
+        "urea"
+      ]
+    },
+    {
+      "id": "solvents_reagents.fmoc_chloride",
+      "name": "Fmoc chloride",
+      "smiles": "O=C(Cl)OCC1c2ccccc2-c2ccccc21",
+      "tags": [
+        "reagent"
+      ]
+    },
+    {
+      "id": "solvents_reagents.di_tert_butyl_dicarbonate",
+      "name": "Di-tert-butyl dicarbonate",
+      "smiles": "CC(C)(C)OC(=O)OC(=O)OC(C)(C)C",
+      "tags": [
+        "reagent"
+      ]
+    },
+    {
+      "id": "solvents_reagents.benzyl_chloroformate",
+      "name": "Benzyl chloroformate",
+      "smiles": "O=C(Cl)OCc1ccccc1",
+      "tags": [
+        "reagent"
+      ]
+    },
+    {
+      "id": "solvents_reagents.trityl_chloride",
+      "name": "Trityl chloride",
+      "smiles": "ClC(c1ccccc1)(c1ccccc1)c1ccccc1",
+      "tags": [
+        "reagent"
+      ]
+    },
+    {
+      "id": "solvents_reagents.tbdms_chloride",
+      "name": "tert-Butyldimethylsilyl chloride",
+      "smiles": "CC(C)(C)[Si](C)(C)Cl",
+      "tags": [
+        "reagent"
+      ]
+    },
+    {
+      "id": "solvents_reagents.tbdps_chloride",
+      "name": "tert-Butyldiphenylsilyl chloride",
+      "smiles": "CC(C)(C)[Si](Cl)(c1ccccc1)c1ccccc1",
+      "tags": [
+        "reagent"
+      ]
+    },
+    {
+      "id": "solvents_reagents.cpme",
+      "name": "Cyclopentyl methyl ether",
+      "smiles": "COC1CCCC1",
+      "tags": [
+        "ether"
+      ]
+    },
+    {
+      "id": "solvents_reagents.hexafluoroisopropanol",
+      "name": "1,1,1,3,3,3-Hexafluoropropan-2-ol",
+      "smiles": "OC(C(F)(F)F)C(F)(F)F",
+      "tags": [
+        "alcohol"
+      ]
+    },
+    {
+      "id": "solvents_reagents.trifluoroethanol",
+      "name": "2,2,2-Trifluoroethanol",
+      "smiles": "OCC(F)(F)F",
+      "tags": [
+        "alcohol"
+      ]
+    },
+    {
+      "id": "solvents_reagents.isoamyl_alcohol",
+      "name": "3-Methylbutan-1-ol",
+      "smiles": "CC(C)CCO",
+      "tags": [
+        "alcohol"
+      ]
+    },
+    {
+      "id": "solvents_reagents.pentan_1_ol",
+      "name": "Pentan-1-ol",
+      "smiles": "CCCCCO",
+      "tags": [
+        "alcohol"
+      ]
+    },
+    {
+      "id": "solvents_reagents.hexan_1_ol",
+      "name": "Hexan-1-ol",
+      "smiles": "CCCCCCO",
+      "tags": [
+        "alcohol"
+      ]
+    },
+    {
+      "id": "solvents_reagents.octan_1_ol",
+      "name": "Octan-1-ol",
+      "smiles": "CCCCCCCCO",
+      "tags": [
+        "alcohol"
+      ]
+    },
+    {
+      "id": "solvents_reagents.cyclohexanol",
+      "name": "Cyclohexanol",
+      "smiles": "OC1CCCCC1",
+      "tags": [
+        "alcohol"
+      ]
+    },
+    {
+      "id": "solvents_reagents.cyclopentanol",
+      "name": "Cyclopentanol",
+      "smiles": "OC1CCCC1",
+      "tags": [
+        "alcohol"
+      ]
+    },
+    {
+      "id": "solvents_reagents.2_methoxyethanol",
+      "name": "2-Methoxyethanol",
+      "smiles": "COCCO",
+      "tags": [
+        "ether"
+      ]
+    },
+    {
+      "id": "solvents_reagents.2_ethoxyethanol",
+      "name": "2-Ethoxyethanol",
+      "smiles": "CCOCCO",
+      "tags": [
+        "ether"
+      ]
+    },
+    {
+      "id": "solvents_reagents.diethylene_glycol",
+      "name": "Diethylene glycol",
+      "smiles": "OCCOCCO",
+      "tags": [
+        "alcohol"
+      ]
+    },
+    {
+      "id": "solvents_reagents.triethylene_glycol",
+      "name": "Triethylene glycol",
+      "smiles": "OCCOCCOCCO",
+      "tags": [
+        "alcohol"
+      ]
+    },
+    {
+      "id": "solvents_reagents.propane_1_2_diol",
+      "name": "Propane-1,2-diol",
+      "smiles": "CC(O)CO",
+      "tags": [
+        "alcohol"
+      ]
+    },
+    {
+      "id": "solvents_reagents.propane_1_3_diol",
+      "name": "Propane-1,3-diol",
+      "smiles": "OCCCO",
+      "tags": [
+        "alcohol"
+      ]
+    },
+    {
+      "id": "solvents_reagents.butane_1_4_diol",
+      "name": "Butane-1,4-diol",
+      "smiles": "OCCCCO",
+      "tags": [
+        "alcohol"
+      ]
+    },
+    {
+      "id": "solvents_reagents.butane_1_3_diol",
+      "name": "Butane-1,3-diol",
+      "smiles": "CC(O)CCO",
+      "tags": [
+        "alcohol"
+      ]
+    },
+    {
+      "id": "solvents_reagents.neopentyl_glycol",
+      "name": "Neopentyl glycol",
+      "smiles": "CC(C)(CO)CO",
+      "tags": [
+        "alcohol"
+      ]
+    },
+    {
+      "id": "solvents_reagents.ethylenediamine",
+      "name": "Ethylenediamine",
+      "smiles": "NCCN",
+      "tags": [
+        "amine"
+      ]
+    },
+    {
+      "id": "solvents_reagents.1_1_1_trichloroethane",
+      "name": "1,1,1-Trichloroethane",
+      "smiles": "CC(Cl)(Cl)Cl",
+      "tags": [
+        "halide"
+      ]
+    },
+    {
+      "id": "solvents_reagents.1_1_2_trichloroethane",
+      "name": "1,1,2-Trichloroethane",
+      "smiles": "ClCC(Cl)Cl",
+      "tags": [
+        "halide"
+      ]
+    },
+    {
+      "id": "solvents_reagents.1_1_2_2_tetrachloroethane",
+      "name": "1,1,2,2-Tetrachloroethane",
+      "smiles": "ClC(Cl)C(Cl)Cl",
+      "tags": [
+        "halide"
+      ]
+    },
+    {
+      "id": "solvents_reagents.n_iodosuccinimide",
+      "name": "N-Iodosuccinimide",
+      "smiles": "O=C1CCC(=O)N1I",
+      "tags": [
+        "reagent"
+      ]
+    },
+    {
+      "id": "solvents_reagents.mcpba",
+      "name": "3-Chloroperbenzoic acid",
+      "smiles": "O=C(OO)c1cccc(Cl)c1",
+      "tags": [
+        "reagent"
+      ]
+    },
+    {
+      "id": "solvents_reagents.aibn",
+      "name": "Azobisisobutyronitrile",
+      "smiles": "CC(C)(C#N)N=NC(C)(C)C#N",
+      "tags": [
+        "reagent"
+      ]
+    },
+    {
+      "id": "solvents_reagents.benzoyl_peroxide",
+      "name": "Benzoyl peroxide",
+      "smiles": "O=C(OOC(=O)c1ccccc1)c1ccccc1",
+      "tags": [
+        "reagent"
+      ]
+    },
+    {
+      "id": "solvents_reagents.tert_butyl_hydroperoxide",
+      "name": "tert-Butyl hydroperoxide",
+      "smiles": "CC(C)(C)OO",
+      "tags": [
+        "reagent"
+      ]
+    },
+    {
+      "id": "solvents_reagents.cumene_hydroperoxide",
+      "name": "Cumene hydroperoxide",
+      "smiles": "CC(C)(OO)c1ccccc1",
+      "tags": [
+        "reagent"
+      ]
+    },
+    {
+      "id": "solvents_reagents.di_tert_butyl_peroxide",
+      "name": "Di-tert-butyl peroxide",
+      "smiles": "CC(C)(C)OOC(C)(C)C",
+      "tags": [
+        "reagent"
+      ]
+    },
+    {
+      "id": "solvents_reagents.trifluoroacetic_anhydride",
+      "name": "Trifluoroacetic anhydride",
+      "smiles": "O=C(OC(=O)C(F)(F)F)C(F)(F)F",
+      "tags": [
+        "reagent"
+      ]
+    },
+    {
+      "id": "solvents_reagents.triflic_acid",
+      "name": "Trifluoromethanesulfonic acid",
+      "smiles": "OS(=O)(=O)C(F)(F)F",
+      "tags": [
+        "reagent"
+      ]
+    },
+    {
+      "id": "solvents_reagents.triflic_anhydride",
+      "name": "Trifluoromethanesulfonic anhydride",
+      "smiles": "O=S(=O)(OS(=O)(=O)C(F)(F)F)C(F)(F)F",
+      "tags": [
+        "reagent"
+      ]
+    },
+    {
+      "id": "solvents_reagents.carbonyldiimidazole",
+      "name": "1,1'-Carbonyldiimidazole",
+      "smiles": "O=C(n1ccnc1)n1ccnc1",
+      "tags": [
+        "reagent"
+      ]
+    },
+    {
+      "id": "solvents_reagents.oxyma",
+      "name": "Ethyl (hydroxyimino)cyanoacetate",
+      "smiles": "CCOC(=O)/C(=N/O)C#N",
+      "tags": [
+        "reagent"
+      ]
+    },
+    {
+      "id": "solvents_reagents.fmoc_osu",
+      "name": "Fmoc-OSu",
+      "smiles": "O=C(ON1C(=O)CCC1=O)OCC1c2ccccc2-c2ccccc21",
+      "tags": [
+        "reagent"
+      ]
+    },
+    {
+      "id": "solvents_reagents.cbz_osu",
+      "name": "Cbz-OSu",
+      "smiles": "O=C(ON1C(=O)CCC1=O)OCc1ccccc1",
+      "tags": [
+        "reagent"
+      ]
+    },
+    {
+      "id": "solvents_reagents.alloc_chloride",
+      "name": "Allyl chloroformate",
+      "smiles": "C=CCOC(=O)Cl",
+      "tags": [
+        "reagent"
+      ]
+    },
+    {
+      "id": "solvents_reagents.tes_chloride",
+      "name": "Triethylsilyl chloride",
+      "smiles": "CC[Si](Cl)(CC)CC",
+      "tags": [
+        "reagent"
+      ]
+    },
+    {
+      "id": "solvents_reagents.tips_chloride",
+      "name": "Triisopropylsilyl chloride",
+      "smiles": "CC(C)[Si](Cl)(C(C)C)C(C)C",
+      "tags": [
+        "reagent"
+      ]
+    },
+    {
+      "id": "solvents_reagents.mom_chloride",
+      "name": "Methoxymethyl chloride",
+      "smiles": "COCCl",
+      "tags": [
+        "reagent"
+      ]
+    },
+    {
+      "id": "solvents_reagents.pmb_chloride",
+      "name": "4-Methoxybenzyl chloride",
+      "smiles": "COc1ccc(CCl)cc1",
+      "tags": [
+        "reagent"
+      ]
+    },
+    {
+      "id": "solvents_reagents.ibx",
+      "name": "2-Iodoxybenzoic acid",
+      "smiles": "O=C1OI(=O)(O)c2ccccc12",
+      "tags": [
+        "reagent"
+      ]
+    },
+    {
+      "id": "solvents_reagents.1_chlorobutane",
+      "name": "1-Chlorobutane",
+      "smiles": "CCCCCl",
+      "tags": [
+        "halide"
+      ]
+    },
+    {
+      "id": "solvents_reagents.2_chlorobutane",
+      "name": "2-Chlorobutane",
+      "smiles": "CCC(C)Cl",
+      "tags": [
+        "halide"
+      ]
+    },
+    {
+      "id": "solvents_reagents.1_bromobutane",
+      "name": "1-Bromobutane",
+      "smiles": "CCCCBr",
+      "tags": [
+        "halide"
+      ]
+    },
+    {
+      "id": "solvents_reagents.2_bromobutane",
+      "name": "2-Bromobutane",
+      "smiles": "CCC(C)Br",
+      "tags": [
+        "halide"
+      ]
+    },
+    {
+      "id": "solvents_reagents.1_iodobutane",
+      "name": "1-Iodobutane",
+      "smiles": "CCCCI",
+      "tags": [
+        "halide"
+      ]
+    },
+    {
+      "id": "solvents_reagents.1_chloropropane",
+      "name": "1-Chloropropane",
+      "smiles": "CCCCl",
+      "tags": [
+        "halide"
+      ]
+    },
+    {
+      "id": "solvents_reagents.2_chloropropane",
+      "name": "2-Chloropropane",
+      "smiles": "CC(C)Cl",
+      "tags": [
+        "halide"
+      ]
+    },
+    {
+      "id": "solvents_reagents.1_bromopropane",
+      "name": "1-Bromopropane",
+      "smiles": "CCCBr",
+      "tags": [
+        "halide"
+      ]
+    },
+    {
+      "id": "solvents_reagents.2_bromopropane",
+      "name": "2-Bromopropane",
+      "smiles": "CC(C)Br",
+      "tags": [
+        "halide"
+      ]
+    },
+    {
+      "id": "solvents_reagents.bromoethane",
+      "name": "Bromoethane",
+      "smiles": "CCBr",
+      "tags": [
+        "halide"
+      ]
+    },
+    {
+      "id": "solvents_reagents.iodoethane",
+      "name": "Iodoethane",
+      "smiles": "CCI",
+      "tags": [
+        "halide"
+      ]
+    },
+    {
+      "id": "solvents_reagents.chloroethane",
+      "name": "Chloroethane",
+      "smiles": "CCCl",
+      "tags": [
+        "halide"
+      ]
+    },
+    {
+      "id": "solvents_reagents.1_2_dibromoethane",
+      "name": "1,2-Dibromoethane",
+      "smiles": "BrCCBr",
+      "tags": [
+        "halide"
+      ]
+    },
+    {
+      "id": "solvents_reagents.1_3_dibromopropane",
+      "name": "1,3-Dibromopropane",
+      "smiles": "BrCCCBr",
+      "tags": [
+        "halide"
+      ]
+    },
+    {
+      "id": "solvents_reagents.1_4_dibromobutane",
+      "name": "1,4-Dibromobutane",
+      "smiles": "BrCCCCBr",
+      "tags": [
+        "halide"
+      ]
+    },
+    {
+      "id": "solvents_reagents.1_6_dibromohexane",
+      "name": "1,6-Dibromohexane",
+      "smiles": "BrCCCCCCBr",
+      "tags": [
+        "halide"
+      ]
+    },
+    {
+      "id": "solvents_reagents.chlorocyclohexane",
+      "name": "Chlorocyclohexane",
+      "smiles": "ClC1CCCCC1",
+      "tags": [
+        "halide"
+      ]
+    },
+    {
+      "id": "solvents_reagents.bromocyclohexane",
+      "name": "Bromocyclohexane",
+      "smiles": "BrC1CCCCC1",
+      "tags": [
+        "halide"
+      ]
+    },
+    {
+      "id": "solvents_reagents.iodocyclohexane",
+      "name": "Iodocyclohexane",
+      "smiles": "IC1CCCCC1",
+      "tags": [
+        "halide"
+      ]
+    },
+    {
+      "id": "solvents_reagents.isooctane",
+      "name": "2,2,4-Trimethylpentane",
+      "smiles": "CC(C)CC(C)(C)C",
+      "tags": [
+        "alkane"
+      ]
+    },
+    {
+      "id": "solvents_reagents.2_methylpentane",
+      "name": "2-Methylpentane",
+      "smiles": "CCCC(C)C",
+      "tags": [
+        "alkane"
+      ]
+    },
+    {
+      "id": "solvents_reagents.3_methylpentane",
+      "name": "3-Methylpentane",
+      "smiles": "CCC(C)CC",
+      "tags": [
+        "alkane"
+      ]
+    },
+    {
+      "id": "solvents_reagents.2_2_dimethylbutane",
+      "name": "2,2-Dimethylbutane",
+      "smiles": "CCC(C)(C)C",
+      "tags": [
+        "alkane"
+      ]
+    },
+    {
+      "id": "solvents_reagents.2_3_dimethylbutane",
+      "name": "2,3-Dimethylbutane",
+      "smiles": "CC(C)C(C)C",
+      "tags": [
+        "alkane"
+      ]
+    },
+    {
+      "id": "solvents_reagents.ethylcyclohexane",
+      "name": "Ethylcyclohexane",
+      "smiles": "CCC1CCCCC1",
+      "tags": [
+        "alkane"
+      ]
+    },
+    {
+      "id": "solvents_reagents.perfluorohexane",
+      "name": "Perfluorohexane",
+      "smiles": "FC(F)(F)C(F)(F)C(F)(F)C(F)(F)C(F)(F)C(F)(F)F",
+      "tags": [
+        "halide"
+      ]
+    },
+    {
+      "id": "solvents_reagents.diglyme",
+      "name": "Diglyme",
+      "smiles": "COCCOCCOC",
+      "tags": [
+        "ether"
+      ]
+    },
+    {
+      "id": "solvents_reagents.triglyme",
+      "name": "Triglyme",
+      "smiles": "COCCOCCOCCOC",
+      "tags": [
+        "ether"
+      ]
+    },
+    {
+      "id": "solvents_reagents.tetraglyme",
+      "name": "Tetraglyme",
+      "smiles": "COCCOCCOCCOCCOC",
+      "tags": [
+        "ether"
+      ]
+    },
+    {
+      "id": "solvents_reagents.di_n_butyl_ether",
+      "name": "Dibutyl ether",
+      "smiles": "CCCCOCCCC",
+      "tags": [
+        "ether"
+      ]
+    },
+    {
+      "id": "solvents_reagents.di_n_propyl_ether",
+      "name": "Dipropyl ether",
+      "smiles": "CCCOCCC",
+      "tags": [
+        "ether"
+      ]
+    },
+    {
+      "id": "solvents_reagents.ethyl_tert_butyl_ether",
+      "name": "Ethyl tert-butyl ether",
+      "smiles": "CCOC(C)(C)C",
+      "tags": [
+        "ether"
+      ]
+    },
+    {
+      "id": "solvents_reagents.dimethoxymethane",
+      "name": "Dimethoxymethane",
+      "smiles": "COCOC",
+      "tags": [
+        "ether"
+      ]
+    },
+    {
+      "id": "solvents_reagents.diethoxymethane",
+      "name": "Diethoxymethane",
+      "smiles": "CCOCOCC",
+      "tags": [
+        "ether"
+      ]
+    },
+    {
+      "id": "solvents_reagents.2_butoxyethanol",
+      "name": "2-Butoxyethanol",
+      "smiles": "CCCCOCCO",
+      "tags": [
+        "ether"
+      ]
+    },
+    {
+      "id": "solvents_reagents.2_phenoxyethanol",
+      "name": "2-Phenoxyethanol",
+      "smiles": "OCCOc1ccccc1",
+      "tags": [
+        "ether"
+      ]
+    },
+    {
+      "id": "solvents_reagents.1_methoxy_2_propanol",
+      "name": "1-Methoxypropan-2-ol",
+      "smiles": "COCC(C)O",
+      "tags": [
+        "ether"
+      ]
+    },
+    {
+      "id": "solvents_reagents.methyl_formate",
+      "name": "Methyl formate",
+      "smiles": "COC=O",
+      "tags": [
+        "ester"
+      ]
+    },
+    {
+      "id": "solvents_reagents.ethyl_formate",
+      "name": "Ethyl formate",
+      "smiles": "CCOC=O",
+      "tags": [
+        "ester"
+      ]
+    },
+    {
+      "id": "solvents_reagents.propyl_acetate",
+      "name": "Propyl acetate",
+      "smiles": "CCCOC(C)=O",
+      "tags": [
+        "ester"
+      ]
+    },
+    {
+      "id": "solvents_reagents.isobutyl_acetate",
+      "name": "Isobutyl acetate",
+      "smiles": "CC(C)COC(C)=O",
+      "tags": [
+        "ester"
+      ]
+    },
+    {
+      "id": "solvents_reagents.tert_butyl_acetate",
+      "name": "tert-Butyl acetate",
+      "smiles": "CC(=O)OC(C)(C)C",
+      "tags": [
+        "ester"
+      ]
+    },
+    {
+      "id": "solvents_reagents.isoamyl_acetate",
+      "name": "Isoamyl acetate",
+      "smiles": "CC(=O)OCCC(C)C",
+      "tags": [
+        "ester"
+      ]
+    },
+    {
+      "id": "solvents_reagents.ethyl_propionate",
+      "name": "Ethyl propionate",
+      "smiles": "CCOC(=O)CC",
+      "tags": [
+        "ester"
+      ]
+    },
+    {
+      "id": "solvents_reagents.ethyl_butyrate",
+      "name": "Ethyl butanoate",
+      "smiles": "CCCC(=O)OCC",
+      "tags": [
+        "ester"
+      ]
+    },
+    {
+      "id": "solvents_reagents.trimethyl_phosphite",
+      "name": "Trimethyl phosphite",
+      "smiles": "COP(OC)OC",
+      "tags": [
+        "phosphite"
+      ]
+    },
+    {
+      "id": "solvents_reagents.triethyl_phosphite",
+      "name": "Triethyl phosphite",
+      "smiles": "CCOP(OCC)OCC",
+      "tags": [
+        "phosphite"
+      ]
+    },
+    {
+      "id": "solvents_reagents.triphenyl_phosphite",
+      "name": "Triphenyl phosphite",
+      "smiles": "O(P(Oc1ccccc1)Oc1ccccc1)c1ccccc1",
+      "tags": [
+        "phosphite"
+      ]
+    },
+    {
+      "id": "solvents_reagents.trimethylphosphine",
+      "name": "Trimethylphosphine",
+      "smiles": "CP(C)C",
+      "tags": [
+        "phosphine"
+      ]
+    },
+    {
+      "id": "solvents_reagents.triethylphosphine",
+      "name": "Triethylphosphine",
+      "smiles": "CCP(CC)CC",
+      "tags": [
+        "phosphine"
+      ]
+    },
+    {
+      "id": "solvents_reagents.tributylphosphine",
+      "name": "Tributylphosphine",
+      "smiles": "CCCCP(CCCC)CCCC",
+      "tags": [
+        "phosphine"
+      ]
+    },
+    {
+      "id": "solvents_reagents.tricyclohexylphosphine",
+      "name": "Tricyclohexylphosphine",
+      "smiles": "C1CCC(CC1)P(C1CCCCC1)C1CCCCC1",
+      "tags": [
+        "phosphine"
+      ]
+    },
+    {
+      "id": "solvents_reagents.phosphorus_tribromide",
+      "name": "Phosphorus tribromide",
+      "smiles": "BrP(Br)Br",
+      "tags": [
+        "reagent"
+      ]
+    },
+    {
+      "id": "solvents_reagents.2_bromoethanol",
+      "name": "2-Bromoethanol",
+      "smiles": "OCCBr",
+      "tags": [
+        "halide"
+      ]
+    },
+    {
+      "id": "solvents_reagents.2_chloroethanol",
+      "name": "2-Chloroethanol",
+      "smiles": "OCCCl",
+      "tags": [
+        "halide"
+      ]
+    },
+    {
+      "id": "solvents_reagents.2_iodoethanol",
+      "name": "2-Iodoethanol",
+      "smiles": "OCCI",
+      "tags": [
+        "halide"
+      ]
+    },
+    {
+      "id": "solvents_reagents.3_bromopropanol",
+      "name": "3-Bromopropan-1-ol",
+      "smiles": "OCCCBr",
+      "tags": [
+        "halide"
+      ]
+    },
+    {
+      "id": "solvents_reagents.4_bromobutanol",
+      "name": "4-Bromobutan-1-ol",
+      "smiles": "OCCCCBr",
+      "tags": [
+        "halide"
+      ]
+    },
+    {
+      "id": "solvents_reagents.epichlorohydrin",
+      "name": "Epichlorohydrin",
+      "smiles": "ClCC1CO1",
+      "tags": [
+        "epoxide"
+      ]
+    },
+    {
+      "id": "solvents_reagents.epibromohydrin",
+      "name": "Epibromohydrin",
+      "smiles": "BrCC1CO1",
+      "tags": [
+        "epoxide"
+      ]
+    },
+    {
+      "id": "solvents_reagents.glycidol",
+      "name": "Glycidol",
+      "smiles": "OCC1CO1",
+      "tags": [
+        "epoxide"
+      ]
+    },
+    {
+      "id": "solvents_reagents.propylene_oxide",
+      "name": "Propylene oxide",
+      "smiles": "CC1CO1",
+      "tags": [
+        "epoxide"
+      ]
+    },
+    {
+      "id": "solvents_reagents.allyl_glycidyl_ether",
+      "name": "Allyl glycidyl ether",
+      "smiles": "C=CCOCC1CO1",
+      "tags": [
+        "epoxide"
+      ]
+    },
+    {
+      "id": "solvents_reagents.butyl_glycidyl_ether",
+      "name": "Butyl glycidyl ether",
+      "smiles": "CCCCOCC1CO1",
+      "tags": [
+        "epoxide"
+      ]
+    },
+    {
+      "id": "solvents_reagents.disulfur_dichloride",
+      "name": "Disulfur dichloride",
+      "smiles": "ClSSCl",
+      "tags": [
+        "reagent"
+      ]
+    },
+    {
+      "id": "solvents_reagents.sulfur_dichloride",
+      "name": "Sulfur dichloride",
+      "smiles": "ClSCl",
+      "tags": [
+        "reagent"
+      ]
+    },
+    {
+      "id": "solvents_reagents.thionyl_bromide",
+      "name": "Thionyl bromide",
+      "smiles": "O=S(Br)Br",
+      "tags": [
+        "reagent"
+      ]
+    },
+    {
+      "id": "solvents_reagents.phosphorus_triiodide",
+      "name": "Phosphorus triiodide",
+      "smiles": "IP(I)I",
+      "tags": [
+        "reagent"
+      ]
+    },
+    {
+      "id": "solvents_reagents.boron_tribromide",
+      "name": "Boron tribromide",
+      "smiles": "BrB(Br)Br",
+      "tags": [
+        "reagent"
+      ]
+    },
+    {
+      "id": "solvents_reagents.boron_trichloride",
+      "name": "Boron trichloride",
+      "smiles": "ClB(Cl)Cl",
+      "tags": [
+        "reagent"
+      ]
+    },
+    {
+      "id": "solvents_reagents.silicon_tetrachloride",
+      "name": "Silicon tetrachloride",
+      "smiles": "Cl[Si](Cl)(Cl)Cl",
+      "tags": [
+        "reagent"
+      ]
+    },
+    {
+      "id": "solvents_reagents.hexamethyldisiloxane",
+      "name": "Hexamethyldisiloxane",
+      "smiles": "C[Si](C)(C)O[Si](C)(C)C",
+      "tags": [
+        "siloxane"
+      ]
+    },
+    {
+      "id": "solvents_reagents.hexamethyldisilane",
+      "name": "Hexamethyldisilane",
+      "smiles": "C[Si](C)(C)[Si](C)(C)C",
+      "tags": [
+        "silane"
+      ]
+    },
+    {
+      "id": "solvents_reagents.tetramethylsilane",
+      "name": "Tetramethylsilane",
+      "smiles": "C[Si](C)(C)C",
+      "tags": [
+        "silane"
+      ]
+    },
+    {
+      "id": "solvents_reagents.tetraethylsilane",
+      "name": "Tetraethylsilane",
+      "smiles": "CC[Si](CC)(CC)CC",
+      "tags": [
+        "silane"
+      ]
+    },
+    {
+      "id": "solvents_reagents.phenylsilane",
+      "name": "Phenylsilane",
+      "smiles": "[SiH3]c1ccccc1",
+      "tags": [
+        "silane"
+      ]
+    },
+    {
+      "id": "solvents_reagents.diphenylsilane",
+      "name": "Diphenylsilane",
+      "smiles": "[SiH2](c1ccccc1)c1ccccc1",
+      "tags": [
+        "silane"
+      ]
+    },
+    {
+      "id": "solvents_reagents.triphenylsilane",
+      "name": "Triphenylsilane",
+      "smiles": "[SiH](c1ccccc1)(c1ccccc1)c1ccccc1",
+      "tags": [
+        "silane"
+      ]
+    },
+    {
+      "id": "solvents_reagents.triethylsilane",
+      "name": "Triethylsilane",
+      "smiles": "CC[SiH](CC)CC",
+      "tags": [
+        "silane"
+      ]
+    },
+    {
+      "id": "solvents_reagents.triisopropylsilane",
+      "name": "Triisopropylsilane",
+      "smiles": "CC(C)[SiH](C(C)C)C(C)C",
+      "tags": [
+        "silane"
+      ]
+    },
+    {
+      "id": "solvents_reagents.pmhs_monomer",
+      "name": "Methylsilane",
+      "smiles": "C[SiH3]",
+      "tags": [
+        "silane"
+      ]
+    },
+    {
+      "id": "solvents_reagents.dimethyldichlorosilane",
+      "name": "Dimethyldichlorosilane",
+      "smiles": "C[Si](C)(Cl)Cl",
+      "tags": [
+        "silane"
+      ]
+    },
+    {
+      "id": "solvents_reagents.methyltrichlorosilane",
+      "name": "Methyltrichlorosilane",
+      "smiles": "C[Si](Cl)(Cl)Cl",
+      "tags": [
+        "silane"
+      ]
+    },
+    {
+      "id": "solvents_reagents.phenyltrichlorosilane",
+      "name": "Phenyltrichlorosilane",
+      "smiles": "Cl[Si](Cl)(Cl)c1ccccc1",
+      "tags": [
+        "silane"
+      ]
+    },
+    {
+      "id": "solvents_reagents.vinyltrimethoxysilane",
+      "name": "Vinyltrimethoxysilane",
+      "smiles": "C=C[Si](OC)(OC)OC",
+      "tags": [
+        "silane"
+      ]
+    },
+    {
+      "id": "solvents_reagents.aptms",
+      "name": "3-Aminopropyltrimethoxysilane",
+      "smiles": "CO[Si](CCCN)(OC)OC",
+      "tags": [
+        "silane"
+      ]
+    },
+    {
+      "id": "solvents_reagents.gptms",
+      "name": "3-Glycidoxypropyltrimethoxysilane",
+      "smiles": "CO[Si](CCCOCC1CO1)(OC)OC",
+      "tags": [
+        "silane"
+      ]
+    },
+    {
+      "id": "solvents_reagents.teos",
+      "name": "Tetraethyl orthosilicate",
+      "smiles": "CCO[Si](OCC)(OCC)OCC",
+      "tags": [
+        "silane"
+      ]
+    },
+    {
+      "id": "solvents_reagents.tmos",
+      "name": "Tetramethyl orthosilicate",
+      "smiles": "CO[Si](OC)(OC)OC",
+      "tags": [
+        "silane"
+      ]
+    },
+    {
+      "id": "solvents_reagents.phosphorus_pentoxide",
+      "name": "Phosphorus pentoxide",
+      "smiles": "O=P12OP3(=O)OP(=O)(O1)OP(=O)(O2)O3",
+      "tags": [
+        "oxide"
+      ]
+    },
+    {
+      "id": "solvents_reagents.phosphorus_trioxide",
+      "name": "Phosphorus trioxide",
+      "smiles": "O1P2OP3OP1OP(O2)O3",
+      "tags": [
+        "oxide"
+      ]
+    },
+    {
+      "id": "solvents_reagents.diisopropylamine",
+      "name": "Diisopropylamine",
+      "smiles": "CC(C)NC(C)C",
+      "tags": [
+        "amine"
+      ]
+    },
+    {
+      "id": "solvents_reagents.ethyl_vinyl_ether",
+      "name": "Ethoxyethene",
+      "smiles": "CCOC=C",
+      "tags": [
+        "ether"
+      ]
+    },
+    {
+      "id": "solvents_reagents.methyl_vinyl_ether",
+      "name": "Methoxyethene",
+      "smiles": "COC=C",
+      "tags": [
+        "ether"
+      ]
+    },
+    {
+      "id": "solvents_reagents.trocs_chloride",
+      "name": "2,2,2-Trichloroethyl chloroformate",
+      "smiles": "O=C(Cl)OCC(Cl)(Cl)Cl",
+      "tags": [
+        "reagent"
+      ]
+    },
+    {
+      "id": "solvents_reagents.isobutyl_chloroformate",
+      "name": "Isobutyl chloroformate",
+      "smiles": "CC(C)COC(=O)Cl",
+      "tags": [
+        "reagent"
+      ]
+    },
+    {
+      "id": "solvents_reagents.2_methoxypropene",
+      "name": "2-Methoxypropene",
+      "smiles": "COC(C)=C",
+      "tags": [
+        "enol ether"
+      ]
+    },
+    {
+      "id": "solvents_reagents.cyclohexylmethanol",
+      "name": "Cyclohexylmethanol",
+      "smiles": "OCC1CCCCC1",
+      "tags": [
+        "alcohol"
+      ]
+    },
+    {
+      "id": "solvents_reagents.2_ethylhexanol",
+      "name": "2-Ethylhexan-1-ol",
+      "smiles": "CCCCC(CC)CO",
+      "tags": [
+        "alcohol"
+      ]
+    },
+    {
+      "id": "solvents_reagents.hexyl_acetate",
+      "name": "Hexyl acetate",
+      "smiles": "CCCCCCOC(C)=O",
+      "tags": [
+        "ester"
+      ]
     }
   ]
 }

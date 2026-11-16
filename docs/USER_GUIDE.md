@@ -164,7 +164,7 @@ Macromolecule Viewer only shows one.
 catalog of complete molecules, not Ketcher's T-button library. It ships rings,
 cycloalkanes, heterocycles, solvents, alkaloids (including protoalkaloids,
 morphine, and the tropanes atropine, hyoscyamine, and scopolamine),
-flavonoids, vitamins, cofactors, terpenoids and steroids, functional-group examples, polycycles, molecular
+flavonoids, vitamins, cofactors, terpenoids and steroids, functional-group examples, polycycles, cisplatin and transplatin as connected square-planar drawings, about 2000 named complete molecules in all, molecular
 allotropes, reactive oxygen and nitrogen species, the 20 proteinogenic L-amino
 acids plus glycine as **ordinary expanded free amino acids** (neutral carboxylic
 acid + amine, not zwitterions, not abbreviated residues, and not a peptide
@@ -760,12 +760,14 @@ Click the group already showing to fold the rail down to its icons.
 
 | Group | Panels |
 |---|---|
-| Analyze | Properties, Results, then Atom Inspector, Interactions, Structure Check |
-| Compute | 3D Alignment, Batch, Docking, Jobs, Quantum Chemistry |
+| Analyze | Properties, Results, then Atom Inspector, Project table (Batch), Interactions, Structure Check |
+| Compute | 3D Alignment, Docking, Jobs, Quantum Chemistry |
 | Compare and Extend | Compare, and every panel a plugin adds (A to Z) |
 
-One panel is shown at a time and it gets the whole column. Right-click any
-name and **Pin to top** to keep it above the groups, so a panel you use
+One panel is shown at a time and it gets the whole column. **Shift+click**
+a name, or right-click **Open beside**, shows that panel without hiding
+the one already on screen (see **Show alongside** below). Right-click
+**Pin to top** to keep a name above the groups, so a panel you use
 constantly does not need you to remember which group it is filed under.
 Pins survive a restart.
 
@@ -801,11 +803,17 @@ Dragging works, but nothing on screen says so. Every panel's title bar has a
   in the rail, or closing the program ends it first, so an expanded arrangement
   is never saved as your layout. It is not a full-window mode: nothing is hidden.
 - **Show alongside** lists the other panels and opens the one you pick without
-  hiding this one. It does not arrange the two side by side; they share the
-  window the way any two panels you have opened do.
+  hiding this one. **Shift+click** a name in the rail does the same. If you
+  already have a tab group you made (several panels sharing one tab bar), the
+  new panel joins that group; otherwise it is shown as a split, and no tab bar
+  is created. The default layout still has no tab bar.
 - **Lock open** / **Unlock** is the rail's own lock (the same one its right-click
-  menu has): a locked panel stays on screen when you pick another. It does not
-  move the panel.
+  menu has). A locked panel stays on screen when you pick another. **Unlock** of
+  a panel that is in a tab group takes **that panel** out of the group and
+  returns it to the rail-managed column; the other tabs stay together. Unlock
+  does not pull a floating window back, and it does not reset a split or a
+  panel you moved to another side. **Lock open** on a hidden panel shows it
+  first, then keeps it.
 - **Float panel** / **Dock panel back** detaches the panel into a window of its
   own, or puts it back. A floating panel can always be docked again. (The
   Results panel's own **↗** button is different: it moves the reader into a
@@ -896,7 +904,10 @@ the thing that needs the room.
 The Properties panel is where a calculation is **started**, and the
 [Results](#results) panel is where one is **read**. It has **22 collapsible
 categories** covering **62 registered calculators**; Identity is open by
-default.
+default. **Expand all** and **Collapse all** under the Find box open or fold
+every category and every workflow section that currently lives in Properties.
+They change only which headings are open: they do not run anything, and they
+do not change ticks or Find.
 
 Each calculator gets a row: a tick box that adds it to a batch run, a
 **button** labelled with its name and a trailing `…`, and a **status chip**
@@ -2334,8 +2345,7 @@ which for a few descriptors (the synthetic-accessibility and complexity scores a
 conformer. Scores are saved with the project. They are not calculators, so they are not in the calculator list and
 the assistant's calculator search does not offer them. The AI Assistant can read your scores and propose a new one (see Plugins), but a score exists only after you approve its card. In the **Project table** (Results, after a project run) a score is a column of its own, the first after the molecule's name: it is worked out from that table's other columns, so
 it needs the properties it reads to have been in the run, and a score whose inputs were not run is named under the table instead of shown as a column of dashes. It follows
-the definition as you edit it, without another run, and it is in the CSV and the report. The **Batch** panel's own table (its **Fill table** run) has the same score columns,
-named and exported the same way. To include what your scores read in a project run, open **Presets** in Properties and choose
+the definition as you edit it, without another run, and it is in the CSV and the report. There is one **Project table** (the Batch dock); **Fill table** uses the same ticks and settings as **Run selected**. To include what your scores read in a project run, open **Presets** in Properties and choose
 **Tick what my scores read**: it ticks the calculators they read and adds the always-on properties they read, on top of what you had ticked (it never unticks or narrows anything), and the line
 beside **Run selected** says what it did, including any calculator the launcher is not offering. A table is a snapshot of a run, so its score is as current as the run; the
 **This molecule** page is where a score is worked out against the structure as it is now.
@@ -2756,10 +2766,8 @@ selected. The **Batch** panel answers it about all of them.
 **You can also do this from Properties.** Under the tick boxes, **Run on**
 chooses *this molecule* (the default), *all molecules* or *chosen molecules*.
 With the second or third, **Run selected** runs every ticked calculator on each
-of those molecules and fills a **Project table** page in Results (the switch
-between *This molecule* and *Project table* appears once there is a table). It
-has the same columns, cells, column menu, exports, Analyse and Virtual Screening
-as the table below, and a **Cancel run** button while it works. Extra switches
+of those molecules and fills the **Project table** dock (Analyze). **Fill table**
+on that dock uses the same ticks, settings and scope. Extra switches
 appear with it: the always-on properties (on), the structural-alert catalogs
 (off), and how a per-atom result becomes one number. A calculator's own settings
 for project runs are in its right-click menu. A large run states how many
@@ -3221,6 +3229,12 @@ Structure-to-name works offline. Known compounds resolve against PubChem
 when you have network; everything else is named by the vendored
 deterministic IUPAC engine, and every generated name is verified by parsing
 it back with OPSIN before you see it.
+
+A name that parses back to a **different tautomer** of the same compound
+(metformin is the usual case) is still shown, with a note saying so. That
+note is not about stereo wedges to hydrogen: the 2D editor writes those as
+explicit H atoms, OPSIN does not, and the checker treats that as the same
+drawing.
 
 Names carry their **source** and whether they are `exact`, `derived` or
 `parsed`. They are never merged into one unattributed answer — if two

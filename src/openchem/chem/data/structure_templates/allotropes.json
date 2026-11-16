@@ -67,6 +67,14 @@
         "phosphorus"
       ],
       "description": "White phosphorus P4. PubChem CID 123286 (name tetraphosphorus). The 'white phosphorus' hit CID 5462309 is atomic P and must not be used."
+    },
+    {
+      "id": "allotropes.buckminsterfullerene",
+      "name": "Buckminsterfullerene",
+      "smiles": "c12c3c4c5c1c1c6c7c2c2c8c3c3c9c4c4c%10c5c5c1c1c6c6c%11c7c2c2c7c8c3c3c8c9c4c4c9c%10c5c5c1c1c6c6c%11c2c2c7c3c3c8c4c4c9c5c1c1c6c2c3c41",
+      "tags": [
+        "fullerene"
+      ]
     }
   ]
 }

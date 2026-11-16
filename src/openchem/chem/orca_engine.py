@@ -840,6 +840,30 @@ class OrcaQuantumEngineProvider(QuantumEngineProvider):
                 self._parse_conceptual_dft(output_text, molecule_uuid, provenance)
             )
 
+        if calc_type not in ("delta_scf", "led", "fukui"):
+            # An unrestricted run prints <S**2> (the last one belongs to the final geometry); a restricted run prints none, so a closed-shell result gains no descriptor.
+            s2 = re.findall(r"Expectation value of <S\*\*2>\s+:\s+(-?\d+\.\d+)", output_text)
+            ideal = re.findall(r"Ideal value S\*\(S\+1\) for S=\S+\s+:\s+(-?\d+\.\d+)", output_text)
+            if s2 and ideal:
+                descriptors.append(
+                    DescriptorValue(
+                        descriptor_id="orca.s_squared",
+                        name="<S**2> (spin contamination)",
+                        units="",
+                        category="quantum_chemistry",
+                        provider="orca",
+                        molecule_uuid=molecule_uuid,
+                        value=float(s2[-1]),
+                        timestamp=now,
+                        cache_state=CacheState.COMPLETED,
+                        provenance=Provenance(
+                            created_by="core", method=self.provider_id,
+                            parameters={**provenance.parameters, "ideal_s_squared": float(ideal[-1]), "excess": round(float(s2[-1]) - float(ideal[-1]), 6)},
+                            timestamp=now,
+                        ),
+                    )
+                )
+
         if calc_type == "opt_freq":
             descriptors.extend(self._parse_thermochemistry(output_text, molecule_uuid, provenance))
 

@@ -34,7 +34,9 @@ something I could not settle from reading.
 
 ## 1. Batch
 
-Files: `src/openchem/ui/panels/batch_panel.py` (the picker and run controls),
+The Batch dock is the one **Project table** (`objectName` still `Batch`, rail group Analyze). Properties owns ticks, goals, presets and scope; Fill table asks Properties for the current `ExecutionPlan`. The Results dock no longer builds a second `ProjectTableView`.
+
+Files: `src/openchem/ui/panels/batch_panel.py` (Fill table, Cancel, the table),
 `src/openchem/ui/widgets/project_table.py` (the results half, extracted),
 `src/openchem/services/batch_service.py`, `src/openchem/ui/dialogs/batch_detail_dialog.py`,
 `src/openchem/ui/dialogs/batch_analysis_dialog.py`.

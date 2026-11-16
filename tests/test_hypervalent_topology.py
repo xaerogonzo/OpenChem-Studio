@@ -167,7 +167,7 @@ def test_the_ring_facts_follow_the_ring_the_drawing_has(rig):
 
 def test_the_three_are_allowed_and_the_measured_wrong_ones_are_not():
     assert {"topology_analysis", "topology_eccentricity", "topology_distance_degree"} <= HYPERVALENT_VERIFIED_CALCULATORS
-    for calculator_id in ("geometry_analysis", "surface_analysis", "dipole_moment", "polarizability", "logd", "solubility", "cns_mpo"):
+    for calculator_id in ("surface_analysis", "dipole_moment", "polarizability", "logd", "solubility", "cns_mpo"):
         assert calculator_id not in HYPERVALENT_VERIFIED_CALCULATORS, calculator_id
 
 

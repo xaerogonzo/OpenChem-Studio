@@ -65,6 +65,7 @@ Every one is a surface with a *recorded* history of breaking, not a guess.
 | script | surface | what broke there before |
 | --- | --- | --- |
 | `properties-width.json` | Properties panel, squeezed then widened | three width-clip defects; the value painted over its caption; captions latched at `...`; captions collapsed to zero width |
+| `properties_expand_all.json` | Properties Expand all / Collapse all, at 900 px then 1600 px | nothing yet -- Results had both buttons and Properties only per-section arrows |
 | `periodic-table.json` | Periodic Table dialog, Elements and Isotopes | a dialog minimum taller than a 1366x768 screen, with its action row off the bottom |
 | `batch_and_compare_organisation.json` | Batch and Compare panels, at 420 px and in a 1100 px window | a results-table header printing `ostance classificat` -- clipped at BOTH ends, because a `QHeaderView` overflows rather than eliding |
 | `batch_molecule_scope.json` | the Batch panel's molecule scope, narrowed then emptied then restored | nothing yet -- it exists because the scope is a state NO SCREENSHOT CARRIES |

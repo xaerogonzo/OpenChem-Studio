@@ -12,7 +12,7 @@ from __future__ import annotations
 
 import pytest
 from PySide6.QtCore import QThreadPool
-from PySide6.QtWidgets import QApplication, QMessageBox, QWidget
+from PySide6.QtWidgets import QApplication, QMessageBox
 
 import conftest
 from openchem.bootstrap import build_service_container
@@ -27,7 +27,6 @@ from openchem.ui.panels.property_panel import (
     _SCOPE_THIS,
     PropertyPanel,
 )
-from openchem.ui.widgets.results_workspace import ResultsWorkspace
 
 _DRUGS = [
     ("aspirin", "CC(=O)Oc1ccccc1C(=O)O"),
@@ -75,18 +74,18 @@ def _properties(services, project, built, **kwargs) -> PropertyPanel:
     return panel
 
 
-def _workspace(services, project, built) -> ResultsWorkspace:
-    workspace = ResultsWorkspace(
-        QWidget(),
+def _table(services, project, built) -> BatchPanel:
+    panel = BatchPanel(
+        services.batch_service,
         services.calculator_registry,
         services.table_export_service,
         services.event_bus,
         services.chemistry_engine,
-        project_of=lambda: project,
-        structure_version_of=services.structure_check_service.current_version,
+        structure_check_service=services.structure_check_service,
     )
-    built.append(workspace)
-    return workspace
+    panel.set_project(project)
+    built.append(panel)
+    return panel
 
 
 def _wait() -> None:
@@ -102,15 +101,16 @@ def _cells(table) -> dict:
     }
 
 
-def _run_from_properties(panel, workspace, ids, scope=_SCOPE_ALL, descriptors=False):
-    panel.project_run_started.connect(workspace.begin_project_run)
+def _run_from_properties(panel, table, ids, scope=_SCOPE_ALL, descriptors=False):
+    panel.project_run_started.connect(table.begin_project_run)
+    table.set_fill_runner(panel.run_selected_on_project)
     for calculator_id in ids:
         panel._calculator_ticks[calculator_id].setChecked(True)
     panel.set_scope(scope)
     panel._scope_descriptors.setChecked(descriptors)
     panel._on_run_selected()
     _wait()
-    return workspace.table_view.table()
+    return table.table()
 
 
 # --- parity -----------------------------------------------------------------------
@@ -134,8 +134,8 @@ def test_the_project_table_is_the_table_the_batch_panel_makes(services, project,
     assert expected is not None and expected.columns, "the baseline run produced nothing"
 
     panel = _properties(services, project, built)
-    workspace = _workspace(services, project, built)
-    actual = _run_from_properties(panel, workspace, _CALCULATORS)
+    host = _table(services, project, built)
+    actual = _run_from_properties(panel, host, _CALCULATORS)
 
     assert actual is not None
     assert actual.row_uuids == expected.row_uuids
@@ -150,8 +150,8 @@ def test_the_columns_follow_the_launchers_order(services, project, built):
     from openchem.domain.calculator_taxonomy import calculator_browse_sort_key
 
     panel = _properties(services, project, built)
-    workspace = _workspace(services, project, built)
-    table = _run_from_properties(panel, workspace, ["topology_analysis", "polar_surface_area", "elemental_analysis"])
+    host = _table(services, project, built)
+    table = _run_from_properties(panel, host, ["topology_analysis", "polar_surface_area", "elemental_analysis"])
     sources = []
     for column in table.columns:
         if column.source_id not in sources:
@@ -179,8 +179,8 @@ def test_with_the_always_on_properties_the_descriptor_columns_match_too(services
     expected = batch.table()
 
     panel = _properties(services, project, built)
-    workspace = _workspace(services, project, built)
-    actual = _run_from_properties(panel, workspace, ["topology_analysis"], descriptors=True)
+    host = _table(services, project, built)
+    actual = _run_from_properties(panel, host, ["topology_analysis"], descriptors=True)
 
     descriptor_columns = [c.column_id for c in expected.columns if c.source == "descriptor"]
     assert descriptor_columns, "the baseline has no descriptor columns"
@@ -231,10 +231,10 @@ def test_a_panel_with_no_batch_service_is_unchanged(services, project, built):
 
 def test_only_the_chosen_molecules_get_rows(services, project, built):
     panel = _properties(services, project, built)
-    workspace = _workspace(services, project, built)
+    host = _table(services, project, built)
     chosen = {project.molecules[0].uuid, project.molecules[1].uuid}
     panel.set_scope(_SCOPE_CHOSEN, chosen)
-    table = _run_from_properties(panel, workspace, ["topology_analysis"], scope=_SCOPE_CHOSEN)
+    table = _run_from_properties(panel, host, ["topology_analysis"], scope=_SCOPE_CHOSEN)
     assert set(table.row_uuids) == chosen
 
 
@@ -291,29 +291,24 @@ def test_a_calculator_with_no_usable_default_is_left_out_and_named(services, pro
     assert definition.display_name in panel._batch_status.text()
 
 
-# --- the Results dock ---------------------------------------------------------------
+# --- the one project table -----------------------------------------------------------
 
 
-def test_the_table_page_appears_only_once_a_project_run_makes_one(services, project, built):
-    workspace = _workspace(services, project, built)
-    assert workspace._switch.isHidden()
-    assert not workspace.has_project_table()
+def test_the_batch_table_holds_a_project_run(services, project, built):
+    host = _table(services, project, built)
+    assert host.table() is None
     panel = _properties(services, project, built)
-    _run_from_properties(panel, workspace, ["topology_analysis"])
-    assert not workspace._switch.isHidden()
-    assert workspace.showing_project_table()
-    workspace.show_molecule_reader()
-    assert not workspace.showing_project_table()
-    assert workspace.has_project_table(), "going back to a molecule must not lose the table"
+    table = _run_from_properties(panel, host, ["topology_analysis"])
+    assert table is not None and table.row_uuids
 
 
-def test_a_run_nobody_told_the_workspace_about_does_not_replace_its_table(services, project, built):
-    """A one-molecule details run from the Batch panel publishes the same event."""
+def test_a_run_nobody_told_the_table_about_does_not_replace_it(services, project, built):
+    """A one-molecule details run publishes the same event; adopt stays off."""
     from openchem.domain.batch import BatchRequest
 
     panel = _properties(services, project, built)
-    workspace = _workspace(services, project, built)
-    table = _run_from_properties(panel, workspace, ["topology_analysis"])
+    host = _table(services, project, built)
+    table = _run_from_properties(panel, host, ["topology_analysis"])
     rows_before = list(table.row_uuids)
     services.batch_service.request_batch(
         BatchRequest(
@@ -323,9 +318,9 @@ def test_a_run_nobody_told_the_workspace_about_does_not_replace_its_table(servic
         [project.molecules[0]],
     )
     _wait()
-    assert workspace.table_view.table() is table
-    assert list(workspace.table_view.table().row_uuids) == rows_before
-    assert [c.column_id for c in workspace.table_view.table().columns] == [c.column_id for c in table.columns]
+    assert host.table() is table
+    assert list(host.table().row_uuids) == rows_before
+    assert [c.column_id for c in host.table().columns] == [c.column_id for c in table.columns]
 
 
 # --- presets ------------------------------------------------------------------------
@@ -483,26 +478,16 @@ def test_the_extra_project_controls_appear_with_a_project_scope_only(services, p
 # --- cancelling ------------------------------------------------------------------------
 
 
-def test_the_results_page_has_its_own_cancel_and_the_batch_panels_view_does_not(services, project, built):
-    workspace = _workspace(services, project, built)
-    assert workspace.table_view._show_cancel is True
-    batch = BatchPanel(
-        services.batch_service, services.calculator_registry, services.table_export_service,
-        services.event_bus, services.chemistry_engine,
-    )
-    built.append(batch)
-    assert batch._view._show_cancel is False
+def test_the_project_table_has_a_cancel_button(services, project, built):
+    host = _table(services, project, built)
+    assert host._view._show_cancel is True
 
 
-def test_cancel_on_the_results_page_asks_the_service_to_stop(services, project, built, monkeypatch):
-    workspace = ResultsWorkspace(
-        QWidget(), services.calculator_registry, services.table_export_service, services.event_bus,
-        services.chemistry_engine, batch_service=services.batch_service,
-    )
-    built.append(workspace)
+def test_cancel_on_the_project_table_asks_the_service_to_stop(services, project, built, monkeypatch):
+    host = _table(services, project, built)
     cancelled = []
     monkeypatch.setattr(services.batch_service, "cancel", lambda: cancelled.append(True) or True)
-    workspace.table_view._cancel_button.click()
+    host._view._cancel_button.click()
     assert cancelled == [True]
 
 
@@ -526,13 +511,16 @@ def _with_scores(services, project, built, *definitions):
     return panel, held
 
 
-def _workspace_with_scores(services, project, built, definitions):
-    workspace = ResultsWorkspace(
-        QWidget(), services.calculator_registry, services.table_export_service, services.event_bus, services.chemistry_engine,
-        project_of=lambda: project, structure_version_of=services.structure_check_service.current_version, score_definitions=lambda: tuple(definitions),
+def _table_with_scores(services, project, built, definitions):
+    panel = BatchPanel(
+        services.batch_service, services.calculator_registry, services.table_export_service,
+        services.event_bus, services.chemistry_engine,
+        structure_check_service=services.structure_check_service,
+        score_definitions=lambda: tuple(definitions),
     )
-    built.append(workspace)
-    return workspace
+    panel.set_project(project)
+    built.append(panel)
+    return panel
 
 
 def test_the_presets_menu_offers_to_tick_what_scores_read_only_when_there_are_scores(services, project, built):
@@ -635,16 +623,16 @@ def test_a_project_run_after_ticking_what_the_scores_read_gives_every_score_a_co
     """The claim itself: nothing hand-ticked, and the project table has the score whose input is a calculator."""
     definitions = [_score([("psa", "descriptor:tpsa"), ("ob", _OB)], "user.a", "ramp(psa, 140, 60) * ramp(ob, -100, 0)")]
     panel, _held = _with_scores(services, project, built, *definitions)
-    workspace = _workspace_with_scores(services, project, built, definitions)
-    panel.project_run_started.connect(workspace.begin_project_run)
+    host = _table_with_scores(services, project, built, definitions)
+    panel.project_run_started.connect(host.begin_project_run)
     panel.set_scope(_SCOPE_ALL)
     panel.tick_score_inputs()
     panel._on_run_selected()
     _wait()
-    table = workspace.table_view.table()
+    table = host.table()
     scores = [c for c in table.columns if c.source == "score"]
     assert [c.label for c in scores] == [f"Window {DISPLAY_SUFFIX}"], "the score has a column, with nothing hand-ticked"
-    assert workspace.table_view._score_note.isHidden()
+    assert host._view._score_note.isHidden()
     assert all(table.cell(uuid, scores[0].column_id) is not None for uuid in table.row_uuids)
 
 
@@ -652,15 +640,15 @@ def test_without_ticking_what_the_scores_read_the_same_project_run_leaves_the_sc
     """The control for the test above: the same run with no tick has no column, and the table names why."""
     definitions = [_score([("psa", "descriptor:tpsa"), ("ob", _OB)], "user.a", "ramp(psa, 140, 60) * ramp(ob, -100, 0)")]
     panel, _held = _with_scores(services, project, built, *definitions)
-    workspace = _workspace_with_scores(services, project, built, definitions)
-    panel.project_run_started.connect(workspace.begin_project_run)
+    host = _table_with_scores(services, project, built, definitions)
+    panel.project_run_started.connect(host.begin_project_run)
     panel.set_scope(_SCOPE_ALL)
     panel._calculator_ticks["topology_analysis"].setChecked(True)
     panel._on_run_selected()
     _wait()
-    table = workspace.table_view.table()
+    table = host.table()
     assert not any(c.source == "score" for c in table.columns)
-    assert not workspace.table_view._score_note.isHidden() and "Oxygen balance" in workspace.table_view._score_note.text()
+    assert not host._view._score_note.isHidden() and "Oxygen balance" in host._view._score_note.text()
 
 
 def test_a_calculator_the_launcher_does_not_have_at_all_is_named_by_its_id_and_nothing_breaks(services, project, built):
@@ -692,3 +680,33 @@ def test_the_status_line_keeps_its_whole_text_on_hover_for_every_message_and_cle
     assert panel._batch_status.toolTip() == ""
     panel.tick_all_shown()
     assert panel._batch_status.toolTip() == panel._batch_status.text() and panel._batch_status.text().startswith("Ticked ")
+
+
+def test_an_empty_chosen_scope_is_refused_before_submit(services, project, built):
+    panel = _properties(services, project, built)
+    panel._calculator_ticks["topology_analysis"].setChecked(True)
+    panel.set_scope(_SCOPE_CHOSEN, set())
+    panel._on_run_selected()
+    assert "Choose at least one molecule" in panel._batch_status.text()
+    assert not services.batch_service.is_running()
+
+
+def test_fill_table_uses_the_properties_plan(services, project, built):
+    panel = _properties(services, project, built)
+    host = _table(services, project, built)
+    host.set_fill_runner(panel.run_selected_on_project)
+    panel.project_run_started.connect(host.begin_project_run)
+    panel._calculator_ticks["topology_analysis"].setChecked(True)
+    panel.set_scope(_SCOPE_ALL)
+    host._run()
+    _wait()
+    table = host.table()
+    assert table is not None and len(table.row_uuids) == 3
+
+
+def test_results_workspace_does_not_build_a_second_table():
+    import inspect
+    from openchem.ui.widgets import results_workspace as module
+
+    source = inspect.getsource(module.ResultsWorkspace)
+    assert "ProjectTableView" not in source

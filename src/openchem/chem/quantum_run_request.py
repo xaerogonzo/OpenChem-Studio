@@ -32,6 +32,7 @@ from openchem.chem.calculation_input import (
 )
 from openchem.chem.engine import ChemistryEngine
 from openchem.chem.fukui import conformer_average_message, open_shell_message
+from openchem.chem.open_shell import multiplicity_problem, spin_from_molblock, spin_note
 from openchem.chem.fukui_plan import has_diffuse_functions, plan_fukui, searchable_holes
 from openchem.chem.proton_affinity import OutOfScope as ProtonAffinityOutOfScope
 from openchem.chem.proton_affinity import Sequence as ProtonAffinitySequence
@@ -567,6 +568,12 @@ def prepare_run(engine: ChemistryEngine, molecule: MoleculeModel | None, choice:
         if choice.average_conformers and len(molecule.conformers) > 1:
             return RunRefusal(conformer_average_message())
 
+    # The electrons must fit the multiplicity (after the Fukui refusals, whose own words are more specific for the same setting). ORCA refuses an impossible pair itself (exit 55, measured on a methyl radical and on NO at
+    # multiplicity 1) after the job was queued; xtb runs it and says nothing. Said here, before anything is queued, by the structure's own count.
+    problem = multiplicity_problem(resolved.mol, choice.charge, choice.multiplicity)
+    if problem:
+        return RunRefusal(problem)
+
     ensemble = None
     if choice.average_conformers and len(molecule.conformers) > 1:
         # Resolved BEFORE anything commits to a run, so a refusal leaves the caller as it was.
@@ -583,7 +590,9 @@ def prepare_run(engine: ChemistryEngine, molecule: MoleculeModel | None, choice:
         conformer_molblock=target.molblock,
         fingerprint=resolved.fingerprint,
         source_slot=slot_of(molecule, resolved.fingerprint),
-        conformer_note=chosen_conformer_note(molecule, chosen, choice.calc_type),
+        conformer_note=" ".join(
+            part for part in (chosen_conformer_note(molecule, chosen, choice.calc_type), spin_note(resolved.mol, choice.multiplicity, spin_from_molblock(molecule.molblock))) if part
+        ),
         ensemble=ensemble,
     )
 

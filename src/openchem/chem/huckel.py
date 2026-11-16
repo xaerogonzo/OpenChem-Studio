@@ -80,8 +80,13 @@ class HuckelResult:
 
 def pi_system_atoms(mol: Chem.Mol) -> list[int]:
     """Atoms contributing a p orbital to a conjugated system: aromatic
-    atoms, plus any atom in a double or triple bond."""
+    atoms, plus any atom in a double or triple bond, plus a carbon radical
+    centre (one unpaired electron, so one p orbital and one pi electron: the
+    benzyl and allyl CH2, which the double-bond rule alone left out)."""
     indices: set[int] = set()
+    for atom in mol.GetAtoms():
+        if atom.GetAtomicNum() == 6 and atom.GetNumRadicalElectrons() == 1:
+            indices.add(atom.GetIdx())
     for atom in mol.GetAtoms():
         if atom.GetIsAromatic():
             indices.add(atom.GetIdx())
@@ -172,6 +177,24 @@ _NO_PI_SYSTEM = (
     "double, triple or aromatic bonds)."
 )
 
+_OPEN_SHELL = (
+    "Simple Huckel gives one pi electron to each pi centre, which is right for a carbon radical centre (benzyl, "
+    "allyl) and not for a radical on a heteroatom (a nitroxide, NO, O2) or a carbene, whose pi electrons are not "
+    "one per centre. A structure with such an atom is refused rather than given a pi system without it."
+)
+
+
+def open_shell_refusal(mol: Chem.Mol) -> bool:
+    """Does the structure carry unpaired electrons the one-electron-per-centre rule cannot place?
+
+    A carbon with exactly one radical electron is a pi centre (see `pi_system_atoms`); any other radical atom is not.
+    """
+    return any(
+        atom.GetNumRadicalElectrons() and not (atom.GetAtomicNum() == 6 and atom.GetNumRadicalElectrons() == 1)
+        for atom in mol.GetAtoms()
+    )
+
+
 _HETEROATOM_CAVEAT = (
     "Note: simple Huckel treats every pi centre as an identical carbon. This molecule "
     "contains heteroatoms, whose real alpha/beta parameters differ -- densities on those "
@@ -186,6 +209,19 @@ def compute_huckel_analysis(
     parameters = parameters or {}
     target = apply_microspecies(mol, parameters)
     override = parameters.get("pi_electrons", 0)
+    if open_shell_refusal(target):
+        return report_from_fields(
+            alert_id="huckel_analysis",
+            name="Huckel Analysis",
+            molecule_uuid=molecule_uuid,
+            matched=[],
+            category="quantum",
+            cache_state=CacheState.FAILED,
+            error=_OPEN_SHELL,
+            error_summary="Unpaired electrons",
+            inapplicable=True,
+            provenance=Provenance(created_by="core", method="huckel", parameters={"refusal": "OPEN_SHELL"}),
+        )
     result = solve_huckel(target, pi_electrons=int(override) or None)
     if result is None:
         return report_from_fields(
@@ -246,6 +282,23 @@ def compute_pi_electron_density(
     parameters = parameters or {}
     target = apply_microspecies(mol, parameters)
     override = parameters.get("pi_electrons", 0)
+    if open_shell_refusal(target):
+        return PerAtomDataset(
+            property_id="huckel_pi_density",
+            name="Pi Electron Density (Huckel)",
+            units="e",
+            method="huckel",
+            molecule_uuid=molecule_uuid,
+            values={},
+            cache_state=CacheState.FAILED,
+            error=_OPEN_SHELL,
+            error_summary="Unpaired electrons",
+            inapplicable=True,
+            provenance=Provenance(
+                created_by="core", method="huckel",
+                parameters={"decimal_places": _places, "refusal": "OPEN_SHELL"},
+            ),
+        )
     result = solve_huckel(target, pi_electrons=int(override) or None)
     if result is None:
         return PerAtomDataset(

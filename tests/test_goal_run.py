@@ -37,7 +37,7 @@ from openchem.domain.project import ProjectModel
 from openchem.events.events import MoleculeSelected
 from openchem.ui.panels import property_panel as property_panel_module
 from openchem.ui.panels.property_panel import PropertyPanel
-from openchem.ui.widgets.results_workspace import ResultsWorkspace
+from openchem.ui.panels.batch_panel import BatchPanel
 
 
 class _RecordingService:
@@ -231,17 +231,17 @@ def test_a_calculator_that_needs_input_is_left_out_and_named(services, built):
 
 
 def _workspace(services, built, project):
-    workspace = ResultsWorkspace(
-        QWidget(),
+    host = BatchPanel(
+        services.batch_service,
         services.calculator_registry,
         services.table_export_service,
         services.event_bus,
         services.chemistry_engine,
-        project_of=lambda: project,
-        structure_version_of=services.structure_check_service.current_version,
+        structure_check_service=services.structure_check_service,
     )
-    built.append(workspace)
-    return workspace
+    host.set_project(project)
+    built.append(host)
+    return host
 
 
 def test_a_goal_over_several_molecules_fills_the_project_table(services, built):
@@ -254,7 +254,7 @@ def test_a_goal_over_several_molecules_fills_the_project_table(services, built):
     _wait()
 
     assert "'Identity and naming'" in text and "2 molecule(s)" in text
-    table = workspace.table_view.table()
+    table = workspace.table()
     assert table is not None and len(table.row_uuids) == 2 and table.columns
 
 

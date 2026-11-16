@@ -120,6 +120,37 @@ def test_nmr_calc_type_is_offered():
     ]
 
 
+def test_stage_run_choice_selects_and_does_not_start(qapp, monkeypatch):
+    panel, _engine, service = _make_panel()
+    started = []
+    monkeypatch.setattr(
+        "openchem.ui.panels.quantum_chemistry_panel.start_run",
+        lambda *_args, **_kwargs: started.append(1),
+    )
+    ok = panel.stage_run_choice(
+        calc_type="nmr",
+        provider_id="orca",
+        method_basis="B3LYP pcSseg-1",
+        note="One NMR calculation. Nothing has started.",
+    )
+    assert ok
+    assert service.requests == []
+    assert started == []
+    assert panel._calc_type_combo.currentText() == "NMR (raw shielding)"
+    assert panel._method_combo.currentText() == "B3LYP pcSseg-1"
+    assert "nothing has started" in panel._status_label.text().lower()
+    _dispose_panel(panel)
+
+
+def test_stage_opt_freq_selects_ir_job(qapp, monkeypatch):
+    panel, _engine, service = _make_panel()
+    ok = panel.stage_run_choice(calc_type="opt_freq", provider_id="orca", method_basis="B3LYP def2-SVP")
+    assert ok
+    assert service.requests == []
+    assert panel._calc_type_combo.currentText() == "Optimization + Frequency"
+    _dispose_panel(panel)
+
+
 # --- Tautomer Distribution button --------------------------------------
 
 

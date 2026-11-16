@@ -1602,3 +1602,82 @@ def test_a_descriptor_whose_category_changes_is_regrouped(qapp):
     facts = [f for f in _aggregate(panel).facts if f.label in ("Probe", "probe")]
     assert len(facts) == 1, "the placeholder and the value both survived"
     assert facts[0].category is FactCategory.GEOMETRY
+
+
+def _tick_states(panel: PropertyPanel) -> dict[str, bool]:
+    return {cid: tick.isChecked() for cid, tick in panel._calculator_ticks.items()}
+
+
+def _panel_with_sections(qapp):
+    registry = CalculatorRegistry()
+    registry.register(_calculator_definition("elemental_analysis", "identity"))
+    registry.register(_calculator_definition("gasteiger_charge_at_ph", "charge"))
+    return _make_panel(qapp, registry)
+
+
+def test_expand_all_opens_every_category_section(qapp):
+    panel, _bus, service = _panel_with_sections(qapp)
+    assert panel._sections, "eager category sections were not built"
+    panel._collapse_all.click()
+    assert all(not s.is_expanded() for s in panel._sections.values())
+    panel._expand_all.click()
+    assert all(s.is_expanded() for s in panel._sections.values())
+    assert service.calls == []
+
+
+def test_collapse_and_expand_all_include_workflow_sections(qapp):
+    panel, _bus, service = _panel_with_sections(qapp)
+    panel.add_workflow("probe_align", "Align molecules")
+    workflow = panel.workflow_section("probe_align")
+    assert workflow is not None
+    assert not workflow.is_expanded()
+    panel._expand_all.click()
+    assert workflow.is_expanded()
+    panel._collapse_all.click()
+    assert not workflow.is_expanded()
+    assert all(not s.is_expanded() for s in panel._sections.values())
+    assert service.calls == []
+
+
+def test_a_section_created_after_the_buttons_still_participates(qapp):
+    panel, _bus, _service = _panel_with_sections(qapp)
+    late = panel._section_for("late_category_for_expand")
+    late.set_expanded(False)
+    panel._expand_all.click()
+    assert late.is_expanded()
+    panel._collapse_all.click()
+    assert not late.is_expanded()
+
+
+def test_row_section_map_is_not_walked_as_extra_sections(qapp):
+    panel, _bus, _service = _panel_with_sections(qapp)
+    unique = panel._expandable_sections()
+    assert unique
+    assert len(unique) == len(set(unique))
+    assert set(unique) == set(panel._sections.values()) | set(panel._workflows.values())
+    if panel._row_sections:
+        assert len(panel._row_sections) >= len(panel._sections)
+
+
+def test_expand_all_leaves_find_snapshot_and_ticks_unchanged_when_find_is_empty(qapp):
+    panel, _bus, service = _panel_with_sections(qapp)
+    ticks = _tick_states(panel)
+    find_text = panel._find_box.text()
+    snapshot = panel._find_snapshot
+    panel._expand_all.click()
+    panel._collapse_all.click()
+    assert _tick_states(panel) == ticks
+    assert panel._find_box.text() == find_text
+    assert panel._find_snapshot is snapshot
+    assert service.calls == []
+
+
+def test_find_restore_survives_expand_all_during_a_query(qapp):
+    panel, _bus, _service = _panel_with_sections(qapp)
+    panel._collapse_all.click()
+    panel._find_box.setText("elemental")
+    assert panel._find_snapshot is not None
+    panel._expand_all.click()
+    panel._find_box.setText("")
+    assert panel._find_snapshot is None
+    assert all(s.is_expanded() for s in panel._expandable_sections())
