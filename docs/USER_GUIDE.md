@@ -764,8 +764,10 @@ Click the group already showing to fold the rail down to its icons.
 | Compute | 3D Alignment, Batch, Docking, Jobs, Quantum Chemistry |
 | Compare and Extend | Compare, and every panel a plugin adds (A to Z) |
 
-One panel is shown at a time and it gets the whole column. Right-click any
-name and **Pin to top** to keep it above the groups, so a panel you use
+One panel is shown at a time and it gets the whole column. **Shift+click**
+a name, or right-click **Open beside**, shows that panel without hiding
+the one already on screen (see **Show alongside** below). Right-click
+**Pin to top** to keep a name above the groups, so a panel you use
 constantly does not need you to remember which group it is filed under.
 Pins survive a restart.
 
@@ -801,11 +803,17 @@ Dragging works, but nothing on screen says so. Every panel's title bar has a
   in the rail, or closing the program ends it first, so an expanded arrangement
   is never saved as your layout. It is not a full-window mode: nothing is hidden.
 - **Show alongside** lists the other panels and opens the one you pick without
-  hiding this one. It does not arrange the two side by side; they share the
-  window the way any two panels you have opened do.
+  hiding this one. **Shift+click** a name in the rail does the same. If you
+  already have a tab group you made (several panels sharing one tab bar), the
+  new panel joins that group; otherwise it is shown as a split, and no tab bar
+  is created. The default layout still has no tab bar.
 - **Lock open** / **Unlock** is the rail's own lock (the same one its right-click
-  menu has): a locked panel stays on screen when you pick another. It does not
-  move the panel.
+  menu has). A locked panel stays on screen when you pick another. **Unlock** of
+  a panel that is in a tab group takes **that panel** out of the group and
+  returns it to the rail-managed column; the other tabs stay together. Unlock
+  does not pull a floating window back, and it does not reset a split or a
+  panel you moved to another side. **Lock open** on a hidden panel shows it
+  first, then keeps it.
 - **Float panel** / **Dock panel back** detaches the panel into a window of its
   own, or puts it back. A floating panel can always be docked again. (The
   Results panel's own **↗** button is different: it moves the reader into a

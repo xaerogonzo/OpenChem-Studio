@@ -259,10 +259,117 @@ def test_open_beside_hides_nothing_and_a_plain_click_then_replaces_the_unlocked(
     window._on_panel_chosen_alongside("Results")
     _settle(qapp)
     assert _visible(window, "Properties") and _visible(window, "Results")
+    assert window.tabifiedDockWidgets(_dock(window, "Properties")) == []
 
     _choose(window, qapp, "Atom_Inspector")
     assert _visible(window, "Atom_Inspector")
     assert not _visible(window, "Properties") and not _visible(window, "Results")
+
+
+def _tab_names(window, name) -> set[str]:
+    dock = _dock(window, name)
+    return {d.objectName() for d in window.tabifiedDockWidgets(dock)} | {name}
+
+
+def test_open_beside_joins_an_existing_booked_tab_group(window, qapp):
+    properties, results = _dock(window, "Properties"), _dock(window, "Results")
+    window.tabifyDockWidget(properties, results)
+    results.show()
+    properties.show()
+    _settle(qapp)
+    window._user_placed_docks.update({"Properties", "Results"})
+    window._persist_user_placed()
+
+    window._on_panel_chosen_alongside("Atom_Inspector")
+    _settle(qapp)
+
+    group = _tab_names(window, "Atom_Inspector")
+    assert {"Properties", "Results", "Atom_Inspector"} <= group
+    assert "Atom_Inspector" in window._user_placed_docks
+
+
+def test_unlock_returns_only_that_tab_to_the_rail_column(window, qapp):
+    properties, results, inspector = (
+        _dock(window, "Properties"),
+        _dock(window, "Results"),
+        _dock(window, "Atom_Inspector"),
+    )
+    window.tabifyDockWidget(properties, results)
+    window.tabifyDockWidget(properties, inspector)
+    results.show()
+    inspector.show()
+    properties.show()
+    _settle(qapp)
+    window._user_placed_docks.update({"Properties", "Results", "Atom_Inspector"})
+    window._persist_user_placed()
+
+    window._on_panel_lock_toggled("Atom_Inspector")
+    _settle(qapp)
+
+    remaining = _tab_names(window, "Properties")
+    assert "Results" in remaining
+    assert "Atom_Inspector" not in remaining
+    assert "Atom_Inspector" not in window._user_placed_docks
+    assert not inspector.isFloating()
+    window._on_panel_lock_toggled("Atom_Inspector")
+    window._on_panel_lock_toggled("Atom_Inspector")
+    _settle(qapp)
+    assert "Atom_Inspector" not in _tab_names(window, "Properties")
+
+
+def test_unlock_does_not_pull_a_floating_panel_or_reset_a_split(window, qapp):
+    properties = _dock(window, "Properties")
+    properties.setFloating(True)
+    properties.show()
+    _settle(qapp)
+    if "Properties" not in window._user_placed_docks:
+        window._on_panel_lock_toggled("Properties")
+    window._on_panel_lock_toggled("Properties")
+    _settle(qapp)
+    assert properties.isFloating()
+
+    results = _dock(window, "Results")
+    window.splitDockWidget(_dock(window, "Atom_Inspector"), results, Qt.Orientation.Vertical)
+    results.show()
+    _settle(qapp)
+    area = window.dockWidgetArea(results)
+    window._on_panel_lock_toggled("Results")
+    _settle(qapp)
+    assert window.dockWidgetArea(results) == area
+    assert window.tabifiedDockWidgets(results) == []
+
+
+def test_a_tab_group_survives_save_and_restore(qapp, tmp_path):
+    from openchem.app.main_window import _USER_PLACED_KEY, MainWindow
+    from openchem.app.session import SessionManager
+    from openchem.app.settings import Settings
+    from openchem.bootstrap import build_service_container
+
+    services = build_service_container()
+    settings = Settings(services.event_bus)
+    settings.set("plugins/project_directory", str(tmp_path / "none"))
+    settings.set("plugins/user_directory", str(tmp_path / "none"))
+    first = MainWindow(services, settings, SessionManager())
+    first.show()
+    _settle(qapp)
+    first.tabifyDockWidget(_dock(first, "Properties"), _dock(first, "Results"))
+    _dock(first, "Results").show()
+    _dock(first, "Properties").show()
+    _settle(qapp)
+    first._user_placed_docks.update({"Properties", "Results"})
+    first._persist_user_placed()
+    first._session.mark_clean()
+    first.close()
+    assert "Results" in str(settings.get(_USER_PLACED_KEY, ""))
+
+    second = MainWindow(build_service_container(), settings, SessionManager())
+    second.show()
+    _settle(qapp)
+    try:
+        assert "Results" in second._user_placed_docks
+        assert "Results" in second._panel_rail.locked_panels()
+    finally:
+        second.close()
 
 
 def test_a_locked_panel_survives_a_click_that_would_replace_it(window, qapp):
