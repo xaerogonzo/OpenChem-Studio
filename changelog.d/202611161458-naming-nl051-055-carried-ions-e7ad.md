@@ -1,0 +1,2 @@
+### WS5 P2: close NL-051..NL-055 (carried ion rows)
+- Re-measured exemplars from naming rounds 41–54 (`tests/test_namer_nl051_nl055_ws5_carried_ions_programme.py`); residual NL-051 (e)(f) and curated ring-cation backlog noted in the plan.
