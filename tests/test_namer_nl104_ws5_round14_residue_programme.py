@@ -13,11 +13,20 @@ import shutil
 import pytest
 from rdkit import Chem
 from rdkit.Chem import inchi
+from rdkit.Chem.MolStandardize import rdMolStandardize
 
 from openchem.vendor.iupac_namer import name_smiles
 from openchem.vendor.iupac_namer.engine import _check_charge_named
 
 needs_opsin = pytest.mark.skipif(shutil.which("java") is None, reason="needs java on PATH (OPSIN)")
+
+_uncharge = rdMolStandardize.Uncharger()
+
+
+def _neutral_inchi_key(smiles: str) -> str:
+    mol = Chem.MolFromSmiles(smiles)
+    return inchi.MolToInchiKey(_uncharge.uncharge(Chem.Mol(mol)))
+
 
 PINS = [
     (
@@ -72,6 +81,4 @@ def test_nl104_sulfonamidate_opsin_reads_neutral_connectivity_only():
     smiles, expected = PINS[1][1], PINS[1][2]
     back = py2opsin(expected)
     assert back
-    key_in = inchi.MolToInchiKey(Chem.MolFromSmiles(smiles))
-    key_back = inchi.MolToInchiKey(Chem.MolFromSmiles(back))
-    assert key_in.split("-")[0] == key_back.split("-")[0]
+    assert _neutral_inchi_key(back) == _neutral_inchi_key(smiles)

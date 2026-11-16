@@ -44,13 +44,13 @@ PINS = [
     (
         "NL-060 tropane ester senior acid on bicyclo",
         "CN1[C@@H]2CC[C@@H]1[C@@H]([C@H](C2)OC(=O)C3=CC=CC=C3)C(=O)OC",
-        "methyl 3-(benzoyloxy)-8-methyl-8-azabicyclo[3.2.1]octane-2-carboxylate",
+        "methyl (1R,2S,3S,5R)-3-(benzoyloxy)-8-methyl-8-azabicyclo[3.2.1]octane-2-carboxylate",
     ),
     # NL-061 (round 24 morphinan retained parent; charged types still limited)
     (
         "NL-061 morphine morphinan parent",
         "CN1CC[C@]23[C@@H]4[C@H]1CC5=C2C(=C(C=C5)O)O[C@H]3[C@H](C=C4)O",
-        "4,5-epoxy-17-methyl-7,8-didehydromorphinan-3,6-diol",
+        "(5R,6S,9R,13S,14R)-4,5-epoxy-17-methyl-7,8-didehydromorphinan-3,6-diol",
     ),
     (
         "NL-061 fused cation falls back from curated parent",
