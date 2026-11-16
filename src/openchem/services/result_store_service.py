@@ -31,6 +31,10 @@ from openchem.domain.calculator import DRAWING, GEOMETRY
 from openchem.domain.descriptor import DescriptorValue
 from openchem.domain.molecule import MoleculeModel
 from openchem.domain.project import ProjectModel
+from openchem.domain.property_execution import (
+    PropertyExecutionStore,
+    execution_from_stored,
+)
 from openchem.domain.quantum_chemistry_run import QuantumChemistryRun, QuantumChemistryRunStore
 from openchem.domain.recipe_run import RecipeRun, RecipeRunStore
 from openchem.domain.report import ReportResult, StructureReport
@@ -57,6 +61,7 @@ from openchem.events.events import (
     DescriptorComputed,
     PerAtomDataComputed,
     PhCurveComputed,
+    PropertyExecutionDeleted,
     QuantumChemistryRunCompleted,
     QuantumChemistryRunDeleted,
     RecipeRunRecorded,
@@ -134,6 +139,7 @@ class ResultStoreService:
         self.qc_runs = QuantumChemistryRunStore("")
         #: The durable recipe run history -- its own collection for the same reason (`domain/recipe_run.py`).
         self.recipe_runs = RecipeRunStore("")
+        self.property_executions = PropertyExecutionStore("")
         #: Called with the molecule uuid whenever a NEW result is retained --
         #: how the session learns it has something unsaved. Plain callables
         #: held here, not Qt connections.
@@ -155,6 +161,7 @@ class ResultStoreService:
         store: SessionResultStore | None = None,
         qc_runs: QuantumChemistryRunStore | None = None,
         recipe_runs: RecipeRunStore | None = None,
+        property_executions: PropertyExecutionStore | None = None,
     ) -> None:
         """Start a new project's store -- the lifecycle boundary.
 
@@ -189,6 +196,14 @@ class ResultStoreService:
             if recipe_runs is not None:
                 logger.warning("Ignoring recipe runs for project %s", recipe_runs.project_uuid)
             self.recipe_runs = RecipeRunStore(uuid)
+        if property_executions is not None and property_executions.project_uuid == uuid:
+            self.property_executions = property_executions
+        else:
+            if property_executions is not None:
+                logger.warning(
+                    "Ignoring property executions for project %s", property_executions.project_uuid
+                )
+            self.property_executions = PropertyExecutionStore(uuid)
 
     def set_obsolete_check(self, check: Callable[[StoredResult], bool] | None) -> None:
         """Install the question `set_project` asks of every result a file brings back."""
@@ -268,6 +283,24 @@ class ResultStoreService:
         self._event_bus.publish(QuantumChemistryRunDeleted(run_id=run_id, molecule_uuid=run.molecule_uuid))
         return True
 
+    def delete_property_execution(self, execution_id: str) -> bool:
+        """Remove one ordinary calculator invocation from history.
+
+        Does not edit automatic bundle manifests or the result cache.
+        """
+        execution = self.property_executions.get(execution_id)
+        if execution is None:
+            return False
+        self.property_executions.delete(execution_id)
+        for callback in list(self._on_recorded):
+            callback(execution.molecule_uuid)
+        self._event_bus.publish(
+            PropertyExecutionDeleted(
+                execution_id=execution_id, molecule_uuid=execution.molecule_uuid
+            )
+        )
+        return True
+
     def _on_quantum_chemistry_run_completed(self, event: QuantumChemistryRunCompleted) -> None:
         self.record_quantum_chemistry_run(event.run)
 
@@ -295,6 +328,7 @@ class ResultStoreService:
             return
         if not self.store.put(event.stored):
             return
+        self.property_executions.record(execution_from_stored(event.stored))
         for callback in list(self._on_recorded):
             callback(molecule_uuid)
 

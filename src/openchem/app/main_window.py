@@ -89,6 +89,7 @@ from openchem.domain.macromolecule import MacromoleculeModel
 from openchem.domain.molecule import MoleculeModel
 from openchem.domain.calculator import GEOMETRY, RegistryExecution
 from openchem.domain.project import ProjectModel
+from openchem.domain.property_execution import PropertyExecutionStore
 from openchem.domain.quantum_chemistry_run import QuantumChemistryRunStore
 from openchem.domain.recipe_run import RecipeRunStore
 from openchem.domain.result_store import SessionResultStore, result_id_of
@@ -351,6 +352,13 @@ def _as_bool(value: object) -> bool:
 #: The elements the atom menu offers under "Change X to": the ones drawn most, in the editor's own
 #: order. Anything else is one Edit... away (its Atom Properties dialog takes any symbol).
 _ATOM_MENU_ELEMENTS = ("C", "N", "O", "S", "P", "F", "Cl", "Br", "I", "H")
+
+
+def _history_compare_label(item) -> str:
+    run_id = getattr(item, "run_id", "")
+    if run_id:
+        return f"{item.calc_type} · {item.provider} · {item.method_basis} · {run_id[:8]}"
+    return f"{item.producer} · {item.method_model} · {item.execution_id[:8]}"
 
 HELP_TOPIC_BY_DOCK = {
     "Project_Explorer": "projects",
@@ -902,6 +910,10 @@ class MainWindow(QMainWindow):
         self._property_panel.attach_reader(
             self._results_view, reveal=self.reveal_results
         )
+        self._results_view.compare_requested.connect(self._on_compare_requested)
+        self._results_view.delete_requested.connect(self._on_history_delete_requested)
+        if services.result_store_service is not None:
+            self._property_panel.attach_history_sources(self._history_reader_entries)
 
         # THE RIGHT-HAND PANELS ARE NO LONGER TABIFIED, and the tab bar is
         # gone with them.
@@ -1973,6 +1985,9 @@ class MainWindow(QMainWindow):
         Falls back to just the report's own molecule when there is nothing
         obvious to pair it with; the panel then says what to tick.
         """
+        if getattr(report, "history_kind", ""):
+            self._on_history_compare_requested(report)
+            return
         uuid = getattr(report, "molecule_uuid", "")
         chosen = [uuid] if uuid else []
         selected = self._session.selected_molecule_uuid
@@ -1980,6 +1995,171 @@ class MainWindow(QMainWindow):
             chosen.append(selected)
         self._comparison_panel.compare_with(chosen)
         self._on_panel_chosen("Compare")
+
+    def _on_history_delete_requested(self, report) -> None:
+        service = self._services.result_store_service
+        if service is None:
+            return
+        kind = str(getattr(report, "history_kind", "") or "")
+        history_id = str(getattr(report, "history_id", "") or "")
+        name = str(getattr(report, "name", "") or history_id)
+        if kind == "execution":
+            message = (
+                f"Delete \"{name}\" from this project's history?\n\n"
+                "This execution and every output belonging to it go. Other methods "
+                "for the same quantity stay. Nothing is rerun, and automatic "
+                "calculation bundles are not edited."
+            )
+            title = "Delete calculation"
+        elif kind == "quantum":
+            message = (
+                f"Delete \"{name}\" from this project's history?\n\n"
+                "This only removes the project record. Optimized geometries already "
+                "on the molecule stay, and a reusable wavefunction in the Quantum "
+                "cache is not purged."
+            )
+            title = "Delete run"
+        else:
+            return
+        choice = QMessageBox.question(
+            self,
+            title,
+            message,
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+            QMessageBox.StandardButton.No,
+        )
+        if choice != QMessageBox.StandardButton.Yes:
+            return
+        if kind == "execution":
+            service.delete_property_execution(history_id)
+        else:
+            service.delete_quantum_chemistry_run(history_id)
+
+    def _on_history_compare_requested(self, report) -> None:
+        from openchem.domain.compare import ComparedResult, CompareRefusal, compare
+        from openchem.domain.history_compare import (
+            property_executions_comparable,
+            quantum_runs_comparable,
+        )
+        from openchem.domain.scientific_result import PerAtomDataset
+        from openchem.ui.dialogs.compare_results_dialog import CompareResultsDialog
+
+        service = self._services.result_store_service
+        if service is None:
+            return
+        kind = str(getattr(report, "history_kind", "") or "")
+        history_id = str(getattr(report, "history_id", "") or "")
+        if kind == "execution":
+            left = service.property_executions.get(history_id)
+            pool = [
+                item
+                for item in service.property_executions.all_executions()
+                if item.execution_id != history_id
+            ]
+        elif kind == "quantum":
+            left = service.qc_runs.get(history_id)
+            pool = [
+                item
+                for item in service.qc_runs.all_runs()
+                if item.run_id != history_id
+            ]
+        else:
+            return
+        if left is None:
+            QMessageBox.information(self, "Cannot compare", "That history entry is no longer in the project.")
+            return
+        if not pool:
+            QMessageBox.information(
+                self, "Cannot compare", "There is no other retained history entry to compare against."
+            )
+            return
+        labels = [_history_compare_label(item) for item in pool]
+        choice, ok = QInputDialog.getItem(
+            self, "Compare history", "Compare against:", labels, 0, False
+        )
+        if not ok:
+            return
+        right = pool[labels.index(choice)]
+        if kind == "execution":
+            refusal = property_executions_comparable(left, right)
+        else:
+            refusal = quantum_runs_comparable(left, right)
+        if refusal:
+            QMessageBox.information(self, "Cannot compare", refusal)
+            return
+        if kind == "quantum":
+            spectrum_a = left.results.get("spectrum")
+            spectrum_b = right.results.get("spectrum")
+            if spectrum_a is None or spectrum_b is None:
+                QMessageBox.information(
+                    self,
+                    "Compared",
+                    (
+                        f"{_history_compare_label(left)}\n"
+                        f"{_history_compare_label(right)}\n\n"
+                        "Those jobs are compatible. Open each in Results to read the values; "
+                        "NMR shift tables need a spectrum on both runs."
+                    ),
+                )
+                return
+            compared = []
+            for run, spectrum in ((left, spectrum_a), (right, spectrum_b)):
+                dataset = PerAtomDataset(
+                    property_id="nmr_shift",
+                    name=f"NMR shift ({run.method_basis}, {run.provider})",
+                    units=getattr(spectrum, "units", ""),
+                    method=run.method_basis,
+                    molecule_uuid=run.molecule_uuid,
+                    values=dict(spectrum.values),
+                )
+                compared.append(ComparedResult(dataset, run.input_fingerprint, run.calculation_input))
+            outcome = compare(compared)
+            if isinstance(outcome, CompareRefusal):
+                QMessageBox.information(self, "Cannot compare", outcome.message)
+                return
+            symbols = dict(getattr(spectrum_a, "elements", {}) or {})
+            project = self._session.project
+            molecule = project.find_molecule(left.molecule_uuid) if project is not None else None
+            name = molecule.display_name if molecule is not None else left.molecule_uuid
+            dialog = CompareResultsDialog(outcome, symbols, name, parent=self)
+            dialog.setAttribute(Qt.WidgetAttribute.WA_DeleteOnClose, True)
+            dialog.show()
+            return
+        datasets = []
+        for execution in (left, right):
+            for stored in execution.outputs:
+                result = stored.result
+                if isinstance(result, PerAtomDataset):
+                    datasets.append(
+                        ComparedResult(
+                            result,
+                            execution.input_fingerprint,
+                            execution.calculation_input,
+                        )
+                    )
+                    break
+        if len(datasets) >= 2:
+            outcome = compare(datasets[:2])
+            if isinstance(outcome, CompareRefusal):
+                QMessageBox.information(self, "Cannot compare", outcome.message)
+                return
+            symbols = {}
+            project = self._session.project
+            molecule = project.find_molecule(left.molecule_uuid) if project is not None else None
+            name = molecule.display_name if molecule is not None else left.molecule_uuid
+            dialog = CompareResultsDialog(outcome, symbols, name, parent=self)
+            dialog.setAttribute(Qt.WidgetAttribute.WA_DeleteOnClose, True)
+            dialog.show()
+            return
+        QMessageBox.information(
+            self,
+            "Compared",
+            (
+                f"{_history_compare_label(left)}\n"
+                f"{_history_compare_label(right)}\n\n"
+                "Those runs are compatible. Open each in Results to read the values."
+            ),
+        )
 
     def _on_facts_highlighted(self, atom_indices: tuple) -> None:
         """Paint the atoms a hovered fact is about.
@@ -2135,14 +2315,37 @@ class MainWindow(QMainWindow):
             for service in (services.recipe_service, services.score_service)
             if service is not None
         ]
-        return entries_for_molecule(
+        version = services.structure_check_service.current_version(molecule_uuid)
+        entries, version = entries_for_molecule(
             molecule_uuid,
             fresh_results=lambda: store_service.store.fresh_results(
                 molecule_uuid, store_service.fingerprints_for(molecule)
             ),
-            structure_version=services.structure_check_service.current_version(molecule_uuid),
+            structure_version=version,
             category_of=category_of,
             projections=projections,
+        )
+        live_ids = {str(getattr(entry, "report_id", "") or "") for entry in entries}
+        entries.extend(
+            self._history_reader_entries(molecule_uuid, version, live_ids)
+        )
+        return entries, version
+
+    def _history_reader_entries(self, molecule_uuid: str, version: int, live_ids: set[str]) -> list:
+        from openchem.ui.history_entries import history_reader_entries
+
+        service = self._services.result_store_service
+        project = self._session.project
+        if service is None or project is None:
+            return []
+        molecule = project.find_molecule(molecule_uuid)
+        fingerprints = service.fingerprints_for(molecule) if molecule is not None else {}
+        return history_reader_entries(
+            service.property_executions.executions_for(molecule_uuid),
+            service.qc_runs.runs_for(molecule_uuid),
+            fingerprints=fingerprints,
+            structure_version=version,
+            live_result_ids=live_ids,
         )
 
     def _open_compare_readers(self, uuids: list) -> None:
@@ -2443,14 +2646,21 @@ class MainWindow(QMainWindow):
             if self._goal_wizard is not None:
                 self._goal_wizard.show_outcome(text)
             return
-        mode, chosen = self._property_panel.current_scope()
-        selected = self._property_panel.selected_molecule_uuid()
-        if mode == "all":
-            molecule_count = len(self._wizard_molecules())
-        elif mode == "chosen":
-            molecule_count = len(chosen)
+        if self._goal_wizard is not None:
+            mode, chosen = self._goal_wizard.current_scope()
+            molecules = self._goal_wizard.scope_molecules()
+            selected = bool(molecules)
+            molecule_count = len(molecules)
         else:
-            molecule_count = 1 if selected else 0
+            mode, chosen = self._property_panel.current_scope()
+            selected_uuid = self._property_panel.selected_molecule_uuid()
+            selected = bool(selected_uuid)
+            if mode == "all":
+                molecule_count = len(self._wizard_molecules())
+            elif mode == "chosen":
+                molecule_count = len(chosen)
+            else:
+                molecule_count = 1 if selected else 0
         available = {
             p.provider_id for p in self._services.quantum_chemistry_service.available_engines()
         }
@@ -3785,6 +3995,7 @@ class MainWindow(QMainWindow):
         recipe_runs: RecipeRunStore | None = None,
         derived_scores: ScoreDefinitionStore | None = None,
         synthesis_plans: SynthesisPlanStore | None = None,
+        property_executions: PropertyExecutionStore | None = None,
     ) -> None:
         # THE UNDO STACK BELONGS TO THE DOCUMENT, and every command holds a
         # direct reference to the project it was built against. Without
@@ -3801,7 +4012,9 @@ class MainWindow(QMainWindow):
         # and it is replaced BEFORE any panel is told: a panel may select a
         # molecule, and that selection has to find this project's results.
         if self._services.result_store_service is not None:
-            self._services.result_store_service.set_project(project, results, qc_runs, recipe_runs)
+            self._services.result_store_service.set_project(
+                project, results, qc_runs, recipe_runs, property_executions,
+            )
         # The score definitions are swapped on the same call, for the same reason.
         if self._services.score_service is not None:
             self._services.score_service.set_project(project, derived_scores)
@@ -3859,6 +4072,7 @@ class MainWindow(QMainWindow):
             self._set_project(
                 command.loaded_project, command.loaded_results, command.loaded_qc_runs, command.loaded_recipe_runs,
                 command.loaded_derived_scores, command.loaded_synthesis_plans,
+                command.loaded_property_executions,
             )
             self._project_path = str(path)
 
@@ -3916,6 +4130,7 @@ class MainWindow(QMainWindow):
         command = SaveProjectCommand(
             self._services.project_service, self._session.project, path, results, fingerprints, qc_runs,
             recipe_runs, self._current_scores(), self._current_plans(),
+            self._current_property_executions(),
         )
         self._undo_stack.push(command)
         self._session.mark_clean()
@@ -3983,6 +4198,7 @@ class MainWindow(QMainWindow):
                 recipe_runs=recipe_runs,
                 derived_scores=self._current_scores(),
                 synthesis_plans=self._current_plans(),
+                property_executions=self._current_property_executions(),
             )
         except Exception:  # noqa: BLE001 - a recovery copy must never interrupt work
             logger.exception("Could not write a recovery copy of %s", project.uuid)
@@ -4028,7 +4244,7 @@ class MainWindow(QMainWindow):
         document = service.load(newest)
         self._set_project(
             document.project, document.results, document.qc_runs, document.recipe_runs, document.derived_scores,
-            document.synthesis_plans,
+            document.synthesis_plans, document.property_executions,
         )
         self._project_path = newest.source_path
         # Recovered work is unsaved by definition; keep the copy until it is.
@@ -4826,6 +5042,12 @@ class MainWindow(QMainWindow):
             store_service.qc_runs,
             store_service.recipe_runs,
         )
+
+    def _current_property_executions(self):
+        store_service = self._services.result_store_service
+        if store_service is None:
+            return None
+        return store_service.property_executions
 
     def _current_scores(self) -> ScoreDefinitionStore | None:
         """The project's score definitions as a save writes them, or None without a score service."""

@@ -400,6 +400,10 @@ class GoalWizardDialog(QDialog):
             if entry.calculator_id in self._entry_checks and self._entry_checks[entry.calculator_id].isChecked()
         ]
 
+    def current_scope(self) -> tuple[str, set[str]]:
+        """The wizard's own Run on box, not Properties'."""
+        return self._scope_mode, set(self._scope_chosen)
+
     def selected_quantum_action_id(self) -> str:
         """The optional Quantum action ticked on customise, or empty."""
         group = self._quantum_group

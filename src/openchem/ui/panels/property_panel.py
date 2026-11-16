@@ -132,6 +132,7 @@ from openchem.events.events import (
     MoleculeSelected,
     PerAtomDataComputed,
     PhCurveComputed,
+    PropertyExecutionDeleted,
     QuantumChemistryRunDeleted,
     RecalculationDue,
     RecipeRunRecorded,
@@ -1978,6 +1979,8 @@ class PropertyPanel(QWidget):
         #: `structure_version_of` is: this needs the kept answers of one molecule and nothing else of the service.
         self._recipe_answers: Callable[[str, int], Sequence] | None = None
         self._score_answers: Callable[[str, int], Sequence] | None = None
+        #: Property executions + Quantum runs for Results, or None.
+        self._history_for: Callable[[str, int, set[str]], Sequence] | None = None
         #: The project's score definitions as they are now, or None (a panel with no scores behind it): what "Tick what my scores read" reads. A CALLABLE, asked each time, so a score defined, edited or removed is in the next tick.
         self._score_definitions: Callable[[], Sequence[ScoreDefinition]] | None = None
         #: The structure version each held descriptor was computed for (its dispatch
@@ -2289,6 +2292,7 @@ class PropertyPanel(QWidget):
         event_bus.subscribe(SettingsChanged, self._on_settings_changed)
         event_bus.subscribe(RecipeRunRecorded, self._on_recipe_run_recorded)
         event_bus.subscribe(QuantumChemistryRunDeleted, self._on_quantum_chemistry_run_deleted)
+        event_bus.subscribe(PropertyExecutionDeleted, self._on_property_execution_deleted)
         event_bus.subscribe(ScoreDefinitionsChanged, self._on_score_definitions_changed)
 
     def attach_recipe_answers(self, answers_for: Callable[[str, int], Sequence] | None) -> None:
@@ -2298,6 +2302,18 @@ class PropertyPanel(QWidget):
         kept runs each time it is asked: they are a projection, never stored here or in the result store.
         """
         self._recipe_answers = answers_for
+        self._refresh_reader()
+
+    def attach_history_sources(
+        self, history_for: Callable[[str, int, set[str]], Sequence] | None
+    ) -> None:
+        """Let Results list property executions and Quantum run_ids.
+
+        `history_for(molecule_uuid, structure_version, live_result_ids)` returns
+        reader entries. Live result ids are the current cache projection so the
+        newest matching execution is not listed twice.
+        """
+        self._history_for = history_for
         self._refresh_reader()
 
     def attach_score_answers(self, answers_for: Callable[[str, int], Sequence] | None) -> None:
@@ -2327,7 +2343,11 @@ class PropertyPanel(QWidget):
     def _on_quantum_chemistry_run_deleted(self, _event: QuantumChemistryRunDeleted) -> None:
         """A run was deleted: a kept answer that consumed it is stale now, and may belong to the other molecule of its
         pair, so the reader looks again whichever molecule the run was of."""
-        if self._recipe_answers is not None:
+        if self._recipe_answers is not None or self._history_for is not None:
+            self._refresh_reader()
+
+    def _on_property_execution_deleted(self, _event: PropertyExecutionDeleted) -> None:
+        if self._history_for is not None:
             self._refresh_reader()
 
     def set_project(self, project: ProjectModel | None) -> None:
@@ -3480,7 +3500,14 @@ class PropertyPanel(QWidget):
         here, and a guess would put a star on the wrong one. The always-on descriptors,
         recipe answers and scores are not calculators and have none.
         """
-        return marker_for(self._calculator_registry.get(report_id))
+        lookup = report_id
+        reader = self._attached_reader
+        if reader is not None:
+            report = reader.merged().report_for(report_id)
+            calc_id = str(getattr(report, "order_id", "") or "")
+            if calc_id:
+                lookup = calc_id
+        return marker_for(self._calculator_registry.get(lookup))
 
     def _sync_attached_reader(self) -> None:
         """Move the persistent reader onto the selected molecule and feed it.
@@ -3585,7 +3612,7 @@ class PropertyPanel(QWidget):
         identity = event.stored.identity
         if identity.molecule_uuid != self._selected_molecule_uuid:
             return
-        if self._score_answers is not None:
+        if self._score_answers is not None or self._history_for is not None:
             # **A SCORE READS THE STORE, AND A RESULT'S OWN EVENT REACHES THE READER BEFORE THE STORE HAS IT.** `ReportComputed` and its kin refresh the reader first;
             # a score waiting for that result evaluated then, found nothing, and was never told to look again (found by driving the real app: a calculator finished and the
             # score stayed empty). This envelope arrives after the store recorded the result, and the refresh is coalesced, so a flood of descriptors is one.
@@ -3849,7 +3876,18 @@ class PropertyPanel(QWidget):
         # **THE SCORES A PERSON DEFINED**, a projection of the same kind: evaluated against this molecule's current results every time the reader refreshes,
         # which is what keeps them current without anything being stored (`domain/score_answer.py`).
         entries.extend(self._project_score_answers(version))
+        entries.extend(self._history_entries(version, entries))
         return entries, version
+
+    def _history_entries(self, version: int, live_entries) -> list:
+        if self._history_for is None or not self._selected_molecule_uuid:
+            return []
+        live_ids = {str(getattr(entry, "report_id", "") or "") for entry in live_entries}
+        try:
+            return list(self._history_for(self._selected_molecule_uuid, version, live_ids))
+        except Exception:  # noqa: BLE001 - history must not take the other results with it
+            logger.exception("Could not read calculation history for %s", self._selected_molecule_uuid)
+            return []
 
     def _project_score_answers(self, version: int) -> list:
         if self._score_answers is None or not self._selected_molecule_uuid:

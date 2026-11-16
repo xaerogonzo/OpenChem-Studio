@@ -131,6 +131,15 @@ class ResultSummaryView:
     #: omission meant a `refusal` expectation could never match a summarised
     #: result. Carried, never interpreted: nothing here reads it.
     provenance: Any = None
+    #: Registry id used only to place a history row in the Showing list.
+    order_id: str = ""
+    #: Chemical method/model for collapsible Results groups (EEM, QEq, engine+basis).
+    method_model: str = ""
+    #: `execution` or `quantum` when this row is history rather than the live cache projection.
+    history_kind: str = ""
+    history_id: str = ""
+    #: Input no longer matches the current molecule — labelled historical, not *(stale)*.
+    historical: bool = False
 
     def by_category(self) -> dict[FactCategory, tuple[Fact, ...]]:
         return group_facts_by_category(self.facts)
