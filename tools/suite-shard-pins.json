@@ -898,6 +898,7 @@
   "tests/test_namer_nl072_nl076_ws5_nonpreferred_pins.py": 0,
   "tests/test_namer_nl078_nl087_ws5_nonpreferred_pins.py": 2,
   "tests/test_namer_nl080_ws3_betaine_prefix_sources.py": 1,
+  "tests/test_namer_nl082_nl094_ws5_nonpreferred_pins.py": 1,
   "tests/test_namer_nl085_ws3_hypoboric_validator.py": 0,
   "tests/test_namer_nl088_nl089_ws3_bench_policies.py": 2,
   "tests/test_namer_nl090_letter_locant_methyls.py": 0,
