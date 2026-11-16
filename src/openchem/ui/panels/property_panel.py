@@ -166,6 +166,7 @@ from openchem.ui.widgets.component_choice_row import ComponentChoiceRow
 from openchem.ui.widgets.substance_card import SubstanceCard, SubstanceCardData, card_data_from_report
 from openchem.ui.widgets.collapsible_section import CollapsibleSection as _CollapsibleSection
 from openchem.ui.widgets.collapsible_section import ExplicitHeightLabel as _ExplicitHeightLabel
+from openchem.ui.widgets.flow_layout import flow_row
 from openchem.ui.widgets.workflow_body import HOME_PROPERTIES, HOME_TAB, WorkflowBody
 
 # Preferred display order -- any category not listed here (e.g. a future
@@ -401,6 +402,35 @@ _BATCH_SELECTION_HELP = HelpTooltip(
     ),
     tier=1,
     help_id="properties.batch_selection",
+    topic="properties",
+    help_anchor="properties",
+)
+
+
+#: Expand all opens every Properties category and workflow section and calculates nothing.
+_EXPAND_ALL_HELP = HelpTooltip(
+    text=(
+        "Open every category and workflow section in Properties.\n\n"
+        "It only changes which sections are folded. It does not calculate "
+        "anything, and it does not change ticks, Find text or which molecule "
+        "is selected."
+    ),
+    tier=1,
+    help_id="properties.expand_all",
+    topic="properties",
+    help_anchor="properties",
+)
+
+#: Collapse all folds every Properties category and workflow section and calculates nothing.
+_COLLAPSE_ALL_HELP = HelpTooltip(
+    text=(
+        "Fold every category and workflow section in Properties.\n\n"
+        "It only changes which sections are folded. It does not calculate "
+        "anything, and it does not change ticks, Find text or which molecule "
+        "is selected."
+    ),
+    tier=1,
+    help_id="properties.collapse_all",
     topic="properties",
     help_anchor="properties",
 )
@@ -2180,6 +2210,21 @@ class PropertyPanel(QWidget):
             layout.addLayout(choice_row)
         layout.addWidget(self._scope_aggregate)
         layout.addWidget(self._find_box)
+        # WRAP, so Find keeps its own row and these two stay reachable in a
+        # dock that is 170 px wide. A horizontal layout's minimum is the SUM
+        # of its children and would steal the Find box.
+        self._expand_row = flow_row(self)
+        self._expand_all = QPushButton("Expand all", self._expand_row)
+        self._expand_all.setObjectName("propertiesExpandAll")
+        self._expand_all.clicked.connect(self._on_expand_all_clicked)
+        apply_help_tooltip(self._expand_all, _EXPAND_ALL_HELP)
+        self._collapse_all = QPushButton("Collapse all", self._expand_row)
+        self._collapse_all.setObjectName("propertiesCollapseAll")
+        self._collapse_all.clicked.connect(self._on_collapse_all_clicked)
+        apply_help_tooltip(self._collapse_all, _COLLAPSE_ALL_HELP)
+        self._expand_row.layout().addWidget(self._expand_all)
+        self._expand_row.layout().addWidget(self._collapse_all)
+        layout.addWidget(self._expand_row)
         layout.addWidget(self._find_empty)
         layout.addWidget(scroll_area)
         #: "N calculators hidden by default -- Settings...". An ELIDING button:
@@ -4073,6 +4118,46 @@ class PropertyPanel(QWidget):
     def _on_find_changed(self, text: str) -> None:
         self._find_text = text
         self._apply_calculator_visibility()
+
+    def _expandable_sections(self) -> tuple[_CollapsibleSection, ...]:
+        """Category and workflow sections currently owned here, each once.
+
+        `_row_sections` maps a row onto the category section that already
+        lives in `_sections`. Walking it would expand the same heading many
+        times and still miss workflows.
+        """
+        seen: list[_CollapsibleSection] = []
+        ids: set[int] = set()
+        for section in (*self._sections.values(), *self._workflows.values()):
+            marker = id(section)
+            if marker in ids:
+                continue
+            ids.add(marker)
+            seen.append(section)
+        return tuple(seen)
+
+    def _set_all_sections_expanded(self, expanded: bool) -> None:
+        """Open or fold every owned section. Calculates nothing.
+
+        If Find has a snapshot, the snapshot is updated so clearing the
+        query does not undo an Expand all / Collapse all pressed while
+        searching.
+        """
+        for section in self._expandable_sections():
+            section.set_expanded(expanded)
+        if self._find_snapshot is None:
+            return
+        for category, section in self._sections.items():
+            self._find_snapshot[category] = expanded
+        prefix = _WORKFLOW_SNAPSHOT_PREFIX
+        for workflow_id, workflow in self._workflows.items():
+            self._find_snapshot[prefix + workflow_id] = expanded
+
+    def _on_expand_all_clicked(self, _checked: bool = False) -> None:
+        self._set_all_sections_expanded(True)
+
+    def _on_collapse_all_clicked(self, _checked: bool = False) -> None:
+        self._set_all_sections_expanded(False)
 
     def _find_matches(self, definition: CalculatorDefinition, needle: str) -> bool:
         """Case-insensitive match over name, tags, description and heading.

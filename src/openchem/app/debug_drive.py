@@ -2596,9 +2596,18 @@ class _Driver(QObject):
 
     def _do_expand(self, step: dict[str, Any]) -> None:
         """Expand one Properties section, by category id (e.g. "admet"), or a
-        workflow section by `workflow:<id>` (e.g. "workflow:alignment")."""
+        workflow section by `workflow:<id>` (e.g. "workflow:alignment").
+
+        `"section": "all"` presses the real Expand all / Collapse all buttons
+        (`expanded` false folds every owned section).
+        """
         name = str(step["section"])
         panel = self._window._property_panel
+        want_open = bool(step.get("expanded", True))
+        if name == "all":
+            button = panel._expand_all if want_open else panel._collapse_all
+            button.click()
+            return
         section = (
             panel.workflow_section(name.split(":", 1)[1])
             if name.startswith("workflow:")
@@ -2607,7 +2616,7 @@ class _Driver(QObject):
         if section is None:
             logger.error("OPENCHEM_DRIVE: no section %r", step["section"])
             return
-        section.set_expanded(bool(step.get("expanded", True)))
+        section.set_expanded(want_open)
 
     def _do_properties_width_report(self, step: dict[str, Any]) -> None:
         """Say WHY the Properties list scrolls sideways, if it does.

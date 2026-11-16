@@ -896,7 +896,10 @@ the thing that needs the room.
 The Properties panel is where a calculation is **started**, and the
 [Results](#results) panel is where one is **read**. It has **22 collapsible
 categories** covering **62 registered calculators**; Identity is open by
-default.
+default. **Expand all** and **Collapse all** under the Find box open or fold
+every category and every workflow section that currently lives in Properties.
+They change only which headings are open: they do not run anything, and they
+do not change ticks or Find.
 
 Each calculator gets a row: a tick box that adds it to a batch run, a
 **button** labelled with its name and a trailing `…`, and a **status chip**
