@@ -902,6 +902,7 @@
   "tests/test_namer_nl085_ws3_hypoboric_validator.py": 0,
   "tests/test_namer_nl088_nl089_ws3_bench_policies.py": 2,
   "tests/test_namer_nl090_letter_locant_methyls.py": 0,
+  "tests/test_namer_nl092_nl093_ws4_fusion_policy.py": 0,
   "tests/test_namer_nl097_ownership_audit_scope.py": 1,
   "tests/test_namer_nl105_ws5_adjudication_pins.py": 1,
   "tests/test_namer_nl106_ws3_adjudication_undecided.py": 0,

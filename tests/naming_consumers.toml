@@ -207,6 +207,12 @@ scope = "core"
 owner = "namer"
 
 [[consumer]]
+file = "tests/test_namer_nl092_nl093_ws4_fusion_policy.py"
+why = "NL-092, NL-093 (closed 2026-11-15): WS4 fusion/multiparent policy — von Baeyer, retained, refusal"
+scope = "core"
+owner = "namer"
+
+[[consumer]]
 file = "tests/test_namer_nl022_ws3_ring_assembly_sources.py"
 why = "NL-022 (closed): Blue Book P-28.2/28.3 sources for bi-assembly spelling; round 81–82 OPSIN pins"
 scope = "core"
