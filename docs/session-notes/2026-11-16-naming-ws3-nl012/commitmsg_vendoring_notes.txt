@@ -1,0 +1,3 @@
+Track WS3 session notes and record fork #101 in VENDORING.
+
+NL-012 fork merged on xaerogonzo/open-iupac-namer; keep commit/PR/probe scratch under docs/session-notes for the #627 stack.

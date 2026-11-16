@@ -1,0 +1,3 @@
+Close WS3 NL-023/024 sources and P3 limitation pins.
+
+Document CIP suite and Blue Book V3 citations in tests so validator limits and deliberate benchmark policies stay distinguishable from defects.

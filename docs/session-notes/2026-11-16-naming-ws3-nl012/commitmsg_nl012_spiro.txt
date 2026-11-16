@@ -1,0 +1,5 @@
+NL-012 spiro diketones: cite -2',4(3H)-dione for OPSIN read-back.
+
+Round-84/85 pteridinone spiro pairs were unreadable as -2',4-dione; measured
+with OPSIN on Bitwig's JRE. Adamantane-with-substituent shape is pinned; shapes
+2-3 use the unprimed lactam (3H) on the merged suffix.
