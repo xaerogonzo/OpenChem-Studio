@@ -42,9 +42,9 @@ It returns a conformer for every one of the 12 open-shell species (no failure), 
 
 | Species | Bond from the pool's conformer | Reference |
 |---|---|---|
-| O2 drawn as `[O][O]` (single bond, two radicals) | 1.316 A | triplet O2 r_e about 1.21 A (NIST CCCBDB value not re-fetched; real ORCA below gives 1.2002 for B3LYP/def2-SVP) |
+| O2 drawn as `[O][O]` (single bond, two radicals) | 1.316 A | triplet O2 r_e 1.20752 A (Huber and Herzberg 1979, PDF p. 511; real ORCA below gives 1.2002 for B3LYP/def2-SVP) |
 | O2 drawn as `O=O` | 1.151 A | same |
-| NO | 1.424 A | NO r_e about 1.15 A (ORCA below gives 1.1487) |
+| NO | 1.424 A | NO r_e 1.15077 A (Huber and Herzberg 1979, PDF p. 489; ORCA below gives 1.1487) |
 | O2-, superoxide | 1.316 A | |
 
 Nothing wrong is *published* from this (an ORCA optimisation corrects it, `Oatom` and `H` need no geometry) but the 3D view and every geometry-based descriptor of a radical
@@ -58,7 +58,7 @@ equivalent, and is a proposal, not shipped.
 | Species | Multiplicity | Result |
 |---|---|---|
 | O2 | 3 | -150.144946 Eh, r = 1.2002 A (experiment about 1.21) |
-| O2 | **1** | -150.081721 Eh, r = 1.2014 A: **+39.7 kcal/mol, finishes, no message** (a closed-shell RKS state; the a1Dg state is about 22 kcal/mol above the triplet, from memory, so this is not even that) |
+| O2 | **1** | -150.081721 Eh, r = 1.2014 A: **+39.7 kcal/mol, finishes, no message** (a closed-shell RKS state; the a1Dg state is about 22 kcal/mol above the triplet, a figure from memory that no held source was read for, so this is not even that) |
 | O2 | 5 | -149.951189 Eh, r = 1.9015 A (dissociating quintet: a legal input, a different molecule) |
 | CH2 | 3 | -39.086062 Eh |
 | CH2 | **1** | -39.019324 Eh: **+41.9 kcal/mol, no message** |
@@ -118,7 +118,7 @@ a valence model that assumes closed shells and octets", which is a reason to kee
 
 5. **OS2, ground states drawn closed-shell.** `TRIPLET_GROUND_STATES` (O2, SO, S2) default to multiplicity 3 and `spin_note` says so at 1. Measured in real ORCA 6.1.1
    (B3LYP/def2-SVP, optimised, triplet minus singlet): O2 -39.7, SO -29.7, S2 -23.7 kcal/mol; N2 +147.5 is the control kept out. Se2 produced no output and is not listed.
-   The textbook X 3Sigma- citation per row is still to be attached. This supersedes the earlier statement that `O=O` stays at 1.
+   The X 3Sigma- assignment of each is in Huber and Herzberg 1979 (section 8). This supersedes the earlier statement that `O=O` stays at 1.
 6. **OS5.** ORCA results gain `orca.s_squared` (the last `<S**2>`, with the ideal value and the excess in the provenance) for any unrestricted run; a restricted run
    gains nothing. `Psi4QuantumEngineProvider.build_input` refuses an impossible electron count like xtb's. **Psi4 is not installed here**, so only the arithmetic is tested, not Psi4's own behaviour.
 
@@ -146,9 +146,9 @@ Mutation checks run: each of 7 edits (Joback, Hansen, both Hueckel rules, the pa
 | # | Package | Why | What it takes | Risk |
 |---|---|---|---|---|
 | OS1 | **DONE (stored in the molblock; no editor control yet).** Store the multiplicity with the structure (a `spin_multiplicity` field, project format bump, `None` = derive) and read `M  RAD 1/2/3` from the molblock text ourselves because RDKit conflates 1 and 3 | a drawn singlet carbene is rewritten as triplet today; the default would stop being a guess | a field on `MoleculeModel`, codec and project-file migration, an editor control, tests | medium (file format) |
-| OS2 | **DONE (O2, SO, S2; citations pending).** Known-ground-state table: O2, CH2, NH, SO, S2... drawn closed-shell (`O=O`) default to their measured ground-state multiplicity, with the source for each | `O=O` is the most likely way someone draws oxygen, and gets multiplicity 1 | a small cited table like `vsepr_geometry`'s, tests against the ORCA runs above | low |
+| OS2 | **DONE (O2, SO, S2; cited to Huber and Herzberg 1979).** Known-ground-state table: O2, CH2, NH, SO, S2... drawn closed-shell (`O=O`) default to their measured ground-state multiplicity, with the source for each | `O=O` is the most likely way someone draws oxygen, and gets multiplicity 1 | a small cited table like `vsepr_geometry`'s, tests against the ORCA runs above | low |
 | OS3 | **Open-shell 3D starts**: small-molecule geometry table for diatomic and triatomic radicals (O2, NO, OH, CH3, CH2, NH2...), each with a source | section 3.2: 1.316 A and 1.151 A for O2 | same shape as WP6; sources needed (below) | low |
-| OS4 | **Calculator audit for radicals with oracles:** `logd`/ionisable sites, `hbond_sites`, `steric_analysis`, charge models, `solubility`: decide gate or refuse per calculator | section 3.4, TEMPO | a nitroxide pKa (not held), a decision per calculator; if more than about four calculators are gated, one registry-level `CLOSED_SHELL_ONLY` set beside `HYPERVALENT_VERIFIED_CALCULATORS` is cleaner than per-calculator code | low to medium |
+| OS4 | **UNBLOCKED (section 8: nitroxide pKa about -5.5 to -6.2, protonated on oxygen).** Calculator audit for radicals with oracles: `logd`/ionisable sites, `hbond_sites`, `steric_analysis`, charge models, `solubility`: decide gate or refuse per calculator | section 3.4, TEMPO | a nitroxide pKa (not held), a decision per calculator; if more than about four calculators are gated, one registry-level `CLOSED_SHELL_ONLY` set beside `HYPERVALENT_VERIFIED_CALCULATORS` is cleaner than per-calculator code | low to medium |
 | OS5 | **DONE** (Psi4 only by arithmetic). Psi4 parity check and a spin-contamination figure (`<S**2>`) in every unrestricted result, as bond dissociation already flags | an unrestricted run's quality is invisible | parse ORCA/Psi4 `<S**2>`, one fact | low |
 | OS6 | Hueckel for heteroatom radicals (nitroxide, NO) with real alpha/beta parameters | currently refused | parameter set, oracle | medium, little value |
 | H1 | **PARTLY DONE: `geometry_analysis` (radii and shadow) is verified; `dipole_moment` is next.** Hypervalent, calculator by calculator (the owner's long-term goal): split `geometry_analysis` so the size and shape descriptors (pure coordinates) run on held structures and only the Dreiding energy refuses; then `dipole_moment` from a quantum run, where the ORCA geometry check of #600 is the oracle | the descriptors that need no valence model are the cheap ones | one calculator at a time, each with its own oracle test as in #598 | low |
@@ -166,11 +166,26 @@ uv run --no-sync python -m pytest tests/test_open_shell.py
 ```
 
 Not done, said plainly: Ketcher was not driven (section 2); Psi4 and xtb were not run on a radical here (xtb's guard is read from its source and its fixtures); no calculator outside
-the panel's 62 was checked; no literature was fetched. The O2 and NO bond lengths quoted for comparison are from memory of NIST CCCBDB and the spectroscopic literature, not
-re-read for this change, and no DOI is attached to them for that reason.
+the panel's 62 was checked. (The literature the first version of this section asked for has been obtained and read: section 8.)
 
-## 8. Literature wanted (the owner fetches papers; the short list is also in `WANTED_NOW.md`)
+## 8. Literature obtained and read (2026-11-15), and what it settles
 
-* A measured pKa of a protonated nitroxide (TEMPO conjugate acid), to settle OS4's `logd` question.
-* A reference for the equilibrium geometries of small open-shell molecules (NO, OH, CH3, CH2 triplet, O2) for OS3 (Huber and Herzberg, *Constants of Diatomic Molecules*; Jacox for
-  radicals), or NIST CCCBDB entries as a bulk source.
+Each number below was read in the held file (`docs/sources.toml` has an entry per paper with what was and was not read); an ordinary chatbot summary of these papers was checked
+against them and agreed, with the corrections noted.
+
+* **Nitroxide basicity (OS4's oracle).** The measured pKa of protonated TEMPO is **-5.5 +/- 1** (Malatesta and Ingold 1973) and **-5.8 +/- 0.3** (Sen and Golubev 2009), of 4-hydroxy-TEMPO
+  **-6.2**, all in concentrated sulfuric acid (Konopko and Litwinienko 2022, Table 2, footnote 'Both values determined in H2SO4'), with protonation on **oxygen** (Voinov et al. 2024). These are
+  not aqueous values, but they settle the question `logd` raised: at pH 7.4 a nitroxide is protonated to a fraction of about 10^-13, so counting its nitrogen as a basic centre (LogD 0.96
+  against LogP 2.38 for TEMPO, a 1.42 unit drop) is wrong. **OS4 is now unblocked for `logd`, `hbond_sites` (the nitroxide N as acceptor) and `steric_analysis` (as donor).** No value was found
+  for 4-oxo-TEMPO or di-tert-butyl nitroxide, and the -6.2 credited to Sen is not in the main text of his paper (his SI document was not opened).
+* **Small open-shell geometries (OS3's table).** Huber and Herzberg 1979, ground-state r_e (A): NO 1.15077 (p. 489), O2 1.20752 (p. 511), OH 0.96966 (p. 521), S2 1.8892 (p. 577), Se2 2.1660
+  (p. 595, X1 component), SO 1.481087 (p. 635); the three triplets O2, S2 and SO are X 3Sigma-, which backs OS2's table. Methylene: triplet r(CH) 1.07530 (11) A and HCH 133.931 degrees (derived
+  from the printed rho_e 46.0692 (21)) with T0 = 3147 cm-1 (8.998 kcal/mol), Te = 3223 cm-1 (Jensen and Bunker 1988); singlet r_e 1.107 A, theta_e 102.4 degrees (Petek et al. 1989, abstract;
+  no uncertainty is printed there); Leopold et al. 1984 revised the photoelectron splitting from at least 19.5 to about 9 kcal/mol. **Corrections to the chatbot summary:** the +/-0.0003 A and
+  +/-0.06 degrees it gave for triplet CH2 are not in the paper (the fit gives 0.00011 A and 0.002 degrees on rho_e); the diatomic r_e values it credited to NIST are in Huber and Herzberg itself.
+  **Not read:** CH3 (C-H 1.079 A, planar) and NH2 (N-H 1.024 A, 103.4 degrees) are NIST CCCBDB entries crediting Herzberg 1966 (held, `herzberg1966`); the CCCBDB page and Herzberg's pages were
+  not opened, so those two are unverified and should not be shipped until they are.
+* **Hueckel.** Benzyl 7 alpha + 8.721 beta (Ramachandran et al. 2008, Table 4.10, PDF p. 97), which is the application's 8.72; allyl 2 sqrt(2) beta is arithmetic.
+* **Spin contamination (the `orca.s_squared` threshold).** Jensen 1990: even a small contamination can change vibrational frequencies markedly (his <S**2> of 0.785 and 0.787 are called small in
+  the text); the 10% rule of thumb quoted second-hand comes from the online page of D. Young, which was NOT downloaded and is not registered. No threshold is shipped; `orca.s_squared` reports the
+  value and the excess and leaves the judgement to the reader.

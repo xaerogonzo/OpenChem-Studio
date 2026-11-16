@@ -45,7 +45,7 @@ def electron_count(mol: Chem.Mol, charge: int) -> int:
 #: Neutral molecules whose ground state is a triplet although the usual drawing has no unpaired electrons (keyed by canonical SMILES of the
 #: closed-shell drawing). Each was MEASURED here, not only recalled: real ORCA 6.1.1, B3LYP/def2-SVP, triplet minus singlet energy at the
 #: optimised geometry: O2 -39.7, SO -29.7, S2 -23.7 kcal/mol (`benchmarks/open_shell/orca_spin_states.py`). N2 (+147.5) is the control that
-#: must not be here. The ground states are textbook X 3Sigma-; a literature citation per row is still to be attached (OS2 in the design).
+#: must not be here. The ground states are X 3Sigma- in Huber and Herzberg 1979 (`huber1979`, PDF pages 511 O2, 635 SO, 577 S2).
 TRIPLET_GROUND_STATES = frozenset({"O=O", "S=S", "O=S"})
 
 

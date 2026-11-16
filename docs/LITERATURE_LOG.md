@@ -392,6 +392,27 @@ A search afterwards (COD queried by formula, the Haefliger SI's survey of known 
 
 Still open: any crystal of PhIF2 itself, a measured ClF5 pair of lengths, and cyclic periodinanes (a hypervalent centre in a ring is unsupported).
 
+## Open-shell pass (2026-11-15)
+
+Papers fetched for the open-shell work (`docs/OPEN_SHELL_AND_HYPERVALENT_COVERAGE_DESIGN.md`, section 8). A chatbot's summary of them was checked against the files; where they differed, the file won.
+
+| Paper | Read for | Outcome | Registry key |
+|---|---|---|---|
+| Malatesta and Ingold 1973 | pKa of protonated nitroxides | **-5.5 +/- 1** for dialkyl nitroxides, estimated from EPR in sulfuric acid (H0 -7.5 to -3.7 window, no signal between because of proton exchange) | `malatesta1973` |
+| Sen and Golubev (2008 online, 2009 volume) | pKa of protonated TEMPO | **-5.8 +/- 0.3** (sign lost in the text layer, confirmed by Konopko's table); the -6.2 for 4-hydroxy-TEMPO is credited to it but is not in the main text; SI not opened | `sen2008` |
+| Konopko and Litwinienko 2022 | the open-access check of both | Table 2 prints -5.5, -5.8 and -6.2, footnote 'both values determined in H2SO4'; also the hydroxylamine pKa values, which are different species | `konopko2022` |
+| Voinov et al. 2024 | where a nitroxide protonates | oxygen of the N-O radical moiety, in concentrated acid; SI not read | `voinov2024` |
+| Warren, Tronic and Mayer 2010 | TEMPOH thermochemistry | NOT opened for a number (111 pages); recorded as a citation only | `warren2010` |
+| Huber and Herzberg 1979 | r_e of NO, O2, OH, S2, Se2, SO | all six found and read in place (PDF pages 489, 511, 521, 577, 595, 635), X 3Sigma- for O2, S2, SO | `huber1979` |
+| Jensen and Bunker 1988 | triplet CH2 | r(CH) 1.07530 (11) A, rho_e 46.0692 (21) degrees (HCH 133.931), T0 3147, Te 3223 cm-1 | `jensen1988` |
+| Petek et al. 1989 | singlet CH2 | r_e 1.107 A, theta_e 102.4 degrees; no uncertainty in the abstract | `petek1989` |
+| Leopold, Murray and Lineberger 1984 | CH2 singlet-triplet splitting | revised from at least 19.5 to about 9 kcal/mol; the 9.05 +/- 0.06 in it is another group's measurement | `leopold1984` |
+| Ramachandran et al. 2008 | benzyl Hueckel table | Table 4.10, PDF p. 97: 7 alpha + 8.721 beta | `ramachandran2008` |
+| Jensen 1990, Yu et al. 2023 | spin contamination | first page and abstract only; no threshold taken from either | `jensen1990`, `yu2023` |
+| Herzberg 1966, Streitwieser 1961, Jacox supplements A and B | CH3 and NH2 geometries; Hueckel; transient-molecule levels | held, NOT opened for a number | `herzberg1966`, `streitwieser1961`, `jacox1998`, `jacox2003` |
+
+Not downloaded: D. Young's spin-contamination page (ccl.net), the source of the 10% rule of thumb; the NIST CCCBDB entries for CH3 and NH2. Still open: any measurement for 4-oxo-TEMPO or di-tert-butyl nitroxide.
+
 ## How to use this
 
 Before searching for a reference for a tautomer system, look here. A paper listed as "not an energy
