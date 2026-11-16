@@ -461,16 +461,22 @@ def test_the_composite_rule_does_not_swallow_the_line_edits(controls):
         -7 inside a QDoubleSpinBox    already excluded before this rule,
         -3 inside a QSpinBox          by the composite rule as it stood
         -1 inside a QComboBox
-        = 2 standing alone            `facts.search`, `batch.property_filter`
+        standing alone: `facts.search`, `properties.find_calculator`,
+        `results.filter_result_list`. The Batch picker filter
+        (`batch.property_filter`) has no control after Properties took ticks.
 
-    Those two are the whole population the window can offer, so this
+    Those are the whole population the window can offer, so this
     asserts them BY NAME rather than by a threshold that would read as
     stronger than it is.
     """
     found, _ = controls
     line_edits = {c.instance_path: c for c in found if c.widget_class == "QLineEdit"}
     ids = {c.help_tooltip.help_id for c in line_edits.values() if c.help_tooltip}
-    assert {"facts.search", "batch.property_filter"} <= ids, (
+    assert {
+        "facts.search",
+        "properties.find_calculator",
+        "results.filter_result_list",
+    } <= ids, (
         f"the window's stand-alone line edits are no longer documentable "
         f"({sorted(ids)}) -- the composite rule is excluding the line edits "
         "themselves and not merely the clear buttons Qt builds inside them"

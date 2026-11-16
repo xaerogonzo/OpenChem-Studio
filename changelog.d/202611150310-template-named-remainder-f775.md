@@ -1,0 +1,3 @@
+### Template library named remainder
+
+- Ship the remaining identity-verified complete molecules from the research inventory: fused and bridged polycycles, the leftover crown ethers, (1R,4R)-camphor, and beta-carotene. Grow the catalog to about 2000 named complete molecules from isomeric SMILES (solvents, reagents, functional-group examples, heterocycles, terpenes, fatty acids, cofactors, nucleotides, named drugs), checked by parse, stereo-in-name, and InChIKey duplicate. Adipic acid is the C6 diacid (the previous SMILES was pimelic). cis- and trans-Decalin and `(+)-Camphene` are shipped with stereo.

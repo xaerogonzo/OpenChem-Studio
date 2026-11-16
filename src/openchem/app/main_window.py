@@ -798,6 +798,7 @@ class MainWindow(QMainWindow):
         batch_dock = self._add_dock(
             "Batch", self._wrap_scrollable(self._batch_panel), Qt.DockWidgetArea.RightDockWidgetArea
         )
+        batch_dock.setWindowTitle("Project table")
         self._comparison_panel = ComparisonPanel(services.event_bus, self)
         self._comparison_panel.set_stored_reader(self._stored_reports_for_compare)
         self._comparison_panel.attach_settings(settings)
@@ -865,7 +866,9 @@ class MainWindow(QMainWindow):
             batch_service=services.batch_service,
             score_definitions=self._score_definitions,
         )
+        self._batch_panel.set_fill_runner(self._property_panel.run_selected_on_project)
         self._property_panel.project_run_started.connect(self._on_project_run_started)
+        self._results_workspace.project_table_requested.connect(self.reveal_project_table)
         self._results_host = PopOutHost(
             self._results_workspace,
             title="Results",
@@ -1585,11 +1588,41 @@ class MainWindow(QMainWindow):
         # this cannot loop.
         self._panel_rail.select_panel(panel_id)
 
-    def _on_panel_chosen_alongside(self, panel_id: str) -> None:
-        """Right-click > Open beside: show the panel and hide nothing.
+    def _persist_user_placed(self) -> None:
+        self._settings.set(_USER_PLACED_KEY, ",".join(sorted(self._user_placed_docks)))
+        self._sync_rail_locks()
 
-        A left click replaces the panel showing; this is the other half of the gesture. It does not lock anything, so
-        the next left click elsewhere still replaces the unlocked ones -- lock the ones to keep.
+    def _booked_tab_anchor(self, area) -> QDockWidget | None:
+        """A visible user-placed dock that already shares a tab bar in `area`.
+
+        A split is not a tab group. A floating panel is not one. Two visible
+        panels that merely happen to sit on the right are not one either.
+        """
+        if area == Qt.DockWidgetArea.NoDockWidgetArea:
+            return None
+        for dock in self.findChildren(QDockWidget):
+            if dock.parent() is not self or dock.isFloating() or dock.isHidden():
+                continue
+            if self.dockWidgetArea(dock) != area:
+                continue
+            if dock.objectName() not in self._user_placed_docks:
+                continue
+            others = [
+                other
+                for other in self.tabifiedDockWidgets(dock)
+                if other.parent() is self and not other.isHidden() and not other.isFloating()
+            ]
+            if others:
+                return dock
+        return None
+
+    def _on_panel_chosen_alongside(self, panel_id: str) -> None:
+        """Shift+click or Open beside: show the panel and hide nothing.
+
+        If a visible user-placed tab group already exists in that area, the
+        panel joins that group. Otherwise it is the old split: shown beside
+        whatever is open, with no new tab bar. Tabify marks the panel placed
+        immediately; a later drag-classifier is not required.
         """
         self._resolve_expansion()
         if self._reveal_if_in_properties(panel_id):
@@ -1597,24 +1630,69 @@ class MainWindow(QMainWindow):
         dock = self._dock_by_panel_id(panel_id)
         if dock is None:
             return
+        self._ensure_in_layout(dock)
+        if not dock.isFloating():
+            area = self.dockWidgetArea(dock)
+            if area == Qt.DockWidgetArea.NoDockWidgetArea:
+                area = Qt.DockWidgetArea.RightDockWidgetArea
+            anchor = self._booked_tab_anchor(area)
+            if anchor is not None and anchor is not dock:
+                already = dock in self.tabifiedDockWidgets(anchor) or anchor in self.tabifiedDockWidgets(dock)
+                if not already:
+                    self.tabifyDockWidget(anchor, dock)
+                self._user_placed_docks.add(dock.objectName())
+                self._persist_user_placed()
         self._show_only_right_dock(dock, alongside=True)
         dock.setFocus()
         self._panel_rail.select_panel(panel_id)
 
+    def _untabify_to_rail_column(self, dock: QDockWidget) -> None:
+        """Take `dock` out of a user-created tab group and put it on its default side.
+
+        Qt has no `untabifyDockWidget`. `removeDockWidget` hides; this puts the
+        panel back and leaves the remaining tab members grouped. Floating docks
+        and ordinary splits are left where they are.
+        """
+        if dock.isFloating():
+            return
+        others = [
+            other
+            for other in self.tabifiedDockWidgets(dock)
+            if other.parent() is self
+        ]
+        if not others:
+            return
+        name = dock.objectName()
+        default = self._default_dock_areas.get(name, Qt.DockWidgetArea.RightDockWidgetArea)
+        previous, self._arranging = self._arranging, True
+        try:
+            self.removeDockWidget(dock)
+            self.addDockWidget(default, dock)
+            dock.show()
+        finally:
+            self._arranging = previous
+
     def _on_panel_lock_toggled(self, panel_id: str) -> None:
         """Lock a panel so a rail click leaves it on screen, or release it.
 
-        "Locked" IS the window's existing notion of a placed panel (`_user_placed_docks`): one the rail will not hide.
-        Dropping a panel beside another, or in another area, locks it by itself, which is why one that was arranged
-        once could stay on screen for good with nothing to say why; this is the control for that, and the rail shows
-        the lock. Released, it stays released until that panel is moved again.
+        "Locked" IS the window's existing notion of a placed panel (`_user_placed_docks`).
+        Unlock of a tabbed panel also leaves the tab group and returns it to the
+        rail-managed column. A floating panel is not pulled back. A split or a
+        panel on another side keeps its geometry. Locking a hidden panel shows
+        it first, because the action's name says it will be open.
         """
+        dock = self._dock_by_panel_id(panel_id)
         if panel_id in self._user_placed_docks:
+            if dock is not None:
+                self._untabify_to_rail_column(dock)
             self._user_placed_docks.discard(panel_id)
         else:
+            if dock is not None and dock.isHidden() and not dock.isFloating():
+                self._ensure_in_layout(dock)
+                dock.setVisible(True)
+                dock.raise_()
             self._user_placed_docks.add(panel_id)
-        self._settings.set(_USER_PLACED_KEY, ",".join(sorted(self._user_placed_docks)))
-        self._sync_rail_locks()
+        self._persist_user_placed()
 
     def _sync_rail_locks(self) -> None:
         """Tell the rail which panels are locked, so its list shows a lock on each."""
@@ -1988,9 +2066,13 @@ class MainWindow(QMainWindow):
         return self._session.project
 
     def _on_project_run_started(self, plan) -> None:
-        """A project run was submitted: the workspace adopts its table, and it is shown."""
-        self._results_workspace.begin_project_run(plan)
-        self.reveal_results()
+        """A project run was submitted: the Batch dock's table adopts it, and that dock is shown."""
+        self._batch_panel.begin_project_run(plan)
+        self.reveal_project_table()
+
+    def reveal_project_table(self) -> None:
+        """Show the one project table (the Batch dock)."""
+        self._on_panel_chosen("Batch")
 
     #: What Compare says when a value it was asked to open cannot be shown, by the code
     #: `PropertyPanel.reveal_report_fact` returns.
@@ -2207,6 +2289,8 @@ class MainWindow(QMainWindow):
             )
             wizard.run_requested.connect(self._on_goal_run_requested)
             wizard.all_recommended_requested.connect(self._property_panel.run_recommended_batch)
+            wizard.ticks_applied.connect(self._on_goal_ticks_applied)
+            wizard.quantum_action_requested.connect(self._on_quantum_action_requested)
             self._goal_wizard = wizard
         else:
             wizard = self._goal_wizard
@@ -2343,6 +2427,60 @@ class MainWindow(QMainWindow):
     def _wizard_molecules(self) -> list:
         project = self._session.project
         return list(project.molecules) if project is not None else []
+
+    def _on_goal_ticks_applied(self, run) -> None:
+        """Customise applied a goal's ticks to Properties without starting a job."""
+        self._property_panel.apply_goal_ticks(list(run.calculator_ids), dict(run.parameters))
+
+    def _on_quantum_action_requested(self, action_id: str) -> None:
+        """Stage a Quantum service action on the QC panel. Never starts a job."""
+        from openchem.domain.quantum_goal_action import action_of, decide_stage
+
+        action = action_of(action_id)
+        if action is None:
+            text = f"Unknown Quantum action {action_id!r}. Nothing started."
+            self._property_panel.report_status(text)
+            if self._goal_wizard is not None:
+                self._goal_wizard.show_outcome(text)
+            return
+        mode, chosen = self._property_panel.current_scope()
+        selected = self._property_panel.selected_molecule_uuid()
+        if mode == "all":
+            molecule_count = len(self._wizard_molecules())
+        elif mode == "chosen":
+            molecule_count = len(chosen)
+        else:
+            molecule_count = 1 if selected else 0
+        available = {
+            p.provider_id for p in self._services.quantum_chemistry_service.available_engines()
+        }
+        decision = decide_stage(
+            action,
+            available_engines=available,
+            scope_mode=mode,
+            molecule_count=molecule_count,
+            selected=bool(selected),
+        )
+        if not decision.ok:
+            self._property_panel.report_status(decision.message)
+            if self._goal_wizard is not None:
+                self._goal_wizard.show_outcome(decision.message)
+            return
+        self._on_panel_chosen("Quantum_Chemistry")
+        staged = self._quantum_chemistry_panel.stage_run_choice(
+            calc_type=decision.calc_type,
+            provider_id=decision.provider_id,
+            method_basis=decision.method_basis,
+            note=decision.limitation + " Inspect, then press Run. Nothing has started.",
+        )
+        text = (
+            decision.limitation + " Inspect Quantum Chemistry, then press Run. Nothing started."
+            if staged
+            else "Could not stage that calculation on the Quantum Chemistry panel. Nothing started."
+        )
+        self._property_panel.report_status(text)
+        if self._goal_wizard is not None:
+            self._goal_wizard.show_outcome(text)
 
     def _on_goal_run_requested(self, run) -> None:
         """The wizard asked for a run. Properties runs it and the wizard says what happened."""
@@ -2952,9 +3090,11 @@ class MainWindow(QMainWindow):
             # ONE contract across every dock: "show or hide this panel" is
             # one concept and WHICH panel differs, so `instance_path` is
             # what tells the renderings apart.
-            self._view_menu.addAction(
-                self._document(dock.toggleViewAction(), "panel_visibility")
-            )
+            action = dock.toggleViewAction()
+            # Batch's visible title is "Project table"; keep the stored shortcut id
+            # `panel_visibility:Batch` so a saved binding does not vanish.
+            label = "Batch" if dock.objectName() == "Batch" else None
+            self._view_menu.addAction(self._document(action, "panel_visibility", label=label))
         self._view_menu.addSeparator()
         reset_layout = self._document(QAction("Reset Panel Layout", self), "reset_panel_layout")
         reset_layout.triggered.connect(self.reset_panel_layout)

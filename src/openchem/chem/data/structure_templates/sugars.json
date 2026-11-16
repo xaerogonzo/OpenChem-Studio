@@ -5,7 +5,7 @@
   "entries": [
     {
       "id": "sugars.alpha_d_glucopyranose",
-      "name": "α-D-Glucopyranose",
+      "name": "\u03b1-D-Glucopyranose",
       "smiles": "OC[C@H]1O[C@H](O)[C@H](O)[C@@H](O)[C@@H]1O",
       "tags": [
         "glucose",
@@ -15,7 +15,7 @@
     },
     {
       "id": "sugars.beta_d_glucopyranose",
-      "name": "β-D-Glucopyranose",
+      "name": "\u03b2-D-Glucopyranose",
       "smiles": "OC[C@H]1O[C@@H](O)[C@H](O)[C@@H](O)[C@@H]1O",
       "tags": [
         "glucose",
@@ -25,7 +25,7 @@
     },
     {
       "id": "sugars.alpha_d_galactopyranose",
-      "name": "α-D-Galactopyranose",
+      "name": "\u03b1-D-Galactopyranose",
       "smiles": "OC[C@H]1O[C@H](O)[C@H](O)[C@@H](O)[C@H]1O",
       "tags": [
         "galactose",
@@ -35,7 +35,7 @@
     },
     {
       "id": "sugars.beta_d_galactopyranose",
-      "name": "β-D-Galactopyranose",
+      "name": "\u03b2-D-Galactopyranose",
       "smiles": "OC[C@H]1O[C@@H](O)[C@H](O)[C@@H](O)[C@H]1O",
       "tags": [
         "galactose",
@@ -45,7 +45,7 @@
     },
     {
       "id": "sugars.alpha_d_mannopyranose",
-      "name": "α-D-Mannopyranose",
+      "name": "\u03b1-D-Mannopyranose",
       "smiles": "OC[C@H]1O[C@H](O)[C@@H](O)[C@@H](O)[C@@H]1O",
       "tags": [
         "mannose",
@@ -55,7 +55,7 @@
     },
     {
       "id": "sugars.beta_d_mannopyranose",
-      "name": "β-D-Mannopyranose",
+      "name": "\u03b2-D-Mannopyranose",
       "smiles": "OC[C@H]1O[C@@H](O)[C@@H](O)[C@@H](O)[C@@H]1O",
       "tags": [
         "mannose",
@@ -65,7 +65,7 @@
     },
     {
       "id": "sugars.alpha_d_xylopyranose",
-      "name": "α-D-Xylopyranose",
+      "name": "\u03b1-D-Xylopyranose",
       "smiles": "O[C@@H]1[C@@H](O)[C@@H](O)OC[C@H]1O",
       "tags": [
         "xylose",
@@ -75,7 +75,7 @@
     },
     {
       "id": "sugars.beta_d_xylopyranose",
-      "name": "β-D-Xylopyranose",
+      "name": "\u03b2-D-Xylopyranose",
       "smiles": "O[C@@H]1[C@@H](O)[C@H](O)OC[C@H]1O",
       "tags": [
         "xylose",
@@ -85,7 +85,7 @@
     },
     {
       "id": "sugars.alpha_d_ribofuranose",
-      "name": "α-D-Ribofuranose",
+      "name": "\u03b1-D-Ribofuranose",
       "smiles": "OC[C@H]1O[C@H](O)[C@H](O)[C@@H]1O",
       "tags": [
         "ribose",
@@ -95,7 +95,7 @@
     },
     {
       "id": "sugars.beta_d_ribofuranose",
-      "name": "β-D-Ribofuranose",
+      "name": "\u03b2-D-Ribofuranose",
       "smiles": "OC[C@H]1O[C@@H](O)[C@H](O)[C@@H]1O",
       "tags": [
         "ribose",
@@ -105,7 +105,7 @@
     },
     {
       "id": "sugars.beta_d_fructofuranose",
-      "name": "β-D-Fructofuranose",
+      "name": "\u03b2-D-Fructofuranose",
       "smiles": "OC[C@H]1O[C@](O)(CO)[C@@H](O)[C@@H]1O",
       "tags": [
         "fructose",
@@ -115,7 +115,7 @@
     },
     {
       "id": "sugars.2_deoxy_alpha_d_ribofuranose",
-      "name": "2-Deoxy-α-D-ribofuranose",
+      "name": "2-Deoxy-\u03b1-D-ribofuranose",
       "smiles": "OC[C@H]1O[C@H](O)C[C@@H]1O",
       "tags": [
         "deoxyribose",
@@ -125,12 +125,428 @@
     },
     {
       "id": "sugars.2_deoxy_beta_d_ribofuranose",
-      "name": "2-Deoxy-β-D-ribofuranose",
+      "name": "2-Deoxy-\u03b2-D-ribofuranose",
       "smiles": "OC[C@H]1O[C@@H](O)C[C@@H]1O",
       "tags": [
         "deoxyribose",
         "furanose",
         "beta"
+      ]
+    },
+    {
+      "id": "sugars.beta_d_glucosamine",
+      "name": "2-Amino-2-deoxy-beta-D-glucopyranose",
+      "smiles": "N[C@H]1[C@H](O)O[C@H](CO)[C@@H](O)[C@@H]1O",
+      "tags": [
+        "amino sugar"
+      ]
+    },
+    {
+      "id": "sugars.alpha_l_fucopyranose",
+      "name": "alpha-L-Fucopyranose",
+      "smiles": "C[C@@H]1O[C@@H](O)[C@@H](O)[C@H](O)[C@@H]1O",
+      "tags": [
+        "deoxysugar"
+      ]
+    },
+    {
+      "id": "sugars.alpha_l_rhamnopyranose",
+      "name": "alpha-L-Rhamnopyranose",
+      "smiles": "C[C@@H]1O[C@@H](O)[C@H](O)[C@H](O)[C@H]1O",
+      "tags": [
+        "deoxysugar"
+      ]
+    },
+    {
+      "id": "sugars.sucrose",
+      "name": "Sucrose",
+      "smiles": "OC[C@H]1O[C@H](O[C@]2(CO)O[C@H](CO)[C@@H](O)[C@@H]2O)[C@H](O)[C@@H](O)[C@@H]1O",
+      "tags": [
+        "disaccharide"
+      ]
+    },
+    {
+      "id": "sugars.beta_d_lactose",
+      "name": "beta-D-Lactose",
+      "smiles": "OC[C@H]1O[C@@H](O[C@H]2[C@H](O)[C@@H](O)[C@H](O)O[C@@H]2CO)[C@H](O)[C@@H](O)[C@H]1O",
+      "tags": [
+        "disaccharide"
+      ]
+    },
+    {
+      "id": "sugars.beta_d_maltose",
+      "name": "beta-D-Maltose",
+      "smiles": "OC[C@H]1O[C@H](O[C@H]2[C@H](O)[C@@H](O)[C@H](O)O[C@@H]2CO)[C@H](O)[C@@H](O)[C@@H]1O",
+      "tags": [
+        "disaccharide"
+      ]
+    },
+    {
+      "id": "sugars.alpha_d_galacturonic_acid",
+      "name": "alpha-D-Galactopyranuronic acid",
+      "smiles": "O=C(O)[C@H]1O[C@H](O)[C@H](O)[C@@H](O)[C@H]1O",
+      "tags": [
+        "uronic acid"
+      ]
+    },
+    {
+      "id": "sugars.alpha_d_glucuronic_acid",
+      "name": "alpha-D-Glucopyranuronic acid",
+      "smiles": "O=C(O)[C@H]1O[C@H](O)[C@@H](O)[C@H](O)[C@H]1O",
+      "tags": [
+        "uronic acid"
+      ]
+    },
+    {
+      "id": "sugars.n_acetyl_beta_d_glucosamine",
+      "name": "2-Acetamido-2-deoxy-beta-D-glucopyranose",
+      "smiles": "CC(=O)N[C@H]1[C@H](O)O[C@H](CO)[C@@H](O)[C@@H]1O",
+      "tags": [
+        "amino sugar"
+      ]
+    },
+    {
+      "id": "sugars.beta_d_fructopyranose",
+      "name": "beta-D-Fructopyranose",
+      "smiles": "OC[C@@]1(O)OC[C@@H](O)[C@@H](O)[C@@H]1O",
+      "tags": [
+        "ketose"
+      ]
+    },
+    {
+      "id": "sugars.inositol",
+      "name": "myo-Inositol",
+      "smiles": "O[C@H]1[C@H](O)[C@@H](O)[C@H](O)[C@H](O)[C@@H]1O",
+      "tags": [
+        "cyclitol"
+      ]
+    },
+    {
+      "id": "sugars.xylitol",
+      "name": "Xylitol",
+      "smiles": "OC[C@H](O)[C@@H](O)[C@H](O)CO",
+      "tags": [
+        "alditol"
+      ]
+    },
+    {
+      "id": "sugars.sorbitol",
+      "name": "D-Glucitol",
+      "smiles": "OC[C@H](O)[C@@H](O)[C@H](O)[C@H](O)CO",
+      "tags": [
+        "alditol"
+      ]
+    },
+    {
+      "id": "sugars.mannitol",
+      "name": "D-Mannitol",
+      "smiles": "OC[C@@H](O)[C@@H](O)[C@@H](O)[C@H](O)CO",
+      "tags": [
+        "alditol"
+      ]
+    },
+    {
+      "id": "sugars.erythritol",
+      "name": "Erythritol",
+      "smiles": "OC[C@H](O)[C@H](O)CO",
+      "tags": [
+        "alditol"
+      ]
+    },
+    {
+      "id": "sugars.alpha_alpha_trehalose",
+      "name": "alpha,alpha-Trehalose",
+      "smiles": "OC[C@H]1O[C@H](O[C@H]2O[C@H](CO)[C@@H](O)[C@H](O)[C@H]2O)[C@H](O)[C@@H](O)[C@@H]1O",
+      "tags": [
+        "disaccharide"
+      ]
+    },
+    {
+      "id": "sugars.beta_cellobiose",
+      "name": "beta-Cellobiose",
+      "smiles": "OC[C@H]1O[C@@H](O[C@H]2[C@H](O)[C@@H](O)[C@H](O)O[C@@H]2CO)[C@H](O)[C@@H](O)[C@@H]1O",
+      "tags": [
+        "disaccharide"
+      ]
+    },
+    {
+      "id": "sugars.n_acetylneuraminic_acid",
+      "name": "N-Acetylneuraminic acid",
+      "smiles": "CC(=O)N[C@@H]1[C@@H](O)C[C@](O)(C(=O)O)O[C@H]1[C@H](O)[C@H](O)CO",
+      "tags": [
+        "sialic"
+      ]
+    },
+    {
+      "id": "sugars.d_gluconic_acid",
+      "name": "D-Gluconic acid",
+      "smiles": "O=C(O)[C@H](O)[C@@H](O)[C@H](O)[C@H](O)CO",
+      "tags": [
+        "sugar acid"
+      ]
+    },
+    {
+      "id": "sugars.raffinose",
+      "name": "Raffinose",
+      "smiles": "OC[C@H]1O[C@H](OC[C@H]2O[C@H](O[C@]3(CO)O[C@H](CO)[C@@H](O)[C@@H]3O)[C@H](O)[C@@H](O)[C@@H]2O)[C@H](O)[C@@H](O)[C@@H]1O",
+      "tags": [
+        "trisaccharide"
+      ]
+    },
+    {
+      "id": "sugars.lactulose",
+      "name": "Lactulose",
+      "smiles": "OC[C@H]1O[C@@H](O[C@H]2[C@H](O)[C@@H](O)[C@H](O)O[C@@]2(CO)O)[C@H](O)[C@@H](O)[C@H]1O",
+      "tags": [
+        "disaccharide"
+      ]
+    },
+    {
+      "id": "sugars.alpha_d_allopyranose",
+      "name": "alpha-D-Allopyranose",
+      "smiles": "OC[C@H]1O[C@H](O)[C@H](O)[C@H](O)[C@@H]1O",
+      "tags": [
+        "hexose"
+      ]
+    },
+    {
+      "id": "sugars.alpha_d_altropyranose",
+      "name": "alpha-D-Altropyranose",
+      "smiles": "OC[C@H]1O[C@H](O)[C@@H](O)[C@H](O)[C@@H]1O",
+      "tags": [
+        "hexose"
+      ]
+    },
+    {
+      "id": "sugars.beta_d_galactosamine",
+      "name": "beta-D-Galactosamine",
+      "smiles": "N[C@H]1[C@H](O)O[C@H](CO)[C@H](O)[C@@H]1O",
+      "tags": [
+        "amino sugar"
+      ]
+    },
+    {
+      "id": "sugars.n_acetylgalactosamine",
+      "name": "N-Acetyl-beta-D-galactosamine",
+      "smiles": "CC(=O)N[C@H]1[C@H](O)O[C@H](CO)[C@H](O)[C@@H]1O",
+      "tags": [
+        "amino sugar"
+      ]
+    },
+    {
+      "id": "sugars.n_acetylmannosamine",
+      "name": "N-Acetyl-beta-D-mannosamine",
+      "smiles": "CC(=O)N[C@@H]1[C@H](O)O[C@H](CO)[C@@H](O)[C@@H]1O",
+      "tags": [
+        "amino sugar"
+      ]
+    },
+    {
+      "id": "sugars.alpha_l_arabinopyranose",
+      "name": "alpha-L-Arabinopyranose",
+      "smiles": "O[C@H]1CO[C@H](O)[C@H](O)[C@H]1O",
+      "tags": [
+        "pentose"
+      ]
+    },
+    {
+      "id": "sugars.alpha_d_lyxopyranose",
+      "name": "alpha-D-Lyxopyranose",
+      "smiles": "OC[C@H]1OC(O)[C@@H](O)[C@@H](O)[C@H]1O",
+      "tags": [
+        "pentose"
+      ]
+    },
+    {
+      "id": "sugars.topiramate",
+      "name": "Topiramate",
+      "smiles": "CC1(C)O[C@@H]2COS(=O)(=O)N[C@@H]2[C@@H]2OC(C)(C)O[C@H]12",
+      "tags": [
+        "sulfamate"
+      ]
+    },
+    {
+      "id": "sugars.isosorbide_dinitrate",
+      "name": "Isosorbide dinitrate",
+      "smiles": "O=[N+]([O-])O[C@H]1CO[C@@H]2[C@H](O[N+](=O)[O-])CO[C@H]12",
+      "tags": [
+        "nitrate"
+      ]
+    },
+    {
+      "id": "sugars.methyl_alpha_d_glucopyranoside",
+      "name": "Methyl alpha-D-glucopyranoside",
+      "smiles": "CO[C@H]1O[C@H](CO)[C@@H](O)[C@H](O)[C@H]1O",
+      "tags": [
+        "glycoside"
+      ]
+    },
+    {
+      "id": "sugars.methyl_beta_d_glucopyranoside",
+      "name": "Methyl beta-D-glucopyranoside",
+      "smiles": "CO[C@@H]1O[C@H](CO)[C@@H](O)[C@H](O)[C@H]1O",
+      "tags": [
+        "glycoside"
+      ]
+    },
+    {
+      "id": "sugars.arbutin",
+      "name": "Arbutin",
+      "smiles": "Oc1ccc(O[C@@H]2O[C@H](CO)[C@@H](O)[C@H](O)[C@H]2O)cc1",
+      "tags": [
+        "glycoside"
+      ]
+    },
+    {
+      "id": "sugars.salicin",
+      "name": "Salicin",
+      "smiles": "OCc1ccccc1O[C@@H]1O[C@H](CO)[C@@H](O)[C@H](O)[C@H]1O",
+      "tags": [
+        "glycoside"
+      ]
+    },
+    {
+      "id": "sugars.two_deoxy_d_glucose",
+      "name": "2-Deoxy-alpha-D-glucopyranose",
+      "smiles": "OC[C@H]1O[C@H](O)C[C@@H](O)[C@@H]1O",
+      "tags": [
+        "hexose"
+      ]
+    },
+    {
+      "id": "sugars.d_tagatose",
+      "name": "D-Tagatose",
+      "smiles": "OC[C@@H](O)[C@H](O)[C@H](O)C(=O)CO",
+      "tags": [
+        "ketose"
+      ]
+    },
+    {
+      "id": "sugars.l_sorbose",
+      "name": "L-Sorbose",
+      "smiles": "OC[C@H](O)[C@@H](O)[C@H](O)C(=O)CO",
+      "tags": [
+        "ketose"
+      ]
+    },
+    {
+      "id": "sugars.d_psicose",
+      "name": "D-Psicose",
+      "smiles": "OC[C@@H](O)[C@@H](O)[C@@H](O)C(=O)CO",
+      "tags": [
+        "ketose"
+      ]
+    },
+    {
+      "id": "sugars.isomaltose",
+      "name": "Isomaltose",
+      "smiles": "OC[C@H]1O[C@H](OC[C@H]2O[C@H](O)[C@H](O)[C@@H](O)[C@@H]2O)[C@H](O)[C@@H](O)[C@@H]1O",
+      "tags": [
+        "disaccharide"
+      ]
+    },
+    {
+      "id": "sugars.gentiobiose",
+      "name": "Gentiobiose",
+      "smiles": "OC[C@H]1O[C@@H](OC[C@H]2O[C@H](O)[C@H](O)[C@@H](O)[C@@H]2O)[C@H](O)[C@@H](O)[C@@H]1O",
+      "tags": [
+        "disaccharide"
+      ]
+    },
+    {
+      "id": "sugars.sucralose",
+      "name": "Sucralose",
+      "smiles": "OC[C@H]1O[C@H](O[C@]2(CCl)O[C@H](CCl)[C@@H](O)[C@@H]2O)[C@H](O)[C@@H](O)[C@@H]1Cl",
+      "tags": [
+        "disaccharide"
+      ]
+    },
+    {
+      "id": "sugars.glyceraldehyde_3_phosphate",
+      "name": "D-Glyceraldehyde 3-phosphate",
+      "smiles": "O=C[C@H](O)COP(=O)(O)O",
+      "tags": [
+        "phosphate"
+      ]
+    },
+    {
+      "id": "sugars.dihydroxyacetone_phosphate",
+      "name": "Dihydroxyacetone phosphate",
+      "smiles": "O=C(CO)COP(=O)(O)O",
+      "tags": [
+        "phosphate"
+      ]
+    },
+    {
+      "id": "sugars.glucose_6_phosphate",
+      "name": "alpha-D-Glucose 6-phosphate",
+      "smiles": "O=P(O)(O)OC[C@H]1O[C@H](O)[C@H](O)[C@@H](O)[C@@H]1O",
+      "tags": [
+        "phosphate"
+      ]
+    },
+    {
+      "id": "sugars.fructose_6_phosphate",
+      "name": "D-Fructose 6-phosphate",
+      "smiles": "O=P(O)(O)OC[C@H]1O[C@](O)(CO)[C@@H](O)[C@@H]1O",
+      "tags": [
+        "phosphate"
+      ]
+    },
+    {
+      "id": "sugars.fructose_1_6_bisphosphate",
+      "name": "D-Fructose 1,6-bisphosphate",
+      "smiles": "O=P(O)(O)OC[C@H]1O[C@](O)(COP(=O)(O)O)[C@@H](O)[C@@H]1O",
+      "tags": [
+        "phosphate"
+      ]
+    },
+    {
+      "id": "sugars.ribose_5_phosphate",
+      "name": "D-Ribose 5-phosphate",
+      "smiles": "O=P(O)(O)OC[C@H]1O[C@H](O)[C@H](O)[C@@H]1O",
+      "tags": [
+        "phosphate"
+      ]
+    },
+    {
+      "id": "sugars.glyceraldehyde",
+      "name": "D-Glyceraldehyde",
+      "smiles": "O=C[C@H](O)CO",
+      "tags": [
+        "triose"
+      ]
+    },
+    {
+      "id": "sugars.dihydroxyacetone",
+      "name": "Dihydroxyacetone",
+      "smiles": "O=C(CO)CO",
+      "tags": [
+        "triose"
+      ]
+    },
+    {
+      "id": "sugars.erythrose",
+      "name": "D-Erythrose",
+      "smiles": "O=C[C@H](O)[C@H](O)CO",
+      "tags": [
+        "tetrose"
+      ]
+    },
+    {
+      "id": "sugars.threose",
+      "name": "D-Threose",
+      "smiles": "O=C[C@@H](O)[C@H](O)CO",
+      "tags": [
+        "tetrose"
+      ]
+    },
+    {
+      "id": "sugars.erythrulose",
+      "name": "D-Erythrulose",
+      "smiles": "O=C(CO)[C@H](O)CO",
+      "tags": [
+        "tetrose"
       ]
     }
   ]

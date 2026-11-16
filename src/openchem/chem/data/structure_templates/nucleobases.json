@@ -127,6 +127,214 @@
         "deoxynucleoside",
         "dT"
       ]
+    },
+    {
+      "id": "nucleobases.orotic_acid",
+      "name": "Orotic acid",
+      "smiles": "O=C1NC(=O)C=C(C(=O)O)N1",
+      "tags": [
+        "nucleobase analog"
+      ]
+    },
+    {
+      "id": "nucleobases.acyclovir",
+      "name": "Acyclovir",
+      "smiles": "Nc1nc(=O)c2ncn(COCCO)c2[nH]1",
+      "tags": [
+        "nucleoside analog"
+      ]
+    },
+    {
+      "id": "nucleobases.zidovudine",
+      "name": "Zidovudine",
+      "smiles": "Cc1cn([C@H]2C[C@H](N=[N+]=[N-])[C@@H](CO)O2)c(=O)[nH]c1=O",
+      "tags": [
+        "nucleoside analog"
+      ]
+    },
+    {
+      "id": "nucleobases.pseudouridine",
+      "name": "Pseudouridine",
+      "smiles": "O=c1[nH]c(=O)cc([C@@H]2O[C@H](CO)[C@@H](O)[C@H]2O)[nH]1",
+      "tags": [
+        "nucleoside"
+      ]
+    },
+    {
+      "id": "nucleobases.xanthosine",
+      "name": "Xanthosine",
+      "smiles": "O=c1[nH]c(=O)c2ncn([C@@H]3O[C@H](CO)[C@@H](O)[C@H]3O)c2[nH]1",
+      "tags": [
+        "nucleoside"
+      ]
+    },
+    {
+      "id": "nucleobases.5_methylcytosine",
+      "name": "5-Methylcytosine",
+      "smiles": "Cc1cnc(N)[nH]c1=O",
+      "tags": [
+        "nucleobase"
+      ]
+    },
+    {
+      "id": "nucleobases.5_hydroxymethylcytosine",
+      "name": "5-Hydroxymethylcytosine",
+      "smiles": "Nc1nc(=O)[nH]cc1CO",
+      "tags": [
+        "nucleobase"
+      ]
+    },
+    {
+      "id": "nucleobases.8_oxoguanine",
+      "name": "8-Oxoguanine",
+      "smiles": "Nc1nc2[nH]c(=O)[nH]c(=O)c2[nH]1",
+      "tags": [
+        "nucleobase"
+      ]
+    },
+    {
+      "id": "nucleobases.5_bromouracil",
+      "name": "5-Bromouracil",
+      "smiles": "O=c1[nH]cc(Br)c(=O)[nH]1",
+      "tags": [
+        "nucleobase"
+      ]
+    },
+    {
+      "id": "nucleobases.5_iodouracil",
+      "name": "5-Iodouracil",
+      "smiles": "O=c1[nH]cc(I)c(=O)[nH]1",
+      "tags": [
+        "nucleobase"
+      ]
+    },
+    {
+      "id": "nucleobases.5_chlorouracil",
+      "name": "5-Chlorouracil",
+      "smiles": "O=c1[nH]cc(Cl)c(=O)[nH]1",
+      "tags": [
+        "nucleobase"
+      ]
+    },
+    {
+      "id": "nucleobases.2_aminopurine",
+      "name": "2-Aminopurine",
+      "smiles": "Nc1ncc2nc[nH]c2n1",
+      "tags": [
+        "nucleobase"
+      ]
+    },
+    {
+      "id": "nucleobases.7_methylguanine",
+      "name": "7-Methylguanine",
+      "smiles": "Cn1cnc2c(=O)[nH]c(N)nc21",
+      "tags": [
+        "nucleobase"
+      ]
+    },
+    {
+      "id": "nucleobases.2_thiouracil",
+      "name": "2-Thiouracil",
+      "smiles": "O=c1cc[nH]c(=S)[nH]1",
+      "tags": [
+        "nucleobase"
+      ]
+    },
+    {
+      "id": "nucleobases.6_thioguanine",
+      "name": "6-Thioguanine",
+      "smiles": "Nc1nc(=S)c2[nH]cnc2[nH]1",
+      "tags": [
+        "nucleobase"
+      ]
+    },
+    {
+      "id": "nucleobases.5_azacytidine",
+      "name": "5-Azacytidine",
+      "smiles": "Nc1ncn([C@@H]2O[C@H](CO)[C@@H](O)[C@H]2O)c(=O)n1",
+      "tags": [
+        "nucleoside"
+      ]
+    },
+    {
+      "id": "nucleobases.8_azaguanine",
+      "name": "8-Azaguanine",
+      "smiles": "Nc1nc(=O)c2[nH]nnc2[nH]1",
+      "tags": [
+        "nucleobase"
+      ]
+    },
+    {
+      "id": "nucleobases.valacyclovir",
+      "name": "Valacyclovir",
+      "smiles": "CC(C)[C@H](N)C(=O)OCCOCn1cnc2c(=O)[nH]c(N)nc21",
+      "tags": [
+        "nucleoside"
+      ]
+    },
+    {
+      "id": "nucleobases.ganciclovir",
+      "name": "Ganciclovir",
+      "smiles": "Nc1nc(=O)c2ncn(COC(CO)CO)c2[nH]1",
+      "tags": [
+        "nucleoside"
+      ]
+    },
+    {
+      "id": "nucleobases.ribavirin",
+      "name": "Ribavirin",
+      "smiles": "NC(=O)c1ncn([C@@H]2O[C@H](CO)[C@@H](O)[C@H]2O)n1",
+      "tags": [
+        "nucleoside"
+      ]
+    },
+    {
+      "id": "nucleobases.5_azacytosine",
+      "name": "5-Azacytosine",
+      "smiles": "Nc1ncnc(=O)[nH]1",
+      "tags": [
+        "nucleobase"
+      ]
+    },
+    {
+      "id": "nucleobases.6_azacytosine",
+      "name": "6-Azacytosine",
+      "smiles": "Nc1cc(=O)[nH]nn1",
+      "tags": [
+        "nucleobase"
+      ]
+    },
+    {
+      "id": "nucleobases.dihydroorotic_acid",
+      "name": "(S)-Dihydroorotic acid",
+      "smiles": "O=C1C[C@@H](C(=O)O)NC(=O)N1",
+      "tags": [
+        "nucleobase"
+      ]
+    },
+    {
+      "id": "nucleobases.orotidine",
+      "name": "Orotidine",
+      "smiles": "O=C(O)c1cn([C@@H]2O[C@H](CO)[C@@H](O)[C@H]2O)c(=O)[nH]c1=O",
+      "tags": [
+        "nucleoside"
+      ]
+    },
+    {
+      "id": "nucleobases.1_methylpseudouridine",
+      "name": "1-Methylpseudouridine",
+      "smiles": "Cn1cc([C@@H]2O[C@H](CO)[C@@H](O)[C@H]2O)c(=O)[nH]c1=O",
+      "tags": [
+        "nucleoside"
+      ]
+    },
+    {
+      "id": "nucleobases.6_azauracil",
+      "name": "6-Azauracil",
+      "smiles": "O=C1C=NNC(=O)N1",
+      "tags": [
+        "nucleobase"
+      ]
     }
   ]
 }

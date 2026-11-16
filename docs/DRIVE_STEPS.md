@@ -13,6 +13,8 @@ The `OPENCHEM_DRIVE` step catalogue, moved out of [`CLAUDE.md`](../CLAUDE.md) on
     {"do": "dock_panel", "tag": "after"}     box, its source, the status line
     {"do": "panel",      "id": "Properties"}
     {"do": "expand",     "section": "admet"}
+    {"do": "expand",     "section": "all"}  press Properties Expand all
+    {"do": "expand",     "section": "all", "expanded": false}  Collapse all
     {"do": "calculator", "id": "admet_ml", "parameters": {...}}
     {"do": "calculator", "id": "...", "reveal": false}  no Calculator
                                           Inspector window -- see below

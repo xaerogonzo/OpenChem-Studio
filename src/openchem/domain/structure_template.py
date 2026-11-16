@@ -57,7 +57,7 @@ SHIPPED_CATEGORY_GROUPS: tuple[tuple[str, tuple[str, ...]], ...] = (
             "peptide_building_blocks",
         ),
     ),
-    ("Laboratory", ("solvents_reagents",)),
+    ("Laboratory", ("solvents_reagents", "coordination_complexes")),
     (
         "Natural products",
         ("alkaloids", "flavonoids", "vitamins", "cofactors", "terpenoids_steroids"),

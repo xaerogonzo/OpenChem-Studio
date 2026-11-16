@@ -1,0 +1,22 @@
+[
+  {"do": "smiles", "smiles": "CC(=O)Oc1ccccc1C(=O)O", "name": "Aspirin"},
+  {"do": "select", "molecule": -1},
+  {"do": "panel", "id": "Properties"},
+  {"do": "rail", "collapsed": true},
+  {"do": "resize", "maximized": false},
+  {"do": "resize", "width": 900, "height": 900, "after_ms": 600},
+  {"do": "expand", "section": "all", "expanded": false},
+  {"do": "visual_check", "surface": "properties", "tag": "collapsed-narrow"},
+  {"do": "shot", "path": "artifacts/visual/properties-collapsed-narrow.png"},
+  {"do": "expand", "section": "all"},
+  {"do": "visual_check", "surface": "properties", "tag": "expanded-narrow"},
+  {"do": "shot", "path": "artifacts/visual/properties-expanded-narrow.png"},
+  {"do": "resize", "width": 1600, "height": 900, "after_ms": 600},
+  {"do": "expand", "section": "all", "expanded": false},
+  {"do": "visual_check", "surface": "properties", "tag": "collapsed-wide"},
+  {"do": "shot", "path": "artifacts/visual/properties-collapsed-wide.png"},
+  {"do": "expand", "section": "all"},
+  {"do": "visual_check", "surface": "properties", "tag": "expanded-wide"},
+  {"do": "shot", "path": "artifacts/visual/properties-expanded-wide.png"},
+  {"do": "quit"}
+]

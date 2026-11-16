@@ -7,6 +7,8 @@ two or three characters. Three grouped labels need 324.
 
 from __future__ import annotations
 
+from PySide6.QtCore import Qt
+from PySide6.QtTest import QTest
 from PySide6.QtWidgets import QPushButton
 
 from openchem.ui.widgets.panel_rail import GROUP_LABELS, PanelRail
@@ -60,6 +62,30 @@ def test_choosing_a_panel_emits_its_id(qapp):
     rail._select_group("analyze")
     rail._on_item_chosen(rail._list.item(1))
     assert seen == ["Atom_Inspector"]
+    _dispose(rail)
+
+
+def test_shift_click_opens_beside_and_a_plain_click_still_replaces(qapp):
+    rail = _rail(qapp)
+    rail.show()
+    qapp.processEvents()
+    chosen: list[str] = []
+    beside: list[str] = []
+    rail.panel_chosen.connect(chosen.append)
+    rail.panel_chosen_alongside.connect(beside.append)
+    rail._select_group("analyze")
+    item = rail._list.item(0)
+    assert item is not None
+    center = rail._list.visualItemRect(item).center()
+    QTest.mouseClick(
+        rail._list.viewport(), Qt.MouseButton.LeftButton, Qt.KeyboardModifier.NoModifier, center
+    )
+    QTest.mouseClick(
+        rail._list.viewport(), Qt.MouseButton.LeftButton, Qt.KeyboardModifier.ShiftModifier, center
+    )
+    QTest.keyRelease(rail._list.viewport(), Qt.Key.Key_Shift)
+    assert chosen == ["Properties"]
+    assert beside == ["Properties"]
     _dispose(rail)
 
 

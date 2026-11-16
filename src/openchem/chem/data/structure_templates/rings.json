@@ -101,6 +101,14 @@
         "aromatic",
         "fused"
       ]
+    },
+    {
+      "id": "rings.cyclohexene",
+      "name": "Cyclohexene",
+      "smiles": "C1=CCCCC1",
+      "tags": [
+        "unsaturated ring"
+      ]
     }
   ]
 }

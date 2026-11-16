@@ -10,6 +10,871 @@
       "tags": [
         "steroid"
       ]
+    },
+    {
+      "id": "terpenoids_steroids.camphor",
+      "name": "(1R,4R)-Camphor",
+      "smiles": "C[C@@]12CC[C@@H](C1(C)C)CC2=O",
+      "tags": [
+        "terpene",
+        "ketone"
+      ]
+    },
+    {
+      "id": "terpenoids_steroids.beta_carotene",
+      "name": "beta-Carotene",
+      "smiles": "CC1=C(C(CCC1)(C)C)/C=C/C(=C/C=C/C(=C/C=C/C=C(/C=C/C=C(/C=C/C2=C(CCCC2(C)C)C)\\C)\\C)/C)/C",
+      "tags": [
+        "carotenoid"
+      ]
+    },
+    {
+      "id": "terpenoids_steroids.eugenol",
+      "name": "Eugenol",
+      "smiles": "COc1cc(CC=C)ccc1O",
+      "tags": [
+        "phenylpropanoid"
+      ]
+    },
+    {
+      "id": "terpenoids_steroids.thymol",
+      "name": "Thymol",
+      "smiles": "Cc1ccc(C(C)C)c(O)c1",
+      "tags": [
+        "monoterpene"
+      ]
+    },
+    {
+      "id": "terpenoids_steroids.carvacrol",
+      "name": "Carvacrol",
+      "smiles": "Cc1ccc(O)c(C(C)C)c1",
+      "tags": [
+        "monoterpene"
+      ]
+    },
+    {
+      "id": "terpenoids_steroids.r_limonene",
+      "name": "(R)-Limonene",
+      "smiles": "CC1=CC[C@@H](C(=C)C)CC1",
+      "tags": [
+        "monoterpene"
+      ]
+    },
+    {
+      "id": "terpenoids_steroids.s_limonene",
+      "name": "(S)-Limonene",
+      "smiles": "CC1=CC[C@H](C(=C)C)CC1",
+      "tags": [
+        "monoterpene"
+      ]
+    },
+    {
+      "id": "terpenoids_steroids.minus_menthol",
+      "name": "(-)-Menthol",
+      "smiles": "C[C@@H]1CC[C@H](C(C)C)[C@H](O)C1",
+      "tags": [
+        "monoterpene"
+      ]
+    },
+    {
+      "id": "terpenoids_steroids.plus_alpha_pinene",
+      "name": "(+)-alpha-Pinene",
+      "smiles": "CC1=CC[C@@H]2C[C@H]1C2(C)C",
+      "tags": [
+        "monoterpene"
+      ]
+    },
+    {
+      "id": "terpenoids_steroids.minus_beta_pinene",
+      "name": "(-)-beta-Pinene",
+      "smiles": "C=C1CC[C@@H]2C[C@H]1C2(C)C",
+      "tags": [
+        "monoterpene"
+      ]
+    },
+    {
+      "id": "terpenoids_steroids.geraniol",
+      "name": "Geraniol",
+      "smiles": "CC(C)=CCC/C(C)=C/CO",
+      "tags": [
+        "monoterpene"
+      ]
+    },
+    {
+      "id": "terpenoids_steroids.nerol",
+      "name": "Nerol",
+      "smiles": "CC(C)=CCC/C(C)=C\\CO",
+      "tags": [
+        "monoterpene"
+      ]
+    },
+    {
+      "id": "terpenoids_steroids.linalool",
+      "name": "Linalool",
+      "smiles": "C=CC(C)(O)CCC=C(C)C",
+      "tags": [
+        "monoterpene"
+      ]
+    },
+    {
+      "id": "terpenoids_steroids.geranial",
+      "name": "Geranial",
+      "smiles": "CC(C)=CCC/C(C)=C/C=O",
+      "tags": [
+        "monoterpene"
+      ]
+    },
+    {
+      "id": "terpenoids_steroids.neral",
+      "name": "Neral",
+      "smiles": "CC(C)=CCC/C(C)=C\\C=O",
+      "tags": [
+        "monoterpene"
+      ]
+    },
+    {
+      "id": "terpenoids_steroids.r_carvone",
+      "name": "(R)-Carvone",
+      "smiles": "CC1=CC[C@H](C(=C)C)CC1=O",
+      "tags": [
+        "monoterpene"
+      ]
+    },
+    {
+      "id": "terpenoids_steroids.p_cymene",
+      "name": "p-Cymene",
+      "smiles": "Cc1ccc(C(C)C)cc1",
+      "tags": [
+        "monoterpene"
+      ]
+    },
+    {
+      "id": "terpenoids_steroids.alpha_terpinene",
+      "name": "1-Isopropyl-4-methylcyclohexa-1,3-diene",
+      "smiles": "CC1=CC=C(C(C)C)CC1",
+      "tags": [
+        "monoterpene"
+      ]
+    },
+    {
+      "id": "terpenoids_steroids.gamma_terpinene",
+      "name": "gamma-Terpinene",
+      "smiles": "CC1=CCC(C(C)C)=CC1",
+      "tags": [
+        "monoterpene"
+      ]
+    },
+    {
+      "id": "terpenoids_steroids.terpinolene",
+      "name": "Terpinolene",
+      "smiles": "CC1=CCC(=C(C)C)CC1",
+      "tags": [
+        "monoterpene"
+      ]
+    },
+    {
+      "id": "terpenoids_steroids.beta_ionone",
+      "name": "beta-Ionone",
+      "smiles": "CC1=C(/C=C/C(C)=O)C(C)(C)CCC1",
+      "tags": [
+        "ionone"
+      ]
+    },
+    {
+      "id": "terpenoids_steroids.squalene",
+      "name": "Squalene",
+      "smiles": "CC(C)=CCC/C(C)=C/CC/C(C)=C/CC/C=C(\\C)CC/C=C(\\C)CCC=C(C)C",
+      "tags": [
+        "triterpene"
+      ]
+    },
+    {
+      "id": "terpenoids_steroids.testosterone",
+      "name": "Testosterone",
+      "smiles": "C[C@]12CC[C@H]3[C@@H](CCC4=CC(=O)CC[C@@]43C)[C@@H]1CC[C@@H]2O",
+      "tags": [
+        "steroid"
+      ]
+    },
+    {
+      "id": "terpenoids_steroids.estradiol",
+      "name": "Estradiol",
+      "smiles": "C[C@]12CC[C@H]3[C@@H](CCc4cc(O)ccc43)[C@@H]1CC[C@@H]2O",
+      "tags": [
+        "steroid"
+      ]
+    },
+    {
+      "id": "terpenoids_steroids.estrone",
+      "name": "Estrone",
+      "smiles": "C[C@]12CC[C@H]3[C@@H](CCc4cc(O)ccc43)[C@@H]1CCC2=O",
+      "tags": [
+        "steroid"
+      ]
+    },
+    {
+      "id": "terpenoids_steroids.progesterone",
+      "name": "Progesterone",
+      "smiles": "CC(=O)[C@H]1CC[C@H]2[C@@H]3CCC4=CC(=O)CC[C@]4(C)[C@H]3CC[C@]12C",
+      "tags": [
+        "steroid"
+      ]
+    },
+    {
+      "id": "terpenoids_steroids.myrcene",
+      "name": "Myrcene",
+      "smiles": "C=CC(=C)CCC=C(C)C",
+      "tags": [
+        "monoterpene"
+      ]
+    },
+    {
+      "id": "terpenoids_steroids.eucalyptol",
+      "name": "1,8-Cineole",
+      "smiles": "CC12CCC(CC1)C(C)(C)O2",
+      "tags": [
+        "monoterpene"
+      ]
+    },
+    {
+      "id": "terpenoids_steroids.trans_anethole",
+      "name": "trans-Anethole",
+      "smiles": "COc1ccc(/C=C/C)cc1",
+      "tags": [
+        "phenylpropanoid"
+      ]
+    },
+    {
+      "id": "terpenoids_steroids.estragole",
+      "name": "Estragole",
+      "smiles": "COc1ccc(CC=C)cc1",
+      "tags": [
+        "phenylpropanoid"
+      ]
+    },
+    {
+      "id": "terpenoids_steroids.isoeugenol",
+      "name": "trans-Isoeugenol",
+      "smiles": "COc1cc(/C=C/C)ccc1O",
+      "tags": [
+        "phenylpropanoid"
+      ]
+    },
+    {
+      "id": "terpenoids_steroids.elemicin",
+      "name": "Elemicin",
+      "smiles": "C=CCc1cc(OC)c(OC)c(OC)c1",
+      "tags": [
+        "phenylpropanoid"
+      ]
+    },
+    {
+      "id": "terpenoids_steroids.myristicin",
+      "name": "Myristicin",
+      "smiles": "C=CCc1cc(OC)c2c(c1)OCO2",
+      "tags": [
+        "phenylpropanoid"
+      ]
+    },
+    {
+      "id": "terpenoids_steroids.ascaridole",
+      "name": "Ascaridole",
+      "smiles": "CC1=CCC2(C(C)C)OOC1C2",
+      "tags": [
+        "monoterpene"
+      ]
+    },
+    {
+      "id": "terpenoids_steroids.humulene",
+      "name": "alpha-Humulene",
+      "smiles": "C/C1=C/CC(C)(C)C/C=C(\\C)CC/C=C/C1",
+      "tags": [
+        "sesquiterpene"
+      ]
+    },
+    {
+      "id": "terpenoids_steroids.farnesol_ee",
+      "name": "(2E,6E)-Farnesol",
+      "smiles": "CC(C)=CCC/C(C)=C/CC/C(C)=C/CO",
+      "tags": [
+        "sesquiterpene"
+      ]
+    },
+    {
+      "id": "terpenoids_steroids.nerolidol",
+      "name": "Nerolidol",
+      "smiles": "C=CC(C)(O)CCC=C(C)CCC=C(C)C",
+      "tags": [
+        "sesquiterpene"
+      ]
+    },
+    {
+      "id": "terpenoids_steroids.phytol",
+      "name": "Phytol",
+      "smiles": "CC(C)CCCC(C)CCCC(C)CCC/C(C)=C/CO",
+      "tags": [
+        "diterpene"
+      ]
+    },
+    {
+      "id": "terpenoids_steroids.retinal",
+      "name": "all-trans-Retinal",
+      "smiles": "CC1=C(/C=C/C(C)=C/C=C/C(C)=C/C=O)C(C)(C)CCC1",
+      "tags": [
+        "retinoid"
+      ]
+    },
+    {
+      "id": "terpenoids_steroids.retinoic_acid",
+      "name": "all-trans-Retinoic acid",
+      "smiles": "CC1=C(/C=C/C(C)=C/C=C/C(C)=C/C(=O)O)C(C)(C)CCC1",
+      "tags": [
+        "retinoid"
+      ]
+    },
+    {
+      "id": "terpenoids_steroids.hydrocortisone",
+      "name": "Hydrocortisone",
+      "smiles": "C[C@]12CCC(=O)C=C1CC[C@H]1[C@@H]3CC[C@](O)(C(=O)CO)[C@@]3(C)C[C@H](O)[C@@H]12",
+      "tags": [
+        "steroid"
+      ]
+    },
+    {
+      "id": "terpenoids_steroids.cortisone",
+      "name": "Cortisone",
+      "smiles": "C[C@]12CCC(=O)C=C1CC[C@H]1[C@@H]3CC[C@](O)(C(=O)CO)[C@@]3(C)CC(=O)[C@@H]12",
+      "tags": [
+        "steroid"
+      ]
+    },
+    {
+      "id": "terpenoids_steroids.prednisone",
+      "name": "Prednisone",
+      "smiles": "C[C@]12C=CC(=O)C=C1CC[C@H]1[C@@H]3CC[C@](O)(C(=O)CO)[C@@]3(C)CC(=O)[C@@H]12",
+      "tags": [
+        "steroid"
+      ]
+    },
+    {
+      "id": "terpenoids_steroids.prednisolone",
+      "name": "Prednisolone",
+      "smiles": "C[C@]12C=CC(=O)C=C1CC[C@H]1[C@@H]3CC[C@](O)(C(=O)CO)[C@@]3(C)C[C@H](O)[C@@H]12",
+      "tags": [
+        "steroid"
+      ]
+    },
+    {
+      "id": "terpenoids_steroids.ethinylestradiol",
+      "name": "Ethinylestradiol",
+      "smiles": "C#C[C@]1(O)CC[C@H]2[C@@H]3CCc4cc(O)ccc4[C@H]3CC[C@@]21C",
+      "tags": [
+        "steroid"
+      ]
+    },
+    {
+      "id": "terpenoids_steroids.androstenedione",
+      "name": "Androst-4-ene-3,17-dione",
+      "smiles": "C[C@]12CCC(=O)C=C1CC[C@@H]1[C@@H]2CC[C@]2(C)C(=O)CC[C@H]12",
+      "tags": [
+        "steroid"
+      ]
+    },
+    {
+      "id": "terpenoids_steroids.dhea",
+      "name": "Dehydroepiandrosterone",
+      "smiles": "C[C@]12CC[C@H]3[C@@H](CC=C4C[C@@H](O)CC[C@@]43C)[C@@H]1CCC2=O",
+      "tags": [
+        "steroid"
+      ]
+    },
+    {
+      "id": "terpenoids_steroids.cbd",
+      "name": "Cannabidiol",
+      "smiles": "CCCCCc1cc(O)c([C@@H]2C=C(C)CC[C@H]2C(=C)C)c(O)c1",
+      "tags": [
+        "cannabinoid"
+      ]
+    },
+    {
+      "id": "terpenoids_steroids.shikimic_acid",
+      "name": "(3R,4S,5R)-Shikimic acid",
+      "smiles": "O=C(O)[C@H]1C[C@@H](O)[C@H](O)[C@H](O)C=C1",
+      "tags": [
+        "shikimate"
+      ]
+    },
+    {
+      "id": "terpenoids_steroids.quinic_acid",
+      "name": "(1S,3R,4S,5R)-Quinic acid",
+      "smiles": "O=C(O)[C@]1(O)C[C@@H](O)[C@H](O)[C@H](O)C1",
+      "tags": [
+        "shikimate"
+      ]
+    },
+    {
+      "id": "terpenoids_steroids.mevalonic_acid",
+      "name": "Mevalonic acid",
+      "smiles": "CC(O)(CCO)CC(=O)O",
+      "tags": [
+        "isoprenoid"
+      ]
+    },
+    {
+      "id": "terpenoids_steroids.r_citronellal",
+      "name": "(R)-Citronellal",
+      "smiles": "O=CC[C@H](C)CCC=C(C)C",
+      "tags": [
+        "monoterpene"
+      ]
+    },
+    {
+      "id": "terpenoids_steroids.s_citronellol",
+      "name": "(S)-Citronellol",
+      "smiles": "OCC[C@@H](C)CCC=C(C)C",
+      "tags": [
+        "monoterpene"
+      ]
+    },
+    {
+      "id": "terpenoids_steroids.r_alpha_terpineol",
+      "name": "(R)-alpha-Terpineol",
+      "smiles": "CC1=CC[C@@H](CC1)C(C)(C)O",
+      "tags": [
+        "monoterpene"
+      ]
+    },
+    {
+      "id": "terpenoids_steroids.minus_borneol",
+      "name": "(-)-Borneol",
+      "smiles": "CC1(C)[C@@H]2CC[C@@]1(C)[C@@H](O)C2",
+      "tags": [
+        "monoterpene"
+      ]
+    },
+    {
+      "id": "terpenoids_steroids.camphorquinone",
+      "name": "Camphorquinone",
+      "smiles": "CC1(C)[C@@H]2CC[C@@]1(C)C(=O)C2=O",
+      "tags": [
+        "monoterpene"
+      ]
+    },
+    {
+      "id": "terpenoids_steroids.cholic_acid",
+      "name": "Cholic acid",
+      "smiles": "C[C@H](CCC(=O)O)[C@H]1CC[C@H]2[C@@H]3[C@H](O)C[C@@H]4C[C@H](O)CC[C@]4(C)[C@H]3C[C@H](O)[C@]12C",
+      "tags": [
+        "steroid"
+      ]
+    },
+    {
+      "id": "terpenoids_steroids.deoxycholic_acid",
+      "name": "Deoxycholic acid",
+      "smiles": "C[C@H](CCC(=O)O)[C@H]1CC[C@H]2[C@@H]3CC[C@@H]4C[C@H](O)CC[C@]4(C)[C@H]3C[C@H](O)[C@]12C",
+      "tags": [
+        "steroid"
+      ]
+    },
+    {
+      "id": "terpenoids_steroids.chenodeoxycholic_acid",
+      "name": "Chenodeoxycholic acid",
+      "smiles": "C[C@H](CCC(=O)O)[C@H]1CC[C@H]2[C@@H]3[C@H](O)C[C@@H]4C[C@H](O)CC[C@]4(C)[C@H]3CC[C@]12C",
+      "tags": [
+        "steroid"
+      ]
+    },
+    {
+      "id": "terpenoids_steroids.lithocholic_acid",
+      "name": "Lithocholic acid",
+      "smiles": "C[C@H](CCC(=O)O)[C@H]1CC[C@H]2[C@@H]3CC[C@@H]4C[C@H](O)CC[C@]4(C)[C@H]3CC[C@]12C",
+      "tags": [
+        "steroid"
+      ]
+    },
+    {
+      "id": "terpenoids_steroids.plus_camphene",
+      "name": "(+)-Camphene",
+      "smiles": "C=C1C[C@@H]2CC[C@H]1C2(C)C",
+      "tags": [
+        "monoterpene"
+      ]
+    },
+    {
+      "id": "terpenoids_steroids.r_pulegone",
+      "name": "(R)-Pulegone",
+      "smiles": "C[C@@H]1CCC(=C(C)C)C(=O)C1",
+      "tags": [
+        "monoterpene"
+      ]
+    },
+    {
+      "id": "terpenoids_steroids.minus_menthone",
+      "name": "(-)-Menthone",
+      "smiles": "C[C@@H]1CC[C@H](C(C)C)C(=O)C1",
+      "tags": [
+        "monoterpene"
+      ]
+    },
+    {
+      "id": "terpenoids_steroids.r_perillaldehyde",
+      "name": "(S)-Perillaldehyde",
+      "smiles": "C=C(C)[C@H]1CC=C(C=O)CC1",
+      "tags": [
+        "monoterpene"
+      ]
+    },
+    {
+      "id": "terpenoids_steroids.myrtenal",
+      "name": "(-)-Myrtenal",
+      "smiles": "CC1(C)[C@@H]2CC=C(C=O)[C@H]1C2",
+      "tags": [
+        "monoterpene"
+      ]
+    },
+    {
+      "id": "terpenoids_steroids.verbenone",
+      "name": "(1S)-Verbenone",
+      "smiles": "CC1=CC(=O)[C@@H]2C[C@H]1C2(C)C",
+      "tags": [
+        "monoterpene"
+      ]
+    },
+    {
+      "id": "terpenoids_steroids.nootkatone",
+      "name": "(+)-Nootkatone",
+      "smiles": "C=C(C)[C@@H]1CC[C@@]2(C)CC(=O)C=C[C@H]2C1",
+      "tags": [
+        "sesquiterpene"
+      ]
+    },
+    {
+      "id": "terpenoids_steroids.beta_caryophyllene",
+      "name": "(-)-beta-Caryophyllene",
+      "smiles": "C=C1CC[C@@H]2C(C)(C)[C@H]2CC/C=C(\\C)CC1",
+      "tags": [
+        "sesquiterpene"
+      ]
+    },
+    {
+      "id": "terpenoids_steroids.pregnenolone",
+      "name": "Pregnenolone",
+      "smiles": "CC(=O)[C@H]1CC[C@H]2[C@@H]3CC=C4C[C@@H](O)CC[C@]4(C)[C@H]3CC[C@]12C",
+      "tags": [
+        "steroid"
+      ]
+    },
+    {
+      "id": "terpenoids_steroids.dihydrotestosterone",
+      "name": "5alpha-Dihydrotestosterone",
+      "smiles": "C[C@]12CC[C@H]3[C@@H](CC[C@H]4CC(=O)CC[C@@]43C)[C@@H]1CC[C@@H]2O",
+      "tags": [
+        "steroid"
+      ]
+    },
+    {
+      "id": "terpenoids_steroids.androsterone",
+      "name": "Androsterone",
+      "smiles": "C[C@]12CC[C@H]3[C@@H](CC[C@H]4C[C@H](O)CC[C@@]43C)[C@@H]1CCC2=O",
+      "tags": [
+        "steroid"
+      ]
+    },
+    {
+      "id": "terpenoids_steroids.estriol",
+      "name": "Estriol",
+      "smiles": "C[C@]12CC[C@H]3[C@@H](CCc4cc(O)ccc43)[C@@H]1C[C@@H](O)[C@@H]2O",
+      "tags": [
+        "steroid"
+      ]
+    },
+    {
+      "id": "terpenoids_steroids.ergosterol",
+      "name": "Ergosterol",
+      "smiles": "C/C=C(\\C)[C@H](C)[C@H]1CC[C@H]2C3=CC=C4C[C@@H](O)CC[C@]4(C)[C@H]3CC[C@]12C",
+      "tags": [
+        "steroid"
+      ]
+    },
+    {
+      "id": "terpenoids_steroids.stigmasterol",
+      "name": "Stigmasterol",
+      "smiles": "CC[C@H](/C=C/[C@@H](C)[C@H]1CC[C@H]2[C@@H]3CC=C4C[C@@H](O)CC[C@]4(C)[C@H]3CC[C@]12C)C(C)C",
+      "tags": [
+        "steroid"
+      ]
+    },
+    {
+      "id": "terpenoids_steroids.beta_sitosterol",
+      "name": "beta-Sitosterol",
+      "smiles": "CC[C@H](CC[C@@H](C)[C@H]1CC[C@H]2[C@@H]3CC=C4C[C@@H](O)CC[C@]4(C)[C@H]3CC[C@]12C)C(C)C",
+      "tags": [
+        "steroid"
+      ]
+    },
+    {
+      "id": "terpenoids_steroids.lanosterol",
+      "name": "Lanosterol",
+      "smiles": "C[C@@H](CCC=C(C)C)[C@H]1CC[C@@]2(C)C3=C(CC[C@]12C)[C@@]1(C)CC[C@H](O)C(C)(C)[C@@H]1CC3",
+      "tags": [
+        "steroid"
+      ]
+    },
+    {
+      "id": "terpenoids_steroids.dexamethasone",
+      "name": "Dexamethasone",
+      "smiles": "C[C@@H]1C[C@H]2[C@@H]3C[C@H](F)C4=CC(=O)C=C[C@]4(C)[C@H]3[C@@H](O)C[C@]2(C)[C@]1(O)C(=O)CO",
+      "tags": [
+        "steroid"
+      ]
+    },
+    {
+      "id": "terpenoids_steroids.spironolactone",
+      "name": "Spironolactone",
+      "smiles": "CC(=O)S[C@@H]1CC2=CC(=O)CC[C@]2(C)[C@H]2CC[C@@]3(C)[C@@H](CC[C@@]34CCC(=O)O4)[C@@H]12",
+      "tags": [
+        "steroid"
+      ]
+    },
+    {
+      "id": "terpenoids_steroids.artemisinin",
+      "name": "Artemisinin",
+      "smiles": "C[C@@H]1CC[C@H]2[C@@H](C)C(=O)O[C@@H]3O[C@@]4(C)CC[C@@H]1[C@@]23OO4",
+      "tags": [
+        "sesquiterpene"
+      ]
+    },
+    {
+      "id": "terpenoids_steroids.finasteride",
+      "name": "Finasteride",
+      "smiles": "CC(C)(C)NC(=O)[C@H]1CC[C@H]2[C@@H]3CC[C@H]4NC(=O)C=C[C@]4(C)[C@H]3CC[C@]12C",
+      "tags": [
+        "steroid"
+      ]
+    },
+    {
+      "id": "terpenoids_steroids.simvastatin",
+      "name": "Simvastatin",
+      "smiles": "CCC(C)(C)C(=O)O[C@H]1C[C@@H](C)C=C2C=C[C@H](C)[C@H](CC[C@@H]3C[C@@H](O)CC(=O)O3)[C@@H]12",
+      "tags": [
+        "polyketide"
+      ]
+    },
+    {
+      "id": "terpenoids_steroids.lovastatin",
+      "name": "Lovastatin",
+      "smiles": "CC[C@H](C)C(=O)O[C@H]1C[C@@H](C)C=C2C=C[C@H](C)[C@H](CC[C@@H]3C[C@@H](O)CC(=O)O3)[C@@H]12",
+      "tags": [
+        "polyketide"
+      ]
+    },
+    {
+      "id": "terpenoids_steroids.pravastatin",
+      "name": "Pravastatin",
+      "smiles": "CC[C@H](C)C(=O)O[C@H]1C[C@@H](O)C=C2C=C[C@H](C)[C@H](CC[C@@H](O)C[C@@H](O)CC(=O)O)[C@@H]12",
+      "tags": [
+        "polyketide"
+      ]
+    },
+    {
+      "id": "terpenoids_steroids.minus_isoborneol",
+      "name": "(-)-Isoborneol",
+      "smiles": "CC1(C)[C@@H]2CC[C@@]1(C)[C@H](O)C2",
+      "tags": [
+        "monoterpene"
+      ]
+    },
+    {
+      "id": "terpenoids_steroids.plus_fenchone",
+      "name": "(+)-Fenchone",
+      "smiles": "CC1(C)[C@H]2CC[C@](C)(C2)C1=O",
+      "tags": [
+        "monoterpene"
+      ]
+    },
+    {
+      "id": "terpenoids_steroids.plus_3_carene",
+      "name": "(+)-3-Carene",
+      "smiles": "CC1=CC[C@H]2C(C)(C)[C@@H]2C1",
+      "tags": [
+        "monoterpene"
+      ]
+    },
+    {
+      "id": "terpenoids_steroids.alpha_phellandrene",
+      "name": "alpha-Phellandrene",
+      "smiles": "CC1=CC[C@H](C(C)C)C=C1",
+      "tags": [
+        "monoterpene"
+      ]
+    },
+    {
+      "id": "terpenoids_steroids.alpha_thujone",
+      "name": "alpha-Thujone",
+      "smiles": "C[C@@H]1CC(=O)[C@]2(C(C)C)C[C@@H]2C1",
+      "tags": [
+        "monoterpene"
+      ]
+    },
+    {
+      "id": "terpenoids_steroids.abietic_acid",
+      "name": "Abietic acid",
+      "smiles": "CC(C)C1=CC2=CC[C@@H]3[C@@](C)(CCC[C@]3(C)C(=O)O)[C@@H]2CC1",
+      "tags": [
+        "diterpene"
+      ]
+    },
+    {
+      "id": "terpenoids_steroids.dehydroabietic_acid",
+      "name": "Dehydroabietic acid",
+      "smiles": "CC(C)c1ccc2c(c1)CC[C@@H]1[C@]2(C)CCC[C@@]1(C)C(=O)O",
+      "tags": [
+        "diterpene"
+      ]
+    },
+    {
+      "id": "terpenoids_steroids.calcitriol",
+      "name": "Calcitriol",
+      "smiles": "C=C1C[C@@H](O)C[C@H](O)/C1=C/C=C2\\CCC[C@@]3(C)[C@H]2CC[C@@H]3[C@H](C)CCCC(C)(C)O",
+      "tags": [
+        "steroid"
+      ]
+    },
+    {
+      "id": "terpenoids_steroids.sabinene",
+      "name": "(1S,5S)-Sabinene",
+      "smiles": "C=C1CC[C@@]2(C(C)C)C[C@H]12",
+      "tags": [
+        "monoterpene"
+      ]
+    },
+    {
+      "id": "terpenoids_steroids.camphorsulfonic_acid",
+      "name": "(1S)-Camphor-10-sulfonic acid",
+      "smiles": "CC1(C)[C@@H]2CC[C@@]1(CS(=O)(=O)O)C(=O)C2",
+      "tags": [
+        "monoterpene"
+      ]
+    },
+    {
+      "id": "terpenoids_steroids.fenchol",
+      "name": "(+)-Fenchol",
+      "smiles": "CC1(C)[C@H]2CC[C@](C)(C2)[C@@H]1O",
+      "tags": [
+        "monoterpene"
+      ]
+    },
+    {
+      "id": "terpenoids_steroids.bornyl_acetate",
+      "name": "(-)-Bornyl acetate",
+      "smiles": "CC(=O)O[C@H]1C[C@@H]2CC[C@@]1(C)C2(C)C",
+      "tags": [
+        "monoterpene"
+      ]
+    },
+    {
+      "id": "terpenoids_steroids.linalyl_acetate",
+      "name": "Linalyl acetate",
+      "smiles": "CC(=O)OC(C)(CCC=C(C)C)C=C",
+      "tags": [
+        "monoterpene"
+      ]
+    },
+    {
+      "id": "terpenoids_steroids.geranyl_acetate",
+      "name": "Geranyl acetate",
+      "smiles": "CC(=O)OC/C=C(\\C)CCC=C(C)C",
+      "tags": [
+        "monoterpene"
+      ]
+    },
+    {
+      "id": "terpenoids_steroids.neryl_acetate",
+      "name": "Neryl acetate",
+      "smiles": "CC(=O)OC/C=C(/C)CCC=C(C)C",
+      "tags": [
+        "monoterpene"
+      ]
+    },
+    {
+      "id": "terpenoids_steroids.citronellyl_acetate",
+      "name": "Citronellyl acetate",
+      "smiles": "CC(=O)OCCC(C)CCC=C(C)C",
+      "tags": [
+        "monoterpene"
+      ]
+    },
+    {
+      "id": "terpenoids_steroids.menthyl_acetate",
+      "name": "(-)-Menthyl acetate",
+      "smiles": "CC(=O)O[C@@H]1C[C@H](C)CC[C@H]1C(C)C",
+      "tags": [
+        "monoterpene"
+      ]
+    },
+    {
+      "id": "terpenoids_steroids.alpha_pinene_oxide",
+      "name": "alpha-Pinene oxide",
+      "smiles": "CC1(C)[C@H]2CC[C@@]1(C)C1OC12",
+      "tags": [
+        "monoterpene"
+      ]
+    },
+    {
+      "id": "terpenoids_steroids.limonene_oxide",
+      "name": "(+)-Limonene oxide",
+      "smiles": "C=C(C)[C@H]1CC[C@@]2(C)OC2C1",
+      "tags": [
+        "monoterpene"
+      ]
+    },
+    {
+      "id": "terpenoids_steroids.carveol",
+      "name": "(-)-Carveol",
+      "smiles": "C=C(C)[C@@H]1CC=C(C)[C@@H](O)C1",
+      "tags": [
+        "monoterpene"
+      ]
+    },
+    {
+      "id": "terpenoids_steroids.dihydrocarvone",
+      "name": "Dihydrocarvone",
+      "smiles": "C=C(C)[C@H]1CC[C@H](C)C(=O)C1",
+      "tags": [
+        "monoterpene"
+      ]
+    },
+    {
+      "id": "terpenoids_steroids.piperitone",
+      "name": "Piperitone",
+      "smiles": "CC1=CC(=O)[C@H](C(C)C)CC1",
+      "tags": [
+        "monoterpene"
+      ]
+    },
+    {
+      "id": "terpenoids_steroids.menthofuran",
+      "name": "Menthofuran",
+      "smiles": "Cc1coc2c1C[C@@H](C)CC2",
+      "tags": [
+        "monoterpene"
+      ]
+    },
+    {
+      "id": "terpenoids_steroids.damascenone",
+      "name": "beta-Damascenone",
+      "smiles": "CC(=O)/C=C/C1=C(C)C=CCC1(C)C",
+      "tags": [
+        "norisoprenoid"
+      ]
+    },
+    {
+      "id": "terpenoids_steroids.alpha_ionone",
+      "name": "alpha-Ionone",
+      "smiles": "CC(=O)/C=C/C1C(C)=CCCC1(C)C",
+      "tags": [
+        "norisoprenoid"
+      ]
     }
   ]
 }

@@ -1,0 +1,29 @@
+{
+  "id": "coordination_complexes",
+  "title": "Coordination complexes",
+  "description": "Connected square-planar platinum drawings (dative N to Pt). Haptic metallocenes are not in this catalog: Insert empties them.",
+  "entries": [
+    {
+      "id": "coordination_complexes.cisplatin",
+      "name": "Cisplatin",
+      "molblock": "\n     RDKit          2D\n\n  0  0  0  0  0  0  0  0  0  0999 V3000\nM  V30 BEGIN CTAB\nM  V30 COUNTS 5 4 0 0 0\nM  V30 BEGIN ATOM\nM  V30 1 N 0.000000 1.500000 0.000000 0\nM  V30 2 Pt 0.000000 0.000000 0.000000 0 VAL=4\nM  V30 3 Cl -1.500000 0.000000 0.000000 0\nM  V30 4 Cl 0.000000 -1.500000 0.000000 0\nM  V30 5 N 1.500000 0.000000 0.000000 0\nM  V30 END ATOM\nM  V30 BEGIN BOND\nM  V30 1 9 1 2\nM  V30 2 1 2 3\nM  V30 3 1 2 4\nM  V30 4 9 5 2\nM  V30 END BOND\nM  V30 END CTAB\nM  END\n",
+      "tags": [
+        "cisplatin",
+        "platinum",
+        "cis-platin"
+      ],
+      "description": "cis-Diamminedichloroplatinum(II). Connected square-planar drawing; cis/trans is the 2D layout, not SMILES. Not PubChem's disconnected ion record."
+    },
+    {
+      "id": "coordination_complexes.transplatin",
+      "name": "Transplatin",
+      "molblock": "\n     RDKit          2D\n\n  0  0  0  0  0  0  0  0  0  0999 V3000\nM  V30 BEGIN CTAB\nM  V30 COUNTS 5 4 0 0 0\nM  V30 BEGIN ATOM\nM  V30 1 N 0.000000 1.500000 0.000000 0\nM  V30 2 Pt 0.000000 0.000000 0.000000 0 VAL=4\nM  V30 3 Cl -1.500000 0.000000 0.000000 0\nM  V30 4 Cl 1.500000 0.000000 0.000000 0\nM  V30 5 N 0.000000 -1.500000 0.000000 0\nM  V30 END ATOM\nM  V30 BEGIN BOND\nM  V30 1 9 1 2\nM  V30 2 1 2 3\nM  V30 3 1 2 4\nM  V30 4 9 5 2\nM  V30 END BOND\nM  V30 END CTAB\nM  END\n",
+      "tags": [
+        "transplatin",
+        "platinum",
+        "trans-platin"
+      ],
+      "description": "trans-Diamminedichloroplatinum(II). Connected square-planar drawing; Cl-Pt-Cl is 180 degrees in the molblock."
+    }
+  ]
+}
