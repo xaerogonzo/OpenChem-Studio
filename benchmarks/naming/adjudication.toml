@@ -2330,7 +2330,7 @@ quote = "H2N-C(SH)=N- [amino(sulfanyl)methylidene]amino (preferred prefix); carb
 [[row]]
 corpus_row_id = "h4cid4750"
 smiles = "CCOc1ccnc(CCN=C(S)Nc2ccc(Cl)cn2)c1F"
-engine_name = "2-{2-[([(5-chloropyridin-2-yl)amino]sulfanylmethylidene)amino]ethyl}-4-ethoxy-3-fluoropyridine"
+engine_name = "2-[2-({[(5-chloropyridin-2-yl)amino](sulfanyl)methylidene}amino)ethyl]-4-ethoxy-3-fluoropyridine"
 pubchem_name = "N-(5-chloro-2-pyridinyl)-N'-[2-(4-ethoxy-3-fluoro-2-pyridinyl)ethyl]carbamimidothioic acid"
 verdict = "ENGINE_WRONG"
 fix_status = "PARTLY_FIXED"
