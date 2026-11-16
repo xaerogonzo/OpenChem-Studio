@@ -1214,17 +1214,32 @@ molecule's dominant form. It needs the pKa predictor configured, like pKa itself
 
 If you know the question and not the section, use **Tools > Run Calculators by Goal...**
 (or **Run by goal...** in Properties). Pick what you want to know (its charge, its
-solubility, its shape, whether it is drug-like) and the wizard says what it will run.
-**Run recommended** runs that set at once, on this molecule, on the whole project or on
-molecules you choose, as the **Run on** box says. **Customise...** lists the set with the
-reason for each calculator: recommended ones ticked, optional ones not, a **Settings...**
-button on each that has settings, and the size of the run before you press **Run**.
+solubility, its shape, whether it is drug-like) and the wizard names the ordinary
+calculators that answer it. What you press next is four different actions, not one
+**Run**:
 
-Each group heading in Properties has its own **Run recommended** button for the same set.
+| Action | What happens |
+|---|---|
+| **Run recommended** | Runs the goal's recommended registry calculators now, on this molecule, the whole project, or the molecules you choose, as the **Run on** box says. |
+| **Customise…** then **Run** | Runs the ordinary calculators you left ticked. A Quantum action you also picked is *not* started here; it is staged on the Quantum Chemistry panel (see below). |
+| **Customise…** then **Apply to Properties** | Copies those ticks and their settings into Properties and closes the wizard. **Nothing runs.** Press **Run selected** or **Fill table** when you are ready. |
+| A **Quantum** radio | Chooses the calculation and engine on the Quantum Chemistry panel. It does not start ORCA, Psi4 or xtb. Inspect the staged request there and press **Run**. |
 
-Running by goal never ticks or unticks anything in Properties, and never changes your
-presets. A molecule with no structure yet is left out and the status line says so. With
-several molecules the results go to **Results > Project table**, as with **Run selected**.
+**Apply to Properties** is not another Run button. Use it when you want the
+goal's checklist in Properties so you can inspect or change it first.
+
+A Quantum radio only stages when Properties **Run on** is **This molecule**
+and one molecule is selected. A project-wide or chosen-molecule scope is
+refused: Quantum staging is not a batch. The wizard shows its own **Run on**
+box, but staging reads the Properties scope.
+
+Each group heading in Properties has its own **Run recommended** button for
+the same ordinary set. **Run recommended** and **Customise… → Run** do not
+change your Properties ticks or presets. **Apply to Properties** does change
+the ticks: that is the point. A molecule with no structure yet is left out
+and the status line says so. Ordinary results for several molecules appear
+in the **Project table** dock (Analyze), the same place **Run selected**
+fills when **Run on** is more than this molecule.
 
 ### Categories worth knowing about
 
@@ -1334,13 +1349,45 @@ property of the naming path, not a failure.
 ## Results
 
 Everything computed for the selected molecule, in one place, kept as
-results arrive. Properties is where you *start* a calculation; Results is
-where you *read* one.
+results arrive. Properties is where you *start* an ordinary calculation;
+Results is where you *read* one. Nothing you do in Results starts a job.
 
 It **follows the selection**. Choose another molecule and Results shows
 that molecule's results; come back and it returns to whatever you were
 reading, including the search text you had typed. Nothing is recomputed by
 looking.
+
+### Where calculations start and where their results go
+
+Four surfaces, two ways to run:
+
+| Surface | Role |
+|---|---|
+| **Properties** | Ordinary registry calculators: ticks, settings, presets, **Run selected**, and goals. |
+| **Project table** | The project-wide results matrix (molecules as rows, computed outputs as columns). **Fill table** asks Properties to run its current plan; the table then shows the output. It does not have its own calculator ticks. |
+| **Quantum Chemistry** | Engine, charge, multiplicity, geometry. A goal radio *stages* this panel; **Run** here is what starts the job. |
+| **Results** | Reader for the *selected* molecule. Its **Project table** control opens the Project table dock; Results does not contain a second table. |
+
+Ordinary calculators run from Properties (or from Fill table using that same
+plan). Quantum jobs run from the Quantum Chemistry panel after you inspect
+the staged request.
+
+### What this reader keeps
+
+Results shows the **fresh retained answer** for each result type and
+calculation input (a drawing versus a 3D geometry, for example). A small
+number of calculators also keep an earlier *algorithm version* as a
+separately labelled result (Geometry Analysis, surface area, steric
+analysis, interaction analysis, fragment counts). That is not a complete
+history of every method or settings combination you have tried, and the
+ordinary store is not a permanent archive of every calculation or every
+prior structure.
+
+When you save the project, ordinary results that no longer match the
+molecule's current drawing or geometry are not written. Quantum Chemistry
+keeps a separate run history: a finished job stays listed on that panel
+even if you later edit the structure. Deleting a quantum run removes that
+history entry; it does not empty the engine's reusable cache.
 
 ### Showing
 
@@ -1679,7 +1726,31 @@ drawing conclusions from a score.
 <!-- help:quantum-chemistry -->
 ## Quantum chemistry
 
-The **Quantum Chemistry** panel drives ORCA. Pick a calculation type —
+The **Quantum Chemistry** panel is where an ab initio job is inspected and
+started. Properties ticks never include these jobs; **Run selected** and
+**Fill table** never start them.
+
+**Staging from a goal.** A Quantum radio in **Run Calculators by Goal…**
+selects the calculation type and engine on this panel and stops. Nothing
+runs until you press **Run** here. The panel still prepares the input,
+refuses what it cannot do, and asks for cost confirmation when that
+applies. Staging requires Properties **Run on** to be **This molecule**
+with one molecule selected; a project-wide goal does not become a Quantum
+batch.
+
+**Engines and what each will run.** ORCA covers the panel's full list,
+including NMR and optimisation plus frequencies. Psi4 runs **single points
+and geometry optimizations** only. xtb runs single point, optimization, and
+optimization plus frequencies. The spectra goal can stage an xtb frequency
+job; that is frequencies, not an IR spectrum — the current xtb parser does
+not report the intensities in `vibspectrum`. Two engines' numbers are
+never mixed under one label.
+
+**NMR is one job.** Ab initio ¹H and ¹³C are views of that output, not two
+calculations. The experimental ¹H lookup in Properties is a different
+calculator.
+
+The rest of this page is the panel itself. Pick a calculation type —
 single point, geometry optimisation, optimisation + frequencies, NMR, or NMR
 with spin-spin coupling — plus charge, multiplicity and a method/basis
 string (the presets are editable; anything you type, including dispersion or
@@ -2758,27 +2829,35 @@ gives its options and its limits.
 ---
 
 <!-- help:batch -->
-## Batch mode
+## Project table
 
-Everything else in the app answers a question about the molecule you have
-selected. The **Batch** panel answers it about all of them.
+The **Project table** (Analyze; the dock's internal name is still Batch) is
+the project-wide results matrix: one row per molecule, one column per
+computed output. Properties owns the ticks, the calculator settings for a
+project run, the presets, and the scope. This table displays what that plan
+produced. It does not keep a second calculator checklist or its own
+molecule-scope list.
 
-**You can also do this from Properties.** Under the tick boxes, **Run on**
-chooses *this molecule* (the default), *all molecules* or *chosen molecules*.
-With the second or third, **Run selected** runs every ticked calculator on each
-of those molecules and fills the **Project table** dock (Analyze). **Fill table**
-on that dock uses the same ticks, settings and scope. Extra switches
-appear with it: the always-on properties (on), the structural-alert catalogs
-(off), and how a per-atom result becomes one number. A calculator's own settings
-for project runs are in its right-click menu. A large run states how many
-calculations it will start and waits for you to agree; a calculator that runs
-from its own panel, or needs an input with no default, is left out and named.
-**Presets** saves a set of ticks under a name; the first time it opens, whatever
-the Batch panel had ticked is copied in as *From the Batch panel*.
+**Fill table** asks Properties to run its current project plan, then shows
+the output here. Under Properties, **Run on** chooses *this molecule* (the
+default), *all molecules* or *chosen molecules*. With the second or third,
+**Run selected** is the same plan: every ticked ordinary calculator on each
+of those molecules, filling this table. If **Run on** is *chosen molecules*
+and no rows are selected, the run is refused — select rows or switch to
+All. Extra switches appear on the table: the always-on properties (on), the
+structural-alert catalogs (off), and how a per-atom result becomes one
+number. A calculator's own settings for a project run are in Properties
+(right-click the calculator). A large run states how many calculations it
+will start and waits for you to agree; a calculator that runs from its own
+panel (Quantum Chemistry, docking), or needs an input with no default, is
+left out and named. Ordinary Fill never starts a Quantum job.
 
-Tick any set of descriptors, structural-alert catalogs and calculators, and
-run them across every molecule in the project. The results arrive as a
-sortable table, filling row by row as it goes. Each cell keeps the
+**Presets** in Properties saves a set of ticks under a name. If you still
+have ticks from the old Batch panel, they are copied once as *From the
+Batch panel* — the calculator IDs only, not that panel's per-calculator
+settings.
+
+The table fills row by row as the run goes. Each cell keeps the
 provenance and the empirical/ab-initio label the single-molecule views
 carry — hover a cell to see what produced that number, with what
 parameters.
