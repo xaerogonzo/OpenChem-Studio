@@ -1,0 +1,2 @@
+### Naming: programme pins for NL-066, NL-096, NL-104, and spiro joints post–round 84
+- Add four programme test files pinning retained-registry backlog counts (293 entries, 171 UNKNOWN), OPSIN vocabulary file sizes (705 + 821), round-14 residue exemplars with cluster residuals, and round 84/85 spiro joint fixes plus the KEPT saturated lactam ketone without `(1H)`.
