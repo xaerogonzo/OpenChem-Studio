@@ -32,7 +32,7 @@ section, not by a population run, and fixed in naming round 90 (#488). Eight row
 molecule, never adjudicated as an engine fault or a validator fault. Five rows (class I) are cases where the validator cannot say
 whether the name pins the intended stereoisomer. None of these groups has been shown harmless.
 
-**Highest-priority next action.** **2026-11-16:** Programme pins through **`NL-042`** (round-5 `OPEN` batch), **NL-094**, WS4 **NL-092**–**093**, **`NL-030` / `NL-031`**, and WS5 **`NL-071`** (refusal). **Next:** **`NL-025` / `NL-026`**, round-5 rows still **`OPEN` in the xfail table** (`D-086b/c`), and WS5 carried items **`NL-051`–`NL-055`**.
+**Highest-priority next action.** **2026-11-16:** Programme pins through **`NL-026`**, **`NL-042`**, **NL-094**, WS4 **NL-092**–**093**, **`NL-030` / `NL-031`**, and WS5 **`NL-071`** (refusal). **Next:** round-5 fusion xfails **`D-086b/c`**, WS5 carried items **`NL-051`–`NL-055`**, and spiro joints still open after round 84.
 
 **Workstreams.** WS0 confirmed defects: *empty* (`NL-070` closed in round 90). WS1 stereo audit: *active*; `NL-008`, `NL-009`, `NL-109`, `NL-001`, `NL-002`, `NL-005` closed 2026-11-08/15. WS2 coverage probes: *inactive* — [NAMING_COVERAGE_MATRIX.md](NAMING_COVERAGE_MATRIX.md). WS3 source lookups: *active* — `NL-018`, `NL-021`, `NL-022` closed; `NL-017`/`NL-019` remain `blocked`; next open WS3 rows per P2 table. WS4 missing constructions: *deferred*. WS5 older non-preferred names: *deferred*. WS6 historical clusters: split on 2026-10-27.
 
@@ -130,8 +130,8 @@ decision fields.
 | NL-022 | R81b, R82b | Ring-assembly spelling: `bi1H-indole` (OPSIN reads it; the book spells `1H,1'H-...-biindole`); a component with three or more rings is enclosed (`bi(anthracene)`) while a two-ring one is not (`1,1'-binaphthalene`), which is OPSIN's need, not a source-backed spelling. **Closed 2026-11-10:** P-28.2.1/28.2.3/28.3 sourced in `tests/test_namer_nl022_ws3_ring_assembly_sources.py` with round 81–82 name pins. | S | H | P2 | WS3 | closed |
 | NL-023 | R80b | A ring cation is named as the parent whenever present, so an ester of a cationic alcohol is an acyloxy prefix (`2-(acetyloxy)chromenylium`), not the ester name OPSIN would also read. **Closed 2026-11-15:** P-73.7 / P-73 / P-66 (V3 pp. 709, 820, 826) in `tests/test_namer_nl023_ws3_cation_ester_sources.py`; round 80 D-365 pins. | S | M | P3 | WS3 | closed |
 | NL-024 | R80c | The substituent forms of the two ring ketones are in hydro-prefix style, while the quinazolinedione form (`2,4-dioxo-1H,3H-quinazolin-6-yl`) keeps the older added-hydrogen style that OPSIN also reads. **Closed 2026-11-15:** P-58.2.2.2/4/5 and P-64.2.2.2.2 (V3 pp. 472, 477, 478, 557) in `tests/test_namer_nl024_ws3_ring_ketone_substituent_sources.py`; intentional split (D-364 hydro blocks vs quinazoline `1H,3H`); round 80 pins. | S | M | P3 | WS3 | closed |
-| NL-025 | R84d | The ketone of a spiro ring is cited with an added hydrogen only when the parent has exactly one aromatic ring N-H (`-4(1H)-one`). | B | M | P3 | WS5 | open |
-| NL-026 | R81c | The seven nucleobases are excluded from the heteroatom short-circuit, so an adenine joined through an exocyclic atom is named by its purine parent and not `adenin-yl`. | B | H | P3 | WS5 | open |
+| NL-025 | R84d | The ketone of a spiro ring is cited with an added hydrogen only when the parent has exactly one aromatic ring N-H (`-4(1H)-one`). **Closed 2026-11-16:** round-84 behaviour pinned (`tests/test_namer_nl025_nl026_ws5_spiro_ketone_and_purine_pins.py`). | B | M | P3 | WS5 | closed |
+| NL-026 | R81c | The seven nucleobases are excluded from the heteroatom short-circuit, so an adenine joined through an exocyclic atom is named by its purine parent and not `adenin-yl`. **Closed 2026-11-16:** same pins (D-370; `adenin-9-yl` guarded). | B | H | P3 | WS5 | closed |
 | NL-030 | D-086b | A fusion name needing a second-order attached component (`cyclopenta[4,5]pyrrolo[2,3-c]pyridine`); today a von Baeyer name or none. Book p. 239. **Closed 2026-11-15:** von Baeyer pin (`tests/test_namer_nl030_nl031_ws4_fusion_vonbaeyer.py`). | B | H | P3 | WS4 | closed |
 | NL-031 | D-086c | A fusion name with an interior heteroatom (`6H-quinolizino[3,4,5,6-ija]quinoline`, P-25.3.3.2); today a von Baeyer name. Book p. 223. **Closed 2026-11-15:** same pins. | B | H | P3 | WS4 | closed |
 | NL-032 | D-088b | `ethyl hydrazinecarboxylate` for `CCOC(=O)NN`; today `(ethoxycarbonyl)hydrazine`. The anion of hydrazinecarboxylic acid is not nameable, so no ester plan is offered. **Closed 2026-11-16:** pin (`tests/test_namer_nl032_nl042_ws5_known_defect_pins.py`); xfail row stays until PIN. | B | H | P3 | WS5 | closed |
@@ -232,7 +232,7 @@ An item is `closed` only when its closure criterion holds, with the evidence rec
 | NL-021 | None. Book passages and D-384 applicability recorded 2026-11-10 (`tests/test_namer_nl021_ws3_hetero_spiro_sources.py`) | Passage, page, rule and applicability written down |
 | NL-022 | Read the ring-assembly spelling rules | Same |
 | NL-023, NL-024 | Read the rules; decide | Same |
-| NL-025 to NL-026 | Probe the stated shape | Classed |
+| NL-025 to NL-026 | None. Closed 2026-11-16 (`tests/test_namer_nl025_nl026_ws5_spiro_ketone_and_purine_pins.py`; fixes from rounds 84 and 81) | Met: spiro `(1H)` and exocyclic purine attachment pinned |
 | NL-030 to NL-042 | None. Closed 2026-11-15..16 with programme pins (`tests/test_namer_nl030_nl031_ws4_fusion_vonbaeyer.py`, `tests/test_namer_nl032_nl042_ws5_known_defect_pins.py`); each `OPEN` xfail stays until the book target is emitted | Recorded; book PIN or fusion construction unchanged |
 | NL-050 | None until an oracle exists | Stays validator limitation |
 | NL-051 to NL-055, NL-059 to NL-064 | Re-measure on the current engine, then split or close (they carry no structures in the text, so the first step is to find the SMILES in the vendor changelog or `tests/test_namer_known_defects.py`) | Each sub-item classed |
@@ -251,6 +251,7 @@ An item is `closed` only when its closure criterion holds, with the evidence rec
 | NL-092, NL-093 | None. Closed 2026-11-15 (`tests/test_namer_nl092_nl093_ws4_fusion_policy.py`) | Engine behaviour pinned; fusion PIN backlog unchanged |
 | NL-030, NL-031 | None. Closed 2026-11-15 (`tests/test_namer_nl030_nl031_ws4_fusion_vonbaeyer.py`) | Von Baeyer fallback pinned; book fusion PIN not built |
 | NL-032 to NL-042 | None. Closed 2026-11-16 (`tests/test_namer_nl032_nl042_ws5_known_defect_pins.py`) | Engine names pinned; `OPEN` xfail rows unchanged until book PIN |
+| NL-025, NL-026 | None. Closed 2026-11-16 (`tests/test_namer_nl025_nl026_ws5_spiro_ketone_and_purine_pins.py`) | Round 84 spiro ketone and round 81 purine-exocyclic fixes pinned |
 | NL-077 | None. The acyclic peroxide and the S, P and B drawings read back (2026-11-03) | Classed, or a defect row |
 | NL-081 | None. Solid `chloroacetylazanide` is `D-391` (2026-11-03) | Classed, or a defect row |
 | NL-090 | None. `6a` and `13a` read back; `12b` methyl not drawable (`tests/test_namer_nl090_letter_locant_methyls.py`, 2026-11-08) | Each of the three reads back, or the plan is refused, or honest programme closure with evidence |
