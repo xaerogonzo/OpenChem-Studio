@@ -146,6 +146,13 @@ a valence model that assumes closed shells and octets", which is a reason to kee
    which that calculator does not list). The nitroxide OXYGEN is not added as an H-bond acceptor: no source was read for it. `tests/test_nitroxide_basicity.py`, 3 mutations each fail 1 to 5 tests.
    Not done: the charge models and `solubility` on radicals, which have no oracle.
 
+10. **OS3, measured geometries for small open-shell molecules.** `chem/open_shell_geometry.py` builds (not searches) eight species: O2, NO, OH, SO, S2 and Se2 at the Huber and Herzberg r_e, triplet CH2 from
+   Jensen and Bunker 1988 (1.0753 A, 133.931 degrees) and singlet CH2 from Petek et al. 1989 (1.107 A, 102.4 degrees), chosen by the drawing's own multiplicity (OS1: the engine carries it on the Mol as
+   `SPIN_PROP`, since RDKit cannot), and CH3 (planar, 1.079 A) and NH2 (103.4 degrees, 1.024 A) labelled 'as listed by CCCBDB'. One deterministic conformer, no energy, `ConformerModel.method`
+   `open_shell_table`, its note names the source; hooked into `search_conformers` beside the VSEPR templates. Anything else (charged, substituted, an atom, closed-shell water) takes the ordinary path.
+   Measured effect: O2 1.316 and 1.151 A become 1.20752, NO 1.424 becomes 1.15077. Plausibility against real ORCA B3LYP/def2-SVP optima (2026-11-15): within 0.02 A for O2, NO, OH, CH3 and triplet CH2.
+   `tests/test_open_shell_geometry.py`; four mutations fail 13, 1, 2 and 1 tests (the hook fails 13).
+
 Mutation checks run: each of 7 edits (Joback, Hansen, both Hueckel rules, the parity refusal, the spin note, the engine default) fails 1 to 5 tests when reverted.
 
 ## 6. Proposed work packages, by value and risk (not started; each needs the owner's go-ahead)
@@ -154,7 +161,7 @@ Mutation checks run: each of 7 edits (Joback, Hansen, both Hueckel rules, the pa
 |---|---|---|---|---|
 | OS1 | **DONE (stored in the molblock; no editor control yet).** Store the multiplicity with the structure (a `spin_multiplicity` field, project format bump, `None` = derive) and read `M  RAD 1/2/3` from the molblock text ourselves because RDKit conflates 1 and 3 | a drawn singlet carbene is rewritten as triplet today; the default would stop being a guess | a field on `MoleculeModel`, codec and project-file migration, an editor control, tests | medium (file format) |
 | OS2 | **DONE (O2, SO, S2; cited to Huber and Herzberg 1979).** Known-ground-state table: O2, CH2, NH, SO, S2... drawn closed-shell (`O=O`) default to their measured ground-state multiplicity, with the source for each | `O=O` is the most likely way someone draws oxygen, and gets multiplicity 1 | a small cited table like `vsepr_geometry`'s, tests against the ORCA runs above | low |
-| OS3 | **Open-shell 3D starts**: small-molecule geometry table for diatomic and triatomic radicals (O2, NO, OH, CH3, CH2, NH2...), each with a source | section 3.2: 1.316 A and 1.151 A for O2 | same shape as WP6; the sources are in section 8 | low |
+| OS3 | **DONE (eight species, section 5 item 10).** Open-shell 3D starts: small-molecule geometry table for diatomic and triatomic radicals (O2, NO, OH, CH3, CH2, NH2...), each with a source | section 3.2: 1.316 A and 1.151 A for O2 | same shape as WP6; the sources are in section 8 | low |
 | OS4 | **DONE for `logd`, `hbond_sites` and `steric_analysis` (section 5, item 9); charge models and `solubility` remain.** Calculator audit for radicals with oracles: `logd`/ionisable sites, `hbond_sites`, `steric_analysis`, charge models, `solubility`: decide gate or refuse per calculator | section 3.4, TEMPO | a nitroxide pKa (not held), a decision per calculator; if more than about four calculators are gated, one registry-level `CLOSED_SHELL_ONLY` set beside `HYPERVALENT_VERIFIED_CALCULATORS` is cleaner than per-calculator code | low to medium |
 | OS5 | **DONE** (Psi4 only by arithmetic). Psi4 parity check and a spin-contamination figure (`<S**2>`) in every unrestricted result, as bond dissociation already flags | an unrestricted run's quality is invisible | parse ORCA/Psi4 `<S**2>`, one fact | low |
 | OS6 | Hueckel for heteroatom radicals (nitroxide, NO) with real alpha/beta parameters | currently refused | parameter set, oracle | medium, little value |

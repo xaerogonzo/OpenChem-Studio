@@ -10,7 +10,8 @@ from rdkit.Chem import AllChem, TorsionFingerprints, rdMolAlign, rdMolTransforms
 
 from openchem.chem.vsepr_geometry import Kind as VseprKind
 from openchem.chem.vsepr_geometry import build_vsepr_geometry, evidence_phrase
-from openchem.domain.conformer import VSEPR_TEMPLATE
+from openchem.chem.open_shell_geometry import build_open_shell_geometry
+from openchem.domain.conformer import OPEN_SHELL_TABLE, VSEPR_TEMPLATE
 from openchem.plugins.interfaces import ConformerBatch, ConformerProvider
 
 logger = logging.getLogger("openchem.chemistry")
@@ -1115,6 +1116,32 @@ def _template_search(mol: Chem.Mol) -> SearchOutcome | None:
     )
 
 
+def _open_shell_search(mol: Chem.Mol) -> SearchOutcome | None:
+    """The measured geometry of a listed small open-shell molecule (`chem.open_shell_geometry`), or None for any other."""
+    built = build_open_shell_geometry(mol)
+    if built is None:
+        return None
+    molecule = Chem.Mol(built.molecule)
+    molecule.RemoveAllConformers()
+    conformer = Chem.Conformer(molecule.GetNumAtoms())
+    for index, (x, y, z) in enumerate(built.coordinates):
+        conformer.SetAtomPosition(index, (x, y, z))
+    conformer.Set3D(True)
+    molecule.AddConformer(conformer, assignId=True)
+    molecule.SetProp(ORIGIN_PROPERTY, f"open-shell table {built.entry.name}")
+    return SearchOutcome(
+        pool=[(molecule, None)],
+        attempted=1,
+        embedded=1,
+        converged=0,
+        batches=1,
+        stop_reason=STOP_TEMPLATE,
+        unoptimised=1,
+        geometry_method=OPEN_SHELL_TABLE,
+        geometry_note=built.note,
+    )
+
+
 def search_conformers(
     provider: ConformerProvider,
     mol: Chem.Mol,
@@ -1155,7 +1182,7 @@ def search_conformers(
     if isinstance(provider, RDKitConformerProvider):
         # A hypervalent molecule with a measured geometry is BUILT, not searched: embedding has no idea of lone
         # pairs, and for ClF3 / BrF3 it cannot run at all. The rest of the pipeline sees an ordinary pool.
-        templated = _template_search(mol)
+        templated = _template_search(mol) or _open_shell_search(mol)
         if templated is not None:
             if on_progress is not None:
                 on_progress(1, 1)
