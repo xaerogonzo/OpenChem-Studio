@@ -5049,6 +5049,7 @@
   "tests/test_neemp_charges.py": 1,
   "tests/test_net.py": 0,
   "tests/test_nistor_sqe_instrument.py": 6,
+  "tests/test_nitroxide_basicity.py": 5,
   "tests/test_nmr_correlation.py": 0,
   "tests/test_nmr_correlation_plot_widget.py": 6,
   "tests/test_nmr_database.py": 4,

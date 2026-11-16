@@ -1,0 +1,2 @@
+### A nitroxide nitrogen is no longer counted as a basic amine
+- TEMPO and other nitroxides had their nitrogen counted as a basic centre by LogD (0.96 against a LogP of 2.38 at pH 7.4), as a hydrogen-bond acceptor, and as the donor atom of the ligand cone-angle calculator. The measured pKa of the protonated radical is about -5.5 to -6.2 and protonation is on oxygen, so none of the three applies. Real amines, hydroxylamines and nitroso nitrogens are unchanged.
