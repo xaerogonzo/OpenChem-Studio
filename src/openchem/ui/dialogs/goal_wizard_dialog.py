@@ -204,6 +204,8 @@ class GoalWizardDialog(QDialog):
     run_requested = Signal(object)
     #: Every recommended calculator, as a `RecommendedBatch`. Not a `GoalRun`: it has no goal.
     all_recommended_requested = Signal(object)
+    #: Customise applied ticks and settings to Properties. Does not start a job.
+    ticks_applied = Signal(object)
 
     def __init__(
         self,
@@ -230,6 +232,7 @@ class GoalWizardDialog(QDialog):
         self._on_generate_conformers = on_generate_conformers
         self._structure_version_of = structure_version_of
         self._plain_label = plain_label
+        self._scope_of = scope_of
         mode, chosen = scope_of()
         self._scope_mode = mode if mode in (SCOPE_THIS, SCOPE_ALL, SCOPE_CHOSEN) else SCOPE_THIS
         self._scope_chosen: set[str] = set(chosen)
@@ -283,7 +286,7 @@ class GoalWizardDialog(QDialog):
         self._scope_combo.addItem("Run on: all molecules", SCOPE_ALL)
         self._scope_combo.addItem("Run on: chosen molecules...", SCOPE_CHOSEN)
         apply_help_tooltip(self._scope_combo, _SCOPE_HELP)
-        self._scope_combo.activated.connect(self._on_scope_activated)
+        self._scope_combo.setEnabled(False)
         layout.addWidget(self._scope_combo)
 
         buttons = QHBoxLayout()
@@ -342,10 +345,13 @@ class GoalWizardDialog(QDialog):
         self._run_button.setDefault(True)
         apply_help_tooltip(self._run_button, _RUN_HELP)
         self._run_button.clicked.connect(self._on_run)
+        self._apply_ticks_button = QPushButton("Apply to Properties", page)
+        self._apply_ticks_button.clicked.connect(self._on_apply_to_properties)
         close = QPushButton("Close", page)
         close.clicked.connect(self.close)
         buttons.addWidget(back)
         buttons.addStretch(1)
+        buttons.addWidget(self._apply_ticks_button)
         buttons.addWidget(self._run_button)
         buttons.addWidget(close)
         layout.addLayout(buttons)
@@ -517,6 +523,16 @@ class GoalWizardDialog(QDialog):
     def _on_customise(self, _checked: bool = False) -> None:
         self._fill_entries()
         self._stack.setCurrentIndex(_PAGE_CUSTOMISE)
+
+    def _on_apply_to_properties(self, _checked: bool = False) -> None:
+        run = self.current_run(quick=False)
+        self.ticks_applied.emit(run)
+        self.close()
+
+    def showEvent(self, event) -> None:  # noqa: N802
+        mode, chosen = self._scope_of()
+        self.set_scope(mode, chosen)
+        super().showEvent(event)
 
     # -- the second page ----------------------------------------------------------------------------
 

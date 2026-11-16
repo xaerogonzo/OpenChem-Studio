@@ -4693,6 +4693,9 @@ class PropertyPanel(QWidget):
         while the run is going affects the next run.
         """
         molecules = self.scope_molecules()
+        if self._scope_mode == _SCOPE_CHOSEN and not self._scope_chosen:
+            self._batch_status.setText("Choose at least one molecule first.")
+            return
         if not molecules:
             self._batch_status.setText("No molecules in that scope.")
             return
@@ -4741,6 +4744,22 @@ class PropertyPanel(QWidget):
             return
         self._start_project_run(plan, molecules, self._project_parameters)
 
+    def run_selected_on_project(self) -> None:
+        """Fill table: the current ticks, settings and scope, as a project-table run."""
+        self._run_selected_on_project()
+
+    def apply_goal_ticks(self, calculator_ids: list[str], parameters: dict) -> None:
+        """Replace ordinary ticks with a customised goal set. Does not start a job."""
+        for tick in self._calculator_ticks.values():
+            tick.setChecked(False)
+        for calculator_id in calculator_ids:
+            box = self._calculator_ticks.get(calculator_id)
+            if box is not None:
+                box.setChecked(True)
+        for calculator_id, chosen in parameters.items():
+            self._project_parameters[calculator_id] = dict(chosen)
+        self._batch_status.setText(f"Ticked {len(calculator_ids)} from the goal.")
+
     def _start_project_run(
         self,
         plan: ExecutionPlan,
@@ -4782,7 +4801,7 @@ class PropertyPanel(QWidget):
         left_out = plan.describe_exclusions()
         text = (
             f"Running {len(plan.calculator_ids)} calculator(s) on {plan.molecule_count} molecule(s) "
-            f"{label}-- see Results > Project table. {left_out}".strip()
+            f"{label}-- see Project table. {left_out}".strip()
         )
         self._batch_status.setText(text)
         return text

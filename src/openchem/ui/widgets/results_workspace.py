@@ -1,11 +1,7 @@
-"""What the Results dock holds: the per-molecule reader, and the project table.
+"""What the Results dock holds: the per-molecule reader.
 
-**TWO PAGES, ONE SWITCH, AND THE SWITCH IS ABSENT UNTIL IT IS NEEDED.** The
-reader follows the selected molecule and answers "what did everything say about
-this one"; the project table answers "what did this one calculator say about
-all of them". They are different questions about different objects, so the
-table is a page of its own rather than an entry in the reader's "Showing" list
--- an entry there would have the table masquerade as one molecule's report.
+**Project table** on this dock reveals the Batch dock, which is the one
+table. This workspace no longer builds a second `ProjectTableView`.
 
 The switch row appears only once a project run has produced a table. Results is
 docked in a column that is measured and short: 26 px of a row that does nothing
@@ -46,7 +42,6 @@ from openchem.services.calculator_registry import CalculatorRegistry
 from openchem.services.table_export_service import TableExportService
 from openchem.ui.widgets.dock_panel_actions import PanelMenuButton, PanelMenuItem
 from openchem.ui.widgets.help_tooltip import HelpTooltip, apply_help_tooltip
-from openchem.ui.widgets.project_table import ProjectTableView
 
 #: The two pages of the Results dock. Two contracts, not one: they mean different
 #: things (one molecule's whole report; one table over every molecule).
@@ -121,6 +116,8 @@ class ResultsWorkspace(QWidget):
     #: Whether the title bar's Report menu has anything to act on: the reader is the page showing AND it holds a
     #: report. Emitted when that changes, from either cause; read the current answer with `report_actions_available`.
     report_actions_available_changed = Signal(bool)
+    #: The person asked to see the project table. The window reveals the Batch dock.
+    project_table_requested = Signal()
 
     def __init__(
         self,
@@ -138,30 +135,8 @@ class ResultsWorkspace(QWidget):
         score_definitions=None,
     ) -> None:
         super().__init__(parent)
-        self._batch_service = batch_service
         self._reader = results_view
-        self._engine = chemistry_engine
-        self._project_of = project_of
-        self._structure_version_of = structure_version_of
-        #: The run whose table this workspace will adopt, or None.
-        self._adopting_run: str | None = None
         self._last_run_id: str | None = None
-        #: The plan behind the table on screen: what its columns are, and the settings they used.
-        self._plan: ExecutionPlan | None = None
-        #: The molecule whose Details is waiting for a one-molecule run to land, or None.
-        self._details_when_ready: str | None = None
-
-        self._table_view = ProjectTableView(
-            calculator_registry,
-            table_export_service,
-            self,
-            on_analyse=on_analyse,
-            on_screen=on_screen,
-            show_cancel=True,
-            score_definitions=score_definitions,
-        )
-        self._table_view.details_requested.connect(self._on_details_requested)
-        self._table_view.cancel_requested.connect(self._on_cancel_requested)
 
         self._reader_button = QPushButton("This molecule", self)
         self._table_button = QPushButton("Project table", self)
@@ -180,36 +155,20 @@ class ResultsWorkspace(QWidget):
         self._reader_button.setChecked(True)
         self._reader_button.clicked.connect(self.show_molecule_reader)
         self._table_button.clicked.connect(self.show_project_table)
-        self._switch.setVisible(False)
-
-        self._stack = QStackedWidget(self)
-        self._stack.addWidget(results_view)
-        self._stack.addWidget(self._table_view)
 
         layout = QVBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(0)
         layout.addWidget(self._switch)
-        layout.addWidget(self._stack, 1)
-
-        event_bus.subscribe(BatchProgress, self._on_progress)
-        event_bus.subscribe(ScoreDefinitionsChanged, self._on_score_definitions_changed)
+        layout.addWidget(results_view, 1)
 
         self._report_actions_were_available = False
         if hasattr(results_view, "report_available_changed"):
             results_view.report_available_changed.connect(self._note_report_actions)
-        self._stack.currentChanged.connect(self._note_report_actions)
         self._note_report_actions()
 
-    # -- the reader's report, for the title bar's Report menu ----------------
-
     def report_actions_available(self) -> bool:
-        """The reader's report can be copied or exported: it is on screen and there is one. Never on the project
-        table, whose page has no report of its own for the menu to mean."""
-        return (
-            self._stack.currentWidget() is self._reader
-            and bool(getattr(self._reader, "report_available", lambda: False)())
-        )
+        return bool(getattr(self._reader, "report_available", lambda: False)())
 
     def _note_report_actions(self, *_args) -> None:
         available = self.report_actions_available()
@@ -225,133 +184,22 @@ class ResultsWorkspace(QWidget):
         if self.report_actions_available():
             self._reader.export_report()
 
-    def _on_score_definitions_changed(self, _event) -> None:
-        """A score was defined, edited or removed: the table's score columns follow, without a second run."""
-        self._table_view.refresh_scores()
-
-    # -- the two pages -------------------------------------------------------
-
-    @property
-    def table_view(self) -> ProjectTableView:
-        return self._table_view
-
     def has_project_table(self) -> bool:
-        return self._table_view.table() is not None
+        return False
 
     def showing_project_table(self) -> bool:
-        return self._stack.currentWidget() is self._table_view
+        return False
 
     def show_project_table(self, _checked: bool = False) -> None:
-        self._stack.setCurrentWidget(self._table_view)
         self._table_button.setChecked(True)
+        self.project_table_requested.emit()
 
     def show_molecule_reader(self, _checked: bool = False) -> None:
-        self._stack.setCurrentWidget(self._reader)
         self._reader_button.setChecked(True)
 
-    # -- a project run -------------------------------------------------------
-
     def begin_project_run(self, plan: ExecutionPlan) -> None:
-        """Adopt the table of THIS run, and put it in front.
-
-        Called before the run is handed to the service, so the first progress
-        event (QUEUED, published synchronously) already finds the workspace
-        listening.
-        """
-        self._adopting_run = plan.run_id
         self._last_run_id = plan.run_id
-        self._plan = plan
-        self._switch.setVisible(True)
-        self.show_project_table()
+        self.project_table_requested.emit()
 
     def last_run_id(self) -> str | None:
         return self._last_run_id
-
-    def _on_progress(self, event: BatchProgress) -> None:
-        if self._adopting_run is not None:
-            running = self._table_view.apply_progress(event, adopt=True)
-            if not running:
-                self._adopting_run = None
-            return
-        if self._details_when_ready is None:
-            return
-        # A one-molecule run for a Details view: its results merge into the store the table
-        # reads, and the table itself is NOT replaced by its one-row answer.
-        if not self._table_view.apply_progress(event, adopt=False):
-            # Not in this handler: a modal dialog opened inside a bus dispatch starves every
-            # later subscriber of the same event (CLAUDE.md: the calculator reveal did exactly
-            # that), so it is opened once the dispatch has finished.
-            QTimer.singleShot(0, self, self._present_pending_details)
-
-    def _present_pending_details(self) -> None:
-        molecule_uuid, self._details_when_ready = self._details_when_ready, None
-        if molecule_uuid is not None:
-            self._present_details(molecule_uuid)
-
-    def _on_cancel_requested(self) -> None:
-        if self._batch_service is not None:
-            self._batch_service.cancel()
-
-    def _missing_for(self, molecule_uuid: str) -> list[str]:
-        """The table's calculators this molecule has no CURRENT result for.
-
-        Keyed on the structure version, so an edited molecule's old results do not count as
-        computed: "done" and "done for a structure that no longer exists" are different.
-        **Always-on properties and alert catalogs are not asked about**: the store retains
-        calculator results only (they are cells of the table, not entries of the store), so
-        they would read as missing every time, and Details shows what the store holds.
-        """
-        if self._plan is None:
-            return []
-        store = self._table_view._store
-        have = set(store.for_molecule(molecule_uuid, self._structure_version_of(molecule_uuid))) if store else set()
-        return [c for c in self._plan.calculator_ids if c not in have]
-
-    def _on_details_requested(self, molecule_uuid: str) -> None:
-        """Everything the table's properties say about one molecule, in the Properties renderer.
-
-        **NOTHING IS COMPUTED UNASKED, AND THIS IS THE ASKING.** Opening a molecule runs the
-        table's properties for THAT molecule if it has no current result for some of them
-        (a row left out of the run, a structure edited since), on the same settings the
-        table used, through the same service. Another run in progress is not interrupted.
-        """
-        project = self._project_of()
-        molecule = project.find_molecule(molecule_uuid) if project is not None else None
-        if molecule is None:
-            return
-        calculators = self._missing_for(molecule_uuid)
-        if calculators and self._batch_service is not None and getattr(molecule, "molblock", ""):
-            if self._batch_service.is_running():
-                self._table_view.set_status("A run is already in progress -- try again when it finishes.")
-                return
-            self._details_when_ready = molecule_uuid
-            self._table_view.set_status(f"Computing {molecule.display_name}...")
-            self._batch_service.request_batch(
-                BatchRequest(
-                    molecule_uuids=[molecule_uuid],
-                    calculator_ids=calculators,
-                    parameters={cid: dict(p) for cid, p in self._plan.requested_parameters.items()},
-                    per_atom_aggregate=self._plan.per_atom_aggregate,
-                    structure_versions={molecule_uuid: self._structure_version_of(molecule_uuid)},
-                ),
-                [molecule],
-            )
-            return
-        self._present_details(molecule_uuid)
-
-    def _present_details(self, molecule_uuid: str) -> None:
-        project = self._project_of()
-        molecule = project.find_molecule(molecule_uuid) if project is not None else None
-        if molecule is None:
-            return
-        from openchem.ui.dialogs.batch_detail_dialog import BatchDetailDialog
-
-        store = self._table_view._store
-        dialog = BatchDetailDialog(
-            self._engine,
-            molecule,
-            store if store is not None else BatchResultStore(),
-            self._structure_version_of(molecule_uuid),
-            self,
-        )
-        dialog.exec()

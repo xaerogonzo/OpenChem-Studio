@@ -573,7 +573,7 @@ def test_every_approved_output_reads_the_same_in_the_table_as_in_results_for_a_m
 def test_a_score_defined_after_a_project_run_is_a_column_of_the_table_at_once_and_follows_its_edits(window, pair, qapp):
     aspirin, ethanol = pair
     event = _run_batch(window, qapp, [aspirin, ethanol], ["tpsa", "mol_logp"], [])
-    view = window._results_workspace.table_view
+    view = window._batch_panel._view
     window._results_workspace.begin_project_run(type("Plan", (), {"run_id": "run-1"})())
     view.apply_progress(event, adopt=True)
     assert not any(c.source == "score" for c in view.table().columns)
@@ -599,7 +599,7 @@ def test_a_score_defined_after_a_project_run_is_a_column_of_the_table_at_once_an
 def test_a_score_the_run_did_not_compute_the_inputs_of_is_named_in_the_table_not_shown_as_a_column_of_dashes(window, pair, qapp):
     aspirin, ethanol = pair
     event = _run_batch(window, qapp, [aspirin, ethanol], ["tpsa"], [])
-    view = window._results_workspace.table_view
+    view = window._batch_panel._view
     window._results_workspace.begin_project_run(type("Plan", (), {"run_id": "run-1"})())
     view.apply_progress(event, adopt=True)
     _make(window)
@@ -838,11 +838,23 @@ def test_the_project_table_holds_the_same_aromatic_ring_score_as_the_reader(wind
 
 
 def _press_batch_run(window, qapp, *property_ids):
-    """The Batch panel's REAL Fill-table button, with only these properties ticked, and the run waited out."""
+    """Fill table from Properties ticks (same path the button now takes)."""
+    from openchem.chem.descriptor_providers import RDKitDescriptorProvider
+    from openchem.ui.panels.property_panel import _SCOPE_ALL
+
+    props = window._property_panel
+    props.set_scope(_SCOPE_ALL)
+    for tick in props._calculator_ticks.values():
+        tick.setChecked(False)
+    provider = RDKitDescriptorProvider()
+    known_desc = set(provider.descriptor_ids()) | set(provider.alert_ids())
+    chosen_desc = [i for i in property_ids if i in known_desc]
+    if chosen_desc:
+        props.set_descriptor_choice(chosen_desc)
+    for calculator_id in property_ids:
+        if calculator_id not in known_desc and calculator_id in props._calculator_ticks:
+            props._calculator_ticks[calculator_id].setChecked(True)
     panel = window._batch_panel
-    panel._clear_selection()
-    for property_id in property_ids:
-        panel.check(property_id)
     assert panel._run_button.isEnabled(), "the Fill table button is pressable"
     panel._run_button.click()
     _drain(qapp)
@@ -884,7 +896,7 @@ def test_the_batch_panel_and_the_results_dock_hold_the_same_score_columns_for_th
     aspirin, ethanol = pair
     _make(window)
     panel = _press_batch_run(window, qapp, "tpsa", "mol_logp")
-    dock = window._results_workspace.table_view
+    dock = window._batch_panel._view
     event = _run_batch(window, qapp, [aspirin, ethanol], ["tpsa", "mol_logp"], [])
     window._results_workspace.begin_project_run(type("Plan", (), {"run_id": "run-1"})())
     dock.apply_progress(event, adopt=True)
@@ -915,7 +927,7 @@ def test_the_real_windows_presets_menu_offers_what_the_scores_read_and_it_ticks_
     panel.set_scope(_SCOPE_ALL)
     panel._run_selected_button.click()
     _drain(qapp)
-    table = window._results_workspace.table_view.table()
+    table = window._batch_panel._view.table()
     assert any(c.source == "score" and c.label.startswith("Oxidation window") for c in table.columns)
 
 

@@ -798,6 +798,7 @@ class MainWindow(QMainWindow):
         batch_dock = self._add_dock(
             "Batch", self._wrap_scrollable(self._batch_panel), Qt.DockWidgetArea.RightDockWidgetArea
         )
+        batch_dock.setWindowTitle("Project table")
         self._comparison_panel = ComparisonPanel(services.event_bus, self)
         self._comparison_panel.set_stored_reader(self._stored_reports_for_compare)
         self._comparison_panel.attach_settings(settings)
@@ -865,7 +866,9 @@ class MainWindow(QMainWindow):
             batch_service=services.batch_service,
             score_definitions=self._score_definitions,
         )
+        self._batch_panel.set_fill_runner(self._property_panel.run_selected_on_project)
         self._property_panel.project_run_started.connect(self._on_project_run_started)
+        self._results_workspace.project_table_requested.connect(self.reveal_project_table)
         self._results_host = PopOutHost(
             self._results_workspace,
             title="Results",
@@ -1988,9 +1991,13 @@ class MainWindow(QMainWindow):
         return self._session.project
 
     def _on_project_run_started(self, plan) -> None:
-        """A project run was submitted: the workspace adopts its table, and it is shown."""
-        self._results_workspace.begin_project_run(plan)
-        self.reveal_results()
+        """A project run was submitted: the Batch dock's table adopts it, and that dock is shown."""
+        self._batch_panel.begin_project_run(plan)
+        self.reveal_project_table()
+
+    def reveal_project_table(self) -> None:
+        """Show the one project table (the Batch dock)."""
+        self._on_panel_chosen("Batch")
 
     #: What Compare says when a value it was asked to open cannot be shown, by the code
     #: `PropertyPanel.reveal_report_fact` returns.
@@ -2207,6 +2214,7 @@ class MainWindow(QMainWindow):
             )
             wizard.run_requested.connect(self._on_goal_run_requested)
             wizard.all_recommended_requested.connect(self._property_panel.run_recommended_batch)
+            wizard.ticks_applied.connect(self._on_goal_ticks_applied)
             self._goal_wizard = wizard
         else:
             wizard = self._goal_wizard
@@ -2343,6 +2351,10 @@ class MainWindow(QMainWindow):
     def _wizard_molecules(self) -> list:
         project = self._session.project
         return list(project.molecules) if project is not None else []
+
+    def _on_goal_ticks_applied(self, run) -> None:
+        """Customise applied a goal's ticks to Properties without starting a job."""
+        self._property_panel.apply_goal_ticks(list(run.calculator_ids), dict(run.parameters))
 
     def _on_goal_run_requested(self, run) -> None:
         """The wizard asked for a run. Properties runs it and the wizard says what happened."""
