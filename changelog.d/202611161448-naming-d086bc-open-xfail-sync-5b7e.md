@@ -1,0 +1,2 @@
+### D-086b/c OPEN xfail housekeeping
+- Sync von Baeyer strings in `test_namer_known_defects.py` `OPEN` with NL-030/031 pins; assert book fusion PINs are not emitted in `test_namer_nl030_nl031_ws4_fusion_vonbaeyer.py`.
