@@ -131,8 +131,8 @@ class ResultSummaryView:
     #: omission meant a `refusal` expectation could never match a summarised
     #: result. Carried, never interpreted: nothing here reads it.
     provenance: Any = None
-    #: Registry calculator id, when `report_id` is a history key (`exec:` / `qc:`).
-    calculator_id: str = ""
+    #: Registry id used only to place a history row in the Showing list.
+    order_id: str = ""
     #: Chemical method/model for collapsible Results groups (EEM, QEq, engine+basis).
     method_model: str = ""
     #: `execution` or `quantum` when this row is history rather than the live cache projection.

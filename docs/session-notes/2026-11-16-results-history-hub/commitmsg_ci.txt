@@ -1,0 +1,3 @@
+Fix CI for history hub: pins, unpack, summary identity, constant docs.
+
+CI uses the 8-way pin table, ProjectDocument grew a seventh field, ResultSummaryView must not carry calculator_id, and Showing-list constants need #: comments.

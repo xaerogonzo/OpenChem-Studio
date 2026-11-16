@@ -73,7 +73,7 @@ def entry_from_execution(
 ) -> ResultSummaryView | None:
     historical = not execution.matches_current(fingerprints)
     stamp = 0 if historical else structure_version
-    calculator_id = ""
+    order_id = ""
     name = execution.producer
     category = "other"
     facts: list[Fact] = []
@@ -82,7 +82,7 @@ def entry_from_execution(
     rich_view_label = ""
     molecule_uuid = execution.molecule_uuid
     for stored in execution.outputs:
-        calculator_id = calculator_id or stored.identity.result_id
+        order_id = order_id or stored.identity.result_id
         projected = _project_stored(stored, stamp)
         if projected is None:
             continue
@@ -131,7 +131,7 @@ def entry_from_execution(
         rich_view_label=rich_view_label,
         molecule_uuid=molecule_uuid,
         structure_version=stamp,
-        calculator_id=calculator_id,
+        order_id=order_id,
         method_model=method,
         history_kind="execution",
         history_id=execution.execution_id,
@@ -218,7 +218,7 @@ def entry_from_quantum_run(
         rich_view_label=rich_view_label,
         molecule_uuid=run.molecule_uuid,
         structure_version=stamp,
-        calculator_id="",
+        order_id="",
         method_model=f"{run.provider} {run.method_basis}".strip(),
         history_kind="quantum",
         history_id=run.run_id,

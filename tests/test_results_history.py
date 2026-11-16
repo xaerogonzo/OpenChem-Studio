@@ -15,7 +15,7 @@ def _charge(report_id: str, method: str, *, historical: bool = False) -> ResultS
         history_kind="execution",
         history_id=report_id.split(":", 1)[-1],
         historical=historical,
-        calculator_id="geometry_partial_charge",
+        order_id="geometry_partial_charge",
     )
 
 

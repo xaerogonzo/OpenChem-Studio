@@ -142,7 +142,7 @@ def report_sort_key(
     report_id = str(getattr(entry, "report_id", "") or "")
     name = str(getattr(entry, "name", "") or "")
     category = category_of(entry)
-    order_id = str(getattr(entry, "calculator_id", "") or "") or report_id
+    order_id = str(getattr(entry, "order_id", "") or "") or report_id
     position = None if display_order_of is None else display_order_of(order_id)
     return (
         display_band(entry),

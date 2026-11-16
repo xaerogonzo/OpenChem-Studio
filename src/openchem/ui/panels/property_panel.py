@@ -3504,7 +3504,7 @@ class PropertyPanel(QWidget):
         reader = self._attached_reader
         if reader is not None:
             report = reader.merged().report_for(report_id)
-            calc_id = str(getattr(report, "calculator_id", "") or "")
+            calc_id = str(getattr(report, "order_id", "") or "")
             if calc_id:
                 lookup = calc_id
         return marker_for(self._calculator_registry.get(lookup))

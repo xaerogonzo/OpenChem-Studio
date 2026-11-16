@@ -264,7 +264,9 @@ _FOCUS_HELP = HelpTooltip(
 
 #: Shown for every result the structure has moved on from.
 STALE_MARK = " (stale)"
+#: Shown when a history row's input no longer matches the current molecule.
 HISTORICAL_MARK = " (historical)"
+#: UserData prefix for a collapsible method/model heading in the Showing list.
 METHOD_FOLD_PREFIX = "fold:"
 
 #: The narrowest reader in which the results filter shares the "Showing:"
