@@ -97,9 +97,9 @@ def test_anchors_are_unique_across_documents():
 
 
 def test_a_section_stops_at_the_next_heading_of_its_own_level():
-    """`## Quantum chemistry` must not run on into `## Batch mode`."""
+    """`## Quantum chemistry` must not run on into `## Project table`."""
     body = help_docs.topic_markdown("quantum-chemistry")
-    assert "## Batch mode" not in body
+    assert "## Project table" not in body
 
 
 def test_a_section_carries_its_own_subsections():
@@ -112,7 +112,7 @@ def test_a_section_carries_its_own_subsections():
 def test_a_subsection_is_readable_on_its_own():
     body = help_docs.topic_markdown("ir-spectra")
     assert body.startswith("### IR spectra")
-    assert "## Batch mode" not in body
+    assert "## Project table" not in body
 
 
 def test_anchors_never_reach_the_reader():

@@ -1384,7 +1384,7 @@ _DOCK_TOPIC_TITLES: dict[str, str] = {
     # reader opening it wants.
     "Structure_Check": "The structure checker",  # the same words with an
     # article, which the derived rule cannot match on.
-    "Batch": "Batch mode",
+    "Batch": "Project table",  # dock objectName stays Batch; the section is the matrix.
     "Console": "Jobs and the console",  # one section covers both docks
     # deliberately -- they are two views of the same queue.
     "Jobs": "Jobs and the console",
