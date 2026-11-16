@@ -103,6 +103,15 @@ class NoConformerError(ValueError):
     """Both measures are 3D quantities and mean nothing without geometry."""
 
 
+def _is_nitroxide_nitrogen(atom: Chem.Atom) -> bool:
+    """A nitrogen with a single bond to a neutral oxygen that has no other connection (an N-oxyl radical)."""
+    return atom.GetSymbol() == "N" and any(
+        n.GetSymbol() == "O" and n.GetDegree() == 1 and n.GetFormalCharge() == 0 and n.GetTotalNumHs() == 0
+        and atom.GetOwningMol().GetBondBetweenAtoms(atom.GetIdx(), n.GetIdx()).GetBondType() == Chem.BondType.SINGLE
+        for n in atom.GetNeighbors()
+    )
+
+
 def find_donor(mol: Chem.Mol) -> int:
     """The atom the metal would bind, by element priority.
 
@@ -118,7 +127,9 @@ def find_donor(mol: Chem.Mol) -> int:
             return atom.GetIdx()
     for element in DONOR_ELEMENTS:
         for atom in mol.GetAtoms():
-            if atom.GetSymbol() == element:
+            # A nitroxide nitrogen is not a ligand donor: its lone pair is in the three-electron N-O bond (the ligand binds through the
+            # oxygen, which is not in `DONOR_ELEMENTS`, so a nitroxide is refused as having no donor rather than given a cone on the wrong atom).
+            if atom.GetSymbol() == element and not _is_nitroxide_nitrogen(atom):
                 return atom.GetIdx()
     raise NoDonorError(
         "No donor atom found. These measures describe a LIGAND -- the structure needs an "
