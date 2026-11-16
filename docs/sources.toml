@@ -4401,7 +4401,7 @@ citation = "K. P. Huber & G. Herzberg, 'Molecular Spectra and Molecular Structur
 identifier_type = "bibliographic"
 identifier = "Molecular Spectra and Molecular Structure IV. Constants of Diatomic Molecules (Huber & Herzberg, 1979)"
 status = "reference_only"
-used_by = ["tests/fixtures/charges/geometries.csv"]
+used_by = ["tests/fixtures/charges/geometries.csv", "src/openchem/chem/open_shell.py", "docs/OPEN_SHELL_AND_HYPERVALENT_COVERAGE_DESIGN.md"]
 local = "huber1979.pdf"
 verification = "citation_and_claim"
 verified_date = 2026-09-14
@@ -4418,6 +4418,8 @@ that digit.
 
 The held PDF's title page names Springer Science+Business Media; the citation
 above is the edition the paper cites.
+
+READ AGAIN 2026-11-15 FOR THE OPEN-SHELL WORK (`chem/open_shell.py`, `TRIPLET_GROUND_STATES`): the ground-state r_e of NO 1.15077 A (PDF page 489, X 2Pi), O2 1.20752 A (page 511, X 3Sigma-g-), OH 0.96966 A (page 521), S2 1.8892 A (page 577, X 3Sigma-g-), Se2 2.1660 A (page 595; the X1 spin-orbit component, with 2.1628 A for X2 on the same page) and SO 1.481087 A (page 635, X 3Sigma-). Located by searching the text layer for each value, then each line read in place. The ground-state triplet assignment of O2, SO and S2 is therefore backed by this book, in addition to the measured ORCA energies.
 """
 
 [[source]]
@@ -11110,4 +11112,244 @@ verification = "citation"
 verified_date = 2026-11-14
 note = """
 The deposited CIF (SHELXL-97, 153 K, R 0.048; o-fluorophenyl-IF2 with a quarter of a CH2Cl2 per molecule) computed: one free T-shaped molecule, I-F 2.0137 and 2.0160, I-C 2.0515 A, F-I-F 169.02, C-I-F 84.21 and 84.81 degrees. One of the twelve molecules of the ArIF2 core row, the shortest I-C (an ortho fluorine). No paper describes it; the CSD terms forbid redistributing the file, so only these computed numbers are recorded.
+"""
+
+[[source]]
+key = "malatesta1973"
+kind = "literature"
+citation = "V. Malatesta & K. U. Ingold, 'Protonated nitroxide radicals', J. Am. Chem. Soc. 95, 6404-6407 (1973)"
+identifier_type = "doi"
+identifier = "10.1021/ja00800a041"
+status = "reference_only"
+used_by = ["docs/OPEN_SHELL_AND_HYPERVALENT_COVERAGE_DESIGN.md"]
+local = "malatesta1973.pdf"
+verification = "citation_and_claim"
+verified_date = 2026-11-15
+reason = """
+Read. EPR of dialkyl nitroxides in strong acid: TEMPO is protonated (on oxygen) at Hammett H0 more negative than -7.5 and unprotonated above -3.7; between the two no EPR signal is seen because of line broadening from rapid proton exchange. The pKa of dialkyl nitroxides is estimated at -5.5 +/- 1 (the paper's own words, 'the pK_a for dialkyl nitroxides is -5.5 +/- 1'). A measurement in concentrated sulfuric acid, NOT an aqueous pKa. Backs the design document's statement that a nitroxide is not an ordinary amine-like base.
+"""
+
+[[source]]
+key = "sen2008"
+kind = "literature"
+citation = "V. D. Sen & V. A. Golubev, 'Kinetics and mechanism for acid-catalyzed disproportionation of 2,2,6,6-tetramethylpiperidine-1-oxyl', J. Phys. Org. Chem. 22, 138-143 (2009; published online 17 September 2008)"
+identifier_type = "doi"
+identifier = "10.1002/poc.1439"
+status = "reference_only"
+used_by = ["docs/OPEN_SHELL_AND_HYPERVALENT_COVERAGE_DESIGN.md"]
+local = "sen2008.pdf"
+verification = "citation_and_claim"
+verified_date = 2026-11-15
+reason = """
+Read. pK(1HR) of protonated TEMPO = -5.8 +/- 0.3 (the minus sign is lost in the PDF text layer; konopko2022 Table 2 prints it as -5.8 +/- 0.3), from the acid-catalysed disproportionation kinetics in sulfuric acid. The -6.2 for 4-hydroxy-TEMPO that konopko2022 credits to this paper is NOT in the main text (the supplementary document sen2008_SI.doc was not opened). Medium: H2SO4, not water.
+"""
+
+[[source]]
+key = "konopko2022"
+kind = "literature"
+citation = "A. Konopko & G. Litwinienko, 'Mutual Activation of Two Radical Trapping Agents: Unusual Win-Win Synergy of Resveratrol and TEMPO during Scavenging of dpph radical in Methanol', J. Org. Chem. 87, 15530-15538 (2022)"
+identifier_type = "doi"
+identifier = "10.1021/acs.joc.2c02080"
+status = "reference_only"
+used_by = ["docs/OPEN_SHELL_AND_HYPERVALENT_COVERAGE_DESIGN.md"]
+local = "konopko2022.pdf"
+verification = "citation_and_claim"
+verified_date = 2026-11-15
+reason = """
+Read. Table 2 lists the pKa of TEMPOH.+ as -5.5 +/- 1 (Malatesta and Ingold) and -5.8 +/- 0.3 (Sen and Golubev) and of 4-OH-TEMPOH.+ as -6.2, with the footnote 'Both values determined in H2SO4'. Also TEMPOH pKa 12.9 (for diethylhydroxylamine in water) and TEMPOH2+ 7.36, 7.9, 7.5, 6.90: different species, not the protonated radical. The open-access route to the three values.
+"""
+
+[[source]]
+key = "voinov2024"
+kind = "literature"
+citation = "M. A. Voinov, N. Nunn, R. Rana, A. Davidsson, A. I. Smirnov & T. I. Smirnova, 'Measuring local pH at interfaces from molecular tumbling: a concept for designing EPR-active pH-sensitive labels and probes', Org. Biomol. Chem. 22, 3652-3667 (2024)"
+identifier_type = "doi"
+identifier = "10.1039/d4ob00167b"
+status = "reference_only"
+used_by = ["docs/OPEN_SHELL_AND_HYPERVALENT_COVERAGE_DESIGN.md"]
+local = "Voinov2024.pdf"
+verification = "citation_and_claim"
+verified_date = 2026-11-15
+reason = """
+Read for one statement: nitroxides undergo reversible protonation at the oxygen atom of the N-O radical moiety in concentrated acids or non-aqueous media. Supports 'a nitroxide is protonated on oxygen, not on nitrogen'. The supplementary file Voinov2024_SI.pdf was not read.
+"""
+
+[[source]]
+key = "warren2010"
+kind = "literature"
+citation = "J. J. Warren, T. A. Tronic & J. M. Mayer, 'Thermochemistry of Proton-Coupled Electron Transfer Reagents and its Implications', Chem. Rev. 110, 6961-7001 (2010)"
+identifier_type = "doi"
+identifier = "10.1021/cr100085k"
+status = "reference_only"
+used_by = ["docs/OPEN_SHELL_AND_HYPERVALENT_COVERAGE_DESIGN.md"]
+local = "Warren2010.pdf"
+verification = "citation"
+verified_date = 2026-11-15
+reason = """
+Cited for the thermochemistry of TEMPOH and its radical cation (a very weak base, about -4 in acetonitrile according to the second-hand summary this entry was made from). The table was not opened, so no number here has been checked against the paper.
+"""
+
+[[source]]
+key = "herzberg1966"
+kind = "literature"
+citation = "G. Herzberg, Molecular Spectra and Molecular Structure III: Electronic Spectra and Electronic Structure of Polyatomic Molecules, Van Nostrand Reinhold, 1966"
+identifier_type = "bibliographic"
+identifier = "Herzberg (1966), Molecular Spectra and Molecular Structure III, Van Nostrand Reinhold"
+status = "reference_only"
+used_by = ["docs/OPEN_SHELL_AND_HYPERVALENT_COVERAGE_DESIGN.md"]
+local = "Molecular Spectra and Molecular Structure_ Electronic -- Gerhard Herzberg -- 1966-01-01 -- Van Nostrand Reinhold.pdf"
+verification = "citation"
+verified_date = 2026-11-15
+reason = """
+Held, and its two geometries now confirmed through NIST CCCBDB pages saved by the owner (the folder with the book's name and the suffix _DATA, 'Listing of experimental geometry data for CH3' and 'for NH2'): CH3 point group D3h, r(CH) 1.079 A, HCH 120 degrees, both credited to this book (1966Herzberg), with rotational constants A = B = 9.57789, C = 4.74202 cm-1 credited to Yamada, Hirota and Kawaguchi 1981 (yamada1981); NH2 point group C2v, r(NH) 1.024 A, HNH 103.4 degrees, rotational constants 23.72, 12.94, 8.16 cm-1, all credited to this book. The CCCBDB page does not say which bond-length convention (r0, rs, re) the printed values are. The book's own pages were NOT opened: these are NIST's transcriptions of it.
+"""
+
+[[source]]
+key = "jensen1988"
+kind = "literature"
+citation = "P. Jensen & P. R. Bunker, 'The potential surface and stretching frequencies of X 3B1 methylene (CH2) determined from experiment using the Morse oscillator-rigid bender internal dynamics Hamiltonian', J. Chem. Phys. 89, 1327-1332 (1988)"
+identifier_type = "doi"
+identifier = "10.1063/1.455184"
+status = "reference_only"
+used_by = ["docs/OPEN_SHELL_AND_HYPERVALENT_COVERAGE_DESIGN.md"]
+local = "jensen1988.pdf"
+verification = "citation_and_claim"
+verified_date = 2026-11-15
+reason = """
+Read. Triplet CH2 equilibrium: r(CH) = 1.07530 (11) A (Table II, 'fitted'; the text says 1.0753 A) and rho_e = 46.0692 (21) degrees, the supplement of the HCH angle, so alpha_e = 133.931 degrees (derived here, not printed as such). Singlet-triplet splitting T0 = 3147 +/- 5 cm-1 (8.998 kcal/mol) and Te = 3223 cm-1 (9.215 kcal/mol).
+"""
+
+[[source]]
+key = "petek1989"
+kind = "literature"
+citation = "H. Petek, D. J. Nesbitt, D. C. Darwin, P. R. Ogilby, C. B. Moore & D. A. Ramsay, 'Analysis of CH2 a 1A1 (1,0,0) and (0,0,1) Coriolis-coupled states, a 1A1-X 3B1 spin-orbit coupling, and the equilibrium structure of CH2 a 1A1 state', J. Chem. Phys. 91, 6566-6578 (1989)"
+identifier_type = "doi"
+identifier = "10.1063/1.457375"
+status = "reference_only"
+used_by = ["docs/OPEN_SHELL_AND_HYPERVALENT_COVERAGE_DESIGN.md"]
+local = "petek1989.pdf"
+verification = "citation_and_claim"
+verified_date = 2026-11-15
+reason = """
+Read (abstract). Singlet CH2 a 1A1 equilibrium structure from Ae, Be, Ce = 19.8054 (206), 11.2489 (45), 7.2386 (36) cm-1: r_e = 1.107 A, theta_e = 102.4 degrees. No uncertainty is printed with the two structure numbers in the abstract.
+"""
+
+[[source]]
+key = "leopold1984"
+kind = "literature"
+citation = "D. G. Leopold, K. K. Murray & W. C. Lineberger, 'Laser photoelectron spectroscopy of vibrationally relaxed CH2-: a reinvestigation of the singlet-triplet splitting in methylene', J. Chem. Phys. 81, 1048-1050 (1984)"
+identifier_type = "doi"
+identifier = "10.1063/1.447741"
+status = "reference_only"
+used_by = ["docs/OPEN_SHELL_AND_HYPERVALENT_COVERAGE_DESIGN.md"]
+local = "leopold1984.pdf"
+verification = "citation_and_claim"
+verified_date = 2026-11-15
+reason = """
+Read. Revises the earlier photoelectron singlet-triplet splitting of at least 19.5 kcal/mol (hot bands had been mistaken for the origin) to about 9 kcal/mol (the text's own '~9 kcal/mol'); the 9.05 +/- 0.06 kcal/mol figure in the same paper is the far-infrared laser magnetic resonance measurement of another group, cited, not Leopold's.
+"""
+
+[[source]]
+key = "jacox1998"
+kind = "literature"
+citation = "M. E. Jacox, 'Vibrational and Electronic Energy Levels of Polyatomic Transient Molecules. Supplement A', J. Phys. Chem. Ref. Data 27, 115-393 (1998)"
+identifier_type = "doi"
+identifier = "10.1063/1.556017"
+status = "reference_only"
+used_by = ["docs/OPEN_SHELL_AND_HYPERVALENT_COVERAGE_DESIGN.md"]
+local = "jacox1998_SUP-A.pdf"
+verification = "citation"
+verified_date = 2026-11-15
+reason = """
+Held. Spectroscopic energy levels of transient molecules: for assignments and cross-checks, not a table of equilibrium geometries. The 1994 Monograph 3 it supplements is online at https://webbook.nist.gov/chemistry/polyatom/ and is not held as a file.
+"""
+
+[[source]]
+key = "jacox2003"
+kind = "literature"
+citation = "M. E. Jacox, 'Vibrational and Electronic Energy Levels of Polyatomic Transient Molecules. Supplement B', J. Phys. Chem. Ref. Data 32, 1-441 (2003)"
+identifier_type = "doi"
+identifier = "10.1063/1.1497629"
+status = "reference_only"
+used_by = ["docs/OPEN_SHELL_AND_HYPERVALENT_COVERAGE_DESIGN.md"]
+local = "jacox2003_SUP-B.pdf"
+verification = "citation"
+verified_date = 2026-11-15
+reason = """
+Held. As jacox1998, for the later literature.
+"""
+
+[[source]]
+key = "ramachandran2008"
+kind = "literature"
+citation = "K. I. Ramachandran, G. Deepa & K. Namboori, Computational Chemistry and Molecular Modeling: Principles and Applications, Springer, Berlin, 2008"
+identifier_type = "doi"
+identifier = "10.1007/978-3-540-77304-7"
+status = "reference_only"
+used_by = ["tests/test_open_shell.py", "docs/OPEN_SHELL_AND_HYPERVALENT_COVERAGE_DESIGN.md"]
+local = "computational-chemistry-and-molecular-modeling-2008.pdf"
+verification = "citation_and_claim"
+verified_date = 2026-11-15
+reason = """
+Read. Table 4.10 (PDF page 97): the benzyl radical's seven Hueckel levels alpha + 2.101, 1.259, 1.000, 0, -1.000, -1.259, -2.101 beta and the total energy 7 alpha + 8.721 beta; Table 4.11 the nonbonding orbital. The test holds the application's Hueckel result for benzyl to 8.72 beta (and recomputes it independently); the allyl value 2 sqrt(2) beta is arithmetic and was not read from a table.
+"""
+
+[[source]]
+key = "streitwieser1961"
+kind = "literature"
+citation = "A. Streitwieser Jr., Molecular Orbital Theory for Organic Chemists, Wiley, New York, 1961"
+identifier_type = "bibliographic"
+identifier = "Streitwieser (1961), Molecular Orbital Theory for Organic Chemists, Wiley"
+status = "reference_only"
+used_by = ["docs/OPEN_SHELL_AND_HYPERVALENT_COVERAGE_DESIGN.md"]
+local = "molecular orbital theory_ for organic chemists -- andrew streitwieser, jr_1961.pdf"
+verification = "citation"
+verified_date = 2026-11-15
+reason = """
+Held (a scan). The classic Hueckel text. The benzyl and allyl totals were checked against ramachandran2008 and an independent diagonalisation, not against a page of this book.
+"""
+
+[[source]]
+key = "jensen1990"
+kind = "literature"
+citation = "F. Jensen, 'A remarkable large effect of spin contamination on calculated vibrational frequencies', Chem. Phys. Lett. 169, 519-528 (1990)"
+identifier_type = "doi"
+identifier = "10.1016/0009-2614(90)85641-O"
+status = "reference_only"
+used_by = ["docs/OPEN_SHELL_AND_HYPERVALENT_COVERAGE_DESIGN.md"]
+local = "jensen1990.pdf"
+verification = "citation"
+verified_date = 2026-11-15
+reason = """
+Read (abstract and first page): even a small amount of spin contamination in UHF wavefunctions can change calculated vibrational frequencies substantially; <S**2> values of 0.785 and 0.787 are called small in the text. Cited for why an <S**2> figure is reported with an unrestricted result.
+"""
+
+[[source]]
+key = "yu2023"
+kind = "literature"
+citation = "H. Yu, S. Song, S. Nam, K. Burke & E. Sim, 'Density-Corrected Density Functional Theory for Open Shells: How to Deal with Spin Contamination', J. Phys. Chem. Lett. 14, 9230-9237 (2023)"
+identifier_type = "doi"
+identifier = "10.1021/acs.jpclett.3c02017"
+status = "reference_only"
+used_by = ["docs/OPEN_SHELL_AND_HYPERVALENT_COVERAGE_DESIGN.md"]
+local = "Yu2023.pdf"
+verification = "citation"
+verified_date = 2026-11-15
+reason = """
+Held (with its supporting-information folder). A modern discussion of spin contamination in open-shell DFT; cited as context, no number from it is used.
+"""
+
+[[source]]
+key = "yamada1981"
+kind = "literature"
+citation = "C. Yamada, E. Hirota & K. Kawaguchi, 'Diode laser study of the nu2 band of the methyl radical', J. Chem. Phys. 75, 5256-5264 (1981)"
+identifier_type = "doi"
+identifier = "10.1063/1.441991"
+status = "reference_only"
+used_by = ["docs/OPEN_SHELL_AND_HYPERVALENT_COVERAGE_DESIGN.md"]
+local = "yamada1981.pdf"
+verification = "citation_and_claim"
+verified_date = 2026-11-15
+reason = """
+Read in part. The nu2 (out-of-plane bending) band of CH3 by diode laser spectroscopy at 606.4531, 681.6369 and 731.0757 cm-1; the vibration-rotation analysis supports a planar (or nearly planar, with no potential hump at the planar configuration) ground state, which is the D3h geometry the CCCBDB page lists. Ground-state B = 9.57789 (16) cm-1 and C = 4.74202 [67] cm-1 (Table), the rotational constants CCCBDB credits to this paper. The paper does not itself give a C-H length in the parts read.
 """
