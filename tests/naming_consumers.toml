@@ -213,6 +213,18 @@ scope = "core"
 owner = "namer"
 
 [[consumer]]
+file = "tests/test_namer_nl071_ws5_diazo_azaallenium_refusal.py"
+why = "NL-071 (closed 2026-11-15): 2-azaallenium charge refusal"
+scope = "core"
+owner = "namer"
+
+[[consumer]]
+file = "tests/test_namer_nl030_nl031_ws4_fusion_vonbaeyer.py"
+why = "NL-030, NL-031 (closed 2026-11-15): fusion PIN not built; von Baeyer round-trip pins"
+scope = "core"
+owner = "namer"
+
+[[consumer]]
 file = "tests/test_namer_nl022_ws3_ring_assembly_sources.py"
 why = "NL-022 (closed): Blue Book P-28.2/28.3 sources for bi-assembly spelling; round 81–82 OPSIN pins"
 scope = "core"
