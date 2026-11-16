@@ -5181,6 +5181,7 @@
   "tests/test_quantum_chemistry_run_recording.py": 1,
   "tests/test_quantum_chemistry_service.py": 0,
   "tests/test_quantum_dispatch.py": 0,
+  "tests/test_quantum_goal_action.py": 6,
   "tests/test_quantum_run_button.py": 2,
   "tests/test_quantum_run_request.py": 7,
   "tests/test_quantum_run_snapshot.py": 4,

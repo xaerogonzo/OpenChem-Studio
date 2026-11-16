@@ -39,23 +39,28 @@ ENGINE_CALC_TYPES: Mapping[str, frozenset[str] | None] = {
     "xtb": frozenset({"sp", "opt", "opt_freq"}),
 }
 
+#: xtb can emit frequencies; it must not be offered as ORCA-style IR.
 XTB_FREQ_LIMITATION = (
     "Frequencies only: xtb IR intensities are not parsed from the vibspectrum file, "
     "so this is not an IR spectrum in the ORCA sense."
 )
 
+#: One NMR job; 1H vs 13C are views, and this is not the database lookup.
 NMR_LIMITATION = (
     "One NMR calculation. 1H and 13C are views of the same job, not two jobs. "
     "This is not the database 1H lookup (nmr_database)."
 )
 
+#: IR is ORCA opt_freq, not a generic engine capability.
 IR_LIMITATION = "Infrared frequencies and intensities from an ORCA opt_freq job, not a generic engine capability."
 
+#: All/chosen scope is refused rather than silently running the selected molecule.
 SCOPE_REFUSAL = (
     "Quantum calculations run on one selected molecule. Properties is set to "
     "several molecules; choose This molecule, then stage again. Nothing started."
 )
 
+#: Staging needs the selected molecule; an empty selection starts nothing.
 NO_MOLECULE_REFUSAL = "Select a molecule first. Nothing started."
 
 
