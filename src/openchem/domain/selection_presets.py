@@ -8,13 +8,12 @@ then restore somebody else's property. An id that no longer names a calculator
 is DROPPED on load rather than reported, because a calculator removed between
 launches is not the person's problem.
 
-**THE MIGRATION COPIES, AND NEVER DELETES.** The Batch panel keeps its own
-selection under `batch/selected_property_ids`. This reads it once, files the
-calculators in it as a preset, and leaves the original key exactly as it was --
-so the old panel still works while it exists, and going back to an earlier
-build loses nothing. A marker key makes it happen once: without it a person who
-then deleted the imported preset would find it back on the next launch, which
-is the migration overwriting a choice the person made.
+**THE MIGRATION COPIES, AND NEVER DELETES.** `batch/selected_property_ids` is
+read-only legacy: this reads it once, files the calculators in it as a preset,
+and leaves the original key exactly as it was. Session Batch settings that were
+never copied into Properties are not transferred (ids only). A marker key makes
+the copy happen once: without it a person who then deleted the imported preset
+would find it back on the next launch.
 
 Pure: it takes anything with `get(key, default)` and `set(key, value)` (the
 application's `Settings`, or a dict wrapper in a test) and imports no Qt.

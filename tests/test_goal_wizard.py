@@ -16,7 +16,7 @@ selection, a scope), so these tests need no window. What is guarded:
 from __future__ import annotations
 
 import pytest
-from PySide6.QtWidgets import QDialog
+from PySide6.QtWidgets import QDialog, QRadioButton
 
 import conftest
 from openchem.bootstrap import build_service_container
@@ -480,3 +480,45 @@ def test_choosing_another_goal_clears_what_was_said_about_the_last_run(services,
     wizard.select_goal("charge")
 
     assert wizard._status.text() == ""
+
+
+def test_run_recommended_does_not_stage_quantum(services, built):
+    wizard = _wizard(services, built, _molecules(services, ("A", "CCO")))
+    wizard.select_goal("spectra")
+    runs = []
+    quantum = []
+    wizard.run_requested.connect(runs.append)
+    wizard.quantum_action_requested.connect(quantum.append)
+
+    wizard._run_recommended_button.click()
+
+    assert [r.calculator_ids for r in runs] == [goal_of("spectra").recommended_ids()]
+    assert "nmr_database" in runs[0].calculator_ids
+    assert "orca.nmr" not in runs[0].calculator_ids
+    assert quantum == []
+
+
+def test_customise_quantum_is_not_a_tick_and_apply_stages(services, built):
+    wizard = _wizard(services, built, _molecules(services, ("A", "CCO")))
+    _customise(wizard, "spectra")
+    ticks = []
+    quantum = []
+    wizard.ticks_applied.connect(ticks.append)
+    wizard.quantum_action_requested.connect(quantum.append)
+    radio = wizard.findChild(QRadioButton, "quantum_action_orca_nmr")
+    assert radio is not None
+    radio.setChecked(True)
+    assert "orca.nmr" not in wizard.ticked_ids()
+
+    wizard._apply_ticks_button.click()
+
+    assert ticks and "nmr_database" in ticks[0].calculator_ids
+    assert "orca.nmr" not in ticks[0].calculator_ids
+    assert quantum == ["orca.nmr"]
+
+
+def test_charge_customise_has_no_quantum_actions(services, built):
+    wizard = _wizard(services, built, _molecules(services, ("A", "CCO")))
+    _customise(wizard, "charge")
+    assert wizard.findChild(QRadioButton, "quantum_action_orca_nmr") is None
+    assert wizard.selected_quantum_action_id() == ""

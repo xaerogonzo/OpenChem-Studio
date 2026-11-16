@@ -4687,8 +4687,8 @@ class _Driver(QObject):
                 return
             target = self._window._salt_composition
         elif step.get("widget") == "project_table":
-            # The Results dock's own project table, as the window builds it: the grid, its progress and status lines and the export row.
-            target = self._window._results_workspace.table_view
+            # The one project table: the Batch dock.
+            target = self._window._batch_panel._view
         elif step.get("widget") == "batch_table":
             # The Batch panel's own table view (grid, status line, export row), not the panel with its property picker.
             target = self._window._batch_panel._view
@@ -9147,12 +9147,12 @@ class _Driver(QObject):
         reads VALUES (see `_project_cell_problems`): a column that is present with the
         conformer's figure in it is the defect this exists for, and `columns_contain` cannot see it.
         """
-        workspace = self._window._results_workspace
+        panel = self._window._batch_panel
         tag = str(step.get("tag", ""))
         problems: list[str] = []
-        table = workspace.table_view.table()
+        table = panel.table()
         if table is None:
-            problems.append("the Results dock has no project table")
+            problems.append("the Project table dock has no table")
         else:
             if "rows" in step and len(table.row_uuids) != int(step["rows"]):
                 problems.append(
@@ -9163,12 +9163,14 @@ class _Driver(QObject):
             for needle in step.get("columns_contain") or []:
                 if not any(needle in header for header in headers):
                     problems.append(f"no column contains {needle!r} (columns: {headers[:10]})")
-            grid = workspace.table_view._results
+            grid = panel._results
             if grid.rowCount() != len(table.row_uuids):
                 problems.append(f"the grid draws {grid.rowCount()} rows for {len(table.row_uuids)}")
             problems.extend(self._project_cell_problems(table, step.get("cells") or {}))
-        if "showing" in step and workspace.showing_project_table() != bool(step["showing"]):
-            problems.append(f"showing the table is {workspace.showing_project_table()}, wanted {bool(step['showing'])}")
+        dock = self._window._dock_by_panel_id("Batch")
+        showing = dock is not None and not dock.isHidden()
+        if "showing" in step and showing != bool(step["showing"]):
+            problems.append(f"showing the table is {showing}, wanted {bool(step['showing'])}")
         if self._record_assertion("expect_project_table", tag, not problems, "; ".join(problems) or "as expected"):
             logger.warning("OPENCHEM_DRIVE: EXPECT project table ok[%s]", tag)
         else:
@@ -9196,7 +9198,7 @@ class _Driver(QObject):
         if which not in ("results", "batch"):
             logger.error("OPENCHEM_DRIVE: table_scores panel %r is not 'results' or 'batch'", which)
             return
-        view = self._window._batch_panel._view if which == "batch" else self._window._results_workspace.table_view
+        view = self._window._batch_panel._view
         grid = view._results
         table = view.table()
         problems: list[str] = []

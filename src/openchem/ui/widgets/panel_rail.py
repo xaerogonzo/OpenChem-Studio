@@ -120,10 +120,6 @@ LEGACY_GROUPS: dict[str, str] = {
 #: run A to Z, which is how a list is scanned. Panel ids are the dock object
 #: names.
 #:
-#: **BATCH SITS IN COMPUTE ONLY UNTIL IT MERGES INTO PROPERTIES.** That is a
-#: later stage of the same work; moving it now would put it in a group that
-#: describes it no better, and its removal is a one-line change here.
-#:
 #: A guard (`tests/test_panel_rail.py`) compares this table with the docks the
 #: window actually builds, so a new panel cannot fall into the default group
 #: and pass.
@@ -131,10 +127,10 @@ BUILTIN_PANELS: tuple[tuple[str, str], ...] = (
     ("Properties", "analyze"),
     ("Results", "analyze"),
     ("Atom_Inspector", "analyze"),
+    ("Batch", "analyze"),
     ("Interactions", "analyze"),
     ("Structure_Check", "analyze"),
     ("3D_Alignment", "compute"),
-    ("Batch", "compute"),
     ("Docking", "compute"),
     ("Jobs", "compute"),
     ("Quantum_Chemistry", "compute"),

@@ -257,7 +257,7 @@ def test_a_panel_is_offered_once_not_twice(qapp, tmp_path):
     labels = [c.label for c in window._collect_commands()]
 
     assert labels.count("Properties") == 1, [label for label in labels if label == "Properties"]
-    assert labels.count("Batch") == 1
+    assert labels.count("Project table") == 1
     # Console is a dock with a toggle and NO rail entry, so its View item
     # is the only way to reach it and must survive the de-duplication.
     assert "Console" in labels

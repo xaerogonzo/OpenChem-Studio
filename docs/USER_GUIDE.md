@@ -760,8 +760,8 @@ Click the group already showing to fold the rail down to its icons.
 
 | Group | Panels |
 |---|---|
-| Analyze | Properties, Results, then Atom Inspector, Interactions, Structure Check |
-| Compute | 3D Alignment, Batch, Docking, Jobs, Quantum Chemistry |
+| Analyze | Properties, Results, then Atom Inspector, Project table (Batch), Interactions, Structure Check |
+| Compute | 3D Alignment, Docking, Jobs, Quantum Chemistry |
 | Compare and Extend | Compare, and every panel a plugin adds (A to Z) |
 
 One panel is shown at a time and it gets the whole column. **Shift+click**
@@ -2345,8 +2345,7 @@ which for a few descriptors (the synthetic-accessibility and complexity scores a
 conformer. Scores are saved with the project. They are not calculators, so they are not in the calculator list and
 the assistant's calculator search does not offer them. The AI Assistant can read your scores and propose a new one (see Plugins), but a score exists only after you approve its card. In the **Project table** (Results, after a project run) a score is a column of its own, the first after the molecule's name: it is worked out from that table's other columns, so
 it needs the properties it reads to have been in the run, and a score whose inputs were not run is named under the table instead of shown as a column of dashes. It follows
-the definition as you edit it, without another run, and it is in the CSV and the report. The **Batch** panel's own table (its **Fill table** run) has the same score columns,
-named and exported the same way. To include what your scores read in a project run, open **Presets** in Properties and choose
+the definition as you edit it, without another run, and it is in the CSV and the report. There is one **Project table** (the Batch dock); **Fill table** uses the same ticks and settings as **Run selected**. To include what your scores read in a project run, open **Presets** in Properties and choose
 **Tick what my scores read**: it ticks the calculators they read and adds the always-on properties they read, on top of what you had ticked (it never unticks or narrows anything), and the line
 beside **Run selected** says what it did, including any calculator the launcher is not offering. A table is a snapshot of a run, so its score is as current as the run; the
 **This molecule** page is where a score is worked out against the structure as it is now.
@@ -2767,10 +2766,8 @@ selected. The **Batch** panel answers it about all of them.
 **You can also do this from Properties.** Under the tick boxes, **Run on**
 chooses *this molecule* (the default), *all molecules* or *chosen molecules*.
 With the second or third, **Run selected** runs every ticked calculator on each
-of those molecules and fills a **Project table** page in Results (the switch
-between *This molecule* and *Project table* appears once there is a table). It
-has the same columns, cells, column menu, exports, Analyse and Virtual Screening
-as the table below, and a **Cancel run** button while it works. Extra switches
+of those molecules and fills the **Project table** dock (Analyze). **Fill table**
+on that dock uses the same ticks, settings and scope. Extra switches
 appear with it: the always-on properties (on), the structural-alert catalogs
 (off), and how a per-atom result becomes one number. A calculator's own settings
 for project runs are in its right-click menu. A large run states how many

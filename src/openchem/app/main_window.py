@@ -798,6 +798,7 @@ class MainWindow(QMainWindow):
         batch_dock = self._add_dock(
             "Batch", self._wrap_scrollable(self._batch_panel), Qt.DockWidgetArea.RightDockWidgetArea
         )
+        batch_dock.setWindowTitle("Project table")
         self._comparison_panel = ComparisonPanel(services.event_bus, self)
         self._comparison_panel.set_stored_reader(self._stored_reports_for_compare)
         self._comparison_panel.attach_settings(settings)
@@ -865,7 +866,9 @@ class MainWindow(QMainWindow):
             batch_service=services.batch_service,
             score_definitions=self._score_definitions,
         )
+        self._batch_panel.set_fill_runner(self._property_panel.run_selected_on_project)
         self._property_panel.project_run_started.connect(self._on_project_run_started)
+        self._results_workspace.project_table_requested.connect(self.reveal_project_table)
         self._results_host = PopOutHost(
             self._results_workspace,
             title="Results",
@@ -2063,9 +2066,13 @@ class MainWindow(QMainWindow):
         return self._session.project
 
     def _on_project_run_started(self, plan) -> None:
-        """A project run was submitted: the workspace adopts its table, and it is shown."""
-        self._results_workspace.begin_project_run(plan)
-        self.reveal_results()
+        """A project run was submitted: the Batch dock's table adopts it, and that dock is shown."""
+        self._batch_panel.begin_project_run(plan)
+        self.reveal_project_table()
+
+    def reveal_project_table(self) -> None:
+        """Show the one project table (the Batch dock)."""
+        self._on_panel_chosen("Batch")
 
     #: What Compare says when a value it was asked to open cannot be shown, by the code
     #: `PropertyPanel.reveal_report_fact` returns.
@@ -2282,6 +2289,8 @@ class MainWindow(QMainWindow):
             )
             wizard.run_requested.connect(self._on_goal_run_requested)
             wizard.all_recommended_requested.connect(self._property_panel.run_recommended_batch)
+            wizard.ticks_applied.connect(self._on_goal_ticks_applied)
+            wizard.quantum_action_requested.connect(self._on_quantum_action_requested)
             self._goal_wizard = wizard
         else:
             wizard = self._goal_wizard
@@ -2418,6 +2427,60 @@ class MainWindow(QMainWindow):
     def _wizard_molecules(self) -> list:
         project = self._session.project
         return list(project.molecules) if project is not None else []
+
+    def _on_goal_ticks_applied(self, run) -> None:
+        """Customise applied a goal's ticks to Properties without starting a job."""
+        self._property_panel.apply_goal_ticks(list(run.calculator_ids), dict(run.parameters))
+
+    def _on_quantum_action_requested(self, action_id: str) -> None:
+        """Stage a Quantum service action on the QC panel. Never starts a job."""
+        from openchem.domain.quantum_goal_action import action_of, decide_stage
+
+        action = action_of(action_id)
+        if action is None:
+            text = f"Unknown Quantum action {action_id!r}. Nothing started."
+            self._property_panel.report_status(text)
+            if self._goal_wizard is not None:
+                self._goal_wizard.show_outcome(text)
+            return
+        mode, chosen = self._property_panel.current_scope()
+        selected = self._property_panel.selected_molecule_uuid()
+        if mode == "all":
+            molecule_count = len(self._wizard_molecules())
+        elif mode == "chosen":
+            molecule_count = len(chosen)
+        else:
+            molecule_count = 1 if selected else 0
+        available = {
+            p.provider_id for p in self._services.quantum_chemistry_service.available_engines()
+        }
+        decision = decide_stage(
+            action,
+            available_engines=available,
+            scope_mode=mode,
+            molecule_count=molecule_count,
+            selected=bool(selected),
+        )
+        if not decision.ok:
+            self._property_panel.report_status(decision.message)
+            if self._goal_wizard is not None:
+                self._goal_wizard.show_outcome(decision.message)
+            return
+        self._on_panel_chosen("Quantum_Chemistry")
+        staged = self._quantum_chemistry_panel.stage_run_choice(
+            calc_type=decision.calc_type,
+            provider_id=decision.provider_id,
+            method_basis=decision.method_basis,
+            note=decision.limitation + " Inspect, then press Run. Nothing has started.",
+        )
+        text = (
+            decision.limitation + " Inspect Quantum Chemistry, then press Run. Nothing started."
+            if staged
+            else "Could not stage that calculation on the Quantum Chemistry panel. Nothing started."
+        )
+        self._property_panel.report_status(text)
+        if self._goal_wizard is not None:
+            self._goal_wizard.show_outcome(text)
 
     def _on_goal_run_requested(self, run) -> None:
         """The wizard asked for a run. Properties runs it and the wizard says what happened."""
@@ -3027,9 +3090,11 @@ class MainWindow(QMainWindow):
             # ONE contract across every dock: "show or hide this panel" is
             # one concept and WHICH panel differs, so `instance_path` is
             # what tells the renderings apart.
-            self._view_menu.addAction(
-                self._document(dock.toggleViewAction(), "panel_visibility")
-            )
+            action = dock.toggleViewAction()
+            # Batch's visible title is "Project table"; keep the stored shortcut id
+            # `panel_visibility:Batch` so a saved binding does not vanish.
+            label = "Batch" if dock.objectName() == "Batch" else None
+            self._view_menu.addAction(self._document(action, "panel_visibility", label=label))
         self._view_menu.addSeparator()
         reset_layout = self._document(QAction("Reset Panel Layout", self), "reset_panel_layout")
         reset_layout.triggered.connect(self.reset_panel_layout)

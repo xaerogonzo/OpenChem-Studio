@@ -2845,6 +2845,49 @@ class QuantumChemistryPanel(QWidget):
                     return True
         return False
 
+    def select_engine(self, provider_id: str) -> bool:
+        """Choose the Engine box by provider id. Selects only; nothing runs.
+
+        ORCA is the default when the box is empty (nothing else is set up).
+        """
+        if self._engine_combo.count() == 0:
+            return provider_id == "orca"
+        index = self._engine_combo.findData(provider_id)
+        if index < 0:
+            return False
+        self._engine_combo.setCurrentIndex(index)
+        return True
+
+    def stage_run_choice(
+        self,
+        *,
+        calc_type: str,
+        provider_id: str,
+        method_basis: str = "",
+        note: str = "",
+    ) -> bool:
+        """Put the controls where a goal asked. Selects only; Run is still the person's.
+
+        Charge and multiplicity stay with the selected molecule. Nothing is queued.
+        """
+        if not self.select_engine(provider_id):
+            self._status_label.setText(
+                f"{provider_id} is not in this panel's Engine list. Nothing started."
+            )
+            return False
+        if not self.select_calculation_type(calc_type):
+            self._status_label.setText(
+                f"This panel does not offer calculation type {calc_type!r}. Nothing started."
+            )
+            return False
+        if method_basis:
+            self._method_combo.setCurrentText(method_basis)
+        self._status_label.setText(
+            note
+            or "Staged from a goal. Inspect, then press Run. Nothing has started."
+        )
+        return True
+
     def _on_cores_changed(self, value: int) -> None:
         self._settings.set("orca/cores", value)
 
