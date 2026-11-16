@@ -29,6 +29,7 @@ def make_identity(
     input_fingerprint: str,
     producer: str,
     parameters: dict | None = None,
+    source_run_id: str = "",
 ) -> ResultIdentity:
     result_id = result_id_of(result)
     return ResultIdentity(
@@ -40,6 +41,7 @@ def make_identity(
         parameters_key=parameters_key(parameters),
         # Only results whose method is part of their identity carry one.
         method_version=CURRENT_METHOD_VERSIONS.get(result_id, ""),
+        source_run_id=source_run_id,
     )
 
 

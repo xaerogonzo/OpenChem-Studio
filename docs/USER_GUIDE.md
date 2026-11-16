@@ -1381,10 +1381,17 @@ Results shows three kinds of record for the selected molecule:
   for the current structure;
 - a **property-execution history**: each ordinary Run click is kept with
   its method/model and settings, including a second click of the same
-  method, and including runs whose structure no longer matches (those
-  rows are labelled *historical*);
+  method, a failed run, and runs whose structure no longer
+  matches (those rows are labelled *historical*). Always-on molecular
+  properties and alerts stay current-value rows only — they are not
+  listed as executions;
 - **Quantum Chemistry jobs** by `run_id`: engine, method/basis, charge,
   multiplicity, and status, listed here as well as on the Quantum panel.
+
+A result that exists only in the retained cache (a project opened from
+before execution history, or an always-on descriptor) has no history id
+and no **Delete from history…**. It is the current value until you run
+that calculator again.
 
 A small number of calculators also keep an earlier *algorithm version*
 as a separately labelled result (Geometry Analysis, surface area, steric
@@ -1397,13 +1404,16 @@ finished Quantum jobs are written anyway. **Delete from history…** on a
 Results report removes that execution or Quantum run after a
 confirmation. It does not rerun anything, does not edit automatic
 calculation bundles, and does not empty the Quantum engine's reusable
-cache. Optimized geometries already on the molecule stay.
+cache. Deleting a Quantum run does withdraw the Results cache numbers
+that job projected. Optimized geometries already on the molecule stay.
 
 **Compare with…** on a history row refuses pairs that are not the same
 quantity, input type, or (for per-atom work) the same molecule and
-structure. ORCA and Psi4 are never treated as the same method even when
-the functional name matches. Cross-molecule compare is allowed for
-scalars only.
+structure. Compatible scalars and descriptors open as a two-column
+table with a Δ from the first (reference) run. NMR still uses the
+per-atom shift table. ORCA and Psi4 are never treated as the same
+method even when the functional name matches. Cross-molecule compare is
+allowed for scalars only.
 
 ### Showing
 

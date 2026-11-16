@@ -2,6 +2,10 @@
 
 from __future__ import annotations
 
+from dataclasses import replace
+
+import pytest
+
 from openchem.domain.history_compare import property_executions_comparable, quantum_runs_comparable
 from openchem.domain.property_execution import (
     ExecutionStatus,
@@ -190,6 +194,7 @@ def test_cache_put_key_still_omits_parameters_key():
     source = inspect.getsource(SessionResultStore.put)
     key_block = source.split("key =", 1)[1].split("previous", 1)[0]
     assert "parameters_key" not in key_block
+    assert "source_run_id" not in key_block
 
 
 def test_failed_execution_is_persisted():
@@ -198,3 +203,185 @@ def test_failed_execution_is_persisted():
     store = PropertyExecutionStore("project")
     store.record(execution)
     assert store.get(execution.execution_id).status is ExecutionStatus.FAILED
+
+
+def _recording_service(molecule_uuid="m1"):
+    from openchem.chem.engine import ChemistryEngine
+    from openchem.domain.molecule import MoleculeModel
+    from openchem.domain.project import ProjectModel
+    from openchem.events.base import EventBus
+    from openchem.services.result_store_service import ResultStoreService
+
+    project = ProjectModel(name="history")
+    molecule = MoleculeModel(uuid=molecule_uuid, display_name="m")
+    project.molecules.append(molecule)
+    service = ResultStoreService(EventBus(), ChemistryEngine())
+    service.set_project(project)
+    return service
+
+
+def test_identical_cache_hit_still_mints_an_execution():
+    from openchem.events.events import ResultRecorded
+
+    service = _recording_service()
+    stored = _stored()
+    service._event_bus.publish(ResultRecorded(stored=stored))
+    service._event_bus.publish(ResultRecorded(stored=stored))
+    held = service.property_executions.executions_for("m1")
+    assert len(held) == 2
+    assert held[0].execution_id != held[1].execution_id
+
+
+def test_failed_result_is_recorded_as_a_failed_execution():
+    from openchem.domain.common import CacheState
+    from openchem.events.events import ResultRecorded
+
+    base = _stored()
+    stored = StoredResult(
+        identity=base.identity,
+        result=replace(base.result, cache_state=CacheState.FAILED, error="the method diverged"),
+    )
+    service = _recording_service()
+    service._event_bus.publish(ResultRecorded(stored=stored))
+    held = service.property_executions.executions_for("m1")
+    assert len(held) == 1
+    assert held[0].status is ExecutionStatus.FAILED
+    assert "diverged" in held[0].error
+
+
+def test_always_on_descriptors_are_not_history():
+    from openchem.domain.common import CacheState
+    from openchem.domain.descriptor import DescriptorValue
+    from openchem.domain.property_execution import is_history_worthy
+    from openchem.events.events import ResultRecorded
+
+    descriptor = DescriptorValue(
+        descriptor_id="MolWt",
+        name="Molecular weight",
+        units="g/mol",
+        category="molecular",
+        provider="rdkit",
+        molecule_uuid="m1",
+        value=18.0,
+        cache_state=CacheState.COMPLETED,
+    )
+    stored = StoredResult(
+        identity=ResultIdentity(
+            molecule_uuid="m1",
+            result_id="MolWt",
+            calculation_input="drawing",
+            input_fingerprint="fp",
+            producer="rdkit",
+        ),
+        result=descriptor,
+    )
+    assert not is_history_worthy(stored)
+    service = _recording_service()
+    service._event_bus.publish(ResultRecorded(stored=stored))
+    assert service.property_executions.executions_for("m1") == []
+    assert service.store.all_results("m1")
+
+
+def test_deleting_a_quantum_run_withdraws_its_cache_projection():
+    from openchem.domain.descriptor import DescriptorValue
+    from openchem.domain.quantum_chemistry_run import OutputStatus, QuantumChemistryRun, RunStatus, new_run_id
+    from openchem.events.events import ResultRecorded
+
+    run_id = new_run_id()
+    descriptor = DescriptorValue(
+        descriptor_id="orca.scf_energy",
+        name="SCF energy",
+        units="Eh",
+        category="quantum",
+        provider="orca",
+        molecule_uuid="m1",
+        value=-76.0,
+    )
+    stored = StoredResult(
+        identity=ResultIdentity(
+            molecule_uuid="m1",
+            result_id="orca.scf_energy",
+            calculation_input="geometry",
+            input_fingerprint="fp",
+            producer="orca",
+            source_run_id=run_id,
+        ),
+        result=descriptor,
+    )
+    service = _recording_service()
+    service.record_quantum_chemistry_run(
+        QuantumChemistryRun(
+            run_id=run_id,
+            molecule_uuid="m1",
+            calc_type="sp",
+            method_basis="B3LYP def2-SVP",
+            charge=0,
+            multiplicity=1,
+            calculation_input="geometry",
+            input_fingerprint="fp",
+            input_molblock="",
+            status=RunStatus.COMPLETED,
+            completed_at=1.0,
+            results={"descriptors": [descriptor]},
+            output_status={"descriptors": OutputStatus.AVAILABLE},
+        )
+    )
+    service._event_bus.publish(ResultRecorded(stored=stored))
+    assert service.store.all_results("m1")
+    assert service.property_executions.executions_for("m1") == []
+    assert service.delete_quantum_chemistry_run(run_id)
+    assert service.store.all_results("m1") == []
+    assert service.qc_runs.get(run_id) is None
+
+
+def test_named_scalar_compare_is_a_table():
+    from openchem.domain.history_compare import named_compare_rows, named_values_from_execution
+    from openchem.domain.report import Fact, FactCategory, ReportResult
+    from openchem.domain.structure_issue import Basis
+
+    def report(value: float) -> StoredResult:
+        result = ReportResult(
+            report_id="solubility",
+            name="Solubility",
+            molecule_uuid="m1",
+            facts=(
+                Fact(
+                    category=FactCategory.STRUCTURE,
+                    label="logS",
+                    value=value,
+                    display_value=str(value),
+                    source="solubility",
+                    basis=Basis.DETERMINISTIC,
+                ),
+            ),
+        )
+        return StoredResult(
+            identity=ResultIdentity(
+                molecule_uuid="m1",
+                result_id="solubility",
+                calculation_input="drawing",
+                input_fingerprint="fp",
+                producer="solubility",
+            ),
+            result=result,
+        )
+
+    left = execution_from_stored(report(-0.5))
+    right = execution_from_stored(report(-0.2))
+    rows = named_compare_rows(named_values_from_execution(left), named_values_from_execution(right))
+    assert rows
+    assert rows[0].label == "logS"
+    assert rows[0].delta == pytest.approx(0.3)
+
+
+def test_opening_a_file_without_executions_does_not_invent_ids():
+    import json
+
+    from openchem.domain.project import ProjectModel
+    from openchem.events.base import EventBus
+    from openchem.services.project_service import ProjectService
+
+    text = ProjectService(EventBus()).serialise(ProjectModel(name="old"))
+    document = ProjectService(EventBus()).parse(json.loads(text))
+    assert "property_executions" not in json.loads(text)
+    assert document.property_executions.to_dict()["executions"] == []
