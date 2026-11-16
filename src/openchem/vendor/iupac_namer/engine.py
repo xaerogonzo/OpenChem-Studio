@@ -20386,22 +20386,82 @@ class SubstitutivePath:
         _p58 = _p58_apply(mol, _named_parent, plan.numbering, _suffix_groups, free_valence, _oxo_ring_atoms)
         if _p58 is not None:
             _named_parent, _suffix_groups, _fv_added_h = _p58
-        elif _suffix_groups and "spiro" in str(getattr(plan.named_parent.candidate.ring_system, "type", "")):
+        elif _suffix_groups and (
+            "spiro" in str(getattr(plan.named_parent.candidate.ring_system, "type", ""))
+            or "spiro[" in (getattr(_named_parent, "name", None) or "")
+        ):
             # Naming round 84: the P-58 planner declines a spiro name, so a ring ketone on a pyridone-type component (`spiro[...quinoline-6,1'-cyclopropane]-4-one`)
             # said nothing of the ring N-H, which OPSIN reads as another tautomer. The N-H is the added hydrogen: `-4(1H)-one`.
+            # NL-012 shapes (2)/(3): two ring ketones across the spiro cite mixed primed and unprimed suffix locants; OPSIN wants ``-2',4(3H)-dione``.
             from dataclasses import replace as _dc_replace
             _l2a = plan.numbering.locant_to_atom
             _ring_atoms = set(plan.named_parent.candidate.atom_indices)
+
+            _a2l = plan.numbering.atom_to_locant
+
+            def _added_h_for_ring_ketone(carbon_idx: int | None) -> Locant | None:
+                if carbon_idx is None:
+                    return None
+                c_atom = mol.GetAtomWithIdx(carbon_idx)
+                for bond in c_atom.GetBonds():
+                    if bond.GetBondTypeAsDouble() == 2.0:
+                        continue
+                    nb = bond.GetOtherAtomIdx(carbon_idx)
+                    n_atom = mol.GetAtomWithIdx(nb)
+                    if n_atom.GetAtomicNum() == 7 and n_atom.GetTotalNumHs() > 0:
+                        loc = _a2l.get(nb)
+                        if loc is not None:
+                            return loc
+                return None
+
+            _one_sgs = [sg for sg in _suffix_groups if sg.base_form == "one"]
+            _loc_text = [str(loc) for sg in _one_sgs for loc in sg.locants]
+            _mixed_primed_diketone = (
+                len(_one_sgs) > 1
+                and any("'" in t for t in _loc_text)
+                and any("'" not in t for t in _loc_text)
+            )
+
+            _rebuilt: list = []
+            if _mixed_primed_diketone:
+                # NL-012: OPSIN reads `-2',4(3H)-dione`, not `-2',4-dione` or split
+                # `-one` tails.  Cite the unprimed ring lactam's added hydrogen only
+                # (`4(3H)-one` on tetrahydropteridine); the primed partner keeps no IH.
+                _unprimed_sg = next(
+                    (sg for sg in _suffix_groups
+                     if sg.base_form == "one" and sg.locants and "'" not in str(sg.locants[0])),
+                    None,
+                )
+                _ih_for_dione: tuple[Locant, ...] = ()
+                if _unprimed_sg is not None:
+                    carbon = _l2a.get(_unprimed_sg.locants[0])
+                    if carbon is None and _unprimed_sg.fg.type == "ketone":
+                        carbon = _unprimed_sg.fg.anchor
+                    ih = _added_h_for_ring_ketone(carbon)
+                    if ih is not None:
+                        _ih_for_dione = (ih,)
+                for i, sg in enumerate(_suffix_groups):
+                    if sg.base_form == "one" and not sg.added_indicated_h:
+                        sg = _dc_replace(
+                            sg,
+                            added_indicated_h=_ih_for_dione if i == 0 and _ih_for_dione else (),
+                        )
+                    _rebuilt.append(sg)
+            else:
+                _rebuilt = list(_suffix_groups)
+
             _nh = [a for a in sorted(_ring_atoms) if mol.GetAtomWithIdx(a).GetIsAromatic()
                    and mol.GetAtomWithIdx(a).GetAtomicNum() == 7 and mol.GetAtomWithIdx(a).GetTotalNumHs() > 0]
             _nh_loc = {a: l for l, a in _l2a.items() if a in _nh}
             if len(_nh_loc) == 1 and all(
                     sg.base_form == "one" and not sg.added_indicated_h and len(sg.locants) == 1
                     and (lambda c: c is not None and mol.GetAtomWithIdx(c).GetIsAromatic())(_l2a.get(sg.locants[0]))
-                    for sg in _suffix_groups):
-                _suffix_groups = tuple(
+                    for sg in _rebuilt):
+                _rebuilt = [
                     _dc_replace(sg, added_indicated_h=(next(iter(_nh_loc.values())),)) if i == 0 else sg
-                    for i, sg in enumerate(_suffix_groups))
+                    for i, sg in enumerate(_rebuilt)
+                ]
+            _suffix_groups = tuple(_rebuilt)
 
         tree = SubstitutiveTree(
             output_form=output_form,

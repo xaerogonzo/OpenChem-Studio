@@ -3,7 +3,7 @@
 Fixes are pinned in ``test_namer_round84_spiro_joints_of_lactam_rings_*``,
 ``test_namer_round85_methanoazepinoquinoxaline_*``, and ``test_namer_nl025_nl026_ws5_spiro_ketone_and_purine_pins.py``.
 This file holds round-84/85 exemplars plus one residual policy pin (saturated spiro lactam ketone without ``(1H)``).
-Open adamantane-with-substituent naming errors stay in vendor ``KNOWN_LIMITATIONS`` (round 85 item a).
+NL-012 shapes (1)–(3) are pinned in ``tests/test_namer_nl012_spiro_open_defects_post_round84.py``; shape (4) stays in ``test_namer_nl012_bis_benzazocine_spiro.py``.
 """
 
 from __future__ import annotations

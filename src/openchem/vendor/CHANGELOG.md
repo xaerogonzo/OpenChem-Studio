@@ -2525,6 +2525,12 @@ what can be verified.
   `tests/test_namer_known_defects.py`. Three earlier tests pinned refusals this round turned into names and now pin the cases still refused: a carboxylate beside two neutral acids
   (`test_namer_round43_*`, `test_namer_round45_*`) and a pyrazolone anion (`test_namer_round46_*`).
 
+## 2026-11-16 -- NL-012 spiro diketones (round 84/85 pteridinone shapes)
+
+Populations named two ring ketones as ``-2',4-dione``, which OPSIN cannot read on a spiro parent.
+
+* **NL-012 shapes (2)/(3).** When a spiro parent carries two ring ketones whose suffix locants mix primed and unprimed numbers, the diketone is ``-2',4(3H)-dione``: the unprimed tetrahydropteridine lactam carries the ``(3H)`` added hydrogen; ``-2',4-dione`` stayed unreadable. Unprimed-only spiro diketones (for example hydantoin on norbornane) are unchanged. Pinned in ``tests/test_namer_nl012_spiro_open_defects_post_round84.py`` (OPSIN read-back measured).
+
 ## 2026-11-10 -- the hydronium key is the SMILES RDKit parses
 
 The inorganic table keyed hydronium as `[H3O+]`. RDKit rejects that spelling, so the entry never joined the canonical index and the first name of a session printed the parse error, plus the usual notes on a proton, a hydride and uranium. The key is `[OH3+]`, which is the canonical form and the same name (`oxidanium`) the parent-hydride table already gives. Building the index silences those notes. A key that still does not parse is logged and skipped.

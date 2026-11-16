@@ -274,7 +274,13 @@ owner = "namer"
 
 [[consumer]]
 file = "tests/test_namer_spiro_joints_post_round84_programme.py"
-why = "Spiro joints after rounds 84–85: fixed exemplars; KEPT (1H) policy and open adamantane items"
+why = "Spiro joints after rounds 84–85: fixed exemplars and KEPT (1H) policy"
+scope = "core"
+owner = "namer"
+
+[[consumer]]
+file = "tests/test_namer_nl012_spiro_open_defects_post_round84.py"
+why = "NL-012 shapes 1–3: adamantane substituent; pteridinone spiro diketones as -2',4(3H)-dione; OPSIN read-back"
 scope = "core"
 owner = "namer"
 
