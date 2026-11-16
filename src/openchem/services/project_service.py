@@ -6,6 +6,7 @@ from pathlib import Path
 from typing import Any, NamedTuple
 
 from openchem.domain.project import SCHEMA_VERSION, ProjectModel
+from openchem.domain.property_execution import PropertyExecutionStore
 from openchem.domain.quantum_chemistry_run import QuantumChemistryRunStore
 from openchem.domain.recipe_run import RecipeRunStore
 from openchem.domain.result_store import SessionResultStore
@@ -22,6 +23,9 @@ RESULTS_KEY = "calculation_results"
 #: from RESULTS_KEY because it is a separate collection with different
 #: retention semantics; see `domain/quantum_chemistry_run.py`.
 QC_RUNS_KEY = "quantum_chemistry_runs"
+#: Durable ordinary calculator invocations. Separate from RESULTS_KEY: see
+#: `domain/property_execution.py` and `docs/RESULTS_PROPERTIES_QUANTUM_DESIGN.md`.
+PROPERTY_EXECUTIONS_KEY = "property_executions"
 #: The key the recipe run history is written under -- a block of its own, for the reason the QC runs have one:
 #: a recipe's answer must survive exactly the edit that makes it stale; see `domain/recipe_run.py`.
 RECIPE_RUNS_KEY = "recipe_runs"
@@ -46,6 +50,7 @@ class ProjectDocument(NamedTuple):
     recipe_runs: RecipeRunStore
     derived_scores: ScoreDefinitionStore
     synthesis_plans: SynthesisPlanStore
+    property_executions: PropertyExecutionStore
 
 
 class ProjectService:
@@ -69,9 +74,13 @@ class ProjectService:
         recipe_runs: RecipeRunStore | None = None,
         derived_scores: ScoreDefinitionStore | None = None,
         synthesis_plans: SynthesisPlanStore | None = None,
+        property_executions: PropertyExecutionStore | None = None,
     ) -> None:
         path.write_text(
-            self.serialise(project, results, current_fingerprints, qc_runs, recipe_runs, derived_scores, synthesis_plans),
+            self.serialise(
+                project, results, current_fingerprints, qc_runs, recipe_runs, derived_scores, synthesis_plans,
+                property_executions,
+            ),
             encoding="utf-8",
         )
         logger.info("Saved project %s to %s", project.uuid, path)
@@ -85,6 +94,7 @@ class ProjectService:
         recipe_runs: RecipeRunStore | None = None,
         derived_scores: ScoreDefinitionStore | None = None,
         synthesis_plans: SynthesisPlanStore | None = None,
+        property_executions: PropertyExecutionStore | None = None,
     ) -> str:
         """The file's text. Shared by Save and the recovery writer.
 
@@ -116,6 +126,8 @@ class ProjectService:
             data[DERIVED_SCORES_KEY] = derived_scores.to_dict()
         if synthesis_plans is not None and not synthesis_plans.is_empty:
             data[SYNTHESIS_PLANS_KEY] = synthesis_plans.to_dict()
+        if property_executions is not None:
+            data[PROPERTY_EXECUTIONS_KEY] = property_executions.to_dict()
         return json.dumps(data, indent=2)
 
     def load(self, path: Path) -> ProjectModel:
@@ -147,7 +159,12 @@ class ProjectService:
         recipe_runs = RecipeRunStore.from_dict(data.get(RECIPE_RUNS_KEY), project.uuid)
         derived_scores = ScoreDefinitionStore.from_dict(data.get(DERIVED_SCORES_KEY), project.uuid)
         synthesis_plans = SynthesisPlanStore.from_dict(data.get(SYNTHESIS_PLANS_KEY), project.uuid)
-        return ProjectDocument(project, results, qc_runs, recipe_runs, derived_scores, synthesis_plans)
+        property_executions = PropertyExecutionStore.from_dict(
+            data.get(PROPERTY_EXECUTIONS_KEY), project.uuid
+        )
+        return ProjectDocument(
+            project, results, qc_runs, recipe_runs, derived_scores, synthesis_plans, property_executions,
+        )
 
     def close(self, project: ProjectModel) -> None:
         self._event_bus.publish(ProjectClosed(project_uuid=project.uuid))

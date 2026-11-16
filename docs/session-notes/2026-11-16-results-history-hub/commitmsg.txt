@@ -1,0 +1,3 @@
+Keep every calculator method and Quantum run as Results history.
+
+Add a durable property-execution store beside the cache so method/model and parameters survive, without widening SessionResultStore.put keys. Results lists those executions and Quantum run_ids, collapses method groups, deletes through the owning service, and refuses incompatible compares. Wizard Quantum staging reads the wizard scope.

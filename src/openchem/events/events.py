@@ -433,6 +433,18 @@ class QuantumChemistryRunDeleted(Event):
 
 
 @dataclass(frozen=True)
+class PropertyExecutionDeleted(Event):
+    """A `PropertyExecution` was removed from the project's history.
+
+    Published by `ResultStoreService.delete_property_execution`. The cache
+    and automatic bundle manifests are not edited.
+    """
+
+    execution_id: str
+    molecule_uuid: str
+
+
+@dataclass(frozen=True)
 class RecipeRunRecorded(Event):
     """A `RecipeRun` was kept in the project (`ResultStoreService.record_recipe_run`).
 

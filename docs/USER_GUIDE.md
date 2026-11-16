@@ -1374,20 +1374,36 @@ the staged request.
 
 ### What this reader keeps
 
-Results shows the **fresh retained answer** for each result type and
-calculation input (a drawing versus a 3D geometry, for example). A small
-number of calculators also keep an earlier *algorithm version* as a
-separately labelled result (Geometry Analysis, surface area, steric
-analysis, interaction analysis, fragment counts). That is not a complete
-history of every method or settings combination you have tried, and the
-ordinary store is not a permanent archive of every calculation or every
-prior structure.
+Results shows three kinds of record for the selected molecule:
 
-When you save the project, ordinary results that no longer match the
-molecule's current drawing or geometry are not written. Quantum Chemistry
-keeps a separate run history: a finished job stays listed on that panel
-even if you later edit the structure. Deleting a quantum run removes that
-history entry; it does not empty the engine's reusable cache.
+- the **fresh retained answer** for each result type and calculation
+  input (a drawing versus a 3D geometry) — what Properties will replay
+  for the current structure;
+- a **property-execution history**: each ordinary Run click is kept with
+  its method/model and settings, including a second click of the same
+  method, and including runs whose structure no longer matches (those
+  rows are labelled *historical*);
+- **Quantum Chemistry jobs** by `run_id`: engine, method/basis, charge,
+  multiplicity, and status, listed here as well as on the Quantum panel.
+
+A small number of calculators also keep an earlier *algorithm version*
+as a separately labelled result (Geometry Analysis, surface area, steric
+analysis, interaction analysis, fragment counts). That is not the same
+thing as the method/model history (EEM versus QEq).
+
+When you save the project, the fresh cache omits ordinary results that
+no longer match the current drawing or geometry. Property executions and
+finished Quantum jobs are written anyway. **Delete from history…** on a
+Results report removes that execution or Quantum run after a
+confirmation. It does not rerun anything, does not edit automatic
+calculation bundles, and does not empty the Quantum engine's reusable
+cache. Optimized geometries already on the molecule stay.
+
+**Compare with…** on a history row refuses pairs that are not the same
+quantity, input type, or (for per-atom work) the same molecule and
+structure. ORCA and Psi4 are never treated as the same method even when
+the functional name matches. Cross-molecule compare is allowed for
+scalars only.
 
 ### Showing
 
@@ -1395,8 +1411,11 @@ The **Showing** list holds every result this molecule has, grouped under
 the same section headings the Properties panel uses, so a calculator's
 answer is filed where its button is. Section headings are shown in bold
 and cannot be selected — they name a group rather than being an entry in
-it. **All results** shows every producer's facts at once and is what the
-panel opens on.
+it. When more than one method has been run for a quantity (or a
+historical execution is listed), those methods sit in a collapsible
+group under the section. Historical-only groups start collapsed. **All
+results** shows every producer's facts at once and is what the panel
+opens on.
 
 With everything run, that list is around sixty entries across twenty
 sections, which is why there are two search boxes and not one:

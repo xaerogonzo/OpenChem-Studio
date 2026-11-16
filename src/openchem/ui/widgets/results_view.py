@@ -264,6 +264,8 @@ _FOCUS_HELP = HelpTooltip(
 
 #: Shown for every result the structure has moved on from.
 STALE_MARK = " (stale)"
+HISTORICAL_MARK = " (historical)"
+METHOD_FOLD_PREFIX = "fold:"
 
 #: The narrowest reader in which the results filter shares the "Showing:"
 #: row. Below it the two would squeeze each other; above it, a row of its
@@ -346,6 +348,10 @@ class ResultsView(QWidget):
     #: somewhere on purpose -- that silence is what lets several readers follow one another without
     #: each answering the others' moves forever.
     view_changed = Signal(object)
+    #: "Compare with..." on a report in this reader.
+    compare_requested = Signal(object)
+    #: "Delete from history..." on a property execution or Quantum run.
+    delete_requested = Signal(object)
 
     def __init__(
         self,
@@ -370,6 +376,8 @@ class ResultsView(QWidget):
         # Where this molecule's reader was, if anything is keeping track.
         # Optional, so a window built without one behaves exactly as before.
         self._memory = None
+        self._collapsed_groups: set[str] = set()
+        self._seen_method_groups: set[str] = set()
 
         self._focus_box = QComboBox(self)
         self._focus_box.currentIndexChanged.connect(self._on_focus_changed)
@@ -456,6 +464,8 @@ class ResultsView(QWidget):
         self._view.link_activated.connect(self.link_activated)
         self._view.section_activated.connect(self.set_focus)
         self._view.report_available_changed.connect(self.report_available_changed)
+        self._view.compare_requested.connect(self.compare_requested)
+        self._view.delete_requested.connect(self.delete_requested)
         self._empty = QLabel(EMPTY_MESSAGES[NOTHING_COMPUTED], self)
         self._empty.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self._empty.setWordWrap(True)
@@ -795,11 +805,7 @@ class ResultsView(QWidget):
         )
         for group in grouped_reports(listed, self._display_order_of):
             self._add_group_heading(group.label)
-            for report in group.entries:
-                label = self._merged.name_for(report.report_id)
-                if self._merged.is_stale(report):
-                    label += STALE_MARK
-                self._focus_box.addItem(label, report.report_id)
+            self._add_method_groups(group.label, group.entries)
         self._focus_box.blockSignals(blocked)
         self._fit_focus_popup()
         self._sync_focus_box()
@@ -831,6 +837,58 @@ class ResultsView(QWidget):
         scrollbar = box.view().verticalScrollBar().sizeHint().width()
         # The list's own frame and item padding, and room for the scrollbar.
         box.view().setMinimumWidth(max(box.width(), widest + scrollbar + 32))
+
+    def _add_method_groups(self, section: str, reports) -> None:
+        """Collapsible method/model rows under a section, when history needs them."""
+        buckets: dict[str, list] = {}
+        order: list[str] = []
+        for report in reports:
+            method = str(getattr(report, "method_model", "") or "")
+            if method not in buckets:
+                order.append(method)
+                buckets[method] = []
+            buckets[method].append(report)
+        use_methods = any(
+            method and (len(items) > 1 or any(getattr(r, "history_kind", "") for r in items))
+            for method, items in buckets.items()
+        )
+        if not use_methods:
+            for report in reports:
+                self._add_report_item(report, indent=False)
+            return
+        for method in order:
+            items = buckets[method]
+            if not method:
+                for report in items:
+                    self._add_report_item(report, indent=False)
+                continue
+            fold_id = f"{METHOD_FOLD_PREFIX}{section}\n{method}"
+            if fold_id not in self._seen_method_groups:
+                self._seen_method_groups.add(fold_id)
+                if items and all(getattr(r, "historical", False) for r in items):
+                    self._collapsed_groups.add(fold_id)
+            collapsed = fold_id in self._collapsed_groups
+            self._add_method_heading(method, fold_id, collapsed, len(items))
+            shown = items
+            if collapsed:
+                shown = [r for r in items if r.report_id == self._focus]
+            for report in shown:
+                self._add_report_item(report, indent=True)
+
+    def _add_method_heading(self, method: str, fold_id: str, collapsed: bool, count: int) -> None:
+        marker = "▸" if collapsed else "▾"
+        self._focus_box.addItem(f"{marker} {method} ({count})", fold_id)
+
+    def _add_report_item(self, report, *, indent: bool) -> None:
+        label = self._merged.name_for(report.report_id)
+        if getattr(report, "historical", False):
+            if HISTORICAL_MARK.strip() not in label:
+                label += HISTORICAL_MARK
+        elif self._merged.is_stale(report):
+            label += STALE_MARK
+        if indent:
+            label = "    " + label
+        self._focus_box.addItem(label, report.report_id)
 
     def _add_group_heading(self, label: str) -> None:
         """A row that names a section and cannot be chosen.
@@ -939,7 +997,15 @@ class ResultsView(QWidget):
         self._remember()
 
     def _on_focus_changed(self, _index: int) -> None:
-        self._focus = str(self._focus_box.currentData() or "")
+        data = self._focus_box.currentData()
+        if isinstance(data, str) and data.startswith(METHOD_FOLD_PREFIX):
+            if data in self._collapsed_groups:
+                self._collapsed_groups.discard(data)
+            else:
+                self._collapsed_groups.add(data)
+            self._rebuild_focus_box()
+            return
+        self._focus = str(data or "")
         self._render()
         # A READER moving the control, which is the case the memory is for.
         self._remember()

@@ -87,6 +87,7 @@ class RecoveryService:
         recipe_runs: RecipeRunStore | None = None,
         derived_scores: ScoreDefinitionStore | None = None,
         synthesis_plans: SynthesisPlanStore | None = None,
+        property_executions=None,
     ) -> bool:
         """Write a recovery copy, unless it was scheduled before a Save."""
         if generation != self.generation:
@@ -94,7 +95,8 @@ class RecoveryService:
             return False
         document = json.loads(
             self._project_service.serialise(
-                project, results, fingerprints, qc_runs, recipe_runs, derived_scores, synthesis_plans
+                project, results, fingerprints, qc_runs, recipe_runs, derived_scores, synthesis_plans,
+                property_executions,
             )
         )
         payload = {

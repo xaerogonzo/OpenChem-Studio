@@ -342,6 +342,8 @@ class FactView(QWidget):
     highlight_requested = Signal(tuple)
     #: "Compare with..." was chosen on this report.
     compare_requested = Signal(object)
+    #: "Delete from history..." on a property execution or Quantum run.
+    delete_requested = Signal(object)
     #: The search text or the depth control moved.
     #:
     #: **NOT emitted by `set_report`, and not by `set_filter_state`.** Those
@@ -1216,12 +1218,15 @@ class FactView(QWidget):
         copy_action = menu.addAction("Copy report")
         export_action = menu.addAction("Export report...")
         compare_action = menu.addAction("Compare with...")
+        delete_action = None
+        if getattr(self._report, "history_kind", ""):
+            delete_action = menu.addAction("Delete from history...")
         menu.addSeparator()
         window_action = menu.addAction("Open in window")
-        return copy_action, export_action, compare_action, window_action
+        return copy_action, export_action, compare_action, delete_action, window_action
 
     def _run_report_action(self, chosen, actions: tuple) -> None:
-        copy_action, export_action, compare_action, window_action = actions
+        copy_action, export_action, compare_action, delete_action, window_action = actions
         if chosen is None:
             return
         if chosen is copy_action:
@@ -1230,6 +1235,8 @@ class FactView(QWidget):
             self._on_export_clicked()
         elif chosen is compare_action:
             self.compare_requested.emit(self._report)
+        elif delete_action is not None and chosen is delete_action:
+            self.delete_requested.emit(self._report)
         elif chosen is window_action:
             self.open_in_window()
 
@@ -1297,6 +1304,7 @@ class FactView(QWidget):
         view.set_rendering(self.rendering())
         view.link_activated.connect(self.link_activated)
         view.compare_requested.connect(self.compare_requested)
+        view.delete_requested.connect(self.delete_requested)
         layout = QVBoxLayout(dialog)
         layout.addWidget(view)
         dialog.show()

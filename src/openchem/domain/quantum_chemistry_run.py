@@ -284,6 +284,12 @@ class QuantumChemistryRunStore:
             self._runs.get(molecule_uuid, {}).values(), key=lambda r: r.started_at, reverse=True
         )
 
+    def all_runs(self) -> list[QuantumChemistryRun]:
+        found: list[QuantumChemistryRun] = []
+        for by_run in self._runs.values():
+            found.extend(by_run.values())
+        return found
+
     def delete(self, run_id: str) -> bool:
         for by_run in self._runs.values():
             if run_id in by_run:

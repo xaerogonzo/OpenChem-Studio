@@ -517,6 +517,21 @@ def test_customise_quantum_is_not_a_tick_and_apply_stages(services, built):
     assert quantum == ["orca.nmr"]
 
 
+def test_wizard_scope_is_its_own_box_not_properties(services, built):
+    molecules = _molecules(services, ("A", "CCO"), ("B", "CC"))
+    wizard = _wizard(
+        services,
+        built,
+        molecules,
+        scope=(SCOPE_ALL, set()),
+    )
+    wizard.set_scope(SCOPE_THIS, set())
+    mode, chosen = wizard.current_scope()
+    assert mode == SCOPE_THIS
+    assert wizard._scope_of()[0] == SCOPE_ALL
+    assert chosen == set()
+
+
 def test_charge_customise_has_no_quantum_actions(services, built):
     wizard = _wizard(services, built, _molecules(services, ("A", "CCO")))
     _customise(wizard, "charge")
