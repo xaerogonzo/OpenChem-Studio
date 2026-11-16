@@ -12,7 +12,9 @@ anything starts.
 **NOTHING HERE IS GATED.** The wizard is a shortcut over the same calculators the
 launcher lists, run through the same plan and the same services; it does not change a
 tick, a preset or a scope in Properties, and every calculator it can run is still one
-click away there.
+click away there. Optional Quantum actions (ab initio NMR, IR, xtb frequencies) are
+not ticks: applying a goal stages at most one request on the Quantum Chemistry panel.
+That panel's Run starts the job. They never join `GoalRun.calculator_ids`.
 
 **A RUN IS WHAT IT WAS WHEN YOU PRESSED RUN.** Pressing Run builds a `GoalRun`, an
 immutable value, and hands it on; changing the goal, the ticks or the scope afterwards
@@ -31,6 +33,7 @@ from typing import Any
 
 from PySide6.QtCore import Qt, Signal
 from PySide6.QtWidgets import (
+    QButtonGroup,
     QCheckBox,
     QComboBox,
     QDialog,
@@ -40,6 +43,7 @@ from PySide6.QtWidgets import (
     QListWidget,
     QListWidgetItem,
     QPushButton,
+    QRadioButton,
     QScrollArea,
     QStackedWidget,
     QVBoxLayout,
@@ -65,6 +69,7 @@ from openchem.domain.calculator_goals import (
     goal_of,
     needs_conformer,
 )
+from openchem.domain.quantum_goal_action import actions_for_goal
 from openchem.domain.execution_plan import build_execution_plan
 from openchem.ui import theme
 from openchem.ui.dialogs.calculator_settings_dialog import CalculatorSettingsDialog
@@ -206,6 +211,8 @@ class GoalWizardDialog(QDialog):
     all_recommended_requested = Signal(object)
     #: Customise applied ticks and settings to Properties. Does not start a job.
     ticks_applied = Signal(object)
+    #: A Quantum service action to stage on the Quantum Chemistry panel. Does not start a job.
+    quantum_action_requested = Signal(str)
 
     def __init__(
         self,
@@ -226,6 +233,8 @@ class GoalWizardDialog(QDialog):
         self.setModal(False)
         #: The run most recently asked for, or None. Immutable, so holding it is safe.
         self.last_run: GoalRun | None = None
+        #: Last Quantum action id emitted, or "".
+        self.last_quantum_action_id: str = ""
         self._definition_of = definition_of
         self._molecules_of = molecules_of
         self._selected_uuid_of = selected_uuid_of
@@ -243,6 +252,7 @@ class GoalWizardDialog(QDialog):
         self._settings = settings
         self._store = parameter_store if parameter_store is not None else GoalParameterStore.from_settings(settings)
         self._entry_checks: dict[str, QCheckBox] = {}
+        self._quantum_group: QButtonGroup | None = None
 
         self._stack = QStackedWidget(self)
         self._stack.addWidget(self._build_goals_page())
@@ -390,6 +400,16 @@ class GoalWizardDialog(QDialog):
             if entry.calculator_id in self._entry_checks and self._entry_checks[entry.calculator_id].isChecked()
         ]
 
+    def selected_quantum_action_id(self) -> str:
+        """The optional Quantum action ticked on customise, or empty."""
+        group = self._quantum_group
+        if group is None:
+            return ""
+        button = group.checkedButton()
+        if button is None:
+            return ""
+        return str(button.property("openchem_quantum_action_id") or "")
+
     def current_run(self, *, quick: bool) -> GoalRun:
         """The run as it stands -- the goal's recommended set (`quick`) or the ticks."""
         if quick:
@@ -527,6 +547,7 @@ class GoalWizardDialog(QDialog):
     def _on_apply_to_properties(self, _checked: bool = False) -> None:
         run = self.current_run(quick=False)
         self.ticks_applied.emit(run)
+        self._emit_quantum_if_chosen()
         self.close()
 
     def showEvent(self, event) -> None:  # noqa: N802
@@ -551,6 +572,7 @@ class GoalWizardDialog(QDialog):
             layout.addWidget(heading)
             for entry in entries:
                 layout.addWidget(self._entry_row(entry, body))
+        self._fill_quantum_actions(layout, body)
         layout.addStretch(1)
         self._entries_area.setWidget(body)
         self._refresh_plan()
@@ -583,6 +605,52 @@ class GoalWizardDialog(QDialog):
             settings.clicked.connect(self._on_entry_settings)
             row_layout.addWidget(settings)
         return row
+
+    def _fill_quantum_actions(self, layout: QVBoxLayout, body: QWidget) -> None:
+        """Optional Quantum service actions: radios, not ticks. At most one."""
+        actions = actions_for_goal(self._goal.goal_id)
+        self._quantum_group = None
+        if not actions:
+            return
+        heading = QLabel("Stage on Quantum Chemistry", body)
+        font = heading.font()
+        font.setBold(True)
+        heading.setFont(font)
+        layout.addWidget(heading)
+        note = QLabel(
+            "These are not project-table calculators. Staging fills the Quantum Chemistry "
+            "panel; you press Run there. Ab initio NMR is one job, not 1H and 13C, and it "
+            "is not the database lookup above.",
+            body,
+        )
+        note.setWordWrap(True)
+        theme.style(note, "color: #666666;")
+        layout.addWidget(note)
+        group = QButtonGroup(body)
+        group.setExclusive(True)
+        none = QRadioButton("Do not stage a Quantum calculation", body)
+        none.setProperty("openchem_quantum_action_id", "")
+        none.setChecked(True)
+        none.toggled.connect(self._on_entry_toggled)
+        group.addButton(none)
+        layout.addWidget(none)
+        for action in actions:
+            row = QWidget(body)
+            row_layout = QHBoxLayout(row)
+            row_layout.setContentsMargins(0, 0, 0, 0)
+            radio = QRadioButton(action.label, row)
+            radio.setProperty("openchem_quantum_action_id", action.action_id)
+            radio.setObjectName(f"quantum_action_{action.action_id.replace('.', '_')}")
+            radio.setToolTip(action.limitation or action.reason)
+            radio.toggled.connect(self._on_entry_toggled)
+            group.addButton(radio)
+            reason = QLabel(action.reason, row)
+            theme.style(reason, "color: #666666;")
+            reason.setWordWrap(True)
+            row_layout.addWidget(radio)
+            row_layout.addWidget(reason, 1)
+            layout.addWidget(row)
+        self._quantum_group = group
 
     def _on_entry_toggled(self, _checked: bool) -> None:
         self._refresh_plan()
@@ -629,7 +697,10 @@ class GoalWizardDialog(QDialog):
         if left_out:
             text += " " + left_out
         self._plan_summary.setText(text)
-        self._run_button.setEnabled(bool(plan.calculator_ids) and plan.molecule_count > 0)
+        quantum = bool(self.selected_quantum_action_id())
+        self._run_button.setEnabled(
+            (bool(plan.calculator_ids) and plan.molecule_count > 0) or (quantum and bool(molecules))
+        )
         self._refresh_conformer_note(plan.calculator_ids, molecules)
 
     def _refresh_conformer_note(self, ids, molecules) -> None:
@@ -659,4 +730,12 @@ class GoalWizardDialog(QDialog):
         self._stack.setCurrentIndex(_PAGE_GOALS)
 
     def _on_run(self, _checked: bool = False) -> None:
-        self._emit(self.current_run(quick=False))
+        if self.ticked_ids():
+            self._emit(self.current_run(quick=False))
+        self._emit_quantum_if_chosen()
+
+    def _emit_quantum_if_chosen(self) -> None:
+        action_id = self.selected_quantum_action_id()
+        self.last_quantum_action_id = action_id
+        if action_id:
+            self.quantum_action_requested.emit(action_id)

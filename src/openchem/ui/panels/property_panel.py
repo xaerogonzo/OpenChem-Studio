@@ -4862,6 +4862,10 @@ class PropertyPanel(QWidget):
         self._batch_status.setText(text)
         return text
 
+    def report_status(self, text: str) -> str:
+        """Public status line for another window (the goal wizard's Quantum staging)."""
+        return self._say(text)
+
     def _molecules_for_run(self, run: GoalRun) -> list:
         """The molecules a run names, in project order, read from the project as it is now."""
         return self._molecules_in_scope(run.scope_mode, run.scope_uuids)

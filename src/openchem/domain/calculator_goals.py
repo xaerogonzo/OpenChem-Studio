@@ -223,6 +223,7 @@ GOALS: tuple[Goal, ...] = (
         (
             _r("nmr_database", "NMR shifts looked up from experimental data.", nucleus="1H"),
             _o("oxygen_balance", "Oxygen balance, for energetic materials."),
+            # Ab initio NMR / IR / xtb frequencies are QuantumGoalAction rows, not calculator_ids.
         ),
     ),
 )
