@@ -18,6 +18,13 @@ _ACID_SMARTS = Chem.MolFromSmarts("[$([CX3](=O)[OX2H1]),$([OX2H1][cX3]),$([SX4](
 #: and in the common-pattern search list -- and the last two now import this
 #: string, so a correction cannot reach one of them and miss the others.
 #:
+#: **A NITROXIDE NITROGEN IS EXCLUDED** (`N[OX1;+0]`: an N bonded to a neutral oxygen with one connection, which can only
+#: be an N-oxyl radical). Its lone pair is engaged in the three-electron N-O pi bond and protonation happens on the
+#: OXYGEN, with a measured pKa of the protonated radical of -5.5 +/- 1 and -5.8 +/- 0.3 for TEMPO and -6.2 for 4-hydroxy-TEMPO
+#: (concentrated sulfuric acid; `malatesta1973`, `sen2008`, `konopko2022`, `voinov2024`). Counting it as an amine put 1.42 log
+#: units between TEMPO's LogD (0.96) and its LogP (2.38) for a centre that is about 13 orders of magnitude from ionising at pH 7.4.
+#: An N-hydroxy amine (N-OH, two connections on the oxygen) is NOT excluded: TEMPOH is a base of about pKa 7 to 8.
+#:
 #: **N-NITRO AND N-NITROSO ARE EXCLUDED, AND THAT IS WHAT THIS LINE WAS
 #: MISSING.** A nitramine's ring nitrogen has no S=O, no C=O and no aromatic
 #: neighbour, so it passed every exclusion above and was counted as a base:
@@ -36,7 +43,7 @@ _ACID_SMARTS = Chem.MolFromSmarts("[$([CX3](=O)[OX2H1]),$([OX2H1][cX3]),$([SX4](
 #: an amine and a nitramine is not conjugated and that amine is still basic.
 #: An ordinary guanidine, with no nitro on it, is deliberately left alone.
 BASIC_AMINE_SMARTS = (
-    "[NX3;H2,H1,H0;!$(NC=[O,S]);!$(N=*);!$(NS(=O)=O);!$(Nc);!a"
+    "[NX3;H2,H1,H0;!$(NC=[O,S]);!$(N=*);!$(NS(=O)=O);!$(Nc);!a;!$(N[OX1;+0])"
     ";!$(N[N+](=O)[O-]);!$(NN=O);!$(N[CX3](~[#7])~[#7]~[N+](~[O-])~O)]"
 )
 _BASE_SMARTS = Chem.MolFromSmarts(BASIC_AMINE_SMARTS)
