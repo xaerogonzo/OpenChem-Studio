@@ -4888,13 +4888,13 @@ OPSIN_CANNOT_PARSE: dict[str, str] = {
 OPEN: list[tuple[str, str, str, str, str]] = [
     # Round 5 (N3): NOT wrong molecules -- ring systems whose fusion PIN needs
     # a construction general fusion does not build yet. The book's PIN is the
-    # target; the second column is today's output (a von Baeyer name, or none
-    # where that construction fails too).
+    # target; the fourth field is today's output (a von Baeyer name, or none
+    # where that construction fails too), kept in sync with NL-030/031 pins.
     ("D-086b", "C1=CC2=c3ccncc3=NC2=C1", "cyclopenta[4,5]pyrrolo[2,3-c]pyridine",
-     "2,5-diazatricyclo[7.3.0.0^{3,8}]dodeca-1(12),2,4,6,8,10-hexaene",
+     "7,10-diazatricyclo[6.4.0.0^{2,6}]dodeca-1,3,5,7,9,11-hexaene",
      "a second-order attached component (p. 239)"),
     ("D-086c", "C1=CC2=CC=C3C=CCC4=C3N2C(=C1)C=C4", "6H-quinolizino[3,4,5,6-ija]quinoline",
-     "13-azatetracyclo[10.2.2.0^{5,14}.0^{8,13}]hexadeca-1(15),2,5(14),6,8,10,12(16)-heptaene",
+     "15-azatetracyclo[6.6.2.0^{4,16}.0^{11,15}]hexadeca-1,3,5,8(16),9,11,13-heptaene",
      "an interior heteroatom, P-25.3.3.2 (p. 223)"),
     # Round 5 (N4): NOT wrong molecules either -- each round-trips today; the
     # book prints the target (or it is derived, as marked).
@@ -4912,7 +4912,7 @@ OPEN: list[tuple[str, str, str, str, str]] = [
      "are named '[chloro(methyl)amino]methane'"),
     ("D-088h", "Oc1ccc(OCC(C)COc2ccc(O)cc2)cc1",
      "4,4'-[(2-methylpropane-1,3-diyl)bis(oxy)]diphenol",
-     "4-{[3-(4-hydroxyphenoxy)-2-methylpropyl]oxy}phenol",
+     "4-[3-(4-hydroxyphenoxy)-2-methylpropoxy]phenol",
      "p. 105: a substituted linker (P-15.3.1.2.1.2) is outside the built class"),
     ("D-088i", "[SiH3]c1cc([SiH3])cc([SiH3])c1", "(benzene-1,3,5-triyl)tris(silane)",
      "[3,5-bis(silyl)phenyl]silane", "p. 107: a ring as the central group is not built"),
@@ -4950,7 +4950,7 @@ OPEN: list[tuple[str, str, str, str, str]] = [
     # never becomes a suffix candidate at all -- a narrower, separate
     # candidate-generation question than this item's admission reason.
     ("D-130", "C(=NC1CCCCC1)=NC1CCCCC1", "dicyclohexylmethanediimine",
-     "1,1'-[methylenebis(azanediyl)]dicyclohexane",
+     "{[(cyclohexylimino)methylidene]amino}cyclohexane",
      "P-62.3.1.4 (pdf p. 528), verbatim 'dicyclohexylmethanediimine (PIN)'; "
      "today's output is '{[(cyclohexylimino)methylidene]amino}cyclohexane' "
      "-- the WRONG MOLECULE this item was admitted for is fixed, the PIN is "

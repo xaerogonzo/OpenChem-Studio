@@ -23,9 +23,22 @@ uv run --no-sync python tools/naming_cip_suite_probe.py pinned
 uv run --no-sync python tools/naming_cip_suite_probe.py bridgehead-candidates
 ```
 
-`pinned` re-checks the four suite rows already wired in the naming tests (VS207, VS214, VS279, VS231). `bridgehead-candidates` greps the suite for polycyclic SMILES that might inform **NL-002** (no norbornane / 3.3.1 entry is present today).
+`pinned` re-checks the four suite rows already wired in the naming tests (VS207, VS214, VS279, VS231). `bridgehead-candidates` lists **P-93.5.2** bridgehead / norbornane–tropane rows (rule column and pinned ids — SMILES never spell `bicyclo[…]`) and prints whether any `bicyclo[3.3.1]` row exists (**NL-002**).
+
+### P-93.5.2 bridgehead rows (measured 2026-11-15 on pinned commit)
+
+| Suite id | Labels | Rule | Scaffold (informal) |
+|----------|--------|------|---------------------|
+| VS111 | 2S 3S 5R 6S | P-93.5.2.2.1 | halo norbornane |
+| VS159 | 2R 3R 5S 6S | P-93.5.2.2.1 | methyl norbornane |
+| VS235 | 3S 5r 7R 12S | P-93.5.2.2.1 | N-tropane ester (NL-001 family) |
+| VS238 | 2s 3S 7R | *(empty)* | 8-methylbicyclo[3.2.1]octane analogue |
+| VS241 | 2s 4S 6R | P-93.5.2.2.1 | tropane-3-ol |
+
+No row carries `bicyclo[3.3.1]` in SMILES or labels — **NL-002** (`9-chlorobicyclo[3.3.1]nonan-1-ol`) still has no suite oracle.
 
 ## Programme use
 
 - **NL-107 / NL-109** — terminal-ring numbering and legacy-perception stereo (round 92; VS231 in NL-109).
-- **NL-002** — blocked until the suite or the Blue Book supplies a substituted-bridgehead worked example; the suite has no `bicyclo[3.3.1]` row (measured 2026-11-15).
+- **NL-001** — extend descriptor checks to VS111, VS159, VS235, VS241 (same book section as closed limit).
+- **NL-002** — closed 2026-11-15 with partial oracle (`tests/test_namer_nl002_ws1_partial_oracle.py`): five P-93.5.2 rows above; still no `bicyclo[3.3.1]` row on the representative molecule.

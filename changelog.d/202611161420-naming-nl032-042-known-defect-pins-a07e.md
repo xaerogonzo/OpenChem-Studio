@@ -1,0 +1,2 @@
+### WS5 P3: close NL-032..NL-042 (round-5 known defects)
+- Engine pins for eleven round-5 `OPEN` rows (`tests/test_namer_nl032_nl042_ws5_known_defect_pins.py`); `OPEN` xfails in `test_namer_known_defects.py` stay until book PINs are reached. D-088h and D-130 “today” strings synced in that table.

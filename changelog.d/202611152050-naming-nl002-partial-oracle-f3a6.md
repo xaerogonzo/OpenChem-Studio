@@ -1,0 +1,2 @@
+### NL-002: validator limit closed with partial oracle
+- WS1 pins for `9-chlorobicyclo[3.3.1]nonan-1-ol`: flat name, distinct pre-validation names, CIP-suite P-93.5.2 descriptor agreement, and RDKit check on cited centres (`tests/test_namer_nl002_ws1_partial_oracle.py`). No exact Blue Book PIN on that skeleton; residual risk documented in `docs/NAMING_LIMITATIONS_PLAN.md`.

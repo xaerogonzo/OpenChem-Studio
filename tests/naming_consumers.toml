@@ -172,7 +172,115 @@ owner = "namer"
 
 [[consumer]]
 file = "tests/test_namer_nl001_nl005_ws1_validator_evidence.py"
-why = "NL-001 (closed, validator limit), NL-002 (blocked), NL-005: WS1 evidence pins (pseudoasymmetric bridgeheads and adamantane spiro methyl)"
+why = "NL-001 (closed, validator limit), NL-002 (closed, validator limit), NL-005: WS1 regression pins (flat-name limits)"
+scope = "core"
+owner = "namer"
+
+[[consumer]]
+file = "tests/test_namer_nl002_ws1_partial_oracle.py"
+why = "NL-002 (closed 2026-11-15): validator limit with partial oracle — CIP suite P-93.5.2 rows, NL-002 pre-validation vs RDKit, cage alcohol analogue"
+scope = "core"
+owner = "namer"
+
+[[consumer]]
+file = "tests/test_namer_nl072_nl076_ws5_nonpreferred_pins.py"
+why = "NL-072..NL-076 (closed 2026-11-15): WS5 round-8 non-preferred names that OPSIN round-trip"
+scope = "core"
+owner = "namer"
+
+[[consumer]]
+file = "tests/test_namer_nl078_nl087_ws5_nonpreferred_pins.py"
+why = "NL-078, NL-079, NL-086, NL-087 (closed 2026-11-15): WS5 non-preferred pins from charged panel and KNOWN_LIMITATIONS"
+scope = "core"
+owner = "namer"
+
+[[consumer]]
+file = "tests/test_namer_nl105_ws5_adjudication_pins.py"
+why = "NL-105 (closed 2026-11-15): six adjudication OPEN/PARTLY_FIXED rows — engine name pins, OPSIN round-trip"
+scope = "core"
+owner = "namer"
+
+[[consumer]]
+file = "tests/test_namer_nl082_nl094_ws5_nonpreferred_pins.py"
+why = "NL-082..084, NL-091, NL-094 (closed 2026-11-15): WS5 non-preferred / deliberate deviation pins"
+scope = "core"
+owner = "namer"
+
+[[consumer]]
+file = "tests/test_namer_nl092_nl093_ws4_fusion_policy.py"
+why = "NL-092, NL-093 (closed 2026-11-15): WS4 fusion/multiparent policy — von Baeyer, retained, refusal"
+scope = "core"
+owner = "namer"
+
+[[consumer]]
+file = "tests/test_namer_nl071_ws5_diazo_azaallenium_refusal.py"
+why = "NL-071 (closed 2026-11-15): 2-azaallenium charge refusal"
+scope = "core"
+owner = "namer"
+
+[[consumer]]
+file = "tests/test_namer_nl030_nl031_ws4_fusion_vonbaeyer.py"
+why = "NL-030, NL-031 (closed 2026-11-15): fusion PIN not built; von Baeyer round-trip pins"
+scope = "core"
+owner = "namer"
+
+[[consumer]]
+file = "tests/test_namer_nl032_nl042_ws5_known_defect_pins.py"
+why = "NL-032..NL-042 (closed 2026-11-16): round-5 known-defect engine pins; book OPEN xfail unchanged"
+scope = "core"
+owner = "namer"
+
+[[consumer]]
+file = "tests/test_namer_nl025_nl026_ws5_spiro_ketone_and_purine_pins.py"
+why = "NL-025, NL-026 (closed 2026-11-16): spiro ketone (1H) policy and exocyclic purine attachment"
+scope = "core"
+owner = "namer"
+
+[[consumer]]
+file = "tests/test_namer_nl051_nl055_ws5_carried_ions_programme.py"
+why = "NL-051..NL-055 (closed 2026-11-16): charge/ring-cation carried rows — programme exemplars"
+scope = "core"
+owner = "namer"
+
+[[consumer]]
+file = "tests/test_namer_nl056_nl064_programme.py"
+why = "NL-056, NL-058–064 (closed 2026-11-16): carried rows — programme exemplars and disposition guards"
+scope = "core"
+owner = "namer"
+
+[[consumer]]
+file = "tests/test_namer_nl057_ws3_opsin_unreadable_programme.py"
+why = "NL-057 (closed 2026-11-16): OPSIN-unreadable book forms and respelling verification"
+scope = "core"
+owner = "namer"
+
+[[consumer]]
+file = "tests/test_namer_nl066_ws3_retained_backlog_programme.py"
+why = "NL-066 (closed 2026-11-16): retained-name registry backlog counts and validate()"
+scope = "core"
+owner = "namer"
+
+[[consumer]]
+file = "tests/test_namer_nl096_ws3_opsin_vocabulary_programme.py"
+why = "NL-096 (closed 2026-11-16): OPSIN ring vocabulary file counts; deliberate ungated policy"
+scope = "core"
+owner = "namer"
+
+[[consumer]]
+file = "tests/test_namer_nl104_ws5_round14_residue_programme.py"
+why = "NL-104 (closed 2026-11-16): round-14 residue exemplars; full clusters in round tests"
+scope = "core"
+owner = "namer"
+
+[[consumer]]
+file = "tests/test_namer_spiro_joints_post_round84_programme.py"
+why = "Spiro joints after rounds 84–85: fixed exemplars and KEPT (1H) policy"
+scope = "core"
+owner = "namer"
+
+[[consumer]]
+file = "tests/test_namer_nl012_spiro_open_defects_post_round84.py"
+why = "NL-012 shapes 1–3: adamantane substituent; pteridinone spiro diketones as -2',4(3H)-dione; OPSIN read-back"
 scope = "core"
 owner = "namer"
 
