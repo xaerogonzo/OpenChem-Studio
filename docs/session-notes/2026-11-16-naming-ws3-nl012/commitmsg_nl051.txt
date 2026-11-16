@@ -1,0 +1,3 @@
+WS5 P2: close NL-051..NL-055 with carried-ion programme pins.
+
+Exemplars from rounds 41–54 are pinned in a thin programme file; plan and handoff updated.

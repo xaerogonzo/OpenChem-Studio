@@ -1,0 +1,3 @@
+WS5 P3: close NL-072..076, 078..087, and NL-105 as non-preferred pins.
+
+Round-trip tests pin engine spellings the Blue Book does not prefer; NL-105 keeps adjudication fix_status open and updates the thiourea engine_name to the current namer output.
