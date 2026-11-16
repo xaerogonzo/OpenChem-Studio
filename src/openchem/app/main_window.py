@@ -2964,9 +2964,11 @@ class MainWindow(QMainWindow):
             # ONE contract across every dock: "show or hide this panel" is
             # one concept and WHICH panel differs, so `instance_path` is
             # what tells the renderings apart.
-            self._view_menu.addAction(
-                self._document(dock.toggleViewAction(), "panel_visibility")
-            )
+            action = dock.toggleViewAction()
+            # Batch's visible title is "Project table"; keep the stored shortcut id
+            # `panel_visibility:Batch` so a saved binding does not vanish.
+            label = "Batch" if dock.objectName() == "Batch" else None
+            self._view_menu.addAction(self._document(action, "panel_visibility", label=label))
         self._view_menu.addSeparator()
         reset_layout = self._document(QAction("Reset Panel Layout", self), "reset_panel_layout")
         reset_layout.triggered.connect(self.reset_panel_layout)

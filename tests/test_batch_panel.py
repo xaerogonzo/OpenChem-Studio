@@ -901,7 +901,10 @@ def _spy_on_computes(services):
 
 def _settle():
     QThreadPool.globalInstance().waitForDone(120000)
-    QApplication.instance().processEvents()
+    app = QApplication.instance()
+    app.processEvents()
+    # Details open on a zero-timer after the batch event, so drain that too.
+    app.processEvents()
 
 
 def test_selecting_a_molecule_computes_that_molecule_and_no_other(

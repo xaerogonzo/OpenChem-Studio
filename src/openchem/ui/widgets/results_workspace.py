@@ -168,6 +168,8 @@ class ResultsWorkspace(QWidget):
         self._note_report_actions()
 
     def report_actions_available(self) -> bool:
+        if self.showing_project_table():
+            return False
         return bool(getattr(self._reader, "report_available", lambda: False)())
 
     def _note_report_actions(self, *_args) -> None:
@@ -188,14 +190,16 @@ class ResultsWorkspace(QWidget):
         return False
 
     def showing_project_table(self) -> bool:
-        return False
+        return self._table_button.isChecked()
 
     def show_project_table(self, _checked: bool = False) -> None:
         self._table_button.setChecked(True)
+        self._note_report_actions()
         self.project_table_requested.emit()
 
     def show_molecule_reader(self, _checked: bool = False) -> None:
         self._reader_button.setChecked(True)
+        self._note_report_actions()
 
     def begin_project_run(self, plan: ExecutionPlan) -> None:
         self._last_run_id = plan.run_id
