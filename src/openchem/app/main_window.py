@@ -1585,11 +1585,41 @@ class MainWindow(QMainWindow):
         # this cannot loop.
         self._panel_rail.select_panel(panel_id)
 
-    def _on_panel_chosen_alongside(self, panel_id: str) -> None:
-        """Right-click > Open beside: show the panel and hide nothing.
+    def _persist_user_placed(self) -> None:
+        self._settings.set(_USER_PLACED_KEY, ",".join(sorted(self._user_placed_docks)))
+        self._sync_rail_locks()
 
-        A left click replaces the panel showing; this is the other half of the gesture. It does not lock anything, so
-        the next left click elsewhere still replaces the unlocked ones -- lock the ones to keep.
+    def _booked_tab_anchor(self, area) -> QDockWidget | None:
+        """A visible user-placed dock that already shares a tab bar in `area`.
+
+        A split is not a tab group. A floating panel is not one. Two visible
+        panels that merely happen to sit on the right are not one either.
+        """
+        if area == Qt.DockWidgetArea.NoDockWidgetArea:
+            return None
+        for dock in self.findChildren(QDockWidget):
+            if dock.parent() is not self or dock.isFloating() or dock.isHidden():
+                continue
+            if self.dockWidgetArea(dock) != area:
+                continue
+            if dock.objectName() not in self._user_placed_docks:
+                continue
+            others = [
+                other
+                for other in self.tabifiedDockWidgets(dock)
+                if other.parent() is self and not other.isHidden() and not other.isFloating()
+            ]
+            if others:
+                return dock
+        return None
+
+    def _on_panel_chosen_alongside(self, panel_id: str) -> None:
+        """Shift+click or Open beside: show the panel and hide nothing.
+
+        If a visible user-placed tab group already exists in that area, the
+        panel joins that group. Otherwise it is the old split: shown beside
+        whatever is open, with no new tab bar. Tabify marks the panel placed
+        immediately; a later drag-classifier is not required.
         """
         self._resolve_expansion()
         if self._reveal_if_in_properties(panel_id):
@@ -1597,24 +1627,69 @@ class MainWindow(QMainWindow):
         dock = self._dock_by_panel_id(panel_id)
         if dock is None:
             return
+        self._ensure_in_layout(dock)
+        if not dock.isFloating():
+            area = self.dockWidgetArea(dock)
+            if area == Qt.DockWidgetArea.NoDockWidgetArea:
+                area = Qt.DockWidgetArea.RightDockWidgetArea
+            anchor = self._booked_tab_anchor(area)
+            if anchor is not None and anchor is not dock:
+                already = dock in self.tabifiedDockWidgets(anchor) or anchor in self.tabifiedDockWidgets(dock)
+                if not already:
+                    self.tabifyDockWidget(anchor, dock)
+                self._user_placed_docks.add(dock.objectName())
+                self._persist_user_placed()
         self._show_only_right_dock(dock, alongside=True)
         dock.setFocus()
         self._panel_rail.select_panel(panel_id)
 
+    def _untabify_to_rail_column(self, dock: QDockWidget) -> None:
+        """Take `dock` out of a user-created tab group and put it on its default side.
+
+        Qt has no `untabifyDockWidget`. `removeDockWidget` hides; this puts the
+        panel back and leaves the remaining tab members grouped. Floating docks
+        and ordinary splits are left where they are.
+        """
+        if dock.isFloating():
+            return
+        others = [
+            other
+            for other in self.tabifiedDockWidgets(dock)
+            if other.parent() is self
+        ]
+        if not others:
+            return
+        name = dock.objectName()
+        default = self._default_dock_areas.get(name, Qt.DockWidgetArea.RightDockWidgetArea)
+        previous, self._arranging = self._arranging, True
+        try:
+            self.removeDockWidget(dock)
+            self.addDockWidget(default, dock)
+            dock.show()
+        finally:
+            self._arranging = previous
+
     def _on_panel_lock_toggled(self, panel_id: str) -> None:
         """Lock a panel so a rail click leaves it on screen, or release it.
 
-        "Locked" IS the window's existing notion of a placed panel (`_user_placed_docks`): one the rail will not hide.
-        Dropping a panel beside another, or in another area, locks it by itself, which is why one that was arranged
-        once could stay on screen for good with nothing to say why; this is the control for that, and the rail shows
-        the lock. Released, it stays released until that panel is moved again.
+        "Locked" IS the window's existing notion of a placed panel (`_user_placed_docks`).
+        Unlock of a tabbed panel also leaves the tab group and returns it to the
+        rail-managed column. A floating panel is not pulled back. A split or a
+        panel on another side keeps its geometry. Locking a hidden panel shows
+        it first, because the action's name says it will be open.
         """
+        dock = self._dock_by_panel_id(panel_id)
         if panel_id in self._user_placed_docks:
+            if dock is not None:
+                self._untabify_to_rail_column(dock)
             self._user_placed_docks.discard(panel_id)
         else:
+            if dock is not None and dock.isHidden() and not dock.isFloating():
+                self._ensure_in_layout(dock)
+                dock.setVisible(True)
+                dock.raise_()
             self._user_placed_docks.add(panel_id)
-        self._settings.set(_USER_PLACED_KEY, ",".join(sorted(self._user_placed_docks)))
-        self._sync_rail_locks()
+        self._persist_user_placed()
 
     def _sync_rail_locks(self) -> None:
         """Tell the rail which panels are locked, so its list shows a lock on each."""

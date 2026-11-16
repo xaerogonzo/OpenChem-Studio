@@ -53,6 +53,26 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+
+class _RailList(QListWidget):
+    """A panel list that can tell a Shift+click from an ordinary click.
+
+    `itemClicked` does not carry modifiers. The mouse event does. Keyboard
+    activation (Enter) is still `itemActivated` and is never a Shift+click.
+    """
+
+    item_picked = Signal(object, bool)
+
+    def mousePressEvent(self, event) -> None:  # noqa: N802 - Qt's name
+        super().mousePressEvent(event)
+        if event.button() != Qt.MouseButton.LeftButton:
+            return
+        item = self.itemAt(event.position().toPoint())
+        if item is None:
+            return
+        shift = bool(event.modifiers() & Qt.KeyboardModifier.ShiftModifier)
+        self.item_picked.emit(item, shift)
+
 #: Group id -> label. The order here is the order down the rail.
 #:
 #: THREE GROUPS, NOT FIVE, AND EACH NAME SAYS WHAT IT HOLDS. Five icon buttons
@@ -291,7 +311,7 @@ class PanelRail(QWidget):
         self._description.setWordWrap(True)
         self._description.setStyleSheet("padding: 0 6px 4px 6px; color: palette(mid);")
 
-        self._list = QListWidget()
+        self._list = _RailList()
         self._list.setAlternatingRowColors(False)
         # Wide enough for "Quantum Chemistry", which needs 204 px measured
         # -- the longest panel name there is. Capped so the rail cannot
@@ -301,8 +321,10 @@ class PanelRail(QWidget):
         # this widened.
         self._list.setMaximumWidth(230)
         self._list.setMinimumWidth(210)
+        # Keyboard Enter is an ordinary choose. The mouse goes through
+        # `_RailList.item_picked` so Shift+click can open beside.
         self._list.itemActivated.connect(self._on_item_chosen)
-        self._list.itemClicked.connect(self._on_item_chosen)
+        self._list.item_picked.connect(self._on_item_picked)
         self._list.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
         self._list.customContextMenuRequested.connect(self._on_list_menu)
 
@@ -523,6 +545,15 @@ class PanelRail(QWidget):
     def _on_item_chosen(self, item: QListWidgetItem) -> None:
         panel_id = item.data(_PANEL_ID_ROLE)
         if panel_id:
+            self.panel_chosen.emit(str(panel_id))
+
+    def _on_item_picked(self, item: QListWidgetItem, shift: bool) -> None:
+        panel_id = item.data(_PANEL_ID_ROLE)
+        if not panel_id:
+            return
+        if shift:
+            self.panel_chosen_alongside.emit(str(panel_id))
+        else:
             self.panel_chosen.emit(str(panel_id))
 
     def _on_list_menu(self, position) -> None:
