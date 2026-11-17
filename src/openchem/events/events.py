@@ -549,6 +549,7 @@ class CalculationFinished(Event):
 
     calculator_id: str
     molecule_uuid: str
+    request_id: str = ""
 
 
 @dataclass(frozen=True)

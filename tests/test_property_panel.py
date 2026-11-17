@@ -98,9 +98,11 @@ class _FakeDescriptorService:
 
     def __init__(self) -> None:
         self.calls: list[tuple[MoleculeModel, CalculationRequest]] = []
+        self.snapshots: list = []
 
-    def run_calculator(self, model: MoleculeModel, request: CalculationRequest) -> None:
+    def run_calculator(self, model: MoleculeModel, request: CalculationRequest, *, snapshot=None) -> None:
         self.calls.append((model, request))
+        self.snapshots.append(snapshot)
 
 
 def _make_panel(qapp, calculator_registry: CalculatorRegistry | None = None):
@@ -334,6 +336,8 @@ def test_clicking_open_on_a_parameterized_calculator_uses_the_settings_dialog(qa
 
         def parameters(self):
             return {"pH": 2.0}
+
+        run_family = False
 
     monkeypatch.setattr(property_panel_module, "CalculatorSettingsDialog", _FakeSettingsDialog)
 

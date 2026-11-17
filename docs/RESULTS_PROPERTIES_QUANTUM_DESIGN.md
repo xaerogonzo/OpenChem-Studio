@@ -8,9 +8,9 @@ Quantum chemistry is conceptually more calculators with extra steps. Operational
 
 Running calculators is tedious because methods and engines multiply. A learner needs one path that does not pretend a goal **Run** and **Apply to Properties** are the same button. An advanced user needs every method they actually ran kept, collapsible under the quantity it answers, independently deletable, and comparable when the inputs honestly match.
 
-Partial Charge (3D) is the example that makes the gap visible. The calculator offers five models: EEM (Bultinck), QEq, Ionescu EEM, NEEMP EEM, and Jiroušková EEM. Running QEq after EEM must not throw EEM away. The selected/default view may be indicated; the others stay listed. The same rule applies to Quantum Chemistry: a B3LYP/def2-SVP ORCA job and an M06-2X job are distinct; ORCA and Psi4 never share a label even when the functional name matches (they already differ by 37 mEh on water).
+Partial Charge (3D) is the example that makes the gap visible. The calculator offers six models: EEM (Bultinck), QEq, two Ionescu EEM parameterisations, NEEMP EEM, and Jiroušková EEM. Running QEq after EEM must not throw EEM away. The selected/default view may be indicated; the others stay listed. The same rule applies to Quantum Chemistry: a B3LYP/def2-SVP ORCA job and an M06-2X job are distinct; ORCA and Psi4 never share a label even when the functional name matches (they already differ by 37 mEh on water).
 
-Do **not** auto-run every method in a family. That is slow and scientifically noisy. The person chooses the next method on the calculator that owns it.
+A method family is never expanded because a calculator is ticked or included in a bulk run. A person may explicitly request the complete family from a calculator that declares a family axis. That action runs each declared choice in sequence, on one selected molecule and one captured input, using the same remaining settings. Ordinary OK, Run selected, and Project table Fill continue to run one method.
 
 ## 2. Learner and advanced paths (shipped controls)
 
@@ -32,9 +32,9 @@ Do **not** auto-run every method in a family. That is slow and scientifically no
 
 Results does not launch or rerun calculations. Opening, filtering, comparing, or deleting must not start a job.
 
-## 3. What exists today (do not describe it as job history)
+## 3. What exists today
 
-Three roles, of which only two have stores.
+Three roles, all of which have stores after the Results history hub (#630, #631). The cache is still not job history.
 
 ### Result cache — `SessionResultStore`
 
@@ -60,22 +60,24 @@ Delete goes through `ResultStoreService.delete_quantum_chemistry_run()`: the pro
 
 The Quantum Chemistry panel already has a runs combo, delete, and **Compare NMR Shifts** (two NMR runs, same molecule, refuses unsafe atom numbering). That is not general Quantum-job compare, and not cross-molecule compare.
 
-### Property calculation history — missing
+### Property calculation history — `PropertyExecutionStore`
 
-There is no durable, independently deletable record of every ordinary calculator invocation. `fresh_results()` picks the best retained method version for each `(result_id, calculation_input)` slot. That is a current-value projection, not a method archive.
+Documented in `src/openchem/domain/property_execution.py`. A dedicated collection, independent of `SessionResultStore.put()` keys: each ordinary calculator invocation that is history-worthy mints a `PropertyExecution` (execution id, producer, method/model, parameters key, fingerprints, status, outputs). Identical cache hits still mint a new execution. Always-on descriptors, structural alerts, and Quantum cache projections (`source_run_id`) stay current-value rows only.
 
-## 4. Architecture: Option B
+`fresh_results()` still picks the best retained method version for each `(result_id, calculation_input)` slot. That projection is not the history; Results reads executions from this store.
 
-Keep the cache. Keep the Quantum run store. Add a **dedicated property-execution history**. Results is a **read-only aggregation** over typed sources; delete and compare route to the owning service.
+## 4. Architecture: Option B (shipped)
+
+Keep the cache. Keep the Quantum run store. Keep the **dedicated property-execution history**. Results is a **read-only aggregation** over typed sources; delete and compare route to the owning service.
 
 **Rejected: Option A** (inflate `SessionResultStore` into history) unless a later implementation plan proves the cache contract — replay, trim, bundles, fingerprint save — survives unchanged. Do not count “two stores” by pretending the cache is already history.
 
 ```
 Results hub (UI, no jobs)
-  ├─ property execution history  (new)
-  ├─ QuantumChemistryRunStore    (existing)
+  ├─ PropertyExecutionStore      (ordinary calculator invocations)
+  ├─ QuantumChemistryRunStore
   └─ SessionResultStore          (cache / fresh projection only)
-Properties  → writes cache + (later) property executions
+Properties  → writes cache + property executions
 QC panel    → writes Quantum runs; may also file cache projections
 Project table → across-molecule matrix of the Properties plan; Quantum stays off Fill
 ```
@@ -184,7 +186,7 @@ Recorded so an implementation plan cannot skip them. Recommendations above are t
 9. **Migration** — no invented execution IDs for old `calculation_results`; Quantum runs map 1:1.
 10. **Current versus historical display** — current = input still matches the molecule; historical is listed and labelled, not used as the fresh answer.
 
-**Also later, not this design's first build:** wizard scope versus Properties scope for Quantum staging; a global Method combo; auto-running a method family; putting Quantum on Properties ticks or Fill table.
+**Also later, not this design's first build:** wizard scope versus Properties scope for Quantum staging; a global Method combo; putting Quantum on Properties ticks or Fill table.
 
 ## 13. Non-goals of the design slice
 

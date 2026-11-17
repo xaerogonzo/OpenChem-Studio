@@ -1170,6 +1170,24 @@ ADMET model is about six seconds — and before this the panel showed
 nothing at all for that whole stretch, then the result and its window
 arrived together. It reads as a slow dialog and is not one.
 
+### Running every method of one calculator
+
+Partial Charge (3D) is the calculator that offers a **family of methods**
+(six charge models). **Run selected** and **Fill table** still run only the
+method currently chosen in that calculator’s settings — they never expand
+the family, and Quantum jobs stay off those buttons.
+
+To run the complete family, open **Partial Charge (3D)** from its own
+button and press **Run all methods**. The dialog lists the six labels, in
+the order the calculator declares them (the two Ionescu parameterisations
+are separate), and warns that some models may refuse this structure. There
+is no way to cancel the rest of the queue after it starts. Confirming
+closes the dialog and runs each method in sequence on the molecule that was
+selected at confirm, using one captured geometry and the other settings
+from that dialog. Switching molecule hides the progress for the new
+selection; it does not stop or redirect the queue. Each method is kept as
+its own history row under that calculator.
+
 ### Choosing some of the always-on properties
 
 With **Run on** set to more than one molecule, **Include always-on properties** and
@@ -2785,7 +2803,7 @@ the net charge.
 **What each one does, and what its number means, is explained in the
 [calculator reference](CALCULATOR_REFERENCE.md)** -- the idea behind the model,
 what it was fitted to, when to prefer it and when not: [Partial Charge
-(3D)](CALCULATOR_REFERENCE.md#partial-charge-3d) for EEM, QEq and Ionescu,
+(3D)](CALCULATOR_REFERENCE.md#partial-charge-3d) for the six 3D models,
 [Partial Charge (pH-dependent)](CALCULATOR_REFERENCE.md#partial-charge-ph-dependent)
 for Gasteiger and MMFF94, and [Dipole Moment](CALCULATOR_REFERENCE.md#dipole-moment).
 This page is the short comparison; that one is the reason behind it.
@@ -2807,7 +2825,8 @@ refusing. A number that comes back is not thereby shown to be reasonable.
 
 **What actually differs between them.** The names in a calculator's *Method* list
 (`eem_bultinck2002_part1`, `qeq_rg1991_lambda_half_h_experimental`,
-`eem_ionescu2013_e_mpa_631gs_gas`) are stored codes, and each is decoded in the
+the two Ionescu codes, `eem_neemp2016_ccd_gen_npa`,
+`eem_jirouskova2009_b3lyp_mk`) are stored codes, and each is decoded in the
 [calculator reference](CALCULATOR_REFERENCE.md#partial-charge-3d). The models differ
 in what they were built from and in how two charges interact, and those two choices
 are most of why the numbers differ:
@@ -2818,7 +2837,10 @@ are most of why the numbers differ:
 | MMFF94 | one fixed increment per bond type, fitted with the rest of the force field to Hartree-Fock dipoles and interaction energies | none: a lookup by atom types | no | Halgren 1996 (part II), J. Comput. Chem. 17, 520-552 |
 | EEM (Bultinck 2002) | an effective electronegativity and hardness per element, fitted to B3LYP/6-31G* Mulliken charges of 138 small molecules | plain Coulomb, 1/R between every pair | yes | Bultinck et al. 2002, DOI 10.1021/jp0205463 |
 | QEq (Rappé-Goddard 1991) | experimental ionization potentials, electron affinities and atomic radii; not fitted to quantum charges | Coulomb **shielded** by the atoms' size (Slater orbitals); hydrogen's parameters depend on its own charge | yes | Rappé & Goddard 1991, DOI 10.1021/j100161a070 |
-| EEM (Ionescu 2013) | an effective electronegativity and hardness per element, fitted to Hartree-Fock Mulliken charges of large protein fragments | Coulomb with an adjusting factor k | yes | Ionescu et al. 2013, DOI 10.1021/ci400448n |
+| EEM (Ionescu 2013, 6-31G*) | an effective electronegativity and hardness per element, fitted to Hartree-Fock Mulliken charges of large protein fragments | Coulomb with an adjusting factor k | yes | Ionescu et al. 2013, DOI 10.1021/ci400448n |
+| EEM (Ionescu 2013, 6-31G**) | the same Ionescu protein-fragment model with the 6-31G** Mulliken parameterisation | Coulomb with an adjusting factor k | yes | Ionescu et al. 2013, DOI 10.1021/ci400448n |
+| EEM (NEEMP 2016) | element and highest-bond-order types fitted to NPA charges of PDB ligands | plain Coulomb, 1/R between every pair | yes | Geidl et al. 2015/2016 NEEMP Ccd2016 |
+| EEM (Jiroušková 2009) | typed EEM fitted to B3LYP/6-31G* Merz-Kollman charges; offered here only where it was checked (Cl, Br, S) | plain Coulomb, 1/R between every pair | yes | Jiroušková et al. 2009 |
 
 "Built from" is the paper's own description. Which one is right for *your*
 molecule is a question none of them answers on its own, which is why this
@@ -2830,7 +2852,10 @@ application reports each as what it is and ranks none.
 | **Partial Charge (pH-dependent)** — MMFF94 bond-charge increments | the 2D drawing, likewise | molecules MMFF94 has atom types for | a structure MMFF94 has no atom type for (boron trifluoride and xenon difluoride, tried) |
 | **Partial Charge (3D)** — EEM (Bultinck 2002, part I) | a real 3D conformer with explicit hydrogens | H, C, N, O and F, with that paper's own parameters | an element outside those five |
 | **Partial Charge (3D)** — QEq (Rappé and Goddard 1991) | a real 3D conformer with explicit hydrogens | the 16 elements of its Table I | a molecule where its iteration does not settle, or where a charge reaches its bound |
-| **Partial Charge (3D)** — Ionescu EEM (2013) | a real 3D conformer with explicit hydrogens | H, C, N, O, S and Ca; anything else is labelled an extrapolation | sulfur bonded to oxygen, and any charge beyond 2.051 e |
+| **Partial Charge (3D)** — Ionescu EEM (2013), Mulliken 6-31G* | a real 3D conformer with explicit hydrogens | H, C, N, O, S and Ca; anything else is labelled an extrapolation | sulfur bonded to oxygen, and any charge beyond 2.051 e |
+| **Partial Charge (3D)** — Ionescu EEM (2013), Mulliken 6-31G** | a real 3D conformer with explicit hydrogens | the same Ionescu element set as 6-31G* | sulfur bonded to oxygen, and any charge beyond 2.051 e |
+| **Partial Charge (3D)** — NEEMP EEM (2016, NPA 6-311G) | a real 3D conformer with explicit hydrogens | H, C, N, O, F, S, Cl, Br and P, typed by element and highest bond order | boron, iodine, metals, trivalent phosphorus, several components, unpaired electrons |
+| **Partial Charge (3D)** — Jiroušková EEM (2009, Merz-Kollman 6-31G*) | a real 3D conformer with explicit hydrogens | offered only for molecules that contain chlorine, bromine or sulfur | none of those elements, sulfur bonded to oxygen or doubly bonded, acetylenes and nitriles |
 
 "Tried" means measured on 2026-09-24 over ethanol, tetramethylsilane, sodium
 chloride, ferrocene, boron trifluoride, dimethyl sulfoxide and xenon

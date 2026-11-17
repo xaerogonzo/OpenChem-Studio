@@ -14,6 +14,7 @@ from PySide6.QtWidgets import (
     QFormLayout,
     QLabel,
     QLineEdit,
+    QMessageBox,
     QPushButton,
     QSpinBox,
     QVBoxLayout,
@@ -21,6 +22,7 @@ from PySide6.QtWidgets import (
 )
 
 from openchem.domain.calculator import CalculatorDefinition, CalculatorParameter, active_parameters
+from openchem.domain.method_family import family_axis_of, family_choice_labels
 from openchem.domain.calculator_support import Visibility, help_anchor_for, is_classified, support_of
 from openchem.domain.refusal_kinds import InputProblem, MissingInput
 from openchem.ui import theme
@@ -69,6 +71,21 @@ def needed_input_phrases(definition: CalculatorDefinition, needed: Sequence[Miss
             head = f"{head} ({item.units})"
         phrases.append(head + _PROBLEM_WORDS.get(item.problem, ""))
     return phrases
+
+
+#: Run every declared method of this calculator, in order, on the selected molecule.
+_RUN_ALL_METHODS_HELP = HelpTooltip(
+    text=(
+        "Runs every method this calculator declares, one after another, on the "
+        "selected molecule as it is now. Shared settings (pH, resonance, …) apply "
+        "to all of them. Ordinary OK, Run selected and Fill table still run one "
+        "method. There is no way to cancel the rest of the queue after it starts."
+    ),
+    tier=2,
+    help_id="calculator.run_all_methods",
+    topic="properties",
+    help_anchor="properties",
+)
 
 
 #: The button that opens this calculator's own section of the reference. One
@@ -302,6 +319,7 @@ class CalculatorSettingsDialog(QDialog):
         molecules: Sequence[MoleculeChoice] = (),
         needed: Sequence[MissingInput] = (),
         values: Mapping[str, Any] | None = None,
+        allow_family: bool = True,
     ) -> None:
         # KEYWORD-ONLY WITH AN EMPTY DEFAULT, so every existing caller
         # is untouched -- including `ui/dialogs/inventory.py`, which
@@ -317,6 +335,9 @@ class CalculatorSettingsDialog(QDialog):
         self.setWindowTitle(definition.display_name)
         self._widgets: dict[str, QWidget] = {}
         self._parameters = definition.parameters
+        #: True when the person confirmed **Run all methods**, not ordinary OK.
+        self.run_family = False
+        self._allow_family = allow_family
 
         layout = QVBoxLayout(self)
         if definition.description:
@@ -380,6 +401,13 @@ class CalculatorSettingsDialog(QDialog):
         buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel, self)
         buttons.accepted.connect(self.accept)
         buttons.rejected.connect(self.reject)
+        if allow_family and family_axis_of(definition) is not None:
+            run_all = QPushButton("Run all methods", self)
+            run_all.setObjectName("runAllMethods")
+            run_all.setAutoDefault(False)
+            apply_help_tooltip(run_all, _RUN_ALL_METHODS_HELP)
+            run_all.clicked.connect(self._on_run_all_methods)
+            buttons.addButton(run_all, QDialogButtonBox.ButtonRole.ActionRole)
         about = QPushButton("About this calculator", self)
         about.setObjectName("aboutCalculator")
         about.setAutoDefault(False)
@@ -388,6 +416,31 @@ class CalculatorSettingsDialog(QDialog):
         buttons.addButton(about, QDialogButtonBox.ButtonRole.HelpRole)
         self._help_window = None
         layout.addWidget(buttons)
+
+    def _on_run_all_methods(self, _checked: bool = False) -> None:
+        axis = family_axis_of(self._definition)
+        if axis is None:
+            return
+        labels = family_choice_labels(axis)
+        listed = "\n".join(f"• {label}" for label in labels)
+        choice = QMessageBox.question(
+            self,
+            "Run all methods",
+            (
+                f"Run these {len(labels)} methods on the selected molecule, "
+                "with the other settings on this dialog?\n\n"
+                f"{listed}\n\n"
+                "Some methods may refuse this structure; those refusals stay in history. "
+                "The molecule is captured now, so an edit while they run does not mix geometries. "
+                "There is no way to cancel the rest of the queue after it starts."
+            ),
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+            QMessageBox.StandardButton.No,
+        )
+        if choice != QMessageBox.StandardButton.Yes:
+            return
+        self.run_family = True
+        self.accept()
 
     def _on_about_clicked(self, _checked: bool = False) -> None:
         """Open this calculator's section of the reference, in a window that is a

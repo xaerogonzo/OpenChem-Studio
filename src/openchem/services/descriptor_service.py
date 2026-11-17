@@ -531,6 +531,7 @@ class _CalculationTask(QRunnable):
                 CalculationFinished(
                     calculator_id=self._request.calculator_id,
                     molecule_uuid=self._model.uuid,
+                    request_id=self._request.request_id,
                 )
             )
 
@@ -717,11 +718,28 @@ class _CalculationTask(QRunnable):
         # every current consumer (PropertyPanel, Calculator Inspector)
         # already knows how to render via ScientificResult.error -- no new
         # event type needed for a calculator-not-found/crashed report.
+        #
+        # The family-axis code from this request is kept on the dataset so a
+        # failed family row is still identifiable as that method. Without it,
+        # method_model_of would only have parameters_key (a hash).
+        axis_method = ""
+        for key in ("method", "model", "charge_model"):
+            value = (self._request.parameters or {}).get(key)
+            if value:
+                axis_method = str(value)
+                break
+        parameters = (
+            refusal_parameters(code, kind, missing_inputs, classified=classified)
+            if code
+            else {}
+        )
+        if axis_method:
+            parameters = {**parameters, "method": axis_method}
         dataset = PerAtomDataset(
             property_id=self._request.calculator_id,
             name=self._request.calculator_id,
             units="",
-            method="",
+            method=axis_method,
             molecule_uuid=self._model.uuid,
             values={},
             cache_state=CacheState.FAILED,
@@ -734,10 +752,12 @@ class _CalculationTask(QRunnable):
             # `refusal_parameters` so a batch cell says the same thing.
             provenance=(
                 Provenance(
-                    created_by="core", method=self._request.calculator_id,
-                    parameters=refusal_parameters(code, kind, missing_inputs, classified=classified),
+                    created_by="core",
+                    method=axis_method or self._request.calculator_id,
+                    parameters=parameters,
                 )
-                if code else None
+                if parameters
+                else None
             ),
         )
         # The fingerprint BEFORE publishing, so the event carries it: a failure
@@ -833,21 +853,34 @@ class DescriptorService:
         coverage = self.coverage(model, calculator_id)
         return coverage.reason if coverage is not None and coverage.kind is CoverageKind.REFUSES else ""
 
-    def run_calculator(self, model: MoleculeModel, request: CalculationRequest) -> None:
+    def run_calculator(
+        self,
+        model: MoleculeModel,
+        request: CalculationRequest,
+        *,
+        snapshot: InputSnapshot | None = None,
+    ) -> None:
         """On-demand (not eager) calculator dispatch (Phase 18) -- looks up
         `request.calculator_id` in the injected `CalculatorRegistry` and
         runs it off the GUI thread, publishing the result via the existing
         `PerAtomDataComputed`/`AlertComputed` events based on the result's
         type. Named to avoid colliding with
         `QuantumChemistryService.request_calculation`, an unrelated
-        existing ORCA-specific method."""
+        existing ORCA-specific method.
+
+        `snapshot` is the molecule the worker must read. A method-family
+        queue captures one at confirm and hands it to every request so an
+        edit mid-queue cannot mix geometries. Ordinary callers omit it
+        and this captures now.
+        """
         # **FROZEN HERE, ON THE CALLING THREAD, AND THE WORKER READS NOTHING
         # ELSE.** The task used to be handed the live model and read it at
         # several moments while the GUI kept editing, then stamped the result
         # with the structure version as it stood WHEN THE RESULT CAME BACK --
         # so a value computed for structure A that finished after an edit to B
         # read as current for B. See `domain.input_snapshot`.
-        snapshot = InputSnapshot.capture(model, self._structure_version_of)
+        if snapshot is None:
+            snapshot = InputSnapshot.capture(model, self._structure_version_of)
         dispatched_version = snapshot.structure_version
         self._pool.start(
             _CalculationTask(

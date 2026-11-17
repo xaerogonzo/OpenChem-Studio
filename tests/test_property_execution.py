@@ -232,6 +232,66 @@ def test_identical_cache_hit_still_mints_an_execution():
     assert held[0].execution_id != held[1].execution_id
 
 
+def test_failed_family_row_is_identifiable_by_method():
+    from openchem.domain.common import CacheState
+    from openchem.domain.property_execution import method_model_of
+
+    method = "eem_ionescu2013_e_mpa_631gs_gas"
+    dataset = PerAtomDataset(
+        property_id="geometry_partial_charge",
+        name="geometry_partial_charge",
+        units="",
+        method=method,
+        molecule_uuid="m1",
+        values={},
+        cache_state=CacheState.FAILED,
+        error="outside the parameter set",
+    )
+    stored = StoredResult(
+        identity=ResultIdentity(
+            molecule_uuid="m1",
+            result_id="geometry_partial_charge",
+            calculation_input="geometry",
+            input_fingerprint="fp",
+            producer="geometry_partial_charge",
+            parameters_key="not-a-blank-hash-only",
+        ),
+        result=dataset,
+    )
+    execution = execution_from_stored(stored)
+    assert execution.method_model == method
+    assert method_model_of(stored) == method
+    assert execution.status is ExecutionStatus.FAILED
+
+
+def test_generic_failed_path_falls_back_to_parameters_key():
+    from openchem.domain.common import CacheState
+    from openchem.domain.property_execution import method_model_of
+
+    dataset = PerAtomDataset(
+        property_id="geometry_partial_charge",
+        name="geometry_partial_charge",
+        units="",
+        method="",
+        molecule_uuid="m1",
+        values={},
+        cache_state=CacheState.FAILED,
+        error="crashed",
+    )
+    stored = StoredResult(
+        identity=ResultIdentity(
+            molecule_uuid="m1",
+            result_id="geometry_partial_charge",
+            calculation_input="geometry",
+            input_fingerprint="fp",
+            producer="geometry_partial_charge",
+            parameters_key="method=eem_bultinck2002_part1",
+        ),
+        result=dataset,
+    )
+    assert method_model_of(stored) == "method=eem_bultinck2002_part1"
+
+
 def test_failed_result_is_recorded_as_a_failed_execution():
     from openchem.domain.common import CacheState
     from openchem.events.events import ResultRecorded

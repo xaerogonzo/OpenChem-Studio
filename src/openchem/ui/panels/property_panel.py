@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from dataclasses import replace
+from dataclasses import dataclass, replace
 
 import logging
 import os
@@ -41,6 +41,12 @@ from openchem.domain.calculator import (
     CalculatorDefinition,
     RegistryExecution,
     ServiceExecution,
+)
+from openchem.domain.input_snapshot import InputSnapshot
+from openchem.domain.method_family import (
+    family_axis_of,
+    family_choice_labels,
+    family_requests,
 )
 from openchem.domain.batch import BatchRequest
 from openchem.domain.calculator_support import help_anchor_for, is_offered_by_default
@@ -1761,6 +1767,30 @@ def _exported_text(widget: QWidget | None) -> str:
     return _unelided_text(widget)
 
 
+@dataclass
+class _MethodFamilyQueue:
+    """Sequential Run-all-methods work, independent of the selected-molecule chips."""
+
+    calculator_id: str
+    molecule_uuid: str
+    snapshot: InputSnapshot
+    requests: list[CalculationRequest]
+    labels: list[str]
+    index: int = 0
+
+    @property
+    def active_request(self) -> CalculationRequest:
+        return self.requests[self.index]
+
+    @property
+    def done(self) -> bool:
+        return self.index >= len(self.requests)
+
+    def status_text(self) -> str:
+        label = self.labels[self.index]
+        return f"Running {self.index + 1} of {len(self.requests)}: {label}…"
+
+
 class PropertyPanel(QWidget):
     """Categorized, collapsible descriptor view.
 
@@ -2063,6 +2093,8 @@ class PropertyPanel(QWidget):
         #: Ticked calculators currently in flight, so one cannot be
         #: queued twice from repeated clicks.
         self._running_calculator_ids: set[str] = set()
+        #: One explicit method-family sweep, or None. Not cleared on molecule change.
+        self._family_queue: _MethodFamilyQueue | None = None
         #: calculator_id -> the "Running..." label on that calculator's own
         #: row. Built with the row and hidden, rather than inserted and
         #: removed around each run: this panel's layout is delicate enough
@@ -2419,6 +2451,12 @@ class PropertyPanel(QWidget):
             status.setVisible(False)
         self._batch_status.setText("")
         self._refresh_batch_hint()
+        queue = self._family_queue
+        family_status = self._family_status_for_selection()
+        if queue is not None and family_status:
+            self._running_calculator_ids.add(queue.calculator_id)
+            self._refresh_status_chip(queue.calculator_id)
+            self._batch_status.setText(family_status)
         self._value_labels.clear()
         # The VALUES too, not only their labels. They feed the results
         # reader's "Molecular Properties" entry, so a leftover set would put
@@ -3058,11 +3096,102 @@ class PropertyPanel(QWidget):
         indicator would otherwise be stuck permanently, which is worse
         than never having shown one.
         """
+        if self._on_family_calculation_finished(event):
+            return
         # RECORDED BEFORE the chip refreshes, because the chip reads it.
         self._finished_calculator_ids.add(event.calculator_id)
         self._set_running(event.calculator_id, False)
         if not self._running_calculator_ids and self._batch_status.text().startswith("Running"):
             self._batch_status.setText("Finished.")
+
+    def _family_blocks(self, calculator_id: str, _molecule_uuid: str) -> bool:
+        """True when a method-family queue already owns this calculator."""
+        queue = self._family_queue
+        return queue is not None and not queue.done and queue.calculator_id == calculator_id
+
+    def _family_status_for_selection(self) -> str:
+        queue = self._family_queue
+        if (
+            queue is None
+            or queue.done
+            or self._selected_molecule_uuid != queue.molecule_uuid
+        ):
+            return ""
+        return queue.status_text()
+
+    def _start_method_family(
+        self,
+        definition: CalculatorDefinition,
+        molecule,
+        values: dict[str, object],
+    ) -> None:
+        axis = family_axis_of(definition)
+        if axis is None:
+            return
+        if self._family_queue is not None and not self._family_queue.done:
+            self._batch_status.setText(
+                "Already running every method. Wait until that queue finishes."
+            )
+            return
+        if definition.calculator_id in self._running_calculator_ids:
+            self._batch_status.setText(
+                f"{definition.display_name} is already running on this molecule."
+            )
+            return
+        requests = family_requests(definition, molecule.uuid, values)
+        labels = family_choice_labels(axis)
+        snapshot = InputSnapshot.capture(molecule, self._structure_version_of)
+        self._family_queue = _MethodFamilyQueue(
+            calculator_id=definition.calculator_id,
+            molecule_uuid=molecule.uuid,
+            snapshot=snapshot,
+            requests=requests,
+            labels=labels,
+        )
+        self._pending_calculator_id = None
+        self._set_running(definition.calculator_id, True)
+        self._batch_status.setText(self._family_queue.status_text())
+        self._dispatch_family_active()
+
+    def _dispatch_family_active(self) -> None:
+        queue = self._family_queue
+        if queue is None or queue.done:
+            return
+        self._descriptor_service.run_calculator(
+            queue.snapshot.model,
+            queue.active_request,
+            snapshot=queue.snapshot,
+        )
+
+    def _on_family_calculation_finished(self, event) -> bool:
+        """Advance the family queue only on the matching request_id. True if handled."""
+        queue = self._family_queue
+        if queue is None or queue.done:
+            return False
+        if event.calculator_id != queue.calculator_id:
+            return False
+        if event.molecule_uuid != queue.molecule_uuid:
+            return False
+        if event.request_id != queue.active_request.request_id:
+            return True
+        self._finished_calculator_ids.add(event.calculator_id)
+        queue.index += 1
+        if queue.done:
+            self._family_queue = None
+            self._set_running(event.calculator_id, False)
+            if self._selected_molecule_uuid == event.molecule_uuid:
+                self._batch_status.setText("Finished.")
+            elif self._batch_status.text().startswith("Running"):
+                self._batch_status.setText("")
+            return True
+        if self._selected_molecule_uuid == queue.molecule_uuid:
+            self._batch_status.setText(queue.status_text())
+            self._refresh_status_chip(queue.calculator_id)
+        else:
+            if self._batch_status.text().startswith("Running"):
+                self._batch_status.setText("")
+        self._dispatch_family_active()
+        return True
 
     def _show_result(self, result_id: str, name: str, category: str, result: object) -> None:
         """Render a result whose detail belongs in a dialog.
@@ -4317,7 +4446,7 @@ class PropertyPanel(QWidget):
         definition = self._calculator_registry.get(calculator_id)
         if definition is None or not definition.parameters:
             return
-        dialog = CalculatorSettingsDialog(definition, self)
+        dialog = CalculatorSettingsDialog(definition, self, allow_family=False)
         if dialog.exec() != QDialog.DialogCode.Accepted:
             return
         self._project_parameters[calculator_id] = dialog.parameters()
@@ -4428,6 +4557,8 @@ class PropertyPanel(QWidget):
             # re-entrancy worth guarding: the pool would happily run it
             # twice and publish two results for one molecule.
             if calculator_id in self._running_calculator_ids:
+                continue
+            if self._family_blocks(calculator_id, molecule.uuid):
                 continue
             self._set_running(calculator_id, True)
             self._descriptor_service.run_calculator(
@@ -5216,7 +5347,15 @@ class PropertyPanel(QWidget):
             dialog = CalculatorSettingsDialog(definition, self, molecules=choices, **extra)
             if dialog.exec() != QDialog.DialogCode.Accepted:
                 return
+            if dialog.run_family:
+                self._start_method_family(definition, molecule, dialog.parameters())
+                return
             parameters = dialog.parameters()
+        if self._family_blocks(definition.calculator_id, molecule.uuid):
+            self._batch_status.setText(
+                f"{definition.display_name} is already running every method on this molecule."
+            )
+            return
         self._pending_calculator_id = definition.calculator_id
         # Shown BEFORE dispatch, not after: `run_calculator` hands the job
         # to a thread pool and returns immediately, but the settings dialog
