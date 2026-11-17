@@ -2419,12 +2419,13 @@ CALCULATOR_DEFINITIONS: list[CalculatorDefinition] = [
         display_name="Partial Charge (3D)",
         category="charge",
         description=(
-            "Partial charges that depend on the 3D geometry, by one of five models. EEM: Bultinck's "
+            "Partial charges that depend on the 3D geometry, by one of six models. EEM: Bultinck's "
             "electronegativity equalization (2002, part I) with that paper's own parameters for H, C, "
             "N, O and F. QEq: Rappé and Goddard's charge equilibration (1991) with lambda = 1/2 and "
             "its experimental hydrogen parameters, for the 16 elements of its Table I; it refuses "
             "molecules where its iteration does not settle or a charge reaches its bound. Ionescu EEM: "
-            "Ionescu et al.'s 2013 protein-fragment models (Mulliken, 6-31G* or 6-31G**, gas phase) for "
+            "Ionescu et al.'s 2013 protein-fragment models as two separate Mulliken parameterisations "
+            "(6-31G* or 6-31G**, gas phase) for "
             "H, C, N, O, S and Ca, reported as an extrapolation on anything else; it refuses a sulfur "
             "bonded to oxygen and any charge beyond 2.051 e. NEEMP EEM: the 2016 Ccd2016 model fitted to "
             "NPA charges of PDB ligands, typed by element and highest bond order, which covers H, C, N, "
@@ -2455,6 +2456,7 @@ CALCULATOR_DEFINITIONS: list[CalculatorDefinition] = [
                 default=EEM_BULTINCK2002_PART1,
                 choices=list(GEOMETRY_CHARGE_METHODS),
                 choice_labels=[GEOMETRY_CHARGE_METHOD_LABELS[m] for m in GEOMETRY_CHARGE_METHODS],
+                family_axis=True,
             ),
             CalculatorParameter(
                 # Stored as codes, never as the words on the screen. Only the NEEMP method reads it; the others

@@ -1,8 +1,11 @@
 from __future__ import annotations
 
-from PySide6.QtWidgets import QCheckBox, QComboBox, QDoubleSpinBox, QSpinBox
+from PySide6.QtWidgets import QCheckBox, QComboBox, QDialog, QDoubleSpinBox, QMessageBox, QPushButton, QSpinBox
 
+from openchem.chem.descriptor_providers import CALCULATOR_DEFINITIONS
 from openchem.domain.calculator import CalculatorDefinition, CalculatorParameter, RegistryExecution
+from openchem.domain.method_family import family_shared_parameters
+import openchem.ui.dialogs.calculator_settings_dialog as settings_dialog_module
 from openchem.ui.dialogs.calculator_settings_dialog import CalculatorSettingsDialog
 
 _NOOP_EXECUTION = RegistryExecution(compute=lambda mol, uuid, params: None)
@@ -357,3 +360,72 @@ def test_the_chooser_passes_text_through_rather_than_judging_it():
     assert dialog.parameters() == {"partner_smiles": "not a molecule at all"}, (
         "the dialog passes text through; the chem layer decides validity"
     )
+
+
+def _family_definition() -> CalculatorDefinition:
+    return next(d for d in CALCULATOR_DEFINITIONS if d.calculator_id == "geometry_partial_charge")
+
+
+def _choice_without_family() -> CalculatorDefinition:
+    return CalculatorDefinition(
+        calculator_id="plain_choice",
+        display_name="Plain",
+        category="test",
+        description="",
+        execution=_NOOP_EXECUTION,
+        parameters=[
+            CalculatorParameter(
+                name="mode", label="Mode", kind="choice", default="A", choices=["A", "B"]
+            )
+        ],
+    )
+
+
+def test_run_all_methods_is_present_only_when_the_calculator_declares_a_family_axis(qapp):
+    family = CalculatorSettingsDialog(_family_definition())
+    assert family.findChild(QPushButton, "runAllMethods") is not None
+    plain = CalculatorSettingsDialog(_choice_without_family())
+    assert plain.findChild(QPushButton, "runAllMethods") is None
+    project = CalculatorSettingsDialog(_family_definition(), allow_family=False)
+    assert project.findChild(QPushButton, "runAllMethods") is None
+
+
+def test_ok_is_not_a_family_run(qapp):
+    dialog = CalculatorSettingsDialog(_family_definition())
+    dialog.accept()
+    assert dialog.run_family is False
+    assert "method" in dialog.parameters()
+
+
+def test_confirming_run_all_methods_is_a_distinct_intent(qapp, monkeypatch):
+    monkeypatch.setattr(
+        settings_dialog_module.QMessageBox,
+        "question",
+        staticmethod(lambda *a, **k: QMessageBox.StandardButton.Yes),
+    )
+    dialog = CalculatorSettingsDialog(_family_definition())
+    dialog._on_run_all_methods()
+    assert dialog.run_family is True
+    assert dialog.result() == QDialog.DialogCode.Accepted
+
+
+def test_declining_the_family_confirm_dispatches_nothing(qapp, monkeypatch):
+    monkeypatch.setattr(
+        settings_dialog_module.QMessageBox,
+        "question",
+        staticmethod(lambda *a, **k: QMessageBox.StandardButton.No),
+    )
+    dialog = CalculatorSettingsDialog(_family_definition())
+    dialog._on_run_all_methods()
+    assert dialog.run_family is False
+    assert dialog.result() != QDialog.DialogCode.Accepted
+
+
+def test_shared_family_params_omit_the_axis_and_disabled_ph(qapp):
+    definition = _family_definition()
+    dialog = CalculatorSettingsDialog(definition)
+    dialog._widgets["ph_dependent"].setChecked(False)
+    shared = family_shared_parameters(definition, dialog.parameters())
+    assert "method" not in shared
+    assert "pH" not in shared
+    assert shared["ph_dependent"] is False

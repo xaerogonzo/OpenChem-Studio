@@ -128,6 +128,18 @@ def test_each_plan_has_its_own_run_id_unless_one_is_given():
     assert _plan([_calc("a")], ["a"], run_id="fixed").run_id == "fixed"
 
 
+def test_fill_and_run_selected_keep_a_family_calculator_as_one_method():
+    from openchem.chem.descriptor_providers import CALCULATOR_DEFINITIONS
+    from openchem.chem.geometry_charges import GEOMETRY_CHARGE_METHODS
+
+    definition = next(d for d in CALCULATOR_DEFINITIONS if d.calculator_id == "geometry_partial_charge")
+    plan = _plan([definition], ["geometry_partial_charge"], molecules=[_Mol("m1", "One")])
+    assert plan.calculator_ids == ("geometry_partial_charge",)
+    parameters = plan.parameters_for("geometry_partial_charge")
+    assert parameters["method"] == GEOMETRY_CHARGE_METHODS[0]
+    assert list(parameters).count("method") == 1
+
+
 def test_the_module_imports_no_qt():
     import inspect
 

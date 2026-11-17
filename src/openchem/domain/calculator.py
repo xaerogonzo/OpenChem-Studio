@@ -129,6 +129,10 @@ class CalculatorParameter:
     #: validation rule -- the calculator still checks what it is given -- but the
     #: declaration that lets a launcher act before a refusal instead of after one.
     required: bool = False
+    #: True when **Run all methods** may iterate this choice list. At most
+    #: one per calculator; the axis must be an always-on `choice` with unique
+    #: codes. Ordinary OK, Run selected and Fill still send one value.
+    family_axis: bool = False
 
     def __post_init__(self) -> None:
         # AT CONSTRUCTION, so a mismatch is a failing import rather than a
@@ -139,14 +143,27 @@ class CalculatorParameter:
                 f"{self.name}: unknown parameter kind {self.kind!r}; "
                 f"expected one of {sorted(PARAMETER_KINDS)}"
             )
-        if self.choice_labels is None:
+        if self.choice_labels is not None:
+            if self.choices is None:
+                raise ValueError(f"{self.name}: choice_labels without choices")
+            if len(self.choice_labels) != len(self.choices):
+                raise ValueError(
+                    f"{self.name}: {len(self.choice_labels)} choice_labels for "
+                    f"{len(self.choices)} choices -- they are matched positionally"
+                )
+        if not self.family_axis:
             return
-        if self.choices is None:
-            raise ValueError(f"{self.name}: choice_labels without choices")
-        if len(self.choice_labels) != len(self.choices):
+        if self.kind != "choice":
+            raise ValueError(f"{self.name}: family_axis requires kind 'choice'")
+        if self.enabled_by is not None:
+            raise ValueError(f"{self.name}: a family axis cannot be enabled_by {self.enabled_by!r}")
+        if not self.choices:
+            raise ValueError(f"{self.name}: family_axis needs a non-empty choices list")
+        if len(set(self.choices)) != len(self.choices):
+            raise ValueError(f"{self.name}: family_axis choices must be unique")
+        if self.default not in self.choices:
             raise ValueError(
-                f"{self.name}: {len(self.choice_labels)} choice_labels for "
-                f"{len(self.choices)} choices -- they are matched positionally"
+                f"{self.name}: family_axis default {self.default!r} is not one of the choices"
             )
 
 
@@ -409,6 +426,11 @@ class CalculatorDefinition:
         # At construction, so a dangling or circular dependency is a failing
         # import rather than a control that is greyed out forever.
         by_name = {p.name: p for p in self.parameters}
+        axes = [p.name for p in self.parameters if p.family_axis]
+        if len(axes) > 1:
+            raise ValueError(
+                f"{self.calculator_id}: at most one family_axis parameter, not {axes}"
+            )
         for parameter in self.parameters:
             seen = {parameter.name}
             controller_name = parameter.enabled_by
@@ -452,3 +474,7 @@ class CalculationRequest:
     calculator_id: str
     molecule_uuid: str
     parameters: dict[str, Any] = field(default_factory=dict)
+    #: Correlates this dispatch with `CalculationFinished`. Empty for
+    #: ordinary one-off runs; a method-family queue mints a unique id per
+    #: request so a foreign finish cannot advance the queue.
+    request_id: str = ""
