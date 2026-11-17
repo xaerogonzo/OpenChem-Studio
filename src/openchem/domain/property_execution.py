@@ -26,7 +26,9 @@ from dataclasses import dataclass, field
 from typing import Any
 
 from openchem.domain import result_codec
+from openchem.domain.descriptor import DescriptorValue
 from openchem.domain.result_store import ResultIdentity, StoredResult
+from openchem.domain.scientific_result import AlertResult
 
 logger = logging.getLogger("openchem.property_execution")
 
@@ -58,6 +60,8 @@ def _identity_to_dict(identity: ResultIdentity) -> dict[str, Any]:
         "parameters_key": identity.parameters_key,
         "method_version": identity.method_version,
     }
+    if identity.source_run_id:
+        payload["source_run_id"] = identity.source_run_id
     return payload
 
 
@@ -70,6 +74,7 @@ def _identity_from_dict(data: dict[str, Any]) -> ResultIdentity:
         producer=str(data.get("producer", "")),
         parameters_key=str(data.get("parameters_key", "")),
         method_version=str(data.get("method_version", "")),
+        source_run_id=str(data.get("source_run_id", "")),
     )
 
 
@@ -295,3 +300,24 @@ def execution_from_stored(stored: StoredResult, *, status: ExecutionStatus | Non
         error=str(getattr(stored.result, "error", "") or ""),
         outputs=[stored],
     )
+
+
+#: Always-on descriptor/alert batch and substance perception — not a Properties Run.
+_NOT_HISTORY_PRODUCERS = frozenset({"rdkit", "substance_analysis"})
+
+
+def is_history_worthy(stored: StoredResult) -> bool:
+    """True when `stored` is a user-dispatched calculator output.
+
+    Always-on molecular properties, structural alerts, and Quantum cache
+    projections (those carry `source_run_id`) are current-value rows only.
+    """
+    identity = stored.identity
+    if identity.source_run_id:
+        return False
+    if identity.producer in _NOT_HISTORY_PRODUCERS:
+        return False
+    result = stored.result
+    if isinstance(result, (DescriptorValue, AlertResult)):
+        return False
+    return True

@@ -2038,11 +2038,17 @@ class MainWindow(QMainWindow):
     def _on_history_compare_requested(self, report) -> None:
         from openchem.domain.compare import ComparedResult, CompareRefusal, compare
         from openchem.domain.history_compare import (
+            named_compare_rows,
+            named_values_from_execution,
+            named_values_from_quantum_run,
             property_executions_comparable,
             quantum_runs_comparable,
         )
         from openchem.domain.scientific_result import PerAtomDataset
-        from openchem.ui.dialogs.compare_results_dialog import CompareResultsDialog
+        from openchem.ui.dialogs.compare_results_dialog import (
+            CompareResultsDialog,
+            NamedValueCompareDialog,
+        )
 
         service = self._services.result_store_service
         if service is None:
@@ -2090,40 +2096,30 @@ class MainWindow(QMainWindow):
         if kind == "quantum":
             spectrum_a = left.results.get("spectrum")
             spectrum_b = right.results.get("spectrum")
-            if spectrum_a is None or spectrum_b is None:
-                QMessageBox.information(
-                    self,
-                    "Compared",
-                    (
-                        f"{_history_compare_label(left)}\n"
-                        f"{_history_compare_label(right)}\n\n"
-                        "Those jobs are compatible. Open each in Results to read the values; "
-                        "NMR shift tables need a spectrum on both runs."
-                    ),
-                )
+            if spectrum_a is not None and spectrum_b is not None:
+                compared = []
+                for run, spectrum in ((left, spectrum_a), (right, spectrum_b)):
+                    dataset = PerAtomDataset(
+                        property_id="nmr_shift",
+                        name=f"NMR shift ({run.method_basis}, {run.provider})",
+                        units=getattr(spectrum, "units", ""),
+                        method=run.method_basis,
+                        molecule_uuid=run.molecule_uuid,
+                        values=dict(spectrum.values),
+                    )
+                    compared.append(ComparedResult(dataset, run.input_fingerprint, run.calculation_input))
+                outcome = compare(compared)
+                if isinstance(outcome, CompareRefusal):
+                    QMessageBox.information(self, "Cannot compare", outcome.message)
+                    return
+                symbols = dict(getattr(spectrum_a, "elements", {}) or {})
+                self._show_atom_history_compare(outcome, symbols, left.molecule_uuid)
                 return
-            compared = []
-            for run, spectrum in ((left, spectrum_a), (right, spectrum_b)):
-                dataset = PerAtomDataset(
-                    property_id="nmr_shift",
-                    name=f"NMR shift ({run.method_basis}, {run.provider})",
-                    units=getattr(spectrum, "units", ""),
-                    method=run.method_basis,
-                    molecule_uuid=run.molecule_uuid,
-                    values=dict(spectrum.values),
-                )
-                compared.append(ComparedResult(dataset, run.input_fingerprint, run.calculation_input))
-            outcome = compare(compared)
-            if isinstance(outcome, CompareRefusal):
-                QMessageBox.information(self, "Cannot compare", outcome.message)
-                return
-            symbols = dict(getattr(spectrum_a, "elements", {}) or {})
-            project = self._session.project
-            molecule = project.find_molecule(left.molecule_uuid) if project is not None else None
-            name = molecule.display_name if molecule is not None else left.molecule_uuid
-            dialog = CompareResultsDialog(outcome, symbols, name, parent=self)
-            dialog.setAttribute(Qt.WidgetAttribute.WA_DeleteOnClose, True)
-            dialog.show()
+            rows = named_compare_rows(
+                named_values_from_quantum_run(left),
+                named_values_from_quantum_run(right),
+            )
+            self._show_named_history_compare(rows, left, right)
             return
         datasets = []
         for execution in (left, right):
@@ -2143,23 +2139,52 @@ class MainWindow(QMainWindow):
             if isinstance(outcome, CompareRefusal):
                 QMessageBox.information(self, "Cannot compare", outcome.message)
                 return
-            symbols = {}
-            project = self._session.project
-            molecule = project.find_molecule(left.molecule_uuid) if project is not None else None
-            name = molecule.display_name if molecule is not None else left.molecule_uuid
-            dialog = CompareResultsDialog(outcome, symbols, name, parent=self)
-            dialog.setAttribute(Qt.WidgetAttribute.WA_DeleteOnClose, True)
-            dialog.show()
+            self._show_atom_history_compare(outcome, {}, left.molecule_uuid)
             return
-        QMessageBox.information(
-            self,
-            "Compared",
-            (
-                f"{_history_compare_label(left)}\n"
-                f"{_history_compare_label(right)}\n\n"
-                "Those runs are compatible. Open each in Results to read the values."
-            ),
+        rows = named_compare_rows(
+            named_values_from_execution(left),
+            named_values_from_execution(right),
         )
+        self._show_named_history_compare(rows, left, right)
+
+    def _history_molecule_name(self, molecule_uuid: str) -> str:
+        project = self._session.project
+        molecule = project.find_molecule(molecule_uuid) if project is not None else None
+        return molecule.display_name if molecule is not None else molecule_uuid
+
+    def _show_atom_history_compare(self, outcome, symbols: dict, molecule_uuid: str) -> None:
+        from openchem.ui.dialogs.compare_results_dialog import CompareResultsDialog
+
+        dialog = CompareResultsDialog(
+            outcome, symbols, self._history_molecule_name(molecule_uuid), parent=self
+        )
+        dialog.setAttribute(Qt.WidgetAttribute.WA_DeleteOnClose, True)
+        dialog.show()
+
+    def _show_named_history_compare(self, rows, left, right) -> None:
+        from openchem.ui.dialogs.compare_results_dialog import NamedValueCompareDialog
+
+        if not rows:
+            QMessageBox.information(
+                self,
+                "Compared",
+                (
+                    f"{_history_compare_label(left)}\n"
+                    f"{_history_compare_label(right)}\n\n"
+                    "Those runs are compatible, but neither holds named numbers to tabulate."
+                ),
+            )
+            return
+        molecule_uuid = getattr(left, "molecule_uuid", "")
+        dialog = NamedValueCompareDialog(
+            rows,
+            _history_compare_label(left),
+            _history_compare_label(right),
+            self._history_molecule_name(molecule_uuid),
+            parent=self,
+        )
+        dialog.setAttribute(Qt.WidgetAttribute.WA_DeleteOnClose, True)
+        dialog.show()
 
     def _on_facts_highlighted(self, atom_indices: tuple) -> None:
         """Paint the atoms a hovered fact is about.

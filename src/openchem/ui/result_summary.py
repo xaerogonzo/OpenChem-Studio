@@ -136,6 +136,8 @@ class ResultSummaryView:
     #: Chemical method/model for collapsible Results groups (EEM, QEq, engine+basis).
     method_model: str = ""
     #: `execution` or `quantum` when this row is history rather than the live cache projection.
+    #: Empty on cache-only rows restored from an older file that has no
+    #: property-execution ids — those stay current-value rows, not deletable history.
     history_kind: str = ""
     history_id: str = ""
     #: Input no longer matches the current molecule — labelled historical, not *(stale)*.

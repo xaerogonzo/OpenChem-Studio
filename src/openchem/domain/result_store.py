@@ -332,6 +332,11 @@ class ResultIdentity:
 
     `producer` is the calculator id for a dispatched calculation, or the
     provider id for the always-on batch -- no result carries either itself.
+
+    `source_run_id` tags a cache projection that came from a Quantum job.
+    It is NOT part of `SessionResultStore.put()`'s slot key: the cache is
+    still one current value per quantity. Delete of that run drops rows
+    whose identity carries the same id.
     """
 
     molecule_uuid: str
@@ -344,6 +349,9 @@ class ResultIdentity:
     #: every other result. Part of the slot key, so two methods never share
     #: one. NOT the parameters key: a method is what the numbers MEAN.
     method_version: str = ""
+    #: QuantumChemistryRun.run_id when this row is a current-value projection
+    #: of that job; empty for ordinary calculators and pre-tag files.
+    source_run_id: str = ""
 
 
 @dataclass
@@ -711,6 +719,7 @@ class SessionResultStore:
                     "producer": identity.producer,
                     "parameters_key": identity.parameters_key,
                     **({"method_version": identity.method_version} if identity.method_version else {}),
+                    **({"source_run_id": identity.source_run_id} if identity.source_run_id else {}),
                     "application_version": stored.application_version,
                     "result": encoded,
                 })
@@ -784,6 +793,7 @@ class SessionResultStore:
                 producer=str(raw.get("producer", "")),
                 parameters_key=str(raw.get("parameters_key", "")),
                 method_version=str(raw.get("method_version", "")),
+                source_run_id=str(raw.get("source_run_id", "")),
             )
             if identity.result_id in RETIRED_RESULT_IDS:
                 # Before decoding: a retired entry is dropped for what it IS,

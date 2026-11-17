@@ -62,6 +62,38 @@ def test_quantum_run_rows_use_qc_report_ids(qapp):
     assert "qc:abcd1234ffff" in ids
 
 
+def test_delete_from_history_is_not_offered_on_a_cache_only_row(qapp):
+    from PySide6.QtWidgets import QMenu
+
+    from openchem.ui.widgets.fact_view import FactView
+
+    view = FactView()
+    view.set_report(
+        ResultSummaryView(report_id="MolWt", name="Molecular weight", category="molecular"),
+        "Molecular weight",
+        "",
+    )
+    menu = QMenu()
+    view._add_report_actions(menu)
+    labels = [action.text() for action in menu.actions() if action.text()]
+    assert "Delete from history..." not in labels
+
+
+def test_named_compare_dialog_is_a_table(qapp):
+    from openchem.domain.history_compare import NamedCompareRow
+    from openchem.ui.dialogs.compare_results_dialog import NamedValueCompareDialog
+
+    dialog = NamedValueCompareDialog(
+        [NamedCompareRow("logS", "-0.5", "-0.2", 0.3)],
+        "solubility · a",
+        "solubility · b",
+        "water",
+    )
+    assert dialog._table.rowCount() == 1
+    assert dialog._table.item(0, 0).text() == "logS"
+    assert "logS" in dialog.table_text()
+
+
 def test_delete_from_history_is_offered_on_a_history_row(qapp):
     from PySide6.QtWidgets import QMenu
 

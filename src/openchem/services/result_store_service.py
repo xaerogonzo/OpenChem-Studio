@@ -34,6 +34,7 @@ from openchem.domain.project import ProjectModel
 from openchem.domain.property_execution import (
     PropertyExecutionStore,
     execution_from_stored,
+    is_history_worthy,
 )
 from openchem.domain.quantum_chemistry_run import QuantumChemistryRun, QuantumChemistryRunStore
 from openchem.domain.recipe_run import RecipeRun, RecipeRunStore
@@ -273,11 +274,15 @@ class ResultStoreService:
         session learns it has something unsaved (the file holds the run, and no longer should), and the readers of
         what a run supported are told (`QuantumChemistryRunDeleted`): a kept recipe answer that consumed it is stale
         from this moment, and a pairing window showing its numbers is out of date.
+
+        Cache rows whose identity `source_run_id` is this run are withdrawn
+        too. The engine's reusable wavefunction cache is still not purged.
         """
         run = self.qc_runs.get(run_id)
         if run is None:
             return False
         self.qc_runs.delete(run_id)
+        self.store.discard_where(lambda stored: stored.identity.source_run_id == run_id)
         for callback in list(self._on_recorded):
             callback(run.molecule_uuid)
         self._event_bus.publish(QuantumChemistryRunDeleted(run_id=run_id, molecule_uuid=run.molecule_uuid))
@@ -326,9 +331,13 @@ class ResultStoreService:
         molecule_uuid = event.stored.identity.molecule_uuid
         if not self._belongs(molecule_uuid):
             return
-        if not self.store.put(event.stored):
+        kept = self.store.put(event.stored)
+        minted = False
+        if is_history_worthy(event.stored):
+            self.property_executions.record(execution_from_stored(event.stored))
+            minted = True
+        if not kept and not minted:
             return
-        self.property_executions.record(execution_from_stored(event.stored))
         for callback in list(self._on_recorded):
             callback(molecule_uuid)
 

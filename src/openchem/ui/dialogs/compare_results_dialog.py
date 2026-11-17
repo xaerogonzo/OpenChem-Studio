@@ -208,3 +208,87 @@ class CompareResultsDialog(QDialog):
     def _on_copy(self) -> None:
         QGuiApplication.clipboard().setText(self.table_text())
         self._status.setText("Copied.")
+
+
+class NamedValueCompareDialog(QDialog):
+    """Two compatible history records as a named-value table, not per-atom NMR."""
+
+    def __init__(
+        self,
+        rows,
+        left_label: str,
+        right_label: str,
+        molecule_name: str,
+        parent: QWidget | None = None,
+    ) -> None:
+        super().__init__(parent)
+        self._rows = list(rows)
+        self._left_label = left_label
+        self._right_label = right_label
+        self.setWindowTitle(f"Compare — {molecule_name}")
+        self.resize(720, 420)
+        self.setMinimumSize(480, 280)
+
+        self._summary = QLabel(
+            f"Comparing {left_label} with {right_label}. The first is the reference.",
+            self,
+        )
+        self._summary.setObjectName("namedCompareSummary")
+        self._summary.setWordWrap(True)
+
+        self._table = QTableWidget(self)
+        self._table.setObjectName("namedCompareTable")
+        self._fill_table()
+
+        self._copy_button = QPushButton("Copy", self)
+        self._copy_button.setObjectName("namedCompareCopy")
+        self._copy_button.clicked.connect(self._on_copy)
+        self._close_button = QPushButton("Close", self)
+        self._close_button.setObjectName("namedCompareClose")
+        self._close_button.clicked.connect(self.close)
+        for button in (self._copy_button, self._close_button):
+            button.setAutoDefault(False)
+
+        actions = QHBoxLayout()
+        actions.addWidget(self._copy_button)
+        actions.addStretch(1)
+        actions.addWidget(self._close_button)
+
+        layout = QVBoxLayout(self)
+        layout.addWidget(self._summary)
+        layout.addWidget(self._table, 1)
+        layout.addLayout(actions)
+
+    def _fill_table(self) -> None:
+        headers = ["Quantity", self._left_label, self._right_label, "Δ"]
+        table = self._table
+        table.setSortingEnabled(False)
+        table.setColumnCount(len(headers))
+        table.setHorizontalHeaderLabels(headers)
+        table.setRowCount(len(self._rows))
+        table.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
+        table.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows)
+        table.verticalHeader().setVisible(False)
+        for row_number, row in enumerate(self._rows):
+            table.setItem(row_number, 0, QTableWidgetItem(row.label))
+            table.setItem(row_number, 1, QTableWidgetItem(row.left))
+            table.setItem(row_number, 2, QTableWidgetItem(row.right))
+            if row.delta is None:
+                table.setItem(row_number, 3, QTableWidgetItem("—"))
+            else:
+                table.setItem(row_number, 3, _NumberItem(row.delta, f"{row.delta:+.6g}"))
+        header = table.horizontalHeader()
+        header.setSectionResizeMode(QHeaderView.ResizeMode.ResizeToContents)
+        header.setStretchLastSection(True)
+        table.setSortingEnabled(True)
+
+    def table_text(self) -> str:
+        lines = ["\t".join(["Quantity", self._left_label, self._right_label, "Δ"])]
+        for row in self._rows:
+            delta = "—" if row.delta is None else f"{row.delta:+.6g}"
+            lines.append("\t".join([row.label, row.left, row.right, delta]))
+        return "\n".join(lines)
+
+    def _on_copy(self) -> None:
+        QGuiApplication.clipboard().setText(self.table_text())
+        self._status.setText("Copied.")

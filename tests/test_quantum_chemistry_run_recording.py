@@ -12,6 +12,7 @@ from __future__ import annotations
 import json
 import sys
 import time
+from dataclasses import replace
 from pathlib import Path
 
 import pytest
@@ -667,12 +668,16 @@ def test_two_levels_of_theory_read_differently_but_are_filed_under_one_identity(
     filed.calculate(mol, calc_type="sp", method_basis="HF STO-3G")
 
     first, second = filed.recorded
-    assert first.identity == second.identity
+    # The cache SLOT is the same (put omits source_run_id). Each job still
+    # tags its projection so delete can withdraw that job's rows.
+    slot = lambda identity: replace(identity, source_run_id="")
+    assert slot(first.identity) == slot(second.identity)
+    assert first.identity.source_run_id != second.identity.source_run_id
     assert second.identity.parameters_key == parameters_key(None)
 
     # And it is the identity the unstamped descriptor would have had.
     raw, _ = OrcaQuantumEngineProvider().parse_output(SP_FIXTURE_OUTPUT, mol, "mol-1", "sp")
-    assert _as_the_service_files_it(raw[0]).identity == first.identity
+    assert _as_the_service_files_it(raw[0]).identity == slot(first.identity)
 
     read = [_read(first), _read(second)]
     assert read[0]["parameters"]["method_basis"] == "B3LYP def2-SVP"
