@@ -36,6 +36,8 @@ from openchem.chem.orca_engine import (
     find_mpi_bin,
     parse_frontier_orbitals,
 )
+from openchem.chem.orca_partial import mol_with_coordinates, read_partial_geometry
+from openchem.chem.orca_progress import OrcaProgressParser
 from openchem.chem.proton_affinity import OutOfScope
 from openchem.chem.proton_affinity import Sequence as ProtonSequence
 from openchem.chem.proton_affinity import descriptors as proton_descriptors
@@ -72,6 +74,8 @@ from openchem.domain.quantum_chemistry_run import (
     RunStatus,
     new_run_id,
 )
+from openchem.domain.conformer import ORCA_PARTIAL_OPT, PARTIAL_CYCLE, ConformerModel
+from openchem.domain.opt_progress import OptProgress, summary_line
 from openchem.domain.result_store import StoredResult
 from openchem.domain.scientific_result import TautomerNmrEntry, TautomerNmrResult
 from openchem.events.base import EventBus
@@ -80,6 +84,8 @@ from openchem.events.events import (
     NmrScalingCalibrated,
     PerAtomDataComputed,
     QuantumChemistryJobStateChanged,
+    QuantumChemistryOutput,
+    QuantumChemistryProgress,
     QuantumChemistryResultReady,
     QuantumChemistryRunCompleted,
     ResultRecorded,
@@ -316,7 +322,12 @@ class _ActiveJob:
     #: `QuantumChemistryResultReady.source_slot`.
     source_slot: int = 0
     stdout_chunks: list[str] = field(default_factory=list)
+    #: Reads an ORCA optimization's stdout as it arrives (None for any other job); `progress` is its last snapshot.
+    progress_parser: OrcaProgressParser | None = None
+    progress: OptProgress | None = None
     cancelled: bool = False
+    #: Set with `cancelled` by `stop_and_keep`: the process is killed as for Cancel, but the geometry it had reached is kept.
+    keep_partial: bool = False
 
 
 def _run_record(job: _ActiveJob) -> dict[str, object]:
@@ -1327,7 +1338,9 @@ class QuantumChemistryService(QObject):
             return
         key, label, started = holder
         elapsed = int(time.monotonic() - started)
-        self._publish_state(key, CacheState.RUNNING, f"ORCA {label} — {elapsed // 60} min {elapsed % 60} s")
+        job = self._active_jobs.get(key)
+        text = f"ORCA {label} — {elapsed // 60} min {elapsed % 60} s"
+        self._publish_state(key, CacheState.RUNNING, self._with_progress(job, text) if job is not None else text)
 
     def _launch_job(
         self,
@@ -1456,6 +1469,28 @@ class QuantumChemistryService(QObject):
     def cancel(self, molecule_uuid: str) -> None:
         self._cancel_by_key(molecule_uuid)
 
+    def can_stop_and_keep(self, molecule_uuid: str) -> bool:
+        """Is there a running ORCA geometry optimization of this molecule whose geometry could be kept?"""
+        job = self._active_jobs.get(molecule_uuid)
+        return (
+            job is not None and not job.cancelled and job.kind == "calculation" and job.calc_type in ("opt", "opt_freq")
+            and getattr(job.provider, "provider_id", "") == "orca"
+        )
+
+    def stop_and_keep(self, molecule_uuid: str) -> bool:
+        """Stop a running ORCA optimization like Cancel, but keep the geometry it had reached, labelled NOT converged.
+
+        True when the job was asked to stop. The geometry is read when the process has actually ended (`_report_job_failure`,
+        which both end-of-process handlers reach before the scratch folder is removed), never here: the files are still
+        being written until then.
+        """
+        if not self.can_stop_and_keep(molecule_uuid):
+            return False
+        job = self._active_jobs[molecule_uuid]
+        job.keep_partial = True
+        self._cancel_by_key(molecule_uuid)
+        return True
+
     def _cancel_by_key(self, key: str) -> None:
         job = self._active_jobs.get(key)
         if job is None:
@@ -1492,8 +1527,32 @@ class QuantumChemistryService(QObject):
             return
         chunk = bytes(job.process.readAllStandardOutput()).decode("utf-8", errors="replace")
         job.stdout_chunks.append(chunk)
+        # The panel's log used to be the last line of each chunk, a random sample of the output; it is the whole output now.
+        self._event_bus.publish(QuantumChemistryOutput(molecule_uuid=key, text=chunk))
         last_line = next((line for line in reversed(chunk.splitlines()) if line.strip()), "")
-        self._publish_state(key, CacheState.RUNNING, last_line)
+        progress = self._read_progress(job, chunk)
+        self._publish_state(key, CacheState.RUNNING, self._with_progress(job, last_line))
+        if progress is not None:
+            self._event_bus.publish(QuantumChemistryProgress(molecule_uuid=key, progress=progress))
+
+    @staticmethod
+    def _read_progress(job: _ActiveJob, chunk: str) -> OptProgress | None:
+        """Feed an ORCA optimization's output to its reader. The snapshot when it CHANGED, else None."""
+        if job.calc_type not in ("opt", "opt_freq") or getattr(job.provider, "provider_id", "") != "orca":
+            return None
+        if job.progress_parser is None:
+            job.progress_parser = OrcaProgressParser()
+        snapshot = job.progress_parser.feed(chunk)
+        if snapshot == job.progress:
+            return None
+        job.progress = snapshot
+        return snapshot
+
+    @staticmethod
+    def _with_progress(job: _ActiveJob, base: str) -> str:
+        """`base` followed by the optimization's one-line summary, once there is anything to say."""
+        summary = summary_line(job.progress) if job.progress is not None else ""
+        return f"{base} · {summary}" if summary and base else summary or base
 
     def _on_process_error(self, key: str, error: QProcess.ProcessError) -> None:
         # Covers the process failing to even start (e.g. a bad executable
@@ -1592,10 +1651,55 @@ class QuantumChemistryService(QObject):
             status = RunStatus.CANCELLED if job.cancelled else RunStatus.FAILED
             if run is not None:
                 self._record_run(self._new_tautomer_nmr_run(run, status, warnings=[message]))
+        elif job.keep_partial:
+            self._keep_partial_geometry(job, message)
         else:
             self._publish_state(job.key, CacheState.FAILED, message)
             status = RunStatus.CANCELLED if job.cancelled else RunStatus.FAILED
             self._record_run(self._new_run(job, status, warnings=[message]))
+
+    def _keep_partial_geometry(self, job: _ActiveJob, message: str) -> None:
+        """The end of a job stopped with "keep geometry": publish what it had reached as a NOT-converged conformer.
+
+        Runs while the scratch folder still exists. The job is recorded CANCELLED either way, with a warning saying what was
+        or was not kept; the geometry goes through the ordinary landing (`QuantumChemistryResultReady`), so the structure
+        check and undo apply as for a finished optimization. No numbers are published: an unconverged run has none to trust.
+        """
+        cycle = job.progress.cycle if job.progress is not None else None
+        coordinates = read_partial_geometry(job.scratch_dir, job.mol)
+        if coordinates is None:
+            warning = "Stopped by you. No complete geometry could be read from ORCA's files, so nothing was kept."
+            self._publish_state(job.key, CacheState.FAILED, warning)
+            self._record_run(self._new_run(job, RunStatus.CANCELLED, warnings=[warning]))
+            return
+        parameters = {PARTIAL_CYCLE: cycle} if cycle else {}
+        conformer = ConformerModel(
+            molblock=Chem.MolToMolBlock(mol_with_coordinates(job.mol, coordinates)),
+            energy=None,
+            method=ORCA_PARTIAL_OPT,
+            provenance=Provenance(created_by="core", method=job.provider.provider_id, parameters=parameters),
+        )
+        conformer = _conformer_with_run_record(conformer, job)
+        warning = (
+            "Stopped by you. Kept the geometry ORCA had reached"
+            + (f" at cycle {cycle}" if cycle else "")
+            + ", which is NOT converged."
+        )
+        self._event_bus.publish(
+            QuantumChemistryResultReady(
+                molecule_uuid=job.molecule_uuid or job.key,
+                descriptors=[],
+                conformer=conformer,
+                input_fingerprint=job.input_fingerprint if job.calculation_input == GEOMETRY else "",
+                structure_identity=job.structure_identity,
+                source_slot=job.source_slot,
+            )
+        )
+        self._publish_state(job.key, CacheState.FAILED, warning)
+        run = self._new_run(job, RunStatus.CANCELLED, warnings=[message, warning])
+        if run is not None:
+            run.output_conformer_id = conformer.conformer_id
+        self._record_run(run)
 
     def _on_finished(self, key: str) -> None:
         job = self._active_jobs.pop(key, None)

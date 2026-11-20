@@ -3418,10 +3418,9 @@ class MainWindow(QMainWindow):
         """
         # Created WITH its parent and then added, not `menu.addMenu(title)`: that wrapper is Python-owned, so
         # when this returns the submenu's C++ object goes and a caller reading the menu meets "already deleted".
-        theme_menu = QMenu("Theme", menu)
+        theme_menu = self._held_submenu(QMenu("Theme", menu))
         menu.addMenu(theme_menu)
-        group = QActionGroup(self)
-        group.setExclusive(True)
+        group = self._exclusive_group()
         self._theme_actions: dict[int, QAction] = {}
         for mode, words in self._THEME_CHOICES:
             action = QAction(words, self)
@@ -3753,9 +3752,11 @@ class MainWindow(QMainWindow):
             False,
             "show_stereo_flags",
         )
-        style_menu = menu.addMenu("Stereo Group Labels (abs, &&1, or1)")
-        group = QActionGroup(self)
-        group.setExclusive(True)
+        # Created WITH its parent and then added, not `menu.addMenu(title)`: that wrapper is Python-owned, so a
+        # collection after this returns destroys the submenu and its actions (tests then met "no such menu").
+        style_menu = self._held_submenu(QMenu("Stereo Group Labels (abs, &&1, or1)", menu))
+        menu.addMenu(style_menu)
+        group = self._exclusive_group()
         for label, value, help_key in self._STEREO_LABEL_STYLES:
             action = self._document(QAction(label, self), help_key)
             action.setCheckable(True)
@@ -3795,9 +3796,9 @@ class MainWindow(QMainWindow):
         `C H 3 N H 3 +`. A second charge beside its own would be the "two
         of everything" failure this project keeps removing.
         """
-        electron_menu = menu.addMenu("Electron Display")
-        group = QActionGroup(self)
-        group.setExclusive(True)
+        electron_menu = self._held_submenu(QMenu("Electron Display", menu))  # parented, then added: see the Stereo Group Labels menu
+        menu.addMenu(electron_menu)
+        group = self._exclusive_group()
         for label, mode, help_key in self._ELECTRON_MODES:
             action = self._document(QAction(label, self), help_key)
             action.setCheckable(True)
@@ -3847,9 +3848,9 @@ class MainWindow(QMainWindow):
         deliberately not called an index: it follows the molfile, so it is
         not a stable id.
         """
-        number_menu = menu.addMenu("Atom Numbers")
-        group = QActionGroup(self)
-        group.setExclusive(True)
+        number_menu = self._held_submenu(QMenu("Atom Numbers", menu))  # parented, then added: see the Stereo Group Labels menu
+        menu.addMenu(number_menu)
+        group = self._exclusive_group()
         for label, mode, help_key in self._ATOM_NUMBER_MODES:
             action = self._document(QAction(label, self), help_key)
             action.setCheckable(True)
@@ -6688,6 +6689,22 @@ class MainWindow(QMainWindow):
 
     def _show_settings(self) -> None:
         self.show_settings()
+
+    def _held_submenu(self, submenu: QMenu) -> QMenu:
+        """Keep `submenu` alive on the window. `menu.addMenu(QMenu(title, menu))` leaves the Python wrapper the only owner
+        that PySide counts, so a builder holding it in a local lost the submenu, and every entry in it, at the next collection
+        (measured: Theme and three 2D Structure Display submenus vanished after enough windows had been built)."""
+        self._held_submenus = [*getattr(self, "_held_submenus", []), submenu]
+        return submenu
+
+    def _exclusive_group(self) -> QActionGroup:
+        """A one-of-many group for a menu, HELD on the window. A group kept only in a builder\'s local variable can be collected
+        once the builder returns, and the entries it grouped (Theme, Stereo Group Labels, Electron Display, Atom Numbers) went with
+        it; which collection did it moved with unrelated allocations."""
+        group = QActionGroup(self)
+        group.setExclusive(True)
+        self._menu_action_groups = [*getattr(self, "_menu_action_groups", []), group]
+        return group
 
     def _on_orca_optimize_requested(self, molecule_uuid: str, conformer_id: str) -> None:
         """Open the Quantum Chemistry panel set up to optimize ONE conformer, and stop.

@@ -9,6 +9,7 @@ from openchem.domain.conformer import ConformerModel
 from openchem.domain.descriptor import DescriptorValue
 from openchem.domain.docking import DockingResultModel
 from openchem.domain.nmr import ScalingFactors
+from openchem.domain.opt_progress import OptProgress
 from openchem.domain.quantum_chemistry_run import QuantumChemistryRun
 from openchem.domain.report import ReportResult
 from openchem.domain.result_store import BundlePart, StoredResult
@@ -381,6 +382,22 @@ class QuantumChemistryJobStateChanged(Event):
     molecule_uuid: str
     state: CacheState
     message: str = ""
+
+
+@dataclass(frozen=True)
+class QuantumChemistryOutput(Event):
+    """A piece of a running quantum-chemistry job's own output, whole and in order (a chunk can end mid-line)."""
+
+    molecule_uuid: str
+    text: str
+
+
+@dataclass(frozen=True)
+class QuantumChemistryProgress(Event):
+    """Where a running ORCA geometry optimization is. Published only when the snapshot changed."""
+
+    molecule_uuid: str
+    progress: OptProgress
 
 
 @dataclass(frozen=True)
