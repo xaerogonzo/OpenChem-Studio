@@ -1,0 +1,17 @@
+{
+  "version_file": "pyproject.toml",
+  "default_branch": "master",
+  "tag_pattern": "^v(\d+\.\d+\.\d+)$",
+  "workflow": ".github/workflows/release.yml",
+  "workflow_name": "release",
+  "tag_check": ["python", "tools/release_info.py", "check-tag", "{tag}"],
+  "notes_check": ["python", "tools/release_info.py", "notes", "{tag}"],
+  "fragments_check": ["python", "tools/changelog.py", "check", "--no-pending"],
+  "assets": [
+    "OpenChemStudio-v{version}-windows-x64.zip",
+    "OpenChemStudio-v{version}-windows-x64-setup.exe",
+    "SHA256SUMS.txt"
+  ],
+  "checklist": "docs/RELEASE_CHECKLIST.md",
+  "tag_message": "OpenChem Studio {version}"
+}
