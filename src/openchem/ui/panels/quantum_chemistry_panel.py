@@ -410,11 +410,26 @@ _HELP: dict[str, HelpTooltip] = {
         topic="quantum-chemistry",
         help_anchor="quantum-chemistry",
     ),
+    "stop_and_keep_geometry": HelpTooltip(
+        text=(
+            "Stops a running ORCA geometry optimization like Cancel, but keeps the geometry it had reached as a conformer "
+            "marked NOT converged (with the cycle it stopped at), in the slot it was optimized from. Undo puts the "
+            "original back.\n\n"
+            "That geometry has no energy and is not a minimum, so it is never treated as a finished optimization and is "
+            "not the geometry later calculations prefer. If no complete geometry can be read, nothing is kept. Offered "
+            "only while an ORCA optimization of the selected molecule is running."
+        ),
+        tier=1,
+        help_id="quantum.stop_and_keep_geometry",
+        topic="quantum-chemistry",
+        help_anchor="quantum-chemistry",
+    ),
     "cancel_calculation": HelpTooltip(
         text=(
             "Stops the running ORCA process and removes its scratch directory. "
             "Whatever it had computed so far is lost: a cancelled job produces no "
-            "partial result."
+            "partial result. To keep the geometry an optimization has reached, use "
+            "Stop and keep geometry instead."
         ),
         tier=1,
         help_id="quantum.cancel_calculation",
@@ -1185,10 +1200,7 @@ class QuantumChemistryPanel(QWidget):
         self._keep_button = QPushButton("Stop and keep geometry", self)
         self._keep_button.setEnabled(False)
         self._keep_button.setAutoDefault(False)
-        self._keep_button.setToolTip(
-            "Stop the optimization now and keep the geometry it has reached as a conformer marked NOT converged. "
-            "Cancel discards it instead."
-        )
+        apply_help_tooltip(self._keep_button, _HELP["stop_and_keep_geometry"])
         self._keep_button.clicked.connect(self._on_keep_clicked)
 
         # One history control for the WHOLE panel, not one per tab -- every

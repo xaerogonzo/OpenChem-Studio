@@ -183,6 +183,19 @@ _HELP: dict[str, HelpTooltip] = {
         help_id="viewer3d.orca_optimize",
         topic="3d-viewer",
     ),
+    "optimize_other_engine": HelpTooltip(
+        text=(
+            "Set up a geometry optimization of THIS conformer, the one on screen, with xtb or Psi4 instead of ORCA, and open "
+            "the Quantum Chemistry panel on that engine. Like ORCA optimize it starts nothing: check the method, then press "
+            "Run there.\n\n"
+            "An engine that is not set up is listed greyed, with the reason; Settings > External Tools sets it up. xtb is "
+            "a fast tight-binding method, so its geometry is a rough one, not a DFT one: the result is labelled with the "
+            "engine that made it."
+        ),
+        tier=2,
+        help_id="viewer3d.optimize_other_engine",
+        topic="3d-viewer",
+    ),
     "gallery": HelpTooltip(
         text=(
             "Show several conformers at once, each rotatable on its "
@@ -487,10 +500,7 @@ class MoleculeViewer3DWidget(QWidget):
         self._engine_menu = QMenu(self._engine_button)
         self._engine_menu.aboutToShow.connect(self._fill_engine_menu)
         self._engine_button.setMenu(self._engine_menu)
-        self._engine_button.setToolTip(
-            "Optimize the conformer on screen with xtb or Psi4 instead of ORCA. Like ORCA optimize, it only sets the "
-            "Quantum Chemistry panel up; you press Run there."
-        )
+        apply_help_tooltip(self._engine_button, _HELP["optimize_other_engine"])
         self._engine_button.setEnabled(False)
 
         # THE GALLERY. "all separate images possible... you could check
@@ -963,7 +973,14 @@ class MoleculeViewer3DWidget(QWidget):
                 action.setText(f"Optimize with {choice.name} (not set up)")
                 action.setToolTip(choice.reason)
                 action.setStatusTip(choice.reason)
-            action.triggered.connect(lambda _checked=False, pid=choice.provider_id: self._on_engine_chosen(pid))
+            # The engine rides on the action and is read back through sender(): a lambda capturing `self` would root this widget.
+            action.setData(choice.provider_id)
+            action.triggered.connect(self._on_engine_action_triggered)
+
+    def _on_engine_action_triggered(self, _checked: bool = False) -> None:
+        action = self.sender()
+        if action is not None and action.data():
+            self._on_engine_chosen(str(action.data()))
 
     def _on_engine_chosen(self, provider_id: str) -> None:
         """Ask for an optimization of the conformer on screen with `provider_id` (see `_on_orca_clicked`)."""
