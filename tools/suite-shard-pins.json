@@ -5451,6 +5451,7 @@
   "tests/test_tautomer_validation_v2.py": 0,
   "tests/test_template_draft_check.py": 5,
   "tests/test_template_insert.py": 3,
+  "tests/test_template_layout_check.py": 3,
   "tests/test_template_library_dialog.py": 0,
   "tests/test_theme.py": 3,
   "tests/test_tool_download_service.py": 6,
