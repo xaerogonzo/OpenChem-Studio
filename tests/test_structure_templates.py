@@ -59,13 +59,59 @@ def test_every_shipped_category_loads_with_unique_ids_and_complete_molecules():
         has_smiles = bool(entry.smiles and entry.smiles.strip())
         has_molblock = bool(entry.molblock and entry.molblock.strip())
         assert has_smiles != has_molblock, entry.id
+    # A molblock-only entry is a connected coordination drawing or a curated
+    # layout (an RDKit depiction that was bad); everything else is a SMILES.
     assert all(
         e.smiles and not e.molblock
         for c in categories
-        if c.id != "coordination_complexes"
         for e in c.entries
+        if c.id != "coordination_complexes" and e.id not in CURATED_LAYOUT_IDS
     )
-    assert all(e.molblock and not e.smiles for c in categories if c.id == "coordination_complexes" for e in c.entries)
+    assert all(
+        e.molblock and not e.smiles
+        for c in categories
+        for e in c.entries
+        if c.id == "coordination_complexes" or e.id in CURATED_LAYOUT_IDS
+    )
+
+#: Entries whose 2D drawing is a hand-curated molblock instead of RDKit's layout.
+CURATED_LAYOUT_IDS = {"allotropes.buckminsterfullerene"}
+
+C60_SMILES = "c12c3c4c5c1c1c6c7c2c2c8c3c3c9c4c4c%10c5c5c1c1c6c6c%11c7c2c2c7c8c3c3c8c9c4c4c9c%10c5c5c1c1c6c6c%11c2c2c7c3c3c8c4c4c9c5c1c1c6c2c3c41"
+
+
+def test_curated_c60_is_still_c60_and_drawn_flat_without_crossings():
+    from rdkit.Chem.inchi import MolToInchiKey
+
+    import importlib.util
+    import sys
+    from pathlib import Path
+
+    spec = importlib.util.spec_from_file_location(
+        "template_layout_check", Path(__file__).resolve().parents[1] / "tools" / "template_layout_check.py"
+    )
+    checker = importlib.util.module_from_spec(spec)
+    sys.modules["template_layout_check"] = checker
+    spec.loader.exec_module(checker)
+    layout_of_molblock = checker.layout_of_molblock
+
+    engine = ChemistryEngine()
+    by_id = {e.id: e for c in load_shipped(engine) for e in c.entries}
+    entry = by_id["allotropes.buckminsterfullerene"]
+    assert entry.molblock and not entry.smiles
+    block = molblock_for(entry, engine)
+    mol = engine.mol_from_molblock(block)
+    reference = engine.mol_from_smiles(C60_SMILES)
+    assert mol.GetNumAtoms() == 60 and mol.GetNumBonds() == 90
+    assert MolToInchiKey(mol) == MolToInchiKey(reference) == "XMWRBQBLMFGWIX-UHFFFAOYSA-N"
+    assert engine.molblock_to_smiles(block) == engine.molblock_to_smiles(
+        molblock_for(entry, engine)
+    )
+    layout = layout_of_molblock(block)
+    assert layout.crossings == 0
+    assert layout.min_atom_gap > 0.5
+    assert not {"overlap", "crossing"} & set(layout.flags)
+    assert "2D" in block.splitlines()[1]
 
 
 def test_every_shipped_category_sits_in_exactly_one_dialog_group():

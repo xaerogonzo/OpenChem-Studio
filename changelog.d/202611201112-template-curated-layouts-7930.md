@@ -1,0 +1,2 @@
+### Buckminsterfullerene template draws as a Schlegel diagram
+- The Template Library's C60 is now a hand-curated 2D molblock (one pentagon in the centre, the cage flattened outward, no crossing bonds) instead of RDKit's tangled layout (34 crossing bonds, overlapping atoms). Identity is unchanged (same InChIKey). A new `tools/template_layout_check.py` screens every shipped template for overlapping atoms, stretched bonds, crossing bonds and extreme aspect ratio, and `tools/make_c60_schlegel.py` regenerates the C60 drawing.
