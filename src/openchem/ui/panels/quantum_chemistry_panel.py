@@ -965,6 +965,8 @@ class QuantumChemistryPanel(QWidget):
         self._result_store_service = result_store_service
         self._project: ProjectModel | None = None
         self._pending_molecule_uuid: str | None = None
+        #: Why the last `prepare_optimization` returned False, for the window to say ("" when it did not).
+        self.optimization_refusal = ""
         self._pending_mol = None  # rdkit.Chem.Mol, set in _on_run_clicked -- needed
         # by _on_spectrum_computed to compute connectivity-derived HSQC/
         # HMBC/COSY correlations against whichever shift values arrive.
@@ -1713,15 +1715,23 @@ class QuantumChemistryPanel(QWidget):
         self._conformer_combo.setCurrentIndex(index)
         return True
 
-    def prepare_optimization(self, molecule_uuid: str, conformer_id: str) -> bool:
-        """Set the panel up to optimize ONE conformer and stop. Returns whether it could.
+    def prepare_optimization(self, molecule_uuid: str, conformer_id: str, provider_id: str = "orca") -> bool:
+        """Set the panel up to optimize ONE conformer with `provider_id` and stop. Returns whether it could.
 
-        The conformer chosen, the calculation set to Geometry Optimization, averaging off (an averaged run
+        The engine chosen (ORCA unless asked otherwise: an entry that says "ORCA" must not run on whatever engine the panel
+        was last left on), the conformer chosen, the calculation set to Geometry Optimization, averaging off (an averaged run
         has no single conformer to optimize), and a line in the status label that says what Run will do.
-        **Starts nothing**: the method and basis, charge and multiplicity are still the person's to check.
+        **Starts nothing**: the method and basis, charge and multiplicity are still the person's to check. When it returns
+        False, `optimization_refusal` says why.
         """
+        self.optimization_refusal = ""
         molecule = self._project.find_molecule(molecule_uuid) if self._project is not None else None
         if molecule is None or all(c.conformer_id != conformer_id for c in molecule.conformers):
+            self.optimization_refusal = "That conformer is no longer there (the conformers changed), so nothing was set up."
+            return False
+        # A panel with one engine (or none yet: a service stub) already stands on ORCA; only a different choice needs the box.
+        if provider_id != self._selected_engine_id() and not self.select_engine(provider_id):
+            self.optimization_refusal = f"{provider_id} is not set up, so nothing was set up. Choose it in Settings > External Tools."
             return False
         # Averaging off FIRST: a choice does not apply to an averaged run.
         self._boltzmann_check.setChecked(False)
@@ -1731,11 +1741,12 @@ class QuantumChemistryPanel(QWidget):
         molecule = self._current_molecule()
         slot = next(i for i, c in enumerate(molecule.conformers) if c.conformer_id == conformer_id) + 1
         self._status_label.setText(
-            f"Ready: Geometry Optimization of conformer {slot} of {len(molecule.conformers)}. Press Run."
+            f"Ready: Geometry Optimization of conformer {slot} of {len(molecule.conformers)} with "
+            f"{self._engine_combo.currentText() or 'ORCA'}. Press Run."
         )
         return True
 
-    def optimization_offer(self, molecule) -> tuple[bool, str]:
+    def optimization_offer(self, molecule, provider_id: str | None = None) -> tuple[bool, str]:
         """Can an optimization be started from here for `molecule`, and what would it run with? (ok, one line).
 
         What the Generate Conformers window shows beside its ORCA checkbox, so the person sees the method before
@@ -1748,12 +1759,32 @@ class QuantumChemistryPanel(QWidget):
             return False, "The Quantum Chemistry panel has no method and basis set, so there is nothing to run."
         on_it = self._molecule_combo.currentData() == molecule.uuid
         charge = self._charge_spin.value() if on_it else self._chemistry_engine.formal_charge(molecule)
+        if provider_id is not None and provider_id != self._selected_engine_id():
+            provider = next((p for p in self._quantum_chemistry_service.engines() if p.provider_id == provider_id), None)
+            if provider is None:
+                return False, f"{provider_id} is not a registered engine."
+            return True, (
+                f"Runs on {provider.engine_name()}: the panel switches to it and uses {self._method_for_engine(provider)}, "
+                f"charge {charge}, multiplicity {self._multiplicity_spin.value()}."
+            )
         return True, (
             f"Runs with the Quantum Chemistry panel's settings: {method_basis}, charge {charge}, "
             f"multiplicity {self._multiplicity_spin.value()}."
         )
 
-    def start_optimization(self, molecule_uuid: str, conformer_id: str) -> str:
+    def _method_for_engine(self, provider) -> str:
+        """The method box's text once `provider` is chosen, by the same rule `_apply_engine_method_presets` applies (a test holds the two equal)."""
+        typed = self._method_combo.currentText().strip()
+        own = bool(provider.method_basis_presets)
+        wanted = list(provider.method_basis_presets) if own else list(METHOD_BASIS_PRESETS)
+        current = [self._method_combo.itemText(i) for i in range(self._method_combo.count())]
+        if current == wanted:
+            return typed
+        if own:
+            return typed if typed in wanted else wanted[0]
+        return wanted[0] if typed in current or not typed else typed
+
+    def start_optimization(self, molecule_uuid: str, conformer_id: str, provider_id: str = "orca") -> str:
         """Optimize ONE conformer now, as if the person had set the panel up and pressed Run. "" when it started.
 
         **THE SAME RUN, NOT A SECOND ONE**: `prepare_optimization` (the panel set to Geometry Optimization on that
@@ -1765,8 +1796,8 @@ class QuantumChemistryPanel(QWidget):
         """
         if not self._run_button.isEnabled():
             return "another calculation is still running in the Quantum Chemistry panel."
-        if not self.prepare_optimization(molecule_uuid, conformer_id):
-            return "that conformer is no longer there."
+        if not self.prepare_optimization(molecule_uuid, conformer_id, provider_id):
+            return self.optimization_refusal or "nothing was set up."
         self._on_run_clicked()
         if self._cancel_button.isEnabled():
             return ""

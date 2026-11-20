@@ -715,6 +715,9 @@ class MainWindow(QMainWindow):
         self._viewer3d.conformer_adopted.connect(self._adopt_conformer)
         # The way to ORCA from the conformers -- see `_on_orca_optimize_requested`.
         self._viewer3d.orca_optimize_requested.connect(self._on_orca_optimize_requested)
+        # The same door for the other engines, from the viewer's engine menu; the menu asks the service what is set up each time it opens.
+        self._viewer3d.optimize_requested.connect(self._on_optimize_requested)
+        self._viewer3d.set_engine_choices(self._services.quantum_chemistry_service.optimization_choices)
         # What "also ORCA-optimize the lowest-energy conformer" would run with, asked when the Generate window opens.
         self._viewer3d.set_orca_offer_provider(self._orca_generation_offer)
         self._jobs_panel = JobsPanel(services.job_manager, self)
@@ -6248,20 +6251,26 @@ class MainWindow(QMainWindow):
         )
         self._undo_stack.push(command)
         if event.optimize_lowest:
-            self._optimize_lowest_generated(molecule, event.conformers)
+            self._optimize_lowest_generated(molecule, event.conformers, event.optimize_provider)
 
     def _orca_generation_offer(self, molecule) -> OrcaGenerationOffer:
         """What the Generate Conformers window can promise about the optional ORCA step for `molecule`."""
         if molecule is None:
             return OrcaGenerationOffer(False, "Select a molecule first.")
-        if self._services.quantum_chemistry_service.orca_executable() is None:
+        choices = self._services.quantum_chemistry_service.optimization_choices()
+        ready = [c for c in choices if c.available]
+        if not ready:
             return OrcaGenerationOffer(
                 False, "ORCA is not set up. Choose its executable in Settings > External Tools to enable this."
             )
-        ok, text = self._quantum_chemistry_panel.optimization_offer(molecule)
-        return OrcaGenerationOffer(ok, text)
+        # ORCA first when it is set up (it is first in the list), otherwise the first engine that is.
+        ok, text = self._quantum_chemistry_panel.optimization_offer(molecule, ready[0].provider_id)
+        if len(ready) < 2:
+            return OrcaGenerationOffer(ok, text, tuple(ready))
+        texts = tuple((c.provider_id, self._quantum_chemistry_panel.optimization_offer(molecule, c.provider_id)[1]) for c in ready)
+        return OrcaGenerationOffer(ok, text, tuple(ready), texts)
 
-    def _optimize_lowest_generated(self, molecule: MoleculeModel, generated: list) -> None:
+    def _optimize_lowest_generated(self, molecule: MoleculeModel, generated: list, provider_id: str = "orca") -> None:
         """The Generate Conformers window's "also ORCA-optimize the lowest-energy conformer", once the set is in.
 
         **LOWEST OF THE CONFORMERS JUST GENERATED**, by force-field energy: the ORCA geometries the molecule keeps
@@ -6278,15 +6287,16 @@ class MainWindow(QMainWindow):
             )
             return
         lowest = generated[min(ranked)[1]]
-        reason = self._quantum_chemistry_panel.start_optimization(molecule.uuid, lowest.conformer_id)
+        engine_name = next((c.name for c in self._services.quantum_chemistry_service.optimization_choices() if c.provider_id == provider_id), provider_id)
+        reason = self._quantum_chemistry_panel.start_optimization(molecule.uuid, lowest.conformer_id, provider_id)
         if reason:
             self.statusBar().showMessage(
-                f"Conformers generated. The lowest-energy one was not ORCA-optimized: {reason}", 15000
+                f"Conformers generated. The lowest-energy one was not {engine_name}-optimized: {reason}", 15000
             )
             return
         slot = next(i for i, c in enumerate(molecule.conformers) if c.conformer_id == lowest.conformer_id) + 1
         self.statusBar().showMessage(
-            f"Conformers generated. ORCA is optimizing conformer {slot} of {len(molecule.conformers)}, the "
+            f"Conformers generated. {engine_name} is optimizing conformer {slot} of {len(molecule.conformers)}, the "
             "lowest in energy; follow or cancel it in the Jobs panel.",
             15000,
         )
@@ -6707,22 +6717,25 @@ class MainWindow(QMainWindow):
         return group
 
     def _on_orca_optimize_requested(self, molecule_uuid: str, conformer_id: str) -> None:
-        """Open the Quantum Chemistry panel set up to optimize ONE conformer, and stop.
+        """The 3D viewer's "ORCA optimize" button and Tools > ORCA Geometry Optimization...: `_on_optimize_requested` on ORCA."""
+        self._on_optimize_requested(molecule_uuid, conformer_id, "orca")
 
-        The 3D viewer's "ORCA optimize" button and Tools > ORCA Geometry Optimization... both land here. The
-        panel's own Conformer box holds the choice and Run is still the person's: it takes a charge, a
-        multiplicity and a method, and an optimization can run for hours.
+    def _on_optimize_requested(self, molecule_uuid: str, conformer_id: str, provider_id: str) -> None:
+        """Open the Quantum Chemistry panel set up to optimize ONE conformer with `provider_id`, and stop.
+
+        The panel's own Conformer box holds the choice and Run is still the person's: it takes a charge, a
+        multiplicity and a method, and an optimization can run for hours. The engine is SELECTED, not assumed: an
+        "ORCA optimize" that left the panel on xtb used to run on xtb.
         """
         self._on_panel_chosen("Quantum_Chemistry")
-        if self._quantum_chemistry_panel.prepare_optimization(molecule_uuid, conformer_id):
+        panel = self._quantum_chemistry_panel
+        if panel.prepare_optimization(molecule_uuid, conformer_id, provider_id):
             self.statusBar().showMessage(
                 "Quantum Chemistry is set up to optimize that conformer. Check the method and basis, then press Run.",
                 10000,
             )
         else:
-            self.statusBar().showMessage(
-                "That conformer is no longer there (the conformers changed), so nothing was set up.", 8000
-            )
+            self.statusBar().showMessage(panel.optimization_refusal or "Nothing was set up.", 8000)
 
     def _on_orca_optimize_action(self) -> None:
         """Tools > ORCA Geometry Optimization...: the conformer the 3D viewer shows, or the one every calculation uses.

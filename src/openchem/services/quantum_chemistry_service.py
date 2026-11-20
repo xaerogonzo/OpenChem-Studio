@@ -76,6 +76,7 @@ from openchem.domain.quantum_chemistry_run import (
 )
 from openchem.domain.conformer import ORCA_PARTIAL_OPT, PARTIAL_CYCLE, ConformerModel
 from openchem.domain.opt_progress import OptProgress, summary_line
+from openchem.domain.optimize_choice import OptimizeChoice
 from openchem.domain.result_store import StoredResult
 from openchem.domain.scientific_result import TautomerNmrEntry, TautomerNmrResult
 from openchem.events.base import EventBus
@@ -3248,6 +3249,21 @@ class QuantumChemistryService(QObject):
     def engines(self) -> list[QuantumEngineProvider]:
         """Every registered engine, in registration order (ORCA first)."""
         return list(self._providers.values())
+
+    def optimization_choices(self) -> list[OptimizeChoice]:
+        """Every registered engine that can run a geometry optimization, ORCA first, each with whether it could start now.
+
+        An engine that is not set up is still listed, with the reason, so a menu can show it greyed and say what to do.
+        Read-only: nothing is started or resolved beyond looking for the executable.
+        """
+        choices = []
+        for provider in self._providers.values():
+            if not provider.supports("opt"):
+                continue
+            ready = self._resolve_executable_path(provider) is not None
+            reason = "" if ready else f"{provider.engine_name()} is not set up. Choose it in Settings > External Tools."
+            choices.append(OptimizeChoice(provider.provider_id, provider.engine_name(), ready, reason))
+        return choices
 
     def available_engines(self) -> list[QuantumEngineProvider]:
         """The engines whose executable is configured or on PATH: the ones a run could start on. Read-only."""

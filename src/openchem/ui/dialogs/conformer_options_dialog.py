@@ -2,6 +2,8 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
+from openchem.domain.optimize_choice import OptimizeChoice
+
 from openchem.chem.conformer_providers import (  # noqa: F401 - re-exported
     DEFAULT_EMBEDDING_BATCH_SIZE,
     DEFAULT_PLATEAU_BATCHES,
@@ -276,6 +278,11 @@ class OrcaGenerationOffer:
 
     available: bool
     text: str
+    #: The engines that could run it, ORCA first. With more than one available the window offers a choice; with none (a bare
+    #: offer, as before engines existed) it is ORCA and nothing else.
+    engines: tuple[OptimizeChoice, ...] = ()
+    #: What each engine would run with, as `(provider_id, sentence)`; an engine with no entry uses `text`.
+    engine_texts: tuple[tuple[str, str], ...] = ()
 
 
 class ConformerOptionsDialog(QDialog):
@@ -416,6 +423,8 @@ class ConformerOptionsDialog(QDialog):
         # panel to describe, and a checkbox promising an optimization it cannot name is worse than none.
         self._orca_check: QCheckBox | None = None
         self._orca_note: QLabel | None = None
+        self._engine_combo: QComboBox | None = None
+        self._engine_texts: dict[str, str] = {}
         if orca_offer is not None:
             self._orca_check = QCheckBox("Also ORCA-optimize the lowest-energy conformer")
             self._orca_check.setObjectName("optimizeLowest")
@@ -426,6 +435,18 @@ class ConformerOptionsDialog(QDialog):
             self._orca_note = QLabel(orca_offer.text)
             self._orca_note.setObjectName("optimizeLowestNote")
             self._orca_note.setWordWrap(True)
+            # More than one engine set up: the person chooses which one optimizes (ORCA first, as before).
+            ready = [choice for choice in orca_offer.engines if choice.available]
+            if len(ready) > 1:
+                self._engine_texts = dict(orca_offer.engine_texts)
+                self._orca_check.setText("Also optimize the lowest-energy conformer with:")
+                self._engine_combo = QComboBox()
+                self._engine_combo.setObjectName("optimizeEngine")
+                for choice in ready:
+                    self._engine_combo.addItem(choice.name, choice.provider_id)
+                self._engine_combo.setEnabled(orca_offer.available)
+                self._engine_combo.currentIndexChanged.connect(self._on_engine_choice_changed)
+                self._on_engine_choice_changed()
 
         buttons = QDialogButtonBox(
             QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel
@@ -442,8 +463,24 @@ class ConformerOptionsDialog(QDialog):
         layout.addWidget(note)
         if self._orca_check is not None and self._orca_note is not None:
             layout.addWidget(self._orca_check)
+            if self._engine_combo is not None:
+                layout.addWidget(self._engine_combo)
             layout.addWidget(self._orca_note)
         layout.addWidget(buttons)
+
+    def _on_engine_choice_changed(self, _index: int = 0) -> None:
+        """Say what the chosen engine would run with (the sentence is the window's, built from the panel)."""
+        if self._engine_combo is None or self._orca_note is None:
+            return
+        text = self._engine_texts.get(str(self._engine_combo.currentData()))
+        if text:
+            self._orca_note.setText(text)
+
+    def optimize_provider(self) -> str:
+        """The engine the lowest-energy conformer is to be optimized with: the combo's choice, ORCA when there is no choice."""
+        if self._engine_combo is None:
+            return "orca"
+        return str(self._engine_combo.currentData() or "orca")
 
     def _on_advanced_toggled(self, advanced: bool) -> None:
         """Show or hide the search controls.

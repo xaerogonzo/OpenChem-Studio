@@ -2,12 +2,15 @@ from __future__ import annotations
 
 import logging
 
+from collections.abc import Callable
+
 from PySide6.QtCore import Signal
 from PySide6.QtWidgets import (
     QCheckBox,
     QComboBox,
     QDialog,
     QLabel,
+    QMenu,
     QPushButton,
     QVBoxLayout,
     QWidget,
@@ -15,6 +18,7 @@ from PySide6.QtWidgets import (
 
 from openchem.domain.common import CacheState
 from openchem.domain.conformer import is_quantum_optimized, quantum_engine_name, quantum_level_of_theory
+from openchem.domain.optimize_choice import OptimizeChoice
 from openchem.domain.report import ArrowAnnotation
 from openchem.services.spatial_overlay_service import SINGLE_VIEW_CELL
 from openchem.ui.widgets.flow_layout import flow_row
@@ -325,6 +329,8 @@ class MoleculeViewer3DWidget(QWidget):
     #: which conformer was showing, and an index that travels is a second place for the two to disagree. The window
     #: points the Quantum Chemistry panel at it and starts nothing.
     orca_optimize_requested = Signal(str, str)
+    #: The same request for another engine: `(molecule_uuid, conformer_id, provider_id)`, from the engine menu beside the ORCA button.
+    optimize_requested = Signal(str, str, str)
 
     def __init__(
         self,
@@ -468,6 +474,19 @@ class MoleculeViewer3DWidget(QWidget):
         self._orca_button.clicked.connect(self._on_orca_clicked)
         self._orca_button.setEnabled(False)
 
+        # THE OTHER ENGINES. A menu, filled each time it opens from what is set up now, so an engine installed while the window
+        # is open appears without a restart and one that is not set up is shown greyed with the reason.
+        self._engine_choices: Callable[[], list[OptimizeChoice]] = lambda: []
+        self._engine_button = QPushButton("Other engine", self)
+        self._engine_menu = QMenu(self._engine_button)
+        self._engine_menu.aboutToShow.connect(self._fill_engine_menu)
+        self._engine_button.setMenu(self._engine_menu)
+        self._engine_button.setToolTip(
+            "Optimize the conformer on screen with xtb or Psi4 instead of ORCA. Like ORCA optimize, it only sets the "
+            "Quantum Chemistry panel up; you press Run there."
+        )
+        self._engine_button.setEnabled(False)
+
         # THE GALLERY. "all separate images possible... you could check
         # several ones to be visible at a time if wanted, and on the screen
         # at the same time, yet independently rotatable."
@@ -553,6 +572,7 @@ class MoleculeViewer3DWidget(QWidget):
             self._finish_button,
             self._use_button,
             self._orca_button,
+            self._engine_button,
             self._gallery_check,
             self._size_combo,
             self._lock_check,
@@ -673,6 +693,7 @@ class MoleculeViewer3DWidget(QWidget):
             num_embeddings=dialog.embeddings_to_try(),
             options=dialog.options(),
             optimize_lowest=dialog.optimize_lowest(),
+            optimize_provider=dialog.optimize_provider(),
         )
 
     def options_dialog(self):
@@ -918,6 +939,33 @@ class MoleculeViewer3DWidget(QWidget):
 
         self._backend.current_view(with_view)
 
+    def set_engine_choices(self, provider: Callable[[], list[OptimizeChoice]]) -> None:
+        """Where the engine menu learns what can run an optimization (the window hands it the service's answer)."""
+        self._engine_choices = provider
+
+    def _fill_engine_menu(self) -> None:
+        """Rebuild the menu from the engines other than ORCA (its own button is the ORCA door), unavailable ones greyed with the reason."""
+        self._engine_menu.clear()
+        others = [c for c in self._engine_choices() if c.provider_id != "orca"]
+        if not others:
+            self._engine_menu.addAction("No other engine is registered").setEnabled(False)
+            return
+        for choice in others:
+            action = self._engine_menu.addAction(f"Optimize with {choice.name}")
+            action.setEnabled(choice.available)
+            if not choice.available:
+                action.setText(f"Optimize with {choice.name} (not set up)")
+                action.setToolTip(choice.reason)
+                action.setStatusTip(choice.reason)
+            action.triggered.connect(lambda _checked=False, pid=choice.provider_id: self._on_engine_chosen(pid))
+
+    def _on_engine_chosen(self, provider_id: str) -> None:
+        """Ask for an optimization of the conformer on screen with `provider_id` (see `_on_orca_clicked`)."""
+        if self._molecule is None or not self._molecule.conformers:
+            return
+        index = min(self._conformer_index, len(self._molecule.conformers) - 1)
+        self.optimize_requested.emit(self._molecule.uuid, self._molecule.conformers[index].conformer_id, provider_id)
+
     def _on_orca_clicked(self, _checked: bool = False) -> None:
         """Ask for an ORCA optimization of the conformer on screen.
 
@@ -986,12 +1034,14 @@ class MoleculeViewer3DWidget(QWidget):
             # of work keeps finding.
             self._use_button.setEnabled(False)
             self._orca_button.setEnabled(False)
+            self._engine_button.setEnabled(False)
             self._details_button.setEnabled(False)
             return
         if self._gallery and hasattr(self._backend, "load_conformer_grid"):
             self._refresh_gallery()
             self._use_button.setEnabled(True)
             self._orca_button.setEnabled(True)
+            self._engine_button.setEnabled(True)
             self._details_button.setEnabled(True)
             return
         conformer = self._molecule.conformers[self._conformer_index]
@@ -1015,6 +1065,7 @@ class MoleculeViewer3DWidget(QWidget):
         self._request_overlay()
         self._use_button.setEnabled(True)
         self._orca_button.setEnabled(True)
+        self._engine_button.setEnabled(True)
         self._details_button.setEnabled(True)
         self._status_label.setText(self._conformer_label(conformer))
         self._status_label.setToolTip(self._conformer_tooltip(conformer))

@@ -1,0 +1,4 @@
+### Optimize a conformer with xtb or Psi4 from the 3D viewer and Generate Conformers, and "ORCA optimize" now really selects ORCA
+- The 3D viewer has an **Other engine** menu beside ORCA optimize: Optimize with xtb or Psi4. An engine that is not set up is listed greyed with the reason. Like ORCA optimize it only sets the Quantum Chemistry panel up; Run is still pressed there.
+- The Generate Conformers window offers a choice of engine for "Also optimize the lowest-energy conformer" when two or more are set up, names what each would run with, and the choice travels with the generated set.
+- Fixed: ORCA optimize (the viewer button and Tools > ORCA Geometry Optimization) did not select ORCA, so with xtb or Psi4 chosen in the panel the job ran there under an ORCA label. The panel's status line now names the engine.

@@ -301,6 +301,9 @@ class ConformersReady(Event):
     #: ORCA-optimized as soon as the set is installed. It travels with the set it belongs to (rather than being a
     #: window setting read later) so the answer cannot change between asking and the conformers arriving.
     optimize_lowest: bool = False
+    #: Which engine that optimization is to run on (`QuantumEngineProvider.provider_id`), chosen in the same window and
+    #: carried with the set for the same reason: the answer cannot change between asking and the conformers arriving.
+    optimize_provider: str = "orca"
 
 
 @dataclass(frozen=True)
