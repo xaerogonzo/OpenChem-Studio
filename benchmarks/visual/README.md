@@ -214,6 +214,8 @@ Every one is a surface with a *recorded* history of breaking, not a guess.
 | `screening_search_controls.json` | the screening dialog's controls | not recorded here |
 | `screening_strips_the_pocket.json` | a real screening run, and what the service was handed | not recorded here |
 | `hypervalent_3d.json` | a hypervalent molecule drawn on the real canvas (ClF3, BrF3, XeF2, XeF4, SF4, SF6, PF5, each through `canvas_edit`, the editor's own apply path), conformers generated, the VSEPR template label and stop reason read back, the 3D viewer shot for ClF3 and XeF4, and a carbon with five bonds that must be refused | not recorded here |
+| `fullerene_editor_path.json` | C60 added through Ketcher's own `addFragment` at default settings, so the real edit path runs (Atom Inspector's locant labels after the recalculation): freezes the pre-fix von Baeyer search, lands in about a second with the step budgets | not recorded here |
+| `fullerene_locants.json` | C60 loaded, View > Atom Numbers set to IUPAC locants, and a later step that only runs if the UI thread comes back | not recorded here |
 | `solubility_units_live.json` | the reader's Units combo, switched and remembered | not recorded here |
 
 **THE THIRD COLUMN IS A CLAIM, AND `not recorded here` MEANS NOBODY WROTE THE HISTORY DOWN -- NOT THAT NOTHING BROKE.** Twenty of these scripts were committed without a row at all (found 2026-09-16: the table held 12 of 36), so their surfaces are stated from what the script actually drives and the history is left blank where it cannot be supported. Filling one in is worth doing when you know the answer; inventing one is worse than the blank.
