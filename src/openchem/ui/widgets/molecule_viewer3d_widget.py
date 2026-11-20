@@ -2,19 +2,29 @@ from __future__ import annotations
 
 import logging
 
+from collections.abc import Callable
+
 from PySide6.QtCore import Signal
 from PySide6.QtWidgets import (
     QCheckBox,
     QComboBox,
     QDialog,
     QLabel,
+    QMenu,
     QPushButton,
     QVBoxLayout,
     QWidget,
 )
 
 from openchem.domain.common import CacheState
-from openchem.domain.conformer import is_quantum_optimized, quantum_engine_name, quantum_level_of_theory
+from openchem.domain.conformer import (
+    ORCA_PARTIAL_OPT,
+    PARTIAL_CYCLE,
+    is_quantum_optimized,
+    quantum_engine_name,
+    quantum_level_of_theory,
+)
+from openchem.domain.optimize_choice import OptimizeChoice
 from openchem.domain.report import ArrowAnnotation
 from openchem.services.spatial_overlay_service import SINGLE_VIEW_CELL
 from openchem.ui.widgets.flow_layout import flow_row
@@ -173,6 +183,19 @@ _HELP: dict[str, HelpTooltip] = {
         help_id="viewer3d.orca_optimize",
         topic="3d-viewer",
     ),
+    "optimize_other_engine": HelpTooltip(
+        text=(
+            "Set up a geometry optimization of THIS conformer, the one on screen, with xtb or Psi4 instead of ORCA, and open "
+            "the Quantum Chemistry panel on that engine. Like ORCA optimize it starts nothing: check the method, then press "
+            "Run there.\n\n"
+            "An engine that is not set up is listed greyed, with the reason; Settings > External Tools sets it up. xtb is "
+            "a fast tight-binding method, so its geometry is a rough one, not a DFT one: the result is labelled with the "
+            "engine that made it."
+        ),
+        tier=2,
+        help_id="viewer3d.optimize_other_engine",
+        topic="3d-viewer",
+    ),
     "gallery": HelpTooltip(
         text=(
             "Show several conformers at once, each rotatable on its "
@@ -325,6 +348,8 @@ class MoleculeViewer3DWidget(QWidget):
     #: which conformer was showing, and an index that travels is a second place for the two to disagree. The window
     #: points the Quantum Chemistry panel at it and starts nothing.
     orca_optimize_requested = Signal(str, str)
+    #: The same request for another engine: `(molecule_uuid, conformer_id, provider_id)`, from the engine menu beside the ORCA button.
+    optimize_requested = Signal(str, str, str)
 
     def __init__(
         self,
@@ -468,6 +493,16 @@ class MoleculeViewer3DWidget(QWidget):
         self._orca_button.clicked.connect(self._on_orca_clicked)
         self._orca_button.setEnabled(False)
 
+        # THE OTHER ENGINES. A menu, filled each time it opens from what is set up now, so an engine installed while the window
+        # is open appears without a restart and one that is not set up is shown greyed with the reason.
+        self._engine_choices: Callable[[], list[OptimizeChoice]] = lambda: []
+        self._engine_button = QPushButton("Other engine", self)
+        self._engine_menu = QMenu(self._engine_button)
+        self._engine_menu.aboutToShow.connect(self._fill_engine_menu)
+        self._engine_button.setMenu(self._engine_menu)
+        apply_help_tooltip(self._engine_button, _HELP["optimize_other_engine"])
+        self._engine_button.setEnabled(False)
+
         # THE GALLERY. "all separate images possible... you could check
         # several ones to be visible at a time if wanted, and on the screen
         # at the same time, yet independently rotatable."
@@ -553,6 +588,7 @@ class MoleculeViewer3DWidget(QWidget):
             self._finish_button,
             self._use_button,
             self._orca_button,
+            self._engine_button,
             self._gallery_check,
             self._size_combo,
             self._lock_check,
@@ -673,6 +709,7 @@ class MoleculeViewer3DWidget(QWidget):
             num_embeddings=dialog.embeddings_to_try(),
             options=dialog.options(),
             optimize_lowest=dialog.optimize_lowest(),
+            optimize_provider=dialog.optimize_provider(),
         )
 
     def options_dialog(self):
@@ -918,6 +955,40 @@ class MoleculeViewer3DWidget(QWidget):
 
         self._backend.current_view(with_view)
 
+    def set_engine_choices(self, provider: Callable[[], list[OptimizeChoice]]) -> None:
+        """Where the engine menu learns what can run an optimization (the window hands it the service's answer)."""
+        self._engine_choices = provider
+
+    def _fill_engine_menu(self) -> None:
+        """Rebuild the menu from the engines other than ORCA (its own button is the ORCA door), unavailable ones greyed with the reason."""
+        self._engine_menu.clear()
+        others = [c for c in self._engine_choices() if c.provider_id != "orca"]
+        if not others:
+            self._engine_menu.addAction("No other engine is registered").setEnabled(False)
+            return
+        for choice in others:
+            action = self._engine_menu.addAction(f"Optimize with {choice.name}")
+            action.setEnabled(choice.available)
+            if not choice.available:
+                action.setText(f"Optimize with {choice.name} (not set up)")
+                action.setToolTip(choice.reason)
+                action.setStatusTip(choice.reason)
+            # The engine rides on the action and is read back through sender(): a lambda capturing `self` would root this widget.
+            action.setData(choice.provider_id)
+            action.triggered.connect(self._on_engine_action_triggered)
+
+    def _on_engine_action_triggered(self, _checked: bool = False) -> None:
+        action = self.sender()
+        if action is not None and action.data():
+            self._on_engine_chosen(str(action.data()))
+
+    def _on_engine_chosen(self, provider_id: str) -> None:
+        """Ask for an optimization of the conformer on screen with `provider_id` (see `_on_orca_clicked`)."""
+        if self._molecule is None or not self._molecule.conformers:
+            return
+        index = min(self._conformer_index, len(self._molecule.conformers) - 1)
+        self.optimize_requested.emit(self._molecule.uuid, self._molecule.conformers[index].conformer_id, provider_id)
+
     def _on_orca_clicked(self, _checked: bool = False) -> None:
         """Ask for an ORCA optimization of the conformer on screen.
 
@@ -986,12 +1057,14 @@ class MoleculeViewer3DWidget(QWidget):
             # of work keeps finding.
             self._use_button.setEnabled(False)
             self._orca_button.setEnabled(False)
+            self._engine_button.setEnabled(False)
             self._details_button.setEnabled(False)
             return
         if self._gallery and hasattr(self._backend, "load_conformer_grid"):
             self._refresh_gallery()
             self._use_button.setEnabled(True)
             self._orca_button.setEnabled(True)
+            self._engine_button.setEnabled(True)
             self._details_button.setEnabled(True)
             return
         conformer = self._molecule.conformers[self._conformer_index]
@@ -1015,6 +1088,7 @@ class MoleculeViewer3DWidget(QWidget):
         self._request_overlay()
         self._use_button.setEnabled(True)
         self._orca_button.setEnabled(True)
+        self._engine_button.setEnabled(True)
         self._details_button.setEnabled(True)
         self._status_label.setText(self._conformer_label(conformer))
         self._status_label.setToolTip(self._conformer_tooltip(conformer))
@@ -1484,6 +1558,11 @@ class MoleculeViewer3DWidget(QWidget):
 
     def _conformer_tooltip(self, conformer) -> str:
         """What the status line's tooltip says about the conformer on screen."""
+        if conformer.method == ORCA_PARTIAL_OPT:
+            return (
+                "The geometry an ORCA optimization had reached when it was stopped. It is NOT converged, has no energy, and is not "
+                "the geometry later calculations prefer. Details says which conformer it replaced."
+            )
         if is_quantum_optimized(conformer):
             level = quantum_level_of_theory(conformer)
             return (
@@ -1510,6 +1589,11 @@ class MoleculeViewer3DWidget(QWidget):
         # a widget of its own, so it cannot survive a state change the
         # rest of the line reacts to.
         overlay = f" - {self._overlay_value}" if getattr(self, "_overlay_value", "") else ""
+        if conformer.method == ORCA_PARTIAL_OPT:
+            # A geometry kept from a STOPPED optimization: said in the label, because the energy line would otherwise read
+            # "energy n/a" and nothing would say it is not a minimum.
+            cycle = conformer.provenance.parameters.get(PARTIAL_CYCLE) if conformer.provenance is not None else None
+            return f"{position} - ORCA partial geometry, NOT converged{f' (cycle {cycle})' if cycle else ''}{overlay}"
         if is_quantum_optimized(conformer):
             # Marked wherever you step, so an ORCA geometry is never mistaken for a force-field one.
             level = quantum_level_of_theory(conformer)

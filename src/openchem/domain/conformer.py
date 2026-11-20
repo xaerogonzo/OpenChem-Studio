@@ -28,6 +28,14 @@ QUANTUM_OPTIMIZED_METHODS = frozenset({ORCA_OPTIMIZED, PSI4_OPTIMIZED, XTB_OPTIM
 #: How a person names the engine behind each quantum-optimized `method`, for labels ("4 - Psi4 optimized (...)").
 QUANTUM_ENGINE_NAMES = {ORCA_OPTIMIZED: "ORCA", PSI4_OPTIMIZED: "Psi4", XTB_OPTIMIZED: "xtb"}
 
+#: `ConformerModel.method` of the geometry an ORCA optimization had reached when a person stopped it and kept it ("Stop and keep
+#: geometry"). It is deliberately NOT in `QUANTUM_OPTIMIZED_METHODS`: it did not converge, so it is never the geometry later
+#: calculations prefer, and nothing may read it as a finished optimization. Its energy is not stored (it is not on any scale a
+#: ranking could use); the cycle it stopped at is in `PARTIAL_CYCLE`.
+ORCA_PARTIAL_OPT = "orca_partial_opt"
+#: Provenance parameter of a partial geometry: the optimization cycle it stopped at (absent = not known).
+PARTIAL_CYCLE = "partial_cycle"
+
 #: Provenance parameter naming the `conformer_id` of the conformer a quantum optimization started from. The id
 #: is the identity; the slot below is for a reader who counts conformers 1..N.
 OPTIMIZED_FROM_ID = "optimized_from_conformer_id"
@@ -151,6 +159,9 @@ def conformer_choice_text(conformers: Sequence[ConformerModel], index: int) -> s
         level = quantum_level_of_theory(conformer)
         engine = quantum_engine_name(conformer)
         return f"{position} - {engine} optimized ({level})" if level else f"{position} - {engine} optimized"
+    if conformer.method == ORCA_PARTIAL_OPT:
+        cycle = conformer.provenance.parameters.get(PARTIAL_CYCLE) if conformer.provenance is not None else None
+        return f"{position} - ORCA partial geometry, NOT converged" + (f" (cycle {cycle})" if cycle else "")
     if conformer.method == VSEPR_TEMPLATE:
         return f"{position} - idealised VSEPR geometry, not optimised"
     if conformer.method == OPEN_SHELL_TABLE:

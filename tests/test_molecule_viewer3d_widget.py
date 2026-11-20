@@ -939,6 +939,9 @@ def test_generate_conformers_asks_with_the_ceiling_from_settings(qapp, monkeypat
         def optimize_lowest(self):
             return False
 
+        def optimize_provider(self):
+            return "orca"
+
         def conformers_to_keep(self):
             return 30
 
@@ -1033,6 +1036,9 @@ def test_the_experimental_stop_rule_reaches_the_dialog_only_when_ticked(qapp, mo
 
         def optimize_lowest(self):
             return False
+
+        def optimize_provider(self):
+            return "orca"
 
         def conformers_to_keep(self):
             return 20

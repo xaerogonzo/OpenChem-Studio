@@ -87,6 +87,7 @@ from openchem.chem.tautomer_nmr import targets_from_distribution
 from openchem.domain.calculator import DRAWING
 from openchem.domain.compare import ComparedResult, CompareRefusal, compare
 from openchem.domain.conformer import conformer_choice_text
+from openchem.domain.opt_progress import detail_text
 from openchem.domain.project import ProjectModel
 from openchem.domain.scientific_result import (
     CrossPeak,
@@ -102,6 +103,8 @@ from openchem.events.events import (
     NmrScalingCalibrated,
     QmSurfaceComputed,
     QuantumChemistryJobStateChanged,
+    QuantumChemistryOutput,
+    QuantumChemistryProgress,
     QuantumChemistryResultReady,
     QuantumChemistryRunCompleted,
     SpectrumComputed,
@@ -153,6 +156,9 @@ _HYBRID_UNAVAILABLE_NOTE = (
     "first (Calibrate Reference), since TMS referencing alone leaves the computed "
     "values on a different scale from measured ones."
 )
+#: Lines the ORCA Log keeps (older ones are dropped); an optimization of a few hundred cycles is far under this.
+_LOG_MAX_BLOCKS = 100_000
+
 _RAW_SHIELDING_NOTE = (
     "Note: isotropic shielding constants, not yet referenced to a standard (e.g. TMS) "
     "as a chemical shift — treat as raw ORCA output, not a directly comparable δ (ppm) value."
@@ -404,11 +410,26 @@ _HELP: dict[str, HelpTooltip] = {
         topic="quantum-chemistry",
         help_anchor="quantum-chemistry",
     ),
+    "stop_and_keep_geometry": HelpTooltip(
+        text=(
+            "Stops a running ORCA geometry optimization like Cancel, but keeps the geometry it had reached as a conformer "
+            "marked NOT converged (with the cycle it stopped at), in the slot it was optimized from. Undo puts the "
+            "original back.\n\n"
+            "That geometry has no energy and is not a minimum, so it is never treated as a finished optimization and is "
+            "not the geometry later calculations prefer. If no complete geometry can be read, nothing is kept. Offered "
+            "only while an ORCA optimization of the selected molecule is running."
+        ),
+        tier=1,
+        help_id="quantum.stop_and_keep_geometry",
+        topic="quantum-chemistry",
+        help_anchor="quantum-chemistry",
+    ),
     "cancel_calculation": HelpTooltip(
         text=(
             "Stops the running ORCA process and removes its scratch directory. "
             "Whatever it had computed so far is lost: a cancelled job produces no "
-            "partial result."
+            "partial result. To keep the geometry an optimization has reached, use "
+            "Stop and keep geometry instead."
         ),
         tier=1,
         help_id="quantum.cancel_calculation",
@@ -959,6 +980,8 @@ class QuantumChemistryPanel(QWidget):
         self._result_store_service = result_store_service
         self._project: ProjectModel | None = None
         self._pending_molecule_uuid: str | None = None
+        #: Why the last `prepare_optimization` returned False, for the window to say ("" when it did not).
+        self.optimization_refusal = ""
         self._pending_mol = None  # rdkit.Chem.Mol, set in _on_run_clicked -- needed
         # by _on_spectrum_computed to compute connectivity-derived HSQC/
         # HMBC/COSY correlations against whichever shift values arrive.
@@ -1172,6 +1195,13 @@ class QuantumChemistryPanel(QWidget):
         self._cancel_button.setEnabled(False)
         apply_help_tooltip(self._cancel_button, _HELP["cancel_calculation"])
         self._cancel_button.clicked.connect(self._on_cancel_clicked)
+        # Like Cancel, but the geometry the optimization had reached is kept, labelled not converged. Offered only while an
+        # ORCA optimization of the pending molecule is running (`QuantumChemistryService.can_stop_and_keep`).
+        self._keep_button = QPushButton("Stop and keep geometry", self)
+        self._keep_button.setEnabled(False)
+        self._keep_button.setAutoDefault(False)
+        apply_help_tooltip(self._keep_button, _HELP["stop_and_keep_geometry"])
+        self._keep_button.clicked.connect(self._on_keep_clicked)
 
         # One history control for the WHOLE panel, not one per tab -- every
         # tab repaints from whichever run is selected here. Disabled/empty
@@ -1206,8 +1236,17 @@ class QuantumChemistryPanel(QWidget):
         self._tab_help_button.clicked.connect(self._on_tab_help_clicked)
 
         self._status_label = QLabel("", self)
+        # What a running job is doing: the elapsed time and, for an ORCA optimization, its cycle, energy and the criteria
+        # still unmet. Hidden unless a job is running. The log below is ORCA's own output; this is the reading of it.
+        self._progress_label = QLabel("", self)
+        self._progress_label.setWordWrap(True)
+        self._progress_label.setVisible(False)
+        self._running_note = ""
+        self._progress_detail = ""
         self._output_log = QPlainTextEdit(self)
         self._output_log.setReadOnly(True)
+        # The log is ORCA's whole output, which a long optimization makes several MB; the oldest blocks go first.
+        self._output_log.setMaximumBlockCount(_LOG_MAX_BLOCKS)
         # `QPlainTextEdit` has placeholder text natively, so the Log tab
         # explains itself without adding a widget to a panel that cannot
         # afford one -- see the `addTab` comment below.
@@ -1512,6 +1551,7 @@ class QuantumChemistryPanel(QWidget):
         run_row.layout().addWidget(self._more_button)
         run_row.layout().addWidget(self._run_button)
         run_row.layout().addWidget(self._cancel_button)
+        run_row.layout().addWidget(self._keep_button)
         run_row.layout().addWidget(self._tautomer_distribution_button)
         run_row.layout().addWidget(self._proton_affinity_button)
         run_row.layout().addWidget(self._bond_dissociation_button)
@@ -1554,6 +1594,7 @@ class QuantumChemistryPanel(QWidget):
         layout.addWidget(viewing_heading)
         layout.addWidget(runs_row)
         layout.addWidget(self._status_label)
+        layout.addWidget(self._progress_label)
         layout.addWidget(self._results_label)
         layout.addWidget(self._spectrum_note_label)
         layout.addWidget(self._spectrum_table)
@@ -1570,6 +1611,8 @@ class QuantumChemistryPanel(QWidget):
     def _subscribe_to_events(self, event_bus: EventBus) -> None:
         """The ten events this panel listens for."""
         event_bus.subscribe(QuantumChemistryJobStateChanged, self._on_job_state_changed)
+        event_bus.subscribe(QuantumChemistryOutput, self._on_job_output)
+        event_bus.subscribe(QuantumChemistryProgress, self._on_job_progress)
         event_bus.subscribe(QuantumChemistryRunCompleted, self._on_run_completed)
         event_bus.subscribe(QuantumChemistryResultReady, self._on_result_ready)
         event_bus.subscribe(SpectrumComputed, self._on_spectrum_computed)
@@ -1684,15 +1727,23 @@ class QuantumChemistryPanel(QWidget):
         self._conformer_combo.setCurrentIndex(index)
         return True
 
-    def prepare_optimization(self, molecule_uuid: str, conformer_id: str) -> bool:
-        """Set the panel up to optimize ONE conformer and stop. Returns whether it could.
+    def prepare_optimization(self, molecule_uuid: str, conformer_id: str, provider_id: str = "orca") -> bool:
+        """Set the panel up to optimize ONE conformer with `provider_id` and stop. Returns whether it could.
 
-        The conformer chosen, the calculation set to Geometry Optimization, averaging off (an averaged run
+        The engine chosen (ORCA unless asked otherwise: an entry that says "ORCA" must not run on whatever engine the panel
+        was last left on), the conformer chosen, the calculation set to Geometry Optimization, averaging off (an averaged run
         has no single conformer to optimize), and a line in the status label that says what Run will do.
-        **Starts nothing**: the method and basis, charge and multiplicity are still the person's to check.
+        **Starts nothing**: the method and basis, charge and multiplicity are still the person's to check. When it returns
+        False, `optimization_refusal` says why.
         """
+        self.optimization_refusal = ""
         molecule = self._project.find_molecule(molecule_uuid) if self._project is not None else None
         if molecule is None or all(c.conformer_id != conformer_id for c in molecule.conformers):
+            self.optimization_refusal = "That conformer is no longer there (the conformers changed), so nothing was set up."
+            return False
+        # A panel with one engine (or none yet: a service stub) already stands on ORCA; only a different choice needs the box.
+        if provider_id != self._selected_engine_id() and not self.select_engine(provider_id):
+            self.optimization_refusal = f"{provider_id} is not set up, so nothing was set up. Choose it in Settings > External Tools."
             return False
         # Averaging off FIRST: a choice does not apply to an averaged run.
         self._boltzmann_check.setChecked(False)
@@ -1702,11 +1753,12 @@ class QuantumChemistryPanel(QWidget):
         molecule = self._current_molecule()
         slot = next(i for i, c in enumerate(molecule.conformers) if c.conformer_id == conformer_id) + 1
         self._status_label.setText(
-            f"Ready: Geometry Optimization of conformer {slot} of {len(molecule.conformers)}. Press Run."
+            f"Ready: Geometry Optimization of conformer {slot} of {len(molecule.conformers)} with "
+            f"{self._engine_combo.currentText() or 'ORCA'}. Press Run."
         )
         return True
 
-    def optimization_offer(self, molecule) -> tuple[bool, str]:
+    def optimization_offer(self, molecule, provider_id: str | None = None) -> tuple[bool, str]:
         """Can an optimization be started from here for `molecule`, and what would it run with? (ok, one line).
 
         What the Generate Conformers window shows beside its ORCA checkbox, so the person sees the method before
@@ -1719,12 +1771,32 @@ class QuantumChemistryPanel(QWidget):
             return False, "The Quantum Chemistry panel has no method and basis set, so there is nothing to run."
         on_it = self._molecule_combo.currentData() == molecule.uuid
         charge = self._charge_spin.value() if on_it else self._chemistry_engine.formal_charge(molecule)
+        if provider_id is not None and provider_id != self._selected_engine_id():
+            provider = next((p for p in self._quantum_chemistry_service.engines() if p.provider_id == provider_id), None)
+            if provider is None:
+                return False, f"{provider_id} is not a registered engine."
+            return True, (
+                f"Runs on {provider.engine_name()}: the panel switches to it and uses {self._method_for_engine(provider)}, "
+                f"charge {charge}, multiplicity {self._multiplicity_spin.value()}."
+            )
         return True, (
             f"Runs with the Quantum Chemistry panel's settings: {method_basis}, charge {charge}, "
             f"multiplicity {self._multiplicity_spin.value()}."
         )
 
-    def start_optimization(self, molecule_uuid: str, conformer_id: str) -> str:
+    def _method_for_engine(self, provider) -> str:
+        """The method box's text once `provider` is chosen, by the same rule `_apply_engine_method_presets` applies (a test holds the two equal)."""
+        typed = self._method_combo.currentText().strip()
+        own = bool(provider.method_basis_presets)
+        wanted = list(provider.method_basis_presets) if own else list(METHOD_BASIS_PRESETS)
+        current = [self._method_combo.itemText(i) for i in range(self._method_combo.count())]
+        if current == wanted:
+            return typed
+        if own:
+            return typed if typed in wanted else wanted[0]
+        return wanted[0] if typed in current or not typed else typed
+
+    def start_optimization(self, molecule_uuid: str, conformer_id: str, provider_id: str = "orca") -> str:
         """Optimize ONE conformer now, as if the person had set the panel up and pressed Run. "" when it started.
 
         **THE SAME RUN, NOT A SECOND ONE**: `prepare_optimization` (the panel set to Geometry Optimization on that
@@ -1736,8 +1808,8 @@ class QuantumChemistryPanel(QWidget):
         """
         if not self._run_button.isEnabled():
             return "another calculation is still running in the Quantum Chemistry panel."
-        if not self.prepare_optimization(molecule_uuid, conformer_id):
-            return "that conformer is no longer there."
+        if not self.prepare_optimization(molecule_uuid, conformer_id, provider_id):
+            return self.optimization_refusal or "nothing was set up."
         self._on_run_clicked()
         if self._cancel_button.isEnabled():
             return ""
@@ -2259,6 +2331,11 @@ class QuantumChemistryPanel(QWidget):
         # Back to placeholders. A second job of a different type must not leave the first job's tables sitting under the new job's heading, which would be worse than a blank tab -- it would be wrong.
         self._reset_empty_states()
         self._status_label.setText("queued")
+
+    def _on_keep_clicked(self) -> None:
+        self._keep_button.setEnabled(False)  # one request; the job's end re-enables nothing it should not
+        if self._pending_molecule_uuid is not None:
+            self._quantum_chemistry_service.stop_and_keep(self._pending_molecule_uuid)
 
     def _on_cancel_clicked(self) -> None:
         if self._pending_molecule_uuid is not None:
@@ -3078,7 +3155,13 @@ class QuantumChemistryPanel(QWidget):
         if event.molecule_uuid != self._pending_molecule_uuid:
             return
         self._status_label.setText(event.state.value)
-        if event.message:
+        if event.state.value == "running":
+            # A running job's message is a status (elapsed time, cycle), not ORCA output, so it goes to the readout and
+            # the log keeps only what the program printed.
+            self._running_note = event.message
+            self._refresh_progress_label()
+            self._keep_button.setEnabled(self._quantum_chemistry_service.can_stop_and_keep(event.molecule_uuid))
+        elif event.message:
             self._output_log.appendPlainText(event.message)
         if event.state.value == "running":
             # Shown and selected while there is nothing else yet: a panel
@@ -3087,6 +3170,9 @@ class QuantumChemistryPanel(QWidget):
             self._correlation_tabs.setVisible(True)
             self._correlation_tabs.setCurrentWidget(self._output_log)
         if event.state.value in ("completed", "failed"):
+            self._running_note = self._progress_detail = ""
+            self._refresh_progress_label()
+            self._keep_button.setEnabled(False)
             self._run_button.setEnabled(True)
             self._set_orca_only_enabled(self._tautomer_distribution_button, True)
             self._set_orca_only_enabled(self._proton_affinity_button, True)
@@ -3106,6 +3192,29 @@ class QuantumChemistryPanel(QWidget):
                 self._correlation_tabs.setCurrentWidget(self._output_log)
             # Failed keeps it OPEN: the log is where the reason is, and
             # collapsing it would hide the one thing worth reading.
+
+    def _on_job_output(self, event: QuantumChemistryOutput) -> None:
+        """Append ORCA's own output, whole. A chunk can end mid-line, so it is inserted at the end and not added as a line."""
+        if event.molecule_uuid != self._pending_molecule_uuid:
+            return
+        scroll = self._output_log.verticalScrollBar()
+        at_end = scroll.value() >= scroll.maximum() - 2
+        cursor = self._output_log.textCursor()
+        cursor.movePosition(cursor.MoveOperation.End)
+        cursor.insertText("\n".join(event.text.splitlines()) + ("\n" if event.text.endswith(("\n", "\r")) else ""))
+        if at_end:  # someone reading back up the log is left where they are
+            scroll.setValue(scroll.maximum())
+
+    def _on_job_progress(self, event: QuantumChemistryProgress) -> None:
+        if event.molecule_uuid != self._pending_molecule_uuid:
+            return
+        self._progress_detail = detail_text(event.progress)
+        self._refresh_progress_label()
+
+    def _refresh_progress_label(self) -> None:
+        text = "\n".join(part for part in (self._running_note, self._progress_detail) if part)
+        self._progress_label.setText(text)
+        self._progress_label.setVisible(bool(text))
 
     def _structure_still_matches(self, event: QuantumChemistryResultReady) -> bool:
         """Is the pending molecule still the structure this job was submitted on? Fails closed."""

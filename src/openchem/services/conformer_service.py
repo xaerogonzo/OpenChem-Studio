@@ -92,10 +92,12 @@ class _ConformerGenerationTask(QRunnable):
         num_embeddings: int | None = None,
         options: GenerationOptions | None = None,
         optimize_lowest: bool = False,
+        optimize_provider: str = "orca",
     ) -> None:
         super().__init__()
         self._provider = provider
         self._optimize_lowest = bool(optimize_lowest)
+        self._optimize_provider = optimize_provider
         self._engine = engine
         self._model = model
         # Two different numbers, and conflating them is what made the UI
@@ -371,7 +373,8 @@ class _ConformerGenerationTask(QRunnable):
             )
         self._event_bus.publish(
             ConformersReady(
-                molecule_uuid=self._model.uuid, conformers=conformers, optimize_lowest=self._optimize_lowest
+                molecule_uuid=self._model.uuid, conformers=conformers, optimize_lowest=self._optimize_lowest,
+                optimize_provider=self._optimize_provider,
             )
         )
         # Say so when fewer came back than were asked for, rather than
@@ -484,6 +487,7 @@ class ConformerService:
         num_embeddings: int | None = None,
         options: GenerationOptions | None = None,
         optimize_lowest: bool = False,
+        optimize_provider: str = "orca",
     ) -> None:
         """`num_conformers` is how many distinct conformers to KEEP;
         `num_embeddings` is how many random embeddings to try in order to
@@ -537,6 +541,7 @@ class ConformerService:
                 num_embeddings=num_embeddings,
                 options=options,
                 optimize_lowest=optimize_lowest,
+                optimize_provider=optimize_provider,
             )
         )
 
