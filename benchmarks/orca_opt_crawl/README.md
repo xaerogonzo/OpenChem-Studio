@@ -30,12 +30,13 @@ softness, not an error that more cycles would remove. One molecule, one run each
 earlier 20-small-molecule xtb comparison (`benchmarks/xtb_comparison/PREREGISTRATION.md` section 14, median 0.014 A) does not
 cover floppy chains like this.
 
-## NOT run yet (each needs the ORCA job slot and the machine for a while)
+## NOT run yet: deferred to the next PR (each needs the ORCA job slot and the machine for a while)
 
 Track A (reproduce from the original geometry, unmodified input, record cycles, per-cycle time, five criteria, resets,
 termination reason); Track B from the last frame, one change at a time: normal Opt, `COpt`, `%geom cartfallback true`, `DefGrid3`,
 `NoCOSX`, `LooseOpt`, BP86 def2-SVP with RI-J, Psi4 B3LYP def2-SVP; thread counts 4, 8, 12; the same on cicutoxin. Only after
-these are in should any ORCA default in the application change.
+these are in should any ORCA default in the application change (Phase 2 of the plan). This PR changes no ORCA default: it adds
+the progress readout, the complete log, Stop and keep geometry, and the engine choice (Phases 1 and 3).
 
 Files kept outside the repository: the job's `job.inp`, `job.xyz`, `job_trj.xyz` and `job.opt` in
 `Documents\OpenChem Studio random notes\oenanthotoxin_orca_job_c3zwvcct`; the xtb runs in `D:\_scratch\oenan_phase0`.
