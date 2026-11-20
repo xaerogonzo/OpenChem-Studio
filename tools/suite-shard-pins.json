@@ -5463,6 +5463,7 @@
   "tests/test_undo_refreshes_panels.py": 2,
   "tests/test_validation_rows.py": 5,
   "tests/test_validation_rows_energetics.py": 5,
+  "tests/test_vb_decompose_budget.py": 7,
   "tests/test_vdw_radii.py": 2,
   "tests/test_vdw_radii_provenance.py": 6,
   "tests/test_vendoring_mark_synced.py": 2,

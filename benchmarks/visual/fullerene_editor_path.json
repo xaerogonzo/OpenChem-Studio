@@ -1,0 +1,9 @@
+[
+ {"do": "smiles", "name": "seed", "smiles": "CCO", "after_ms": 2500},
+ {"do": "select", "molecule": -1, "after_ms": 2500},
+ {"do": "report", "tag": "before", "after_ms": 500},
+ {"do": "ketcher_eval", "tag": "add_c60", "after_ms": 20000,
+  "script": "window.ketcher.addFragment('c12c3c4c5c1c1c6c7c2c2c8c3c3c9c4c4c%10c5c5c1c1c6c6c%11c7c2c2c7c8c3c3c8c9c4c4c9c%10c5c5c1c1c6c6c%11c2c2c7c3c3c8c4c4c9c5c1c1c6c2c3c41').then(function(){return 'added'})"},
+ {"do": "report", "tag": "after_c60_default_settings", "after_ms": 500},
+ {"do": "quit"}
+]
