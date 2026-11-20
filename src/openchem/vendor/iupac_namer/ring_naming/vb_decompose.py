@@ -27,6 +27,7 @@ from __future__ import annotations
 
 import itertools
 import logging
+import math
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
@@ -34,6 +35,14 @@ if TYPE_CHECKING:
     pass
 
 logger = logging.getLogger(__name__)
+
+#: Largest number of secondary-bridge combinations tried for one pair of bridgeheads.
+#: Real bridged systems need a few hundred; a fullerene needs C(~90, 29).
+MAX_SECONDARY_COMBINATIONS = 200_000
+#: Largest number of path candidates examined for one set of disjoint main bridges.
+MAX_DISJOINT_SEARCH_STEPS = 20_000
+#: Largest number of search steps for the simple paths between one pair of bridgeheads.
+MAX_PATH_SEARCH_STEPS = 20_000
 
 
 @dataclass(frozen=True)
@@ -100,7 +109,13 @@ def _all_simple_paths(
     """
     results: list[list[int]] = []
     stack: list[tuple[int, list[int]]] = [(start, [start])]
+    # OPENCHEM: the DFS is exponential on a cage (C60: 785,000 steps, 4.4 s, for 8 calls).
+    # A step cap, as a count, returns the paths found so far.
+    steps_left = MAX_PATH_SEARCH_STEPS
     while stack:
+        steps_left -= 1
+        if steps_left < 0:
+            break
         curr, path = stack.pop()
         if curr == end:
             results.append(path)
@@ -152,6 +167,7 @@ def _enumerate_disjoint_triples(
     mol,
     k_target: int,
     max_path_count: int = 500,
+    budget: list[int] | None = None,
 ) -> list[tuple[list[int], ...]]:
     """Enumerate all sets of ``k_target`` pairwise-disjoint simple paths bh1→bh2.
 
@@ -173,11 +189,21 @@ def _enumerate_disjoint_triples(
     results: list[tuple[list[int], ...]] = []
 
     # Backtracking: pick k_target disjoint paths
+    # OPENCHEM: a step budget (a count, not a clock). With up to 500 paths and no
+    # disjoint set to find (C60), the search tried C(500, 3) combinations and hung the UI.
+    # `budget` is one cell shared by every call of one decomposition, so the cap
+    # holds for the whole ring system and not per bridgehead pair (C60 has 1770 pairs).
+    if budget is None:
+        budget = [MAX_DISJOINT_SEARCH_STEPS]
+
     def _backtrack(chosen: list[list[int]], used: set[int], start_idx: int) -> None:
         if len(chosen) == k_target:
             results.append(tuple(chosen))
             return
         for i in range(start_idx, len(all_paths)):
+            budget[0] -= 1
+            if budget[0] < 0:
+                return
             p = all_paths[i]
             interior = set(p[1:-1])
             if interior & used:
@@ -300,14 +326,17 @@ def decompose_ring_system(
     # For each bh pair, enumerate disjoint path triples.  Then for each
     # triple, add secondary bridges to account for remaining rank - 2 rings.
     candidates: list[tuple[tuple, VBDecomposition]] = []
+    search_budget = [MAX_DISJOINT_SEARCH_STEPS]
 
     for bh1, bh2 in itertools.combinations(bh_candidates, 2):
+        if search_budget[0] < 0:
+            break  # budget spent: keep what was found (nothing, for a cage like C60)
         # Try k=3 first, fall back to k=2 if no 3-disjoint exists
         for k_target in (3, 2):
             if k_target > rank + 1:
                 continue
             triples = _enumerate_disjoint_triples(
-                bh1, bh2, ring_atom_set, mol, k_target
+                bh1, bh2, ring_atom_set, mol, k_target, budget=search_budget
             )
             if not triples:
                 continue
@@ -362,6 +391,15 @@ def decompose_ring_system(
                 # Try all combinations of n_secondaries_needed secondaries
                 # that collectively (a) cover all remaining atoms and
                 # (b) close rank - 2 independent cycles.
+                # OPENCHEM: the number of combinations is C(len(filtered), needed), which
+                # is astronomical for a cage such as C60 (rank 31, 29 secondaries) and
+                # froze the whole application on the UI thread (measured: no return in
+                # 40 s). A count over the limit is skipped, which for such a system ends
+                # in "no decomposition", the same answer as any system this method does
+                # not cover. The limit is a count, not a clock, so a result never
+                # depends on machine speed.
+                if math.comb(len(filtered), n_secondaries_needed) > MAX_SECONDARY_COMBINATIONS:
+                    continue
                 for sec_combo in itertools.combinations(filtered, n_secondaries_needed):
                     # Validate atom coverage
                     sec_interior_atoms: set[int] = set()
