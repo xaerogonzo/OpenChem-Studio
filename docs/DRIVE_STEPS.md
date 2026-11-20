@@ -208,6 +208,16 @@ The `OPENCHEM_DRIVE` step catalogue, moved out of [`CLAUDE.md`](../CLAUDE.md) on
                                           "ORCA optimize" button (or `"via": "menu"`, Tools > ORCA Geometry
                                           Optimization...), then assert what the Quantum Chemistry panel was SET UP
                                           to do and that NOTHING started; Run is a separate `qc_run` step
+    {"do": "optimize_engine_menu", "conformer": 0, "engine": "xtb", "expect": {"entries": ["Optimize with xtb"],
+     "selected_engine": "xtb", "method": "GFN2-xTB", "job_started": false}}    open the viewer's REAL "Other engine" menu (filled
+                                          by `aboutToShow`), list it, press one entry (a greyed one is an ERROR, never pressed) and
+                                          assert which engine the panel was SET UP with; no `engine` only lists. Nothing starts.
+    {"do": "qc_progress_report", "tag": "mid", "expect": {"visible": true, "progress_contains": ["cycle"], "keep_enabled": true,
+     "log_contains": ["GEOMETRY OPTIMIZATION CYCLE"], "log_lines_at_least": 200}}    what the panel SHOWS about a running job: the
+                                          readout line, whether Stop and keep geometry is enabled, and the log
+    {"do": "qc_stop_keep"}                    press the REAL "Stop and keep geometry" button (disabled is an ERROR); follow with `qc_wait`
+    {"do": "conformers", "optimize_lowest": true, "optimize_engine": "xtb"}    the Generate window's engine box (only with two or
+                                          more engines set up) and what the offer says; the choice rides with the set
     {"do": "jobs_report", "tag": "running"}   rows AND whether it is POLLING
     {"do": "jobs_cancel", "row": 0}           the real button in a real row
     {"do": "synthesis_panel", "tag": "x", "press": "plan", "route": 1, "step": 0, "scroll": "end",

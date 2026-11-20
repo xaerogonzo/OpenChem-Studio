@@ -106,8 +106,8 @@ def detail_text(progress: OptProgress) -> str:
     for item in progress.unmet():
         lines.append(f"{item.name}: {_short(item.value)} (needs {_short(item.tolerance)})")
     if progress.resets:
-        lines.append(f"ORCA rebuilt its optimizer {progress.resets} times"
-                     + (f" in {progress.cycle} cycles" if progress.cycle else ""))
+        lines.append(f"ORCA rebuilt its optimizer {progress.resets} time{'' if progress.resets == 1 else 's'}"
+                     + (f" in {progress.cycle} cycle{'' if progress.cycle == 1 else 's'}" if progress.cycle else ""))
     note = slow_progress_note(progress)
     if note:
         lines.append(note)

@@ -17,7 +17,13 @@ from PySide6.QtWidgets import (
 )
 
 from openchem.domain.common import CacheState
-from openchem.domain.conformer import is_quantum_optimized, quantum_engine_name, quantum_level_of_theory
+from openchem.domain.conformer import (
+    ORCA_PARTIAL_OPT,
+    PARTIAL_CYCLE,
+    is_quantum_optimized,
+    quantum_engine_name,
+    quantum_level_of_theory,
+)
 from openchem.domain.optimize_choice import OptimizeChoice
 from openchem.domain.report import ArrowAnnotation
 from openchem.services.spatial_overlay_service import SINGLE_VIEW_CELL
@@ -1535,6 +1541,11 @@ class MoleculeViewer3DWidget(QWidget):
 
     def _conformer_tooltip(self, conformer) -> str:
         """What the status line's tooltip says about the conformer on screen."""
+        if conformer.method == ORCA_PARTIAL_OPT:
+            return (
+                "The geometry an ORCA optimization had reached when it was stopped. It is NOT converged, has no energy, and is not "
+                "the geometry later calculations prefer. Details says which conformer it replaced."
+            )
         if is_quantum_optimized(conformer):
             level = quantum_level_of_theory(conformer)
             return (
@@ -1561,6 +1572,11 @@ class MoleculeViewer3DWidget(QWidget):
         # a widget of its own, so it cannot survive a state change the
         # rest of the line reacts to.
         overlay = f" - {self._overlay_value}" if getattr(self, "_overlay_value", "") else ""
+        if conformer.method == ORCA_PARTIAL_OPT:
+            # A geometry kept from a STOPPED optimization: said in the label, because the energy line would otherwise read
+            # "energy n/a" and nothing would say it is not a minimum.
+            cycle = conformer.provenance.parameters.get(PARTIAL_CYCLE) if conformer.provenance is not None else None
+            return f"{position} - ORCA partial geometry, NOT converged{f' (cycle {cycle})' if cycle else ''}{overlay}"
         if is_quantum_optimized(conformer):
             # Marked wherever you step, so an ORCA geometry is never mistaken for a force-field one.
             level = quantum_level_of_theory(conformer)

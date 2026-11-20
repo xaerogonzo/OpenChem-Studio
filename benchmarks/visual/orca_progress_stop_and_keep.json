@@ -1,0 +1,30 @@
+[
+  {"do": "smiles", "smiles": "OCC=CC#CC#CC=CC=CCCC(O)CCC", "name": "Oenanthotoxin", "after_ms": 3000},
+  {"do": "select", "molecule": -1, "after_ms": 3000},
+  {"do": "view_3d", "after_ms": 2000},
+  {"do": "conformers", "count": 3, "after_ms": 30000},
+  {"do": "conformer_report", "tag": "before", "expect": {"orca_conformers": 0}},
+
+  {"do": "orca_optimize_button", "via": "button", "conformer": 0,
+   "expect": {"chosen_slot": 1, "calc_type": "Geometry Optimization", "job_started": false}},
+  {"do": "qc_run", "method": "B3LYP def2-SVP", "after_ms": 75000},
+  {"do": "qc_progress_report", "tag": "running",
+   "expect": {"visible": true, "progress_contains": ["cycle", "criteria met"], "keep_enabled": true,
+              "log_contains": ["GEOMETRY OPTIMIZATION CYCLE", "Geometry convergence"], "log_lines_at_least": 200}},
+  {"do": "shot", "path": "benchmarks/visual/artifacts/orca_progress_running.png", "widget": "Quantum_Chemistry", "after_ms": 1000},
+
+  {"do": "qc_stop_keep"},
+  {"do": "qc_wait", "timeout_ms": 60000},
+  {"do": "qc_progress_report", "tag": "after-stop", "expect": {"visible": false, "keep_enabled": false}},
+  {"do": "conformer_report", "tag": "after-stop-and-keep",
+   "expect": {"orca_conformers": 0, "viewer_label_contains": "ORCA partial geometry, NOT converged"}},
+  {"do": "shot", "path": "benchmarks/visual/artifacts/orca_progress_kept.png", "after_ms": 1500},
+
+  {"do": "menu", "text": "Undo", "prefix": true, "after_ms": 3000},
+  {"do": "conformer_report", "tag": "after-undo", "expect": {"orca_conformers": 0, "viewer_label_excludes": "partial"}},
+  {"do": "menu", "text": "Redo", "prefix": true, "after_ms": 3000},
+  {"do": "conformer_report", "tag": "after-redo", "expect": {"viewer_label_contains": "NOT converged"}},
+
+  {"do": "expect_clean"},
+  {"do": "quit"}
+]

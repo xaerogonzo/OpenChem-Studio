@@ -8,6 +8,7 @@ import pytest
 from rdkit import Chem
 from rdkit.Chem import AllChem
 
+import conftest
 from openchem.app.settings import Settings
 from openchem.chem.orca_partial import read_partial_geometry
 from openchem.domain.common import CacheState
@@ -173,3 +174,29 @@ def test_the_slow_note_needs_all_the_signs():
     assert slow_progress_note(_progress(0.0, resets=30, unmet=False)) == ""  # nothing is holding it up
     assert slow_progress_note(_progress(-1e-3, resets=30)) == ""  # the energy is still moving
     assert slow_progress_note(OptProgress(cycle=SLOW_WINDOW, resets=SLOW_WINDOW)) == ""  # too early to say
+
+
+# -- how the viewer says it ---------------------------------------------------------------------------------------
+
+
+def test_the_viewer_labels_a_kept_geometry_as_not_converged_and_not_as_energy_n_a(qapp):
+    from openchem.domain.common import Provenance
+    from openchem.domain.conformer import ConformerModel, PARTIAL_CYCLE
+    from tests.test_molecule_viewer3d_widget import _gallery_widget
+
+    widget, _backend, molecule = _gallery_widget(None, count=3)
+    try:
+        kept = ConformerModel(molblock=molecule.conformers[0].molblock, method=ORCA_PARTIAL_OPT,
+                              provenance=Provenance(created_by="core", method="orca", parameters={PARTIAL_CYCLE: 7}))
+        label = widget._conformer_label(kept)
+        assert "ORCA partial geometry, NOT converged (cycle 7)" in label and "energy n/a" not in label
+        assert "NOT converged" in widget._conformer_tooltip(kept)
+    finally:
+        conftest.dispose(widget)
+
+
+def test_the_readout_counts_in_the_singular():
+    from openchem.domain.opt_progress import detail_text
+
+    assert detail_text(OptProgress(cycle=1, resets=1)) == "ORCA rebuilt its optimizer 1 time in 1 cycle"
+    assert detail_text(OptProgress(cycle=2, resets=2)) == "ORCA rebuilt its optimizer 2 times in 2 cycles"
