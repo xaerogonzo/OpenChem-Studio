@@ -127,7 +127,7 @@ The Project table remains the across-molecule matrix. Fill table still consumes 
 | New conformer? | Separate execution if the run used that geometry | Separate run | Separate fingerprint slot |
 | New protonation? | Separate execution | Separate run (input snapshot) | Different input |
 | Failed / cancelled? | Terminal failures and cancellations are history; in-flight is not persisted | Same (no RUNNING in the file) | Failures are not a durable job record |
-| Cap? | No hard cap in v1; Settings may add one later, with a confirm before dropping oldest historical executions | Unconditional terminal runs | Existing revision limit |
+| Cap? | Settings: at most N fingerprint-mismatched property executions per molecule. 0 (default) is unlimited. Confirm uses a deletion preview (so 0→5 can ask; 5→0 never does). Current-input repeats are unbounded. | Unconditional terminal runs | Existing revision limit |
 
 The cache continues to answer “what should Properties replay for this structure right now.” History answers “what did I run.”
 
@@ -169,7 +169,7 @@ A new project block for property executions is additive. An older app that does 
 
 History is per molecule, listed in Results for the selection. Do not load every execution of every molecule to paint one Showing list. Quantum already does this. The new store should answer “executions for this UUID” without a full-project scan as the hot path.
 
-No v1 cap; if a project grows huge, the later Settings cap drops oldest *historical* (non-current-input) property executions after confirm, never Quantum runs, never the cache's current fingerprint rows.
+The Settings cap drops oldest *historical* (input is fingerprintable and no longer matches) property executions after a preview confirm. Default 0 is unlimited, so shipping the control does not delete history. Current-input repeats are not counted. Quantum runs and the cache are not limited here.
 
 ## 12. Open decisions
 
@@ -178,7 +178,7 @@ Recorded so an implementation plan cannot skip them. Recommendations above are t
 1. **History across edits** — keep historical property executions after drawing/geometry change; they survive save/reopen. Cache save rule unchanged.
 2. **Identical repeat** — new execution ID. Cache may still no-op an identical payload.
 3. **Failed attempts** — persist terminal failure/cancel for property executions; not in-flight.
-4. **Retention cap** — none in v1; optional later Settings cap on historical property executions only.
+4. **Retention cap** — shipped: Settings keeps at most N historical property executions per molecule (0 = unlimited). Confirm from the deletion preview, not a numeric old-vs-new comparison. Current-input repeats unbounded. Quantum, cache, bundles, and undo are out of scope.
 5. **Delete vs bundles** — history delete does not edit automatic bundle manifests.
 6. **Quantum output ownership** — cache projections that name a `run_id` withdraw with that run; others stay.
 7. **Conformer ownership** — Quantum delete is history only; landed geometries stay.

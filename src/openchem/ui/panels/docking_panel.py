@@ -590,6 +590,7 @@ class DockingPanel(QWidget):
         settings: Settings,
         event_bus: EventBus,
         parent: QWidget | None = None,
+        result_store_service=None,
     ) -> None:
         """Built in three steps, after the fields the panel starts with.
 
@@ -624,6 +625,7 @@ class DockingPanel(QWidget):
         self._chemistry_engine = chemistry_engine
         self._settings = settings
         self._event_bus = event_bus
+        self._result_store_service = result_store_service
         self._project: ProjectModel | None = None
         self._pending_ligand_uuid: str | None = None
         self._pending_receptor_uuid: str | None = None
@@ -1360,7 +1362,13 @@ class DockingPanel(QWidget):
             self._status_label.setText("")
 
     def _on_configure_clicked(self) -> None:
-        dialog = SettingsDialog(self._settings, self, section=EXTERNAL_TOOLS, tool="vina")
+        dialog = SettingsDialog(
+            self._settings,
+            self,
+            section=EXTERNAL_TOOLS,
+            tool="vina",
+            result_store_service=self._result_store_service,
+        )
         dialog.exec()
 
     def _on_dock_clicked(self) -> None:

@@ -82,7 +82,12 @@ def sort_menu(menu: QMenu) -> None:
         menu.removeAction(action)
         _keep_alive(action)
     for action in sorted(actions, key=lambda a: _sort_key(label_of(a))):
-        menu.addAction(action)
+        submenu = action.menu()
+        if submenu is not None:
+            menu.addMenu(submenu)
+            _keep_alive(submenu)
+        else:
+            menu.addAction(action)
 
 
 def insert_sorted(menu: QMenu, action: QAction) -> None:
