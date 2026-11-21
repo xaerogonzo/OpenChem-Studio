@@ -3758,7 +3758,12 @@ class MainWindow(QMainWindow):
             False,
             "show_stereo_flags",
         )
-        style_menu = menu.addMenu("Stereo Group Labels (abs, &&1, or1)")
+        #: Held on the window: `addMenu` returns a Python-owned wrapper, and
+        #: a local is collected (with the four style actions) before
+        #: `_menu_wrappers` exists — the same leak as Copy Structure As.
+        style_menu = self._stereo_group_labels_menu = menu.addMenu(
+            "Stereo Group Labels (abs, &&1, or1)"
+        )
         group = QActionGroup(self)
         group.setExclusive(True)
         for label, value, help_key in self._STEREO_LABEL_STYLES:
@@ -3800,7 +3805,7 @@ class MainWindow(QMainWindow):
         `C H 3 N H 3 +`. A second charge beside its own would be the "two
         of everything" failure this project keeps removing.
         """
-        electron_menu = menu.addMenu("Electron Display")
+        electron_menu = self._electron_display_menu = menu.addMenu("Electron Display")
         group = QActionGroup(self)
         group.setExclusive(True)
         for label, mode, help_key in self._ELECTRON_MODES:
