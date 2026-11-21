@@ -53,6 +53,7 @@ from openchem.app.settings import (
     FUKUI_ANION_F_PLUS,
     FUKUI_CATION_SEARCH,
     INTERFACE_SIZE,
+    MAX_HISTORICAL_PROPERTY_EXECUTIONS,
     MAX_REVISIONS_KEPT,
     PSI4_MEMORY_GB,
     PSI4_THREADS,
@@ -250,6 +251,19 @@ _HELP = {
         ),
         tier=2,
         help_id="settings.revisions_kept",
+        topic="settings",
+        help_anchor="settings",
+    ),
+    "historical_executions": HelpTooltip(
+        text=(
+            "How many ordinary calculator runs whose structure no longer matches "
+            "to keep per molecule in Results history. 0 (the default) means no "
+            "limit. Runs that still match this drawing or conformer are not "
+            "counted, and Quantum jobs are not limited here.\n\n"
+            "Setting a limit that would drop rows asks first. Undo is not affected."
+        ),
+        tier=2,
+        help_id="settings.historical_property_executions",
         topic="settings",
         help_anchor="settings",
     ),
@@ -534,6 +548,7 @@ class SettingsDialog(QDialog):
         # See `_commit_revisions`: its own question moves the focus, which
         # finishes the edit a second time.
         self._committing_revisions = False
+        self._committing_historical = False
 
         self._sections = _SectionList(self)
         self._sections.setObjectName("settingsSections")
@@ -649,6 +664,7 @@ class SettingsDialog(QDialog):
         closing would drop it silently.
         """
         self._commit_revisions()
+        self._commit_historical_executions()
         super().done(result)
 
     def _fit_section_list(self) -> None:
@@ -1155,6 +1171,28 @@ class SettingsDialog(QDialog):
             "Lowering this removes older results at once, after asking.",
             page,
         ))
+
+        self._max_historical = _spin_box(MAX_HISTORICAL_PROPERTY_EXECUTIONS, "", page)
+        self._max_historical.setObjectName("maxHistoricalPropertyExecutions")
+        self._max_historical.setSpecialValueText("No limit")
+        self._max_historical.setValue(int(self._settings.preference(MAX_HISTORICAL_PROPERTY_EXECUTIONS)))
+        apply_help_tooltip(self._max_historical, _HELP["historical_executions"])
+        self._max_historical.setKeyboardTracking(False)
+        self._max_historical.editingFinished.connect(self._commit_historical_executions)
+
+        history_row = QHBoxLayout()
+        history_row.addWidget(QLabel("Keep at most", page))
+        history_row.addWidget(self._max_historical)
+        history_row.addWidget(QLabel("historical property runs per molecule", page))
+        history_row.addStretch(1)
+        layout.addLayout(history_row)
+        layout.addWidget(_note(
+            "This is Results history whose structure no longer matches, not the "
+            "in-memory versions above. Quantum jobs are not limited here. Runs that "
+            "still match this drawing or conformer are not limited here. Changing to "
+            "a limit that would drop rows asks first.",
+            page,
+        ))
         layout.addStretch(1)
         return page
 
@@ -1209,6 +1247,65 @@ class SettingsDialog(QDialog):
             "The molecules and undo are not affected. Undoing back to a removed version "
             "computes its automatic results again; a calculation you ran by hand would "
             "need running again.\n\nContinue?",
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+        )
+        return answer == QMessageBox.StandardButton.Yes
+
+    def _commit_historical_executions(self, _checked: bool = False) -> None:
+        """Store the history cap. Ask only when the preview would drop rows."""
+        if self._committing_historical:
+            return
+        self._committing_historical = True
+        try:
+            limit = self._max_historical.value()
+            current = int(self._settings.preference(MAX_HISTORICAL_PROPERTY_EXECUTIONS))
+            if limit == current:
+                return
+            if not self._confirm_historical_cap(limit):
+                self._max_historical.blockSignals(True)
+                self._max_historical.setValue(current)
+                self._max_historical.blockSignals(False)
+                return
+            self._store(MAX_HISTORICAL_PROPERTY_EXECUTIONS, limit)
+        finally:
+            self._committing_historical = False
+
+    def _confirm_historical_cap(self, limit: int) -> bool:
+        """Preview deletions for `limit`. True when it is safe to store."""
+        if limit <= 0:
+            return True
+        service = self._result_store_service
+        if service is None:
+            current = int(self._settings.preference(MAX_HISTORICAL_PROPERTY_EXECUTIONS))
+            if current > 0 and limit >= current:
+                return True
+            answer = QMessageBox.question(
+                self,
+                "Keep fewer historical runs",
+                (
+                    f"Keep at most {limit} historical property run"
+                    f"{'' if limit == 1 else 's'} per molecule.\n\n"
+                    "History whose structure no longer matches may be removed. "
+                    "Quantum jobs and runs that still match this structure stay. "
+                    "Undo is not affected.\n\nContinue?"
+                ),
+                QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+            )
+            return answer == QMessageBox.StandardButton.Yes
+        executions, molecules = service.historical_executions_beyond(limit)
+        if not executions:
+            return True
+        kept = f"Keep at most {limit} historical property run{'' if limit == 1 else 's'} per molecule"
+        removed = (
+            f"{executions} older run{'' if executions == 1 else 's'} for "
+            f"{molecules} molecule{'' if molecules == 1 else 's'} will be removed."
+        )
+        answer = QMessageBox.question(
+            self,
+            "Keep fewer historical runs",
+            f"{kept} -- {removed}\n\n"
+            "Quantum jobs and history that still match this structure stay. "
+            "Undo is not affected.\n\nContinue?",
             QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
         )
         return answer == QMessageBox.StandardButton.Yes

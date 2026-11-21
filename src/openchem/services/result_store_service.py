@@ -24,7 +24,11 @@ import logging
 from collections.abc import Callable
 from dataclasses import replace
 
-from openchem.app.settings import MAX_REVISIONS_KEPT, Settings
+from openchem.app.settings import (
+    MAX_HISTORICAL_PROPERTY_EXECUTIONS,
+    MAX_REVISIONS_KEPT,
+    Settings,
+)
 from openchem.chem.calculation_input import input_fingerprint
 from openchem.chem.engine import ChemistryEngine
 from openchem.domain.calculator import DRAWING, GEOMETRY
@@ -34,6 +38,8 @@ from openchem.domain.project import ProjectModel
 from openchem.domain.property_execution import (
     PropertyExecutionStore,
     execution_from_stored,
+    historical_beyond,
+    ids_to_drop_historical,
     is_history_worthy,
 )
 from openchem.domain.quantum_chemistry_run import QuantumChemistryRun, QuantumChemistryRunStore
@@ -59,7 +65,11 @@ from openchem.services.result_identity import application_version
 from openchem.events.events import (
     AlertComputed,
     AutomaticPartFinished,
+    CHANGE_CALCULATION_INPUT,
+    CHANGE_STRUCTURE,
+    ConformersChanged,
     DescriptorComputed,
+    MoleculeChanged,
     PerAtomDataComputed,
     PhCurveComputed,
     PropertyExecutionDeleted,
@@ -153,6 +163,8 @@ class ResultStoreService:
         event_bus.subscribe(AutomaticPartFinished, self._on_part_finished)
         event_bus.subscribe(SettingsChanged, self._on_settings_changed)
         event_bus.subscribe(QuantumChemistryRunCompleted, self._on_quantum_chemistry_run_completed)
+        event_bus.subscribe(MoleculeChanged, self._on_molecule_changed)
+        event_bus.subscribe(ConformersChanged, self._on_conformers_changed)
 
     # --- lifecycle ----------------------------------------------------------
 
@@ -293,18 +305,70 @@ class ResultStoreService:
 
         Does not edit automatic bundle manifests or the result cache.
         """
-        execution = self.property_executions.get(execution_id)
-        if execution is None:
-            return False
-        self.property_executions.delete(execution_id)
-        for callback in list(self._on_recorded):
-            callback(execution.molecule_uuid)
-        self._event_bus.publish(
-            PropertyExecutionDeleted(
-                execution_id=execution_id, molecule_uuid=execution.molecule_uuid
-            )
+        return bool(self._delete_property_executions([execution_id]))
+
+    def historical_execution_limit(self) -> int:
+        """How many fingerprint-mismatched property executions to keep per molecule.
+
+        0 (or no settings) is unlimited.
+        """
+        if self._settings is None:
+            return 0
+        return int(self._settings.preference(MAX_HISTORICAL_PROPERTY_EXECUTIONS))
+
+    def historical_executions_beyond(self, limit: int) -> tuple[int, int]:
+        """Preview how many historical executions a cap of `limit` would drop."""
+        return historical_beyond(self.property_executions, self.project_fingerprints(), limit)
+
+    def trim_historical_property_executions(self, molecule_uuid: str | None = None) -> list[str]:
+        """Drop oldest historical property executions that exceed the cap.
+
+        `molecule_uuid` None fingerprints the whole project (Settings, load).
+        A uuid fingerprints only that molecule.
+        """
+        if self._project is None:
+            return []
+        limit = self.historical_execution_limit()
+        if limit <= 0:
+            return []
+        if molecule_uuid is None:
+            fingerprints = self.project_fingerprints()
+        else:
+            model = self._project.find_molecule(molecule_uuid)
+            if model is None:
+                return []
+            fingerprints = {molecule_uuid: self.fingerprints_for(model)}
+        return self._delete_property_executions(
+            ids_to_drop_historical(self.property_executions, fingerprints, limit)
         )
-        return True
+
+    def _delete_property_executions(self, execution_ids: list[str]) -> list[str]:
+        """Remove each id; publish one deleted event; notify listeners once per molecule."""
+        if not execution_ids:
+            return []
+        deleted: list[str] = []
+        affected: list[str] = []
+        seen: set[str] = set()
+        for execution_id in execution_ids:
+            execution = self.property_executions.get(execution_id)
+            if execution is None:
+                continue
+            molecule_uuid = execution.molecule_uuid
+            if not self.property_executions.delete(execution_id):
+                continue
+            deleted.append(execution_id)
+            self._event_bus.publish(
+                PropertyExecutionDeleted(
+                    execution_id=execution_id, molecule_uuid=molecule_uuid
+                )
+            )
+            if molecule_uuid not in seen:
+                seen.add(molecule_uuid)
+                affected.append(molecule_uuid)
+        for molecule_uuid in affected:
+            for callback in list(self._on_recorded):
+                callback(molecule_uuid)
+        return deleted
 
     def _on_quantum_chemistry_run_completed(self, event: QuantumChemistryRunCompleted) -> None:
         self.record_quantum_chemistry_run(event.run)
@@ -320,6 +384,9 @@ class ResultStoreService:
         # stores a lower number, with `revisions_beyond`'s counts.
         if event.key == MAX_REVISIONS_KEPT.key:
             self.store.set_max_revisions(self.revision_limit())
+            return
+        if event.key == MAX_HISTORICAL_PROPERTY_EXECUTIONS.key:
+            self.trim_historical_property_executions()
 
     def add_recorded_listener(self, callback: Callable[[str], None]) -> None:
         self._on_recorded.append(callback)
@@ -340,6 +407,20 @@ class ResultStoreService:
             return
         for callback in list(self._on_recorded):
             callback(molecule_uuid)
+        if minted:
+            self.trim_historical_property_executions(molecule_uuid)
+
+    def _on_molecule_changed(self, event: MoleculeChanged) -> None:
+        if event.kind not in (CHANGE_STRUCTURE, CHANGE_CALCULATION_INPUT):
+            return
+        if not self._belongs(event.molecule_uuid):
+            return
+        self.trim_historical_property_executions(event.molecule_uuid)
+
+    def _on_conformers_changed(self, event: ConformersChanged) -> None:
+        if not self._belongs(event.molecule_uuid):
+            return
+        self.trim_historical_property_executions(event.molecule_uuid)
 
     def _on_part_finished(self, event: AutomaticPartFinished) -> None:
         if not self._belongs(event.molecule_uuid):

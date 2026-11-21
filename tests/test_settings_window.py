@@ -27,6 +27,7 @@ from openchem.app.settings import (
     CONFORMER_MAX_EMBEDDINGS,
     DRAWING_BOND_CLICK,
     DIRECTORY_KINDS,
+    MAX_HISTORICAL_PROPERTY_EXECUTIONS,
     MAX_REVISIONS_KEPT,
     PREFERENCES,
     RAIL_HIDES_PANELS,
@@ -91,6 +92,8 @@ def test_every_default_is_todays_behaviour():
     assert RECOVERY_ENABLED.default is True
     assert RECOVERY_DELAY_SECONDS.default == 5
     assert MAX_REVISIONS_KEPT.default == MAX_REVISIONS == 8
+    assert MAX_HISTORICAL_PROPERTY_EXECUTIONS.default == 0
+    assert (MAX_HISTORICAL_PROPERTY_EXECUTIONS.minimum, MAX_HISTORICAL_PROPERTY_EXECUTIONS.maximum) == (0, 1000)
     # Recalculation is the one setting whose default CHANGES behaviour: drawing used to
     # recompute on every edit. It is a pause of 800 ms, the plan's stated default.
     assert RECALC_MODE.default == int(RecalcMode.AFTER_PAUSE)
@@ -105,6 +108,7 @@ def test_the_stored_keys_are_stable_names():
         "recovery/enabled",
         "recovery/delay_seconds",
         "results/max_revisions",
+        "results/max_historical_property_executions",
         "calculators/show_hidden",
         "compute/recalc_mode",
         "compute/recalc_quiet_ms",
@@ -152,6 +156,8 @@ def test_a_value_survives_the_ini_backend_with_its_type(qapp, preference):
         (RECOVERY_DELAY_SECONDS, "601"),
         (MAX_REVISIONS_KEPT, "eight"),
         (MAX_REVISIONS_KEPT, "65"),
+        (MAX_HISTORICAL_PROPERTY_EXECUTIONS, "-1"),
+        (MAX_HISTORICAL_PROPERTY_EXECUTIONS, "1001"),
     ],
 )
 def test_a_damaged_value_reads_as_the_default_and_says_so(qapp, caplog, preference, damaged):
@@ -168,8 +174,14 @@ def test_an_invalid_value_is_refused_rather_than_stored(qapp):
     with pytest.raises(ValueError):
         settings.set_preference(MAX_REVISIONS_KEPT, 0)
     with pytest.raises(ValueError):
+        settings.set_preference(MAX_HISTORICAL_PROPERTY_EXECUTIONS, -1)
+    with pytest.raises(ValueError):
+        settings.set_preference(MAX_HISTORICAL_PROPERTY_EXECUTIONS, 1001)
+    with pytest.raises(ValueError):
         settings.set_preference(RAIL_HIDES_PANELS, "yes please")
     assert settings.get(MAX_REVISIONS_KEPT.key) is None
+    settings.set_preference(MAX_HISTORICAL_PROPERTY_EXECUTIONS, 0)
+    assert settings.preference(MAX_HISTORICAL_PROPERTY_EXECUTIONS) == 0
 
 
 def test_forgetting_a_directory_removes_it_and_announces_it(qapp):
@@ -525,8 +537,10 @@ def test_the_controls_show_what_is_stored(qapp, dialogs):
     assert not dialog._recovery_enabled.isChecked()
     assert dialog._recovery_delay.value() == 42 and not dialog._recovery_delay.isEnabled()
     assert dialog._max_revisions.value() == 12
+    assert dialog._max_historical.value() == 0
     assert (dialog._recovery_delay.minimum(), dialog._recovery_delay.maximum()) == (1, 600)
     assert (dialog._max_revisions.minimum(), dialog._max_revisions.maximum()) == (1, 64)
+    assert (dialog._max_historical.minimum(), dialog._max_historical.maximum()) == (0, 1000)
 
 
 def test_each_control_stores_what_it_names(qapp, dialogs):
@@ -611,6 +625,11 @@ def _commit(dialog, value) -> None:
     dialog._max_revisions.editingFinished.emit()
 
 
+def _commit_historical(dialog, value) -> None:
+    dialog._max_historical.setValue(value)
+    dialog._max_historical.editingFinished.emit()
+
+
 def test_raising_the_limit_stores_without_asking(qapp, dialogs, monkeypatch):
     """WITHOUT a store, deliberately. With one, a raise would count nothing
     to remove and skip the question anyway, so asking on a raise could only
@@ -678,6 +697,169 @@ def test_the_question_moving_the_focus_does_not_ask_twice(qapp, dialogs, monkeyp
     _commit(dialog, 4)
 
     assert len(asked) == 1 and settings.preference(MAX_REVISIONS_KEPT) == 4
+
+
+def _historical_executions(service, count, molecule_uuid="m1"):
+    from openchem.domain.property_execution import ExecutionStatus, PropertyExecution
+
+    for index in range(count):
+        service.property_executions.record(
+            PropertyExecution(
+                execution_id=f"h{index}",
+                molecule_uuid=molecule_uuid,
+                producer="geometry_partial_charge",
+                method_model="eem",
+                parameters_key="k",
+                calculation_input="drawing",
+                input_fingerprint="old",
+                started_at=float(index),
+                completed_at=float(index),
+                status=ExecutionStatus.COMPLETED,
+            )
+        )
+
+
+def _with_live_fingerprints(service):
+    service.fingerprints_for = lambda _model: {"drawing": "now", "geometry": "now"}
+
+
+def test_historical_preview_zero_stores_without_asking(qapp, dialogs, monkeypatch):
+    service, settings = _service(qapp)
+    project = ProjectModel(name="p")
+    from openchem.domain.molecule import MoleculeModel
+
+    project.molecules.append(MoleculeModel(uuid="m1", display_name="m"))
+    service.set_project(project)
+    _with_live_fingerprints(service)
+    _historical_executions(service, 2)
+    dialog = _dialog(dialogs, settings, result_store_service=service)
+    asked = _asked(monkeypatch, QMessageBox.StandardButton.No)
+
+    _commit_historical(dialog, 5)
+
+    assert asked == [] and settings.preference(MAX_HISTORICAL_PROPERTY_EXECUTIONS) == 5
+    assert len(service.property_executions.executions_for("m1")) == 2
+
+
+def test_historical_excess_asks_with_counts_and_decline_restores(qapp, dialogs, monkeypatch):
+    service, settings = _service(qapp)
+    from openchem.domain.molecule import MoleculeModel
+
+    project = ProjectModel(name="p")
+    project.molecules.append(MoleculeModel(uuid="m1", display_name="m"))
+    project.molecules.append(MoleculeModel(uuid="m2", display_name="n"))
+    service.set_project(project)
+    _with_live_fingerprints(service)
+    _historical_executions(service, 3, "m1")
+    _historical_executions(service, 2, "m2")
+    dialog = _dialog(dialogs, settings, result_store_service=service)
+
+    asked = _asked(monkeypatch, QMessageBox.StandardButton.No)
+    _commit_historical(dialog, 1)
+    assert len(asked) == 1
+    assert "3 older runs for 2 molecules" in asked[0]
+    assert "Quantum jobs" in asked[0]
+    assert settings.preference(MAX_HISTORICAL_PROPERTY_EXECUTIONS) == 0
+    assert dialog._max_historical.value() == 0
+    assert len(service.property_executions.executions_for("m1")) == 3
+
+    _asked(monkeypatch, QMessageBox.StandardButton.Yes)
+    _commit_historical(dialog, 1)
+    assert settings.preference(MAX_HISTORICAL_PROPERTY_EXECUTIONS) == 1
+    assert len(service.property_executions.executions_for("m1")) == 1
+    assert len(service.property_executions.executions_for("m2")) == 1
+
+
+def test_zero_to_a_positive_cap_asks_when_it_would_delete(qapp, dialogs, monkeypatch):
+    service, settings = _service(qapp)
+    from openchem.domain.molecule import MoleculeModel
+
+    project = ProjectModel(name="p")
+    project.molecules.append(MoleculeModel(uuid="m1", display_name="m"))
+    service.set_project(project)
+    _with_live_fingerprints(service)
+    _historical_executions(service, 4)
+    dialog = _dialog(dialogs, settings, result_store_service=service)
+    asked = _asked(monkeypatch, QMessageBox.StandardButton.No)
+
+    _commit_historical(dialog, 2)
+
+    assert len(asked) == 1 and "2 older runs for 1 molecule" in asked[0]
+    assert settings.preference(MAX_HISTORICAL_PROPERTY_EXECUTIONS) == 0
+
+
+def test_positive_historical_cap_to_zero_does_not_ask_or_delete(qapp, dialogs, monkeypatch):
+    service, settings = _service(qapp)
+    settings.set_preference(MAX_HISTORICAL_PROPERTY_EXECUTIONS, 2)
+    from openchem.domain.molecule import MoleculeModel
+
+    project = ProjectModel(name="p")
+    project.molecules.append(MoleculeModel(uuid="m1", display_name="m"))
+    service.set_project(project)
+    _with_live_fingerprints(service)
+    _historical_executions(service, 2)
+    dialog = _dialog(dialogs, settings, result_store_service=service)
+    asked = _asked(monkeypatch, QMessageBox.StandardButton.No)
+
+    _commit_historical(dialog, 0)
+
+    assert asked == []
+    assert settings.preference(MAX_HISTORICAL_PROPERTY_EXECUTIONS) == 0
+    assert len(service.property_executions.executions_for("m1")) == 2
+
+
+def test_raising_a_positive_historical_cap_does_not_delete(qapp, dialogs, monkeypatch):
+    service, settings = _service(qapp)
+    settings.set_preference(MAX_HISTORICAL_PROPERTY_EXECUTIONS, 2)
+    from openchem.domain.molecule import MoleculeModel
+
+    project = ProjectModel(name="p")
+    project.molecules.append(MoleculeModel(uuid="m1", display_name="m"))
+    service.set_project(project)
+    _with_live_fingerprints(service)
+    _historical_executions(service, 2)
+    dialog = _dialog(dialogs, settings, result_store_service=service)
+    asked = _asked(monkeypatch)
+
+    _commit_historical(dialog, 8)
+
+    assert asked == [] and settings.preference(MAX_HISTORICAL_PROPERTY_EXECUTIONS) == 8
+    assert len(service.property_executions.executions_for("m1")) == 2
+
+
+def test_without_a_store_a_positive_historical_cap_asks(qapp, dialogs, monkeypatch):
+    settings = Settings(EventBus())
+    dialog = _dialog(dialogs, settings)
+    asked = _asked(monkeypatch, QMessageBox.StandardButton.No)
+
+    _commit_historical(dialog, 5)
+
+    assert len(asked) == 1 and settings.preference(MAX_HISTORICAL_PROPERTY_EXECUTIONS) == 0
+    assert dialog._max_historical.value() == 0
+
+
+def test_closing_commits_a_focused_historical_spin(qapp, dialogs, monkeypatch):
+    settings = Settings(EventBus())
+    dialog = _dialog(dialogs, settings)
+    asked = _asked(monkeypatch)
+    dialog._max_historical.setValue(6)
+
+    dialog.reject()
+
+    assert len(asked) == 1 and settings.preference(MAX_HISTORICAL_PROPERTY_EXECUTIONS) == 6
+
+
+def test_historical_tooltip_is_not_the_revisions_tooltip(qapp, dialogs):
+    from openchem.ui.widgets.help_tooltip import help_tooltip_for
+
+    dialog = _dialog(dialogs, Settings(EventBus()), section=RESULTS)
+    revisions = help_tooltip_for(dialog._max_revisions)
+    historical = help_tooltip_for(dialog._max_historical)
+    assert revisions is not None and historical is not None
+    assert revisions.help_id != historical.help_id
+    assert "history" in historical.text.lower()
+    assert "quantum" in historical.text.lower()
+    assert "version" not in historical.text.lower()
 
 
 def test_closing_commits_a_value_that_was_never_committed(qapp, dialogs, monkeypatch):

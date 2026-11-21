@@ -61,6 +61,12 @@ RECOVERY_DELAY_SECONDS = Preference("recovery/delay_seconds", int, 5, minimum=1,
 #: The default is the store's own constant, so the two cannot drift.
 MAX_REVISIONS_KEPT = Preference("results/max_revisions", int, MAX_REVISIONS, minimum=1, maximum=64)
 
+#: How many fingerprint-mismatched property executions to keep per molecule.
+#: 0 (the default) is unlimited: current-input history is never counted here.
+MAX_HISTORICAL_PROPERTY_EXECUTIONS = Preference(
+    "results/max_historical_property_executions", int, 0, minimum=0, maximum=1000
+)
+
 #: Whether the launcher offers the calculators that are hidden by default
 #: (limited, experimental or specialist ones -- `domain.calculator_support`).
 #: Off is the default: a calculator that refuses most of what people draw is
@@ -171,6 +177,7 @@ PLAIN_ENGLISH = Preference("ui/plain_english", bool, True)
 #: iterate this, so a preference added here is covered without a new test.
 PREFERENCES = (
     RAIL_HIDES_PANELS, RECOVERY_ENABLED, RECOVERY_DELAY_SECONDS, MAX_REVISIONS_KEPT,
+    MAX_HISTORICAL_PROPERTY_EXECUTIONS,
     SHOW_HIDDEN_CALCULATORS, RECALC_MODE, RECALC_QUIET_MS, DRAWING_BOND_KEYS,
     CONFORMER_MAX_EMBEDDINGS, DRAWING_BOND_CLICK, CONFORMER_EARLY_STOP, CONFORMER_KEEP_OPTIMIZED,
     CONFORMER_OPTIMIZE_LOWEST, FUKUI_ANION_F_PLUS, FUKUI_CATION_SEARCH, PSI4_MEMORY_GB, PSI4_THREADS,

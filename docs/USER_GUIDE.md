@@ -1416,6 +1416,12 @@ as a separately labelled result (Geometry Analysis, surface area, steric
 analysis, interaction analysis, fragment counts). That is not the same
 thing as the method/model history (EEM versus QEq).
 
+Settings can cap how many *historical* property runs are kept per molecule
+(runs whose drawing or geometry no longer matches). 0, the default, is no
+limit. Runs that still match this structure, and Quantum jobs, are not
+limited there. The in-memory cache of recent versions is a separate
+setting.
+
 When you save the project, the fresh cache omits ordinary results that
 no longer match the current drawing or geometry. Property executions and
 finished Quantum jobs are written anyway. **Delete from history…** on a
@@ -3636,8 +3642,8 @@ the detail pane and in every cell's tooltip.
 **Edit ▸ Settings…** (Ctrl+,) holds every preference in one window, with a
 list of sections down its left side, under two headings (**Window** and
 **Calculations**; a heading is not a page, and the arrow keys step over it). Changes apply as you make them, so
-there is no OK button. The one exception is lowering the number of versions
-kept, which asks first.
+there is no OK button. The exceptions are lowering the number of versions
+kept, and setting a history cap that would drop rows, which ask first.
 
 - **Interface size.** Beside the colour scheme: **Default** (your system's own text
   size), **Larger** or **Large**. It applies at once, to every panel, dialog and table;
@@ -3677,14 +3683,20 @@ kept, which asks first.
   they are refreshed. Undo, redo and importing always recompute at once, and
   so does selecting another molecule. Recomputing fifty results for every bond
   drawn is what made drawing lag.
-- **Results.** How many versions of each molecule keep their results in
-  memory, 8 by default. The drawing and its 3D conformers are counted
-  separately, so a new conformer search never pushes out the results of the
-  drawing you are still looking at. Undoing back to a version that is still
-  kept shows its results without recomputing. Lowering the number removes
-  the older results straight away, after telling you how many. Your
-  molecules and undo are not affected. A saved project holds only each
-  molecule's current results, whatever this is set to.
+- **Results.** Two different retained things. How many versions of each
+  molecule keep their results in memory, 8 by default (the cache). The
+  drawing and its 3D conformers are counted separately, so a new conformer
+  search never pushes out the results of the drawing you are still looking
+  at. Undoing back to a version that is still kept shows its results
+  without recomputing. Lowering the number removes the older results
+  straight away, after telling you how many. Your molecules and undo are
+  not affected. A saved project holds only each molecule's current cache
+  results, whatever this is set to. Below that, how many historical
+  property runs to keep per molecule — Results history whose structure no
+  longer matches. 0 (No limit, the default) does not drop anything. Runs
+  that still match this drawing or conformer are not counted, and Quantum
+  jobs are not limited here. Changing to a number that would drop rows
+  asks first, with how many runs and molecules would go.
 - **Calculators.** Some calculators are not offered in the Properties panel
   by default, because they refuse most of what people draw or need inputs no
   structure can supply: **Thermophysical Properties (Joback)** has no group

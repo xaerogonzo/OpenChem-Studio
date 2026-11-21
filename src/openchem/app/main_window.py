@@ -573,7 +573,12 @@ class MainWindow(QMainWindow):
             self._property_panel.attach_score_definitions(self._score_definitions)
         self._console_panel = ConsolePanel(self)
         self._docking_panel = DockingPanel(
-            services.docking_service, services.chemistry_engine, self._settings, services.event_bus, self
+            services.docking_service,
+            services.chemistry_engine,
+            self._settings,
+            services.event_bus,
+            self,
+            result_store_service=services.result_store_service,
         )
         # A BOUND METHOD, never a lambda capturing self -- PySide6 holds a
         # connected plain callable strongly, which leaked whole windows
@@ -4072,6 +4077,10 @@ class MainWindow(QMainWindow):
             self._salt_composition.refresh()
         self._refresh_scores_dialog()
         self._session.mark_clean()
+        # After panels have the project and after the clean mark: a cap that
+        # drops history from the loaded file can then leave the session dirty.
+        if self._services.result_store_service is not None:
+            self._services.result_store_service.trim_historical_property_executions()
 
     def _open_project(self) -> None:
         if not self._confirm_discarding_unsaved_changes():
