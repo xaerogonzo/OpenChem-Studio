@@ -35,6 +35,11 @@ checks itself is in [ARCHITECTURE.md](ARCHITECTURE.md) ("Packaging").
    build) and go through the checklist below.
 6. **Publish** the draft. That is the only step that makes it public.
 
+TokenSave Manager's Release Wizard can run this flow for you: it reads `release-flow.json` (the project's own
+check scripts, the expected release files, the checklist below), shows a pre-flight, prints the exact tag
+commands for master's tip, including re-tagging over a draft, and checks the draft afterwards. It never publishes;
+you press Publish on GitHub. The manual list lives in [RELEASE_CHECKLIST.md](RELEASE_CHECKLIST.md).
+
 ## Before pressing Publish
 
 The pipeline runs the app; it does not draw a molecule. By hand, from the downloaded

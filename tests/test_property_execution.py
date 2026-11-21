@@ -12,6 +12,9 @@ from openchem.domain.property_execution import (
     PropertyExecution,
     PropertyExecutionStore,
     execution_from_stored,
+    historical_beyond,
+    ids_to_drop_historical,
+    is_historical,
 )
 from openchem.domain.quantum_chemistry_run import OutputStatus, QuantumChemistryRun, RunStatus, new_run_id
 from openchem.domain.result_store import ResultIdentity, StoredResult
@@ -445,3 +448,87 @@ def test_opening_a_file_without_executions_does_not_invent_ids():
     document = ProjectService(EventBus()).parse(json.loads(text))
     assert "property_executions" not in json.loads(text)
     assert document.property_executions.to_dict()["executions"] == []
+
+
+def _history(
+    *,
+    execution_id: str = "x",
+    molecule: str = "m1",
+    fingerprint: str = "old",
+    started_at: float = 1.0,
+    calculation_input: str = "geometry",
+    status: ExecutionStatus = ExecutionStatus.COMPLETED,
+) -> PropertyExecution:
+    return PropertyExecution(
+        execution_id=execution_id,
+        molecule_uuid=molecule,
+        producer="geometry_partial_charge",
+        method_model="eem",
+        parameters_key="k",
+        calculation_input=calculation_input,
+        input_fingerprint=fingerprint,
+        started_at=started_at,
+        completed_at=started_at,
+        status=status,
+    )
+
+
+def test_missing_fingerprint_key_is_not_historical():
+    execution = _history()
+    assert not is_historical(execution, {})
+    assert is_historical(execution, {"geometry": "new"})
+    assert not is_historical(execution, {"geometry": "old"})
+
+
+def test_current_repeats_are_never_selected_for_the_cap():
+    store = PropertyExecutionStore("project")
+    for i in range(8):
+        store.record(_history(execution_id=f"c{i}", fingerprint="now", started_at=float(i)))
+    store.record(_history(execution_id="old-a", fingerprint="was", started_at=0.0))
+    store.record(_history(execution_id="old-b", fingerprint="was", started_at=0.5))
+    fps = {"m1": {"geometry": "now"}}
+    assert historical_beyond(store, fps, 1) == (1, 1)
+    assert ids_to_drop_historical(store, fps, 1) == ["old-a"]
+    assert ids_to_drop_historical(store, fps, 0) == []
+    assert ids_to_drop_historical(store, fps, -1) == []
+
+
+def test_oldest_historical_ids_are_stable_across_equal_timestamps():
+    store = PropertyExecutionStore("project")
+    store.record(_history(execution_id="z", fingerprint="was", started_at=1.0))
+    store.record(_history(execution_id="a", fingerprint="was", started_at=1.0))
+    store.record(_history(execution_id="m", fingerprint="was", started_at=2.0))
+    fps = {"m1": {"geometry": "now"}}
+    assert ids_to_drop_historical(store, fps, 1) == ["a", "z"]
+
+
+def test_historical_cap_is_per_molecule_not_per_input():
+    store = PropertyExecutionStore("project")
+    store.record(_history(execution_id="g1", calculation_input="geometry", fingerprint="g-old", started_at=1.0))
+    store.record(_history(execution_id="d1", calculation_input="drawing", fingerprint="d-old", started_at=2.0))
+    store.record(_history(execution_id="g2", calculation_input="geometry", fingerprint="g-old", started_at=3.0))
+    store.record(
+        _history(execution_id="other", molecule="m2", fingerprint="g-old", started_at=0.0)
+    )
+    fps = {
+        "m1": {"geometry": "g-now", "drawing": "d-now"},
+        "m2": {"geometry": "g-now"},
+    }
+    assert ids_to_drop_historical(store, fps, 2) == ["g1"]
+    assert historical_beyond(store, fps, 1) == (2, 1)
+    assert "other" not in ids_to_drop_historical(store, {"m1": fps["m1"]}, 1)
+
+
+def test_failed_and_cancelled_terminal_history_is_eligible():
+    store = PropertyExecutionStore("project")
+    store.record(
+        _history(execution_id="fail", fingerprint="was", started_at=1.0, status=ExecutionStatus.FAILED)
+    )
+    store.record(
+        _history(
+            execution_id="cancel", fingerprint="was", started_at=2.0, status=ExecutionStatus.CANCELLED
+        )
+    )
+    store.record(_history(execution_id="ok", fingerprint="was", started_at=3.0))
+    fps = {"m1": {"geometry": "now"}}
+    assert ids_to_drop_historical(store, fps, 1) == ["fail", "cancel"]

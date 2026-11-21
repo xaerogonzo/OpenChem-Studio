@@ -2173,7 +2173,13 @@ class QuantumChemistryPanel(QWidget):
 
     def _on_configure_clicked(self) -> None:
         # The tab of the engine the Engine box has chosen ("orca" or "psi4"; ORCA when there is no choice).
-        dialog = SettingsDialog(self._settings, self, section=EXTERNAL_TOOLS, tool=self._selected_engine_id())
+        dialog = SettingsDialog(
+            self._settings,
+            self,
+            section=EXTERNAL_TOOLS,
+            tool=self._selected_engine_id(),
+            result_store_service=self._result_store_service,
+        )
         dialog.exec()
         # A tool may have been set up or removed in there.
         self._refresh_engines()

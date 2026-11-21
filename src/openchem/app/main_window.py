@@ -573,7 +573,12 @@ class MainWindow(QMainWindow):
             self._property_panel.attach_score_definitions(self._score_definitions)
         self._console_panel = ConsolePanel(self)
         self._docking_panel = DockingPanel(
-            services.docking_service, services.chemistry_engine, self._settings, services.event_bus, self
+            services.docking_service,
+            services.chemistry_engine,
+            self._settings,
+            services.event_bus,
+            self,
+            result_store_service=services.result_store_service,
         )
         # A BOUND METHOD, never a lambda capturing self -- PySide6 holds a
         # connected plain callable strongly, which leaked whole windows
@@ -3755,11 +3760,14 @@ class MainWindow(QMainWindow):
             False,
             "show_stereo_flags",
         )
-        # Created WITH its parent and then added, not `menu.addMenu(title)`: that wrapper is Python-owned, so a
-        # collection after this returns destroys the submenu and its actions (tests then met "no such menu").
-        style_menu = self._held_submenu(QMenu("Stereo Group Labels (abs, &&1, or1)", menu))
-        menu.addMenu(style_menu)
-        group = self._exclusive_group()
+        #: Held on the window: `addMenu` returns a Python-owned wrapper, and
+        #: a local is collected (with the four style actions) before
+        #: `_menu_wrappers` exists — the same leak as Copy Structure As.
+        style_menu = self._stereo_group_labels_menu = menu.addMenu(
+            "Stereo Group Labels (abs, &&1, or1)"
+        )
+        group = QActionGroup(self)
+        group.setExclusive(True)
         for label, value, help_key in self._STEREO_LABEL_STYLES:
             action = self._document(QAction(label, self), help_key)
             action.setCheckable(True)
@@ -3799,9 +3807,9 @@ class MainWindow(QMainWindow):
         `C H 3 N H 3 +`. A second charge beside its own would be the "two
         of everything" failure this project keeps removing.
         """
-        electron_menu = self._held_submenu(QMenu("Electron Display", menu))  # parented, then added: see the Stereo Group Labels menu
-        menu.addMenu(electron_menu)
-        group = self._exclusive_group()
+        electron_menu = self._electron_display_menu = menu.addMenu("Electron Display")
+        group = QActionGroup(self)
+        group.setExclusive(True)
         for label, mode, help_key in self._ELECTRON_MODES:
             action = self._document(QAction(label, self), help_key)
             action.setCheckable(True)
@@ -3851,7 +3859,7 @@ class MainWindow(QMainWindow):
         deliberately not called an index: it follows the molfile, so it is
         not a stable id.
         """
-        number_menu = self._held_submenu(QMenu("Atom Numbers", menu))  # parented, then added: see the Stereo Group Labels menu
+        number_menu = self._held_submenu(QMenu("Atom Numbers", menu))  # parented, then added, and held: see `_held_submenu`
         menu.addMenu(number_menu)
         group = self._exclusive_group()
         for label, mode, help_key in self._ATOM_NUMBER_MODES:
@@ -4076,6 +4084,10 @@ class MainWindow(QMainWindow):
             self._salt_composition.refresh()
         self._refresh_scores_dialog()
         self._session.mark_clean()
+        # After panels have the project and after the clean mark: a cap that
+        # drops history from the loaded file can then leave the session dirty.
+        if self._services.result_store_service is not None:
+            self._services.result_store_service.trim_historical_property_executions()
 
     def _open_project(self) -> None:
         if not self._confirm_discarding_unsaved_changes():

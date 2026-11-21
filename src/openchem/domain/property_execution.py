@@ -260,6 +260,71 @@ class PropertyExecutionStore:
         return store
 
 
+def is_historical(execution: PropertyExecution, fingerprints: dict[str, str]) -> bool:
+    """True when this run's input can be fingerprinted and no longer matches.
+
+    A missing key is not historical: the live input is unknown, so the row
+    must be kept.
+    """
+    return execution.calculation_input in fingerprints and not execution.matches_current(
+        fingerprints
+    )
+
+
+def _historical_for_molecule(
+    store: PropertyExecutionStore, molecule_uuid: str, fingerprints: dict[str, str]
+) -> list[PropertyExecution]:
+    historical = [
+        execution
+        for execution in store.executions_for(molecule_uuid)
+        if is_historical(execution, fingerprints)
+    ]
+    historical.sort(key=lambda execution: (execution.started_at, execution.execution_id))
+    return historical
+
+
+def ids_to_drop_historical(
+    store: PropertyExecutionStore,
+    fingerprints_by_molecule: dict[str, dict[str, str]],
+    limit: int,
+) -> list[str]:
+    """Oldest historical execution ids that exceed `limit` per molecule.
+
+    `limit <= 0` means unlimited. Molecules with no fingerprint mapping are
+    skipped. Current-input rows are never selected.
+    """
+    if limit <= 0:
+        return []
+    drop: list[str] = []
+    molecule_uuids = {execution.molecule_uuid for execution in store.all_executions()}
+    for molecule_uuid in molecule_uuids:
+        fingerprints = fingerprints_by_molecule.get(molecule_uuid)
+        if fingerprints is None:
+            continue
+        historical = _historical_for_molecule(store, molecule_uuid, fingerprints)
+        excess = len(historical) - limit
+        if excess > 0:
+            drop.extend(execution.execution_id for execution in historical[:excess])
+    return drop
+
+
+def historical_beyond(
+    store: PropertyExecutionStore,
+    fingerprints_by_molecule: dict[str, dict[str, str]],
+    limit: int,
+) -> tuple[int, int]:
+    """How many historical executions a cap of `limit` would drop, and on how many molecules."""
+    ids = ids_to_drop_historical(store, fingerprints_by_molecule, limit)
+    if not ids:
+        return (0, 0)
+    molecules = {
+        execution.molecule_uuid
+        for execution in store.all_executions()
+        if execution.execution_id in set(ids)
+    }
+    return (len(ids), len(molecules))
+
+
 def method_model_of(stored: StoredResult) -> str:
     """The chemical method/model on a stored result, if one is named."""
     result = stored.result
