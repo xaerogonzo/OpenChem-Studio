@@ -482,13 +482,19 @@ def test_choosing_another_goal_clears_what_was_said_about_the_last_run(services,
     assert wizard._status.text() == ""
 
 
+def _record_quantum(wizard, quantum):
+    wizard.quantum_action_requested.connect(
+        lambda action_id, start: quantum.append((action_id, start))
+    )
+
+
 def test_run_recommended_does_not_stage_quantum(services, built):
     wizard = _wizard(services, built, _molecules(services, ("A", "CCO")))
     wizard.select_goal("spectra")
     runs = []
     quantum = []
     wizard.run_requested.connect(runs.append)
-    wizard.quantum_action_requested.connect(quantum.append)
+    _record_quantum(wizard, quantum)
 
     wizard._run_recommended_button.click()
 
@@ -504,7 +510,7 @@ def test_customise_quantum_is_not_a_tick_and_apply_stages(services, built):
     ticks = []
     quantum = []
     wizard.ticks_applied.connect(ticks.append)
-    wizard.quantum_action_requested.connect(quantum.append)
+    _record_quantum(wizard, quantum)
     radio = wizard.findChild(QRadioButton, "quantum_action_orca_nmr")
     assert radio is not None
     radio.setChecked(True)
@@ -514,7 +520,45 @@ def test_customise_quantum_is_not_a_tick_and_apply_stages(services, built):
 
     assert ticks and "nmr_database" in ticks[0].calculator_ids
     assert "orca.nmr" not in ticks[0].calculator_ids
-    assert quantum == ["orca.nmr"]
+    assert quantum == [("orca.nmr", False)]
+
+
+def test_customise_run_starts_quantum_after_ordinary_ticks(services, built):
+    wizard = _wizard(services, built, _molecules(services, ("A", "CCO")))
+    _customise(wizard, "spectra")
+    order = []
+    wizard.run_requested.connect(lambda run: order.append(("run", list(run.calculator_ids))))
+    wizard.quantum_action_requested.connect(
+        lambda action_id, start: order.append(("quantum", action_id, start))
+    )
+    radio = wizard.findChild(QRadioButton, "quantum_action_orca_nmr")
+    assert radio is not None
+    radio.setChecked(True)
+
+    wizard._run_button.click()
+
+    assert order[0][0] == "run"
+    assert "nmr_database" in order[0][1]
+    assert order[1] == ("quantum", "orca.nmr", True)
+
+
+def test_customise_run_quantum_only_still_starts(services, built):
+    wizard = _wizard(services, built, _molecules(services, ("A", "CCO")))
+    _customise(wizard, "spectra")
+    for check in wizard._entry_checks.values():
+        check.setChecked(False)
+    runs = []
+    quantum = []
+    wizard.run_requested.connect(runs.append)
+    _record_quantum(wizard, quantum)
+    radio = wizard.findChild(QRadioButton, "quantum_action_orca_nmr")
+    assert radio is not None
+    radio.setChecked(True)
+
+    wizard._run_button.click()
+
+    assert runs == []
+    assert quantum == [("orca.nmr", True)]
 
 
 def test_wizard_scope_is_its_own_box_not_properties(services, built):

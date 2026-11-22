@@ -20,7 +20,7 @@ A method family is never expanded because a calculator is ticked or included in 
 2. **Run recommended** when the curated ordinary set should run now.
 3. **Customise… → Apply to Properties** when the ticks should land in Properties for inspection. That copies ticks and settings and closes the wizard. **It does not run.**
 4. **Run selected** or **Fill table** to execute the ordinary plan.
-5. An optional Quantum radio **stages** the Quantum Chemistry panel. Inspect, then **Run** there.
+5. An optional Quantum radio **stages** the Quantum Chemistry panel. **Apply to Properties** stages only. Customise **Run** stages then starts on the wizard's one molecule through the panel's prepare and cost path. **Run recommended** does not request Quantum.
 
 **Advanced**
 
@@ -28,7 +28,7 @@ A method family is never expanded because a calculator is ticked or included in 
 - **Run selected**.
 - Use the Quantum Chemistry panel directly for engine, charge, multiplicity, geometry, and **Run**.
 
-**Apply to Properties** must never read as another Run. Quantum radios must never read as starting ORCA, Psi4, or xtb. Staging uses the wizard's own **Run on** box (`GoalWizardDialog.current_scope()`), not Properties. `decide_stage()` still refuses `all` and `chosen` and requires one selected molecule. That is not a batch Quantum path.
+**Apply to Properties** must never read as another Run, and must not start ORCA, Psi4, or xtb. Quantum radios on Customise **Run** may start on this molecule through the Quantum Chemistry panel. Staging and start use the wizard's own **Run on** box (`GoalWizardDialog.current_scope()`), not Properties. `decide_stage()` still refuses `all` and `chosen` and requires one selected molecule. That is not a batch Quantum path.
 
 Results does not launch or rerun calculations. Opening, filtering, comparing, or deleting must not start a job.
 
@@ -188,7 +188,6 @@ Recorded so an implementation plan cannot skip them. Recommendations above are t
 
 **Later PRs (not this slice, not authorised as product unless a later plan reopens them):**
 
-- Starting a Quantum job from the wizard — still inspect, then **Run** on the Quantum Chemistry panel.
 - A global Method combo — the registry has no single meaning of “method” that covers every row.
 - Quantum on Properties ticks or Fill table — Quantum stays off ordinary Fill.
 

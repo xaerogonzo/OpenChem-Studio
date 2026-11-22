@@ -2702,8 +2702,8 @@ class MainWindow(QMainWindow):
         """Customise applied a goal's ticks to Properties without starting a job."""
         self._property_panel.apply_goal_ticks(list(run.calculator_ids), dict(run.parameters))
 
-    def _on_quantum_action_requested(self, action_id: str) -> None:
-        """Stage a Quantum service action on the QC panel. Never starts a job."""
+    def _on_quantum_action_requested(self, action_id: str, start: bool = False) -> None:
+        """Stage a Quantum action on the QC panel; start only when `start` is True."""
         from openchem.domain.quantum_goal_action import action_of, decide_stage
 
         action = action_of(action_id)
@@ -2735,21 +2735,45 @@ class MainWindow(QMainWindow):
             if self._goal_wizard is not None:
                 self._goal_wizard.show_outcome(decision.message)
             return
+        wizard_uuid = molecules[0].uuid if molecules else None
+        panel = self._quantum_chemistry_panel
+        if start:
+            busy = panel.busy_run_message(wizard_uuid)
+            if busy:
+                self._property_panel.report_status(busy)
+                wizard.show_outcome(busy)
+                return
+        if wizard_uuid is None or not panel.select_molecule_uuid(wizard_uuid):
+            text = "That molecule is not on the Quantum Chemistry panel. Nothing was started."
+            self._property_panel.report_status(text)
+            wizard.show_outcome(text)
+            return
         self._on_panel_chosen("Quantum_Chemistry")
-        staged = self._quantum_chemistry_panel.stage_run_choice(
+        note = (
+            decision.limitation
+            if start
+            else decision.limitation + " Inspect, then press Run. Nothing has started."
+        )
+        staged = panel.stage_run_choice(
             calc_type=decision.calc_type,
             provider_id=decision.provider_id,
             method_basis=decision.method_basis,
-            note=decision.limitation + " Inspect, then press Run. Nothing has started.",
+            note=note,
         )
-        text = (
-            decision.limitation + " Inspect Quantum Chemistry, then press Run. Nothing started."
-            if staged
-            else "Could not stage that calculation on the Quantum Chemistry panel. Nothing started."
-        )
+        if not staged:
+            text = "Could not stage that calculation on the Quantum Chemistry panel. Nothing started."
+            self._property_panel.report_status(text)
+            wizard.show_outcome(text)
+            return
+        if start:
+            text = panel.run_current_choice(parent=wizard, molecule_uuid=wizard_uuid)
+        else:
+            text = (
+                decision.limitation
+                + " Inspect Quantum Chemistry, then press Run. Nothing started."
+            )
         self._property_panel.report_status(text)
-        if self._goal_wizard is not None:
-            self._goal_wizard.show_outcome(text)
+        wizard.show_outcome(text)
 
     def _on_goal_run_requested(self, run) -> None:
         """The wizard asked for a run. Properties runs it and the wizard says what happened."""
