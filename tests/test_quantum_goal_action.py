@@ -117,6 +117,8 @@ def test_multi_molecule_scope_is_refused():
         selected=True,
     )
     assert not decision.ok
+    assert "wizard" in decision.message.lower()
+    assert "properties" not in decision.message.lower()
     assert "several molecules" in decision.message.lower() or "this molecule" in decision.message.lower()
     assert "nothing started" in decision.message.lower()
 

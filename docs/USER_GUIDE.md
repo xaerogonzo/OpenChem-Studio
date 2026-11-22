@@ -1246,10 +1246,11 @@ calculators that answer it. What you press next is four different actions, not o
 **Apply to Properties** is not another Run button. Use it when you want the
 goal's checklist in Properties so you can inspect or change it first.
 
-A Quantum radio only stages when Properties **Run on** is **This molecule**
-and one molecule is selected. A project-wide or chosen-molecule scope is
-refused: Quantum staging is not a batch. The wizard shows its own **Run on**
-box, but staging reads the Properties scope.
+A Quantum radio stages when the wizard **Run on** box is **This molecule**
+and one molecule is selected. Properties **Run on** is ignored for staging, so
+the panel can sit on all molecules while the wizard still stages this one.
+A project-wide or chosen-molecule wizard scope is refused: Quantum staging is
+not a batch, and the wizard does not start the job.
 
 Each group heading in Properties has its own **Run recommended** button for
 the same ordinary set. **Run recommended** and **Customise… → Run** do not
@@ -1792,9 +1793,9 @@ started. Properties ticks never include these jobs; **Run selected** and
 selects the calculation type and engine on this panel and stops. Nothing
 runs until you press **Run** here. The panel still prepares the input,
 refuses what it cannot do, and asks for cost confirmation when that
-applies. Staging requires Properties **Run on** to be **This molecule**
-with one molecule selected; a project-wide goal does not become a Quantum
-batch.
+applies. Staging follows the wizard **Run on** box, not Properties: it
+needs **This molecule** and one selected molecule. A project-wide wizard
+scope does not become a Quantum batch.
 
 **Engines and what each will run.** ORCA covers the panel's full list,
 including NMR and optimisation plus frequencies. Psi4 runs **single points

@@ -1,0 +1,3 @@
+Stage Quantum from the goal wizard Run on box, not Properties.
+
+All or chosen molecules still refuse; the job still starts only on the Quantum Chemistry panel.
