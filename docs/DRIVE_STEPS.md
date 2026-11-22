@@ -370,6 +370,11 @@ The `OPENCHEM_DRIVE` step catalogue, moved out of [`CLAUDE.md`](../CLAUDE.md) on
                                           Ketcher's molfile (a click-then-read missed My Templates). `redo_enabled` is
                                           `QUndoStack.canRedo()`. The `menu` step logs enabled *before* `trigger()` and
                                           refuses a disabled entry (logging after a successful Redo reads as disabled).
+    {"do": "peptide_sequence", "sequence": "AEG", "press": "insert",
+     "expect": {"inserted": true, "undo_delta": 1, "status": "Inserted."}}
+                                          Structure > Peptide Sequence through its REAL sequence field and Insert button.
+                                          `unchanged: true` is a refusal that must not mutate the drawing. `shot` takes
+                                          "widget": "peptide_sequence".
     {"do": "table_scores", "export_csv": "C:/tmp/table.csv", "expect": {"columns": ["Polar window (user-defined, unvalidated)"], "note": "",
      "grid": {"Aspirin": {"Polar window": "0.955"}}, "tooltips": {"Aspirin": {"Polar window": ["Inputs: psa = 63.6"]}},
      "column_tooltips": {"Polar window": ["Formula:"]}, "csv_header_contains": ["Polar window"], "csv_cells": {"Aspirin": {"Polar window": 0.955}},

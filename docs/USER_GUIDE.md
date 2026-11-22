@@ -178,6 +178,23 @@ importing `.mol` / `.sdf` files, which are copied into the application data
 folder rather than kept as live paths. Dummy-atom (`*`) fragments are refused:
 bonding to a wildcard in the editor does not attach a substituent.
 
+<!-- help:peptide-sequence -->
+### Peptide Sequence
+
+**Structure ▸ Peptide Sequence…** builds one connected atomistic peptide from
+the 20 standard L-amino acids and inserts it to the right of the drawing as
+one undo step. Type uppercase one-letter codes (`AEG`) or hyphenated
+three-letter names (`Ala-Glu-Gly`, case-insensitive). At least two residues.
+The drawing is a **neutral** free amine and carboxylic acid (including Asp/Glu
+side chains and a free cysteine thiol), not a zwitterion and not the
+physiological protonation state. Proline at the N-terminus is a secondary
+amine.
+
+It is not the Template Library's free amino acids, not Fmoc/Boc building
+blocks, and not Ketcher's polymer/macromolecule mode. D-amino acids,
+selenocysteine, pyrrolysine, ambiguous codes (B, J, X, Z), cyclic peptides,
+capped termini, and HELM are refused.
+
 **Right-clicking an atom** opens this application's own menu (off an atom,
 Ketcher's opens instead). It changes the atom without leaving the canvas:
 **Change *X* to** a common element (C, N, O, S, P, F, Cl, Br, I, H),

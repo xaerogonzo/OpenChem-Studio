@@ -155,6 +155,14 @@ def iter_dialog_fixtures() -> Iterator[DialogFixture]:
         dialog.set_draft(Draft(inputs=(InputRow("psa", "descriptor:tpsa"),), constants=(ConstantRow("hi", "140", "\u00c5^2"),)))
         return dialog
 
+    def peptide_sequence(_context: DialogContext):
+        from openchem.ui.dialogs.peptide_sequence_dialog import PeptideSequenceDialog, PeptideSequenceHost
+
+        return PeptideSequenceDialog(PeptideSequenceHost(
+            expand=lambda text: "",
+            insert_molblock=lambda molblock, callback: callback(None),
+        ))
+
     def template_library(_context: DialogContext):
         from openchem.chem.engine import ChemistryEngine
         from openchem.domain.structure_template_store import StructureTemplateStore
@@ -462,6 +470,7 @@ def iter_dialog_fixtures() -> Iterator[DialogFixture]:
     yield DialogFixture("LewisPairingDialog", lewis_pairing, needs="the service container")
     yield DialogFixture("SaltCompositionDialog", salt_composition)
     yield DialogFixture("ScoreDialog", derived_scores)
+    yield DialogFixture("PeptideSequenceDialog", peptide_sequence)
     yield DialogFixture("TemplateLibraryDialog", template_library)
     yield DialogFixture("ConformerDetailsDialog", conformer_details, needs="a conformer")
     yield DialogFixture(

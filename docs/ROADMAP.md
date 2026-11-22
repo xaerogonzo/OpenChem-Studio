@@ -318,9 +318,12 @@ The dialog nests shipped catalogs under headings. Insert uses Ketcher
 step. Ketcher's T-button library and polymer mode stay. Design:
 `docs/STRUCTURE_TEMPLATE_LIBRARY_DESIGN.md`.
 
-Still later: a peptide sequence expander (`Ala-Glu-Gly` / `AEG` as one
-atomistic peptide — not these free amino acids, and not Ketcher polymer-monomer
-mode); polymer S-groups (needs molfile S-group round-trip through Ketcher);
+**Peptide sequence** (shipped): Structure ▸ Peptide Sequence expands
+`Ala-Glu-Gly` / `AEG` into one connected atomistic L-peptide and inserts it
+through `insert_template_molblock`. Not these free amino acids, and not
+Ketcher polymer-monomer mode.
+
+Still later: polymer S-groups (needs molfile S-group round-trip through Ketcher);
 a pinned category toolbar; true fragment attachment that consumes an attachment
 point rather than leaving `*`. Polymer S-groups are not a missing parse:
 `addFragment` strips them (measured 2026-11-14).
@@ -2396,10 +2399,11 @@ and three were checked again recently rather than taken on trust.
   features, pharmaceutical acceptability and `balance_many` stay out. Contract:
   `docs/SALT_COMPOSITION_DESIGN.md`.
 
-- **Peptide sequence building and polymer S-groups (recorded 2026-11-10; S-group probe 2026-11-14).** The
+- **Peptide sequence building and polymer S-groups (recorded 2026-11-10; S-group probe 2026-11-14; peptide expander 2026-11-22).** The
   structure template library ships complete molecules only. Expanding
-  `Ala-Glu-Gly` / `AEG` into an atomistic peptide still waits on a measured
-  sequence builder. Polymer S-groups: Ketcher `setMolecule` then `getMolfile`
+  `Ala-Glu-Gly` / `AEG` into an atomistic peptide is Structure ▸ Peptide
+  Sequence (`chem/peptide_sequence.py`, RDKit `MolFromSequence` on 2025.09.6).
+  Polymer S-groups: Ketcher `setMolecule` then `getMolfile`
   keeps SRU and SUP; `addFragment` (what Insert uses) drops every `M  STY`
   line (`tests/test_ketcher_sgroup_roundtrip.py`). They stay out of the
   Template Library until insert preserves them. Ketcher's own polymer mode
