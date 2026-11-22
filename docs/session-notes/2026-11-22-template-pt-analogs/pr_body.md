@@ -10,6 +10,6 @@ Polymer templates and a peptide creator stay parked; they are a later session, n
 
 ## Verified
 
-`uv run --no-sync python -m pytest tests/test_structure_templates.py tests/test_ketcher_coordination_roundtrip.py tests/test_changelog_fragments.py tests/test_no_competitor_names.py -q` on this tree: 59 passed in 57.38s.
+`uv run --no-sync python -m pytest tests/test_structure_templates.py tests/test_ketcher_coordination_roundtrip.py tests/test_changelog_fragments.py tests/test_no_competitor_names.py -q` on this tree after merging `origin/master`, with `OPENCHEM_DATA_ROOT` a fresh empty temp directory: 59 passed in 54.76s.
 
-`uv run --no-sync python tools/changelog.py check`: 76 fragments ok.
+`uv run --no-sync python tools/changelog.py check` before that merge: 76 fragments ok.
