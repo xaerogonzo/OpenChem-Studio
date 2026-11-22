@@ -9,6 +9,8 @@ import pytest
 from openchem.domain.descriptor import DescriptorValue
 from openchem.domain.history_compare import (
     MIXED_UNAPPROVED,
+    QUANTUM_FAMILY_EMPTY,
+    QUANTUM_INPUT_MISMATCH,
     MixedHistoryMatch,
     MixedQuantity,
     history_compare_choice_map,
@@ -18,6 +20,7 @@ from openchem.domain.history_compare import (
     named_row_from_mixed_match,
     other_history_entries,
     property_executions_comparable,
+    quantum_family_rows,
     quantum_runs_comparable,
 )
 from openchem.domain.property_execution import ExecutionStatus, PropertyExecution
@@ -43,13 +46,15 @@ def _quantity(**overrides) -> MixedQuantity:
     return MixedQuantity(**values)
 
 
-def _descriptor(descriptor_id="toy.homo", value= -0.3, units="eV", name="E(HOMO)") -> DescriptorValue:
+def _descriptor(descriptor_id="toy.homo", value= -0.3, units="eV", name="E(HOMO)", provider=None) -> DescriptorValue:
+    if provider is None:
+        provider = descriptor_id.split(".", 1)[0] if "." in descriptor_id else "toy"
     return DescriptorValue(
         descriptor_id=descriptor_id,
         name=name,
         units=units,
         category="electronic",
-        provider="toy",
+        provider=provider,
         molecule_uuid="m1",
         value=value,
     )
@@ -97,6 +102,12 @@ def _run(
     descriptors=None,
     run_id=None,
     extras=None,
+    provider="orca",
+    method_basis="B3LYP def2-SVP",
+    input_fingerprint="fp",
+    charge=0,
+    multiplicity=1,
+    solvent="",
 ) -> QuantumChemistryRun:
     results = {"descriptors": list(descriptors or [_descriptor("orca.homo_energy", -0.4, name="E(HOMO)")])}
     if extras:
@@ -105,13 +116,14 @@ def _run(
         run_id=run_id or new_run_id(),
         molecule_uuid=molecule,
         calc_type=calc_type,
-        method_basis="B3LYP def2-SVP",
-        charge=0,
-        multiplicity=1,
+        method_basis=method_basis,
+        charge=charge,
+        multiplicity=multiplicity,
         calculation_input=calculation_input,
-        input_fingerprint="fp",
+        input_fingerprint=input_fingerprint,
         input_molblock="",
-        provider="orca",
+        solvent=solvent,
+        provider=provider,
         status=RunStatus.COMPLETED,
         completed_at=1.0,
         results=results,
@@ -315,8 +327,120 @@ def test_same_kind_helpers_are_unchanged():
     from dataclasses import replace
 
     orca = _run()
-    other = replace(orca, provider="psi4", run_id=new_run_id())
-    assert "different programs" in quantum_runs_comparable(orca, other)
+    other = replace(orca, calc_type="opt", run_id=new_run_id())
+    assert "different calculation types" in quantum_runs_comparable(orca, other)
+
+
+def _scf(provider: str, value: float, **run_kwargs) -> QuantumChemistryRun:
+    return _run(
+        provider=provider,
+        descriptors=[_descriptor(f"{provider}.scf_energy", value, units="Hartree", name="SCF Energy")],
+        **run_kwargs,
+    )
+
+
+def test_orca_psi4_same_b3lyp_sp_is_comparable():
+    orca = _scf("orca", -76.4)
+    psi4 = _scf("psi4", -76.3)
+    assert quantum_runs_comparable(orca, psi4) == ""
+    rows = quantum_family_rows(orca, psi4)
+    assert [row.label for row in rows] == ["SCF energy"]
+    assert rows[0].delta == pytest.approx(0.1)
+
+
+def test_quantum_input_type_mismatch_refuses():
+    geometry = _scf("orca", -76.4, calculation_input="geometry")
+    drawing = _scf("orca", -76.3, calculation_input="drawing")
+    ensemble = _scf("orca", -76.2, calculation_input="ensemble")
+    assert quantum_runs_comparable(geometry, drawing) == QUANTUM_INPUT_MISMATCH
+    assert quantum_runs_comparable(geometry, ensemble) == QUANTUM_INPUT_MISMATCH
+    assert quantum_runs_comparable(geometry, _scf("psi4", -76.1, calculation_input="geometry")) == ""
+
+
+def test_display_name_does_not_make_a_family_row():
+    left = _run(descriptors=[_descriptor("orca.other", -0.4, name="E(HOMO)", units="eV")])
+    right = _run(descriptors=[_descriptor("orca.other", -0.5, name="E(HOMO)", units="eV")])
+    assert quantum_family_rows(left, right) == []
+
+
+def test_homo_matches_suffix_not_display_name():
+    left = _run(descriptors=[_descriptor("orca.homo_energy", -0.4, name="Highest occupied")])
+    right = _run(descriptors=[_descriptor("orca.homo_energy", -0.5, name="E(HOMO)")])
+    rows = quantum_family_rows(left, right)
+    assert [row.label for row in rows] == ["HOMO energy"]
+    assert rows[0].delta == pytest.approx(-0.1)
+
+
+def test_family_units_must_match_declaration():
+    left = _scf("orca", -76.4)
+    right = _run(
+        provider="psi4",
+        descriptors=[_descriptor("psi4.scf_energy", -76.3, units="eV", name="SCF Energy")],
+    )
+    assert quantum_family_rows(left, right) == []
+
+
+def test_mismatched_descriptor_provider_skips():
+    left = _scf("orca", -76.4)
+    right = _run(
+        provider="psi4",
+        descriptors=[_descriptor("psi4.scf_energy", -76.3, units="Hartree", provider="orca")],
+    )
+    assert quantum_family_rows(left, right) == []
+
+
+def test_duplicate_family_descriptors_skip_even_if_one_is_nan():
+    left = _run(
+        descriptors=[
+            _descriptor("orca.homo_energy", -0.4),
+            _descriptor("orca.homo_energy", math.nan),
+        ]
+    )
+    right = _run(descriptors=[_descriptor("orca.homo_energy", -0.5)])
+    assert quantum_family_rows(left, right) == []
+
+
+@pytest.mark.parametrize("value", [math.nan, math.inf, -math.inf])
+def test_non_finite_family_value_skips(value):
+    left = _run(descriptors=[_descriptor("orca.homo_energy", value)])
+    right = _run(descriptors=[_descriptor("orca.homo_energy", -0.5)])
+    assert quantum_family_rows(left, right) == []
+
+
+def test_homo_skipped_when_calc_type_is_not_sp():
+    left = _run(calc_type="opt", descriptors=[_descriptor("orca.homo_energy", -0.4)])
+    right = _run(calc_type="opt", descriptors=[_descriptor("orca.homo_energy", -0.5)])
+    assert quantum_runs_comparable(left, right) == ""
+    labels = [row.label for row in quantum_family_rows(left, right)]
+    assert "HOMO energy" not in labels
+
+
+def test_scf_skipped_when_method_or_state_or_fingerprint_differs():
+    base = _scf("orca", -76.4)
+    assert quantum_family_rows(base, _scf("psi4", -76.3, method_basis="PBE0 def2-SVP")) == []
+    assert quantum_family_rows(base, _scf("psi4", -76.3, charge=1)) == []
+    assert quantum_family_rows(base, _scf("psi4", -76.3, multiplicity=3)) == []
+    assert quantum_family_rows(base, _scf("psi4", -76.3, solvent="water")) == []
+    assert quantum_family_rows(base, _scf("psi4", -76.3, input_fingerprint="other")) == []
+
+
+def test_scf_is_not_shown_across_molecules():
+    left = _scf("orca", -76.4, molecule="m1")
+    right = _scf("psi4", -76.3, molecule="m2")
+    assert quantum_runs_comparable(left, right) == ""
+    assert quantum_family_rows(left, right) == []
+
+
+def test_psi4_sp_has_no_homo_row():
+    orca = _run(
+        descriptors=[
+            _descriptor("orca.scf_energy", -76.4, units="Hartree"),
+            _descriptor("orca.homo_energy", -0.4),
+        ]
+    )
+    psi4 = _scf("psi4", -76.3)
+    labels = [row.label for row in quantum_family_rows(orca, psi4)]
+    assert labels == ["SCF energy"]
 
 
 def _result_store(*records):
@@ -364,8 +488,8 @@ class _CompareHost:
 
         return MainWindow._history_molecule_name(self, molecule_uuid)
 
-    def _show_named_history_compare(self, rows, left, right) -> None:
-        self.named.append((rows, left, right))
+    def _show_named_history_compare(self, rows, left, right, empty_message=None) -> None:
+        self.named.append((rows, left, right, empty_message))
 
     def _show_atom_history_compare(self, outcome, symbols, molecule_uuid) -> None:
         self.atoms.append((outcome, symbols, molecule_uuid))
@@ -417,8 +541,8 @@ def test_mixed_compare_opens_one_named_row_in_both_orientations(qapp, allow, mon
         SimpleNamespace(history_kind="quantum", history_id=run.run_id)
     )
     assert len(host.named) == 2
-    first_rows, first_left, first_right = host.named[0]
-    second_rows, second_left, second_right = host.named[1]
+    first_rows, first_left, first_right, _empty = host.named[0]
+    second_rows, second_left, second_right, _ = host.named[1]
     assert first_rows[0].delta == pytest.approx(-0.1)
     assert second_rows[0].delta == pytest.approx(0.1)
     assert isinstance(first_left, PropertyExecution)
@@ -438,12 +562,27 @@ def test_ordinary_compare_still_opens_named_table(qapp):
 
 
 def test_quantum_named_compare_still_opens_named_table(qapp):
-    left = _run()
-    right = _run(descriptors=[_descriptor("orca.homo_energy", -0.5, name="E(HOMO)")])
+    left = _scf("orca", -76.4)
+    right = _scf("psi4", -76.3)
     host = _CompareHost(_result_store(left, right))
     host._show_quantum_history_compare(left, right)
     assert host.atoms == []
     assert len(host.named) == 1
+    rows, named_left, named_right, empty = host.named[0]
+    assert [row.label for row in rows] == ["SCF energy"]
+    assert empty is not None and "family quantity" in empty
+    assert "orca" in host._history_compare_column_label(named_left, named_right)
+    assert "psi4" in host._history_compare_column_label(named_right, named_left)
+
+
+def test_quantum_empty_family_uses_the_family_sentence(qapp):
+    left = _run(descriptors=[_descriptor("orca.other", 1.0, units="Hartree")])
+    right = _run(descriptors=[_descriptor("orca.other", 2.0, units="Hartree")])
+    host = _CompareHost(_result_store(left, right))
+    host._show_quantum_history_compare(left, right)
+    rows, _left, _right, empty = host.named[0]
+    assert rows == []
+    assert empty == QUANTUM_FAMILY_EMPTY
 
 
 def test_quantum_nmr_opens_the_per_atom_dialog(qapp):

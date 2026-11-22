@@ -1435,15 +1435,18 @@ that job projected. Optimized geometries already on the molecule stay.
 **Compare with…** on a history row lists other ordinary runs and Quantum
 jobs together, labelled Property or Quantum. Pairs that are not the
 same quantity, input type, or (for per-atom work) the same molecule and
-structure are refused. Two ordinary runs, or two Quantum jobs, that are
-compatible still open as a two-column table with a Δ from the first
-(reference) run, and NMR still uses the per-atom shift table. An
-ordinary run against a Quantum job is refused until a shared quantity
-is approved for that pair — none is approved yet, so Compare will say
-no approved shared quantity is defined rather than lining up similar
-names. ORCA and Psi4 are never treated as the same method even when the
-functional name matches. Cross-molecule compare is allowed for scalars
-only.
+structure are refused. Two ordinary runs that are compatible still open
+as a two-column table with a Δ from the first (reference) run. Two
+Quantum jobs of the same calculation type may be compared across
+programs when they share a family quantity (SCF energy in Hartree at
+the same method, basis, charge, multiplicity, solvent and structure;
+HOMO/LUMO in eV on the same molecule and electronic state). Columns
+name the program and method; ORCA and Psi4 are not treated as one
+method. NMR still uses the per-atom shift table. An ordinary run
+against a Quantum job is refused until a shared quantity is approved
+for that pair — none is approved yet, so Compare will say no approved
+shared quantity is defined rather than lining up similar names.
+Cross-molecule compare is allowed for scalars only.
 
 ### Showing
 

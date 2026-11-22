@@ -1,0 +1,3 @@
+Compare same-type Quantum jobs by family quantities, not display names.
+
+SCF energy requires matching method, state, and structure so a Hartree delta is not shown for unlike programs or geometries.
