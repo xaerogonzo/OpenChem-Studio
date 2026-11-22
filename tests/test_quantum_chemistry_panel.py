@@ -151,6 +151,124 @@ def test_stage_opt_freq_selects_ir_job(qapp, monkeypatch):
     _dispose_panel(panel)
 
 
+def test_run_current_choice_matches_run_and_keeps_queued_status(qapp):
+    panel, service, molecule = _panel_with_conformers(2)
+    panel._charge_spin.setValue(-1)
+    panel._multiplicity_spin.setValue(2)
+    water = panel._solvent_combo.findData("Water")
+    if water >= 0:
+        panel._solvent_combo.setCurrentIndex(water)
+    if panel._conformer_combo.count() > 1:
+        panel._conformer_combo.setCurrentIndex(1)
+    panel._calc_type_combo.setCurrentText("NMR (raw shielding)")
+    text = panel.run_current_choice()
+    assert text == "Queued on the Quantum Chemistry panel."
+    assert panel._status_label.text() == "queued"
+    assert len(service.requests) == 1
+    request = service.requests[0]
+    assert request["charge"] == -1
+    assert request["multiplicity"] == 2
+    assert request["molecule_uuid"] == molecule.uuid
+    assert request["calc_type"] == "nmr"
+    if water >= 0:
+        assert "CPCM(Water)" in request["method_basis"]
+    _dispose_panel(panel)
+
+
+def test_run_current_choice_prepare_refusal_does_not_queue(qapp):
+    panel, engine, service = _make_panel()
+    molecule = MoleculeModel(display_name="Water")
+    engine.set_structure_from_smiles(molecule, "O")
+    project = ProjectModel(name="Test")
+    project.molecules.append(molecule)
+    panel.set_project(project)
+    panel._molecule_combo.setCurrentIndex(0)
+    panel._method_combo.setCurrentText("HF STO-3G")
+    text = panel.run_current_choice()
+    assert service.requests == []
+    assert panel._pending_molecule_uuid is None
+    assert "conformer" in text.lower()
+    _dispose_panel(panel)
+
+
+def test_run_current_choice_declined_expensive_led_does_not_queue(qapp, monkeypatch):
+    panel, service, _molecule = _panel_with_conformers(2)
+    panel._calc_type_combo.setCurrentText("Interaction energy breakdown (LED)")
+    monkeypatch.setattr(panel, "_confirm_led_cost", lambda parent, mol: False)
+    monkeypatch.setattr(
+        "openchem.ui.panels.quantum_chemistry_panel.review_led",
+        lambda mol: type("R", (), {"kind": "expensive", "message": "too dear"})(),
+    )
+    text = panel.run_current_choice()
+    assert "cost confirmation cancelled" in text.lower()
+    assert service.requests == []
+    assert panel._pending_molecule_uuid is None
+    _dispose_panel(panel)
+
+
+def test_run_current_choice_structural_led_is_not_declined_cost(qapp, monkeypatch):
+    from openchem.chem.quantum_run_request import TWO_PARTNERS_MESSAGE
+
+    panel, service, _molecule = _panel_with_conformers(2)
+    panel._calc_type_combo.setCurrentText("Interaction energy breakdown (LED)")
+    monkeypatch.setattr(panel, "_confirm_led_cost", lambda parent, mol: False)
+    text = panel.run_current_choice()
+    assert "cost confirmation cancelled" not in text.lower()
+    assert TWO_PARTNERS_MESSAGE in text or "two" in text.lower()
+    assert service.requests == []
+    assert panel._pending_molecule_uuid is None
+    _dispose_panel(panel)
+
+
+def test_run_current_choice_pending_blocks_second_call(qapp, monkeypatch):
+    panel, service, molecule = _panel_with_conformers(2)
+    started = []
+    monkeypatch.setattr(
+        "openchem.ui.panels.quantum_chemistry_panel.start_run",
+        lambda *_args, **_kwargs: started.append(1),
+    )
+    first = panel.run_current_choice()
+    assert first == "Queued on the Quantum Chemistry panel."
+    assert len(started) == 1
+    pending = panel._pending_molecule_uuid
+    enabled = panel._run_button.isEnabled()
+    second = panel.run_current_choice(molecule_uuid=molecule.uuid)
+    assert "busy" in second.lower()
+    assert started == [1]
+    assert panel._pending_molecule_uuid == pending
+    assert panel._run_button.isEnabled() == enabled
+    _dispose_panel(panel)
+
+
+def test_run_current_choice_refuses_mismatched_uuid(qapp, monkeypatch):
+    panel, service, molecule = _panel_with_conformers(2)
+    started = []
+    monkeypatch.setattr(
+        "openchem.ui.panels.quantum_chemistry_panel.start_run",
+        lambda *_args, **_kwargs: started.append(1),
+    )
+    text = panel.run_current_choice(molecule_uuid="not-this-molecule")
+    assert "different molecule" in text.lower()
+    assert started == []
+    assert service.requests == []
+    assert panel._current_molecule().uuid == molecule.uuid
+    _dispose_panel(panel)
+
+
+def test_stage_run_choice_still_does_not_start(qapp, monkeypatch):
+    panel, _engine, service = _make_panel()
+    started = []
+    monkeypatch.setattr(
+        "openchem.ui.panels.quantum_chemistry_panel.start_run",
+        lambda *_args, **_kwargs: started.append(1),
+    )
+    ok = panel.stage_run_choice(calc_type="nmr", provider_id="orca")
+    assert ok
+    assert started == []
+    assert service.requests == []
+    _dispose_panel(panel)
+
+
 # --- Tautomer Distribution button --------------------------------------
 
 
@@ -1619,6 +1737,8 @@ def test_running_ir_after_nmr_clears_the_stale_correlation_tables(qapp):
     assert panel._correlation_tables["cosy"].rowCount() > 0
 
     # Run 2: IR -- a separate calculation, no NMR data at all.
+    # The first click queued a job and disabled Run; a finished job re-enables it.
+    panel._run_button.setEnabled(True)
     panel._calc_type_combo.setCurrentText("Optimization + Frequency")
     panel._on_run_clicked()
     panel._on_spectrum_computed(
