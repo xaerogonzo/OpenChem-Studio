@@ -239,6 +239,9 @@ def test_first_promotion_ids_are_shipped_once_and_not_the_research_dump():
     assert by_category["coordination_complexes"] == [
         "coordination_complexes.cisplatin",
         "coordination_complexes.transplatin",
+        "coordination_complexes.carboplatin",
+        "coordination_complexes.oxaliplatin",
+        "coordination_complexes.cis_ptcl2_en",
     ]
     assert "coordination_complexes.ferrocene" not in by_category.get("coordination_complexes", [])
     assert "flavonoids.flavone" in by_category["flavonoids"]
@@ -343,17 +346,41 @@ def _cl_pt_cl_class(molblock: str) -> str:
     return "unknown"
 
 
+def _dative_to_pt(molblock: str) -> int:
+    mol = Chem.MolFromMolBlock(molblock, sanitize=False, removeHs=False)
+    assert mol is not None
+    mol.UpdatePropertyCache(strict=False)
+    n = 0
+    for bond in mol.GetBonds():
+        if bond.GetBondType() != Chem.BondType.DATIVE:
+            continue
+        if bond.GetBeginAtom().GetSymbol() == "Pt" or bond.GetEndAtom().GetSymbol() == "Pt":
+            n += 1
+    return n
+
+
 def test_platinum_templates_are_connected_cis_and_trans_drawings():
     engine = ChemistryEngine()
     [category] = [c for c in load_shipped(engine) if c.id == "coordination_complexes"]
     by_id = {e.id: e for e in category.entries}
     cisplatin = molblock_for(by_id["coordination_complexes.cisplatin"], engine)
     transplatin = molblock_for(by_id["coordination_complexes.transplatin"], engine)
+    carboplatin = molblock_for(by_id["coordination_complexes.carboplatin"], engine)
+    oxaliplatin = molblock_for(by_id["coordination_complexes.oxaliplatin"], engine)
+    ptcl2_en = molblock_for(by_id["coordination_complexes.cis_ptcl2_en"], engine)
     assert _cl_pt_cl_class(cisplatin) == "cis"
     assert _cl_pt_cl_class(transplatin) == "trans"
+    assert _cl_pt_cl_class(ptcl2_en) == "cis"
+    assert _dative_to_pt(carboplatin) == 4
+    assert _dative_to_pt(oxaliplatin) == 4
     cis_mol = engine.mol_from_molblock(cisplatin)
     assert len(Chem.GetMolFrags(cis_mol)) == 1
     assert sum(1 for a in cis_mol.GetAtoms() if a.GetSymbol() == "Pt") == 1
+    ox_mol = Chem.MolFromMolBlock(oxaliplatin, sanitize=False, removeHs=False)
+    assert ox_mol is not None
+    ox_mol.UpdatePropertyCache(strict=False)
+    chiral = [a for a in ox_mol.GetAtoms() if a.GetChiralTag() != Chem.ChiralType.CHI_UNSPECIFIED]
+    assert len(chiral) == 2
 
 
 def test_every_shipped_entry_makes_a_2d_molblock_without_dummy_atoms():

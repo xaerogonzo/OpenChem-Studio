@@ -309,8 +309,9 @@ document answers "what does the app do" without being a diary.
 Shipped as an OpenChem-owned catalog of about **2000 named complete molecules** (rings,
 cycloalkanes, heterocycles, solvents, alkaloids, flavonoids, vitamins,
 allotropes, reactive species, free L-amino acids plus glycine, nucleic acids,
-named sugar anomers, Fmoc/Boc building blocks, cisplatin and transplatin as
-connected square-planar drawings), a Template Library dialog, and a normalized
+named sugar anomers, Fmoc/Boc building blocks, cisplatin, transplatin,
+carboplatin, oxaliplatin, and cis-[PtCl2(en)] as connected square-planar
+drawings), a Template Library dialog, and a normalized
 user library under `data_root()/structure_templates`.
 The dialog nests shipped catalogs under headings. Insert uses Ketcher
 `addFragment` with a 2.0 Å right-side placement and one undo
@@ -323,9 +324,10 @@ mode); polymer S-groups (needs molfile S-group round-trip through Ketcher);
 a pinned category toolbar; true fragment attachment that consumes an attachment
 point rather than leaving `*`. Polymer S-groups are not a missing parse:
 `addFragment` strips them (measured 2026-11-14).
-Coordination: `setMolecule` keeps connected cisplatin, transplatin and
-ferrocene; `addFragment` keeps cisplatin and transplatin and empties haptic
-ferrocene (measured 2026-11-15). Cisplatin and transplatin ship under
+Coordination: `setMolecule` keeps connected cisplatin, transplatin,
+carboplatin, oxaliplatin, cis-[PtCl2(en)], and ferrocene; `addFragment`
+keeps the five square-planar Pt drawings and empties haptic ferrocene
+(measured 2026-11-15 and 2026-11-21). Those five ship under
 `coordination_complexes`; metallocenes stay out.
 
 ### Batch mode and the analytics over it
@@ -2402,11 +2404,11 @@ and three were checked again recently rather than taken on trust.
   line (`tests/test_ketcher_sgroup_roundtrip.py`). They stay out of the
   Template Library until insert preserves them. Ketcher's own polymer mode
   stays. Coordination drawings: `setMolecule` keeps connected cisplatin,
-  transplatin and ferrocene; `addFragment` keeps cisplatin and transplatin
-  (cis/trans, dative N→Pt) and returns an empty molfile for haptic ferrocene
-  (`tests/test_ketcher_coordination_roundtrip.py`). Cisplatin and transplatin
-  ship under `coordination_complexes`. Metallocenes stay out until insert
-  keeps them. See `docs/STRUCTURE_TEMPLATE_LIBRARY_DESIGN.md`.
+  transplatin, carboplatin, oxaliplatin, cis-[PtCl2(en)], and ferrocene;
+  `addFragment` keeps the five square-planar Pt drawings and returns an empty
+  molfile for haptic ferrocene (`tests/test_ketcher_coordination_roundtrip.py`).
+  Those five ship under `coordination_complexes`. Metallocenes stay out until
+  insert keeps them. See `docs/STRUCTURE_TEMPLATE_LIBRARY_DESIGN.md`.
 
 - **Refusals that still need work (recorded 2026-10-23).** The rule since then (Alex): a calculator refuses only what it **cannot compute**; the edge of what a
   source or a benchmark measured is a **warning**, the number computed and labelled an estimate (proton affinity and bond dissociation, #447; Hansen below three
