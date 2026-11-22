@@ -5333,6 +5333,7 @@ class _Driver(QObject):
             return
         options = None
         optimize_lowest = False
+        optimize_provider = "orca"
         if step.get("with_settings") or "optimize_lowest" in step:
             # What the viewer's button would ask with, from Settings > Conformers: the SAME dialog the button builds,
             # never shown (a step must not `exec()` a modal).
@@ -5346,7 +5347,18 @@ class _Driver(QObject):
                     logger.error("OPENCHEM_DRIVE: conformers -- the Generate window has no ORCA checkbox")
                 else:
                     check.setChecked(bool(step["optimize_lowest"]))
+            if step.get("optimize_engine") is not None:
+                # THE ENGINE BOX of the window (offered only with two or more engines set up).
+                combo = dialog._engine_combo
+                index = -1 if combo is None else combo.findData(str(step["optimize_engine"]))
+                if index < 0:
+                    logger.error("OPENCHEM_DRIVE: conformers -- the Generate window has no engine %r to choose", step["optimize_engine"])
+                else:
+                    combo.setCurrentIndex(index)
             optimize_lowest = dialog.optimize_lowest()
+            optimize_provider = dialog.optimize_provider()
+            engines = [] if dialog._engine_combo is None else [dialog._engine_combo.itemData(i) for i in range(dialog._engine_combo.count())]
+            logger.warning("OPENCHEM_DRIVE: conformers window | engines=%r chosen=%s", engines, optimize_provider)
             check, note = dialog._orca_check, dialog._orca_note
             offered_enabled = check is not None and check.isEnabled()
             offered_text = note.text() if note is not None else ""
@@ -5370,6 +5382,7 @@ class _Driver(QObject):
             num_embeddings=step.get("embeddings"),
             options=options,
             optimize_lowest=optimize_lowest,
+            optimize_provider=optimize_provider,
         )
 
     def _do_conformers_finish(self, step: dict[str, Any]) -> None:
@@ -7373,6 +7386,117 @@ class _Driver(QObject):
             problems.append(f"status bar {status!r} lacks {expect['status_contains']!r}")
         if problems:
             logger.error("OPENCHEM_DRIVE: EXPECT orca_optimize_button FAILED -- %s", "; ".join(problems))
+
+    def _do_optimize_engine_menu(self, step: dict[str, Any]) -> None:
+        """Open the 3D viewer's "Other engine" menu, list it, and (optionally) press one entry; assert what the panel was set up to do.
+
+        `{"do": "optimize_engine_menu", "conformer": 0, "engine": "xtb",
+          "expect": {"entries": ["Optimize with xtb", "Optimize with Psi4 (not set up)"], "selected_engine": "xtb",
+                     "job_started": false, "status_contains": "press Run", "method": "GFN2-xTB",
+                     "disabled_reason_contains": "Settings"}}`
+
+        The menu is filled the way opening it fills it (`aboutToShow`). `engine` is a provider id; an entry that is greyed is
+        an ERROR to press, never pressed. Nothing is started: Run is a separate `qc_run` step.
+        """
+        window = self._window
+        molecule = window._current_molecule()
+        if molecule is None or not molecule.conformers:
+            logger.error("OPENCHEM_DRIVE: optimize_engine_menu -- no molecule with conformers is selected")
+            return
+        viewer = window._viewer3d
+        if "conformer" in step:
+            viewer._conformer_index = int(step["conformer"])
+            viewer._refresh_view()
+        service = window._services.quantum_chemistry_service
+        busy_before = len(service._active_jobs)
+        button_enabled = viewer._engine_button.isEnabled()
+        viewer._engine_menu.aboutToShow.emit()
+        actions = viewer._engine_menu.actions()
+        entries = [a.text() for a in actions]
+        reasons = [a.toolTip() for a in actions if not a.isEnabled()]
+        logger.warning("OPENCHEM_DRIVE: optimize_engine_menu button_enabled=%s entries=%r greyed_reasons=%r", button_enabled, entries, reasons)
+        problems = []
+        engine = step.get("engine")
+        if engine:
+            names = {c.provider_id: c.name for c in service.optimization_choices()}
+            action = next((a for a in actions if a.text().startswith(f"Optimize with {names.get(engine, engine)}")), None)
+            if action is None or not action.isEnabled():
+                problems.append(f"the entry for {engine!r} is missing or greyed: {entries!r}")
+            else:
+                action.trigger()
+        panel = window._quantum_chemistry_panel
+        selected = panel._selected_engine_id()
+        method = panel._method_combo.currentText()
+        started = len(service._active_jobs) > busy_before
+        status = window.statusBar().currentMessage()
+        logger.warning(
+            "OPENCHEM_DRIVE: optimize_engine_menu pressed=%s selected_engine=%s method=%r calc_type=%r job_started=%s status=%r panel_status=%r",
+            engine, selected, method, panel._calc_type_combo.currentText(), started, status, panel._status_label.text(),
+        )
+        expect = step.get("expect") or {}
+        if "button_enabled" in expect and bool(expect["button_enabled"]) != button_enabled:
+            problems.append(f"button enabled is {button_enabled}, wanted {expect['button_enabled']}")
+        if "entries" in expect and entries != expect["entries"]:
+            problems.append(f"entries {entries!r}, wanted {expect['entries']!r}")
+        if "disabled_reason_contains" in expect and not any(expect["disabled_reason_contains"] in r for r in reasons):
+            problems.append(f"no greyed entry's tooltip contains {expect['disabled_reason_contains']!r}: {reasons!r}")
+        if "selected_engine" in expect and selected != expect["selected_engine"]:
+            problems.append(f"the panel's engine is {selected!r}, wanted {expect['selected_engine']!r}")
+        if "method" in expect and method != expect["method"]:
+            problems.append(f"the method box holds {method!r}, wanted {expect['method']!r}")
+        if "job_started" in expect and started != bool(expect["job_started"]):
+            problems.append(f"job_started is {started}, wanted {expect['job_started']}")
+        if "status_contains" in expect and expect["status_contains"] not in panel._status_label.text():
+            problems.append(f"the panel's status {panel._status_label.text()!r} lacks {expect['status_contains']!r}")
+        if problems:
+            logger.error("OPENCHEM_DRIVE: EXPECT optimize_engine_menu FAILED -- %s", "; ".join(problems))
+
+    def _do_qc_progress_report(self, step: dict[str, Any]) -> None:
+        """Read what the Quantum Chemistry panel SHOWS about a running job: the readout line, Stop and keep, and the log.
+
+        `{"do": "qc_progress_report", "tag": "mid", "expect": {"visible": true, "progress_contains": ["cycle"],
+          "keep_enabled": true, "log_contains": ["GEOMETRY OPTIMIZATION CYCLE"], "log_lines_at_least": 50}}`
+        """
+        panel = getattr(self._window, "_quantum_chemistry_panel", None)
+        if panel is None:
+            logger.error("OPENCHEM_DRIVE: qc_progress_report -- no Quantum Chemistry panel on this window")
+            return
+        label = panel._progress_label
+        text = label.text()
+        visible = label.isVisibleTo(panel)
+        keep = panel._keep_button.isEnabled()
+        log = panel._output_log.toPlainText()
+        lines = log.count(chr(10))
+        tail = [line for line in log.splitlines() if line.strip()][-2:]
+        logger.warning(
+            "OPENCHEM_DRIVE: qc_progress_report %s | visible=%s keep_enabled=%s log_lines=%d | readout=%r | log_tail=%r",
+            step.get("tag", ""), visible, keep, lines, text, tail,
+        )
+        expect = step.get("expect") or {}
+        problems = []
+        if "visible" in expect and bool(expect["visible"]) != visible:
+            problems.append(f"readout visible is {visible}, wanted {expect['visible']}")
+        for needle in expect.get("progress_contains", []):
+            if needle not in text:
+                problems.append(f"readout {text!r} lacks {needle!r}")
+        if "keep_enabled" in expect and bool(expect["keep_enabled"]) != keep:
+            problems.append(f"Stop and keep enabled is {keep}, wanted {expect['keep_enabled']}")
+        for needle in expect.get("log_contains", []):
+            if needle not in log:
+                problems.append(f"the log lacks {needle!r}")
+        if "log_lines_at_least" in expect and lines < int(expect["log_lines_at_least"]):
+            problems.append(f"the log has {lines} lines, wanted at least {expect['log_lines_at_least']}")
+        if problems:
+            logger.error("OPENCHEM_DRIVE: EXPECT qc_progress_report FAILED -- %s", "; ".join(problems))
+
+    def _do_qc_stop_keep(self, step: dict[str, Any]) -> None:
+        """Press the panel's REAL "Stop and keep geometry" button. Disabled is an ERROR (nothing is pressed). Follow it with `qc_wait`."""
+        panel = getattr(self._window, "_quantum_chemistry_panel", None)
+        if panel is None or not panel._keep_button.isEnabled():
+            logger.error("OPENCHEM_DRIVE: qc_stop_keep -- the button is missing or DISABLED; not pressed")
+            return
+        panel._keep_button.click()
+        logger.warning("OPENCHEM_DRIVE: qc_stop_keep pressed")
 
     def _do_rotate(self, step: dict[str, Any]) -> None:
         """Turn the structure in the 2D editor, as a real drag.

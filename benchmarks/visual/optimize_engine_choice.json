@@ -1,0 +1,35 @@
+[
+  {"do": "tool_path", "tool": "xtb", "path": "D:/_scratch/xtb-6.7.1/bin/xtb.exe"},
+  {"do": "smiles", "smiles": "CCO", "name": "Ethanol", "after_ms": 3000},
+  {"do": "select", "molecule": -1, "after_ms": 3000},
+  {"do": "view_3d", "after_ms": 2000},
+  {"do": "conformers", "count": 3, "after_ms": 20000},
+  {"do": "conformer_report", "tag": "before", "expect": {"conformers": 2, "orca_conformers": 0}},
+
+  {"do": "optimize_engine_menu", "conformer": 0, "tag": "list-only",
+   "expect": {"button_enabled": true, "selected_engine": "orca"}},
+  {"do": "shot", "path": "benchmarks/visual/artifacts/optimize_engine_viewer.png", "after_ms": 1500},
+
+  {"do": "optimize_engine_menu", "engine": "xtb", "conformer": 1,
+   "expect": {"selected_engine": "xtb", "method": "GFN2-xTB", "job_started": false, "status_contains": "with xtb"}},
+  {"do": "shot", "path": "benchmarks/visual/artifacts/optimize_engine_xtb_prepared.png", "widget": "Quantum_Chemistry", "after_ms": 1500},
+
+  {"do": "qc_run", "conformer": 1},
+  {"do": "qc_wait", "timeout_ms": 120000},
+  {"do": "conformer_report", "tag": "after-xtb-from-the-menu",
+   "expect": {"conformers": 2, "orca_conformers": 1, "origin_slot": 2, "canonical_method": "xtb_opt",
+              "viewer_label_contains": "xtb optimized (GFN2-xTB)"}},
+
+  {"do": "orca_optimize_button", "via": "button", "conformer": 0,
+   "expect": {"chosen_slot": 1, "calc_type": "Geometry Optimization", "job_started": false}},
+  {"do": "optimize_engine_menu", "tag": "orca-door-reselects-orca", "expect": {"selected_engine": "orca"}},
+
+  {"do": "conformers", "count": 3, "optimize_lowest": true, "optimize_engine": "xtb", "after_ms": 25000,
+   "expect_offer": {"available": true}},
+  {"do": "qc_wait", "timeout_ms": 120000},
+  {"do": "conformer_report", "tag": "after-generate-with-xtb", "expect": {"canonical_method": "xtb_opt"}},
+  {"do": "shot", "path": "benchmarks/visual/artifacts/optimize_engine_generate_xtb.png", "after_ms": 1500},
+
+  {"do": "expect_clean"},
+  {"do": "quit"}
+]
