@@ -407,12 +407,196 @@ def test_non_finite_family_value_skips(value):
     assert quantum_family_rows(left, right) == []
 
 
-def test_homo_skipped_when_calc_type_is_not_sp():
-    left = _run(calc_type="opt", descriptors=[_descriptor("orca.homo_energy", -0.4)])
-    right = _run(calc_type="opt", descriptors=[_descriptor("orca.homo_energy", -0.5)])
+@pytest.mark.parametrize("calc_type", ["opt", "opt_freq"])
+def test_homo_and_lumo_are_family_rows_on_opt_and_opt_freq(calc_type):
+    left = _run(
+        calc_type=calc_type,
+        descriptors=[
+            _descriptor("orca.homo_energy", -0.4),
+            _descriptor("orca.lumo_energy", 0.2),
+        ],
+    )
+    right = _run(
+        calc_type=calc_type,
+        descriptors=[
+            _descriptor("orca.homo_energy", -0.5),
+            _descriptor("orca.lumo_energy", 0.1),
+        ],
+    )
     assert quantum_runs_comparable(left, right) == ""
     labels = [row.label for row in quantum_family_rows(left, right)]
+    assert labels == ["HOMO energy", "LUMO energy"]
+
+
+def test_homo_allows_different_method_and_fingerprint():
+    left = _run(
+        calc_type="opt",
+        method_basis="B3LYP def2-SVP",
+        input_fingerprint="a",
+        descriptors=[_descriptor("orca.homo_energy", -0.4)],
+    )
+    right = _run(
+        calc_type="opt",
+        method_basis="PBE0 def2-SVP",
+        input_fingerprint="b",
+        descriptors=[_descriptor("orca.homo_energy", -0.5)],
+    )
+    labels = [row.label for row in quantum_family_rows(left, right)]
+    assert labels == ["HOMO energy"]
+
+
+def test_missing_homo_on_one_side_skips_that_row():
+    left = _run(calc_type="opt", descriptors=[_descriptor("orca.homo_energy", -0.4)])
+    right = _run(calc_type="opt", descriptors=[_descriptor("orca.scf_energy", -76.3, units="Hartree")])
+    assert "HOMO energy" not in [row.label for row in quantum_family_rows(left, right)]
+
+
+def test_xtb_opt_freq_does_not_gain_homo_from_orca():
+    orca = _run(
+        calc_type="opt_freq",
+        descriptors=[
+            _descriptor("orca.scf_energy", -76.4, units="Hartree"),
+            _descriptor("orca.homo_energy", -0.4),
+        ],
+    )
+    xtb = _run(
+        provider="xtb",
+        calc_type="opt_freq",
+        descriptors=[_descriptor("xtb.scf_energy", -76.3, units="Hartree")],
+    )
+    labels = [row.label for row in quantum_family_rows(orca, xtb)]
     assert "HOMO energy" not in labels
+    assert labels == ["SCF energy"]
+
+
+def test_homo_is_not_a_family_row_for_nmr():
+    left = _run(calc_type="nmr", descriptors=[_descriptor("orca.homo_energy", -0.4)])
+    right = _run(calc_type="nmr", descriptors=[_descriptor("orca.homo_energy", -0.5)])
+    assert quantum_family_rows(left, right) == []
+
+
+def _thermo(provider: str, enthalpy: float, gibbs: float, *, scf=None, **run_kwargs):
+    descriptors = [
+        _descriptor(f"{provider}.enthalpy", enthalpy, units="Hartree", name="Enthalpy"),
+        _descriptor(f"{provider}.gibbs_free_energy", gibbs, units="Hartree", name="Gibbs"),
+    ]
+    if scf is not None:
+        descriptors.insert(0, _descriptor(f"{provider}.scf_energy", scf, units="Hartree", name="SCF Energy"))
+    return _run(provider=provider, calc_type="opt_freq", descriptors=descriptors, **run_kwargs)
+
+
+@pytest.mark.parametrize("provider", ["orca", "xtb"])
+def test_matching_opt_freq_tabulates_enthalpy_gibbs_and_scf(provider):
+    left = _thermo(provider, -76.2, -76.1, scf=-76.4)
+    right = _thermo(provider, -76.0, -75.9, scf=-76.3)
+    labels = [row.label for row in quantum_family_rows(left, right)]
+    assert labels == ["SCF energy", "Enthalpy", "Gibbs free energy"]
+
+
+def test_missing_thermo_on_one_side_skips_only_that_quantity():
+    left = _thermo("orca", -76.2, -76.1, scf=-76.4)
+    right = _run(
+        calc_type="opt_freq",
+        descriptors=[
+            _descriptor("orca.scf_energy", -76.3, units="Hartree"),
+            _descriptor("orca.enthalpy", -76.0, units="Hartree"),
+        ],
+    )
+    labels = [row.label for row in quantum_family_rows(left, right)]
+    assert labels == ["SCF energy", "Enthalpy"]
+    assert "Gibbs free energy" not in labels
+
+
+@pytest.mark.parametrize(
+    "kwargs",
+    [
+        {"method_basis": "PBE0 def2-SVP"},
+        {"charge": 1},
+        {"multiplicity": 3},
+        {"solvent": "water"},
+        {"input_fingerprint": "other"},
+        {"molecule": "m2"},
+    ],
+)
+def test_thermo_skipped_when_model_or_state_or_fingerprint_differs(kwargs):
+    base = _thermo("orca", -76.2, -76.1)
+    other = _thermo("orca", -76.0, -75.9, **kwargs)
+    labels = [row.label for row in quantum_family_rows(base, other)]
+    assert "Enthalpy" not in labels
+    assert "Gibbs free energy" not in labels
+
+
+def test_duplicate_enthalpy_descriptors_skip_that_row():
+    left = _run(
+        calc_type="opt_freq",
+        descriptors=[
+            _descriptor("orca.enthalpy", -76.2, units="Hartree"),
+            _descriptor("orca.enthalpy", -76.25, units="Hartree"),
+            _descriptor("orca.gibbs_free_energy", -76.1, units="Hartree"),
+        ],
+    )
+    right = _thermo("orca", -76.0, -75.9)
+    labels = [row.label for row in quantum_family_rows(left, right)]
+    assert "Enthalpy" not in labels
+    assert labels == ["Gibbs free energy"]
+
+
+def test_enthalpy_wrong_units_or_provider_skips():
+    left = _thermo("orca", -76.2, -76.1)
+    wrong_units = _run(
+        calc_type="opt_freq",
+        descriptors=[
+            _descriptor("orca.enthalpy", -76.0, units="eV"),
+            _descriptor("orca.gibbs_free_energy", -75.9, units="Hartree"),
+        ],
+    )
+    wrong_provider = _run(
+        calc_type="opt_freq",
+        descriptors=[
+            _descriptor("orca.enthalpy", -76.0, units="Hartree", provider="xtb"),
+            _descriptor("orca.gibbs_free_energy", -75.9, units="Hartree"),
+        ],
+    )
+    assert "Enthalpy" not in [row.label for row in quantum_family_rows(left, wrong_units)]
+    assert "Enthalpy" not in [row.label for row in quantum_family_rows(left, wrong_provider)]
+
+
+@pytest.mark.parametrize("value", [math.nan, math.inf, -math.inf])
+def test_non_finite_enthalpy_skips_that_row(value):
+    left = _run(
+        calc_type="opt_freq",
+        descriptors=[
+            _descriptor("orca.enthalpy", value, units="Hartree"),
+            _descriptor("orca.gibbs_free_energy", -76.1, units="Hartree"),
+        ],
+    )
+    right = _thermo("orca", -76.0, -75.9)
+    labels = [row.label for row in quantum_family_rows(left, right)]
+    assert "Enthalpy" not in labels
+    assert "Gibbs free energy" in labels
+
+
+def test_entropy_and_zpe_are_not_family_rows():
+    left = _run(
+        calc_type="opt_freq",
+        descriptors=[
+            _descriptor("orca.entropy_term", 0.02, units="Hartree"),
+            _descriptor("xtb.zero_point_energy", 0.03, units="Hartree"),
+            _descriptor("orca.enthalpy", -76.2, units="Hartree"),
+        ],
+    )
+    right = _run(
+        calc_type="opt_freq",
+        descriptors=[
+            _descriptor("orca.entropy_term", 0.01, units="Hartree"),
+            _descriptor("xtb.zero_point_energy", 0.04, units="Hartree"),
+            _descriptor("orca.enthalpy", -76.0, units="Hartree"),
+        ],
+    )
+    labels = [row.label for row in quantum_family_rows(left, right)]
+    assert labels == ["Enthalpy"]
+    assert "entropy" not in " ".join(labels).lower()
+    assert "zero" not in " ".join(labels).lower()
 
 
 def test_scf_skipped_when_method_or_state_or_fingerprint_differs():
@@ -573,6 +757,17 @@ def test_quantum_named_compare_still_opens_named_table(qapp):
     assert empty is not None and "family quantity" in empty
     assert "orca" in host._history_compare_column_label(named_left, named_right)
     assert "psi4" in host._history_compare_column_label(named_right, named_left)
+
+
+def test_opt_freq_named_compare_shows_thermo_rows(qapp):
+    left = _thermo("orca", -76.2, -76.1, scf=-76.4)
+    right = _thermo("orca", -76.0, -75.9, scf=-76.3)
+    host = _CompareHost(_result_store(left, right))
+    host._show_quantum_history_compare(left, right)
+    assert host.atoms == []
+    rows, _named_left, _named_right, empty = host.named[0]
+    assert [row.label for row in rows] == ["SCF energy", "Enthalpy", "Gibbs free energy"]
+    assert empty == QUANTUM_FAMILY_EMPTY
 
 
 def test_quantum_empty_family_uses_the_family_sentence(qapp):

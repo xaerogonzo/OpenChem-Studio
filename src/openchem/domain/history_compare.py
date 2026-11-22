@@ -324,8 +324,9 @@ class QuantumFamilyQuantity:
     """One Quantum-vs-Quantum scalar that Compare is allowed to tabulate.
 
     Matching uses `{run.provider}.{suffix}` and `DescriptorValue.provider`,
-    never a display name. Eligibility is quantity-specific (see
-    `_family_eligible`).
+    never a display name. `requires_matching_model` is the eligibility
+    policy (same method/basis and input fingerprint), not a property of
+    the quantity id string.
     """
 
     quantity_id: str
@@ -333,11 +334,12 @@ class QuantumFamilyQuantity:
     units: str
     descriptor_suffixes: frozenset[str]
     calc_types: frozenset[str]
+    requires_matching_model: bool
 
 
 #: Named Quantum-vs-Quantum scalars. Display names are not a quantity.
-#: SCF energy is the only currently allowlisted common quantity across engines;
-#: xtb opt_freq also stores thermochemistry, which is not listed here.
+#: Entropy term (ORCA) and zero-point energy (xtb) are not listed: they
+#: do not share a suffix. Enthalpy and Gibbs are opt_freq only.
 QUANTUM_FAMILY_QUANTITIES: tuple[QuantumFamilyQuantity, ...] = (
     QuantumFamilyQuantity(
         "scf_energy",
@@ -345,20 +347,39 @@ QUANTUM_FAMILY_QUANTITIES: tuple[QuantumFamilyQuantity, ...] = (
         "Hartree",
         frozenset({"scf_energy"}),
         frozenset({"sp", "opt", "opt_freq"}),
+        True,
     ),
     QuantumFamilyQuantity(
         "homo_energy",
         "HOMO energy",
         "eV",
         frozenset({"homo_energy"}),
-        frozenset({"sp"}),
+        frozenset({"sp", "opt", "opt_freq"}),
+        False,
     ),
     QuantumFamilyQuantity(
         "lumo_energy",
         "LUMO energy",
         "eV",
         frozenset({"lumo_energy"}),
-        frozenset({"sp"}),
+        frozenset({"sp", "opt", "opt_freq"}),
+        False,
+    ),
+    QuantumFamilyQuantity(
+        "enthalpy",
+        "Enthalpy",
+        "Hartree",
+        frozenset({"enthalpy"}),
+        frozenset({"opt_freq"}),
+        True,
+    ),
+    QuantumFamilyQuantity(
+        "gibbs_free_energy",
+        "Gibbs free energy",
+        "Hartree",
+        frozenset({"gibbs_free_energy"}),
+        frozenset({"opt_freq"}),
+        True,
     ),
 )
 
@@ -397,7 +418,7 @@ def _family_eligible(
         return False
     if left.solvent != right.solvent:
         return False
-    if quantity.quantity_id == "scf_energy":
+    if quantity.requires_matching_model:
         return (
             left.method_basis == right.method_basis
             and left.input_fingerprint == right.input_fingerprint

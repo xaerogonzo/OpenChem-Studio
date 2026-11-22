@@ -1441,8 +1441,10 @@ as a two-column table with a Δ from the first (reference) run. Two
 Quantum jobs of the same calculation type may be compared across
 programs when they share a family quantity (SCF energy in Hartree at
 the same method, basis, charge, multiplicity, solvent and structure;
-HOMO/LUMO in eV on the same molecule and electronic state). Columns
-name the program and method; ORCA and Psi4 are not treated as one
+HOMO/LUMO in eV on the same molecule and electronic state, including
+from optimizations and frequency jobs; enthalpy and Gibbs free energy
+in Hartree from frequency jobs when that model and structure match).
+Columns name the program and method; ORCA and Psi4 are not treated as one
 method. NMR still uses the per-atom shift table. An ordinary run
 against a Quantum job is refused until a shared quantity is approved
 for that pair — none is approved yet, so Compare will say no approved

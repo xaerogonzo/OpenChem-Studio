@@ -1,0 +1,4 @@
+Tabulate HOMO/LUMO on optimizations and enthalpy/Gibbs on frequency jobs.
+
+Eligibility is requires_matching_model on the quantity, not an SCF name check.
+Entropy and ZPE stay off the family table.
