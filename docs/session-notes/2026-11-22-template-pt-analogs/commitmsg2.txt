@@ -1,0 +1,1 @@
+Record empty-data-root verification in the session PR body.

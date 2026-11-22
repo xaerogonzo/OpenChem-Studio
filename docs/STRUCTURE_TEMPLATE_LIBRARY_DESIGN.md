@@ -6,8 +6,9 @@ peptide or polymer builder. Two thousand is the plateau for a named-molecule
 picker: common laboratory, teaching, and named natural-product structures a
 person would insert by name. It is not a second PubChem. Further growth is a
 named class on request (more sugars, more steroids), not another mixed wave.
-Square-planar cisplatin and transplatin ship as connected molblocks.
-Haptic metallocenes stay listed, not shipped: Insert empties ferrocene.
+Square-planar cisplatin, transplatin, carboplatin, oxaliplatin, and
+cis-[PtCl2(en)] ship as connected molblocks. Haptic metallocenes stay
+listed, not shipped: Insert empties ferrocene.
 
 ## What it is
 
@@ -60,7 +61,7 @@ Each molecule appears in **one** category. The research inventory in
 | `cycloalkanes` | C3–C12 monocycles except cyclopentane and cyclohexane (those stay in Rings), plus methylcyclopentane and methylcyclohexane |
 | `heterocycles` | common heterocycles not already in Rings or Nucleic acids, including 12-/15-/18-crown-6, 21-crown-7, and benzo/dibenzo/diaza crowns |
 | `solvents_reagents` | water, common solvents, acids, bases, and reagents (DMF, hexane, TEA, TFA, …) |
-| `coordination_complexes` | cisplatin and transplatin as connected square-planar drawings (dative N→Pt). Not PubChem ion SMILES. Ferrocene and other haptic metallocenes stay out |
+| `coordination_complexes` | cisplatin, transplatin, carboplatin, oxaliplatin, and cis-[PtCl2(en)] as connected square-planar drawings (dative N/O→Pt). Not PubChem ion SMILES. Ferrocene and other haptic metallocenes stay out |
 | `alkaloids` | protoalkaloids, methylxanthines, (1R,2S)-ephedrine, morphine/codeine, tropanes (atropine as the racemate drawing with default tropane C3 wedges, plus hyoscyamine and scopolamine), and other named identities |
 | `flavonoids` | named aglycones and subclass parents |
 | `vitamins` | named vitamers |
@@ -155,8 +156,10 @@ SMILES: cis-PtCl2(NH3)2 with dative N→Pt, and ferrocene as Fe bound to both
 Cp rings (`tests/fixtures/ketcher/cisplatin_cis.mol`, `ferrocene.mol`).
 `molblock_for` accepts both. Ketcher `setMolecule` then `getMolfile` keeps
 both (cisplatin still cis with both datives; ferrocene still ten Fe–C bonds).
-`addFragment` (Insert) keeps cisplatin and transplatin the same way and
-**returns an empty molfile** for ferrocene, with no error. Held by
-`tests/test_ketcher_coordination_roundtrip.py`. Cisplatin and transplatin
-are shipped under `coordination_complexes`. Haptic metallocenes stay out
-until insert keeps the drawing.
+`addFragment` (Insert) keeps cisplatin, transplatin, carboplatin,
+oxaliplatin, and cis-[PtCl2(en)] the same way and **returns an empty
+molfile** for ferrocene, with no error. Held by
+`tests/test_ketcher_coordination_roundtrip.py`. Square-planar Pt drawings
+that Insert keeps (cisplatin, transplatin, carboplatin, oxaliplatin,
+cis-[PtCl2(en)]) ship under `coordination_complexes`. Haptic metallocenes
+stay out until insert keeps the drawing.

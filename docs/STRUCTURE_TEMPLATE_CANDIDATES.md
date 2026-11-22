@@ -133,7 +133,7 @@ Shipped catalog is seven files (rings, amino acids, nucleobases, sugars, cycloal
 | `functional_group_examples` | Functional-group examples | A | active | 8 | Small complete molecules illustrating common functional groups. |
 | `terpenoids_steroids` | Terpenoids and steroids | A | active | 7 | A few recognizable terpenes and steroids. |
 | `cofactors_metabolites` | Cofactors and metabolites | A | active | 3 | A few named cofactors, including nucleotides such as ATP. |
-| `coordination_complexes` | Coordination complexes | A | active | 2 | Metal complexes without requiring a metal-carbon bond. Research ion SMILES stay ineligible; connected cisplatin and transplatin ship separately. |
+| `coordination_complexes` | Coordination complexes | A | active | 2 | Metal complexes without requiring a metal-carbon bond. Research ion SMILES stay ineligible; connected cisplatin, transplatin, carboplatin, oxaliplatin, and cis-[PtCl2(en)] ship separately. |
 
 | Category | Identity-verified n |
 |---|---|
@@ -195,7 +195,7 @@ Biosynthetic class uses Aniszewski 2015 as a **definitional framework** (true / 
 
 ## Organometallics and coordination
 
-Seven research records require a coordination representation. PubChem ion SMILES stay `editor_eligible` false. Display tests **have** been run (2026-11-15, `tests/test_ketcher_coordination_roundtrip.py`): Ketcher `setMolecule` keeps connected cisplatin, transplatin, and ferrocene; `addFragment` (Insert) keeps cisplatin and transplatin (cis/trans Cl–Pt–Cl, both N→Pt datives) and returns an empty molfile for haptic ferrocene. Connected cisplatin and transplatin ship under `coordination_complexes`. Metallocenes stay unshipped.
+Seven research records require a coordination representation. PubChem ion SMILES stay `editor_eligible` false. Display tests **have** been run (2026-11-15 and 2026-11-21, `tests/test_ketcher_coordination_roundtrip.py`): Ketcher `setMolecule` keeps connected cisplatin, transplatin, carboplatin, oxaliplatin, cis-[PtCl2(en)], and ferrocene; `addFragment` (Insert) keeps the five square-planar Pt drawings and returns an empty molfile for haptic ferrocene. Those five ship under `coordination_complexes`. Metallocenes stay unshipped.
 
 ## Open questions
 

@@ -1,0 +1,4 @@
+Ship carboplatin, oxaliplatin, and cis-[PtCl2(en)] as connected templates.
+
+Insert already keeps those square-planar drawings; haptic ferrocene still
+returns an empty molfile, so it stays out of the catalog.

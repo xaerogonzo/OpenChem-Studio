@@ -2,7 +2,8 @@
 
 PubChem stores ferrocene and cisplatin as disconnected ions; these fixtures
 are connected drawings (cis- and trans-PtCl2(NH3)2 with dative N->Pt;
-ferrocene as Fe bound to both Cp rings). Template insert uses
+carboplatin and oxaliplatin with dative N/O->Pt; cis-PtCl2(en); ferrocene
+as Fe bound to both Cp rings). Template insert uses
 ``addFragment``; load uses ``setMolecule``. The first run filled
 ``FINDING_ADD_FRAGMENT`` and ``FINDING_LOAD``; the assertions hold that
 measurement so a Ketcher upgrade cannot silently change it.
@@ -38,23 +39,31 @@ Fact = tuple[int, tuple[str, ...], int, int, str | None]
 FIXTURE_FACTS: dict[str, Fact] = {
     "cisplatin_cis.mol": (1, ("Pt",), 4, 2, "cis"),
     "transplatin.mol": (1, ("Pt",), 4, 2, "trans"),
+    "carboplatin.mol": (1, ("Pt",), 4, 4, None),
+    "oxaliplatin.mol": (1, ("Pt",), 4, 4, None),
+    "cis_ptcl2_en.mol": (1, ("Pt",), 4, 2, "cis"),
     "ferrocene.mol": (1, ("Fe",), 10, 0, None),
 }
 
-# Measured 2026-11-15 on the vendored Ketcher bundle (Indigo writer).
-# addFragment then getMolfile keeps cisplatin and transplatin (one fragment,
-# Pt, four metal bonds, both N->Pt datives, cis or trans Cl-Pt-Cl).
-# Ferrocene comes back as an empty molfile (0 atoms) with no error.
-# setMolecule then getMolfile keeps all three drawings, including ferrocene's
-# ten Fe-C bonds.
+# Measured 2026-11-15 (cisplatin, transplatin, ferrocene) and 2026-11-21
+# (carboplatin, oxaliplatin, cis-PtCl2(en)) on the vendored Ketcher bundle
+# (Indigo writer). addFragment keeps the five square-planar Pt drawings
+# and returns an empty molfile for ferrocene, with no error.
+# setMolecule keeps all six drawings, including ferrocene's ten Fe-C bonds.
 FINDING_ADD_FRAGMENT: dict[str, Fact | tuple[str, ...] | None] = {
     "cisplatin_cis.mol": (1, ("Pt",), 4, 2, "cis"),
     "transplatin.mol": (1, ("Pt",), 4, 2, "trans"),
+    "carboplatin.mol": (1, ("Pt",), 4, 4, None),
+    "oxaliplatin.mol": (1, ("Pt",), 4, 4, None),
+    "cis_ptcl2_en.mol": (1, ("Pt",), 4, 2, "cis"),
     "ferrocene.mol": (0, (), 0, 0, None),
 }
 FINDING_LOAD: dict[str, Fact | tuple[str, ...] | None] = {
     "cisplatin_cis.mol": (1, ("Pt",), 4, 2, "cis"),
     "transplatin.mol": (1, ("Pt",), 4, 2, "trans"),
+    "carboplatin.mol": (1, ("Pt",), 4, 4, None),
+    "oxaliplatin.mol": (1, ("Pt",), 4, 4, None),
+    "cis_ptcl2_en.mol": (1, ("Pt",), 4, 2, "cis"),
     "ferrocene.mol": (1, ("Fe",), 10, 0, None),
 }
 
