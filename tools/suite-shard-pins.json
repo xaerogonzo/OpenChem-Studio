@@ -4854,6 +4854,7 @@
   "tests/test_help.py": 1,
   "tests/test_help_bundle.py": 3,
   "tests/test_historical_retention.py": 2,
+  "tests/test_history_compare.py": 5,
   "tests/test_hlb.py": 3,
   "tests/test_homa.py": 4,
   "tests/test_hose_codes.py": 1,

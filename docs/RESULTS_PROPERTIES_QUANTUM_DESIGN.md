@@ -149,11 +149,12 @@ Adjacency in the UI is not compatibility. Refuse with an explanation rather than
 
 **Quantum today:** Compare NMR Shifts, same molecule, atom-numbering refusal. That is current behaviour.
 
-**Proposed later, not shipped:**
+**Ordinary versus Quantum (allowlist).** The Results history picker can list both property executions and Quantum runs. A mixed pair is compared only when it matches `MIXED_QUANTITIES` in `domain/history_compare.py`: stable ids, declared units, allowed Quantum calculation types, exactly one finite number each side. Display names are not a quantity. The list ships **empty**: no mixed pair is numerically comparable yet (ordinary dipole vs QC dipole is not listed; QC runs do not store a dipole; Hückel HOMO/LUMO is in beta, QC in eV; Miller polarizability has no QC counterpart). An unlisted pair is refused: no approved shared quantity is defined. NMR remains the only Quantum *per-atom* compare.
 
-- Same molecule, different Quantum method/engine, same calculation family (e.g. two NMR jobs, two single points).
-- Same quantity, different molecules — **scalars only** unless a mapping exists.
-- Ordinary property versus Quantum result — only where the quantity definition matches (a dipole from Gasteiger versus a Quantum dipole is a different quantity unless the spec of that pair says otherwise).
+**Still later:**
+
+- Same molecule, different Quantum method/engine, same calculation family (e.g. two NMR jobs, two single points) as a named family rule.
+- Same quantity, different molecules — **scalars only** when the allowlist row sets `allow_cross_molecule`.
 
 Per-atom arrays and NMR signals are not aligned across molecules merely because the output type matches.
 
@@ -182,7 +183,7 @@ Recorded so an implementation plan cannot skip them. Recommendations above are t
 5. **Delete vs bundles** — history delete does not edit automatic bundle manifests.
 6. **Quantum output ownership** — cache projections that name a `run_id` withdraw with that run; others stay.
 7. **Conformer ownership** — Quantum delete is history only; landed geometries stay.
-8. **Comparison policy** — refuse incompatible pairs; cross-molecule is scalars unless a mapping exists; NMR compare remains the only shipped Quantum compare until a later slice.
+8. **Comparison policy** — refuse incompatible pairs. Mixed ordinary-vs-Quantum compare is an explicit allowlist (`MIXED_QUANTITIES`); it ships empty. NMR remains the only Quantum per-atom compare. Cross-molecule mixed compare requires `allow_cross_molecule` on the matching row.
 9. **Migration** — no invented execution IDs for old `calculation_results`; Quantum runs map 1:1.
 10. **Current versus historical display** — current = input still matches the molecule; historical is listed and labelled, not used as the fresh answer.
 

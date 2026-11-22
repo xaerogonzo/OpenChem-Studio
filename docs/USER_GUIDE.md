@@ -1431,13 +1431,18 @@ calculation bundles, and does not empty the Quantum engine's reusable
 cache. Deleting a Quantum run does withdraw the Results cache numbers
 that job projected. Optimized geometries already on the molecule stay.
 
-**Compare with…** on a history row refuses pairs that are not the same
-quantity, input type, or (for per-atom work) the same molecule and
-structure. Compatible scalars and descriptors open as a two-column
-table with a Δ from the first (reference) run. NMR still uses the
-per-atom shift table. ORCA and Psi4 are never treated as the same
-method even when the functional name matches. Cross-molecule compare is
-allowed for scalars only.
+**Compare with…** on a history row lists other ordinary runs and Quantum
+jobs together, labelled Property or Quantum. Pairs that are not the
+same quantity, input type, or (for per-atom work) the same molecule and
+structure are refused. Two ordinary runs, or two Quantum jobs, that are
+compatible still open as a two-column table with a Δ from the first
+(reference) run, and NMR still uses the per-atom shift table. An
+ordinary run against a Quantum job is refused until a shared quantity
+is approved for that pair — none is approved yet, so Compare will say
+no approved shared quantity is defined rather than lining up similar
+names. ORCA and Psi4 are never treated as the same method even when the
+functional name matches. Cross-molecule compare is allowed for scalars
+only.
 
 ### Showing
 
