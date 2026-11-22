@@ -13,8 +13,9 @@ anything starts.
 launcher lists, run through the same plan and the same services; it does not change a
 tick, a preset or a scope in Properties, and every calculator it can run is still one
 click away there. Optional Quantum actions (ab initio NMR, IR, xtb frequencies) are
-not ticks: applying a goal stages at most one request on the Quantum Chemistry panel.
-That panel's Run starts the job. They never join `GoalRun.calculator_ids`.
+not ticks: **Apply to Properties** stages at most one request on the Quantum
+Chemistry panel without starting it. Customise **Run** stages then starts that
+job on this molecule through the panel. They never join `GoalRun.calculator_ids`.
 
 **A RUN IS WHAT IT WAS WHEN YOU PRESSED RUN.** Pressing Run builds a `GoalRun`, an
 immutable value, and hands it on; changing the goal, the ticks or the scope afterwards
@@ -211,8 +212,8 @@ class GoalWizardDialog(QDialog):
     all_recommended_requested = Signal(object)
     #: Customise applied ticks and settings to Properties. Does not start a job.
     ticks_applied = Signal(object)
-    #: A Quantum service action to stage on the Quantum Chemistry panel. Does not start a job.
-    quantum_action_requested = Signal(str)
+    #: A Quantum service action. Second argument is whether to start after staging.
+    quantum_action_requested = Signal(str, bool)
 
     def __init__(
         self,
@@ -551,7 +552,7 @@ class GoalWizardDialog(QDialog):
     def _on_apply_to_properties(self, _checked: bool = False) -> None:
         run = self.current_run(quick=False)
         self.ticks_applied.emit(run)
-        self._emit_quantum_if_chosen()
+        self._emit_quantum_if_chosen(start=False)
         self.close()
 
     def showEvent(self, event) -> None:  # noqa: N802
@@ -622,9 +623,9 @@ class GoalWizardDialog(QDialog):
         heading.setFont(font)
         layout.addWidget(heading)
         note = QLabel(
-            "These are not project-table calculators. Staging fills the Quantum Chemistry "
-            "panel; you press Run there. Ab initio NMR is one job, not 1H and 13C, and it "
-            "is not the database lookup above.",
+            "These are not project-table calculators. Apply stages the Quantum Chemistry "
+            "panel without starting. Customise Run stages then starts on this molecule. "
+            "Ab initio NMR is one job, not 1H and 13C, and it is not the database lookup above.",
             body,
         )
         note.setWordWrap(True)
@@ -736,10 +737,10 @@ class GoalWizardDialog(QDialog):
     def _on_run(self, _checked: bool = False) -> None:
         if self.ticked_ids():
             self._emit(self.current_run(quick=False))
-        self._emit_quantum_if_chosen()
+        self._emit_quantum_if_chosen(start=True)
 
-    def _emit_quantum_if_chosen(self) -> None:
+    def _emit_quantum_if_chosen(self, *, start: bool) -> None:
         action_id = self.selected_quantum_action_id()
         self.last_quantum_action_id = action_id
         if action_id:
-            self.quantum_action_requested.emit(action_id)
+            self.quantum_action_requested.emit(action_id, start)

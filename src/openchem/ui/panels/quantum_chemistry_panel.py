@@ -117,6 +117,9 @@ from openchem.services.table_export_service import write_rows_csv
 from openchem.ui.dialogs.compare_results_dialog import CompareResultsDialog
 from openchem.ui.dialogs.settings_dialog import EXTERNAL_TOOLS, SettingsDialog
 from openchem.ui.molecule_combo import repopulate, select
+
+#: Success sentence from `run_current_choice`; the panel status stays `queued`.
+_RUN_QUEUED = "Queued on the Quantum Chemistry panel."
 from openchem.ui.table_export import install_table_export
 from openchem.ui.widgets.empty_state import (
     empty_state,
@@ -1643,7 +1646,35 @@ class QuantumChemistryPanel(QWidget):
         identically-named molecules turned into "ORCA refuses to run even
         though the 3D viewer is showing ten conformers".
         """
-        select(self._molecule_combo, event.molecule_uuid)
+        self.select_molecule_uuid(event.molecule_uuid)
+
+    def select_molecule_uuid(self, molecule_uuid: str) -> bool:
+        """Point the combo at `molecule_uuid`, the same path as a project-tree selection.
+
+        Charge and multiplicity reset from that molecule when the index actually
+        changes. False when the uuid is not in the combo: the caller must refuse
+        rather than keep the previous molecule.
+        """
+        return select(self._molecule_combo, molecule_uuid)
+
+    def busy_run_message(self, molecule_uuid: str | None = None) -> str:
+        """Why a second start must not run, or empty when the panel can start.
+
+        Mirrors `start_assistant_run`: a pending job on this panel, or an
+        active service job for the named (or current) molecule.
+        """
+        if self._pending_molecule_uuid is not None and not self._run_button.isEnabled():
+            return (
+                "This panel is busy with another calculation. Nothing was started; "
+                "wait for it to finish (or cancel it) and ask again."
+            )
+        target = molecule_uuid
+        if not target:
+            molecule = self._current_molecule()
+            target = molecule.uuid if molecule is not None else None
+        if target and self._quantum_chemistry_service.has_active_job(target):
+            return "A calculation is already running for this molecule. Nothing was started."
+        return ""
 
     def _current_molecule(self):
         if self._project is None:
@@ -2219,16 +2250,38 @@ class QuantumChemistryPanel(QWidget):
         )
 
     def _on_run_clicked(self) -> None:
+        text = self.run_current_choice(parent=self)
+        if text != _RUN_QUEUED:
+            self._status_label.setText(text)
+
+    def run_current_choice(self, *, parent=None, molecule_uuid: str | None = None) -> str:
+        """Start the staged controls through `prepare_run` and `start_run`.
+
+        The Run button and the goal wizard's Customise Run both come here.
+        Busy and a molecule-uuid mismatch refuse before `prepare_run`.
+        A prepare refusal or an LED refusal never queues. Success leaves
+        the panel status as `queued` from `_begin_pending` and returns
+        `_RUN_QUEUED` for the caller; it does not say staging has not started.
+        """
+        busy = self.busy_run_message(molecule_uuid)
+        if busy:
+            return busy
         molecule = self._current_molecule()
+        current_uuid = molecule.uuid if molecule is not None else None
+        if molecule_uuid is not None and current_uuid != molecule_uuid:
+            return "The Quantum Chemistry panel is on a different molecule. Nothing was started."
         prepared = prepare_run(self._chemistry_engine, molecule, self._run_choice())
         if isinstance(prepared, RunRefusal):
-            self._status_label.setText(prepared.message)
-            return
+            return prepared.message
         # Said here as well as by the engine, so the person is shown the cost before a job is queued and not by one that fills the disk.
-        if prepared.asks_cost and not self._confirm_led_cost(self, prepared.mol):
-            return
+        if prepared.asks_cost and not self._confirm_led_cost(parent or self, prepared.mol):
+            review = review_led(prepared.mol)
+            if review.kind == "expensive":
+                return "Cost confirmation cancelled. Nothing was started."
+            return review.message
         self._begin_pending(molecule, prepared)
         start_run(self._quantum_chemistry_service, prepared)
+        return _RUN_QUEUED
 
     def cancel_assistant_run(self, molecule_uuid: str) -> bool:
         """Stop the job running for `molecule_uuid`, by the service call this panel's Cancel button makes. False when none is running for it; the run record that follows says it was cancelled."""

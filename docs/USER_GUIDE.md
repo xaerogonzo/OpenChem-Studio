@@ -1238,19 +1238,20 @@ calculators that answer it. What you press next is four different actions, not o
 
 | Action | What happens |
 |---|---|
-| **Run recommended** | Runs the goal's recommended registry calculators now, on this molecule, the whole project, or the molecules you choose, as the **Run on** box says. |
-| **Customise…** then **Run** | Runs the ordinary calculators you left ticked. A Quantum action you also picked is *not* started here; it is staged on the Quantum Chemistry panel (see below). |
-| **Customise…** then **Apply to Properties** | Copies those ticks and their settings into Properties and closes the wizard. **Nothing runs.** Press **Run selected** or **Fill table** when you are ready. |
-| A **Quantum** radio | Chooses the calculation and engine on the Quantum Chemistry panel. It does not start ORCA, Psi4 or xtb. Inspect the staged request there and press **Run**. |
+| **Run recommended** | Runs the goal's recommended registry calculators now, on this molecule, the whole project, or the molecules you choose, as the **Run on** box says. Ordinary calculators only; it does not request Quantum. |
+| **Customise…** then **Run** | Runs the ordinary calculators you left ticked. A Quantum action you also picked is staged on the Quantum Chemistry panel for the wizard's one molecule, then started there (prepare and cost as if you had pressed **Run** on the panel). Charge, solvent, and conformer stay the panel's settings for that molecule. Quantum-only (no ticks) still starts. |
+| **Customise…** then **Apply to Properties** | Copies those ticks and their settings into Properties and closes the wizard. **Nothing runs.** A Quantum radio is staged only. Press **Run selected** or **Fill table** when you are ready, or **Run** on the Quantum Chemistry panel. |
+| A **Quantum** radio | Names the calculation and engine on the Quantum Chemistry panel. **Apply** stages it without starting. Customise **Run** stages then starts on this molecule through that panel's prepare and cost path. |
 
 **Apply to Properties** is not another Run button. Use it when you want the
 goal's checklist in Properties so you can inspect or change it first.
 
-A Quantum radio stages when the wizard **Run on** box is **This molecule**
-and one molecule is selected. Properties **Run on** is ignored for staging, so
-the panel can sit on all molecules while the wizard still stages this one.
-A project-wide or chosen-molecule wizard scope is refused: Quantum staging is
-not a batch, and the wizard does not start the job.
+A Quantum radio applies to the wizard **Run on** box **This molecule** when
+one molecule is selected. Properties **Run on** is ignored, so the panel can
+sit on all molecules while the wizard still targets this one. Charge, solvent,
+and conformer remain Quantum Chemistry panel settings of that molecule; the
+wizard does not add those controls. A project-wide or chosen-molecule wizard
+scope is refused: Quantum is not a batch.
 
 Each group heading in Properties has its own **Run recommended** button for
 the same ordinary set. **Run recommended** and **Customise… → Run** do not

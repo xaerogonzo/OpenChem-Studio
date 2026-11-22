@@ -533,6 +533,7 @@ def _select_ethanol(main_window):
     molecule = MoleculeModel(display_name="Ethanol")
     main_window._services.chemistry_engine.set_structure_from_smiles(molecule, "CCO")
     project.molecules.append(molecule)
+    main_window._refresh_molecule_combos()
     main_window._services.event_bus.publish(MoleculeSelected(molecule_uuid=molecule.uuid))
     return molecule
 
@@ -593,6 +594,210 @@ def test_quantum_stage_refuses_wizard_all_even_when_properties_is_this(main_wind
         assert "wizard" in text
         assert "properties" not in text
         assert "nothing started" in text
+    finally:
+        if main_window._goal_wizard is not None:
+            main_window._goal_wizard.close()
+            main_window._goal_wizard = None
+
+
+def _customise_orca_nmr(wizard):
+    from PySide6.QtWidgets import QRadioButton
+
+    wizard._customise_button.click()
+    radio = wizard.findChild(QRadioButton, "quantum_action_orca_nmr")
+    assert radio is not None
+    radio.setChecked(True)
+    return radio
+
+
+def test_this_molecule_apply_stages_and_never_starts(main_window, monkeypatch):
+    from PySide6.QtWidgets import QRadioButton
+
+    panel = main_window._quantum_chemistry_panel
+    main_window._goal_wizard = None
+    molecule = _select_ethanol(main_window)
+    try:
+        wizard = main_window.show_goal_wizard("spectra")
+        wizard.set_scope(SCOPE_THIS)
+        wizard._customise_button.click()
+        staged = []
+        started = []
+        monkeypatch.setattr(panel, "stage_run_choice", lambda **kwargs: staged.append(kwargs) or True)
+        monkeypatch.setattr(panel, "run_current_choice", lambda **kwargs: started.append(kwargs) or "started")
+        radio = wizard.findChild(QRadioButton, "quantum_action_orca_nmr")
+        assert radio is not None
+        radio.setChecked(True)
+        wizard._apply_ticks_button.click()
+        assert staged and staged[0]["calc_type"] == "nmr"
+        assert started == []
+        assert "nothing started" in wizard._status.text().lower()
+        assert "nothing started" in main_window._property_panel._batch_status.text().lower()
+        assert panel._current_molecule().uuid == molecule.uuid
+    finally:
+        if main_window._goal_wizard is not None:
+            main_window._goal_wizard.close()
+            main_window._goal_wizard = None
+
+
+def test_this_molecule_customise_run_stages_then_starts_once(main_window, monkeypatch):
+    panel = main_window._quantum_chemistry_panel
+    main_window._goal_wizard = None
+    molecule = _select_ethanol(main_window)
+    try:
+        wizard = main_window.show_goal_wizard("spectra")
+        wizard.set_scope(SCOPE_THIS)
+        _customise_orca_nmr(wizard)
+        staged = []
+        started = []
+        monkeypatch.setattr(panel, "stage_run_choice", lambda **kwargs: staged.append(kwargs) or True)
+        monkeypatch.setattr(
+            panel,
+            "run_current_choice",
+            lambda **kwargs: started.append(kwargs) or "Queued on the Quantum Chemistry panel.",
+        )
+        wizard._run_button.click()
+        assert len(staged) == 1
+        assert staged[0]["calc_type"] == "nmr"
+        assert "nothing has started" not in staged[0].get("note", "").lower()
+        assert len(started) == 1
+        assert started[0]["molecule_uuid"] == molecule.uuid
+        assert started[0]["parent"] is wizard
+        assert wizard._status.text() == "Queued on the Quantum Chemistry panel."
+        assert main_window._property_panel._batch_status.text() == wizard._status.text()
+    finally:
+        if main_window._goal_wizard is not None:
+            main_window._goal_wizard.close()
+            main_window._goal_wizard = None
+
+
+def test_staging_failure_never_starts(main_window, monkeypatch):
+    panel = main_window._quantum_chemistry_panel
+    main_window._goal_wizard = None
+    _select_ethanol(main_window)
+    try:
+        wizard = main_window.show_goal_wizard("spectra")
+        wizard.set_scope(SCOPE_THIS)
+        _customise_orca_nmr(wizard)
+        started = []
+        monkeypatch.setattr(panel, "stage_run_choice", lambda **kwargs: False)
+        monkeypatch.setattr(panel, "run_current_choice", lambda **kwargs: started.append(kwargs) or "started")
+        wizard._run_button.click()
+        assert started == []
+        assert "could not stage" in wizard._status.text().lower()
+    finally:
+        if main_window._goal_wizard is not None:
+            main_window._goal_wizard.close()
+            main_window._goal_wizard = None
+
+
+def test_customise_run_all_refuses_without_stage_or_start(main_window, monkeypatch):
+    panel = main_window._quantum_chemistry_panel
+    main_window._goal_wizard = None
+    _select_ethanol(main_window)
+    try:
+        wizard = main_window.show_goal_wizard("spectra")
+        wizard.set_scope(SCOPE_ALL)
+        _customise_orca_nmr(wizard)
+        staged = []
+        started = []
+        monkeypatch.setattr(panel, "stage_run_choice", lambda **kwargs: staged.append(kwargs) or True)
+        monkeypatch.setattr(panel, "run_current_choice", lambda **kwargs: started.append(kwargs) or "started")
+        wizard._run_button.click()
+        assert staged == []
+        assert started == []
+        text = wizard._status.text().lower()
+        assert "wizard" in text
+        assert "nothing started" in text
+    finally:
+        if main_window._goal_wizard is not None:
+            main_window._goal_wizard.close()
+            main_window._goal_wizard = None
+
+
+def test_customise_run_syncs_wizard_molecule_not_panel_combo(main_window, monkeypatch):
+    from rdkit import Chem
+    from rdkit.Chem import AllChem
+
+    from openchem.domain.conformer import ConformerModel
+    from openchem.ui.molecule_combo import select as select_combo
+
+    qc = main_window._quantum_chemistry_panel
+    main_window._goal_wizard = None
+    project = main_window._session.project
+    engine = main_window._services.chemistry_engine
+    molecules = []
+    for name, smiles in (("A", "CCO"), ("B", "CC")):
+        molecule = MoleculeModel(display_name=name)
+        engine.set_structure_from_smiles(molecule, smiles)
+        mol_3d = Chem.AddHs(Chem.MolFromSmiles(smiles))
+        AllChem.EmbedMolecule(mol_3d, randomSeed=42)
+        molecule.conformers.append(
+            ConformerModel(molblock=Chem.MolToMolBlock(mol_3d), method="rdkit_etkdg")
+        )
+        project.molecules.append(molecule)
+        molecules.append(molecule)
+    a, b = molecules
+    main_window._refresh_molecule_combos()
+    main_window._services.event_bus.publish(MoleculeSelected(molecule_uuid=a.uuid))
+    select_combo(qc._molecule_combo, b.uuid)
+    assert qc._current_molecule().uuid == b.uuid
+    started = []
+    monkeypatch.setattr(
+        "openchem.ui.panels.quantum_chemistry_panel.start_run",
+        lambda _service, _prepared: started.append(qc._current_molecule().uuid),
+    )
+    try:
+        wizard = main_window.show_goal_wizard("spectra")
+        wizard.set_scope(SCOPE_THIS)
+        _customise_orca_nmr(wizard)
+        wizard._run_button.click()
+        assert started == [a.uuid]
+        assert qc._current_molecule().uuid == a.uuid
+    finally:
+        if main_window._goal_wizard is not None:
+            main_window._goal_wizard.close()
+            main_window._goal_wizard = None
+
+
+def test_customise_run_refuses_when_panel_is_busy(main_window, monkeypatch):
+    panel = main_window._quantum_chemistry_panel
+    main_window._goal_wizard = None
+    molecule = _select_ethanol(main_window)
+    panel._pending_molecule_uuid = molecule.uuid
+    panel._run_button.setEnabled(False)
+    try:
+        wizard = main_window.show_goal_wizard("spectra")
+        wizard.set_scope(SCOPE_THIS)
+        _customise_orca_nmr(wizard)
+        staged = []
+        started = []
+        monkeypatch.setattr(panel, "stage_run_choice", lambda **kwargs: staged.append(kwargs) or True)
+        monkeypatch.setattr(panel, "run_current_choice", lambda **kwargs: started.append(kwargs) or "started")
+        wizard._run_button.click()
+        assert staged == []
+        assert started == []
+        assert "busy" in wizard._status.text().lower()
+    finally:
+        panel._pending_molecule_uuid = None
+        panel._run_button.setEnabled(True)
+        if main_window._goal_wizard is not None:
+            main_window._goal_wizard.close()
+            main_window._goal_wizard = None
+
+
+def test_run_recommended_does_not_call_quantum_start(main_window, monkeypatch):
+    panel = main_window._quantum_chemistry_panel
+    main_window._goal_wizard = None
+    _select_ethanol(main_window)
+    try:
+        wizard = main_window.show_goal_wizard("spectra")
+        staged = []
+        started = []
+        monkeypatch.setattr(panel, "stage_run_choice", lambda **kwargs: staged.append(kwargs) or True)
+        monkeypatch.setattr(panel, "run_current_choice", lambda **kwargs: started.append(kwargs) or "started")
+        wizard._run_recommended_button.click()
+        assert staged == []
+        assert started == []
     finally:
         if main_window._goal_wizard is not None:
             main_window._goal_wizard.close()

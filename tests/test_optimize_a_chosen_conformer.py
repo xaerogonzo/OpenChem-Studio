@@ -300,6 +300,8 @@ def _single_point_on(panel, molecule, conformer):
     panel._calc_type_combo.setCurrentText("Single Point")
     if conformer is not None:
         assert panel.choose_conformer(molecule.uuid, conformer.conformer_id)
+    # A finished job re-enables Run; `_on_result_ready` does not.
+    panel._run_button.setEnabled(True)
     panel._on_run_clicked()
     panel._on_result_ready(_result_event(molecule, conformer or canonical_conformer(molecule)))
 
@@ -335,6 +337,7 @@ def test_automatic_a_chosen_canonical_conformer_and_an_optimization_carry_no_not
         assert "Computed on conformer" not in panel._results_label.text(), "the canonical one, chosen by hand"
         panel._calc_type_combo.setCurrentText("Geometry Optimization")
         panel.choose_conformer(molecule.uuid, molecule.conformers[2].conformer_id)
+        panel._run_button.setEnabled(True)
         panel._on_run_clicked()
         panel._on_result_ready(_result_event(molecule, molecule.conformers[2]))
         assert "Computed on conformer" not in panel._results_label.text(), "an optimization replaces its source instead"
@@ -354,6 +357,7 @@ def test_the_note_belongs_to_the_run_that_earned_it_and_never_leaks_to_the_next(
 
         panel._conformer_combo.setCurrentIndex(0)  # back to Automatic
         panel._boltzmann_check.setChecked(True)
+        panel._run_button.setEnabled(True)
         panel._on_run_clicked()
         panel._on_result_ready(_result_event(molecule, molecule.conformers[1]))
 

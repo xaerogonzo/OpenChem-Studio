@@ -1,0 +1,4 @@
+Start a Quantum job from wizard Customise Run on this molecule.
+
+Apply still only stages. The panel prepare/cost path runs after a combo
+sync to the wizard UUID, with a busy guard so a running job is not retargeted.
