@@ -2116,7 +2116,7 @@ class MainWindow(QMainWindow):
 
     def _show_quantum_history_compare(self, left, right) -> None:
         from openchem.domain.compare import ComparedResult, CompareRefusal, compare
-        from openchem.domain.history_compare import named_compare_rows, named_values_from_quantum_run
+        from openchem.domain.history_compare import QUANTUM_FAMILY_EMPTY, quantum_family_rows
         from openchem.domain.scientific_result import PerAtomDataset
 
         spectrum_a = left.results.get("spectrum")
@@ -2140,11 +2140,8 @@ class MainWindow(QMainWindow):
             symbols = dict(getattr(spectrum_a, "elements", {}) or {})
             self._show_atom_history_compare(outcome, symbols, left.molecule_uuid)
             return
-        rows = named_compare_rows(
-            named_values_from_quantum_run(left),
-            named_values_from_quantum_run(right),
-        )
-        self._show_named_history_compare(rows, left, right)
+        rows = quantum_family_rows(left, right)
+        self._show_named_history_compare(rows, left, right, empty_message=QUANTUM_FAMILY_EMPTY)
 
     def _show_ordinary_history_compare(self, left, right) -> None:
         from openchem.domain.compare import ComparedResult, CompareRefusal, compare
@@ -2197,17 +2194,22 @@ class MainWindow(QMainWindow):
         dialog.setAttribute(Qt.WidgetAttribute.WA_DeleteOnClose, True)
         dialog.show()
 
-    def _show_named_history_compare(self, rows, left, right) -> None:
+    def _show_named_history_compare(
+        self, rows, left, right, empty_message: str | None = None
+    ) -> None:
         from openchem.ui.dialogs.compare_results_dialog import NamedValueCompareDialog
 
         if not rows:
+            detail = empty_message or (
+                "Those runs are compatible, but neither holds named numbers to tabulate."
+            )
             QMessageBox.information(
                 self,
                 "Compared",
                 (
                     f"{_history_compare_label(left)}\n"
                     f"{_history_compare_label(right)}\n\n"
-                    "Those runs are compatible, but neither holds named numbers to tabulate."
+                    f"{detail}"
                 ),
             )
             return

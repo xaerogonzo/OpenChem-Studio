@@ -51,20 +51,28 @@ def property_executions_comparable(left: PropertyExecution, right: PropertyExecu
     return ""
 
 
+#: Pair-level Quantum input mismatch (drawing, geometry, or ensemble).
+QUANTUM_INPUT_MISMATCH = (
+    "These runs used different kinds of calculation input, so they cannot be compared."
+)
+
+#: Compatible Quantum pair with no family row (not a parser failure).
+QUANTUM_FAMILY_EMPTY = (
+    "These runs passed the Quantum compatibility checks, but they have no shared "
+    "family quantity to compare."
+)
+
+
 def quantum_runs_comparable(left: QuantumChemistryRun, right: QuantumChemistryRun) -> str:
     """Empty if the pair may be compared; otherwise a refusal to show."""
     if left.calc_type != right.calc_type:
         return f"{left.calc_type} and {right.calc_type} are different calculation types."
+    if left.calculation_input != right.calculation_input:
+        return QUANTUM_INPUT_MISMATCH
     if left.molecule_uuid != right.molecule_uuid:
         if not _quantum_scalar_only(left) or not _quantum_scalar_only(right):
             return "Spectra and per-atom Quantum outputs cannot be aligned across different molecules."
         return ""
-    if left.provider != right.provider and left.method_basis.split()[0:1] == right.method_basis.split()[0:1]:
-        # Same functional name, different engine: never mix under one comparison without saying so.
-        return (
-            f"{left.provider} and {right.provider} are different programs; "
-            "their numbers are not the same method even when the functional name matches."
-        )
     return ""
 
 
@@ -307,6 +315,117 @@ def _extract_quantum(
 def _finite_number(value: Any) -> float | None:
     number = _as_number(value)
     if number is None or not math.isfinite(number):
+        return None
+    return number
+
+
+@dataclass(frozen=True)
+class QuantumFamilyQuantity:
+    """One Quantum-vs-Quantum scalar that Compare is allowed to tabulate.
+
+    Matching uses `{run.provider}.{suffix}` and `DescriptorValue.provider`,
+    never a display name. Eligibility is quantity-specific (see
+    `_family_eligible`).
+    """
+
+    quantity_id: str
+    label: str
+    units: str
+    descriptor_suffixes: frozenset[str]
+    calc_types: frozenset[str]
+
+
+#: Named Quantum-vs-Quantum scalars. Display names are not a quantity.
+#: SCF energy is the only currently allowlisted common quantity across engines;
+#: xtb opt_freq also stores thermochemistry, which is not listed here.
+QUANTUM_FAMILY_QUANTITIES: tuple[QuantumFamilyQuantity, ...] = (
+    QuantumFamilyQuantity(
+        "scf_energy",
+        "SCF energy",
+        "Hartree",
+        frozenset({"scf_energy"}),
+        frozenset({"sp", "opt", "opt_freq"}),
+    ),
+    QuantumFamilyQuantity(
+        "homo_energy",
+        "HOMO energy",
+        "eV",
+        frozenset({"homo_energy"}),
+        frozenset({"sp"}),
+    ),
+    QuantumFamilyQuantity(
+        "lumo_energy",
+        "LUMO energy",
+        "eV",
+        frozenset({"lumo_energy"}),
+        frozenset({"sp"}),
+    ),
+)
+
+
+def quantum_family_rows(
+    left: QuantumChemistryRun, right: QuantumChemistryRun
+) -> list[NamedCompareRow]:
+    """Family rows with one finite number each side. Delta is right minus left."""
+    rows: list[NamedCompareRow] = []
+    for quantity in QUANTUM_FAMILY_QUANTITIES:
+        if not _family_eligible(left, right, quantity):
+            continue
+        left_value = _extract_family_value(left, quantity)
+        right_value = _extract_family_value(right, quantity)
+        if left_value is None or right_value is None:
+            continue
+        rows.append(
+            NamedCompareRow(
+                label=quantity.label,
+                left=_display(left_value),
+                right=_display(right_value),
+                delta=right_value - left_value,
+            )
+        )
+    return rows
+
+
+def _family_eligible(
+    left: QuantumChemistryRun, right: QuantumChemistryRun, quantity: QuantumFamilyQuantity
+) -> bool:
+    if left.calc_type not in quantity.calc_types or right.calc_type not in quantity.calc_types:
+        return False
+    if left.molecule_uuid != right.molecule_uuid:
+        return False
+    if left.charge != right.charge or left.multiplicity != right.multiplicity:
+        return False
+    if left.solvent != right.solvent:
+        return False
+    if quantity.quantity_id == "scf_energy":
+        return (
+            left.method_basis == right.method_basis
+            and left.input_fingerprint == right.input_fingerprint
+        )
+    return True
+
+
+def _extract_family_value(
+    run: QuantumChemistryRun, quantity: QuantumFamilyQuantity
+) -> float | None:
+    descriptors = run.results.get("descriptors") or []
+    if not isinstance(descriptors, list):
+        return None
+    matches: list[DescriptorValue] = []
+    for item in descriptors:
+        if not isinstance(item, DescriptorValue):
+            continue
+        if item.provider != run.provider:
+            continue
+        expected = {f"{run.provider}.{suffix}" for suffix in quantity.descriptor_suffixes}
+        if item.descriptor_id not in expected:
+            continue
+        matches.append(item)
+    if len(matches) != 1:
+        return None
+    item = matches[0]
+    number = _finite_number(item.value)
+    if number is None or item.units != quantity.units:
         return None
     return number
 

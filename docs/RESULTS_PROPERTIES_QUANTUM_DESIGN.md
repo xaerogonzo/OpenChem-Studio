@@ -147,14 +147,13 @@ Adjacency in the UI is not compatibility. Refuse with an explanation rather than
 
 **Ordinary methods** already distinguish property id, method, and parameter key in Properties compare. Also require: same molecule *or* an explicit cross-molecule rule; same calculation input type; same structure or geometry fingerprint for per-atom work; same atom mapping; same protonation; compatible units and quantity definition.
 
-**Quantum today:** Compare NMR Shifts, same molecule, atom-numbering refusal. That is current behaviour.
+**Quantum same-calc-type (named families).** Two Quantum jobs of the same calculation type may be compared. Different engines are allowed when the output satisfies `QUANTUM_FAMILY_QUANTITIES` in `domain/history_compare.py`: exact `{provider}.{suffix}` descriptors, declared units, finite numbers. Columns name engine and method. SCF energy additionally requires the same molecule, method/basis, charge, multiplicity, solvent, and input fingerprint. HOMO/LUMO (ORCA `sp`) may differ in method but still need matching molecule and electronic state. Display names are not a quantity. NMR remains the only Quantum *per-atom* compare.
 
-**Ordinary versus Quantum (allowlist).** The Results history picker can list both property executions and Quantum runs. A mixed pair is compared only when it matches `MIXED_QUANTITIES` in `domain/history_compare.py`: stable ids, declared units, allowed Quantum calculation types, exactly one finite number each side. Display names are not a quantity. The list ships **empty**: no mixed pair is numerically comparable yet (ordinary dipole vs QC dipole is not listed; QC runs do not store a dipole; Hückel HOMO/LUMO is in beta, QC in eV; Miller polarizability has no QC counterpart). An unlisted pair is refused: no approved shared quantity is defined. NMR remains the only Quantum *per-atom* compare.
+**Ordinary versus Quantum (allowlist).** The Results history picker can list both property executions and Quantum runs. A mixed pair is compared only when it matches `MIXED_QUANTITIES` in `domain/history_compare.py`: stable ids, declared units, allowed Quantum calculation types, exactly one finite number each side. Display names are not a quantity. The list ships **empty**: no mixed pair is numerically comparable yet (ordinary dipole vs QC dipole is not listed; QC runs do not store a dipole; Hückel HOMO/LUMO is in beta, QC in eV; Miller polarizability has no QC counterpart). An unlisted pair is refused: no approved shared quantity is defined.
 
 **Still later:**
 
-- Same molecule, different Quantum method/engine, same calculation family (e.g. two NMR jobs, two single points) as a named family rule.
-- Same quantity, different molecules — **scalars only** when the allowlist row sets `allow_cross_molecule`.
+- Same quantity, different molecules — **scalars only** when the allowlist row sets `allow_cross_molecule`. Conformer-energy SCF compare is a later explicit rule.
 
 Per-atom arrays and NMR signals are not aligned across molecules merely because the output type matches.
 
@@ -183,7 +182,7 @@ Recorded so an implementation plan cannot skip them. Recommendations above are t
 5. **Delete vs bundles** — history delete does not edit automatic bundle manifests.
 6. **Quantum output ownership** — cache projections that name a `run_id` withdraw with that run; others stay.
 7. **Conformer ownership** — Quantum delete is history only; landed geometries stay.
-8. **Comparison policy** — refuse incompatible pairs. Mixed ordinary-vs-Quantum compare is an explicit allowlist (`MIXED_QUANTITIES`); it ships empty. NMR remains the only Quantum per-atom compare. Cross-molecule mixed compare requires `allow_cross_molecule` on the matching row.
+8. **Comparison policy** — refuse incompatible pairs. Same-calc-type Quantum compare uses `QUANTUM_FAMILY_QUANTITIES` (SCF energy, HOMO, LUMO) with quantity-specific eligibility; engines may differ when columns name the program. Mixed ordinary-vs-Quantum compare is an explicit allowlist (`MIXED_QUANTITIES`); it ships empty. NMR remains the only Quantum per-atom compare. Cross-molecule mixed compare requires `allow_cross_molecule` on the matching row.
 9. **Migration** — no invented execution IDs for old `calculation_results`; Quantum runs map 1:1.
 10. **Current versus historical display** — current = input still matches the molecule; historical is listed and labelled, not used as the fresh answer.
 
@@ -192,7 +191,6 @@ Recorded so an implementation plan cannot skip them. Recommendations above are t
 - Starting a Quantum job from the wizard — still inspect, then **Run** on the Quantum Chemistry panel.
 - A global Method combo — the registry has no single meaning of “method” that covers every row.
 - Quantum on Properties ticks or Fill table — Quantum stays off ordinary Fill.
-- Same-molecule Quantum jobs in one calculation family as a named compare rule (two NMR jobs, two single points). Mixed ordinary-vs-Quantum compare remains the empty `MIXED_QUANTITIES` allowlist.
 
 ## 13. Non-goals of the design slice
 

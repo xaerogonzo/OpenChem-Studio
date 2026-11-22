@@ -95,7 +95,7 @@ def test_per_atom_cross_molecule_compare_is_refused():
     assert "different molecules" in property_executions_comparable(left, right)
 
 
-def test_quantum_engine_mismatch_is_refused_when_functional_name_matches():
+def test_quantum_engines_with_the_same_functional_name_are_comparable():
     def run(provider: str, molecule="m") -> QuantumChemistryRun:
         return QuantumChemistryRun(
             run_id=new_run_id(),
@@ -114,8 +114,7 @@ def test_quantum_engine_mismatch_is_refused_when_functional_name_matches():
             output_status={"descriptors": OutputStatus.AVAILABLE},
         )
 
-    message = quantum_runs_comparable(run("orca"), run("psi4"))
-    assert "different programs" in message
+    assert quantum_runs_comparable(run("orca"), run("psi4")) == ""
 
 
 def test_project_file_keeps_executions_after_the_fingerprint_moves():
