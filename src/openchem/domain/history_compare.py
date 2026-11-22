@@ -5,6 +5,7 @@ See `docs/RESULTS_PROPERTIES_QUANTUM_DESIGN.md` §9.
 
 from __future__ import annotations
 
+import math
 from dataclasses import dataclass
 from typing import Any
 
@@ -16,6 +17,19 @@ from openchem.domain.result_store import StoredResult
 
 #: Output keys that are molecule-wide scalars (cross-molecule compare is allowed).
 _QUANTUM_SCALAR_KEYS = frozenset({"descriptors", "energy", "scf_energy"})
+
+#: Mixed pair with no allowlist row (or a row that does not extract exactly).
+MIXED_UNAPPROVED = (
+    "No approved shared quantity is defined for this ordinary run and Quantum job."
+)
+
+#: Empty on purpose. Display-name overlap is not a quantity.
+#:
+#: Not listed: ordinary Dipole Moment (point-charge, named charge model) vs
+#: Quantum dipole — ORCA/Psi4 runs do not store a dipole. Ordinary Hückel
+#: HOMO/LUMO is in beta; QC orca.homo_energy is in eV. Ordinary Miller
+#: polarizability has no QC polarizability on the run.
+MIXED_QUANTITIES: tuple["MixedQuantity", ...] = ()
 
 
 def property_executions_comparable(left: PropertyExecution, right: PropertyExecution) -> str:
@@ -72,6 +86,229 @@ def _quantum_scalar_only(run: QuantumChemistryRun) -> bool:
     if not keys:
         return True
     return keys <= _QUANTUM_SCALAR_KEYS or keys <= {"descriptors"}
+
+
+@dataclass(frozen=True)
+class MixedQuantity:
+    """One ordinary-vs-Quantum scalar that Compare is allowed to tabulate.
+
+    `ordinary_value_ids` are `DescriptorValue.descriptor_id` or `Fact.help_id`,
+    never a display label. `ordinary_producers` restricts provenance; it is
+    not enough on its own.
+    """
+
+    quantity_id: str
+    label: str
+    units: str
+    ordinary_producers: frozenset[str]
+    ordinary_result_ids: frozenset[str]
+    ordinary_value_ids: frozenset[str]
+    quantum_descriptor_ids: frozenset[str]
+    quantum_calc_types: frozenset[str]
+    allow_cross_molecule: bool = False
+
+
+@dataclass(frozen=True)
+class MixedHistoryMatch:
+    """Validated mixed comparison: one finite number each side, same units."""
+
+    quantity: MixedQuantity
+    ordinary_value: float
+    quantum_value: float
+    units: str
+
+
+def match_mixed_history(
+    execution: PropertyExecution, run: QuantumChemistryRun
+) -> MixedHistoryMatch | str:
+    """Match one allowlisted quantity, or a refusal.
+
+    Does not consult `named_values_from_execution` / `named_values_from_quantum_run`.
+    """
+    if execution.calculation_input != run.calculation_input:
+        return "A drawing result and a 3D result are not the same input, so they cannot be compared."
+    for quantity in MIXED_QUANTITIES:
+        matched = _try_mixed_quantity(execution, run, quantity)
+        if isinstance(matched, MixedHistoryMatch):
+            if (
+                execution.molecule_uuid != run.molecule_uuid
+                and not quantity.allow_cross_molecule
+            ):
+                return "Those runs belong to different molecules."
+            return matched
+        if matched is not None:
+            return matched
+    return MIXED_UNAPPROVED
+
+
+def mixed_history_comparable(execution: PropertyExecution, run: QuantumChemistryRun) -> str:
+    """Empty if `match_mixed_history` succeeds; otherwise the refusal."""
+    outcome = match_mixed_history(execution, run)
+    return "" if isinstance(outcome, MixedHistoryMatch) else outcome
+
+
+def named_row_from_mixed_match(
+    match: MixedHistoryMatch, *, ordinary_on_left: bool
+) -> NamedCompareRow:
+    """One table row. Delta is right minus left, in the user's selected order."""
+    if ordinary_on_left:
+        left_value, right_value = match.ordinary_value, match.quantum_value
+    else:
+        left_value, right_value = match.quantum_value, match.ordinary_value
+    return NamedCompareRow(
+        label=match.quantity.label,
+        left=_display(left_value),
+        right=_display(right_value),
+        delta=right_value - left_value,
+    )
+
+
+def other_history_entries(
+    executions: list[PropertyExecution],
+    runs: list[QuantumChemistryRun],
+    selected: PropertyExecution | QuantumChemistryRun,
+) -> list[PropertyExecution | QuantumChemistryRun]:
+    """Every retained history record except `selected`."""
+    others: list[PropertyExecution | QuantumChemistryRun] = []
+    selected_execution = getattr(selected, "execution_id", None)
+    selected_run = getattr(selected, "run_id", None)
+    for execution in executions:
+        if execution.execution_id != selected_execution:
+            others.append(execution)
+    for run in runs:
+        if run.run_id != selected_run:
+            others.append(run)
+    return others
+
+
+def history_compare_choice_map(
+    pool: list[PropertyExecution | QuantumChemistryRun],
+) -> dict[str, PropertyExecution | QuantumChemistryRun]:
+    """Stable label -> record. Duplicate short labels get the full id appended."""
+    choices: dict[str, PropertyExecution | QuantumChemistryRun] = {}
+    for item in pool:
+        label = history_compare_label(item)
+        if label in choices:
+            full_id = getattr(item, "execution_id", None) or getattr(item, "run_id", "")
+            label = f"{label} · {full_id}"
+        choices[label] = item
+    return choices
+
+
+def history_compare_label(item: PropertyExecution | QuantumChemistryRun) -> str:
+    """Picker and column text: kind is explicit."""
+    if isinstance(item, QuantumChemistryRun):
+        return (
+            f"Quantum · {item.calc_type} · {item.provider} · {item.method_basis} · "
+            f"{item.run_id[:8]}"
+        )
+    return (
+        f"Property · {item.producer} · {item.method_model} · {item.execution_id[:8]}"
+    )
+
+
+def _try_mixed_quantity(
+    execution: PropertyExecution,
+    run: QuantumChemistryRun,
+    quantity: MixedQuantity,
+) -> MixedHistoryMatch | str | None:
+    """Match, a specific refusal, or None to try the next allowlist row."""
+    if quantity.ordinary_producers and execution.producer not in quantity.ordinary_producers:
+        return None
+    if run.calc_type not in quantity.quantum_calc_types:
+        return None
+    ordinary = _extract_ordinary(execution, quantity)
+    if ordinary == "skip":
+        return None
+    if isinstance(ordinary, str):
+        return ordinary
+    quantum = _extract_quantum(run, quantity)
+    if quantum == "skip":
+        return None
+    if isinstance(quantum, str):
+        return quantum
+    ordinary_value, ordinary_units = ordinary
+    quantum_value, quantum_units = quantum
+    if ordinary_units != quantity.units or quantum_units != quantity.units:
+        return MIXED_UNAPPROVED
+    return MixedHistoryMatch(
+        quantity=quantity,
+        ordinary_value=ordinary_value,
+        quantum_value=quantum_value,
+        units=quantity.units,
+    )
+
+
+def _extract_ordinary(
+    execution: PropertyExecution, quantity: MixedQuantity
+) -> tuple[float, str] | str:
+    found: list[tuple[float, str]] = []
+    any_result = False
+    for stored in execution.outputs:
+        if stored.identity.result_id not in quantity.ordinary_result_ids:
+            continue
+        any_result = True
+        found.extend(_ordinary_values_from_result(stored.result, quantity))
+    if not any_result:
+        return "skip"
+    if len(found) != 1:
+        return MIXED_UNAPPROVED
+    return found[0]
+
+
+def _ordinary_values_from_result(result: Any, quantity: MixedQuantity) -> list[tuple[float, str]]:
+    found: list[tuple[float, str]] = []
+    if isinstance(result, DescriptorValue):
+        if result.descriptor_id in quantity.ordinary_value_ids:
+            number = _finite_number(result.value)
+            if number is None:
+                return []
+            return [(number, result.units)]
+        return []
+    if isinstance(result, ReportResult):
+        for fact in result.facts:
+            if fact.category is FactCategory.IDENTITY:
+                continue
+            if fact.help_id not in quantity.ordinary_value_ids:
+                continue
+            number = _finite_number(fact.value)
+            if number is None:
+                continue
+            found.append((number, fact.units))
+        return found
+    return []
+
+
+def _extract_quantum(
+    run: QuantumChemistryRun, quantity: MixedQuantity
+) -> tuple[float, str] | str:
+    descriptors = run.results.get("descriptors") or []
+    if not isinstance(descriptors, list):
+        return "skip"
+    found: list[tuple[float, str]] = []
+    any_id = False
+    for item in descriptors:
+        if not isinstance(item, DescriptorValue):
+            continue
+        if item.descriptor_id not in quantity.quantum_descriptor_ids:
+            continue
+        any_id = True
+        number = _finite_number(item.value)
+        if number is None:
+            continue
+        found.append((number, item.units))
+    if not any_id:
+        return "skip"
+    if len(found) != 1:
+        return MIXED_UNAPPROVED
+    return found[0]
+
+
+def _finite_number(value: Any) -> float | None:
+    number = _as_number(value)
+    if number is None or not math.isfinite(number):
+        return None
+    return number
 
 
 @dataclass(frozen=True)

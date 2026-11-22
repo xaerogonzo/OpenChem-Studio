@@ -1,0 +1,3 @@
+Refuse ordinary-vs-Quantum history compare until an allowlisted quantity exists.
+
+The picker can list both kinds; MIXED_QUANTITIES ships empty so matching display names are not tabulated.
