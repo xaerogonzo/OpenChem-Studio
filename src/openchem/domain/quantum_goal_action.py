@@ -9,7 +9,9 @@ job onto the project table. This module is the separate, validated table.
 **Staging is not starting.** `decide_stage` returns a `StageDecision` (calc type,
 engine, method, limitation) for the panel to select, or a refusal sentence. The
 person presses Run on that panel. `prepare_run` still does not start; `start` is
-not called from a goal, Batch, or Fill table.
+not called from a goal, Batch, or Fill table. The goal wizard's own **Run on**
+box is the staging scope; Properties **Run on** is not. All/chosen still refuse:
+this is not a batch Quantum path.
 
 **Chemistry, not labels.** Database 1H (`nmr_database`) is a lookup. Ab initio
 NMR is one `nmr` job (`NMRSpectrumResult`) without a nucleus field; 1H and 13C
@@ -56,8 +58,8 @@ IR_LIMITATION = "Infrared frequencies and intensities from an ORCA opt_freq job,
 
 #: All/chosen scope is refused rather than silently running the selected molecule.
 SCOPE_REFUSAL = (
-    "Quantum calculations run on one selected molecule. Properties is set to "
-    "several molecules; choose This molecule, then stage again. Nothing started."
+    "Quantum calculations run on one selected molecule. The wizard Run on box is "
+    "set to several molecules; choose This molecule, then stage again. Nothing started."
 )
 
 #: Staging needs the selected molecule; an empty selection starts nothing.

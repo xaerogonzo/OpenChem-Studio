@@ -526,3 +526,74 @@ def test_the_wizard_starts_from_the_scope_properties_has(main_window):
         assert wizard._scope_mode == SCOPE_ALL
     finally:
         main_window._property_panel.set_scope(SCOPE_THIS)
+
+
+def _select_ethanol(main_window):
+    project = main_window._session.project
+    molecule = MoleculeModel(display_name="Ethanol")
+    main_window._services.chemistry_engine.set_structure_from_smiles(molecule, "CCO")
+    project.molecules.append(molecule)
+    main_window._services.event_bus.publish(MoleculeSelected(molecule_uuid=molecule.uuid))
+    return molecule
+
+
+def test_quantum_stage_follows_wizard_this_molecule_even_when_properties_is_all(main_window, monkeypatch):
+    from PySide6.QtWidgets import QRadioButton
+
+    panel = main_window._property_panel
+    main_window._goal_wizard = None
+    _select_ethanol(main_window)
+    panel.set_scope(SCOPE_ALL)
+    try:
+        wizard = main_window.show_goal_wizard("spectra")
+        wizard.set_scope(SCOPE_THIS)
+        wizard._customise_button.click()
+        staged = []
+        monkeypatch.setattr(
+            main_window._quantum_chemistry_panel,
+            "stage_run_choice",
+            lambda **kwargs: staged.append(kwargs) or True,
+        )
+        radio = wizard.findChild(QRadioButton, "quantum_action_orca_nmr")
+        assert radio is not None
+        radio.setChecked(True)
+        wizard._apply_ticks_button.click()
+        assert staged and staged[0]["calc_type"] == "nmr"
+        assert staged[0]["provider_id"] == "orca"
+    finally:
+        panel.set_scope(SCOPE_THIS)
+        if main_window._goal_wizard is not None:
+            main_window._goal_wizard.close()
+            main_window._goal_wizard = None
+
+
+def test_quantum_stage_refuses_wizard_all_even_when_properties_is_this(main_window, monkeypatch):
+    from PySide6.QtWidgets import QRadioButton
+
+    panel = main_window._property_panel
+    main_window._goal_wizard = None
+    _select_ethanol(main_window)
+    panel.set_scope(SCOPE_THIS)
+    try:
+        wizard = main_window.show_goal_wizard("spectra")
+        wizard.set_scope(SCOPE_ALL)
+        wizard._customise_button.click()
+        staged = []
+        monkeypatch.setattr(
+            main_window._quantum_chemistry_panel,
+            "stage_run_choice",
+            lambda **kwargs: staged.append(kwargs) or True,
+        )
+        radio = wizard.findChild(QRadioButton, "quantum_action_orca_nmr")
+        assert radio is not None
+        radio.setChecked(True)
+        wizard._apply_ticks_button.click()
+        assert staged == []
+        text = wizard._status.text().lower()
+        assert "wizard" in text
+        assert "properties" not in text
+        assert "nothing started" in text
+    finally:
+        if main_window._goal_wizard is not None:
+            main_window._goal_wizard.close()
+            main_window._goal_wizard = None

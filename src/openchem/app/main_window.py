@@ -2711,21 +2711,13 @@ class MainWindow(QMainWindow):
             if self._goal_wizard is not None:
                 self._goal_wizard.show_outcome(text)
             return
-        if self._goal_wizard is not None:
-            mode, chosen = self._goal_wizard.current_scope()
-            molecules = self._goal_wizard.scope_molecules()
-            selected = bool(molecules)
-            molecule_count = len(molecules)
-        else:
-            mode, chosen = self._property_panel.current_scope()
-            selected_uuid = self._property_panel.selected_molecule_uuid()
-            selected = bool(selected_uuid)
-            if mode == "all":
-                molecule_count = len(self._wizard_molecules())
-            elif mode == "chosen":
-                molecule_count = len(chosen)
-            else:
-                molecule_count = 1 if selected else 0
+        wizard = self._goal_wizard
+        if wizard is None:
+            return
+        mode, _chosen = wizard.current_scope()
+        molecules = wizard.scope_molecules()
+        selected = bool(molecules)
+        molecule_count = len(molecules)
         available = {
             p.provider_id for p in self._services.quantum_chemistry_service.available_engines()
         }
