@@ -5,7 +5,10 @@ from __future__ import annotations
 import math
 
 import pytest
+from rdkit import Chem
+from rdkit.Chem import AllChem
 
+from openchem.chem.submitted_structure import submitted_structure_identity
 from openchem.domain.descriptor import DescriptorValue
 from openchem.domain.history_compare import (
     MIXED_UNAPPROVED,
@@ -28,6 +31,27 @@ from openchem.domain.quantum_chemistry_run import QuantumChemistryRun, RunStatus
 from openchem.domain.report import Fact, FactCategory, ReportResult
 from openchem.domain.result_store import ResultIdentity, StoredResult
 from openchem.domain.structure_issue import Basis
+
+
+def _geometry_molblock(smiles: str, *, dx: float = 0.0, carbon_isotope: int | None = None) -> str:
+    mol = Chem.AddHs(Chem.MolFromSmiles(smiles))
+    if carbon_isotope is not None:
+        mol.GetAtomWithIdx(0).SetIsotope(carbon_isotope)
+    AllChem.EmbedMolecule(mol, randomSeed=1)
+    if dx:
+        conf = mol.GetConformer()
+        for index in range(mol.GetNumAtoms()):
+            point = conf.GetAtomPosition(index)
+            conf.SetAtomPosition(index, (point.x + dx, point.y, point.z))
+    return Chem.MolToMolBlock(mol)
+
+
+_ETHANOL_A = _geometry_molblock("CCO")
+_ETHANOL_B = _geometry_molblock("CCO", dx=0.75)
+_METHANOL = _geometry_molblock("CO")
+_BUTAN_2_OL_R = Chem.MolToMolBlock(Chem.MolFromSmiles("C[C@H](O)CC"))
+_BUTAN_2_OL_S = Chem.MolToMolBlock(Chem.MolFromSmiles("C[C@@H](O)CC"))
+_ETHANOL_13C = _geometry_molblock("CCO", carbon_isotope=13)
 
 
 def _quantity(**overrides) -> MixedQuantity:
@@ -108,6 +132,7 @@ def _run(
     charge=0,
     multiplicity=1,
     solvent="",
+    input_molblock="",
 ) -> QuantumChemistryRun:
     results = {"descriptors": list(descriptors or [_descriptor("orca.homo_energy", -0.4, name="E(HOMO)")])}
     if extras:
@@ -121,7 +146,7 @@ def _run(
         multiplicity=multiplicity,
         calculation_input=calculation_input,
         input_fingerprint=input_fingerprint,
-        input_molblock="",
+        input_molblock=input_molblock,
         solvent=solvent,
         provider=provider,
         status=RunStatus.COMPLETED,
@@ -332,6 +357,7 @@ def test_same_kind_helpers_are_unchanged():
 
 
 def _scf(provider: str, value: float, **run_kwargs) -> QuantumChemistryRun:
+    run_kwargs.setdefault("input_molblock", _ETHANOL_A)
     return _run(
         provider=provider,
         descriptors=[_descriptor(f"{provider}.scf_energy", value, units="Hartree", name="SCF Energy")],
@@ -454,6 +480,7 @@ def test_missing_homo_on_one_side_skips_that_row():
 def test_xtb_opt_freq_does_not_gain_homo_from_orca():
     orca = _run(
         calc_type="opt_freq",
+        input_molblock=_ETHANOL_A,
         descriptors=[
             _descriptor("orca.scf_energy", -76.4, units="Hartree"),
             _descriptor("orca.homo_energy", -0.4),
@@ -462,6 +489,7 @@ def test_xtb_opt_freq_does_not_gain_homo_from_orca():
     xtb = _run(
         provider="xtb",
         calc_type="opt_freq",
+        input_molblock=_ETHANOL_A,
         descriptors=[_descriptor("xtb.scf_energy", -76.3, units="Hartree")],
     )
     labels = [row.label for row in quantum_family_rows(orca, xtb)]
@@ -476,6 +504,7 @@ def test_homo_is_not_a_family_row_for_nmr():
 
 
 def _thermo(provider: str, enthalpy: float, gibbs: float, *, scf=None, **run_kwargs):
+    run_kwargs.setdefault("input_molblock", _ETHANOL_A)
     descriptors = [
         _descriptor(f"{provider}.enthalpy", enthalpy, units="Hartree", name="Enthalpy"),
         _descriptor(f"{provider}.gibbs_free_energy", gibbs, units="Hartree", name="Gibbs"),
@@ -497,6 +526,7 @@ def test_missing_thermo_on_one_side_skips_only_that_quantity():
     left = _thermo("orca", -76.2, -76.1, scf=-76.4)
     right = _run(
         calc_type="opt_freq",
+        input_molblock=_ETHANOL_A,
         descriptors=[
             _descriptor("orca.scf_energy", -76.3, units="Hartree"),
             _descriptor("orca.enthalpy", -76.0, units="Hartree"),
@@ -519,11 +549,34 @@ def test_missing_thermo_on_one_side_skips_only_that_quantity():
     ],
 )
 def test_thermo_skipped_when_model_or_state_or_fingerprint_differs(kwargs):
-    base = _thermo("orca", -76.2, -76.1)
-    other = _thermo("orca", -76.0, -75.9, **kwargs)
+    base = _thermo("orca", -76.2, -76.1, scf=-76.4)
+    other = _thermo("orca", -76.0, -75.9, scf=-76.3, **kwargs)
     labels = [row.label for row in quantum_family_rows(base, other)]
     assert "Enthalpy" not in labels
     assert "Gibbs free energy" not in labels
+    if kwargs == {"input_fingerprint": "other"}:
+        assert labels == ["SCF energy"]
+
+
+def test_different_geometry_opt_freq_keeps_scf_and_skips_thermo():
+    left = _thermo(
+        "orca",
+        -76.2,
+        -76.1,
+        scf=-76.4,
+        input_fingerprint="geom-a",
+        input_molblock=_ETHANOL_A,
+    )
+    right = _thermo(
+        "orca",
+        -76.0,
+        -75.9,
+        scf=-76.3,
+        input_fingerprint="geom-b",
+        input_molblock=_ETHANOL_B,
+    )
+    labels = [row.label for row in quantum_family_rows(left, right)]
+    assert labels == ["SCF energy"]
 
 
 def test_duplicate_enthalpy_descriptors_skip_that_row():
@@ -599,13 +652,54 @@ def test_entropy_and_zpe_are_not_family_rows():
     assert "zero" not in " ".join(labels).lower()
 
 
-def test_scf_skipped_when_method_or_state_or_fingerprint_differs():
+def test_scf_skipped_when_method_or_state_differs():
     base = _scf("orca", -76.4)
     assert quantum_family_rows(base, _scf("psi4", -76.3, method_basis="PBE0 def2-SVP")) == []
     assert quantum_family_rows(base, _scf("psi4", -76.3, charge=1)) == []
     assert quantum_family_rows(base, _scf("psi4", -76.3, multiplicity=3)) == []
     assert quantum_family_rows(base, _scf("psi4", -76.3, solvent="water")) == []
-    assert quantum_family_rows(base, _scf("psi4", -76.3, input_fingerprint="other")) == []
+
+
+def test_scf_tabulates_different_conformer_geometries():
+    left = _scf("orca", -76.4, input_fingerprint="geom-a", input_molblock=_ETHANOL_A)
+    right = _scf("psi4", -76.3, input_fingerprint="geom-b", input_molblock=_ETHANOL_B)
+    assert quantum_runs_comparable(left, right) == ""
+    rows = quantum_family_rows(left, right)
+    assert [row.label for row in rows] == ["SCF energy"]
+    assert rows[0].delta == pytest.approx(0.1)
+
+
+def test_scf_skipped_when_same_uuid_has_different_constitution():
+    left = _scf("orca", -76.4, input_fingerprint="ethanol", input_molblock=_ETHANOL_A)
+    right = _scf("psi4", -76.3, input_fingerprint="methanol", input_molblock=_METHANOL)
+    assert quantum_runs_comparable(left, right) == ""
+    assert quantum_family_rows(left, right) == []
+
+
+def test_scf_skipped_when_same_uuid_has_different_stereochemistry():
+    left = _scf("orca", -76.4, input_fingerprint="r", input_molblock=_BUTAN_2_OL_R)
+    right = _scf("psi4", -76.3, input_fingerprint="s", input_molblock=_BUTAN_2_OL_S)
+    assert quantum_family_rows(left, right) == []
+
+
+def test_scf_skipped_when_same_uuid_has_different_isotope():
+    left = _scf("orca", -76.4, input_fingerprint="c12", input_molblock=_ETHANOL_A)
+    right = _scf("psi4", -76.3, input_fingerprint="c13", input_molblock=_ETHANOL_13C)
+    assert quantum_family_rows(left, right) == []
+
+
+def test_submitted_structure_identity_keeps_isotopes_and_refuses_empty():
+    assert submitted_structure_identity("") == ""
+    assert submitted_structure_identity(_ETHANOL_A) == submitted_structure_identity(_ETHANOL_B)
+    assert submitted_structure_identity(_ETHANOL_A) != submitted_structure_identity(_METHANOL)
+    assert submitted_structure_identity(_ETHANOL_A) != submitted_structure_identity(_ETHANOL_13C)
+    assert submitted_structure_identity(_BUTAN_2_OL_R) != submitted_structure_identity(_BUTAN_2_OL_S)
+
+
+def test_scf_skipped_when_input_molblock_is_missing():
+    left = _scf("orca", -76.4, input_fingerprint="a", input_molblock="")
+    right = _scf("psi4", -76.3, input_fingerprint="b", input_molblock="")
+    assert quantum_family_rows(left, right) == []
 
 
 def test_scf_is_not_shown_across_molecules():
@@ -617,10 +711,11 @@ def test_scf_is_not_shown_across_molecules():
 
 def test_psi4_sp_has_no_homo_row():
     orca = _run(
+        input_molblock=_ETHANOL_A,
         descriptors=[
             _descriptor("orca.scf_energy", -76.4, units="Hartree"),
             _descriptor("orca.homo_energy", -0.4),
-        ]
+        ],
     )
     psi4 = _scf("psi4", -76.3)
     labels = [row.label for row in quantum_family_rows(orca, psi4)]

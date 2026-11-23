@@ -9,6 +9,7 @@ import math
 from dataclasses import dataclass
 from typing import Any
 
+from openchem.chem.submitted_structure import submitted_structure_identity
 from openchem.domain.descriptor import DescriptorValue
 from openchem.domain.property_execution import PropertyExecution
 from openchem.domain.quantum_chemistry_run import QuantumChemistryRun
@@ -324,9 +325,10 @@ class QuantumFamilyQuantity:
     """One Quantum-vs-Quantum scalar that Compare is allowed to tabulate.
 
     Matching uses `{run.provider}.{suffix}` and `DescriptorValue.provider`,
-    never a display name. `requires_matching_model` is the eligibility
-    policy (same method/basis and input fingerprint), not a property of
-    the quantity id string.
+    never a display name. Eligibility flags are independent: matching model
+    is method/basis; matching geometry is `input_fingerprint`; matching
+    structure is canonical identity of each run's `input_molblock`. None of
+    these is a property of the quantity id string.
     """
 
     quantity_id: str
@@ -335,6 +337,8 @@ class QuantumFamilyQuantity:
     descriptor_suffixes: frozenset[str]
     calc_types: frozenset[str]
     requires_matching_model: bool
+    requires_matching_geometry: bool = False
+    requires_matching_structure: bool = False
 
 
 #: Named Quantum-vs-Quantum scalars. Display names are not a quantity.
@@ -348,6 +352,8 @@ QUANTUM_FAMILY_QUANTITIES: tuple[QuantumFamilyQuantity, ...] = (
         frozenset({"scf_energy"}),
         frozenset({"sp", "opt", "opt_freq"}),
         True,
+        requires_matching_geometry=False,
+        requires_matching_structure=True,
     ),
     QuantumFamilyQuantity(
         "homo_energy",
@@ -372,6 +378,7 @@ QUANTUM_FAMILY_QUANTITIES: tuple[QuantumFamilyQuantity, ...] = (
         frozenset({"enthalpy"}),
         frozenset({"opt_freq"}),
         True,
+        requires_matching_geometry=True,
     ),
     QuantumFamilyQuantity(
         "gibbs_free_energy",
@@ -380,6 +387,7 @@ QUANTUM_FAMILY_QUANTITIES: tuple[QuantumFamilyQuantity, ...] = (
         frozenset({"gibbs_free_energy"}),
         frozenset({"opt_freq"}),
         True,
+        requires_matching_geometry=True,
     ),
 )
 
@@ -418,11 +426,15 @@ def _family_eligible(
         return False
     if left.solvent != right.solvent:
         return False
-    if quantity.requires_matching_model:
-        return (
-            left.method_basis == right.method_basis
-            and left.input_fingerprint == right.input_fingerprint
-        )
+    if quantity.requires_matching_model and left.method_basis != right.method_basis:
+        return False
+    if quantity.requires_matching_geometry and left.input_fingerprint != right.input_fingerprint:
+        return False
+    if quantity.requires_matching_structure:
+        left_identity = submitted_structure_identity(left.input_molblock)
+        right_identity = submitted_structure_identity(right.input_molblock)
+        if not left_identity or left_identity != right_identity:
+            return False
     return True
 
 

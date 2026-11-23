@@ -1,0 +1,3 @@
+Tabulate SCF energy across conformer geometries of the same structure.
+
+Fingerprint is geometry only; submitted molblocks decide identity. Enthalpy and Gibbs still require matching geometry.

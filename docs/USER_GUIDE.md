@@ -1439,11 +1439,14 @@ same quantity, input type, or (for per-atom work) the same molecule and
 structure are refused. Two ordinary runs that are compatible still open
 as a two-column table with a Δ from the first (reference) run. Two
 Quantum jobs of the same calculation type may be compared across
-programs when they share a family quantity (SCF energy in Hartree at
-the same method, basis, charge, multiplicity, solvent and structure;
-HOMO/LUMO in eV on the same molecule and electronic state, including
-from optimizations and frequency jobs; enthalpy and Gibbs free energy
-in Hartree from frequency jobs when that model and structure match).
+programs when they share a family quantity. SCF energies in Hartree may
+be compared across different conformer geometries when the molecular
+structure, method, basis, charge, multiplicity, and solvent match; that
+Δ is an electronic-energy difference, not a free-energy difference.
+HOMO/LUMO in eV may be compared on the same molecule and electronic
+state, including from optimizations and frequency jobs. Enthalpy and
+Gibbs free energy in Hartree from frequency jobs still require the same
+geometry as well as that model.
 Columns name the program and method; ORCA and Psi4 are not treated as one
 method. NMR still uses the per-atom shift table. An ordinary run
 against a Quantum job is refused until a shared quantity is approved
