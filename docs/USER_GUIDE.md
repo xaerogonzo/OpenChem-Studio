@@ -1450,7 +1450,8 @@ geometry as well as that model.
 Columns name the program and method; ORCA and Psi4 are not treated as one
 method. NMR still uses the per-atom shift table. An ordinary run
 against a Quantum job is refused until a shared quantity is approved
-for that pair — none is approved yet, so Compare will say no approved
+for that pair — none is approved yet (including ordinary dipole versus
+the stored QC Debye magnitude), so Compare will say no approved
 shared quantity is defined rather than lining up similar names.
 Cross-molecule compare is allowed for scalars only.
 
@@ -1812,7 +1813,13 @@ and geometry optimizations** only. xtb runs single point, optimization, and
 optimization plus frequencies. The spectra goal can stage an xtb frequency
 job; that is frequencies, not an IR spectrum — the current xtb parser does
 not report the intensities in `vibspectrum`. Two engines' numbers are
-never mixed under one label.
+never mixed under one label. When the output prints one, each engine stores
+**this run's** dipole magnitude in Debye (`orca.dipole_moment`,
+`psi4.dipole_moment`, `xtb.dipole_moment`). That is not the Properties
+**Dipole Moment** from Gasteiger, EEM, or QEq, and it is not compared as a
+Quantum family row or as a mixed ordinary-versus-Quantum quantity. A
+charged species remains origin-dependent: the stored number is the
+engine's, without recentering.
 
 **NMR is one job.** Ab initio ¹H and ¹³C are views of that output, not two
 calculations. The experimental ¹H lookup in Properties is a different

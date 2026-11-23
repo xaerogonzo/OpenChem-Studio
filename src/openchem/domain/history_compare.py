@@ -27,9 +27,9 @@ MIXED_UNAPPROVED = (
 #: Empty on purpose. Display-name overlap is not a quantity.
 #:
 #: Not listed: ordinary Dipole Moment (point-charge, named charge model) vs
-#: Quantum dipole — ORCA/Psi4 runs do not store a dipole. Ordinary Hückel
-#: HOMO/LUMO is in beta; QC orca.homo_energy is in eV. Ordinary Miller
-#: polarizability has no QC polarizability on the run.
+#: stored Quantum `{provider}.dipole_moment` (this run's Debye magnitude).
+#: Ordinary Hückel HOMO/LUMO is in beta; QC orca.homo_energy is in eV.
+#: Ordinary Miller polarizability has no QC polarizability on the run.
 MIXED_QUANTITIES: tuple["MixedQuantity", ...] = ()
 
 

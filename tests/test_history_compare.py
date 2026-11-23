@@ -165,6 +165,12 @@ def allow(monkeypatch):
     return quantity
 
 
+def test_mixed_quantities_ships_empty():
+    from openchem.domain.history_compare import MIXED_QUANTITIES
+
+    assert MIXED_QUANTITIES == ()
+
+
 def test_empty_allowlist_refuses_every_mixed_pair():
     execution = _execution()
     run = _run()

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import math
 import os
 import re
 import shutil
@@ -277,6 +278,7 @@ _CALC_TYPE_KEYWORDS = {
 }
 
 _SCF_ENERGY_RE = re.compile(r"FINAL SINGLE POINT ENERGY\s+(-?\d+\.\d+)")
+_DIPOLE_DEBYE_RE = re.compile(r"Magnitude \(Debye\)\s+:\s+(-?\d+\.\d+)")
 # ORCA's output has CRLF line ends on Windows, so every newline here is `\r?\n`: with a bare `\n` this found no
 # block at all and an optimized geometry was silently never read (found by a live tautomer-NMR run).
 _CARTESIAN_BLOCK_RE = re.compile(
@@ -515,6 +517,40 @@ def add_parallel_block(input_text: str, cores: int) -> str:
             lines.insert(index + 1, f"%pal nprocs {cores} end")
             return "\n".join(lines)
     return input_text
+
+
+def _last_orca_dipole_debye(output_text: str) -> float | None:
+    matches = _DIPOLE_DEBYE_RE.findall(output_text)
+    if not matches:
+        return None
+    return float(matches[-1])
+
+
+def _dipole_from_debye(
+    provider_id: str,
+    molecule_uuid: str,
+    value: float | None,
+    provenance: Provenance,
+    mol: Chem.Mol,
+) -> DescriptorValue | None:
+    if value is None or not math.isfinite(value):
+        return None
+    origin_independent = Chem.GetFormalCharge(mol) == 0
+    return DescriptorValue(
+        descriptor_id=f"{provider_id}.dipole_moment",
+        name="Dipole",
+        units="Debye",
+        category="quantum_chemistry",
+        provider=provider_id,
+        molecule_uuid=molecule_uuid,
+        value=value,
+        timestamp=provenance.timestamp,
+        cache_state=CacheState.COMPLETED,
+        provenance=replace(
+            provenance,
+            parameters={**provenance.parameters, "origin_independent": origin_independent},
+        ),
+    )
 
 
 class OrcaOutputError(Exception):
@@ -819,6 +855,13 @@ class OrcaQuantumEngineProvider(QuantumEngineProvider):
                 provenance=provenance,
             )
         ]
+
+        if calc_type not in ("delta_scf", "led", "fukui"):
+            dipole = _dipole_from_debye(
+                "orca", molecule_uuid, _last_orca_dipole_debye(output_text), provenance, mol
+            )
+            if dipole is not None:
+                descriptors.append(dipole)
 
         if calc_type == "delta_scf":
             descriptors.extend(self._parse_delta_scf(output_text, molecule_uuid, provenance))
