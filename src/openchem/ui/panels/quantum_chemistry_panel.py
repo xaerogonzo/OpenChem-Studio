@@ -5,7 +5,7 @@ import os
 import time
 from pathlib import Path
 
-from PySide6.QtCore import Qt
+from PySide6.QtCore import Qt, Signal
 from PySide6.QtWidgets import (
     QCheckBox,
     QComboBox,
@@ -98,6 +98,7 @@ from openchem.domain.scientific_result import (
 from openchem.events.base import EventBus
 from openchem.events.events import (
     ConformersChanged,
+    MoleculeChanged,
     MoleculeSelected,
     NmrReferenceCalibrated,
     NmrScalingCalibrated,
@@ -282,11 +283,12 @@ _HELP: dict[str, HelpTooltip] = {
         text=(
             "Spin multiplicity, 2S+1: 1 for a closed-shell singlet, 2 for a doublet "
             "radical, 3 for a triplet. Range 1 to 10, default 1.\n\n"
-            "Selecting a molecule sets it to the drawing's unpaired electrons plus one "
-            "(2 for a radical, 3 for a carbene or for O2 drawn as [O][O]); a closed-shell "
-            "drawing gives 1, so O2 drawn as O=O needs 3 set by hand. It is a default, "
-            "not a fact the structure stores. A singlet calculation on an open-shell "
-            "species runs a state the molecule does not have in its ground state."
+            "Selecting a molecule shows the multiplicity you set for it, else the drawing's "
+            "unpaired electrons plus one (2 for a radical, 3 for a carbene, O2 and S2); a "
+            "closed-shell drawing gives 1. Change the box and the molecule keeps the value "
+            "(saved with the project, undoable); a value equal to the drawing's own clears "
+            "it, and one the electrons cannot have is not kept. A singlet calculation on an "
+            "open-shell species runs a state the molecule does not have in its ground state."
         ),
         tier=2,
         help_id="quantum.spin_multiplicity",
@@ -910,6 +912,11 @@ class QuantumChemistryPanel(QWidget):
     stdout live and shows a summary once results arrive.
     """
 
+    #: (molecule uuid, multiplicity or None): the person changed the Multiplicity box. The window turns it into `SetMultiplicityCommand`; None is "the drawing's own".
+    multiplicity_requested = Signal(str, object)
+    #: True while the panel itself writes the box, so that is not taken for the person editing it.
+    _syncing_spin = False
+
     def __init__(
         self,
         quantum_chemistry_service: QuantumChemistryService,
@@ -1069,6 +1076,7 @@ class QuantumChemistryPanel(QWidget):
         self._multiplicity_spin = QSpinBox(self)
         self._multiplicity_spin.setRange(1, 10)
         self._multiplicity_spin.setValue(1)
+        self._multiplicity_spin.valueChanged.connect(self._on_multiplicity_edited)
         apply_help_tooltip(self._multiplicity_spin, _HELP["spin_multiplicity"])
         self._scroll_safe_guards.append(make_scroll_safe(self._multiplicity_spin))
 
@@ -1624,6 +1632,7 @@ class QuantumChemistryPanel(QWidget):
         event_bus.subscribe(NmrScalingCalibrated, self._on_scaling_calibrated)
         event_bus.subscribe(MoleculeSelected, self._on_molecule_selected)
         event_bus.subscribe(ConformersChanged, self._on_conformers_changed)
+        event_bus.subscribe(MoleculeChanged, self._on_molecule_event)
         event_bus.subscribe(TautomerDistributionResultReady, self._on_tautomer_distribution_ready)
         event_bus.subscribe(TautomerNmrResultReady, self._on_tautomer_nmr_ready)
 
@@ -1690,9 +1699,36 @@ class QuantumChemistryPanel(QWidget):
             self._charge_spin.setValue(self._chemistry_engine.formal_charge(molecule))
             # Derived from the drawing's unpaired electrons like the charge is (it stayed at 1 whatever was selected: real ORCA
             # runs O2 at multiplicity 1 without a message, 39.7 kcal/mol above the triplet).
-            self._multiplicity_spin.setValue(self._chemistry_engine.default_multiplicity(molecule))
+            self._write_multiplicity(molecule)
         self._refresh_conformer_combo()
         self._refresh_active_run()
+
+    def _write_multiplicity(self, molecule) -> None:
+        self._syncing_spin = True
+        try:
+            self._multiplicity_spin.setValue(self._chemistry_engine.default_multiplicity(molecule))
+        finally:
+            self._syncing_spin = False
+
+    def _on_molecule_event(self, event: MoleculeChanged) -> None:
+        """An undo or redo of the multiplicity (or a structure edit that changed the electrons) moves the box to what the molecule now says."""
+        molecule = self._current_molecule()
+        if molecule is not None and molecule.uuid == event.molecule_uuid and molecule.molblock:
+            self._write_multiplicity(molecule)
+
+    def _on_multiplicity_edited(self, value: int) -> None:
+        """The person set the box: store it on the molecule, or clear the stored one when it is the drawing's own value.
+
+        A value the structure's electrons cannot have is left in the box and NOT stored (Run refuses it with the reason); storing it would only be ignored and the box would snap back.
+        """
+        molecule = self._current_molecule()
+        if self._syncing_spin or molecule is None or not molecule.molblock:
+            return
+        if self._chemistry_engine.multiplicity_issue(molecule, value):
+            return
+        target = None if value == self._chemistry_engine.drawn_multiplicity(molecule) else value
+        if target != molecule.multiplicity:
+            self.multiplicity_requested.emit(molecule.uuid, target)
 
     def _conformer_choosable(self) -> bool:
         """Does a choice apply to the calculation the panel is set to? Every single-job calculation, never averaging.

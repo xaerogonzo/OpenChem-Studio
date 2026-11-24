@@ -11,7 +11,7 @@ from rdkit.Geometry import Point3D
 
 from openchem.chem.camera_orientation import camera_to_model_transform, rotate
 from openchem.chem.components import COMPONENT_CHOICE_PROP
-from openchem.chem.open_shell import default_multiplicity, molblock_keeping_spin, spin_from_molblock
+from openchem.chem.open_shell import default_multiplicity, molblock_keeping_spin, multiplicity_problem, spin_from_molblock
 from openchem.chem.open_shell_geometry import SPIN_PROP
 from openchem.chem.components import component_smiles as _component_smiles
 from openchem.chem.stereochemistry import (
@@ -264,22 +264,32 @@ class ChemistryEngine:
     def mol_from_model(self, model: MoleculeModel, *, allow_hypervalent: bool = False) -> Chem.Mol:
         """The model's Mol. `allow_hypervalent` is the opt-in of `hypervalent_mol_from_molblock`: only code
         that knows what it returns (conformer generation, the charge default) passes it."""
-        if not model.molblock:
-            raise InvalidStructureError(f"Molecule {model.uuid} has no molblock")
-        mol = (
-            self.hypervalent_mol_from_molblock(model.molblock)
-            if allow_hypervalent
-            else self.mol_from_molblock(model.molblock)
-        )
+        mol = self._mol_without_spin(model, allow_hypervalent)
         if model.component_choice:
             # The person's pick of component rides on the Mol, so every route into a calculator
             # (Properties, Batch, the 3D overlay) reads it where `components.select` reads the rest.
             mol.SetProp(COMPONENT_CHOICE_PROP, model.component_choice)
         # The drawing's own multiplicity, which RDKit cannot keep for a singlet carbene: the open-shell geometry table reads it (`chem.open_shell_geometry`).
-        stated = spin_from_molblock(model.molblock)
+        stated = self.stated_spin(model)
         if stated is not None:
             mol.SetProp(SPIN_PROP, str(stated))
         return mol
+
+    def _mol_without_spin(self, model: MoleculeModel, allow_hypervalent: bool) -> Chem.Mol:
+        if not model.molblock:
+            raise InvalidStructureError(f"Molecule {model.uuid} has no molblock")
+        return self.hypervalent_mol_from_molblock(model.molblock) if allow_hypervalent else self.mol_from_molblock(model.molblock)
+
+    def stated_spin(self, model: MoleculeModel) -> int | None:
+        """The multiplicity somebody STATED for this molecule: the person's (`MoleculeModel.multiplicity`) if it fits the structure's electrons, else the drawing's own radical code, else None.
+
+        A person's value that the structure can no longer have (an edit changed the electron count; charge is the structure's) is skipped rather than applied, because ORCA refuses it after queueing (exit 55).
+        """
+        if model.multiplicity is not None and model.molblock:
+            mol = self._mol_without_spin(model, True)
+            if not multiplicity_problem(mol, Chem.GetFormalCharge(mol), model.multiplicity):
+                return model.multiplicity
+        return spin_from_molblock(model.molblock)
 
     def component_smiles(self, model: MoleculeModel) -> list[str]:
         """The canonical SMILES, as drawn, of each component of the molecule's drawing (what a picker offers).
@@ -923,13 +933,23 @@ class ChemistryEngine:
         # The sum of the atoms' charges needs no valence model, so a held hypervalent structure has one too.
         return Chem.GetFormalCharge(self.mol_from_model(model, allow_hypervalent=True))
 
+    def drawn_multiplicity(self, model: MoleculeModel) -> int:
+        """The multiplicity the DRAWING implies, whatever the person set: its radical code, else its unpaired electrons plus one."""
+        stated = spin_from_molblock(model.molblock)
+        return stated if stated is not None else default_multiplicity(self._mol_without_spin(model, True))
+
+    def multiplicity_issue(self, model: MoleculeModel, multiplicity: int) -> str:
+        """Why this multiplicity cannot belong to the structure's electrons, or "" (the parity rule of `open_shell.multiplicity_problem`)."""
+        mol = self._mol_without_spin(model, True)
+        return multiplicity_problem(mol, Chem.GetFormalCharge(mol), multiplicity)
+
     def default_multiplicity(self, model: MoleculeModel) -> int:
         """The spin multiplicity a quantum job should start from: the drawing's unpaired electrons plus one (1 for a closed-shell drawing).
 
         A DEFAULT like `formal_charge`, not a fact about the molecule: the structure does not store a multiplicity, and RDKit reads a
         singlet and a triplet carbene alike (`chem.open_shell`). Never guessed in the UI layer, which imports no rdkit.
         """
-        stated = spin_from_molblock(model.molblock)
+        stated = self.stated_spin(model)
         if stated is not None:
             return stated
         return default_multiplicity(self.mol_from_model(model, allow_hypervalent=True))

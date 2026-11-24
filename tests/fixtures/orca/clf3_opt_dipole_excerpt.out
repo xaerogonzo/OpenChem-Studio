@@ -1,0 +1,33 @@
+ORCA 6.1.1 B3LYP def2-SVP opt of ClF3 (OpenChem VSEPR start). Real output, trimmed to the lines the dipole test reads.
+                         Program Version 6.1.1  -  RELEASE   -
+ Total Charge           Charge          ....    0
+ Multiplicity           Mult            ....    1
+FINAL SINGLE POINT ENERGY      -758.931407168383
+---------------------------------
+CARTESIAN COORDINATES (ANGSTROEM)
+---------------------------------
+  Cl    -0.015221   -0.000595    0.010327
+  F      0.957368   -0.734449    1.252909
+  F     -0.849652    0.734799   -1.328009
+  F      1.339405    0.000246   -0.937827
+
+----------------------------
+-------------
+DIPOLE MOMENT
+-------------
+
+Method             : SCF
+Type of density    : Electron Density
+Multiplicity       :   1
+Irrep              :   0
+Energy             :  -758.9314071683829752 Eh
+Basis              : AO
+                                X                 Y                 Z
+Electronic contribution:     -0.198770663      -0.000840848       0.138850421
+Nuclear contribution   :     -0.118670069      -0.000189314       0.082986294
+                        -----------------------------------------
+Total Dipole Moment    :     -0.317440732      -0.001030162       0.221836715
+                        -----------------------------------------
+Magnitude (a.u.)       :      0.387274073
+Magnitude (Debye)      :      0.984372464
+
