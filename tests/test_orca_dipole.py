@@ -56,13 +56,6 @@ def test_the_clf3_dipole_is_read_and_points_along_the_molecules_own_axis():
     assert abs(float(vector @ bonds[1]) / np.linalg.norm(vector) / np.linalg.norm(bonds[1])) < np.cos(np.radians(85.0))
 
 
-def test_a_neutral_species_is_origin_independent_and_a_charged_one_is_not():
-    neutral = _descriptors(FIXTURE.read_text())["orca.dipole_moment"]
-    assert neutral.provenance.parameters["origin_independent"] is True
-    anion = _descriptors(FIXTURE.read_text().replace("....    0\n", "....   -1\n", 1))["orca.dipole_moment"]
-    assert anion.provenance.parameters["origin_independent"] is False
-
-
 def test_windows_line_ends_read_the_same():
     text = FIXTURE.read_text()
     assert parse_dipole(text.replace("\n", "\r\n")) == parse_dipole(text)

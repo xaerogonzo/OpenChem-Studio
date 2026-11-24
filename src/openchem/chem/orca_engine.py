@@ -885,6 +885,10 @@ class OrcaQuantumEngineProvider(QuantumEngineProvider):
                 "orca", molecule_uuid, _last_orca_dipole_debye(output_text), provenance, mol
             )
             if dipole is not None:
+                # The vector (in the input's frame, which ORCA does not reorient) beside the magnitude, from the same block.
+                parsed = parse_dipole(output_text)
+                if parsed is not None:
+                    dipole = replace(dipole, provenance=replace(dipole.provenance, parameters={**dipole.provenance.parameters, "vector_debye": [float(v) for v in parsed[0]]}))
                 descriptors.append(dipole)
 
         if calc_type == "delta_scf":
@@ -926,32 +930,6 @@ class OrcaQuantumEngineProvider(QuantumEngineProvider):
                         provenance=Provenance(
                             created_by="core", method=self.provider_id,
                             parameters={**provenance.parameters, "ideal_s_squared": float(ideal[-1]), "excess": round(float(s2[-1]) - float(ideal[-1]), 6)},
-                            timestamp=now,
-                        ),
-                    )
-                )
-
-        if calc_type not in ("delta_scf", "led", "fukui"):
-            # NOT for the compound inputs, for the reason the frontier orbitals are not: their output holds several species' blocks. A job with no block (some NMR-only outputs) gains no descriptor.
-            dipole = parse_dipole(output_text)
-            if dipole is not None:
-                vector, magnitude = dipole
-                charge_match = _TOTAL_CHARGE_RE.search(output_text)
-                charge = int(charge_match.group(1)) if charge_match else None
-                descriptors.append(
-                    DescriptorValue(
-                        descriptor_id="orca.dipole_moment",
-                        name="Dipole Moment (ORCA density)",
-                        units="Debye",
-                        category="quantum_chemistry",
-                        provider="orca",
-                        molecule_uuid=molecule_uuid,
-                        value=magnitude,
-                        timestamp=now,
-                        cache_state=CacheState.COMPLETED,
-                        provenance=Provenance(
-                            created_by="core", method=self.provider_id,
-                            parameters={**provenance.parameters, "vector_debye": [float(v) for v in vector], "origin_independent": charge == 0},
                             timestamp=now,
                         ),
                     )
