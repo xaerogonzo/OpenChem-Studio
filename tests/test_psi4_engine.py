@@ -122,15 +122,24 @@ def test_the_engine_declares_what_it_runs_and_where_its_executable_is(provider):
 # --- the output, from real runs --------------------------------------------------------------------------------------
 
 
+def _by_id(descriptors):
+    return {d.descriptor_id: d for d in descriptors}
+
+
 def test_a_single_point_reads_the_total_energy_and_names_what_ran(provider):
     descriptors, conformer = provider.parse_output(_fixture("water_b3lyp5_def2svp_sp.out"), _water(), "u-1", "sp")
 
     assert conformer is None
-    [energy] = descriptors
-    assert energy.descriptor_id == "psi4.scf_energy" and energy.units == "Hartree"
+    energy = _by_id(descriptors)["psi4.scf_energy"]
+    assert descriptors[0] is energy
+    assert energy.units == "Hartree"
     assert energy.value == pytest.approx(-76.32100289408265, abs=1e-12)
     assert energy.provenance.parameters["psi4_version"] == "1.11"
     assert energy.provenance.parameters["scf_type"] == "pk" and energy.provenance.parameters["puream"] is True
+    dipole = _by_id(descriptors)["psi4.dipole_moment"]
+    assert dipole.name == "Dipole" and dipole.units == "Debye"
+    assert dipole.value == pytest.approx(0.7793841 * 2.5417464519)
+    assert dipole.provenance.parameters["origin_independent"] is True
 
 
 def test_an_open_shell_output_reads_too(provider):
@@ -145,6 +154,7 @@ def test_an_optimization_returns_the_final_geometry_as_a_psi4_conformer_and_the_
 
     # every step prints an energy; the one reported is the LAST, at the converged geometry
     assert descriptors[0].value == pytest.approx(-76.32118516654147, abs=1e-12)
+    assert _by_id(descriptors)["psi4.dipole_moment"].value == pytest.approx(0.7884877 * 2.5417464519)
     assert conformer is not None and conformer.method == PSI4_OPTIMIZED
     assert conformer.method != ORCA_OPTIMIZED
     optimized = Chem.MolFromMolBlock(conformer.molblock, removeHs=False)

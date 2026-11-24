@@ -1,0 +1,2 @@
+### A singlet code on a lone atom survives the stored structure; Ketcher radical round-trip measured
+- A singlet O or H atom drawn in the editor lost its singlet code (RDKit writes no radical line for an atom with no bonds), so its multiplicity defaulted to a triplet; the code is now kept. The real editor was also measured: it keeps the singlet, doublet and triplet codes of a molfile and of its own radical property.

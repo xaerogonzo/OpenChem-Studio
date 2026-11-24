@@ -353,6 +353,58 @@ def test_parse_output_missing_scf_energy_raises():
         provider.parse_output("ORCA crashed, no results here", mol, "mol-1", "sp")
 
 
+def _orca_dipole(descriptors):
+    found = [d for d in descriptors if d.descriptor_id == "orca.dipole_moment"]
+    assert len(found) == 1
+    return found[0]
+
+
+def test_parse_output_stores_the_last_dipole_magnitude_in_debye():
+    """A real ORCA opt+freq on HCN prints Magnitude (Debye) 3.055886271."""
+    text = (Path(__file__).parent / "fixtures" / "orca" / "bde_hcn_parent_optfreq.out").read_text(
+        encoding="utf-8", errors="replace"
+    )
+    mol = Chem.AddHs(Chem.MolFromSmiles("C#N"))
+    AllChem.EmbedMolecule(mol, randomSeed=1)
+    descriptors, _conformer = OrcaQuantumEngineProvider().parse_output(text, mol, "mol-1", "opt_freq")
+    assert descriptors[0].descriptor_id == "orca.scf_energy"
+    dipole = _orca_dipole(descriptors)
+    assert dipole.name == "Dipole" and dipole.units == "Debye"
+    assert dipole.value == pytest.approx(3.055886271)
+    assert dipole.provenance.parameters["origin_independent"] is True
+    assert dipole.cache_state == CacheState.COMPLETED
+
+
+def test_a_missing_dipole_does_not_fail_scf():
+    descriptors, _ = OrcaQuantumEngineProvider().parse_output(
+        SP_FIXTURE_OUTPUT, _ethanol_mol(), "mol-1", "sp"
+    )
+    assert descriptors[0].descriptor_id == "orca.scf_energy"
+    assert all(d.descriptor_id != "orca.dipole_moment" for d in descriptors)
+
+
+def test_compound_jobs_never_store_dipole_even_when_printed(monkeypatch):
+    """delta_scf/led/fukui print later dipoles of anions or fragments."""
+    text = (
+        "FINAL SINGLE POINT ENERGY       -56.081184680585\n"
+        "Magnitude (Debye)      :      1.111111111\n"
+        "FINAL SINGLE POINT ENERGY       -56.184680585000\n"
+        "Magnitude (Debye)      :      2.222222222\n"
+        "FINAL SINGLE POINT ENERGY       -56.335220730864\n"
+        "Magnitude (Debye)      :      9.999999999\n"
+    )
+    mol = _ethanol_mol()
+    provider = OrcaQuantumEngineProvider()
+    monkeypatch.setattr(provider, "_parse_led", lambda *args, **kwargs: [])
+    monkeypatch.setattr(provider, "_condensed_fukui", lambda *args, **kwargs: None)
+    for calc_type in ("delta_scf", "led", "fukui"):
+        descriptors, _ = provider.parse_output(text, mol, "mol-1", calc_type)
+        assert descriptors[0].descriptor_id == "orca.scf_energy"
+        assert all(d.descriptor_id != "orca.dipole_moment" for d in descriptors), calc_type
+    stored, _ = provider.parse_output(text, mol, "mol-1", "sp")
+    assert _orca_dipole(stored).value == pytest.approx(9.999999999)
+
+
 def test_parse_output_results_carry_provenance():
     provider = OrcaQuantumEngineProvider()
     mol = _ethanol_mol()
@@ -807,6 +859,7 @@ def test_delta_scf_does_not_emit_koopmans_descriptors():
     assert "orca.dscf_hardness" in ids
     assert "orca.hardness" not in ids
     assert "orca.homo_energy" not in ids
+    assert "orca.dipole_moment" not in ids
 
 
 def test_a_delta_scf_job_missing_an_ion_fails_loudly():

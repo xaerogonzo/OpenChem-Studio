@@ -1,0 +1,2 @@
+### An ORCA run's dipole also carries its vector
+- **`orca.dipole_moment` (the magnitude a quantum run stores) now keeps the dipole vector in Debye in its provenance** (`vector_debye`, in the input's frame), read from the same ORCA block. This is the route a ClF3, BrF3 or ClF5 dipole takes, since the registry `dipole_moment` cannot (Gasteiger is NaN on the centre atom). Measured on real ORCA 6.1.1, ClF3 B3LYP/def2-SVP: 0.984 D, along the molecule's C2 axis.

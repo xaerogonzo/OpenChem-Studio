@@ -9,6 +9,7 @@ import math
 from dataclasses import dataclass
 from typing import Any
 
+from openchem.chem.submitted_structure import submitted_structure_identity
 from openchem.domain.descriptor import DescriptorValue
 from openchem.domain.property_execution import PropertyExecution
 from openchem.domain.quantum_chemistry_run import QuantumChemistryRun
@@ -26,9 +27,9 @@ MIXED_UNAPPROVED = (
 #: Empty on purpose. Display-name overlap is not a quantity.
 #:
 #: Not listed: ordinary Dipole Moment (point-charge, named charge model) vs
-#: Quantum dipole — ORCA/Psi4 runs do not store a dipole. Ordinary Hückel
-#: HOMO/LUMO is in beta; QC orca.homo_energy is in eV. Ordinary Miller
-#: polarizability has no QC polarizability on the run.
+#: stored Quantum `{provider}.dipole_moment` (this run's Debye magnitude).
+#: Ordinary Hückel HOMO/LUMO is in beta; QC orca.homo_energy is in eV.
+#: Ordinary Miller polarizability has no QC polarizability on the run.
 MIXED_QUANTITIES: tuple["MixedQuantity", ...] = ()
 
 
@@ -324,8 +325,10 @@ class QuantumFamilyQuantity:
     """One Quantum-vs-Quantum scalar that Compare is allowed to tabulate.
 
     Matching uses `{run.provider}.{suffix}` and `DescriptorValue.provider`,
-    never a display name. Eligibility is quantity-specific (see
-    `_family_eligible`).
+    never a display name. Eligibility flags are independent: matching model
+    is method/basis; matching geometry is `input_fingerprint`; matching
+    structure is canonical identity of each run's `input_molblock`. None of
+    these is a property of the quantity id string.
     """
 
     quantity_id: str
@@ -333,11 +336,18 @@ class QuantumFamilyQuantity:
     units: str
     descriptor_suffixes: frozenset[str]
     calc_types: frozenset[str]
+    requires_matching_model: bool
+    requires_matching_geometry: bool = False
+    requires_matching_structure: bool = False
+    #: Exact matches on the descriptor's `provenance.parameters`. Booleans use `is`.
+    required_descriptor_parameters: tuple[tuple[str, Any], ...] = ()
+    #: When set, `QuantumChemistryRun.charge` must equal this.
+    required_run_charge: int | None = None
 
 
 #: Named Quantum-vs-Quantum scalars. Display names are not a quantity.
-#: SCF energy is the only currently allowlisted common quantity across engines;
-#: xtb opt_freq also stores thermochemistry, which is not listed here.
+#: Entropy term and zero-point energy are engine-specific suffixes.
+#: Enthalpy and Gibbs are opt_freq only.
 QUANTUM_FAMILY_QUANTITIES: tuple[QuantumFamilyQuantity, ...] = (
     QuantumFamilyQuantity(
         "scf_energy",
@@ -345,20 +355,73 @@ QUANTUM_FAMILY_QUANTITIES: tuple[QuantumFamilyQuantity, ...] = (
         "Hartree",
         frozenset({"scf_energy"}),
         frozenset({"sp", "opt", "opt_freq"}),
+        True,
+        requires_matching_geometry=False,
+        requires_matching_structure=True,
     ),
     QuantumFamilyQuantity(
         "homo_energy",
         "HOMO energy",
         "eV",
         frozenset({"homo_energy"}),
-        frozenset({"sp"}),
+        frozenset({"sp", "opt", "opt_freq"}),
+        False,
     ),
     QuantumFamilyQuantity(
         "lumo_energy",
         "LUMO energy",
         "eV",
         frozenset({"lumo_energy"}),
-        frozenset({"sp"}),
+        frozenset({"sp", "opt", "opt_freq"}),
+        False,
+    ),
+    QuantumFamilyQuantity(
+        "enthalpy",
+        "Enthalpy",
+        "Hartree",
+        frozenset({"enthalpy"}),
+        frozenset({"opt_freq"}),
+        True,
+        requires_matching_geometry=True,
+    ),
+    QuantumFamilyQuantity(
+        "gibbs_free_energy",
+        "Gibbs free energy",
+        "Hartree",
+        frozenset({"gibbs_free_energy"}),
+        frozenset({"opt_freq"}),
+        True,
+        requires_matching_geometry=True,
+    ),
+    QuantumFamilyQuantity(
+        "dipole_moment",
+        "Dipole",
+        "Debye",
+        frozenset({"dipole_moment"}),
+        frozenset({"sp", "opt", "opt_freq"}),
+        True,
+        requires_matching_geometry=False,
+        requires_matching_structure=True,
+        required_descriptor_parameters=(("origin_independent", True),),
+        required_run_charge=0,
+    ),
+    QuantumFamilyQuantity(
+        "entropy_term",
+        "Entropy term",
+        "Hartree",
+        frozenset({"entropy_term"}),
+        frozenset({"opt_freq"}),
+        True,
+        requires_matching_geometry=True,
+    ),
+    QuantumFamilyQuantity(
+        "zero_point_energy",
+        "Zero-point energy",
+        "Hartree",
+        frozenset({"zero_point_energy"}),
+        frozenset({"opt_freq"}),
+        True,
+        requires_matching_geometry=True,
     ),
 )
 
@@ -397,11 +460,18 @@ def _family_eligible(
         return False
     if left.solvent != right.solvent:
         return False
-    if quantity.quantity_id == "scf_energy":
-        return (
-            left.method_basis == right.method_basis
-            and left.input_fingerprint == right.input_fingerprint
-        )
+    if quantity.requires_matching_model and left.method_basis != right.method_basis:
+        return False
+    if quantity.requires_matching_geometry and left.input_fingerprint != right.input_fingerprint:
+        return False
+    if quantity.requires_matching_structure:
+        left_identity = submitted_structure_identity(left.input_molblock)
+        right_identity = submitted_structure_identity(right.input_molblock)
+        if not left_identity or left_identity != right_identity:
+            return False
+    if quantity.required_run_charge is not None:
+        if left.charge != quantity.required_run_charge or right.charge != quantity.required_run_charge:
+            return False
     return True
 
 
@@ -420,6 +490,8 @@ def _extract_family_value(
         expected = {f"{run.provider}.{suffix}" for suffix in quantity.descriptor_suffixes}
         if item.descriptor_id not in expected:
             continue
+        if not _descriptor_parameters_match(item, quantity.required_descriptor_parameters):
+            continue
         matches.append(item)
     if len(matches) != 1:
         return None
@@ -428,6 +500,26 @@ def _extract_family_value(
     if number is None or item.units != quantity.units:
         return None
     return number
+
+
+def _parameter_equals(actual: Any, expected: Any) -> bool:
+    if isinstance(expected, bool):
+        return actual is expected
+    return actual == expected
+
+
+def _descriptor_parameters_match(
+    item: DescriptorValue, required: tuple[tuple[str, Any], ...]
+) -> bool:
+    if not required:
+        return True
+    if item.provenance is None:
+        return False
+    parameters = item.provenance.parameters or {}
+    for key, expected in required:
+        if key not in parameters or not _parameter_equals(parameters[key], expected):
+            return False
+    return True
 
 
 @dataclass(frozen=True)

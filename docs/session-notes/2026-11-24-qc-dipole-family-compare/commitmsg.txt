@@ -1,0 +1,3 @@
+Stamp QC dipole origin from submitted charge and add family compare rows.
+
+Neutral origin-independent dipoles, ORCA entropy, and xtb ZPE can be tabulated; mixed ordinary-versus-Quantum stays empty.
