@@ -1471,12 +1471,16 @@ entropy term and xtb's zero-point energy are engine-specific frequency
 rows and also need matching model and geometry.
 
 Columns name the program and method; ORCA and Psi4 are not treated as one
-method. NMR still uses the per-atom shift table. An ordinary run
-against a Quantum job is refused until a shared quantity is approved
-for that pair — none is approved yet (including ordinary dipole versus
-the stored QC Debye magnitude), so Compare will say no approved
-shared quantity is defined rather than lining up similar names.
-Cross-molecule compare is allowed for scalars only.
+method. NMR still uses the per-atom shift table. An ordinary Gasteiger
+Dipole Moment magnitude versus this-run QC Debye magnitude is the one
+approved mixed pair. That Δ is arithmetic, not a charge-model error at
+identical geometry: the ordinary number is that execution's geometry,
+a single-point QC number is the submitted geometry, and an
+optimization or frequency job uses the optimized geometry. EEM, QEq,
+and charged species are not compared. Other ordinary-versus-Quantum
+pairs still have no approved shared quantity. Cross-molecule compare
+is allowed for that mixed dipole scalar, and for other scalars only
+when the allowlist says so.
 
 ### Showing
 
@@ -1840,11 +1844,11 @@ never mixed under one label. When the output prints one, each engine stores
 **this run's** dipole magnitude in Debye (`orca.dipole_moment`,
 `psi4.dipole_moment`, `xtb.dipole_moment`). That is not the Properties
 **Dipole Moment** from Gasteiger, EEM, or QEq. Neutral QC dipoles can be
-compared as a Quantum family row. They are not compared as a mixed
-ordinary-versus-Quantum quantity. Whether the dipole is origin-independent
-follows the charge the job was submitted with, not the drawing's formal
-charge. A charged species remains origin-dependent: the stored number is
-the engine's, without recentering.
+compared as a Quantum family row; Gasteiger magnitude versus this-run QC
+magnitude is the mixed ordinary-versus-Quantum quantity. Whether the
+dipole is origin-independent follows the charge the job was submitted
+with, not the drawing's formal charge. A charged species remains
+origin-dependent: the stored number is the engine's, without recentering.
 
 **NMR is one job.** Ab initio ¹H and ¹³C are views of that output, not two
 calculations. The experimental ¹H lookup in Properties is a different
