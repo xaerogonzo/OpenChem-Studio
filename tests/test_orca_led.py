@@ -602,6 +602,7 @@ def test_no_koopmans_descriptors_are_produced_from_an_led_output():
         REAL_LED_OUTPUT, _led_mol(), "mol-1", "led"
     )
     ids = {d.descriptor_id for d in descriptors}
+    assert "orca.dipole_moment" not in ids
     assert not any("homo" in i or "lumo" in i or "hardness" in i for i in ids), ids
 
 

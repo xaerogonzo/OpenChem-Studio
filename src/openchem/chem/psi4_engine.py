@@ -24,9 +24,11 @@ The engine writes exact integrals (`scf_type pk`), not Psi4's default density fi
 
 from __future__ import annotations
 
+import math
 import re
 import time
 from collections.abc import Callable
+from dataclasses import replace
 from pathlib import Path
 
 from rdkit import Chem
@@ -69,6 +71,48 @@ _FINAL_GEOMETRY = "Final optimized geometry and variables:"
 #: One atom of that geometry: element, then x, y, z in Angstrom. Psi4 prints a two-letter element in CAPITALS (`CL`, measured on chloromethane; the agreement check's optimization
 #: arm lost a molecule to `Cl` being the only spelling accepted), so the symbol is matched in any case and normalised by the caller.
 _GEOMETRY_ROW = re.compile(r"^\s+([A-Za-z]{1,2})\s+(-?\d+\.\d+)\s+(-?\d+\.\d+)\s+(-?\d+\.\d+)\s*$")
+#: Last `Magnitude` under a `Multipole Moments` block is the total dipole in a.u.
+_MULTIPOLE_MAGNITUDE_RE = re.compile(
+    r"Multipole Moments:.*?^\s*Magnitude\s+:\s+(\S+)\s*$",
+    re.DOTALL | re.MULTILINE,
+)
+#: Psi4's printed conversion from e a0 to Debye.
+_AU_TO_DEBYE = 2.5417464519
+
+
+def _last_psi4_dipole_debye(output_text: str) -> float | None:
+    matches = _MULTIPOLE_MAGNITUDE_RE.findall(output_text)
+    if not matches:
+        return None
+    value = float(matches[-1]) * _AU_TO_DEBYE
+    return value if math.isfinite(value) else None
+
+
+def _dipole_from_debye(
+    provider_id: str,
+    molecule_uuid: str,
+    value: float | None,
+    provenance: Provenance,
+    mol: Chem.Mol,
+) -> DescriptorValue | None:
+    if value is None or not math.isfinite(value):
+        return None
+    origin_independent = Chem.GetFormalCharge(mol) == 0
+    return DescriptorValue(
+        descriptor_id=f"{provider_id}.dipole_moment",
+        name="Dipole",
+        units="Debye",
+        category="quantum_chemistry",
+        provider=provider_id,
+        molecule_uuid=molecule_uuid,
+        value=value,
+        timestamp=provenance.timestamp,
+        cache_state=CacheState.COMPLETED,
+        provenance=replace(
+            provenance,
+            parameters={**provenance.parameters, "origin_independent": origin_independent},
+        ),
+    )
 
 
 class Psi4OutputError(RuntimeError):
@@ -177,6 +221,11 @@ class Psi4QuantumEngineProvider(QuantumEngineProvider):
                 provenance=provenance,
             )
         ]
+        dipole = _dipole_from_debye(
+            "psi4", molecule_uuid, _last_psi4_dipole_debye(output_text), provenance, mol
+        )
+        if dipole is not None:
+            descriptors.append(dipole)
         conformer = self._parse_optimized_conformer(output_text, mol, provenance) if calc_type == "opt" else None
         return descriptors, conformer
 

@@ -155,19 +155,29 @@ def test_a_header_naming_a_job_the_engine_does_not_run_is_refused(tmp_path: Path
 # -- the output: a single point ----------------------------------------------------------------------------------------
 
 
+def _by_id(descriptors):
+    return {d.descriptor_id: d for d in descriptors}
+
+
 def test_a_single_point_yields_its_energy_and_no_geometry() -> None:
     descriptors, conformer = _provider().parse_output(_fixture("ethanol_gfn2_sp.out"), _mol("CCO"), "u1", "sp")
-    assert [d.descriptor_id for d in descriptors] == ["xtb.scf_energy"]
     energy = descriptors[0]
+    assert energy.descriptor_id == "xtb.scf_energy"
     assert energy.value == pytest.approx(-11.381897815, abs=1e-8)
     assert energy.units == "Hartree" and energy.provider == "xtb" and energy.molecule_uuid == "u1"
     assert energy.provenance.parameters["xtb_version"] == "6.7.1pre"
+    dipole = _by_id(descriptors)["xtb.dipole_moment"]
+    assert dipole.value == pytest.approx(1.913) and dipole.units == "Debye" and dipole.name == "Dipole"
+    assert dipole.provenance.parameters["origin_independent"] is True
     assert conformer is None
 
 
 def test_an_anion_single_point_is_read() -> None:
     descriptors, _ = _provider().parse_output(_fixture("acetate_anion_gfn2_sp.out"), _mol("CC(=O)[O-]"), "u", "sp")
     assert descriptors[0].value == pytest.approx(-14.143630713, abs=1e-8)
+    dipole = _by_id(descriptors)["xtb.dipole_moment"]
+    assert dipole.value == pytest.approx(8.265)
+    assert dipole.provenance.parameters["origin_independent"] is False
 
 
 # -- the output: an optimization ---------------------------------------------------------------------------------------
@@ -203,6 +213,32 @@ def test_a_radical_run_with_its_spin_is_read() -> None:
     descriptors, conformer = _provider().parse_output(_fixture("methyl_radical_gfn2_opt.out"), _mol("[CH3]"), "u", "opt")
     assert descriptors[0].value == pytest.approx(-3.562970366, abs=1e-8)
     assert conformer is not None and _distance(_geometry(conformer.molblock), 0, 1) == pytest.approx(1.0675, abs=2e-3)
+    dipole = _by_id(descriptors)["xtb.dipole_moment"]
+    assert dipole.value == 0.0
+    assert dipole.units == "Debye"
+
+
+def test_gfn1_stores_total_debye_not_atomic_units() -> None:
+    descriptors, _ = _provider().parse_output(_fixture("ethanol_gfn1_opt.out"), _mol("CCO"), "u", "opt")
+    dipole = _by_id(descriptors)["xtb.dipole_moment"]
+    assert dipole.value == pytest.approx(2.416) and dipole.units == "Debye"
+
+
+def test_gfn2_stores_the_full_row_never_q_only() -> None:
+    descriptors, _ = _provider().parse_output(_fixture("ethanol_gfn2_opt.out"), _mol("CCO"), "u", "opt")
+    dipole = _by_id(descriptors)["xtb.dipole_moment"]
+    assert dipole.value == pytest.approx(1.998)
+    assert dipole.value != pytest.approx(0.463)
+
+
+def test_a_missing_dipole_does_not_fail_scf() -> None:
+    text = _fixture("ethanol_gfn2_sp.out")
+    start = text.index("molecular dipole:")
+    end = text.index("molecular quadrupole")
+    stripped = text[:start] + text[end:]
+    descriptors, _ = _provider().parse_output(stripped, _mol("CCO"), "u", "sp")
+    assert descriptors[0].descriptor_id == "xtb.scf_energy"
+    assert "xtb.dipole_moment" not in _by_id(descriptors)
 
 
 def test_an_optimization_that_did_not_converge_is_a_failed_run_though_xtb_completed() -> None:
@@ -228,8 +264,16 @@ def test_coordinates_are_never_applied_to_other_atoms() -> None:
 def test_a_frequency_job_adds_the_thermochemistry_it_printed() -> None:
     descriptors, conformer = _provider().parse_output(_fixture("ethanol_gfn2_opt_freq.out"), _mol("CCO"), "u", "opt_freq")
     by_id = {d.descriptor_id: d.value for d in descriptors}
-    assert set(by_id) == {"xtb.scf_energy", "xtb.enthalpy", "xtb.gibbs_free_energy", "xtb.zero_point_energy"}
+    assert descriptors[0].descriptor_id == "xtb.scf_energy"
+    assert set(by_id) == {
+        "xtb.scf_energy",
+        "xtb.dipole_moment",
+        "xtb.enthalpy",
+        "xtb.gibbs_free_energy",
+        "xtb.zero_point_energy",
+    }
     assert by_id["xtb.scf_energy"] == pytest.approx(-11.394339084, abs=1e-8)
+    assert by_id["xtb.dipole_moment"] == pytest.approx(1.998)
     assert by_id["xtb.enthalpy"] == pytest.approx(-11.310981822, abs=1e-8)
     assert by_id["xtb.gibbs_free_energy"] == pytest.approx(-11.341577068, abs=1e-8)
     assert by_id["xtb.zero_point_energy"] == pytest.approx(0.078140922, abs=1e-8)
