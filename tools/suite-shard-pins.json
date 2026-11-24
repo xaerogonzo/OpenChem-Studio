@@ -4894,6 +4894,7 @@
   "tests/test_jobs_panel.py": 6,
   "tests/test_keshavarz2010_sublimation.py": 2,
   "tests/test_keshavarz_nitroaromatic2009.py": 2,
+  "tests/test_ketcher_atom_dialog_radical.py": 6,
   "tests/test_ketcher_bundle_is_current.py": 3,
   "tests/test_ketcher_coordination_roundtrip.py": 6,
   "tests/test_ketcher_editor_backend.py": 0,
