@@ -6133,7 +6133,7 @@ class MainWindow(QMainWindow):
         """This Quantum run's dipole on this run's geometry — never the live calculator."""
         from openchem.ui.dialogs.spatial_result_dialog import QC_RUN_GEOMETRY_CAVEAT, SpatialResultDialog
         from openchem.ui.history_entries import QC_PREFIX, entry_from_quantum_run
-        from openchem.ui.qc_dipole_spatial import run_geometry_molblock
+        from openchem.chem.qc_dipole import run_geometry_molblock
 
         if not report_id.startswith(QC_PREFIX):
             return False

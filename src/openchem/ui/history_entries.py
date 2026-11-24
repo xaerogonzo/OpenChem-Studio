@@ -14,7 +14,7 @@ from openchem.domain.property_execution import PropertyExecution
 from openchem.domain.quantum_chemistry_run import QuantumChemistryRun
 from openchem.domain.report import Fact, FactCategory
 from openchem.domain.structure_issue import Basis
-from openchem.ui.qc_dipole_spatial import dipole_arrow_for_run, run_geometry_molblock
+from openchem.chem.qc_dipole import dipole_arrow_for_run, run_geometry_molblock
 from openchem.ui.result_adapters import summarise
 from openchem.ui.result_summary import ResultSummaryView
 
