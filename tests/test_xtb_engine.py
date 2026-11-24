@@ -15,6 +15,7 @@ from rdkit import Chem
 from rdkit.Chem import AllChem
 
 from openchem.chem import xtb_engine as xe
+from openchem.chem.qc_dipole import AU_TO_DEBYE, VECTOR_FRAME_JOB, VECTOR_ORIGIN_CARTESIAN
 from openchem.domain.conformer import QUANTUM_ENGINE_NAMES, QUANTUM_OPTIMIZED_METHODS, XTB_OPTIMIZED
 
 FIXTURES = Path(__file__).parent / "fixtures" / "xtb"
@@ -169,6 +170,11 @@ def test_a_single_point_yields_its_energy_and_no_geometry() -> None:
     dipole = _by_id(descriptors)["xtb.dipole_moment"]
     assert dipole.value == pytest.approx(1.913) and dipole.units == "Debye" and dipole.name == "Dipole"
     assert dipole.provenance.parameters["origin_independent"] is True
+    assert dipole.provenance.parameters["vector"] == pytest.approx(
+        [part * AU_TO_DEBYE for part in (-0.122, -0.564, 0.483)]
+    )
+    assert dipole.provenance.parameters["vector_origin"] == VECTOR_ORIGIN_CARTESIAN
+    assert dipole.provenance.parameters["vector_frame"] == VECTOR_FRAME_JOB
     assert conformer is None
 
 
@@ -178,6 +184,10 @@ def test_an_anion_single_point_is_read() -> None:
     dipole = _by_id(descriptors)["xtb.dipole_moment"]
     assert dipole.value == pytest.approx(8.265)
     assert dipole.provenance.parameters["origin_independent"] is False
+    assert dipole.provenance.parameters["vector"] == pytest.approx(
+        [part * AU_TO_DEBYE for part in (-3.202, -0.565, -0.004)]
+    )
+    assert dipole.provenance.parameters["vector_origin"] == VECTOR_ORIGIN_CARTESIAN
 
 
 # -- the output: an optimization ---------------------------------------------------------------------------------------
@@ -222,6 +232,9 @@ def test_gfn1_stores_total_debye_not_atomic_units() -> None:
     descriptors, _ = _provider().parse_output(_fixture("ethanol_gfn1_opt.out"), _mol("CCO"), "u", "opt")
     dipole = _by_id(descriptors)["xtb.dipole_moment"]
     assert dipole.value == pytest.approx(2.416) and dipole.units == "Debye"
+    assert dipole.provenance.parameters["vector"] == pytest.approx(
+        [part * AU_TO_DEBYE for part in (-0.6651, -0.2469, 0.6325)]
+    )
 
 
 def test_gfn2_stores_the_full_row_never_q_only() -> None:
@@ -229,6 +242,9 @@ def test_gfn2_stores_the_full_row_never_q_only() -> None:
     dipole = _by_id(descriptors)["xtb.dipole_moment"]
     assert dipole.value == pytest.approx(1.998)
     assert dipole.value != pytest.approx(0.463)
+    assert dipole.provenance.parameters["vector"] == pytest.approx(
+        [part * AU_TO_DEBYE for part in (-0.597, -0.134, 0.493)]
+    )
 
 
 def test_a_missing_dipole_does_not_fail_scf() -> None:

@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import math
 import os
 import re
 import shutil
@@ -36,6 +35,7 @@ from openchem.chem.fukui_plan import (
 )
 from openchem.chem.fukui_states import CHARGE_TOLERANCE, read_cation
 from openchem.chem.orca_led import build_led_input, parse_led
+from openchem.chem.qc_dipole import au_components_to_debye, dipole_descriptor, parse_orca_dipole
 from openchem.chem.vibrational_modes import classify_mode
 from openchem.domain.scientific_result import (
     NMRSpectrumResult,
@@ -278,8 +278,6 @@ _CALC_TYPE_KEYWORDS = {
 }
 
 _SCF_ENERGY_RE = re.compile(r"FINAL SINGLE POINT ENERGY\s+(-?\d+\.\d+)")
-#: Last `Magnitude (Debye)` line in ordinary ORCA output; compound jobs (`delta_scf`/`led`/`fukui`) skip this parse.
-_DIPOLE_DEBYE_RE = re.compile(r"Magnitude \(Debye\)\s+:\s+(-?\d+\.\d+)")
 # ORCA's output has CRLF line ends on Windows, so every newline here is `\r?\n`: with a bare `\n` this found no
 # block at all and an optimized geometry was silently never read (found by a live tautomer-NMR run).
 _CARTESIAN_BLOCK_RE = re.compile(
@@ -314,29 +312,6 @@ _START_OF_GUESS = {"HCORE": START_HCORE, "MINIMAL BASIS EHT": START_HUECKEL}
 _HIRSHFELD_HEADER = "HIRSHFELD ANALYSIS"
 #: ORCA prints this once per UNRESTRICTED job, so a compound Fukui output holds two, the cation's then the anion's (the neutral closed shell prints none).
 _S_SQUARED_RE = re.compile(r"Expectation value of <S\*\*2>\s*:\s*(-?\d+\.\d+)")
-#: ORCA's "Total Dipole Moment" row (atomic units, x y z) and the two magnitude lines under it. A run prints the block once per geometry it reports, so the LAST one belongs to the final structure.
-_DIPOLE_RE = re.compile(
-    r"Total Dipole Moment\s*:\s*(-?\d+\.\d+)\s+(-?\d+\.\d+)\s+(-?\d+\.\d+)[^\n]*\n[^\n]*\n"
-    r"Magnitude \(a\.u\.\)\s*:\s*(\d+\.\d+)[^\n]*\n"
-    r"Magnitude \(Debye\)\s*:\s*(\d+\.\d+)"
-)
-
-
-def parse_dipole(output_text: str) -> tuple[tuple[float, float, float], float] | None:
-    """(vector in Debye, magnitude in Debye) of the last dipole block ORCA printed, or None.
-
-    The vector is ORCA's atomic-unit row scaled by ORCA's OWN a.u.-to-Debye ratio (its two printed magnitudes), so no constant is chosen here. The frame is the input's:
-    ORCA does not reorient the molecule."""
-    matches = list(_DIPOLE_RE.finditer(output_text))
-    if not matches:
-        return None
-    *components, magnitude_au, magnitude_debye = (float(g) for g in matches[-1].groups())
-    if magnitude_au <= 0.0:
-        return (0.0, 0.0, 0.0), float(magnitude_debye)
-    scale = magnitude_debye / magnitude_au
-    return (components[0] * scale, components[1] * scale, components[2] * scale), float(magnitude_debye)
-
-
 #: A line of ORCA's echo of the input file, at the top of its output once for the whole compound input: ``|  12> * xyz 0 1``.
 _INPUT_ECHO_LINE = re.compile(r"^\|\s*\d+>[ \t]?(.*)$")
 #: The orbital swap that puts a hole start's hole in the HOMO-k: ``Rotate {a, b, 90, 1, 1} end``, with b the HOMO's number and a the orbital the hole goes to.
@@ -543,38 +518,16 @@ def add_parallel_block(input_text: str, cores: int) -> str:
     return input_text
 
 
-def _last_orca_dipole_debye(output_text: str) -> float | None:
-    matches = _DIPOLE_DEBYE_RE.findall(output_text)
-    if not matches:
-        return None
-    return float(matches[-1])
+def parse_dipole(output_text: str) -> tuple[tuple[float, float, float], float] | None:
+    """(vector in Debye, magnitude in Debye) of the last complete ORCA dipole block, or None.
 
-
-def _dipole_from_debye(
-    provider_id: str,
-    molecule_uuid: str,
-    value: float | None,
-    provenance: Provenance,
-    mol: Chem.Mol,
-) -> DescriptorValue | None:
-    if value is None or not math.isfinite(value):
+    The vector is the printed a.u. XYZ converted with the shared a.u.→Debye factor.
+    The frame is the job Cartesian axes: ORCA does not reorient the molecule.
+    """
+    magnitude, vector_au, _origin = parse_orca_dipole(output_text)
+    if magnitude is None or vector_au is None:
         return None
-    origin_independent = Chem.GetFormalCharge(mol) == 0
-    return DescriptorValue(
-        descriptor_id=f"{provider_id}.dipole_moment",
-        name="Dipole",
-        units="Debye",
-        category="quantum_chemistry",
-        provider=provider_id,
-        molecule_uuid=molecule_uuid,
-        value=value,
-        timestamp=provenance.timestamp,
-        cache_state=CacheState.COMPLETED,
-        provenance=replace(
-            provenance,
-            parameters={**provenance.parameters, "origin_independent": origin_independent},
-        ),
-    )
+    return au_components_to_debye(*vector_au), magnitude
 
 
 class OrcaOutputError(Exception):
@@ -881,14 +834,12 @@ class OrcaQuantumEngineProvider(QuantumEngineProvider):
         ]
 
         if calc_type not in ("delta_scf", "led", "fukui"):
-            dipole = _dipole_from_debye(
-                "orca", molecule_uuid, _last_orca_dipole_debye(output_text), provenance, mol
+            magnitude, vector_au, origin = parse_orca_dipole(output_text)
+            dipole = dipole_descriptor(
+                "orca", molecule_uuid, magnitude, provenance, mol,
+                vector_au=vector_au, vector_origin=origin,
             )
             if dipole is not None:
-                # The vector (in the input's frame, which ORCA does not reorient) beside the magnitude, from the same block.
-                parsed = parse_dipole(output_text)
-                if parsed is not None:
-                    dipole = replace(dipole, provenance=replace(dipole.provenance, parameters={**dipole.provenance.parameters, "vector_debye": [float(v) for v in parsed[0]]}))
                 descriptors.append(dipole)
 
         if calc_type == "delta_scf":

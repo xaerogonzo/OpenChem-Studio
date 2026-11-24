@@ -16,6 +16,7 @@ from rdkit import Chem
 from rdkit.Chem import AllChem
 
 from openchem.chem.orca_engine import OrcaQuantumEngineProvider, parse_dipole
+from openchem.chem.qc_dipole import vector_matches_magnitude
 
 FIXTURE = Path(__file__).parent / "fixtures" / "orca" / "clf3_opt_dipole_excerpt.out"
 
@@ -41,10 +42,10 @@ def _block(x: float, y: float, z: float, debye: float, au: float) -> str:
 def test_the_clf3_dipole_is_read_and_points_along_the_molecules_own_axis():
     text = FIXTURE.read_text()
     descriptor = _descriptors(text)["orca.dipole_moment"]
-    vector = np.array(descriptor.provenance.parameters["vector_debye"])
+    vector = np.array(descriptor.provenance.parameters["vector"])
 
     assert descriptor.units == "Debye" and abs(descriptor.value - 0.984372464) < 1e-9
-    assert abs(float(np.linalg.norm(vector)) - descriptor.value) < 1e-6, "the vector and the magnitude are one number"
+    assert vector_matches_magnitude(tuple(float(v) for v in vector), descriptor.value)
 
     # The oracle is the geometry printed in the same file: ClF3 is C2v, so the dipole lies on the Cl-F bond that is the axis (the short, equatorial one).
     rows = [line.split() for line in text.splitlines() if line.split()[:1] in (["Cl"], ["F"]) and len(line.split()) == 4]

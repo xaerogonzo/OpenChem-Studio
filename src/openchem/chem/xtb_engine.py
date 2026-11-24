@@ -21,16 +21,15 @@ WHAT THE STDOUT DOES NOT CARRY, and is therefore not reported: the IR intensitie
 
 from __future__ import annotations
 
-import math
 import re
 import time
 from collections.abc import Callable
-from dataclasses import replace
 from pathlib import Path
 
 from rdkit import Chem
 from rdkit.Geometry import Point3D
 
+from openchem.chem.qc_dipole import dipole_descriptor, parse_xtb_dipole
 from openchem.domain.common import CacheState, Provenance
 from openchem.domain.conformer import XTB_OPTIMIZED, ConformerModel
 from openchem.domain.descriptor import DescriptorValue
@@ -89,59 +88,6 @@ _EIGVAL_ROW = re.compile(r"^eigval :\s+(.*)$")
 _COORD_ROW = re.compile(r"^\s*(-?\d+\.\d+)\s+(-?\d+\.\d+)\s+(-?\d+\.\d+)\s+([A-Za-z]{1,2})\s*$")
 #: A line of xtb's own error report: `[ERROR] ...` or the numbered `-1- Error: ...` lines under it.
 _ERROR_LINE = re.compile(r"^(?:\[ERROR\].*|-\d+- .*)$")
-#: GFN1 prints `dipole moment from electron density` then `total (Debye)`.
-_GFN1_DIPOLE_RE = re.compile(
-    r"dipole moment from electron density \(au\).*?total \(Debye\):\s+(-?\d+\.\d+)",
-    re.DOTALL | re.IGNORECASE,
-)
-#: GFN2 prints a `molecular dipole` table; the stored magnitude is the `full` row's `tot (Debye)`, never `q only`.
-_GFN2_FULL_DIPOLE_RE = re.compile(
-    r"molecular dipole:\s*\n[^\n]*tot \(Debye\)[^\n]*\n"
-    r"[^\n]*q only:[^\n]*\n"
-    r"\s*full:\s+\S+\s+\S+\s+\S+\s+(-?\d+\.\d+)",
-    re.IGNORECASE,
-)
-
-
-def _last_xtb_dipole_debye(output_text: str) -> float | None:
-    candidates: list[tuple[int, float]] = []
-    for match in _GFN1_DIPOLE_RE.finditer(output_text):
-        candidates.append((match.start(), float(match.group(1))))
-    for match in _GFN2_FULL_DIPOLE_RE.finditer(output_text):
-        candidates.append((match.start(), float(match.group(1))))
-    if not candidates:
-        return None
-    candidates.sort(key=lambda item: item[0])
-    return candidates[-1][1]
-
-
-def _dipole_from_debye(
-    provider_id: str,
-    molecule_uuid: str,
-    value: float | None,
-    provenance: Provenance,
-    mol: Chem.Mol,
-) -> DescriptorValue | None:
-    if value is None or not math.isfinite(value):
-        return None
-    origin_independent = Chem.GetFormalCharge(mol) == 0
-    return DescriptorValue(
-        descriptor_id=f"{provider_id}.dipole_moment",
-        name="Dipole",
-        units="Debye",
-        category="quantum_chemistry",
-        provider=provider_id,
-        molecule_uuid=molecule_uuid,
-        value=value,
-        timestamp=provenance.timestamp,
-        cache_state=CacheState.COMPLETED,
-        provenance=replace(
-            provenance,
-            parameters={**provenance.parameters, "origin_independent": origin_independent},
-        ),
-    )
-
-
 class XtbOutputError(RuntimeError):
     """xtb ran and said it failed, or finished without the result a calculation type needs."""
 
@@ -241,8 +187,10 @@ class XtbQuantumEngineProvider(QuantumEngineProvider):
 
         # The LAST energy: a frequency job prints the energy of the optimization and then of the Hessian step, at the same geometry.
         descriptors = [descriptor("xtb.scf_energy", "Total Energy (xtb)", float(energies[-1]))]
-        dipole = _dipole_from_debye(
-            "xtb", molecule_uuid, _last_xtb_dipole_debye(output_text), provenance, mol
+        magnitude, vector_au, origin = parse_xtb_dipole(output_text)
+        dipole = dipole_descriptor(
+            "xtb", molecule_uuid, magnitude, provenance, mol,
+            vector_au=vector_au, vector_origin=origin,
         )
         if dipole is not None:
             descriptors.append(dipole)
