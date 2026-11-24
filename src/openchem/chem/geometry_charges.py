@@ -38,6 +38,7 @@ import numpy as np
 from rdkit import Chem
 
 from openchem.chem import charge_equilibration as ce
+from openchem.chem import open_shell_charges as osc
 from openchem.chem import resonance_forms as rf
 from openchem.chem import typed_eem as te
 from openchem.chem.calculator_options import decimals
@@ -386,6 +387,11 @@ def compute_geometry_charges(mol: Chem.Mol, molecule_uuid: str, parameters: dict
     def refuse(code: str, message: str | None = None, diagnostics: dict | None = None) -> PerAtomDataset:
         return _refusal(code, name, method, places, molecule_uuid, message, diagnostics, property_id)
 
+    # A model that failed the radical measurement (`open_shell_charges`) gives no charges for an open-shell structure; the typed models refuse it themselves below. The same code as theirs.
+    open_shell = osc.open_shell_charge_refusal(mol, method, label)
+    if open_shell:
+        return refuse(rf.REFUSE_UNPAIRED_ELECTRON, open_shell)
+
     try:
         conformer = _require_conformer(mol)
     except NoConformerError:
@@ -529,6 +535,9 @@ def compute_geometry_charges(mol: Chem.Mol, molecule_uuid: str, parameters: dict
         }
         if "Si" in elements:
             computed["source_discrepancy"] = QEQ_SILICON_NOTE
+        open_shell_note = osc.open_shell_charge_note(mol, method)
+        if open_shell_note:
+            computed["open_shell_note"] = open_shell_note
     elif method in IONESCU_SCHEMES:
         scheme = IONESCU_SCHEMES[method]
         model = ce.ionescu_parameters()[scheme]
