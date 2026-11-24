@@ -1,0 +1,229 @@
+methyl_radical           open-shell table (CH3)                     HFTyp=UHF <S2>=0.753561 sum=-2.9999999999960614e-06 ok
+methyl_parent            ETKDG + force field                        HFTyp=RHF <S2>=None sum=2.999999999999531e-06 ok
+  methyl        gasteiger                                R-atom 0 e_R=0.013 e_P=0.028 excess=-0.014
+  methyl        eem_bultinck2002_part1                   R-atom 0 e_R=0.423 e_P=0.532 excess=-0.109
+  methyl        qeq_rg1991_lambda_half_h_experimental    R-atom 0 e_R=0.390 e_P=0.493 excess=-0.103
+  methyl        eem_ionescu2013_e_mpa_631gs_gas          R-atom 0 e_R=0.612 e_P=0.750 excess=-0.138
+  methyl        eem_ionescu2013_e_mpa_631gss_gas         R-atom 0 e_R=0.384 e_P=0.493 excess=-0.109
+hydroxyl_radical         open-shell table (OH)                      HFTyp=UHF <S2>=0.751826 sum=0.0 ok
+hydroxyl_parent          ETKDG + force field                        HFTyp=RHF <S2>=None sum=3.0000000000030003e-06 ok
+  hydroxyl      gasteiger                                R-atom 0 e_R=0.087 e_P=0.093 excess=-0.005
+  hydroxyl      eem_bultinck2002_part1                   R-atom 0 e_R=0.226 e_P=0.316 excess=-0.090
+  hydroxyl      qeq_rg1991_lambda_half_h_experimental    R-atom 0 e_R=0.218 e_P=0.383 excess=-0.165
+  hydroxyl      eem_ionescu2013_e_mpa_631gs_gas          R-atom 0 e_R=0.443 e_P=0.579 excess=-0.136
+  hydroxyl      eem_ionescu2013_e_mpa_631gss_gas         R-atom 0 e_R=0.393 e_P=0.431 excess=-0.038
+amino_radical            open-shell table (NH2)                     HFTyp=UHF <S2>=0.752735 sum=-1.0000000000148779e-06 ok
+amino_parent             ETKDG + force field                        HFTyp=RHF <S2>=None sum=1.000000000001e-06 ok
+  amino         gasteiger                                R-atom 0 e_R=0.081 e_P=0.055 excess=+0.026
+  amino         eem_bultinck2002_part1                   R-atom 0 e_R=0.403 e_P=0.642 excess=-0.238
+  amino         qeq_rg1991_lambda_half_h_experimental    R-atom 0 e_R=0.302 e_P=0.430 excess=-0.128
+  amino         eem_ionescu2013_e_mpa_631gs_gas          R-atom 0 e_R=0.599 e_P=0.605 excess=-0.006
+  amino         eem_ionescu2013_e_mpa_631gss_gas         R-atom 0 e_R=0.460 e_P=0.408 excess=+0.051
+ethyl_radical            ETKDG + force field                        HFTyp=UHF <S2>=0.753793 sum=5.0000000000050004e-06 ok
+ethyl_parent             ETKDG + force field                        HFTyp=RHF <S2>=None sum=1.2000000000005062e-05 ok
+  ethyl         gasteiger                                R-atom 0 e_R=0.006 e_P=0.003 excess=+0.003
+  ethyl         gasteiger                                R-atom 1 e_R=0.004 e_P=0.003 excess=+0.001
+  ethyl         eem_bultinck2002_part1                   R-atom 0 e_R=0.329 e_P=0.335 excess=-0.006
+  ethyl         eem_bultinck2002_part1                   R-atom 1 e_R=0.236 e_P=0.335 excess=-0.098
+  ethyl         qeq_rg1991_lambda_half_h_experimental    R-atom 0 e_R=0.362 e_P=0.405 excess=-0.043
+  ethyl         qeq_rg1991_lambda_half_h_experimental    R-atom 1 e_R=0.276 e_P=0.405 excess=-0.129
+  ethyl         eem_ionescu2013_e_mpa_631gs_gas          R-atom 0 e_R=0.474 e_P=0.482 excess=-0.008
+  ethyl         eem_ionescu2013_e_mpa_631gs_gas          R-atom 1 e_R=0.353 e_P=0.482 excess=-0.129
+  ethyl         eem_ionescu2013_e_mpa_631gss_gas         R-atom 0 e_R=0.309 e_P=0.317 excess=-0.009
+  ethyl         eem_ionescu2013_e_mpa_631gss_gas         R-atom 1 e_R=0.221 e_P=0.317 excess=-0.096
+methoxy_radical          ETKDG + force field                        HFTyp=UHF <S2>=0.753455 sum=-2.000000000002e-06 ok
+methoxy_parent           ETKDG + force field                        HFTyp=RHF <S2>=None sum=9.99999999976714e-07 ok
+  methoxy       gasteiger                                R-atom 0 e_R=0.051 e_P=0.009 excess=+0.041
+  methoxy       gasteiger                                R-atom 1 e_R=0.101 e_P=0.139 excess=-0.038
+  methoxy       eem_bultinck2002_part1                   R-atom 0 e_R=0.110 e_P=0.225 excess=-0.115
+  methoxy       eem_bultinck2002_part1                   R-atom 1 e_R=0.260 e_P=0.293 excess=-0.033
+  methoxy       qeq_rg1991_lambda_half_h_experimental    R-atom 0 e_R=0.050 e_P=0.184 excess=-0.134
+  methoxy       qeq_rg1991_lambda_half_h_experimental    R-atom 1 e_R=0.272 e_P=0.402 excess=-0.130
+  methoxy       eem_ionescu2013_e_mpa_631gs_gas          R-atom 0 e_R=0.135 e_P=0.317 excess=-0.182
+  methoxy       eem_ionescu2013_e_mpa_631gs_gas          R-atom 1 e_R=0.462 e_P=0.532 excess=-0.070
+  methoxy       eem_ionescu2013_e_mpa_631gss_gas         R-atom 0 e_R=0.175 e_P=0.049 excess=+0.127
+  methoxy       eem_ionescu2013_e_mpa_631gss_gas         R-atom 1 e_R=0.520 e_P=0.483 excess=+0.037
+hydroperoxyl_radical     ETKDG + force field                        HFTyp=UHF <S2>=0.752614 sum=-3.0000000000030003e-06 ok
+hydroperoxyl_parent      ETKDG + force field                        HFTyp=RHF <S2>=None sum=3.000000000030756e-06 ok
+  hydroperoxyl  gasteiger                                R-atom 0 e_R=0.156 e_P=0.083 excess=+0.073
+  hydroperoxyl  gasteiger                                R-atom 1 e_R=0.091 e_P=0.083 excess=+0.009
+  hydroperoxyl  eem_bultinck2002_part1                   R-atom 0 e_R=0.232 e_P=0.217 excess=+0.015
+  hydroperoxyl  eem_bultinck2002_part1                   R-atom 1 e_R=0.002 e_P=0.217 excess=-0.215
+  hydroperoxyl  qeq_rg1991_lambda_half_h_experimental    R-atom 0 e_R=0.248 e_P=0.245 excess=+0.004
+  hydroperoxyl  qeq_rg1991_lambda_half_h_experimental    R-atom 1 e_R=0.049 e_P=0.245 excess=-0.196
+  hydroperoxyl  eem_ionescu2013_e_mpa_631gs_gas          R-atom 0 e_R=0.393 e_P=0.432 excess=-0.038
+  hydroperoxyl  eem_ionescu2013_e_mpa_631gs_gas          R-atom 1 e_R=0.119 e_P=0.432 excess=-0.313
+  hydroperoxyl  eem_ionescu2013_e_mpa_631gss_gas         R-atom 0 e_R=0.352 e_P=0.385 excess=-0.033
+  hydroperoxyl  eem_ionescu2013_e_mpa_631gss_gas         R-atom 1 e_R=0.168 e_P=0.385 excess=-0.217
+tert-butyl_radical       ETKDG + force field                        HFTyp=UHF <S2>=0.753878 sum=-4.39999999999989e-05 ok
+tert-butyl_parent        ETKDG + force field                        HFTyp=RHF <S2>=None sum=-4.500000000000337e-05 ok
+  tert-butyl    gasteiger                                R-atom 0 e_R=0.017 e_P=0.006 excess=+0.011
+  tert-butyl    gasteiger                                R-atom 1 e_R=0.053 e_P=0.054 excess=-0.001
+  tert-butyl    gasteiger                                R-atom 2 e_R=0.017 e_P=0.006 excess=+0.011
+  tert-butyl    gasteiger                                R-atom 3 e_R=0.017 e_P=0.006 excess=+0.011
+  tert-butyl    eem_bultinck2002_part1                   R-atom 0 e_R=0.406 e_P=0.392 excess=+0.014
+  tert-butyl    eem_bultinck2002_part1                   R-atom 1 e_R=0.095 e_P=0.011 excess=+0.084
+  tert-butyl    eem_bultinck2002_part1                   R-atom 2 e_R=0.406 e_P=0.392 excess=+0.014
+  tert-butyl    eem_bultinck2002_part1                   R-atom 3 e_R=0.406 e_P=0.392 excess=+0.014
+  tert-butyl    qeq_rg1991_lambda_half_h_experimental    R-atom 0 e_R=0.302 e_P=0.341 excess=-0.039
+  tert-butyl    qeq_rg1991_lambda_half_h_experimental    R-atom 1 e_R=0.015 e_P=0.142 excess=-0.126
+  tert-butyl    qeq_rg1991_lambda_half_h_experimental    R-atom 2 e_R=0.302 e_P=0.340 excess=-0.039
+  tert-butyl    qeq_rg1991_lambda_half_h_experimental    R-atom 3 e_R=0.302 e_P=0.341 excess=-0.039
+  tert-butyl    eem_ionescu2013_e_mpa_631gs_gas          R-atom 0 e_R=0.560 e_P=0.544 excess=+0.016
+  tert-butyl    eem_ionescu2013_e_mpa_631gs_gas          R-atom 1 e_R=0.083 e_P=0.028 excess=+0.055
+  tert-butyl    eem_ionescu2013_e_mpa_631gs_gas          R-atom 2 e_R=0.560 e_P=0.544 excess=+0.016
+  tert-butyl    eem_ionescu2013_e_mpa_631gs_gas          R-atom 3 e_R=0.560 e_P=0.544 excess=+0.016
+  tert-butyl    eem_ionescu2013_e_mpa_631gss_gas         R-atom 0 e_R=0.386 e_P=0.375 excess=+0.012
+  tert-butyl    eem_ionescu2013_e_mpa_631gss_gas         R-atom 1 e_R=0.108 e_P=0.020 excess=+0.088
+  tert-butyl    eem_ionescu2013_e_mpa_631gss_gas         R-atom 2 e_R=0.386 e_P=0.374 excess=+0.012
+  tert-butyl    eem_ionescu2013_e_mpa_631gss_gas         R-atom 3 e_R=0.386 e_P=0.375 excess=+0.012
+benzyl_radical           ETKDG + force field                        HFTyp=UHF <S2>=0.775665 sum=-9.000000000000327e-06 ok
+benzyl_parent            ETKDG + force field                        HFTyp=RHF <S2>=None sum=-1.6999999999989246e-05 ok
+  benzyl        gasteiger                                R-atom 0 e_R=0.030 e_P=0.026 excess=+0.004
+  benzyl        gasteiger                                R-atom 1 e_R=0.043 e_P=0.062 excess=-0.019
+  benzyl        gasteiger                                R-atom 2 e_R=0.027 e_P=0.018 excess=+0.009
+  benzyl        gasteiger                                R-atom 3 e_R=0.029 e_P=0.028 excess=+0.001
+  benzyl        gasteiger                                R-atom 4 e_R=0.028 e_P=0.023 excess=+0.005
+  benzyl        gasteiger                                R-atom 5 e_R=0.029 e_P=0.028 excess=+0.001
+  benzyl        gasteiger                                R-atom 6 e_R=0.027 e_P=0.018 excess=+0.009
+  benzyl        eem_bultinck2002_part1                   R-atom 0 e_R=0.294 e_P=0.399 excess=-0.105
+  benzyl        eem_bultinck2002_part1                   R-atom 1 e_R=0.091 e_P=0.070 excess=+0.020
+  benzyl        eem_bultinck2002_part1                   R-atom 2 e_R=0.131 e_P=0.129 excess=+0.002
+  benzyl        eem_bultinck2002_part1                   R-atom 3 e_R=0.077 e_P=0.079 excess=-0.002
+  benzyl        eem_bultinck2002_part1                   R-atom 4 e_R=0.093 e_P=0.091 excess=+0.001
+  benzyl        eem_bultinck2002_part1                   R-atom 5 e_R=0.077 e_P=0.079 excess=-0.002
+  benzyl        eem_bultinck2002_part1                   R-atom 6 e_R=0.131 e_P=0.129 excess=+0.002
+  benzyl        qeq_rg1991_lambda_half_h_experimental    R-atom 0 e_R=0.249 e_P=0.355 excess=-0.105
+  benzyl        qeq_rg1991_lambda_half_h_experimental    R-atom 1 e_R=0.056 e_P=0.027 excess=+0.030
+  benzyl        qeq_rg1991_lambda_half_h_experimental    R-atom 2 e_R=0.048 e_P=0.037 excess=+0.011
+  benzyl        qeq_rg1991_lambda_half_h_experimental    R-atom 3 e_R=0.080 e_P=0.078 excess=+0.002
+  benzyl        qeq_rg1991_lambda_half_h_experimental    R-atom 4 e_R=0.070 e_P=0.065 excess=+0.005
+  benzyl        qeq_rg1991_lambda_half_h_experimental    R-atom 5 e_R=0.080 e_P=0.078 excess=+0.002
+  benzyl        qeq_rg1991_lambda_half_h_experimental    R-atom 6 e_R=0.048 e_P=0.037 excess=+0.011
+  benzyl        eem_ionescu2013_e_mpa_631gs_gas          R-atom 0 e_R=0.413 e_P=0.554 excess=-0.140
+  benzyl        eem_ionescu2013_e_mpa_631gs_gas          R-atom 1 e_R=0.093 e_P=0.067 excess=+0.026
+  benzyl        eem_ionescu2013_e_mpa_631gs_gas          R-atom 2 e_R=0.185 e_P=0.184 excess=+0.001
+  benzyl        eem_ionescu2013_e_mpa_631gs_gas          R-atom 3 e_R=0.129 e_P=0.132 excess=-0.004
+  benzyl        eem_ionescu2013_e_mpa_631gs_gas          R-atom 4 e_R=0.142 e_P=0.142 excess=+0.000
+  benzyl        eem_ionescu2013_e_mpa_631gs_gas          R-atom 5 e_R=0.129 e_P=0.132 excess=-0.004
+  benzyl        eem_ionescu2013_e_mpa_631gs_gas          R-atom 6 e_R=0.185 e_P=0.184 excess=+0.001
+  benzyl        eem_ionescu2013_e_mpa_631gss_gas         R-atom 0 e_R=0.277 e_P=0.376 excess=-0.099
+  benzyl        eem_ionescu2013_e_mpa_631gss_gas         R-atom 1 e_R=0.097 e_P=0.078 excess=+0.019
+  benzyl        eem_ionescu2013_e_mpa_631gss_gas         R-atom 2 e_R=0.127 e_P=0.125 excess=+0.002
+  benzyl        eem_ionescu2013_e_mpa_631gss_gas         R-atom 3 e_R=0.070 e_P=0.072 excess=-0.002
+  benzyl        eem_ionescu2013_e_mpa_631gss_gas         R-atom 4 e_R=0.088 e_P=0.086 excess=+0.001
+  benzyl        eem_ionescu2013_e_mpa_631gss_gas         R-atom 5 e_R=0.070 e_P=0.072 excess=-0.002
+  benzyl        eem_ionescu2013_e_mpa_631gss_gas         R-atom 6 e_R=0.127 e_P=0.125 excess=+0.002
+TEMPO_radical            ETKDG + force field                        HFTyp=UHF <S2>=0.753792 sum=0.0001399999999999943 ok
+TEMPO_parent             ETKDG + force field                        HFTyp=RHF <S2>=None sum=0.00013300000000001505 ok
+  TEMPO         gasteiger                                R-atom 0 e_R=0.027 e_P=0.035 excess=-0.008
+  TEMPO         gasteiger                                R-atom 1 e_R=0.035 e_P=0.031 excess=+0.004
+  TEMPO         gasteiger                                R-atom 2 e_R=0.026 e_P=0.032 excess=-0.006
+  TEMPO         gasteiger                                R-atom 3 e_R=0.005 e_P=0.002 excess=+0.003
+  TEMPO         gasteiger                                R-atom 4 e_R=0.010 e_P=0.012 excess=-0.002
+  TEMPO         gasteiger                                R-atom 5 e_R=0.005 e_P=0.002 excess=+0.003
+  TEMPO         gasteiger                                R-atom 6 e_R=0.036 e_P=0.032 excess=+0.004
+  TEMPO         gasteiger                                R-atom 7 e_R=0.026 e_P=0.035 excess=-0.009
+  TEMPO         gasteiger                                R-atom 8 e_R=0.027 e_P=0.032 excess=-0.005
+  TEMPO         gasteiger                                R-atom 9 e_R=0.160 e_P=0.116 excess=+0.044
+  TEMPO         gasteiger                                R-atom 10 e_R=0.080 e_P=0.132 excess=-0.052
+  TEMPO         eem_bultinck2002_part1                   R-atom 0 e_R=0.378 e_P=0.373 excess=+0.005
+  TEMPO         eem_bultinck2002_part1                   R-atom 1 e_R=0.172 e_P=0.186 excess=-0.014
+  TEMPO         eem_bultinck2002_part1                   R-atom 2 e_R=0.374 e_P=0.382 excess=-0.008
+  TEMPO         eem_bultinck2002_part1                   R-atom 3 e_R=0.249 e_P=0.258 excess=-0.009
+  TEMPO         eem_bultinck2002_part1                   R-atom 4 e_R=0.166 e_P=0.170 excess=-0.003
+  TEMPO         eem_bultinck2002_part1                   R-atom 5 e_R=0.249 e_P=0.258 excess=-0.008
+  TEMPO         eem_bultinck2002_part1                   R-atom 6 e_R=0.172 e_P=0.186 excess=-0.014
+  TEMPO         eem_bultinck2002_part1                   R-atom 7 e_R=0.374 e_P=0.373 excess=+0.002
+  TEMPO         eem_bultinck2002_part1                   R-atom 8 e_R=0.378 e_P=0.382 excess=-0.004
+  TEMPO         eem_bultinck2002_part1                   R-atom 9 e_R=0.283 e_P=0.238 excess=+0.045
+  TEMPO         eem_bultinck2002_part1                   R-atom 10 e_R=0.212 e_P=0.358 excess=-0.146
+  TEMPO         qeq_rg1991_lambda_half_h_experimental    R-atom 0 e_R=0.261 e_P=0.237 excess=+0.024
+  TEMPO         qeq_rg1991_lambda_half_h_experimental    R-atom 1 e_R=0.139 e_P=0.168 excess=-0.029
+  TEMPO         qeq_rg1991_lambda_half_h_experimental    R-atom 2 e_R=0.272 e_P=0.286 excess=-0.014
+  TEMPO         qeq_rg1991_lambda_half_h_experimental    R-atom 3 e_R=0.195 e_P=0.189 excess=+0.006
+  TEMPO         qeq_rg1991_lambda_half_h_experimental    R-atom 4 e_R=0.250 e_P=0.249 excess=+0.001
+  TEMPO         qeq_rg1991_lambda_half_h_experimental    R-atom 5 e_R=0.195 e_P=0.189 excess=+0.006
+  TEMPO         qeq_rg1991_lambda_half_h_experimental    R-atom 6 e_R=0.139 e_P=0.168 excess=-0.029
+  TEMPO         qeq_rg1991_lambda_half_h_experimental    R-atom 7 e_R=0.272 e_P=0.237 excess=+0.035
+  TEMPO         qeq_rg1991_lambda_half_h_experimental    R-atom 8 e_R=0.261 e_P=0.286 excess=-0.025
+  TEMPO         qeq_rg1991_lambda_half_h_experimental    R-atom 9 e_R=0.123 e_P=0.106 excess=+0.017
+  TEMPO         qeq_rg1991_lambda_half_h_experimental    R-atom 10 e_R=0.204 e_P=0.477 excess=-0.273
+  TEMPO         eem_ionescu2013_e_mpa_631gs_gas          R-atom 0 e_R=0.534 e_P=0.529 excess=+0.005
+  TEMPO         eem_ionescu2013_e_mpa_631gs_gas          R-atom 1 e_R=0.318 e_P=0.317 excess=+0.002
+  TEMPO         eem_ionescu2013_e_mpa_631gs_gas          R-atom 2 e_R=0.525 e_P=0.535 excess=-0.010
+  TEMPO         eem_ionescu2013_e_mpa_631gs_gas          R-atom 3 e_R=0.349 e_P=0.358 excess=-0.008
+  TEMPO         eem_ionescu2013_e_mpa_631gs_gas          R-atom 4 e_R=0.248 e_P=0.253 excess=-0.005
+  TEMPO         eem_ionescu2013_e_mpa_631gs_gas          R-atom 5 e_R=0.349 e_P=0.358 excess=-0.008
+  TEMPO         eem_ionescu2013_e_mpa_631gs_gas          R-atom 6 e_R=0.318 e_P=0.317 excess=+0.002
+  TEMPO         eem_ionescu2013_e_mpa_631gs_gas          R-atom 7 e_R=0.525 e_P=0.529 excess=-0.004
+  TEMPO         eem_ionescu2013_e_mpa_631gs_gas          R-atom 8 e_R=0.534 e_P=0.535 excess=-0.001
+  TEMPO         eem_ionescu2013_e_mpa_631gs_gas          R-atom 9 e_R=0.648 e_P=0.587 excess=+0.062
+  TEMPO         eem_ionescu2013_e_mpa_631gs_gas          R-atom 10 e_R=0.375 e_P=0.561 excess=-0.185
+  TEMPO         eem_ionescu2013_e_mpa_631gss_gas         R-atom 0 e_R=0.352 e_P=0.352 excess=-0.000
+  TEMPO         eem_ionescu2013_e_mpa_631gss_gas         R-atom 1 e_R=0.364 e_P=0.355 excess=+0.009
+  TEMPO         eem_ionescu2013_e_mpa_631gss_gas         R-atom 2 e_R=0.330 e_P=0.350 excess=-0.020
+  TEMPO         eem_ionescu2013_e_mpa_631gss_gas         R-atom 3 e_R=0.256 e_P=0.265 excess=-0.009
+  TEMPO         eem_ionescu2013_e_mpa_631gss_gas         R-atom 4 e_R=0.132 e_P=0.140 excess=-0.008
+  TEMPO         eem_ionescu2013_e_mpa_631gss_gas         R-atom 5 e_R=0.256 e_P=0.265 excess=-0.009
+  TEMPO         eem_ionescu2013_e_mpa_631gss_gas         R-atom 6 e_R=0.364 e_P=0.355 excess=+0.009
+  TEMPO         eem_ionescu2013_e_mpa_631gss_gas         R-atom 7 e_R=0.331 e_P=0.352 excess=-0.022
+  TEMPO         eem_ionescu2013_e_mpa_631gss_gas         R-atom 8 e_R=0.352 e_P=0.350 excess=+0.002
+  TEMPO         eem_ionescu2013_e_mpa_631gss_gas         R-atom 9 e_R=0.633 e_P=0.562 excess=+0.071
+  TEMPO         eem_ionescu2013_e_mpa_631gss_gas         R-atom 10 e_R=0.424 e_P=0.526 excess=-0.102
+
+=== VERDICTS ===
+hirshfeld  gasteiger                                FAIL          E=+0.073
+hirshfeld  eem_bultinck2002_part1                   FAIL          E=+0.084
+hirshfeld  qeq_rg1991_lambda_half_h_experimental    PASS          E=+0.035
+hirshfeld  eem_ionescu2013_e_mpa_631gs_gas          FAIL          E=+0.062
+hirshfeld  eem_ionescu2013_e_mpa_631gss_gas         FAIL          E=+0.127
+loewdin    gasteiger                                FAIL          E=+0.092
+loewdin    eem_bultinck2002_part1                   FAIL          E=+0.104
+loewdin    qeq_rg1991_lambda_half_h_experimental    PASS          E=+0.045
+loewdin    eem_ionescu2013_e_mpa_631gs_gas          FAIL          E=+0.131
+loewdin    eem_ionescu2013_e_mpa_631gss_gas         FAIL          E=+0.108
+
+=== DESCRIPTIVE (heavy atoms; model q vs Hirshfeld q) ===
+desc_O2_triplet_O_O_     open-shell table (O2)                      HFTyp=UHF <S2>=2.006545 sum=0.0 ok
+  O2 (triplet, [O][O])       gasteiger                                {0: (-0.0, 0.0), 1: (-0.0, 0.0)}
+  O2 (triplet, [O][O])       eem_bultinck2002_part1                   {0: (-0.0, 0.0), 1: (-0.0, 0.0)}
+  O2 (triplet, [O][O])       qeq_rg1991_lambda_half_h_experimental    {0: (-0.0, 0.0), 1: (-0.0, 0.0)}
+  O2 (triplet, [O][O])       eem_ionescu2013_e_mpa_631gs_gas          {0: (-0.0, 0.0), 1: (-0.0, 0.0)}
+  O2 (triplet, [O][O])       eem_ionescu2013_e_mpa_631gss_gas         {0: (-0.0, 0.0), 1: (-0.0, 0.0)}
+desc_O2_drawn_O_O_triplet_ open-shell table (O2)                      HFTyp=UHF <S2>=2.006545 sum=0.0 ok
+  O2 (drawn O=O, triplet)    gasteiger                                {0: (-0.0, 0.0), 1: (-0.0, 0.0)}
+  O2 (drawn O=O, triplet)    eem_bultinck2002_part1                   {0: (-0.0, 0.0), 1: (-0.0, 0.0)}
+  O2 (drawn O=O, triplet)    qeq_rg1991_lambda_half_h_experimental    {0: (-0.0, 0.0), 1: (-0.0, 0.0)}
+  O2 (drawn O=O, triplet)    eem_ionescu2013_e_mpa_631gs_gas          {0: (-0.0, 0.0), 1: (-0.0, 0.0)}
+  O2 (drawn O=O, triplet)    eem_ionescu2013_e_mpa_631gss_gas         {0: (-0.0, 0.0), 1: (-0.0, 0.0)}
+desc_NO                  open-shell table (NO)                      HFTyp=UHF <S2>=0.7525 sum=0.0 ok
+  NO                         gasteiger                                {0: (0.028058, 0.11991473813481224), 1: (-0.028058, -0.11991473813481224)}
+  NO                         eem_bultinck2002_part1                   {0: (0.028058, 0.2638864078048675), 1: (-0.028058, -0.2638864078048675)}
+  NO                         qeq_rg1991_lambda_half_h_experimental    {0: (0.028058, 0.2102308104733917), 1: (-0.028058, -0.21023081047339176)}
+  NO                         eem_ionescu2013_e_mpa_631gs_gas          {0: (0.028058, -0.12926211683367908), 1: (-0.028058, 0.12926211683367908)}
+  NO                         eem_ionescu2013_e_mpa_631gss_gas         {0: (0.028058, -0.1866436814498524), 1: (-0.028058, 0.1866436814498524)}
+desc_O_atom_triplet_     ETKDG + force field                        HFTyp=UHF <S2>=2.002283 sum=0.0 ok
+  O atom (triplet)           gasteiger                                {0: (-0.0, 0.0)}
+  O atom (triplet)           eem_bultinck2002_part1                   {0: (-0.0, 0.0)}
+  O atom (triplet)           qeq_rg1991_lambda_half_h_experimental    {0: (-0.0, 0.0)}
+  O atom (triplet)           eem_ionescu2013_e_mpa_631gs_gas          {0: (-0.0, 0.0)}
+  O atom (triplet)           eem_ionescu2013_e_mpa_631gss_gas         {0: (-0.0, 0.0)}
+desc_superoxide          ETKDG + force field                        HFTyp=UHF <S2>=0.752701 sum=-0.999998 ok
+  superoxide                 gasteiger                                {0: (-0.499999, -0.30743731512337175), 1: (-0.499999, -0.6925626848766283)}
+  superoxide                 eem_bultinck2002_part1                   {0: (-0.499999, -0.5), 1: (-0.499999, -0.5000000000000001)}
+  superoxide                 qeq_rg1991_lambda_half_h_experimental    {0: (-0.499999, -0.5), 1: (-0.499999, -0.4999999999999999)}
+  superoxide                 eem_ionescu2013_e_mpa_631gs_gas          {0: (-0.499999, -0.5000000000000009), 1: (-0.499999, -0.4999999999999991)}
+  superoxide                 eem_ionescu2013_e_mpa_631gss_gas         {0: (-0.499999, -0.5000000000000002), 1: (-0.499999, -0.49999999999999983)}
+desc_NH_triplet_         ETKDG + force field                        HFTyp=UHF <S2>=2.004964 sum=0.0 ok
+  NH (triplet)               gasteiger                                {0: (-0.096099, -0.16411744643450946)}
+  NH (triplet)               eem_bultinck2002_part1                   {0: (-0.096099, -0.29525667652890325)}
+  NH (triplet)               qeq_rg1991_lambda_half_h_experimental    {0: (-0.096099, -0.2620556085533747)}
+  NH (triplet)               eem_ionescu2013_e_mpa_631gs_gas          {0: (-0.096099, -0.5987052768606279)}
+  NH (triplet)               eem_ionescu2013_e_mpa_631gss_gas         {0: (-0.096099, -0.5516550473229584)}
+desc_CH2_triplet_        open-shell table (CH2 (triplet))           HFTyp=UHF <S2>=2.00531 sum=6.938893903907228e-18 ok
+  CH2 (triplet)              gasteiger                                {0: (-0.075788, -0.0533059727891157)}
+  CH2 (triplet)              eem_bultinck2002_part1                   {0: (-0.075788, -0.33189366157236055)}
+  CH2 (triplet)              qeq_rg1991_lambda_half_h_experimental    {0: (-0.075788, -0.28904983387214067)}
+  CH2 (triplet)              eem_ionescu2013_e_mpa_631gs_gas          {0: (-0.075788, -0.4669208902815909)}
+  CH2 (triplet)              eem_ionescu2013_e_mpa_631gss_gas         {0: (-0.075788, -0.30401128346201156)}

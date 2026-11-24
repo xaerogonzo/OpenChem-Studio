@@ -35,6 +35,7 @@ from rdkit import Chem
 from rdkit.Chem import AllChem
 
 from openchem.chem.geometry_analysis import NoConformerError, _require_conformer
+from openchem.chem import open_shell_charges as osc
 from openchem.chem.calculator_options import (
     atom_basis_of,
     decimals,
@@ -157,8 +158,12 @@ def surface_areas(mol: Chem.Mol, probe: float = DEFAULT_SOLVENT_RADIUS) -> dict[
     except (ValueError, RuntimeError):
         charges = {}
 
-    positive = sum(area for index, area in areas.items() if charges.get(index, 0.0) > 0)
-    negative = sum(area for index, area in areas.items() if charges.get(index, 0.0) < 0)
+    # The +/- split rests on Gasteiger charges, which failed the radical measurement: for an open-shell structure it is NOT computed (None), never a split of zeros.
+    if osc.open_shell_charge_refusal(mol, "gasteiger", "Gasteiger (PEOE)"):
+        positive = negative = None
+    else:
+        positive = sum(area for index, area in areas.items() if charges.get(index, 0.0) > 0)
+        negative = sum(area for index, area in areas.items() if charges.get(index, 0.0) < 0)
     polar = sum(area for index, area in areas.items() if _is_polar(mol.GetAtomWithIdx(index)))
     hydrophobic = total - polar
 
@@ -236,8 +241,14 @@ def compute_surface_analysis(
         molecule_uuid=molecule_uuid,
         matched=[
             f"{asa}: {areas['asa']:.{places}f} Å²",
-            f"ASA+ (positively charged atoms): {areas['asa_positive']:.{places}f} Å²",
-            f"ASA- (negatively charged atoms): {areas['asa_negative']:.{places}f} Å²",
+            *(
+                [
+                    f"ASA+ (positively charged atoms): {areas['asa_positive']:.{places}f} Å²",
+                    f"ASA- (negatively charged atoms): {areas['asa_negative']:.{places}f} Å²",
+                ]
+                if areas["asa_positive"] is not None
+                else ["ASA+ / ASA-: not computed (Gasteiger charges are refused for a structure with unpaired electrons)"]
+            ),
             f"{ASA_HYDROPHOBIC_LABEL}: {areas['asa_hydrophobic']:.{places}f} Å²",
             f"{ASA_POLAR_LABEL}: {areas['asa_polar']:.{places}f} Å²",
             f"{VDW_AREA_LABEL}: {areas['vdw_area']:.{places}f} Å²",

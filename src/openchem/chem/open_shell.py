@@ -127,6 +127,20 @@ def default_multiplicity(mol: Chem.Mol) -> int:
     return 1
 
 
+#: The Mol property `ChemistryEngine.mol_from_model` sets from the multiplicity somebody stated (`ChemistryEngine.stated_spin`), because RDKit cannot keep a singlet apart from a triplet.
+SPIN_PROP = "_oc_spin_multiplicity"
+
+
+def is_open_shell(mol: Chem.Mol) -> bool:
+    """Is this anything but an ordinary closed-shell singlet, by every signal a Mol carries?
+
+    `has_unpaired_electrons` alone misses triplet O2 drawn `O=O` (no radical electron on either atom), which `default_multiplicity` knows from `TRIPLET_GROUND_STATES`; and a stated multiplicity above 1 (`SPIN_PROP`) is open-shell whatever the drawing says. A drawn carbene counts even when its stated multiplicity is 1: it has unpaired electrons as drawn and no model here was measured on it, so a guard that exists to hold the unmeasured must hold it.
+    """
+    if mol.HasProp(SPIN_PROP) and int(mol.GetProp(SPIN_PROP)) > 1:
+        return True
+    return has_unpaired_electrons(mol) or default_multiplicity(mol) > 1
+
+
 def multiplicity_problem(mol: Chem.Mol, charge: int, multiplicity: int) -> str:
     """Why this charge and multiplicity cannot belong to the molecule's electrons, or "" when they can.
 

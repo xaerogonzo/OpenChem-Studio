@@ -20,6 +20,7 @@ import numpy as np
 from rdkit import Chem
 
 from openchem.chem import typed_eem as te
+from openchem.chem.open_shell import is_open_shell
 
 #: RDKit's own default for the number of forms it enumerates, so a count that reaches it is a count that was cut short.
 DEFAULT_CAP = 1000
@@ -93,7 +94,8 @@ def typed_eem_for_molecule(mol: Chem.Mol, model: str, *, resonance: str = te.RES
         raise ValueError("the molecule needs a conformer")
     if len(Chem.GetMolFrags(mol)) > 1:
         return te.TypedEEMResult(status=REFUSE_MULTIPLE_COMPONENTS, resonance=resonance, message="This structure has several components. Charge one component at a time.")
-    if any(atom.GetNumRadicalElectrons() for atom in mol.GetAtoms()):
+    # Not `GetNumRadicalElectrons` alone: triplet O2 drawn `O=O` has none and is open-shell (`open_shell.is_open_shell`).
+    if is_open_shell(mol):
         return te.TypedEEMResult(status=REFUSE_UNPAIRED_ELECTRON, resonance=resonance, message="This structure has an unpaired electron, which neither EEM paper parameterised.")
     try:
         forms = resonance_bond_forms(mol, cap)
