@@ -210,7 +210,13 @@ def compute_dipole_moment(
     # Whether a score may READ it is the reader's question, answered from this result's own provenance (`charge_model`, `origin_independent`): the charge models disagree by a factor of up to five on one
     # molecule and a charged species has no origin-free dipole, and neither of those is this function's to hide by leaving the number as text.
     result = dataclasses.replace(
-        result, facts=tuple(dataclasses.replace(fact, value=float(magnitude)) if fact.label == MAGNITUDE_LABEL else fact for fact in result.facts)
+        result,
+        facts=tuple(
+            dataclasses.replace(fact, value=float(magnitude), help_id="dipole.magnitude")
+            if fact.label == MAGNITUDE_LABEL
+            else fact
+            for fact in result.facts
+        ),
     )
     # THE ARROW, only when there is one. A magnitude that rounds to zero
     # at the displayed precision means the direction is numerical noise --

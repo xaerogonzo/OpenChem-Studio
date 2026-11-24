@@ -1,0 +1,3 @@
+Allow Gasteiger Dipole Moment to compare with this-run QC Debye.
+
+The mixed allowlist is that one magnitude pair with Gasteiger and origin-independent provenance; EEM, QEq, and charged species stay refused.

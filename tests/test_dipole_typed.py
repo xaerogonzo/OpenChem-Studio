@@ -157,6 +157,8 @@ def test_the_magnitude_is_the_one_typed_number_and_it_is_the_one_the_line_rounds
         assert [f.label for f in typed] == ["Dipole"], name
         fact = typed[0]
         assert fact.units == "Debye" and math.isfinite(fact.value) and fact.value >= 0, name
+        assert fact.help_id == "dipole.magnitude", name
+        assert all(f.help_id != "dipole.magnitude" for f in result.facts if f.label in _COMPONENTS), name
         assert fact.display_value == f"{fact.value:.{places}f}", name
         assert fact.value == result.provenance.parameters["debye"], f"{name}: the typed number is the one the provenance records, unrounded"
         assert result.matched[0] == f"Dipole: {fact.value:.{places}f} Debye", name
