@@ -5154,6 +5154,7 @@
   "tests/test_optimize_a_chosen_conformer.py": 3,
   "tests/test_optimize_with_an_engine.py": 5,
   "tests/test_orca_atom_equivalents.py": 1,
+  "tests/test_orca_dipole.py": 7,
   "tests/test_orca_engine.py": 6,
   "tests/test_orca_fukui.py": 3,
   "tests/test_orca_fukui_v2.py": 4,
