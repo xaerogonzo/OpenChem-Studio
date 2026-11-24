@@ -79,6 +79,7 @@ from openchem.commands.macromolecule_commands import AddMacromoleculeCommand
 from openchem.commands.molecule_commands import (
     AddMoleculeCommand,
     ChooseComponentCommand,
+    SetMultiplicityCommand,
     EditStructureCommand,
     RenameMoleculeCommand,
 )
@@ -594,6 +595,7 @@ class MainWindow(QMainWindow):
             qm_surface_service=services.qm_surface_service,
             result_store_service=services.result_store_service,
         )
+        self._quantum_chemistry_panel.multiplicity_requested.connect(self._on_multiplicity_requested)
         self._alignment_panel = AlignmentPanel(services.alignment_service, services.event_bus, self, settings=settings)
         # EACH WORKFLOW IS ONE PANEL WITH TWO HOMES: its own tab (what it always had) or a section
         # of Properties. The panel is never built twice, so its inputs, result and 3D view are one
@@ -6577,6 +6579,14 @@ class MainWindow(QMainWindow):
         if molecule is None or molecule.component_choice == component_smiles:
             return
         self._undo_stack.push(ChooseComponentCommand(molecule, component_smiles, self._services.event_bus))
+
+    def _on_multiplicity_requested(self, molecule_uuid: str, multiplicity: object) -> None:
+        """Push the multiplicity the person set in the Quantum Chemistry panel as an undoable command."""
+        project = self._session.project
+        molecule = project.find_molecule(molecule_uuid) if project is not None else None
+        if molecule is None or molecule.multiplicity == multiplicity:
+            return
+        self._undo_stack.push(SetMultiplicityCommand(molecule, multiplicity, self._services.event_bus))
 
     def _identify_structure(self, molecule: MoleculeModel | None = None) -> None:
         """Ask PubChem what this structure is.
