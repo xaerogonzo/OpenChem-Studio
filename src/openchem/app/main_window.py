@@ -2419,6 +2419,7 @@ class MainWindow(QMainWindow):
             fingerprints=fingerprints,
             structure_version=version,
             live_result_ids=live_ids,
+            molecule=molecule,
         )
 
     def _open_compare_readers(self, uuids: list) -> None:
@@ -6123,8 +6124,40 @@ class MainWindow(QMainWindow):
         report_id = params.get("report_id")
         if not report_id:
             return False
+        if str(report_id).startswith("qc:"):
+            return self._link_to_qc_spatial_view(str(report_id))
         index = params.get("annotation_index") or 0
         return self._property_panel.open_spatial_view(str(report_id), int(index))
+
+    def _link_to_qc_spatial_view(self, report_id: str) -> bool:
+        """This Quantum run's dipole on this run's geometry — never the live calculator."""
+        from openchem.ui.dialogs.spatial_result_dialog import QC_RUN_GEOMETRY_CAVEAT, SpatialResultDialog
+        from openchem.ui.history_entries import QC_PREFIX, entry_from_quantum_run
+        from openchem.ui.qc_dipole_spatial import run_geometry_molblock
+
+        if not report_id.startswith(QC_PREFIX):
+            return False
+        run_id = report_id[len(QC_PREFIX):]
+        service = self._services.result_store_service
+        project = self._session.project
+        if service is None or project is None:
+            return False
+        run = service.qc_runs.get(run_id)
+        if run is None:
+            return False
+        molecule = project.find_molecule(run.molecule_uuid)
+        molblock = run_geometry_molblock(run, molecule)
+        if not molblock:
+            return False
+        fingerprints = service.fingerprints_for(molecule) if molecule is not None else {}
+        entry = entry_from_quantum_run(run, fingerprints, 0, molecule=molecule)
+        if not entry.spatial:
+            return False
+        dialog = SpatialResultDialog(entry, molblock, self, caveat=QC_RUN_GEOMETRY_CAVEAT)
+        dialog.setAttribute(Qt.WidgetAttribute.WA_DeleteOnClose, True)
+        dialog.show()
+        dialog.raise_()
+        return True
 
     def _link_to_periodic_table(self, params: dict) -> bool:
         self._show_periodic_table()

@@ -46,6 +46,7 @@ from openchem.domain.visualization_index import (
     declared_visualizations,
     kind_of_annotation,
 )
+from openchem.ui.result_summary import ResultSummaryView
 from openchem.ui.widgets.results_view import ResultsView
 from tests.conftest import dispose
 
@@ -300,6 +301,26 @@ def test_pressing_open_names_the_report_and_the_annotation(window):
     assert len(seen) == 1
     assert seen[0].target == "spatial_view"
     assert seen[0].params == {"report_id": "dipole_moment", "annotation_index": 1}
+
+
+def test_a_quantum_history_summary_offers_its_overlay_under_the_qc_report_id(window):
+    seen = []
+    window.link_activated.connect(seen.append)
+    summary = ResultSummaryView(
+        report_id="qc:run-1",
+        name="sp · orca",
+        category="quantum_chemistry",
+        spatial=(_arrow("3.06 D"),),
+    )
+    window.set_reports([summary])
+    window.set_focus("qc:run-1")
+    from PySide6.QtWidgets import QPushButton
+
+    buttons = window._visuals.findChildren(QPushButton)
+    assert len(buttons) == 1
+    buttons[0].click()
+    assert seen[0].target == "spatial_view"
+    assert seen[0].params["report_id"] == "qc:run-1"
 
 
 # --- and the map stays total, derived rather than remembered -------------

@@ -142,6 +142,9 @@ class ResultSummaryView:
     history_id: str = ""
     #: Input no longer matches the current molecule — labelled historical, not *(stale)*.
     historical: bool = False
+    #: Producer-declared 3D overlays. Empty on ordinary summaries; a Quantum
+    #: history row may carry this-run dipole arrow without becoming a report.
+    spatial: tuple = ()
 
     def by_category(self) -> dict[FactCategory, tuple[Fact, ...]]:
         return group_facts_by_category(self.facts)
