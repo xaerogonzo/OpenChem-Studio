@@ -5381,6 +5381,7 @@
   "tests/test_scroll_safe.py": 1,
   "tests/test_selection_presets.py": 4,
   "tests/test_service_rows.py": 3,
+  "tests/test_set_multiplicity.py": 3,
   "tests/test_settings_isolation.py": 3,
   "tests/test_settings_section_headings.py": 7,
   "tests/test_settings_window.py": 7,
