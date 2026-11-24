@@ -31,6 +31,9 @@ class MoleculeModel:
     #: compute on. Empty is the automatic pick (`chem/components.py`). Keyed by the component's
     #: structure and not its position, so redrawing the pieces in another order keeps the choice.
     component_choice: str = ""
+    #: The spin multiplicity the person set for this molecule (`SetMultiplicityCommand`), or None for the one the drawing implies (`chem.open_shell`).
+    #: A stated value that no longer fits the structure's electrons (an edit changed the count) is ignored, not applied: `ChemistryEngine.stated_spin`.
+    multiplicity: int | None = None
 
     def to_dict(self) -> dict[str, Any]:
         data: dict[str, Any] = {
@@ -49,6 +52,8 @@ class MoleculeModel:
         # Written only when set, so a project nobody chose a component in is byte-for-byte what it was.
         if self.component_choice:
             data["component_choice"] = self.component_choice
+        if self.multiplicity is not None:
+            data["multiplicity"] = self.multiplicity
         return data
 
     @classmethod
@@ -66,4 +71,5 @@ class MoleculeModel:
             notes=data.get("notes", ""),
             conformers=[ConformerModel.from_dict(c) for c in data.get("conformers", [])],
             component_choice=str(data.get("component_choice") or ""),
+            multiplicity=int(data["multiplicity"]) if data.get("multiplicity") else None,
         )

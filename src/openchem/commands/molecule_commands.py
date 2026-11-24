@@ -130,6 +130,29 @@ class ChooseComponentCommand(OpenChemCommand):
         )
 
 
+class SetMultiplicityCommand(OpenChemCommand):
+    """Set the spin multiplicity of a molecule (None goes back to the one its drawing implies).
+
+    Stored on the model, saved with the project and undoable. It changes what a quantum job starts from and which geometry the open-shell table builds (singlet or triplet CH2);
+    no structure, conformer or molblock is touched, and no descriptor depends on it, so the molecule is announced as an identity change, not a structure one.
+    """
+
+    def __init__(self, molecule: MoleculeModel, multiplicity: int | None, event_bus: EventBus) -> None:
+        super().__init__(f"Set multiplicity to {multiplicity}" if multiplicity is not None else "Use the multiplicity of the drawing")
+        self._molecule = molecule
+        self._old = molecule.multiplicity
+        self._new = multiplicity
+        self._event_bus = event_bus
+
+    def redo(self) -> None:
+        self._molecule.multiplicity = self._new
+        self._event_bus.publish(MoleculeChanged(molecule_uuid=self._molecule.uuid, kind=CHANGE_IDENTITY))
+
+    def undo(self) -> None:
+        self._molecule.multiplicity = self._old
+        self._event_bus.publish(MoleculeChanged(molecule_uuid=self._molecule.uuid, kind=CHANGE_IDENTITY))
+
+
 class EditStructureCommand(OpenChemCommand):
     """Wraps a whole-structure edit (e.g. from Ketcher) as an undoable command.
 
