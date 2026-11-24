@@ -1230,6 +1230,10 @@ _PROVENANCE_DEBT = frozenset({
     "src/openchem/chem/naming_providers.py",
     "src/openchem/chem/nmr_reference.py",
     "src/openchem/chem/orca_engine.py",
+    # IMPLEMENTS NO METHOD. Parses engine stdout into the `{provider}.dipole_moment`
+    # descriptor the engines already store; the walk finds it because it
+    # returns `DescriptorValue`, not because it computes a new quantity.
+    "src/openchem/chem/qc_dipole.py",
     # **FOUND BY ANNOTATING IT, WHICH IS THIS WALK WORKING AS DESIGNED.**
     # `compute_mass_spectrum` declared no return type until stage 4, and
     # the return ANNOTATION is this walk's discriminator -- so a producer
