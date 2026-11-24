@@ -153,6 +153,13 @@ a valence model that assumes closed shells and octets", which is a reason to kee
    Measured effect: O2 1.316 and 1.151 A become 1.20752, NO 1.424 becomes 1.15077. Plausibility against real ORCA B3LYP/def2-SVP optima (2026-11-15): within 0.02 A for O2, NO, OH, CH3 and triplet CH2.
    `tests/test_open_shell_geometry.py`; four mutations fail 13, 1, 2 and 1 tests (the hook fails 13).
 
+11. **Ketcher measured (2026-11-24; `tests/test_ketcher_radical_roundtrip.py`).** The question left open in section 2: what the real editor writes. Ketcher keeps radical codes 1, 2 and 3
+   through `setMolecule`/`getMolfile` for a molfile and for its KET `radical` property, so a singlet carbene drawn in the editor reaches the application as a singlet (the OS1 chain holds for
+   Ketcher's own output). Its SMILES reader maps `[CH2]` to the singlet code (RDKit's default is triplet) and `[CH3]`, `[OH]`, `[N]=O`, the nitroxide to 2; the application never hands Ketcher a
+   SMILES, so that is recorded only. **One real loss found and fixed:** RDKit writes no `M  RAD` line for a bond-less O or H (the radical rides in the atom line's valence field), so a singlet
+   code on a lone atom vanished from the stored molblock and the default fell back to the triplet; `molblock_keeping_spin` now inserts the singlet code where RDKit wrote none. Not measured: the
+   editor's own atom dialog (the Radical dropdown) driven through the page; the KET `radical` property is what that dropdown sets, per the file format, but the dialog itself was not clicked.
+
 Mutation checks run: each of 7 edits (Joback, Hansen, both Hueckel rules, the parity refusal, the spin note, the engine default) fails 1 to 5 tests when reverted.
 
 ## 6. Proposed work packages, by value and risk (not started; each needs the owner's go-ahead)
