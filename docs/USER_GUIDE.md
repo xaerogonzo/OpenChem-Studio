@@ -457,7 +457,9 @@ calculating, rerun the calculator before trusting the picture.
 in the 3D viewer's toolbar and any shape-valued result you have already
 calculated — the dipole vector, a ligand cone, the principal axes — is
 drawn on the structure on screen, turning as you turn it and following
-you as you step conformers.
+you as you step conformers. It recalculates those ordinary calculators
+(Gasteiger Dipole Moment among them). A Quantum run's stored dipole
+vector is opened from that job in Results history, not from Show shapes.
 
 **In the gallery it draws in every cell**, and each one is its own
 answer: the shape in a cell is recalculated for the conformer *that cell*
@@ -1526,7 +1528,9 @@ together with what each one *is*:
   drawn above the facts.
 - **3D overlay** — a vector, a cone or a set of axes drawn on a conformer.
   This opens in its own window rather than inline, because it needs a 3D
-  view and a fact list is the wrong shape for one.
+  view and a fact list is the wrong shape for one. A Quantum history dipole
+  overlay uses that job's submitted or optimized geometry, not the
+  molecule's current stored conformer.
 
 The first two say *shown below* rather than offering a button, because
 they are already on screen a few rows down, below this list.
@@ -1828,6 +1832,12 @@ ordinary-versus-Quantum quantity. Whether the dipole is origin-independent
 follows the charge the job was submitted with, not the drawing's formal
 charge. A charged species remains origin-dependent: the stored number is
 the engine's, without recentering.
+When that run also stored a usable vector, Quantum history can open **this
+run's** dipole as a 3D overlay on **this run's** submitted or optimized
+geometry. That is not the Properties **Dipole Moment** arrow, and it is
+not **Show shapes** (those redraw Gasteiger on the displayed conformer).
+A charged overlay is drawn only after the vector is referenced to that
+geometry's centre of mass.
 
 **NMR is one job.** Ab initio ¹H and ¹³C are views of that output, not two
 calculations. The experimental ¹H lookup in Properties is a different

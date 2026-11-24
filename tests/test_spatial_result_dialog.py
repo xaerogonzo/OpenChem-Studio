@@ -7,7 +7,11 @@ from rdkit import Chem
 from rdkit.Chem import AllChem
 
 from openchem.chem.dipole import compute_dipole_moment
-from openchem.ui.dialogs.spatial_result_dialog import SpatialResultDialog
+from openchem.ui.dialogs.spatial_result_dialog import (
+    QC_RUN_GEOMETRY_CAVEAT,
+    SpatialResultDialog,
+)
+from openchem.ui.result_summary import ResultSummaryView
 
 import conftest
 
@@ -56,5 +60,25 @@ def test_the_dialog_states_the_stored_conformer_assumption(qapp):
         texts = " ".join(label.text() for label in dialog.findChildren(QLabel))
         assert "stored conformer" in texts
         assert "rerun the calculator" in texts
+    finally:
+        _dispose(dialog)
+
+
+def test_the_dialog_accepts_a_result_summary_and_a_qc_caveat(qapp):
+    mol = _conformer_mol()
+    report = compute_dipole_moment(mol, "u")
+    summary = ResultSummaryView(name="qc dipole", spatial=report.spatial, facts=report.facts)
+    dialog = SpatialResultDialog(
+        summary, Chem.MolToMolBlock(mol), caveat=QC_RUN_GEOMETRY_CAVEAT
+    )
+    try:
+        from PySide6.QtWidgets import QLabel
+
+        texts = " ".join(label.text() for label in dialog.findChildren(QLabel))
+        assert "Quantum run's submitted or optimized geometry" in texts
+        assert "centre of mass" in texts
+        assert "rerun the calculator" not in texts
+        pending = dialog._backend._pending_shapes
+        assert pending is not None and len(pending) == 1
     finally:
         _dispose(dialog)
