@@ -278,6 +278,7 @@ _CALC_TYPE_KEYWORDS = {
 }
 
 _SCF_ENERGY_RE = re.compile(r"FINAL SINGLE POINT ENERGY\s+(-?\d+\.\d+)")
+#: Last `Magnitude (Debye)` line in ordinary ORCA output; compound jobs (`delta_scf`/`led`/`fukui`) skip this parse.
 _DIPOLE_DEBYE_RE = re.compile(r"Magnitude \(Debye\)\s+:\s+(-?\d+\.\d+)")
 # ORCA's output has CRLF line ends on Windows, so every newline here is `\r?\n`: with a bare `\n` this found no
 # block at all and an optimized geometry was silently never read (found by a live tautomer-NMR run).
