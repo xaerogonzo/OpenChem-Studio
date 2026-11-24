@@ -12,6 +12,7 @@ from PySide6.QtWidgets import (
 from openchem.chem.charge_evaluation import CHARGE_MODEL_LABELS, CHARGE_MODELS, GASTEIGER, evaluate_charges
 from openchem.chem.descriptor_providers import compute_gasteiger_charges
 from openchem.chem.engine import ChemistryEngine
+from openchem.chem.open_shell_charges import open_shell_charge_refusal
 from openchem.chem.scalar_field import electrostatic_potential_for_conformer
 from openchem.ui.viewer_backend import ViewerBackend
 from openchem.ui.visualization import build_scalar_field_surface_layer
@@ -161,6 +162,12 @@ class EspCompareWidget(QWidget):
         # a heavy-atom-only charge map gives neutral acetic acid a net
         # -0.40 e and paints the whole surface red.
         if model == GASTEIGER:
+            # Computed here directly, not through `evaluate_charges`, so the open-shell refusal has to be asked for too.
+            reason = open_shell_charge_refusal(mol, GASTEIGER, CHARGE_MODEL_LABELS[GASTEIGER])
+            if reason:
+                self._point_charge_backend.apply_surface(None)
+                self._point_charge_caption.setText(reason)
+                return
             charges = compute_gasteiger_charges(mol)
             caption = _POINT_CHARGE_CAPTION
         else:
@@ -175,7 +182,7 @@ class EspCompareWidget(QWidget):
                 return
             charges = evaluation.charges
             caption = (f"Point charges ({evaluation.label}) on this conformer. Cannot represent lone-pair "
-                       "directionality or a sigma hole.")
+                       "directionality or a sigma hole." + "".join(f" {note}" for note in evaluation.notes))
         field = electrostatic_potential_for_conformer(mol, charges)
         layer = build_scalar_field_surface_layer(field)
         self._point_charge_backend.apply_surface(layer)

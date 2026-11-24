@@ -23,6 +23,7 @@ from rdkit.Chem import rdPartialCharges
 
 from openchem.chem import charge_equilibration as ce
 from openchem.chem import geometry_charges as gc
+from openchem.chem import open_shell_charges as osc
 from openchem.domain.calculator import DRAWING, GEOMETRY
 
 #: Stable charge-model codes. They are stored in result keys, so they never change and are never display text.
@@ -108,12 +109,16 @@ def evaluate_charges(mol: Chem.Mol, model_key: str, molecule_uuid: str = "") -> 
         raise ValueError(f"unknown charge model {model_key!r}; expected one of {CHARGE_MODELS}")
     common = dict(model_key=model_key, input_requirement=INPUT_REQUIREMENT[model_key], source_key=SOURCE_KEYS[model_key],
                   parameter_checksum=_payload_checksum(parameter_payload(model_key)))
+    # A model that failed the radical measurement returns no charges for an open-shell structure (`open_shell_charges`), whatever else is true of it.
+    reason = osc.open_shell_charge_refusal(mol, model_key, CHARGE_MODEL_LABELS[model_key])
+    if reason:
+        return ChargeEvaluation(charges=None, refusal=osc.REFUSAL_CODE, message=reason, **common)
     if model_key == GASTEIGER:
         return ChargeEvaluation(charges=_gasteiger(mol), **common)
     dataset = gc.compute_geometry_charges(mol, molecule_uuid, {"method": model_key})
     parameters = dict(getattr(dataset.provenance, "parameters", {}) or {})
     refusal = parameters.get("refusal", "")
-    notes = tuple(n for n in (parameters.get("source_discrepancy"),) if n)
+    notes = tuple(n for n in (parameters.get("source_discrepancy"), parameters.get("open_shell_note")) if n)
     if refusal or getattr(dataset, "inapplicable", False):
         return ChargeEvaluation(charges=None, refusal=refusal or "REFUSED", message=dataset.error or "", notes=notes,
                                 provenance=parameters, **common)

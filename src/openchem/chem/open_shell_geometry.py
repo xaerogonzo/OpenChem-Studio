@@ -25,12 +25,8 @@ from dataclasses import dataclass
 import numpy as np
 from rdkit import Chem
 
-from openchem.chem.open_shell import default_multiplicity
+from openchem.chem.open_shell import SPIN_PROP, default_multiplicity
 from openchem.chem.vsepr_geometry import _VIEW_TILT
-
-#: The Mol property `ChemistryEngine.mol_from_model` sets from the drawing's own stated multiplicity (`open_shell.spin_from_molblock`), because RDKit cannot keep a singlet apart from a triplet.
-SPIN_PROP = "_oc_spin_multiplicity"
-
 
 @dataclass(frozen=True)
 class OpenShellEntry:

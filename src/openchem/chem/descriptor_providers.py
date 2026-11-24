@@ -67,6 +67,7 @@ from openchem.chem.alignment import (
 )
 from openchem.chem.charge_evaluation import CHARGE_MODEL_LABELS, CHARGE_MODELS, GASTEIGER
 from openchem.chem.dipole import compute_dipole_moment
+from openchem.chem import open_shell_charges as osc
 from openchem.chem.electronic_properties import (
     POLARIZABILITY_METHODS,
     compute_atomic_polarizability,
@@ -1272,6 +1273,7 @@ class RDKitDescriptorProvider(DescriptorProvider):
         logp_contrib = {idx: logp for idx, (logp, _mr) in enumerate(contribs)}
         mr_contrib = {idx: mr for idx, (_logp, mr) in enumerate(contribs)}
         gasteiger_charge = compute_gasteiger_charges(mol)
+        gasteiger_open_shell = osc.open_shell_charge_refusal(mol, GASTEIGER, "Gasteiger (PEOE)")
 
         def batch_provenance(declaration: dict) -> Provenance:
             return Provenance(
@@ -1284,7 +1286,12 @@ class RDKitDescriptorProvider(DescriptorProvider):
             "visible_basis": "heavy-atom contributions",
             "explanation": "implicit hydrogens",
         }
-        gasteiger = components.as_drawn(PerAtomDataset(
+        gasteiger = PerAtomDataset(
+            property_id="gasteiger_charge",
+            name="Partial Charge (Gasteiger)", category="charge", units="e", method=self.provider_id, molecule_uuid=molecule_uuid,
+            cache_state=CacheState.FAILED, inapplicable=True, error=gasteiger_open_shell, error_summary="Open-shell structure",
+            provenance=Provenance(created_by="core", method=self.provider_id, parameters={"refusal": osc.REFUSAL_CODE}),
+        ) if gasteiger_open_shell else components.as_drawn(PerAtomDataset(
             property_id="gasteiger_charge",
             name="Partial Charge (Gasteiger)",
             category="charge",
@@ -1450,6 +1457,14 @@ def compute_gasteiger_charge_at_ph(
     if method not in CHARGE_METHODS:
         raise ValueError(f"Unknown charge method {method!r}; expected one of {CHARGE_METHODS}")
     label = CHARGE_METHOD_LABELS[method]
+    # Only Gasteiger was measured on radicals (and failed); MMFF94 was not, and is left as it was.
+    open_shell = osc.open_shell_charge_refusal(mol, method, label) if method == GASTEIGER else ""
+    if open_shell:
+        return PerAtomDataset(
+            property_id="gasteiger_charge_at_ph", name=f"Partial Charge ({label}) at pH {ph:g}", units="e", method="rdkit", molecule_uuid=molecule_uuid,
+            cache_state=CacheState.FAILED, inapplicable=True, error=open_shell, error_summary="Open-shell structure",
+            provenance=Provenance(created_by="core", method="rdkit", parameters={"refusal": osc.REFUSAL_CODE}),
+        )
     species = dominant_microspecies(mol, ph)
     protonated = species.mol
     suffix = " incl. H" if include_hydrogens else ""
