@@ -256,7 +256,8 @@ _MENU_KEYWORDS: dict[str, tuple[str, ...]] = {
     "Settings...": ("preferences", "recovery", "autosave", "revisions"),
     "Check Structure...": ("valence", "sanitise", "sanitize", "validate", "problems"),
     "Template Library...": ("templates", "amino acids", "rings", "my templates"),
-    "Peptide Sequence...": ("peptide", "sequence", "AEG", "amino acids"),
+    # NOT "peptide" or "sequence": words of the label, which the palette finds directly.
+    "Peptide Sequence...": ("AEG", "amino acids"),
     # `crystal`, `cif` and `smiles` deliberately point HERE as well as at
     # the importer. "How do I turn a SMILES into a crystal structure" is a
     # question with a real answer -- you cannot, it has to be measured --

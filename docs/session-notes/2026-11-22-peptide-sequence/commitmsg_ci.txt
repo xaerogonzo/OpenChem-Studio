@@ -1,0 +1,3 @@
+Fix palette keywords and #: comments that reddened CI.
+
+Peptide Sequence keywords repeated the label; four new constants had no #: so the docs ratchet treated them as fallen-out.

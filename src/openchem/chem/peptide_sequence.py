@@ -35,6 +35,7 @@ BUILDER = "MolFromSequence"
 #: Pin of the measurement that chose ``BUILDER``.
 MEASURED_RDKIT = "2025.09.6"
 
+#: Closed 20 standard proteinogenic one-letter codes (glycine included).
 STANDARD_ONE_LETTER = "ACDEFGHIKLMNPQRSTVWY"
 
 #: One-letter -> Template Library shipped entry id (L, not the extras).
@@ -61,6 +62,7 @@ CATALOG_ENTRY_IDS: dict[str, str] = {
     "Y": "amino_acids.l_tyrosine",
 }
 
+#: Three-letter names (lowercase) to the one-letter map above.
 _THREE_LETTER: dict[str, str] = {
     "ala": "A",
     "cys": "C",
@@ -84,7 +86,9 @@ _THREE_LETTER: dict[str, str] = {
     "tyr": "Y",
 }
 
+#: One-letter codes that are not a single residue (B/J/X/Z).
 _AMBIGUOUS = frozenset("BJXZ")
+#: Peptide-bond SMARTS used to count amides after the builder runs.
 _AMIDE = Chem.MolFromSmarts("[CX3](=O)[NX3]")
 
 
