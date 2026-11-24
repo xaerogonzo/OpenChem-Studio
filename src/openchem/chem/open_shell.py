@@ -87,19 +87,27 @@ def molblock_keeping_spin(written: str, original: str) -> str:
     if not singlets:
         return written
     codes = rad_codes(written)
-    patched = {index: (1 if index in singlets and code == 3 else code) for index, code in codes.items()}
+    # RDKit rewrites a singlet as a triplet AND, for a lone atom (an O or H with no bond), writes no RAD line at all (the radical is carried in the atom line's valence field), so the
+    # singlet code is put back where RDKit wrote 3 and added where it wrote nothing. Measured on a Ketcher-drawn lone O atom with the singlet code (2026-11-24).
+    patched = {**codes, **{index: 1 for index in singlets}}
     if patched == codes:
         return written
+    items = sorted(patched.items())
+    block = [
+        f"M  RAD{len(chunk):3d}" + "".join(f" {index + 1:3d} {code:3d}" for index, code in chunk) + "\n"
+        for chunk in (items[start:start + 8] for start in range(0, len(items), 8))
+    ]
     out, done = [], False
     for line in written.splitlines(keepends=True):
-        if _RAD_LINE.match(line.rstrip("\r\n")):
+        stripped = line.rstrip("\r\n")
+        if _RAD_LINE.match(stripped):
             if not done:
-                items = sorted(patched.items())
-                for start in range(0, len(items), 8):
-                    chunk = items[start:start + 8]
-                    out.append(f"M  RAD{len(chunk):3d}" + "".join(f" {index + 1:3d} {code:3d}" for index, code in chunk) + "\n")
+                out.extend(block)
                 done = True
             continue
+        if stripped == "M  END" and not done:
+            out.extend(block)  # RDKit wrote no RAD line at all (a lone atom): the block goes where the properties end
+            done = True
         out.append(line)
     return "".join(out)
 

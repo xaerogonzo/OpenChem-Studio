@@ -304,3 +304,14 @@ def run_from_molblock(molblock: str, multiplicity: int):
     AllChem.EmbedMolecule(three_d, randomSeed=7)
     molecule.conformers.append(ConformerModel(molblock=Chem.MolToMolBlock(three_d), method="rdkit_etkdg", energy=0.0))
     return prepare_run(ENGINE, molecule, RunChoice(calc_type="sp", method_basis="B3LYP def2-SVP", charge=0, multiplicity=multiplicity))
+
+
+def test_a_singlet_code_on_a_lone_atom_survives_the_stored_molblock():
+    """RDKit writes no RAD line for a bond-less O or H (the radical rides in the atom line's valence field), so the singlet code used to vanish and the default said triplet (Ketcher-measured, tests/test_ketcher_radical_roundtrip.py)."""
+    block = "\n  t\n\n  1  0  0  0  0  0  0  0  0  0999 V2000\n    0.0000    0.0000    0.0000 O   0  0  0  0  0  0  0  0  0  0  0  0\nM  RAD  1   1   {r}\nM  END\n"
+    singlet, triplet = MoleculeModel(display_name="s"), MoleculeModel(display_name="t")
+    ENGINE.set_structure_from_molblock(singlet, block.format(r=1))
+    ENGINE.set_structure_from_molblock(triplet, block.format(r=3))
+    assert (ENGINE.default_multiplicity(singlet), ENGINE.default_multiplicity(triplet)) == (1, 3)
+    assert "M  RAD  1   1   1" in singlet.molblock
+    assert Chem.MolFromMolBlock(singlet.molblock, removeHs=False).GetAtomWithIdx(0).GetNumRadicalElectrons() == 2  # still read as an atom, not water
