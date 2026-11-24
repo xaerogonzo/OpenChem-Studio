@@ -51,6 +51,7 @@ from rdkit import Chem
 from rdkit.Chem import rdPartialCharges
 
 from openchem.chem.calculator_options import atom_basis_of, decimals
+from openchem.chem import open_shell_charges as osc
 from openchem.domain.calculator import ELEMENT_OUTSIDE_PARAMETER_SET, CalculationRefusal
 from openchem.domain.common import (
     ATOM_BASIS,
@@ -644,6 +645,14 @@ def compute_orbital_electronegativity(
     _places = decimals(parameters)
     parameters = parameters or {}
     component = _orbital_component(parameters)
+    # Both components start from the Gasteiger sigma charge, which failed the radical measurement (`open_shell_charges`).
+    open_shell = osc.open_shell_charge_refusal(mol, "gasteiger", "Gasteiger (PEOE)")
+    if open_shell:
+        return PerAtomDataset(
+            property_id="orbital_electronegativity", name=_ORBITAL_NAME[component], units="eV", method=_ORBITAL_METHOD[component], molecule_uuid=molecule_uuid,
+            values={}, cache_state=CacheState.FAILED, inapplicable=True, error=open_shell, error_summary="Open-shell structure",
+            provenance=Provenance(created_by="core", method=_ORBITAL_METHOD[component], parameters={"decimal_places": _places, "component": component, "refusal": osc.REFUSAL_CODE}),
+        )
     target = _maybe_microspecies(mol, parameters)
     if component == "pi":
         # `include_hydrogens` is not consulted: hydrogen has no pi orbital

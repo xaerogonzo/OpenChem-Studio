@@ -1,0 +1,30 @@
+ORCA 6.1.1 B3LYP/def2-SVP UKS single point of the methyl radical (IntAcc 6.0, Print[P_Hirshfeld] 1). Real output, trimmed to the lines the charge-table parsers read.
+                         Program Version 6.1.1  -  RELEASE   -
+ Total Charge           Charge          ....    0
+ Multiplicity           Mult            ....    2
+ Hartree-Fock type      HFTyp           .... UHF
+-------------------------------------------
+LOEWDIN ATOMIC CHARGES AND SPIN POPULATIONS
+-------------------------------------------
+   0 C :   -0.044613    1.003802
+   1 H :    0.014871   -0.001267
+   2 H :    0.014889   -0.001269
+   3 H :    0.014854   -0.001266
+
+------------------
+HIRSHFELD ANALYSIS
+------------------
+
+Total integrated alpha density =      5.000001891
+Total integrated beta density  =      4.000000754
+
+  ATOM     CHARGE      SPIN    
+   0 C   -0.081755    0.839830
+   1 H    0.027254    0.053391
+   2 H    0.027259    0.053389
+   3 H    0.027239    0.053390
+
+  TOTAL  -0.000003    1.000001
+Expectation value of <S**2>     :     0.753561
+               *           SCF CONVERGED AFTER   8 CYCLES          *
+                             ****ORCA TERMINATED NORMALLY****

@@ -1,0 +1,103 @@
+{
+ "pairs": {},
+ "descriptive": {
+  "O2 (triplet, [O][O])": {
+   "source": "open-shell table (O2)",
+   "hirshfeld": [
+    -0.0,
+    -0.0
+   ],
+   "problems": []
+  },
+  "O2 (drawn O=O, triplet)": {
+   "source": "open-shell table (O2)",
+   "hirshfeld": [
+    -0.0,
+    -0.0
+   ],
+   "problems": []
+  },
+  "NO": {
+   "source": "open-shell table (NO)",
+   "hirshfeld": [
+    0.028058,
+    -0.028058
+   ],
+   "problems": []
+  },
+  "O atom (triplet)": {
+   "source": "ETKDG + force field",
+   "hirshfeld": [
+    -0.0
+   ],
+   "problems": []
+  },
+  "superoxide": {
+   "source": "ETKDG + force field",
+   "hirshfeld": [
+    -0.499999,
+    -0.499999
+   ],
+   "problems": []
+  },
+  "NH (triplet)": {
+   "source": "ETKDG + force field",
+   "hirshfeld": [
+    -0.096099,
+    0.096099
+   ],
+   "problems": []
+  },
+  "CH2 (triplet)": {
+   "source": "open-shell table (CH2 (triplet))",
+   "hirshfeld": [
+    -0.075788,
+    0.037892,
+    0.037896
+   ],
+   "problems": []
+  }
+ },
+ "verdicts": {
+  "hirshfeld:gasteiger": {
+   "verdict": "FAIL",
+   "E": 0.07337110387800547
+  },
+  "hirshfeld:eem_bultinck2002_part1": {
+   "verdict": "FAIL",
+   "E": 0.08374185943060529
+  },
+  "hirshfeld:qeq_rg1991_lambda_half_h_experimental": {
+   "verdict": "PASS",
+   "E": 0.03521681396807108
+  },
+  "hirshfeld:eem_ionescu2013_e_mpa_631gs_gas": {
+   "verdict": "FAIL",
+   "E": 0.06157564568223839
+  },
+  "hirshfeld:eem_ionescu2013_e_mpa_631gss_gas": {
+   "verdict": "FAIL",
+   "E": 0.1267506299101025
+  },
+  "loewdin:gasteiger": {
+   "verdict": "FAIL",
+   "E": 0.09226010387800548
+  },
+  "loewdin:eem_bultinck2002_part1": {
+   "verdict": "FAIL",
+   "E": 0.10401485943060532
+  },
+  "loewdin:qeq_rg1991_lambda_half_h_experimental": {
+   "verdict": "PASS",
+   "E": 0.04486212590715233
+  },
+  "loewdin:eem_ionescu2013_e_mpa_631gs_gas": {
+   "verdict": "FAIL",
+   "E": 0.13081616694485718
+  },
+  "loewdin:eem_ionescu2013_e_mpa_631gss_gas": {
+   "verdict": "FAIL",
+   "E": 0.10782759656904711
+  }
+ }
+}
