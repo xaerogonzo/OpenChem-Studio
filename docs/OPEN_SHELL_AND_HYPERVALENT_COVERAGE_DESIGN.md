@@ -126,8 +126,7 @@ a valence model that assumes closed shells and octets", which is a reason to kee
    `set_structure_from_molblock` now puts the drawing's singlet code back into the molblock it stores (`molblock_keeping_spin`); `spin_from_molblock` reads the multiplicity
    from that text (singlet 0, doublet 1, triplet 2 unpaired electrons per atom) and `ChemistryEngine.default_multiplicity` prefers it. Because the information is in the
    molblock, undo, redo and the project file carry it with no migration, and the canonical SMILES and InChI are unchanged. The run note compares against the drawing's own
-   multiplicity, so a drawn singlet carbene run at 1 carries none. **Not done:** a control in the editor or panel to CHANGE the stored multiplicity; the panel's spin box remains
-   a per-run choice that is re-derived when a molecule is selected. Whether Ketcher itself writes singlet, doublet or triplet codes for its radical property is still unmeasured.
+   multiplicity, so a drawn singlet carbene run at 1 carries none. **Changed by item 12:** the stored multiplicity can now be set from the panel. Whether Ketcher itself writes singlet, doublet or triplet codes for its radical property is still unmeasured.
 
 8. **H1, first calculator: `geometry_analysis` on held structures (ClF3, BrF3, ClF5).** The radii and the shadow (projection areas, enclosing-circle radii, sizes) are arithmetic on
    the atoms and the van der Waals table, so they are now allowed; `geometry_analysis` joins `HYPERVALENT_VERIFIED_CALCULATORS`. Held to an independent implementation
@@ -159,6 +158,8 @@ a valence model that assumes closed shells and octets", which is a reason to kee
    SMILES, so that is recorded only. **One real loss found and fixed:** RDKit writes no `M  RAD` line for a bond-less O or H (the radical rides in the atom line's valence field), so a singlet
    code on a lone atom vanished from the stored molblock and the default fell back to the triplet; `molblock_keeping_spin` now inserts the singlet code where RDKit wrote none. Not measured: the
    editor's own atom dialog (the Radical dropdown) driven through the page; the KET `radical` property is what that dropdown sets, per the file format, but the dialog itself was not clicked.
+
+12. **A multiplicity a person can set (2026-11-24; `tests/test_set_multiplicity.py`).** `MoleculeModel.multiplicity` (saved only when set) holds the choice and `SetMultiplicityCommand` makes it undoable (an identity-kind change: no structure, conformer or descriptor moves). The Quantum panel's Multiplicity box writes it when the person edits the box and clears it when the value equals what the drawing implies (`ChemistryEngine.drawn_multiplicity`); selecting a molecule shows the stored value. `ChemistryEngine.stated_spin` applies the stored value only when the structure's electrons allow it (`multiplicity_problem`; ORCA exits 55 otherwise), so a later edit that changes the electron count drops a stale choice instead of failing a queued job, and it is the value `default_multiplicity`, the run note and the open-shell geometry table read (singlet or triplet CH2 follows the choice: 102.4 against 133.9 degrees). A value the electrons cannot have stays in the box, is not stored, and Run refuses it with the reason. Not done: a control outside the Quantum panel, and the Fukui and other panel buttons are unchanged (they read the box).
 
 Mutation checks run: each of 7 edits (Joback, Hansen, both Hueckel rules, the parity refusal, the spin note, the engine default) fails 1 to 5 tests when reverted.
 
