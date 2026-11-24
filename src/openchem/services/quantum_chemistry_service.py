@@ -369,13 +369,21 @@ def _with_run_settings(descriptors: list, job: _ActiveJob) -> list:
         try:
             provenance = descriptor.provenance
             if provenance is None:
+                parameters = dict(record)
+            else:
+                parameters = {**provenance.parameters, **record}
+            # parse_output never sees the submitted charge; the drawing's
+            # formal charge is not the job. Overwrite for dipole so a
+            # cation submitted on a neutral drawing is origin-dependent.
+            descriptor_id = getattr(descriptor, "descriptor_id", "") or ""
+            if descriptor_id.endswith(".dipole_moment"):
+                parameters["origin_independent"] = job.charge == 0
+            if provenance is None:
                 provenance = Provenance(
-                    created_by="core", method=job.provider.provider_id, parameters=dict(record)
+                    created_by="core", method=job.provider.provider_id, parameters=parameters
                 )
             else:
-                provenance = dataclasses.replace(
-                    provenance, parameters={**provenance.parameters, **record}
-                )
+                provenance = dataclasses.replace(provenance, parameters=parameters)
             stamped.append(dataclasses.replace(descriptor, provenance=provenance))
         except Exception:  # noqa: BLE001 - a record of the settings must never cost the result
             logger.exception("Could not record the run settings on a QC descriptor for %s", job.molecule_uuid)
