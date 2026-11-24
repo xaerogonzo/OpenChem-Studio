@@ -1444,9 +1444,15 @@ be compared across different conformer geometries when the molecular
 structure, method, basis, charge, multiplicity, and solvent match; that
 Δ is an electronic-energy difference, not a free-energy difference.
 HOMO/LUMO in eV may be compared on the same molecule and electronic
-state, including from optimizations and frequency jobs. Enthalpy and
-Gibbs free energy in Hartree from frequency jobs still require the same
-geometry as well as that model.
+state, including from optimizations and frequency jobs. Neutral QC
+dipoles in Debye may be compared across different conformer geometries
+when molecular identity, method, basis, charge, multiplicity, and
+solvent match; a charged species is origin-dependent and is not
+tabulated. Enthalpy and Gibbs free energy in Hartree from frequency
+jobs still require the same geometry as well as that model. ORCA's
+entropy term and xtb's zero-point energy are engine-specific frequency
+rows and also need matching model and geometry.
+
 Columns name the program and method; ORCA and Psi4 are not treated as one
 method. NMR still uses the per-atom shift table. An ordinary run
 against a Quantum job is refused until a shared quantity is approved
@@ -1816,10 +1822,12 @@ not report the intensities in `vibspectrum`. Two engines' numbers are
 never mixed under one label. When the output prints one, each engine stores
 **this run's** dipole magnitude in Debye (`orca.dipole_moment`,
 `psi4.dipole_moment`, `xtb.dipole_moment`). That is not the Properties
-**Dipole Moment** from Gasteiger, EEM, or QEq, and it is not compared as a
-Quantum family row or as a mixed ordinary-versus-Quantum quantity. A
-charged species remains origin-dependent: the stored number is the
-engine's, without recentering.
+**Dipole Moment** from Gasteiger, EEM, or QEq. Neutral QC dipoles can be
+compared as a Quantum family row. They are not compared as a mixed
+ordinary-versus-Quantum quantity. Whether the dipole is origin-independent
+follows the charge the job was submitted with, not the drawing's formal
+charge. A charged species remains origin-dependent: the stored number is
+the engine's, without recentering.
 
 **NMR is one job.** Ab initio ¹H and ¹³C are views of that output, not two
 calculations. The experimental ¹H lookup in Properties is a different

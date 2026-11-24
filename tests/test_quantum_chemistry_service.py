@@ -1533,3 +1533,51 @@ def test_a_caller_that_names_no_slot_gets_zero_which_means_not_recorded(qapp, tm
     results = _run_one_opt_job(qapp, tmp_path, FakeQuantumEngineProvider(), structure_identity="CCO")
 
     assert results[0].source_slot == 0
+
+
+def test_dipole_origin_independent_follows_submitted_charge_not_the_drawing():
+    """parse_output sees the molecule, not the panel charge; the stamp must overwrite."""
+    from openchem.domain.common import Provenance
+    from openchem.services.quantum_chemistry_service import _ActiveJob, _with_run_settings
+
+    class _Provider:
+        provider_id = "orca"
+
+    def _job(charge: int) -> _ActiveJob:
+        return _ActiveJob(
+            key="k",
+            mol=Chem.MolFromSmiles("C"),
+            provider=_Provider(),
+            calc_type="sp",
+            scratch_dir=Path("."),
+            process=object(),
+            charge=charge,
+        )
+
+    def _dipole(*, origin: bool) -> DescriptorValue:
+        return DescriptorValue(
+            descriptor_id="orca.dipole_moment",
+            name="Dipole",
+            units="Debye",
+            category="quantum_chemistry",
+            provider="orca",
+            molecule_uuid="u",
+            value=1.2,
+            cache_state=CacheState.COMPLETED,
+            provenance=Provenance(
+                created_by="core",
+                method="orca",
+                parameters={"origin_independent": origin},
+            ),
+        )
+
+    cation = _with_run_settings([_dipole(origin=True)], _job(1))
+    assert cation[0].provenance.parameters["origin_independent"] is False
+    assert cation[0].provenance.parameters["run_charge"] == 1
+
+    neutralized = _with_run_settings([_dipole(origin=False)], _job(0))
+    assert neutralized[0].provenance.parameters["origin_independent"] is True
+    assert neutralized[0].provenance.parameters["run_charge"] == 0
+
+    matched = _with_run_settings([_dipole(origin=True)], _job(0))
+    assert matched[0].provenance.parameters["origin_independent"] is True
