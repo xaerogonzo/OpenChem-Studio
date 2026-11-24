@@ -14,7 +14,7 @@ from openchem.domain.descriptor import DescriptorValue
 from openchem.domain.molecule import MoleculeModel
 from openchem.domain.quantum_chemistry_run import QuantumChemistryRun, RunStatus, new_run_id
 from openchem.ui.history_entries import QC_PREFIX, entry_from_quantum_run
-from openchem.ui.qc_dipole_spatial import dipole_arrow_for_run, run_geometry_molblock
+from openchem.chem.qc_dipole import dipole_arrow_for_run, run_geometry_molblock
 
 
 def _molblock(seed: int) -> str:
