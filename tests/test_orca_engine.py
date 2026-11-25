@@ -13,6 +13,7 @@ from openchem.chem.orca_engine import (
     OrcaOutputError,
     OrcaQuantumEngineProvider,
 )
+from openchem.chem.qc_dipole import AU_TO_DEBYE, VECTOR_FRAME_JOB, VECTOR_ORIGIN_COM
 from openchem.domain.common import CacheState
 from openchem.domain.scientific_result import NMRSpectrumResult
 
@@ -373,6 +374,10 @@ def test_parse_output_stores_the_last_dipole_magnitude_in_debye():
     assert dipole.value == pytest.approx(3.055886271)
     assert dipole.provenance.parameters["origin_independent"] is True
     assert dipole.cache_state == CacheState.COMPLETED
+    expected = [part * AU_TO_DEBYE for part in (-1.164262564, 0.299844712, -0.000000024)]
+    assert dipole.provenance.parameters["vector"] == pytest.approx(expected)
+    assert dipole.provenance.parameters["vector_origin"] == VECTOR_ORIGIN_COM
+    assert dipole.provenance.parameters["vector_frame"] == VECTOR_FRAME_JOB
 
 
 def test_a_missing_dipole_does_not_fail_scf():
@@ -386,12 +391,16 @@ def test_a_missing_dipole_does_not_fail_scf():
 def test_compound_jobs_never_store_dipole_even_when_printed(monkeypatch):
     """delta_scf/led/fukui print later dipoles of anions or fragments."""
     text = (
+        "Choice of electric origin   ... Center of mass\n"
         "FINAL SINGLE POINT ENERGY       -56.081184680585\n"
-        "Magnitude (Debye)      :      1.111111111\n"
+        "Total Dipole Moment    :      0.100000000       0.000000000       0.000000000\n"
+        "Magnitude (Debye)      :      0.254174645\n"
         "FINAL SINGLE POINT ENERGY       -56.184680585000\n"
-        "Magnitude (Debye)      :      2.222222222\n"
+        "Total Dipole Moment    :      0.200000000       0.000000000       0.000000000\n"
+        "Magnitude (Debye)      :      0.508349290\n"
         "FINAL SINGLE POINT ENERGY       -56.335220730864\n"
-        "Magnitude (Debye)      :      9.999999999\n"
+        "Total Dipole Moment    :      1.000000000       0.000000000       0.000000000\n"
+        "Magnitude (Debye)      :      2.5417464519\n"
     )
     mol = _ethanol_mol()
     provider = OrcaQuantumEngineProvider()
@@ -402,7 +411,23 @@ def test_compound_jobs_never_store_dipole_even_when_printed(monkeypatch):
         assert descriptors[0].descriptor_id == "orca.scf_energy"
         assert all(d.descriptor_id != "orca.dipole_moment" for d in descriptors), calc_type
     stored, _ = provider.parse_output(text, mol, "mol-1", "sp")
-    assert _orca_dipole(stored).value == pytest.approx(9.999999999)
+    dipole = _orca_dipole(stored)
+    assert dipole.value == pytest.approx(AU_TO_DEBYE)
+    assert dipole.provenance.parameters["vector"] == pytest.approx([AU_TO_DEBYE, 0.0, 0.0])
+
+
+def test_an_orca_vector_that_disagrees_with_magnitude_is_omitted():
+    text = (
+        "FINAL SINGLE POINT ENERGY       -56.081184680585\n"
+        "Choice of electric origin   ... Center of mass\n"
+        "Total Dipole Moment    :      1.000000000       0.000000000       0.000000000\n"
+        "Magnitude (Debye)      :      9.000000000\n"
+    )
+    descriptors, _ = OrcaQuantumEngineProvider().parse_output(text, _ethanol_mol(), "mol-1", "sp")
+    dipole = _orca_dipole(descriptors)
+    assert dipole.value == pytest.approx(9.0)
+    assert "vector" not in dipole.provenance.parameters
+    assert descriptors[0].descriptor_id == "orca.scf_energy"
 
 
 def test_parse_output_results_carry_provenance():

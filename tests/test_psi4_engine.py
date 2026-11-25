@@ -15,6 +15,7 @@ from rdkit import Chem
 from rdkit.Chem import AllChem
 
 from openchem.chem import psi4_engine as pe
+from openchem.chem.qc_dipole import AU_TO_DEBYE, VECTOR_FRAME_JOB, VECTOR_ORIGIN_CARTESIAN
 from openchem.chem.orca_engine import OrcaQuantumEngineProvider
 from openchem.domain.conformer import (
     ORCA_OPTIMIZED,
@@ -138,14 +139,34 @@ def test_a_single_point_reads_the_total_energy_and_names_what_ran(provider):
     assert energy.provenance.parameters["scf_type"] == "pk" and energy.provenance.parameters["puream"] is True
     dipole = _by_id(descriptors)["psi4.dipole_moment"]
     assert dipole.name == "Dipole" and dipole.units == "Debye"
-    assert dipole.value == pytest.approx(0.7793841 * 2.5417464519)
+    assert dipole.value == pytest.approx(0.7793841 * AU_TO_DEBYE)
     assert dipole.provenance.parameters["origin_independent"] is True
+    assert dipole.provenance.parameters["vector"] == pytest.approx(
+        [0.0, 0.0, -0.7793841 * AU_TO_DEBYE]
+    )
+    assert dipole.provenance.parameters["vector_origin"] == VECTOR_ORIGIN_CARTESIAN
+    assert dipole.provenance.parameters["vector_frame"] == VECTOR_FRAME_JOB
+
+
+def test_a_psi4_block_without_the_origin_line_keeps_magnitude_only(provider):
+    text = _fixture("water_b3lyp5_def2svp_sp.out").replace(
+        "Properties will be evaluated at   0.000000,   0.000000,   0.000000 [a0]\n",
+        "",
+    )
+    descriptors, _ = provider.parse_output(text, _water(), "u-1", "sp")
+    dipole = _by_id(descriptors)["psi4.dipole_moment"]
+    assert dipole.value == pytest.approx(0.7793841 * AU_TO_DEBYE)
+    assert "vector" not in dipole.provenance.parameters
+    assert "vector_origin" not in dipole.provenance.parameters
 
 
 def test_an_open_shell_output_reads_too(provider):
     descriptors, _conformer = provider.parse_output(_fixture("oh_radical_uks_sp.out"), _water(), "u-1", "sp")
 
     assert descriptors[0].value == pytest.approx(-75.63397071477293, abs=1e-12)
+    oh = _by_id(descriptors)["psi4.dipole_moment"]
+    assert oh.provenance.parameters["vector"][2] == pytest.approx(0.6741431 * AU_TO_DEBYE)
+    assert oh.provenance.parameters["vector"][2] != pytest.approx(-1.1583243 * AU_TO_DEBYE)
 
 
 def test_an_optimization_returns_the_final_geometry_as_a_psi4_conformer_and_the_last_energy(provider):
@@ -154,7 +175,12 @@ def test_an_optimization_returns_the_final_geometry_as_a_psi4_conformer_and_the_
 
     # every step prints an energy; the one reported is the LAST, at the converged geometry
     assert descriptors[0].value == pytest.approx(-76.32118516654147, abs=1e-12)
-    assert _by_id(descriptors)["psi4.dipole_moment"].value == pytest.approx(0.7884877 * 2.5417464519)
+    dipole = _by_id(descriptors)["psi4.dipole_moment"]
+    assert dipole.value == pytest.approx(0.7884877 * AU_TO_DEBYE)
+    assert dipole.value != pytest.approx(0.7793841 * AU_TO_DEBYE)
+    # Last-block Total column, not Electronic (−0.9211045) and not an earlier SP-like Z.
+    assert dipole.provenance.parameters["vector"][2] == pytest.approx(-0.7884877 * AU_TO_DEBYE)
+    assert dipole.provenance.parameters["vector"][2] != pytest.approx(-0.9211045 * AU_TO_DEBYE)
     assert conformer is not None and conformer.method == PSI4_OPTIMIZED
     assert conformer.method != ORCA_OPTIMIZED
     optimized = Chem.MolFromMolBlock(conformer.molblock, removeHs=False)
