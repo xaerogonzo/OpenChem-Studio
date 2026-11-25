@@ -154,7 +154,15 @@ Adjacency in the UI is not compatibility. Refuse with an explanation rather than
 **Still later:**
 
 - Mixed ordinary-vs-Quantum remains an empty allowlist until a quantity both sides store is approved.
-- Method combo, Quantum on Fill, and QC dipole vectors/arrows stay parked.
+- Method combo and Quantum on Fill stay parked.
+
+QC dipole arrows are a **run-owned historical visualization** on Quantum
+history (`qc:{run_id}`), not a live overlay, not Show shapes, and not a
+new calculator. The stored `{provider}.dipole_moment` descriptor stays a
+scalar; the arrow is attached only when that run's vector, origin, frame,
+and exact geometry are usable, and a charged vector is drawn only after
+it is referenced to that geometry's centre of mass using the submitted
+job charge.
 
 Per-atom arrays and NMR signals are not aligned across molecules merely because the output type matches.
 
