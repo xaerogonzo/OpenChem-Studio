@@ -2449,7 +2449,7 @@ and three were checked again recently rather than taken on trust.
   5. **Solubility of an ampholyte**: the intrinsic estimate is now shown, but its pH profile, the value at a pH and the BCS screen are withheld, because
      Henderson-Hasselbalch puts a zwitterion's minimum in the wrong place. A species-weighted model (each microspecies' own intrinsic solubility) would lift it.
      Solubility as a whole also still carries its measured base bias, reported and not corrected.
-  6. **Benchmarks that would widen a LIMITED scope**: proton affinity beyond ten heavy atoms (a held-out set of 11 to 20), bond dissociation beyond nine
+  6. **Benchmarks that would widen a LIMITED scope**: proton affinity beyond ten heavy atoms (**held-out set FROZEN 2026-11-24**, six Hunter-Lias bases of 11 to 20 heavy atoms, `benchmarks/proton_affinity/PREREGISTRATION_HELDOUT.md`; not run), bond dissociation beyond nine
      and for S-H (thiyl radicals keep an imaginary mode), Si-H and P-H classes. Until then those run with the warning. **Restart protocol v3** (preregistered and FROZEN 2026-10-28 in
      `benchmarks/restart_v3/`) has now been run, and none of it widened a scope: Arm C (six F/Cl C-H bonds) PASSED (mean absolute 0.94 kcal/mol), and Arm D (four S-H bonds, the one
      that decides S-H) was PARTIAL (mean absolute 1.78 and mean signed -1.78 against a limit of 1.5, largest 2.90; `RESULT_D.md`). Arms D-Ph and C-Br were reported only and claim nothing.

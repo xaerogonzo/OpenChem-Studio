@@ -50,9 +50,12 @@ def stats(records: list[dict], quantity: str) -> Stats:
     return Stats(len(errors), missing, sum(abs(e) for e in errors) / len(errors), sum(errors) / len(errors), max(abs(e) for e in errors))
 
 
-def verdict(deciding: Stats, arm: str) -> str:
-    """The rule for one quantity of one arm, on the deciding (above-propene) stratum: NOT EVALUABLE if more than two are missing; PASS at MAE <= the arm's limit with no error above 5 and a mean signed error within 1.5; PARTIAL up to MAE 4; else FAIL."""
-    if deciding.missing > MISSING_ALLOWED or deciding.count == 0:
+def verdict(deciding: Stats, arm: str, missing_allowed: int = MISSING_ALLOWED) -> str:
+    """The rule for one quantity of one arm, on the deciding (above-propene) stratum: NOT EVALUABLE if more than `missing_allowed` are missing; PASS at MAE <= the arm's limit with no error above 5 and a mean signed error within 1.5; PARTIAL up to MAE 4; else FAIL.
+
+    `missing_allowed` defaults to `MISSING_ALLOWED` (2), the original 28-base arm. The held-out size arm freezes 1 (`heldout.MISSING_ALLOWED`).
+    """
+    if deciding.missing > missing_allowed or deciding.count == 0:
         return NOT_EVALUABLE
     if deciding.mae <= MAE_PASS[arm] and deciding.max_abs <= MAX_ERROR and abs(deciding.mse) <= MSE_LIMIT:
         return PASS
@@ -61,10 +64,15 @@ def verdict(deciding: Stats, arm: str) -> str:
     return FAIL
 
 
-def judge(records: list[dict], arm: str) -> dict:
+def judge(records: list[dict], arm: str, missing_allowed: int = MISSING_ALLOWED) -> dict:
     """For PA and for GB: the verdict on the deciding stratum, and the statistics of the deciding stratum, the low stratum and all bases (the last two reported, in no rule)."""
     out: dict = {}
     for quantity in ("pa", "gb"):
         deciding = stats(stratum(records, low=False), quantity)
-        out[quantity] = {"verdict": verdict(deciding, arm), "deciding": deciding, "low": stats(stratum(records, low=True), quantity), "all": stats(records, quantity)}
+        out[quantity] = {
+            "verdict": verdict(deciding, arm, missing_allowed=missing_allowed),
+            "deciding": deciding,
+            "low": stats(stratum(records, low=True), quantity),
+            "all": stats(records, quantity),
+        }
     return out

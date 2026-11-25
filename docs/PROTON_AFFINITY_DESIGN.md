@@ -143,3 +143,7 @@ Rules that go with it: one stage at a time; never edit a threshold or a rule aft
 The first of these runs found a defect no unit test had reached (the Runs history raising on a stored run with no value), fixed in #429. The second was made on the commit the promotion was made from, after the service gained the bond-dissociation sequence beside this one.
 
 **What the promotion is.** `orca.proton_affinity` was EXPERIMENTAL and hidden for one stated reason: the benchmark passed, but this implementation had not been driven through the application on real ORCA. With that recorded it is **LIMITED and shown by default** (`docs/CALCULATOR_MATURITY.md`: a promotion is one change carrying the metadata, the evidence and the changelog entry). It is LIMITED and not STABLE because the scope is narrow (neutral closed-shell bases of at most ten heavy atoms of H, C, N, O, P and S) and one preregistered benchmark is not the independent, held-out, stratified result STABLE asks for. Its execution policy is unchanged: a model may not start it without a person's approval.
+
+## Held-out size panel, frozen 2026-11-24, not run
+
+`benchmarks/proton_affinity/PREREGISTRATION_HELDOUT.md` freezes six Hunter-Lias bases of 11 to 20 heavy atoms (guanine, camphor, benzoquinuclidine, acridine, anthracene, phenanthrene), chosen by chemistry before the WebBook values were fetched. The protocol is the original primary arm; the wrapper is `run_pa_heldout.py`. No job of this arm has been started. A PASS would be the evidence for lifting the ten-heavy-atom warning, in a later commit.

@@ -5248,6 +5248,7 @@
   "tests/test_property_panel_status_chips.py": 2,
   "tests/test_proton_affinity_benchmark.py": 6,
   "tests/test_proton_affinity_calculation.py": 6,
+  "tests/test_proton_affinity_heldout.py": 1,
   "tests/test_proton_affinity_panel.py": 1,
   "tests/test_proton_affinity_runner.py": 7,
   "tests/test_proton_affinity_service.py": 2,

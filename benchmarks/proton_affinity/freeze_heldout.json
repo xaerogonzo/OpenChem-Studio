@@ -1,0 +1,12 @@
+{
+ "files": {
+  "benchmarks/proton_affinity/PREREGISTRATION_HELDOUT.md": "9f345148e63ae1ae1773de8bf52595e2ad34767665c8f5012bbf4ba04cdb93ec",
+  "benchmarks/proton_affinity/heldout_values.json": "d8b8ac1ce4af868b0e64b95913c69cc0fdc0b60d636083ef8d6f67f4eb8f41b7",
+  "benchmarks/proton_affinity/heldout.py": "c969bb25bf82017d7303e923450d29d24c8b96f6b4ae046d80249a90d85b276f",
+  "benchmarks/proton_affinity/run_pa_heldout.py": "57c9e88617560f9e3681d2c20ed156fe1dce158400cea179811c80df9eebea29",
+  "benchmarks/proton_affinity/freeze_heldout.py": "ba69a2e6fa8430767e5c70409e0093a954542332ea1dcaeb66447854c0b27aef",
+  "benchmarks/proton_affinity/run_pa.py": "4a5d3f2cd70d48bef173ae4380774b6d5982fcdf53b9901c626b011f731b71c0",
+  "benchmarks/proton_affinity/pa_core.py": "19cb72b25cbd62b3e4b07b803ef7c2792fd5ad36a779d28756f35f1a5db0578e",
+  "benchmarks/proton_affinity/judge.py": "f2254dc49e7f163619acf45a42694f50112d3d87f650d1a73e3ed86c31a1e3e0"
+ }
+}
