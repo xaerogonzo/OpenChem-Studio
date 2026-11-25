@@ -1,0 +1,79 @@
+{
+  "fetched": "2026-11-24",
+  "source": "NIST Chemistry WebBook, NIST Standard Reference Database 69, gas phase ion energetics (Mask=20), values 'Proton affinity (review)' and 'Gas basicity' of Hunter and Lias 1998",
+  "note": "The six names were chosen by chemistry (size 11-20 heavy atoms, H/C/N/O/P/S, families the original 28 already had at <=10 atoms, none of those 28). The PA and GB numbers were fetched from the WebBook afterwards and did not choose the set.",
+  "bases": [
+    {
+      "name": "guanine",
+      "cas": "73-40-5",
+      "page_title": "Guanine",
+      "formula": "C5H5N5O",
+      "smiles": "C1=NC2=C(N1)C(=O)NC(=N2)N",
+      "heavy_atoms": 11,
+      "pa_kj": 959.5,
+      "gb_kj": 927.6,
+      "pa_reference": "Hunter and Lias, 1998",
+      "url": "https://webbook.nist.gov/cgi/cbook.cgi?ID=C73405&Units=SI&Mask=20"
+    },
+    {
+      "name": "camphor",
+      "cas": "76-22-2",
+      "page_title": "Camphor",
+      "formula": "C10H16O",
+      "smiles": "CC1(C2CCC1(C(=O)C2)C)C",
+      "heavy_atoms": 11,
+      "pa_kj": 859.2,
+      "gb_kj": 827.3,
+      "pa_reference": "Hunter and Lias, 1998",
+      "url": "https://webbook.nist.gov/cgi/cbook.cgi?ID=C76222&Units=SI&Mask=20"
+    },
+    {
+      "name": "benzoquinuclidine",
+      "cas": "4363-25-1",
+      "page_title": "2H-1,4-Ethanoquinoline, 3,4-dihydro-",
+      "formula": "C11H13N",
+      "smiles": "C1CN2CCC1C3=CC=CC=C32",
+      "heavy_atoms": 12,
+      "pa_kj": 979.8,
+      "gb_kj": 948.8,
+      "pa_reference": "Hunter and Lias, 1998",
+      "url": "https://webbook.nist.gov/cgi/cbook.cgi?ID=C4363251&Units=SI&Mask=20"
+    },
+    {
+      "name": "acridine",
+      "cas": "260-94-6",
+      "page_title": "Acridine",
+      "formula": "C13H9N",
+      "smiles": "C1=CC=C2C(=C1)C=C3C=CC=CC3=N2",
+      "heavy_atoms": 14,
+      "pa_kj": 972.6,
+      "gb_kj": 940.7,
+      "pa_reference": "Hunter and Lias, 1998",
+      "url": "https://webbook.nist.gov/cgi/cbook.cgi?ID=C260946&Units=SI&Mask=20"
+    },
+    {
+      "name": "anthracene",
+      "cas": "120-12-7",
+      "page_title": "Anthracene",
+      "formula": "C14H10",
+      "smiles": "C1=CC=C2C=C3C=CC=CC3=CC2=C1",
+      "heavy_atoms": 14,
+      "pa_kj": 877.3,
+      "gb_kj": 846.6,
+      "pa_reference": "Hunter and Lias, 1998",
+      "url": "https://webbook.nist.gov/cgi/cbook.cgi?ID=C120127&Units=SI&Mask=20"
+    },
+    {
+      "name": "phenanthrene",
+      "cas": "85-01-8",
+      "page_title": "Phenanthrene",
+      "formula": "C14H10",
+      "smiles": "C1=CC=C2C(=C1)C=CC3=CC=CC=C32",
+      "heavy_atoms": 14,
+      "pa_kj": 825.7,
+      "gb_kj": 795.0,
+      "pa_reference": "Hunter and Lias, 1998",
+      "url": "https://webbook.nist.gov/cgi/cbook.cgi?ID=C85018&Units=SI&Mask=20"
+    }
+  ]
+}

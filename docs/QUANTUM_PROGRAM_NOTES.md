@@ -8,6 +8,7 @@ These sections were moved here on 2026-10-29 from the assistant's private memory
 
 - [project-bde-benchmark](#project-bde-benchmark) — BDE benchmark PARTIAL (#409), held-out arm PASS (#437); the X-H BDE calculator is BUILT and MERGED 2026-10-23 (#440/#441/#443), experimental/hidden, driven run PASS 6/6
 - [project-pa-benchmark-overnight-run](#project-pa-benchmark-overnight-run) — The proton-affinity primary-arm ORCA benchmark was RUN 2026-10-20 and PASSED for PA and GB (PR #398 merged); DLPNO arm and the calculator not yet done
+- [project-pa-heldout-size-freeze](#project-pa-heldout-size-freeze) — Held-out size panel FROZEN 2026-11-24 (six Hunter-Lias bases, 11 to 20 heavy atoms); not run
 - [project-restart-protocol-v2](#project-restart-protocol-v2) — Displaced-restart protocol v2 for structures that keep an imaginary mode; draft preregistration in PR #410, held-out arms DEFERRED by Alex (still wanted later)
 - [project-tautomer-validation-outcome](#project-tautomer-validation-outcome) — Tautomer gate history: v1 (PBE0, rev 3) attempted_failed; v2 (M062X def2-TZVP, rev 5, top-3 conformers) PASSED 2026-10-04 and percentages now ship for that one model
 - [project-psi4-engine](#project-psi4-engine) — Psi4 second QM engine: MERGED and checked against ORCA (HF identical, DFT +0.05..+0.65 mEh unexplained residual); one preregistered test (functional ladder, #425) written but NOT run, waiting for free engines
@@ -44,6 +45,10 @@ Run 2026-10-20 on commit 6ec0fd29, 11 h 49 min, `--workers 3 --cores 4`. Decidin
 **Why:** Phase 3 gate. PASS means the PA/GB calculator may be built with the primary protocol (experimental, needs approval), error stated beside it.
 
 **How to apply:** the PA calculator is Alex's next build ("worth building", 2026-10-21); the secondary DLPNO arm is written only on his go. See `project_bde_benchmark`, `project_restart_protocol_v2`, `project_orca_reactivity`.
+
+## project-pa-heldout-size-freeze
+
+Held-out size panel FROZEN 2026-11-24: six Hunter-Lias bases of 11 to 20 heavy atoms (guanine, camphor, benzoquinuclidine, acridine, anthracene, phenanthrene), names chosen before the WebBook values were fetched. Protocol is the original primary arm. Wrapper `run_pa_heldout.py` (does not edit `run_pa.py`, which restart v3 hashes). `MISSING_ALLOWED` on this arm is 1 of 6. **Not run.** A PASS would be the evidence for lifting the calculator's ten-heavy-atom warning, in a later commit. See `benchmarks/proton_affinity/PREREGISTRATION_HELDOUT.md`.
 
 ## project-restart-protocol-v2
 
