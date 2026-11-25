@@ -2,7 +2,8 @@
 
 OpenChem-owned catalog of about **2000 named complete molecules** for the 2D
 editor. Not Ketcher's template button, not the reference editor, and not a
-peptide or polymer builder. Two thousand is the plateau for a named-molecule
+polymer builder. Peptide sequences are a separate Structure command, not
+catalog entries. Two thousand is the plateau for a named-molecule
 picker: common laboratory, teaching, and named natural-product structures a
 person would insert by name. It is not a second PubChem. Further growth is a
 named class on request (more sugars, more steroids), not another mixed wave.
@@ -138,9 +139,19 @@ Unsupported features (query atoms, S-groups, dummy atoms) are refused with a
 named reason. A broken record does not empty the library. Writes are
 temp-file then `os.replace`. Tests set `OPENCHEM_DATA_ROOT`.
 
+## Peptide sequence (separate from this catalog)
+
+**Structure ▸ Peptide Sequence…** expands `Ala-Glu-Gly` / `AEG` into one
+connected atomistic L-peptide and inserts it through the same
+`addFragment` path as a template. It is not a Template Library category.
+Grammar: uppercase one-letter codes or hyphenated three-letter names; the
+20 standard residues including glycine; at least two residues; neutral
+free termini. D-residues, selenocysteine, cyclic and capped peptides stay
+out. See `openchem.chem.peptide_sequence`.
+
 ## Not in this slice
 
-Peptide sequence expansion (`Ala-Glu-Gly`), polymer S-groups, a pinned
+Polymer S-groups, a pinned
 category toolbar, click-to-fuse attachment, Ketcher
 “use as 2D clean template”, unpaired-electron calculator coverage.
 

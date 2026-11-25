@@ -315,6 +315,11 @@
   "default": "Ctrl+Shift+V"
  },
  {
+  "id": "peptide_sequence",
+  "label": "Peptide Sequence",
+  "default": ""
+ },
+ {
   "id": "periodic_table",
   "label": "Periodic Table",
   "default": ""

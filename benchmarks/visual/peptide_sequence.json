@@ -1,0 +1,23 @@
+[
+  {"do": "select", "molecule": 0, "after_ms": 1500},
+  {"do": "peptide_sequence", "sequence": "AEG", "press": "insert",
+   "tag": "insert-aeg-empty-canvas", "after_ms": 1500,
+   "expect": {"inserted": true, "undo_delta": 1, "status": "Inserted."}},
+  {"do": "shot", "path": "artifacts/visual/peptide_sequence_empty.png", "widget": "peptide_sequence", "after_ms": 400},
+
+  {"do": "smiles", "smiles": "c1ccccc1", "name": "Benzene", "after_ms": 2500},
+  {"do": "select", "molecule": "Benzene", "after_ms": 2500},
+  {"do": "peptide_sequence", "sequence": "AEG", "press": "insert",
+   "tag": "insert-aeg-beside-benzene", "after_ms": 1500,
+   "expect": {"inserted": true, "smiles_contains": ".", "undo_delta": 1, "status": "Inserted."}},
+  {"do": "shot", "path": "artifacts/visual/peptide_sequence_insert.png", "widget": "peptide_sequence", "after_ms": 400},
+
+  {"do": "peptide_sequence", "sequence": "D-Ala-Gly", "press": "insert",
+   "tag": "refuse-d-amino-no-mutation", "after_ms": 800,
+   "expect": {"unchanged": true, "undo_delta": 0, "status": "D-amino"}},
+
+  {"do": "menu", "text": "Undo", "prefix": true, "in": "Edit", "after_ms": 1500},
+  {"do": "peptide_sequence", "tag": "undo-restores-benzene", "after_ms": 3500,
+   "expect": {"smiles_equals": "c1ccccc1"}},
+  {"do": "quit"}
+]

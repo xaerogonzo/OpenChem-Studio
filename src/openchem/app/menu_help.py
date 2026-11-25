@@ -372,6 +372,19 @@ MENU_HELP: dict[str, HelpTooltip] = {
         tier=2, help_id="structure.check_structure", topic=_M,
         help_anchor="structure-check",
     ),
+    "peptide_sequence": HelpTooltip(
+        text=(
+            "Opens a sequence field that builds one connected atomistic peptide "
+            "from the 20 standard L-amino acids and inserts it to the right of "
+            "the drawing as one undo step.\n\n"
+            "Uppercase one-letter codes (AEG) or hyphenated three-letter names "
+            "(Ala-Glu-Gly). At least two residues. Neutral free termini, not "
+            "D-residues, not the Template Library's free amino acids, and not "
+            "the editor's polymer mode."
+        ),
+        tier=2, help_id="structure.peptide_sequence", topic=_M,
+        help_anchor="peptide-sequence",
+    ),
     "template_library": HelpTooltip(
         text=(
             "Opens this application's structure template library: shipped complete "

@@ -142,6 +142,7 @@ from openchem.ui.dialogs.goal_wizard_dialog import GoalWizardDialog
 from openchem.ui.dialogs.lewis_pairing_dialog import LewisPairingDialog, PairingContext, PairingHost
 from openchem.ui.dialogs.salt_composition_dialog import SaltCompositionDialog, SaltHost
 from openchem.ui.dialogs.score_dialog import ScoreDialog, ScoreHost
+from openchem.ui.dialogs.peptide_sequence_dialog import PeptideSequenceDialog, PeptideSequenceHost
 from openchem.ui.dialogs.template_library_dialog import TemplateLibraryDialog
 from openchem.ui.panels.docking_panel import DockingPanel
 from openchem.ui.panels.jobs_panel import CANCEL_ALL_BUTTON, JobsPanel
@@ -256,6 +257,8 @@ _MENU_KEYWORDS: dict[str, tuple[str, ...]] = {
     "Settings...": ("preferences", "recovery", "autosave", "revisions"),
     "Check Structure...": ("valence", "sanitise", "sanitize", "validate", "problems"),
     "Template Library...": ("templates", "amino acids", "rings", "my templates"),
+    # NOT "peptide" or "sequence": words of the label, which the palette finds directly.
+    "Peptide Sequence...": ("AEG", "amino acids"),
     # `crystal`, `cif` and `smiles` deliberately point HERE as well as at
     # the importer. "How do I turn a SMILES into a crystal structure" is a
     # question with a real answer -- you cannot, it has to be measured --
@@ -634,6 +637,7 @@ class MainWindow(QMainWindow):
         self._salt_composition: SaltCompositionDialog | None = None
         self._score_dialog: ScoreDialog | None = None
         self._template_library: TemplateLibraryDialog | None = None
+        self._peptide_sequence: PeptideSequenceDialog | None = None
         self._property_panel.workflow_tab_requested.connect(self._on_workflow_tab_requested)
         self._interactions_panel = InteractionsPanel(
             services.chemistry_engine, services.event_bus, self
@@ -3367,6 +3371,12 @@ class MainWindow(QMainWindow):
             "Check Structure button",
             "check_structure_indigo",
         )
+        self._document(
+            self._structure_menu.addAction(
+                "Peptide Sequence...", self._on_peptide_sequence_action
+            ),
+            "peptide_sequence",
+        )
         library_action = self._document(
             self._structure_menu.addAction(
                 "Template Library...", self._on_template_library_action
@@ -5173,6 +5183,32 @@ class MainWindow(QMainWindow):
         self._refresh_scores_dialog()
 
     # --- the Derived Scores window ------------------------------------------------------------------
+
+    def _on_peptide_sequence_action(self, _checked: bool = False) -> None:
+        self.show_peptide_sequence()
+
+    def show_peptide_sequence(self, *, activate: bool = True) -> PeptideSequenceDialog:
+        """Open Peptide Sequence, or raise the one that is open."""
+        if self._peptide_sequence is None:
+            self._peptide_sequence = PeptideSequenceDialog(self._peptide_sequence_host(), self)
+            if not activate:
+                self._peptide_sequence.setAttribute(Qt.WidgetAttribute.WA_ShowWithoutActivating)
+        self._peptide_sequence.show()
+        if activate:
+            self._peptide_sequence.raise_()
+            self._peptide_sequence.activateWindow()
+        return self._peptide_sequence
+
+    def _peptide_sequence_host(self) -> PeptideSequenceHost:
+        from openchem.chem.peptide_sequence import molblock_from_sequence
+
+        def expand(text: str) -> str:
+            return molblock_from_sequence(text).molblock
+
+        def insert(molblock: str, callback) -> None:
+            self._editor.insert_template_molblock(molblock, callback)
+
+        return PeptideSequenceHost(expand=expand, insert_molblock=insert)
 
     def _on_template_library_action(self, _checked: bool = False) -> None:
         self.show_template_library()
