@@ -1,0 +1,4 @@
+Add Structure > Peptide Sequence for atomistic L-peptides.
+
+The Template Library stays complete molecules; polymer S-groups stay parked
+because addFragment still drops M STY.

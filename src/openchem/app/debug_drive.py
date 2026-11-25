@@ -3501,6 +3501,77 @@ class _Driver(QObject):
         else:
             logger.error("OPENCHEM_DRIVE: EXPECT template_library FAILED[%s] -- %s", tag, "; ".join(problems)[:800])
 
+    def _do_peptide_sequence(self, step: dict[str, Any]) -> None:
+        """The Peptide Sequence window, driven through its real controls.
+
+        `{"do": "peptide_sequence", "sequence": "AEG", "press": "insert",
+        "expect": {"inserted": true, "undo_delta": 1, "status": "Inserted."}}`
+        """
+        import time
+
+        from PySide6.QtWidgets import QApplication
+
+        window = self._window
+        dialog = window.show_peptide_sequence(activate=False)
+        if "sequence" in step:
+            dialog.set_sequence(str(step["sequence"]))
+        QApplication.processEvents()
+        molecule = window._current_molecule()
+        before_undo = window._undo_stack.count()
+        before_smiles = molecule.canonical_smiles if molecule is not None else ""
+        press = step.get("press")
+        if press == "insert":
+            dialog._on_insert()
+            deadline = time.monotonic() + 8.0
+            while time.monotonic() < deadline:
+                QApplication.processEvents()
+                status = dialog._status.text()
+                if status == "Inserted.":
+                    break
+                if status and status != "Inserting…":
+                    break
+                if molecule is not None and molecule.canonical_smiles != before_smiles:
+                    break
+                time.sleep(0.05)
+            leftover = time.monotonic() + 1.0
+            while time.monotonic() < leftover:
+                QApplication.processEvents()
+                time.sleep(0.05)
+        for _ in range(8):
+            QApplication.processEvents()
+        molecule = window._current_molecule()
+        smiles = molecule.canonical_smiles if molecule is not None else ""
+        undo = window._undo_stack.count()
+        status = dialog._status.text()
+        logger.warning(
+            "OPENCHEM_DRIVE: peptide_sequence press=%s status=%r smiles=%s undo=%s->%s",
+            press, status, smiles, before_undo, undo,
+        )
+        expect = step.get("expect")
+        if not expect:
+            return
+        problems: list[str] = []
+        if "smiles_equals" in expect and smiles != expect["smiles_equals"]:
+            problems.append(f"smiles is {smiles!r}, expected {expect['smiles_equals']!r}")
+        for needle in expect.get("smiles_contains", []) if isinstance(expect.get("smiles_contains"), list) else (
+            [expect["smiles_contains"]] if "smiles_contains" in expect else []
+        ):
+            if needle not in (smiles or ""):
+                problems.append(f"{needle!r} is not in {smiles!r}")
+        if "undo_delta" in expect and undo - before_undo != int(expect["undo_delta"]):
+            problems.append(f"undo {before_undo}->{undo}, expected delta {expect['undo_delta']}")
+        if "status" in expect and expect["status"] not in status:
+            problems.append(f"status {status!r} does not contain {expect['status']!r}")
+        if expect.get("inserted") is True and smiles == before_smiles:
+            problems.append("insert did not change the molecule")
+        if expect.get("unchanged") is True and smiles != before_smiles:
+            problems.append(f"sequence refusal changed the molecule to {smiles!r}")
+        tag = str(step.get("tag", ""))
+        if self._record_assertion("peptide_sequence", tag, not problems, "; ".join(problems) or "as expected"):
+            logger.warning("OPENCHEM_DRIVE: EXPECT peptide_sequence ok[%s]", tag)
+        else:
+            logger.error("OPENCHEM_DRIVE: EXPECT peptide_sequence FAILED[%s] -- %s", tag, "; ".join(problems)[:800])
+
     def _fill_score_form(self, dialog, fill: dict[str, Any]) -> None:
         """Replace the Derived Scores form's contents by pressing its buttons and typing into its edits, row by row."""
         if "inputs" in fill:
@@ -4702,6 +4773,11 @@ class _Driver(QObject):
                 logger.error("OPENCHEM_DRIVE: no Template Library open; run {'do': 'template_library'}")
                 return
             target = self._window._template_library
+        elif step.get("widget") == "peptide_sequence":
+            if self._window._peptide_sequence is None:
+                logger.error("OPENCHEM_DRIVE: no Peptide Sequence open; run {'do': 'peptide_sequence'}")
+                return
+            target = self._window._peptide_sequence
         elif step.get("widget") == "results_reader":
             # The docked Results reader as the window builds it, not a second one: the same widget a person reads.
             target = self._window._results_view
