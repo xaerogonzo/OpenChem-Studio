@@ -30,8 +30,10 @@ Bond = tuple[int, int]
 
 #: Atoms nearer than this fraction of the median bond overlap.
 OVERLAP_FRACTION = 0.5
-#: Longest/shortest bond above this is a stretched drawing.
-BOND_RATIO_LIMIT = 2.0
+#: Longest/shortest bond above this is a stretched drawing. A planar (Schlegel)
+#: drawing of a cage stretches its outer face; measured on the curated cages,
+#: ratios up to about 3 read fine, so the limit is 3, not 2.
+BOND_RATIO_LIMIT = 3.0
 #: Bounding-box long/short side above this is a ribbon, not a drawing (a
 #: straight chain legitimately reaches it, so it is the weakest flag).
 ASPECT_LIMIT = 6.0
