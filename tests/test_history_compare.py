@@ -197,8 +197,16 @@ def allow(monkeypatch):
     return quantity
 
 
-def test_mixed_quantities_ships_empty():
-    assert MIXED_QUANTITIES == ()
+def test_mixed_quantities_is_the_gasteiger_qc_dipole_row():
+    assert len(MIXED_QUANTITIES) == 1
+    quantity = MIXED_QUANTITIES[0]
+    assert quantity.quantity_id == "dipole"
+    assert quantity.units == "Debye"
+    assert quantity.allow_cross_molecule is True
+    assert quantity.ordinary_value_ids == frozenset({"dipole.magnitude"})
+    assert quantity.quantum_descriptor_ids == frozenset(
+        {"orca.dipole_moment", "psi4.dipole_moment", "xtb.dipole_moment"}
+    )
 
 
 def test_empty_allowlist_refuses_every_mixed_pair():
@@ -1205,3 +1213,216 @@ def test_named_dialog_shows_the_mixed_row(qapp, allow):
     assert "Quantum ·" in dialog._table.horizontalHeaderItem(2).text()
     assert "water vs ethanol" in dialog.windowTitle()
 
+
+def _dipole_report(*, charge_model="gasteiger", origin=True, value=1.5, help_id="dipole.magnitude"):
+    fact = Fact(
+        category=FactCategory.ELECTRONIC,
+        label="Dipole",
+        value=value,
+        display_value=str(value),
+        source="rdkit",
+        basis=Basis.DETERMINISTIC,
+        units="Debye",
+        help_id=help_id,
+    )
+    return ReportResult(
+        report_id="dipole_moment",
+        name="Dipole Moment",
+        molecule_uuid="m1",
+        facts=(fact,),
+        provenance=Provenance(
+            created_by="core",
+            method="rdkit",
+            parameters={"charge_model": charge_model, "origin_independent": origin},
+        ),
+    )
+
+
+def _dipole_execution(*, report=None, molecule="m1", calculation_input="geometry"):
+    result = report or _dipole_report()
+    return _execution(
+        producer="dipole_moment",
+        molecule=molecule,
+        calculation_input=calculation_input,
+        outputs=[_stored(result, result_id="dipole_moment", producer="dipole_moment", molecule=molecule)],
+    )
+
+
+def _qc_dipole(provider="orca", value=2.0, *, origin=True, charge=0, calc_type="sp", **run_kwargs):
+    return _run(
+        provider=provider,
+        charge=charge,
+        calc_type=calc_type,
+        descriptors=[
+            _descriptor(
+                f"{provider}.dipole_moment",
+                value,
+                units="Debye",
+                name="Dipole",
+                provenance=_origin(origin),
+            )
+        ],
+        **run_kwargs,
+    )
+
+
+def test_gasteiger_versus_qc_dipole_matches():
+    match = match_mixed_history(_dipole_execution(), _qc_dipole("orca", 2.0))
+    assert isinstance(match, MixedHistoryMatch)
+    assert match.ordinary_value == pytest.approx(1.5)
+    assert match.quantum_value == pytest.approx(2.0)
+
+
+@pytest.mark.parametrize("provider", ["orca", "psi4", "xtb"])
+def test_mixed_dipole_accepts_each_qc_provider(provider):
+    match = match_mixed_history(_dipole_execution(), _qc_dipole(provider, 2.1))
+    assert isinstance(match, MixedHistoryMatch)
+
+
+def test_eem_qeq_and_ions_are_not_mixed_dipoles():
+    assert match_mixed_history(_dipole_execution(report=_dipole_report(charge_model="eem")), _qc_dipole()) == MIXED_UNAPPROVED
+    assert match_mixed_history(_dipole_execution(report=_dipole_report(charge_model="qeq")), _qc_dipole()) == MIXED_UNAPPROVED
+    assert match_mixed_history(_dipole_execution(report=_dipole_report(origin=False)), _qc_dipole()) == MIXED_UNAPPROVED
+    assert match_mixed_history(_dipole_execution(), _qc_dipole(origin=False)) == MIXED_UNAPPROVED
+    assert match_mixed_history(_dipole_execution(), _qc_dipole(charge=1)) == MIXED_UNAPPROVED
+    missing = _dipole_report()
+    missing = ReportResult(
+        report_id=missing.report_id,
+        name=missing.name,
+        molecule_uuid=missing.molecule_uuid,
+        facts=missing.facts,
+        provenance=None,
+    )
+    assert match_mixed_history(_dipole_execution(report=missing), _qc_dipole()) == MIXED_UNAPPROVED
+    malformed = _dipole_report()
+    malformed.provenance.parameters["origin_independent"] = "True"
+    assert match_mixed_history(_dipole_execution(report=malformed), _qc_dipole()) == MIXED_UNAPPROVED
+
+
+def test_mixed_dipole_matches_help_id_not_the_label():
+    report = _dipole_report(help_id="")
+    assert match_mixed_history(_dipole_execution(report=report), _qc_dipole()) == MIXED_UNAPPROVED
+
+
+def test_mismatched_qc_descriptor_provider_is_refused():
+    run = _run(
+        provider="orca",
+        descriptors=[
+            _descriptor(
+                "psi4.dipole_moment",
+                2.0,
+                units="Debye",
+                name="Dipole",
+                provider="psi4",
+                provenance=_origin(True),
+            )
+        ],
+    )
+    assert match_mixed_history(_dipole_execution(), run) == MIXED_UNAPPROVED
+
+
+@pytest.mark.parametrize("calc_type", ["sp", "opt", "opt_freq"])
+def test_mixed_dipole_accepts_sp_opt_and_opt_freq(calc_type):
+    assert isinstance(match_mixed_history(_dipole_execution(), _qc_dipole(calc_type=calc_type)), MixedHistoryMatch)
+
+
+def test_mixed_dipole_refuses_unsupported_calc_types():
+    assert match_mixed_history(_dipole_execution(), _qc_dipole(calc_type="nmr")) == MIXED_UNAPPROVED
+
+
+def test_mixed_dipole_allows_cross_molecule_and_a_false_flag_still_refuses(monkeypatch):
+    import openchem.domain.history_compare as module
+
+    execution = _dipole_execution(molecule="m1")
+    run = _qc_dipole(molecule="m2")
+    assert isinstance(match_mixed_history(execution, run), MixedHistoryMatch)
+    from dataclasses import replace as _replace
+
+    blocked = _replace(MIXED_QUANTITIES[0], allow_cross_molecule=False)
+    monkeypatch.setattr(module, "MIXED_QUANTITIES", (blocked,))
+    assert match_mixed_history(execution, run) == "Those runs belong to different molecules."
+
+
+def test_mixed_dipole_delta_is_right_minus_left():
+    match = match_mixed_history(_dipole_execution(), _qc_dipole(value=2.0))
+    ordinary_left = named_row_from_mixed_match(match, ordinary_on_left=True)
+    quantum_left = named_row_from_mixed_match(match, ordinary_on_left=False)
+    assert ordinary_left.delta == pytest.approx(0.5)
+    assert quantum_left.delta == pytest.approx(-0.5)
+
+
+def test_mixed_dipole_drawing_versus_geometry_still_refuses():
+    message = match_mixed_history(
+        _dipole_execution(calculation_input="drawing"),
+        _qc_dipole(),
+    )
+    assert isinstance(message, str)
+    assert "drawing" in message.lower() or "3D" in message or "input" in message.lower()
+
+
+def test_zero_dipole_is_a_valid_mixed_value():
+    match = match_mixed_history(_dipole_execution(report=_dipole_report(value=0.0)), _qc_dipole(value=0.0))
+    assert isinstance(match, MixedHistoryMatch)
+    assert match.ordinary_value == 0.0
+
+
+def test_eem_output_does_not_block_a_gasteiger_mixed_dipole():
+    execution = _execution(
+        producer="dipole_moment",
+        outputs=[
+            _stored(
+                _dipole_report(charge_model="eem", value=3.0),
+                result_id="dipole_moment",
+                producer="dipole_moment",
+            ),
+            _stored(
+                _dipole_report(charge_model="gasteiger", value=1.5),
+                result_id="dipole_moment",
+                producer="dipole_moment",
+            ),
+        ],
+    )
+    match = match_mixed_history(execution, _qc_dipole(value=2.0))
+    assert isinstance(match, MixedHistoryMatch)
+    assert match.ordinary_value == pytest.approx(1.5)
+
+
+@pytest.mark.parametrize("value", [math.nan, math.inf, -math.inf])
+def test_mixed_dipole_non_finite_refuses(value):
+    assert match_mixed_history(_dipole_execution(report=_dipole_report(value=value)), _qc_dipole()) == MIXED_UNAPPROVED
+    assert match_mixed_history(_dipole_execution(), _qc_dipole(value=value)) == MIXED_UNAPPROVED
+
+
+def test_mixed_dipole_wrong_units_or_duplicate_qc_refuses():
+    wrong_units = _run(
+        descriptors=[
+            _descriptor(
+                "orca.dipole_moment",
+                2.0,
+                units="a.u.",
+                name="Dipole",
+                provenance=_origin(True),
+            )
+        ],
+    )
+    assert match_mixed_history(_dipole_execution(), wrong_units) == MIXED_UNAPPROVED
+    duplicate = _run(
+        descriptors=[
+            _descriptor("orca.dipole_moment", 2.0, units="Debye", name="Dipole", provenance=_origin(True)),
+            _descriptor("orca.dipole_moment", 2.1, units="Debye", name="Dipole", provenance=_origin(True)),
+        ],
+    )
+    assert match_mixed_history(_dipole_execution(), duplicate) == MIXED_UNAPPROVED
+
+
+def test_mixed_dipole_cross_molecule_column_labels_name_both_molecules(qapp):
+    from openchem.app.main_window import MainWindow
+
+    execution = _dipole_execution(molecule="m1")
+    run = _qc_dipole(molecule="m2")
+    assert isinstance(match_mixed_history(execution, run), MixedHistoryMatch)
+    host = _CompareHost(_result_store(execution, run))
+    left = MainWindow._history_compare_column_label(host, execution, run)
+    right = MainWindow._history_compare_column_label(host, run, execution)
+    assert "water" in left
+    assert "ethanol" in right

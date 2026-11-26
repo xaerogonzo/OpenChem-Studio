@@ -25,15 +25,6 @@ MIXED_UNAPPROVED = (
     "No approved shared quantity is defined for this ordinary run and Quantum job."
 )
 
-#: Empty on purpose. Display-name overlap is not a quantity.
-#:
-#: Not listed: ordinary Dipole Moment (point-charge, named charge model) vs
-#: stored Quantum `{provider}.dipole_moment` (this run's Debye magnitude).
-#: Ordinary Hückel HOMO/LUMO is in beta; QC orca.homo_energy is in eV.
-#: Ordinary Miller polarizability has no QC polarizability on the run.
-MIXED_QUANTITIES: tuple["MixedQuantity", ...] = ()
-
-
 def property_executions_comparable(left: PropertyExecution, right: PropertyExecution) -> str:
     """Empty if the pair may be compared; otherwise a refusal to show."""
     if left.producer != right.producer and left.outputs and right.outputs:
@@ -116,6 +107,36 @@ class MixedQuantity:
     quantum_descriptor_ids: frozenset[str]
     quantum_calc_types: frozenset[str]
     allow_cross_molecule: bool = False
+    #: Exact matches on `ReportResult.provenance.parameters` (or a
+    #: `DescriptorValue`'s, for ordinary descriptors). Booleans use `is`.
+    ordinary_parameters: tuple[tuple[str, Any], ...] = ()
+    #: Exact matches on the QC descriptor's `provenance.parameters`.
+    quantum_parameters: tuple[tuple[str, Any], ...] = ()
+    #: When set, `QuantumChemistryRun.charge` must equal this (stale-run guard).
+    required_run_charge: int | None = None
+
+
+#: Ordinary Gasteiger magnitude vs this-run QC Debye. Not EEM/QEq, not ions,
+#: not a display-name match. Hückel HOMO/LUMO (beta vs eV) and Miller
+#: polarizability stay unlisted.
+MIXED_QUANTITIES: tuple[MixedQuantity, ...] = (
+    MixedQuantity(
+        quantity_id="dipole",
+        label="Dipole",
+        units="Debye",
+        ordinary_producers=frozenset({"dipole_moment"}),
+        ordinary_result_ids=frozenset({"dipole_moment"}),
+        ordinary_value_ids=frozenset({"dipole.magnitude"}),
+        quantum_descriptor_ids=frozenset(
+            {"orca.dipole_moment", "psi4.dipole_moment", "xtb.dipole_moment"}
+        ),
+        quantum_calc_types=frozenset({"sp", "opt", "opt_freq"}),
+        allow_cross_molecule=True,
+        ordinary_parameters=(("charge_model", "gasteiger"), ("origin_independent", True)),
+        quantum_parameters=(("origin_independent", True),),
+        required_run_charge=0,
+    ),
+)
 
 
 @dataclass(frozen=True)
@@ -227,6 +248,8 @@ def _try_mixed_quantity(
         return None
     if run.calc_type not in quantity.quantum_calc_types:
         return None
+    if quantity.required_run_charge is not None and run.charge != quantity.required_run_charge:
+        return MIXED_UNAPPROVED
     ordinary = _extract_ordinary(execution, quantity)
     if ordinary == "skip":
         return None
@@ -258,6 +281,8 @@ def _extract_ordinary(
         if stored.identity.result_id not in quantity.ordinary_result_ids:
             continue
         any_result = True
+        if not _report_parameters_match(stored.result, quantity.ordinary_parameters):
+            continue
         found.extend(_ordinary_values_from_result(stored.result, quantity))
     if not any_result:
         return "skip"
@@ -302,7 +327,11 @@ def _extract_quantum(
             continue
         if item.descriptor_id not in quantity.quantum_descriptor_ids:
             continue
+        if item.provider != run.provider:
+            continue
         any_id = True
+        if not _descriptor_parameters_match(item, quantity.quantum_parameters):
+            continue
         number = _finite_number(item.value)
         if number is None:
             continue
@@ -551,6 +580,19 @@ def _descriptor_parameters_match(
     if item.provenance is None:
         return False
     parameters = item.provenance.parameters or {}
+    for key, expected in required:
+        if key not in parameters or not _parameter_equals(parameters[key], expected):
+            return False
+    return True
+
+
+def _report_parameters_match(result: Any, required: tuple[tuple[str, Any], ...]) -> bool:
+    if not required:
+        return True
+    provenance = getattr(result, "provenance", None)
+    if provenance is None:
+        return False
+    parameters = provenance.parameters or {}
     for key, expected in required:
         if key not in parameters or not _parameter_equals(parameters[key], expected):
             return False

@@ -2,6 +2,9 @@
 
 from __future__ import annotations
 
+import json
+from pathlib import Path
+
 from rdkit import Chem
 
 from openchem.chem.engine import ChemistryEngine
@@ -75,7 +78,19 @@ def test_every_shipped_category_loads_with_unique_ids_and_complete_molecules():
     )
 
 #: Entries whose 2D drawing is a hand-curated molblock instead of RDKit's layout.
-CURATED_LAYOUT_IDS = {"allotropes.buckminsterfullerene"}
+#: The SMILES of each one that `tools/curate_template_layouts.py` replaced are
+#: pinned in a fixture, which is the identity the drawing is checked against.
+CURATED_SMILES = json.loads(
+    (Path(__file__).resolve().parent / "fixtures" / "curated_template_smiles.json").read_text(encoding="utf-8")
+)
+def smiles_of(entry) -> str:
+    """The entry's SMILES, or the pinned one for an entry that holds a curated drawing."""
+    return entry.smiles or CURATED_SMILES[entry.id]
+
+
+CURATED_LAYOUT_IDS = {"allotropes.buckminsterfullerene", *CURATED_SMILES}
+#: A curated drawing may still stretch one bond (a cage's outer face) but never overlap or cross.
+CURATED_MAX_BOND_RATIO = 4.2
 
 C60_SMILES = "c12c3c4c5c1c1c6c7c2c2c8c3c3c9c4c4c%10c5c5c1c1c6c6c%11c7c2c2c7c8c3c3c8c9c4c4c9c%10c5c5c1c1c6c6c%11c2c2c7c3c3c8c4c4c9c5c1c1c6c2c3c41"
 
@@ -112,6 +127,56 @@ def test_curated_c60_is_still_c60_and_drawn_flat_without_crossings():
     assert layout.min_atom_gap > 0.5
     assert not {"overlap", "crossing"} & set(layout.flags)
     assert "2D" in block.splitlines()[1]
+
+
+def _layout_checker():
+    import importlib.util
+    import sys
+
+    spec = importlib.util.spec_from_file_location(
+        "template_layout_check", Path(__file__).resolve().parents[1] / "tools" / "template_layout_check.py"
+    )
+    checker = importlib.util.module_from_spec(spec)
+    sys.modules["template_layout_check"] = checker
+    spec.loader.exec_module(checker)
+    return checker
+
+
+def test_curated_templates_keep_their_identity_and_are_drawn_without_overlap_or_crossing():
+    from rdkit.Chem.inchi import MolToInchiKey
+
+    checker = _layout_checker()
+    engine = ChemistryEngine()
+    by_id = {e.id: e for c in load_shipped(engine) for e in c.entries}
+    assert len(CURATED_SMILES) >= 50
+    for template_id, smiles in CURATED_SMILES.items():
+        entry = by_id[template_id]
+        assert entry.molblock and not entry.smiles, template_id
+        block = molblock_for(entry, engine)
+        expected = engine.mol_from_smiles(smiles)
+        assert MolToInchiKey(engine.mol_from_molblock(block)) == MolToInchiKey(expected), template_id
+        assert engine.molblock_to_smiles(block) == engine.molblock_to_smiles(
+            molblock_for(
+                TemplateEntry(id="x", name="x", category_id=entry.category_id, smiles=smiles), engine
+            )
+        ), template_id
+        layout = checker.layout_of_molblock(block)
+        assert not {"overlap", "crossing"} & set(layout.flags), (template_id, layout)
+        assert layout.bond_ratio <= CURATED_MAX_BOND_RATIO, (template_id, layout)
+
+
+#: naloxone and naltrexone: the N-substituent still crosses the ring system in every drawing tried;
+#: barbaralane: its graph is not planar, so any flat drawing crosses. They keep their RDKit
+#: drawing. (No test pins the whole screen result: a SMILES-only entry's layout is RDKit's, and
+#: it differs between RDKit builds -- CI flagged methadone where a local run did not.)
+LEFT_ALONE_HARD_FLAGS = {"alkaloids.naloxone", "alkaloids.naltrexone", "polycycles.barbaralane"}
+
+
+def test_the_left_alone_templates_are_still_smiles_only_and_not_listed_as_curated():
+    by_id = {e.id: e for c in load_shipped() for e in c.entries}
+    for template_id in LEFT_ALONE_HARD_FLAGS:
+        assert by_id[template_id].smiles and not by_id[template_id].molblock
+        assert template_id not in CURATED_LAYOUT_IDS
 
 
 def test_every_shipped_category_sits_in_exactly_one_dialog_group():
@@ -312,7 +377,7 @@ def test_allotrope_and_reactive_species_identities_are_the_pubchem_records():
         "reactive_species.nitrous_oxide": "GQPLMRYTRLFLPF-UHFFFAOYSA-N",
     }
     for entry_id, key in expected.items():
-        mol = engine.mol_from_smiles(by_id[entry_id].smiles)
+        mol = engine.mol_from_smiles(smiles_of(by_id[entry_id]))
         assert MolToInchiKey(mol) == key, entry_id
     triplet = engine.mol_from_smiles(by_id["allotropes.triplet_oxygen"].smiles)
     singlet = engine.mol_from_smiles(by_id["allotropes.singlet_oxygen"].smiles)
@@ -433,13 +498,13 @@ def test_tropane_templates_draw_default_up_down_bonds():
         if len(line) >= 12 and line[0:3].strip().isdigit() and line[3:6].strip().isdigit()
     ]
     assert {"1", "6"} & set(bond_stereo)
-    assert MolToInchiKey(engine.mol_from_smiles(atropine.smiles)) == "RKUNBYITZUJHSG-SPUOUPEWSA-N"
-    hyoscyamine_mol = engine.mol_from_smiles(hyoscyamine.smiles)
-    scopolamine_mol = engine.mol_from_smiles(scopolamine.smiles)
+    assert MolToInchiKey(engine.mol_from_smiles(smiles_of(atropine))) == "RKUNBYITZUJHSG-SPUOUPEWSA-N"
+    hyoscyamine_mol = engine.mol_from_smiles(smiles_of(hyoscyamine))
+    scopolamine_mol = engine.mol_from_smiles(smiles_of(scopolamine))
     assert MolToInchiKey(hyoscyamine_mol).startswith("RKUNBYITZUJHSG-")
     assert MolToInchiKey(hyoscyamine_mol) == "RKUNBYITZUJHSG-FXUDXRNXSA-N"
     assert MolToInchiKey(scopolamine_mol) == "STECJAGHUSJQJN-FWXGHANASA-N"
-    assert "@" in atropine.smiles and "@" in hyoscyamine.smiles and "@" in scopolamine.smiles
+    assert all("@" in smiles_of(e) for e in (atropine, hyoscyamine, scopolamine))
 
 
 def test_camphor_is_the_verified_1r_4r_identity():
@@ -449,7 +514,7 @@ def test_camphor_is_the_verified_1r_4r_identity():
     by_id = {e.id: e for c in load_shipped(engine) for e in c.entries}
     camphor = by_id["terpenoids_steroids.camphor"]
     assert camphor.name == "(1R,4R)-Camphor"
-    assert MolToInchiKey(engine.mol_from_smiles(camphor.smiles)) == "DSSYKIVIOFKYAU-XCBNKYQSSA-N"
+    assert MolToInchiKey(engine.mol_from_smiles(smiles_of(camphor))) == "DSSYKIVIOFKYAU-XCBNKYQSSA-N"
     smiles = engine.molblock_to_smiles(molblock_for(camphor, engine))
     assert "@" in smiles
 

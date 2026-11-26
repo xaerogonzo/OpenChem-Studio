@@ -1475,12 +1475,16 @@ entropy term and xtb's zero-point energy are engine-specific frequency
 rows and also need matching model and geometry.
 
 Columns name the program and method; ORCA and Psi4 are not treated as one
-method. NMR still uses the per-atom shift table. An ordinary run
-against a Quantum job is refused until a shared quantity is approved
-for that pair — none is approved yet (including ordinary dipole versus
-the stored QC Debye magnitude), so Compare will say no approved
-shared quantity is defined rather than lining up similar names.
-Cross-molecule compare is allowed for scalars only.
+method. NMR still uses the per-atom shift table. An ordinary Gasteiger
+Dipole Moment magnitude versus this-run QC Debye magnitude is the one
+approved mixed pair. That Δ is arithmetic, not a charge-model error at
+identical geometry: the ordinary number is that execution's geometry,
+a single-point QC number is the submitted geometry, and an
+optimization or frequency job uses the optimized geometry. EEM, QEq,
+and charged species are not compared. Other ordinary-versus-Quantum
+pairs still have no approved shared quantity. Cross-molecule compare
+is allowed for that mixed dipole scalar, and for other scalars only
+when the allowlist says so.
 
 ### Showing
 
@@ -1849,10 +1853,12 @@ never mixed under one label. When the output prints one, each engine stores
 compared as a Quantum family row. Charged jobs of the same submitted
 charge can be compared as **Dipole (COM)** after the vector is
 referenced to that run's centre of mass; Compare does not overwrite
-the stored engine Debye. They are not compared as a mixed
-ordinary-versus-Quantum quantity. Whether the dipole is origin-independent
+the stored engine Debye. Gasteiger magnitude versus this-run QC
+magnitude is the mixed ordinary-versus-Quantum quantity; EEM/QEq and
+charged species stay refused there. Whether the dipole is origin-independent
 follows the charge the job was submitted with, not the drawing's formal
-charge.
+charge. A charged species remains origin-dependent for the stored engine
+number (without rewriting it); Compare's COM row is the recentered one.
 When that run also stored a usable vector, Quantum history can open **this
 run's** dipole as a 3D overlay on **this run's** submitted or optimized
 geometry. That is not the Properties **Dipole Moment** arrow, and it is
