@@ -13,4 +13,6 @@ Alex (2026-11-04): Cursor agents often open PRs with a **Test plan** full of `- 
 
 This extends [feedback-pr-bodies-state-decisions-not-questions](WORKING_AGREEMENTS.md#feedback-pr-bodies-state-decisions-not-questions): the PR is a record of decisions and measurements, not a shared task board.
 
+**Stacked follow-ups:** `gh pr create --base` another feature branch only while that parent is still open. After the parent is on `master`, retarget (`gh pr edit N --base master`) or open a new PR onto `master`. GitHub **MERGED** means merged into the PR's **base**, which is not `master` unless `baseRefName` is `master`. See [`docs/gotchas/stacked-pr-merge-is-not-master.md`](gotchas/stacked-pr-merge-is-not-master.md). (#652 and #656, 2026-11-25.)
+
 **Session drafts:** keep the `gh pr create --body-file` sources and commit-message drafts under [`docs/session-notes/`](session-notes/README.md) (per-PR folder) so the shipped PR body can stay prose-only while the repo still holds the working copies.

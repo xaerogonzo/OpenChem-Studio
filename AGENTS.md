@@ -105,6 +105,7 @@ This index is the cheap part; the files are the expensive part.
 | write an installer or decide where settings and user data live | `docs/gotchas/installer-and-user-data.md` |
 | edit CHANGELOG.md, or several sessions keep conflicting on it | `docs/gotchas/changelog-fragments.md` |
 | open a pull request on this repo | `docs/feedback_pr_no_unchecked_test_plan_checklists.md` (and `docs/WORKING_AGREEMENTS.md` PR-bodies section) |
+| merge a stacked or follow-up PR | `docs/gotchas/stacked-pr-merge-is-not-master.md` — GitHub MERGED is merge-into-**base**, not into `master` |
 
 **These describe failures that do not raise.** A wrong appearance mode renders a
 plausible-looking screenshot; a re-export shim passes its tests for the wrong

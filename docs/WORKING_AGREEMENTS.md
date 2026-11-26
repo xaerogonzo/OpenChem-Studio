@@ -50,6 +50,7 @@ for the reasoning. Two notes stay in memory only, on purpose: the one about writ
 - [feedback-pipefail-before-chaining](#feedback-pipefail-before-chaining) — Never chain `pytest ... | tail && git commit/push` without `set -o pipefail`; tail exits 0 and the commit or push goes through on red. Happened twice on 2026-09-14
 - [feedback-pr-bodies-state-decisions-not-questions](#feedback-pr-bodies-state-decisions-not-questions) — A PR body states the decisions made and why; it never asks Alex questions or says \"for your review\" — he finds a question to himself in a PR strange
 - [feedback-pr-no-unchecked-test-plan-checklists](#feedback-pr-no-unchecked-test-plan-checklists) — Do not open PRs with `- [ ]` test-plan checklists the agent will not tick off; write Verified/Measured prose instead (Alex, 2026-11-04)
+- [feedback-stacked-pr-merge-is-not-master](#feedback-stacked-pr-merge-is-not-master) — GitHub MERGED is merge-into-base, not into `master`; #652 and #656 never reached `master` (Alex, 2026-11-26)
 - [feedback-prefers-newer-sources](#feedback-prefers-newer-sources) — Alex trusts sources with a literal newer publication year more, almost universally; he does NOT mean newer information; still note when a newer source is only a calculation or a compilation of older data
 - [feedback-propose-distinct-paper-filenames](#feedback-propose-distinct-paper-filenames) — When asking Alex for a paper whose author+year name is already taken in Sci Downloads, propose a distinct filename; he has had to rename collisions by hand several times
 - [feedback-run-every-tree-sweeping-guard](#feedback-run-every-tree-sweeping-guard) — A new tracked file type can fail a guard that sweeps the whole tree; I ran only the docs guards and CI caught the sources guard — run every tests/test_*_are_current.py before pushing docs/data
@@ -852,7 +853,7 @@ PR #293 (docking nitro-as-ion fix) was opened against a peer session's unmerged 
 
 **How to apply:** before merging a stacked PR, `gh pr view <base PR>` and `list_sessions` for the base branch's session. If the base was superseded, wait for the replacement to land, merge master into the stacked branch (take master's side of conflicts, re-apply only your own diff, confirm `git diff origin/master --stat` shows only your files), retarget with `gh pr edit --base master`. Do not `git checkout -- .` to undo a mutation test: it reverts the real fix too; restore from a file copy.
 
-Related: `reference_merging_prs_and_required_checks`, `reference_two_sessions_can_share_a_worktree`.
+Related: `reference_merging_prs_and_required_checks`, `reference_two_sessions_can_share_a_worktree`, `feedback-stacked-pr-merge-is-not-master`. A parent that *did* merge to `master` and a child left on the leftover feature branch is the same class of miss: GitHub MERGED is not “on `master`”. See [`docs/gotchas/stacked-pr-merge-is-not-master.md`](gotchas/stacked-pr-merge-is-not-master.md).
 
 #### Index line before it was shortened (2026-10-18, MEMORY.md has a size limit)
 
@@ -1408,6 +1409,14 @@ Alex reacted to #353's "For your review" section (an endpoint tag marked "my jud
 **Why:** Unchecked `- [ ]` items in a **Test plan** look like work left for Alex (CI, merge fork). Cursor agents often leave them empty because they cannot tick GitHub checkboxes as CI finishes.
 
 **How to apply:** No markdown task lists for CI or merge unless the agent checks every box in the same session before handoff. Use **Verified** / **Measured** prose (command + outcome). Naming rounds still use the NAMING_ROUNDS step-6 sections, not a checkbox test plan.
+
+## feedback-stacked-pr-merge-is-not-master
+
+*Alex, 2026-11-26: stacked follow-ups #652 and #656 showed MERGED but never reached `master` because their bases were leftover feature branches. Full text: [`docs/gotchas/stacked-pr-merge-is-not-master.md`](gotchas/stacked-pr-merge-is-not-master.md).*
+
+**Why:** GitHub merge writes into the PR **base**. MERGED is not “on `master`” unless `baseRefName` is `master`.
+
+**How to apply:** After a parent lands, retarget the child to `master` (`gh pr edit N --base master`) or open a new PR onto `master`. Confirm with `gh pr view N --json baseRefName` before merge, and with `git merge-base --is-ancestor <sha> origin/master` after.
 
 ## feedback-prefers-newer-sources
 
