@@ -10,11 +10,13 @@ from __future__ import annotations
 import math
 import re
 from dataclasses import replace
+from typing import NamedTuple
 
 from rdkit import Chem
 
 from openchem.chem.calculator_options import DEFAULT_DECIMAL_PLACES
 from openchem.chem.dipole import _E_ANGSTROM_TO_DEBYE, centre_of_mass
+from openchem.chem.submitted_structure import submitted_structure_identity
 from openchem.domain.common import CacheState, Provenance
 from openchem.domain.descriptor import DescriptorValue
 from openchem.domain.report import ArrowAnnotation, valid_spatial_annotation
@@ -213,12 +215,29 @@ def run_geometry_molblock(run, molecule) -> str | None:
     if block is None:
         return None
     input_block = getattr(run, "input_molblock", "") or ""
-    input_mol = Chem.MolFromMolBlock(input_block, removeHs=False) if input_block.strip() else None
-    if input_mol is not None:
-        output_mol = Chem.MolFromMolBlock(block, removeHs=False)
-        if output_mol is None or output_mol.GetNumAtoms() != input_mol.GetNumAtoms():
-            return None
+    input_identity = submitted_structure_identity(input_block)
+    output_identity = submitted_structure_identity(block)
+    if not input_identity or input_identity != output_identity:
+        return None
     return block
+
+
+class _ComReferencedDipole(NamedTuple):
+    vector: tuple[float, float, float]
+    magnitude: float
+
+
+def com_referenced_dipole_debye(run, molblock: str | None) -> float | None:
+    """Debye magnitude under the COM convention, or None. Does not rewrite the stored descriptor."""
+    descriptor = _unique_dipole_descriptor(run)
+    stored = _stored_debye(descriptor)
+    if stored is None:
+        return None
+    charge = int(getattr(run, "charge", 0) or 0)
+    if charge == 0:
+        return stored
+    normalized = _com_referenced_dipole(run, molblock)
+    return None if normalized is None else normalized.magnitude
 
 
 def dipole_arrow_for_run(run, molblock: str | None) -> ArrowAnnotation | None:
@@ -228,64 +247,87 @@ def dipole_arrow_for_run(run, molblock: str | None) -> ArrowAnnotation | None:
     mol = Chem.MolFromMolBlock(molblock, removeHs=False)
     if mol is None or mol.GetNumConformers() == 0:
         return None
-    descriptor = _dipole_descriptor(run)
-    if descriptor is None:
+    normalized = _com_referenced_dipole(run, molblock)
+    if normalized is None:
         return None
-    params = getattr(getattr(descriptor, "provenance", None), "parameters", None) or {}
-    raw = params.get("vector")
-    origin = params.get("vector_origin")
-    frame = params.get("vector_frame")
-    if frame != VECTOR_FRAME_JOB:
-        return None
-    if origin not in {VECTOR_ORIGIN_COM, VECTOR_ORIGIN_CARTESIAN}:
-        return None
-    vector = _three_finite(raw)
-    if vector is None:
-        return None
-    magnitude = descriptor.value
-    if not isinstance(magnitude, (int, float)) or isinstance(magnitude, bool) or not math.isfinite(magnitude):
-        return None
-    if descriptor.units != "Debye":
-        return None
-    if not vector_matches_magnitude(vector, float(magnitude)):
-        return None
-    if round(float(magnitude), DEFAULT_DECIMAL_PLACES) <= 0:
-        return None
-    charge = int(getattr(run, "charge", 0) or 0)
-    if origin == VECTOR_ORIGIN_CARTESIAN and charge != 0:
-        com = centre_of_mass(mol)
-        vector = tuple(
-            float(vector[i] - charge * _E_ANGSTROM_TO_DEBYE * float(com[i]))
-            for i in range(3)
-        )
-    elif origin == VECTOR_ORIGIN_CARTESIAN and charge == 0:
-        pass
-    elif origin == VECTOR_ORIGIN_COM:
-        pass
-    else:
+    if round(normalized.magnitude, DEFAULT_DECIMAL_PLACES) <= 0:
         return None
     com = centre_of_mass(mol)
     annotation = ArrowAnnotation(
         anchor=tuple(float(part) for part in com),
-        vector=tuple(float(part) for part in vector),
+        vector=tuple(float(part) for part in normalized.vector),
         units="D",
-        label=f"{float(magnitude):.{DEFAULT_DECIMAL_PLACES}f} D",
+        label=f"{normalized.magnitude:.{DEFAULT_DECIMAL_PLACES}f} D",
     )
     if not valid_spatial_annotation(annotation):
         return None
     return annotation
 
 
-def _dipole_descriptor(run):
+def _com_referenced_dipole(run, molblock: str | None) -> _ComReferencedDipole | None:
+    descriptor = _unique_dipole_descriptor(run)
+    stored = _stored_debye(descriptor)
+    if descriptor is None or stored is None:
+        return None
+    params = getattr(getattr(descriptor, "provenance", None), "parameters", None) or {}
+    origin = params.get("vector_origin")
+    frame = params.get("vector_frame")
+    if frame != VECTOR_FRAME_JOB:
+        return None
+    if origin not in {VECTOR_ORIGIN_COM, VECTOR_ORIGIN_CARTESIAN}:
+        return None
+    vector = _three_finite(params.get("vector"))
+    if vector is None:
+        return None
+    if not vector_matches_magnitude(vector, stored):
+        return None
+    charge = int(getattr(run, "charge", 0) or 0)
+    if origin == VECTOR_ORIGIN_COM or charge == 0:
+        return _ComReferencedDipole(vector, stored)
+    if not molblock:
+        return None
+    mol = Chem.MolFromMolBlock(molblock, removeHs=False)
+    if mol is None or mol.GetNumConformers() == 0:
+        return None
+    try:
+        com = centre_of_mass(mol)
+    except Exception:  # noqa: BLE001 — unusable geometry is fail-closed
+        return None
+    translated = tuple(
+        float(vector[i] - charge * _E_ANGSTROM_TO_DEBYE * float(com[i]))
+        for i in range(3)
+    )
+    if any(not math.isfinite(part) for part in translated):
+        return None
+    magnitude = math.hypot(translated[0], math.hypot(translated[1], translated[2]))
+    if not math.isfinite(magnitude):
+        return None
+    return _ComReferencedDipole(translated, magnitude)
+
+
+def _unique_dipole_descriptor(run) -> DescriptorValue | None:
     provider = str(getattr(run, "provider", "") or "")
     wanted = f"{provider}.dipole_moment"
+    matches: list[DescriptorValue] = []
     for item in list(getattr(run, "results", {}).get("descriptors") or ()):
         if (
-            getattr(item, "descriptor_id", "") == wanted
+            isinstance(item, DescriptorValue)
+            and getattr(item, "descriptor_id", "") == wanted
             and getattr(item, "provider", "") == provider
         ):
-            return item
-    return None
+            matches.append(item)
+    if len(matches) != 1:
+        return None
+    return matches[0]
+
+
+def _stored_debye(descriptor: DescriptorValue | None) -> float | None:
+    if descriptor is None or descriptor.units != "Debye":
+        return None
+    value = descriptor.value
+    if isinstance(value, bool) or not isinstance(value, (int, float)) or not math.isfinite(value):
+        return None
+    return float(value)
 
 
 def _three_finite(raw) -> tuple[float, float, float] | None:

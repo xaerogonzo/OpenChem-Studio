@@ -1463,11 +1463,13 @@ be compared across different conformer geometries when the molecular
 structure, method, basis, charge, multiplicity, and solvent match; that
 Δ is an electronic-energy difference, not a free-energy difference.
 HOMO/LUMO in eV may be compared on the same molecule and electronic
-state, including from optimizations and frequency jobs. Neutral QC
-dipoles in Debye may be compared across different conformer geometries
+state, including from optimizations and frequency jobs. QC dipoles in Debye may be compared across different conformer geometries
 when molecular identity, method, basis, charge, multiplicity, and
-solvent match; a charged species is origin-dependent and is not
-tabulated. Enthalpy and Gibbs free energy in Hartree from frequency
+solvent match. Neutral rows use the stored engine magnitude. Charged
+jobs of the same submitted charge are tabulated as **Dipole (COM)**
+using a centre-of-mass referenced magnitude; the stored Quantum result
+is still the engine's unmodified number. A charged Cartesian-origin
+vector that cannot be referenced is omitted from Compare. Enthalpy and Gibbs free energy in Hartree from frequency
 jobs still require the same geometry as well as that model. ORCA's
 entropy term and xtb's zero-point energy are engine-specific frequency
 rows and also need matching model and geometry.
@@ -1844,17 +1846,19 @@ never mixed under one label. When the output prints one, each engine stores
 **this run's** dipole magnitude in Debye (`orca.dipole_moment`,
 `psi4.dipole_moment`, `xtb.dipole_moment`). That is not the Properties
 **Dipole Moment** from Gasteiger, EEM, or QEq. Neutral QC dipoles can be
-compared as a Quantum family row. They are not compared as a mixed
+compared as a Quantum family row. Charged jobs of the same submitted
+charge can be compared as **Dipole (COM)** after the vector is
+referenced to that run's centre of mass; Compare does not overwrite
+the stored engine Debye. They are not compared as a mixed
 ordinary-versus-Quantum quantity. Whether the dipole is origin-independent
 follows the charge the job was submitted with, not the drawing's formal
-charge. A charged species remains origin-dependent: the stored number is
-the engine's, without recentering.
+charge.
 When that run also stored a usable vector, Quantum history can open **this
 run's** dipole as a 3D overlay on **this run's** submitted or optimized
 geometry. That is not the Properties **Dipole Moment** arrow, and it is
 not **Show shapes** (those redraw Gasteiger on the displayed conformer).
 A charged overlay is drawn only after the vector is referenced to that
-geometry's centre of mass.
+geometry's centre of mass, and the arrow's label is that COM magnitude.
 
 **NMR is one job.** Ab initio ¹H and ¹³C are views of that output, not two
 calculations. The experimental ¹H lookup in Properties is a different

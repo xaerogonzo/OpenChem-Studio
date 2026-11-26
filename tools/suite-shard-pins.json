@@ -4949,6 +4949,7 @@
   "tests/test_main_window_empty_state.py": 0,
   "tests/test_main_window_lewis_pairing.py": 7,
   "tests/test_main_window_menu_actions.py": 3,
+  "tests/test_main_window_qc_family_dipole.py": 2,
   "tests/test_main_window_qc_spatial.py": 1,
   "tests/test_main_window_scores.py": 1,
   "tests/test_marrero2001_groups.py": 2,

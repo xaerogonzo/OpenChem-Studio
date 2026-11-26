@@ -2,10 +2,13 @@
 
 from __future__ import annotations
 
+import math
+
 import pytest
 from rdkit import Chem
 from rdkit.Chem import AllChem
 
+from openchem.chem.calculator_options import DEFAULT_DECIMAL_PLACES
 from openchem.chem.dipole import _E_ANGSTROM_TO_DEBYE, centre_of_mass
 from openchem.chem.qc_dipole import AU_TO_DEBYE, VECTOR_FRAME_JOB, VECTOR_ORIGIN_CARTESIAN, VECTOR_ORIGIN_COM
 from openchem.domain.common import CacheState, Provenance
@@ -190,6 +193,9 @@ def test_charged_cartesian_vector_is_translated_with_run_charge():
     assert arrow is not None
     assert arrow.vector == pytest.approx(expected)
     assert arrow.anchor == pytest.approx(tuple(float(v) for v in com))
+    com_mag = math.hypot(expected[0], math.hypot(expected[1], expected[2]))
+    assert arrow.label == f"{com_mag:.{DEFAULT_DECIMAL_PLACES}f} D"
+    assert arrow.label != f"{AU_TO_DEBYE:.{DEFAULT_DECIMAL_PLACES}f} D"
 
 
 def test_charged_missing_origin_has_no_arrow():

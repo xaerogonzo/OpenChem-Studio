@@ -6,6 +6,7 @@ See `docs/RESULTS_PROPERTIES_QUANTUM_DESIGN.md` §9.
 from __future__ import annotations
 
 import math
+from collections.abc import Mapping
 from dataclasses import dataclass
 from typing import Any
 
@@ -402,8 +403,6 @@ QUANTUM_FAMILY_QUANTITIES: tuple[QuantumFamilyQuantity, ...] = (
         True,
         requires_matching_geometry=False,
         requires_matching_structure=True,
-        required_descriptor_parameters=(("origin_independent", True),),
-        required_run_charge=0,
     ),
     QuantumFamilyQuantity(
         "entropy_term",
@@ -427,12 +426,23 @@ QUANTUM_FAMILY_QUANTITIES: tuple[QuantumFamilyQuantity, ...] = (
 
 
 def quantum_family_rows(
-    left: QuantumChemistryRun, right: QuantumChemistryRun
+    left: QuantumChemistryRun,
+    right: QuantumChemistryRun,
+    com_referenced_dipoles: Mapping[str, float | None] | None = None,
 ) -> list[NamedCompareRow]:
-    """Family rows with one finite number each side. Delta is right minus left."""
+    """Family rows with one finite number each side. Delta is right minus left.
+
+    `com_referenced_dipoles` is keyed by `run_id`. Charged dipole rows use those
+    primitives; this function does not parse geometry or call chemistry.
+    """
     rows: list[NamedCompareRow] = []
     for quantity in QUANTUM_FAMILY_QUANTITIES:
         if not _family_eligible(left, right, quantity):
+            continue
+        if quantity.quantity_id == "dipole_moment":
+            row = _dipole_family_row(left, right, quantity, com_referenced_dipoles)
+            if row is not None:
+                rows.append(row)
             continue
         left_value = _extract_family_value(left, quantity)
         right_value = _extract_family_value(right, quantity)
@@ -447,6 +457,31 @@ def quantum_family_rows(
             )
         )
     return rows
+
+
+def _dipole_family_row(
+    left: QuantumChemistryRun,
+    right: QuantumChemistryRun,
+    quantity: QuantumFamilyQuantity,
+    com_referenced_dipoles: Mapping[str, float | None] | None,
+) -> NamedCompareRow | None:
+    if left.charge == 0:
+        left_value = _extract_family_value(left, quantity)
+        right_value = _extract_family_value(right, quantity)
+        label = quantity.label
+    else:
+        mapping = com_referenced_dipoles or {}
+        left_value = _finite_number(mapping.get(left.run_id))
+        right_value = _finite_number(mapping.get(right.run_id))
+        label = "Dipole (COM)"
+    if left_value is None or right_value is None:
+        return None
+    return NamedCompareRow(
+        label=label,
+        left=_display(left_value),
+        right=_display(right_value),
+        delta=right_value - left_value,
+    )
 
 
 def _family_eligible(

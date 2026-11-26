@@ -695,26 +695,97 @@ def test_neutral_qc_dipoles_are_a_family_row():
     assert quantum_family_rows(left, right)[1].delta == pytest.approx(0.3)
 
 
-def test_dipole_family_omits_ions_and_malformed_origin_flags():
+def test_neutral_dipole_family_does_not_use_origin_independent_flags():
     good = _family_dipole("orca", 1.5)
-    ion = _family_dipole("orca", 1.6, origin=False)
-    assert "Dipole" not in [row.label for row in quantum_family_rows(good, ion)]
-    assert "SCF energy" in [row.label for row in quantum_family_rows(good, ion)]
+    ion_flag = _family_dipole("orca", 1.6, origin=False)
+    labels = [row.label for row in quantum_family_rows(good, ion_flag)]
+    assert "Dipole" in labels
+    assert "SCF energy" in labels
 
     missing = _family_dipole("orca", 1.7)
     missing.results["descriptors"][1].provenance = None
-    assert "Dipole" not in [row.label for row in quantum_family_rows(good, missing)]
+    assert "Dipole" in [row.label for row in quantum_family_rows(good, missing)]
 
     malformed = _family_dipole("orca", 1.8)
     malformed.results["descriptors"][1].provenance.parameters["origin_independent"] = 1
-    assert "Dipole" not in [row.label for row in quantum_family_rows(good, malformed)]
-
-    charged_run = _family_dipole("orca", 1.9, charge=1)
-    assert "Dipole" not in [row.label for row in quantum_family_rows(good, charged_run)]
+    assert "Dipole" in [row.label for row in quantum_family_rows(good, malformed)]
 
     no_key = _family_dipole("orca", 1.7)
     no_key.results["descriptors"][1].provenance.parameters.pop("origin_independent")
-    assert "Dipole" not in [row.label for row in quantum_family_rows(good, no_key)]
+    assert "Dipole" in [row.label for row in quantum_family_rows(good, no_key)]
+
+
+def test_positive_versus_neutral_charge_has_no_family_dipole():
+    good = _family_dipole("orca", 1.5)
+    charged_run = _family_dipole("orca", 1.9, charge=1)
+    rows = quantum_family_rows(good, charged_run)
+    assert rows == []
+
+
+def test_charged_com_origin_family_row_uses_mapping_not_raw_fallback():
+    left = _family_dipole("orca", 1.5, charge=1)
+    right = _family_dipole("orca", 9.9, charge=1)
+    mapping = {left.run_id: 1.5, right.run_id: 2.0}
+    rows = quantum_family_rows(left, right, com_referenced_dipoles=mapping)
+    dipole = next(row for row in rows if row.label == "Dipole (COM)")
+    assert dipole.left == "1.5"
+    assert dipole.right == "2"
+    assert dipole.delta == pytest.approx(0.5)
+
+
+def test_charged_cartesian_family_uses_translated_mapping_values():
+    left = _family_dipole("psi4", 4.0, charge=-1)
+    right = _family_dipole("xtb", 4.0, charge=-1)
+    mapping = {left.run_id: 2.25, right.run_id: 2.75}
+    rows = quantum_family_rows(left, right, com_referenced_dipoles=mapping)
+    dipole = next(row for row in rows if row.label == "Dipole (COM)")
+    assert dipole.delta == pytest.approx(0.5)
+    assert dipole.left != "4"
+
+
+def test_charged_opt_runs_use_per_run_mapping_entries():
+    left = _family_dipole("orca", 1.1, charge=1, calc_type="opt")
+    right = _family_dipole("orca", 1.2, charge=1, calc_type="opt")
+    mapping = {left.run_id: 3.0, right.run_id: 4.0}
+    dipole = next(
+        row
+        for row in quantum_family_rows(left, right, com_referenced_dipoles=mapping)
+        if row.label == "Dipole (COM)"
+    )
+    assert dipole.left == "3"
+    assert dipole.right == "4"
+
+
+def test_charged_cartesian_missing_mapping_omits_dipole_only():
+    left = _family_dipole("orca", 1.5, charge=1)
+    right = _family_dipole("orca", 1.6, charge=1)
+    labels = [row.label for row in quantum_family_rows(left, right)]
+    assert "Dipole" not in labels
+    assert "Dipole (COM)" not in labels
+    assert "SCF energy" in labels
+
+
+def test_charged_com_origin_missing_molblock_still_rows_when_mapping_has_values():
+    left = _family_dipole("orca", 1.5, charge=1)
+    right = _family_dipole("orca", 1.6, charge=1)
+    mapping = {left.run_id: 1.5, right.run_id: 1.6}
+    labels = [
+        row.label
+        for row in quantum_family_rows(left, right, com_referenced_dipoles=mapping)
+    ]
+    assert "Dipole (COM)" in labels
+
+
+def test_charged_sp_missing_dipole_keeps_scf():
+    both = _family_dipole("orca", 1.5, charge=1)
+    scf_only = _scf("orca", -76.3, input_molblock=_ETHANOL_A, charge=1)
+    labels = [
+        row.label
+        for row in quantum_family_rows(
+            both, scf_only, com_referenced_dipoles={both.run_id: 1.5, scf_only.run_id: None}
+        )
+    ]
+    assert labels == ["SCF energy"]
 
 
 def test_missing_dipole_omits_only_that_family_row():
@@ -953,6 +1024,7 @@ class _CompareHost:
         self._show_quantum_history_compare = MainWindow._show_quantum_history_compare.__get__(self)
         self._show_ordinary_history_compare = MainWindow._show_ordinary_history_compare.__get__(self)
         self._history_compare_column_label = MainWindow._history_compare_column_label.__get__(self)
+        self._com_referenced_dipoles_for_runs = MainWindow._com_referenced_dipoles_for_runs.__get__(self)
 
     def _history_molecule_name(self, molecule_uuid: str) -> str:
         from openchem.app.main_window import MainWindow

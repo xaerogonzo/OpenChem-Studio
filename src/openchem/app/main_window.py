@@ -2146,8 +2146,23 @@ class MainWindow(QMainWindow):
             symbols = dict(getattr(spectrum_a, "elements", {}) or {})
             self._show_atom_history_compare(outcome, symbols, left.molecule_uuid)
             return
-        rows = quantum_family_rows(left, right)
+        rows = quantum_family_rows(
+            left,
+            right,
+            com_referenced_dipoles=self._com_referenced_dipoles_for_runs(left, right),
+        )
         self._show_named_history_compare(rows, left, right, empty_message=QUANTUM_FAMILY_EMPTY)
+
+    def _com_referenced_dipoles_for_runs(self, *runs) -> dict[str, float | None]:
+        from openchem.chem.qc_dipole import com_referenced_dipole_debye, run_geometry_molblock
+
+        project = self._session.project
+        mapping: dict[str, float | None] = {}
+        for run in runs:
+            molecule = project.find_molecule(run.molecule_uuid) if project is not None else None
+            molblock = run_geometry_molblock(run, molecule)
+            mapping[run.run_id] = com_referenced_dipole_debye(run, molblock)
+        return mapping
 
     def _show_ordinary_history_compare(self, left, right) -> None:
         from openchem.domain.compare import ComparedResult, CompareRefusal, compare
