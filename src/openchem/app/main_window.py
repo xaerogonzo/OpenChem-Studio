@@ -2146,8 +2146,23 @@ class MainWindow(QMainWindow):
             symbols = dict(getattr(spectrum_a, "elements", {}) or {})
             self._show_atom_history_compare(outcome, symbols, left.molecule_uuid)
             return
-        rows = quantum_family_rows(left, right)
+        rows = quantum_family_rows(
+            left,
+            right,
+            com_referenced_dipoles=self._com_referenced_dipoles_for_runs(left, right),
+        )
         self._show_named_history_compare(rows, left, right, empty_message=QUANTUM_FAMILY_EMPTY)
+
+    def _com_referenced_dipoles_for_runs(self, *runs) -> dict[str, float | None]:
+        from openchem.chem.qc_dipole import com_referenced_dipole_debye, run_geometry_molblock
+
+        project = self._session.project
+        mapping: dict[str, float | None] = {}
+        for run in runs:
+            molecule = project.find_molecule(run.molecule_uuid) if project is not None else None
+            molblock = run_geometry_molblock(run, molecule)
+            mapping[run.run_id] = com_referenced_dipole_debye(run, molblock)
+        return mapping
 
     def _show_ordinary_history_compare(self, left, right) -> None:
         from openchem.domain.compare import ComparedResult, CompareRefusal, compare
@@ -2419,6 +2434,7 @@ class MainWindow(QMainWindow):
             fingerprints=fingerprints,
             structure_version=version,
             live_result_ids=live_ids,
+            molecule=molecule,
         )
 
     def _open_compare_readers(self, uuids: list) -> None:
@@ -6123,8 +6139,40 @@ class MainWindow(QMainWindow):
         report_id = params.get("report_id")
         if not report_id:
             return False
+        if str(report_id).startswith("qc:"):
+            return self._link_to_qc_spatial_view(str(report_id))
         index = params.get("annotation_index") or 0
         return self._property_panel.open_spatial_view(str(report_id), int(index))
+
+    def _link_to_qc_spatial_view(self, report_id: str) -> bool:
+        """This Quantum run's dipole on this run's geometry — never the live calculator."""
+        from openchem.ui.dialogs.spatial_result_dialog import QC_RUN_GEOMETRY_CAVEAT, SpatialResultDialog
+        from openchem.ui.history_entries import QC_PREFIX, entry_from_quantum_run
+        from openchem.chem.qc_dipole import run_geometry_molblock
+
+        if not report_id.startswith(QC_PREFIX):
+            return False
+        run_id = report_id[len(QC_PREFIX):]
+        service = self._services.result_store_service
+        project = self._session.project
+        if service is None or project is None:
+            return False
+        run = service.qc_runs.get(run_id)
+        if run is None:
+            return False
+        molecule = project.find_molecule(run.molecule_uuid)
+        molblock = run_geometry_molblock(run, molecule)
+        if not molblock:
+            return False
+        fingerprints = service.fingerprints_for(molecule) if molecule is not None else {}
+        entry = entry_from_quantum_run(run, fingerprints, 0, molecule=molecule)
+        if not entry.spatial:
+            return False
+        dialog = SpatialResultDialog(entry, molblock, self, caveat=QC_RUN_GEOMETRY_CAVEAT)
+        dialog.setAttribute(Qt.WidgetAttribute.WA_DeleteOnClose, True)
+        dialog.show()
+        dialog.raise_()
+        return True
 
     def _link_to_periodic_table(self, params: dict) -> bool:
         self._show_periodic_table()

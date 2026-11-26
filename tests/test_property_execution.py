@@ -186,6 +186,7 @@ def test_quantum_run_is_listed_with_its_run_id():
     assert run.run_id[:8] in entry.name
     assert entry.historical
     assert entry.history_kind == "quantum"
+    assert entry.spatial == ()
 
 
 def test_cache_put_key_still_omits_parameters_key():

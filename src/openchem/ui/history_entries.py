@@ -14,6 +14,7 @@ from openchem.domain.property_execution import PropertyExecution
 from openchem.domain.quantum_chemistry_run import QuantumChemistryRun
 from openchem.domain.report import Fact, FactCategory
 from openchem.domain.structure_issue import Basis
+from openchem.chem.qc_dipole import dipole_arrow_for_run, run_geometry_molblock
 from openchem.ui.result_adapters import summarise
 from openchem.ui.result_summary import ResultSummaryView
 
@@ -48,6 +49,7 @@ def history_reader_entries(
     fingerprints: dict[str, str],
     structure_version: int,
     live_result_ids: set[str] | None = None,
+    molecule=None,
 ) -> list:
     live = set(live_result_ids or ())
     listed = list(executions)
@@ -60,7 +62,7 @@ def history_reader_entries(
         if entry is not None:
             entries.append(entry)
     for run in qc_runs:
-        entry = entry_from_quantum_run(run, fingerprints, structure_version)
+        entry = entry_from_quantum_run(run, fingerprints, structure_version, molecule=molecule)
         if entry is not None:
             entries.append(entry)
     return entries
@@ -143,6 +145,7 @@ def entry_from_quantum_run(
     run: QuantumChemistryRun,
     fingerprints: dict[str, str],
     structure_version: int,
+    molecule=None,
 ) -> ResultSummaryView:
     historical = fingerprints.get(run.calculation_input) != run.input_fingerprint
     stamp = 0 if historical else structure_version
@@ -208,6 +211,9 @@ def entry_from_quantum_run(
     label = f"{run.calc_type} · {run.provider} · {run.method_basis} · {run.run_id[:8]}"
     if historical:
         label += " · historical"
+    molblock = run_geometry_molblock(run, molecule)
+    arrow = dipole_arrow_for_run(run, molblock)
+    spatial = (arrow,) if arrow is not None else ()
     return ResultSummaryView(
         report_id=f"{QC_PREFIX}{run.run_id}",
         name=label,
@@ -223,6 +229,7 @@ def entry_from_quantum_run(
         history_kind="quantum",
         history_id=run.run_id,
         historical=historical,
+        spatial=spatial,
     )
 
 
