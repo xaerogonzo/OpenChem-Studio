@@ -1,5 +1,5 @@
 <!-- GENERATED FROM docs/sources.toml -- do not edit -->
-<!-- SOURCE SHA256: 608bffffca69eff4312bf501f0bc04cb6d7c8816b6c492f38a236bafe73f0409 -->
+<!-- SOURCE SHA256: 107504cf0405f53d832a661e22cbe3bdd349a9de1ff5fb9e75808896e19583f3 -->
 
 # Sources
 
@@ -500,6 +500,7 @@ Title and DOI first; the `key` is what prose and code cite (`[source:key]`) and 
 | Fast calculation of van der Waals volume as a sum of atomic and bond contributions and its application to drug compounds | [10.1021/jo034808o](https://doi.org/10.1021/jo034808o) | [`zhao2003`](#zhao2003) | literature | reference only | citation + claim |
 | The M06 suite of density functionals for main group thermochemistry, thermochemical kinetics, noncovalent interactions, excited states, and transition elements: two new functionals and systematic testing of four M06-class functionals and 12 other functionals | [10.1007/s00214-007-0310-x](https://doi.org/10.1007/s00214-007-0310-x) | [`zhao2008`](#zhao2008) | literature | reference only | citation + claim |
 | CheckMyMetal: a macromolecular metal-binding validation tool | [10.1107/S2059798317001061](https://doi.org/10.1107/S2059798317001061) | [`zheng2017`](#zheng2017) | literature | shipped | citation + claim |
+| Fundamental properties of TEMPO-based catholytes for aqueous redox flow batteries: effects of substituent groups and electrolytes on electrochemical properties, solubilities and battery performance | [10.1039/d0ra03424j](https://doi.org/10.1039/d0ra03424j) | [`zhou2020`](#zhou2020) | literature | shipped | citation + claim |
 | Rapid Approximate Subset-Based Spectra Prediction for Electron Ionization-Mass Spectrometry | [10.1021/acs.analchem.2c02093](https://doi.org/10.1021/acs.analchem.2c02093) | [`zhu2023`](#zhu2023) | literature | reference only | citation |
 | Molecular recognition of morphine and fentanyl by the human mu-opioid receptor | [10.1016/j.cell.2022.09.041](https://doi.org/10.1016/j.cell.2022.09.041) | [`zhuang2022`](#zhuang2022) | literature | shipped | citation + claim |
 
@@ -9800,6 +9801,21 @@ The deposited CIF (SHELXL-97, 153 K, R 0.048; o-fluorophenyl-IF2 with a quarter 
 | Used by | `docs/OPEN_SHELL_AND_HYPERVALENT_COVERAGE_DESIGN.md` |
 
 **Why it is reference only.** Read in part. The nu2 (out-of-plane bending) band of CH3 by diode laser spectroscopy at 606.4531, 681.6369 and 731.0757 cm-1; the vibration-rotation analysis supports a planar (or nearly planar, with no potential hump at the planar configuration) ground state, which is the D3h geometry the CCCBDB page lists. Ground-state B = 9.57789 (16) cm-1 and C = 4.74202 [67] cm-1 (Table), the rotational constants CCCBDB credits to this paper. The paper does not itself give a C-H length in the parts read.
+
+### zhou2020 — Fundamental properties of TEMPO-based catholytes for aqueous redox flow batteries: effects of substituent groups and electrolytes on electrochemical properties, solubilities and battery performance
+
+<a id="zhou2020"></a>
+
+> W. Zhou, W. Liu, M. Qin, Z. Chen, J. Xu, J. Cao & J. Li, 'Fundamental properties of TEMPO-based catholytes for aqueous redox flow batteries: effects of substituent groups and electrolytes on electrochemical properties, solubilities and battery performance', RSC Advances 10, 21839-21844 (2020)
+
+| | |
+| --- | --- |
+| Identifier | [10.1039/d0ra03424j](https://doi.org/10.1039/d0ra03424j) |
+| Status | shipped |
+| Verification | citation + claim |
+| Verified | 2026-11-27 |
+| Local copy | `zhou2020.pdf` (not checked) |
+| Used by | `src/openchem/chem/solubility.py`, `benchmarks/open_shell/solubility_rule.py`, `docs/OPEN_SHELL_AND_HYPERVALENT_COVERAGE_DESIGN.md` |
 
 ## Datasets
 

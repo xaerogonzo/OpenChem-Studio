@@ -73,6 +73,7 @@ from rdkit import Chem
 from rdkit.Chem import Crippen, Descriptors, Lipinski
 
 from openchem.chem.gutmann import donicity_for
+from openchem.chem.open_shell import is_open_shell
 from openchem.chem.calculator_options import DEFAULT_PH, ph_grid_from
 from openchem.chem.logd import assign_site_polarity, classify_ionizable_centres, ionization_log_factor
 from openchem.chem.pka_providers import PKaResolution, PKaStatus
@@ -835,6 +836,8 @@ class BcsReason(Enum):
     #: The baseline model is known to overpredict for this molecule (`esol_domain_warning`), and the screen is
     #: built on it.
     BASELINE_OUT_OF_DOMAIN = "the baseline model is known to overpredict for this molecule"
+    #: The structure has unpaired electrons: ESOL ran low on every stable radical it was checked on and AqSolDB was not checked (`open_shell_warning`).
+    OPEN_SHELL = "the structure has unpaired electrons and the baseline is not reliable for a radical"
 
 
 @dataclass(frozen=True)
@@ -1109,6 +1112,8 @@ class SolubilityAnalysis:
     #: Why the baseline should not be trusted for this molecule, when it should not (`esol_domain_warning`).
     #: The analysis proceeds; every number that follows from the baseline is reported WITH this.
     domain_warning: str = ""
+    #: Why the baseline means less for a structure with unpaired electrons (`open_shell_warning`), or "". Its own field: the domain warning above says ESOL runs HIGH, and on radicals it was measured to run LOW.
+    open_shell_note: str = ""
 
     @property
     def baseline_logs(self) -> float | None:
@@ -1199,6 +1204,30 @@ def esol_domain_warning(mol: Chem.Mol) -> str:
     )
 
 
+#: The provenance code the open-shell note is recorded under.
+OPEN_SHELL_RECORD_CODE = "OPEN_SHELL_ESOL_LOW"
+#: The measurement behind the note (`benchmarks/open_shell/solubility_rule.py`, rule committed before the run; `tests/test_open_shell_solubility.py` recomputes every number here): ESOL minus the measured logS of
+#: five stable TEMPO radicals in pure water, Zhou et al. 2020 [source:zhou2020] (Table 1, doi:10.1039/d0ra03424j), was -2.20, -2.10, -2.61, -0.93 and -0.63 (4-hydroxy, 4-oxo, 4-amino, 4-cyano, 4-carboxy), mean -1.69.
+OPEN_SHELL_ESOL_NOTE = (
+    "This structure has unpaired electrons. ESOL is a closed-shell formula with no spin term, and on the five stable nitroxide radicals with a measured aqueous solubility (4-substituted TEMPO, Zhou et al. 2020) "
+    "it came out too LOW on every one, by 0.6 to 2.6 log units (mean 1.7), and by more than its usual error of 1.26 on three of the five. Those are the only radicals it was checked on, from one laboratory at 'room "
+    "temperature', and no closed-shell comparison was measured, so the error cannot be assigned to the unpaired electron; treat the number as an underestimate for a polar radical. The ICH M9 screen that rests on it "
+    "is not offered, and the pH profile carries the same uncertainty. Most small radicals cannot be dissolved as such at all."
+)
+#: The note for a baseline model nobody checked on a radical (the AqSolDB model).
+OPEN_SHELL_UNCHECKED_NOTE = (
+    "This structure has unpaired electrons. The baseline model was not checked on any radical, so its number is a closed-shell model's, not a measured property of the radical. The ICH M9 screen that rests on it is not "
+    "offered, and the pH profile carries the same uncertainty. Most small radicals cannot be dissolved as such at all."
+)
+
+
+def open_shell_warning(mol: Chem.Mol, model: str = ESOL) -> str:
+    """The note for a structure with unpaired electrons (`open_shell.is_open_shell`: O2 drawn `O=O` included), or "". A WARNING, not a refusal, like `esol_domain_warning`."""
+    if not is_open_shell(mol):
+        return ""
+    return OPEN_SHELL_ESOL_NOTE if model == ESOL else OPEN_SHELL_UNCHECKED_NOTE
+
+
 def analyse_solubility(
     mol: Chem.Mol,
     parameters: dict | None = None,
@@ -1230,6 +1259,7 @@ def analyse_solubility(
     # A wrong logS0 also moves the pH profile and the ICH M9 estimate, which are both applied to this
     # baseline, so the warning travels with the analysis and the report withholds what depends on it.
     warning = esol_domain_warning(mol) if model == ESOL else ""
+    radical_note = open_shell_warning(mol, model)
 
     try:
         resolution = resolve_pkas(mol, str(parameters.get("pka_values", "")), interpreter_path)
@@ -1259,7 +1289,7 @@ def analyse_solubility(
                 solvent=solvent, estimate=estimate, resolution=resolution,
                 ionization=ionization, molecular_weight=Descriptors.MolWt(mol),
                 pkas=[], is_acid=[], refusal=outcome, refusal_code="SOLVENT_NOT_COVERED",
-                domain_warning=warning,
+                domain_warning=warning, open_shell_note=radical_note,
             )
         shift = outcome
 
@@ -1277,7 +1307,7 @@ def analyse_solubility(
             solvent=solvent, estimate=estimate, resolution=resolution,
             ionization=ionization, molecular_weight=Descriptors.MolWt(mol),
             pkas=[], is_acid=[], refusal=refusal, refusal_code=refusal_code, shift=shift,
-            domain_warning=warning,
+            domain_warning=warning, open_shell_note=radical_note,
         )
     if ionization is IonizationClass.AMPHOLYTE and estimate.status is ModelStatus.AVAILABLE:
         # COMPUTED: the intrinsic estimate only; `compute_solubility` withholds everything Henderson-Hasselbalch would draw.
@@ -1308,7 +1338,7 @@ def analyse_solubility(
     return SolubilityAnalysis(
         solvent=solvent, estimate=estimate, resolution=resolution, ionization=ionization,
         molecular_weight=Descriptors.MolWt(mol), pkas=pkas, is_acid=is_acid, refusal=refusal,
-        refusal_code=refusal_code, shift=shift, domain_warning=warning,
+        refusal_code=refusal_code, shift=shift, domain_warning=warning, open_shell_note=radical_note,
     )
 
 
@@ -1352,6 +1382,7 @@ def _provenance(analysis: SolubilityAnalysis, parameters: dict) -> Provenance:
             "ionization_class": analysis.ionization.value,
             "solvent": analysis.solvent.key,
             "domain_warning": ESOL_DOMAIN_WARNING if analysis.domain_warning else "",
+            "open_shell_note": OPEN_SHELL_RECORD_CODE if analysis.open_shell_note else "",
             "adjustment_limit_log_units": analysis.limit.log_units,
             "adjustment_limit_kind": analysis.limit.kind.value,
             "ph": float(parameters.get("pH", DEFAULT_PH)),
@@ -1408,7 +1439,7 @@ def _base_bias_limitation(analysis: SolubilityAnalysis) -> tuple[str, ...]:
 
 def _domain_limitation(analysis: SolubilityAnalysis) -> tuple[str, ...]:
     """The ESOL domain warning as a limitation, or nothing."""
-    return (analysis.domain_warning,) if analysis.domain_warning else ()
+    return tuple(note for note in (analysis.domain_warning, analysis.open_shell_note) if note)
 
 
 def _baseline_facts(analysis: SolubilityAnalysis) -> list[Fact]:
@@ -1734,6 +1765,16 @@ def compute_solubility(
             evidence=(analysis.domain_warning,),
             detail=Detail.STANDARD,
         ))
+    if analysis.open_shell_note:
+        # A ROW, FIRST, for the reason the domain warning is one: the limitation sits under a status line and in tooltips, which are not read.
+        low = analysis.open_shell_note == OPEN_SHELL_ESOL_NOTE
+        facts.insert(0, _fact(
+            "Baseline reliability", "ESOL runs low on radicals" if low else "not checked on radicals",
+            "unpaired electrons: ESOL was 0.6 to 2.6 log units too low on the five stable nitroxides it was checked on"
+            if low else "unpaired electrons: the baseline model was not checked on any radical",
+            evidence=(analysis.open_shell_note,),
+            detail=Detail.STANDARD,
+        ))
     facts += _gutmann_facts(analysis.solvent.key)
     if not ampholyte:
         facts += _ph_facts(analysis, ph)
@@ -1770,6 +1811,9 @@ def compute_solubility(
         # A regulatory-shaped PASS built on a baseline known to run high is the one output here that could do
         # harm, so it is withheld; the number and its warning above are what is offered instead.
         screen = BcsScreen.undetermined(BcsReason.BASELINE_OUT_OF_DOMAIN)
+        window = None
+    elif analysis.open_shell_note:
+        screen = BcsScreen.undetermined(BcsReason.OPEN_SHELL)
         window = None
     elif not analysis.solvent.is_water:
         # ICH M9 is a criterion about aqueous media. Reporting it for a

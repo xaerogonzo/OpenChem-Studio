@@ -11353,3 +11353,18 @@ verified_date = 2026-11-15
 reason = """
 Read in part. The nu2 (out-of-plane bending) band of CH3 by diode laser spectroscopy at 606.4531, 681.6369 and 731.0757 cm-1; the vibration-rotation analysis supports a planar (or nearly planar, with no potential hump at the planar configuration) ground state, which is the D3h geometry the CCCBDB page lists. Ground-state B = 9.57789 (16) cm-1 and C = 4.74202 [67] cm-1 (Table), the rotational constants CCCBDB credits to this paper. The paper does not itself give a C-H length in the parts read.
 """
+
+[[source]]
+key = "zhou2020"
+kind = "literature"
+citation = "W. Zhou, W. Liu, M. Qin, Z. Chen, J. Xu, J. Cao & J. Li, 'Fundamental properties of TEMPO-based catholytes for aqueous redox flow batteries: effects of substituent groups and electrolytes on electrochemical properties, solubilities and battery performance', RSC Advances 10, 21839-21844 (2020)"
+identifier_type = "doi"
+identifier = "10.1039/d0ra03424j"
+status = "shipped"
+used_by = ["src/openchem/chem/solubility.py", "benchmarks/open_shell/solubility_rule.py", "docs/OPEN_SHELL_AND_HYPERVALENT_COVERAGE_DESIGN.md"]
+local = "zhou2020.pdf"
+verification = "citation_and_claim"
+verified_date = 2026-11-27
+reason = """
+Table 1 (journal page 21841, PDF page 3), column 'Solubility in pure water (M)': 4-hydroxy-TEMPO 2.11, 4-oxo-TEMPO 1.22, 4-amino-TEMPO 5.79, 4-cyano-TEMPO 2.6e-2, 4-carboxy-TEMPO 2.1e-2; UV-vis after 48 h equilibration of excess solid at 'room temperature' (no number). Plain TEMPO is not in the paper. Backs the warning on `solubility` for a radical: ESOL came out too low on all five (0.6 to 2.6 log units). The SI (zhou2020_SI.pdf) has Fig. S5, the UV-vis calibration spectra and absorbance-concentration lines behind these values ('summarized in Table 1', one 50-fold dilution noted), and no separate table.
+"""
