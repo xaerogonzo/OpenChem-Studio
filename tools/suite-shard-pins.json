@@ -5154,6 +5154,7 @@
   "tests/test_open_shell.py": 4,
   "tests/test_open_shell_charges.py": 0,
   "tests/test_open_shell_geometry.py": 7,
+  "tests/test_open_shell_solubility.py": 5,
   "tests/test_opsin_isolation.py": 1,
   "tests/test_optimize_a_chosen_conformer.py": 3,
   "tests/test_optimize_with_an_engine.py": 5,

@@ -414,6 +414,14 @@ Papers fetched for the open-shell work (`docs/OPEN_SHELL_AND_HYPERVALENT_COVERAG
 
 Not downloaded: D. Young's spin-contamination page (ccl.net), the source of the 10% rule of thumb. Still open: any measurement for 4-oxo-TEMPO or di-tert-butyl nitroxide.
 
+## Solubility of radicals (2026-11-27)
+
+| Paper | Read for | Outcome | Registry key |
+|---|---|---|---|
+| Zhou et al. 2020 (RSC Adv. 10, 21839) | aqueous solubility of stable nitroxides | Table 1, journal page 21841: pure-water solubility of five 4-substituted TEMPO radicals, 2.11, 1.22, 5.79, 0.026 and 0.021 M; UV-vis, 48 h, 'room temperature'; plain TEMPO not in it; the SI's Fig. S5 is the UV-vis calibration behind it, no separate table | `zhou2020` |
+
+Searched and not found: a primary measured aqueous solubility of plain TEMPO (two supplier listings disagree by about 60 times: about 0.15 g/L and about 9 g/L, the second unvalidated), of DPPH or of a nitronyl nitroxide; the Yalkowsky handbook and the Lange organic table were searched by name and formula.
+
 ## How to use this
 
 Before searching for a reference for a tautomer system, look here. A paper listed as "not an energy
